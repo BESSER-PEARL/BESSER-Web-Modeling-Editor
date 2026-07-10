@@ -129,14 +129,46 @@
         "writable": "Escrivible",
         "maxReadBytes": "Bytes màx. de lectura"
       }
-    }
+    },
+    "method": {
+      "showCodeEditor": "Mostra l'editor de codi",
+      "noQuantumCircuits": "No hi ha circuits quàntics disponibles",
+      "createQuantumCircuitFirst": "Primer crea un diagrama de circuit quàntic al teu projecte",
+      "typeLabel": "Tipus:",
+      "createStateMachineFirst": "Primer crea un diagrama de màquina d'estats al teu projecte",
+      "selectStateMachine": "-- Selecciona la màquina d'estats --",
+      "definedInPython": "Mètode definit en codi Python",
+      "selectQuantumCircuit": "-- Selecciona el circuit quàntic --",
+      "clearCode": "Esborra el codi",
+      "hideEditor": "Amaga l'editor",
+      "noStateMachines": "No hi ha màquines d'estats disponibles",
+      "definedInBal": "Mètode definit en codi BESSER Action Language",
+      "showEditor": "Mostra l'editor",
+      "implementation": "Implementació",
+      "hideCodeEditor": "Amaga l'editor de codi"
+    },
+    "classifier": {
+      "createMethodWithCode": "Crea un mètode amb comportament de codi",
+      "moveDown": "Mou avall",
+      "moveUp": "Mou amunt",
+      "codeButton": "Codi",
+      "newLiteralPlaceholder": "+ literal",
+      "newAttributePlaceholder": "+ atribut: str"
+    },
+    "attribute": {
+      "literalNamePlaceholder": "nom del literal",
+      "namePlaceholder": "nom de l'atribut"
+    },
+    "associationNamePlaceholder": "Nom de l'associació",
+    "literals": "Literals"
   },
   "assessment": {
     "assessment": "Avaluació de",
     "score": "Punts",
     "feedback": "Comentaris",
     "feedbackPlaceholder": "Podeu introduir comentaris aquí...",
-    "additionalFeedbackPlaceholder": "Podeu introduir comentaris addicionals aquí..."
+    "additionalFeedbackPlaceholder": "Podeu introduir comentaris addicionals aquí...",
+    "nextAssessment": "Següent avaluació"
   },
   "packages": {
     "ClassDiagram": {
@@ -307,7 +339,9 @@
       "Datasets": "Conjunts de dades XN"
     },
     "OCLConstraint": {
-      "Constraint": "Restricció OCL"
+      "Constraint": "Restricció OCL",
+      "DescriptionPlaceholder": "p. ex. Assegureu-vos de triar una edat realista",
+      "DescriptionLabel": "Descripció (es mostra als usuaris finals quan falla la validació) Opcional"
     },
     "StateDiagram": {
       "StateTransition": "Transició",
@@ -341,5 +375,35 @@
     "remove": "Elimina",
     "width": "Amplada",
     "height": "Alçada"
+  },
+  "stylePane": {
+    "enterIcon": "Introdueix el nom de la icona...",
+    "enterDescription": "Introdueix una descripció...",
+    "idLockedByOptional": "Els atributs opcionals no poden ser l'identificador.",
+    "enterDefaultValue": "Introdueix un valor per defecte...",
+    "reset": "Restableix",
+    "fillColor": "Color de farciment",
+    "icon": "Icona",
+    "externalIdLockedByOptional": "Els atributs opcionals no poden ser l'identificador extern.",
+    "optional": "Opcional",
+    "enterInteger": "Introdueix un enter...",
+    "id": "ID",
+    "textColor": "Color de text",
+    "externalId": "ID extern",
+    "description": "Descripció",
+    "optionalLockedById": "Els atributs identificadors no poden ser opcionals.",
+    "none": "(cap)",
+    "lineColor": "Color de línia",
+    "default": "Per defecte",
+    "enterNumber": "Introdueix un número...",
+    "derived": "Derivat"
+  },
+  "associationPopup": {
+    "cancel": "Cancel·la",
+    "title": "Afegeix i connecta a un objecte nou",
+    "noTargets": "No hi ha altres objectes disponibles per connectar"
+  },
+  "propertiesPanel": {
+    "close": "Tanca"
   }
 }

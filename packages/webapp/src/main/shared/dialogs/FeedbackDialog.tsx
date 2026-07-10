@@ -1,4 +1,5 @@
 import React, { useMemo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { toast } from 'react-toastify';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -18,21 +19,21 @@ interface FeedbackDialogProps {
 }
 
 const categories = [
-  { value: '', label: 'Select a category (optional)' },
-  { value: 'editor', label: 'Diagram Editor' },
-  { value: 'generators', label: 'Code Generation' },
-  { value: 'deployment', label: 'Deployment' },
-  { value: 'performance', label: 'Performance' },
-  { value: 'bugs', label: 'Bug Report' },
-  { value: 'feature_request', label: 'Feature Request' },
-  { value: 'documentation', label: 'Documentation' },
-  { value: 'other', label: 'Other' },
+  { value: '', labelKey: 'feedback.categoryOptions.none' },
+  { value: 'editor', labelKey: 'feedback.categoryOptions.editor' },
+  { value: 'generators', labelKey: 'feedback.categoryOptions.generators' },
+  { value: 'deployment', labelKey: 'feedback.categoryOptions.deployment' },
+  { value: 'performance', labelKey: 'feedback.categoryOptions.performance' },
+  { value: 'bugs', labelKey: 'feedback.categoryOptions.bugs' },
+  { value: 'feature_request', labelKey: 'feedback.categoryOptions.feature_request' },
+  { value: 'documentation', labelKey: 'feedback.categoryOptions.documentation' },
+  { value: 'other', labelKey: 'feedback.categoryOptions.other' },
 ];
 
-const satisfactionOptions: Array<{ value: Satisfaction; label: string; helper: string }> = [
-  { value: 'sad', label: 'Not Satisfied', helper: 'Needs improvements' },
-  { value: 'neutral', label: 'Neutral', helper: 'Mixed experience' },
-  { value: 'happy', label: 'Very Satisfied', helper: 'Great experience' },
+const satisfactionOptions: Array<{ value: Satisfaction; labelKey: string; helperKey: string }> = [
+  { value: 'sad', labelKey: 'feedback.satisfaction.sad.label', helperKey: 'feedback.satisfaction.sad.helper' },
+  { value: 'neutral', labelKey: 'feedback.satisfaction.neutral.label', helperKey: 'feedback.satisfaction.neutral.helper' },
+  { value: 'happy', labelKey: 'feedback.satisfaction.happy.label', helperKey: 'feedback.satisfaction.happy.helper' },
 ];
 
 const buttonClass = (selected: boolean): string =>
@@ -41,6 +42,7 @@ const buttonClass = (selected: boolean): string =>
     : 'border-border/70 bg-background text-muted-foreground hover:border-brand/40 hover:text-foreground';
 
 export const FeedbackDialog: React.FC<FeedbackDialogProps> = ({ open, onOpenChange }) => {
+  const { t } = useTranslation();
   const [satisfaction, setSatisfaction] = useState<Satisfaction | null>(null);
   const [category, setCategory] = useState('');
   const [feedback, setFeedback] = useState('');
@@ -76,7 +78,7 @@ export const FeedbackDialog: React.FC<FeedbackDialogProps> = ({ open, onOpenChan
     const errors = validation.touchAll();
     if (Object.keys(errors).length > 0 || !satisfaction) {
       if (!satisfaction) {
-        toast.error('Please select a satisfaction rating.');
+        toast.error(t('feedback.toast.selectRating'));
       }
       return;
     }
@@ -98,7 +100,7 @@ export const FeedbackDialog: React.FC<FeedbackDialogProps> = ({ open, onOpenChan
       });
 
       if (!response.ok) {
-        let detail = 'Failed to submit feedback.';
+        let detail = t('feedback.toast.submitFailedDefault');
         try {
           const payload = await response.json();
           if (typeof payload?.detail === 'string') {
@@ -110,10 +112,10 @@ export const FeedbackDialog: React.FC<FeedbackDialogProps> = ({ open, onOpenChan
         throw new Error(detail);
       }
 
-      toast.success('Thank you for your feedback.');
+      toast.success(t('feedback.toast.thankYou'));
       handleOpenChange(false);
     } catch (error) {
-      toast.error(`Feedback submission failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      toast.error(t('feedback.toast.submitFailed', { error: error instanceof Error ? error.message : t('feedback.toast.unknownError') }));
       setIsSubmitting(false);
     }
   };
@@ -122,13 +124,13 @@ export const FeedbackDialog: React.FC<FeedbackDialogProps> = ({ open, onOpenChan
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="max-h-[88vh] overflow-y-auto sm:max-w-2xl">
         <DialogHeader>
-          <DialogTitle className="font-display text-2xl tracking-tight">Help Us Improve BESSER</DialogTitle>
-          <DialogDescription>Share your feedback about the editor and generation workflow.</DialogDescription>
+          <DialogTitle className="font-display text-2xl tracking-tight">{t('feedback.title')}</DialogTitle>
+          <DialogDescription>{t('feedback.description')}</DialogDescription>
         </DialogHeader>
 
         <div className="flex flex-col gap-5">
           <div className="flex flex-col gap-2.5">
-            <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">How satisfied are you with your experience?</Label>
+            <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{t('feedback.satisfactionQuestion')}</Label>
             <div className="grid gap-2.5 md:grid-cols-3">
               {satisfactionOptions.map((option) => (
                 <button
@@ -142,15 +144,15 @@ export const FeedbackDialog: React.FC<FeedbackDialogProps> = ({ open, onOpenChan
                   }`}
                 >
                   <div className="pointer-events-none absolute -right-3 -top-3 size-10 rounded-full bg-brand/[0.04] transition-transform duration-300 group-hover:scale-[2]" />
-                  <p className="relative text-sm font-semibold tracking-tight text-foreground">{option.label}</p>
-                  <p className="relative mt-1 text-xs opacity-70">{option.helper}</p>
+                  <p className="relative text-sm font-semibold tracking-tight text-foreground">{t(option.labelKey)}</p>
+                  <p className="relative mt-1 text-xs opacity-70">{t(option.helperKey)}</p>
                 </button>
               ))}
             </div>
           </div>
 
           <div className="flex flex-col gap-1.5">
-            <Label htmlFor="feedback-category" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Category</Label>
+            <Label htmlFor="feedback-category" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{t('feedback.category')}</Label>
             <select
               id="feedback-category"
               value={category}
@@ -159,24 +161,24 @@ export const FeedbackDialog: React.FC<FeedbackDialogProps> = ({ open, onOpenChan
             >
               {categories.map((option) => (
                 <option key={option.value || 'none'} value={option.value}>
-                  {option.label}
+                  {t(option.labelKey)}
                 </option>
               ))}
             </select>
           </div>
 
-          <FormField label="Feedback" htmlFor="feedback-message" required error={validation.getError('feedback')}>
+          <FormField label={t('feedback.feedbackLabel')} htmlFor="feedback-message" required error={validation.getError('feedback')}>
             <Textarea
               id="feedback-message"
               value={feedback}
               onChange={(event) => setFeedback(event.target.value)}
               onBlur={() => validation.markTouched('feedback')}
-              placeholder="Tell us what works, what does not, and what you want next."
+              placeholder={t('feedback.feedbackPlaceholder')}
               className={`min-h-28 ${validation.getError('feedback') ? 'border-destructive focus-visible:border-destructive focus-visible:ring-destructive/20' : ''}`}
             />
           </FormField>
 
-          <FormField label="Email (optional)" htmlFor="feedback-email" error={validation.getError('email')} helperText="Leave your email if you want follow-up from the team.">
+          <FormField label={t('feedback.emailLabel')} htmlFor="feedback-email" error={validation.getError('email')} helperText={t('feedback.emailHelper')}>
             <Input
               id="feedback-email"
               type="email"
@@ -191,10 +193,10 @@ export const FeedbackDialog: React.FC<FeedbackDialogProps> = ({ open, onOpenChan
 
         <DialogFooter className="gap-2">
           <Button variant="outline" onClick={() => handleOpenChange(false)} disabled={isSubmitting} className="rounded-lg">
-            Cancel
+            {t('common.cancel')}
           </Button>
           <Button onClick={() => void handleSubmit()} disabled={!canSubmit} className="rounded-lg bg-brand text-brand-foreground shadow-elevation-1 transition-shadow hover:bg-brand-dark hover:shadow-elevation-2">
-            {isSubmitting ? 'Submitting...' : 'Submit Feedback'}
+            {isSubmitting ? t('feedback.submitting') : t('feedback.submit')}
           </Button>
         </DialogFooter>
       </DialogContent>

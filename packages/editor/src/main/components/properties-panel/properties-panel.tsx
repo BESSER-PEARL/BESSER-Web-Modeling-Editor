@@ -7,6 +7,8 @@ import { ApollonMode } from '../../services/editor/editor-types';
 import { IUMLElement } from '../../services/uml-element/uml-element';
 import { UMLElementRepository } from '../../services/uml-element/uml-element-repository';
 import { Assessment } from '../assessment/assessment';
+import { I18nContext } from '../i18n/i18n-context';
+import { localized } from '../i18n/localized';
 import { ModelState } from '../store/model-state';
 import {
   PanelWrapper,
@@ -34,9 +36,10 @@ type DispatchProps = {
   updateEnd: typeof UMLElementRepository.updateEnd;
 };
 
-type Props = OwnProps & StateProps & DispatchProps;
+type Props = OwnProps & StateProps & DispatchProps & I18nContext;
 
 const enhance = compose<ComponentClass<OwnProps>>(
+  localized,
   connect<StateProps, DispatchProps, OwnProps, ModelState>(
     (state) => ({
       element: state.elements[state.updating[0]] || null,
@@ -98,7 +101,7 @@ class PropertiesPanelComponent extends Component<Props, PropertiesPanelState> {
   }
 
   render() {
-    const { element, disabled, mode, readonly } = this.props;
+    const { element, disabled, mode, readonly, translate } = this.props;
     const { panelWidth } = this.state;
 
     if (disabled || readonly) {
@@ -128,7 +131,7 @@ class PropertiesPanelComponent extends Component<Props, PropertiesPanelState> {
         <PanelContainer style={{ width: panelWidth }}>
           <PanelHeader>
             <PanelHeaderTitle title={typeLabel}>{typeLabel}</PanelHeaderTitle>
-            <CloseButton onClick={this.handleClose} title="Close">&times;</CloseButton>
+            <CloseButton onClick={this.handleClose} title={translate('propertiesPanel.close')}>&times;</CloseButton>
           </PanelHeader>
           <PanelBody>
             <CustomPopupComponent element={element} />

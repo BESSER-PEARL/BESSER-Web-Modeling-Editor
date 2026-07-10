@@ -129,14 +129,46 @@
         "writable": "Escribible",
         "maxReadBytes": "Bytes máx. de lectura"
       }
-    }
+    },
+    "method": {
+      "showCodeEditor": "Mostrar el editor de código",
+      "noQuantumCircuits": "No hay circuitos cuánticos disponibles",
+      "createQuantumCircuitFirst": "Primero crea un diagrama de circuito cuántico en tu proyecto",
+      "typeLabel": "Tipo:",
+      "createStateMachineFirst": "Primero crea un diagrama de máquina de estados en tu proyecto",
+      "selectStateMachine": "-- Selecciona la máquina de estados --",
+      "definedInPython": "Método definido en código Python",
+      "selectQuantumCircuit": "-- Selecciona el circuito cuántico --",
+      "clearCode": "Borrar código",
+      "hideEditor": "Ocultar editor",
+      "noStateMachines": "No hay máquinas de estados disponibles",
+      "definedInBal": "Método definido en código BESSER Action Language",
+      "showEditor": "Mostrar editor",
+      "implementation": "Implementación",
+      "hideCodeEditor": "Ocultar el editor de código"
+    },
+    "classifier": {
+      "createMethodWithCode": "Crear método con comportamiento de código",
+      "moveDown": "Mover abajo",
+      "moveUp": "Mover arriba",
+      "codeButton": "Código",
+      "newLiteralPlaceholder": "+ literal",
+      "newAttributePlaceholder": "+ atributo: str"
+    },
+    "attribute": {
+      "literalNamePlaceholder": "nombre del literal",
+      "namePlaceholder": "nombre del atributo"
+    },
+    "associationNamePlaceholder": "Nombre de la asociación",
+    "literals": "Literales"
   },
   "assessment": {
     "assessment": "Evaluación de",
     "score": "Puntos",
     "feedback": "Comentarios",
     "feedbackPlaceholder": "Puede introducir comentarios aquí...",
-    "additionalFeedbackPlaceholder": "Puede introducir comentarios adicionales aquí..."
+    "additionalFeedbackPlaceholder": "Puede introducir comentarios adicionales aquí...",
+    "nextAssessment": "Siguiente evaluación"
   },
   "packages": {
     "ClassDiagram": {
@@ -307,7 +339,9 @@
       "Datasets": "Conjuntos de datos RN"
     },
     "OCLConstraint": {
-      "Constraint": "Restricción OCL"
+      "Constraint": "Restricción OCL",
+      "DescriptionPlaceholder": "p. ej. Asegúrate de elegir una edad realista",
+      "DescriptionLabel": "Descripción (se muestra a los usuarios finales cuando falla la validación) Opcional"
     },
     "StateDiagram": {
       "StateTransition": "Transición",
@@ -341,5 +375,35 @@
     "remove": "Eliminar",
     "width": "Ancho",
     "height": "Alto"
+  },
+  "stylePane": {
+    "enterIcon": "Introduce el nombre del icono...",
+    "enterDescription": "Introduce una descripción...",
+    "idLockedByOptional": "Los atributos opcionales no pueden ser el identificador.",
+    "enterDefaultValue": "Introduce un valor predeterminado...",
+    "reset": "Restablecer",
+    "fillColor": "Color de relleno",
+    "icon": "Icono",
+    "externalIdLockedByOptional": "Los atributos opcionales no pueden ser el identificador externo.",
+    "optional": "Opcional",
+    "enterInteger": "Introduce un entero...",
+    "id": "ID",
+    "textColor": "Color de texto",
+    "externalId": "ID externo",
+    "description": "Descripción",
+    "optionalLockedById": "Los atributos identificadores no pueden ser opcionales.",
+    "none": "(ninguno)",
+    "lineColor": "Color de línea",
+    "default": "Predeterminado",
+    "enterNumber": "Introduce un número...",
+    "derived": "Derivado"
+  },
+  "associationPopup": {
+    "cancel": "Cancelar",
+    "title": "Añadir y conectar a un objeto nuevo",
+    "noTargets": "No hay otros objetos disponibles para conectar"
+  },
+  "propertiesPanel": {
+    "close": "Cerrar"
   }
 }

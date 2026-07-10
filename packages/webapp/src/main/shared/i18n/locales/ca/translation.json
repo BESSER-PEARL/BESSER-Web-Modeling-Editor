@@ -584,6 +584,10 @@
       "agentGeneration": "Generació d'agent",
       "qiskitGeneration": "Generació de Qiskit",
       "webAppGeneration": "Generació d'aplicació web"
+    },
+    "overlay": {
+      "subtitle": "Espereu mentre es genera el vostre codi",
+      "title": "S'està generant el codi"
     }
   },
   "project": {
@@ -1747,7 +1751,9 @@
       "qubits": "Qubits: {{count}}",
       "removeQubit": "Elimina el qubit",
       "addQubit": "Afegeix un qubit",
-      "saveCircuit": "Desa el circuit"
+      "saveCircuit": "Desa el circuit",
+      "toolbox1": "Caixa d'eines 1",
+      "toolbox2": "Caixa d'eines 2"
     },
     "gui": {
       "blocks": {
@@ -2076,6 +2082,52 @@
       "traitValueFieldPlaceholder": "Camp per al valor",
       "importTemplate": "Importa una plantilla",
       "importTemplateLabel": "Enganxeu aquí el vostre HTML/CSS i feu clic a Importa"
+    },
+    "loadingGuiEditor": "S'està carregant l'editor de GUI...",
+    "loadingQuantumEditor": "S'està carregant l'editor quàntic..."
+  },
+  "feedback": {
+    "feedbackPlaceholder": "Digueu-nos què funciona, què no i què voleu a continuació.",
+    "feedbackLabel": "Comentaris",
+    "toast": {
+      "thankYou": "Gràcies pels vostres comentaris.",
+      "submitFailedDefault": "No s'han pogut enviar els comentaris.",
+      "selectRating": "Seleccioneu una valoració de satisfacció.",
+      "unknownError": "Error desconegut"
+    },
+    "submitting": "S'està enviant...",
+    "title": "Ajudeu-nos a millorar BESSER",
+    "description": "Comparteix els teus comentaris sobre l'editor i el flux de treball de generació.",
+    "satisfactionQuestion": "Quin grau de satisfacció tens amb la teva experiència?",
+    "emailHelper": "Deixeu el vostre correu electrònic si voleu un seguiment de l'equip.",
+    "submit": "Envia els comentaris",
+    "category": "Categoria",
+    "emailLabel": "Correu electrònic (opcional)"
+  },
+  "export": {
+    "dialog": {
+      "currentTitle": "Diagrama actual",
+      "exportBuml": "Exporta com a B-UML",
+      "exportSvg": "Exporta com a SVG",
+      "noDiagrams": "No hi ha cap diagrama disponible al projecte actual.",
+      "title": "Exporta el projecte",
+      "multipleDescription": "Exporta els diagrames seleccionats com a JSON o B-UML.",
+      "exportDiagramBuml": "Exporta el diagrama com a B-UML",
+      "exportJson": "Exporta com a JSON",
+      "multipleTitle": "Diversos diagrames",
+      "description": "Exporta els fitxers complets del projecte o els recursos del diagrama actual.",
+      "requiresUmlView": "L'exportació del diagrama actual requereix una vista de diagrama UML. Utilitzeu l'exportació a nivell de projecte.",
+      "exportPngTransparent": "Exporta PNG (transparent)",
+      "exportDiagramJson": "Exporta el diagrama com a JSON",
+      "untitledDiagram": "Diagrama sense títol",
+      "exportPngWhite": "Exporta PNG (blanc)",
+      "currentDescription": "Exporta el diagrama UML actual com a recursos d'imatge."
+    },
+    "toast": {
+      "unknownError": "Error desconegut",
+      "openUmlFirst": "Obriu primer un diagrama UML.",
+      "selectAtLeastOne": "Seleccioneu almenys un diagrama per exportar.",
+      "noProject": "No hi ha cap projecte disponible per exportar."
     }
   }
 }

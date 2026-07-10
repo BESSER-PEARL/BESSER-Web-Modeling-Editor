@@ -1,8 +1,10 @@
 import React from 'react';
 import { Button } from './style-pane-styles';
 import styled from 'styled-components';
+import { I18nContext } from '../i18n/i18n-context';
+import { localized } from '../i18n/localized';
 
-type Props = { color?: string; onColorChange: (hex: string | undefined) => void; open: boolean };
+type Props = { color?: string; onColorChange: (hex: string | undefined) => void; open: boolean } & I18nContext;
 
 const colors = [
   '#fc5c65',
@@ -52,7 +54,7 @@ const Color = styled.button.attrs<ColorProps>({})<ColorProps>`
   box-shadow: ${({ color, selected }: ColorProps) => (selected ? `0px 0px 10px ${color}` : 'none')};
 `;
 
-export function ColorSelector({ onColorChange, color, open }: Props) {
+function ColorSelectorComponent({ onColorChange, color, open, translate }: Props) {
   const handleColorChange = (newColor: any) => {
     onColorChange(newColor);
   };
@@ -77,9 +79,11 @@ export function ColorSelector({ onColorChange, color, open }: Props) {
               />
             ))}
           </Flex>
-          <Button onClick={reset}>Reset</Button>
+          <Button onClick={reset}>{translate('stylePane.reset')}</Button>
         </ColorContainer>
       ) : null}
     </>
   );
 }
+
+export const ColorSelector = localized(ColorSelectorComponent);

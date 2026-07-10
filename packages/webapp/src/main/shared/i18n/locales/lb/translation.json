@@ -584,6 +584,10 @@
       "agentGeneration": "Agent-Generéierung",
       "qiskitGeneration": "Qiskit-Generéierung",
       "webAppGeneration": "Web-App-Generéierung"
+    },
+    "overlay": {
+      "subtitle": "Waart w.e.g., wärend Äre Code generéiert gëtt",
+      "title": "Code gëtt generéiert"
     }
   },
   "project": {
@@ -1747,7 +1751,9 @@
       "qubits": "Qubits: {{count}}",
       "removeQubit": "Qubit ewechhuelen",
       "addQubit": "Qubit bäifügen",
-      "saveCircuit": "Circuit späicheren"
+      "saveCircuit": "Circuit späicheren",
+      "toolbox1": "Geschirkëscht 1",
+      "toolbox2": "Geschirkëscht 2"
     },
     "gui": {
       "blocks": {
@@ -2076,6 +2082,52 @@
       "traitValueFieldPlaceholder": "Feld fir de Wäert",
       "importTemplate": "Template importéieren",
       "importTemplateLabel": "Paut hei ären HTML/CSS an a klickt op Importéieren"
+    },
+    "loadingGuiEditor": "GUI-Editor gëtt gelueden...",
+    "loadingQuantumEditor": "Quanten-Editor gëtt gelueden..."
+  },
+  "feedback": {
+    "feedbackPlaceholder": "Sot eis, wat funktionéiert, wat net, a wat Dir als Nächst wëllt.",
+    "feedbackLabel": "Feedback",
+    "toast": {
+      "thankYou": "Merci fir Äre Feedback.",
+      "submitFailedDefault": "Feedback konnt net geschéckt ginn.",
+      "selectRating": "Wielt w.e.g. eng Zefriddenheetsbewäertung aus.",
+      "unknownError": "Onbekannte Feeler"
+    },
+    "submitting": "Gëtt geschéckt...",
+    "title": "Hëlleft eis, BESSER ze verbesseren",
+    "description": "Deelt Äert Feedback iwwer den Editor an de Generatiounsworkflow.",
+    "satisfactionQuestion": "Wéi zefridde sidd Dir mat Ärer Erfarung?",
+    "emailHelper": "Loosst Är E-Mail do, wann Dir e Suivi vum Team wëllt.",
+    "submit": "Feedback schécken",
+    "category": "Kategorie",
+    "emailLabel": "E-Mail (fakultativ)"
+  },
+  "export": {
+    "dialog": {
+      "currentTitle": "Aktuellt Diagramm",
+      "exportBuml": "Als B-UML exportéieren",
+      "exportSvg": "Als SVG exportéieren",
+      "noDiagrams": "Am aktuelle Projet sinn keng Diagrammer verfügbar.",
+      "title": "Projet exportéieren",
+      "multipleDescription": "Exportéiert déi ausgewielten Diagrammer als JSON oder B-UML.",
+      "exportDiagramBuml": "Diagramm als B-UML exportéieren",
+      "exportJson": "Als JSON exportéieren",
+      "multipleTitle": "Méi Diagrammer",
+      "description": "Exportéiert d'komplett Projetdateien oder d'Ressourcen vum aktuellen Diagramm.",
+      "requiresUmlView": "Den Export vum aktuellen Diagramm erfuerdert eng UML-Diagrammusiicht. Benotzt amplaz den Export op Projetniveau.",
+      "exportPngTransparent": "PNG exportéieren (transparent)",
+      "exportDiagramJson": "Diagramm als JSON exportéieren",
+      "untitledDiagram": "Diagramm ouni Titel",
+      "exportPngWhite": "PNG exportéieren (wäiss)",
+      "currentDescription": "Exportéiert dat aktuellt UML-Diagramm als Biller."
+    },
+    "toast": {
+      "unknownError": "Onbekannte Feeler",
+      "openUmlFirst": "Maacht fir d'éischt en UML-Diagramm op.",
+      "selectAtLeastOne": "Wielt op d'mannst ee Diagramm fir z'exportéieren aus.",
+      "noProject": "Kee Projet fir z'exportéieren verfügbar."
     }
   }
 }

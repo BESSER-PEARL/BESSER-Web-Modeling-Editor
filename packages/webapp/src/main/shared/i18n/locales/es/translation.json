@@ -584,6 +584,10 @@
       "agentGeneration": "Generación de agente",
       "qiskitGeneration": "Generación de Qiskit",
       "webAppGeneration": "Generación de aplicación web"
+    },
+    "overlay": {
+      "subtitle": "Espera mientras se genera tu código",
+      "title": "Generando código"
     }
   },
   "project": {
@@ -1747,7 +1751,9 @@
       "qubits": "Qubits: {{count}}",
       "removeQubit": "Eliminar qubit",
       "addQubit": "Añadir qubit",
-      "saveCircuit": "Guardar circuito"
+      "saveCircuit": "Guardar circuito",
+      "toolbox1": "Caja de herramientas 1",
+      "toolbox2": "Caja de herramientas 2"
     },
     "gui": {
       "blocks": {
@@ -2076,6 +2082,52 @@
       "traitValueFieldPlaceholder": "Campo para el valor",
       "importTemplate": "Importar plantilla",
       "importTemplateLabel": "Pegue aquí su HTML/CSS y haga clic en Importar"
+    },
+    "loadingGuiEditor": "Cargando el editor de GUI...",
+    "loadingQuantumEditor": "Cargando el editor cuántico..."
+  },
+  "feedback": {
+    "feedbackPlaceholder": "Cuéntanos qué funciona, qué no y qué te gustaría a continuación.",
+    "feedbackLabel": "Comentarios",
+    "toast": {
+      "thankYou": "Gracias por tus comentarios.",
+      "submitFailedDefault": "No se pudieron enviar los comentarios.",
+      "selectRating": "Seleccione una valoración de satisfacción.",
+      "unknownError": "Error desconocido"
+    },
+    "submitting": "Enviando...",
+    "title": "Ayúdanos a mejorar BESSER",
+    "description": "Comparte tus comentarios sobre el editor y el flujo de trabajo de generación.",
+    "satisfactionQuestion": "¿Qué tan satisfecho estás con tu experiencia?",
+    "emailHelper": "Deja tu correo electrónico si quieres seguimiento por parte del equipo.",
+    "submit": "Enviar comentarios",
+    "category": "Categoría",
+    "emailLabel": "Correo electrónico (opcional)"
+  },
+  "export": {
+    "dialog": {
+      "currentTitle": "Diagrama actual",
+      "exportBuml": "Exportar como B-UML",
+      "exportSvg": "Exportar como SVG",
+      "noDiagrams": "No hay diagramas disponibles en el proyecto actual.",
+      "title": "Exportar proyecto",
+      "multipleDescription": "Exporta los diagramas seleccionados como JSON o B-UML.",
+      "exportDiagramBuml": "Exportar diagrama como B-UML",
+      "exportJson": "Exportar como JSON",
+      "multipleTitle": "Varios diagramas",
+      "description": "Exporta los archivos completos del proyecto o los recursos del diagrama actual.",
+      "requiresUmlView": "La exportación del diagrama actual requiere una vista de diagrama UML. Utilice la exportación a nivel de proyecto en su lugar.",
+      "exportPngTransparent": "Exportar PNG (transparente)",
+      "exportDiagramJson": "Exportar diagrama como JSON",
+      "untitledDiagram": "Diagrama sin título",
+      "exportPngWhite": "Exportar PNG (blanco)",
+      "currentDescription": "Exporta el diagrama UML actual como recursos de imagen."
+    },
+    "toast": {
+      "unknownError": "Error desconocido",
+      "openUmlFirst": "Abra primero un diagrama UML.",
+      "selectAtLeastOne": "Seleccione al menos un diagrama para exportar.",
+      "noProject": "No hay ningún proyecto disponible para exportar."
     }
   }
 }

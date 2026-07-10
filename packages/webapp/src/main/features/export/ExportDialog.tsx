@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { ApollonEditor } from '@besser/wme';
 import { Download, FileCode2, FileImage, FileJson2 } from 'lucide-react';
 import { toast } from 'react-toastify';
@@ -25,20 +26,10 @@ interface ExportDialogProps {
 
 type ExportFormat = 'SVG' | 'PNG_WHITE' | 'PNG' | 'JSON' | 'BUML' | 'SINGLE_JSON' | 'SINGLE_BUML';
 
-const diagramLabels: Record<SupportedDiagramType, string> = {
-  ClassDiagram: 'Class Diagram',
-  ObjectDiagram: 'Object Diagram',
-  StateMachineDiagram: 'State Machine Diagram',
-  AgentDiagram: 'Agent Diagram',
-  UserDiagram: 'User Diagram',
-  GUINoCodeDiagram: 'GUI No-Code Diagram',
-  QuantumCircuitDiagram: 'Quantum Circuit Diagram',
-  NNDiagram: 'Neural Network Diagram',
-};
-
 const formatsRequiringSelection = new Set<ExportFormat>(['JSON', 'BUML']);
 
 export const ExportDialog: React.FC<ExportDialogProps> = ({ open, onOpenChange, editor, currentDiagramTitle }) => {
+  const { t } = useTranslation();
   const { currentProject } = useProject();
   const diagram = useAppSelector(selectActiveDiagram);
   const exportAsSVG = useExportSVG();
@@ -91,17 +82,17 @@ export const ExportDialog: React.FC<ExportDialogProps> = ({ open, onOpenChange, 
     const normalizedTitle = currentDiagramTitle.trim() || 'Diagram';
 
     if ((isImageExport || isSingleDiagramExport) && !editor) {
-      toast.error('Open a UML diagram first.');
+      toast.error(t('export.toast.openUmlFirst'));
       return;
     }
 
     if (!currentProject) {
-      toast.error('No project available to export.');
+      toast.error(t('export.toast.noProject'));
       return;
     }
 
     if (formatsRequiringSelection.has(format) && selectedDiagrams.length === 0) {
-      toast.error('Select at least one diagram to export.');
+      toast.error(t('export.toast.selectAtLeastOne'));
       return;
     }
 
@@ -137,7 +128,7 @@ export const ExportDialog: React.FC<ExportDialogProps> = ({ open, onOpenChange, 
 
       onOpenChange(false);
     } catch (error) {
-      toast.error(`Export failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      toast.error(t('export.toast.failed', { error: error instanceof Error ? error.message : t('export.toast.unknownError') }));
     }
   };
 
@@ -149,18 +140,18 @@ export const ExportDialog: React.FC<ExportDialogProps> = ({ open, onOpenChange, 
             <div className="flex size-8 items-center justify-center rounded-xl bg-primary/8 text-primary ring-1 ring-primary/10">
               <Download className="size-4" />
             </div>
-            Export Project
+            {t('export.dialog.title')}
           </DialogTitle>
-          <DialogDescription>Export full project files or current diagram assets.</DialogDescription>
+          <DialogDescription>{t('export.dialog.description')}</DialogDescription>
         </DialogHeader>
 
         <div className="grid gap-4 md:grid-cols-2">
           <section className="flex flex-col overflow-hidden rounded-xl border border-border/50 bg-gradient-to-b from-muted/30 to-background p-4 shadow-elevation-1">
             <h3 className="mb-1.5 flex items-center gap-2 text-sm font-semibold tracking-tight">
               <FileJson2 className="size-4 text-primary" />
-              Multiple Diagrams
+              {t('export.dialog.multipleTitle')}
             </h3>
-            <p className="mb-3 text-xs text-muted-foreground">Export selected diagrams as JSON or B-UML.</p>
+            <p className="mb-3 text-xs text-muted-foreground">{t('export.dialog.multipleDescription')}</p>
 
             {diagramEntries.length > 0 ? (
               <>
@@ -174,9 +165,9 @@ export const ExportDialog: React.FC<ExportDialogProps> = ({ open, onOpenChange, 
                         onChange={() => toggleDiagramSelection(type)}
                       />
                       <div className="flex flex-col">
-                        <span className="font-medium">{diagramLabels[type]}</span>
+                        <span className="font-medium">{t(`export.diagramLabels.${type}`)}</span>
                         {diagrams.length > 1 && (
-                          <span className="text-xs text-muted-foreground">{diagrams.length} diagrams: {diagrams.map((d) => d.title).join(', ')}</span>
+                          <span className="text-xs text-muted-foreground">{t('export.dialog.diagramCount', { count: diagrams.length, titles: diagrams.map((d) => d.title).join(', ') })}</span>
                         )}
                       </div>
                     </label>
@@ -186,17 +177,17 @@ export const ExportDialog: React.FC<ExportDialogProps> = ({ open, onOpenChange, 
                 <div className="mt-4 grid gap-2">
                   <Button onClick={() => handleExport('JSON')} className="justify-start gap-2 shadow-elevation-1 transition-shadow hover:shadow-elevation-2">
                     <FileJson2 className="size-4" />
-                    Export as JSON
+                    {t('export.dialog.exportJson')}
                   </Button>
                   <Button variant="secondary" onClick={() => handleExport('BUML')} className="justify-start gap-2">
                     <FileCode2 className="size-4" />
-                    Export as B-UML
+                    {t('export.dialog.exportBuml')}
                   </Button>
                 </div>
               </>
             ) : (
               <p className="rounded-lg border-2 border-dashed border-border/40 bg-muted/10 px-3 py-5 text-center text-xs text-muted-foreground">
-                No diagrams available in the current project.
+                {t('export.dialog.noDiagrams')}
               </p>
             )}
           </section>
@@ -204,40 +195,40 @@ export const ExportDialog: React.FC<ExportDialogProps> = ({ open, onOpenChange, 
           <section className="flex flex-col overflow-hidden rounded-xl border border-border/50 bg-gradient-to-b from-muted/30 to-background p-4 shadow-elevation-1">
             <h3 className="mb-1.5 flex items-center gap-2 text-sm font-semibold tracking-tight">
               <FileImage className="size-4 text-violet-600 dark:text-violet-400" />
-              Current Diagram
+              {t('export.dialog.currentTitle')}
             </h3>
-            <p className="mb-3 text-xs text-muted-foreground">Export the current UML diagram as image assets.</p>
+            <p className="mb-3 text-xs text-muted-foreground">{t('export.dialog.currentDescription')}</p>
 
             <div className="mb-4 rounded-lg border border-border/40 bg-background/80 px-3 py-2.5 text-sm font-medium">
-              {currentDiagramTitle || 'Untitled diagram'}
+              {currentDiagramTitle || t('export.dialog.untitledDiagram')}
             </div>
 
             <div className="grid gap-2">
               <Button variant="outline" onClick={() => handleExport('SVG')} className="justify-start gap-2 border-border/50 shadow-elevation-1 transition-all hover:shadow-elevation-2">
                 <FileCode2 className="size-4" />
-                Export as SVG
+                {t('export.dialog.exportSvg')}
               </Button>
               <Button variant="outline" onClick={() => handleExport('PNG_WHITE')} className="justify-start gap-2 border-border/50">
                 <FileImage className="size-4" />
-                Export PNG (White)
+                {t('export.dialog.exportPngWhite')}
               </Button>
               <Button variant="outline" onClick={() => handleExport('PNG')} className="justify-start gap-2 border-border/50">
                 <FileImage className="size-4" />
-                Export PNG (Transparent)
+                {t('export.dialog.exportPngTransparent')}
               </Button>
               <Button variant="outline" onClick={() => handleExport('SINGLE_JSON')} className="justify-start gap-2 border-border/50">
                 <FileJson2 className="size-4" />
-                Export Diagram as JSON
+                {t('export.dialog.exportDiagramJson')}
               </Button>
               <Button variant="outline" onClick={() => handleExport('SINGLE_BUML')} className="justify-start gap-2 border-border/50">
                 <FileCode2 className="size-4" />
-                Export Diagram as B-UML
+                {t('export.dialog.exportDiagramBuml')}
               </Button>
             </div>
 
             {!editor && (
               <p className="mt-3 rounded-lg border border-amber-300/40 bg-amber-50/80 px-3 py-2 text-xs font-medium text-amber-800 dark:border-amber-800/40 dark:bg-amber-950/30 dark:text-amber-200">
-                Current diagram exports require a UML diagram view. Use project-level export instead.
+                {t('export.dialog.requiresUmlView')}
               </p>
             )}
           </section>

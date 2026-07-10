@@ -129,14 +129,46 @@
         "writable": "Beschreiwbar",
         "maxReadBytes": "Max. Lies-Bytes"
       }
-    }
+    },
+    "method": {
+      "showCodeEditor": "Code-Editor uweisen",
+      "noQuantumCircuits": "Keng Quanteschaltkreesser verfügbar",
+      "createQuantumCircuitFirst": "Erstellt fir d'éischt en Quanteschaltkrees-Diagramm an Ärem Projet",
+      "typeLabel": "Typ:",
+      "createStateMachineFirst": "Erstellt fir d'éischt en Zoustandsmaschinn-Diagramm an Ärem Projet",
+      "selectStateMachine": "-- Zoustandsmaschinn auswielen --",
+      "definedInPython": "Methode am Python-Code definéiert",
+      "selectQuantumCircuit": "-- Quanteschaltkrees auswielen --",
+      "clearCode": "Code läschen",
+      "hideEditor": "Editor verstoppen",
+      "noStateMachines": "Keng Zoustandsmaschinnen verfügbar",
+      "definedInBal": "Methode am BESSER-Action-Language-Code definéiert",
+      "showEditor": "Editor uweisen",
+      "implementation": "Implementéierung",
+      "hideCodeEditor": "Code-Editor verstoppen"
+    },
+    "classifier": {
+      "createMethodWithCode": "Methode mat Code-Verhalen erstellen",
+      "moveDown": "No ënnen réckelen",
+      "moveUp": "No uewen réckelen",
+      "codeButton": "Code",
+      "newLiteralPlaceholder": "+ Literal",
+      "newAttributePlaceholder": "+ Attribut: str"
+    },
+    "attribute": {
+      "literalNamePlaceholder": "Literalnumm",
+      "namePlaceholder": "Attributnumm"
+    },
+    "associationNamePlaceholder": "Numm vun der Associatioun",
+    "literals": "Literaler"
   },
   "assessment": {
     "assessment": "Bewäertung fir",
     "score": "Punkten",
     "feedback": "Feedback",
     "feedbackPlaceholder": "Dir kënnt hei Feedback aginn...",
-    "additionalFeedbackPlaceholder": "Dir kënnt hei zousätzleche Feedback aginn..."
+    "additionalFeedbackPlaceholder": "Dir kënnt hei zousätzleche Feedback aginn...",
+    "nextAssessment": "Nächst Bewäertung"
   },
   "packages": {
     "ClassDiagram": {
@@ -307,7 +339,9 @@
       "Datasets": "NN-Datesätz"
     },
     "OCLConstraint": {
-      "Constraint": "OCL-Aschränkung"
+      "Constraint": "OCL-Aschränkung",
+      "DescriptionPlaceholder": "z. B. Vergewëssert Iech, en realisteschen Alter ze wielen",
+      "DescriptionLabel": "Beschreiwung (gëtt de Endbenotzer gewisen, wann d'Validéierung feelt) Optional"
     },
     "StateDiagram": {
       "StateTransition": "Iwwergang",
@@ -341,5 +375,35 @@
     "remove": "Ewechhuelen",
     "width": "Breet",
     "height": "Héicht"
+  },
+  "stylePane": {
+    "enterIcon": "Numm vun der Ikon aginn...",
+    "enterDescription": "Beschreiwung aginn...",
+    "idLockedByOptional": "Optional Attributer kënnen net den Identifikator sinn.",
+    "enterDefaultValue": "Standardwäert aginn...",
+    "reset": "Zrécksetzen",
+    "fillColor": "Fëllfaarf",
+    "icon": "Ikon",
+    "externalIdLockedByOptional": "Optional Attributer kënnen net den externen Identifikator sinn.",
+    "optional": "Optional",
+    "enterInteger": "Ganzzuel aginn...",
+    "id": "ID",
+    "textColor": "Textfaarf",
+    "externalId": "Extern ID",
+    "description": "Beschreiwung",
+    "optionalLockedById": "Identifikatiounsattributer kënne net optional sinn.",
+    "none": "(keen)",
+    "lineColor": "Linnefaarf",
+    "default": "Standard",
+    "enterNumber": "Zuel aginn...",
+    "derived": "Ofgeleet"
+  },
+  "associationPopup": {
+    "cancel": "Ofbriechen",
+    "title": "Neit Objet dobäisetzen a verbannen",
+    "noTargets": "Keng aner Objeten disponibel fir ze verbannen"
+  },
+  "propertiesPanel": {
+    "close": "Zoumaachen"
   }
 }

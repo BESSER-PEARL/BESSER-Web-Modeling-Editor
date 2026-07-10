@@ -129,14 +129,46 @@
         "writable": "Beschreibbar",
         "maxReadBytes": "Max. Lesebytes"
       }
-    }
+    },
+    "method": {
+      "showCodeEditor": "Code-Editor anzeigen",
+      "noQuantumCircuits": "Keine Quantenschaltkreise verfügbar",
+      "createQuantumCircuitFirst": "Erstellen Sie zuerst ein Quantenschaltkreis-Diagramm in Ihrem Projekt",
+      "typeLabel": "Typ:",
+      "createStateMachineFirst": "Erstellen Sie zuerst ein Zustandsmaschinen-Diagramm in Ihrem Projekt",
+      "selectStateMachine": "-- Zustandsmaschine auswählen --",
+      "definedInPython": "Methode in Python-Code definiert",
+      "selectQuantumCircuit": "-- Quantenschaltkreis auswählen --",
+      "clearCode": "Code löschen",
+      "hideEditor": "Editor ausblenden",
+      "noStateMachines": "Keine Zustandsmaschinen verfügbar",
+      "definedInBal": "Methode in BESSER-Action-Language-Code definiert",
+      "showEditor": "Editor anzeigen",
+      "implementation": "Implementierung",
+      "hideCodeEditor": "Code-Editor ausblenden"
+    },
+    "classifier": {
+      "createMethodWithCode": "Methode mit Code-Verhalten erstellen",
+      "moveDown": "Nach unten verschieben",
+      "moveUp": "Nach oben verschieben",
+      "codeButton": "Code",
+      "newLiteralPlaceholder": "+ Literal",
+      "newAttributePlaceholder": "+ Attribut: str"
+    },
+    "attribute": {
+      "literalNamePlaceholder": "Literalname",
+      "namePlaceholder": "Attributname"
+    },
+    "associationNamePlaceholder": "Assoziationsname",
+    "literals": "Literale"
   },
   "assessment": {
     "assessment": "Bewertung für",
     "score": "Punkte",
     "feedback": "Feedback",
     "feedbackPlaceholder": "Sie können hier Feedback eingeben...",
-    "additionalFeedbackPlaceholder": "Sie können hier zusätzliches Feedback eingeben..."
+    "additionalFeedbackPlaceholder": "Sie können hier zusätzliches Feedback eingeben...",
+    "nextAssessment": "Nächste Bewertung"
   },
   "packages": {
     "ClassDiagram": {
@@ -307,7 +339,9 @@
       "Datasets": "NN-Datensätze"
     },
     "OCLConstraint": {
-      "Constraint": "OCL-Einschränkung"
+      "Constraint": "OCL-Einschränkung",
+      "DescriptionPlaceholder": "z. B. Achten Sie darauf, ein realistisches Alter zu wählen",
+      "DescriptionLabel": "Beschreibung (wird Endbenutzern angezeigt, wenn die Validierung fehlschlägt) Optional"
     },
     "StateDiagram": {
       "StateTransition": "Übergang",
@@ -341,5 +375,35 @@
     "remove": "Entfernen",
     "width": "Breite",
     "height": "Höhe"
+  },
+  "stylePane": {
+    "enterIcon": "Symbolnamen eingeben...",
+    "enterDescription": "Beschreibung eingeben...",
+    "idLockedByOptional": "Optionale Attribute können nicht der Bezeichner sein.",
+    "enterDefaultValue": "Standardwert eingeben...",
+    "reset": "Zurücksetzen",
+    "fillColor": "Füllfarbe",
+    "icon": "Symbol",
+    "externalIdLockedByOptional": "Optionale Attribute können nicht der externe Bezeichner sein.",
+    "optional": "Optional",
+    "enterInteger": "Ganzzahl eingeben...",
+    "id": "ID",
+    "textColor": "Textfarbe",
+    "externalId": "Externe ID",
+    "description": "Beschreibung",
+    "optionalLockedById": "Bezeichner-Attribute können nicht optional sein.",
+    "none": "(keine)",
+    "lineColor": "Linienfarbe",
+    "default": "Standard",
+    "enterNumber": "Zahl eingeben...",
+    "derived": "Abgeleitet"
+  },
+  "associationPopup": {
+    "cancel": "Abbrechen",
+    "title": "Neues Objekt hinzufügen und verbinden",
+    "noTargets": "Keine anderen Objekte zum Verbinden verfügbar"
+  },
+  "propertiesPanel": {
+    "close": "Schließen"
   }
 }

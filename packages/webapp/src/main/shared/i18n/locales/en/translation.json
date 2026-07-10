@@ -584,6 +584,10 @@
       "agentGeneration": "Agent generation",
       "qiskitGeneration": "Qiskit generation",
       "webAppGeneration": "Web App generation"
+    },
+    "overlay": {
+      "subtitle": "Please wait while your code is being generated",
+      "title": "Generating Code"
     }
   },
   "project": {
@@ -1747,7 +1751,9 @@
       "qubits": "Qubits: {{count}}",
       "removeQubit": "Remove qubit",
       "addQubit": "Add qubit",
-      "saveCircuit": "Save Circuit"
+      "saveCircuit": "Save Circuit",
+      "toolbox1": "Toolbox 1",
+      "toolbox2": "Toolbox 2"
     },
     "gui": {
       "blocks": {
@@ -2076,6 +2082,52 @@
       "traitValueFieldPlaceholder": "Field for value",
       "importTemplate": "Import Template",
       "importTemplateLabel": "Paste here your HTML/CSS and click Import"
+    },
+    "loadingGuiEditor": "Loading GUI editor...",
+    "loadingQuantumEditor": "Loading quantum editor..."
+  },
+  "feedback": {
+    "feedbackPlaceholder": "Tell us what works, what does not, and what you want next.",
+    "feedbackLabel": "Feedback",
+    "toast": {
+      "thankYou": "Thank you for your feedback.",
+      "submitFailedDefault": "Failed to submit feedback.",
+      "selectRating": "Please select a satisfaction rating.",
+      "unknownError": "Unknown error"
+    },
+    "submitting": "Submitting...",
+    "title": "Help Us Improve BESSER",
+    "description": "Share your feedback about the editor and generation workflow.",
+    "satisfactionQuestion": "How satisfied are you with your experience?",
+    "emailHelper": "Leave your email if you want follow-up from the team.",
+    "submit": "Submit Feedback",
+    "category": "Category",
+    "emailLabel": "Email (optional)"
+  },
+  "export": {
+    "dialog": {
+      "currentTitle": "Current Diagram",
+      "exportBuml": "Export as B-UML",
+      "exportSvg": "Export as SVG",
+      "noDiagrams": "No diagrams available in the current project.",
+      "title": "Export Project",
+      "multipleDescription": "Export selected diagrams as JSON or B-UML.",
+      "exportDiagramBuml": "Export Diagram as B-UML",
+      "exportJson": "Export as JSON",
+      "multipleTitle": "Multiple Diagrams",
+      "description": "Export full project files or current diagram assets.",
+      "requiresUmlView": "Current diagram exports require a UML diagram view. Use project-level export instead.",
+      "exportPngTransparent": "Export PNG (Transparent)",
+      "exportDiagramJson": "Export Diagram as JSON",
+      "untitledDiagram": "Untitled diagram",
+      "exportPngWhite": "Export PNG (White)",
+      "currentDescription": "Export the current UML diagram as image assets."
+    },
+    "toast": {
+      "unknownError": "Unknown error",
+      "openUmlFirst": "Open a UML diagram first.",
+      "selectAtLeastOne": "Select at least one diagram to export.",
+      "noProject": "No project available to export."
     }
   }
 }

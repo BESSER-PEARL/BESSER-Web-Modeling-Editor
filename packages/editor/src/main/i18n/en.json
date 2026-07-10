@@ -129,14 +129,46 @@
         "writable": "Writable",
         "maxReadBytes": "Max read bytes"
       }
-    }
+    },
+    "method": {
+      "showCodeEditor": "Show code editor",
+      "noQuantumCircuits": "No quantum circuits available",
+      "createQuantumCircuitFirst": "Create a Quantum Circuit diagram in your project first",
+      "typeLabel": "Type:",
+      "createStateMachineFirst": "Create a State Machine diagram in your project first",
+      "selectStateMachine": "-- Select State Machine --",
+      "definedInPython": "Method defined in Python code",
+      "selectQuantumCircuit": "-- Select Quantum Circuit --",
+      "clearCode": "Clear Code",
+      "hideEditor": "Hide Editor",
+      "noStateMachines": "No state machines available",
+      "definedInBal": "Method defined in BESSER Action Language code",
+      "showEditor": "Show Editor",
+      "implementation": "Implementation",
+      "hideCodeEditor": "Hide code editor"
+    },
+    "classifier": {
+      "createMethodWithCode": "Create method with code behaviour",
+      "moveDown": "Move down",
+      "moveUp": "Move up",
+      "codeButton": "Code",
+      "newLiteralPlaceholder": "+ literal",
+      "newAttributePlaceholder": "+ attribute: str"
+    },
+    "attribute": {
+      "literalNamePlaceholder": "literal name",
+      "namePlaceholder": "attribute name"
+    },
+    "associationNamePlaceholder": "Association name",
+    "literals": "Literals"
   },
   "assessment": {
     "assessment": "Assessment for",
     "score": "Points",
     "feedback": "Feedback",
     "feedbackPlaceholder": "You can enter feedback here...",
-    "additionalFeedbackPlaceholder": "You can enter additional feedback here..."
+    "additionalFeedbackPlaceholder": "You can enter additional feedback here...",
+    "nextAssessment": "Next Assessment"
   },
   "packages": {
     "ClassDiagram": {
@@ -307,7 +339,9 @@
       "Datasets": "NN Datasets"
     },
     "OCLConstraint": {
-      "Constraint": "OCL Constraint"
+      "Constraint": "OCL Constraint",
+      "DescriptionPlaceholder": "e.g. Be sure to choose a realistic age",
+      "DescriptionLabel": "Description (shown to end-users when validation fails) Optional"
     },
     "StateDiagram": {
       "StateTransition": "Transition",
@@ -341,5 +375,35 @@
     "remove": "Remove",
     "width": "Width",
     "height": "Height"
+  },
+  "stylePane": {
+    "enterIcon": "Enter icon name...",
+    "enterDescription": "Enter description...",
+    "idLockedByOptional": "Optional attributes cannot be the identifier.",
+    "enterDefaultValue": "Enter default value...",
+    "reset": "Reset",
+    "fillColor": "Fill Color",
+    "icon": "Icon",
+    "externalIdLockedByOptional": "Optional attributes cannot be the external identifier.",
+    "optional": "Optional",
+    "enterInteger": "Enter integer...",
+    "id": "ID",
+    "textColor": "Text Color",
+    "externalId": "External ID",
+    "description": "Description",
+    "optionalLockedById": "Identifier attributes cannot be optional.",
+    "none": "(none)",
+    "lineColor": "Line Color",
+    "default": "Default",
+    "enterNumber": "Enter number...",
+    "derived": "Derived"
+  },
+  "associationPopup": {
+    "cancel": "Cancel",
+    "title": "Add and connect to new Object",
+    "noTargets": "No other objects available to connect to"
+  },
+  "propertiesPanel": {
+    "close": "Close"
   }
 }
