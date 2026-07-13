@@ -23,6 +23,7 @@ const BACKEND_CONFIG = {
     default_max_cost_usd: 0.75,
     default_max_runtime_seconds: 480,
   },
+  auth: { required: true, provider: 'github' },
   features: { gap_analysis: true },
   default_models: { anthropic: 'claude-sonnet-4-6', openai: 'gpt-4o' },
   supported_providers: ['anthropic', 'openai'],
@@ -50,6 +51,7 @@ describe('getSmartGenConfig', () => {
     expect(config.caps.max_cost_usd_hard_cap).toBe(3.5);
     expect(config.caps.default_max_runtime_seconds).toBe(480);
     expect(config.features).toEqual({ gap_analysis: true });
+    expect(config.auth).toEqual({ required: true, provider: 'github' });
     expect(config.supported_providers).toEqual(['anthropic', 'openai']);
   });
 

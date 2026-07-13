@@ -10,6 +10,8 @@ import {
   Download,
   Github,
   Loader2,
+  ShieldAlert,
+  ShieldCheck,
   Sparkles,
   Square,
   Terminal,
@@ -18,8 +20,13 @@ import {
 } from "lucide-react"
 
 import { cn } from "@/lib/utils"
-import { cancelSmartGenUrl } from "@/main/shared/constants/constant"
+import {
+  cancelDurableSmartGenUrl,
+  cancelSmartGenUrl,
+  smartGenApprovalUrl,
+} from "@/main/shared/constants/constant"
 import { fetchAndSaveSmartGenArtifact } from "@/main/shared/utils/smartGenDownload"
+import { githubSessionHeaders } from "@/main/shared/utils/githubSessionHeaders"
 import {
   Collapsible,
   CollapsibleContent,
@@ -144,6 +151,7 @@ type MessagePart =
 export interface SmartGenToolCallView {
   turn: number
   tool: string
+  status?: "executing" | "done" | "error"
   summary?: string | null
 }
 
@@ -165,12 +173,25 @@ export interface SmartGenWarningView {
   message: string
 }
 
+export interface SmartGenApprovalView {
+  approvalId: string
+  turn: number
+  tool: string
+  summary: string
+  arguments: Record<string, unknown>
+  status: "pending" | "approved" | "rejected" | "timed_out"
+}
+
 export interface SmartGenMessageState {
   runId?: string
+  /** True when this card follows the detached durable jobs API. */
+  durable?: boolean
   provider?: string
   model?: string
   phases: SmartGenPhaseView[]
   warnings: SmartGenWarningView[]
+  /** Risky tool calls paused for an explicit run-owner decision. */
+  approvals?: SmartGenApprovalView[]
   text: string
   status: "running" | "done" | "error"
   /** Live spend so far in USD (from the backend's 2s cost events). */
@@ -674,7 +695,13 @@ function SmartGenPhaseRow({
               key={`${tc.turn}-${tc.tool}-${j}`}
               className="flex items-center gap-2 text-xs text-muted-foreground"
             >
-              <Wrench className="h-3 w-3 shrink-0 text-primary/60" />
+              {tc.status === "done" ? (
+                <CheckCircle2 className="h-3 w-3 shrink-0 text-emerald-500" />
+              ) : tc.status === "error" ? (
+                <XCircle className="h-3 w-3 shrink-0 text-red-500" />
+              ) : (
+                <Wrench className="h-3 w-3 shrink-0 text-primary/60" />
+              )}
               <span className="font-mono text-foreground">{tc.tool}</span>
               <span className="text-[10px] opacity-60">turn {tc.turn}</span>
               {tc.summary ? (
@@ -696,6 +723,23 @@ function formatDuration(totalSeconds: number): string {
   if (m === 0) return `${rem}s`
   if (rem === 0) return `${m}m`
   return `${m}m ${rem}s`
+}
+
+function approvalDetail(approval: SmartGenApprovalView): string {
+  const command = approval.arguments.command
+  const workingDirectory = approval.arguments.working_dir
+  if (typeof command === "string") {
+    const suffix =
+      typeof workingDirectory === "string" && workingDirectory !== "."
+        ? `\n# in ${workingDirectory}`
+        : ""
+    return `${command}${suffix}`.slice(0, 2000)
+  }
+  try {
+    return JSON.stringify(approval.arguments, null, 2).slice(0, 2000)
+  } catch {
+    return approval.tool
+  }
 }
 
 function SmartGenCard({
@@ -728,16 +772,19 @@ function SmartGenCard({
   // the estimate is too rough to show users as if it were a bill.
   const {
     runId,
+    durable,
     provider,
     model,
     phases,
     warnings,
+    approvals = [],
     text,
     status,
     elapsedSeconds,
     maxRuntime,
     fileName,
     isZip,
+    downloadUrl,
     downloadFailed,
     needsDownload,
   } = smartGen
@@ -750,6 +797,43 @@ function SmartGenCard({
   // whether the user has saved it yet so the button reads "Download"
   // before the first save and "Download again" afterwards.
   const [hasDownloaded, setHasDownloaded] = useState(false)
+  const [approvalSubmitting, setApprovalSubmitting] = useState<string | null>(
+    null
+  )
+  React.useEffect(() => {
+    if (
+      approvalSubmitting &&
+      !approvals.some(
+        (approval) =>
+          approval.approvalId === approvalSubmitting &&
+          approval.status === "pending"
+      )
+    ) {
+      setApprovalSubmitting(null)
+    }
+  }, [approvalSubmitting, approvals])
+
+  const handleApproval = async (
+    approvalId: string,
+    decision: "approved" | "rejected"
+  ) => {
+    if (!runId || approvalSubmitting) return
+    setApprovalSubmitting(approvalId)
+    try {
+      const response = await fetch(smartGenApprovalUrl(runId, approvalId), {
+        method: "POST",
+        credentials: "include",
+        headers: {
+          "Content-Type": "application/json",
+          ...githubSessionHeaders(),
+        },
+        body: JSON.stringify({ decision }),
+      })
+      if (!response.ok) setApprovalSubmitting(null)
+    } catch {
+      setApprovalSubmitting(null)
+    }
+  }
 
   const handleStop = () => {
     if (!runId || stopRequested) return
@@ -761,7 +845,14 @@ function SmartGenCard({
     // Fire-and-forget — no body needed. Errors are swallowed: if the
     // cancel request itself fails the run simply keeps streaming and
     // the user can hit Stop again after the button re-enables.
-    void fetch(cancelSmartGenUrl(runId), { method: "POST" })
+    const cancelUrl = durable || downloadUrl?.includes("/smart-gen/runs/")
+      ? cancelDurableSmartGenUrl(runId)
+      : cancelSmartGenUrl(runId)
+    void fetch(cancelUrl, {
+      method: "POST",
+      credentials: "include",
+      headers: githubSessionHeaders(),
+    })
       .then((response) => {
         if (!response.ok) setStopRequested(false)
       })
@@ -776,7 +867,8 @@ function SmartGenCard({
     const result = await fetchAndSaveSmartGenArtifact(
       runId,
       fileName,
-      isZip === true
+      isZip === true,
+      downloadUrl
     )
     setRedownloadState(result.ok ? "idle" : "failed")
     if (result.ok) setHasDownloaded(true)
@@ -848,6 +940,74 @@ function SmartGenCard({
               <span className="break-words">— {w.message}</span>
             </div>
           ))}
+        </div>
+      ) : null}
+
+      {/* Real tool approval, shown only after the worker proposes an action. */}
+      {approvals.length > 0 ? (
+        <div className="flex flex-col gap-2 border-t border-amber-300/70 bg-amber-50/80 px-3 py-2.5 dark:border-amber-800/50 dark:bg-amber-950/20">
+          {approvals.map((approval) => {
+            const pending = approval.status === "pending"
+            const submitting = approvalSubmitting === approval.approvalId
+            return (
+              <div
+                key={approval.approvalId}
+                className="rounded-md border border-amber-300/80 bg-background/80 p-2.5 shadow-sm dark:border-amber-800/60"
+              >
+                <div className="flex items-center gap-2 text-xs">
+                  {pending ? (
+                    <ShieldAlert className="h-3.5 w-3.5 text-amber-600" />
+                  ) : (
+                    <ShieldCheck className="h-3.5 w-3.5 text-muted-foreground" />
+                  )}
+                  <span className="font-semibold text-foreground">
+                    {pending ? "Approval required" : "Approval resolved"}
+                  </span>
+                  <span className="rounded bg-muted px-1.5 py-0.5 font-mono text-[10px] text-muted-foreground">
+                    {approval.tool}
+                  </span>
+                  {!pending ? (
+                    <span className="ml-auto text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+                      {approval.status.replace("_", " ")}
+                    </span>
+                  ) : null}
+                </div>
+                <p className="mt-1.5 text-xs text-muted-foreground">
+                  {approval.summary}
+                </p>
+                <pre className="mt-2 max-h-40 overflow-auto rounded bg-zinc-950 px-2.5 py-2 font-mono text-[11px] leading-relaxed text-zinc-100">
+                  {approvalDetail(approval)}
+                </pre>
+                {pending ? (
+                  <div className="mt-2 flex items-center justify-end gap-2">
+                    <button
+                      type="button"
+                      disabled={submitting}
+                      onClick={() =>
+                        void handleApproval(approval.approvalId, "rejected")
+                      }
+                      className="rounded border border-border bg-background px-2.5 py-1 text-[11px] font-medium text-foreground hover:bg-muted disabled:opacity-50"
+                    >
+                      Reject
+                    </button>
+                    <button
+                      type="button"
+                      disabled={submitting}
+                      onClick={() =>
+                        void handleApproval(approval.approvalId, "approved")
+                      }
+                      className="inline-flex items-center gap-1 rounded bg-amber-600 px-2.5 py-1 text-[11px] font-semibold text-white hover:bg-amber-700 disabled:opacity-50"
+                    >
+                      {submitting ? (
+                        <Loader2 className="h-3 w-3 animate-spin" />
+                      ) : null}
+                      Approve once
+                    </button>
+                  </div>
+                ) : null}
+              </div>
+            )
+          })}
         </div>
       ) : null}
 

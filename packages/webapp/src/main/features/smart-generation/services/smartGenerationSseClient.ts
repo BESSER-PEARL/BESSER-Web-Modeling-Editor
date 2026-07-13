@@ -8,6 +8,7 @@
 
 import { SMART_GEN_ENDPOINT } from '../../../shared/constants/constant';
 import { streamSse } from '../../../shared/services/sse/sseClient';
+import { githubSessionHeaders } from '../../../shared/utils/githubSessionHeaders';
 import type {
   SmartGenEvent,
   SmartGenMode,
@@ -47,6 +48,8 @@ export interface SmartGenRunHandle {
   abort: () => void;
   /** Underlying AbortController for advanced consumers. */
   controller: AbortController;
+  /** Known immediately for durable jobs, before the worker emits `start`. */
+  runId?: string;
 }
 
 /**
@@ -97,6 +100,7 @@ export function startSmartGenRun(
 
   const events = streamSse<SmartGenEvent>(SMART_GEN_ENDPOINT, body, {
     signal: controller.signal,
+    headers: githubSessionHeaders(),
   });
 
   return {

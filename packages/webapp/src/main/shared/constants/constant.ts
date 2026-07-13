@@ -140,6 +140,12 @@ export const localStorageSmartGenLastRunPrefix = localStoragePrefix + 'smartgen_
 // (once, for the matching project) and reopens the push dialog for that run.
 export const sessionStorageSmartGenPushIntent = localStoragePrefix + 'smart_gen_push_intent';
 
+// Durable SmartGen enqueue idempotency. The value stores only a generated
+// request key plus a non-secret request fingerprint; BYOK material is never
+// written to web storage. Suffix: `<projectId>`.
+export const sessionStorageSmartGenIdempotencyPrefix =
+  localStoragePrefix + 'smartgen_idempotency_';
+
 // "Continue from GitHub" connect-first intent.
 // When the user picks "Continue from GitHub" in the Project Hub but isn't signed
 // in yet, we stash this flag and kick off the GitHub OAuth redirect. After the
@@ -151,6 +157,15 @@ export const sessionStorageContinueFromGithubIntent = localStoragePrefix + 'cont
 export const SMART_GEN_ENDPOINT = `${BACKEND_URL}/smart-generate`;
 export const SMART_GEN_PREVIEW_ENDPOINT = `${BACKEND_URL}/smart-preview`;
 export const SMART_GEN_CONFIG_ENDPOINT = `${BACKEND_URL}/smart-gen/config`;
+export const SMART_GEN_RUNS_ENDPOINT = `${BACKEND_URL}/smart-gen/runs`;
+export const smartGenRunEventsUrl = (runId: string): string =>
+  `${SMART_GEN_RUNS_ENDPOINT}/${runId}/events`;
+export const cancelDurableSmartGenUrl = (runId: string): string =>
+  `${SMART_GEN_RUNS_ENDPOINT}/${runId}/cancel`;
+export const smartGenApprovalUrl = (runId: string, approvalId: string): string =>
+  `${SMART_GEN_RUNS_ENDPOINT}/${runId}/approvals/${approvalId}`;
+export const durableSmartGenArtifactUrl = (runId: string): string =>
+  `${SMART_GEN_RUNS_ENDPOINT}/${runId}/artifact`;
 export const smartGenDownloadUrl = (runId: string): string =>
   `${BACKEND_URL}/download-smart/${runId}`;
 export const cancelSmartGenUrl = (runId: string): string =>

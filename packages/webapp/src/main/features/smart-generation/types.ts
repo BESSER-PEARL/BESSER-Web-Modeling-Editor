@@ -54,6 +54,7 @@ export type SmartGenErrorCode =
   | 'INCOMPLETE'
   | 'INTERNAL'
   | 'BAD_REQUEST'
+  | 'QUOTA'
   | 'CANCELLED';
 
 export interface StartEvent {
@@ -98,6 +99,21 @@ export interface ToolCallEvent {
   summary?: string | null;
 }
 
+export interface ApprovalRequiredEvent {
+  event: 'approval_required';
+  approvalId: string;
+  turn: number;
+  tool: string;
+  summary: string;
+  arguments: Record<string, unknown>;
+}
+
+export interface ApprovalResolvedEvent {
+  event: 'approval_resolved';
+  approvalId: string;
+  decision: 'approved' | 'rejected' | 'timed_out';
+}
+
 export interface CostEvent {
   event: 'cost';
   usd: number;
@@ -132,6 +148,8 @@ export type SmartGenEvent =
   | PhaseUpdateEvent
   | TextDeltaEvent
   | ToolCallEvent
+  | ApprovalRequiredEvent
+  | ApprovalResolvedEvent
   | CostEvent
   | DoneEvent
   | SmartGenErrorEvent;

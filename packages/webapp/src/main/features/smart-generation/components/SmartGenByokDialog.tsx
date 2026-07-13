@@ -27,6 +27,8 @@ import {
 import { useAppDispatch, useAppSelector } from '../../../app/store/hooks';
 import type { RootState } from '../../../app/store/store';
 import type { BesserProject } from '../../../shared/types/project';
+import { BACKEND_URL } from '../../../shared/constants/constant';
+import { readGitHubSession } from '../../../shared/utils/githubSessionHeaders';
 import {
   CUSTOM_MODEL_VALUE,
   MODEL_PRESETS,
@@ -100,8 +102,10 @@ function _defaultModelForProvider(provider: SmartGenProvider): string {
 /** Placeholder shown in the Custom model ID input, per provider. */
 const CUSTOM_MODEL_PLACEHOLDER: Record<SmartGenProvider, string> = {
   anthropic: 'e.g. claude-opus-4-6',
-  openai: 'e.g. o1-preview',
+  openai: 'e.g. gpt-5.6-sol',
   mistral: 'e.g. mistral-medium-latest',
+  pia: 'e.g. gpt-5.6-terra',
+  local: 'e.g. qwen2.5-coder:14b',
 } as const;
 
 /**
@@ -128,8 +132,10 @@ function _classifyStoredModel(
 
 const PRIVACY_COPY =
   'Your key stays in this browser tab only and is sent directly to the ' +
-  'BESSER backend for each run you start. It is never stored on our ' +
-  'servers and it is cleared when you close the tab.';
+  'BESSER backend for each run you start. Detached runs keep only a ' +
+  'run-bound encrypted envelope until an isolated worker starts; the key is ' +
+  'never logged or stored with your project, and the browser copy is cleared ' +
+  'when you close the tab.';
 
 /**
  * Infer the provider from the key prefix. Returns ``null`` when the
@@ -207,6 +213,7 @@ export const SmartGenByokDialog: React.FC<SmartGenByokDialogProps> = ({
   const [maxCostInput, setMaxCostInput] = useState<string>('');
   const [maxRuntimeMinInput, setMaxRuntimeMinInput] = useState<string>('');
   const [showBudgetLimits, setShowBudgetLimits] = useState<boolean>(false);
+  const authenticationMissing = config.auth.required && !readGitHubSession();
 
   useEffect(() => {
     if (open) {
@@ -402,8 +409,16 @@ export const SmartGenByokDialog: React.FC<SmartGenByokDialogProps> = ({
   // there is no separate plan-review step.
   const handleSaveAndRun = () => {
     if (!pendingTrigger) return;
+    if (authenticationMissing) {
+      setSaveError('Sign in with GitHub before starting a production run.');
+      return;
+    }
     if (!persistSettings()) return;
     dispatch(approvePendingTrigger({ ...pendingTrigger, planApproved: true }));
+  };
+
+  const handleSignIn = () => {
+    window.location.assign(`${BACKEND_URL}/github/auth/login`);
   };
 
   const handleClear = () => {
@@ -438,6 +453,14 @@ export const SmartGenByokDialog: React.FC<SmartGenByokDialogProps> = ({
         </DialogHeader>
 
         <div className="space-y-4">
+          {authenticationMissing && (
+            <div className="flex items-center justify-between gap-4 rounded-md border border-amber-300 bg-amber-50 p-3 text-sm text-amber-950 dark:border-amber-800 dark:bg-amber-950/30 dark:text-amber-100">
+              <span>Production runs are owner-bound. Sign in before starting SmartGen.</span>
+              <Button type="button" variant="outline" size="sm" onClick={handleSignIn}>
+                Sign in with GitHub
+              </Button>
+            </div>
+          )}
           <div className="flex items-center gap-2 pt-1 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
             <ShieldCheck className="size-3.5 text-brand" /> Provider and guardrails
           </div>
@@ -628,7 +651,7 @@ export const SmartGenByokDialog: React.FC<SmartGenByokDialogProps> = ({
           {pendingTrigger ? (
             <Button
               onClick={handleSaveAndRun}
-              disabled={!canUseKey}
+              disabled={!canUseKey || authenticationMissing}
               className="gap-2 bg-brand text-brand-foreground hover:bg-brand-dark"
             >
               <ShieldCheck className="size-4" /> Save &amp; run

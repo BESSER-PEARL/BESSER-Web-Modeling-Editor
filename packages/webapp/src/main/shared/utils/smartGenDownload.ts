@@ -12,8 +12,12 @@
  * (or after a successful save) is safe.
  */
 
-import { smartGenDownloadUrl } from '../constants/constant';
+import {
+  durableSmartGenArtifactUrl,
+  smartGenDownloadUrl,
+} from '../constants/constant';
 import { downloadFile } from './download';
+import { githubSessionHeaders } from './githubSessionHeaders';
 
 export type SmartGenDownloadResult =
   | { ok: true; sizeBytes: number }
@@ -34,11 +38,17 @@ export async function fetchAndSaveSmartGenArtifact(
   runId: string,
   fileName: string,
   isZip: boolean,
+  downloadUrl?: string,
 ): Promise<SmartGenDownloadResult> {
-  const fullUrl = smartGenDownloadUrl(runId);
+  const fullUrl = downloadUrl?.includes('/smart-gen/runs/')
+    ? durableSmartGenArtifactUrl(runId)
+    : smartGenDownloadUrl(runId);
   let response: Response;
   try {
-    response = await fetch(fullUrl);
+    response = await fetch(fullUrl, {
+      credentials: 'include',
+      headers: githubSessionHeaders(),
+    });
   } catch (err) {
     console.error('[smartGenDownload] download fetch failed', err);
     return { ok: false };

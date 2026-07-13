@@ -23,6 +23,10 @@ export interface SmartGenConfigCaps {
 
 export interface SmartGenConfig {
   caps: SmartGenConfigCaps;
+  auth: {
+    required: boolean;
+    provider: string;
+  };
   /**
    * How long (seconds) the backend keeps a finished run's output around
    * for download AND in-place editing. Drives the incremental
@@ -47,12 +51,14 @@ export const FALLBACK_SMART_GEN_CONFIG: SmartGenConfig = {
     default_max_cost_usd: 1.0,
     default_max_runtime_seconds: 600,
   },
+  // Old/local backends did not require application authentication.
+  auth: { required: false, provider: 'github' },
   // Mirrors the backend default (BESSER_LLM_DOWNLOAD_TTL_SECONDS = 1800).
   download_ttl_seconds: 1800,
   features: {},
   default_models: {
     anthropic: 'claude-sonnet-4-6',
-    openai: 'gpt-4o',
+    openai: 'gpt-5.6-terra',
     mistral: 'mistral-large-latest',
   },
   supported_providers: ['anthropic', 'openai', 'mistral'],
@@ -84,6 +90,13 @@ function _normalize(raw: unknown): SmartGenConfig {
       default_max_cost_usd: caps.default_max_cost_usd,
       default_max_runtime_seconds: caps.default_max_runtime_seconds,
     },
+    auth:
+      data.auth &&
+      typeof data.auth === 'object' &&
+      typeof data.auth.required === 'boolean' &&
+      typeof data.auth.provider === 'string'
+        ? data.auth
+        : FALLBACK_SMART_GEN_CONFIG.auth,
     download_ttl_seconds: _isFiniteNumber(data.download_ttl_seconds)
       ? data.download_ttl_seconds
       : FALLBACK_SMART_GEN_CONFIG.download_ttl_seconds,

@@ -19,7 +19,11 @@ import {
   ChatMessage,
   type SmartGenMessageState,
 } from '../chat-message';
-import { cancelSmartGenUrl } from '@/main/shared/constants/constant';
+import {
+  cancelDurableSmartGenUrl,
+  cancelSmartGenUrl,
+  smartGenApprovalUrl,
+} from '@/main/shared/constants/constant';
 
 // The card's "Download again" goes through the shared helper — mock it
 // so jsdom never has to deal with URL.createObjectURL / anchor clicks.
@@ -116,6 +120,8 @@ describe('SmartGenCard — Stop button', () => {
 
     expect(fetchMock).toHaveBeenCalledWith(cancelSmartGenUrl(RUN_ID), {
       method: 'POST',
+      credentials: 'include',
+      headers: {},
     });
     // Button disables to prevent duplicate cancels while the backend
     // winds the stream down.
@@ -135,6 +141,20 @@ describe('SmartGenCard — Stop button', () => {
     await waitFor(() => {
       const stopButton = screen.getByRole('button', { name: /^stop$/i });
       expect((stopButton as HTMLButtonElement).disabled).toBe(false);
+    });
+  });
+
+  it('targets the durable cancel route before a download URL exists', () => {
+    const fetchMock = vi.fn().mockResolvedValue(new Response(null, { status: 202 }));
+    globalThis.fetch = fetchMock;
+
+    renderCard(baseSmartGen({ durable: true, downloadUrl: undefined }));
+    fireEvent.click(screen.getByRole('button', { name: /stop/i }));
+
+    expect(fetchMock).toHaveBeenCalledWith(cancelDurableSmartGenUrl(RUN_ID), {
+      method: 'POST',
+      credentials: 'include',
+      headers: {},
     });
   });
 
@@ -168,6 +188,7 @@ describe('SmartGenCard — Download again', () => {
         RUN_ID,
         'besser_smart_output.zip',
         true,
+        undefined,
       );
     });
   });
@@ -243,11 +264,47 @@ describe('SmartGenCard — Download again', () => {
         RUN_ID,
         'besser_smart_output.zip',
         true,
+        undefined,
       );
     });
     // The save succeeded (mock resolves ok) → button becomes "Download again".
     await waitFor(() => {
       expect(screen.getByRole('button', { name: /download again/i })).toBeTruthy();
+    });
+  });
+});
+
+describe('SmartGenCard — tool approval', () => {
+  it('shows the proposed command and submits an owner decision', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(new Response(null, { status: 200 }));
+    globalThis.fetch = fetchMock;
+    renderCard(
+      baseSmartGen({
+        approvals: [
+          {
+            approvalId: 'approval-1',
+            turn: 3,
+            tool: 'run_command',
+            summary: 'Run the generated project tests',
+            arguments: { command: 'npm test', working_dir: 'frontend' },
+            status: 'pending',
+          },
+        ],
+      }),
+    );
+
+    expect(screen.getByText('npm test', { exact: false })).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: /approve once/i }));
+
+    await waitFor(() => {
+      expect(fetchMock).toHaveBeenCalledWith(
+        smartGenApprovalUrl(RUN_ID, 'approval-1'),
+        expect.objectContaining({
+          method: 'POST',
+          credentials: 'include',
+          body: JSON.stringify({ decision: 'approved' }),
+        }),
+      );
     });
   });
 });

@@ -65,10 +65,12 @@ const _mockController: {
   events: SmartGenEvent[];
   abortCalled: boolean;
   throwOnStart: Error | null;
+  durableEnabled: boolean;
 } = {
   events: [],
   abortCalled: false,
   throwOnStart: null,
+  durableEnabled: false,
 };
 
 // Mock the smart-gen config so the modify-vs-fresh decision in startRun
@@ -79,7 +81,12 @@ vi.mock('../../services/smartGenConfig', async (importOriginal) => {
   const mod = await importOriginal<typeof import('../../services/smartGenConfig')>();
   return {
     ...mod,
-    getSmartGenConfig: vi.fn(() => Promise.resolve(mod.FALLBACK_SMART_GEN_CONFIG)),
+    getSmartGenConfig: vi.fn(() =>
+      Promise.resolve({
+        ...mod.FALLBACK_SMART_GEN_CONFIG,
+        features: { durable_jobs: _mockController.durableEnabled },
+      }),
+    ),
   };
 });
 
@@ -94,6 +101,20 @@ vi.mock('../../services/smartGenerationSseClient', () => ({
         for (const ev of scripted) {
           yield ev;
         }
+      })(),
+    };
+  }),
+}));
+
+vi.mock('../../services/durableSmartGenerationClient', () => ({
+  startDurableSmartGenRun: vi.fn(async (_params) => {
+    if (_mockController.throwOnStart) throw _mockController.throwOnStart;
+    const scripted = [..._mockController.events];
+    return {
+      runId: 'a'.repeat(32),
+      abort: () => { _mockController.abortCalled = true; },
+      events: (async function* () {
+        for (const event of scripted) yield event;
       })(),
     };
   }),
@@ -219,6 +240,7 @@ beforeEach(() => {
   _mockController.events = [];
   _mockController.abortCalled = false;
   _mockController.throwOnStart = null;
+  _mockController.durableEnabled = false;
   clearSessionKeyManual();
   vi.clearAllMocks();
 });
@@ -976,6 +998,51 @@ describe('useSmartGenTrigger — run budget from sessionStorage', () => {
     expect(callArgs.primaryKindOverride).toBe('gui');
     expect(callArgs.targetGeneratorOverride).toBe('generate_web_app');
     expect(callArgs.skipDeterministicGenerator).toBe(true);
+  });
+});
+
+describe('useSmartGenTrigger — durable workspace safety', () => {
+  it('uses the detached worker for fresh generation', async () => {
+    setSessionKey();
+    _mockController.durableEnabled = true;
+    _mockController.events = HAPPY_EVENTS;
+    const { apiRef } = renderHarness();
+
+    await act(async () => {
+      await apiRef.current!.handleTrigger(PAYLOAD);
+    });
+
+    const durableModule = await import('../../services/durableSmartGenerationClient');
+    const legacyModule = await import('../../services/smartGenerationSseClient');
+    expect(vi.mocked(durableModule.startDurableSmartGenRun)).toHaveBeenCalledOnce();
+    expect(vi.mocked(legacyModule.startSmartGenRun)).not.toHaveBeenCalled();
+    const card = (apiRef.current!.getMessages() as any[]).find((message) => message.smartGen);
+    expect(card.smartGen.durable).toBe(true);
+  });
+
+  it('sends modify runs through durable workspace hydration', async () => {
+    setSessionKey();
+    _mockController.durableEnabled = true;
+    _mockController.events = HAPPY_EVENTS;
+    const baseRunId = 'b'.repeat(32);
+    const { apiRef } = renderHarness();
+
+    await act(async () => {
+      await apiRef.current!.handleTrigger({
+        ...PAYLOAD,
+        mode: 'modify',
+        baseRunId,
+      });
+    });
+
+    const durableModule = await import('../../services/durableSmartGenerationClient');
+    const legacyModule = await import('../../services/smartGenerationSseClient');
+    expect(vi.mocked(durableModule.startDurableSmartGenRun)).toHaveBeenCalledOnce();
+    expect(vi.mocked(legacyModule.startSmartGenRun)).not.toHaveBeenCalled();
+    expect(vi.mocked(durableModule.startDurableSmartGenRun).mock.calls[0][0]).toMatchObject({
+      mode: 'modify',
+      baseRunId,
+    });
   });
 });
 

@@ -21,6 +21,10 @@ import { workspaceReducer } from '../../../../app/store/workspaceSlice';
 import { errorReducer } from '../../../../app/store/errorManagementSlice';
 import { SmartGenByokDialog } from '../SmartGenByokDialog';
 import {
+  FALLBACK_SMART_GEN_CONFIG,
+  getSmartGenConfig,
+} from '../../services/smartGenConfig';
+import {
   sessionStorageSmartGenApiKey,
   sessionStorageSmartGenMaxCostUsd,
   sessionStorageSmartGenMaxRuntimeSeconds,
@@ -83,6 +87,7 @@ function clearSmartGenSessionStorage() {
   window.sessionStorage.removeItem(sessionStorageSmartGenProvider);
   window.sessionStorage.removeItem(sessionStorageSmartGenMaxCostUsd);
   window.sessionStorage.removeItem(sessionStorageSmartGenMaxRuntimeSeconds);
+  window.sessionStorage.removeItem('github_session');
 }
 
 beforeEach(() => {
@@ -294,7 +299,7 @@ describe('SmartGenByokDialog — model selector', () => {
 
     const refreshed = (document.getElementById('smart-gen-model') as HTMLSelectElement);
     // The dropdown should now show the shared OpenAI presets. The default is
-    // whatever ``MODEL_PRESETS.openai[0]`` is — currently gpt-5.6-sol.
+    // whatever ``MODEL_PRESETS.openai[0]`` is — currently gpt-5.6-terra.
     // Just assert it's one of the known OpenAI presets, not a specific
     // model name, so bumping the default doesn't break this test.
     const validOpenaiPresets = [
@@ -474,5 +479,25 @@ describe('SmartGenByokDialog — clear stored key', () => {
     expect(window.sessionStorage.getItem(sessionStorageSmartGenApiKey)).toBeNull();
     expect(window.sessionStorage.getItem(sessionStorageSmartGenProvider)).toBeNull();
     expect(store.getState().smartGenerator.apiKeyInStore).toBe(false);
+  });
+});
+
+describe('SmartGenByokDialog - production ownership', () => {
+  it('requires login before a production run can start', async () => {
+    vi.mocked(getSmartGenConfig).mockResolvedValueOnce({
+      ...FALLBACK_SMART_GEN_CONFIG,
+      auth: { required: true, provider: 'github' },
+    });
+    const { store } = renderPendingDialog();
+
+    await waitFor(() => {
+      expect(screen.getByText(/production runs are owner-bound/i)).toBeTruthy();
+    });
+    const input = document.getElementById('smart-gen-api-key') as HTMLInputElement;
+    fireEvent.change(input, { target: { value: 'sk-ant-production' } });
+
+    const runButton = screen.getByRole('button', { name: /save.*run/i }) as HTMLButtonElement;
+    expect(runButton.disabled).toBe(true);
+    expect(store.getState().smartGenerator.pendingTrigger?.planApproved).not.toBe(true);
   });
 });

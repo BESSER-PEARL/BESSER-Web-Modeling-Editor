@@ -49,6 +49,7 @@ import type {
 } from '@/components/chatbot-kit/ui/chat-message';
 import { useAppDispatch, useAppSelector } from '../../../app/store/hooks';
 import type { BesserProject } from '../../../shared/types/project';
+import { SseHttpError } from '../../../shared/services/sse/sseClient';
 import { fetchAndSaveSmartGenArtifact } from '../../../shared/utils/smartGenDownload';
 import { buildProjectPayloadForBackend } from '../../../shared/utils/projectExportUtils';
 
@@ -78,6 +79,7 @@ import {
   startSmartGenRun,
   type StartSmartGenRunParams,
 } from '../services/smartGenerationSseClient';
+import { startDurableSmartGenRun } from '../services/durableSmartGenerationClient';
 import { getSmartGenConfig } from '../services/smartGenConfig';
 import { decideRunMode } from '../runModeDecision';
 import type {
@@ -105,6 +107,16 @@ const isNonTerminalErrorEvent = (event: SmartGenEvent): boolean =>
   (event.code === 'COST_CAP' ||
     event.code === 'TIMEOUT' ||
     event.code === 'INCOMPLETE');
+
+const smartGenStartErrorMessage = (error: unknown): string => {
+  if (error instanceof SseHttpError) {
+    if (error.status === 401) return 'Your GitHub session expired. Sign in and retry.';
+    if (error.status === 429) return 'Your SmartGen run quota is currently in use. Retry shortly.';
+    if (error.status === 409) return 'This request conflicts with an earlier run. Retry to start a new run.';
+    if (error.status === 503) return 'SmartGen workers are temporarily unavailable.';
+  }
+  return error instanceof Error ? error.message : String(error);
+};
 
 const createMessageId = (): string => {
   if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
@@ -278,6 +290,7 @@ export function useSmartGenTrigger(
   const emptySmartGen = (): SmartGenMessageState => ({
     phases: [],
     warnings: [],
+    approvals: [],
     text: '',
     status: 'running',
   });
@@ -369,7 +382,7 @@ export function useSmartGenTrigger(
       if (!runId) {
         return { ok: false };
       }
-      return fetchAndSaveSmartGenArtifact(runId, fileName, isZip);
+      return fetchAndSaveSmartGenArtifact(runId, fileName, isZip, downloadUrl);
     },
     [],
   );
@@ -484,15 +497,52 @@ export function useSmartGenTrigger(
               });
             }
             const last = phases[phases.length - 1];
-            phases[phases.length - 1] = {
-              ...last,
-              toolCalls: [
-                ...last.toolCalls,
-                { turn: event.turn, tool: event.tool, summary: event.summary },
-              ],
+            const toolCalls = [...last.toolCalls];
+            const existing = toolCalls.findIndex(
+              (call) => call.turn === event.turn && call.tool === event.tool,
+            );
+            const nextCall = {
+              turn: event.turn,
+              tool: event.tool,
+              status: event.status,
+              summary: event.summary,
             };
+            if (existing >= 0) toolCalls[existing] = nextCall;
+            else toolCalls.push(nextCall);
+            phases[phases.length - 1] = { ...last, toolCalls };
             return { ...s, phases };
           });
+          return;
+        }
+        case 'approval_required': {
+          updateSmartGen(streamingId, (state) => {
+            const approval = {
+              approvalId: event.approvalId,
+              turn: event.turn,
+              tool: event.tool,
+              summary: event.summary,
+              arguments: event.arguments,
+              status: 'pending' as const,
+            };
+            const approvals = [...(state.approvals ?? [])];
+            const existing = approvals.findIndex(
+              (item) => item.approvalId === event.approvalId,
+            );
+            if (existing >= 0) approvals[existing] = approval;
+            else approvals.push(approval);
+            return { ...state, approvals };
+          });
+          return;
+        }
+        case 'approval_resolved': {
+          updateSmartGen(streamingId, (state) => ({
+            ...state,
+            approvals: (state.approvals ?? []).map((approval) =>
+              approval.approvalId === event.approvalId
+                ? { ...approval, status: event.decision }
+                : approval,
+            ),
+          }));
           return;
         }
         case 'text': {
@@ -843,9 +893,9 @@ export function useSmartGenTrigger(
       // explicit `mode` on the trigger payload overrides it. `getSmartGenConfig`
       // is cached and never rejects (resolves to the fallback), so the TTL
       // is always defined.
+      const smartGenConfig = await getSmartGenConfig();
       const ttlSeconds =
-        (await getSmartGenConfig()).download_ttl_seconds ||
-        DEFAULT_DOWNLOAD_TTL_SECONDS;
+        smartGenConfig.download_ttl_seconds || DEFAULT_DOWNLOAD_TTL_SECONDS;
       const runDecision = decideRunMode({
         lastRun: readProjectLastRun(project.id),
         nowMs: Date.now(),
@@ -870,13 +920,16 @@ export function useSmartGenTrigger(
         skipDeterministicGenerator: payload.skipDeterministicGenerator,
       };
 
+      const useDurable = smartGenConfig.features.durable_jobs;
       let handle;
       try {
-        handle = startSmartGenRun(runParams);
+        handle = useDurable
+          ? await startDurableSmartGenRun(runParams)
+          : startSmartGenRun(runParams);
       } catch (err) {
         finalizeStreamingMessage(streamingId);
         appendErrorToChat(
-          `Spec-Driven Agent failed to start: ${err instanceof Error ? err.message : String(err)}`,
+          `Spec-Driven Agent failed to start: ${smartGenStartErrorMessage(err)}`,
         );
         toast.error('Spec-Driven Agent failed to start');
         isRunningRef.current = false;
@@ -884,6 +937,21 @@ export function useSmartGenTrigger(
         dispatch(releaseRunSlot());
         reportRunFinished({ ok: false, errorCode: 'INTERNAL' });
         return;
+      }
+
+      if (handle.runId) {
+        currentRunIdRef.current = handle.runId;
+        dispatch(beginRun({ runId: handle.runId }));
+        updateSmartGen(streamingId, (state) => ({
+          ...state,
+          runId: handle.runId,
+          durable: useDurable,
+        }));
+      } else {
+        updateSmartGen(streamingId, (state) => ({
+          ...state,
+          durable: useDurable,
+        }));
       }
 
       abortRef.current = handle.abort;
