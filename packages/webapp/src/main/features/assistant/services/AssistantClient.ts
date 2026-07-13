@@ -352,7 +352,11 @@ export class AssistantClient {
   private responseStartedAt = 0;
   private responseSoftNoticeShown = false;
   private heartbeatTimer: ReturnType<typeof setInterval> | null = null;
-  private readonly heartbeatMs = 15000;
+  // 8s (was 15s): each heartbeat re-claims the server's reply slot for the live
+  // socket AND flushes any reply the server buffered during a reconnect gap, so
+  // a fast (~4s) reply lost to a stale slot is recovered within one beat. A
+  // shorter beat shrinks that recovery window.
+  private readonly heartbeatMs = 8000;
 
   private readonly clientMode: AssistantClientMode;
   private sessionId: string;
@@ -573,7 +577,12 @@ export class AssistantClient {
    * case the key still lives in sessionStorage, so the next (re)connect
    * re-arms it automatically via `rearmUserApiKey()`. The key is NEVER logged.
    */
-  setUserApiKey(params: { apiKey: string; provider?: string; model?: string }): SendStatus {
+  setUserApiKey(params: {
+    apiKey: string;
+    provider?: string;
+    model?: string;
+    baseUrl?: string;
+  }): SendStatus {
     if (!this.isConnected || !this.ws || this.ws.readyState !== WebSocket.OPEN) {
       return 'error';
     }
@@ -582,8 +591,13 @@ export class AssistantClient {
       // Only attach provider/model when actually setting a key — a clear
       // sends the bare `{ user_api_key: '' }`.
       if (params.apiKey) {
-        if (params.provider) message.user_api_provider = params.provider;
+        // 'pia' / 'local' are OpenAI-compatible endpoints: send them to the
+        // agent as provider='openai' + a base URL (user_api_base).
+        const wireProvider =
+          params.provider === 'pia' || params.provider === 'local' ? 'openai' : params.provider;
+        if (wireProvider) message.user_api_provider = wireProvider;
         if (params.model) message.user_api_model = params.model;
+        if (params.baseUrl) message.user_api_base = params.baseUrl;
       }
       this.ws.send(
         JSON.stringify({
@@ -608,7 +622,12 @@ export class AssistantClient {
     try {
       const stored = readAssistantApiKey();
       if (!stored) return;
-      this.setUserApiKey({ apiKey: stored.apiKey, provider: stored.provider, model: stored.model });
+      this.setUserApiKey({
+        apiKey: stored.apiKey,
+        provider: stored.provider,
+        model: stored.model,
+        baseUrl: stored.baseUrl,
+      });
     } catch {
       // best-effort — a failed re-arm just means the user re-saves the key
     }

@@ -17,19 +17,26 @@
 
 import {
   sessionStorageLlmApiKey,
+  sessionStorageLlmBaseUrl,
   sessionStorageLlmModel,
   sessionStorageLlmProvider,
   sessionStorageSmartGenMaxCostUsd,
   sessionStorageSmartGenMaxRuntimeSeconds,
 } from '../constants/constant';
 
-export type LlmProvider = 'anthropic' | 'openai' | 'mistral';
+// 'pia' and 'local' are OpenAI-compatible endpoints selected in the dialog for
+// UX; on the wire they are sent as provider='openai' + a base_url (see the
+// dialog / SSE client / AssistantClient). They only work when the WME backend
+// runs locally (and, for 'pia', on the LIST VPN).
+export type LlmProvider = 'anthropic' | 'openai' | 'mistral' | 'pia' | 'local';
 
 export interface LlmKey {
   provider: LlmProvider;
   apiKey: string;
   /** Explicit model override; undefined = use the backend default for the provider. */
   model?: string;
+  /** OpenAI-compatible base URL for the 'local'/'pia' providers. */
+  baseUrl?: string;
 }
 
 /** True when sessionStorage is reachable (it's not in some SSR / privacy modes). */
@@ -42,7 +49,13 @@ function _hasSessionStorage(): boolean {
 }
 
 function _isProvider(value: string | null): value is LlmProvider {
-  return value === 'anthropic' || value === 'openai' || value === 'mistral';
+  return (
+    value === 'anthropic' ||
+    value === 'openai' ||
+    value === 'mistral' ||
+    value === 'pia' ||
+    value === 'local'
+  );
 }
 
 /** Read the currently stored unified BYOK key, or `null` if none / unavailable. */
@@ -54,7 +67,9 @@ export function readLlmKey(): LlmKey | null {
     if (!apiKey || !_isProvider(provider)) return null;
     const rawModel = window.sessionStorage.getItem(sessionStorageLlmModel);
     const model = rawModel && rawModel.trim() ? rawModel.trim() : undefined;
-    return { apiKey, provider, model };
+    const rawBase = window.sessionStorage.getItem(sessionStorageLlmBaseUrl);
+    const baseUrl = rawBase && rawBase.trim() ? rawBase.trim() : undefined;
+    return { apiKey, provider, model, baseUrl };
   } catch {
     return null;
   }
@@ -63,8 +78,14 @@ export function readLlmKey(): LlmKey | null {
 /**
  * Store the unified BYOK key in sessionStorage. Returns true on success.
  * Pass `model=undefined`/empty to clear a previously saved model preference.
+ * `baseUrl` is the OpenAI-compatible endpoint for the 'local'/'pia' providers.
  */
-export function writeLlmKey(provider: LlmProvider, apiKey: string, model?: string): boolean {
+export function writeLlmKey(
+  provider: LlmProvider,
+  apiKey: string,
+  model?: string,
+  baseUrl?: string,
+): boolean {
   if (!_hasSessionStorage()) return false;
   try {
     window.sessionStorage.setItem(sessionStorageLlmApiKey, apiKey);
@@ -74,6 +95,12 @@ export function writeLlmKey(provider: LlmProvider, apiKey: string, model?: strin
       window.sessionStorage.setItem(sessionStorageLlmModel, trimmed);
     } else {
       window.sessionStorage.removeItem(sessionStorageLlmModel);
+    }
+    const trimmedBase = (baseUrl ?? '').trim();
+    if (trimmedBase) {
+      window.sessionStorage.setItem(sessionStorageLlmBaseUrl, trimmedBase);
+    } else {
+      window.sessionStorage.removeItem(sessionStorageLlmBaseUrl);
     }
     return true;
   } catch {
@@ -88,6 +115,7 @@ export function clearLlmKey(): void {
     window.sessionStorage.removeItem(sessionStorageLlmApiKey);
     window.sessionStorage.removeItem(sessionStorageLlmProvider);
     window.sessionStorage.removeItem(sessionStorageLlmModel);
+    window.sessionStorage.removeItem(sessionStorageLlmBaseUrl);
   } catch {
     /* ignore */
   }

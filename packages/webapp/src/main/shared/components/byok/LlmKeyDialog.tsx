@@ -33,6 +33,9 @@ import {
   writeLlmKey,
   type LlmProvider,
 } from '../../services/llmKeyStorage';
+import { PIA_GATEWAY_BASE_URL } from '../../constants/constant';
+
+const DEFAULT_LOCAL_BASE_URL = 'http://localhost:11434/v1';
 
 // Static caps for the Spec-Driven run budget. The server ALSO enforces these
 // (LLM_MAX_COST_USD_HARD_CAP=$5 / runtime hard cap 900s), so this is UX only.
@@ -45,7 +48,12 @@ const RUN_BUDGET = {
 
 /** Minimal shape of an agent client we can arm — avoids importing a feature. */
 export interface LlmKeyArmableClient {
-  setUserApiKey: (key: { apiKey: string; provider?: string; model?: string }) => void;
+  setUserApiKey: (key: {
+    apiKey: string;
+    provider?: string;
+    model?: string;
+    baseUrl?: string;
+  }) => void;
 }
 
 export interface LlmKeySavedDetail {
@@ -53,6 +61,8 @@ export interface LlmKeySavedDetail {
   apiKey: string;
   /** Effective model override, or empty string for "use backend default". */
   model: string;
+  /** OpenAI-compatible base URL for pia/local, or undefined. */
+  baseUrl?: string;
 }
 
 export interface LlmKeyDialogProps {
@@ -102,7 +112,37 @@ export const PROVIDER_OPTIONS: readonly ProviderOption[] = [
     hint: 'Paste your Mistral API key (no fixed prefix)',
     expectedPrefix: '',
   },
+  {
+    value: 'pia',
+    label: 'PIA (LIST)',
+    placeholder: 'sk-...',
+    hint: 'Your personal LIST PIA Gateway key (starts with sk-). Runs on LIST infrastructure.',
+    expectedPrefix: 'sk-',
+  },
+  {
+    value: 'local',
+    label: 'Local (self-hosted)',
+    placeholder: 'ollama (any value)',
+    hint: 'A local OpenAI-compatible server (Ollama, llama.cpp, vLLM, LM Studio…). Most need no key — leave it as "ollama".',
+    expectedPrefix: '',
+  },
 ] as const;
+
+/**
+ * Providers whose model server the BACKEND must reach — so they only work when
+ * the WME backend runs locally (pia additionally needs the LIST VPN). A short
+ * note is shown under the dropdown. On the hosted deploy the backend rejects
+ * these (see BESSER_LLM_ALLOW_CUSTOM_BASE_URL) — they degrade to a clear error.
+ */
+const LOCAL_BACKEND_NOTE: Partial<Record<LlmProvider, string>> = {
+  pia: 'Uses the LIST PIA gateway. The backend must be on the LIST VPN — in practice, run the full WME locally.',
+  local: 'The BESSER backend opens this URL, not your browser — so run the full WME locally, on the same machine/network as your model server.',
+};
+
+/** pia/local route over the OpenAI-compatible protocol with a base_url. */
+function _needsBaseUrl(provider: LlmProvider): boolean {
+  return provider === 'pia' || provider === 'local';
+}
 
 interface ModelPreset {
   value: string;
@@ -136,12 +176,30 @@ export const MODEL_PRESETS: Record<LlmProvider, readonly ModelPreset[]> = {
     { value: 'mistral-small-latest', label: 'Mistral Small — fast & cheap' },
     { value: CUSTOM_MODEL_VALUE, label: 'Custom model ID…' },
   ],
+  // PIA gateway serves both GPT and Claude model names.
+  pia: [
+    { value: 'claude-sonnet-4-6', label: 'Claude Sonnet 4.6 — balanced (default)' },
+    { value: 'claude-opus-4-8', label: 'Claude Opus 4.8 — most capable' },
+    { value: 'gpt-5.4', label: 'GPT-5.4 — strong for code' },
+    { value: 'claude-haiku-4-5-20251001', label: 'Claude Haiku 4.5 — fast & cheap' },
+    { value: 'gpt-5.4-mini', label: 'GPT-5.4 mini — fast & cheap' },
+    { value: CUSTOM_MODEL_VALUE, label: 'Custom model ID…' },
+  ],
+  // Local model names are whatever the user has pulled (common Ollama tags).
+  local: [
+    { value: 'qwen2.5-coder:7b', label: 'qwen2.5-coder:7b — code (default)' },
+    { value: 'llama3.1:8b', label: 'llama3.1:8b — general' },
+    { value: 'qwen2.5-coder:32b', label: 'qwen2.5-coder:32b — stronger code' },
+    { value: CUSTOM_MODEL_VALUE, label: 'Custom model ID…' },
+  ],
 } as const;
 
 const CUSTOM_MODEL_PLACEHOLDER: Record<LlmProvider, string> = {
   anthropic: 'e.g. claude-opus-4-6',
   openai: 'e.g. gpt-4.1',
   mistral: 'e.g. mistral-medium-latest',
+  pia: 'e.g. claude-opus-4-8',
+  local: 'e.g. qwen2.5-coder:14b',
 } as const;
 
 function _classifyStoredModel(
@@ -149,6 +207,12 @@ function _classifyStoredModel(
   stored: string | undefined,
 ): { choice: string; custom: string } {
   if (!stored) {
+    // pia/local have no server-side "default" that maps to a real model, so
+    // pre-select their first preset. anthropic/openai/mistral use the "…"
+    // sentinel (the backend picks a sensible default for those).
+    if (_needsBaseUrl(provider)) {
+      return { choice: MODEL_PRESETS[provider][0].value, custom: '' };
+    }
     // No stored model → the "…" default option (backend picks the default).
     return { choice: DEFAULT_MODEL_VALUE, custom: '' };
   }
@@ -197,6 +261,7 @@ export const LlmKeyDialog: React.FC<LlmKeyDialogProps> = ({
   const [providerLockedByUser, setProviderLockedByUser] = useState<boolean>(false);
   const [modelChoice, setModelChoice] = useState<string>(DEFAULT_MODEL_VALUE);
   const [customModel, setCustomModel] = useState<string>('');
+  const [baseUrl, setBaseUrl] = useState<string>('');
   const [budgetOpen, setBudgetOpen] = useState<boolean>(false);
   const [maxCostInput, setMaxCostInput] = useState<string>(String(RUN_BUDGET.defaultCostUsd));
   const [maxRuntimeMinInput, setMaxRuntimeMinInput] = useState<string>(String(RUN_BUDGET.defaultRuntimeMin));
@@ -213,6 +278,11 @@ export const LlmKeyDialog: React.FC<LlmKeyDialogProps> = ({
     const classified = _classifyStoredModel(nextProvider, stored?.model);
     setModelChoice(classified.choice);
     setCustomModel(classified.custom);
+    // Prefill the base URL: 'local' uses the stored/user value (default Ollama);
+    // 'pia' is fixed, so no field. Ignore a stored PIA URL for the 'local' box.
+    const storedBase =
+      stored?.baseUrl && stored.baseUrl !== PIA_GATEWAY_BASE_URL ? stored.baseUrl : '';
+    setBaseUrl(nextProvider === 'local' ? storedBase || DEFAULT_LOCAL_BASE_URL : storedBase);
     const budget = readLlmBudget();
     setMaxCostInput(String(budget?.maxCostUsd ?? RUN_BUDGET.defaultCostUsd));
     setMaxRuntimeMinInput(
@@ -245,10 +315,14 @@ export const LlmKeyDialog: React.FC<LlmKeyDialogProps> = ({
     trimmedKey.length > 0 && !trimmedKey.startsWith(selectedProvider.expectedPrefix);
 
   const inferredProvider = _inferProviderFromKey(trimmedKey);
-  const providerMismatch = inferredProvider !== null && inferredProvider !== provider;
+  // Don't second-guess pia/local: a PIA key legitimately starts with sk- (which
+  // would otherwise infer 'openai'), and 'local' keys are arbitrary.
+  const providerMismatch =
+    !_needsBaseUrl(provider) && inferredProvider !== null && inferredProvider !== provider;
 
   useEffect(() => {
     if (providerLockedByUser) return;
+    if (_needsBaseUrl(provider)) return; // never auto-switch away from pia/local
     if (inferredProvider === null) return;
     if (inferredProvider === provider) return;
     setProvider(inferredProvider);
@@ -257,6 +331,9 @@ export const LlmKeyDialog: React.FC<LlmKeyDialogProps> = ({
   const handleProviderChange = (next: LlmProvider) => {
     setProvider(next);
     setProviderLockedByUser(true);
+    if (next === 'local' && baseUrl.trim() === '') {
+      setBaseUrl(DEFAULT_LOCAL_BASE_URL);
+    }
   };
 
   const resolveEffectiveModel = (): string => {
@@ -293,7 +370,23 @@ export const LlmKeyDialog: React.FC<LlmKeyDialogProps> = ({
       );
       return;
     }
-    const saved = writeLlmKey(provider, trimmedKey, effectiveModel);
+    // Resolve the base URL: 'pia' → fixed gateway; 'local' → the user's server;
+    // everyone else → none. Validate the local URL shape.
+    let effectiveBaseUrl: string | undefined;
+    if (provider === 'pia') {
+      effectiveBaseUrl = PIA_GATEWAY_BASE_URL;
+    } else if (provider === 'local') {
+      effectiveBaseUrl = baseUrl.trim();
+      if (!effectiveBaseUrl) {
+        setSaveError('Enter your local server URL, e.g. http://localhost:11434/v1');
+        return;
+      }
+      if (!/^https?:\/\//i.test(effectiveBaseUrl)) {
+        setSaveError('Local server URL must start with http:// or https://');
+        return;
+      }
+    }
+    const saved = writeLlmKey(provider, trimmedKey, effectiveModel, effectiveBaseUrl);
     if (!saved) {
       setSaveError(
         'Could not store the key in this browser tab (sessionStorage is unavailable). ' +
@@ -309,6 +402,7 @@ export const LlmKeyDialog: React.FC<LlmKeyDialogProps> = ({
         apiKey: trimmedKey,
         provider,
         model: effectiveModel || undefined,
+        baseUrl: effectiveBaseUrl,
       });
     }
     // Persist the Spec-Driven run budget alongside the key (clamped; the server
@@ -327,7 +421,7 @@ export const LlmKeyDialog: React.FC<LlmKeyDialogProps> = ({
     }
     setSaveError(null);
     setKeyPresent(true);
-    onSaved?.({ provider, apiKey: trimmedKey, model: effectiveModel });
+    onSaved?.({ provider, apiKey: trimmedKey, model: effectiveModel, baseUrl: effectiveBaseUrl });
     onOpenChange(false);
   };
 
@@ -379,10 +473,36 @@ export const LlmKeyDialog: React.FC<LlmKeyDialogProps> = ({
             {inferredProvider !== null &&
               !providerLockedByUser &&
               inferredProvider === provider &&
-              trimmedKey.length > 0 && (
+              trimmedKey.length > 0 &&
+              !_needsBaseUrl(provider) && (
                 <p className="text-xs text-muted-foreground">Provider auto-selected from the key prefix.</p>
               )}
+            {LOCAL_BACKEND_NOTE[provider] && (
+              <p className="text-xs text-amber-600">{LOCAL_BACKEND_NOTE[provider]}</p>
+            )}
           </div>
+
+          {provider === 'local' && (
+            <div className="space-y-1.5">
+              <Label htmlFor="llm-key-base-url">Local server URL</Label>
+              <Input
+                id="llm-key-base-url"
+                type="text"
+                value={baseUrl}
+                onChange={(event) => {
+                  setBaseUrl(event.target.value);
+                  setSaveError(null);
+                }}
+                placeholder={DEFAULT_LOCAL_BASE_URL}
+                autoComplete="off"
+                spellCheck={false}
+              />
+              <p className="text-xs text-muted-foreground">
+                Your OpenAI-compatible endpoint. For Ollama use{' '}
+                <code>{DEFAULT_LOCAL_BASE_URL}</code>.
+              </p>
+            </div>
+          )}
 
           <div className="space-y-1.5">
             <Label htmlFor="llm-key-api-key">API Key</Label>

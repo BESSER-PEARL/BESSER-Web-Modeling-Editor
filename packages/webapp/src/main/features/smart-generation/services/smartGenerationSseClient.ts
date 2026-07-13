@@ -22,6 +22,8 @@ export interface StartSmartGenRunParams {
   provider: SmartGenProvider;
   apiKey: string;
   llmModel?: string;
+  /** OpenAI-compatible base URL for the 'pia'/'local' providers. */
+  baseUrl?: string;
   maxCostUsd?: number;
   maxRuntimeSeconds?: number;
   /**
@@ -60,12 +62,19 @@ export function startSmartGenRun(
 ): SmartGenRunHandle {
   const controller = new AbortController();
 
+  // 'pia' / 'local' are OpenAI-compatible endpoints: send them to the backend
+  // as provider='openai' + base_url so the server builds an OpenAI client
+  // pointed at the gateway / local server.
+  const usesBaseUrl = params.provider === 'pia' || params.provider === 'local';
+  const wireProvider = usesBaseUrl ? 'openai' : params.provider;
+
   const body: Record<string, unknown> = {
     project: params.project,
     instructions: params.instructions,
     api_key: params.apiKey,
-    provider: params.provider,
+    provider: wireProvider,
   };
+  if (usesBaseUrl && params.baseUrl) body.base_url = params.baseUrl;
   if (params.llmModel) body.llm_model = params.llmModel;
   if (typeof params.maxCostUsd === 'number') body.max_cost_usd = params.maxCostUsd;
   if (typeof params.maxRuntimeSeconds === 'number') {

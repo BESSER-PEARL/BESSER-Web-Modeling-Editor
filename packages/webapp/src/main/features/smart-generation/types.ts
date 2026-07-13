@@ -6,7 +6,10 @@
  * and renders them into the existing assistant chat message list.
  */
 
-export type SmartGenProvider = 'anthropic' | 'openai' | 'mistral';
+// 'pia' and 'local' are frontend-only labels for OpenAI-compatible endpoints;
+// on the wire they are sent as provider='openai' + a base_url (the SSE client
+// maps them). They only work when the WME backend runs locally.
+export type SmartGenProvider = 'anthropic' | 'openai' | 'mistral' | 'pia' | 'local';
 
 export type SmartGenPrimaryKind =
   | 'class'

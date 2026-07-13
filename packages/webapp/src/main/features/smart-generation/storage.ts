@@ -14,6 +14,7 @@
 
 import {
   localStorageSmartGenLastRunPrefix,
+  sessionStorageLlmBaseUrl,
   sessionStorageSmartGenApiKey,
   sessionStorageSmartGenLlmModel,
   sessionStorageSmartGenMaxCostUsd,
@@ -28,7 +29,17 @@ export interface SessionKey {
   apiKey: string;
   /** Explicit model override; undefined = use backend default for the provider. */
   llmModel?: string;
+  /** OpenAI-compatible base URL for the 'local'/'pia' providers. */
+  baseUrl?: string;
 }
+
+const _VALID_PROVIDERS: ReadonlySet<string> = new Set([
+  'anthropic',
+  'openai',
+  'mistral',
+  'pia',
+  'local',
+]);
 
 /** True when sessionStorage is reachable (it's not in some SSR / privacy modes). */
 function _hasSessionStorage(): boolean {
@@ -45,13 +56,12 @@ export function readSessionKey(): SessionKey | null {
   try {
     const apiKey = window.sessionStorage.getItem(sessionStorageSmartGenApiKey);
     const provider = window.sessionStorage.getItem(sessionStorageSmartGenProvider);
-    if (!apiKey || !provider) return null;
-    if (provider !== 'anthropic' && provider !== 'openai' && provider !== 'mistral') {
-      return null;
-    }
+    if (!apiKey || !provider || !_VALID_PROVIDERS.has(provider)) return null;
     const rawLlmModel = window.sessionStorage.getItem(sessionStorageSmartGenLlmModel);
     const llmModel = rawLlmModel && rawLlmModel.trim() ? rawLlmModel.trim() : undefined;
-    return { apiKey, provider, llmModel };
+    const rawBase = window.sessionStorage.getItem(sessionStorageLlmBaseUrl);
+    const baseUrl = rawBase && rawBase.trim() ? rawBase.trim() : undefined;
+    return { apiKey, provider: provider as SmartGenProvider, llmModel, baseUrl };
   } catch {
     return null;
   }

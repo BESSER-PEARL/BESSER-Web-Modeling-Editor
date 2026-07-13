@@ -133,6 +133,8 @@ const VALID_PROVIDERS: ReadonlySet<SmartGenProvider> = new Set<SmartGenProvider>
   'anthropic',
   'openai',
   'mistral',
+  'pia',
+  'local',
 ]);
 
 /**
@@ -858,6 +860,7 @@ export function useSmartGenTrigger(
         provider,
         apiKey: key.apiKey,
         llmModel,
+        baseUrl: key.baseUrl,
         maxCostUsd: budget?.maxCostUsd,
         maxRuntimeSeconds: budget?.maxRuntimeSeconds,
         mode: runDecision.mode,

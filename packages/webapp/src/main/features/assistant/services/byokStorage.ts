@@ -17,15 +17,18 @@ import {
   sessionStorageAssistantApiKey,
   sessionStorageAssistantModel,
   sessionStorageAssistantProvider,
+  sessionStorageLlmBaseUrl,
 } from '../../../shared/constants/constant';
 
-export type AssistantApiProvider = 'anthropic' | 'openai' | 'mistral';
+export type AssistantApiProvider = 'anthropic' | 'openai' | 'mistral' | 'pia' | 'local';
 
 export interface AssistantApiKey {
   provider: AssistantApiProvider;
   apiKey: string;
   /** Explicit model override; undefined = use the backend default for the provider. */
   model?: string;
+  /** OpenAI-compatible base URL for the 'local'/'pia' providers. */
+  baseUrl?: string;
 }
 
 /** True when sessionStorage is reachable (it's not in some SSR / privacy modes). */
@@ -38,7 +41,13 @@ function _hasSessionStorage(): boolean {
 }
 
 function _isProvider(value: string | null): value is AssistantApiProvider {
-  return value === 'anthropic' || value === 'openai' || value === 'mistral';
+  return (
+    value === 'anthropic' ||
+    value === 'openai' ||
+    value === 'mistral' ||
+    value === 'pia' ||
+    value === 'local'
+  );
 }
 
 /** Read the currently stored assistant BYOK key, or `null` if none / unavailable. */
@@ -50,7 +59,9 @@ export function readAssistantApiKey(): AssistantApiKey | null {
     if (!apiKey || !_isProvider(provider)) return null;
     const rawModel = window.sessionStorage.getItem(sessionStorageAssistantModel);
     const model = rawModel && rawModel.trim() ? rawModel.trim() : undefined;
-    return { apiKey, provider, model };
+    const rawBase = window.sessionStorage.getItem(sessionStorageLlmBaseUrl);
+    const baseUrl = rawBase && rawBase.trim() ? rawBase.trim() : undefined;
+    return { apiKey, provider, model, baseUrl };
   } catch {
     return null;
   }

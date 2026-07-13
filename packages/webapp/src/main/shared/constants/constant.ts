@@ -86,6 +86,17 @@ export const localStorageProjectsList = localStoragePrefix + 'projects';
 export const sessionStorageLlmApiKey = localStoragePrefix + 'llm_api_key';
 export const sessionStorageLlmProvider = localStoragePrefix + 'llm_provider';
 export const sessionStorageLlmModel = localStoragePrefix + 'llm_model';
+// OpenAI-compatible base URL for the 'local' provider (user-supplied, e.g.
+// http://localhost:11434/v1 for Ollama) and the 'pia' provider (the fixed LIST
+// gateway, see PIA_GATEWAY_BASE_URL). Empty/missing = use the backend's own
+// default (its OPENAI_BASE_URL env, or the SDK default).
+export const sessionStorageLlmBaseUrl = localStoragePrefix + 'llm_base_url';
+
+// The LIST PIA gateway (OpenAI-compatible). The frontend sends this as the base
+// URL for the 'pia' provider so a PIA run reaches the gateway regardless of the
+// backend's OPENAI_BASE_URL env. Only reachable from the LIST VPN — i.e. when
+// the WME backend runs locally on-VPN. Not a secret (public gateway host).
+export const PIA_GATEWAY_BASE_URL = 'https://gateway.pia.private.list.lu/v1';
 
 // Smart Generator — BYOK keys now alias the unified keys above (kept as named
 // exports so existing imports keep working with no consumer changes).
