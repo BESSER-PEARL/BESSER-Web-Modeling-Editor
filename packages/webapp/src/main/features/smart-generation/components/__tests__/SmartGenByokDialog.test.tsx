@@ -20,25 +20,12 @@ import { smartGeneratorReducer, openByokDialog, setApiKeyPresent } from '../../s
 import { workspaceReducer } from '../../../../app/store/workspaceSlice';
 import { errorReducer } from '../../../../app/store/errorManagementSlice';
 import { SmartGenByokDialog } from '../SmartGenByokDialog';
-import { fetchSmartGenPreview } from '../../services/smartGenerationPreviewClient';
 import {
   sessionStorageSmartGenApiKey,
   sessionStorageSmartGenMaxCostUsd,
   sessionStorageSmartGenMaxRuntimeSeconds,
   sessionStorageSmartGenProvider,
 } from '../../../../shared/constants/constant';
-
-const _lastRun = vi.hoisted(() => ({
-  value: null as { runId: string; at: number } | null,
-}));
-
-vi.mock('../../storage', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('../../storage')>();
-  return {
-    ...actual,
-    readProjectLastRun: vi.fn(() => _lastRun.value),
-  };
-});
 
 // Mock the config service so dialog tests never hit the network. The
 // fallback object mirrors the backend literals (caps 2.0 USD / 900 s,
@@ -50,24 +37,6 @@ vi.mock('../../services/smartGenConfig', async (importOriginal) => {
     getSmartGenConfig: vi.fn(() => Promise.resolve(mod.FALLBACK_SMART_GEN_CONFIG)),
   };
 });
-
-const PREVIEW_PLAN = {
-  primaryKind: 'class' as const,
-  auxiliaryKinds: ['gui' as const],
-  executionMode: 'generate' as const,
-  targetGenerator: 'generate_web_app',
-  targetGeneratorConfidence: 0.8,
-  summary: 'Generate a web app from the class and GUI models.',
-  estimatedTurns: 12,
-  estimatedCostUsd: 0.42,
-  estimatedDurationSeconds: 125,
-  notes: ['Deterministic base first.'],
-  modelSummary: { primary: 'class' as const, present: [{ kind: 'class' as const }] },
-};
-
-vi.mock('../../services/smartGenerationPreviewClient', () => ({
-  fetchSmartGenPreview: vi.fn(() => Promise.resolve(PREVIEW_PLAN)),
-}));
 
 const PROJECT = {
   id: 'project-1', name: 'Preview_Project', diagrams: {}, currentDiagramIndices: {},
@@ -118,9 +87,7 @@ function clearSmartGenSessionStorage() {
 
 beforeEach(() => {
   vi.clearAllMocks();
-  _lastRun.value = null;
   clearSmartGenSessionStorage();
-  vi.mocked(fetchSmartGenPreview).mockResolvedValue(PREVIEW_PLAN);
 });
 
 afterEach(() => {
@@ -446,91 +413,41 @@ describe('SmartGenByokDialog — budget controls', () => {
   });
 });
 
-describe('SmartGenByokDialog — footer label', () => {
-  it('requires an explicit approved-plan click and stores both overrides', async () => {
+describe('SmartGenByokDialog — footer (pending trigger)', () => {
+  it('Save & run persists the key and approves the pending trigger directly (no preview step)', () => {
     const { store } = renderPendingDialog();
-    expect(await screen.findByText(PREVIEW_PLAN.summary)).toBeTruthy();
+    // No plan-review panel — the run button is available immediately.
     fireEvent.change(document.getElementById('smart-gen-api-key') as HTMLInputElement, {
       target: { value: 'sk-ant-approved' },
     });
-    fireEvent.click(screen.getByRole('button', { name: /run approved plan/i }));
+    fireEvent.click(screen.getByRole('button', { name: /save.*run/i }));
 
     const state = store.getState().smartGenerator;
     expect(state.byokDialogOpen).toBe(false);
     expect(state.pendingTrigger).toEqual(expect.objectContaining({
       planApproved: true,
-      mode: 'generate',
-      primaryKindOverride: 'class',
-      targetGeneratorOverride: 'generate_web_app',
+      action: 'trigger_smart_generator',
+      instructions: 'build a thing',
     }));
-    expect(state.pendingTrigger?.skipDeterministicGenerator).toBeUndefined();
-    expect(state.pendingTrigger?.baseRunId).toBeUndefined();
+    // The key was persisted so the trigger hook can start the run.
+    expect(window.sessionStorage.getItem(sessionStorageSmartGenApiKey)).toBe('sk-ant-approved');
   });
 
-  it('previews and approves an eligible follow-up with one fixed modify decision', async () => {
-    const baseRunId = 'd'.repeat(32);
-    _lastRun.value = { runId: baseRunId, at: Date.now() };
-    const modifyPlan = {
-      ...PREVIEW_PLAN,
-      executionMode: 'modify' as const,
-      summary: 'Modify the previous generated application.',
-    };
-    vi.mocked(fetchSmartGenPreview).mockResolvedValue(modifyPlan);
-    const { store } = renderPendingDialog();
-
-    expect(await screen.findByText(modifyPlan.summary)).toBeTruthy();
-    await waitFor(() => {
-      expect(fetchSmartGenPreview).toHaveBeenLastCalledWith(
-        expect.objectContaining({
-          mode: 'modify',
-          baseRunId,
-        }),
-      );
-    });
-    fireEvent.change(document.getElementById('smart-gen-api-key') as HTMLInputElement, {
-      target: { value: 'sk-ant-approved' },
-    });
-    fireEvent.click(screen.getByRole('button', { name: /run approved plan/i }));
-
-    expect(store.getState().smartGenerator.pendingTrigger).toEqual(
-      expect.objectContaining({
-        planApproved: true,
-        mode: 'modify',
-        baseRunId,
-      }),
-    );
+  it('does not surface any plan-review / cost-estimate UI', () => {
+    renderPendingDialog();
+    expect(screen.queryByText(/review plan/i)).toBeNull();
+    expect(screen.queryByText(/estimated cost/i)).toBeNull();
+    expect(screen.queryByText(/llm turns/i)).toBeNull();
+    expect(screen.queryByRole('button', { name: /run approved plan/i })).toBeNull();
   });
 
-  it('binds an approved LLM-from-scratch plan with the explicit skip flag', async () => {
-    const fromScratchPlan = {
-      ...PREVIEW_PLAN,
-      targetGenerator: null,
-      summary: 'Build directly with the LLM.',
-    };
-    vi.mocked(fetchSmartGenPreview).mockResolvedValue(fromScratchPlan);
-    const { store } = renderPendingDialog();
-    expect(await screen.findByText(fromScratchPlan.summary)).toBeTruthy();
-    fireEvent.change(document.getElementById('smart-gen-api-key') as HTMLInputElement, {
-      target: { value: 'sk-ant-approved' },
-    });
-    fireEvent.click(screen.getByRole('button', { name: /run approved plan/i }));
-
-    const trigger = store.getState().smartGenerator.pendingTrigger;
-    expect(trigger).toEqual(expect.objectContaining({
-      planApproved: true,
-      skipDeterministicGenerator: true,
-    }));
-    expect(trigger?.targetGeneratorOverride).toBeUndefined();
-  });
-
-  it('shows plain "Save" when opened without a pending trigger (Settings flow)', () => {
+  it('shows plain "Save" (not "Save & run") in the Settings flow (no pending trigger)', () => {
     const { store } = renderDialog(false);
     act(() => {
       store.dispatch(openByokDialog(null));
     });
-    const saveBtn = screen.getByRole('button', { name: /^save$/i });
-    expect(saveBtn).toBeTruthy();
-    expect(screen.queryByRole('button', { name: /run approved plan/i })).toBeNull();
+    expect(screen.getByRole('button', { name: /^save$/i })).toBeTruthy();
+    expect(screen.queryByRole('button', { name: /save.*run/i })).toBeNull();
   });
 });
 

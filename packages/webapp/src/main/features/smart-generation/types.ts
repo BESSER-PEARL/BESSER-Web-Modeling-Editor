@@ -177,35 +177,8 @@ export interface TriggerSmartGeneratorPayload {
   skipDeterministicGenerator?: boolean;
   /**
    * Internal UI attestation. Incoming agent payloads are rebuilt by
-   * `useAssistantLogic` and never copy this field, so only the preview dialog
-   * can authorize a paid run.
+   * `useAssistantLogic` and never copy this field, so only the BYOK run
+   * dialog (where the user confirms key + budget) can authorize a paid run.
    */
   planApproved?: boolean;
-}
-
-export interface SmartGenPreviewModelSummaryEntry {
-  kind: SmartGenPrimaryKind;
-  classes?: number;
-  enumerations?: number;
-  associations?: number;
-  modules?: number;
-  screens?: number;
-  count?: number;
-}
-
-export interface SmartGenPreviewPlan {
-  primaryKind: SmartGenPrimaryKind;
-  auxiliaryKinds: SmartGenPrimaryKind[];
-  executionMode: SmartGenMode;
-  targetGenerator: string | null;
-  targetGeneratorConfidence: number;
-  summary: string;
-  estimatedTurns: number;
-  estimatedCostUsd: number;
-  estimatedDurationSeconds: number;
-  notes: string[];
-  modelSummary: {
-    primary: SmartGenPrimaryKind;
-    present: SmartGenPreviewModelSummaryEntry[];
-  };
 }

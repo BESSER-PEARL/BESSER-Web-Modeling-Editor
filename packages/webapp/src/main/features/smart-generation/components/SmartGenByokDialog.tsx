@@ -1,24 +1,20 @@
 /**
  * BYOK (bring-your-own-key) modal for the Spec-Driven Agent.
  *
- * Opened for every `trigger_smart_generator` action so the user can review
- * the keyless execution preview before any paid work. Approval persists the
- * provider settings and the exact previewed generate/modify decision; the
- * trigger hook then consumes that approved plan exactly once.
+ * Opened for every `trigger_smart_generator` action (and from the assistant
+ * settings). The user enters/confirms their provider + key + model + run
+ * budget, then clicks the primary button to start the run directly — there
+ * is no separate plan-review/approve step. The run's generate-vs-modify
+ * decision is computed by the trigger hook (`useSmartGenTrigger`).
  *
  * The raw key never enters Redux — only `apiKeyInStore` (boolean).
  */
 
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import {
-  ChevronDown,
-  Loader2,
-  RefreshCw,
-  ShieldCheck,
-} from 'lucide-react';
+import { ChevronDown, ShieldCheck } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -31,20 +27,17 @@ import {
 import { useAppDispatch, useAppSelector } from '../../../app/store/hooks';
 import type { RootState } from '../../../app/store/store';
 import type { BesserProject } from '../../../shared/types/project';
-import { buildProjectPayloadForBackend } from '../../../shared/utils/projectExportUtils';
 import {
   CUSTOM_MODEL_VALUE,
   MODEL_PRESETS,
 } from '../../../shared/components/byok/LlmKeyDialog';
 import {
   clearSessionKey,
-  readProjectLastRun,
   readSessionBudget,
   readSessionKey,
   writeSessionBudget,
   writeSessionKey,
 } from '../storage';
-import { decideRunMode, type RunModeDecision } from '../runModeDecision';
 import {
   FALLBACK_SMART_GEN_CONFIG,
   getSmartGenConfig,
@@ -57,17 +50,12 @@ import {
   setApiKeyPresent,
   setProvider,
 } from '../state/smartGeneratorSlice';
-import { fetchSmartGenPreview } from '../services/smartGenerationPreviewClient';
-import { SmartGenPreviewPanel } from './SmartGenPreviewPanel';
-import type {
-  SmartGenPreviewPlan,
-  SmartGenProvider,
-} from '../types';
+import type { SmartGenProvider } from '../types';
 
 export interface SmartGenByokDialogProps {
   /** Optional callback fired when the user saves a key. */
   onKeySaved?: () => void;
-  /** Active project used by the deterministic, keyless preview request. */
+  /** Active project (accepted for API stability; not required by the dialog). */
   project?: BesserProject | null;
 }
 
@@ -140,7 +128,7 @@ function _classifyStoredModel(
 
 const PRIVACY_COPY =
   'Your key stays in this browser tab only and is sent directly to the ' +
-  'BESSER backend for each run you explicitly approve. It is never stored on our ' +
+  'BESSER backend for each run you start. It is never stored on our ' +
   'servers and it is cleared when you close the tab.';
 
 /**
@@ -181,7 +169,6 @@ function _clampBudget(
 
 export const SmartGenByokDialog: React.FC<SmartGenByokDialogProps> = ({
   onKeySaved,
-  project,
 }) => {
   const dispatch = useAppDispatch();
   const open = useAppSelector((s: RootState) => s.smartGenerator.byokDialogOpen);
@@ -220,11 +207,6 @@ export const SmartGenByokDialog: React.FC<SmartGenByokDialogProps> = ({
   const [maxCostInput, setMaxCostInput] = useState<string>('');
   const [maxRuntimeMinInput, setMaxRuntimeMinInput] = useState<string>('');
   const [showBudgetLimits, setShowBudgetLimits] = useState<boolean>(false);
-  const [previewPlan, setPreviewPlan] = useState<SmartGenPreviewPlan | null>(null);
-  const [previewRunDecision, setPreviewRunDecision] = useState<RunModeDecision | null>(null);
-  const [previewStatus, setPreviewStatus] = useState<'idle' | 'loading' | 'ready' | 'error'>('idle');
-  const [previewError, setPreviewError] = useState<string | null>(null);
-  const previewAbortRef = useRef<AbortController | null>(null);
 
   useEffect(() => {
     if (open) {
@@ -247,88 +229,11 @@ export const SmartGenByokDialog: React.FC<SmartGenByokDialogProps> = ({
     }
   }, [open, storedProvider, pendingTrigger]);
 
-  const requestPreview = useCallback(
-    async (
-      cfg: SmartGenConfig,
-      costInput: string,
-      runtimeMinutesInput: string,
-    ): Promise<void> => {
-      if (!pendingTrigger) return;
-      previewAbortRef.current?.abort();
-      const controller = new AbortController();
-      previewAbortRef.current = controller;
-      setPreviewPlan(null);
-      setPreviewRunDecision(null);
-      setPreviewError(null);
-      setPreviewStatus('loading');
-
-      if (!project) {
-        setPreviewStatus('error');
-        setPreviewError('Open a project before reviewing this generation plan.');
-        return;
-      }
-
-      const maxCostUsd = _clampBudget(
-        Number.parseFloat(costInput),
-        0.01,
-        cfg.caps.max_cost_usd_hard_cap,
-        cfg.caps.default_max_cost_usd,
-      );
-      const maxRuntimeSeconds = Math.round(
-        _clampBudget(
-          Number.parseFloat(runtimeMinutesInput) * 60,
-          30,
-          cfg.caps.max_runtime_seconds_hard_cap,
-          cfg.caps.default_max_runtime_seconds,
-        ),
-      );
-
-      try {
-        const runDecision = decideRunMode({
-          lastRun: readProjectLastRun(project.id),
-          nowMs: Date.now(),
-          ttlSeconds:
-            cfg.download_ttl_seconds ||
-            FALLBACK_SMART_GEN_CONFIG.download_ttl_seconds,
-          explicitMode: pendingTrigger.mode,
-          explicitBaseRunId: pendingTrigger.baseRunId,
-        });
-        const plan = await fetchSmartGenPreview({
-          project: buildProjectPayloadForBackend(project),
-          instructions: pendingTrigger.instructions,
-          maxCostUsd,
-          maxRuntimeSeconds,
-          mode: runDecision.mode,
-          baseRunId: runDecision.baseRunId,
-          primaryKindOverride: pendingTrigger.primaryKindOverride,
-          signal: controller.signal,
-        });
-        if (controller.signal.aborted) return;
-        setPreviewPlan(plan);
-        setPreviewRunDecision(runDecision);
-        setPreviewStatus('ready');
-      } catch (error) {
-        if (controller.signal.aborted) return;
-        setPreviewStatus('error');
-        setPreviewError(
-          error instanceof Error
-            ? error.message
-            : 'Could not build the generation plan.',
-        );
-      }
-    },
-    [pendingTrigger, project],
-  );
-
   // Prefill the budget inputs whenever the dialog opens: previously saved
   // values win, otherwise the backend's defaults from /smart-gen/config.
   useEffect(() => {
     if (!open) return;
     let cancelled = false;
-    setPreviewPlan(null);
-    setPreviewRunDecision(null);
-    setPreviewError(null);
-    setPreviewStatus(pendingTrigger ? 'loading' : 'idle');
     void getSmartGenConfig().then((cfg) => {
       if (cancelled) return;
       setConfig(cfg);
@@ -336,20 +241,13 @@ export const SmartGenByokDialog: React.FC<SmartGenByokDialogProps> = ({
       const costUsd = saved?.maxCostUsd ?? cfg.caps.default_max_cost_usd;
       const runtimeSeconds =
         saved?.maxRuntimeSeconds ?? cfg.caps.default_max_runtime_seconds;
-      const costValue = _formatBudgetNumber(costUsd);
-      const runtimeValue = _formatBudgetNumber(runtimeSeconds / 60);
-      setMaxCostInput(costValue);
-      setMaxRuntimeMinInput(runtimeValue);
-      if (pendingTrigger) {
-        void requestPreview(cfg, costValue, runtimeValue);
-      }
+      setMaxCostInput(_formatBudgetNumber(costUsd));
+      setMaxRuntimeMinInput(_formatBudgetNumber(runtimeSeconds / 60));
     });
     return () => {
       cancelled = true;
-      previewAbortRef.current?.abort();
-      previewAbortRef.current = null;
     };
-  }, [open, pendingTrigger, requestPreview]);
+  }, [open]);
 
   // When the provider changes (either by auto-detect or manual pick),
   // reset the model choice to that provider's default. This prevents a
@@ -376,8 +274,7 @@ export const SmartGenByokDialog: React.FC<SmartGenByokDialogProps> = ({
   );
 
   // Live (purely informational) format hint — shown as the user types,
-  // never blocks the save. This replaces the earlier broken
-  // "set warning then save anyway" logic.
+  // never blocks the save.
   const formatLooksWrong =
     trimmedKey.length > 0 && !trimmedKey.startsWith(selectedProvider.expectedPrefix);
 
@@ -390,13 +287,7 @@ export const SmartGenByokDialog: React.FC<SmartGenByokDialogProps> = ({
 
   // Auto-switch the provider dropdown when the user pastes a key whose
   // prefix unambiguously identifies the provider — but only if the
-  // user hasn't explicitly overridden the choice. Without this, a user
-  // who pastes an OpenAI key while the dropdown defaults to Anthropic
-  // ends up with a mismatched provider/key pair, the Anthropic API
-  // returns 401, the orchestrator falls through to the Phase 1
-  // deterministic generator output with no LLM customisation, and the
-  // user downloads generic FastAPI code instead of the stack they asked
-  // for — with no clear error anywhere.
+  // user hasn't explicitly overridden the choice.
   useEffect(() => {
     if (providerLockedByUser) return;
     if (inferredProvider === null) return;
@@ -410,14 +301,6 @@ export const SmartGenByokDialog: React.FC<SmartGenByokDialogProps> = ({
     setProviderLockedByUser(true);
   };
 
-  const invalidatePreview = () => {
-    if (!pendingTrigger) return;
-    previewAbortRef.current?.abort();
-    setPreviewPlan(null);
-    setPreviewError(null);
-    setPreviewStatus('idle');
-  };
-
   /**
    * Resolve the effective model string to persist. Returns empty string
    * when the user selected the provider default and didn't override via
@@ -428,14 +311,11 @@ export const SmartGenByokDialog: React.FC<SmartGenByokDialogProps> = ({
     if (modelChoice === CUSTOM_MODEL_VALUE) {
       return customModel.trim();
     }
-    // Storing the default preset's value is fine — it's explicit and
-    // makes the user's intent durable across sessions.
     return modelChoice;
   };
 
   // Model-format sanity check mirrors the backend's
-  // ``_LLM_MODEL_NAME_RE`` — lets the user see the problem live,
-  // before they click Save.
+  // ``_LLM_MODEL_NAME_RE`` — lets the user see the problem live.
   const effectiveModel = resolveEffectiveModel();
   const modelFormatInvalid =
     modelChoice === CUSTOM_MODEL_VALUE &&
@@ -451,12 +331,7 @@ export const SmartGenByokDialog: React.FC<SmartGenByokDialogProps> = ({
       return false;
     }
     // Hard guard: if the key prefix unambiguously identifies a
-    // provider that differs from the selected one, refuse to save
-    // until the user either fixes the dropdown or fixes the key.
-    // This prevents the silent-partial-success trap where an
-    // OpenAI key ends up hitting the Anthropic API, gets 401s, and
-    // the user sees a FastAPI ZIP instead of the stack they asked
-    // for.
+    // provider that differs from the selected one, refuse to save.
     if (providerMismatch) {
       setSaveError(
         `This key looks like ${_providerLabel(inferredProvider)} but the ` +
@@ -522,25 +397,13 @@ export const SmartGenByokDialog: React.FC<SmartGenByokDialogProps> = ({
     dispatch(closeByokDialog());
   };
 
-  const handleRunApprovedPlan = () => {
+  // Save the key/budget and start the run directly. The trigger hook
+  // computes the generate-vs-modify decision from the project's last run;
+  // there is no separate plan-review step.
+  const handleSaveAndRun = () => {
     if (!pendingTrigger) return;
-    if (previewStatus !== 'ready' || !previewPlan || !previewRunDecision) {
-      void requestPreview(config, maxCostInput, maxRuntimeMinInput);
-      return;
-    }
     if (!persistSettings()) return;
-    dispatch(
-      approvePendingTrigger({
-        ...pendingTrigger,
-        mode: previewRunDecision.mode,
-        baseRunId: previewRunDecision.baseRunId,
-        primaryKindOverride: previewPlan.primaryKind,
-        targetGeneratorOverride: previewPlan.targetGenerator ?? undefined,
-        skipDeterministicGenerator:
-          previewPlan.targetGenerator === null ? true : undefined,
-        planApproved: true,
-      }),
-    );
+    dispatch(approvePendingTrigger({ ...pendingTrigger, planApproved: true }));
   };
 
   const handleClear = () => {
@@ -552,7 +415,6 @@ export const SmartGenByokDialog: React.FC<SmartGenByokDialogProps> = ({
   };
 
   const handleCancel = () => {
-    previewAbortRef.current?.abort();
     // Cancelling the dialog drops any pending trigger so the user's
     // original request doesn't silently resume later when they reopen
     // the dialog for a different purpose.
@@ -565,25 +427,17 @@ export const SmartGenByokDialog: React.FC<SmartGenByokDialogProps> = ({
       <DialogContent className="max-h-[88vh] overflow-y-auto sm:max-w-2xl">
         <DialogHeader>
           <DialogTitle>
-            {pendingTrigger ? 'Spec-Driven Agent — Review Plan' : 'Spec-Driven Agent — Settings'}
+            {pendingTrigger ? 'Spec-Driven Agent — Run' : 'Spec-Driven Agent — Settings'}
           </DialogTitle>
           <DialogDescription>
             {pendingTrigger
-              ? 'Inspect the deterministic plan before any paid LLM work begins. Nothing runs until you approve it. '
-              : 'Configure the provider, model, and guardrails used by future approved runs. '}
+              ? 'Confirm your provider, key, and budget, then start the run. '
+              : 'Configure the provider, model, and guardrails used by your runs. '}
             <strong>{PRIVACY_COPY}</strong>
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4">
-          {pendingTrigger && (
-            <SmartGenPreviewPanel
-              status={previewStatus}
-              plan={previewPlan}
-              error={previewError}
-              instructions={pendingTrigger.instructions}
-            />
-          )}
           <div className="flex items-center gap-2 pt-1 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
             <ShieldCheck className="size-3.5 text-brand" /> Provider and guardrails
           </div>
@@ -727,7 +581,6 @@ export const SmartGenByokDialog: React.FC<SmartGenByokDialogProps> = ({
                       onChange={(e) => {
                         setMaxCostInput(e.target.value);
                         setSaveError(null);
-                        invalidatePreview();
                       }}
                     />
                   </div>
@@ -744,7 +597,6 @@ export const SmartGenByokDialog: React.FC<SmartGenByokDialogProps> = ({
                       onChange={(e) => {
                         setMaxRuntimeMinInput(e.target.value);
                         setSaveError(null);
-                        invalidatePreview();
                       }}
                     />
                   </div>
@@ -775,13 +627,11 @@ export const SmartGenByokDialog: React.FC<SmartGenByokDialogProps> = ({
           </Button>
           {pendingTrigger ? (
             <Button
-              onClick={handleRunApprovedPlan}
-              disabled={previewStatus === 'loading' || (previewStatus === 'ready' && !canUseKey)}
+              onClick={handleSaveAndRun}
+              disabled={!canUseKey}
               className="gap-2 bg-brand text-brand-foreground hover:bg-brand-dark"
             >
-              {previewStatus === 'loading' ? <><Loader2 className="size-4 animate-spin" /> Preparing plan</> :
-                previewStatus === 'ready' ? <><ShieldCheck className="size-4" /> Run approved plan</> :
-                  <><RefreshCw className="size-4" /> Review plan</>}
+              <ShieldCheck className="size-4" /> Save &amp; run
             </Button>
           ) : (
             <Button
