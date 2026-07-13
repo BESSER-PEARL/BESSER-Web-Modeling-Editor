@@ -245,7 +245,7 @@ function AppContentInner() {
         <AssistantWidget onAssistantGenerate={handleAssistantGenerate} />
       </Suspense>
       <Suspense fallback={null}>
-        <SmartGenByokDialog />
+        <SmartGenByokDialog project={currentProject} />
       </Suspense>
       <Suspense fallback={null}>
         <SmartGenPushDialogHost />

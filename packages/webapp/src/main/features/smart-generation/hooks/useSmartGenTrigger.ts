@@ -100,6 +100,12 @@ const COST_TIMEOUT_FAILSAFE_MS = 45_000;
 // backend has garbage-collected the run's output, so a rebuild is forced.
 const DEFAULT_DOWNLOAD_TTL_SECONDS = 1800;
 
+const isNonTerminalErrorEvent = (event: SmartGenEvent): boolean =>
+  event.event === 'error' &&
+  (event.code === 'COST_CAP' ||
+    event.code === 'TIMEOUT' ||
+    event.code === 'INCOMPLETE');
+
 const createMessageId = (): string => {
   if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
     return crypto.randomUUID();
@@ -379,7 +385,11 @@ export function useSmartGenTrigger(
    * readable and each event type has a clear local block.
    */
   const handleSseEvent = useCallback(
-    async (event: SmartGenEvent, streamingId: string): Promise<void> => {
+    async (
+      event: SmartGenEvent,
+      streamingId: string,
+      runProject: { id: string; name?: string },
+    ): Promise<void> => {
       if (abortRequestedRef.current) return;
       switch (event.event) {
         case 'start': {
@@ -515,7 +525,7 @@ export function useSmartGenTrigger(
           // reload). The next `startRun` reads this back and, while still
           // within the download TTL, sends `mode:'modify'` + base_run_id.
           {
-            const doneProjectId = currentProjectRef.current?.id;
+            const doneProjectId = runProject.id;
             if (doneRunId && doneProjectId) {
               const at = Date.now();
               dispatch(
@@ -556,7 +566,7 @@ export function useSmartGenTrigger(
             // UUID-suffixed zip filename. Falls back to the raw filename
             // when we don't have a project (defensive -- shouldn't happen
             // since the run is guarded on an open project).
-            const projectName = currentProjectRef.current?.name?.trim();
+            const projectName = runProject.name;
             const niceLabel = projectName ? `**${projectName}**` : `\`${event.fileName}\``;
             appendAssistantMessage(
               (event.incomplete
@@ -708,6 +718,10 @@ export function useSmartGenTrigger(
    */
   const startRun = useCallback(
     async (payload: TriggerSmartGeneratorPayload) => {
+      if (!payload.planApproved) {
+        dispatch(openByokDialog(payload));
+        return;
+      }
       // Guard against BOTH a re-entrant call on this instance
       // (isRunningRef) and a run owned by the OTHER mounted hook
       // instance (global runStatus, read synchronously from the live
@@ -731,6 +745,10 @@ export function useSmartGenTrigger(
         toast.error('Spec-Driven Agent needs an open project');
         return;
       }
+      const runProject = {
+        id: project.id,
+        name: project.name?.trim() || undefined,
+      };
 
       // Resolve the provider with runtime validation — never trust
       // untyped payload fields to match the StartSmartGenRunParams
@@ -844,6 +862,9 @@ export function useSmartGenTrigger(
         maxRuntimeSeconds: budget?.maxRuntimeSeconds,
         mode: runDecision.mode,
         baseRunId: runDecision.baseRunId,
+        primaryKindOverride: payload.primaryKindOverride,
+        targetGeneratorOverride: payload.targetGeneratorOverride,
+        skipDeterministicGenerator: payload.skipDeterministicGenerator,
       };
 
       let handle;
@@ -864,11 +885,40 @@ export function useSmartGenTrigger(
 
       abortRef.current = handle.abort;
 
+      let terminalEventSeen = false;
       try {
         for await (const event of handle.events) {
           if (!mountedRef.current) break;
           if (abortRequestedRef.current) break;
-          await handleSseEvent(event, streamingId);
+          if (event.event === 'done' || (event.event === 'error' && !isNonTerminalErrorEvent(event))) {
+            terminalEventSeen = true;
+          }
+          await handleSseEvent(event, streamingId, runProject);
+        }
+        if (
+          mountedRef.current &&
+          !abortRequestedRef.current &&
+          !terminalEventSeen
+        ) {
+          const message = 'The generation stream closed before reporting a final result.';
+          updateSmartGen(
+            streamingId,
+            (state) => ({
+              ...state,
+              status: 'error',
+              warnings: [...state.warnings, { code: 'INTERNAL', message }],
+            }),
+            { stopStreaming: true },
+          );
+          appendErrorToChat(`Spec-Driven Agent stream ended early: ${message}`);
+          toast.error('Spec-Driven Agent stream ended early');
+          dispatch(setRunError({ code: 'INTERNAL', message }));
+          reportRunFinished({
+            ok: false,
+            runId: currentRunIdRef.current,
+            errorCode: 'INTERNAL',
+            costUsd: lastCostRef.current,
+          });
         }
       } catch (err) {
         if (!mountedRef.current) return;
@@ -919,6 +969,7 @@ export function useSmartGenTrigger(
       handleSseEvent,
       reportRunFinished,
       setIsGenerating,
+      updateSmartGen,
     ],
   );
 
@@ -936,8 +987,7 @@ export function useSmartGenTrigger(
         );
         return;
       }
-      const key = readSessionKey();
-      if (!key) {
+      if (!payload.planApproved || !readSessionKey()) {
         dispatch(openByokDialog(payload));
         return;
       }

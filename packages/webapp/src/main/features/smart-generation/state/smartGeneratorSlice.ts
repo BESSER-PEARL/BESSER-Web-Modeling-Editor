@@ -95,6 +95,7 @@ const initialState: SmartGeneratorState = {
 const NON_TERMINAL_ERROR_CODES: ReadonlySet<SmartGenErrorCode> = new Set<SmartGenErrorCode>([
   'COST_CAP',
   'TIMEOUT',
+  'INCOMPLETE',
 ]);
 
 const smartGeneratorSlice = createSlice({
@@ -112,6 +113,13 @@ const smartGeneratorSlice = createSlice({
       // Only flip the dialog flag — pendingTrigger is preserved so the
       // resume effect in useSmartGenTrigger can fire after the user saves
       // their key. Cancel paths must dispatch clearPendingTrigger explicitly.
+      state.byokDialogOpen = false;
+    },
+    approvePendingTrigger(
+      state,
+      action: PayloadAction<TriggerSmartGeneratorPayload>,
+    ) {
+      state.pendingTrigger = action.payload;
       state.byokDialogOpen = false;
     },
     /**
@@ -225,6 +233,7 @@ const smartGeneratorSlice = createSlice({
 export const {
   openByokDialog,
   closeByokDialog,
+  approvePendingTrigger,
   openPushDialog,
   closePushDialog,
   setProvider,

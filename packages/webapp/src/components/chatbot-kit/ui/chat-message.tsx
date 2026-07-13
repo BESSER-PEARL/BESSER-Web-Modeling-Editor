@@ -761,9 +761,13 @@ function SmartGenCard({
     // Fire-and-forget — no body needed. Errors are swallowed: if the
     // cancel request itself fails the run simply keeps streaming and
     // the user can hit Stop again after the button re-enables.
-    void fetch(cancelSmartGenUrl(runId), { method: "POST" }).catch(() => {
-      setStopRequested(false)
-    })
+    void fetch(cancelSmartGenUrl(runId), { method: "POST" })
+      .then((response) => {
+        if (!response.ok) setStopRequested(false)
+      })
+      .catch(() => {
+        setStopRequested(false)
+      })
   }
 
   const handleRedownload = async () => {

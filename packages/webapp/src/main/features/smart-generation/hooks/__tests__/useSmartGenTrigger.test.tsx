@@ -195,6 +195,7 @@ const PAYLOAD: TriggerSmartGeneratorPayload = {
   provider: 'anthropic',
   llmModel: 'claude-sonnet-4-6',
   message: 'I will build this for you.',
+  planApproved: true,
 };
 
 function setSessionKey(key = 'sk-ant-test-NEVER-LEAK-0123') {
@@ -303,6 +304,26 @@ describe('useSmartGenTrigger — BYOK missing flow', () => {
     // No messages appended — the stream never started.
     const msgs = apiRef.current!.getMessages();
     expect(msgs.length).toBe(0);
+  });
+
+  it('opens the plan review and does not start a paid run before approval', async () => {
+    setSessionKey();
+    const { apiRef, store } = renderHarness();
+
+    await act(async () => {
+      await apiRef.current!.handleTrigger({
+        ...PAYLOAD,
+        planApproved: undefined,
+      });
+    });
+
+    expect(store.getState().smartGenerator.byokDialogOpen).toBe(true);
+    expect(store.getState().smartGenerator.pendingTrigger).toEqual(
+      expect.objectContaining({ instructions: 'build a thing' }),
+    );
+    const sseClientModule = await import('../../services/smartGenerationSseClient');
+    expect(vi.mocked(sseClientModule.startSmartGenRun)).not.toHaveBeenCalled();
+    expect(apiRef.current!.getMessages()).toHaveLength(0);
   });
 });
 
@@ -474,6 +495,7 @@ describe('useSmartGenTrigger — BYOK provider wins over agent hint', () => {
       provider: 'anthropic',
       llmModel: 'claude-sonnet-4-6',
       message: 'handing off…',
+      planApproved: true,
     };
 
     await act(async () => {
@@ -517,6 +539,7 @@ describe('useSmartGenTrigger — BYOK provider wins over agent hint', () => {
       provider: 'anthropic',
       llmModel: 'claude-sonnet-4-6',  // Anthropic model hint — wrong for openai
       message: 'handing off…',
+      planApproved: true,
     };
 
     await act(async () => {
@@ -559,6 +582,7 @@ describe('useSmartGenTrigger — BYOK provider wins over agent hint', () => {
       provider: 'anthropic',
       llmModel: 'claude-sonnet-4-6',
       message: 'handing off…',
+      planApproved: true,
     };
 
     await act(async () => {
@@ -598,6 +622,7 @@ describe('useSmartGenTrigger — BYOK provider wins over agent hint', () => {
       provider: 'anthropic',
       llmModel: 'claude-opus-4-6',  // agent's pinned preferred model
       message: 'handing off…',
+      planApproved: true,
     };
 
     await act(async () => {
@@ -776,6 +801,29 @@ describe('useSmartGenTrigger — onRunFinished (agent loop)', () => {
     );
   });
 
+  it('treats a clean SSE EOF without a terminal event as an error', async () => {
+    setSessionKey();
+    _mockController.events = [];
+    const onRunFinished = vi.fn();
+
+    const { apiRef, store } = renderHarness({ onRunFinished });
+
+    await act(async () => {
+      await apiRef.current!.handleTrigger(PAYLOAD);
+    });
+
+    await waitFor(() => {
+      expect(onRunFinished).toHaveBeenCalledTimes(1);
+    });
+    expect(onRunFinished).toHaveBeenCalledWith(
+      expect.objectContaining({ ok: false, errorCode: 'INTERNAL' }),
+    );
+    const messages = apiRef.current!.getMessages() as any[];
+    expect(messages.some((message) => message.smartGen?.status === 'error')).toBe(true);
+    expect(messages.some((message) => message.content?.includes('ended early'))).toBe(true);
+    expect(store.getState().smartGenerator.runStatus).toBe('idle');
+  });
+
   it('reports ok:true on done even though the file is not saved yet (user-initiated download)', async () => {
     setSessionKey();
     _mockController.events = HAPPY_EVENTS;
@@ -906,6 +954,28 @@ describe('useSmartGenTrigger — run budget from sessionStorage', () => {
     const callArgs = startSmartGenRunMock.mock.calls[0][0];
     expect(callArgs.maxCostUsd).toBeUndefined();
     expect(callArgs.maxRuntimeSeconds).toBeUndefined();
+  });
+
+  it('forwards all user-approved plan choices to the SSE request', async () => {
+    setSessionKey();
+    _mockController.events = HAPPY_EVENTS;
+
+    const { apiRef } = renderHarness();
+
+    await act(async () => {
+      await apiRef.current!.handleTrigger({
+        ...PAYLOAD,
+        primaryKindOverride: 'gui',
+        targetGeneratorOverride: 'generate_web_app',
+        skipDeterministicGenerator: true,
+      });
+    });
+
+    const sseClientModule = await import('../../services/smartGenerationSseClient');
+    const callArgs = vi.mocked(sseClientModule.startSmartGenRun).mock.calls[0][0];
+    expect(callArgs.primaryKindOverride).toBe('gui');
+    expect(callArgs.targetGeneratorOverride).toBe('generate_web_app');
+    expect(callArgs.skipDeterministicGenerator).toBe(true);
   });
 });
 

@@ -124,6 +124,20 @@ describe('SmartGenCard — Stop button', () => {
     });
   });
 
+  it('re-enables Stop when the cancel request is rejected', async () => {
+    globalThis.fetch = vi
+      .fn()
+      .mockResolvedValue(new Response(null, { status: 500 }));
+
+    renderCard(baseSmartGen());
+    fireEvent.click(screen.getByRole('button', { name: /stop/i }));
+
+    await waitFor(() => {
+      const stopButton = screen.getByRole('button', { name: /^stop$/i });
+      expect((stopButton as HTMLButtonElement).disabled).toBe(false);
+    });
+  });
+
   it('is not rendered once the run is done', () => {
     renderCard(
       baseSmartGen({ status: 'done', fileName: 'out.zip', isZip: true, costUsd: 0.3, maxCost: 2.0 }),

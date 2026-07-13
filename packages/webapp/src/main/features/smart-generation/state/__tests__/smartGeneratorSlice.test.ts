@@ -189,7 +189,7 @@ describe('smartGeneratorSlice — global runStatus guard', () => {
     expect(state.runStatus).toBe('idle');
   });
 
-  it('terminal setRunError releases the slot, COST_CAP/TIMEOUT warnings do NOT', () => {
+  it('terminal errors release the slot, non-terminal warnings do not', () => {
     let state = smartGeneratorReducer(INITIAL, beginRun({ runId: 'abc' }));
     // Non-terminal warning — stream continues, slot stays claimed.
     state = smartGeneratorReducer(
@@ -200,6 +200,11 @@ describe('smartGeneratorSlice — global runStatus guard', () => {
     state = smartGeneratorReducer(
       state,
       setRunError({ code: 'TIMEOUT', message: 'time cap reached' }),
+    );
+    expect(state.runStatus).toBe('running');
+    state = smartGeneratorReducer(
+      state,
+      setRunError({ code: 'INCOMPLETE', message: 'partial result available' }),
     );
     expect(state.runStatus).toBe('running');
     // Terminal error — slot released.

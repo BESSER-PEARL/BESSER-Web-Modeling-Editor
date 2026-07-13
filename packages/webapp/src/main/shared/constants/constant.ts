@@ -138,6 +138,7 @@ export const sessionStorageContinueFromGithubIntent = localStoragePrefix + 'cont
 
 // Smart Generator backend endpoints (derived from BACKEND_URL).
 export const SMART_GEN_ENDPOINT = `${BACKEND_URL}/smart-generate`;
+export const SMART_GEN_PREVIEW_ENDPOINT = `${BACKEND_URL}/smart-preview`;
 export const SMART_GEN_CONFIG_ENDPOINT = `${BACKEND_URL}/smart-gen/config`;
 export const smartGenDownloadUrl = (runId: string): string =>
   `${BACKEND_URL}/download-smart/${runId}`;

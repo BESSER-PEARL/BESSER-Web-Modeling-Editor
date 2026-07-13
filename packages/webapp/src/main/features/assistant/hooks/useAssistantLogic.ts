@@ -637,6 +637,27 @@ export function useAssistantLogic({
             : undefined,
         llmModel: typeof payload.llmModel === 'string' ? payload.llmModel : undefined,
         message: typeof payload.message === 'string' ? payload.message : undefined,
+        mode:
+          payload.mode === 'generate' || payload.mode === 'modify'
+            ? payload.mode
+            : undefined,
+        baseRunId: typeof payload.baseRunId === 'string' ? payload.baseRunId : undefined,
+        primaryKindOverride:
+          payload.primaryKindOverride === 'class' ||
+          payload.primaryKindOverride === 'gui' ||
+          payload.primaryKindOverride === 'agent' ||
+          payload.primaryKindOverride === 'state_machine' ||
+          payload.primaryKindOverride === 'object' ||
+          payload.primaryKindOverride === 'quantum' ||
+          payload.primaryKindOverride === 'bpmn' ||
+          payload.primaryKindOverride === 'nn'
+            ? payload.primaryKindOverride
+            : undefined,
+        targetGeneratorOverride:
+          typeof payload.targetGeneratorOverride === 'string' &&
+          payload.targetGeneratorOverride.trim()
+            ? payload.targetGeneratorOverride.trim()
+            : undefined,
       };
       if (!smartPayload.instructions) {
         setMessages((prev) => [

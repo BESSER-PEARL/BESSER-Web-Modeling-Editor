@@ -11,6 +11,7 @@ import { streamSse } from '../../../shared/services/sse/sseClient';
 import type {
   SmartGenEvent,
   SmartGenMode,
+  SmartGenPrimaryKind,
   SmartGenProvider,
 } from '../types';
 
@@ -31,6 +32,10 @@ export interface StartSmartGenRunParams {
    */
   baseRunId?: string;
   mode?: SmartGenMode;
+  primaryKindOverride?: SmartGenPrimaryKind;
+  targetGeneratorOverride?: string;
+  /** Explicit approved-plan choice to bypass the deterministic Phase-1 generator. */
+  skipDeterministicGenerator?: boolean;
 }
 
 export interface SmartGenRunHandle {
@@ -71,6 +76,15 @@ export function startSmartGenRun(
   // `base_run_id` only travels with a 'modify' run.
   if (params.mode) body.mode = params.mode;
   if (params.baseRunId) body.base_run_id = params.baseRunId;
+  if (params.primaryKindOverride) {
+    body.primary_kind_override = params.primaryKindOverride;
+  }
+  if (params.targetGeneratorOverride) {
+    body.target_generator_override = params.targetGeneratorOverride;
+  }
+  if (params.skipDeterministicGenerator === true) {
+    body.skip_deterministic_generator = true;
+  }
 
   const events = streamSse<SmartGenEvent>(SMART_GEN_ENDPOINT, body, {
     signal: controller.signal,

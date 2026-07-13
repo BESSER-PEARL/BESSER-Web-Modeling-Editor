@@ -20,12 +20,25 @@ import { smartGeneratorReducer, openByokDialog, setApiKeyPresent } from '../../s
 import { workspaceReducer } from '../../../../app/store/workspaceSlice';
 import { errorReducer } from '../../../../app/store/errorManagementSlice';
 import { SmartGenByokDialog } from '../SmartGenByokDialog';
+import { fetchSmartGenPreview } from '../../services/smartGenerationPreviewClient';
 import {
   sessionStorageSmartGenApiKey,
   sessionStorageSmartGenMaxCostUsd,
   sessionStorageSmartGenMaxRuntimeSeconds,
   sessionStorageSmartGenProvider,
 } from '../../../../shared/constants/constant';
+
+const _lastRun = vi.hoisted(() => ({
+  value: null as { runId: string; at: number } | null,
+}));
+
+vi.mock('../../storage', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../../storage')>();
+  return {
+    ...actual,
+    readProjectLastRun: vi.fn(() => _lastRun.value),
+  };
+});
 
 // Mock the config service so dialog tests never hit the network. The
 // fallback object mirrors the backend literals (caps 2.0 USD / 900 s,
@@ -38,6 +51,28 @@ vi.mock('../../services/smartGenConfig', async (importOriginal) => {
   };
 });
 
+const PREVIEW_PLAN = {
+  primaryKind: 'class' as const,
+  auxiliaryKinds: ['gui' as const],
+  executionMode: 'generate' as const,
+  targetGenerator: 'generate_web_app',
+  targetGeneratorConfidence: 0.8,
+  summary: 'Generate a web app from the class and GUI models.',
+  estimatedTurns: 12,
+  estimatedCostUsd: 0.42,
+  estimatedDurationSeconds: 125,
+  notes: ['Deterministic base first.'],
+  modelSummary: { primary: 'class' as const, present: [{ kind: 'class' as const }] },
+};
+
+vi.mock('../../services/smartGenerationPreviewClient', () => ({
+  fetchSmartGenPreview: vi.fn(() => Promise.resolve(PREVIEW_PLAN)),
+}));
+
+const PROJECT = {
+  id: 'project-1', name: 'Preview_Project', diagrams: {}, currentDiagramIndices: {},
+} as any;
+
 function makeStore(preopen = true) {
   const store = configureStore({
     reducer: {
@@ -47,13 +82,7 @@ function makeStore(preopen = true) {
     },
   });
   if (preopen) {
-    store.dispatch(
-      openByokDialog({
-        action: 'trigger_smart_generator',
-        instructions: 'build a thing',
-        provider: 'anthropic',
-      }),
-    );
+    store.dispatch(openByokDialog(null));
   }
   return store;
 }
@@ -62,10 +91,22 @@ function renderDialog(preopen = true) {
   const store = makeStore(preopen);
   const result = render(
     <Provider store={store}>
-      <SmartGenByokDialog />
+      <SmartGenByokDialog project={PROJECT} />
     </Provider>,
   );
   return { store, ...result };
+}
+
+function renderPendingDialog() {
+  const rendered = renderDialog(false);
+  act(() => {
+    rendered.store.dispatch(openByokDialog({
+      action: 'trigger_smart_generator',
+      instructions: 'build a thing',
+      provider: 'anthropic',
+    }));
+  });
+  return rendered;
 }
 
 function clearSmartGenSessionStorage() {
@@ -76,7 +117,10 @@ function clearSmartGenSessionStorage() {
 }
 
 beforeEach(() => {
+  vi.clearAllMocks();
+  _lastRun.value = null;
   clearSmartGenSessionStorage();
+  vi.mocked(fetchSmartGenPreview).mockResolvedValue(PREVIEW_PLAN);
 });
 
 afterEach(() => {
@@ -90,12 +134,12 @@ afterEach(() => {
 describe('SmartGenByokDialog — visibility', () => {
   it('is not rendered when byokDialogOpen is false', () => {
     renderDialog(false);
-    expect(screen.queryByText(/spec-driven agent.*api key/i)).toBeNull();
+    expect(screen.queryByText(/spec-driven agent.*settings/i)).toBeNull();
   });
 
   it('renders when byokDialogOpen is true', () => {
     renderDialog(true);
-    expect(screen.getByText(/spec-driven agent.*api key/i)).toBeTruthy();
+    expect(screen.getByText(/spec-driven agent.*settings/i)).toBeTruthy();
   });
 });
 
@@ -104,7 +148,7 @@ describe('SmartGenByokDialog — save flow', () => {
     const { store } = renderDialog(true);
     const input = (document.getElementById('smart-gen-api-key') as HTMLInputElement) as HTMLInputElement;
     fireEvent.change(input, { target: { value: 'sk-ant-abc123-TEST' } });
-    const saveBtn = screen.getByRole('button', { name: /save.*start/i });
+    const saveBtn = screen.getByRole('button', { name: /^save$/i });
     fireEvent.click(saveBtn);
 
     const state = store.getState().smartGenerator;
@@ -123,7 +167,7 @@ describe('SmartGenByokDialog — save flow', () => {
     renderDialog(true);
     const input = (document.getElementById('smart-gen-api-key') as HTMLInputElement) as HTMLInputElement;
     fireEvent.change(input, { target: { value: '   sk-ant-trimmed   ' } });
-    fireEvent.click(screen.getByRole('button', { name: /save.*start/i }));
+    fireEvent.click(screen.getByRole('button', { name: /^save$/i }));
     expect(window.sessionStorage.getItem(sessionStorageSmartGenApiKey)).toBe(
       'sk-ant-trimmed',
     );
@@ -131,7 +175,7 @@ describe('SmartGenByokDialog — save flow', () => {
 
   it('save button is disabled when input is empty', () => {
     renderDialog(true);
-    const btn = screen.getByRole('button', { name: /save.*start/i }) as HTMLButtonElement;
+    const btn = screen.getByRole('button', { name: /^save$/i }) as HTMLButtonElement;
     expect(btn.disabled).toBe(true);
   });
 
@@ -139,7 +183,7 @@ describe('SmartGenByokDialog — save flow', () => {
     renderDialog(true);
     const input = (document.getElementById('smart-gen-api-key') as HTMLInputElement) as HTMLInputElement;
     fireEvent.change(input, { target: { value: 'sk-ant-hello' } });
-    const btn = screen.getByRole('button', { name: /save.*start/i }) as HTMLButtonElement;
+    const btn = screen.getByRole('button', { name: /^save$/i }) as HTMLButtonElement;
     expect(btn.disabled).toBe(false);
   });
 });
@@ -156,7 +200,7 @@ describe('SmartGenByokDialog — format hint', () => {
     const { store } = renderDialog(true);
     const input = (document.getElementById('smart-gen-api-key') as HTMLInputElement) as HTMLInputElement;
     fireEvent.change(input, { target: { value: 'not-a-sk-key' } });
-    fireEvent.click(screen.getByRole('button', { name: /save.*start/i }));
+    fireEvent.click(screen.getByRole('button', { name: /^save$/i }));
     expect(store.getState().smartGenerator.byokDialogOpen).toBe(false);
     expect(window.sessionStorage.getItem(sessionStorageSmartGenApiKey)).toBe(
       'not-a-sk-key',
@@ -176,7 +220,7 @@ describe('SmartGenByokDialog — format hint', () => {
 
 describe('SmartGenByokDialog — cancel flow', () => {
   it('cancel closes the dialog AND clears the pending trigger', () => {
-    const { store } = renderDialog(true);
+    const { store } = renderPendingDialog();
     expect(store.getState().smartGenerator.pendingTrigger).not.toBeNull();
 
     fireEvent.click(screen.getByRole('button', { name: /cancel/i }));
@@ -199,7 +243,7 @@ describe('SmartGenByokDialog — model selector', () => {
     const modelSelect = (document.getElementById('smart-gen-model') as HTMLSelectElement);
     fireEvent.change(modelSelect, { target: { value: 'claude-opus-4-6' } });
 
-    fireEvent.click(screen.getByRole('button', { name: /save.*start/i }));
+    fireEvent.click(screen.getByRole('button', { name: /^save$/i }));
     expect(window.sessionStorage.getItem('besser_llm_model')).toBe('claude-opus-4-6');
   });
 
@@ -214,10 +258,32 @@ describe('SmartGenByokDialog — model selector', () => {
     const customInput = document.getElementById('smart-gen-model-custom') as HTMLInputElement;
     fireEvent.change(customInput, { target: { value: 'claude-opus-4-7-20260101' } });
 
-    fireEvent.click(screen.getByRole('button', { name: /save.*start/i }));
+    fireEvent.click(screen.getByRole('button', { name: /^save$/i }));
     expect(window.sessionStorage.getItem('besser_llm_model')).toBe(
       'claude-opus-4-7-20260101',
     );
+  });
+
+  it.each([
+    ['gpt-5.6-sol', 'GPT-5.6 Sol — most capable'],
+    ['gpt-5.6-terra', 'GPT-5.6 Terra — balanced (recommended)'],
+    ['gpt-5.6-luna', 'GPT-5.6 Luna — fast & cheap'],
+  ] as const)('offers and persists the shared OpenAI preset %s', (model, label) => {
+    renderDialog(true);
+    fireEvent.change(document.getElementById('smart-gen-provider') as HTMLSelectElement, {
+      target: { value: 'openai' },
+    });
+    fireEvent.change(document.getElementById('smart-gen-api-key') as HTMLInputElement, {
+      target: { value: 'sk-proj-openai-test' },
+    });
+    const modelSelect = document.getElementById('smart-gen-model') as HTMLSelectElement;
+    const option = Array.from(modelSelect.options).find(({ value }) => value === model);
+    expect(option?.textContent).toBe(label);
+
+    fireEvent.change(modelSelect, { target: { value: model } });
+    fireEvent.click(screen.getByRole('button', { name: /^save$/i }));
+
+    expect(window.sessionStorage.getItem('besser_llm_model')).toBe(model);
   });
 
   it('blocks save when Custom is selected but the input is empty', () => {
@@ -228,7 +294,7 @@ describe('SmartGenByokDialog — model selector', () => {
     const modelSelect = (document.getElementById('smart-gen-model') as HTMLSelectElement);
     fireEvent.change(modelSelect, { target: { value: '__custom__' } });
     // Leave custom input empty — save should fail with an error and NOT close
-    fireEvent.click(screen.getByRole('button', { name: /save.*start/i }));
+    fireEvent.click(screen.getByRole('button', { name: /^save$/i }));
 
     expect(store.getState().smartGenerator.byokDialogOpen).toBe(true);
     expect(screen.getByText(/custom model id is empty/i)).toBeTruthy();
@@ -244,7 +310,7 @@ describe('SmartGenByokDialog — model selector', () => {
     const customInput = document.getElementById('smart-gen-model-custom') as HTMLInputElement;
     fireEvent.change(customInput, { target: { value: 'evil"; rm -rf /' } });
 
-    fireEvent.click(screen.getByRole('button', { name: /save.*start/i }));
+    fireEvent.click(screen.getByRole('button', { name: /^save$/i }));
     expect(store.getState().smartGenerator.byokDialogOpen).toBe(true);
     expect(screen.getByText(/may only contain letters/i)).toBeTruthy();
   });
@@ -260,11 +326,18 @@ describe('SmartGenByokDialog — model selector', () => {
     fireEvent.change(providerSelect, { target: { value: 'openai' } });
 
     const refreshed = (document.getElementById('smart-gen-model') as HTMLSelectElement);
-    // The dropdown should now show OpenAI presets. The default is
-    // whatever ``MODEL_PRESETS.openai[0]`` is — currently gpt-5.5.
+    // The dropdown should now show the shared OpenAI presets. The default is
+    // whatever ``MODEL_PRESETS.openai[0]`` is — currently gpt-5.6-sol.
     // Just assert it's one of the known OpenAI presets, not a specific
     // model name, so bumping the default doesn't break this test.
-    const validOpenaiPresets = ['gpt-5.5', 'gpt-5.4', 'gpt-5', 'o1', 'o1-mini', 'gpt-4o', 'gpt-4o-mini'];
+    const validOpenaiPresets = [
+      'gpt-5.6-sol',
+      'gpt-5.6-terra',
+      'gpt-5.6-luna',
+      'gpt-5.5',
+      'gpt-5.4-mini',
+      'gpt-4o',
+    ];
     expect(validOpenaiPresets).toContain(refreshed.value);
     // And it must NOT still be the Anthropic model that was selected
     // before the provider swap.
@@ -374,9 +447,80 @@ describe('SmartGenByokDialog — budget controls', () => {
 });
 
 describe('SmartGenByokDialog — footer label', () => {
-  it('shows "Save & Start" when a trigger is pending', () => {
-    renderDialog(true); // preopen stashes a pendingTrigger
-    expect(screen.getByRole('button', { name: /save & start/i })).toBeTruthy();
+  it('requires an explicit approved-plan click and stores both overrides', async () => {
+    const { store } = renderPendingDialog();
+    expect(await screen.findByText(PREVIEW_PLAN.summary)).toBeTruthy();
+    fireEvent.change(document.getElementById('smart-gen-api-key') as HTMLInputElement, {
+      target: { value: 'sk-ant-approved' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: /run approved plan/i }));
+
+    const state = store.getState().smartGenerator;
+    expect(state.byokDialogOpen).toBe(false);
+    expect(state.pendingTrigger).toEqual(expect.objectContaining({
+      planApproved: true,
+      mode: 'generate',
+      primaryKindOverride: 'class',
+      targetGeneratorOverride: 'generate_web_app',
+    }));
+    expect(state.pendingTrigger?.skipDeterministicGenerator).toBeUndefined();
+    expect(state.pendingTrigger?.baseRunId).toBeUndefined();
+  });
+
+  it('previews and approves an eligible follow-up with one fixed modify decision', async () => {
+    const baseRunId = 'd'.repeat(32);
+    _lastRun.value = { runId: baseRunId, at: Date.now() };
+    const modifyPlan = {
+      ...PREVIEW_PLAN,
+      executionMode: 'modify' as const,
+      summary: 'Modify the previous generated application.',
+    };
+    vi.mocked(fetchSmartGenPreview).mockResolvedValue(modifyPlan);
+    const { store } = renderPendingDialog();
+
+    expect(await screen.findByText(modifyPlan.summary)).toBeTruthy();
+    await waitFor(() => {
+      expect(fetchSmartGenPreview).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          mode: 'modify',
+          baseRunId,
+        }),
+      );
+    });
+    fireEvent.change(document.getElementById('smart-gen-api-key') as HTMLInputElement, {
+      target: { value: 'sk-ant-approved' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: /run approved plan/i }));
+
+    expect(store.getState().smartGenerator.pendingTrigger).toEqual(
+      expect.objectContaining({
+        planApproved: true,
+        mode: 'modify',
+        baseRunId,
+      }),
+    );
+  });
+
+  it('binds an approved LLM-from-scratch plan with the explicit skip flag', async () => {
+    const fromScratchPlan = {
+      ...PREVIEW_PLAN,
+      targetGenerator: null,
+      summary: 'Build directly with the LLM.',
+    };
+    vi.mocked(fetchSmartGenPreview).mockResolvedValue(fromScratchPlan);
+    const { store } = renderPendingDialog();
+    expect(await screen.findByText(fromScratchPlan.summary)).toBeTruthy();
+    fireEvent.change(document.getElementById('smart-gen-api-key') as HTMLInputElement, {
+      target: { value: 'sk-ant-approved' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: /run approved plan/i }));
+
+    const trigger = store.getState().smartGenerator.pendingTrigger;
+    expect(trigger).toEqual(expect.objectContaining({
+      planApproved: true,
+      skipDeterministicGenerator: true,
+    }));
+    expect(trigger?.targetGeneratorOverride).toBeUndefined();
   });
 
   it('shows plain "Save" when opened without a pending trigger (Settings flow)', () => {
@@ -386,7 +530,7 @@ describe('SmartGenByokDialog — footer label', () => {
     });
     const saveBtn = screen.getByRole('button', { name: /^save$/i });
     expect(saveBtn).toBeTruthy();
-    expect(screen.queryByRole('button', { name: /save & start/i })).toBeNull();
+    expect(screen.queryByRole('button', { name: /run approved plan/i })).toBeNull();
   });
 });
 

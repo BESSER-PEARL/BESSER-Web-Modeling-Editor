@@ -8,6 +8,16 @@
 
 export type SmartGenProvider = 'anthropic' | 'openai' | 'mistral';
 
+export type SmartGenPrimaryKind =
+  | 'class'
+  | 'gui'
+  | 'agent'
+  | 'state_machine'
+  | 'object'
+  | 'quantum'
+  | 'bpmn'
+  | 'nn';
+
 /**
  * Run mode sent to `POST /besser_api/smart-generate`.
  *   - `generate` (default): build the app from scratch.
@@ -152,4 +162,47 @@ export interface TriggerSmartGeneratorPayload {
    */
   mode?: SmartGenMode;
   baseRunId?: string;
+  /** Primary model selected by the user-approved preview plan. */
+  primaryKindOverride?: SmartGenPrimaryKind;
+  /** Deterministic Phase-1 generator selected by the approved preview plan. */
+  targetGeneratorOverride?: string;
+  /**
+   * Internal UI attestation that the approved preview explicitly selected an
+   * LLM-from-scratch run. Incoming agent payloads are rebuilt by
+   * `useAssistantLogic` and never copy this field.
+   */
+  skipDeterministicGenerator?: boolean;
+  /**
+   * Internal UI attestation. Incoming agent payloads are rebuilt by
+   * `useAssistantLogic` and never copy this field, so only the preview dialog
+   * can authorize a paid run.
+   */
+  planApproved?: boolean;
+}
+
+export interface SmartGenPreviewModelSummaryEntry {
+  kind: SmartGenPrimaryKind;
+  classes?: number;
+  enumerations?: number;
+  associations?: number;
+  modules?: number;
+  screens?: number;
+  count?: number;
+}
+
+export interface SmartGenPreviewPlan {
+  primaryKind: SmartGenPrimaryKind;
+  auxiliaryKinds: SmartGenPrimaryKind[];
+  executionMode: SmartGenMode;
+  targetGenerator: string | null;
+  targetGeneratorConfidence: number;
+  summary: string;
+  estimatedTurns: number;
+  estimatedCostUsd: number;
+  estimatedDurationSeconds: number;
+  notes: string[];
+  modelSummary: {
+    primary: SmartGenPrimaryKind;
+    present: SmartGenPreviewModelSummaryEntry[];
+  };
 }
