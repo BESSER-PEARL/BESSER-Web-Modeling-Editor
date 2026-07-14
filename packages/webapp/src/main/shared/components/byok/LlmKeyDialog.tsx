@@ -162,13 +162,20 @@ export const MODEL_PRESETS: Record<LlmProvider, readonly ModelPreset[]> = {
     { value: 'claude-haiku-4-5-20251001', label: 'Claude Haiku 4.5 — fast & cheap' },
     { value: CUSTOM_MODEL_VALUE, label: 'Custom model ID…' },
   ],
+  // All of these work with the Spec-Driven Agent's tool-driven loop. The
+  // gpt-5.6 *reasoning* trio (sol/terra/luna) can't combine tools + reasoning on
+  // /chat/completions, so the backend sends reasoning_effort='none' for them
+  // (see _needs_reasoning_none_for_tools in llm_client.py) — i.e. gpt-5.6 runs
+  // with reasoning OFF here, the only way to use tools. Verified empirically
+  // (probe_tools): gpt-5.5/5.4-mini/4o support tools natively; gpt-5.6-* need
+  // the flag. gpt-5/gpt-4o REJECT the param, so it's applied ONLY to gpt-5.6-*.
   openai: [
-    { value: 'gpt-5.6-sol', label: 'GPT-5.6 Sol — most capable' },
     { value: 'gpt-5.6-terra', label: 'GPT-5.6 Terra — balanced (recommended)' },
+    { value: 'gpt-5.6-sol', label: 'GPT-5.6 Sol — most capable' },
     { value: 'gpt-5.6-luna', label: 'GPT-5.6 Luna — fast & cheap' },
     { value: 'gpt-5.5', label: 'GPT-5.5 — previous flagship' },
     { value: 'gpt-5.4-mini', label: 'GPT-5.4 mini — fast & cheap' },
-    { value: 'gpt-4o', label: 'GPT-4o — legacy' },
+    { value: 'gpt-4o', label: 'GPT-4o — reliable' },
     { value: CUSTOM_MODEL_VALUE, label: 'Custom model ID…' },
   ],
   mistral: [
