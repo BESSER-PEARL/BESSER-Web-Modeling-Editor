@@ -126,6 +126,27 @@ describe('UserDiagramModifier', () => {
     expect((rows[0] as any).attributeOperator).toBe('>=');
   });
 
+  it('add_object builds a UserModelIcon child when the change carries an icon', () => {
+    const model = makeEmptyModel();
+    const result = modifier.applyModification(model, {
+      action: 'add_object',
+      target: { profileName: 'disability1' },
+      changes: {
+        className: 'Disability',
+        classId: 'class-dis',
+        icon: '<svg></svg>',
+        attributes: [{ name: 'name', operator: '==', value: 'Paraplegia' }],
+      },
+    } as ModelModification);
+
+    const icons = byType(result, 'UserModelIcon');
+    expect(icons).toHaveLength(1);
+    expect((icons[0] as any).icon).toBe('<svg></svg>');
+    const box: any = byType(result, 'UserModelName')[0];
+    expect(box.icon).toBe((icons[0] as any).id);
+    expect((icons[0] as any).owner).toBe(box.id);
+  });
+
   it('modify_attribute_value updates operator and value on an existing row', () => {
     const model = makeEmptyModel();
     const built = modifier.applyModification(model, {

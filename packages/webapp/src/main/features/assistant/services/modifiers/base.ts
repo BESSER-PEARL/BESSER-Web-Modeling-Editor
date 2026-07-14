@@ -56,6 +56,8 @@ export interface ModificationChanges {
   // add_class / add_object fields
   className?: string;
   classId?: string;
+  // User-profile: metamodel class icon SVG for add_object (renders a UserModelIcon child)
+  icon?: string;
   // User-profile criterion operator ('<' | '<=' | '==' | '>=' | '>')
   operator?: string;
   profileName?: string;

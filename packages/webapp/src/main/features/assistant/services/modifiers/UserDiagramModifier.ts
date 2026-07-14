@@ -102,6 +102,21 @@ export class UserDiagramModifier implements DiagramModifier {
     if (className) nameElement.className = className;
     if (changes.classId) nameElement.classId = changes.classId;
 
+    // Metamodel class icon child (User diagrams always render in icon view;
+    // without it the box shows as a bare, empty box). Mirrors UserDiagramConverter.
+    if (changes.icon && typeof changes.icon === 'string' && changes.icon.trim() !== '') {
+      const iconId = ModifierHelpers.generateUniqueId('usericon');
+      model.elements[iconId] = {
+        type: 'UserModelIcon',
+        id: iconId,
+        name: '',
+        owner: nameId,
+        bounds: { x: pos.x, y: pos.y, width: 50, height: 50 },
+        icon: changes.icon,
+      };
+      nameElement.icon = iconId;
+    }
+
     let currentY = pos.y + 40;
     for (const attr of attrs) {
       const attrId = ModifierHelpers.generateUniqueId('userattr');
