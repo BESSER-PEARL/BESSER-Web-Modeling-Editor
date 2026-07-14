@@ -377,6 +377,7 @@
     "height": "Héicht"
   },
   "stylePane": {
+    "enterUri": "URI aginn...",
     "enterIcon": "Numm vun der Ikon aginn...",
     "enterDescription": "Beschreiwung aginn...",
     "idLockedByOptional": "Optional Attributer kënnen net den Identifikator sinn.",

@@ -1984,13 +1984,18 @@
         "barChart": "Balkendiagramm",
         "pieChart": "Kreisdiagramm",
         "radarChart": "Netzdiagramm",
-        "radialBarChart": "Radiales Balkendiagramm"
+        "radialBarChart": "Radiales Balkendiagramm",
+        "form": "Formular",
+        "inputField": "Eingabefeld",
+        "dropdown": "Dropdown",
+        "textArea": "Textbereich"
       },
       "categories": {
         "basic": "Basis",
         "layout": "Layout",
         "charts": "Diagramme",
-        "templates": "Vorlagen"
+        "templates": "Vorlagen",
+        "forms": "Formulare"
       },
       "traits": {
         "agent": "Agent",
@@ -2282,7 +2287,43 @@
       "traitValueFieldPlaceholder": "Feld für den Wert",
       "importTemplate": "Vorlage importieren",
       "importButton": "Importieren",
-      "importTemplateLabel": "Fügen Sie hier Ihr HTML/CSS ein und klicken Sie auf Importieren"
+      "importTemplateLabel": "Fügen Sie hier Ihr HTML/CSS ein und klicken Sie auf Importieren",
+      "formTraits": {
+        "actionUrl": "Aktions-URL",
+        "targetEntity": "Zielentität",
+        "onSubmitAction": "Aktion beim Absenden",
+        "validationMode": "Validierungsmodus",
+        "fieldName": "Feldname",
+        "fieldType": "Feldtyp",
+        "placeholder": "Platzhalter",
+        "required": "Erforderlich",
+        "validationPattern": "Validierungsmuster",
+        "regularExpressionPlaceholder": "Regulärer Ausdruck",
+        "errorMessage": "Fehlermeldung",
+        "customErrorMessagePlaceholder": "Benutzerdefinierte Fehlermeldung",
+        "bindToProperty": "An Eigenschaft binden",
+        "minLength": "Mindestlänge",
+        "maxLength": "Maximallänge",
+        "multiple": "Mehrfachauswahl",
+        "cols": "Spalten",
+        "options": {
+          "create": "Erstellen",
+          "update": "Aktualisieren",
+          "custom": "Benutzerdefiniert",
+          "onSubmit": "Beim Absenden",
+          "onChange": "Bei Änderung",
+          "onBlur": "Beim Fokusverlust",
+          "text": "Text",
+          "password": "Passwort",
+          "number": "Zahl",
+          "date": "Datum",
+          "time": "Uhrzeit",
+          "telephone": "Telefon",
+          "color": "Farbe",
+          "range": "Bereich",
+          "search": "Suche"
+        }
+      }
     },
     "loadingGuiEditor": "GUI-Editor wird geladen...",
     "loadingQuantumEditor": "Quanten-Editor wird geladen...",

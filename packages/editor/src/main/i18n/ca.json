@@ -377,6 +377,7 @@
     "height": "Alçada"
   },
   "stylePane": {
+    "enterUri": "Introduïu l'URI...",
     "enterIcon": "Introdueix el nom de la icona...",
     "enterDescription": "Introdueix una descripció...",
     "idLockedByOptional": "Els atributs opcionals no poden ser l'identificador.",

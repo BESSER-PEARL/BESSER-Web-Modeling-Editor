@@ -1984,13 +1984,18 @@
         "barChart": "Gráfico de barras",
         "pieChart": "Gráfico circular",
         "radarChart": "Gráfico de radar",
-        "radialBarChart": "Gráfico de barras radiales"
+        "radialBarChart": "Gráfico de barras radiales",
+        "form": "Formulario",
+        "inputField": "Campo de entrada",
+        "dropdown": "Desplegable",
+        "textArea": "Área de texto"
       },
       "categories": {
         "basic": "Básico",
         "layout": "Diseño",
         "charts": "Gráficos",
-        "templates": "Plantillas"
+        "templates": "Plantillas",
+        "forms": "Formularios"
       },
       "traits": {
         "agent": "Agente",
@@ -2282,7 +2287,43 @@
       "traitValueFieldPlaceholder": "Campo para el valor",
       "importTemplate": "Importar plantilla",
       "importButton": "Importar",
-      "importTemplateLabel": "Pegue aquí su HTML/CSS y haga clic en Importar"
+      "importTemplateLabel": "Pegue aquí su HTML/CSS y haga clic en Importar",
+      "formTraits": {
+        "actionUrl": "URL de acción",
+        "targetEntity": "Entidad de destino",
+        "onSubmitAction": "Acción al enviar",
+        "validationMode": "Modo de validación",
+        "fieldName": "Nombre del campo",
+        "fieldType": "Tipo de campo",
+        "placeholder": "Marcador de posición",
+        "required": "Obligatorio",
+        "validationPattern": "Patrón de validación",
+        "regularExpressionPlaceholder": "Expresión regular",
+        "errorMessage": "Mensaje de error",
+        "customErrorMessagePlaceholder": "Mensaje de error personalizado",
+        "bindToProperty": "Vincular a propiedad",
+        "minLength": "Longitud mínima",
+        "maxLength": "Longitud máxima",
+        "multiple": "Múltiple",
+        "cols": "Columnas",
+        "options": {
+          "create": "Crear",
+          "update": "Actualizar",
+          "custom": "Personalizado",
+          "onSubmit": "Al enviar",
+          "onChange": "Al cambiar",
+          "onBlur": "Al perder el foco",
+          "text": "Texto",
+          "password": "Contraseña",
+          "number": "Número",
+          "date": "Fecha",
+          "time": "Hora",
+          "telephone": "Teléfono",
+          "color": "Color",
+          "range": "Rango",
+          "search": "Búsqueda"
+        }
+      }
     },
     "loadingGuiEditor": "Cargando el editor de GUI...",
     "loadingQuantumEditor": "Cargando el editor cuántico...",

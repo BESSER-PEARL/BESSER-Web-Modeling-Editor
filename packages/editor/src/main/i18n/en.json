@@ -377,6 +377,7 @@
     "height": "Height"
   },
   "stylePane": {
+    "enterUri": "Enter URI...",
     "enterIcon": "Enter icon name...",
     "enterDescription": "Enter description...",
     "idLockedByOptional": "Optional attributes cannot be the identifier.",

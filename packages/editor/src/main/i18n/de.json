@@ -377,6 +377,7 @@
     "height": "Höhe"
   },
   "stylePane": {
+    "enterUri": "URI eingeben...",
     "enterIcon": "Symbolnamen eingeben...",
     "enterDescription": "Beschreibung eingeben...",
     "idLockedByOptional": "Optionale Attribute können nicht der Bezeichner sein.",

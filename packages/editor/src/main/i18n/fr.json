@@ -377,6 +377,7 @@
     "height": "Hauteur"
   },
   "stylePane": {
+    "enterUri": "Saisir l'URI...",
     "enterIcon": "Saisir le nom de l'icône...",
     "enterDescription": "Saisir une description...",
     "idLockedByOptional": "Les attributs optionnels ne peuvent pas être l'identifiant.",

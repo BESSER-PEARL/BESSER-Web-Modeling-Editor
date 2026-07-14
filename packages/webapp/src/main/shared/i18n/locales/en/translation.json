@@ -1984,13 +1984,18 @@
         "barChart": "Bar Chart",
         "pieChart": "Pie Chart",
         "radarChart": "Radar Chart",
-        "radialBarChart": "Radial Bar Chart"
+        "radialBarChart": "Radial Bar Chart",
+        "form": "Form",
+        "inputField": "Input Field",
+        "dropdown": "Dropdown",
+        "textArea": "Text Area"
       },
       "categories": {
         "basic": "Basic",
         "layout": "Layout",
         "charts": "Charts",
-        "templates": "Templates"
+        "templates": "Templates",
+        "forms": "Forms"
       },
       "traits": {
         "agent": "Agent",
@@ -2282,7 +2287,43 @@
       "traitValueFieldPlaceholder": "Field for value",
       "importTemplate": "Import Template",
       "importButton": "Import",
-      "importTemplateLabel": "Paste here your HTML/CSS and click Import"
+      "importTemplateLabel": "Paste here your HTML/CSS and click Import",
+      "formTraits": {
+        "actionUrl": "Action URL",
+        "targetEntity": "Target Entity",
+        "onSubmitAction": "On Submit Action",
+        "validationMode": "Validation Mode",
+        "fieldName": "Field Name",
+        "fieldType": "Field Type",
+        "placeholder": "Placeholder",
+        "required": "Required",
+        "validationPattern": "Validation Pattern",
+        "regularExpressionPlaceholder": "Regular expression",
+        "errorMessage": "Error Message",
+        "customErrorMessagePlaceholder": "Custom error message",
+        "bindToProperty": "Bind to Property",
+        "minLength": "Min Length",
+        "maxLength": "Max Length",
+        "multiple": "Multiple",
+        "cols": "Cols",
+        "options": {
+          "create": "Create",
+          "update": "Update",
+          "custom": "Custom",
+          "onSubmit": "On Submit",
+          "onChange": "On Change",
+          "onBlur": "On Blur",
+          "text": "Text",
+          "password": "Password",
+          "number": "Number",
+          "date": "Date",
+          "time": "Time",
+          "telephone": "Telephone",
+          "color": "Color",
+          "range": "Range",
+          "search": "Search"
+        }
+      }
     },
     "loadingGuiEditor": "Loading GUI editor...",
     "loadingQuantumEditor": "Loading quantum editor...",

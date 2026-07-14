@@ -1984,13 +1984,18 @@
         "barChart": "Graphique à barres",
         "pieChart": "Graphique circulaire",
         "radarChart": "Graphique radar",
-        "radialBarChart": "Graphique à barres radiales"
+        "radialBarChart": "Graphique à barres radiales",
+        "form": "Formulaire",
+        "inputField": "Champ de saisie",
+        "dropdown": "Liste déroulante",
+        "textArea": "Zone de texte"
       },
       "categories": {
         "basic": "Base",
         "layout": "Mise en page",
         "charts": "Graphiques",
-        "templates": "Modèles"
+        "templates": "Modèles",
+        "forms": "Formulaires"
       },
       "traits": {
         "agent": "Agent",
@@ -2282,7 +2287,43 @@
       "traitValueFieldPlaceholder": "Champ pour la valeur",
       "importTemplate": "Importer un modèle",
       "importButton": "Importer",
-      "importTemplateLabel": "Collez ici votre HTML/CSS et cliquez sur Importer"
+      "importTemplateLabel": "Collez ici votre HTML/CSS et cliquez sur Importer",
+      "formTraits": {
+        "actionUrl": "URL d'action",
+        "targetEntity": "Entité cible",
+        "onSubmitAction": "Action à la soumission",
+        "validationMode": "Mode de validation",
+        "fieldName": "Nom du champ",
+        "fieldType": "Type de champ",
+        "placeholder": "Texte indicatif",
+        "required": "Obligatoire",
+        "validationPattern": "Modèle de validation",
+        "regularExpressionPlaceholder": "Expression régulière",
+        "errorMessage": "Message d'erreur",
+        "customErrorMessagePlaceholder": "Message d'erreur personnalisé",
+        "bindToProperty": "Lier à une propriété",
+        "minLength": "Longueur minimale",
+        "maxLength": "Longueur maximale",
+        "multiple": "Sélection multiple",
+        "cols": "Colonnes",
+        "options": {
+          "create": "Créer",
+          "update": "Mettre à jour",
+          "custom": "Personnalisé",
+          "onSubmit": "À la soumission",
+          "onChange": "Au changement",
+          "onBlur": "À la perte de focus",
+          "text": "Texte",
+          "password": "Mot de passe",
+          "number": "Nombre",
+          "date": "Date",
+          "time": "Heure",
+          "telephone": "Téléphone",
+          "color": "Couleur",
+          "range": "Plage",
+          "search": "Recherche"
+        }
+      }
     },
     "loadingGuiEditor": "Chargement de l'éditeur GUI...",
     "loadingQuantumEditor": "Chargement de l'éditeur quantique...",

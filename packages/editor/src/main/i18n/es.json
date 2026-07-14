@@ -377,6 +377,7 @@
     "height": "Alto"
   },
   "stylePane": {
+    "enterUri": "Introduce el URI...",
     "enterIcon": "Introduce el nombre del icono...",
     "enterDescription": "Introduce una descripción...",
     "idLockedByOptional": "Los atributos opcionales no pueden ser el identificador.",

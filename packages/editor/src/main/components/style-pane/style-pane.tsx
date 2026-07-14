@@ -363,7 +363,7 @@ class StylePaneComponent extends Component<Props, State> {
               <Textfield
                 value={element?.uri || ''}
                 onChange={this.handleUriChange}
-                placeholder="Enter URI..."
+                placeholder={translate('stylePane.enterUri')}
                 size="sm"
               />
             </FieldRow>

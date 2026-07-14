@@ -1984,13 +1984,18 @@
         "barChart": "Gràfic de barres",
         "pieChart": "Gràfic circular",
         "radarChart": "Gràfic de radar",
-        "radialBarChart": "Gràfic de barres radials"
+        "radialBarChart": "Gràfic de barres radials",
+        "form": "Formulari",
+        "inputField": "Camp d'entrada",
+        "dropdown": "Desplegable",
+        "textArea": "Àrea de text"
       },
       "categories": {
         "basic": "Bàsic",
         "layout": "Disposició",
         "charts": "Gràfics",
-        "templates": "Plantilles"
+        "templates": "Plantilles",
+        "forms": "Formularis"
       },
       "traits": {
         "agent": "Agent",
@@ -2282,7 +2287,43 @@
       "traitValueFieldPlaceholder": "Camp per al valor",
       "importTemplate": "Importa una plantilla",
       "importButton": "Importa",
-      "importTemplateLabel": "Enganxeu aquí el vostre HTML/CSS i feu clic a Importa"
+      "importTemplateLabel": "Enganxeu aquí el vostre HTML/CSS i feu clic a Importa",
+      "formTraits": {
+        "actionUrl": "URL d'acció",
+        "targetEntity": "Entitat de destinació",
+        "onSubmitAction": "Acció en enviar",
+        "validationMode": "Mode de validació",
+        "fieldName": "Nom del camp",
+        "fieldType": "Tipus de camp",
+        "placeholder": "Marcador de posició",
+        "required": "Obligatori",
+        "validationPattern": "Patró de validació",
+        "regularExpressionPlaceholder": "Expressió regular",
+        "errorMessage": "Missatge d'error",
+        "customErrorMessagePlaceholder": "Missatge d'error personalitzat",
+        "bindToProperty": "Vincula a la propietat",
+        "minLength": "Longitud mínima",
+        "maxLength": "Longitud màxima",
+        "multiple": "Múltiple",
+        "cols": "Columnes",
+        "options": {
+          "create": "Crear",
+          "update": "Actualitzar",
+          "custom": "Personalitzat",
+          "onSubmit": "En enviar",
+          "onChange": "En canviar",
+          "onBlur": "En perdre el focus",
+          "text": "Text",
+          "password": "Contrasenya",
+          "number": "Número",
+          "date": "Data",
+          "time": "Hora",
+          "telephone": "Telèfon",
+          "color": "Color",
+          "range": "Interval",
+          "search": "Cerca"
+        }
+      }
     },
     "loadingGuiEditor": "S'està carregant l'editor de GUI...",
     "loadingQuantumEditor": "S'està carregant l'editor quàntic...",

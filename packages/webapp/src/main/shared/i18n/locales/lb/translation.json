@@ -1984,13 +1984,18 @@
         "barChart": "Balkendiagramm",
         "pieChart": "Kreesdiagramm",
         "radarChart": "Radardiagramm",
-        "radialBarChart": "Radiaalt Balkendiagramm"
+        "radialBarChart": "Radiaalt Balkendiagramm",
+        "form": "Formulaire",
+        "inputField": "Agabefeld",
+        "dropdown": "Dropdown",
+        "textArea": "Textberäich"
       },
       "categories": {
         "basic": "Basis",
         "layout": "Layout",
         "charts": "Diagrammer",
-        "templates": "Virlagen"
+        "templates": "Virlagen",
+        "forms": "Formulairen"
       },
       "traits": {
         "agent": "Agent",
@@ -2282,7 +2287,43 @@
       "traitValueFieldPlaceholder": "Feld fir de Wäert",
       "importTemplate": "Template importéieren",
       "importButton": "Importéieren",
-      "importTemplateLabel": "Paut hei ären HTML/CSS an a klickt op Importéieren"
+      "importTemplateLabel": "Paut hei ären HTML/CSS an a klickt op Importéieren",
+      "formTraits": {
+        "actionUrl": "Aktioun-URL",
+        "targetEntity": "Ziel-Entitéit",
+        "onSubmitAction": "Aktioun beim Ofsenden",
+        "validationMode": "Validatiounsmodus",
+        "fieldName": "Feldnumm",
+        "fieldType": "Feldtyp",
+        "placeholder": "Plazhalter",
+        "required": "Obligatoresch",
+        "validationPattern": "Validatiounsmuster",
+        "regularExpressionPlaceholder": "Regulär Ausdrock",
+        "errorMessage": "Feelermeldung",
+        "customErrorMessagePlaceholder": "Personaliséiert Feelermeldung",
+        "bindToProperty": "U Eegeschaft verbannen",
+        "minLength": "Minimal Längt",
+        "maxLength": "Maximal Längt",
+        "multiple": "Méifach",
+        "cols": "Kolonnen",
+        "options": {
+          "create": "Erstellen",
+          "update": "Aktualiséieren",
+          "custom": "Personaliséiert",
+          "onSubmit": "Beim Ofsenden",
+          "onChange": "Bei Ännerung",
+          "onBlur": "Beim Fokusverloscht",
+          "text": "Text",
+          "password": "Passwuert",
+          "number": "Zuel",
+          "date": "Datum",
+          "time": "Auer",
+          "telephone": "Telefon",
+          "color": "Faarf",
+          "range": "Beräich",
+          "search": "Sich"
+        }
+      }
     },
     "loadingGuiEditor": "GUI-Editor gëtt gelueden...",
     "loadingQuantumEditor": "Quanten-Editor gëtt gelueden...",
