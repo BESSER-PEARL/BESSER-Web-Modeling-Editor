@@ -2281,6 +2281,7 @@
       "traitValueField": "Wertfeld",
       "traitValueFieldPlaceholder": "Feld für den Wert",
       "importTemplate": "Vorlage importieren",
+      "importButton": "Importieren",
       "importTemplateLabel": "Fügen Sie hier Ihr HTML/CSS ein und klicken Sie auf Importieren"
     },
     "loadingGuiEditor": "GUI-Editor wird geladen...",

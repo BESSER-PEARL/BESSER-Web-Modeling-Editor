@@ -23,6 +23,7 @@ import { downloadFile } from '../../../shared/utils/download';
 import { globalConfirm } from '../../../shared/services/confirm/globalConfirm';
 import { validateDiagram } from '../../../shared/services/validation/validateDiagram';
 import i18n from '@/main/shared/i18n';
+import grapesjsLocaleLb from './i18n/grapesjsLocaleLb';
 
 export const GraphicalUIEditor: React.FC = () => {
   const editorRef = useRef<Editor | null>(null);
@@ -283,7 +284,7 @@ async function initializeEditor(container: HTMLDivElement): Promise<Editor> {
     import('grapesjs-blocks-basic'),
     // GrapesJS built-in locale packs translate the editor's own chrome
     // (Style Manager property labels, panel tooltips, selector/trait managers).
-    // No pack ships for `lb`, which falls back to English via `localeFallback`.
+    // No pack ships for `lb`; we provide `grapesjsLocaleLb` in `messagesAdd`.
     // @ts-ignore - locale subpaths have no bundled type declarations
     import('grapesjs/locale/de'),
     // @ts-ignore
@@ -306,8 +307,8 @@ async function initializeEditor(container: HTMLDivElement): Promise<Editor> {
     fromElement: false,
     components: '', // Empty initially - pages will load default content
 
-    // Translate GrapesJS's built-in UI chrome. `en` is the default; `lb` has no
-    // pack and falls back to English.
+    // Translate GrapesJS's built-in UI chrome. `en` is the default; `lb` uses our
+    // own pack (`grapesjsLocaleLb`) since GrapesJS ships none.
     //  - `detectLocale: false` — otherwise GrapesJS overrides `locale` with the
     //    browser language, ignoring the app's selected language.
     //  - `messagesAdd` (not `messages`) — extends the built-in `en` set instead
@@ -321,6 +322,10 @@ async function initializeEditor(container: HTMLDivElement): Promise<Editor> {
         fr: gjsLocaleFr,
         es: gjsLocaleEs,
         ca: gjsLocaleCa,
+        // GrapesJS ships no `lb` pack; supply our own so the editor's own chrome
+        // (Settings/Trait panel title, managers, device names) is translated in
+        // Luxembourgish instead of falling back to English.
+        lb: grapesjsLocaleLb,
       },
     },
 
@@ -342,6 +347,7 @@ async function initializeEditor(container: HTMLDivElement): Promise<Editor> {
     pluginsOpts: {
       'grapesjs-preset-webpage': {
         modalImportTitle: i18n.t('editors.gui.importTemplate'),
+        modalImportButton: i18n.t('editors.gui.importButton'),
         modalImportLabel: `<div style="margin-bottom: 10px; font-size: 13px;">${i18n.t('editors.gui.importTemplateLabel')}</div>`,
         modalImportContent: (editor: Editor) => editor.getHtml() + '<style>' + editor.getCss() + '</style>',
         filestackOpts: null,

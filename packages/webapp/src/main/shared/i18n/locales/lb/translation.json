@@ -2281,6 +2281,7 @@
       "traitValueField": "Wäertfeld",
       "traitValueFieldPlaceholder": "Feld fir de Wäert",
       "importTemplate": "Template importéieren",
+      "importButton": "Importéieren",
       "importTemplateLabel": "Paut hei ären HTML/CSS an a klickt op Importéieren"
     },
     "loadingGuiEditor": "GUI-Editor gëtt gelueden...",

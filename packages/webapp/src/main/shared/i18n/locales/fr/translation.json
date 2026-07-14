@@ -2281,6 +2281,7 @@
       "traitValueField": "Champ de valeur",
       "traitValueFieldPlaceholder": "Champ pour la valeur",
       "importTemplate": "Importer un modèle",
+      "importButton": "Importer",
       "importTemplateLabel": "Collez ici votre HTML/CSS et cliquez sur Importer"
     },
     "loadingGuiEditor": "Chargement de l'éditeur GUI...",

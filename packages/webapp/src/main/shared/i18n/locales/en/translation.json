@@ -2281,6 +2281,7 @@
       "traitValueField": "Value Field",
       "traitValueFieldPlaceholder": "Field for value",
       "importTemplate": "Import Template",
+      "importButton": "Import",
       "importTemplateLabel": "Paste here your HTML/CSS and click Import"
     },
     "loadingGuiEditor": "Loading GUI editor...",
