@@ -133,7 +133,7 @@ export const TemplateLibraryDialog: React.FC<TemplateLibraryDialogProps> = ({ op
   );
 
   const [selectedTemplateType, setSelectedTemplateType] = useState<SoftwarePatternType>(
-    templatesInCategory[0]?.type ?? SoftwarePatternType.LIBRARY_COMPLETE,
+    templatesInCategory[0]?.type ?? SoftwarePatternType.LIBRARY,
   );
 
   React.useEffect(() => {
@@ -294,7 +294,7 @@ export const TemplateLibraryDialog: React.FC<TemplateLibraryDialogProps> = ({ op
                       : 'border-transparent text-muted-foreground hover:border-border hover:bg-brand/[0.04] hover:text-foreground',
                   ].join(' ')}
                 >
-                  <span>{category}</span>
+                  <span>{t(`project.templates.categories.${category}`, { defaultValue: category })}</span>
                   <Badge className={categoryColor[category]}>{templates.filter((template) => template.softwarePatternCategory === category).length}</Badge>
                 </button>
               );
@@ -331,7 +331,11 @@ export const TemplateLibraryDialog: React.FC<TemplateLibraryDialogProps> = ({ op
                           ) : (
                             <>
                               <Layers className="size-3.5" />
-                              <span>{String(template.diagramType).replace('Diagram', ' Diagram')}</span>
+                              <span>
+                                {t(`diagramTypes.${template.diagramType}`, {
+                                  defaultValue: String(template.diagramType).replace('Diagram', ' Diagram'),
+                                })}
+                              </span>
                             </>
                           )}
                         </div>
@@ -364,7 +368,13 @@ export const TemplateLibraryDialog: React.FC<TemplateLibraryDialogProps> = ({ op
             <DialogDescription>
               <Trans
                 i18nKey="project.templates.confirm.body"
-                values={{ type: selectedTemplate?.diagramType?.replace('Diagram', ' Diagram') }}
+                values={{
+                  type: selectedTemplate
+                    ? t(`diagramTypes.${selectedTemplate.diagramType}`, {
+                        defaultValue: String(selectedTemplate.diagramType).replace('Diagram', ' Diagram'),
+                      })
+                    : '',
+                }}
                 components={{ strong: <strong /> }}
               />
             </DialogDescription>

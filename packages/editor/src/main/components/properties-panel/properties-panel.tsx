@@ -1,6 +1,7 @@
 import React, { Component, ComponentClass, ComponentType, createRef } from 'react';
 import { connect } from 'react-redux';
 import { compose } from 'redux';
+import en from '../../i18n/en.json';
 import { Popups } from '../../packages/popups';
 import { UMLElementType } from '../../packages/uml-element-type';
 import { ApollonMode } from '../../services/editor/editor-types';
@@ -23,6 +24,14 @@ import {
 /** CSS custom property name used to communicate the panel width to fixed-position elements (e.g. assistant widget). */
 const PANEL_WIDTH_VAR = '--properties-panel-width';
 
+/**
+ * Names of the ``packages.*`` groups in the editor dictionaries (e.g.
+ * ``ClassDiagram``, ``StateDiagram``). Used to resolve an element-type label
+ * when the diagram type doesn't map 1:1 to a group name — notably
+ * ``StateMachineDiagram`` (diagram type) vs ``StateDiagram`` (i18n group).
+ */
+const PACKAGE_GROUPS: string[] = Object.keys((en as { packages?: Record<string, unknown> }).packages ?? {});
+
 type OwnProps = {};
 
 type StateProps = {
@@ -30,6 +39,7 @@ type StateProps = {
   disabled: boolean;
   mode: ApollonMode;
   readonly: boolean;
+  diagramType: string;
 };
 
 type DispatchProps = {
@@ -46,6 +56,7 @@ const enhance = compose<ComponentClass<OwnProps>>(
       disabled: !state.editor.enablePopups,
       mode: state.editor.mode,
       readonly: state.editor.readonly,
+      diagramType: state.diagram.type,
     }),
     {
       updateEnd: UMLElementRepository.updateEnd,
@@ -123,7 +134,7 @@ class PropertiesPanelComponent extends Component<Props, PropertiesPanelState> {
       return null;
     }
 
-    const typeLabel = this.formatTypeName(element.type);
+    const typeLabel = this.getTypeLabel(element.type);
 
     return (
       <PanelWrapper ref={this.wrapperRef}>
@@ -139,6 +150,40 @@ class PropertiesPanelComponent extends Component<Props, PropertiesPanelState> {
         </PanelContainer>
       </PanelWrapper>
     );
+  }
+
+  /**
+   * Localized element-type heading (e.g. "Class" → "Classe" in French).
+   *
+   * Element-type names live under ``packages.<DiagramType>.<ElementType>`` in
+   * the editor dictionaries. We first try the group matching the element's
+   * diagram type, then fall back to scanning every group — this bridges cases
+   * where the diagram-type value and the i18n group name diverge (e.g.
+   * ``StateMachineDiagram`` vs the ``StateDiagram`` group). Element-type keys
+   * shared across groups (``Interface``, ``Component``, …) translate to the
+   * same word, so a scan match is safe. When nothing matches (or a locale is
+   * missing the key), fall back to inserting spaces before capitals so the
+   * header never renders blank.
+   */
+  private getTypeLabel(type: string): string {
+    const { diagramType, translate } = this.props;
+
+    if (diagramType) {
+      const direct = translate(`packages.${diagramType}.${type}`);
+      if (direct) {
+        return direct;
+      }
+    }
+
+    for (const group of PACKAGE_GROUPS) {
+      if (group === diagramType) continue; // already tried above
+      const translated = translate(`packages.${group}.${type}`);
+      if (translated) {
+        return translated;
+      }
+    }
+
+    return this.formatTypeName(type);
   }
 
   private formatTypeName(type: string): string {

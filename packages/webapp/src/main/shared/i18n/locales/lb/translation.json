@@ -779,6 +779,16 @@
       "loadTemplate": "Schabloun lueden",
       "multiDiagramProject": "Multi-Diagramm-Projet",
       "unknownError": "Onbekannte Feeler",
+      "categories": {
+        "Creational": "Erstellend",
+        "Class Diagram": "Klassendiagramm",
+        "Behavioral": "Verhalensbezunn",
+        "Agent Diagram": "Agentendiagramm",
+        "State Machine Diagram": "Zoustandsmaschinnendiagramm",
+        "Quantum Circuit": "Quantekreeslaf",
+        "Neural Network": "Neuronaalt Netzwierk",
+        "Full Project": "Ganzt Projet"
+      },
       "confirm": {
         "title": "Bestoenden Diagramm festgestallt",
         "body": "Dir hutt schonn e <strong>{{type}}</strong>. Wéi wëllt Dir d'Schabloun lueden?",

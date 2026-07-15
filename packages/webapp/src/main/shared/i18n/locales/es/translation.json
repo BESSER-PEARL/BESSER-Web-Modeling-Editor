@@ -779,6 +779,16 @@
       "loadTemplate": "Cargar plantilla",
       "multiDiagramProject": "Proyecto multidiagrama",
       "unknownError": "Error desconocido",
+      "categories": {
+        "Creational": "Creacional",
+        "Class Diagram": "Diagrama de clases",
+        "Behavioral": "Comportamental",
+        "Agent Diagram": "Diagrama de agente",
+        "State Machine Diagram": "Diagrama de máquina de estados",
+        "Quantum Circuit": "Circuito cuántico",
+        "Neural Network": "Red neuronal",
+        "Full Project": "Proyecto completo"
+      },
       "confirm": {
         "title": "Diagrama existente detectado",
         "body": "Ya tienes un <strong>{{type}}</strong>. ¿Cómo quieres cargar la plantilla?",

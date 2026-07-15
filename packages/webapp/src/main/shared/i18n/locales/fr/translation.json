@@ -779,6 +779,16 @@
       "loadTemplate": "Charger le modèle",
       "multiDiagramProject": "Projet multi-diagrammes",
       "unknownError": "Erreur inconnue",
+      "categories": {
+        "Creational": "Création",
+        "Class Diagram": "Diagramme de classes",
+        "Behavioral": "Comportement",
+        "Agent Diagram": "Diagramme d'agent",
+        "State Machine Diagram": "Diagramme de machine à états",
+        "Quantum Circuit": "Circuit quantique",
+        "Neural Network": "Réseau de neurones",
+        "Full Project": "Projet complet"
+      },
       "confirm": {
         "title": "Diagramme existant détecté",
         "body": "Vous avez déjà un <strong>{{type}}</strong>. Comment souhaitez-vous charger le modèle ?",

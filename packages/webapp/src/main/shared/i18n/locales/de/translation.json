@@ -779,6 +779,16 @@
       "loadTemplate": "Vorlage laden",
       "multiDiagramProject": "Multi-Diagramm-Projekt",
       "unknownError": "Unbekannter Fehler",
+      "categories": {
+        "Creational": "Erzeugend",
+        "Class Diagram": "Klassendiagramm",
+        "Behavioral": "Verhaltensbezogen",
+        "Agent Diagram": "Agentendiagramm",
+        "State Machine Diagram": "Zustandsautomatendiagramm",
+        "Quantum Circuit": "Quantenschaltkreis",
+        "Neural Network": "Neuronales Netz",
+        "Full Project": "Gesamtprojekt"
+      },
       "confirm": {
         "title": "Vorhandenes Diagramm erkannt",
         "body": "Sie haben bereits ein <strong>{{type}}</strong>. Wie möchten Sie die Vorlage laden?",

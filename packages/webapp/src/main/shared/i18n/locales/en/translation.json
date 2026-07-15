@@ -779,6 +779,16 @@
       "loadTemplate": "Load Template",
       "multiDiagramProject": "Multi-diagram project",
       "unknownError": "Unknown error",
+      "categories": {
+        "Creational": "Creational",
+        "Class Diagram": "Class Diagram",
+        "Behavioral": "Behavioral",
+        "Agent Diagram": "Agent Diagram",
+        "State Machine Diagram": "State Machine Diagram",
+        "Quantum Circuit": "Quantum Circuit",
+        "Neural Network": "Neural Network",
+        "Full Project": "Full Project"
+      },
       "confirm": {
         "title": "Existing diagram detected",
         "body": "You already have a <strong>{{type}}</strong>. How would you like to load the template?",
