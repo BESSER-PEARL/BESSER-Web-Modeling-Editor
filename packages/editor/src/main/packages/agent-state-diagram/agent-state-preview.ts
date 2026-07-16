@@ -29,7 +29,6 @@ const computeDimension = (scale: number, value: number): number => {
 
 export const composeBotPreview: ComposePreview = (
   layer: ILayer,
-  translate: (id: string) => string,
 ): UMLElement[] => {
   // Build every preview element first, then push in the palette's display
   // order below (flow/states → reasoning → reasoning primitives → knowledge).
@@ -40,7 +39,7 @@ export const composeBotPreview: ComposePreview = (
   });
 
   // Empty State
-  const emptyAgentState = new AgentState({ name: translate('packages.AgentDiagram.AgentState') });
+  const emptyAgentState = new AgentState({ name: 'Agent State' });
   emptyAgentState.bounds = {
     ...emptyAgentState.bounds,
     width: emptyAgentState.bounds.width,
@@ -48,14 +47,14 @@ export const composeBotPreview: ComposePreview = (
   };
 
   // State with Body
-  const agentState = new AgentState({ name: translate('packages.AgentDiagram.AgentState') });
+  const agentState = new AgentState({ name: 'Agent State' });
   agentState.bounds = {
     ...agentState.bounds,
     width: agentState.bounds.width,
     height: agentState.bounds.height,
   };
   const botBody = new AgentStateBody({
-    name: translate('packages.AgentDiagram.AgentStateBody'),
+    name: 'Agent State Body',
     owner: agentState.id,
     bounds: {
       x: 0,
@@ -67,7 +66,7 @@ export const composeBotPreview: ComposePreview = (
   agentState.ownedElements = [botBody.id];
   const agentStateRendered = agentState.render(layer, [botBody]) as UMLElement[];
 
-  const reasoningState = new AgentReasoningState({ name: translate('packages.AgentDiagram.ReasoningState') });
+  const reasoningState = new AgentReasoningState({ name: 'Reasoning State' });
   reasoningState.bounds = {
     ...reasoningState.bounds,
     width: computeDimension(1.0, 200),
@@ -99,14 +98,14 @@ export const composeBotPreview: ComposePreview = (
   };
   workspaceElement.render(layer);
 
-  const emptyIntent = new AgentIntent({ name: translate('packages.AgentDiagram.Intent') });
+  const emptyIntent = new AgentIntent({ name: 'Intent' });
   emptyIntent.bounds = {
     ...emptyIntent.bounds,
     width: emptyIntent.bounds.width,
     height: emptyIntent.bounds.height,
   };
 
-  const ragElement = new AgentRagElement({ name: translate('packages.AgentDiagram.RagElement') });
+  const ragElement = new AgentRagElement({ name: 'RAG Element' });
   ragElement.bounds = {
     ...ragElement.bounds,
     width: computeDimension(1.0, ragElement.bounds.width),
@@ -117,19 +116,19 @@ export const composeBotPreview: ComposePreview = (
   // Display order, grouped into titled sections (mirrors the NN palette):
   // Flow → Reasoning → Capabilities → Knowledge.
   const elements: UMLElement[] = [
-    sectionTitle(translate('packages.AgentDiagram.palette.flow')),
+    sectionTitle('Flow'),
     stateInitialNode,
     emptyAgentState,
     ...agentStateRendered,
     sectionSeparator(),
-    sectionTitle(translate('packages.AgentDiagram.palette.reasoning')),
+    sectionTitle('Reasoning'),
     reasoningState,
     sectionSeparator(),
-    sectionTitle(translate('packages.AgentDiagram.palette.knowledge')),
+    sectionTitle('Knowledge'),
     emptyIntent,
     ragElement,
     sectionSeparator(),
-    sectionTitle(translate('packages.AgentDiagram.palette.capabilities')),
+    sectionTitle('Capabilities'),
     toolElement,
     skillElement,
     workspaceElement,

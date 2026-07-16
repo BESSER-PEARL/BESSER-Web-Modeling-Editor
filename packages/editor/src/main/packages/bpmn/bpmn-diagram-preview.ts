@@ -17,35 +17,34 @@ import { BPMNDataStore } from './bpmn-data-store/bpmn-data-store';
 
 export const composeBPMNPreview: ComposePreview = (
   layer: ILayer,
-  translate: (id: string) => string,
 ): PreviewElement[] => {
   const elements: PreviewElement[] = [];
   const defaultBounds: IBoundary = { x: 0, y: 0, width: 160, height: 60 };
 
   elements.push(
     new BPMNTask({
-      name: translate('packages.BPMN.BPMNTask'),
+      name: 'Task',
       bounds: defaultBounds,
     }),
   );
 
   elements.push(
     new BPMNSubprocess({
-      name: translate('packages.BPMN.BPMNSubprocess'),
+      name: 'Subprocess',
       bounds: defaultBounds,
     }),
   );
 
   elements.push(
     new BPMNTransaction({
-      name: translate('packages.BPMN.BPMNTransaction'),
+      name: 'Transaction',
       bounds: defaultBounds,
     }),
   );
 
   elements.push(
     new BPMNCallActivity({
-      name: translate('packages.BPMN.BPMNCallActivity'),
+      name: 'Call Activity',
       bounds: defaultBounds,
     }),
   );
@@ -58,7 +57,7 @@ export const composeBPMNPreview: ComposePreview = (
 
   elements.push(
     new BPMNAnnotation({
-      name: translate('packages.BPMN.BPMNAnnotation'),
+      name: 'Annotation',
       bounds: defaultBounds,
     }),
   );
@@ -101,7 +100,7 @@ export const composeBPMNPreview: ComposePreview = (
 
   elements.push(
     new BPMNPool({
-      name: translate('packages.BPMN.BPMNPool'),
+      name: 'Pool',
       bounds: { x: 0, y: 0, width: 160, height: 80 },
     }),
   );

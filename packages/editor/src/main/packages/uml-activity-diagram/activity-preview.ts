@@ -12,7 +12,6 @@ import { UMLActivity } from './uml-activity/uml-activity';
 
 export const composeActivityPreview: ComposePreview = (
   layer: ILayer,
-  translate: (id: string) => string,
 ): UMLElement[] => {
   const elements: UMLElement[] = [];
   UMLActivityForkNode.defaultWidth = Math.round(20 / 10) * 10;
@@ -20,7 +19,7 @@ export const composeActivityPreview: ComposePreview = (
   UMLActivityForkNodeHorizontal.defaultWidth = Math.round(60 / 10) * 10;
   UMLActivityForkNodeHorizontal.defaultHeight = Math.round(20 / 10) * 10;
   // Activity
-  const activity = new UMLActivity({ name: translate('packages.ActivityDiagram.Activity') });
+  const activity = new UMLActivity({ name: 'Activity' });
   activity.bounds = {
     ...activity.bounds,
     width: activity.bounds.width,
@@ -43,7 +42,7 @@ export const composeActivityPreview: ComposePreview = (
 
   // Activity Action Node
   const activityActionNode = new UMLActivityActionNode({
-    name: translate('packages.ActivityDiagram.ActivityActionNode'),
+    name: 'Activity Action Node',
   });
   activityActionNode.bounds = {
     ...activityActionNode.bounds,
@@ -54,7 +53,7 @@ export const composeActivityPreview: ComposePreview = (
 
   // Activity Object Node
   const activityObjectNode = new UMLActivityObjectNode({
-    name: translate('packages.ActivityDiagram.ActivityObjectNode'),
+    name: 'Activity Object Node',
   });
   activityObjectNode.bounds = {
     ...activityObjectNode.bounds,
@@ -64,7 +63,7 @@ export const composeActivityPreview: ComposePreview = (
   elements.push(activityObjectNode);
 
   // Activity Merge Node
-  const activityMergeNode = new UMLActivityMergeNode({ name: translate('packages.ActivityDiagram.ActivityMergeNode') });
+  const activityMergeNode = new UMLActivityMergeNode({ name: 'Activity Merge Node' });
   activityMergeNode.bounds = {
     ...activityMergeNode.bounds,
     width: activityMergeNode.bounds.width,

@@ -54,72 +54,72 @@ type DispatchProps = {
 
 type Props = OwnProps & StateProps & DispatchProps & I18nContext & CanvasContext;
 
-const getInitialState = ({ type, canvas, translate, colorEnabled }: Props) => {
+const getInitialState = ({ type, canvas, colorEnabled }: Props) => {
   const previews: PreviewElement[] = [];
   const utils: PreviewElement[] = [];
 
   switch (type) {
     case UMLDiagramType.ClassDiagram:
-      previews.push(...composeClassPreview(canvas, translate));
+      previews.push(...composeClassPreview(canvas));
       break;
     case UMLDiagramType.NNDiagram:
-      previews.push(...composeNNPreview(canvas, translate));
+      previews.push(...composeNNPreview(canvas));
       break;
     case UMLDiagramType.ObjectDiagram:
       // Use the same object preview for both normal and icon mode
       // The individual components will decide how to render based on settings
-      previews.push(...composeObjectPreview(canvas, translate));
+      previews.push(...composeObjectPreview(canvas));
       break;
     case UMLDiagramType.ActivityDiagram:
-      previews.push(...composeActivityPreview(canvas, translate));
+      previews.push(...composeActivityPreview(canvas));
       break;
     case UMLDiagramType.UseCaseDiagram:
-      previews.push(...composeUseCasePreview(canvas, translate));
+      previews.push(...composeUseCasePreview(canvas));
       break;
     case UMLDiagramType.CommunicationDiagram:
-      previews.push(...composeCommunicationPreview(canvas, translate));
+      previews.push(...composeCommunicationPreview(canvas));
       break;
     case UMLDiagramType.ComponentDiagram:
-      previews.push(...composeComponentPreview(canvas, translate));
+      previews.push(...composeComponentPreview(canvas));
       break;
     case UMLDiagramType.DeploymentDiagram:
-      previews.push(...composeDeploymentPreview(canvas, translate));
+      previews.push(...composeDeploymentPreview(canvas));
       break;
     case UMLDiagramType.PetriNet:
-      previews.push(...composePetriNetPreview(canvas, translate));
+      previews.push(...composePetriNetPreview(canvas));
       break;
     case UMLDiagramType.ReachabilityGraph:
-      previews.push(...composeReachabilityGraphPreview(canvas, translate));
+      previews.push(...composeReachabilityGraphPreview(canvas));
       break;
     case UMLDiagramType.SyntaxTree:
-      previews.push(...composeSyntaxTreePreview(canvas, translate));
+      previews.push(...composeSyntaxTreePreview(canvas));
       break;
     case UMLDiagramType.Flowchart:
-      previews.push(...composeFlowchartPreview(canvas, translate));
+      previews.push(...composeFlowchartPreview(canvas));
       break;
     case UMLDiagramType.BPMN:
-      previews.push(...composeBPMNPreview(canvas, translate));
+      previews.push(...composeBPMNPreview(canvas));
       break;
     case UMLDiagramType.StateMachineDiagram:
-      previews.push(...composeStatePreview(canvas, translate));
+      previews.push(...composeStatePreview(canvas));
       break;
     case UMLDiagramType.AgentDiagram:
-      previews.push(...composeBotPreview(canvas, translate));
+      previews.push(...composeBotPreview(canvas));
       break;
     case UMLDiagramType.UserDiagram:
       // Use dedicated user modeling preview
-      previews.push(...composeUserModelPreview(canvas, translate));
+      previews.push(...composeUserModelPreview(canvas));
       break;
   }
   if (colorEnabled) {
     // utils.push(
     //   new ColorLegend({
-    //     name: translate('packages.ColorLegend.ColorLegend'),
+    //     name: 'Color Legend',
     //   }),
     // );
     utils.push(
       new Comments({
-        name: translate('packages.Comment.Comment'),
+        name: 'Comment',
       }),
     );
   }

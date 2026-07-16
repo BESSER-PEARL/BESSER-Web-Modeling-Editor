@@ -19,16 +19,15 @@ const computeDimension = (scale: number, value: number): number => {
 
 export const composeStatePreview: ComposePreview = (
   layer: ILayer,
-  translate: (id: string) => string,
 ): UMLElement[] => {
   const elements: UMLElement[] = [];
   UMLStateForkNode.defaultWidth = Math.round(20 / 10) * 10;
   UMLStateForkNode.defaultHeight = Math.round(60 / 10) * 10;
   UMLStateForkNodeHorizontal.defaultWidth = Math.round(60 / 10) * 10;
   UMLStateForkNodeHorizontal.defaultHeight = Math.round(20 / 10) * 10;
-  
+
   // Empty State
-  const emptyState = new UMLState({ name: translate('packages.StateDiagram.State') });
+  const emptyState = new UMLState({ name: 'State' });
   emptyState.bounds = {
     ...emptyState.bounds,
     width: emptyState.bounds.width,
@@ -37,14 +36,14 @@ export const composeStatePreview: ComposePreview = (
   elements.push(emptyState);
 
   // State with Body
-  const stateWithBody = new UMLState({ name: translate('packages.StateDiagram.State') });
+  const stateWithBody = new UMLState({ name: 'State' });
   stateWithBody.bounds = {
     ...stateWithBody.bounds,
     width: stateWithBody.bounds.width,
     height: stateWithBody.bounds.height,
   };
   const stateBody = new UMLStateBody({
-    name: translate('packages.StateDiagram.StateBody'),
+    name: 'State Body',
     owner: stateWithBody.id,
     bounds: {
       x: 0,
@@ -57,14 +56,14 @@ export const composeStatePreview: ComposePreview = (
   elements.push(...(stateWithBody.render(layer, [stateBody]) as UMLElement[]));
 
   // State with Body and Fallback Body
-  const stateWithBothBodies = new UMLState({ name: translate('packages.StateDiagram.State') });
+  const stateWithBothBodies = new UMLState({ name: 'State' });
   stateWithBothBodies.bounds = {
     ...stateWithBothBodies.bounds,
     width: stateWithBothBodies.bounds.width,
     height: stateWithBothBodies.bounds.height,
   };
   const stateBody2 = new UMLStateBody({
-    name: translate('packages.StateDiagram.StateBody'),
+    name: 'State Body',
     owner: stateWithBothBodies.id,
     bounds: {
       x: 0,
@@ -74,7 +73,7 @@ export const composeStatePreview: ComposePreview = (
     },
   });
   const fallbackBody = new UMLStateFallbackBody({
-    name: translate('packages.StateDiagram.StateFallbackBody'),
+    name: 'State Fallback Body',
     owner: stateWithBothBodies.id,
     bounds: {
       x: 0,
@@ -100,7 +99,7 @@ export const composeStatePreview: ComposePreview = (
 
   // // State Action Node
   // const stateActionNode = new UMLStateActionNode({
-  //   name: translate('packages.StateDiagram.StateActionNode'),
+  //   name: 'State Action Node',
   // });
   // stateActionNode.bounds = {
   //   ...stateActionNode.bounds,
@@ -111,7 +110,7 @@ export const composeStatePreview: ComposePreview = (
 
   // // State Object Node
   // const stateObjectNode = new UMLStateObjectNode({
-  //   name: translate('packages.StateDiagram.StateObjectNode'),
+  //   name: 'State Object Node',
   // });
   // stateObjectNode.bounds = {
   //   ...stateObjectNode.bounds,
@@ -121,7 +120,7 @@ export const composeStatePreview: ComposePreview = (
   // elements.push(stateObjectNode);
 
   // // State Merge Node
-  // const stateMergeNode = new UMLStateMergeNode({ name: translate('packages.StateDiagram.StateMergeNode') });
+  // const stateMergeNode = new UMLStateMergeNode({ name: 'State Merge Node' });
   // stateMergeNode.bounds = {
   //   ...stateMergeNode.bounds,
   //   width: stateMergeNode.bounds.width,
