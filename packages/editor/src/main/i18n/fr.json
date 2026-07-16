@@ -186,13 +186,15 @@
       "ClassInheritance": "Généralisation",
       "ClassRealization": "Réalisation",
       "ClassUnidirectional": "Association (unidirectionnelle)",
-      "ClassOCLConstraint": "Contrainte OCL"
+      "ClassOCLConstraint": "Contrainte OCL",
+      "Comments": "Commentaires"
     },
     "ObjectDiagram": {
       "ObjectName": "Objet",
       "ObjectAttribute": "Attribut",
       "ObjectMethod": "Méthode",
-      "ObjectLink": "Relation"
+      "ObjectLink": "Relation",
+      "Comments": "Commentaires"
     },
     "ActivityDiagram": {
       "Activity": "Activité",
@@ -202,7 +204,8 @@
       "ActivityInitialNode": "Nœud initial",
       "ActivityMergeNode": "Condition",
       "ActivityObjectNode": "Objet",
-      "ActivityControlFlow": "Flux de contrôle"
+      "ActivityControlFlow": "Flux de contrôle",
+      "Comments": "Commentaires"
     },
     "UseCaseDiagram": {
       "UseCase": "Cas d'utilisation",
@@ -211,13 +214,15 @@
       "UseCaseAssociation": "Association",
       "UseCaseExtend": "Extension",
       "UseCaseGeneralization": "Généralisation",
-      "UseCaseInclude": "Inclusion"
+      "UseCaseInclude": "Inclusion",
+      "Comments": "Commentaires"
     },
     "CommunicationDiagram": {
       "ObjectName": "Objet",
       "ObjectAttribute": "Attribut",
       "ObjectMethod": "Méthode",
-      "CommunicationLink": "Lien de communication"
+      "CommunicationLink": "Lien de communication",
+      "Comments": "Commentaires"
     },
     "ComponentDiagram": {
       "Component": "Composant",
@@ -225,7 +230,8 @@
       "ComponentDependency": "Dépendance",
       "ComponentInterface": "Interface",
       "ComponentInterfaceProvided": "Interface fournie",
-      "ComponentInterfaceRequired": "Interface requise"
+      "ComponentInterfaceRequired": "Interface requise",
+      "Comments": "Commentaires"
     },
     "DeploymentDiagram": {
       "DeploymentNode": "Nœud",
@@ -235,20 +241,24 @@
       "DeploymentInterfaceProvided": "Interface fournie",
       "DeploymentInterfaceRequired": "Interface requise",
       "DeploymentAssociation": "Association de déploiement",
-      "DeploymentDependency": "Dépendance de déploiement"
+      "DeploymentDependency": "Dépendance de déploiement",
+      "Comments": "Commentaires"
     },
     "PetriNet": {
       "PetriNetPlace": "Place",
-      "PetriNetTransition": "Transition"
+      "PetriNetTransition": "Transition",
+      "Comments": "Commentaires"
     },
     "ReachabilityGraph": {
       "ReachabilityGraphIsInitialMarking": "Est le marquage initial",
-      "ReachabilityGraphMarking": "Marquage"
+      "ReachabilityGraphMarking": "Marquage",
+      "Comments": "Commentaires"
     },
     "SyntaxTree": {
       "SyntaxTreeTerminal": "Terminal",
       "SyntaxTreeNonterminal": "Non-terminal",
-      "SyntaxTreeLink": "Lien"
+      "SyntaxTreeLink": "Lien",
+      "Comments": "Commentaires"
     },
     "Flowchart": {
       "FlowchartTerminal": "Terminal",
@@ -256,10 +266,12 @@
       "FlowchartProcess": "Processus",
       "FlowchartFunctionCall": "Appel de fonction",
       "FlowchartInputOutput": "Entrée/Sortie",
-      "FlowchartFlowline": "Ligne de flux"
+      "FlowchartFlowline": "Ligne de flux",
+      "Comments": "Commentaires"
     },
     "ColorLegend": {
-      "ColorLegend": "Description des couleurs"
+      "ColorLegend": "Description des couleurs",
+      "Comments": "Commentaires"
     },
     "BPMN": {
       "BPMNTask": "Tâche",
@@ -312,7 +324,8 @@
       "BPMNPool": "Pool",
       "BPMNSwimlane": "Couloir",
       "BPMNSwimlanes": "Couloirs",
-      "BPMNGroup": "Groupe"
+      "BPMNGroup": "Groupe",
+      "Comments": "Commentaires"
     },
     "NNDiagram": {
       "NNContainer": "Neural_Network",
@@ -336,7 +349,8 @@
       "Configuration": "Configuration",
       "TrainingDataset": "Jeu de données d'entraînement",
       "TestDataset": "Jeu de données de test",
-      "Datasets": "Jeux de données RN"
+      "Datasets": "Jeux de données RN",
+      "Comments": "Commentaires"
     },
     "OCLConstraint": {
       "Constraint": "Contrainte OCL",
@@ -349,7 +363,8 @@
       "StateFinalNode": "État final",
       "State": "État",
       "StateBody": "Corps",
-      "StateFallbackBody": "Corps de repli"
+      "StateFallbackBody": "Corps de repli",
+      "Comments": "Commentaires"
     },
     "AgentDiagram": {
       "StateTransition": "Transition",
@@ -361,9 +376,18 @@
       },
       "AgentState": "État de l'agent",
       "AgentStateBody": "Corps",
-      "ReasoningState": "État de raisonnement",
-      "Intent": "Nom de l'intention",
-      "RagElement": "Nom de la BD RAG"
+      "AgentReasoningState": "État de raisonnement",
+      "AgentIntent": "Intention d'agent",
+      "AgentRagElement": "Élément RAG",
+      "AgentTool": "Outil",
+      "AgentSkill": "Compétence",
+      "AgentWorkspace": "Espace de travail",
+      "Comments": "Commentaires"
+    },
+    "UserDiagram": {
+      "UserModelName": "Utilisateur",
+      "UserModelAttribute": "Attribut",
+      "UserModelIcon": "Icône"
     },
     "Comment": {
       "Comment": "Commentaires",

@@ -186,13 +186,15 @@
       "ClassInheritance": "Generalització",
       "ClassRealization": "Realització",
       "ClassUnidirectional": "Associació (unidireccional)",
-      "ClassOCLConstraint": "Restricció OCL"
+      "ClassOCLConstraint": "Restricció OCL",
+      "Comments": "Comentaris"
     },
     "ObjectDiagram": {
       "ObjectName": "Objecte",
       "ObjectAttribute": "Atribut",
       "ObjectMethod": "Mètode",
-      "ObjectLink": "Relació"
+      "ObjectLink": "Relació",
+      "Comments": "Comentaris"
     },
     "ActivityDiagram": {
       "Activity": "Activitat",
@@ -202,7 +204,8 @@
       "ActivityInitialNode": "Node inicial",
       "ActivityMergeNode": "Condició",
       "ActivityObjectNode": "Objecte",
-      "ActivityControlFlow": "Flux de control"
+      "ActivityControlFlow": "Flux de control",
+      "Comments": "Comentaris"
     },
     "UseCaseDiagram": {
       "UseCase": "Cas d'ús",
@@ -211,13 +214,15 @@
       "UseCaseAssociation": "Associació",
       "UseCaseExtend": "Extensió",
       "UseCaseGeneralization": "Generalització",
-      "UseCaseInclude": "Inclusió"
+      "UseCaseInclude": "Inclusió",
+      "Comments": "Comentaris"
     },
     "CommunicationDiagram": {
       "ObjectName": "Objecte",
       "ObjectAttribute": "Atribut",
       "ObjectMethod": "Mètode",
-      "CommunicationLink": "Enllaç de comunicació"
+      "CommunicationLink": "Enllaç de comunicació",
+      "Comments": "Comentaris"
     },
     "ComponentDiagram": {
       "Component": "Component",
@@ -225,7 +230,8 @@
       "ComponentDependency": "Dependència",
       "ComponentInterface": "Interfície",
       "ComponentInterfaceProvided": "Interfície proporcionada",
-      "ComponentInterfaceRequired": "Interfície requerida"
+      "ComponentInterfaceRequired": "Interfície requerida",
+      "Comments": "Comentaris"
     },
     "DeploymentDiagram": {
       "DeploymentNode": "Node",
@@ -235,20 +241,24 @@
       "DeploymentInterfaceProvided": "Interfície proporcionada",
       "DeploymentInterfaceRequired": "Interfície requerida",
       "DeploymentAssociation": "Associació de desplegament",
-      "DeploymentDependency": "Dependència de desplegament"
+      "DeploymentDependency": "Dependència de desplegament",
+      "Comments": "Comentaris"
     },
     "PetriNet": {
       "PetriNetPlace": "Lloc",
-      "PetriNetTransition": "Transició"
+      "PetriNetTransition": "Transició",
+      "Comments": "Comentaris"
     },
     "ReachabilityGraph": {
       "ReachabilityGraphIsInitialMarking": "És el marcatge inicial",
-      "ReachabilityGraphMarking": "Marcatge"
+      "ReachabilityGraphMarking": "Marcatge",
+      "Comments": "Comentaris"
     },
     "SyntaxTree": {
       "SyntaxTreeTerminal": "Terminal",
       "SyntaxTreeNonterminal": "No terminal",
-      "SyntaxTreeLink": "Enllaç"
+      "SyntaxTreeLink": "Enllaç",
+      "Comments": "Comentaris"
     },
     "Flowchart": {
       "FlowchartTerminal": "Terminal",
@@ -256,10 +266,12 @@
       "FlowchartProcess": "Procés",
       "FlowchartFunctionCall": "Crida a funció",
       "FlowchartInputOutput": "Entrada/Sortida",
-      "FlowchartFlowline": "Línia de flux"
+      "FlowchartFlowline": "Línia de flux",
+      "Comments": "Comentaris"
     },
     "ColorLegend": {
-      "ColorLegend": "Descripció de colors"
+      "ColorLegend": "Descripció de colors",
+      "Comments": "Comentaris"
     },
     "BPMN": {
       "BPMNTask": "Tasca",
@@ -312,7 +324,8 @@
       "BPMNPool": "Pool",
       "BPMNSwimlane": "Carril",
       "BPMNSwimlanes": "Carrils",
-      "BPMNGroup": "Grup"
+      "BPMNGroup": "Grup",
+      "Comments": "Comentaris"
     },
     "NNDiagram": {
       "NNContainer": "Neural_Network",
@@ -336,7 +349,8 @@
       "Configuration": "Configuració",
       "TrainingDataset": "Conjunt de dades d'entrenament",
       "TestDataset": "Conjunt de dades de prova",
-      "Datasets": "Conjunts de dades XN"
+      "Datasets": "Conjunts de dades XN",
+      "Comments": "Comentaris"
     },
     "OCLConstraint": {
       "Constraint": "Restricció OCL",
@@ -349,7 +363,8 @@
       "StateFinalNode": "Estat final",
       "State": "Estat",
       "StateBody": "Cos",
-      "StateFallbackBody": "Cos alternatiu"
+      "StateFallbackBody": "Cos alternatiu",
+      "Comments": "Comentaris"
     },
     "AgentDiagram": {
       "StateTransition": "Transició",
@@ -361,9 +376,18 @@
       },
       "AgentState": "Estat de l'agent",
       "AgentStateBody": "Cos",
-      "ReasoningState": "Estat de raonament",
-      "Intent": "Nom de la intenció",
-      "RagElement": "Nom de la BD RAG"
+      "AgentReasoningState": "Estat de raonament",
+      "AgentIntent": "Intenció de l'agent",
+      "AgentRagElement": "Element RAG",
+      "AgentTool": "Eina",
+      "AgentSkill": "Habilitat",
+      "AgentWorkspace": "Espai de treball",
+      "Comments": "Comentaris"
+    },
+    "UserDiagram": {
+      "UserModelName": "Usuari",
+      "UserModelAttribute": "Atribut",
+      "UserModelIcon": "Icona"
     },
     "Comment": {
       "Comment": "Comentaris",

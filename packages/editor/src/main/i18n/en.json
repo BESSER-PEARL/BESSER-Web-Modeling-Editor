@@ -186,13 +186,15 @@
       "ClassInheritance": "Generalization",
       "ClassRealization": "Realization",
       "ClassUnidirectional": "Association (unidirectional)",
-      "ClassOCLConstraint": "OCL Constraint"
+      "ClassOCLConstraint": "OCL Constraint",
+      "Comments": "Comments"
     },
     "ObjectDiagram": {
       "ObjectName": "Object",
       "ObjectAttribute": "Attribute",
       "ObjectMethod": "Method",
-      "ObjectLink": "Relationship"
+      "ObjectLink": "Relationship",
+      "Comments": "Comments"
     },
     "ActivityDiagram": {
       "Activity": "Activity",
@@ -202,7 +204,8 @@
       "ActivityInitialNode": "Initial Node",
       "ActivityMergeNode": "Condition",
       "ActivityObjectNode": "Object",
-      "ActivityControlFlow": "Control Flow"
+      "ActivityControlFlow": "Control Flow",
+      "Comments": "Comments"
     },
     "UseCaseDiagram": {
       "UseCase": "UseCase",
@@ -211,13 +214,15 @@
       "UseCaseAssociation": "Association",
       "UseCaseExtend": "Extend",
       "UseCaseGeneralization": "Generalization",
-      "UseCaseInclude": "Include"
+      "UseCaseInclude": "Include",
+      "Comments": "Comments"
     },
     "CommunicationDiagram": {
       "ObjectName": "Object",
       "ObjectAttribute": "Attribute",
       "ObjectMethod": "Method",
-      "CommunicationLink": "Communication Link"
+      "CommunicationLink": "Communication Link",
+      "Comments": "Comments"
     },
     "ComponentDiagram": {
       "Component": "Component",
@@ -225,7 +230,8 @@
       "ComponentDependency": "Dependency",
       "ComponentInterface": "Interface",
       "ComponentInterfaceProvided": "Provided Interface",
-      "ComponentInterfaceRequired": "Required Interface"
+      "ComponentInterfaceRequired": "Required Interface",
+      "Comments": "Comments"
     },
     "DeploymentDiagram": {
       "DeploymentNode": "Node",
@@ -235,20 +241,24 @@
       "DeploymentInterfaceProvided": "Provided Interface",
       "DeploymentInterfaceRequired": "Required Interface",
       "DeploymentAssociation": "Deployment Association",
-      "DeploymentDependency": "Deployment Dependency"
+      "DeploymentDependency": "Deployment Dependency",
+      "Comments": "Comments"
     },
     "PetriNet": {
       "PetriNetPlace": "Place",
-      "PetriNetTransition": "Transition"
+      "PetriNetTransition": "Transition",
+      "Comments": "Comments"
     },
     "ReachabilityGraph": {
       "ReachabilityGraphIsInitialMarking": "Is initial marking",
-      "ReachabilityGraphMarking": "Marking"
+      "ReachabilityGraphMarking": "Marking",
+      "Comments": "Comments"
     },
     "SyntaxTree": {
       "SyntaxTreeTerminal": "Terminal",
       "SyntaxTreeNonterminal": "Nonterminal",
-      "SyntaxTreeLink": "Link"
+      "SyntaxTreeLink": "Link",
+      "Comments": "Comments"
     },
     "Flowchart": {
       "FlowchartTerminal": "Terminal",
@@ -256,10 +266,12 @@
       "FlowchartProcess": "Process",
       "FlowchartFunctionCall": "Function Call",
       "FlowchartInputOutput": "Input Output",
-      "FlowchartFlowline": "Flowline"
+      "FlowchartFlowline": "Flowline",
+      "Comments": "Comments"
     },
     "ColorLegend": {
-      "ColorLegend": "Color Description"
+      "ColorLegend": "Color Description",
+      "Comments": "Comments"
     },
     "BPMN": {
       "BPMNTask": "Task",
@@ -312,7 +324,8 @@
       "BPMNPool": "Pool",
       "BPMNSwimlane": "Lane",
       "BPMNSwimlanes": "Lanes",
-      "BPMNGroup": "Group"
+      "BPMNGroup": "Group",
+      "Comments": "Comments"
     },
     "NNDiagram": {
       "NNContainer": "Neural_Network",
@@ -336,7 +349,8 @@
       "Configuration": "Configuration",
       "TrainingDataset": "Training Dataset",
       "TestDataset": "Test Dataset",
-      "Datasets": "NN Datasets"
+      "Datasets": "NN Datasets",
+      "Comments": "Comments"
     },
     "OCLConstraint": {
       "Constraint": "OCL Constraint",
@@ -349,7 +363,8 @@
       "StateFinalNode": "Final State",
       "State": "State",
       "StateBody": "Body",
-      "StateFallbackBody": "Fallback Body"
+      "StateFallbackBody": "Fallback Body",
+      "Comments": "Comments"
     },
     "AgentDiagram": {
       "StateTransition": "Transition",
@@ -361,9 +376,18 @@
       },
       "AgentState": "AgentState",
       "AgentStateBody": "Body",
-      "ReasoningState": "ReasoningState",
-      "Intent": "Intent Name",
-      "RagElement": "RAG DB Name"
+      "AgentReasoningState": "Reasoning State",
+      "AgentIntent": "Agent Intent",
+      "AgentRagElement": "RAG Element",
+      "AgentTool": "Tool",
+      "AgentSkill": "Skill",
+      "AgentWorkspace": "Workspace",
+      "Comments": "Comments"
+    },
+    "UserDiagram": {
+      "UserModelName": "User",
+      "UserModelAttribute": "Attribute",
+      "UserModelIcon": "Icon"
     },
     "Comment": {
       "Comment": "Comments",
