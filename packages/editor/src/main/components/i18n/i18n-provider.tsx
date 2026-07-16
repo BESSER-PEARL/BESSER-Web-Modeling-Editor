@@ -1,10 +1,10 @@
 import React, { Component } from 'react';
-import en from '../../i18n/en.json';
-import lb from '../../i18n/lb.json';
-import de from '../../i18n/de.json';
-import fr from '../../i18n/fr.json';
-import es from '../../i18n/es.json';
-import ca from '../../i18n/ca.json';
+import en from '../../../../../i18n/en/editor.json';
+import lb from '../../../../../i18n/lb/editor.json';
+import de from '../../../../../i18n/de/editor.json';
+import fr from '../../../../../i18n/fr/editor.json';
+import es from '../../../../../i18n/es/editor.json';
+import ca from '../../../../../i18n/ca/editor.json';
 import { Locale } from '../../services/editor/editor-types';
 import { I18nContext, I18nProvider as Provider } from './i18n-context';
 

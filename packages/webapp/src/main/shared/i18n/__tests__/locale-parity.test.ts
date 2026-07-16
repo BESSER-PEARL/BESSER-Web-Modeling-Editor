@@ -1,11 +1,11 @@
 import { describe, it, expect } from 'vitest';
 
-import en from '../locales/en/translation.json';
-import lb from '../locales/lb/translation.json';
-import de from '../locales/de/translation.json';
-import fr from '../locales/fr/translation.json';
-import es from '../locales/es/translation.json';
-import ca from '../locales/ca/translation.json';
+import en from '../../../../../../i18n/en/webapp.json';
+import lb from '../../../../../../i18n/lb/webapp.json';
+import de from '../../../../../../i18n/de/webapp.json';
+import fr from '../../../../../../i18n/fr/webapp.json';
+import es from '../../../../../../i18n/es/webapp.json';
+import ca from '../../../../../../i18n/ca/webapp.json';
 
 import { SUPPORTED_LANGUAGE_CODES } from '../languages';
 

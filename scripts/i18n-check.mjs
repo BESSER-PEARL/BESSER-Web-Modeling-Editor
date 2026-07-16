@@ -4,8 +4,8 @@
  *
  * Compares every locale against English (the source of truth) for both
  * translation resource sets:
- *   - webapp shell:  packages/webapp/src/main/shared/i18n/locales/<lang>/translation.json
- *   - editor engine: packages/editor/src/main/i18n/<lang>.json
+ *   - webapp shell:  packages/i18n/<lang>/webapp.json
+ *   - editor engine: packages/i18n/<lang>/editor.json
  *
  * Reports, per language: missing keys (present in English, absent here — these
  * fall back to English at runtime) and extra keys (present here but not in
@@ -30,11 +30,11 @@ const REFERENCE = 'en';
 const RESOURCE_SETS = [
   {
     name: 'webapp',
-    path: (lang) => join(ROOT, 'packages/webapp/src/main/shared/i18n/locales', lang, 'translation.json'),
+    path: (lang) => join(ROOT, 'packages/i18n', lang, 'webapp.json'),
   },
   {
     name: 'editor',
-    path: (lang) => join(ROOT, 'packages/editor/src/main/i18n', `${lang}.json`),
+    path: (lang) => join(ROOT, 'packages/i18n', lang, 'editor.json'),
   },
 ];
 

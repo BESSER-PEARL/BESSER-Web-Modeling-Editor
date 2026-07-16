@@ -1,7 +1,7 @@
 import React, { Component, ComponentClass, ComponentType, createRef } from 'react';
 import { connect } from 'react-redux';
 import { compose } from 'redux';
-import en from '../../i18n/en.json';
+import en from '../../../../../i18n/en/editor.json';
 import { Popups } from '../../packages/popups';
 import { UMLElementType } from '../../packages/uml-element-type';
 import { ApollonMode } from '../../services/editor/editor-types';

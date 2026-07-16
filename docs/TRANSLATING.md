@@ -18,17 +18,19 @@ We currently ship: **English (`en`)**, **Luxembourgish (`lb`)**, **German (`de`)
 
 ## Where the strings live
 
-There are two resource sets, both plain JSON, one file per language:
+All translations live in one shared folder, **`packages/i18n/`**, with a subfolder
+per language holding two JSON files — one for each runtime i18n system:
 
-| Resource set | What it covers | Files |
-|--------------|----------------|-------|
-| **Webapp shell** | Top bar, menus, sidebar, dialogs, toasts, buttons — everything outside the diagram canvas | `packages/webapp/src/main/shared/i18n/locales/<lang>/translation.json` |
-| **Editor engine** | Diagram element names, property pop-ups, palette labels inside the canvas | `packages/editor/src/main/i18n/<lang>.json` |
+| Resource set | What it covers | File |
+|--------------|----------------|------|
+| **Webapp shell** | Top bar, menus, sidebar, dialogs, toasts, buttons — everything outside the diagram canvas | `packages/i18n/<lang>/webapp.json` |
+| **Editor engine** | Diagram element names, property pop-ups, palette labels inside the canvas | `packages/i18n/<lang>/editor.json` |
 
-Both use the same nested-JSON shape. Keys are organised by area, e.g.:
+So a French translator works entirely inside `packages/i18n/fr/`. Both files use
+the same nested-JSON shape. Keys are organised by area, e.g.:
 
 ```jsonc
-// packages/webapp/src/main/shared/i18n/locales/fr/translation.json
+// packages/i18n/fr/webapp.json
 {
   "menu": {
     "file": {
@@ -70,11 +72,11 @@ Say you want to add Italian (`it`). Codes are ISO 639-1 (lowercase).
    ```
 
    Then import and register its resource in `packages/webapp/src/main/shared/i18n/index.ts`
-   (add `import it from './locales/it/translation.json';` and an `it: { translation: it }` entry).
+   (add `import it from '../../../../../i18n/it/webapp.json';` and an `it: { translation: it }` entry).
 
 3. **Create the files** by copying the English ones:
-   - `packages/webapp/src/main/shared/i18n/locales/en/translation.json` → `.../it/translation.json`
-   - `packages/editor/src/main/i18n/en.json` → `.../i18n/it.json`
+   - `packages/i18n/en/webapp.json` → `packages/i18n/it/webapp.json`
+   - `packages/i18n/en/editor.json` → `packages/i18n/it/editor.json`
 
 4. **Translate the values.** Keep the structure identical to English.
 
@@ -129,7 +131,7 @@ Every non-English string must be reviewed by a native/fluent speaker before merg
 The golden rule: **never hardcode a user-facing string.** If you write literal English into a
 component, it can never localize — it will show English in every language, silently. Instead,
 route it through `t()` (plain text) or `<Trans>` (rich text) with a **key**, and put the actual
-English text in `en/translation.json`. English is the single source of truth every other
+English text in `packages/i18n/en/webapp.json`. English is the single source of truth every other
 language is translated from; a key with no `en` entry renders the raw key string (e.g.
 `dialogs.feedback.title`) in the UI, which is your signal you forgot step 5.
 
@@ -147,7 +149,7 @@ const { t } = useTranslation();
 ```
 
 ```jsonc
-// …and the English text lives in en/translation.json:
+// …and the English text lives in packages/i18n/en/webapp.json:
 "dialogs": { "feedback": { "title": "Help Us Improve BESSER" } }
 ```
 
@@ -195,8 +197,8 @@ categories.map((c) => <option key={c.value}>{t(c.labelKey)}</option>);
 ```
 
 **5. Add the keys and seed the languages.** Add your new English keys to
-`packages/webapp/src/main/shared/i18n/locales/en/translation.json` (or the editor
-`packages/editor/src/main/i18n/en.json` for canvas strings). Then create the same keys in the
+`packages/i18n/en/webapp.json` (or the editor `packages/i18n/en/editor.json` for
+canvas strings). Then create the same keys in the
 other five languages — draft them with an LLM (Track B) and get a human check. Finally run
 `npm run i18n:check`; it must return to **100%** for every language.
 

@@ -226,7 +226,7 @@ Almost all feature work happens in **`webapp`** and **`editor`**.
 | `packages/editor/src/main/apollon-editor.ts`        | Public API of the diagramming engine (`ApollonEditor` class)           |
 | `packages/editor/src/main/packages/`                | Diagram-specific implementations (UML, BPMN, flowchart, …)             |
 | `packages/editor/src/main/services/`                | Domain logic (CRUD, undo, layout, collaboration)                       |
-| `packages/editor/src/main/i18n/`                    | Translations                                                           |
+| `packages/i18n/`                                    | Translations (shared) — `<lang>/webapp.json` + `<lang>/editor.json`     |
 | `docs/`                                             | Sphinx docs published under the BESSER Read the Docs site              |
 
 For deeper architecture notes, see
@@ -331,8 +331,8 @@ Catalan), so **any new user-facing text must be translatable** — never hardcod
 a literal string into a component, or it will show English in every language.
 
 Route text through `t('some.key')` (plain) or `<Trans>` (rich text/links) and
-put the English in `packages/webapp/src/main/shared/i18n/locales/en/translation.json`
-(or `packages/editor/src/main/i18n/en.json` for canvas strings). Then seed the
+put the English in `packages/i18n/en/webapp.json`
+(or `packages/i18n/en/editor.json` for canvas strings). Then seed the
 other five languages and run `npm run i18n:check` — it must report **100%** for
 every language.
 
