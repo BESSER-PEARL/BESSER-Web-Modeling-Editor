@@ -47,7 +47,7 @@ export interface ChartConfig {
 export const getChartConfigs = (): ChartConfig[] => [
   {
     id: 'line-chart',
-    label: i18n.t('editors.gui.blocks.lineChart'),
+    label: `Line Chart`,
     component: LineChartComponent,
     defaultColor: '#4CAF50',
     defaultTitle: 'Line Chart Title',
@@ -79,7 +79,7 @@ export const getChartConfigs = (): ChartConfig[] => [
   },
   {
     id: 'bar-chart',
-    label: i18n.t('editors.gui.blocks.barChart'),
+    label: `Bar Chart`,
     component: BarChartComponent,
     defaultColor: '#3498db',
     defaultTitle: 'Bar Chart Title',
@@ -104,7 +104,7 @@ export const getChartConfigs = (): ChartConfig[] => [
   },
   {
     id: 'pie-chart',
-    label: i18n.t('editors.gui.blocks.pieChart'),
+    label: `Pie Chart`,
     component: PieChartComponent,
     defaultColor: '',
     defaultTitle: 'Pie Chart Title',
@@ -130,7 +130,7 @@ export const getChartConfigs = (): ChartConfig[] => [
   },
   {
     id: 'radar-chart',
-    label: i18n.t('editors.gui.blocks.radarChart'),
+    label: `Radar Chart`,
     component: RadarChartComponent,
     defaultColor: '#8884d8',
     defaultTitle: 'Radar Chart Title',
@@ -149,7 +149,7 @@ export const getChartConfigs = (): ChartConfig[] => [
   },
   {
     id: 'radial-bar-chart',
-    label: i18n.t('editors.gui.blocks.radialBarChart'),
+    label: `Radial Bar Chart`,
     component: RadialBarChartComponent,
     defaultColor: '',
     defaultTitle: 'Radial Bar Chart Title',

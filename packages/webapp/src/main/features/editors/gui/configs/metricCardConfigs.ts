@@ -36,7 +36,7 @@ export interface MetricCardConfig {
 // Note: `defaultTitle` and trait `value` defaults stay English — they become user content.
 export const getMetricCardConfig = (): MetricCardConfig => ({
   id: 'metric-card',
-  label: i18n.t('editors.gui.blocks.metricCard'),
+  label: `Metric Card / KPI`,
   component: MetricCardComponent,
   defaultTitle: 'Metric Title',
   dataSource: '',

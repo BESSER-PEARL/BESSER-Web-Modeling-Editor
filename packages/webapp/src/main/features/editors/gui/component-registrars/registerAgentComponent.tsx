@@ -342,8 +342,8 @@ export const registerAgentComponent = (editor: any) => {
 
   // Add agent component to Block Manager
   editor.BlockManager.add('agent-component', {
-    label: i18n.t('editors.gui.blocks.agent'),
-    category: i18n.t('editors.gui.categories.basic'),
+    label: `BESSER Agent`,
+    category: `Basic`,
     content: { type: 'agent-component' },
     media: `<img src="/img/agent_back.png" alt="${i18n.t('assistant.agentAvatarAlt')}" style="width: 24px; height: 24px; border-radius: 50%; object-fit: contain;" />`,
   });

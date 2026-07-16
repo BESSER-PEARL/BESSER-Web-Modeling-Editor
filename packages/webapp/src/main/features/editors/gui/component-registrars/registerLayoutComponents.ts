@@ -468,8 +468,8 @@ export const registerLayoutComponents = (editor: any) => {
   });
 
   editor.BlockManager.add('card-component', {
-    label: i18n.t('editors.gui.blocks.card'),
-    category: i18n.t('editors.gui.categories.layout'),
+    label: `Card`,
+    category: `Layout`,
     content: { type: 'card-component' },
     media: '<svg viewBox="0 0 24 24" width="24" height="24"><rect x="3" y="3" width="18" height="18" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><line x1="3" y1="9" x2="21" y2="9" stroke="currentColor" stroke-width="2"/></svg>',
   });

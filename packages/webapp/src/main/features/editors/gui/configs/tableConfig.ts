@@ -28,7 +28,7 @@ export interface TableConfig {
 // Note: `defaultTitle` and trait `value` defaults stay English — they become user content.
 export const getTableConfig = (): TableConfig => ({
   id: 'table',
-  label: i18n.t('editors.gui.blocks.table'),
+  label: `Table`,
   component: TableComponent,
   defaultColor: '#2c3e50',
   defaultTitle: 'Table Title',

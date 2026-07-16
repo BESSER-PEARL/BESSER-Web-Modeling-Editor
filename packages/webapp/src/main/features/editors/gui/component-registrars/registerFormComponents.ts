@@ -416,29 +416,29 @@ export const registerFormComponents = (editor: any) => {
 
   // Add blocks to Block Manager
   editor.BlockManager.add('enhanced-form', {
-    label: i18n.t('editors.gui.blocks.form'),
-    category: i18n.t('editors.gui.categories.forms'),
+    label: `Form`,
+    category: `Forms`,
     content: { type: 'enhanced-form' },
     media: '<svg viewBox="0 0 24 24"><path fill="currentColor" d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20Z"/></svg>',
   });
 
   editor.BlockManager.add('enhanced-input', {
-    label: i18n.t('editors.gui.blocks.inputField'),
-    category: i18n.t('editors.gui.categories.forms'),
+    label: `Input Field`,
+    category: `Forms`,
     content: { type: 'enhanced-input' },
     media: '<svg viewBox="0 0 24 24"><path fill="currentColor" d="M5,3H19A2,2 0 0,1 21,5V19A2,2 0 0,1 19,21H5A2,2 0 0,1 3,19V5A2,2 0 0,1 5,3M5,5V7H19V5H5M5,11V13H19V11H5M5,17V19H19V17H5Z"/></svg>',
   });
 
   editor.BlockManager.add('enhanced-select', {
-    label: i18n.t('editors.gui.blocks.dropdown'),
-    category: i18n.t('editors.gui.categories.forms'),
+    label: `Dropdown`,
+    category: `Forms`,
     content: { type: 'enhanced-select' },
     media: '<svg viewBox="0 0 24 24"><path fill="currentColor" d="M3,5H21A2,2 0 0,1 23,7V17A2,2 0 0,1 21,19H3A2,2 0 0,1 1,17V7A2,2 0 0,1 3,5M3,7V17H21V7H3M7,9H17V11H7V9M7,13H14V15H7V13Z"/></svg>',
   });
 
   editor.BlockManager.add('enhanced-textarea', {
-    label: i18n.t('editors.gui.blocks.textArea'),
-    category: i18n.t('editors.gui.categories.forms'),
+    label: `Text Area`,
+    category: `Forms`,
     content: { type: 'enhanced-textarea' },
     media: '<svg viewBox="0 0 24 24"><path fill="currentColor" d="M3,3H21A2,2 0 0,1 23,5V19A2,2 0 0,1 21,21H3A2,2 0 0,1 1,19V5A2,2 0 0,1 3,3M3,5V19H21V5H3M5,7H19V9H5V7M5,11H19V13H5V11M5,15H19V17H5V15Z"/></svg>',
   });

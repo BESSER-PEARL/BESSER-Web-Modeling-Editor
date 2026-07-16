@@ -424,8 +424,8 @@ export const registerButtonComponent = (editor: any) => {
 
   // Add blocks to Block Manager
   editor.BlockManager.add('action-button', {
-    label: i18n.t('editors.gui.blocks.button'),
-    category: i18n.t('editors.gui.categories.basic'),
+    label: `Button`,
+    category: `Basic`,
     content: { type: 'action-button' },
     media: '<svg viewBox="0 0 24 24" width="24" height="24"><rect x="3" y="8" width="18" height="8" rx="2" fill="none" stroke="currentColor" stroke-width="2"/></svg>',
   });

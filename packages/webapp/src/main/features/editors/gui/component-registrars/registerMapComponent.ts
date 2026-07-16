@@ -90,7 +90,7 @@ export const registerMapComponent = (editor: any, config: MapConfig) => {
   // Add block to Block Manager
   editor.BlockManager.add(config.id, {
     label: config.label,
-    category: i18n.t('editors.gui.categories.charts'), // Changed from 'Maps' to 'Charts' for better visibility
+    category: `Charts`, // Changed from 'Maps' to 'Charts' for better visibility
     content: { type: config.id },
     media: config.icon,
   });

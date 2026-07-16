@@ -298,7 +298,7 @@ export const registerTableComponent = (editor: any, config: TableConfig) => {
   // Add block to Block Manager
   editor.BlockManager.add(config.id, {
     label: config.label,
-    category: i18n.t('editors.gui.categories.basic'),
+    category: `Basic`,
     content: { type: config.id },
     media: config.icon,
   });

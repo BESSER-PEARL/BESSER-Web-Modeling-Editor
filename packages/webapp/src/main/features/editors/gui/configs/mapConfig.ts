@@ -23,7 +23,7 @@ export interface MapConfig {
 // Note: `defaultTitle` and trait `value` defaults stay English — they become user content.
 export const getMapConfig = (): MapConfig => ({
   id: 'map',
-  label: i18n.t('editors.gui.blocks.map'),
+  label: `Map`,
   component: MapComponent,
   defaultTitle: 'Location Map',
   defaultLatitude: 49.6116,
