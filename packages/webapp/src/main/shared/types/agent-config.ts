@@ -14,7 +14,23 @@ export type VoiceStyleSetting = {
 
 export type IntentRecognitionTechnology = 'classical' | 'llm-based';
 
-export type AgentLLMProvider = 'openai' | 'huggingface' | 'huggingfaceapi' | 'replicate' | '';
+export type AgentLLMProvider =
+  | 'openai'
+  | 'huggingface'
+  | 'huggingface_api'
+  | 'huggingfaceapi'
+  | 'replicate'
+  | 'mistral'
+  | 'deepseek'
+  | 'google'
+  | 'meta'
+  | 'anthropic'
+  | 'qwen'
+  | 'xai'
+  | 'groq'
+  | 'together'
+  | 'openrouter'
+  | '';
 
 export type AgentLanguageComplexity = 'original' | 'simple' | 'medium' | 'complex';
 

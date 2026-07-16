@@ -1351,7 +1351,12 @@ class StateUpdate extends Component<Props, State> {
     </LlmFieldRow>
   );
 
-  private isChatCompatibleProvider = (provider: string): boolean => provider === 'openai' || provider === 'huggingface';
+  private isChatCompatibleProvider = (provider: string): boolean =>
+    [
+      'openai', 'huggingface',
+      'mistral', 'deepseek', 'google', 'meta', 'anthropic',
+      'qwen', 'xai', 'groq', 'together', 'openrouter',
+    ].includes(provider);
 
   private renderDbReplyEditor = (
     member: AgentStateMember | undefined,

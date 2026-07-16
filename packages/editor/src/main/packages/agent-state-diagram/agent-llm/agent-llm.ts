@@ -9,7 +9,21 @@ import { assign } from '../../../utils/fx/assign';
 import { IBoundary } from '../../../utils/geometry/boundary';
 import { UMLElementType } from '../../uml-element-type';
 
-export type AgentLLMProviderType = 'openai' | 'huggingface' | 'huggingface_api' | 'replicate';
+export type AgentLLMProviderType =
+  | 'openai'
+  | 'huggingface'
+  | 'huggingface_api'
+  | 'replicate'
+  | 'mistral'
+  | 'deepseek'
+  | 'google'
+  | 'meta'
+  | 'anthropic'
+  | 'qwen'
+  | 'xai'
+  | 'groq'
+  | 'together'
+  | 'openrouter';
 
 export interface IAgentLLM extends IUMLElement {
   provider: AgentLLMProviderType;

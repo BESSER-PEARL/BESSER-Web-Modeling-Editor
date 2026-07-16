@@ -50,12 +50,14 @@ export const normalizeAgentRuntimeConfig = (
   if (!raw || typeof raw !== 'object') {
     return { ...DEFAULT_AGENT_RUNTIME_CONFIG };
   }
+  const _validProviders: AgentLLMProvider[] = [
+    'openai', 'huggingface', 'huggingface_api', 'huggingfaceapi', 'replicate',
+    'mistral', 'deepseek', 'google', 'meta', 'anthropic',
+    'qwen', 'xai', 'groq', 'together', 'openrouter',
+  ];
   const provider: AgentLLMProvider =
-    raw.agentLlmProvider === 'openai' ||
-    raw.agentLlmProvider === 'huggingface' ||
-    raw.agentLlmProvider === 'huggingfaceapi' ||
-    raw.agentLlmProvider === 'replicate'
-      ? raw.agentLlmProvider
+    raw.agentLlmProvider && (_validProviders as string[]).includes(raw.agentLlmProvider)
+      ? (raw.agentLlmProvider as AgentLLMProvider)
       : '';
   const intent: IntentRecognitionTechnology =
     raw.intentRecognitionTechnology === 'llm-based' ? 'llm-based' : 'classical';

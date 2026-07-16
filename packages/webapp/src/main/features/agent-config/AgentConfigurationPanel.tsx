@@ -361,7 +361,21 @@ const flattenStructuredConfig = (raw: any): Partial<AgentConfigurationPayload> =
 
 const cloneModel = (model: UMLModel): UMLModel => JSON.parse(JSON.stringify(model)) as UMLModel;
 
-type AgentLLMElementProvider = 'openai' | 'huggingface' | 'huggingface_api' | 'replicate';
+type AgentLLMElementProvider =
+  | 'openai'
+  | 'huggingface'
+  | 'huggingface_api'
+  | 'replicate'
+  | 'mistral'
+  | 'deepseek'
+  | 'google'
+  | 'meta'
+  | 'anthropic'
+  | 'qwen'
+  | 'xai'
+  | 'groq'
+  | 'together'
+  | 'openrouter';
 
 type AgentLLMElement = {
   id: string;
@@ -377,7 +391,17 @@ type AgentLLMElement = {
 
 const AGENT_LLM_PROVIDER_OPTIONS: Array<{ value: AgentLLMElementProvider; label: string }> = [
   { value: 'openai', label: 'OpenAI' },
-  { value: 'huggingface', label: 'Hugging Face' },
+  { value: 'mistral', label: 'Mistral AI' },
+  { value: 'deepseek', label: 'DeepSeek' },
+  { value: 'google', label: 'Google (Gemini)' },
+  { value: 'meta', label: 'Meta (Llama)' },
+  { value: 'anthropic', label: 'Anthropic (Claude)' },
+  { value: 'qwen', label: 'Alibaba Qwen' },
+  { value: 'xai', label: 'xAI (Grok)' },
+  { value: 'groq', label: 'Groq' },
+  { value: 'together', label: 'Together AI' },
+  { value: 'openrouter', label: 'OpenRouter' },
+  { value: 'huggingface', label: 'Hugging Face (local)' },
   { value: 'huggingface_api', label: 'Hugging Face API' },
   { value: 'replicate', label: 'Replicate' },
 ];
@@ -396,9 +420,14 @@ const isAgentLLMElement = (value: unknown): value is AgentLLMElement => {
 };
 
 const normalizeAgentLLMElement = (raw: any, fallbackId: string): AgentLLMElement => {
-  const provider = (['openai', 'huggingface', 'huggingface_api', 'replicate'].includes(raw?.provider)
-    ? raw.provider
-    : 'openai') as AgentLLMElementProvider;
+  const _validProviders: AgentLLMElementProvider[] = [
+    'openai', 'huggingface', 'huggingface_api', 'replicate',
+    'mistral', 'deepseek', 'google', 'meta', 'anthropic',
+    'qwen', 'xai', 'groq', 'together', 'openrouter',
+  ];
+  const provider = (_validProviders as string[]).includes(raw?.provider)
+    ? (raw.provider as AgentLLMElementProvider)
+    : 'openai';
   const parameters =
     raw?.parameters && typeof raw.parameters === 'object' && !Array.isArray(raw.parameters)
       ? (raw.parameters as Record<string, unknown>)
