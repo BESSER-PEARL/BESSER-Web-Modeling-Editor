@@ -384,6 +384,26 @@ export function useAssistantLogic({
     }
   }, [messages, ensureScrollListener]);
 
+  // When the user dismisses the API-key box (clicks outside / Cancel) without
+  // a key while a Spec-Driven run was pending, the run cannot start — the
+  // dialog fires this event so we explain why instead of leaving an empty chat.
+  useEffect(() => {
+    const onKeyCancelled = () => {
+      setMessages((prev) => [
+        ...prev,
+        toKitMessage(
+          'assistant',
+          'No API key set, so the Spec-Driven Agent did not run. Add a key ' +
+            '(OpenAI, Anthropic, or Mistral — or a Local / PIA model) in the ' +
+            'key box, then say "generate" again. Your key stays in your browser.',
+        ),
+      ]);
+    };
+    window.addEventListener('wme:smartgen-key-cancelled', onKeyCancelled);
+    return () =>
+      window.removeEventListener('wme:smartgen-key-cancelled', onKeyCancelled);
+  }, []);
+
   /* ================================================================ */
   /*  Sub-hooks                                                        */
   /* ================================================================ */

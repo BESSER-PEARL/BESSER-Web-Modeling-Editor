@@ -415,6 +415,12 @@ export const SmartGenByokDialog: React.FC<SmartGenByokDialogProps> = ({
   };
 
   const handleCancel = () => {
+    // If the user dismisses the key box (clicks outside / Cancel / Esc) while
+    // a smart-gen run was pending AND no key is stored, the run cannot start —
+    // tell them why in the chat instead of leaving them with silent nothing.
+    if (pendingTrigger && !apiKeyPresent) {
+      window.dispatchEvent(new CustomEvent('wme:smartgen-key-cancelled'));
+    }
     // Cancelling the dialog drops any pending trigger so the user's
     // original request doesn't silently resume later when they reopen
     // the dialog for a different purpose.
