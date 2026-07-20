@@ -300,7 +300,7 @@
       "BPMNLinkIntermediateThrowEvent": "Ausléissend Link-Zwëschenevenement (Throw)",
       "BPMNCompensationIntermediateThrowEvent": "Ausléissend Kompensatiouns-Zwëschenevenement (Throw)",
       "BPMNSignalIntermediateCatchEvent": "Empfaangend Signal-Zwëschenevenement (Catch)",
-      "BPMNSignalIntermediateThrowEvent": "Sendend Signal-Zwëschenevenement (Throw)"
+      "BPMNSignalIntermediateThrowEvent": "Sendend Signal-Zwëschenevenement (Throw)",
       "BPMNEndEvent": "Endevenement",
       "BPMNMessageEndEvent": "Message-Endevenement",
       "BPMNEscalationEndEvent": "Eskalatioun-Endevenement",
