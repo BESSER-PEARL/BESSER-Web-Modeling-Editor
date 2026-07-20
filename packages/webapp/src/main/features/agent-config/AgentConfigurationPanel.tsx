@@ -361,7 +361,7 @@ const flattenStructuredConfig = (raw: any): Partial<AgentConfigurationPayload> =
 
 const cloneModel = (model: UMLModel): UMLModel => JSON.parse(JSON.stringify(model)) as UMLModel;
 
-type AgentLLMElementProvider = 'openai' | 'huggingface' | 'huggingface_api' | 'replicate';
+type AgentLLMElementProvider = 'openai' | 'huggingface' | 'huggingface_api' | 'replicate' | 'ollama';
 
 type AgentLLMElement = {
   id: string;
@@ -380,6 +380,7 @@ const AGENT_LLM_PROVIDER_OPTIONS: Array<{ value: AgentLLMElementProvider; label:
   { value: 'huggingface', label: 'Hugging Face' },
   { value: 'huggingface_api', label: 'Hugging Face API' },
   { value: 'replicate', label: 'Replicate' },
+  { value: 'ollama', label: 'Ollama (local)' },
 ];
 
 const generateAgentLLMId = (): string => {
@@ -396,7 +397,7 @@ const isAgentLLMElement = (value: unknown): value is AgentLLMElement => {
 };
 
 const normalizeAgentLLMElement = (raw: any, fallbackId: string): AgentLLMElement => {
-  const provider = (['openai', 'huggingface', 'huggingface_api', 'replicate'].includes(raw?.provider)
+  const provider = (['openai', 'huggingface', 'huggingface_api', 'replicate', 'ollama'].includes(raw?.provider)
     ? raw.provider
     : 'openai') as AgentLLMElementProvider;
   const parameters =
@@ -654,6 +655,13 @@ const AgentLLMRow: React.FC<AgentLLMRowProps> = ({
     setParametersError('');
   }, [element.id]);
 
+  const updateOllamaParam = (key: string, value: string) => {
+    const updated = { ...element.parameters, [key]: value };
+    onChange(element.id, { parameters: updated });
+    setParametersText(formatAgentLLMParameters(updated));
+    setParametersError('');
+  };
+
   const commitParameters = (raw: string) => {
     if (!raw.trim()) {
       setParametersError('');
@@ -711,9 +719,21 @@ const AgentLLMRow: React.FC<AgentLLMRowProps> = ({
                 id={`agent-llm-provider-${element.id}`}
                 className="h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm transition-colors hover:border-brand/30 focus:border-brand/40 focus:outline-none focus:ring-2 focus:ring-brand/20"
                 value={element.provider}
-                onChange={(event) =>
-                  onChange(element.id, { provider: event.target.value as AgentLLMElementProvider })
-                }
+                onChange={(event) => {
+                  const newProvider = event.target.value as AgentLLMElementProvider;
+                  const updates: Partial<AgentLLMElement> = { provider: newProvider };
+                  if (newProvider === 'ollama') {
+                    const seeded = {
+                      ...element.parameters,
+                      base_url: (element.parameters.base_url as string) || 'http://localhost:11434',
+                      model: (element.parameters.model as string) || '',
+                    };
+                    updates.parameters = seeded;
+                    setParametersText(formatAgentLLMParameters(seeded));
+                    setParametersError('');
+                  }
+                  onChange(element.id, updates);
+                }}
               >
                 {AGENT_LLM_PROVIDER_OPTIONS.map((opt) => (
                   <option key={opt.value} value={opt.value}>
@@ -739,6 +759,28 @@ const AgentLLMRow: React.FC<AgentLLMRowProps> = ({
               />
             </div>
           </div>
+          {element.provider === 'ollama' && (
+            <div className="grid gap-3 md:grid-cols-2">
+              <div className="space-y-1.5">
+                <Label htmlFor={`agent-llm-ollama-url-${element.id}`}>Base URL</Label>
+                <Input
+                  id={`agent-llm-ollama-url-${element.id}`}
+                  value={(element.parameters.base_url as string) ?? 'http://localhost:11434'}
+                  placeholder="http://localhost:11434"
+                  onChange={(event) => updateOllamaParam('base_url', event.target.value)}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor={`agent-llm-ollama-model-${element.id}`}>Model</Label>
+                <Input
+                  id={`agent-llm-ollama-model-${element.id}`}
+                  value={(element.parameters.model as string) ?? ''}
+                  placeholder="e.g. llama3, mistral, qwen2.5"
+                  onChange={(event) => updateOllamaParam('model', event.target.value)}
+                />
+              </div>
+            </div>
+          )}
           <div className="space-y-1.5">
             <Label htmlFor={`agent-llm-parameters-${element.id}`}>Parameters (JSON)</Label>
             <textarea
