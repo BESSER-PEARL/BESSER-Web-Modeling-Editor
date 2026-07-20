@@ -20,7 +20,7 @@
     "role": "Rolle",
     "messages": "Nachrichten",
     "condition": "Bedingungen",
-    "tokens": "Token",
+    "tokens": "Tokens",
     "capacity": "Kapazität",
     "intent_name": "Intent-Name",
     "training_sentences": "Trainingssätze",
@@ -43,7 +43,7 @@
     "agent": {
       "state": {
         "action": "Agentenaktion",
-        "fallbackAction": "Agenten-Fallback-Aktion",
+        "fallbackAction": "Agenten-Fehlerfall-Aktion",
         "autoResponse": "Eine automatische Antwort wird generiert."
       },
       "reply": {
@@ -106,7 +106,7 @@
         "streamSteps": "Schritte streamen",
         "systemPrompt": "System-Prompt",
         "systemPromptPlaceholder": "Optionaler System-Prompt-Präfix für diesen Zustand",
-        "fallback": "Fallback-Nachricht",
+        "fallback": "Fehlerfall-Nachricht",
         "fallbackPlaceholder": "Nachricht, die zurückgegeben wird, wenn die Reasoning-Schleife fehlschlägt"
       },
       "skill": {
@@ -328,7 +328,7 @@
       "Comments": "Kommentare"
     },
     "NNDiagram": {
-      "NNContainer": "Neural_Network",
+      "NNContainer": "Neuronales Netz",
       "NNReference": "Sub-NN-Referenz",
       "SelectNN": "Neuronales Netz auswählen",
       "SelectNNPlaceholder": "-- NN auswählen --",
@@ -343,9 +343,9 @@
       "FlattenLayer": "Flatten-Schicht",
       "EmbeddingLayer": "Embedding-Schicht",
       "DropoutLayer": "Dropout-Schicht",
-      "LayerNormalizationLayer": "Layer-Normalization-Schicht",
-      "BatchNormalizationLayer": "Batch-Normalization-Schicht",
-      "TensorOp": "Tensor-Operation",
+      "LayerNormalizationLayer": "Schichtnormalisierung",
+      "BatchNormalizationLayer": "Batch-Normalisierung",
+      "TensorOp": "Tensoroperation",
       "Configuration": "Konfiguration",
       "TrainingDataset": "Trainingsdatensatz",
       "TestDataset": "Testdatensatz",
@@ -402,7 +402,7 @@
   },
   "stylePane": {
     "enterUri": "URI eingeben...",
-    "enterIcon": "Symbolnamen eingeben...",
+    "enterIcon": "Ikonnamen eingeben...",
     "enterDescription": "Beschreibung eingeben...",
     "idLockedByOptional": "Optionale Attribute können nicht der Bezeichner sein.",
     "enterDefaultValue": "Standardwert eingeben...",
