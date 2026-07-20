@@ -1,7 +1,7 @@
 {
   "views": {
     "modelling": "Modeling",
-    "exporting": "Interactive",
+    "interactive": "Interactive",
     "highlight": "Show interactive elements",
     "iconMode": "Display Object Diagram in Icon Mode"
   },

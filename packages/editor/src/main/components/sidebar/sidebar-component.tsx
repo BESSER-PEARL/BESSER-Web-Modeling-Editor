@@ -102,7 +102,7 @@ class SidebarComponent extends Component<Props, SidebarComponentState> {
               color="primary"
             >
               <option value={ApollonView.Modelling}>{translate('views.modelling')}</option>
-              <option value={ApollonView.Exporting}>{translate('views.exporting')}</option>
+              <option value={ApollonView.Exporting}>{translate('views.interactive')}</option>
             </select>
           </div>
         )}
