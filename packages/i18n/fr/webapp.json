@@ -131,7 +131,7 @@
       "transform": "Cela peut prendre un moment pour concocter la meilleure configuration d'agent transformée et l'appliquer à votre diagramme."
     },
     "title": "Personnalisation de l'agent",
-    "subtitle": "Adaptez votre agent à un profil utilisateur spécifique du User Diagram. Ajustez sa façon de parler, son apparence et son comportement pour correspondre à ce public, puis enregistrez le résultat sous forme de configuration nommée entre lesquelles vous pourrez basculer plus tard.",
+    "subtitle": "Adaptez votre agent à un profil utilisateur spécifique du diagramme d'utilisateur. Ajustez sa façon de parler, son apparence et son comportement pour correspondre à ce public, puis enregistrez le résultat sous forme de configuration nommée entre lesquelles vous pourrez basculer plus tard.",
     "tabsAriaLabel": "Sections de la configuration de l'agent",
     "tab": {
       "runtime": "Exécution de l'agent",
@@ -153,10 +153,10 @@
       "title": "Association de profil utilisateur",
       "description": "Sélectionnez le profil utilisateur qui doit guider la personnalisation et les propositions de configuration automatiques.",
       "label": "Association de profil utilisateur",
-      "noTabs": "Aucun onglet User Diagram avec des modèles disponible pour l'instant",
+      "noTabs": "Aucun onglet de diagramme d'utilisateur avec des modèles disponible pour l'instant",
       "selectProfile": "Sélectionner un profil utilisateur",
-      "createFirst": "Créez ou chargez d'abord un onglet User Diagram.",
-      "statusLine": "Statut du User Diagram du projet actuel : {{status}}.",
+      "createFirst": "Créez ou chargez d'abord un onglet de diagramme d'utilisateur.",
+      "statusLine": "Statut du diagramme d'utilisateur du projet actuel : {{status}}.",
       "statusAvailable": "disponible",
       "statusMissing": "manquant"
     },
@@ -468,7 +468,7 @@
       "description": "Configurez les langues source et cibles pour la traduction de l'agent.",
       "noSavedConfig": "Aucune configuration enregistrée trouvée. L'agent sera généré avec la configuration par défaut.",
       "configureTechnologies": "Configurer les technologies de l'agent",
-      "sourceLanguage": "Langue source (optionnel)",
+      "sourceLanguage": "Langue source (facultative)",
       "addSpokenLanguage": "Ajouter une langue parlée pour la traduction de l'agent",
       "selectLanguage": "Sélectionner une langue...",
       "addLanguage": "Ajouter une langue",
@@ -1772,7 +1772,7 @@
       "noClassesToInstantiate": "Le diagramme de classes référencé n'a aucune classe à instancier.",
       "linksFragment_one": ", {{count}} lien",
       "linksFragment_other": ", {{count}} liens",
-      "allClassesHaveInstance_one": "La {{count}} classe a déjà une instance — rien à ajouter.",
+      "allClassesHaveInstance_one": "La classe a déjà une instance — rien à ajouter.",
       "allClassesHaveInstance_other": "Les {{count}} classes ont déjà une instance — rien à ajouter.",
       "generatedWithSkipped_one": "{{count}} objet{{links}} généré, {{skipped}} déjà présent sur le canevas ignoré.",
       "generatedWithSkipped_other": "{{count}} objets{{links}} générés, {{skipped}} déjà présents sur le canevas ignorés.",
@@ -1823,7 +1823,7 @@
       "rowsPerPage": "Lignes par page : {{count}}"
     },
     "quantum": {
-      "editorTitle": "Quantum Editor",
+      "editorTitle": "Éditeur quantique",
       "saved": "Enregistré",
       "saving": "Enregistrement...",
       "error": "Erreur",
