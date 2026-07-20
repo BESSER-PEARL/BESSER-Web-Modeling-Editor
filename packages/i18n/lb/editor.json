@@ -3,11 +3,11 @@
     "modelling": "Modelléierung",
     "exporting": "Interaktiv",
     "highlight": "Interaktiv Elementer uweisen",
-    "iconMode": "Objektdiagramm am Symbolmodus uweisen"
+    "iconMode": "Objektdiagramm am Ikonmodus uweisen"
   },
   "sidebar": {
     "classAttribute": "attribut",
-    "classMethod": "+ methode()",
+    "classMethod": "+ method()",
     "enumAttribute": "Wäert",
     "objectAttribute": "attribut = wäert"
   },
@@ -20,7 +20,7 @@
     "role": "Roll",
     "messages": "Noriichten",
     "condition": "Bedéngungen",
-    "tokens": "Token",
+    "tokens": "Tokens",
     "capacity": "Kapazitéit",
     "intent_name": "Intent-Numm",
     "training_sentences": "Trainingssätz",
@@ -34,8 +34,8 @@
     "linkNamePlaceholder": "Numm vun der Verbindung",
     "durationPlaceholder": "z. B. 1d 2h 30m, P1DT2H30M, 1:30:00",
     "durationTooltip": "Dauer a Formater wéi '1d 2h 30m', 'P1DT2H30M' (ISO 8601) oder 'HH:mm:ss' aginn",
-    "guard": "Wiechter",
-    "guardPlaceholder": "Wiechterausdrock",
+    "guard": "Guard",
+    "guardPlaceholder": "Guard ausdrock",
     "parameters": "Parameteren",
     "parameterPlaceholder": "Parameter",
     "pythonCodeBlock": "Python-Codeblock",
@@ -43,7 +43,7 @@
     "agent": {
       "state": {
         "action": "Agent-Aktioun",
-        "fallbackAction": "Agent-Fallback-Aktioun",
+        "fallbackAction": "Agent-Feelerfall-Aktioun",
         "autoResponse": "Eng automatesch Äntwert gëtt generéiert."
       },
       "reply": {
@@ -70,10 +70,10 @@
         "custom": "Benotzerdefinéiert",
         "customNamePlaceholder": "Benotzerdefinéierten Datebanksnumm",
         "operation": "DB-Operatioun",
-        "any": "Iergendeen",
+        "any": "Iergendeng",
         "llmQuery": "LLM-Ufro",
         "sql": "SQL",
-        "runtime": "D'Äntwert gëtt zur Runtime mam LLM generéiert"
+        "runtime": "D'Äntwert gëtt während der Lafzaït mam LLM generéiert"
       },
       "transition": {
         "type": "Iwwergangstyp",
@@ -106,7 +106,7 @@
         "streamSteps": "Schrëtt streamen",
         "systemPrompt": "System-Prompt",
         "systemPromptPlaceholder": "Optionalen System-Prompt-Präfix fir dëse Zoustand",
-        "fallback": "Fallback-Message",
+        "fallback": "Feelerfall-Message",
         "fallbackPlaceholder": "Message, deen zréckginn gëtt, wann d'Reasoning-Schleef feelt"
       },
       "skill": {
@@ -123,10 +123,10 @@
       },
       "workspace": {
         "name": "Workspace-Numm",
-        "path": "Dateisystemwee",
+        "path": "Dateipfad",
         "description": "Beschreiwung",
         "descriptionPlaceholder": "Optional Beschreiwung",
-        "writable": "Beschreiwbar",
+        "writable": "Schreifbar",
         "maxReadBytes": "Max. Lies-Bytes"
       }
     },
@@ -178,7 +178,7 @@
       "Interface": "Interface",
       "Enumeration": "Opzielung",
       "ClassAttribute": "Attribut",
-      "ClassMethod": "Methode",
+      "ClassMethod": "Method",
       "ClassAggregation": "Aggregatioun",
       "ClassBidirectional": "Associatioun (bidirektional)",
       "ClassComposition": "Kompositioun",
@@ -186,13 +186,13 @@
       "ClassInheritance": "Generaliséierung",
       "ClassRealization": "Realiséierung",
       "ClassUnidirectional": "Associatioun (unidirektional)",
-      "ClassOCLConstraint": "OCL-Aschränkung",
+      "ClassOCLConstraint": "OCL-Constraint",
       "Comments": "Kommentaren"
     },
     "ObjectDiagram": {
       "ObjectName": "Objet",
       "ObjectAttribute": "Attribut",
-      "ObjectMethod": "Methode",
+      "ObjectMethod": "Method",
       "ObjectLink": "Bezéiung",
       "Comments": "Kommentaren"
     },
@@ -214,7 +214,7 @@
       "UseCaseAssociation": "Associatioun",
       "UseCaseExtend": "Erweideren",
       "UseCaseGeneralization": "Generaliséierung",
-      "UseCaseInclude": "Includéieren",
+      "UseCaseInclude": "Abannen",
       "Comments": "Kommentaren"
     },
     "CommunicationDiagram": {
@@ -291,16 +291,16 @@
       "BPMNConditionalStartEvent": "Bedéngt Startevenement",
       "BPMNSignalStartEvent": "Signal-Startevenement",
       "BPMNIntermediateEvent": "Zwëschenevenement",
-      "BPMNMessageIntermediateCatchEvent": "Message-Zwëschenevenement (Empfang)",
-      "BPMNMessageIntermediateThrowEvent": "Message-Zwëschenevenement (Sennen)",
-      "BPMNTimerIntermediateCatchEvent": "Timer-Zwëschenevenement (Empfang)",
-      "BPMNEscalationIntermediateThrowEvent": "Eskalatioun-Zwëschenevenement (Sennen)",
-      "BPMNConditionalIntermediateCatchEvent": "Bedéngt Zwëschenevenement (Empfang)",
-      "BPMNLinkIntermediateCatchEvent": "Link-Zwëschenevenement (Empfang)",
-      "BPMNLinkIntermediateThrowEvent": "Link-Zwëschenevenement (Sennen)",
-      "BPMNCompensationIntermediateThrowEvent": "Kompensatioun-Zwëschenevenement (Sennen)",
-      "BPMNSignalIntermediateCatchEvent": "Signal-Zwëschenevenement (Empfang)",
-      "BPMNSignalIntermediateThrowEvent": "Signal-Zwëschenevenement (Sennen)",
+      "BPMNMessageIntermediateCatchEvent": "Empfaangend Message-Zwëschenevenement (Catch)",
+      "BPMNMessageIntermediateThrowEvent": "Sendend Message-Zwëschenevenement (Throw)",
+      "BPMNTimerIntermediateCatchEvent": "Empfaangend Timer-Zwëschenevenement (Catch)",
+      "BPMNEscalationIntermediateThrowEvent": "Ausléissend Eskalatiouns-Zwëschenevenement (Throw)",
+      "BPMNConditionalIntermediateCatchEvent": "Empfaangend bedéngt Zwëschenevenement (Catch)",
+      "BPMNLinkIntermediateCatchEvent": "Empfaangend Link-Zwëschenevenement (Catch)",
+      "BPMNLinkIntermediateThrowEvent": "Ausléissend Link-Zwëschenevenement (Throw)",
+      "BPMNCompensationIntermediateThrowEvent": "Ausléissend Kompensatiouns-Zwëschenevenement (Throw)",
+      "BPMNSignalIntermediateCatchEvent": "Empfaangend Signal-Zwëschenevenement (Catch)",
+      "BPMNSignalIntermediateThrowEvent": "Sendend Signal-Zwëschenevenement (Throw)"
       "BPMNEndEvent": "Endevenement",
       "BPMNMessageEndEvent": "Message-Endevenement",
       "BPMNEscalationEndEvent": "Eskalatioun-Endevenement",
@@ -328,7 +328,7 @@
       "Comments": "Kommentaren"
     },
     "NNDiagram": {
-      "NNContainer": "Neural_Network",
+      "NNContainer": "Neuronaalt Netz",
       "NNReference": "Sub-NN-Referenz",
       "SelectNN": "Neuronaalt Netz auswielen",
       "SelectNNPlaceholder": "-- NN auswielen --",
@@ -362,8 +362,8 @@
       "StateInitialNode": "Ufankszoustand",
       "StateFinalNode": "Endzoustand",
       "State": "Zoustand",
-      "StateBody": "Kierper",
-      "StateFallbackBody": "Fallback-Kierper",
+      "StateBody": "Aktioun",
+      "StateFallbackBody": "Feelerfall-Aktioun",
       "Comments": "Kommentaren"
     },
     "AgentDiagram": {
