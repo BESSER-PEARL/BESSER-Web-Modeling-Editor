@@ -543,7 +543,7 @@
     },
     "toast": {
       "validationFailed": "Validatioun feelgeschloen",
-      "noDiagram": "Et ass keen Diagramm verfügbar, aus deem Code generéiert ka ginn."
+      "noDiagram": "Et ass keen Diagramm verfügbar, aus deem Code generéiert ka ginn.",
       "localDeploymentInProgress": "Lokalen Deployment am Gaang... Dat kann e puer Minutten daueren.",
       "httpError": "HTTP-Feeler! Status: {{status}}",
       "localDeploymentCompleted": "Lokalen Deployment ofgeschloss!",
@@ -647,7 +647,7 @@
         "cardCreate": {
           "title": "Eidel erstellen",
           "description": "Fänkt vun Null un. All Editore stinn zur Verfügung."
-        }
+        },
         "cardSpreadsheet": {
           "title": "Vun engem Spreadsheet",
           "description": "Generéiert automatesch e Klassendiagramm aus CSV/XLSX-Dateien."
@@ -1687,7 +1687,7 @@
     },
     "errorBoundary": {
       "title": "Editor-Feeler",
-      "description": "Am Editor ass en onerwaarte Feeler opgetrueden. Är Aarbecht gouf gespäichert."
+      "description": "Am Editor ass en onerwaarte Feeler opgetrueden. Är Aarbecht gouf gespäichert.",
       "unknownError": "Onbekannte Feeler",
       "tryAgainLabel": "Nom Feeler nach eng Kéier probéieren",
       "tryAgain": "Nach eng Kéier probéieren"
