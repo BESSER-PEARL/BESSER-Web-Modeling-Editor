@@ -28,7 +28,10 @@ import {
 // UX; on the wire they are sent as provider='openai' + a base_url (see the
 // dialog / SSE client / AssistantClient). They only work when the WME backend
 // runs locally (and, for 'pia', on the LIST VPN).
-export type LlmProvider = 'anthropic' | 'openai' | 'mistral' | 'pia' | 'local';
+// 'free' is the keyless server-hosted tier (smart-gen only — NOT offered in the
+// assistant key dialog). It carries no key; the model list is a single pinned
+// entry. Kept in this union so MODEL_PRESETS['free'] type-checks.
+export type LlmProvider = 'anthropic' | 'openai' | 'mistral' | 'pia' | 'local' | 'free';
 
 export interface LlmKey {
   provider: LlmProvider;

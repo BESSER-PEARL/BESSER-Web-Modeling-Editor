@@ -10,7 +10,7 @@
  * The raw key never enters Redux — only `apiKeyInStore` (boolean).
  */
 
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -35,6 +35,7 @@ import {
   clearSessionKey,
   readSessionBudget,
   readSessionKey,
+  writeFreeTierSelected,
   writeSessionBudget,
   writeSessionKey,
 } from '../storage';
@@ -98,7 +99,7 @@ function _defaultModelForProvider(provider: SmartGenProvider): string {
 }
 
 /** Placeholder shown in the Custom model ID input, per provider. */
-const CUSTOM_MODEL_PLACEHOLDER: Record<SmartGenProvider, string> = {
+const CUSTOM_MODEL_PLACEHOLDER: Partial<Record<SmartGenProvider, string>> = {
   anthropic: 'e.g. claude-opus-4-6',
   openai: 'e.g. o1-preview',
   mistral: 'e.g. mistral-medium-latest',
@@ -208,8 +209,16 @@ export const SmartGenByokDialog: React.FC<SmartGenByokDialogProps> = ({
   const [maxRuntimeMinInput, setMaxRuntimeMinInput] = useState<string>('');
   const [showBudgetLimits, setShowBudgetLimits] = useState<boolean>(false);
 
+  // True only while we're intentionally closing the dialog to START a run.
+  // Closing the dialog fires the Radix `onOpenChange(false)` → `handleCancel`,
+  // which would otherwise clear the just-approved pending trigger (and, for the
+  // keyless free path, emit the "no API key" message) before the trigger hook's
+  // resume effect can consume it. This flag makes handleCancel stand down.
+  const startingRunRef = useRef(false);
+
   useEffect(() => {
     if (open) {
+      startingRunRef.current = false;
       setApiKey('');
       setSaveError(null);
       setProviderLockedByUser(false);
@@ -263,15 +272,41 @@ export const SmartGenByokDialog: React.FC<SmartGenByokDialogProps> = ({
     }
   }, [provider, modelChoice]);
 
+  const freeAvailable = config.free_tier.available;
+  const isFreeProvider = provider === 'free';
+
   const trimmedKey = apiKey.trim();
   const storedKeyUsable =
     storedSessionKey !== null && storedSessionKey.provider === provider;
-  const canUseKey = trimmedKey.length > 0 || storedKeyUsable;
+  // The free tier needs no key, so it's always runnable when selected.
+  const canUseKey = isFreeProvider || trimmedKey.length > 0 || storedKeyUsable;
+
+  // Provider dropdown: the keyless Free tier first (when the server offers it),
+  // then the BYOK providers. pia/local are not offered in this dialog.
+  const providerOptions = useMemo<readonly ProviderOption[]>(() => {
+    if (!freeAvailable) return PROVIDER_OPTIONS;
+    const freeOption: ProviderOption = {
+      value: 'free',
+      label: `Free — ${config.free_tier.model ?? 'qwen3-coder'} (no key)`,
+      placeholder: '',
+      hint: 'No API key needed. Runs on a hosted open-weight model; quality is lower than the paid providers.',
+      expectedPrefix: '',
+    };
+    return [freeOption, ...PROVIDER_OPTIONS];
+  }, [freeAvailable, config.free_tier.model]);
 
   const selectedProvider = useMemo(
-    () => PROVIDER_OPTIONS.find((p) => p.value === provider) ?? PROVIDER_OPTIONS[0],
-    [provider],
+    () => providerOptions.find((p) => p.value === provider) ?? providerOptions[0],
+    [provider, providerOptions],
   );
+
+  // If a stale 'free' provider survives on a deploy that doesn't offer it,
+  // fall back to a real provider so the dialog can't get stuck in free mode.
+  useEffect(() => {
+    if (provider === 'free' && !freeAvailable) {
+      setLocalProvider('anthropic');
+    }
+  }, [provider, freeAvailable]);
 
   // Live (purely informational) format hint — shown as the user types,
   // never blocks the save.
@@ -381,6 +416,9 @@ export const SmartGenByokDialog: React.FC<SmartGenByokDialogProps> = ({
       maxRuntimeSeconds: clampedRuntimeSeconds,
     });
     setSaveError(null);
+    // Saving a BYOK key opts OUT of the free tier — the two are mutually
+    // exclusive so a stale free flag can't override the key the user just set.
+    writeFreeTierSelected(false);
     dispatch(setProvider(provider));
     dispatch(setApiKeyPresent(true));
     setStoredSessionKey({
@@ -402,7 +440,26 @@ export const SmartGenByokDialog: React.FC<SmartGenByokDialogProps> = ({
   // there is no separate plan-review step.
   const handleSaveAndRun = () => {
     if (!pendingTrigger) return;
+    // Free provider: no key to persist — go straight to the keyless run path.
+    if (provider === 'free') {
+      handleRunFree();
+      return;
+    }
     if (!persistSettings()) return;
+    startingRunRef.current = true;
+    dispatch(approvePendingTrigger({ ...pendingTrigger, planApproved: true }));
+  };
+
+  // Start the run on the keyless free tier — no API key, no budget entry
+  // needed. Sets the dedicated free flag (kept OUT of the shared LLM key so
+  // it can't disturb the assistant) and hands off to the trigger hook, which
+  // sends provider='free' with no api_key; the server injects the endpoint.
+  const handleRunFree = () => {
+    if (!pendingTrigger) return;
+    writeFreeTierSelected(true);
+    setSaveError(null);
+    dispatch(setProvider('free'));
+    startingRunRef.current = true;
     dispatch(approvePendingTrigger({ ...pendingTrigger, planApproved: true }));
   };
 
@@ -415,6 +472,13 @@ export const SmartGenByokDialog: React.FC<SmartGenByokDialogProps> = ({
   };
 
   const handleCancel = () => {
+    // Closing the dialog to START a run (Save & run / Use the free model) also
+    // fires this via onOpenChange — that's not a cancel. Stand down so the
+    // approved pending trigger survives for the trigger hook to consume.
+    if (startingRunRef.current) {
+      startingRunRef.current = false;
+      return;
+    }
     // If the user dismisses the key box (clicks outside / Cancel / Esc) while
     // a smart-gen run was pending AND no key is stored, the run cannot start —
     // tell them why in the chat instead of leaving them with silent nothing.
@@ -444,6 +508,32 @@ export const SmartGenByokDialog: React.FC<SmartGenByokDialogProps> = ({
         </DialogHeader>
 
         <div className="space-y-4">
+          {/* Keyless free tier — top of the dialog so it's the first thing
+              seen. Hidden once the user has already picked Free below. */}
+          {pendingTrigger && freeAvailable && !isFreeProvider && (
+            <div className="rounded-md border border-brand/40 bg-brand/5 px-3 py-3">
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <p className="text-sm font-medium text-foreground">
+                    No API key? Generate for free
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    Runs on the hosted {config.free_tier.model ?? 'open-weight'}{' '}
+                    model — no key needed. Quality is lower than the paid
+                    providers below.
+                  </p>
+                </div>
+                <Button
+                  type="button"
+                  onClick={handleRunFree}
+                  className="shrink-0 whitespace-nowrap gap-2 bg-brand text-brand-foreground hover:bg-brand-dark"
+                >
+                  Use the free model
+                </Button>
+              </div>
+            </div>
+          )}
+
           <div className="flex items-center gap-2 pt-1 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
             <ShieldCheck className="size-3.5 text-brand" /> Provider and guardrails
           </div>
@@ -455,19 +545,28 @@ export const SmartGenByokDialog: React.FC<SmartGenByokDialogProps> = ({
               onChange={(e) => handleProviderChange(e.target.value as SmartGenProvider)}
               className="block w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground"
             >
-              {PROVIDER_OPTIONS.map((p) => (
+              {providerOptions.map((p) => (
                 <option key={p.value} value={p.value}>
                   {p.label}
                 </option>
               ))}
             </select>
-            {inferredProvider !== null && !providerLockedByUser && inferredProvider === provider && trimmedKey.length > 0 && (
+            {isFreeProvider ? (
               <p className="text-xs text-muted-foreground">
-                Provider auto-selected from the key prefix.
+                No API key needed — runs on the hosted{' '}
+                {config.free_tier.model ?? 'open-weight'} model. Quality is
+                lower than the paid providers.
               </p>
+            ) : (
+              inferredProvider !== null && !providerLockedByUser && inferredProvider === provider && trimmedKey.length > 0 && (
+                <p className="text-xs text-muted-foreground">
+                  Provider auto-selected from the key prefix.
+                </p>
+              )
             )}
           </div>
 
+          {!isFreeProvider && (
           <div className="space-y-1.5">
             <Label htmlFor="smart-gen-api-key">API Key</Label>
             <Input
@@ -511,7 +610,9 @@ export const SmartGenByokDialog: React.FC<SmartGenByokDialogProps> = ({
             )}
             {saveError && <p className="text-xs text-destructive">{saveError}</p>}
           </div>
+          )}
 
+          {!isFreeProvider && (
           <div className="space-y-1.5">
             <Label htmlFor="smart-gen-model">Model</Label>
             <select
@@ -555,6 +656,7 @@ export const SmartGenByokDialog: React.FC<SmartGenByokDialogProps> = ({
               model ID your account has access to.
             </p>
           </div>
+          )}
 
           <div className="space-y-2">
             <button
@@ -637,7 +739,8 @@ export const SmartGenByokDialog: React.FC<SmartGenByokDialogProps> = ({
               disabled={!canUseKey}
               className="gap-2 bg-brand text-brand-foreground hover:bg-brand-dark"
             >
-              <ShieldCheck className="size-4" /> Save &amp; run
+              <ShieldCheck className="size-4" />{' '}
+              {isFreeProvider ? 'Run for free' : 'Save & run'}
             </Button>
           ) : (
             <Button

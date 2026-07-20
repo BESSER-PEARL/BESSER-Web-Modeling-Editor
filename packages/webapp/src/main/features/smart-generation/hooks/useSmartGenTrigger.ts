@@ -69,6 +69,7 @@ import {
 } from '../state/smartGeneratorSlice';
 import {
   clearSessionKey,
+  readFreeTierSelected,
   readProjectLastRun,
   readSessionBudget,
   readSessionKey,
@@ -135,6 +136,7 @@ const VALID_PROVIDERS: ReadonlySet<SmartGenProvider> = new Set<SmartGenProvider>
   'mistral',
   'pia',
   'local',
+  'free',
 ]);
 
 /**
@@ -735,8 +737,12 @@ export function useSmartGenTrigger(
         return;
       }
 
+      // The keyless free tier authorises a run without a BYOK key. When it's
+      // selected, `key` may be null and we take the free path below (provider
+      // 'free', no api_key/model/base_url — the server injects them).
+      const freeSelected = readFreeTierSelected();
       const key = readSessionKey();
-      if (!key) {
+      if (!freeSelected && !key) {
         dispatch(openByokDialog(payload));
         return;
       }
@@ -768,7 +774,9 @@ export function useSmartGenTrigger(
       // Anthropic API rejected the OpenAI key with a 401 and the
       // orchestrator silently fell through to the Phase 1 deterministic
       // FastAPI output instead of the stack the user asked for.
-      const rawProvider: unknown = key.provider ?? payload.provider;
+      const rawProvider: unknown = freeSelected
+        ? 'free'
+        : (key?.provider ?? payload.provider);
       if (!isValidProvider(rawProvider)) {
         appendErrorToChat(
           `Spec-Driven Agent: unknown provider ${String(rawProvider)}. Please save a valid key.`,
@@ -823,8 +831,9 @@ export function useSmartGenTrigger(
       //      would reject with ``model_not_found`` (HTTP 404). Drop it.
       //   3. ``undefined`` — lets the backend's
       //      ``_DEFAULT_MODELS[provider]`` pick a safe default.
-      let llmModel: string | undefined = key.llmModel;
-      if (!llmModel) {
+      // Free tier is pinned to the server's model — never send a client model.
+      let llmModel: string | undefined = freeSelected ? undefined : key?.llmModel;
+      if (!freeSelected && !llmModel) {
         llmModel =
           payload.provider !== undefined && payload.provider !== provider
             ? undefined
@@ -858,9 +867,9 @@ export function useSmartGenTrigger(
         project: normalisedProject,
         instructions: payload.instructions,
         provider,
-        apiKey: key.apiKey,
+        apiKey: freeSelected ? '' : (key?.apiKey ?? ''),
         llmModel,
-        baseUrl: key.baseUrl,
+        baseUrl: freeSelected ? undefined : key?.baseUrl,
         maxCostUsd: budget?.maxCostUsd,
         maxRuntimeSeconds: budget?.maxRuntimeSeconds,
         mode: runDecision.mode,
@@ -990,7 +999,9 @@ export function useSmartGenTrigger(
         );
         return;
       }
-      if (!payload.planApproved || !readSessionKey()) {
+      // Open the BYOK dialog unless the run is already authorised: either a
+      // BYOK key is stored, or the keyless free tier has been opted into.
+      if (!payload.planApproved || (!readSessionKey() && !readFreeTierSelected())) {
         dispatch(openByokDialog(payload));
         return;
       }
@@ -1015,7 +1026,10 @@ export function useSmartGenTrigger(
   useEffect(() => {
     if (!pendingTrigger) return;
     if (byokDialogOpen) return;
-    if (!apiKeyInStore) return;
+    // Resume when the run is authorised: a BYOK key was saved, OR the keyless
+    // free tier was opted into (which sets no apiKeyInStore — without this the
+    // free run would silently never start).
+    if (!apiKeyInStore && !readFreeTierSelected()) return;
     if (isRunningRef.current) return;
     const trigger = dispatch(consumePendingTrigger());
     if (!trigger) return;

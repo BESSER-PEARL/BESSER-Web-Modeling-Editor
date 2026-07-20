@@ -21,6 +21,14 @@ export interface SmartGenConfigCaps {
   default_max_runtime_seconds: number;
 }
 
+/** Keyless server-hosted "Free" tier advertisement. */
+export interface SmartGenFreeTier {
+  /** True when the server has a hosted open-weight endpoint configured. */
+  available: boolean;
+  /** The pinned model name (e.g. `qwen3-coder:30b`), or null when unavailable. */
+  model: string | null;
+}
+
 export interface SmartGenConfig {
   caps: SmartGenConfigCaps;
   /**
@@ -33,6 +41,8 @@ export interface SmartGenConfig {
   features: Record<string, boolean>;
   default_models: Record<string, string>;
   supported_providers: string[];
+  /** Whether the keyless free tier is offered (and its pinned model). */
+  free_tier: SmartGenFreeTier;
 }
 
 /**
@@ -56,6 +66,9 @@ export const FALLBACK_SMART_GEN_CONFIG: SmartGenConfig = {
     mistral: 'mistral-large-latest',
   },
   supported_providers: ['anthropic', 'openai', 'mistral'],
+  // Off by default — an old backend that doesn't advertise it must not
+  // surface a free option that would 500.
+  free_tier: { available: false, model: null },
 };
 
 const _isFiniteNumber = (value: unknown): value is number =>
@@ -98,6 +111,16 @@ function _normalize(raw: unknown): SmartGenConfig {
     supported_providers: Array.isArray(data.supported_providers)
       ? data.supported_providers
       : FALLBACK_SMART_GEN_CONFIG.supported_providers,
+    free_tier:
+      data.free_tier && typeof data.free_tier === 'object'
+        ? {
+            available: data.free_tier.available === true,
+            model:
+              typeof data.free_tier.model === 'string' && data.free_tier.model
+                ? data.free_tier.model
+                : null,
+          }
+        : FALLBACK_SMART_GEN_CONFIG.free_tier,
   };
 }
 

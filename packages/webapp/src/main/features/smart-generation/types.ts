@@ -9,7 +9,10 @@
 // 'pia' and 'local' are frontend-only labels for OpenAI-compatible endpoints;
 // on the wire they are sent as provider='openai' + a base_url (the SSE client
 // maps them). They only work when the WME backend runs locally.
-export type SmartGenProvider = 'anthropic' | 'openai' | 'mistral' | 'pia' | 'local';
+// 'free' is the keyless server-hosted open-weight tier: sent to the backend as
+// provider='free' with NO api_key and NO base_url — the server injects the
+// hosted endpoint + token. Offered only when /smart-gen/config advertises it.
+export type SmartGenProvider = 'anthropic' | 'openai' | 'mistral' | 'pia' | 'local' | 'free';
 
 export type SmartGenPrimaryKind =
   | 'class'

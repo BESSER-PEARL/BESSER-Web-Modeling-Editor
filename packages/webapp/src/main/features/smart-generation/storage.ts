@@ -16,6 +16,7 @@ import {
   localStorageSmartGenLastRunPrefix,
   sessionStorageLlmBaseUrl,
   sessionStorageSmartGenApiKey,
+  sessionStorageSmartGenFreeTier,
   sessionStorageSmartGenLlmModel,
   sessionStorageSmartGenMaxCostUsd,
   sessionStorageSmartGenMaxRuntimeSeconds,
@@ -39,6 +40,7 @@ const _VALID_PROVIDERS: ReadonlySet<string> = new Set([
   'mistral',
   'pia',
   'local',
+  'free',
 ]);
 
 /** True when sessionStorage is reachable (it's not in some SSR / privacy modes). */
@@ -110,6 +112,39 @@ export function clearSessionKey(): void {
 /** Quick "do we have a key at all?" check that avoids exposing the value. */
 export function hasSessionKey(): boolean {
   return readSessionKey() !== null;
+}
+
+/* ------------------------------------------------------------------ */
+/*  Keyless "Free" tier opt-in                                          */
+/*                                                                      */
+/*  Stored on its OWN sessionStorage flag — deliberately NOT in the     */
+/*  unified LLM key (which is shared with the assistant). The free tier */
+/*  authorises a smart-gen run WITHOUT a key; the trigger consults this */
+/*  alongside readSessionKey().                                         */
+/* ------------------------------------------------------------------ */
+
+/** True when the user has opted into the keyless free tier for smart-gen. */
+export function readFreeTierSelected(): boolean {
+  if (!_hasSessionStorage()) return false;
+  try {
+    return window.sessionStorage.getItem(sessionStorageSmartGenFreeTier) === '1';
+  } catch {
+    return false;
+  }
+}
+
+/** Opt into (or out of) the keyless free tier. */
+export function writeFreeTierSelected(selected: boolean): void {
+  if (!_hasSessionStorage()) return;
+  try {
+    if (selected) {
+      window.sessionStorage.setItem(sessionStorageSmartGenFreeTier, '1');
+    } else {
+      window.sessionStorage.removeItem(sessionStorageSmartGenFreeTier);
+    }
+  } catch {
+    /* ignore */
+  }
 }
 
 /* ------------------------------------------------------------------ */

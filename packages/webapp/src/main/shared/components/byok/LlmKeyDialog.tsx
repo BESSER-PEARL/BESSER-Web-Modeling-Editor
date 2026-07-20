@@ -144,6 +144,20 @@ function _needsBaseUrl(provider: LlmProvider): boolean {
   return provider === 'pia' || provider === 'local';
 }
 
+/**
+ * pia/local only work when the WME BACKEND runs locally (it opens the URL, not
+ * the browser), so they're offered only on a localhost deployment. On the
+ * shared hosted editor (experimental / editor.besser-pearl.org) they're hidden.
+ */
+function _isLocalDeployment(): boolean {
+  try {
+    const h = window.location.hostname;
+    return h === 'localhost' || h === '127.0.0.1' || h === '[::1]';
+  } catch {
+    return false;
+  }
+}
+
 interface ModelPreset {
   value: string;
   label: string;
@@ -199,6 +213,9 @@ export const MODEL_PRESETS: Record<LlmProvider, readonly ModelPreset[]> = {
     { value: 'qwen2.5-coder:32b', label: 'qwen2.5-coder:32b — stronger code' },
     { value: CUSTOM_MODEL_VALUE, label: 'Custom model ID…' },
   ],
+  // Free tier: the server pins the model, so this is a single fixed entry
+  // (no custom option). value='' → the backend chooses. Smart-gen only.
+  free: [{ value: DEFAULT_MODEL_VALUE, label: 'qwen3-coder — free, no key' }],
 } as const;
 
 const CUSTOM_MODEL_PLACEHOLDER: Record<LlmProvider, string> = {
@@ -207,6 +224,7 @@ const CUSTOM_MODEL_PLACEHOLDER: Record<LlmProvider, string> = {
   mistral: 'e.g. mistral-medium-latest',
   pia: 'e.g. claude-opus-4-8',
   local: 'e.g. qwen2.5-coder:14b',
+  free: '',
 } as const;
 
 function _classifyStoredModel(
@@ -273,13 +291,28 @@ export const LlmKeyDialog: React.FC<LlmKeyDialogProps> = ({
   const [maxCostInput, setMaxCostInput] = useState<string>(String(RUN_BUDGET.defaultCostUsd));
   const [maxRuntimeMinInput, setMaxRuntimeMinInput] = useState<string>(String(RUN_BUDGET.defaultRuntimeMin));
 
+  // Hide pia/local on hosted deployments (they only work when the WME runs
+  // locally). Computed once — the deployment host doesn't change at runtime.
+  const visibleProviderOptions = useMemo(
+    () =>
+      _isLocalDeployment()
+        ? PROVIDER_OPTIONS
+        : PROVIDER_OPTIONS.filter((p) => !_needsBaseUrl(p.value)),
+    [],
+  );
+
   useEffect(() => {
     if (!open) return;
     setApiKey('');
     setSaveError(null);
     setProviderLockedByUser(false);
     const stored = readLlmKey();
-    const nextProvider = stored?.provider ?? 'anthropic';
+    let nextProvider = stored?.provider ?? 'anthropic';
+    // A pia/local selection stored on a machine that later opens the hosted
+    // editor would otherwise render a provider that isn't in the list.
+    if (_needsBaseUrl(nextProvider) && !_isLocalDeployment()) {
+      nextProvider = 'anthropic';
+    }
     setProvider(nextProvider);
     setKeyPresent(stored !== null);
     const classified = _classifyStoredModel(nextProvider, stored?.model);
@@ -471,7 +504,7 @@ export const LlmKeyDialog: React.FC<LlmKeyDialogProps> = ({
               onChange={(e) => handleProviderChange(e.target.value as LlmProvider)}
               className="block w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground"
             >
-              {PROVIDER_OPTIONS.map((p) => (
+              {visibleProviderOptions.map((p) => (
                 <option key={p.value} value={p.value}>
                   {p.label}
                 </option>

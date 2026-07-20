@@ -109,6 +109,12 @@ export const sessionStorageSmartGenLlmModel = sessionStorageLlmModel;
 export const sessionStorageSmartGenMaxCostUsd = localStoragePrefix + 'smart_gen_max_cost_usd';
 export const sessionStorageSmartGenMaxRuntimeSeconds =
   localStoragePrefix + 'smart_gen_max_runtime_seconds';
+// Keyless "Free" tier opt-in for smart-gen. The free tier uses a server-hosted
+// open-weight model and needs NO API key, so it must NOT be represented by
+// writing a placeholder into the unified LLM key above — that store is SHARED
+// with the assistant, and a fake key would break the assistant's own calls.
+// This dedicated flag records the opt-in independently. Value: '1' when set.
+export const sessionStorageSmartGenFreeTier = localStoragePrefix + 'smart_gen_free_tier';
 
 // AI Assistant — BYOK keys also alias the unified keys above, so entering the
 // key via the assistant fills the same store the smart generator reads.

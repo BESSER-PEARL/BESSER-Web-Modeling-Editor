@@ -68,14 +68,19 @@ export function startSmartGenRun(
   const usesBaseUrl = params.provider === 'pia' || params.provider === 'local';
   const wireProvider = usesBaseUrl ? 'openai' : params.provider;
 
+  // The keyless free tier sends provider='free' and MUST NOT carry an api_key
+  // or a base_url — the server injects the hosted endpoint + token + model.
+  const isFree = params.provider === 'free';
+
   const body: Record<string, unknown> = {
     project: params.project,
     instructions: params.instructions,
-    api_key: params.apiKey,
     provider: wireProvider,
   };
-  if (usesBaseUrl && params.baseUrl) body.base_url = params.baseUrl;
-  if (params.llmModel) body.llm_model = params.llmModel;
+  if (!isFree) body.api_key = params.apiKey;
+  if (!isFree && usesBaseUrl && params.baseUrl) body.base_url = params.baseUrl;
+  // Free tier's model is pinned server-side; never send a client model for it.
+  if (!isFree && params.llmModel) body.llm_model = params.llmModel;
   if (typeof params.maxCostUsd === 'number') body.max_cost_usd = params.maxCostUsd;
   if (typeof params.maxRuntimeSeconds === 'number') {
     body.max_runtime_seconds = params.maxRuntimeSeconds;
