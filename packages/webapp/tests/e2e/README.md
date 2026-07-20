@@ -11,6 +11,7 @@ There are three test surfaces:
 | **UI end-to-end** | Playwright (Chromium) | `packages/webapp/tests/e2e/*.spec.ts` | Real browser drives the app shell, navigation, project lifecycle, settings, theme, deploy contract. |
 | **Component / logic** | Vitest (jsdom) | `packages/webapp/src/**/__tests__/` | Assistant routing, smart-gen SSE/Redux/dialogs, BYOK dialog — in isolation (mocked). |
 | **NL-generation matrix** | Python WS probe | `modeling-agent/tests/live/test_nl_generation_scenarios.py` | Live agent routes real NL phrasings ("generate a database", …) to the right generator. |
+| **Free-tier generation E2E** | Python (live SSE) | `BESSER/tests/live/test_vibe_free_e2e.py` | Real keyless free-tier vibe generation against the deployed stack produces the expected artifact (a backend app; Rust classes). Asserts output is produced — **not** that it boots. |
 
 ---
 
@@ -37,12 +38,20 @@ description; summarised here:
 | `er-notation.spec.ts` | Class-diagram notation UML↔ER toggle, persistence to `besser-standalone-settings`, survives reload, ER rendering (#508). |
 | `theme.spec.ts` | Dark/light toggle: `dark` class + `data-theme` on `<html>`, persistence, aria-label. |
 | `github-deploy.spec.ts` | Deploy contract: mocks GitHub auth + `deploy-webapp`, asserts the POST body carries the V2 `projectExport` envelope (v `2.0.0`, ISO `exportedAt`, non-empty `diagrams`). |
+| `smart-gen-free-tier.spec.ts` | **Assistant → generate, end to end (mocked).** Mocks the assistant WebSocket (injects `trigger_smart_generator`), `/smart-gen/config` (advertise free tier), and the `/smart-generate` SSE (canned start/phase/done). Opens a project, sends a prompt, clicks **"Use the free model"**, and asserts the run POSTs `provider:'free'` with **no** `api_key`/`base_url`, reaches completion, and never shows the "no API key — did not run" message. Deterministic; safe for CI. |
+| `smart-gen-vibe-live.spec.ts` | **FULL vibe pipeline, no mocks (gated live smoke).** Fresh browser → create a project → describe an app in plain words so the agent **models** a class diagram → **spec-driven generate** a full app on the **keyless free tier** → asserts it finishes. Real agent + backend + free GPU, so SLOW (~5 min) and non-deterministic; gated behind `RUN_LIVE_E2E=1`, points at the deployed stack. `RUN_LIVE_E2E=1 npx playwright test smart-gen-vibe-live`. |
 
-**Coverage gap (important):** No Playwright spec drives the **AI assistant** or a
-**natural-language "generate X"** flow. The only generation-related check just
-opens the Generate menu and looks for category labels — it does not run a
-generator or exercise the assistant. Those flows are covered by the NL-generation
-matrix (§3) and Vitest logic tests (§2) instead.
+**What `smart-gen-free-tier.spec.ts` does and does NOT catch:** it guards the
+happy-path free run and the wire contract (free UI appears, keyless payload,
+run starts, download offered). It does **not** reproduce the production-only
+timing race that once made "Use the free model" close the dialog and do nothing
+(Radix `onOpenChange` → cancel handler clearing the approved trigger before the
+resume effect ran). That race does not manifest in Vite dev (the effect wins) or
+jsdom (Radix doesn't fire `onOpenChange` on a controlled close) — only a
+production build reproduces it, so it was caught by a live-browser click and is
+now held by the `startingRunRef` guard (do not remove it). To auto-guard the race
+itself, a future job would run Playwright against a **production build** (`vite
+build` + preview) rather than the dev server.
 
 ## 2. Vitest logic tests (`src/**/__tests__/`)
 
@@ -82,6 +91,30 @@ Deterministic companion (no live agent, runs in normal CI):
 `modeling-agent/tests/test_generation_handler.py` pins the handler/dispatch logic
 — e.g. the "pivot out of a stuck Django config flow when the user asks for a
 database instead" regression.
+
+## 4. Free-tier generation E2E (backend live)
+
+Drives the **whole vibe pipeline** over the deployed backend SSE endpoint
+(`POST /besser_api/smart-generate`, `provider="free"`) with a golden class model,
+and asserts the real keyless free tier (Cloudflare-tunnelled qwen3-coder)
+completes and produces the expected artifact:
+
+- **full app** — model → a FastAPI backend (`main_api.py`, `pydantic_classes.py`, …);
+- **rust** — model → a `.rs` file with structs.
+
+```bash
+# pytest (skipped unless enabled) — SLOW (~1-3 min each, shared GPU)
+RUN_LIVE_FREE_E2E=1 python -m pytest BESSER/tests/live/test_vibe_free_e2e.py -s
+
+# standalone demo runner (prints PASS/FAIL summary, non-zero exit on failure)
+python BESSER/tests/live/test_vibe_free_e2e.py
+```
+
+**Scope on purpose:** asserts *generation produced the right kind of output*, NOT
+that the produced app *runs*. The boot/run fidelity check (does the generated
+backend actually start?) is the deferred Phase-3 boot-check work — tracked
+separately because free-model output often doesn't boot yet, and we don't want a
+known-flaky fidelity gate blocking these plumbing checks.
 
 ---
 

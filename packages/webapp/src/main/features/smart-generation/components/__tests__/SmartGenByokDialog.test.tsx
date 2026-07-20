@@ -20,8 +20,10 @@ import { smartGeneratorReducer, openByokDialog, setApiKeyPresent } from '../../s
 import { workspaceReducer } from '../../../../app/store/workspaceSlice';
 import { errorReducer } from '../../../../app/store/errorManagementSlice';
 import { SmartGenByokDialog } from '../SmartGenByokDialog';
+import { getSmartGenConfig, FALLBACK_SMART_GEN_CONFIG } from '../../services/smartGenConfig';
 import {
   sessionStorageSmartGenApiKey,
+  sessionStorageSmartGenFreeTier,
   sessionStorageSmartGenMaxCostUsd,
   sessionStorageSmartGenMaxRuntimeSeconds,
   sessionStorageSmartGenProvider,
@@ -83,6 +85,7 @@ function clearSmartGenSessionStorage() {
   window.sessionStorage.removeItem(sessionStorageSmartGenProvider);
   window.sessionStorage.removeItem(sessionStorageSmartGenMaxCostUsd);
   window.sessionStorage.removeItem(sessionStorageSmartGenMaxRuntimeSeconds);
+  window.sessionStorage.removeItem(sessionStorageSmartGenFreeTier);
 }
 
 beforeEach(() => {
@@ -448,6 +451,48 @@ describe('SmartGenByokDialog — footer (pending trigger)', () => {
     });
     expect(screen.getByRole('button', { name: /^save$/i })).toBeTruthy();
     expect(screen.queryByRole('button', { name: /save.*run/i })).toBeNull();
+  });
+});
+
+describe('SmartGenByokDialog — free tier (pending trigger)', () => {
+  // NOTE ON THE RACE: the production bug where "Use the free model" closed the
+  // dialog and did nothing was a real-browser TIMING race (Radix onOpenChange ->
+  // handleCancel cleared the approved trigger before the resume effect consumed
+  // it). It does NOT reproduce in jsdom (Radix doesn't fire onOpenChange on a
+  // controlled prop-driven close) or in Vite dev (the effect wins there) — only
+  // a production build reproduces it. So this test does NOT guard that race; it
+  // guards the FORWARD contract of the free run — that clicking "Use the free
+  // model" produces an APPROVED, KEYLESS pending trigger. See the startingRunRef
+  // guard in SmartGenByokDialog for the race fix; keep it.
+  it('"Use the free model" approves a keyless run and sets the free flag', async () => {
+    vi.mocked(getSmartGenConfig).mockResolvedValue({
+      ...FALLBACK_SMART_GEN_CONFIG,
+      free_tier: { available: true, model: 'qwen3-coder:30b' },
+    });
+    const cancelledSpy = vi.fn();
+    window.addEventListener('wme:smartgen-key-cancelled', cancelledSpy);
+
+    const { store } = renderPendingDialog();
+
+    // The free callout renders once the async config load resolves.
+    const freeButton = await screen.findByRole('button', { name: /use the free model/i });
+    fireEvent.click(freeButton);
+
+    const state = store.getState().smartGenerator;
+    // The approved trigger SURVIVES (the trigger hook's resume effect consumes
+    // it) — it must NOT be dropped as if the run were cancelled.
+    expect(state.pendingTrigger).toEqual(expect.objectContaining({
+      planApproved: true,
+      action: 'trigger_smart_generator',
+    }));
+    expect(state.byokDialogOpen).toBe(false);
+    // Keyless: the dedicated free flag is set, NO BYOK key is written (it would
+    // pollute the shared assistant key), and no "no key — cancelled" event fires.
+    expect(window.sessionStorage.getItem(sessionStorageSmartGenFreeTier)).toBe('1');
+    expect(window.sessionStorage.getItem(sessionStorageSmartGenApiKey)).toBeNull();
+    expect(cancelledSpy).not.toHaveBeenCalled();
+
+    window.removeEventListener('wme:smartgen-key-cancelled', cancelledSpy);
   });
 });
 
