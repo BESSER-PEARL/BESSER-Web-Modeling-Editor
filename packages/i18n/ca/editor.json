@@ -1,6 +1,6 @@
 {
   "views": {
-    "modelling": "Modelatge",
+    "modeling": "Modelatge",
     "interactive": "Interactiu",
     "highlight": "Mostra els elements interactius",
     "iconMode": "Mostra el diagrama d'objectes en mode icona"

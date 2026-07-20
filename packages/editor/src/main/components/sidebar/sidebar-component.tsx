@@ -101,7 +101,7 @@ class SidebarComponent extends Component<Props, SidebarComponentState> {
               onChange={e => changeView(e.target.value as ApollonView)}
               color="primary"
             >
-              <option value={ApollonView.Modelling}>{translate('views.modelling')}</option>
+              <option value={ApollonView.Modelling}>{translate('views.modeling')}</option>
               <option value={ApollonView.Exporting}>{translate('views.interactive')}</option>
             </select>
           </div>
