@@ -21,13 +21,13 @@
     "baseAgentModel": "Basis-Agentenmodell",
     "switchToLight": "Zum hellen Modus wechseln",
     "switchToDark": "Zum dunklen Modus wechseln",
-    "star": "Star",
+    "star": "Stern",
     "starBesser": "BESSER auf GitHub mit einem Stern markieren",
     "githubAccount": "GitHub-Konto: {{name}}",
     "signOut": "Abmelden",
     "githubVersionControl": "GitHub-Versionsverwaltung",
     "toggleGithubPanel": "GitHub-Versionsverwaltung ein-/ausblenden",
-    "sync": "Sync",
+    "sync": "Synchronisieren",
     "connectGithub": "GitHub verbinden",
     "quality": {
       "title": "Qualitätsprüfung",
@@ -53,9 +53,9 @@
     },
     "route": {
       "settings": "Einstellungen",
-      "agentCustomization": "Agenten-Anpassung",
-      "agentPersonalization": "Agenten-Personalisierung",
-      "agentMappings": "Agenten-Zuordnungen"
+      "agentCustomization": "Agentenanpassung",
+      "agentPersonalization": "Agentenpersonalisierung",
+      "agentMappings": "Agentenzuordnungen"
     }
   },
   "menu": {
@@ -66,8 +66,8 @@
       "loadTemplate": "Vorlage laden",
       "exportProject": "Projekt exportieren",
       "importClassDiagramFrom": "Klassendiagramm importieren aus",
-      "imageToProject": "Bild zu Projekt",
-      "kgToProject": "KG zu Projekt",
+      "imageToProject": "Bild in Projekt umwandeln",
+      "kgToProject": "Knowledge Graph in Projekt umwandeln",
       "previewProject": "Projektvorschau"
     },
     "generate": {
@@ -126,15 +126,15 @@
     "loadingTitle_comment": "",
     "loading": {
       "preparing": "Ihre Konfiguration wird vorbereitet...",
-      "rules": "Vordefinierte literaturbasierte Zuordnung wird angewendet, um eine passende Konfiguration zu empfehlen.",
-      "llm": "Dies kann einen Moment dauern, um die beste LLM-basierte Konfiguration für Ihr ausgewähltes Benutzerprofil zu erstellen.",
-      "transform": "Dies kann einen Moment dauern, um das transformierte Agenten-Setup zu erstellen und auf Ihr Diagramm anzuwenden."
+      "rules": "Eine vordefinierte, literaturbasierte Zuordnung wird angewendet, um eine passende Konfiguration zu empfehlen.",
+      "llm": "Es kann einen Moment dauern, bis die beste LLM-basierte Konfiguration für Ihr ausgewähltes Benutzerprofil erstellt ist.",
+      "transform": "Es kann einen Moment dauern, bis das transformierte Agenten-Setup erstellt und auf Ihr Diagramm angewendet ist."
     },
-    "title": "Agenten-Anpassung",
-    "subtitle": "Passen Sie Ihren Agenten an ein bestimmtes Benutzerprofil aus dem User Diagram an. Stellen Sie ein, wie er spricht, aussieht und sich verhält, um zu dieser Zielgruppe zu passen, und speichern Sie das Ergebnis dann als benannte Konfiguration, zwischen denen Sie später wechseln können.",
+    "title": "Agentenanpassung",
+    "subtitle": "Passen Sie Ihren Agenten an ein bestimmtes Benutzerprofil aus dem Benutzerdiagramm an. Legen Sie fest, wie er spricht, aussieht und sich verhält, damit er zur Zielgruppe passt. Speichern Sie das Ergebnis anschließend als benannte Konfiguration. Später können Sie zwischen verschiedenen Konfigurationen wechseln.",
     "tabsAriaLabel": "Abschnitte der Agentenkonfiguration",
     "tab": {
-      "runtime": "Agenten-Laufzeit",
+      "runtime": "Agentenlaufzeit",
       "personalization": "Personalisierung"
     },
     "loadSavedLabel": "Gespeicherte Anpassung laden",
@@ -153,17 +153,17 @@
       "title": "Benutzerprofil-Zuordnung",
       "description": "Wählen Sie das Benutzerprofil aus, das die Personalisierung und die automatischen Konfigurationsvorschläge leiten soll.",
       "label": "Benutzerprofil-Zuordnung",
-      "noTabs": "Noch keine User-Diagram-Tabs mit Modellen verfügbar",
+      "noTabs": "Noch keine Tabs mit Benutzerdiagrammen und Modellen verfügbar",
       "selectProfile": "Ein Benutzerprofil auswählen",
-      "createFirst": "Erstellen oder laden Sie zuerst einen User-Diagram-Tab.",
-      "statusLine": "Status des User Diagram im aktuellen Projekt: {{status}}.",
+      "createFirst": "Erstellen oder laden Sie zuerst einen Tab mit einem Benutzerdiagramm.",
+      "statusLine": "Status des Benutzerdiagramms im aktuellen Projekt: {{status}}.",
       "statusAvailable": "verfügbar",
       "statusMissing": "fehlt"
     },
     "propose": {
       "rules": "Konfiguration automatisch mit vordefinierten Regeln vorschlagen",
       "llm": "Konfiguration automatisch mit LLMs vorschlagen",
-      "rag": "Konfiguration automatisch mit RAG-basiert vorschlagen"
+      "rag": "Konfiguration automatisch RAG-basiert vorschlagen"
     },
     "recommendation": {
       "title": "Letzte Empfehlung nach vordefinierten Regeln",
@@ -175,7 +175,7 @@
       "matchedRuleFallback": "Passende Regel"
     },
     "runtime": {
-      "title": "Agenten-Laufzeit",
+      "title": "Agentenlaufzeit",
       "description": "Laufzeiteinstellungen für das aktive Agentendiagramm (Plattform, Intent-Erkennung, LLM-Anbieter/Modell). Diese Werte werden im Agentendiagramm selbst gespeichert, nicht im globalen Speicher.",
       "platform": "Plattform",
       "intent": "Intent-Erkennung",
@@ -293,19 +293,19 @@
           "description": "Maximale Lesbarkeit auf hellen Hintergründen (WCAG AAA)."
         },
         "darkSlate": {
-          "label": "Dunkles Schiefergrau — sanfter hoher Kontrast",
-          "description": "Hoher Kontrast mit reduzierter visueller Ermüdung für langes Lesen."
+          "label": "Dunkles Schiefergrau — hoher Kontrast mit sanfter Wirkung",
+          "description": "Hoher Kontrast, der die Augen bei längerem Lesen weniger ermüdet."
         },
         "slate": {
           "label": "Schiefergrau — mittlerer Kontrast",
           "description": "Geringerer Kontrast, schonender für sehbehinderte Nutzer auf hellen Bildschirmen."
         },
         "blue": {
-          "label": "Blau — farbenblindheitssicher",
-          "description": "Unterscheidbar bei Protan- und Deutan-Farbsehen."
+          "label": "Blau — für Farbsehschwächen geeignet",
+          "description": "Auch bei Rot- und Grünsehschwächen gut unterscheidbar."
         },
         "teal": {
-          "label": "Petrol — farbenblindheitssicher",
+          "label": "Petrol — für Farbsehschwächen geeignet",
           "description": "Wird als klarer Farbton bei allen gängigen Farbsehtypen wahrgenommen."
         },
         "white": {
@@ -327,7 +327,7 @@
     },
     "modality": {
       "title": "Modalität",
-      "subtitle": "Text plus optionale Sprachein-/ausgabe konfigurieren.",
+      "subtitle": "Text sowie optionale Sprachein- und -ausgabe konfigurieren.",
       "input": "Eingabemodalitäten",
       "inputAlways": "Texteingabe ist immer aktiviert.",
       "enableSpeechInput": "Spracheingabe aktivieren",
@@ -338,7 +338,7 @@
     "content": {
       "title": "Inhalt",
       "subtitle": "Passen Sie Antworten anhand der ausgewählten Benutzerprofil-Zuordnung an.",
-      "adapt": "Inhalt an Benutzerprofil anpassen",
+      "adapt": "Inhalt an das Benutzerprofil anpassen",
       "profileNote": "Das für die Anpassung verwendete Profil wird in der Benutzerprofil-Zuordnung ausgewählt.",
       "enableNote": "Aktivieren Sie diese Option, um generierte Antworten auf das ausgewählte Profil und seine Attribute zuzuschneiden."
     },
@@ -355,7 +355,7 @@
       "title": "Diese Anpassung speichern",
       "description": "Wenn Sie das obige Formular ausgefüllt haben, benennen Sie Ihre Anpassung und speichern Sie sie hier. Gespeicherte Anpassungen erscheinen oben auf der Seite in der Auswahl \"Gespeicherte Anpassung laden\", sodass Sie später zwischen ihnen wechseln können.",
       "nameLabel": "Name der Anpassung",
-      "namePlaceholder": "Geben Sie diesem Setup einen Namen",
+      "namePlaceholder": "Geben Sie dieser Konfiguration einen Namen",
       "activeBadge": "Aktiv",
       "unnamed": "Unbenannte Anpassung",
       "notLinked": "Noch mit keiner gespeicherten Anpassung verknüpft.",
@@ -401,15 +401,15 @@
       "selectProfileFirst": "Bitte wählen Sie zuerst eine Benutzerprofil-Zuordnung aus.",
       "profileUnavailable": "Das ausgewählte Benutzerprofil ist nicht verfügbar. Bitte wählen Sie ein gültiges gespeichertes Benutzerprofil aus.",
       "signInGitHub": "Melden Sie sich bei GitHub an, um Empfehlungen zu nutzen.",
-      "invalidMappingResponse": "Ungültige Zuordnungsempfehlungs-Antwort vom Backend erhalten.",
+      "invalidMappingResponse": "Vom Backend wurde eine ungültige Antwort auf die Zuordnungsempfehlung empfangen.",
       "ruleRecApplied_one": "Regelbasierte Empfehlung angewendet ({{count}} Regel passt).",
       "ruleRecApplied_other": "Regelbasierte Empfehlung angewendet ({{count}} Regeln passen).",
       "ruleRecAppliedNone": "Regelbasierte Empfehlung angewendet. Keine spezifische Regel passt, daher wurden die Standardwerte beibehalten.",
       "mappingRecFailed": "Zuordnungsbasierte Empfehlung konnte nicht abgerufen werden: {{message}}",
-      "mappingRecUnexpected": "Beim Anfordern einer regelbasierten Empfehlung ist ein unerwarteter Fehler aufgetreten.",
+      "mappingRecUnexpected": "Beim Anfordern einer zuordnungsbasierten Empfehlung ist ein unerwarteter Fehler aufgetreten.",
       "ragSoon": "Der RAG-basierte automatische Konfigurationsvorschlag ist bald verfügbar.",
-      "invalidRecResponse": "Ungültige Empfehlungsantwort vom Backend erhalten.",
-      "llmRecApplied": "LLM-basierte Empfehlung auf die aktuelle Konfiguration angewendet.",
+      "invalidRecResponse": "Vom Backend wurde eine ungültige Empfehlungsantwort empfangen.",
+      "llmRecApplied": "Eine LLM-basierte Empfehlung wurde auf die aktuelle Konfiguration angewendet.",
       "llmRecFailed": "LLM-Empfehlung konnte nicht abgerufen werden: {{message}}",
       "llmRecUnexpected": "Beim Anfordern einer LLM-basierten Empfehlung ist ein unerwarteter Fehler aufgetreten.",
       "resetToDefaults": "Konfiguration auf Standardwerte zurückgesetzt.",
@@ -421,7 +421,7 @@
       "transformApplied": "Konfiguration transformiert, gespeichert und erfolgreich angewendet.",
       "saveLocalFailed": "Konfiguration konnte nicht lokal gespeichert werden.",
       "transformUnexpected": "Beim Transformieren des Agentenmodells ist ein unerwarteter Fehler aufgetreten.",
-      "uploadLoaded": "Konfiguration aus Datei geladen. Denken Sie daran, sie zu speichern, wenn Sie sie in Ihrer Bibliothek haben möchten.",
+      "uploadLoaded": "Konfiguration aus Datei geladen. Denken Sie daran, sie zu speichern, wenn Sie sie in Ihrer Bibliothek behalten möchten.",
       "invalidFile": "Ungültige Konfigurationsdatei."
     }
   },
@@ -461,7 +461,7 @@
       "description": "Wählen Sie reguläres JSON-Schema oder NGSI-LD-Smart-Data-Modus.",
       "mode": "Modus",
       "selectMode": "Modus auswählen",
-      "regular": "Reguläres JSON Schema"
+      "regular": "Reguläres JSON-Schema"
     },
     "agent": {
       "title": "Agent-Sprachen auswählen",
@@ -476,28 +476,28 @@
       "warningAriaLabel": "Warnung",
       "moreLanguagesWarning": "Das Hinzufügen weiterer Sprachen erhöht die Generierungszeit.",
       "systemConfiguration": "Systemkonfiguration",
-      "editInAgentConfig": "In Agent Config bearbeiten",
+      "editInAgentConfig": "In der Agentenkonfiguration bearbeiten",
       "platform": "Plattform",
       "platformStreamlit": "WebSocket mit Streamlit-Oberfläche",
       "intentRecognition": "Intent-Erkennung",
       "classical": "Klassisch",
       "llmBased": "LLM-basiert",
-      "systemConfigHint": "Diese Werte stammen aus dem Tab Systemkonfiguration in Agent Config und werden für jede Generierung verwendet.",
+      "systemConfigHint": "Diese Werte stammen aus dem Tab „Systemkonfiguration“ in der Agentenkonfiguration und werden für jede Generierung verwendet.",
       "personalizationStrategy": "Personalisierungsstrategie",
       "none": "Keine",
       "personalizationAll": "Personalisierung (alle)",
       "personalizationAllHint": "Sendet alle verfügbaren Profil-zu-Konfiguration-Personalisierungszuordnungen an das Backend.",
-      "personalizationNoneHint": "Generiert ohne gespeicherte Personalisierungsvarianten oder erweiterte Konfigurationsdaten anzuhängen.",
+      "personalizationNoneHint": "Generiert den Agenten, ohne gespeicherte Personalisierungsvarianten oder erweiterte Konfigurationsdaten anzuhängen.",
       "mode": "Modus",
       "modeOriginal": "Original",
       "modeConfiguration": "Konfiguration",
       "modePersonalization": "Personalisierung",
-      "selectMappings": "Profil → Konfiguration Zuordnungen auswählen",
+      "selectMappings": "Profil-zu-Konfiguration-Zuordnungen auswählen",
       "selectStoredConfigs": "Gespeicherte Konfigurationen auswählen",
-      "noMappingsFound": "Keine Zuordnungen mit generierten Agenten gefunden. Erstellen Sie Zuordnungen und führen Sie zuerst \"Save & Apply\" aus.",
+      "noMappingsFound": "Keine Zuordnungen mit generierten Agenten gefunden. Erstellen Sie Zuordnungen und führen Sie zuerst „Konfiguration speichern und anwenden“ aus.",
       "mappingsListHint": "Es werden nur Zuordnungen aufgelistet, deren Zielkonfiguration bereits einen generierten Agenten hat.",
-      "noStoredConfigsFound": "Keine gespeicherten Konfigurationen mit generierten Agenten gefunden. Verwenden Sie zuerst \"Save & Apply\", um sie hier verfügbar zu machen.",
-      "storedConfigsListHint": "Wählen Sie eine oder mehrere Konfigurationen (nur Einträge mit generierten Agenten werden aufgelistet), um sie in die Anfrage einzubeziehen. Dies generiert einen Agenten pro Konfiguration.",
+      "noStoredConfigsFound": "Keine gespeicherten Konfigurationen mit generierten Agenten gefunden. Verwenden Sie zuerst „Konfiguration speichern und anwenden“, um sie hier verfügbar zu machen.",
+      "storedConfigsListHint": "Wählen Sie eine oder mehrere Konfigurationen aus, um sie in die Anfrage einzubeziehen. Es werden nur Einträge mit generierten Agenten aufgelistet. Pro Konfiguration wird ein Agent generiert.",
       "selectedLanguages": "Ausgewählte Sprachen",
       "removeLanguage": "Sprache {{language}} entfernen",
       "languages": {
@@ -514,9 +514,9 @@
       "description": "Wählen Sie das Ausführungs-Backend und die Anzahl der Shots.",
       "executionBackend": "Ausführungs-Backend",
       "selectBackend": "Backend auswählen",
-      "backendAerSimulator": "Aer Simulator (Lokal)",
-      "backendMockSimulation": "Mock-Simulation (Rausch-Simulation)",
-      "backendIbmQuantum": "IBM Quantum (Echte Hardware)",
+      "backendAerSimulator": "Aer Simulator (lokal)",
+      "backendMockSimulation": "Mock-Simulation (Rauschsimulation)",
+      "backendIbmQuantum": "IBM Quantum (echte Hardware)",
       "numberOfShots": "Anzahl der Shots",
       "shotsLabel": "Shots"
     },
@@ -533,11 +533,11 @@
       "referencesClassDiagram": "Referenzen: Klassendiagramm \"{{title}}\"",
       "diagramRequired": "Dieses Diagramm ist für die Web-App-Generierung erforderlich.",
       "diagramEmpty": "Dieses Diagramm ist leer. Die Generierung kann unvollständige Ergebnisse liefern.",
-      "noAgentDiagrams": "Keine Agent-Diagramme im Projekt",
-      "agentDiagramsHint": "Agent-Diagramme werden pro Komponente im GUI-Editor verknüpft (Drag & Drop).",
+      "noAgentDiagrams": "Keine Agentendiagramme im Projekt",
+      "agentDiagramsHint": "Agentendiagramme werden pro Komponente im GUI-Editor verknüpft (Drag-and-drop).",
       "classDiagramLabel": "Klassendiagramm",
       "guiDiagramLabel": "GUI-Diagramm",
-      "agentDiagramsLabel": "Agent-Diagramme",
+      "agentDiagramsLabel": "Agentendiagramme",
       "agentDiagramsAvailable": "{{count}} verfügbar (pro Komponente in der GUI konfiguriert)",
       "noneAvailable": "Keine verfügbar"
     },
@@ -548,21 +548,21 @@
       "httpError": "HTTP-Fehler! Status: {{status}}",
       "localDeploymentCompleted": "Lokale Bereitstellung abgeschlossen!",
       "accessApplicationAt": "Sie können jetzt auf Ihre Anwendung zugreifen unter: ",
-      "unknownDeploymentError": "Unbekannter Fehler bei der Bereitstellung aufgetreten",
+      "unknownDeploymentError": "Bei der Bereitstellung ist ein unbekannter Fehler aufgetreten.",
       "noProjectAvailable": "Kein Projekt für die Code-Generierung verfügbar",
       "codeGenerationCompleted": "Code-Generierung erfolgreich abgeschlossen",
       "requestTimedOut": "Zeitüberschreitung der Anfrage. Bitte versuchen Sie es erneut.",
-      "unknownError": "Unbekannter Fehler aufgetreten",
+      "unknownError": "Ein unbekannter Fehler ist aufgetreten.",
       "createOrLoadProject": "Erstellen oder laden Sie ein Projekt, bevor Sie Code generieren.",
-      "couldNotSwitchToGui": "Konnte nicht zum GUI-Diagramm für die Auto-Generierung wechseln.",
-      "guiEditorNotReady": "GUI-Editor war nicht rechtzeitig bereit.",
+      "couldNotSwitchToGui": "Es konnte nicht zum GUI-Diagramm für die automatische Generierung gewechselt werden.",
+      "guiEditorNotReady": "Der GUI-Editor war nicht rechtzeitig bereit.",
       "couldNotAutoGenerateGui": "GUI konnte nicht automatisch aus dem Klassendiagramm generiert werden.",
       "guiDiagramEmpty": "Webanwendung kann nicht generiert werden: GUI-Diagramm ist leer.",
-      "openQuantumEditor": "Öffnen Sie den Quantum-Editor, bevor Sie Qiskit-Code generieren.",
+      "openQuantumEditor": "Öffnen Sie den Quanteneditor, bevor Sie Qiskit-Code generieren.",
       "openNnEditor": "Öffnen Sie den NN-Diagramm-Editor, bevor Sie Code für neuronale Netze generieren.",
       "switchToUmlDiagram": "Wechseln Sie zu einem UML-Diagramm, um diesen Generator zu verwenden.",
       "noUmlEditor": "Keine UML-Editor-Instanz verfügbar. Öffnen Sie zuerst ein UML-Diagramm.",
-      "switchToObjectOrUserDiagram": "Wechseln Sie zu einem Object-Diagramm oder User-Diagramm, um den JSON-Object-Generator zu verwenden.",
+      "switchToObjectOrUserDiagram": "Wechseln Sie zu einem Objekt- oder Benutzerdiagramm, um den JSON-Objektgenerator zu verwenden.",
       "generationFailed": "Generierung fehlgeschlagen: {{error}}",
       "createOrLoadProjectValidate": "Erstellen oder laden Sie ein Projekt, bevor Sie validieren.",
       "comingSoon": "demnächst verfügbar",
@@ -570,7 +570,7 @@
       "qualityCheckFailed": "Qualitätsprüfung fehlgeschlagen: {{error}}",
       "namesRequired": "Projekt- und App-Namen sind erforderlich.",
       "namesMustDiffer": "Projekt- und App-Namen müssen unterschiedlich sein.",
-      "namesInvalid": "Namen müssen mit einem Buchstaben/Unterstrich beginnen und dürfen nur Buchstaben, Zahlen und Unterstriche enthalten.",
+      "namesInvalid": "Namen müssen mit einem Buchstaben oder einem Unterstrich beginnen und dürfen nur Buchstaben, Zahlen und Unterstriche enthalten.",
       "openUmlBeforeDeploy": "Öffnen Sie ein UML-Diagramm, bevor Sie bereitstellen.",
       "noValidPersonalizationMappings": "Keine gültigen Personalisierungszuordnungen gefunden. Erstellen Sie Zuordnungen und speichern Sie zuerst personalisierte Varianten."
     },
@@ -642,8 +642,8 @@
       "start": {
         "title": "Willkommen beim BESSER Web Modeling Editor",
         "description": "Wählen Sie, wie Sie Ihre Modellierungssitzung beginnen und Ihren Arbeitsbereich öffnen möchten.",
-        "heroTitle": "Starten Sie Ihren Modellierungs-Arbeitsbereich",
-        "heroBody": "BESSER (Better Smart Software Faster) ist eine quelloffene, modellgetriebene Plattform für UML-Design, -Generierung und -Bereitstellung. Wählen Sie unten einen Weg, um Ihr Projekt schnell aufzusetzen.",
+        "heroTitle": "Starten Sie Ihren Modellierungsarbeitsbereich",
+        "heroBody": "BESSER (Better Smart Software Faster) ist eine quelloffene, modellgetriebene Plattform für UML-Design, -Generierung und -Bereitstellung. Wählen Sie unten eine Option aus, um Ihr Projekt schnell aufzusetzen.",
         "cardCreate": {
           "title": "Leer erstellen",
           "description": "Von Grund auf mit allen verfügbaren Editoren beginnen."
@@ -747,19 +747,19 @@
             "description": "Klassen-, Agenten- und No-Code-GUI-Diagramme."
           },
           "quantum": {
-            "label": "Quantum",
+            "label": "Quantenmodellierung",
             "description": "Nur Quantenschaltkreisdiagramme."
           },
           "all": {
             "label": "Alle anzeigen",
-            "description": "Jede unterstützte Perspektive."
+            "description": "Alle unterstützten Perspektiven."
           }
         },
         "diagrams": {
-          "ClassDiagram": "Strukturelle / Datenmodellierung, einschließlich OCL-Einschränkungen, die an Klassen angehängt sind.",
+          "ClassDiagram": "Struktur- und Datenmodellierung einschließlich OCL-Einschränkungen, die Klassen zugeordnet sind.",
           "ObjectDiagram": "Instanzen eines Klassendiagramms, verwendet für Tests und OCL-Validierung.",
           "StateMachineDiagram": "Zustandsbasierte Verhaltensmodellierung.",
-          "AgentDiagram": "Spezifikation von Konversations- / KI-Agenten.",
+          "AgentDiagram": "Spezifikation von Konversations- und KI-Agenten.",
           "UserDiagram": "Akteure und ihre Interaktionen.",
           "GUINoCodeDiagram": "Grafische Benutzeroberflächengestaltung (IFML-inspiriert).",
           "QuantumCircuitDiagram": "Spezifikation eines Quantenprogramms.",
@@ -775,14 +775,14 @@
     },
     "templates": {
       "title": "Vorlage laden",
-      "description": "Beginnen Sie mit fertigen UML-, Agent-, State-Machine-, Quantum-Vorlagen oder vollständigen Projektpaketen.",
+      "description": "Beginnen Sie mit fertigen UML-, Agenten-, Zustandsautomaten- und Quantenvorlagen oder vollständigen Projektpaketen.",
       "loadTemplate": "Vorlage laden",
       "multiDiagramProject": "Multi-Diagramm-Projekt",
       "unknownError": "Unbekannter Fehler",
       "categories": {
-        "Creational": "Erzeugend",
+        "Creational": "Erzeugungsmuster",
         "Class Diagram": "Klassendiagramm",
-        "Behavioral": "Verhaltensbezogen",
+        "Behavioral": "Verhaltensmuster",
         "Agent Diagram": "Agentendiagramm",
         "State Machine Diagram": "Zustandsautomatendiagramm",
         "Quantum Circuit": "Quantenschaltkreis",
@@ -827,29 +827,29 @@
     "defaultGistDescription": "BESSER-Projekt: {{name}}",
     "connect": {
       "title": "Mit GitHub verbinden",
-      "subtitle": "Melde dich an, um deine Projekte mit GitHub zu synchronisieren.",
+      "subtitle": "Melden Sie sich an, um Ihre Projekte mit GitHub zu synchronisieren.",
       "button": "Mit GitHub verbinden"
     },
     "noProject": {
       "title": "Kein Projekt ausgewählt",
-      "subtitle": "Öffne oder erstelle ein Projekt, um die GitHub-Synchronisierung zu nutzen."
+      "subtitle": "Öffnen oder erstellen Sie ein Projekt, um die GitHub-Synchronisierung zu nutzen."
     },
     "notLinked": {
       "title": "Repository verknüpfen",
-      "subtitle": "Verknüpfe dieses Projekt für die Versionskontrolle mit einem GitHub-Repo.",
+      "subtitle": "Verknüpfen Sie dieses Projekt für die Versionskontrolle mit einem GitHub-Repository.",
       "linkExisting": "Vorhandenes verknüpfen",
       "createNew": "Neu erstellen"
     },
     "linked": {
       "repository": "Repository",
-      "checking": "Prüfe...",
-      "unsavedChanges": "Du hast nicht gespeicherte Änderungen",
+      "checking": "Wird geprüft...",
+      "unsavedChanges": "Sie haben nicht gespeicherte Änderungen",
       "upToDate": "Aktuell",
       "push": "Push",
       "pull": "Pull",
       "history": "Verlauf",
       "refreshHistory": "Commit-Verlauf aktualisieren",
-      "latest": "Neueste",
+      "latest": "Neuester Commit",
       "clickToRestore": "Zum Wiederherstellen klicken",
       "noCommits": "Noch keine Commits",
       "share": "Teilen",
@@ -872,19 +872,19 @@
       "goBack": "Zurück zur Repository-Auswahl",
       "titleSelect": "Mit Repository verknüpfen",
       "titleConfigure": "Verknüpfung konfigurieren",
-      "descriptionSelect": "Wähle ein Repository, mit dem du dein Projekt synchronisieren möchtest.",
-      "descriptionConfigure": "Lege Branch und Dateipfad für diese Projektsynchronisierung fest.",
+      "descriptionSelect": "Wählen Sie ein Repository aus, mit dem Sie Ihr Projekt synchronisieren möchten.",
+      "descriptionConfigure": "Legen Sie den Branch und den Dateipfad für diese Projektsynchronisierung fest.",
       "private": "Privat",
       "updated": "Aktualisiert: {{date}}",
       "noRepositories": "Keine Repositorys gefunden",
       "branch": "Branch",
       "browseFiles": "Repository-Dateien durchsuchen",
-      "browseHint": "Wähle eine vorhandene Projektdatei, ohne den Pfad einzutippen.",
+      "browseHint": "Wählen Sie eine vorhandene Projektdatei aus, ohne den Pfad einzugeben.",
       "checkFileExists": "Prüfen, ob die Datei existiert",
-      "fileExistsPrompt": "Datei existiert bereits im Repository. Wähle, wie fortgefahren werden soll:",
+      "fileExistsPrompt": "Die Datei ist bereits im Repository vorhanden. Wählen Sie aus, wie fortgefahren werden soll:",
       "loadAndLinkRecommended": "Laden & verknüpfen (empfohlen)",
       "linkWithoutLoading": "Verknüpfen ohne zu laden (kann überschreiben)",
-      "filePathAvailable": "Der Dateipfad ist verfügbar. Klicke auf \"Repository verknüpfen\", um fortzufahren.",
+      "filePathAvailable": "Der Dateipfad ist verfügbar. Klicken Sie auf „Repository verknüpfen“, um fortzufahren.",
       "loadAndLink": "Laden & verknüpfen",
       "linkRepository": "Repository verknüpfen",
       "selectProjectFile": "Projektdatei auswählen"
@@ -892,46 +892,46 @@
     "fileBrowser": {
       "selectFile": "Datei auswählen",
       "loadFailed": "Verzeichnisinhalt konnte nicht geladen werden",
-      "root": "root",
+      "root": "Stammverzeichnis",
       "upOneLevel": "Eine Ebene nach oben",
       "emptyDirectory": "Leeres Verzeichnis",
-      "dirHint": "Navigiere zum Zielordner und klicke dann auf \"Aktuellen Ordner auswählen\".",
+      "dirHint": "Navigieren Sie zum Zielordner und klicken Sie anschließend auf „Aktuellen Ordner auswählen“.",
       "selectCurrentFolder": "Aktuellen Ordner auswählen"
     },
     "commit": {
       "title": "Auf GitHub pushen",
-      "description": "Schreibe eine Commit-Nachricht für deine Änderungen.",
+      "description": "Geben Sie eine Commit-Nachricht für Ihre Änderungen ein.",
       "messageLabel": "Commit-Nachricht",
-      "messagePlaceholder": "Beschreibe deine Änderungen...",
-      "pushing": "Pushe...",
+      "messagePlaceholder": "Beschreiben Sie Ihre Änderungen...",
+      "pushing": "Wird gepusht...",
       "push": "Push"
     },
     "gist": {
       "title": "Gist erstellen",
-      "description": "Erstelle einen GitHub-Gist, um dein Projekt schnell zu teilen.",
+      "description": "Erstellen Sie einen GitHub-Gist, um Ihr Projekt schnell zu teilen.",
       "descriptionLabel": "Beschreibung",
       "descriptionPlaceholder": "Gist-Beschreibung...",
       "publicGist": "Öffentlicher Gist",
       "secretHint": "Geheime Gists sind für Suchmaschinen verborgen, aber für jeden mit dem Link sichtbar.",
-      "creating": "Erstelle...",
+      "creating": "Wird erstellt...",
       "createGist": "Gist erstellen"
     },
     "createRepo": {
       "title": "Repository erstellen",
-      "description": "Erstelle ein neues GitHub-Repository und pushe das aktuelle Projekt.",
+      "description": "Erstellen Sie ein neues GitHub-Repository und pushen Sie das aktuelle Projekt.",
       "repoNameLabel": "Repository-Name",
       "repoNameHelper": "Nur Kleinbuchstaben, Zahlen, Bindestriche und Unterstriche sind erlaubt.",
       "descriptionLabel": "Beschreibung",
       "descriptionPlaceholder": "Optionale Beschreibung...",
       "privateRepository": "Privates Repository",
-      "creating": "Erstelle...",
+      "creating": "Wird erstellt...",
       "create": "Erstellen"
     },
     "restore": {
       "title": "Version wiederherstellen",
-      "description": "Deine aktuellen nicht gespeicherten Änderungen gehen verloren. Erwäge, deine aktuelle Arbeit zuerst zu pushen.",
+      "description": "Ihre aktuellen nicht gespeicherten Änderungen gehen verloren. Erwägen Sie, Ihre aktuelle Arbeit zuerst zu pushen.",
       "confirmQuestion": "Diesen Commit wiederherstellen?",
-      "restoring": "Stelle wieder her...",
+      "restoring": "Wird wiederhergestellt...",
       "restoreButton": "Diese Version wiederherstellen"
     },
     "context": {
@@ -945,20 +945,20 @@
       "checkingFile": "Dateiexistenz wird geprüft",
       "linkingRepository": "Repository wird verknüpft",
       "creatingRepository": "Repository wird erstellt",
-      "committing": "Wird auf GitHub committet",
+      "committing": "Commit wird auf GitHub erstellt",
       "restoringCommit": "Commit wird wiederhergestellt",
       "creatingGist": "Gist wird erstellt"
     },
     "toasts": {
       "loadProjectFailed": "Projekt konnte nicht geladen werden",
       "couldNotLoadProjectData": "Projektdaten konnten nicht geladen werden",
-      "projectPulled": "Projekt von GitHub gepullt",
+      "projectPulled": "Projekt von GitHub abgerufen",
       "projectLoadedFromRepo": "Projekt aus GitHub-Repository geladen",
-      "loadFromRepoFailedLinking": "Laden aus dem Repo nicht möglich; wird ohne Laden verknüpft.",
-      "linkedReconnectToPush": "Repository verknüpft. Verbinde GitHub erneut, um die anfängliche Projektdatei zu pushen.",
+      "loadFromRepoFailedLinking": "Das Laden aus dem Repository war nicht möglich; die Verknüpfung wird ohne Laden hergestellt.",
+      "linkedReconnectToPush": "Repository verknüpft. Verbinden Sie GitHub erneut, um die anfängliche Projektdatei zu pushen.",
       "linkedInitialPushReadFailed": "Repository verknüpft, aber der anfängliche Push ist fehlgeschlagen, weil das lokale Projekt nicht gelesen werden konnte.",
       "initialSyncCommitMessage": "Erste Synchronisierung vom BESSER Web Modeling Editor",
-      "linkedInitialPushFailed": "Repository verknüpft, aber der anfängliche Push ist fehlgeschlagen. Du kannst manuell über GitHub Sync pushen.",
+      "linkedInitialPushFailed": "Repository verknüpft, aber der anfängliche Push ist fehlgeschlagen. Sie können das Projekt manuell über die GitHub-Synchronisierung pushen.",
       "couldNotLoadRepoContents": "Repository-Inhalt konnte nicht geladen werden",
       "repoUnlinked": "Repository-Verknüpfung aufgehoben",
       "alreadyLatest": "Dies ist bereits die neueste Version",
@@ -973,9 +973,9 @@
       "repoCreated": "Repository erstellt: {{name}}",
       "deploymentFailed": "Bereitstellung fehlgeschlagen",
       "repoCreationFailed": "Erstellen des Repositorys fehlgeschlagen",
-      "requestTimedOut": "Zeitüberschreitung der Anfrage. Bitte versuche es erneut.",
+      "requestTimedOut": "Zeitüberschreitung der Anfrage. Bitte versuchen Sie es erneut.",
       "fetchReposFailed": "GitHub-Repositorys konnten nicht abgerufen werden",
-      "repoLinkedPushToSync": "Repository verknüpft! Pushe, um dein Projekt zu synchronisieren.",
+      "repoLinkedPushToSync": "Repository verknüpft! Pushen Sie Ihr Projekt, um es zu synchronisieren.",
       "fetchCommitsFailed": "Commit-Verlauf konnte nicht abgerufen werden",
       "saveProjectFailed": "Projekt konnte nicht auf GitHub gespeichert werden",
       "projectSaved": "Projekt auf GitHub gespeichert!",
@@ -994,7 +994,7 @@
       "fetchFileFailed": "Datei konnte nicht von GitHub abgerufen werden: {{status}}",
       "importProjectSuccess": "Projekt erfolgreich importiert: {{name}}",
       "importModelFailed": "Modell konnte nicht von GitHub importiert werden",
-      "starThanks": "Danke, dass du BESSER mit einem Stern markiert hast!",
+      "starThanks": "Vielen Dank, dass Sie BESSER mit einem Stern markiert haben!",
       "starFailed": "Stern konnte nicht aktualisiert werden"
     }
   },
@@ -1066,7 +1066,7 @@
       "privacyBody": "Vermeiden Sie es, sensible oder vertrauliche Informationen in Assistentennachrichten zu teilen.",
       "understand": "Ich verstehe"
     },
-    "poweredWithBaf": "Angetrieben mit BAF",
+    "poweredWithBaf": "Unterstützt durch BAF",
     "capabilities": {
       "systemDesign": {
         "title": "Systemdesign",
@@ -1078,7 +1078,7 @@
       },
       "codeGeneration": {
         "title": "Codegenerierung",
-        "body": "Komplette WebApp, React, SQL und mehr!"
+        "body": "Komplette Web-App, React, SQL und mehr!"
       }
     },
     "starterPrompts": {
@@ -1107,7 +1107,7 @@
     },
     "generationCompleted": "Generierung erfolgreich abgeschlossen.",
     "exportingProject": "Projekt wird als {{format}} exportiert…",
-    "startingDeployment": "Deployment wird gestartet…",
+    "startingDeployment": "Bereitstellung wird gestartet…",
     "generatingGui": "GUI wird aus Ihrem Klassendiagramm generiert…",
     "guiGenerated": "✓ GUI erfolgreich aus Ihrem Klassendiagramm generiert!",
     "convertThisFile": "Diese Datei umwandeln",
@@ -1119,7 +1119,7 @@
       "createTabFailed": "Neuer Tab konnte nicht erstellt werden: {{error}}",
       "switchFailed": "Konnte nicht zu {{type}} wechseln.",
       "generationUnavailable": "Generierung ist in diesem Kontext nicht verfügbar.",
-      "genericAgentError": "Auf der Assistentenseite ist etwas schiefgelaufen.",
+      "genericAgentError": "Beim Assistenten ist etwas schiefgelaufen.",
       "error": "Fehler",
       "errorWithCode": "Fehler: {{code}}",
       "guiSwitchFailed": "Konnte nicht zum GUI-Editor wechseln. Bitte wechseln Sie manuell und versuchen Sie es erneut.",
@@ -1128,9 +1128,9 @@
       "timedOut": "Zeitüberschreitung",
       "noResponse": "Keine Antwort",
       "unknownError": "Unbekannter Fehler",
-      "fileTooLarge": "Die Datei \"{{name}}\" ist zu groß (max. 10MB).",
+      "fileTooLarge": "Die Datei „{{name}}“ ist zu groß (max. 10 MB).",
       "rateLimit": "Anfragelimit überschritten. Bitte warten Sie, bevor Sie eine weitere Nachricht senden.",
-      "readFileFailed": "Die angehängte(n) Datei(en) konnte(n) nicht gelesen werden. Bitte versuchen Sie es erneut.",
+      "readFileFailed": "Die angehängten Dateien konnten nicht gelesen werden. Bitte versuchen Sie es erneut.",
       "sendFailed": "Ihre Nachricht konnte nicht gesendet werden — bitte versuchen Sie es erneut.",
       "sendVoiceFailed": "Ihre Sprachnachricht konnte nicht gesendet werden — bitte versuchen Sie es erneut.",
       "voiceProcessFailed": "Ihre Sprachnachricht konnte nicht verarbeitet werden. Bitte versuchen Sie es erneut.",
@@ -1143,7 +1143,7 @@
       "copiedResponse": "Antwort in die Zwischenablage kopiert!",
       "rateHelpful": "Antwort als hilfreich bewerten",
       "rateUnhelpful": "Antwort als nicht hilfreich bewerten",
-      "tryPrompts": "Probiere diese Vorschläge ✨",
+      "tryPrompts": "Probieren Sie diese Vorschläge aus ✨",
       "scrollToBottom": "Nach unten scrollen",
       "badge": {
         "inProgress": "In Bearbeitung",
@@ -1161,19 +1161,19 @@
       "toolResultFrom": "Ergebnis von",
       "loading": "Wird geladen...",
       "removeAttachment": "Anhang entfernen",
-      "interruptPrompt": "Erneut Enter drücken zum Unterbrechen",
+      "interruptPrompt": "Drücken Sie zum Unterbrechen erneut die Eingabetaste",
       "close": "Schließen",
       "pastedText": "Eingefügter Text",
       "promptAriaLabel": "Schreiben Sie hier Ihre Eingabe",
       "attachFile": "Datei anhängen",
       "stopAndSendVoice": "Sprachnachricht stoppen und senden",
       "startVoiceRecording": "Sprachaufnahme starten",
-      "pressAgainToStop": "Erneut drücken zum Stoppen und Senden",
+      "pressAgainToStop": "Erneut drücken, um die Aufnahme zu stoppen und zu senden",
       "stopGenerating": "Generierung stoppen",
       "sendMessage": "Nachricht senden",
       "dropFiles": "Dateien hier ablegen, um sie anzuhängen.",
       "transcribingAudio": "Audio wird transkribiert...",
-      "recordingPrompt": "Aufnahme läuft... hier klicken oder Mikrofon erneut drücken zum Stoppen und Senden ({{time}})",
+      "recordingPrompt": "Aufnahme läuft... Klicken Sie hier oder drücken Sie erneut auf das Mikrofon, um die Aufnahme zu stoppen und zu senden ({{time}})",
       "stopSendVoiceTimer": "Sprachnachricht stoppen und senden ({{time}})"
     }
   },
@@ -1183,7 +1183,7 @@
       "existing": "Aktualisieren Sie das vorhandene Repository mit Ihren neuesten Änderungen.",
       "existingAgent": "Aktualisieren Sie das vorhandene Agent-Repository mit Ihren neuesten Änderungen.",
       "new": "Erstellen Sie ein GitHub-Repository aus dem aktuellen Projekt und stellen Sie es auf Render bereit.",
-      "newAgent": "Erstellen Sie ein GitHub-Repository aus dem aktiven Agent-Diagramm und stellen Sie einen eigenständigen Agenten auf Render bereit."
+      "newAgent": "Erstellen Sie ein GitHub-Repository aus dem aktiven Agentendiagramm und stellen Sie einen eigenständigen Agenten auf Render bereit."
     },
     "fields": {
       "deploymentTarget": "Bereitstellungsziel",
@@ -1198,21 +1198,21 @@
       "personalization": "Personalisierung"
     },
     "targets": {
-      "webapp": "Web-App (Klasse + GUI)",
+      "webapp": "Web-App (Klassen- und GUI-Diagramm)",
       "agent": "Eigenständiger Agent"
     },
     "existing": {
       "previouslyDeployed": "Zuvor bereitgestellt auf:",
       "filesPreserved": "Manuell hinzugefügte Dateien bleiben erhalten.",
-      "createNewInstead": "Stattdessen neues Repo erstellen"
+      "createNewInstead": "Stattdessen ein neues Repository erstellen"
     },
     "privateWarning": "Private Repositories erfordern möglicherweise eine manuelle Render-Berechtigungseinrichtung.",
     "personalizationNote": "Der bereitgestellte Agent authentifiziert Benutzer und liefert die personalisierte Variante, die zum Profil des jeweiligen Benutzers passt.",
     "actions": {
       "publish": "Auf Render veröffentlichen",
       "publishAgent": "Agent auf Render veröffentlichen",
-      "updatePublish": "Aktualisieren & Veröffentlichen",
-      "updatePublishAgent": "Agent aktualisieren & veröffentlichen",
+      "updatePublish": "Aktualisieren und veröffentlichen",
+      "updatePublishAgent": "Agent aktualisieren und veröffentlichen",
       "publishing": "Wird veröffentlicht..."
     },
     "result": {
@@ -1228,8 +1228,8 @@
       "notSeeingChanges": "Sehen Sie Ihre Änderungen noch nicht?",
       "manualSyncIntro": "Öffnen Sie Ihren Blueprint auf Render und klicken Sie auf",
       "manualSyncLabel": "Manual Sync",
-      "manualSyncBody": ". Damit wird jeder Service im Blueprint (Backend, Frontend, Agenten) mit einem Klick aus dem letzten Commit erneut bereitgestellt. Die automatische Bereitstellung von Render kann Pushes verpassen, wenn die GitHub App keinen Zugriff auf das Repository hat, daher ist Manual Sync der zuverlässige Weg.",
-      "manualSyncBodyAgent": ". Damit wird jeder Service im Blueprint mit einem Klick aus dem letzten Commit erneut bereitgestellt. Die automatische Bereitstellung von Render kann Pushes verpassen, wenn die GitHub App keinen Zugriff auf das Repository hat, daher ist Manual Sync der zuverlässige Weg.",
+      "manualSyncBody": ". Dadurch wird jeder Service im Blueprint (Backend, Frontend, Agenten) mit einem Klick aus dem letzten Commit erneut bereitgestellt. Die automatische Bereitstellung von Render kann Pushes verpassen, wenn die GitHub-App keinen Zugriff auf das Repository hat. Daher ist „Manual Sync“ der zuverlässigste Weg.",
+      "manualSyncBodyAgent": ". Dadurch wird jeder Service im Blueprint mit einem Klick aus dem letzten Commit erneut bereitgestellt. Die automatische Bereitstellung von Render kann Pushes verpassen, wenn die GitHub-App keinen Zugriff auf das Repository hat. Daher ist „Manual Sync“ der zuverlässigste Weg.",
       "openLiveAgent": "Live-Agent öffnen",
       "openLiveApp": "Live-App öffnen",
       "openRenderDeployment": "Render-Bereitstellung öffnen",
@@ -1237,10 +1237,10 @@
       "viewRepo": "GitHub-Repository ansehen"
     },
     "toasts": {
-      "availableFor": "Das Deployment ist für Web-App- und Agent-Diagramme verfügbar.",
+      "availableFor": "Die Bereitstellung ist für Web-App- und Agentendiagramme verfügbar.",
       "connectGitHubFirst": "Zuerst mit GitHub verbinden.",
-      "requiresDiagrams": "Das Deployment erfordert Klassen- + GUI-Diagramme (Web-App) oder mindestens ein Agent-Diagramm (eigenständiger Agent).",
-      "noProjectAvailable": "Kein Projekt für das Deployment verfügbar.",
+      "requiresDiagrams": "Für die Bereitstellung sind ein Klassen- und ein GUI-Diagramm (Web-App) oder mindestens ein Agentendiagramm (eigenständiger Agent) erforderlich.",
+      "noProjectAvailable": "Kein Projekt für die Bereitstellung verfügbar.",
       "githubSessionNotFound": "GitHub-Sitzung nicht gefunden. Bitte erneut verbinden.",
       "repoNameRequired": "Der Repository-Name ist erforderlich.",
       "noPersonalizationMappings": "Keine gültigen Personalisierungszuordnungen gefunden. Speichern Sie personalisierte Varianten, bevor Sie diese Option aktivieren."
@@ -1271,8 +1271,8 @@
       "description": "Verfügbare Tastenkürzel im gesamten Editor.",
       "category": {
         "general": "Allgemein",
-        "guiEditor": "GUI Editor",
-        "quantumEditor": "Quantum Editor",
+        "guiEditor": "GUI-Editor",
+        "quantumEditor": "Quanteneditor",
         "help": "Hilfe"
       },
       "action": {
@@ -1305,7 +1305,7 @@
       "openWmeRepo": "WME-Repository öffnen",
       "class": {
         "label": "Klassendiagramm",
-        "summary": "Modellieren Sie Klassen, Beziehungen, Constraints und fortgeschrittene UML-Strukturen.",
+        "summary": "Modellieren Sie Klassen, Beziehungen, OCL-Constraints und erweiterte UML-Strukturen.",
         "addClass": {
           "title": "Klasse hinzufügen",
           "body": "<p>Ziehen Sie eine Klassenform aus der linken Palette per Drag-and-drop auf die Modellierungsfläche.</p>",
@@ -1323,7 +1323,7 @@
         },
         "editAssociation": {
           "title": "Assoziation oder Generalisierung bearbeiten",
-          "body": "<p>Doppelklicken Sie auf eine Beziehung, um Typ (unidirektional, bidirektional, Komposition, Generalisierung), Name, Rollennamen von Quelle/Ziel und Multiplizitäten zu bearbeiten.</p>",
+          "body": "<p>Doppelklicken Sie auf eine Beziehung, um den Typ (unidirektional, bidirektional, Komposition oder Generalisierung), den Namen, die Rollennamen der Quelle und des Ziels sowie die Multiplizitäten zu bearbeiten.</p>",
           "alt": "Klassenassoziation bearbeiten"
         },
         "deleteMove": {
@@ -1333,7 +1333,7 @@
         },
         "oclConstraint": {
           "title": "OCL-Constraint",
-          "body": "<p>Ziehen Sie die OCL-Form und schreiben Sie dann Constraints wie <code>Context \"ClassName\" ...</code>. Sie können Constraints über gepunktete Verbindungen mit Klassen verknüpfen.</p><p>Die Validierung der Constraint-Syntax erfolgt während der Quality Check und wird von <boclLink>B-OCL</boclLink> unterstützt.</p>",
+          "body": "<p>Ziehen Sie die OCL-Form auf die Modellierungsfläche und geben Sie anschließend Constraints wie <code>Context \"ClassName\" ...</code> ein. Sie können Constraints über gepunktete Verbindungen mit Klassen verknüpfen.</p><p>Die Constraint-Syntax wird bei der Qualitätsprüfung validiert; die Validierung wird von <boclLink>B-OCL</boclLink> unterstützt.</p>",
           "alt": "Hilfe zu OCL-Constraints"
         },
         "associationClass": {
@@ -1366,7 +1366,7 @@
         },
         "editLink": {
           "title": "Objektverknüpfung bearbeiten",
-          "body": "<p>Doppelklicken Sie auf eine Verknüpfung, um ihre Eigenschaften wie Rollen-/Namensinformationen zu aktualisieren.</p>",
+          "body": "<p>Doppelklicken Sie auf eine Verknüpfung, um ihre Eigenschaften wie Rollen- und Namensinformationen zu aktualisieren.</p>",
           "alt": "Objektverknüpfung bearbeiten"
         },
         "deleteMove": {
@@ -1378,8 +1378,8 @@
         "label": "Zustandsautomat",
         "summary": "Erfassen Sie dynamisches Verhalten mit Zuständen, Transitionen und Aktionen.",
         "about": {
-          "title": "Über Zustandsautomaten-Diagramme",
-          "body": "<p>Zustandsautomaten-Diagramme beschreiben Verhaltensänderungen im Laufe der Zeit als Reaktion auf Ereignisse und Bedingungen.</p>"
+          "title": "Über Zustandsautomatendiagramme",
+          "body": "<p>Zustandsautomatendiagramme beschreiben Verhaltensänderungen im Laufe der Zeit als Reaktion auf Ereignisse und Bedingungen.</p>"
         },
         "initialFinal": {
           "title": "Anfangs- und Endfluss hinzufügen",
@@ -1393,7 +1393,7 @@
         },
         "codeBlock": {
           "title": "Codeblock verknüpfen",
-          "body": "<p>Verknüpfen Sie Codeverhalten, indem Sie Funktionsnamen in den Body-/Fallback-Feldern des Zustands angeben, um eine präzise Ausführungszuordnung zu erreichen.</p>",
+          "body": "<p>Verknüpfen Sie Codeverhalten, indem Sie Funktionsnamen in den Body- und Fallback-Feldern des Zustands angeben, um eine präzise Ausführungszuordnung zu erreichen.</p>",
           "alt": "Codeblock des Zustandsautomaten"
         },
         "bestPractices": {
@@ -1406,7 +1406,7 @@
         "summary": "Modellieren Sie konversationelle BAF-Agenten mit Zuständen, Intents und Transitionslogik.",
         "about": {
           "title": "BAF-Agenten modellieren",
-          "body": "<p>Agentendiagramme folgen einem Zustandsautomaten-Stil, bei dem jeder Zustand einen Verhaltens-Body hat und Transitionen das Routing definieren.</p>"
+          "body": "<p>Agentendiagramme sind wie Zustandsautomaten aufgebaut: Jeder Zustand enthält ein Verhalten, und Transitionen definieren das Routing.</p>"
         },
         "addState": {
           "title": "Agentenzustand hinzufügen",
@@ -1415,7 +1415,7 @@
         },
         "editBody": {
           "title": "Body des Agentenzustands bearbeiten",
-          "body": "<p>Doppelklicken Sie auf einen Agentenzustand, um das Verhalten zu konfigurieren.</p><ul><li>Textantwort: vordefinierte Antwortnachricht.</li><li>LLM-Antwort: Delegieren Sie die Antwortgenerierung an ein LLM.</li><li>RAG-Antwort: Antworten Sie mithilfe einer Retrieval-Augmented-Wissensquelle.</li><li>Python-Code: Führen Sie benutzerdefinierte Verhaltenslogik aus.</li></ul>",
+          "body": "<p>Doppelklicken Sie auf einen Agentenzustand, um das Verhalten zu konfigurieren.</p><ul><li>Textantwort: vordefinierte Antwortnachricht.</li><li>LLM-Antwort: Delegieren Sie die Antwortgenerierung an ein LLM.</li><li>RAG-Antwort: Antworten Sie mithilfe einer Wissensquelle mit Retrieval-Augmented Generation.</li><li>Python-Code: Führen Sie benutzerdefinierte Verhaltenslogik aus.</li></ul>",
           "alt": "Agenten-Body bearbeiten"
         },
         "addTransition": {
@@ -1440,12 +1440,12 @@
         },
         "customization": {
           "title": "Agentenanpassung",
-          "body": "<p>Öffnen Sie Agent Config in der Seitenleiste, um Modell- und Laufzeiteinstellungen für generierte Agenten zu konfigurieren.</p><ul><li>Klassische Intent-Erkennung: Trainieren Sie ein lokales Modell aus den definierten Intents.</li><li>LLM-basierte Intent-Erkennung: Delegieren Sie die Intent-Klassifizierung an ein LLM.</li></ul>",
+          "body": "<p>Öffnen Sie die Agentenkonfiguration in der Seitenleiste, um Modell- und Laufzeiteinstellungen für generierte Agenten festzulegen.</p><ul><li>Klassische Intent-Erkennung: Trainieren Sie ein lokales Modell mit den definierten Intents.</li><li>LLM-basierte Intent-Erkennung: Delegieren Sie die Intent-Klassifizierung an ein LLM.</li></ul>",
           "alt": "Agentenkonfiguration"
         }
       },
       "gui": {
-        "label": "GUI Editor",
+        "label": "GUI-Editor",
         "summary": "Erstellen Sie UI-Bildschirme visuell und generieren Sie Frontends für Webanwendungen.",
         "coreWorkflow": {
           "title": "Kern-Workflow",
@@ -1453,11 +1453,11 @@
         }
       },
       "quantum": {
-        "label": "Quantum Editor",
+        "label": "Quanteneditor",
         "summary": "Entwerfen Sie Schaltkreise, konfigurieren Sie Gatter und generieren Sie Qiskit-kompatible Artefakte.",
         "coreWorkflow": {
           "title": "Kern-Workflow",
-          "body": "<p>Platzieren Sie Gatter auf Qubit-Linien, validieren Sie die Struktur und generieren Sie dann mit den ausgewählten Backend-Einstellungen.</p><p>Verwenden Sie die Shot-Anzahl und die Backend-Auswahl in Generate für reproduzierbare Ergebnisse.</p>"
+          "body": "<p>Platzieren Sie Gatter auf Qubit-Linien, validieren Sie die Struktur und generieren Sie anschließend mit den ausgewählten Backend-Einstellungen.</p><p>Verwenden Sie im Menü „Generieren“ die Anzahl der Shots und die Backend-Auswahl, um reproduzierbare Ergebnisse zu erhalten.</p>"
         }
       },
       "nn": {
@@ -1465,7 +1465,7 @@
         "summary": "Entwerfen Sie geschichtete neuronale Netze, hängen Sie Datensätze und Trainingskonfigurationen an und generieren Sie PyTorch- oder TensorFlow-Code.",
         "coreWorkflow": {
           "title": "Kern-Workflow",
-          "body": "<p>Erstellen Sie ein neuronales Netz, indem Sie einen NNContainer auf die Fläche ziehen. Ziehen Sie Schichten und TensorOps hinein und verbinden Sie sie dann mit NNNext-Beziehungen, um den Forward-Pass zu definieren.</p><p>Configuration sowie Training/Test-Datensätze sind optionale Elemente, die Trainingshyperparameter und Datensatz-Metadaten enthalten. Wenn das Diagramm fertig ist, generieren Sie PyTorch- oder TensorFlow-Code über das Menü Generate.</p>",
+          "body": "<p>Erstellen Sie ein neuronales Netz, indem Sie einen NNContainer auf die Fläche ziehen. Ziehen Sie Schichten und TensorOps hinein und verbinden Sie sie anschließend mit NNNext-Beziehungen, um den Forward-Pass zu definieren.</p><p>Die Konfiguration sowie Trainings- und Testdatensätze sind optionale Elemente, die Trainingshyperparameter und Datensatzmetadaten enthalten. Wenn das Diagramm fertig ist, generieren Sie PyTorch- oder TensorFlow-Code über das Menü „Generieren“.</p>",
           "alt": "Übersicht über das NN-Diagramm"
         },
         "containerLayers": {
@@ -1475,7 +1475,7 @@
         },
         "connect": {
           "title": "Module verbinden (NNNext)",
-          "body": "<p>Ziehen Sie von einem blauen Verbindungspunkt an einem Quellmodul zu einem beliebigen Zielmodul, um eine NNNext-Beziehung zu erstellen. Der resultierende \"next\"-Pfeil definiert die Reihenfolge des Forward-Pass, unabhängig davon, ob die verbundenen Module Schichten, TensorOps oder eine Mischung aus beidem sind.</p>",
+          "body": "<p>Ziehen Sie von einem blauen Verbindungspunkt an einem Quellmodul zu einem beliebigen Zielmodul, um eine NNNext-Beziehung zu erstellen. Der resultierende „next“-Pfeil definiert die Reihenfolge des Forward-Passes, unabhängig davon, ob die verbundenen Module Schichten, TensorOps oder eine Mischung aus beidem sind.</p>",
           "alt": "Zwei mit einem NNNext-Pfeil verbundene Module"
         },
         "editAttributes": {
@@ -1489,9 +1489,9 @@
           "alt": "Trainings- und Testdatensätze"
         },
         "configuration": {
-          "title": "Configuration",
-          "body": "<p>Configuration ist optional. Ziehen Sie ein Configuration-Element und verbinden Sie es über eine Kompositionsbeziehung mit dem NNContainer, um Trainingshyperparameter festzulegen.</p><p>Obligatorische Attribute: <code>batch_size</code>, <code>epochs</code>, <code>learning_rate</code>, <code>optimizer</code> (<code>sgd</code>, <code>adam</code>, <code>adamW</code>, <code>adagrad</code>), <code>loss_function</code> (<code>crossentropy</code>, <code>binary_crossentropy</code>, <code>mse</code>) und <code>metrics</code> (Mehrfachauswahl aus <code>accuracy</code>, <code>precision</code>, <code>recall</code>, <code>f1-score</code>, <code>mae</code>). Optionale Attribute: <code>weight_decay</code> und <code>momentum</code>.</p>",
-          "alt": "Configuration-Element mit Optimizer-Dropdown"
+          "title": "Konfiguration",
+          "body": "<p>Die Konfiguration ist optional. Ziehen Sie ein Konfigurationselement auf die Fläche und verbinden Sie es über eine Kompositionsbeziehung mit dem NNContainer, um Trainingshyperparameter festzulegen.</p><p>Obligatorische Attribute: <code>batch_size</code>, <code>epochs</code>, <code>learning_rate</code>, <code>optimizer</code> (<code>sgd</code>, <code>adam</code>, <code>adamW</code>, <code>adagrad</code>), <code>loss_function</code> (<code>crossentropy</code>, <code>binary_crossentropy</code>, <code>mse</code>) und <code>metrics</code> (Mehrfachauswahl aus <code>accuracy</code>, <code>precision</code>, <code>recall</code>, <code>f1-score</code>, <code>mae</code>). Optionale Attribute: <code>weight_decay</code> und <code>momentum</code>.</p>",
+          "alt": "Konfigurationselement mit Optimizer-Auswahl"
         },
         "reference": {
           "title": "Ein anderes Netz referenzieren (NNReference)",
@@ -1500,7 +1500,7 @@
         },
         "validateGenerate": {
           "title": "Validieren und generieren",
-          "body": "<p>Führen Sie Quality Check in der oberen Leiste aus, um strukturelle Probleme wie nicht verbundene Schichten oder fehlende obligatorische Attribute zu erkennen, bevor Sie Code generieren.</p><p>Öffnen Sie das Menü Generate und wählen Sie ein Framework und einen Stil:</p><ul><li><strong>PyTorch / Subclassing</strong>: <code>torch.nn.Module</code>-Unterklasse mit einem expliziten Forward-Pass.</li><li><strong>PyTorch / Sequential</strong>: <code>nn.Sequential</code>-Komposition für streng sequenzielle Architekturen.</li><li><strong>TensorFlow / Subclassing</strong>: <code>tf.keras.Model</code>-Unterklasse mit einem benutzerdefinierten <code>call()</code>.</li><li><strong>TensorFlow / Sequential</strong>: <code>keras.Sequential</code>-Komposition.</li></ul><p>Die NN-Architekturdefinition wird im ausgewählten Framework generiert, zusammen mit Trainings- und Evaluierungscode, wenn Datensätze und Configuration definiert sind.</p>",
+          "body": "<p>Führen Sie die Qualitätsprüfung in der oberen Leiste aus, um strukturelle Probleme wie nicht verbundene Schichten oder fehlende obligatorische Attribute zu erkennen, bevor Sie Code generieren.</p><p>Öffnen Sie das Menü „Generieren“ und wählen Sie ein Framework und einen Stil:</p><ul><li><strong>PyTorch / Subclassing</strong>: <code>torch.nn.Module</code>-Unterklasse mit einem expliziten Forward-Pass.</li><li><strong>PyTorch / Sequential</strong>: <code>nn.Sequential</code>-Komposition für streng sequenzielle Architekturen.</li><li><strong>TensorFlow / Subclassing</strong>: <code>tf.keras.Model</code>-Unterklasse mit einem benutzerdefinierten <code>call()</code>.</li><li><strong>TensorFlow / Sequential</strong>: <code>keras.Sequential</code>-Komposition.</li></ul><p>Die NN-Architekturdefinition wird im ausgewählten Framework zusammen mit Trainings- und Evaluierungscode generiert, sofern Datensätze und eine Konfiguration definiert sind.</p>",
           "alt": "Menü zum Generieren von Code"
         }
       }
@@ -1516,7 +1516,7 @@
     },
     "currentDiagram": {
       "title": "Aktuelles Diagramm",
-      "subtitle": "Das aktuelle UML-Diagramm als Bild-Assets exportieren.",
+      "subtitle": "Das aktuelle UML-Diagramm als Bilddateien exportieren.",
       "untitled": "Unbenanntes Diagramm",
       "requiresUmlView": "Exporte des aktuellen Diagramms erfordern eine UML-Diagrammansicht. Verwenden Sie stattdessen den Export auf Projektebene."
     },
@@ -1536,7 +1536,7 @@
     "titles": {
       "importedClassDiagram": "Importiertes Klassendiagramm",
       "importedObjectDiagram": "Importiertes Objektdiagramm",
-      "importedStateMachineDiagram": "Importiertes Zustandsautomat-Diagramm",
+      "importedStateMachineDiagram": "Importiertes Zustandsautomatendiagramm",
       "importedAgentDiagram": "Importiertes Agentendiagramm"
     },
     "descriptions": {
@@ -1546,11 +1546,11 @@
       "importedFromImage": "Importiertes {{diagramType}}-Diagramm aus Bild"
     },
     "fileTypes": {
-      "pythonBuml": "Python/BUML",
+      "pythonBuml": "Python/B-UML",
       "json": "JSON"
     },
     "buml": {
-      "exportSuccess": "BUML-Export erfolgreich abgeschlossen"
+      "exportSuccess": "B-UML-Export erfolgreich abgeschlossen"
     },
     "project": {
       "exportSuccess": "Projekt als {{filename}} exportiert"
@@ -1570,7 +1570,7 @@
       "selectAtLeastOne": "Wählen Sie mindestens ein Diagramm zum Exportieren aus.",
       "exportFailed": "Export fehlgeschlagen: {{message}}",
       "unknown": "Unbekannter Fehler",
-      "unknownOccurred": "Unbekannter Fehler aufgetreten",
+      "unknownOccurred": "Ein unbekannter Fehler ist aufgetreten.",
       "unknownDuringImport": "Beim Import ist ein unbekannter Fehler aufgetreten",
       "validationFailed": "Validierung fehlgeschlagen",
       "noDiagramToExport": "Kein Diagramm zum Exportieren",
@@ -1578,8 +1578,8 @@
       "exportProjectFailed": "Projekt konnte nicht exportiert werden: {{message}}",
       "guiEmpty": "Das GUI-Modell in dieser Datei ist leer, und es wurden keine anderen Diagrammtypen gefunden.",
       "guiNotSupported": "Diese Datei enthält ein GUI-Modell. GUI-Modelle können nur über die Funktion Projektimport (Datei > Projekt importieren) importiert werden.",
-      "noValidDiagram": "Kein gültiges Diagramm in der BUML-Datei gefunden",
-      "importBumlFailed": "BUML-Datei konnte nicht importiert werden: {{message}}",
+      "noValidDiagram": "Kein gültiges Diagramm in der B-UML-Datei gefunden",
+      "importBumlFailed": "B-UML-Datei konnte nicht importiert werden: {{message}}",
       "invalidGithubUrl": "Ungültige GitHub-URL. Bitte geben Sie eine gültige GitHub-Repository-URL an.",
       "githubFileNotFound": "Datei auf GitHub nicht gefunden. Bitte überprüfen Sie die URL und versuchen Sie es erneut.",
       "githubFetchFailed": "Datei konnte nicht von GitHub abgerufen werden: {{status}}",
@@ -1646,7 +1646,7 @@
         "rows": {
           "generators": "Verwendete Code-Generatoren",
           "diagramComplexity": "Diagrammtyp und Modellkomplexität",
-          "assistantUsage": "Nutzungsanzahl des KI-Assistenten",
+          "assistantUsage": "Nutzungshäufigkeit des KI-Assistenten",
           "noContent": "Keine Modellinhalte oder personenbezogenen Daten"
         }
       },
@@ -1665,7 +1665,7 @@
         "collect": {
           "usage": "Funktionsnutzung (Generatoren und Diagramm-Workflows)",
           "metrics": "Modellmetriken (Größen- und Strukturzählungen)",
-          "assistant": "Nutzungszahlen des KI-Assistenten (nicht der Inhalt)",
+          "assistant": "Nutzungszahlen des KI-Assistenten (nicht die Inhalte)",
           "session": "Anonyme Sitzungsmetadaten"
         },
         "noCollectTitle": "Daten, die wir nicht erfassen",
@@ -1694,11 +1694,11 @@
     },
     "jsonViewer": {
       "jsonTitle": "JSON-Vorschau des Projekts",
-      "diagramBuml": "Diagramm B-UML",
+      "diagramBuml": "Diagramm-B-UML",
       "closeLabel": "Vorschaufenster schließen",
       "expand": "{{name}} aufklappen",
       "collapse": "{{name}} zuklappen",
-      "root": "root",
+      "root": "Stammelement",
       "generatingBuml": "B-UML-Vorschau wird generiert...",
       "noBumlPreview": "Es ist noch keine B-UML-Vorschau verfügbar.",
       "generating": "Wird generiert...",
@@ -1736,7 +1736,7 @@
     },
     "validateBeforeNav": {
       "title": "Validieren Sie Ihre Modelle, bevor Sie zur nächsten Aufgabe wechseln",
-      "description": "Dieses User-Modell wurde nach Ihren letzten Änderungen nicht validiert.",
+      "description": "Dieses Benutzermodell wurde nach Ihren letzten Änderungen nicht validiert.",
       "confirmLabel": "Modelle validieren",
       "cancelLabel": "Ignorieren"
     },
@@ -1752,7 +1752,7 @@
       "switchedToBase": "Zum Basis-Agent-Modell gewechselt.",
       "notAvailable": "Die ausgewählte Variante ist nicht mehr verfügbar.",
       "switchedToVariant": "Zur Variante {{name}} gewechselt.",
-      "switchFailed": "Wechsel der Agent-Modellvariante fehlgeschlagen."
+      "switchFailed": "Wechsel der Agentenmodellvariante fehlgeschlagen."
     },
     "nav": {
       "open": "Navigation öffnen",
@@ -1772,10 +1772,10 @@
       "noClassesToInstantiate": "Das referenzierte Klassendiagramm hat keine Klassen zum Instanziieren.",
       "linksFragment_one": ", {{count}} Verknüpfung",
       "linksFragment_other": ", {{count}} Verknüpfungen",
-      "allClassesHaveInstance_one": "Die {{count}} Klasse hat bereits eine Instanz — nichts hinzuzufügen.",
+      "allClassesHaveInstance_one": "Für {{count}} Klasse ist bereits eine Instanz vorhanden — nichts hinzuzufügen.",
       "allClassesHaveInstance_other": "Alle {{count}} Klassen haben bereits eine Instanz — nichts hinzuzufügen.",
-      "generatedWithSkipped_one": "{{count}} Objekt{{links}} generiert, {{skipped}} bereits auf der Arbeitsfläche übersprungen.",
-      "generatedWithSkipped_other": "{{count}} Objekte{{links}} generiert, {{skipped}} bereits auf der Arbeitsfläche übersprungen.",
+      "generatedWithSkipped_one": "{{count}} Objekt{{links}} generiert; bereits vorhandene Objekte wurden übersprungen: {{skipped}}.",
+      "generatedWithSkipped_other": "{{count}} Objekte{{links}} generiert; bereits vorhandene Objekte wurden übersprungen: {{skipped}}.",
       "generatedFromClassDiagram_one": "{{count}} Objekt{{links}} aus dem Klassendiagramm generiert.",
       "generatedFromClassDiagram_other": "{{count}} Objekte{{links}} aus dem Klassendiagramm generiert.",
       "maxDiagrams": "Maximal {{count}} Diagramme pro Typ.",
@@ -1823,7 +1823,7 @@
       "rowsPerPage": "Zeilen pro Seite: {{count}}"
     },
     "quantum": {
-      "editorTitle": "Quantum Editor",
+      "editorTitle": "Quanteneditor",
       "saved": "Gespeichert",
       "saving": "Wird gespeichert...",
       "error": "Fehler",
@@ -1872,21 +1872,21 @@
         "MEASURE": "Messung (Z-Basis): Kollabiert die Qubit-Superposition zu |0⟩ oder |1⟩. Das Ergebnis ist probabilistisch, basierend auf den Qubit-Amplituden.",
         "MEASURE_X": "Messung (X-Basis): Kollabiert das Qubit zu |+⟩ oder |−⟩. Entspricht H, dann Z-Messung, dann H.",
         "MEASURE_Y": "Messung (Y-Basis): Kollabiert das Qubit zu |i⟩ oder |−i⟩. Misst die Phase relativ zur Y-Achse.",
-        "CONTROL": "Steuerung: Bedingt andere Gatter darauf, dass dieses Qubit |1⟩ ist. Erzeugt CNOT, Toffoli und andere gesteuerte Gatter.",
-        "ANTI_CONTROL": "Anti-Steuerung: Bedingt andere Gatter darauf, dass dieses Qubit |0⟩ ist. Gegenteil der normalen Steuerung.",
+        "CONTROL": "Steuerung: Führt andere Gatter nur aus, wenn sich dieses Qubit im Zustand |1⟩ befindet. Erzeugt CNOT-, Toffoli- und andere gesteuerte Gatter.",
+        "ANTI_CONTROL": "Anti-Steuerung: Führt andere Gatter nur aus, wenn sich dieses Qubit im Zustand |0⟩ befindet. Sie ist das Gegenstück zur normalen Steuerung.",
         "POST_SELECT_OFF": "Post-Selektion |0⟩: Zwingt das Qubit auf |0⟩. Verwirft Zweige, in denen das Qubit |1⟩ wäre.",
         "POST_SELECT_ON": "Post-Selektion |1⟩: Zwingt das Qubit auf |1⟩. Verwirft Zweige, in denen das Qubit |0⟩ wäre.",
         "POST_SELECT_X_OFF": "Post-Selektion |+⟩: Zwingt das Qubit in die Superposition (|0⟩+|1⟩)/√2.",
         "POST_SELECT_X_ON": "Post-Selektion |−⟩: Zwingt das Qubit in die Superposition (|0⟩−|1⟩)/√2.",
         "POST_SELECT_Y_OFF": "Post-Selektion |i⟩: Zwingt das Qubit in den Y+-Eigenzustand (|0⟩+i|1⟩)/√2.",
         "POST_SELECT_Y_ON": "Post-Selektion |−i⟩: Zwingt das Qubit in den Y−-Eigenzustand (|0⟩−i|1⟩)/√2.",
-        "CONTROL_X": "X-Achsen-Steuerung: Bedingt auf der X-Basis (|+⟩/|−⟩) statt auf der Z-Basis (|0⟩/|1⟩).",
-        "CONTROL_Y": "Y-Achsen-Steuerung: Bedingt auf der Y-Basis (|i⟩/|−i⟩) statt auf der Z-Basis.",
+        "CONTROL_X": "X-Achsen-Steuerung: Verwendet die X-Basis (|+⟩/|−⟩) anstelle der Z-Basis (|0⟩/|1⟩) als Steuerbedingung.",
+        "CONTROL_Y": "Y-Achsen-Steuerung: Verwendet die Y-Basis (|i⟩/|−i⟩) anstelle der Z-Basis als Steuerbedingung.",
         "X_POW": "X-Rotation (X^t): Dreht um t×180° um die X-Achse. t=1 ist das X-Gatter, t=0.5 ist √X.",
         "Y_POW": "Y-Rotation (Y^t): Dreht um t×180° um die Y-Achse. t=1 ist das Y-Gatter, t=0.5 ist √Y.",
         "Z_POW": "Z-Rotation (Z^t): Fügt |1⟩ eine Phase von t×180° hinzu. t=1 ist Z, t=0.5 ist S, t=0.25 ist T.",
-        "EXP_X": "X-Exponential: e^(-iXt) – dreht um X um den Winkel 2t. Natürliche Form für die Hamilton-Simulation.",
-        "EXP_Y": "Y-Exponential: e^(-iYt) – dreht um Y um den Winkel 2t. Reellwertige Rotationsmatrix.",
+        "EXP_X": "X-Exponential: e^(-iXt) – bewirkt eine Rotation um die X-Achse mit dem Winkel 2t. Natürliche Form für die Hamilton-Simulation.",
+        "EXP_Y": "Y-Exponential: e^(-iYt) – bewirkt eine Rotation um die Y-Achse mit dem Winkel 2t. Reellwertige Rotationsmatrix.",
         "EXP_Z": "Z-Exponential: e^(-iZt) – Phasenrotation um den Winkel 2t. Diagonales Gatter zur Phasenmanipulation.",
         "Z_POW_T": "Rotierendes Z: Dreht sich kontinuierlich um Z, während die Simulationszeit t fortschreitet. Die Phase akkumuliert sich mit der Zeit.",
         "Z_POW_NEG_T": "Rückwärts rotierendes Z: Dreht sich rückwärts um die Z-Achse. Macht Z^t für die Zeitumkehr rückgängig.",
@@ -1895,19 +1895,19 @@
         "X_POW_T": "Rotierendes X: Dreht sich kontinuierlich um X, während die Simulationszeit fortschreitet.",
         "X_POW_NEG_T": "Rückwärts rotierendes X: Dreht sich rückwärts um die X-Achse, während die Zeit fortschreitet.",
         "Z_FUNC_T": "Formelbasiertes Z: Der Rotationswinkel wird aus einer benutzerdefinierten Funktion f(t) berechnet. Für komplexe Dynamiken.",
-        "RZ_FUNC_T": "Formelbasiertes Rz: Rotation um die Z-Achse um f(t) Radiant. Alternative Parametrisierung der Z-Rotation.",
+        "RZ_FUNC_T": "Formelbasiertes Rz: Rotation um f(t) Radiant um die Z-Achse. Alternative Parametrisierung der Z-Rotation.",
         "Y_FUNC_T": "Formelbasiertes Y: Y-Rotationswinkel aus einer benutzerdefinierten Funktion f(t). Für komplexe Dynamiken.",
-        "RY_FUNC_T": "Formelbasiertes Ry: Rotation um die Y-Achse um f(t) Radiant. Alternative Parametrisierung.",
+        "RY_FUNC_T": "Formelbasiertes Ry: Rotation um f(t) Radiant um die Y-Achse. Alternative Parametrisierung.",
         "X_FUNC_T": "Formelbasiertes X: X-Rotationswinkel aus einer benutzerdefinierten Funktion f(t). Für komplexe Dynamiken.",
-        "RX_FUNC_T": "Formelbasiertes Rx: Rotation um die X-Achse um f(t) Radiant. Alternative Parametrisierung.",
+        "RX_FUNC_T": "Formelbasiertes Rx: Rotation um f(t) Radiant um die X-Achse. Alternative Parametrisierung.",
         "TIME_SHIFT": "Zeitverschiebung +1: Rückt den Zeitparameter für nachfolgende Gatter vor. Wird für zeitbasierte Simulationen verwendet.",
         "TIME_SHIFT_INV": "Zeitverschiebung -1: Kehrt den Zeitparameter für nachfolgende Gatter um. Macht den Zeitvorlauf rückgängig.",
         "QFT": "Quanten-Fourier-Transformation: Wandelt die Rechenbasis in die Frequenzbasis um. Wesentlich für den Shor-Algorithmus und die Phasenschätzung.",
         "QFT_DAG": "Inverse QFT: Wandelt die Frequenzbasis zurück in die Rechenbasis um. Macht die QFT rückgängig.",
         "PHASE_GRADIENT": "Phasengradient: Wendet zunehmende Phasen auf die Basiszustände an. Wird in der QFT und beim Phase-Kickback verwendet.",
-        "PHASE_GRADIENT_DAG": "Inverser Phasengradient: Entfernt die von Grad angewandten Phasen. Macht den Phasengradienten rückgängig.",
+        "PHASE_GRADIENT_DAG": "Inverser Phasengradient: Entfernt die vom Phasengradienten angewandten Phasen. Macht den Phasengradienten rückgängig.",
         "PHASE_GRADIENT_INV": "Umgekehrter Phasengradient: Wendet abnehmende Phasen auf die Basiszustände an.",
-        "PHASE_GRADIENT_INV_DAG": "Umgekehrter Phasengradient Dagger: Konjugiert Transponierte von Grad⁻¹.",
+        "PHASE_GRADIENT_INV_DAG": "Dagger des umgekehrten Phasengradienten: Entspricht der konjugiert Transponierten des inversen Phasengradienten.",
         "INC": "Inkrement: Addiert 1 zum als Binärzahl interpretierten Quantenregister. |n⟩ → |n+1⟩.",
         "DEC": "Dekrement: Subtrahiert 1 vom Quantenregister. |n⟩ → |n-1⟩ (mit Überlauf).",
         "ADD": "Quantenaddition: Addiert das Eingaberegister A zum Zielregister. Wird in arithmetischen Quantenschaltungen verwendet.",
@@ -1915,23 +1915,23 @@
         "MUL": "Quantenmultiplikation: Multipliziert das Zielregister mit der Eingabe A. Schlüssel für den Shor-Algorithmus.",
         "ADD_AB": "Produkt addieren: Addiert das Produkt A×B zum Zielregister. Mehrregister-Operation.",
         "SUB_AB": "Produkt subtrahieren: Subtrahiert das Produkt A×B vom Ziel. Umkehrung von +AB.",
-        "MUL_INV": "Inverse Multiplikation: Dividiert durch A (multipliziert mit dem modularen Inversen). Macht ×A rückgängig.",
+        "MUL_INV": "Inverse Multiplikation: Dividiert durch A, indem mit dem modularen Inversen von A multipliziert wird. Macht ×A rückgängig.",
         "MOD_ADD": "Modulare Addition: Addiert A zum Register mod R. Das Ergebnis läuft bei R über. Schlüssel für den Shor-Algorithmus.",
         "MOD_SUB": "Modulare Subtraktion: Subtrahiert A vom Register mod R. Umkehrung der modularen Addition.",
         "MOD_MUL": "Modulare Multiplikation: Multipliziert das Register mit A mod R. Kern der modularen Exponentiation.",
         "MOD_INV_MUL": "Modulare Division: Multipliziert mit A⁻¹ mod R. Macht die modulare Multiplikation rückgängig.",
         "MOD_INC": "Modulares Inkrement: Addiert 1 zum Register mod R. Springt von R-1 auf 0.",
         "MOD_DEC": "Modulares Dekrement: Subtrahiert 1 vom Register mod R. Springt von 0 auf R-1.",
-        "MOD_MUL_B": "Modulare Multiplikation mit B: Multipliziert mit der zweiten Eingabe B mod R. Mehrregister-Operation.",
-        "MOD_MUL_B_INV": "Modulare Multiplikation von B mit A-invers: Berechnet B×A⁻¹ mod R. Für reversible Berechnung.",
+        "MOD_MUL_B": "Modulare Multiplikation mit B: Multipliziert das Register mit der zweiten Eingabe B modulo R. Mehrregisteroperation.",
+        "MOD_MUL_B_INV": "Modulare Multiplikation von B mit dem Inversen von A: Berechnet B×A⁻¹ mod R. Für reversible Berechnungen.",
         "COMPARE": "Kleiner-als-Vergleich: Setzt das Ausgabe-Qubit auf |1⟩, wenn A < B. Quantenvergleichsschaltung.",
         "GREATER_THAN": "Größer-als-Vergleich: Setzt die Ausgabe auf |1⟩, wenn Register A > Register B.",
         "LESS_EQUAL": "Kleiner oder gleich: Setzt die Ausgabe auf |1⟩, wenn Register A ≤ Register B.",
         "GREATER_EQUAL": "Größer oder gleich: Setzt die Ausgabe auf |1⟩, wenn Register A ≥ Register B.",
         "EQUAL": "Gleichheitstest: Setzt die Ausgabe auf |1⟩, wenn die Register A und B denselben Wert haben.",
         "NOT_EQUAL": "Ungleichheitstest: Setzt die Ausgabe auf |1⟩, wenn sich die Register A und B unterscheiden.",
-        "COMPARE_A_LT": "Mit Eingabe A vergleichen: Setzt die Ausgabe auf |1⟩, wenn das Qubit-Register < der Wert der Eingabe A ist.",
-        "COMPARE_A_GT": "Mit Eingabe A vergleichen: Setzt die Ausgabe auf |1⟩, wenn das Qubit-Register > der Wert der Eingabe A ist.",
+        "COMPARE_A_LT": "Mit Eingabe A vergleichen: Setzt die Ausgabe auf |1⟩, wenn der Wert des Qubit-Registers kleiner als der Wert der Eingabe A ist.",
+        "COMPARE_A_GT": "Mit Eingabe A vergleichen: Setzt die Ausgabe auf |1⟩, wenn der Wert des Qubit-Registers größer als der Wert der Eingabe A ist.",
         "COMPARE_A_EQ": "Mit Eingabe A vergleichen: Setzt die Ausgabe auf |1⟩, wenn das Qubit-Register dem Wert der Eingabe A entspricht.",
         "COUNT_1S": "Populationszählung: Zählt die Anzahl der |1⟩-Qubits im Register. Die Ausgabe ist eine Binärdarstellung.",
         "CYCLE_BITS": "Bits rotieren: Rotiert die Qubit-Positionen zyklisch. Das oberste Qubit wandert nach unten, die anderen rücken nach oben.",
@@ -1942,19 +1942,19 @@
         "INPUT_R": "Eingabe R (Modul): Legt den Modulwert für modulare arithmetische Operationen fest.",
         "MYSTERY": "Mystery-Gatter: Ein zufälliges unitäres Gatter. Jedes Mal anders – nützlich zum Testen und für Spiele.",
         "ZERO": "Null-Projektion: Projiziert auf den Zustand |0⟩. Nicht-unitäre Operation, die Information zerstört.",
-        "UNIVERSAL_NOT": "Universelles NOT: Anti-unitäre Operation, die jeden Qubit-Zustand in seinen orthogonalen umkehrt. Physikalisch unmöglich zu bauen.",
-        "ONE": "Identitätsgatter: Bewirkt nichts am Qubit. Nützlich als Platzhalter oder für die Übersichtlichkeit der Schaltung.",
-        "MINUS_ONE": "Globale Phase (-1): Multipliziert den gesamten Zustand mit -1. Nicht beobachtbar, aber relevant bei Interferenz.",
+        "UNIVERSAL_NOT": "Universelles NOT: Anti-unitäre Operation, die jeden Qubit-Zustand in seinen orthogonalen Zustand umkehrt. Physikalisch nicht realisierbar.",
+        "ONE": "Identitätsgatter: Verändert das Qubit nicht. Nützlich als Platzhalter oder für die Übersichtlichkeit der Schaltung.",
+        "MINUS_ONE": "Globale Phase (-1): Multipliziert den gesamten Zustand mit -1. Nicht beobachtbar, aber für die Interferenz relevant.",
         "PHASE_I": "Globale Phase (i): Dreht die globale Phase um 90°. Multipliziert den Zustand mit der imaginären Einheit i.",
         "PHASE_MINUS_I": "Globale Phase (-i): Dreht die globale Phase um -90°. Multipliziert den Zustand mit -i.",
         "PHASE_SQRT_I": "Globale Phase (√i): Dreht die globale Phase um 45°. Zwei Anwendungen ergeben die Phase i.",
         "PHASE_SQRT_MINUS_I": "Globale Phase (√-i): Dreht die globale Phase um -45°. Zwei Anwendungen ergeben die Phase -i.",
-        "BLOCH": "Bloch-Kugel: Visualisiert den Zustand eines einzelnen Qubits auf der Einheitskugel. Die Pole sind |0⟩/|1⟩, der Äquator sind Superpositionen.",
-        "DENSITY": "Dichtematrix (ρ): Zeigt den vollständigen Quantenzustand einschließlich gemischter Zustände. Diagonale = Wahrscheinlichkeiten, außerhalb der Diagonale = Kohärenzen.",
+        "BLOCH": "Bloch-Kugel: Visualisiert den Zustand eines einzelnen Qubits auf der Einheitskugel. Die Pole entsprechen |0⟩ und |1⟩; auf dem Äquator liegen Superpositionen.",
+        "DENSITY": "Dichtematrix (ρ): Zeigt den vollständigen Quantenzustand einschließlich gemischter Zustände. Diagonaleinträge entsprechen Wahrscheinlichkeiten, Einträge außerhalb der Diagonale den Kohärenzen.",
         "AMPLITUDE": "Amplitudenanzeige: Zeigt die komplexen Amplituden für jeden Basiszustand. Höhe = Betrag, Winkel = Phase.",
-        "CHANCE": "Wahrscheinlichkeitsanzeige: Zeigt die Wahrscheinlichkeit (0-100%), für dieses Qubit |1⟩ zu messen.",
-        "INTERLEAVE": "Verschränken: Mischt die Qubits wie beim Verschränken zweier Kartenstapelhälften. Nützlich zur QFT-Optimierung.",
-        "DEINTERLEAVE": "Entschränken: Macht die Verschränkungs-Operation rückgängig. Trennt die abwechselnden Qubits wieder in Hälften.",
+        "CHANCE": "Wahrscheinlichkeitsanzeige: Zeigt die Wahrscheinlichkeit (0–100 %), bei einer Messung dieses Qubits den Zustand |1⟩ zu erhalten.",
+        "INTERLEAVE": "Bits verschachteln: Ordnet die Qubits abwechselnd an, ähnlich dem Ineinanderschieben zweier Kartenstapelhälften. Nützlich zur QFT-Optimierung.",
+        "DEINTERLEAVE": "Bitverschachtelung aufheben: Macht die Verschachtelungsoperation rückgängig und trennt die abwechselnd angeordneten Qubits wieder in zwei Hälften.",
         "REVERSE_BITS": "Bits umkehren: Kehrt die Reihenfolge der Qubits um. Oft nach der QFT nötig, um die Bit-Reihenfolge zu korrigieren.",
         "ROTATE_BITS_LEFT": "Nach links rotieren: Verschiebt alle Qubits zyklisch um eine Position nach oben. Das oberste läuft nach unten.",
         "ROTATE_BITS_RIGHT": "Nach rechts rotieren: Verschiebt alle Qubits zyklisch um eine Position nach unten. Das unterste läuft nach oben.",
@@ -2128,8 +2128,8 @@
         "zoom": "Zoom",
         "valueColor": "Wertfarbe",
         "valueSize": "Wertgröße",
-        "negativeTrendColor": "Farbe negativer Trend",
-        "positiveTrendColor": "Farbe positiver Trend"
+        "negativeTrendColor": "Farbe für einen negativen Trend",
+        "positiveTrendColor": "Farbe für einen positiven Trend"
       },
       "pages": {
         "title": "Seiten",
@@ -2186,11 +2186,11 @@
       },
       "agentPreview": {
         "previewMode": "Vorschaumodus",
-        "greeting": "Hallo! Ich bin {{agentName}}. Wie kann ich helfen?",
+        "greeting": "Hallo! Ich bin {{agentName}}. Wie kann ich Ihnen helfen?",
         "previewMessage": "Dies ist eine Vorschau der Chat-Oberfläche",
-        "selectAgent": "Wählen Sie einen Agenten, um zu chatten...",
+        "selectAgent": "Wählen Sie einen Agenten aus, um zu chatten...",
         "typeMessage": "Nachricht eingeben...",
-        "selectAgentFirst": "Zuerst einen Agenten auswählen",
+        "selectAgentFirst": "Wählen Sie zuerst einen Agenten aus.",
         "send": "Senden"
       },
       "map": {
@@ -2216,7 +2216,7 @@
       "statusSaving": "Wird gespeichert...",
       "statusErrorSaving": "Fehler beim Speichern",
       "editorStillLoading": "Der Editor wird noch geladen. Bitte warten Sie einen Moment und versuchen Sie es erneut.",
-      "errorSavingProject": "Fehler beim Speichern des Projekts. Bitte prüfen Sie die Konsole für Details.",
+      "errorSavingProject": "Fehler beim Speichern des Projekts. Weitere Details finden Sie in der Konsole.",
       "downloadHtml": "HTML herunterladen",
       "exportTemplate": "Vorlage exportieren",
       "downloadJson": "JSON herunterladen",
@@ -2238,7 +2238,7 @@
       "noClassDiagramFound": "Kein Klassendiagramm gefunden. Bitte erstellen Sie zuerst ein Klassendiagramm.",
       "qualityCheckFailed": "Klassendiagramm-Qualitätsprüfung fehlgeschlagen",
       "qualityCheckFailedMessage": "In Ihrem Klassendiagramm wurden Fehler gefunden. Bitte beheben Sie diese, bevor Sie die GUI generieren.",
-      "classDiagramErrors": "Klassendiagramm-Fehler",
+      "classDiagramErrors": "Fehler im Klassendiagramm",
       "noClassesFound": "Keine Klassen im Klassendiagramm gefunden. Bitte erstellen Sie zuerst ein Klassendiagramm.",
       "noPageSelected": "Keine Seite ausgewählt",
       "editRoutePrompt": "Routenpfad für die Seite \"{{pageName}}\" bearbeiten:\n\nBeispiele:\n- /home\n- /users/:id\n- /products",
@@ -2295,7 +2295,7 @@
       }
     },
     "loadingGuiEditor": "GUI-Editor wird geladen...",
-    "loadingQuantumEditor": "Quanten-Editor wird geladen...",
+    "loadingQuantumEditor": "Quanteneditor wird geladen...",
     "hiddenPerspectives": {
       "messagePlural": "Dieses Projekt verwendet {{labels}}, aber diese Perspektiven sind ausgeblendet.",
       "messageSingular": "Dieses Projekt verwendet {{labels}}, aber diese Perspektive ist ausgeblendet.",
