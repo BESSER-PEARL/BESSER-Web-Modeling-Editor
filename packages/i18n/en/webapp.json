@@ -389,7 +389,7 @@
         "description": "User profile \"{{profile}}\" is already mapped to configuration \"{{existing}}\". Saving will replace that mapping with \"{{next}}\"."
       }
     },
-    "toast": {
+    "toasts": {
       "persistFailed": "Failed to update agent diagram.",
       "noActiveDiagram": "No active agent diagram.",
       "nameBeforeDefault": "Give the LLM a name before marking it as default.",
@@ -541,7 +541,7 @@
       "agentDiagramsAvailable": "{{count}} available (configured per-component in GUI)",
       "noneAvailable": "None available"
     },
-    "toast": {
+    "toasts": {
       "validationFailed": "Validation failed",
       "noDiagram": "No diagram to generate code from",
       "localDeploymentInProgress": "Local deployment in progress... This may take a few minutes.",
@@ -676,7 +676,7 @@
         "title": "Delete Project",
         "description": "Delete project \"{{name}}\"? This action cannot be undone."
       },
-      "toast": {
+      "toasts": {
         "created": "Project \"{{name}}\" created.",
         "createFailed": "Could not create project: {{error}}",
         "loaded": "Project loaded.",
@@ -766,7 +766,7 @@
           "NNDiagram": "Neural network architecture (PyTorch / TensorFlow)."
         }
       },
-      "toast": {
+      "toasts": {
         "updatePerspectiveFailed": "Failed to update perspective",
         "applyPresetFailed": "Failed to apply preset",
         "exported": "Project exported successfully.",
@@ -795,7 +795,7 @@
         "newTab": "New tab",
         "replace": "Replace"
       },
-      "toast": {
+      "toasts": {
         "loadedProjectTemplate": "Loaded project template \"{{name}}\"",
         "loadFailed": "Failed to load template: {{error}}"
       }
@@ -1588,7 +1588,7 @@
         "providerLinkText": "PostHog Privacy Policy"
       }
     },
-    "error": {
+    "errors": {
       "dismiss": "Dismiss error"
     },
     "errorBoundary": {
@@ -2211,7 +2211,7 @@
   "feedback": {
     "feedbackPlaceholder": "Tell us what works, what does not, and what you want next.",
     "feedbackLabel": "Feedback",
-    "toast": {
+    "toasts": {
       "thankYou": "Thank you for your feedback.",
       "submitFailedDefault": "Failed to submit feedback.",
       "selectRating": "Please select a satisfaction rating.",
@@ -2272,7 +2272,7 @@
       "currentDescription": "Export the current UML diagram as image assets.",
       "diagramCount": "{{count}} diagrams: {{titles}}"
     },
-    "toast": {
+    "toasts": {
       "unknownError": "Unknown error",
       "openUmlFirst": "Open a UML diagram first.",
       "selectAtLeastOne": "Select at least one diagram to export.",
@@ -2317,7 +2317,7 @@
     }
   },
   "validation": {
-    "toast": {
+    "toasts": {
       "noDiagramToValidate": "No diagram to validate",
       "diagramEmpty": "The diagram is empty. Add elements before running the quality check.",
       "validating": "Validating diagram...",

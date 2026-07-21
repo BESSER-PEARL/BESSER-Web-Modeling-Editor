@@ -389,7 +389,7 @@
         "description": "El perfil de usuario \"{{profile}}\" ya está asignado a la configuración \"{{existing}}\". Al guardar se reemplazará esa asignación por \"{{next}}\"."
       }
     },
-    "toast": {
+    "toasts": {
       "persistFailed": "No se pudo actualizar el diagrama de agente.",
       "noActiveDiagram": "No hay un diagrama de agente activo.",
       "nameBeforeDefault": "Da un nombre al LLM antes de marcarlo como predeterminado.",
@@ -541,7 +541,7 @@
       "agentDiagramsAvailable": "{{count}} disponible(s) (configurado(s) por componente en la GUI)",
       "noneAvailable": "Ninguno disponible"
     },
-    "toast": {
+    "toasts": {
       "validationFailed": "La validación falló",
       "noDiagram": "No hay ningún diagrama para generar código",
       "localDeploymentInProgress": "Despliegue local en curso... Esto puede tardar unos minutos.",
@@ -676,7 +676,7 @@
         "title": "Eliminar proyecto",
         "description": "¿Eliminar el proyecto «{{name}}»? Esta acción no se puede deshacer."
       },
-      "toast": {
+      "toasts": {
         "created": "Proyecto «{{name}}» creado.",
         "createFailed": "No se pudo crear el proyecto: {{error}}",
         "loaded": "Proyecto cargado.",
@@ -766,7 +766,7 @@
           "NNDiagram": "Arquitectura de red neuronal (PyTorch / TensorFlow)."
         }
       },
-      "toast": {
+      "toasts": {
         "updatePerspectiveFailed": "No se pudo actualizar la perspectiva",
         "applyPresetFailed": "No se pudo aplicar el preajuste",
         "exported": "Proyecto exportado correctamente.",
@@ -795,7 +795,7 @@
         "newTab": "Nueva pestaña",
         "replace": "Reemplazar"
       },
-      "toast": {
+      "toasts": {
         "loadedProjectTemplate": "Plantilla de proyecto «{{name}}» cargada",
         "loadFailed": "No se pudo cargar la plantilla: {{error}}"
       }
@@ -1588,7 +1588,7 @@
         "providerLinkText": "Política de privacidad de PostHog"
       }
     },
-    "error": {
+    "errors": {
       "dismiss": "Descartar error"
     },
     "errorBoundary": {
@@ -2211,7 +2211,7 @@
   "feedback": {
     "feedbackPlaceholder": "Cuéntanos qué funciona, qué no y qué te gustaría a continuación.",
     "feedbackLabel": "Comentarios",
-    "toast": {
+    "toasts": {
       "thankYou": "Gracias por tus comentarios.",
       "submitFailedDefault": "No se pudieron enviar los comentarios.",
       "selectRating": "Seleccione una valoración de satisfacción.",
@@ -2272,7 +2272,7 @@
       "currentDescription": "Exporta el diagrama UML actual como recursos de imagen.",
       "diagramCount": "{{count}} diagramas: {{titles}}"
     },
-    "toast": {
+    "toasts": {
       "unknownError": "Error desconocido",
       "openUmlFirst": "Abra primero un diagrama UML.",
       "selectAtLeastOne": "Seleccione al menos un diagrama para exportar.",
@@ -2317,7 +2317,7 @@
     }
   },
   "validation": {
-    "toast": {
+    "toasts": {
       "noDiagramToValidate": "No hay ningún diagrama para validar",
       "diagramEmpty": "El diagrama está vacío. Añada elementos antes de ejecutar la comprobación de calidad.",
       "validating": "Validando el diagrama...",

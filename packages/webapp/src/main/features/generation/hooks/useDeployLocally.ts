@@ -26,18 +26,18 @@ export const useDeployLocally = () => {
       // Validate diagram before generation
       const validationResult = await validateDiagram(editor, diagramTitle);
       if (!validationResult.isValid) {
-        toast.error(validationResult.message || t('generation.toast.validationFailed'));
+        toast.error(validationResult.message || t('generation.toasts.validationFailed'));
         return;
       }
 
       if (!editor || !editor.model) {
         console.error('No editor or model available');
-        toast.error(t('generation.toast.noDiagram'));
+        toast.error(t('generation.toasts.noDiagram'));
         return;
       }
 
       // Create a persistent loading toast
-      const toastId = toast.loading(t('generation.toast.localDeploymentInProgress'), {
+      const toastId = toast.loading(t('generation.toasts.localDeploymentInProgress'), {
         position: "top-center",
         autoClose: false,
         hideProgressBar: false,
@@ -89,7 +89,7 @@ export const useDeployLocally = () => {
           }
 
           toast.update(toastId, {
-            render: t('generation.toast.httpError', { status: response.status }),
+            render: t('generation.toasts.httpError', { status: response.status }),
             type: "error",
             isLoading: false,
             autoClose: 5000
@@ -99,11 +99,11 @@ export const useDeployLocally = () => {
 
         toast.update(toastId, {
           render: React.createElement('div', null,
-            React.createElement('p', null, t('generation.toast.localDeploymentCompleted')),
+            React.createElement('p', null, t('generation.toasts.localDeploymentCompleted')),
             React.createElement(
               'p',
               null,
-              t('generation.toast.accessApplicationAt'),
+              t('generation.toasts.accessApplicationAt'),
               React.createElement(
                 'a',
                 {
@@ -121,7 +121,7 @@ export const useDeployLocally = () => {
           autoClose: 5000,
         });
       } catch (error) {
-        let errorMessage = t('generation.toast.unknownDeploymentError');
+        let errorMessage = t('generation.toasts.unknownDeploymentError');
         if (error instanceof Error) {
           errorMessage = error.message;
         }

@@ -193,9 +193,9 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
       );
       refreshProjects();
       handleDialogOpenChange(false);
-      toast.success(t('project.hub.toast.created', { name }));
+      toast.success(t('project.hub.toasts.created', { name }));
     } catch (error) {
-      toast.error(t('project.hub.toast.createFailed', { error: error instanceof Error ? error.message : t('project.hub.unknownError') }));
+      toast.error(t('project.hub.toasts.createFailed', { error: error instanceof Error ? error.message : t('project.hub.unknownError') }));
     } finally {
       setIsBusy(false);
     }
@@ -206,9 +206,9 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
       setIsBusy(true);
       await loadProject(projectId);
       handleDialogOpenChange(false);
-      toast.success(t('project.hub.toast.loaded'));
+      toast.success(t('project.hub.toasts.loaded'));
     } catch (error) {
-      toast.error(t('project.hub.toast.loadFailed', { error: error instanceof Error ? error.message : t('project.hub.unknownError') }));
+      toast.error(t('project.hub.toasts.loadFailed', { error: error instanceof Error ? error.message : t('project.hub.unknownError') }));
     } finally {
       setIsBusy(false);
     }
@@ -229,9 +229,9 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
       setIsBusy(true);
       await deleteProject(projectId);
       refreshProjects();
-      toast.success(t('project.hub.toast.deleted', { name: projectName }));
+      toast.success(t('project.hub.toasts.deleted', { name: projectName }));
     } catch (error) {
-      toast.error(t('project.hub.toast.deleteFailed', { error: error instanceof Error ? error.message : t('project.hub.unknownError') }));
+      toast.error(t('project.hub.toasts.deleteFailed', { error: error instanceof Error ? error.message : t('project.hub.unknownError') }));
     } finally {
       setIsBusy(false);
     }
@@ -249,9 +249,9 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
       await loadProject(importedProject.id);
       refreshProjects();
       handleDialogOpenChange(false);
-      toast.success(t('project.hub.toast.imported', { name: importedProject.name }));
+      toast.success(t('project.hub.toasts.imported', { name: importedProject.name }));
     } catch (error) {
-      toast.error(t('project.hub.toast.importFailed', { error: error instanceof Error ? error.message : t('project.hub.unknownError') }));
+      toast.error(t('project.hub.toasts.importFailed', { error: error instanceof Error ? error.message : t('project.hub.unknownError') }));
     } finally {
       setIsBusy(false);
       event.target.value = '';
@@ -268,7 +268,7 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
     }
     const ext = file.name.split('.').pop()?.toLowerCase();
     if (ext !== 'json' && ext !== 'py') {
-      toast.error(t('project.hub.toast.unsupportedFileType'));
+      toast.error(t('project.hub.toasts.unsupportedFileType'));
       return;
     }
     try {
@@ -277,9 +277,9 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
       await loadProject(importedProject.id);
       refreshProjects();
       handleDialogOpenChange(false);
-      toast.success(t('project.hub.toast.imported', { name: importedProject.name }));
+      toast.success(t('project.hub.toasts.imported', { name: importedProject.name }));
     } catch (error) {
-      toast.error(t('project.hub.toast.importFailed', { error: error instanceof Error ? error.message : t('project.hub.unknownError') }));
+      toast.error(t('project.hub.toasts.importFailed', { error: error instanceof Error ? error.message : t('project.hub.unknownError') }));
     } finally {
       setIsBusy(false);
     }
@@ -301,7 +301,7 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
     const owner = spreadsheetForm.owner.trim();
 
     if (spreadsheetFiles.length === 0) {
-      toast.error(t('project.hub.toast.noSpreadsheetFile'));
+      toast.error(t('project.hub.toasts.noSpreadsheetFile'));
       return;
     }
 
@@ -323,7 +323,7 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
       });
 
       if (!response.ok) {
-        let message = t('project.hub.toast.spreadsheetGenerateFailed');
+        let message = t('project.hub.toasts.spreadsheetGenerateFailed');
         try {
           const errorData = await response.json();
           if (typeof errorData?.detail === 'string') {
@@ -345,9 +345,9 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
       await importDiagramToProject(generatedDiagramFile);
       refreshProjects();
       handleDialogOpenChange(false);
-      toast.success(t('project.hub.toast.spreadsheetCreated', { name }));
+      toast.success(t('project.hub.toasts.spreadsheetCreated', { name }));
     } catch (error) {
-      toast.error(t('project.hub.toast.spreadsheetImportFailed', { error: error instanceof Error ? error.message : t('project.hub.unknownError') }));
+      toast.error(t('project.hub.toasts.spreadsheetImportFailed', { error: error instanceof Error ? error.message : t('project.hub.unknownError') }));
     } finally {
       setIsBusy(false);
     }
