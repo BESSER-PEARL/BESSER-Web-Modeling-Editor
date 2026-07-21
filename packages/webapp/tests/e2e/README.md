@@ -4,6 +4,10 @@ A single place to read **what is tested** for the Web Modeling Editor UI and the
 natural-language generation flows — the "where can I read the description of
 these tests?" index.
 
+> For the **Spec-Driven Agent / keyless free tier** specifically — the full
+> cross-repo test suite and **how to run each layer (bash + PowerShell)** — see
+> **`BESSER/tests/SMART_GEN_TESTING.md`**.
+
 There are three test surfaces:
 
 | Surface | Tech | Location | What it proves |
