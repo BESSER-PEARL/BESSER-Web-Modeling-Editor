@@ -5,12 +5,6 @@
     "highlight": "Interaktiv Elementer uweisen",
     "iconMode": "Objektdiagramm am Ikonmodus uweisen"
   },
-  "sidebar": {
-    "classAttribute": "attribut",
-    "classMethod": "+ method()",
-    "enumAttribute": "Wäert",
-    "objectAttribute": "attribut = wäert"
-  },
   "popup": {
     "attributes": "Attributer",
     "methods": "Methoden",
@@ -152,7 +146,7 @@
       "moveDown": "No ënnen réckelen",
       "moveUp": "No uewen réckelen",
       "codeButton": "Code",
-      "newLiteralPlaceholder": "+ Literal",
+      "newLiteralPlaceholder": "Literal",
       "newAttributePlaceholder": "+ Attribut: str"
     },
     "attribute": {

@@ -5,12 +5,6 @@
     "highlight": "Mostrar elementos interactivos",
     "iconMode": "Mostrar diagrama de objetos en modo icono"
   },
-  "sidebar": {
-    "classAttribute": "atributo",
-    "classMethod": "+ método()",
-    "enumAttribute": "Valor",
-    "objectAttribute": "atributo = valor"
-  },
   "popup": {
     "attributes": "Atributos",
     "methods": "Métodos",
@@ -152,7 +146,7 @@
       "moveDown": "Mover abajo",
       "moveUp": "Mover arriba",
       "codeButton": "Código",
-      "newLiteralPlaceholder": "+ literal",
+      "newLiteralPlaceholder": "literal",
       "newAttributePlaceholder": "+ atributo: str"
     },
     "attribute": {
