@@ -16,8 +16,6 @@
     "condition": "Condiciones",
     "tokens": "Tokens",
     "capacity": "Capacidad",
-    "intent_name": "Nombre de la intención",
-    "training_sentences": "Frases de entrenamiento",
     "objectLink": "Enlace de objeto",
     "linkDetails": "Detalles del enlace",
     "noAssociation": "Sin asociación",

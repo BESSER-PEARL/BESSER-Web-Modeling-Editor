@@ -16,8 +16,6 @@
     "condition": "Conditions",
     "tokens": "Tokend",
     "capacity": "Capacité",
-    "intent_name": "Classification d'intention",
-    "training_sentences": "Phrases d'entraînement",
     "objectLink": "Lien d'objet",
     "linkDetails": "Détails du lien",
     "noAssociation": "Aucune association",

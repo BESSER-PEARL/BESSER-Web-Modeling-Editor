@@ -16,8 +16,6 @@
     "condition": "Bedingungen",
     "tokens": "Tokens",
     "capacity": "Kapazität",
-    "intent_name": "Intent-Name",
-    "training_sentences": "Trainingssätze",
     "objectLink": "Objektverknüpfung",
     "linkDetails": "Verknüpfungsdetails",
     "noAssociation": "Keine Assoziation",
