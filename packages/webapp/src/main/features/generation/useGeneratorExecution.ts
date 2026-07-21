@@ -295,7 +295,10 @@ function flushGuiForGeneration(timeoutMs = 8000): Promise<{ ok: boolean; error?:
     };
 
     const timeoutId = window.setTimeout(
-      () => finish({ ok: true, error: 'flush timed out' }),
+      () => {
+        console.warn('[GUI flush] timed out before generation; proceeding with the last-saved GUI model');
+        finish({ ok: true, error: 'flush timed out' });
+      },
       timeoutMs,
     );
     window.addEventListener('wme:flush-gui-for-generation-done', onDone as EventListener);

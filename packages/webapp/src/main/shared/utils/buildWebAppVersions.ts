@@ -14,13 +14,13 @@
  * The variant data is persisted on each serialized page by the GUI editor
  * (see features/editors/gui/setup/setupPageSystem.ts): `besserPageVariants`
  * (JSON string of PageVariant[]) and `besserBaseSnapshot` (JSON string of a
- * PageSnapshot). The shapes below MUST stay in sync with that file.
+ * PageSnapshot). The shapes below are the shared source of truth (setupPageSystem imports them).
  */
 
 import type { GrapesJSProjectData } from '../types/project';
 
 /** Serialized page content: the wrapper's child components + its scoped CSS. */
-type PageSnapshot = {
+export type PageSnapshot = {
   // Children of the page's main (wrapper) component — i.e. main.components().toJSON().
   components: any[];
   // CSS rule JSONs styling this page's content (each rule carries a pageId).
@@ -28,7 +28,7 @@ type PageSnapshot = {
 };
 
 /** One personalized variant of a page, keyed to a user profile (UserDiagram). */
-type PageVariant = {
+export type PageVariant = {
   id: string;
   profileId: string;
   profileName: string;

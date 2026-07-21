@@ -6,20 +6,7 @@ import { apiClient, ApiError } from '../../../../shared/api/api-client';
 // Track initialization per editor instance
 let pagesListRaf: number | null = null;
 
-type PageSnapshot = {
-  // Serialized children of the page's main component
-  components: any[];
-  // CSS rule JSON scoped to this page (rules carry a pageId in this GrapesJS build)
-  css: any[];
-};
-
-type PageVariant = {
-  id: string;
-  profileId: string;
-  profileName: string;
-  // Independent copy of the page content for this profile
-  snapshot: PageSnapshot;
-};
+import type { PageSnapshot, PageVariant } from '../../../../shared/utils/buildWebAppVersions';
 
 const VARIANT_STORAGE_FIELD = 'besserPageVariants';
 const ACTIVE_VARIANT_FIELD = 'besserActiveVariantId';
@@ -32,6 +19,15 @@ const slugify = (value: string): string =>
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-+|-+$/g, '') || 'page';
+
+// Escape user-controlled strings (page/profile names) before innerHTML interpolation.
+const escapeHtml = (value: unknown): string =>
+  String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
 
 const getPageVariants = (page: any): PageVariant[] => {
   const raw = page?.get?.(VARIANT_STORAGE_FIELD);
@@ -230,7 +226,6 @@ const getAvailableProfiles = (): ProfileOption[] => {
   try {
     const project = ProjectStorageRepository.getCurrentProject();
     if (!project) {
-      console.log('[Personalization] No project loaded');
       return [];
     }
 
@@ -243,7 +238,6 @@ const getAvailableProfiles = (): ProfileOption[] => {
       model: diagram.model,
     }));
 
-    console.log('[Personalization] Found profiles from User Diagrams:', profiles.length);
     return profiles;
   } catch (err) {
     console.warn('[Personalization] Error fetching profiles:', err);
@@ -258,7 +252,7 @@ const notify = (editor: Editor, type: 'success' | 'error' | 'info', message: str
     editor.runCommand('notifications:add', { type, message, group: 'Personalization' });
   } catch {
     // Notification plugin not available — non-fatal.
-    console.log(`[Personalization] ${type}: ${message}`);
+    console.warn(`[Personalization] ${type}: ${message}`);
   }
 };
 
@@ -369,7 +363,7 @@ const openProfilePickerModal = async (
       <p style="margin: 0 0 12px; color: #444; line-height: 1.5;">${options.description}</p>
       <label for="${selectId}" style="display:block; margin-bottom:8px; font-size:12px; font-weight:600; color:#333; text-transform:uppercase; letter-spacing:0.04em;">User profile</label>
       <select id="${selectId}" style="width:100%; padding:8px 10px; border:1px solid #ccc; border-radius:6px; font-size:14px; background:white;">
-        ${profiles.map((profile) => `<option value="${profile.id}">${profile.name}</option>`).join('')}
+        ${profiles.map((profile) => `<option value="${profile.id}">${escapeHtml(profile.name)}</option>`).join('')}
       </select>
       ${toggleHtml}
       <div style="display:flex; justify-content:flex-end; gap:8px; margin-top:16px;">
@@ -418,7 +412,7 @@ const openPageDeleteModal = (
     .map(
       (v) => `
       <div style="display:flex; align-items:center; justify-content:space-between; gap:12px; padding:8px 10px; border:1px solid #eee; border-radius:6px; margin-bottom:6px;">
-        <span style="font-size:14px; color:#333;">${v.profileName}${activeId === v.id ? ' <span style="color:#1d4ed8; font-size:11px; font-weight:600;">(active)</span>' : ''}</span>
+        <span style="font-size:14px; color:#333;">${escapeHtml(v.profileName)}${activeId === v.id ? ' <span style="color:#1d4ed8; font-size:11px; font-weight:600;">(active)</span>' : ''}</span>
         <button type="button" class="gjs-del-variant-btn" data-variant-id="${v.id}" style="padding:6px 10px; border:1px solid #e74c3c; color:#e74c3c; background:#fff; border-radius:6px; cursor:pointer; font-size:12px;">Delete</button>
       </div>`,
     )
@@ -426,7 +420,7 @@ const openPageDeleteModal = (
 
   const content = `
     <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; min-width: 360px;">
-      <p style="margin:0 0 12px; color:#444; line-height:1.5;">"${page.getName()}" has personalized variants. Choose what to delete.</p>
+      <p style="margin:0 0 12px; color:#444; line-height:1.5;">"${escapeHtml(page.getName())}" has personalized variants. Choose what to delete.</p>
       <div style="display:flex; align-items:center; justify-content:space-between; gap:12px; padding:8px 10px; border:1px solid #eee; border-radius:6px; margin-bottom:6px; background:#fafafa;">
         <span style="font-size:14px; color:#333;">Base page <span style="color:#888; font-size:11px;">— deletes the page and all variants</span></span>
         <button type="button" id="gjs-del-base-btn" style="padding:6px 10px; border:none; color:#fff; background:#c0392b; border-radius:6px; cursor:pointer; font-size:12px;">Delete all</button>
@@ -463,7 +457,6 @@ export function setupPageSystem(editor: Editor) {
   if ((editor as any).__pageSystemInitialized) return;
   (editor as any).__pageSystemInitialized = true;
   
-  console.log('[Page System] Initializing');
   addPagesPanelCSS();
   setupPagesTabInSidebar(editor);
   setupPageCommands(editor);
@@ -717,7 +710,7 @@ function updatePagesList(editor: Editor) {
       // accessible via the variant dropdown in the actions row.
       item.innerHTML = `
         <div class="gjs-page-info">
-          <span class="gjs-page-name">${page.getName()}</span>
+          <span class="gjs-page-name">${escapeHtml(page.getName())}</span>
           <span class="gjs-page-route">${pageRoute}</span>
         </div>
         <div class="gjs-page-actions">
@@ -744,7 +737,7 @@ function updatePagesList(editor: Editor) {
           ${variants.length > 0 ? `
           <select class="gjs-page-variants-select" title="Switch variant" aria-label="Switch variant" style="padding: 4px; border-radius: 4px; border: 1px solid #ccc; font-size: 12px;">
             <option value="">Base</option>
-            ${variants.map(v => `<option value="${v.id}" ${activeVariantId === v.id ? 'selected' : ''}>${v.profileName}</option>`).join('')}
+            ${variants.map(v => `<option value="${v.id}" ${activeVariantId === v.id ? 'selected' : ''}>${escapeHtml(v.profileName)}</option>`).join('')}
           </select>
           ` : ''}
           <button class="gjs-page-btn delete-page-btn" title="Delete page" aria-label="Delete page">
@@ -962,7 +955,6 @@ function updatePagesList(editor: Editor) {
 
           editor.Pages.remove(page);
           updatePagesList(editor);
-          console.log(`[Pages] Deleted page: ${page.getName()}`);
         };
 
         const variants = getPageVariants(page);
@@ -996,7 +988,6 @@ function updatePagesList(editor: Editor) {
               setActiveVariantId(page, null);
             }
             updatePagesList(editor);
-            console.log(`[Pages] Deleted variant ${variantId} from page: ${page.getName()}`);
           },
         });
       });
