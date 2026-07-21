@@ -7,6 +7,7 @@ export enum SoftwarePatternCategory {
   BEHAVIORAL = 'Behavioral',
   AGENT = 'Agent Diagram',
   STATE_MACHINE = 'State Machine Diagram',
+  BPMN = 'BPMN Diagram',
   QUANTUM_CIRCUIT = 'Quantum Circuit',
   NN = 'Neural Network',
   FULL_PROJECT = 'Full Project',
@@ -28,6 +29,10 @@ export enum SoftwarePatternType {
   LIBRARY_AGENT = 'Library Agent',
   // State Machine patterns
   TRAFIC_LIGHT = 'Traffic Light',
+  // BPMN patterns
+  BPMN_PARALLEL_REVIEW = 'Parallel Document Review',
+  BPMN_CAR_WASH = 'Car Wash Collaboration',
+  BPMN_ORDER_FULFILLMENT = 'Pizza Store Collaboration',
   // Neural Network patterns
   NN_TUTORIAL_EXAMPLE = 'CIFAR-10 CNN (with Training + Test)',
   NN_ALEXNET = 'AlexNet',

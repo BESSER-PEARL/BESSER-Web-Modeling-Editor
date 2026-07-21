@@ -49,6 +49,13 @@ const CLASS_GENERATORS: GeneratorMenuEntry[] = [
   },
   {
     kind: 'group',
+    label: 'Testing',
+    actions: [
+      { kind: 'action', label: 'Python Test Cases', generator: 'test_case' },
+    ],
+  },
+  {
+    kind: 'group',
     label: 'Schema',
     actions: [
       { kind: 'action', label: 'Pydantic Models', generator: 'pydantic' },
@@ -94,6 +101,10 @@ const QUANTUM_GENERATORS: GeneratorMenuEntry[] = [
   { kind: 'action', label: 'Qiskit Code', generator: 'qiskit' },
 ];
 
+const BPMN_GENERATORS: GeneratorMenuEntry[] = [
+  { kind: 'action', label: 'BPMN 2.0 XML', generator: 'bpmn' },
+];
+
 const NN_GENERATORS: GeneratorMenuEntry[] = [
   {
     kind: 'group',
@@ -124,5 +135,6 @@ export const GENERATOR_MENU_CONFIG: Record<GeneratorMenuMode, GeneratorMenuEntry
   gui: GUI_GENERATORS,
   quantum: QUANTUM_GENERATORS,
   nn: NN_GENERATORS,
+  bpmn: BPMN_GENERATORS,
   none: UNAVAILABLE_GENERATORS,
 };
