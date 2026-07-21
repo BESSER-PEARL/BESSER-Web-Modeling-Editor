@@ -361,7 +361,7 @@ const flattenStructuredConfig = (raw: any): Partial<AgentConfigurationPayload> =
 
 const cloneModel = (model: UMLModel): UMLModel => JSON.parse(JSON.stringify(model)) as UMLModel;
 
-type AgentLLMElementProvider =
+export type AgentLLMElementProvider =
   | 'openai'
   | 'huggingface'
   | 'huggingface_api'
@@ -377,7 +377,7 @@ type AgentLLMElementProvider =
   | 'together'
   | 'openrouter';
 
-type AgentLLMElement = {
+export type AgentLLMElement = {
   id: string;
   type: 'AgentLLM';
   name: string;
@@ -389,7 +389,7 @@ type AgentLLMElement = {
   global_context: string | null;
 };
 
-const AGENT_LLM_PROVIDER_OPTIONS: Array<{ value: AgentLLMElementProvider; label: string }> = [
+export const AGENT_LLM_PROVIDER_OPTIONS: Array<{ value: AgentLLMElementProvider; label: string }> = [
   { value: 'openai', label: 'OpenAI' },
   { value: 'mistral', label: 'Mistral AI' },
   { value: 'deepseek', label: 'DeepSeek' },
@@ -419,7 +419,7 @@ const isAgentLLMElement = (value: unknown): value is AgentLLMElement => {
   return candidate.type === 'AgentLLM';
 };
 
-const normalizeAgentLLMElement = (raw: any, fallbackId: string): AgentLLMElement => {
+export const normalizeAgentLLMElement = (raw: any, fallbackId: string): AgentLLMElement => {
   const _validProviders: AgentLLMElementProvider[] = [
     'openai', 'huggingface', 'huggingface_api', 'replicate',
     'mistral', 'deepseek', 'google', 'meta', 'anthropic',

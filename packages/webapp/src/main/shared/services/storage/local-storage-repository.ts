@@ -44,19 +44,20 @@ export const DEFAULT_AGENT_RUNTIME_CONFIG: AgentRuntimeConfig = {
   agentLlmName: '',
 };
 
+export const VALID_AGENT_LLM_PROVIDERS: AgentLLMProvider[] = [
+  'openai', 'huggingface', 'huggingface_api', 'huggingfaceapi', 'replicate',
+  'mistral', 'deepseek', 'google', 'meta', 'anthropic',
+  'qwen', 'xai', 'groq', 'together', 'openrouter',
+];
+
 export const normalizeAgentRuntimeConfig = (
   raw: Partial<AgentRuntimeConfig> | null | undefined,
 ): AgentRuntimeConfig => {
   if (!raw || typeof raw !== 'object') {
     return { ...DEFAULT_AGENT_RUNTIME_CONFIG };
   }
-  const _validProviders: AgentLLMProvider[] = [
-    'openai', 'huggingface', 'huggingface_api', 'huggingfaceapi', 'replicate',
-    'mistral', 'deepseek', 'google', 'meta', 'anthropic',
-    'qwen', 'xai', 'groq', 'together', 'openrouter',
-  ];
   const provider: AgentLLMProvider =
-    raw.agentLlmProvider && (_validProviders as string[]).includes(raw.agentLlmProvider)
+    raw.agentLlmProvider && (VALID_AGENT_LLM_PROVIDERS as string[]).includes(raw.agentLlmProvider)
       ? (raw.agentLlmProvider as AgentLLMProvider)
       : '';
   const intent: IntentRecognitionTechnology =
