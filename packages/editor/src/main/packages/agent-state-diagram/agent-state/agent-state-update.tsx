@@ -313,12 +313,19 @@ interface State {
   newFallbackActionType: string;
   newBodyActionSection: ActionSection;
   newFallbackActionSection: ActionSection;
-  expandedBodyIds: Set<string>;
-  expandedFallbackIds: Set<string>;
+  // Actions are shown expanded (in edit mode) by default. We track which ones
+  // the user has explicitly collapsed rather than which are expanded, so freshly
+  // loaded agents and newly added actions reveal their editor without a click.
+  collapsedBodyIds: Set<string>;
+  collapsedFallbackIds: Set<string>;
   draggingIndex: number | null;
   draggingPrefix: string | null;
   dragOverIndex: number | null;
   dragOverPrefix: string | null;
+  // Which card, if any, has drag armed. Dragging is only enabled once the
+  // mouse is pressed on that card's drag handle — so clicking inside a text
+  // field selects/positions the cursor normally instead of starting a drag.
+  dragArmedKey: string | null;
 }
 
 const ACTION_TYPE_LABELS: Record<string, string> = {
@@ -361,12 +368,13 @@ class StateUpdate extends Component<Props, State> {
     newFallbackActionType: 'text',
     newBodyActionSection: 'simple',
     newFallbackActionSection: 'simple',
-    expandedBodyIds: new Set(),
-    expandedFallbackIds: new Set(),
+    collapsedBodyIds: new Set(),
+    collapsedFallbackIds: new Set(),
     draggingIndex: null,
     draggingPrefix: null,
     dragOverIndex: null,
     dragOverPrefix: null,
+    dragArmedKey: null,
   };
 
   private layoutTimer: ReturnType<typeof setTimeout> | null = null;
@@ -708,7 +716,7 @@ class StateUpdate extends Component<Props, State> {
         ? this.setState({ newBodyActionType: v })
         : this.setState({ newFallbackActionType: v });
 
-    const expandedIds = prefix === 'body' ? this.state.expandedBodyIds : this.state.expandedFallbackIds;
+    const collapsedIds = prefix === 'body' ? this.state.collapsedBodyIds : this.state.collapsedFallbackIds;
     const wsTooltip = 'Requires WebSocketPlatform. Shown in red as a reminder — add it to dismiss.';
     const chatTooltip = 'Requires an OpenAI or Hugging Face LLM. Shown in red as a reminder.';
     const wsColor = hasWebSocketPlatform ? undefined : '#e04040';
@@ -717,7 +725,7 @@ class StateUpdate extends Component<Props, State> {
     return (
       <>
         {actions.map((action, index) => {
-          const isExpanded = expandedIds.has(action.id);
+          const isExpanded = !collapsedIds.has(action.id);
           const isDraggingOver =
             this.state.dragOverIndex === index && this.state.dragOverPrefix === prefix;
           const isDragging =
@@ -732,10 +740,12 @@ class StateUpdate extends Component<Props, State> {
               (action.replyType === 'db_reply' && (action.dbQueryMode || 'llm_query') === 'llm_query')
             ));
 
+          const cardKey = `${prefix}-${index}`;
+
           return (
             <ActionCard
               key={action.id}
-              draggable
+              draggable={this.state.dragArmedKey === cardKey}
               data-drag-over={isDraggingOver ? 'true' : 'false'}
               data-dragging={isDragging ? 'true' : 'false'}
               onDragStart={(e) => {
@@ -768,14 +778,20 @@ class StateUpdate extends Component<Props, State> {
                 ) {
                   this.swapActions(actions, fromIndex, index);
                 }
-                this.setState({ draggingIndex: null, draggingPrefix: null, dragOverIndex: null, dragOverPrefix: null });
+                this.setState({ draggingIndex: null, draggingPrefix: null, dragOverIndex: null, dragOverPrefix: null, dragArmedKey: null });
               }}
               onDragEnd={() => {
-                this.setState({ draggingIndex: null, draggingPrefix: null, dragOverIndex: null, dragOverPrefix: null });
+                this.setState({ draggingIndex: null, draggingPrefix: null, dragOverIndex: null, dragOverPrefix: null, dragArmedKey: null });
               }}
             >
               <ActionCardHeader>
-                <DragHandle title="Drag to reorder">⠿</DragHandle>
+                <DragHandle
+                  title="Drag to reorder"
+                  onMouseDown={() => this.setState({ dragArmedKey: cardKey })}
+                  onMouseUp={() => this.setState({ dragArmedKey: null })}
+                >
+                  ⠿
+                </DragHandle>
                 <ActionTypeBadge style={badgeWarning ? { color: '#e04040' } : undefined}>
                   {ACTION_TYPE_LABELS[action.replyType] ?? action.replyType}
                 </ActionTypeBadge>
@@ -847,11 +863,16 @@ class StateUpdate extends Component<Props, State> {
           </LlmSelect>
           <Button color="primary" onClick={() => {
             const id = this.addPredefinedAction(Clazz, selectedActionType);
+            // New actions are expanded by default; make sure a stale collapsed
+            // entry (e.g. from a previously deleted action reusing state) can't
+            // hide the freshly created one.
             if (id) {
-              const key = prefix === 'body' ? 'expandedBodyIds' : 'expandedFallbackIds';
-              const next = new Set(this.state[key]);
-              next.add(id);
-              this.setState({ [key]: next } as any);
+              const key = prefix === 'body' ? 'collapsedBodyIds' : 'collapsedFallbackIds';
+              if (this.state[key].has(id)) {
+                const next = new Set(this.state[key]);
+                next.delete(id);
+                this.setState({ [key]: next } as any);
+              }
             }
           }}>
             Add
@@ -1120,7 +1141,7 @@ class StateUpdate extends Component<Props, State> {
   // ─── Expand / collapse ────────────────────────────────────────────────────────
 
   private toggleExpand = (id: string, prefix: 'body' | 'fallback') => {
-    const key = prefix === 'body' ? 'expandedBodyIds' : 'expandedFallbackIds';
+    const key = prefix === 'body' ? 'collapsedBodyIds' : 'collapsedFallbackIds';
     const current: Set<string> = this.state[key];
     const next = new Set(current);
     if (next.has(id)) next.delete(id);

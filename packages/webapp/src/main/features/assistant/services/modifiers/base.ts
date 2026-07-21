@@ -26,6 +26,10 @@ export interface ModificationTarget {
   transitionId?: string;
   objectId?: string;
   objectName?: string;
+  // User-profile (UserDiagram) targets
+  profileName?: string;
+  sourceProfile?: string;
+  targetProfile?: string;
   name?: string;
   // BPMN
   nodeId?: string;
@@ -56,7 +60,19 @@ export interface ModificationChanges {
   // add_class / add_object fields
   className?: string;
   classId?: string;
-  attributes?: Array<{ name: string; type?: string; visibility?: string; value?: string; attributeId?: string }>;
+  // User-profile: metamodel class icon SVG for add_object (renders a UserModelIcon child)
+  icon?: string;
+  // User-profile criterion operator ('<' | '<=' | '==' | '>=' | '>')
+  operator?: string;
+  profileName?: string;
+  attributes?: Array<{
+    name: string;
+    type?: string;
+    visibility?: string;
+    value?: string;
+    attributeId?: string;
+    operator?: string;
+  }>;
   methods?: Array<{
     name: string;
     returnType?: string;

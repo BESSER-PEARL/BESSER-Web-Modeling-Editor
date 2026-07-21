@@ -117,7 +117,14 @@ export const useGenerateCode = () => {
       };
 
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 300000);
+      // Generating multiple web-app versions produces N complete apps, so scale
+      // the timeout with the version count (bounded at 10 min).
+      const webAppVersionCount = Array.isArray((config as any)?.webAppVersions)
+        ? (config as any).webAppVersions.length
+        : 0;
+      const requestTimeoutMs =
+        webAppVersionCount > 1 ? Math.min(600000, 300000 * webAppVersionCount) : 300000;
+      const timeoutId = setTimeout(() => controller.abort(), requestTimeoutMs);
       try {
         const response = await fetch(`${BACKEND_URL}/generate-output-from-project`, {
           method: 'POST',
