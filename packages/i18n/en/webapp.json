@@ -2287,6 +2287,35 @@
       "projectExportFailed": "Failed to export project: {{error}}"
     }
   },
+  "import": {
+    "success": {
+      "diagram": "{{diagramType}} diagram imported successfully and added to project \"{{projectName}}\". This diagram has been converted from {{fileType}} format to the new project format.",
+      "kg": "{{diagramType}} diagram imported successfully from Knowledge Graph and added to project \"{{projectName}}\".",
+      "image": "{{diagramType}} diagram imported successfully from image and added to project \"{{projectName}}\"."
+    },
+    "descriptions": {
+      "imported": "Imported {{diagramType}} diagram",
+      "importedFromKg": "Imported {{diagramType}} diagram from Knowledge Graph",
+      "importedFromImage": "Imported {{diagramType}} diagram from image"
+    },
+    "errors": {
+      "title": "Import failed",
+      "unsupportedFileType": "Unsupported file type. Please select a .json or .py file.",
+      "invalidMissingType": "Invalid diagram: missing model or type information",
+      "invalidFormat": "Invalid diagram format: missing model or type",
+      "noProjectOpen": "No project is currently open. Please create or open a project first.",
+      "maxDiagramsReached": "Cannot import: maximum of {{max}} {{diagramType}} diagrams per project has been reached.",
+      "unknownDuringImport": "Unknown error occurred during import",
+      "unknownOccurred": "Unknown error occurred",
+      "couldNotImportFile": "Could not import selected file: {{message}}",
+      "couldNotImportDiagram": "Could not import diagram: {{message}}",
+      "couldNotImportFromKg": "Could not import diagram from Knowledge Graph: {{message}}",
+      "couldNotImportFromImage": "Could not import diagram from image: {{message}}",
+      "readFileFailed": "Failed to read file",
+      "invalidFromBackend": "Invalid diagram returned from backend",
+      "couldNotParseError": "Could not parse error response"
+    }
+  },
   "validation": {
     "toast": {
       "noDiagramToValidate": "No diagram to validate",

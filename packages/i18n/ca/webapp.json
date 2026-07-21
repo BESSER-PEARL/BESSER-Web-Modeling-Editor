@@ -2287,6 +2287,35 @@
       "projectExportFailed": "No s'ha pogut exportar el projecte: {{error}}"
     }
   },
+  "import": {
+    "success": {
+      "diagram": "Diagrama {{diagramType}} importat correctament i afegit al projecte «{{projectName}}». Aquest diagrama s'ha convertit del format {{fileType}} al nou format de projecte.",
+      "kg": "Diagrama {{diagramType}} importat correctament des de Knowledge Graph i afegit al projecte «{{projectName}}».",
+      "image": "Diagrama {{diagramType}} importat correctament des d'una imatge i afegit al projecte «{{projectName}}»."
+    },
+    "descriptions": {
+      "imported": "Diagrama {{diagramType}} importat",
+      "importedFromKg": "Diagrama {{diagramType}} importat des de Knowledge Graph",
+      "importedFromImage": "Diagrama {{diagramType}} importat des d'una imatge"
+    },
+    "errors": {
+      "title": "Ha fallat la importació",
+      "unsupportedFileType": "Tipus de fitxer no admès. Selecciona un fitxer .json o .py.",
+      "invalidMissingType": "Diagrama no vàlid: falta el model o la informació de tipus",
+      "invalidFormat": "Format de diagrama no vàlid: falta el model o el tipus",
+      "noProjectOpen": "Actualment no hi ha cap projecte obert. Crea o obre primer un projecte.",
+      "maxDiagramsReached": "No es pot importar: s'ha assolit el màxim de {{max}} diagrames {{diagramType}} per projecte.",
+      "unknownDuringImport": "S'ha produït un error desconegut durant la importació",
+      "unknownOccurred": "S'ha produït un error desconegut",
+      "couldNotImportFile": "No s'ha pogut importar el fitxer seleccionat: {{message}}",
+      "couldNotImportDiagram": "No s'ha pogut importar el diagrama: {{message}}",
+      "couldNotImportFromKg": "No s'ha pogut importar el diagrama des de Knowledge Graph: {{message}}",
+      "couldNotImportFromImage": "No s'ha pogut importar el diagrama des d'una imatge: {{message}}",
+      "readFileFailed": "No s'ha pogut llegir el fitxer",
+      "invalidFromBackend": "El backend ha retornat un diagrama no vàlid",
+      "couldNotParseError": "No s'ha pogut interpretar la resposta d'error"
+    }
+  },
   "validation": {
     "toast": {
       "noDiagramToValidate": "No hi ha cap diagrama per validar",

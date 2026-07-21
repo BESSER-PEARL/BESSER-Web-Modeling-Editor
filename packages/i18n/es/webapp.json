@@ -2287,6 +2287,35 @@
       "projectExportFailed": "No se pudo exportar el proyecto: {{error}}"
     }
   },
+  "import": {
+    "success": {
+      "diagram": "Diagrama {{diagramType}} importado correctamente y añadido al proyecto «{{projectName}}». Este diagrama se ha convertido del formato {{fileType}} al nuevo formato de proyecto.",
+      "kg": "Diagrama {{diagramType}} importado correctamente desde Knowledge Graph y añadido al proyecto «{{projectName}}».",
+      "image": "Diagrama {{diagramType}} importado correctamente desde una imagen y añadido al proyecto «{{projectName}}»."
+    },
+    "descriptions": {
+      "imported": "Diagrama {{diagramType}} importado",
+      "importedFromKg": "Diagrama {{diagramType}} importado desde Knowledge Graph",
+      "importedFromImage": "Diagrama {{diagramType}} importado desde una imagen"
+    },
+    "errors": {
+      "title": "Error en la importación",
+      "unsupportedFileType": "Tipo de archivo no compatible. Selecciona un archivo .json o .py.",
+      "invalidMissingType": "Diagrama no válido: falta el modelo o la información de tipo",
+      "invalidFormat": "Formato de diagrama no válido: falta el modelo o el tipo",
+      "noProjectOpen": "No hay ningún proyecto abierto actualmente. Crea o abre primero un proyecto.",
+      "maxDiagramsReached": "No se puede importar: se ha alcanzado el máximo de {{max}} diagramas {{diagramType}} por proyecto.",
+      "unknownDuringImport": "Se produjo un error desconocido durante la importación",
+      "unknownOccurred": "Se produjo un error desconocido",
+      "couldNotImportFile": "No se pudo importar el archivo seleccionado: {{message}}",
+      "couldNotImportDiagram": "No se pudo importar el diagrama: {{message}}",
+      "couldNotImportFromKg": "No se pudo importar el diagrama desde Knowledge Graph: {{message}}",
+      "couldNotImportFromImage": "No se pudo importar el diagrama desde una imagen: {{message}}",
+      "readFileFailed": "No se pudo leer el archivo",
+      "invalidFromBackend": "El backend devolvió un diagrama no válido",
+      "couldNotParseError": "No se pudo analizar la respuesta de error"
+    }
+  },
   "validation": {
     "toast": {
       "noDiagramToValidate": "No hay ningún diagrama para validar",

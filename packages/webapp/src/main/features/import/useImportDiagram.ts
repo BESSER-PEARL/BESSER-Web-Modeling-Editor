@@ -1,4 +1,5 @@
 import { useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useAppDispatch } from '../../app/store/hooks';
 import { uuid } from '../../shared/utils/uuid';
 import { ProjectDiagram, isUMLModel, toSupportedDiagramType, MAX_DIAGRAMS_PER_TYPE } from '../../shared/types/project';
@@ -10,6 +11,7 @@ import { useBumlToDiagram, isBumlFile, isJsonFile } from './useBumlToDiagram';
 
 export const useImportDiagram = () => {
   const dispatch = useAppDispatch();
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const convertBumlToDiagram = useBumlToDiagram();
   
@@ -26,19 +28,19 @@ export const useImportDiagram = () => {
         const fileContent = await new Promise<string>((resolve, reject) => {
           const reader = new FileReader();
           reader.onload = (e) => resolve(e.target?.result as string);
-          reader.onerror = () => reject(new Error('Failed to read file'));
+          reader.onerror = () => reject(new Error(t('import.errors.readFileFailed')));
           reader.readAsText(file);
         });
         
         diagram = JSON.parse(fileContent);
         diagram.id = uuid();
       } else {
-        throw new Error('Unsupported file type. Please select a .json or .py file.');
+        throw new Error(t('import.errors.unsupportedFileType'));
       }
 
       // Ensure the diagram has a valid model with type
       if (!isUMLModel(diagram.model)) {
-        throw new Error('Invalid diagram: missing model or type information');
+        throw new Error(t('import.errors.invalidMissingType'));
       }
 
       dispatch(bumpEditorRevision());
@@ -47,16 +49,16 @@ export const useImportDiagram = () => {
     } catch (error) {
       console.error('Error importing diagram:', error);
       
-      let errorMessage = 'Unknown error occurred';
+      let errorMessage = t('import.errors.unknownOccurred');
       if (error instanceof Error) {
         errorMessage = error.message;
       }
       
       dispatch(
-        displayError('Import failed', `Could not import selected file: ${errorMessage}`)
+        displayError(t('import.errors.title'), t('import.errors.couldNotImportFile', { message: errorMessage }))
       );
     }
-  }, [dispatch, navigate, convertBumlToDiagram]);
+  }, [dispatch, navigate, convertBumlToDiagram, t]);
 
   return importDiagram;
 };
@@ -64,6 +66,7 @@ export const useImportDiagram = () => {
 // Helper function to import a single diagram JSON and add it to the current project
 export const useImportDiagramToProject = () => {
   const dispatch = useAppDispatch();
+  const { t } = useTranslation();
   const convertBumlToDiagram = useBumlToDiagram();
   
   const importDiagramToProject = useCallback(async (file: File) => {
@@ -78,24 +81,24 @@ export const useImportDiagramToProject = () => {
         const fileContent = await new Promise<string>((resolve, reject) => {
           const reader = new FileReader();
           reader.onload = (e) => resolve(e.target?.result as string);
-          reader.onerror = () => reject(new Error('Failed to read file'));
+          reader.onerror = () => reject(new Error(t('import.errors.readFileFailed')));
           reader.readAsText(file);
         });
         
         diagram = JSON.parse(fileContent);
       } else {
-        throw new Error('Unsupported file type. Please select a .json or .py file.');
+        throw new Error(t('import.errors.unsupportedFileType'));
       }
       
       // Validate that it's a valid diagram
       if (!isUMLModel(diagram.model)) {
-        throw new Error('Invalid diagram format: missing model or type');
+        throw new Error(t('import.errors.invalidFormat'));
       }
 
       // Get the current project
       const currentProject = ProjectStorageRepository.getCurrentProject();
       if (!currentProject) {
-        throw new Error('No project is currently open. Please create or open a project first.');
+        throw new Error(t('import.errors.noProjectOpen'));
       }
 
       // Convert UMLDiagramType to SupportedDiagramType
@@ -113,14 +116,14 @@ export const useImportDiagramToProject = () => {
       // Add the imported diagram as a new entry (never overwrite existing diagrams)
       const existingDiagrams = currentProject.diagrams[diagramType] ?? [];
       if (existingDiagrams.length >= MAX_DIAGRAMS_PER_TYPE) {
-        throw new Error(`Cannot import: maximum of ${MAX_DIAGRAMS_PER_TYPE} ${diagramType} diagrams per project has been reached.`);
+        throw new Error(t('import.errors.maxDiagramsReached', { max: MAX_DIAGRAMS_PER_TYPE, diagramType }));
       }
       const newDiagram = {
         id: newId,
         title: importedDiagram.title,
         model: importedDiagram.model,
         lastUpdate: importedDiagram.lastUpdate,
-        description: importedDiagram.description || `Imported ${diagramType} diagram`
+        description: importedDiagram.description || t('import.descriptions.imported', { diagramType })
       };
 
       const updatedDiagrams = [...existingDiagrams, newDiagram];
@@ -157,17 +160,17 @@ export const useImportDiagramToProject = () => {
         success: true,
         diagramType,
         diagramTitle: importedDiagram.title,
-        message: `${diagramType} diagram imported successfully and added to project "${currentProject.name}". This diagram has been converted from ${fileType} format to the new project format.`
+        message: t('import.success.diagram', { diagramType, projectName: currentProject.name, fileType })
       };
 
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred during import';
+      const errorMessage = error instanceof Error ? error.message : t('import.errors.unknownDuringImport');
       dispatch(
-        displayError('Import failed', `Could not import diagram: ${errorMessage}`)
+        displayError(t('import.errors.title'), t('import.errors.couldNotImportDiagram', { message: errorMessage }))
       );
       throw error;
     }
-  }, [dispatch, convertBumlToDiagram]);
+  }, [dispatch, convertBumlToDiagram, t]);
 
   return importDiagramToProject;
 };

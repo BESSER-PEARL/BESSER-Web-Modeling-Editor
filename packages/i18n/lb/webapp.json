@@ -2287,6 +2287,35 @@
       "projectExportFailed": "De Projet konnt net exportéiert ginn: {{error}}"
     }
   },
+  "import": {
+    "success": {
+      "diagram": "{{diagramType}}-Diagramm erfollegräich importéiert an zum Projet \"{{projectName}}\" derbäigesat. Dësen Diagramm gouf vum {{fileType}}-Format an dat neit Projetformat ëmgewandelt.",
+      "kg": "{{diagramType}}-Diagramm erfollegräich vum Knowledge Graph importéiert an zum Projet \"{{projectName}}\" derbäigesat.",
+      "image": "{{diagramType}}-Diagramm erfollegräich vun engem Bild importéiert an zum Projet \"{{projectName}}\" derbäigesat."
+    },
+    "descriptions": {
+      "imported": "Importéiert {{diagramType}}-Diagramm",
+      "importedFromKg": "Importéiert {{diagramType}}-Diagramm vum Knowledge Graph",
+      "importedFromImage": "Importéiert {{diagramType}}-Diagramm vun engem Bild"
+    },
+    "errors": {
+      "title": "Import feelgeschloen",
+      "unsupportedFileType": "Net ënnerstëtzten Dateityp. Wielt w.e.g. eng .json- oder .py-Datei.",
+      "invalidMissingType": "Ongëltegen Diagramm: Modell oder Typinformatioun feelt",
+      "invalidFormat": "Ongëltegt Diagrammformat: Modell oder Typ feelt",
+      "noProjectOpen": "Et ass am Moment kee Projet op. Erstellt oder maacht w.e.g. fir d'éischt e Projet op.",
+      "maxDiagramsReached": "Import net méiglech: maximal {{max}} {{diagramType}}-Diagrammer pro Projet sinn erreecht.",
+      "unknownDuringImport": "Onbekannte Feeler beim Import opgetrueden",
+      "unknownOccurred": "Onbekannte Feeler opgetrueden",
+      "couldNotImportFile": "Ausgewielten Datei konnt net importéiert ginn: {{message}}",
+      "couldNotImportDiagram": "Diagramm konnt net importéiert ginn: {{message}}",
+      "couldNotImportFromKg": "Diagramm konnt net vum Knowledge Graph importéiert ginn: {{message}}",
+      "couldNotImportFromImage": "Diagramm konnt net vun engem Bild importéiert ginn: {{message}}",
+      "readFileFailed": "Datei konnt net gelies ginn",
+      "invalidFromBackend": "Ongëltege Diagramm vum Backend zréckginn",
+      "couldNotParseError": "D'Feeleräntwert konnt net analyséiert ginn"
+    }
+  },
   "validation": {
     "toast": {
       "noDiagramToValidate": "Keen Diagramm fir ze validéieren",
