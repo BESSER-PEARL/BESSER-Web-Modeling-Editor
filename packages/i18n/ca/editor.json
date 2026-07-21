@@ -95,14 +95,14 @@
         "llmName": "Nom del LLM",
         "maxSteps": "Passos màx.",
         "enablePlanning": "Activa la planificació de tasques",
-        "streamSteps": "Transmet els passos",
+        "streamSteps": "Mostra els passos en temps real",
         "systemPrompt": "Prompt del sistema",
         "systemPromptPlaceholder": "Prefix de prompt del sistema opcional per a aquest estat",
         "fallback": "Missatge alternatiu",
         "fallbackPlaceholder": "Missatge retornat si falla el bucle de raonament"
       },
       "skill": {
-        "name": "Nom de la competència",
+        "name": "Nom de l'habilitat",
         "description": "Descripció",
         "descriptionPlaceholder": "Descripció breu opcional",
         "content": "Contingut Markdown"
@@ -110,7 +110,7 @@
       "tool": {
         "name": "Nom de l'eina",
         "description": "Descripció",
-        "descriptionPlaceholder": "Descripció breu mostrada al LLM",
+        "descriptionPlaceholder": "Descripció breu mostrada a l'LLM",
         "code": "Codi Python"
       },
       "workspace": {
@@ -118,7 +118,7 @@
         "path": "Camí del sistema de fitxers",
         "description": "Descripció",
         "descriptionPlaceholder": "Descripció opcional",
-        "writable": "Escrivible",
+        "writable": "Editable",
         "maxReadBytes": "Bytes màx. de lectura"
       }
     },
@@ -158,8 +158,8 @@
     "assessment": "Avaluació de",
     "score": "Punts",
     "feedback": "Comentaris",
-    "feedbackPlaceholder": "Podeu introduir comentaris aquí...",
-    "additionalFeedbackPlaceholder": "Podeu introduir comentaris addicionals aquí...",
+    "feedbackPlaceholder": "Pots introduir comentaris aquí...",
+    "additionalFeedbackPlaceholder": "Pots introduir comentaris addicionals aquí...",
     "nextAssessment": "Següent avaluació"
   },
   "packages": {
@@ -300,7 +300,7 @@
       "BPMNCompensationEndEvent": "Esdeveniment de fi per compensació",
       "BPMNSignalEndEvent": "Esdeveniment de fi per senyal",
       "BPMNTerminateEndEvent": "Esdeveniment de fi de terminació",
-      "BPMNGateway": "Passarel·la",
+      "BPMNGateway": "Comporta",
       "BPMNComplexGateway": "Complexa",
       "BPMNEventBasedGateway": "Basada en esdeveniments",
       "BPMNInclusiveGateway": "Inclusiva",
@@ -321,9 +321,9 @@
     },
     "NNDiagram": {
       "NNContainer": "Neural_Network",
-      "NNReference": "Referència sub-XN",
+      "NNReference": "Referència sub-xarxa neuronal",
       "SelectNN": "Selecciona la xarxa neuronal",
-      "SelectNNPlaceholder": "-- Selecciona XN --",
+      "SelectNNPlaceholder": "-- Selecciona xarxa neuronal --",
       "Conv1DLayer": "Capa Conv1D",
       "Conv2DLayer": "Capa Conv2D",
       "Conv3DLayer": "Capa Conv3D",
@@ -341,7 +341,7 @@
       "Configuration": "Configuració",
       "TrainingDataset": "Conjunt de dades d'entrenament",
       "TestDataset": "Conjunt de dades de prova",
-      "Datasets": "Conjunts de dades XN",
+      "Datasets": "Conjunts de dades de xarxa neuronal",
       "Comments": "Comentaris"
     },
     "OCLConstraint": {
@@ -399,7 +399,7 @@
     "idLockedByOptional": "Els atributs opcionals no poden ser l'identificador.",
     "enterDefaultValue": "Introdueix un valor per defecte...",
     "reset": "Restableix",
-    "fillColor": "Color de farciment",
+    "fillColor": "Color d'emplenament",
     "icon": "Icona",
     "externalIdLockedByOptional": "Els atributs opcionals no poden ser l'identificador extern.",
     "optional": "Opcional",
