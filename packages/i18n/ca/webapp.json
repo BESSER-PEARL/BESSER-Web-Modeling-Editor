@@ -12,7 +12,7 @@
   },
   "topbar": {
     "language": "Idioma",
-    "openProjectHub": "Obre el centre de projectes",
+    "openProjectHub": "Obre el gestor de projectes",
     "projectName": "Nom del projecte",
     "diagramTitle": "Títol del diagrama",
     "noDiagram": "Cap diagrama",
@@ -21,14 +21,14 @@
     "baseAgentModel": "Model d'agent base",
     "switchToLight": "Canvia al mode clar",
     "switchToDark": "Canvia al mode fosc",
-    "star": "Star",
-    "starBesser": "Posa una estrella a BESSER a GitHub",
+    "star": "Afegeix als preferits",
+    "starBesser": "Dona a BESSER una estrella a GitHub",
     "githubAccount": "Compte de GitHub: {{name}}",
     "signOut": "Tanca la sessió",
     "githubVersionControl": "Control de versions de GitHub",
     "toggleGithubPanel": "Mostra/amaga el tauler de control de versions de GitHub",
-    "sync": "Sync",
-    "connectGithub": "Connecta GitHub",
+    "sync": "Sincronitza",
+    "connectGithub": "Connecta amb GitHub",
     "quality": {
       "title": "Control de qualitat",
       "validated": "Validat",
@@ -55,19 +55,19 @@
       "settings": "Configuració",
       "agentCustomization": "Personalització de l'agent",
       "agentPersonalization": "Personalització avançada de l'agent",
-      "agentMappings": "Assignacions d'agent"
+      "agentMappings": "Assignacions de l'agent"
     }
   },
   "menu": {
     "file": {
       "title": "Fitxer",
       "projectActions": "Accions del projecte",
-      "newOpenImport": "Nou / Obre / Importa projecte",
+      "newOpenImport": "Nou / Obre / Importa un projecte",
       "loadTemplate": "Carrega una plantilla",
       "exportProject": "Exporta el projecte",
       "importClassDiagramFrom": "Importa un diagrama de classes des de",
       "imageToProject": "Imatge a projecte",
-      "kgToProject": "KG a projecte",
+      "kgToProject": "Graf de coneixement a projecte",
       "previewProject": "Previsualitza el projecte"
     },
     "generate": {
@@ -95,7 +95,7 @@
         "qiskitCode": "Codi Qiskit"
       },
       "notices": {
-        "statemachine": "Les màquines d'estats s'utilitzen com a implementacions de mètodes en els diagrames de classes. Genereu codi a partir del diagrama de classes.",
+        "statemachine": "Les màquines d'estats s'utilitzen com a implementacions de mètodes en els diagrames de classes. Genera codi a partir del diagrama de classes.",
         "unavailable": "Encara no disponible per a aquest diagrama"
       }
     },
@@ -108,7 +108,7 @@
     "community": {
       "title": "Comunitat",
       "contribute": "Contribueix",
-      "githubRepository": "Dipòsit de GitHub",
+      "githubRepository": "Repositori de GitHub",
       "sendFeedback": "Envia comentaris",
       "userSurvey": "Enquesta d'usuaris",
       "reportProblem": "Informa d'un problema"
@@ -131,7 +131,7 @@
       "transform": "Això pot trigar una estona a elaborar la millor configuració d'agent transformada i aplicar-la al teu diagrama."
     },
     "title": "Personalització de l'agent",
-    "subtitle": "Adapta el teu agent a un perfil d'usuari específic del User Diagram. Ajusta com parla, com es veu i com es comporta perquè s'adigui amb aquest públic, i després desa el resultat com a configuració amb nom entre les quals podràs alternar més endavant.",
+    "subtitle": "Adapta el teu agent a un perfil d'usuari específic del diagrama d'usuari. Ajusta com parla, com es veu i com es comporta perquè s'adigui amb aquest públic, i després desa el resultat com a configuració amb un nom entre les quals podràs alternar més endavant.",
     "tabsAriaLabel": "Seccions de configuració de l'agent",
     "tab": {
       "runtime": "Execució de l'agent",
@@ -153,16 +153,16 @@
       "title": "Assignació de perfil d'usuari",
       "description": "Selecciona el perfil d'usuari que ha de guiar la personalització i les propostes de configuració automàtiques.",
       "label": "Assignació de perfil d'usuari",
-      "noTabs": "Encara no hi ha pestanyes de User Diagram amb models disponibles",
+      "noTabs": "Encara no hi ha pestanyes de diagrama d'usuari amb models disponibles",
       "selectProfile": "Selecciona un perfil d'usuari",
-      "createFirst": "Primer crea o carrega una pestanya de User Diagram.",
-      "statusLine": "Estat del User Diagram del projecte actual: {{status}}.",
+      "createFirst": "Primer crea o carrega una pestanya de diagrama d'usuari.",
+      "statusLine": "Estat del diagrama d'usuari del projecte actual: {{status}}.",
       "statusAvailable": "disponible",
       "statusMissing": "falta"
     },
     "propose": {
       "rules": "Proposa automàticament la configuració amb regles predefinides",
-      "llm": "Proposa automàticament la configuració amb LLM",
+      "llm": "Proposa automàticament la configuració amb un LLM",
       "rag": "Proposa automàticament la configuració basada en RAG"
     },
     "recommendation": {
@@ -183,7 +183,7 @@
       "intentLlmBased": "Basat en LLM",
       "llm": "LLM",
       "useDefault": "(utilitza el predeterminat)",
-      "defineLlmHint": "Defineix un LLM a la secció LLMs de sota per fer-lo servir aquí."
+      "defineLlmHint": "Defineix un LLM a la secció d'LLMs de sota per fer-lo servir aquí."
     },
     "llms": {
       "title": "LLMs",
@@ -286,7 +286,7 @@
       "options": {
         "default": {
           "label": "Predeterminat (tema)",
-          "description": "Segueix el tema actiu — s'adapta al mode clar o fosc."
+          "description": "Mantenir el tema actiu — s'adapta al mode clar o fosc."
         },
         "black": {
           "label": "Negre — contrast alt",
@@ -302,7 +302,7 @@
         },
         "blue": {
           "label": "Blau — segur per al daltonisme",
-          "description": "Distingible en la visió del color protan i deutan."
+          "description": "Distingible en el daltonisme de protanomalia i deuteranomalia."
         },
         "teal": {
           "label": "Verd blavós — segur per al daltonisme",
@@ -327,7 +327,7 @@
     },
     "modality": {
       "title": "Modalitat",
-      "subtitle": "Configura text més entrada/sortida de veu opcional.",
+      "subtitle": "Configura text i entrada/sortida de veu opcional.",
       "input": "Modalitats d'entrada",
       "inputAlways": "L'entrada de text sempre està activada.",
       "enableSpeechInput": "Activa l'entrada de veu",
@@ -353,7 +353,7 @@
     },
     "save": {
       "title": "Desa aquesta personalització",
-      "description": "Quan hagis acabat d'omplir el formulari de dalt, posa un nom a la teva personalització i desa-la aquí. Les personalitzacions desades apareixen al selector \"Carrega una personalització desada\" a la part superior de la pàgina perquè puguis alternar-hi més endavant.",
+      "description": "Quan hagis acabat d'omplir el formulari de dalt, posa un nom a la teva personalització i desa-la aquí. Les personalitzacions desades apareixen al selector \"Carrega una personalització desada\" a la part superior de la pàgina perquè puguis alternar-les més endavant.",
       "nameLabel": "Nom de la personalització",
       "namePlaceholder": "Posa un nom a aquesta configuració",
       "activeBadge": "Activa",
@@ -372,10 +372,10 @@
     },
     "importExport": {
       "title": "Importa / Exporta",
-      "description": "Baixa o puja fitxers de configuració.",
-      "downloadJson": "Baixa el JSON",
-      "uploadJson": "Puja el JSON",
-      "uploadNote": "Pujar un fitxer substitueix els valors actuals del formulari, però no desa automàticament."
+      "description": "Descarrega o carrega fitxers de configuració.",
+      "downloadJson": "Descarrega el JSON",
+      "uploadJson": "Carrega el JSON",
+      "uploadNote": "Carregar un fitxer substitueix els valors actuals del formulari, però no desa automàticament."
     },
     "confirm": {
       "replace": "Substitueix",
@@ -392,7 +392,7 @@
     "toasts": {
       "persistFailed": "No s'ha pogut actualitzar el diagrama d'agent.",
       "noActiveDiagram": "No hi ha cap diagrama d'agent actiu.",
-      "nameBeforeDefault": "Posa un nom al LLM abans de marcar-lo com a predeterminat.",
+      "nameBeforeDefault": "Posa un nom a l'LLM abans de marcar-lo com a predeterminat.",
       "selectToLoad": "Selecciona una configuració per carregar.",
       "notFound": "No s'ha pogut trobar la configuració seleccionada.",
       "loaded": "Configuració \"{{name}}\" carregada.",
@@ -401,16 +401,16 @@
       "selectProfileFirst": "Primer selecciona una assignació de perfil d'usuari.",
       "profileUnavailable": "El perfil d'usuari seleccionat no està disponible. Selecciona un perfil d'usuari desat vàlid.",
       "signInGitHub": "Inicia sessió a GitHub per utilitzar les recomanacions.",
-      "invalidMappingResponse": "S'ha rebut una resposta de recomanació d'assignació no vàlida del backend.",
+      "invalidMappingResponse": "El servidor ha retornat una resposta de recomanació d'assignació no vàlida.",
       "ruleRecApplied_one": "Recomanació basada en regles aplicada ({{count}} regla coincideix).",
       "ruleRecApplied_other": "Recomanació basada en regles aplicada ({{count}} regles coincideixen).",
       "ruleRecAppliedNone": "Recomanació basada en regles aplicada. No coincideix cap regla específica, de manera que s'han conservat els valors predeterminats.",
       "mappingRecFailed": "No s'ha pogut obtenir la recomanació basada en assignació: {{message}}",
       "mappingRecUnexpected": "S'ha produït un error inesperat en sol·licitar una recomanació basada en regles.",
       "ragSoon": "La proposta de configuració automàtica basada en RAG estarà disponible aviat.",
-      "invalidRecResponse": "S'ha rebut una resposta de recomanació no vàlida del backend.",
+      "invalidRecResponse": "El servidor ha retornat una resposta de recomanació no vàlida.",
       "llmRecApplied": "Recomanació basada en LLM aplicada a la configuració actual.",
-      "llmRecFailed": "No s'ha pogut obtenir la recomanació de LLM: {{message}}",
+      "llmRecFailed": "No s'ha pogut obtenir la recomanació de l'LLM: {{message}}",
       "llmRecUnexpected": "S'ha produït un error inesperat en sol·licitar una recomanació basada en LLM.",
       "resetToDefaults": "Configuració restablerta als valors predeterminats.",
       "nameBeforeSave": "Indica un nom de configuració abans de desar.",
@@ -431,73 +431,73 @@
     "defaultDiagramTitle": "Diagrama",
     "django": {
       "title": "Configuració del projecte Django",
-      "description": "Configureu els noms i les opcions de contenidorització per a la generació de Django.",
+      "description": "Configura els noms i les opcions de contenidorització per a la generació de Django.",
       "projectName": "Nom del projecte",
       "appName": "Nom de l'aplicació",
       "includeDocker": "Inclou la contenidorització amb Docker"
     },
     "sql": {
       "title": "Selecció de dialecte SQL",
-      "description": "Trieu el dialecte SQL per a les sentències DDL generades.",
+      "description": "Tria el dialecte SQL per a les sentències DDL generades.",
       "dialect": "Dialecte",
-      "selectDialect": "Seleccioneu el dialecte SQL"
+      "selectDialect": "Selecciona el dialecte SQL"
     },
     "sqlAlchemy": {
       "title": "Selecció de SGBD de SQLAlchemy",
-      "description": "Trieu el sistema de base de dades per al codi SQLAlchemy generat.",
+      "description": "Tria el sistema de base de dades per al codi SQLAlchemy generat.",
       "dbms": "SGBD",
-      "selectDbms": "Seleccioneu el SGBD"
+      "selectDbms": "Selecciona el SGBD"
     },
     "supabase": {
       "title": "Configuració de Supabase",
       "descriptionBefore": "Genera DDL de Postgres amb claus primàries UUID,",
-      "descriptionAfter": "replicació, i seguretat a nivell de fila (RLS). Indiqueu quina classe del vostre diagrama es correspon amb auth.users.",
+      "descriptionAfter": "replicació, i seguretat a nivell de fila (RLS). Indica quina classe del teu diagrama es correspon amb auth.users.",
       "userRootLabel": "Nom de la classe arrel d'usuari",
-      "hintBefore": "Deixeu-ho en blanc per ometre la integració d'autenticació (sense",
+      "hintBefore": "Deixa-ho en blanc per ometre la integració d'autenticació (sense",
       "hintMiddle": "rèplica, sense RLS). Per defecte:"
     },
     "jsonSchema": {
       "title": "Mode JSON Schema",
-      "description": "Trieu JSON schema estàndard o el mode smart data NGSI-LD.",
+      "description": "Tria JSON Schema estàndard o el mode smart data NGSI-LD.",
       "mode": "Mode",
-      "selectMode": "Seleccioneu el mode",
+      "selectMode": "Selecciona el mode",
       "regular": "JSON Schema estàndard"
     },
     "agent": {
-      "title": "Seleccioneu els idiomes de l'agent",
-      "description": "Configureu els idiomes d'origen i de destinació per a la traducció de l'agent.",
+      "title": "Selecciona els idiomes de l'agent",
+      "description": "Configura els idiomes d'origen i de destinació per a la traducció de l'agent.",
       "noSavedConfig": "No s'ha trobat cap configuració desada. L'agent es generarà amb la configuració per defecte.",
       "configureTechnologies": "Configura les tecnologies de l'agent",
       "sourceLanguage": "Idioma d'origen (opcional)",
       "addSpokenLanguage": "Afegeix un idioma parlat per a la traducció de l'agent",
-      "selectLanguage": "Seleccioneu un idioma...",
+      "selectLanguage": "Selecciona un idioma...",
       "addLanguage": "Afegeix idioma",
       "translatedToAll": "L'agent es traduirà a tots els idiomes parlats seleccionats.",
-      "warningAriaLabel": "advertiment",
+      "warningAriaLabel": "advertència",
       "moreLanguagesWarning": "Afegir més idiomes augmentarà el temps de generació.",
       "systemConfiguration": "Configuració del sistema",
-      "editInAgentConfig": "Edita a Agent Config",
+      "editInAgentConfig": "Edita a configuració de l'agent",
       "platform": "Plataforma",
       "platformStreamlit": "WebSocket amb interfície Streamlit",
-      "intentRecognition": "Reconeixement d'intenció",
+      "intentRecognition": "Reconeixement d'intencions",
       "classical": "Clàssic",
       "llmBased": "Basat en LLM",
-      "systemConfigHint": "Aquests valors provenen de la pestanya Configuració del sistema d'Agent Config i s'utilitzen en cada generació.",
+      "systemConfigHint": "Aquests valors provenen de la pestanya Configuració del sistema de configuració de l'agent i s'utilitzen en cada generació.",
       "personalizationStrategy": "Estratègia de personalització",
       "none": "Cap",
       "personalizationAll": "Personalització (totes)",
-      "personalizationAllHint": "Envia al backend totes les assignacions de personalització de perfil a configuració disponibles.",
+      "personalizationAllHint": "Envia al servidor totes les assignacions de personalització de perfil a configuració disponibles.",
       "personalizationNoneHint": "Genera sense adjuntar variants de personalització desades ni dades de configuració avançada.",
       "mode": "Mode",
       "modeOriginal": "Original",
       "modeConfiguration": "Configuració",
       "modePersonalization": "Personalització",
-      "selectMappings": "Seleccioneu les assignacions perfil → configuració",
-      "selectStoredConfigs": "Seleccioneu les configuracions desades",
-      "noMappingsFound": "No s'han trobat assignacions amb agents generats. Creeu assignacions i executeu primer \"Save & Apply\".",
+      "selectMappings": "Selecciona les assignacions perfil → configuració",
+      "selectStoredConfigs": "Selecciona les configuracions desades",
+      "noMappingsFound": "No s'han trobat assignacions amb agents generats. Crea assignacions i executa primer \"Desa i Aplica\".",
       "mappingsListHint": "Només es llisten les assignacions la configuració de destinació de les quals ja té un agent generat.",
-      "noStoredConfigsFound": "No s'han trobat configuracions desades amb agents generats. Utilitzeu primer \"Save & Apply\" per fer-les disponibles aquí.",
-      "storedConfigsListHint": "Seleccioneu una o més configuracions (només es llisten les entrades amb agents generats) per incloure-les a la sol·licitud. Això generarà un agent per configuració.",
+      "noStoredConfigsFound": "No s'han trobat configuracions desades amb agents generats. Utilitza primer \"Desa i Aplica\" per fer-les disponibles aquí.",
+      "storedConfigsListHint": "Selecciona una o més configuracions (només es llisten les entrades amb agents generats) per incloure-les a la sol·licitud. Això generarà un agent per configuració.",
       "selectedLanguages": "Idiomes seleccionats",
       "removeLanguage": "Elimina l'idioma {{language}}",
       "languages": {
@@ -510,10 +510,10 @@
       }
     },
     "qiskit": {
-      "title": "Configuració del backend de Qiskit",
-      "description": "Trieu el backend d'execució i el nombre de tirades (shots).",
-      "executionBackend": "Backend d'execució",
-      "selectBackend": "Seleccioneu el backend",
+      "title": "Configuració del servidor de Qiskit",
+      "description": "Tria el servidor d'execució i el nombre de tirades (shots).",
+      "executionBackend": "Servidor d'execució",
+      "selectBackend": "Selecciona el servidor",
       "backendAerSimulator": "Aer Simulator (Local)",
       "backendMockSimulation": "Simulació simulada (simulació de soroll)",
       "backendIbmQuantum": "IBM Quantum (Maquinari real)",
@@ -525,8 +525,8 @@
       "description": "Els diagrames següents s'utilitzaran per a la generació.",
       "required": "Obligatori",
       "optional": "Opcional",
-      "referencesHint": "Si el diagrama de classes o GUI no és correcte, canvieu les referències a les pestanyes del diagrama abans de generar.",
-      "noProjectLoaded": "No hi ha cap projecte carregat. Creeu o carregueu un projecte primer.",
+      "referencesHint": "Si el diagrama de classes o GUI no és correcte, canvia les referències a les pestanyes del diagrama abans de generar.",
+      "noProjectLoaded": "No hi ha cap projecte carregat. Crea o carrega un projecte primer.",
       "untitled": "(sense títol)",
       "missing": "(manca)",
       "emptyWillBeSkipped": " (buit - s'ometrà)",
@@ -547,32 +547,32 @@
       "localDeploymentInProgress": "Desplegament local en curs... Això pot trigar uns minuts.",
       "httpError": "Error HTTP! estat: {{status}}",
       "localDeploymentCompleted": "Desplegament local completat!",
-      "accessApplicationAt": "Ara podeu accedir a la vostra aplicació a: ",
+      "accessApplicationAt": "Ara pots accedir a la teva aplicació a: ",
       "unknownDeploymentError": "S'ha produït un error desconegut durant el desplegament",
       "noProjectAvailable": "No hi ha cap projecte disponible per a la generació de codi",
       "codeGenerationCompleted": "Generació de codi completada correctament",
-      "requestTimedOut": "S'ha esgotat el temps d'espera de la sol·licitud. Torneu-ho a provar.",
+      "requestTimedOut": "S'ha esgotat el temps d'espera de la sol·licitud. Torna-ho a provar.",
       "unknownError": "S'ha produït un error desconegut",
-      "createOrLoadProject": "Creeu o carregueu un projecte abans de generar codi.",
+      "createOrLoadProject": "Crea o carrega un projecte abans de generar codi.",
       "couldNotSwitchToGui": "No s'ha pogut canviar al diagrama GUI per a la generació automàtica.",
       "guiEditorNotReady": "L'editor GUI no ha estat a punt a temps.",
       "couldNotAutoGenerateGui": "No s'ha pogut generar automàticament el GUI a partir del diagrama de classes.",
       "guiDiagramEmpty": "No es pot generar l'aplicació web: el diagrama GUI està buit.",
-      "openQuantumEditor": "Obriu l'editor Quantum abans de generar codi Qiskit.",
-      "openNnEditor": "Obriu l'editor de diagrames NN abans de generar codi de xarxa neuronal.",
-      "switchToUmlDiagram": "Canvieu a un diagrama UML per utilitzar aquest generador.",
-      "noUmlEditor": "No hi ha cap instància de l'editor UML disponible. Obriu primer un diagrama UML.",
-      "switchToObjectOrUserDiagram": "Canvieu a un diagrama d'objectes o un diagrama d'usuari per utilitzar el generador JSON Object.",
+      "openQuantumEditor": "Obre l'editor quàntic abans de generar codi Qiskit.",
+      "openNnEditor": "Obre l'editor de diagrames de xarxa neuronal abans de generar codi de xarxa neuronal.",
+      "switchToUmlDiagram": "Canvia a un diagrama UML per utilitzar aquest generador.",
+      "noUmlEditor": "No hi ha cap instància de l'editor UML disponible. Obre primer un diagrama UML.",
+      "switchToObjectOrUserDiagram": "Canvia a un diagrama d'objectes o un diagrama d'usuari per utilitzar el generador JSON Object.",
       "generationFailed": "La generació ha fallat: {{error}}",
-      "createOrLoadProjectValidate": "Creeu o carregueu un projecte abans de validar.",
+      "createOrLoadProjectValidate": "Crea o carrega un projecte abans de validar.",
       "comingSoon": "properament",
       "noDiagramToValidate": "No hi ha cap diagrama disponible per validar",
       "qualityCheckFailed": "El control de qualitat ha fallat: {{error}}",
       "namesRequired": "Els noms del projecte i de l'aplicació són obligatoris.",
       "namesMustDiffer": "Els noms del projecte i de l'aplicació han de ser diferents.",
       "namesInvalid": "Els noms han de començar amb una lletra/guió baix i contenir només lletres, números i guions baixos.",
-      "openUmlBeforeDeploy": "Obriu un diagrama UML abans de desplegar.",
-      "noValidPersonalizationMappings": "No s'han trobat assignacions de personalització vàlides. Creeu assignacions i deseu primer variants personalitzades."
+      "openUmlBeforeDeploy": "Obre un diagrama UML abans de desplegar.",
+      "noValidPersonalizationMappings": "No s'han trobat assignacions de personalització vàlides. Crea assignacions i desa primer variants personalitzades."
     },
     "context": {
       "djangoGeneration": "Generació de Django",
@@ -586,7 +586,7 @@
       "webAppGeneration": "Generació d'aplicació web"
     },
     "overlay": {
-      "subtitle": "Espereu mentre es genera el vostre codi",
+      "subtitle": "Espera mentre es genera el codi",
       "title": "S'està generant el codi",
       "stepPackaging": "S'està empaquetant la sortida...",
       "stepGenerating": "S'està generant el codi...",
@@ -635,7 +635,7 @@
         "accepted": "Acceptats: .csv, .xlsx, .xls"
       },
       "open": {
-        "title": "Obrir projecte existent",
+        "title": "Obrir un projecte existent",
         "description": "Tria qualsevol projecte desat i torna a entrar al teu espai de treball a l'instant.",
         "allProjects": "Tots els projectes"
       },
@@ -744,7 +744,7 @@
           },
           "fullApp": {
             "label": "Aplicació web completa",
-            "description": "Diagrames de classes, agents i interfície sense codi."
+            "description": "Diagrames de classes, agents i interfície sense codi (no-code)."
           },
           "quantum": {
             "label": "Quàntic",
@@ -845,8 +845,8 @@
       "checking": "S'està comprovant...",
       "unsavedChanges": "Tens canvis sense desar",
       "upToDate": "Actualitzat",
-      "push": "Push",
-      "pull": "Pull",
+      "push": "Puja (Push)",
+      "pull": "Baixa (Pull)",
       "history": "Historial",
       "refreshHistory": "Actualitza l'historial de commits",
       "latest": "Més recent",
@@ -988,9 +988,9 @@
       "repoCreatedQuoted": "Repositori «{{name}}» creat!",
       "createGistFailed": "No s'ha pogut crear el Gist",
       "gistCreated": "Gist creat correctament!",
-      "invalidGitHubUrl": "URL de GitHub no vàlida. Proporcioneu una URL vàlida d'un repositori de GitHub.",
+      "invalidGitHubUrl": "URL de GitHub no vàlida. Proporciona una URL vàlida d'un repositori de GitHub.",
       "fetchingFromGitHub": "S'està obtenint {{filename}} de GitHub...",
-      "fileNotFound": "No s'ha trobat el fitxer a GitHub. Comproveu l'URL i torneu-ho a provar.",
+      "fileNotFound": "No s'ha trobat el fitxer a GitHub. Comprova l'URL i torna-ho a provar.",
       "fetchFileFailed": "No s'ha pogut obtenir el fitxer de GitHub: {{status}}",
       "importProjectSuccess": "Projecte importat correctament: {{name}}",
       "importModelFailed": "No s'ha pogut importar el model de GitHub",
@@ -1066,7 +1066,7 @@
       "privacyBody": "Evita compartir informació sensible o confidencial als missatges de l'assistent.",
       "understand": "Ho entenc"
     },
-    "poweredWithBaf": "Impulsat amb BAF",
+    "poweredWithBaf": "Funciona amb BAF",
     "capabilities": {
       "systemDesign": {
         "title": "Disseny de sistemes",
@@ -1134,7 +1134,7 @@
       "sendFailed": "No s'ha pogut enviar el teu missatge — torna-ho a provar.",
       "sendVoiceFailed": "No s'ha pogut enviar el teu missatge de veu — torna-ho a provar.",
       "voiceProcessFailed": "No s'ha pogut processar el teu missatge de veu. Torna-ho a provar.",
-      "backendUnreachable": "No s'ha pogut connectar amb l'assistent d'IA. Assegura't que el backend s'estigui executant."
+      "backendUnreachable": "No s'ha pogut connectar amb l'assistent d'IA. Assegura't que el servidor s'estigui executant."
     },
     "chatKit": {
       "copiedToClipboard": "Copiat al porta-retalls!",
@@ -1157,7 +1157,7 @@
       "toggleReasoning": "Mostra o amaga els detalls del raonament",
       "thinking": "Pensant",
       "toolCancelled": "Cancel·lat",
-      "toolCalling": "Cridant",
+      "toolCalling": "Executant eina",
       "toolResultFrom": "Resultat de",
       "loading": "S'està carregant...",
       "removeAttachment": "Elimina l'adjunt",
@@ -1227,9 +1227,9 @@
       "filesUploaded": "{{count}} fitxers pujats.",
       "notSeeingChanges": "Encara no veus els teus canvis?",
       "manualSyncIntro": "Obre el teu Blueprint a Render i fes clic a",
-      "manualSyncLabel": "Manual Sync",
-      "manualSyncBody": ". Això redesplega cada servei del blueprint (backend, frontend, agents) des del darrer commit amb un sol clic. El desplegament automàtic de Render pot ometre els enviaments quan l'aplicació de GitHub no té accés al repositori, així que Manual Sync és la via fiable.",
-      "manualSyncBodyAgent": ". Això redesplega cada servei del blueprint des del darrer commit amb un sol clic. El desplegament automàtic de Render pot ometre els enviaments quan l'aplicació de GitHub no té accés al repositori, així que Manual Sync és la via fiable.",
+      "manualSyncLabel": "Sincronització Manual",
+      "manualSyncBody": ". Això redesplega cada servei del blueprint (backend, frontend, agents) des del darrer commit amb un sol clic. El desplegament automàtic de Render pot ometre els enviaments quan l'aplicació de GitHub no té accés al repositori, així que Sincronització Manual és la via fiable.",
+      "manualSyncBodyAgent": ". Això redesplega cada servei del blueprint des del darrer commit amb un sol clic. El desplegament automàtic de Render pot ometre els enviaments quan l'aplicació de GitHub no té accés al repositori, així que Sincronització Manual és la via fiable.",
       "openLiveAgent": "Obre l'agent en directe",
       "openLiveApp": "Obre l'aplicació en directe",
       "openRenderDeployment": "Obre el desplegament de Render",
@@ -1457,7 +1457,7 @@
         "summary": "Dissenya circuits, configura portes i genera artefactes compatibles amb Qiskit.",
         "coreWorkflow": {
           "title": "Flux de treball principal",
-          "body": "<p>Col·loca portes sobre les línies de qubits, valida l'estructura i, tot seguit, genera amb els paràmetres de backend seleccionats.</p><p>Utilitza el nombre de shots i la selecció de backend a Generate per obtenir resultats reproduïbles.</p>"
+          "body": "<p>Col·loca portes sobre les línies de qubits, valida l'estructura i, tot seguit, genera amb els paràmetres de servidor seleccionats.</p><p>Utilitza el nombre de shots i la selecció de servidor a Generate per obtenir resultats reproduïbles.</p>"
         }
       },
       "nn": {
@@ -1509,7 +1509,7 @@
   "shared": {
     "commandPalette": {
       "dialogLabel": "Paleta d'ordres",
-      "placeholder": "Escriviu una ordre...",
+      "placeholder": "Escriu una ordre...",
       "searchLabel": "Cerca ordres",
       "noResults": "No hi ha cap ordre coincident",
       "navigate": "Navega",
@@ -1584,7 +1584,7 @@
         "useTitle": "Com utilitzem les dades",
         "useBody": "L'analítica només s'utilitza per millorar la qualitat del producte i prioritzar el desenvolupament de funcions. No s'utilitza per a màrqueting ni revenda.",
         "providerTitle": "Proveïdor",
-        "providerIntro": "Utilitzem PostHog (allotjat a la UE). Vegeu la",
+        "providerIntro": "Utilitzem PostHog (allotjat a la UE). Veu la",
         "providerLinkText": "Política de privadesa de PostHog"
       }
     },
@@ -1593,7 +1593,7 @@
     },
     "errorBoundary": {
       "title": "Error de l'editor",
-      "description": "L'editor ha trobat un error inesperat. La vostra feina s'ha desat.",
+      "description": "L'editor ha trobat un error inesperat. La teva feina s'ha desat.",
       "unknownError": "Error desconegut",
       "tryAgainLabel": "Torna-ho a provar després de l'error",
       "tryAgain": "Torna-ho a provar"
@@ -1617,11 +1617,11 @@
     },
     "notFound": {
       "title": "Pàgina no trobada",
-      "description": "La pàgina que busqueu no existeix o s'ha mogut.",
+      "description": "La pàgina que busques no existeix o s'ha mogut.",
       "backHome": "Torna a l'inici"
     },
     "offline": {
-      "offlineMessage": "Esteu sense connexió. És possible que algunes funcions no funcionin.",
+      "offlineMessage": "Estàs sense connexió. És possible que algunes funcions no funcionin.",
       "backOnline": "De nou en línia.",
       "dismiss": "Descarta l'avís de sense connexió"
     }
@@ -1674,7 +1674,7 @@
   "editors": {
     "diagramTabs": {
       "editorNotReady": "L'editor encara no està a punt.",
-      "pickClassRefFirst": "Primer seleccioneu una referència de diagrama de classes.",
+      "pickClassRefFirst": "Primer selecciona una referència de diagrama de classes.",
       "noClassesToInstantiate": "El diagrama de classes referenciat no té classes per instanciar.",
       "linksFragment_one": ", {{count}} enllaç",
       "linksFragment_other": ", {{count}} enllaços",
@@ -1685,8 +1685,8 @@
       "generatedFromClassDiagram_one": "S'ha generat {{count}} objecte{{links}} a partir del diagrama de classes.",
       "generatedFromClassDiagram_other": "S'han generat {{count}} objectes{{links}} a partir del diagrama de classes.",
       "maxDiagrams": "Màxim {{count}} diagrames per tipus.",
-      "classRefTooltipObject": "Seleccioneu quin diagrama de classes proporciona el model de dades per a aquest diagrama d'objectes",
-      "classRefTooltipGui": "Seleccioneu quin diagrama de classes proporciona el model de dades per a aquesta interfície gràfica",
+      "classRefTooltipObject": "Selecciona quin diagrama de classes proporciona el model de dades per a aquest diagrama d'objectes",
+      "classRefTooltipGui": "Selecciona quin diagrama de classes proporciona el model de dades per a aquesta interfície gràfica",
       "validationValidated": "Validat",
       "validationIssues": "Problemes",
       "validationNeedsValidation": "Cal validació",
@@ -1704,8 +1704,8 @@
       "linkedDiagrams": "Diagrames enllaçats",
       "references": "Referències",
       "classDiagram": "Diagrama de classes",
-      "referenceBroken": "Referència trencada: torneu a seleccionar",
-      "referenceDeleted": "El diagrama referenciat s'ha suprimit. Seleccioneu-ne un de nou.",
+      "referenceBroken": "Referència trencada: torna a seleccionar",
+      "referenceDeleted": "El diagrama referenciat s'ha suprimit. Selecciona'n un de nou.",
       "referenceEmpty": "El diagrama de classes referenciat és buit (sense classes ni relacions).",
       "generateObjectsTooltip": "Crea una instància d'objecte per cada classe del diagrama referenciat, amb valors predeterminats per a cada atribut.",
       "generate": "Genera",
@@ -1720,7 +1720,7 @@
       "columnValue": "Valor",
       "addEntity": "Afegeix {{entity}}",
       "addRegister": "Afegeix un registre",
-      "previewDescription": "Només vista prèvia de dades. Configureu els enllaços per connectar les files de la taula amb el vostre model de domini.",
+      "previewDescription": "Només vista prèvia de dades. Configura els enllaços per connectar les files de la taula amb el teu model de domini.",
       "edit": "Edita",
       "editRow": "Edita la fila",
       "remove": "Elimina",
@@ -1729,7 +1729,7 @@
       "rowsPerPage": "Files per pàgina: {{count}}"
     },
     "quantum": {
-      "editorTitle": "Quantum Editor",
+      "editorTitle": "Editor Quàntic",
       "saved": "Desat",
       "saving": "S'està desant...",
       "error": "Error",
@@ -1753,7 +1753,7 @@
       "toolbox1": "Caixa d'eines 1",
       "toolbox2": "Caixa d'eines 2",
       "functionGate": {
-        "tooltip": "{{label}}: feu doble clic per editar el circuit imbricat {{status}}",
+        "tooltip": "{{label}}: fes doble clic per editar el circuit imbricat {{status}}",
         "configured": "(configurat)",
         "empty": "(buit)"
       },
@@ -2054,7 +2054,7 @@
         "cannotDeleteDescription": "No es pot eliminar l'última pàgina. Es requereix almenys una pàgina.",
         "ok": "D'acord",
         "deletePageTitle": "Elimina la pàgina",
-        "deleteConfirm": "Voleu eliminar la pàgina \"{{name}}\"?",
+        "deleteConfirm": "Vols eliminar la pàgina \"{{name}}\"?",
         "delete": "Elimina"
       },
       "columnsManager": {
@@ -2121,31 +2121,31 @@
       "statusSaved": "Desat",
       "statusSaving": "S'està desant...",
       "statusErrorSaving": "Error en desar",
-      "editorStillLoading": "L'editor encara s'està carregant. Espereu un moment i torneu-ho a provar.",
-      "errorSavingProject": "Error en desar el projecte. Consulteu la consola per a més detalls.",
+      "editorStillLoading": "L'editor encara s'està carregant. Espera un moment i torna-ho a provar.",
+      "errorSavingProject": "Error en desar el projecte. Consulta la consola per a més detalls.",
       "downloadHtml": "Baixa HTML",
       "exportTemplate": "Exporta la plantilla",
       "downloadJson": "Baixa JSON",
       "projectJson": "JSON del projecte",
       "clearCanvasTitle": "Neteja el llenç",
-      "clearCanvasDescription": "Segur que voleu netejar tot el llenç? Aquesta acció no es pot desfer.",
+      "clearCanvasDescription": "Segur que vols netejar tot el llenç? Aquesta acció no es pot desfer.",
       "clearCanvasConfirm": "Neteja",
       "autoGenerateTitle": "Genera la interfície automàticament a partir del diagrama de classes",
-      "autoGenerateIntro": "Això esborrarà la interfície actual i en generarà una de nova basada en el vostre diagrama de classes.",
+      "autoGenerateIntro": "Això esborrarà la interfície actual i en generarà una de nova basada en el teu diagrama de classes.",
       "autoGenerateCreatedTitle": "Creat automàticament:",
       "autoGenerateItemNav": "Tauler de navegació amb enllaços a cada classe",
       "autoGenerateItemPage": "Una pàgina per a cada classe amb una taula de dades",
       "autoGenerateItemMethods": "Botons de mètode per a les classes amb mètodes",
       "autoGenerateCannotUndo": "Aquesta acció no es pot desfer",
-      "autoGenerateConfirmQuestion": "Segur que voleu continuar?",
+      "autoGenerateConfirmQuestion": "Segur que vols continuar?",
       "generateGui": "Genera la interfície",
       "guiGeneratedSuccess": "Interfície gràfica generada correctament! S'han creat pàgines, taules i botons de mètode per a totes les classes.",
       "noActiveProject": "No s'ha trobat cap projecte actiu.",
-      "noClassDiagramFound": "No s'ha trobat cap diagrama de classes. Primer creeu un diagrama de classes.",
+      "noClassDiagramFound": "No s'ha trobat cap diagrama de classes. Primer crea un diagrama de classes.",
       "qualityCheckFailed": "Ha fallat la comprovació de qualitat del diagrama de classes",
-      "qualityCheckFailedMessage": "S'han trobat errors al vostre diagrama de classes. Resoleu-los abans de generar la interfície.",
+      "qualityCheckFailedMessage": "S'han trobat errors al teu diagrama de classes. Corregeix-los abans de generar la interfície.",
       "classDiagramErrors": "Errors del diagrama de classes",
-      "noClassesFound": "No s'han trobat classes al diagrama de classes. Primer creeu un diagrama de classes.",
+      "noClassesFound": "No s'han trobat classes al diagrama de classes. Primer crea un diagrama de classes.",
       "noPageSelected": "No s'ha seleccionat cap pàgina",
       "editRoutePrompt": "Edita el camí de ruta per a la pàgina \"{{pageName}}\":\n\nExemples:\n- /home\n- /users/:id\n- /products",
       "routeUpdated": "Ruta actualitzada a: {{route}}",
@@ -2162,7 +2162,7 @@
       "traitValueFieldPlaceholder": "Camp per al valor",
       "importTemplate": "Importa una plantilla",
       "importButton": "Importa",
-      "importTemplateLabel": "Enganxeu aquí el vostre HTML/CSS i feu clic a Importa",
+      "importTemplateLabel": "Enganxa aquí el teu HTML/CSS i fes clic a Importa",
       "formTraits": {
         "actionUrl": "URL d'acció",
         "targetEntity": "Entitat de destinació",
@@ -2209,20 +2209,20 @@
     }
   },
   "feedback": {
-    "feedbackPlaceholder": "Digueu-nos què funciona, què no i què voleu a continuació.",
+    "feedbackPlaceholder": "Digue'ns què funciona, què no i què vols a continuació.",
     "feedbackLabel": "Comentaris",
-    "toasts": {
-      "thankYou": "Gràcies pels vostres comentaris.",
+    "toast": {
+      "thankYou": "Gràcies pels teus comentaris.",
       "submitFailedDefault": "No s'han pogut enviar els comentaris.",
-      "selectRating": "Seleccioneu una valoració de satisfacció.",
+      "selectRating": "Selecciona una valoració de satisfacció.",
       "unknownError": "Error desconegut",
       "submitFailed": "L'enviament dels comentaris ha fallat: {{error}}"
     },
     "submitting": "S'està enviant...",
-    "title": "Ajudeu-nos a millorar BESSER",
+    "title": "Ajuda'ns a millorar BESSER",
     "description": "Comparteix els teus comentaris sobre l'editor i el flux de treball de generació.",
     "satisfactionQuestion": "Quin grau de satisfacció tens amb la teva experiència?",
-    "emailHelper": "Deixeu el vostre correu electrònic si voleu un seguiment de l'equip.",
+    "emailHelper": "Deixa el teu correu electrònic si vols un seguiment de l'equip.",
     "submit": "Envia els comentaris",
     "category": "Categoria",
     "emailLabel": "Correu electrònic (opcional)",
@@ -2264,7 +2264,7 @@
       "exportJson": "Exporta com a JSON",
       "multipleTitle": "Diversos diagrames",
       "description": "Exporta els fitxers complets del projecte o els recursos del diagrama actual.",
-      "requiresUmlView": "L'exportació del diagrama actual requereix una vista de diagrama UML. Utilitzeu l'exportació a nivell de projecte.",
+      "requiresUmlView": "L'exportació del diagrama actual requereix una vista de diagrama UML. Utilitza l'exportació a nivell de projecte.",
       "exportPngTransparent": "Exporta PNG (transparent)",
       "exportDiagramJson": "Exporta el diagrama com a JSON",
       "untitledDiagram": "Diagrama sense títol",
@@ -2274,8 +2274,8 @@
     },
     "toasts": {
       "unknownError": "Error desconegut",
-      "openUmlFirst": "Obriu primer un diagrama UML.",
-      "selectAtLeastOne": "Seleccioneu almenys un diagrama per exportar.",
+      "openUmlFirst": "Obre primer un diagrama UML.",
+      "selectAtLeastOne": "Selecciona almenys un diagrama per exportar.",
       "noProject": "No hi ha cap projecte disponible per exportar.",
       "failed": "L'exportació ha fallat: {{error}}",
       "validationFailed": "La validació ha fallat",
@@ -2290,12 +2290,12 @@
   "import": {
     "success": {
       "diagram": "Diagrama {{diagramType}} importat correctament i afegit al projecte «{{projectName}}». Aquest diagrama s'ha convertit del format {{fileType}} al nou format de projecte.",
-      "kg": "Diagrama {{diagramType}} importat correctament des de Knowledge Graph i afegit al projecte «{{projectName}}».",
+      "kg": "Diagrama {{diagramType}} importat correctament des de graf de coneixement i afegit al projecte «{{projectName}}».",
       "image": "Diagrama {{diagramType}} importat correctament des d'una imatge i afegit al projecte «{{projectName}}»."
     },
     "descriptions": {
       "imported": "Diagrama {{diagramType}} importat",
-      "importedFromKg": "Diagrama {{diagramType}} importat des de Knowledge Graph",
+      "importedFromKg": "Diagrama {{diagramType}} importat des de graf de coneixement",
       "importedFromImage": "Diagrama {{diagramType}} importat des d'una imatge"
     },
     "errors": {
@@ -2309,17 +2309,17 @@
       "unknownOccurred": "S'ha produït un error desconegut",
       "couldNotImportFile": "No s'ha pogut importar el fitxer seleccionat: {{message}}",
       "couldNotImportDiagram": "No s'ha pogut importar el diagrama: {{message}}",
-      "couldNotImportFromKg": "No s'ha pogut importar el diagrama des de Knowledge Graph: {{message}}",
+      "couldNotImportFromKg": "No s'ha pogut importar el diagrama des de graf de coneixement: {{message}}",
       "couldNotImportFromImage": "No s'ha pogut importar el diagrama des d'una imatge: {{message}}",
       "readFileFailed": "No s'ha pogut llegir el fitxer",
-      "invalidFromBackend": "El backend ha retornat un diagrama no vàlid",
+      "invalidFromBackend": "El servidor ha retornat un diagrama no vàlid",
       "couldNotParseError": "No s'ha pogut interpretar la resposta d'error"
     }
   },
   "validation": {
     "toasts": {
       "noDiagramToValidate": "No hi ha cap diagrama per validar",
-      "diagramEmpty": "El diagrama és buit. Afegiu-hi elements abans d'executar la comprovació de qualitat.",
+      "diagramEmpty": "El diagrama és buit. Afegeix-hi elements abans d'executar la comprovació de qualitat.",
       "validating": "S'està validant el diagrama...",
       "timedOut": "La validació ha excedit el temps d'espera. És possible que el servidor estigui sobrecarregat.",
       "validationFailed": "La validació ha fallat",
