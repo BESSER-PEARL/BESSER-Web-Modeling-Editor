@@ -12,7 +12,7 @@
   },
   "topbar": {
     "language": "Idioma",
-    "openProjectHub": "Obre el centre de projectes",
+    "openProjectHub": "Obre el gestor de projectes",
     "projectName": "Nom del projecte",
     "diagramTitle": "Títol del diagrama",
     "noDiagram": "Cap diagrama",
@@ -21,8 +21,8 @@
     "baseAgentModel": "Model d'agent base",
     "switchToLight": "Canvia al mode clar",
     "switchToDark": "Canvia al mode fosc",
-    "star": "Marca com a preferit",
-    "starBesser": "Posa una estrella a BESSER a GitHub",
+    "star": "Afegeix als preferit",
+    "starBesser": "Dona a BESSER una estrella a GitHub",
     "githubAccount": "Compte de GitHub: {{name}}",
     "signOut": "Tanca la sessió",
     "githubVersionControl": "Control de versions de GitHub",
@@ -372,10 +372,10 @@
     },
     "importExport": {
       "title": "Importa / Exporta",
-      "description": "Baixa o puja fitxers de configuració.",
-      "downloadJson": "Baixa el JSON",
-      "uploadJson": "Puja el JSON",
-      "uploadNote": "Pujar un fitxer substitueix els valors actuals del formulari, però no desa automàticament."
+      "description": "Descarrega o carrega fitxers de configuració.",
+      "downloadJson": "Descarrega el JSON",
+      "uploadJson": "Carrega el JSON",
+      "uploadNote": "Carregar un fitxer substitueix els valors actuals del formulari, però no desa automàticament."
     },
     "confirm": {
       "replace": "Substitueix",
@@ -401,14 +401,14 @@
       "selectProfileFirst": "Primer selecciona una assignació de perfil d'usuari.",
       "profileUnavailable": "El perfil d'usuari seleccionat no està disponible. Selecciona un perfil d'usuari desat vàlid.",
       "signInGitHub": "Inicia sessió a GitHub per utilitzar les recomanacions.",
-      "invalidMappingResponse": "S'ha rebut una resposta de recomanació d'assignació no vàlida del backend.",
+      "invalidMappingResponse": "S'ha rebut una resposta de recomanació d'assignació no vàlida del servidor.",
       "ruleRecApplied_one": "Recomanació basada en regles aplicada ({{count}} regla coincideix).",
       "ruleRecApplied_other": "Recomanació basada en regles aplicada ({{count}} regles coincideixen).",
       "ruleRecAppliedNone": "Recomanació basada en regles aplicada. No coincideix cap regla específica, de manera que s'han conservat els valors predeterminats.",
       "mappingRecFailed": "No s'ha pogut obtenir la recomanació basada en assignació: {{message}}",
       "mappingRecUnexpected": "S'ha produït un error inesperat en sol·licitar una recomanació basada en regles.",
       "ragSoon": "La proposta de configuració automàtica basada en RAG estarà disponible aviat.",
-      "invalidRecResponse": "S'ha rebut una resposta de recomanació no vàlida del backend.",
+      "invalidRecResponse": "S'ha rebut una resposta de recomanació no vàlida del servidor.",
       "llmRecApplied": "Recomanació basada en LLM aplicada a la configuració actual.",
       "llmRecFailed": "No s'ha pogut obtenir la recomanació de l'LLM: {{message}}",
       "llmRecUnexpected": "S'ha produït un error inesperat en sol·licitar una recomanació basada en LLM.",
@@ -486,7 +486,7 @@
       "personalizationStrategy": "Estratègia de personalització",
       "none": "Cap",
       "personalizationAll": "Personalització (totes)",
-      "personalizationAllHint": "Envia al backend totes les assignacions de personalització de perfil a configuració disponibles.",
+      "personalizationAllHint": "Envia al servidor totes les assignacions de personalització de perfil a configuració disponibles.",
       "personalizationNoneHint": "Genera sense adjuntar variants de personalització desades ni dades de configuració avançada.",
       "mode": "Mode",
       "modeOriginal": "Original",
@@ -510,10 +510,10 @@
       }
     },
     "qiskit": {
-      "title": "Configuració del backend de Qiskit",
-      "description": "Trieu el backend d'execució i el nombre de tirades (shots).",
-      "executionBackend": "Backend d'execució",
-      "selectBackend": "Seleccioneu el backend",
+      "title": "Configuració del servidor de Qiskit",
+      "description": "Trieu el servidor d'execució i el nombre de tirades (shots).",
+      "executionBackend": "Servidor d'execució",
+      "selectBackend": "Seleccioneu el servidor",
       "backendAerSimulator": "Aer Simulator (Local)",
       "backendMockSimulation": "Simulació simulada (simulació de soroll)",
       "backendIbmQuantum": "IBM Quantum (Maquinari real)",
@@ -744,7 +744,7 @@
           },
           "fullApp": {
             "label": "Aplicació web completa",
-            "description": "Diagrames de classes, agents i interfície sense codi."
+            "description": "Diagrames de classes, agents i interfície sense codi (no-code)."
           },
           "quantum": {
             "label": "Quàntic",
@@ -845,8 +845,8 @@
       "checking": "S'està comprovant...",
       "unsavedChanges": "Tens canvis sense desar",
       "upToDate": "Actualitzat",
-      "push": "Push",
-      "pull": "Pull",
+      "push": "Puja (Push)",
+      "pull": "Baixa (Pull)",
       "history": "Historial",
       "refreshHistory": "Actualitza l'historial de commits",
       "latest": "Més recent",
@@ -1066,7 +1066,7 @@
       "privacyBody": "Evita compartir informació sensible o confidencial als missatges de l'assistent.",
       "understand": "Ho entenc"
     },
-    "poweredWithBaf": "Impulsat amb BAF",
+    "poweredWithBaf": "Funciona amb BAF",
     "capabilities": {
       "systemDesign": {
         "title": "Disseny de sistemes",
@@ -1134,7 +1134,7 @@
       "sendFailed": "No s'ha pogut enviar el teu missatge — torna-ho a provar.",
       "sendVoiceFailed": "No s'ha pogut enviar el teu missatge de veu — torna-ho a provar.",
       "voiceProcessFailed": "No s'ha pogut processar el teu missatge de veu. Torna-ho a provar.",
-      "backendUnreachable": "No s'ha pogut connectar amb l'assistent d'IA. Assegura't que el backend s'estigui executant."
+      "backendUnreachable": "No s'ha pogut connectar amb l'assistent d'IA. Assegura't que el servidor s'estigui executant."
     },
     "chatKit": {
       "copiedToClipboard": "Copiat al porta-retalls!",
@@ -1457,7 +1457,7 @@
         "summary": "Dissenya circuits, configura portes i genera artefactes compatibles amb Qiskit.",
         "coreWorkflow": {
           "title": "Flux de treball principal",
-          "body": "<p>Col·loca portes sobre les línies de qubits, valida l'estructura i, tot seguit, genera amb els paràmetres de backend seleccionats.</p><p>Utilitza el nombre de shots i la selecció de backend a Generate per obtenir resultats reproduïbles.</p>"
+          "body": "<p>Col·loca portes sobre les línies de qubits, valida l'estructura i, tot seguit, genera amb els paràmetres de servidor seleccionats.</p><p>Utilitza el nombre de shots i la selecció de servidor a Generate per obtenir resultats reproduïbles.</p>"
         }
       },
       "nn": {
@@ -1729,7 +1729,7 @@
       "rowsPerPage": "Files per pàgina: {{count}}"
     },
     "quantum": {
-      "editorTitle": "Quantum Editor",
+      "editorTitle": "Editor Quàntic",
       "saved": "Desat",
       "saving": "S'està desant...",
       "error": "Error",
@@ -2312,7 +2312,7 @@
       "couldNotImportFromKg": "No s'ha pogut importar el diagrama des de Knowledge Graph: {{message}}",
       "couldNotImportFromImage": "No s'ha pogut importar el diagrama des d'una imatge: {{message}}",
       "readFileFailed": "No s'ha pogut llegir el fitxer",
-      "invalidFromBackend": "El backend ha retornat un diagrama no vàlid",
+      "invalidFromBackend": "El servidor ha retornat un diagrama no vàlid",
       "couldNotParseError": "No s'ha pogut interpretar la resposta d'error"
     }
   },
