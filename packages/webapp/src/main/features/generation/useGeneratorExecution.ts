@@ -51,6 +51,13 @@ import {
 } from './generator-dialog-config';
 import { getWorkspaceContext } from '../../shared/utils/workspaceContext';
 import type { GeneratorType } from '../../app/shell/workspace-types';
+import {
+  buildAllWebAppVersions,
+  collectVariantProfiles,
+  type VersionProfile,
+  type WebAppVersion,
+  type WebAppVersionMode,
+} from '../../shared/utils/buildWebAppVersions';
 
 // ─── Pure helpers ──────────────────────────────────────────────────────────────
 
@@ -195,11 +202,18 @@ function buildWebAppChecklist(project: BesserProject | undefined): WebAppCheckli
   // canGenerate does NOT depend on agent diagrams -- they are optional and per-component
   const canGenerate = classDiagramExists && guiDiagramExists;
 
+  // Distinct user profiles that have at least one page variant. Drives the
+  // "which version(s) to generate" choice in the dialog. Empty ⇒ no variants
+  // anywhere ⇒ unchanged single-app generation.
+  const variantProfiles = collectVariantProfiles(guiModel);
+
   return {
     classDiagram: classDiagramInfo,
     guiDiagram: guiDiagramInfo,
     agentDiagram: agentDiagramInfo,
     canGenerate,
+    variantProfiles,
+    hasAnyVariant: variantProfiles.length > 0,
   };
 }
 
@@ -256,6 +270,42 @@ function triggerAssistantGuiAutoGenerate(timeoutMs = 25000): Promise<{ ok: boole
   });
 }
 
+/**
+ * Ask the live GUI editor to capture the active page's canvas into its snapshot
+ * and persist the full model (incl. variant fields) to storage, then resolve.
+ * Best-effort: if the editor never answers within the timeout, we resolve ok
+ * anyway and proceed with whatever is already stored.
+ */
+function flushGuiForGeneration(timeoutMs = 8000): Promise<{ ok: boolean; error?: string }> {
+  if (typeof window === 'undefined') return Promise.resolve({ ok: false });
+
+  return new Promise((resolve) => {
+    let done = false;
+    const finish = (result: { ok: boolean; error?: string }) => {
+      if (done) return;
+      done = true;
+      window.removeEventListener('wme:flush-gui-for-generation-done', onDone as EventListener);
+      clearTimeout(timeoutId);
+      resolve(result);
+    };
+
+    const onDone = (event: Event) => {
+      const detail = (event as CustomEvent<{ ok?: boolean; error?: string }>).detail || {};
+      finish({ ok: Boolean(detail.ok), error: detail.ok ? undefined : detail.error });
+    };
+
+    const timeoutId = window.setTimeout(
+      () => {
+        console.warn('[GUI flush] timed out before generation; proceeding with the last-saved GUI model');
+        finish({ ok: true, error: 'flush timed out' });
+      },
+      timeoutMs,
+    );
+    window.addEventListener('wme:flush-gui-for-generation-done', onDone as EventListener);
+    window.dispatchEvent(new CustomEvent('wme:flush-gui-for-generation'));
+  });
+}
+
 // ─── Hook ──────────────────────────────────────────────────────────────────────
 
 /**
@@ -293,6 +343,10 @@ export interface WebAppChecklistInfo {
   agentDiagram: WebAppChecklistDiagramInfo;
   /** True when all required diagrams exist (generation can proceed). */
   canGenerate: boolean;
+  /** Distinct profiles that have at least one page variant (empty ⇒ none). */
+  variantProfiles: VersionProfile[];
+  /** Convenience flag: variantProfiles.length > 0. */
+  hasAnyVariant: boolean;
 }
 
 interface AgentModelVariantSnapshot {
@@ -419,6 +473,12 @@ export interface GeneratorConfigState {
   // ── Web App checklist ──────────────────────────────────────────────────
   /** Pre-generation checklist info for the web_app generator. */
   webAppChecklist: WebAppChecklistInfo | null;
+  /** Which version(s) to generate when the GUI has page variants. */
+  webAppVersionMode: WebAppVersionMode;
+  /** Selected profile id when webAppVersionMode === 'profile'. */
+  webAppSelectedProfileId: string;
+  onWebAppVersionModeChange: (v: WebAppVersionMode) => void;
+  onWebAppSelectedProfileIdChange: (v: string) => void;
 
   // ── Execution callbacks (one per generator) ──────────────────────────────
   /** Validate inputs, call the backend, and close the dialog on success. */
@@ -500,12 +560,24 @@ export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGen
   const [agentVariantOptions, setAgentVariantOptions] = useState<AgentGenerationVariantOption[]>([]);
   const [selectedAgentVariantId, setSelectedAgentVariantId] = useState('');
   const [agentGenerationMode, setAgentGenerationMode] = useState<AgentGenerationMode>('none');
+  // Web App version selection (only meaningful when the GUI has page variants).
+  const [webAppVersionMode, setWebAppVersionMode] = useState<WebAppVersionMode>('all');
+  const [webAppSelectedProfileId, setWebAppSelectedProfileId] = useState('');
 
   // ── Web App checklist (computed from current project) ─────────────────────
   const webAppChecklist = useMemo(
     () => buildWebAppChecklist(currentProject ?? undefined),
     [currentProject],
   );
+
+  // Keep the selected profile valid: default to the first variant profile
+  // whenever the current selection isn't among the available profiles.
+  useEffect(() => {
+    const profiles = webAppChecklist?.variantProfiles ?? [];
+    if (profiles.length > 0 && !profiles.some((p) => p.profileId === webAppSelectedProfileId)) {
+      setWebAppSelectedProfileId(profiles[0].profileId);
+    }
+  }, [webAppChecklist, webAppSelectedProfileId]);
 
   // Auto-derive Django project/app names from current project
   useEffect(() => {
@@ -1089,9 +1161,35 @@ export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGen
   }, [qiskitBackend, qiskitShots, executeGenerator]);
 
   const handleWebAppGenerate = useCallback(async () => {
-    await executeGenerator('web_app');
+    // Flush the live GUI canvas (active page) into its snapshot and persist to
+    // storage first, so the version builder below reads the freshest content.
+    if (typeof window !== 'undefined' && (window as any).__WME_GUI_EDITOR_READY__) {
+      await flushGuiForGeneration();
+    }
+
+    // Re-read the freshest project post-flush and decide whether to branch into
+    // per-version generation. When the GUI has no page variants, versions is []
+    // and we fall through to the unchanged single-app path (config undefined).
+    const freshProject = currentProject?.id
+      ? (ProjectStorageRepository.loadProject(currentProject.id) ?? currentProject)
+      : currentProject;
+    const guiModel = freshProject
+      ? (getActiveDiagram(freshProject, 'GUINoCodeDiagram')?.model as GrapesJSProjectData | undefined)
+      : undefined;
+
+    let config: { webAppVersions?: WebAppVersion[] } | undefined;
+    if (guiModel) {
+      const versions = buildAllWebAppVersions(
+        guiModel,
+        webAppVersionMode,
+        webAppSelectedProfileId || null,
+      );
+      if (versions.length > 0) config = { webAppVersions: versions };
+    }
+
+    await executeGenerator('web_app', config);
     setConfigDialog('none');
-  }, [executeGenerator]);
+  }, [executeGenerator, currentProject, webAppVersionMode, webAppSelectedProfileId]);
 
   // ── Return ─────────────────────────────────────────────────────────────────
 
@@ -1125,6 +1223,10 @@ export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGen
     selectedAgentVariantId,
     agentGenerationMode,
     webAppChecklist,
+    webAppVersionMode,
+    webAppSelectedProfileId,
+    onWebAppVersionModeChange: setWebAppVersionMode,
+    onWebAppSelectedProfileIdChange: setWebAppSelectedProfileId,
     onDjangoProjectNameChange: setDjangoProjectName,
     onDjangoAppNameChange: setDjangoAppName,
     onUseDockerChange: setUseDocker,
