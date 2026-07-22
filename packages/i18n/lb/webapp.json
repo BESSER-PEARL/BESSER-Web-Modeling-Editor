@@ -389,7 +389,7 @@
         "description": "De Benotzerprofil \"{{profile}}\" ass scho mat der Konfiguratioun \"{{existing}}\" zougeuerdent. D'Späichere wäert déi Zouuerdnung mat \"{{next}}\" ersetzen."
       }
     },
-    "toast": {
+    "toasts": {
       "persistFailed": "Den Agent-Diagramm konnt net aktualiséiert ginn.",
       "noActiveDiagram": "Et ass keen Agent-Diagramm aktiv.",
       "nameBeforeDefault": "Gitt dem LLM en Numm, éier Dir en als Standard markéiert.",
@@ -541,7 +541,7 @@
       "agentDiagramsAvailable": "{{count}} verfügbar (pro Komponent am GUI konfiguréiert)",
       "noneAvailable": "Keng verfügbar"
     },
-    "toast": {
+    "toasts": {
       "validationFailed": "Validatioun feelgeschloen",
       "noDiagram": "Et ass keen Diagramm verfügbar, aus deem Code generéiert ka ginn.",
       "localDeploymentInProgress": "Lokalen Deployment am Gaang... Dat kann e puer Minutten daueren.",
@@ -676,7 +676,7 @@
         "title": "Projet läschen",
         "description": "Projet \"{{name}}\" läschen? Dës Aktioun kann net réckgängeg gemaach ginn."
       },
-      "toast": {
+      "toasts": {
         "created": "Projet \"{{name}}\" erstallt.",
         "createFailed": "Projet konnt net erstallt ginn: {{error}}",
         "loaded": "Projet gelueden.",
@@ -766,7 +766,7 @@
           "NNDiagram": "Architektur vun neuronalen Netzwierker (PyTorch / TensorFlow)."
         }
       },
-      "toast": {
+      "toasts": {
         "updatePerspectiveFailed": "Perspektiv konnt net aktualiséiert ginn",
         "applyPresetFailed": "Virastellung konnt net ugewannt ginn",
         "exported": "Projet erfollegräich exportéiert.",
@@ -795,7 +795,7 @@
         "newTab": "Neien Tab",
         "replace": "Ersetzen"
       },
-      "toast": {
+      "toasts": {
         "loadedProjectTemplate": "Projet-Template \"{{name}}\" gelueden",
         "loadFailed": "Template konnt net geluede ginn: {{error}}"
       }
@@ -1588,7 +1588,7 @@
         "providerLinkText": "PostHog Dateschutzerklärung"
       }
     },
-    "error": {
+    "errors": {
       "dismiss": "Feeler ofweisen"
     },
     "errorBoundary": {
@@ -2211,7 +2211,7 @@
   "feedback": {
     "feedbackPlaceholder": "Sot eis, wat funktionéiert, wat net, a wat Dir als Nächst wëllt.",
     "feedbackLabel": "Feedback",
-    "toast": {
+    "toasts": {
       "thankYou": "Merci fir Äre Feedback.",
       "submitFailedDefault": "Feedback konnt net geschéckt ginn.",
       "selectRating": "Wielt w.e.g. eng Zefriddenheetsbewäertung aus.",
@@ -2272,7 +2272,7 @@
       "currentDescription": "Exportéiert dat aktuellt UML-Diagramm als Biller.",
       "diagramCount": "{{count}} Diagrammer: {{titles}}"
     },
-    "toast": {
+    "toasts": {
       "unknownError": "Onbekannte Feeler",
       "openUmlFirst": "Maacht fir d'éischt en UML-Diagramm op.",
       "selectAtLeastOne": "Wielt op d'mannst een Diagramm fir z'exportéieren aus.",
@@ -2317,7 +2317,7 @@
     }
   },
   "validation": {
-    "toast": {
+    "toasts": {
       "noDiagramToValidate": "Keen Diagramm fir ze validéieren",
       "diagramEmpty": "Den Diagramm ass eidel. Füügt Elementer bäi ier Dir d'Qualitéitskontroll ausféiert.",
       "validating": "Den Diagramm gëtt validéiert...",

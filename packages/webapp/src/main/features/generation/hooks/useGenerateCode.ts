@@ -89,7 +89,7 @@ export const useGenerateCode = () => {
       const currentProject = ProjectStorageRepository.getCurrentProject();
 
       if (!currentProject) {
-        toast.error(t('generation.toast.noProjectAvailable'));
+        toast.error(t('generation.toasts.noProjectAvailable'));
         return { ok: false, error: 'No project available for code generation' };
       }
 
@@ -171,14 +171,14 @@ export const useGenerateCode = () => {
         }
 
         downloadFile({ file: blob, filename });
-        toast.success(t('generation.toast.codeGenerationCompleted'));
+        toast.success(t('generation.toasts.codeGenerationCompleted'));
         return { ok: true, filename };
       } catch (error) {
         if (error instanceof DOMException && error.name === 'AbortError') {
-          toast.error(t('generation.toast.requestTimedOut'));
+          toast.error(t('generation.toasts.requestTimedOut'));
           return { ok: false, error: 'Request timed out' };
         }
-        let errorMessage = t('generation.toast.unknownError');
+        let errorMessage = t('generation.toasts.unknownError');
         if (error instanceof Error) {
           errorMessage = error.message;
         }
@@ -220,14 +220,14 @@ export const useGenerateCode = () => {
       // For other generators, we need the editor and model
       if (!editor || !editor.model) {
         console.error('No editor or model available');
-        toast.error(t('generation.toast.noDiagram'));
+        toast.error(t('generation.toasts.noDiagram'));
         return { ok: false, error: 'No diagram to generate code from' };
       }
 
       // Validate diagram before generation
       const validationResult = await validateDiagram(editor, diagramTitle);
       if (!validationResult.isValid) {
-        toast.error(validationResult.message || t('generation.toast.validationFailed'));
+        toast.error(validationResult.message || t('generation.toasts.validationFailed'));
         return { ok: false, error: validationResult.message || 'Validation failed' };
       }
 
@@ -297,15 +297,15 @@ export const useGenerateCode = () => {
         }
 
         downloadFile({ file: blob, filename });
-        toast.success(t('generation.toast.codeGenerationCompleted'));
+        toast.success(t('generation.toasts.codeGenerationCompleted'));
         return { ok: true, filename };
       } catch (error) {
         if (error instanceof DOMException && error.name === 'AbortError') {
-          toast.error(t('generation.toast.requestTimedOut'));
+          toast.error(t('generation.toasts.requestTimedOut'));
           return { ok: false, error: 'Request timed out' };
         }
 
-        let errorMessage = t('generation.toast.unknownError');
+        let errorMessage = t('generation.toasts.unknownError');
         if (error instanceof Error) {
           errorMessage = error.message;
         }

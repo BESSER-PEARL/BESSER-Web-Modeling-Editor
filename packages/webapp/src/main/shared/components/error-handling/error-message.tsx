@@ -31,7 +31,7 @@ export function ErrorMessage(props: Props) {
           size="icon"
           className="size-7 text-destructive hover:bg-destructive/10 hover:text-destructive"
           onClick={() => props.onClose(props.error)}
-          aria-label={t('shared.error.dismiss')}
+          aria-label={t('shared.errors.dismiss')}
         >
           <X className="size-4" />
         </Button>

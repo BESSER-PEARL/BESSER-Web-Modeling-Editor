@@ -11,7 +11,7 @@ export async function exportProjectAsSingleBUMLFile(
   diagramTypes?: SupportedDiagramType[]
 ): Promise<void> {
   if (!project) {
-    toast.error(i18n.t('export.toast.noProjectData'));
+    toast.error(i18n.t('export.toasts.noProjectData'));
     return;
   }
 
@@ -63,9 +63,9 @@ export async function exportProjectAsSingleBUMLFile(
 
     downloadFile(blob, filename);
 
-    toast.success(i18n.t('export.toast.projectExportedAs', { filename }));
+    toast.success(i18n.t('export.toasts.projectExportedAs', { filename }));
   } catch (error) {
     console.error('Error exporting project as BUML file:', error);
-    toast.error(i18n.t('export.toast.projectExportFailed', { error: error instanceof Error ? error.message : i18n.t('export.toast.unknownError') }));
+    toast.error(i18n.t('export.toasts.projectExportFailed', { error: error instanceof Error ? error.message : i18n.t('export.toasts.unknownError') }));
   }
 }

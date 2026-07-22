@@ -78,7 +78,7 @@ export const FeedbackDialog: React.FC<FeedbackDialogProps> = ({ open, onOpenChan
     const errors = validation.touchAll();
     if (Object.keys(errors).length > 0 || !satisfaction) {
       if (!satisfaction) {
-        toast.error(t('feedback.toast.selectRating'));
+        toast.error(t('feedback.toasts.selectRating'));
       }
       return;
     }
@@ -100,7 +100,7 @@ export const FeedbackDialog: React.FC<FeedbackDialogProps> = ({ open, onOpenChan
       });
 
       if (!response.ok) {
-        let detail = t('feedback.toast.submitFailedDefault');
+        let detail = t('feedback.toasts.submitFailedDefault');
         try {
           const payload = await response.json();
           if (typeof payload?.detail === 'string') {
@@ -112,10 +112,10 @@ export const FeedbackDialog: React.FC<FeedbackDialogProps> = ({ open, onOpenChan
         throw new Error(detail);
       }
 
-      toast.success(t('feedback.toast.thankYou'));
+      toast.success(t('feedback.toasts.thankYou'));
       handleOpenChange(false);
     } catch (error) {
-      toast.error(t('feedback.toast.submitFailed', { error: error instanceof Error ? error.message : t('feedback.toast.unknownError') }));
+      toast.error(t('feedback.toasts.submitFailed', { error: error instanceof Error ? error.message : t('feedback.toasts.unknownError') }));
       setIsSubmitting(false);
     }
   };

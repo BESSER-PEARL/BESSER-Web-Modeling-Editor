@@ -1032,7 +1032,7 @@ export const AgentConfigurationPanel: React.FC = () => {
         dispatch(bumpEditorRevision());
       } catch (err) {
         console.error('Failed to persist agent diagram update', err);
-        toast.error(t('agentConfig.toast.persistFailed'));
+        toast.error(t('agentConfig.toasts.persistFailed'));
       }
     },
     [dispatch, t],
@@ -1040,7 +1040,7 @@ export const AgentConfigurationPanel: React.FC = () => {
 
   const handleAddAgentLLM = useCallback(() => {
     if (!currentAgentModel) {
-      toast.error(t('agentConfig.toast.noActiveDiagram'));
+      toast.error(t('agentConfig.toasts.noActiveDiagram'));
       return;
     }
     const nextModel = cloneModel(currentAgentModel);
@@ -1151,7 +1151,7 @@ export const AgentConfigurationPanel: React.FC = () => {
       if (!target || !isAgentLLMElement(target)) return;
       const name = (target as AgentLLMElement).name;
       if (!name) {
-        toast.error(t('agentConfig.toast.nameBeforeDefault'));
+        toast.error(t('agentConfig.toasts.nameBeforeDefault'));
         return;
       }
       updateDefaultLlmName(name);
@@ -1389,7 +1389,7 @@ export const AgentConfigurationPanel: React.FC = () => {
   ) => {
     const trimmedName = configurationName.trim();
     if (!trimmedName) {
-      toast.error(t('agentConfig.toast.nameBeforeSave'));
+      toast.error(t('agentConfig.toasts.nameBeforeSave'));
       return { ok: false, snapshotCaptured: false } as const;
     }
 
@@ -1505,13 +1505,13 @@ export const AgentConfigurationPanel: React.FC = () => {
   const handleLoadSavedConfiguration = useCallback((configId?: string) => {
     const targetId = configId ?? selectedConfigId;
     if (!targetId) {
-      toast.error(t('agentConfig.toast.selectToLoad'));
+      toast.error(t('agentConfig.toasts.selectToLoad'));
       return;
     }
 
     const stored = LocalStorageRepository.loadAgentConfiguration(targetId);
     if (!stored) {
-      toast.error(t('agentConfig.toast.notFound'));
+      toast.error(t('agentConfig.toasts.notFound'));
       refreshSavedConfigurations();
       return;
     }
@@ -1535,7 +1535,7 @@ export const AgentConfigurationPanel: React.FC = () => {
     }
 
     LocalStorageRepository.setActiveAgentConfigurationId(stored.id);
-    toast.success(t('agentConfig.toast.loaded', { name: stored.name }));
+    toast.success(t('agentConfig.toasts.loaded', { name: stored.name }));
   }, [
     applyConfiguration,
     currentAgentDiagram,
@@ -1549,13 +1549,13 @@ export const AgentConfigurationPanel: React.FC = () => {
   const handleDeleteSavedConfiguration = useCallback(async (configId?: string) => {
     const targetId = configId ?? selectedConfigId;
     if (!targetId) {
-      toast.error(t('agentConfig.toast.selectToDelete'));
+      toast.error(t('agentConfig.toasts.selectToDelete'));
       return;
     }
 
     const stored = LocalStorageRepository.loadAgentConfiguration(targetId);
     if (!stored) {
-      toast.error(t('agentConfig.toast.notFound'));
+      toast.error(t('agentConfig.toasts.notFound'));
       refreshSavedConfigurations();
       return;
     }
@@ -1587,7 +1587,7 @@ export const AgentConfigurationPanel: React.FC = () => {
       }
     }
 
-    toast.success(t('agentConfig.toast.deleted'));
+    toast.success(t('agentConfig.toasts.deleted'));
   }, [activeConfigId, currentProject, dispatch, refreshSavedConfigurations, selectedConfigId, t]);
 
   const handleInputSpeechToggle = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -1636,18 +1636,18 @@ export const AgentConfigurationPanel: React.FC = () => {
 
   const handleAutoProposeConfigurationRules = async () => {
     if (!selectedUserProfileName.trim()) {
-      toast.error(t('agentConfig.toast.selectProfileFirst'));
+      toast.error(t('agentConfig.toasts.selectProfileFirst'));
       return;
     }
 
     const selectedProfile = resolveSelectedUserProfile();
     if (!selectedProfile) {
-      toast.error(t('agentConfig.toast.profileUnavailable'));
+      toast.error(t('agentConfig.toasts.profileUnavailable'));
       return;
     }
 
     if (!githubSession) {
-      toast.error(t('agentConfig.toast.signInGitHub'));
+      toast.error(t('agentConfig.toasts.signInGitHub'));
       return;
     }
 
@@ -1671,7 +1671,7 @@ export const AgentConfigurationPanel: React.FC = () => {
         });
 
         if (!recommendation || typeof recommendation !== 'object' || !('config' in recommendation) || !recommendation.config) {
-          toast.error(t('agentConfig.toast.invalidMappingResponse'));
+          toast.error(t('agentConfig.toasts.invalidMappingResponse'));
           return;
         }
 
@@ -1690,20 +1690,20 @@ export const AgentConfigurationPanel: React.FC = () => {
         setMappingSignals(detectedSignals);
 
         if (matchedRules.length > 0) {
-          toast.success(t('agentConfig.toast.ruleRecApplied', { count: matchedRules.length }));
+          toast.success(t('agentConfig.toasts.ruleRecApplied', { count: matchedRules.length }));
         } else {
-          toast.success(t('agentConfig.toast.ruleRecAppliedNone'));
+          toast.success(t('agentConfig.toasts.ruleRecAppliedNone'));
         }
       } catch (err) {
         if (err instanceof ApiError) {
-          toast.error(t('agentConfig.toast.mappingRecFailed', { message: err.message }));
+          toast.error(t('agentConfig.toasts.mappingRecFailed', { message: err.message }));
           return;
         }
         throw err;
       }
     } catch (error) {
       console.error('Failed to fetch mapping-based recommendation:', error);
-      toast.error(t('agentConfig.toast.mappingRecUnexpected'));
+      toast.error(t('agentConfig.toasts.mappingRecUnexpected'));
     } finally {
       setIsLoading(false);
     }
@@ -1711,27 +1711,27 @@ export const AgentConfigurationPanel: React.FC = () => {
 
   const handleAutoProposeConfigurationRAG = () => {
     if (!selectedUserProfileName.trim()) {
-      toast.error(t('agentConfig.toast.selectProfileFirst'));
+      toast.error(t('agentConfig.toasts.selectProfileFirst'));
       return;
     }
 
-    toast.info(t('agentConfig.toast.ragSoon'));
+    toast.info(t('agentConfig.toasts.ragSoon'));
   };
 
   const handleAutoProposeConfigurationLLM = async () => {
     if (!selectedUserProfileName.trim()) {
-      toast.error(t('agentConfig.toast.selectProfileFirst'));
+      toast.error(t('agentConfig.toasts.selectProfileFirst'));
       return;
     }
 
     const selectedProfile = resolveSelectedUserProfile();
     if (!selectedProfile) {
-      toast.error(t('agentConfig.toast.profileUnavailable'));
+      toast.error(t('agentConfig.toasts.profileUnavailable'));
       return;
     }
 
     if (!githubSession) {
-      toast.error(t('agentConfig.toast.signInGitHub'));
+      toast.error(t('agentConfig.toasts.signInGitHub'));
       return;
     }
 
@@ -1754,7 +1754,7 @@ export const AgentConfigurationPanel: React.FC = () => {
         );
 
         if (!recommendation || typeof recommendation !== 'object' || !recommendation.config) {
-          toast.error(t('agentConfig.toast.invalidRecResponse'));
+          toast.error(t('agentConfig.toasts.invalidRecResponse'));
           return;
         }
 
@@ -1768,17 +1768,17 @@ export const AgentConfigurationPanel: React.FC = () => {
         applyConfiguration(normalized);
         setMappingMatchedRules([]);
         setMappingSignals(null);
-        toast.success(t('agentConfig.toast.llmRecApplied'));
+        toast.success(t('agentConfig.toasts.llmRecApplied'));
       } catch (err) {
         if (err instanceof ApiError) {
-          toast.error(t('agentConfig.toast.llmRecFailed', { message: err.message }));
+          toast.error(t('agentConfig.toasts.llmRecFailed', { message: err.message }));
           return;
         }
         throw err;
       }
     } catch (error) {
       console.error('Failed to fetch LLM recommendation:', error);
-      toast.error(t('agentConfig.toast.llmRecUnexpected'));
+      toast.error(t('agentConfig.toasts.llmRecUnexpected'));
     } finally {
       setIsLoading(false);
     }
@@ -1796,13 +1796,13 @@ export const AgentConfigurationPanel: React.FC = () => {
 
   const handleResetToDefaults = () => {
     resetFormToDefaults();
-    toast.info(t('agentConfig.toast.resetToDefaults'));
+    toast.info(t('agentConfig.toasts.resetToDefaults'));
   };
 
   const handleSaveAndApply = async () => {
     const trimmedName = configurationName.trim();
     if (!trimmedName) {
-      toast.error(t('agentConfig.toast.nameBeforeSave'));
+      toast.error(t('agentConfig.toasts.nameBeforeSave'));
       return;
     }
 
@@ -1824,7 +1824,7 @@ export const AgentConfigurationPanel: React.FC = () => {
         : null;
 
     if (!agentModel) {
-      toast.error(t('agentConfig.toast.openDiagramFirst'));
+      toast.error(t('agentConfig.toasts.openDiagramFirst'));
       return;
     }
 
@@ -1833,7 +1833,7 @@ export const AgentConfigurationPanel: React.FC = () => {
     }
 
     if (!selectedUserProfileName.trim()) {
-      toast.error(t('agentConfig.toast.selectProfileBeforeApply'));
+      toast.error(t('agentConfig.toasts.selectProfileBeforeApply'));
       return;
     }
 
@@ -1841,7 +1841,7 @@ export const AgentConfigurationPanel: React.FC = () => {
       .find((profile) => profile.name === selectedUserProfileName);
 
     if (!selectedProfile || selectedProfile.model.type !== UMLDiagramType.UserDiagram) {
-      toast.error(t('agentConfig.toast.profileUnavailable'));
+      toast.error(t('agentConfig.toasts.profileUnavailable'));
       return;
     }
 
@@ -1886,11 +1886,11 @@ export const AgentConfigurationPanel: React.FC = () => {
         );
       } catch (err) {
         if (err instanceof ApiError) {
-          toast.error(t('agentConfig.toast.transformFailed', { message: err.message }));
+          toast.error(t('agentConfig.toasts.transformFailed', { message: err.message }));
           return;
         }
         if (err instanceof DOMException && err.name === 'TimeoutError') {
-          toast.error(t('agentConfig.toast.transformTimeout'));
+          toast.error(t('agentConfig.toasts.transformTimeout'));
           return;
         }
         throw err;
@@ -1946,15 +1946,15 @@ export const AgentConfigurationPanel: React.FC = () => {
         }
 
         LocalStorageRepository.saveAgentProfileConfigurationMapping(selectedProfile, result.savedEntry);
-        toast.success(t('agentConfig.toast.transformApplied'));
+        toast.success(t('agentConfig.toasts.transformApplied'));
         resetFormToDefaults();
         navigate('/');
       } else {
-        toast.error(t('agentConfig.toast.saveLocalFailed'));
+        toast.error(t('agentConfig.toasts.saveLocalFailed'));
       }
     } catch (error) {
       console.error('Error transforming agent model:', error);
-      toast.error(t('agentConfig.toast.transformUnexpected'));
+      toast.error(t('agentConfig.toasts.transformUnexpected'));
     } finally {
       setIsLoading(false);
     }
@@ -1989,9 +1989,9 @@ export const AgentConfigurationPanel: React.FC = () => {
         const flattened = flattenStructuredConfig(parsed);
         const normalized = normalizeAgentConfiguration(flattened);
         applyConfiguration(normalized);
-        toast.success(t('agentConfig.toast.uploadLoaded'));
+        toast.success(t('agentConfig.toasts.uploadLoaded'));
       } catch {
-        toast.error(t('agentConfig.toast.invalidFile'));
+        toast.error(t('agentConfig.toasts.invalidFile'));
       }
     };
 

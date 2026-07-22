@@ -14,12 +14,12 @@ export const useExportBUML = () => {
     async (editor: ApollonEditor, diagramTitle: string, referenceDiagramData?: UMLModel) => {
       const validationResult = await validateDiagram(editor, diagramTitle);
       if (!validationResult.isValid) {
-        toast.error(validationResult.message || t('export.toast.validationFailed'));
+        toast.error(validationResult.message || t('export.toasts.validationFailed'));
         return;
       }
 
       if (!editor || !editor.model) {
-        toast.error(t('export.toast.noDiagramToExport'));
+        toast.error(t('export.toasts.noDiagramToExport'));
         return;
       }
 
@@ -39,7 +39,7 @@ export const useExportBUML = () => {
         });
 
         if (!response.ok) {
-          const errorData = await response.json().catch(() => ({ detail: t('export.toast.couldNotParseError') }));
+          const errorData = await response.json().catch(() => ({ detail: t('export.toasts.couldNotParseError') }));
 
           if ((response.status === 400 || response.status === 500) && errorData.detail) {
             toast.error(errorData.detail);
@@ -72,9 +72,9 @@ export const useExportBUML = () => {
         }
 
         downloadFile({ file: blob, filename });
-        toast.success(t('export.toast.bumlExportSuccess'));
+        toast.success(t('export.toasts.bumlExportSuccess'));
       } catch (error) {
-        const errorMessage = error instanceof Error ? error.message : t('export.toast.unknownError');
+        const errorMessage = error instanceof Error ? error.message : t('export.toasts.unknownError');
         toast.error(errorMessage);
       }
     },

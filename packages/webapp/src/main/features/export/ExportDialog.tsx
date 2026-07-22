@@ -82,17 +82,17 @@ export const ExportDialog: React.FC<ExportDialogProps> = ({ open, onOpenChange, 
     const normalizedTitle = currentDiagramTitle.trim() || 'Diagram';
 
     if ((isImageExport || isSingleDiagramExport) && !editor) {
-      toast.error(t('export.toast.openUmlFirst'));
+      toast.error(t('export.toasts.openUmlFirst'));
       return;
     }
 
     if (!currentProject) {
-      toast.error(t('export.toast.noProject'));
+      toast.error(t('export.toasts.noProject'));
       return;
     }
 
     if (formatsRequiringSelection.has(format) && selectedDiagrams.length === 0) {
-      toast.error(t('export.toast.selectAtLeastOne'));
+      toast.error(t('export.toasts.selectAtLeastOne'));
       return;
     }
 
@@ -128,7 +128,7 @@ export const ExportDialog: React.FC<ExportDialogProps> = ({ open, onOpenChange, 
 
       onOpenChange(false);
     } catch (error) {
-      toast.error(t('export.toast.failed', { error: error instanceof Error ? error.message : t('export.toast.unknownError') }));
+      toast.error(t('export.toasts.failed', { error: error instanceof Error ? error.message : t('export.toasts.unknownError') }));
     }
   };
 

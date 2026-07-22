@@ -22,7 +22,7 @@
     "switchToLight": "Cambiar a modo claro",
     "switchToDark": "Cambiar a modo oscuro",
     "star": "Star",
-    "starBesser": "Marca BESSER con una estrella en GitHub",
+    "starBesser": "Dale a BESSER una estrella en GitHub",
     "githubAccount": "Cuenta de GitHub: {{name}}",
     "signOut": "Cerrar sesión",
     "githubVersionControl": "Control de versiones de GitHub",
@@ -95,7 +95,7 @@
         "qiskitCode": "Código Qiskit"
       },
       "notices": {
-        "statemachine": "Las máquinas de estados se utilizan como implementaciones de métodos en los diagramas de clases. Genere código a partir del diagrama de clases.",
+        "statemachine": "Las máquinas de estados se utilizan como implementaciones de métodos en los diagramas de clases. Genera código a partir del diagrama de clases.",
         "unavailable": "Aún no disponible para este diagrama"
       }
     },
@@ -110,7 +110,7 @@
       "contribute": "Contribuir",
       "githubRepository": "Repositorio de GitHub",
       "sendFeedback": "Enviar comentarios",
-      "userSurvey": "Encuesta de usuarios",
+      "userSurvey": "Encuesta de evaluación usuarios",
       "reportProblem": "Informar de un problema"
     },
     "help": {
@@ -131,7 +131,7 @@
       "transform": "Esto puede tardar un poco en elaborar la mejor configuración de agente transformada y aplicarla a tu diagrama."
     },
     "title": "Personalización del agente",
-    "subtitle": "Adapta tu agente a un perfil de usuario específico del User Diagram. Ajusta cómo habla, se ve y se comporta para coincidir con esa audiencia, y luego guarda el resultado como una configuración con nombre entre las que podrás alternar más tarde.",
+    "subtitle": "Adapta tu agente a un perfil de usuario específico del diagrama de usuario. Ajusta cómo habla, se ve y se comporta para coincidir con esa audiencia, y luego guarda el resultado como una configuración con nombre entre las que podrás alternar más tarde.",
     "tabsAriaLabel": "Secciones de configuración del agente",
     "tab": {
       "runtime": "Ejecución del agente",
@@ -153,16 +153,16 @@
       "title": "Asignación de perfil de usuario",
       "description": "Selecciona el perfil de usuario que debe guiar la personalización y las propuestas de configuración automáticas.",
       "label": "Asignación de perfil de usuario",
-      "noTabs": "Aún no hay pestañas de User Diagram con modelos disponibles",
+      "noTabs": "Aún no hay pestañas de diagrama de usuario con modelos disponibles",
       "selectProfile": "Seleccionar un perfil de usuario",
-      "createFirst": "Primero crea o carga una pestaña de User Diagram.",
-      "statusLine": "Estado del User Diagram del proyecto actual: {{status}}.",
+      "createFirst": "Primero crea o carga una pestaña de diagrama de usuario.",
+      "statusLine": "Estado del diagrama de usuario del proyecto actual: {{status}}.",
       "statusAvailable": "disponible",
       "statusMissing": "falta"
     },
     "propose": {
       "rules": "Proponer automáticamente la configuración usando reglas predefinidas",
-      "llm": "Proponer automáticamente la configuración usando LLM",
+      "llm": "Proponer automáticamente la configuración usando LLMs",
       "rag": "Proponer automáticamente la configuración basada en RAG"
     },
     "recommendation": {
@@ -176,7 +176,7 @@
     },
     "runtime": {
       "title": "Ejecución del agente",
-      "description": "Configuración de ejecución del diagrama de agente activo (plataforma, reconocimiento de intención, proveedor/modelo LLM). Estos valores se almacenan en el propio diagrama de agente, no en el almacenamiento global.",
+      "description": "Configuración de ejecución del diagrama de agente activo (plataforma, reconocimiento de intención, proveedor/modelo de LLM). Estos valores se almacenan en el propio diagrama de agente, no en el almacenamiento global.",
       "platform": "Plataforma",
       "intent": "Reconocimiento de intención",
       "intentClassical": "Clásico",
@@ -199,7 +199,7 @@
       "numPrevMessages": "Número de mensajes anteriores",
       "parameters": "Parámetros (JSON)",
       "globalContext": "Contexto global (opcional)",
-      "globalContextPlaceholder": "Contexto a nivel de sistema añadido a cada indicación",
+      "globalContextPlaceholder": "Contexto a nivel de sistema añadido a cada prompt",
       "setDefault": "Establecer como predeterminado",
       "remove": "Eliminar",
       "unnamedLlm": "(LLM sin nombre)",
@@ -248,7 +248,7 @@
     "sentence": {
       "original": "Original",
       "concise": "Conciso",
-      "verbose": "Detallado"
+      "verbose": "Extenso"
     },
     "useAbbreviations": "Usar abreviaturas",
     "interface": {
@@ -389,7 +389,7 @@
         "description": "El perfil de usuario \"{{profile}}\" ya está asignado a la configuración \"{{existing}}\". Al guardar se reemplazará esa asignación por \"{{next}}\"."
       }
     },
-    "toast": {
+    "toasts": {
       "persistFailed": "No se pudo actualizar el diagrama de agente.",
       "noActiveDiagram": "No hay un diagrama de agente activo.",
       "nameBeforeDefault": "Da un nombre al LLM antes de marcarlo como predeterminado.",
@@ -406,7 +406,7 @@
       "ruleRecApplied_other": "Recomendación basada en reglas aplicada ({{count}} reglas coinciden).",
       "ruleRecAppliedNone": "Recomendación basada en reglas aplicada. No coincide ninguna regla específica, por lo que se conservaron los valores predeterminados.",
       "mappingRecFailed": "No se pudo obtener la recomendación basada en asignación: {{message}}",
-      "mappingRecUnexpected": "Ocurrió un error inesperado al solicitar una recomendación basada en reglas.",
+      "mappingRecUnexpected": "Ocurrió un error inesperado al solicitar una recomendación basada en reglas predefinidas.",
       "ragSoon": "La propuesta de configuración automática basada en RAG estará disponible pronto.",
       "invalidRecResponse": "Se recibió una respuesta de recomendación no válida del backend.",
       "llmRecApplied": "Recomendación basada en LLM aplicada a la configuración actual.",
@@ -431,41 +431,41 @@
     "defaultDiagramTitle": "Diagrama",
     "django": {
       "title": "Configuración del proyecto Django",
-      "description": "Configure los nombres y las opciones de contenedorización para la generación de Django.",
+      "description": "Configura los nombres y las opciones de contenedorización para la generación de Django.",
       "projectName": "Nombre del proyecto",
       "appName": "Nombre de la aplicación",
       "includeDocker": "Incluir contenedorización con Docker"
     },
     "sql": {
       "title": "Selección de dialecto SQL",
-      "description": "Elija el dialecto SQL para las sentencias DDL generadas.",
+      "description": "Elige el dialecto SQL para las sentencias DDL generadas.",
       "dialect": "Dialecto",
       "selectDialect": "Seleccionar dialecto SQL"
     },
     "sqlAlchemy": {
       "title": "Selección de SGBD de SQLAlchemy",
-      "description": "Elija el sistema de base de datos para el código SQLAlchemy generado.",
+      "description": "Elige el sistema de base de datos para el código SQLAlchemy generado.",
       "dbms": "SGBD",
       "selectDbms": "Seleccionar SGBD"
     },
     "supabase": {
       "title": "Configuración de Supabase",
       "descriptionBefore": "Genera DDL de Postgres con claves primarias UUID,",
-      "descriptionAfter": "replicación, y seguridad a nivel de fila (RLS). Indique qué clase de su diagrama se asigna a auth.users.",
+      "descriptionAfter": "replicación, y seguridad a nivel de fila (RLS). Indica qué clase de tu diagrama se asigna a auth.users.",
       "userRootLabel": "Nombre de la clase raíz de usuario",
-      "hintBefore": "Deje en blanco para omitir la integración de autenticación (sin",
+      "hintBefore": "Deja en blanco para omitir la integración de autenticación (sin",
       "hintMiddle": "réplica, sin RLS). Predeterminado:"
     },
     "jsonSchema": {
       "title": "Modo JSON Schema",
-      "description": "Elija JSON schema estándar o el modo smart data NGSI-LD.",
+      "description": "Elige JSON schema estándar o el modo smart data NGSI-LD.",
       "mode": "Modo",
       "selectMode": "Seleccionar modo",
       "regular": "JSON Schema estándar"
     },
     "agent": {
       "title": "Seleccionar idiomas del agente",
-      "description": "Configure los idiomas de origen y destino para la traducción del agente.",
+      "description": "Configura los idiomas de origen y destino para la traducción del agente.",
       "noSavedConfig": "No se encontró ninguna configuración guardada. El agente se generará con la configuración predeterminada.",
       "configureTechnologies": "Configurar tecnologías del agente",
       "sourceLanguage": "Idioma de origen (opcional)",
@@ -497,7 +497,7 @@
       "noMappingsFound": "No se encontraron asignaciones con agentes generados. Cree asignaciones y ejecute primero \"Save & Apply\".",
       "mappingsListHint": "Solo se listan las asignaciones cuya configuración de destino ya tiene un agente generado.",
       "noStoredConfigsFound": "No se encontraron configuraciones guardadas con agentes generados. Use primero \"Save & Apply\" para que estén disponibles aquí.",
-      "storedConfigsListHint": "Seleccione una o más configuraciones (solo se listan las entradas con agentes generados) para incluirlas en la solicitud. Esto generará un agente por configuración.",
+      "storedConfigsListHint": "Selecciona una o más configuraciones (solo se listan las entradas con agentes generados) para incluirlas en la solicitud. Esto generará un agente por configuración.",
       "selectedLanguages": "Idiomas seleccionados",
       "removeLanguage": "Eliminar el idioma {{language}}",
       "languages": {
@@ -511,11 +511,11 @@
     },
     "qiskit": {
       "title": "Configuración del backend de Qiskit",
-      "description": "Elija el backend de ejecución y el número de disparos (shots).",
+      "description": "Elige el backend de ejecución y el número de disparos (shots).",
       "executionBackend": "Backend de ejecución",
       "selectBackend": "Seleccionar backend",
       "backendAerSimulator": "Aer Simulator (Local)",
-      "backendMockSimulation": "Simulación simulada (simulación de ruido)",
+      "backendMockSimulation": "Simulación de prueba (simulación de ruido)",
       "backendIbmQuantum": "IBM Quantum (Hardware real)",
       "numberOfShots": "Número de disparos (shots)",
       "shotsLabel": "Disparos"
@@ -541,28 +541,28 @@
       "agentDiagramsAvailable": "{{count}} disponible(s) (configurado(s) por componente en la GUI)",
       "noneAvailable": "Ninguno disponible"
     },
-    "toast": {
+    "toasts": {
       "validationFailed": "La validación falló",
       "noDiagram": "No hay ningún diagrama para generar código",
       "localDeploymentInProgress": "Despliegue local en curso... Esto puede tardar unos minutos.",
       "httpError": "¡Error HTTP! estado: {{status}}",
       "localDeploymentCompleted": "¡Despliegue local completado!",
-      "accessApplicationAt": "Ahora puede acceder a su aplicación en: ",
+      "accessApplicationAt": "Ahora puedes acceder a tu aplicación en: ",
       "unknownDeploymentError": "Se produjo un error desconocido durante el despliegue",
       "noProjectAvailable": "No hay ningún proyecto disponible para la generación de código",
       "codeGenerationCompleted": "Generación de código completada con éxito",
-      "requestTimedOut": "Se agotó el tiempo de espera de la solicitud. Vuelva a intentarlo.",
+      "requestTimedOut": "Se agotó el tiempo de espera de la solicitud. Vuelve a intentarlo.",
       "unknownError": "Se produjo un error desconocido",
       "createOrLoadProject": "Cree o cargue un proyecto antes de generar código.",
       "couldNotSwitchToGui": "No se pudo cambiar al diagrama GUI para la generación automática.",
       "guiEditorNotReady": "El editor GUI no estuvo listo a tiempo.",
       "couldNotAutoGenerateGui": "No se pudo generar automáticamente el GUI a partir del diagrama de clases.",
       "guiDiagramEmpty": "No se puede generar la aplicación web: el diagrama GUI está vacío.",
-      "openQuantumEditor": "Abra el editor Quantum antes de generar código Qiskit.",
-      "openNnEditor": "Abra el editor de diagramas NN antes de generar código de red neuronal.",
-      "switchToUmlDiagram": "Cambie a un diagrama UML para usar este generador.",
-      "noUmlEditor": "No hay ninguna instancia del editor UML disponible. Abra primero un diagrama UML.",
-      "switchToObjectOrUserDiagram": "Cambie a un diagrama de objetos o un diagrama de usuario para usar el generador JSON Object.",
+      "openQuantumEditor": "Abre el editor Quantum antes de generar código Qiskit.",
+      "openNnEditor": "Abre el editor de diagramas NN antes de generar código de red neuronal.",
+      "switchToUmlDiagram": "Cambia a un diagrama UML para usar este generador.",
+      "noUmlEditor": "No hay ninguna instancia del editor UML disponible. Abre primero un diagrama UML.",
+      "switchToObjectOrUserDiagram": "Cambia a un diagrama de objetos o un diagrama de usuario para usar el generador JSON Object.",
       "generationFailed": "La generación falló: {{error}}",
       "createOrLoadProjectValidate": "Cree o cargue un proyecto antes de validar.",
       "comingSoon": "próximamente",
@@ -571,7 +571,7 @@
       "namesRequired": "Los nombres del proyecto y de la aplicación son obligatorios.",
       "namesMustDiffer": "Los nombres del proyecto y de la aplicación deben ser diferentes.",
       "namesInvalid": "Los nombres deben comenzar con una letra/guion bajo y contener solo letras, números y guiones bajos.",
-      "openUmlBeforeDeploy": "Abra un diagrama UML antes de desplegar.",
+      "openUmlBeforeDeploy": "Abre un diagrama UML antes de desplegar.",
       "noValidPersonalizationMappings": "No se encontraron asignaciones de personalización válidas. Cree asignaciones y guarde variantes personalizadas primero."
     },
     "context": {
@@ -663,7 +663,7 @@
       },
       "perspective": {
         "label": "Perspectiva de modelado",
-        "helper": "Determina qué diagramas aparecen en la barra lateral. Puedes cambiarlo más tarde en Ajustes."
+        "helper": "Personaliza qué diagramas aparecen en la barra lateral. Puedes cambiarlo más tarde en Ajustes."
       },
       "list": {
         "emptyHint": "Aún no hay proyectos. Crea uno para empezar.",
@@ -676,7 +676,7 @@
         "title": "Eliminar proyecto",
         "description": "¿Eliminar el proyecto «{{name}}»? Esta acción no se puede deshacer."
       },
-      "toast": {
+      "toasts": {
         "created": "Proyecto «{{name}}» creado.",
         "createFailed": "No se pudo crear el proyecto: {{error}}",
         "loaded": "Proyecto cargado.",
@@ -766,7 +766,7 @@
           "NNDiagram": "Arquitectura de red neuronal (PyTorch / TensorFlow)."
         }
       },
-      "toast": {
+      "toasts": {
         "updatePerspectiveFailed": "No se pudo actualizar la perspectiva",
         "applyPresetFailed": "No se pudo aplicar el preajuste",
         "exported": "Proyecto exportado correctamente.",
@@ -795,7 +795,7 @@
         "newTab": "Nueva pestaña",
         "replace": "Reemplazar"
       },
-      "toast": {
+      "toasts": {
         "loadedProjectTemplate": "Plantilla de proyecto «{{name}}» cargada",
         "loadFailed": "No se pudo cargar la plantilla: {{error}}"
       }
@@ -988,9 +988,9 @@
       "repoCreatedQuoted": "¡Repositorio «{{name}}» creado!",
       "createGistFailed": "No se pudo crear el Gist",
       "gistCreated": "¡Gist creado correctamente!",
-      "invalidGitHubUrl": "URL de GitHub no válida. Proporcione una URL válida de un repositorio de GitHub.",
+      "invalidGitHubUrl": "URL de GitHub no válida. Proporciona una URL válida de un repositorio de GitHub.",
       "fetchingFromGitHub": "Obteniendo {{filename}} de GitHub...",
-      "fileNotFound": "Archivo no encontrado en GitHub. Compruebe la URL e inténtelo de nuevo.",
+      "fileNotFound": "Archivo no encontrado en GitHub. Comprueba la URL e inténtalo de nuevo.",
       "fetchFileFailed": "No se pudo obtener el archivo de GitHub: {{status}}",
       "importProjectSuccess": "Proyecto importado correctamente: {{name}}",
       "importModelFailed": "No se pudo importar el modelo de GitHub",
@@ -1002,7 +1002,7 @@
     "import": {
       "titleImage": "Importar diagrama de clases desde imagen",
       "titleKg": "Importar diagrama de clases desde grafo de conocimiento",
-      "description": "Use una clave API de OpenAI para convertir su archivo en un diagrama de clases y añadirlo al proyecto actual.",
+      "description": "Usa una clave API de OpenAI para convertir tu archivo en un diagrama de clases y añadirlo al proyecto actual.",
       "apiKeyLabel": "Clave API de OpenAI",
       "uploadImageLabel": "Subir imagen del diagrama (PNG/JPEG)",
       "uploadKgLabel": "Subir grafo de conocimiento (TTL/RDF/JSON)",
@@ -1588,7 +1588,7 @@
         "providerLinkText": "Política de privacidad de PostHog"
       }
     },
-    "error": {
+    "errors": {
       "dismiss": "Descartar error"
     },
     "errorBoundary": {
@@ -1679,14 +1679,14 @@
       "linksFragment_one": ", {{count}} enlace",
       "linksFragment_other": ", {{count}} enlaces",
       "allClassesHaveInstance_one": "La {{count}} clase ya tiene una instancia: no hay nada que añadir.",
-      "allClassesHaveInstance_other": "Las {{count}} clases ya tienen una instancia: no hay nada que añadir.",
-      "generatedWithSkipped_one": "Se generó {{count}} objeto{{links}}, se omitió {{skipped}} que ya estaba en el lienzo.",
-      "generatedWithSkipped_other": "Se generaron {{count}} objetos{{links}}, se omitieron {{skipped}} que ya estaban en el lienzo.",
-      "generatedFromClassDiagram_one": "Se generó {{count}} objeto{{links}} a partir del diagrama de clases.",
-      "generatedFromClassDiagram_other": "Se generaron {{count}} objetos{{links}} a partir del diagrama de clases.",
+      "allClassesHaveInstance_other": "Todas las {{count}} clases ya tienen una instancia: no hay nada que añadir.",
+      "generatedWithSkipped_one": "Se generó {{count}} object{{links}}, se omitieron {{skipped}} que ya estaban en el lienzo.",
+      "generatedWithSkipped_other": "Se generaron {{count}} object{{links}}, se omitieron {{skipped}} que ya estaban en el lienzo.",
+      "generatedFromClassDiagram_one": "Se generó {{count}} object{{links}} a partir del diagrama de clases.",
+      "generatedFromClassDiagram_other": "Se generaron {{count}} object{{links}} a partir del diagrama de clases.",
       "maxDiagrams": "Máximo {{count}} diagramas por tipo.",
-      "classRefTooltipObject": "Seleccione qué diagrama de clases proporciona el modelo de datos para este diagrama de objetos",
-      "classRefTooltipGui": "Seleccione qué diagrama de clases proporciona el modelo de datos para esta interfaz gráfica",
+      "classRefTooltipObject": "Selecciona qué diagrama de clases proporciona el modelo de datos para este diagrama de objetos",
+      "classRefTooltipGui": "Selecciona qué diagrama de clases proporciona el modelo de datos para esta interfaz gráfica",
       "validationValidated": "Validado",
       "validationIssues": "Problemas",
       "validationNeedsValidation": "Requiere validación",
@@ -1704,8 +1704,8 @@
       "linkedDiagrams": "Diagramas vinculados",
       "references": "Referencias",
       "classDiagram": "Diagrama de clases",
-      "referenceBroken": "Referencia rota: vuelva a seleccionar",
-      "referenceDeleted": "El diagrama referenciado fue eliminado. Seleccione uno nuevo.",
+      "referenceBroken": "Referencia rota: vuelve a seleccionar",
+      "referenceDeleted": "El diagrama referenciado fue eliminado. Selecciona uno nuevo.",
       "referenceEmpty": "El diagrama de clases referenciado está vacío (sin clases ni relaciones).",
       "generateObjectsTooltip": "Crea una instancia de objeto por cada clase del diagrama referenciado, con valores predeterminados para cada atributo.",
       "generate": "Generar",
@@ -1720,7 +1720,7 @@
       "columnValue": "Valor",
       "addEntity": "Añadir {{entity}}",
       "addRegister": "Añadir registro",
-      "previewDescription": "Solo vista previa de datos. Configure los enlaces para conectar las filas de la tabla con su modelo de dominio.",
+      "previewDescription": "Solo vista previa de datos. Configura los enlaces para conectar las filas de la tabla con tu modelo de dominio.",
       "edit": "Editar",
       "editRow": "Editar fila",
       "remove": "Eliminar",
@@ -1742,7 +1742,7 @@
       "importJson": "Importar JSON",
       "editFunctionGate": "Editar puerta de función",
       "closeModal": "Cerrar ventana",
-      "gateNamePlaceholder": "Introduzca el nombre de la puerta (p. ej. Bell State, QFT)",
+      "gateNamePlaceholder": "Introduce el nombre de la puerta (p. ej. Bell State, QFT)",
       "gateColor": "Color de la puerta:",
       "selectGateColor": "Seleccionar color de puerta {{color}}",
       "customColor": "Color personalizado",
@@ -2121,29 +2121,29 @@
       "statusSaved": "Guardado",
       "statusSaving": "Guardando...",
       "statusErrorSaving": "Error al guardar",
-      "editorStillLoading": "El editor todavía se está cargando. Espere un momento e inténtelo de nuevo.",
-      "errorSavingProject": "Error al guardar el proyecto. Consulte la consola para más detalles.",
+      "editorStillLoading": "El editor todavía se está cargando. Espera un momento e inténtalo de nuevo.",
+      "errorSavingProject": "Error al guardar el proyecto. Consulta la consola para más detalles.",
       "downloadHtml": "Descargar HTML",
       "exportTemplate": "Exportar plantilla",
       "downloadJson": "Descargar JSON",
       "projectJson": "JSON del proyecto",
       "clearCanvasTitle": "Limpiar lienzo",
-      "clearCanvasDescription": "¿Está seguro de que desea limpiar todo el lienzo? Esta acción no se puede deshacer.",
+      "clearCanvasDescription": "¿Estás seguro de que quieres limpiar todo el lienzo? Esta acción no se puede deshacer.",
       "clearCanvasConfirm": "Limpiar",
       "autoGenerateTitle": "Generar interfaz automáticamente a partir del diagrama de clases",
-      "autoGenerateIntro": "Esto borrará su interfaz actual y generará una nueva basada en su diagrama de clases.",
+      "autoGenerateIntro": "Esto borrará tu interfaz actual y generará una nueva basada en tu diagrama de clases.",
       "autoGenerateCreatedTitle": "Creado automáticamente:",
       "autoGenerateItemNav": "Panel de navegación con enlaces a cada clase",
       "autoGenerateItemPage": "Una página para cada clase con una tabla de datos",
       "autoGenerateItemMethods": "Botones de método para clases con métodos",
       "autoGenerateCannotUndo": "Esta acción no se puede deshacer",
-      "autoGenerateConfirmQuestion": "¿Está seguro de que desea continuar?",
+      "autoGenerateConfirmQuestion": "¿Estás seguro de que quieres continuar?",
       "generateGui": "Generar interfaz",
       "guiGeneratedSuccess": "¡Interfaz gráfica generada correctamente! Se crearon páginas, tablas y botones de método para todas las clases.",
       "noActiveProject": "No se encontró ningún proyecto activo.",
       "noClassDiagramFound": "No se encontró ningún diagrama de clases. Primero cree un diagrama de clases.",
       "qualityCheckFailed": "Error en la comprobación de calidad del diagrama de clases",
-      "qualityCheckFailedMessage": "Se encontraron errores en su diagrama de clases. Resuélvalos antes de generar la interfaz.",
+      "qualityCheckFailedMessage": "Se encontraron errores en tu diagrama de clases. Resuélvelos antes de generar la interfaz.",
       "classDiagramErrors": "Errores del diagrama de clases",
       "noClassesFound": "No se encontraron clases en el diagrama de clases. Primero cree un diagrama de clases.",
       "noPageSelected": "Ninguna página seleccionada",
@@ -2162,7 +2162,7 @@
       "traitValueFieldPlaceholder": "Campo para el valor",
       "importTemplate": "Importar plantilla",
       "importButton": "Importar",
-      "importTemplateLabel": "Pegue aquí su HTML/CSS y haga clic en Importar",
+      "importTemplateLabel": "Pega aquí tu HTML/CSS y haz clic en Importar",
       "formTraits": {
         "actionUrl": "URL de acción",
         "targetEntity": "Entidad de destino",
@@ -2211,10 +2211,10 @@
   "feedback": {
     "feedbackPlaceholder": "Cuéntanos qué funciona, qué no y qué te gustaría a continuación.",
     "feedbackLabel": "Comentarios",
-    "toast": {
+    "toasts": {
       "thankYou": "Gracias por tus comentarios.",
       "submitFailedDefault": "No se pudieron enviar los comentarios.",
-      "selectRating": "Seleccione una valoración de satisfacción.",
+      "selectRating": "Selecciona una valoración de satisfacción.",
       "unknownError": "Error desconocido",
       "submitFailed": "Error al enviar los comentarios: {{error}}"
     },
@@ -2264,7 +2264,7 @@
       "exportJson": "Exportar como JSON",
       "multipleTitle": "Varios diagramas",
       "description": "Exporta los archivos completos del proyecto o los recursos del diagrama actual.",
-      "requiresUmlView": "La exportación del diagrama actual requiere una vista de diagrama UML. Utilice la exportación a nivel de proyecto en su lugar.",
+      "requiresUmlView": "La exportación del diagrama actual requiere una vista de diagrama UML. Utiliza la exportación a nivel de proyecto en su lugar.",
       "exportPngTransparent": "Exportar PNG (transparente)",
       "exportDiagramJson": "Exportar diagrama como JSON",
       "untitledDiagram": "Diagrama sin título",
@@ -2272,10 +2272,10 @@
       "currentDescription": "Exporta el diagrama UML actual como recursos de imagen.",
       "diagramCount": "{{count}} diagramas: {{titles}}"
     },
-    "toast": {
+    "toasts": {
       "unknownError": "Error desconocido",
-      "openUmlFirst": "Abra primero un diagrama UML.",
-      "selectAtLeastOne": "Seleccione al menos un diagrama para exportar.",
+      "openUmlFirst": "Abre primero un diagrama UML.",
+      "selectAtLeastOne": "Selecciona al menos un diagrama para exportar.",
       "noProject": "No hay ningún proyecto disponible para exportar.",
       "failed": "Error en la exportación: {{error}}",
       "validationFailed": "La validación ha fallado",
@@ -2317,9 +2317,9 @@
     }
   },
   "validation": {
-    "toast": {
+    "toasts": {
       "noDiagramToValidate": "No hay ningún diagrama para validar",
-      "diagramEmpty": "El diagrama está vacío. Añada elementos antes de ejecutar la comprobación de calidad.",
+      "diagramEmpty": "El diagrama está vacío. Añade elementos antes de ejecutar la comprobación de calidad.",
       "validating": "Validando el diagrama...",
       "timedOut": "La validación ha superado el tiempo de espera. Es posible que el backend esté sobrecargado.",
       "validationFailed": "La validación ha fallado",

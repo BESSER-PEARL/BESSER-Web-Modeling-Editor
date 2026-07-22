@@ -389,7 +389,7 @@
         "description": "El perfil d'usuari \"{{profile}}\" ja està assignat a la configuració \"{{existing}}\". En desar-la se substituirà aquesta assignació per \"{{next}}\"."
       }
     },
-    "toast": {
+    "toasts": {
       "persistFailed": "No s'ha pogut actualitzar el diagrama d'agent.",
       "noActiveDiagram": "No hi ha cap diagrama d'agent actiu.",
       "nameBeforeDefault": "Posa un nom a l'LLM abans de marcar-lo com a predeterminat.",
@@ -541,7 +541,7 @@
       "agentDiagramsAvailable": "{{count}} disponible(s) (configurat(s) per component a la GUI)",
       "noneAvailable": "Cap disponible"
     },
-    "toast": {
+    "toasts": {
       "validationFailed": "La validació ha fallat",
       "noDiagram": "No hi ha cap diagrama per generar codi",
       "localDeploymentInProgress": "Desplegament local en curs... Això pot trigar uns minuts.",
@@ -676,7 +676,7 @@
         "title": "Eliminar projecte",
         "description": "Vols eliminar el projecte «{{name}}»? Aquesta acció no es pot desfer."
       },
-      "toast": {
+      "toasts": {
         "created": "Projecte «{{name}}» creat.",
         "createFailed": "No s'ha pogut crear el projecte: {{error}}",
         "loaded": "Projecte carregat.",
@@ -766,7 +766,7 @@
           "NNDiagram": "Arquitectura de xarxa neuronal (PyTorch / TensorFlow)."
         }
       },
-      "toast": {
+      "toasts": {
         "updatePerspectiveFailed": "No s'ha pogut actualitzar la perspectiva",
         "applyPresetFailed": "No s'ha pogut aplicar el predefinit",
         "exported": "Projecte exportat correctament.",
@@ -795,7 +795,7 @@
         "newTab": "Pestanya nova",
         "replace": "Reemplaçar"
       },
-      "toast": {
+      "toasts": {
         "loadedProjectTemplate": "Plantilla de projecte «{{name}}» carregada",
         "loadFailed": "No s'ha pogut carregar la plantilla: {{error}}"
       }
@@ -1588,7 +1588,7 @@
         "providerLinkText": "Política de privadesa de PostHog"
       }
     },
-    "error": {
+    "errors": {
       "dismiss": "Descarta l'error"
     },
     "errorBoundary": {
@@ -2272,7 +2272,7 @@
       "currentDescription": "Exporta el diagrama UML actual com a recursos d'imatge.",
       "diagramCount": "{{count}} diagrames: {{titles}}"
     },
-    "toast": {
+    "toasts": {
       "unknownError": "Error desconegut",
       "openUmlFirst": "Obre primer un diagrama UML.",
       "selectAtLeastOne": "Selecciona almenys un diagrama per exportar.",
@@ -2317,7 +2317,7 @@
     }
   },
   "validation": {
-    "toast": {
+    "toasts": {
       "noDiagramToValidate": "No hi ha cap diagrama per validar",
       "diagramEmpty": "El diagrama és buit. Afegeix-hi elements abans d'executar la comprovació de qualitat.",
       "validating": "S'està validant el diagrama...",

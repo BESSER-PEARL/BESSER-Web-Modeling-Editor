@@ -188,7 +188,7 @@ export const TemplateLibraryDialog: React.FC<TemplateLibraryDialogProps> = ({ op
         const importedProject = await importProjectFromJson(file);
         await dispatch(loadProjectThunk(importedProject.id)).unwrap();
         navigate('/');
-        toast.success(t('project.templates.toast.loadedProjectTemplate', { name: selectedTemplate.type }));
+        toast.success(t('project.templates.toasts.loadedProjectTemplate', { name: selectedTemplate.type }));
         onOpenChange(false);
         return;
       }
@@ -259,7 +259,7 @@ export const TemplateLibraryDialog: React.FC<TemplateLibraryDialogProps> = ({ op
       // toast.success(`Loaded template: ${selectedTemplate.type}`);
       onOpenChange(false);
     } catch (error) {
-      toast.error(t('project.templates.toast.loadFailed', { error: error instanceof Error ? error.message : t('project.templates.unknownError') }));
+      toast.error(t('project.templates.toasts.loadFailed', { error: error instanceof Error ? error.message : t('project.templates.unknownError') }));
     } finally {
       setIsLoading(false);
     }

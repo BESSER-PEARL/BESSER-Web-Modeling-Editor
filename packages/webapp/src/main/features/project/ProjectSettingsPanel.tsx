@@ -48,7 +48,7 @@ export const ProjectSettingsPanel: React.FC = () => {
       dispatch(setPerspectiveEnabledThunk({ type, enabled }))
         .unwrap()
         .catch((err: unknown) => {
-          toast.error(err instanceof Error ? err.message : t('project.settings.toast.updatePerspectiveFailed'));
+          toast.error(err instanceof Error ? err.message : t('project.settings.toasts.updatePerspectiveFailed'));
         });
     },
     [dispatch, t],
@@ -59,7 +59,7 @@ export const ProjectSettingsPanel: React.FC = () => {
       dispatch(applyPerspectivePresetThunk({ diagrams: preset.diagrams }))
         .unwrap()
         .catch((err: unknown) => {
-          toast.error(err instanceof Error ? err.message : t('project.settings.toast.applyPresetFailed'));
+          toast.error(err instanceof Error ? err.message : t('project.settings.toasts.applyPresetFailed'));
         });
     },
     [dispatch, t],
@@ -113,9 +113,9 @@ export const ProjectSettingsPanel: React.FC = () => {
       }
 
       await exportProject(currentProject.id, true);
-      toast.success(t('project.settings.toast.exported'));
+      toast.success(t('project.settings.toasts.exported'));
     } catch (exportError) {
-      toast.error(t('project.settings.toast.exportFailed', { error: exportError instanceof Error ? exportError.message : t('project.settings.unknownError') }));
+      toast.error(t('project.settings.toasts.exportFailed', { error: exportError instanceof Error ? exportError.message : t('project.settings.unknownError') }));
     } finally {
       setIsExporting(false);
     }
