@@ -196,17 +196,22 @@ const { t } = useTranslation();
 categories.map((c) => <option key={c.value}>{t(c.labelKey)}</option>);
 ```
 
-**5. Add the keys and seed the languages.** Add your new English keys to
-`packages/i18n/en/webapp.json` (or the editor `packages/i18n/en/editor.json` for
-canvas strings). Then create the same keys in the
-other five languages — draft them with an LLM (Track B) and get a human check. Finally run
-`npm run i18n:check`; it must return to **100%** for every language.
+**5. Add the English keys (required); the other languages are optional.** Add your new
+English keys to `packages/i18n/en/webapp.json` (or the editor
+`packages/i18n/en/editor.json` for canvas strings) — **this is mandatory**, because English
+is what every other language falls back to. Translating the same keys into the other five
+languages is welcome but **optional**: draft them with an LLM (Track B) and get a human
+check, or leave them for the BESSER team to complete and review. Then run
+`npm run i18n:check`; it must **pass**, which means English is complete and no locale has
+stale keys. Untranslated keys in the other languages are reported as warnings, not failures,
+and fall back to English at runtime.
 
 > **Tip:** i18next *does* accept an inline English default (`t('key', 'English text')`), but
-> this project's convention is **key-only** — all English lives in `en/translation.json` as the
-> single source of truth (a quick grep finds ~1000 `t('…')` calls and zero inline defaults).
-> Keeping every string in `en.json` is what lets `npm run i18n:check` verify each key is
-> present in all six languages.
+> this project's convention is **key-only** — all English lives in `en/webapp.json` (and
+> `en/editor.json`) as the single source of truth (a quick grep finds ~1000 `t('…')` calls and
+> zero inline defaults). Keeping every string in the English files is what lets
+> `npm run i18n:check` verify each key is present in English and track coverage for the
+> other languages.
 
 ### Track B — Translators: filling or fixing a language
 
@@ -231,12 +236,14 @@ npm run test --workspace=webapp    # includes the locale-parity unit test (webap
 npm run dev                        # run the app and switch languages from the globe menu
 ```
 
-`i18n:check` exits non-zero if a language is **missing** keys. It does **not** flag stray or
-renamed keys by default — for that (e.g. after renaming a key, or a copy-paste typo) run the
-strict form, which also fails on extra keys:
+`i18n:check` exits non-zero if **English is incomplete** or a locale has **extra/stale keys**
+(e.g. after renaming a key, or a copy-paste typo). Missing keys in the non-English languages
+are reported as **warnings only** — they fall back to English at runtime and don't block a
+contribution. To require every language to be 100% (the maintainer/release gate), run the
+`--complete` form:
 
 ```bash
-node scripts/i18n-check.mjs --strict
+node scripts/i18n-check.mjs --complete
 ```
 
 ---
@@ -246,8 +253,9 @@ node scripts/i18n-check.mjs --strict
 - [ ] Edited only translation **values** (keys unchanged).
 - [ ] All `{{placeholders}}` preserved.
 - [ ] Product / format names left in English.
-- [ ] `npm run i18n:check` passes (target 100% for the language you touched); if you renamed
-      or removed any keys, `node scripts/i18n-check.mjs --strict` also passes.
+- [ ] `npm run i18n:check` passes (English complete, no stale keys). Translating the other
+      languages is optional — aim for 100% on any language you touch, but untranslated keys
+      only warn. If you renamed or removed keys, fix the resulting extra-key failures.
 - [ ] `npm run test --workspace=webapp` passes.
 - [ ] Reviewed by a native/fluent speaker — name them or note "self, native speaker" in the PR.
 - [ ] For a brand-new language: registered in `editor-types.ts`, `i18n-provider.tsx`,

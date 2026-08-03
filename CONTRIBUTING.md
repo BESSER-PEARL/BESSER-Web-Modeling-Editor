@@ -332,9 +332,19 @@ a literal string into a component, or it will show English in every language.
 
 Route text through `t('some.key')` (plain) or `<Trans>` (rich text/links) and
 put the English in `packages/i18n/en/webapp.json`
-(or `packages/i18n/en/editor.json` for canvas strings). Then seed the
-other five languages and run `npm run i18n:check` — it must report **100%** for
-every language.
+(or `packages/i18n/en/editor.json` for canvas strings).
+
+**English is required; the other languages are optional.** English is the
+source of truth — every other language falls back to it at runtime, so a missing
+translation never breaks the UI. As a contributor you **must** provide the
+English string for any new text. You are welcome to also translate it into the
+other languages (Luxembourgish, German, French, Spanish, Catalan) — and it's
+appreciated — but you don't have to: you can leave them for the BESSER team to
+complete and review, or open a follow-up. Run `npm run i18n:check` before you
+push; it must pass, which means **English is complete and no locale has stale
+keys**. Untranslated keys in the other languages are reported as warnings, not
+failures. (Maintainers can enforce full parity with `npm run i18n:check --
+--complete`.)
 
 The full "make new text translatable" walk-through (with examples for plain
 text, interpolation, rich text, and menu/category data) and the translator
