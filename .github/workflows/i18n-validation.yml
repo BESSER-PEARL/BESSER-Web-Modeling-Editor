@@ -1,0 +1,40 @@
+name: i18n Validation
+
+on:
+  pull_request:
+    branches:
+      - main
+      - master
+    paths:
+      - 'packages/i18n/**'
+      - '.github/workflows/i18n-validation.yml'
+
+jobs:
+  validate-translations:
+    name: Check translation completeness
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Validate i18n completeness
+        working-directory: ./besser/utilities/web_modeling_editor/frontend
+        run: node scripts/i18n-validate-strict.mjs
+
+      - name: Comment on PR if validation fails
+        if: failure()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: '❌ **i18n Validation Failed**\n\nPlease ensure all English translation keys (`en/editor.json` and `en/webapp.json`) have corresponding translations in all other language files (es, de, fr, ca, lb).\n\nRun `npm run i18n:check` locally to see the missing keys.'
+            })
