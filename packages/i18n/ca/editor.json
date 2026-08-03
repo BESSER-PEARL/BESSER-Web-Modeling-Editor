@@ -276,6 +276,8 @@
       "BPMNSubprocess": "Subprocés",
       "BPMNTransaction": "Transacció",
       "BPMNCallActivity": "Activitat de crida",
+      "BPMNCalledElement": "Element cridat",
+      "BPMNCalledElementPlaceholder": "Nom del procés o tasca",
       "BPMNAnnotation": "Anotació",
       "BPMNStartEvent": "Esdeveniment d'inici",
       "BPMNMessageStartEvent": "Esdeveniment d'inici per missatge",
@@ -316,7 +318,9 @@
       "BPMNPool": "Pool",
       "BPMNSwimlane": "Carril",
       "BPMNSwimlanes": "Carrils",
-      "BPMNGroup": "Grup"
+      "BPMNGroup": "Grup",
+      "BPMNExpand": "Expandir",
+      "BPMNCollapse": "Contraure"
     },
     "NNDiagram": {
       "NNContainer": "Neural_Network",

@@ -276,6 +276,8 @@
       "BPMNSubprocess": "Teilprozess",
       "BPMNTransaction": "Transaktion",
       "BPMNCallActivity": "Aufrufaktivität",
+      "BPMNCalledElement": "Aufgerufenes Element",
+      "BPMNCalledElementPlaceholder": "Prozess- oder Aufgabenname",
       "BPMNAnnotation": "Anmerkung",
       "BPMNStartEvent": "Startereignis",
       "BPMNMessageStartEvent": "Nachrichten-Startereignis",
@@ -316,7 +318,9 @@
       "BPMNPool": "Pool",
       "BPMNSwimlane": "Bahn",
       "BPMNSwimlanes": "Bahnen",
-      "BPMNGroup": "Gruppe"
+      "BPMNGroup": "Gruppe",
+      "BPMNExpand": "Erweitern",
+      "BPMNCollapse": "Einklappen"
     },
     "NNDiagram": {
       "NNContainer": "Neuronales Netz",

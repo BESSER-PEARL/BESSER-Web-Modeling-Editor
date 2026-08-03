@@ -276,6 +276,8 @@
       "BPMNSubprocess": "Sous-processus",
       "BPMNTransaction": "Transaction",
       "BPMNCallActivity": "Activité d'appel",
+      "BPMNCalledElement": "Élément appelé",
+      "BPMNCalledElementPlaceholder": "Nom du processus ou de la tâche",
       "BPMNAnnotation": "Annotation",
       "BPMNStartEvent": "Événement de début",
       "BPMNMessageStartEvent": "Événement de début par message",
@@ -316,7 +318,9 @@
       "BPMNPool": "Pool",
       "BPMNSwimlane": "Couloir",
       "BPMNSwimlanes": "Couloirs",
-      "BPMNGroup": "Groupe"
+      "BPMNGroup": "Groupe",
+      "BPMNExpand": "Développer",
+      "BPMNCollapse": "Réduire"
     },
     "NNDiagram": {
       "NNContainer": "Neural_Network",
