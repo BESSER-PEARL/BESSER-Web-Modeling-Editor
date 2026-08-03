@@ -471,14 +471,14 @@ class StateUpdate extends Component<Props, State> {
 
         {/* State type selector */}
         <Section>
-          <SectionHeader>State Type</SectionHeader>
+          <SectionHeader>{this.props.translate('packages.AgentDiagram.stateType')}</SectionHeader>
           <Dropdown
             value={stateType}
             onChange={(value) => this.props.update<AgentState>(element.id, { stateType: value } as any)}
           >
             {[
-              <Dropdown.Item key="standard" value="standard">Standard</Dropdown.Item>,
-              <Dropdown.Item key="reasoning" value="reasoning">Reasoning</Dropdown.Item>,
+              <Dropdown.Item key="standard" value="standard">{this.props.translate('packages.AgentDiagram.standard')}</Dropdown.Item>,
+              <Dropdown.Item key="reasoning" value="reasoning">{this.props.translate('packages.AgentDiagram.reasoning')}</Dropdown.Item>,
             ]}
           </Dropdown>
         </Section>
@@ -513,7 +513,7 @@ class StateUpdate extends Component<Props, State> {
           <>
             <Section><Divider /></Section>
             <Section>
-              <SectionHeader>Body</SectionHeader>
+              <SectionHeader>{this.props.translate('packages.AgentDiagram.body')}</SectionHeader>
               {this.renderBodySection(
                 bodies,
                 AgentStateBody,
@@ -537,11 +537,11 @@ class StateUpdate extends Component<Props, State> {
                     if (!e.target.checked) fallbackBodies.forEach((fb) => this.delete(fb.id)());
                   }}
                 />
-                Enable Fallback Body
+                {this.props.translate('packages.AgentDiagram.enableFallbackBody')}
               </ToggleLabel>
               {fallbackEnabled && (
                 <>
-                  <SectionHeader style={{ marginTop: 8 }}>Fallback Body</SectionHeader>
+                  <SectionHeader style={{ marginTop: 8 }}>{this.props.translate('packages.AgentDiagram.fallbackBody')}</SectionHeader>
                    {this.renderBodySection(
                      fallbackBodies,
                      AgentStateFallbackBody,
@@ -567,17 +567,17 @@ class StateUpdate extends Component<Props, State> {
     <>
       <Section><Divider /></Section>
       <Section>
-        <Header>LLM name</Header>
+        <Header>{this.props.translate('packages.AgentDiagram.llmName')}</Header>
         <LlmSelect
           value={element.llm_name || ''}
           onChange={(e) => this.props.update<AgentState>(element.id, { llm_name: e.target.value } as any)}
         >
-          <option value="">(use default)</option>
+          <option value="">{this.props.translate('packages.AgentDiagram.selectPlaceholder')}</option>
           {llmNames.map((n) => <option key={n} value={n}>{n}</option>)}
         </LlmSelect>
       </Section>
       <Section>
-        <Header>Max steps</Header>
+        <Header>{this.props.translate('packages.AgentDiagram.maxSteps')}</Header>
         <Textfield
           value={element.max_steps ?? 8}
           onChange={(value) => {
@@ -590,24 +590,24 @@ class StateUpdate extends Component<Props, State> {
         <CheckboxRow>
           <input type="checkbox" checked={element.enable_task_planning !== false}
             onChange={(e) => this.props.update<AgentState>(element.id, { enable_task_planning: e.target.checked } as any)} />
-          Enable task planning
+          {this.props.translate('packages.AgentDiagram.enableTaskPlanning')}
         </CheckboxRow>
         <CheckboxRow>
           <input type="checkbox" checked={element.stream_steps !== false}
             onChange={(e) => this.props.update<AgentState>(element.id, { stream_steps: e.target.checked } as any)} />
-          Stream steps
+          {this.props.translate('packages.AgentDiagram.streamSteps')}
         </CheckboxRow>
       </Section>
       <Section>
-        <Header>System prompt</Header>
+        <Header>{this.props.translate('packages.AgentDiagram.systemPrompt')}</Header>
         <Textfield value={element.system_prompt || ''} multiline enterToSubmit={false}
-          placeholder="Optional system prompt prefix for this state"
+          placeholder={this.props.translate('packages.AgentDiagram.optionalSystemPromptPrefix')}
           onChange={(system_prompt) => this.props.update<AgentState>(element.id, { system_prompt } as any)} />
       </Section>
       <Section>
-        <Header>Fallback message</Header>
+        <Header>{this.props.translate('packages.AgentDiagram.fallbackMessage')}</Header>
         <Textfield value={element.fallback_message || ''} multiline enterToSubmit={false}
-          placeholder="Message returned if the reasoning loop fails"
+          placeholder={this.props.translate('packages.AgentDiagram.messageReturnedIfReasoningFails')}
           onChange={(fallback_message) => this.props.update<AgentState>(element.id, { fallback_message } as any)} />
       </Section>
     </>
@@ -637,7 +637,7 @@ class StateUpdate extends Component<Props, State> {
               if (bodyType !== 'predefined') this.switchBodyType('predefined', actions, Clazz);
             }}
           >
-            Predefined
+            {this.props.translate('packages.AgentDiagram.predefined')}
           </BodyTypeBtn>
           <BodyTypeBtn
             active={bodyType === 'custom'}
@@ -645,7 +645,7 @@ class StateUpdate extends Component<Props, State> {
               if (bodyType !== 'custom') this.switchBodyType('custom', actions, Clazz);
             }}
           >
-            Custom (Python)
+            {this.props.translate('packages.AgentDiagram.customPython')}
           </BodyTypeBtn>
         </BodyTypeRow>
 
@@ -675,7 +675,7 @@ class StateUpdate extends Component<Props, State> {
         <Button color="primary" onClick={() =>
           this.create(Clazz, 'code')('def body_name(session: \'Session\'):\n    pass\n')
         }>
-          Initialize Python code
+          {this.props.translate('packages.AgentDiagram.initializePythonCode')}
         </Button>
       );
     }
@@ -796,10 +796,10 @@ class StateUpdate extends Component<Props, State> {
                   {ACTION_TYPE_LABELS[action.replyType] ?? action.replyType}
                 </ActionTypeBadge>
                 <ActionSummary title={action.name}>{this.getActionSummary(action)}</ActionSummary>
-                <IconBtn title={isExpanded ? 'Collapse' : 'Expand'} onClick={() => this.toggleExpand(action.id, prefix)}>
+                <IconBtn title={isExpanded ? this.props.translate('packages.AgentDiagram.collapse') : this.props.translate('packages.AgentDiagram.expand')} onClick={() => this.toggleExpand(action.id, prefix)}>
                   {isExpanded ? '▲' : '✎'}
                 </IconBtn>
-                <IconBtn title="Delete action" onClick={this.delete(action.id)}>
+                <IconBtn title={this.props.translate('packages.AgentDiagram.deleteAction')} onClick={this.delete(action.id)}>
                   <TrashIcon />
                 </IconBtn>
               </ActionCardHeader>
@@ -821,11 +821,11 @@ class StateUpdate extends Component<Props, State> {
           );
         })}
 
-        <NewActionLabel>New action</NewActionLabel>
+        <NewActionLabel>{this.props.translate('packages.AgentDiagram.newActionLabel') || 'New action'}</NewActionLabel>
         <SectionTabRow>
-          <SectionTab active={section === 'simple'} onClick={() => setSection('simple')}>Simple Replies</SectionTab>
-          <SectionTab active={section === 'ai'} onClick={() => setSection('ai')}>AI Replies</SectionTab>
-          <SectionTab active={section === 'data'} onClick={() => setSection('data')}>Data Query</SectionTab>
+          <SectionTab active={section === 'simple'} onClick={() => setSection('simple')}>{this.props.translate('packages.AgentDiagram.simpleReplies')}</SectionTab>
+          <SectionTab active={section === 'ai'} onClick={() => setSection('ai')}>{this.props.translate('packages.AgentDiagram.aiReplies')}</SectionTab>
+          <SectionTab active={section === 'data'} onClick={() => setSection('data')}>{this.props.translate('packages.AgentDiagram.dataQuery')}</SectionTab>
         </SectionTabRow>
         <AddActionRow>
           <LlmSelect
@@ -835,29 +835,29 @@ class StateUpdate extends Component<Props, State> {
           >
             {section === 'simple' && (
               <>
-                <option value="text">Text</option>
-                <option value="ws_markdown" title={wsTooltip} style={{ color: wsColor }}>Markdown</option>
-                <option value="ws_html" title={wsTooltip} style={{ color: wsColor }}>HTML</option>
-                <option value="ws_speech" title={wsTooltip} style={{ color: wsColor }}>Speech</option>
-                <option value="ws_options" title={wsTooltip} style={{ color: wsColor }}>Options</option>
-                <option value="ws_location" title={wsTooltip} style={{ color: wsColor }}>Location</option>
-                <option value="ws_file" title={wsTooltip} style={{ color: wsColor }}>File</option>
-                <option value="ws_image" title={wsTooltip} style={{ color: wsColor }}>Image</option>
-                <option value="ws_dataframe" title={wsTooltip} style={{ color: wsColor }}>Dataframe</option>
-                <option value="ws_plotly" title={wsTooltip} style={{ color: wsColor }}>Plotly</option>
+                <option value="text">{ACTION_TYPE_LABELS['text']}</option>
+                <option value="ws_markdown" title={wsTooltip} style={{ color: wsColor }}>{ACTION_TYPE_LABELS['ws_markdown']}</option>
+                <option value="ws_html" title={wsTooltip} style={{ color: wsColor }}>{ACTION_TYPE_LABELS['ws_html']}</option>
+                <option value="ws_speech" title={wsTooltip} style={{ color: wsColor }}>{ACTION_TYPE_LABELS['ws_speech']}</option>
+                <option value="ws_options" title={wsTooltip} style={{ color: wsColor }}>{ACTION_TYPE_LABELS['ws_options']}</option>
+                <option value="ws_location" title={wsTooltip} style={{ color: wsColor }}>{ACTION_TYPE_LABELS['ws_location']}</option>
+                <option value="ws_file" title={wsTooltip} style={{ color: wsColor }}>{ACTION_TYPE_LABELS['ws_file']}</option>
+                <option value="ws_image" title={wsTooltip} style={{ color: wsColor }}>{ACTION_TYPE_LABELS['ws_image']}</option>
+                <option value="ws_dataframe" title={wsTooltip} style={{ color: wsColor }}>{ACTION_TYPE_LABELS['ws_dataframe']}</option>
+                <option value="ws_plotly" title={wsTooltip} style={{ color: wsColor }}>{ACTION_TYPE_LABELS['ws_plotly']}</option>
               </>
             )}
             {section === 'ai' && (
               <>
-                <option value="llm">LLM</option>
-                <option value="llm_chat" title={chatTooltip} style={{ color: chatColor }}>LLM Chat</option>
+                <option value="llm">{ACTION_TYPE_LABELS['llm']}</option>
+                <option value="llm_chat" title={chatTooltip} style={{ color: chatColor }}>{ACTION_TYPE_LABELS['llm_chat']}</option>
               </>
             )}
             {section === 'data' && (
               <>
-                <option value="rag">RAG</option>
-                <option value="db_reply">SQL Query</option>
-                <option value="web_crawl_llm">Web Crawl + LLM</option>
+                <option value="rag">{ACTION_TYPE_LABELS['rag']}</option>
+                <option value="db_reply">{ACTION_TYPE_LABELS['db_reply']}</option>
+                <option value="web_crawl_llm">{ACTION_TYPE_LABELS['web_crawl_llm']}</option>
               </>
             )}
           </LlmSelect>
@@ -875,7 +875,7 @@ class StateUpdate extends Component<Props, State> {
               }
             }
           }}>
-            Add
+            {this.props.translate('packages.AgentDiagram.add')}
           </Button>
         </AddActionRow>
       </>
@@ -909,7 +909,7 @@ class StateUpdate extends Component<Props, State> {
           <>
             {llmNames.length === 0 && (
               <WsWarning style={{ marginBottom: 6 }}>
-                No LLM defined. Add one in the Agent Configuration.
+                {this.props.translate('packages.AgentDiagram.noLlmDefined')}
               </WsWarning>
             )}
             {this.renderLlmNameField(action, llmNames, `${fieldId}-llm`)}
@@ -924,12 +924,12 @@ class StateUpdate extends Component<Props, State> {
           <>
             {!hasCompatibleChatLlm && (
               <WsWarning style={{ marginBottom: 6 }}>
-                LLM Chat requires an OpenAI or Hugging Face LLM. Add one from the palette and set its provider accordingly.
+                {this.props.translate('packages.AgentDiagram.noLlmDefinedChat')}
               </WsWarning>
             )}
             {this.renderLlmNameField(action, llmNames, `${fieldId}-llm-chat`, {
               warning: hasIncompatibleSelection
-                ? 'Selected LLM provider is incompatible with chat(). Use OpenAI or Hugging Face.'
+                ? this.props.translate('packages.AgentDiagram.warningIncompatibleProvider')
                 : undefined,
             })}
           </>
@@ -940,12 +940,12 @@ class StateUpdate extends Component<Props, State> {
           <>
             {llmNames.length === 0 && (
               <WsWarning style={{ marginBottom: 6 }}>
-                No LLM defined. RAG requires an LLM. Add one in the Agent Configuration.
+                {this.props.translate('packages.AgentDiagram.noLlmDefinedRag')}
               </WsWarning>
             )}
             {ragDatabaseNames.length ? (
           <LlmFieldRow>
-            <Header>RAG database</Header>
+            <Header>{this.props.translate('packages.AgentDiagram.ragDatabase')}</Header>
             <Dropdown
               value={action.ragDatabaseName && action.ragDatabaseName.length > 0 ? action.ragDatabaseName : '__placeholder__'}
               onChange={(value) => {
@@ -957,25 +957,25 @@ class StateUpdate extends Component<Props, State> {
               }}
             >
               {[
-                <Dropdown.Item value="__placeholder__" key="rag-placeholder">Select RAG database</Dropdown.Item>,
+                <Dropdown.Item value="__placeholder__" key="rag-placeholder">{this.props.translate('packages.AgentDiagram.selectRagDatabase')}</Dropdown.Item>,
                 ...ragDatabaseNames.map((name, i) => (
                   <Dropdown.Item key={`rag-${i}-${name}`} value={name}>{name}</Dropdown.Item>
                 )),
               ]}
             </Dropdown>
-            <Header style={{ marginTop: 6 }}>Prompt</Header>
+            <Header style={{ marginTop: 6 }}>{this.props.translate('packages.AgentDiagram.prompt')}</Header>
             <Textfield
               outline
               multiline
               enterToSubmit={false}
               value={action.prompt || ''}
               onChange={(value) => this.props.update<AgentStateMember>(action.id, { prompt: value })}
-              placeholder="Optional prompt passed to RAGReply(prompt=...)"
+              placeholder={this.props.translate('packages.AgentDiagram.optionalPromptPassed')}
             />
           </LlmFieldRow>
         ) : (
           <p style={{ fontSize: 12, margin: '4px 0', opacity: 0.7 }}>
-            No RAG databases found. Create one from the palette first.
+            {this.props.translate('packages.AgentDiagram.noRagDatabases')}
           </p>
         )}
           </>
@@ -1189,7 +1189,7 @@ class StateUpdate extends Component<Props, State> {
   private renderWebSocketReplyEditor = (action: AgentStateMember, hasWebSocketPlatform: boolean): React.ReactNode => {
     const platformWarning = !hasWebSocketPlatform ? (
       <WsWarning style={{ marginBottom: 6 }}>
-        This action requires a WebSocket Platform. You can change the Agent Platform in the Configuration Page.
+        {this.props.translate('packages.AgentDiagram.requiresWebSocketWarning')}
       </WsWarning>
     ) : null;
 
@@ -1199,7 +1199,7 @@ class StateUpdate extends Component<Props, State> {
       case 'ws_html':
         content = (
           <LlmFieldRow>
-            <Header>Message</Header>
+            <Header>{this.props.translate('packages.AgentDiagram.message')}</Header>
             <Textfield
               outline
               multiline
@@ -1217,7 +1217,7 @@ class StateUpdate extends Component<Props, State> {
       case 'ws_speech':
         content = (
           <LlmFieldRow>
-            <Header>Message (text to speech)</Header>
+            <Header>{this.props.translate('packages.AgentDiagram.message')}</Header>
             <Textfield
               outline
               multiline
@@ -1226,7 +1226,7 @@ class StateUpdate extends Component<Props, State> {
               onChange={(v) => this.props.update<AgentStateMember>(action.id, { ws_message: v })}
               placeholder="Text to convert to speech"
             />
-            <Header style={{ marginTop: 6 }}>Audio speed (optional)</Header>
+            <Header style={{ marginTop: 6 }}>{this.props.translate('packages.AgentDiagram.audioSpeedOptional')}</Header>
             <Textfield
               outline
               value={action.ws_audio_speed ?? ''}
@@ -1236,7 +1236,7 @@ class StateUpdate extends Component<Props, State> {
                   ws_audio_speed: String(v) === '' || isNaN(parsed) ? null : parsed,
                 });
               }}
-              placeholder="1.0 (default)"
+              placeholder={this.props.translate('packages.AgentDiagram.default')}
             />
           </LlmFieldRow>
         );
@@ -1244,7 +1244,7 @@ class StateUpdate extends Component<Props, State> {
       case 'ws_options':
         content = (
           <LlmFieldRow>
-            <Header>Options (one per line)</Header>
+            <Header>{this.props.translate('packages.AgentDiagram.optionsOnePerLine')}</Header>
             <Textfield
               outline
               multiline
@@ -1266,7 +1266,7 @@ class StateUpdate extends Component<Props, State> {
         content = (
           <LlmFieldRow>
             <DbFieldRow>
-              <label>Latitude</label>
+              <label>{this.props.translate('packages.AgentDiagram.latitude')}</label>
               <Textfield
                 outline
                 value={String(action.ws_latitude ?? 0)}
@@ -1274,11 +1274,11 @@ class StateUpdate extends Component<Props, State> {
                   const p = parseFloat(String(v).replace(',', '.'));
                   if (!isNaN(p)) this.props.update<AgentStateMember>(action.id, { ws_latitude: p });
                 }}
-                placeholder="e.g. 48.8566"
+                placeholder={this.props.translate('packages.AgentDiagram.eg48')}
               />
             </DbFieldRow>
             <DbFieldRow>
-              <label>Longitude</label>
+              <label>{this.props.translate('packages.AgentDiagram.longitude')}</label>
               <Textfield
                 outline
                 value={String(action.ws_longitude ?? 0)}
@@ -1286,7 +1286,7 @@ class StateUpdate extends Component<Props, State> {
                   const p = parseFloat(String(v).replace(',', '.'));
                   if (!isNaN(p)) this.props.update<AgentStateMember>(action.id, { ws_longitude: p });
                 }}
-                placeholder="e.g. 2.3522"
+                placeholder={this.props.translate('packages.AgentDiagram.eg23')}
               />
             </DbFieldRow>
           </LlmFieldRow>
@@ -1348,13 +1348,13 @@ class StateUpdate extends Component<Props, State> {
     options?: { warning?: string },
   ) => (
     <LlmFieldRow>
-      <Header>LLM</Header>
+      <Header>{this.props.translate('packages.AgentDiagram.llm')}</Header>
       <LlmSelect
         id={fieldId}
         value={member.llm_name || ''}
         onChange={(e) => this.props.update<AgentStateMember>(member.id, { llm_name: e.target.value })}
       >
-        <option value="">(use default)</option>
+        <option value="">{this.props.translate('packages.AgentDiagram.selectPlaceholder')}</option>
         {llmNames.map((n) => <option key={`${fieldId}-${n}`} value={n}>{n}</option>)}
       </LlmSelect>
       {options?.warning && (
@@ -1362,12 +1362,12 @@ class StateUpdate extends Component<Props, State> {
           {options.warning}
         </p>
       )}
-      <Header style={{ marginTop: 6 }}>System message</Header>
+      <Header style={{ marginTop: 6 }}>{this.props.translate('packages.AgentDiagram.systemMessage')}</Header>
       <Textfield
         outline
         value={member.system_message || ''}
         onChange={(value) => this.props.update<AgentStateMember>(member.id, { system_message: value })}
-        placeholder="You are a helpful assistant."
+        placeholder={this.props.translate('packages.AgentDiagram.youAreHelpfulAssistant')}
       />
     </LlmFieldRow>
   );
@@ -1382,14 +1382,14 @@ class StateUpdate extends Component<Props, State> {
     if (!member) {
       return (
         <>
-          <p>Configuring database action...</p>
+          <p>{this.props.translate('packages.AgentDiagram.configuringDatabaseAction')}</p>
           <Button color="primary" onClick={() => {
             const defaults = this.getDefaultDbReplyValues();
             this.create(Clazz, 'db_reply', defaults)(
               this.getDbDisplayName(defaults.dbSelectionType, defaults.dbCustomName, defaults.dbQueryMode, defaults.dbOperation),
             );
           }}>
-            Initialize database action
+            {this.props.translate('packages.AgentDiagram.initializeDatabaseAction')}
           </Button>
         </>
       );
@@ -1402,33 +1402,33 @@ class StateUpdate extends Component<Props, State> {
     return (
       <>
         <DbFieldRow>
-          <label>Select a Database</label>
+          <label>{this.props.translate('packages.AgentDiagram.selectDatabase')}</label>
           <Dropdown value={dbSelectionType} onChange={(value) => {
             const next = value === 'custom' ? 'custom' : 'default';
             this.updateDbReply(member, { dbSelectionType: next, dbCustomName: next === 'default' ? '' : member.dbCustomName });
           }}>
             {[
-              <Dropdown.Item value="default" key="db-default">Default (using the app DB)</Dropdown.Item>,
-              <Dropdown.Item value="custom" key="db-custom">Custom</Dropdown.Item>,
+              <Dropdown.Item value="default" key="db-default">{this.props.translate('packages.AgentDiagram.defaultUsingAppDb')}</Dropdown.Item>,
+              <Dropdown.Item value="custom" key="db-custom">{this.props.translate('packages.AgentDiagram.custom')}</Dropdown.Item>,
             ]}
           </Dropdown>
           {dbSelectionType === 'custom' && (
-            <Textfield outline placeholder="Custom database name" value={member.dbCustomName || ''}
+            <Textfield outline placeholder={this.props.translate('packages.AgentDiagram.customDatabaseName')} value={member.dbCustomName || ''}
               onChange={(value) => this.updateDbReply(member, { dbCustomName: value })} />
           )}
         </DbFieldRow>
         <DbFieldRow>
-          <label>DB operation</label>
+          <label>{this.props.translate('packages.AgentDiagram.dbOperation')}</label>
           <Dropdown value={dbOperation} onChange={(value) => {
             const ops = ['any', 'select', 'insert', 'update', 'delete'];
             this.updateDbReply(member, { dbOperation: ops.includes(value) ? value : 'any' });
           }}>
             {[
-              <Dropdown.Item value="any" key="op-any">Any</Dropdown.Item>,
-              <Dropdown.Item value="select" key="op-select">SELECT</Dropdown.Item>,
-              <Dropdown.Item value="insert" key="op-insert">INSERT</Dropdown.Item>,
-              <Dropdown.Item value="update" key="op-update">UPDATE</Dropdown.Item>,
-              <Dropdown.Item value="delete" key="op-delete">DELETE</Dropdown.Item>,
+              <Dropdown.Item value="any" key="op-any">{this.props.translate('packages.AgentDiagram.any')}</Dropdown.Item>,
+              <Dropdown.Item value="select" key="op-select">{this.props.translate('packages.AgentDiagram.select')}</Dropdown.Item>,
+              <Dropdown.Item value="insert" key="op-insert">{this.props.translate('packages.AgentDiagram.insert')}</Dropdown.Item>,
+              <Dropdown.Item value="update" key="op-update">{this.props.translate('packages.AgentDiagram.update')}</Dropdown.Item>,
+              <Dropdown.Item value="delete" key="op-delete">{this.props.translate('packages.AgentDiagram.delete')}</Dropdown.Item>,
             ]}
           </Dropdown>
         </DbFieldRow>
@@ -1438,13 +1438,13 @@ class StateUpdate extends Component<Props, State> {
               <input type="radio" name={`dbQueryMode-${member.id}`} value="llm_query"
                 checked={dbQueryMode === 'llm_query'}
                 onChange={() => this.updateDbReply(member, { dbQueryMode: 'llm_query', dbSqlQuery: '' })} />
-              LLM query
+              {this.props.translate('packages.AgentDiagram.llmQuery')}
             </label>
             <label>
               <input type="radio" name={`dbQueryMode-${member.id}`} value="sql"
                 checked={dbQueryMode === 'sql'}
                 onChange={() => this.updateDbReply(member, { dbQueryMode: 'sql' })} />
-              SQL
+              {this.props.translate('packages.AgentDiagram.sql')}
             </label>
           </RadioGroup>
           {dbQueryMode === 'sql' ? (
@@ -1455,10 +1455,10 @@ class StateUpdate extends Component<Props, State> {
             <>
               {llmNames.length === 0 && (
                 <WsWarning style={{ marginBottom: 6 }}>
-                  No LLM defined. LLM query mode requires an LLM. Add one in the Agent Configuration.
+                  {this.props.translate('packages.AgentDiagram.noLlmQueryMode')}
                 </WsWarning>
               )}
-              <p>Answer will be generated with LLM during runtime</p>
+              <p>{this.props.translate('packages.AgentDiagram.answerWillBeGenerated')}</p>
               {this.renderLlmNameField(member, llmNames, `db-llm-${member.id}`)}
             </>
           )}
@@ -1476,10 +1476,10 @@ class StateUpdate extends Component<Props, State> {
       <LlmFieldRow>
         {llmNames.length === 0 && (
           <WsWarning style={{ marginBottom: 6 }}>
-            No LLM defined. Web Crawl + LLM requires an LLM. Add one in the Agent Configuration.
+            {this.props.translate('packages.AgentDiagram.noLlmDefinedWeb')}
           </WsWarning>
         )}
-        <Header>Initial URL</Header>
+        <Header>{this.props.translate('packages.AgentDiagram.initialUrl')}</Header>
         <Textfield
           outline
           value={member.initial_url || ''}
@@ -1489,17 +1489,17 @@ class StateUpdate extends Component<Props, State> {
               name: value ? `Crawl: ${value.slice(0, 40)}` : 'Web Crawl + LLM (set URL)',
             });
           }}
-          placeholder="https://example.com"
+          placeholder={this.props.translate('packages.AgentDiagram.httpsExample')}
         />
-        <Header style={{ marginTop: 6 }}>Base URL prefix (optional)</Header>
+        <Header style={{ marginTop: 6 }}>{this.props.translate('packages.AgentDiagram.baseUrlPrefixOptional')}</Header>
         <Textfield
           outline
           value={member.base_url_prefix || ''}
           onChange={(value) => this.props.update<AgentStateMember>(member.id, { base_url_prefix: value })}
-          placeholder="https://example.com/docs"
+          placeholder={this.props.translate('packages.AgentDiagram.baseUrlPrefixExample')}
         />
         <DbFieldRow style={{ marginTop: 6 }}>
-          <label>Max depth</label>
+          <label>{this.props.translate('packages.AgentDiagram.maxDepth')}</label>
           <Textfield
             outline
             value={member.max_depth ?? 2}
@@ -1510,7 +1510,7 @@ class StateUpdate extends Component<Props, State> {
           />
         </DbFieldRow>
         <DbFieldRow>
-          <label>Max pages</label>
+          <label>{this.props.translate('packages.AgentDiagram.maxPages')}</label>
           <Textfield
             outline
             value={member.max_pages ?? 20}
@@ -1520,14 +1520,14 @@ class StateUpdate extends Component<Props, State> {
             }}
           />
         </DbFieldRow>
-        <Header style={{ marginTop: 6 }}>Crawl format</Header>
+        <Header style={{ marginTop: 6 }}>{this.props.translate('packages.AgentDiagram.crawlFormat')}</Header>
         <LlmSelect
           value={crawl_format}
           onChange={(e) => this.props.update<AgentStateMember>(member.id, { crawl_format: e.target.value })}
         >
-          <option value="markdown">Markdown</option>
-          <option value="text">Plain text</option>
-          <option value="html">HTML</option>
+          <option value="markdown">{this.props.translate('packages.AgentDiagram.markdown')}</option>
+          <option value="text">{this.props.translate('packages.AgentDiagram.plainText')}</option>
+          <option value="html">{this.props.translate('packages.AgentDiagram.html')}</option>
         </LlmSelect>
         <CheckboxRow style={{ marginTop: 6 }}>
           <input
@@ -1535,34 +1535,34 @@ class StateUpdate extends Component<Props, State> {
             checked={member.run_crawl !== false}
             onChange={(e) => this.props.update<AgentStateMember>(member.id, { run_crawl: e.target.checked })}
           />
-          Run crawl (uncheck to reuse cached result)
+          {this.props.translate('packages.AgentDiagram.runCrawl')}
         </CheckboxRow>
         {member.run_crawl === false && (
           <>
-            <Header style={{ marginTop: 6 }}>No-crawl error message</Header>
+            <Header style={{ marginTop: 6 }}>{this.props.translate('packages.AgentDiagram.noCrawlErrorMessage')}</Header>
             <Textfield
               outline
               value={member.no_crawl_error_message || ''}
               onChange={(value) => this.props.update<AgentStateMember>(member.id, { no_crawl_error_message: value })}
-              placeholder="No web crawl data is available yet."
+              placeholder={this.props.translate('packages.AgentDiagram.noCrawlErrorDefault')}
             />
           </>
         )}
-        <Header style={{ marginTop: 6 }}>System message prefix (optional)</Header>
+        <Header style={{ marginTop: 6 }}>{this.props.translate('packages.AgentDiagram.systemMessagePrefixOptional')}</Header>
         <Textfield
           outline
           multiline
           enterToSubmit={false}
           value={member.system_message_prefix || ''}
           onChange={(value) => this.props.update<AgentStateMember>(member.id, { system_message_prefix: value })}
-          placeholder="Use the following webpage content to answer the question:"
+          placeholder={this.props.translate('packages.AgentDiagram.useFollowingWebpageContent')}
         />
-        <Header style={{ marginTop: 6 }}>LLM</Header>
+        <Header style={{ marginTop: 6 }}>{this.props.translate('packages.AgentDiagram.llm')}</Header>
         <LlmSelect
           value={member.llm_name || ''}
           onChange={(e) => this.props.update<AgentStateMember>(member.id, { llm_name: e.target.value })}
         >
-          <option value="">(use default)</option>
+          <option value="">{this.props.translate('packages.AgentDiagram.selectPlaceholder')}</option>
           {llmNames.map((n) => <option key={n} value={n}>{n}</option>)}
         </LlmSelect>
       </LlmFieldRow>
