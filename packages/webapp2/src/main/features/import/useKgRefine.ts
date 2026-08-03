@@ -7,7 +7,7 @@
 // Both apply legs return a cleaned KG; this hook dispatches
 // ``updateDiagramModelThunk`` and bumps ``editorRevision`` so the canvas
 // reinitialises with the new graph.
-import { useCallback, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { toast } from 'react-toastify';
 
 import { BACKEND_URL } from '../../shared/constants/constant';
@@ -342,16 +342,30 @@ export const useKgRefine = (): UseKgRefineReturn => {
     setLlmReport(null);
   }, []);
 
-  return {
-    staticStatus,
-    staticReport,
-    runStatic,
-    applyStatic,
-    llmStatus,
-    llmReport,
-    runLlmFullCleanup,
-    runLlmOrphanClassification,
-    applyLlm,
-    reset,
-  };
+  return useMemo(
+    () => ({
+      staticStatus,
+      staticReport,
+      runStatic,
+      applyStatic,
+      llmStatus,
+      llmReport,
+      runLlmFullCleanup,
+      runLlmOrphanClassification,
+      applyLlm,
+      reset,
+    }),
+    [
+      staticStatus,
+      staticReport,
+      runStatic,
+      applyStatic,
+      llmStatus,
+      llmReport,
+      runLlmFullCleanup,
+      runLlmOrphanClassification,
+      applyLlm,
+      reset,
+    ],
+  );
 };
