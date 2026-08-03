@@ -248,11 +248,12 @@ function AppContentInner() {
       />
       </Suspense>
 
-      {/* Refine KG modal: opened from Generate → Refine KG (refine-only) or
-          from Generate → Convert to B-UML → Class/Object Diagram (convert
-          mode, when the preflight finds inconsistencies). Hosts the unified
-          two-tab (Automatic / AI) refinement flow and surfaces a Convert
-          button when the KG is clean. */}
+      {/* Refine KG modal: opened from the Quality Check button (refine-only)
+          when a Knowledge Graph diagram is active, or from Generate →
+          Convert to B-UML → Class/Object Diagram (convert mode, when the
+          preflight finds inconsistencies). Hosts the unified two-tab
+          (Automatic / AI) refinement flow and surfaces a Convert button
+          when the KG is clean. */}
       <Suspense fallback={null}>
         <KgRefineModal {...kgRefineModalProps} />
       </Suspense>

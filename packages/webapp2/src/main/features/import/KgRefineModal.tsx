@@ -467,7 +467,7 @@ export const KgRefineModal: React.FC<KgRefineModalProps> = ({
 
   return (
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="max-w-3xl">
+      <DialogContent className="max-h-[90vh] max-w-3xl overflow-y-auto">
         <DialogHeader>
           <DialogTitle>
             {convertTarget
@@ -498,7 +498,7 @@ export const KgRefineModal: React.FC<KgRefineModalProps> = ({
         </div>
 
         {activeTab === 'static' && (
-          <div role="tabpanel" data-testid="kg-refine-panel-static" className="space-y-3">
+          <div role="tabpanel" data-testid="kg-refine-panel-static" className="min-w-0 space-y-3">
             {refine.staticStatus === 'loading' && (
               <p className="text-sm text-muted-foreground">Analyzing KG…</p>
             )}
@@ -674,7 +674,7 @@ export const KgRefineModal: React.FC<KgRefineModalProps> = ({
         )}
 
         {activeTab === 'consistency' && (
-          <div role="tabpanel" data-testid="kg-refine-panel-consistency" className="space-y-3">
+          <div role="tabpanel" data-testid="kg-refine-panel-consistency" className="min-w-0 space-y-3">
             <p className="text-xs text-muted-foreground">
               Validates the Knowledge Graph against every OWL/SHACL constraint authored
               on it. Uses pyshacl with OWL2-RL inference on the backend; the check can be
@@ -806,7 +806,7 @@ export const KgRefineModal: React.FC<KgRefineModalProps> = ({
         )}
 
         {activeTab === 'llm' && (
-          <div role="tabpanel" data-testid="kg-refine-panel-llm" className="space-y-3">
+          <div role="tabpanel" data-testid="kg-refine-panel-llm" className="min-w-0 space-y-3">
             {pendingOrphan && llmPhase === 'input' && (
               <div
                 data-testid="kg-refine-pending-orphan-banner"

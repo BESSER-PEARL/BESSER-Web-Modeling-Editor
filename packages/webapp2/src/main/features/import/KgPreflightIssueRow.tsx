@@ -13,19 +13,19 @@
 //
 // Layout (refine modal, ``enableRoutingChoice`` on):
 //   Checked:
-//     [✓] Fix automatically
+//     [✓] Fix automatically                    [Fix in KG]
 //         ( ) <recommended fix label>
 //         ( ) Send to LLM
 //
 //   Unchecked:
-//     [ ] Fix automatically                    [SKIPPED]
+//     [ ] Fix automatically          [Fix in KG] [SKIPPED]
 //
 // In the refine layout there is NO bottom "Fix in KG instead" button —
-// "Fix in KG" lives exclusively in the row header (alwaysShowFixInKg).
+// "Fix in KG" lives exclusively next to the checkbox (alwaysShowFixInKg).
 //
 // When ``alwaysShowFixInKg`` is true an extra "Fix in KG" button is
-// rendered in the header so users can defer any row to a manual fix
-// without first having to uncheck it.
+// rendered next to the checkbox so users can defer any row to a manual
+// fix without first having to uncheck it.
 //
 // The parent owns the ``decision`` and ``routing`` state; this
 // component is purely presentational and emits changes via callbacks.
@@ -87,11 +87,11 @@ export const KgPreflightIssueRow: React.FC<KgPreflightIssueRowProps> = ({
       className="flex flex-col gap-2 rounded border border-gray-200 bg-white p-3 dark:border-gray-700 dark:bg-gray-900"
     >
       <div className="flex items-start justify-between gap-3">
-        <div className="flex-1">
+        <div className="min-w-0 flex-1">
           <div className="text-xs font-mono uppercase tracking-wide text-gray-500 dark:text-gray-400">
             {issue.code}
           </div>
-          <div className="mt-1 text-sm text-gray-900 dark:text-gray-100">
+          <div className="mt-1 break-words text-sm text-gray-900 dark:text-gray-100">
             {issue.description}
           </div>
           {issue.affectedNodeIds.length > 0 && (
@@ -100,23 +100,12 @@ export const KgPreflightIssueRow: React.FC<KgPreflightIssueRowProps> = ({
             </div>
           )}
         </div>
-        {alwaysShowFixInKg && (
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => onFixInKg(issue)}
-            data-testid="kg-issue-fix-in-kg-header"
-            className="shrink-0"
-          >
-            Fix in KG
-          </Button>
-        )}
       </div>
 
       <div className="flex items-center justify-between gap-3">
         <label
           htmlFor={checkboxId}
-          className="flex items-center gap-2 text-sm text-gray-800 dark:text-gray-200"
+          className="flex min-w-0 items-center gap-2 text-sm text-gray-800 dark:text-gray-200"
         >
           <input
             id={checkboxId}
@@ -132,7 +121,7 @@ export const KgPreflightIssueRow: React.FC<KgPreflightIssueRowProps> = ({
             }
             className="h-4 w-4 cursor-pointer"
           />
-          <span>
+          <span className="break-words">
             {enableRoutingChoice ? (
               <span className="font-medium">Fix automatically</span>
             ) : (
@@ -142,14 +131,26 @@ export const KgPreflightIssueRow: React.FC<KgPreflightIssueRowProps> = ({
             )}
           </span>
         </label>
-        {!isAccepted && (
-          <span
-            data-testid="kg-issue-skipped-badge"
-            className="shrink-0 rounded-full border border-amber-300 bg-amber-50 px-2 py-0.5 text-xs font-semibold uppercase tracking-wide text-amber-800 dark:border-amber-700 dark:bg-amber-950 dark:text-amber-200"
-          >
-            Skipped
-          </span>
-        )}
+        <div className="flex shrink-0 items-center gap-2">
+          {alwaysShowFixInKg && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => onFixInKg(issue)}
+              data-testid="kg-issue-fix-in-kg-header"
+            >
+              Fix in KG
+            </Button>
+          )}
+          {!isAccepted && (
+            <span
+              data-testid="kg-issue-skipped-badge"
+              className="rounded-full border border-amber-300 bg-amber-50 px-2 py-0.5 text-xs font-semibold uppercase tracking-wide text-amber-800 dark:border-amber-700 dark:bg-amber-950 dark:text-amber-200"
+            >
+              Skipped
+            </span>
+          )}
+        </div>
       </div>
 
       {enableRoutingChoice && isAccepted && onRoutingChange && (

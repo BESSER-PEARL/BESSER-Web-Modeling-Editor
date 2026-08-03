@@ -851,6 +851,14 @@ export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGen
       return;
     }
 
+    if (isKgContext) {
+      // Quality Check on a Knowledge Graph diagram opens the unified Refine
+      // KG modal (static analysis / consistency / LLM-assisted tabs) rather
+      // than the generic diagram validator.
+      await executeGenerator('kg_refine');
+      return;
+    }
+
     try {
       if (activeDiagram?.model && !isUMLModel(activeDiagram.model)) {
         await validateDiagram(null, activeDiagramTitle, activeDiagram.model);
@@ -866,7 +874,7 @@ export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGen
     } catch (error) {
       toast.error(`Quality check failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
-  }, [currentProject, editor, isQuantumContext, isGuiContext, activeDiagram, activeDiagramTitle]);
+  }, [currentProject, editor, isQuantumContext, isGuiContext, isKgContext, executeGenerator, activeDiagram, activeDiagramTitle]);
 
   // ── Config-dialog handlers ─────────────────────────────────────────────────
 
