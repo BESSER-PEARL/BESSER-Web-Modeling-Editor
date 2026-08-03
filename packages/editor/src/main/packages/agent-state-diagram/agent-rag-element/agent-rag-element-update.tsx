@@ -72,7 +72,7 @@ const AgentRagElementUpdateComponent: React.FC<Props> = ({ element, update, elem
         </Select>
       </Section>
       <Section>
-        <Header>LLM Prompt Prefix</Header>
+        <Header>{translate('packages.AgentDiagram.llmPromptPrefix')}</Header>
         <Textfield
           value={element.llm_prompt || ''}
           onChange={(llm_prompt) => update<AgentRagElement>(element.id, { llm_prompt })}
@@ -81,11 +81,14 @@ const AgentRagElementUpdateComponent: React.FC<Props> = ({ element, update, elem
         />
       </Section>
       <Section>
-        <Header>K (retrieved chunks)</Header>
-        <Textfield value={element.k ?? 4} onChange={(k) => update<AgentRagElement>(element.id, { k: Math.max(1, k) })} />
+        <Header>{translate('packages.AgentDiagram.retrievedChunks')}</Header>
+        <Textfield
+          value={element.k ?? 4}
+          onChange={(k) => update<AgentRagElement>(element.id, { k: Math.max(1, k) })}
+        />
       </Section>
       <Section>
-        <Header>Num Previous Messages</Header>
+        <Header>{translate('packages.AgentDiagram.numPreviousMessages')}</Header>
         <Textfield
           value={element.num_previous_messages ?? 0}
           onChange={(num_previous_messages) =>
@@ -96,7 +99,7 @@ const AgentRagElementUpdateComponent: React.FC<Props> = ({ element, update, elem
         />
       </Section>
       <Section>
-        <Header>Embedding Provider</Header>
+        <Header>{translate('packages.AgentDiagram.embeddingProvider')}</Header>
         <Select
           value={element.embedding_provider || 'openai'}
           onChange={(event) => {
@@ -108,21 +111,22 @@ const AgentRagElementUpdateComponent: React.FC<Props> = ({ element, update, elem
             update<AgentRagElement>(element.id, updates);
           }}
         >
-          <option value="openai">OpenAI</option>
-          <option value="ollama">Ollama (local)</option>
+          <option value="openai">{translate('packages.AgentDiagram.openai')}</option>
+          <option value="ollama">{translate('packages.AgentDiagram.ollamaLocal')}</option>
         </Select>
       </Section>
-      {(element.embedding_provider === 'ollama') && (
+      {element.embedding_provider === 'ollama' && (
         <>
           <Section>
-            <Header>Embedding Base URL</Header>
+            <Header>{translate('packages.AgentDiagram.embeddingBaseUrl')}</Header>
             <Textfield
               value={element.embedding_base_url || 'http://localhost:11434'}
               onChange={(embedding_base_url) => update<AgentRagElement>(element.id, { embedding_base_url })}
+              placeholder={translate('packages.AgentDiagram.embeddingBaseUrlPlaceholder')}
             />
           </Section>
           <Section>
-            <Header>Embedding Model</Header>
+            <Header>{translate('packages.AgentDiagram.embeddingModel')}</Header>
             <Textfield
               value={element.embedding_model || ''}
               onChange={(embedding_model) => update<AgentRagElement>(element.id, { embedding_model })}
@@ -136,12 +140,9 @@ const AgentRagElementUpdateComponent: React.FC<Props> = ({ element, update, elem
 
 const enhance = compose<ComponentClass<OwnProps>>(
   localized,
-  connect<StateProps, DispatchProps, OwnProps, ModelState>(
-    (state) => ({ elements: state.elements }),
-    {
-      update: UMLElementRepository.update,
-    },
-  ),
+  connect<StateProps, DispatchProps, OwnProps, ModelState>((state) => ({ elements: state.elements }), {
+    update: UMLElementRepository.update,
+  }),
 );
 
 export const AgentRagElementUpdate = enhance(AgentRagElementUpdateComponent);
