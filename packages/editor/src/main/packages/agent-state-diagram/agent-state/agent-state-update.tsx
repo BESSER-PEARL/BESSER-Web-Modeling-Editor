@@ -239,6 +239,40 @@ const NewActionLabel = styled.div`
   margin-bottom: 4px;
 `;
 
+const VarHint = styled.p`
+  font-size: 11px;
+  opacity: 0.55;
+  margin: 2px 0 4px 0;
+  font-style: italic;
+`;
+
+const PromptModeRow = styled.div`
+  display: flex;
+  gap: 4px;
+  margin-bottom: 6px;
+`;
+
+const PromptModeBtn = styled.button<{ active?: boolean }>`
+  flex: 1;
+  padding: 3px 8px;
+  border-radius: 3px;
+  border: 1px solid ${(props: any) => props.theme.color.gray}66;
+  background: ${(props: any) => (props.active ? props.theme.color.primary : 'transparent')};
+  color: ${(props: any) => (props.active ? '#fff' : 'inherit')};
+  cursor: pointer;
+  font-size: 11px;
+  &:hover:not(:disabled) { opacity: 0.85; }
+`;
+
+const StoreInSessionRow = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 8px;
+  padding-top: 6px;
+  border-top: 1px dashed ${(props: any) => props.theme.color.gray}44;
+`;
+
 const SectionTabRow = styled.div`
   display: flex;
   gap: 3px;
@@ -897,14 +931,28 @@ class StateUpdate extends Component<Props, State> {
     switch (action.replyType) {
       case 'text':
         return (
-          <Textfield
-            outline
-            value={action.name}
-            onChange={(value) => this.props.update(action.id, { name: value })}
-            placeholder="Enter reply message"
-          />
+          <>
+            <Textfield
+              outline
+              value={action.name}
+              onChange={(value) => this.props.update(action.id, { name: value })}
+              placeholder="Enter reply message"
+            />
+            <CheckboxRow style={{ marginTop: 4 }}>
+              <input
+                type="checkbox"
+                checked={action.useSessionVars || false}
+                onChange={(e) => this.props.update<AgentStateMember>(action.id, { useSessionVars: e.target.checked })}
+              />
+              Interpolate session variables
+            </CheckboxRow>
+            {action.useSessionVars && (
+              <VarHint>Use &#123;key&#125; for session values, &#123;user_message&#125; for the current user message.</VarHint>
+            )}
+          </>
         );
-      case 'llm':
+      case 'llm': {
+        const llmInputMode = action.inputPromptMode || 'last_user_message';
         return (
           <>
             {llmNames.length === 0 && (
@@ -913,8 +961,57 @@ class StateUpdate extends Component<Props, State> {
               </WsWarning>
             )}
             {this.renderLlmNameField(action, llmNames, `${fieldId}-llm`)}
+            <CheckboxRow style={{ marginTop: 2 }}>
+              <input
+                type="checkbox"
+                checked={action.systemPromptUseSessionVars || false}
+                onChange={(e) => this.props.update<AgentStateMember>(action.id, { systemPromptUseSessionVars: e.target.checked })}
+              />
+              Interpolate &#123;vars&#125; in system message
+            </CheckboxRow>
+            <LlmFieldRow style={{ marginTop: 8 }}>
+              <Header>Input (sent to LLM)</Header>
+              <PromptModeRow>
+                <PromptModeBtn
+                  active={llmInputMode === 'last_user_message'}
+                  onClick={() => this.props.update<AgentStateMember>(action.id, { inputPromptMode: 'last_user_message', customInputPrompt: '' })}
+                >
+                  Last user message
+                </PromptModeBtn>
+                <PromptModeBtn
+                  active={llmInputMode === 'custom'}
+                  onClick={() => this.props.update<AgentStateMember>(action.id, { inputPromptMode: 'custom' })}
+                >
+                  Custom prompt
+                </PromptModeBtn>
+              </PromptModeRow>
+              {llmInputMode === 'custom' && (
+                <>
+                  <Textfield
+                    outline
+                    multiline
+                    enterToSubmit={false}
+                    value={action.customInputPrompt || ''}
+                    onChange={(value) => this.props.update<AgentStateMember>(action.id, { customInputPrompt: value })}
+                    placeholder="e.g. Summarise: {user_message}. Context: {ctx}"
+                  />
+                  <VarHint>Use &#123;user_message&#125; for the user's message, &#123;key&#125; for session values.</VarHint>
+                  <CheckboxRow>
+                    <input
+                      type="checkbox"
+                      checked={action.customInputPromptUseSessionVars || false}
+                      onChange={(e) => this.props.update<AgentStateMember>(action.id, { customInputPromptUseSessionVars: e.target.checked })}
+                    />
+                    Replace &#123;vars&#125; at runtime
+                  </CheckboxRow>
+                </>
+              )}
+            </LlmFieldRow>
+            {this.renderStoreInSession(action)}
+            {this.renderSendReply(action)}
           </>
         );
+      }
       case 'llm_chat': {
         const selectedProvider = action.llm_name ? llmProviderByName[action.llm_name] : '';
         const hasIncompatibleSelection = Boolean(
@@ -932,10 +1029,21 @@ class StateUpdate extends Component<Props, State> {
                 ? 'Selected LLM provider is incompatible with chat(). Use OpenAI or Hugging Face.'
                 : undefined,
             })}
+            <CheckboxRow style={{ marginTop: 2 }}>
+              <input
+                type="checkbox"
+                checked={action.systemPromptUseSessionVars || false}
+                onChange={(e) => this.props.update<AgentStateMember>(action.id, { systemPromptUseSessionVars: e.target.checked })}
+              />
+              Interpolate &#123;vars&#125; in system message
+            </CheckboxRow>
+            {this.renderStoreInSession(action)}
+            {this.renderSendReply(action)}
           </>
         );
       }
-      case 'rag':
+      case 'rag': {
+        const ragInputMode = action.inputPromptMode || 'last_user_message';
         return (
           <>
             {llmNames.length === 0 && (
@@ -944,42 +1052,91 @@ class StateUpdate extends Component<Props, State> {
               </WsWarning>
             )}
             {ragDatabaseNames.length ? (
-          <LlmFieldRow>
-            <Header>RAG database</Header>
-            <Dropdown
-              value={action.ragDatabaseName && action.ragDatabaseName.length > 0 ? action.ragDatabaseName : '__placeholder__'}
-              onChange={(value) => {
-                const selected = value === '__placeholder__' ? '' : value;
-                this.props.update<AgentStateMember>(action.id, {
-                  ragDatabaseName: selected,
-                  name: this.getRagDisplayName(selected),
-                });
-              }}
-            >
-              {[
-                <Dropdown.Item value="__placeholder__" key="rag-placeholder">Select RAG database</Dropdown.Item>,
-                ...ragDatabaseNames.map((name, i) => (
-                  <Dropdown.Item key={`rag-${i}-${name}`} value={name}>{name}</Dropdown.Item>
-                )),
-              ]}
-            </Dropdown>
-            <Header style={{ marginTop: 6 }}>Prompt</Header>
-            <Textfield
-              outline
-              multiline
-              enterToSubmit={false}
-              value={action.prompt || ''}
-              onChange={(value) => this.props.update<AgentStateMember>(action.id, { prompt: value })}
-              placeholder="Optional prompt passed to RAGReply(prompt=...)"
-            />
-          </LlmFieldRow>
-        ) : (
-          <p style={{ fontSize: 12, margin: '4px 0', opacity: 0.7 }}>
-            No RAG databases found. Create one from the palette first.
-          </p>
-        )}
+              <LlmFieldRow>
+                <Header>RAG database</Header>
+                <Dropdown
+                  value={action.ragDatabaseName && action.ragDatabaseName.length > 0 ? action.ragDatabaseName : '__placeholder__'}
+                  onChange={(value) => {
+                    const selected = value === '__placeholder__' ? '' : value;
+                    this.props.update<AgentStateMember>(action.id, {
+                      ragDatabaseName: selected,
+                      name: this.getRagDisplayName(selected),
+                    });
+                  }}
+                >
+                  {[
+                    <Dropdown.Item value="__placeholder__" key="rag-placeholder">Select RAG database</Dropdown.Item>,
+                    ...ragDatabaseNames.map((name, i) => (
+                      <Dropdown.Item key={`rag-${i}-${name}`} value={name}>{name}</Dropdown.Item>
+                    )),
+                  ]}
+                </Dropdown>
+                <Header style={{ marginTop: 6 }}>Prompt (for RAG)</Header>
+                <Textfield
+                  outline
+                  multiline
+                  enterToSubmit={false}
+                  value={action.prompt || ''}
+                  onChange={(value) => this.props.update<AgentStateMember>(action.id, { prompt: value })}
+                  placeholder="Optional prompt passed to RAGReply(prompt=...)"
+                />
+                <CheckboxRow style={{ marginTop: 2 }}>
+                  <input
+                    type="checkbox"
+                    checked={action.promptUseSessionVars || false}
+                    onChange={(e) => this.props.update<AgentStateMember>(action.id, { promptUseSessionVars: e.target.checked })}
+                  />
+                  Interpolate &#123;vars&#125; in prompt
+                </CheckboxRow>
+              </LlmFieldRow>
+            ) : (
+              <p style={{ fontSize: 12, margin: '4px 0', opacity: 0.7 }}>
+                No RAG databases found. Create one from the palette first.
+              </p>
+            )}
+            <LlmFieldRow style={{ marginTop: 8 }}>
+              <Header>Input (sent to RAG)</Header>
+              <PromptModeRow>
+                <PromptModeBtn
+                  active={ragInputMode === 'last_user_message'}
+                  onClick={() => this.props.update<AgentStateMember>(action.id, { inputPromptMode: 'last_user_message', customInputPrompt: '' })}
+                >
+                  Last user message
+                </PromptModeBtn>
+                <PromptModeBtn
+                  active={ragInputMode === 'custom'}
+                  onClick={() => this.props.update<AgentStateMember>(action.id, { inputPromptMode: 'custom' })}
+                >
+                  Custom prompt
+                </PromptModeBtn>
+              </PromptModeRow>
+              {ragInputMode === 'custom' && (
+                <>
+                  <Textfield
+                    outline
+                    multiline
+                    enterToSubmit={false}
+                    value={action.customInputPrompt || ''}
+                    onChange={(value) => this.props.update<AgentStateMember>(action.id, { customInputPrompt: value })}
+                    placeholder="e.g. Summarise: {user_message}. Context: {ctx}"
+                  />
+                  <VarHint>Use &#123;user_message&#125; for the user's message, &#123;key&#125; for session values.</VarHint>
+                  <CheckboxRow>
+                    <input
+                      type="checkbox"
+                      checked={action.customInputPromptUseSessionVars || false}
+                      onChange={(e) => this.props.update<AgentStateMember>(action.id, { customInputPromptUseSessionVars: e.target.checked })}
+                    />
+                    Replace &#123;vars&#125; at runtime
+                  </CheckboxRow>
+                </>
+              )}
+            </LlmFieldRow>
+            {this.renderStoreInSession(action)}
+            {this.renderSendReply(action)}
           </>
         );
+      }
       case 'db_reply':
         return this.renderDbReplyEditor(action, Clazz, llmNames);
       case 'web_crawl_llm':
@@ -1211,6 +1368,17 @@ class StateUpdate extends Component<Props, State> {
               })}
               placeholder={action.replyType === 'ws_markdown' ? '**Bold**, *italic*, etc.' : '<p>HTML content</p>'}
             />
+            <CheckboxRow style={{ marginTop: 4 }}>
+              <input
+                type="checkbox"
+                checked={action.useSessionVars || false}
+                onChange={(e) => this.props.update<AgentStateMember>(action.id, { useSessionVars: e.target.checked })}
+              />
+              Interpolate &#123;vars&#125; in message
+            </CheckboxRow>
+            {action.useSessionVars && (
+              <VarHint>Use &#123;key&#125; for session values, &#123;user_message&#125; for the current user message.</VarHint>
+            )}
           </LlmFieldRow>
         );
         break;
@@ -1226,6 +1394,17 @@ class StateUpdate extends Component<Props, State> {
               onChange={(v) => this.props.update<AgentStateMember>(action.id, { ws_message: v })}
               placeholder="Text to convert to speech"
             />
+            <CheckboxRow style={{ marginTop: 4 }}>
+              <input
+                type="checkbox"
+                checked={action.useSessionVars || false}
+                onChange={(e) => this.props.update<AgentStateMember>(action.id, { useSessionVars: e.target.checked })}
+              />
+              Interpolate &#123;vars&#125; in message
+            </CheckboxRow>
+            {action.useSessionVars && (
+              <VarHint>Use &#123;key&#125; for session values, &#123;user_message&#125; for the current user message.</VarHint>
+            )}
             <Header style={{ marginTop: 6 }}>Audio speed (optional)</Header>
             <Textfield
               outline
@@ -1374,6 +1553,32 @@ class StateUpdate extends Component<Props, State> {
 
   private isChatCompatibleProvider = (provider: string): boolean => provider === 'openai' || provider === 'huggingface';
 
+  private renderStoreInSession = (action: AgentStateMember): React.ReactNode => (
+    <StoreInSessionRow>
+      <Header>Store result in session (optional)</Header>
+      <Textfield
+        outline
+        value={action.storeInSession || ''}
+        onChange={(value) => this.props.update<AgentStateMember>(action.id, { storeInSession: value.trim() })}
+        placeholder="session_key (leave empty to skip)"
+      />
+      {action.storeInSession && (
+        <VarHint>Result stored as &#123;{action.storeInSession}&#125; — reuse it in later states.</VarHint>
+      )}
+    </StoreInSessionRow>
+  );
+
+  private renderSendReply = (action: AgentStateMember): React.ReactNode => (
+    <CheckboxRow style={{ marginTop: 6 }}>
+      <input
+        type="checkbox"
+        checked={action.sendReply !== false}
+        onChange={(e) => this.props.update<AgentStateMember>(action.id, { sendReply: e.target.checked })}
+      />
+      Send as agent reply (uncheck to only store, not send)
+    </CheckboxRow>
+  );
+
   private renderDbReplyEditor = (
     member: AgentStateMember | undefined,
     Clazz: typeof AgentStateBody | typeof AgentStateFallbackBody,
@@ -1460,9 +1665,49 @@ class StateUpdate extends Component<Props, State> {
               )}
               <p>Answer will be generated with LLM during runtime</p>
               {this.renderLlmNameField(member, llmNames, `db-llm-${member.id}`)}
+              <LlmFieldRow style={{ marginTop: 6 }}>
+                <Header>Input (sent to DB + LLM)</Header>
+                <PromptModeRow>
+                  <PromptModeBtn
+                    active={(member.inputPromptMode || 'last_user_message') === 'last_user_message'}
+                    onClick={() => this.props.update<AgentStateMember>(member.id, { inputPromptMode: 'last_user_message', customInputPrompt: '' })}
+                  >
+                    Last user message
+                  </PromptModeBtn>
+                  <PromptModeBtn
+                    active={(member.inputPromptMode || 'last_user_message') === 'custom'}
+                    onClick={() => this.props.update<AgentStateMember>(member.id, { inputPromptMode: 'custom' })}
+                  >
+                    Custom prompt
+                  </PromptModeBtn>
+                </PromptModeRow>
+                {(member.inputPromptMode || 'last_user_message') === 'custom' && (
+                  <>
+                    <Textfield
+                      outline
+                      multiline
+                      enterToSubmit={false}
+                      value={member.customInputPrompt || ''}
+                      onChange={(value) => this.props.update<AgentStateMember>(member.id, { customInputPrompt: value })}
+                      placeholder="e.g. Find orders for: {user_message}. Customer: {customer_id}"
+                    />
+                    <VarHint>Use &#123;user_message&#125; for the user's message, &#123;key&#125; for session values.</VarHint>
+                    <CheckboxRow>
+                      <input
+                        type="checkbox"
+                        checked={member.customInputPromptUseSessionVars || false}
+                        onChange={(e) => this.props.update<AgentStateMember>(member.id, { customInputPromptUseSessionVars: e.target.checked })}
+                      />
+                      Replace &#123;vars&#125; at runtime
+                    </CheckboxRow>
+                  </>
+                )}
+              </LlmFieldRow>
             </>
           )}
         </DbFieldRow>
+        {this.renderStoreInSession(member)}
+        {this.renderSendReply(member)}
       </>
     );
   };
@@ -1557,6 +1802,21 @@ class StateUpdate extends Component<Props, State> {
           onChange={(value) => this.props.update<AgentStateMember>(member.id, { system_message_prefix: value })}
           placeholder="Use the following webpage content to answer the question:"
         />
+        {member.system_message_prefix && (
+          <>
+            <CheckboxRow>
+              <input
+                type="checkbox"
+                checked={member.systemMessagePrefixUseSessionVars || false}
+                onChange={(e) => this.props.update<AgentStateMember>(member.id, { systemMessagePrefixUseSessionVars: e.target.checked })}
+              />
+              Interpolate &#123;vars&#125; in system message prefix
+            </CheckboxRow>
+            {member.systemMessagePrefixUseSessionVars && (
+              <VarHint>Use &#123;key&#125; for session values, &#123;user_message&#125; for the current user message.</VarHint>
+            )}
+          </>
+        )}
         <Header style={{ marginTop: 6 }}>LLM</Header>
         <LlmSelect
           value={member.llm_name || ''}
@@ -1565,6 +1825,8 @@ class StateUpdate extends Component<Props, State> {
           <option value="">(use default)</option>
           {llmNames.map((n) => <option key={n} value={n}>{n}</option>)}
         </LlmSelect>
+        {this.renderStoreInSession(member)}
+        {this.renderSendReply(member)}
       </LlmFieldRow>
     );
   };

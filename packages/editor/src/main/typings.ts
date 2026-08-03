@@ -77,6 +77,14 @@ export interface AgentModelElement extends UMLModelElement {
   dbSqlQuery?: string;
   llm_name?: string;
   system_message?: string;
+  // prompt customisation & session data flow
+  inputPromptMode?: string;
+  customInputPrompt?: string;
+  customInputPromptUseSessionVars?: boolean;
+  systemPromptUseSessionVars?: boolean;
+  promptUseSessionVars?: boolean;
+  storeInSession?: string;
+  useSessionVars?: boolean;
   // web crawl + LLM fields
   initial_url?: string;
   max_depth?: number;
@@ -86,6 +94,10 @@ export interface AgentModelElement extends UMLModelElement {
   run_crawl?: boolean;
   no_crawl_error_message?: string;
   system_message_prefix?: string;
+  // web crawl session-var interpolation
+  systemMessagePrefixUseSessionVars?: boolean;
+  // send_reply toggle (all LLM-generated answer actions)
+  sendReply?: boolean;
   // websocket-specific reply fields
   ws_message?: string;
   ws_audio_speed?: number | null;
