@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { FolderKanban } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { LanguageSelector } from './LanguageSelector';
+import { CommunityMenu } from './menus/CommunityMenu';
 import { DeployMenu } from './menus/DeployMenu';
 import { FileMenu } from './menus/FileMenu';
 import { GenerateMenu } from './menus/GenerateMenu';
@@ -30,6 +31,7 @@ const WorkspaceTopBarInner: React.FC<WorkspaceTopBarProps> = ({
   onOpenTemplateDialog,
   onExportProject,
   onImportSingleDiagram,
+  onImportBpmnDiagram,
   onOpenAssistantImportImage,
   onOpenAssistantImportKg,
   onOpenProjectPreview,
@@ -100,10 +102,12 @@ const WorkspaceTopBarInner: React.FC<WorkspaceTopBarProps> = ({
           <FileMenu
             outlineButtonClass={outlineButtonClass}
             hasProject={hasProject}
+            activeDiagramType={activeDiagramType}
             onOpenProjectHub={onOpenProjectHub}
             onOpenTemplateDialog={onOpenTemplateDialog}
             onExportProject={onExportProject}
             onImportSingleDiagram={onImportSingleDiagram}
+            onImportBpmnDiagram={onImportBpmnDiagram}
             onOpenAssistantImportImage={onOpenAssistantImportImage}
             onOpenAssistantImportKg={onOpenAssistantImportKg}
             onOpenProjectPreview={onOpenProjectPreview}
@@ -123,6 +127,7 @@ const WorkspaceTopBarInner: React.FC<WorkspaceTopBarProps> = ({
             onGitHubLogin={onGitHubLogin}
             onOpenDeployDialog={onOpenDeployDialog}
           />
+          <CommunityMenu outlineButtonClass={outlineButtonClass} onOpenFeedback={onOpenFeedback} />
           <HelpMenu
             outlineButtonClass={outlineButtonClass}
             onOpenHelpDialog={onOpenHelpDialog}

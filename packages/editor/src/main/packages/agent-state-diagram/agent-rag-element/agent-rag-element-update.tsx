@@ -71,6 +71,65 @@ const AgentRagElementUpdateComponent: React.FC<Props> = ({ element, update, elem
           ))}
         </Select>
       </Section>
+      <Section>
+        <Header>LLM Prompt Prefix</Header>
+        <Textfield
+          value={element.llm_prompt || ''}
+          onChange={(llm_prompt) => update<AgentRagElement>(element.id, { llm_prompt })}
+          multiline
+          enterToSubmit={false}
+        />
+      </Section>
+      <Section>
+        <Header>K (retrieved chunks)</Header>
+        <Textfield value={element.k ?? 4} onChange={(k) => update<AgentRagElement>(element.id, { k: Math.max(1, k) })} />
+      </Section>
+      <Section>
+        <Header>Num Previous Messages</Header>
+        <Textfield
+          value={element.num_previous_messages ?? 0}
+          onChange={(num_previous_messages) =>
+            update<AgentRagElement>(element.id, {
+              num_previous_messages: Math.max(0, num_previous_messages),
+            })
+          }
+        />
+      </Section>
+      <Section>
+        <Header>Embedding Provider</Header>
+        <Select
+          value={element.embedding_provider || 'openai'}
+          onChange={(event) => {
+            const provider = event.target.value as 'openai' | 'ollama';
+            const updates: Partial<AgentRagElement> = { embedding_provider: provider };
+            if (provider === 'ollama' && !element.embedding_base_url) {
+              updates.embedding_base_url = 'http://localhost:11434';
+            }
+            update<AgentRagElement>(element.id, updates);
+          }}
+        >
+          <option value="openai">OpenAI</option>
+          <option value="ollama">Ollama (local)</option>
+        </Select>
+      </Section>
+      {(element.embedding_provider === 'ollama') && (
+        <>
+          <Section>
+            <Header>Embedding Base URL</Header>
+            <Textfield
+              value={element.embedding_base_url || 'http://localhost:11434'}
+              onChange={(embedding_base_url) => update<AgentRagElement>(element.id, { embedding_base_url })}
+            />
+          </Section>
+          <Section>
+            <Header>Embedding Model</Header>
+            <Textfield
+              value={element.embedding_model || ''}
+              onChange={(embedding_model) => update<AgentRagElement>(element.id, { embedding_model })}
+            />
+          </Section>
+        </>
+      )}
     </div>
   );
 };

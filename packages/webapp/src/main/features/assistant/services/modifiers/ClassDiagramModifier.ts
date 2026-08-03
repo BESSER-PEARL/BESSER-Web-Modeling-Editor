@@ -453,7 +453,7 @@ export class ClassDiagramModifier implements DiagramModifier {
 
     const methodElement: any = {
       id: methodId,
-      name: `${name}(${paramStr})`,
+      name: `${visibilitySymbol} ${name}(${paramStr}): ${returnType}`,
       type: 'ClassMethod',
       owner: classId,
       bounds: { x: classBounds.x + 1, y: methodY, width: (classBounds.width || 220) - 2, height: 25 },

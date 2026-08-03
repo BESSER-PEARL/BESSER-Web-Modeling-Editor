@@ -22,7 +22,6 @@ export const AgentElementType = {
   AgentTool: 'AgentTool',
   AgentSkill: 'AgentSkill',
   AgentWorkspace: 'AgentWorkspace',
-  AgentReasoningState: 'AgentReasoningState',
   AgentLLM: 'AgentLLM',
   AgentSectionTitle: 'AgentSectionTitle',
   AgentSectionSeparator: 'AgentSectionSeparator',

@@ -14,6 +14,8 @@ export type GeneratorType =
   | 'qiskit'
   | 'jsonobject'
   | 'pytorch'
-  | 'tensorflow';
+  | 'tensorflow'
+  | 'bpmn'
+  | 'test_case';
 
-export type GeneratorMenuMode = 'class' | 'object' | 'user' | 'statemachine' | 'agent' | 'gui' | 'quantum' | 'nn' | 'none';
+export type GeneratorMenuMode = 'class' | 'object' | 'user' | 'statemachine' | 'agent' | 'gui' | 'quantum' | 'nn' | 'bpmn' | 'none';

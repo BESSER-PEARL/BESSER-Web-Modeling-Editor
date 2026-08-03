@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { UMLDiagramType, UMLModel } from '@besser/wme';
+import { UMLDiagramType, UMLModel, diagramBridge } from '@besser/wme';
 import { toast } from 'react-toastify';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -45,6 +45,7 @@ import {
   removeConfigurationVariantsFromProject,
   upsertVariantForProfile,
 } from '../../shared/services/agent-variants/agent-variants-service';
+import { AgentConfigYamlEditor } from './AgentConfigYamlEditor';
 
 type AgentTransformationConfig = Partial<AgentConfigurationPayload> & { userProfileModel?: UMLModel };
 
@@ -353,7 +354,7 @@ const flattenStructuredConfig = (raw: any): Partial<AgentConfigurationPayload> =
 
 const cloneModel = (model: UMLModel): UMLModel => JSON.parse(JSON.stringify(model)) as UMLModel;
 
-type AgentLLMElementProvider = 'openai' | 'huggingface' | 'huggingface_api' | 'replicate';
+type AgentLLMElementProvider = 'openai' | 'huggingface' | 'huggingface_api' | 'replicate' | 'ollama';
 
 type AgentLLMElement = {
   id: string;
@@ -372,6 +373,7 @@ const AGENT_LLM_PROVIDER_OPTIONS: Array<{ value: AgentLLMElementProvider; label:
   { value: 'huggingface', label: 'Hugging Face' },
   { value: 'huggingface_api', label: 'Hugging Face API' },
   { value: 'replicate', label: 'Replicate' },
+  { value: 'ollama', label: 'Ollama (local)' },
 ];
 
 const generateAgentLLMId = (): string => {
@@ -388,7 +390,7 @@ const isAgentLLMElement = (value: unknown): value is AgentLLMElement => {
 };
 
 const normalizeAgentLLMElement = (raw: any, fallbackId: string): AgentLLMElement => {
-  const provider = (['openai', 'huggingface', 'huggingface_api', 'replicate'].includes(raw?.provider)
+  const provider = (['openai', 'huggingface', 'huggingface_api', 'replicate', 'ollama'].includes(raw?.provider)
     ? raw.provider
     : 'openai') as AgentLLMElementProvider;
   const parameters =
@@ -571,6 +573,7 @@ const resolveProfileNameFromMapping = (
     : '';
 };
 
+
 const loadInitialState = () => {
   const savedConfigurations = LocalStorageRepository.getAgentConfigurations();
 
@@ -646,6 +649,13 @@ const AgentLLMRow: React.FC<AgentLLMRowProps> = ({
     setParametersError('');
   }, [element.id]);
 
+  const updateOllamaParam = (key: string, value: string) => {
+    const updated = { ...element.parameters, [key]: value };
+    onChange(element.id, { parameters: updated });
+    setParametersText(formatAgentLLMParameters(updated));
+    setParametersError('');
+  };
+
   const commitParameters = (raw: string) => {
     if (!raw.trim()) {
       setParametersError('');
@@ -703,9 +713,21 @@ const AgentLLMRow: React.FC<AgentLLMRowProps> = ({
                 id={`agent-llm-provider-${element.id}`}
                 className="h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm transition-colors hover:border-brand/30 focus:border-brand/40 focus:outline-none focus:ring-2 focus:ring-brand/20"
                 value={element.provider}
-                onChange={(event) =>
-                  onChange(element.id, { provider: event.target.value as AgentLLMElementProvider })
-                }
+                onChange={(event) => {
+                  const newProvider = event.target.value as AgentLLMElementProvider;
+                  const updates: Partial<AgentLLMElement> = { provider: newProvider };
+                  if (newProvider === 'ollama') {
+                    const seeded = {
+                      ...element.parameters,
+                      base_url: (element.parameters.base_url as string) || 'http://localhost:11434',
+                      model: (element.parameters.model as string) || '',
+                    };
+                    updates.parameters = seeded;
+                    setParametersText(formatAgentLLMParameters(seeded));
+                    setParametersError('');
+                  }
+                  onChange(element.id, updates);
+                }}
               >
                 {AGENT_LLM_PROVIDER_OPTIONS.map((opt) => (
                   <option key={opt.value} value={opt.value}>
@@ -731,6 +753,28 @@ const AgentLLMRow: React.FC<AgentLLMRowProps> = ({
               />
             </div>
           </div>
+          {element.provider === 'ollama' && (
+            <div className="grid gap-3 md:grid-cols-2">
+              <div className="space-y-1.5">
+                <Label htmlFor={`agent-llm-ollama-url-${element.id}`}>Base URL</Label>
+                <Input
+                  id={`agent-llm-ollama-url-${element.id}`}
+                  value={(element.parameters.base_url as string) ?? 'http://localhost:11434'}
+                  placeholder="http://localhost:11434"
+                  onChange={(event) => updateOllamaParam('base_url', event.target.value)}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor={`agent-llm-ollama-model-${element.id}`}>Model</Label>
+                <Input
+                  id={`agent-llm-ollama-model-${element.id}`}
+                  value={(element.parameters.model as string) ?? ''}
+                  placeholder="e.g. llama3, mistral, qwen2.5"
+                  onChange={(event) => updateOllamaParam('model', event.target.value)}
+                />
+              </div>
+            </div>
+          )}
           <div className="space-y-1.5">
             <Label htmlFor={`agent-llm-parameters-${element.id}`}>{t('agentConfig.row.parameters')}</Label>
             <textarea
@@ -871,6 +915,7 @@ export const AgentConfigurationPanel: React.FC = () => {
       : (cfg.llm && typeof cfg.llm === 'object' && typeof cfg.llm.name === 'string' ? cfg.llm.name : '');
     return {
       agentPlatform: cfg.agentPlatform || DEFAULT_AGENT_RUNTIME_CONFIG.agentPlatform,
+      agentPlatformUseStreamlit: cfg.agentPlatformUseStreamlit ?? DEFAULT_AGENT_RUNTIME_CONFIG.agentPlatformUseStreamlit,
       intentRecognitionTechnology:
         cfg.intentRecognitionTechnology || DEFAULT_AGENT_RUNTIME_CONFIG.intentRecognitionTechnology,
       agentLlmProvider: cfg.agentLlmProvider ?? DEFAULT_AGENT_RUNTIME_CONFIG.agentLlmProvider,
@@ -886,6 +931,11 @@ export const AgentConfigurationPanel: React.FC = () => {
   useEffect(() => {
     setAgentRuntimeConfig(runtimeConfigInitial);
   }, [runtimeConfigInitial]);
+
+  // Keep the diagramBridge in sync so the editor popups can read the current platform.
+  useEffect(() => {
+    diagramBridge.setAgentPlatform(agentRuntimeConfig.agentPlatform);
+  }, [agentRuntimeConfig.agentPlatform]);
 
   // Default LLM name — persisted on the active agent diagram's `config` block
   // under the snake_case key `default_llm_name` so the BAF backend can read it
@@ -946,6 +996,7 @@ export const AgentConfigurationPanel: React.FC = () => {
     },
     [persistDefaultLlmName],
   );
+
 
   // Resolve the default LLM that satisfies the invariant
   // "if the list has any LLMs, the default points to one of them; if there
@@ -2226,12 +2277,24 @@ export const AgentConfigurationPanel: React.FC = () => {
                     id="agent-runtime-platform"
                     className="h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm transition-colors hover:border-brand/30 focus:border-brand/40 focus:outline-none focus:ring-2 focus:ring-brand/20"
                     value={agentRuntimeConfig.agentPlatform}
-                    onChange={(event) => updateAgentRuntimeConfig({ agentPlatform: event.target.value })}
+                    onChange={(event) => updateAgentRuntimeConfig({
+                      agentPlatform: event.target.value,
+                      agentPlatformUseStreamlit: event.target.value !== 'websocket' ? false : agentRuntimeConfig.agentPlatformUseStreamlit,
+                    })}
                   >
-                    <option value="streamlit">Streamlit</option>
-                    <option value="telegram">Telegram</option>
                     <option value="websocket">WebSocket</option>
+                    <option value="telegram">Telegram</option>
                   </select>
+                  {agentRuntimeConfig.agentPlatform === 'websocket' && (
+                    <label className="flex items-center gap-2 text-sm cursor-pointer pt-1">
+                      <input
+                        type="checkbox"
+                        checked={agentRuntimeConfig.agentPlatformUseStreamlit ?? false}
+                        onChange={(e) => updateAgentRuntimeConfig({ agentPlatformUseStreamlit: e.target.checked })}
+                      />
+                      Use Streamlit UI
+                    </label>
+                  )}
                 </div>
 
                 <div className="space-y-1.5">
@@ -2315,6 +2378,27 @@ export const AgentConfigurationPanel: React.FC = () => {
               </div>
             </CardContent>
           </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Agent Configuration File (<code>config.yaml</code>)</CardTitle>
+              <CardDescription>
+                Edit the <code>config.yaml</code> file that will be included when generating the agent.
+                {' '}
+                <a
+                  href="https://besser-agentic-framework.readthedocs.io/latest/wiki/configuration_properties.html"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-brand underline underline-offset-2 hover:text-brand/80"
+                >
+                  Configuration properties reference ↗
+                </a>
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <AgentConfigYamlEditor currentProject={currentProject} />
+            </CardContent>
+          </Card>
           </>
           )}
 
@@ -2378,8 +2462,6 @@ export const AgentConfigurationPanel: React.FC = () => {
                           <option value="original">{t('agentConfig.style.original')}</option>
                           <option value="formal">{t('agentConfig.style.formal')}</option>
                           <option value="informal">{t('agentConfig.style.informal')}</option>
-                          <option value="friendly">{t('agentConfig.style.friendly')}</option>
-                          <option value="technical">{t('agentConfig.style.technical')}</option>
                         </select>
                       </div>
 

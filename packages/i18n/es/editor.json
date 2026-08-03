@@ -265,7 +265,7 @@
       "ColorLegend": "Descripción de colores",
       "Comments": "Comentarios"
     },
-    "BPMN": {
+    "BPMNDiagram": {
       "BPMNTask": "Tarea",
       "BPMNUserTask": "Tarea de usuario",
       "BPMNSendTask": "Tarea de envío",
@@ -316,8 +316,7 @@
       "BPMNPool": "Pool",
       "BPMNSwimlane": "Carril",
       "BPMNSwimlanes": "Carriles",
-      "BPMNGroup": "Grupo",
-      "Comments": "Comentarios"
+      "BPMNGroup": "Grupo"
     },
     "NNDiagram": {
       "NNContainer": "Neural_Network",

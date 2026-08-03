@@ -1,7 +1,7 @@
 import React, { useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import ReactDOM from 'react-dom';
 import { diagramBridge } from '@besser/wme';
-import { Plus, X, FileText, Info, Link2, AlertTriangle, ChevronDown, ChevronRight, Wand2 } from 'lucide-react';
+import { Plus, X, FileText, Info, Link2, AlertTriangle, ChevronDown, ChevronRight, Wand2, ClipboardList } from 'lucide-react';
 import { toast } from 'react-toastify';
 import { useTranslation } from 'react-i18next';
 import { Input } from '@/components/ui/input';
@@ -24,6 +24,7 @@ import {
 } from '../../../app/store/workspaceSlice';
 import { ApollonEditorContext } from '../uml/apollon-editor-context';
 import { scaffoldObjectsFromClasses } from './scaffoldObjectsFromClasses';
+import { UserProfileFormPanel } from '../user-profile-form/UserProfileFormPanel';
 
 interface DiagramTabsProps {
   onRequestTabSwitch?: (index: number) => Promise<boolean> | boolean;
@@ -119,6 +120,9 @@ export const DiagramTabs: React.FC<DiagramTabsProps> = ({
   const currentProject = useAppSelector(selectProject);
   const [renamingIndex, setRenamingIndex] = useState<number | null>(null);
   const [renameValue, setRenameValue] = useState('');
+  const [profileFormOpen, setProfileFormOpen] = useState(false);
+
+  const isUserDiagram = currentDiagramType === 'UserDiagram';
 
   // --- Cross-diagram references ---
   const needsClassRef = currentDiagramType === 'ObjectDiagram' || currentDiagramType === 'GUINoCodeDiagram';
@@ -399,6 +403,24 @@ export const DiagramTabs: React.FC<DiagramTabsProps> = ({
           )}
         </div>
 
+        {/* Open the forms-based User Profile editor (UserDiagram only) */}
+        {isUserDiagram && (
+          <button
+            className={[
+              'ml-auto mr-1.5 flex items-center gap-1.5 rounded-md px-3 py-1.5 text-[12px] font-semibold shadow-sm transition-colors',
+              profileFormOpen
+                ? 'bg-brand-dark text-brand-foreground hover:bg-brand-dark/90'
+                : 'bg-brand text-brand-foreground hover:bg-brand-dark',
+            ].join(' ')}
+            onClick={() => setProfileFormOpen((prev) => !prev)}
+            aria-pressed={profileFormOpen}
+            title={profileFormOpen ? 'Close the user profile form' : 'Edit this profile with a guided form'}
+          >
+            <ClipboardList className="size-3.5" />
+            <span>{profileFormOpen ? 'Close Form' : 'Edit as Form'}</span>
+          </button>
+        )}
+
         {/* Collapse toggle for references (inline in tab bar, right-aligned) */}
         {hasReferences && (
           <button
@@ -492,6 +514,14 @@ export const DiagramTabs: React.FC<DiagramTabsProps> = ({
 
           </div>
         </div>
+      )}
+
+      {isUserDiagram && (
+        <UserProfileFormPanel
+          open={profileFormOpen}
+          onClose={() => setProfileFormOpen(false)}
+          editor={apollonEditor}
+        />
       )}
     </div>
   );

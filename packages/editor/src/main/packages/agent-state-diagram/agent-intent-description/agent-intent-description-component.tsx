@@ -1,6 +1,7 @@
 import React, { FunctionComponent } from 'react';
 import { Text } from '../../../components/controls/text/text';
 import { ThemedRect } from '../../../components/theme/themedComponents';
+import { truncateTextToWidth } from '../text-truncation';
 
 export const AGENT_INTENT_DESCRIPTION_HEIGHT = 30;
 
@@ -11,7 +12,7 @@ interface Props {
 }
 
 export const AgentIntentDescriptionComponent: FunctionComponent<Props> = ({ description, width, textColor }) => (
-    
+
   <g>
     <ThemedRect fillColor="none" strokeColor="none" width={width} height={AGENT_INTENT_DESCRIPTION_HEIGHT} />
     <Text
@@ -22,7 +23,7 @@ export const AgentIntentDescriptionComponent: FunctionComponent<Props> = ({ desc
       textAnchor="start"
       dominantBaseline="middle"
     >
-      {`Description: ${description}`}
+      {truncateTextToWidth(`Description: ${description}`, width - 20, 12)}
     </Text>
   </g>
 );

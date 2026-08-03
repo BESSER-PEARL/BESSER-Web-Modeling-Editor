@@ -1,13 +1,11 @@
-import React, { ComponentClass } from 'react';
+import React from 'react';
 import { connect } from 'react-redux';
-import { compose } from 'redux';
 import styled from 'styled-components';
 import { Textfield } from '../../../components/controls/textfield/textfield';
 import { Header } from '../../../components/controls/typography/typography';
-import { I18nContext } from '../../../components/i18n/i18n-context';
-import { localized } from '../../../components/i18n/localized';
 import { ModelState } from '../../../components/store/model-state';
 import { UMLElementRepository } from '../../../services/uml-element/uml-element-repository';
+import { AgentElementType } from '..';
 import { AgentWorkspace } from './agent-workspace';
 
 const Section = styled.section`
@@ -21,26 +19,47 @@ const CheckboxRow = styled.label`
   padding: 4px 0;
 `;
 
+const Warning = styled.p`
+  font-size: 12px;
+  margin: 4px 0 8px;
+  color: #e04040;
+  opacity: 0.85;
+`;
+
 type OwnProps = {
   element: AgentWorkspace;
 };
 
-type StateProps = {};
+type StateProps = {
+  elements: ModelState['elements'];
+};
 
 type DispatchProps = {
   update: typeof UMLElementRepository.update;
 };
 
-type Props = OwnProps & StateProps & DispatchProps & I18nContext;
+type Props = OwnProps & StateProps & DispatchProps;
 
-const AgentWorkspaceUpdateComponent: React.FC<Props> = ({ element, update, translate }) => (
+const AGENT_STATE_TYPE = (AgentElementType as Record<string, string>).AgentState ?? 'AgentState';
+
+const AgentWorkspaceUpdateComponent: React.FC<Props> = ({ element, update, elements }) => {
+  const hasReasoningState = Object.values(elements).some(
+    (el: any) => el.type === AGENT_STATE_TYPE && el.stateType === 'reasoning',
+  );
+
+  return (
   <div>
+    {!hasReasoningState && (
+      <Warning>
+        ⚠ Workspaces can only be used by a reasoning state. Add a reasoning state to use this workspace.
+      </Warning>
+    )}
     <Section>
-      <Header>{translate('popup.agent.workspace.name')}</Header>
+      <Header>Workspace name</Header>
       <Textfield value={element.name} onChange={(name) => update<AgentWorkspace>(element.id, { name })} autoFocus />
     </Section>
     <Section>
-      <Header>{translate('popup.agent.workspace.path')}</Header>
+      <Header>Filesystem path</Header>
       <Textfield
         value={element.path}
         placeholder="/path/to/workspace"
@@ -48,12 +67,12 @@ const AgentWorkspaceUpdateComponent: React.FC<Props> = ({ element, update, trans
       />
     </Section>
     <Section>
-      <Header>{translate('popup.agent.workspace.description')}</Header>
+      <Header>Description</Header>
       <Textfield
         value={element.description}
         multiline
         enterToSubmit={false}
-        placeholder={translate('popup.agent.workspace.descriptionPlaceholder')}
+        placeholder="Optional description"
         onChange={(description) => update<AgentWorkspace>(element.id, { description })}
       />
     </Section>
@@ -64,11 +83,11 @@ const AgentWorkspaceUpdateComponent: React.FC<Props> = ({ element, update, trans
           checked={element.writable}
           onChange={(e) => update<AgentWorkspace>(element.id, { writable: e.target.checked })}
         />
-        {translate('popup.agent.workspace.writable')}
+        Writable
       </CheckboxRow>
     </Section>
     <Section>
-      <Header>{translate('popup.agent.workspace.maxReadBytes')}</Header>
+      <Header>Max read bytes</Header>
       <Textfield
         value={element.max_read_bytes}
         onChange={(value) => {
@@ -78,13 +97,12 @@ const AgentWorkspaceUpdateComponent: React.FC<Props> = ({ element, update, trans
       />
     </Section>
   </div>
-);
+  );
+};
 
-const enhance = compose<ComponentClass<OwnProps>>(
-  localized,
-  connect<StateProps, DispatchProps, OwnProps, ModelState>(null, {
-    update: UMLElementRepository.update,
-  }),
+const enhance = connect<StateProps, DispatchProps, OwnProps, ModelState>(
+  (state) => ({ elements: state.elements }),
+  { update: UMLElementRepository.update },
 );
 
 export const AgentWorkspaceUpdate = enhance(AgentWorkspaceUpdateComponent);

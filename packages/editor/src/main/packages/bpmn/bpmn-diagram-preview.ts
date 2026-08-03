@@ -14,37 +14,39 @@ import { BPMNPool } from './bpmn-pool/bpmn-pool';
 import { BPMNDataObject } from './bpmn-data-object/bpmn-data-object';
 import { BPMNGroup } from './bpmn-group/bpmn-group';
 import { BPMNDataStore } from './bpmn-data-store/bpmn-data-store';
+import { BPMNSwimlane } from './bpmn-swimlane/bpmn-swimlane';
 
 export const composeBPMNPreview: ComposePreview = (
   layer: ILayer,
+  translate: (id: string) => string,
 ): PreviewElement[] => {
   const elements: PreviewElement[] = [];
   const defaultBounds: IBoundary = { x: 0, y: 0, width: 160, height: 60 };
 
   elements.push(
     new BPMNTask({
-      name: 'Task',
+      name: translate('packages.BPMNDiagram.BPMNTask'),
       bounds: defaultBounds,
     }),
   );
 
   elements.push(
     new BPMNSubprocess({
-      name: 'Subprocess',
+      name: translate('packages.BPMNDiagram.BPMNSubprocess'),
       bounds: defaultBounds,
     }),
   );
 
   elements.push(
     new BPMNTransaction({
-      name: 'Transaction',
+      name: translate('packages.BPMNDiagram.BPMNTransaction'),
       bounds: defaultBounds,
     }),
   );
 
   elements.push(
     new BPMNCallActivity({
-      name: 'Call Activity',
+      name: translate('packages.BPMNDiagram.BPMNCallActivity'),
       bounds: defaultBounds,
     }),
   );
@@ -57,7 +59,7 @@ export const composeBPMNPreview: ComposePreview = (
 
   elements.push(
     new BPMNAnnotation({
-      name: 'Annotation',
+      name: translate('packages.BPMNDiagram.BPMNAnnotation'),
       bounds: defaultBounds,
     }),
   );
@@ -100,7 +102,14 @@ export const composeBPMNPreview: ComposePreview = (
 
   elements.push(
     new BPMNPool({
-      name: 'Pool',
+      name: translate('packages.BPMNDiagram.BPMNPool'),
+      bounds: { x: 0, y: 0, width: 160, height: 80 },
+    }),
+  );
+
+  elements.push(
+    new BPMNSwimlane({
+      name: translate('packages.BPMNDiagram.BPMNSwimlane'),
       bounds: { x: 0, y: 0, width: 160, height: 80 },
     }),
   );

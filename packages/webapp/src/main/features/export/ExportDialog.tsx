@@ -7,7 +7,13 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { UMLModel } from '@besser/wme';
 import { useProject } from '../../app/hooks/useProject';
-import { ProjectDiagram, SupportedDiagramType, getReferencedDiagram, isUMLModel, diagramHasContent } from '../../shared/types/project';
+import {
+  ProjectDiagram,
+  SupportedDiagramType,
+  getReferencedDiagram,
+  isUMLModel,
+  diagramHasContent,
+} from '../../shared/types/project';
 import { useExportPNG } from './useExportPng';
 import { useExportSVG } from './useExportSvg';
 import { useExportBUML } from './useExportBuml';
@@ -25,6 +31,18 @@ interface ExportDialogProps {
 }
 
 type ExportFormat = 'SVG' | 'PNG_WHITE' | 'PNG' | 'JSON' | 'BUML' | 'SINGLE_JSON' | 'SINGLE_BUML';
+
+const diagramLabels: Record<SupportedDiagramType, string> = {
+  ClassDiagram: 'Class Diagram',
+  ObjectDiagram: 'Object Diagram',
+  StateMachineDiagram: 'State Machine Diagram',
+  AgentDiagram: 'Agent Diagram',
+  UserDiagram: 'User Diagram',
+  GUINoCodeDiagram: 'GUI No-Code Diagram',
+  QuantumCircuitDiagram: 'Quantum Circuit Diagram',
+  BPMN: 'BPMN Diagram',
+  NNDiagram: 'Neural Network Diagram',
+};
 
 const formatsRequiringSelection = new Set<ExportFormat>(['JSON', 'BUML']);
 
@@ -52,7 +70,7 @@ export const ExportDialog: React.FC<ExportDialogProps> = ({ open, onOpenChange, 
         .filter(([, diagrams]) => diagrams.length > 0);
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [currentProject?.id, currentProject?.diagrams]
+    [currentProject?.id, currentProject?.diagrams],
   );
 
   // Pre-select only ClassDiagram when dialog opens
@@ -70,9 +88,7 @@ export const ExportDialog: React.FC<ExportDialogProps> = ({ open, onOpenChange, 
 
   const toggleDiagramSelection = (diagramType: SupportedDiagramType) => {
     setSelectedDiagrams((previous) =>
-      previous.includes(diagramType)
-        ? previous.filter((type) => type !== diagramType)
-        : [...previous, diagramType]
+      previous.includes(diagramType) ? previous.filter((type) => type !== diagramType) : [...previous, diagramType],
     );
   };
 
@@ -111,11 +127,7 @@ export const ExportDialog: React.FC<ExportDialogProps> = ({ open, onOpenChange, 
         // Include the referenced ClassDiagram data for diagram types that depend on it
         let refData: UMLModel | undefined;
         const modelType = editor!.model?.type;
-        if (
-          (modelType === 'ObjectDiagram' || modelType === 'StateMachineDiagram') &&
-          currentProject &&
-          diagram
-        ) {
+        if ((modelType === 'ObjectDiagram' || modelType === 'StateMachineDiagram') && currentProject && diagram) {
           const classDiagram = getReferencedDiagram(currentProject, diagram, 'ClassDiagram');
           if (isUMLModel(classDiagram?.model)) {
             refData = classDiagram.model;
@@ -157,7 +169,10 @@ export const ExportDialog: React.FC<ExportDialogProps> = ({ open, onOpenChange, 
               <>
                 <div className="max-h-44 flex flex-col gap-1.5 overflow-y-auto rounded-lg border border-border/40 bg-background/80 p-3">
                   {diagramEntries.map(([type, diagrams]) => (
-                    <label key={type} className="flex cursor-pointer items-start gap-2.5 rounded-md px-1.5 py-1 text-sm transition-colors hover:bg-muted/30">
+                    <label
+                      key={type}
+                      className="flex cursor-pointer items-start gap-2.5 rounded-md px-1.5 py-1 text-sm transition-colors hover:bg-muted/30"
+                    >
                       <input
                         type="checkbox"
                         className="mt-0.5 size-4 rounded border-border accent-primary"
@@ -167,7 +182,12 @@ export const ExportDialog: React.FC<ExportDialogProps> = ({ open, onOpenChange, 
                       <div className="flex flex-col">
                         <span className="font-medium">{t(`export.diagramLabels.${type}`)}</span>
                         {diagrams.length > 1 && (
-                          <span className="text-xs text-muted-foreground">{t('export.dialog.diagramCount', { count: diagrams.length, titles: diagrams.map((d) => d.title).join(', ') })}</span>
+                          <span className="text-xs text-muted-foreground">
+                            {t('export.dialog.diagramCount', {
+                              count: diagrams.length,
+                              titles: diagrams.map((d) => d.title).join(', '),
+                            })}
+                          </span>
                         )}
                       </div>
                     </label>
@@ -175,7 +195,10 @@ export const ExportDialog: React.FC<ExportDialogProps> = ({ open, onOpenChange, 
                 </div>
 
                 <div className="mt-4 grid gap-2">
-                  <Button onClick={() => handleExport('JSON')} className="justify-start gap-2 shadow-elevation-1 transition-shadow hover:shadow-elevation-2">
+                  <Button
+                    onClick={() => handleExport('JSON')}
+                    className="justify-start gap-2 shadow-elevation-1 transition-shadow hover:shadow-elevation-2"
+                  >
                     <FileJson2 className="size-4" />
                     {t('export.dialog.exportJson')}
                   </Button>
@@ -204,23 +227,43 @@ export const ExportDialog: React.FC<ExportDialogProps> = ({ open, onOpenChange, 
             </div>
 
             <div className="grid gap-2">
-              <Button variant="outline" onClick={() => handleExport('SVG')} className="justify-start gap-2 border-border/50 shadow-elevation-1 transition-all hover:shadow-elevation-2">
+              <Button
+                variant="outline"
+                onClick={() => handleExport('SVG')}
+                className="justify-start gap-2 border-border/50 shadow-elevation-1 transition-all hover:shadow-elevation-2"
+              >
                 <FileCode2 className="size-4" />
                 {t('export.dialog.exportSvg')}
               </Button>
-              <Button variant="outline" onClick={() => handleExport('PNG_WHITE')} className="justify-start gap-2 border-border/50">
+              <Button
+                variant="outline"
+                onClick={() => handleExport('PNG_WHITE')}
+                className="justify-start gap-2 border-border/50"
+              >
                 <FileImage className="size-4" />
                 {t('export.dialog.exportPngWhite')}
               </Button>
-              <Button variant="outline" onClick={() => handleExport('PNG')} className="justify-start gap-2 border-border/50">
+              <Button
+                variant="outline"
+                onClick={() => handleExport('PNG')}
+                className="justify-start gap-2 border-border/50"
+              >
                 <FileImage className="size-4" />
                 {t('export.dialog.exportPngTransparent')}
               </Button>
-              <Button variant="outline" onClick={() => handleExport('SINGLE_JSON')} className="justify-start gap-2 border-border/50">
+              <Button
+                variant="outline"
+                onClick={() => handleExport('SINGLE_JSON')}
+                className="justify-start gap-2 border-border/50"
+              >
                 <FileJson2 className="size-4" />
                 {t('export.dialog.exportDiagramJson')}
               </Button>
-              <Button variant="outline" onClick={() => handleExport('SINGLE_BUML')} className="justify-start gap-2 border-border/50">
+              <Button
+                variant="outline"
+                onClick={() => handleExport('SINGLE_BUML')}
+                className="justify-start gap-2 border-border/50"
+              >
                 <FileCode2 className="size-4" />
                 {t('export.dialog.exportDiagramBuml')}
               </Button>

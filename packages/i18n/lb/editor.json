@@ -265,7 +265,7 @@
       "ColorLegend": "Faarwebeschreiwung",
       "Comments": "Kommentaren"
     },
-    "BPMN": {
+    "BPMNDiagram": {
       "BPMNTask": "Aufgab",
       "BPMNUserTask": "Benotzeraufgab",
       "BPMNSendTask": "Sendaufgab",
@@ -316,8 +316,7 @@
       "BPMNPool": "Pool",
       "BPMNSwimlane": "Bunn",
       "BPMNSwimlanes": "Bunnen",
-      "BPMNGroup": "Grupp",
-      "Comments": "Kommentaren"
+      "BPMNGroup": "Grupp"
     },
     "NNDiagram": {
       "NNContainer": "Neuronaalt Netz",
