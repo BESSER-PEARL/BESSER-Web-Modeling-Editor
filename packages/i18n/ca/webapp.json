@@ -2211,7 +2211,7 @@
   "feedback": {
     "feedbackPlaceholder": "Digue'ns què funciona, què no i què vols a continuació.",
     "feedbackLabel": "Comentaris",
-    "toast": {
+    "toasts": {
       "thankYou": "Gràcies pels teus comentaris.",
       "submitFailedDefault": "No s'han pogut enviar els comentaris.",
       "selectRating": "Selecciona una valoració de satisfacció.",
