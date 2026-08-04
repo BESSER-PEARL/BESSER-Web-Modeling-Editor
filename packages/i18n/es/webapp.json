@@ -46,6 +46,7 @@
       "object": "Objeto",
       "state": "Estado",
       "agent": "Agente",
+      "bpmn": "BPMN",
       "user": "Usuario",
       "neuralNet": "Red neuronal",
       "gui": "GUI",
@@ -1531,6 +1532,11 @@
         "exportJson": "Exportar como JSON",
         "exportBuml": "Exportar como B-UML"
       }
+    },
+    "appErrorBoundary": {
+      "title": "Algo salió mal",
+      "description": "Ha ocurrido un error inesperado. Por favor, intenta recargar la aplicación.",
+      "reload": "Recargar aplicación"
     },
     "cookie": {
       "toggleEnable": "Activar analíticas",

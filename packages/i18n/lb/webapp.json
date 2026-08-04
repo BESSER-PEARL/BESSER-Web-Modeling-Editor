@@ -46,6 +46,7 @@
       "object": "Objet",
       "state": "Zoustand",
       "agent": "Agent",
+      "bpmn": "BPMN",
       "user": "Benotzer",
       "neuralNet": "Neuronaalt Netz",
       "gui": "GUI",
@@ -1531,6 +1532,11 @@
         "exportJson": "Als JSON exportéieren",
         "exportBuml": "Als B-UML exportéieren"
       }
+    },
+    "appErrorBoundary": {
+      "title": "Eppes ass failgeschlag",
+      "description": "En onerwarteter Fehler ass opgetrueden. Probéier w.e.g., d'Applikatioun neit ze lueden.",
+      "reload": "Applikatioun neit lueden"
     },
     "cookie": {
       "toggleEnable": "Analyse aktivéieren",

@@ -268,6 +268,7 @@
     "BPMNDiagram": {
       "BPMNTask": "Aufgab",
       "BPMNUserTask": "Benotzeraufgab",
+      "BPMNServiceTask": "Service-Aufgab",
       "BPMNSendTask": "Sendaufgab",
       "BPMNReceiveTask": "Empfangsaufgab",
       "BPMNManualTask": "Manuell Aufgab",
@@ -319,6 +320,7 @@
       "BPMNMessageFlow": "Message",
       "BPMNAssociationFlow": "Associatioun",
       "BPMNDataAssociationFlow": "Datenassociatioun",
+      "BPMNDefaultSequenceFlow": "Standardfluss",
       "BPMNDataObject": "Datenobjet",
       "BPMNPool": "Pool",
       "BPMNSwimlane": "Bunn",

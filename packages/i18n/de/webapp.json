@@ -46,6 +46,7 @@
       "object": "Objekt",
       "state": "Zustand",
       "agent": "Agent",
+      "bpmn": "BPMN",
       "user": "Benutzer",
       "neuralNet": "Neuronales Netz",
       "gui": "GUI",
@@ -1531,6 +1532,11 @@
         "exportJson": "Als JSON exportieren",
         "exportBuml": "Als B-UML exportieren"
       }
+    },
+    "appErrorBoundary": {
+      "title": "Etwas ist schief gelaufen",
+      "description": "Ein unerwarteter Fehler ist aufgetreten. Bitte versuchen Sie, die Anwendung neu zu laden.",
+      "reload": "Anwendung neu laden"
     },
     "cookie": {
       "toggleEnable": "Analyse aktivieren",

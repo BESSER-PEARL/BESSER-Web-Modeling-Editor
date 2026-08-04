@@ -46,6 +46,7 @@
       "object": "Objecte",
       "state": "Estat",
       "agent": "Agent",
+      "bpmn": "BPMN",
       "user": "Usuari",
       "neuralNet": "Xarxa neuronal",
       "gui": "GUI",
@@ -1531,6 +1532,11 @@
         "exportJson": "Exporta com a JSON",
         "exportBuml": "Exporta com a B-UML"
       }
+    },
+    "appErrorBoundary": {
+      "title": "Alguna cosa ha anat malament",
+      "description": "Ha ocorregut un error inesperat. Si us plau, intenta recarregar l'aplicació.",
+      "reload": "Recarrega l'aplicació"
     },
     "cookie": {
       "toggleEnable": "Activa l'analítica",

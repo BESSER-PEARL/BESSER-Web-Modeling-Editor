@@ -1533,6 +1533,11 @@
         "exportBuml": "Export as B-UML"
       }
     },
+    "appErrorBoundary": {
+      "title": "Something went wrong",
+      "description": "An unexpected error has occurred. Please try reloading the application.",
+      "reload": "Reload Application"
+    },
     "cookie": {
       "toggleEnable": "Enable analytics",
       "toggleDisable": "Disable analytics",
