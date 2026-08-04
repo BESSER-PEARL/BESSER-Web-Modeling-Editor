@@ -775,7 +775,7 @@ class StateUpdate extends Component<Props, State> {
     if (!codeAction) {
       return (
         <Button color="primary" onClick={() =>
-          this.create(Clazz, 'code')('def body_name(session: \'Session\'):\n    pass\n')
+          this.create(Clazz, 'code')('def body_name(session: Session):\n    pass\n')
         }>
           Initialize Python code
         </Button>
@@ -1275,7 +1275,7 @@ class StateUpdate extends Component<Props, State> {
   ) => {
     actions.forEach((a) => this.delete(a.id)());
     if (type === 'custom') {
-      this.create(Clazz, 'code')('def body_name(session: \'Session\'):\n    pass\n');
+      this.create(Clazz, 'code')('def body_name(session: Session):\n    pass\n');
     }
   };
 
