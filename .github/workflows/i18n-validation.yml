@@ -24,7 +24,6 @@ jobs:
           node-version: '20'
 
       - name: Validate i18n completeness
-        working-directory: ./besser/utilities/web_modeling_editor/frontend
         run: node scripts/i18n-validate-strict.mjs
 
       - name: Comment on PR if validation fails
