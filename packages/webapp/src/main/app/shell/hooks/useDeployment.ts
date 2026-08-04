@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { toast } from 'react-toastify';
 import { useGitHubAuth } from '../../../features/github/hooks/useGitHubAuth';
 import { type DeploymentTarget } from '../../../features/github/hooks/useGitHubRepo';
@@ -77,6 +78,7 @@ interface UseDeploymentOptions {
 }
 
 export function useDeployment({ currentProject, isDeploymentAvailable }: UseDeploymentOptions) {
+  const { t } = useTranslation();
   const {
     isAuthenticated,
     githubSession,
@@ -132,20 +134,20 @@ export function useDeployment({ currentProject, isDeploymentAvailable }: UseDepl
 
   const handleOpenDeployDialog = useCallback(() => {
     if (!isDeploymentAvailable) {
-      toast.info('Deploy is available for Web App and Agent diagrams.');
+      toast.info(t('deploy.toasts.availableFor'));
       return;
     }
     if (!isAuthenticated) {
-      toast.info('Connect to GitHub first.');
+      toast.info(t('deploy.toasts.connectGitHubFirst'));
       return;
     }
     if (!currentProject) {
-      toast.error('Create or load a project first.');
+      toast.error(t('project.toasts.createOrLoadFirst'));
       return;
     }
 
     if (availableDeployTargets.length === 0) {
-      toast.info('Deploy requires Class + GUI diagrams (Web App) or at least one Agent diagram (Standalone Agent).');
+      toast.info(t('deploy.toasts.requiresDiagrams'));
       return;
     }
 
@@ -209,15 +211,15 @@ export function useDeployment({ currentProject, isDeploymentAvailable }: UseDepl
 
   const handlePublishToRender = useCallback(async () => {
     if (!currentProject) {
-      toast.error('No project available for deployment.');
+      toast.error(t('deploy.toasts.noProjectAvailable'));
       return;
     }
     if (!githubSession) {
-      toast.error('GitHub session not found. Please reconnect.');
+      toast.error(t('deploy.toasts.githubSessionNotFound'));
       return;
     }
     if (!githubRepoName.trim()) {
-      toast.error('Repository name is required.');
+      toast.error(t('deploy.toasts.repoNameRequired'));
       return;
     }
 
@@ -227,7 +229,7 @@ export function useDeployment({ currentProject, isDeploymentAvailable }: UseDepl
     if (deploymentTarget === 'agent' && includePersonalization) {
       const mapping = buildPersonalizationMapping(projectForDeploy);
       if (mapping.length === 0) {
-        toast.error('No valid personalization mappings found. Save personalized variants before enabling this option.');
+        toast.error(t('deploy.toasts.noPersonalizationMappings'));
         return;
       }
       personalizationMapping = mapping;

@@ -1,4 +1,6 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
+import type { TFunction } from 'i18next';
 import { Code2, ChevronDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -24,15 +26,19 @@ interface GenerateMenuProps {
   onSwitchDiagramType?: (type: SupportedDiagramType) => void;
 }
 
-const renderGeneratorMenuEntry = (entry: GeneratorMenuEntry, onGenerate: (type: GeneratorType, config?: Record<string, any>) => void) => {
+const renderGeneratorMenuEntry = (
+  entry: GeneratorMenuEntry,
+  onGenerate: (type: GeneratorType, config?: Record<string, any>) => void,
+  t: TFunction,
+) => {
   if (entry.kind === 'group') {
     return (
       <DropdownMenuSub key={entry.label}>
-        <DropdownMenuSubTrigger>{entry.label}</DropdownMenuSubTrigger>
+        <DropdownMenuSubTrigger>{entry.labelKey ? t(entry.labelKey) : entry.label}</DropdownMenuSubTrigger>
         <DropdownMenuSubContent>
           {entry.actions.map((action) => (
             <DropdownMenuItem key={action.generator} onClick={() => onGenerate(action.generator, action.config)}>
-              {action.label}
+              {action.labelKey ? t(action.labelKey) : action.label}
             </DropdownMenuItem>
           ))}
         </DropdownMenuSubContent>
@@ -43,39 +49,53 @@ const renderGeneratorMenuEntry = (entry: GeneratorMenuEntry, onGenerate: (type: 
   if (entry.kind === 'notice') {
     return (
       <DropdownMenuItem key={entry.label} disabled>
-        {entry.label}
+        {entry.labelKey ? t(entry.labelKey) : entry.label}
       </DropdownMenuItem>
     );
   }
 
   return (
     <DropdownMenuItem key={entry.generator} onClick={() => onGenerate(entry.generator, entry.config)}>
-      {entry.label}
+      {entry.labelKey ? t(entry.labelKey) : entry.label}
     </DropdownMenuItem>
   );
 };
 
-export const GenerateMenu: React.FC<GenerateMenuProps> = ({ mode, isGenerating, primaryGenerateClass, onGenerate, onSwitchDiagramType }) => {
+export const GenerateMenu: React.FC<GenerateMenuProps> = ({
+  mode,
+  isGenerating,
+  primaryGenerateClass,
+  onGenerate,
+  onSwitchDiagramType,
+}) => {
+  const { t } = useTranslation();
   const menuEntries = GENERATOR_MENU_CONFIG[mode];
 
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="outline" className={primaryGenerateClass} disabled={isGenerating} title="Generate">
+        <Button
+          variant="outline"
+          className={primaryGenerateClass}
+          disabled={isGenerating}
+          title={t('menu.generate.title')}
+        >
           <Code2 className="size-4" />
-          <span className="hidden xl:inline">{isGenerating ? 'Generating...' : 'Generate'}</span>
+          <span className="hidden xl:inline">
+            {isGenerating ? t('menu.generate.generating') : t('menu.generate.title')}
+          </span>
           <ChevronDown className="size-3 opacity-50" />
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent className="w-72" align="end">
-        <DropdownMenuLabel>Code Generation</DropdownMenuLabel>
+        <DropdownMenuLabel>{t('menu.generate.codeGeneration')}</DropdownMenuLabel>
         <DropdownMenuSeparator />
-        {menuEntries.map((entry) => renderGeneratorMenuEntry(entry, onGenerate))}
+        {menuEntries.map((entry) => renderGeneratorMenuEntry(entry, onGenerate, t))}
         {mode === 'statemachine' && onSwitchDiagramType && (
           <>
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={() => onSwitchDiagramType('ClassDiagram')}>
-              Go to Class Diagram
+              {t('menu.generate.goToClassDiagram')}
             </DropdownMenuItem>
           </>
         )}

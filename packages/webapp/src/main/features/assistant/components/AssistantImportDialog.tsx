@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -31,6 +32,7 @@ export const AssistantImportDialog: React.FC<AssistantImportDialogProps> = ({
   onFileChange,
   onImport,
 }) => {
+  const { t } = useTranslation();
   const isImageMode = mode === 'image';
   const canImport = Boolean(apiKey && selectedFile && !error && !isImporting);
 
@@ -39,15 +41,15 @@ export const AssistantImportDialog: React.FC<AssistantImportDialogProps> = ({
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>
-            {isImageMode ? 'Import Class Diagram from Image' : 'Import Class Diagram from Knowledge Graph'}
+            {isImageMode ? t('assistant.import.titleImage') : t('assistant.import.titleKg')}
           </DialogTitle>
           <DialogDescription>
-            Use an OpenAI API key to convert your file to a class diagram and add it to the current project.
+            {t('assistant.import.description')}
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-4">
           <div className="space-y-1.5">
-            <Label htmlFor="assistant-import-api-key">OpenAI API Key</Label>
+            <Label htmlFor="assistant-import-api-key">{t('assistant.import.apiKeyLabel')}</Label>
             <Input
               id="assistant-import-api-key"
               type="password"
@@ -59,7 +61,7 @@ export const AssistantImportDialog: React.FC<AssistantImportDialogProps> = ({
           </div>
           <div className="space-y-1.5">
             <Label htmlFor="assistant-import-file">
-              {isImageMode ? 'Upload Diagram Image (PNG/JPEG)' : 'Upload Knowledge Graph (TTL/RDF/JSON)'}
+              {isImageMode ? t('assistant.import.uploadImageLabel') : t('assistant.import.uploadKgLabel')}
             </Label>
             <input
               id="assistant-import-file"
@@ -69,15 +71,15 @@ export const AssistantImportDialog: React.FC<AssistantImportDialogProps> = ({
               className="block w-full cursor-pointer rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground/80"
             />
             {error && <p className="text-xs text-destructive">{error}</p>}
-            {selectedFile && <p className="text-xs text-muted-foreground">Selected: {selectedFile.name}</p>}
+            {selectedFile && <p className="text-xs text-muted-foreground">{t('assistant.import.selected', { name: selectedFile.name })}</p>}
           </div>
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isImporting}>
-            Cancel
+            {t('common.cancel')}
           </Button>
           <Button onClick={onImport} disabled={!canImport} className="bg-brand text-brand-foreground hover:bg-brand-dark">
-            {isImporting ? 'Importing...' : 'Import'}
+            {isImporting ? t('assistant.import.importing') : t('assistant.import.import')}
           </Button>
         </DialogFooter>
       </DialogContent>

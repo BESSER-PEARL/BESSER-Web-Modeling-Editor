@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 
 interface MapComponentProps {
   title?: string;
@@ -13,6 +14,7 @@ export const MapComponent: React.FC<MapComponentProps> = ({
   longitude = -74.0060,
   zoom = 12,
 }) => {
+  const { t } = useTranslation();
   // Using OpenStreetMap embed (no API key required)
   const mapUrl = `https://www.openstreetmap.org/export/embed.html?bbox=${longitude - 0.05},${latitude - 0.05},${longitude + 0.05},${latitude + 0.05}&layer=mapnik&marker=${latitude},${longitude}`;
 
@@ -43,7 +45,7 @@ export const MapComponent: React.FC<MapComponentProps> = ({
       </div>
       <div style={{ marginTop: '15px', padding: '10px', background: '#f5f5f5', borderRadius: '4px' }}>
         <p style={{ margin: 0, fontSize: '14px', color: '#666', fontFamily: 'Arial, sans-serif' }}>
-          📍 Location: {latitude.toFixed(4)}, {longitude.toFixed(4)}
+          📍 {t('editors.gui.map.location')}: {latitude.toFixed(4)}, {longitude.toFixed(4)}
         </p>
       </div>
       <div style={{ marginTop: '10px', fontSize: '12px', color: '#999', textAlign: 'center' }}>
@@ -53,7 +55,7 @@ export const MapComponent: React.FC<MapComponentProps> = ({
           rel="noopener noreferrer"
           style={{ color: '#3498db', textDecoration: 'none' }}
         >
-          View Larger Map
+          {t('editors.gui.map.viewLargerMap')}
         </a>
       </div>
     </div>

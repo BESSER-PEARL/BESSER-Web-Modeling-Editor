@@ -56,3 +56,7 @@ export type { Patch } from './services/patcher';
 // Export only the UMLModelCompat type for compatibility purposes
 // Provides type definitions for compatibility with different UML model versions
 export type { UMLModelCompat } from './compat';
+
+// Export the supported-locale enum so consumers (the webapp language selector)
+// can drive the editor's UI language via the `locale` setter.
+export { Locale } from './services/editor/editor-types';

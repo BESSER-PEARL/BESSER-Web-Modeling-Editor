@@ -1,4 +1,5 @@
 import { useState, useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
 import { toast } from 'react-toastify';
 import { ProjectStorageRepository } from '../../../shared/services/storage/ProjectStorageRepository';
 import { buildProjectExportEnvelope } from '../../../shared/utils/projectExportUtils';
@@ -21,6 +22,7 @@ interface UseProjectPreviewOptions {
 }
 
 export function useProjectPreview({ currentProject }: UseProjectPreviewOptions) {
+  const { t } = useTranslation();
   const generateProjectBumlPreview = useProjectBumlPreview();
 
   const [isProjectPreviewOpen, setIsProjectPreviewOpen] = useState(false);
@@ -31,7 +33,7 @@ export function useProjectPreview({ currentProject }: UseProjectPreviewOptions) 
 
   const handleOpenProjectPreview = useCallback(() => {
     if (!currentProject) {
-      toast.error('Create or load a project first.');
+      toast.error(t('project.toasts.createOrLoadFirst'));
       return;
     }
 
@@ -47,9 +49,9 @@ export function useProjectPreview({ currentProject }: UseProjectPreviewOptions) 
   const handleCopyProjectPreview = useCallback(async () => {
     const success = await copyToClipboard(projectPreviewJson);
     if (success) {
-      toast.success('Project JSON copied.');
+      toast.success(t('project.preview.toasts.jsonCopied'));
     } else {
-      toast.error('Failed to copy project JSON.');
+      toast.error(t('project.preview.toasts.jsonCopyFailed'));
     }
   }, [projectPreviewJson]);
 
@@ -60,7 +62,7 @@ export function useProjectPreview({ currentProject }: UseProjectPreviewOptions) 
 
   const handleRequestProjectBumlPreview = useCallback(async () => {
     if (!currentProject) {
-      toast.error('Create or load a project first.');
+      toast.error(t('project.toasts.createOrLoadFirst'));
       return;
     }
 
@@ -73,10 +75,10 @@ export function useProjectPreview({ currentProject }: UseProjectPreviewOptions) 
       setProjectBumlPreview(bumlPreview);
       // toast.success('Project B-UML preview generated.');
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'Failed to generate B-UML preview.';
+      const message = error instanceof Error ? error.message : t('project.preview.toasts.bumlFailedFallback');
       setProjectBumlPreview('');
       setProjectBumlPreviewError(message);
-      toast.error(`Failed to generate B-UML preview: ${message}`);
+      toast.error(t('project.preview.toasts.bumlFailed', { message }));
     } finally {
       setIsProjectBumlPreviewLoading(false);
     }
@@ -92,21 +94,21 @@ export function useProjectPreview({ currentProject }: UseProjectPreviewOptions) 
 
   const handleCopyProjectBumlPreview = useCallback(async () => {
     if (!projectBumlPreview) {
-      toast.error('No B-UML preview to copy.');
+      toast.error(t('project.preview.toasts.noBumlToCopy'));
       return;
     }
 
     const success = await copyToClipboard(projectBumlPreview);
     if (success) {
-      toast.success('Project B-UML copied.');
+      toast.success(t('project.preview.toasts.bumlCopied'));
     } else {
-      toast.error('Failed to copy B-UML preview.');
+      toast.error(t('project.preview.toasts.bumlCopyFailed'));
     }
   }, [projectBumlPreview]);
 
   const handleDownloadProjectBumlPreview = useCallback(() => {
     if (!projectBumlPreview) {
-      toast.error('No B-UML preview to download.');
+      toast.error(t('project.preview.toasts.noBumlToDownload'));
       return;
     }
 
