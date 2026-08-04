@@ -24,6 +24,7 @@ import { FormField } from '@/components/ui/form-field';
 import { BesserProject, PerspectiveSettings } from '../../shared/types/project';
 import { PERSPECTIVES, perspectivesFromDiagramList } from '../../shared/perspectives';
 import { useProject } from '../../app/hooks/useProject';
+import { LanguageSelector } from '../../app/shell/LanguageSelector';
 import { useConfirmDialog } from '../../shared/hooks/useConfirmDialog';
 import { useFieldValidation } from '../../shared/hooks/useFieldValidation';
 import { ProjectStorageRepository } from '../../shared/services/storage/ProjectStorageRepository';
@@ -467,9 +468,12 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
                 <DialogDescription className="mt-1">{currentStepInfo.description}</DialogDescription>
               </div>
             </div>
-            <Badge variant="secondary" className="shrink-0 rounded-full border-brand/15 bg-brand/[0.06] font-mono text-[10px] tracking-wider text-brand">
-              {currentStepInfo.badge}
-            </Badge>
+            <div className="flex shrink-0 items-center gap-2">
+              {step === 'start' && <LanguageSelector outlineButtonClass="h-9" />}
+              <Badge variant="secondary" className="shrink-0 rounded-full border-brand/15 bg-brand/[0.06] font-mono text-[10px] tracking-wider text-brand">
+                {currentStepInfo.badge}
+              </Badge>
+            </div>
           </div>
         </DialogHeader>
 
