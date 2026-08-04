@@ -55,18 +55,42 @@ const SectionHeader = styled.span`
 const RadioGroup = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 2px;
-  padding: 4px 0;
+  gap: 8px;
+  padding: 6px 0;
+
+  label {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    font-size: 13px;
+    cursor: pointer;
+  }
+
+  input[type='radio'] {
+    width: 15px;
+    height: 15px;
+    flex-shrink: 0;
+    accent-color: ${(props: any) => props.theme.color.primary};
+    cursor: pointer;
+  }
 `;
 
 const DbFieldRow = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  padding: 4px 0;
+  gap: 6px;
+  padding: 8px 0;
 
   & + & {
-    border-top: 1px solid ${(props: any) => props.theme.color.gray}22;
+    border-top: 1px solid ${(props: any) => props.theme.color.gray};
+  }
+
+  & > label {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    opacity: 0.55;
   }
 `;
 
@@ -98,8 +122,8 @@ const LlmSelect = styled.select`
 const LlmFieldRow = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  padding: 4px 0;
+  gap: 6px;
+  padding: 6px 0;
 `;
 
 /* Body-type toggle */
@@ -125,14 +149,21 @@ const BodyTypeBtn = styled.button<{ active?: boolean }>`
 
 /* Action card */
 const ActionCard = styled.div`
-  border: 1px solid ${(props: any) => props.theme.color.gray}44;
-  border-radius: 4px;
-  margin-bottom: 6px;
-  background: transparent;
-  transition: border-color 0.15s;
+  border: 2px solid ${(props: any) => props.theme.color.gray};
+  border-left: 4px solid ${(props: any) => props.theme.color.primary}99;
+  border-radius: 8px;
+  margin-bottom: 18px;
+  background: ${(props: any) => props.theme.color.background};
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.07);
+  transition: border-color 0.15s, box-shadow 0.15s;
+  &:hover {
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.11);
+  }
   &[data-drag-over='true'] {
     border-color: ${(props: any) => props.theme.color.primary};
+    border-left-color: ${(props: any) => props.theme.color.primary};
     background: ${(props: any) => props.theme.color.primary}11;
+    box-shadow: 0 2px 8px ${(props: any) => props.theme.color.primary}33;
   }
   &[data-dragging='true'] {
     opacity: 0.4;
@@ -143,19 +174,21 @@ const ActionCardHeader = styled.div`
   display: flex;
   align-items: center;
   gap: 4px;
-  padding: 5px 6px;
+  padding: 7px 8px;
   cursor: default;
+  background: ${(props: any) => props.theme.color.backgroundVariant}55;
+  border-radius: 7px 7px 0 0;
 `;
 
 const DragHandle = styled.span`
   cursor: grab;
-  opacity: 0.4;
+  opacity: 0.35;
   font-size: 14px;
   line-height: 1;
   flex-shrink: 0;
   user-select: none;
   &:hover {
-    opacity: 0.9;
+    opacity: 0.8;
   }
   &:active {
     cursor: grabbing;
@@ -163,18 +196,20 @@ const DragHandle = styled.span`
 `;
 
 const ActionTypeBadge = styled.span`
-  font-size: 10px;
+  font-size: 16px;
   text-transform: uppercase;
-  background: ${(props: any) => props.theme.color.gray}22;
-  padding: 2px 5px;
-  border-radius: 3px;
-  letter-spacing: 0.4px;
+  background: ${(props: any) => props.theme.color.primaryContrast}11;
+  color: ${(props: any) => props.theme.color.primaryContrast};
+  padding: 2px 8px;
+  border-radius: 4px;
+  letter-spacing: 0.5px;
+  font-weight: 600;
   flex-shrink: 0;
 `;
 
 const ActionSummary = styled.span`
   flex: 1;
-  font-size: 12px;
+  font-size: 13px;
   opacity: 0.75;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -186,18 +221,27 @@ const IconBtn = styled.button`
   border: none;
   cursor: pointer;
   padding: 2px 4px;
-  opacity: 0.55;
+  opacity: 0.45;
   font-size: 13px;
   line-height: 1;
   flex-shrink: 0;
+  border-radius: 3px;
+  transition: opacity 0.1s, background 0.1s;
   &:hover {
     opacity: 1;
+    background: ${(props: any) => props.theme.color.gray}66;
   }
 `;
 
 const ActionBody = styled.div`
-  padding: 0 8px 8px 8px;
-  border-top: 1px solid ${(props: any) => props.theme.color.gray}22;
+  padding: 10px 12px 12px 12px;
+  border-top: 1px solid ${(props: any) => props.theme.color.gray};
+  background: ${(props: any) => props.theme.color.backgroundVariant}33;
+  border-radius: 0 0 7px 7px;
+
+  h1 {
+    color: ${(props: any) => props.theme.color.primary};
+  }
 `;
 
 const AddActionRow = styled.div`
@@ -219,8 +263,18 @@ const ToggleLabel = styled.label`
 const CheckboxRow = styled.label`
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 4px 0;
+  gap: 8px;
+  padding: 5px 0;
+  font-size: 13px;
+  cursor: pointer;
+
+  input[type='checkbox'] {
+    width: 15px;
+    height: 15px;
+    flex-shrink: 0;
+    accent-color: ${(props: any) => props.theme.color.primary};
+    cursor: pointer;
+  }
 `;
 
 const WsWarning = styled.p`
@@ -230,13 +284,24 @@ const WsWarning = styled.p`
   opacity: 0.85;
 `;
 
+const ActionIndex = styled.span`
+  font-size: 10px;
+  font-weight: 700;
+  opacity: 0.35;
+  flex-shrink: 0;
+  min-width: 14px;
+  text-align: center;
+`;
+
 const NewActionLabel = styled.div`
   font-size: 11px;
   text-transform: uppercase;
   letter-spacing: 0.5px;
   opacity: 0.55;
-  margin-top: 8px;
+  margin-top: 14px;
   margin-bottom: 4px;
+  padding-top: 10px;
+  border-top: 1px dashed ${(props: any) => props.theme.color.gray}88;
 `;
 
 const VarHint = styled.p`
@@ -254,23 +319,26 @@ const PromptModeRow = styled.div`
 
 const PromptModeBtn = styled.button<{ active?: boolean }>`
   flex: 1;
-  padding: 3px 8px;
-  border-radius: 3px;
-  border: 1px solid ${(props: any) => props.theme.color.gray}66;
+  padding: 5px 8px;
+  border-radius: 4px;
+  border: 1px solid ${(props: any) => props.theme.color.gray};
   background: ${(props: any) => (props.active ? props.theme.color.primary : 'transparent')};
   color: ${(props: any) => (props.active ? '#fff' : 'inherit')};
   cursor: pointer;
-  font-size: 11px;
+  font-size: 12px;
+  font-weight: ${(props: any) => (props.active ? 600 : 400)};
   &:hover:not(:disabled) { opacity: 0.85; }
 `;
 
 const StoreInSessionRow = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  margin-top: 8px;
-  padding-top: 6px;
-  border-top: 1px dashed ${(props: any) => props.theme.color.gray}44;
+  gap: 6px;
+  margin-top: 12px;
+  padding: 10px;
+  border-radius: 6px;
+  border: 1px solid ${(props: any) => props.theme.color.gray};
+  background: ${(props: any) => props.theme.color.background};
 `;
 
 const SectionTabRow = styled.div`
@@ -826,11 +894,11 @@ class StateUpdate extends Component<Props, State> {
                 >
                   ⠿
                 </DragHandle>
-                <ActionTypeBadge style={badgeWarning ? { color: '#e04040' } : undefined}>
+                <ActionTypeBadge style={badgeWarning ? { color: '#e04040', background: '#e0404022' } : undefined}>
                   {ACTION_TYPE_LABELS[action.replyType] ?? action.replyType}
                 </ActionTypeBadge>
-                <ActionSummary title={action.name}>{this.getActionSummary(action)}</ActionSummary>
-                <IconBtn title={isExpanded ? 'Collapse' : 'Expand'} onClick={() => this.toggleExpand(action.id, prefix)}>
+
+                <IconBtn style={{ marginLeft: 'auto' }} title={isExpanded ? 'Collapse' : 'Expand'} onClick={() => this.toggleExpand(action.id, prefix)}>
                   {isExpanded ? '▲' : '✎'}
                 </IconBtn>
                 <IconBtn title="Delete action" onClick={this.delete(action.id)}>
