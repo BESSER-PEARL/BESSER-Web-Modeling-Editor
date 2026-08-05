@@ -786,7 +786,7 @@
         "Class Diagram": "Klassendiagramm",
         "Behavioral": "Verhaltensmuster",
         "Agent Diagram": "Agentendiagramm",
-        "State Machine Diagram": "Zustandsautomatendiagramm",
+        "State Machine Diagram": "Zustandsautomaten Diagramm",
         "Quantum Circuit": "Quantenschaltkreis",
         "Neural Network": "Neuronales Netz",
         "Full Project": "Gesamtprojekt"
@@ -1251,7 +1251,7 @@
   "diagramTypes": {
     "ClassDiagram": "Klassendiagramm",
     "ObjectDiagram": "Objektdiagramm",
-    "StateMachineDiagram": "Zustandsdiagramm",
+    "StateMachineDiagram": "Zustandsautomaten Diagramm",
     "AgentDiagram": "Agentendiagramm",
     "UserDiagram": "Benutzerdiagramm",
     "GUINoCodeDiagram": "GUI-Diagramm",
@@ -1381,8 +1381,8 @@
         "label": "Zustandsautomat",
         "summary": "Erfassen Sie dynamisches Verhalten mit Zuständen, Transitionen und Aktionen.",
         "about": {
-          "title": "Über Zustandsautomatendiagramme",
-          "body": "<p>Zustandsautomatendiagramme beschreiben Verhaltensänderungen im Laufe der Zeit als Reaktion auf Ereignisse und Bedingungen.</p>"
+          "title": "Über Zustandsautomaten Diagramme",
+          "body": "<p>Zustandsautomaten Diagramme beschreiben Verhaltensänderungen im Laufe der Zeit als Reaktion auf Ereignisse und Bedingungen.</p>"
         },
         "initialFinal": {
           "title": "Anfangs- und Endfluss hinzufügen",
