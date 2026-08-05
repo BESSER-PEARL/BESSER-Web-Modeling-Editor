@@ -764,6 +764,7 @@
           "UserDiagram": "Actores y sus interacciones.",
           "GUINoCodeDiagram": "Diseño de interfaz gráfica de usuario (inspirado en IFML).",
           "QuantumCircuitDiagram": "Especificación de programa cuántico.",
+          "BPMN": "Notación de Modelo y Proceso de Negocio.",
           "NNDiagram": "Arquitectura de red neuronal (PyTorch / TensorFlow)."
         }
       },
@@ -1255,6 +1256,7 @@
     "UserDiagram": "Diagrama de usuario",
     "GUINoCodeDiagram": "Diagrama de GUI",
     "QuantumCircuitDiagram": "Diagrama de circuito cuántico",
+    "BPMN": "Diagrama BPMN",
     "NNDiagram": "Diagrama de red neuronal"
   },
   "dialogs": {
