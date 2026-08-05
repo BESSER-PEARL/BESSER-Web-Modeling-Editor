@@ -15,6 +15,7 @@ import greetingagent from '../../../templates/pattern/agent/greetingagent.json';
 import dbagent from '../../../templates/pattern/agent/dbagent.json';
 import gymagent from '../../../templates/pattern/agent/gymagent.json';
 import faqRagAgent from '../../../templates/pattern/agent/faqragagent.json';
+import chatbotAgent from '../../../templates/pattern/agent/chatbotagent.json';
 import libraryAgent from '../../../templates/pattern/agent/libraryagent.json';
 import traficlightModel from '../../../templates/pattern/statemachine/traficlight.json';
 import bpmnParallelReview from '../../../templates/pattern/bpmn/parallel_review.json';
@@ -111,6 +112,13 @@ export class TemplateFactory {
           softwarePatternType,
           UMLDiagramType.AgentDiagram,
           faqRagAgent as any,
+          SoftwarePatternCategory.AGENT,
+        );
+      case SoftwarePatternType.CHATBOT_AGENT:
+        return new SoftwarePatternTemplate(
+          softwarePatternType,
+          UMLDiagramType.AgentDiagram,
+          chatbotAgent as any,
           SoftwarePatternCategory.AGENT,
         );
       case SoftwarePatternType.LIBRARY_AGENT:

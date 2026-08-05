@@ -1,0 +1,309 @@
+{
+  "version": "3.0.0",
+  "type": "AgentDiagram",
+  "size": {
+    "width": 1080,
+    "height": 500
+  },
+  "interactive": {
+    "elements": {},
+    "relationships": {}
+  },
+  "elements": {
+    "a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d": {
+      "id": "a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d",
+      "name": "",
+      "type": "StateInitialNode",
+      "owner": null,
+      "bounds": {
+        "x": -700,
+        "y": -50,
+        "width": 45,
+        "height": 45
+      }
+    },
+    "b2c3d4e5-f6a7-4b8c-9d0e-1f2a3b4c5d6e": {
+      "id": "b2c3d4e5-f6a7-4b8c-9d0e-1f2a3b4c5d6e",
+      "name": "initial_state",
+      "type": "AgentState",
+      "owner": null,
+      "bounds": {
+        "x": -480,
+        "y": -80,
+        "width": 420,
+        "height": 70
+      },
+      "bodies": ["c3d4e5f6-a7b8-4c9d-0e1f-2a3b4c5d6e7f"],
+      "fallbackBodies": []
+    },
+    "c3d4e5f6-a7b8-4c9d-0e1f-2a3b4c5d6e7f": {
+      "id": "c3d4e5f6-a7b8-4c9d-0e1f-2a3b4c5d6e7f",
+      "name": "Hi! Upload a document or ask me anything about your knowledge base.",
+      "type": "AgentStateBody",
+      "owner": "b2c3d4e5-f6a7-4b8c-9d0e-1f2a3b4c5d6e",
+      "bounds": {
+        "x": -479.5,
+        "y": -39.5,
+        "width": 419,
+        "height": 30
+      },
+      "replyType": "text",
+      "ragDatabaseName": ""
+    },
+    "d4e5f6a7-b8c9-4d0e-1f2a-3b4c5d6e7f8a": {
+      "id": "d4e5f6a7-b8c9-4d0e-1f2a-3b4c5d6e7f8a",
+      "name": "upload_file_state",
+      "type": "AgentState",
+      "owner": null,
+      "bounds": {
+        "x": -480,
+        "y": 80,
+        "width": 420,
+        "height": 70
+      },
+      "bodies": ["e5f6a7b8-c9d0-4e1f-2a3b-4c5d6e7f8a9b"],
+      "fallbackBodies": []
+    },
+    "e5f6a7b8-c9d0-4e1f-2a3b-4c5d6e7f8a9b": {
+      "id": "e5f6a7b8-c9d0-4e1f-2a3b-4c5d6e7f8a9b",
+      "name": "File uploaded! You can now ask questions about it.",
+      "type": "AgentStateBody",
+      "owner": "d4e5f6a7-b8c9-4d0e-1f2a-3b4c5d6e7f8a",
+      "bounds": {
+        "x": -479.5,
+        "y": 120.5,
+        "width": 419,
+        "height": 30
+      },
+      "replyType": "text",
+      "ragDatabaseName": ""
+    },
+    "f6a7b8c9-d0e1-4f2a-3b4c-5d6e7f8a9b0c": {
+      "id": "f6a7b8c9-d0e1-4f2a-3b4c-5d6e7f8a9b0c",
+      "name": "MyDocs",
+      "type": "AgentRagElement",
+      "owner": null,
+      "bounds": {
+        "x": 130,
+        "y": 190,
+        "width": 120,
+        "height": 110
+      },
+      "llm_prompt": "You are a helpful assistant specialized in answering questions about the provided knowledge base. Answer questions using the context provided. If the question is within the topic area but the specific answer is not found in the context, try to give the best possible answer using what is available. If the question is completely outside the knowledge base topic, politely say you don't know and clarify that you are limited to answering questions within the provided topic context.",
+      "k": 8,
+      "num_previous_messages": 0,
+      "embedding_provider": "openai"
+    },
+    "a7b8c9d0-e1f2-4a3b-4c5d-6e7f8a9b0c1d": {
+      "id": "a7b8c9d0-e1f2-4a3b-4c5d-6e7f8a9b0c1d",
+      "name": "chat_state",
+      "type": "AgentState",
+      "owner": null,
+      "bounds": {
+        "x": 280,
+        "y": -80,
+        "width": 420,
+        "height": 100
+      },
+      "bodies": ["b8c9d0e1-f2a3-4b4c-5d6e-7f8a9b0c1d2e"],
+      "fallbackBodies": ["c9d0e1f2-a3b4-4c5d-6e7f-8a9b0c1d2e3f"]
+    },
+    "b8c9d0e1-f2a3-4b4c-5d6e-7f8a9b0c1d2e": {
+      "id": "b8c9d0e1-f2a3-4b4c-5d6e-7f8a9b0c1d2e",
+      "name": "Answer from MyDocs",
+      "type": "AgentStateBody",
+      "owner": "a7b8c9d0-e1f2-4a3b-4c5d-6e7f8a9b0c1d",
+      "bounds": {
+        "x": 280.5,
+        "y": -39.5,
+        "width": 419,
+        "height": 30
+      },
+      "replyType": "rag",
+      "ragDatabaseName": "MyDocs",
+      "prompt": "Answer the user's question based strictly on the retrieved context. Do not add information that is not present in the context."
+    },
+    "c9d0e1f2-a3b4-4c5d-6e7f-8a9b0c1d2e3f": {
+      "id": "c9d0e1f2-a3b4-4c5d-6e7f-8a9b0c1d2e3f",
+      "name": "I don't have information on that. Could you rephrase your question?",
+      "type": "AgentStateFallbackBody",
+      "owner": "a7b8c9d0-e1f2-4a3b-4c5d-6e7f8a9b0c1d",
+      "bounds": {
+        "x": 280.5,
+        "y": -9.5,
+        "width": 419,
+        "height": 30
+      },
+      "replyType": "text",
+      "ragDatabaseName": ""
+    }
+  },
+  "relationships": {
+    "d0e1f2a3-b4c5-4d6e-7f8a-9b0c1d2e3f4a": {
+      "id": "d0e1f2a3-b4c5-4d6e-7f8a-9b0c1d2e3f4a",
+      "name": "",
+      "type": "AgentStateTransitionInit",
+      "owner": null,
+      "bounds": {
+        "x": -655,
+        "y": -80,
+        "width": 175,
+        "height": 52.5
+      },
+      "path": [
+        { "x": 0, "y": 52.5 },
+        { "x": 87.5, "y": 52.5 },
+        { "x": 87.5, "y": 0 },
+        { "x": 175, "y": 0 }
+      ],
+      "source": {
+        "direction": "Right",
+        "element": "a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d"
+      },
+      "target": {
+        "direction": "Upleft",
+        "element": "b2c3d4e5-f6a7-4b8c-9d0e-1f2a3b4c5d6e"
+      },
+      "isManuallyLayouted": false
+    },
+    "e1f2a3b4-c5d6-4e7f-8a9b-0c1d2e3f4a5b": {
+      "id": "e1f2a3b4-c5d6-4e7f-8a9b-0c1d2e3f4a5b",
+      "name": "",
+      "type": "AgentStateTransition",
+      "owner": null,
+      "bounds": {
+        "x": -480,
+        "y": -10,
+        "width": 1,
+        "height": 90
+      },
+      "path": [
+        { "x": 0, "y": 0 },
+        { "x": 0, "y": 90 }
+      ],
+      "source": {
+        "direction": "Bottomleft",
+        "element": "b2c3d4e5-f6a7-4b8c-9d0e-1f2a3b4c5d6e"
+      },
+      "target": {
+        "direction": "Upleft",
+        "element": "d4e5f6a7-b8c9-4d0e-1f2a-3b4c5d6e7f8a"
+      },
+      "isManuallyLayouted": false,
+      "transitionType": "predefined",
+      "predefined": {
+        "predefinedType": "when_file_received",
+        "fileType": ""
+      },
+      "custom": {
+        "condition": []
+      }
+    },
+    "f2a3b4c5-d6e7-4f8a-9b0c-1d2e3f4a5b6c": {
+      "id": "f2a3b4c5-d6e7-4f8a-9b0c-1d2e3f4a5b6c",
+      "name": "",
+      "type": "AgentStateTransition",
+      "owner": null,
+      "bounds": {
+        "x": -60,
+        "y": -45,
+        "width": 340,
+        "height": 15
+      },
+      "path": [
+        { "x": 0, "y": 0 },
+        { "x": 170, "y": 0 },
+        { "x": 170, "y": 15 },
+        { "x": 340, "y": 15 }
+      ],
+      "source": {
+        "direction": "Right",
+        "element": "b2c3d4e5-f6a7-4b8c-9d0e-1f2a3b4c5d6e"
+      },
+      "target": {
+        "direction": "Left",
+        "element": "a7b8c9d0-e1f2-4a3b-4c5d-6e7f8a9b0c1d"
+      },
+      "isManuallyLayouted": false,
+      "transitionType": "predefined",
+      "predefined": {
+        "predefinedType": "when_no_intent_matched",
+        "conditionValue": ""
+      },
+      "custom": {
+        "condition": []
+      }
+    },
+    "a3b4c5d6-e7f8-4a9b-0c1d-2e3f4a5b6c7d": {
+      "id": "a3b4c5d6-e7f8-4a9b-0c1d-2e3f4a5b6c7d",
+      "name": "",
+      "type": "AgentStateTransition",
+      "owner": null,
+      "bounds": {
+        "x": -60,
+        "y": -30,
+        "width": 340,
+        "height": 145
+      },
+      "path": [
+        { "x": 0, "y": 145 },
+        { "x": 260, "y": 145 },
+        { "x": 260, "y": 0 },
+        { "x": 340, "y": 0 }
+      ],
+      "source": {
+        "direction": "Right",
+        "element": "d4e5f6a7-b8c9-4d0e-1f2a-3b4c5d6e7f8a"
+      },
+      "target": {
+        "direction": "Left",
+        "element": "a7b8c9d0-e1f2-4a3b-4c5d-6e7f8a9b0c1d"
+      },
+      "isManuallyLayouted": false,
+      "transitionType": "predefined",
+      "predefined": {
+        "predefinedType": "when_no_intent_matched",
+        "conditionValue": ""
+      },
+      "custom": {
+        "condition": []
+      }
+    },
+    "b4c5d6e7-f8a9-4b0c-1d2e-3f4a5b6c7d8e": {
+      "id": "b4c5d6e7-f8a9-4b0c-1d2e-3f4a5b6c7d8e",
+      "name": "",
+      "type": "AgentStateTransition",
+      "owner": null,
+      "bounds": {
+        "x": 280,
+        "y": 20,
+        "width": 420,
+        "height": 80
+      },
+      "path": [
+        { "x": 420, "y": 0 },
+        { "x": 420, "y": 80 },
+        { "x": 0, "y": 80 },
+        { "x": 0, "y": 0 }
+      ],
+      "source": {
+        "direction": "Bottomright",
+        "element": "a7b8c9d0-e1f2-4a3b-4c5d-6e7f8a9b0c1d"
+      },
+      "target": {
+        "direction": "Bottomleft",
+        "element": "a7b8c9d0-e1f2-4a3b-4c5d-6e7f8a9b0c1d"
+      },
+      "isManuallyLayouted": false,
+      "transitionType": "predefined",
+      "predefined": {
+        "predefinedType": "when_no_intent_matched",
+        "conditionValue": ""
+      },
+      "custom": {
+        "condition": []
+      }
+    }
+  },
+  "assessments": {}
+}
