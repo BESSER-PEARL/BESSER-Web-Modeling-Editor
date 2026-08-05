@@ -71,8 +71,15 @@ Say you want to add Italian (`it`). Codes are ISO 639-1 (lowercase).
    { code: 'it', nativeName: 'Italiano', englishName: 'Italian' },
    ```
 
-   Then import and register its resource in `packages/webapp/src/main/shared/i18n/index.ts`
-   (add `import it from '../../../../../i18n/it/webapp.json';` and an `it: { translation: it }` entry).
+   Then import and register its resource in `packages/webapp/src/main/shared/i18n/index.ts`:
+   - Add a new import line with the other language imports at the top:
+     ```ts
+     import it from '../../../../../i18n/it/webapp.json';
+     ```
+   - Add an entry in the `resources` object:
+     ```ts
+     it: { translation: it },
+     ```
 
 3. **Create the files** by copying the English ones:
    - `packages/i18n/en/webapp.json` → `packages/i18n/it/webapp.json`
