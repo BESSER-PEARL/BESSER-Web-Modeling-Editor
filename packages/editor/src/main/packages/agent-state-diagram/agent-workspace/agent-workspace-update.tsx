@@ -1,8 +1,11 @@
-import React from 'react';
+import React, { ComponentClass } from 'react';
 import { connect } from 'react-redux';
+import { compose } from 'redux';
 import styled from 'styled-components';
 import { Textfield } from '../../../components/controls/textfield/textfield';
 import { Header } from '../../../components/controls/typography/typography';
+import { I18nContext } from '../../../components/i18n/i18n-context';
+import { localized } from '../../../components/i18n/localized';
 import { ModelState } from '../../../components/store/model-state';
 import { UMLElementRepository } from '../../../services/uml-element/uml-element-repository';
 import { AgentElementType } from '..';
@@ -38,71 +41,69 @@ type DispatchProps = {
   update: typeof UMLElementRepository.update;
 };
 
-type Props = OwnProps & StateProps & DispatchProps;
+type Props = OwnProps & StateProps & DispatchProps & I18nContext;
 
 const AGENT_STATE_TYPE = (AgentElementType as Record<string, string>).AgentState ?? 'AgentState';
 
-const AgentWorkspaceUpdateComponent: React.FC<Props> = ({ element, update, elements }) => {
+const AgentWorkspaceUpdateComponent: React.FC<Props> = ({ element, update, elements, translate }) => {
   const hasReasoningState = Object.values(elements).some(
     (el: any) => el.type === AGENT_STATE_TYPE && el.stateType === 'reasoning',
   );
 
   return (
-  <div>
-    {!hasReasoningState && (
-      <Warning>
-        ⚠ Workspaces can only be used by a reasoning state. Add a reasoning state to use this workspace.
-      </Warning>
-    )}
-    <Section>
-      <Header>Workspace name</Header>
-      <Textfield value={element.name} onChange={(name) => update<AgentWorkspace>(element.id, { name })} autoFocus />
-    </Section>
-    <Section>
-      <Header>Filesystem path</Header>
-      <Textfield
-        value={element.path}
-        placeholder="/path/to/workspace"
-        onChange={(path) => update<AgentWorkspace>(element.id, { path })}
-      />
-    </Section>
-    <Section>
-      <Header>Description</Header>
-      <Textfield
-        value={element.description}
-        multiline
-        enterToSubmit={false}
-        placeholder="Optional description"
-        onChange={(description) => update<AgentWorkspace>(element.id, { description })}
-      />
-    </Section>
-    <Section>
-      <CheckboxRow>
-        <input
-          type="checkbox"
-          checked={element.writable}
-          onChange={(e) => update<AgentWorkspace>(element.id, { writable: e.target.checked })}
+    <div>
+      {!hasReasoningState && <Warning>⚠ {translate('packages.AgentDiagram.workspaceReasoningStateWarning')}</Warning>}
+      <Section>
+        <Header>{translate('packages.AgentDiagram.workspaceName')}</Header>
+        <Textfield value={element.name} onChange={(name) => update<AgentWorkspace>(element.id, { name })} autoFocus />
+      </Section>
+      <Section>
+        <Header>{translate('packages.AgentDiagram.filesystemPath')}</Header>
+        <Textfield
+          value={element.path}
+          placeholder="/path/to/workspace"
+          onChange={(path) => update<AgentWorkspace>(element.id, { path })}
         />
-        Writable
-      </CheckboxRow>
-    </Section>
-    <Section>
-      <Header>Max read bytes</Header>
-      <Textfield
-        value={element.max_read_bytes}
-        onChange={(value) => {
-          const parsed = typeof value === 'number' ? value : parseInt(String(value), 10);
-          update<AgentWorkspace>(element.id, { max_read_bytes: Number.isNaN(parsed) ? 0 : parsed });
-        }}
-      />
-    </Section>
-  </div>
+      </Section>
+      <Section>
+        <Header>{translate('packages.AgentDiagram.description')}</Header>
+        <Textfield
+          value={element.description}
+          multiline
+          enterToSubmit={false}
+          placeholder="Optional description"
+          onChange={(description) => update<AgentWorkspace>(element.id, { description })}
+        />
+      </Section>
+      <Section>
+        <CheckboxRow>
+          <input
+            type="checkbox"
+            checked={element.writable}
+            onChange={(e) => update<AgentWorkspace>(element.id, { writable: e.target.checked })}
+          />
+          {translate('packages.AgentDiagram.writable')}
+        </CheckboxRow>
+      </Section>
+      <Section>
+        <Header>{translate('packages.AgentDiagram.maxReadBytes')}</Header>
+        <Textfield
+          value={element.max_read_bytes}
+          onChange={(value) => {
+            const parsed = typeof value === 'number' ? value : parseInt(String(value), 10);
+            update<AgentWorkspace>(element.id, { max_read_bytes: Number.isNaN(parsed) ? 0 : parsed });
+          }}
+        />
+      </Section>
+    </div>
   );
 };
 
-const enhance = connect<StateProps, DispatchProps, OwnProps, ModelState>(
-  (state) => ({ elements: state.elements }),
-  { update: UMLElementRepository.update },
+const enhance = compose<ComponentClass<OwnProps>>(
+  localized,
+  connect<StateProps, DispatchProps, OwnProps, ModelState>((state) => ({ elements: state.elements }), {
+    update: UMLElementRepository.update,
+  }),
 );
 
 export const AgentWorkspaceUpdate = enhance(AgentWorkspaceUpdateComponent);

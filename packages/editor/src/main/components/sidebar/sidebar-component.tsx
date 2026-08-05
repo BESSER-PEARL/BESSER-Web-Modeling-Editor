@@ -127,8 +127,8 @@ class SidebarComponent extends Component<Props, SidebarComponentState> {
               onChange={e => changeView(e.target.value as ApollonView)}
               color="primary"
             >
-              <option value={ApollonView.Modelling}>{translate('views.modelling')}</option>
-              <option value={ApollonView.Exporting}>{translate('views.exporting')}</option>
+              <option value={ApollonView.Modelling}>{translate('views.modeling')}</option>
+              <option value={ApollonView.Exporting}>{translate('views.interactive')}</option>
             </select>
           </div>
         )}
@@ -143,7 +143,7 @@ class SidebarComponent extends Component<Props, SidebarComponentState> {
                   checked={shouldUseIconMode}
                   onChange={this.handleToggleIconMode}
                 />
-                Display Object Diagram in Icon Mode
+                {translate('views.iconMode')}
               </label>
             )}
             {/* Force CreatePane to rerender when showIcon changes by using key */}

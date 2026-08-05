@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { UMLDiagramType } from '@besser/wme';
 import { toast } from 'react-toastify';
+import { useTranslation, Trans } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { Check, Layers, Sparkles, AlertTriangle, FolderTree } from 'lucide-react';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -117,10 +118,13 @@ const categoryColor: Record<SoftwarePatternCategory, string> = {
  * For full-project templates, summarize which diagrams are populated so users
  * can tell apart e.g. "class only" from "class + agent + GUI" at a glance.
  */
-const summarizeFullProjectDiagrams = (template: SoftwarePatternTemplate): string => {
+const summarizeFullProjectDiagrams = (
+  template: SoftwarePatternTemplate,
+  multiDiagramLabel: string,
+): string => {
   const project = (template.diagram as { project?: { diagrams?: Record<string, unknown[]> } })?.project;
   const diagrams = project?.diagrams;
-  if (!diagrams) return 'Multi-diagram project';
+  if (!diagrams) return multiDiagramLabel;
   const labels: string[] = [];
   const order: Array<[string, string]> = [
     ['ClassDiagram', 'Class'],
@@ -136,10 +140,11 @@ const summarizeFullProjectDiagrams = (template: SoftwarePatternTemplate): string
     const arr = diagrams[key];
     if (Array.isArray(arr) && arr.length > 0) labels.push(label);
   }
-  return labels.length ? labels.join(' · ') : 'Multi-diagram project';
+  return labels.length ? labels.join(' · ') : multiDiagramLabel;
 };
 
 export const TemplateLibraryDialog: React.FC<TemplateLibraryDialogProps> = ({ open, onOpenChange }) => {
+  const { t } = useTranslation();
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
@@ -173,7 +178,7 @@ export const TemplateLibraryDialog: React.FC<TemplateLibraryDialogProps> = ({ op
   );
 
   const [selectedTemplateType, setSelectedTemplateType] = useState<SoftwarePatternType>(
-    templatesInCategory[0]?.type ?? SoftwarePatternType.LIBRARY_COMPLETE,
+    templatesInCategory[0]?.type ?? SoftwarePatternType.LIBRARY,
   );
 
   React.useEffect(() => {
@@ -228,7 +233,7 @@ export const TemplateLibraryDialog: React.FC<TemplateLibraryDialogProps> = ({ op
         const importedProject = await importProjectFromJson(file);
         await dispatch(loadProjectThunk(importedProject.id)).unwrap();
         navigate('/');
-        toast.success(`Loaded project template "${selectedTemplate.type}"`);
+        toast.success(t('project.templates.toasts.loadedProjectTemplate', { name: selectedTemplate.type }));
         onOpenChange(false);
         return;
       }
@@ -316,7 +321,7 @@ export const TemplateLibraryDialog: React.FC<TemplateLibraryDialogProps> = ({ op
       // toast.success(`Loaded template: ${selectedTemplate.type}`);
       onOpenChange(false);
     } catch (error) {
-      toast.error(`Failed to load template: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      toast.error(t('project.templates.toasts.loadFailed', { error: error instanceof Error ? error.message : t('project.templates.unknownError') }));
     } finally {
       setIsLoading(false);
     }
@@ -328,10 +333,10 @@ export const TemplateLibraryDialog: React.FC<TemplateLibraryDialogProps> = ({ op
         <DialogHeader className="border-b border-border/70 px-6 pt-6">
           <DialogTitle className="flex items-center gap-2 text-xl">
             <Sparkles className="size-5 text-brand" />
-            Load Template
+            {t('project.templates.title')}
           </DialogTitle>
           <DialogDescription>
-            Start from ready-made UML, agent, state machine, quantum templates, or full-project bundles.
+            {t('project.templates.description')}
           </DialogDescription>
         </DialogHeader>
 
@@ -351,7 +356,7 @@ export const TemplateLibraryDialog: React.FC<TemplateLibraryDialogProps> = ({ op
                       : 'border-transparent text-muted-foreground hover:border-border hover:bg-brand/[0.04] hover:text-foreground',
                   ].join(' ')}
                 >
-                  <span>{category}</span>
+                  <span>{t(`project.templates.categories.${category}`, { defaultValue: category })}</span>
                   <Badge className={categoryColor[category]}>
                     {templates.filter((template) => template.softwarePatternCategory === category).length}
                   </Badge>
@@ -387,12 +392,16 @@ export const TemplateLibraryDialog: React.FC<TemplateLibraryDialogProps> = ({ op
                           {template.diagramType === FULL_PROJECT_DIAGRAM_TYPE ? (
                             <>
                               <FolderTree className="size-3.5" />
-                              <span>{summarizeFullProjectDiagrams(template)}</span>
+                              <span>{summarizeFullProjectDiagrams(template, t('project.templates.multiDiagramProject'))}</span>
                             </>
                           ) : (
                             <>
                               <Layers className="size-3.5" />
-                              <span>{String(template.diagramType).replace('Diagram', ' Diagram')}</span>
+                              <span>
+                                {t(`diagramTypes.${template.diagramType}`, {
+                                  defaultValue: String(template.diagramType).replace('Diagram', ' Diagram'),
+                                })}
+                              </span>
                             </>
                           )}
                         </div>
@@ -405,14 +414,14 @@ export const TemplateLibraryDialog: React.FC<TemplateLibraryDialogProps> = ({ op
 
             <div className="mt-4 flex items-center justify-end gap-2 border-t border-border/70 pt-4">
               <Button variant="outline" onClick={() => onOpenChange(false)}>
-                Cancel
+                {t('common.cancel')}
               </Button>
               <Button
                 onClick={handleLoadClick}
                 disabled={!selectedTemplate || isLoading}
                 className="bg-brand text-brand-foreground hover:bg-brand-dark"
               >
-                {isLoading ? 'Loading...' : 'Load Template'}
+                {isLoading ? t('common.loading') : t('project.templates.loadTemplate')}
               </Button>
             </div>
           </div>
@@ -424,27 +433,36 @@ export const TemplateLibraryDialog: React.FC<TemplateLibraryDialogProps> = ({ op
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <AlertTriangle className="size-5 text-amber-500" />
-              Existing diagram detected
+              {t('project.templates.confirm.title')}
             </DialogTitle>
             <DialogDescription>
-              You already have a <strong>{selectedTemplate?.diagramType?.replace('Diagram', ' Diagram')}</strong>. How
-              would you like to load the template?
+              <Trans
+                i18nKey="project.templates.confirm.body"
+                values={{
+                  type: selectedTemplate
+                    ? t(`diagramTypes.${selectedTemplate.diagramType}`, {
+                        defaultValue: String(selectedTemplate.diagramType).replace('Diagram', ' Diagram'),
+                      })
+                    : '',
+                }}
+                components={{ strong: <strong /> }}
+              />
             </DialogDescription>
           </DialogHeader>
           <div className="flex flex-wrap justify-end gap-2 pt-4">
             <Button variant="outline" size="sm" onClick={() => setShowConfirm(false)}>
-              Cancel
+              {t('common.cancel')}
             </Button>
             <Button variant="outline" size="sm" onClick={() => doLoadTemplate('new_tab')}>
               <Layers className="mr-1.5 size-3.5" />
-              New tab
+              {t('project.templates.confirm.newTab')}
             </Button>
             <Button
               size="sm"
               onClick={() => doLoadTemplate('replace')}
               className="bg-brand text-brand-foreground hover:bg-brand-dark"
             >
-              Replace
+              {t('project.templates.confirm.replace')}
             </Button>
           </div>
         </DialogContent>

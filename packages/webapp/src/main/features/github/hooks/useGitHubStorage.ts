@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { toast } from 'react-toastify';
 import { BACKEND_URL } from '../../../shared/constants/constant';
 import { BesserProject } from '../../../shared/types/project';
@@ -53,6 +54,7 @@ const GITHUB_LINKED_REPOS_KEY = 'besser_github_linked_repos';
  * Allows saving/loading projects to/from GitHub repositories.
  */
 export const useGitHubStorage = () => {
+  const { t } = useTranslation();
   const [isLoading, setIsLoading] = useState(false);
   const [repositories, setRepositories] = useState<GitHubRepository[]>([]);
   const [commits, setCommits] = useState<GitHubCommit[]>([]);
@@ -159,17 +161,17 @@ export const useGitHubStorage = () => {
       return data.repositories || [];
     } catch (error) {
       if (error instanceof DOMException && error.name === 'AbortError') {
-        toast.error('Request timed out. Please try again.');
+        toast.error(t('github.toasts.requestTimedOut'));
         return [];
       }
       console.error('Failed to fetch repositories:', error);
-      toast.error('Failed to fetch GitHub repositories');
+      toast.error(t('github.toasts.fetchReposFailed'));
       return [];
     } finally {
       clearTimeout(timeoutId);
       setIsLoading(false);
     }
-  }, []);
+  }, [t]);
 
   /**
    * Fetch branches for a repository
@@ -198,7 +200,7 @@ export const useGitHubStorage = () => {
       return data.branches || [];
     } catch (error) {
       if (error instanceof DOMException && error.name === 'AbortError') {
-        toast.error('Request timed out. Please try again.');
+        toast.error(t('github.toasts.requestTimedOut'));
         return [];
       }
       console.error('Failed to fetch branches:', error);
@@ -206,7 +208,7 @@ export const useGitHubStorage = () => {
     } finally {
       clearTimeout(timeoutId);
     }
-  }, []);
+  }, [t]);
 
   /**
    * Check if a file exists in a repository
@@ -237,7 +239,7 @@ export const useGitHubStorage = () => {
       return data.exists === true;
     } catch (error) {
       if (error instanceof DOMException && error.name === 'AbortError') {
-        toast.error('Request timed out. Please try again.');
+        toast.error(t('github.toasts.requestTimedOut'));
         return false;
       }
       console.error('Failed to check file existence:', error);
@@ -245,7 +247,7 @@ export const useGitHubStorage = () => {
     } finally {
       clearTimeout(timeoutId);
     }
-  }, []);
+  }, [t]);
 
   /**
    * Link a repository to a project without pushing (just saves the link metadata)
@@ -264,8 +266,8 @@ export const useGitHubStorage = () => {
       filePath,
       lastSyncedAt: '', // Empty = never synced
     });
-    toast.success('Repository linked! Push to sync your project.');
-  }, [saveLinkedRepo]);
+    toast.success(t('github.toasts.repoLinkedPushToSync'));
+  }, [saveLinkedRepo, t]);
 
   /**
    * Fetch commits for a repository
@@ -299,17 +301,17 @@ export const useGitHubStorage = () => {
       return data.commits || [];
     } catch (error) {
       if (error instanceof DOMException && error.name === 'AbortError') {
-        toast.error('Request timed out. Please try again.');
+        toast.error(t('github.toasts.requestTimedOut'));
         return [];
       }
       console.error('Failed to fetch commits:', error);
-      toast.error('Failed to fetch commit history');
+      toast.error(t('github.toasts.fetchCommitsFailed'));
       return [];
     } finally {
       clearTimeout(timeoutId);
       setIsLoading(false);
     }
-  }, []);
+  }, [t]);
 
   /**
    * Save project to GitHub repository
@@ -350,7 +352,7 @@ export const useGitHubStorage = () => {
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.detail || 'Failed to save project to GitHub');
+        throw new Error(errorData.detail || t('github.toasts.saveProjectFailed'));
       }
 
       const result = await response.json();
@@ -365,14 +367,14 @@ export const useGitHubStorage = () => {
         lastCommitSha: result.commit_sha,
       });
 
-      toast.success('Project saved to GitHub!');
+      toast.success(t('github.toasts.projectSaved'));
       return { success: true, commitSha: result.commit_sha };
     } catch (error) {
       if (error instanceof DOMException && error.name === 'AbortError') {
-        toast.error('Request timed out. Please try again.');
+        toast.error(t('github.toasts.requestTimedOut'));
         return { success: false };
       }
-      const message = error instanceof Error ? error.message : 'Failed to save project';
+      const message = error instanceof Error ? error.message : t('github.toasts.saveProjectFailedShort');
       toast.error(message);
       console.error('GitHub save error:', error);
       return { success: false };
@@ -380,7 +382,7 @@ export const useGitHubStorage = () => {
       clearTimeout(timeoutId);
       setIsLoading(false);
     }
-  }, [saveLinkedRepo, toProjectJsonFileName]);
+  }, [saveLinkedRepo, toProjectJsonFileName, t]);
 
   /**
    * Load project from GitHub repository
@@ -406,17 +408,17 @@ export const useGitHubStorage = () => {
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.detail || 'Failed to load project from GitHub');
+        throw new Error(errorData.detail || t('github.toasts.loadProjectFromGitHubFailed'));
       }
 
       const data = await response.json();
       return data.project as BesserProject;
     } catch (error) {
       if (error instanceof DOMException && error.name === 'AbortError') {
-        toast.error('Request timed out. Please try again.');
+        toast.error(t('github.toasts.requestTimedOut'));
         return null;
       }
-      const message = error instanceof Error ? error.message : 'Failed to load project';
+      const message = error instanceof Error ? error.message : t('github.toasts.loadProjectFailed');
       toast.error(message);
       console.error('GitHub load error:', error);
       return null;
@@ -424,7 +426,7 @@ export const useGitHubStorage = () => {
       clearTimeout(timeoutId);
       setIsLoading(false);
     }
-  }, []);
+  }, [t]);
 
   /**
    * Load project from a specific commit
@@ -450,18 +452,21 @@ export const useGitHubStorage = () => {
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.detail || 'Failed to load project from commit');
+        throw new Error(errorData.detail || t('github.toasts.loadFromCommitFailed'));
       }
 
       const data = await response.json();
-      toast.success(`Restored version from ${data.commit_date ? new Date(data.commit_date).toLocaleDateString() : 'commit'}`);
+      const restoredFrom = data.commit_date
+        ? new Date(data.commit_date).toLocaleDateString()
+        : t('github.toasts.restoredFromCommitFallback');
+      toast.success(t('github.toasts.restoredVersionFrom', { source: restoredFrom }));
       return data.project as BesserProject;
     } catch (error) {
       if (error instanceof DOMException && error.name === 'AbortError') {
-        toast.error('Request timed out. Please try again.');
+        toast.error(t('github.toasts.requestTimedOut'));
         return null;
       }
-      const message = error instanceof Error ? error.message : 'Failed to load project from commit';
+      const message = error instanceof Error ? error.message : t('github.toasts.loadFromCommitFailed');
       toast.error(message);
       console.error('GitHub load commit error:', error);
       return null;
@@ -469,7 +474,7 @@ export const useGitHubStorage = () => {
       clearTimeout(timeoutId);
       setIsLoading(false);
     }
-  }, []);
+  }, [t]);
 
   /**
    * Create a new repository for the project
@@ -504,7 +509,7 @@ export const useGitHubStorage = () => {
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.detail || 'Failed to create repository');
+        throw new Error(errorData.detail || t('github.toasts.createRepoFailed'));
       }
 
       const result = await response.json();
@@ -519,14 +524,14 @@ export const useGitHubStorage = () => {
         lastCommitSha: result.commit_sha,
       });
 
-      toast.success(`Repository "${repoName}" created!`);
+      toast.success(t('github.toasts.repoCreatedQuoted', { name: repoName }));
       return { success: true, repoUrl: result.repo_url };
     } catch (error) {
       if (error instanceof DOMException && error.name === 'AbortError') {
-        toast.error('Request timed out. Please try again.');
+        toast.error(t('github.toasts.requestTimedOut'));
         return { success: false };
       }
-      const message = error instanceof Error ? error.message : 'Failed to create repository';
+      const message = error instanceof Error ? error.message : t('github.toasts.createRepoFailed');
       toast.error(message);
       console.error('GitHub create repo error:', error);
       return { success: false };
@@ -534,7 +539,7 @@ export const useGitHubStorage = () => {
       clearTimeout(timeoutId);
       setIsLoading(false);
     }
-  }, [saveLinkedRepo]);
+  }, [saveLinkedRepo, t]);
 
   /**
    * Check if there are unsaved changes (compare with last synced version).
@@ -633,7 +638,7 @@ export const useGitHubStorage = () => {
       return data.contents || [];
     } catch (error) {
       if (error instanceof DOMException && error.name === 'AbortError') {
-        toast.error('Request timed out. Please try again.');
+        toast.error(t('github.toasts.requestTimedOut'));
         return [];
       }
       console.error('Failed to fetch repo contents:', error);
@@ -641,7 +646,7 @@ export const useGitHubStorage = () => {
     } finally {
       clearTimeout(timeoutId);
     }
-  }, []);
+  }, [t]);
 
   /**
    * Get remote project silently (for diff preview - no toasts)
@@ -702,7 +707,7 @@ export const useGitHubStorage = () => {
         },
         body: JSON.stringify({
           project_data: project,
-          description: description || `BESSER Project: ${project.name}`,
+          description: description || t('github.defaultGistDescription', { name: project.name }),
           is_public: isPublic,
         }),
         signal: controller.signal,
@@ -710,18 +715,18 @@ export const useGitHubStorage = () => {
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.detail || 'Failed to create Gist');
+        throw new Error(errorData.detail || t('github.toasts.createGistFailed'));
       }
 
       const result = await response.json();
-      toast.success('Gist created successfully!');
+      toast.success(t('github.toasts.gistCreated'));
       return { success: true, gistUrl: result.gist_url };
     } catch (error) {
       if (error instanceof DOMException && error.name === 'AbortError') {
-        toast.error('Request timed out. Please try again.');
+        toast.error(t('github.toasts.requestTimedOut'));
         return { success: false };
       }
-      const message = error instanceof Error ? error.message : 'Failed to create Gist';
+      const message = error instanceof Error ? error.message : t('github.toasts.createGistFailed');
       toast.error(message);
       console.error('GitHub Gist error:', error);
       return { success: false };
@@ -729,7 +734,7 @@ export const useGitHubStorage = () => {
       clearTimeout(timeoutId);
       setIsLoading(false);
     }
-  }, []);
+  }, [t]);
 
   return {
     // State

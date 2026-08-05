@@ -143,7 +143,7 @@ class StylePaneComponent extends Component<Props, State> {
   };
 
   renderDefaultValueInput = () => {
-    const { defaultValue, onDefaultValueChange, attributeType, enumerationLiterals } = this.props;
+    const { defaultValue, onDefaultValueChange, attributeType, enumerationLiterals, translate } = this.props;
 
     if (!onDefaultValueChange) return null;
 
@@ -159,7 +159,7 @@ class StylePaneComponent extends Component<Props, State> {
         >
           {[
             <Dropdown.Item key="_empty" value="">
-              (none)
+              {translate('stylePane.none')}
             </Dropdown.Item>,
             ...enumerationLiterals.map((literal) => (
               <Dropdown.Item key={literal} value={literal}>
@@ -183,7 +183,7 @@ class StylePaneComponent extends Component<Props, State> {
               const sanitized = value.replace(/[^0-9.\-]/g, '');
               onDefaultValueChange(sanitized);
             }}
-            placeholder={attributeType === 'int' ? 'Enter integer...' : 'Enter number...'}
+            placeholder={attributeType === 'int' ? translate('stylePane.enterInteger') : translate('stylePane.enterNumber')}
             size="sm"
           />
         );
@@ -196,7 +196,7 @@ class StylePaneComponent extends Component<Props, State> {
             size="sm"
           >
             <Dropdown.Item key="_empty" value="">
-              (none)
+              {translate('stylePane.none')}
             </Dropdown.Item>
             <Dropdown.Item key="true" value="true">
               true
@@ -246,7 +246,7 @@ class StylePaneComponent extends Component<Props, State> {
           <Textfield
             value={defaultValue !== undefined && defaultValue !== null ? String(defaultValue) : ''}
             onChange={onDefaultValueChange}
-            placeholder="Enter default value..."
+            placeholder={translate('stylePane.enterDefaultValue')}
             size="sm"
           />
         );
@@ -255,7 +255,7 @@ class StylePaneComponent extends Component<Props, State> {
 
   render() {
     const { fillSelectOpen, strokeSelectOpen, textSelectOpen } = this.state;
-    const { open, element, fillColor, lineColor, textColor, showDescription, showUri, showIcon, isOptional, onOptionalChange, isDerived, onDerivedChange, isId, onIdChange, isExternalId, onExternalIdChange, defaultValue, onDefaultValueChange, enumerationLiterals } = this.props;
+    const { open, element, fillColor, lineColor, textColor, showDescription, showUri, showIcon, isOptional, onOptionalChange, isDerived, onDerivedChange, isId, onIdChange, isExternalId, onExternalIdChange, defaultValue, onDefaultValueChange, enumerationLiterals, translate } = this.props;
     const noneOpen = !fillSelectOpen && !strokeSelectOpen && !textSelectOpen;
 
     if (!open) return null;
@@ -274,13 +274,13 @@ class StylePaneComponent extends Component<Props, State> {
         {onOptionalChange && (
           <>
             <CheckboxRow as="label" htmlFor={`optional-${element?.id}`}>
-              <span>Optional</span>
+              <span>{translate('stylePane.optional')}</span>
               <input
                 id={`optional-${element?.id}`}
                 type="checkbox"
                 checked={isOptional || false}
                 disabled={optionalLockedByIdFlag}
-                title={optionalLockedByIdFlag ? 'Identifier attributes cannot be optional.' : undefined}
+                title={optionalLockedByIdFlag ? translate('stylePane.optionalLockedById') : undefined}
                 onChange={(e) => onOptionalChange(e.target.checked)}
               />
             </CheckboxRow>
@@ -290,7 +290,7 @@ class StylePaneComponent extends Component<Props, State> {
         {onDerivedChange && (
           <>
             <CheckboxRow as="label" htmlFor={`derived-${element?.id}`}>
-              <span>Derived</span>
+              <span>{translate('stylePane.derived')}</span>
               <input
                 id={`derived-${element?.id}`}
                 type="checkbox"
@@ -304,13 +304,13 @@ class StylePaneComponent extends Component<Props, State> {
         {onIdChange && (
           <>
             <CheckboxRow as="label" htmlFor={`id-${element?.id}`}>
-              <span>ID</span>
+              <span>{translate('stylePane.id')}</span>
               <input
                 id={`id-${element?.id}`}
                 type="checkbox"
                 checked={isId || false}
                 disabled={idLockedByOptional}
-                title={idLockedByOptional ? 'Optional attributes cannot be the identifier.' : undefined}
+                title={idLockedByOptional ? translate('stylePane.idLockedByOptional') : undefined}
                 onChange={(e) => onIdChange(e.target.checked)}
               />
             </CheckboxRow>
@@ -320,13 +320,13 @@ class StylePaneComponent extends Component<Props, State> {
         {onExternalIdChange && (
           <>
             <CheckboxRow as="label" htmlFor={`external-id-${element?.id}`}>
-              <span>External ID</span>
+              <span>{translate('stylePane.externalId')}</span>
               <input
                 id={`external-id-${element?.id}`}
                 type="checkbox"
                 checked={isExternalId || false}
                 disabled={idLockedByOptional}
-                title={idLockedByOptional ? 'Optional attributes cannot be the external identifier.' : undefined}
+                title={idLockedByOptional ? translate('stylePane.externalIdLockedByOptional') : undefined}
                 onChange={(e) => onExternalIdChange(e.target.checked)}
               />
             </CheckboxRow>
@@ -336,7 +336,7 @@ class StylePaneComponent extends Component<Props, State> {
         {onDefaultValueChange && (
           <>
             <FieldRow>
-              <label>Default</label>
+              <label>{translate('stylePane.default')}</label>
               {this.renderDefaultValueInput()}
             </FieldRow>
             <Divider />
@@ -345,11 +345,11 @@ class StylePaneComponent extends Component<Props, State> {
         {showDescription && (
           <>
             <FieldRow>
-              <label>Description</label>
+              <label>{translate('stylePane.description')}</label>
               <Textfield
                 value={element?.description || ''}
                 onChange={this.handleDescriptionChange}
-                placeholder="Enter description..."
+                placeholder={translate('stylePane.enterDescription')}
                 size="sm"
               />
             </FieldRow>
@@ -363,7 +363,7 @@ class StylePaneComponent extends Component<Props, State> {
               <Textfield
                 value={element?.uri || ''}
                 onChange={this.handleUriChange}
-                placeholder="Enter URI..."
+                placeholder={translate('stylePane.enterUri')}
                 size="sm"
               />
             </FieldRow>
@@ -373,11 +373,11 @@ class StylePaneComponent extends Component<Props, State> {
         {showIcon && (
           <>
             <FieldRow>
-              <label>Icon</label>
+              <label>{translate('stylePane.icon')}</label>
               <Textfield
                 value={element?.icon || ''}
                 onChange={this.handleIconChange}
-                placeholder="Enter icon name..."
+                placeholder={translate('stylePane.enterIcon')}
                 size="sm"
               />
             </FieldRow>
@@ -385,7 +385,7 @@ class StylePaneComponent extends Component<Props, State> {
           </>
         )}
         <ColorRow
-          title="Fill Color"
+          title={translate('stylePane.fillColor')}
           condition={fillColor && (fillSelectOpen || noneOpen)}
           color={element?.fillColor}
           open={fillSelectOpen}
@@ -394,7 +394,7 @@ class StylePaneComponent extends Component<Props, State> {
           noDivider={!textColor && !lineColor}
         />
         <ColorRow
-          title="Line Color"
+          title={translate('stylePane.lineColor')}
           condition={lineColor && (strokeSelectOpen || noneOpen)}
           color={element?.strokeColor}
           open={strokeSelectOpen}
@@ -403,7 +403,7 @@ class StylePaneComponent extends Component<Props, State> {
           noDivider={!textColor}
         />
         <ColorRow
-          title="Text Color"
+          title={translate('stylePane.textColor')}
           condition={textColor && (textSelectOpen || noneOpen)}
           color={element?.textColor}
           open={textSelectOpen}

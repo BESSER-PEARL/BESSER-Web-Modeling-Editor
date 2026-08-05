@@ -8,12 +8,11 @@ import { UMLDeploymentComponent } from './uml-deployment-component/uml-component
 
 export const composeDeploymentPreview: ComposePreview = (
   layer: ILayer,
-  translate: (id: string) => string,
 ): UMLElement[] => {
   const elements: UMLElement[] = [];
 
   // UML Deployment Node
-  const umlDeploymentNode = new UMLDeploymentNode({ name: translate('packages.DeploymentDiagram.DeploymentNode') });
+  const umlDeploymentNode = new UMLDeploymentNode({ name: 'Deployment Node' });
   umlDeploymentNode.bounds = {
     ...umlDeploymentNode.bounds,
     width: umlDeploymentNode.bounds.width,
@@ -23,7 +22,7 @@ export const composeDeploymentPreview: ComposePreview = (
 
   // UML Component
   const umlComponent = new UMLDeploymentComponent({
-    name: translate('packages.DeploymentDiagram.DeploymentComponent'),
+    name: 'Deployment Component',
   });
   umlComponent.bounds = {
     ...umlComponent.bounds,
@@ -34,7 +33,7 @@ export const composeDeploymentPreview: ComposePreview = (
 
   // UML Deployment Artifact
   const umlDeploymentArtifact = new UMLDeploymentArtifact({
-    name: translate('packages.DeploymentDiagram.DeploymentArtifact'),
+    name: 'Deployment Artifact',
   });
   umlDeploymentArtifact.bounds = {
     ...umlDeploymentArtifact.bounds,
@@ -44,7 +43,7 @@ export const composeDeploymentPreview: ComposePreview = (
 
   // UML Deployment Interface
   const umlDeploymentInterface = new UMLDeploymentInterface({
-    name: translate('packages.DeploymentDiagram.DeploymentInterface'),
+    name: 'Deployment Interface',
   });
   umlDeploymentInterface.bounds = {
     ...umlDeploymentInterface.bounds,
