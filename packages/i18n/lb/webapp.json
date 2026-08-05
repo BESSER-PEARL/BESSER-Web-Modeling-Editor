@@ -764,6 +764,7 @@
           "UserDiagram": "Akteuren an hir Interaktiounen.",
           "GUINoCodeDiagram": "Grafesch Benotzerinterface-Gestaltung (IFML-inspiréiert).",
           "QuantumCircuitDiagram": "Quanteprogramm-Spezifikatioun.",
+          "BPMN": "Business Process Model a Notatiounsdiagramm.",
           "NNDiagram": "Architektur vun neuronalen Netzwierker (PyTorch / TensorFlow)."
         }
       },
@@ -785,7 +786,7 @@
         "Class Diagram": "Klassendiagramm",
         "Behavioral": "Verhalensbezunn",
         "Agent Diagram": "Agentendiagramm",
-        "State Machine Diagram": "Zoustandsmaschinnendiagramm",
+        "State Machine Diagram": "Zoustandsautomaten Diagramm",
         "Quantum Circuit": "Quantekreeslaf",
         "Neural Network": "Neuronaalt Netzwierk",
         "Full Project": "Ganze Projet"
@@ -1255,6 +1256,7 @@
     "UserDiagram": "Benotzerdiagramm",
     "GUINoCodeDiagram": "GUI-Diagramm",
     "QuantumCircuitDiagram": "Quantenschaltkreesdiagramm",
+    "BPMN": "BPMN-Diagramm",
     "NNDiagram": "Neuronaalt-Netz-Diagramm"
   },
   "dialogs": {
@@ -1265,7 +1267,7 @@
       "para2": "De <brand>Web Modeling Editor</brand> ass den Online-Visuell-Editor fir BESSER-Modeller ze erstellen an ze änneren, Code ze generéieren an Applikatiounen ze deployéieren.",
       "besserRepository": "BESSER-Repository",
       "wmeRepository": "WME-Repository",
-      "libraryRepository": "Bibliothéik-Repository"
+      "libraryRepository": "Paket-Repository"
     },
     "shortcuts": {
       "title": "Tastatur-Ofkierzungen",
