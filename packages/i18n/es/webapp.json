@@ -1267,7 +1267,7 @@
       "para2": "El <brand>Web Modeling Editor</brand> es el editor visual en línea para crear y editar modelos de BESSER, generar código y desplegar aplicaciones.",
       "besserRepository": "Repositorio de BESSER",
       "wmeRepository": "Repositorio de WME",
-      "libraryRepository": "Repositorio de la biblioteca"
+      "libraryRepository": "Repositorio de paquetes"
     },
     "shortcuts": {
       "title": "Atajos de teclado",

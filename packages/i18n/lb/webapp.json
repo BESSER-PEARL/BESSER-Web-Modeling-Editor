@@ -1267,7 +1267,7 @@
       "para2": "De <brand>Web Modeling Editor</brand> ass den Online-Visuell-Editor fir BESSER-Modeller ze erstellen an ze änneren, Code ze generéieren an Applikatiounen ze deployéieren.",
       "besserRepository": "BESSER-Repository",
       "wmeRepository": "WME-Repository",
-      "libraryRepository": "Bibliothéik-Repository"
+      "libraryRepository": "Paket-Repository"
     },
     "shortcuts": {
       "title": "Tastatur-Ofkierzungen",
