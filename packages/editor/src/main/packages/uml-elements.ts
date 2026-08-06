@@ -164,6 +164,9 @@ import {
   InputReusedAttributePooling,
   PermuteInAttributePooling,
   PermuteOutAttributePooling,
+  IsLayerCallAttributePooling,
+  InputVarAttributePooling,
+  OutputVarAttributePooling,
 } from './nn-diagram/nn-pooling-attributes/pooling-attributes';
 
 import { RNNLayer } from './nn-diagram/nn-rnn-layer/nn-rnn-layer';
@@ -245,6 +248,10 @@ import {
   ActvFuncAttributeLinear,
   NameModuleInputAttributeLinear,
   InputReusedAttributeLinear,
+  BiasAttributeLinear,
+  IsLayerCallAttributeLinear,
+  InputVarAttributeLinear,
+  OutputVarAttributeLinear,
 } from './nn-diagram/nn-linear-attributes/linear-attributes';
 
 import { FlattenLayer } from './nn-diagram/nn-flatten-layer/nn-flatten-layer';
@@ -255,6 +262,9 @@ import {
   ActvFuncAttributeFlatten,
   NameModuleInputAttributeFlatten,
   InputReusedAttributeFlatten,
+  IsLayerCallAttributeFlatten,
+  InputVarAttributeFlatten,
+  OutputVarAttributeFlatten,
 } from './nn-diagram/nn-flatten-attributes/flatten-attributes';
 
 import { EmbeddingLayer } from './nn-diagram/nn-embedding-layer/nn-embedding-layer';
@@ -499,6 +509,9 @@ export const UMLElements = {
   [NNElementType.InputReusedAttributePooling]: InputReusedAttributePooling,
   [NNElementType.PermuteInAttributePooling]: PermuteInAttributePooling,
   [NNElementType.PermuteOutAttributePooling]: PermuteOutAttributePooling,
+  [NNElementType.IsLayerCallAttributePooling]: IsLayerCallAttributePooling,
+  [NNElementType.InputVarAttributePooling]: InputVarAttributePooling,
+  [NNElementType.OutputVarAttributePooling]: OutputVarAttributePooling,
 
   [NNElementType.RNNLayer]: RNNLayer,
   // RNN Attributes - Mandatory
@@ -580,6 +593,10 @@ export const UMLElements = {
   [NNElementType.ActvFuncAttributeLinear]: ActvFuncAttributeLinear,
   [NNElementType.NameModuleInputAttributeLinear]: NameModuleInputAttributeLinear,
   [NNElementType.InputReusedAttributeLinear]: InputReusedAttributeLinear,
+  [NNElementType.BiasAttributeLinear]: BiasAttributeLinear,
+  [NNElementType.IsLayerCallAttributeLinear]: IsLayerCallAttributeLinear,
+  [NNElementType.InputVarAttributeLinear]: InputVarAttributeLinear,
+  [NNElementType.OutputVarAttributeLinear]: OutputVarAttributeLinear,
 
   [NNElementType.FlattenLayer]: FlattenLayer,
   // Flatten Attributes - Mandatory
@@ -590,6 +607,9 @@ export const UMLElements = {
   [NNElementType.ActvFuncAttributeFlatten]: ActvFuncAttributeFlatten,
   [NNElementType.NameModuleInputAttributeFlatten]: NameModuleInputAttributeFlatten,
   [NNElementType.InputReusedAttributeFlatten]: InputReusedAttributeFlatten,
+  [NNElementType.IsLayerCallAttributeFlatten]: IsLayerCallAttributeFlatten,
+  [NNElementType.InputVarAttributeFlatten]: InputVarAttributeFlatten,
+  [NNElementType.OutputVarAttributeFlatten]: OutputVarAttributeFlatten,
 
   [NNElementType.EmbeddingLayer]: EmbeddingLayer,
   // Embedding Attributes - Mandatory

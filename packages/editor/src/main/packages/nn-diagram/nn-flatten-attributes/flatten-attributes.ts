@@ -130,3 +130,28 @@ export class InputReusedAttributeFlatten extends FlattenAttribute {
     this.name = `${this.attributeName} = ${this.value}`;
   }
 }
+
+export class IsLayerCallAttributeFlatten extends FlattenAttribute {
+  type: UMLElementType = NNElementType.IsLayerCallAttributeFlatten;
+  constructor(values?: DeepPartial<IFlattenAttribute>) {
+    super({ attributeName: 'is_layer_call', value: 'false', isMandatory: false, ...values });
+    this.attributeType = 'bool';
+    this.name = `${this.attributeName} = ${this.value}`;
+  }
+}
+
+export class InputVarAttributeFlatten extends FlattenAttribute {
+  type: UMLElementType = NNElementType.InputVarAttributeFlatten;
+  constructor(values?: DeepPartial<IFlattenAttribute>) {
+    super({ attributeName: 'input_var', value: '', isMandatory: false, ...values });
+    this.name = `${this.attributeName} = ${this.value}`;
+  }
+}
+
+export class OutputVarAttributeFlatten extends FlattenAttribute {
+  type: UMLElementType = NNElementType.OutputVarAttributeFlatten;
+  constructor(values?: DeepPartial<IFlattenAttribute>) {
+    super({ attributeName: 'output_var', value: '', isMandatory: false, ...values });
+    this.name = `${this.attributeName} = ${this.value}`;
+  }
+}

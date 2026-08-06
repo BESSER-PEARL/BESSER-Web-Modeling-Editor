@@ -91,6 +91,7 @@ const WIDGET_CONFIG_MAP: Record<string, AttributeWidgetConfig> = {
   [NNElementType.IsLayerCallAttributeConv3D]:            { widget: 'dropdown', options: BOOLEAN_OPTIONS, defaultValue: 'false' },
   [NNElementType.PermuteInAttributePooling]:             { widget: 'dropdown', options: BOOLEAN_OPTIONS, defaultValue: 'false' },
   [NNElementType.PermuteOutAttributePooling]:            { widget: 'dropdown', options: BOOLEAN_OPTIONS, defaultValue: 'false' },
+  [NNElementType.IsLayerCallAttributePooling]:           { widget: 'dropdown', options: BOOLEAN_OPTIONS, defaultValue: 'false' },
   [NNElementType.InputReusedAttributeConv1D]:            { widget: 'dropdown', options: BOOLEAN_OPTIONS, defaultValue: 'false' },
   [NNElementType.InputReusedAttributeConv2D]:            { widget: 'dropdown', options: BOOLEAN_OPTIONS, defaultValue: 'false' },
   [NNElementType.InputReusedAttributeConv3D]:            { widget: 'dropdown', options: BOOLEAN_OPTIONS, defaultValue: 'false' },
@@ -121,6 +122,9 @@ const WIDGET_CONFIG_MAP: Record<string, AttributeWidgetConfig> = {
   [NNElementType.BiasAttributeGRU]:                      { widget: 'dropdown', options: BOOLEAN_OPTIONS, defaultValue: 'true' },
   [NNElementType.IsLayerCallAttributeGRU]:               { widget: 'dropdown', options: BOOLEAN_OPTIONS, defaultValue: 'false' },
   [NNElementType.HiddenUnusedAttributeGRU]:              { widget: 'dropdown', options: BOOLEAN_OPTIONS, defaultValue: 'false' },
+  [NNElementType.BiasAttributeLinear]:                   { widget: 'dropdown', options: BOOLEAN_OPTIONS, defaultValue: 'true' },
+  [NNElementType.IsLayerCallAttributeLinear]:            { widget: 'dropdown', options: BOOLEAN_OPTIONS, defaultValue: 'false' },
+  [NNElementType.IsLayerCallAttributeFlatten]:           { widget: 'dropdown', options: BOOLEAN_OPTIONS, defaultValue: 'false' },
 
   // ── Pooling dimension-aware list attributes ───────────────────────────────────
   // getInitialValue picks the correctly-sized list based on the Pooling layer's dimension attribute.

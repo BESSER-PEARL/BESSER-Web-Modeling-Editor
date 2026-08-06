@@ -111,6 +111,9 @@ import {
   InputReusedAttributePooling,
   PermuteInAttributePooling,
   PermuteOutAttributePooling,
+  IsLayerCallAttributePooling,
+  InputVarAttributePooling,
+  OutputVarAttributePooling,
   PoolingAttribute,
 } from '../nn-pooling-attributes/pooling-attributes';
 import {
@@ -188,6 +191,10 @@ import {
   ActvFuncAttributeLinear,
   NameModuleInputAttributeLinear,
   InputReusedAttributeLinear,
+  BiasAttributeLinear,
+  IsLayerCallAttributeLinear,
+  InputVarAttributeLinear,
+  OutputVarAttributeLinear,
   LinearAttribute,
 } from '../nn-linear-attributes/linear-attributes';
 import {
@@ -197,6 +204,9 @@ import {
   ActvFuncAttributeFlatten,
   NameModuleInputAttributeFlatten,
   InputReusedAttributeFlatten,
+  IsLayerCallAttributeFlatten,
+  InputVarAttributeFlatten,
+  OutputVarAttributeFlatten,
   FlattenAttribute,
 } from '../nn-flatten-attributes/flatten-attributes';
 import {
@@ -416,6 +426,9 @@ const LAYER_CONFIG: {
       { type: NNElementType.InputReusedAttributePooling, ctor: InputReusedAttributePooling, label: 'input_reused' },
       { type: NNElementType.PermuteInAttributePooling, ctor: PermuteInAttributePooling, label: 'permute_in' },
       { type: NNElementType.PermuteOutAttributePooling, ctor: PermuteOutAttributePooling, label: 'permute_out' },
+      { type: NNElementType.IsLayerCallAttributePooling, ctor: IsLayerCallAttributePooling, label: 'is_layer_call' },
+      { type: NNElementType.InputVarAttributePooling, ctor: InputVarAttributePooling, label: 'input_var' },
+      { type: NNElementType.OutputVarAttributePooling, ctor: OutputVarAttributePooling, label: 'output_var' },
     ],
   },
   [NNElementType.RNNLayer]: {
@@ -509,6 +522,10 @@ const LAYER_CONFIG: {
       { type: NNElementType.ActvFuncAttributeLinear, ctor: ActvFuncAttributeLinear, label: 'actv_func' },
       { type: NNElementType.NameModuleInputAttributeLinear, ctor: NameModuleInputAttributeLinear, label: 'name_module_input' },
       { type: NNElementType.InputReusedAttributeLinear, ctor: InputReusedAttributeLinear, label: 'input_reused' },
+      { type: NNElementType.BiasAttributeLinear, ctor: BiasAttributeLinear, label: 'bias' },
+      { type: NNElementType.IsLayerCallAttributeLinear, ctor: IsLayerCallAttributeLinear, label: 'is_layer_call' },
+      { type: NNElementType.InputVarAttributeLinear, ctor: InputVarAttributeLinear, label: 'input_var' },
+      { type: NNElementType.OutputVarAttributeLinear, ctor: OutputVarAttributeLinear, label: 'output_var' },
     ],
   },
   [NNElementType.FlattenLayer]: {
@@ -522,6 +539,9 @@ const LAYER_CONFIG: {
       { type: NNElementType.ActvFuncAttributeFlatten, ctor: ActvFuncAttributeFlatten, label: 'actv_func' },
       { type: NNElementType.NameModuleInputAttributeFlatten, ctor: NameModuleInputAttributeFlatten, label: 'name_module_input' },
       { type: NNElementType.InputReusedAttributeFlatten, ctor: InputReusedAttributeFlatten, label: 'input_reused' },
+      { type: NNElementType.IsLayerCallAttributeFlatten, ctor: IsLayerCallAttributeFlatten, label: 'is_layer_call' },
+      { type: NNElementType.InputVarAttributeFlatten, ctor: InputVarAttributeFlatten, label: 'input_var' },
+      { type: NNElementType.OutputVarAttributeFlatten, ctor: OutputVarAttributeFlatten, label: 'output_var' },
     ],
   },
   [NNElementType.EmbeddingLayer]: {

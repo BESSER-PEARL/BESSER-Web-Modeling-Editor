@@ -81,6 +81,9 @@ export const NNElementType = {
   InputReusedAttributePooling: 'InputReusedAttributePooling',
   PermuteInAttributePooling: 'PermuteInAttributePooling',
   PermuteOutAttributePooling: 'PermuteOutAttributePooling',
+  IsLayerCallAttributePooling: 'IsLayerCallAttributePooling',
+  InputVarAttributePooling: 'InputVarAttributePooling',
+  OutputVarAttributePooling: 'OutputVarAttributePooling',
 
   RNNLayer: 'RNNLayer',
   // RNN Layer Attributes - Mandatory
@@ -162,6 +165,10 @@ export const NNElementType = {
   ActvFuncAttributeLinear: 'ActvFuncAttributeLinear',
   NameModuleInputAttributeLinear: 'NameModuleInputAttributeLinear',
   InputReusedAttributeLinear: 'InputReusedAttributeLinear',
+  BiasAttributeLinear: 'BiasAttributeLinear',
+  IsLayerCallAttributeLinear: 'IsLayerCallAttributeLinear',
+  InputVarAttributeLinear: 'InputVarAttributeLinear',
+  OutputVarAttributeLinear: 'OutputVarAttributeLinear',
 
   FlattenLayer: 'FlattenLayer',
   // Flatten Layer Attributes - Mandatory
@@ -172,6 +179,9 @@ export const NNElementType = {
   ActvFuncAttributeFlatten: 'ActvFuncAttributeFlatten',
   NameModuleInputAttributeFlatten: 'NameModuleInputAttributeFlatten',
   InputReusedAttributeFlatten: 'InputReusedAttributeFlatten',
+  IsLayerCallAttributeFlatten: 'IsLayerCallAttributeFlatten',
+  InputVarAttributeFlatten: 'InputVarAttributeFlatten',
+  OutputVarAttributeFlatten: 'OutputVarAttributeFlatten',
 
   EmbeddingLayer: 'EmbeddingLayer',
   // Embedding Layer Attributes - Mandatory

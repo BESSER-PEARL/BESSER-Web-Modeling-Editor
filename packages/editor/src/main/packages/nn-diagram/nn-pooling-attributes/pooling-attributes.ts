@@ -190,3 +190,28 @@ export class PermuteOutAttributePooling extends PoolingAttribute {
     this.name = `${this.attributeName} = ${this.value}`;
   }
 }
+
+export class IsLayerCallAttributePooling extends PoolingAttribute {
+  type: UMLElementType = NNElementType.IsLayerCallAttributePooling;
+  constructor(values?: DeepPartial<IPoolingAttribute>) {
+    super({ attributeName: 'is_layer_call', value: 'false', isMandatory: false, ...values });
+    this.attributeType = 'bool';
+    this.name = `${this.attributeName} = ${this.value}`;
+  }
+}
+
+export class InputVarAttributePooling extends PoolingAttribute {
+  type: UMLElementType = NNElementType.InputVarAttributePooling;
+  constructor(values?: DeepPartial<IPoolingAttribute>) {
+    super({ attributeName: 'input_var', value: '', isMandatory: false, ...values });
+    this.name = `${this.attributeName} = ${this.value}`;
+  }
+}
+
+export class OutputVarAttributePooling extends PoolingAttribute {
+  type: UMLElementType = NNElementType.OutputVarAttributePooling;
+  constructor(values?: DeepPartial<IPoolingAttribute>) {
+    super({ attributeName: 'output_var', value: '', isMandatory: false, ...values });
+    this.name = `${this.attributeName} = ${this.value}`;
+  }
+}
