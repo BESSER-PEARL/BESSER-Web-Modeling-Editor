@@ -90,7 +90,7 @@ export class NameAttributeLayerNormalization extends LayerNormalizationAttribute
 export class NormalizedShapeAttributeLayerNormalization extends LayerNormalizationAttribute {
   type: UMLElementType = NNElementType.NormalizedShapeAttributeLayerNormalization;
   constructor(values?: DeepPartial<ILayerNormalizationAttribute>) {
-    super({ attributeName: 'normalized_shape', value: '[-1]', isMandatory: true, ...values });
+    super({ attributeName: 'normalized_shape', value: '[]', isMandatory: true, ...values });
     this.attributeType = 'List';
     this.name = `${this.attributeName} = ${this.value}`;
   }
@@ -118,6 +118,49 @@ export class InputReusedAttributeLayerNormalization extends LayerNormalizationAt
   constructor(values?: DeepPartial<ILayerNormalizationAttribute>) {
     super({ attributeName: 'input_reused', value: 'false', isMandatory: false, ...values });
     this.attributeType = 'bool';
+    this.name = `${this.attributeName} = ${this.value}`;
+  }
+}
+
+export class EpsAttributeLayerNormalization extends LayerNormalizationAttribute {
+  type: UMLElementType = NNElementType.EpsAttributeLayerNormalization;
+  constructor(values?: DeepPartial<ILayerNormalizationAttribute>) {
+    super({ attributeName: 'eps', value: '1e-5', isMandatory: false, ...values });
+    this.attributeType = 'float';
+    this.name = `${this.attributeName} = ${this.value}`;
+  }
+}
+
+export class AffineAttributeLayerNormalization extends LayerNormalizationAttribute {
+  type: UMLElementType = NNElementType.AffineAttributeLayerNormalization;
+  constructor(values?: DeepPartial<ILayerNormalizationAttribute>) {
+    super({ attributeName: 'affine', value: 'true', isMandatory: false, ...values });
+    this.attributeType = 'bool';
+    this.name = `${this.attributeName} = ${this.value}`;
+  }
+}
+
+export class IsLayerCallAttributeLayerNormalization extends LayerNormalizationAttribute {
+  type: UMLElementType = NNElementType.IsLayerCallAttributeLayerNormalization;
+  constructor(values?: DeepPartial<ILayerNormalizationAttribute>) {
+    super({ attributeName: 'is_layer_call', value: 'false', isMandatory: false, ...values });
+    this.attributeType = 'bool';
+    this.name = `${this.attributeName} = ${this.value}`;
+  }
+}
+
+export class InputVarAttributeLayerNormalization extends LayerNormalizationAttribute {
+  type: UMLElementType = NNElementType.InputVarAttributeLayerNormalization;
+  constructor(values?: DeepPartial<ILayerNormalizationAttribute>) {
+    super({ attributeName: 'input_var', value: '', isMandatory: false, ...values });
+    this.name = `${this.attributeName} = ${this.value}`;
+  }
+}
+
+export class OutputVarAttributeLayerNormalization extends LayerNormalizationAttribute {
+  type: UMLElementType = NNElementType.OutputVarAttributeLayerNormalization;
+  constructor(values?: DeepPartial<ILayerNormalizationAttribute>) {
+    super({ attributeName: 'output_var', value: '', isMandatory: false, ...values });
     this.name = `${this.attributeName} = ${this.value}`;
   }
 }

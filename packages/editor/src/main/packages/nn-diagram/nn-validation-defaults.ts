@@ -58,7 +58,7 @@ export function getListExpectation(
     case NNElementType.KernelDimAttributeConv3D: return { count: 3, example: '[3, 3, 3]' };
     case NNElementType.StrideDimAttributeConv3D: return { count: 3, example: '[1, 1, 1]' };
     case NNElementType.DilationAttributeConv3D: return { count: 3, example: '[1, 1, 1]' };
-    case NNElementType.NormalizedShapeAttributeLayerNormalization: return { count: 1, example: '[-1]' };
+    case NNElementType.NormalizedShapeAttributeLayerNormalization: return { count: 1, example: '[]' };
     case NNElementType.TransposeDimAttributeTensorOp: return { count: 2, example: '[0, 1]' };
     case NNElementType.KernelDimAttributePooling:
     case NNElementType.StrideDimAttributePooling: {

@@ -300,6 +300,11 @@ import {
   ActvFuncAttributeLayerNormalization,
   NameModuleInputAttributeLayerNormalization,
   InputReusedAttributeLayerNormalization,
+  EpsAttributeLayerNormalization,
+  AffineAttributeLayerNormalization,
+  IsLayerCallAttributeLayerNormalization,
+  InputVarAttributeLayerNormalization,
+  OutputVarAttributeLayerNormalization,
 } from './nn-diagram/nn-layernormalization-attributes/layernormalization-attributes';
 
 import { BatchNormalizationLayer } from './nn-diagram/nn-batchnormalization-layer/nn-batchnormalization-layer';
@@ -310,6 +315,13 @@ import {
   ActvFuncAttributeBatchNormalization,
   NameModuleInputAttributeBatchNormalization,
   InputReusedAttributeBatchNormalization,
+  EpsAttributeBatchNormalization,
+  MomentumAttributeBatchNormalization,
+  AffineAttributeBatchNormalization,
+  TrackRunningStatsAttributeBatchNormalization,
+  IsLayerCallAttributeBatchNormalization,
+  InputVarAttributeBatchNormalization,
+  OutputVarAttributeBatchNormalization,
 } from './nn-diagram/nn-batchnormalization-attributes/batchnormalization-attributes';
 
 import { TensorOp } from './nn-diagram/nn-tensorop/nn-tensorop';
@@ -653,6 +665,11 @@ export const UMLElements = {
   [NNElementType.ActvFuncAttributeLayerNormalization]: ActvFuncAttributeLayerNormalization,
   [NNElementType.NameModuleInputAttributeLayerNormalization]: NameModuleInputAttributeLayerNormalization,
   [NNElementType.InputReusedAttributeLayerNormalization]: InputReusedAttributeLayerNormalization,
+  [NNElementType.EpsAttributeLayerNormalization]: EpsAttributeLayerNormalization,
+  [NNElementType.AffineAttributeLayerNormalization]: AffineAttributeLayerNormalization,
+  [NNElementType.IsLayerCallAttributeLayerNormalization]: IsLayerCallAttributeLayerNormalization,
+  [NNElementType.InputVarAttributeLayerNormalization]: InputVarAttributeLayerNormalization,
+  [NNElementType.OutputVarAttributeLayerNormalization]: OutputVarAttributeLayerNormalization,
 
   [NNElementType.BatchNormalizationLayer]: BatchNormalizationLayer,
   // BatchNormalization Attributes - Mandatory
@@ -663,6 +680,13 @@ export const UMLElements = {
   [NNElementType.ActvFuncAttributeBatchNormalization]: ActvFuncAttributeBatchNormalization,
   [NNElementType.NameModuleInputAttributeBatchNormalization]: NameModuleInputAttributeBatchNormalization,
   [NNElementType.InputReusedAttributeBatchNormalization]: InputReusedAttributeBatchNormalization,
+  [NNElementType.EpsAttributeBatchNormalization]: EpsAttributeBatchNormalization,
+  [NNElementType.MomentumAttributeBatchNormalization]: MomentumAttributeBatchNormalization,
+  [NNElementType.AffineAttributeBatchNormalization]: AffineAttributeBatchNormalization,
+  [NNElementType.TrackRunningStatsAttributeBatchNormalization]: TrackRunningStatsAttributeBatchNormalization,
+  [NNElementType.IsLayerCallAttributeBatchNormalization]: IsLayerCallAttributeBatchNormalization,
+  [NNElementType.InputVarAttributeBatchNormalization]: InputVarAttributeBatchNormalization,
+  [NNElementType.OutputVarAttributeBatchNormalization]: OutputVarAttributeBatchNormalization,
 
   [NNElementType.TensorOp]: TensorOp,
   // TensorOp Attributes - Mandatory

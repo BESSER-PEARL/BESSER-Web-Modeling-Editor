@@ -217,6 +217,11 @@ export const NNElementType = {
   ActvFuncAttributeLayerNormalization: 'ActvFuncAttributeLayerNormalization',
   NameModuleInputAttributeLayerNormalization: 'NameModuleInputAttributeLayerNormalization',
   InputReusedAttributeLayerNormalization: 'InputReusedAttributeLayerNormalization',
+  EpsAttributeLayerNormalization: 'EpsAttributeLayerNormalization',
+  AffineAttributeLayerNormalization: 'AffineAttributeLayerNormalization',
+  IsLayerCallAttributeLayerNormalization: 'IsLayerCallAttributeLayerNormalization',
+  InputVarAttributeLayerNormalization: 'InputVarAttributeLayerNormalization',
+  OutputVarAttributeLayerNormalization: 'OutputVarAttributeLayerNormalization',
 
   BatchNormalizationLayer: 'BatchNormalizationLayer',
   // BatchNormalization Layer Attributes - Mandatory
@@ -227,6 +232,13 @@ export const NNElementType = {
   ActvFuncAttributeBatchNormalization: 'ActvFuncAttributeBatchNormalization',
   NameModuleInputAttributeBatchNormalization: 'NameModuleInputAttributeBatchNormalization',
   InputReusedAttributeBatchNormalization: 'InputReusedAttributeBatchNormalization',
+  EpsAttributeBatchNormalization: 'EpsAttributeBatchNormalization',
+  MomentumAttributeBatchNormalization: 'MomentumAttributeBatchNormalization',
+  AffineAttributeBatchNormalization: 'AffineAttributeBatchNormalization',
+  TrackRunningStatsAttributeBatchNormalization: 'TrackRunningStatsAttributeBatchNormalization',
+  IsLayerCallAttributeBatchNormalization: 'IsLayerCallAttributeBatchNormalization',
+  InputVarAttributeBatchNormalization: 'InputVarAttributeBatchNormalization',
+  OutputVarAttributeBatchNormalization: 'OutputVarAttributeBatchNormalization',
 
   TensorOp: 'TensorOp',
   // TensorOp Attributes - Mandatory

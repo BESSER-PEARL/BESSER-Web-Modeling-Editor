@@ -239,6 +239,11 @@ import {
   ActvFuncAttributeLayerNormalization,
   NameModuleInputAttributeLayerNormalization,
   InputReusedAttributeLayerNormalization,
+  EpsAttributeLayerNormalization,
+  AffineAttributeLayerNormalization,
+  IsLayerCallAttributeLayerNormalization,
+  InputVarAttributeLayerNormalization,
+  OutputVarAttributeLayerNormalization,
   LayerNormalizationAttribute,
 } from '../nn-layernormalization-attributes/layernormalization-attributes';
 import {
@@ -248,6 +253,13 @@ import {
   ActvFuncAttributeBatchNormalization,
   NameModuleInputAttributeBatchNormalization,
   InputReusedAttributeBatchNormalization,
+  EpsAttributeBatchNormalization,
+  MomentumAttributeBatchNormalization,
+  AffineAttributeBatchNormalization,
+  TrackRunningStatsAttributeBatchNormalization,
+  IsLayerCallAttributeBatchNormalization,
+  InputVarAttributeBatchNormalization,
+  OutputVarAttributeBatchNormalization,
   BatchNormalizationAttribute,
 } from '../nn-batchnormalization-attributes/batchnormalization-attributes';
 import {
@@ -594,6 +606,11 @@ const LAYER_CONFIG: {
       { type: NNElementType.ActvFuncAttributeLayerNormalization, ctor: ActvFuncAttributeLayerNormalization, label: 'actv_func' },
       { type: NNElementType.NameModuleInputAttributeLayerNormalization, ctor: NameModuleInputAttributeLayerNormalization, label: 'name_module_input' },
       { type: NNElementType.InputReusedAttributeLayerNormalization, ctor: InputReusedAttributeLayerNormalization, label: 'input_reused' },
+      { type: NNElementType.EpsAttributeLayerNormalization, ctor: EpsAttributeLayerNormalization, label: 'eps' },
+      { type: NNElementType.AffineAttributeLayerNormalization, ctor: AffineAttributeLayerNormalization, label: 'affine' },
+      { type: NNElementType.IsLayerCallAttributeLayerNormalization, ctor: IsLayerCallAttributeLayerNormalization, label: 'is_layer_call' },
+      { type: NNElementType.InputVarAttributeLayerNormalization, ctor: InputVarAttributeLayerNormalization, label: 'input_var' },
+      { type: NNElementType.OutputVarAttributeLayerNormalization, ctor: OutputVarAttributeLayerNormalization, label: 'output_var' },
     ],
   },
   [NNElementType.BatchNormalizationLayer]: {
@@ -607,6 +624,13 @@ const LAYER_CONFIG: {
       { type: NNElementType.ActvFuncAttributeBatchNormalization, ctor: ActvFuncAttributeBatchNormalization, label: 'actv_func' },
       { type: NNElementType.NameModuleInputAttributeBatchNormalization, ctor: NameModuleInputAttributeBatchNormalization, label: 'name_module_input' },
       { type: NNElementType.InputReusedAttributeBatchNormalization, ctor: InputReusedAttributeBatchNormalization, label: 'input_reused' },
+      { type: NNElementType.EpsAttributeBatchNormalization, ctor: EpsAttributeBatchNormalization, label: 'eps' },
+      { type: NNElementType.MomentumAttributeBatchNormalization, ctor: MomentumAttributeBatchNormalization, label: 'momentum' },
+      { type: NNElementType.AffineAttributeBatchNormalization, ctor: AffineAttributeBatchNormalization, label: 'affine' },
+      { type: NNElementType.TrackRunningStatsAttributeBatchNormalization, ctor: TrackRunningStatsAttributeBatchNormalization, label: 'track_running_stats' },
+      { type: NNElementType.IsLayerCallAttributeBatchNormalization, ctor: IsLayerCallAttributeBatchNormalization, label: 'is_layer_call' },
+      { type: NNElementType.InputVarAttributeBatchNormalization, ctor: InputVarAttributeBatchNormalization, label: 'input_var' },
+      { type: NNElementType.OutputVarAttributeBatchNormalization, ctor: OutputVarAttributeBatchNormalization, label: 'output_var' },
     ],
   },
   [NNElementType.TensorOp]: {
