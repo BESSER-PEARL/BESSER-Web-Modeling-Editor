@@ -176,6 +176,7 @@ export interface AgentState extends UMLElement {
   // canonical keys
   actions: string[];
   fallbackActions: string[];
+  isInitial?: boolean;
   stateType?: string;
   fallbackBodyEnabled?: boolean;
   // reasoning-state fields (used when stateType = 'reasoning')

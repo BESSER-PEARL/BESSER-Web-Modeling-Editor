@@ -591,12 +591,12 @@ class StateUpdate extends Component<Props, State> {
             <Divider />
             {needsLlm && (
               <WsWarning>
-                ⚠ No LLM is defined in the diagram, but this state requires one. Add an LLM in the Agent Configuration.
+                ⚠ No LLM is defined in the diagram, but this state requires one. Add an LLM in the Components page.
               </WsWarning>
             )}
             {needsChatLlm && (
               <WsWarning>
-                ⚠ LLM Chat requires an OpenAI or Hugging Face LLM, but none are defined. Add a compatible LLM in the Agent Configuration.
+                ⚠ LLM Chat requires an OpenAI or Hugging Face LLM, but none are defined. Add a compatible LLM in the Components page.
               </WsWarning>
             )}
             {needsPlatform && (
@@ -826,6 +826,11 @@ class StateUpdate extends Component<Props, State> {
 
     return (
       <>
+        {actions.length === 0 && (
+          <p style={{ fontSize: 12, margin: '4px 0 8px', opacity: 0.6, fontStyle: 'italic' }}>
+            No actions defined.
+          </p>
+        )}
         {actions.map((action, index) => {
           const isExpanded = !collapsedIds.has(action.id);
           const isDraggingOver =
@@ -1025,7 +1030,7 @@ class StateUpdate extends Component<Props, State> {
           <>
             {llmNames.length === 0 && (
               <WsWarning style={{ marginBottom: 6 }}>
-                No LLM defined. Add one in the Agent Configuration.
+                No LLM defined. Add one in the Components page.
               </WsWarning>
             )}
             {this.renderLlmNameField(action, llmNames, `${fieldId}-llm`)}
@@ -1116,7 +1121,7 @@ class StateUpdate extends Component<Props, State> {
           <>
             {llmNames.length === 0 && (
               <WsWarning style={{ marginBottom: 6 }}>
-                No LLM defined. RAG requires an LLM. Add one in the Agent Configuration.
+                No LLM defined. RAG requires an LLM. Add one in the Components page.
               </WsWarning>
             )}
             {ragDatabaseNames.length ? (
@@ -1728,7 +1733,7 @@ class StateUpdate extends Component<Props, State> {
             <>
               {llmNames.length === 0 && (
                 <WsWarning style={{ marginBottom: 6 }}>
-                  No LLM defined. LLM query mode requires an LLM. Add one in the Agent Configuration.
+                  No LLM defined. LLM query mode requires an LLM. Add one in the Components page.
                 </WsWarning>
               )}
               <p>Answer will be generated with LLM during runtime</p>
@@ -1789,7 +1794,7 @@ class StateUpdate extends Component<Props, State> {
       <LlmFieldRow>
         {llmNames.length === 0 && (
           <WsWarning style={{ marginBottom: 6 }}>
-            No LLM defined. Web Crawl + LLM requires an LLM. Add one in the Agent Configuration.
+            No LLM defined. Web Crawl + LLM requires an LLM. Add one in the Components page.
           </WsWarning>
         )}
         <Header>Initial URL</Header>

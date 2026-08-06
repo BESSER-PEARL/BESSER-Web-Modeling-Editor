@@ -1,5 +1,5 @@
 import { useCallback } from 'react';
-import { ApollonEditor, UMLModel } from '@besser/wme';
+import { ApollonEditor, UMLModel, normalizeAgentModel } from '@besser/wme';
 import { useFileDownload } from '../../../shared/services/file-download/useFileDownload';
 import { toast } from 'react-toastify';
 import { validateDiagram } from '../../../shared/services/validation/validateDiagram';
@@ -240,9 +240,10 @@ export const useGenerateCode = () => {
       // agent personalization to ship the un-personalized base instead of
       // whatever variant happens to be active in the editor — see
       // handleAgentGenerate in useGeneratorExecution.
+      const rawModel = modelOverride ?? editor.model;
       const body: any = {
         title: diagramTitle,
-        model: modelOverride ?? editor.model,
+        model: generatorType === 'agent' ? normalizeAgentModel(rawModel as UMLModel) : rawModel,
         generator: generatorType,
         config: config,
         ...(referenceDiagramData ? { referenceDiagramData } : {}),

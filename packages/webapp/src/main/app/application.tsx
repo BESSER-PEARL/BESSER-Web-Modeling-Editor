@@ -35,6 +35,10 @@ const AgentConfigurationPanel = React.lazy(() =>
   import('../features/agent-config/AgentConfigurationPanel').then((m) => ({ default: m.AgentConfigurationPanel })),
 );
 
+const AgentComponentsPanel = React.lazy(() =>
+  import('../features/agent-components/AgentComponentsPanel').then((m) => ({ default: m.AgentComponentsPanel })),
+);
+
 const ProjectSettingsPanel = React.lazy(() =>
   import('../features/project/ProjectSettingsPanel').then((m) => ({ default: m.ProjectSettingsPanel })),
 );
@@ -132,6 +136,7 @@ function AppContentInner() {
           <Routes>
             <Route path="/" element={<EditorView />} />
             <Route path="/agent-config" element={<AgentConfigurationPanel />} />
+            <Route path="/agent-components" element={<AgentComponentsPanel />} />
             <Route path="/project-settings" element={<ProjectSettingsPanel />} />
             <Route path="*" element={<NotFound />} />
           </Routes>

@@ -19,6 +19,16 @@ import * as jsyaml from 'js-yaml';
 // Types
 // ─────────────────────────────────────────────────────────────
 
+export interface SqlDatabaseEntry {
+  name: string;
+  dialect: string;
+  database: string;
+  host: string;
+  port: string;
+  username: string;
+  password: string;
+}
+
 export interface AgentConfigFormData {
   agent: { check_transitions_delay: string };
   nlp: {
@@ -53,6 +63,7 @@ export interface AgentConfigFormData {
   db: {
     monitoring: { enabled: boolean; dialect: string; host: string; port: string; database: string; username: string; password: string };
     streamlit_db: { enabled: boolean; dialect: string; host: string; port: string; database: string; username: string; password: string };
+    sqlDatabases: SqlDatabaseEntry[];
   };
 }
 
@@ -90,6 +101,7 @@ export const DEFAULT_AGENT_CONFIG_FORM: AgentConfigFormData = {
   db: {
     monitoring: { enabled: true, dialect: 'postgresql', host: 'YOUR-DB-HOST', port: '5432', database: 'YOUR-DB-NAME', username: 'YOUR-DB-USERNAME', password: 'YOUR-DB-PASSWORD' },
     streamlit_db: { enabled: true, dialect: 'postgresql', host: 'YOUR-DB-HOST', port: '5432', database: 'YOUR-DB-NAME', username: 'YOUR-DB-USERNAME', password: 'YOUR-DB-PASSWORD' },
+    sqlDatabases: [],
   },
 };
 
@@ -175,8 +187,9 @@ export function agentConfigFormToYaml(form: AgentConfigFormData): string {
   }
 
   // ── DB ─────────────────────────────────────
-  const { monitoring, streamlit_db } = form.db;
-  if (monitoring.enabled || streamlit_db.enabled) {
+  const { monitoring, streamlit_db, sqlDatabases } = form.db;
+  const hasSqlDbs = Array.isArray(sqlDatabases) && sqlDatabases.length > 0;
+  if (monitoring.enabled || streamlit_db.enabled || hasSqlDbs) {
     lines.push('db:');
     if (monitoring.enabled) {
       lines.push('  monitoring:');
@@ -197,6 +210,19 @@ export function agentConfigFormToYaml(form: AgentConfigFormData): string {
       if (streamlit_db.database) lines.push(`    database: ${yamlValue(streamlit_db.database)}`);
       if (streamlit_db.username) lines.push(`    username: ${yamlValue(streamlit_db.username)}`);
       if (streamlit_db.password) lines.push(`    password: ${yamlValue(streamlit_db.password)}`);
+    }
+    if (hasSqlDbs) {
+      lines.push('  sql:');
+      for (const db of sqlDatabases) {
+        const safeName = (db.name || 'db').replace(/[^A-Za-z0-9_]/g, '_') || 'db';
+        lines.push(`    - ${safeName}:`);
+        if (db.dialect) lines.push(`        dialect: ${yamlValue(db.dialect)}`);
+        if (db.database) lines.push(`        database: ${yamlValue(db.database)}`);
+        if (db.host) lines.push(`        host: ${yamlValue(db.host)}`);
+        if (db.port && db.port.trim()) lines.push(`        port: ${yamlValue(db.port)}`);
+        if (db.username) lines.push(`        username: ${yamlValue(db.username)}`);
+        if (db.password) lines.push(`        password: ${yamlValue(db.password)}`);
+      }
     }
   }
 

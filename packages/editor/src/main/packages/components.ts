@@ -79,16 +79,10 @@ import { UMLStateObjectNodeComponent } from './uml-state-diagram/uml-state-objec
 import { UMLStateTransitionComponent } from './uml-state-diagram/uml-state-transition/uml-state-transition-component';
 import { UMLStateCodeBlockComponent } from './uml-state-diagram/uml-state-code-block/uml-state-code-block-component';
 import { UMLStateMemberComponent } from './uml-state-diagram/uml-state/uml-state-member-component';
-import { AgentIntentComponent } from './agent-state-diagram/agent-intent-object-component/agent-intent-object-component';
-import { AgentIntentMemberComponent } from './agent-state-diagram/agent-intent-object-component/agent-intent-member-component';
-import { AgentRagElementComponent } from './agent-state-diagram/agent-rag-element/agent-rag-element-component';
 import { AgentStateComponent } from './agent-state-diagram/agent-state/agent-state-component';
 import { AgentStateMemberComponent } from './agent-state-diagram/agent-state/agent-state-member-component';
 import { AgentStateTransitionComponent } from './agent-state-diagram/agent-state-transition/agent-state-transition-component';
 import { AgentStateTransitionInitComponent } from './agent-state-diagram/agent-state-transition-init/agent-state-transition-init-component';
-import { AgentToolComponent } from './agent-state-diagram/agent-tool/agent-tool-component';
-import { AgentSkillComponent } from './agent-state-diagram/agent-skill/agent-skill-component';
-import { AgentWorkspaceComponent } from './agent-state-diagram/agent-workspace/agent-workspace-component';
 import { NNElementType } from './nn-diagram';
 import { NNRelationshipType } from './nn-diagram';
 import { NNAssociationComponent } from './nn-diagram/nn-association/nn-association-component';
@@ -101,12 +95,11 @@ import { NNReferenceComponent } from './nn-diagram/nn-reference/nn-reference-com
 import { NNComponentMemberComponent } from './nn-diagram/nn-component-member-component';
 import { NNLayerIconComponent } from './nn-diagram/nn-layer-icon/nn-layer-icon-component';
 
-// AgentLLM is a data-only element managed exclusively from the agent
-// customization tab; no SVG presence on the canvas. The lookup in
-// canvas-element still happens for every element in the model, so we
-// register a no-op React component to avoid an "undefined component"
-// crash when an AgentLLM is present.
-const AgentLLMNoopComponent: FunctionComponent<PropsWithChildren<{ element: any; fillColor?: string }>> = () => null;
+// Agent component elements (LLM, Tool, Skill, Workspace, RAG, Intent) are
+// data-only elements managed from the agent components panel; they have no
+// SVG presence on the canvas. We register a no-op component for each type
+// to avoid "undefined component" crashes when they are present in the model.
+const AgentNoopComponent: FunctionComponent<PropsWithChildren<{ element: any; fillColor?: string }>> = () => null;
 
 export const Components: {
   [key in UMLElementType | UMLRelationshipType]:
@@ -217,16 +210,16 @@ export const Components: {
   [UMLRelationshipType.StateTransition]: UMLStateTransitionComponent,
   [UMLElementType.StateCodeBlock]: UMLStateCodeBlockComponent,
 
-  [UMLElementType.AgentIntent]: AgentIntentComponent,
-  [UMLElementType.AgentIntentBody]: AgentIntentMemberComponent,
-  [UMLElementType.AgentRagElement]: AgentRagElementComponent,
+  [UMLElementType.AgentIntent]: AgentNoopComponent,
+  [UMLElementType.AgentIntentBody]: AgentNoopComponent,
+  [UMLElementType.AgentRagElement]: AgentNoopComponent,
   [UMLElementType.AgentState]: AgentStateComponent,
   [UMLElementType.AgentStateBody]: AgentStateMemberComponent,
   [UMLElementType.AgentStateFallbackBody]: AgentStateMemberComponent,
-  [UMLElementType.AgentTool]: AgentToolComponent,
-  [UMLElementType.AgentSkill]: AgentSkillComponent,
-  [UMLElementType.AgentWorkspace]: AgentWorkspaceComponent,
-  [UMLElementType.AgentLLM]: AgentLLMNoopComponent,
+  [UMLElementType.AgentTool]: AgentNoopComponent,
+  [UMLElementType.AgentSkill]: AgentNoopComponent,
+  [UMLElementType.AgentWorkspace]: AgentNoopComponent,
+  [UMLElementType.AgentLLM]: AgentNoopComponent,
   [UMLElementType.AgentSectionTitle]: NNSectionTitleComponent as any,
   [UMLElementType.AgentSectionSeparator]: NNSectionSeparatorComponent as any,
   [UMLRelationshipType.AgentStateTransition]: AgentStateTransitionComponent,
