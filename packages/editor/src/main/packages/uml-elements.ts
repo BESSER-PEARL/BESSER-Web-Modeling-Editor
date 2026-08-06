@@ -99,6 +99,12 @@ import {
   InputReusedAttributeConv1D,
   PermuteInAttributeConv1D,
   PermuteOutAttributeConv1D,
+  DilationAttributeConv1D,
+  GroupsAttributeConv1D,
+  BiasAttributeConv1D,
+  IsLayerCallAttributeConv1D,
+  InputVarAttributeConv1D,
+  OutputVarAttributeConv1D,
 } from './nn-diagram/nn-conv1d-attributes/conv1d-attributes';
 import { Conv2DLayer } from './nn-diagram/nn-conv2d-layer/nn-conv2d-layer';
 import {
@@ -114,6 +120,12 @@ import {
   InputReusedAttributeConv2D,
   PermuteInAttributeConv2D,
   PermuteOutAttributeConv2D,
+  DilationAttributeConv2D,
+  GroupsAttributeConv2D,
+  BiasAttributeConv2D,
+  IsLayerCallAttributeConv2D,
+  InputVarAttributeConv2D,
+  OutputVarAttributeConv2D,
 } from './nn-diagram/nn-conv2d-attributes/conv2d-attributes';
 import { Conv3DLayer } from './nn-diagram/nn-conv3d-layer/nn-conv3d-layer';
 import {
@@ -129,6 +141,12 @@ import {
   InputReusedAttributeConv3D,
   PermuteInAttributeConv3D,
   PermuteOutAttributeConv3D,
+  DilationAttributeConv3D,
+  GroupsAttributeConv3D,
+  BiasAttributeConv3D,
+  IsLayerCallAttributeConv3D,
+  InputVarAttributeConv3D,
+  OutputVarAttributeConv3D,
 } from './nn-diagram/nn-conv3d-attributes/conv3d-attributes';
 
 import { PoolingLayer } from './nn-diagram/nn-pooling-layer/nn-pooling-layer';
@@ -160,6 +178,15 @@ import {
   ActvFuncAttributeRNN,
   NameModuleInputAttributeRNN,
   InputReusedAttributeRNN,
+  BiasAttributeRNN,
+  HxSourceAttributeRNN,
+  IsLayerCallAttributeRNN,
+  InputVarAttributeRNN,
+  OutputVarAttributeRNN,
+  HiddenStateVarAttributeRNN,
+  HiddenUnusedAttributeRNN,
+  HiddenSubscriptSourceAttributeRNN,
+  HiddenSubscriptTargetAttributeRNN,
 } from './nn-diagram/nn-rnn-attributes/rnn-attributes';
 
 import { LSTMLayer } from './nn-diagram/nn-lstm-layer/nn-lstm-layer';
@@ -174,6 +201,17 @@ import {
   ActvFuncAttributeLSTM,
   NameModuleInputAttributeLSTM,
   InputReusedAttributeLSTM,
+  BiasAttributeLSTM,
+  HxSourceAttributeLSTM,
+  IsLayerCallAttributeLSTM,
+  InputVarAttributeLSTM,
+  OutputVarAttributeLSTM,
+  HiddenStateVarAttributeLSTM,
+  CellStateVarAttributeLSTM,
+  HiddenUnusedAttributeLSTM,
+  CellUnusedAttributeLSTM,
+  HiddenSubscriptSourceAttributeLSTM,
+  HiddenSubscriptTargetAttributeLSTM,
 } from './nn-diagram/nn-lstm-attributes/lstm-attributes';
 
 import { GRULayer } from './nn-diagram/nn-gru-layer/nn-gru-layer';
@@ -188,6 +226,15 @@ import {
   ActvFuncAttributeGRU,
   NameModuleInputAttributeGRU,
   InputReusedAttributeGRU,
+  BiasAttributeGRU,
+  HxSourceAttributeGRU,
+  IsLayerCallAttributeGRU,
+  InputVarAttributeGRU,
+  OutputVarAttributeGRU,
+  HiddenStateVarAttributeGRU,
+  HiddenUnusedAttributeGRU,
+  HiddenSubscriptSourceAttributeGRU,
+  HiddenSubscriptTargetAttributeGRU,
 } from './nn-diagram/nn-gru-attributes/gru-attributes';
 
 import { LinearLayer } from './nn-diagram/nn-linear-layer/nn-linear-layer';
@@ -385,6 +432,12 @@ export const UMLElements = {
   [NNElementType.InputReusedAttributeConv1D]: InputReusedAttributeConv1D,
   [NNElementType.PermuteInAttributeConv1D]: PermuteInAttributeConv1D,
   [NNElementType.PermuteOutAttributeConv1D]: PermuteOutAttributeConv1D,
+  [NNElementType.DilationAttributeConv1D]: DilationAttributeConv1D,
+  [NNElementType.GroupsAttributeConv1D]: GroupsAttributeConv1D,
+  [NNElementType.BiasAttributeConv1D]: BiasAttributeConv1D,
+  [NNElementType.IsLayerCallAttributeConv1D]: IsLayerCallAttributeConv1D,
+  [NNElementType.InputVarAttributeConv1D]: InputVarAttributeConv1D,
+  [NNElementType.OutputVarAttributeConv1D]: OutputVarAttributeConv1D,
 
   [NNElementType.Conv2DLayer]: Conv2DLayer,
   // Conv2D Attributes - Mandatory
@@ -401,6 +454,12 @@ export const UMLElements = {
   [NNElementType.InputReusedAttributeConv2D]: InputReusedAttributeConv2D,
   [NNElementType.PermuteInAttributeConv2D]: PermuteInAttributeConv2D,
   [NNElementType.PermuteOutAttributeConv2D]: PermuteOutAttributeConv2D,
+  [NNElementType.DilationAttributeConv2D]: DilationAttributeConv2D,
+  [NNElementType.GroupsAttributeConv2D]: GroupsAttributeConv2D,
+  [NNElementType.BiasAttributeConv2D]: BiasAttributeConv2D,
+  [NNElementType.IsLayerCallAttributeConv2D]: IsLayerCallAttributeConv2D,
+  [NNElementType.InputVarAttributeConv2D]: InputVarAttributeConv2D,
+  [NNElementType.OutputVarAttributeConv2D]: OutputVarAttributeConv2D,
 
   [NNElementType.Conv3DLayer]: Conv3DLayer,
   // Conv3D Attributes - Mandatory
@@ -417,6 +476,12 @@ export const UMLElements = {
   [NNElementType.InputReusedAttributeConv3D]: InputReusedAttributeConv3D,
   [NNElementType.PermuteInAttributeConv3D]: PermuteInAttributeConv3D,
   [NNElementType.PermuteOutAttributeConv3D]: PermuteOutAttributeConv3D,
+  [NNElementType.DilationAttributeConv3D]: DilationAttributeConv3D,
+  [NNElementType.GroupsAttributeConv3D]: GroupsAttributeConv3D,
+  [NNElementType.BiasAttributeConv3D]: BiasAttributeConv3D,
+  [NNElementType.IsLayerCallAttributeConv3D]: IsLayerCallAttributeConv3D,
+  [NNElementType.InputVarAttributeConv3D]: InputVarAttributeConv3D,
+  [NNElementType.OutputVarAttributeConv3D]: OutputVarAttributeConv3D,
 
   [NNElementType.PoolingLayer]: PoolingLayer,
   // Pooling Attributes - Mandatory
@@ -448,6 +513,15 @@ export const UMLElements = {
   [NNElementType.ActvFuncAttributeRNN]: ActvFuncAttributeRNN,
   [NNElementType.NameModuleInputAttributeRNN]: NameModuleInputAttributeRNN,
   [NNElementType.InputReusedAttributeRNN]: InputReusedAttributeRNN,
+  [NNElementType.BiasAttributeRNN]: BiasAttributeRNN,
+  [NNElementType.HxSourceAttributeRNN]: HxSourceAttributeRNN,
+  [NNElementType.IsLayerCallAttributeRNN]: IsLayerCallAttributeRNN,
+  [NNElementType.InputVarAttributeRNN]: InputVarAttributeRNN,
+  [NNElementType.OutputVarAttributeRNN]: OutputVarAttributeRNN,
+  [NNElementType.HiddenStateVarAttributeRNN]: HiddenStateVarAttributeRNN,
+  [NNElementType.HiddenUnusedAttributeRNN]: HiddenUnusedAttributeRNN,
+  [NNElementType.HiddenSubscriptSourceAttributeRNN]: HiddenSubscriptSourceAttributeRNN,
+  [NNElementType.HiddenSubscriptTargetAttributeRNN]: HiddenSubscriptTargetAttributeRNN,
 
   [NNElementType.LSTMLayer]: LSTMLayer,
   // LSTM Attributes - Mandatory
@@ -462,6 +536,17 @@ export const UMLElements = {
   [NNElementType.ActvFuncAttributeLSTM]: ActvFuncAttributeLSTM,
   [NNElementType.NameModuleInputAttributeLSTM]: NameModuleInputAttributeLSTM,
   [NNElementType.InputReusedAttributeLSTM]: InputReusedAttributeLSTM,
+  [NNElementType.BiasAttributeLSTM]: BiasAttributeLSTM,
+  [NNElementType.HxSourceAttributeLSTM]: HxSourceAttributeLSTM,
+  [NNElementType.IsLayerCallAttributeLSTM]: IsLayerCallAttributeLSTM,
+  [NNElementType.InputVarAttributeLSTM]: InputVarAttributeLSTM,
+  [NNElementType.OutputVarAttributeLSTM]: OutputVarAttributeLSTM,
+  [NNElementType.HiddenStateVarAttributeLSTM]: HiddenStateVarAttributeLSTM,
+  [NNElementType.CellStateVarAttributeLSTM]: CellStateVarAttributeLSTM,
+  [NNElementType.HiddenUnusedAttributeLSTM]: HiddenUnusedAttributeLSTM,
+  [NNElementType.CellUnusedAttributeLSTM]: CellUnusedAttributeLSTM,
+  [NNElementType.HiddenSubscriptSourceAttributeLSTM]: HiddenSubscriptSourceAttributeLSTM,
+  [NNElementType.HiddenSubscriptTargetAttributeLSTM]: HiddenSubscriptTargetAttributeLSTM,
 
   [NNElementType.GRULayer]: GRULayer,
   // GRU Attributes - Mandatory
@@ -476,6 +561,15 @@ export const UMLElements = {
   [NNElementType.ActvFuncAttributeGRU]: ActvFuncAttributeGRU,
   [NNElementType.NameModuleInputAttributeGRU]: NameModuleInputAttributeGRU,
   [NNElementType.InputReusedAttributeGRU]: InputReusedAttributeGRU,
+  [NNElementType.BiasAttributeGRU]: BiasAttributeGRU,
+  [NNElementType.HxSourceAttributeGRU]: HxSourceAttributeGRU,
+  [NNElementType.IsLayerCallAttributeGRU]: IsLayerCallAttributeGRU,
+  [NNElementType.InputVarAttributeGRU]: InputVarAttributeGRU,
+  [NNElementType.OutputVarAttributeGRU]: OutputVarAttributeGRU,
+  [NNElementType.HiddenStateVarAttributeGRU]: HiddenStateVarAttributeGRU,
+  [NNElementType.HiddenUnusedAttributeGRU]: HiddenUnusedAttributeGRU,
+  [NNElementType.HiddenSubscriptSourceAttributeGRU]: HiddenSubscriptSourceAttributeGRU,
+  [NNElementType.HiddenSubscriptTargetAttributeGRU]: HiddenSubscriptTargetAttributeGRU,
 
   [NNElementType.LinearLayer]: LinearLayer,
   // Linear Attributes - Mandatory

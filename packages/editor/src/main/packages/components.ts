@@ -246,6 +246,12 @@ export const Components: {
   [NNElementType.InputReusedAttributeConv1D]: NNComponentMemberComponent,
   [NNElementType.PermuteInAttributeConv1D]: NNComponentMemberComponent,
   [NNElementType.PermuteOutAttributeConv1D]: NNComponentMemberComponent,
+  [NNElementType.DilationAttributeConv1D]: NNComponentMemberComponent,
+  [NNElementType.GroupsAttributeConv1D]: NNComponentMemberComponent,
+  [NNElementType.BiasAttributeConv1D]: NNComponentMemberComponent,
+  [NNElementType.IsLayerCallAttributeConv1D]: NNComponentMemberComponent,
+  [NNElementType.InputVarAttributeConv1D]: NNComponentMemberComponent,
+  [NNElementType.OutputVarAttributeConv1D]: NNComponentMemberComponent,
 
   [NNElementType.Conv2DLayer]: NNLayerIconComponent,
   // Conv2D Attributes
@@ -261,6 +267,12 @@ export const Components: {
   [NNElementType.InputReusedAttributeConv2D]: NNComponentMemberComponent,
   [NNElementType.PermuteInAttributeConv2D]: NNComponentMemberComponent,
   [NNElementType.PermuteOutAttributeConv2D]: NNComponentMemberComponent,
+  [NNElementType.DilationAttributeConv2D]: NNComponentMemberComponent,
+  [NNElementType.GroupsAttributeConv2D]: NNComponentMemberComponent,
+  [NNElementType.BiasAttributeConv2D]: NNComponentMemberComponent,
+  [NNElementType.IsLayerCallAttributeConv2D]: NNComponentMemberComponent,
+  [NNElementType.InputVarAttributeConv2D]: NNComponentMemberComponent,
+  [NNElementType.OutputVarAttributeConv2D]: NNComponentMemberComponent,
 
   [NNElementType.Conv3DLayer]: NNLayerIconComponent,
   // Conv3D Attributes
@@ -276,6 +288,12 @@ export const Components: {
   [NNElementType.InputReusedAttributeConv3D]: NNComponentMemberComponent,
   [NNElementType.PermuteInAttributeConv3D]: NNComponentMemberComponent,
   [NNElementType.PermuteOutAttributeConv3D]: NNComponentMemberComponent,
+  [NNElementType.DilationAttributeConv3D]: NNComponentMemberComponent,
+  [NNElementType.GroupsAttributeConv3D]: NNComponentMemberComponent,
+  [NNElementType.BiasAttributeConv3D]: NNComponentMemberComponent,
+  [NNElementType.IsLayerCallAttributeConv3D]: NNComponentMemberComponent,
+  [NNElementType.InputVarAttributeConv3D]: NNComponentMemberComponent,
+  [NNElementType.OutputVarAttributeConv3D]: NNComponentMemberComponent,
 
   [NNElementType.PoolingLayer]: NNLayerIconComponent,
   // Pooling Attributes
@@ -305,6 +323,15 @@ export const Components: {
   [NNElementType.ActvFuncAttributeRNN]: NNComponentMemberComponent,
   [NNElementType.NameModuleInputAttributeRNN]: NNComponentMemberComponent,
   [NNElementType.InputReusedAttributeRNN]: NNComponentMemberComponent,
+  [NNElementType.BiasAttributeRNN]: NNComponentMemberComponent,
+  [NNElementType.HxSourceAttributeRNN]: NNComponentMemberComponent,
+  [NNElementType.IsLayerCallAttributeRNN]: NNComponentMemberComponent,
+  [NNElementType.InputVarAttributeRNN]: NNComponentMemberComponent,
+  [NNElementType.OutputVarAttributeRNN]: NNComponentMemberComponent,
+  [NNElementType.HiddenStateVarAttributeRNN]: NNComponentMemberComponent,
+  [NNElementType.HiddenUnusedAttributeRNN]: NNComponentMemberComponent,
+  [NNElementType.HiddenSubscriptSourceAttributeRNN]: NNComponentMemberComponent,
+  [NNElementType.HiddenSubscriptTargetAttributeRNN]: NNComponentMemberComponent,
 
   [NNElementType.LSTMLayer]: NNLayerIconComponent,
   // LSTM Attributes
@@ -318,6 +345,17 @@ export const Components: {
   [NNElementType.ActvFuncAttributeLSTM]: NNComponentMemberComponent,
   [NNElementType.NameModuleInputAttributeLSTM]: NNComponentMemberComponent,
   [NNElementType.InputReusedAttributeLSTM]: NNComponentMemberComponent,
+  [NNElementType.BiasAttributeLSTM]: NNComponentMemberComponent,
+  [NNElementType.HxSourceAttributeLSTM]: NNComponentMemberComponent,
+  [NNElementType.IsLayerCallAttributeLSTM]: NNComponentMemberComponent,
+  [NNElementType.InputVarAttributeLSTM]: NNComponentMemberComponent,
+  [NNElementType.OutputVarAttributeLSTM]: NNComponentMemberComponent,
+  [NNElementType.HiddenStateVarAttributeLSTM]: NNComponentMemberComponent,
+  [NNElementType.CellStateVarAttributeLSTM]: NNComponentMemberComponent,
+  [NNElementType.HiddenUnusedAttributeLSTM]: NNComponentMemberComponent,
+  [NNElementType.CellUnusedAttributeLSTM]: NNComponentMemberComponent,
+  [NNElementType.HiddenSubscriptSourceAttributeLSTM]: NNComponentMemberComponent,
+  [NNElementType.HiddenSubscriptTargetAttributeLSTM]: NNComponentMemberComponent,
 
   [NNElementType.GRULayer]: NNLayerIconComponent,
   // GRU Attributes
@@ -331,6 +369,15 @@ export const Components: {
   [NNElementType.ActvFuncAttributeGRU]: NNComponentMemberComponent,
   [NNElementType.NameModuleInputAttributeGRU]: NNComponentMemberComponent,
   [NNElementType.InputReusedAttributeGRU]: NNComponentMemberComponent,
+  [NNElementType.BiasAttributeGRU]: NNComponentMemberComponent,
+  [NNElementType.HxSourceAttributeGRU]: NNComponentMemberComponent,
+  [NNElementType.IsLayerCallAttributeGRU]: NNComponentMemberComponent,
+  [NNElementType.InputVarAttributeGRU]: NNComponentMemberComponent,
+  [NNElementType.OutputVarAttributeGRU]: NNComponentMemberComponent,
+  [NNElementType.HiddenStateVarAttributeGRU]: NNComponentMemberComponent,
+  [NNElementType.HiddenUnusedAttributeGRU]: NNComponentMemberComponent,
+  [NNElementType.HiddenSubscriptSourceAttributeGRU]: NNComponentMemberComponent,
+  [NNElementType.HiddenSubscriptTargetAttributeGRU]: NNComponentMemberComponent,
 
   [NNElementType.LinearLayer]: NNLayerIconComponent,
   // Linear Attributes

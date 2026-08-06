@@ -79,10 +79,16 @@ const WIDGET_CONFIG_MAP: Record<string, AttributeWidgetConfig> = {
   // ── Boolean attributes ───────────────────────────────────────────────────────
   [NNElementType.PermuteInAttributeConv1D]:              { widget: 'dropdown', options: BOOLEAN_OPTIONS, defaultValue: 'false' },
   [NNElementType.PermuteOutAttributeConv1D]:             { widget: 'dropdown', options: BOOLEAN_OPTIONS, defaultValue: 'false' },
+  [NNElementType.BiasAttributeConv1D]:                   { widget: 'dropdown', options: BOOLEAN_OPTIONS, defaultValue: 'true' },
+  [NNElementType.IsLayerCallAttributeConv1D]:            { widget: 'dropdown', options: BOOLEAN_OPTIONS, defaultValue: 'false' },
   [NNElementType.PermuteInAttributeConv2D]:              { widget: 'dropdown', options: BOOLEAN_OPTIONS, defaultValue: 'false' },
   [NNElementType.PermuteOutAttributeConv2D]:             { widget: 'dropdown', options: BOOLEAN_OPTIONS, defaultValue: 'false' },
+  [NNElementType.BiasAttributeConv2D]:                   { widget: 'dropdown', options: BOOLEAN_OPTIONS, defaultValue: 'true' },
+  [NNElementType.IsLayerCallAttributeConv2D]:            { widget: 'dropdown', options: BOOLEAN_OPTIONS, defaultValue: 'false' },
   [NNElementType.PermuteInAttributeConv3D]:              { widget: 'dropdown', options: BOOLEAN_OPTIONS, defaultValue: 'false' },
   [NNElementType.PermuteOutAttributeConv3D]:             { widget: 'dropdown', options: BOOLEAN_OPTIONS, defaultValue: 'false' },
+  [NNElementType.BiasAttributeConv3D]:                   { widget: 'dropdown', options: BOOLEAN_OPTIONS, defaultValue: 'true' },
+  [NNElementType.IsLayerCallAttributeConv3D]:            { widget: 'dropdown', options: BOOLEAN_OPTIONS, defaultValue: 'false' },
   [NNElementType.PermuteInAttributePooling]:             { widget: 'dropdown', options: BOOLEAN_OPTIONS, defaultValue: 'false' },
   [NNElementType.PermuteOutAttributePooling]:            { widget: 'dropdown', options: BOOLEAN_OPTIONS, defaultValue: 'false' },
   [NNElementType.InputReusedAttributeConv1D]:            { widget: 'dropdown', options: BOOLEAN_OPTIONS, defaultValue: 'false' },
@@ -105,6 +111,16 @@ const WIDGET_CONFIG_MAP: Record<string, AttributeWidgetConfig> = {
   [NNElementType.BatchFirstAttributeRNN]:                { widget: 'dropdown', options: BOOLEAN_OPTIONS, defaultValue: 'false' },
   [NNElementType.BatchFirstAttributeLSTM]:               { widget: 'dropdown', options: BOOLEAN_OPTIONS, defaultValue: 'false' },
   [NNElementType.BatchFirstAttributeGRU]:                { widget: 'dropdown', options: BOOLEAN_OPTIONS, defaultValue: 'false' },
+  [NNElementType.BiasAttributeRNN]:                      { widget: 'dropdown', options: BOOLEAN_OPTIONS, defaultValue: 'true' },
+  [NNElementType.IsLayerCallAttributeRNN]:               { widget: 'dropdown', options: BOOLEAN_OPTIONS, defaultValue: 'false' },
+  [NNElementType.HiddenUnusedAttributeRNN]:              { widget: 'dropdown', options: BOOLEAN_OPTIONS, defaultValue: 'false' },
+  [NNElementType.BiasAttributeLSTM]:                     { widget: 'dropdown', options: BOOLEAN_OPTIONS, defaultValue: 'true' },
+  [NNElementType.IsLayerCallAttributeLSTM]:              { widget: 'dropdown', options: BOOLEAN_OPTIONS, defaultValue: 'false' },
+  [NNElementType.HiddenUnusedAttributeLSTM]:             { widget: 'dropdown', options: BOOLEAN_OPTIONS, defaultValue: 'false' },
+  [NNElementType.CellUnusedAttributeLSTM]:               { widget: 'dropdown', options: BOOLEAN_OPTIONS, defaultValue: 'false' },
+  [NNElementType.BiasAttributeGRU]:                      { widget: 'dropdown', options: BOOLEAN_OPTIONS, defaultValue: 'true' },
+  [NNElementType.IsLayerCallAttributeGRU]:               { widget: 'dropdown', options: BOOLEAN_OPTIONS, defaultValue: 'false' },
+  [NNElementType.HiddenUnusedAttributeGRU]:              { widget: 'dropdown', options: BOOLEAN_OPTIONS, defaultValue: 'false' },
 
   // ── Pooling dimension-aware list attributes ───────────────────────────────────
   // getInitialValue picks the correctly-sized list based on the Pooling layer's dimension attribute.

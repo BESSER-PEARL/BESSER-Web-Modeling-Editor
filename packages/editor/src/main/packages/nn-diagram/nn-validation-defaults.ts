@@ -6,6 +6,7 @@ export const NN_ATTRIBUTE_DEFAULTS: Record<string, string> = {
   out_channels: '16',
   in_channels: '3',
   padding_amount: '0',
+  groups: '1',
   // Pooling-specific
   output_dim: '[16, 16]',
   // Linear
@@ -50,10 +51,13 @@ export function getListExpectation(
   switch (elementType) {
     case NNElementType.KernelDimAttributeConv1D: return { count: 1, example: '[3]' };
     case NNElementType.StrideDimAttributeConv1D: return { count: 1, example: '[1]' };
+    case NNElementType.DilationAttributeConv1D: return { count: 1, example: '[1]' };
     case NNElementType.KernelDimAttributeConv2D: return { count: 2, example: '[3, 3]' };
     case NNElementType.StrideDimAttributeConv2D: return { count: 2, example: '[1, 1]' };
+    case NNElementType.DilationAttributeConv2D: return { count: 2, example: '[1, 1]' };
     case NNElementType.KernelDimAttributeConv3D: return { count: 3, example: '[3, 3, 3]' };
     case NNElementType.StrideDimAttributeConv3D: return { count: 3, example: '[1, 1, 1]' };
+    case NNElementType.DilationAttributeConv3D: return { count: 3, example: '[1, 1, 1]' };
     case NNElementType.NormalizedShapeAttributeLayerNormalization: return { count: 1, example: '[-1]' };
     case NNElementType.TransposeDimAttributeTensorOp: return { count: 2, example: '[0, 1]' };
     case NNElementType.KernelDimAttributePooling:

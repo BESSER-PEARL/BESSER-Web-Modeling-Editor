@@ -14,6 +14,12 @@ export const NNElementType = {
   InputReusedAttributeConv1D: 'InputReusedAttributeConv1D',
   PermuteInAttributeConv1D: 'PermuteInAttributeConv1D',
   PermuteOutAttributeConv1D: 'PermuteOutAttributeConv1D',
+  DilationAttributeConv1D: 'DilationAttributeConv1D',
+  GroupsAttributeConv1D: 'GroupsAttributeConv1D',
+  BiasAttributeConv1D: 'BiasAttributeConv1D',
+  IsLayerCallAttributeConv1D: 'IsLayerCallAttributeConv1D',
+  InputVarAttributeConv1D: 'InputVarAttributeConv1D',
+  OutputVarAttributeConv1D: 'OutputVarAttributeConv1D',
 
   Conv2DLayer: 'Conv2DLayer',
   // Conv2D Layer Attributes - Mandatory
@@ -30,6 +36,12 @@ export const NNElementType = {
   InputReusedAttributeConv2D: 'InputReusedAttributeConv2D',
   PermuteInAttributeConv2D: 'PermuteInAttributeConv2D',
   PermuteOutAttributeConv2D: 'PermuteOutAttributeConv2D',
+  DilationAttributeConv2D: 'DilationAttributeConv2D',
+  GroupsAttributeConv2D: 'GroupsAttributeConv2D',
+  BiasAttributeConv2D: 'BiasAttributeConv2D',
+  IsLayerCallAttributeConv2D: 'IsLayerCallAttributeConv2D',
+  InputVarAttributeConv2D: 'InputVarAttributeConv2D',
+  OutputVarAttributeConv2D: 'OutputVarAttributeConv2D',
 
   Conv3DLayer: 'Conv3DLayer',
   // Conv3D Layer Attributes - Mandatory
@@ -46,6 +58,12 @@ export const NNElementType = {
   InputReusedAttributeConv3D: 'InputReusedAttributeConv3D',
   PermuteInAttributeConv3D: 'PermuteInAttributeConv3D',
   PermuteOutAttributeConv3D: 'PermuteOutAttributeConv3D',
+  DilationAttributeConv3D: 'DilationAttributeConv3D',
+  GroupsAttributeConv3D: 'GroupsAttributeConv3D',
+  BiasAttributeConv3D: 'BiasAttributeConv3D',
+  IsLayerCallAttributeConv3D: 'IsLayerCallAttributeConv3D',
+  InputVarAttributeConv3D: 'InputVarAttributeConv3D',
+  OutputVarAttributeConv3D: 'OutputVarAttributeConv3D',
 
   PoolingLayer: 'PoolingLayer',
   // Pooling Layer Attributes - Mandatory
@@ -77,6 +95,15 @@ export const NNElementType = {
   ActvFuncAttributeRNN: 'ActvFuncAttributeRNN',
   NameModuleInputAttributeRNN: 'NameModuleInputAttributeRNN',
   InputReusedAttributeRNN: 'InputReusedAttributeRNN',
+  BiasAttributeRNN: 'BiasAttributeRNN',
+  HxSourceAttributeRNN: 'HxSourceAttributeRNN',
+  IsLayerCallAttributeRNN: 'IsLayerCallAttributeRNN',
+  InputVarAttributeRNN: 'InputVarAttributeRNN',
+  OutputVarAttributeRNN: 'OutputVarAttributeRNN',
+  HiddenStateVarAttributeRNN: 'HiddenStateVarAttributeRNN',
+  HiddenUnusedAttributeRNN: 'HiddenUnusedAttributeRNN',
+  HiddenSubscriptSourceAttributeRNN: 'HiddenSubscriptSourceAttributeRNN',
+  HiddenSubscriptTargetAttributeRNN: 'HiddenSubscriptTargetAttributeRNN',
 
   LSTMLayer: 'LSTMLayer',
   // LSTM Layer Attributes - Mandatory
@@ -91,6 +118,17 @@ export const NNElementType = {
   ActvFuncAttributeLSTM: 'ActvFuncAttributeLSTM',
   NameModuleInputAttributeLSTM: 'NameModuleInputAttributeLSTM',
   InputReusedAttributeLSTM: 'InputReusedAttributeLSTM',
+  BiasAttributeLSTM: 'BiasAttributeLSTM',
+  HxSourceAttributeLSTM: 'HxSourceAttributeLSTM',
+  IsLayerCallAttributeLSTM: 'IsLayerCallAttributeLSTM',
+  InputVarAttributeLSTM: 'InputVarAttributeLSTM',
+  OutputVarAttributeLSTM: 'OutputVarAttributeLSTM',
+  HiddenStateVarAttributeLSTM: 'HiddenStateVarAttributeLSTM',
+  CellStateVarAttributeLSTM: 'CellStateVarAttributeLSTM',
+  HiddenUnusedAttributeLSTM: 'HiddenUnusedAttributeLSTM',
+  CellUnusedAttributeLSTM: 'CellUnusedAttributeLSTM',
+  HiddenSubscriptSourceAttributeLSTM: 'HiddenSubscriptSourceAttributeLSTM',
+  HiddenSubscriptTargetAttributeLSTM: 'HiddenSubscriptTargetAttributeLSTM',
 
   GRULayer: 'GRULayer',
   // GRU Layer Attributes - Mandatory
@@ -105,6 +143,15 @@ export const NNElementType = {
   ActvFuncAttributeGRU: 'ActvFuncAttributeGRU',
   NameModuleInputAttributeGRU: 'NameModuleInputAttributeGRU',
   InputReusedAttributeGRU: 'InputReusedAttributeGRU',
+  BiasAttributeGRU: 'BiasAttributeGRU',
+  HxSourceAttributeGRU: 'HxSourceAttributeGRU',
+  IsLayerCallAttributeGRU: 'IsLayerCallAttributeGRU',
+  InputVarAttributeGRU: 'InputVarAttributeGRU',
+  OutputVarAttributeGRU: 'OutputVarAttributeGRU',
+  HiddenStateVarAttributeGRU: 'HiddenStateVarAttributeGRU',
+  HiddenUnusedAttributeGRU: 'HiddenUnusedAttributeGRU',
+  HiddenSubscriptSourceAttributeGRU: 'HiddenSubscriptSourceAttributeGRU',
+  HiddenSubscriptTargetAttributeGRU: 'HiddenSubscriptTargetAttributeGRU',
 
   LinearLayer: 'LinearLayer',
   // Linear Layer Attributes - Mandatory

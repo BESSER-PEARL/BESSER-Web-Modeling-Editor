@@ -165,3 +165,78 @@ export class InputReusedAttributeRNN extends RNNAttribute {
     this.name = `${this.attributeName} = ${this.value}`;
   }
 }
+
+export class BiasAttributeRNN extends RNNAttribute {
+  type: UMLElementType = NNElementType.BiasAttributeRNN;
+  constructor(values?: DeepPartial<IRNNAttribute>) {
+    super({ attributeName: 'bias', value: 'true', isMandatory: false, ...values });
+    this.attributeType = 'bool';
+    this.name = `${this.attributeName} = ${this.value}`;
+  }
+}
+
+export class HxSourceAttributeRNN extends RNNAttribute {
+  type: UMLElementType = NNElementType.HxSourceAttributeRNN;
+  constructor(values?: DeepPartial<IRNNAttribute>) {
+    super({ attributeName: 'hx_source', value: '', isMandatory: false, ...values });
+    this.name = `${this.attributeName} = ${this.value}`;
+  }
+}
+
+export class IsLayerCallAttributeRNN extends RNNAttribute {
+  type: UMLElementType = NNElementType.IsLayerCallAttributeRNN;
+  constructor(values?: DeepPartial<IRNNAttribute>) {
+    super({ attributeName: 'is_layer_call', value: 'false', isMandatory: false, ...values });
+    this.attributeType = 'bool';
+    this.name = `${this.attributeName} = ${this.value}`;
+  }
+}
+
+export class InputVarAttributeRNN extends RNNAttribute {
+  type: UMLElementType = NNElementType.InputVarAttributeRNN;
+  constructor(values?: DeepPartial<IRNNAttribute>) {
+    super({ attributeName: 'input_var', value: '', isMandatory: false, ...values });
+    this.name = `${this.attributeName} = ${this.value}`;
+  }
+}
+
+export class OutputVarAttributeRNN extends RNNAttribute {
+  type: UMLElementType = NNElementType.OutputVarAttributeRNN;
+  constructor(values?: DeepPartial<IRNNAttribute>) {
+    super({ attributeName: 'output_var', value: '', isMandatory: false, ...values });
+    this.name = `${this.attributeName} = ${this.value}`;
+  }
+}
+
+export class HiddenStateVarAttributeRNN extends RNNAttribute {
+  type: UMLElementType = NNElementType.HiddenStateVarAttributeRNN;
+  constructor(values?: DeepPartial<IRNNAttribute>) {
+    super({ attributeName: 'hidden_state_var', value: '', isMandatory: false, ...values });
+    this.name = `${this.attributeName} = ${this.value}`;
+  }
+}
+
+export class HiddenUnusedAttributeRNN extends RNNAttribute {
+  type: UMLElementType = NNElementType.HiddenUnusedAttributeRNN;
+  constructor(values?: DeepPartial<IRNNAttribute>) {
+    super({ attributeName: 'hidden_unused', value: 'false', isMandatory: false, ...values });
+    this.attributeType = 'bool';
+    this.name = `${this.attributeName} = ${this.value}`;
+  }
+}
+
+export class HiddenSubscriptSourceAttributeRNN extends RNNAttribute {
+  type: UMLElementType = NNElementType.HiddenSubscriptSourceAttributeRNN;
+  constructor(values?: DeepPartial<IRNNAttribute>) {
+    super({ attributeName: 'hidden_subscript_source', value: '', isMandatory: false, ...values });
+    this.name = `${this.attributeName} = ${this.value}`;
+  }
+}
+
+export class HiddenSubscriptTargetAttributeRNN extends RNNAttribute {
+  type: UMLElementType = NNElementType.HiddenSubscriptTargetAttributeRNN;
+  constructor(values?: DeepPartial<IRNNAttribute>) {
+    super({ attributeName: 'hidden_subscript_target', value: '', isMandatory: false, ...values });
+    this.name = `${this.attributeName} = ${this.value}`;
+  }
+}
