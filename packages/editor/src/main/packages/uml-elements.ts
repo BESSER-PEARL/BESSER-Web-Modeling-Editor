@@ -275,6 +275,10 @@ import {
   ActvFuncAttributeEmbedding,
   NameModuleInputAttributeEmbedding,
   InputReusedAttributeEmbedding,
+  PaddingIdxAttributeEmbedding,
+  IsLayerCallAttributeEmbedding,
+  InputVarAttributeEmbedding,
+  OutputVarAttributeEmbedding,
 } from './nn-diagram/nn-embedding-attributes/embedding-attributes';
 
 import { DropoutLayer } from './nn-diagram/nn-dropout-layer/nn-dropout-layer';
@@ -283,6 +287,10 @@ import {
   RateAttributeDropout,
   NameModuleInputAttributeDropout,
   InputReusedAttributeDropout,
+  DimensionAttributeDropout,
+  IsLayerCallAttributeDropout,
+  InputVarAttributeDropout,
+  OutputVarAttributeDropout,
 } from './nn-diagram/nn-dropout-attributes/dropout-attributes';
 
 import { LayerNormalizationLayer } from './nn-diagram/nn-layernormalization-layer/nn-layernormalization-layer';
@@ -620,6 +628,10 @@ export const UMLElements = {
   [NNElementType.ActvFuncAttributeEmbedding]: ActvFuncAttributeEmbedding,
   [NNElementType.NameModuleInputAttributeEmbedding]: NameModuleInputAttributeEmbedding,
   [NNElementType.InputReusedAttributeEmbedding]: InputReusedAttributeEmbedding,
+  [NNElementType.PaddingIdxAttributeEmbedding]: PaddingIdxAttributeEmbedding,
+  [NNElementType.IsLayerCallAttributeEmbedding]: IsLayerCallAttributeEmbedding,
+  [NNElementType.InputVarAttributeEmbedding]: InputVarAttributeEmbedding,
+  [NNElementType.OutputVarAttributeEmbedding]: OutputVarAttributeEmbedding,
 
   [NNElementType.DropoutLayer]: DropoutLayer,
   // Dropout Attributes - Mandatory
@@ -628,6 +640,10 @@ export const UMLElements = {
   // Dropout Attributes - Optional
   [NNElementType.NameModuleInputAttributeDropout]: NameModuleInputAttributeDropout,
   [NNElementType.InputReusedAttributeDropout]: InputReusedAttributeDropout,
+  [NNElementType.DimensionAttributeDropout]: DimensionAttributeDropout,
+  [NNElementType.IsLayerCallAttributeDropout]: IsLayerCallAttributeDropout,
+  [NNElementType.InputVarAttributeDropout]: InputVarAttributeDropout,
+  [NNElementType.OutputVarAttributeDropout]: OutputVarAttributeDropout,
 
   [NNElementType.LayerNormalizationLayer]: LayerNormalizationLayer,
   // LayerNormalization Attributes - Mandatory

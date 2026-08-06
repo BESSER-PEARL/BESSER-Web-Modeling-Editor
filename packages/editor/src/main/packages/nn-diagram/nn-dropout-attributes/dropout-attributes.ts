@@ -113,3 +113,36 @@ export class InputReusedAttributeDropout extends DropoutAttribute {
     this.name = `${this.attributeName} = ${this.value}`;
   }
 }
+
+export class DimensionAttributeDropout extends DropoutAttribute {
+  type: UMLElementType = NNElementType.DimensionAttributeDropout;
+  constructor(values?: DeepPartial<IDropoutAttribute>) {
+    super({ attributeName: 'dimension', value: '1D', isMandatory: false, ...values });
+    this.name = `${this.attributeName} = ${this.value}`;
+  }
+}
+
+export class IsLayerCallAttributeDropout extends DropoutAttribute {
+  type: UMLElementType = NNElementType.IsLayerCallAttributeDropout;
+  constructor(values?: DeepPartial<IDropoutAttribute>) {
+    super({ attributeName: 'is_layer_call', value: 'false', isMandatory: false, ...values });
+    this.attributeType = 'bool';
+    this.name = `${this.attributeName} = ${this.value}`;
+  }
+}
+
+export class InputVarAttributeDropout extends DropoutAttribute {
+  type: UMLElementType = NNElementType.InputVarAttributeDropout;
+  constructor(values?: DeepPartial<IDropoutAttribute>) {
+    super({ attributeName: 'input_var', value: '', isMandatory: false, ...values });
+    this.name = `${this.attributeName} = ${this.value}`;
+  }
+}
+
+export class OutputVarAttributeDropout extends DropoutAttribute {
+  type: UMLElementType = NNElementType.OutputVarAttributeDropout;
+  constructor(values?: DeepPartial<IDropoutAttribute>) {
+    super({ attributeName: 'output_var', value: '', isMandatory: false, ...values });
+    this.name = `${this.attributeName} = ${this.value}`;
+  }
+}

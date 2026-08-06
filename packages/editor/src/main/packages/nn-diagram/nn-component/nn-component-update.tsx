@@ -216,6 +216,10 @@ import {
   ActvFuncAttributeEmbedding,
   NameModuleInputAttributeEmbedding,
   InputReusedAttributeEmbedding,
+  PaddingIdxAttributeEmbedding,
+  IsLayerCallAttributeEmbedding,
+  InputVarAttributeEmbedding,
+  OutputVarAttributeEmbedding,
   EmbeddingAttribute,
 } from '../nn-embedding-attributes/embedding-attributes';
 import {
@@ -223,6 +227,10 @@ import {
   RateAttributeDropout,
   NameModuleInputAttributeDropout,
   InputReusedAttributeDropout,
+  DimensionAttributeDropout,
+  IsLayerCallAttributeDropout,
+  InputVarAttributeDropout,
+  OutputVarAttributeDropout,
   DropoutAttribute,
 } from '../nn-dropout-attributes/dropout-attributes';
 import {
@@ -555,6 +563,10 @@ const LAYER_CONFIG: {
       { type: NNElementType.ActvFuncAttributeEmbedding, ctor: ActvFuncAttributeEmbedding, label: 'actv_func' },
       { type: NNElementType.NameModuleInputAttributeEmbedding, ctor: NameModuleInputAttributeEmbedding, label: 'name_module_input' },
       { type: NNElementType.InputReusedAttributeEmbedding, ctor: InputReusedAttributeEmbedding, label: 'input_reused' },
+      { type: NNElementType.PaddingIdxAttributeEmbedding, ctor: PaddingIdxAttributeEmbedding, label: 'padding_idx' },
+      { type: NNElementType.IsLayerCallAttributeEmbedding, ctor: IsLayerCallAttributeEmbedding, label: 'is_layer_call' },
+      { type: NNElementType.InputVarAttributeEmbedding, ctor: InputVarAttributeEmbedding, label: 'input_var' },
+      { type: NNElementType.OutputVarAttributeEmbedding, ctor: OutputVarAttributeEmbedding, label: 'output_var' },
     ],
   },
   [NNElementType.DropoutLayer]: {
@@ -566,6 +578,10 @@ const LAYER_CONFIG: {
     optionalAttributes: [
       { type: NNElementType.NameModuleInputAttributeDropout, ctor: NameModuleInputAttributeDropout, label: 'name_module_input' },
       { type: NNElementType.InputReusedAttributeDropout, ctor: InputReusedAttributeDropout, label: 'input_reused' },
+      { type: NNElementType.DimensionAttributeDropout, ctor: DimensionAttributeDropout, label: 'dimension' },
+      { type: NNElementType.IsLayerCallAttributeDropout, ctor: IsLayerCallAttributeDropout, label: 'is_layer_call' },
+      { type: NNElementType.InputVarAttributeDropout, ctor: InputVarAttributeDropout, label: 'input_var' },
+      { type: NNElementType.OutputVarAttributeDropout, ctor: OutputVarAttributeDropout, label: 'output_var' },
     ],
   },
   [NNElementType.LayerNormalizationLayer]: {
