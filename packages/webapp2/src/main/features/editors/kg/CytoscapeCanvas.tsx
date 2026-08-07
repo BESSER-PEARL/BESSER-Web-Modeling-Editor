@@ -81,6 +81,27 @@ function layoutOptions(algorithm: Exclude<KnowledgeGraphLayout, 'grid'>): any {
   };
 }
 
+/** Padding kept between the graph's bounding box and the canvas edges when
+ *  fitting the view. */
+const FIT_PADDING = 40;
+
+/** Cytoscape caches the container's dimensions and only refreshes them on
+ *  `cy.resize()` (or a window resize). The KG canvas, however, changes size
+ *  without any window resize — the app shell's sidebar collapses, the toolbar
+ *  wraps to a second row, the browser panel layout shifts — after which
+ *  `cy.width()` / `cy.height()` still report the size the canvas had at mount.
+ *  Every viewport operation therefore refreshes the cache first; skipping this
+ *  is what makes `fit` / `center` land the graph off to one side. */
+function refreshSize(cy: Core): Core {
+  cy.resize();
+  return cy;
+}
+
+/** Fit every element into the (freshly measured) viewport. */
+function fitAll(cy: Core): void {
+  refreshSize(cy).fit(undefined, FIT_PADDING);
+}
+
 /** Run a Cytoscape layout and invoke `onDone` once `layoutstop` fires.
  *  Some layouts (fcose notably) compute positions over multiple ticks even
  *  with `animate: false`; persisting positions inline after `.run()` would
@@ -343,8 +364,9 @@ export interface CytoscapeCanvasHandle {
    *  looking at the same place as they zoom). Clamped by minZoom/maxZoom. */
   zoomIn: () => void;
   zoomOut: () => void;
-  /** Restore zoom to 1.0 around the viewport center, preserving the current
-   *  pan. Distinct from `fit`, which fits all nodes into view with padding. */
+  /** Restore zoom to 1.0 and bring the graph back to the middle of the
+   *  viewport. Distinct from `fit`, which also scales the graph so that
+   *  everything is visible. */
   resetZoom: () => void;
 }
 
@@ -484,6 +506,7 @@ export const CytoscapeCanvas = React.forwardRef<CytoscapeCanvasHandle, Cytoscape
     const zoomAtViewportCenter = (factor: number) => {
       const cy = cyRef.current;
       if (!cy) return;
+      refreshSize(cy);
       cy.zoom({
         level: cy.zoom() * factor,
         renderedPosition: { x: cy.width() / 2, y: cy.height() / 2 },
@@ -491,13 +514,21 @@ export const CytoscapeCanvas = React.forwardRef<CytoscapeCanvasHandle, Cytoscape
     };
 
     useImperativeHandle(ref, () => ({
-      fit: () => cyRef.current?.fit(undefined, 40),
+      fit: () => {
+        const cy = cyRef.current;
+        if (cy) fitAll(cy);
+      },
       zoomIn: () => zoomAtViewportCenter(ZOOM_STEP),
       zoomOut: () => zoomAtViewportCenter(1 / ZOOM_STEP),
       resetZoom: () => {
         const cy = cyRef.current;
         if (!cy) return;
-        cy.zoom({ level: 1, renderedPosition: { x: cy.width() / 2, y: cy.height() / 2 } });
+        refreshSize(cy);
+        cy.zoom(1);
+        // Zoom alone leaves the graph wherever the user last panned it, which
+        // regularly puts it off screen at 100%. Re-centre so "reset zoom"
+        // reliably brings the nodes back into the middle of the canvas.
+        cy.center();
       },
       deleteSelected: () => {
         const cy = cyRef.current;
@@ -517,7 +548,7 @@ export const CytoscapeCanvas = React.forwardRef<CytoscapeCanvasHandle, Cytoscape
         if (!cy) return;
         const chosen = layoutRef.current;
         const persist = () => {
-          cy.fit(undefined, 40);
+          fitAll(cy);
           const canvas = cyToModel(cy, modelRef.current);
           const visibleSet = new Set(visibleIdsRef.current);
           const merged = mergeWithFullModel(modelRef.current, canvas, visibleSet);
@@ -800,7 +831,29 @@ export const CytoscapeCanvas = React.forwardRef<CytoscapeCanvasHandle, Cytoscape
       container.addEventListener('mouseleave', endPan);
       container.addEventListener('contextmenu', onContextMenu);
 
+      // Cytoscape only re-measures its container on `cy.resize()` or a window
+      // resize, but this canvas is resized by plenty of things that fire
+      // neither: collapsing the shell sidebar, the toolbar wrapping onto a
+      // second row, the focus banner appearing. Left stale, every viewport
+      // computation (fit, center, zoom-at-center) uses the mount-time size and
+      // ends up off-centre. Re-panning around the previous viewport centre
+      // keeps the user looking at the same part of the graph across a resize.
+      const resizeObserver =
+        typeof ResizeObserver === 'undefined'
+          ? null
+          : new ResizeObserver(() => {
+              if (container.clientWidth === 0 || container.clientHeight === 0) return;
+              const before = cy.extent();
+              const focusX = (before.x1 + before.x2) / 2;
+              const focusY = (before.y1 + before.y2) / 2;
+              cy.resize();
+              const zoom = cy.zoom();
+              cy.pan({ x: cy.width() / 2 - focusX * zoom, y: cy.height() / 2 - focusY * zoom });
+            });
+      resizeObserver?.observe(container);
+
       return () => {
+        resizeObserver?.disconnect();
         window.removeEventListener('keydown', onKey);
         window.removeEventListener('keyup', onKeyUp);
         container.removeEventListener('mousedown', onMouseDown);
@@ -867,7 +920,7 @@ export const CytoscapeCanvas = React.forwardRef<CytoscapeCanvasHandle, Cytoscape
       if (!needsLayout) return;
 
       const persist = () => {
-        cy.fit(undefined, 40);
+        fitAll(cy);
         const canvas = cyToModel(cy, modelRef.current);
         const visibleSet = new Set(visibleIdsRef.current);
         const merged = mergeWithFullModel(modelRef.current, canvas, visibleSet);

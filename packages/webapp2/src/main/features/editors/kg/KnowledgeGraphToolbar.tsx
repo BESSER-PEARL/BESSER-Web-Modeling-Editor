@@ -90,7 +90,7 @@ export const KnowledgeGraphToolbar: React.FC<Props> = ({
             size="sm"
             className="h-7 gap-1.5 px-2"
             onClick={onResetZoom}
-            title="Reset zoom to 100% (right-click drag the canvas to pan)"
+            title="Reset zoom to 100% and re-centre the graph (right-click drag the canvas to pan)"
             aria-label="Reset zoom"
           >
             <RotateCcw className="size-3.5" />
