@@ -375,6 +375,11 @@ interface CytoscapeCanvasProps {
   /** Ordered list of node IDs to render on the canvas; owned by the editor
    *  so deleting nodes doesn't "promote" hidden ones into view. */
   visibleIds: string[];
+  /** Node ids that must never be put on the canvas, even when something on
+   *  the canvas asks for them (currently: the owl/rdf/rdfs declaration nodes
+   *  the editor filters out of the visualization). They remain in `model` — the
+   *  canvas merges its edits back over it — they are just not renderable. */
+  nonVisualizableIds?: ReadonlySet<string>;
   /** Layout algorithm. Runs once when the visible graph has no positions,
    *  or on an explicit `relayout()` call. Subsequent edits (drag, add,
    *  delete) do not re-run the layout. */
@@ -397,6 +402,7 @@ export const CytoscapeCanvas = React.forwardRef<CytoscapeCanvasHandle, Cytoscape
     {
       model,
       visibleIds,
+      nonVisualizableIds,
       layout,
       connectMode,
       onChange,
@@ -416,6 +422,8 @@ export const CytoscapeCanvas = React.forwardRef<CytoscapeCanvasHandle, Cytoscape
     modelRef.current = model;
     const visibleIdsRef = useRef(visibleIds);
     visibleIdsRef.current = visibleIds;
+    const nonVisualizableIdsRef = useRef<ReadonlySet<string>>(nonVisualizableIds ?? new Set());
+    nonVisualizableIdsRef.current = nonVisualizableIds ?? new Set();
     const onChangeRef = useRef(onChange);
     onChangeRef.current = onChange;
     const onSelectRef = useRef(onSelect);
@@ -463,12 +471,18 @@ export const CytoscapeCanvas = React.forwardRef<CytoscapeCanvasHandle, Cytoscape
       const sourceId = String(sourceNode.id());
       const sourcePos = sourceNode.position();
 
+      // Vocabulary neighbours (owl:Class, rdfs:Class, …) are skipped: the
+      // editor would refuse to reveal them anyway, and including them here
+      // would leave gaps in the circle and make an expand whose neighbours
+      // are *all* vocabulary look like a no-op that still moved nodes.
+      const nonVisualizable = nonVisualizableIdsRef.current;
       const neighborIds = new Set<string>();
       for (const edge of modelRef.current.edges) {
         if (edge.source === sourceId) neighborIds.add(edge.target);
         else if (edge.target === sourceId) neighborIds.add(edge.source);
       }
       neighborIds.delete(sourceId);
+      for (const id of nonVisualizable) neighborIds.delete(id);
       if (neighborIds.size === 0) return;
 
       const visibleSet = new Set(visibleIdsRef.current);

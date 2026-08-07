@@ -7,6 +7,12 @@ import { KnowledgeGraphToolbar, ConnectMode } from './KnowledgeGraphToolbar';
 import { KnowledgeGraphInspector, KgSelection } from './KnowledgeGraphInspector';
 import { KnowledgeGraphNodeList } from './KnowledgeGraphNodeList';
 import * as kgFocus from './kgFocus';
+import {
+  collectHiddenMetaIds,
+  isMetaVocabNode,
+  rejectHidden,
+  withoutHiddenNodes,
+} from './meta-vocab';
 import { useProject } from '../../../app/hooks/useProject';
 import { ProjectStorageRepository } from '../../../shared/services/storage/ProjectStorageRepository';
 import { downloadFile } from '../../../shared/utils/download';
@@ -14,6 +20,7 @@ import {
   getActiveDiagram,
   getKgHardLimit,
   getKgLayout,
+  getKgShowMetaVocab,
   getKgSoftLimit,
   isKnowledgeGraphData,
 } from '../../../shared/types/project';
@@ -47,11 +54,16 @@ const EMPTY_KG: KnowledgeGraphData = {
 /** Pick the initial visibleIds for a freshly-loaded model. Prefers the
  *  persisted list (so selection survives remounts, including the empty-set
  *  case where the user has intentionally hidden every node); otherwise
- *  seeds from the first soft-limit node ids and clamps to the hard limit. */
+ *  seeds from the first soft-limit node ids and clamps to the hard limit.
+ *
+ *  `hiddenMetaIds` (the RDF/OWL vocabulary nodes, unless the user opted into
+ *  showing them) is subtracted from both paths, so those nodes never reach
+ *  the canvas and never eat into the soft/hard limits. */
 function seedVisibleIds(
   model: KnowledgeGraphData,
   softLimit: number,
   hardLimit: number,
+  hiddenMetaIds: ReadonlySet<string>,
 ): string[] {
   const modelIds = new Set(model.nodes.map((n) => n.id));
   const stored = model.settings?.visibleIds;
@@ -59,9 +71,15 @@ function seedVisibleIds(
     // Filter out any stale ids (nodes removed from the model), then clamp.
     // An empty array here is intentional ("user hid all nodes") and must be
     // preserved — only a missing/undefined field falls back to the soft seed.
-    return stored.filter((id) => modelIds.has(id)).slice(0, hardLimit);
+    return stored
+      .filter((id) => modelIds.has(id) && !hiddenMetaIds.has(id))
+      .slice(0, hardLimit);
   }
-  return model.nodes.slice(0, softLimit).map((n) => n.id).slice(0, hardLimit);
+  return model.nodes
+    .filter((n) => !hiddenMetaIds.has(n.id))
+    .slice(0, softLimit)
+    .map((n) => n.id)
+    .slice(0, hardLimit);
 }
 
 function arrayEqual(a: readonly string[], b: readonly string[]): boolean {
@@ -106,9 +124,30 @@ export const KnowledgeGraphEditor: React.FC = () => {
   const softLimit = getKgSoftLimit(model.settings);
   const hardLimit = getKgHardLimit(model.settings);
   const layout = getKgLayout(model.settings);
+  const showMetaVocab = getKgShowMetaVocab(model.settings);
   const hardLimitRef = useRef(hardLimit);
   hardLimitRef.current = hardLimit;
   const prevLayoutRef = useRef(layout);
+
+  // Declaration-vocabulary nodes (owl:Class, rdf:Property, rdfs:Class, …) are
+  // implied by the node kinds they annotate, so we keep them out of the
+  // visualization while leaving them in the model for the transformation
+  // pipelines. Everything downstream of here treats them as "not visualizable":
+  // they are excluded from the visible set, the node list, and the counts.
+  const hiddenMetaIds = useMemo(
+    () => collectHiddenMetaIds(model.nodes, showMetaVocab),
+    [model.nodes, showMetaVocab],
+  );
+  const hiddenMetaIdsRef = useRef(hiddenMetaIds);
+  hiddenMetaIdsRef.current = hiddenMetaIds;
+
+  /** The model as the user sees it: vocabulary nodes and their incident edges
+   *  removed. Read-only consumers only — the canvas still gets the full model
+   *  (see the note in `meta-vocab.ts`). */
+  const displayModel = useMemo(
+    () => withoutHiddenNodes(model, hiddenMetaIds),
+    [model, hiddenMetaIds],
+  );
 
   // The set of node IDs currently visible on the canvas. Sticky: deleting
   // a visible node leaves the remaining visible IDs alone; changing the
@@ -119,7 +158,7 @@ export const KnowledgeGraphEditor: React.FC = () => {
   // fall back to the soft-limit seed when no persisted list exists, which
   // matches the "soft limit only kicks in on fresh load" requirement.
   const [visibleIds, setVisibleIds] = useState<string[]>(() =>
-    seedVisibleIds(model, softLimit, hardLimit),
+    seedVisibleIds(model, softLimit, hardLimit, collectHiddenMetaIds(model.nodes, showMetaVocab)),
   );
   const visibleIdsRef = useRef(visibleIds);
   visibleIdsRef.current = visibleIds;
@@ -132,9 +171,23 @@ export const KnowledgeGraphEditor: React.FC = () => {
   useEffect(() => {
     if (prevSoftLimitRef.current === softLimit) return;
     prevSoftLimitRef.current = softLimit;
-    const next = modelRef.current.nodes.slice(0, softLimit).map((n) => n.id);
+    const next = modelRef.current.nodes
+      .filter((n) => !hiddenMetaIdsRef.current.has(n.id))
+      .slice(0, softLimit)
+      .map((n) => n.id);
     setVisibleIds(next.slice(0, hardLimit));
   }, [softLimit, hardLimit]);
+
+  // Vocabulary nodes that were visible before the user turned
+  // `showMetaVocabNodes` off (or before this feature existed) must drop out
+  // of the visible set, otherwise they'd keep occupying slots against the
+  // hard limit while being invisible.
+  useEffect(() => {
+    setVisibleIds((prev) => {
+      const next = rejectHidden(prev, hiddenMetaIds);
+      return next.length === prev.length ? prev : next;
+    });
+  }, [hiddenMetaIds]);
 
   // Whenever the user picks a different layout algorithm in KG Settings,
   // trigger a fresh layout pass on the canvas. We skip the first run so
@@ -145,11 +198,15 @@ export const KnowledgeGraphEditor: React.FC = () => {
     canvasRef.current?.relayout();
   }, [layout]);
 
+  // Counts are reported over the *displayable* nodes only: the vocabulary
+  // nodes are not "hidden by a limit", they're not part of the visualization
+  // at all, so counting them would make the "Showing X of Y" banner stick
+  // around permanently with no way for the user to clear it.
   const visibleNodeCount = useMemo(() => {
-    const all = new Set(model.nodes.map((n) => n.id));
+    const all = new Set(displayModel.nodes.map((n) => n.id));
     return visibleIds.filter((id) => all.has(id)).length;
-  }, [model.nodes, visibleIds]);
-  const hiddenCount = Math.max(0, model.nodes.length - visibleNodeCount);
+  }, [displayModel.nodes, visibleIds]);
+  const hiddenCount = Math.max(0, displayModel.nodes.length - visibleNodeCount);
 
   // Reload when the active project / diagram index changes.
   useEffect(() => {
@@ -161,7 +218,8 @@ export const KnowledgeGraphEditor: React.FC = () => {
         const soft = getKgSoftLimit(external.settings);
         const hard = getKgHardLimit(external.settings);
         prevSoftLimitRef.current = soft;
-        setVisibleIds(seedVisibleIds(external, soft, hard));
+        const meta = collectHiddenMetaIds(external.nodes, getKgShowMetaVocab(external.settings));
+        setVisibleIds(seedVisibleIds(external, soft, hard, meta));
       }
       return;
     }
@@ -171,7 +229,8 @@ export const KnowledgeGraphEditor: React.FC = () => {
     const soft = getKgSoftLimit(fresh.settings);
     const hard = getKgHardLimit(fresh.settings);
     prevSoftLimitRef.current = soft;
-    setVisibleIds(seedVisibleIds(fresh, soft, hard));
+    const freshMeta = collectHiddenMetaIds(fresh.nodes, getKgShowMetaVocab(fresh.settings));
+    setVisibleIds(seedVisibleIds(fresh, soft, hard, freshMeta));
   }, [currentProject?.id, currentDiagram, loadFromStorage]);
 
   // One debounced save pipeline for BOTH model (nodes/edges/settings) and
@@ -215,10 +274,15 @@ export const KnowledgeGraphEditor: React.FC = () => {
     // Append ids for nodes that just appeared (palette drop, future batch add).
     // The filter / query in the node list has no bearing here — newly-created
     // nodes always attempt to become visible, independent of what's filtered
-    // in the list panel.
+    // in the list panel. Vocabulary nodes are the exception: they're tested
+    // against the node itself rather than `hiddenMetaIds`, which was derived
+    // from the *previous* model and so can't know about a node created just now.
+    const showMeta = getKgShowMetaVocab(next.settings);
     const newlyCreated: string[] = [];
     for (const n of next.nodes) {
-      if (!priorIds.has(n.id) && !prevVisibleSet.has(n.id)) newlyCreated.push(n.id);
+      if (priorIds.has(n.id) || prevVisibleSet.has(n.id)) continue;
+      if (!showMeta && isMetaVocabNode(n)) continue;
+      newlyCreated.push(n.id);
     }
 
     const hardLimit = hardLimitRef.current;
@@ -272,6 +336,8 @@ export const KnowledgeGraphEditor: React.FC = () => {
     (id: string, shouldBeVisible: boolean) => {
       setVisibleIds((prev) => {
         const has = prev.includes(id);
+        // Vocabulary nodes are never visualizable; hiding one is still fine.
+        if (shouldBeVisible && hiddenMetaIdsRef.current.has(id)) return prev;
         if (shouldBeVisible && !has) {
           if (prev.length >= hardLimitRef.current) {
             toast.error(
@@ -300,8 +366,11 @@ export const KnowledgeGraphEditor: React.FC = () => {
           return prev.filter((id) => !drop.has(id));
         }
         // Adding in bulk: only add ids that aren't already visible, and stop
-        // at the hard limit. If we can't fit them all, toast once.
-        const toAdd = ids.filter((id) => !prevSet.has(id));
+        // at the hard limit. If we can't fit them all, toast once. Vocabulary
+        // nodes are dropped silently — the canvas's "reveal neighbours"
+        // action routes through here and would otherwise pull `owl:Class`
+        // and friends back onto the canvas.
+        const toAdd = rejectHidden(ids, hiddenMetaIdsRef.current).filter((id) => !prevSet.has(id));
         if (toAdd.length === 0) return prev;
         const room = Math.max(0, hardLimitRef.current - prev.length);
         if (toAdd.length > room) {
@@ -318,7 +387,10 @@ export const KnowledgeGraphEditor: React.FC = () => {
     [],
   );
 
-  const emptyState = useMemo(() => model.nodes.length === 0 && model.edges.length === 0, [model]);
+  const emptyState = useMemo(
+    () => displayModel.nodes.length === 0 && displayModel.edges.length === 0,
+    [displayModel],
+  );
   const handleOpenSettings = () => navigate('/kg-settings');
 
   // ── KG focus mode ─────────────────────────────────────────────────────
@@ -332,21 +404,24 @@ export const KnowledgeGraphEditor: React.FC = () => {
   const handleFocusOnNodes = useCallback(
     (targetIds: string[], opts: { maxNeighbors: number }) => {
       const fullModel = modelRef.current;
+      const hiddenMeta = hiddenMetaIdsRef.current;
       const idSet = new Set(fullModel.nodes.map((n) => n.id));
-      const targets = targetIds.filter((id) => idSet.has(id));
+      const targets = targetIds.filter((id) => idSet.has(id) && !hiddenMeta.has(id));
       if (targets.length === 0) {
         toast.warn('Could not focus: the affected node is not part of this graph.');
         return;
       }
 
-      // Collect first-degree neighbours of the target set.
+      // Collect first-degree neighbours of the target set, skipping the
+      // vocabulary nodes — they're the highest-degree nodes in any imported
+      // ontology and would otherwise fill the whole neighbour budget.
       const targetSet = new Set(targets);
       const neighborIds = new Set<string>();
       for (const edge of fullModel.edges) {
-        if (targetSet.has(edge.source) && !targetSet.has(edge.target)) {
+        if (targetSet.has(edge.source) && !targetSet.has(edge.target) && !hiddenMeta.has(edge.target)) {
           neighborIds.add(edge.target);
         }
-        if (targetSet.has(edge.target) && !targetSet.has(edge.source)) {
+        if (targetSet.has(edge.target) && !targetSet.has(edge.source) && !hiddenMeta.has(edge.source)) {
           neighborIds.add(edge.source);
         }
       }
@@ -356,7 +431,7 @@ export const KnowledgeGraphEditor: React.FC = () => {
       const rankedNeighbors = [...neighborIds]
         .map((id) => {
           const n = nodesById.get(id);
-          return { id, prio: _focusPriority(n?.type), label: n?.label ?? id };
+          return { id, prio: _focusPriority(n?.nodeType), label: n?.label ?? id };
         })
         .sort((a, b) => (a.prio - b.prio) || a.id.localeCompare(b.id))
         .slice(0, opts.maxNeighbors)
@@ -398,10 +473,11 @@ export const KnowledgeGraphEditor: React.FC = () => {
       <div className="flex h-full w-64 shrink-0 flex-col overflow-hidden border-r border-border/60 bg-muted/20">
         <KnowledgeGraphPalette />
         <KnowledgeGraphNodeList
-          model={model}
+          model={displayModel}
           visibleIds={visibleIds}
           onToggle={toggleNodeVisibility}
           onBulkToggle={bulkToggleVisibility}
+          metaVocabCount={hiddenMetaIds.size}
         />
       </div>
       <div className="flex min-w-0 flex-1 flex-col">
@@ -413,8 +489,8 @@ export const KnowledgeGraphEditor: React.FC = () => {
           onZoomIn={() => canvasRef.current?.zoomIn()}
           onZoomOut={() => canvasRef.current?.zoomOut()}
           onResetZoom={() => canvasRef.current?.resetZoom()}
-          nodeCount={model.nodes.length}
-          edgeCount={model.edges.length}
+          nodeCount={displayModel.nodes.length}
+          edgeCount={displayModel.edges.length}
           hiddenCount={hiddenCount}
           onOpenSettings={handleOpenSettings}
           onExportHtml={() => {
@@ -451,6 +527,7 @@ export const KnowledgeGraphEditor: React.FC = () => {
             ref={canvasRef}
             model={model}
             visibleIds={visibleIds}
+            nonVisualizableIds={hiddenMetaIds}
             layout={layout}
             connectMode={connectMode}
             onChange={handleChange}
@@ -468,7 +545,7 @@ export const KnowledgeGraphEditor: React.FC = () => {
           )}
           {!emptyState && hiddenCount > 0 && (
             <div className="pointer-events-none absolute left-2 top-2 rounded-md border border-amber-400/60 bg-amber-50 px-2 py-1 text-xs text-amber-900 shadow-sm dark:bg-amber-900/30 dark:text-amber-100">
-              Showing {visibleNodeCount} of {model.nodes.length} nodes (soft: {softLimit}, hard: {hardLimit})
+              Showing {visibleNodeCount} of {displayModel.nodes.length} nodes (soft: {softLimit}, hard: {hardLimit})
             </div>
           )}
         </div>

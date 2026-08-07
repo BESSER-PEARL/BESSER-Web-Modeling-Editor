@@ -106,6 +106,15 @@ export interface KnowledgeGraphSettings {
    *  so the selection survives navigating away and back to the editor.
    *  Fresh imports (no value here) fall back to the soft-limit seed. */
   visibleIds?: string[];
+  /** Show the owl / rdf / rdfs declaration nodes (`owl:Class`,
+   *  `rdf:Property`, `rdfs:Class`, …) on the canvas and in the node list. Off
+   *  by default: those nodes are implied by the node kind they annotate (a
+   *  class node is always `rdf:type owl:Class`), so they only add clutter.
+   *  `xsd:` datatypes are not covered — they carry a datatype property's
+   *  declared range and stay visible either way. Hidden nodes are never
+   *  removed from the model; the transformation pipelines (RDF export,
+   *  KG → UML) still see them. Undefined means "use the default (false)". */
+  showMetaVocabNodes?: boolean;
   /** @deprecated Legacy field from the first settings revision. Still read
    *  as a fallback for `softLimit` on projects saved before the two-limit
    *  rework; never written. */
@@ -150,6 +159,7 @@ export interface ConsistencyReport {
 export const DEFAULT_KG_SOFT_LIMIT = 50;
 export const DEFAULT_KG_HARD_LIMIT = 100;
 export const DEFAULT_KG_LAYOUT: KnowledgeGraphLayout = 'concentric';
+export const DEFAULT_KG_SHOW_META_VOCAB = false;
 /** @deprecated use DEFAULT_KG_SOFT_LIMIT */
 export const DEFAULT_KG_MAX_VISIBLE_NODES = DEFAULT_KG_SOFT_LIMIT;
 
@@ -159,6 +169,10 @@ export function getKgSoftLimit(settings?: KnowledgeGraphSettings): number {
 
 export function getKgHardLimit(settings?: KnowledgeGraphSettings): number {
   return settings?.hardLimit ?? DEFAULT_KG_HARD_LIMIT;
+}
+
+export function getKgShowMetaVocab(settings?: KnowledgeGraphSettings): boolean {
+  return settings?.showMetaVocabNodes ?? DEFAULT_KG_SHOW_META_VOCAB;
 }
 
 export function getKgLayout(settings?: KnowledgeGraphSettings): KnowledgeGraphLayout {

@@ -12,10 +12,12 @@ import { ProjectStorageRepository } from '../../shared/services/storage/ProjectS
 import {
   DEFAULT_KG_HARD_LIMIT,
   DEFAULT_KG_LAYOUT,
+  DEFAULT_KG_SHOW_META_VOCAB,
   DEFAULT_KG_SOFT_LIMIT,
   getActiveDiagram,
   getKgHardLimit,
   getKgLayout,
+  getKgShowMetaVocab,
   getKgSoftLimit,
   isKnowledgeGraphData,
 } from '../../shared/types/project';
@@ -40,16 +42,21 @@ export const KnowledgeGraphSettingsPanel: React.FC = () => {
   const storedSoft = storedModel?.settings?.softLimit ?? storedModel?.settings?.maxVisibleNodes;
   const storedHard = storedModel?.settings?.hardLimit;
   const storedLayout = storedModel?.settings?.layout;
+  const storedShowMeta = storedModel?.settings?.showMetaVocabNodes;
 
   const [softInput, setSoftInput] = useState<string>(storedSoft != null ? String(storedSoft) : '');
   const [hardInput, setHardInput] = useState<string>(storedHard != null ? String(storedHard) : '');
   const [layoutInput, setLayoutInput] = useState<KnowledgeGraphLayout>(storedLayout ?? DEFAULT_KG_LAYOUT);
+  const [showMetaInput, setShowMetaInput] = useState<boolean>(
+    storedShowMeta ?? DEFAULT_KG_SHOW_META_VOCAB,
+  );
 
   useEffect(() => {
     setSoftInput(storedSoft != null ? String(storedSoft) : '');
     setHardInput(storedHard != null ? String(storedHard) : '');
     setLayoutInput(storedLayout ?? DEFAULT_KG_LAYOUT);
-  }, [storedSoft, storedHard, storedLayout]);
+    setShowMetaInput(storedShowMeta ?? DEFAULT_KG_SHOW_META_VOCAB);
+  }, [storedSoft, storedHard, storedLayout, storedShowMeta]);
 
   const parseOrDefault = (s: string, fallback: number): number => {
     const t = s.trim();
@@ -65,10 +72,12 @@ export const KnowledgeGraphSettingsPanel: React.FC = () => {
   const orderValid = softVal <= hardVal;
 
   const appliedStoredLayout = getKgLayout(storedModel?.settings);
+  const appliedStoredShowMeta = getKgShowMetaVocab(storedModel?.settings);
   const isDirty =
     (softInput.trim() === '' ? storedSoft != null : softVal !== storedSoft) ||
     (hardInput.trim() === '' ? storedHard != null : hardVal !== storedHard) ||
-    layoutInput !== appliedStoredLayout;
+    layoutInput !== appliedStoredLayout ||
+    showMetaInput !== appliedStoredShowMeta;
   const canSave = isDirty && softValid && hardValid && orderValid;
 
   const save = () => {
@@ -93,6 +102,11 @@ export const KnowledgeGraphSettingsPanel: React.FC = () => {
       delete (nextSettings as any).layout;
     } else {
       nextSettings.layout = layoutInput;
+    }
+    if (showMetaInput === DEFAULT_KG_SHOW_META_VOCAB) {
+      delete (nextSettings as any).showMetaVocabNodes;
+    } else {
+      nextSettings.showMetaVocabNodes = showMetaInput;
     }
     // Clear the legacy field once either of the new ones is written.
     delete (nextSettings as any).maxVisibleNodes;
@@ -122,6 +136,7 @@ export const KnowledgeGraphSettingsPanel: React.FC = () => {
     setSoftInput('');
     setHardInput('');
     setLayoutInput(DEFAULT_KG_LAYOUT);
+    setShowMetaInput(DEFAULT_KG_SHOW_META_VOCAB);
   };
 
   if (!currentProject || !kgDiagram) {
@@ -237,6 +252,35 @@ export const KnowledgeGraphSettingsPanel: React.FC = () => {
             </p>
           </section>
 
+          <section className="space-y-2">
+            <Label htmlFor="kg-show-meta-vocab">RDF/OWL vocabulary nodes</Label>
+            <div className="flex items-start gap-2">
+              <input
+                id="kg-show-meta-vocab"
+                type="checkbox"
+                checked={showMetaInput}
+                onChange={(e) => setShowMetaInput(e.target.checked)}
+                className="mt-0.5 size-4"
+              />
+              <span className="text-xs text-muted-foreground">
+                Show <code className="rounded bg-muted px-1 py-0.5">owl:</code>,{' '}
+                <code className="rounded bg-muted px-1 py-0.5">rdf:</code> and{' '}
+                <code className="rounded bg-muted px-1 py-0.5">rdfs:</code> terms — e.g. the{' '}
+                <code className="rounded bg-muted px-1 py-0.5">owl:Class</code> node every class
+                declares itself against — on the canvas and in the node list. Off by default: they
+                are implied by the node kinds they annotate, and they are the highest-degree nodes
+                in most ontologies, which distorts the layout. Turning this on lists them in the
+                node list; tick the ones you want on the canvas.{' '}
+                <code className="rounded bg-muted px-1 py-0.5">xsd:</code> datatypes are never
+                hidden — they carry the declared range of a datatype property.
+              </span>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              This only affects the visualization. Vocabulary nodes always stay in the model and are
+              exported / converted (RDF export, KG → UML, consistency checks) either way.
+            </p>
+          </section>
+
           <p className="text-xs text-muted-foreground">
             Diagram currently has {totalNodes} node{totalNodes === 1 ? '' : 's'} · applied soft
             limit {appliedSoft} · applied hard limit {appliedHard} · applied layout{' '}
@@ -256,9 +300,11 @@ export const KnowledgeGraphSettingsPanel: React.FC = () => {
                 storedSoft == null &&
                 storedHard == null &&
                 storedLayout == null &&
+                storedShowMeta == null &&
                 softInput.trim() === '' &&
                 hardInput.trim() === '' &&
-                layoutInput === DEFAULT_KG_LAYOUT
+                layoutInput === DEFAULT_KG_LAYOUT &&
+                showMetaInput === DEFAULT_KG_SHOW_META_VOCAB
               }
             >
               Reset to defaults

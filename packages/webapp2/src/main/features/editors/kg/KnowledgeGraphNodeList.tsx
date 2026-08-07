@@ -6,10 +6,15 @@ import { KgShapeIcon } from './KgShapeIcon';
 import type { KGNodeData, KGNodeType, KnowledgeGraphData } from './types';
 
 interface Props {
+  /** Already stripped of the meta-vocabulary nodes by the editor — this
+   *  component lists exactly what can be put on the canvas. */
   model: KnowledgeGraphData;
   visibleIds: string[];
   onToggle: (id: string, shouldBeVisible: boolean) => void;
   onBulkToggle: (ids: string[], shouldBeVisible: boolean) => void;
+  /** How many RDF/OWL vocabulary nodes were left out of `model`. Surfaced as
+   *  a footnote so their absence is explained rather than mysterious. */
+  metaVocabCount?: number;
 }
 
 type TypeFilter = 'all' | KGNodeType;
@@ -17,7 +22,13 @@ type TypeFilter = 'all' | KGNodeType;
 /** Scrollable list of every node in the KG with a checkbox per row.
  *  Filters by node type and by label substring. Checking a box asks the
  *  parent to enable the node on the canvas; unchecking hides it. */
-export const KnowledgeGraphNodeList: React.FC<Props> = ({ model, visibleIds, onToggle, onBulkToggle }) => {
+export const KnowledgeGraphNodeList: React.FC<Props> = ({
+  model,
+  visibleIds,
+  onToggle,
+  onBulkToggle,
+  metaVocabCount = 0,
+}) => {
   const [typeFilter, setTypeFilter] = useState<TypeFilter>('all');
   const [query, setQuery] = useState('');
 
@@ -147,6 +158,17 @@ export const KnowledgeGraphNodeList: React.FC<Props> = ({ model, visibleIds, onT
           );
         })}
       </div>
+
+      {metaVocabCount > 0 && (
+        <p
+          data-testid="kg-meta-vocab-note"
+          className="text-[10px] leading-snug text-muted-foreground"
+          title="owl:Class, rdf:Property, rdfs:Class, … — implied by the node kinds they annotate. They stay in the model and in every export. xsd: datatypes are not hidden."
+        >
+          {metaVocabCount} owl/rdf/rdfs vocabulary node{metaVocabCount === 1 ? '' : 's'} not shown.
+          Enable them in KG Settings.
+        </p>
+      )}
     </div>
   );
 };
