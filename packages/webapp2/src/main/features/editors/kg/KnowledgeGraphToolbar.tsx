@@ -2,7 +2,8 @@ import React from 'react';
 import { Download, Link2, Maximize2, RefreshCcw, RotateCcw, ZoomIn, ZoomOut } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
-/** 'off' = move/select only; 'connect' = click-a-source-then-click-a-target. */
+/** 'off' = move/select only; 'connect' = drag-from-source-onto-target (node
+ *  positions are frozen while this mode is on). */
 export type ConnectMode = 'off' | 'connect';
 
 interface Props {
@@ -46,7 +47,7 @@ export const KnowledgeGraphToolbar: React.FC<Props> = ({
           size="sm"
           className="h-7 gap-1.5 px-2"
           onClick={() => onConnectModeChange(isConnecting ? 'off' : 'connect')}
-          title="Add a relation: click a source node, then click a target node"
+          title="Add a relation: drag from the source node to the target node"
           aria-pressed={isConnecting}
         >
           <Link2 className="size-3.5" />
@@ -146,7 +147,8 @@ export const KnowledgeGraphToolbar: React.FC<Props> = ({
       </div>
       {isConnecting && (
         <div className="text-[11px] text-muted-foreground">
-          Click a source node, then click a target node to create a relation. Esc to cancel.
+          Drag from a source node onto a target node to create a relation. Node positions are locked
+          while this mode is on — Esc to exit.
         </div>
       )}
     </div>

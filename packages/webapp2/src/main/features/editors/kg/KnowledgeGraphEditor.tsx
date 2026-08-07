@@ -457,6 +457,7 @@ export const KnowledgeGraphEditor: React.FC = () => {
             onSelect={setSelection}
             onExitConnectMode={() => setConnectMode('off')}
             onRevealNodes={(ids) => bulkToggleVisibility(ids, true)}
+            onRelationRejected={(reason) => toast.warning(reason)}
           />
           {emptyState && (
             <div className="pointer-events-none absolute inset-0 flex items-center justify-center">

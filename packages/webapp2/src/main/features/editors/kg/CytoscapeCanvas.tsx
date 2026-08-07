@@ -10,6 +10,7 @@ import type { ConnectMode } from './KnowledgeGraphToolbar';
 import type { KgSelection } from './KnowledgeGraphInspector';
 import type { KnowledgeGraphLayout } from '../../../shared/types/project';
 import { isEdgeAllowed, explainEdgeRejection, formatVocabLabel, isMetaVocab } from './edge-rules';
+import { defaultPredicateFor } from './edge-defaults';
 
 // Register extensions exactly once. Cytoscape will throw a benign error on
 // re-registration during HMR; we swallow it.
@@ -208,8 +209,23 @@ function modelToElements(model: KnowledgeGraphData): ElementDefinition[] {
   return [...nodes, ...edges];
 }
 
+/** True for the transient elements cytoscape-edgehandles injects while an
+ *  edge-drawing gesture is in flight (the invisible ghost node the ghost edge
+ *  points at, the ghost edge itself, and the not-yet-committed preview edge).
+ *  These live in the Cytoscape instance but must never reach the model. */
+function isEdgehandlesTemp(el: { hasClass: (c: string) => boolean }): boolean {
+  return (
+    el.hasClass('eh-ghost') ||
+    el.hasClass('eh-ghost-node') ||
+    el.hasClass('eh-ghost-edge') ||
+    el.hasClass('eh-preview')
+  );
+}
+
 function cyToModel(cy: Core, previous: KnowledgeGraphData): KnowledgeGraphData {
-  const nodes: KGNodeData[] = cy.nodes().map((n): KGNodeData => {
+  const realNodes = cy.nodes().filter((n) => !isEdgehandlesTemp(n)).nodes();
+  const realEdges = cy.edges().filter((e) => !isEdgehandlesTemp(e)).edges();
+  const nodes: KGNodeData[] = realNodes.map((n): KGNodeData => {
     const data = n.data();
     const position = n.position();
     return {
@@ -227,7 +243,7 @@ function cyToModel(cy: Core, previous: KnowledgeGraphData): KnowledgeGraphData {
       position: { x: position.x, y: position.y },
     };
   });
-  const edges: KGEdgeData[] = cy.edges().map((e): KGEdgeData => {
+  const edges: KGEdgeData[] = realEdges.map((e): KGEdgeData => {
     const data = e.data();
     return {
       id: String(data.id),
@@ -349,10 +365,26 @@ interface CytoscapeCanvasProps {
    *  a double-click to expand neighbors). The editor enforces the hard
    *  limit and surfaces the toast when the set doesn't fit. */
   onRevealNodes?: (ids: string[]) => void;
+  /** Called when a drag-to-connect gesture ended on a node the OWL2 DL rules
+   *  forbid, with a human-readable reason. The editor surfaces it as a toast. */
+  onRelationRejected?: (reason: string) => void;
 }
 
 export const CytoscapeCanvas = React.forwardRef<CytoscapeCanvasHandle, CytoscapeCanvasProps>(
-  ({ model, visibleIds, layout, connectMode, onChange, onSelect, onExitConnectMode, onRevealNodes }, ref) => {
+  (
+    {
+      model,
+      visibleIds,
+      layout,
+      connectMode,
+      onChange,
+      onSelect,
+      onExitConnectMode,
+      onRevealNodes,
+      onRelationRejected,
+    },
+    ref,
+  ) => {
     const containerRef = useRef<HTMLDivElement | null>(null);
     const cyRef = useRef<Core | null>(null);
     const ehRef = useRef<any>(null);
@@ -372,7 +404,16 @@ export const CytoscapeCanvas = React.forwardRef<CytoscapeCanvasHandle, Cytoscape
     layoutRef.current = layout;
     const onRevealNodesRef = useRef(onRevealNodes);
     onRevealNodesRef.current = onRevealNodes;
-    const clickSourceRef = useRef<string | null>(null);
+    const onRelationRejectedRef = useRef(onRelationRejected);
+    onRelationRejectedRef.current = onRelationRejected;
+    // State for one drag-to-connect gesture, from `ehstart` to `ehstop`.
+    // While `active`, edgehandles is adding and removing its own transient
+    // elements — we must not treat those churn events as user edits.
+    const ehGestureRef = useRef<{ active: boolean; created: boolean; rejection: string | null }>({
+      active: false,
+      created: false,
+      rejection: null,
+    });
     // When we programmatically rebuild the canvas (`cy.elements().remove()`
     // followed by `cy.add(...)`) Cytoscape fires a cascade of `remove`
     // events. We must NOT treat those as user-initiated deletions or we end
@@ -382,19 +423,14 @@ export const CytoscapeCanvas = React.forwardRef<CytoscapeCanvasHandle, Cytoscape
 
     const emitChangeFromCy = (cy: Core) => {
       if (suppressEventsRef.current) return;
+      // Mid-gesture, edgehandles' preview/ghost churn fires `remove` events.
+      // Emitting then would push half-finished state into the model; the
+      // `ehstop` handler emits once at the end instead.
+      if (ehGestureRef.current.active) return;
       const canvas = cyToModel(cy, modelRef.current);
       const visibleSet = new Set(visibleIdsRef.current);
       const merged = mergeWithFullModel(modelRef.current, canvas, visibleSet);
       onChangeRef.current(merged);
-    };
-
-    const clearClickSource = () => {
-      const cy = cyRef.current;
-      if (!cy) return;
-      if (clickSourceRef.current) {
-        cy.getElementById(clickSourceRef.current).removeClass('eh-source');
-        clickSourceRef.current = null;
-      }
     };
 
     /** Reveal every neighbor of the given source node around it on the
@@ -475,7 +511,6 @@ export const CytoscapeCanvas = React.forwardRef<CytoscapeCanvasHandle, Cytoscape
         const cy = cyRef.current;
         if (!cy) return;
         cy.$(':selected').unselect();
-        clearClickSource();
       },
       relayout: () => {
         const cy = cyRef.current;
@@ -546,26 +581,61 @@ export const CytoscapeCanvas = React.forwardRef<CytoscapeCanvasHandle, Cytoscape
       });
       cyRef.current = cy;
 
-      // edgehandles is still registered so we keep the preview/source stylesheet
-      // classes in sync — but we disable the hover-handle UI outright because
-      // relation creation now happens through the toolbar's Add-relation mode.
+      // Relation creation is a drag gesture powered by cytoscape-edgehandles,
+      // armed only while the toolbar's "Add relation" mode is on. Draw mode
+      // sets `cy.autoungrabify(true)` for us, which is exactly the behaviour we
+      // want: node positions freeze while the user is wiring things up, and
+      // come back the moment the mode is turned off.
       const eh = (cy as any).edgehandles({
         snap: true,
         hoverDelay: 150,
         handleNodes: 'node',
         canConnect: (source: any, target: any) => {
+          // edgehandles probes `canConnect` with an empty collection on the
+          // cancel path (drag released over blank canvas). That is not a
+          // rejection worth reporting.
+          if (!target || target.empty()) return false;
           if (source.same(target)) return false;
           const s = String(source.data('nodeType') ?? '') as KGNodeType;
           const t = String(target.data('nodeType') ?? '') as KGNodeType;
           const sIri = source.data('iri') as string | undefined;
           const tIri = target.data('iri') as string | undefined;
-          return isEdgeAllowed(s, t, sIri, tIri);
+          const allowed = isEdgeAllowed(s, t, sIri, tIri);
+          // Remember why the last candidate was refused so `ehstop` can
+          // explain it, rather than the drag silently doing nothing.
+          if (!allowed) ehGestureRef.current.rejection = explainEdgeRejection(s, t);
+          return allowed;
         },
-        edgeParams: () => ({ data: { id: newId('edge'), label: '' } }),
+        // Auto-tag the new edge with the canonical predicate for this node-type
+        // pair. edgehandles builds its preview edge from these params and then
+        // promotes that very element on completion, so whatever we set here is
+        // what lands in the model. Constraint links in particular *must* carry
+        // their internal IRI or the preflight reports them as unattached.
+        edgeParams: (source: any, target: any) => {
+          const s = String(source.data('nodeType') ?? '');
+          const t = String(target?.data('nodeType') ?? '');
+          const { label, iri } = defaultPredicateFor(s, t);
+          return { data: { id: newId('edge'), label, ...(iri ? { iri } : {}) } };
+        },
       });
       ehRef.current = eh;
+      // Draw mode starts off; the connect-mode effect below arms it.
       eh.disable();
-      eh.disableDrawMode();
+
+      cy.on('ehstart', () => {
+        ehGestureRef.current = { active: true, created: false, rejection: null };
+      });
+      cy.on('ehcomplete', () => {
+        ehGestureRef.current.created = true;
+      });
+      cy.on('ehstop', () => {
+        const gesture = ehGestureRef.current;
+        ehGestureRef.current = { active: false, created: false, rejection: null };
+        // `ehstop` fires after edgehandles has torn its ghost elements down,
+        // so the instance is clean and safe to serialize here.
+        if (gesture.created) emitChangeFromCy(cy);
+        else if (gesture.rejection) onRelationRejectedRef.current?.(gesture.rejection);
+      });
 
       cy.on('dragfreeon', 'node', () => emitChangeFromCy(cy));
       cy.on('remove', () => emitChangeFromCy(cy));
@@ -646,83 +716,14 @@ export const CytoscapeCanvas = React.forwardRef<CytoscapeCanvasHandle, Cytoscape
       });
 
       // Double-click to reveal a node's neighbors arranged in a circle
-      // around it. Skipped in connect-mode so the tap pair isn't
-      // hijacked while the user is actively creating edges.
+      // around it. Skipped in connect-mode: there a double-click is just two
+      // edge-drawing gestures and shouldn't also expand the graph.
       cy.on('dbltap', 'node', (evt) => {
         if (connectModeRef.current === 'connect') return;
         expandNeighbors(evt.target);
       });
 
-      // Click-connect handler — only acts when the mode is active.
-      cy.on('tap', 'node', (evt) => {
-        if (connectModeRef.current !== 'connect') return;
-        const node = evt.target;
-        const id = String(node.id());
-        const source = clickSourceRef.current;
-        if (!source) {
-          clickSourceRef.current = id;
-          node.addClass('eh-source');
-          return;
-        }
-        if (source === id) {
-          clearClickSource();
-          return;
-        }
-        // Commit the edge. If source / target are constraint nodes, auto-tag
-        // the edge with the right internal predicate IRI so the preflight
-        // recognises it as a constraint link (constraintTargetClass /
-        // constraintTargetProperty / sh:property). Without this, an edge
-        // dragged in the editor would be saved without an iri and the
-        // preflight would flag the constraint as unattached.
-        const sourceNode = cy.getElementById(source);
-        const targetNode = cy.getElementById(id);
-        const sourceType = String(sourceNode.data('nodeType') ?? '');
-        const targetType = String(targetNode.data('nodeType') ?? '');
-        const sourceIri = sourceNode.data('iri') as string | undefined;
-        const targetIri = targetNode.data('iri') as string | undefined;
-        // OWL2 DL gate: silently no-op if the source→target combination isn't
-        // permitted (same UX as the existing self-loop case). Meta-vocab IRIs
-        // (owl:/rdf:/rdfs:/xsd:) bypass the strict type matrix so OWL
-        // "punning" declarations like `:Person rdf:type owl:Class` are
-        // permitted by hand.
-        if (!isEdgeAllowed(sourceType as KGNodeType, targetType as KGNodeType, sourceIri, targetIri)) {
-          console.warn(
-            `KG edge rejected: ${explainEdgeRejection(sourceType as KGNodeType, targetType as KGNodeType)}`,
-          );
-          clearClickSource();
-          return;
-        }
-        let label = '';
-        let iri: string | undefined;
-        if (sourceType === 'propertyConstraint' && targetType === 'property') {
-          label = 'constraintTargetProperty';
-          iri = 'http://besser.local/kg#constraintTargetProperty';
-        } else if (sourceType === 'nodeConstraint' && targetType === 'class') {
-          label = 'constraintTargetClass';
-          iri = 'http://besser.local/kg#constraintTargetClass';
-        } else if (sourceType === 'nodeConstraint' && targetType === 'propertyConstraint') {
-          label = 'property';
-          iri = 'http://www.w3.org/ns/shacl#property';
-        } else if (sourceType === 'individual' && targetType === 'class') {
-          // Default an Individual → Class edge to rdf:type (the canonical
-          // "instance of" predicate). Without this the preflight orphan
-          // detector wouldn't recognise the class link and the consistency
-          // checker wouldn't have any rdf:type triple to validate against.
-          label = 'type';
-          iri = 'http://www.w3.org/1999/02/22-rdf-syntax-ns#type';
-        } else if (sourceType === 'class' && targetType === 'class') {
-          // Class → Class edges default to rdfs:subClassOf.
-          label = 'subClassOf';
-          iri = 'http://www.w3.org/2000/01/rdf-schema#subClassOf';
-        }
-        const data: Record<string, unknown> = { id: newId('edge'), source, target: id, label };
-        if (iri) data.iri = iri;
-        cy.add({ group: 'edges', data });
-        clearClickSource();
-        emitChangeFromCy(cy);
-      });
-
-      // Esc exits any connect mode and clears the in-progress source.
+      // Esc exits connect mode.
       // Space held = temporarily enable panning (plain drag is otherwise
       // used for box-selecting multiple elements).
       const onKey = (ev: KeyboardEvent) => {
@@ -742,8 +743,7 @@ export const CytoscapeCanvas = React.forwardRef<CytoscapeCanvasHandle, Cytoscape
           return;
         }
         if (ev.key === 'Escape') {
-          if (connectModeRef.current !== 'off' || clickSourceRef.current) {
-            clearClickSource();
+          if (connectModeRef.current !== 'off') {
             onExitConnectMode?.();
             ev.preventDefault();
           }
@@ -864,7 +864,6 @@ export const CytoscapeCanvas = React.forwardRef<CytoscapeCanvasHandle, Cytoscape
 
       // Apply whatever positions each element already has (via `preset`).
       cy.layout({ name: 'preset' } as any).run();
-      clearClickSource();
       if (!needsLayout) return;
 
       const persist = () => {
@@ -898,11 +897,19 @@ export const CytoscapeCanvas = React.forwardRef<CytoscapeCanvasHandle, Cytoscape
       }
     }, [model, visibleIds]);
 
-    // React to connect-mode changes — clear any in-progress source when the
-    // mode is switched off.
+    // Arm / disarm the drag-to-connect gesture. Draw mode also freezes node
+    // positions (`cy.autoungrabify(true)`); `disableDrawMode` restores the
+    // previous grabbable state, so ordinary dragging — including the
+    // multi-select drag-together above — comes back untouched.
     useEffect(() => {
-      if (connectMode !== 'connect') {
-        clearClickSource();
+      const eh = ehRef.current;
+      if (!eh) return;
+      if (connectMode === 'connect') {
+        eh.enable();
+        eh.enableDrawMode();
+      } else {
+        eh.disableDrawMode();
+        eh.disable();
       }
     }, [connectMode]);
 
@@ -934,7 +941,9 @@ export const CytoscapeCanvas = React.forwardRef<CytoscapeCanvasHandle, Cytoscape
     return (
       <div
         ref={containerRef}
-        className="relative h-full w-full bg-background"
+        className={`relative h-full w-full bg-background${
+          connectMode === 'connect' ? ' cursor-crosshair' : ''
+        }`}
         onDragOver={(e) => {
           if (e.dataTransfer.types.includes(KG_DRAG_MIME)) {
             e.preventDefault();

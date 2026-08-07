@@ -23,6 +23,7 @@ import { KG_NODE_COLORS } from './stylesheet';
 import { KgShapeIcon } from './KgShapeIcon';
 import { ConstraintSpecsEditor } from './ConstraintSpecsEditor';
 import { KG_EDGE_RULES, isMetaVocab, sourceTypesAllowedToTarget } from './edge-rules';
+import { defaultPredicateFor } from './edge-defaults';
 
 export type KgSelection =
   | { kind: 'node'; id: string }
@@ -1215,17 +1216,15 @@ const AddConnectionForm: React.FC<{
       // class→class) so the preflight + consistency check recognise it.
       const sourceNode = model.nodes.find((n) => n.id === source);
       const targetNode = model.nodes.find((n) => n.id === target);
-      const sType = sourceNode?.nodeType;
-      const tType = targetNode?.nodeType;
       let defaultIri: string | undefined;
       let defaultLabel: string | undefined;
       if (!trimmed) {
-        if (sType === 'individual' && tType === 'class') {
-          defaultIri = 'http://www.w3.org/1999/02/22-rdf-syntax-ns#type';
-          defaultLabel = 'type';
-        } else if (sType === 'class' && tType === 'class') {
-          defaultIri = 'http://www.w3.org/2000/01/rdf-schema#subClassOf';
-          defaultLabel = 'subClassOf';
+        // Same table the canvas drag-to-connect gesture uses, so both entry
+        // points produce identical edges.
+        const fallback = defaultPredicateFor(sourceNode?.nodeType, targetNode?.nodeType);
+        if (fallback.label) {
+          defaultLabel = fallback.label;
+          defaultIri = fallback.iri;
         }
       }
       edge = {
