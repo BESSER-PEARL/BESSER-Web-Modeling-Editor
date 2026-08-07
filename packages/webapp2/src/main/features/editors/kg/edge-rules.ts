@@ -59,12 +59,13 @@ export const KG_EDGE_RULES: Record<KGNodeType, { allowed: KGNodeType[]; reason: 
   },
 };
 
-/** OWL / RDF / RDFS / XSD framework namespaces. IRIs in these are
- *  *vocabulary* terms — `owl:Class`, `owl:Restriction`, `xsd:string`, etc. —
- *  not user-modelled concepts. OWL2 DL's "punning" rule allows declarations
- *  like `:Foo rdf:type owl:Class` even though strict node-type rules would
- *  forbid the corresponding class → individual edge, so we short-circuit the
- *  gate whenever either endpoint is a vocabulary term.
+/** OWL / RDF / RDFS / XSD / SHACL framework namespaces. IRIs in these are
+ *  *vocabulary* terms — `owl:Class`, `owl:Restriction`, `xsd:string`,
+ *  `sh:NodeShape`, etc. — not user-modelled concepts. OWL2 DL's "punning"
+ *  rule allows declarations like `:Foo rdf:type owl:Class` even though strict
+ *  node-type rules would forbid the corresponding class → individual edge, so
+ *  we short-circuit the gate whenever either endpoint is a vocabulary term.
+ *  The same applies to a shape declaring `:MyShape rdf:type sh:NodeShape`.
  *
  *  Mirrors `_META_VOCAB_NAMESPACES` in
  *  `besser/BUML/notations/kg_to_buml/_common.py`. */
@@ -73,6 +74,7 @@ export const META_VOCAB_NAMESPACES = [
   'http://www.w3.org/1999/02/22-rdf-syntax-ns#',
   'http://www.w3.org/2000/01/rdf-schema#',
   'http://www.w3.org/2001/XMLSchema#',
+  'http://www.w3.org/ns/shacl#',
 ] as const;
 
 export function isMetaVocab(iri: string | undefined | null): boolean {
@@ -87,6 +89,7 @@ export const META_VOCAB_PREFIXES: Record<string, string> = {
   'http://www.w3.org/1999/02/22-rdf-syntax-ns#': 'rdf',
   'http://www.w3.org/2000/01/rdf-schema#': 'rdfs',
   'http://www.w3.org/2001/XMLSchema#': 'xsd',
+  'http://www.w3.org/ns/shacl#': 'sh',
 };
 
 /** Returns the short prefix (`owl`, `rdf`, `rdfs`, `xsd`) for a meta-vocab

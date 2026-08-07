@@ -7,8 +7,10 @@
  * clutter, and in a real ontology they are also the highest-degree nodes in
  * the graph, dragging the layout into a hairball.
  *
- * Only the declaration namespaces (owl / rdf / rdfs) are hidden; see
- * `HIDDEN_VOCAB_NAMESPACES` for why `xsd:` stays on the canvas.
+ * SHACL shapes work the same way (`:MyShape a sh:NodeShape`). Hidden are the
+ * declaration namespaces (owl / rdf / rdfs) plus `sh:NodeShape` and
+ * `sh:PropertyShape`; see `HIDDEN_VOCAB_NAMESPACES` and `HIDDEN_VOCAB_IRIS`
+ * for why `xsd:` and the rest of `sh:` stay on the canvas.
  *
  * This module only decides what the editor *shows*. The nodes and edges stay
  * in the model, get persisted, and are handed unchanged to the downstream
@@ -28,7 +30,7 @@ import type { KGEdgeData, KGNodeData } from './types';
  *  Deliberately a *subset* of `META_VOCAB_NAMESPACES` in `edge-rules.ts`:
  *  `xsd:` is left out. An `xsd:string` node is the declared `rdfs:range` of a
  *  datatype property — actual modelled content, not something implied by the
- *  node's own kind — so hiding it would cost information. The other three
+ *  node's own kind — so hiding it would cost information. These three
  *  namespaces only ever carry declarations (`:Person a owl:Class`) that
  *  restate what the node type already says.
  *
@@ -41,18 +43,35 @@ export const HIDDEN_VOCAB_NAMESPACES = [
   'http://www.w3.org/2000/01/rdf-schema#',
 ] as const;
 
-function inHiddenNamespace(iri: string | undefined | null): boolean {
+/** Individually-hidden vocabulary terms, for namespaces we do *not* hide
+ *  wholesale.
+ *
+ *  SHACL: `sh:NodeShape` / `sh:PropertyShape` are declaration targets in
+ *  exactly the sense `owl:Class` is — a nodeConstraint node is always
+ *  `rdf:type sh:NodeShape`, so drawing the edge restates the node's kind. The
+ *  rest of the `sh:` namespace stays visible because those terms appear in
+ *  *value* position and carry real constraint content (`sh:IRI`,
+ *  `sh:Literal`, `sh:BlankNode` as `sh:nodeKind` values).
+ *
+ *  Mirrors `SH_NODE_SHAPE` / `SH_PROPERTY_SHAPE` in
+ *  `besser/BUML/metamodel/kg/constants.py`. */
+export const HIDDEN_VOCAB_IRIS: ReadonlySet<string> = new Set([
+  'http://www.w3.org/ns/shacl#NodeShape',
+  'http://www.w3.org/ns/shacl#PropertyShape',
+]);
+
+function isHiddenVocabIri(iri: string | undefined | null): boolean {
   if (!iri) return false;
-  return HIDDEN_VOCAB_NAMESPACES.some((ns) => iri.startsWith(ns));
+  return HIDDEN_VOCAB_IRIS.has(iri) || HIDDEN_VOCAB_NAMESPACES.some((ns) => iri.startsWith(ns));
 }
 
-/** True when a node denotes a term from the owl / rdf / rdfs namespaces
- *  rather than a user-modelled concept.
+/** True when a node denotes an owl / rdf / rdfs term, or one of the two SHACL
+ *  shape types, rather than a user-modelled concept.
  *
  *  Falls back to `id` because OWL-imported nodes use the IRI as their id,
  *  so a node that lost its `iri` field in an older save is still caught. */
 export function isMetaVocabNode(n: Pick<KGNodeData, 'iri' | 'id'>): boolean {
-  return inHiddenNamespace(n.iri) || inHiddenNamespace(n.id);
+  return isHiddenVocabIri(n.iri) || isHiddenVocabIri(n.id);
 }
 
 /** Ids of the nodes to keep off the canvas and out of the node list.

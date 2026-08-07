@@ -110,7 +110,7 @@ export const kgStylesheet: any[] = [
       color: KG_NODE_COLORS.propertyConstraint.text,
     },
   },
-  // Vocabulary nodes (owl:/rdf:/rdfs:/xsd:) keep their existing shape +
+  // Vocabulary nodes (owl:/rdf:/rdfs:/xsd:/sh:) keep their existing shape +
   // fill so the user still reads them as their declared kind (class,
   // individual, …), but get italic labels and a doubled purple border to
   // mark them as framework concepts rather than user-modelled domain

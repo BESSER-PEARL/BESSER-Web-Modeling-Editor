@@ -194,7 +194,8 @@ export const KnowledgeGraphSettingsPanel: React.FC = () => {
                 className="w-40"
               />
               <span className="text-xs text-muted-foreground">
-                When you load an ontology, this many nodes appear by default. You can enable more
+                When you load an ontology, this many nodes appear by default — classes first, then
+                properties, blank nodes, constraints, individuals and literals. You can enable more
                 via the node list, up to the hard limit.
               </span>
             </div>
@@ -265,14 +266,16 @@ export const KnowledgeGraphSettingsPanel: React.FC = () => {
               <span className="text-xs text-muted-foreground">
                 Show <code className="rounded bg-muted px-1 py-0.5">owl:</code>,{' '}
                 <code className="rounded bg-muted px-1 py-0.5">rdf:</code> and{' '}
-                <code className="rounded bg-muted px-1 py-0.5">rdfs:</code> terms — e.g. the{' '}
-                <code className="rounded bg-muted px-1 py-0.5">owl:Class</code> node every class
-                declares itself against — on the canvas and in the node list. Off by default: they
-                are implied by the node kinds they annotate, and they are the highest-degree nodes
-                in most ontologies, which distorts the layout. Turning this on lists them in the
-                node list; tick the ones you want on the canvas.{' '}
-                <code className="rounded bg-muted px-1 py-0.5">xsd:</code> datatypes are never
-                hidden — they carry the declared range of a datatype property.
+                <code className="rounded bg-muted px-1 py-0.5">rdfs:</code> terms, plus{' '}
+                <code className="rounded bg-muted px-1 py-0.5">sh:NodeShape</code> /{' '}
+                <code className="rounded bg-muted px-1 py-0.5">sh:PropertyShape</code> — the nodes
+                every class and every shape declares itself against — on the canvas and in the node
+                list. Off by default: they are implied by the node kinds they annotate, and they are
+                the highest-degree nodes in most ontologies, which distorts the layout. Turning this
+                on lists them in the node list; tick the ones you want on the canvas.{' '}
+                <code className="rounded bg-muted px-1 py-0.5">xsd:</code> datatypes and the
+                remaining <code className="rounded bg-muted px-1 py-0.5">sh:</code> terms are never
+                hidden — they carry a property's declared range and its constraint values.
               </span>
             </div>
             <p className="text-xs text-muted-foreground">

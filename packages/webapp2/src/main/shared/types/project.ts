@@ -106,14 +106,16 @@ export interface KnowledgeGraphSettings {
    *  so the selection survives navigating away and back to the editor.
    *  Fresh imports (no value here) fall back to the soft-limit seed. */
   visibleIds?: string[];
-  /** Show the owl / rdf / rdfs declaration nodes (`owl:Class`,
-   *  `rdf:Property`, `rdfs:Class`, …) on the canvas and in the node list. Off
-   *  by default: those nodes are implied by the node kind they annotate (a
-   *  class node is always `rdf:type owl:Class`), so they only add clutter.
-   *  `xsd:` datatypes are not covered — they carry a datatype property's
-   *  declared range and stay visible either way. Hidden nodes are never
-   *  removed from the model; the transformation pipelines (RDF export,
-   *  KG → UML) still see them. Undefined means "use the default (false)". */
+  /** Show the declaration nodes — the owl / rdf / rdfs terms (`owl:Class`,
+   *  `rdf:Property`, `rdfs:Class`, …) plus `sh:NodeShape` and
+   *  `sh:PropertyShape` — on the canvas and in the node list. Off by default:
+   *  those nodes are implied by the node kind they annotate (a class node is
+   *  always `rdf:type owl:Class`), so they only add clutter. `xsd:` datatypes
+   *  and the remaining `sh:` terms are not covered — they carry a property's
+   *  declared range and its constraint values, and stay visible either way.
+   *  Hidden nodes are never removed from the model; the transformation
+   *  pipelines (RDF export, KG → UML) still see them. Undefined means "use
+   *  the default (false)". */
   showMetaVocabNodes?: boolean;
   /** @deprecated Legacy field from the first settings revision. Still read
    *  as a fallback for `softLimit` on projects saved before the two-limit

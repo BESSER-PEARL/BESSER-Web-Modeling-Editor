@@ -148,7 +148,7 @@ function hasMeaningfulPositions(nodes: KGNodeData[]): boolean {
  *  `width: 'label'` stylesheet rule renders those nodes as 0×0 pixels — they
  *  are on the canvas but invisible, which looked like "class nodes are hidden". */
 function displayLabel(n: KGNodeData): string {
-  // Vocabulary terms (owl:, rdf:, rdfs:, xsd:) always render with their
+  // Vocabulary terms (owl:, rdf:, rdfs:, xsd:, sh:) always render with their
   // namespace prefix and a trailing chip glyph so the user can tell them
   // apart from user-defined classes/individuals at a glance. The IRI takes
   // precedence over `n.label` here because the backend often gives vocab
@@ -200,7 +200,7 @@ function modelToElements(model: KnowledgeGraphData): ElementDefinition[] {
         // `metadata.constraintSpecs` would otherwise be silently dropped on
         // every canvas interaction.
         metadata: n.metadata,
-        // Tag vocabulary nodes (owl:/rdf:/rdfs:/xsd:) so the stylesheet can
+        // Tag vocabulary nodes (owl:/rdf:/rdfs:/xsd:/sh:) so the stylesheet can
         // render them with the "framework" chip treatment. Cytoscape stores
         // booleans as strings in selectors, so we keep this as a literal flag.
         isVocab: isMetaVocab(n.iri),
@@ -376,8 +376,9 @@ interface CytoscapeCanvasProps {
    *  so deleting nodes doesn't "promote" hidden ones into view. */
   visibleIds: string[];
   /** Node ids that must never be put on the canvas, even when something on
-   *  the canvas asks for them (currently: the owl/rdf/rdfs declaration nodes
-   *  the editor filters out of the visualization). They remain in `model` — the
+   *  the canvas asks for them (currently: the owl/rdf/rdfs/SHACL-shape
+   *  declaration nodes the editor filters out of the visualization, see
+   *  `meta-vocab.ts`). They remain in `model` — the
    *  canvas merges its edits back over it — they are just not renderable. */
   nonVisualizableIds?: ReadonlySet<string>;
   /** Layout algorithm. Runs once when the visible graph has no positions,
@@ -471,7 +472,7 @@ export const CytoscapeCanvas = React.forwardRef<CytoscapeCanvasHandle, Cytoscape
       const sourceId = String(sourceNode.id());
       const sourcePos = sourceNode.position();
 
-      // Vocabulary neighbours (owl:Class, rdfs:Class, …) are skipped: the
+      // Vocabulary neighbours (owl:Class, sh:NodeShape, …) are skipped: the
       // editor would refuse to reveal them anyway, and including them here
       // would leave gaps in the circle and make an expand whose neighbours
       // are *all* vocabulary look like a no-op that still moved nodes.

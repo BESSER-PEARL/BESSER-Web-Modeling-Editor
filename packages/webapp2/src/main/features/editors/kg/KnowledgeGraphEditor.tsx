@@ -13,6 +13,7 @@ import {
   rejectHidden,
   withoutHiddenNodes,
 } from './meta-vocab';
+import { kgNodePriority, pickNodeIdsByPriority, sortIdsByPriority } from './node-priority';
 import { useProject } from '../../../app/hooks/useProject';
 import { ProjectStorageRepository } from '../../../shared/services/storage/ProjectStorageRepository';
 import { downloadFile } from '../../../shared/utils/download';
@@ -26,24 +27,6 @@ import {
 } from '../../../shared/types/project';
 import type { KnowledgeGraphData } from './types';
 
-/** Priority order for picking which neighbours to include in the focus
- *  subgraph. Matches the user's request: prefer classes and properties
- *  (which represent attributes / associations) over individuals,
- *  literals, and blank nodes. */
-const _FOCUS_NEIGHBOR_PRIORITY: Record<string, number> = {
-  class: 0,
-  property: 1,
-  individual: 2,
-  literal: 3,
-  blank: 4,
-};
-
-function _focusPriority(nodeType: string | undefined): number {
-  if (!nodeType) return 99;
-  const p = _FOCUS_NEIGHBOR_PRIORITY[nodeType];
-  return p ?? 99;
-}
-
 const EMPTY_KG: KnowledgeGraphData = {
   type: 'KnowledgeGraphDiagram',
   version: '1.0.0',
@@ -54,7 +37,9 @@ const EMPTY_KG: KnowledgeGraphData = {
 /** Pick the initial visibleIds for a freshly-loaded model. Prefers the
  *  persisted list (so selection survives remounts, including the empty-set
  *  case where the user has intentionally hidden every node); otherwise
- *  seeds from the first soft-limit node ids and clamps to the hard limit.
+ *  seeds the soft-limit worth of highest-priority nodes (see
+ *  `node-priority.ts`: classes first, literals last) and clamps to the hard
+ *  limit.
  *
  *  `hiddenMetaIds` (the RDF/OWL vocabulary nodes, unless the user opted into
  *  showing them) is subtracted from both paths, so those nodes never reach
@@ -75,11 +60,8 @@ function seedVisibleIds(
       .filter((id) => modelIds.has(id) && !hiddenMetaIds.has(id))
       .slice(0, hardLimit);
   }
-  return model.nodes
-    .filter((n) => !hiddenMetaIds.has(n.id))
-    .slice(0, softLimit)
-    .map((n) => n.id)
-    .slice(0, hardLimit);
+  const candidates = model.nodes.filter((n) => !hiddenMetaIds.has(n.id));
+  return pickNodeIdsByPriority(candidates, Math.min(softLimit, hardLimit));
 }
 
 function arrayEqual(a: readonly string[], b: readonly string[]): boolean {
@@ -129,10 +111,11 @@ export const KnowledgeGraphEditor: React.FC = () => {
   hardLimitRef.current = hardLimit;
   const prevLayoutRef = useRef(layout);
 
-  // Declaration-vocabulary nodes (owl:Class, rdf:Property, rdfs:Class, …) are
-  // implied by the node kinds they annotate, so we keep them out of the
-  // visualization while leaving them in the model for the transformation
-  // pipelines. Everything downstream of here treats them as "not visualizable":
+  // Declaration-vocabulary nodes (owl:Class, rdf:Property, rdfs:Class,
+  // sh:NodeShape, sh:PropertyShape) are implied by the node kinds they
+  // annotate, so we keep them out of the visualization while leaving them in
+  // the model for the transformation pipelines. Everything downstream of here
+  // treats them as "not visualizable":
   // they are excluded from the visible set, the node list, and the counts.
   const hiddenMetaIds = useMemo(
     () => collectHiddenMetaIds(model.nodes, showMetaVocab),
@@ -164,18 +147,15 @@ export const KnowledgeGraphEditor: React.FC = () => {
   visibleIdsRef.current = visibleIds;
   const prevSoftLimitRef = useRef<number>(softLimit);
 
-  // Reseed visibleIds from the first `softLimit` ids ONLY when the user
-  // actually changes the soft limit in KG Settings (not on normal
+  // Reseed visibleIds with the `softLimit` highest-priority nodes ONLY when
+  // the user actually changes the soft limit in KG Settings (not on normal
   // re-renders and not on initial mount). Hard-limit changes don't touch
   // the current visibility set — they just raise/lower the ceiling.
   useEffect(() => {
     if (prevSoftLimitRef.current === softLimit) return;
     prevSoftLimitRef.current = softLimit;
-    const next = modelRef.current.nodes
-      .filter((n) => !hiddenMetaIdsRef.current.has(n.id))
-      .slice(0, softLimit)
-      .map((n) => n.id);
-    setVisibleIds(next.slice(0, hardLimit));
+    const candidates = modelRef.current.nodes.filter((n) => !hiddenMetaIdsRef.current.has(n.id));
+    setVisibleIds(pickNodeIdsByPriority(candidates, Math.min(softLimit, hardLimit)));
   }, [softLimit, hardLimit]);
 
   // Vocabulary nodes that were visible before the user turned
@@ -287,7 +267,13 @@ export const KnowledgeGraphEditor: React.FC = () => {
 
     const hardLimit = hardLimitRef.current;
     const room = Math.max(0, hardLimit - pruned.length);
-    const fitting = newlyCreated.length <= room ? newlyCreated : newlyCreated.slice(0, room);
+    // When more nodes arrive at once than the hard limit can take (a batch
+    // paste / import), the ones that get a seat are chosen by display
+    // priority rather than by their order in the incoming model.
+    const fitting =
+      newlyCreated.length <= room
+        ? newlyCreated
+        : sortIdsByPriority(newlyCreated, new Map(next.nodes.map((n) => [n.id, n]))).slice(0, room);
     const notShown = newlyCreated.length - fitting.length;
 
     if (notShown > 0) {
@@ -374,12 +360,16 @@ export const KnowledgeGraphEditor: React.FC = () => {
         if (toAdd.length === 0) return prev;
         const room = Math.max(0, hardLimitRef.current - prev.length);
         if (toAdd.length > room) {
+          // Only `room` of them fit, so spend that budget on the most
+          // informative kinds first (classes before literals).
+          const nodesById = new Map(modelRef.current.nodes.map((n) => [n.id, n]));
+          const ranked = sortIdsByPriority(toAdd, nodesById);
           toast.error(
             `Cannot visualize more than ${hardLimitRef.current} nodes at once. ` +
               `Only ${room} of the ${toAdd.length} newly-selected nodes were added. ` +
               `Uncheck some in the node list or raise the hard limit in KG Settings.`,
           );
-          return [...prev, ...toAdd.slice(0, room)];
+          return [...prev, ...ranked.slice(0, room)];
         }
         return [...prev, ...toAdd];
       });
@@ -431,7 +421,7 @@ export const KnowledgeGraphEditor: React.FC = () => {
       const rankedNeighbors = [...neighborIds]
         .map((id) => {
           const n = nodesById.get(id);
-          return { id, prio: _focusPriority(n?.nodeType), label: n?.label ?? id };
+          return { id, prio: kgNodePriority(n?.nodeType), label: n?.label ?? id };
         })
         .sort((a, b) => (a.prio - b.prio) || a.id.localeCompare(b.id))
         .slice(0, opts.maxNeighbors)

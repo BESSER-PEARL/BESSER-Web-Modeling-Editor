@@ -25,6 +25,8 @@ describe('isMetaVocabNode', () => {
     'http://www.w3.org/2002/07/owl#Class',
     'http://www.w3.org/1999/02/22-rdf-syntax-ns#Property',
     'http://www.w3.org/2000/01/rdf-schema#Literal',
+    'http://www.w3.org/ns/shacl#NodeShape',
+    'http://www.w3.org/ns/shacl#PropertyShape',
   ])('flags %s', (iri) => {
     expect(isMetaVocabNode(node('n1', { iri }))).toBe(true);
   });
@@ -33,6 +35,14 @@ describe('isMetaVocabNode', () => {
     'http://www.w3.org/2001/XMLSchema#string',
     'http://www.w3.org/2001/XMLSchema#integer',
   ])('keeps %s visible — a datatype range is modelled content, not a declaration', (iri) => {
+    expect(isMetaVocabNode(node('n1', { iri }))).toBe(false);
+  });
+
+  it.each([
+    'http://www.w3.org/ns/shacl#IRI',
+    'http://www.w3.org/ns/shacl#Literal',
+    'http://www.w3.org/ns/shacl#BlankNode',
+  ])('keeps %s visible — sh:nodeKind values are constraint content', (iri) => {
     expect(isMetaVocabNode(node('n1', { iri }))).toBe(false);
   });
 
@@ -55,13 +65,16 @@ describe('collectHiddenMetaIds', () => {
     node('http://example.org#Person'),
     node('http://www.w3.org/2002/07/owl#Class'),
     node('http://www.w3.org/2000/01/rdf-schema#Class'),
+    node('http://www.w3.org/ns/shacl#NodeShape'),
+    node('http://www.w3.org/ns/shacl#IRI'),
     node('http://www.w3.org/2001/XMLSchema#string'),
   ];
 
-  it('collects the declaration-vocabulary node ids by default, leaving xsd out', () => {
+  it('collects the declaration-vocabulary node ids by default, leaving xsd and sh values out', () => {
     expect([...collectHiddenMetaIds(nodes, false)]).toEqual([
       'http://www.w3.org/2002/07/owl#Class',
       'http://www.w3.org/2000/01/rdf-schema#Class',
+      'http://www.w3.org/ns/shacl#NodeShape',
     ]);
   });
 

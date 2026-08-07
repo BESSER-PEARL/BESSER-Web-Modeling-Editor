@@ -50,6 +50,9 @@ const FeedbackDialog = React.lazy(() =>
 const HelpGuideDialog = React.lazy(() =>
   import('../../shared/dialogs/HelpGuideDialog').then((m) => ({ default: m.HelpGuideDialog })),
 );
+const KgImportTargetModal = React.lazy(() =>
+  import('../../features/import/KgImportTargetModal').then((m) => ({ default: m.KgImportTargetModal })),
+);
 // The keyboard toggle hook must be imported eagerly (it registers a global listener).
 // KeyboardShortcutsDialog is imported statically alongside the hook to avoid Vite's
 // mixed static/dynamic import warning (the module is already in this chunk).
@@ -182,7 +185,10 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
     handleAssistantImport,
   } = useAssistantImport({ currentProject });
 
-  const { openPickerAndImport: openImportOwlPicker } = useImportOwlToKg();
+  const {
+    openPickerAndImport: openImportOwlPicker,
+    importTargetModalProps: kgImportTargetModalProps,
+  } = useImportOwlToKg();
 
   const {
     isProjectPreviewOpen,
@@ -632,6 +638,12 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
         onFileChange={handleAssistantFileChange}
         onImport={() => { handleAssistantImport().catch(console.error); }}
       />
+
+      {/* Destination prompt for an OWL/RDF import when the active Knowledge
+          Graph tab already has content: merge alongside, or a new tab. */}
+      <Suspense fallback={null}>
+        <KgImportTargetModal {...kgImportTargetModalProps} />
+      </Suspense>
 
       <JsonViewerModal
         isVisible={isProjectPreviewOpen}

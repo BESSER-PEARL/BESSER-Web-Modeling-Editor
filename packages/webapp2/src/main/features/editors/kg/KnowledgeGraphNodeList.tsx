@@ -163,10 +163,10 @@ export const KnowledgeGraphNodeList: React.FC<Props> = ({
         <p
           data-testid="kg-meta-vocab-note"
           className="text-[10px] leading-snug text-muted-foreground"
-          title="owl:Class, rdf:Property, rdfs:Class, … — implied by the node kinds they annotate. They stay in the model and in every export. xsd: datatypes are not hidden."
+          title="owl:Class, rdf:Property, rdfs:Class, sh:NodeShape, sh:PropertyShape — implied by the node kinds they annotate. They stay in the model and in every export. xsd: datatypes and other sh: terms are not hidden."
         >
-          {metaVocabCount} owl/rdf/rdfs vocabulary node{metaVocabCount === 1 ? '' : 's'} not shown.
-          Enable them in KG Settings.
+          {metaVocabCount} vocabulary node{metaVocabCount === 1 ? '' : 's'} not shown. Enable them in
+          KG Settings.
         </p>
       )}
     </div>
