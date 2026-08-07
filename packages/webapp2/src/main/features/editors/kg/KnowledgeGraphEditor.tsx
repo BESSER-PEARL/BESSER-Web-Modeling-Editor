@@ -404,7 +404,7 @@ export const KnowledgeGraphEditor: React.FC = () => {
           onBulkToggle={bulkToggleVisibility}
         />
       </div>
-      <div className="flex flex-1 flex-col">
+      <div className="flex min-w-0 flex-1 flex-col">
         <KnowledgeGraphToolbar
           connectMode={connectMode}
           onConnectModeChange={setConnectMode}

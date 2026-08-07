@@ -41,7 +41,7 @@ export const KnowledgeGraphToolbar: React.FC<Props> = ({
   const isConnecting = connectMode === 'connect';
   return (
     <div className="flex flex-col gap-1 border-b border-border/60 bg-muted/20 px-2 py-1.5">
-      <div className="flex items-center gap-2">
+      <div className="flex flex-wrap items-center gap-2">
         <Button
           variant={isConnecting ? 'default' : 'outline'}
           size="sm"
