@@ -25,6 +25,8 @@ export interface IAgentRagElement extends IUMLElement {
   embedding_provider: AgentRagEmbeddingProvider;
   embedding_base_url: string;
   embedding_model: string;
+  use_hybrid_rag: boolean;
+  bm25_weight: number;
 }
 
 export class AgentRagElement extends UMLElement implements IAgentRagElement {
@@ -42,6 +44,8 @@ export class AgentRagElement extends UMLElement implements IAgentRagElement {
   embedding_provider: AgentRagEmbeddingProvider = 'openai';
   embedding_base_url: string = '';
   embedding_model: string = '';
+  use_hybrid_rag: boolean = false;
+  bm25_weight: number = 0.6;
 
   bounds: IBoundary = {
     ...this.bounds,
@@ -80,6 +84,12 @@ export class AgentRagElement extends UMLElement implements IAgentRagElement {
     if (!this.embedding_model) {
       this.embedding_model = '';
     }
+    if (typeof this.use_hybrid_rag !== 'boolean') {
+      this.use_hybrid_rag = false;
+    }
+    if (typeof this.bm25_weight !== 'number' || Number.isNaN(this.bm25_weight) || this.bm25_weight <= 0 || this.bm25_weight >= 1) {
+      this.bm25_weight = 0.6;
+    }
   }
 
   serialize(children: UMLElement[] = []): Apollon.UMLModelElement {
@@ -93,6 +103,8 @@ export class AgentRagElement extends UMLElement implements IAgentRagElement {
       embedding_provider: this.embedding_provider,
       embedding_base_url: this.embedding_base_url,
       embedding_model: this.embedding_model,
+      use_hybrid_rag: this.use_hybrid_rag,
+      bm25_weight: this.bm25_weight,
     } as Apollon.UMLModelElement & { llm_name: string };
   }
 
@@ -105,6 +117,8 @@ export class AgentRagElement extends UMLElement implements IAgentRagElement {
       embedding_provider?: string;
       embedding_base_url?: string;
       embedding_model?: string;
+      use_hybrid_rag?: boolean;
+      bm25_weight?: number;
     },
     children?: Apollon.UMLModelElement[],
   ): void {
@@ -120,6 +134,11 @@ export class AgentRagElement extends UMLElement implements IAgentRagElement {
       values.embedding_provider === 'ollama' ? 'ollama' : 'openai';
     this.embedding_base_url = values.embedding_base_url || '';
     this.embedding_model = values.embedding_model || '';
+    this.use_hybrid_rag = values.use_hybrid_rag === true;
+    this.bm25_weight =
+      typeof values.bm25_weight === 'number' && values.bm25_weight > 0 && values.bm25_weight < 1
+        ? values.bm25_weight
+        : 0.6;
   }
 
   render(layer: ILayer): ILayoutable[] {
