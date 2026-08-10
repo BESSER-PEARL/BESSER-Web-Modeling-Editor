@@ -232,6 +232,16 @@ describe('preset helpers', () => {
     expect(isPresetActive(fullApp, map)).toBe(false);
   });
 
+  it('isPresetActive matches the Knowledge Engineer preset for Class+Object+KG', () => {
+    const map = perspectivesFromDiagramList(['ClassDiagram', 'ObjectDiagram', 'KnowledgeGraphDiagram']);
+    const knowledge = PERSPECTIVES.find((p) => p.key === 'knowledge')!;
+    expect(knowledge.diagrams).toEqual(['ClassDiagram', 'ObjectDiagram', 'KnowledgeGraphDiagram']);
+    expect(isPresetActive(knowledge, map)).toBe(true);
+    // The Data preset is a strict subset, so it must not also read as active.
+    const data = PERSPECTIVES.find((p) => p.key === 'data')!;
+    expect(isPresetActive(data, map)).toBe(false);
+  });
+
   it('perspectivesFromDiagramList enables exactly the listed types', () => {
     const map = perspectivesFromDiagramList(['QuantumCircuitDiagram']);
     expect(map.QuantumCircuitDiagram).toBe(true);

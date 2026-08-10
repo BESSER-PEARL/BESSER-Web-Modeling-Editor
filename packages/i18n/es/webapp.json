@@ -749,6 +749,10 @@
             "label": "Aplicación web completa",
             "description": "Diagramas de clases, agentes e interfaz sin código."
           },
+          "knowledge": {
+            "label": "Ingeniero de conocimiento",
+            "description": "Diagramas de clases, objetos y grafos de conocimiento para ontologías y RDF/OWL."
+          },
           "quantum": {
             "label": "Cuántico",
             "description": "Solo diagramas de circuitos cuánticos."
@@ -767,7 +771,8 @@
           "GUINoCodeDiagram": "Diseño de interfaz gráfica de usuario (inspirado en IFML).",
           "QuantumCircuitDiagram": "Especificación de programa cuántico.",
           "BPMN": "Notación de Modelo y Proceso de Negocio.",
-          "NNDiagram": "Arquitectura de red neuronal (PyTorch / TensorFlow)."
+          "NNDiagram": "Arquitectura de red neuronal (PyTorch / TensorFlow).",
+          "KnowledgeGraphDiagram": "Creación de grafos de conocimiento RDF/OWL, con conversión desde y hacia B-UML."
         }
       },
       "toasts": {
@@ -1259,7 +1264,8 @@
     "GUINoCodeDiagram": "Diagrama de GUI",
     "QuantumCircuitDiagram": "Diagrama de circuito cuántico",
     "BPMN": "Diagrama BPMN",
-    "NNDiagram": "Diagrama de red neuronal"
+    "NNDiagram": "Diagrama de red neuronal",
+    "KnowledgeGraphDiagram": "Diagrama de grafo de conocimiento"
   },
   "dialogs": {
     "about": {

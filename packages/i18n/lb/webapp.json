@@ -749,6 +749,10 @@
             "label": "Komplett Webapplikatioun",
             "description": "Klassen-, Agent- an No-Code-GUI-Diagrammer."
           },
+          "knowledge": {
+            "label": "Wëssensingenieur",
+            "description": "Klassen-, Objet- a Wëssensgraf-Diagrammer fir Ontologien an RDF/OWL."
+          },
           "quantum": {
             "label": "Quantum",
             "description": "Nëmme Quantenschaltkreesdiagrammer."
@@ -767,7 +771,8 @@
           "GUINoCodeDiagram": "Grafesch Benotzerinterface-Gestaltung (IFML-inspiréiert).",
           "QuantumCircuitDiagram": "Quanteprogramm-Spezifikatioun.",
           "BPMN": "Business Process Model a Notatiounsdiagramm.",
-          "NNDiagram": "Architektur vun neuronalen Netzwierker (PyTorch / TensorFlow)."
+          "NNDiagram": "Architektur vun neuronalen Netzwierker (PyTorch / TensorFlow).",
+          "KnowledgeGraphDiagram": "Erstellung vu RDF/OWL-Wëssensgrafen, mat Konversioun vun a bis B-UML."
         }
       },
       "toasts": {
@@ -1259,7 +1264,8 @@
     "GUINoCodeDiagram": "GUI-Diagramm",
     "QuantumCircuitDiagram": "Quantenschaltkreesdiagramm",
     "BPMN": "BPMN-Diagramm",
-    "NNDiagram": "Neuronaalt-Netz-Diagramm"
+    "NNDiagram": "Neuronaalt-Netz-Diagramm",
+    "KnowledgeGraphDiagram": "Wëssensgraf-Diagramm"
   },
   "dialogs": {
     "about": {

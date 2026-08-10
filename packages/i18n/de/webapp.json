@@ -749,6 +749,10 @@
             "label": "Vollständige Webanwendung",
             "description": "Klassen-, Agenten- und No-Code-GUI-Diagramme."
           },
+          "knowledge": {
+            "label": "Wissensingenieur",
+            "description": "Klassen-, Objekt- und Wissensgraph-Diagramme für Ontologien und RDF/OWL."
+          },
           "quantum": {
             "label": "Quantenmodellierung",
             "description": "Nur Quantenschaltkreisdiagramme."
@@ -767,7 +771,8 @@
           "GUINoCodeDiagram": "Grafische Benutzeroberflächengestaltung (IFML-inspiriert).",
           "QuantumCircuitDiagram": "Spezifikation eines Quantenprogramms.",
           "BPMN": "Geschäftsprozessmodell- und Notationsdiagramm.",
-          "NNDiagram": "Architektur neuronaler Netze (PyTorch / TensorFlow)."
+          "NNDiagram": "Architektur neuronaler Netze (PyTorch / TensorFlow).",
+          "KnowledgeGraphDiagram": "Erstellung von RDF/OWL-Wissensgraphen, mit Konvertierung von und nach B-UML."
         }
       },
       "toasts": {
@@ -1259,7 +1264,8 @@
     "GUINoCodeDiagram": "GUI-Diagramm",
     "QuantumCircuitDiagram": "Quantenschaltkreisdiagramm",
     "BPMN": "BPMN-Diagramm",
-    "NNDiagram": "Neuronales-Netz-Diagramm"
+    "NNDiagram": "Neuronales-Netz-Diagramm",
+    "KnowledgeGraphDiagram": "Wissensgraph-Diagramm"
   },
   "dialogs": {
     "about": {
