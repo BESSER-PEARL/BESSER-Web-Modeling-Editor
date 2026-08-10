@@ -806,16 +806,26 @@ export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGen
           case 'jsonschema':
             result = await generateCode(editor, 'jsonschema', activeDiagramTitle, config as JSONSchemaConfig);
             break;
-          case 'agent':
+          case 'agent': {
+            // agentComponents (intents, tools, etc.) are stored off-canvas on the
+            // diagram object, not inside editor.model.elements. Merge them before
+            // sending to the backend so intent references in transitions resolve.
+            const agentComponents = (activeDiagram as any)?.agentComponents;
+            const agentBaseModel: UMLModel = (options?.agentModelOverride ?? editor.model) as UMLModel;
+            const agentModelWithComponents: UMLModel =
+              agentComponents && Object.keys(agentComponents).length > 0
+                ? { ...agentBaseModel, elements: { ...(agentBaseModel as any).elements, ...agentComponents } }
+                : agentBaseModel;
             result = await generateCode(
               editor,
               'agent',
               activeDiagramTitle,
               config as AgentConfig,
               undefined,
-              options?.agentModelOverride,
+              agentModelWithComponents,
             );
             break;
+          }
           case 'test_case':
             result = await generateCode(editor, 'test_case', activeDiagramTitle);
             break;
@@ -908,6 +918,20 @@ export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGen
       }
 
       if (editor) {
+        // Agent diagrams store intents, tools, etc. in `agentComponents` — a
+        // property on the diagram object that is separate from editor.model
+        // (those elements never touch the canvas). The backend's validation
+        // checks intent references in model.elements, so we must merge
+        // agentComponents into a copy of the model before sending.
+        const agentComponents = (activeDiagram as any)?.agentComponents;
+        if (agentComponents && Object.keys(agentComponents).length > 0 && (editor.model as any)?.type === 'AgentDiagram') {
+          const mergedModel = {
+            ...editor.model,
+            elements: { ...editor.model.elements, ...agentComponents },
+          };
+          const result = await validateDiagram(null, activeDiagramTitle, mergedModel);
+          return { executed: true, passed: didValidationPass(result) };
+        }
         const result = await validateDiagram(editor, activeDiagramTitle);
         return { executed: true, passed: didValidationPass(result) };
       }

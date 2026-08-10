@@ -230,7 +230,8 @@ export const useGenerateCode = () => {
       }
 
       // Validate diagram before generation
-      const validationResult = await validateDiagram(editor, diagramTitle);
+      const rawModel = modelOverride ?? editor.model;
+      const validationResult = await validateDiagram(null, diagramTitle, rawModel);
       if (!validationResult.isValid) {
         toast.error(validationResult.message || 'Validation failed');
         return { ok: false, error: validationResult.message || 'Validation failed' };
@@ -240,7 +241,6 @@ export const useGenerateCode = () => {
       // agent personalization to ship the un-personalized base instead of
       // whatever variant happens to be active in the editor — see
       // handleAgentGenerate in useGeneratorExecution.
-      const rawModel = modelOverride ?? editor.model;
       const body: any = {
         title: diagramTitle,
         model: generatorType === 'agent' ? normalizeAgentModel(rawModel as UMLModel) : rawModel,

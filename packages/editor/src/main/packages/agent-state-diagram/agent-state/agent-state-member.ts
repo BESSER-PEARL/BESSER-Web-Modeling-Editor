@@ -43,6 +43,7 @@ interface IAgentStateMemberValues extends IUMLElement {
   ws_options?: string;
   ws_latitude?: number;
   ws_longitude?: number;
+  guiId?: string;
 }
 
 export abstract class AgentStateMember extends UMLElement {
@@ -92,6 +93,7 @@ export abstract class AgentStateMember extends UMLElement {
   ws_options: string = '';
   ws_latitude: number = 0;
   ws_longitude: number = 0;
+  guiId: string = '';
 
   constructor(values?: DeepPartial<IAgentStateMemberValues>) {
     super(values);
@@ -210,6 +212,7 @@ export abstract class AgentStateMember extends UMLElement {
     ws_image: 'WebSocketReplyImageAction',
     ws_dataframe: 'WebSocketReplyDataframeAction',
     ws_plotly: 'WebSocketReplyPlotlyAction',
+    gui_reply: 'GUIReplyAction',
   };
 
   // Reverse map: actionType class names → internal replyType values (for deserialization compat).
@@ -230,6 +233,7 @@ export abstract class AgentStateMember extends UMLElement {
     WebSocketReplyImageAction: 'ws_image',
     WebSocketReplyDataframeAction: 'ws_dataframe',
     WebSocketReplyPlotlyAction: 'ws_plotly',
+    GUIReplyAction: 'gui_reply',
   };
 
   /** Serializes an `UMLElement` to an `Apollon.UMLElement` */
@@ -324,6 +328,10 @@ export abstract class AgentStateMember extends UMLElement {
       }
     }
 
+    if (this.replyType === 'gui_reply') {
+      serialized.guiId = this.guiId;
+    }
+
     return serialized;
   }
 
@@ -361,6 +369,7 @@ export abstract class AgentStateMember extends UMLElement {
     ws_options?: string;
     ws_latitude?: number;
     ws_longitude?: number;
+    guiId?: string;
   }) {
     this.id = values.id;
     this.name = values.name;
@@ -409,6 +418,7 @@ export abstract class AgentStateMember extends UMLElement {
     this.ws_options = values.ws_options ?? '';
     this.ws_latitude = values.ws_latitude != null ? Number(values.ws_latitude) : 0;
     this.ws_longitude = values.ws_longitude != null ? Number(values.ws_longitude) : 0;
+    this.guiId = values.guiId ?? '';
   }
 
   render(layer: ILayer): ILayoutable[] {

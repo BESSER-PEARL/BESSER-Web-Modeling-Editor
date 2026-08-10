@@ -104,6 +104,7 @@ export interface AgentModelElement extends UMLModelElement {
   ws_options?: string;
   ws_latitude?: number;
   ws_longitude?: number;
+  guiId?: string;
 }
 
 export type UMLElement = UMLModelElement & {
@@ -225,6 +226,7 @@ export type AgentStateTransition = UMLRelationship & {
     intentName?: string;
     fileType?: string;
     conditionValue?: string | { variable: string; operator: string; targetValue: string };
+    formGuiId?: string;
   };
   custom?: {
     event?:
@@ -234,8 +236,10 @@ export type AgentStateTransition = UMLRelationship & {
       | 'ReceiveMessageEvent'
       | 'ReceiveTextEvent'
       | 'ReceiveJSONEvent'
-      | 'ReceiveFileEvent';
+      | 'ReceiveFileEvent'
+      | 'GUIEvent';
     condition?: string[];
+    guiEventGuiId?: string;
   };
   // Legacy flat properties — kept for backward compatibility with existing diagrams
   predefinedType?: string;
@@ -246,7 +250,8 @@ export type AgentStateTransition = UMLRelationship & {
     | 'ReceiveMessageEvent'
     | 'ReceiveTextEvent'
     | 'ReceiveJSONEvent'
-    | 'ReceiveFileEvent';
+    | 'ReceiveFileEvent'
+    | 'GUIEvent';
   condition?: string | string[];
   intentName?: string;
   variable?: string;
@@ -264,8 +269,11 @@ export type AgentStateTransition = UMLRelationship & {
     | 'ReceiveMessageEvent'
     | 'ReceiveTextEvent'
     | 'ReceiveJSONEvent'
-    | 'ReceiveFileEvent';
+    | 'ReceiveFileEvent'
+    | 'GUIEvent';
   customConditions?: string[];
+  guiEventGuiId?: string;
+  formGuiId?: string;
 };
 
 export type UMLDeploymentNode = UMLElement & {

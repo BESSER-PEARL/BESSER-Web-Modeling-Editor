@@ -6,5 +6,7 @@ export {
   type IClassInfo,
   type IAttributeInfo,
   type IAssociationInfo,
-  type IDiagramReference
+  type IDiagramReference,
+  type AgentGUIInfo,
+  type AgentIntentInfo,
 } from './diagram-bridge-service';

@@ -68,6 +68,7 @@ export const AgentStateTransitionComponent: FunctionComponent<Props> = ({ elemen
       return `${v} ${op} ${tv}`;
     }
     if (pt === 'when_file_received') return 'File';
+    if (pt === 'when_form_submitted') return element.formGuiId ? `${element.formGuiId} Submitted` : 'Form Submitted';
     if (pt === 'auto') return 'Auto';
     return '';
   };

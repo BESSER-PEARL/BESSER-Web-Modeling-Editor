@@ -53,6 +53,23 @@ export interface IAssociationInfo {
 }
 
 /**
+ * Represents a GUI object defined in the agent's components panel.
+ */
+export interface AgentGUIInfo {
+  name: string;
+  gui_id: string;
+  is_form: boolean;
+}
+
+/**
+ * Represents an Intent object defined in the agent's components panel.
+ */
+export interface AgentIntentInfo {
+  name: string;
+  id: string;
+}
+
+/**
  * Interface for diagram references (state machines, quantum circuits, etc.)
  * Used to reference diagrams from method implementations
  */
@@ -626,6 +643,40 @@ export class DiagramBridgeService implements IDiagramBridgeService {
    */
   setAgentPlatform(platform: string): void {
     this.agentPlatform = platform || 'websocket';
+  }
+
+  private agentGUIs: AgentGUIInfo[] = [];
+
+  /**
+   * Get the list of AgentGUI objects defined in the current agent diagram.
+   * Set by the webapp (AgentComponentsPanel) whenever GUIs change.
+   */
+  getAgentGUIs(): AgentGUIInfo[] {
+    return this.agentGUIs;
+  }
+
+  /**
+   * Set the AgentGUI list so editor components can offer GUI dropdowns.
+   */
+  setAgentGUIs(guis: AgentGUIInfo[]): void {
+    this.agentGUIs = guis || [];
+  }
+
+  private agentIntents: AgentIntentInfo[] = [];
+
+  /**
+   * Get the list of AgentIntent objects defined in the current agent diagram.
+   * Set by the webapp (AgentComponentsPanel) whenever intents change.
+   */
+  getAgentIntents(): AgentIntentInfo[] {
+    return this.agentIntents;
+  }
+
+  /**
+   * Set the AgentIntent list so editor components can offer intent dropdowns.
+   */
+  setAgentIntents(intents: AgentIntentInfo[]): void {
+    this.agentIntents = intents || [];
   }
 }
 
