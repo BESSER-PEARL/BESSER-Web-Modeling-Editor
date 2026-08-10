@@ -1,5 +1,5 @@
 import React from 'react';
-import { Maximize2, RefreshCcw } from 'lucide-react';
+import { Maximize2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 interface Props {
@@ -11,7 +11,7 @@ interface Props {
 
 /** Floating viewport controls pinned to the bottom-right of the KG canvas,
  *  mirroring the class-diagram editor's zoom pane: a stacked +/- pair, with
- *  fit-to-view and re-run-layout sitting directly above them. */
+ *  fit-to-view and auto-layout sitting directly above them. */
 export const KgCanvasControls: React.FC<Props> = ({ onZoomIn, onZoomOut, onFit, onResetLayout }) => (
   <div className="absolute bottom-3 right-3 z-20 flex flex-col gap-2">
     <Button
@@ -19,10 +19,26 @@ export const KgCanvasControls: React.FC<Props> = ({ onZoomIn, onZoomOut, onFit, 
       size="icon"
       className="size-9 shadow-sm"
       onClick={onResetLayout}
-      title="Re-run the current layout on the visible nodes"
-      aria-label="Reset layout"
+      title="Auto layout"
+      aria-label="Auto layout"
     >
-      <RefreshCcw className="size-4" />
+      {/* Same glyph as the class-diagram editor's auto-layout button
+       *  (`packages/editor/.../canvas/zoom-pane.tsx`) so both canvases read alike. */}
+      <svg
+        className="size-4"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        aria-hidden="true"
+      >
+        <rect x="9" y="3" width="6" height="5" rx="1" />
+        <rect x="2" y="16" width="6" height="5" rx="1" />
+        <rect x="16" y="16" width="6" height="5" rx="1" />
+        <path d="M12 8v4M5 16v-2h14v2" />
+      </svg>
     </Button>
     <Button
       variant="outline"
