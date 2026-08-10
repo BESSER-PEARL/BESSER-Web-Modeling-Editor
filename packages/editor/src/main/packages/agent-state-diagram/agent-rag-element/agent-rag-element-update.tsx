@@ -162,10 +162,11 @@ const AgentRagElementUpdateComponent: React.FC<Props> = ({ element, update, elem
         <Section>
           <Header>BM25 Weight</Header>
           <Textfield
-            value={element.bm25_weight ?? 0.6}
-            onChange={(bm25_weight) => {
-              const clamped = Math.min(0.99, Math.max(0.01, bm25_weight));
-              update<AgentRagElement>(element.id, { bm25_weight: clamped });
+            value={String(element.bm25_weight ?? 0.6)}
+            onSubmit={(raw) => {
+              const parsed = parseFloat(String(raw));
+              const val = !isNaN(parsed) && parsed > 0 && parsed < 1 ? parsed : 0.6;
+              update<AgentRagElement>(element.id, { bm25_weight: val });
             }}
           />
         </Section>
