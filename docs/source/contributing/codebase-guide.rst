@@ -56,7 +56,7 @@ it, but external applications can use it directly.
   Internal modules can change without notice.
 
 
-Web Application (``packages/webapp2``)
+Web Application (``packages/webapp``)
 --------------------------------------
 
 The webapp is the React SPA deployed at editor.besser-pearl.org. It embeds
@@ -65,18 +65,17 @@ collaboration.
 
 .. code-block:: text
 
-   packages/webapp2/src/main/
+   packages/webapp/src/main/
    ├── app/                        # Application shell
    │   ├── application.tsx         #   Root component (routing, modals, layout)
    │   ├── shell/                  #   Top bar, sidebar, menus
-   │   │   ├── WorkspaceTopBar.tsx #     File, Generate, Deploy, Community, Help menus
+   │   │   ├── WorkspaceTopBar.tsx #     File, Generate, Deploy, Help menus
    │   │   ├── WorkspaceSidebar.tsx#     Diagram type navigation + settings
    │   │   ├── WorkspaceShell.tsx  #     Layout container
    │   │   └── menus/             #     Individual menu components
    │   │       ├── FileMenu.tsx
    │   │       ├── GenerateMenu.tsx
    │   │       ├── DeployMenu.tsx
-   │   │       ├── CommunityMenu.tsx
    │   │       ├── HelpMenu.tsx
    │   │       └── TopBarUtilities.tsx  # Quality Check, Theme, GitHub, Sync
    │   ├── store/                  #   Redux store
@@ -156,17 +155,17 @@ Where Code Lives: Quick Lookup
    * - I want to change...
      - Look in...
    * - A top-bar menu item
-     - ``webapp2/src/main/app/shell/menus/``
+     - ``webapp/src/main/app/shell/menus/``
    * - The sidebar (diagram type navigation)
-     - ``webapp2/src/main/app/shell/WorkspaceSidebar.tsx``
+     - ``webapp/src/main/app/shell/WorkspaceSidebar.tsx``
    * - Project creation / import / export
-     - ``webapp2/src/main/features/project/``
+     - ``webapp/src/main/features/project/``
    * - Code generation dialogs
-     - ``webapp2/src/main/features/generation/``
+     - ``webapp/src/main/features/generation/``
    * - GitHub deploy / OAuth
-     - ``webapp2/src/main/features/github/``
+     - ``webapp/src/main/features/github/``
    * - The AI assistant bot
-     - ``webapp2/src/main/features/assistant/``
+     - ``webapp/src/main/features/assistant/``
    * - An element's visual appearance
      - ``editor/src/main/packages/<diagram-type>/<element>-component.tsx``
    * - An element's data model
@@ -184,10 +183,10 @@ Where Code Lives: Quick Lookup
    * - Translations
      - ``editor/src/main/i18n/en.json``
    * - Environment variables
-     - ``webapp2/src/main/shared/constants/constant.ts``
+     - ``webapp/src/main/shared/constants/constant.ts``
    * - Project data model
-     - ``webapp2/src/main/shared/types/project.ts``
+     - ``webapp/src/main/shared/types/project.ts``
    * - Local storage persistence
-     - ``webapp2/src/main/shared/services/storage/ProjectStorageRepository.ts``
+     - ``webapp/src/main/shared/services/storage/ProjectStorageRepository.ts``
    * - Server diagram storage
      - ``server/src/main/services/diagram-service/``

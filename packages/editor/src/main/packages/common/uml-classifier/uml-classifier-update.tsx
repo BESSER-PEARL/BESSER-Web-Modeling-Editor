@@ -258,7 +258,7 @@ class ClassifierUpdate extends Component<Props, State> {
                     tabIndex={-1}
                     disabled={!canMoveUp}
                     onClick={canMoveUp ? this.moveMember(attribute.id, -1) : undefined}
-                    title="Move up"
+                    title={this.props.translate('popup.classifier.moveUp')}
                   >
                     <ArrowUpIcon width={10} height={10} />
                   </ReorderButton>
@@ -267,7 +267,7 @@ class ClassifierUpdate extends Component<Props, State> {
                     tabIndex={-1}
                     disabled={!canMoveDown}
                     onClick={canMoveDown ? this.moveMember(attribute.id, 1) : undefined}
-                    title="Move down"
+                    title={this.props.translate('popup.classifier.moveDown')}
                   >
                     <ArrowDownIcon />
                   </ReorderButton>
@@ -306,7 +306,11 @@ class ClassifierUpdate extends Component<Props, State> {
             ref={this.newAttributeField}
             outline
             value=""
-            placeholder={isEnumeration ? `+ literal` : `+ attribute: str`}
+            placeholder={
+              isEnumeration
+                ? this.props.translate('popup.classifier.newLiteralPlaceholder')
+                : this.props.translate('popup.classifier.newAttributePlaceholder')
+            }
             onSubmit={this.create(UMLClassAttribute)}
             onSubmitKeyUp={(key: string, value: string) => {
               // if we have a value -> navigate to next field in case we want to create a new element
@@ -358,7 +362,7 @@ class ClassifierUpdate extends Component<Props, State> {
                       tabIndex={-1}
                       disabled={!canMoveUp}
                       onClick={canMoveUp ? this.moveMember(method.id, -1) : undefined}
-                      title="Move up"
+                      title={this.props.translate('popup.classifier.moveUp')}
                     >
                       <ArrowUpIcon />
                     </ReorderButton>
@@ -367,7 +371,7 @@ class ClassifierUpdate extends Component<Props, State> {
                       tabIndex={-1}
                       disabled={!canMoveDown}
                       onClick={canMoveDown ? this.moveMember(method.id, 1) : undefined}
-                      title="Move down"
+                      title={this.props.translate('popup.classifier.moveDown')}
                     >
                       <ArrowDownIcon />
                     </ReorderButton>
@@ -424,9 +428,9 @@ class ClassifierUpdate extends Component<Props, State> {
               <QuickCodeButton
                 color="primary"
                 onClick={this.createMethodWithCode}
-                title="Create method with code behaviour"
+                title={this.props.translate('popup.classifier.createMethodWithCode')}
               >
-                📝 Code
+                📝 {this.props.translate('popup.classifier.codeButton')}
               </QuickCodeButton>
             </InputRow>
             </Section>
@@ -482,13 +486,21 @@ class ClassifierUpdate extends Component<Props, State> {
     const instance = new UMLElements[newType]({
       id: element.id,
       name: element.name,
-      type: element.type,
       owner: element.owner,
       bounds: element.bounds,
       ownedElements: element.ownedElements,
-    });
+    }) as UMLClassifier;
     const { id: _ignoredId, ...values } = instance.serialize();
-    update(element.id, values as Partial<UMLElement>);
+    // serialize() omits stereotype/italic/underline, but those are exactly the
+    // fields that distinguish the classifier kinds — without explicitly
+    // forwarding them the reducer's partial merge keeps the old values, so
+    // toggling Abstract/Enumeration off would leave the stereotype banner.
+    update<UMLClassifier>(element.id, {
+      ...values,
+      stereotype: instance.stereotype,
+      italic: instance.italic,
+      underline: instance.underline,
+    } as Partial<UMLClassifier>);
   };
 
   private delete = (id: string) => () => {

@@ -19,6 +19,12 @@ export const AgentElementType = {
   AgentState: 'AgentState',
   AgentStateBody: 'AgentStateBody',
   AgentStateFallbackBody: 'AgentStateFallbackBody',
+  AgentTool: 'AgentTool',
+  AgentSkill: 'AgentSkill',
+  AgentWorkspace: 'AgentWorkspace',
+  AgentLLM: 'AgentLLM',
+  AgentSectionTitle: 'AgentSectionTitle',
+  AgentSectionSeparator: 'AgentSectionSeparator',
 } as const;
 
 export const AgentRelationshipType = {

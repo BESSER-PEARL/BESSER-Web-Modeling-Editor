@@ -1,0 +1,2355 @@
+{
+  "common": {
+    "connecting": "S'està connectant...",
+    "cancel": "Cancel·la",
+    "save": "Desa",
+    "close": "Tanca",
+    "delete": "Elimina",
+    "confirm": "Confirma",
+    "loading": "S'està carregant...",
+    "yes": "Sí",
+    "no": "No"
+  },
+  "topbar": {
+    "language": "Idioma",
+    "openProjectHub": "Obre el gestor de projectes",
+    "projectName": "Nom del projecte",
+    "diagramTitle": "Títol del diagrama",
+    "noDiagram": "Cap diagrama",
+    "variant": "Variant",
+    "selectAgentVariant": "Selecciona la variant del model d'agent",
+    "baseAgentModel": "Model d'agent base",
+    "switchToLight": "Canvia al mode clar",
+    "switchToDark": "Canvia al mode fosc",
+    "star": "Afegeix als preferits",
+    "starBesser": "Dona a BESSER una estrella a GitHub",
+    "githubAccount": "Compte de GitHub: {{name}}",
+    "signOut": "Tanca la sessió",
+    "githubVersionControl": "Control de versions de GitHub",
+    "toggleGithubPanel": "Mostra/amaga el tauler de control de versions de GitHub",
+    "sync": "Sincronitza",
+    "connectGithub": "Connecta amb GitHub",
+    "quality": {
+      "title": "Control de qualitat",
+      "validated": "Validat",
+      "issues": "Problemes",
+      "needsRecheck": "Cal revisar-ho",
+      "notValidated": "No validat"
+    }
+  },
+  "nav": {
+    "editors": "Editors",
+    "collapseSidebar": "Replega la barra lateral",
+    "expandSidebar": "Desplega la barra lateral",
+    "diagram": {
+      "class": "Classe",
+      "object": "Objecte",
+      "state": "Estat",
+      "agent": "Agent",
+      "bpmn": "BPMN",
+      "user": "Usuari",
+      "neuralNet": "Xarxa neuronal",
+      "gui": "GUI",
+      "quantum": "Quàntic",
+      "kg": "KG"
+    },
+    "route": {
+      "settings": "Configuració",
+      "agentCustomization": "Personalització de l'agent",
+      "agentPersonalization": "Personalització avançada de l'agent",
+      "agentMappings": "Assignacions de l'agent",
+      "kgSettings": "Configuració de KG"
+    }
+  },
+  "menu": {
+    "file": {
+      "title": "Fitxer",
+      "projectActions": "Accions del projecte",
+      "newOpenImport": "Nou / Obre / Importa un projecte",
+      "loadTemplate": "Carrega una plantilla",
+      "exportProject": "Exporta el projecte",
+      "importClassDiagramFrom": "Importa un diagrama de classes des de",
+      "imageToProject": "Imatge a projecte",
+      "kgToProject": "Graf de coneixement a projecte",
+      "previewProject": "Previsualitza el projecte"
+    },
+    "generate": {
+      "title": "Genera",
+      "generating": "S'està generant...",
+      "codeGeneration": "Generació de codi",
+      "goToClassDiagram": "Vés al diagrama de classes",
+      "groups": {
+        "web": "Web",
+        "database": "Base de dades",
+        "oop": "POO",
+        "schema": "Esquema",
+        "data": "Dades"
+      },
+      "actions": {
+        "djangoProject": "Projecte Django",
+        "fullBackend": "Backend complet",
+        "webApplication": "Aplicació web",
+        "pythonClasses": "Classes Python",
+        "javaClasses": "Classes Java",
+        "pydanticModels": "Models Pydantic",
+        "besserAgent": "Agent BESSER",
+        "jsonObjectExport": "Exportació d'objecte JSON",
+        "userProfileJson": "JSON de perfil d'usuari",
+        "qiskitCode": "Codi Qiskit"
+      },
+      "notices": {
+        "statemachine": "Les màquines d'estats s'utilitzen com a implementacions de mètodes en els diagrames de classes. Genera codi a partir del diagrama de classes.",
+        "unavailable": "Encara no disponible per a aquest diagrama"
+      }
+    },
+    "deploy": {
+      "title": "Desplega",
+      "deployment": "Desplegament",
+      "connectGitHub": "Connecta GitHub per desplegar",
+      "publishToRender": "Publica a Render"
+    },
+    "community": {
+      "title": "Comunitat",
+      "contribute": "Contribueix",
+      "githubRepository": "Repositori de GitHub",
+      "sendFeedback": "Envia comentaris",
+      "userSurvey": "Enquesta d'usuaris",
+      "reportProblem": "Informa d'un problema"
+    },
+    "help": {
+      "title": "Ajuda",
+      "howItWorks": "Com funciona aquest editor?",
+      "startTutorial": "Inicia el tutorial",
+      "keyboardShortcuts": "Dreceres de teclat",
+      "aboutBesser": "Quant a BESSER"
+    }
+  },
+  "agentConfig": {
+    "loadingTitle": "Hi estem treballant...",
+    "loadingTitle_comment": "",
+    "loading": {
+      "preparing": "S'està preparant la teva configuració...",
+      "rules": "S'està aplicant la correspondència predefinida basada en la literatura per recomanar una configuració adequada.",
+      "llm": "Això pot trigar una estona a elaborar la millor configuració basada en LLM per al perfil d'usuari seleccionat.",
+      "transform": "Això pot trigar una estona a elaborar la millor configuració d'agent transformada i aplicar-la al teu diagrama."
+    },
+    "title": "Personalització de l'agent",
+    "subtitle": "Adapta el teu agent a un perfil d'usuari específic del diagrama d'usuari. Ajusta com parla, com es veu i com es comporta perquè s'adigui amb aquest públic, i després desa el resultat com a configuració amb un nom entre les quals podràs alternar més endavant.",
+    "tabsAriaLabel": "Seccions de configuració de l'agent",
+    "tab": {
+      "runtime": "Execució de l'agent",
+      "personalization": "Personalització"
+    },
+    "loadSavedLabel": "Carrega una personalització desada",
+    "activeBadgeTitleFallback": "Personalització sense nom",
+    "activeLabel": "Activa: {{name}}",
+    "unnamedShort": "Sense nom",
+    "selectAriaLabel": "Carrega una personalització desada",
+    "noSavedYet": "Encara no hi ha personalitzacions desades",
+    "selectSaved": "Selecciona una personalització desada",
+    "load": "Carrega",
+    "section": {
+      "show": "Mostra",
+      "hide": "Amaga"
+    },
+    "profileMapping": {
+      "title": "Assignació de perfil d'usuari",
+      "description": "Selecciona el perfil d'usuari que ha de guiar la personalització i les propostes de configuració automàtiques.",
+      "label": "Assignació de perfil d'usuari",
+      "noTabs": "Encara no hi ha pestanyes de diagrama d'usuari amb models disponibles",
+      "selectProfile": "Selecciona un perfil d'usuari",
+      "createFirst": "Primer crea o carrega una pestanya de diagrama d'usuari.",
+      "statusLine": "Estat del diagrama d'usuari del projecte actual: {{status}}.",
+      "statusAvailable": "disponible",
+      "statusMissing": "falta"
+    },
+    "propose": {
+      "rules": "Proposa automàticament la configuració amb regles predefinides",
+      "llm": "Proposa automàticament la configuració amb un LLM",
+      "rag": "Proposa automàticament la configuració basada en RAG"
+    },
+    "recommendation": {
+      "title": "Última recomanació basada en regles predefinides",
+      "matched_one": "{{count}} regla basada en la literatura coincideix.",
+      "matched_other": "{{count}} regles basades en la literatura coincideixen.",
+      "none": "No coincideix cap regla específica de la literatura. S'han conservat els valors predeterminats de referència.",
+      "signals": "Senyals detectats: edat {{age}}, idiomes {{languages}}, multilingüe {{multilingual}}.",
+      "na": "n/d",
+      "matchedRuleFallback": "Regla coincident"
+    },
+    "runtime": {
+      "title": "Execució de l'agent",
+      "description": "Configuració d'execució del diagrama d'agent actiu (plataforma, reconeixement d'intenció, proveïdor/model LLM). Aquests valors es desen en el mateix diagrama d'agent, no a l'emmagatzematge global.",
+      "platform": "Plataforma",
+      "intent": "Reconeixement d'intenció",
+      "intentClassical": "Clàssic",
+      "intentLlmBased": "Basat en LLM",
+      "llm": "LLM",
+      "useDefault": "(utilitza el predeterminat)",
+      "defineLlmHint": "Defineix un LLM a la secció d'LLMs de sota per fer-lo servir aquí."
+    },
+    "llms": {
+      "title": "LLMs",
+      "description": "LLMs disponibles per a l'agent.",
+      "empty": "Encara no hi ha cap LLM definit. Fes clic a \"Afegeix un LLM\" per crear-ne un.",
+      "add": "Afegeix un LLM"
+    },
+    "row": {
+      "default": "Predeterminat",
+      "name": "Nom",
+      "namePlaceholder": "p. ex. gpt-4o-mini",
+      "provider": "Proveïdor",
+      "numPrevMessages": "Nombre de missatges anteriors",
+      "parameters": "Paràmetres (JSON)",
+      "globalContext": "Context global (opcional)",
+      "globalContextPlaceholder": "Context a nivell de sistema afegit a cada indicació",
+      "setDefault": "Estableix com a predeterminat",
+      "remove": "Elimina",
+      "unnamedLlm": "(LLM sense nom)",
+      "errors": {
+        "notObject": "Els paràmetres han de ser un objecte JSON",
+        "invalidJson": "JSON no vàlid"
+      }
+    },
+    "overview": {
+      "title": "Resum de la personalització",
+      "description": "Obre una secció cada vegada per mantenir el mateix flux d'edició enfocat que a la versió anterior."
+    },
+    "presentation": {
+      "title": "Presentació",
+      "subtitle": "Idioma, estil, llegibilitat, veu i avatar."
+    },
+    "field": {
+      "language": "Idioma",
+      "style": "Estil",
+      "languageComplexity": "Complexitat del llenguatge",
+      "sentenceLength": "Longitud de les frases"
+    },
+    "language": {
+      "original": "Original",
+      "english": "Anglès",
+      "spanish": "Espanyol",
+      "french": "Francès",
+      "german": "Alemany",
+      "portuguese": "Portuguès",
+      "luxembourgish": "Luxemburguès",
+      "italian": "Italià"
+    },
+    "style": {
+      "original": "Original",
+      "formal": "Formal",
+      "informal": "Informal",
+      "friendly": "Amable",
+      "technical": "Tècnic"
+    },
+    "complexity": {
+      "original": "Original",
+      "simple": "Simple",
+      "medium": "Mitjà",
+      "complex": "Complex"
+    },
+    "sentence": {
+      "original": "Original",
+      "concise": "Concís",
+      "verbose": "Detallat"
+    },
+    "useAbbreviations": "Utilitza abreviatures",
+    "interface": {
+      "heading": "Estil del text a la interfície",
+      "size": "Mida",
+      "font": "Tipus de lletra",
+      "lineSpacing": "Interlineat",
+      "alignment": "Alineació",
+      "contrast": "Contrast"
+    },
+    "font": {
+      "sans": "Sans",
+      "serif": "Serif",
+      "monospace": "Monospace",
+      "neutral": "Neutra",
+      "grotesque": "Grotesca",
+      "condensed": "Condensada"
+    },
+    "alignment": {
+      "left": "Esquerra",
+      "center": "Centre",
+      "justify": "Justificat"
+    },
+    "contrast": {
+      "low": "Baix",
+      "medium": "Mitjà",
+      "high": "Alt"
+    },
+    "color": {
+      "label": "Color",
+      "help": "Tria un valor predefinit adequat a diferents necessitats d'accessibilitat. La mostra reflecteix el color realment renderitzat.",
+      "radiogroupAria": "Valor predefinit de color del text",
+      "customPrefix": "Valor actual:",
+      "customSuffix": "(personalitzat — tria un valor predefinit de dalt per substituir-lo).",
+      "options": {
+        "default": {
+          "label": "Predeterminat (tema)",
+          "description": "Mantenir el tema actiu — s'adapta al mode clar o fosc."
+        },
+        "black": {
+          "label": "Negre — contrast alt",
+          "description": "Màxima llegibilitat sobre fons clars (WCAG AAA)."
+        },
+        "darkSlate": {
+          "label": "Pissarra fosca — contrast alt suau",
+          "description": "Contrast alt amb menys fatiga visual per a lectures llargues."
+        },
+        "slate": {
+          "label": "Pissarra — contrast mitjà",
+          "description": "Contrast més baix, més suau per a usuaris amb baixa visió en pantalles brillants."
+        },
+        "blue": {
+          "label": "Blau — segur per al daltonisme",
+          "description": "Distingible en el daltonisme de protanomalia i deuteranomalia."
+        },
+        "teal": {
+          "label": "Verd blavós — segur per al daltonisme",
+          "description": "Es percep com un to clar en tots els tipus comuns de visió del color."
+        },
+        "white": {
+          "label": "Blanc — per a fons foscos",
+          "description": "Màxim contrast quan l'agent es renderitza sobre una superfície fosca."
+        }
+      }
+    },
+    "voice": {
+      "gender": "Gènere de la veu",
+      "male": "Masculí",
+      "female": "Femení",
+      "ambiguous": "Ambigu",
+      "speed": "Velocitat de la veu"
+    },
+    "avatar": {
+      "label": "Avatar",
+      "remove": "Elimina l'avatar"
+    },
+    "modality": {
+      "title": "Modalitat",
+      "subtitle": "Configura text i entrada/sortida de veu opcional.",
+      "input": "Modalitats d'entrada",
+      "inputAlways": "L'entrada de text sempre està activada.",
+      "enableSpeechInput": "Activa l'entrada de veu",
+      "output": "Modalitats de sortida",
+      "outputAlways": "La sortida de text sempre està activada.",
+      "enableSpeechOutput": "Activa la sortida de veu"
+    },
+    "content": {
+      "title": "Contingut",
+      "subtitle": "Adapta les respostes amb l'assignació de perfil d'usuari seleccionada.",
+      "adapt": "Adapta el contingut al perfil d'usuari",
+      "profileNote": "El perfil utilitzat per a l'adaptació se selecciona a l'Assignació de perfil d'usuari.",
+      "enableNote": "Activa aquesta opció per adaptar les respostes generades al perfil seleccionat i als seus atributs."
+    },
+    "behavior": {
+      "title": "Comportament",
+      "subtitle": "Defineix el temps de resposta i l'estil de lliurament.",
+      "responseTiming": "Temps de resposta"
+    },
+    "timing": {
+      "instant": "Instantani",
+      "delayed": "Pensament simulat"
+    },
+    "save": {
+      "title": "Desa aquesta personalització",
+      "description": "Quan hagis acabat d'omplir el formulari de dalt, posa un nom a la teva personalització i desa-la aquí. Les personalitzacions desades apareixen al selector \"Carrega una personalització desada\" a la part superior de la pàgina perquè puguis alternar-les més endavant.",
+      "nameLabel": "Nom de la personalització",
+      "namePlaceholder": "Posa un nom a aquesta configuració",
+      "activeBadge": "Activa",
+      "unnamed": "Personalització sense nom",
+      "notLinked": "Encara no està vinculada a cap personalització desada.",
+      "savedLabel": "Personalitzacions desades",
+      "selectCustomization": "Selecciona una personalització",
+      "lastUpdated": "Darrera actualització {{date}}",
+      "loadSelected": "Carrega la seleccionada",
+      "applying": "S'està aplicant...",
+      "saveAndApply": "Desa i aplica la configuració",
+      "resetDefaults": "Restableix els valors predeterminats",
+      "errors": {
+        "generic": "No s'ha pogut desar la configuració."
+      }
+    },
+    "importExport": {
+      "title": "Importa / Exporta",
+      "description": "Descarrega o carrega fitxers de configuració.",
+      "downloadJson": "Descarrega el JSON",
+      "uploadJson": "Carrega el JSON",
+      "uploadNote": "Carregar un fitxer substitueix els valors actuals del formulari, però no desa automàticament."
+    },
+    "confirm": {
+      "replace": "Substitueix",
+      "deleteConfig": "Vols eliminar la configuració \"{{name}}\"?",
+      "overwrite": {
+        "title": "Vols substituir la configuració existent?",
+        "description": "Ja existeix una configuració anomenada \"{{name}}\". En desar-la se substituirà."
+      },
+      "profile": {
+        "title": "Vols substituir l'assignació de perfil d'usuari existent?",
+        "description": "El perfil d'usuari \"{{profile}}\" ja està assignat a la configuració \"{{existing}}\". En desar-la se substituirà aquesta assignació per \"{{next}}\"."
+      }
+    },
+    "toasts": {
+      "persistFailed": "No s'ha pogut actualitzar el diagrama d'agent.",
+      "noActiveDiagram": "No hi ha cap diagrama d'agent actiu.",
+      "nameBeforeDefault": "Posa un nom a l'LLM abans de marcar-lo com a predeterminat.",
+      "selectToLoad": "Selecciona una configuració per carregar.",
+      "notFound": "No s'ha pogut trobar la configuració seleccionada.",
+      "loaded": "Configuració \"{{name}}\" carregada.",
+      "selectToDelete": "Selecciona una configuració per eliminar.",
+      "deleted": "Configuració eliminada.",
+      "selectProfileFirst": "Primer selecciona una assignació de perfil d'usuari.",
+      "profileUnavailable": "El perfil d'usuari seleccionat no està disponible. Selecciona un perfil d'usuari desat vàlid.",
+      "signInGitHub": "Inicia sessió a GitHub per utilitzar les recomanacions.",
+      "invalidMappingResponse": "El servidor ha retornat una resposta de recomanació d'assignació no vàlida.",
+      "ruleRecApplied_one": "Recomanació basada en regles aplicada ({{count}} regla coincideix).",
+      "ruleRecApplied_other": "Recomanació basada en regles aplicada ({{count}} regles coincideixen).",
+      "ruleRecAppliedNone": "Recomanació basada en regles aplicada. No coincideix cap regla específica, de manera que s'han conservat els valors predeterminats.",
+      "mappingRecFailed": "No s'ha pogut obtenir la recomanació basada en assignació: {{message}}",
+      "mappingRecUnexpected": "S'ha produït un error inesperat en sol·licitar una recomanació basada en regles.",
+      "ragSoon": "La proposta de configuració automàtica basada en RAG estarà disponible aviat.",
+      "invalidRecResponse": "El servidor ha retornat una resposta de recomanació no vàlida.",
+      "llmRecApplied": "Recomanació basada en LLM aplicada a la configuració actual.",
+      "llmRecFailed": "No s'ha pogut obtenir la recomanació de l'LLM: {{message}}",
+      "llmRecUnexpected": "S'ha produït un error inesperat en sol·licitar una recomanació basada en LLM.",
+      "resetToDefaults": "Configuració restablerta als valors predeterminats.",
+      "nameBeforeSave": "Indica un nom de configuració abans de desar.",
+      "openDiagramFirst": "Obre un diagrama d'agent abans de desar i aplicar.",
+      "selectProfileBeforeApply": "Selecciona un perfil d'usuari per assignar abans de desar i aplicar.",
+      "transformFailed": "No s'ha pogut transformar el model d'agent: {{message}}",
+      "transformTimeout": "La personalització està trigant més del previst. Torna-ho a provar amb un agent més curt o amb menys transformacions.",
+      "transformApplied": "Configuració transformada, desada i aplicada correctament.",
+      "saveLocalFailed": "No s'ha pogut desar la configuració localment.",
+      "transformUnexpected": "S'ha produït un error inesperat en transformar el model d'agent.",
+      "uploadLoaded": "Configuració carregada des del fitxer. Recorda desar-la si vols tenir-la a la teva biblioteca.",
+      "invalidFile": "Fitxer de configuració no vàlid."
+    }
+  },
+  "generation": {
+    "generate": "Genera",
+    "deploy": "Desplega",
+    "defaultDiagramTitle": "Diagrama",
+    "django": {
+      "title": "Configuració del projecte Django",
+      "description": "Configura els noms i les opcions de contenidorització per a la generació de Django.",
+      "projectName": "Nom del projecte",
+      "appName": "Nom de l'aplicació",
+      "includeDocker": "Inclou la contenidorització amb Docker"
+    },
+    "sql": {
+      "title": "Selecció de dialecte SQL",
+      "description": "Tria el dialecte SQL per a les sentències DDL generades.",
+      "dialect": "Dialecte",
+      "selectDialect": "Selecciona el dialecte SQL"
+    },
+    "sqlAlchemy": {
+      "title": "Selecció de SGBD de SQLAlchemy",
+      "description": "Tria el sistema de base de dades per al codi SQLAlchemy generat.",
+      "dbms": "SGBD",
+      "selectDbms": "Selecciona el SGBD"
+    },
+    "supabase": {
+      "title": "Configuració de Supabase",
+      "descriptionBefore": "Genera DDL de Postgres amb claus primàries UUID,",
+      "descriptionAfter": "replicació, i seguretat a nivell de fila (RLS). Indica quina classe del teu diagrama es correspon amb auth.users.",
+      "userRootLabel": "Nom de la classe arrel d'usuari",
+      "hintBefore": "Deixa-ho en blanc per ometre la integració d'autenticació (sense",
+      "hintMiddle": "rèplica, sense RLS). Per defecte:"
+    },
+    "jsonSchema": {
+      "title": "Mode JSON Schema",
+      "description": "Tria JSON Schema estàndard o el mode smart data NGSI-LD.",
+      "mode": "Mode",
+      "selectMode": "Selecciona el mode",
+      "regular": "JSON Schema estàndard"
+    },
+    "agent": {
+      "title": "Selecciona els idiomes de l'agent",
+      "description": "Configura els idiomes d'origen i de destinació per a la traducció de l'agent.",
+      "noSavedConfig": "No s'ha trobat cap configuració desada. L'agent es generarà amb la configuració per defecte.",
+      "configureTechnologies": "Configura les tecnologies de l'agent",
+      "sourceLanguage": "Idioma d'origen (opcional)",
+      "addSpokenLanguage": "Afegeix un idioma parlat per a la traducció de l'agent",
+      "selectLanguage": "Selecciona un idioma...",
+      "addLanguage": "Afegeix idioma",
+      "translatedToAll": "L'agent es traduirà a tots els idiomes parlats seleccionats.",
+      "warningAriaLabel": "advertència",
+      "moreLanguagesWarning": "Afegir més idiomes augmentarà el temps de generació.",
+      "systemConfiguration": "Configuració del sistema",
+      "editInAgentConfig": "Edita a configuració de l'agent",
+      "platform": "Plataforma",
+      "platformStreamlit": "WebSocket amb interfície Streamlit",
+      "intentRecognition": "Reconeixement d'intencions",
+      "classical": "Clàssic",
+      "llmBased": "Basat en LLM",
+      "systemConfigHint": "Aquests valors provenen de la pestanya Configuració del sistema de configuració de l'agent i s'utilitzen en cada generació.",
+      "personalizationStrategy": "Estratègia de personalització",
+      "none": "Cap",
+      "personalizationAll": "Personalització (totes)",
+      "personalizationAllHint": "Envia al servidor totes les assignacions de personalització de perfil a configuració disponibles.",
+      "personalizationNoneHint": "Genera sense adjuntar variants de personalització desades ni dades de configuració avançada.",
+      "mode": "Mode",
+      "modeOriginal": "Original",
+      "modeConfiguration": "Configuració",
+      "modePersonalization": "Personalització",
+      "selectMappings": "Selecciona les assignacions perfil → configuració",
+      "selectStoredConfigs": "Selecciona les configuracions desades",
+      "noMappingsFound": "No s'han trobat assignacions amb agents generats. Crea assignacions i executa primer \"Desa i Aplica\".",
+      "mappingsListHint": "Només es llisten les assignacions la configuració de destinació de les quals ja té un agent generat.",
+      "noStoredConfigsFound": "No s'han trobat configuracions desades amb agents generats. Utilitza primer \"Desa i Aplica\" per fer-les disponibles aquí.",
+      "storedConfigsListHint": "Selecciona una o més configuracions (només es llisten les entrades amb agents generats) per incloure-les a la sol·licitud. Això generarà un agent per configuració.",
+      "selectedLanguages": "Idiomes seleccionats",
+      "removeLanguage": "Elimina l'idioma {{language}}",
+      "languages": {
+        "english": "Anglès",
+        "french": "Francès",
+        "german": "Alemany",
+        "luxembourgish": "Luxemburguès",
+        "portuguese": "Portuguès",
+        "spanish": "Espanyol"
+      }
+    },
+    "qiskit": {
+      "title": "Configuració del servidor de Qiskit",
+      "description": "Tria el servidor d'execució i el nombre de tirades (shots).",
+      "executionBackend": "Servidor d'execució",
+      "selectBackend": "Selecciona el servidor",
+      "backendAerSimulator": "Aer Simulator (Local)",
+      "backendMockSimulation": "Simulació simulada (simulació de soroll)",
+      "backendIbmQuantum": "IBM Quantum (Maquinari real)",
+      "numberOfShots": "Nombre de tirades (shots)",
+      "shotsLabel": "Tirades"
+    },
+    "webApp": {
+      "title": "Generador d'aplicació web",
+      "description": "Els diagrames següents s'utilitzaran per a la generació.",
+      "required": "Obligatori",
+      "optional": "Opcional",
+      "referencesHint": "Si el diagrama de classes o GUI no és correcte, canvia les referències a les pestanyes del diagrama abans de generar.",
+      "noProjectLoaded": "No hi ha cap projecte carregat. Crea o carrega un projecte primer.",
+      "untitled": "(sense títol)",
+      "missing": "(manca)",
+      "emptyWillBeSkipped": " (buit - s'ometrà)",
+      "referencesClassDiagram": "Referències: diagrama de classes \"{{title}}\"",
+      "diagramRequired": "Aquest diagrama és obligatori per a la generació de l'aplicació web.",
+      "diagramEmpty": "Aquest diagrama està buit. La generació pot produir resultats incomplets.",
+      "noAgentDiagrams": "No hi ha diagrames d'agent al projecte",
+      "agentDiagramsHint": "Els diagrames d'agent es vinculen per component dins de l'editor GUI (arrossegar i deixar anar).",
+      "classDiagramLabel": "Diagrama de classes",
+      "guiDiagramLabel": "Diagrama GUI",
+      "agentDiagramsLabel": "Diagrames d'agent",
+      "agentDiagramsAvailable": "{{count}} disponible(s) (configurat(s) per component a la GUI)",
+      "noneAvailable": "Cap disponible"
+    },
+    "toasts": {
+      "validationFailed": "La validació ha fallat",
+      "noDiagram": "No hi ha cap diagrama per generar codi",
+      "localDeploymentInProgress": "Desplegament local en curs... Això pot trigar uns minuts.",
+      "httpError": "Error HTTP! estat: {{status}}",
+      "localDeploymentCompleted": "Desplegament local completat!",
+      "accessApplicationAt": "Ara pots accedir a la teva aplicació a: ",
+      "unknownDeploymentError": "S'ha produït un error desconegut durant el desplegament",
+      "noProjectAvailable": "No hi ha cap projecte disponible per a la generació de codi",
+      "codeGenerationCompleted": "Generació de codi completada correctament",
+      "requestTimedOut": "S'ha esgotat el temps d'espera de la sol·licitud. Torna-ho a provar.",
+      "unknownError": "S'ha produït un error desconegut",
+      "createOrLoadProject": "Crea o carrega un projecte abans de generar codi.",
+      "couldNotSwitchToGui": "No s'ha pogut canviar al diagrama GUI per a la generació automàtica.",
+      "guiEditorNotReady": "L'editor GUI no ha estat a punt a temps.",
+      "couldNotAutoGenerateGui": "No s'ha pogut generar automàticament el GUI a partir del diagrama de classes.",
+      "guiDiagramEmpty": "No es pot generar l'aplicació web: el diagrama GUI està buit.",
+      "openQuantumEditor": "Obre l'editor quàntic abans de generar codi Qiskit.",
+      "openNnEditor": "Obre l'editor de diagrames de xarxa neuronal abans de generar codi de xarxa neuronal.",
+      "switchToUmlDiagram": "Canvia a un diagrama UML per utilitzar aquest generador.",
+      "noUmlEditor": "No hi ha cap instància de l'editor UML disponible. Obre primer un diagrama UML.",
+      "switchToObjectOrUserDiagram": "Canvia a un diagrama d'objectes o un diagrama d'usuari per utilitzar el generador JSON Object.",
+      "generationFailed": "La generació ha fallat: {{error}}",
+      "createOrLoadProjectValidate": "Crea o carrega un projecte abans de validar.",
+      "comingSoon": "properament",
+      "noDiagramToValidate": "No hi ha cap diagrama disponible per validar",
+      "qualityCheckFailed": "El control de qualitat ha fallat: {{error}}",
+      "namesRequired": "Els noms del projecte i de l'aplicació són obligatoris.",
+      "namesMustDiffer": "Els noms del projecte i de l'aplicació han de ser diferents.",
+      "namesInvalid": "Els noms han de començar amb una lletra/guió baix i contenir només lletres, números i guions baixos.",
+      "openUmlBeforeDeploy": "Obre un diagrama UML abans de desplegar.",
+      "noValidPersonalizationMappings": "No s'han trobat assignacions de personalització vàlides. Crea assignacions i desa primer variants personalitzades."
+    },
+    "context": {
+      "djangoGeneration": "Generació de Django",
+      "djangoDeployment": "Desplegament de Django",
+      "sqlGeneration": "Generació de SQL",
+      "supabaseGeneration": "Generació de Supabase",
+      "sqlAlchemyGeneration": "Generació de SQLAlchemy",
+      "jsonSchemaGeneration": "Generació de JSON Schema",
+      "agentGeneration": "Generació d'agent",
+      "qiskitGeneration": "Generació de Qiskit",
+      "webAppGeneration": "Generació d'aplicació web"
+    },
+    "overlay": {
+      "subtitle": "Espera mentre es genera el codi",
+      "title": "S'està generant el codi",
+      "stepPackaging": "S'està empaquetant la sortida...",
+      "stepGenerating": "S'està generant el codi...",
+      "stepParsing": "S'està analitzant el diagrama..."
+    }
+  },
+  "project": {
+    "field": {
+      "name": "Nom",
+      "owner": "Propietari",
+      "description": "Descripció"
+    },
+    "hub": {
+      "stepBadge": "Pas {{current}} de {{total}}",
+      "back": "Enrere",
+      "unknownError": "Error desconegut",
+      "create": {
+        "title": "Crear un projecte",
+        "description": "Defineix les metadades del projecte i comença a modelar des de zero.",
+        "detailsTitle": "Detalls del projecte",
+        "detailsDescription": "Posa un nom i una descripció al teu espai de treball.",
+        "submit": "Crear projecte",
+        "tip": "Consell: tria una perspectiva de modelatge per centrar l'espai de treball en els diagrames que necessites."
+      },
+      "import": {
+        "title": "Importar un projecte",
+        "description": "Carrega un fitxer de projecte exportat i continua on ho vas deixar.",
+        "cardTitle": "Importar fitxer de projecte",
+        "cardDescription": "Formats admesos: .json, .py.",
+        "dropAria": "Deixa anar un fitxer o fes clic per explorar",
+        "dropPrompt": "Deixa anar un fitxer aquí o fes clic per explorar",
+        "dropHint": "Fitxers de projecte JSON o Python"
+      },
+      "spreadsheet": {
+        "title": "Començar des d'un full de càlcul",
+        "description": "Crea un projecte i genera automàticament un diagrama de classes a partir de fitxers CSV/XLSX.",
+        "cardTitle": "Entrada de full de càlcul",
+        "cardDescription": "Crea les metadades del projecte i puja els fitxers font.",
+        "sourceFiles": "Fitxers font",
+        "selectFiles": "Selecciona fitxers CSV / XLSX",
+        "submit": "Crear des de full de càlcul",
+        "howTitle": "Com funciona",
+        "step1": "Primer es crea el projecte amb les teves metadades.",
+        "step2": "Els fitxers del full de càlcul es converteixen en un diagrama de classes.",
+        "step3": "El diagrama de classes generat s'importa automàticament al projecte.",
+        "accepted": "Acceptats: .csv, .xlsx, .xls"
+      },
+      "open": {
+        "title": "Obrir un projecte existent",
+        "description": "Tria qualsevol projecte desat i torna a entrar al teu espai de treball a l'instant.",
+        "allProjects": "Tots els projectes"
+      },
+      "start": {
+        "title": "Benvingut a BESSER Web Modeling Editor",
+        "description": "Tria com vols iniciar la teva sessió de modelatge i obrir el teu espai de treball.",
+        "heroTitle": "Inicia el teu espai de modelatge",
+        "heroBody": "BESSER (Better Smart Software Faster) és una plataforma de codi obert dirigida per models per al disseny, la generació i el desplegament d'UML. Tria un camí a continuació per iniciar el teu projecte ràpidament.",
+        "cardCreate": {
+          "title": "Crear en blanc",
+          "description": "Comença des de zero amb tots els editors disponibles."
+        },
+        "cardSpreadsheet": {
+          "title": "Des de full de càlcul",
+          "description": "Genera automàticament un diagrama de classes a partir de fitxers CSV/XLSX."
+        },
+        "cardImport": {
+          "title": "Importar projecte",
+          "description": "Carrega un projecte .json o .py exportat."
+        },
+        "existingProjects": "Projectes existents",
+        "viewAll": "Veure tots els projectes",
+        "noProjects": "Encara no hi ha projectes.",
+        "warningBanner": "Crea, importa o obre un projecte per entrar a l'espai de treball."
+      },
+      "perspective": {
+        "label": "Perspectiva de modelatge",
+        "helper": "Determina quins diagrames apareixen a la barra lateral. Ho pots canviar més tard a la Configuració."
+      },
+      "list": {
+        "emptyHint": "Encara no hi ha projectes. Crea'n un per començar.",
+        "noDescription": "No s'ha proporcionat cap descripció.",
+        "active": "Actiu",
+        "open": "Obrir",
+        "deleteAria": "Eliminar el projecte {{name}}"
+      },
+      "deleteConfirm": {
+        "title": "Eliminar projecte",
+        "description": "Vols eliminar el projecte «{{name}}»? Aquesta acció no es pot desfer."
+      },
+      "toasts": {
+        "created": "Projecte «{{name}}» creat.",
+        "createFailed": "No s'ha pogut crear el projecte: {{error}}",
+        "loaded": "Projecte carregat.",
+        "loadFailed": "No s'ha pogut carregar el projecte: {{error}}",
+        "deleted": "Projecte «{{name}}» eliminat.",
+        "deleteFailed": "No s'ha pogut eliminar el projecte: {{error}}",
+        "imported": "Projecte «{{name}}» importat.",
+        "importFailed": "La importació ha fallat: {{error}}",
+        "unsupportedFileType": "Tipus de fitxer no admès. Deixa anar un fitxer .json o .py.",
+        "noSpreadsheetFile": "Selecciona com a mínim un fitxer CSV/XLSX.",
+        "spreadsheetGenerateFailed": "No s'ha pogut generar el diagrama de classes a partir del full de càlcul.",
+        "spreadsheetCreated": "Projecte «{{name}}» creat i diagrama de classes importat.",
+        "spreadsheetImportFailed": "La importació del full de càlcul ha fallat: {{error}}"
+      }
+    },
+    "settings": {
+      "title": "Configuració del projecte",
+      "subtitle": "Gestiona les metadades, els diagrames i les preferències de visualització",
+      "exportProject": "Exportar projecte",
+      "exporting": "S'està exportant...",
+      "loadingProject": "S'està carregant el projecte...",
+      "noProject": "Obre o crea un projecte per editar la configuració.",
+      "unknownError": "Error desconegut",
+      "general": {
+        "title": "General",
+        "description": "Informació bàsica del projecte",
+        "projectName": "Nom del projecte",
+        "created": "Creat",
+        "activeEditor": "Editor actiu"
+      },
+      "display": {
+        "title": "Visualització",
+        "description": "Configura com es representen els diagrames",
+        "showInstancedObjects": "Mostrar objectes instanciats",
+        "showInstancedObjectsDesc": "Alternar la visibilitat de les instàncies d'objectes",
+        "showAssociationNames": "Mostrar noms d'associacions",
+        "showAssociationNamesDesc": "Alternar la visibilitat dels noms d'associacions",
+        "propertiesPanel": "Tauler de propietats",
+        "propertiesPanelDesc": "Utilitzar el tauler lateral dret en lloc de la finestra emergent flotant",
+        "classNotation": "Notació del diagrama de classes",
+        "classNotationDesc": "UML (per defecte) mostra classes UML estàndard; ER mostra una representació entitat/relació a l'estil Chen"
+      },
+      "diagrams": {
+        "title": "Diagrames",
+        "countWithContent_one": "{{count}} diagrama amb contingut",
+        "countWithContent_other": "{{count}} diagrames amb contingut",
+        "noneWithContent": "Encara no hi ha diagrames amb contingut",
+        "updated": "Actualitzat {{date}}",
+        "empty": "Comença a editar un diagrama per veure'l aquí"
+      },
+      "perspectives": {
+        "title": "Perspectives de modelatge",
+        "description": "Amaga les perspectives que no necessitis. Utilitza un predefinit per alternar-ne diverses alhora, o activa cadascuna individualment a sota. Les perspectives desactivades s'eliminen de la barra lateral; els models existents es conserven i es restauren en reactivar-les. Els generadors continuen estant disponibles en qualsevol cas.",
+        "quickPresets": "Predefinits ràpids",
+        "lastEnabledTitle": "Com a mínim una perspectiva ha d'estar activada.",
+        "toggleAria": "Alternar la visibilitat de {{label}}",
+        "presets": {
+          "data": {
+            "label": "Modelador de dades",
+            "description": "Diagrames de classes i objectes (cobreix POO, esquemes, SQL, SQLAlchemy)."
+          },
+          "agent": {
+            "label": "Desenvolupador d'agents",
+            "description": "Diagrames d'agents i usuaris per a agents conversacionals."
+          },
+          "fullApp": {
+            "label": "Aplicació web completa",
+            "description": "Diagrames de classes, agents i interfície sense codi (no-code)."
+          },
+          "quantum": {
+            "label": "Quàntic",
+            "description": "Només diagrames de circuits quàntics."
+          },
+          "all": {
+            "label": "Mostra-ho tot",
+            "description": "Totes les perspectives admeses."
+          }
+        },
+        "diagrams": {
+          "ClassDiagram": "Modelatge estructural / de dades, incloses les restriccions OCL adjuntes a les classes.",
+          "ObjectDiagram": "Instàncies d'un diagrama de classes, usades per a proves i validació OCL.",
+          "StateMachineDiagram": "Modelatge de comportament basat en estats.",
+          "AgentDiagram": "Especificació d'agent conversacional / d'IA.",
+          "UserDiagram": "Actors i les seves interaccions.",
+          "GUINoCodeDiagram": "Disseny d'interfície gràfica d'usuari (inspirat en IFML).",
+          "QuantumCircuitDiagram": "Especificació de programa quàntic.",
+          "BPMN": "Model i notació de procés de negoci.",
+          "NNDiagram": "Arquitectura de xarxa neuronal (PyTorch / TensorFlow)."
+        }
+      },
+      "toasts": {
+        "updatePerspectiveFailed": "No s'ha pogut actualitzar la perspectiva",
+        "applyPresetFailed": "No s'ha pogut aplicar el predefinit",
+        "exported": "Projecte exportat correctament.",
+        "exportFailed": "No s'ha pogut exportar el projecte: {{error}}"
+      }
+    },
+    "templates": {
+      "title": "Carregar plantilla",
+      "description": "Comença amb plantilles a punt d'UML, agents, màquines d'estats, quàntiques o paquets de projecte complets.",
+      "loadTemplate": "Carregar plantilla",
+      "multiDiagramProject": "Projecte multidiagrama",
+      "unknownError": "Error desconegut",
+      "categories": {
+        "Creational": "Creacional",
+        "Class Diagram": "Diagrama de classes",
+        "Behavioral": "Comportamental",
+        "Agent Diagram": "Diagrama d'agent",
+        "State Machine Diagram": "Diagrama de màquina d'estats",
+        "Quantum Circuit": "Circuit quàntic",
+        "Neural Network": "Xarxa neuronal",
+        "Full Project": "Projecte complet"
+      },
+      "confirm": {
+        "title": "S'ha detectat un diagrama existent",
+        "body": "Ja tens un <strong>{{type}}</strong>. Com vols carregar la plantilla?",
+        "newTab": "Pestanya nova",
+        "replace": "Reemplaçar"
+      },
+      "toasts": {
+        "loadedProjectTemplate": "Plantilla de projecte «{{name}}» carregada",
+        "loadFailed": "No s'ha pogut carregar la plantilla: {{error}}"
+      }
+    },
+    "toasts": {
+      "createOrLoadFirst": "Crea o carrega primer un projecte."
+    },
+    "preview": {
+      "toasts": {
+        "jsonCopied": "S'ha copiat el JSON del projecte.",
+        "jsonCopyFailed": "No s'ha pogut copiar el JSON del projecte.",
+        "bumlFailedFallback": "No s'ha pogut generar la vista prèvia de B-UML.",
+        "bumlFailed": "No s'ha pogut generar la vista prèvia de B-UML: {{message}}",
+        "noBumlToCopy": "No hi ha cap vista prèvia de B-UML per copiar.",
+        "bumlCopied": "S'ha copiat el B-UML del projecte.",
+        "bumlCopyFailed": "No s'ha pogut copiar la vista prèvia de B-UML.",
+        "noBumlToDownload": "No hi ha cap vista prèvia de B-UML per baixar."
+      }
+    }
+  },
+  "github": {
+    "sync": "Sincronització amb GitHub",
+    "closeSidebar": "Tanca el tauler de GitHub",
+    "fullPath": "Ruta completa:",
+    "folderPathLabel": "Ruta de la carpeta (opcional)",
+    "folderPathPlaceholder": "p. ex., projects/my-models",
+    "fileNameLabel": "Nom del fitxer",
+    "defaultRepoDescription": "Projecte BESSER: {{name}}",
+    "defaultGistDescription": "Projecte BESSER: {{name}}",
+    "connect": {
+      "title": "Connecta amb GitHub",
+      "subtitle": "Inicia la sessió per sincronitzar els teus projectes amb GitHub.",
+      "button": "Connecta amb GitHub"
+    },
+    "noProject": {
+      "title": "Cap projecte seleccionat",
+      "subtitle": "Obre o crea un projecte per utilitzar la sincronització amb GitHub."
+    },
+    "notLinked": {
+      "title": "Vincula un repositori",
+      "subtitle": "Vincula aquest projecte a un repositori de GitHub per al control de versions.",
+      "linkExisting": "Vincula'n un d'existent",
+      "createNew": "Crea'n un de nou"
+    },
+    "linked": {
+      "repository": "Repositori",
+      "checking": "S'està comprovant...",
+      "unsavedChanges": "Tens canvis sense desar",
+      "upToDate": "Actualitzat",
+      "push": "Puja (Push)",
+      "pull": "Baixa (Pull)",
+      "history": "Historial",
+      "refreshHistory": "Actualitza l'historial de commits",
+      "latest": "Més recent",
+      "clickToRestore": "Fes clic per restaurar",
+      "noCommits": "Encara no hi ha commits",
+      "share": "Comparteix",
+      "createSecretGist": "Crea un Gist secret"
+    },
+    "settings": {
+      "title": "Configuració",
+      "autoCommit": "Commit automàtic",
+      "enabledWithInterval": "Activat ({{minutes}} min)",
+      "disabled": "Desactivat",
+      "intervalLabel": "Interval (minuts)",
+      "interval5": "5 minuts",
+      "interval10": "10 minuts",
+      "interval15": "15 minuts",
+      "interval30": "30 minuts",
+      "interval60": "1 hora",
+      "autoSaving": "S'està desant automàticament..."
+    },
+    "linkModal": {
+      "goBack": "Torna a la selecció de repositori",
+      "titleSelect": "Vincula a un repositori",
+      "titleConfigure": "Configura la vinculació",
+      "descriptionSelect": "Selecciona un repositori amb el qual sincronitzar el teu projecte.",
+      "descriptionConfigure": "Estableix la branca i la ruta del fitxer per a aquesta sincronització del projecte.",
+      "private": "Privat",
+      "updated": "Actualitzat: {{date}}",
+      "noRepositories": "No s'ha trobat cap repositori",
+      "branch": "Branca",
+      "browseFiles": "Explora els fitxers del repositori",
+      "browseHint": "Tria un fitxer de projecte existent sense escriure la ruta.",
+      "checkFileExists": "Comprova si el fitxer existeix",
+      "fileExistsPrompt": "El fitxer ja existeix al repositori. Tria com vols continuar:",
+      "loadAndLinkRecommended": "Carrega i vincula (recomanat)",
+      "linkWithoutLoading": "Vincula sense carregar (pot sobreescriure)",
+      "filePathAvailable": "La ruta del fitxer està disponible. Fes clic a «Vincula el repositori» per continuar.",
+      "loadAndLink": "Carrega i vincula",
+      "linkRepository": "Vincula el repositori",
+      "selectProjectFile": "Selecciona el fitxer de projecte"
+    },
+    "fileBrowser": {
+      "selectFile": "Selecciona un fitxer",
+      "loadFailed": "No s'ha pogut carregar el contingut del directori",
+      "root": "root",
+      "upOneLevel": "Puja un nivell",
+      "emptyDirectory": "Directori buit",
+      "dirHint": "Navega fins a la carpeta de destinació i després fes clic a «Selecciona la carpeta actual».",
+      "selectCurrentFolder": "Selecciona la carpeta actual"
+    },
+    "commit": {
+      "title": "Puja a GitHub",
+      "description": "Escriu un missatge de commit per als teus canvis.",
+      "messageLabel": "Missatge de commit",
+      "messagePlaceholder": "Descriu els teus canvis...",
+      "pushing": "S'està pujant...",
+      "push": "Push"
+    },
+    "gist": {
+      "title": "Crea un Gist",
+      "description": "Crea un Gist de GitHub per compartir ràpidament el teu projecte.",
+      "descriptionLabel": "Descripció",
+      "descriptionPlaceholder": "Descripció del Gist...",
+      "publicGist": "Gist públic",
+      "secretHint": "Els gists secrets estan amagats dels motors de cerca, però són visibles per a qualsevol que tingui l'enllaç.",
+      "creating": "S'està creant...",
+      "createGist": "Crea un Gist"
+    },
+    "createRepo": {
+      "title": "Crea un repositori",
+      "description": "Crea un nou repositori de GitHub i puja el projecte actual.",
+      "repoNameLabel": "Nom del repositori",
+      "repoNameHelper": "Només es permeten lletres minúscules, números, guions i guions baixos.",
+      "descriptionLabel": "Descripció",
+      "descriptionPlaceholder": "Descripció opcional...",
+      "privateRepository": "Repositori privat",
+      "creating": "S'està creant...",
+      "create": "Crea"
+    },
+    "restore": {
+      "title": "Restaura la versió",
+      "description": "Els teus canvis actuals sense desar es perdran. Considera pujar la teva feina actual primer.",
+      "confirmQuestion": "Vols restaurar aquest commit?",
+      "restoring": "S'està restaurant...",
+      "restoreButton": "Restaura aquesta versió"
+    },
+    "context": {
+      "loadingDirectory": "S'està carregant el contingut del directori",
+      "githubPush": "Push de GitHub",
+      "githubPull": "Pull de GitHub",
+      "fetchingRepositories": "S'estan obtenint els repositoris",
+      "fetchingCommits": "S'estan obtenint els commits",
+      "checkingChanges": "S'estan comprovant els canvis",
+      "selectingRepository": "S'està seleccionant el repositori",
+      "checkingFile": "S'està comprovant l'existència del fitxer",
+      "linkingRepository": "S'està vinculant el repositori",
+      "creatingRepository": "S'està creant el repositori",
+      "committing": "S'està fent commit a GitHub",
+      "restoringCommit": "S'està restaurant el commit",
+      "creatingGist": "S'està creant el Gist"
+    },
+    "toasts": {
+      "loadProjectFailed": "No s'ha pogut carregar el projecte",
+      "couldNotLoadProjectData": "No s'han pogut carregar les dades del projecte",
+      "projectPulled": "Projecte baixat des de GitHub",
+      "projectLoadedFromRepo": "Projecte carregat des del repositori de GitHub",
+      "loadFromRepoFailedLinking": "No s'ha pogut carregar des del repositori; es vincula sense carregar.",
+      "linkedReconnectToPush": "Repositori vinculat. Torna a connectar GitHub per pujar el fitxer de projecte inicial.",
+      "linkedInitialPushReadFailed": "Repositori vinculat, però la pujada inicial ha fallat perquè no s'ha pogut llegir el projecte local.",
+      "initialSyncCommitMessage": "Sincronització inicial des de BESSER Web Modeling Editor",
+      "linkedInitialPushFailed": "Repositori vinculat, però la pujada inicial ha fallat. Pots pujar manualment des de GitHub Sync.",
+      "couldNotLoadRepoContents": "No s'ha pogut carregar el contingut del repositori",
+      "repoUnlinked": "Repositori desvinculat",
+      "alreadyLatest": "Aquesta ja és la versió més recent",
+      "projectRestored": "Projecte restaurat des del commit seleccionat",
+      "authFailed": "L'autenticació de GitHub ha fallat: {{error}}",
+      "signedInAs": "Sessió iniciada com a {{username}}",
+      "autoSaveCommitMessage": "Desament automàtic: {{timestamp}}",
+      "autoSaved": "Desat automàticament a GitHub",
+      "noProjectToDeploy": "No hi ha cap projecte per desplegar.",
+      "notSignedIn": "No has iniciat la sessió a GitHub.",
+      "repoUpdated": "Repositori actualitzat: {{name}}",
+      "repoCreated": "Repositori creat: {{name}}",
+      "deploymentFailed": "El desplegament ha fallat",
+      "repoCreationFailed": "No s'ha pogut crear el repositori",
+      "requestTimedOut": "La sol·licitud ha esgotat el temps d'espera. Torna-ho a provar.",
+      "fetchReposFailed": "No s'han pogut obtenir els repositoris de GitHub",
+      "repoLinkedPushToSync": "Repositori vinculat! Fes push per sincronitzar el teu projecte.",
+      "fetchCommitsFailed": "No s'ha pogut obtenir l'historial de commits",
+      "saveProjectFailed": "No s'ha pogut desar el projecte a GitHub",
+      "projectSaved": "Projecte desat a GitHub!",
+      "saveProjectFailedShort": "No s'ha pogut desar el projecte",
+      "loadProjectFromGitHubFailed": "No s'ha pogut carregar el projecte des de GitHub",
+      "loadFromCommitFailed": "No s'ha pogut carregar el projecte des del commit",
+      "restoredFromCommitFallback": "commit",
+      "restoredVersionFrom": "Versió restaurada des de {{source}}",
+      "createRepoFailed": "No s'ha pogut crear el repositori",
+      "repoCreatedQuoted": "Repositori «{{name}}» creat!",
+      "createGistFailed": "No s'ha pogut crear el Gist",
+      "gistCreated": "Gist creat correctament!",
+      "invalidGitHubUrl": "URL de GitHub no vàlida. Proporciona una URL vàlida d'un repositori de GitHub.",
+      "fetchingFromGitHub": "S'està obtenint {{filename}} de GitHub...",
+      "fileNotFound": "No s'ha trobat el fitxer a GitHub. Comprova l'URL i torna-ho a provar.",
+      "fetchFileFailed": "No s'ha pogut obtenir el fitxer de GitHub: {{status}}",
+      "importProjectSuccess": "Projecte importat correctament: {{name}}",
+      "importModelFailed": "No s'ha pogut importar el model de GitHub",
+      "starThanks": "Gràcies per marcar BESSER amb una estrella!",
+      "starFailed": "No s'ha pogut actualitzar l'estrella"
+    }
+  },
+  "assistant": {
+    "import": {
+      "titleImage": "Importa un diagrama de classes des d'una imatge",
+      "titleKg": "Importa un diagrama de classes des d'un graf de coneixement",
+      "description": "Utilitza una clau API d'OpenAI per convertir el teu fitxer en un diagrama de classes i afegir-lo al projecte actual.",
+      "apiKeyLabel": "Clau API d'OpenAI",
+      "uploadImageLabel": "Puja una imatge del diagrama (PNG/JPEG)",
+      "uploadKgLabel": "Puja un graf de coneixement (TTL/RDF/JSON)",
+      "selected": "Seleccionat: {{name}}",
+      "importing": "Important...",
+      "import": "Importa",
+      "errors": {
+        "noProject": "Primer crea o carrega un projecte.",
+        "imageType": "Només es permeten fitxers PNG o JPEG.",
+        "kgType": "Només es permeten fitxers TTL, RDF o JSON.",
+        "importFailed": "Ha fallat la importació: {{error}}"
+      }
+    },
+    "connection": {
+      "connected": "Connectat",
+      "closing": "S'està tancant…",
+      "reconnecting": "S'està reconnectant…",
+      "disconnected": "Desconnectat",
+      "unknown": "Desconegut"
+    },
+    "agentAvatarAlt": "Agent",
+    "modelingAssistant": "Assistent de modelatge",
+    "byBesser": "per BESSER",
+    "welcome": {
+      "greeting": "Hola! Soc el teu assistent de modelatge",
+      "intro": "Et puc ajudar a crear i modificar diagrames UML, generar codi i respondre preguntes de modelatge. Prova alguna cosa com ara:",
+      "suggestions": {
+        "library": "Crea un sistema de gestió de biblioteca",
+        "payment": "Afegeix una classe Payment amb amount i date",
+        "django": "Genera codi Django"
+      },
+      "headlinePre": "Què t'agradaria",
+      "headlineEmphasis": "modelar",
+      "headlinePost": "avui?",
+      "subtitle": "Descriu el teu sistema en llenguatge natural. Obtén models, interfícies i codi.",
+      "pressEscPre": "Prem",
+      "pressEscPost": "per tancar"
+    },
+    "composer": {
+      "placeholder": "Descriu què vols crear o modificar..."
+    },
+    "messageCount_one": "{{count}} missatge",
+    "messageCount_other": "{{count}} missatges",
+    "fab": {
+      "open": "Obre l'assistent",
+      "close": "Tanca l'assistent"
+    },
+    "privacy": {
+      "iconLabel": "Privadesa i processament de dades",
+      "title": "Privadesa i processament de dades",
+      "subtitle": "Informació important sobre com l'assistent processa les dades de modelatge.",
+      "noticeHeading": "Avís sobre el processament de dades:",
+      "body": "Quan utilitzes l'assistent de modelatge, els teus missatges i dades de diagrama es processen per oferir assistència de modelatge basada en IA.",
+      "bullets": {
+        "sent": "Els teus models de diagrama i missatges s'envien al servei d'IA per al seu processament.",
+        "encrypted": "Les dades es transmeten a través de connexions xifrades.",
+        "processed": "Les sol·licituds es processen per generar actualitzacions UML i suggeriments de modelatge.",
+        "stored": "L'historial de converses s'emmagatzema localment a la sessió actual del navegador."
+      },
+      "privacyLabel": "Privadesa:",
+      "privacyBody": "Evita compartir informació sensible o confidencial als missatges de l'assistent.",
+      "understand": "Ho entenc"
+    },
+    "poweredWithBaf": "Funciona amb BAF",
+    "capabilities": {
+      "systemDesign": {
+        "title": "Disseny de sistemes",
+        "body": "Estructures de dades, fluxos de treball, agents i més"
+      },
+      "visualInterfaces": {
+        "title": "Interfícies visuals",
+        "body": "Pantalles i dissenys a partir de descripcions"
+      },
+      "codeGeneration": {
+        "title": "Generació de codi",
+        "body": "WebApp completa, React, SQL i molt més!"
+      }
+    },
+    "starterPrompts": {
+      "ecommerce": "Crea un sistema de comerç electrònic amb clients, comandes i productes",
+      "university": "Dissenya un sistema de matrícula universitària amb estudiants, cursos i professors",
+      "hospital": "Modela un sistema de gestió hospitalària amb pacients, metges i cites",
+      "library": "Construeix un sistema de gestió de biblioteca amb llibres, autors i membres",
+      "banking": "Crea un sistema bancari amb comptes, transaccions i clients",
+      "social": "Dissenya una plataforma de xarxes socials amb usuaris, publicacions i comentaris",
+      "restaurant": "Modela un sistema de comandes de restaurant amb menús, comandes i taules",
+      "project": "Crea una eina de gestió de projectes amb tasques, equips i sprints",
+      "hotel": "Dissenya una aplicació web de reserves d'hotel amb habitacions, hostes i reserves",
+      "dashboard": "Dissenya un tauler per a la gestió d'inventari",
+      "libraryPlatform": "Construeix una plataforma completa de gestió de biblioteca amb models i interfície",
+      "taskApp": "Construeix una aplicació de gestió de tasques amb models i interfície"
+    },
+    "chat": {
+      "newChat": "Xat nou",
+      "newConversationTitle": "Inicia una conversa nova"
+    },
+    "drawer": {
+      "pushToClose": "Empeny cap amunt per tancar l'assistent",
+      "pullToOpen": "Estira cap avall per obrir l'assistent",
+      "pushUp": "Empeny cap amunt",
+      "pullDown": "Estira l'assistent cap avall"
+    },
+    "generationCompleted": "Generació completada correctament.",
+    "exportingProject": "S'està exportant el projecte com a {{format}}…",
+    "startingDeployment": "S'està iniciant el desplegament…",
+    "generatingGui": "S'està generant la interfície a partir del teu diagrama de classes…",
+    "guiGenerated": "✓ Interfície generada correctament a partir del teu diagrama de classes!",
+    "convertThisFile": "Converteix aquest fitxer",
+    "convertFileToDiagram": "Converteix aquest fitxer en un diagrama",
+    "reconnectingMessage": "S'està reconnectant amb l'assistent — el teu missatge s'enviarà automàticament.",
+    "reconnectingVoice": "S'està reconnectant amb l'assistent — el teu missatge de veu s'enviarà automàticament.",
+    "tryAgain": "Torna-ho a provar",
+    "errors": {
+      "createTabFailed": "No s'ha pogut crear una pestanya nova: {{error}}",
+      "switchFailed": "No s'ha pogut canviar a {{type}}.",
+      "generationUnavailable": "La generació no està disponible en aquest context.",
+      "genericAgentError": "Alguna cosa ha anat malament a la banda de l'assistent.",
+      "error": "Error",
+      "errorWithCode": "Error: {{code}}",
+      "guiSwitchFailed": "No s'ha pogut canviar a l'editor d'interfície. Canvia-hi manualment i torna-ho a provar.",
+      "guiNotReady": "L'editor d'interfície no ha estat a punt a temps. Torna-ho a provar.",
+      "guiGenerateFailed": "No s'ha pogut generar la interfície: {{error}}.",
+      "timedOut": "Temps d'espera esgotat",
+      "noResponse": "Cap resposta",
+      "unknownError": "Error desconegut",
+      "fileTooLarge": "El fitxer \"{{name}}\" és massa gran (màx. 10MB).",
+      "rateLimit": "S'ha superat el límit de sol·licituds. Espera abans d'enviar un altre missatge.",
+      "readFileFailed": "No s'han pogut llegir el(s) fitxer(s) adjunt(s). Torna-ho a provar.",
+      "sendFailed": "No s'ha pogut enviar el teu missatge — torna-ho a provar.",
+      "sendVoiceFailed": "No s'ha pogut enviar el teu missatge de veu — torna-ho a provar.",
+      "voiceProcessFailed": "No s'ha pogut processar el teu missatge de veu. Torna-ho a provar.",
+      "backendUnreachable": "No s'ha pogut connectar amb l'assistent d'IA. Assegura't que el servidor s'estigui executant."
+    },
+    "chatKit": {
+      "copiedToClipboard": "Copiat al porta-retalls!",
+      "copyFailed": "No s'ha pogut copiar al porta-retalls.",
+      "copyToClipboard": "Copia al porta-retalls",
+      "copiedResponse": "Resposta copiada al porta-retalls!",
+      "rateHelpful": "Valora la resposta com a útil",
+      "rateUnhelpful": "Valora la resposta com a poc útil",
+      "tryPrompts": "Prova aquestes indicacions ✨",
+      "scrollToBottom": "Desplaça't fins al final",
+      "badge": {
+        "inProgress": "En curs",
+        "error": "Error",
+        "applied": "Aplicat",
+        "systemCreated": "Sistema creat",
+        "modified": "Modificat",
+        "typing": "Escrivint"
+      },
+      "attachmentAlt": "Adjunt {{name}}",
+      "toggleReasoning": "Mostra o amaga els detalls del raonament",
+      "thinking": "Pensant",
+      "toolCancelled": "Cancel·lat",
+      "toolCalling": "Executant eina",
+      "toolResultFrom": "Resultat de",
+      "loading": "S'està carregant...",
+      "removeAttachment": "Elimina l'adjunt",
+      "interruptPrompt": "Torna a prémer Retorn per interrompre",
+      "close": "Tanca",
+      "pastedText": "Text enganxat",
+      "promptAriaLabel": "Escriu la teva indicació aquí",
+      "attachFile": "Adjunta un fitxer",
+      "stopAndSendVoice": "Atura i envia el missatge de veu",
+      "startVoiceRecording": "Inicia la gravació de veu",
+      "pressAgainToStop": "Torna a prémer per aturar i enviar",
+      "stopGenerating": "Atura la generació",
+      "sendMessage": "Envia el missatge",
+      "dropFiles": "Deixa anar els fitxers aquí per adjuntar-los.",
+      "transcribingAudio": "S'està transcrivint l'àudio...",
+      "recordingPrompt": "Gravant... fes clic aquí o torna a prémer el micròfon per aturar i enviar ({{time}})",
+      "stopSendVoiceTimer": "Atura i envia el missatge de veu ({{time}})"
+    }
+  },
+  "deploy": {
+    "dialog": {
+      "publishTitle": "Publica a Render",
+      "existing": "Actualitza el repositori existent amb els teus darrers canvis.",
+      "existingAgent": "Actualitza el repositori d'agent existent amb els teus darrers canvis.",
+      "new": "Crea un repositori de GitHub a partir del projecte actual i desplega'l a Render.",
+      "newAgent": "Crea un repositori de GitHub a partir del diagrama d'agent actiu i desplega un agent independent a Render."
+    },
+    "fields": {
+      "deploymentTarget": "Destinació de desplegament",
+      "commitMessage": "Missatge de commit",
+      "commitMessageHelper": "Descriu què ha canviat (deixa-ho buit per al missatge predeterminat)",
+      "commitMessagePlaceholder": "Actualitza l'aplicació",
+      "repoName": "Nom del repositori",
+      "repoNamePlaceholder": "la-meva-aplicacio-genial",
+      "description": "Descripció",
+      "descriptionPlaceholder": "Aplicació web generada per BESSER",
+      "makePrivate": "Fes el repositori privat",
+      "personalization": "Personalització"
+    },
+    "targets": {
+      "webapp": "Aplicació web (Classe + GUI)",
+      "agent": "Agent independent"
+    },
+    "existing": {
+      "previouslyDeployed": "Desplegat anteriorment a:",
+      "filesPreserved": "Els fitxers que has afegit manualment es conservaran.",
+      "createNewInstead": "Crea un repositori nou en lloc d'això"
+    },
+    "privateWarning": "Els repositoris privats poden requerir una configuració manual de permisos a Render.",
+    "personalizationNote": "L'agent desplegat autenticarà els usuaris i servirà la variant personalitzada que coincideixi amb el perfil de cada usuari.",
+    "actions": {
+      "publish": "Publica a Render",
+      "publishAgent": "Publica l'agent a Render",
+      "updatePublish": "Actualitza i publica",
+      "updatePublishAgent": "Actualitza i publica l'agent",
+      "publishing": "Publicant..."
+    },
+    "result": {
+      "titleUpdated": "Repositori actualitzat correctament",
+      "titleUpdatedAgent": "Repositori d'agent actualitzat",
+      "titleCreated": "Repositori creat correctament",
+      "titleCreatedAgent": "Repositori d'agent creat",
+      "descUpdated": "Els teus canvis s'han enviat a GitHub. Activa un redesplegament a Render per aplicar-los.",
+      "descUpdatedAgent": "Els canvis del teu agent s'han enviat a GitHub. Activa un redesplegament a Render per aplicar-los.",
+      "descCreated": "Continua amb el desplegament amb un clic a Render o inspecciona el repositori generat.",
+      "descCreatedAgent": "Continua amb el desplegament amb un clic a Render per al teu agent independent o inspecciona el repositori generat.",
+      "filesUploaded": "{{count}} fitxers pujats.",
+      "notSeeingChanges": "Encara no veus els teus canvis?",
+      "manualSyncIntro": "Obre el teu Blueprint a Render i fes clic a",
+      "manualSyncLabel": "Sincronització Manual",
+      "manualSyncBody": ". Això redesplega cada servei del blueprint (backend, frontend, agents) des del darrer commit amb un sol clic. El desplegament automàtic de Render pot ometre els enviaments quan l'aplicació de GitHub no té accés al repositori, així que Sincronització Manual és la via fiable.",
+      "manualSyncBodyAgent": ". Això redesplega cada servei del blueprint des del darrer commit amb un sol clic. El desplegament automàtic de Render pot ometre els enviaments quan l'aplicació de GitHub no té accés al repositori, així que Sincronització Manual és la via fiable.",
+      "openLiveAgent": "Obre l'agent en directe",
+      "openLiveApp": "Obre l'aplicació en directe",
+      "openRenderDeployment": "Obre el desplegament de Render",
+      "openBlueprint": "Obre el Blueprint de Render",
+      "viewRepo": "Mostra el repositori de GitHub"
+    },
+    "toasts": {
+      "availableFor": "El desplegament està disponible per a diagrames d'aplicació web i d'agent.",
+      "connectGitHubFirst": "Connecta't primer a GitHub.",
+      "requiresDiagrams": "El desplegament requereix diagrames de classe + GUI (aplicació web) o com a mínim un diagrama d'agent (agent independent).",
+      "noProjectAvailable": "No hi ha cap projecte disponible per desplegar.",
+      "githubSessionNotFound": "No s'ha trobat la sessió de GitHub. Torna a connectar-te.",
+      "repoNameRequired": "El nom del repositori és obligatori.",
+      "noPersonalizationMappings": "No s'ha trobat cap assignació de personalització vàlida. Desa les variants personalitzades abans d'activar aquesta opció."
+    }
+  },
+  "diagramTypes": {
+    "ClassDiagram": "Diagrama de classes",
+    "ObjectDiagram": "Diagrama d'objectes",
+    "StateMachineDiagram": "Diagrama de màquina d'estats",
+    "AgentDiagram": "Diagrama d'agent",
+    "UserDiagram": "Diagrama d'usuari",
+    "GUINoCodeDiagram": "Diagrama de GUI",
+    "QuantumCircuitDiagram": "Diagrama de circuit quàntic",
+    "BPMN": "Diagrama BPMN",
+    "NNDiagram": "Diagrama de xarxa neuronal"
+  },
+  "dialogs": {
+    "about": {
+      "title": "Sobre BESSER",
+      "tagline": "Building Better Smart Software Faster",
+      "para1": "BESSER és una plataforma low-code per al modelatge de programari intel·ligent i la generació de codi. Proporciona un metamodel basat en Python (B-UML) per descriure models de domini, màquines d'estats, dissenys d'interfícies gràfiques, agents i molt més.",
+      "para2": "El <brand>Web Modeling Editor</brand> és l'editor visual en línia per crear i editar models de BESSER, generar codi i desplegar aplicacions.",
+      "besserRepository": "Repositori de BESSER",
+      "wmeRepository": "Repositori de WME",
+      "libraryRepository": "Repositori de paquets"
+    },
+    "shortcuts": {
+      "title": "Dreceres de teclat",
+      "description": "Dreceres de teclat disponibles a l'editor.",
+      "category": {
+        "general": "General",
+        "guiEditor": "Editor d'interfícies gràfiques",
+        "quantumEditor": "Editor quàntic",
+        "help": "Ajuda"
+      },
+      "action": {
+        "commandPalette": "Obrir la paleta d'ordres",
+        "undo": "Desfés",
+        "redo": "Refés",
+        "redoAlt": "Refés (alternativa)",
+        "deleteElement": "Suprimeix l'element seleccionat",
+        "moveElement": "Mou l'element seleccionat",
+        "closeDeselect": "Tanca el tauler / desselecciona",
+        "save": "Desa",
+        "copyComponent": "Copia el component",
+        "pasteComponent": "Enganxa el component",
+        "duplicateComponent": "Duplica el component",
+        "togglePreview": "Commuta la previsualització",
+        "exportTemplate": "Exporta la plantilla",
+        "showJson": "Mostra el JSON",
+        "selectParent": "Selecciona el component pare",
+        "copyGate": "Copia la porta seleccionada",
+        "pasteGate": "Enganxa la porta",
+        "showShortcuts": "Mostra les dreceres de teclat"
+      }
+    },
+    "guide": {
+      "title": "Com funciona l'editor",
+      "description": "Guia de modelatge completa amb exemples i material visual.",
+      "diagramTypesHeading": "Tipus de diagrames",
+      "noImage": "No hi ha cap imatge per a aquest element.",
+      "openDocs": "Obrir la documentació de BESSER",
+      "openWmeRepo": "Obrir el repositori de WME",
+      "class": {
+        "label": "Diagrama de classes",
+        "summary": "Modela classes, relacions, restriccions i estructures UML avançades.",
+        "addClass": {
+          "title": "Afegir una classe",
+          "body": "<p>Arrossega i deixa anar una forma de classe des de la paleta de l'esquerra sobre el llenç de modelatge.</p>",
+          "alt": "Crear un element de classe"
+        },
+        "addAssociation": {
+          "title": "Afegir una associació o una generalització",
+          "body": "<p>Selecciona una classe origen i, tot seguit, arrossega des d'un punt de connexió blau cap a una altra classe. Per a les multiplicitats, utilitza valors com ara <code>1</code>, <code>0..1</code>, <code>0..*</code>, <code>1..*</code> o <code>2..4</code>.</p>",
+          "alt": "Crear una relació de classe"
+        },
+        "editClass": {
+          "title": "Editar una classe",
+          "body": "<p>Fes doble clic en una classe per editar-ne el nom, els atributs i els mètodes.</p><p>Exemples de format d'atribut: <code>+ attribute : type</code>, <code>+ attribute</code>, <code>attribute</code>. Els tipus primitius inclouen <code>int</code>, <code>float</code>, <code>str</code>, <code>bool</code>, <code>time</code>, <code>date</code>, <code>datetime</code>, <code>timedelta</code> i <code>any</code>.</p><p>Visibilitat: <code>+</code> públic, <code>-</code> privat, <code>#</code> protegit. Exemples de mètode: <code>+ notify(sms: str = 'message')</code>, <code>- findBook(title: str): Book</code>, <code>validate()</code>.</p>",
+          "alt": "Editar un element de classe"
+        },
+        "editAssociation": {
+          "title": "Editar una associació o una generalització",
+          "body": "<p>Fes doble clic en una relació per editar-ne el tipus (unidireccional, bidireccional, composició, generalització), el nom, els noms de rol d'origen/destinació i les multiplicitats.</p>",
+          "alt": "Editar una associació de classe"
+        },
+        "deleteMove": {
+          "title": "Suprimir i moure",
+          "body": "<p>Selecciona una classe i prem <code>Delete</code> o <code>Backspace</code> per eliminar-la.</p><p>Mou els elements arrossegant-los o utilitzant les fletxes del teclat.</p><p>Utilitza <code>Ctrl+Z</code> i <code>Ctrl+Y</code> per desfer/refer.</p>",
+          "alt": "Moure un element de classe"
+        },
+        "oclConstraint": {
+          "title": "Restricció OCL",
+          "body": "<p>Arrossega la forma OCL i, tot seguit, escriu restriccions com ara <code>Context \"ClassName\" ...</code>. Pots connectar les restriccions a les classes mitjançant enllaços de punts.</p><p>La validació de la sintaxi de les restriccions s'executa durant el Quality Check i està impulsada per <boclLink>B-OCL</boclLink>.</p>",
+          "alt": "Ajuda sobre les restriccions OCL"
+        },
+        "associationClass": {
+          "title": "Classe d'associació",
+          "body": "<p>Crea una classe d'associació enllaçant un element de classe amb el punt central d'una associació existent. Pots definir-hi atributs com en una classe normal. Nota: els generadors actuals no admeten les classes d'associació.</p>",
+          "alt": "Ajuda sobre les classes d'associació"
+        }
+      },
+      "object": {
+        "label": "Diagrama d'objectes",
+        "summary": "Representa instàncies concretes en temps d'execució i els seus enllaços.",
+        "about": {
+          "title": "Sobre els diagrames d'objectes",
+          "body": "<p>Els diagrames d'objectes mostren instàncies de classes en un moment concret, incloent-hi els valors actuals dels atributs i els enllaços.</p>"
+        },
+        "addObject": {
+          "title": "Afegir un objecte",
+          "body": "<p>Arrossega i deixa anar un element d'objecte des del tauler de l'esquerra fins al llenç.</p>",
+          "alt": "Crear un objecte"
+        },
+        "editObject": {
+          "title": "Editar un objecte",
+          "body": "<p>Fes doble clic en un objecte per editar-ne el nom, el tipus i els valors dels atributs.</p><p>Utilitza el format de nom <code>objectName : ClassName</code>. Per als valors, utilitza <code>attributeName = value</code> (per exemple <code>age = 25</code>).</p>",
+          "alt": "Editar un objecte"
+        },
+        "addLink": {
+          "title": "Afegir un enllaç d'objecte",
+          "body": "<p>Fes clic en un objecte, arrossega des d'un punt de connexió blau i deixa'l anar sobre un altre objecte per crear un enllaç.</p>",
+          "alt": "Crear un enllaç d'objecte"
+        },
+        "editLink": {
+          "title": "Editar un enllaç d'objecte",
+          "body": "<p>Fes doble clic en un enllaç per actualitzar-ne les propietats, com ara la informació de rol/nom.</p>",
+          "alt": "Editar un enllaç d'objecte"
+        },
+        "deleteMove": {
+          "title": "Suprimir, moure i bones pràctiques",
+          "body": "<p>Suprimeix objectes/enllaços amb <code>Delete</code> o <code>Backspace</code>. Mou els objectes arrossegant-los o amb les fletxes.</p><p>Utilitza els diagrames d'objectes juntament amb els diagrames de classes per validar escenaris reals, noms i la coherència dels valors.</p>"
+        }
+      },
+      "state": {
+        "label": "Màquina d'estats",
+        "summary": "Captura el comportament dinàmic amb estats, transicions i accions.",
+        "about": {
+          "title": "Sobre els diagrames de màquina d'estats",
+          "body": "<p>Els diagrames de màquina d'estats descriuen els canvis de comportament al llarg del temps en resposta a esdeveniments i condicions.</p>"
+        },
+        "initialFinal": {
+          "title": "Afegir el flux inicial i final",
+          "body": "<p>Comença amb un node inicial i connecta'l al primer estat.</p>",
+          "alt": "Estats inicial i final de la màquina d'estats"
+        },
+        "editState": {
+          "title": "Editar un estat",
+          "body": "<p>Fes doble clic en un estat per actualitzar-ne el nom, el <code>Body</code> i el comportament opcional de <code>Fallback</code>.</p>",
+          "alt": "Editar un estat"
+        },
+        "codeBlock": {
+          "title": "Enllaçar un bloc de codi",
+          "body": "<p>Enllaça el comportament de codi proporcionant noms de funcions als camps body/fallback de l'estat per obtenir una assignació d'execució precisa.</p>",
+          "alt": "Bloc de codi de la màquina d'estats"
+        },
+        "bestPractices": {
+          "title": "Bones pràctiques",
+          "body": "<p>Mantén els noms dels estats explícits, protegeix les transicions correctament i verifica que tots els camins d'esdeveniments rellevants estiguin modelats.</p>"
+        }
+      },
+      "agent": {
+        "label": "Diagrama d'agent",
+        "summary": "Modela agents conversacionals BAF amb estats, intents i lògica de transició.",
+        "about": {
+          "title": "Modelatge d'agents BAF",
+          "body": "<p>Els diagrames d'agent segueixen un estil de màquina d'estats en què cada estat té un cos de comportament i les transicions defineixen l'encaminament.</p>"
+        },
+        "addState": {
+          "title": "Afegir un estat d'agent",
+          "body": "<p>Arrossega un estat d'agent des de la paleta fins al llenç.</p>",
+          "alt": "Afegir un estat d'agent"
+        },
+        "editBody": {
+          "title": "Editar el cos d'un estat d'agent",
+          "body": "<p>Fes doble clic en un estat d'agent per configurar-ne el comportament.</p><ul><li>Resposta de text: missatge de resposta predefinit.</li><li>Resposta LLM: delega la generació de la resposta a un LLM.</li><li>Resposta RAG: respon utilitzant una font de coneixement amb recuperació augmentada.</li><li>Codi Python: executa lògica de comportament personalitzada.</li></ul>",
+          "alt": "Editar el cos d'un agent"
+        },
+        "addTransition": {
+          "title": "Afegir una transició entre estats",
+          "body": "<p>Arrossega des de la part exterior d'un estat origen fins a un estat destinació per definir una transició.</p>",
+          "alt": "Afegir una transició d'agent"
+        },
+        "transitionCondition": {
+          "title": "Establir la condició de la transició",
+          "body": "<p>Fes doble clic en una transició i configura les regles de la condició, com ara:</p><ul><li>Quan es reconeix l'intent</li><li>Quan no es reconeix cap intent</li><li>Operació de variable reconeguda</li><li>Fitxer rebut</li><li>Transició automàtica</li></ul>",
+          "alt": "Condicions de transició d'agent"
+        },
+        "initialState": {
+          "title": "Establir l'estat inicial",
+          "body": "<p>Connecta el node inicial a l'estat on ha de començar la conversa.</p>",
+          "alt": "Estat inicial de l'agent"
+        },
+        "defineIntents": {
+          "title": "Definir els intents",
+          "body": "<p>Afegeix elements d'intent i defineix els noms dels intents i les frases d'entrenament per millorar la qualitat del reconeixement. Les descripcions dels intents ajuden a aclarir el significat i el propòsit de cada intent.</p>",
+          "alt": "Definir els intents de l'agent"
+        },
+        "customization": {
+          "title": "Personalització de l'agent",
+          "body": "<p>Obre l'Agent Config des de la barra lateral per configurar el model i els paràmetres d'execució dels agents generats.</p><ul><li>Reconeixement d'intents clàssic: entrena un model local a partir dels intents definits.</li><li>Reconeixement d'intents basat en LLM: delega la classificació d'intents a un LLM.</li></ul>",
+          "alt": "Configuració de l'agent"
+        }
+      },
+      "gui": {
+        "label": "Editor d'interfícies gràfiques",
+        "summary": "Construeix pantalles d'interfície visualment i genera frontends d'aplicacions web.",
+        "coreWorkflow": {
+          "title": "Flux de treball principal",
+          "body": "<p>Utilitza blocs de plantilla, compon dissenys i, tot seguit, vincula dades i accions basades en el model.</p><p>Mantén les pàgines modulars perquè la sortida generada continuï sent previsible i mantenible.</p>"
+        }
+      },
+      "quantum": {
+        "label": "Editor quàntic",
+        "summary": "Dissenya circuits, configura portes i genera artefactes compatibles amb Qiskit.",
+        "coreWorkflow": {
+          "title": "Flux de treball principal",
+          "body": "<p>Col·loca portes sobre les línies de qubits, valida l'estructura i, tot seguit, genera amb els paràmetres de servidor seleccionats.</p><p>Utilitza el nombre de shots i la selecció de servidor a Generate per obtenir resultats reproduïbles.</p>"
+        }
+      },
+      "nn": {
+        "label": "Xarxa neuronal",
+        "summary": "Dissenya xarxes neuronals en capes, adjunta-hi conjunts de dades i configuració d'entrenament, i genera codi de PyTorch o TensorFlow.",
+        "coreWorkflow": {
+          "title": "Flux de treball principal",
+          "body": "<p>Construeix una xarxa neuronal deixant anar un NNContainer sobre el llenç. Arrossega capes i TensorOps a dins seu i, tot seguit, connecta'ls amb relacions NNNext per definir el pas cap endavant.</p><p>La configuració i els conjunts de dades d'entrenament/prova són elements opcionals que contenen els hiperparàmetres d'entrenament i les metadades del conjunt de dades. Quan el diagrama estigui llest, genera codi de PyTorch o TensorFlow des del menú Generate.</p>",
+          "alt": "Visió general del diagrama de NN"
+        },
+        "containerLayers": {
+          "title": "Afegir un NN Container, capes i TensorOps",
+          "body": "<p>Comença arrossegant un NNContainer des de la paleta fins al llenç; tots els mòduls de la xarxa neuronal han de residir a dins seu.</p><p>Capes disponibles: <code>Conv1D</code>, <code>Conv2D</code>, <code>Conv3D</code>, <code>Pooling</code>, <code>Linear</code>, <code>Flatten</code>, <code>Embedding</code>, <code>Dropout</code>, <code>RNN</code>, <code>LSTM</code>, <code>GRU</code>, <code>LayerNormalization</code>, <code>BatchNormalization</code>. TensorOps disponibles: <code>reshape</code>, <code>concatenate</code>, <code>transpose</code>, <code>permute</code>, <code>multiply</code>, <code>matmultiply</code>.</p>",
+          "alt": "Paleta de NN amb una capa deixada anar"
+        },
+        "connect": {
+          "title": "Connectar mòduls (NNNext)",
+          "body": "<p>Arrossega des d'un punt de connexió blau d'un mòdul origen fins a qualsevol mòdul destinació per crear una relació NNNext. La fletxa \"next\" resultant defineix l'ordre del pas cap endavant, independentment de si els mòduls connectats són capes, TensorOps o una combinació de tots dos.</p>",
+          "alt": "Dos mòduls connectats amb una fletxa NNNext"
+        },
+        "editAttributes": {
+          "title": "Editar els atributs d'un mòdul",
+          "body": "<p>Fes doble clic en qualsevol capa o TensorOp per obrir-ne la finestra emergent d'atributs. Els atributs obligatoris es mostren sempre; els opcionals s'activen mitjançant caselles de selecció.</p><p>Molts camps utilitzen desplegables: <code>pooling_type</code> (<code>max</code>, <code>average</code>, <code>adaptive_max</code>, <code>adaptive_average</code>, <code>global_max</code>, <code>global_average</code>), <code>actv_func</code> (<code>relu</code>, <code>leaky_relu</code>, <code>sigmoid</code>, <code>softmax</code>, <code>tanh</code>), <code>tns_type</code> (<code>reshape</code>, <code>concatenate</code>, <code>transpose</code>, <code>permute</code>, <code>multiply</code>, <code>matmultiply</code>), <code>padding_type</code> (<code>valid</code>, <code>same</code>).</p><p>Els atributs de tipus llista s'adapten a la dimensió del mòdul. Una capa Pooling amb <code>dimension = 2D</code> espera <code>kernel_dim = [3, 3]</code>, mentre que <code>dimension = 3D</code> espera <code>[3, 3, 3]</code>. La mateixa regla s'aplica a <code>stride_dim</code> i <code>output_dim</code>. Per als TensorOps, el <code>tns_type</code> seleccionat controla quin atribut de dimensió es mostra (per exemple <code>reshape_dim</code> per a reshape, <code>concatenate_dim</code> per a concatenate).</p>",
+          "alt": "Editar els atributs d'un mòdul"
+        },
+        "datasets": {
+          "title": "Conjunts de dades (entrenament i prova)",
+          "body": "<p>Els conjunts de dades són opcionals. Deixa anar un Training Dataset i un Test Dataset per declarar les fonts de dades de la xarxa.</p><p>Els atributs obligatoris són <code>name</code> i <code>path_data</code> (ruta de fitxer o carpeta cap al conjunt de dades). Els atributs opcionals són <code>task_type</code> (<code>binary</code>, <code>multi_class</code>, <code>regression</code>) i <code>input_format</code> (<code>csv</code>, <code>images</code>). Quan <code>input_format = images</code>, apareixen dos atributs addicionals: <code>shape</code> (per exemple <code>[32, 32, 3]</code>) i <code>normalize</code> (<code>true</code> o <code>false</code>).</p><p>Connecta cada conjunt de dades a l'NNContainer amb una línia d'associació.</p>",
+          "alt": "Conjunts de dades d'entrenament i de prova"
+        },
+        "configuration": {
+          "title": "Configuració",
+          "body": "<p>La configuració és opcional. Arrossega un element Configuration i connecta'l a l'NNContainer amb una relació de composició per establir els hiperparàmetres d'entrenament.</p><p>Atributs obligatoris: <code>batch_size</code>, <code>epochs</code>, <code>learning_rate</code>, <code>optimizer</code> (<code>sgd</code>, <code>adam</code>, <code>adamW</code>, <code>adagrad</code>), <code>loss_function</code> (<code>crossentropy</code>, <code>binary_crossentropy</code>, <code>mse</code>) i <code>metrics</code> (selecció múltiple entre <code>accuracy</code>, <code>precision</code>, <code>recall</code>, <code>f1-score</code>, <code>mae</code>). Atributs opcionals: <code>weight_decay</code> i <code>momentum</code>.</p>",
+          "alt": "Element de configuració amb el desplegable d'optimitzador"
+        },
+        "reference": {
+          "title": "Referenciar una altra xarxa (NNReference)",
+          "body": "<p>Utilitza un element NNReference per reutilitzar una NN ja definida al mateix llenç. Selecciona l'NNContainer destinació des de la finestra emergent; la xarxa referenciada s'inclou com a subxarxa durant la generació de codi.</p>",
+          "alt": "NNReference amb la finestra emergent de selecció de destinació"
+        },
+        "validateGenerate": {
+          "title": "Validar i generar",
+          "body": "<p>Executa el Quality Check des de la barra superior per detectar problemes estructurals, com ara capes desconnectades o atributs obligatoris que falten, abans de generar codi.</p><p>Obre el menú Generate i tria un framework i un estil:</p><ul><li><strong>PyTorch / Subclassing</strong>: subclasse de <code>torch.nn.Module</code> amb un pas cap endavant explícit.</li><li><strong>PyTorch / Sequential</strong>: composició <code>nn.Sequential</code> per a arquitectures estrictament seqüencials.</li><li><strong>TensorFlow / Subclassing</strong>: subclasse de <code>tf.keras.Model</code> amb un <code>call()</code> personalitzat.</li><li><strong>TensorFlow / Sequential</strong>: composició <code>keras.Sequential</code>.</li></ul><p>La definició de l'arquitectura de la NN es genera en el framework seleccionat, juntament amb el codi d'entrenament i d'avaluació quan es defineixen els conjunts de dades i la Configuration.</p>",
+          "alt": "Menú de generació de codi"
+        }
+      }
+    }
+  },
+  "shared": {
+    "commandPalette": {
+      "dialogLabel": "Paleta d'ordres",
+      "placeholder": "Escriu una ordre...",
+      "searchLabel": "Cerca ordres",
+      "noResults": "No hi ha cap ordre coincident",
+      "navigate": "Navega",
+      "select": "Selecciona",
+      "categories": {
+        "editors": "Editors",
+        "navigation": "Navegació",
+        "actions": "Accions"
+      },
+      "actions": {
+        "switchClass": "Canvia al diagrama de classes",
+        "switchState": "Canvia a la màquina d'estats",
+        "switchObject": "Canvia al diagrama d'objectes",
+        "switchGui": "Canvia a l'editor d'interfície",
+        "switchAgent": "Canvia al diagrama d'agent",
+        "switchQuantum": "Canvia al circuit quàntic",
+        "goSettings": "Vés a la configuració",
+        "goQualityCheck": "Vés al control de qualitat",
+        "exportJson": "Exporta com a JSON",
+        "exportBuml": "Exporta com a B-UML"
+      }
+    },
+    "appErrorBoundary": {
+      "title": "Alguna cosa ha anat malament",
+      "description": "Ha ocorregut un error inesperat. Si us plau, intenta recarregar l'aplicació.",
+      "reload": "Recarrega l'aplicació"
+    },
+    "cookie": {
+      "toggleEnable": "Activa l'analítica",
+      "toggleDisable": "Desactiva l'analítica",
+      "settingsTitle": "Configuració de privadesa",
+      "settingsDesc": "Gestiona les preferències d'analítica per a aquest navegador.",
+      "policyTitle": "Política de privadesa",
+      "policyDesc": "Resum del tractament de dades analítiques a BESSER.",
+      "settingsButton": "Configuració de privadesa",
+      "banner": {
+        "title": "Galetes d'analítica",
+        "subtitle": "Analítica anònima per millorar BESSER.",
+        "details": "Detalls",
+        "hideDetails": "Amaga els detalls",
+        "decline": "Rebutja",
+        "settings": "Configuració",
+        "accept": "Accepta",
+        "privacyPolicy": "Política de privadesa",
+        "rows": {
+          "generators": "Generadors de codi utilitzats",
+          "diagramComplexity": "Tipus de diagrama i complexitat del model",
+          "assistantUsage": "Recompte d'ús de l'assistent d'IA",
+          "noContent": "Sense contingut del model ni dades personals"
+        }
+      },
+      "settings": {
+        "essentialTitle": "Galetes essencials",
+        "requiredBadge": "Obligatòries",
+        "essentialDesc": "Necessàries per a la funcionalitat de l'editor i les preferències locals.",
+        "analyticsTitle": "Analítica",
+        "analyticsDesc": "Mètriques d'ús anònimes per millorar els generadors, els fluxos de treball i la qualitat de l'UX.",
+        "savePreferences": "Desa les preferències"
+      },
+      "privacy": {
+        "aboutTitle": "Quant a BESSER",
+        "aboutBody": "BESSER (Better Smart Software Faster) és una plataforma low-code de codi obert desenvolupada pel Software Engineering Research Group del LIST (Luxembourg Institute of Science and Technology).",
+        "collectTitle": "Dades que recollim",
+        "collect": {
+          "usage": "Ús de funcions (generadors i fluxos de treball de diagrames)",
+          "metrics": "Mètriques del model (recomptes de mida i estructura)",
+          "assistant": "Recomptes d'ús de l'assistent d'IA (no el contingut)",
+          "session": "Metadades de sessió anònimes"
+        },
+        "noCollectTitle": "Dades que no recollim",
+        "noCollect": {
+          "identity": "Dades d'identitat personal (nom, correu electrònic)",
+          "content": "Contingut de diagrames/models",
+          "recordings": "Enregistraments de pantalla o reproducció de sessió",
+          "names": "Noms de projectes i títols de diagrames"
+        },
+        "useTitle": "Com utilitzem les dades",
+        "useBody": "L'analítica només s'utilitza per millorar la qualitat del producte i prioritzar el desenvolupament de funcions. No s'utilitza per a màrqueting ni revenda.",
+        "providerTitle": "Proveïdor",
+        "providerIntro": "Utilitzem PostHog (allotjat a la UE). Veu la",
+        "providerLinkText": "Política de privadesa de PostHog"
+      }
+    },
+    "errors": {
+      "dismiss": "Descarta l'error"
+    },
+    "errorBoundary": {
+      "title": "Error de l'editor",
+      "description": "L'editor ha trobat un error inesperat. La teva feina s'ha desat.",
+      "unknownError": "Error desconegut",
+      "tryAgainLabel": "Torna-ho a provar després de l'error",
+      "tryAgain": "Torna-ho a provar"
+    },
+    "jsonViewer": {
+      "jsonTitle": "Vista prèvia JSON del projecte",
+      "diagramBuml": "Diagrama B-UML",
+      "closeLabel": "Tanca la finestra de vista prèvia",
+      "expand": "Desplega {{name}}",
+      "collapse": "Replega {{name}}",
+      "root": "root",
+      "generatingBuml": "S'està generant la vista prèvia de B-UML...",
+      "noBumlPreview": "Encara no hi ha cap vista prèvia de B-UML disponible.",
+      "generating": "S'està generant...",
+      "regenerate": "Regenera",
+      "downloadBuml": "Baixa el B-UML",
+      "copyBuml": "Copia el B-UML",
+      "downloadJson": "Baixa el JSON",
+      "copyJson": "Copia el JSON",
+      "copyValue": "Copia el valor"
+    },
+    "notFound": {
+      "title": "Pàgina no trobada",
+      "description": "La pàgina que busques no existeix o s'ha mogut.",
+      "backHome": "Torna a l'inici"
+    },
+    "offline": {
+      "offlineMessage": "Estàs sense connexió. És possible que algunes funcions no funcionin.",
+      "backOnline": "De nou en línia.",
+      "dismiss": "Descarta l'avís de sense connexió"
+    }
+  },
+  "shell": {
+    "errors": {
+      "noProject": "Crea o carrega un projecte primer.",
+      "unknown": "Error desconegut",
+      "couldNotSwitchDiagram": "No s'ha pogut canviar a {{type}}."
+    },
+    "export": {
+      "bumlSuccess": "Projecte exportat com a B-UML.",
+      "bumlFailed": "Ha fallat l'exportació B-UML: {{message}}",
+      "jsonSuccess": "Projecte exportat com a JSON."
+    },
+    "import": {
+      "failed": "Ha fallat la importació: {{message}}"
+    },
+    "validateBeforeNav": {
+      "title": "Valida els teus models abans de passar a la tasca següent",
+      "description": "Aquest model d'usuari no s'ha validat després dels teus darrers canvis.",
+      "confirmLabel": "Validar models",
+      "cancelLabel": "Ignora"
+    },
+    "leaveWithIssues": {
+      "title": "Hi ha problemes amb el teu diagrama, encara vols sortir d'aquest model?",
+      "description": "La comprovació de qualitat ha trobat errors. Pots quedar-te per corregir-los o sortir d'aquest model igualment.",
+      "confirmLabel": "Surt del model",
+      "cancelLabel": "Queda't"
+    },
+    "agentVariant": {
+      "createdAt": "Creat {{date}}",
+      "noBaseModel": "Encara no hi ha cap model base disponible per a aquesta pestanya d'agent.",
+      "switchedToBase": "S'ha canviat al model d'agent base.",
+      "notAvailable": "La variant seleccionada ja no està disponible.",
+      "switchedToVariant": "S'ha canviat a la variant {{name}}.",
+      "switchFailed": "No s'ha pogut canviar la variant del model d'agent."
+    },
+    "nav": {
+      "open": "Obre la navegació",
+      "close": "Tanca la navegació",
+      "title": "Navegació"
+    },
+    "preview": {
+      "projectLabel": "Projecte (V{{version}})",
+      "bumlLabelNamed": "Previsualització B-UML del projecte ({{name}})",
+      "bumlLabel": "Previsualització B-UML del projecte"
+    }
+  },
+  "editors": {
+    "diagramTabs": {
+      "editorNotReady": "L'editor encara no està a punt.",
+      "pickClassRefFirst": "Primer selecciona una referència de diagrama de classes.",
+      "noClassesToInstantiate": "El diagrama de classes referenciat no té classes per instanciar.",
+      "linksFragment_one": ", {{count}} enllaç",
+      "linksFragment_other": ", {{count}} enllaços",
+      "allClassesHaveInstance_one": "La {{count}} classe ja té una instància: no hi ha res a afegir.",
+      "allClassesHaveInstance_other": "Totes les {{count}} classes ja tenen una instància: no hi ha res a afegir.",
+      "generatedWithSkipped_one": "S'ha generat {{count}} objecte{{links}}, s'ha omès {{skipped}} que ja era al llenç.",
+      "generatedWithSkipped_other": "S'han generat {{count}} objectes{{links}}, s'han omès {{skipped}} que ja eren al llenç.",
+      "generatedFromClassDiagram_one": "S'ha generat {{count}} objecte{{links}} a partir del diagrama de classes.",
+      "generatedFromClassDiagram_other": "S'han generat {{count}} objectes{{links}} a partir del diagrama de classes.",
+      "maxDiagrams": "Màxim {{count}} diagrames per tipus.",
+      "classRefTooltipObject": "Selecciona quin diagrama de classes proporciona el model de dades per a aquest diagrama d'objectes",
+      "classRefTooltipGui": "Selecciona quin diagrama de classes proporciona el model de dades per a aquesta interfície gràfica",
+      "validationValidated": "Validat",
+      "validationIssues": "Problemes",
+      "validationNeedsValidation": "Cal validació",
+      "validationNotValidated": "Sense validar",
+      "diagramTabLabel": "Pestanya de diagrama: {{title}}",
+      "validationStatusLabel": "Estat de validació: {{status}}",
+      "renameDiagram": "Canvia el nom del diagrama",
+      "closeTabLabel": "Tanca la pestanya {{title}}",
+      "closeTab": "Tanca la pestanya",
+      "addNewDiagram": "Afegeix un diagrama nou",
+      "expandLinkedDiagrams": "Desplega els diagrames enllaçats",
+      "collapseLinkedDiagrams": "Replega els diagrames enllaçats",
+      "showLinkedDiagrams": "Mostra els diagrames enllaçats",
+      "hideLinkedDiagrams": "Amaga els diagrames enllaçats",
+      "linkedDiagrams": "Diagrames enllaçats",
+      "references": "Referències",
+      "classDiagram": "Diagrama de classes",
+      "referenceBroken": "Referència trencada: torna a seleccionar",
+      "referenceDeleted": "El diagrama referenciat s'ha suprimit. Selecciona'n un de nou.",
+      "referenceEmpty": "El diagrama de classes referenciat és buit (sense classes ni relacions).",
+      "generateObjectsTooltip": "Crea una instància d'objecte per cada classe del diagrama referenciat, amb valors predeterminats per a cada atribut.",
+      "generate": "Genera",
+      "noClassDiagramsAvailable": "No hi ha diagrames de classes disponibles"
+    },
+    "charts": {
+      "loadingChart": "S'està carregant el gràfic...",
+      "noDataAvailable": "No hi ha dades disponibles"
+    },
+    "table": {
+      "columnLabel": "Etiqueta",
+      "columnValue": "Valor",
+      "addEntity": "Afegeix {{entity}}",
+      "addRegister": "Afegeix un registre",
+      "previewDescription": "Només vista prèvia de dades. Configura els enllaços per connectar les files de la taula amb el teu model de domini.",
+      "edit": "Edita",
+      "editRow": "Edita la fila",
+      "remove": "Elimina",
+      "removeRow": "Elimina la fila",
+      "showingRows": "Mostrant {{visible}} de {{total}} files",
+      "rowsPerPage": "Files per pàgina: {{count}}"
+    },
+    "quantum": {
+      "editorTitle": "Editor Quàntic",
+      "saved": "Desat",
+      "saving": "S'està desant...",
+      "error": "Error",
+      "undo": "Desfés",
+      "redo": "Refés",
+      "examples": "Exemples",
+      "saveNow": "Desa ara",
+      "saveNowTooltip": "Desa manualment el circuit al projecte",
+      "exportJson": "Exporta JSON",
+      "importJson": "Importa JSON",
+      "editFunctionGate": "Edita la porta de funció",
+      "closeModal": "Tanca la finestra",
+      "gateNamePlaceholder": "Introduïu el nom de la porta (p. ex. Bell State, QFT)",
+      "gateColor": "Color de la porta:",
+      "selectGateColor": "Selecciona el color de la porta {{color}}",
+      "customColor": "Color personalitzat",
+      "qubits": "Qubits: {{count}}",
+      "removeQubit": "Elimina el qubit",
+      "addQubit": "Afegeix un qubit",
+      "saveCircuit": "Desa el circuit",
+      "toolbox1": "Caixa d'eines 1",
+      "toolbox2": "Caixa d'eines 2",
+      "functionGate": {
+        "tooltip": "{{label}}: fes doble clic per editar el circuit imbricat {{status}}",
+        "configured": "(configurat)",
+        "empty": "(buit)"
+      },
+      "gateDescriptions": {
+        "H": "Porta de Hadamard: crea una superposició girant l'estat del qubit 180° al voltant de l'eix X+Z. Transforma |0⟩ en |+⟩ i |1⟩ en |−⟩.",
+        "X": "Porta Pauli-X (NOT): inverteix l'estat del qubit. Gira 180° al voltant de l'eix X. Transforma |0⟩ ↔ |1⟩.",
+        "Y": "Porta Pauli-Y: gira 180° al voltant de l'eix Y. Transforma |0⟩ en i|1⟩ i |1⟩ en -i|0⟩.",
+        "Z": "Porta Pauli-Z (canvi de fase): gira 180° al voltant de l'eix Z. Deixa |0⟩ sense canvis i transforma |1⟩ en -|1⟩.",
+        "Z^½": "Porta S (√Z): gira 90° al voltant de l'eix Z. Afegeix una fase de i a |1⟩. Dues portes S = una porta Z.",
+        "S_DAG": "Porta S-Dagger (√Z inversa): gira -90° al voltant de l'eix Z. Afegeix una fase de -i a |1⟩. Desfà la porta S.",
+        "X^½": "Porta V (√X): gira 90° al voltant de l'eix X. Dues portes V = una porta X (NOT).",
+        "V_DAG": "Porta V-Dagger (√X inversa): gira -90° al voltant de l'eix X. Desfà la porta V.",
+        "SQRT_Y": "Porta √Y: gira 90° al voltant de l'eix Y. Dues portes √Y = una porta Y.",
+        "SQRT_Y_DAG": "Porta √Y-Dagger (√Y inversa): gira -90° al voltant de l'eix Y. Desfà la porta √Y.",
+        "T": "Porta T (⁴√Z): gira 45° al voltant de l'eix Z. Afegeix una fase de π/4 a |1⟩. Essencial per a la computació quàntica universal.",
+        "T_DAG": "Porta T-Dagger (⁴√Z inversa): gira -45° al voltant de l'eix Z. Elimina la fase de π/4. Desfà la porta T.",
+        "SQRT_SQRT_X": "Porta ⁴√X: gira 45° al voltant de l'eix X. Quatre aplicacions = una porta X (NOT).",
+        "SQRT_SQRT_X_DAG": "Porta ⁴√X-Dagger: gira -45° al voltant de l'eix X. Desfà la porta X^¼.",
+        "SQRT_SQRT_Y": "Porta ⁴√Y: gira 45° al voltant de l'eix Y. Quatre aplicacions = una porta Y.",
+        "SQRT_SQRT_Y_DAG": "Porta ⁴√Y-Dagger: gira -45° al voltant de l'eix Y. Desfà la porta Y^¼.",
+        "SWAP": "Porta SWAP: intercanvia els estats de dos qubits. |01⟩ ↔ |10⟩, mentre que |00⟩ i |11⟩ no canvien.",
+        "MEASURE": "Mesura (base Z): col·lapsa la superposició del qubit a |0⟩ o |1⟩. El resultat és probabilístic segons les amplituds del qubit.",
+        "MEASURE_X": "Mesura (base X): col·lapsa el qubit a |+⟩ o |−⟩. Equivalent a H, després mesura Z i després H.",
+        "MEASURE_Y": "Mesura (base Y): col·lapsa el qubit a |i⟩ o |−i⟩. Mesura la fase respecte a l'eix Y.",
+        "CONTROL": "Control: condiciona altres portes al fet que aquest qubit sigui |1⟩. Crea CNOT, Toffoli i altres portes controlades.",
+        "ANTI_CONTROL": "Anticontrol: condiciona altres portes al fet que aquest qubit sigui |0⟩. Contrari del control normal.",
+        "POST_SELECT_OFF": "Postselecció |0⟩: força el qubit a |0⟩. Descarta les branques on el qubit seria |1⟩.",
+        "POST_SELECT_ON": "Postselecció |1⟩: força el qubit a |1⟩. Descarta les branques on el qubit seria |0⟩.",
+        "POST_SELECT_X_OFF": "Postselecció |+⟩: força el qubit a la superposició (|0⟩+|1⟩)/√2.",
+        "POST_SELECT_X_ON": "Postselecció |−⟩: força el qubit a la superposició (|0⟩−|1⟩)/√2.",
+        "POST_SELECT_Y_OFF": "Postselecció |i⟩: força el qubit a l'estat propi Y+ (|0⟩+i|1⟩)/√2.",
+        "POST_SELECT_Y_ON": "Postselecció |−i⟩: força el qubit a l'estat propi Y− (|0⟩−i|1⟩)/√2.",
+        "CONTROL_X": "Control en l'eix X: condiciona en la base X (|+⟩/|−⟩) en lloc de la base Z (|0⟩/|1⟩).",
+        "CONTROL_Y": "Control en l'eix Y: condiciona en la base Y (|i⟩/|−i⟩) en lloc de la base Z.",
+        "X_POW": "Rotació X (X^t): gira t×180° al voltant de l'eix X. t=1 és la porta X, t=0.5 és √X.",
+        "Y_POW": "Rotació Y (Y^t): gira t×180° al voltant de l'eix Y. t=1 és la porta Y, t=0.5 és √Y.",
+        "Z_POW": "Rotació Z (Z^t): afegeix una fase de t×180° a |1⟩. t=1 és Z, t=0.5 és S, t=0.25 és T.",
+        "EXP_X": "Exponencial X: e^(-iXt) - gira al voltant de X un angle 2t. Forma natural per a la simulació hamiltoniana.",
+        "EXP_Y": "Exponencial Y: e^(-iYt) - gira al voltant de Y un angle 2t. Matriu de rotació de valors reals.",
+        "EXP_Z": "Exponencial Z: e^(-iZt) - rotació de fase d'un angle 2t. Porta diagonal per a la manipulació de fase.",
+        "Z_POW_T": "Z giratori: gira contínuament al voltant de Z a mesura que avança el temps de simulació t. La fase s'acumula amb el temps.",
+        "Z_POW_NEG_T": "Z giratori invers: gira cap enrere al voltant de l'eix Z. Desfà Z^t per a la inversió temporal.",
+        "Y_POW_T": "Y giratori: gira contínuament al voltant de Y a mesura que avança el temps de simulació.",
+        "Y_POW_NEG_T": "Y giratori invers: gira cap enrere al voltant de l'eix Y a mesura que avança el temps.",
+        "X_POW_T": "X giratori: gira contínuament al voltant de X a mesura que avança el temps de simulació.",
+        "X_POW_NEG_T": "X giratori invers: gira cap enrere al voltant de l'eix X a mesura que avança el temps.",
+        "Z_FUNC_T": "Z formulaic: l'angle de rotació es calcula a partir d'una funció personalitzada f(t). Per a dinàmiques complexes.",
+        "RZ_FUNC_T": "Rz formulaic: rotació de l'eix Z de f(t) radians. Parametrització alternativa de la rotació Z.",
+        "Y_FUNC_T": "Y formulaic: angle de rotació Y a partir d'una funció personalitzada f(t). Per a dinàmiques complexes.",
+        "RY_FUNC_T": "Ry formulaic: rotació de l'eix Y de f(t) radians. Parametrització alternativa.",
+        "X_FUNC_T": "X formulaic: angle de rotació X a partir d'una funció personalitzada f(t). Per a dinàmiques complexes.",
+        "RX_FUNC_T": "Rx formulaic: rotació de l'eix X de f(t) radians. Parametrització alternativa.",
+        "TIME_SHIFT": "Desplaçament temporal +1: avança el paràmetre de temps per a les portes següents. S'utilitza per a simulacions basades en el temps.",
+        "TIME_SHIFT_INV": "Desplaçament temporal -1: inverteix el paràmetre de temps per a les portes següents. Desfà l'avanç temporal.",
+        "QFT": "Transformada quàntica de Fourier: converteix la base computacional en base de freqüència. Essencial per a l'algorisme de Shor i l'estimació de fase.",
+        "QFT_DAG": "QFT inversa: converteix la base de freqüència de nou en base computacional. Desfà la QFT.",
+        "PHASE_GRADIENT": "Gradient de fase: aplica fases creixents als estats de la base. S'utilitza en la QFT i en el phase kickback.",
+        "PHASE_GRADIENT_DAG": "Gradient de fase invers: elimina les fases aplicades per Grad. Desfà el gradient de fase.",
+        "PHASE_GRADIENT_INV": "Gradient de fase invertit: aplica fases decreixents als estats de la base.",
+        "PHASE_GRADIENT_INV_DAG": "Gradient de fase invertit Dagger: transposada conjugada de Grad⁻¹.",
+        "INC": "Increment: suma 1 al registre quàntic interpretat com un nombre binari. |n⟩ → |n+1⟩.",
+        "DEC": "Decrement: resta 1 del registre quàntic. |n⟩ → |n-1⟩ (dona la volta).",
+        "ADD": "Suma quàntica: suma el registre d'entrada A al registre de destinació. S'utilitza en circuits aritmètics quàntics.",
+        "SUB": "Resta quàntica: resta el registre d'entrada A del de destinació. Inversa de la suma.",
+        "MUL": "Multiplicació quàntica: multiplica el registre de destinació per l'entrada A. Clau per a l'algorisme de Shor.",
+        "ADD_AB": "Suma de producte: suma el producte A×B al registre de destinació. Operació multiregistre.",
+        "SUB_AB": "Resta de producte: resta el producte A×B del destí. Inversa de +AB.",
+        "MUL_INV": "Multiplicació inversa: divideix per A (multiplica per l'invers modular). Desfà ×A.",
+        "MOD_ADD": "Suma modular: suma A al registre mòdul R. El resultat dona la volta a R. Clau per a l'algorisme de Shor.",
+        "MOD_SUB": "Resta modular: resta A del registre mòdul R. Inversa de la suma modular.",
+        "MOD_MUL": "Multiplicació modular: multiplica el registre per A mòdul R. Nucli de l'exponenciació modular.",
+        "MOD_INV_MUL": "Divisió modular: multiplica per A⁻¹ mòdul R. Desfà la multiplicació modular.",
+        "MOD_INC": "Increment modular: suma 1 al registre mòdul R. Passa de R-1 a 0.",
+        "MOD_DEC": "Decrement modular: resta 1 del registre mòdul R. Passa de 0 a R-1.",
+        "MOD_MUL_B": "Multiplicació modular per B: multiplica per la segona entrada B mòdul R. Operació multiregistre.",
+        "MOD_MUL_B_INV": "Multiplicació modular de B per l'invers d'A: calcula B×A⁻¹ mòdul R. Per a computació reversible.",
+        "COMPARE": "Comparació menor que: posa el qubit de sortida a |1⟩ si A < B. Circuit de comparació quàntica.",
+        "GREATER_THAN": "Comparació major que: posa la sortida a |1⟩ si el registre A > el registre B.",
+        "LESS_EQUAL": "Menor o igual: posa la sortida a |1⟩ si el registre A ≤ el registre B.",
+        "GREATER_EQUAL": "Major o igual: posa la sortida a |1⟩ si el registre A ≥ el registre B.",
+        "EQUAL": "Prova d'igualtat: posa la sortida a |1⟩ si els registres A i B tenen el mateix valor.",
+        "NOT_EQUAL": "Prova de desigualtat: posa la sortida a |1⟩ si els registres A i B difereixen.",
+        "COMPARE_A_LT": "Comparar amb l'entrada A: posa la sortida a |1⟩ si el registre del qubit < el valor de l'entrada A.",
+        "COMPARE_A_GT": "Comparar amb l'entrada A: posa la sortida a |1⟩ si el registre del qubit > el valor de l'entrada A.",
+        "COMPARE_A_EQ": "Comparar amb l'entrada A: posa la sortida a |1⟩ si el registre del qubit és igual al valor de l'entrada A.",
+        "COUNT_1S": "Recompte de població: compta el nombre de qubits |1⟩ del registre. La sortida és una representació binària.",
+        "CYCLE_BITS": "Rotació cíclica de bits: gira les posicions dels qubits de manera cíclica. El qubit superior passa a baix i la resta pugen.",
+        "XOR": "Paritat XOR: calcula l'XOR de tots els qubits del registre. Sortida |1⟩ si hi ha un nombre imparell de |1⟩.",
+        "INPUT_A": "Entrada A: inicialitza els qubits al valor clàssic A (ajustable). Crea l'estat de la base computacional |A⟩.",
+        "INPUT_B": "Entrada B: inicialitza els qubits al valor clàssic B (ajustable). Segona entrada per a operacions aritmètiques.",
+        "RANDOM": "Estat aleatori: inicialitza el qubit a un punt aleatori de l'esfera de Bloch. Crea un estat mixt per a proves.",
+        "INPUT_R": "Entrada R (mòdul): estableix el valor del mòdul per a operacions d'aritmètica modular.",
+        "MYSTERY": "Porta misteri: una porta unitària aleatòria. Diferent cada vegada; útil per a proves i jocs.",
+        "ZERO": "Projecció zero: projecta sobre l'estat |0⟩. Operació no unitària que destrueix informació.",
+        "UNIVERSAL_NOT": "NOT universal: operació antiunitària que inverteix qualsevol estat del qubit al seu ortogonal. Impossible de construir físicament.",
+        "ONE": "Porta identitat: no fa res al qubit. Útil com a marcador de posició o per a la claredat del circuit.",
+        "MINUS_ONE": "Fase global (-1): multiplica tot l'estat per -1. No observable, però important en la interferència.",
+        "PHASE_I": "Fase global (i): gira la fase global 90°. Multiplica l'estat per la unitat imaginària i.",
+        "PHASE_MINUS_I": "Fase global (-i): gira la fase global -90°. Multiplica l'estat per -i.",
+        "PHASE_SQRT_I": "Fase global (√i): gira la fase global 45°. Dues aplicacions donen la fase i.",
+        "PHASE_SQRT_MINUS_I": "Fase global (√-i): gira la fase global -45°. Dues aplicacions donen la fase -i.",
+        "BLOCH": "Esfera de Bloch: visualitza l'estat d'un sol qubit sobre una esfera unitat. Els pols són |0⟩/|1⟩ i l'equador són superposicions.",
+        "DENSITY": "Matriu de densitat (ρ): mostra l'estat quàntic complet, inclosos els estats mixtos. Diagonal = probabilitats, fora de la diagonal = coherències.",
+        "AMPLITUDE": "Visualització d'amplitud: mostra les amplituds complexes de cada estat de la base. Alçada = magnitud, angle = fase.",
+        "CHANCE": "Visualització de probabilitat: mostra la probabilitat (0-100%) de mesurar |1⟩ per a aquest qubit.",
+        "INTERLEAVE": "Entrellaçar: barreja els qubits com si s'entrellacessin dues meitats d'una baralla. Útil per a l'optimització de la QFT.",
+        "DEINTERLEAVE": "Desentrellaçar: desfà l'operació d'entrellaçat. Separa els qubits alternats de nou en meitats.",
+        "REVERSE_BITS": "Invertir bits: inverteix l'ordre dels qubits. Sovint cal després de la QFT per corregir l'ordre dels bits.",
+        "ROTATE_BITS_LEFT": "Girar a l'esquerra: desplaça cíclicament tots els qubits una posició amunt. El de dalt passa a baix.",
+        "ROTATE_BITS_RIGHT": "Girar a la dreta: desplaça cíclicament tots els qubits una posició avall. El de baix passa a dalt.",
+        "SAMPLE": "Mostra: pren una mostra probabilística de l'estat del qubit sense col·lapse total. Per a l'anàlisi estadística.",
+        "DETECT": "Detectar: simula la resposta d'un detector físic. Modela imperfeccions de mesura realistes.",
+        "AXIS_SAMPLE": "Mostra de 3 eixos: mostreja el qubit en les bases X, Y i Z simultàniament. Per a la reconstrucció tomogràfica.",
+        "SPACER": "Espaiador"
+      },
+      "nestedCircuitConfigured": "Circuit imbricat configurat"
+    },
+    "gui": {
+      "traits": {
+        "agent": "Agent",
+        "agentTitle": "Títol de l'agent",
+        "buttonLabel": "Etiqueta del botó",
+        "buttonStyle": "Estil del botó",
+        "buttonStyleOptions": {
+          "primary": "Primari",
+          "secondary": "Secundari",
+          "success": "Èxit",
+          "danger": "Perill",
+          "warning": "Advertència",
+          "info": "Informació"
+        },
+        "actionType": "Tipus d'acció",
+        "actionTypeOptions": {
+          "navigate": "Navega a la pantalla",
+          "runMethod": "Executa el mètode",
+          "create": "Crea entitat",
+          "update": "Actualitza entitat",
+          "delete": "Elimina entitat"
+        },
+        "targetScreen": "Pantalla de destinació",
+        "requireConfirm": "Requereix confirmació",
+        "confirmMessage": "Missatge de confirmació",
+        "methodClass": "Classe del mètode",
+        "method": "Mètode",
+        "instanceSource": "Font d'instància",
+        "entityClass": "Classe",
+        "series": "Sèries",
+        "actionButtons": "Botons d'acció",
+        "direction": "Direcció",
+        "directionOptions": {
+          "row": "Fila (horitzontal)",
+          "rowReverse": "Fila invertida",
+          "column": "Columna (vertical)",
+          "columnReverse": "Columna invertida"
+        },
+        "justifyContent": "Justifica el contingut",
+        "justifyContentOptions": {
+          "start": "Inici",
+          "end": "Final",
+          "center": "Centre",
+          "spaceBetween": "Espai entre",
+          "spaceAround": "Espai al voltant",
+          "spaceEvenly": "Espai uniforme"
+        },
+        "alignItems": "Alinea els elements",
+        "alignItemsOptions": {
+          "stretch": "Estira",
+          "start": "Inici",
+          "end": "Final",
+          "center": "Centre",
+          "baseline": "Línia base"
+        },
+        "wrap": "Ajust",
+        "wrapOptions": {
+          "nowrap": "Sense ajust",
+          "wrap": "Ajusta",
+          "wrapReverse": "Ajust invertit"
+        },
+        "gap": "Espai (px)",
+        "padding": "Encoixinat (px)",
+        "flexGrow": "Creixement flex",
+        "flexShrink": "Reducció flex",
+        "flexBasis": "Base flex",
+        "alignSelf": "Autoalineació",
+        "alignSelfOptions": {
+          "auto": "Automàtic",
+          "start": "Inici",
+          "end": "Final",
+          "center": "Centre",
+          "baseline": "Línia base",
+          "stretch": "Estira"
+        },
+        "columns": "Columnes",
+        "rows": "Files",
+        "justifyItems": "Justifica els elements",
+        "justifyItemsOptions": {
+          "stretch": "Estira",
+          "start": "Inici",
+          "end": "Final",
+          "center": "Centre"
+        },
+        "elevation": "Elevació",
+        "elevationOptions": {
+          "none": "Cap",
+          "low": "Baixa",
+          "medium": "Mitjana",
+          "high": "Alta"
+        },
+        "aggregation": "Agregació",
+        "aggregationOptions": {
+          "none": "Cap",
+          "sum": "Suma",
+          "avg": "Mitjana",
+          "count": "Recompte",
+          "min": "Mínim",
+          "max": "Màxim",
+          "median": "Mediana",
+          "first": "Primer",
+          "last": "Últim"
+        },
+        "groupBy": "Agrupa per",
+        "dataField": "Camp de dades",
+        "dataSource": "Font de dades",
+        "format": "Format",
+        "formatOptions": {
+          "number": "Nombre",
+          "currency": "Moneda",
+          "percentage": "Percentatge",
+          "time": "Durada"
+        },
+        "labelField": "Camp d'etiqueta",
+        "labelPosition": "Posició de l'etiqueta",
+        "labelPositionOptions": {
+          "inside": "Interior",
+          "outside": "Exterior"
+        },
+        "legendPosition": "Posició de la llegenda",
+        "legendPositionOptions": {
+          "bottom": "A baix",
+          "top": "A dalt"
+        },
+        "orientation": "Orientació",
+        "orientationOptions": {
+          "horizontal": "Horitzontal",
+          "vertical": "Vertical"
+        },
+        "curveType": "Tipus de corba",
+        "curveTypeOptions": {
+          "linear": "Lineal",
+          "monotone": "Monòtona",
+          "step": "Esglaó",
+          "stepAfter": "Esglaó després",
+          "stepBefore": "Esglaó abans"
+        },
+        "chartTitle": "Títol del gràfic",
+        "metricTitle": "Títol de la mètrica",
+        "title": "Títol",
+        "header": "Capçalera",
+        "headerColor": "Color de la capçalera",
+        "stripedRows": "Files ratllades",
+        "pagination": "Paginació",
+        "rowsPerPage": "Files per pàgina",
+        "animate": "Anima",
+        "showGrid": "Mostra la graella",
+        "showLabels": "Mostra les etiquetes",
+        "showLegend": "Mostra la llegenda",
+        "showRadiusAxis": "Mostra l'eix radial",
+        "showTooltip": "Mostra l'indicador",
+        "showTrend": "Mostra la tendència",
+        "stacked": "Apilat",
+        "barWidth": "Amplada de barra",
+        "lineWidth": "Amplada de línia",
+        "endAngle": "Angle final",
+        "startAngle": "Angle inicial",
+        "paddingAngle": "Angle de separació",
+        "latitude": "Latitud",
+        "longitude": "Longitud",
+        "zoom": "Zoom",
+        "valueColor": "Color del valor",
+        "valueSize": "Mida del valor",
+        "negativeTrendColor": "Color tendència negativa",
+        "positiveTrendColor": "Color tendència positiva"
+      },
+      "pages": {
+        "title": "Pàgines",
+        "searchPlaceholder": "Cerca pàgines...",
+        "addNewPage": "Afegeix una pàgina nova",
+        "addPage": "Afegeix pàgina",
+        "editRoute": "Edita la ruta d'URL",
+        "renamePage": "Canvia el nom de la pàgina",
+        "duplicatePage": "Duplica la pàgina",
+        "deletePage": "Elimina la pàgina",
+        "promptRoute": "Introdueix la ruta d'URL d'aquesta pàgina (p. ex., /about-us):",
+        "promptRename": "Introdueix el nou nom de la pàgina:",
+        "promptDuplicate": "Introdueix el nom de la pàgina duplicada:",
+        "promptNewPage": "Introdueix el nom de la pàgina:",
+        "cannotDeleteTitle": "No es pot eliminar la pàgina",
+        "cannotDeleteDescription": "No es pot eliminar l'última pàgina. Es requereix almenys una pàgina.",
+        "ok": "D'acord",
+        "deletePageTitle": "Elimina la pàgina",
+        "deleteConfirm": "Vols eliminar la pàgina \"{{name}}\"?",
+        "delete": "Elimina"
+      },
+      "columnsManager": {
+        "title": "Columnes de la taula",
+        "columnType": "Tipus de columna",
+        "columnTypeOptions": {
+          "field": "Camp",
+          "lookup": "Cerca",
+          "expression": "Expressió"
+        },
+        "field": "Camp",
+        "lookupPath": "Camí de cerca",
+        "lookupField": "Camp de cerca",
+        "expression": "Expressió",
+        "addColumn": "Afegeix columna",
+        "moveUp": "Amunt",
+        "moveDown": "Avall",
+        "selectField": "-- Selecciona un camp --",
+        "selectPath": "-- Selecciona un camí --",
+        "selectPathFirst": "(Selecciona primer un camí)",
+        "noDataSource": "(Sense font de dades)",
+        "noRelationships": "(Sense relacions)",
+        "noAttributes": "(Sense atributs)"
+      },
+      "seriesManager": {
+        "title": "Sèries del gràfic",
+        "dataSource": "Font de dades",
+        "labelField": "Camp d'etiqueta",
+        "dataField": "Camp de dades",
+        "color": "Color",
+        "filter": "Filtre",
+        "filterPlaceholder": "Expressió de filtre",
+        "pickColor": "Tria un color",
+        "addSeries": "Afegeix una sèrie"
+      },
+      "agentPreview": {
+        "previewMode": "Mode de previsualització",
+        "greeting": "Hola! Soc {{agentName}}. En què et puc ajudar?",
+        "previewMessage": "Aquesta és una previsualització de la interfície de xat",
+        "selectAgent": "Selecciona un agent per començar a xatejar...",
+        "typeMessage": "Escriu un missatge...",
+        "selectAgentFirst": "Selecciona primer un agent",
+        "send": "Envia"
+      },
+      "map": {
+        "location": "Ubicació",
+        "viewLargerMap": "Mostra un mapa més gran"
+      },
+      "utils": {
+        "selectPage": "-- Selecciona una pàgina --",
+        "customUrl": "URL personalitzada",
+        "selectSource": "-- Selecciona una font --"
+      },
+      "styleManager": {
+        "position": "Posició",
+        "dimension": "Dimensió",
+        "typography": "Tipografia",
+        "decorations": "Decoracions"
+      },
+      "guiGeneratedFromClass": "Interfície gràfica generada correctament a partir del diagrama de classes.",
+      "unknownError": "Error desconegut",
+      "errorGeneratingGui": "Error en generar la interfície: {{message}}",
+      "guiModelLoaded": "Model d'interfície carregat des de l'assistent.",
+      "statusSaved": "Desat",
+      "statusSaving": "S'està desant...",
+      "statusErrorSaving": "Error en desar",
+      "editorStillLoading": "L'editor encara s'està carregant. Espera un moment i torna-ho a provar.",
+      "errorSavingProject": "Error en desar el projecte. Consulta la consola per a més detalls.",
+      "downloadHtml": "Baixa HTML",
+      "exportTemplate": "Exporta la plantilla",
+      "downloadJson": "Baixa JSON",
+      "projectJson": "JSON del projecte",
+      "clearCanvasTitle": "Neteja el llenç",
+      "clearCanvasDescription": "Segur que vols netejar tot el llenç? Aquesta acció no es pot desfer.",
+      "clearCanvasConfirm": "Neteja",
+      "autoGenerateTitle": "Genera la interfície automàticament a partir del diagrama de classes",
+      "autoGenerateIntro": "Això esborrarà la interfície actual i en generarà una de nova basada en el teu diagrama de classes.",
+      "autoGenerateCreatedTitle": "Creat automàticament:",
+      "autoGenerateItemNav": "Tauler de navegació amb enllaços a cada classe",
+      "autoGenerateItemPage": "Una pàgina per a cada classe amb una taula de dades",
+      "autoGenerateItemMethods": "Botons de mètode per a les classes amb mètodes",
+      "autoGenerateCannotUndo": "Aquesta acció no es pot desfer",
+      "autoGenerateConfirmQuestion": "Segur que vols continuar?",
+      "generateGui": "Genera la interfície",
+      "guiGeneratedSuccess": "Interfície gràfica generada correctament! S'han creat pàgines, taules i botons de mètode per a totes les classes.",
+      "noActiveProject": "No s'ha trobat cap projecte actiu.",
+      "noClassDiagramFound": "No s'ha trobat cap diagrama de classes. Primer crea un diagrama de classes.",
+      "qualityCheckFailed": "Ha fallat la comprovació de qualitat del diagrama de classes",
+      "qualityCheckFailedMessage": "S'han trobat errors al teu diagrama de classes. Corregeix-los abans de generar la interfície.",
+      "classDiagramErrors": "Errors del diagrama de classes",
+      "noClassesFound": "No s'han trobat classes al diagrama de classes. Primer crea un diagrama de classes.",
+      "noPageSelected": "No s'ha seleccionat cap pàgina",
+      "editRoutePrompt": "Edita el camí de ruta per a la pàgina \"{{pageName}}\":\n\nExemples:\n- /home\n- /users/:id\n- /products",
+      "routeUpdated": "Ruta actualitzada a: {{route}}",
+      "sidebarBlocks": "Blocs",
+      "sidebarStyles": "Estils",
+      "sidebarTraits": "Propietats",
+      "sidebarLayers": "Capes",
+      "sidebarPages": "Pàgines",
+      "traitDataSource": "Font de dades",
+      "traitDataSourcePlaceholder": "p. ex. User o User.name",
+      "traitDisplayField": "Camp de visualització",
+      "traitDisplayFieldPlaceholder": "Camp a mostrar",
+      "traitValueField": "Camp de valor",
+      "traitValueFieldPlaceholder": "Camp per al valor",
+      "importTemplate": "Importa una plantilla",
+      "importButton": "Importa",
+      "importTemplateLabel": "Enganxa aquí el teu HTML/CSS i fes clic a Importa",
+      "formTraits": {
+        "actionUrl": "URL d'acció",
+        "targetEntity": "Entitat de destinació",
+        "onSubmitAction": "Acció en enviar",
+        "validationMode": "Mode de validació",
+        "fieldName": "Nom del camp",
+        "fieldType": "Tipus de camp",
+        "placeholder": "Marcador de posició",
+        "required": "Obligatori",
+        "validationPattern": "Patró de validació",
+        "regularExpressionPlaceholder": "Expressió regular",
+        "errorMessage": "Missatge d'error",
+        "customErrorMessagePlaceholder": "Missatge d'error personalitzat",
+        "bindToProperty": "Vincula a la propietat",
+        "minLength": "Longitud mínima",
+        "maxLength": "Longitud màxima",
+        "multiple": "Múltiple",
+        "cols": "Columnes",
+        "options": {
+          "create": "Crear",
+          "update": "Actualitzar",
+          "custom": "Personalitzat",
+          "onSubmit": "En enviar",
+          "onChange": "En canviar",
+          "onBlur": "En perdre el focus",
+          "text": "Text",
+          "password": "Contrasenya",
+          "number": "Número",
+          "date": "Data",
+          "time": "Hora",
+          "telephone": "Telèfon",
+          "color": "Color",
+          "range": "Interval",
+          "search": "Cerca"
+        }
+      }
+    },
+    "loadingGuiEditor": "S'està carregant l'editor de GUI...",
+    "loadingQuantumEditor": "S'està carregant l'editor quàntic...",
+    "hiddenPerspectives": {
+      "messagePlural": "Aquest projecte utilitza {{labels}}, però aquestes perspectives estan amagades.",
+      "messageSingular": "Aquest projecte utilitza {{labels}}, però aquesta perspectiva està amagada.",
+      "enable": "Activa {{label}}"
+    }
+  },
+  "feedback": {
+    "feedbackPlaceholder": "Digue'ns què funciona, què no i què vols a continuació.",
+    "feedbackLabel": "Comentaris",
+    "toasts": {
+      "thankYou": "Gràcies pels teus comentaris.",
+      "submitFailedDefault": "No s'han pogut enviar els comentaris.",
+      "selectRating": "Selecciona una valoració de satisfacció.",
+      "unknownError": "Error desconegut",
+      "submitFailed": "L'enviament dels comentaris ha fallat: {{error}}"
+    },
+    "submitting": "S'està enviant...",
+    "title": "Ajuda'ns a millorar BESSER",
+    "description": "Comparteix els teus comentaris sobre l'editor i el flux de treball de generació.",
+    "satisfactionQuestion": "Quin grau de satisfacció tens amb la teva experiència?",
+    "emailHelper": "Deixa el teu correu electrònic si vols un seguiment de l'equip.",
+    "submit": "Envia els comentaris",
+    "category": "Categoria",
+    "emailLabel": "Correu electrònic (opcional)",
+    "satisfaction": {
+      "neutral": {
+        "helper": "Experiència mixta",
+        "label": "Neutral"
+      },
+      "sad": {
+        "label": "Insatisfet",
+        "helper": "Necessita millores"
+      },
+      "happy": {
+        "helper": "Gran experiència",
+        "label": "Molt satisfet"
+      }
+    },
+    "categoryOptions": {
+      "generators": "Generació de codi",
+      "feature_request": "Sol·licitud de funció",
+      "editor": "Editor de diagrames",
+      "none": "Selecciona una categoria (opcional)",
+      "deployment": "Desplegament",
+      "other": "Altres",
+      "bugs": "Informe d'errors",
+      "performance": "Rendiment",
+      "documentation": "Documentació"
+    }
+  },
+  "export": {
+    "dialog": {
+      "currentTitle": "Diagrama actual",
+      "exportBuml": "Exporta com a B-UML",
+      "exportSvg": "Exporta com a SVG",
+      "noDiagrams": "No hi ha cap diagrama disponible al projecte actual.",
+      "title": "Exporta el projecte",
+      "multipleDescription": "Exporta els diagrames seleccionats com a JSON o B-UML.",
+      "exportDiagramBuml": "Exporta el diagrama com a B-UML",
+      "exportJson": "Exporta com a JSON",
+      "multipleTitle": "Diversos diagrames",
+      "description": "Exporta els fitxers complets del projecte o els recursos del diagrama actual.",
+      "requiresUmlView": "L'exportació del diagrama actual requereix una vista de diagrama UML. Utilitza l'exportació a nivell de projecte.",
+      "exportPngTransparent": "Exporta PNG (transparent)",
+      "exportDiagramJson": "Exporta el diagrama com a JSON",
+      "untitledDiagram": "Diagrama sense títol",
+      "exportPngWhite": "Exporta PNG (blanc)",
+      "currentDescription": "Exporta el diagrama UML actual com a recursos d'imatge.",
+      "diagramCount": "{{count}} diagrames: {{titles}}"
+    },
+    "toasts": {
+      "unknownError": "Error desconegut",
+      "openUmlFirst": "Obre primer un diagrama UML.",
+      "selectAtLeastOne": "Selecciona almenys un diagrama per exportar.",
+      "noProject": "No hi ha cap projecte disponible per exportar.",
+      "failed": "L'exportació ha fallat: {{error}}",
+      "validationFailed": "La validació ha fallat",
+      "noDiagramToExport": "No hi ha cap diagrama per exportar",
+      "couldNotParseError": "No s'ha pogut interpretar la resposta d'error",
+      "bumlExportSuccess": "Exportació de B-UML completada correctament",
+      "noProjectData": "No hi ha dades de projecte disponibles per exportar",
+      "projectExportedAs": "Projecte exportat com a {{filename}}",
+      "projectExportFailed": "No s'ha pogut exportar el projecte: {{error}}"
+    }
+  },
+  "import": {
+    "success": {
+      "diagram": "Diagrama {{diagramType}} importat correctament i afegit al projecte «{{projectName}}». Aquest diagrama s'ha convertit del format {{fileType}} al nou format de projecte.",
+      "kg": "Diagrama {{diagramType}} importat correctament des de graf de coneixement i afegit al projecte «{{projectName}}».",
+      "image": "Diagrama {{diagramType}} importat correctament des d'una imatge i afegit al projecte «{{projectName}}»."
+    },
+    "descriptions": {
+      "imported": "Diagrama {{diagramType}} importat",
+      "importedFromKg": "Diagrama {{diagramType}} importat des de graf de coneixement",
+      "importedFromImage": "Diagrama {{diagramType}} importat des d'una imatge"
+    },
+    "errors": {
+      "title": "Ha fallat la importació",
+      "unsupportedFileType": "Tipus de fitxer no admès. Selecciona un fitxer .json o .py.",
+      "invalidMissingType": "Diagrama no vàlid: falta el model o la informació de tipus",
+      "invalidFormat": "Format de diagrama no vàlid: falta el model o el tipus",
+      "noProjectOpen": "Actualment no hi ha cap projecte obert. Crea o obre primer un projecte.",
+      "maxDiagramsReached": "No es pot importar: s'ha assolit el màxim de {{max}} diagrames {{diagramType}} per projecte.",
+      "unknownDuringImport": "S'ha produït un error desconegut durant la importació",
+      "unknownOccurred": "S'ha produït un error desconegut",
+      "couldNotImportFile": "No s'ha pogut importar el fitxer seleccionat: {{message}}",
+      "couldNotImportDiagram": "No s'ha pogut importar el diagrama: {{message}}",
+      "couldNotImportFromKg": "No s'ha pogut importar el diagrama des de graf de coneixement: {{message}}",
+      "couldNotImportFromImage": "No s'ha pogut importar el diagrama des d'una imatge: {{message}}",
+      "readFileFailed": "No s'ha pogut llegir el fitxer",
+      "invalidFromBackend": "El servidor ha retornat un diagrama no vàlid",
+      "couldNotParseError": "No s'ha pogut interpretar la resposta d'error"
+    }
+  },
+  "validation": {
+    "toasts": {
+      "noDiagramToValidate": "No hi ha cap diagrama per validar",
+      "diagramEmpty": "El diagrama és buit. Afegeix-hi elements abans d'executar la comprovació de qualitat.",
+      "validating": "S'està validant el diagrama...",
+      "timedOut": "La validació ha excedit el temps d'espera. És possible que el servidor estigui sobrecarregat.",
+      "validationFailed": "La validació ha fallat",
+      "errorsLabel": "Errors de validació:",
+      "warningsLabel": "Avisos:",
+      "validConstraintsLabel": "Restriccions vàlides:",
+      "invalidConstraintsLabel": "Restriccions no vàlides:",
+      "diagramValid": "El diagrama és vàlid",
+      "validationErrorGeneric": "Error de validació: {{error}}",
+      "unknownError": "Error desconegut"
+    }
+  },
+  "quantum": {
+    "circuitGrid": {
+      "cycleInitialStates": "Fes clic per recórrer els estats inicials: |0⟩, |1⟩, |+⟩, |−⟩, |i⟩, |−i⟩",
+      "addQubit": "Afegeix un qubit",
+      "addQubitButton": "+ Qubit",
+      "measurementOutput": "Sortida de mesura: generada automàticament a partir de les portes de mesura",
+      "dropHere": "Deixa-ho anar aquí",
+      "invalid": "No vàlid"
+    }
+  }
+}

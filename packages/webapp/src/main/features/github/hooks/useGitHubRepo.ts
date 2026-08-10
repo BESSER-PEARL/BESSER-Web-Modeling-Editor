@@ -1,0 +1,319 @@
+import { useCallback, useState } from 'react';
+import { useTranslation } from 'react-i18next';
+import { toast } from 'react-toastify';
+import { apiClient, ApiError } from '../../../shared/api/api-client';
+import { RENDER_DEPLOY_URL_BASE } from '../../../shared/constants/constant';
+import { normalizeProjectName } from '../../../shared/utils/projectName';
+import { buildProjectExportEnvelope } from '../../../shared/utils/projectExportUtils';
+import type { BesserProject } from '../../../shared/types/project';
+import { isGrapesJSProjectData } from '../../../shared/types/project';
+import { buildVersionGuiModel, collectVariantProfiles } from '../../../shared/utils/buildWebAppVersions';
+
+export type DeploymentTarget = 'webapp' | 'agent';
+type BackendDeploymentTarget = 'webapp' | 'chatbot';
+
+const toBackendDeploymentTarget = (target: DeploymentTarget): BackendDeploymentTarget => (
+  target === 'agent' ? 'chatbot' : 'webapp'
+);
+
+const fromBackendDeploymentTarget = (target: unknown): DeploymentTarget | undefined => {
+  if (target === 'chatbot') return 'agent';
+  if (target === 'webapp') return 'webapp';
+  return undefined;
+};
+
+/**
+ * Deploy always ships the BASE web app — personalized page variants are a
+ * design-time convenience and must never be what gets deployed. The stored GUI
+ * model's page content reflects whichever variant was last *active* in the
+ * editor, so we resolve the active GUINoCodeDiagram to its base version before
+ * building the deploy payload. No-ops when the GUI has no variants.
+ */
+const forceBaseWebAppGuiModel = (project: BesserProject): BesserProject => {
+  const guiDiagrams = project.diagrams?.GUINoCodeDiagram;
+  if (!Array.isArray(guiDiagrams) || guiDiagrams.length === 0) return project;
+
+  const idx = project.currentDiagramIndices?.GUINoCodeDiagram ?? 0;
+  const target = guiDiagrams[idx];
+  if (!target || !isGrapesJSProjectData(target.model)) return project;
+  if (collectVariantProfiles(target.model).length === 0) return project;
+
+  const nextGui = [...guiDiagrams];
+  nextGui[idx] = { ...target, model: buildVersionGuiModel(target.model, null) };
+  return {
+    ...project,
+    diagrams: { ...project.diagrams, GUINoCodeDiagram: nextGui },
+  };
+};
+
+export interface GitHubDeploymentUrls {
+  github: string;
+  render: string;
+  // Populated on redeploys when the backend reuses an existing render.yaml
+  // suffix. Absent on a first deploy (no stable Render hostname yet).
+  live_frontend?: string;
+  live_backend?: string;
+  live_chatbot?: string;
+  render_dashboard?: string;
+}
+
+export interface GitHubRepoResult {
+  success: boolean;
+  repo_url: string;
+  repo_name: string;
+  owner: string;
+  files_uploaded: number;
+  message: string;
+  deployment_urls: GitHubDeploymentUrls;
+  // True on the very first deploy to a repo, false on subsequent redeploys.
+  is_first_deploy: boolean;
+  // Deployment flavor returned by backend.
+  deployment_type?: DeploymentTarget;
+}
+
+export interface CreateRepoOptions {
+  repoName: string;
+  description: string;
+  isPrivate: boolean;
+  githubSession: string;
+  deploymentTarget?: DeploymentTarget;
+  useExisting?: boolean;
+  commitMessage?: string;
+  // Optional agent personalization payload. When present (and the project
+  // contains an active AgentDiagram), it is injected into that diagram's
+  // ``config.personalizationMapping`` before the request body is built so
+  // the backend's personalization-aware codegen path runs. Typed as
+  // ``unknown[]`` so callers can pass concrete entry interfaces (e.g.
+  // ``PersonalizationMappingEntry[]``) without an explicit cast.
+  personalizationMapping?: ReadonlyArray<unknown> | null;
+}
+
+type DeployWebappResponse = {
+  success: boolean;
+  repo_url: string;
+  repo_name: string;
+  owner: string;
+  files_uploaded: number;
+  message: string;
+  deployment_urls?: GitHubDeploymentUrls;
+  is_first_deploy?: boolean;
+  deployment_type?: unknown;
+};
+
+const toGitHubRepoResult = (
+  resp: DeployWebappResponse,
+  fallbackTarget?: DeploymentTarget,
+): GitHubRepoResult => ({
+  success: resp.success,
+  repo_url: resp.repo_url,
+  repo_name: resp.repo_name,
+  owner: resp.owner,
+  files_uploaded: resp.files_uploaded,
+  message: resp.message,
+  deployment_urls: resp.deployment_urls ?? {
+    github: resp.repo_url,
+    render: `${RENDER_DEPLOY_URL_BASE}?repo=${encodeURIComponent(resp.repo_url)}`,
+  },
+  is_first_deploy: resp.is_first_deploy ?? true,
+  deployment_type: fromBackendDeploymentTarget(resp.deployment_type) ?? fallbackTarget ?? 'webapp',
+});
+
+/**
+ * Hook for creating and pushing projects to GitHub repositories.
+ * This can be used independently for any GitHub repo operations.
+ */
+export const useGitHubRepo = () => {
+  const { t } = useTranslation();
+  const [isCreating, setIsCreating] = useState(false);
+  const [repoResult, setRepoResult] = useState<GitHubRepoResult | null>(null);
+
+  /**
+   * Creates a new GitHub repository and pushes project files to it.
+   * @param projectData - The project data to push to the repository
+   * @param options - Repository creation options (name, description, private, session)
+   * @returns The result of the repository creation, or null if failed
+   */
+  const createRepo = useCallback(
+    async (
+      projectData: BesserProject,
+      options: CreateRepoOptions
+    ): Promise<GitHubRepoResult | null> => {
+      if (!projectData) {
+        toast.error(t('github.toasts.noProjectToDeploy'));
+        return null;
+      }
+      if (!options.githubSession) {
+        toast.error(t('github.toasts.notSignedIn'));
+        return null;
+      }
+
+      console.log('Creating GitHub repository...');
+      setIsCreating(true);
+      setRepoResult(null);
+
+      try {
+        const useExisting = options.useExisting ?? false;
+        const commitMessage = options.commitMessage ?? '';
+        const personalizationMapping = options.personalizationMapping ?? null;
+
+        // Resolve the active AgentDiagram (if any) so we can both:
+        //   (1) inject ``personalizationMapping`` into its ``config`` when
+        //       provided — the deploy backend prefers the diagram's own
+        //       ``config`` over ``settings.config`` and uses that to trigger
+        //       the personalization-aware codegen path.
+        //   (2) build a ``settings.config`` fallback from the diagram's
+        //       config (or a sensible default) so the backend's
+        //       ``agent_config = agent_diagram_data.get("config") or settings_config``
+        //       lookup always finds something.
+        const agentDiagrams = projectData?.diagrams?.AgentDiagram;
+        const activeAgentIndex = projectData?.currentDiagramIndices?.AgentDiagram ?? 0;
+        const activeAgentDiagram = Array.isArray(agentDiagrams)
+          ? (agentDiagrams[activeAgentIndex] ?? agentDiagrams[0])
+          : null;
+        const agentConfig = activeAgentDiagram?.config ?? null;
+
+        // Default agent config: websocket+streamlit, classical IC (no API key needed)
+        const defaultAgentConfig = {
+          agentPlatform: 'streamlit',
+          intentRecognitionTechnology: 'classical',
+        };
+
+        // Inject the personalization mapping into the active AgentDiagram's
+        // ``config`` field before envelope construction so both the deploy
+        // payload AND the bundled ``projectExport`` carry it.
+        let projectForBackend: BesserProject = projectData;
+        if (
+          personalizationMapping
+          && personalizationMapping.length > 0
+          && Array.isArray(agentDiagrams)
+          && activeAgentDiagram
+        ) {
+          const clonedDiagrams = [...agentDiagrams];
+          clonedDiagrams[activeAgentIndex] = {
+            ...activeAgentDiagram,
+            config: {
+              ...(activeAgentDiagram.config ?? {}),
+              personalizationMapping,
+            },
+          };
+          projectForBackend = {
+            ...projectData,
+            diagrams: {
+              ...(projectData.diagrams ?? {}),
+              AgentDiagram: clonedDiagrams,
+            },
+          } as BesserProject;
+          if (import.meta.env.DEV) {
+            console.log(
+              '[deploy] injecting personalizationMapping with',
+              personalizationMapping.length,
+              'entries into AgentDiagram config at index',
+              activeAgentIndex,
+            );
+          }
+        } else if (personalizationMapping && personalizationMapping.length > 0) {
+          if (import.meta.env.DEV) {
+            console.warn(
+              '[deploy] personalizationMapping provided but could not be injected — agentDiagrams:',
+              Array.isArray(agentDiagrams),
+              'activeAgentDiagram:',
+              !!activeAgentDiagram,
+            );
+          }
+        }
+
+        // Build the V2 project-export shape the editor uses for "Export Project"
+        // and ship it alongside the deploy payload, so the backend can drop it
+        // into the repo as `diagrams.json` and the file stays re-importable via
+        // the editor's "Import Project" action.
+        // Skip bundled personalization here — saved configurations and user
+        // profiles are local user state, not something we want pushed into a
+        // (potentially public) GitHub repo on every deploy.
+        const projectExport = buildProjectExportEnvelope(projectForBackend, undefined, {
+          includePersonalization: false,
+        });
+
+        // For a web app deploy, generate from the BASE version only — never a
+        // personalized page variant. The bundled ``projectExport`` above keeps
+        // the original model (variants intact) so re-import restores them.
+        const isWebappDeploy = (options.deploymentTarget ?? 'webapp') === 'webapp';
+        const projectForGeneration = isWebappDeploy
+          ? forceBaseWebAppGuiModel(projectForBackend)
+          : projectForBackend;
+
+        const requestBody = {
+          ...projectForGeneration,
+          name: normalizeProjectName(projectData?.name || 'project'),
+          settings: {
+            ...((projectData as { settings?: Record<string, unknown> }).settings ?? {}),
+            // ``settings.config`` is only a fallback when the diagram carries
+            // no config of its own — the deploy backend prefers the diagram's
+            // ``config`` field (see github_deploy_api.py).
+            config: agentConfig ?? defaultAgentConfig,
+          },
+          deploy_config: {
+            repo_name: options.repoName,
+            description: options.description,
+            is_private: options.isPrivate,
+            target: toBackendDeploymentTarget(options.deploymentTarget ?? 'webapp'),
+            use_existing: useExisting,
+            ...(commitMessage ? { commit_message: commitMessage } : {}),
+          },
+          // Read backend-side by:
+          // besser/utilities/web_modeling_editor/backend/services/deployment/github_deploy_api.py
+          // (look for the `body.get("projectExport")` lookup).
+          projectExport,
+        };
+
+        const result = await apiClient.post<DeployWebappResponse>(
+          '/github/deploy-webapp',
+          requestBody,
+          {
+            headers: {
+              'X-GitHub-Session': options.githubSession,
+            },
+            // Deployment performs multiple GitHub API calls + code generation;
+            // observed durations up to ~37s in production. Use 2 min so the
+            // 30s default timeout doesn't abort a successful in-flight request.
+            timeout: 120_000,
+          }
+        );
+
+        const repoResult = toGitHubRepoResult(result, options.deploymentTarget);
+
+        setRepoResult(repoResult);
+
+        if (repoResult.success) {
+          toast.success(
+            useExisting
+              ? t('github.toasts.repoUpdated', { name: repoResult.repo_name })
+              : t('github.toasts.repoCreated', { name: repoResult.repo_name })
+          );
+        } else {
+          toast.error(t('github.toasts.deploymentFailed'));
+        }
+
+        return repoResult;
+      } catch (error) {
+        const errorMessage =
+          error instanceof ApiError
+            ? error.message
+            : error instanceof Error
+              ? error.message
+              : t('github.toasts.repoCreationFailed');
+        toast.error(errorMessage);
+        console.error('GitHub repository creation error:', error);
+        return null;
+      } finally {
+        setIsCreating(false);
+      }
+    },
+    [t]
+  );
+
+  return {
+    createRepo,
+    isCreating,
+    repoResult,
+  };
+};

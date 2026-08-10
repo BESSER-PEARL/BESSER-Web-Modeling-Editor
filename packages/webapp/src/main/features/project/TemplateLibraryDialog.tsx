@@ -1,0 +1,472 @@
+import React, { useMemo, useState } from 'react';
+import { UMLDiagramType } from '@besser/wme';
+import { toast } from 'react-toastify';
+import { useTranslation, Trans } from 'react-i18next';
+import { useNavigate } from 'react-router-dom';
+import { Check, Layers, Sparkles, AlertTriangle, FolderTree } from 'lucide-react';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { useAppDispatch, useAppSelector } from '../../app/store/hooks';
+import {
+  switchDiagramTypeThunk,
+  updateQuantumDiagramThunk,
+  addDiagramThunk,
+  switchDiagramIndexThunk,
+  loadProjectThunk,
+  selectProject,
+  selectActiveDiagramType,
+  bumpEditorRevision,
+} from '../../app/store/workspaceSlice';
+import { ProjectStorageRepository } from '../../shared/services/storage/ProjectStorageRepository';
+import {
+  toSupportedDiagramType,
+  getActiveDiagram,
+  diagramHasContent,
+  SupportedDiagramType,
+} from '../../shared/types/project';
+import { QuantumCircuitData } from '../../shared/types/project';
+import { importProjectFromJson } from '../../shared/services/project-import/projectImport';
+import { TemplateFactory } from './create-diagram-from-template-modal/template-factory';
+import {
+  FULL_PROJECT_DIAGRAM_TYPE,
+  SoftwarePatternCategory,
+  SoftwarePatternTemplate,
+  SoftwarePatternType,
+} from './create-diagram-from-template-modal/software-pattern/software-pattern-types';
+
+/**
+ * Shifts all element and relationship bounds so their combined bounding box is
+ * centered at canvas origin (0, 0).  Mirrors the same transform in
+ * bpmn-xml-importer.ts::centerOnOrigin so templates load centered in the
+ * viewport — the same way imported .bpmn files do.
+ */
+function centerModelOnOrigin(model: any): any {
+  const nodes = Object.values(model.elements ?? {}) as Array<{
+    bounds: { x: number; y: number; width: number; height: number };
+  }>;
+  if (nodes.length === 0) return model;
+  let minX = Infinity,
+    minY = Infinity,
+    maxX = -Infinity,
+    maxY = -Infinity;
+  for (const n of nodes) {
+    minX = Math.min(minX, n.bounds.x);
+    minY = Math.min(minY, n.bounds.y);
+    maxX = Math.max(maxX, n.bounds.x + n.bounds.width);
+    maxY = Math.max(maxY, n.bounds.y + n.bounds.height);
+  }
+  const dx = -Math.round((minX + maxX) / 2);
+  const dy = -Math.round((minY + maxY) / 2);
+  if (dx === 0 && dy === 0) return model;
+  const shiftBounds = (b: { x: number; y: number; width: number; height: number }) => ({
+    ...b,
+    x: b.x + dx,
+    y: b.y + dy,
+  });
+  const shiftedElements: Record<string, any> = {};
+  for (const [id, el] of Object.entries(model.elements ?? {})) {
+    shiftedElements[id] = { ...(el as any), bounds: shiftBounds((el as any).bounds) };
+  }
+  const shiftedRelationships: Record<string, any> = {};
+  for (const [id, rel] of Object.entries(model.relationships ?? {})) {
+    shiftedRelationships[id] = { ...(rel as any), bounds: shiftBounds((rel as any).bounds) };
+  }
+  return { ...model, elements: shiftedElements, relationships: shiftedRelationships };
+}
+
+interface TemplateLibraryDialogProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+}
+
+const categoryOrder: SoftwarePatternCategory[] = [
+  SoftwarePatternCategory.FULL_PROJECT,
+  SoftwarePatternCategory.STRUCTURAL,
+  SoftwarePatternCategory.BEHAVIORAL,
+  SoftwarePatternCategory.CREATIONAL,
+  SoftwarePatternCategory.STATE_MACHINE,
+  SoftwarePatternCategory.BPMN,
+  SoftwarePatternCategory.AGENT,
+  SoftwarePatternCategory.QUANTUM_CIRCUIT,
+  SoftwarePatternCategory.NN,
+];
+
+const diagramTypeToCategory: Partial<Record<SupportedDiagramType, SoftwarePatternCategory>> = {
+  ClassDiagram: SoftwarePatternCategory.STRUCTURAL,
+  StateMachineDiagram: SoftwarePatternCategory.STATE_MACHINE,
+  AgentDiagram: SoftwarePatternCategory.AGENT,
+  BPMN: SoftwarePatternCategory.BPMN,
+  QuantumCircuitDiagram: SoftwarePatternCategory.QUANTUM_CIRCUIT,
+  NNDiagram: SoftwarePatternCategory.NN,
+};
+
+const categoryColor: Record<SoftwarePatternCategory, string> = {
+  [SoftwarePatternCategory.STRUCTURAL]: 'bg-sky-100 text-sky-900 dark:bg-sky-900/30 dark:text-sky-300',
+  [SoftwarePatternCategory.BEHAVIORAL]: 'bg-emerald-100 text-emerald-900 dark:bg-emerald-900/30 dark:text-emerald-300',
+  [SoftwarePatternCategory.CREATIONAL]: 'bg-amber-100 text-amber-900 dark:bg-amber-900/30 dark:text-amber-300',
+  [SoftwarePatternCategory.STATE_MACHINE]: 'bg-indigo-100 text-indigo-900 dark:bg-indigo-900/30 dark:text-indigo-300',
+  [SoftwarePatternCategory.BPMN]: 'bg-teal-100 text-teal-900 dark:bg-teal-900/30 dark:text-teal-300',
+  [SoftwarePatternCategory.AGENT]: 'bg-fuchsia-100 text-fuchsia-900 dark:bg-fuchsia-900/30 dark:text-fuchsia-300',
+  [SoftwarePatternCategory.QUANTUM_CIRCUIT]: 'bg-violet-100 text-violet-900 dark:bg-violet-900/30 dark:text-violet-300',
+  [SoftwarePatternCategory.NN]: 'bg-orange-100 text-orange-900 dark:bg-orange-900/30 dark:text-orange-300',
+  [SoftwarePatternCategory.FULL_PROJECT]: 'bg-rose-100 text-rose-900 dark:bg-rose-900/30 dark:text-rose-300',
+};
+
+/**
+ * For full-project templates, summarize which diagrams are populated so users
+ * can tell apart e.g. "class only" from "class + agent + GUI" at a glance.
+ */
+const summarizeFullProjectDiagrams = (
+  template: SoftwarePatternTemplate,
+  multiDiagramLabel: string,
+): string => {
+  const project = (template.diagram as { project?: { diagrams?: Record<string, unknown[]> } })?.project;
+  const diagrams = project?.diagrams;
+  if (!diagrams) return multiDiagramLabel;
+  const labels: string[] = [];
+  const order: Array<[string, string]> = [
+    ['ClassDiagram', 'Class'],
+    ['ObjectDiagram', 'Object'],
+    ['StateMachineDiagram', 'State'],
+    ['AgentDiagram', 'Agent'],
+    ['UserDiagram', 'User'],
+    ['GUINoCodeDiagram', 'GUI'],
+    ['QuantumCircuitDiagram', 'Quantum'],
+    ['NNDiagram', 'NN'],
+  ];
+  for (const [key, label] of order) {
+    const arr = diagrams[key];
+    if (Array.isArray(arr) && arr.length > 0) labels.push(label);
+  }
+  return labels.length ? labels.join(' · ') : multiDiagramLabel;
+};
+
+export const TemplateLibraryDialog: React.FC<TemplateLibraryDialogProps> = ({ open, onOpenChange }) => {
+  const { t } = useTranslation();
+  const dispatch = useAppDispatch();
+  const navigate = useNavigate();
+  const [isLoading, setIsLoading] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
+  const activeDiagramType = useAppSelector(selectActiveDiagramType);
+
+  const templates = useMemo(() => {
+    return Object.values(SoftwarePatternType).map((pattern) => TemplateFactory.createSoftwarePattern(pattern));
+  }, []);
+
+  const categories = useMemo(() => {
+    return categoryOrder.filter((category) =>
+      templates.some((template) => template.softwarePatternCategory === category),
+    );
+  }, [templates]);
+
+  const [selectedCategory, setSelectedCategory] = useState<SoftwarePatternCategory>(categories[0]);
+
+  // When dialog opens, jump to the category matching the active diagram type
+  React.useEffect(() => {
+    if (open) {
+      const match = diagramTypeToCategory[activeDiagramType];
+      if (match && categories.includes(match)) {
+        setSelectedCategory(match);
+      }
+    }
+  }, [open, activeDiagramType, categories]);
+  const templatesInCategory = useMemo(
+    () => templates.filter((template) => template.softwarePatternCategory === selectedCategory),
+    [templates, selectedCategory],
+  );
+
+  const [selectedTemplateType, setSelectedTemplateType] = useState<SoftwarePatternType>(
+    templatesInCategory[0]?.type ?? SoftwarePatternType.LIBRARY,
+  );
+
+  React.useEffect(() => {
+    if (!templatesInCategory.find((template) => template.type === selectedTemplateType)) {
+      setSelectedTemplateType(templatesInCategory[0]?.type ?? SoftwarePatternType.LIBRARY);
+    }
+  }, [templatesInCategory, selectedTemplateType]);
+
+  const selectedTemplate = useMemo<SoftwarePatternTemplate | undefined>(
+    () => templates.find((template) => template.type === selectedTemplateType),
+    [templates, selectedTemplateType],
+  );
+
+  const currentProject = useAppSelector(selectProject);
+
+  const isFullProjectTemplate = selectedTemplate?.diagramType === FULL_PROJECT_DIAGRAM_TYPE;
+
+  const hasExistingModel = useMemo(() => {
+    if (!currentProject || !selectedTemplate) return false;
+    // Full-project templates always materialize a brand-new project alongside
+    // existing ones, so the per-diagram "replace vs new tab" prompt doesn't
+    // apply — never trigger it for them.
+    if (selectedTemplate.diagramType === FULL_PROJECT_DIAGRAM_TYPE) return false;
+    const supportedType = selectedTemplate.diagramType as SupportedDiagramType;
+    const existing = getActiveDiagram(currentProject, supportedType);
+    return existing ? diagramHasContent(existing) : false;
+  }, [currentProject, selectedTemplate]);
+
+  const handleLoadClick = () => {
+    if (!selectedTemplate) return;
+    if (hasExistingModel) {
+      setShowConfirm(true);
+    } else {
+      doLoadTemplate();
+    }
+  };
+
+  const doLoadTemplate = async (mode: 'replace' | 'new_tab' = 'replace') => {
+    if (!selectedTemplate) return;
+    setShowConfirm(false);
+
+    try {
+      setIsLoading(true);
+
+      // Full-project templates: materialize a brand-new project from the
+      // bundled V2 export envelope, then switch to it. Reuses the same JSON
+      // import path the user-facing ``Import Project`` flow uses, so any
+      // future schema migrations carry over for free.
+      if (selectedTemplate.diagramType === FULL_PROJECT_DIAGRAM_TYPE) {
+        const jsonStr = JSON.stringify(selectedTemplate.diagram);
+        const file = new File([jsonStr], `${selectedTemplate.type}.json`, { type: 'application/json' });
+        const importedProject = await importProjectFromJson(file);
+        await dispatch(loadProjectThunk(importedProject.id)).unwrap();
+        navigate('/');
+        toast.success(t('project.templates.toasts.loadedProjectTemplate', { name: selectedTemplate.type }));
+        onOpenChange(false);
+        return;
+      }
+
+      if (!selectedTemplate.isUMLDiagram && selectedTemplate.diagramType === 'QuantumCircuitDiagram') {
+        const qType = 'QuantumCircuitDiagram' as const;
+
+        if (mode === 'new_tab' && currentProject) {
+          const addResult = await dispatch(
+            addDiagramThunk({
+              diagramType: qType,
+              title: selectedTemplate.type,
+            }),
+          ).unwrap();
+
+          // Spread ``addResult.diagram`` so we keep any auto-suffixed title
+          // (e.g. "Quantum Demo 2" if "Quantum Demo" already existed). Don't
+          // re-apply ``selectedTemplate.type`` here — that would defeat the
+          // uniqueness resolution done in ``addDiagram``.
+          ProjectStorageRepository.updateDiagram(
+            currentProject.id,
+            qType,
+            {
+              ...addResult.diagram,
+              model: selectedTemplate.diagram as QuantumCircuitData,
+              lastUpdate: new Date().toISOString(),
+            },
+            addResult.index,
+          );
+
+          await dispatch(switchDiagramTypeThunk({ diagramType: 'QuantumCircuitDiagram' }));
+          await dispatch(switchDiagramIndexThunk({ diagramType: qType, index: addResult.index }));
+        } else {
+          await dispatch(updateQuantumDiagramThunk({ model: selectedTemplate.diagram as QuantumCircuitData }));
+          await dispatch(switchDiagramTypeThunk({ diagramType: 'QuantumCircuitDiagram' }));
+        }
+
+        navigate('/');
+      } else {
+        const umlType = selectedTemplate.diagramType as UMLDiagramType;
+        const supportedType = toSupportedDiagramType(umlType);
+        const centeredModel = centerModelOnOrigin(selectedTemplate.diagram as any);
+
+        if (mode === 'new_tab' && currentProject) {
+          // Create a new tab, then write the template into it.
+          // Spread ``addResult.diagram`` so the auto-suffixed title survives
+          // (e.g. adding a "Library Agent" template twice yields "Library Agent 2").
+          const addResult = await dispatch(
+            addDiagramThunk({
+              diagramType: supportedType,
+              title: selectedTemplate.type,
+            }),
+          ).unwrap();
+
+          ProjectStorageRepository.updateDiagram(
+            currentProject.id,
+            supportedType,
+            {
+              ...addResult.diagram,
+              model: centeredModel,
+              lastUpdate: new Date().toISOString(),
+            },
+            addResult.index,
+          );
+
+          await dispatch(switchDiagramTypeThunk({ diagramType: umlType }));
+          await dispatch(switchDiagramIndexThunk({ diagramType: supportedType, index: addResult.index }));
+        } else if (currentProject) {
+          // Replace the active diagram
+          const existingDiagram = getActiveDiagram(currentProject, supportedType);
+          ProjectStorageRepository.updateDiagram(currentProject.id, supportedType, {
+            ...existingDiagram,
+            title: selectedTemplate.type,
+            model: centeredModel,
+            lastUpdate: new Date().toISOString(),
+          });
+          await dispatch(switchDiagramTypeThunk({ diagramType: umlType }));
+        }
+
+        // Force editor reinit so the viewport resets and centers on the loaded template.
+        dispatch(bumpEditorRevision());
+        navigate('/');
+      }
+
+      // toast.success(`Loaded template: ${selectedTemplate.type}`);
+      onOpenChange(false);
+    } catch (error) {
+      toast.error(t('project.templates.toasts.loadFailed', { error: error instanceof Error ? error.message : t('project.templates.unknownError') }));
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-h-[90vh] overflow-hidden p-0 sm:max-w-5xl">
+        <DialogHeader className="border-b border-border/70 px-6 pt-6">
+          <DialogTitle className="flex items-center gap-2 text-xl">
+            <Sparkles className="size-5 text-brand" />
+            {t('project.templates.title')}
+          </DialogTitle>
+          <DialogDescription>
+            {t('project.templates.description')}
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="grid max-h-[72vh] grid-cols-1 overflow-hidden md:grid-cols-[220px_1fr]">
+          <div className="flex flex-col gap-2 border-b border-border/70 p-4 md:border-b-0 md:border-r">
+            {categories.map((category) => {
+              const isActive = selectedCategory === category;
+              return (
+                <button
+                  key={category}
+                  type="button"
+                  onClick={() => setSelectedCategory(category)}
+                  className={[
+                    'flex w-full items-center justify-between rounded-lg border px-3 py-2 text-sm transition-all',
+                    isActive
+                      ? 'border-brand/30 bg-brand/10 text-foreground'
+                      : 'border-transparent text-muted-foreground hover:border-border hover:bg-brand/[0.04] hover:text-foreground',
+                  ].join(' ')}
+                >
+                  <span>{t(`project.templates.categories.${category}`, { defaultValue: category })}</span>
+                  <Badge className={categoryColor[category]}>
+                    {templates.filter((template) => template.softwarePatternCategory === category).length}
+                  </Badge>
+                </button>
+              );
+            })}
+          </div>
+
+          <div className="min-h-0 p-4">
+            <div className="h-[56vh] overflow-y-auto pr-2">
+              <div className="grid gap-3 md:grid-cols-2">
+                {templatesInCategory.map((template) => {
+                  const selected = selectedTemplate?.type === template.type;
+                  return (
+                    <Card
+                      key={template.type}
+                      className={[
+                        'cursor-pointer border transition-all',
+                        selected
+                          ? 'border-brand/30 bg-brand/[0.05] shadow-sm'
+                          : 'hover:border-border/90 hover:bg-brand/[0.04]',
+                      ].join(' ')}
+                      onClick={() => setSelectedTemplateType(template.type)}
+                    >
+                      <CardHeader className="pb-2">
+                        <CardTitle className="flex items-center justify-between text-base">
+                          <span>{template.type}</span>
+                          {selected && <Check className="size-4 text-brand" />}
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent className="pt-0">
+                        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                          {template.diagramType === FULL_PROJECT_DIAGRAM_TYPE ? (
+                            <>
+                              <FolderTree className="size-3.5" />
+                              <span>{summarizeFullProjectDiagrams(template, t('project.templates.multiDiagramProject'))}</span>
+                            </>
+                          ) : (
+                            <>
+                              <Layers className="size-3.5" />
+                              <span>
+                                {t(`diagramTypes.${template.diagramType}`, {
+                                  defaultValue: String(template.diagramType).replace('Diagram', ' Diagram'),
+                                })}
+                              </span>
+                            </>
+                          )}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div className="mt-4 flex items-center justify-end gap-2 border-t border-border/70 pt-4">
+              <Button variant="outline" onClick={() => onOpenChange(false)}>
+                {t('common.cancel')}
+              </Button>
+              <Button
+                onClick={handleLoadClick}
+                disabled={!selectedTemplate || isLoading}
+                className="bg-brand text-brand-foreground hover:bg-brand-dark"
+              >
+                {isLoading ? t('common.loading') : t('project.templates.loadTemplate')}
+              </Button>
+            </div>
+          </div>
+        </div>
+      </DialogContent>
+
+      <Dialog open={showConfirm} onOpenChange={setShowConfirm}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="size-5 text-amber-500" />
+              {t('project.templates.confirm.title')}
+            </DialogTitle>
+            <DialogDescription>
+              <Trans
+                i18nKey="project.templates.confirm.body"
+                values={{
+                  type: selectedTemplate
+                    ? t(`diagramTypes.${selectedTemplate.diagramType}`, {
+                        defaultValue: String(selectedTemplate.diagramType).replace('Diagram', ' Diagram'),
+                      })
+                    : '',
+                }}
+                components={{ strong: <strong /> }}
+              />
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex flex-wrap justify-end gap-2 pt-4">
+            <Button variant="outline" size="sm" onClick={() => setShowConfirm(false)}>
+              {t('common.cancel')}
+            </Button>
+            <Button variant="outline" size="sm" onClick={() => doLoadTemplate('new_tab')}>
+              <Layers className="mr-1.5 size-3.5" />
+              {t('project.templates.confirm.newTab')}
+            </Button>
+            <Button
+              size="sm"
+              onClick={() => doLoadTemplate('replace')}
+              className="bg-brand text-brand-foreground hover:bg-brand-dark"
+            >
+              {t('project.templates.confirm.replace')}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </Dialog>
+  );
+};

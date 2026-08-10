@@ -1,0 +1,207 @@
+{
+  "version": "3.0.0",
+  "type": "BPMNDiagram",
+  "size": { "width": 1100, "height": 320 },
+  "interactive": { "elements": {}, "relationships": {} },
+  "elements": {
+    "pr-start": {
+      "id": "pr-start",
+      "name": "Document submitted",
+      "type": "BPMNStartEvent",
+      "owner": null,
+      "bounds": { "x": 0, "y": 90, "width": 40, "height": 40 },
+      "eventType": "default"
+    },
+    "pr-prepare": {
+      "id": "pr-prepare",
+      "name": "Prepare Draft",
+      "type": "BPMNTask",
+      "owner": null,
+      "bounds": { "x": 110, "y": 80, "width": 140, "height": 60 },
+      "taskType": "default",
+      "marker": "none"
+    },
+    "pr-split": {
+      "id": "pr-split",
+      "name": "",
+      "type": "BPMNGateway",
+      "owner": null,
+      "bounds": { "x": 320, "y": 90, "width": 40, "height": 40 },
+      "gatewayType": "parallel"
+    },
+    "pr-tech": {
+      "id": "pr-tech",
+      "name": "Technical Review",
+      "type": "BPMNTask",
+      "owner": null,
+      "bounds": { "x": 440, "y": 0, "width": 140, "height": 60 },
+      "taskType": "user",
+      "marker": "none"
+    },
+    "pr-legal": {
+      "id": "pr-legal",
+      "name": "Legal Review",
+      "type": "BPMNTask",
+      "owner": null,
+      "bounds": { "x": 440, "y": 160, "width": 140, "height": 60 },
+      "taskType": "user",
+      "marker": "none"
+    },
+    "pr-join": {
+      "id": "pr-join",
+      "name": "",
+      "type": "BPMNGateway",
+      "owner": null,
+      "bounds": { "x": 660, "y": 90, "width": 40, "height": 40 },
+      "gatewayType": "parallel"
+    },
+    "pr-publish": {
+      "id": "pr-publish",
+      "name": "Publish",
+      "type": "BPMNTask",
+      "owner": null,
+      "bounds": { "x": 780, "y": 80, "width": 140, "height": 60 },
+      "taskType": "default",
+      "marker": "none"
+    },
+    "pr-end": {
+      "id": "pr-end",
+      "name": "Published",
+      "type": "BPMNEndEvent",
+      "owner": null,
+      "bounds": { "x": 980, "y": 90, "width": 40, "height": 40 },
+      "eventType": "default"
+    }
+  },
+  "relationships": {
+    "pr-f1": {
+      "id": "pr-f1",
+      "name": "",
+      "type": "BPMNFlow",
+      "owner": null,
+      "bounds": { "x": 40, "y": 110, "width": 70, "height": 1 },
+      "path": [
+        { "x": 0, "y": 0 },
+        { "x": 70, "y": 0 }
+      ],
+      "source": { "direction": "Right", "element": "pr-start" },
+      "target": { "direction": "Left", "element": "pr-prepare" },
+      "isManuallyLayouted": false,
+      "flowType": "sequence",
+      "isDefault": false
+    },
+    "pr-f2": {
+      "id": "pr-f2",
+      "name": "",
+      "type": "BPMNFlow",
+      "owner": null,
+      "bounds": { "x": 250, "y": 110, "width": 70, "height": 1 },
+      "path": [
+        { "x": 0, "y": 0 },
+        { "x": 70, "y": 0 }
+      ],
+      "source": { "direction": "Right", "element": "pr-prepare" },
+      "target": { "direction": "Left", "element": "pr-split" },
+      "isManuallyLayouted": false,
+      "flowType": "sequence",
+      "isDefault": false
+    },
+    "pr-f3": {
+      "id": "pr-f3",
+      "name": "",
+      "type": "BPMNFlow",
+      "owner": null,
+      "bounds": { "x": 360, "y": 30, "width": 80, "height": 80 },
+      "path": [
+        { "x": 0, "y": 80 },
+        { "x": 80, "y": 0 }
+      ],
+      "source": { "direction": "Up", "element": "pr-split" },
+      "target": { "direction": "Left", "element": "pr-tech" },
+      "isManuallyLayouted": false,
+      "flowType": "sequence",
+      "isDefault": false
+    },
+    "pr-f4": {
+      "id": "pr-f4",
+      "name": "",
+      "type": "BPMNFlow",
+      "owner": null,
+      "bounds": { "x": 360, "y": 110, "width": 80, "height": 80 },
+      "path": [
+        { "x": 0, "y": 0 },
+        { "x": 80, "y": 80 }
+      ],
+      "source": { "direction": "Down", "element": "pr-split" },
+      "target": { "direction": "Left", "element": "pr-legal" },
+      "isManuallyLayouted": false,
+      "flowType": "sequence",
+      "isDefault": false
+    },
+    "pr-f5": {
+      "id": "pr-f5",
+      "name": "",
+      "type": "BPMNFlow",
+      "owner": null,
+      "bounds": { "x": 580, "y": 30, "width": 80, "height": 80 },
+      "path": [
+        { "x": 0, "y": 0 },
+        { "x": 80, "y": 80 }
+      ],
+      "source": { "direction": "Right", "element": "pr-tech" },
+      "target": { "direction": "Up", "element": "pr-join" },
+      "isManuallyLayouted": false,
+      "flowType": "sequence",
+      "isDefault": false
+    },
+    "pr-f6": {
+      "id": "pr-f6",
+      "name": "",
+      "type": "BPMNFlow",
+      "owner": null,
+      "bounds": { "x": 580, "y": 110, "width": 80, "height": 80 },
+      "path": [
+        { "x": 0, "y": 80 },
+        { "x": 80, "y": 0 }
+      ],
+      "source": { "direction": "Right", "element": "pr-legal" },
+      "target": { "direction": "Down", "element": "pr-join" },
+      "isManuallyLayouted": false,
+      "flowType": "sequence",
+      "isDefault": false
+    },
+    "pr-f7": {
+      "id": "pr-f7",
+      "name": "",
+      "type": "BPMNFlow",
+      "owner": null,
+      "bounds": { "x": 700, "y": 110, "width": 80, "height": 1 },
+      "path": [
+        { "x": 0, "y": 0 },
+        { "x": 80, "y": 0 }
+      ],
+      "source": { "direction": "Right", "element": "pr-join" },
+      "target": { "direction": "Left", "element": "pr-publish" },
+      "isManuallyLayouted": false,
+      "flowType": "sequence",
+      "isDefault": false
+    },
+    "pr-f8": {
+      "id": "pr-f8",
+      "name": "",
+      "type": "BPMNFlow",
+      "owner": null,
+      "bounds": { "x": 920, "y": 110, "width": 60, "height": 1 },
+      "path": [
+        { "x": 0, "y": 0 },
+        { "x": 60, "y": 0 }
+      ],
+      "source": { "direction": "Right", "element": "pr-publish" },
+      "target": { "direction": "Left", "element": "pr-end" },
+      "isManuallyLayouted": false,
+      "flowType": "sequence",
+      "isDefault": false
+    }
+  },
+  "assessments": {}
+}
