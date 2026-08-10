@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { ArrowLeft, ArrowRight, EyeOff, Plus, Search, Trash2, Undo2, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
@@ -19,6 +20,7 @@ import type {
   KGConstraintSpec,
 } from './types';
 import { KG_NODE_TYPES } from './types';
+import { edgeRuleReason, nodeTypeLabel } from './i18n-keys';
 import { KG_NODE_COLORS } from './stylesheet';
 import { KgShapeIcon } from './KgShapeIcon';
 import { ConstraintSpecsEditor } from './ConstraintSpecsEditor';
@@ -197,6 +199,7 @@ export const KnowledgeGraphInspector: React.FC<Props> = ({
   onRequestSelection,
   onClearSelection,
 }) => {
+  const { t } = useTranslation();
   const [draft, setDraft] = useState<Draft>(null);
   const syncedSigRef = useRef<string | null>(null);
   // `undefined` — no pending switch; `null` — pending switch is "clear"; otherwise pending selection.
@@ -347,16 +350,16 @@ export const KnowledgeGraphInspector: React.FC<Props> = ({
       <header className="flex items-center justify-between border-b border-border/60 px-3 py-2">
         <div className="flex items-center gap-2 text-sm font-semibold">
           {isMulti
-            ? `${multiNodes.length + multiEdges.length} selected`
+            ? t('editors.kg.inspector.selectedCount', { count: multiNodes.length + multiEdges.length })
             : isNode
-              ? 'Node'
+              ? t('editors.kg.inspector.titleNode')
               : isEdge
-                ? 'Relation'
-                : 'Inspector'}
+                ? t('editors.kg.inspector.titleRelation')
+                : t('editors.kg.inspector.titleInspector')}
           {dirty && (
             <span
               className="inline-block size-2 rounded-full bg-amber-500"
-              title="Unsaved changes"
+              title={t('editors.kg.inspector.unsavedChanges')}
             />
           )}
         </div>
@@ -366,7 +369,7 @@ export const KnowledgeGraphInspector: React.FC<Props> = ({
             size="sm"
             onClick={requestClose}
             className="h-7 w-7 p-0"
-            title="Close"
+            title={t('editors.kg.inspector.close')}
           >
             <X className="size-4" />
           </Button>
@@ -375,10 +378,7 @@ export const KnowledgeGraphInspector: React.FC<Props> = ({
 
       <div className="flex-1 overflow-y-auto p-3">
         {!draft && !isMulti && (
-          <p className="text-sm text-muted-foreground">
-            Click a node or relation on the canvas to edit it here. Drag on
-            empty canvas to box-select multiple. Hold Space to pan.
-          </p>
+          <p className="text-sm text-muted-foreground">{t('editors.kg.inspector.noSelection')}</p>
         )}
         {isMulti && (
           <MultiSelectionSummary
@@ -454,10 +454,10 @@ export const KnowledgeGraphInspector: React.FC<Props> = ({
                 onBulkHideNodes(multiNodes);
                 onClearSelection();
               }}
-              title="Remove the selected nodes from the canvas without deleting them"
+              title={t('editors.kg.inspector.footer.hideTooltipMulti')}
             >
               <EyeOff className="size-4" />
-              Hide {multiNodes.length} {multiNodes.length === 1 ? 'node' : 'nodes'}
+              {t('editors.kg.inspector.footer.bulkHide', { count: multiNodes.length })}
             </Button>
           )}
           <Button
@@ -467,7 +467,7 @@ export const KnowledgeGraphInspector: React.FC<Props> = ({
             onClick={() => setBulkDeleteOpen(true)}
           >
             <Trash2 className="size-4" />
-            Delete selection
+            {t('editors.kg.inspector.footer.deleteSelection')}
           </Button>
         </footer>
       )}
@@ -487,10 +487,10 @@ export const KnowledgeGraphInspector: React.FC<Props> = ({
                   onClearSelection();
                 }
               }}
-              title="Remove the node from the canvas without deleting it from the model"
+              title={t('editors.kg.inspector.footer.hideTooltip')}
             >
               <EyeOff className="size-4" />
-              Hide
+              {t('editors.kg.inspector.footer.hide')}
             </Button>
           )}
           {!draft.deleteSelf && (
@@ -501,12 +501,12 @@ export const KnowledgeGraphInspector: React.FC<Props> = ({
               onClick={() => setDraft({ ...draft, deleteSelf: true })}
               title={
                 draft.kind === 'node'
-                  ? 'Stage deletion of this node (and all its connections)'
-                  : 'Stage deletion of this relation'
+                  ? t('editors.kg.inspector.footer.stageDeleteNode')
+                  : t('editors.kg.inspector.footer.stageDeleteRelation')
               }
             >
               <Trash2 className="size-4" />
-              Delete
+              {t('editors.kg.inspector.footer.delete')}
             </Button>
           )}
           {draft.deleteSelf && (
@@ -517,7 +517,7 @@ export const KnowledgeGraphInspector: React.FC<Props> = ({
               onClick={() => setDraft({ ...draft, deleteSelf: false })}
             >
               <Undo2 className="size-4" />
-              Undo delete
+              {t('editors.kg.inspector.footer.undoDelete')}
             </Button>
           )}
           <div className="flex gap-2 pt-1">
@@ -528,7 +528,7 @@ export const KnowledgeGraphInspector: React.FC<Props> = ({
               disabled={!dirty}
               onClick={discard}
             >
-              Discard
+              {t('editors.kg.inspector.footer.discard')}
             </Button>
             <Button
               variant={applyIsDestructive ? 'destructive' : 'default'}
@@ -537,7 +537,7 @@ export const KnowledgeGraphInspector: React.FC<Props> = ({
               disabled={!dirty}
               onClick={apply}
             >
-              Apply
+              {t('editors.kg.inspector.footer.apply')}
             </Button>
           </div>
         </footer>
@@ -545,24 +545,27 @@ export const KnowledgeGraphInspector: React.FC<Props> = ({
 
       <ConfirmDialog
         open={confirmOpen}
-        title="Discard unsaved changes?"
-        description="You have unsaved edits in the inspector. Discard them and continue?"
-        confirmLabel="Discard"
-        cancelLabel="Keep editing"
+        title={t('editors.kg.inspector.confirm.discardTitle')}
+        description={t('editors.kg.inspector.confirm.discardDescription')}
+        confirmLabel={t('editors.kg.inspector.confirm.discardConfirm')}
+        cancelLabel={t('editors.kg.inspector.confirm.discardCancel')}
         variant="danger"
         onConfirm={acceptSwitch}
         onCancel={cancelSwitch}
       />
       <ConfirmDialog
         open={bulkDeleteOpen}
-        title="Delete selection?"
-        description={`This will permanently remove ${multiNodes.length} ${
-          multiNodes.length === 1 ? 'node' : 'nodes'
-        } and ${multiEdges.length} ${
-          multiEdges.length === 1 ? 'relation' : 'relations'
-        } from the model. Nodes also drop their attached relations. This cannot be undone.`}
-        confirmLabel="Delete"
-        cancelLabel="Cancel"
+        title={t('editors.kg.inspector.confirm.bulkDeleteTitle')}
+        /* Two independent counts, so each is pluralised separately and
+         * composed -- i18next binds only one {{count}} per lookup. */
+        description={t('editors.kg.inspector.confirm.bulkDeleteDescription', {
+          nodes: t('editors.kg.inspector.confirm.bulkNodesFragment', { count: multiNodes.length }),
+          relations: t('editors.kg.inspector.confirm.bulkRelationsFragment', {
+            count: multiEdges.length,
+          }),
+        })}
+        confirmLabel={t('editors.kg.inspector.confirm.bulkDeleteConfirm')}
+        cancelLabel={t('common.cancel')}
         variant="danger"
         onConfirm={bulkDelete}
         onCancel={() => setBulkDeleteOpen(false)}
@@ -576,6 +579,7 @@ const MultiSelectionSummary: React.FC<{
   nodeIds: string[];
   edgeIds: string[];
 }> = ({ model, nodeIds, edgeIds }) => {
+  const { t } = useTranslation();
   const nodeRows = useMemo(() => {
     const byId = new Map(model.nodes.map((n) => [n.id, n]));
     return nodeIds.map((id) => byId.get(id)).filter((n): n is KGNodeData => !!n);
@@ -587,13 +591,11 @@ const MultiSelectionSummary: React.FC<{
 
   return (
     <div className="space-y-3 text-xs">
-      <p className="text-muted-foreground">
-        Drag any selected node to move the whole group. Hold Space to pan.
-      </p>
+      <p className="text-muted-foreground">{t('editors.kg.inspector.multi.hint')}</p>
       {nodeRows.length > 0 && (
         <div className="space-y-1">
           <Label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-            Nodes ({nodeRows.length})
+            {t('editors.kg.inspector.multi.nodesHeading', { count: nodeRows.length })}
           </Label>
           <ul className="max-h-40 space-y-1 overflow-y-auto rounded-md border border-border/50 bg-background">
             {nodeRows.map((n) => (
@@ -614,7 +616,7 @@ const MultiSelectionSummary: React.FC<{
       {edgeRows.length > 0 && (
         <div className="space-y-1">
           <Label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-            Relations ({edgeRows.length})
+            {t('editors.kg.inspector.multi.relationsHeading', { count: edgeRows.length })}
           </Label>
           <ul className="max-h-32 space-y-1 overflow-y-auto rounded-md border border-border/50 bg-background">
             {edgeRows.map((e) => (
@@ -645,6 +647,7 @@ const NodeFields: React.FC<{
     propertyTargetId?: string,
   ) => void;
 }> = ({ draft, model, onDraftChange, onCreateConstraintFor }) => {
+  const { t } = useTranslation();
   const swatch = KG_NODE_COLORS[draft.fields.nodeType];
   const setFields = (patch: Partial<KGNodeData>) =>
     onDraftChange({ ...draft, fields: { ...draft.fields, ...patch } });
@@ -653,7 +656,7 @@ const NodeFields: React.FC<{
     <div className="space-y-3">
       {draft.deleteSelf && (
         <div className="rounded-md border border-destructive/40 bg-destructive/10 px-2 py-1.5 text-xs text-destructive">
-          This node and all its connections will be deleted on Apply.
+          {t('editors.kg.inspector.pendingDeleteNode')}
         </div>
       )}
 
@@ -668,7 +671,7 @@ const NodeFields: React.FC<{
           }}
         />
         <div className="flex-1">
-          <Label className="text-xs">Type</Label>
+          <Label className="text-xs">{t('editors.kg.inspector.fields.type')}</Label>
           <Select
             value={draft.fields.nodeType}
             onValueChange={(v) => setFields({ nodeType: v as KGNodeType })}
@@ -677,9 +680,9 @@ const NodeFields: React.FC<{
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              {KG_NODE_TYPES.map((t) => (
-                <SelectItem key={t.type} value={t.type}>
-                  {t.label}
+              {KG_NODE_TYPES.map((nodeType) => (
+                <SelectItem key={nodeType.type} value={nodeType.type}>
+                  {nodeTypeLabel(t, nodeType)}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -688,7 +691,7 @@ const NodeFields: React.FC<{
       </div>
 
       <div className="space-y-1">
-        <Label className="text-xs">Label</Label>
+        <Label className="text-xs">{t('editors.kg.inspector.fields.label')}</Label>
         <Input
           value={draft.fields.label}
           onChange={(e) => {
@@ -702,7 +705,7 @@ const NodeFields: React.FC<{
       {draft.fields.nodeType === 'literal' ? (
         <>
           <div className="space-y-1">
-            <Label className="text-xs">Value</Label>
+            <Label className="text-xs">{t('editors.kg.inspector.fields.value')}</Label>
             <Input
               value={draft.fields.value ?? ''}
               onChange={(e) => setFields({ value: e.target.value })}
@@ -710,7 +713,7 @@ const NodeFields: React.FC<{
             />
           </div>
           <div className="space-y-1">
-            <Label className="text-xs">Datatype IRI</Label>
+            <Label className="text-xs">{t('editors.kg.inspector.fields.datatypeIri')}</Label>
             <Input
               value={draft.fields.datatype ?? ''}
               placeholder="http://www.w3.org/2001/XMLSchema#integer"
@@ -721,7 +724,7 @@ const NodeFields: React.FC<{
         </>
       ) : (
         <div className="space-y-1">
-          <Label className="text-xs">IRI</Label>
+          <Label className="text-xs">{t('editors.kg.inspector.fields.iri')}</Label>
           <Input
             value={draft.fields.iri ?? ''}
             placeholder="http://example.org/Person"
@@ -732,7 +735,8 @@ const NodeFields: React.FC<{
       )}
 
       <div className="pt-1 text-xs text-muted-foreground">
-        id: <code className="rounded bg-muted px-1 py-0.5">{draft.originalId}</code>
+        {t('editors.kg.inspector.fields.idLabel')}{' '}
+        <code className="rounded bg-muted px-1 py-0.5">{draft.originalId}</code>
       </div>
 
       {(draft.fields.nodeType === 'nodeConstraint' || draft.fields.nodeType === 'propertyConstraint') && (
@@ -773,6 +777,7 @@ const AttachedConstraints: React.FC<{
     propertyTargetId?: string,
   ) => void;
 }> = ({ ownerNode, model, onAddConstraint }) => {
+  const { t } = useTranslation();
   const CONSTRAINT_TARGET_CLASS = 'http://besser.local/kg#constraintTargetClass';
   const CONSTRAINT_TARGET_PROPERTY = 'http://besser.local/kg#constraintTargetProperty';
   const [menuOpen, setMenuOpen] = useState(false);
@@ -817,7 +822,7 @@ const AttachedConstraints: React.FC<{
     <div className="space-y-2 border-t border-border/60 pt-3">
       <div className="flex items-center justify-between">
         <Label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-          Constraints ({attached.length})
+          {t('editors.kg.inspector.attachedConstraints.heading', { count: attached.length })}
         </Label>
         <div ref={menuRef} className="relative">
           <Button
@@ -833,7 +838,7 @@ const AttachedConstraints: React.FC<{
             }}
           >
             <Plus className="size-3.5" />
-            Add constraint
+            {t('editors.kg.inspector.attachedConstraints.add')}
           </Button>
           {menuOpen && ownerNode.nodeType === 'class' && (
             <div className="absolute right-0 z-50 mt-1 w-72 rounded-md border bg-popover text-popover-foreground shadow-md">
@@ -845,18 +850,20 @@ const AttachedConstraints: React.FC<{
                   onAddConstraint('nodeConstraint');
                 }}
               >
-                <div className="font-medium">Constrain this class…</div>
+                <div className="font-medium">
+                  {t('editors.kg.inspector.attachedConstraints.constrainThisClass')}
+                </div>
                 <div className="text-muted-foreground">
-                  E.g. disjoint with, has key, closed shape.
+                  {t('editors.kg.inspector.attachedConstraints.constrainThisClassHint')}
                 </div>
               </button>
               <div className="border-t" />
               <div className="px-3 py-1 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
-                Constrain a property of this class
+                {t('editors.kg.inspector.attachedConstraints.constrainAProperty')}
               </div>
               {propertiesOfClass.length === 0 && (
                 <div className="px-3 py-1.5 text-xs italic text-muted-foreground">
-                  No properties in this class's domain yet.
+                  {t('editors.kg.inspector.attachedConstraints.noPropertiesInDomain')}
                 </div>
               )}
               {propertiesOfClass.map((prop) => (
@@ -884,12 +891,19 @@ const AttachedConstraints: React.FC<{
               className="rounded-full border border-purple-300 bg-purple-50 px-2 py-0.5 text-[11px] text-purple-900 dark:border-purple-700 dark:bg-purple-900/40 dark:text-purple-100"
               title={c.id}
             >
-              {c.label || (c.nodeType === 'nodeConstraint' ? 'Node constraint' : 'Property constraint')}
+              {/* Display-only fallback for an empty persisted label -- safe to
+               *  translate, unlike the seeded label written into the model. */}
+              {c.label ||
+                (c.nodeType === 'nodeConstraint'
+                  ? t('editors.kg.inspector.attachedConstraints.fallbackNodeConstraint')
+                  : t('editors.kg.inspector.attachedConstraints.fallbackPropertyConstraint'))}
             </li>
           ))}
         </ul>
       ) : (
-        <p className="text-xs italic text-muted-foreground">No constraints yet.</p>
+        <p className="text-xs italic text-muted-foreground">
+          {t('editors.kg.inspector.attachedConstraints.none')}
+        </p>
       )}
     </div>
   );
@@ -900,6 +914,7 @@ const ConnectionsEditor: React.FC<{
   model: KnowledgeGraphData;
   onDraftChange: (next: NodeDraft) => void;
 }> = ({ draft, model, onDraftChange }) => {
+  const { t } = useTranslation();
   const [adderOpen, setAdderOpen] = useState(false);
 
   // Union of model edges touching this node + staged additions.
@@ -931,7 +946,7 @@ const ConnectionsEditor: React.FC<{
     <div className="space-y-2 border-t border-border/60 pt-3">
       <div className="flex items-center justify-between">
         <Label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-          Connections ({rows.length})
+          {t('editors.kg.inspector.connections.heading', { count: rows.length })}
         </Label>
         {!adderOpen && !draft.deleteSelf && (
           <Button
@@ -941,7 +956,7 @@ const ConnectionsEditor: React.FC<{
             onClick={() => setAdderOpen(true)}
           >
             <Plus className="size-3.5" />
-            Add
+            {t('editors.kg.inspector.connections.add')}
           </Button>
         )}
       </div>
@@ -959,7 +974,7 @@ const ConnectionsEditor: React.FC<{
       )}
 
       {rows.length === 0 && !adderOpen && (
-        <p className="text-xs text-muted-foreground">No connections.</p>
+        <p className="text-xs text-muted-foreground">{t('editors.kg.inspector.connections.none')}</p>
       )}
 
       <ul className="space-y-1">
@@ -989,11 +1004,12 @@ const ConnectionRow: React.FC<{
   onToggleDeleteExisting: () => void;
   onRemoveAdded: () => void;
 }> = ({ edge, nodeId, model, isNew, isMarkedForDelete, onToggleDeleteExisting, onRemoveAdded }) => {
+  const { t } = useTranslation();
   const outgoing = edge.source === nodeId;
   const otherId = outgoing ? edge.target : edge.source;
   const other = model.nodes.find((n) => n.id === otherId);
   const otherLabel = other?.label ?? otherId;
-  const predicate = edge.label ?? edge.iri ?? '(no predicate)';
+  const predicate = edge.label ?? edge.iri ?? t('editors.kg.inspector.connections.noPredicate');
 
   return (
     <li
@@ -1017,11 +1033,13 @@ const ConnectionRow: React.FC<{
       </div>
       {isNew && (
         <span className="rounded-full bg-emerald-100 px-1.5 py-0.5 text-[10px] font-medium uppercase text-emerald-900 dark:bg-emerald-900/40 dark:text-emerald-100">
-          new
+          {t('editors.kg.inspector.connections.new')}
         </span>
       )}
       {isMarkedForDelete && (
-        <span className="text-[10px] italic text-muted-foreground">removing</span>
+        <span className="text-[10px] italic text-muted-foreground">
+          {t('editors.kg.inspector.connections.removing')}
+        </span>
       )}
       <Button
         variant="ghost"
@@ -1030,10 +1048,10 @@ const ConnectionRow: React.FC<{
         onClick={isNew ? onRemoveAdded : onToggleDeleteExisting}
         title={
           isNew
-            ? 'Discard this staged connection'
+            ? t('editors.kg.inspector.connections.discardStaged')
             : isMarkedForDelete
-              ? 'Undo delete'
-              : 'Remove this connection'
+              ? t('editors.kg.inspector.connections.undoDelete')
+              : t('editors.kg.inspector.connections.removeConnection')
         }
       >
         {isMarkedForDelete ? <Undo2 className="size-3.5" /> : <Trash2 className="size-3.5" />}
@@ -1056,9 +1074,15 @@ const ConnectionRow: React.FC<{
  */
 interface ConstraintPredicateOption {
   iri: string;
+  /** RDF predicate name. NEVER translated: it is written onto the edge as
+   *  `label` when the connection is staged, and the exporter and preflight
+   *  match on it. */
   label: string;
   targetTypes: KGNodeType[];
   description: string;
+  /** i18n key for `description`. Explicit rather than derived from `label`,
+   *  so the translation is not coupled to a value that is persisted data. */
+  descriptionKey: string;
 }
 
 const CONSTRAINT_PREDICATES_BY_SOURCE: Partial<Record<KGNodeType, ConstraintPredicateOption[]>> = {
@@ -1068,12 +1092,14 @@ const CONSTRAINT_PREDICATES_BY_SOURCE: Partial<Record<KGNodeType, ConstraintPred
       label: 'constraintTargetClass',
       targetTypes: ['class'],
       description: 'Apply this NodeConstraint to a class.',
+      descriptionKey: 'editors.kg.inspector.constraintPredicates.targetClass',
     },
     {
       iri: 'http://www.w3.org/ns/shacl#property',
       label: 'property',
       targetTypes: ['propertyConstraint'],
       description: 'Group a PropertyConstraint under this NodeConstraint (sh:property).',
+      descriptionKey: 'editors.kg.inspector.constraintPredicates.shProperty',
     },
   ],
   propertyConstraint: [
@@ -1082,6 +1108,7 @@ const CONSTRAINT_PREDICATES_BY_SOURCE: Partial<Record<KGNodeType, ConstraintPred
       label: 'constraintTargetProperty',
       targetTypes: ['property'],
       description: 'Apply this PropertyConstraint to a property.',
+      descriptionKey: 'editors.kg.inspector.constraintPredicates.targetProperty',
     },
   ],
 };
@@ -1092,6 +1119,7 @@ const AddConnectionForm: React.FC<{
   onCancel: () => void;
   onStage: (edge: KGEdgeData) => void;
 }> = ({ draft, model, onCancel, onStage }) => {
+  const { t } = useTranslation();
   const [direction, setDirection] = useState<'outgoing' | 'incoming'>('outgoing');
   const [predicate, setPredicate] = useState('');
   // For constraint sources we use a dropdown (selectedOption stores the
@@ -1179,19 +1207,23 @@ const AddConnectionForm: React.FC<{
   const visibleTypeChips = useMemo(() => {
     const present = new Set<KGNodeType>(allowedTargetTypes);
     for (const n of candidateNodes) present.add(n.nodeType);
-    return KG_NODE_TYPES.filter((t) => present.has(t.type));
+    return KG_NODE_TYPES.filter((entry) => present.has(entry.type));
   }, [allowedTargetTypes, candidateNodes]);
 
   // If the rule produces no permitted targets AND no meta-vocab nodes are
   // available (e.g. an outgoing edge from a literal with no vocab nodes in
   // the model), surface a short explanation in place of the picker.
+  // Resolved through `edgeRuleReason` (not `explainEdgeRejection`, which reads
+  // the singleton for the canvas gesture): this is render-time output, so it
+  // must stay subscribed to `useTranslation` -- hence `t` in the deps below.
   const noTargetsReason = useMemo<string | null>(() => {
     if (candidateNodes.length > 0) return null;
     if (allowedTargetTypes.length > 0) return null;
     const draftType = draft.fields.nodeType;
-    return KG_EDGE_RULES[draftType]?.reason
-      ?? 'No valid target types for this node under OWL2 DL.';
-  }, [allowedTargetTypes, candidateNodes, draft.fields.nodeType]);
+    return (
+      edgeRuleReason(t, draftType) || t('editors.kg.edgeRules.noValidTargets')
+    );
+  }, [allowedTargetTypes, candidateNodes, draft.fields.nodeType, t]);
 
   const stage = () => {
     if (!targetId) return;
@@ -1240,7 +1272,7 @@ const AddConnectionForm: React.FC<{
 
   return (
     <div className="space-y-2 rounded-md border border-border/60 bg-background p-2">
-      <div className="text-xs font-semibold">Add connection</div>
+      <div className="text-xs font-semibold">{t('editors.kg.inspector.addConnection.title')}</div>
       <div className="grid grid-cols-2 gap-1">
         <Button
           variant={direction === 'outgoing' ? 'default' : 'outline'}
@@ -1249,7 +1281,7 @@ const AddConnectionForm: React.FC<{
           onClick={() => setDirection('outgoing')}
         >
           <ArrowRight className="size-3.5" />
-          Outgoing
+          {t('editors.kg.inspector.addConnection.outgoing')}
         </Button>
         <Button
           variant={direction === 'incoming' ? 'default' : 'outline'}
@@ -1258,7 +1290,7 @@ const AddConnectionForm: React.FC<{
           onClick={() => setDirection('incoming')}
         >
           <ArrowLeft className="size-3.5" />
-          Incoming
+          {t('editors.kg.inspector.addConnection.incoming')}
         </Button>
       </div>
 
@@ -1267,7 +1299,7 @@ const AddConnectionForm: React.FC<{
         // catalog of internal predicates — typing a free-text predicate here
         // would produce an edge the exporter can't recognise.
         <div className="space-y-1">
-          <Label className="text-xs">Predicate</Label>
+          <Label className="text-xs">{t('editors.kg.inspector.addConnection.predicate')}</Label>
           <Select
             value={selectedOption?.iri ?? ''}
             onValueChange={(v) => {
@@ -1288,17 +1320,17 @@ const AddConnectionForm: React.FC<{
           </Select>
           {selectedOption && (
             <p className="text-[11px] italic text-muted-foreground">
-              {selectedOption.description}
+              {t(selectedOption.descriptionKey, { defaultValue: selectedOption.description })}
             </p>
           )}
         </div>
       ) : (
         <div className="space-y-1">
-          <Label className="text-xs">Predicate (type or pick)</Label>
+          <Label className="text-xs">{t('editors.kg.inspector.addConnection.predicateFree')}</Label>
           <Input
             value={predicate}
             onChange={(e) => setPredicate(e.target.value)}
-            placeholder="e.g. knows, type, hasName"
+            placeholder={t('editors.kg.inspector.placeholders.predicate')}
             list={DATALIST_ID}
             className="h-8"
           />
@@ -1311,8 +1343,12 @@ const AddConnectionForm: React.FC<{
       )}
 
       <div className="space-y-1">
+        {/* Two complete keys, not a switched word glued to a fixed noun --
+          * the two halves don't stay adjacent in every language. */}
         <Label className="text-xs">
-          {direction === 'outgoing' ? 'Target' : 'Source'} node
+          {direction === 'outgoing'
+            ? t('editors.kg.inspector.addConnection.targetNode')
+            : t('editors.kg.inspector.addConnection.sourceNode')}
         </Label>
         {noTargetsReason ? (
           <div className="rounded-md border border-amber-300/60 bg-amber-50/70 p-2 text-[11px] italic text-amber-800 dark:bg-amber-950/30 dark:text-amber-300">
@@ -1325,7 +1361,7 @@ const AddConnectionForm: React.FC<{
               <Input
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
-                placeholder="Filter by label / IRI"
+                placeholder={t('editors.kg.nodeList.filterPlaceholder')}
                 className="h-7 pl-7 text-xs"
               />
             </div>
@@ -1333,26 +1369,28 @@ const AddConnectionForm: React.FC<{
               <NodePickerChip
                 active={typeFilter === 'all'}
                 onClick={() => setTypeFilter('all')}
-                label="All"
+                label={t('editors.kg.nodeList.allFilter')}
               />
-              {visibleTypeChips.map((t) => (
+              {visibleTypeChips.map((entry) => (
                 <NodePickerChip
-                  key={t.type}
-                  active={typeFilter === t.type}
-                  onClick={() => setTypeFilter(t.type)}
-                  label={t.label}
-                  icon={<KgShapeIcon type={t.type} size={12} />}
+                  key={entry.type}
+                  active={typeFilter === entry.type}
+                  onClick={() => setTypeFilter(entry.type)}
+                  label={nodeTypeLabel(t, entry)}
+                  icon={<KgShapeIcon type={entry.type} size={12} />}
                 />
               ))}
             </div>
             <div className="max-h-40 overflow-y-auto rounded-md border border-border/50 bg-background">
               {candidateNodes.length === 0 && (
                 <div className="p-2 text-[11px] text-muted-foreground">
-                  No other nodes in the model.
+                  {t('editors.kg.inspector.addConnection.noOtherNodes')}
                 </div>
               )}
               {candidateNodes.length > 0 && filteredNodes.length === 0 && (
-                <div className="p-2 text-[11px] text-muted-foreground">No nodes match.</div>
+                <div className="p-2 text-[11px] text-muted-foreground">
+                  {t('editors.kg.nodeList.noNodesMatch')}
+                </div>
               )}
               {filteredNodes.map((n) => {
                 const selected = n.id === targetId;
@@ -1386,7 +1424,7 @@ const AddConnectionForm: React.FC<{
 
       <div className="flex gap-2 pt-1">
         <Button variant="outline" size="sm" className="flex-1" onClick={onCancel}>
-          Cancel
+          {t('common.cancel')}
         </Button>
         <Button
           size="sm"
@@ -1394,7 +1432,7 @@ const AddConnectionForm: React.FC<{
           disabled={!targetId || noTargetsReason !== null}
           onClick={stage}
         >
-          Stage
+          {t('editors.kg.inspector.addConnection.stage')}
         </Button>
       </div>
     </div>
@@ -1433,6 +1471,7 @@ const EdgeFields: React.FC<{
   model: KnowledgeGraphData;
   onDraftChange: (next: EdgeDraft) => void;
 }> = ({ draft, model, onDraftChange }) => {
+  const { t } = useTranslation();
   const source = model.nodes.find((n) => n.id === draft.fields.source);
   const target = model.nodes.find((n) => n.id === draft.fields.target);
   const setFields = (patch: Partial<KGEdgeData>) =>
@@ -1442,20 +1481,20 @@ const EdgeFields: React.FC<{
     <div className="space-y-3">
       {draft.deleteSelf && (
         <div className="rounded-md border border-destructive/40 bg-destructive/10 px-2 py-1.5 text-xs text-destructive">
-          This relation will be deleted on Apply.
+          {t('editors.kg.inspector.pendingDeleteRelation')}
         </div>
       )}
       <div className="space-y-1">
-        <Label className="text-xs">Label</Label>
+        <Label className="text-xs">{t('editors.kg.inspector.fields.label')}</Label>
         <Input
           value={draft.fields.label ?? ''}
-          placeholder="e.g. knows, type, hasName"
+          placeholder={t('editors.kg.inspector.placeholders.predicate')}
           onChange={(e) => setFields({ label: e.target.value || undefined })}
           className="h-8"
         />
       </div>
       <div className="space-y-1">
-        <Label className="text-xs">Predicate IRI</Label>
+        <Label className="text-xs">{t('editors.kg.inspector.fields.predicateIri')}</Label>
         <Input
           value={draft.fields.iri ?? ''}
           placeholder="http://xmlns.com/foaf/0.1/knows"
@@ -1464,15 +1503,16 @@ const EdgeFields: React.FC<{
         />
       </div>
       <div className="space-y-1">
-        <Label className="text-xs">Source</Label>
+        <Label className="text-xs">{t('editors.kg.inspector.fields.source')}</Label>
         <ReadOnlyBadge label={source?.label ?? draft.fields.source} iri={source?.iri ?? source?.id} />
       </div>
       <div className="space-y-1">
-        <Label className="text-xs">Target</Label>
+        <Label className="text-xs">{t('editors.kg.inspector.fields.target')}</Label>
         <ReadOnlyBadge label={target?.label ?? draft.fields.target} iri={target?.iri ?? target?.id} />
       </div>
       <div className="pt-1 text-xs text-muted-foreground">
-        id: <code className="rounded bg-muted px-1 py-0.5">{draft.originalId}</code>
+        {t('editors.kg.inspector.fields.idLabel')}{' '}
+        <code className="rounded bg-muted px-1 py-0.5">{draft.originalId}</code>
       </div>
     </div>
   );

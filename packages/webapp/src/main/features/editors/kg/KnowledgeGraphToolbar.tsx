@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { Download, Link2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
@@ -30,6 +31,7 @@ export const KnowledgeGraphToolbar: React.FC<Props> = ({
   onOpenSettings,
   onExportHtml,
 }) => {
+  const { t } = useTranslation();
   const isConnecting = connectMode === 'connect';
   return (
     <div className="flex flex-col gap-1 border-b border-border/60 bg-muted/20 px-2 py-1.5">
@@ -39,11 +41,11 @@ export const KnowledgeGraphToolbar: React.FC<Props> = ({
           size="sm"
           className="h-7 gap-1.5 px-2"
           onClick={() => onConnectModeChange(isConnecting ? 'off' : 'connect')}
-          title="Add a relation: drag from the source node to the target node"
+          title={t('editors.kg.toolbar.addRelationTooltip')}
           aria-pressed={isConnecting}
         >
           <Link2 className="size-3.5" />
-          <span>{isConnecting ? 'Adding relation…' : 'Add relation'}</span>
+          <span>{isConnecting ? t('editors.kg.toolbar.addingRelation') : t('editors.kg.toolbar.addRelation')}</span>
         </Button>
         {onExportHtml && (
           <>
@@ -53,10 +55,10 @@ export const KnowledgeGraphToolbar: React.FC<Props> = ({
               size="sm"
               className="h-7 gap-1.5 px-2"
               onClick={onExportHtml}
-              title="Download the current graph as a standalone interactive HTML file"
+              title={t('editors.kg.toolbar.exportHtmlTooltip')}
             >
               <Download className="size-3.5" />
-              <span className="hidden md:inline">Export HTML</span>
+              <span className="hidden md:inline">{t('editors.kg.toolbar.exportHtml')}</span>
             </Button>
           </>
         )}
@@ -64,7 +66,10 @@ export const KnowledgeGraphToolbar: React.FC<Props> = ({
           {hiddenCount > 0 ? (
             <>
               <span className="font-medium text-amber-600 dark:text-amber-400">
-                Showing {nodeCount - hiddenCount} of {nodeCount} nodes
+                {t('editors.kg.toolbar.showingNodes', {
+                  count: nodeCount,
+                  visible: nodeCount - hiddenCount,
+                })}
               </span>
               {onOpenSettings && (
                 <>
@@ -74,23 +79,26 @@ export const KnowledgeGraphToolbar: React.FC<Props> = ({
                     onClick={onOpenSettings}
                     className="underline underline-offset-2 hover:text-foreground"
                   >
-                    raise the limit in KG Settings
+                    {t('editors.kg.toolbar.raiseLimit')}
                   </button>
                 </>
               )}
             </>
           ) : (
+            /* Two independent counts can't share i18next's single {{count}},
+             * so each is pluralised on its own and composed -- same shape as
+             * `editors.diagramTabs.linksFragment_one/_other`. */
             <>
-              {nodeCount} node{nodeCount === 1 ? '' : 's'} · {edgeCount} relation{edgeCount === 1 ? '' : 's'}
+              {t('editors.kg.toolbar.counts', {
+                nodes: t('editors.kg.toolbar.nodesFragment', { count: nodeCount }),
+                relations: t('editors.kg.toolbar.relationsFragment', { count: edgeCount }),
+              })}
             </>
           )}
         </div>
       </div>
       {isConnecting && (
-        <div className="text-[11px] text-muted-foreground">
-          Drag from a source node onto a target node to create a relation. Node positions are locked
-          while this mode is on — Esc to exit.
-        </div>
+        <div className="text-[11px] text-muted-foreground">{t('editors.kg.toolbar.connectHint')}</div>
       )}
     </div>
   );

@@ -9,6 +9,7 @@
 // so the backend can detect a stale graph.
 import { useCallback, useState } from 'react';
 import { toast } from 'react-toastify';
+import { useTranslation } from 'react-i18next';
 
 import { BACKEND_URL } from '../../shared/constants/constant';
 import type { KgConversionTarget } from './useKgToUmlConversion';
@@ -45,6 +46,7 @@ const DIAGRAM_TYPE_BY_TARGET: Record<KgConversionTarget, 'ClassDiagram' | 'Objec
 export type PreflightStatus = 'idle' | 'loading' | 'success' | 'error';
 
 export const useKgPreflight = () => {
+  const { t } = useTranslation();
   const [status, setStatus] = useState<PreflightStatus>('idle');
   const [report, setReport] = useState<KgPreflightReport | null>(null);
 
@@ -69,19 +71,19 @@ export const useKgPreflight = () => {
         });
 
         if (!response.ok) {
-          const errorData = await response.json().catch(() => ({ detail: 'Unknown error' }));
+          const errorData = await response.json().catch(() => ({ detail: t('import.kg.preflight.unknownError') }));
           throw new Error(errorData.detail || `HTTP ${response.status}`);
         }
 
         const data = (await response.json()) as KgPreflightReport;
         if (!data || !Array.isArray(data.issues)) {
-          throw new Error('Invalid preflight response.');
+          throw new Error(t('import.kg.preflight.invalidResponse'));
         }
         setReport(data);
         setStatus('success');
         return data;
       } catch (error) {
-        const message = error instanceof Error ? error.message : 'KG preflight failed.';
+        const message = error instanceof Error ? error.message : t('import.kg.preflight.failed');
         toast.error(message);
         setStatus('error');
         setReport(null);

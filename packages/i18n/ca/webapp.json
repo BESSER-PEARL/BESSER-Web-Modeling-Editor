@@ -71,6 +71,7 @@
       "importClassDiagramFrom": "Importa un diagrama de classes des de",
       "imageToProject": "Imatge a projecte",
       "kgToProject": "Graf de coneixement a projecte",
+      "importKgOwl": "Importa un KG (OWL)",
       "previewProject": "Previsualitza el projecte"
     },
     "generate": {
@@ -83,7 +84,9 @@
         "database": "Base de dades",
         "oop": "POO",
         "schema": "Esquema",
-        "data": "Dades"
+        "data": "Dades",
+        "kgConvert": "Converteix a B-UML",
+        "kgExport": "Exporta el graf de coneixement"
       },
       "actions": {
         "djangoProject": "Projecte Django",
@@ -95,11 +98,19 @@
         "besserAgent": "Agent BESSER",
         "jsonObjectExport": "Exportació d'objecte JSON",
         "userProfileJson": "JSON de perfil d'usuari",
-        "qiskitCode": "Codi Qiskit"
+        "qiskitCode": "Codi Qiskit",
+        "kgToClassDiagram": "Diagrama de classes",
+        "kgExportWithOptions": "Exporta amb opcions…"
       },
       "notices": {
         "statemachine": "Les màquines d'estats s'utilitzen com a implementacions de mètodes en els diagrames de classes. Genera codi a partir del diagrama de classes.",
         "unavailable": "Encara no disponible per a aquest diagrama"
+      },
+      "kgGuards": {
+        "openKgBeforeConverting": "Obre un diagrama de graf de coneixement abans de convertir-lo a UML.",
+        "openKgBeforeRefining": "Obre un diagrama de graf de coneixement abans de refinar-lo.",
+        "openKgBeforeExporting": "Obre un diagrama de graf de coneixement abans d'exportar.",
+        "exportFailed": "L'exportació del KG ha fallat."
       }
     },
     "deploy": {
@@ -2216,8 +2227,634 @@
         }
       }
     },
+    "kg": {
+      "nodeTypes": {
+        "class": {
+          "label": "Classe",
+          "description": "Un tipus / concepte (owl:Class)"
+        },
+        "individual": {
+          "label": "Individu",
+          "description": "Una instància d'una classe"
+        },
+        "property": {
+          "label": "Propietat",
+          "description": "Un node de propietat reïficat"
+        },
+        "literal": {
+          "label": "Literal",
+          "description": "Un valor literal (cadena, nombre, …)"
+        },
+        "blank": {
+          "label": "Anònim",
+          "description": "Recurs anònim (node anònim)"
+        },
+        "nodeConstraint": {
+          "label": "Restricció de node",
+          "description": "Restriccions que s'apliquen a una classe (axiomes OWL o sh:NodeShape)"
+        },
+        "propertyConstraint": {
+          "label": "Restricció de propietat",
+          "description": "Restriccions que s'apliquen a una propietat (restricció OWL o sh:PropertyShape)"
+        }
+      },
+      "edgeRules": {
+        "class": {
+          "reason": "Una classe només es pot enllaçar amb una altra classe o amb un node anònim (expressió de classe)."
+        },
+        "individual": {
+          "reason": "Un individu es pot enllaçar amb una classe (rdf:type), amb altres individus o nodes anònims (propietats d'objecte), o amb literals (propietats de tipus de dades)."
+        },
+        "property": {
+          "reason": "Una propietat es pot enllaçar amb una classe (rdfs:domain / rdfs:range), amb una altra propietat (subPropertyOf / inverseOf / equivalentProperty), o amb un node anònim (expressió de classe anònima)."
+        },
+        "literal": {
+          "reason": "Un literal no pot ser el subjecte d'una relació OWL/RDF."
+        },
+        "blank": {
+          "reason": "Un node anònim (recurs anònim) pot referenciar qualsevol node que no sigui una restricció."
+        },
+        "nodeConstraint": {
+          "reason": "Una NodeConstraint només pot apuntar a una classe (constraintTargetClass) o agrupar una PropertyConstraint (sh:property)."
+        },
+        "propertyConstraint": {
+          "reason": "Una PropertyConstraint només pot apuntar a una propietat (constraintTargetProperty)."
+        },
+        "genericRejection": "Les connexions de «{{source}}» a «{{target}}» no estan permeses en OWL2 DL.",
+        "noValidTargets": "No hi ha tipus de destinació vàlids per a aquest node en OWL2 DL."
+      },
+      "constraints": {
+        "categories": {
+          "cardinality": "Cardinalitat",
+          "value": "Valor",
+          "datatype": "Tipus de dades i format",
+          "enumeration": "Enumeració",
+          "logical": "Lògica",
+          "classAxiom": "Axiomes de classe",
+          "meta": "Metadades"
+        },
+        "catalog": {
+          "minCardinality": {
+            "label": "Almenys N valors",
+            "description": "La propietat ha de tenir almenys N valors per instància."
+          },
+          "maxCardinality": {
+            "label": "Com a màxim N valors",
+            "description": "La propietat pot tenir com a màxim N valors per instància."
+          },
+          "exactCardinality": {
+            "label": "Exactament N valors",
+            "description": "La propietat ha de tenir exactament N valors per instància."
+          },
+          "minQualifiedCardinality": {
+            "label": "Almenys N de la classe X",
+            "description": "Almenys N valors han de ser instàncies de la classe triada."
+          },
+          "maxQualifiedCardinality": {
+            "label": "Com a màxim N de la classe X",
+            "description": "Com a màxim N valors poden ser instàncies de la classe triada."
+          },
+          "exactQualifiedCardinality": {
+            "label": "Exactament N de la classe X",
+            "description": "Exactament N valors han de ser instàncies de la classe triada."
+          },
+          "someValuesFrom": {
+            "label": "Algun valor ha de ser un …",
+            "description": "Almenys un valor ha de ser una instància de la classe triada. Només OWL — SHACL no té un predicat existencial fidel (sh:class significa «tots els valors», no «algun valor»)."
+          },
+          "allValuesFrom": {
+            "label": "Tots els valors han de ser un …",
+            "description": "Tots els valors han de ser instàncies de la classe triada."
+          },
+          "hasValue": {
+            "label": "Ha de ser igual a",
+            "description": "La propietat ha de tenir aquest valor concret (literal o IRI)."
+          },
+          "hasSelf": {
+            "label": "És reflexiva",
+            "description": "La propietat relaciona cada individu amb ell mateix."
+          },
+          "nodeKind": {
+            "label": "El valor ha de ser un …",
+            "description": "Restringeix el tipus de node que pot prendre un valor (IRI, BlankNode, Literal)."
+          },
+          "equals": {
+            "label": "Igual a la propietat",
+            "description": "El conjunt de valors d'aquesta propietat ha de coincidir exactament amb el d'una altra propietat."
+          },
+          "lessThan": {
+            "label": "Menor que la propietat",
+            "description": "Cada valor ha de ser estrictament menor que el valor corresponent d'una altra propietat."
+          },
+          "lessThanOrEquals": {
+            "label": "Menor o igual que la propietat",
+            "description": "Cada valor ha de ser menor o igual que el valor corresponent d'una altra propietat."
+          },
+          "datatype": {
+            "label": "Del tipus de dades",
+            "description": "Els valors han de ser literals del tipus de dades XSD triat."
+          },
+          "pattern": {
+            "label": "Coincideix amb el patró",
+            "description": "Els valors de cadena han de coincidir amb aquesta expressió regular."
+          },
+          "flags": {
+            "label": "Indicadors del patró",
+            "description": "Indicadors de regex aplicats a sh:pattern (p. ex. «i» per ignorar majúscules)."
+          },
+          "minLength": {
+            "label": "Longitud d'almenys N",
+            "description": "La longitud de la cadena ha de ser d'almenys N caràcters."
+          },
+          "maxLength": {
+            "label": "Longitud de com a màxim N",
+            "description": "La longitud de la cadena ha de ser com a màxim de N caràcters."
+          },
+          "minInclusive": {
+            "label": "Valor ≥ N",
+            "description": "Els valors numèrics / de data han de ser almenys N (inclòs)."
+          },
+          "maxInclusive": {
+            "label": "Valor ≤ N",
+            "description": "Els valors numèrics / de data han de ser com a màxim N (inclòs)."
+          },
+          "minExclusive": {
+            "label": "Valor > N",
+            "description": "Els valors numèrics / de data han de ser estrictament més grans que N."
+          },
+          "maxExclusive": {
+            "label": "Valor < N",
+            "description": "Els valors numèrics / de data han de ser estrictament més petits que N."
+          },
+          "languageIn": {
+            "label": "Idiomes permesos",
+            "description": "Els valors literals amb etiqueta d'idioma han d'usar una de les etiquetes BCP-47 llistades."
+          },
+          "uniqueLang": {
+            "label": "Cada idioma com a màxim una vegada",
+            "description": "Dos valors amb etiqueta d'idioma no poden compartir la mateixa etiqueta."
+          },
+          "in": {
+            "label": "Un d'aquests valors",
+            "description": "Els valors han de pertànyer a una llista enumerada."
+          },
+          "oneOf": {
+            "label": "Un d'aquests individus",
+            "description": "La classe és el conjunt enumerat d'aquests individus."
+          },
+          "shaclNot": {
+            "label": "NO ha de satisfer",
+            "description": "El valor NO ha de satisfer la forma de restricció interna."
+          },
+          "shaclAnd": {
+            "label": "Ha de satisfer TOTES",
+            "description": "El valor ha de satisfer totes les formes de restricció internes."
+          },
+          "shaclOr": {
+            "label": "Ha de satisfer ALMENYS UNA",
+            "description": "El valor ha de satisfer almenys una forma de restricció interna."
+          },
+          "shaclXone": {
+            "label": "Ha de satisfer EXACTAMENT UNA",
+            "description": "El valor ha de satisfer exactament una de les formes de restricció internes."
+          },
+          "equivalentClasses": {
+            "label": "Equivalent a",
+            "description": "Aquestes classes comparteixen totes les instàncies."
+          },
+          "disjointWith": {
+            "label": "Disjunta amb",
+            "description": "Cap instància no pot pertànyer a totes dues classes alhora."
+          },
+          "disjointUnionOf": {
+            "label": "Unió disjunta de",
+            "description": "La classe és la unió disjunta de les classes llistades."
+          },
+          "subClassOf": {
+            "label": "Subclasse de",
+            "description": "Aquesta classe és una especialització d'una altra classe."
+          },
+          "complementOf": {
+            "label": "Complement de",
+            "description": "La classe és el complement conjuntista d'una altra classe."
+          },
+          "unionOf": {
+            "label": "Unió de",
+            "description": "La classe és la unió de les classes llistades."
+          },
+          "intersectionOf": {
+            "label": "Intersecció de",
+            "description": "La classe és la intersecció de les classes llistades."
+          },
+          "hasKey": {
+            "label": "Propietats clau (identifiquen de manera única)",
+            "description": "Les propietats llistades identifiquen conjuntament cada instància de manera única."
+          },
+          "shaclClosed": {
+            "label": "Forma tancada (sense propietats addicionals)",
+            "description": "Les instàncies no poden portar propietats més enllà de les llistades en aquesta forma."
+          },
+          "shaclIgnoredProperties": {
+            "label": "Propietats ignorades (excepcions de la forma tancada)",
+            "description": "Propietats permeses fins i tot quan la forma està tancada."
+          },
+          "shaclSeverity": {
+            "label": "Severitat",
+            "description": "Severitat d'un resultat de validació SHACL que incompleix aquesta restricció."
+          },
+          "shaclMessage": {
+            "label": "Missatge personalitzat",
+            "description": "Missatge llegible adjunt a un resultat de validació."
+          },
+          "shaclName": {
+            "label": "Nom llegible",
+            "description": "Nom de visualització que mostren les interfícies compatibles amb SHACL."
+          },
+          "shaclDescription": {
+            "label": "Descripció",
+            "description": "Descripció lliure amb finalitats de documentació."
+          },
+          "shaclDeactivated": {
+            "label": "Desactivada",
+            "description": "Quan està actiu, els validadors ometen aquesta forma."
+          },
+          "shaclOrder": {
+            "label": "Ordre de visualització",
+            "description": "Suggeriment per a l'ordre de visualització de les formes a la interfície."
+          },
+          "shaclGroup": {
+            "label": "Grup",
+            "description": "IRI d'un sh:PropertyGroup al qual pertany aquesta forma."
+          }
+        },
+        "templates": {
+          "required": {
+            "label": "Obligatòria",
+            "description": "Ha de tenir almenys un valor (minCardinality = 1)."
+          },
+          "optional": {
+            "label": "Opcional",
+            "description": "Pot faltar (minCardinality = 0)."
+          },
+          "single": {
+            "label": "D'un sol valor",
+            "description": "Com a màxim un valor (maxCardinality = 1)."
+          },
+          "required-single": {
+            "label": "Obligatòria i d'un sol valor",
+            "description": "Exactament un valor (min = max = 1)."
+          },
+          "required-multi": {
+            "label": "Obligatòria i multivalor",
+            "description": "Almenys un valor, sense límit superior."
+          },
+          "enumeration": {
+            "label": "Enumeració",
+            "description": "El valor ha de pertànyer a una llista enumerada — edita la llista aquí mateix."
+          },
+          "numeric-range": {
+            "label": "Interval numèric",
+            "description": "Valor de tipus decimal entre dos límits."
+          },
+          "string-pattern": {
+            "label": "Patró de cadena",
+            "description": "Valor xsd:string que coincideix amb una expressió regular."
+          },
+          "email": {
+            "label": "Correu electrònic",
+            "description": "xsd:string que coincideix amb una expressió regular de correu permissiva."
+          },
+          "url": {
+            "label": "URL",
+            "description": "Valor de tipus xsd:anyURI."
+          },
+          "disjoint": {
+            "label": "Disjunta amb",
+            "description": "La classe és disjunta amb una altra classe — tria els objectius aquí mateix."
+          },
+          "closed-shape": {
+            "label": "Forma tancada",
+            "description": "No es permet cap propietat a part de les declarades dins d'aquesta forma."
+          }
+        },
+        "describe": {
+          "minCardinality_one": "Ha de tenir almenys {{count}} valor",
+          "minCardinality_other": "Ha de tenir almenys {{count}} valors",
+          "maxCardinality_one": "Pot tenir com a màxim {{count}} valor",
+          "maxCardinality_other": "Pot tenir com a màxim {{count}} valors",
+          "exactCardinality_one": "Ha de tenir exactament {{count}} valor",
+          "exactCardinality_other": "Ha de tenir exactament {{count}} valors",
+          "minQualifiedCardinality_one": "Almenys {{count}} valor de la classe {{class}}",
+          "minQualifiedCardinality_other": "Almenys {{count}} valors de la classe {{class}}",
+          "maxQualifiedCardinality_one": "Com a màxim {{count}} valor de la classe {{class}}",
+          "maxQualifiedCardinality_other": "Com a màxim {{count}} valors de la classe {{class}}",
+          "exactQualifiedCardinality_one": "Exactament {{count}} valor de la classe {{class}}",
+          "exactQualifiedCardinality_other": "Exactament {{count}} valors de la classe {{class}}",
+          "fusedExact_one": "Ha de tenir exactament {{count}} valor",
+          "fusedExact_other": "Ha de tenir exactament {{count}} valors",
+          "fusedRange": "Ha de tenir entre {{min}} i {{max}} valors",
+          "someValuesFrom": "Algun valor ha de ser de la classe {{class}}",
+          "allValuesFrom": "Tots els valors han de ser de la classe {{class}}",
+          "hasValue": "{{target}} ha de ser igual a {{value}}",
+          "hasSelfTrue": "{{target}} és reflexiva (bucle sobre si mateixa)",
+          "hasSelfFalse": "{{target}} no és reflexiva",
+          "nodeKind": "{{target}} ha de ser un(a) {{kind}}",
+          "datatype": "Del tipus de dades {{datatype}}",
+          "pattern": "{{target}} ha de coincidir amb el regex `{{regex}}`",
+          "flags": "Indicadors del patró: `{{flags}}`",
+          "minLength": "Longitud ≥ {{value}}",
+          "maxLength": "Longitud ≤ {{value}}",
+          "minInclusive": "Valor ≥ {{value}}",
+          "maxInclusive": "Valor ≤ {{value}}",
+          "minExclusive": "Valor > {{value}}",
+          "maxExclusive": "Valor < {{value}}",
+          "languageIn": "Idiomes permesos: {{list}}",
+          "uniqueLangTrue": "Cada idioma com a màxim una vegada",
+          "uniqueLangFalse": "Els idiomes es poden repetir",
+          "in": "{{target}} ha de ser un de: {{list}}",
+          "oneOf": "La classe és el conjunt: {{list}}",
+          "equivalentClasses": "Equivalent a {{list}}",
+          "disjointWith": "Disjunta amb {{list}}",
+          "subClassOf": "Subclasse de {{class}}",
+          "complementOf": "Complement de {{class}}",
+          "unionOf": "Unió de {{list}}",
+          "intersectionOf": "Intersecció de {{list}}",
+          "disjointUnionOf": "Unió disjunta de {{list}}",
+          "hasKey": "Identificada per {{list}}",
+          "shaclClosedTrue": "Forma tancada (no es permeten propietats addicionals)",
+          "shaclClosedFalse": "Forma oberta",
+          "shaclIgnoredProperties": "Excepcions de la forma tancada: {{list}}",
+          "shaclDisjoint": "Disjunta SHACL de {{class}}",
+          "shaclSeverity": "Severitat: {{severity}}",
+          "shaclMessage": "Missatge: {{message}}",
+          "shaclName": "Nom: {{name}}",
+          "shaclDescription": "Descripció: {{description}}",
+          "shaclDeactivatedTrue": "Desactivada",
+          "shaclDeactivatedFalse": "Activada",
+          "shaclOrder": "Ordre: {{value}}",
+          "shaclGroup": "Al grup {{group}}",
+          "shaclNot": "NO ha de satisfer {{shapes}}",
+          "shaclAnd": "Ha de satisfer TOTES: {{shapes}}",
+          "shaclOr": "Ha de satisfer ALMENYS UNA: {{shapes}}",
+          "shaclXone": "Ha de satisfer EXACTAMENT UNA: {{shapes}}",
+          "theValue": "el valor",
+          "noneList": "(cap)",
+          "noShapes": "(cap forma)",
+          "empty": "Encara no hi ha restriccions: tria'n una al selector de sota."
+        },
+        "editor": {
+          "heading": "Restriccions ({{count}})",
+          "appliesTo": "S'aplica a <target>{{target}}</target>",
+          "quickAdd": "Afegeix ràpid",
+          "addConstraint": "Afegeix una restricció",
+          "removeConstraint": "Treu la restricció",
+          "removeValue": "Treu",
+          "addValue": "Afegeix un valor",
+          "searchPlaceholder": "Cerca restriccions…",
+          "count": "Quantitat",
+          "onClass": "A la classe",
+          "pickNodeKind": "Tria un tipus de node",
+          "pickSeverity": "Tria la severitat",
+          "pickDatatype": "Tria un tipus de dades XSD",
+          "customDatatype": "…o enganxa una IRI de tipus de dades personalitzada",
+          "literalValue": "Valor literal",
+          "literalValueOrIri": "Valor literal o IRI",
+          "datatypeIriOptional": "IRI del tipus de dades (opcional)",
+          "langTag": "etiqueta d'idioma (p. ex. en)",
+          "enabled": "activat",
+          "disabled": "desactivat",
+          "editorComingSoon": "L'editor per a «{{shape}}» arribarà aviat: el valor es conserva tal com és."
+        },
+        "validation": {
+          "minMaxCardinality": "minCardinality ({{min}}) no ha de superar maxCardinality ({{max}}).",
+          "minMaxLength": "minLength ({{min}}) no ha de superar maxLength ({{max}}).",
+          "minMaxInclusive": "minInclusive ({{min}}) no ha de superar maxInclusive ({{max}}).",
+          "badRegex": "El patró regex «{{pattern}}» no és una expressió regular vàlida.",
+          "qualifiedNeedsOnClass": "La cardinalitat qualificada ({{kind}}) necessita una «on class» seleccionada.",
+          "enumNeedsValue": "L'enumeració (in) requereix almenys un valor."
+        },
+        "nested": {
+          "introNot": "NO ha de satisfer",
+          "introAnd": "Ha de satisfer TOTES",
+          "introOr": "Ha de satisfer ALMENYS UNA",
+          "introXone": "Ha de satisfer EXACTAMENT UNA",
+          "addShape": "Afegeix una forma",
+          "deeplyNested": "Molt imbricat: considera extreure aquesta forma a un node de restricció a part perquè l'inspector continuï sent llegible.",
+          "confirmSwitchToRef": "Canviar a una referència descarta les especificacions de restricció en línia d'aquesta ranura. Vols continuar?",
+          "inline": "En línia",
+          "reference": "Referència",
+          "removeSlot": "Treu la ranura",
+          "pickExisting": "Tria un {{type}} existent per referenciar",
+          "refPlaceholder": "id del node de restricció",
+          "noneWithId": "Cap {{type}} amb aquest id."
+        },
+        "severities": {
+          "info": "Informació",
+          "warning": "Advertiment",
+          "violation": "Violació"
+        },
+        "datatypeGroups": {
+          "text": "Text",
+          "numeric": "Numèric",
+          "dateTime": "Data/Hora",
+          "boolean": "Booleà",
+          "binary": "Binari",
+          "languageTagged": "Amb etiqueta d'idioma"
+        }
+      },
+      "palette": {
+        "heading": "Tipus de node",
+        "hint": "Arrossega un tipus de node al llenç per crear un node nou. Per crear una relació entre nodes existents, fes clic a <action>{{addRelation}}</action> a la barra d'eines i després al node d'origen seguit del node de destinació."
+      },
+      "toolbar": {
+        "addRelation": "Afegeix una relació",
+        "addingRelation": "S'està afegint una relació…",
+        "addRelationTooltip": "Afegeix una relació: arrossega del node d'origen al node de destinació",
+        "exportHtml": "Exporta HTML",
+        "exportHtmlTooltip": "Baixa el graf actual com a fitxer HTML interactiu autònom",
+        "connectHint": "Arrossega d'un node d'origen a un node de destinació per crear una relació. Les posicions dels nodes queden bloquejades mentre aquest mode és actiu: Esc per sortir.",
+        "showingNodes_one": "Es mostra {{visible}} d'{{count}} node",
+        "showingNodes_other": "Es mostren {{visible}} de {{count}} nodes",
+        "raiseLimit": "augmenta el límit a la configuració del KG",
+        "nodesFragment_one": "{{count}} node",
+        "nodesFragment_other": "{{count}} nodes",
+        "relationsFragment_one": "{{count}} relació",
+        "relationsFragment_other": "{{count}} relacions",
+        "counts": "{{nodes}} · {{relations}}"
+      },
+      "canvasControls": {
+        "autoLayout": "Disposició automàtica",
+        "fitToView": "Ajusta a la vista",
+        "zoomIn": "Amplia",
+        "zoomOut": "Redueix"
+      },
+      "nodeList": {
+        "heading": "Nodes ({{count}})",
+        "filterPlaceholder": "Filtra per etiqueta / IRI",
+        "allFilter": "Tots",
+        "selectAllAria": "Selecciona tots els nodes mostrats",
+        "unselectAllAria": "Desselecciona tots els nodes seleccionats al filtre",
+        "selectAllTitle": "Selecciona tots els mostrats",
+        "unselectAllTitle": "Desselecciona els seleccionats al filtre",
+        "noNodesToShow": "No hi ha cap node per mostrar",
+        "noNodesMatch": "Cap node no coincideix.",
+        "selectedSummary_one": "{{selected}} d'{{count}} node mostrat seleccionat",
+        "selectedSummary_other": "{{selected}} de {{count}} nodes mostrats seleccionats",
+        "selectAll": "Selecciona-ho tot",
+        "unselectAll": "Desselecciona-ho tot",
+        "metaVocabNote_one": "{{count}} node de vocabulari no mostrat. Activa'ls a la configuració del KG.",
+        "metaVocabNote_other": "{{count}} nodes de vocabulari no mostrats. Activa'ls a la configuració del KG.",
+        "metaVocabTooltip": "{{terms}} — implícits segons els tipus de node que anoten. Es mantenen al model i a totes les exportacions. Els tipus de dades xsd: i altres termes sh: no s'amaguen."
+      },
+      "editor": {
+        "showAll": "Mostra-ho tot",
+        "focusBanner_one": "Centrat en el problema ({{count}} objectiu + veïns)",
+        "focusBanner_other": "Centrat en el problema ({{count}} objectius + veïns)",
+        "emptyState": "Arrossega un tipus de node de la paleta al llenç, o fes servir {{fileMenu}} → {{importItem}} per carregar una ontologia OWL.",
+        "showingCap": "Es mostren {{visible}} de {{total}} nodes (tou: {{soft}}, dur: {{hard}})",
+        "toasts": {
+          "createdButCapped": "S'ha creat el node, però no s'ha pogut mostrar perquè s'ha assolit el límit dur de {{limit}}. Amaga alguns nodes de la llista o augmenta el límit dur a la configuració del KG.",
+          "createdSomeCapped": "S'han creat {{created}} nodes; {{notShown}} no s'han pogut mostrar perquè s'ha assolit el límit dur de {{limit}}. Amaga alguns nodes de la llista o augmenta el límit dur a la configuració del KG.",
+          "visibleCapReached": "No es poden visualitzar més de {{limit}} nodes alhora. Desmarca'n alguns a la llista de nodes o augmenta el límit dur a la configuració del KG.",
+          "visibleCapPartial": "No es poden visualitzar més de {{limit}} nodes alhora. Només s'han afegit {{added}} dels {{selected}} nodes seleccionats. Desmarca'n alguns a la llista de nodes o augmenta el límit dur a la configuració del KG.",
+          "focusNotInGraph": "No s'ha pogut centrar: el node afectat no forma part d'aquest graf.",
+          "exportNotReady": "No s'ha pogut exportar el graf de coneixement: el llenç no està a punt."
+        }
+      },
+      "standaloneHtml": {
+        "fallbackTitle": "Graf de coneixement",
+        "cdnFailed": "No s'ha pogut carregar Cytoscape des del CDN. Comprova la connexió de xarxa.",
+        "renderFailedPrefix": "No s'ha pogut renderitzar el graf: "
+      },
+      "inspector": {
+        "titleNode": "Node",
+        "titleRelation": "Relació",
+        "titleInspector": "Inspector",
+        "selectedCount_one": "{{count}} seleccionat",
+        "selectedCount_other": "{{count}} seleccionats",
+        "unsavedChanges": "Canvis sense desar",
+        "close": "Tanca",
+        "noSelection": "Fes clic en un node o relació del llenç per editar-lo aquí. Arrossega sobre el llenç buit per seleccionar-ne diversos. Mantén Espai per desplaçar-te.",
+        "pendingDeleteNode": "Aquest node i totes les seves connexions s'eliminaran en aplicar.",
+        "pendingDeleteRelation": "Aquesta relació s'eliminarà en aplicar.",
+        "fields": {
+          "type": "Tipus",
+          "label": "Etiqueta",
+          "value": "Valor",
+          "datatypeIri": "IRI del tipus de dades",
+          "iri": "IRI",
+          "predicateIri": "IRI del predicat",
+          "source": "Origen",
+          "target": "Destinació",
+          "idLabel": "id:"
+        },
+        "placeholders": {
+          "predicate": "p. ex. knows, type, hasName"
+        },
+        "footer": {
+          "hide": "Amaga",
+          "hideTooltip": "Treu el node del llenç sense eliminar-lo del model",
+          "hideTooltipMulti": "Treu els nodes seleccionats del llenç sense eliminar-los",
+          "bulkHide_one": "Amaga {{count}} node",
+          "bulkHide_other": "Amaga {{count}} nodes",
+          "deleteSelection": "Elimina la selecció",
+          "delete": "Elimina",
+          "stageDeleteNode": "Prepara l'eliminació d'aquest node (i totes les seves connexions)",
+          "stageDeleteRelation": "Prepara l'eliminació d'aquesta relació",
+          "undoDelete": "Desfés l'eliminació",
+          "discard": "Descarta",
+          "apply": "Aplica"
+        },
+        "confirm": {
+          "discardTitle": "Voleu descartar els canvis sense desar?",
+          "discardDescription": "Tens canvis sense desar a l'inspector. Vols descartar-los i continuar?",
+          "discardConfirm": "Descarta",
+          "discardCancel": "Continua editant",
+          "bulkDeleteTitle": "Voleu eliminar la selecció?",
+          "bulkNodesFragment_one": "{{count}} node",
+          "bulkNodesFragment_other": "{{count}} nodes",
+          "bulkRelationsFragment_one": "{{count}} relació",
+          "bulkRelationsFragment_other": "{{count}} relacions",
+          "bulkDeleteDescription": "Això eliminarà permanentment {{nodes}} i {{relations}} del model. Els nodes també perden les relacions associades. Aquesta acció no es pot desfer.",
+          "bulkDeleteConfirm": "Elimina"
+        },
+        "multi": {
+          "hint": "Arrossega qualsevol node seleccionat per moure tot el grup. Mantén Espai per desplaçar-te.",
+          "nodesHeading": "Nodes ({{count}})",
+          "relationsHeading": "Relacions ({{count}})"
+        },
+        "attachedConstraints": {
+          "heading": "Restriccions ({{count}})",
+          "add": "Afegeix una restricció",
+          "constrainThisClass": "Restringeix aquesta classe…",
+          "constrainThisClassHint": "P. ex. disjunta amb, té clau, forma tancada.",
+          "constrainAProperty": "Restringeix una propietat d'aquesta classe",
+          "noPropertiesInDomain": "Encara no hi ha propietats al domini d'aquesta classe.",
+          "fallbackNodeConstraint": "Restricció de node",
+          "fallbackPropertyConstraint": "Restricció de propietat",
+          "none": "Encara no hi ha restriccions."
+        },
+        "connections": {
+          "heading": "Connexions ({{count}})",
+          "add": "Afegeix",
+          "none": "Cap connexió.",
+          "noPredicate": "(cap predicat)",
+          "new": "nou",
+          "removing": "s'està eliminant",
+          "discardStaged": "Descarta aquesta connexió preparada",
+          "undoDelete": "Desfés l'eliminació",
+          "removeConnection": "Treu aquesta connexió"
+        },
+        "addConnection": {
+          "title": "Afegeix una connexió",
+          "outgoing": "Sortint",
+          "incoming": "Entrant",
+          "predicate": "Predicat",
+          "predicateFree": "Predicat (escriu o tria)",
+          "targetNode": "Node de destinació",
+          "sourceNode": "Node d'origen",
+          "noOtherNodes": "No hi ha cap altre node al model.",
+          "stage": "Prepara"
+        },
+        "constraintPredicates": {
+          "targetClass": "Aplica aquesta NodeConstraint a una classe.",
+          "shProperty": "Agrupa una PropertyConstraint sota aquesta NodeConstraint (sh:property).",
+          "targetProperty": "Aplica aquesta PropertyConstraint a una propietat."
+        }
+      },
+      "settings": {
+        "title": "Configuració del graf de coneixement",
+        "noActiveDiagram": "No hi ha cap diagrama de graf de coneixement actiu.",
+        "backToEditor": "Torna a l'editor",
+        "description": "Preferències del diagrama KG actiu ({{title}}). Els canvis es desen al projecte i es conserven en exportar/importar.",
+        "saved": "S'ha desat la configuració del KG.",
+        "saveFailed": "No s'ha pogut desar la configuració del KG.",
+        "softLimitLabel": "Límit tou: es mostra automàticament en importar",
+        "softLimitHelp": "Quan carregues una ontologia, apareixen per defecte aquests nodes: primer les classes, després les propietats, els nodes anònims, les restriccions, els individus i els literals. Pots activar-ne més des de la llista de nodes, fins al límit dur.",
+        "hardLimitLabel": "Límit dur: sostre absolut",
+        "hardLimitHelp": "El nombre màxim de nodes visibles alhora. Si intentes superar-lo, es mostra un avís explicatiu.",
+        "defaultPlaceholder": "{{value}} (per defecte)",
+        "rangeError": "Introdueix un nombre enter entre {{min}} i {{max}}.",
+        "softExceedsHard": "El límit tou ({{soft}}) ha de ser menor o igual que el límit dur ({{hard}}).",
+        "layoutLabel": "Disposició",
+        "layoutConcentric": "Concentric (per defecte): nodes amb més connexions al centre",
+        "layoutFcose": "fCoSE: dirigit per forces, agrupacions orgàniques (més lent)",
+        "layoutGrid": "Grid: files i columnes deterministes",
+        "layoutHelp": "Canviar la disposició reposiciona tots els nodes visibles. Després pots arrossegar els nodes individualment i aquestes posicions es conserven.",
+        "metaVocabLabel": "Nodes de vocabulari RDF/OWL",
+        "metaVocabHelp": "Mostra els termes <owl/>, <rdf/> i <rdfs/>, a més de <shNodeShape/> / <shPropertyShape/> —els nodes contra els quals es declaren totes les classes i formes— al llenç i a la llista de nodes. Desactivat per defecte: estan implícits en els tipus de node que anoten i són els nodes amb més connexions a la majoria d'ontologies, cosa que distorsiona la disposició. En activar-ho apareixen a la llista de nodes; marca els que vulguis al llenç. Els tipus de dades <xsd/> i la resta de termes <sh/> no s'amaguen mai: contenen el rang declarat d'una propietat i els seus valors de restricció.",
+        "metaVocabNote": "Això només afecta la visualització. Els nodes de vocabulari sempre es mantenen al model i s'exporten / converteixen igualment (exportació RDF, KG → UML, comprovacions de consistència).",
+        "summaryNodes_one": "El diagrama té actualment {{count}} node",
+        "summaryNodes_other": "El diagrama té actualment {{count}} nodes",
+        "summarySoft": "límit tou aplicat {{value}}",
+        "summaryHard": "límit dur aplicat {{value}}",
+        "summaryLayout": "disposició aplicada",
+        "resetToDefaults": "Restableix els valors per defecte"
+      }
+    },
     "loadingGuiEditor": "S'està carregant l'editor de GUI...",
     "loadingQuantumEditor": "S'està carregant l'editor quàntic...",
+    "loadingKgEditor": "S'està carregant l'editor de graf de coneixement...",
     "hiddenPerspectives": {
       "messagePlural": "Aquest projecte utilitza {{labels}}, però aquestes perspectives estan amagades.",
       "messageSingular": "Aquest projecte utilitza {{labels}}, però aquesta perspectiva està amagada.",
@@ -2301,6 +2938,30 @@
       "noProjectData": "No hi ha dades de projecte disponibles per exportar",
       "projectExportedAs": "Projecte exportat com a {{filename}}",
       "projectExportFailed": "No s'ha pogut exportar el projecte: {{error}}"
+    },
+    "kg": {
+      "options": {
+        "title": "Exporta el graf de coneixement",
+        "description": "Tria la sintaxi RDF i quins vocabularis de restriccions emetre.",
+        "rdfSyntax": "Sintaxi RDF",
+        "constraintVocab": "Vocabulari de restriccions",
+        "vocabBoth": "Tots dos: emet OWL i SHACL quan sigui possible",
+        "vocabOwl": "Només OWL: nodes anònims owl:Restriction",
+        "vocabShacl": "Només SHACL: sh:NodeShape / sh:PropertyShape",
+        "emitted_one": "S'emetrà {{emitted}} d'{{count}} especificació de restricció",
+        "emitted_other": "S'emetran {{emitted}} de {{count}} especificacions de restricció",
+        "skippedSuffix_one": " — {{count}} omesa perquè només existeix a l'altre vocabulari",
+        "skippedSuffix_other": " — {{count}} omeses perquè només existeixen a l'altre vocabulari",
+        "noSpecs": "Encara no hi ha especificacions de restricció en aquest diagrama.",
+        "export": "Exporta"
+      },
+      "toasts": {
+        "noProject": "Obre un projecte abans d'exportar.",
+        "noDiagram": "No hi ha cap diagrama de graf de coneixement actiu per exportar.",
+        "vocabSuffix": " (només restriccions {{vocab}})",
+        "exportCompleted": "Exportació {{format}} completada{{suffix}}.",
+        "failed": "L'exportació del KG ha fallat."
+      }
     }
   },
   "import": {
@@ -2330,6 +2991,150 @@
       "readFileFailed": "No s'ha pogut llegir el fitxer",
       "invalidFromBackend": "El servidor ha retornat un diagrama no vàlid",
       "couldNotParseError": "No s'ha pogut interpretar la resposta d'error"
+    },
+    "kg": {
+      "owl": {
+        "updateFailed": "No s'ha pogut actualitzar el diagrama de graf de coneixement.",
+        "writeNewTabFailed": "No s'ha pogut escriure el graf importat a la pestanya nova.",
+        "invalidJson": "El backend ha retornat un JSON de KG no vàlid",
+        "noProjectOpen": "No hi ha cap projecte obert. Crea o obre un projecte primer.",
+        "noActiveDiagram": "No s'ha trobat cap diagrama de graf de coneixement actiu en aquest projecte.",
+        "nodesFragment_one": "{{count}} node",
+        "nodesFragment_other": "{{count}} nodes",
+        "edgesFragment_one": "{{count}} aresta",
+        "edgesFragment_other": "{{count}} arestes",
+        "imported": "S'han importat {{nodes}} i {{edges}} de {{file}}.",
+        "importedNewTab": "S'han importat {{nodes}} i {{edges}} de {{file}} en una pestanya nova.",
+        "merged": "S'han fusionat {{nodes}} i {{edges}} de {{file}}",
+        "mergedSkippedSuffix_one": " ({{count}} ja present).",
+        "mergedSkippedSuffix_other": " ({{count}} ja presents).",
+        "unknownError": "S'ha produït un error desconegut durant la importació",
+        "failedTitle": "La importació OWL ha fallat"
+      },
+      "targetModal": {
+        "title": "On ha d'anar aquest graf?",
+        "nodesFragment_one": "{{count}} node",
+        "nodesFragment_other": "{{count}} nodes",
+        "edgesFragment_one": "{{count}} aresta",
+        "edgesFragment_other": "{{count}} arestes",
+        "tabNameFragment": " ({{title}})",
+        "description": "<file>{{file}}</file> conté {{nodes}} i {{edges}}. La pestanya actual{{tab}} no és buida: afegeix la importació al que ja hi ha o mantén-la a part en una pestanya nova.",
+        "mergeExplainer": "La fusió manté el graf actual tal com és i només afegeix el que falta: els termes comuns a tots dos grafs (mateixa IRI) continuen sent un únic node.",
+        "maxTabsReached": "Aquest projecte ja té el nombre màxim de pestanyes de graf de coneixement.",
+        "newTab": "Pestanya nova",
+        "mergeIntoTab": "Fusiona en aquesta pestanya"
+      },
+      "preflight": {
+        "noRecommendedAction": "Cap acció recomanada",
+        "dropElement": "Descarta l'element",
+        "affects": "Afecta: {{ids}}",
+        "fixAutomaticallyAria": "Corregeix automàticament per a {{code}}",
+        "applyRecommendedAria": "Aplica la correcció recomanada per a {{code}}",
+        "fixAutomatically": "Corregeix automàticament",
+        "applyRecommended": "Aplica el recomanat:",
+        "fixInKg": "Corregeix al KG",
+        "fixInKgInstead": "Corregeix al KG en comptes d'això",
+        "skipped": "Omès",
+        "chooseFixAria": "Tria com corregir aquest problema",
+        "sendToLlm": "Envia al LLM",
+        "or": "o",
+        "unknownError": "Error desconegut",
+        "invalidResponse": "Resposta de comprovació prèvia no vàlida.",
+        "failed": "La comprovació prèvia del KG ha fallat."
+      },
+      "consistency": {
+        "title": "El graf de coneixement té inconsistències",
+        "issuesFragment_one": "{{count}} problema",
+        "issuesFragment_other": "{{count}} problemes",
+        "violationsFragment_one": "{{count}} violació",
+        "violationsFragment_other": "{{count}} violacions",
+        "warningsFragment_one": "{{count}} advertiment",
+        "warningsFragment_other": "{{count}} advertiments",
+        "description": "La comprovació de consistència OWL/SHACL ha trobat {{issues}} al graf de coneixement ({{violations}}, {{warnings}}, {{info}} info). Pots corregir-los, continuar amb la conversió igualment, o cancel·lar.",
+        "onNode": "a {{nodeId}}",
+        "openRefine": "Obre Refine per corregir",
+        "proceedAnyway": "Continua igualment"
+      },
+      "refine": {
+        "title": "Refina el graf de coneixement",
+        "titleConvert": "Refina abans de convertir a {{diagram}}",
+        "description": "Neteja el KG abans de convertir-lo a B-UML. Revisa les recomanacions automàtiques de BESSER, o obtén suggeriments basats en IA orientats al sistema que vols construir.",
+        "descriptionConvert": "Resol les inconsistències del graf de coneixement. Quan estigui net el podràs convertir en un {{diagram}}.",
+        "tabsAria": "Pestanyes de refinament del KG",
+        "tabAutomatic": "Automàtic",
+        "tabConsistency": "Consistència",
+        "tabAi": "IA",
+        "classifyBadge": "Classifica {{count}}",
+        "analyzingKg": "S'està analitzant el KG…",
+        "noInconsistencies": "El graf de coneixement ja no té inconsistències.",
+        "clickConvert": "Fes clic a <action>{{action}}</action> per generar el {{diagram}}.",
+        "noRecommendations": "Cap recomanació automàtica: el KG sembla net.",
+        "staticInstructions": "Marca els suggeriments que vulguis corregir. Per a cadascun, tria si aplicar la correcció recomanada o enviar-lo al LLM. Fes servir «Corregeix al KG» per tractar-ne un manualment al llenç.",
+        "selectAll": "Selecciona-ho tot",
+        "deselectAll": "Desselecciona-ho tot",
+        "noneSelected": "Cap suggeriment seleccionat: no canviarà res.",
+        "ofWillBeFixed": "de {{total}} es corregiran:",
+        "viaRecommended_one": "{{count}} mitjançant recomanació",
+        "viaRecommended_other": "{{count}} mitjançant recomanació",
+        "viaLlm_one": "{{count}} mitjançant LLM",
+        "viaLlm_other": "{{count}} mitjançant LLM",
+        "convertTo": "Converteix a {{diagram}}",
+        "applying": "S'està aplicant…",
+        "applyMixed": "Aplica {{count}} ({{recommended}} rec + {{llm}} LLM)",
+        "sendToLlm": "Envia {{count}} al LLM",
+        "applyRecommended": "Aplica {{count}} recomanades",
+        "analyzeFailed": "No s'ha pogut analitzar el KG. Torna-ho a provar.",
+        "retry": "Torna-ho a provar",
+        "consistencyExplainer": "Valida el graf de coneixement contra totes les restriccions OWL/SHACL definides al damunt. Fa servir pyshacl amb inferència OWL2-RL al backend; la comprovació pot ser lenta en grafs grans, així que només s'executa quan fas clic a <action>{{action}}</action>.",
+        "consistencyIdle": "Encara no s'ha executat cap comprovació per a aquest graf de coneixement. Fes clic a <action>{{action}}</action> a sota per avaluar totes les restriccions OWL/SHACL contra l'ABox actual.",
+        "checkingConsistency": "S'està comprovant la consistència…",
+        "consistencyFailed": "La comprovació de consistència ha fallat.",
+        "allSatisfied": "Totes les restriccions OWL/SHACL es compleixen.",
+        "severitySummary": "{{violations}}, {{warnings}}, {{info}} info",
+        "lastRun": " — última execució {{time}}",
+        "runCheck": "Executa la comprovació",
+        "reCheck": "Torna a comprovar",
+        "orphanBanner_one": "A punt per classificar <count>{{count}}</count> node orfe marcat a la pestanya Automàtic. Proporciona una descripció i una clau d'API, i després prem Analitza per demanar al LLM classificacions per node.",
+        "orphanBanner_other": "A punt per classificar <count>{{count}}</count> nodes orfes marcats a la pestanya Automàtic. Proporciona una descripció i una clau d'API, i després prem Analitza per demanar al LLM classificacions per node.",
+        "deferredBanner_one": "<count>{{count}}</count> problema s'ha redirigit aquí des de la pestanya Automàtic. Descriu el sistema que vols construir i després prem Analitza per demanar al LLM correccions sobre el KG (ara parcialment net).",
+        "deferredBanner_other": "<count>{{count}}</count> problemes s'han redirigit aquí des de la pestanya Automàtic. Descriu el sistema que vols construir i després prem Analitza per demanar al LLM correccions sobre el KG (ara parcialment net).",
+        "systemDescription": "Descripció del sistema",
+        "systemDescriptionPlaceholder": "p. ex. Un sistema de gestió de biblioteca que registra llibres, socis i préstecs.",
+        "apiKey": "Clau d'API d'OpenAI",
+        "apiKeyNote": "Es desa només en aquesta sessió del navegador.",
+        "analyzing": "S'està analitzant…",
+        "analyze": "Analitza",
+        "llmNoSuggestions": "El LLM no ha suggerit cap canvi per al sistema descrit.",
+        "llmInstructions": "Marca els suggeriments que vulguis aplicar. Omet la resta, o fes servir «Corregeix al KG» per tractar-ne un manualment al llenç.",
+        "back": "Enrere",
+        "applySelected": "Aplica {{count}} seleccionades",
+        "confirmReplace": "Vols reemplaçar el KG actual pel graf net?",
+        "noProjectOpen": "No hi ha cap projecte obert.",
+        "noActiveDiagram": "No hi ha cap diagrama de graf de coneixement actiu.",
+        "staticFailed": "L'anàlisi de refinament estàtic ha fallat.",
+        "applyNoModel": "L'extrem d'aplicació no ha retornat cap model.",
+        "refined": "S'ha refinat el graf de coneixement.",
+        "applyFailed": "L'aplicació del refinament ha fallat.",
+        "failedTitle": "El refinament del KG ha fallat",
+        "describeSystemFirst": "Descriu primer el sistema que vols construir.",
+        "apiKeyRequired": "Cal una clau d'API d'OpenAI.",
+        "invalidLlmResponse": "Resposta de neteja del LLM no vàlida.",
+        "aiFailed": "L'anàlisi de refinament per IA ha fallat.",
+        "noOrphans": "No hi ha cap node orfe per classificar.",
+        "invalidOrphanResponse": "Resposta de classificació d'orfes no vàlida.",
+        "orphanFailed": "La classificació d'orfes ha fallat.",
+        "applyLlmFailed": "L'aplicació del refinament del LLM ha fallat."
+      },
+      "toUml": {
+        "noProject": "Obre un projecte abans de convertir.",
+        "noDiagram": "No hi ha cap diagrama de graf de coneixement actiu per convertir.",
+        "consistencyCheckFailed": "La comprovació de consistència ha fallat.",
+        "consistencyCheckSkipped": "S'ha omès la comprovació de consistència: {{message}}",
+        "invalidResponse": "Resposta no vàlida de l'extrem de conversió del KG.",
+        "generated": "S'ha generat {{diagram}} a partir del graf de coneixement.",
+        "conversionFailed": "La conversió del KG ha fallat.",
+        "failedTitle": "La conversió KG → UML ha fallat"
+      }
     }
   },
   "validation": {

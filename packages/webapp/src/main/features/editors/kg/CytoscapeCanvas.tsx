@@ -3,7 +3,7 @@ import cytoscape, { Core, ElementDefinition } from 'cytoscape';
 import edgehandles from 'cytoscape-edgehandles';
 import fcose from 'cytoscape-fcose';
 import { kgStylesheet } from './stylesheet';
-import { buildStandaloneHtml } from './standaloneHtmlTemplate';
+import { buildStandaloneHtml, type StandaloneHtmlStrings } from './standaloneHtmlTemplate';
 import { KG_DRAG_MIME } from './KnowledgeGraphPalette';
 import type { KnowledgeGraphData, KGNodeData, KGEdgeData, KGNodeType } from './types';
 import type { ConnectMode } from './KnowledgeGraphToolbar';
@@ -358,8 +358,11 @@ export interface CytoscapeCanvasHandle {
    *  layout setting. */
   relayout: () => void;
   /** Serialize the live Cytoscape instance into a self-contained HTML
-   *  viewer. Returns null if the instance hasn't initialized yet. */
-  exportHtml: (title: string) => string | null;
+   *  viewer. Returns null if the instance hasn't initialized yet.
+   *  `strings` and `lang` are resolved by the caller (which holds `t`) so the
+   *  exported file carries the user's language -- this handle is created once
+   *  with empty deps and cannot subscribe to language changes itself. */
+  exportHtml: (title: string, strings: StandaloneHtmlStrings, lang: string) => string | null;
   /** Zoom in/out around the current viewport center (so the user keeps
    *  looking at the same place as they zoom). Clamped by minZoom/maxZoom. */
   zoomIn: () => void;
@@ -572,7 +575,7 @@ export const CytoscapeCanvas = React.forwardRef<CytoscapeCanvasHandle, Cytoscape
           runCyLayout(cy, chosen, persist);
         }
       },
-      exportHtml: (title: string) => {
+      exportHtml: (title: string, strings: StandaloneHtmlStrings, lang: string) => {
         const cy = cyRef.current;
         if (!cy) return null;
         // 'grid' is editor-only (handled in JS); the standalone viewer falls
@@ -584,6 +587,8 @@ export const CytoscapeCanvas = React.forwardRef<CytoscapeCanvasHandle, Cytoscape
           cyJson: cy.json() as Record<string, unknown>,
           stylesheet: kgStylesheet,
           fallbackLayout: layoutForFallback,
+          strings,
+          lang,
         });
       },
     }), []);

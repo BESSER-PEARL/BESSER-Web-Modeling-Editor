@@ -11,6 +11,8 @@
 // Triggered from the Generate menu when in a KnowledgeGraphDiagram context.
 import { useCallback } from 'react';
 import { toast } from 'react-toastify';
+import { useTranslation } from 'react-i18next';
+import i18n from '../../shared/i18n';
 
 import { BACKEND_URL } from '../../shared/constants/constant';
 import { useAppDispatch } from '../../app/store/hooks';
@@ -55,9 +57,19 @@ const DIAGRAM_TYPE_BY_TARGET: Record<KgConversionTarget, SupportedDiagramType> =
   kg_to_object: 'ObjectDiagram',
 };
 
+/** Suffix appended to the generated diagram's TITLE. Deliberately English and
+ *  untranslated: the title is persisted into the project, so localising it
+ *  would leave a French-authored project showing stale French titles when
+ *  reopened in another language. The user-facing toast uses `diagramTypes.*`. */
 const TITLE_SUFFIX_BY_TARGET: Record<KgConversionTarget, string> = {
   kg_to_class: 'Class Diagram',
   kg_to_object: 'Object Diagram',
+};
+
+/** Localised display name for the same target, used in toasts only. */
+const DIAGRAM_TYPE_KEY_BY_TARGET: Record<KgConversionTarget, string> = {
+  kg_to_class: 'diagramTypes.ClassDiagram',
+  kg_to_object: 'diagramTypes.ObjectDiagram',
 };
 
 /**
@@ -82,20 +94,24 @@ function reportWarnings(warnings: unknown): void {
  * shows a toast if no project / no KG diagram is active.
  */
 export function getActiveKgDiagram(): { project: BesserProject; diagram: any } | null {
+  // Plain module function, not a hook -- called from six sites across
+  // useKgRefine / useKgPreflight. Reads the i18n singleton (resolved at call
+  // time, so always the current language) rather than changing six signatures.
   const project = ProjectStorageRepository.getCurrentProject() as BesserProject | null;
   if (!project) {
-    toast.error('Open a project before converting.');
+    toast.error(i18n.t('import.kg.toUml.noProject'));
     return null;
   }
   const diagram = getActiveDiagram(project, 'KnowledgeGraphDiagram');
   if (!diagram || !diagram.model) {
-    toast.error('No active Knowledge Graph diagram to convert.');
+    toast.error(i18n.t('import.kg.toUml.noDiagram'));
     return null;
   }
   return { project, diagram };
 }
 
 export const useKgToUmlConversion = () => {
+  const { t } = useTranslation();
   const dispatch = useAppDispatch();
   const checkConsistency = useKgConsistencyCheck();
 
@@ -118,8 +134,8 @@ export const useKgToUmlConversion = () => {
         } catch (err) {
           // The check is advisory — if the endpoint fails we surface a toast
           // and continue with the conversion rather than blocking the user.
-          const message = err instanceof Error ? err.message : 'Consistency check failed.';
-          toast.warn(`Consistency check skipped: ${message}`);
+          const message = err instanceof Error ? err.message : t('import.kg.toUml.consistencyCheckFailed');
+          toast.warn(t('import.kg.toUml.consistencyCheckSkipped', { message }));
         }
       }
 
@@ -149,7 +165,7 @@ export const useKgToUmlConversion = () => {
 
         const data = await response.json();
         if (!data?.model || !data?.diagramType) {
-          throw new Error('Invalid response from KG conversion endpoint.');
+          throw new Error(t('import.kg.toUml.invalidResponse'));
         }
 
         reportWarnings(data.warnings);
@@ -176,13 +192,15 @@ export const useKgToUmlConversion = () => {
         await dispatch(switchDiagramTypeThunk({ diagramType: targetType }));
         await dispatch(switchDiagramIndexThunk({ diagramType: targetType, index: addResult.index }));
 
-        toast.success(`Generated ${TITLE_SUFFIX_BY_TARGET[target]} from Knowledge Graph.`);
+        toast.success(
+          t('import.kg.toUml.generated', { diagram: t(DIAGRAM_TYPE_KEY_BY_TARGET[target]) }),
+        );
       } catch (error) {
-        const message = error instanceof Error ? error.message : 'KG conversion failed.';
-        dispatch(displayError('KG → UML conversion failed', message));
+        const message = error instanceof Error ? error.message : t('import.kg.toUml.conversionFailed');
+        dispatch(displayError(t('import.kg.toUml.failedTitle'), message));
         toast.error(message);
       }
     },
-    [dispatch, checkConsistency],
+    [dispatch, checkConsistency, t],
   );
 };

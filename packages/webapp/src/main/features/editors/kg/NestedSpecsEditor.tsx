@@ -15,6 +15,7 @@
  */
 
 import React, { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Plus, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
@@ -28,11 +29,23 @@ import { describeSpecList } from './describeConstraints';
 // module evaluation finishes before any component renders.
 import { SpecsListEditor } from './ConstraintSpecsEditor';
 
+/** `intro` is the English default; the live text comes from
+ *  `editors.kg.constraints.describe.<kind>` -- the same sentences the
+ *  natural-language preview uses, so both read identically. */
 const KIND_LABELS: Record<string, { intro: string; addLabel: string; allowAdd: boolean }> = {
   shaclNot: { intro: 'Must NOT satisfy', addLabel: '', allowAdd: false },
   shaclAnd: { intro: 'Must satisfy ALL of', addLabel: '+ Add shape', allowAdd: true },
   shaclOr: { intro: 'Must satisfy ANY of', addLabel: '+ Add shape', allowAdd: true },
   shaclXone: { intro: 'Must satisfy EXACTLY ONE of', addLabel: '+ Add shape', allowAdd: true },
+};
+
+/** Operator -> heading key. Reuses the `describe.*` phrasing with an empty
+ *  `shapes` value so the intro reads as a bare lead-in. */
+const KIND_INTRO_KEYS: Record<string, string> = {
+  shaclNot: 'editors.kg.constraints.nested.introNot',
+  shaclAnd: 'editors.kg.constraints.nested.introAnd',
+  shaclOr: 'editors.kg.constraints.nested.introOr',
+  shaclXone: 'editors.kg.constraints.nested.introXone',
 };
 
 interface NestedSpecsEditorProps {
@@ -63,7 +76,12 @@ export const NestedSpecsEditor: React.FC<NestedSpecsEditorProps> = ({
   ownerNodeId,
   depth,
 }) => {
+  const { t } = useTranslation();
   const labels = KIND_LABELS[kind] ?? { intro: kind, addLabel: '+ Add shape', allowAdd: true };
+  // Unknown operators fall back to the raw discriminator, as elsewhere.
+  const intro = KIND_INTRO_KEYS[kind]
+    ? t(KIND_INTRO_KEYS[kind], { defaultValue: labels.intro })
+    : labels.intro;
 
   const setSlot = (index: number, next: KGNestedShape) => {
     const copy = value.slice();
@@ -89,13 +107,12 @@ export const NestedSpecsEditor: React.FC<NestedSpecsEditorProps> = ({
       style={{ marginLeft: Math.min(depth * 4, 24) }}
     >
       <div className="text-[11px] font-semibold uppercase tracking-wide text-purple-800 dark:text-purple-200">
-        {labels.intro}
+        {intro}
       </div>
 
       {depth >= 3 && (
         <p className="text-[11px] italic text-amber-700 dark:text-amber-400">
-          Deeply nested — consider extracting this shape into a separate constraint node so the
-          inspector stays readable.
+          {t('editors.kg.constraints.nested.deeplyNested')}
         </p>
       )}
 
@@ -124,7 +141,7 @@ export const NestedSpecsEditor: React.FC<NestedSpecsEditorProps> = ({
           onClick={addInline}
         >
           <Plus className="size-3.5" />
-          Add shape
+          {t('editors.kg.constraints.nested.addShape')}
         </Button>
       )}
     </div>
@@ -154,6 +171,7 @@ const NestedSlot: React.FC<NestedSlotProps> = ({
   onChange,
   onRemove,
 }) => {
+  const { t } = useTranslation();
   const isRef = 'ref' in slot;
   const mode: 'inline' | 'ref' = isRef ? 'ref' : 'inline';
 
@@ -166,9 +184,9 @@ const NestedSlot: React.FC<NestedSlotProps> = ({
     const currentSpecs = 'specs' in slot ? slot.specs : [];
     if (
       currentSpecs.length > 0 &&
-      !window.confirm(
-        'Switching to a reference discards the inline constraint specs in this slot. Continue?',
-      )
+      // NOTE: window.confirm's OK/Cancel buttons follow the browser locale,
+      // not the app's -- only the message can be translated here.
+      !window.confirm(t('editors.kg.constraints.nested.confirmSwitchToRef'))
     ) {
       return;
     }
@@ -189,7 +207,7 @@ const NestedSlot: React.FC<NestedSlotProps> = ({
                 : 'text-muted-foreground hover:text-foreground')
             }
           >
-            Inline
+            {t('editors.kg.constraints.nested.inline')}
           </button>
           <button
             type="button"
@@ -201,7 +219,7 @@ const NestedSlot: React.FC<NestedSlotProps> = ({
                 : 'text-muted-foreground hover:text-foreground')
             }
           >
-            Reference
+            {t('editors.kg.constraints.nested.reference')}
           </button>
         </div>
         <div className="flex-1" />
@@ -211,7 +229,7 @@ const NestedSlot: React.FC<NestedSlotProps> = ({
             size="icon"
             className="size-6 text-muted-foreground hover:text-destructive"
             onClick={onRemove}
-            aria-label="Remove slot"
+            aria-label={t('editors.kg.constraints.nested.removeSlot')}
           >
             <Trash2 className="size-3.5" />
           </Button>
@@ -250,6 +268,7 @@ const RefPicker: React.FC<{
   value: string;
   onChange: (ref: string) => void;
 }> = ({ model, nodeType, ownerNodeId, value, onChange }) => {
+  const { t } = useTranslation();
   // Same kind as the owner — a NodeConstraint's logical operator references
   // NodeShapes; a PropertyConstraint's references PropertyShapes. Self-refs
   // are filtered to prevent trivial cycles.
@@ -262,13 +281,16 @@ const RefPicker: React.FC<{
   return (
     <div className="space-y-1">
       <Label className="text-[11px] text-muted-foreground">
-        Pick an existing {nodeType === 'nodeConstraint' ? 'NodeConstraint' : 'PropertyConstraint'} to reference
+        {/* The SHACL type name is interpolated, never translated. */}
+        {t('editors.kg.constraints.nested.pickExisting', {
+          type: nodeType === 'nodeConstraint' ? 'NodeConstraint' : 'PropertyConstraint',
+        })}
       </Label>
       <Input
         list={datalistId}
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        placeholder="constraint-node id"
+        placeholder={t('editors.kg.constraints.nested.refPlaceholder')}
         className="h-7 text-xs"
       />
       <datalist id={datalistId}>
@@ -285,7 +307,9 @@ const RefPicker: React.FC<{
       )}
       {value && !selected && (
         <p className="text-[11px] italic text-destructive">
-          No {nodeType === 'nodeConstraint' ? 'NodeConstraint' : 'PropertyConstraint'} with that id.
+          {t('editors.kg.constraints.nested.noneWithId', {
+            type: nodeType === 'nodeConstraint' ? 'NodeConstraint' : 'PropertyConstraint',
+          })}
         </p>
       )}
     </div>
@@ -303,10 +327,11 @@ const InlineSpecs: React.FC<{
   ownerNodeId: string;
   depth: number;
 }> = ({ specs, onChange, model, nodeType, targetPropertyKind, ownerNodeId, depth }) => {
+  const { t } = useTranslation();
   return (
     <div className="space-y-2">
       <p className="text-[11px] italic text-muted-foreground">
-        {describeSpecList(specs)}
+        {describeSpecList(t, specs)}
       </p>
       <SpecsListEditor
         specs={specs}

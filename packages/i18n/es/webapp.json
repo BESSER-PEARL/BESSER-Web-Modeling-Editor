@@ -71,6 +71,7 @@
       "importClassDiagramFrom": "Importar diagrama de clases desde",
       "imageToProject": "Imagen a proyecto",
       "kgToProject": "KG a proyecto",
+      "importKgOwl": "Importar KG (OWL)",
       "previewProject": "Vista previa del proyecto"
     },
     "generate": {
@@ -83,7 +84,9 @@
         "database": "Base de datos",
         "oop": "POO",
         "schema": "Esquema",
-        "data": "Datos"
+        "data": "Datos",
+        "kgConvert": "Convertir a B-UML",
+        "kgExport": "Exportar el grafo de conocimiento"
       },
       "actions": {
         "djangoProject": "Proyecto Django",
@@ -95,11 +98,19 @@
         "besserAgent": "Agente BESSER",
         "jsonObjectExport": "Exportación de objeto JSON",
         "userProfileJson": "JSON de perfil de usuario",
-        "qiskitCode": "Código Qiskit"
+        "qiskitCode": "Código Qiskit",
+        "kgToClassDiagram": "Diagrama de clases",
+        "kgExportWithOptions": "Exportar con opciones…"
       },
       "notices": {
         "statemachine": "Las máquinas de estados se utilizan como implementaciones de métodos en los diagramas de clases. Genera código a partir del diagrama de clases.",
         "unavailable": "Aún no disponible para este diagrama"
+      },
+      "kgGuards": {
+        "openKgBeforeConverting": "Abre un diagrama de grafo de conocimiento antes de convertirlo a UML.",
+        "openKgBeforeRefining": "Abre un diagrama de grafo de conocimiento antes de refinarlo.",
+        "openKgBeforeExporting": "Abre un diagrama de grafo de conocimiento antes de exportar.",
+        "exportFailed": "Error al exportar el KG."
       }
     },
     "deploy": {
@@ -2216,8 +2227,634 @@
         }
       }
     },
+    "kg": {
+      "nodeTypes": {
+        "class": {
+          "label": "Clase",
+          "description": "Un tipo / concepto (owl:Class)"
+        },
+        "individual": {
+          "label": "Individuo",
+          "description": "Una instancia de una clase"
+        },
+        "property": {
+          "label": "Propiedad",
+          "description": "Un nodo de propiedad reificado"
+        },
+        "literal": {
+          "label": "Literal",
+          "description": "Un valor literal (cadena, número, …)"
+        },
+        "blank": {
+          "label": "Anónimo",
+          "description": "Recurso anónimo (nodo anónimo)"
+        },
+        "nodeConstraint": {
+          "label": "Restricción de nodo",
+          "description": "Restricciones que se aplican a una clase (axiomas OWL o sh:NodeShape)"
+        },
+        "propertyConstraint": {
+          "label": "Restricción de propiedad",
+          "description": "Restricciones que se aplican a una propiedad (restricción OWL o sh:PropertyShape)"
+        }
+      },
+      "edgeRules": {
+        "class": {
+          "reason": "Una clase solo puede enlazarse con otra clase o con un nodo anónimo (expresión de clase)."
+        },
+        "individual": {
+          "reason": "Un individuo puede enlazarse con una clase (rdf:type), con otros individuos o nodos anónimos (propiedades de objeto), o con literales (propiedades de tipo de datos)."
+        },
+        "property": {
+          "reason": "Una propiedad puede enlazarse con una clase (rdfs:domain / rdfs:range), con otra propiedad (subPropertyOf / inverseOf / equivalentProperty), o con un nodo anónimo (expresión de clase anónima)."
+        },
+        "literal": {
+          "reason": "Un literal no puede ser el sujeto de una relación OWL/RDF."
+        },
+        "blank": {
+          "reason": "Un nodo anónimo (recurso anónimo) puede referenciar cualquier nodo que no sea una restricción."
+        },
+        "nodeConstraint": {
+          "reason": "Una NodeConstraint solo puede apuntar a una clase (constraintTargetClass) o agrupar una PropertyConstraint (sh:property)."
+        },
+        "propertyConstraint": {
+          "reason": "Una PropertyConstraint solo puede apuntar a una propiedad (constraintTargetProperty)."
+        },
+        "genericRejection": "Las conexiones de «{{source}}» a «{{target}}» no están permitidas en OWL2 DL.",
+        "noValidTargets": "No hay tipos de destino válidos para este nodo en OWL2 DL."
+      },
+      "constraints": {
+        "categories": {
+          "cardinality": "Cardinalidad",
+          "value": "Valor",
+          "datatype": "Tipo de datos y formato",
+          "enumeration": "Enumeración",
+          "logical": "Lógica",
+          "classAxiom": "Axiomas de clase",
+          "meta": "Metadatos"
+        },
+        "catalog": {
+          "minCardinality": {
+            "label": "Al menos N valores",
+            "description": "La propiedad debe tener al menos N valores por instancia."
+          },
+          "maxCardinality": {
+            "label": "Como máximo N valores",
+            "description": "La propiedad puede tener como máximo N valores por instancia."
+          },
+          "exactCardinality": {
+            "label": "Exactamente N valores",
+            "description": "La propiedad debe tener exactamente N valores por instancia."
+          },
+          "minQualifiedCardinality": {
+            "label": "Al menos N de la clase X",
+            "description": "Al menos N valores deben ser instancias de la clase elegida."
+          },
+          "maxQualifiedCardinality": {
+            "label": "Como máximo N de la clase X",
+            "description": "Como máximo N valores pueden ser instancias de la clase elegida."
+          },
+          "exactQualifiedCardinality": {
+            "label": "Exactamente N de la clase X",
+            "description": "Exactamente N valores deben ser instancias de la clase elegida."
+          },
+          "someValuesFrom": {
+            "label": "Algún valor debe ser un …",
+            "description": "Al menos un valor debe ser una instancia de la clase elegida. Solo OWL — SHACL no tiene un predicado existencial fiel (sh:class significa «todos los valores», no «algún valor»)."
+          },
+          "allValuesFrom": {
+            "label": "Todos los valores deben ser un …",
+            "description": "Todos los valores deben ser instancias de la clase elegida."
+          },
+          "hasValue": {
+            "label": "Debe ser igual a",
+            "description": "La propiedad debe tener este valor concreto (literal o IRI)."
+          },
+          "hasSelf": {
+            "label": "Es reflexiva",
+            "description": "La propiedad relaciona cada individuo consigo mismo."
+          },
+          "nodeKind": {
+            "label": "El valor debe ser un …",
+            "description": "Restringe el tipo de nodo que puede tomar un valor (IRI, BlankNode, Literal)."
+          },
+          "equals": {
+            "label": "Igual a la propiedad",
+            "description": "El conjunto de valores de esta propiedad debe coincidir exactamente con el de otra propiedad."
+          },
+          "lessThan": {
+            "label": "Menor que la propiedad",
+            "description": "Cada valor debe ser estrictamente menor que el valor correspondiente de otra propiedad."
+          },
+          "lessThanOrEquals": {
+            "label": "Menor o igual que la propiedad",
+            "description": "Cada valor debe ser menor o igual que el valor correspondiente de otra propiedad."
+          },
+          "datatype": {
+            "label": "Del tipo de datos",
+            "description": "Los valores deben ser literales del tipo de datos XSD elegido."
+          },
+          "pattern": {
+            "label": "Coincide con el patrón",
+            "description": "Los valores de cadena deben coincidir con esta expresión regular."
+          },
+          "flags": {
+            "label": "Indicadores del patrón",
+            "description": "Indicadores de regex aplicados a sh:pattern (p. ej. «i» para ignorar mayúsculas)."
+          },
+          "minLength": {
+            "label": "Longitud de al menos N",
+            "description": "La longitud de la cadena debe ser de al menos N caracteres."
+          },
+          "maxLength": {
+            "label": "Longitud de como máximo N",
+            "description": "La longitud de la cadena debe ser como máximo de N caracteres."
+          },
+          "minInclusive": {
+            "label": "Valor ≥ N",
+            "description": "Los valores numéricos / de fecha deben ser al menos N (inclusive)."
+          },
+          "maxInclusive": {
+            "label": "Valor ≤ N",
+            "description": "Los valores numéricos / de fecha deben ser como máximo N (inclusive)."
+          },
+          "minExclusive": {
+            "label": "Valor > N",
+            "description": "Los valores numéricos / de fecha deben ser estrictamente mayores que N."
+          },
+          "maxExclusive": {
+            "label": "Valor < N",
+            "description": "Los valores numéricos / de fecha deben ser estrictamente menores que N."
+          },
+          "languageIn": {
+            "label": "Idiomas permitidos",
+            "description": "Los valores literales con etiqueta de idioma deben usar una de las etiquetas BCP-47 listadas."
+          },
+          "uniqueLang": {
+            "label": "Cada idioma como máximo una vez",
+            "description": "Dos valores con etiqueta de idioma no pueden compartir la misma etiqueta."
+          },
+          "in": {
+            "label": "Uno de estos valores",
+            "description": "Los valores deben pertenecer a una lista enumerada."
+          },
+          "oneOf": {
+            "label": "Uno de estos individuos",
+            "description": "La clase es el conjunto enumerado de estos individuos."
+          },
+          "shaclNot": {
+            "label": "NO debe satisfacer",
+            "description": "El valor NO debe satisfacer la forma de restricción interna."
+          },
+          "shaclAnd": {
+            "label": "Debe satisfacer TODAS",
+            "description": "El valor debe satisfacer todas las formas de restricción internas."
+          },
+          "shaclOr": {
+            "label": "Debe satisfacer AL MENOS UNA",
+            "description": "El valor debe satisfacer al menos una forma de restricción interna."
+          },
+          "shaclXone": {
+            "label": "Debe satisfacer EXACTAMENTE UNA",
+            "description": "El valor debe satisfacer exactamente una de las formas de restricción internas."
+          },
+          "equivalentClasses": {
+            "label": "Equivalente a",
+            "description": "Estas clases comparten todas sus instancias."
+          },
+          "disjointWith": {
+            "label": "Disjunta con",
+            "description": "Ninguna instancia puede pertenecer a ambas clases a la vez."
+          },
+          "disjointUnionOf": {
+            "label": "Unión disjunta de",
+            "description": "La clase es la unión disjunta de las clases listadas."
+          },
+          "subClassOf": {
+            "label": "Subclase de",
+            "description": "Esta clase es una especialización de otra clase."
+          },
+          "complementOf": {
+            "label": "Complemento de",
+            "description": "La clase es el complemento conjuntista de otra clase."
+          },
+          "unionOf": {
+            "label": "Unión de",
+            "description": "La clase es la unión de las clases listadas."
+          },
+          "intersectionOf": {
+            "label": "Intersección de",
+            "description": "La clase es la intersección de las clases listadas."
+          },
+          "hasKey": {
+            "label": "Propiedades clave (identifican de forma única)",
+            "description": "Las propiedades listadas identifican en conjunto cada instancia de forma única."
+          },
+          "shaclClosed": {
+            "label": "Forma cerrada (sin propiedades adicionales)",
+            "description": "Las instancias no pueden llevar propiedades más allá de las listadas en esta forma."
+          },
+          "shaclIgnoredProperties": {
+            "label": "Propiedades ignoradas (excepciones de la forma cerrada)",
+            "description": "Propiedades permitidas incluso cuando la forma está cerrada."
+          },
+          "shaclSeverity": {
+            "label": "Severidad",
+            "description": "Severidad de un resultado de validación SHACL que incumple esta restricción."
+          },
+          "shaclMessage": {
+            "label": "Mensaje personalizado",
+            "description": "Mensaje legible adjunto a un resultado de validación."
+          },
+          "shaclName": {
+            "label": "Nombre legible",
+            "description": "Nombre de visualización que muestran las interfaces compatibles con SHACL."
+          },
+          "shaclDescription": {
+            "label": "Descripción",
+            "description": "Descripción libre con fines de documentación."
+          },
+          "shaclDeactivated": {
+            "label": "Desactivada",
+            "description": "Cuando está activo, los validadores omiten esta forma."
+          },
+          "shaclOrder": {
+            "label": "Orden de visualización",
+            "description": "Sugerencia para el orden de visualización de las formas en la interfaz."
+          },
+          "shaclGroup": {
+            "label": "Grupo",
+            "description": "IRI de un sh:PropertyGroup al que pertenece esta forma."
+          }
+        },
+        "templates": {
+          "required": {
+            "label": "Obligatoria",
+            "description": "Debe tener al menos un valor (minCardinality = 1)."
+          },
+          "optional": {
+            "label": "Opcional",
+            "description": "Puede faltar (minCardinality = 0)."
+          },
+          "single": {
+            "label": "De un solo valor",
+            "description": "Como máximo un valor (maxCardinality = 1)."
+          },
+          "required-single": {
+            "label": "Obligatoria y de un solo valor",
+            "description": "Exactamente un valor (min = max = 1)."
+          },
+          "required-multi": {
+            "label": "Obligatoria y multivalor",
+            "description": "Al menos un valor, sin límite superior."
+          },
+          "enumeration": {
+            "label": "Enumeración",
+            "description": "El valor debe pertenecer a una lista enumerada — edita la lista aquí mismo."
+          },
+          "numeric-range": {
+            "label": "Rango numérico",
+            "description": "Valor de tipo decimal entre dos límites."
+          },
+          "string-pattern": {
+            "label": "Patrón de cadena",
+            "description": "Valor xsd:string que coincide con una expresión regular."
+          },
+          "email": {
+            "label": "Correo electrónico",
+            "description": "xsd:string que coincide con una expresión regular de correo permisiva."
+          },
+          "url": {
+            "label": "URL",
+            "description": "Valor de tipo xsd:anyURI."
+          },
+          "disjoint": {
+            "label": "Disjunta con",
+            "description": "La clase es disjunta con otra clase — elige los destinos aquí mismo."
+          },
+          "closed-shape": {
+            "label": "Forma cerrada",
+            "description": "No se permite ninguna propiedad aparte de las declaradas dentro de esta forma."
+          }
+        },
+        "describe": {
+          "minCardinality_one": "Debe tener al menos {{count}} valor",
+          "minCardinality_other": "Debe tener al menos {{count}} valores",
+          "maxCardinality_one": "Puede tener como máximo {{count}} valor",
+          "maxCardinality_other": "Puede tener como máximo {{count}} valores",
+          "exactCardinality_one": "Debe tener exactamente {{count}} valor",
+          "exactCardinality_other": "Debe tener exactamente {{count}} valores",
+          "minQualifiedCardinality_one": "Al menos {{count}} valor de la clase {{class}}",
+          "minQualifiedCardinality_other": "Al menos {{count}} valores de la clase {{class}}",
+          "maxQualifiedCardinality_one": "Como máximo {{count}} valor de la clase {{class}}",
+          "maxQualifiedCardinality_other": "Como máximo {{count}} valores de la clase {{class}}",
+          "exactQualifiedCardinality_one": "Exactamente {{count}} valor de la clase {{class}}",
+          "exactQualifiedCardinality_other": "Exactamente {{count}} valores de la clase {{class}}",
+          "fusedExact_one": "Debe tener exactamente {{count}} valor",
+          "fusedExact_other": "Debe tener exactamente {{count}} valores",
+          "fusedRange": "Debe tener entre {{min}} y {{max}} valores",
+          "someValuesFrom": "Algún valor debe ser de la clase {{class}}",
+          "allValuesFrom": "Todos los valores deben ser de la clase {{class}}",
+          "hasValue": "{{target}} debe ser igual a {{value}}",
+          "hasSelfTrue": "{{target}} es reflexiva (bucle sobre sí misma)",
+          "hasSelfFalse": "{{target}} no es reflexiva",
+          "nodeKind": "{{target}} debe ser un(a) {{kind}}",
+          "datatype": "Del tipo de datos {{datatype}}",
+          "pattern": "{{target}} debe coincidir con el regex `{{regex}}`",
+          "flags": "Indicadores del patrón: `{{flags}}`",
+          "minLength": "Longitud ≥ {{value}}",
+          "maxLength": "Longitud ≤ {{value}}",
+          "minInclusive": "Valor ≥ {{value}}",
+          "maxInclusive": "Valor ≤ {{value}}",
+          "minExclusive": "Valor > {{value}}",
+          "maxExclusive": "Valor < {{value}}",
+          "languageIn": "Idiomas permitidos: {{list}}",
+          "uniqueLangTrue": "Cada idioma como máximo una vez",
+          "uniqueLangFalse": "Los idiomas pueden repetirse",
+          "in": "{{target}} debe ser uno de: {{list}}",
+          "oneOf": "La clase es el conjunto: {{list}}",
+          "equivalentClasses": "Equivalente a {{list}}",
+          "disjointWith": "Disjunta con {{list}}",
+          "subClassOf": "Subclase de {{class}}",
+          "complementOf": "Complemento de {{class}}",
+          "unionOf": "Unión de {{list}}",
+          "intersectionOf": "Intersección de {{list}}",
+          "disjointUnionOf": "Unión disjunta de {{list}}",
+          "hasKey": "Identificada por {{list}}",
+          "shaclClosedTrue": "Forma cerrada (no se permiten propiedades adicionales)",
+          "shaclClosedFalse": "Forma abierta",
+          "shaclIgnoredProperties": "Excepciones de la forma cerrada: {{list}}",
+          "shaclDisjoint": "Disjunta SHACL de {{class}}",
+          "shaclSeverity": "Severidad: {{severity}}",
+          "shaclMessage": "Mensaje: {{message}}",
+          "shaclName": "Nombre: {{name}}",
+          "shaclDescription": "Descripción: {{description}}",
+          "shaclDeactivatedTrue": "Desactivada",
+          "shaclDeactivatedFalse": "Activada",
+          "shaclOrder": "Orden: {{value}}",
+          "shaclGroup": "En el grupo {{group}}",
+          "shaclNot": "NO debe satisfacer {{shapes}}",
+          "shaclAnd": "Debe satisfacer TODAS: {{shapes}}",
+          "shaclOr": "Debe satisfacer AL MENOS UNA: {{shapes}}",
+          "shaclXone": "Debe satisfacer EXACTAMENTE UNA: {{shapes}}",
+          "theValue": "el valor",
+          "noneList": "(ninguno)",
+          "noShapes": "(sin formas)",
+          "empty": "Aún no hay restricciones: elige una en el selector de abajo."
+        },
+        "editor": {
+          "heading": "Restricciones ({{count}})",
+          "appliesTo": "Se aplica a <target>{{target}}</target>",
+          "quickAdd": "Añadir rápido",
+          "addConstraint": "Añadir restricción",
+          "removeConstraint": "Quitar la restricción",
+          "removeValue": "Quitar",
+          "addValue": "Añadir valor",
+          "searchPlaceholder": "Buscar restricciones…",
+          "count": "Cantidad",
+          "onClass": "En la clase",
+          "pickNodeKind": "Elige un tipo de nodo",
+          "pickSeverity": "Elige la severidad",
+          "pickDatatype": "Elige un tipo de datos XSD",
+          "customDatatype": "…o pega una IRI de tipo de datos personalizada",
+          "literalValue": "Valor literal",
+          "literalValueOrIri": "Valor literal o IRI",
+          "datatypeIriOptional": "IRI del tipo de datos (opcional)",
+          "langTag": "etiqueta de idioma (p. ej. en)",
+          "enabled": "activado",
+          "disabled": "desactivado",
+          "editorComingSoon": "El editor para «{{shape}}» estará disponible pronto: el valor se conserva tal cual."
+        },
+        "validation": {
+          "minMaxCardinality": "minCardinality ({{min}}) no debe superar maxCardinality ({{max}}).",
+          "minMaxLength": "minLength ({{min}}) no debe superar maxLength ({{max}}).",
+          "minMaxInclusive": "minInclusive ({{min}}) no debe superar maxInclusive ({{max}}).",
+          "badRegex": "El patrón regex «{{pattern}}» no es una expresión regular válida.",
+          "qualifiedNeedsOnClass": "La cardinalidad cualificada ({{kind}}) necesita una «on class» seleccionada.",
+          "enumNeedsValue": "La enumeración (in) requiere al menos un valor."
+        },
+        "nested": {
+          "introNot": "NO debe satisfacer",
+          "introAnd": "Debe satisfacer TODAS",
+          "introOr": "Debe satisfacer AL MENOS UNA",
+          "introXone": "Debe satisfacer EXACTAMENTE UNA",
+          "addShape": "Añadir forma",
+          "deeplyNested": "Muy anidado: considera extraer esta forma a un nodo de restricción aparte para que el inspector siga siendo legible.",
+          "confirmSwitchToRef": "Cambiar a una referencia descarta las especificaciones de restricción en línea de esta ranura. ¿Continuar?",
+          "inline": "En línea",
+          "reference": "Referencia",
+          "removeSlot": "Quitar la ranura",
+          "pickExisting": "Elige un {{type}} existente al que referenciar",
+          "refPlaceholder": "id del nodo de restricción",
+          "noneWithId": "Ningún {{type}} con ese id."
+        },
+        "severities": {
+          "info": "Información",
+          "warning": "Advertencia",
+          "violation": "Violación"
+        },
+        "datatypeGroups": {
+          "text": "Texto",
+          "numeric": "Numérico",
+          "dateTime": "Fecha/Hora",
+          "boolean": "Booleano",
+          "binary": "Binario",
+          "languageTagged": "Con etiqueta de idioma"
+        }
+      },
+      "palette": {
+        "heading": "Tipos de nodo",
+        "hint": "Arrastra un tipo de nodo al lienzo para crear un nodo nuevo. Para crear una relación entre nodos existentes, haz clic en <action>{{addRelation}}</action> en la barra de herramientas y luego en el nodo origen seguido del nodo destino."
+      },
+      "toolbar": {
+        "addRelation": "Añadir relación",
+        "addingRelation": "Añadiendo relación…",
+        "addRelationTooltip": "Añadir una relación: arrastra del nodo origen al nodo destino",
+        "exportHtml": "Exportar HTML",
+        "exportHtmlTooltip": "Descargar el grafo actual como un archivo HTML interactivo independiente",
+        "connectHint": "Arrastra de un nodo origen a un nodo destino para crear una relación. Las posiciones de los nodos quedan bloqueadas mientras este modo está activo: Esc para salir.",
+        "showingNodes_one": "Mostrando {{visible}} de {{count}} nodo",
+        "showingNodes_other": "Mostrando {{visible}} de {{count}} nodos",
+        "raiseLimit": "aumentar el límite en los ajustes de KG",
+        "nodesFragment_one": "{{count}} nodo",
+        "nodesFragment_other": "{{count}} nodos",
+        "relationsFragment_one": "{{count}} relación",
+        "relationsFragment_other": "{{count}} relaciones",
+        "counts": "{{nodes}} · {{relations}}"
+      },
+      "canvasControls": {
+        "autoLayout": "Diseño automático",
+        "fitToView": "Ajustar a la vista",
+        "zoomIn": "Acercar",
+        "zoomOut": "Alejar"
+      },
+      "nodeList": {
+        "heading": "Nodos ({{count}})",
+        "filterPlaceholder": "Filtrar por etiqueta / IRI",
+        "allFilter": "Todos",
+        "selectAllAria": "Seleccionar todos los nodos mostrados",
+        "unselectAllAria": "Deseleccionar todos los nodos seleccionados en el filtro",
+        "selectAllTitle": "Seleccionar todos los mostrados",
+        "unselectAllTitle": "Deseleccionar los seleccionados en el filtro",
+        "noNodesToShow": "No hay nodos que mostrar",
+        "noNodesMatch": "Ningún nodo coincide.",
+        "selectedSummary_one": "{{selected}} de {{count}} nodo mostrado seleccionado",
+        "selectedSummary_other": "{{selected}} de {{count}} nodos mostrados seleccionados",
+        "selectAll": "Seleccionar todo",
+        "unselectAll": "Deseleccionar todo",
+        "metaVocabNote_one": "{{count}} nodo de vocabulario no mostrado. Actívalos en los ajustes de KG.",
+        "metaVocabNote_other": "{{count}} nodos de vocabulario no mostrados. Actívalos en los ajustes de KG.",
+        "metaVocabTooltip": "{{terms}} — implícitos según los tipos de nodo que anotan. Permanecen en el modelo y en todas las exportaciones. Los tipos de datos xsd: y otros términos sh: no se ocultan."
+      },
+      "editor": {
+        "showAll": "Mostrar todo",
+        "focusBanner_one": "Centrado en el problema ({{count}} objetivo + vecinos)",
+        "focusBanner_other": "Centrado en el problema ({{count}} objetivos + vecinos)",
+        "emptyState": "Arrastra un tipo de nodo desde la paleta al lienzo, o usa {{fileMenu}} → {{importItem}} para cargar una ontología OWL.",
+        "showingCap": "Mostrando {{visible}} de {{total}} nodos (blando: {{soft}}, duro: {{hard}})",
+        "toasts": {
+          "createdButCapped": "Nodo creado, pero no se pudo mostrar porque se alcanzó el límite duro de {{limit}}. Oculta algunos nodos en la lista o aumenta el límite duro en los ajustes de KG.",
+          "createdSomeCapped": "Se crearon {{created}} nodos; {{notShown}} no se pudieron mostrar porque se alcanzó el límite duro de {{limit}}. Oculta algunos nodos en la lista o aumenta el límite duro en los ajustes de KG.",
+          "visibleCapReached": "No se pueden visualizar más de {{limit}} nodos a la vez. Desmarca algunos en la lista de nodos o aumenta el límite duro en los ajustes de KG.",
+          "visibleCapPartial": "No se pueden visualizar más de {{limit}} nodos a la vez. Solo se añadieron {{added}} de los {{selected}} nodos recién seleccionados. Desmarca algunos en la lista de nodos o aumenta el límite duro en los ajustes de KG.",
+          "focusNotInGraph": "No se pudo centrar: el nodo afectado no forma parte de este grafo.",
+          "exportNotReady": "No se pudo exportar el grafo de conocimiento: el lienzo no está listo."
+        }
+      },
+      "standaloneHtml": {
+        "fallbackTitle": "Grafo de conocimiento",
+        "cdnFailed": "No se pudo cargar Cytoscape desde el CDN. Comprueba tu conexión de red.",
+        "renderFailedPrefix": "No se pudo renderizar el grafo: "
+      },
+      "inspector": {
+        "titleNode": "Nodo",
+        "titleRelation": "Relación",
+        "titleInspector": "Inspector",
+        "selectedCount_one": "{{count}} seleccionado",
+        "selectedCount_other": "{{count}} seleccionados",
+        "unsavedChanges": "Cambios sin guardar",
+        "close": "Cerrar",
+        "noSelection": "Haz clic en un nodo o relación del lienzo para editarlo aquí. Arrastra sobre el lienzo vacío para seleccionar varios. Mantén Espacio para desplazarte.",
+        "pendingDeleteNode": "Este nodo y todas sus conexiones se eliminarán al aplicar.",
+        "pendingDeleteRelation": "Esta relación se eliminará al aplicar.",
+        "fields": {
+          "type": "Tipo",
+          "label": "Etiqueta",
+          "value": "Valor",
+          "datatypeIri": "IRI del tipo de datos",
+          "iri": "IRI",
+          "predicateIri": "IRI del predicado",
+          "source": "Origen",
+          "target": "Destino",
+          "idLabel": "id:"
+        },
+        "placeholders": {
+          "predicate": "p. ej. knows, type, hasName"
+        },
+        "footer": {
+          "hide": "Ocultar",
+          "hideTooltip": "Quitar el nodo del lienzo sin eliminarlo del modelo",
+          "hideTooltipMulti": "Quitar los nodos seleccionados del lienzo sin eliminarlos",
+          "bulkHide_one": "Ocultar {{count}} nodo",
+          "bulkHide_other": "Ocultar {{count}} nodos",
+          "deleteSelection": "Eliminar la selección",
+          "delete": "Eliminar",
+          "stageDeleteNode": "Preparar la eliminación de este nodo (y todas sus conexiones)",
+          "stageDeleteRelation": "Preparar la eliminación de esta relación",
+          "undoDelete": "Deshacer la eliminación",
+          "discard": "Descartar",
+          "apply": "Aplicar"
+        },
+        "confirm": {
+          "discardTitle": "¿Descartar los cambios sin guardar?",
+          "discardDescription": "Tienes cambios sin guardar en el inspector. ¿Descartarlos y continuar?",
+          "discardConfirm": "Descartar",
+          "discardCancel": "Seguir editando",
+          "bulkDeleteTitle": "¿Eliminar la selección?",
+          "bulkNodesFragment_one": "{{count}} nodo",
+          "bulkNodesFragment_other": "{{count}} nodos",
+          "bulkRelationsFragment_one": "{{count}} relación",
+          "bulkRelationsFragment_other": "{{count}} relaciones",
+          "bulkDeleteDescription": "Esto eliminará permanentemente {{nodes}} y {{relations}} del modelo. Los nodos también pierden sus relaciones asociadas. Esta acción no se puede deshacer.",
+          "bulkDeleteConfirm": "Eliminar"
+        },
+        "multi": {
+          "hint": "Arrastra cualquier nodo seleccionado para mover todo el grupo. Mantén Espacio para desplazarte.",
+          "nodesHeading": "Nodos ({{count}})",
+          "relationsHeading": "Relaciones ({{count}})"
+        },
+        "attachedConstraints": {
+          "heading": "Restricciones ({{count}})",
+          "add": "Añadir restricción",
+          "constrainThisClass": "Restringir esta clase…",
+          "constrainThisClassHint": "P. ej. disjunta con, tiene clave, forma cerrada.",
+          "constrainAProperty": "Restringir una propiedad de esta clase",
+          "noPropertiesInDomain": "Aún no hay propiedades en el dominio de esta clase.",
+          "fallbackNodeConstraint": "Restricción de nodo",
+          "fallbackPropertyConstraint": "Restricción de propiedad",
+          "none": "Aún no hay restricciones."
+        },
+        "connections": {
+          "heading": "Conexiones ({{count}})",
+          "add": "Añadir",
+          "none": "Sin conexiones.",
+          "noPredicate": "(sin predicado)",
+          "new": "nuevo",
+          "removing": "eliminando",
+          "discardStaged": "Descartar esta conexión preparada",
+          "undoDelete": "Deshacer la eliminación",
+          "removeConnection": "Quitar esta conexión"
+        },
+        "addConnection": {
+          "title": "Añadir conexión",
+          "outgoing": "Saliente",
+          "incoming": "Entrante",
+          "predicate": "Predicado",
+          "predicateFree": "Predicado (escribe o elige)",
+          "targetNode": "Nodo destino",
+          "sourceNode": "Nodo origen",
+          "noOtherNodes": "No hay otros nodos en el modelo.",
+          "stage": "Preparar"
+        },
+        "constraintPredicates": {
+          "targetClass": "Aplicar esta NodeConstraint a una clase.",
+          "shProperty": "Agrupar una PropertyConstraint bajo esta NodeConstraint (sh:property).",
+          "targetProperty": "Aplicar esta PropertyConstraint a una propiedad."
+        }
+      },
+      "settings": {
+        "title": "Ajustes del grafo de conocimiento",
+        "noActiveDiagram": "No hay ningún diagrama de grafo de conocimiento activo.",
+        "backToEditor": "Volver al editor",
+        "description": "Preferencias del diagrama KG activo ({{title}}). Los cambios se guardan en el proyecto y se conservan al exportar/importar.",
+        "saved": "Ajustes de KG guardados.",
+        "saveFailed": "No se pudieron guardar los ajustes de KG.",
+        "softLimitLabel": "Límite blando: se muestra automáticamente al importar",
+        "softLimitHelp": "Al cargar una ontología, aparecen por defecto estos nodos: primero las clases, luego las propiedades, los nodos anónimos, las restricciones, los individuos y los literales. Puedes activar más desde la lista de nodos, hasta el límite duro.",
+        "hardLimitLabel": "Límite duro: tope absoluto",
+        "hardLimitHelp": "El número máximo de nodos visibles a la vez. Si intentas superarlo, se muestra un aviso explicativo.",
+        "defaultPlaceholder": "{{value}} (predeterminado)",
+        "rangeError": "Introduce un número entero entre {{min}} y {{max}}.",
+        "softExceedsHard": "El límite blando ({{soft}}) debe ser menor o igual que el límite duro ({{hard}}).",
+        "layoutLabel": "Diseño",
+        "layoutConcentric": "Concentric (predeterminado): nodos con más conexiones en el centro",
+        "layoutFcose": "fCoSE: dirigido por fuerzas, agrupaciones orgánicas (más lento)",
+        "layoutGrid": "Grid: filas y columnas deterministas",
+        "layoutHelp": "Cambiar el diseño reposiciona todos los nodos visibles. Después puedes arrastrar los nodos individualmente y esas posiciones se conservan.",
+        "metaVocabLabel": "Nodos de vocabulario RDF/OWL",
+        "metaVocabHelp": "Muestra los términos <owl/>, <rdf/> y <rdfs/>, además de <shNodeShape/> / <shPropertyShape/> —los nodos contra los que se declaran todas las clases y formas— en el lienzo y en la lista de nodos. Desactivado por defecto: están implícitos en los tipos de nodo que anotan y son los nodos con más conexiones en la mayoría de ontologías, lo que distorsiona el diseño. Al activarlo aparecen en la lista de nodos; marca los que quieras en el lienzo. Los tipos de datos <xsd/> y el resto de términos <sh/> nunca se ocultan: contienen el rango declarado de una propiedad y sus valores de restricción.",
+        "metaVocabNote": "Esto solo afecta a la visualización. Los nodos de vocabulario siempre permanecen en el modelo y se exportan / convierten igualmente (exportación RDF, KG → UML, comprobaciones de consistencia).",
+        "summaryNodes_one": "El diagrama tiene actualmente {{count}} nodo",
+        "summaryNodes_other": "El diagrama tiene actualmente {{count}} nodos",
+        "summarySoft": "límite blando aplicado {{value}}",
+        "summaryHard": "límite duro aplicado {{value}}",
+        "summaryLayout": "diseño aplicado",
+        "resetToDefaults": "Restablecer los valores predeterminados"
+      }
+    },
     "loadingGuiEditor": "Cargando el editor de GUI...",
     "loadingQuantumEditor": "Cargando el editor cuántico...",
+    "loadingKgEditor": "Cargando el editor de grafo de conocimiento...",
     "hiddenPerspectives": {
       "messagePlural": "Este proyecto utiliza {{labels}}, pero esas perspectivas están ocultas.",
       "messageSingular": "Este proyecto utiliza {{labels}}, pero esa perspectiva está oculta.",
@@ -2301,6 +2938,30 @@
       "noProjectData": "No hay datos de proyecto disponibles para exportar",
       "projectExportedAs": "Proyecto exportado como {{filename}}",
       "projectExportFailed": "No se pudo exportar el proyecto: {{error}}"
+    },
+    "kg": {
+      "options": {
+        "title": "Exportar el grafo de conocimiento",
+        "description": "Elige la sintaxis RDF y qué vocabularios de restricciones emitir.",
+        "rdfSyntax": "Sintaxis RDF",
+        "constraintVocab": "Vocabulario de restricciones",
+        "vocabBoth": "Ambos: emitir OWL y SHACL cuando sea posible",
+        "vocabOwl": "Solo OWL: nodos anónimos owl:Restriction",
+        "vocabShacl": "Solo SHACL: sh:NodeShape / sh:PropertyShape",
+        "emitted_one": "Se emitirá {{emitted}} de {{count}} especificación de restricción",
+        "emitted_other": "Se emitirán {{emitted}} de {{count}} especificaciones de restricción",
+        "skippedSuffix_one": " — {{count}} omitida porque solo existe en el otro vocabulario",
+        "skippedSuffix_other": " — {{count}} omitidas porque solo existen en el otro vocabulario",
+        "noSpecs": "Aún no hay especificaciones de restricción en este diagrama.",
+        "export": "Exportar"
+      },
+      "toasts": {
+        "noProject": "Abre un proyecto antes de exportar.",
+        "noDiagram": "No hay ningún diagrama de grafo de conocimiento activo que exportar.",
+        "vocabSuffix": " (solo restricciones {{vocab}})",
+        "exportCompleted": "Exportación {{format}} completada{{suffix}}.",
+        "failed": "Error al exportar el KG."
+      }
     }
   },
   "import": {
@@ -2330,6 +2991,150 @@
       "readFileFailed": "No se pudo leer el archivo",
       "invalidFromBackend": "El backend devolvió un diagrama no válido",
       "couldNotParseError": "No se pudo analizar la respuesta de error"
+    },
+    "kg": {
+      "owl": {
+        "updateFailed": "No se pudo actualizar el diagrama de grafo de conocimiento.",
+        "writeNewTabFailed": "No se pudo escribir el grafo importado en la nueva pestaña.",
+        "invalidJson": "El backend devolvió un JSON de KG no válido",
+        "noProjectOpen": "No hay ningún proyecto abierto. Crea o abre un proyecto primero.",
+        "noActiveDiagram": "No se encontró ningún diagrama de grafo de conocimiento activo en este proyecto.",
+        "nodesFragment_one": "{{count}} nodo",
+        "nodesFragment_other": "{{count}} nodos",
+        "edgesFragment_one": "{{count}} arista",
+        "edgesFragment_other": "{{count}} aristas",
+        "imported": "Se importaron {{nodes}} y {{edges}} desde {{file}}.",
+        "importedNewTab": "Se importaron {{nodes}} y {{edges}} desde {{file}} en una pestaña nueva.",
+        "merged": "Se fusionaron {{nodes}} y {{edges}} desde {{file}}",
+        "mergedSkippedSuffix_one": " ({{count}} ya presente).",
+        "mergedSkippedSuffix_other": " ({{count}} ya presentes).",
+        "unknownError": "Se produjo un error desconocido durante la importación",
+        "failedTitle": "Error al importar OWL"
+      },
+      "targetModal": {
+        "title": "¿Dónde debe ir este grafo?",
+        "nodesFragment_one": "{{count}} nodo",
+        "nodesFragment_other": "{{count}} nodos",
+        "edgesFragment_one": "{{count}} arista",
+        "edgesFragment_other": "{{count}} aristas",
+        "tabNameFragment": " ({{title}})",
+        "description": "<file>{{file}}</file> contiene {{nodes}} y {{edges}}. La pestaña actual{{tab}} no está vacía: añade la importación junto a lo que ya hay o mantenla aparte en una pestaña nueva.",
+        "mergeExplainer": "La fusión mantiene el grafo actual tal cual y solo añade lo que falta: los términos comunes a ambos grafos (misma IRI) siguen siendo un único nodo.",
+        "maxTabsReached": "Este proyecto ya tiene el número máximo de pestañas de grafo de conocimiento.",
+        "newTab": "Pestaña nueva",
+        "mergeIntoTab": "Fusionar en esta pestaña"
+      },
+      "preflight": {
+        "noRecommendedAction": "Ninguna acción recomendada",
+        "dropElement": "Descartar el elemento",
+        "affects": "Afecta a: {{ids}}",
+        "fixAutomaticallyAria": "Corregir automáticamente para {{code}}",
+        "applyRecommendedAria": "Aplicar la corrección recomendada para {{code}}",
+        "fixAutomatically": "Corregir automáticamente",
+        "applyRecommended": "Aplicar lo recomendado:",
+        "fixInKg": "Corregir en el KG",
+        "fixInKgInstead": "Corregir en el KG en su lugar",
+        "skipped": "Omitido",
+        "chooseFixAria": "Elige cómo corregir este problema",
+        "sendToLlm": "Enviar al LLM",
+        "or": "o",
+        "unknownError": "Error desconocido",
+        "invalidResponse": "Respuesta de comprobación previa no válida.",
+        "failed": "Error en la comprobación previa del KG."
+      },
+      "consistency": {
+        "title": "El grafo de conocimiento tiene inconsistencias",
+        "issuesFragment_one": "{{count}} problema",
+        "issuesFragment_other": "{{count}} problemas",
+        "violationsFragment_one": "{{count}} violación",
+        "violationsFragment_other": "{{count}} violaciones",
+        "warningsFragment_one": "{{count}} advertencia",
+        "warningsFragment_other": "{{count}} advertencias",
+        "description": "La comprobación de consistencia OWL/SHACL encontró {{issues}} en el grafo de conocimiento ({{violations}}, {{warnings}}, {{info}} info). Puedes corregirlos, continuar con la conversión de todos modos, o cancelar.",
+        "onNode": "en {{nodeId}}",
+        "openRefine": "Abrir Refine para corregir",
+        "proceedAnyway": "Continuar de todos modos"
+      },
+      "refine": {
+        "title": "Refinar el grafo de conocimiento",
+        "titleConvert": "Refinar antes de convertir a {{diagram}}",
+        "description": "Limpia el KG antes de convertirlo a B-UML. Revisa las recomendaciones automáticas de BESSER, u obtén sugerencias basadas en IA orientadas al sistema que quieres construir.",
+        "descriptionConvert": "Resuelve las inconsistencias del grafo de conocimiento. Cuando esté limpio podrás convertirlo en un {{diagram}}.",
+        "tabsAria": "Pestañas de refinado del KG",
+        "tabAutomatic": "Automático",
+        "tabConsistency": "Consistencia",
+        "tabAi": "IA",
+        "classifyBadge": "Clasificar {{count}}",
+        "analyzingKg": "Analizando el KG…",
+        "noInconsistencies": "El grafo de conocimiento ya no tiene inconsistencias.",
+        "clickConvert": "Haz clic en <action>{{action}}</action> para generar el {{diagram}}.",
+        "noRecommendations": "Sin recomendaciones automáticas: el KG parece limpio.",
+        "staticInstructions": "Marca las sugerencias que quieras corregir. Para cada una, elige si aplicar la corrección recomendada o enviarla al LLM. Usa «Corregir en el KG» para tratar una manualmente en el lienzo.",
+        "selectAll": "Seleccionar todo",
+        "deselectAll": "Deseleccionar todo",
+        "noneSelected": "No hay sugerencias seleccionadas: no cambiará nada.",
+        "ofWillBeFixed": "de {{total}} se corregirán:",
+        "viaRecommended_one": "{{count}} mediante recomendación",
+        "viaRecommended_other": "{{count}} mediante recomendación",
+        "viaLlm_one": "{{count}} mediante LLM",
+        "viaLlm_other": "{{count}} mediante LLM",
+        "convertTo": "Convertir a {{diagram}}",
+        "applying": "Aplicando…",
+        "applyMixed": "Aplicar {{count}} ({{recommended}} rec + {{llm}} LLM)",
+        "sendToLlm": "Enviar {{count}} al LLM",
+        "applyRecommended": "Aplicar {{count}} recomendadas",
+        "analyzeFailed": "No se pudo analizar el KG. Inténtalo de nuevo.",
+        "retry": "Reintentar",
+        "consistencyExplainer": "Valida el grafo de conocimiento frente a todas las restricciones OWL/SHACL definidas en él. Usa pyshacl con inferencia OWL2-RL en el backend; la comprobación puede ser lenta en grafos grandes, así que solo se ejecuta cuando haces clic en <action>{{action}}</action>.",
+        "consistencyIdle": "Aún no se ha ejecutado ninguna comprobación para este grafo de conocimiento. Haz clic en <action>{{action}}</action> abajo para evaluar todas las restricciones OWL/SHACL frente al ABox actual.",
+        "checkingConsistency": "Comprobando la consistencia…",
+        "consistencyFailed": "Error en la comprobación de consistencia.",
+        "allSatisfied": "Todas las restricciones OWL/SHACL se cumplen.",
+        "severitySummary": "{{violations}}, {{warnings}}, {{info}} info",
+        "lastRun": " — última ejecución {{time}}",
+        "runCheck": "Ejecutar comprobación",
+        "reCheck": "Volver a comprobar",
+        "orphanBanner_one": "Listo para clasificar <count>{{count}}</count> nodo huérfano marcado en la pestaña Automático. Proporciona una descripción y una clave de API, y luego pulsa Analizar para pedir al LLM clasificaciones por nodo.",
+        "orphanBanner_other": "Listo para clasificar <count>{{count}}</count> nodos huérfanos marcados en la pestaña Automático. Proporciona una descripción y una clave de API, y luego pulsa Analizar para pedir al LLM clasificaciones por nodo.",
+        "deferredBanner_one": "<count>{{count}}</count> problema se redirigió aquí desde la pestaña Automático. Describe el sistema que quieres construir y luego pulsa Analizar para pedir al LLM correcciones sobre el KG (ahora parcialmente limpio).",
+        "deferredBanner_other": "<count>{{count}}</count> problemas se redirigieron aquí desde la pestaña Automático. Describe el sistema que quieres construir y luego pulsa Analizar para pedir al LLM correcciones sobre el KG (ahora parcialmente limpio).",
+        "systemDescription": "Descripción del sistema",
+        "systemDescriptionPlaceholder": "p. ej. Un sistema de gestión de biblioteca que registra libros, socios y préstamos.",
+        "apiKey": "Clave de API de OpenAI",
+        "apiKeyNote": "Se guarda solo en esta sesión del navegador.",
+        "analyzing": "Analizando…",
+        "analyze": "Analizar",
+        "llmNoSuggestions": "El LLM no sugirió ningún cambio para el sistema descrito.",
+        "llmInstructions": "Marca las sugerencias que quieras aplicar. Omite el resto, o usa «Corregir en el KG» para tratar una manualmente en el lienzo.",
+        "back": "Atrás",
+        "applySelected": "Aplicar {{count}} seleccionadas",
+        "confirmReplace": "¿Reemplazar tu KG actual por el grafo limpio?",
+        "noProjectOpen": "No hay ningún proyecto abierto.",
+        "noActiveDiagram": "No hay ningún diagrama de grafo de conocimiento activo.",
+        "staticFailed": "Error en el análisis de refinado estático.",
+        "applyNoModel": "El endpoint de aplicación no devolvió ningún modelo.",
+        "refined": "Grafo de conocimiento refinado.",
+        "applyFailed": "Error al aplicar el refinado.",
+        "failedTitle": "Error al refinar el KG",
+        "describeSystemFirst": "Describe primero el sistema que quieres construir.",
+        "apiKeyRequired": "Se requiere una clave de API de OpenAI.",
+        "invalidLlmResponse": "Respuesta de limpieza del LLM no válida.",
+        "aiFailed": "Error en el análisis de refinado por IA.",
+        "noOrphans": "No hay nodos huérfanos que clasificar.",
+        "invalidOrphanResponse": "Respuesta de clasificación de huérfanos no válida.",
+        "orphanFailed": "Error en la clasificación de huérfanos.",
+        "applyLlmFailed": "Error al aplicar el refinado del LLM."
+      },
+      "toUml": {
+        "noProject": "Abre un proyecto antes de convertir.",
+        "noDiagram": "No hay ningún diagrama de grafo de conocimiento activo que convertir.",
+        "consistencyCheckFailed": "Error en la comprobación de consistencia.",
+        "consistencyCheckSkipped": "Comprobación de consistencia omitida: {{message}}",
+        "invalidResponse": "Respuesta no válida del endpoint de conversión de KG.",
+        "generated": "Se generó {{diagram}} a partir del grafo de conocimiento.",
+        "conversionFailed": "Error en la conversión del KG.",
+        "failedTitle": "Error en la conversión KG → UML"
+      }
     }
   },
   "validation": {

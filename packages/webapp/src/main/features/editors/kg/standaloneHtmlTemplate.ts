@@ -4,6 +4,19 @@
  *  Cytoscape's built-in defaults. Cytoscape and fcose load from a CDN so
  *  the file stays small (~5–20 KB). */
 
+/** Chrome rendered by the exported file's own runtime. The template can't call
+ *  `t()` -- it runs standalone, outside the app -- so the caller resolves these
+ *  first and passes them in. That is what makes a downloaded file match the
+ *  language it was exported in. */
+export interface StandaloneHtmlStrings {
+  /** Document title when the diagram has no title of its own. */
+  fallbackTitle: string;
+  /** Shown when the Cytoscape CDN script fails to load. */
+  cdnFailed: string;
+  /** Prefix for a render failure; the underlying error text is appended. */
+  renderFailedPrefix: string;
+}
+
 interface BuildArgs {
   title: string;
   /** Output of `cy.json()`. Includes `elements` (with positions),
@@ -13,6 +26,10 @@ interface BuildArgs {
   stylesheet: unknown;
   /** Layout name used when the snapshot lacks node positions. */
   fallbackLayout: string;
+  /** Translated runtime chrome (see `StandaloneHtmlStrings`). */
+  strings: StandaloneHtmlStrings;
+  /** BCP-47 tag for the document's `lang` attribute. */
+  lang: string;
 }
 
 const CYTOSCAPE_CDN = 'https://cdn.jsdelivr.net/npm/cytoscape@3.33.2/dist/cytoscape.umd.js';
@@ -33,14 +50,27 @@ function escapeHtml(text: string): string {
     .replace(/"/g, '&quot;');
 }
 
-export function buildStandaloneHtml({ title, cyJson, stylesheet, fallbackLayout }: BuildArgs): string {
-  const safeTitle = escapeHtml(title || 'Knowledge Graph');
+export function buildStandaloneHtml({
+  title,
+  cyJson,
+  stylesheet,
+  fallbackLayout,
+  strings,
+  lang,
+}: BuildArgs): string {
+  const safeTitle = escapeHtml(title || strings.fallbackTitle);
   const cyJsonLiteral = inlineJson(cyJson);
   const styleLiteral = inlineJson(stylesheet);
   const layoutLiteral = inlineJson(fallbackLayout);
+  // Translated copy goes through `inlineJson` for the same reason the graph
+  // data does: it becomes a JS string literal inside `<script>`, and an
+  // apostrophe or a stray `</` in a translation would otherwise break the
+  // file. Never interpolate these raw.
+  const cdnFailedLiteral = inlineJson(strings.cdnFailed);
+  const renderFailedLiteral = inlineJson(strings.renderFailedPrefix);
 
   return `<!doctype html>
-<html lang="en">
+<html lang="${escapeHtml(lang)}">
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -68,7 +98,7 @@ export function buildStandaloneHtml({ title, cyJson, stylesheet, fallbackLayout 
   }
   try {
     if (typeof cytoscape !== 'function') {
-      showError('Failed to load Cytoscape from CDN. Check your network connection.');
+      showError(${cdnFailedLiteral});
       return;
     }
     if (typeof cytoscapeFcose === 'function') {
@@ -100,7 +130,7 @@ export function buildStandaloneHtml({ title, cyJson, stylesheet, fallbackLayout 
     }
     if (!hasPositions) cy.fit(undefined, 40);
   } catch (err) {
-    showError('Failed to render graph: ' + (err && err.message ? err.message : String(err)));
+    showError(${renderFailedLiteral} + (err && err.message ? err.message : String(err)));
   }
 })();
 </script>

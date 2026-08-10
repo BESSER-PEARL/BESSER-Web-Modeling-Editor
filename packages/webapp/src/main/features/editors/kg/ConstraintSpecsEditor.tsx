@@ -21,6 +21,8 @@
  */
 
 import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { Trans, useTranslation } from 'react-i18next';
+import type { TFunction } from 'i18next';
 import { Plus, Search, Trash2, ChevronDown, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -42,6 +44,13 @@ import {
   KG_CONSTRAINT_TARGET_CLASS,
   KG_CONSTRAINT_TARGET_PROPERTY,
 } from './types';
+import {
+  catalogDescription,
+  catalogLabel,
+  categoryLabel,
+  templateDescription,
+  templateLabel,
+} from './i18n-keys';
 import {
   CATEGORY_LABELS,
   CATEGORY_ORDER,
@@ -83,11 +92,32 @@ const NODE_KINDS = [
   { value: 'http://www.w3.org/ns/shacl#BlankNodeOrLiteral', label: 'BlankNode or Literal' },
 ];
 
+/** `label` is the English default; `key` supplies the translation. The `value`
+ *  IRIs are what get persisted, so only the display text varies by language. */
 const SEVERITIES = [
-  { value: 'http://www.w3.org/ns/shacl#Info', label: 'Info' },
-  { value: 'http://www.w3.org/ns/shacl#Warning', label: 'Warning' },
-  { value: 'http://www.w3.org/ns/shacl#Violation', label: 'Violation' },
+  { value: 'http://www.w3.org/ns/shacl#Info', label: 'Info', key: 'editors.kg.constraints.severities.info' },
+  {
+    value: 'http://www.w3.org/ns/shacl#Warning',
+    label: 'Warning',
+    key: 'editors.kg.constraints.severities.warning',
+  },
+  {
+    value: 'http://www.w3.org/ns/shacl#Violation',
+    label: 'Violation',
+    key: 'editors.kg.constraints.severities.violation',
+  },
 ];
+
+/** Display names for the XSD datatype groups. The datatype `label`s themselves
+ *  are XSD type names and stay verbatim; only these grouping words translate. */
+const XSD_GROUP_KEYS: Record<string, string> = {
+  Text: 'editors.kg.constraints.datatypeGroups.text',
+  Numeric: 'editors.kg.constraints.datatypeGroups.numeric',
+  'Date/Time': 'editors.kg.constraints.datatypeGroups.dateTime',
+  Boolean: 'editors.kg.constraints.datatypeGroups.boolean',
+  Binary: 'editors.kg.constraints.datatypeGroups.binary',
+  'Language-tagged': 'editors.kg.constraints.datatypeGroups.languageTagged',
+};
 
 interface ConstraintSpecsEditorProps {
   /** The constraint node being edited (NodeConstraint / PropertyConstraint). */
@@ -122,41 +152,47 @@ function getTargetInfo(
   return {};
 }
 
-function validateSpecs(specs: KGConstraintSpec[]): string[] {
+/** Takes `t` for the same reason `describeSpec` does: it runs during render,
+ *  so the caller's `useTranslation` subscription is what re-runs it on a
+ *  language switch (and `t` belongs in the calling memo's deps). The spec
+ *  `kind`s embedded in the messages are vocabulary identifiers, interpolated
+ *  as values so they stay verbatim in every language. */
+function validateSpecs(t: TFunction, specs: KGConstraintSpec[]): string[] {
   const errors: string[] = [];
+  const K = 'editors.kg.constraints.validation';
   const byKind: Record<string, KGConstraintSpec | undefined> = {};
   for (const s of specs) byKind[s.kind] = s;
   const minC = byKind.minCardinality?.value;
   const maxC = byKind.maxCardinality?.value;
   if (typeof minC === 'number' && typeof maxC === 'number' && minC > maxC) {
-    errors.push(`minCardinality (${minC}) must not exceed maxCardinality (${maxC}).`);
+    errors.push(t(`${K}.minMaxCardinality`, { min: minC, max: maxC }));
   }
   const minL = byKind.minLength?.value;
   const maxL = byKind.maxLength?.value;
   if (typeof minL === 'number' && typeof maxL === 'number' && minL > maxL) {
-    errors.push(`minLength (${minL}) must not exceed maxLength (${maxL}).`);
+    errors.push(t(`${K}.minMaxLength`, { min: minL, max: maxL }));
   }
   const minIn = byKind.minInclusive?.value;
   const maxIn = byKind.maxInclusive?.value;
   if (typeof minIn === 'number' && typeof maxIn === 'number' && minIn > maxIn) {
-    errors.push(`minInclusive (${minIn}) must not exceed maxInclusive (${maxIn}).`);
+    errors.push(t(`${K}.minMaxInclusive`, { min: minIn, max: maxIn }));
   }
   for (const s of specs) {
     if (s.kind === 'pattern') {
       try {
         if (typeof s.value === 'string' && s.value.length > 0) new RegExp(s.value);
       } catch {
-        errors.push(`Regex pattern "${s.value}" is not a valid regular expression.`);
+        errors.push(t(`${K}.badRegex`, { pattern: String(s.value) }));
       }
     }
     if (
       ['minQualifiedCardinality', 'maxQualifiedCardinality', 'exactQualifiedCardinality'].includes(s.kind) &&
       !s.on_class
     ) {
-      errors.push(`Qualified cardinality (${s.kind}) needs an "on class" picked.`);
+      errors.push(t(`${K}.qualifiedNeedsOnClass`, { kind: s.kind }));
     }
     if (s.kind === 'in' && (!Array.isArray(s.value) || s.value.length === 0)) {
-      errors.push('Enumeration (in) requires at least one value.');
+      errors.push(t(`${K}.enumNeedsValue`));
     }
   }
   return errors;
@@ -167,6 +203,7 @@ export const ConstraintSpecsEditor: React.FC<ConstraintSpecsEditorProps> = ({
   model,
   onSpecsChange,
 }) => {
+  const { t } = useTranslation();
   const meta = (node.metadata ?? {}) as { constraintSpecs?: KGConstraintSpec[] };
   const specs = meta.constraintSpecs ?? [];
 
@@ -179,18 +216,22 @@ export const ConstraintSpecsEditor: React.FC<ConstraintSpecsEditorProps> = ({
     <div className="space-y-3 border-t border-border/60 pt-3">
       <div className="flex items-baseline justify-between gap-2">
         <Label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-          Constraints ({specs.length})
+          {t('editors.kg.constraints.editor.heading', { count: specs.length })}
         </Label>
         {targetName && (
           <span className="text-xs text-muted-foreground">
-            Applies to <code className="rounded bg-muted px-1 py-0.5">{targetName}</code>
+            <Trans
+              i18nKey="editors.kg.constraints.editor.appliesTo"
+              values={{ target: targetName }}
+              components={{ target: <code className="rounded bg-muted px-1 py-0.5" /> }}
+            />
           </span>
         )}
       </div>
 
       {/* Live natural-language preview. */}
       <div className="rounded-md border border-purple-300/60 bg-purple-50/40 px-2 py-1.5 text-xs italic text-purple-900 dark:bg-purple-950/30 dark:text-purple-200">
-        {describeSpecList(specs, targetName)}
+        {describeSpecList(t, specs, targetName)}
       </div>
 
       <SpecsListEditor
@@ -238,11 +279,14 @@ export const SpecsListEditor: React.FC<SpecsListEditorProps> = ({
   model,
   depth,
 }) => {
+  const { t } = useTranslation();
   const availableCatalog = useMemo(
     () => filterCatalog({ nodeType, targetPropertyKind }),
     [nodeType, targetPropertyKind],
   );
-  const validationErrors = useMemo(() => validateSpecs(specs), [specs]);
+  // `t` in the deps: react-i18next hands back a new `t` identity on a language
+  // switch, so this is what re-renders the messages.
+  const validationErrors = useMemo(() => validateSpecs(t, specs), [specs, t]);
   const templates = useMemo(() => templatesFor(nodeType), [nodeType]);
 
   const setSpec = (index: number, next: KGConstraintSpec) => {
@@ -275,18 +319,20 @@ export const SpecsListEditor: React.FC<SpecsListEditorProps> = ({
 
       {templates.length > 0 && depth === 0 && (
         <div className="space-y-1">
-          <Label className="text-xs text-muted-foreground">Quick add</Label>
+          <Label className="text-xs text-muted-foreground">
+            {t('editors.kg.constraints.editor.quickAdd')}
+          </Label>
           <div className="flex flex-wrap gap-1">
             {templates.map((tmpl) => (
               <Button
                 key={tmpl.id}
                 variant="outline"
                 size="sm"
-                title={tmpl.description}
+                title={templateDescription(t, tmpl)}
                 className="h-7 px-2 text-xs"
                 onClick={() => appendSpecs(tmpl.build())}
               >
-                {tmpl.label}
+                {templateLabel(t, tmpl)}
               </Button>
             ))}
           </div>
@@ -373,9 +419,10 @@ const SpecRow: React.FC<{
   onChange: (next: KGConstraintSpec) => void;
   onDelete: () => void;
 }> = ({ spec, model, nodeType, targetPropertyKind, ownerNodeId, depth, onChange, onDelete }) => {
+  const { t } = useTranslation();
   const [open, setOpen] = useState(true);
   const entry = CONSTRAINT_BY_KIND.get(spec.kind);
-  const description = describeSpec(spec);
+  const description = describeSpec(t, spec);
   const vocabChip = entry?.vocab.join('+').toUpperCase() ?? '';
 
   return (
@@ -407,7 +454,7 @@ const SpecRow: React.FC<{
           size="icon"
           className="size-6 text-muted-foreground hover:text-destructive"
           onClick={onDelete}
-          aria-label="Remove constraint"
+          aria-label={t('editors.kg.constraints.editor.removeConstraint')}
         >
           <Trash2 className="size-3.5" />
         </Button>
@@ -440,6 +487,7 @@ const SpecValueEditor: React.FC<{
   depth: number;
   onChange: (next: KGConstraintSpec) => void;
 }> = ({ entry, spec, model, nodeType, targetPropertyKind, ownerNodeId, depth, onChange }) => {
+  const { t } = useTranslation();
   const setValue = (value: unknown) => onChange({ ...spec, value });
   const setOnClass = (on_class: string) => onChange({ ...spec, on_class: on_class || undefined });
 
@@ -484,7 +532,9 @@ const SpecValueEditor: React.FC<{
             onChange={(e) => setValue(e.target.checked)}
             className="size-4 rounded border-input"
           />
-          {Boolean(spec.value) ? 'enabled' : 'disabled'}
+          {Boolean(spec.value)
+            ? t('editors.kg.constraints.editor.enabled')
+            : t('editors.kg.constraints.editor.disabled')}
         </label>
       );
     case 'regex':
@@ -525,7 +575,7 @@ const SpecValueEditor: React.FC<{
       return (
         <div className="flex items-end gap-2">
           <div>
-            <Label className="text-xs">Count</Label>
+            <Label className="text-xs">{t('editors.kg.constraints.editor.count')}</Label>
             <Input
               type="number"
               min={0}
@@ -536,7 +586,7 @@ const SpecValueEditor: React.FC<{
             />
           </div>
           <div className="flex-1">
-            <Label className="text-xs">On class</Label>
+            <Label className="text-xs">{t('editors.kg.constraints.editor.onClass')}</Label>
             <IriPicker value={spec.on_class ?? ''} options={classIris} onChange={setOnClass} />
           </div>
         </div>
@@ -545,7 +595,7 @@ const SpecValueEditor: React.FC<{
       return (
         <Select value={String(spec.value ?? '')} onValueChange={setValue}>
           <SelectTrigger className="h-8 text-sm">
-            <SelectValue placeholder="Pick a node kind" />
+            <SelectValue placeholder={t('editors.kg.constraints.editor.pickNodeKind')} />
           </SelectTrigger>
           <SelectContent>
             {NODE_KINDS.map((k) => (
@@ -560,12 +610,12 @@ const SpecValueEditor: React.FC<{
       return (
         <Select value={String(spec.value ?? '')} onValueChange={setValue}>
           <SelectTrigger className="h-8 text-sm">
-            <SelectValue placeholder="Pick severity" />
+            <SelectValue placeholder={t('editors.kg.constraints.editor.pickSeverity')} />
           </SelectTrigger>
           <SelectContent>
             {SEVERITIES.map((s) => (
               <SelectItem key={s.value} value={s.value}>
-                {s.label}
+                {t(s.key, { defaultValue: s.label })}
               </SelectItem>
             ))}
           </SelectContent>
@@ -590,7 +640,8 @@ const SpecValueEditor: React.FC<{
     default:
       return (
         <span className="text-xs italic text-muted-foreground">
-          Editor for "{entry.valueShape}" coming soon — value preserved as-is.
+          {/* `valueShape` is an internal discriminator -- interpolated raw. */}
+          {t('editors.kg.constraints.editor.editorComingSoon', { shape: entry.valueShape })}
         </span>
       );
   }
@@ -645,16 +696,17 @@ const IriPicker: React.FC<{
 };
 
 const DatatypePicker: React.FC<{ value: string; onChange: (v: string) => void }> = ({ value, onChange }) => {
+  const { t } = useTranslation();
   return (
     <div className="space-y-1">
       <Select value={value} onValueChange={onChange}>
         <SelectTrigger className="h-8 text-sm">
-          <SelectValue placeholder="Pick an XSD datatype" />
+          <SelectValue placeholder={t('editors.kg.constraints.editor.pickDatatype')} />
         </SelectTrigger>
         <SelectContent>
           {XSD_DATATYPES.map((dt) => (
             <SelectItem key={dt.value} value={dt.value}>
-              {dt.group}: {dt.label}
+              {t(XSD_GROUP_KEYS[dt.group], { defaultValue: dt.group })}: {dt.label}
             </SelectItem>
           ))}
         </SelectContent>
@@ -662,7 +714,7 @@ const DatatypePicker: React.FC<{ value: string; onChange: (v: string) => void }>
       <Input
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        placeholder="…or paste a custom datatype IRI"
+        placeholder={t('editors.kg.constraints.editor.customDatatype')}
         className="h-7 text-xs"
       />
     </div>
@@ -675,6 +727,7 @@ const IriListEditor: React.FC<{
   placeholder?: string;
   onChange: (next: string[]) => void;
 }> = ({ values, options, placeholder, onChange }) => {
+  const { t } = useTranslation();
   const updateAt = (idx: number, v: string) => {
     const copy = values.slice();
     copy[idx] = v;
@@ -690,7 +743,7 @@ const IriListEditor: React.FC<{
       {values.map((v, i) => (
         <div key={i} className="flex gap-1">
           <IriPicker value={v} options={options} placeholder={placeholder} onChange={(nv) => updateAt(i, nv)} />
-          <Button variant="ghost" size="icon" className="size-7" onClick={() => removeAt(i)} aria-label="Remove">
+          <Button variant="ghost" size="icon" className="size-7" onClick={() => removeAt(i)} aria-label={t('editors.kg.constraints.editor.removeValue')}>
             <Trash2 className="size-3.5" />
           </Button>
         </div>
@@ -702,7 +755,7 @@ const IriListEditor: React.FC<{
         onClick={() => onChange([...values, ''])}
       >
         <Plus className="size-3.5" />
-        Add value
+        {t('editors.kg.constraints.editor.addValue')}
       </Button>
     </div>
   );
@@ -712,6 +765,7 @@ const LiteralListEditor: React.FC<{
   values: unknown[];
   onChange: (next: unknown[]) => void;
 }> = ({ values, onChange }) => {
+  const { t } = useTranslation();
   const stringValues: Array<{ value: string; datatype?: string; language?: string }> = values.map((v) => {
     if (typeof v === 'string') return { value: v };
     if (v && typeof v === 'object' && 'value' in (v as any))
@@ -734,11 +788,11 @@ const LiteralListEditor: React.FC<{
         <div key={i} className="flex gap-1">
           <Input
             value={v.value ?? ''}
-            placeholder="Literal value"
+            placeholder={t('editors.kg.constraints.editor.literalValue')}
             className="h-8 flex-1"
             onChange={(e) => updateAt(i, { value: e.target.value })}
           />
-          <Button variant="ghost" size="icon" className="size-7" onClick={() => removeAt(i)} aria-label="Remove">
+          <Button variant="ghost" size="icon" className="size-7" onClick={() => removeAt(i)} aria-label={t('editors.kg.constraints.editor.removeValue')}>
             <Trash2 className="size-3.5" />
           </Button>
         </div>
@@ -750,7 +804,7 @@ const LiteralListEditor: React.FC<{
         onClick={() => onChange([...stringValues, { value: '' }])}
       >
         <Plus className="size-3.5" />
-        Add value
+        {t('editors.kg.constraints.editor.addValue')}
       </Button>
     </div>
   );
@@ -760,26 +814,27 @@ const LiteralEditor: React.FC<{
   value: Record<string, unknown>;
   onChange: (v: unknown) => void;
 }> = ({ value, onChange }) => {
+  const { t } = useTranslation();
   const v = typeof value === 'object' && value ? value : {};
   const set = (patch: Record<string, unknown>) => onChange({ ...v, ...patch });
   return (
     <div className="space-y-1">
       <Input
         value={String(v.value ?? '')}
-        placeholder="Literal value or IRI"
+        placeholder={t('editors.kg.constraints.editor.literalValueOrIri')}
         className="h-8"
         onChange={(e) => set({ value: e.target.value })}
       />
       <div className="flex gap-1">
         <Input
           value={String(v.datatype ?? '')}
-          placeholder="datatype IRI (optional)"
+          placeholder={t('editors.kg.constraints.editor.datatypeIriOptional')}
           className="h-7 flex-1 text-xs"
           onChange={(e) => set({ datatype: e.target.value || undefined })}
         />
         <Input
           value={String(v.language ?? '')}
-          placeholder="lang tag (e.g. en)"
+          placeholder={t('editors.kg.constraints.editor.langTag')}
           className="h-7 w-24 text-xs"
           onChange={(e) => set({ language: e.target.value || undefined })}
         />
@@ -794,6 +849,7 @@ const ConstraintPicker: React.FC<{
   catalog: ConstraintCatalogEntry[];
   onPick: (entry: ConstraintCatalogEntry) => void;
 }> = ({ catalog, onPick }) => {
+  const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState('');
   const containerRef = useRef<HTMLDivElement>(null);
@@ -820,11 +876,15 @@ const ConstraintPicker: React.FC<{
     };
     const q = query.trim().toLowerCase();
     for (const entry of catalog) {
-      if (q && !`${entry.label} ${entry.description}`.toLowerCase().includes(q)) continue;
+      // Match against the TRANSLATED text, not the English source: the user is
+      // typing what they can see, so filtering on `entry.label` would silently
+      // stop matching in every non-English locale. `t` is in the deps below.
+      const haystack = `${catalogLabel(t, entry)} ${catalogDescription(t, entry)}`.toLowerCase();
+      if (q && !haystack.includes(q)) continue;
       out[entry.category].push(entry);
     }
     return out;
-  }, [catalog, query]);
+  }, [catalog, query, t]);
 
   return (
     <div ref={containerRef} className="relative">
@@ -835,7 +895,7 @@ const ConstraintPicker: React.FC<{
         onClick={() => setOpen((o) => !o)}
       >
         <Plus className="size-3.5" />
-        Add constraint
+        {t('editors.kg.constraints.editor.addConstraint')}
       </Button>
       {open && (
         <div className="absolute left-0 z-50 mt-1 w-80 rounded-md border bg-popover text-popover-foreground shadow-md">
@@ -844,7 +904,7 @@ const ConstraintPicker: React.FC<{
             <Input
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="Search constraints…"
+              placeholder={t('editors.kg.constraints.editor.searchPlaceholder')}
               className="h-7 border-0 px-0 text-sm shadow-none focus-visible:ring-0"
               autoFocus
             />
@@ -856,14 +916,14 @@ const ConstraintPicker: React.FC<{
               return (
                 <div key={cat} className="py-1">
                   <div className="px-2 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
-                    {CATEGORY_LABELS[cat]}
+                    {categoryLabel(t, cat, CATEGORY_LABELS[cat])}
                   </div>
                   <ul>
                     {entries.map((entry) => (
                       <li key={entry.kind}>
                         <button
                           type="button"
-                          title={`${entry.description}\n\n${[entry.owlTerm, entry.shaclTerm].filter(Boolean).join(' / ')}`}
+                          title={`${catalogDescription(t, entry)}\n\n${[entry.owlTerm, entry.shaclTerm].filter(Boolean).join(' / ')}`}
                           className="flex w-full items-center gap-2 px-2 py-1 text-left text-xs hover:bg-muted/60"
                           onClick={() => {
                             onPick(entry);
@@ -871,7 +931,7 @@ const ConstraintPicker: React.FC<{
                             setQuery('');
                           }}
                         >
-                          <span className="flex-1">{entry.label}</span>
+                          <span className="flex-1">{catalogLabel(t, entry)}</span>
                           <span className="rounded bg-purple-100 px-1 py-0.5 text-[9px] font-semibold tracking-wide text-purple-800 dark:bg-purple-900/40 dark:text-purple-200">
                             {entry.vocab.join('+').toUpperCase()}
                           </span>

@@ -71,6 +71,7 @@
       "importClassDiagramFrom": "Klassendiagramm importéieren vun",
       "imageToProject": "Bild zu Projet",
       "kgToProject": "KG zu Projet",
+      "importKgOwl": "KG importéieren (OWL)",
       "previewProject": "Projetvirschau"
     },
     "generate": {
@@ -83,7 +84,9 @@
         "database": "Datebank",
         "oop": "OOP",
         "schema": "Schema",
-        "data": "Daten"
+        "data": "Daten",
+        "kgConvert": "An B-UML ëmwandelen",
+        "kgExport": "Knowledge Graph exportéieren"
       },
       "actions": {
         "djangoProject": "Django-Projet",
@@ -95,11 +98,19 @@
         "besserAgent": "BESSER-Agent",
         "jsonObjectExport": "JSON-Objet-Export",
         "userProfileJson": "Benotzerprofil-JSON",
-        "qiskitCode": "Qiskit-Code"
+        "qiskitCode": "Qiskit-Code",
+        "kgToClassDiagram": "Klassendiagramm",
+        "kgExportWithOptions": "Mat Optiounen exportéieren…"
       },
       "notices": {
         "statemachine": "Zoustandsautomate ginn als Method-Implementatiounen an Klassendiagrammer benotzt. Generéiert de Code aus dem Klassendiagramm.",
         "unavailable": "Nach net verfügbar fir dësen Diagramm"
+      },
+      "kgGuards": {
+        "openKgBeforeConverting": "Maacht e Knowledge-Graph-Diagramm op, ier Dir an UML ëmwandelt.",
+        "openKgBeforeRefining": "Maacht e Knowledge-Graph-Diagramm op, ier Dir verfeinert.",
+        "openKgBeforeExporting": "Maacht e Knowledge-Graph-Diagramm op, ier Dir exportéiert.",
+        "exportFailed": "KG-Export feelgeschloen."
       }
     },
     "deploy": {
@@ -2216,8 +2227,634 @@
         }
       }
     },
+    "kg": {
+      "nodeTypes": {
+        "class": {
+          "label": "Klass",
+          "description": "En Typ / Konzept (owl:Class)"
+        },
+        "individual": {
+          "label": "Individuum",
+          "description": "Eng Instanz vun enger Klass"
+        },
+        "property": {
+          "label": "Eegenschaft",
+          "description": "E reifizéierte Eegenschafts-Knuetpunkt"
+        },
+        "literal": {
+          "label": "Literal",
+          "description": "E Literalwäert (Zeechenkette, Zuel, …)"
+        },
+        "blank": {
+          "label": "Blank",
+          "description": "Anonym Ressource (Blank Node)"
+        },
+        "nodeConstraint": {
+          "label": "Knuetpunkt-Contrainte",
+          "description": "Contrainten, déi op eng Klass zoutreffen (OWL-Axiomen oder SHACL NodeShape)"
+        },
+        "propertyConstraint": {
+          "label": "Eegenschafts-Contrainte",
+          "description": "Contrainten, déi op eng Eegenschaft zoutreffen (OWL-Restriktioun oder SHACL PropertyShape)"
+        }
+      },
+      "edgeRules": {
+        "class": {
+          "reason": "Eng Klass kann nëmme mat enger anerer Klass oder mat engem Blank Node (Klassenausdrock) verbonne ginn."
+        },
+        "individual": {
+          "reason": "En Individuum kann mat enger Klass (rdf:type), mat anere Individuen oder Blank Nodes (Objet-Eegenschaften) oder mat Literaler (Dateutyp-Eegenschaften) verbonne ginn."
+        },
+        "property": {
+          "reason": "Eng Eegenschaft kann mat enger Klass (rdfs:domain / rdfs:range), mat enger anerer Eegenschaft (subPropertyOf / inverseOf / equivalentProperty) oder mat engem Blank Node (anonyme Klassenausdrock) verbonne ginn."
+        },
+        "literal": {
+          "reason": "E Literal kann net d'Subjet vun enger OWL/RDF-Relatioun sinn."
+        },
+        "blank": {
+          "reason": "E Blank Node (anonym Ressource) däerf op all Knuetpunkt referenzéieren, deen keng Contrainte ass."
+        },
+        "nodeConstraint": {
+          "reason": "Eng NodeConstraint kann nëmmen eng Klass viséieren (constraintTargetClass) oder eng PropertyConstraint gruppéieren (sh:property)."
+        },
+        "propertyConstraint": {
+          "reason": "Eng PropertyConstraint kann nëmmen eng Eegenschaft viséieren (constraintTargetProperty)."
+        },
+        "genericRejection": "Verbindunge vu \"{{source}}\" op \"{{target}}\" sinn ënner OWL2 DL net erlaabt.",
+        "noValidTargets": "Keng gëlteg Zil-Zorte fir dëse Knuetpunkt ënner OWL2 DL."
+      },
+      "constraints": {
+        "categories": {
+          "cardinality": "Kardinalitéit",
+          "value": "Wäert",
+          "datatype": "Dateutyp & Format",
+          "enumeration": "Opzielung",
+          "logical": "Logesch",
+          "classAxiom": "Klassenaxiomen",
+          "meta": "Metadaten"
+        },
+        "catalog": {
+          "minCardinality": {
+            "label": "Mindestens N Wäerter",
+            "description": "D'Eegenschaft muss pro Instanz mindestens N Wäerter hunn."
+          },
+          "maxCardinality": {
+            "label": "Héchstens N Wäerter",
+            "description": "D'Eegenschaft däerf pro Instanz héchstens N Wäerter hunn."
+          },
+          "exactCardinality": {
+            "label": "Genau N Wäerter",
+            "description": "D'Eegenschaft muss pro Instanz genau N Wäerter hunn."
+          },
+          "minQualifiedCardinality": {
+            "label": "Mindestens N vun der Klass X",
+            "description": "Mindestens N Wäerter mussen Instanze vun der gewielter Klass sinn."
+          },
+          "maxQualifiedCardinality": {
+            "label": "Héchstens N vun der Klass X",
+            "description": "Héchstens N Wäerter däerfen Instanze vun der gewielter Klass sinn."
+          },
+          "exactQualifiedCardinality": {
+            "label": "Genau N vun der Klass X",
+            "description": "Genau N Wäerter mussen Instanze vun der gewielter Klass sinn."
+          },
+          "someValuesFrom": {
+            "label": "E Wäert muss sinn …",
+            "description": "Mindestens ee Wäert muss eng Instanz vun der gewielter Klass sinn. Nëmmen OWL — SHACL huet keen treie existenzielle Prädikat (sh:class heescht \"all Wäert\", net \"iergendee Wäert\")."
+          },
+          "allValuesFrom": {
+            "label": "All Wäerter mussen sinn …",
+            "description": "All Wäert muss eng Instanz vun der gewielter Klass sinn."
+          },
+          "hasValue": {
+            "label": "Muss gläich sinn",
+            "description": "D'Eegenschaft muss genau dëse Wäert hunn (Literal oder IRI)."
+          },
+          "hasSelf": {
+            "label": "Ass reflexiv",
+            "description": "D'Eegenschaft setzt all Individuum mat sech selwer a Relatioun."
+          },
+          "nodeKind": {
+            "label": "De Wäert muss sinn …",
+            "description": "Schränkt d'Zort vum Knuetpunkt an, deen e Wäert unhuele kann (IRI, BlankNode, Literal)."
+          },
+          "equals": {
+            "label": "Gläich wéi Eegenschaft",
+            "description": "D'Wäertemenge vun dëser Eegenschaft muss exakt der Wäertemenge vun enger anerer Eegenschaft entspriechen."
+          },
+          "lessThan": {
+            "label": "Méi kleng wéi Eegenschaft",
+            "description": "All Wäert muss strikt méi kleng si wéi den entspriechende Wäert vun enger anerer Eegenschaft."
+          },
+          "lessThanOrEquals": {
+            "label": "Méi kleng oder gläich wéi Eegenschaft",
+            "description": "All Wäert muss méi kleng oder gläich sinn wéi den entspriechende Wäert vun enger anerer Eegenschaft."
+          },
+          "datatype": {
+            "label": "Vum Dateutyp",
+            "description": "Wäerter musse Literaler vum gewielten XSD-Dateutyp sinn."
+          },
+          "pattern": {
+            "label": "Entsprécht dem Muster",
+            "description": "Zeechenketten-Wäerter mussen dësem reguläre Ausdrock entspriechen."
+          },
+          "flags": {
+            "label": "Muster-Flags",
+            "description": "Regex-Flags, déi op sh:pattern applizéiert ginn (z. B. \"i\" fir Grouss-/Klengschreiwung ze ignoréieren)."
+          },
+          "minLength": {
+            "label": "Längt ass mindestens N",
+            "description": "D'Längt vun der Zeechenkette muss mindestens N Zeechen sinn."
+          },
+          "maxLength": {
+            "label": "Längt ass héchstens N",
+            "description": "D'Längt vun der Zeechenkette däerf héchstens N Zeechen sinn."
+          },
+          "minInclusive": {
+            "label": "Wäert ≥ N",
+            "description": "Numeresch Wäerter / Datumswäerter mussen mindestens N sinn (abegraff)."
+          },
+          "maxInclusive": {
+            "label": "Wäert ≤ N",
+            "description": "Numeresch Wäerter / Datumswäerter däerfen héchstens N sinn (abegraff)."
+          },
+          "minExclusive": {
+            "label": "Wäert > N",
+            "description": "Numeresch Wäerter / Datumswäerter musse strikt méi grouss si wéi N."
+          },
+          "maxExclusive": {
+            "label": "Wäert < N",
+            "description": "Numeresch Wäerter / Datumswäerter musse strikt méi kleng si wéi N."
+          },
+          "languageIn": {
+            "label": "Erlaabte Sproochen",
+            "description": "Sproochmarkéiert Literalwäerter musse eng vun den opgelëschte BCP-47-Tags benotzen."
+          },
+          "uniqueLang": {
+            "label": "All Sprooch héchstens eemol",
+            "description": "Zwee sproochmarkéiert Wäerter däerfen net dee selwechte Sproochtag deelen."
+          },
+          "in": {
+            "label": "Ee vun dëse Wäerter",
+            "description": "Wäerter mussen aus enger Opzielungslëscht kommen."
+          },
+          "oneOf": {
+            "label": "Ee vun dësen Individuen",
+            "description": "D'Klass ass déi opgezielte Mass vun dësen Individuen."
+          },
+          "shaclNot": {
+            "label": "Däerf NET erfëllen",
+            "description": "De Wäert däerf déi bannenzeg Contrainte-Shape NET erfëllen."
+          },
+          "shaclAnd": {
+            "label": "Muss ALLER erfëllen",
+            "description": "De Wäert muss all bannenzeg Contrainte-Shape erfëllen."
+          },
+          "shaclOr": {
+            "label": "Muss MINDESTENS EEN erfëllen",
+            "description": "De Wäert muss mindestens eng bannenzeg Contrainte-Shape erfëllen."
+          },
+          "shaclXone": {
+            "label": "Muss GENAU EEN erfëllen",
+            "description": "De Wäert muss genau eng vun de bannenzege Contrainte-Shapes erfëllen."
+          },
+          "equivalentClasses": {
+            "label": "Equivalent zu",
+            "description": "Dës Klassen deelen all Instanzen."
+          },
+          "disjointWith": {
+            "label": "Disjunkt mat",
+            "description": "Keng Instanz däerf gläichzäiteg zu béide Klasse gehéieren."
+          },
+          "disjointUnionOf": {
+            "label": "Disjunkt Unioun vun",
+            "description": "D'Klass ass déi disjunkt Unioun vun den opgelëschte Klassen."
+          },
+          "subClassOf": {
+            "label": "Ënnerklass vun",
+            "description": "Dës Klass ass eng Spezialiséierung vun enger anerer Klass."
+          },
+          "complementOf": {
+            "label": "Komplement vun",
+            "description": "D'Klass ass d'Komplement vun enger anerer Klass."
+          },
+          "unionOf": {
+            "label": "Unioun vun",
+            "description": "D'Klass ass d'Unioun vun den opgelëschte Klassen."
+          },
+          "intersectionOf": {
+            "label": "Duerchschnëtt vun",
+            "description": "D'Klass ass den Duerchschnëtt vun den opgelëschte Klassen."
+          },
+          "hasKey": {
+            "label": "Schlësseleegenschaften (identifizéiert eendeiteg)",
+            "description": "Déi opgelëscht Eegenschaften identifizéieren zesummen all Instanz eendeiteg."
+          },
+          "shaclClosed": {
+            "label": "Zouener Shape (keng zousätzlech Eegenschaften)",
+            "description": "Instanzen däerfe keng Eegenschaften iwwer déi an dëser Shape opgelëscht eraus droen."
+          },
+          "shaclIgnoredProperties": {
+            "label": "Ignoréiert Eegenschaften (Ausnamen vun der zouener Shape)",
+            "description": "Eegenschaften, déi och bei enger zouener Shape erlaabt sinn."
+          },
+          "shaclSeverity": {
+            "label": "Schweregrad",
+            "description": "Schweregrad vun engem SHACL-Validéierungsresultat, dat dës Contrainte verletzt."
+          },
+          "shaclMessage": {
+            "label": "Eege Message",
+            "description": "Liesbare Message, deen un e Validéierungsresultat ugehaange gëtt."
+          },
+          "shaclName": {
+            "label": "Liesbaren Numm",
+            "description": "Uweisungsnumm, dee SHACL-fäeg Uewerflächen benotzen."
+          },
+          "shaclDescription": {
+            "label": "Beschreiwung",
+            "description": "Fräi Beschreiwung fir Dokumentatiounszwecker."
+          },
+          "shaclDeactivated": {
+            "label": "Desaktivéiert",
+            "description": "Wann aktiv, iwwersprangen d'Validateuren dës Shape."
+          },
+          "shaclOrder": {
+            "label": "Uweisungsreiefolleg",
+            "description": "Hiweis fir d'Reiefolleg vun de Shapes an der Uewerfläch."
+          },
+          "shaclGroup": {
+            "label": "Grupp",
+            "description": "IRI vun enger sh:PropertyGroup, zu där dës Shape gehéiert."
+          }
+        },
+        "templates": {
+          "required": {
+            "label": "Obligatoresch",
+            "description": "Muss mindestens ee Wäert hunn (minCardinality = 1)."
+          },
+          "optional": {
+            "label": "Fakultativ",
+            "description": "Däerf feelen (minCardinality = 0)."
+          },
+          "single": {
+            "label": "Eewäerteg",
+            "description": "Héchstens ee Wäert (maxCardinality = 1)."
+          },
+          "required-single": {
+            "label": "Obligatoresch & eewäerteg",
+            "description": "Genau ee Wäert (min = max = 1)."
+          },
+          "required-multi": {
+            "label": "Obligatoresch & méiwäerteg",
+            "description": "Mindestens ee Wäert, no uewen onbegrenzt."
+          },
+          "enumeration": {
+            "label": "Opzielung",
+            "description": "De Wäert muss aus enger Opzielungslëscht kommen — d'Lëscht direkt hei änneren."
+          },
+          "numeric-range": {
+            "label": "Zuelebereich",
+            "description": "Wäert vum Typ Decimal tëscht zwou Grenzen."
+          },
+          "string-pattern": {
+            "label": "Zeechenketten-Muster",
+            "description": "Wäert vum Typ xsd:string, deen engem Regex entsprécht."
+          },
+          "email": {
+            "label": "E-Mail",
+            "description": "xsd:string, deen engem permissiven E-Mail-Regex entsprécht."
+          },
+          "url": {
+            "label": "URL",
+            "description": "Wäert vum Typ xsd:anyURI."
+          },
+          "disjoint": {
+            "label": "Disjunkt mat",
+            "description": "D'Klass ass disjunkt mat enger anerer Klass — d'Ziler direkt hei auswielen."
+          },
+          "closed-shape": {
+            "label": "Zouener Shape",
+            "description": "Et sinn keng aner Eegenschaften erlaabt wéi déi an dëser Shape deklaréiert."
+          }
+        },
+        "describe": {
+          "minCardinality_one": "Muss mindestens {{count}} Wäert hunn",
+          "minCardinality_other": "Muss mindestens {{count}} Wäerter hunn",
+          "maxCardinality_one": "Däerf héchstens {{count}} Wäert hunn",
+          "maxCardinality_other": "Däerf héchstens {{count}} Wäerter hunn",
+          "exactCardinality_one": "Muss genau {{count}} Wäert hunn",
+          "exactCardinality_other": "Muss genau {{count}} Wäerter hunn",
+          "minQualifiedCardinality_one": "Mindestens {{count}} Wäert vun der Klass {{class}}",
+          "minQualifiedCardinality_other": "Mindestens {{count}} Wäerter vun der Klass {{class}}",
+          "maxQualifiedCardinality_one": "Héchstens {{count}} Wäert vun der Klass {{class}}",
+          "maxQualifiedCardinality_other": "Héchstens {{count}} Wäerter vun der Klass {{class}}",
+          "exactQualifiedCardinality_one": "Genau {{count}} Wäert vun der Klass {{class}}",
+          "exactQualifiedCardinality_other": "Genau {{count}} Wäerter vun der Klass {{class}}",
+          "fusedExact_one": "Muss genau {{count}} Wäert hunn",
+          "fusedExact_other": "Muss genau {{count}} Wäerter hunn",
+          "fusedRange": "Muss tëscht {{min}} an {{max}} Wäerter hunn",
+          "someValuesFrom": "E Wäert muss vun der Klass {{class}} sinn",
+          "allValuesFrom": "All Wäerter musse vun der Klass {{class}} sinn",
+          "hasValue": "{{target}} muss gläich {{value}} sinn",
+          "hasSelfTrue": "{{target}} ass reflexiv (Selbstschleef)",
+          "hasSelfFalse": "{{target}} ass net reflexiv",
+          "nodeKind": "{{target}} muss e(ng) {{kind}} sinn",
+          "datatype": "Vum Dateutyp {{datatype}}",
+          "pattern": "{{target}} muss dem Regex `{{regex}}` entspriechen",
+          "flags": "Muster-Flags: `{{flags}}`",
+          "minLength": "Längt ≥ {{value}}",
+          "maxLength": "Längt ≤ {{value}}",
+          "minInclusive": "Wäert ≥ {{value}}",
+          "maxInclusive": "Wäert ≤ {{value}}",
+          "minExclusive": "Wäert > {{value}}",
+          "maxExclusive": "Wäert < {{value}}",
+          "languageIn": "Erlaabte Sproochen: {{list}}",
+          "uniqueLangTrue": "All Sprooch héchstens eemol",
+          "uniqueLangFalse": "Sproochen däerfe sech widderhuelen",
+          "in": "{{target}} muss ee vun dëse sinn: {{list}}",
+          "oneOf": "D'Klass ass d'Mass: {{list}}",
+          "equivalentClasses": "Equivalent zu {{list}}",
+          "disjointWith": "Disjunkt mat {{list}}",
+          "subClassOf": "Ënnerklass vun {{class}}",
+          "complementOf": "Komplement vun {{class}}",
+          "unionOf": "Unioun vun {{list}}",
+          "intersectionOf": "Duerchschnëtt vun {{list}}",
+          "disjointUnionOf": "Disjunkt Unioun vun {{list}}",
+          "hasKey": "Identifizéiert duerch {{list}}",
+          "shaclClosedTrue": "Zouener Shape (keng zousätzlech Eegenschaften erlaabt)",
+          "shaclClosedFalse": "Oppen Shape",
+          "shaclIgnoredProperties": "Ausnamen vun der zouener Shape: {{list}}",
+          "shaclDisjoint": "SHACL-disjunkt vun {{class}}",
+          "shaclSeverity": "Schweregrad: {{severity}}",
+          "shaclMessage": "Message: {{message}}",
+          "shaclName": "Numm: {{name}}",
+          "shaclDescription": "Beschreiwung: {{description}}",
+          "shaclDeactivatedTrue": "Desaktivéiert",
+          "shaclDeactivatedFalse": "Aktivéiert",
+          "shaclOrder": "Reiefolleg: {{value}}",
+          "shaclGroup": "An der Grupp {{group}}",
+          "shaclNot": "Däerf {{shapes}} NET erfëllen",
+          "shaclAnd": "Muss ALLER dovunner erfëllen: {{shapes}}",
+          "shaclOr": "Muss MINDESTENS EEN dovunner erfëllen: {{shapes}}",
+          "shaclXone": "Muss GENAU EEN dovunner erfëllen: {{shapes}}",
+          "theValue": "de Wäert",
+          "noneList": "(keng)",
+          "noShapes": "(keng Shapes)",
+          "empty": "Nach keng Contrainten — wielt eng aus der Lëscht hei ënnen."
+        },
+        "editor": {
+          "heading": "Contrainten ({{count}})",
+          "appliesTo": "Gëllt fir <target>{{target}}</target>",
+          "quickAdd": "Séier derbäisetzen",
+          "addConstraint": "Contrainte derbäisetzen",
+          "removeConstraint": "Contrainte ewechhuelen",
+          "removeValue": "Ewechhuelen",
+          "addValue": "Wäert derbäisetzen",
+          "searchPlaceholder": "Contrainte sichen…",
+          "count": "Unzuel",
+          "onClass": "Op Klass",
+          "pickNodeKind": "Eng Knuetpunkt-Zort wielen",
+          "pickSeverity": "Schweregrad wielen",
+          "pickDatatype": "En XSD-Dateutyp wielen",
+          "customDatatype": "…oder eng eege Dateutyp-IRI afügen",
+          "literalValue": "Literalwäert",
+          "literalValueOrIri": "Literalwäert oder IRI",
+          "datatypeIriOptional": "Dateutyp-IRI (fakultativ)",
+          "langTag": "Sproochtag (z. B. en)",
+          "enabled": "aktivéiert",
+          "disabled": "desaktivéiert",
+          "editorComingSoon": "En Editeur fir \"{{shape}}\" kënnt geschwë — de Wäert bleift onverännert."
+        },
+        "validation": {
+          "minMaxCardinality": "minCardinality ({{min}}) däerf maxCardinality ({{max}}) net iwwerschreiden.",
+          "minMaxLength": "minLength ({{min}}) däerf maxLength ({{max}}) net iwwerschreiden.",
+          "minMaxInclusive": "minInclusive ({{min}}) däerf maxInclusive ({{max}}) net iwwerschreiden.",
+          "badRegex": "De Regex-Muster \"{{pattern}}\" ass kee gëltege reguläre Ausdrock.",
+          "qualifiedNeedsOnClass": "Fir déi qualifizéiert Kardinalitéit ({{kind}}) muss eng \"on class\" gewielt sinn.",
+          "enumNeedsValue": "D'Opzielung (in) brauch op mannst ee Wäert."
+        },
+        "nested": {
+          "introNot": "Däerf NET erfëllen",
+          "introAnd": "Muss ALLER erfëllen",
+          "introOr": "Muss MINDESTENS EEN erfëllen",
+          "introXone": "Muss GENAU EEN erfëllen",
+          "addShape": "Shape derbäisetzen",
+          "deeplyNested": "Déif verschachtelt — iwwerluecht, dës Shape an en separate Contrainte-Knuetpunkt erauszezéien, fir datt den Inspekter liesbar bleift.",
+          "confirmSwitchToRef": "Wann Dir op eng Referenz wiesselt, ginn déi inline Contrainte-Specs an dësem Slot verworf. Weiderfueren?",
+          "inline": "Inline",
+          "reference": "Referenz",
+          "removeSlot": "Slot ewechhuelen",
+          "pickExisting": "En existente {{type}} auswielen, op deen referenzéiert gëtt",
+          "refPlaceholder": "Contrainte-Knuetpunkt-Id",
+          "noneWithId": "Kee {{type}} mat där Id."
+        },
+        "severities": {
+          "info": "Info",
+          "warning": "Warnung",
+          "violation": "Verletzung"
+        },
+        "datatypeGroups": {
+          "text": "Text",
+          "numeric": "Numeresch",
+          "dateTime": "Datum/Zäit",
+          "boolean": "Boolesch",
+          "binary": "Binär",
+          "languageTagged": "Sproochmarkéiert"
+        }
+      },
+      "palette": {
+        "heading": "Knuetpunkt-Zorten",
+        "hint": "Zitt eng Knuetpunkt-Zort op d'Zeechefläch, fir en neie Knuetpunkt ze erstellen. Fir eng Relatioun tëscht bestehende Knuetpunkten ze erstellen, klickt <action>{{addRelation}}</action> an der Zeechefläch-Symbolleescht, a klickt dann op de Quellknuetpunkt an duerno op den Zilknuetpunkt."
+      },
+      "toolbar": {
+        "addRelation": "Relatioun derbäisetzen",
+        "addingRelation": "Relatioun gëtt derbäigesat…",
+        "addRelationTooltip": "Eng Relatioun derbäisetzen: zitt vum Quellknuetpunkt op den Zilknuetpunkt",
+        "exportHtml": "HTML exportéieren",
+        "exportHtmlTooltip": "De aktuelle Graf als eegestänneg interaktiv HTML-Datei eroflueden",
+        "connectHint": "Zitt vun engem Quellknuetpunkt op en Zilknuetpunkt, fir eng Relatioun ze erstellen. D'Positioune vun de Knuetpunkte si gespaart, soulaang dëse Modus un ass — Esc fir erauszegoen.",
+        "showingNodes_one": "{{visible}} vun {{count}} Knuetpunkt gëtt gewisen",
+        "showingNodes_other": "{{visible}} vun {{count}} Knuetpunkte ginn gewisen",
+        "raiseLimit": "d'Limitt an den KG-Astellungen eropsetzen",
+        "nodesFragment_one": "{{count}} Knuetpunkt",
+        "nodesFragment_other": "{{count}} Knuetpunkten",
+        "relationsFragment_one": "{{count}} Relatioun",
+        "relationsFragment_other": "{{count}} Relatiounen",
+        "counts": "{{nodes}} · {{relations}}"
+      },
+      "canvasControls": {
+        "autoLayout": "Automatesch Uerdnung",
+        "fitToView": "Un d'Usiicht upassen",
+        "zoomIn": "Erazoomen",
+        "zoomOut": "Erauszoomen"
+      },
+      "nodeList": {
+        "heading": "Knuetpunkten ({{count}})",
+        "filterPlaceholder": "No Etikett / IRI filteren",
+        "allFilter": "All",
+        "selectAllAria": "All gewise Knuetpunkten auswielen",
+        "unselectAllAria": "All ausgewielte Knuetpunkten am Filter ofwielen",
+        "selectAllTitle": "All gewise auswielen",
+        "unselectAllTitle": "All ausgewielt am Filter ofwielen",
+        "noNodesToShow": "Keng Knuetpunkten ze weisen",
+        "noNodesMatch": "Keng Knuetpunkte passen.",
+        "selectedSummary_one": "{{selected}} vun {{count}} gewise Knuetpunkt ausgewielt",
+        "selectedSummary_other": "{{selected}} vun {{count}} gewise Knuetpunkten ausgewielt",
+        "selectAll": "All auswielen",
+        "unselectAll": "All ofwielen",
+        "metaVocabNote_one": "{{count}} Vokabular-Knuetpunkt gëtt net gewisen. Aktivéiert se an den KG-Astellungen.",
+        "metaVocabNote_other": "{{count}} Vokabular-Knuetpunkte ginn net gewisen. Aktivéiert se an den KG-Astellungen.",
+        "metaVocabTooltip": "{{terms}} — implizéiert duerch d'Knuetpunkt-Zorten, déi se annotéieren. Si bleiwen am Modell an an all Export. xsd:-Dateutypen an aner sh:-Begrëffer gi net verstoppt."
+      },
+      "editor": {
+        "showAll": "Alles weisen",
+        "focusBanner_one": "Op de Problem fokusséiert ({{count}} Ziel + Nopeschknuetpunkten)",
+        "focusBanner_other": "Op de Problem fokusséiert ({{count}} Ziler + Nopeschknuetpunkten)",
+        "emptyState": "Zitt eng Knuetpunkt-Zort vun der Palett op d'Zeechefläch, oder benotzt {{fileMenu}} → {{importItem}}, fir eng OWL-Ontologie ze lueden.",
+        "showingCap": "{{visible}} vun {{total}} Knuetpunkte ginn gewisen (mëll: {{soft}}, haart: {{hard}})",
+        "toasts": {
+          "createdButCapped": "Knuetpunkt erstallt, mee konnt net gewise ginn, well déi haart Limitt vun {{limit}} erreecht ass. Verstoppt e puer Knuetpunkten an der Lëscht oder setzt déi haart Limitt an den KG-Astellungen erop.",
+          "createdSomeCapped": "{{created}} Knuetpunkten erstallt; {{notShown}} konnten net gewise ginn, well déi haart Limitt vun {{limit}} erreecht ass. Verstoppt e puer Knuetpunkten an der Lëscht oder setzt déi haart Limitt an den KG-Astellungen erop.",
+          "visibleCapReached": "Et kënnen net méi wéi {{limit}} Knuetpunkten op eemol visualiséiert ginn. Hued e puer an der Knuetpunkt-Lëscht of oder setzt déi haart Limitt an den KG-Astellungen erop.",
+          "visibleCapPartial": "Et kënnen net méi wéi {{limit}} Knuetpunkten op eemol visualiséiert ginn. Nëmmen {{added}} vun de {{selected}} nei ausgewielte Knuetpunkte goufen derbäigesat. Hued e puer an der Knuetpunkt-Lëscht of oder setzt déi haart Limitt an den KG-Astellungen erop.",
+          "focusNotInGraph": "Konnt net fokusséieren: de betraffene Knuetpunkt ass net Deel vun dësem Graf.",
+          "exportNotReady": "De Knowledge Graph konnt net exportéiert ginn: d'Zeechefläch ass net prett."
+        }
+      },
+      "standaloneHtml": {
+        "fallbackTitle": "Knowledge Graph",
+        "cdnFailed": "Cytoscape konnt net vum CDN gelueden ginn. Kontrolléiert Är Netzverbindung.",
+        "renderFailedPrefix": "De Graf konnt net duergestallt ginn: "
+      },
+      "inspector": {
+        "titleNode": "Knuetpunkt",
+        "titleRelation": "Relatioun",
+        "titleInspector": "Inspekter",
+        "selectedCount_one": "{{count}} ausgewielt",
+        "selectedCount_other": "{{count}} ausgewielt",
+        "unsavedChanges": "Net gespäichert Ännerungen",
+        "close": "Zoumaachen",
+        "noSelection": "Klickt op e Knuetpunkt oder eng Relatioun op der Zeechefläch, fir se hei z'änneren. Zitt op der eideler Zeechefläch, fir méi op eemol auszewielen. Haalt d'Espace-Tast, fir ze verschéiwen.",
+        "pendingDeleteNode": "Dëse Knuetpunkt an all seng Verbindunge ginn beim Uwende geläscht.",
+        "pendingDeleteRelation": "Dës Relatioun gëtt beim Uwende geläscht.",
+        "fields": {
+          "type": "Typ",
+          "label": "Etikett",
+          "value": "Wäert",
+          "datatypeIri": "Dateutyp-IRI",
+          "iri": "IRI",
+          "predicateIri": "Prädikat-IRI",
+          "source": "Quell",
+          "target": "Ziel",
+          "idLabel": "id:"
+        },
+        "placeholders": {
+          "predicate": "z. B. knows, type, hasName"
+        },
+        "footer": {
+          "hide": "Verstoppen",
+          "hideTooltip": "De Knuetpunkt vun der Zeechefläch huelen, ouni en aus dem Modell ze läschen",
+          "hideTooltipMulti": "Déi ausgewielte Knuetpunkte vun der Zeechefläch huelen, ouni se ze läschen",
+          "bulkHide_one": "{{count}} Knuetpunkt verstoppen",
+          "bulkHide_other": "{{count}} Knuetpunkte verstoppen",
+          "deleteSelection": "Auswiel läschen",
+          "delete": "Läschen",
+          "stageDeleteNode": "D'Läsche vun dësem Knuetpunkt virbereeden (an all senge Verbindungen)",
+          "stageDeleteRelation": "D'Läsche vun dëser Relatioun virbereeden",
+          "undoDelete": "Läsche réckgängeg maachen",
+          "discard": "Verwerfen",
+          "apply": "Uwenden"
+        },
+        "confirm": {
+          "discardTitle": "Net gespäichert Ännerunge verwerfen?",
+          "discardDescription": "Dir hutt net gespäichert Ännerungen am Inspekter. Verwerfen a weiderfueren?",
+          "discardConfirm": "Verwerfen",
+          "discardCancel": "Weider änneren",
+          "bulkDeleteTitle": "Auswiel läschen?",
+          "bulkNodesFragment_one": "{{count}} Knuetpunkt",
+          "bulkNodesFragment_other": "{{count}} Knuetpunkten",
+          "bulkRelationsFragment_one": "{{count}} Relatioun",
+          "bulkRelationsFragment_other": "{{count}} Relatiounen",
+          "bulkDeleteDescription": "Dëst läscht {{nodes}} an {{relations}} definitiv aus dem Modell. Knuetpunkte verléieren och hir ugehaange Relatiounen. Dëst kann net réckgängeg gemaach ginn.",
+          "bulkDeleteConfirm": "Läschen"
+        },
+        "multi": {
+          "hint": "Zitt op iergendengem ausgewielte Knuetpunkt, fir déi ganz Grupp ze réckelen. Haalt d'Espace-Tast, fir ze verschéiwen.",
+          "nodesHeading": "Knuetpunkten ({{count}})",
+          "relationsHeading": "Relatiounen ({{count}})"
+        },
+        "attachedConstraints": {
+          "heading": "Contrainten ({{count}})",
+          "add": "Contrainte derbäisetzen",
+          "constrainThisClass": "Dës Klass contrainéieren…",
+          "constrainThisClassHint": "Z. B. disjunkt mat, huet Schlëssel, zouener Shape.",
+          "constrainAProperty": "Eng Eegenschaft vun dëser Klass contrainéieren",
+          "noPropertiesInDomain": "Nach keng Eegenschaften am Domain vun dëser Klass.",
+          "fallbackNodeConstraint": "Knuetpunkt-Contrainte",
+          "fallbackPropertyConstraint": "Eegenschafts-Contrainte",
+          "none": "Nach keng Contrainten."
+        },
+        "connections": {
+          "heading": "Verbindungen ({{count}})",
+          "add": "Derbäisetzen",
+          "none": "Keng Verbindungen.",
+          "noPredicate": "(kee Prädikat)",
+          "new": "nei",
+          "removing": "gëtt ewechgeholl",
+          "discardStaged": "Dës virbereet Verbindung verwerfen",
+          "undoDelete": "Läsche réckgängeg maachen",
+          "removeConnection": "Dës Verbindung ewechhuelen"
+        },
+        "addConnection": {
+          "title": "Verbindung derbäisetzen",
+          "outgoing": "Erausgoend",
+          "incoming": "Erakommend",
+          "predicate": "Prädikat",
+          "predicateFree": "Prädikat (tippen oder auswielen)",
+          "targetNode": "Zilknuetpunkt",
+          "sourceNode": "Quellknuetpunkt",
+          "noOtherNodes": "Keng aner Knuetpunkten am Modell.",
+          "stage": "Virbereeden"
+        },
+        "constraintPredicates": {
+          "targetClass": "Dës NodeConstraint op eng Klass uwenden.",
+          "shProperty": "Eng PropertyConstraint ënner dëser NodeConstraint gruppéieren (sh:property).",
+          "targetProperty": "Dës PropertyConstraint op eng Eegenschaft uwenden."
+        }
+      },
+      "settings": {
+        "title": "Knowledge-Graph-Astellungen",
+        "noActiveDiagram": "Et ass kee Knowledge-Graph-Diagramm aktiv.",
+        "backToEditor": "Zréck zum Editeur",
+        "description": "Astellunge fir dat aktiivt KG-Diagramm ({{title}}). Ännerunge ginn am Projet gespäichert a bleiwe beim Export/Import erhalen.",
+        "saved": "KG-Astellunge gespäichert.",
+        "saveFailed": "D'KG-Astellunge konnten net gespäichert ginn.",
+        "softLimitLabel": "Mëll Limitt — automatesch beim Import gewisen",
+        "softLimitHelp": "Wann Dir eng Ontologie luet, erschéngen esou vill Knuetpunkte standardméisseg — Klassen zeréischt, dann Eegenschaften, Blank Nodes, Contrainten, Individuen a Literaler. Dir kënnt der méi iwwer d'Knuetpunkt-Lëscht aktivéieren, bis zur haarder Limitt.",
+        "hardLimitLabel": "Haart Limitt — absolutt Obergrenz",
+        "hardLimitHelp": "Déi maximal Unzuel u Knuetpunkten, déi gläichzäiteg siichtbar kënne sinn. Wann Dir se iwwerschreit, erschéngt eng erklärend Notiz.",
+        "defaultPlaceholder": "{{value}} (Standard)",
+        "rangeError": "Gitt eng ganz Zuel tëscht {{min}} an {{max}} an.",
+        "softExceedsHard": "Déi mëll Limitt ({{soft}}) muss méi kleng oder gläich der haarder Limitt ({{hard}}) sinn.",
+        "layoutLabel": "Uerdnung",
+        "layoutConcentric": "Concentric (Standard) — Knuetpunkte mat vill Verbindungen an der Mëtt",
+        "layoutFcose": "fCoSE — kraaftbaséiert, organesch Cluster (méi lues)",
+        "layoutGrid": "Grid — determinéiert Reien a Kolonnen",
+        "layoutHelp": "Wann Dir d'Uerdnung ännert, ginn all aktuell siichtbar Knuetpunkten nei positionéiert. Duerno kënnt Dir Knuetpunkten eenzel zéien, an dës Positioune bleiwen erhalen.",
+        "metaVocabLabel": "RDF/OWL-Vokabular-Knuetpunkten",
+        "metaVocabHelp": "Weist <owl/>-, <rdf/>- an <rdfs/>-Begrëffer, plus <shNodeShape/> / <shPropertyShape/> — d'Knuetpunkten, géint déi all Klass an all Shape sech deklaréiert — op der Zeechefläch an an der Knuetpunkt-Lëscht. Standardméisseg aus: si sinn duerch d'Knuetpunkt-Zorten implizéiert, déi se annotéieren, a si sinn an de meeschten Ontologien d'Knuetpunkte mat de meeschte Verbindungen, wat d'Uerdnung verzerrt. Wann Dir dëst uschalt, ginn se an der Knuetpunkt-Lëscht opgelëscht; hued déi un, déi Dir op der Zeechefläch wëllt. <xsd/>-Dateutypen an déi reschtlech <sh/>-Begrëffer ginn ni verstoppt — si droen den deklaréierte Bereich vun enger Eegenschaft a seng Contrainte-Wäerter.",
+        "metaVocabNote": "Dëst betrëfft nëmmen d'Visualiséierung. Vokabular-Knuetpunkte bleiwen ëmmer am Modell a ginn esou oder esou exportéiert / ëmgewandelt (RDF-Export, KG → UML, Konsistenzkontrollen).",
+        "summaryNodes_one": "D'Diagramm huet aktuell {{count}} Knuetpunkt",
+        "summaryNodes_other": "D'Diagramm huet aktuell {{count}} Knuetpunkten",
+        "summarySoft": "ugewannt mëll Limitt {{value}}",
+        "summaryHard": "ugewannt haart Limitt {{value}}",
+        "summaryLayout": "ugewannt Uerdnung",
+        "resetToDefaults": "Op Standard zerécksetzen"
+      }
+    },
     "loadingGuiEditor": "GUI-Editor gëtt gelueden...",
     "loadingQuantumEditor": "Quanten-Editor gëtt gelueden...",
+    "loadingKgEditor": "Knowledge-Graph-Editor gëtt gelueden...",
     "hiddenPerspectives": {
       "messagePlural": "Dëse Projet benotzt {{labels}}, mee dës Perspektiven si verstoppt.",
       "messageSingular": "Dëse Projet benotzt {{labels}}, mee dës Perspektiv ass verstoppt.",
@@ -2301,6 +2938,30 @@
       "noProjectData": "Keng Projetsdate fir z'exportéiere verfügbar",
       "projectExportedAs": "Projet als {{filename}} exportéiert",
       "projectExportFailed": "De Projet konnt net exportéiert ginn: {{error}}"
+    },
+    "kg": {
+      "options": {
+        "title": "Knowledge Graph exportéieren",
+        "description": "Wielt d'RDF-Syntax an déi Contrainte-Vokabularen, déi ausgi ginn.",
+        "rdfSyntax": "RDF-Syntax",
+        "constraintVocab": "Contrainte-Vokabular",
+        "vocabBoth": "Béid — OWL & SHACL ausginn, wou méiglech",
+        "vocabOwl": "Nëmmen OWL — owl:Restriction Blank Nodes",
+        "vocabShacl": "Nëmmen SHACL — sh:NodeShape / sh:PropertyShape",
+        "emitted_one": "{{emitted}} vun {{count}} Contrainte-Spec gëtt ausginn",
+        "emitted_other": "{{emitted}} vun {{count}} Contrainte-Specs ginn ausginn",
+        "skippedSuffix_one": " — {{count}} iwwersprongen, well se nëmmen am anere Vokabular existéiert",
+        "skippedSuffix_other": " — {{count}} iwwersprongen, well se nëmmen am anere Vokabular existéieren",
+        "noSpecs": "Nach keng Contrainte-Specs an dësem Diagramm.",
+        "export": "Exportéieren"
+      },
+      "toasts": {
+        "noProject": "Maacht e Projet op, ier Dir exportéiert.",
+        "noDiagram": "Kee aktiivt Knowledge-Graph-Diagramm fir ze exportéieren.",
+        "vocabSuffix": " (nëmmen {{vocab}}-Contrainten)",
+        "exportCompleted": "{{format}}-Export ofgeschloss{{suffix}}.",
+        "failed": "KG-Export feelgeschloen."
+      }
     }
   },
   "import": {
@@ -2330,6 +2991,150 @@
       "readFileFailed": "Datei konnt net gelies ginn",
       "invalidFromBackend": "Ongëltege Diagramm vum Backend zréckginn",
       "couldNotParseError": "D'Feeleräntwert konnt net analyséiert ginn"
+    },
+    "kg": {
+      "owl": {
+        "updateFailed": "D'Knowledge-Graph-Diagramm konnt net aktualiséiert ginn.",
+        "writeNewTabFailed": "De importéierte Graf konnt net an den neien Tab geschriwwe ginn.",
+        "invalidJson": "Ongëlteg KG-JSON vum Backend zréckkritt",
+        "noProjectOpen": "Aktuell ass kee Projet op. Erstellt oder maacht wgl. fir d'éischt e Projet op.",
+        "noActiveDiagram": "Kee aktiivt Knowledge-Graph-Diagramm an dësem Projet fonnt.",
+        "nodesFragment_one": "{{count}} Knuetpunkt",
+        "nodesFragment_other": "{{count}} Knuetpunkten",
+        "edgesFragment_one": "{{count}} Kant",
+        "edgesFragment_other": "{{count}} Kanten",
+        "imported": "{{nodes}} an {{edges}} vun {{file}} importéiert.",
+        "importedNewTab": "{{nodes}} an {{edges}} vun {{file}} an en neien Tab importéiert.",
+        "merged": "{{nodes}} an {{edges}} vun {{file}} zesummegefouert",
+        "mergedSkippedSuffix_one": " ({{count}} scho present).",
+        "mergedSkippedSuffix_other": " ({{count}} scho present).",
+        "unknownError": "Onbekannte Feeler beim Import opgetrueden",
+        "failedTitle": "OWL-Import feelgeschloen"
+      },
+      "targetModal": {
+        "title": "Wou soll dëse Graf hin?",
+        "nodesFragment_one": "{{count}} Knuetpunkt",
+        "nodesFragment_other": "{{count}} Knuetpunkten",
+        "edgesFragment_one": "{{count}} Kant",
+        "edgesFragment_other": "{{count}} Kanten",
+        "tabNameFragment": " ({{title}})",
+        "description": "<file>{{file}}</file> enthält {{nodes}} an {{edges}}. Den aktuellen Tab{{tab}} ass net eidel — setzt den Import niewent dat, wat schonn do ass, oder haalt en separat an engem neien Tab.",
+        "mergeExplainer": "D'Zesummeféiere leet den aktuelle Graf onverännert a setzt nëmmen dobäi, wat feelt: Begrëffer, déi béid Grafen deelen (selwecht IRI), bleiwen ee eenzege Knuetpunkt.",
+        "maxTabsReached": "Dëse Projet huet schonn déi maximal Unzuel u Knowledge-Graph-Tabs.",
+        "newTab": "Neien Tab",
+        "mergeIntoTab": "An dësen Tab zesummeféieren"
+      },
+      "preflight": {
+        "noRecommendedAction": "Keng empfohlen Aktioun",
+        "dropElement": "D'Element ewechhuelen",
+        "affects": "Betrëfft: {{ids}}",
+        "fixAutomaticallyAria": "Automatesch fir {{code}} fléissen",
+        "applyRecommendedAria": "Empfohlene Fix fir {{code}} uwenden",
+        "fixAutomatically": "Automatesch fléissen",
+        "applyRecommended": "Empfohlen uwenden:",
+        "fixInKg": "Am KG fléissen",
+        "fixInKgInstead": "Amplaz am KG fléissen",
+        "skipped": "Iwwersprongen",
+        "chooseFixAria": "Wielt, wéi dëse Problem geléist gëtt",
+        "sendToLlm": "Un den LLM schécken",
+        "or": "oder",
+        "unknownError": "Onbekannte Feeler",
+        "invalidResponse": "Ongëlteg Preflight-Äntwert.",
+        "failed": "KG-Preflight feelgeschloen."
+      },
+      "consistency": {
+        "title": "De Knowledge Graph huet Inkonsistenzen",
+        "issuesFragment_one": "{{count}} Problem",
+        "issuesFragment_other": "{{count}} Problemer",
+        "violationsFragment_one": "{{count}} Verletzung",
+        "violationsFragment_other": "{{count}} Verletzungen",
+        "warningsFragment_one": "{{count}} Warnung",
+        "warningsFragment_other": "{{count}} Warnungen",
+        "description": "D'OWL/SHACL-Konsistenzkontroll huet {{issues}} am Knowledge Graph fonnt ({{violations}}, {{warnings}}, {{info}} Info). Dir kënnt se fléissen, trotzdem mat der Ëmwandlung weiderfueren, oder ofbriechen.",
+        "onNode": "op {{nodeId}}",
+        "openRefine": "Refine opmaachen fir ze fléissen",
+        "proceedAnyway": "Trotzdem weiderfueren"
+      },
+      "refine": {
+        "title": "Knowledge Graph verfeineren",
+        "titleConvert": "Verfeineren, ier an {{diagram}} ëmgewandelt gëtt",
+        "description": "Raumt de KG op, ier Dir en an B-UML ëmwandelt. Kuckt déi automatesch Empfehlunge vu BESSER duerch, oder kritt KI-gestäizt Virschléi, déi op de System zougeschnidde sinn, deen Dir bauen wëllt.",
+        "descriptionConvert": "Léist all Inkonsistenzen am Knowledge Graph. Wann e propper ass, kënnt Dir en an e(ng) {{diagram}} ëmwandelen.",
+        "tabsAria": "Refine-KG-Tabs",
+        "tabAutomatic": "Automatesch",
+        "tabConsistency": "Konsistenz",
+        "tabAi": "KI",
+        "classifyBadge": "{{count}} klasséieren",
+        "analyzingKg": "KG gëtt analyséiert…",
+        "noInconsistencies": "De Knowledge Graph huet keng Inkonsistenzen méi.",
+        "clickConvert": "Klickt op <action>{{action}}</action>, fir de(n) {{diagram}} ze generéieren.",
+        "noRecommendations": "Keng automatesch Empfehlungen — de KG gesäit propper aus.",
+        "staticInstructions": "Hued déi Virschléi un, déi Dir fléisse wëllt. Wielt fir jiddereen, ob déi empfohlen Fix ugewannt oder un den LLM geschéckt gëtt. Benotzt „Am KG fléissen“, fir een eenzelne manuell op der Zeechefläch ze behandelen.",
+        "selectAll": "All auswielen",
+        "deselectAll": "All ofwielen",
+        "noneSelected": "Keng Virschléi ausgewielt — et ännert sech näischt.",
+        "ofWillBeFixed": "vun {{total}} ginn opgeléist:",
+        "viaRecommended_one": "{{count}} iwwer Empfehlung",
+        "viaRecommended_other": "{{count}} iwwer Empfehlung",
+        "viaLlm_one": "{{count}} iwwer LLM",
+        "viaLlm_other": "{{count}} iwwer LLM",
+        "convertTo": "An {{diagram}} ëmwandelen",
+        "applying": "Gëtt ugewannt…",
+        "applyMixed": "{{count}} uwenden ({{recommended}} Empf. + {{llm}} LLM)",
+        "sendToLlm": "{{count}} un den LLM schécken",
+        "applyRecommended": "{{count}} empfohlen uwenden",
+        "analyzeFailed": "De KG konnt net analyséiert ginn. Probéiert nach eng Kéier.",
+        "retry": "Nach eng Kéier",
+        "consistencyExplainer": "Validéiert de Knowledge Graph géint all OWL/SHACL-Contrainte, déi drop definéiert ass. Benotzt pyshacl mat OWL2-RL-Inferenz um Backend; d'Kontroll ka bei grousse Grafe lues sinn, dofir leeft se nëmmen, wann Dir op <action>{{action}}</action> klickt.",
+        "consistencyIdle": "Fir dëse Knowledge Graph gouf nach keng Kontroll gemaach. Klickt hei ënnen op <action>{{action}}</action>, fir all OWL/SHACL-Contrainte géint déi aktuell ABox z'evaluéieren.",
+        "checkingConsistency": "Konsistenz gëtt gepréift…",
+        "consistencyFailed": "D'Konsistenzkontroll ass feelgeschloen.",
+        "allSatisfied": "All OWL/SHACL-Contrainte sinn erfëllt.",
+        "severitySummary": "{{violations}}, {{warnings}}, {{info}} info",
+        "lastRun": " — lescht Kéier {{time}}",
+        "runCheck": "Kontroll ausféieren",
+        "reCheck": "Nei kontrolléieren",
+        "orphanBanner_one": "Prett fir <count>{{count}}</count> Weesekniet ze klasséieren, deen am Tab „Automatesch“ markéiert ass. Gitt eng Beschreiwung an en API-Schlëssel un, a klickt dann op Analyséieren, fir den LLM no Klassifikatioune pro Knuetpunkt ze froen.",
+        "orphanBanner_other": "Prett fir <count>{{count}}</count> Weesekniet ze klasséieren, déi am Tab „Automatesch“ markéiert sinn. Gitt eng Beschreiwung an en API-Schlëssel un, a klickt dann op Analyséieren, fir den LLM no Klassifikatioune pro Knuetpunkt ze froen.",
+        "deferredBanner_one": "<count>{{count}}</count> Problem gouf vum Tab „Automatesch“ hierhi geleet. Beschreift de System, deen Dir bauen wëllt, a klickt dann op Analyséieren, fir den LLM no Fixe géint de (elo deelweis opgeraumten) KG ze froen.",
+        "deferredBanner_other": "<count>{{count}}</count> Problemer goufen vum Tab „Automatesch“ hierhi geleet. Beschreift de System, deen Dir bauen wëllt, a klickt dann op Analyséieren, fir den LLM no Fixe géint de (elo deelweis opgeraumten) KG ze froen.",
+        "systemDescription": "Systembeschreiwung",
+        "systemDescriptionPlaceholder": "z. B. E Bibliothéiksverwaltungssystem, dat Bicher, Memberen a Prête verfollegt.",
+        "apiKey": "OpenAI-API-Schlëssel",
+        "apiKeyNote": "Nëmmen an dëser Browser-Sessioun gespäichert.",
+        "analyzing": "Gëtt analyséiert…",
+        "analyze": "Analyséieren",
+        "llmNoSuggestions": "Den LLM huet keng Ännerunge fir de beschriwwene System virgeschloen.",
+        "llmInstructions": "Hued déi Virschléi un, déi Dir uwende wëllt. Iwwersprangt de Rescht, oder benotzt „Am KG fléissen“, fir een eenzelne manuell op der Zeechefläch ze behandelen.",
+        "back": "Zréck",
+        "applySelected": "{{count}} ausgewielt uwenden",
+        "confirmReplace": "Ären aktuelle KG duerch de opgeraumte Graf ersetzen?",
+        "noProjectOpen": "Et ass kee Projet op.",
+        "noActiveDiagram": "Kee aktiivt Knowledge-Graph-Diagramm.",
+        "staticFailed": "Déi statesch Verfeinerungsanalyse ass feelgeschloen.",
+        "applyNoModel": "Den Apply-Endpunkt huet kee Modell zréckginn.",
+        "refined": "Knowledge Graph verfeinert.",
+        "applyFailed": "D'Uwende vun der Verfeinerung ass feelgeschloen.",
+        "failedTitle": "Refine KG feelgeschloen",
+        "describeSystemFirst": "Beschreift fir d'éischt de System, deen Dir bauen wëllt.",
+        "apiKeyRequired": "En OpenAI-API-Schlëssel ass erfuerderlech.",
+        "invalidLlmResponse": "Ongëlteg LLM-Opraumungs-Äntwert.",
+        "aiFailed": "D'KI-Verfeinerungsanalyse ass feelgeschloen.",
+        "noOrphans": "Keng Weesekniet ze klasséieren.",
+        "invalidOrphanResponse": "Ongëlteg Äntwert bei der Weesekniet-Klassifikatioun.",
+        "orphanFailed": "D'Weesekniet-Klassifikatioun ass feelgeschloen.",
+        "applyLlmFailed": "D'Uwende vun der LLM-Verfeinerung ass feelgeschloen."
+      },
+      "toUml": {
+        "noProject": "Maacht e Projet op, ier Dir ëmwandelt.",
+        "noDiagram": "Kee aktiivt Knowledge-Graph-Diagramm fir ëmzewandelen.",
+        "consistencyCheckFailed": "D'Konsistenzkontroll ass feelgeschloen.",
+        "consistencyCheckSkipped": "Konsistenzkontroll iwwersprongen: {{message}}",
+        "invalidResponse": "Ongëlteg Äntwert vum KG-Ëmwandlungsendpunkt.",
+        "generated": "{{diagram}} aus dem Knowledge Graph generéiert.",
+        "conversionFailed": "D'KG-Ëmwandlung ass feelgeschloen.",
+        "failedTitle": "KG → UML Ëmwandlung feelgeschloen"
+      }
     }
   },
   "validation": {

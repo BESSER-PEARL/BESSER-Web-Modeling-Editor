@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { toast } from 'react-toastify';
+import { Trans, useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -29,7 +30,14 @@ const MAX = 10000;
 /** KG-specific settings page. Two limits:
  *  - Soft: how many nodes are auto-shown on import / reseed.
  *  - Hard: absolute ceiling; user can't exceed it without raising the limit. */
+/** Inline `<code>` wrapper for the RDF vocabulary tokens spliced into the
+ *  meta-vocabulary help text via `<Trans>`. */
+const VocabCode: React.FC<{ children?: React.ReactNode }> = ({ children }) => (
+  <code className="rounded bg-muted px-1 py-0.5">{children}</code>
+);
+
 export const KnowledgeGraphSettingsPanel: React.FC = () => {
+  const { t } = useTranslation();
   const { currentProject } = useProject();
   const navigate = useNavigate();
 
@@ -128,8 +136,8 @@ export const KnowledgeGraphSettingsPanel: React.FC = () => {
       model: nextModel,
       lastUpdate: new Date().toISOString(),
     });
-    if (ok) toast.success('KG settings saved.');
-    else toast.error('Failed to save KG settings.');
+    if (ok) toast.success(t('editors.kg.settings.saved'));
+    else toast.error(t('editors.kg.settings.saveFailed'));
   };
 
   const resetToDefault = () => {
@@ -144,13 +152,13 @@ export const KnowledgeGraphSettingsPanel: React.FC = () => {
       <div className="mx-auto max-w-3xl p-6">
         <Card>
           <CardHeader>
-            <CardTitle>Knowledge Graph Settings</CardTitle>
-            <CardDescription>No Knowledge Graph diagram is active.</CardDescription>
+            <CardTitle>{t('editors.kg.settings.title')}</CardTitle>
+            <CardDescription>{t('editors.kg.settings.noActiveDiagram')}</CardDescription>
           </CardHeader>
           <CardContent>
             <Button variant="outline" onClick={() => navigate('/')}>
               <ArrowLeft className="mr-2 size-4" />
-              Back to editor
+              {t('editors.kg.settings.backToEditor')}
             </Button>
           </CardContent>
         </Card>
@@ -167,20 +175,17 @@ export const KnowledgeGraphSettingsPanel: React.FC = () => {
       <div className="flex items-center gap-2">
         <Button variant="ghost" size="sm" onClick={() => navigate('/')} className="gap-1">
           <ArrowLeft className="size-4" />
-          Back to editor
+          {t('editors.kg.settings.backToEditor')}
         </Button>
       </div>
       <Card>
         <CardHeader>
-          <CardTitle>Knowledge Graph Settings</CardTitle>
-          <CardDescription>
-            Preferences scoped to the active KG diagram ({kgDiagram.title}). Changes are saved into
-            the project and round-trip with export/import.
-          </CardDescription>
+          <CardTitle>{t('editors.kg.settings.title')}</CardTitle>
+          <CardDescription>{t('editors.kg.settings.description', { title: kgDiagram.title })}</CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
           <section className="space-y-2">
-            <Label htmlFor="kg-soft-limit">Soft limit — auto-shown on import</Label>
+            <Label htmlFor="kg-soft-limit">{t('editors.kg.settings.softLimitLabel')}</Label>
             <div className="flex items-center gap-2">
               <Input
                 id="kg-soft-limit"
@@ -188,24 +193,22 @@ export const KnowledgeGraphSettingsPanel: React.FC = () => {
                 min={MIN}
                 max={MAX}
                 step={1}
-                placeholder={`${DEFAULT_KG_SOFT_LIMIT} (default)`}
+                placeholder={t('editors.kg.settings.defaultPlaceholder', { value: DEFAULT_KG_SOFT_LIMIT })}
                 value={softInput}
                 onChange={(e) => setSoftInput(e.target.value)}
                 className="w-40"
               />
-              <span className="text-xs text-muted-foreground">
-                When you load an ontology, this many nodes appear by default — classes first, then
-                properties, blank nodes, constraints, individuals and literals. You can enable more
-                via the node list, up to the hard limit.
-              </span>
+              <span className="text-xs text-muted-foreground">{t('editors.kg.settings.softLimitHelp')}</span>
             </div>
             {softInput.trim() !== '' && !softValid && (
-              <p className="text-xs text-destructive">Enter an integer between {MIN} and {MAX}.</p>
+              <p className="text-xs text-destructive">
+                {t('editors.kg.settings.rangeError', { min: MIN, max: MAX })}
+              </p>
             )}
           </section>
 
           <section className="space-y-2">
-            <Label htmlFor="kg-hard-limit">Hard limit — absolute ceiling</Label>
+            <Label htmlFor="kg-hard-limit">{t('editors.kg.settings.hardLimitLabel')}</Label>
             <div className="flex items-center gap-2">
               <Input
                 id="kg-hard-limit"
@@ -213,28 +216,27 @@ export const KnowledgeGraphSettingsPanel: React.FC = () => {
                 min={MIN}
                 max={MAX}
                 step={1}
-                placeholder={`${DEFAULT_KG_HARD_LIMIT} (default)`}
+                placeholder={t('editors.kg.settings.defaultPlaceholder', { value: DEFAULT_KG_HARD_LIMIT })}
                 value={hardInput}
                 onChange={(e) => setHardInput(e.target.value)}
                 className="w-40"
               />
-              <span className="text-xs text-muted-foreground">
-                The maximum number of nodes that can be visible at the same time. Attempting to
-                exceed it shows an explanatory toast.
-              </span>
+              <span className="text-xs text-muted-foreground">{t('editors.kg.settings.hardLimitHelp')}</span>
             </div>
             {hardInput.trim() !== '' && !hardValid && (
-              <p className="text-xs text-destructive">Enter an integer between {MIN} and {MAX}.</p>
+              <p className="text-xs text-destructive">
+                {t('editors.kg.settings.rangeError', { min: MIN, max: MAX })}
+              </p>
             )}
             {softValid && hardValid && !orderValid && (
               <p className="text-xs text-destructive">
-                Soft limit ({softVal}) must be less than or equal to the hard limit ({hardVal}).
+                {t('editors.kg.settings.softExceedsHard', { soft: softVal, hard: hardVal })}
               </p>
             )}
           </section>
 
           <section className="space-y-2">
-            <Label htmlFor="kg-layout">Layout</Label>
+            <Label htmlFor="kg-layout">{t('editors.kg.settings.layoutLabel')}</Label>
             <div className="flex items-center gap-2">
               <select
                 id="kg-layout"
@@ -242,19 +244,18 @@ export const KnowledgeGraphSettingsPanel: React.FC = () => {
                 onChange={(e) => setLayoutInput(e.target.value as KnowledgeGraphLayout)}
                 className="h-8 rounded-md border border-input bg-background px-2 text-sm"
               >
-                <option value="concentric">Concentric (default) — high-degree nodes in the center</option>
-                <option value="fcose">fCoSE — force-directed, organic clusters (slower)</option>
-                <option value="grid">Grid — deterministic rows and columns</option>
+                {/* `value` is the persisted setting -- never translated. The
+                  * algorithm names stay too; only the descriptions change. */}
+                <option value="concentric">{t('editors.kg.settings.layoutConcentric')}</option>
+                <option value="fcose">{t('editors.kg.settings.layoutFcose')}</option>
+                <option value="grid">{t('editors.kg.settings.layoutGrid')}</option>
               </select>
             </div>
-            <p className="text-xs text-muted-foreground">
-              Changing the layout re-positions all currently visible nodes. After the layout
-              runs, you can drag nodes individually and those positions are preserved.
-            </p>
+            <p className="text-xs text-muted-foreground">{t('editors.kg.settings.layoutHelp')}</p>
           </section>
 
           <section className="space-y-2">
-            <Label htmlFor="kg-show-meta-vocab">RDF/OWL vocabulary nodes</Label>
+            <Label htmlFor="kg-show-meta-vocab">{t('editors.kg.settings.metaVocabLabel')}</Label>
             <div className="flex items-start gap-2">
               <input
                 id="kg-show-meta-vocab"
@@ -263,30 +264,34 @@ export const KnowledgeGraphSettingsPanel: React.FC = () => {
                 onChange={(e) => setShowMetaInput(e.target.checked)}
                 className="mt-0.5 size-4"
               />
+              {/* Self-closing component slots keep the vocabulary tokens out of
+                * webapp.json entirely, so no translator can localise
+                * `sh:NodeShape` and the parity checker never diffs them. */}
               <span className="text-xs text-muted-foreground">
-                Show <code className="rounded bg-muted px-1 py-0.5">owl:</code>,{' '}
-                <code className="rounded bg-muted px-1 py-0.5">rdf:</code> and{' '}
-                <code className="rounded bg-muted px-1 py-0.5">rdfs:</code> terms, plus{' '}
-                <code className="rounded bg-muted px-1 py-0.5">sh:NodeShape</code> /{' '}
-                <code className="rounded bg-muted px-1 py-0.5">sh:PropertyShape</code> — the nodes
-                every class and every shape declares itself against — on the canvas and in the node
-                list. Off by default: they are implied by the node kinds they annotate, and they are
-                the highest-degree nodes in most ontologies, which distorts the layout. Turning this
-                on lists them in the node list; tick the ones you want on the canvas.{' '}
-                <code className="rounded bg-muted px-1 py-0.5">xsd:</code> datatypes and the
-                remaining <code className="rounded bg-muted px-1 py-0.5">sh:</code> terms are never
-                hidden — they carry a property's declared range and its constraint values.
+                <Trans
+                  i18nKey="editors.kg.settings.metaVocabHelp"
+                  components={{
+                    owl: <VocabCode>owl:</VocabCode>,
+                    rdf: <VocabCode>rdf:</VocabCode>,
+                    rdfs: <VocabCode>rdfs:</VocabCode>,
+                    shNodeShape: <VocabCode>sh:NodeShape</VocabCode>,
+                    shPropertyShape: <VocabCode>sh:PropertyShape</VocabCode>,
+                    xsd: <VocabCode>xsd:</VocabCode>,
+                    sh: <VocabCode>sh:</VocabCode>,
+                  }}
+                />
               </span>
             </div>
-            <p className="text-xs text-muted-foreground">
-              This only affects the visualization. Vocabulary nodes always stay in the model and are
-              exported / converted (RDF export, KG → UML, consistency checks) either way.
-            </p>
+            <p className="text-xs text-muted-foreground">{t('editors.kg.settings.metaVocabNote')}</p>
           </section>
 
+          {/* Split on the separators: each clause carries its own count, and
+            * the layout name is a persisted value rendered raw. */}
           <p className="text-xs text-muted-foreground">
-            Diagram currently has {totalNodes} node{totalNodes === 1 ? '' : 's'} · applied soft
-            limit {appliedSoft} · applied hard limit {appliedHard} · applied layout{' '}
+            {t('editors.kg.settings.summaryNodes', { count: totalNodes })} ·{' '}
+            {t('editors.kg.settings.summarySoft', { value: appliedSoft })} ·{' '}
+            {t('editors.kg.settings.summaryHard', { value: appliedHard })} ·{' '}
+            {t('editors.kg.settings.summaryLayout')}{' '}
             <code className="rounded bg-muted px-1 py-0.5">{appliedStoredLayout}</code>.
           </p>
 
@@ -294,7 +299,7 @@ export const KnowledgeGraphSettingsPanel: React.FC = () => {
 
           <div className="flex items-center gap-2">
             <Button onClick={save} disabled={!canSave}>
-              Save
+              {t('common.save')}
             </Button>
             <Button
               variant="outline"
@@ -310,7 +315,7 @@ export const KnowledgeGraphSettingsPanel: React.FC = () => {
                 showMetaInput === DEFAULT_KG_SHOW_META_VOCAB
               }
             >
-              Reset to defaults
+              {t('editors.kg.settings.resetToDefaults')}
             </Button>
           </div>
         </CardContent>

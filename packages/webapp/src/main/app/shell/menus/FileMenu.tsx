@@ -78,7 +78,7 @@ export const FileMenu: React.FC<FileMenuProps> = ({
         )}
         {activeDiagramType === 'KnowledgeGraphDiagram' && (
           <DropdownMenuItem onClick={onImportOwl} disabled={!hasProject}>
-            Import KG (OWL)
+            {t('menu.file.importKgOwl')}
           </DropdownMenuItem>
         )}
         <DropdownMenuItem onClick={onOpenProjectPreview} disabled={!hasProject}>

@@ -30,6 +30,7 @@
 // The parent owns the ``decision`` and ``routing`` state; this
 // component is purely presentational and emits changes via callbacks.
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import type { KgIssue } from './useKgPreflight';
 
@@ -75,9 +76,12 @@ export const KgPreflightIssueRow: React.FC<KgPreflightIssueRowProps> = ({
   routing = 'recommended',
   onRoutingChange,
 }) => {
+  const { t } = useTranslation();
   const checkboxId = `kg-issue-${issue.id}`;
-  const recommendedLabel = issue.recommendedAction?.label ?? 'No recommended action';
-  const skipLabel = issue.skipAction?.label ?? 'Drop the element';
+  // `recommendedAction.label` / `skipAction.label` are backend data; only the
+  // fallbacks used when the backend omits them are ours to translate.
+  const recommendedLabel = issue.recommendedAction?.label ?? t('import.kg.preflight.noRecommendedAction');
+  const skipLabel = issue.skipAction?.label ?? t('import.kg.preflight.dropElement');
   const isAccepted = decision === 'accept';
 
   return (
@@ -96,7 +100,7 @@ export const KgPreflightIssueRow: React.FC<KgPreflightIssueRowProps> = ({
           </div>
           {issue.affectedNodeIds.length > 0 && (
             <div className="mt-1 truncate text-xs text-gray-500 dark:text-gray-400">
-              Affects: {issue.affectedNodeIds.join(', ')}
+              {t('import.kg.preflight.affects', { ids: issue.affectedNodeIds.join(', ') })}
             </div>
           )}
         </div>
@@ -116,17 +120,17 @@ export const KgPreflightIssueRow: React.FC<KgPreflightIssueRowProps> = ({
             }
             aria-label={
               enableRoutingChoice
-                ? `Fix automatically for ${issue.code}`
-                : `Apply recommended fix for ${issue.code}`
+                ? t('import.kg.preflight.fixAutomaticallyAria', { code: issue.code })
+                : t('import.kg.preflight.applyRecommendedAria', { code: issue.code })
             }
             className="h-4 w-4 cursor-pointer"
           />
           <span className="break-words">
             {enableRoutingChoice ? (
-              <span className="font-medium">Fix automatically</span>
+              <span className="font-medium">{t('import.kg.preflight.fixAutomatically')}</span>
             ) : (
               <>
-                <span className="font-medium">Apply recommended:</span> {recommendedLabel}
+                <span className="font-medium">{t('import.kg.preflight.applyRecommended')}</span> {recommendedLabel}
               </>
             )}
           </span>
@@ -139,7 +143,7 @@ export const KgPreflightIssueRow: React.FC<KgPreflightIssueRowProps> = ({
               onClick={() => onFixInKg(issue)}
               data-testid="kg-issue-fix-in-kg-header"
             >
-              Fix in KG
+              {t('import.kg.preflight.fixInKg')}
             </Button>
           )}
           {!isAccepted && (
@@ -147,7 +151,7 @@ export const KgPreflightIssueRow: React.FC<KgPreflightIssueRowProps> = ({
               data-testid="kg-issue-skipped-badge"
               className="rounded-full border border-amber-300 bg-amber-50 px-2 py-0.5 text-xs font-semibold uppercase tracking-wide text-amber-800 dark:border-amber-700 dark:bg-amber-950 dark:text-amber-200"
             >
-              Skipped
+              {t('import.kg.preflight.skipped')}
             </span>
           )}
         </div>
@@ -157,7 +161,7 @@ export const KgPreflightIssueRow: React.FC<KgPreflightIssueRowProps> = ({
         <div
           data-testid="kg-issue-routing"
           role="radiogroup"
-          aria-label="Choose how to fix this issue"
+          aria-label={t('import.kg.preflight.chooseFixAria')}
           className="flex flex-col gap-1.5 pl-6 text-sm text-gray-700 dark:text-gray-300"
         >
           <label className="flex cursor-pointer items-start gap-2">
@@ -182,7 +186,7 @@ export const KgPreflightIssueRow: React.FC<KgPreflightIssueRowProps> = ({
               aria-checked={routing === 'llm'}
               className="mt-0.5 h-3.5 w-3.5 cursor-pointer"
             />
-            <span>Send to LLM</span>
+            <span>{t('import.kg.preflight.sendToLlm')}</span>
           </label>
         </div>
       )}
@@ -199,14 +203,14 @@ export const KgPreflightIssueRow: React.FC<KgPreflightIssueRowProps> = ({
           className="flex flex-wrap items-center gap-2 pl-6 text-sm text-gray-700 dark:text-gray-300"
         >
           <span data-testid="kg-issue-skip-text">{skipLabel}</span>
-          <span className="font-medium uppercase text-gray-500 dark:text-gray-400">or</span>
+          <span className="font-medium uppercase text-gray-500 dark:text-gray-400">{t('import.kg.preflight.or')}</span>
           <Button
             variant="outline"
             size="sm"
             onClick={() => onFixInKg(issue)}
             data-testid="kg-issue-fix-in-kg"
           >
-            Fix in KG instead
+            {t('import.kg.preflight.fixInKgInstead')}
           </Button>
         </div>
       )}

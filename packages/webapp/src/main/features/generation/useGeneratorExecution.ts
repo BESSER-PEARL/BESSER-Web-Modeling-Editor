@@ -794,8 +794,9 @@ export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGen
 
         if (generatorType === 'kg_to_class' || generatorType === 'kg_to_object') {
           if (!isKgContext) {
-            toast.error('Open a Knowledge Graph diagram before converting to UML.');
-            return { ok: false, error: 'Open a Knowledge Graph diagram before converting to UML.' };
+            const message = t('menu.generate.kgGuards.openKgBeforeConverting');
+            toast.error(message);
+            return { ok: false, error: message };
           }
           await runKgWithPreflight(generatorType);
           if (!mountedRef.current) return { ok: false, error: 'Component unmounted' };
@@ -809,8 +810,9 @@ export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGen
 
         if (generatorType === 'kg_refine') {
           if (!isKgContext) {
-            toast.error('Open a Knowledge Graph diagram before refining.');
-            return { ok: false, error: 'Open a Knowledge Graph diagram before refining.' };
+            const message = t('menu.generate.kgGuards.openKgBeforeRefining');
+            toast.error(message);
+            return { ok: false, error: message };
           }
           setKgRefineOpen(true);
           if (!mountedRef.current) return { ok: false, error: 'Component unmounted' };
@@ -824,8 +826,9 @@ export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGen
 
         if (generatorType === 'kg_export_owl' || generatorType === 'kg_export_ttl') {
           if (!isKgContext) {
-            toast.error('Open a Knowledge Graph diagram before exporting.');
-            return { ok: false, error: 'Open a Knowledge Graph diagram before exporting.' };
+            const message = t('menu.generate.kgGuards.openKgBeforeExporting');
+            toast.error(message);
+            return { ok: false, error: message };
           }
           const fmt = generatorType === 'kg_export_owl' ? 'owl' : 'ttl';
           await exportKgRdf(fmt);
@@ -840,8 +843,9 @@ export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGen
 
         if (generatorType === 'kg_export_with_options') {
           if (!isKgContext) {
-            toast.error('Open a Knowledge Graph diagram before exporting.');
-            return { ok: false, error: 'Open a Knowledge Graph diagram before exporting.' };
+            const message = t('menu.generate.kgGuards.openKgBeforeExporting');
+            toast.error(message);
+            return { ok: false, error: message };
           }
           setKgExportOptionsOpen(true);
           return { ok: true };
@@ -1483,7 +1487,7 @@ export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGen
     onClose: () => setKgExportOptionsOpen(false),
     onConfirm: (fmt: 'owl' | 'ttl', vocab: 'owl' | 'shacl' | 'both') => {
       exportKgRdf(fmt, vocab).catch((err) =>
-        toast.error(err instanceof Error ? err.message : 'KG export failed.'),
+        toast.error(err instanceof Error ? err.message : t('menu.generate.kgGuards.exportFailed')),
       );
     },
   };

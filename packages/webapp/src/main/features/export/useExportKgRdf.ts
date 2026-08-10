@@ -4,6 +4,7 @@
 // context.
 import { useCallback } from 'react';
 import { toast } from 'react-toastify';
+import { useTranslation } from 'react-i18next';
 
 import { BACKEND_URL } from '../../shared/constants/constant';
 import { useFileDownload } from '../../shared/services/file-download/useFileDownload';
@@ -32,19 +33,20 @@ function extractFilename(contentDisposition: string | null, fallback: string): s
 }
 
 export const useExportKgRdf = () => {
+  const { t } = useTranslation();
   const downloadFile = useFileDownload();
 
   return useCallback(
     async (format: KgRdfFormat, vocab: KgRdfVocab = 'both'): Promise<void> => {
       const project = ProjectStorageRepository.getCurrentProject() as BesserProject | null;
       if (!project) {
-        toast.error('Open a project before exporting.');
+        toast.error(t('export.kg.toasts.noProject'));
         return;
       }
 
       const kgDiagram = getActiveDiagram(project, 'KnowledgeGraphDiagram');
       if (!kgDiagram || !kgDiagram.model) {
-        toast.error('No active Knowledge Graph diagram to export.');
+        toast.error(t('export.kg.toasts.noDiagram'));
         return;
       }
 
@@ -74,14 +76,16 @@ export const useExportKgRdf = () => {
         const filename = extractFilename(response.headers.get('Content-Disposition'), fallback);
 
         downloadFile({ file: blob, filename });
+        // Composed from two keys rather than concatenating an English
+        // clause onto a translated one.
         const vocabSuffix =
-          vocab === 'both' ? '' : ` (${vocab.toUpperCase()} constraints only)`;
-        toast.success(`${format.toUpperCase()} export completed${vocabSuffix}.`);
+          vocab === 'both' ? '' : t('export.kg.toasts.vocabSuffix', { vocab: vocab.toUpperCase() });
+        toast.success(t('export.kg.toasts.exportCompleted', { format: format.toUpperCase(), suffix: vocabSuffix }));
       } catch (error) {
-        const message = error instanceof Error ? error.message : 'KG export failed.';
+        const message = error instanceof Error ? error.message : t('export.kg.toasts.failed');
         toast.error(message);
       }
     },
-    [downloadFile],
+    [downloadFile, t],
   );
 };

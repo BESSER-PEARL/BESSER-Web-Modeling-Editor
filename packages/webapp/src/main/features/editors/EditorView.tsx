@@ -55,7 +55,7 @@ export const EditorView: React.FC = () => {
   if (activeDiagramType === 'KnowledgeGraphDiagram') {
     return (
       <EditorErrorBoundary>
-        <Suspense fallback={<SuspenseFallback message="Loading knowledge graph editor..." />}>
+        <Suspense fallback={<SuspenseFallback message={t('editors.loadingKgEditor')} />}>
           <KnowledgeGraphEditor key={`kg-${activeDiagramIndex}`} />
         </Suspense>
       </EditorErrorBoundary>

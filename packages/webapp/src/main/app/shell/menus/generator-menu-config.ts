@@ -164,17 +164,29 @@ const KG_GENERATORS: GeneratorMenuEntry[] = [
   {
     kind: 'group',
     label: 'Convert to B-UML',
+    labelKey: 'menu.generate.groups.kgConvert',
     actions: [
-      { kind: 'action', label: 'Class Diagram', generator: 'kg_to_class' },
+      {
+        kind: 'action',
+        label: 'Class Diagram',
+        labelKey: 'menu.generate.actions.kgToClassDiagram',
+        generator: 'kg_to_class',
+      },
     ],
   },
   {
     kind: 'group',
     label: 'Export Knowledge Graph',
+    labelKey: 'menu.generate.groups.kgExport',
     actions: [
       { kind: 'action', label: 'OWL (RDF/XML)', generator: 'kg_export_owl' },
       { kind: 'action', label: 'Turtle (TTL)', generator: 'kg_export_ttl' },
-      { kind: 'action', label: 'Export with options…', generator: 'kg_export_with_options' },
+      {
+        kind: 'action',
+        label: 'Export with options…',
+        labelKey: 'menu.generate.actions.kgExportWithOptions',
+        generator: 'kg_export_with_options',
+      },
     ],
   },
 ];

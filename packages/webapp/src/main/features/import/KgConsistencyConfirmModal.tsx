@@ -6,6 +6,7 @@
 //   - "Proceed anyway": closes the modal and runs the conversion.
 //   - "Cancel": aborts the conversion entirely.
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   Dialog,
   DialogContent,
@@ -32,6 +33,7 @@ export const KgConsistencyConfirmModal: React.FC<KgConsistencyConfirmModalProps>
   onProceed,
   onCancel,
 }) => {
+  const { t } = useTranslation();
   const issues = report?.issues ?? [];
   const counts = report?.severityCounts ?? { violation: 0, warning: 0, info: 0 };
 
@@ -39,14 +41,15 @@ export const KgConsistencyConfirmModal: React.FC<KgConsistencyConfirmModalProps>
     <Dialog open={open} onOpenChange={(o) => !o && onCancel()}>
       <DialogContent className="max-w-2xl">
         <DialogHeader>
-          <DialogTitle>Knowledge Graph has inconsistencies</DialogTitle>
+          <DialogTitle>{t('import.kg.consistency.title')}</DialogTitle>
+          {/* Four independent counts -- each pluralised on its own and composed. */}
           <DialogDescription>
-            The OWL/SHACL consistency check found {issues.length} issue
-            {issues.length === 1 ? '' : 's'} in the Knowledge Graph
-            ({counts.violation} violation{counts.violation === 1 ? '' : 's'},{' '}
-            {counts.warning} warning{counts.warning === 1 ? '' : 's'},{' '}
-            {counts.info} info). You can fix them, proceed with the conversion
-            anyway, or cancel.
+            {t('import.kg.consistency.description', {
+              issues: t('import.kg.consistency.issuesFragment', { count: issues.length }),
+              violations: t('import.kg.consistency.violationsFragment', { count: counts.violation }),
+              warnings: t('import.kg.consistency.warningsFragment', { count: counts.warning }),
+              info: counts.info,
+            })}
           </DialogDescription>
         </DialogHeader>
 
@@ -85,7 +88,7 @@ export const KgConsistencyConfirmModal: React.FC<KgConsistencyConfirmModalProps>
                     </span>
                   )}
                   {issue.affected_node_ids.length > 0 && (
-                    <span className="truncate">on {issue.affected_node_ids[0]}</span>
+                    <span className="truncate">{t('import.kg.consistency.onNode', { nodeId: issue.affected_node_ids[0] })}</span>
                   )}
                 </div>
               </li>
@@ -95,7 +98,7 @@ export const KgConsistencyConfirmModal: React.FC<KgConsistencyConfirmModalProps>
 
         <DialogFooter className="flex justify-between gap-2 sm:justify-between">
           <Button variant="ghost" onClick={onCancel} data-testid="kg-consistency-confirm-cancel">
-            Cancel
+            {t('common.cancel')}
           </Button>
           <div className="flex gap-2">
             <Button
@@ -103,10 +106,10 @@ export const KgConsistencyConfirmModal: React.FC<KgConsistencyConfirmModalProps>
               onClick={onOpenRefine}
               data-testid="kg-consistency-confirm-open-refine"
             >
-              Open Refine to fix
+              {t('import.kg.consistency.openRefine')}
             </Button>
             <Button onClick={onProceed} data-testid="kg-consistency-confirm-proceed">
-              Proceed anyway
+              {t('import.kg.consistency.proceedAnyway')}
             </Button>
           </div>
         </DialogFooter>

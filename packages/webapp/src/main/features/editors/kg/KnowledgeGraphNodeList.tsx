@@ -1,7 +1,9 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Search } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { KG_NODE_TYPES } from './types';
+import { nodeTypeLabel } from './i18n-keys';
 import { KgShapeIcon } from './KgShapeIcon';
 import type { KGNodeData, KGNodeType, KnowledgeGraphData } from './types';
 
@@ -29,6 +31,7 @@ export const KnowledgeGraphNodeList: React.FC<Props> = ({
   onBulkToggle,
   metaVocabCount = 0,
 }) => {
+  const { t } = useTranslation();
   const [typeFilter, setTypeFilter] = useState<TypeFilter>('all');
   const [query, setQuery] = useState('');
 
@@ -78,7 +81,7 @@ export const KnowledgeGraphNodeList: React.FC<Props> = ({
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-2 border-t border-border/60 p-3">
       <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-        Nodes ({model.nodes.length})
+        {t('editors.kg.nodeList.heading', { count: model.nodes.length })}
       </div>
 
       <div className="flex flex-col gap-1.5">
@@ -87,19 +90,23 @@ export const KnowledgeGraphNodeList: React.FC<Props> = ({
           <Input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Filter by label / IRI"
+            placeholder={t('editors.kg.nodeList.filterPlaceholder')}
             className="h-7 pl-7 text-xs"
           />
         </div>
         <div className="flex flex-wrap gap-1">
-          <TypeChip active={typeFilter === 'all'} onClick={() => setTypeFilter('all')} label="All" />
-          {KG_NODE_TYPES.map((t) => (
+          <TypeChip
+            active={typeFilter === 'all'}
+            onClick={() => setTypeFilter('all')}
+            label={t('editors.kg.nodeList.allFilter')}
+          />
+          {KG_NODE_TYPES.map((nodeType) => (
             <TypeChip
-              key={t.type}
-              active={typeFilter === t.type}
-              onClick={() => setTypeFilter(t.type)}
-              label={t.label}
-              icon={<KgShapeIcon type={t.type} size={12} />}
+              key={nodeType.type}
+              active={typeFilter === nodeType.type}
+              onClick={() => setTypeFilter(nodeType.type)}
+              label={nodeTypeLabel(t, nodeType)}
+              icon={<KgShapeIcon type={nodeType.type} size={12} />}
             />
           ))}
         </div>
@@ -113,13 +120,24 @@ export const KnowledgeGraphNodeList: React.FC<Props> = ({
           checked={allSelected}
           disabled={filtered.length === 0}
           onChange={toggleAll}
-          aria-label={selectedInFiltered > 0 ? 'Unselect all selected nodes in filter' : 'Select all shown nodes'}
-          title={selectedInFiltered > 0 ? 'Unselect all selected in filter' : 'Select all shown'}
+          aria-label={
+            selectedInFiltered > 0
+              ? t('editors.kg.nodeList.unselectAllAria')
+              : t('editors.kg.nodeList.selectAllAria')
+          }
+          title={
+            selectedInFiltered > 0
+              ? t('editors.kg.nodeList.unselectAllTitle')
+              : t('editors.kg.nodeList.selectAllTitle')
+          }
         />
         <span className="flex-1 truncate text-[11px] text-muted-foreground">
           {filtered.length === 0
-            ? 'No nodes to show'
-            : `${selectedInFiltered} of ${filtered.length} shown ${filtered.length === 1 ? 'node' : 'nodes'} selected`}
+            ? t('editors.kg.nodeList.noNodesToShow')
+            : t('editors.kg.nodeList.selectedSummary', {
+                count: filtered.length,
+                selected: selectedInFiltered,
+              })}
         </span>
         {filtered.length > 0 && (
           <button
@@ -127,14 +145,16 @@ export const KnowledgeGraphNodeList: React.FC<Props> = ({
             onClick={toggleAll}
             className="text-[11px] text-brand-dark underline-offset-2 hover:underline dark:text-brand"
           >
-            {selectedInFiltered > 0 ? 'Unselect all' : 'Select all'}
+            {selectedInFiltered > 0
+              ? t('editors.kg.nodeList.unselectAll')
+              : t('editors.kg.nodeList.selectAll')}
           </button>
         )}
       </div>
 
       <div className="flex-1 overflow-y-auto rounded-md border border-border/50 bg-background">
         {filtered.length === 0 && (
-          <div className="p-2 text-[11px] text-muted-foreground">No nodes match.</div>
+          <div className="p-2 text-[11px] text-muted-foreground">{t('editors.kg.nodeList.noNodesMatch')}</div>
         )}
         {filtered.map((n) => {
           const checked = visibleSet.has(n.id);
@@ -163,10 +183,13 @@ export const KnowledgeGraphNodeList: React.FC<Props> = ({
         <p
           data-testid="kg-meta-vocab-note"
           className="text-[10px] leading-snug text-muted-foreground"
-          title="owl:Class, rdf:Property, rdfs:Class, sh:NodeShape, sh:PropertyShape — implied by the node kinds they annotate. They stay in the model and in every export. xsd: datatypes and other sh: terms are not hidden."
+          /* The vocabulary terms are passed in as a value so they stay verbatim
+           * in every language -- only the surrounding prose is translated. */
+          title={t('editors.kg.nodeList.metaVocabTooltip', {
+            terms: 'owl:Class, rdf:Property, rdfs:Class, sh:NodeShape, sh:PropertyShape',
+          })}
         >
-          {metaVocabCount} vocabulary node{metaVocabCount === 1 ? '' : 's'} not shown. Enable them in
-          KG Settings.
+          {t('editors.kg.nodeList.metaVocabNote', { count: metaVocabCount })}
         </p>
       )}
     </div>

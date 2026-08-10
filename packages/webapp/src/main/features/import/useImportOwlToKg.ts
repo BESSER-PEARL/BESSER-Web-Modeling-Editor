@@ -8,6 +8,7 @@
 //   - non-empty  → `KgImportTargetModal` asks the user to either merge it into
 //     the current tab (see `kgMerge.ts`) or drop it into a new tab.
 import { toast } from 'react-toastify';
+import { useTranslation } from 'react-i18next';
 import { useCallback, useMemo, useState } from 'react';
 import { BACKEND_URL } from '../../shared/constants/constant';
 import { useAppDispatch } from '../../app/store/hooks';
@@ -78,6 +79,7 @@ function extendVisibleIds(
 }
 
 export const useImportOwlToKg = () => {
+  const { t } = useTranslation();
   const dispatch = useAppDispatch();
   const [pending, setPending] = useState<PendingKgImport | null>(null);
 
@@ -91,7 +93,7 @@ export const useImportOwlToKg = () => {
         lastUpdate: new Date().toISOString(),
       });
       if (!updated) {
-        throw new Error('Failed to update the Knowledge Graph diagram.');
+        throw new Error(t('import.kg.owl.updateFailed'));
       }
       if (project.currentDiagramType === KG_TYPE) {
         dispatch(bumpEditorRevision());
@@ -112,7 +114,7 @@ export const useImportOwlToKg = () => {
         addResult.index,
       );
       if (!updated) {
-        throw new Error('Failed to write the imported graph into the new tab.');
+        throw new Error(t('import.kg.owl.writeNewTabFailed'));
       }
       await dispatch(switchDiagramIndexThunk({ diagramType: KG_TYPE, index: addResult.index }));
     },
@@ -137,17 +139,17 @@ export const useImportOwlToKg = () => {
 
       const data = await response.json();
       if (!data || !data.model || !Array.isArray(data.model.nodes) || !Array.isArray(data.model.edges)) {
-        throw new Error('Invalid KG JSON returned from backend');
+        throw new Error(t('import.kg.owl.invalidJson'));
       }
 
       const currentProject = ProjectStorageRepository.getCurrentProject();
       if (!currentProject) {
-        throw new Error('No project is currently open. Please create or open a project first.');
+        throw new Error(t('import.kg.owl.noProjectOpen'));
       }
 
       const active = getActiveDiagram(currentProject, KG_TYPE);
       if (!active) {
-        throw new Error('No active Knowledge Graph diagram found in this project.');
+        throw new Error(t('import.kg.owl.noActiveDiagram'));
       }
 
       const incoming: KnowledgeGraphData = {
@@ -161,7 +163,11 @@ export const useImportOwlToKg = () => {
       if (!diagramHasContent(active)) {
         writeToActiveTab(currentProject, active, incoming, data.title || active.title || file.name);
         toast.success(
-          `Imported ${incoming.nodes.length} nodes and ${incoming.edges.length} edges from ${file.name}.`,
+          t('import.kg.owl.imported', {
+            nodes: t('import.kg.owl.nodesFragment', { count: incoming.nodes.length }),
+            edges: t('import.kg.owl.edgesFragment', { count: incoming.edges.length }),
+            file: file.name,
+          }),
         );
         return;
       }
@@ -174,11 +180,11 @@ export const useImportOwlToKg = () => {
         canAddTab: (currentProject.diagrams[KG_TYPE]?.length ?? 0) < MAX_DIAGRAMS_PER_TYPE,
       });
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred during import';
-      dispatch(displayError('OWL import failed', errorMessage));
+      const errorMessage = error instanceof Error ? error.message : t('import.kg.owl.unknownError');
+      dispatch(displayError(t('import.kg.owl.failedTitle'), errorMessage));
       toast.error(errorMessage);
     }
-  }, [dispatch, writeToActiveTab]);
+  }, [dispatch, writeToActiveTab, t]);
 
   /** Apply a pending import once the user has picked a destination. */
   const resolvePending = useCallback(
@@ -192,17 +198,21 @@ export const useImportOwlToKg = () => {
         // dialog was open.
         const project = ProjectStorageRepository.getCurrentProject();
         if (!project) {
-          throw new Error('No project is currently open. Please create or open a project first.');
+          throw new Error(t('import.kg.owl.noProjectOpen'));
         }
         const active = getActiveDiagram(project, KG_TYPE);
         if (!active) {
-          throw new Error('No active Knowledge Graph diagram found in this project.');
+          throw new Error(t('import.kg.owl.noActiveDiagram'));
         }
 
         if (mode === 'new_tab') {
           await importIntoNewTab(project, incoming, title);
           toast.success(
-            `Imported ${incoming.nodes.length} nodes and ${incoming.edges.length} edges from ${fileName} into a new tab.`,
+            t('import.kg.owl.importedNewTab', {
+              nodes: t('import.kg.owl.nodesFragment', { count: incoming.nodes.length }),
+              edges: t('import.kg.owl.edgesFragment', { count: incoming.edges.length }),
+              file: fileName,
+            }),
           );
           return;
         }
@@ -223,16 +233,19 @@ export const useImportOwlToKg = () => {
 
         const skipped = merged.duplicateNodeCount + merged.duplicateEdgeCount;
         toast.success(
-          `Merged ${merged.addedNodeCount} nodes and ${merged.addedEdgeCount} edges from ${fileName}` +
-            (skipped > 0 ? ` (${skipped} already present).` : '.'),
+          t('import.kg.owl.merged', {
+            nodes: t('import.kg.owl.nodesFragment', { count: merged.addedNodeCount }),
+            edges: t('import.kg.owl.edgesFragment', { count: merged.addedEdgeCount }),
+            file: fileName,
+          }) + (skipped > 0 ? t('import.kg.owl.mergedSkippedSuffix', { count: skipped }) : '.'),
         );
       } catch (error) {
-        const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred during import';
-        dispatch(displayError('OWL import failed', errorMessage));
+        const errorMessage = error instanceof Error ? error.message : t('import.kg.owl.unknownError');
+        dispatch(displayError(t('import.kg.owl.failedTitle'), errorMessage));
         toast.error(errorMessage);
       }
     },
-    [pending, dispatch, importIntoNewTab, writeToActiveTab],
+    [pending, dispatch, importIntoNewTab, writeToActiveTab, t],
   );
 
   const openPickerAndImport = useCallback(() => {

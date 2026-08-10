@@ -9,6 +9,7 @@
 // reinitialises with the new graph.
 import { useCallback, useMemo, useState } from 'react';
 import { toast } from 'react-toastify';
+import { useTranslation } from 'react-i18next';
 
 import { BACKEND_URL } from '../../shared/constants/constant';
 import { useAppDispatch } from '../../app/store/hooks';
@@ -64,6 +65,7 @@ export interface UseKgRefineReturn {
 }
 
 export const useKgRefine = (): UseKgRefineReturn => {
+  const { t } = useTranslation();
   const dispatch = useAppDispatch();
 
   const [staticStatus, setStaticStatus] = useState<RefineStatus>('idle');
@@ -92,25 +94,25 @@ export const useKgRefine = (): UseKgRefineReturn => {
           }),
         });
         if (!response.ok) {
-          const errorData = await response.json().catch(() => ({ detail: 'Unknown error' }));
+          const errorData = await response.json().catch(() => ({ detail: t('import.kg.preflight.unknownError') }));
           throw new Error(errorData.detail || `HTTP ${response.status}`);
         }
         const data = (await response.json()) as KgPreflightReport;
         if (!data || !Array.isArray(data.issues)) {
-          throw new Error('Invalid preflight response.');
+          throw new Error(t('import.kg.preflight.invalidResponse'));
         }
         setStaticReport(data);
         setStaticStatus('success');
         return data;
       } catch (error) {
-        const message = error instanceof Error ? error.message : 'Static refinement analysis failed.';
+        const message = error instanceof Error ? error.message : t('import.kg.refine.staticFailed');
         toast.error(message);
         setStaticStatus('error');
         setStaticReport(null);
         return null;
       }
     },
-    [],
+    [t],
   );
 
   const applyStatic = useCallback(
@@ -140,28 +142,28 @@ export const useKgRefine = (): UseKgRefineReturn => {
           },
         );
         if (!response.ok) {
-          const errorData = await response.json().catch(() => ({ detail: 'Unknown error' }));
+          const errorData = await response.json().catch(() => ({ detail: t('import.kg.preflight.unknownError') }));
           throw new Error(errorData.detail || `HTTP ${response.status}`);
         }
         const data = await response.json();
         if (!data?.model) {
-          throw new Error('Apply endpoint returned no model.');
+          throw new Error(t('import.kg.refine.applyNoModel'));
         }
         await dispatch(updateDiagramModelThunk({ model: data.model })).unwrap();
         dispatch(bumpEditorRevision());
-        toast.success('Knowledge Graph refined.');
+        toast.success(t('import.kg.refine.refined'));
         return {
           pendingOrphanClassification: data.pendingOrphanClassification ?? null,
           newKgSignature: data.kgSignature,
         };
       } catch (error) {
-        const message = error instanceof Error ? error.message : 'Apply refinement failed.';
-        dispatch(displayError('Refine KG failed', message));
+        const message = error instanceof Error ? error.message : t('import.kg.refine.applyFailed');
+        dispatch(displayError(t('import.kg.refine.failedTitle'), message));
         toast.error(message);
         return null;
       }
     },
-    [dispatch],
+    [dispatch, t],
   );
 
   const runLlmFullCleanup = useCallback(
@@ -173,11 +175,11 @@ export const useKgRefine = (): UseKgRefineReturn => {
       const desc = (description || '').trim();
       const key = (apiKey || '').trim();
       if (!desc) {
-        toast.error('Describe the system you want to build first.');
+        toast.error(t('import.kg.refine.describeSystemFirst'));
         return null;
       }
       if (!key) {
-        toast.error('An OpenAI API key is required.');
+        toast.error(t('import.kg.refine.apiKeyRequired'));
         return null;
       }
 
@@ -200,25 +202,25 @@ export const useKgRefine = (): UseKgRefineReturn => {
           body: formData,
         });
         if (!response.ok) {
-          const errorData = await response.json().catch(() => ({ detail: 'Unknown error' }));
+          const errorData = await response.json().catch(() => ({ detail: t('import.kg.preflight.unknownError') }));
           throw new Error(errorData.detail || `HTTP ${response.status}`);
         }
         const data = (await response.json()) as KgPreflightReport;
         if (!data || !Array.isArray(data.issues)) {
-          throw new Error('Invalid LLM cleanup response.');
+          throw new Error(t('import.kg.refine.invalidLlmResponse'));
         }
         setLlmReport(data);
         setLlmStatus('success');
         return data;
       } catch (error) {
-        const message = error instanceof Error ? error.message : 'AI refinement analysis failed.';
+        const message = error instanceof Error ? error.message : t('import.kg.refine.aiFailed');
         toast.error(message);
         setLlmStatus('error');
         setLlmReport(null);
         return null;
       }
     },
-    [],
+    [t],
   );
 
   const runLlmOrphanClassification = useCallback(
@@ -235,15 +237,15 @@ export const useKgRefine = (): UseKgRefineReturn => {
       const desc = (description || '').trim();
       const key = (apiKey || '').trim();
       if (!desc) {
-        toast.error('Describe the system you want to build first.');
+        toast.error(t('import.kg.refine.describeSystemFirst'));
         return null;
       }
       if (!key) {
-        toast.error('An OpenAI API key is required.');
+        toast.error(t('import.kg.refine.apiKeyRequired'));
         return null;
       }
       if (!nodeIds.length) {
-        toast.error('No orphan nodes to classify.');
+        toast.error(t('import.kg.refine.noOrphans'));
         return null;
       }
 
@@ -268,25 +270,25 @@ export const useKgRefine = (): UseKgRefineReturn => {
           body: formData,
         });
         if (!response.ok) {
-          const errorData = await response.json().catch(() => ({ detail: 'Unknown error' }));
+          const errorData = await response.json().catch(() => ({ detail: t('import.kg.preflight.unknownError') }));
           throw new Error(errorData.detail || `HTTP ${response.status}`);
         }
         const data = (await response.json()) as KgPreflightReport;
         if (!data || !Array.isArray(data.issues)) {
-          throw new Error('Invalid orphan-classification response.');
+          throw new Error(t('import.kg.refine.invalidOrphanResponse'));
         }
         setLlmReport(data);
         setLlmStatus('success');
         return data;
       } catch (error) {
-        const message = error instanceof Error ? error.message : 'Orphan classification failed.';
+        const message = error instanceof Error ? error.message : t('import.kg.refine.orphanFailed');
         toast.error(message);
         setLlmStatus('error');
         setLlmReport(null);
         return null;
       }
     },
-    [],
+    [t],
   );
 
   const applyLlm = useCallback(
@@ -314,25 +316,25 @@ export const useKgRefine = (): UseKgRefineReturn => {
           body: JSON.stringify(body),
         });
         if (!response.ok) {
-          const errorData = await response.json().catch(() => ({ detail: 'Unknown error' }));
+          const errorData = await response.json().catch(() => ({ detail: t('import.kg.preflight.unknownError') }));
           throw new Error(errorData.detail || `HTTP ${response.status}`);
         }
         const data = await response.json();
         if (!data?.model) {
-          throw new Error('Apply endpoint returned no model.');
+          throw new Error(t('import.kg.refine.applyNoModel'));
         }
         await dispatch(updateDiagramModelThunk({ model: data.model })).unwrap();
         dispatch(bumpEditorRevision());
-        toast.success('Knowledge Graph refined.');
+        toast.success(t('import.kg.refine.refined'));
         return true;
       } catch (error) {
-        const message = error instanceof Error ? error.message : 'Apply LLM refinement failed.';
-        dispatch(displayError('Refine KG failed', message));
+        const message = error instanceof Error ? error.message : t('import.kg.refine.applyLlmFailed');
+        dispatch(displayError(t('import.kg.refine.failedTitle'), message));
         toast.error(message);
         return false;
       }
     },
-    [dispatch],
+    [dispatch, t],
   );
 
   const reset = useCallback(() => {

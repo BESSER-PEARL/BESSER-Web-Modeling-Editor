@@ -20,8 +20,12 @@
  *  - Constraint nodes only point at their declared targets (existing rules).
  */
 
+import i18n from '../../../shared/i18n';
+
 import type { KGNodeType } from './types';
 
+/** The English `reason` strings below are the i18n `defaultValue`s; the live
+ *  copy lives under `editors.kg.edgeRules.<type>.reason`. */
 export const KG_EDGE_RULES: Record<KGNodeType, { allowed: KGNodeType[]; reason: string }> = {
   class: {
     allowed: ['class', 'blank'],
@@ -130,11 +134,23 @@ export function isEdgeAllowed(
   return KG_EDGE_RULES[source]?.allowed.includes(target) ?? false;
 }
 
+/** Rejection message for a disallowed source → target pair.
+ *
+ *  Reads the i18n singleton rather than taking a `t` parameter: the only
+ *  caller is the Cytoscape `canConnect` gesture callback, which is registered
+ *  once at canvas init — a captured `t` would go stale on a language switch.
+ *  Render-time consumers must use `edgeRuleReason()` from `./i18n-keys`
+ *  instead, so the string stays subscribed to `useTranslation`. */
 export function explainEdgeRejection(source: KGNodeType, target: KGNodeType): string {
-  return (
-    KG_EDGE_RULES[source]?.reason ??
-    `Connections from "${source}" to "${target}" are not allowed under OWL2 DL.`
-  );
+  const rule = KG_EDGE_RULES[source];
+  if (rule) {
+    return i18n.t(`editors.kg.edgeRules.${source}.reason`, { defaultValue: rule.reason });
+  }
+  return i18n.t('editors.kg.edgeRules.genericRejection', {
+    source,
+    target,
+    defaultValue: `Connections from "${source}" to "${target}" are not allowed under OWL2 DL.`,
+  });
 }
 
 /** Inverse lookup: which source node types are allowed to point AT `target`?

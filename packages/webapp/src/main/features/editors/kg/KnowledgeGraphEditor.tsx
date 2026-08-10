@@ -1,6 +1,14 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { toast } from 'react-toastify';
+import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
+// Toasts fired from the ref-based `useCallback([], ...)` handlers below read the
+// i18n singleton rather than the hook's `t`: those callbacks are deliberately
+// identity-stable, and capturing `t` in them would either pin the language at
+// mount or force `[t]` into deps that exist to stay empty. `i18n.t` resolves at
+// call time, so an imperative toast is always in the current language. JSX in
+// this file uses the hook's `t` as usual.
+import i18n from '../../../shared/i18n';
 import { KnowledgeGraphPalette } from './KnowledgeGraphPalette';
 import { CytoscapeCanvas, CytoscapeCanvasHandle } from './CytoscapeCanvas';
 import { KnowledgeGraphToolbar, ConnectMode } from './KnowledgeGraphToolbar';
@@ -78,6 +86,7 @@ function safeFilename(name: string | undefined): string {
 /** Top-level Knowledge Graph diagram editor.
  *  Layout: [palette + node list]  |  [toolbar + canvas]  |  [inspector]. */
 export const KnowledgeGraphEditor: React.FC = () => {
+  const { t } = useTranslation();
   const { currentProject, currentDiagram } = useProject();
   const navigate = useNavigate();
 
@@ -279,16 +288,14 @@ export const KnowledgeGraphEditor: React.FC = () => {
 
     if (notShown > 0) {
       if (newlyCreated.length === 1) {
-        toast.error(
-          `Node created, but could not be displayed because the hard limit of ` +
-            `${hardLimit} is reached. Hide some nodes in the list or raise the ` +
-            `hard limit in KG Settings.`,
-        );
+        toast.error(i18n.t('editors.kg.editor.toasts.createdButCapped', { limit: hardLimit }));
       } else {
         toast.error(
-          `${newlyCreated.length} nodes created; ${notShown} could not be displayed ` +
-            `because the hard limit of ${hardLimit} is reached. Hide some nodes in ` +
-            `the list or raise the hard limit in KG Settings.`,
+          i18n.t('editors.kg.editor.toasts.createdSomeCapped', {
+            created: newlyCreated.length,
+            notShown,
+            limit: hardLimit,
+          }),
         );
       }
     }
@@ -328,8 +335,7 @@ export const KnowledgeGraphEditor: React.FC = () => {
         if (shouldBeVisible && !has) {
           if (prev.length >= hardLimitRef.current) {
             toast.error(
-              `Cannot visualize more than ${hardLimitRef.current} nodes at once. ` +
-                `Uncheck some in the node list or raise the hard limit in KG Settings.`,
+              i18n.t('editors.kg.editor.toasts.visibleCapReached', { limit: hardLimitRef.current }),
             );
             return prev;
           }
@@ -366,9 +372,11 @@ export const KnowledgeGraphEditor: React.FC = () => {
           const nodesById = new Map(modelRef.current.nodes.map((n) => [n.id, n]));
           const ranked = sortIdsByPriority(toAdd, nodesById);
           toast.error(
-            `Cannot visualize more than ${hardLimitRef.current} nodes at once. ` +
-              `Only ${room} of the ${toAdd.length} newly-selected nodes were added. ` +
-              `Uncheck some in the node list or raise the hard limit in KG Settings.`,
+            i18n.t('editors.kg.editor.toasts.visibleCapPartial', {
+              limit: hardLimitRef.current,
+              added: room,
+              selected: toAdd.length,
+            }),
           );
           return [...prev, ...ranked.slice(0, room)];
         }
@@ -399,7 +407,7 @@ export const KnowledgeGraphEditor: React.FC = () => {
       const idSet = new Set(fullModel.nodes.map((n) => n.id));
       const targets = targetIds.filter((id) => idSet.has(id) && !hiddenMeta.has(id));
       if (targets.length === 0) {
-        toast.warn('Could not focus: the affected node is not part of this graph.');
+        toast.warn(i18n.t('editors.kg.editor.toasts.focusNotInGraph'));
         return;
       }
 
@@ -481,9 +489,17 @@ export const KnowledgeGraphEditor: React.FC = () => {
           onOpenSettings={handleOpenSettings}
           onExportHtml={() => {
             const title = currentDiagram?.title ?? 'knowledge-graph';
-            const html = canvasRef.current?.exportHtml(title);
+            const html = canvasRef.current?.exportHtml(
+              title,
+              {
+                fallbackTitle: t('editors.kg.standaloneHtml.fallbackTitle'),
+                cdnFailed: t('editors.kg.standaloneHtml.cdnFailed'),
+                renderFailedPrefix: t('editors.kg.standaloneHtml.renderFailedPrefix'),
+              },
+              i18n.language,
+            );
             if (!html) {
-              toast.error('Could not export the knowledge graph: canvas is not ready.');
+              toast.error(t('editors.kg.editor.toasts.exportNotReady'));
               return;
             }
             downloadFile(html, `${safeFilename(title)}.html`, 'text/html');
@@ -496,8 +512,7 @@ export const KnowledgeGraphEditor: React.FC = () => {
               className="absolute left-1/2 top-2 z-20 -translate-x-1/2 rounded-full border border-amber-300 bg-amber-50 px-3 py-1 text-xs text-amber-900 shadow-sm dark:border-amber-700 dark:bg-amber-950 dark:text-amber-100"
             >
               <span className="mr-2">
-                Focused on issue ({focusedTargetIds.length} target
-                {focusedTargetIds.length === 1 ? '' : 's'} + neighbours)
+                {t('editors.kg.editor.focusBanner', { count: focusedTargetIds.length })}
               </span>
               <button
                 type="button"
@@ -505,7 +520,7 @@ export const KnowledgeGraphEditor: React.FC = () => {
                 onClick={handleShowAll}
                 data-testid="kg-focus-show-all"
               >
-                Show all
+                {t('editors.kg.editor.showAll')}
               </button>
             </div>
           )}
@@ -531,13 +546,24 @@ export const KnowledgeGraphEditor: React.FC = () => {
           {emptyState && (
             <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
               <div className="rounded-lg border border-dashed border-border/60 bg-background/70 px-4 py-3 text-sm text-muted-foreground backdrop-blur">
-                Drag a node kind from the palette onto the canvas, or use File → Import KG to load an OWL ontology.
+                {/* The two menu labels are interpolated from their own keys so
+                 * the hint always names the menu items as they actually read
+                 * in the user's language. */}
+                {t('editors.kg.editor.emptyState', {
+                  fileMenu: t('menu.file.title'),
+                  importItem: t('menu.file.importKgOwl'),
+                })}
               </div>
             </div>
           )}
           {!emptyState && hiddenCount > 0 && (
             <div className="pointer-events-none absolute left-2 top-2 rounded-md border border-amber-400/60 bg-amber-50 px-2 py-1 text-xs text-amber-900 shadow-sm dark:bg-amber-900/30 dark:text-amber-100">
-              Showing {visibleNodeCount} of {displayModel.nodes.length} nodes (soft: {softLimit}, hard: {hardLimit})
+              {t('editors.kg.editor.showingCap', {
+                visible: visibleNodeCount,
+                total: displayModel.nodes.length,
+                soft: softLimit,
+                hard: hardLimit,
+              })}
             </div>
           )}
         </div>

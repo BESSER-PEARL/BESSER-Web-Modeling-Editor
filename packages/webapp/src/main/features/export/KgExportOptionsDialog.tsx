@@ -7,6 +7,7 @@
  */
 
 import React, { useMemo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   Dialog,
   DialogContent,
@@ -64,6 +65,7 @@ function countSpecs(nodes: KGNodeData[]): VocabStats {
 }
 
 export const KgExportOptionsDialog: React.FC<Props> = ({ open, nodes, onClose, onConfirm }) => {
+  const { t } = useTranslation();
   const [fmt, setFmt] = useState<KgRdfFormat>('ttl');
   const [vocab, setVocab] = useState<KgRdfVocab>('both');
 
@@ -78,14 +80,12 @@ export const KgExportOptionsDialog: React.FC<Props> = ({ open, nodes, onClose, o
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Export Knowledge Graph</DialogTitle>
-          <DialogDescription>
-            Choose the RDF syntax and which constraint vocabularies to emit.
-          </DialogDescription>
+          <DialogTitle>{t('export.kg.options.title')}</DialogTitle>
+          <DialogDescription>{t('export.kg.options.description')}</DialogDescription>
         </DialogHeader>
         <div className="space-y-3 py-2">
           <div className="space-y-1">
-            <Label className="text-xs">RDF syntax</Label>
+            <Label className="text-xs">{t('export.kg.options.rdfSyntax')}</Label>
             <Select value={fmt} onValueChange={(v) => setFmt(v as KgRdfFormat)}>
               <SelectTrigger className="h-9">
                 <SelectValue />
@@ -97,37 +97,31 @@ export const KgExportOptionsDialog: React.FC<Props> = ({ open, nodes, onClose, o
             </Select>
           </div>
           <div className="space-y-1">
-            <Label className="text-xs">Constraint vocabulary</Label>
+            <Label className="text-xs">{t('export.kg.options.constraintVocab')}</Label>
             <Select value={vocab} onValueChange={(v) => setVocab(v as KgRdfVocab)}>
               <SelectTrigger className="h-9">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="both">Both — emit OWL & SHACL where possible</SelectItem>
-                <SelectItem value="owl">OWL only — owl:Restriction blank nodes</SelectItem>
-                <SelectItem value="shacl">SHACL only — sh:NodeShape / sh:PropertyShape</SelectItem>
+                <SelectItem value="both">{t('export.kg.options.vocabBoth')}</SelectItem>
+                <SelectItem value="owl">{t('export.kg.options.vocabOwl')}</SelectItem>
+                <SelectItem value="shacl">{t('export.kg.options.vocabShacl')}</SelectItem>
               </SelectContent>
             </Select>
           </div>
           {stats.total > 0 ? (
             <div className="rounded-md border border-purple-300/60 bg-purple-50/40 px-2 py-1.5 text-xs text-purple-900 dark:bg-purple-950/30 dark:text-purple-200">
-              {emitted} of {stats.total} constraint spec{stats.total === 1 ? '' : 's'} will be emitted
-              {skipped > 0 && (
-                <>
-                  {' '}— {skipped} skipped because they exist only in the other vocabulary.
-                </>
-              )}
+              {t('export.kg.options.emitted', { count: stats.total, emitted })}
+              {skipped > 0 && <>{t('export.kg.options.skippedSuffix', { count: skipped })}</>}
               .
             </div>
           ) : (
-            <div className="text-xs italic text-muted-foreground">
-              No constraint specs in this diagram yet.
-            </div>
+            <div className="text-xs italic text-muted-foreground">{t('export.kg.options.noSpecs')}</div>
           )}
         </div>
         <DialogFooter>
           <Button variant="ghost" onClick={onClose}>
-            Cancel
+            {t('common.cancel')}
           </Button>
           <Button
             onClick={() => {
@@ -135,7 +129,7 @@ export const KgExportOptionsDialog: React.FC<Props> = ({ open, nodes, onClose, o
               onClose();
             }}
           >
-            Export
+            {t('export.kg.options.export')}
           </Button>
         </DialogFooter>
       </DialogContent>

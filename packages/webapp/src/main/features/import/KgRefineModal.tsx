@@ -21,6 +21,7 @@
 // the empty-state surfaces a "Convert to <diagram>" button that calls
 // ``onConvert`` with the latest kgSignature.
 import React, { useEffect, useRef, useState } from 'react';
+import { Trans, useTranslation } from 'react-i18next';
 import {
   Dialog,
   DialogContent,
@@ -51,9 +52,12 @@ const DIAGRAM_TYPE_BY_TARGET: Record<KgConversionTarget, DiagramTypeArg> = {
   kg_to_object: 'ObjectDiagram',
 };
 
-const DIAGRAM_LABEL_BY_TARGET: Record<KgConversionTarget, string> = {
-  kg_to_class: 'Class Diagram',
-  kg_to_object: 'Object Diagram',
+/** Display-only, so it points at the existing `diagramTypes.*` keys rather
+ *  than duplicating those strings. (The persisted diagram TITLE uses the
+ *  untranslated suffix in `useKgToUmlConversion`.) */
+const DIAGRAM_LABEL_KEY_BY_TARGET: Record<KgConversionTarget, string> = {
+  kg_to_class: 'diagramTypes.ClassDiagram',
+  kg_to_object: 'diagramTypes.ObjectDiagram',
 };
 
 export interface KgRefineModalProps {
@@ -157,12 +161,13 @@ export const KgRefineModal: React.FC<KgRefineModalProps> = ({
   onConvert,
   initialTab,
 }) => {
+  const { t } = useTranslation();
   const { apiKey, setApiKey } = useOpenAIApiKey();
   const refine = useKgRefine();
   const diagramType: DiagramTypeArg = convertTarget
     ? DIAGRAM_TYPE_BY_TARGET[convertTarget]
     : 'ClassDiagram';
-  const diagramLabel = convertTarget ? DIAGRAM_LABEL_BY_TARGET[convertTarget] : null;
+  const diagramLabel = convertTarget ? t(DIAGRAM_LABEL_KEY_BY_TARGET[convertTarget]) : null;
 
   const [activeTab, setActiveTab] = useState<TabKey>(initialTab ?? 'static');
   // Consistency tab state — independent of static/LLM tabs.
@@ -242,13 +247,13 @@ export const KgRefineModal: React.FC<KgRefineModalProps> = ({
     const project = ProjectStorageRepository.getCurrentProject() as BesserProject | null;
     if (!project) {
       setConsistencyStatus('error');
-      setConsistencyError('No project is open.');
+      setConsistencyError(t('import.kg.refine.noProjectOpen'));
       return;
     }
     const kgDiagram = getActiveDiagram(project, 'KnowledgeGraphDiagram');
     if (!kgDiagram || !kgDiagram.model) {
       setConsistencyStatus('error');
-      setConsistencyError('No active Knowledge Graph diagram.');
+      setConsistencyError(t('import.kg.refine.noActiveDiagram'));
       return;
     }
     setConsistencyStatus('loading');
@@ -261,7 +266,7 @@ export const KgRefineModal: React.FC<KgRefineModalProps> = ({
       ranConsistencyRef.current = true;
     } catch (err) {
       setConsistencyStatus('error');
-      setConsistencyError(err instanceof Error ? err.message : 'Consistency check failed.');
+      setConsistencyError(err instanceof Error ? err.message : t('import.kg.refine.consistencyFailed'));
     }
   }, [checkConsistency]);
 
@@ -394,7 +399,8 @@ export const KgRefineModal: React.FC<KgRefineModalProps> = ({
       issueId: i.id,
       decision: llmDecisions[i.id] ?? 'accept',
     }));
-    if (typeof window !== 'undefined' && !window.confirm('Replace your current KG with the cleaned graph?')) {
+    // window.confirm's OK/Cancel follow the browser locale, not the app's.
+    if (typeof window !== 'undefined' && !window.confirm(t('import.kg.refine.confirmReplace'))) {
       return;
     }
     setIsApplyingLlm(true);
@@ -462,7 +468,7 @@ export const KgRefineModal: React.FC<KgRefineModalProps> = ({
   );
 
   const llmTabBadge = pendingOrphan
-    ? `Classify ${pendingOrphan.nodeIds.length}`
+    ? t('import.kg.refine.classifyBadge', { count: pendingOrphan.nodeIds.length })
     : undefined;
 
   return (
@@ -471,36 +477,36 @@ export const KgRefineModal: React.FC<KgRefineModalProps> = ({
         <DialogHeader>
           <DialogTitle>
             {convertTarget
-              ? `Refine before converting to ${diagramLabel}`
-              : 'Refine Knowledge Graph'}
+              ? t('import.kg.refine.titleConvert', { diagram: diagramLabel })
+              : t('import.kg.refine.title')}
           </DialogTitle>
           <DialogDescription>
             {convertTarget
-              ? `Resolve any inconsistencies in the Knowledge Graph. Once it is clean you can convert it to a ${diagramLabel}.`
-              : 'Clean up the KG before converting it to B-UML. Review automatic recommendations from BESSER, or get AI-driven suggestions targeted at the system you want to build.'}
+              ? t('import.kg.refine.descriptionConvert', { diagram: diagramLabel })
+              : t('import.kg.refine.description')}
           </DialogDescription>
         </DialogHeader>
 
         <div
           role="tablist"
-          aria-label="Refine KG tabs"
+          aria-label={t('import.kg.refine.tabsAria')}
           className="-mx-6 flex border-b border-border px-6"
         >
-          {tabButton('static', 'Automatic')}
+          {tabButton('static', t('import.kg.refine.tabAutomatic'))}
           {tabButton(
             'consistency',
-            'Consistency',
+            t('import.kg.refine.tabConsistency'),
             consistencyReport && consistencyReport.issueCount > 0
               ? String(consistencyReport.issueCount)
               : undefined,
           )}
-          {tabButton('llm', 'AI', llmTabBadge)}
+          {tabButton('llm', t('import.kg.refine.tabAi'), llmTabBadge)}
         </div>
 
         {activeTab === 'static' && (
           <div role="tabpanel" data-testid="kg-refine-panel-static" className="min-w-0 space-y-3">
             {refine.staticStatus === 'loading' && (
-              <p className="text-sm text-muted-foreground">Analyzing KG…</p>
+              <p className="text-sm text-muted-foreground">{t('import.kg.refine.analyzingKg')}</p>
             )}
             {refine.staticStatus === 'success' && refine.staticReport && (
               <>
@@ -510,11 +516,13 @@ export const KgRefineModal: React.FC<KgRefineModalProps> = ({
                       data-testid="kg-refine-convert-ready"
                       className="rounded border border-emerald-300 bg-emerald-50 p-4 text-sm text-emerald-900 dark:border-emerald-700 dark:bg-emerald-950 dark:text-emerald-200"
                     >
-                      <p className="font-medium">
-                        The Knowledge Graph has no remaining inconsistencies.
-                      </p>
+                      <p className="font-medium">{t('import.kg.refine.noInconsistencies')}</p>
                       <p className="mt-1 text-xs">
-                        Click <strong>Convert</strong> to generate the {diagramLabel}.
+                        <Trans
+                          i18nKey="import.kg.refine.clickConvert"
+                          values={{ diagram: diagramLabel }}
+                          components={{ action: <strong /> }}
+                        />
                       </p>
                     </div>
                   ) : (
@@ -522,17 +530,13 @@ export const KgRefineModal: React.FC<KgRefineModalProps> = ({
                       data-testid="kg-refine-static-empty"
                       className="text-sm text-muted-foreground"
                     >
-                      No automatic recommendations — the KG looks clean.
+                      {t('import.kg.refine.noRecommendations')}
                     </p>
                   )
                 ) : (
                   <>
                     <div className="flex items-center justify-between gap-2 text-xs text-muted-foreground">
-                      <span>
-                        Tick the suggestions you want to fix. For each one, choose
-                        whether to apply the recommended fix or send it to the LLM.
-                        Use “Fix in KG” to handle one manually in the canvas.
-                      </span>
+                      <span>{t('import.kg.refine.staticInstructions')}</span>
                       <div className="flex gap-1">
                         <Button
                           variant="ghost"
@@ -544,7 +548,7 @@ export const KgRefineModal: React.FC<KgRefineModalProps> = ({
                           }
                           data-testid="kg-refine-static-select-all"
                         >
-                          Select all
+                          {t('import.kg.refine.selectAll')}
                         </Button>
                         <Button
                           variant="ghost"
@@ -556,7 +560,7 @@ export const KgRefineModal: React.FC<KgRefineModalProps> = ({
                           }
                           data-testid="kg-refine-static-deselect-all"
                         >
-                          Deselect all
+                          {t('import.kg.refine.deselectAll')}
                         </Button>
                       </div>
                     </div>
@@ -593,19 +597,21 @@ export const KgRefineModal: React.FC<KgRefineModalProps> = ({
                         className="text-xs text-muted-foreground"
                       >
                         {split.selected === 0 ? (
-                          <>No suggestions selected — nothing will change.</>
+                          <>{t('import.kg.refine.noneSelected')}</>
                         ) : (
                           <>
                             <span className="font-medium text-foreground">
                               {split.selected}
                             </span>{' '}
-                            of {refine.staticReport.issues.length} will be fixed:{' '}
+                            {t('import.kg.refine.ofWillBeFixed', {
+                              total: refine.staticReport.issues.length,
+                            })}{' '}
                             <span data-testid="kg-refine-static-summary-recommended">
-                              {split.recommended} via recommended
+                              {t('import.kg.refine.viaRecommended', { count: split.recommended })}
                             </span>
                             {' + '}
                             <span data-testid="kg-refine-static-summary-llm">
-                              {split.llm} via LLM
+                              {t('import.kg.refine.viaLlm', { count: split.llm })}
                             </span>
                             .
                           </>
@@ -615,7 +621,7 @@ export const KgRefineModal: React.FC<KgRefineModalProps> = ({
                   })()}
                 <DialogFooter>
                   <Button variant="outline" onClick={onClose} disabled={isApplyingStatic}>
-                    Close
+                    {t('common.close')}
                   </Button>
                   {convertTarget && refine.staticReport.issues.length === 0 ? (
                     <Button
@@ -623,7 +629,7 @@ export const KgRefineModal: React.FC<KgRefineModalProps> = ({
                       disabled={isApplyingStatic}
                       data-testid="kg-refine-convert"
                     >
-                      Convert to {diagramLabel}
+                      {t('import.kg.refine.convertTo', { diagram: diagramLabel })}
                     </Button>
                   ) : (
                     <Button
@@ -640,7 +646,7 @@ export const KgRefineModal: React.FC<KgRefineModalProps> = ({
                       data-testid="kg-refine-static-apply"
                     >
                       {isApplyingStatic
-                        ? 'Applying…'
+                        ? t('import.kg.refine.applying')
                         : (() => {
                             const split = _computeSelectionSplit(
                               refine.staticReport.issues,
@@ -648,12 +654,16 @@ export const KgRefineModal: React.FC<KgRefineModalProps> = ({
                               staticRouting,
                             );
                             if (split.llm > 0 && split.recommended > 0) {
-                              return `Apply ${split.selected} (${split.recommended} rec + ${split.llm} LLM)`;
+                              return t('import.kg.refine.applyMixed', {
+                                count: split.selected,
+                                recommended: split.recommended,
+                                llm: split.llm,
+                              });
                             }
                             if (split.llm > 0) {
-                              return `Send ${split.llm} to LLM`;
+                              return t('import.kg.refine.sendToLlm', { count: split.llm });
                             }
-                            return `Apply ${split.selected} recommended`;
+                            return t('import.kg.refine.applyRecommended', { count: split.selected });
                           })()}
                     </Button>
                   )}
@@ -662,11 +672,9 @@ export const KgRefineModal: React.FC<KgRefineModalProps> = ({
             )}
             {refine.staticStatus === 'error' && (
               <div className="space-y-2">
-                <p className="text-sm text-red-600 dark:text-red-400">
-                  Failed to analyze the KG. Try again.
-                </p>
+                <p className="text-sm text-red-600 dark:text-red-400">{t('import.kg.refine.analyzeFailed')}</p>
                 <Button variant="outline" onClick={() => refine.runStatic('ClassDiagram')}>
-                  Retry
+                  {t('import.kg.refine.retry')}
                 </Button>
               </div>
             )}
@@ -676,26 +684,30 @@ export const KgRefineModal: React.FC<KgRefineModalProps> = ({
         {activeTab === 'consistency' && (
           <div role="tabpanel" data-testid="kg-refine-panel-consistency" className="min-w-0 space-y-3">
             <p className="text-xs text-muted-foreground">
-              Validates the Knowledge Graph against every OWL/SHACL constraint authored
-              on it. Uses pyshacl with OWL2-RL inference on the backend; the check can be
-              slow on large graphs, so it runs only when you click <strong>Run check</strong>.
+              <Trans
+                i18nKey="import.kg.refine.consistencyExplainer"
+                values={{ action: t('import.kg.refine.runCheck') }}
+                components={{ action: <strong /> }}
+              />
             </p>
             {consistencyStatus === 'idle' && (
               <div
                 data-testid="kg-refine-consistency-idle"
                 className="rounded border border-dashed border-border bg-muted/30 p-4 text-sm text-muted-foreground"
               >
-                No check has been run for this Knowledge Graph yet. Click
-                <strong> Run check </strong>
-                below to evaluate every OWL/SHACL constraint against the current ABox.
+                <Trans
+                  i18nKey="import.kg.refine.consistencyIdle"
+                  values={{ action: t('import.kg.refine.runCheck') }}
+                  components={{ action: <strong /> }}
+                />
               </div>
             )}
             {consistencyStatus === 'loading' && (
-              <p className="text-sm text-muted-foreground">Checking consistency…</p>
+              <p className="text-sm text-muted-foreground">{t('import.kg.refine.checkingConsistency')}</p>
             )}
             {consistencyStatus === 'error' && (
               <p className="text-sm text-destructive" data-testid="kg-refine-consistency-error">
-                {consistencyError ?? 'Consistency check failed.'}
+                {consistencyError ?? t('import.kg.refine.consistencyFailed')}
               </p>
             )}
             {consistencyStatus === 'success' && consistencyReport && (
@@ -705,15 +717,24 @@ export const KgRefineModal: React.FC<KgRefineModalProps> = ({
                     data-testid="kg-refine-consistency-empty"
                     className="rounded border border-emerald-300 bg-emerald-50 p-4 text-sm text-emerald-900 dark:border-emerald-700 dark:bg-emerald-950 dark:text-emerald-200"
                   >
-                    <p className="font-medium">All OWL/SHACL constraints are satisfied.</p>
+                    <p className="font-medium">{t('import.kg.refine.allSatisfied')}</p>
                   </div>
                 ) : (
                   <>
                     <p className="text-xs text-muted-foreground">
-                      {consistencyReport.severityCounts.violation} violation{consistencyReport.severityCounts.violation === 1 ? '' : 's'},{' '}
-                      {consistencyReport.severityCounts.warning} warning{consistencyReport.severityCounts.warning === 1 ? '' : 's'},{' '}
-                      {consistencyReport.severityCounts.info} info
-                      {consistencyLastRun && ` — last run ${new Date(consistencyLastRun).toLocaleTimeString()}`}
+                      {t('import.kg.refine.severitySummary', {
+                        violations: t('import.kg.consistency.violationsFragment', {
+                          count: consistencyReport.severityCounts.violation,
+                        }),
+                        warnings: t('import.kg.consistency.warningsFragment', {
+                          count: consistencyReport.severityCounts.warning,
+                        }),
+                        info: consistencyReport.severityCounts.info,
+                      })}
+                      {consistencyLastRun &&
+                        t('import.kg.refine.lastRun', {
+                          time: new Date(consistencyLastRun).toLocaleTimeString(),
+                        })}
                     </p>
                     <ul className="max-h-[420px] divide-y divide-border overflow-y-auto rounded border border-border">
                       {consistencyReport.issues.map((issue) => {
@@ -752,7 +773,11 @@ export const KgRefineModal: React.FC<KgRefineModalProps> = ({
                                     </span>
                                   )}
                                   {hasTargets && (
-                                    <span className="truncate">on {issue.affected_node_ids[0]}</span>
+                                    <span className="truncate">
+                                      {t('import.kg.consistency.onNode', {
+                                        nodeId: issue.affected_node_ids[0],
+                                      })}
+                                    </span>
                                   )}
                                 </div>
                               </div>
@@ -780,7 +805,7 @@ export const KgRefineModal: React.FC<KgRefineModalProps> = ({
                                   }}
                                   data-testid={`kg-refine-consistency-fix-${issue.id}`}
                                 >
-                                  Fix in KG
+                                  {t('import.kg.preflight.fixInKg')}
                                 </Button>
                               )}
                             </div>
@@ -799,7 +824,7 @@ export const KgRefineModal: React.FC<KgRefineModalProps> = ({
                 disabled={consistencyStatus === 'loading'}
                 data-testid="kg-refine-consistency-recheck"
               >
-                {consistencyStatus === 'idle' ? 'Run check' : 'Re-check'}
+                {consistencyStatus === 'idle' ? t('import.kg.refine.runCheck') : t('import.kg.refine.reCheck')}
               </Button>
             </div>
           </div>
@@ -812,9 +837,11 @@ export const KgRefineModal: React.FC<KgRefineModalProps> = ({
                 data-testid="kg-refine-pending-orphan-banner"
                 className="rounded border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900 dark:border-amber-700 dark:bg-amber-950 dark:text-amber-200"
               >
-                Ready to classify <strong>{pendingOrphan.nodeIds.length}</strong> orphan
-                node(s) flagged in the Automatic tab. Provide a description and
-                API key, then Analyze to ask the LLM for per-node classifications.
+                <Trans
+                  i18nKey="import.kg.refine.orphanBanner"
+                  count={pendingOrphan.nodeIds.length}
+                  components={{ count: <strong /> }}
+                />
               </div>
             )}
 
@@ -823,28 +850,30 @@ export const KgRefineModal: React.FC<KgRefineModalProps> = ({
                 data-testid="kg-refine-deferred-banner"
                 className="rounded border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900 dark:border-amber-700 dark:bg-amber-950 dark:text-amber-200"
               >
-                <strong>{llmDeferredIds.length}</strong> issue(s) were routed here from
-                the Automatic tab. Describe the system you want to build, then
-                Analyze to ask the LLM for fixes against the (now partially-cleaned) KG.
+                <Trans
+                  i18nKey="import.kg.refine.deferredBanner"
+                  count={llmDeferredIds.length}
+                  components={{ count: <strong /> }}
+                />
               </div>
             )}
 
             {llmPhase === 'input' && (
               <>
                 <div className="space-y-1.5">
-                  <Label htmlFor="kg-refine-description">System description</Label>
+                  <Label htmlFor="kg-refine-description">{t('import.kg.refine.systemDescription')}</Label>
                   <textarea
                     id="kg-refine-description"
                     data-testid="kg-refine-description"
                     value={description}
                     onChange={(e) => setDescription(e.target.value)}
-                    placeholder="e.g. A library management system that tracks books, members, and loans."
+                    placeholder={t('import.kg.refine.systemDescriptionPlaceholder')}
                     rows={5}
                     className="block w-full resize-y rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground/90"
                   />
                 </div>
                 <div className="space-y-1.5">
-                  <Label htmlFor="kg-refine-api-key">OpenAI API key</Label>
+                  <Label htmlFor="kg-refine-api-key">{t('import.kg.refine.apiKey')}</Label>
                   <Input
                     id="kg-refine-api-key"
                     data-testid="kg-refine-api-key"
@@ -854,20 +883,18 @@ export const KgRefineModal: React.FC<KgRefineModalProps> = ({
                     placeholder="sk-..."
                     autoComplete="off"
                   />
-                  <p className="text-xs text-muted-foreground">
-                    Stored in this browser session only.
-                  </p>
+                  <p className="text-xs text-muted-foreground">{t('import.kg.refine.apiKeyNote')}</p>
                 </div>
                 <DialogFooter>
                   <Button variant="outline" onClick={onClose} disabled={refine.llmStatus === 'loading'}>
-                    Cancel
+                    {t('common.cancel')}
                   </Button>
                   <Button
                     onClick={handleLlmAnalyze}
                     disabled={!canAnalyzeLlm}
                     data-testid="kg-refine-llm-analyze"
                   >
-                    {refine.llmStatus === 'loading' ? 'Analyzing…' : 'Analyze'}
+                    {refine.llmStatus === 'loading' ? t('import.kg.refine.analyzing') : t('import.kg.refine.analyze')}
                   </Button>
                 </DialogFooter>
               </>
@@ -880,15 +907,12 @@ export const KgRefineModal: React.FC<KgRefineModalProps> = ({
                     data-testid="kg-refine-llm-empty"
                     className="text-sm text-muted-foreground"
                   >
-                    The LLM did not suggest any changes for the described system.
+                    {t('import.kg.refine.llmNoSuggestions')}
                   </p>
                 ) : (
                   <>
                     <div className="flex items-center justify-between gap-2 text-xs text-muted-foreground">
-                      <span>
-                        Tick the suggestions you want to apply. Skip the rest, or use
-                        “Fix in KG” to handle one manually in the canvas.
-                      </span>
+                      <span>{t('import.kg.refine.llmInstructions')}</span>
                       <div className="flex gap-1">
                         <Button
                           variant="ghost"
@@ -900,7 +924,7 @@ export const KgRefineModal: React.FC<KgRefineModalProps> = ({
                           }
                           data-testid="kg-refine-llm-select-all"
                         >
-                          Select all
+                          {t('import.kg.refine.selectAll')}
                         </Button>
                         <Button
                           variant="ghost"
@@ -912,7 +936,7 @@ export const KgRefineModal: React.FC<KgRefineModalProps> = ({
                           }
                           data-testid="kg-refine-llm-deselect-all"
                         >
-                          Deselect all
+                          {t('import.kg.refine.deselectAll')}
                         </Button>
                       </div>
                     </div>
@@ -941,10 +965,10 @@ export const KgRefineModal: React.FC<KgRefineModalProps> = ({
                     }}
                     disabled={isApplyingLlm}
                   >
-                    Back
+                    {t('import.kg.refine.back')}
                   </Button>
                   <Button variant="outline" onClick={onClose} disabled={isApplyingLlm}>
-                    Cancel
+                    {t('common.cancel')}
                   </Button>
                   <Button
                     onClick={() => handleApplyLlm(refine.llmReport!)}
@@ -956,11 +980,10 @@ export const KgRefineModal: React.FC<KgRefineModalProps> = ({
                     data-testid="kg-refine-llm-apply"
                   >
                     {isApplyingLlm
-                      ? 'Applying…'
-                      : `Apply ${_countAccepted(
-                          refine.llmReport.issues,
-                          llmDecisions,
-                        )} selected`}
+                      ? t('import.kg.refine.applying')
+                      : t('import.kg.refine.applySelected', {
+                          count: _countAccepted(refine.llmReport.issues, llmDecisions),
+                        })}
                   </Button>
                 </DialogFooter>
               </>
