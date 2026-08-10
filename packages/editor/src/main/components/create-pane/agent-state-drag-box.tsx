@@ -79,12 +79,12 @@ const FEATURES: UMLElementFeatures = {
   alternativePortVisualization: false,
 };
 
-type StateProps = { diagramType: string };
+type StateProps = { diagramType: string; readonly: boolean };
 type DispatchProps = { create: typeof UMLElementRepository.create };
 
 const enhance = compose<ComponentClass>(
   connect<StateProps, DispatchProps, {}, ModelState>(
-    (state) => ({ diagramType: state.diagram.type }),
+    (state) => ({ diagramType: state.diagram.type, readonly: state.editor.readonly }),
     { create: UMLElementRepository.create },
   ),
 );
@@ -110,6 +110,7 @@ class AgentStateDragBoxComponent extends Component<StateProps & DispatchProps> {
 
   render() {
     if (this.props.diagramType !== UMLDiagramType.AgentDiagram) return null;
+    if (this.props.readonly) return null;
 
     return (
       <FloatingBox>

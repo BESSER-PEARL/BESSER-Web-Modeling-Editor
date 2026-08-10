@@ -270,6 +270,15 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
     };
   }, [currentProject]);
 
+  const simulationDiagramModel = useMemo((): object => {
+    const baseModel = (diagram?.model ?? {}) as any;
+    const agentComponents = (diagram as any)?.agentComponents;
+    if (agentComponents && Object.keys(agentComponents).length > 0) {
+      return { ...baseModel, elements: { ...(baseModel.elements || {}), ...agentComponents } };
+    }
+    return baseModel;
+  }, [diagram]);
+
   // Extracted hooks
   const { hasStarred, starLoading, handleToggleStar } = useGitHubStar({ isAuthenticated, githubSession });
 
@@ -1201,7 +1210,7 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
         open={isCredentialsDialogOpen}
         onOpenChange={setIsCredentialsDialogOpen}
         diagramTitle={diagram?.title ?? 'Agent'}
-        diagramModel={(diagram?.model ?? {}) as object}
+        diagramModel={simulationDiagramModel}
         diagramConfig={normalizedAgentSystemConfig}
         diagramConfigYaml={(diagram as any)?.configYaml as string | undefined}
       />

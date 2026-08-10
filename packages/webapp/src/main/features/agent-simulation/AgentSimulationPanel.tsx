@@ -7,6 +7,7 @@ import {
   selectAgentSimulationStatus,
   selectCurrentAgentState,
   selectLastTransition,
+  selectStdoutLines,
   stopAgentSimulationThunk,
   restartAgentSimulationThunk,
 } from '@/main/features/agent-simulation';
@@ -31,6 +32,7 @@ export const AgentSimulationPanel: React.FC<AgentSimulationPanelProps> = ({ open
   const currentState = useAppSelector(selectCurrentAgentState);
   const lastTransition = useAppSelector(selectLastTransition);
   const error = useAppSelector(selectAgentSimulationError);
+  const stdoutLines = useAppSelector(selectStdoutLines);
 
   const [isTerminalCollapsed, setIsTerminalCollapsed] = useState(true);
   const [rightWidth, setRightWidth] = useState(() => Math.max(MIN_RIGHT_WIDTH, Math.floor(window.innerWidth * 0.5)));
@@ -208,6 +210,12 @@ export const AgentSimulationPanel: React.FC<AgentSimulationPanelProps> = ({ open
           style={{ width: rightWidth }}
         >
           <BafChatWrapper />
+          {(status === 'starting' || (status === 'running' && stdoutLines.length === 0)) && (
+            <div className="flex shrink-0 items-center justify-center gap-2 border-y border-border/50 bg-muted/40 px-4 py-2.5 text-sm text-muted-foreground">
+              <Loader2 className="size-4 shrink-0 animate-spin" />
+              The agent is loading, please wait.
+            </div>
+          )}
           <TerminalPane
             isCollapsed={isTerminalCollapsed}
             onToggleCollapse={() => setIsTerminalCollapsed((prev) => !prev)}
