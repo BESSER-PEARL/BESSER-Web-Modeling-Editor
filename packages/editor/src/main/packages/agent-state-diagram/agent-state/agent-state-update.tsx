@@ -28,7 +28,7 @@ import 'codemirror/theme/material.css';
 import 'codemirror/mode/python/python';
 import { Dropdown } from '../../../components/controls/dropdown/dropdown';
 import { LayouterRepository } from '../../../services/layouter/layouter-repository';
-import { diagramBridge } from '../../../services/diagram-bridge';
+import { diagramBridge, AgentGUIInfo } from '../../../services/diagram-bridge';
 
 // ─── Styled components ────────────────────────────────────────────────────────
 
@@ -370,7 +370,7 @@ const WS_REPLY_TYPES = new Set([
 type ActionSection = 'simple' | 'ai' | 'data';
 
 const SECTION_ACTION_TYPES: Record<ActionSection, string[]> = {
-  simple: ['text', 'ws_markdown', 'ws_html', 'ws_speech', 'ws_options', 'ws_location', 'ws_file', 'ws_image', 'ws_dataframe', 'ws_plotly'],
+  simple: ['text', 'ws_markdown', 'ws_html', 'ws_speech', 'ws_options', 'ws_location', 'ws_file', 'ws_image', 'ws_dataframe', 'ws_plotly', 'gui_reply'],
   ai: ['llm', 'llm_chat'],
   data: ['rag', 'db_reply', 'web_crawl_llm'],
 };
@@ -447,6 +447,7 @@ const ACTION_TYPE_LABELS: Record<string, string> = {
   ws_image: 'Image',
   ws_dataframe: 'Dataframe',
   ws_plotly: 'Plotly',
+  gui_reply: 'GUI Reply',
 };
 
 const enhance = compose<ComponentClass<OwnProps>>(
@@ -952,6 +953,7 @@ class StateUpdate extends Component<Props, State> {
                 <option value="ws_image" title={wsTooltip} style={{ color: wsColor }}>Image</option>
                 <option value="ws_dataframe" title={wsTooltip} style={{ color: wsColor }}>Dataframe</option>
                 <option value="ws_plotly" title={wsTooltip} style={{ color: wsColor }}>Plotly</option>
+                <option value="gui_reply">GUI Reply</option>
               </>
             )}
             {section === 'ai' && (
@@ -1224,6 +1226,40 @@ class StateUpdate extends Component<Props, State> {
       case 'ws_dataframe':
       case 'ws_plotly':
         return this.renderWebSocketReplyEditor(action, hasWebSocketPlatform);
+      case 'gui_reply': {
+        const guiList: AgentGUIInfo[] = diagramBridge.getAgentGUIs();
+        return (
+          <LlmFieldRow>
+            <Header>GUI</Header>
+            {guiList.length === 0 ? (
+              <p style={{ fontSize: 12, margin: '4px 0', opacity: 0.7 }}>
+                No GUIs defined. Create one in the Components page.
+              </p>
+            ) : (
+              <Dropdown
+                value={(action as any).guiId && (action as any).guiId.length > 0
+                  ? (action as any).guiId
+                  : '__placeholder__'}
+                onChange={(value) => {
+                  const selected = value === '__placeholder__' ? '' : value;
+                  const selectedGui = guiList.find(g => g.gui_id === selected);
+                  this.props.update<AgentStateMember>(action.id, {
+                    guiId: selected,
+                    name: selectedGui ? `GUI Reply: ${selectedGui.name}` : 'GUI Reply (select GUI)',
+                  } as any);
+                }}
+              >
+                {[
+                  <Dropdown.Item value="__placeholder__" key="gui-placeholder">Select GUI</Dropdown.Item>,
+                  ...guiList.map((g, i) => (
+                    <Dropdown.Item key={`gui-${i}`} value={g.gui_id}>{g.name}</Dropdown.Item>
+                  )),
+                ]}
+              </Dropdown>
+            )}
+          </LlmFieldRow>
+        );
+      }
       default:
         return null;
     }
@@ -1361,6 +1397,10 @@ class StateUpdate extends Component<Props, State> {
       case 'ws_plotly':
         member.name = 'Plotly (placeholder)';
         break;
+      case 'gui_reply':
+        (member as any).guiId = '';
+        member.name = 'GUI Reply (select GUI)';
+        break;
       default:
         member.name = replyType;
     }
@@ -1409,6 +1449,7 @@ class StateUpdate extends Component<Props, State> {
       ws_options: m.ws_options,
       ws_latitude: m.ws_latitude,
       ws_longitude: m.ws_longitude,
+      guiId: m.guiId,
     });
     this.props.update<AgentStateMember>(a.id, fieldsOf(b));
     this.props.update<AgentStateMember>(b.id, fieldsOf(a));

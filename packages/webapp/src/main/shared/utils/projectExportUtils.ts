@@ -86,12 +86,23 @@ export const buildProjectPayloadForBackend = (
 
   // Normalise agent diagrams so the backend receives the legacy
   // StateInitialNode + AgentStateTransitionInit format it expects.
+  // Also merge agentComponents (off-canvas intents, tools, etc.) into
+  // model.elements so the backend can resolve intent references during
+  // validation and BUML export.
   if (Array.isArray((payload.diagrams as any).AgentDiagram)) {
     (payload.diagrams as any).AgentDiagram = (payload.diagrams as any).AgentDiagram.map(
-      (diagram: ProjectDiagram) =>
-        diagram.model
-          ? { ...diagram, model: normalizeAgentModel(diagram.model as UMLModel) }
-          : diagram,
+      (diagram: ProjectDiagram) => {
+        if (!diagram.model) return diagram;
+        const agentComponents = (diagram as any).agentComponents;
+        const mergedModel =
+          agentComponents && Object.keys(agentComponents).length > 0
+            ? {
+                ...diagram.model,
+                elements: { ...((diagram.model as any).elements || {}), ...agentComponents },
+              }
+            : diagram.model;
+        return { ...diagram, model: normalizeAgentModel(mergedModel as UMLModel) };
+      },
     );
   }
 

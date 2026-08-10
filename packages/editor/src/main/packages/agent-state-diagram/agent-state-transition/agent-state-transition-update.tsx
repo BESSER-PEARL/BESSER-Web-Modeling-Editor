@@ -14,6 +14,7 @@ import { ModelState } from '../../../components/store/model-state';
 import { UMLElementRepository } from '../../../services/uml-element/uml-element-repository';
 import { UMLRelationshipRepository } from '../../../services/uml-relationship/uml-relationship-repository';
 import { AgentStateTransition, CustomTransitionEvent } from './agent-state-transition';
+import { diagramBridge } from '../../../services/diagram-bridge';
 import { ColorButton } from '../../../components/controls/color-button/color-button';
 import { StylePane } from '../../../components/style-pane/style-pane';
 import { Dropdown } from '../../../components/controls/dropdown/dropdown';
@@ -109,9 +110,7 @@ type OwnProps = {
   element: AgentStateTransition;
 };
 
-type StateProps = {
-  elements: { [id: string]: any };
-};
+type StateProps = {};
 
 type DispatchProps = {
   update: typeof UMLElementRepository.update;
@@ -190,14 +189,11 @@ class AgentStateTransitionUpdateClass extends Component<Props, State> {
 
 
   render() {
-    const { element, elements } = this.props;
+    const { element } = this.props;
     const isCustomTransition = this.isCustomTransition(element);
     const customConditions = this.ensureCustomConditions(element.conditions);
 
-    // Get intent names from current model state instead of localStorage
-    const intentNames: string[] = Object.values(elements)
-      .filter((el: any) => el.type === "AgentIntent" && typeof el.name === "string")
-      .map((el: any) => el.name);
+    const intentNames: string[] = diagramBridge.getAgentIntents().map((i) => i.name).filter(Boolean);
 
     return (
       <div>
@@ -238,10 +234,11 @@ class AgentStateTransitionUpdateClass extends Component<Props, State> {
                   })
                 }
               >
-                <Dropdown.Item value="when_intent_matched">When Intent Matched</Dropdown.Item>
-                <Dropdown.Item value="when_no_intent_matched">When No Intent Matched</Dropdown.Item>
+                <Dropdown.Item value="when_intent_matched">Intent Matched</Dropdown.Item>
+                <Dropdown.Item value="when_no_intent_matched">No Intent Matched</Dropdown.Item>
                 <Dropdown.Item value="when_variable_operation_matched">Variable Operation Matched</Dropdown.Item>
                 <Dropdown.Item value="when_file_received">File Received</Dropdown.Item>
+                <Dropdown.Item value="when_form_submitted">Form Submitted</Dropdown.Item>
                 <Dropdown.Item value="auto">Auto Transition</Dropdown.Item>
               </Dropdown>
               {element.predefinedType === "when_intent_matched" && (
@@ -306,6 +303,32 @@ class AgentStateTransitionUpdateClass extends Component<Props, State> {
                   />
                 </div>
               )}
+              {element.predefinedType === "when_form_submitted" && (() => {
+                const formGuis = diagramBridge.getAgentGUIs().filter(g => g.is_form);
+                return (
+                  <div style={{ marginTop: '8px' }}>
+                    {formGuis.length === 0 ? (
+                      <p style={{ fontSize: 12, margin: '4px 0', opacity: 0.7 }}>
+                        No form GUIs defined. Create one with "is_form = true" in the Components page.
+                      </p>
+                    ) : (
+                      <Dropdown
+                        value={element.formGuiId || '__any__'}
+                        onChange={value =>
+                          this.props.update<AgentStateTransition>(element.id, {
+                            formGuiId: value === '__any__' ? '' : value,
+                          } as any)
+                        }
+                      >
+                        <Dropdown.Item value="__any__">Any form submission</Dropdown.Item>
+                        {formGuis.map((g, i) => (
+                          <Dropdown.Item key={`fg-${i}`} value={g.gui_id}>{g.gui_id}</Dropdown.Item>
+                        ))}
+                      </Dropdown>
+                    )}
+                  </div>
+                );
+              })()}
             </React.Fragment>
           )}
 
@@ -328,7 +351,36 @@ class AgentStateTransitionUpdateClass extends Component<Props, State> {
                 <Dropdown.Item value="ReceiveTextEvent">ReceiveTextEvent</Dropdown.Item>
                 <Dropdown.Item value="ReceiveJSONEvent">ReceiveJSONEvent</Dropdown.Item>
                 <Dropdown.Item value="ReceiveFileEvent">ReceiveFileEvent</Dropdown.Item>
+                <Dropdown.Item value="GUIEvent">GUIEvent</Dropdown.Item>
               </Dropdown>
+
+              {element.event === 'GUIEvent' && (() => {
+                const allGuis = diagramBridge.getAgentGUIs();
+                return (
+                  <div style={{ marginTop: '8px' }}>
+                    <SectionHeader>GUI (message_id)</SectionHeader>
+                    {allGuis.length === 0 ? (
+                      <p style={{ fontSize: 12, margin: '4px 0', opacity: 0.7 }}>
+                        No GUIs defined. Create one in the Components page.
+                      </p>
+                    ) : (
+                      <Dropdown
+                        value={element.guiEventGuiId || '__any__'}
+                        onChange={value =>
+                          this.props.update<AgentStateTransition>(element.id, {
+                            guiEventGuiId: value === '__any__' ? '' : value,
+                          } as any)
+                        }
+                      >
+                        <Dropdown.Item value="__any__">Any GUI interaction</Dropdown.Item>
+                        {allGuis.map((g, i) => (
+                          <Dropdown.Item key={`guie-${i}`} value={g.gui_id}>{g.gui_id}</Dropdown.Item>
+                        ))}
+                      </Dropdown>
+                    )}
+                  </div>
+                );
+              })()}
 
               <SectionHeader style={{ marginTop: '16px' }}>Conditions</SectionHeader>
               {customConditions.map((conditionCode, index) => (
@@ -377,9 +429,7 @@ class AgentStateTransitionUpdateClass extends Component<Props, State> {
 const enhance = compose<ComponentClass<OwnProps>>(
   localized,
   connect<StateProps, DispatchProps, OwnProps, ModelState>(
-    (state) => ({
-      elements: state.elements,
-    }),
+    () => ({}),
     {
       update: UMLElementRepository.update,
       delete: UMLElementRepository.delete,

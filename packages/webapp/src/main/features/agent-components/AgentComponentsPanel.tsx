@@ -13,6 +13,7 @@ import {
   ChevronRight,
   MessageSquare,
   AlertTriangle,
+  Layout,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Input } from '@/components/ui/input';
@@ -28,6 +29,8 @@ import 'codemirror/mode/python/python';
 import { useAppSelector } from '../../app/store/hooks';
 import { selectActiveDiagram, selectProject } from '../../app/store/workspaceSlice';
 import { ProjectStorageRepository } from '../../shared/services/storage/ProjectStorageRepository';
+import { AgentGUIEditor } from './AgentGUIEditor';
+import { diagramBridge } from '@besser/wme';
 import { getActiveDiagram, isUMLModel } from '../../shared/types/project';
 import type { SqlDatabaseEntry } from '../agent-config/AgentConfigYamlEditor';
 import { DEFAULT_AGENT_CONFIG_FORM, buildConfigYaml } from '../agent-config/AgentConfigYamlEditor';
@@ -44,9 +47,10 @@ const ELEMENT_TYPES = {
   AgentRagElement: 'AgentRagElement',
   AgentIntent: 'AgentIntent',
   AgentIntentBody: 'AgentIntentBody',
+  AgentGUI: 'AgentGUI',
 } as const;
 
-type ActiveSection = 'llms' | 'intents' | 'tools' | 'skills' | 'workspaces' | 'rags' | 'sql';
+type ActiveSection = 'llms' | 'intents' | 'tools' | 'skills' | 'workspaces' | 'rags' | 'sql' | 'guis';
 type LLMProvider = 'openai' | 'huggingface' | 'huggingface_api' | 'replicate' | 'ollama';
 type RagEmbeddingProvider = 'openai' | 'ollama';
 
@@ -362,6 +366,7 @@ export function AgentComponentsPanel() {
   const project = useAppSelector(selectProject);
   const [activeSection, setActiveSection] = useState<ActiveSection>('llms');
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [openEditorGuiId, setOpenEditorGuiId] = useState<string | null>(null);
 
   // model.elements is only used for canvas-side checks (AgentState detection).
   const elements: Record<string, any> = React.useMemo(() => {
@@ -380,6 +385,7 @@ export function AgentComponentsPanel() {
   const skills    = React.useMemo(() => Object.values(agentComponents).filter((e: any) => e.type === ELEMENT_TYPES.AgentSkill), [agentComponents]);
   const workspaces = React.useMemo(() => Object.values(agentComponents).filter((e: any) => e.type === ELEMENT_TYPES.AgentWorkspace), [agentComponents]);
   const rags      = React.useMemo(() => Object.values(agentComponents).filter((e: any) => e.type === ELEMENT_TYPES.AgentRagElement), [agentComponents]);
+  const guis      = React.useMemo(() => Object.values(agentComponents).filter((e: any) => e.type === ELEMENT_TYPES.AgentGUI), [agentComponents]);
 
   const sqlDatabases: SqlDatabaseEntry[] = React.useMemo(() => {
     const form = activeDiagram?.agentConfigForm as any;
@@ -388,6 +394,27 @@ export function AgentComponentsPanel() {
   }, [activeDiagram]);
 
   const llmNames = React.useMemo(() => llms.map((e: any) => e.name).filter(Boolean) as string[], [llms]);
+
+  // Keep diagramBridge in sync so editor components (state/transition panels) can read GUI names.
+  useEffect(() => {
+    diagramBridge.setAgentGUIs(
+      guis.map((g: any) => ({
+        name: g.gui_id || g.id,
+        gui_id: g.gui_id || '',
+        is_form: !!g.is_form,
+      })),
+    );
+  }, [guis]);
+
+  // Keep diagramBridge in sync so transition panels can read intent names.
+  useEffect(() => {
+    diagramBridge.setAgentIntents(
+      intents.map((intent: any) => ({
+        name: intent.name || intent.id,
+        id: intent.id,
+      })),
+    );
+  }, [intents]);
 
   const hasReasoningState = React.useMemo(
     () => Object.values(elements).some((el: any) => el.type === 'AgentState' && el.stateType === 'reasoning'),
@@ -402,6 +429,7 @@ export function AgentComponentsPanel() {
     { key: 'workspaces', label: 'Workspaces',     icon: <FolderOpen className="h-4 w-4" />,   count: workspaces.length },
     { key: 'rags',       label: 'RAG Databases',  icon: <Database className="h-4 w-4" />,     count: rags.length },
     { key: 'sql',        label: 'SQL Databases',  icon: <Server className="h-4 w-4" />,       count: sqlDatabases.length },
+    { key: 'guis',       label: 'GUIs',           icon: <Layout className="h-4 w-4" />,       count: guis.length },
   ];
 
   // ── Write helpers ────────────────────────────────────────────
@@ -581,6 +609,9 @@ export function AgentComponentsPanel() {
   const handleAddRag = () =>
     addElement(ELEMENT_TYPES.AgentRagElement, { llm_name: '', llm_prompt: '', k: 4, num_previous_messages: 0, embedding_provider: 'openai', embedding_base_url: '', embedding_model: '' }, rags);
 
+  const handleAddGUI = () =>
+    addElement(ELEMENT_TYPES.AgentGUI, { gui_id: generateUUID(), persist: true, width: '', is_form: false, guiModel: null }, guis);
+
   // ── Render ───────────────────────────────────────────────────
 
   if (!activeDiagram) {
@@ -627,7 +658,7 @@ export function AgentComponentsPanel() {
 
       {/* ── Main content ─────────────────────────────────────── */}
       <div className="flex-1 overflow-y-auto">
-        <div className="px-8 py-6 max-w-2xl">
+        <div className={cn("px-8 py-6", openEditorGuiId ? "w-full" : "max-w-2xl")}>
 
           {/* ── LLMs ──────────────────────────────────────────── */}
           {activeSection === 'llms' && (
@@ -1042,6 +1073,82 @@ export function AgentComponentsPanel() {
                         placeholder="e.g. nomic-embed-text"
                       />
                     </div>
+                  )}
+                </ItemRow>
+              ))}
+            </SectionPage>
+          )}
+
+          {/* ── GUIs ─────────────────────────────────────────── */}
+          {activeSection === 'guis' && (
+            <SectionPage
+              title="GUIs"
+              description="Graphical UI components the agent can send as chat replies or react to via GUI events."
+              onAdd={handleAddGUI}
+              addLabel="Create GUI"
+            >
+              {guis.length === 0 && (
+                <p className="py-6 text-center text-sm text-muted-foreground">No GUIs defined yet.</p>
+              )}
+              {guis.map((el: any) => (
+                <ItemRow
+                  key={el.id}
+                  id={el.id}
+                  name={el.gui_id || el.id}
+                  badge={el.is_form ? 'form' : undefined}
+                  expanded={expandedId === el.id}
+                  onToggle={() => toggle(el.id)}
+                  onDelete={() => removeElement(el.id)}
+                >
+                  <TextField
+                    id={`gui-id-${el.id}`}
+                    label="GUI ID (message_id)"
+                    value={el.gui_id || ''}
+                    onChange={v => updateElement(el.id, { gui_id: v })}
+                    placeholder="Auto-generated UUID"
+                    description="Used as message_id in GUIEvent and form_id in when_form_submitted."
+                  />
+                  <div className="grid grid-cols-2 gap-4">
+                    <CheckboxField
+                      id={`gui-persist-${el.id}`}
+                      label="Persist"
+                      value={el.persist !== false}
+                      onChange={v => updateElement(el.id, { persist: v })}
+                      description="Keep the GUI visible after user interaction."
+                    />
+                    <CheckboxField
+                      id={`gui-isform-${el.id}`}
+                      label="Is Form"
+                      value={!!el.is_form}
+                      onChange={v => updateElement(el.id, { is_form: v })}
+                      description="Enables when_form_submitted transitions for this GUI."
+                    />
+                  </div>
+                  <TextField
+                    id={`gui-width-${el.id}`}
+                    label="Width (optional)"
+                    value={el.width || ''}
+                    onChange={v => updateElement(el.id, { width: v })}
+                    placeholder="e.g. 600px"
+                    description="CSS width of the GUI panel."
+                  />
+                  {openEditorGuiId === el.id ? (
+                    <AgentGUIEditor
+                      initialData={el.guiModel ?? null}
+                      onSave={(data) => {
+                        updateElement(el.id, { guiModel: data });
+                        setOpenEditorGuiId(null);
+                      }}
+                      onCancel={() => setOpenEditorGuiId(null)}
+                    />
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => setOpenEditorGuiId(el.id)}
+                      className="w-full rounded-md border border-dashed border-border px-4 py-3 text-xs text-muted-foreground hover:border-primary hover:text-primary transition-colors cursor-pointer"
+                    >
+                      {el.guiModel ? 'Edit GUI design' : 'Open GUI Editor'}
+                    </button>
                   )}
                 </ItemRow>
               ))}

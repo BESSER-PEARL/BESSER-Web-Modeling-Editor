@@ -2,22 +2,9 @@
 import type { Editor } from 'grapesjs';
 import './grapesjs-styles.css';
 import { getClassOptions, getEndsByClassId, getClassMetadata, getMethodsByClassId } from './diagram-helpers';
-import { chartConfigs } from './configs/chartConfigs';
-import { tableConfig } from './configs/tableConfig';
-import { metricCardConfig } from './configs/metricCardConfigs';
-import { mapConfig } from './configs/mapConfig';
-import { registerChartComponent } from './component-registrars/registerChartComponent';
-import { registerTableComponent } from './component-registrars/registerTableComponent';
-import { registerMetricCardComponent } from './component-registrars/registerMetricCardComponent';
-import { registerMapComponent } from './component-registrars/registerMapComponent';
-import { registerButtonComponent } from './component-registrars/registerButtonComponent';
 import { registerFormComponents } from './component-registrars/registerFormComponents';
-import { registerLayoutComponents } from './component-registrars/registerLayoutComponents';
-import { registerAgentComponent } from './component-registrars/registerAgentComponent';
 import { setupPageSystem, loadDefaultPages } from './setup/setupPageSystem';
-import { setupLayoutBlocks } from './setup/setupLayoutBlocks';
-import { setupInputBlocks } from './setup/setupInputBlocks';
-import registerColumnsManagerTrait from './traits/registerColumnsManagerTrait';
+import { registerAllComponents } from './registerAllComponents';
 import { ProjectStorageRepository } from '../../../shared/services/storage/ProjectStorageRepository';
 import { GrapesJSProjectData, isGrapesJSProjectData, normalizeToGrapesJSProjectData, createDefaultGUITemplate, getActiveDiagram, getReferencedDiagram } from '../../../shared/types/project';
 import { downloadFile } from '../../../shared/utils/download';
@@ -225,7 +212,7 @@ export const GraphicalUIEditor: React.FC = () => {
       window.dispatchEvent(new CustomEvent('wme:gui-editor-ready'));
 
       // Register all custom components
-      registerCustomComponents(editor);
+      registerAllComponents(editor);
 
       // Handle editor load event
       editor.on('load', () => {
@@ -448,38 +435,11 @@ function setupEditorFeatures(
   
   // Additional features
   setupDataBindingTraits(editor);
-  setupCustomTraits(editor);
-  setupLayoutBlocks(editor);
-  setupInputBlocks(editor);
+  registerAllComponents(editor);
   // enableAbsolutePositioning(editor);
   
   // Return cleanup function
   return cleanupStorage;
-}
-
-/**
- * Register all custom components
- */
-function registerCustomComponents(editor: Editor) {
-  // Register charts
-  chartConfigs.forEach((config) => {
-    registerChartComponent(editor, config);
-  });
-
-  // Register table
-  registerTableComponent(editor, tableConfig);
-
-  // Register metric card
-  registerMetricCardComponent(editor, metricCardConfig);
-
-  // Register other components
-  registerMapComponent(editor, mapConfig);
-  registerButtonComponent(editor);
-  // registerFormComponents(editor); // Commented out - forms removed for now
-  registerLayoutComponents(editor);
-  registerAgentComponent(editor);
-  
-  // console.log('[GraphicalUIEditor] All custom components registered');
 }
 
 /**
@@ -1839,16 +1799,6 @@ function setupDataBindingTraits(editor: Editor) {
   });
   
   console.log('[Data Binding] System initialized');
-}
-
-/**
- * Setup custom traits (columns-manager, etc.)
- */
-function setupCustomTraits(editor: Editor) {
-  // Register columns-manager trait for tables
-  registerColumnsManagerTrait(editor);
-  
-  // console.log('[Custom Traits] Registered columns-manager trait');
 }
 
 // ============================================

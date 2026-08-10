@@ -3,6 +3,7 @@ import { ApollonEditor, UMLModel, normalizeAgentModel } from '@besser/wme';
 import { toast, Id } from 'react-toastify'; // Import Id type
 import { validateDiagram } from '../../../shared/services/validation/validateDiagram';
 import { BACKEND_URL } from '../../../shared/constants/constant';
+import { ProjectStorageRepository } from '../../../shared/services/storage/ProjectStorageRepository';
 import React from 'react';
 
 // Add type definitions
@@ -21,8 +22,25 @@ export const useDeployLocally = () => {
   const deployLocally = useCallback(
     async (editor: ApollonEditor, generatorType: string, diagramTitle: string, config?: GeneratorConfig[keyof GeneratorConfig]): Promise<void> => {
       
+      // For agent diagrams, intents/tools etc. live in agentComponents (off-canvas),
+      // not in editor.model.elements. Merge them in so the backend validation
+      // endpoint can resolve intent references in transitions.
+      let modelForValidation: any = editor.model;
+      if (generatorType === 'agent') {
+        const currentProjectForValidation = ProjectStorageRepository.getCurrentProject();
+        const agentDiagrams = currentProjectForValidation?.diagrams?.AgentDiagram;
+        const idx = currentProjectForValidation?.currentDiagramIndices?.AgentDiagram ?? 0;
+        const agentComponents = (agentDiagrams?.[idx] as any)?.agentComponents;
+        if (agentComponents && Object.keys(agentComponents).length > 0) {
+          modelForValidation = {
+            ...editor.model,
+            elements: { ...(editor.model as any).elements, ...agentComponents },
+          };
+        }
+      }
+
       // Validate diagram before generation
-      const validationResult = await validateDiagram(editor, diagramTitle);
+      const validationResult = await validateDiagram(null, diagramTitle, modelForValidation);
       if (!validationResult.isValid) {
         toast.error(validationResult.message || 'Validation failed');
         return;
