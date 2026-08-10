@@ -166,7 +166,6 @@ const KG_GENERATORS: GeneratorMenuEntry[] = [
     label: 'Convert to B-UML',
     actions: [
       { kind: 'action', label: 'Class Diagram', generator: 'kg_to_class' },
-      { kind: 'action', label: 'Object Diagram', generator: 'kg_to_object' },
     ],
   },
   {
