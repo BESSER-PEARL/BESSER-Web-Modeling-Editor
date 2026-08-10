@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { KnowledgeGraphPalette } from './KnowledgeGraphPalette';
 import { CytoscapeCanvas, CytoscapeCanvasHandle } from './CytoscapeCanvas';
 import { KnowledgeGraphToolbar, ConnectMode } from './KnowledgeGraphToolbar';
+import { KgCanvasControls } from './KgCanvasControls';
 import { KnowledgeGraphInspector, KgSelection } from './KnowledgeGraphInspector';
 import { KnowledgeGraphNodeList } from './KnowledgeGraphNodeList';
 import * as kgFocus from './kgFocus';
@@ -474,11 +475,6 @@ export const KnowledgeGraphEditor: React.FC = () => {
         <KnowledgeGraphToolbar
           connectMode={connectMode}
           onConnectModeChange={setConnectMode}
-          onFit={() => canvasRef.current?.fit()}
-          onResetLayout={() => canvasRef.current?.relayout()}
-          onZoomIn={() => canvasRef.current?.zoomIn()}
-          onZoomOut={() => canvasRef.current?.zoomOut()}
-          onResetZoom={() => canvasRef.current?.resetZoom()}
           nodeCount={displayModel.nodes.length}
           edgeCount={displayModel.edges.length}
           hiddenCount={hiddenCount}
@@ -525,6 +521,12 @@ export const KnowledgeGraphEditor: React.FC = () => {
             onExitConnectMode={() => setConnectMode('off')}
             onRevealNodes={(ids) => bulkToggleVisibility(ids, true)}
             onRelationRejected={(reason) => toast.warning(reason)}
+          />
+          <KgCanvasControls
+            onZoomIn={() => canvasRef.current?.zoomIn()}
+            onZoomOut={() => canvasRef.current?.zoomOut()}
+            onFit={() => canvasRef.current?.fit()}
+            onResetLayout={() => canvasRef.current?.relayout()}
           />
           {emptyState && (
             <div className="pointer-events-none absolute inset-0 flex items-center justify-center">

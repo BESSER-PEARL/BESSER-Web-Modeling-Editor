@@ -364,10 +364,6 @@ export interface CytoscapeCanvasHandle {
    *  looking at the same place as they zoom). Clamped by minZoom/maxZoom. */
   zoomIn: () => void;
   zoomOut: () => void;
-  /** Restore zoom to 1.0 and bring the graph back to the middle of the
-   *  viewport. Distinct from `fit`, which also scales the graph so that
-   *  everything is visible. */
-  resetZoom: () => void;
 }
 
 interface CytoscapeCanvasProps {
@@ -535,16 +531,6 @@ export const CytoscapeCanvas = React.forwardRef<CytoscapeCanvasHandle, Cytoscape
       },
       zoomIn: () => zoomAtViewportCenter(ZOOM_STEP),
       zoomOut: () => zoomAtViewportCenter(1 / ZOOM_STEP),
-      resetZoom: () => {
-        const cy = cyRef.current;
-        if (!cy) return;
-        refreshSize(cy);
-        cy.zoom(1);
-        // Zoom alone leaves the graph wherever the user last panned it, which
-        // regularly puts it off screen at 100%. Re-centre so "reset zoom"
-        // reliably brings the nodes back into the middle of the canvas.
-        cy.center();
-      },
       deleteSelected: () => {
         const cy = cyRef.current;
         if (!cy) return;
