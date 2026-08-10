@@ -92,6 +92,41 @@ const AgentRagElementUpdateComponent: React.FC<Props> = ({ element, update, elem
           }
         />
       </Section>
+      <Section>
+        <Header>Embedding Provider</Header>
+        <Select
+          value={element.embedding_provider || 'openai'}
+          onChange={(event) => {
+            const provider = event.target.value as 'openai' | 'ollama';
+            const updates: Partial<AgentRagElement> = { embedding_provider: provider };
+            if (provider === 'ollama' && !element.embedding_base_url) {
+              updates.embedding_base_url = 'http://localhost:11434';
+            }
+            update<AgentRagElement>(element.id, updates);
+          }}
+        >
+          <option value="openai">OpenAI</option>
+          <option value="ollama">Ollama (local)</option>
+        </Select>
+      </Section>
+      {(element.embedding_provider === 'ollama') && (
+        <>
+          <Section>
+            <Header>Embedding Base URL</Header>
+            <Textfield
+              value={element.embedding_base_url || 'http://localhost:11434'}
+              onChange={(embedding_base_url) => update<AgentRagElement>(element.id, { embedding_base_url })}
+            />
+          </Section>
+          <Section>
+            <Header>Embedding Model</Header>
+            <Textfield
+              value={element.embedding_model || ''}
+              onChange={(embedding_model) => update<AgentRagElement>(element.id, { embedding_model })}
+            />
+          </Section>
+        </>
+      )}
     </div>
   );
 };

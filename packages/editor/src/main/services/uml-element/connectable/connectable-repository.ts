@@ -13,6 +13,11 @@ import { IUMLElement } from '../uml-element';
 import { IPath } from '../../../utils/geometry/path';
 import { canHaveCenterPort } from '../../uml-relationship/uml-relationship-port';
 
+import { UMLDiagramType } from '../../../packages/diagram-type';
+import { BPMNRelationshipType, isCollapsibleBpmnContainer } from '../../../packages/bpmn';
+import { BPMNFlow } from '../../../packages/bpmn/bpmn-flow/bpmn-flow';
+import { getAllowedBpmnFlowTypes, getDefaultBpmnFlowType } from '../../../packages/bpmn/bpmn-flow/bpmn-flow-semantics';
+import { AgentElementType, AgentRelationshipType } from '../../../packages/agent-state-diagram';
 
 export const Connectable = {
   startConnecting:
@@ -32,7 +37,18 @@ export const Connectable = {
           return;
         }
 
-        const ports = ids.map<IUMLElementPort>((elementId, index) => ({
+        // Block starting a connection from StateInitialNode when one already exists.
+        const { elements } = getState();
+        const hasInitTransition = Object.values(elements).some(
+          (el) => UMLRelationship.isUMLRelationship(el) && el.type === AgentRelationshipType.AgentStateTransitionInit,
+        );
+        const filteredIds = hasInitTransition
+          ? ids.filter((elementId) => elements[elementId]?.type !== AgentElementType.StateInitialNode)
+          : ids;
+
+        if (!filteredIds.length) return;
+
+        const ports = filteredIds.map<IUMLElementPort>((elementId, index) => ({
           element: elementId,
           direction: directions.length === 1 ? directions[0] : directions[index],
         }));
@@ -128,6 +144,19 @@ export const Connectable = {
             continue;
           }
 
+          // 5. Block connections that cross a BPMNSubprocess/BPMNTransaction boundary
+          const sourceOwner = (sourceElement as any).owner as string | null;
+          const targetOwner = (targetElement as any).owner as string | null;
+          if (sourceOwner !== targetOwner) {
+            const sourceOwnerEl = sourceOwner ? dispatch(UMLElementCommonRepository.getById(sourceOwner)) : null;
+            const targetOwnerEl = targetOwner ? dispatch(UMLElementCommonRepository.getById(targetOwner)) : null;
+            const sourceInSubprocess = isCollapsibleBpmnContainer(sourceOwnerEl?.type);
+            const targetInSubprocess = isCollapsibleBpmnContainer(targetOwnerEl?.type);
+            if (sourceInSubprocess || targetInSubprocess) {
+              continue;
+            }
+          }
+
           // console.debug('[Connection] Valid connection pair', {
           //   source: { id: port.element, dir: port.direction, type: sourceElement.type },
           //   target: { id: connectionTarget.element, dir: connectionTarget.direction, type: targetElement.type },
@@ -178,10 +207,36 @@ export const Connectable = {
             }
           }
 
+          // Only one AgentStateTransitionInit (initial state arrow) is allowed per diagram.
+          if (relationshipType === AgentRelationshipType.AgentStateTransitionInit) {
+            const alreadyExists = Object.values(getState().elements).some(
+              (el) => UMLRelationship.isUMLRelationship(el) && el.type === AgentRelationshipType.AgentStateTransitionInit,
+            );
+            if (alreadyExists) {
+              return null;
+            }
+          }
+
           try {
             // Create the relationship with the connection
             const Classifier = UMLRelationships[relationshipType];
             const relationship = new Classifier(connection);
+
+            if (getState().diagram.type === UMLDiagramType.BPMN && relationshipType === BPMNRelationshipType.BPMNFlow) {
+              const sourceType = sourceElement.type as UMLElementType;
+              const targetType = targetElement.type as UMLElementType;
+              const allowed = getAllowedBpmnFlowTypes(sourceType, targetType);
+
+              if (!allowed.length) {
+                console.warn('[BPMN] Illegal flow connection blocked', {
+                  sourceType,
+                  targetType,
+                });
+                return null;
+              }
+
+              (relationship as BPMNFlow).flowType = getDefaultBpmnFlowType(allowed);
+            }
 
             // Calculate the path directly using Connection.computePath
             const path = Connection.computePath(

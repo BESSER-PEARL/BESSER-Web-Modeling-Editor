@@ -17,6 +17,9 @@ import gymagent from '../../../templates/pattern/agent/gymagent.json';
 import faqRagAgent from '../../../templates/pattern/agent/faqragagent.json';
 import libraryAgent from '../../../templates/pattern/agent/libraryagent.json';
 import traficlightModel from '../../../templates/pattern/statemachine/traficlight.json';
+import bpmnParallelReview from '../../../templates/pattern/bpmn/parallel_review.json';
+import bpmnCarWash from '../../../templates/pattern/bpmn/car_wash.json';
+import bpmnOrderFulfillment from '../../../templates/pattern/bpmn/pizza_store.json';
 import nnTutorialExample from '../../../templates/pattern/nn/tutorial_example.json';
 import nnAlexnet from '../../../templates/pattern/nn/alexnet_nn.json';
 import nnLstm from '../../../templates/pattern/nn/lstm_nn.json';
@@ -27,7 +30,7 @@ import { serializeCircuit } from '../../editors/quantum/utils';
 
 // Helper function to convert example circuit to QuantumCircuitData format
 const getQuantumCircuitData = (circuitName: string) => {
-  const example = EXAMPLE_CIRCUITS.find(c => c.name === circuitName);
+  const example = EXAMPLE_CIRCUITS.find((c) => c.name === circuitName);
   if (!example) {
     // Return empty circuit as fallback
     return { cols: [], gates: [], gateMetadata: {}, version: '1.0.0' };
@@ -123,6 +126,27 @@ export class TemplateFactory {
           UMLDiagramType.StateMachineDiagram,
           traficlightModel as any,
           SoftwarePatternCategory.STATE_MACHINE,
+        );
+      case SoftwarePatternType.BPMN_PARALLEL_REVIEW:
+        return new SoftwarePatternTemplate(
+          softwarePatternType,
+          UMLDiagramType.BPMN,
+          bpmnParallelReview as any,
+          SoftwarePatternCategory.BPMN,
+        );
+      case SoftwarePatternType.BPMN_CAR_WASH:
+        return new SoftwarePatternTemplate(
+          softwarePatternType,
+          UMLDiagramType.BPMN,
+          bpmnCarWash as any,
+          SoftwarePatternCategory.BPMN,
+        );
+      case SoftwarePatternType.BPMN_ORDER_FULFILLMENT:
+        return new SoftwarePatternTemplate(
+          softwarePatternType,
+          UMLDiagramType.BPMN,
+          bpmnOrderFulfillment as any,
+          SoftwarePatternCategory.BPMN,
         );
       case SoftwarePatternType.NN_TUTORIAL_EXAMPLE:
         return new SoftwarePatternTemplate(

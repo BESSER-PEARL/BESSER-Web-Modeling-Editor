@@ -12,7 +12,9 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { FormField } from '@/components/ui/form-field';
+import type { WebAppVersionMode } from '../../../shared/utils/buildWebAppVersions';
 import type { JSONSchemaConfig, QiskitConfig, SQLAlchemyConfig, SQLConfig, SupabaseConfig } from '../hooks/useGenerateCode';
 import type { ConfigDialog } from '../generator-dialog-config';
 import { SHOW_FULL_AGENT_CONFIGURATION } from '../../../shared/constants/constant';
@@ -115,6 +117,12 @@ interface GeneratorConfigDialogsProps {
   // ── Web App checklist ──────────────────────────────────────────────────
   /** Pre-generation checklist info for the web_app generator. */
   webAppChecklist: WebAppChecklistInfo | null;
+  /** Which version(s) to generate when the GUI has page variants. */
+  webAppVersionMode: WebAppVersionMode;
+  /** Selected profile id when webAppVersionMode === 'profile'. */
+  webAppSelectedProfileId: string;
+  onWebAppVersionModeChange: (value: WebAppVersionMode) => void;
+  onWebAppSelectedProfileIdChange: (value: string) => void;
 
   // ── Execution callbacks (one per generator) ──────────────────────────────
   /** Validate inputs, call the backend, and close the dialog on success. */
@@ -174,6 +182,10 @@ export const GeneratorConfigDialogs: React.FC<GeneratorConfigDialogsProps> = ({
   onSelectedAgentVariantIdChange,
   onAgentGenerationModeChange,
   webAppChecklist,
+  webAppVersionMode,
+  webAppSelectedProfileId,
+  onWebAppVersionModeChange,
+  onWebAppSelectedProfileIdChange,
   onDjangoGenerate,
   onDjangoDeploy,
   onSqlGenerate,
@@ -782,6 +794,49 @@ export const GeneratorConfigDialogs: React.FC<GeneratorConfigDialogsProps> = ({
                   <AgentChecklistRow diagram={webAppChecklist.agentDiagram} />
                 </div>
               </div>
+
+              {/* Version selection — only when the GUI has page variants */}
+              {webAppChecklist.hasAnyVariant && (
+                <div className="flex flex-col gap-2">
+                  <p className="text-sm font-medium text-muted-foreground">Versions</p>
+                  <p className="text-xs text-muted-foreground">
+                    Some pages have personalized variants. Choose which version(s) to generate.
+                    Each version uses a page&apos;s variant where it exists, and the Base page
+                    otherwise.
+                  </p>
+                  <RadioGroup
+                    value={webAppVersionMode}
+                    onValueChange={(v) => onWebAppVersionModeChange(v as WebAppVersionMode)}
+                    className="self-start"
+                  >
+                    <RadioGroupItem value="base">Base only</RadioGroupItem>
+                    <RadioGroupItem value="profile">Single profile</RadioGroupItem>
+                    <RadioGroupItem value="all">All versions</RadioGroupItem>
+                  </RadioGroup>
+                  {webAppVersionMode === 'profile' && (
+                    <Select
+                      value={webAppSelectedProfileId}
+                      onValueChange={onWebAppSelectedProfileIdChange}
+                    >
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder="Select a profile" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {webAppChecklist.variantProfiles.map((p) => (
+                          <SelectItem key={p.profileId} value={p.profileId}>
+                            {p.profileName}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
+                  {webAppVersionMode === 'all' && (
+                    <p className="text-xs text-muted-foreground">
+                      The download will contain one subfolder per version (base + each profile).
+                    </p>
+                  )}
+                </div>
+              )}
 
               {/* Hint */}
               <div className="flex items-start gap-2 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800 dark:border-amber-800 dark:bg-amber-950/30 dark:text-amber-200">

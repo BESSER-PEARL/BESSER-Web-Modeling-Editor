@@ -1,4 +1,4 @@
-import { UMLModel } from '@besser/wme';
+import { UMLModel, normalizeAgentModel } from '@besser/wme';
 import { BesserProject, ProjectDiagram, SupportedDiagramType, getActiveDiagram, diagramHasContent } from '../types/project';
 import { LocalStorageRepository } from '../services/storage/local-storage-repository';
 import {
@@ -82,6 +82,17 @@ export const buildProjectPayloadForBackend = (
     payload.diagrams = filtered;
   } else {
     payload.diagrams = diagrams;
+  }
+
+  // Normalise agent diagrams so the backend receives the legacy
+  // StateInitialNode + AgentStateTransitionInit format it expects.
+  if (Array.isArray((payload.diagrams as any).AgentDiagram)) {
+    (payload.diagrams as any).AgentDiagram = (payload.diagrams as any).AgentDiagram.map(
+      (diagram: ProjectDiagram) =>
+        diagram.model
+          ? { ...diagram, model: normalizeAgentModel(diagram.model as UMLModel) }
+          : diagram,
+    );
   }
 
   return payload;

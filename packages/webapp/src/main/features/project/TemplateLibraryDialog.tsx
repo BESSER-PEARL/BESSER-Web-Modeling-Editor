@@ -3,13 +3,7 @@ import { UMLDiagramType } from '@besser/wme';
 import { toast } from 'react-toastify';
 import { useNavigate } from 'react-router-dom';
 import { Check, Layers, Sparkles, AlertTriangle, FolderTree } from 'lucide-react';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -22,9 +16,15 @@ import {
   loadProjectThunk,
   selectProject,
   selectActiveDiagramType,
+  bumpEditorRevision,
 } from '../../app/store/workspaceSlice';
 import { ProjectStorageRepository } from '../../shared/services/storage/ProjectStorageRepository';
-import { toSupportedDiagramType, getActiveDiagram, diagramHasContent, SupportedDiagramType } from '../../shared/types/project';
+import {
+  toSupportedDiagramType,
+  getActiveDiagram,
+  diagramHasContent,
+  SupportedDiagramType,
+} from '../../shared/types/project';
 import { QuantumCircuitData } from '../../shared/types/project';
 import { importProjectFromJson } from '../../shared/services/project-import/projectImport';
 import { TemplateFactory } from './create-diagram-from-template-modal/template-factory';
@@ -34,6 +34,46 @@ import {
   SoftwarePatternTemplate,
   SoftwarePatternType,
 } from './create-diagram-from-template-modal/software-pattern/software-pattern-types';
+
+/**
+ * Shifts all element and relationship bounds so their combined bounding box is
+ * centered at canvas origin (0, 0).  Mirrors the same transform in
+ * bpmn-xml-importer.ts::centerOnOrigin so templates load centered in the
+ * viewport — the same way imported .bpmn files do.
+ */
+function centerModelOnOrigin(model: any): any {
+  const nodes = Object.values(model.elements ?? {}) as Array<{
+    bounds: { x: number; y: number; width: number; height: number };
+  }>;
+  if (nodes.length === 0) return model;
+  let minX = Infinity,
+    minY = Infinity,
+    maxX = -Infinity,
+    maxY = -Infinity;
+  for (const n of nodes) {
+    minX = Math.min(minX, n.bounds.x);
+    minY = Math.min(minY, n.bounds.y);
+    maxX = Math.max(maxX, n.bounds.x + n.bounds.width);
+    maxY = Math.max(maxY, n.bounds.y + n.bounds.height);
+  }
+  const dx = -Math.round((minX + maxX) / 2);
+  const dy = -Math.round((minY + maxY) / 2);
+  if (dx === 0 && dy === 0) return model;
+  const shiftBounds = (b: { x: number; y: number; width: number; height: number }) => ({
+    ...b,
+    x: b.x + dx,
+    y: b.y + dy,
+  });
+  const shiftedElements: Record<string, any> = {};
+  for (const [id, el] of Object.entries(model.elements ?? {})) {
+    shiftedElements[id] = { ...(el as any), bounds: shiftBounds((el as any).bounds) };
+  }
+  const shiftedRelationships: Record<string, any> = {};
+  for (const [id, rel] of Object.entries(model.relationships ?? {})) {
+    shiftedRelationships[id] = { ...(rel as any), bounds: shiftBounds((rel as any).bounds) };
+  }
+  return { ...model, elements: shiftedElements, relationships: shiftedRelationships };
+}
 
 interface TemplateLibraryDialogProps {
   open: boolean;
@@ -46,6 +86,7 @@ const categoryOrder: SoftwarePatternCategory[] = [
   SoftwarePatternCategory.BEHAVIORAL,
   SoftwarePatternCategory.CREATIONAL,
   SoftwarePatternCategory.STATE_MACHINE,
+  SoftwarePatternCategory.BPMN,
   SoftwarePatternCategory.AGENT,
   SoftwarePatternCategory.QUANTUM_CIRCUIT,
   SoftwarePatternCategory.NN,
@@ -55,6 +96,7 @@ const diagramTypeToCategory: Partial<Record<SupportedDiagramType, SoftwarePatter
   ClassDiagram: SoftwarePatternCategory.STRUCTURAL,
   StateMachineDiagram: SoftwarePatternCategory.STATE_MACHINE,
   AgentDiagram: SoftwarePatternCategory.AGENT,
+  BPMN: SoftwarePatternCategory.BPMN,
   QuantumCircuitDiagram: SoftwarePatternCategory.QUANTUM_CIRCUIT,
   NNDiagram: SoftwarePatternCategory.NN,
 };
@@ -64,6 +106,7 @@ const categoryColor: Record<SoftwarePatternCategory, string> = {
   [SoftwarePatternCategory.BEHAVIORAL]: 'bg-emerald-100 text-emerald-900 dark:bg-emerald-900/30 dark:text-emerald-300',
   [SoftwarePatternCategory.CREATIONAL]: 'bg-amber-100 text-amber-900 dark:bg-amber-900/30 dark:text-amber-300',
   [SoftwarePatternCategory.STATE_MACHINE]: 'bg-indigo-100 text-indigo-900 dark:bg-indigo-900/30 dark:text-indigo-300',
+  [SoftwarePatternCategory.BPMN]: 'bg-teal-100 text-teal-900 dark:bg-teal-900/30 dark:text-teal-300',
   [SoftwarePatternCategory.AGENT]: 'bg-fuchsia-100 text-fuchsia-900 dark:bg-fuchsia-900/30 dark:text-fuchsia-300',
   [SoftwarePatternCategory.QUANTUM_CIRCUIT]: 'bg-violet-100 text-violet-900 dark:bg-violet-900/30 dark:text-violet-300',
   [SoftwarePatternCategory.NN]: 'bg-orange-100 text-orange-900 dark:bg-orange-900/30 dark:text-orange-300',
@@ -108,7 +151,9 @@ export const TemplateLibraryDialog: React.FC<TemplateLibraryDialogProps> = ({ op
   }, []);
 
   const categories = useMemo(() => {
-    return categoryOrder.filter((category) => templates.some((template) => template.softwarePatternCategory === category));
+    return categoryOrder.filter((category) =>
+      templates.some((template) => template.softwarePatternCategory === category),
+    );
   }, [templates]);
 
   const [selectedCategory, setSelectedCategory] = useState<SoftwarePatternCategory>(categories[0]);
@@ -192,20 +237,27 @@ export const TemplateLibraryDialog: React.FC<TemplateLibraryDialogProps> = ({ op
         const qType = 'QuantumCircuitDiagram' as const;
 
         if (mode === 'new_tab' && currentProject) {
-          const addResult = await dispatch(addDiagramThunk({
-            diagramType: qType,
-            title: selectedTemplate.type,
-          })).unwrap();
+          const addResult = await dispatch(
+            addDiagramThunk({
+              diagramType: qType,
+              title: selectedTemplate.type,
+            }),
+          ).unwrap();
 
           // Spread ``addResult.diagram`` so we keep any auto-suffixed title
           // (e.g. "Quantum Demo 2" if "Quantum Demo" already existed). Don't
           // re-apply ``selectedTemplate.type`` here — that would defeat the
           // uniqueness resolution done in ``addDiagram``.
-          ProjectStorageRepository.updateDiagram(currentProject.id, qType, {
-            ...addResult.diagram,
-            model: selectedTemplate.diagram as QuantumCircuitData,
-            lastUpdate: new Date().toISOString(),
-          }, addResult.index);
+          ProjectStorageRepository.updateDiagram(
+            currentProject.id,
+            qType,
+            {
+              ...addResult.diagram,
+              model: selectedTemplate.diagram as QuantumCircuitData,
+              lastUpdate: new Date().toISOString(),
+            },
+            addResult.index,
+          );
 
           await dispatch(switchDiagramTypeThunk({ diagramType: 'QuantumCircuitDiagram' }));
           await dispatch(switchDiagramIndexThunk({ diagramType: qType, index: addResult.index }));
@@ -218,21 +270,29 @@ export const TemplateLibraryDialog: React.FC<TemplateLibraryDialogProps> = ({ op
       } else {
         const umlType = selectedTemplate.diagramType as UMLDiagramType;
         const supportedType = toSupportedDiagramType(umlType);
+        const centeredModel = centerModelOnOrigin(selectedTemplate.diagram as any);
 
         if (mode === 'new_tab' && currentProject) {
           // Create a new tab, then write the template into it.
           // Spread ``addResult.diagram`` so the auto-suffixed title survives
           // (e.g. adding a "Library Agent" template twice yields "Library Agent 2").
-          const addResult = await dispatch(addDiagramThunk({
-            diagramType: supportedType,
-            title: selectedTemplate.type,
-          })).unwrap();
+          const addResult = await dispatch(
+            addDiagramThunk({
+              diagramType: supportedType,
+              title: selectedTemplate.type,
+            }),
+          ).unwrap();
 
-          ProjectStorageRepository.updateDiagram(currentProject.id, supportedType, {
-            ...addResult.diagram,
-            model: selectedTemplate.diagram as any,
-            lastUpdate: new Date().toISOString(),
-          }, addResult.index);
+          ProjectStorageRepository.updateDiagram(
+            currentProject.id,
+            supportedType,
+            {
+              ...addResult.diagram,
+              model: centeredModel,
+              lastUpdate: new Date().toISOString(),
+            },
+            addResult.index,
+          );
 
           await dispatch(switchDiagramTypeThunk({ diagramType: umlType }));
           await dispatch(switchDiagramIndexThunk({ diagramType: supportedType, index: addResult.index }));
@@ -242,12 +302,14 @@ export const TemplateLibraryDialog: React.FC<TemplateLibraryDialogProps> = ({ op
           ProjectStorageRepository.updateDiagram(currentProject.id, supportedType, {
             ...existingDiagram,
             title: selectedTemplate.type,
-            model: selectedTemplate.diagram as any,
+            model: centeredModel,
             lastUpdate: new Date().toISOString(),
           });
           await dispatch(switchDiagramTypeThunk({ diagramType: umlType }));
         }
 
+        // Force editor reinit so the viewport resets and centers on the loaded template.
+        dispatch(bumpEditorRevision());
         navigate('/');
       }
 
@@ -290,7 +352,9 @@ export const TemplateLibraryDialog: React.FC<TemplateLibraryDialogProps> = ({ op
                   ].join(' ')}
                 >
                   <span>{category}</span>
-                  <Badge className={categoryColor[category]}>{templates.filter((template) => template.softwarePatternCategory === category).length}</Badge>
+                  <Badge className={categoryColor[category]}>
+                    {templates.filter((template) => template.softwarePatternCategory === category).length}
+                  </Badge>
                 </button>
               );
             })}
@@ -306,7 +370,9 @@ export const TemplateLibraryDialog: React.FC<TemplateLibraryDialogProps> = ({ op
                       key={template.type}
                       className={[
                         'cursor-pointer border transition-all',
-                        selected ? 'border-brand/30 bg-brand/[0.05] shadow-sm' : 'hover:border-border/90 hover:bg-brand/[0.04]',
+                        selected
+                          ? 'border-brand/30 bg-brand/[0.05] shadow-sm'
+                          : 'hover:border-border/90 hover:bg-brand/[0.04]',
                       ].join(' ')}
                       onClick={() => setSelectedTemplateType(template.type)}
                     >
@@ -341,7 +407,11 @@ export const TemplateLibraryDialog: React.FC<TemplateLibraryDialogProps> = ({ op
               <Button variant="outline" onClick={() => onOpenChange(false)}>
                 Cancel
               </Button>
-              <Button onClick={handleLoadClick} disabled={!selectedTemplate || isLoading} className="bg-brand text-brand-foreground hover:bg-brand-dark">
+              <Button
+                onClick={handleLoadClick}
+                disabled={!selectedTemplate || isLoading}
+                className="bg-brand text-brand-foreground hover:bg-brand-dark"
+              >
                 {isLoading ? 'Loading...' : 'Load Template'}
               </Button>
             </div>
@@ -357,9 +427,8 @@ export const TemplateLibraryDialog: React.FC<TemplateLibraryDialogProps> = ({ op
               Existing diagram detected
             </DialogTitle>
             <DialogDescription>
-              You already have a{' '}
-              <strong>{selectedTemplate?.diagramType?.replace('Diagram', ' Diagram')}</strong>.
-              How would you like to load the template?
+              You already have a <strong>{selectedTemplate?.diagramType?.replace('Diagram', ' Diagram')}</strong>. How
+              would you like to load the template?
             </DialogDescription>
           </DialogHeader>
           <div className="flex flex-wrap justify-end gap-2 pt-4">
@@ -370,7 +439,11 @@ export const TemplateLibraryDialog: React.FC<TemplateLibraryDialogProps> = ({ op
               <Layers className="mr-1.5 size-3.5" />
               New tab
             </Button>
-            <Button size="sm" onClick={() => doLoadTemplate('replace')} className="bg-brand text-brand-foreground hover:bg-brand-dark">
+            <Button
+              size="sm"
+              onClick={() => doLoadTemplate('replace')}
+              className="bg-brand text-brand-foreground hover:bg-brand-dark"
+            >
               Replace
             </Button>
           </div>

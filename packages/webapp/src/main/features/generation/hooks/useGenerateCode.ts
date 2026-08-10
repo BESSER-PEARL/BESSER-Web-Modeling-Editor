@@ -1,5 +1,5 @@
 import { useCallback } from 'react';
-import { ApollonEditor } from '@besser/wme';
+import { ApollonEditor, UMLModel, normalizeAgentModel } from '@besser/wme';
 import { useFileDownload } from '../../../shared/services/file-download/useFileDownload';
 import { toast } from 'react-toastify';
 import { validateDiagram } from '../../../shared/services/validation/validateDiagram';
@@ -117,7 +117,14 @@ export const useGenerateCode = () => {
       };
 
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 300000);
+      // Generating multiple web-app versions produces N complete apps, so scale
+      // the timeout with the version count (bounded at 10 min).
+      const webAppVersionCount = Array.isArray((config as any)?.webAppVersions)
+        ? (config as any).webAppVersions.length
+        : 0;
+      const requestTimeoutMs =
+        webAppVersionCount > 1 ? Math.min(600000, 300000 * webAppVersionCount) : 300000;
+      const timeoutId = setTimeout(() => controller.abort(), requestTimeoutMs);
       try {
         const response = await fetch(`${BACKEND_URL}/generate-output-from-project`, {
           method: 'POST',
@@ -196,6 +203,7 @@ export const useGenerateCode = () => {
       diagramTitle: string,
       config?: GeneratorConfig[keyof GeneratorConfig],
       referenceDiagramData?: Record<string, any>,
+      modelOverride?: UMLModel,
     ): Promise<GenerationResult> => {
       console.log('Starting code generation...');
 
@@ -228,10 +236,14 @@ export const useGenerateCode = () => {
         return { ok: false, error: validationResult.message || 'Validation failed' };
       }
 
-      // Prepare body for single diagram generation
+      // Prepare body for single diagram generation. modelOverride is used by
+      // agent personalization to ship the un-personalized base instead of
+      // whatever variant happens to be active in the editor — see
+      // handleAgentGenerate in useGeneratorExecution.
+      const rawModel = modelOverride ?? editor.model;
       const body: any = {
         title: diagramTitle,
-        model: editor.model,
+        model: generatorType === 'agent' ? normalizeAgentModel(rawModel as UMLModel) : rawModel,
         generator: generatorType,
         config: config,
         ...(referenceDiagramData ? { referenceDiagramData } : {}),

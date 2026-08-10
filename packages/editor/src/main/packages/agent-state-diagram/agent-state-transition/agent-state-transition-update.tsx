@@ -41,27 +41,34 @@ const SectionHeader = styled(Header)`
   margin-bottom: 4px;
 `;
 
-const ConditionsHeader = styled.div`
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 4px;
-`;
 
 const ConditionRow = styled.div`
   display: flex;
   flex-direction: column;
   gap: 4px;
-  padding: 4px 0;
+  padding: 12px 0 8px;
 
   & + & {
-    border-top: 1px solid ${(props) => props.theme.color.gray}22;
+    border-top: 1px solid ${(props) => props.theme.color.gray}44;
+    margin-top: 8px;
   }
 `;
 
 const ConditionActions = styled.div`
   display: flex;
   gap: 4px;
+`;
+
+const RemoveButton = styled(Button)`
+  && {
+    background-color: #dc3545;
+    border-color: #dc3545;
+    color: #fff;
+  }
+  &&:hover {
+    background-color: #c82333;
+    border-color: #bd2130;
+  }
 `;
 
 const ResizableCodeMirrorWrapper = styled.div`
@@ -221,7 +228,7 @@ class AgentStateTransitionUpdateClass extends Component<Props, State> {
 
           {!isCustomTransition && (
             <React.Fragment>
-              <SectionHeader>Condition</SectionHeader>
+              <SectionHeader style={{ marginTop: '12px' }}>Condition</SectionHeader>
               <Dropdown
                 value={element.predefinedType || 'when_intent_matched'}
                 onChange={value =>
@@ -238,38 +245,40 @@ class AgentStateTransitionUpdateClass extends Component<Props, State> {
                 <Dropdown.Item value="auto">Auto Transition</Dropdown.Item>
               </Dropdown>
               {element.predefinedType === "when_intent_matched" && (
-                <Dropdown
-                  value={element.intentName || '__placeholder__'}
-                  onChange={value =>
-                    this.props.update<AgentStateTransition>(element.id, { intentName: value === '__placeholder__' ? '' : value })
-                  }
-                >
-                  {[
-                    <Dropdown.Item value="__placeholder__" key="intent-placeholder">Select intent</Dropdown.Item>,
-                    ...intentNames.map((name, idx) => (
-                      <Dropdown.Item key={idx} value={name}>
-                        {name}
-                      </Dropdown.Item>
-                    ))
-                  ]}
-                </Dropdown>
+                <div style={{ marginTop: '8px' }}>
+                  <Dropdown
+                    value={element.intentName || '__placeholder__'}
+                    onChange={value =>
+                      this.props.update<AgentStateTransition>(element.id, { intentName: value === '__placeholder__' ? '' : value })
+                    }
+                  >
+                    {[
+                      <Dropdown.Item value="__placeholder__" key="intent-placeholder">Select intent</Dropdown.Item>,
+                      ...intentNames.map((name, idx) => (
+                        <Dropdown.Item key={idx} value={name}>
+                          {name}
+                        </Dropdown.Item>
+                      ))
+                    ]}
+                  </Dropdown>
+                </div>
               )}
               {element.predefinedType === "when_variable_operation_matched" && (
-                <React.Fragment>
+                <div style={{ marginTop: '8px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
                   <Textfield
                     value={element.variable || ""}
                     onChange={value =>
                       this.props.update<AgentStateTransition>(element.id, { variable: value })
                     }
                     placeholder="Variable"
-                    gutter
                   />
                   <Dropdown
-                    value={element.operator || '=='}
+                    value={element.operator || '__placeholder__'}
                     onChange={value =>
-                      this.props.update<AgentStateTransition>(element.id, { operator: value })
+                      this.props.update<AgentStateTransition>(element.id, { operator: value === '__placeholder__' ? '' : value })
                     }
                   >
+                    <Dropdown.Item value="__placeholder__">Select operator</Dropdown.Item>
                     <Dropdown.Item value="<">&lt;</Dropdown.Item>
                     <Dropdown.Item value="<=">&le;</Dropdown.Item>
                     <Dropdown.Item value="==">==</Dropdown.Item>
@@ -284,29 +293,25 @@ class AgentStateTransitionUpdateClass extends Component<Props, State> {
                     }
                     placeholder="Target value"
                   />
-                </React.Fragment>
+                </div>
               )}
               {element.predefinedType === "when_file_received" && (
-                <Dropdown
-                  value={element.fileType || '__placeholder__'}
-                  onChange={value =>
-                    this.props.update<AgentStateTransition>(element.id, { fileType: value === '__placeholder__' ? '' : value })
-                  }
-                >
-                  {[
-                    <Dropdown.Item value="__placeholder__" key="filetype-placeholder">Select file type</Dropdown.Item>,
-                    <Dropdown.Item value="PDF" key="pdf">PDF</Dropdown.Item>,
-                    <Dropdown.Item value="TXT" key="txt">TXT</Dropdown.Item>,
-                    <Dropdown.Item value="JSON" key="json">JSON</Dropdown.Item>
-                  ]}
-                </Dropdown>
+                <div style={{ marginTop: '8px' }}>
+                  <Textfield
+                    value={element.fileType || ""}
+                    onChange={value =>
+                      this.props.update<AgentStateTransition>(element.id, { fileType: value })
+                    }
+                    placeholder="File types, e.g. pdf, txt, json"
+                  />
+                </div>
               )}
             </React.Fragment>
           )}
 
           {isCustomTransition && (
             <React.Fragment>
-              <SectionHeader>Event</SectionHeader>
+              <SectionHeader style={{ marginTop: '12px' }}>Event</SectionHeader>
               <Dropdown
                 value={element.event || 'WildcardEvent'}
                 onChange={(value) =>
@@ -325,10 +330,7 @@ class AgentStateTransitionUpdateClass extends Component<Props, State> {
                 <Dropdown.Item value="ReceiveFileEvent">ReceiveFileEvent</Dropdown.Item>
               </Dropdown>
 
-              <ConditionsHeader>
-                <SectionHeader>Conditions</SectionHeader>
-                <Button onClick={this.addCustomCondition}>Add condition</Button>
-              </ConditionsHeader>
+              <SectionHeader style={{ marginTop: '16px' }}>Conditions</SectionHeader>
               {customConditions.map((conditionCode, index) => (
                 <ConditionRow key={`custom-condition-${index}`}>
                   <ResizableCodeMirrorWrapper>
@@ -347,12 +349,15 @@ class AgentStateTransitionUpdateClass extends Component<Props, State> {
                     />
                   </ResizableCodeMirrorWrapper>
                   <ConditionActions>
-                    <Button color="link" onClick={() => this.removeCustomCondition(index)}>
+                    <RemoveButton onClick={() => this.removeCustomCondition(index)}>
                       Remove
-                    </Button>
+                    </RemoveButton>
                   </ConditionActions>
                 </ConditionRow>
               ))}
+              <div style={{ marginTop: '8px' }}>
+                <Button color="primary" onClick={this.addCustomCondition}>Add condition</Button>
+              </div>
             </React.Fragment>
           )}
         </Section>

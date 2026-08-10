@@ -44,7 +44,7 @@ import {
   removeConfigurationVariantsFromProject,
   upsertVariantForProfile,
 } from '../../shared/services/agent-variants/agent-variants-service';
-import { AgentConfigYamlEditor } from './AgentConfigYamlEditor';
+import { AgentRuntimePanel } from './AgentRuntimePanel';
 
 type AgentTransformationConfig = Partial<AgentConfigurationPayload> & { userProfileModel?: UMLModel };
 
@@ -361,7 +361,7 @@ const flattenStructuredConfig = (raw: any): Partial<AgentConfigurationPayload> =
 
 const cloneModel = (model: UMLModel): UMLModel => JSON.parse(JSON.stringify(model)) as UMLModel;
 
-type AgentLLMElementProvider = 'openai' | 'huggingface' | 'huggingface_api' | 'replicate';
+type AgentLLMElementProvider = 'openai' | 'huggingface' | 'huggingface_api' | 'replicate' | 'ollama';
 
 type AgentLLMElement = {
   id: string;
@@ -380,6 +380,7 @@ const AGENT_LLM_PROVIDER_OPTIONS: Array<{ value: AgentLLMElementProvider; label:
   { value: 'huggingface', label: 'Hugging Face' },
   { value: 'huggingface_api', label: 'Hugging Face API' },
   { value: 'replicate', label: 'Replicate' },
+  { value: 'ollama', label: 'Ollama (local)' },
 ];
 
 const generateAgentLLMId = (): string => {
@@ -396,7 +397,7 @@ const isAgentLLMElement = (value: unknown): value is AgentLLMElement => {
 };
 
 const normalizeAgentLLMElement = (raw: any, fallbackId: string): AgentLLMElement => {
-  const provider = (['openai', 'huggingface', 'huggingface_api', 'replicate'].includes(raw?.provider)
+  const provider = (['openai', 'huggingface', 'huggingface_api', 'replicate', 'ollama'].includes(raw?.provider)
     ? raw.provider
     : 'openai') as AgentLLMElementProvider;
   const parameters =
@@ -654,6 +655,13 @@ const AgentLLMRow: React.FC<AgentLLMRowProps> = ({
     setParametersError('');
   }, [element.id]);
 
+  const updateOllamaParam = (key: string, value: string) => {
+    const updated = { ...element.parameters, [key]: value };
+    onChange(element.id, { parameters: updated });
+    setParametersText(formatAgentLLMParameters(updated));
+    setParametersError('');
+  };
+
   const commitParameters = (raw: string) => {
     if (!raw.trim()) {
       setParametersError('');
@@ -711,9 +719,21 @@ const AgentLLMRow: React.FC<AgentLLMRowProps> = ({
                 id={`agent-llm-provider-${element.id}`}
                 className="h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm transition-colors hover:border-brand/30 focus:border-brand/40 focus:outline-none focus:ring-2 focus:ring-brand/20"
                 value={element.provider}
-                onChange={(event) =>
-                  onChange(element.id, { provider: event.target.value as AgentLLMElementProvider })
-                }
+                onChange={(event) => {
+                  const newProvider = event.target.value as AgentLLMElementProvider;
+                  const updates: Partial<AgentLLMElement> = { provider: newProvider };
+                  if (newProvider === 'ollama') {
+                    const seeded = {
+                      ...element.parameters,
+                      base_url: (element.parameters.base_url as string) || 'http://localhost:11434',
+                      model: (element.parameters.model as string) || '',
+                    };
+                    updates.parameters = seeded;
+                    setParametersText(formatAgentLLMParameters(seeded));
+                    setParametersError('');
+                  }
+                  onChange(element.id, updates);
+                }}
               >
                 {AGENT_LLM_PROVIDER_OPTIONS.map((opt) => (
                   <option key={opt.value} value={opt.value}>
@@ -739,6 +759,28 @@ const AgentLLMRow: React.FC<AgentLLMRowProps> = ({
               />
             </div>
           </div>
+          {element.provider === 'ollama' && (
+            <div className="grid gap-3 md:grid-cols-2">
+              <div className="space-y-1.5">
+                <Label htmlFor={`agent-llm-ollama-url-${element.id}`}>Base URL</Label>
+                <Input
+                  id={`agent-llm-ollama-url-${element.id}`}
+                  value={(element.parameters.base_url as string) ?? 'http://localhost:11434'}
+                  placeholder="http://localhost:11434"
+                  onChange={(event) => updateOllamaParam('base_url', event.target.value)}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor={`agent-llm-ollama-model-${element.id}`}>Model</Label>
+                <Input
+                  id={`agent-llm-ollama-model-${element.id}`}
+                  value={(element.parameters.model as string) ?? ''}
+                  placeholder="e.g. llama3, mistral, qwen2.5"
+                  onChange={(event) => updateOllamaParam('model', event.target.value)}
+                />
+              </div>
+            </div>
+          )}
           <div className="space-y-1.5">
             <Label htmlFor={`agent-llm-parameters-${element.id}`}>Parameters (JSON)</Label>
             <textarea
@@ -1821,6 +1863,10 @@ export const AgentConfigurationPanel: React.FC = () => {
       ? LocalStorageRepository.getAgentBaseModel(currentAgentDiagram.id)
       : null;
 
+    // Re-personalize from the stored un-personalized base when one exists,
+    // otherwise the live diagram is itself the base. The stored snapshot is
+    // guaranteed to be in the canonical nested transition shape (normalized at
+    // the storage boundary), so it round-trips through the backend cleanly.
     const agentModel = storedBaseModel
       ? cloneModel(storedBaseModel)
       : currentAgentModel
@@ -2027,7 +2073,7 @@ export const AgentConfigurationPanel: React.FC = () => {
   const showVoiceControls = outputModalities.includes('speech');
 
   return (
-    <div className="relative h-full overflow-auto px-4 py-6 sm:px-8">
+    <div className="relative flex h-full flex-col overflow-hidden">
       {isLoading && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 px-4">
           <div className="w-full max-w-xl rounded-2xl border border-border bg-card p-6 text-center shadow-2xl">
@@ -2038,7 +2084,8 @@ export const AgentConfigurationPanel: React.FC = () => {
         </div>
       )}
 
-      <div className="mx-auto flex max-w-6xl flex-col gap-6">
+      <div className="shrink-0 border-b border-border/50 px-4 pt-6 pb-4 sm:px-8">
+      <div className="mx-auto max-w-6xl space-y-4">
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-foreground">Agent Customization</h1>
           <p className="mt-1 text-sm text-muted-foreground">
@@ -2118,7 +2165,24 @@ export const AgentConfigurationPanel: React.FC = () => {
             </Button>
           </div>
         )}
+      </div>
+      </div>
 
+      {activeTab === 'runtime' && !currentAgentModel && (
+        <div className="flex flex-1 items-center justify-center text-sm text-muted-foreground">
+          No active agent diagram. Open an agent diagram first.
+        </div>
+      )}
+      {activeTab === 'runtime' && currentAgentModel && (
+        <AgentRuntimePanel
+          currentProject={currentProject}
+          agentRuntimeConfig={agentRuntimeConfig}
+          updateAgentRuntimeConfig={updateAgentRuntimeConfig}
+          agentLLMElements={agentLLMElements}
+        />
+      )}
+      <div className={activeTab === 'personalization' ? 'flex-1 overflow-auto px-4 pb-6 pt-6 sm:px-8' : 'hidden'}>
+      <div className="mx-auto max-w-6xl">
         <form
           onSubmit={(event) => event.preventDefault()}
           className="flex flex-col gap-6"
@@ -2208,149 +2272,6 @@ export const AgentConfigurationPanel: React.FC = () => {
 
           )}
 
-          {activeTab === 'runtime' && currentAgentModel && (
-          <>
-          <Card>
-            <CardHeader>
-              <CardTitle>Agent Runtime</CardTitle>
-              <CardDescription>
-                Runtime settings for the active agent diagram (platform, intent recognition, LLM provider/model).
-                These values live on the agent diagram itself, not in global storage.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid gap-4 md:grid-cols-2">
-                <div className="space-y-1.5">
-                  <Label htmlFor="agent-runtime-platform">Platform</Label>
-                  <select
-                    id="agent-runtime-platform"
-                    className="h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm transition-colors hover:border-brand/30 focus:border-brand/40 focus:outline-none focus:ring-2 focus:ring-brand/20"
-                    value={agentRuntimeConfig.agentPlatform}
-                    onChange={(event) => updateAgentRuntimeConfig({
-                      agentPlatform: event.target.value,
-                      agentPlatformUseStreamlit: event.target.value !== 'websocket' ? false : agentRuntimeConfig.agentPlatformUseStreamlit,
-                    })}
-                  >
-                    <option value="websocket">WebSocket</option>
-                    <option value="telegram">Telegram</option>
-                  </select>
-                  {agentRuntimeConfig.agentPlatform === 'websocket' && (
-                    <label className="flex items-center gap-2 text-sm cursor-pointer pt-1">
-                      <input
-                        type="checkbox"
-                        checked={agentRuntimeConfig.agentPlatformUseStreamlit ?? false}
-                        onChange={(e) => updateAgentRuntimeConfig({ agentPlatformUseStreamlit: e.target.checked })}
-                      />
-                      Use Streamlit UI
-                    </label>
-                  )}
-                </div>
-
-                <div className="space-y-1.5">
-                  <Label htmlFor="agent-runtime-intent">Intent Recognition</Label>
-                  <select
-                    id="agent-runtime-intent"
-                    className="h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm transition-colors hover:border-brand/30 focus:border-brand/40 focus:outline-none focus:ring-2 focus:ring-brand/20"
-                    value={agentRuntimeConfig.intentRecognitionTechnology}
-                    onChange={(event) =>
-                      updateAgentRuntimeConfig({
-                        intentRecognitionTechnology: event.target.value as IntentRecognitionTechnology,
-                      })
-                    }
-                  >
-                    <option value="classical">Classical</option>
-                    <option value="llm-based">LLM-based</option>
-                  </select>
-                </div>
-
-                {agentRuntimeConfig.intentRecognitionTechnology === 'llm-based' && (
-                  <div className="space-y-1.5">
-                    <Label htmlFor="agent-runtime-llm-name">LLM</Label>
-                    <select
-                      id="agent-runtime-llm-name"
-                      className="h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm transition-colors hover:border-brand/30 focus:border-brand/40 focus:outline-none focus:ring-2 focus:ring-brand/20"
-                      value={agentRuntimeConfig.agentLlmName}
-                      onChange={(event) =>
-                        updateAgentRuntimeConfig({ agentLlmName: event.target.value })
-                      }
-                    >
-                      <option value="">(use default)</option>
-                      {agentLLMElements.map((entry) => (
-                        <option key={entry.id} value={entry.name}>
-                          {entry.name || '(unnamed LLM)'}
-                        </option>
-                      ))}
-                    </select>
-                    {agentLLMElements.length === 0 && (
-                      <p className="text-xs text-muted-foreground">
-                        Define an LLM in the LLMs section below to use it here.
-                      </p>
-                    )}
-                  </div>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>LLMs</CardTitle>
-              <CardDescription>
-                LLMs available to the agent.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              {agentLLMElements.length === 0 ? (
-                <p className="text-sm text-muted-foreground">
-                  No LLMs defined yet. Click "Add LLM" to create one.
-                </p>
-              ) : (
-                <div className="space-y-2">
-                  {agentLLMElements.map((llm) => (
-                    <AgentLLMRow
-                      key={llm.id}
-                      element={llm}
-                      expanded={expandedLlmId === llm.id}
-                      isDefault={Boolean(defaultLlmName) && llm.name === defaultLlmName}
-                      onToggleExpanded={handleToggleExpandedLlm}
-                      onChange={handleUpdateAgentLLM}
-                      onRemove={handleRemoveAgentLLM}
-                      onSetDefault={handleSetDefaultLlm}
-                    />
-                  ))}
-                </div>
-              )}
-              <div>
-                <Button type="button" onClick={handleAddAgentLLM}>
-                  Add LLM
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>Agent Configuration File (<code>config.yaml</code>)</CardTitle>
-              <CardDescription>
-                Edit the <code>config.yaml</code> file that will be included when generating the agent.
-                {' '}
-                <a
-                  href="https://besser-agentic-framework.readthedocs.io/latest/wiki/configuration_properties.html"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-brand underline underline-offset-2 hover:text-brand/80"
-                >
-                  Configuration properties reference ↗
-                </a>
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <AgentConfigYamlEditor currentProject={currentProject} />
-            </CardContent>
-          </Card>
-          </>
-          )}
-
           {activeTab === 'personalization' && (
           <>
           <Card>
@@ -2411,8 +2332,6 @@ export const AgentConfigurationPanel: React.FC = () => {
                           <option value="original">Original</option>
                           <option value="formal">Formal</option>
                           <option value="informal">Informal</option>
-                          <option value="friendly">Friendly</option>
-                          <option value="technical">Technical</option>
                         </select>
                       </div>
 
@@ -2897,6 +2816,7 @@ export const AgentConfigurationPanel: React.FC = () => {
           </>
           )}
         </form>
+      </div>
       </div>
     </div>
   );

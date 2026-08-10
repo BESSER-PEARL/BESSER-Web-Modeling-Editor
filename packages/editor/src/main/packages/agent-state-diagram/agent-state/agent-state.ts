@@ -149,28 +149,36 @@ export class AgentState extends UMLContainer implements IUMLState {
 
     // Reasoning states have a fixed size — body children are not shown.
     if (this.stateType === 'reasoning') {
-      const nameWidth = Text.size(layer, this.name, { fontWeight: 'bold' }).width + 60;
-      this.bounds.width = clampAgentStateWidth(Math.round(nameWidth / radix) * radix);
-      this.bounds.height = AgentState.reasoningStateHeight;
+      if (!this.isManuallyLayouted) {
+        const nameWidth = Text.size(layer, this.name, { fontWeight: 'bold' }).width + 60;
+        this.bounds.width = clampAgentStateWidth(Math.round(nameWidth / radix) * radix);
+        this.bounds.height = AgentState.reasoningStateHeight;
+      }
+      this.bounds.width = Math.max(this.bounds.width, AGENT_STATE_MIN_WIDTH);
+      this.bounds.height = Math.max(this.bounds.height, 50);
       return [this];
     }
 
-    const initialWidth = Math.round(this.bounds.width / radix) * radix;
-    const computedWidth = [this, ...bodies, ...fallbackBodies].reduce(
-      (current, child, index) => {
-        const styles = index === 0 ? { fontWeight: 'bold' } : undefined;
-        const lines = child.name.split('\n');
-        const maxLineWidth = lines.reduce((max, line) => {
-          return Math.max(max, Text.size(layer, line, styles).width);
-        }, 0);
-        const measured = maxLineWidth + 60;
-        const rounded = Math.round(measured / radix) * radix;
-        return Math.max(current, rounded);
-      },
-      initialWidth,
-    );
+    if (!this.isManuallyLayouted) {
+      const initialWidth = Math.round(this.bounds.width / radix) * radix;
+      const computedWidth = [this, ...bodies, ...fallbackBodies].reduce(
+        (current, child, index) => {
+          const styles = index === 0 ? { fontWeight: 'bold' } : undefined;
+          const lines = child.name.split('\n');
+          const maxLineWidth = lines.reduce((max, line) => {
+            return Math.max(max, Text.size(layer, line, styles).width);
+          }, 0);
+          const measured = maxLineWidth + 60;
+          const rounded = Math.round(measured / radix) * radix;
+          return Math.max(current, rounded);
+        },
+        initialWidth,
+      );
 
-    this.bounds.width = clampAgentStateWidth(computedWidth);
+      this.bounds.width = clampAgentStateWidth(computedWidth);
+    } else {
+      this.bounds.width = Math.max(this.bounds.width, AGENT_STATE_MIN_WIDTH);
+    }
 
     let y = this.headerHeight;
     for (const body of bodies) {
@@ -187,7 +195,8 @@ export class AgentState extends UMLContainer implements IUMLState {
       y += fallbackBody.bounds.height;
     }
 
-    this.bounds.height = y;
+    // State height should always follow the current body/fallback rows.
+    this.bounds.height = Math.max(y, this.headerHeight);
     return [this, ...bodies, ...fallbackBodies];
   }
 }

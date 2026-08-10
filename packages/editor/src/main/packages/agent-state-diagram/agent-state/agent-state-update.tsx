@@ -55,18 +55,42 @@ const SectionHeader = styled.span`
 const RadioGroup = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 2px;
-  padding: 4px 0;
+  gap: 8px;
+  padding: 6px 0;
+
+  label {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    font-size: 13px;
+    cursor: pointer;
+  }
+
+  input[type='radio'] {
+    width: 15px;
+    height: 15px;
+    flex-shrink: 0;
+    accent-color: ${(props: any) => props.theme.color.primary};
+    cursor: pointer;
+  }
 `;
 
 const DbFieldRow = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  padding: 4px 0;
+  gap: 6px;
+  padding: 8px 0;
 
   & + & {
-    border-top: 1px solid ${(props: any) => props.theme.color.gray}22;
+    border-top: 1px solid ${(props: any) => props.theme.color.gray};
+  }
+
+  & > label {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    opacity: 0.55;
   }
 `;
 
@@ -98,8 +122,8 @@ const LlmSelect = styled.select`
 const LlmFieldRow = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  padding: 4px 0;
+  gap: 6px;
+  padding: 6px 0;
 `;
 
 /* Body-type toggle */
@@ -125,14 +149,21 @@ const BodyTypeBtn = styled.button<{ active?: boolean }>`
 
 /* Action card */
 const ActionCard = styled.div`
-  border: 1px solid ${(props: any) => props.theme.color.gray}44;
-  border-radius: 4px;
-  margin-bottom: 6px;
-  background: transparent;
-  transition: border-color 0.15s;
+  border: 2px solid ${(props: any) => props.theme.color.gray};
+  border-left: 4px solid ${(props: any) => props.theme.color.primary}99;
+  border-radius: 8px;
+  margin-bottom: 18px;
+  background: ${(props: any) => props.theme.color.background};
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.07);
+  transition: border-color 0.15s, box-shadow 0.15s;
+  &:hover {
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.11);
+  }
   &[data-drag-over='true'] {
     border-color: ${(props: any) => props.theme.color.primary};
+    border-left-color: ${(props: any) => props.theme.color.primary};
     background: ${(props: any) => props.theme.color.primary}11;
+    box-shadow: 0 2px 8px ${(props: any) => props.theme.color.primary}33;
   }
   &[data-dragging='true'] {
     opacity: 0.4;
@@ -143,19 +174,21 @@ const ActionCardHeader = styled.div`
   display: flex;
   align-items: center;
   gap: 4px;
-  padding: 5px 6px;
+  padding: 7px 8px;
   cursor: default;
+  background: ${(props: any) => props.theme.color.backgroundVariant}55;
+  border-radius: 7px 7px 0 0;
 `;
 
 const DragHandle = styled.span`
   cursor: grab;
-  opacity: 0.4;
+  opacity: 0.35;
   font-size: 14px;
   line-height: 1;
   flex-shrink: 0;
   user-select: none;
   &:hover {
-    opacity: 0.9;
+    opacity: 0.8;
   }
   &:active {
     cursor: grabbing;
@@ -163,18 +196,20 @@ const DragHandle = styled.span`
 `;
 
 const ActionTypeBadge = styled.span`
-  font-size: 10px;
+  font-size: 16px;
   text-transform: uppercase;
-  background: ${(props: any) => props.theme.color.gray}22;
-  padding: 2px 5px;
-  border-radius: 3px;
-  letter-spacing: 0.4px;
+  background: ${(props: any) => props.theme.color.primaryContrast}11;
+  color: ${(props: any) => props.theme.color.primaryContrast};
+  padding: 2px 8px;
+  border-radius: 4px;
+  letter-spacing: 0.5px;
+  font-weight: 600;
   flex-shrink: 0;
 `;
 
 const ActionSummary = styled.span`
   flex: 1;
-  font-size: 12px;
+  font-size: 13px;
   opacity: 0.75;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -186,18 +221,27 @@ const IconBtn = styled.button`
   border: none;
   cursor: pointer;
   padding: 2px 4px;
-  opacity: 0.55;
+  opacity: 0.45;
   font-size: 13px;
   line-height: 1;
   flex-shrink: 0;
+  border-radius: 3px;
+  transition: opacity 0.1s, background 0.1s;
   &:hover {
     opacity: 1;
+    background: ${(props: any) => props.theme.color.gray}66;
   }
 `;
 
 const ActionBody = styled.div`
-  padding: 0 8px 8px 8px;
-  border-top: 1px solid ${(props: any) => props.theme.color.gray}22;
+  padding: 10px 12px 12px 12px;
+  border-top: 1px solid ${(props: any) => props.theme.color.gray};
+  background: ${(props: any) => props.theme.color.backgroundVariant}33;
+  border-radius: 0 0 7px 7px;
+
+  h1 {
+    color: ${(props: any) => props.theme.color.primary};
+  }
 `;
 
 const AddActionRow = styled.div`
@@ -219,8 +263,18 @@ const ToggleLabel = styled.label`
 const CheckboxRow = styled.label`
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 4px 0;
+  gap: 8px;
+  padding: 5px 0;
+  font-size: 13px;
+  cursor: pointer;
+
+  input[type='checkbox'] {
+    width: 15px;
+    height: 15px;
+    flex-shrink: 0;
+    accent-color: ${(props: any) => props.theme.color.primary};
+    cursor: pointer;
+  }
 `;
 
 const WsWarning = styled.p`
@@ -230,13 +284,61 @@ const WsWarning = styled.p`
   opacity: 0.85;
 `;
 
+const ActionIndex = styled.span`
+  font-size: 10px;
+  font-weight: 700;
+  opacity: 0.35;
+  flex-shrink: 0;
+  min-width: 14px;
+  text-align: center;
+`;
+
 const NewActionLabel = styled.div`
   font-size: 11px;
   text-transform: uppercase;
   letter-spacing: 0.5px;
   opacity: 0.55;
-  margin-top: 8px;
+  margin-top: 14px;
   margin-bottom: 4px;
+  padding-top: 10px;
+  border-top: 1px dashed ${(props: any) => props.theme.color.gray}88;
+`;
+
+const VarHint = styled.p`
+  font-size: 11px;
+  opacity: 0.55;
+  margin: 2px 0 4px 0;
+  font-style: italic;
+`;
+
+const PromptModeRow = styled.div`
+  display: flex;
+  gap: 4px;
+  margin-bottom: 6px;
+`;
+
+const PromptModeBtn = styled.button<{ active?: boolean }>`
+  flex: 1;
+  padding: 5px 8px;
+  border-radius: 4px;
+  border: 1px solid ${(props: any) => props.theme.color.gray};
+  background: ${(props: any) => (props.active ? props.theme.color.primary : 'transparent')};
+  color: ${(props: any) => (props.active ? '#fff' : 'inherit')};
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: ${(props: any) => (props.active ? 600 : 400)};
+  &:hover:not(:disabled) { opacity: 0.85; }
+`;
+
+const StoreInSessionRow = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 12px;
+  padding: 10px;
+  border-radius: 6px;
+  border: 1px solid ${(props: any) => props.theme.color.gray};
+  background: ${(props: any) => props.theme.color.background};
 `;
 
 const SectionTabRow = styled.div`
@@ -313,12 +415,19 @@ interface State {
   newFallbackActionType: string;
   newBodyActionSection: ActionSection;
   newFallbackActionSection: ActionSection;
-  expandedBodyIds: Set<string>;
-  expandedFallbackIds: Set<string>;
+  // Actions are shown expanded (in edit mode) by default. We track which ones
+  // the user has explicitly collapsed rather than which are expanded, so freshly
+  // loaded agents and newly added actions reveal their editor without a click.
+  collapsedBodyIds: Set<string>;
+  collapsedFallbackIds: Set<string>;
   draggingIndex: number | null;
   draggingPrefix: string | null;
   dragOverIndex: number | null;
   dragOverPrefix: string | null;
+  // Which card, if any, has drag armed. Dragging is only enabled once the
+  // mouse is pressed on that card's drag handle — so clicking inside a text
+  // field selects/positions the cursor normally instead of starting a drag.
+  dragArmedKey: string | null;
 }
 
 const ACTION_TYPE_LABELS: Record<string, string> = {
@@ -361,12 +470,13 @@ class StateUpdate extends Component<Props, State> {
     newFallbackActionType: 'text',
     newBodyActionSection: 'simple',
     newFallbackActionSection: 'simple',
-    expandedBodyIds: new Set(),
-    expandedFallbackIds: new Set(),
+    collapsedBodyIds: new Set(),
+    collapsedFallbackIds: new Set(),
     draggingIndex: null,
     draggingPrefix: null,
     dragOverIndex: null,
     dragOverPrefix: null,
+    dragArmedKey: null,
   };
 
   private layoutTimer: ReturnType<typeof setTimeout> | null = null;
@@ -481,12 +591,12 @@ class StateUpdate extends Component<Props, State> {
             <Divider />
             {needsLlm && (
               <WsWarning>
-                ⚠ No LLM is defined in the diagram, but this state requires one. Add an LLM in the Agent Configuration.
+                ⚠ No LLM is defined in the diagram, but this state requires one. Add an LLM in the Components page.
               </WsWarning>
             )}
             {needsChatLlm && (
               <WsWarning>
-                ⚠ LLM Chat requires an OpenAI or Hugging Face LLM, but none are defined. Add a compatible LLM in the Agent Configuration.
+                ⚠ LLM Chat requires an OpenAI or Hugging Face LLM, but none are defined. Add a compatible LLM in the Components page.
               </WsWarning>
             )}
             {needsPlatform && (
@@ -708,7 +818,7 @@ class StateUpdate extends Component<Props, State> {
         ? this.setState({ newBodyActionType: v })
         : this.setState({ newFallbackActionType: v });
 
-    const expandedIds = prefix === 'body' ? this.state.expandedBodyIds : this.state.expandedFallbackIds;
+    const collapsedIds = prefix === 'body' ? this.state.collapsedBodyIds : this.state.collapsedFallbackIds;
     const wsTooltip = 'Requires WebSocketPlatform. Shown in red as a reminder — add it to dismiss.';
     const chatTooltip = 'Requires an OpenAI or Hugging Face LLM. Shown in red as a reminder.';
     const wsColor = hasWebSocketPlatform ? undefined : '#e04040';
@@ -716,8 +826,13 @@ class StateUpdate extends Component<Props, State> {
 
     return (
       <>
+        {actions.length === 0 && (
+          <p style={{ fontSize: 12, margin: '4px 0 8px', opacity: 0.6, fontStyle: 'italic' }}>
+            No actions defined.
+          </p>
+        )}
         {actions.map((action, index) => {
-          const isExpanded = expandedIds.has(action.id);
+          const isExpanded = !collapsedIds.has(action.id);
           const isDraggingOver =
             this.state.dragOverIndex === index && this.state.dragOverPrefix === prefix;
           const isDragging =
@@ -732,10 +847,12 @@ class StateUpdate extends Component<Props, State> {
               (action.replyType === 'db_reply' && (action.dbQueryMode || 'llm_query') === 'llm_query')
             ));
 
+          const cardKey = `${prefix}-${index}`;
+
           return (
             <ActionCard
               key={action.id}
-              draggable
+              draggable={this.state.dragArmedKey === cardKey}
               data-drag-over={isDraggingOver ? 'true' : 'false'}
               data-dragging={isDragging ? 'true' : 'false'}
               onDragStart={(e) => {
@@ -756,22 +873,37 @@ class StateUpdate extends Component<Props, State> {
               onDrop={(e) => {
                 e.preventDefault();
                 const fromIndex = parseInt(e.dataTransfer.getData('text/plain'), 10);
-                if (!Number.isNaN(fromIndex) && fromIndex !== index) {
+                // Only reorder within the same section. Without this guard a card
+                // dragged from the body list and dropped on the fallback list (or
+                // vice versa) calls swapActions with an index from the other list,
+                // dereferencing an out-of-range member and crashing.
+                if (
+                  this.state.draggingPrefix === prefix &&
+                  !Number.isNaN(fromIndex) &&
+                  fromIndex !== index &&
+                  fromIndex < actions.length
+                ) {
                   this.swapActions(actions, fromIndex, index);
                 }
-                this.setState({ draggingIndex: null, draggingPrefix: null, dragOverIndex: null, dragOverPrefix: null });
+                this.setState({ draggingIndex: null, draggingPrefix: null, dragOverIndex: null, dragOverPrefix: null, dragArmedKey: null });
               }}
               onDragEnd={() => {
-                this.setState({ draggingIndex: null, draggingPrefix: null, dragOverIndex: null, dragOverPrefix: null });
+                this.setState({ draggingIndex: null, draggingPrefix: null, dragOverIndex: null, dragOverPrefix: null, dragArmedKey: null });
               }}
             >
               <ActionCardHeader>
-                <DragHandle title="Drag to reorder">⠿</DragHandle>
-                <ActionTypeBadge style={badgeWarning ? { color: '#e04040' } : undefined}>
+                <DragHandle
+                  title="Drag to reorder"
+                  onMouseDown={() => this.setState({ dragArmedKey: cardKey })}
+                  onMouseUp={() => this.setState({ dragArmedKey: null })}
+                >
+                  ⠿
+                </DragHandle>
+                <ActionTypeBadge style={badgeWarning ? { color: '#e04040', background: '#e0404022' } : undefined}>
                   {ACTION_TYPE_LABELS[action.replyType] ?? action.replyType}
                 </ActionTypeBadge>
-                <ActionSummary title={action.name}>{this.getActionSummary(action)}</ActionSummary>
-                <IconBtn title={isExpanded ? 'Collapse' : 'Expand'} onClick={() => this.toggleExpand(action.id, prefix)}>
+
+                <IconBtn style={{ marginLeft: 'auto' }} title={isExpanded ? 'Collapse' : 'Expand'} onClick={() => this.toggleExpand(action.id, prefix)}>
                   {isExpanded ? '▲' : '✎'}
                 </IconBtn>
                 <IconBtn title="Delete action" onClick={this.delete(action.id)}>
@@ -838,11 +970,16 @@ class StateUpdate extends Component<Props, State> {
           </LlmSelect>
           <Button color="primary" onClick={() => {
             const id = this.addPredefinedAction(Clazz, selectedActionType);
+            // New actions are expanded by default; make sure a stale collapsed
+            // entry (e.g. from a previously deleted action reusing state) can't
+            // hide the freshly created one.
             if (id) {
-              const key = prefix === 'body' ? 'expandedBodyIds' : 'expandedFallbackIds';
-              const next = new Set(this.state[key]);
-              next.add(id);
-              this.setState({ [key]: next } as any);
+              const key = prefix === 'body' ? 'collapsedBodyIds' : 'collapsedFallbackIds';
+              if (this.state[key].has(id)) {
+                const next = new Set(this.state[key]);
+                next.delete(id);
+                this.setState({ [key]: next } as any);
+              }
             }
           }}>
             Add
@@ -867,24 +1004,87 @@ class StateUpdate extends Component<Props, State> {
     switch (action.replyType) {
       case 'text':
         return (
-          <Textfield
-            outline
-            value={action.name}
-            onChange={(value) => this.props.update(action.id, { name: value })}
-            placeholder="Enter reply message"
-          />
+          <>
+            <Textfield
+              outline
+              value={action.name}
+              onChange={(value) => this.props.update(action.id, { name: value })}
+              placeholder="Enter reply message"
+            />
+            <CheckboxRow style={{ marginTop: 4 }}>
+              <input
+                type="checkbox"
+                checked={action.useSessionVars || false}
+                onChange={(e) => this.props.update<AgentStateMember>(action.id, { useSessionVars: e.target.checked })}
+              />
+              Interpolate session variables
+            </CheckboxRow>
+            {action.useSessionVars && (
+              <VarHint>Use &#123;key&#125; for session values, &#123;user_message&#125; for the current user message.</VarHint>
+            )}
+          </>
         );
-      case 'llm':
+      case 'llm': {
+        const llmInputMode = action.inputPromptMode || 'last_user_message';
         return (
           <>
             {llmNames.length === 0 && (
               <WsWarning style={{ marginBottom: 6 }}>
-                No LLM defined. Add one in the Agent Configuration.
+                No LLM defined. Add one in the Components page.
               </WsWarning>
             )}
             {this.renderLlmNameField(action, llmNames, `${fieldId}-llm`)}
+            <CheckboxRow style={{ marginTop: 2 }}>
+              <input
+                type="checkbox"
+                checked={action.systemPromptUseSessionVars || false}
+                onChange={(e) => this.props.update<AgentStateMember>(action.id, { systemPromptUseSessionVars: e.target.checked })}
+              />
+              Interpolate &#123;vars&#125; in system message
+            </CheckboxRow>
+            <LlmFieldRow style={{ marginTop: 8 }}>
+              <Header>Input (sent to LLM)</Header>
+              <PromptModeRow>
+                <PromptModeBtn
+                  active={llmInputMode === 'last_user_message'}
+                  onClick={() => this.props.update<AgentStateMember>(action.id, { inputPromptMode: 'last_user_message', customInputPrompt: '' })}
+                >
+                  Last user message
+                </PromptModeBtn>
+                <PromptModeBtn
+                  active={llmInputMode === 'custom'}
+                  onClick={() => this.props.update<AgentStateMember>(action.id, { inputPromptMode: 'custom' })}
+                >
+                  Custom prompt
+                </PromptModeBtn>
+              </PromptModeRow>
+              {llmInputMode === 'custom' && (
+                <>
+                  <Textfield
+                    outline
+                    multiline
+                    enterToSubmit={false}
+                    value={action.customInputPrompt || ''}
+                    onChange={(value) => this.props.update<AgentStateMember>(action.id, { customInputPrompt: value })}
+                    placeholder="e.g. Summarise: {user_message}. Context: {ctx}"
+                  />
+                  <VarHint>Use &#123;user_message&#125; for the user's message, &#123;key&#125; for session values.</VarHint>
+                  <CheckboxRow>
+                    <input
+                      type="checkbox"
+                      checked={action.customInputPromptUseSessionVars || false}
+                      onChange={(e) => this.props.update<AgentStateMember>(action.id, { customInputPromptUseSessionVars: e.target.checked })}
+                    />
+                    Replace &#123;vars&#125; at runtime
+                  </CheckboxRow>
+                </>
+              )}
+            </LlmFieldRow>
+            {this.renderStoreInSession(action)}
+            {this.renderSendReply(action)}
           </>
         );
+      }
       case 'llm_chat': {
         const selectedProvider = action.llm_name ? llmProviderByName[action.llm_name] : '';
         const hasIncompatibleSelection = Boolean(
@@ -902,54 +1102,114 @@ class StateUpdate extends Component<Props, State> {
                 ? 'Selected LLM provider is incompatible with chat(). Use OpenAI or Hugging Face.'
                 : undefined,
             })}
+            <CheckboxRow style={{ marginTop: 2 }}>
+              <input
+                type="checkbox"
+                checked={action.systemPromptUseSessionVars || false}
+                onChange={(e) => this.props.update<AgentStateMember>(action.id, { systemPromptUseSessionVars: e.target.checked })}
+              />
+              Interpolate &#123;vars&#125; in system message
+            </CheckboxRow>
+            {this.renderStoreInSession(action)}
+            {this.renderSendReply(action)}
           </>
         );
       }
-      case 'rag':
+      case 'rag': {
+        const ragInputMode = action.inputPromptMode || 'last_user_message';
         return (
           <>
             {llmNames.length === 0 && (
               <WsWarning style={{ marginBottom: 6 }}>
-                No LLM defined. RAG requires an LLM. Add one in the Agent Configuration.
+                No LLM defined. RAG requires an LLM. Add one in the Components page.
               </WsWarning>
             )}
             {ragDatabaseNames.length ? (
-          <LlmFieldRow>
-            <Header>RAG database</Header>
-            <Dropdown
-              value={action.ragDatabaseName && action.ragDatabaseName.length > 0 ? action.ragDatabaseName : '__placeholder__'}
-              onChange={(value) => {
-                const selected = value === '__placeholder__' ? '' : value;
-                this.props.update<AgentStateMember>(action.id, {
-                  ragDatabaseName: selected,
-                  name: this.getRagDisplayName(selected),
-                });
-              }}
-            >
-              {[
-                <Dropdown.Item value="__placeholder__" key="rag-placeholder">Select RAG database</Dropdown.Item>,
-                ...ragDatabaseNames.map((name, i) => (
-                  <Dropdown.Item key={`rag-${i}-${name}`} value={name}>{name}</Dropdown.Item>
-                )),
-              ]}
-            </Dropdown>
-            <Header style={{ marginTop: 6 }}>Prompt</Header>
-            <Textfield
-              outline
-              multiline
-              enterToSubmit={false}
-              value={action.prompt || ''}
-              onChange={(value) => this.props.update<AgentStateMember>(action.id, { prompt: value })}
-              placeholder="Optional prompt passed to RAGReply(prompt=...)"
-            />
-          </LlmFieldRow>
-        ) : (
-          <p style={{ fontSize: 12, margin: '4px 0', opacity: 0.7 }}>
-            No RAG databases found. Create one from the palette first.
-          </p>
-        )}
+              <LlmFieldRow>
+                <Header>RAG database</Header>
+                <Dropdown
+                  value={action.ragDatabaseName && action.ragDatabaseName.length > 0 ? action.ragDatabaseName : '__placeholder__'}
+                  onChange={(value) => {
+                    const selected = value === '__placeholder__' ? '' : value;
+                    this.props.update<AgentStateMember>(action.id, {
+                      ragDatabaseName: selected,
+                      name: this.getRagDisplayName(selected),
+                    });
+                  }}
+                >
+                  {[
+                    <Dropdown.Item value="__placeholder__" key="rag-placeholder">Select RAG database</Dropdown.Item>,
+                    ...ragDatabaseNames.map((name, i) => (
+                      <Dropdown.Item key={`rag-${i}-${name}`} value={name}>{name}</Dropdown.Item>
+                    )),
+                  ]}
+                </Dropdown>
+                <Header style={{ marginTop: 6 }}>Prompt (for RAG)</Header>
+                <Textfield
+                  outline
+                  multiline
+                  enterToSubmit={false}
+                  value={action.prompt || ''}
+                  onChange={(value) => this.props.update<AgentStateMember>(action.id, { prompt: value })}
+                  placeholder="Optional prompt passed to RAGReply(prompt=...)"
+                />
+                <CheckboxRow style={{ marginTop: 2 }}>
+                  <input
+                    type="checkbox"
+                    checked={action.promptUseSessionVars || false}
+                    onChange={(e) => this.props.update<AgentStateMember>(action.id, { promptUseSessionVars: e.target.checked })}
+                  />
+                  Interpolate &#123;vars&#125; in prompt
+                </CheckboxRow>
+              </LlmFieldRow>
+            ) : (
+              <p style={{ fontSize: 12, margin: '4px 0', opacity: 0.7 }}>
+                No RAG databases found. Create one from the palette first.
+              </p>
+            )}
+            <LlmFieldRow style={{ marginTop: 8 }}>
+              <Header>Input (sent to RAG)</Header>
+              <PromptModeRow>
+                <PromptModeBtn
+                  active={ragInputMode === 'last_user_message'}
+                  onClick={() => this.props.update<AgentStateMember>(action.id, { inputPromptMode: 'last_user_message', customInputPrompt: '' })}
+                >
+                  Last user message
+                </PromptModeBtn>
+                <PromptModeBtn
+                  active={ragInputMode === 'custom'}
+                  onClick={() => this.props.update<AgentStateMember>(action.id, { inputPromptMode: 'custom' })}
+                >
+                  Custom prompt
+                </PromptModeBtn>
+              </PromptModeRow>
+              {ragInputMode === 'custom' && (
+                <>
+                  <Textfield
+                    outline
+                    multiline
+                    enterToSubmit={false}
+                    value={action.customInputPrompt || ''}
+                    onChange={(value) => this.props.update<AgentStateMember>(action.id, { customInputPrompt: value })}
+                    placeholder="e.g. Summarise: {user_message}. Context: {ctx}"
+                  />
+                  <VarHint>Use &#123;user_message&#125; for the user's message, &#123;key&#125; for session values.</VarHint>
+                  <CheckboxRow>
+                    <input
+                      type="checkbox"
+                      checked={action.customInputPromptUseSessionVars || false}
+                      onChange={(e) => this.props.update<AgentStateMember>(action.id, { customInputPromptUseSessionVars: e.target.checked })}
+                    />
+                    Replace &#123;vars&#125; at runtime
+                  </CheckboxRow>
+                </>
+              )}
+            </LlmFieldRow>
+            {this.renderStoreInSession(action)}
+            {this.renderSendReply(action)}
           </>
         );
+      }
       case 'db_reply':
         return this.renderDbReplyEditor(action, Clazz, llmNames);
       case 'web_crawl_llm':
@@ -1111,7 +1371,7 @@ class StateUpdate extends Component<Props, State> {
   // ─── Expand / collapse ────────────────────────────────────────────────────────
 
   private toggleExpand = (id: string, prefix: 'body' | 'fallback') => {
-    const key = prefix === 'body' ? 'expandedBodyIds' : 'expandedFallbackIds';
+    const key = prefix === 'body' ? 'collapsedBodyIds' : 'collapsedFallbackIds';
     const current: Set<string> = this.state[key];
     const next = new Set(current);
     if (next.has(id)) next.delete(id);
@@ -1181,6 +1441,17 @@ class StateUpdate extends Component<Props, State> {
               })}
               placeholder={action.replyType === 'ws_markdown' ? '**Bold**, *italic*, etc.' : '<p>HTML content</p>'}
             />
+            <CheckboxRow style={{ marginTop: 4 }}>
+              <input
+                type="checkbox"
+                checked={action.useSessionVars || false}
+                onChange={(e) => this.props.update<AgentStateMember>(action.id, { useSessionVars: e.target.checked })}
+              />
+              Interpolate &#123;vars&#125; in message
+            </CheckboxRow>
+            {action.useSessionVars && (
+              <VarHint>Use &#123;key&#125; for session values, &#123;user_message&#125; for the current user message.</VarHint>
+            )}
           </LlmFieldRow>
         );
         break;
@@ -1196,6 +1467,17 @@ class StateUpdate extends Component<Props, State> {
               onChange={(v) => this.props.update<AgentStateMember>(action.id, { ws_message: v })}
               placeholder="Text to convert to speech"
             />
+            <CheckboxRow style={{ marginTop: 4 }}>
+              <input
+                type="checkbox"
+                checked={action.useSessionVars || false}
+                onChange={(e) => this.props.update<AgentStateMember>(action.id, { useSessionVars: e.target.checked })}
+              />
+              Interpolate &#123;vars&#125; in message
+            </CheckboxRow>
+            {action.useSessionVars && (
+              <VarHint>Use &#123;key&#125; for session values, &#123;user_message&#125; for the current user message.</VarHint>
+            )}
             <Header style={{ marginTop: 6 }}>Audio speed (optional)</Header>
             <Textfield
               outline
@@ -1344,6 +1626,32 @@ class StateUpdate extends Component<Props, State> {
 
   private isChatCompatibleProvider = (provider: string): boolean => provider === 'openai' || provider === 'huggingface';
 
+  private renderStoreInSession = (action: AgentStateMember): React.ReactNode => (
+    <StoreInSessionRow>
+      <Header>Store result in session (optional)</Header>
+      <Textfield
+        outline
+        value={action.storeInSession || ''}
+        onChange={(value) => this.props.update<AgentStateMember>(action.id, { storeInSession: value.trim() })}
+        placeholder="session_key (leave empty to skip)"
+      />
+      {action.storeInSession && (
+        <VarHint>Result stored as &#123;{action.storeInSession}&#125; — reuse it in later states.</VarHint>
+      )}
+    </StoreInSessionRow>
+  );
+
+  private renderSendReply = (action: AgentStateMember): React.ReactNode => (
+    <CheckboxRow style={{ marginTop: 6 }}>
+      <input
+        type="checkbox"
+        checked={action.sendReply !== false}
+        onChange={(e) => this.props.update<AgentStateMember>(action.id, { sendReply: e.target.checked })}
+      />
+      Send as agent reply (uncheck to only store, not send)
+    </CheckboxRow>
+  );
+
   private renderDbReplyEditor = (
     member: AgentStateMember | undefined,
     Clazz: typeof AgentStateBody | typeof AgentStateFallbackBody,
@@ -1425,14 +1733,54 @@ class StateUpdate extends Component<Props, State> {
             <>
               {llmNames.length === 0 && (
                 <WsWarning style={{ marginBottom: 6 }}>
-                  No LLM defined. LLM query mode requires an LLM. Add one in the Agent Configuration.
+                  No LLM defined. LLM query mode requires an LLM. Add one in the Components page.
                 </WsWarning>
               )}
               <p>Answer will be generated with LLM during runtime</p>
               {this.renderLlmNameField(member, llmNames, `db-llm-${member.id}`)}
+              <LlmFieldRow style={{ marginTop: 6 }}>
+                <Header>Input (sent to DB + LLM)</Header>
+                <PromptModeRow>
+                  <PromptModeBtn
+                    active={(member.inputPromptMode || 'last_user_message') === 'last_user_message'}
+                    onClick={() => this.props.update<AgentStateMember>(member.id, { inputPromptMode: 'last_user_message', customInputPrompt: '' })}
+                  >
+                    Last user message
+                  </PromptModeBtn>
+                  <PromptModeBtn
+                    active={(member.inputPromptMode || 'last_user_message') === 'custom'}
+                    onClick={() => this.props.update<AgentStateMember>(member.id, { inputPromptMode: 'custom' })}
+                  >
+                    Custom prompt
+                  </PromptModeBtn>
+                </PromptModeRow>
+                {(member.inputPromptMode || 'last_user_message') === 'custom' && (
+                  <>
+                    <Textfield
+                      outline
+                      multiline
+                      enterToSubmit={false}
+                      value={member.customInputPrompt || ''}
+                      onChange={(value) => this.props.update<AgentStateMember>(member.id, { customInputPrompt: value })}
+                      placeholder="e.g. Find orders for: {user_message}. Customer: {customer_id}"
+                    />
+                    <VarHint>Use &#123;user_message&#125; for the user's message, &#123;key&#125; for session values.</VarHint>
+                    <CheckboxRow>
+                      <input
+                        type="checkbox"
+                        checked={member.customInputPromptUseSessionVars || false}
+                        onChange={(e) => this.props.update<AgentStateMember>(member.id, { customInputPromptUseSessionVars: e.target.checked })}
+                      />
+                      Replace &#123;vars&#125; at runtime
+                    </CheckboxRow>
+                  </>
+                )}
+              </LlmFieldRow>
             </>
           )}
         </DbFieldRow>
+        {this.renderStoreInSession(member)}
+        {this.renderSendReply(member)}
       </>
     );
   };
@@ -1446,7 +1794,7 @@ class StateUpdate extends Component<Props, State> {
       <LlmFieldRow>
         {llmNames.length === 0 && (
           <WsWarning style={{ marginBottom: 6 }}>
-            No LLM defined. Web Crawl + LLM requires an LLM. Add one in the Agent Configuration.
+            No LLM defined. Web Crawl + LLM requires an LLM. Add one in the Components page.
           </WsWarning>
         )}
         <Header>Initial URL</Header>
@@ -1527,6 +1875,21 @@ class StateUpdate extends Component<Props, State> {
           onChange={(value) => this.props.update<AgentStateMember>(member.id, { system_message_prefix: value })}
           placeholder="Use the following webpage content to answer the question:"
         />
+        {member.system_message_prefix && (
+          <>
+            <CheckboxRow>
+              <input
+                type="checkbox"
+                checked={member.systemMessagePrefixUseSessionVars || false}
+                onChange={(e) => this.props.update<AgentStateMember>(member.id, { systemMessagePrefixUseSessionVars: e.target.checked })}
+              />
+              Interpolate &#123;vars&#125; in system message prefix
+            </CheckboxRow>
+            {member.systemMessagePrefixUseSessionVars && (
+              <VarHint>Use &#123;key&#125; for session values, &#123;user_message&#125; for the current user message.</VarHint>
+            )}
+          </>
+        )}
         <Header style={{ marginTop: 6 }}>LLM</Header>
         <LlmSelect
           value={member.llm_name || ''}
@@ -1535,6 +1898,8 @@ class StateUpdate extends Component<Props, State> {
           <option value="">(use default)</option>
           {llmNames.map((n) => <option key={n} value={n}>{n}</option>)}
         </LlmSelect>
+        {this.renderStoreInSession(member)}
+        {this.renderSendReply(member)}
       </LlmFieldRow>
     );
   };

@@ -15,7 +15,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { ApollonEditor, UMLDiagramType } from '@besser/wme';
+import { ApollonEditor, UMLDiagramType, UMLModel, normalizeAgentModel } from '@besser/wme';
 import { toast } from 'react-toastify';
 
 import { useAppDispatch } from '../../app/store/hooks';
@@ -51,6 +51,13 @@ import {
 } from './generator-dialog-config';
 import { getWorkspaceContext } from '../../shared/utils/workspaceContext';
 import type { GeneratorType } from '../../app/shell/workspace-types';
+import {
+  buildAllWebAppVersions,
+  collectVariantProfiles,
+  type VersionProfile,
+  type WebAppVersion,
+  type WebAppVersionMode,
+} from '../../shared/utils/buildWebAppVersions';
 
 // ─── Pure helpers ──────────────────────────────────────────────────────────────
 
@@ -195,11 +202,18 @@ function buildWebAppChecklist(project: BesserProject | undefined): WebAppCheckli
   // canGenerate does NOT depend on agent diagrams -- they are optional and per-component
   const canGenerate = classDiagramExists && guiDiagramExists;
 
+  // Distinct user profiles that have at least one page variant. Drives the
+  // "which version(s) to generate" choice in the dialog. Empty ⇒ no variants
+  // anywhere ⇒ unchanged single-app generation.
+  const variantProfiles = collectVariantProfiles(guiModel);
+
   return {
     classDiagram: classDiagramInfo,
     guiDiagram: guiDiagramInfo,
     agentDiagram: agentDiagramInfo,
     canGenerate,
+    variantProfiles,
+    hasAnyVariant: variantProfiles.length > 0,
   };
 }
 
@@ -256,6 +270,42 @@ function triggerAssistantGuiAutoGenerate(timeoutMs = 25000): Promise<{ ok: boole
   });
 }
 
+/**
+ * Ask the live GUI editor to capture the active page's canvas into its snapshot
+ * and persist the full model (incl. variant fields) to storage, then resolve.
+ * Best-effort: if the editor never answers within the timeout, we resolve ok
+ * anyway and proceed with whatever is already stored.
+ */
+function flushGuiForGeneration(timeoutMs = 8000): Promise<{ ok: boolean; error?: string }> {
+  if (typeof window === 'undefined') return Promise.resolve({ ok: false });
+
+  return new Promise((resolve) => {
+    let done = false;
+    const finish = (result: { ok: boolean; error?: string }) => {
+      if (done) return;
+      done = true;
+      window.removeEventListener('wme:flush-gui-for-generation-done', onDone as EventListener);
+      clearTimeout(timeoutId);
+      resolve(result);
+    };
+
+    const onDone = (event: Event) => {
+      const detail = (event as CustomEvent<{ ok?: boolean; error?: string }>).detail || {};
+      finish({ ok: Boolean(detail.ok), error: detail.ok ? undefined : detail.error });
+    };
+
+    const timeoutId = window.setTimeout(
+      () => {
+        console.warn('[GUI flush] timed out before generation; proceeding with the last-saved GUI model');
+        finish({ ok: true, error: 'flush timed out' });
+      },
+      timeoutMs,
+    );
+    window.addEventListener('wme:flush-gui-for-generation-done', onDone as EventListener);
+    window.dispatchEvent(new CustomEvent('wme:flush-gui-for-generation'));
+  });
+}
+
 // ─── Hook ──────────────────────────────────────────────────────────────────────
 
 /**
@@ -293,6 +343,10 @@ export interface WebAppChecklistInfo {
   agentDiagram: WebAppChecklistDiagramInfo;
   /** True when all required diagrams exist (generation can proceed). */
   canGenerate: boolean;
+  /** Distinct profiles that have at least one page variant (empty ⇒ none). */
+  variantProfiles: VersionProfile[];
+  /** Convenience flag: variantProfiles.length > 0. */
+  hasAnyVariant: boolean;
 }
 
 interface AgentModelVariantSnapshot {
@@ -419,6 +473,12 @@ export interface GeneratorConfigState {
   // ── Web App checklist ──────────────────────────────────────────────────
   /** Pre-generation checklist info for the web_app generator. */
   webAppChecklist: WebAppChecklistInfo | null;
+  /** Which version(s) to generate when the GUI has page variants. */
+  webAppVersionMode: WebAppVersionMode;
+  /** Selected profile id when webAppVersionMode === 'profile'. */
+  webAppSelectedProfileId: string;
+  onWebAppVersionModeChange: (v: WebAppVersionMode) => void;
+  onWebAppSelectedProfileIdChange: (v: string) => void;
 
   // ── Execution callbacks (one per generator) ──────────────────────────────
   /** Validate inputs, call the backend, and close the dialog on success. */
@@ -500,12 +560,24 @@ export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGen
   const [agentVariantOptions, setAgentVariantOptions] = useState<AgentGenerationVariantOption[]>([]);
   const [selectedAgentVariantId, setSelectedAgentVariantId] = useState('');
   const [agentGenerationMode, setAgentGenerationMode] = useState<AgentGenerationMode>('none');
+  // Web App version selection (only meaningful when the GUI has page variants).
+  const [webAppVersionMode, setWebAppVersionMode] = useState<WebAppVersionMode>('all');
+  const [webAppSelectedProfileId, setWebAppSelectedProfileId] = useState('');
 
   // ── Web App checklist (computed from current project) ─────────────────────
   const webAppChecklist = useMemo(
     () => buildWebAppChecklist(currentProject ?? undefined),
     [currentProject],
   );
+
+  // Keep the selected profile valid: default to the first variant profile
+  // whenever the current selection isn't among the available profiles.
+  useEffect(() => {
+    const profiles = webAppChecklist?.variantProfiles ?? [];
+    if (profiles.length > 0 && !profiles.some((p) => p.profileId === webAppSelectedProfileId)) {
+      setWebAppSelectedProfileId(profiles[0].profileId);
+    }
+  }, [webAppChecklist, webAppSelectedProfileId]);
 
   // Auto-derive Django project/app names from current project
   useEffect(() => {
@@ -616,7 +688,7 @@ export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGen
     async (
       generatorType: GeneratorType,
       config?: unknown,
-      options?: { autoGenerateGuiIfEmpty?: boolean },
+      options?: { autoGenerateGuiIfEmpty?: boolean; agentModelOverride?: UMLModel },
     ): Promise<GenerationResult> => {
       if (!currentProject) {
         toast.error('Create or load a project before generating code.');
@@ -735,7 +807,17 @@ export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGen
             result = await generateCode(editor, 'jsonschema', activeDiagramTitle, config as JSONSchemaConfig);
             break;
           case 'agent':
-            result = await generateCode(editor, 'agent', activeDiagramTitle, config as AgentConfig);
+            result = await generateCode(
+              editor,
+              'agent',
+              activeDiagramTitle,
+              config as AgentConfig,
+              undefined,
+              options?.agentModelOverride,
+            );
+            break;
+          case 'test_case':
+            result = await generateCode(editor, 'test_case', activeDiagramTitle);
             break;
           case 'jsonobject': {
             if (!isObjectContext && !isUserContext) {
@@ -967,6 +1049,7 @@ export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGen
     }
 
     let finalConfig: AgentConfig = baseConfig;
+    let agentModelOverride: UMLModel | undefined;
 
     if (agentGenerationMode === 'personalization') {
       const localProfiles = LocalStorageRepository.getUserProfiles();
@@ -1005,7 +1088,12 @@ export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGen
             name: profile.name,
             configuration: structuredClone(config.config),
             user_profile: structuredClone(profile.model),
-            agent_model: structuredClone(agentModel),
+            // Normalize to the canonical nested transition shape before sending.
+            // Variant/config snapshots can bypass the editor (e.g. imported
+            // projects) and still carry the legacy flat shape, which the backend
+            // collapses to when_no_intent_matched. normalizeAgentModel is pure
+            // and idempotent and returns a fresh clone.
+            agent_model: normalizeAgentModel(agentModel as UMLModel) as Record<string, any>,
           };
         })
         .filter((entry): entry is {
@@ -1024,10 +1112,36 @@ export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGen
         ...baseConfig,
         personalizationMapping,
       };
+
+      // Personalization codegen rebuilds every variant on top of the model the
+      // backend receives. Send the un-personalized base from localStorage so
+      // generation is deterministic — without this, whichever variant is
+      // active in the editor would silently become the new "base" each variant
+      // is layered onto.
+      const baseAgentDiagramId = activeAgentDiagram?.id;
+      const storedBase = baseAgentDiagramId
+        ? LocalStorageRepository.getAgentBaseModel(baseAgentDiagramId)
+        : null;
+      if (storedBase && isUMLModel(storedBase) && storedBase.type === UMLDiagramType.AgentDiagram) {
+        agentModelOverride = storedBase;
+      } else {
+        // No stored base resolved — generation falls back to the active editor
+        // model, which may be a personalized variant rather than the
+        // un-personalized base. Surface it instead of silently shipping the
+        // wrong base.
+        console.warn(
+          '[generation] Personalization mode could not resolve a stored agent base model; ' +
+            'falling back to the active diagram. Save & Apply at least once to capture the base.',
+        );
+      }
     }
 
     const shouldSendConfig = Object.keys(finalConfig).length > 0;
-    await executeGenerator('agent', shouldSendConfig ? finalConfig : undefined);
+    await executeGenerator(
+      'agent',
+      shouldSendConfig ? finalConfig : undefined,
+      agentModelOverride ? { agentModelOverride } : undefined,
+    );
     setConfigDialog('none');
   }, [
     currentProject,
@@ -1047,9 +1161,35 @@ export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGen
   }, [qiskitBackend, qiskitShots, executeGenerator]);
 
   const handleWebAppGenerate = useCallback(async () => {
-    await executeGenerator('web_app');
+    // Flush the live GUI canvas (active page) into its snapshot and persist to
+    // storage first, so the version builder below reads the freshest content.
+    if (typeof window !== 'undefined' && (window as any).__WME_GUI_EDITOR_READY__) {
+      await flushGuiForGeneration();
+    }
+
+    // Re-read the freshest project post-flush and decide whether to branch into
+    // per-version generation. When the GUI has no page variants, versions is []
+    // and we fall through to the unchanged single-app path (config undefined).
+    const freshProject = currentProject?.id
+      ? (ProjectStorageRepository.loadProject(currentProject.id) ?? currentProject)
+      : currentProject;
+    const guiModel = freshProject
+      ? (getActiveDiagram(freshProject, 'GUINoCodeDiagram')?.model as GrapesJSProjectData | undefined)
+      : undefined;
+
+    let config: { webAppVersions?: WebAppVersion[] } | undefined;
+    if (guiModel) {
+      const versions = buildAllWebAppVersions(
+        guiModel,
+        webAppVersionMode,
+        webAppSelectedProfileId || null,
+      );
+      if (versions.length > 0) config = { webAppVersions: versions };
+    }
+
+    await executeGenerator('web_app', config);
     setConfigDialog('none');
-  }, [executeGenerator]);
+  }, [executeGenerator, currentProject, webAppVersionMode, webAppSelectedProfileId]);
 
   // ── Return ─────────────────────────────────────────────────────────────────
 
@@ -1083,6 +1223,10 @@ export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGen
     selectedAgentVariantId,
     agentGenerationMode,
     webAppChecklist,
+    webAppVersionMode,
+    webAppSelectedProfileId,
+    onWebAppVersionModeChange: setWebAppVersionMode,
+    onWebAppSelectedProfileIdChange: setWebAppSelectedProfileId,
     onDjangoProjectNameChange: setDjangoProjectName,
     onDjangoAppNameChange: setDjangoAppName,
     onUseDockerChange: setUseDocker,

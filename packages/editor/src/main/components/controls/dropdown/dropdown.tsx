@@ -104,6 +104,11 @@ export class Dropdown<T> extends Component<Props<T>, State> {
       return;
     }
 
+    // Close any other open dropdown before opening this one
+    if (!this.state.show) {
+      document.dispatchEvent(new MouseEvent('click'));
+    }
+
     const parent = this.getScrollableParent(this.activator.current);
     const activatorBounds = this.activator.current.getBoundingClientRect();
 

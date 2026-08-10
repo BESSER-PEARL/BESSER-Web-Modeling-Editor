@@ -41,77 +41,41 @@ export const AgentStateTransitionComponent: FunctionComponent<Props> = ({ elemen
     }
   };
 
-  const fill = element.textColor ? { fill: element.textColor } : {};
-
-  const getConditionName = () => {
-    const predefinedType = element.predefinedType;
-
-    if (element.transitionType === 'custom') {
-      return 'Custom Transition';
+  const isInvalid = (): boolean => {
+    if (element.transitionType === 'custom') return false;
+    const pt = element.predefinedType;
+    if (pt === 'when_intent_matched') return !element.intentName;
+    if (pt === 'when_variable_operation_matched') {
+      return !(element.variable && element.operator && element.targetValue);
     }
-
-    if (!predefinedType) return '';
-    if (predefinedType === 'when_intent_matched') {
-      return 'When Intent Matched:';
-    } else if (predefinedType === 'when_no_intent_matched') {
-      return 'When No Intent Matched';
-    } else if (predefinedType === 'when_variable_operation_matched') {
-      return 'When Variable Operation Matched';
-    } else if (predefinedType === 'when_file_received') {
-      return 'When File Received';
-    } else if (predefinedType === 'auto') {
-      return 'Auto';
-    }
-
-    const paramValues = Object.values(element.params);
-    const formattedParams = paramValues.length > 0 ? paramValues.join(', ') : '';
-
-    if (formattedParams && element.name) {
-      return `${element.name} [${formattedParams}]`;
-    }
-    if (formattedParams) {
-      return `[${formattedParams}]`;
-    }
-    return element.name;
+    return false;
   };
 
-  const getConditionValue = () => {
-    const predefinedType = element.predefinedType;
-
+  const getLabel = (): string => {
     if (element.transitionType === 'custom') {
-      const eventValue = element.event || 'WildcardEvent';
-      const eventLabel = eventValue === 'None' ? 'No event' : eventValue;
-      const totalConditions = element.conditions?.length || 0;
-      return `${eventLabel} + ${totalConditions} condition(s)`;
+      const ev = element.event || 'WildcardEvent';
+      const n = element.conditions?.length || 0;
+      return ev === 'None' ? `No event + ${n} cond.` : `${ev} + ${n} cond.`;
     }
-
-    if (!predefinedType) return '';
-    if (predefinedType === 'when_intent_matched') {
-      if (element.intentName) {
-        return `${element.intentName}`;
-      }
-      else {
-        return 'No intent name provided';
-      }
-    } else if (predefinedType === 'when_no_intent_matched') {
-      return '';
-
-    } else if (predefinedType === 'when_variable_operation_matched') {
-      if (element.variable && element.operator && element.targetValue) {
-        return `session(${element.variable}) ${element.operator} ${element.targetValue}`;
-      }
-      else {
-        return 'Either variable, operator or target value is not provided';
-      }
-    } else if (predefinedType === 'when_file_received') {
-      if (element.fileType) {
-        return `${element.fileType}`;
-      }
-    } else if (predefinedType === 'auto') {
-      return '';
+    const pt = element.predefinedType;
+    if (!pt) return '';
+    if (pt === 'when_intent_matched') return element.intentName || 'Intent';
+    if (pt === 'when_no_intent_matched') return 'No intent';
+    if (pt === 'when_variable_operation_matched') {
+      const v = element.variable || '?';
+      const op = element.operator || '?';
+      const tv = element.targetValue || '?';
+      return `${v} ${op} ${tv}`;
     }
-    return "No condition value selected"
+    if (pt === 'when_file_received') return 'File';
+    if (pt === 'auto') return 'Auto';
+    return '';
   };
+
+  const invalid = isInvalid();
+  const arrowColor = invalid ? '#ef4444' : element.strokeColor;
+  const textFill = invalid ? '#ef4444' : (element.textColor || undefined);
+  const fillStyle = textFill ? { fill: textFill } : {};
 
   return (
     <g>
@@ -125,20 +89,17 @@ export const AgentStateTransitionComponent: FunctionComponent<Props> = ({ elemen
         orient="auto"
         markerUnits="strokeWidth"
       >
-        <ThemedPath d="M0,29 L30,15 L0,1" fillColor="none" strokeColor={element.strokeColor} />
+        <ThemedPath d="M0,29 L30,15 L0,1" fillColor="none" strokeColor={arrowColor} />
       </marker>
       <ThemedPolyline
         points={element.path.map((point) => `${point.x} ${point.y}`).join(',')}
-        strokeColor={element.strokeColor}
+        strokeColor={arrowColor}
         fillColor="none"
         strokeWidth={1}
         markerEnd={`url(#marker-${element.id})`}
       />
-      <text x={position.x} y={position.y} {...layoutText(direction)} pointerEvents="none" style={{ ...fill }}>
-        {getConditionName()}
-      </text>
-      <text x={position.x} y={position.y + 30} {...layoutText(direction)} pointerEvents="none" style={{ ...fill }}>
-        {getConditionValue()}
+      <text x={position.x} y={position.y} {...layoutText(direction)} pointerEvents="none" style={{ ...fillStyle }}>
+        {getLabel()}
       </text>
     </g>
   );

@@ -35,6 +35,10 @@ const AgentConfigurationPanel = React.lazy(() =>
   import('../features/agent-config/AgentConfigurationPanel').then((m) => ({ default: m.AgentConfigurationPanel })),
 );
 
+const AgentComponentsPanel = React.lazy(() =>
+  import('../features/agent-components/AgentComponentsPanel').then((m) => ({ default: m.AgentComponentsPanel })),
+);
+
 const ProjectSettingsPanel = React.lazy(() =>
   import('../features/project/ProjectSettingsPanel').then((m) => ({ default: m.ProjectSettingsPanel })),
 );
@@ -136,6 +140,7 @@ function AppContentInner() {
           <Routes>
             <Route path="/" element={<EditorView />} />
             <Route path="/agent-config" element={<AgentConfigurationPanel />} />
+            <Route path="/agent-components" element={<AgentComponentsPanel />} />
             <Route path="/project-settings" element={<ProjectSettingsPanel />} />
             <Route path="/agent-simulation" element={<AgentSimulationPage />} />
             <Route path="*" element={<NotFound />} />
@@ -196,6 +201,10 @@ function AppContentInner() {
         qiskitShots={configState.qiskitShots}
         // ── Web App checklist ────────────────────────────────────────
         webAppChecklist={configState.webAppChecklist}
+        webAppVersionMode={configState.webAppVersionMode}
+        webAppSelectedProfileId={configState.webAppSelectedProfileId}
+        onWebAppVersionModeChange={configState.onWebAppVersionModeChange}
+        onWebAppSelectedProfileIdChange={configState.onWebAppSelectedProfileIdChange}
         // ── Field change handlers ────────────────────────────────────
         onDjangoProjectNameChange={configState.onDjangoProjectNameChange}
         onDjangoAppNameChange={configState.onDjangoAppNameChange}

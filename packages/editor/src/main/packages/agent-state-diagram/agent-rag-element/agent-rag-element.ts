@@ -10,11 +10,21 @@ import { IBoundary } from '../../../utils/geometry/boundary';
 import { Text } from '../../../utils/svg/text';
 import { UMLElementType } from '../../uml-element-type';
 
+const AGENT_RAG_MIN_WIDTH = 100;
+const AGENT_RAG_DEFAULT_WIDTH = 140;
+const AGENT_RAG_MAX_AUTO_WIDTH = 340;
+const AGENT_RAG_MIN_HEIGHT = 70;
+
+export type AgentRagEmbeddingProvider = 'openai' | 'ollama';
+
 export interface IAgentRagElement extends IUMLElement {
   llm_name: string;
   llm_prompt: string;
   k: number;
   num_previous_messages: number;
+  embedding_provider: AgentRagEmbeddingProvider;
+  embedding_base_url: string;
+  embedding_model: string;
 }
 
 export class AgentRagElement extends UMLElement implements IAgentRagElement {
@@ -29,6 +39,9 @@ export class AgentRagElement extends UMLElement implements IAgentRagElement {
   llm_prompt: string = '';
   k: number = 4;
   num_previous_messages: number = 0;
+  embedding_provider: AgentRagEmbeddingProvider = 'openai';
+  embedding_base_url: string = '';
+  embedding_model: string = '';
 
   bounds: IBoundary = {
     ...this.bounds,
@@ -58,6 +71,15 @@ export class AgentRagElement extends UMLElement implements IAgentRagElement {
     ) {
       this.num_previous_messages = 0;
     }
+    if (!this.embedding_provider || !['openai', 'ollama'].includes(this.embedding_provider)) {
+      this.embedding_provider = 'openai';
+    }
+    if (!this.embedding_base_url) {
+      this.embedding_base_url = '';
+    }
+    if (!this.embedding_model) {
+      this.embedding_model = '';
+    }
   }
 
   serialize(children: UMLElement[] = []): Apollon.UMLModelElement {
@@ -68,6 +90,9 @@ export class AgentRagElement extends UMLElement implements IAgentRagElement {
       llm_prompt: this.llm_prompt,
       k: this.k,
       num_previous_messages: this.num_previous_messages,
+      embedding_provider: this.embedding_provider,
+      embedding_base_url: this.embedding_base_url,
+      embedding_model: this.embedding_model,
     } as Apollon.UMLModelElement & { llm_name: string };
   }
 
@@ -77,6 +102,9 @@ export class AgentRagElement extends UMLElement implements IAgentRagElement {
       llm_prompt?: string;
       k?: number;
       num_previous_messages?: number;
+      embedding_provider?: string;
+      embedding_base_url?: string;
+      embedding_model?: string;
     },
     children?: Apollon.UMLModelElement[],
   ): void {
@@ -88,12 +116,13 @@ export class AgentRagElement extends UMLElement implements IAgentRagElement {
       typeof values.num_previous_messages === 'number' && values.num_previous_messages >= 0
         ? values.num_previous_messages
         : 0;
+    this.embedding_provider =
+      values.embedding_provider === 'ollama' ? 'ollama' : 'openai';
+    this.embedding_base_url = values.embedding_base_url || '';
+    this.embedding_model = values.embedding_model || '';
   }
 
-  render(layer: ILayer): ILayoutable[] {
-    const minWidth = Math.max(120, Text.size(layer, this.name, { fontWeight: 'normal' }).width + 40);
-    this.bounds.width = Math.max(this.bounds.width, minWidth);
-    this.bounds.height = Math.max(this.bounds.height, 110);
-    return [this];
+  render(_layer: ILayer): ILayoutable[] {
+    return [];
   }
 }

@@ -10,6 +10,11 @@ import { IBoundary } from '../../../utils/geometry/boundary';
 import { Text } from '../../../utils/svg/text';
 import { UMLElementType } from '../../uml-element-type';
 
+const AGENT_WORKSPACE_MIN_WIDTH = 120;
+const AGENT_WORKSPACE_DEFAULT_WIDTH = 160;
+const AGENT_WORKSPACE_MAX_AUTO_WIDTH = 380;
+const AGENT_WORKSPACE_MIN_HEIGHT = 50;
+
 export interface IAgentWorkspace extends IUMLElement {
   path: string;
   description: string;
@@ -71,10 +76,7 @@ export class AgentWorkspace extends UMLElement implements IAgentWorkspace {
     this.max_read_bytes = values.max_read_bytes !== undefined ? values.max_read_bytes : 200000;
   }
 
-  render(layer: ILayer): ILayoutable[] {
-    const minWidth = Math.max(140, Text.size(layer, this.name, { fontWeight: 'bold' }).width + 40);
-    this.bounds.width = Math.max(this.bounds.width, minWidth);
-    this.bounds.height = Math.max(this.bounds.height, 80);
-    return [this];
+  render(_layer: ILayer): ILayoutable[] {
+    return [];
   }
 }

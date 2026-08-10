@@ -16,12 +16,48 @@ import { registerLayoutComponents } from './component-registrars/registerLayoutC
 import { registerAgentComponent } from './component-registrars/registerAgentComponent';
 import { setupPageSystem, loadDefaultPages } from './setup/setupPageSystem';
 import { setupLayoutBlocks } from './setup/setupLayoutBlocks';
+import { setupInputBlocks } from './setup/setupInputBlocks';
 import registerColumnsManagerTrait from './traits/registerColumnsManagerTrait';
 import { ProjectStorageRepository } from '../../../shared/services/storage/ProjectStorageRepository';
 import { GrapesJSProjectData, isGrapesJSProjectData, normalizeToGrapesJSProjectData, createDefaultGUITemplate, getActiveDiagram, getReferencedDiagram } from '../../../shared/types/project';
 import { downloadFile } from '../../../shared/utils/download';
 import { globalConfirm } from '../../../shared/services/confirm/globalConfirm';
 import { validateDiagram } from '../../../shared/services/validation/validateDiagram';
+
+// Personalization variant data lives on live GrapesJS page objects (set via
+// page.set(...) in setupPageSystem.ts). It must survive into the STORED GUI
+// model because per-version web-app generation reads from project storage, not
+// the live editor. GrapesJS may already serialize these custom page attributes,
+// but we copy them explicitly to be robust regardless of its serializer.
+const VARIANT_PERSIST_FIELDS = [
+  'besserPageVariants',
+  'besserBaseSnapshot',
+  'besserActiveVariantId',
+] as const;
+
+function applyVariantFieldsToSerializedPages(
+  editor: Editor,
+  grapesData: GrapesJSProjectData,
+): GrapesJSProjectData {
+  try {
+    const byId = new Map<string, any>();
+    (editor.Pages?.getAll?.() ?? []).forEach((p: any) => {
+      const id = p?.getId?.();
+      if (id) byId.set(id, p);
+    });
+    (grapesData.pages ?? []).forEach((page: any) => {
+      const live = page?.id ? byId.get(page.id) : undefined;
+      if (!live) return;
+      VARIANT_PERSIST_FIELDS.forEach((field) => {
+        const value = live.get?.(field);
+        if (value !== undefined && value !== null) page[field] = value;
+      });
+    });
+  } catch (err) {
+    console.warn('[GraphicalUIEditor] Failed to persist variant fields:', err);
+  }
+  return grapesData;
+}
 
 export const GraphicalUIEditor: React.FC = () => {
   const editorRef = useRef<Editor | null>(null);
@@ -142,8 +178,49 @@ export const GraphicalUIEditor: React.FC = () => {
         }
       };
 
+      // Pre-generation sync: capture the active page's live canvas into its
+      // snapshot and persist the full model (incl. variant fields) to storage,
+      // so per-version web-app generation reads the latest content. Uses the
+      // event pattern (not window.editor, which is DEV-only) so it works in prod.
+      const handleFlushForGeneration = () => {
+        try {
+          editor.runCommand('personalization:flush-active');
+          const data = editor.getProjectData();
+          if (isGrapesJSProjectData(data) && mountDiagramId) {
+            const project = ProjectStorageRepository.getCurrentProject();
+            if (project) {
+              const grapesData = applyVariantFieldsToSerializedPages(
+                editor,
+                normalizeToGrapesJSProjectData(data),
+              );
+              const diagrams = project.diagrams.GUINoCodeDiagram ?? [];
+              const targetIndex = diagrams.findIndex((d) => d.id === mountDiagramId);
+              if (targetIndex >= 0) {
+                ProjectStorageRepository.updateDiagram(project.id, 'GUINoCodeDiagram', {
+                  ...diagrams[targetIndex],
+                  model: grapesData,
+                  lastUpdate: new Date().toISOString(),
+                }, targetIndex);
+              }
+            }
+          }
+          window.dispatchEvent(
+            new CustomEvent('wme:flush-gui-for-generation-done', { detail: { ok: true } }),
+          );
+        } catch (error) {
+          const message = error instanceof Error ? error.message : 'Unknown error';
+          console.warn('[GraphicalUIEditor] flush-for-generation failed:', error);
+          window.dispatchEvent(
+            new CustomEvent('wme:flush-gui-for-generation-done', {
+              detail: { ok: false, error: message },
+            }),
+          );
+        }
+      };
+
       window.addEventListener('wme:assistant-auto-generate-gui', handleAssistantAutoGenerate as EventListener);
       window.addEventListener('wme:assistant-load-gui-model', handleAssistantLoadModel as EventListener);
+      window.addEventListener('wme:flush-gui-for-generation', handleFlushForGeneration as EventListener);
       (window as any).__WME_GUI_EDITOR_READY__ = true;
       window.dispatchEvent(new CustomEvent('wme:gui-editor-ready'));
 
@@ -184,7 +261,10 @@ export const GraphicalUIEditor: React.FC = () => {
               if (isGrapesJSProjectData(data)) {
                 const project = ProjectStorageRepository.getCurrentProject();
                 if (project) {
-                  const grapesData = normalizeToGrapesJSProjectData(data);
+                  const grapesData = applyVariantFieldsToSerializedPages(
+                    editorRef.current,
+                    normalizeToGrapesJSProjectData(data),
+                  );
                   // Find the diagram by the ID we captured at mount time
                   const diagrams = project.diagrams.GUINoCodeDiagram ?? [];
                   const targetIndex = diagrams.findIndex((d) => d.id === mountDiagramId);
@@ -208,6 +288,7 @@ export const GraphicalUIEditor: React.FC = () => {
 
         window.removeEventListener('wme:assistant-auto-generate-gui', handleAssistantAutoGenerate as EventListener);
         window.removeEventListener('wme:assistant-load-gui-model', handleAssistantLoadModel as EventListener);
+        window.removeEventListener('wme:flush-gui-for-generation', handleFlushForGeneration as EventListener);
         (window as any).__WME_GUI_EDITOR_READY__ = false;
 
         // Destroy editor and clean up global reference
@@ -369,6 +450,7 @@ function setupEditorFeatures(
   setupDataBindingTraits(editor);
   setupCustomTraits(editor);
   setupLayoutBlocks(editor);
+  setupInputBlocks(editor);
   // enableAbsolutePositioning(editor);
   
   // Return cleanup function
@@ -536,7 +618,10 @@ function setupProjectStorageIntegration(
           return;
         }
 
-        const grapesData = normalizeToGrapesJSProjectData(data);
+        const grapesData = applyVariantFieldsToSerializedPages(
+          editor,
+          normalizeToGrapesJSProjectData(data),
+        );
         const targetDiagram = activeDiagram || getActiveDiagram(project, 'GUINoCodeDiagram');
         const updated = ProjectStorageRepository.updateDiagram(
           project.id,

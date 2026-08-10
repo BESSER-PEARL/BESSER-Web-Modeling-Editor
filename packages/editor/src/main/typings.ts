@@ -77,6 +77,14 @@ export interface AgentModelElement extends UMLModelElement {
   dbSqlQuery?: string;
   llm_name?: string;
   system_message?: string;
+  // prompt customisation & session data flow
+  inputPromptMode?: string;
+  customInputPrompt?: string;
+  customInputPromptUseSessionVars?: boolean;
+  systemPromptUseSessionVars?: boolean;
+  promptUseSessionVars?: boolean;
+  storeInSession?: string;
+  useSessionVars?: boolean;
   // web crawl + LLM fields
   initial_url?: string;
   max_depth?: number;
@@ -86,6 +94,10 @@ export interface AgentModelElement extends UMLModelElement {
   run_crawl?: boolean;
   no_crawl_error_message?: string;
   system_message_prefix?: string;
+  // web crawl session-var interpolation
+  systemMessagePrefixUseSessionVars?: boolean;
+  // send_reply toggle (all LLM-generated answer actions)
+  sendReply?: boolean;
   // websocket-specific reply fields
   ws_message?: string;
   ws_audio_speed?: number | null;
@@ -119,12 +131,7 @@ export type UMLClassifier = UMLElement & {
 
 export type Visibility = 'public' | 'private' | 'protected' | 'package';
 
-export type MethodImplementationType =
-  | 'none'
-  | 'code'
-  | 'bal'
-  | 'state_machine'
-  | 'quantum_circuit';
+export type MethodImplementationType = 'none' | 'code' | 'bal' | 'state_machine' | 'quantum_circuit';
 
 export type DiagramReference = {
   id: string;
@@ -169,6 +176,7 @@ export interface AgentState extends UMLElement {
   // canonical keys
   actions: string[];
   fallbackActions: string[];
+  isInitial?: boolean;
   stateType?: string;
   fallbackBodyEnabled?: boolean;
   // reasoning-state fields (used when stateType = 'reasoning')
@@ -216,9 +224,7 @@ export type AgentStateTransition = UMLRelationship & {
     predefinedType?: string;
     intentName?: string;
     fileType?: string;
-    conditionValue?:
-      | string
-      | { variable: string; operator: string; targetValue: string };
+    conditionValue?: string | { variable: string; operator: string; targetValue: string };
   };
   custom?: {
     event?:
@@ -290,6 +296,18 @@ export type BPMNTask = UMLElement & {
   marker: BPMNMarkerType;
 };
 
+export type BPMNSubprocess = UMLElement & {
+  isExpanded: boolean;
+};
+
+export type BPMNTransaction = UMLElement & {
+  isExpanded: boolean;
+};
+
+export type BPMNCallActivity = UMLElement & {
+  calledElement: string;
+};
+
 export type BPMNGateway = UMLElement & {
   gatewayType: BPMNGatewayType;
 };
@@ -308,6 +326,7 @@ export type BPMNEndEvent = UMLElement & {
 
 export type BPMNFlow = UMLRelationship & {
   flowType: BPMNFlowType;
+  isDefault?: boolean;
 };
 
 export type UMLReachabilityGraphMarking = UMLElement & {

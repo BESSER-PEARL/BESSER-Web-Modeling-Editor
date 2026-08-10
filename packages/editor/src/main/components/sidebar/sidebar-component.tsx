@@ -11,6 +11,7 @@ import { Container } from './sidebar-styles';
 import { SelectableState } from '../../services/uml-element/selectable/selectable-types';
 import { settingsService } from '../../services/settings/settings-service';
 import { LayouterRepository } from '../../services/layouter/layouter-repository';
+import { UMLDiagramType } from '../../packages/diagram-type';
 
 declare global {
   interface Window {
@@ -68,16 +69,43 @@ class SidebarComponent extends Component<Props, SidebarComponentState> {
     };
   }
 
+  componentDidMount() {
+    this.enforceUserDiagramIconView();
+  }
+
+  componentDidUpdate(prevProps: Props) {
+    if (prevProps.diagramType !== this.props.diagramType) {
+      this.enforceUserDiagramIconView();
+    }
+  }
+
+  /**
+   * User Profile diagrams are only meaningful in icon view: each box shows its
+   * metamodel class icon, and several classes (User, Competence, Accessibility)
+   * have no attribute rows at all, so in normal view they render as bare, empty
+   * boxes. Force icon view on when a User diagram is shown, then re-layout so
+   * the change actually takes effect — mirroring handleToggleIconMode. The
+   * missing layout() call is why agent-injected user models rendered as blank
+   * boxes: the flag flipped during render but the already-laid-out canvas kept
+   * the normal view.
+   */
+  private enforceUserDiagramIconView() {
+    const isUserDiagram = this.props.diagramType.includes('User');
+    if (isUserDiagram && !settingsService.shouldShowIconView()) {
+      settingsService.updateSetting('showIconView', true);
+      this.setState({ showIcon: true });
+      this.props.layout();
+    }
+  }
+
   render() {
     const { readonly, mode, view, diagramType, translate, changeView } = this.props;
     const { sidebarWidth, showIcon } = this.state;
     const isUserDiagram = diagramType.includes('User');
     const isObjectDiagram = diagramType.includes('Object') || isUserDiagram;
     const shouldUseIconMode = isUserDiagram ? true : showIcon;
-    if (isUserDiagram) {
-      settingsService.updateSetting('showIconView', true);
-    }
     if (readonly || mode === ApollonMode.Assessment) return null;
+    if (diagramType === UMLDiagramType.AgentDiagram) return null;
 
     // Sidebar content
     const sidebarContent = (
