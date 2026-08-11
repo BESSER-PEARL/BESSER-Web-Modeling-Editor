@@ -2735,8 +2735,6 @@
         "unsavedChanges": "Nicht gespeicherte Änderungen",
         "close": "Schließen",
         "noSelection": "Klicken Sie auf einen Knoten oder eine Beziehung auf der Zeichenfläche, um sie hier zu bearbeiten. Ziehen Sie auf leerer Fläche, um mehrere auszuwählen. Halten Sie die Leertaste zum Verschieben.",
-        "pendingDeleteNode": "Dieser Knoten und alle seine Verbindungen werden beim Anwenden gelöscht.",
-        "pendingDeleteRelation": "Diese Beziehung wird beim Anwenden gelöscht.",
         "fields": {
           "type": "Typ",
           "label": "Bezeichnung",
@@ -2759,9 +2757,6 @@
           "bulkHide_other": "{{count}} Knoten ausblenden",
           "deleteSelection": "Auswahl löschen",
           "delete": "Löschen",
-          "stageDeleteNode": "Löschen dieses Knotens vormerken (samt allen Verbindungen)",
-          "stageDeleteRelation": "Löschen dieser Beziehung vormerken",
-          "undoDelete": "Löschen rückgängig machen",
           "discard": "Verwerfen",
           "apply": "Anwenden"
         },

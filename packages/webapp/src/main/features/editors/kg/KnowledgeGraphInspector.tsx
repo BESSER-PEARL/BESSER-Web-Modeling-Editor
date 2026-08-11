@@ -26,6 +26,8 @@ import { KgShapeIcon } from './KgShapeIcon';
 import { ConstraintSpecsEditor } from './ConstraintSpecsEditor';
 import { KG_EDGE_RULES, isMetaVocab, sourceTypesAllowedToTarget } from './edge-rules';
 import { defaultPredicateFor } from './edge-defaults';
+import { deleteSelectionFromModel } from './delete-selection';
+import { KgDeleteConfirmDialog } from './KgDeleteConfirmDialog';
 
 export type KgSelection =
   | { kind: 'node'; id: string }
@@ -51,14 +53,12 @@ type NodeDraft = {
   fields: KGNodeData;
   addedEdges: KGEdgeData[];
   deletedEdgeIds: Set<string>;
-  deleteSelf: boolean;
 };
 
 type EdgeDraft = {
   kind: 'edge';
   originalId: string;
   fields: KGEdgeData;
-  deleteSelf: boolean;
 };
 
 type Draft = NodeDraft | EdgeDraft | null;
@@ -91,7 +91,6 @@ function makeNodeDraft(node: KGNodeData): NodeDraft {
     fields: { ...node },
     addedEdges: [],
     deletedEdgeIds: new Set<string>(),
-    deleteSelf: false,
   };
 }
 
@@ -100,7 +99,6 @@ function makeEdgeDraft(edge: KGEdgeData): EdgeDraft {
     kind: 'edge',
     originalId: edge.id,
     fields: { ...edge },
-    deleteSelf: false,
   };
 }
 
@@ -128,33 +126,31 @@ function edgeFieldsEqual(a: KGEdgeData, b: KGEdgeData): boolean {
   );
 }
 
+/** Whether the draft holds edits that Apply would commit.
+ *
+ *  A draft whose element has disappeared from the model — deleted from the
+ *  canvas, or through the delete prompt — is *stale*, not dirty: there is
+ *  nothing left to write back (`applyDraft` would only re-add its staged
+ *  relations as dangling edges), and reporting it as dirty makes the selection
+ *  guard ask the user to "discard unsaved changes" for an element that no
+ *  longer exists. So the existence check comes first, before staged relations. */
 function isDirtyDraft(draft: Draft, model: KnowledgeGraphData): boolean {
   if (!draft) return false;
-  if (draft.deleteSelf) return true;
   if (draft.kind === 'node') {
+    const original = model.nodes.find((n) => n.id === draft.originalId);
+    if (!original) return false;
     if (draft.addedEdges.length > 0) return true;
     if (draft.deletedEdgeIds.size > 0) return true;
-    const original = model.nodes.find((n) => n.id === draft.originalId);
-    if (!original) return true;
     return !nodeFieldsEqual(draft.fields, original);
   }
   const original = model.edges.find((e) => e.id === draft.originalId);
-  if (!original) return true;
+  if (!original) return false;
   return !edgeFieldsEqual(draft.fields, original);
 }
 
 function applyDraft(model: KnowledgeGraphData, draft: Draft): KnowledgeGraphData {
   if (!draft) return model;
   if (draft.kind === 'node') {
-    if (draft.deleteSelf) {
-      return {
-        ...model,
-        nodes: model.nodes.filter((n) => n.id !== draft.originalId),
-        edges: model.edges.filter(
-          (e) => e.source !== draft.originalId && e.target !== draft.originalId,
-        ),
-      };
-    }
     const nodes = model.nodes.map((n) =>
       n.id === draft.originalId ? { ...draft.fields, id: n.id } : n,
     );
@@ -163,9 +159,6 @@ function applyDraft(model: KnowledgeGraphData, draft: Draft): KnowledgeGraphData
       ...draft.addedEdges,
     ];
     return { ...model, nodes, edges };
-  }
-  if (draft.deleteSelf) {
-    return { ...model, edges: model.edges.filter((e) => e.id !== draft.originalId) };
   }
   const edges = model.edges.map((e) =>
     e.id === draft.originalId ? { ...draft.fields, id: e.id } : e,
@@ -205,7 +198,9 @@ export const KnowledgeGraphInspector: React.FC<Props> = ({
   // `undefined` — no pending switch; `null` — pending switch is "clear"; otherwise pending selection.
   const [pendingSelection, setPendingSelection] = useState<KgSelection | undefined>(undefined);
   const [confirmOpen, setConfirmOpen] = useState(false);
-  const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false);
+  // Delete is confirmed in a modal — for a single element as much as for a
+  // multi-selection, and identically to the canvas's Delete/Backspace key.
+  const [deleteOpen, setDeleteOpen] = useState(false);
 
   const dirty = useMemo(() => isDirtyDraft(draft, model), [draft, model]);
   const dirtyRef = useRef(dirty);
@@ -323,25 +318,28 @@ export const KnowledgeGraphInspector: React.FC<Props> = ({
 
   const isNode = draft?.kind === 'node';
   const isEdge = draft?.kind === 'edge';
-  const applyIsDestructive =
-    !!draft &&
-    (draft.deleteSelf ||
-      (draft.kind === 'node' && draft.deletedEdgeIds.size > 0));
+  const applyIsDestructive = draft?.kind === 'node' && draft.deletedEdgeIds.size > 0;
 
   const multi = selection?.kind === 'multi' ? selection : null;
   const multiNodes = multi?.nodeIds ?? [];
   const multiEdges = multi?.edgeIds ?? [];
 
-  const bulkDelete = () => {
-    if (!multi) return;
-    const nodeSet = new Set(multi.nodeIds);
-    const edgeSet = new Set(multi.edgeIds);
-    const nodes = model.nodes.filter((n) => !nodeSet.has(n.id));
-    const edges = model.edges.filter(
-      (e) => !edgeSet.has(e.id) && !nodeSet.has(e.source) && !nodeSet.has(e.target),
-    );
-    onChange({ ...model, nodes, edges });
-    setBulkDeleteOpen(false);
+  // What the delete prompt is about to remove: the whole multi-selection, or
+  // the single element the draft is editing.
+  const deleteTarget = useMemo<{ nodeIds: string[]; edgeIds: string[] }>(() => {
+    if (multi) return { nodeIds: multi.nodeIds, edgeIds: multi.edgeIds };
+    if (draft?.kind === 'node') return { nodeIds: [draft.originalId], edgeIds: [] };
+    if (draft?.kind === 'edge') return { nodeIds: [], edgeIds: [draft.originalId] };
+    return { nodeIds: [], edgeIds: [] };
+  }, [multi, draft]);
+
+  const confirmDelete = () => {
+    // Pending field edits on the element are irrelevant once it's gone, so the
+    // draft is dropped rather than applied.
+    onChange(deleteSelectionFromModel(model, deleteTarget.nodeIds, deleteTarget.edgeIds));
+    setDeleteOpen(false);
+    setDraft(null);
+    syncedSigRef.current = null;
     onClearSelection();
   };
 
@@ -464,7 +462,7 @@ export const KnowledgeGraphInspector: React.FC<Props> = ({
             variant="destructive"
             size="sm"
             className="w-full gap-2"
-            onClick={() => setBulkDeleteOpen(true)}
+            onClick={() => setDeleteOpen(true)}
           >
             <Trash2 className="size-4" />
             {t('editors.kg.inspector.footer.deleteSelection')}
@@ -474,7 +472,7 @@ export const KnowledgeGraphInspector: React.FC<Props> = ({
 
       {draft && (
         <footer className="space-y-2 border-t border-border/60 p-3">
-          {draft.kind === 'node' && !draft.deleteSelf && (
+          {draft.kind === 'node' && (
             <Button
               variant="outline"
               size="sm"
@@ -493,33 +491,15 @@ export const KnowledgeGraphInspector: React.FC<Props> = ({
               {t('editors.kg.inspector.footer.hide')}
             </Button>
           )}
-          {!draft.deleteSelf && (
-            <Button
-              variant="destructive"
-              size="sm"
-              className="w-full gap-2"
-              onClick={() => setDraft({ ...draft, deleteSelf: true })}
-              title={
-                draft.kind === 'node'
-                  ? t('editors.kg.inspector.footer.stageDeleteNode')
-                  : t('editors.kg.inspector.footer.stageDeleteRelation')
-              }
-            >
-              <Trash2 className="size-4" />
-              {t('editors.kg.inspector.footer.delete')}
-            </Button>
-          )}
-          {draft.deleteSelf && (
-            <Button
-              variant="outline"
-              size="sm"
-              className="w-full gap-2"
-              onClick={() => setDraft({ ...draft, deleteSelf: false })}
-            >
-              <Undo2 className="size-4" />
-              {t('editors.kg.inspector.footer.undoDelete')}
-            </Button>
-          )}
+          <Button
+            variant="destructive"
+            size="sm"
+            className="w-full gap-2"
+            onClick={() => setDeleteOpen(true)}
+          >
+            <Trash2 className="size-4" />
+            {t('editors.kg.inspector.footer.delete')}
+          </Button>
           <div className="flex gap-2 pt-1">
             <Button
               variant="outline"
@@ -553,22 +533,12 @@ export const KnowledgeGraphInspector: React.FC<Props> = ({
         onConfirm={acceptSwitch}
         onCancel={cancelSwitch}
       />
-      <ConfirmDialog
-        open={bulkDeleteOpen}
-        title={t('editors.kg.inspector.confirm.bulkDeleteTitle')}
-        /* Two independent counts, so each is pluralised separately and
-         * composed -- i18next binds only one {{count}} per lookup. */
-        description={t('editors.kg.inspector.confirm.bulkDeleteDescription', {
-          nodes: t('editors.kg.inspector.confirm.bulkNodesFragment', { count: multiNodes.length }),
-          relations: t('editors.kg.inspector.confirm.bulkRelationsFragment', {
-            count: multiEdges.length,
-          }),
-        })}
-        confirmLabel={t('editors.kg.inspector.confirm.bulkDeleteConfirm')}
-        cancelLabel={t('common.cancel')}
-        variant="danger"
-        onConfirm={bulkDelete}
-        onCancel={() => setBulkDeleteOpen(false)}
+      <KgDeleteConfirmDialog
+        open={deleteOpen}
+        nodeCount={deleteTarget.nodeIds.length}
+        relationCount={deleteTarget.edgeIds.length}
+        onConfirm={confirmDelete}
+        onCancel={() => setDeleteOpen(false)}
       />
     </aside>
   );
@@ -654,12 +624,6 @@ const NodeFields: React.FC<{
 
   return (
     <div className="space-y-3">
-      {draft.deleteSelf && (
-        <div className="rounded-md border border-destructive/40 bg-destructive/10 px-2 py-1.5 text-xs text-destructive">
-          {t('editors.kg.inspector.pendingDeleteNode')}
-        </div>
-      )}
-
       <div className="flex items-center gap-2 text-xs font-medium">
         <span
           className="inline-block h-4 w-4 rounded-sm"
@@ -948,7 +912,7 @@ const ConnectionsEditor: React.FC<{
         <Label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
           {t('editors.kg.inspector.connections.heading', { count: rows.length })}
         </Label>
-        {!adderOpen && !draft.deleteSelf && (
+        {!adderOpen && (
           <Button
             variant="ghost"
             size="sm"
@@ -1479,11 +1443,6 @@ const EdgeFields: React.FC<{
 
   return (
     <div className="space-y-3">
-      {draft.deleteSelf && (
-        <div className="rounded-md border border-destructive/40 bg-destructive/10 px-2 py-1.5 text-xs text-destructive">
-          {t('editors.kg.inspector.pendingDeleteRelation')}
-        </div>
-      )}
       <div className="space-y-1">
         <Label className="text-xs">{t('editors.kg.inspector.fields.label')}</Label>
         <Input

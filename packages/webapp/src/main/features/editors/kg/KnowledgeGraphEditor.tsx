@@ -15,6 +15,8 @@ import { KnowledgeGraphToolbar, ConnectMode } from './KnowledgeGraphToolbar';
 import { KgCanvasControls } from './KgCanvasControls';
 import { KnowledgeGraphInspector, KgSelection } from './KnowledgeGraphInspector';
 import { KnowledgeGraphNodeList } from './KnowledgeGraphNodeList';
+import { KgDeleteConfirmDialog } from './KgDeleteConfirmDialog';
+import { deleteSelectionFromModel } from './delete-selection';
 import * as kgFocus from './kgFocus';
 import {
   collectHiddenMetaIds,
@@ -108,6 +110,11 @@ export const KnowledgeGraphEditor: React.FC = () => {
 
   const [model, setModel] = useState<KnowledgeGraphData>(() => loadFromStorage());
   const [selection, setSelection] = useState<KgSelection>(null);
+  // Selection the user asked to delete with Delete/Backspace, held until the
+  // confirmation dialog is answered. `null` = no prompt open.
+  const [pendingDelete, setPendingDelete] = useState<{ nodeIds: string[]; edgeIds: string[] } | null>(
+    null,
+  );
   const [connectMode, setConnectMode] = useState<ConnectMode>('off');
   const canvasRef = useRef<CytoscapeCanvasHandle | null>(null);
   const modelRef = useRef(model);
@@ -310,6 +317,20 @@ export const KnowledgeGraphEditor: React.FC = () => {
     setModel(next);
     scheduleSave();
   }, [scheduleSave]);
+
+  const clearSelection = useCallback(() => {
+    setSelection(null);
+    canvasRef.current?.clearSelection();
+  }, []);
+
+  const confirmDelete = useCallback(() => {
+    if (!pendingDelete) return;
+    handleChange(
+      deleteSelectionFromModel(modelRef.current, pendingDelete.nodeIds, pendingDelete.edgeIds),
+    );
+    setPendingDelete(null);
+    clearSelection();
+  }, [pendingDelete, handleChange, clearSelection]);
 
   // Whenever visibleIds changes on its own (toggle/bulk from the node list),
   // schedule the same unified save so the selection is persisted.
@@ -536,6 +557,7 @@ export const KnowledgeGraphEditor: React.FC = () => {
             onExitConnectMode={() => setConnectMode('off')}
             onRevealNodes={(ids) => bulkToggleVisibility(ids, true)}
             onRelationRejected={(reason) => toast.warning(reason)}
+            onRequestDelete={setPendingDelete}
           />
           <KgCanvasControls
             onZoomIn={() => canvasRef.current?.zoomIn()}
@@ -575,10 +597,14 @@ export const KnowledgeGraphEditor: React.FC = () => {
         onHideNode={(id) => toggleNodeVisibility(id, false)}
         onBulkHideNodes={(ids) => bulkToggleVisibility(ids, false)}
         onRequestSelection={setSelection}
-        onClearSelection={() => {
-          setSelection(null);
-          canvasRef.current?.clearSelection();
-        }}
+        onClearSelection={clearSelection}
+      />
+      <KgDeleteConfirmDialog
+        open={pendingDelete !== null}
+        nodeCount={pendingDelete?.nodeIds.length ?? 0}
+        relationCount={pendingDelete?.edgeIds.length ?? 0}
+        onConfirm={confirmDelete}
+        onCancel={() => setPendingDelete(null)}
       />
     </div>
   );

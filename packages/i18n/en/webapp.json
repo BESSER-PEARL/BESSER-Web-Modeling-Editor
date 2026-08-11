@@ -2735,8 +2735,6 @@
         "unsavedChanges": "Unsaved changes",
         "close": "Close",
         "noSelection": "Click a node or relation on the canvas to edit it here. Drag on empty canvas to box-select multiple. Hold Space to pan.",
-        "pendingDeleteNode": "This node and all its connections will be deleted on Apply.",
-        "pendingDeleteRelation": "This relation will be deleted on Apply.",
         "fields": {
           "type": "Type",
           "label": "Label",
@@ -2759,9 +2757,6 @@
           "bulkHide_other": "Hide {{count}} nodes",
           "deleteSelection": "Delete selection",
           "delete": "Delete",
-          "stageDeleteNode": "Stage deletion of this node (and all its connections)",
-          "stageDeleteRelation": "Stage deletion of this relation",
-          "undoDelete": "Undo delete",
           "discard": "Discard",
           "apply": "Apply"
         },

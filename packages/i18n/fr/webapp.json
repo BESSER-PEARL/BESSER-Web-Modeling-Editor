@@ -2735,8 +2735,6 @@
         "unsavedChanges": "Modifications non enregistrées",
         "close": "Fermer",
         "noSelection": "Cliquez sur un nœud ou une relation du canevas pour le modifier ici. Faites glisser sur le canevas vide pour en sélectionner plusieurs. Maintenez Espace pour vous déplacer.",
-        "pendingDeleteNode": "Ce nœud et toutes ses connexions seront supprimés lors de l'application.",
-        "pendingDeleteRelation": "Cette relation sera supprimée lors de l'application.",
         "fields": {
           "type": "Type",
           "label": "Libellé",
@@ -2759,9 +2757,6 @@
           "bulkHide_other": "Masquer {{count}} nœuds",
           "deleteSelection": "Supprimer la sélection",
           "delete": "Supprimer",
-          "stageDeleteNode": "Préparer la suppression de ce nœud (et de toutes ses connexions)",
-          "stageDeleteRelation": "Préparer la suppression de cette relation",
-          "undoDelete": "Annuler la suppression",
           "discard": "Abandonner",
           "apply": "Appliquer"
         },

@@ -2735,8 +2735,6 @@
         "unsavedChanges": "Net gespäichert Ännerungen",
         "close": "Zoumaachen",
         "noSelection": "Klickt op e Knuetpunkt oder eng Relatioun op der Zeechefläch, fir se hei z'änneren. Zitt op der eideler Zeechefläch, fir méi op eemol auszewielen. Haalt d'Espace-Tast, fir ze verschéiwen.",
-        "pendingDeleteNode": "Dëse Knuetpunkt an all seng Verbindunge ginn beim Uwende geläscht.",
-        "pendingDeleteRelation": "Dës Relatioun gëtt beim Uwende geläscht.",
         "fields": {
           "type": "Typ",
           "label": "Etikett",
@@ -2759,9 +2757,6 @@
           "bulkHide_other": "{{count}} Knuetpunkte verstoppen",
           "deleteSelection": "Auswiel läschen",
           "delete": "Läschen",
-          "stageDeleteNode": "D'Läsche vun dësem Knuetpunkt virbereeden (an all senge Verbindungen)",
-          "stageDeleteRelation": "D'Läsche vun dëser Relatioun virbereeden",
-          "undoDelete": "Läsche réckgängeg maachen",
           "discard": "Verwerfen",
           "apply": "Uwenden"
         },

@@ -351,7 +351,6 @@ function newId(prefix: string): string {
 
 export interface CytoscapeCanvasHandle {
   fit: () => void;
-  deleteSelected: () => void;
   clearSelection: () => void;
   /** Force a fresh layout pass using the currently-configured algorithm,
    *  overwriting persisted positions. Called when the user changes the
@@ -395,6 +394,11 @@ interface CytoscapeCanvasProps {
   /** Called when a drag-to-connect gesture ended on a node the OWL2 DL rules
    *  forbid, with a human-readable reason. The editor surfaces it as a toast. */
   onRelationRejected?: (reason: string) => void;
+  /** Called when the user presses Delete/Backspace with something selected.
+   *  The canvas deliberately removes nothing itself: deleting is destructive
+   *  and irreversible, so the editor prompts for confirmation and then applies
+   *  the removal to the model, which comes back in as new props. */
+  onRequestDelete?: (selection: { nodeIds: string[]; edgeIds: string[] }) => void;
 }
 
 export const CytoscapeCanvas = React.forwardRef<CytoscapeCanvasHandle, CytoscapeCanvasProps>(
@@ -410,6 +414,7 @@ export const CytoscapeCanvas = React.forwardRef<CytoscapeCanvasHandle, Cytoscape
       onExitConnectMode,
       onRevealNodes,
       onRelationRejected,
+      onRequestDelete,
     },
     ref,
   ) => {
@@ -436,6 +441,8 @@ export const CytoscapeCanvas = React.forwardRef<CytoscapeCanvasHandle, Cytoscape
     onRevealNodesRef.current = onRevealNodes;
     const onRelationRejectedRef = useRef(onRelationRejected);
     onRelationRejectedRef.current = onRelationRejected;
+    const onRequestDeleteRef = useRef(onRequestDelete);
+    onRequestDeleteRef.current = onRequestDelete;
     // State for one drag-to-connect gesture, from `ehstart` to `ehstop`.
     // While `active`, edgehandles is adding and removing its own transient
     // elements — we must not treat those churn events as user edits.
@@ -534,14 +541,6 @@ export const CytoscapeCanvas = React.forwardRef<CytoscapeCanvasHandle, Cytoscape
       },
       zoomIn: () => zoomAtViewportCenter(ZOOM_STEP),
       zoomOut: () => zoomAtViewportCenter(1 / ZOOM_STEP),
-      deleteSelected: () => {
-        const cy = cyRef.current;
-        if (!cy) return;
-        const sel = cy.$(':selected');
-        if (sel.nonempty()) {
-          sel.remove();
-        }
-      },
       clearSelection: () => {
         const cy = cyRef.current;
         if (!cy) return;
@@ -789,7 +788,13 @@ export const CytoscapeCanvas = React.forwardRef<CytoscapeCanvasHandle, Cytoscape
         if (ev.key === 'Delete' || ev.key === 'Backspace') {
           const sel = cy.$(':selected');
           if (sel.nonempty()) {
-            sel.remove();
+            // Hand the selection to the editor rather than removing it here —
+            // it confirms with the user first (same prompt as the inspector's
+            // delete button) and only then edits the model.
+            onRequestDeleteRef.current?.({
+              nodeIds: sel.nodes().map((n) => String(n.id())),
+              edgeIds: sel.edges().map((e) => String(e.id())),
+            });
             ev.preventDefault();
           }
         }

@@ -2735,8 +2735,6 @@
         "unsavedChanges": "Cambios sin guardar",
         "close": "Cerrar",
         "noSelection": "Haz clic en un nodo o relación del lienzo para editarlo aquí. Arrastra sobre el lienzo vacío para seleccionar varios. Mantén Espacio para desplazarte.",
-        "pendingDeleteNode": "Este nodo y todas sus conexiones se eliminarán al aplicar.",
-        "pendingDeleteRelation": "Esta relación se eliminará al aplicar.",
         "fields": {
           "type": "Tipo",
           "label": "Etiqueta",
@@ -2759,9 +2757,6 @@
           "bulkHide_other": "Ocultar {{count}} nodos",
           "deleteSelection": "Eliminar la selección",
           "delete": "Eliminar",
-          "stageDeleteNode": "Preparar la eliminación de este nodo (y todas sus conexiones)",
-          "stageDeleteRelation": "Preparar la eliminación de esta relación",
-          "undoDelete": "Deshacer la eliminación",
           "discard": "Descartar",
           "apply": "Aplicar"
         },

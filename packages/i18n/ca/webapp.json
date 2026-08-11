@@ -2735,8 +2735,6 @@
         "unsavedChanges": "Canvis sense desar",
         "close": "Tanca",
         "noSelection": "Fes clic en un node o relació del llenç per editar-lo aquí. Arrossega sobre el llenç buit per seleccionar-ne diversos. Mantén Espai per desplaçar-te.",
-        "pendingDeleteNode": "Aquest node i totes les seves connexions s'eliminaran en aplicar.",
-        "pendingDeleteRelation": "Aquesta relació s'eliminarà en aplicar.",
         "fields": {
           "type": "Tipus",
           "label": "Etiqueta",
@@ -2759,9 +2757,6 @@
           "bulkHide_other": "Amaga {{count}} nodes",
           "deleteSelection": "Elimina la selecció",
           "delete": "Elimina",
-          "stageDeleteNode": "Prepara l'eliminació d'aquest node (i totes les seves connexions)",
-          "stageDeleteRelation": "Prepara l'eliminació d'aquesta relació",
-          "undoDelete": "Desfés l'eliminació",
           "discard": "Descarta",
           "apply": "Aplica"
         },
