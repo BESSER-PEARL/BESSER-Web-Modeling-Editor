@@ -44,11 +44,11 @@ const Section = styled.section`
 `;
 
 const SectionHeader = styled.span`
-  font-size: 11px;
+  font-size: 12px;
+  font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.5px;
-  opacity: 0.6;
-  margin-bottom: 4px;
+  margin-bottom: 6px;
   display: block;
 `;
 
@@ -294,14 +294,14 @@ const ActionIndex = styled.span`
 `;
 
 const NewActionLabel = styled.div`
-  font-size: 11px;
+  font-size: 12px;
+  font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.5px;
-  opacity: 0.55;
-  margin-top: 14px;
-  margin-bottom: 4px;
-  padding-top: 10px;
-  border-top: 1px dashed ${(props: any) => props.theme.color.gray}88;
+  margin-top: 18px;
+  margin-bottom: 6px;
+  padding-top: 14px;
+  border-top: 2px solid ${(props: any) => props.theme.color.gray};
 `;
 
 const VarHint = styled.p`
@@ -362,15 +362,99 @@ const SectionTab = styled.button<{ active?: boolean }>`
   }
 `;
 
+const NewActionOptionList = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  margin-bottom: 2px;
+`;
+
+const NewActionOptionBtn = styled.button<{ active?: boolean; dimmed?: boolean; warn?: boolean }>`
+  width: 100%;
+  padding: 6px 10px;
+  border-radius: 4px;
+  border: ${(props: any) =>
+    props.dimmed
+      ? 'none'
+      : props.active
+        ? `1px solid ${props.warn ? '#e04040' : props.theme.color.primary}`
+        : `1px solid ${props.warn ? '#e0404055' : props.theme.color.gray + '88'}`};
+  background: ${(props: any) =>
+    props.active
+      ? props.dimmed ? '#888888' : props.warn ? '#e04040' : props.theme.color.primary
+      : props.theme.color.background};
+  color: ${(props: any) =>
+    props.active ? '#fff' : props.dimmed ? '#888888' : props.warn ? '#e04040' : props.theme.color.primary};
+  cursor: pointer;
+  font-size: 12px;
+  text-align: left;
+  font-weight: ${(props: any) => (props.active ? 600 : 400)};
+  transition: opacity 0.1s;
+  &:hover {
+    opacity: 0.85;
+  }
+`;
+
+const AddActionButton = styled(Button)`
+  && {
+    background-color: #28a745;
+    border-color: #28a745;
+    color: #fff;
+  }
+  &&:hover {
+    background-color: #218838;
+    border-color: #1e7e34;
+  }
+`;
+
+const ActionDesc = styled.p`
+  font-size: 11px;
+  opacity: 0.65;
+  margin: 6px 0 4px 0;
+  font-style: italic;
+  line-height: 1.4;
+`;
+
 const WS_REPLY_TYPES = new Set([
   'ws_markdown', 'ws_html', 'ws_speech', 'ws_options', 'ws_location',
   'ws_file', 'ws_image', 'ws_dataframe', 'ws_plotly',
 ]);
 
+const PLACEHOLDER_ACTIONS = new Set(['ws_file', 'ws_image', 'ws_dataframe', 'ws_plotly']);
+
+const ACTION_DESCRIPTIONS: Record<string, string> = {
+  text: 'Sends a plain text message to the user.',
+  llm: 'Sends a prompt to an LLM and replies with the generated text.',
+  llm_chat: 'Uses an LLM in conversational (chat) mode, keeping message history.',
+  rag: 'Retrieves relevant documents from a vector database and generates a reply with an LLM.',
+  db_reply: 'Executes a SQL query (manual or LLM-generated) and replies with the result.',
+  web_crawl_llm: 'Crawls a website and uses an LLM to answer questions from the scraped content.',
+  ws_markdown: 'Sends a Markdown-formatted message. Requires WebSocket platform.',
+  ws_html: 'Sends an HTML-formatted message. Requires WebSocket platform.',
+  ws_speech: 'Converts text to speech and sends it as audio. Requires WebSocket platform.',
+  ws_options: 'Sends a list of selectable options for the user to choose from. Requires WebSocket platform.',
+  ws_location: 'Sends a geographic location pin to the user. Requires WebSocket platform.',
+  ws_file: 'Sends a file to the user. Requires WebSocket platform.',
+  ws_image: 'Sends an image to the user. Requires WebSocket platform.',
+  ws_dataframe: 'Sends a pandas DataFrame as a formatted table. Requires WebSocket platform.',
+  ws_plotly: 'Sends a Plotly chart to the user. Requires WebSocket platform.',
+  gui_reply: 'Renders a GUI component (button, form, etc.) in the chat.',
+};
+
+const PLACEHOLDER_WARNINGS: Record<string, string> = {
+  ws_file: 'The generated code contains a placeholder. You must assign a baf.types.File object to reply_file_obj before this state is reached.',
+  ws_image: 'The generated code contains a placeholder. You must assign a numpy.ndarray image to reply_image_arr before this state is reached.',
+  ws_dataframe: 'The generated code contains a placeholder. You must assign a pandas.DataFrame to reply_df before this state is reached.',
+  ws_plotly: 'The generated code contains a placeholder. You must assign a plotly.graph_objs.Figure to reply_plot before this state is reached.',
+};
+
 type ActionSection = 'simple' | 'ai' | 'data';
 
+const SIMPLE_LEFT_COLUMN  = ['text', 'ws_speech', 'ws_options', 'gui_reply', 'ws_location', 'ws_html', 'ws_markdown'];
+const SIMPLE_RIGHT_COLUMN = ['ws_file', 'ws_image', 'ws_dataframe', 'ws_plotly'];
+
 const SECTION_ACTION_TYPES: Record<ActionSection, string[]> = {
-  simple: ['text', 'ws_markdown', 'ws_html', 'ws_speech', 'ws_options', 'ws_location', 'ws_file', 'ws_image', 'ws_dataframe', 'ws_plotly', 'gui_reply'],
+  simple: [...SIMPLE_LEFT_COLUMN, ...SIMPLE_RIGHT_COLUMN],
   ai: ['llm', 'llm_chat'],
   data: ['rag', 'db_reply', 'web_crawl_llm'],
 };
@@ -409,6 +493,43 @@ type DbReplyValues = {
   dbSqlQuery: string;
 };
 
+type MemberSnapshot = {
+  replyType: string;
+  name: string;
+  ragDatabaseName: string;
+  prompt: string;
+  dbSelectionType: string;
+  dbCustomName: string;
+  dbQueryMode: string;
+  dbOperation: string;
+  dbSqlQuery: string;
+  llm_name: string;
+  system_message: string;
+  inputPromptMode: string;
+  customInputPrompt: string;
+  customInputPromptUseSessionVars: boolean;
+  systemPromptUseSessionVars: boolean;
+  promptUseSessionVars: boolean;
+  storeInSession: string;
+  useSessionVars: boolean;
+  initial_url: string;
+  max_depth: number;
+  max_pages: number;
+  crawl_format: string;
+  base_url_prefix: string;
+  run_crawl: boolean;
+  no_crawl_error_message: string;
+  system_message_prefix: string;
+  systemMessagePrefixUseSessionVars: boolean;
+  sendReply: boolean;
+  ws_message: string;
+  ws_audio_speed: number | null;
+  ws_options: string;
+  ws_latitude: number;
+  ws_longitude: number;
+  guiId: string;
+};
+
 interface State {
   colorOpen: boolean;
   newBodyActionType: string;
@@ -428,6 +549,11 @@ interface State {
   // mouse is pressed on that card's drag handle — so clicking inside a text
   // field selects/positions the cursor normally instead of starting a drag.
   dragArmedKey: string | null;
+  // Stashes for preserving content when toggling between predefined / custom body modes.
+  bodyPredefinedStash: MemberSnapshot[] | null;
+  fallbackPredefinedStash: MemberSnapshot[] | null;
+  bodyCustomStash: string | null;
+  fallbackCustomStash: string | null;
 }
 
 const ACTION_TYPE_LABELS: Record<string, string> = {
@@ -447,7 +573,7 @@ const ACTION_TYPE_LABELS: Record<string, string> = {
   ws_image: 'Image',
   ws_dataframe: 'Dataframe',
   ws_plotly: 'Plotly',
-  gui_reply: 'GUI Reply',
+  gui_reply: 'GUI',
 };
 
 const enhance = compose<ComponentClass<OwnProps>>(
@@ -478,6 +604,10 @@ class StateUpdate extends Component<Props, State> {
     dragOverIndex: null,
     dragOverPrefix: null,
     dragArmedKey: null,
+    bodyPredefinedStash: null,
+    fallbackPredefinedStash: null,
+    bodyCustomStash: null,
+    fallbackCustomStash: null,
   };
 
   private layoutTimer: ReturnType<typeof setTimeout> | null = null;
@@ -502,26 +632,10 @@ class StateUpdate extends Component<Props, State> {
     const bodies = children.filter((c): c is AgentStateMember => c instanceof AgentStateBody);
     const fallbackBodies = children.filter((c): c is AgentStateMember => c instanceof AgentStateFallbackBody);
 
-    const ragDatabaseNames = Array.from(
-      new Set(
-        Object.values(elements)
-          .filter((el: any) => el.type === AgentElementType.AgentRagElement && typeof el.name === 'string')
-          .map((el: any) => el.name.trim())
-          .filter((n) => n.length > 0),
-      ),
-    );
-    const AGENT_LLM_TYPE = (AgentElementType as Record<string, string>).AgentLLM ?? 'AgentLLM';
-    const llmEntries = Array.from(
-      new Map(
-        Object.values(elements)
-          .filter((el: any) => el.type === AGENT_LLM_TYPE && typeof el.name === 'string')
-          .map((el: any) => {
-            const name = String(el.name).trim();
-            return [name, { name, provider: String((el as any).provider || '').toLowerCase() } as const];
-          })
-          .filter(([name]) => name.length > 0),
-      ).values(),
-    );
+    const ragDatabaseNames = diagramBridge.getAgentRAGs()
+      .map((r) => r.name)
+      .filter((n) => n.length > 0);
+    const llmEntries = diagramBridge.getAgentLLMs().filter((l) => l.name.length > 0);
     const llmNames = llmEntries.map((entry) => entry.name);
     const llmProviderByName = llmEntries.reduce<Record<string, string>>((acc, entry) => {
       acc[entry.name] = entry.provider;
@@ -737,7 +851,7 @@ class StateUpdate extends Component<Props, State> {
           <BodyTypeBtn
             active={bodyType === 'predefined'}
             onClick={() => {
-              if (bodyType !== 'predefined') this.switchBodyType('predefined', actions, Clazz);
+              if (bodyType !== 'predefined') this.switchBodyType('predefined', actions, Clazz, prefix);
             }}
           >
             Predefined
@@ -745,7 +859,7 @@ class StateUpdate extends Component<Props, State> {
           <BodyTypeBtn
             active={bodyType === 'custom'}
             onClick={() => {
-              if (bodyType !== 'custom') this.switchBodyType('custom', actions, Clazz);
+              if (bodyType !== 'custom') this.switchBodyType('custom', actions, Clazz, prefix);
             }}
           >
             Custom (Python)
@@ -935,46 +1049,65 @@ class StateUpdate extends Component<Props, State> {
           <SectionTab active={section === 'ai'} onClick={() => setSection('ai')}>AI Replies</SectionTab>
           <SectionTab active={section === 'data'} onClick={() => setSection('data')}>Data Query</SectionTab>
         </SectionTabRow>
-        <AddActionRow>
-          <LlmSelect
-            value={selectedActionType}
-            onChange={(e) => setNewActionType(e.target.value)}
-            style={WS_REPLY_TYPES.has(selectedActionType) ? { color: wsColor } : selectedActionType === 'llm_chat' ? { color: chatColor } : undefined}
-          >
-            {section === 'simple' && (
-              <>
-                <option value="text">Text</option>
-                <option value="ws_markdown" title={wsTooltip} style={{ color: wsColor }}>Markdown</option>
-                <option value="ws_html" title={wsTooltip} style={{ color: wsColor }}>HTML</option>
-                <option value="ws_speech" title={wsTooltip} style={{ color: wsColor }}>Speech</option>
-                <option value="ws_options" title={wsTooltip} style={{ color: wsColor }}>Options</option>
-                <option value="ws_location" title={wsTooltip} style={{ color: wsColor }}>Location</option>
-                <option value="ws_file" title={wsTooltip} style={{ color: wsColor }}>File</option>
-                <option value="ws_image" title={wsTooltip} style={{ color: wsColor }}>Image</option>
-                <option value="ws_dataframe" title={wsTooltip} style={{ color: wsColor }}>Dataframe</option>
-                <option value="ws_plotly" title={wsTooltip} style={{ color: wsColor }}>Plotly</option>
-                <option value="gui_reply">GUI Reply</option>
-              </>
-            )}
-            {section === 'ai' && (
-              <>
-                <option value="llm">LLM</option>
-                <option value="llm_chat" title={chatTooltip} style={{ color: chatColor }}>LLM Chat</option>
-              </>
-            )}
-            {section === 'data' && (
-              <>
-                <option value="rag">RAG</option>
-                <option value="db_reply">SQL Query</option>
-                <option value="web_crawl_llm">Web Crawl + LLM</option>
-              </>
-            )}
-          </LlmSelect>
-          <Button color="primary" onClick={() => {
+        {section === 'simple' ? (
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '3px' }}>
+            <NewActionOptionList>
+              {SIMPLE_LEFT_COLUMN.map((type) => {
+                const isWarn = WS_REPLY_TYPES.has(type) && !hasWebSocketPlatform;
+                return (
+                  <NewActionOptionBtn
+                    key={type}
+                    active={selectedActionType === type}
+                    warn={isWarn}
+                    onClick={() => setNewActionType(type)}
+                  >
+                    {ACTION_TYPE_LABELS[type] ?? type}
+                  </NewActionOptionBtn>
+                );
+              })}
+            </NewActionOptionList>
+            <NewActionOptionList>
+              {SIMPLE_RIGHT_COLUMN.map((type) => (
+                <NewActionOptionBtn
+                  key={type}
+                  active={selectedActionType === type}
+                  dimmed
+                  onClick={() => setNewActionType(type)}
+                >
+                  {ACTION_TYPE_LABELS[type] ?? type}
+                </NewActionOptionBtn>
+              ))}
+            </NewActionOptionList>
+          </div>
+        ) : (
+          <NewActionOptionList>
+            {sectionTypes.map((type) => {
+              const isWarn = WS_REPLY_TYPES.has(type) && !hasWebSocketPlatform;
+              const isChatWarn = type === 'llm_chat' && !hasCompatibleChatLlm;
+              return (
+                <NewActionOptionBtn
+                  key={type}
+                  active={selectedActionType === type}
+                  warn={isWarn || isChatWarn}
+                  onClick={() => setNewActionType(type)}
+                >
+                  {ACTION_TYPE_LABELS[type] ?? type}
+                </NewActionOptionBtn>
+              );
+            })}
+          </NewActionOptionList>
+        )}
+        {ACTION_DESCRIPTIONS[selectedActionType] && (
+          <ActionDesc>{ACTION_DESCRIPTIONS[selectedActionType]}</ActionDesc>
+        )}
+        {PLACEHOLDER_ACTIONS.has(selectedActionType) && PLACEHOLDER_WARNINGS[selectedActionType] && (
+          <WsWarning style={{ marginTop: 2, marginBottom: 4 }}>
+            ⚠ {PLACEHOLDER_WARNINGS[selectedActionType]}
+          </WsWarning>
+        )}
+        <div style={{ marginTop: 6 }}>
+          <AddActionButton onClick={() => {
             const id = this.addPredefinedAction(Clazz, selectedActionType);
-            // New actions are expanded by default; make sure a stale collapsed
-            // entry (e.g. from a previously deleted action reusing state) can't
-            // hide the freshly created one.
             if (id) {
               const key = prefix === 'body' ? 'collapsedBodyIds' : 'collapsedFallbackIds';
               if (this.state[key].has(id)) {
@@ -984,9 +1117,9 @@ class StateUpdate extends Component<Props, State> {
               }
             }
           }}>
-            Add
-          </Button>
-        </AddActionRow>
+            Add {ACTION_TYPE_LABELS[selectedActionType] ?? selectedActionType}
+          </AddActionButton>
+        </div>
       </>
     );
   };
@@ -1309,14 +1442,74 @@ class StateUpdate extends Component<Props, State> {
 
   // ─── Body type switch ─────────────────────────────────────────────────────────
 
+  private snapshotMember = (a: AgentStateMember): MemberSnapshot => ({
+    replyType: a.replyType,
+    name: a.name,
+    ragDatabaseName: a.ragDatabaseName,
+    prompt: a.prompt,
+    dbSelectionType: a.dbSelectionType,
+    dbCustomName: a.dbCustomName,
+    dbQueryMode: a.dbQueryMode,
+    dbOperation: a.dbOperation,
+    dbSqlQuery: a.dbSqlQuery,
+    llm_name: a.llm_name,
+    system_message: a.system_message,
+    inputPromptMode: a.inputPromptMode,
+    customInputPrompt: a.customInputPrompt,
+    customInputPromptUseSessionVars: a.customInputPromptUseSessionVars,
+    systemPromptUseSessionVars: a.systemPromptUseSessionVars,
+    promptUseSessionVars: a.promptUseSessionVars,
+    storeInSession: a.storeInSession,
+    useSessionVars: a.useSessionVars,
+    initial_url: a.initial_url,
+    max_depth: a.max_depth,
+    max_pages: a.max_pages,
+    crawl_format: a.crawl_format,
+    base_url_prefix: a.base_url_prefix,
+    run_crawl: a.run_crawl,
+    no_crawl_error_message: a.no_crawl_error_message,
+    system_message_prefix: a.system_message_prefix,
+    systemMessagePrefixUseSessionVars: a.systemMessagePrefixUseSessionVars,
+    sendReply: a.sendReply,
+    ws_message: a.ws_message,
+    ws_audio_speed: a.ws_audio_speed,
+    ws_options: a.ws_options,
+    ws_latitude: a.ws_latitude,
+    ws_longitude: a.ws_longitude,
+    guiId: a.guiId,
+  });
+
+  private restoreMember = (
+    Clazz: typeof AgentStateBody | typeof AgentStateFallbackBody,
+    snap: MemberSnapshot,
+  ) => {
+    const { replyType, name, ...rest } = snap;
+    this.create(Clazz, replyType, rest)(name);
+  };
+
   private switchBodyType = (
     type: 'predefined' | 'custom',
     actions: AgentStateMember[],
     Clazz: typeof AgentStateBody | typeof AgentStateFallbackBody,
+    prefix: 'body' | 'fallback',
   ) => {
-    actions.forEach((a) => this.delete(a.id)());
+    const stashKeyPred = prefix === 'body' ? 'bodyPredefinedStash' : 'fallbackPredefinedStash';
+    const stashKeyCustom = prefix === 'body' ? 'bodyCustomStash' : 'fallbackCustomStash';
+
     if (type === 'custom') {
-      this.create(Clazz, 'code')('def body_name(session: Session):\n    pass\n');
+      const predStash = actions.map((a) => this.snapshotMember(a));
+      const savedCode = this.state[stashKeyCustom];
+      this.setState({ [stashKeyPred]: predStash } as any);
+      actions.forEach((a) => this.delete(a.id)());
+      this.create(Clazz, 'code')(savedCode ?? 'def body_name(session: Session):\n    pass\n');
+    } else {
+      const codeAction = actions.find((a) => a.replyType === 'code');
+      const savedStash = this.state[stashKeyPred];
+      this.setState({ [stashKeyCustom]: codeAction?.name ?? null } as any);
+      actions.forEach((a) => this.delete(a.id)());
+      if (savedStash && savedStash.length > 0) {
+        savedStash.forEach((snap) => this.restoreMember(Clazz, snap));
+      }
     }
   };
 

@@ -92,13 +92,14 @@ interface ItemRowProps {
   id: string;
   name: string;
   badge?: string;
+  extraBadge?: string;
   expanded: boolean;
   onToggle: () => void;
   onDelete: () => void;
   children: React.ReactNode;
 }
 
-function ItemRow({ id, name, badge, expanded, onToggle, onDelete, children }: ItemRowProps) {
+function ItemRow({ id, name, badge, extraBadge, expanded, onToggle, onDelete, children }: ItemRowProps) {
   return (
     <div className="rounded-md border border-border bg-background">
       <div
@@ -117,6 +118,11 @@ function ItemRow({ id, name, badge, expanded, onToggle, onDelete, children }: It
           {badge && (
             <Badge variant="outline" className="text-[10px] h-4 px-1 shrink-0">
               {badge}
+            </Badge>
+          )}
+          {extraBadge && (
+            <Badge variant="secondary" className="text-[10px] h-4 px-1 shrink-0">
+              {extraBadge}
             </Badge>
           )}
         </div>
@@ -394,6 +400,10 @@ export function AgentComponentsPanel() {
   }, [activeDiagram]);
 
   const llmNames = React.useMemo(() => llms.map((e: any) => e.name).filter(Boolean) as string[], [llms]);
+  const defaultLlmName: string = React.useMemo(
+    () => String((activeDiagram as any)?.config?.default_llm_name || ''),
+    [activeDiagram],
+  );
 
   // Keep diagramBridge in sync so editor components (state/transition panels) can read GUI names.
   useEffect(() => {
@@ -415,6 +425,24 @@ export function AgentComponentsPanel() {
       })),
     );
   }, [intents]);
+
+  // Keep diagramBridge in sync so state panels can read LLM names / providers.
+  useEffect(() => {
+    diagramBridge.setAgentLLMs(
+      llms
+        .filter((l: any) => l.name)
+        .map((l: any) => ({ name: String(l.name), provider: String(l.provider || '').toLowerCase() })),
+    );
+  }, [llms]);
+
+  // Keep diagramBridge in sync so state panels can read RAG database names.
+  useEffect(() => {
+    diagramBridge.setAgentRAGs(
+      rags
+        .filter((r: any) => r.name)
+        .map((r: any) => ({ name: String(r.name) })),
+    );
+  }, [rags]);
 
   const hasReasoningState = React.useMemo(
     () => Object.values(elements).some((el: any) => el.type === 'AgentState' && el.stateType === 'reasoning'),
@@ -474,6 +502,41 @@ export function AgentComponentsPanel() {
       });
     },
     [project],
+  );
+
+  const writeConfig = useCallback(
+    (updater: (cfg: Record<string, any>) => Record<string, any>) => {
+      if (!project) return;
+      const latest = ProjectStorageRepository.loadProject(project.id) || project;
+      const diagram = getActiveDiagram(latest, 'AgentDiagram');
+      if (!diagram) return;
+      const current = (diagram as any).config || {};
+      const next = updater({ ...current });
+      ProjectStorageRepository.updateDiagram(project.id, 'AgentDiagram', {
+        ...diagram,
+        config: next,
+        lastUpdate: new Date().toISOString(),
+      });
+    },
+    [project],
+  );
+
+  const setDefaultLlm = useCallback(
+    (llmName: string) => {
+      writeConfig(cfg => ({ ...cfg, default_llm_name: llmName }));
+    },
+    [writeConfig],
+  );
+
+  const removeLLM = useCallback(
+    (id: string, llmName: string) => {
+      writeComponents(els => { const next = { ...els }; delete next[id]; return next; });
+      if (expandedId === id) setExpandedId(null);
+      if (defaultLlmName === llmName && llmName) {
+        writeConfig(cfg => ({ ...cfg, default_llm_name: '' }));
+      }
+    },
+    [writeComponents, expandedId, defaultLlmName, writeConfig],
   );
 
   const addElement = useCallback(
@@ -677,9 +740,10 @@ export function AgentComponentsPanel() {
                   id={el.id}
                   name={el.name}
                   badge={el.provider}
+                  extraBadge={defaultLlmName === el.name && el.name ? 'default' : undefined}
                   expanded={expandedId === el.id}
                   onToggle={() => toggle(el.id)}
-                  onDelete={() => removeElement(el.id)}
+                  onDelete={() => removeLLM(el.id, el.name)}
                 >
                   <div className="grid grid-cols-2 gap-4">
                     <TextField
@@ -698,6 +762,16 @@ export function AgentComponentsPanel() {
                       options={LLM_PROVIDERS}
                     />
                   </div>
+                  <CheckboxField
+                    id={`llm-default-${el.id}`}
+                    label="Set as default LLM"
+                    value={!!el.name && defaultLlmName === el.name}
+                    onChange={(checked) => {
+                      if (checked && el.name) setDefaultLlm(el.name);
+                      else if (!checked && defaultLlmName === el.name) setDefaultLlm('');
+                    }}
+                    description="Use this LLM when no specific LLM is selected in a state action."
+                  />
                   <NumberField
                     id={`llm-npm-${el.id}`}
                     label="Num previous messages"

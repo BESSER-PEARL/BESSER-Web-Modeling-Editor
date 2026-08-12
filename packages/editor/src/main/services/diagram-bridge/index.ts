@@ -9,4 +9,6 @@ export {
   type IDiagramReference,
   type AgentGUIInfo,
   type AgentIntentInfo,
+  type AgentLLMInfo,
+  type AgentRAGInfo,
 } from './diagram-bridge-service';
