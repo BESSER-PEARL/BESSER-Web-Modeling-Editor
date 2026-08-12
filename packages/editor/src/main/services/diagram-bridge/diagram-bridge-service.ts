@@ -70,6 +70,21 @@ export interface AgentIntentInfo {
 }
 
 /**
+ * Represents an LLM object defined in the agent's components panel.
+ */
+export interface AgentLLMInfo {
+  name: string;
+  provider: string;
+}
+
+/**
+ * Represents a RAG database defined in the agent's components panel.
+ */
+export interface AgentRAGInfo {
+  name: string;
+}
+
+/**
  * Interface for diagram references (state machines, quantum circuits, etc.)
  * Used to reference diagrams from method implementations
  */
@@ -677,6 +692,40 @@ export class DiagramBridgeService implements IDiagramBridgeService {
    */
   setAgentIntents(intents: AgentIntentInfo[]): void {
     this.agentIntents = intents || [];
+  }
+
+  private agentLLMs: AgentLLMInfo[] = [];
+
+  /**
+   * Get the list of LLM objects defined in the current agent diagram.
+   * Set by the webapp (AgentComponentsPanel) whenever LLMs change.
+   */
+  getAgentLLMs(): AgentLLMInfo[] {
+    return this.agentLLMs;
+  }
+
+  /**
+   * Set the LLM list so editor components can offer LLM dropdowns.
+   */
+  setAgentLLMs(llms: AgentLLMInfo[]): void {
+    this.agentLLMs = llms || [];
+  }
+
+  private agentRAGs: AgentRAGInfo[] = [];
+
+  /**
+   * Get the list of RAG database objects defined in the current agent diagram.
+   * Set by the webapp (AgentComponentsPanel) whenever RAGs change.
+   */
+  getAgentRAGs(): AgentRAGInfo[] {
+    return this.agentRAGs;
+  }
+
+  /**
+   * Set the RAG list so editor components can offer RAG dropdowns.
+   */
+  setAgentRAGs(rags: AgentRAGInfo[]): void {
+    this.agentRAGs = rags || [];
   }
 }
 

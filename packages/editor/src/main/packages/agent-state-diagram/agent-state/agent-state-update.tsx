@@ -502,26 +502,10 @@ class StateUpdate extends Component<Props, State> {
     const bodies = children.filter((c): c is AgentStateMember => c instanceof AgentStateBody);
     const fallbackBodies = children.filter((c): c is AgentStateMember => c instanceof AgentStateFallbackBody);
 
-    const ragDatabaseNames = Array.from(
-      new Set(
-        Object.values(elements)
-          .filter((el: any) => el.type === AgentElementType.AgentRagElement && typeof el.name === 'string')
-          .map((el: any) => el.name.trim())
-          .filter((n) => n.length > 0),
-      ),
-    );
-    const AGENT_LLM_TYPE = (AgentElementType as Record<string, string>).AgentLLM ?? 'AgentLLM';
-    const llmEntries = Array.from(
-      new Map(
-        Object.values(elements)
-          .filter((el: any) => el.type === AGENT_LLM_TYPE && typeof el.name === 'string')
-          .map((el: any) => {
-            const name = String(el.name).trim();
-            return [name, { name, provider: String((el as any).provider || '').toLowerCase() } as const];
-          })
-          .filter(([name]) => name.length > 0),
-      ).values(),
-    );
+    const ragDatabaseNames = diagramBridge.getAgentRAGs()
+      .map((r) => r.name)
+      .filter((n) => n.length > 0);
+    const llmEntries = diagramBridge.getAgentLLMs().filter((l) => l.name.length > 0);
     const llmNames = llmEntries.map((entry) => entry.name);
     const llmProviderByName = llmEntries.reduce<Record<string, string>>((acc, entry) => {
       acc[entry.name] = entry.provider;

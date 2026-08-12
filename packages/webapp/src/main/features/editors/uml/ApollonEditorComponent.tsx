@@ -77,6 +77,40 @@ export const ApollonEditorComponent: React.FC = () => {
     diagramBridge.setAgentPlatform(platform);
   }, [reduxDiagram]);
 
+  // Eagerly populate all agent component lists in diagramBridge whenever the active
+  // diagram changes. Without this, the bridge would only be populated when the user
+  // navigates to the Components tab (where AgentComponentsPanel mounts), so editor
+  // panels (state/transition property editors) would see empty LLM/GUI/RAG/intent
+  // lists until that navigation happens.
+  useEffect(() => {
+    const agentComponents: Record<string, any> = (reduxDiagram as any)?.agentComponents || {};
+    const values = Object.values(agentComponents);
+
+    diagramBridge.setAgentGUIs(
+      values
+        .filter((e: any) => e.type === 'AgentGUI')
+        .map((g: any) => ({ name: g.gui_id || g.id, gui_id: g.gui_id || '', is_form: !!g.is_form })),
+    );
+
+    diagramBridge.setAgentIntents(
+      values
+        .filter((e: any) => e.type === 'AgentIntent' && e.name)
+        .map((intent: any) => ({ name: String(intent.name), id: intent.id })),
+    );
+
+    diagramBridge.setAgentLLMs(
+      values
+        .filter((e: any) => e.type === 'AgentLLM' && e.name)
+        .map((l: any) => ({ name: String(l.name), provider: String(l.provider || '').toLowerCase() })),
+    );
+
+    diagramBridge.setAgentRAGs(
+      values
+        .filter((e: any) => e.type === 'AgentRagElement' && e.name)
+        .map((r: any) => ({ name: String(r.name) })),
+    );
+  }, [reduxDiagram]);
+
   useEffect(() => {
     const smDiagrams = stateMachineDiagrams ?? [];
     const qcDiagrams = quantumCircuitDiagrams ?? [];
