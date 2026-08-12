@@ -32,7 +32,7 @@ export class AgentStateTransition extends UMLRelationshipCenteredDescription imp
   type = AgentRelationshipType.AgentStateTransition;
   params: { [id: string]: string } = {};
   transitionType: 'predefined' | 'custom' = 'predefined';
-  predefinedType: string | undefined = 'when_intent_matched';
+  predefinedType: string | undefined = 'auto';
   intentName: string | undefined = undefined;
   variable: string | undefined = undefined;
   operator: string | undefined = undefined;
