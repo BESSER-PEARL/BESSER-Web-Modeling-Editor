@@ -179,6 +179,7 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
   const showSimulateAgent = currentProject?.currentDiagramType === 'AgentDiagram';
   const [isCredentialsDialogOpen, setIsCredentialsDialogOpen] = useState(false);
   const [isValidatingBeforeTest, setIsValidatingBeforeTest] = useState(false);
+  const [simulationConfig, setSimulationConfig] = useState<Record<string, any>>({});
 
   // Local UI state
   // Sidebar starts expanded so diagram-type labels are visible; users can
@@ -820,11 +821,74 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
 
     setIsValidatingBeforeTest(true);
 
+    // Read diagram config from fresh storage so that fields written directly to
+    // localStorage (e.g. default_llm_name via writeConfig) are not missed by the
+    // Redux state, which may not yet reflect those writes.
+    const freshProject = currentProject?.id
+      ? (ProjectStorageRepository.loadProject(currentProject.id) ?? currentProject)
+      : currentProject;
+    const freshAgentDiagram = freshProject ? getActiveDiagram(freshProject, 'AgentDiagram') : undefined;
+    const freshDiagramConfig = (freshAgentDiagram?.config ?? null) as Record<string, any> | null;
+    const freshLlmBlock =
+      freshDiagramConfig && typeof freshDiagramConfig.llm === 'object' && freshDiagramConfig.llm !== null
+        ? (freshDiagramConfig.llm as Record<string, any>)
+        : null;
+    const freshAgentConfig = freshDiagramConfig
+      ? normalizeAgentRuntimeConfig({
+          agentPlatform:
+            typeof freshDiagramConfig.agentPlatform === 'string' ? freshDiagramConfig.agentPlatform : undefined,
+          agentPlatformUseStreamlit:
+            typeof freshDiagramConfig.agentPlatformUseStreamlit === 'boolean'
+              ? freshDiagramConfig.agentPlatformUseStreamlit
+              : undefined,
+          intentRecognitionTechnology: freshDiagramConfig.intentRecognitionTechnology,
+          agentLlmProvider: freshLlmBlock?.provider,
+          agentLlmModel: typeof freshLlmBlock?.model === 'string' ? freshLlmBlock.model : undefined,
+          agentCustomLlmModel: undefined,
+          agentLlmName:
+            typeof freshDiagramConfig.agentLlmName === 'string'
+              ? freshDiagramConfig.agentLlmName
+              : typeof freshLlmBlock?.name === 'string'
+              ? freshLlmBlock.name
+              : undefined,
+        })
+      : { ...DEFAULT_AGENT_RUNTIME_CONFIG };
+    const freshResolvedOpenAiModel =
+      freshAgentConfig.agentLlmModel === 'other'
+        ? freshAgentConfig.agentCustomLlmModel.trim()
+        : freshAgentConfig.agentLlmModel;
+    const freshResolvedAgentPlatform =
+      freshAgentConfig.agentPlatform === 'websocket' && freshAgentConfig.agentPlatformUseStreamlit
+        ? 'streamlit'
+        : freshAgentConfig.agentPlatform;
+    const freshDefaultLlmName =
+      freshDiagramConfig &&
+      typeof freshDiagramConfig.default_llm_name === 'string' &&
+      freshDiagramConfig.default_llm_name
+        ? freshDiagramConfig.default_llm_name
+        : undefined;
+    const freshConfig: Record<string, any> = {
+      agentPlatform: freshResolvedAgentPlatform,
+      intentRecognitionTechnology: freshAgentConfig.intentRecognitionTechnology,
+      ...(freshDefaultLlmName ? { default_llm_name: freshDefaultLlmName } : {}),
+      ...(freshAgentConfig.agentLlmName
+        ? { llm: { name: freshAgentConfig.agentLlmName } }
+        : freshAgentConfig.agentLlmProvider
+        ? {
+            llm: {
+              provider: freshAgentConfig.agentLlmProvider,
+              ...(freshResolvedOpenAiModel ? { model: freshResolvedOpenAiModel } : {}),
+            },
+          }
+        : {}),
+    };
+    setSimulationConfig(freshConfig);
+
     const result = await dispatch(
       validateAgentThunk({
         title: diagram?.title ?? 'Agent',
         model: diagram?.model ?? {},
-        config: normalizedAgentSystemConfig,
+        config: freshConfig,
         configYaml: (diagram as any)?.configYaml as string | undefined,
       }),
     );
@@ -1211,7 +1275,7 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
         onOpenChange={setIsCredentialsDialogOpen}
         diagramTitle={diagram?.title ?? 'Agent'}
         diagramModel={simulationDiagramModel}
-        diagramConfig={normalizedAgentSystemConfig}
+        diagramConfig={simulationConfig}
         diagramConfigYaml={(diagram as any)?.configYaml as string | undefined}
       />
 
