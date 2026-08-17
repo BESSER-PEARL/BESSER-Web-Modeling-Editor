@@ -82,7 +82,7 @@ export abstract class LayerNormalizationAttribute extends NNComponentAttribute i
 export class NameAttributeLayerNormalization extends LayerNormalizationAttribute {
   type: UMLElementType = NNElementType.NameAttributeLayerNormalization;
   constructor(values?: DeepPartial<ILayerNormalizationAttribute>) {
-    super({ attributeName: 'name', value: 'LayerNorm_layer', isMandatory: true, ...values });
+    super({ attributeName: 'name', value: 'layernorm_layer', isMandatory: true, ...values });
     this.name = `${this.attributeName} = ${this.value}`;
   }
 }

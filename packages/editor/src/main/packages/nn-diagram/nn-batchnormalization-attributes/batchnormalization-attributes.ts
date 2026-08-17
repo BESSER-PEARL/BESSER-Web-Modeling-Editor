@@ -82,7 +82,7 @@ export abstract class BatchNormalizationAttribute extends NNComponentAttribute i
 export class NameAttributeBatchNormalization extends BatchNormalizationAttribute {
   type: UMLElementType = NNElementType.NameAttributeBatchNormalization;
   constructor(values?: DeepPartial<IBatchNormalizationAttribute>) {
-    super({ attributeName: 'name', value: 'BatchNorm_layer', isMandatory: true, ...values });
+    super({ attributeName: 'name', value: 'batchnorm_layer', isMandatory: true, ...values });
     this.name = `${this.attributeName} = ${this.value}`;
   }
 }

@@ -82,7 +82,7 @@ export abstract class EmbeddingAttribute extends NNComponentAttribute implements
 export class NameAttributeEmbedding extends EmbeddingAttribute {
   type: UMLElementType = NNElementType.NameAttributeEmbedding;
   constructor(values?: DeepPartial<IEmbeddingAttribute>) {
-    super({ attributeName: 'name', value: 'Embedding_layer', isMandatory: true, ...values });
+    super({ attributeName: 'name', value: 'embedding_layer', isMandatory: true, ...values });
     this.name = `${this.attributeName} = ${this.value}`;
   }
 }

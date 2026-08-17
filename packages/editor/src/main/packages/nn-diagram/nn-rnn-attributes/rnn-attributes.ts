@@ -82,7 +82,7 @@ export abstract class RNNAttribute extends NNComponentAttribute implements IRNNA
 export class NameAttributeRNN extends RNNAttribute {
   type: UMLElementType = NNElementType.NameAttributeRNN;
   constructor(values?: DeepPartial<IRNNAttribute>) {
-    super({ attributeName: 'name', value: 'RNN_layer', isMandatory: true, ...values });
+    super({ attributeName: 'name', value: 'rnn_layer', isMandatory: true, ...values });
     this.name = `${this.attributeName} = ${this.value}`;
   }
 }

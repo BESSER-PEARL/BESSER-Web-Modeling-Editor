@@ -82,7 +82,7 @@ export abstract class GRUAttribute extends NNComponentAttribute implements IGRUA
 export class NameAttributeGRU extends GRUAttribute {
   type: UMLElementType = NNElementType.NameAttributeGRU;
   constructor(values?: DeepPartial<IGRUAttribute>) {
-    super({ attributeName: 'name', value: 'GRU_layer', isMandatory: true, ...values });
+    super({ attributeName: 'name', value: 'gru_layer', isMandatory: true, ...values });
     this.name = `${this.attributeName} = ${this.value}`;
   }
 }

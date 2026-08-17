@@ -82,7 +82,7 @@ export abstract class PoolingAttribute extends NNComponentAttribute implements I
 export class NameAttributePooling extends PoolingAttribute {
   type: UMLElementType = NNElementType.NameAttributePooling;
   constructor(values?: DeepPartial<IPoolingAttribute>) {
-    super({ attributeName: 'name', value: 'Pooling_layer', isMandatory: true, ...values });
+    super({ attributeName: 'name', value: 'pooling_layer', isMandatory: true, ...values });
     this.name = `${this.attributeName} = ${this.value}`;
   }
 }

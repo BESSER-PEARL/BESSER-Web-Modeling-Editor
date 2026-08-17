@@ -82,7 +82,7 @@ export abstract class LSTMAttribute extends NNComponentAttribute implements ILST
 export class NameAttributeLSTM extends LSTMAttribute {
   type: UMLElementType = NNElementType.NameAttributeLSTM;
   constructor(values?: DeepPartial<ILSTMAttribute>) {
-    super({ attributeName: 'name', value: 'LSTM_layer', isMandatory: true, ...values });
+    super({ attributeName: 'name', value: 'lstm_layer', isMandatory: true, ...values });
     this.name = `${this.attributeName} = ${this.value}`;
   }
 }

@@ -82,7 +82,7 @@ export abstract class DropoutAttribute extends NNComponentAttribute implements I
 export class NameAttributeDropout extends DropoutAttribute {
   type: UMLElementType = NNElementType.NameAttributeDropout;
   constructor(values?: DeepPartial<IDropoutAttribute>) {
-    super({ attributeName: 'name', value: 'Dropout_layer', isMandatory: true, ...values });
+    super({ attributeName: 'name', value: 'dropout_layer', isMandatory: true, ...values });
     this.name = `${this.attributeName} = ${this.value}`;
   }
 }

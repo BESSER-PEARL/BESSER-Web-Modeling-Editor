@@ -82,7 +82,7 @@ export abstract class FlattenAttribute extends NNComponentAttribute implements I
 export class NameAttributeFlatten extends FlattenAttribute {
   type: UMLElementType = NNElementType.NameAttributeFlatten;
   constructor(values?: DeepPartial<IFlattenAttribute>) {
-    super({ attributeName: 'name', value: 'Flatten_layer', isMandatory: true, ...values });
+    super({ attributeName: 'name', value: 'flatten_layer', isMandatory: true, ...values });
     this.name = `${this.attributeName} = ${this.value}`;
   }
 }
