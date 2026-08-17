@@ -310,6 +310,9 @@ export const Components: {
   [NNElementType.InputReusedAttributePooling]: NNComponentMemberComponent,
   [NNElementType.PermuteInAttributePooling]: NNComponentMemberComponent,
   [NNElementType.PermuteOutAttributePooling]: NNComponentMemberComponent,
+  [NNElementType.IsLayerCallAttributePooling]: NNComponentMemberComponent,
+  [NNElementType.InputVarAttributePooling]: NNComponentMemberComponent,
+  [NNElementType.OutputVarAttributePooling]: NNComponentMemberComponent,
 
   [NNElementType.RNNLayer]: NNLayerIconComponent,
   // RNN Attributes
@@ -387,6 +390,10 @@ export const Components: {
   [NNElementType.ActvFuncAttributeLinear]: NNComponentMemberComponent,
   [NNElementType.NameModuleInputAttributeLinear]: NNComponentMemberComponent,
   [NNElementType.InputReusedAttributeLinear]: NNComponentMemberComponent,
+  [NNElementType.BiasAttributeLinear]: NNComponentMemberComponent,
+  [NNElementType.IsLayerCallAttributeLinear]: NNComponentMemberComponent,
+  [NNElementType.InputVarAttributeLinear]: NNComponentMemberComponent,
+  [NNElementType.OutputVarAttributeLinear]: NNComponentMemberComponent,
 
   [NNElementType.FlattenLayer]: NNLayerIconComponent,
   // Flatten Attributes
@@ -396,6 +403,9 @@ export const Components: {
   [NNElementType.ActvFuncAttributeFlatten]: NNComponentMemberComponent,
   [NNElementType.NameModuleInputAttributeFlatten]: NNComponentMemberComponent,
   [NNElementType.InputReusedAttributeFlatten]: NNComponentMemberComponent,
+  [NNElementType.IsLayerCallAttributeFlatten]: NNComponentMemberComponent,
+  [NNElementType.InputVarAttributeFlatten]: NNComponentMemberComponent,
+  [NNElementType.OutputVarAttributeFlatten]: NNComponentMemberComponent,
 
   [NNElementType.EmbeddingLayer]: NNLayerIconComponent,
   // Embedding Attributes
@@ -405,6 +415,10 @@ export const Components: {
   [NNElementType.ActvFuncAttributeEmbedding]: NNComponentMemberComponent,
   [NNElementType.NameModuleInputAttributeEmbedding]: NNComponentMemberComponent,
   [NNElementType.InputReusedAttributeEmbedding]: NNComponentMemberComponent,
+  [NNElementType.PaddingIdxAttributeEmbedding]: NNComponentMemberComponent,
+  [NNElementType.IsLayerCallAttributeEmbedding]: NNComponentMemberComponent,
+  [NNElementType.InputVarAttributeEmbedding]: NNComponentMemberComponent,
+  [NNElementType.OutputVarAttributeEmbedding]: NNComponentMemberComponent,
 
   [NNElementType.DropoutLayer]: NNLayerIconComponent,
   // Dropout Attributes
@@ -412,6 +426,10 @@ export const Components: {
   [NNElementType.RateAttributeDropout]: NNComponentMemberComponent,
   [NNElementType.NameModuleInputAttributeDropout]: NNComponentMemberComponent,
   [NNElementType.InputReusedAttributeDropout]: NNComponentMemberComponent,
+  [NNElementType.DimensionAttributeDropout]: NNComponentMemberComponent,
+  [NNElementType.IsLayerCallAttributeDropout]: NNComponentMemberComponent,
+  [NNElementType.InputVarAttributeDropout]: NNComponentMemberComponent,
+  [NNElementType.OutputVarAttributeDropout]: NNComponentMemberComponent,
 
   [NNElementType.LayerNormalizationLayer]: NNLayerIconComponent,
   // LayerNormalization Attributes
@@ -420,6 +438,11 @@ export const Components: {
   [NNElementType.ActvFuncAttributeLayerNormalization]: NNComponentMemberComponent,
   [NNElementType.NameModuleInputAttributeLayerNormalization]: NNComponentMemberComponent,
   [NNElementType.InputReusedAttributeLayerNormalization]: NNComponentMemberComponent,
+  [NNElementType.EpsAttributeLayerNormalization]: NNComponentMemberComponent,
+  [NNElementType.AffineAttributeLayerNormalization]: NNComponentMemberComponent,
+  [NNElementType.IsLayerCallAttributeLayerNormalization]: NNComponentMemberComponent,
+  [NNElementType.InputVarAttributeLayerNormalization]: NNComponentMemberComponent,
+  [NNElementType.OutputVarAttributeLayerNormalization]: NNComponentMemberComponent,
 
   [NNElementType.BatchNormalizationLayer]: NNLayerIconComponent,
   // BatchNormalization Attributes
@@ -429,6 +452,13 @@ export const Components: {
   [NNElementType.ActvFuncAttributeBatchNormalization]: NNComponentMemberComponent,
   [NNElementType.NameModuleInputAttributeBatchNormalization]: NNComponentMemberComponent,
   [NNElementType.InputReusedAttributeBatchNormalization]: NNComponentMemberComponent,
+  [NNElementType.EpsAttributeBatchNormalization]: NNComponentMemberComponent,
+  [NNElementType.MomentumAttributeBatchNormalization]: NNComponentMemberComponent,
+  [NNElementType.AffineAttributeBatchNormalization]: NNComponentMemberComponent,
+  [NNElementType.TrackRunningStatsAttributeBatchNormalization]: NNComponentMemberComponent,
+  [NNElementType.IsLayerCallAttributeBatchNormalization]: NNComponentMemberComponent,
+  [NNElementType.InputVarAttributeBatchNormalization]: NNComponentMemberComponent,
+  [NNElementType.OutputVarAttributeBatchNormalization]: NNComponentMemberComponent,
 
   [NNElementType.TensorOp]: NNLayerIconComponent,
   // TensorOp Attributes
@@ -440,6 +470,27 @@ export const Components: {
   [NNElementType.TransposeDimAttributeTensorOp]: NNComponentMemberComponent,
   [NNElementType.PermuteDimAttributeTensorOp]: NNComponentMemberComponent,
   [NNElementType.InputReusedAttributeTensorOp]: NNComponentMemberComponent,
+  [NNElementType.ReduceDimAttributeTensorOp]: NNComponentMemberComponent,
+  [NNElementType.ReduceKeepdimAttributeTensorOp]: NNComponentMemberComponent,
+  [NNElementType.ShapeDimAttributeTensorOp]: NNComponentMemberComponent,
+  [NNElementType.ActualVarsAttributeTensorOp]: NNComponentMemberComponent,
+  [NNElementType.SubscriptIndicesAttributeTensorOp]: NNComponentMemberComponent,
+  [NNElementType.RepeatDimAttributeTensorOp]: NNComponentMemberComponent,
+  [NNElementType.InterpolateSizeAttributeTensorOp]: NNComponentMemberComponent,
+  [NNElementType.InterpolateScaleAttributeTensorOp]: NNComponentMemberComponent,
+  [NNElementType.InterpolateModeAttributeTensorOp]: NNComponentMemberComponent,
+  [NNElementType.PadAmountAttributeTensorOp]: NNComponentMemberComponent,
+  [NNElementType.PadModeAttributeTensorOp]: NNComponentMemberComponent,
+  [NNElementType.PadValueAttributeTensorOp]: NNComponentMemberComponent,
+  [NNElementType.DropoutRateAttributeTensorOp]: NNComponentMemberComponent,
+  [NNElementType.DropoutTrainingAwareAttributeTensorOp]: NNComponentMemberComponent,
+  [NNElementType.SplitDimAttributeTensorOp]: NNComponentMemberComponent,
+  [NNElementType.SplitSizesAttributeTensorOp]: NNComponentMemberComponent,
+  [NNElementType.PermuteInAttributeTensorOp]: NNComponentMemberComponent,
+  [NNElementType.PermuteOutAttributeTensorOp]: NNComponentMemberComponent,
+  [NNElementType.InputVarAttributeTensorOp]: NNComponentMemberComponent,
+  [NNElementType.OutputVarAttributeTensorOp]: NNComponentMemberComponent,
+  [NNElementType.OutputVarsAttributeTensorOp]: NNComponentMemberComponent,
 
   [NNElementType.Configuration]: NNLayerIconComponent,
   // Configuration Attributes

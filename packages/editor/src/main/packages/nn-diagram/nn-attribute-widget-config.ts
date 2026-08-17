@@ -2,7 +2,9 @@ import { NNElementType } from './index';
 import { INNAttribute } from './nn-component-attribute';
 import { getListExpectation } from './nn-validation-defaults';
 
-export type WidgetType = 'text' | 'dropdown' | 'predecessor' | 'layers_of_tensors';
+export type WidgetType = 'text' | 'dropdown' | 'predecessor' | 'layers_of_tensors' | 'multiselect' | 'subscript_indices' | 'repeat_dim' | 'pad_amount';
+
+export type TnsTypeCategory = 'unary' | 'binary' | 'double' | 'n-ary';
 
 export interface AttributeWidgetConfig {
   widget: WidgetType;
@@ -12,6 +14,37 @@ export interface AttributeWidgetConfig {
   defaultValue?: string;
   /** Compute the initial stored value when the attribute is first checked on, e.g. pooling dimension-aware defaults */
   getInitialValue?: (elements: Record<string, any>, layerId: string) => string;
+  /** For layers_of_tensors: tns_type category determines element count */
+  tnsTypeCategory?: TnsTypeCategory;
+  /** Placeholder text shown in the text field */
+  placeholder?: string;
+}
+
+/**
+ * Determine the layers_of_tensors category based on tns_type value
+ * - unary: 1 element (string layer/tensorop name)
+ * - binary: 2 elements (string layer/tensorop name OR numeric literal)
+ * - double: 2 elements (string layer/tensorop names only)
+ * - n-ary: N≥2 elements (string layer/tensorop names only)
+ */
+export function getTnsTypeCategory(tnsType: string): TnsTypeCategory {
+  // N-ary: concatenation
+  if (tnsType === 'concatenate') {
+    return 'n-ary';
+  }
+
+  // Binary: operations that support two operands (layer names OR numeric literals)
+  if (['binop_add', 'binop_subtract', 'binop_multiply', 'binop_divide', 'binop_floor_divide'].includes(tnsType)) {
+    return 'binary';
+  }
+
+  // Double: operations that require exactly 2 layer/tensorop names
+  if (['multiply', 'matmultiply'].includes(tnsType)) {
+    return 'double';
+  }
+
+  // Unary: single layer/tensorop reference
+  return 'unary';
 }
 
 function getPoolingDimension(elements: Record<string, any>, layerId: string): string {
@@ -21,13 +54,15 @@ function getPoolingDimension(elements: Record<string, any>, layerId: string): st
   return (dimAttr as INNAttribute)?.value || '2D';
 }
 
-const ACTV_FUNC_OPTIONS    = ['relu', 'leaky_relu', 'sigmoid', 'softmax', 'tanh'];
-const BOOLEAN_OPTIONS      = ['true', 'false'];
-const PADDING_OPTIONS      = ['valid', 'same'];
-const RETURN_OPTIONS       = ['hidden', 'last', 'full'];
-const TNS_TYPE_OPTIONS     = ['reshape', 'concatenate', 'multiply', 'matmultiply', 'transpose', 'permute'];
-const TASK_TYPE_OPTIONS    = ['binary', 'multi_class', 'regression'];
-const INPUT_FORMAT_OPTIONS = ['csv', 'images'];
+const ACTV_FUNC_OPTIONS         = ['relu', 'leaky_relu', 'sigmoid', 'softmax', 'tanh'];
+const BOOLEAN_OPTIONS           = ['true', 'false'];
+const PADDING_OPTIONS           = ['valid', 'same'];
+const RETURN_OPTIONS            = ['hidden', 'last', 'full'];
+const TNS_TYPE_OPTIONS          = ['reshape', 'concatenate', 'multiply', 'matmultiply', 'permute', 'transpose', 'mean', 'max', 'squeeze', 'unsqueeze', 'binop_add', 'binop_subtract', 'binop_multiply', 'binop_divide', 'binop_floor_divide', 'subscript', 'shape_dim', 'normalize', 'repeat', 'interpolate', 'pad', 'dropout', 'zeros_like', 'split', 'identity'];
+const TASK_TYPE_OPTIONS         = ['binary', 'multi_class', 'regression'];
+const INPUT_FORMAT_OPTIONS      = ['csv', 'images'];
+const PAD_MODE_OPTIONS          = ['constant', 'reflect', 'replicate'];
+const INTERPOLATE_MODE_OPTIONS  = ['nearest', 'linear', 'bilinear', 'bicubic', 'trilinear', 'area', 'nearest-exact', 'lanczos3', 'lanczos5', 'gaussian', 'mitchellcubic'];
 
 const WIDGET_CONFIG_MAP: Record<string, AttributeWidgetConfig> = {
   // ── Predecessor (name_module_input) ─────────────────────────────────────────
@@ -126,6 +161,27 @@ const WIDGET_CONFIG_MAP: Record<string, AttributeWidgetConfig> = {
   [NNElementType.InputVarAttributeBatchNormalization]:    { widget: 'text', defaultValue: '' },
   [NNElementType.OutputVarAttributeBatchNormalization]:   { widget: 'text', defaultValue: '' },
   [NNElementType.InputReusedAttributeTensorOp]:          { widget: 'dropdown', options: BOOLEAN_OPTIONS, defaultValue: 'false' },
+  [NNElementType.ReduceDimAttributeTensorOp]:            { widget: 'text', defaultValue: '' },
+  [NNElementType.ReduceKeepdimAttributeTensorOp]:        { widget: 'dropdown', options: BOOLEAN_OPTIONS, defaultValue: 'false' },
+  [NNElementType.ShapeDimAttributeTensorOp]:             { widget: 'text', defaultValue: '' },
+  [NNElementType.ActualVarsAttributeTensorOp]:           { widget: 'multiselect', defaultValue: '[]', options: ['output', 'hidden'] },
+  [NNElementType.SubscriptIndicesAttributeTensorOp]:     { widget: 'subscript_indices', defaultValue: '' },
+  [NNElementType.RepeatDimAttributeTensorOp]:            { widget: 'text', defaultValue: '' },
+  [NNElementType.InterpolateSizeAttributeTensorOp]:      { widget: 'text', defaultValue: '', placeholder: '' },
+  [NNElementType.InterpolateScaleAttributeTensorOp]:     { widget: 'text', defaultValue: '', placeholder: '' },
+  [NNElementType.InterpolateModeAttributeTensorOp]:      { widget: 'dropdown', options: INTERPOLATE_MODE_OPTIONS, defaultValue: 'bilinear' },
+  [NNElementType.PadAmountAttributeTensorOp]:            { widget: 'pad_amount', defaultValue: '[]' },
+  [NNElementType.PadModeAttributeTensorOp]:              { widget: 'dropdown', options: PAD_MODE_OPTIONS, defaultValue: 'constant' },
+  [NNElementType.PadValueAttributeTensorOp]:             { widget: 'text', defaultValue: '0.0' },
+  [NNElementType.DropoutRateAttributeTensorOp]:          { widget: 'text', defaultValue: '' },
+  [NNElementType.DropoutTrainingAwareAttributeTensorOp]: { widget: 'dropdown', options: BOOLEAN_OPTIONS, defaultValue: 'false' },
+  [NNElementType.SplitDimAttributeTensorOp]:             { widget: 'text', defaultValue: '' },
+  [NNElementType.SplitSizesAttributeTensorOp]:           { widget: 'text', defaultValue: '' },
+  [NNElementType.PermuteInAttributeTensorOp]:            { widget: 'dropdown', options: BOOLEAN_OPTIONS, defaultValue: 'false' },
+  [NNElementType.PermuteOutAttributeTensorOp]:           { widget: 'dropdown', options: BOOLEAN_OPTIONS, defaultValue: 'false' },
+  [NNElementType.InputVarAttributeTensorOp]:             { widget: 'text', defaultValue: '' },
+  [NNElementType.OutputVarAttributeTensorOp]:            { widget: 'text', defaultValue: '' },
+  [NNElementType.OutputVarsAttributeTensorOp]:           { widget: 'text', defaultValue: '[]' },
   [NNElementType.BidirectionalAttributeRNN]:             { widget: 'dropdown', options: BOOLEAN_OPTIONS, defaultValue: 'false' },
   [NNElementType.BidirectionalAttributeLSTM]:            { widget: 'dropdown', options: BOOLEAN_OPTIONS, defaultValue: 'false' },
   [NNElementType.BidirectionalAttributeGRU]:             { widget: 'dropdown', options: BOOLEAN_OPTIONS, defaultValue: 'false' },

@@ -271,6 +271,27 @@ import {
   TransposeDimAttributeTensorOp,
   PermuteDimAttributeTensorOp,
   InputReusedAttributeTensorOp,
+  ReduceDimAttributeTensorOp,
+  ReduceKeepdimAttributeTensorOp,
+  ShapeDimAttributeTensorOp,
+  ActualVarsAttributeTensorOp,
+  SubscriptIndicesAttributeTensorOp,
+  RepeatDimAttributeTensorOp,
+  InterpolateSizeAttributeTensorOp,
+  InterpolateScaleAttributeTensorOp,
+  InterpolateModeAttributeTensorOp,
+  PadAmountAttributeTensorOp,
+  PadModeAttributeTensorOp,
+  PadValueAttributeTensorOp,
+  DropoutRateAttributeTensorOp,
+  DropoutTrainingAwareAttributeTensorOp,
+  SplitDimAttributeTensorOp,
+  SplitSizesAttributeTensorOp,
+  PermuteInAttributeTensorOp,
+  PermuteOutAttributeTensorOp,
+  InputVarAttributeTensorOp,
+  OutputVarAttributeTensorOp,
+  OutputVarsAttributeTensorOp,
   TensorOpAttribute,
 } from '../nn-tensorop-attributes/tensorop-attributes';
 import {
@@ -646,6 +667,27 @@ const LAYER_CONFIG: {
       { type: NNElementType.TransposeDimAttributeTensorOp, ctor: TransposeDimAttributeTensorOp, label: 'transpose_dim' },
       { type: NNElementType.PermuteDimAttributeTensorOp, ctor: PermuteDimAttributeTensorOp, label: 'permute_dim' },
       { type: NNElementType.InputReusedAttributeTensorOp, ctor: InputReusedAttributeTensorOp, label: 'input_reused' },
+      { type: NNElementType.ReduceDimAttributeTensorOp, ctor: ReduceDimAttributeTensorOp, label: 'reduce_dim' },
+      { type: NNElementType.ReduceKeepdimAttributeTensorOp, ctor: ReduceKeepdimAttributeTensorOp, label: 'reduce_keepdims' },
+      { type: NNElementType.ShapeDimAttributeTensorOp, ctor: ShapeDimAttributeTensorOp, label: 'shape_dim' },
+      { type: NNElementType.ActualVarsAttributeTensorOp, ctor: ActualVarsAttributeTensorOp, label: 'actual_vars' },
+      { type: NNElementType.SubscriptIndicesAttributeTensorOp, ctor: SubscriptIndicesAttributeTensorOp, label: 'subscript_indices' },
+      { type: NNElementType.RepeatDimAttributeTensorOp, ctor: RepeatDimAttributeTensorOp, label: 'repeat_dim' },
+      { type: NNElementType.InterpolateSizeAttributeTensorOp, ctor: InterpolateSizeAttributeTensorOp, label: 'interpolate_size' },
+      { type: NNElementType.InterpolateScaleAttributeTensorOp, ctor: InterpolateScaleAttributeTensorOp, label: 'interpolate_scale' },
+      { type: NNElementType.InterpolateModeAttributeTensorOp, ctor: InterpolateModeAttributeTensorOp, label: 'interpolate_mode' },
+      { type: NNElementType.PadAmountAttributeTensorOp, ctor: PadAmountAttributeTensorOp, label: 'pad_amount' },
+      { type: NNElementType.PadModeAttributeTensorOp, ctor: PadModeAttributeTensorOp, label: 'pad_mode' },
+      { type: NNElementType.PadValueAttributeTensorOp, ctor: PadValueAttributeTensorOp, label: 'pad_value' },
+      { type: NNElementType.DropoutRateAttributeTensorOp, ctor: DropoutRateAttributeTensorOp, label: 'dropout_rate' },
+      { type: NNElementType.DropoutTrainingAwareAttributeTensorOp, ctor: DropoutTrainingAwareAttributeTensorOp, label: 'dropout_training_aware' },
+      { type: NNElementType.SplitDimAttributeTensorOp, ctor: SplitDimAttributeTensorOp, label: 'split_dim' },
+      { type: NNElementType.SplitSizesAttributeTensorOp, ctor: SplitSizesAttributeTensorOp, label: 'split_sizes' },
+      { type: NNElementType.PermuteInAttributeTensorOp, ctor: PermuteInAttributeTensorOp, label: 'permute_in' },
+      { type: NNElementType.PermuteOutAttributeTensorOp, ctor: PermuteOutAttributeTensorOp, label: 'permute_out' },
+      { type: NNElementType.InputVarAttributeTensorOp, ctor: InputVarAttributeTensorOp, label: 'input_var' },
+      { type: NNElementType.OutputVarAttributeTensorOp, ctor: OutputVarAttributeTensorOp, label: 'output_var' },
+      { type: NNElementType.OutputVarsAttributeTensorOp, ctor: OutputVarsAttributeTensorOp, label: 'output_vars' },
     ],
   },
   [NNElementType.Configuration]: {
@@ -766,24 +808,169 @@ class NNComponentUpdateComponent extends Component<Props, State> {
   }
 
 
+  // Helper to check if layers_of_tensors contains RNN/LSTM/GRU layers
+  private hasRecurrentLayersSelected = (children?: Array<any>): boolean => {
+    const layersOfTensorsAttr = children?.find(
+      (attr) => (attr as TensorOpAttribute).attributeName === 'layers_of_tensors'
+    ) as TensorOpAttribute | undefined;
+
+    if (!layersOfTensorsAttr || !layersOfTensorsAttr.value) {
+      console.log('[hasRecurrentLayersSelected] No layers_of_tensors attr or empty value');
+      return false;
+    }
+
+    const rawValue = layersOfTensorsAttr.value;
+    console.log('[hasRecurrentLayersSelected] rawValue:', rawValue);
+    const cleaned = rawValue.replace(/^\[|\]$/g, '').trim();
+    if (!cleaned) {
+      console.log('[hasRecurrentLayersSelected] cleaned is empty');
+      return false;
+    }
+
+    const layerNames = cleaned.split(',').map(v => {
+      const trimmed = v.trim();
+      // Remove surrounding quotes if present
+      return trimmed.replace(/^['"]|['"]$/g, '');
+    }).filter(v => v && !/^\d+\.?\d*$/.test(v));
+    console.log('[hasRecurrentLayersSelected] layerNames:', layerNames);
+
+    // Find all RNN/LSTM/GRU layers and their names
+    const recurrentLayers = Object.keys(this.props.elements)
+      .filter(id => {
+        const el = this.props.elements[id];
+        return [NNElementType.RNNLayer, NNElementType.LSTMLayer, NNElementType.GRULayer].includes(el.type);
+      })
+      .map(id => {
+        const nameAttr = Object.values(this.props.elements).find(
+          (attr: any) => attr.owner === id && attr.attributeName === 'name'
+        ) as any;
+        return nameAttr?.value;
+      })
+      .filter(Boolean);
+    console.log('[hasRecurrentLayersSelected] recurrentLayers:', recurrentLayers);
+
+    // Check if any selected layer name is a recurrent layer
+    const result = layerNames.some(name => recurrentLayers.includes(name));
+    console.log('[hasRecurrentLayersSelected] result:', result);
+    return result;
+  };
+
   // Helper to filter TensorOp optional attributes based on tns_type value
   private getTensorOpOptionalAttributes = (
     tnsType: string,
-    optionalAttributes: Array<{ type: string; ctor: any; label: string }>
+    optionalAttributes: Array<{ type: string; ctor: any; label: string }>,
+    children?: Array<any>
   ) => {
+    const sharedForAll = ['input_reused', 'permute_in', 'permute_out', 'input_var'];
+    const outputVar = 'output_var';
+    const outputVars = 'output_vars';
+    const hasRecurrentLayers = this.hasRecurrentLayersSelected(children);
+
     switch (tnsType) {
       case 'reshape':
-        return optionalAttributes.filter((attr) => attr.label === 'reshape_dim');
-      case 'concatenate':
         return optionalAttributes.filter((attr) =>
-          ['layers_of_tensors', 'concatenate_dim'].includes(attr.label)
+          ['reshape_dim', 'layers_of_tensors'].includes(attr.label) || sharedForAll.includes(attr.label) || attr.label === outputVar
         );
+      case 'concatenate':
+        return optionalAttributes.filter((attr) => {
+          if (attr.label === 'actual_vars') {
+            return hasRecurrentLayers;
+          }
+          return ['layers_of_tensors', 'concatenate_dim'].includes(attr.label) || sharedForAll.includes(attr.label) || attr.label === outputVar;
+        });
       case 'transpose':
-        return optionalAttributes.filter((attr) => attr.label === 'transpose_dim');
+        return optionalAttributes.filter((attr) =>
+          ['transpose_dim', 'layers_of_tensors'].includes(attr.label) || sharedForAll.includes(attr.label) || attr.label === outputVar
+        );
       case 'permute':
-        return optionalAttributes.filter((attr) => attr.label === 'permute_dim');
+        return optionalAttributes.filter((attr) =>
+          attr.label === 'permute_dim' || sharedForAll.includes(attr.label) || attr.label === outputVar
+        );
+      case 'multiply':
+      case 'matmultiply':
+        return optionalAttributes.filter((attr) =>
+          attr.label === 'layers_of_tensors' || sharedForAll.includes(attr.label) || attr.label === outputVar
+        );
+      case 'split':
+        return optionalAttributes.filter((attr) =>
+          ['layers_of_tensors', 'split_dim', 'split_sizes'].includes(attr.label) || sharedForAll.includes(attr.label) || attr.label === outputVars
+        );
+      case 'binop_add':
+      case 'binop_subtract':
+      case 'binop_multiply':
+      case 'binop_divide':
+      case 'binop_floor_divide':
+        return optionalAttributes.filter((attr) => {
+          if (attr.label === 'actual_vars') {
+            return hasRecurrentLayers;
+          }
+          return attr.label === 'layers_of_tensors' || sharedForAll.includes(attr.label) || attr.label === outputVar;
+        });
+      case 'mean':
+        return optionalAttributes.filter((attr) =>
+          ['layers_of_tensors', 'reduce_dim'].includes(attr.label) || sharedForAll.includes(attr.label) || attr.label === outputVar
+        );
+      case 'max':
+        return optionalAttributes.filter((attr) =>
+          ['layers_of_tensors', 'reduce_dim', 'reduce_keepdims'].includes(attr.label) || sharedForAll.includes(attr.label) || attr.label === outputVar
+        );
+      case 'squeeze':
+      case 'unsqueeze':
+        return optionalAttributes.filter((attr) =>
+          ['layers_of_tensors', 'reduce_dim'].includes(attr.label) || sharedForAll.includes(attr.label) || attr.label === outputVar
+        );
+      case 'shape_dim':
+        return optionalAttributes.filter((attr) =>
+          ['layers_of_tensors', 'reduce_dim'].includes(attr.label) || sharedForAll.includes(attr.label) || attr.label === outputVar
+        );
+      case 'normalize':
+        return optionalAttributes.filter((attr) =>
+          ['layers_of_tensors', 'reduce_dim'].includes(attr.label) || sharedForAll.includes(attr.label) || attr.label === outputVar
+        );
+      case 'repeat':
+        return optionalAttributes.filter((attr) =>
+          ['layers_of_tensors', 'repeat_dim'].includes(attr.label) || sharedForAll.includes(attr.label) || attr.label === outputVar
+        );
+      case 'zeros_like':
+        return optionalAttributes.filter((attr) =>
+          attr.label === 'layers_of_tensors' || sharedForAll.includes(attr.label) || attr.label === outputVar
+        );
+      case 'interpolate':
+        return optionalAttributes.filter((attr) =>
+          ['layers_of_tensors', 'interpolate_size', 'interpolate_scale', 'interpolate_mode'].includes(attr.label) || sharedForAll.includes(attr.label) || attr.label === outputVar
+        );
+      case 'pad':
+        // Get the current pad_mode value
+        const padModeAttr = children?.find(
+          (attr) => (attr as TensorOpAttribute).attributeName === 'pad_mode'
+        ) as TensorOpAttribute | undefined;
+        const padMode = padModeAttr?.value || '';
+
+        // Only show pad_value if pad_mode is 'constant'
+        const padAttributes = ['layers_of_tensors', 'pad_amount', 'pad_mode'];
+        if (padMode === 'constant') {
+          padAttributes.push('pad_value');
+        }
+
+        return optionalAttributes.filter((attr) =>
+          padAttributes.includes(attr.label) || sharedForAll.includes(attr.label) || attr.label === outputVar
+        );
+      case 'dropout':
+        return optionalAttributes.filter((attr) =>
+          ['dropout_rate', 'dropout_training_aware'].includes(attr.label) || sharedForAll.includes(attr.label) || attr.label === outputVar
+        );
+      case 'subscript':
+        return optionalAttributes.filter((attr) =>
+          attr.label === 'subscript_indices' || sharedForAll.includes(attr.label) || attr.label === outputVar
+        );
+      case 'identity':
+        return optionalAttributes.filter((attr) =>
+          sharedForAll.includes(attr.label) || attr.label === outputVar
+        );
       default:
-        return optionalAttributes.filter((attr) => attr.label === 'layers_of_tensors');
+        return optionalAttributes.filter((attr) =>
+          attr.label === 'layers_of_tensors' || sharedForAll.includes(attr.label) || attr.label === outputVar
+        );
     }
   };
 
@@ -845,12 +1032,13 @@ class NNComponentUpdateComponent extends Component<Props, State> {
 
     // Get optional attributes - filter based on element type and attribute values
     let optionalAttributes = config.optionalAttributes;
+    let tnsType: string | undefined;
     if (element.type === NNElementType.TensorOp) {
       const tnsTypeAttr = children.find(
         (attr) => (attr as TensorOpAttribute).attributeName === 'tns_type'
       ) as TensorOpAttribute | undefined;
-      const tnsType = tnsTypeAttr?.value || 'reshape';
-      optionalAttributes = this.getTensorOpOptionalAttributes(tnsType, config.optionalAttributes);
+      tnsType = tnsTypeAttr?.value || 'reshape';
+      optionalAttributes = this.getTensorOpOptionalAttributes(tnsType, config.optionalAttributes, children);
     } else if (element.type === NNElementType.PoolingLayer) {
       const poolingTypeAttr = children.find(
         (attr) => (attr as PoolingAttribute).attributeName === 'pooling_type'
@@ -898,11 +1086,12 @@ class NNComponentUpdateComponent extends Component<Props, State> {
           {/* Render optional attributes with checkboxes */}
           {optionalAttributes.map((attrDef) => (
             <OptionalAttributeRow
-              key={attrDef.type}
+              key={element.type === NNElementType.TensorOp ? `${attrDef.type}-${tnsType}` : attrDef.type}
               attributeType={attrDef.type}
               attributeCtor={attrDef.ctor}
               label={attrDef.label}
               layerId={element.id}
+              tnsType={tnsType}
             />
           ))}
         </section>
