@@ -26,7 +26,7 @@
 import React from 'react';
 import { configureStore } from '@reduxjs/toolkit';
 import { Provider } from 'react-redux';
-import { act, render, waitFor } from '@testing-library/react';
+import { act, cleanup, render, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { ChatMessage, SendStatus } from '../../services/assistant-types';
@@ -43,26 +43,44 @@ import { ApollonEditorProvider } from '../../../editors/uml/apollon-editor-conte
 // the sendVoiceMessage return status. `vi.hoisted` lets the mock factory
 // (which is hoisted to the top of the module) reference it safely.
 const _client = vi.hoisted(() => ({
-  messageHandler: null as ((m: ChatMessage) => void) | null,
+  // The hook registers MULTIPLE onMessage subscribers on the shared client
+  // (the conversation dispatcher AND a per-surface "clear generating" handler),
+  // so the fake must keep all of them — storing only the last would drop the
+  // dispatcher and the test's echoes would hit the wrong handler.
+  messageHandlers: [] as Array<(m: ChatMessage) => void>,
   voiceSendStatus: 'sent' as SendStatus,
   sendVoiceCalls: 0,
 }));
 
 vi.mock('../../services', async (importOriginal) => {
   const actual = await importOriginal<typeof import('../../services')>();
+  const noopUnsub = () => {};
   class FakeAssistantClient {
     onMessage(handler: (m: ChatMessage) => void) {
-      _client.messageHandler = handler;
+      _client.messageHandlers.push(handler);
+      return () => {
+        _client.messageHandlers = _client.messageHandlers.filter((h) => h !== handler);
+      };
     }
-    onConnection() {}
-    onTyping() {}
-    onInjection() {}
-    onAction() {}
+    onConnection() {
+      return noopUnsub;
+    }
+    onTyping() {
+      return noopUnsub;
+    }
+    onInjection() {
+      return noopUnsub;
+    }
+    onAction() {
+      return noopUnsub;
+    }
     clearHandlers() {}
     connect() {
       return Promise.resolve();
     }
     disconnect() {}
+    resetSession() {}
+    setContextProvider() {}
     sendMessage(): SendStatus {
       return 'sent';
     }
@@ -80,9 +98,16 @@ vi.mock('../../services', async (importOriginal) => {
       return 'connected';
     }
   }
+  // The hook obtains its client via getSharedAssistantClient() (a singleton),
+  // NOT `new AssistantClient()` — so overriding the class alone leaves the hook
+  // on a REAL client (which tries a real WebSocket). Return ONE shared fake so
+  // the hook, useWebSocketConnection, and the conversation-store dispatchers all
+  // talk to the instance whose onMessage the test drives.
+  const sharedFake = new FakeAssistantClient();
   return {
     ...actual,
     AssistantClient: FakeAssistantClient,
+    getSharedAssistantClient: () => sharedFake,
   };
 });
 
@@ -102,6 +127,7 @@ vi.mock('../../../../shared/services/analytics/lazy-analytics', () => ({
 
 // Imported AFTER vi.mock calls are hoisted so the hook picks up the fake.
 import { useAssistantLogic } from '../useAssistantLogic';
+import { conversationStore } from '../assistantConversationStore';
 
 interface HarnessAPI {
   sendVoiceMessage: (blob: Blob) => Promise<void>;
@@ -144,41 +170,55 @@ function renderHarness() {
   return { apiRef, store, ...utils };
 }
 
-/** Drive the captured onMessage handler with a transcription echo. */
+/** Drive ALL registered onMessage handlers with a transcription echo. */
 function emitTranscriptionEcho(text: string) {
+  const msg: ChatMessage = {
+    id: `echo_${Math.random()}`,
+    action: 'user_message',
+    message: text,
+    isUser: true,
+    timestamp: new Date(),
+  };
   act(() => {
-    _client.messageHandler?.({
-      id: `echo_${Math.random()}`,
-      action: 'user_message',
-      message: text,
-      isUser: true,
-      timestamp: new Date(),
-    });
+    _client.messageHandlers.forEach((h) => h(msg));
   });
 }
 
-/** Drive the captured onMessage handler with an assistant message. */
+/** Drive ALL registered onMessage handlers with an assistant message. */
 function emitAssistantMessage(text: string, action = 'assistant_message') {
+  const msg: ChatMessage = {
+    id: `asst_${Math.random()}`,
+    action,
+    message: text,
+    isUser: false,
+    timestamp: new Date(),
+  };
   act(() => {
-    _client.messageHandler?.({
-      id: `asst_${Math.random()}`,
-      action,
-      message: text,
-      isUser: false,
-      timestamp: new Date(),
-    });
+    _client.messageHandlers.forEach((h) => h(msg));
   });
 }
 
 const AUDIO = new Blob(['fake-audio'], { type: 'audio/wav' });
 
 beforeEach(() => {
-  _client.messageHandler = null;
   _client.voiceSendStatus = 'sent';
   _client.sendVoiceCalls = 0;
+  // NOTE: don't null `_client.messageHandler` here. The shared fake's onMessage
+  // is wired EXACTLY ONCE (wireConversationDispatchers is idempotent via a
+  // module-level `dispatchersWired` flag), so nulling it would leave tests 2..n
+  // with no handler. The wired closure calls `currentHandlers`, which each
+  // mount repoints at the live surface — so it always drives the current test.
+  // The conversation store is a MODULE-LEVEL singleton shared by every mounted
+  // useAssistantLogic instance — it is NOT reset by a fresh Redux store. Clear
+  // it so each test starts from an empty message list; otherwise bubbles leak
+  // across tests and the length assertions climb (1 → 3 → 4 → 5 …).
+  conversationStore.clear();
 });
 
 afterEach(() => {
+  // Unmount surfaces so a test's hook instance can't linger and keep receiving
+  // events into the next test (the shared client + conversation store persist).
+  cleanup();
   vi.clearAllMocks();
 });
 
