@@ -92,7 +92,9 @@
       "llm_prompt": "You are a helpful assistant specialized in answering questions about the provided knowledge base. Answer questions using the context provided. If the question is within the topic area but the specific answer is not found in the context, try to give the best possible answer using what is available. If the question is completely outside the knowledge base topic, politely say you don't know and clarify that you are limited to answering questions within the provided topic context.",
       "k": 8,
       "num_previous_messages": 0,
-      "embedding_provider": "openai"
+      "embedding_provider": "openai",
+      "use_hybrid_rag": true,
+      "bm25_weight": 0.6
     },
     "a7b8c9d0-e1f2-4a3b-4c5d-6e7f8a9b0c1d": {
       "id": "a7b8c9d0-e1f2-4a3b-4c5d-6e7f8a9b0c1d",
