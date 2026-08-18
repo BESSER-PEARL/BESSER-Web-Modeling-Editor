@@ -1,4 +1,5 @@
 import { useCallback, useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { toast } from 'react-toastify';
 import { BACKEND_URL } from '../../../shared/constants/constant';
 
@@ -20,6 +21,7 @@ const isValidGitHubUsername = (username: string): boolean => {
 const SESSION_MAX_AGE_MS = 24 * 60 * 60 * 1000; // 24 hours
 
 export const useGitHubAuth = () => {
+  const { t } = useTranslation();
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [username, setUsername] = useState<string | null>(null);
   const [githubSession, setGithubSession] = useState<string | null>(null);
@@ -35,7 +37,7 @@ export const useGitHubAuth = () => {
     const controller = new AbortController();
 
     if (error) {
-      toast.error(`GitHub authentication failed: ${error}`);
+      toast.error(t('github.toasts.authFailed', { error }));
       // Clean up URL
       window.history.replaceState({}, document.title, window.location.pathname);
       return () => controller.abort();
@@ -63,7 +65,7 @@ export const useGitHubAuth = () => {
       setGithubSession(sessionFromUrl);
       setUsername(usernameFromUrl);
       setIsAuthenticated(true);
-      toast.success(`Signed in as ${usernameFromUrl}`);
+      toast.success(t('github.toasts.signedInAs', { username: usernameFromUrl }));
 
       // Clean up URL
       window.history.replaceState({}, document.title, window.location.pathname);
@@ -89,7 +91,7 @@ export const useGitHubAuth = () => {
     }
 
     return () => controller.abort();
-  }, []);
+  }, [t]);
 
   const verifySession = async (session: string, signal?: AbortSignal) => {
     const timeoutController = new AbortController();

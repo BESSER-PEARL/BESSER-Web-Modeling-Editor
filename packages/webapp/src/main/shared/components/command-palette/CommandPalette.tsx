@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   Atom,
   Bot,
@@ -13,6 +14,7 @@ import {
   Settings,
   ShieldCheck,
 } from 'lucide-react';
+import i18n from '@/main/shared/i18n';
 import { Z_INDEX } from '../../constants/z-index';
 
 /* ------------------------------------------------------------------ */
@@ -79,6 +81,7 @@ export function useCommandPaletteShortcut(onOpen: () => void) {
 /* ------------------------------------------------------------------ */
 
 export const CommandPalette: React.FC<CommandPaletteProps> = ({ open, onOpenChange, actions }) => {
+  const { t } = useTranslation();
   const [query, setQuery] = useState('');
   const [selectedIndex, setSelectedIndex] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -188,7 +191,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({ open, onOpenChan
         className="relative z-10 flex w-full max-w-[540px] flex-col overflow-hidden rounded-2xl border border-slate-200/70 bg-white shadow-[0_24px_64px_-16px_rgba(0,0,0,0.25)] dark:border-slate-700/70 dark:bg-slate-900 dark:shadow-[0_24px_64px_-16px_rgba(0,0,0,0.6)]"
         onClick={(e) => e.stopPropagation()}
         role="dialog"
-        aria-label="Command palette"
+        aria-label={t('shared.commandPalette.dialogLabel')}
       >
         {/* Search input */}
         <div className="flex items-center gap-3 border-b border-slate-200/80 px-4 py-3 dark:border-slate-700/60">
@@ -201,9 +204,9 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({ open, onOpenChan
               setQuery(e.target.value);
               setSelectedIndex(0);
             }}
-            placeholder="Type a command..."
+            placeholder={t('shared.commandPalette.placeholder')}
             className="flex-1 bg-transparent text-sm text-slate-900 outline-none placeholder:text-slate-400 dark:text-slate-100 dark:placeholder:text-slate-500"
-            aria-label="Search commands"
+            aria-label={t('shared.commandPalette.searchLabel')}
             autoComplete="off"
             spellCheck={false}
           />
@@ -216,14 +219,14 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({ open, onOpenChan
         <div ref={listRef} className="max-h-[360px] overflow-y-auto overscroll-contain p-2">
           {flatItems.length === 0 ? (
             <div className="px-3 py-8 text-center text-sm text-slate-400 dark:text-slate-500">
-              No matching commands
+              {t('shared.commandPalette.noResults')}
             </div>
           ) : (
             Array.from(grouped.entries()).map(([category, items]) => {
               const categoryNode = (
                 <div key={category}>
                   <div className="mb-1 mt-2 px-2 text-[10px] font-semibold uppercase tracking-[0.12em] text-slate-400 first:mt-0 dark:text-slate-500">
-                    {category}
+                    {t(`shared.commandPalette.categories.${category.toLowerCase()}`)}
                   </div>
                   {items.map((action) => {
                     const itemIndex = runningIndex++;
@@ -275,13 +278,13 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({ open, onOpenChan
             <kbd className="inline-flex h-4 items-center rounded border border-slate-200/80 bg-slate-100/80 px-1 font-mono text-[9px] dark:border-slate-700 dark:bg-slate-800">
               &darr;
             </kbd>
-            Navigate
+            {t('shared.commandPalette.navigate')}
           </span>
           <span className="flex items-center gap-1.5 text-[11px] text-slate-400 dark:text-slate-500">
             <kbd className="inline-flex h-4 items-center rounded border border-slate-200/80 bg-slate-100/80 px-1 font-mono text-[9px] dark:border-slate-700 dark:bg-slate-800">
               &crarr;
             </kbd>
-            Select
+            {t('shared.commandPalette.select')}
           </span>
           <span className="ml-auto flex items-center gap-1.5 text-[11px] text-slate-400 dark:text-slate-500">
             <Command className="size-3" />
@@ -343,7 +346,7 @@ export function buildDefaultActions(opts: BuildActionsOptions): CommandAction[] 
       type: 'ClassDiagram',
       action: {
         id: 'switch-class',
-        label: 'Switch to Class Diagram',
+        label: i18n.t('shared.commandPalette.actions.switchClass'),
         icon: <Network className={ICON_SIZE} />,
         category: 'Editors',
         onSelect: opts.onSwitchToClassDiagram,
@@ -353,7 +356,7 @@ export function buildDefaultActions(opts: BuildActionsOptions): CommandAction[] 
       type: 'StateMachineDiagram',
       action: {
         id: 'switch-state',
-        label: 'Switch to State Machine',
+        label: i18n.t('shared.commandPalette.actions.switchState'),
         icon: <Repeat2 className={ICON_SIZE} />,
         category: 'Editors',
         onSelect: opts.onSwitchToStateMachine,
@@ -363,7 +366,7 @@ export function buildDefaultActions(opts: BuildActionsOptions): CommandAction[] 
       type: 'ObjectDiagram',
       action: {
         id: 'switch-object',
-        label: 'Switch to Object Diagram',
+        label: i18n.t('shared.commandPalette.actions.switchObject'),
         icon: <Layers3 className={ICON_SIZE} />,
         category: 'Editors',
         onSelect: opts.onSwitchToObjectDiagram,
@@ -373,7 +376,7 @@ export function buildDefaultActions(opts: BuildActionsOptions): CommandAction[] 
       type: 'GUINoCodeDiagram',
       action: {
         id: 'switch-gui',
-        label: 'Switch to GUI Editor',
+        label: i18n.t('shared.commandPalette.actions.switchGui'),
         icon: <PackageOpen className={ICON_SIZE} />,
         category: 'Editors',
         onSelect: opts.onSwitchToGUIEditor,
@@ -383,7 +386,7 @@ export function buildDefaultActions(opts: BuildActionsOptions): CommandAction[] 
       type: 'AgentDiagram',
       action: {
         id: 'switch-agent',
-        label: 'Switch to Agent Diagram',
+        label: i18n.t('shared.commandPalette.actions.switchAgent'),
         icon: <Bot className={ICON_SIZE} />,
         category: 'Editors',
         onSelect: opts.onSwitchToAgentDiagram,
@@ -393,7 +396,7 @@ export function buildDefaultActions(opts: BuildActionsOptions): CommandAction[] 
       type: 'QuantumCircuitDiagram',
       action: {
         id: 'switch-quantum',
-        label: 'Switch to Quantum Circuit',
+        label: i18n.t('shared.commandPalette.actions.switchQuantum'),
         icon: <Atom className={ICON_SIZE} />,
         category: 'Editors',
         onSelect: opts.onSwitchToQuantumCircuit,
@@ -410,14 +413,14 @@ export function buildDefaultActions(opts: BuildActionsOptions): CommandAction[] 
     // ── Navigation ──────────────────────────────────────────────────
     {
       id: 'go-settings',
-      label: 'Go to Settings',
+      label: i18n.t('shared.commandPalette.actions.goSettings'),
       icon: <Settings className={ICON_SIZE} />,
       category: 'Navigation',
       onSelect: opts.onGoToSettings,
     },
     {
       id: 'go-quality-check',
-      label: 'Go to Quality Check',
+      label: i18n.t('shared.commandPalette.actions.goQualityCheck'),
       icon: <ShieldCheck className={ICON_SIZE} />,
       category: 'Navigation',
       onSelect: opts.onQualityCheck,
@@ -425,14 +428,14 @@ export function buildDefaultActions(opts: BuildActionsOptions): CommandAction[] 
     // ── Actions ─────────────────────────────────────────────────────
     {
       id: 'export-json',
-      label: 'Export as JSON',
+      label: i18n.t('shared.commandPalette.actions.exportJson'),
       icon: <FileJson2 className={ICON_SIZE} />,
       category: 'Actions',
       onSelect: opts.onExportJSON,
     },
     {
       id: 'export-buml',
-      label: 'Export as B-UML',
+      label: i18n.t('shared.commandPalette.actions.exportBuml'),
       icon: <FileCode2 className={ICON_SIZE} />,
       shortcut: `${modKey}+E`,
       category: 'Actions',

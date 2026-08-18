@@ -1,4 +1,5 @@
 import React, { useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 import { UMLDiagramType } from '@besser/wme';
 import type { PerspectiveSettings, SupportedDiagramType } from '../../../shared/types/project';
 import { isPerspectiveVisible, toSupportedDiagramType } from '../../../shared/types/project';
@@ -25,6 +26,7 @@ export const MobileNavigation: React.FC<MobileNavigationProps> = ({
   onSwitchDiagramType,
   onNavigate,
 }) => {
+  const { t } = useTranslation();
   const visibleUmlItems = useMemo(
     () => UML_ITEMS.filter((it) => isPerspectiveVisible(perspectives, toSupportedDiagramType(it.type))),
     [perspectives],
@@ -46,7 +48,7 @@ export const MobileNavigation: React.FC<MobileNavigationProps> = ({
             onClick={() => onSwitchUml(item.type)}
           >
             {item.icon}
-            <span>{item.label}</span>
+            <span>{t(item.labelKey)}</span>
           </button>
         );
       })}
@@ -60,7 +62,7 @@ export const MobileNavigation: React.FC<MobileNavigationProps> = ({
             onClick={() => onSwitchDiagramType(item.type)}
           >
             {item.icon}
-            <span>{item.label}</span>
+            <span>{t(item.labelKey)}</span>
           </button>
         );
       })}
@@ -74,7 +76,7 @@ export const MobileNavigation: React.FC<MobileNavigationProps> = ({
             onClick={() => onNavigate(item.path)}
           >
             {item.icon}
-            <span>{item.label}</span>
+            <span>{t(item.labelKey)}</span>
           </button>
         );
       })}
