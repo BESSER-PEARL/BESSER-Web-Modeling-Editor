@@ -386,7 +386,7 @@
     "yamlEditor": {
       "tab": {
         "form": "Formular",
-        "raw": "Rohe YAML"
+        "raw": "Onveraarbecht YAML"
       },
       "section": {
         "agent": "Agent",
@@ -396,15 +396,15 @@
       },
       "syntaxError": "YAML-Syntaxfehler:",
       "customLabel": "Zousätzlech benotzerdefiniert YAML-Eegeschaften",
-      "customDescription": "All gültegen YAML, dat héi dobeigesat gëtt, gëtt um Enn vun der genereerter config.yaml ugehaan.",
-      "rawDescription": "Liislech Usiicht vum genereertem config.yaml-Inhalt. ännert iwwert den Formular-Tab.",
+      "customDescription": "All gültegt YAML, dat hei dobäigesat gëtt, gëtt um Enn vun der generéierter config.yaml ugehaangen.",
+      "rawDescription": "Virschau vum Inhalt vun der generéierter config.yaml. Ännerunge ginn am Tab „Formulaire“ gemaach.",
       "fields": {
-        "checkTransitionsDelay": "Verspéidung a Sekonnen tëscht all Evaluatiounszyklus vun den Iwwergäng.",
+        "checkTransitionsDelay": "Zäit a Sekonnen tëscht all Evaluatiounszyklus vun den Iwwergäng.",
         "nlpLanguage": "Erwaart Benotzersprooch (ISO 639-1). Beaflosst d'NLP-Qualitéit.",
         "nlpRegion": "Sproochregioun (ISO 3166-1 Alpha-2) fir eng verbessert NLP-Veraarbechtung.",
         "nlpTimezone": "Zäitzon fir Datum- an Zäitoperatiounen (tz-Datebankformat).",
         "nlpIntentThreshold": "Vertrauensschwell, ënner där Prognosen op Réckfallszenarie zréckgräifen.",
-        "nlpPreProcessing": "Aktivéiert d'Stëmmung, fir Wierder op Basisformen ze reduzéieren an d'Verallgemengerung vu Benotzeragaben ze verbesseren.",
+        "nlpPreProcessing": "Aktivéiert d'Stemmung, fir Wierder op Basisformen ze reduzéieren an d'Verallgemengerung vu Benotzeragaben ze verbesseren.",
         "hfToken": "API-Schlëssel, dee fir den Zougang zu der HuggingFace Inference API fir LLM-Funktionalitéit néideg ass.",
         "openaiKey": "OpenAI-API-Schlëssel fir den Zougang zum LLM.",
         "replicateKey": "Replicate-API-Schlëssel fir Modellinferenz.",
@@ -413,7 +413,7 @@
         "wsStreamlitHost": "Hostadress fir den Asaz vun der Streamlit-Benotzeruewerfläch.",
         "wsStreamlitPort": "Port fir op d'Streamlit-Benotzeruewerfläch zouzegräifen.",
         "chatSize": "Standard-Schrëftgréisst fir Chatnoriichten a Streamlit.",
-        "chatFont": "Kennung vun der Schrëftfamill fir den Chattext.",
+        "chatFont": "Identifikateur vun der Schrëftfamill fir den Chattext.",
         "chatLineSpacing": "Zeilenhéicht-Multiplikator fir Chatnoriichten.",
         "chatAlignment": "Horizontal Textausriichtung an der Chatbenotzeruewerfläch.",
         "chatColor": "Textfaarfastellung fir d'Chat-Display.",
@@ -607,13 +607,13 @@
       "agentDiagramsLabel": "Agent-Diagrammer",
       "agentDiagramsAvailable": "{{count}} verfügbar (pro Komponent am GUI konfiguréiert)",
       "noneAvailable": "Keng verfügbar",
-      "versions": "Versioune",
-      "versionsDescription": "Eënzelne Saité hunn personaliséiert Varianten. Wäelt wélch Versioun(en) generiert soll ginn.",
-      "versionBase": "Nëmmen Basis",
-      "versionProfile": "Eëngelt Profil",
-      "versionAll": "All Versioune",
-      "selectProfile": "Profil auswäelen",
-      "versionAllHint": "Den Download enthalt eënen Ounterordner pro Versioun (Basis + all Profil)."
+      "versions": "Versiounen",
+      "versionsDescription": "Eenzel Säiten hu personaliséiert Varianten. Wielt, wéi eng Versioun(en) generéiert soll(en) ginn.",
+      "versionBase": "Nëmme Basis",
+      "versionProfile": "Eenzel Profil",
+      "versionAll": "All Versiounen",
+      "selectProfile": "Profil auswielen",
+      "versionAllHint": "Den Download enthält fir all Versioun en eegene Ënnerdossier (Basisversioun + all Profil)."
     },
     "toasts": {
       "validationFailed": "Validatioun feelgeschloen",
@@ -2138,7 +2138,7 @@
         "deleteConfirm": "Säit \"{{name}}\" läschen?",
         "delete": "Läschen",
         "unnamedProfile": "Profil ouni Numm",
-        "loadingNotice": "Dëst kann bis zu enger Minutt daueren. Maacht den Editeur net zou.",
+        "loadingNotice": "Dëst ka bis zu enger Minutt daueren. Maacht den Editeur w.e.g net zou.",
         "personalizationServiceInvalid": "De Personalisatiounsdéngscht huet eng ongëlteg Säit zeréckginn.",
         "noProfiles": "Et si keng Benotzerprofiler verfügbar. Erstellt als éischt e Benotzerprofil am Benotzerdiagramm a probéiert et dann nach eng Kéier.",
         "autoPersonalize": "Mat KI automatesch personaliséieren",
@@ -2161,7 +2161,7 @@
         "createVariant": "Variant erstellen",
         "personalizingTitle": "Säit gëtt mat KI personaliséiert",
         "personalizingDescription": "\"{{pageName}}\" gëtt fir {{profileName}} ugepasst…",
-        "requestTimedOut": "D'Ufro huet den Zäitlimitt iwwerschratt.",
+        "requestTimedOut": "D'Ufro huet d'Zäitlimitt iwwerschratt.",
         "personalized": "✓ \"{{pageName}}\" gouf fir {{profileName}} personaliséiert.",
         "personalizationFailed": "KI-Personaliséierung ass feelgeschloen",
         "personalizationFailedDescription": "{{error}}\n\nWëllt Dir trotzdem eng Kopie erstellen, fir se manuell ze personaliséieren?",
