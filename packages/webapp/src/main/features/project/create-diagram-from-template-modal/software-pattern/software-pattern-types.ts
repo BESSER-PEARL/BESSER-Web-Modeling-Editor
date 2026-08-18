@@ -26,6 +26,7 @@ export enum SoftwarePatternType {
   DB_AGENT = 'Database Agent',
   GYM_AGENT = 'Gym Agent',
   FAQ_RAG_AGENT = 'FAQ RAG Agent',
+  CHATBOT_AGENT = 'Chatbot Agent',
   LIBRARY_AGENT = 'Library Agent',
   // State Machine patterns
   TRAFIC_LIGHT = 'Traffic Light',
