@@ -34,6 +34,7 @@ const ALL_EXPECTED_PROVIDERS: AgentLLMElementProvider[] = [
   'huggingface',
   'huggingface_api',
   'replicate',
+  'ollama',
   ...NEW_PROVIDERS,
 ];
 

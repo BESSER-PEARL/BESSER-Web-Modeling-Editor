@@ -1,5 +1,6 @@
 import React from 'react';
 import { createPortal } from 'react-dom';
+import { useTranslation } from 'react-i18next';
 import hljs from 'highlight.js/lib/core';
 import jsonLang from 'highlight.js/lib/languages/json';
 import pythonLang from 'highlight.js/lib/languages/python';
@@ -119,6 +120,7 @@ const CopyNodeButton: React.FC<{ path: string; value: JsonValue; copiedPath: str
   copiedPath,
   onCopyNode,
 }) => {
+  const { t } = useTranslation();
   const isCopied = copiedPath === path;
 
   return (
@@ -129,7 +131,7 @@ const CopyNodeButton: React.FC<{ path: string; value: JsonValue; copiedPath: str
         event.stopPropagation();
         onCopyNode(path, value);
       }}
-      aria-label="Copy value"
+      aria-label={t('shared.jsonViewer.copyValue')}
     >
       {isCopied ? '✓' : '⧉'}
     </button>
@@ -147,6 +149,7 @@ const JsonTreeNode: React.FC<JsonTreeNodeProps> = ({
   copiedPath,
   onCopyNode,
 }) => {
+  const { t } = useTranslation();
   if (!isJsonContainer(value)) {
     return (
       <div className="jvm-tree-row flex items-baseline whitespace-nowrap" style={{ paddingLeft: `${depth * 16}px` }}>
@@ -167,7 +170,7 @@ const JsonTreeNode: React.FC<JsonTreeNodeProps> = ({
     : (Object.entries(value) as Array<[string, JsonValue]>);
   const hasChildren = entries.length > 0;
   const isCollapsed = hasChildren && collapsedPaths.has(path);
-  const sectionName = propertyKey ?? 'root';
+  const sectionName = propertyKey ?? t('shared.jsonViewer.root');
 
   if (!hasChildren) {
     return (
@@ -187,7 +190,11 @@ const JsonTreeNode: React.FC<JsonTreeNodeProps> = ({
         <button
           type="button"
           onClick={() => onToggle(path)}
-          aria-label={`${isCollapsed ? 'Expand' : 'Collapse'} ${sectionName}`}
+          aria-label={
+            isCollapsed
+              ? t('shared.jsonViewer.expand', { name: sectionName })
+              : t('shared.jsonViewer.collapse', { name: sectionName })
+          }
           className="border-none bg-transparent text-inherit m-0 p-0 font-[inherit] leading-[inherit] cursor-pointer inline-flex items-baseline min-w-0 text-left hover:opacity-[0.92]"
         >
           <span className="inline-block w-3.5 mr-1 text-[#93a7c7] text-center" aria-hidden="true">
@@ -306,13 +313,14 @@ export const JsonViewerModal: React.FC<JsonViewerModalProps> = ({
   onDownload,
   enableBumlView = false,
   bumlData,
-  bumlLabel = 'Diagram B-UML',
+  bumlLabel,
   isBumlLoading = false,
   bumlError,
   onRequestBuml,
   onCopyBuml,
   onDownloadBuml,
 }) => {
+  const { t } = useTranslation();
   const [activeTab, setActiveTab] = React.useState<'json' | 'buml'>('json');
 
   React.useEffect(() => {
@@ -332,8 +340,9 @@ export const JsonViewerModal: React.FC<JsonViewerModalProps> = ({
     return null;
   }
 
+  const resolvedBumlLabel = bumlLabel ?? t('shared.jsonViewer.diagramBuml');
   const isBumlView = enableBumlView && activeTab === 'buml';
-  const headerTitle = isBumlView ? bumlLabel : 'Project JSON Preview';
+  const headerTitle = isBumlView ? resolvedBumlLabel : t('shared.jsonViewer.jsonTitle');
 
   return createPortal(
     <div
@@ -356,7 +365,7 @@ export const JsonViewerModal: React.FC<JsonViewerModalProps> = ({
           <button
             className="jvm-close-btn w-[34px] h-[34px] inline-flex items-center justify-center rounded-lg border text-lg cursor-pointer transition-all duration-200 ease-in-out"
             onClick={onClose}
-            aria-label="Close preview modal"
+            aria-label={t('shared.jsonViewer.closeLabel')}
           >
             x
           </button>
@@ -393,7 +402,7 @@ export const JsonViewerModal: React.FC<JsonViewerModalProps> = ({
             <>
               {isBumlLoading && (
                 <div className="jvm-placeholder rounded-[10px] p-[22px] text-sm text-center">
-                  Generating B-UML preview...
+                  {t('shared.jsonViewer.generatingBuml')}
                 </div>
               )}
               {!isBumlLoading && bumlError && (
@@ -404,7 +413,7 @@ export const JsonViewerModal: React.FC<JsonViewerModalProps> = ({
               {!isBumlLoading && !bumlError && bumlData && <HighlightedCode code={bumlData} language="python" />}
               {!isBumlLoading && !bumlError && !bumlData && (
                 <div className="jvm-placeholder rounded-[10px] p-[22px] text-sm text-center">
-                  No B-UML preview is available yet.
+                  {t('shared.jsonViewer.noBumlPreview')}
                 </div>
               )}
             </>
@@ -423,7 +432,7 @@ export const JsonViewerModal: React.FC<JsonViewerModalProps> = ({
                   onClick={onRequestBuml}
                   disabled={isBumlLoading}
                 >
-                  {isBumlLoading ? 'Generating...' : 'Regenerate'}
+                  {isBumlLoading ? t('shared.jsonViewer.generating') : t('shared.jsonViewer.regenerate')}
                 </button>
               )}
               {onDownloadBuml && (
@@ -432,7 +441,7 @@ export const JsonViewerModal: React.FC<JsonViewerModalProps> = ({
                   onClick={onDownloadBuml}
                   disabled={isBumlLoading || !bumlData}
                 >
-                  Download B-UML
+                  {t('shared.jsonViewer.downloadBuml')}
                 </button>
               )}
               {onCopyBuml && (
@@ -441,7 +450,7 @@ export const JsonViewerModal: React.FC<JsonViewerModalProps> = ({
                   onClick={onCopyBuml}
                   disabled={isBumlLoading || !bumlData}
                 >
-                  Copy B-UML
+                  {t('shared.jsonViewer.copyBuml')}
                 </button>
               )}
             </>
@@ -451,13 +460,13 @@ export const JsonViewerModal: React.FC<JsonViewerModalProps> = ({
                 className="jvm-footer-btn secondary-button rounded-lg py-[9px] px-3.5 text-[13px] font-bold cursor-pointer"
                 onClick={onDownload}
               >
-                Download JSON
+                {t('shared.jsonViewer.downloadJson')}
               </button>
               <button
                 className="jvm-footer-btn primary-button rounded-lg py-[9px] px-3.5 text-[13px] font-bold cursor-pointer"
                 onClick={onCopy}
               >
-                Copy JSON
+                {t('shared.jsonViewer.copyJson')}
               </button>
             </>
           )}

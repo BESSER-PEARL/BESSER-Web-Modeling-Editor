@@ -88,12 +88,12 @@ class ClassOCLConstraintUpdateComponent extends Component<Props, State> {
               autoFocus
             />
             <FieldLabel htmlFor={`ocl-description-${element.id}`}>
-              Description (shown to end-users when validation fails) Optional
+              {this.props.translate('packages.OCLConstraint.DescriptionLabel')}
             </FieldLabel>
             <DescriptionTextarea
               id={`ocl-description-${element.id}`}
               value={element.description || ''}
-              placeholder="e.g. Be sure to choose a realistic age"
+              placeholder={this.props.translate('packages.OCLConstraint.DescriptionPlaceholder')}
               onChange={(e) => this.onUpdate({ description: e.target.value })}
               rows={2}
             />

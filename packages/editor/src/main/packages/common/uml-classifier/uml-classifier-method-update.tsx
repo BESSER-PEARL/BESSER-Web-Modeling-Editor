@@ -8,6 +8,8 @@ import { Dropdown } from '../../../components/controls/dropdown/dropdown';
 import { StylePane } from '../../../components/style-pane/style-pane';
 import { IUMLElement } from '../../../services/uml-element/uml-element';
 import { MethodImplementationType } from './uml-classifier-member';
+import { I18nContext } from '../../../components/i18n/i18n-context';
+import { localized } from '../../../components/i18n/localized';
 import { Controlled as CodeMirror } from 'react-codemirror2';
 import 'codemirror/lib/codemirror.css';
 import 'codemirror/theme/material.css';
@@ -170,7 +172,7 @@ type Props = {
   onSubmitKeyUp: () => void;
   onDelete: (id: string) => () => void;
   element: IUMLElement;
-};
+} & I18nContext;
 
 const UmlMethodUpdate = ({ 
   id, 
@@ -182,10 +184,11 @@ const UmlMethodUpdate = ({
   quantumCircuitId = '',
   availableStateMachines = [],
   availableQuantumCircuits = [],
-  onChange, 
-  onSubmitKeyUp, 
-  onDelete, 
-  element 
+  onChange,
+  onSubmitKeyUp,
+  onDelete,
+  element,
+  translate
 }: Props) => {
   const [colorOpen, setColorOpen] = useState(false);
   const [codeEditorOpen, setCodeEditorOpen] = useState(code ? true : false); // Auto-open if code exists
@@ -341,8 +344,8 @@ const UmlMethodUpdate = ({
   const hasCode = localCode.trim().length > 0;
   const isBalImplementation = localImplType === 'bal';
   const codeImplementationTitle = isBalImplementation
-    ? 'Method defined in BESSER Action Language code'
-    : 'Method defined in Python code';
+    ? translate('popup.method.definedInBal')
+    : translate('popup.method.definedInPython');
 
   // Determine display mode based on implementation type
   const showCodeEditor = CODE_BASED_IMPLEMENTATION_TYPES.includes(localImplType);
@@ -379,7 +382,7 @@ const UmlMethodUpdate = ({
 
       {/* Implementation Type Selection Row */}
       <ImplementationRow>
-        <ImplementationLabel>Type:</ImplementationLabel>
+        <ImplementationLabel>{translate('popup.method.typeLabel')}</ImplementationLabel>
         <ImplementationTypeDropdown 
           value={localImplType} 
           onChange={handleImplementationTypeChange}
@@ -400,7 +403,7 @@ const UmlMethodUpdate = ({
                 onChange={handleStateMachineChange}
               >
                 {[
-                  <Dropdown.Item key="__placeholder__" value="">-- Select State Machine --</Dropdown.Item>,
+                  <Dropdown.Item key="__placeholder__" value="">{translate('popup.method.selectStateMachine')}</Dropdown.Item>,
                   ...availableStateMachines.map(sm => (
                     <Dropdown.Item key={sm.id} value={sm.id}>
                       {sm.name}
@@ -409,8 +412,8 @@ const UmlMethodUpdate = ({
                 ]}
               </DiagramDropdown>
             ) : (
-              <DiagramRefLabel title="Create a State Machine diagram in your project first">
-                No state machines available
+              <DiagramRefLabel title={translate('popup.method.createStateMachineFirst')}>
+                {translate('popup.method.noStateMachines')}
               </DiagramRefLabel>
             )}
           </>
@@ -425,7 +428,7 @@ const UmlMethodUpdate = ({
                 onChange={handleQuantumCircuitChange}
               >
                 {[
-                  <Dropdown.Item key="__placeholder__" value="">-- Select Quantum Circuit --</Dropdown.Item>,
+                  <Dropdown.Item key="__placeholder__" value="">{translate('popup.method.selectQuantumCircuit')}</Dropdown.Item>,
                   ...availableQuantumCircuits.map(qc => (
                     <Dropdown.Item key={qc.id} value={qc.id}>
                       {qc.name}
@@ -434,8 +437,8 @@ const UmlMethodUpdate = ({
                 ]}
               </DiagramDropdown>
             ) : (
-              <DiagramRefLabel title="Create a Quantum Circuit diagram in your project first">
-                No quantum circuits available
+              <DiagramRefLabel title={translate('popup.method.createQuantumCircuitFirst')}>
+                {translate('popup.method.noQuantumCircuits')}
               </DiagramRefLabel>
             )}
           </>
@@ -446,9 +449,9 @@ const UmlMethodUpdate = ({
           <CodeButton 
             color={hasCode ? "primary" : "link"} 
             onClick={toggleCodeEditor}
-            title={codeEditorOpen ? "Hide code editor" : "Show code editor"}
+            title={codeEditorOpen ? translate('popup.method.hideCodeEditor') : translate('popup.method.showCodeEditor')}
           >
-            {codeEditorOpen ? 'Hide Editor' : 'Show Editor'}
+            {codeEditorOpen ? translate('popup.method.hideEditor') : translate('popup.method.showEditor')}
           </CodeButton>
         )}
       </ImplementationRow>
@@ -458,16 +461,16 @@ const UmlMethodUpdate = ({
         <CodeEditorWrapper>
           <CodeEditorHeader>
             <CodeEditorTitle>
-              {isBalImplementation ? 'BESSER Action Language' : 'Python'} Implementation
+              {isBalImplementation ? 'BESSER Action Language' : 'Python'} {translate('popup.method.implementation')}
             </CodeEditorTitle>
             <div>
               {hasCode && (
                 <Button color="link" onClick={clearCode} style={{ padding: '2px 6px', fontSize: '10px', marginRight: '4px' }}>
-                  Clear Code
+                  {translate('popup.method.clearCode')}
                 </Button>
               )}
               <Button color="link" onClick={toggleCodeEditor} style={{ padding: '2px 6px', fontSize: '10px' }}>
-                Close
+                {translate('propertiesPanel.close')}
               </Button>
             </div>
           </CodeEditorHeader>
@@ -496,4 +499,4 @@ const UmlMethodUpdate = ({
   );
 };
 
-export default UmlMethodUpdate;
+export default localized(UmlMethodUpdate);

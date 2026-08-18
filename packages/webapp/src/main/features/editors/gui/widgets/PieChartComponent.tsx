@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 
 
 
@@ -46,6 +47,7 @@ export const PieChartComponent: React.FC<PieChartComponentProps> = ({
   labelPosition = 'inside',
   paddingAngle = 0,
 }) => {
+  const { t } = useTranslation();
   const [Recharts, setRecharts] = useState<typeof import('recharts') | null>(null);
 
   useEffect(() => {
@@ -74,7 +76,7 @@ export const PieChartComponent: React.FC<PieChartComponentProps> = ({
   if (!Recharts) {
     return (
       <div style={{ width: '100%', height: 400, display: 'flex', justifyContent: 'center', alignItems: 'center', color: '#888' }}>
-        Loading chart...
+        {t('editors.charts.loadingChart')}
       </div>
     );
   }
@@ -85,7 +87,7 @@ export const PieChartComponent: React.FC<PieChartComponentProps> = ({
     <div style={{ width: '100%', height: 400, marginBottom: 20 }}>
       {title && <h3 style={{ textAlign: 'center', marginBottom: 10 }}>{title}</h3>}
       {isEmpty ? (
-        <div style={{ textAlign: 'center', paddingTop: 160, color: '#888' }}>No data available</div>
+        <div style={{ textAlign: 'center', paddingTop: 160, color: '#888' }}>{t('editors.charts.noDataAvailable')}</div>
       ) : (
         <ResponsiveContainer width="100%" height={350}>
           <PieChart>

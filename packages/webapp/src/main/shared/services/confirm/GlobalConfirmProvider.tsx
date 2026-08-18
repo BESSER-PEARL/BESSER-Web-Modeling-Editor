@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { GlobalConfirmOptions, setGlobalConfirmHandler } from './globalConfirm';
 
@@ -21,6 +22,7 @@ const defaultState: DialogState = {
  * handlers, etc.) are rendered as proper modal dialogs.
  */
 export const GlobalConfirmProvider: React.FC = () => {
+  const { t } = useTranslation();
   const [state, setState] = useState<DialogState>(defaultState);
   const resolveRef = useRef<((value: boolean) => void) | null>(null);
 
@@ -31,12 +33,12 @@ export const GlobalConfirmProvider: React.FC = () => {
         open: true,
         title: options.title,
         description: options.description,
-        confirmLabel: options.confirmLabel ?? 'Confirm',
-        cancelLabel: options.cancelLabel ?? 'Cancel',
+        confirmLabel: options.confirmLabel ?? t('common.confirm'),
+        cancelLabel: options.cancelLabel ?? t('common.cancel'),
         variant: options.variant ?? 'default',
       });
     });
-  }, []);
+  }, [t]);
 
   useEffect(() => {
     setGlobalConfirmHandler(handleRequest);

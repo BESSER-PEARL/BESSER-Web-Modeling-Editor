@@ -1,13 +1,16 @@
 import React, { useCallback, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Keyboard } from 'lucide-react';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 
 interface ShortcutEntry {
   keys: string;
+  /** i18n key resolved with t() at render time. */
   description: string;
 }
 
 interface ShortcutCategory {
+  /** i18n key resolved with t() at render time. */
   label: string;
   shortcuts: ShortcutEntry[];
 }
@@ -17,42 +20,42 @@ const modKey = isMac ? '\u2318' : 'Ctrl';
 
 const SHORTCUT_CATEGORIES: ShortcutCategory[] = [
   {
-    label: 'General',
+    label: 'dialogs.shortcuts.category.general',
     shortcuts: [
-      { keys: `${modKey}+K`, description: 'Open command palette' },
-      { keys: `${modKey}+Z`, description: 'Undo' },
-      { keys: `${modKey}+Y`, description: 'Redo' },
-      { keys: `${modKey}+Shift+Z`, description: 'Redo (alternative)' },
-      { keys: 'Delete / Backspace', description: 'Delete selected element' },
-      { keys: 'Arrow keys', description: 'Move selected element' },
-      { keys: 'Escape', description: 'Close panel / deselect' },
+      { keys: `${modKey}+K`, description: 'dialogs.shortcuts.action.commandPalette' },
+      { keys: `${modKey}+Z`, description: 'dialogs.shortcuts.action.undo' },
+      { keys: `${modKey}+Y`, description: 'dialogs.shortcuts.action.redo' },
+      { keys: `${modKey}+Shift+Z`, description: 'dialogs.shortcuts.action.redoAlt' },
+      { keys: 'Delete / Backspace', description: 'dialogs.shortcuts.action.deleteElement' },
+      { keys: 'Arrow keys', description: 'dialogs.shortcuts.action.moveElement' },
+      { keys: 'Escape', description: 'dialogs.shortcuts.action.closeDeselect' },
     ],
   },
   {
-    label: 'GUI Editor',
+    label: 'dialogs.shortcuts.category.guiEditor',
     shortcuts: [
-      { keys: `${modKey}+S`, description: 'Save' },
-      { keys: `${modKey}+C`, description: 'Copy component' },
-      { keys: `${modKey}+V`, description: 'Paste component' },
-      { keys: `${modKey}+D`, description: 'Duplicate component' },
-      { keys: `${modKey}+P`, description: 'Toggle preview' },
-      { keys: `${modKey}+E`, description: 'Export template' },
-      { keys: `${modKey}+J`, description: 'Show JSON' },
-      { keys: 'Escape', description: 'Select parent component' },
+      { keys: `${modKey}+S`, description: 'dialogs.shortcuts.action.save' },
+      { keys: `${modKey}+C`, description: 'dialogs.shortcuts.action.copyComponent' },
+      { keys: `${modKey}+V`, description: 'dialogs.shortcuts.action.pasteComponent' },
+      { keys: `${modKey}+D`, description: 'dialogs.shortcuts.action.duplicateComponent' },
+      { keys: `${modKey}+P`, description: 'dialogs.shortcuts.action.togglePreview' },
+      { keys: `${modKey}+E`, description: 'dialogs.shortcuts.action.exportTemplate' },
+      { keys: `${modKey}+J`, description: 'dialogs.shortcuts.action.showJson' },
+      { keys: 'Escape', description: 'dialogs.shortcuts.action.selectParent' },
     ],
   },
   {
-    label: 'Quantum Editor',
+    label: 'dialogs.shortcuts.category.quantumEditor',
     shortcuts: [
-      { keys: `${modKey}+C`, description: 'Copy selected gate' },
-      { keys: `${modKey}+V`, description: 'Paste gate' },
+      { keys: `${modKey}+C`, description: 'dialogs.shortcuts.action.copyGate' },
+      { keys: `${modKey}+V`, description: 'dialogs.shortcuts.action.pasteGate' },
     ],
   },
   {
-    label: 'Help',
+    label: 'dialogs.shortcuts.category.help',
     shortcuts: [
-      { keys: '?', description: 'Show keyboard shortcuts' },
-      { keys: `${modKey}+/`, description: 'Show keyboard shortcuts' },
+      { keys: '?', description: 'dialogs.shortcuts.action.showShortcuts' },
+      { keys: `${modKey}+/`, description: 'dialogs.shortcuts.action.showShortcuts' },
     ],
   },
 ];
@@ -100,16 +103,17 @@ const KeyCombo: React.FC<{ combo: string }> = ({ combo }) => {
 };
 
 export const KeyboardShortcutsDialog: React.FC<KeyboardShortcutsDialogProps> = ({ open, onOpenChange }) => {
+  const { t } = useTranslation();
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-h-[85vh] w-[560px] max-w-[92vw] overflow-hidden p-0">
         <DialogHeader className="border-b border-border/70 px-6 pt-6 pb-4">
           <DialogTitle className="flex items-center gap-2">
             <Keyboard className="size-5 text-brand" />
-            Keyboard Shortcuts
+            {t('dialogs.shortcuts.title')}
           </DialogTitle>
           <DialogDescription>
-            Available keyboard shortcuts across the editor.
+            {t('dialogs.shortcuts.description')}
           </DialogDescription>
         </DialogHeader>
 
@@ -118,7 +122,7 @@ export const KeyboardShortcutsDialog: React.FC<KeyboardShortcutsDialogProps> = (
             {SHORTCUT_CATEGORIES.map((category) => (
               <div key={category.label}>
                 <h3 className="mb-2 text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground">
-                  {category.label}
+                  {t(category.label)}
                 </h3>
                 <div className="flex flex-col rounded-lg border border-border/70">
                   {category.shortcuts.map((shortcut, idx) => (
@@ -128,7 +132,7 @@ export const KeyboardShortcutsDialog: React.FC<KeyboardShortcutsDialogProps> = (
                         idx !== category.shortcuts.length - 1 ? 'border-b border-border/50' : ''
                       }`}
                     >
-                      <span className="text-sm text-foreground/90">{shortcut.description}</span>
+                      <span className="text-sm text-foreground/90">{t(shortcut.description)}</span>
                       <KeyCombo combo={shortcut.keys} />
                     </div>
                   ))}

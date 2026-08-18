@@ -9,6 +9,7 @@ import { TrashIcon } from '../../../components/controls/icon/trash';
 import { Textfield } from '../../../components/controls/textfield/textfield';
 import { Header } from '../../../components/controls/typography/typography';
 import { I18nContext } from '../../../components/i18n/i18n-context';
+import { AGENT_LLM_PROVIDERS, NON_CHAT_AGENT_LLM_PROVIDERS } from '../agent-llm/agent-llm';
 import { localized } from '../../../components/i18n/localized';
 import { ModelState } from '../../../components/store/model-state';
 import { StylePane } from '../../../components/style-pane/style-pane';
@@ -261,23 +262,37 @@ const SectionTab = styled.button<{ active?: boolean }>`
 `;
 
 const WS_REPLY_TYPES = new Set([
-  'ws_markdown', 'ws_html', 'ws_speech', 'ws_options', 'ws_location',
-  'ws_file', 'ws_image', 'ws_dataframe', 'ws_plotly',
+  'ws_markdown',
+  'ws_html',
+  'ws_speech',
+  'ws_options',
+  'ws_location',
+  'ws_file',
+  'ws_image',
+  'ws_dataframe',
+  'ws_plotly',
 ]);
 
 type ActionSection = 'simple' | 'ai' | 'data';
 
 const SECTION_ACTION_TYPES: Record<ActionSection, string[]> = {
-  simple: ['text', 'ws_markdown', 'ws_html', 'ws_speech', 'ws_options', 'ws_location', 'ws_file', 'ws_image', 'ws_dataframe', 'ws_plotly'],
+  simple: [
+    'text',
+    'ws_markdown',
+    'ws_html',
+    'ws_speech',
+    'ws_options',
+    'ws_location',
+    'ws_file',
+    'ws_image',
+    'ws_dataframe',
+    'ws_plotly',
+  ],
   ai: ['llm', 'llm_chat'],
   data: ['rag', 'db_reply', 'web_crawl_llm'],
 };
 
-const ALL_ACTION_TYPES = [
-  ...SECTION_ACTION_TYPES.simple,
-  ...SECTION_ACTION_TYPES.ai,
-  ...SECTION_ACTION_TYPES.data,
-];
+const ALL_ACTION_TYPES = [...SECTION_ACTION_TYPES.simple, ...SECTION_ACTION_TYPES.ai, ...SECTION_ACTION_TYPES.data];
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -313,12 +328,19 @@ interface State {
   newFallbackActionType: string;
   newBodyActionSection: ActionSection;
   newFallbackActionSection: ActionSection;
-  expandedBodyIds: Set<string>;
-  expandedFallbackIds: Set<string>;
+  // Actions are shown expanded (in edit mode) by default. We track which ones
+  // the user has explicitly collapsed rather than which are expanded, so freshly
+  // loaded agents and newly added actions reveal their editor without a click.
+  collapsedBodyIds: Set<string>;
+  collapsedFallbackIds: Set<string>;
   draggingIndex: number | null;
   draggingPrefix: string | null;
   dragOverIndex: number | null;
   dragOverPrefix: string | null;
+  // Which card, if any, has drag armed. Dragging is only enabled once the
+  // mouse is pressed on that card's drag handle — so clicking inside a text
+  // field selects/positions the cursor normally instead of starting a drag.
+  dragArmedKey: string | null;
 }
 
 const ACTION_TYPE_LABELS: Record<string, string> = {
@@ -342,16 +364,13 @@ const ACTION_TYPE_LABELS: Record<string, string> = {
 
 const enhance = compose<ComponentClass<OwnProps>>(
   localized,
-  connect<StateProps, DispatchProps, OwnProps, ModelState>(
-    (state) => ({ elements: state.elements }),
-    {
-      create: UMLElementRepository.create,
-      update: UMLElementRepository.update,
-      remove: UMLElementRepository.delete,
-      getById: UMLElementRepository.getById as any as AsyncDispatch<typeof UMLElementRepository.getById>,
-      layout: LayouterRepository.layout,
-    },
-  ),
+  connect<StateProps, DispatchProps, OwnProps, ModelState>((state) => ({ elements: state.elements }), {
+    create: UMLElementRepository.create,
+    update: UMLElementRepository.update,
+    remove: UMLElementRepository.delete,
+    getById: UMLElementRepository.getById as any as AsyncDispatch<typeof UMLElementRepository.getById>,
+    layout: LayouterRepository.layout,
+  }),
 );
 
 class StateUpdate extends Component<Props, State> {
@@ -361,12 +380,13 @@ class StateUpdate extends Component<Props, State> {
     newFallbackActionType: 'text',
     newBodyActionSection: 'simple',
     newFallbackActionSection: 'simple',
-    expandedBodyIds: new Set(),
-    expandedFallbackIds: new Set(),
+    collapsedBodyIds: new Set(),
+    collapsedFallbackIds: new Set(),
     draggingIndex: null,
     draggingPrefix: null,
     dragOverIndex: null,
     dragOverPrefix: null,
+    dragArmedKey: null,
   };
 
   private layoutTimer: ReturnType<typeof setTimeout> | null = null;
@@ -426,18 +446,16 @@ class StateUpdate extends Component<Props, State> {
     // ─── Quality warnings ────────────────────────────────────────────────────
     const allBodyActions = [...bodies, ...fallbackBodies];
     const LLM_ACTION_TYPES = new Set(['llm', 'llm_chat', 'rag', 'web_crawl_llm']);
-    const needsLlm = llmNames.length === 0 && (
-      stateType === 'reasoning' ||
-      allBodyActions.some(a =>
-        LLM_ACTION_TYPES.has(a.replyType) ||
-        (a.replyType === 'db_reply' && (a.dbQueryMode || 'llm_query') === 'llm_query'),
-      )
-    );
-    const needsPlatform = !hasWebSocketPlatform &&
-      allBodyActions.some(a => WS_REPLY_TYPES.has(a.replyType));
-    const needsChatLlm = !hasCompatibleChatLlm &&
-      allBodyActions.some(a => a.replyType === 'llm_chat');
-
+    const needsLlm =
+      llmNames.length === 0 &&
+      (stateType === 'reasoning' ||
+        allBodyActions.some(
+          (a) =>
+            LLM_ACTION_TYPES.has(a.replyType) ||
+            (a.replyType === 'db_reply' && (a.dbQueryMode || 'llm_query') === 'llm_query'),
+        ));
+    const needsPlatform = !hasWebSocketPlatform && allBodyActions.some((a) => WS_REPLY_TYPES.has(a.replyType));
+    const needsChatLlm = !hasCompatibleChatLlm && allBodyActions.some((a) => a.replyType === 'llm_chat');
 
     return (
       <div>
@@ -463,14 +481,18 @@ class StateUpdate extends Component<Props, State> {
 
         {/* State type selector */}
         <Section>
-          <SectionHeader>State Type</SectionHeader>
+          <SectionHeader>{this.props.translate('packages.AgentDiagram.stateType')}</SectionHeader>
           <Dropdown
             value={stateType}
             onChange={(value) => this.props.update<AgentState>(element.id, { stateType: value } as any)}
           >
             {[
-              <Dropdown.Item key="standard" value="standard">Standard</Dropdown.Item>,
-              <Dropdown.Item key="reasoning" value="reasoning">Reasoning</Dropdown.Item>,
+              <Dropdown.Item key="standard" value="standard">
+                {this.props.translate('packages.AgentDiagram.standard')}
+              </Dropdown.Item>,
+              <Dropdown.Item key="reasoning" value="reasoning">
+                {this.props.translate('packages.AgentDiagram.reasoning')}
+              </Dropdown.Item>,
             ]}
           </Dropdown>
         </Section>
@@ -486,12 +508,14 @@ class StateUpdate extends Component<Props, State> {
             )}
             {needsChatLlm && (
               <WsWarning>
-                ⚠ LLM Chat requires an OpenAI or Hugging Face LLM, but none are defined. Add a compatible LLM in the Agent Configuration.
+                ⚠ LLM Chat requires an OpenAI or Hugging Face LLM, but none are defined. Add a compatible LLM in the
+                Agent Configuration.
               </WsWarning>
             )}
             {needsPlatform && (
               <WsWarning>
-                ⚠ This state has WebSocket reply actions, but the platform is not set to WebSocket. Change the platform in Agent Configuration.
+                ⚠ This state has WebSocket reply actions, but the platform is not set to WebSocket. Change the platform
+                in Agent Configuration.
               </WsWarning>
             )}
           </Section>
@@ -503,9 +527,11 @@ class StateUpdate extends Component<Props, State> {
         {/* Body / fallback — standard only */}
         {stateType === 'standard' && (
           <>
-            <Section><Divider /></Section>
             <Section>
-              <SectionHeader>Body</SectionHeader>
+              <Divider />
+            </Section>
+            <Section>
+              <SectionHeader>{this.props.translate('packages.AgentDiagram.body')}</SectionHeader>
               {this.renderBodySection(
                 bodies,
                 AgentStateBody,
@@ -518,7 +544,9 @@ class StateUpdate extends Component<Props, State> {
               )}
             </Section>
 
-            <Section><Divider /></Section>
+            <Section>
+              <Divider />
+            </Section>
             <Section>
               <ToggleLabel>
                 <input
@@ -529,21 +557,23 @@ class StateUpdate extends Component<Props, State> {
                     if (!e.target.checked) fallbackBodies.forEach((fb) => this.delete(fb.id)());
                   }}
                 />
-                Enable Fallback Body
+                {this.props.translate('packages.AgentDiagram.enableFallbackBody')}
               </ToggleLabel>
               {fallbackEnabled && (
                 <>
-                  <SectionHeader style={{ marginTop: 8 }}>Fallback Body</SectionHeader>
-                   {this.renderBodySection(
-                     fallbackBodies,
-                     AgentStateFallbackBody,
-                     ragDatabaseNames,
-                     llmNames,
-                     llmProviderByName,
-                     hasCompatibleChatLlm,
-                     hasWebSocketPlatform,
-                     'fallback',
-                   )}
+                  <SectionHeader style={{ marginTop: 8 }}>
+                    {this.props.translate('packages.AgentDiagram.fallbackBody')}
+                  </SectionHeader>
+                  {this.renderBodySection(
+                    fallbackBodies,
+                    AgentStateFallbackBody,
+                    ragDatabaseNames,
+                    llmNames,
+                    llmProviderByName,
+                    hasCompatibleChatLlm,
+                    hasWebSocketPlatform,
+                    'fallback',
+                  )}
                 </>
               )}
             </Section>
@@ -557,19 +587,25 @@ class StateUpdate extends Component<Props, State> {
 
   private renderReasoningConfig = (element: AgentState, llmNames: string[]) => (
     <>
-      <Section><Divider /></Section>
       <Section>
-        <Header>LLM name</Header>
+        <Divider />
+      </Section>
+      <Section>
+        <Header>{this.props.translate('packages.AgentDiagram.llmName')}</Header>
         <LlmSelect
           value={element.llm_name || ''}
           onChange={(e) => this.props.update<AgentState>(element.id, { llm_name: e.target.value } as any)}
         >
-          <option value="">(use default)</option>
-          {llmNames.map((n) => <option key={n} value={n}>{n}</option>)}
+          <option value="">{this.props.translate('packages.AgentDiagram.selectPlaceholder')}</option>
+          {llmNames.map((n) => (
+            <option key={n} value={n}>
+              {n}
+            </option>
+          ))}
         </LlmSelect>
       </Section>
       <Section>
-        <Header>Max steps</Header>
+        <Header>{this.props.translate('packages.AgentDiagram.maxSteps')}</Header>
         <Textfield
           value={element.max_steps ?? 8}
           onChange={(value) => {
@@ -580,27 +616,43 @@ class StateUpdate extends Component<Props, State> {
       </Section>
       <Section>
         <CheckboxRow>
-          <input type="checkbox" checked={element.enable_task_planning !== false}
-            onChange={(e) => this.props.update<AgentState>(element.id, { enable_task_planning: e.target.checked } as any)} />
-          Enable task planning
+          <input
+            type="checkbox"
+            checked={element.enable_task_planning !== false}
+            onChange={(e) =>
+              this.props.update<AgentState>(element.id, { enable_task_planning: e.target.checked } as any)
+            }
+          />
+          {this.props.translate('packages.AgentDiagram.enableTaskPlanning')}
         </CheckboxRow>
         <CheckboxRow>
-          <input type="checkbox" checked={element.stream_steps !== false}
-            onChange={(e) => this.props.update<AgentState>(element.id, { stream_steps: e.target.checked } as any)} />
-          Stream steps
+          <input
+            type="checkbox"
+            checked={element.stream_steps !== false}
+            onChange={(e) => this.props.update<AgentState>(element.id, { stream_steps: e.target.checked } as any)}
+          />
+          {this.props.translate('packages.AgentDiagram.streamSteps')}
         </CheckboxRow>
       </Section>
       <Section>
-        <Header>System prompt</Header>
-        <Textfield value={element.system_prompt || ''} multiline enterToSubmit={false}
-          placeholder="Optional system prompt prefix for this state"
-          onChange={(system_prompt) => this.props.update<AgentState>(element.id, { system_prompt } as any)} />
+        <Header>{this.props.translate('packages.AgentDiagram.systemPrompt')}</Header>
+        <Textfield
+          value={element.system_prompt || ''}
+          multiline
+          enterToSubmit={false}
+          placeholder={this.props.translate('packages.AgentDiagram.optionalSystemPromptPrefix')}
+          onChange={(system_prompt) => this.props.update<AgentState>(element.id, { system_prompt } as any)}
+        />
       </Section>
       <Section>
-        <Header>Fallback message</Header>
-        <Textfield value={element.fallback_message || ''} multiline enterToSubmit={false}
-          placeholder="Message returned if the reasoning loop fails"
-          onChange={(fallback_message) => this.props.update<AgentState>(element.id, { fallback_message } as any)} />
+        <Header>{this.props.translate('packages.AgentDiagram.fallbackMessage')}</Header>
+        <Textfield
+          value={element.fallback_message || ''}
+          multiline
+          enterToSubmit={false}
+          placeholder={this.props.translate('packages.AgentDiagram.messageReturnedIfReasoningFails')}
+          onChange={(fallback_message) => this.props.update<AgentState>(element.id, { fallback_message } as any)}
+        />
       </Section>
     </>
   );
@@ -629,7 +681,7 @@ class StateUpdate extends Component<Props, State> {
               if (bodyType !== 'predefined') this.switchBodyType('predefined', actions, Clazz);
             }}
           >
-            Predefined
+            {this.props.translate('packages.AgentDiagram.predefined')}
           </BodyTypeBtn>
           <BodyTypeBtn
             active={bodyType === 'custom'}
@@ -637,22 +689,22 @@ class StateUpdate extends Component<Props, State> {
               if (bodyType !== 'custom') this.switchBodyType('custom', actions, Clazz);
             }}
           >
-            Custom (Python)
+            {this.props.translate('packages.AgentDiagram.customPython')}
           </BodyTypeBtn>
         </BodyTypeRow>
 
         {bodyType === 'custom'
           ? this.renderCustomBody(actions, Clazz)
           : this.renderPredefinedBody(
-            actions,
-            Clazz,
-            ragDatabaseNames,
-            llmNames,
-            llmProviderByName,
-            hasCompatibleChatLlm,
-            hasWebSocketPlatform,
-            prefix,
-          )}
+              actions,
+              Clazz,
+              ragDatabaseNames,
+              llmNames,
+              llmProviderByName,
+              hasCompatibleChatLlm,
+              hasWebSocketPlatform,
+              prefix,
+            )}
       </>
     );
   };
@@ -664,10 +716,11 @@ class StateUpdate extends Component<Props, State> {
     const codeAction = actions.find((a) => a.replyType === 'code');
     if (!codeAction) {
       return (
-        <Button color="primary" onClick={() =>
-          this.create(Clazz, 'code')('def body_name(session: \'Session\'):\n    pass\n')
-        }>
-          Initialize Python code
+        <Button
+          color="primary"
+          onClick={() => this.create(Clazz, 'code')("def body_name(session: 'Session'):\n    pass\n")}
+        >
+          {this.props.translate('packages.AgentDiagram.initializePythonCode')}
         </Button>
       );
     }
@@ -676,8 +729,13 @@ class StateUpdate extends Component<Props, State> {
         <CodeMirror
           value={codeAction.name}
           options={{ mode: 'python', theme: 'material', lineNumbers: true, tabSize: 4, indentWithTabs: true }}
-          onBeforeChange={(_e, _d, value) => { this.props.update(codeAction.id, { name: value }); this.scheduleLayout(); }}
-          onChange={(_e, _d, value) => { if (value.trim()) this.props.update(codeAction.id, { name: value }); }}
+          onBeforeChange={(_e, _d, value) => {
+            this.props.update(codeAction.id, { name: value });
+            this.scheduleLayout();
+          }}
+          onChange={(_e, _d, value) => {
+            if (value.trim()) this.props.update(codeAction.id, { name: value });
+          }}
         />
       </ResizableCodeMirrorWrapper>
     );
@@ -693,7 +751,8 @@ class StateUpdate extends Component<Props, State> {
     hasWebSocketPlatform: boolean,
     prefix: 'body' | 'fallback',
   ) => {
-    const section: ActionSection = prefix === 'body' ? this.state.newBodyActionSection : this.state.newFallbackActionSection;
+    const section: ActionSection =
+      prefix === 'body' ? this.state.newBodyActionSection : this.state.newFallbackActionSection;
     const setSection = (s: ActionSection) => {
       const firstOfSection = SECTION_ACTION_TYPES[s][0];
       if (prefix === 'body') this.setState({ newBodyActionSection: s, newBodyActionType: firstOfSection });
@@ -704,11 +763,9 @@ class StateUpdate extends Component<Props, State> {
     const newActionType = prefix === 'body' ? this.state.newBodyActionType : this.state.newFallbackActionType;
     const selectedActionType = sectionTypes.includes(newActionType) ? newActionType : sectionTypes[0];
     const setNewActionType = (v: string) =>
-      prefix === 'body'
-        ? this.setState({ newBodyActionType: v })
-        : this.setState({ newFallbackActionType: v });
+      prefix === 'body' ? this.setState({ newBodyActionType: v }) : this.setState({ newFallbackActionType: v });
 
-    const expandedIds = prefix === 'body' ? this.state.expandedBodyIds : this.state.expandedFallbackIds;
+    const collapsedIds = prefix === 'body' ? this.state.collapsedBodyIds : this.state.collapsedFallbackIds;
     const wsTooltip = 'Requires WebSocketPlatform. Shown in red as a reminder — add it to dismiss.';
     const chatTooltip = 'Requires an OpenAI or Hugging Face LLM. Shown in red as a reminder.';
     const wsColor = hasWebSocketPlatform ? undefined : '#e04040';
@@ -717,25 +774,24 @@ class StateUpdate extends Component<Props, State> {
     return (
       <>
         {actions.map((action, index) => {
-          const isExpanded = expandedIds.has(action.id);
-          const isDraggingOver =
-            this.state.dragOverIndex === index && this.state.dragOverPrefix === prefix;
-          const isDragging =
-            this.state.draggingIndex === index && this.state.draggingPrefix === prefix;
+          const isExpanded = !collapsedIds.has(action.id);
+          const isDraggingOver = this.state.dragOverIndex === index && this.state.dragOverPrefix === prefix;
+          const isDragging = this.state.draggingIndex === index && this.state.draggingPrefix === prefix;
           const badgeWarning =
             (WS_REPLY_TYPES.has(action.replyType) && !hasWebSocketPlatform) ||
             (action.replyType === 'llm_chat' && !hasCompatibleChatLlm) ||
-            (llmNames.length === 0 && (
-              action.replyType === 'llm' ||
-              action.replyType === 'rag' ||
-              action.replyType === 'web_crawl_llm' ||
-              (action.replyType === 'db_reply' && (action.dbQueryMode || 'llm_query') === 'llm_query')
-            ));
+            (llmNames.length === 0 &&
+              (action.replyType === 'llm' ||
+                action.replyType === 'rag' ||
+                action.replyType === 'web_crawl_llm' ||
+                (action.replyType === 'db_reply' && (action.dbQueryMode || 'llm_query') === 'llm_query')));
+
+          const cardKey = `${prefix}-${index}`;
 
           return (
             <ActionCard
               key={action.id}
-              draggable
+              draggable={this.state.dragArmedKey === cardKey}
               data-drag-over={isDraggingOver ? 'true' : 'false'}
               data-dragging={isDragging ? 'true' : 'false'}
               onDragStart={(e) => {
@@ -768,22 +824,50 @@ class StateUpdate extends Component<Props, State> {
                 ) {
                   this.swapActions(actions, fromIndex, index);
                 }
-                this.setState({ draggingIndex: null, draggingPrefix: null, dragOverIndex: null, dragOverPrefix: null });
+                this.setState({
+                  draggingIndex: null,
+                  draggingPrefix: null,
+                  dragOverIndex: null,
+                  dragOverPrefix: null,
+                  dragArmedKey: null,
+                });
               }}
               onDragEnd={() => {
-                this.setState({ draggingIndex: null, draggingPrefix: null, dragOverIndex: null, dragOverPrefix: null });
+                this.setState({
+                  draggingIndex: null,
+                  draggingPrefix: null,
+                  dragOverIndex: null,
+                  dragOverPrefix: null,
+                  dragArmedKey: null,
+                });
               }}
             >
               <ActionCardHeader>
-                <DragHandle title="Drag to reorder">⠿</DragHandle>
+                <DragHandle
+                  title="Drag to reorder"
+                  onMouseDown={() => this.setState({ dragArmedKey: cardKey })}
+                  onMouseUp={() => this.setState({ dragArmedKey: null })}
+                >
+                  ⠿
+                </DragHandle>
                 <ActionTypeBadge style={badgeWarning ? { color: '#e04040' } : undefined}>
                   {ACTION_TYPE_LABELS[action.replyType] ?? action.replyType}
                 </ActionTypeBadge>
                 <ActionSummary title={action.name}>{this.getActionSummary(action)}</ActionSummary>
-                <IconBtn title={isExpanded ? 'Collapse' : 'Expand'} onClick={() => this.toggleExpand(action.id, prefix)}>
+                <IconBtn
+                  title={
+                    isExpanded
+                      ? this.props.translate('packages.AgentDiagram.collapse')
+                      : this.props.translate('packages.AgentDiagram.expand')
+                  }
+                  onClick={() => this.toggleExpand(action.id, prefix)}
+                >
                   {isExpanded ? '▲' : '✎'}
                 </IconBtn>
-                <IconBtn title="Delete action" onClick={this.delete(action.id)}>
+                <IconBtn
+                  title={this.props.translate('packages.AgentDiagram.deleteAction')}
+                  onClick={this.delete(action.id)}
+                >
                   <TrashIcon />
                 </IconBtn>
               </ActionCardHeader>
@@ -805,56 +889,96 @@ class StateUpdate extends Component<Props, State> {
           );
         })}
 
-        <NewActionLabel>New action</NewActionLabel>
+        <NewActionLabel>{this.props.translate('packages.AgentDiagram.newActionLabel') || 'New action'}</NewActionLabel>
         <SectionTabRow>
-          <SectionTab active={section === 'simple'} onClick={() => setSection('simple')}>Simple Replies</SectionTab>
-          <SectionTab active={section === 'ai'} onClick={() => setSection('ai')}>AI Replies</SectionTab>
-          <SectionTab active={section === 'data'} onClick={() => setSection('data')}>Data Query</SectionTab>
+          <SectionTab active={section === 'simple'} onClick={() => setSection('simple')}>
+            {this.props.translate('packages.AgentDiagram.simpleReplies')}
+          </SectionTab>
+          <SectionTab active={section === 'ai'} onClick={() => setSection('ai')}>
+            {this.props.translate('packages.AgentDiagram.aiReplies')}
+          </SectionTab>
+          <SectionTab active={section === 'data'} onClick={() => setSection('data')}>
+            {this.props.translate('packages.AgentDiagram.dataQuery')}
+          </SectionTab>
         </SectionTabRow>
         <AddActionRow>
           <LlmSelect
             value={selectedActionType}
             onChange={(e) => setNewActionType(e.target.value)}
-            style={WS_REPLY_TYPES.has(selectedActionType) ? { color: wsColor } : selectedActionType === 'llm_chat' ? { color: chatColor } : undefined}
+            style={
+              WS_REPLY_TYPES.has(selectedActionType)
+                ? { color: wsColor }
+                : selectedActionType === 'llm_chat'
+                  ? { color: chatColor }
+                  : undefined
+            }
           >
             {section === 'simple' && (
               <>
-                <option value="text">Text</option>
-                <option value="ws_markdown" title={wsTooltip} style={{ color: wsColor }}>Markdown</option>
-                <option value="ws_html" title={wsTooltip} style={{ color: wsColor }}>HTML</option>
-                <option value="ws_speech" title={wsTooltip} style={{ color: wsColor }}>Speech</option>
-                <option value="ws_options" title={wsTooltip} style={{ color: wsColor }}>Options</option>
-                <option value="ws_location" title={wsTooltip} style={{ color: wsColor }}>Location</option>
-                <option value="ws_file" title={wsTooltip} style={{ color: wsColor }}>File</option>
-                <option value="ws_image" title={wsTooltip} style={{ color: wsColor }}>Image</option>
-                <option value="ws_dataframe" title={wsTooltip} style={{ color: wsColor }}>Dataframe</option>
-                <option value="ws_plotly" title={wsTooltip} style={{ color: wsColor }}>Plotly</option>
+                <option value="text">{ACTION_TYPE_LABELS['text']}</option>
+                <option value="ws_markdown" title={wsTooltip} style={{ color: wsColor }}>
+                  {ACTION_TYPE_LABELS['ws_markdown']}
+                </option>
+                <option value="ws_html" title={wsTooltip} style={{ color: wsColor }}>
+                  {ACTION_TYPE_LABELS['ws_html']}
+                </option>
+                <option value="ws_speech" title={wsTooltip} style={{ color: wsColor }}>
+                  {ACTION_TYPE_LABELS['ws_speech']}
+                </option>
+                <option value="ws_options" title={wsTooltip} style={{ color: wsColor }}>
+                  {ACTION_TYPE_LABELS['ws_options']}
+                </option>
+                <option value="ws_location" title={wsTooltip} style={{ color: wsColor }}>
+                  {ACTION_TYPE_LABELS['ws_location']}
+                </option>
+                <option value="ws_file" title={wsTooltip} style={{ color: wsColor }}>
+                  {ACTION_TYPE_LABELS['ws_file']}
+                </option>
+                <option value="ws_image" title={wsTooltip} style={{ color: wsColor }}>
+                  {ACTION_TYPE_LABELS['ws_image']}
+                </option>
+                <option value="ws_dataframe" title={wsTooltip} style={{ color: wsColor }}>
+                  {ACTION_TYPE_LABELS['ws_dataframe']}
+                </option>
+                <option value="ws_plotly" title={wsTooltip} style={{ color: wsColor }}>
+                  {ACTION_TYPE_LABELS['ws_plotly']}
+                </option>
               </>
             )}
             {section === 'ai' && (
               <>
-                <option value="llm">LLM</option>
-                <option value="llm_chat" title={chatTooltip} style={{ color: chatColor }}>LLM Chat</option>
+                <option value="llm">{ACTION_TYPE_LABELS['llm']}</option>
+                <option value="llm_chat" title={chatTooltip} style={{ color: chatColor }}>
+                  {ACTION_TYPE_LABELS['llm_chat']}
+                </option>
               </>
             )}
             {section === 'data' && (
               <>
-                <option value="rag">RAG</option>
-                <option value="db_reply">SQL Query</option>
-                <option value="web_crawl_llm">Web Crawl + LLM</option>
+                <option value="rag">{ACTION_TYPE_LABELS['rag']}</option>
+                <option value="db_reply">{ACTION_TYPE_LABELS['db_reply']}</option>
+                <option value="web_crawl_llm">{ACTION_TYPE_LABELS['web_crawl_llm']}</option>
               </>
             )}
           </LlmSelect>
-          <Button color="primary" onClick={() => {
-            const id = this.addPredefinedAction(Clazz, selectedActionType);
-            if (id) {
-              const key = prefix === 'body' ? 'expandedBodyIds' : 'expandedFallbackIds';
-              const next = new Set(this.state[key]);
-              next.add(id);
-              this.setState({ [key]: next } as any);
-            }
-          }}>
-            Add
+          <Button
+            color="primary"
+            onClick={() => {
+              const id = this.addPredefinedAction(Clazz, selectedActionType);
+              // New actions are expanded by default; make sure a stale collapsed
+              // entry (e.g. from a previously deleted action reusing state) can't
+              // hide the freshly created one.
+              if (id) {
+                const key = prefix === 'body' ? 'collapsedBodyIds' : 'collapsedFallbackIds';
+                if (this.state[key].has(id)) {
+                  const next = new Set(this.state[key]);
+                  next.delete(id);
+                  this.setState({ [key]: next } as any);
+                }
+              }
+            }}
+          >
+            {this.props.translate('packages.AgentDiagram.add')}
           </Button>
         </AddActionRow>
       </>
@@ -888,7 +1012,7 @@ class StateUpdate extends Component<Props, State> {
           <>
             {llmNames.length === 0 && (
               <WsWarning style={{ marginBottom: 6 }}>
-                No LLM defined. Add one in the Agent Configuration.
+                {this.props.translate('packages.AgentDiagram.noLlmDefined')}
               </WsWarning>
             )}
             {this.renderLlmNameField(action, llmNames, `${fieldId}-llm`)}
@@ -903,12 +1027,12 @@ class StateUpdate extends Component<Props, State> {
           <>
             {!hasCompatibleChatLlm && (
               <WsWarning style={{ marginBottom: 6 }}>
-                LLM Chat requires an OpenAI or Hugging Face LLM. Add one from the palette and set its provider accordingly.
+                {this.props.translate('packages.AgentDiagram.noLlmDefinedChat')}
               </WsWarning>
             )}
             {this.renderLlmNameField(action, llmNames, `${fieldId}-llm-chat`, {
               warning: hasIncompatibleSelection
-                ? 'Selected LLM provider is incompatible with chat(). Use OpenAI or Hugging Face.'
+                ? this.props.translate('packages.AgentDiagram.warningIncompatibleProvider')
                 : undefined,
             })}
           </>
@@ -919,44 +1043,52 @@ class StateUpdate extends Component<Props, State> {
           <>
             {llmNames.length === 0 && (
               <WsWarning style={{ marginBottom: 6 }}>
-                No LLM defined. RAG requires an LLM. Add one in the Agent Configuration.
+                {this.props.translate('packages.AgentDiagram.noLlmDefinedRag')}
               </WsWarning>
             )}
             {ragDatabaseNames.length ? (
-          <LlmFieldRow>
-            <Header>RAG database</Header>
-            <Dropdown
-              value={action.ragDatabaseName && action.ragDatabaseName.length > 0 ? action.ragDatabaseName : '__placeholder__'}
-              onChange={(value) => {
-                const selected = value === '__placeholder__' ? '' : value;
-                this.props.update<AgentStateMember>(action.id, {
-                  ragDatabaseName: selected,
-                  name: this.getRagDisplayName(selected),
-                });
-              }}
-            >
-              {[
-                <Dropdown.Item value="__placeholder__" key="rag-placeholder">Select RAG database</Dropdown.Item>,
-                ...ragDatabaseNames.map((name, i) => (
-                  <Dropdown.Item key={`rag-${i}-${name}`} value={name}>{name}</Dropdown.Item>
-                )),
-              ]}
-            </Dropdown>
-            <Header style={{ marginTop: 6 }}>Prompt</Header>
-            <Textfield
-              outline
-              multiline
-              enterToSubmit={false}
-              value={action.prompt || ''}
-              onChange={(value) => this.props.update<AgentStateMember>(action.id, { prompt: value })}
-              placeholder="Optional prompt passed to RAGReply(prompt=...)"
-            />
-          </LlmFieldRow>
-        ) : (
-          <p style={{ fontSize: 12, margin: '4px 0', opacity: 0.7 }}>
-            No RAG databases found. Create one from the palette first.
-          </p>
-        )}
+              <LlmFieldRow>
+                <Header>{this.props.translate('packages.AgentDiagram.ragDatabase')}</Header>
+                <Dropdown
+                  value={
+                    action.ragDatabaseName && action.ragDatabaseName.length > 0
+                      ? action.ragDatabaseName
+                      : '__placeholder__'
+                  }
+                  onChange={(value) => {
+                    const selected = value === '__placeholder__' ? '' : value;
+                    this.props.update<AgentStateMember>(action.id, {
+                      ragDatabaseName: selected,
+                      name: this.getRagDisplayName(selected),
+                    });
+                  }}
+                >
+                  {[
+                    <Dropdown.Item value="__placeholder__" key="rag-placeholder">
+                      {this.props.translate('packages.AgentDiagram.selectRagDatabase')}
+                    </Dropdown.Item>,
+                    ...ragDatabaseNames.map((name, i) => (
+                      <Dropdown.Item key={`rag-${i}-${name}`} value={name}>
+                        {name}
+                      </Dropdown.Item>
+                    )),
+                  ]}
+                </Dropdown>
+                <Header style={{ marginTop: 6 }}>{this.props.translate('packages.AgentDiagram.prompt')}</Header>
+                <Textfield
+                  outline
+                  multiline
+                  enterToSubmit={false}
+                  value={action.prompt || ''}
+                  onChange={(value) => this.props.update<AgentStateMember>(action.id, { prompt: value })}
+                  placeholder={this.props.translate('packages.AgentDiagram.optionalPromptPassed')}
+                />
+              </LlmFieldRow>
+            ) : (
+              <p style={{ fontSize: 12, margin: '4px 0', opacity: 0.7 }}>
+                {this.props.translate('packages.AgentDiagram.noRagDatabases')}
+              </p>
+            )}
           </>
         );
       case 'db_reply':
@@ -982,7 +1114,7 @@ class StateUpdate extends Component<Props, State> {
 
   private getActionSummary = (action: AgentStateMember): string => {
     const name = action.name || '';
-    const truncate = (s: string, n = 40) => s.length > n ? s.slice(0, n) + '…' : s;
+    const truncate = (s: string, n = 40) => (s.length > n ? s.slice(0, n) + '…' : s);
     switch (action.replyType) {
       case 'llm':
         return action.llm_name ? `LLM: ${action.llm_name}` : '(default LLM)';
@@ -1029,7 +1161,7 @@ class StateUpdate extends Component<Props, State> {
   ) => {
     actions.forEach((a) => this.delete(a.id)());
     if (type === 'custom') {
-      this.create(Clazz, 'code')('def body_name(session: \'Session\'):\n    pass\n');
+      this.create(Clazz, 'code')("def body_name(session: 'Session'):\n    pass\n");
     }
   };
 
@@ -1061,7 +1193,10 @@ class StateUpdate extends Component<Props, State> {
         const defaults = this.getDefaultDbReplyValues();
         Object.assign(member, defaults);
         member.name = this.getDbDisplayName(
-          defaults.dbSelectionType, defaults.dbCustomName, defaults.dbQueryMode, defaults.dbOperation,
+          defaults.dbSelectionType,
+          defaults.dbCustomName,
+          defaults.dbQueryMode,
+          defaults.dbOperation,
         );
         break;
       }
@@ -1120,7 +1255,7 @@ class StateUpdate extends Component<Props, State> {
   // ─── Expand / collapse ────────────────────────────────────────────────────────
 
   private toggleExpand = (id: string, prefix: 'body' | 'fallback') => {
-    const key = prefix === 'body' ? 'expandedBodyIds' : 'expandedFallbackIds';
+    const key = prefix === 'body' ? 'collapsedBodyIds' : 'collapsedFallbackIds';
     const current: Set<string> = this.state[key];
     const next = new Set(current);
     if (next.has(id)) next.delete(id);
@@ -1168,7 +1303,7 @@ class StateUpdate extends Component<Props, State> {
   private renderWebSocketReplyEditor = (action: AgentStateMember, hasWebSocketPlatform: boolean): React.ReactNode => {
     const platformWarning = !hasWebSocketPlatform ? (
       <WsWarning style={{ marginBottom: 6 }}>
-        This action requires a WebSocket Platform. You can change the Agent Platform in the Configuration Page.
+        {this.props.translate('packages.AgentDiagram.requiresWebSocketWarning')}
       </WsWarning>
     ) : null;
 
@@ -1178,16 +1313,18 @@ class StateUpdate extends Component<Props, State> {
       case 'ws_html':
         content = (
           <LlmFieldRow>
-            <Header>Message</Header>
+            <Header>{this.props.translate('packages.AgentDiagram.message')}</Header>
             <Textfield
               outline
               multiline
               enterToSubmit={false}
               value={action.ws_message || ''}
-              onChange={(v) => this.props.update<AgentStateMember>(action.id, {
-                ws_message: v,
-                name: v ? v.slice(0, 40) : `${ACTION_TYPE_LABELS[action.replyType]} (empty)`,
-              })}
+              onChange={(v) =>
+                this.props.update<AgentStateMember>(action.id, {
+                  ws_message: v,
+                  name: v ? v.slice(0, 40) : `${ACTION_TYPE_LABELS[action.replyType]} (empty)`,
+                })
+              }
               placeholder={action.replyType === 'ws_markdown' ? '**Bold**, *italic*, etc.' : '<p>HTML content</p>'}
             />
           </LlmFieldRow>
@@ -1196,7 +1333,7 @@ class StateUpdate extends Component<Props, State> {
       case 'ws_speech':
         content = (
           <LlmFieldRow>
-            <Header>Message (text to speech)</Header>
+            <Header>{this.props.translate('packages.AgentDiagram.message')}</Header>
             <Textfield
               outline
               multiline
@@ -1205,7 +1342,7 @@ class StateUpdate extends Component<Props, State> {
               onChange={(v) => this.props.update<AgentStateMember>(action.id, { ws_message: v })}
               placeholder="Text to convert to speech"
             />
-            <Header style={{ marginTop: 6 }}>Audio speed (optional)</Header>
+            <Header style={{ marginTop: 6 }}>{this.props.translate('packages.AgentDiagram.audioSpeedOptional')}</Header>
             <Textfield
               outline
               value={action.ws_audio_speed ?? ''}
@@ -1215,7 +1352,7 @@ class StateUpdate extends Component<Props, State> {
                   ws_audio_speed: String(v) === '' || isNaN(parsed) ? null : parsed,
                 });
               }}
-              placeholder="1.0 (default)"
+              placeholder={this.props.translate('packages.AgentDiagram.default')}
             />
           </LlmFieldRow>
         );
@@ -1223,7 +1360,7 @@ class StateUpdate extends Component<Props, State> {
       case 'ws_options':
         content = (
           <LlmFieldRow>
-            <Header>Options (one per line)</Header>
+            <Header>{this.props.translate('packages.AgentDiagram.optionsOnePerLine')}</Header>
             <Textfield
               outline
               multiline
@@ -1245,7 +1382,7 @@ class StateUpdate extends Component<Props, State> {
         content = (
           <LlmFieldRow>
             <DbFieldRow>
-              <label>Latitude</label>
+              <label>{this.props.translate('packages.AgentDiagram.latitude')}</label>
               <Textfield
                 outline
                 value={String(action.ws_latitude ?? 0)}
@@ -1253,11 +1390,11 @@ class StateUpdate extends Component<Props, State> {
                   const p = parseFloat(String(v).replace(',', '.'));
                   if (!isNaN(p)) this.props.update<AgentStateMember>(action.id, { ws_latitude: p });
                 }}
-                placeholder="e.g. 48.8566"
+                placeholder={this.props.translate('packages.AgentDiagram.eg48')}
               />
             </DbFieldRow>
             <DbFieldRow>
-              <label>Longitude</label>
+              <label>{this.props.translate('packages.AgentDiagram.longitude')}</label>
               <Textfield
                 outline
                 value={String(action.ws_longitude ?? 0)}
@@ -1265,7 +1402,7 @@ class StateUpdate extends Component<Props, State> {
                   const p = parseFloat(String(v).replace(',', '.'));
                   if (!isNaN(p)) this.props.update<AgentStateMember>(action.id, { ws_longitude: p });
                 }}
-                placeholder="e.g. 2.3522"
+                placeholder={this.props.translate('packages.AgentDiagram.eg23')}
               />
             </DbFieldRow>
           </LlmFieldRow>
@@ -1274,16 +1411,16 @@ class StateUpdate extends Component<Props, State> {
       case 'ws_file':
         content = (
           <WsWarning>
-            The generated code contains a placeholder. You must assign a <code>baf.types.File</code> object
-            to <code>reply_file_obj</code> before this state is reached.
+            The generated code contains a placeholder. You must assign a <code>baf.types.File</code> object to{' '}
+            <code>reply_file_obj</code> before this state is reached.
           </WsWarning>
         );
         break;
       case 'ws_image':
         content = (
           <WsWarning>
-            The generated code contains a placeholder. You must assign a <code>numpy.ndarray</code> image
-            to <code>reply_image_arr</code> before this state is reached.
+            The generated code contains a placeholder. You must assign a <code>numpy.ndarray</code> image to{' '}
+            <code>reply_image_arr</code> before this state is reached.
           </WsWarning>
         );
         break;
@@ -1306,7 +1443,12 @@ class StateUpdate extends Component<Props, State> {
       default:
         break;
     }
-    return <>{platformWarning}{content}</>;
+    return (
+      <>
+        {platformWarning}
+        {content}
+      </>
+    );
   };
 
   // ─── Helper renderers ─────────────────────────────────────────────────────────
@@ -1316,9 +1458,7 @@ class StateUpdate extends Component<Props, State> {
     llmNames: string[],
     fieldId: string,
     options?: { warning?: string },
-  ) => (
-    this.renderLlmNameFieldWithOptions(member, llmNames, fieldId, options)
-  );
+  ) => this.renderLlmNameFieldWithOptions(member, llmNames, fieldId, options);
 
   private renderLlmNameFieldWithOptions = (
     member: AgentStateMember,
@@ -1327,36 +1467,36 @@ class StateUpdate extends Component<Props, State> {
     options?: { warning?: string },
   ) => (
     <LlmFieldRow>
-      <Header>LLM</Header>
+      <Header>{this.props.translate('packages.AgentDiagram.llm')}</Header>
       <LlmSelect
         id={fieldId}
         value={member.llm_name || ''}
         onChange={(e) => this.props.update<AgentStateMember>(member.id, { llm_name: e.target.value })}
       >
-        <option value="">(use default)</option>
-        {llmNames.map((n) => <option key={`${fieldId}-${n}`} value={n}>{n}</option>)}
+        <option value="">{this.props.translate('packages.AgentDiagram.selectPlaceholder')}</option>
+        {llmNames.map((n) => (
+          <option key={`${fieldId}-${n}`} value={n}>
+            {n}
+          </option>
+        ))}
       </LlmSelect>
-      {options?.warning && (
-        <p style={{ fontSize: 12, margin: '4px 0', opacity: 0.7 }}>
-          {options.warning}
-        </p>
-      )}
-      <Header style={{ marginTop: 6 }}>System message</Header>
+      {options?.warning && <p style={{ fontSize: 12, margin: '4px 0', opacity: 0.7 }}>{options.warning}</p>}
+      <Header style={{ marginTop: 6 }}>{this.props.translate('packages.AgentDiagram.systemMessage')}</Header>
       <Textfield
         outline
         value={member.system_message || ''}
         onChange={(value) => this.props.update<AgentStateMember>(member.id, { system_message: value })}
-        placeholder="You are a helpful assistant."
+        placeholder={this.props.translate('packages.AgentDiagram.youAreHelpfulAssistant')}
       />
     </LlmFieldRow>
   );
 
+  // Derived from the canonical list rather than re-listed, so a newly added
+  // provider is chat-capable by default and only the genuine exceptions
+  // (huggingface_api, replicate) have to be declared.
   private isChatCompatibleProvider = (provider: string): boolean =>
-    [
-      'openai', 'huggingface',
-      'mistral', 'deepseek', 'google', 'meta', 'anthropic',
-      'qwen', 'xai', 'groq', 'together', 'openrouter',
-    ].includes(provider);
+    (AGENT_LLM_PROVIDERS as readonly string[]).includes(provider) &&
+    !NON_CHAT_AGENT_LLM_PROVIDERS.includes(provider);
 
   private renderDbReplyEditor = (
     member: AgentStateMember | undefined,
@@ -1366,14 +1506,26 @@ class StateUpdate extends Component<Props, State> {
     if (!member) {
       return (
         <>
-          <p>Configuring database action...</p>
-          <Button color="primary" onClick={() => {
-            const defaults = this.getDefaultDbReplyValues();
-            this.create(Clazz, 'db_reply', defaults)(
-              this.getDbDisplayName(defaults.dbSelectionType, defaults.dbCustomName, defaults.dbQueryMode, defaults.dbOperation),
-            );
-          }}>
-            Initialize database action
+          <p>{this.props.translate('packages.AgentDiagram.configuringDatabaseAction')}</p>
+          <Button
+            color="primary"
+            onClick={() => {
+              const defaults = this.getDefaultDbReplyValues();
+              this.create(
+                Clazz,
+                'db_reply',
+                defaults,
+              )(
+                this.getDbDisplayName(
+                  defaults.dbSelectionType,
+                  defaults.dbCustomName,
+                  defaults.dbQueryMode,
+                  defaults.dbOperation,
+                ),
+              );
+            }}
+          >
+            {this.props.translate('packages.AgentDiagram.initializeDatabaseAction')}
           </Button>
         </>
       );
@@ -1386,63 +1538,103 @@ class StateUpdate extends Component<Props, State> {
     return (
       <>
         <DbFieldRow>
-          <label>Select a Database</label>
-          <Dropdown value={dbSelectionType} onChange={(value) => {
-            const next = value === 'custom' ? 'custom' : 'default';
-            this.updateDbReply(member, { dbSelectionType: next, dbCustomName: next === 'default' ? '' : member.dbCustomName });
-          }}>
+          <label>{this.props.translate('packages.AgentDiagram.selectDatabase')}</label>
+          <Dropdown
+            value={dbSelectionType}
+            onChange={(value) => {
+              const next = value === 'custom' ? 'custom' : 'default';
+              this.updateDbReply(member, {
+                dbSelectionType: next,
+                dbCustomName: next === 'default' ? '' : member.dbCustomName,
+              });
+            }}
+          >
             {[
-              <Dropdown.Item value="default" key="db-default">Default (using the app DB)</Dropdown.Item>,
-              <Dropdown.Item value="custom" key="db-custom">Custom</Dropdown.Item>,
+              <Dropdown.Item value="default" key="db-default">
+                {this.props.translate('packages.AgentDiagram.defaultUsingAppDb')}
+              </Dropdown.Item>,
+              <Dropdown.Item value="custom" key="db-custom">
+                {this.props.translate('packages.AgentDiagram.custom')}
+              </Dropdown.Item>,
             ]}
           </Dropdown>
           {dbSelectionType === 'custom' && (
-            <Textfield outline placeholder="Custom database name" value={member.dbCustomName || ''}
-              onChange={(value) => this.updateDbReply(member, { dbCustomName: value })} />
+            <Textfield
+              outline
+              placeholder={this.props.translate('packages.AgentDiagram.customDatabaseName')}
+              value={member.dbCustomName || ''}
+              onChange={(value) => this.updateDbReply(member, { dbCustomName: value })}
+            />
           )}
         </DbFieldRow>
         <DbFieldRow>
-          <label>DB operation</label>
-          <Dropdown value={dbOperation} onChange={(value) => {
-            const ops = ['any', 'select', 'insert', 'update', 'delete'];
-            this.updateDbReply(member, { dbOperation: ops.includes(value) ? value : 'any' });
-          }}>
+          <label>{this.props.translate('packages.AgentDiagram.dbOperation')}</label>
+          <Dropdown
+            value={dbOperation}
+            onChange={(value) => {
+              const ops = ['any', 'select', 'insert', 'update', 'delete'];
+              this.updateDbReply(member, { dbOperation: ops.includes(value) ? value : 'any' });
+            }}
+          >
             {[
-              <Dropdown.Item value="any" key="op-any">Any</Dropdown.Item>,
-              <Dropdown.Item value="select" key="op-select">SELECT</Dropdown.Item>,
-              <Dropdown.Item value="insert" key="op-insert">INSERT</Dropdown.Item>,
-              <Dropdown.Item value="update" key="op-update">UPDATE</Dropdown.Item>,
-              <Dropdown.Item value="delete" key="op-delete">DELETE</Dropdown.Item>,
+              <Dropdown.Item value="any" key="op-any">
+                {this.props.translate('packages.AgentDiagram.any')}
+              </Dropdown.Item>,
+              <Dropdown.Item value="select" key="op-select">
+                {this.props.translate('packages.AgentDiagram.select')}
+              </Dropdown.Item>,
+              <Dropdown.Item value="insert" key="op-insert">
+                {this.props.translate('packages.AgentDiagram.insert')}
+              </Dropdown.Item>,
+              <Dropdown.Item value="update" key="op-update">
+                {this.props.translate('packages.AgentDiagram.update')}
+              </Dropdown.Item>,
+              <Dropdown.Item value="delete" key="op-delete">
+                {this.props.translate('packages.AgentDiagram.delete')}
+              </Dropdown.Item>,
             ]}
           </Dropdown>
         </DbFieldRow>
         <DbFieldRow>
           <RadioGroup>
             <label>
-              <input type="radio" name={`dbQueryMode-${member.id}`} value="llm_query"
+              <input
+                type="radio"
+                name={`dbQueryMode-${member.id}`}
+                value="llm_query"
                 checked={dbQueryMode === 'llm_query'}
-                onChange={() => this.updateDbReply(member, { dbQueryMode: 'llm_query', dbSqlQuery: '' })} />
-              LLM query
+                onChange={() => this.updateDbReply(member, { dbQueryMode: 'llm_query', dbSqlQuery: '' })}
+              />
+              {this.props.translate('packages.AgentDiagram.llmQuery')}
             </label>
             <label>
-              <input type="radio" name={`dbQueryMode-${member.id}`} value="sql"
+              <input
+                type="radio"
+                name={`dbQueryMode-${member.id}`}
+                value="sql"
                 checked={dbQueryMode === 'sql'}
-                onChange={() => this.updateDbReply(member, { dbQueryMode: 'sql' })} />
-              SQL
+                onChange={() => this.updateDbReply(member, { dbQueryMode: 'sql' })}
+              />
+              {this.props.translate('packages.AgentDiagram.sql')}
             </label>
           </RadioGroup>
           {dbQueryMode === 'sql' ? (
-            <Textfield outline multiline enterToSubmit={false} placeholder="SELECT * FROM table_name"
+            <Textfield
+              outline
+              multiline
+              enterToSubmit={false}
+              placeholder="SELECT * FROM table_name"
               value={member.dbSqlQuery || ''}
-              onChange={(value) => this.updateDbReply(member, { dbSqlQuery: value })} />
+              onChange={(value) => this.updateDbReply(member, { dbSqlQuery: value })}
+            />
           ) : (
             <>
               {llmNames.length === 0 && (
                 <WsWarning style={{ marginBottom: 6 }}>
-                  No LLM defined. LLM query mode requires an LLM. Add one in the Agent Configuration.
+                  {this.props.translate('packages.AgentDiagram.noLlmQueryMode')}
                 </WsWarning>
               )}
-              <p>Answer will be generated with LLM during runtime</p>
+              <p>{this.props.translate('packages.AgentDiagram.answerWillBeGenerated')}</p>
               {this.renderLlmNameField(member, llmNames, `db-llm-${member.id}`)}
             </>
           )}
@@ -1451,19 +1643,16 @@ class StateUpdate extends Component<Props, State> {
     );
   };
 
-  private renderWebCrawlLlmEditor = (
-    member: AgentStateMember,
-    llmNames: string[],
-  ) => {
+  private renderWebCrawlLlmEditor = (member: AgentStateMember, llmNames: string[]) => {
     const crawl_format = member.crawl_format || 'markdown';
     return (
       <LlmFieldRow>
         {llmNames.length === 0 && (
           <WsWarning style={{ marginBottom: 6 }}>
-            No LLM defined. Web Crawl + LLM requires an LLM. Add one in the Agent Configuration.
+            {this.props.translate('packages.AgentDiagram.noLlmDefinedWeb')}
           </WsWarning>
         )}
-        <Header>Initial URL</Header>
+        <Header>{this.props.translate('packages.AgentDiagram.initialUrl')}</Header>
         <Textfield
           outline
           value={member.initial_url || ''}
@@ -1473,17 +1662,17 @@ class StateUpdate extends Component<Props, State> {
               name: value ? `Crawl: ${value.slice(0, 40)}` : 'Web Crawl + LLM (set URL)',
             });
           }}
-          placeholder="https://example.com"
+          placeholder={this.props.translate('packages.AgentDiagram.httpsExample')}
         />
-        <Header style={{ marginTop: 6 }}>Base URL prefix (optional)</Header>
+        <Header style={{ marginTop: 6 }}>{this.props.translate('packages.AgentDiagram.baseUrlPrefixOptional')}</Header>
         <Textfield
           outline
           value={member.base_url_prefix || ''}
           onChange={(value) => this.props.update<AgentStateMember>(member.id, { base_url_prefix: value })}
-          placeholder="https://example.com/docs"
+          placeholder={this.props.translate('packages.AgentDiagram.baseUrlPrefixExample')}
         />
         <DbFieldRow style={{ marginTop: 6 }}>
-          <label>Max depth</label>
+          <label>{this.props.translate('packages.AgentDiagram.maxDepth')}</label>
           <Textfield
             outline
             value={member.max_depth ?? 2}
@@ -1494,7 +1683,7 @@ class StateUpdate extends Component<Props, State> {
           />
         </DbFieldRow>
         <DbFieldRow>
-          <label>Max pages</label>
+          <label>{this.props.translate('packages.AgentDiagram.maxPages')}</label>
           <Textfield
             outline
             value={member.max_pages ?? 20}
@@ -1504,14 +1693,14 @@ class StateUpdate extends Component<Props, State> {
             }}
           />
         </DbFieldRow>
-        <Header style={{ marginTop: 6 }}>Crawl format</Header>
+        <Header style={{ marginTop: 6 }}>{this.props.translate('packages.AgentDiagram.crawlFormat')}</Header>
         <LlmSelect
           value={crawl_format}
           onChange={(e) => this.props.update<AgentStateMember>(member.id, { crawl_format: e.target.value })}
         >
-          <option value="markdown">Markdown</option>
-          <option value="text">Plain text</option>
-          <option value="html">HTML</option>
+          <option value="markdown">{this.props.translate('packages.AgentDiagram.markdown')}</option>
+          <option value="text">{this.props.translate('packages.AgentDiagram.plainText')}</option>
+          <option value="html">{this.props.translate('packages.AgentDiagram.html')}</option>
         </LlmSelect>
         <CheckboxRow style={{ marginTop: 6 }}>
           <input
@@ -1519,35 +1708,43 @@ class StateUpdate extends Component<Props, State> {
             checked={member.run_crawl !== false}
             onChange={(e) => this.props.update<AgentStateMember>(member.id, { run_crawl: e.target.checked })}
           />
-          Run crawl (uncheck to reuse cached result)
+          {this.props.translate('packages.AgentDiagram.runCrawl')}
         </CheckboxRow>
         {member.run_crawl === false && (
           <>
-            <Header style={{ marginTop: 6 }}>No-crawl error message</Header>
+            <Header style={{ marginTop: 6 }}>
+              {this.props.translate('packages.AgentDiagram.noCrawlErrorMessage')}
+            </Header>
             <Textfield
               outline
               value={member.no_crawl_error_message || ''}
               onChange={(value) => this.props.update<AgentStateMember>(member.id, { no_crawl_error_message: value })}
-              placeholder="No web crawl data is available yet."
+              placeholder={this.props.translate('packages.AgentDiagram.noCrawlErrorDefault')}
             />
           </>
         )}
-        <Header style={{ marginTop: 6 }}>System message prefix (optional)</Header>
+        <Header style={{ marginTop: 6 }}>
+          {this.props.translate('packages.AgentDiagram.systemMessagePrefixOptional')}
+        </Header>
         <Textfield
           outline
           multiline
           enterToSubmit={false}
           value={member.system_message_prefix || ''}
           onChange={(value) => this.props.update<AgentStateMember>(member.id, { system_message_prefix: value })}
-          placeholder="Use the following webpage content to answer the question:"
+          placeholder={this.props.translate('packages.AgentDiagram.useFollowingWebpageContent')}
         />
-        <Header style={{ marginTop: 6 }}>LLM</Header>
+        <Header style={{ marginTop: 6 }}>{this.props.translate('packages.AgentDiagram.llm')}</Header>
         <LlmSelect
           value={member.llm_name || ''}
           onChange={(e) => this.props.update<AgentStateMember>(member.id, { llm_name: e.target.value })}
         >
-          <option value="">(use default)</option>
-          {llmNames.map((n) => <option key={n} value={n}>{n}</option>)}
+          <option value="">{this.props.translate('packages.AgentDiagram.selectPlaceholder')}</option>
+          {llmNames.map((n) => (
+            <option key={n} value={n}>
+              {n}
+            </option>
+          ))}
         </LlmSelect>
       </LlmFieldRow>
     );
@@ -1561,12 +1758,22 @@ class StateUpdate extends Component<Props, State> {
   };
 
   private getDefaultDbReplyValues = (): DbReplyValues => ({
-    dbSelectionType: 'default', dbCustomName: '', dbQueryMode: 'llm_query', dbOperation: 'any', dbSqlQuery: '',
+    dbSelectionType: 'default',
+    dbCustomName: '',
+    dbQueryMode: 'llm_query',
+    dbOperation: 'any',
+    dbSqlQuery: '',
   });
 
-  private getDbDisplayName = (dbSelectionType: string, dbCustomName: string, dbQueryMode: string, dbOperation: string): string => {
+  private getDbDisplayName = (
+    dbSelectionType: string,
+    dbCustomName: string,
+    dbQueryMode: string,
+    dbOperation: string,
+  ): string => {
     const customDb = (dbCustomName || '').trim();
-    const dbLabel = dbSelectionType === 'custom' ? (customDb.length ? customDb : 'custom database') : 'Default database';
+    const dbLabel =
+      dbSelectionType === 'custom' ? (customDb.length ? customDb : 'custom database') : 'Default database';
     const modeLabel = dbQueryMode === 'sql' ? 'SQL' : 'LLM query';
     const opLabel = dbOperation === 'any' ? 'Any' : dbOperation.toUpperCase();
     return `DB action using ${dbLabel} (${modeLabel}, ${opLabel})`;
@@ -1583,17 +1790,19 @@ class StateUpdate extends Component<Props, State> {
     });
   };
 
-  private create = (
-    Clazz: typeof AgentStateBody | typeof AgentStateFallbackBody,
-    replyType: string,
-    initialValues?: Partial<AgentStateMember>,
-  ) => (value: string) => {
-    const member = new Clazz();
-    member.name = value;
-    member.replyType = replyType;
-    if (initialValues) Object.assign(member, initialValues);
-    this.props.create(member, this.props.element.id);
-  };
+  private create =
+    (
+      Clazz: typeof AgentStateBody | typeof AgentStateFallbackBody,
+      replyType: string,
+      initialValues?: Partial<AgentStateMember>,
+    ) =>
+    (value: string) => {
+      const member = new Clazz();
+      member.name = value;
+      member.replyType = replyType;
+      if (initialValues) Object.assign(member, initialValues);
+      this.props.create(member, this.props.element.id);
+    };
 
   private rename = (id: string) => (value: string) => this.props.update(id, { name: value });
 

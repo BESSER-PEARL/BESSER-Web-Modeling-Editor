@@ -1,4 +1,5 @@
 import { getClassOptions, getAttributeOptionsByClassId } from '../diagram-helpers';
+import i18n from '@/main/shared/i18n';
 
 /**
  * Register enhanced form components in the GrapesJS editor
@@ -19,13 +20,13 @@ export const registerFormComponents = (editor: any) => {
         traits: [
           {
             type: 'text',
-            label: 'Action URL',
+            label: i18n.t('editors.gui.formTraits.actionUrl'),
             name: 'form-action',
             placeholder: '/api/submit',
           },
           {
             type: 'select',
-            label: 'Method',
+            label: i18n.t('editors.gui.traits.method'),
             name: 'form-method',
             options: [
               { value: 'GET', label: 'GET' },
@@ -38,31 +39,31 @@ export const registerFormComponents = (editor: any) => {
           },
           {
             type: 'select',
-            label: 'Target Entity',
+            label: i18n.t('editors.gui.formTraits.targetEntity'),
             name: 'target-entity',
             options: [],
             changeProp: 1,
           },
           {
             type: 'select',
-            label: 'On Submit Action',
+            label: i18n.t('editors.gui.formTraits.onSubmitAction'),
             name: 'on-submit-action',
             options: [
-              { value: 'create', label: 'Create' },
-              { value: 'update', label: 'Update' },
-              { value: 'custom', label: 'Custom' },
+              { value: 'create', label: i18n.t('editors.gui.formTraits.options.create') },
+              { value: 'update', label: i18n.t('editors.gui.formTraits.options.update') },
+              { value: 'custom', label: i18n.t('editors.gui.formTraits.options.custom') },
             ],
             value: 'create',
             changeProp: 1,
           },
           {
             type: 'select',
-            label: 'Validation Mode',
+            label: i18n.t('editors.gui.formTraits.validationMode'),
             name: 'validation-mode',
             options: [
-              { value: 'onSubmit', label: 'On Submit' },
-              { value: 'onChange', label: 'On Change' },
-              { value: 'onBlur', label: 'On Blur' },
+              { value: 'onSubmit', label: i18n.t('editors.gui.formTraits.options.onSubmit') },
+              { value: 'onChange', label: i18n.t('editors.gui.formTraits.options.onChange') },
+              { value: 'onBlur', label: i18n.t('editors.gui.formTraits.options.onBlur') },
             ],
             value: 'onSubmit',
             changeProp: 1,
@@ -77,21 +78,21 @@ export const registerFormComponents = (editor: any) => {
       },
       init(this: any) {
         const traits = this.get('traits');
-        
+
         // Update target entity options
         const targetEntityTrait = traits.where({ name: 'target-entity' })[0];
         if (targetEntityTrait) {
           const classOptions = getClassOptions();
           targetEntityTrait.set('options', classOptions);
         }
-        
+
         // Update form method in attributes when trait changes
         this.on('change:form-method', () => {
           const attrs = { ...(this.get('attributes') || {}) };
           attrs.method = this.get('form-method');
           this.set('attributes', attrs);
         });
-        
+
         // Update action in attributes
         this.on('change:form-action', () => {
           const attrs = { ...(this.get('attributes') || {}) };
@@ -121,75 +122,75 @@ export const registerFormComponents = (editor: any) => {
         traits: [
           {
             type: 'text',
-            label: 'Field Name',
+            label: i18n.t('editors.gui.formTraits.fieldName'),
             name: 'field-name',
             placeholder: 'e.g., email',
             changeProp: 1,
           },
           {
             type: 'select',
-            label: 'Field Type',
+            label: i18n.t('editors.gui.formTraits.fieldType'),
             name: 'field-type',
             options: [
-              { value: 'text', label: 'Text' },
+              { value: 'text', label: i18n.t('editors.gui.formTraits.options.text') },
               { value: 'email', label: 'Email' },
-              { value: 'password', label: 'Password' },
-              { value: 'number', label: 'Number' },
-              { value: 'date', label: 'Date' },
-              { value: 'time', label: 'Time' },
-              { value: 'tel', label: 'Telephone' },
+              { value: 'password', label: i18n.t('editors.gui.formTraits.options.password') },
+              { value: 'number', label: i18n.t('editors.gui.formTraits.options.number') },
+              { value: 'date', label: i18n.t('editors.gui.formTraits.options.date') },
+              { value: 'time', label: i18n.t('editors.gui.formTraits.options.time') },
+              { value: 'tel', label: i18n.t('editors.gui.formTraits.options.telephone') },
               { value: 'url', label: 'URL' },
-              { value: 'color', label: 'Color' },
-              { value: 'range', label: 'Range' },
-              { value: 'search', label: 'Search' },
+              { value: 'color', label: i18n.t('editors.gui.formTraits.options.color') },
+              { value: 'range', label: i18n.t('editors.gui.formTraits.options.range') },
+              { value: 'search', label: i18n.t('editors.gui.formTraits.options.search') },
             ],
             value: 'text',
             changeProp: 1,
           },
           {
             type: 'text',
-            label: 'Placeholder',
+            label: i18n.t('editors.gui.formTraits.placeholder'),
             name: 'placeholder',
             changeProp: 1,
           },
           {
             type: 'checkbox',
-            label: 'Required',
+            label: i18n.t('editors.gui.formTraits.required'),
             name: 'required',
             value: false,
             changeProp: 1,
           },
           {
             type: 'text',
-            label: 'Validation Pattern',
+            label: i18n.t('editors.gui.formTraits.validationPattern'),
             name: 'validation-pattern',
-            placeholder: 'Regular expression',
+            placeholder: i18n.t('editors.gui.formTraits.regularExpressionPlaceholder'),
             changeProp: 1,
           },
           {
             type: 'text',
-            label: 'Error Message',
+            label: i18n.t('editors.gui.formTraits.errorMessage'),
             name: 'validation-message',
-            placeholder: 'Custom error message',
+            placeholder: i18n.t('editors.gui.formTraits.customErrorMessagePlaceholder'),
             changeProp: 1,
           },
           {
             type: 'select',
-            label: 'Bind to Property',
+            label: i18n.t('editors.gui.formTraits.bindToProperty'),
             name: 'bind-to-property',
             options: [],
             changeProp: 1,
           },
           {
             type: 'number',
-            label: 'Min Length',
+            label: i18n.t('editors.gui.formTraits.minLength'),
             name: 'min-length',
             placeholder: '0',
             changeProp: 1,
           },
           {
             type: 'number',
-            label: 'Max Length',
+            label: i18n.t('editors.gui.formTraits.maxLength'),
             name: 'max-length',
             placeholder: '100',
             changeProp: 1,
@@ -210,14 +211,14 @@ export const registerFormComponents = (editor: any) => {
           attrs.type = this.get('field-type');
           this.set('attributes', attrs);
         });
-        
+
         // Update name attribute when field-name changes
         this.on('change:field-name', () => {
           const attrs = { ...(this.get('attributes') || {}) };
           attrs.name = this.get('field-name');
           this.set('attributes', attrs);
         });
-        
+
         // Update required attribute
         this.on('change:required', () => {
           const attrs = { ...(this.get('attributes') || {}) };
@@ -229,7 +230,7 @@ export const registerFormComponents = (editor: any) => {
           }
           this.set('attributes', attrs);
         });
-        
+
         // Update pattern attribute
         this.on('change:validation-pattern', () => {
           const attrs = { ...(this.get('attributes') || {}) };
@@ -258,28 +259,28 @@ export const registerFormComponents = (editor: any) => {
         traits: [
           {
             type: 'text',
-            label: 'Field Name',
+            label: i18n.t('editors.gui.formTraits.fieldName'),
             name: 'field-name',
             placeholder: 'e.g., category',
             changeProp: 1,
           },
           {
             type: 'checkbox',
-            label: 'Multiple',
+            label: i18n.t('editors.gui.formTraits.multiple'),
             name: 'multiple',
             value: false,
             changeProp: 1,
           },
           {
             type: 'checkbox',
-            label: 'Required',
+            label: i18n.t('editors.gui.formTraits.required'),
             name: 'required',
             value: false,
             changeProp: 1,
           },
           {
             type: 'select',
-            label: 'Bind to Property',
+            label: i18n.t('editors.gui.formTraits.bindToProperty'),
             name: 'bind-to-property',
             options: [],
             changeProp: 1,
@@ -316,7 +317,7 @@ export const registerFormComponents = (editor: any) => {
           attrs.name = this.get('field-name');
           this.set('attributes', attrs);
         });
-        
+
         this.on('change:multiple', () => {
           const attrs = { ...(this.get('attributes') || {}) };
           const multiple = this.get('multiple');
@@ -327,7 +328,7 @@ export const registerFormComponents = (editor: any) => {
           }
           this.set('attributes', attrs);
         });
-        
+
         this.on('change:required', () => {
           const attrs = { ...(this.get('attributes') || {}) };
           const required = this.get('required');
@@ -355,41 +356,41 @@ export const registerFormComponents = (editor: any) => {
         traits: [
           {
             type: 'text',
-            label: 'Field Name',
+            label: i18n.t('editors.gui.formTraits.fieldName'),
             name: 'field-name',
             placeholder: 'e.g., description',
             changeProp: 1,
           },
           {
             type: 'text',
-            label: 'Placeholder',
+            label: i18n.t('editors.gui.formTraits.placeholder'),
             name: 'placeholder',
             changeProp: 1,
           },
           {
             type: 'number',
-            label: 'Rows',
+            label: i18n.t('editors.gui.traits.rows'),
             name: 'rows',
             value: 4,
             changeProp: 1,
           },
           {
             type: 'number',
-            label: 'Cols',
+            label: i18n.t('editors.gui.formTraits.cols'),
             name: 'cols',
             value: 50,
             changeProp: 1,
           },
           {
             type: 'checkbox',
-            label: 'Required',
+            label: i18n.t('editors.gui.formTraits.required'),
             name: 'required',
             value: false,
             changeProp: 1,
           },
           {
             type: 'number',
-            label: 'Max Length',
+            label: i18n.t('editors.gui.formTraits.maxLength'),
             name: 'maxlength',
             changeProp: 1,
           },
@@ -415,29 +416,29 @@ export const registerFormComponents = (editor: any) => {
 
   // Add blocks to Block Manager
   editor.BlockManager.add('enhanced-form', {
-    label: 'Form',
-    category: 'Forms',
+    label: `Form`,
+    category: `Forms`,
     content: { type: 'enhanced-form' },
     media: '<svg viewBox="0 0 24 24"><path fill="currentColor" d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20Z"/></svg>',
   });
 
   editor.BlockManager.add('enhanced-input', {
-    label: 'Input Field',
-    category: 'Forms',
+    label: `Input Field`,
+    category: `Forms`,
     content: { type: 'enhanced-input' },
     media: '<svg viewBox="0 0 24 24"><path fill="currentColor" d="M5,3H19A2,2 0 0,1 21,5V19A2,2 0 0,1 19,21H5A2,2 0 0,1 3,19V5A2,2 0 0,1 5,3M5,5V7H19V5H5M5,11V13H19V11H5M5,17V19H19V17H5Z"/></svg>',
   });
 
   editor.BlockManager.add('enhanced-select', {
-    label: 'Dropdown',
-    category: 'Forms',
+    label: `Dropdown`,
+    category: `Forms`,
     content: { type: 'enhanced-select' },
     media: '<svg viewBox="0 0 24 24"><path fill="currentColor" d="M3,5H21A2,2 0 0,1 23,7V17A2,2 0 0,1 21,19H3A2,2 0 0,1 1,17V7A2,2 0 0,1 3,5M3,7V17H21V7H3M7,9H17V11H7V9M7,13H14V15H7V13Z"/></svg>',
   });
 
   editor.BlockManager.add('enhanced-textarea', {
-    label: 'Text Area',
-    category: 'Forms',
+    label: `Text Area`,
+    category: `Forms`,
     content: { type: 'enhanced-textarea' },
     media: '<svg viewBox="0 0 24 24"><path fill="currentColor" d="M3,3H21A2,2 0 0,1 23,5V19A2,2 0 0,1 21,21H3A2,2 0 0,1 1,19V5A2,2 0 0,1 3,3M3,5V19H21V5H3M5,7H19V9H5V7M5,11H19V13H5V11M5,15H19V17H5V15Z"/></svg>',
   });

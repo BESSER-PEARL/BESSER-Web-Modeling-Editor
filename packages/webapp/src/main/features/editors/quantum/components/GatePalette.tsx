@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { cn } from '@/lib/utils';
 import { Gate } from './Gate';
 import { TOOLBOX_GROUPS, GATES } from '../constants';
@@ -9,6 +10,7 @@ interface GatePaletteProps {
 }
 
 export const GatePalette: React.FC<GatePaletteProps> = ({ onDragStart }) => {
+    const { t } = useTranslation();
     const [selectedToolbox, setSelectedToolbox] = useState('Toolbox');
     const getGate = (type: string) => GATES.find(g => g.type === type);
 
@@ -43,8 +45,8 @@ export const GatePalette: React.FC<GatePaletteProps> = ({ onDragStart }) => {
                             'disabled:bg-[var(--quantum-editor-muted-surface,#f1f5f9)]'
                         )}
                     >
-                        <option value="Toolbox">Toolbox 1</option>
-                        <option value="Toolbox2">Toolbox 2</option>
+                        <option value="Toolbox">{t('editors.quantum.toolbox1')}</option>
+                        <option value="Toolbox2">{t('editors.quantum.toolbox2')}</option>
                     </select>
                 </div>
             </div>
