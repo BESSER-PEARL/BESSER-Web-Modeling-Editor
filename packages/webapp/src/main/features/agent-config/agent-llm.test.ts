@@ -6,6 +6,8 @@
  *     fall back to 'openai').
  *  2. AGENT_LLM_PROVIDER_OPTIONS contains a labelled entry for every new key.
  *  3. VALID_AGENT_LLM_PROVIDERS (local-storage whitelist) includes every new key.
+ *  4. The legacy 'huggingfaceapi' spelling is still accepted and is canonicalised
+ *     to 'huggingface_api' rather than silently reset to the default.
  */
 
 import { describe, it, expect } from 'vitest';
@@ -93,5 +95,34 @@ describe('VALID_AGENT_LLM_PROVIDERS', () => {
 
   it.each(ALL_EXPECTED_PROVIDERS)('includes expected provider "%s"', (provider) => {
     expect(VALID_AGENT_LLM_PROVIDERS).toContain(provider);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Legacy alias handling
+//
+// Configs saved before the canonical 'huggingface_api' key existed still carry
+// the no-underscore spelling. Every read path must accept it; without these
+// cases a whitelist could drop the alias and silently reset a user's provider
+// to 'openai', which is exactly what happened before this was centralised.
+// ---------------------------------------------------------------------------
+
+describe('legacy provider alias', () => {
+  it('canonicalises the legacy huggingfaceapi spelling instead of resetting it', () => {
+    const el = normalizeAgentLLMElement({ provider: 'huggingfaceapi' }, 'id-1');
+    expect(el.provider).toBe('huggingface_api');
+  });
+
+  it('keeps the legacy spelling on the local-storage whitelist', () => {
+    expect(VALID_AGENT_LLM_PROVIDERS).toContain('huggingfaceapi');
+  });
+
+  it('still falls back to openai for genuinely unknown providers', () => {
+    expect(normalizeAgentLLMElement({ provider: 'not-a-provider' }, 'id-2').provider).toBe('openai');
+    expect(normalizeAgentLLMElement({ provider: undefined }, 'id-3').provider).toBe('openai');
+  });
+
+  it('does not offer the legacy spelling as a selectable dropdown option', () => {
+    expect(AGENT_LLM_PROVIDER_OPTIONS.map((o) => o.value)).not.toContain('huggingfaceapi');
   });
 });
