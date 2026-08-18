@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslation, Trans } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 
@@ -17,36 +18,32 @@ export const AboutDialog: React.FC<AboutDialogProps> = ({
   onOpenWmeRepository,
   onOpenLibraryRepository,
 }) => {
+  const { t } = useTranslation();
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-xl">
         <DialogHeader>
-          <DialogTitle>About BESSER</DialogTitle>
-          <DialogDescription>Building Better Smart Software Faster</DialogDescription>
+          <DialogTitle>{t('dialogs.about.title')}</DialogTitle>
+          <DialogDescription>{t('dialogs.about.tagline')}</DialogDescription>
         </DialogHeader>
         <div className="flex flex-col gap-3 text-sm text-foreground/80">
+          <p>{t('dialogs.about.para1')}</p>
           <p>
-            BESSER is a low-code platform for smart software modeling and code generation.
-            It provides a Python-based metamodel (B-UML) for describing domain models, state machines,
-            GUI designs, agents, and more.
-          </p>
-          <p>
-            The <span className="font-semibold text-brand">Web Modeling Editor</span> is the online visual
-            editor for creating and editing BESSER models, generating code, and deploying applications.
-          </p>
-          <p className="text-xs text-muted-foreground">
-            Developed by the BESSER Team at the Luxembourg Institute of Science and Technology.
+            <Trans
+              i18nKey="dialogs.about.para2"
+              components={{ brand: <span className="font-semibold text-brand" /> }}
+            />
           </p>
         </div>
-        <DialogFooter>
+        <DialogFooter className="flex-wrap gap-2 sm:justify-start sm:space-x-0">
           <Button variant="outline" onClick={onOpenMainRepository}>
-            BESSER Repository
+            {t('dialogs.about.besserRepository')}
           </Button>
           <Button variant="outline" onClick={onOpenWmeRepository}>
-            WME Repository
+            {t('dialogs.about.wmeRepository')}
           </Button>
           <Button variant="outline" onClick={onOpenLibraryRepository}>
-            Library Repository
+            {t('dialogs.about.libraryRepository')}
           </Button>
         </DialogFooter>
       </DialogContent>

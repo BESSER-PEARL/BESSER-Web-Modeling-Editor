@@ -33,6 +33,8 @@
     "lint:server": "npm run lint --workspace=server",
     "prettier:check": "prettier --check 'packages/**/{main,tests}/**/*.{json,ts,tsx,js,jsx,css,scss,html}'",
     "prettier:write": "prettier --write 'packages/**/{main,tests}/**/*.{json,ts,tsx,js,jsx,css,scss,html}'",
+    "i18n:check": "node scripts/i18n-check.mjs",
+    "i18n:validate": "node scripts/i18n-validate-strict.mjs",
     "update": "ncu -i --deep --format group"
   },
   "overrides": {
