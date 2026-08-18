@@ -73,6 +73,7 @@ import {
   readProjectLastRun,
   readSessionBudget,
   readSessionKey,
+  writeFreeTierSelected,
   writeProjectLastRun,
 } from '../storage';
 import {
@@ -798,6 +799,21 @@ export function useSmartGenTrigger(
         return;
       }
 
+      // Free tier: tell the user they're on the keyless model and how to
+      // upgrade. This chat note REPLACES the old BYOK popup as the place the
+      // "add your own key for better results" affordance lives. The
+      // `wme:add-key` link is intercepted by the markdown renderer and opens
+      // the key dialog (settings mode) so the next run can use their key.
+      if (freeSelected) {
+        const freeModel =
+          (await getSmartGenConfig()).free_tier.model || 'qwen3-coder';
+        appendAssistantMessage(
+          `⚡ Generating with the **free ${freeModel}** model — no API key needed. ` +
+            `For higher-quality results you can [use your own API key](wme:add-key) ` +
+            `(Anthropic · OpenAI · Mistral), then generate again.`,
+        );
+      }
+
       const introText =
         typeof payload.message === 'string' && payload.message.trim().length > 0
           ? payload.message
@@ -999,13 +1015,27 @@ export function useSmartGenTrigger(
         );
         return;
       }
-      // Open the BYOK dialog unless the run is already authorised: either a
-      // BYOK key is stored, or the keyless free tier has been opted into.
-      if (!payload.planApproved || (!readSessionKey() && !readFreeTierSelected())) {
-        dispatch(openByokDialog(payload));
+      // Already authorised — a BYOK key is stored, or the free tier was
+      // opted into on a previous run: start directly. `planApproved` is set
+      // here because there is no separate plan-review step; the BYOK popup
+      // used to be the only thing that set it.
+      if (readSessionKey() || readFreeTierSelected()) {
+        await startRun({ ...payload, planApproved: true });
         return;
       }
-      await startRun(payload);
+      // First run, no key: DON'T interrupt with the BYOK popup. Default to
+      // the keyless free tier and run immediately — the run's chat note
+      // (see `startRun`) tells the user they can add their own API key for
+      // higher-quality results. Only fall back to the dialog when the server
+      // doesn't actually offer the free tier (old backend / offline →
+      // config.free_tier.available === false).
+      const cfg = await getSmartGenConfig();
+      if (cfg.free_tier.available) {
+        writeFreeTierSelected(true);
+        await startRun({ ...payload, planApproved: true });
+        return;
+      }
+      dispatch(openByokDialog(payload));
     },
     [appendErrorToChat, dispatch, startRun],
   );

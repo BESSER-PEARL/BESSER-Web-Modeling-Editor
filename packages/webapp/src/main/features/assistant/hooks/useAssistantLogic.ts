@@ -47,6 +47,7 @@ import { useWebSocketConnection, type ConnectionStatus } from './useWebSocketCon
 import { useStreamingResponse, startTimer, stopTimer } from './useStreamingResponse';
 import { useModelInjection } from './useModelInjection';
 import { useSmartGenTrigger } from '../../smart-generation/hooks/useSmartGenTrigger';
+import { openByokDialog } from '../../smart-generation/state/smartGeneratorSlice';
 import type { TriggerSmartGeneratorPayload } from '../../smart-generation/types';
 import { downloadFile, copyToClipboard } from '../../../shared/utils/download';
 import { appVersion } from '../../../shared/constants/application-constants';
@@ -403,6 +404,18 @@ export function useAssistantLogic({
     return () =>
       window.removeEventListener('wme:smartgen-key-cancelled', onKeyCancelled);
   }, []);
+
+  // The free-tier run note ("use your own API key") fires this event via the
+  // markdown renderer. Open the Spec-Driven Agent key dialog in settings mode
+  // (no pending trigger) so the user can add a key for their next run.
+  useEffect(() => {
+    const onOpenByok = () => {
+      dispatch(openByokDialog(null));
+    };
+    window.addEventListener('wme:smartgen-open-byok', onOpenByok);
+    return () =>
+      window.removeEventListener('wme:smartgen-open-byok', onOpenByok);
+  }, [dispatch]);
 
   /* ================================================================ */
   /*  Sub-hooks                                                        */

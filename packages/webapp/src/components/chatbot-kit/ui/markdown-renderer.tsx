@@ -169,7 +169,40 @@ const COMPONENTS = {
   h4: withClass("h4", "font-semibold text-base"),
   h5: withClass("h5", "font-medium"),
   strong: withClass("strong", "font-semibold"),
-  a: withClass("a", "text-primary underline underline-offset-2"),
+  a: ({ node, href, children, ...props }: any) => {
+    // Special in-app action link: `[label](wme:add-key)` doesn't navigate —
+    // it opens the Spec-Driven Agent key dialog (settings mode). Used by the
+    // free-tier run note so the user can add their own API key for better
+    // results without any popup interrupting the run. All other links render
+    // as normal anchors.
+    if (href === "wme:add-key") {
+      return (
+        <a
+          href="#"
+          role="button"
+          className="cursor-pointer font-medium text-primary underline underline-offset-2"
+          onClick={(e) => {
+            e.preventDefault()
+            if (typeof window !== "undefined") {
+              window.dispatchEvent(new CustomEvent("wme:smartgen-open-byok"))
+            }
+          }}
+          {...props}
+        >
+          {children}
+        </a>
+      )
+    }
+    return (
+      <a
+        href={href}
+        className="text-primary underline underline-offset-2"
+        {...props}
+      >
+        {children}
+      </a>
+    )
+  },
   blockquote: withClass("blockquote", "border-l-2 border-primary pl-4"),
   code: ({ children, className, node, ...rest }: any) => {
     const match = /language-(\w+)/.exec(className || "")

@@ -283,8 +283,12 @@ export const SmartGenByokDialog: React.FC<SmartGenByokDialogProps> = ({
 
   // Provider dropdown: the keyless Free tier first (when the server offers it),
   // then the BYOK providers. pia/local are not offered in this dialog.
+  // In SETTINGS mode (no pending trigger — reached from the free-run note's
+  // "use your own API key" link) the free tier is hidden: the user opened the
+  // dialog specifically to store a paid key, and "Save" on a keyless provider
+  // is a dead-end (it demands a key).
   const providerOptions = useMemo<readonly ProviderOption[]>(() => {
-    if (!freeAvailable) return PROVIDER_OPTIONS;
+    if (!freeAvailable || !pendingTrigger) return PROVIDER_OPTIONS;
     const freeOption: ProviderOption = {
       value: 'free',
       label: `Free — ${config.free_tier.model ?? 'qwen3-coder'} (no key)`,
@@ -293,20 +297,21 @@ export const SmartGenByokDialog: React.FC<SmartGenByokDialogProps> = ({
       expectedPrefix: '',
     };
     return [freeOption, ...PROVIDER_OPTIONS];
-  }, [freeAvailable, config.free_tier.model]);
+  }, [freeAvailable, config.free_tier.model, pendingTrigger]);
 
   const selectedProvider = useMemo(
     () => providerOptions.find((p) => p.value === provider) ?? providerOptions[0],
     [provider, providerOptions],
   );
 
-  // If a stale 'free' provider survives on a deploy that doesn't offer it,
-  // fall back to a real provider so the dialog can't get stuck in free mode.
+  // If a stale 'free' provider survives on a deploy that doesn't offer it —
+  // or in settings mode, where 'free' isn't an option — fall back to a real
+  // provider so the dialog can't get stuck in free mode with no key field.
   useEffect(() => {
-    if (provider === 'free' && !freeAvailable) {
+    if (provider === 'free' && (!freeAvailable || !pendingTrigger)) {
       setLocalProvider('anthropic');
     }
-  }, [provider, freeAvailable]);
+  }, [provider, freeAvailable, pendingTrigger]);
 
   // Live (purely informational) format hint — shown as the user types,
   // never blocks the save.

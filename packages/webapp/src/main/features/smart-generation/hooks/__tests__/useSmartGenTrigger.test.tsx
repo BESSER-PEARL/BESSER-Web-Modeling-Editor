@@ -41,6 +41,7 @@ import { useSmartGenTrigger, type SmartGenRunResult } from '../useSmartGenTrigge
 import type { SmartGenEvent, TriggerSmartGeneratorPayload } from '../../types';
 import {
   sessionStorageSmartGenApiKey,
+  sessionStorageSmartGenFreeTier,
   sessionStorageSmartGenMaxCostUsd,
   sessionStorageSmartGenMaxRuntimeSeconds,
   sessionStorageSmartGenProvider,
@@ -213,14 +214,24 @@ function clearSessionKeyManual() {
   // maxCostUsd / maxRuntimeSeconds params to stay undefined.
   window.sessionStorage.removeItem(sessionStorageSmartGenMaxCostUsd);
   window.sessionStorage.removeItem(sessionStorageSmartGenMaxRuntimeSeconds);
+  // And the keyless free-tier opt-in — a leaked `true` here would force
+  // provider='free' on later tests that assert a BYOK provider from the key.
+  window.sessionStorage.removeItem(sessionStorageSmartGenFreeTier);
 }
 
-beforeEach(() => {
+beforeEach(async () => {
   _mockController.events = [];
   _mockController.abortCalled = false;
   _mockController.throwOnStart = null;
   clearSessionKeyManual();
   vi.clearAllMocks();
+  // clearAllMocks wipes call data but NOT implementations, so re-establish
+  // the config mock's default (free tier OFF) — a test that overrides it to
+  // free-available must not leak that into later tests.
+  const cfg = await import('../../services/smartGenConfig');
+  vi.mocked(cfg.getSmartGenConfig).mockImplementation(() =>
+    Promise.resolve(cfg.FALLBACK_SMART_GEN_CONFIG),
+  );
 });
 
 afterEach(() => {
@@ -306,8 +317,13 @@ describe('useSmartGenTrigger — BYOK missing flow', () => {
     expect(msgs.length).toBe(0);
   });
 
-  it('opens the plan review and does not start a paid run before approval', async () => {
+  it('runs directly with a stored key — no BYOK popup, even when the trigger is unapproved', async () => {
+    // A stored key means the user already opted in (via the settings dialog),
+    // so there is no separate approval popup on each run — the trigger starts
+    // the run immediately. This is the "no popup" behaviour the free-tier
+    // rework introduced; the dialog is now reached only from the settings link.
     setSessionKey();
+    _mockController.events = HAPPY_EVENTS;
     const { apiRef, store } = renderHarness();
 
     await act(async () => {
@@ -317,13 +333,46 @@ describe('useSmartGenTrigger — BYOK missing flow', () => {
       });
     });
 
-    expect(store.getState().smartGenerator.byokDialogOpen).toBe(true);
-    expect(store.getState().smartGenerator.pendingTrigger).toEqual(
-      expect.objectContaining({ instructions: 'build a thing' }),
-    );
+    expect(store.getState().smartGenerator.byokDialogOpen).toBe(false);
     const sseClientModule = await import('../../services/smartGenerationSseClient');
-    expect(vi.mocked(sseClientModule.startSmartGenRun)).not.toHaveBeenCalled();
-    expect(apiRef.current!.getMessages()).toHaveLength(0);
+    await waitFor(() => {
+      expect(vi.mocked(sseClientModule.startSmartGenRun)).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  it('defaults to the free tier (no popup) when no key is stored and the server offers it', async () => {
+    // The free-tier rework: instead of interrupting with the BYOK popup, an
+    // unauthorised trigger runs on the keyless free model directly, and the
+    // chat carries the "use your own API key" upgrade link.
+    _mockController.events = HAPPY_EVENTS;
+    const configModule = await import('../../services/smartGenConfig');
+    vi.mocked(configModule.getSmartGenConfig).mockResolvedValue({
+      ...configModule.FALLBACK_SMART_GEN_CONFIG,
+      free_tier: { available: true, model: 'qwen3-coder:30b' },
+    });
+
+    const { apiRef, store } = renderHarness();
+
+    await act(async () => {
+      await apiRef.current!.handleTrigger({ ...PAYLOAD, planApproved: undefined });
+    });
+
+    // No popup — the run starts on the free tier.
+    expect(store.getState().smartGenerator.byokDialogOpen).toBe(false);
+    const sseClientModule = await import('../../services/smartGenerationSseClient');
+    await waitFor(() => {
+      expect(vi.mocked(sseClientModule.startSmartGenRun)).toHaveBeenCalledTimes(1);
+    });
+    // The run was dispatched as the keyless free provider…
+    const args = vi.mocked(sseClientModule.startSmartGenRun).mock.calls[0][0];
+    expect(args.provider).toBe('free');
+    // …and the chat shows the free-tier note with the upgrade link.
+    const msgs = apiRef.current!.getMessages() as any[];
+    expect(
+      msgs.some(
+        (m) => typeof m.content === 'string' && m.content.includes('wme:add-key'),
+      ),
+    ).toBe(true);
   });
 });
 
