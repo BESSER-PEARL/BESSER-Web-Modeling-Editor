@@ -281,7 +281,9 @@ export class ClassDiagramModifier implements DiagramModifier {
 
       model.elements[methodId] = {
         id: methodId,
-        name: `${methodSpec.name}(${paramStr})`,
+        // Return type belongs in the name — the backend parses it from there
+        // (parse_method), not from attributeType. Mirror modifyMethod's format.
+        name: `${visSymbol} ${methodSpec.name}(${paramStr}): ${returnType}`,
         type: 'ClassMethod',
         owner: classId,
         bounds: { x: posX + 1, y: methodY, width: 218, height: 25 },
@@ -453,7 +455,12 @@ export class ClassDiagramModifier implements DiagramModifier {
 
     const methodElement: any = {
       id: methodId,
-      name: `${name}(${paramStr})`,
+      // The method's return type MUST live in the name string, not just in
+      // attributeType: the backend converter parses return type from the name
+      // (`parse_method(method["name"])`) and ignores attributeType for methods.
+      // Mirror modifyMethod's canonical UML signature so an added method carries
+      // its return type into generated code exactly like an edited one does.
+      name: `${visibilitySymbol} ${name}(${paramStr}): ${returnType}`,
       type: 'ClassMethod',
       owner: classId,
       bounds: { x: classBounds.x + 1, y: methodY, width: (classBounds.width || 220) - 2, height: 25 },
@@ -1049,9 +1056,12 @@ export class ClassDiagramModifier implements DiagramModifier {
           const methodY = newY + 50 + attrCount * 25 + 10 + mi * 25;
           const paramStr = methodSpec.parameters?.map(p => p.type ? `${p.name}: ${normalizeType(p.type)}` : p.name).join(', ') || '';
           const returnType = normalizeType(methodSpec.returnType || 'any');
+          const visSymbol = methodSpec.visibility === 'private' ? '-' :
+                            methodSpec.visibility === 'protected' ? '#' : '+';
           model.elements[methodId] = {
             id: methodId,
-            name: `${methodSpec.name}(${paramStr})`,
+            // Return type belongs in the name (backend parses it from there).
+            name: `${visSymbol} ${methodSpec.name}(${paramStr}): ${returnType}`,
             type: 'ClassMethod',
             owner: newClassId,
             bounds: { x: newX + 1, y: methodY, width: 218, height: 25 },
