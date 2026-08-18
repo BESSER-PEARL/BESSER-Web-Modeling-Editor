@@ -179,6 +179,9 @@
       "title": "Ejecución del agente",
       "description": "Configuración de ejecución del diagrama de agente activo (plataforma, reconocimiento de intención, proveedor/modelo de LLM). Estos valores se almacenan en el propio diagrama de agente, no en el almacenamiento global.",
       "platform": "Plataforma",
+      "platformWebSocket": "WebSocket",
+      "platformTelegram": "Telegram",
+      "useStreamlitUi": "Usar la interfaz de Streamlit",
       "intent": "Reconocimiento de intención",
       "intentClassical": "Clásico",
       "intentLlmBased": "Basado en LLM",
@@ -198,6 +201,9 @@
       "namePlaceholder": "p. ej. gpt-4o-mini",
       "provider": "Proveedor",
       "numPrevMessages": "Número de mensajes anteriores",
+      "ollamaBaseUrl": "URL base",
+      "ollamaModel": "Modelo",
+      "ollamaModelPlaceholder": "p.ej. llama3, mistral, qwen2.5",
       "parameters": "Parámetros (JSON)",
       "globalContext": "Contexto global (opcional)",
       "globalContextPlaceholder": "Contexto a nivel de sistema añadido a cada prompt",
@@ -354,6 +360,7 @@
     },
     "save": {
       "title": "Guardar esta personalización",
+      "defaultName": "Configuración de agente predeterminada",
       "description": "Cuando hayas terminado de rellenar el formulario de arriba, da un nombre a tu personalización y guárdala aquí. Las personalizaciones guardadas aparecen en el selector \"Cargar una personalización guardada\" en la parte superior de la página para que puedas alternar entre ellas más tarde.",
       "nameLabel": "Nombre de la personalización",
       "namePlaceholder": "Da un nombre a esta configuración",
@@ -369,6 +376,62 @@
       "resetDefaults": "Restablecer valores predeterminados",
       "errors": {
         "generic": "No se pudo guardar la configuración."
+      }
+    },
+    "yaml": {
+      "title": "Archivo de configuración del agente (config.yaml)",
+      "description": "Edite el archivo config.yaml que se incluirá al generar el agente.",
+      "linkText": "Referencia de propiedades de configuración ↗"
+    },
+    "yamlEditor": {
+      "tab": {
+        "form": "Formulario",
+        "raw": "YAML sin formato"
+      },
+      "section": {
+        "agent": "Agente",
+        "nlp": "NLP",
+        "platforms": "Plataformas",
+        "database": "Base de datos (db)"
+      },
+      "syntaxError": "Error de sintaxis YAML:",
+      "customLabel": "Propiedades YAML personalizadas adicionales",
+      "customDescription": "Cualquier YAML válido añadido aquí se agrega al final del config.yaml generado.",
+      "rawDescription": "Vista de solo lectura del contenido config.yaml generado. Edite usando la pestaña Formulario.",
+      "fields": {
+        "checkTransitionsDelay": "Delay in seconds between each transition evaluation cycle.",
+        "nlpLanguage": "Expected user language (ISO 639-1). Impacts NLP quality.",
+        "nlpRegion": "Language region (ISO 3166-1 alpha-2) for enhanced NLP processing.",
+        "nlpTimezone": "Timezone for datetime operations (tz database format).",
+        "nlpIntentThreshold": "Confidence threshold below which predictions fall back to fallback scenarios.",
+        "nlpPreProcessing": "Enables stemming to reduce words to base forms, improving generalization of user inputs.",
+        "hfToken": "API key needed to access the HuggingFace Inference API for LLM functionality.",
+        "openaiKey": "OpenAI API key for LLM access.",
+        "replicateKey": "Replicate API key for model inference.",
+        "wsHost": "Server address for WebSocket connections.",
+        "wsPort": "Port number for WebSocket server.",
+        "wsStreamlitHost": "Host address for Streamlit UI deployment.",
+        "wsStreamlitPort": "Port for accessing Streamlit UI.",
+        "chatSize": "Default font size for chat messages in Streamlit.",
+        "chatFont": "Font family identifier for chat text.",
+        "chatLineSpacing": "Line height multiplier for chat messages.",
+        "chatAlignment": "Horizontal text alignment in chat interface.",
+        "chatColor": "Text color setting for chat display.",
+        "chatContrast": "Contrast level for text readability.",
+        "telegramToken": "Bot authentication token for Telegram API.",
+        "githubPersonalToken": "Personal Access Token for GitHub API authentication.",
+        "githubWebhookToken": "Secret token defined during webhook creation.",
+        "githubWebhookPort": "Local server port exposed/proxied to GitHub.",
+        "gitlabPersonalToken": "Personal Access Token for GitLab API authentication.",
+        "gitlabWebhookToken": "Secret token for webhook verification.",
+        "gitlabWebhookPort": "Local server port exposed/proxied to GitLab.",
+        "a2aPort": "Local port for inter-agent communication network.",
+        "dbDialect": "Database system identifier (e.g. postgresql)",
+        "dbHost": "Database server address",
+        "dbPort": "Database connection port",
+        "dbDatabase": "Database name",
+        "dbUsername": "Database user credentials",
+        "dbPassword": "Database authentication password"
       }
     },
     "importExport": {
@@ -480,6 +543,9 @@
       "editInAgentConfig": "Editar en Agent Config",
       "platform": "Plataforma",
       "platformStreamlit": "WebSocket con interfaz Streamlit",
+      "platformWebSocket": "WebSocket",
+      "platformWebSocketStreamlit": "WebSocket con interfaz Streamlit",
+      "platformTelegram": "Telegram",
       "intentRecognition": "Reconocimiento de intención",
       "classical": "Clásico",
       "llmBased": "Basado en LLM",
@@ -540,7 +606,14 @@
       "guiDiagramLabel": "Diagrama GUI",
       "agentDiagramsLabel": "Diagramas de agente",
       "agentDiagramsAvailable": "{{count}} disponible(s) (configurado(s) por componente en la GUI)",
-      "noneAvailable": "Ninguno disponible"
+      "noneAvailable": "Ninguno disponible",
+      "versions": "Versiones",
+      "versionsDescription": "Algunas páginas tienen variantes personalizadas. Elija qué versión(es) generar.",
+      "versionBase": "Solo base",
+      "versionProfile": "Perfil único",
+      "versionAll": "Todas las versiones",
+      "selectProfile": "Seleccionar un perfil",
+      "versionAllHint": "La descarga contendrá una subcarpeta por versión (base + cada perfil)."
     },
     "toasts": {
       "validationFailed": "La validación falló",

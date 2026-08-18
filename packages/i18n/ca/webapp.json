@@ -179,6 +179,9 @@
       "title": "Execució de l'agent",
       "description": "Configuració d'execució del diagrama d'agent actiu (plataforma, reconeixement d'intenció, proveïdor/model LLM). Aquests valors es desen en el mateix diagrama d'agent, no a l'emmagatzematge global.",
       "platform": "Plataforma",
+      "platformWebSocket": "WebSocket",
+      "platformTelegram": "Telegram",
+      "useStreamlitUi": "Usar la interfície de Streamlit",
       "intent": "Reconeixement d'intenció",
       "intentClassical": "Clàssic",
       "intentLlmBased": "Basat en LLM",
@@ -198,6 +201,9 @@
       "namePlaceholder": "p. ex. gpt-4o-mini",
       "provider": "Proveïdor",
       "numPrevMessages": "Nombre de missatges anteriors",
+      "ollamaBaseUrl": "URL base",
+      "ollamaModel": "Model",
+      "ollamaModelPlaceholder": "p.ex. llama3, mistral, qwen2.5",
       "parameters": "Paràmetres (JSON)",
       "globalContext": "Context global (opcional)",
       "globalContextPlaceholder": "Context a nivell de sistema afegit a cada indicació",
@@ -354,6 +360,7 @@
     },
     "save": {
       "title": "Desa aquesta personalització",
+      "defaultName": "Configuració d'agent predeterminada",
       "description": "Quan hagis acabat d'omplir el formulari de dalt, posa un nom a la teva personalització i desa-la aquí. Les personalitzacions desades apareixen al selector \"Carrega una personalització desada\" a la part superior de la pàgina perquè puguis alternar-les més endavant.",
       "nameLabel": "Nom de la personalització",
       "namePlaceholder": "Posa un nom a aquesta configuració",
@@ -369,6 +376,62 @@
       "resetDefaults": "Restableix els valors predeterminats",
       "errors": {
         "generic": "No s'ha pogut desar la configuració."
+      }
+    },
+    "yaml": {
+      "title": "Fitxer de configuració de l'agent (config.yaml)",
+      "description": "Editeu el fitxer config.yaml que s'incloudrà en generar l'agent.",
+      "linkText": "Referència de propietats de configuració ↗"
+    },
+    "yamlEditor": {
+      "tab": {
+        "form": "Formulari",
+        "raw": "YAML sense format"
+      },
+      "section": {
+        "agent": "Agent",
+        "nlp": "NLP",
+        "platforms": "Plataformes",
+        "database": "Base de dades (db)"
+      },
+      "syntaxError": "Error de sintaxi YAML:",
+      "customLabel": "Propietats YAML personalitzades addicionals",
+      "customDescription": "Qualsevol YAML vàlid afegit aquí s'adjunta al final del config.yaml generat.",
+      "rawDescription": "Vista de només lectura del contingut config.yaml generat. Editeu mitjançant la pestanya Formulari.",
+      "fields": {
+        "checkTransitionsDelay": "Delay in seconds between each transition evaluation cycle.",
+        "nlpLanguage": "Expected user language (ISO 639-1). Impacts NLP quality.",
+        "nlpRegion": "Language region (ISO 3166-1 alpha-2) for enhanced NLP processing.",
+        "nlpTimezone": "Timezone for datetime operations (tz database format).",
+        "nlpIntentThreshold": "Confidence threshold below which predictions fall back to fallback scenarios.",
+        "nlpPreProcessing": "Enables stemming to reduce words to base forms, improving generalization of user inputs.",
+        "hfToken": "API key needed to access the HuggingFace Inference API for LLM functionality.",
+        "openaiKey": "OpenAI API key for LLM access.",
+        "replicateKey": "Replicate API key for model inference.",
+        "wsHost": "Server address for WebSocket connections.",
+        "wsPort": "Port number for WebSocket server.",
+        "wsStreamlitHost": "Host address for Streamlit UI deployment.",
+        "wsStreamlitPort": "Port for accessing Streamlit UI.",
+        "chatSize": "Default font size for chat messages in Streamlit.",
+        "chatFont": "Font family identifier for chat text.",
+        "chatLineSpacing": "Line height multiplier for chat messages.",
+        "chatAlignment": "Horizontal text alignment in chat interface.",
+        "chatColor": "Text color setting for chat display.",
+        "chatContrast": "Contrast level for text readability.",
+        "telegramToken": "Bot authentication token for Telegram API.",
+        "githubPersonalToken": "Personal Access Token for GitHub API authentication.",
+        "githubWebhookToken": "Secret token defined during webhook creation.",
+        "githubWebhookPort": "Local server port exposed/proxied to GitHub.",
+        "gitlabPersonalToken": "Personal Access Token for GitLab API authentication.",
+        "gitlabWebhookToken": "Secret token for webhook verification.",
+        "gitlabWebhookPort": "Local server port exposed/proxied to GitLab.",
+        "a2aPort": "Local port for inter-agent communication network.",
+        "dbDialect": "Database system identifier (e.g. postgresql)",
+        "dbHost": "Database server address",
+        "dbPort": "Database connection port",
+        "dbDatabase": "Database name",
+        "dbUsername": "Database user credentials",
+        "dbPassword": "Database authentication password"
       }
     },
     "importExport": {
@@ -480,6 +543,9 @@
       "editInAgentConfig": "Edita a configuració de l'agent",
       "platform": "Plataforma",
       "platformStreamlit": "WebSocket amb interfície Streamlit",
+      "platformWebSocket": "WebSocket",
+      "platformWebSocketStreamlit": "WebSocket amb interfície Streamlit",
+      "platformTelegram": "Telegram",
       "intentRecognition": "Reconeixement d'intencions",
       "classical": "Clàssic",
       "llmBased": "Basat en LLM",
@@ -540,7 +606,14 @@
       "guiDiagramLabel": "Diagrama GUI",
       "agentDiagramsLabel": "Diagrames d'agent",
       "agentDiagramsAvailable": "{{count}} disponible(s) (configurat(s) per component a la GUI)",
-      "noneAvailable": "Cap disponible"
+      "noneAvailable": "Cap disponible",
+      "versions": "Versions",
+      "versionsDescription": "Algunes pàgines tenen variants personalitzades. Trieu quina(es) versió(ns) generar.",
+      "versionBase": "Només base",
+      "versionProfile": "Perfil únic",
+      "versionAll": "Totes les versions",
+      "selectProfile": "Seleccionar un perfil",
+      "versionAllHint": "La descàrrega contindrà una subcarpeta per versió (base + cada perfil)."
     },
     "toasts": {
       "validationFailed": "La validació ha fallat",

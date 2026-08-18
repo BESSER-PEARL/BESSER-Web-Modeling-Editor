@@ -179,6 +179,9 @@
       "title": "Agent-Runtime",
       "description": "Runtime-Astellunge fir dat aktivt Agent-Diagramm (Plattform, Intent-Erkennung, LLM-Provider/Modell). Dës Wäerter leien um Agent-Diagramm selwer, net am globale Späicher.",
       "platform": "Plattform",
+      "platformWebSocket": "WebSocket",
+      "platformTelegram": "Telegram",
+      "useStreamlitUi": "Streamlit UI benotzen",
       "intent": "Intent-Erkennung",
       "intentClassical": "Klassesch",
       "intentLlmBased": "LLM-baséiert",
@@ -198,6 +201,9 @@
       "namePlaceholder": "z. B. gpt-4o-mini",
       "provider": "Provider",
       "numPrevMessages": "Zuel vu viregte Messagen",
+      "ollamaBaseUrl": "Basis-URL",
+      "ollamaModel": "Modell",
+      "ollamaModelPlaceholder": "z.B. llama3, mistral, qwen2.5",
       "parameters": "Parameteren (JSON)",
       "globalContext": "Globale Kontext (optional)",
       "globalContextPlaceholder": "Systemkontext dee bei all Prompt ugehaange gëtt",
@@ -354,6 +360,7 @@
     },
     "save": {
       "title": "Dës Personaliséierung späicheren",
+      "defaultName": "Standard-Agentekonfiguratioun",
       "description": "Wann Dir d'Formulaire hei uewe fäerdeg ausgefëllt hutt, gitt Ärer Personaliséierung een Numm a späichert se hei. Gespäichert Personaliséierunge weisen am \"Eng gespäichert Personaliséierung lueden\"-Auswieler uewen op der Säit, sou datt Dir spéider tëscht hinne wiessele kënnt.",
       "nameLabel": "Numm vun der Personaliséierung",
       "namePlaceholder": "Gitt dësem Setup en Numm",
@@ -369,6 +376,62 @@
       "resetDefaults": "Op Standard zerécksetzen",
       "errors": {
         "generic": "D'Konfiguratioun konnt net gespäichert ginn."
+      }
+    },
+    "yaml": {
+      "title": "Agentekonfiguratiounsdatei (config.yaml)",
+      "description": "D'config.yaml-Datei änneren, déi beim Generiere vum Agent abegraff gëtt.",
+      "linkText": "Konfiguratiounseegenschaften-Referenz ↗"
+    },
+    "yamlEditor": {
+      "tab": {
+        "form": "Formular",
+        "raw": "Rohe YAML"
+      },
+      "section": {
+        "agent": "Agent",
+        "nlp": "NLP",
+        "platforms": "Plattformen",
+        "database": "Datebank (db)"
+      },
+      "syntaxError": "YAML-Syntaxfehler:",
+      "customLabel": "Zousätzlech benotzerdefiniert YAML-Eegeschaften",
+      "customDescription": "All gültegen YAML, dat héi dobeigesat gëtt, gëtt um Enn vun der genereerter config.yaml ugehaan.",
+      "rawDescription": "Liislech Usiicht vum genereertem config.yaml-Inhalt. ännert iwwert den Formular-Tab.",
+      "fields": {
+        "checkTransitionsDelay": "Delay in seconds between each transition evaluation cycle.",
+        "nlpLanguage": "Expected user language (ISO 639-1). Impacts NLP quality.",
+        "nlpRegion": "Language region (ISO 3166-1 alpha-2) for enhanced NLP processing.",
+        "nlpTimezone": "Timezone for datetime operations (tz database format).",
+        "nlpIntentThreshold": "Confidence threshold below which predictions fall back to fallback scenarios.",
+        "nlpPreProcessing": "Enables stemming to reduce words to base forms, improving generalization of user inputs.",
+        "hfToken": "API key needed to access the HuggingFace Inference API for LLM functionality.",
+        "openaiKey": "OpenAI API key for LLM access.",
+        "replicateKey": "Replicate API key for model inference.",
+        "wsHost": "Server address for WebSocket connections.",
+        "wsPort": "Port number for WebSocket server.",
+        "wsStreamlitHost": "Host address for Streamlit UI deployment.",
+        "wsStreamlitPort": "Port for accessing Streamlit UI.",
+        "chatSize": "Default font size for chat messages in Streamlit.",
+        "chatFont": "Font family identifier for chat text.",
+        "chatLineSpacing": "Line height multiplier for chat messages.",
+        "chatAlignment": "Horizontal text alignment in chat interface.",
+        "chatColor": "Text color setting for chat display.",
+        "chatContrast": "Contrast level for text readability.",
+        "telegramToken": "Bot authentication token for Telegram API.",
+        "githubPersonalToken": "Personal Access Token for GitHub API authentication.",
+        "githubWebhookToken": "Secret token defined during webhook creation.",
+        "githubWebhookPort": "Local server port exposed/proxied to GitHub.",
+        "gitlabPersonalToken": "Personal Access Token for GitLab API authentication.",
+        "gitlabWebhookToken": "Secret token for webhook verification.",
+        "gitlabWebhookPort": "Local server port exposed/proxied to GitLab.",
+        "a2aPort": "Local port for inter-agent communication network.",
+        "dbDialect": "Database system identifier (e.g. postgresql)",
+        "dbHost": "Database server address",
+        "dbPort": "Database connection port",
+        "dbDatabase": "Database name",
+        "dbUsername": "Database user credentials",
+        "dbPassword": "Database authentication password"
       }
     },
     "importExport": {
@@ -480,6 +543,9 @@
       "editInAgentConfig": "An Agent Config änneren",
       "platform": "Plattform",
       "platformStreamlit": "WebSocket mat Streamlit-Interface",
+      "platformWebSocket": "WebSocket",
+      "platformWebSocketStreamlit": "WebSocket mat Streamlit-Interface",
+      "platformTelegram": "Telegram",
       "intentRecognition": "Intent-Erkennung",
       "classical": "Klassesch",
       "llmBased": "LLM-baséiert",
@@ -540,7 +606,14 @@
       "guiDiagramLabel": "GUI-Diagramm",
       "agentDiagramsLabel": "Agent-Diagrammer",
       "agentDiagramsAvailable": "{{count}} verfügbar (pro Komponent am GUI konfiguréiert)",
-      "noneAvailable": "Keng verfügbar"
+      "noneAvailable": "Keng verfügbar",
+      "versions": "Versioune",
+      "versionsDescription": "Eënzelne Saité hunn personaliséiert Varianten. Wäelt wélch Versioun(en) generiert soll ginn.",
+      "versionBase": "Nëmmen Basis",
+      "versionProfile": "Eëngelt Profil",
+      "versionAll": "All Versioune",
+      "selectProfile": "Profil auswäelen",
+      "versionAllHint": "Den Download enthalt eënen Ounterordner pro Versioun (Basis + all Profil)."
     },
     "toasts": {
       "validationFailed": "Validatioun feelgeschloen",

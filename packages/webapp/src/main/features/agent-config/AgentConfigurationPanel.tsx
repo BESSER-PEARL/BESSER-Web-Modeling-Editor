@@ -63,7 +63,6 @@ type MappingRecommendationSignals = {
   isMultilingual: boolean;
 };
 
-const DEFAULT_CONFIG_NAME = 'Default Agent Configuration';
 
 // Feature flag — hides agent configuration fields whose runtime support
 // isn't fully wired up yet (voice gender/speed, avatar upload, response
@@ -756,7 +755,7 @@ const AgentLLMRow: React.FC<AgentLLMRowProps> = ({
           {element.provider === 'ollama' && (
             <div className="grid gap-3 md:grid-cols-2">
               <div className="space-y-1.5">
-                <Label htmlFor={`agent-llm-ollama-url-${element.id}`}>Base URL</Label>
+                <Label htmlFor={`agent-llm-ollama-url-${element.id}`}>{t('agentConfig.row.ollamaBaseUrl')}</Label>
                 <Input
                   id={`agent-llm-ollama-url-${element.id}`}
                   value={(element.parameters.base_url as string) ?? 'http://localhost:11434'}
@@ -765,11 +764,11 @@ const AgentLLMRow: React.FC<AgentLLMRowProps> = ({
                 />
               </div>
               <div className="space-y-1.5">
-                <Label htmlFor={`agent-llm-ollama-model-${element.id}`}>Model</Label>
+                <Label htmlFor={`agent-llm-ollama-model-${element.id}`}>{t('agentConfig.row.ollamaModel')}</Label>
                 <Input
                   id={`agent-llm-ollama-model-${element.id}`}
                   value={(element.parameters.model as string) ?? ''}
-                  placeholder="e.g. llama3, mistral, qwen2.5"
+                  placeholder={t('agentConfig.row.ollamaModelPlaceholder')}
                   onChange={(event) => updateOllamaParam('model', event.target.value)}
                 />
               </div>
@@ -847,7 +846,7 @@ export const AgentConfigurationPanel: React.FC = () => {
   const [selectedConfigId, setSelectedConfigId] = useState<string>(initialLoad.activeId || '');
   const [activeConfigId, setActiveConfigId] = useState<string | null>(initialLoad.activeId);
   const [activeConfigName, setActiveConfigName] = useState<string>(initialLoad.activeName || '');
-  const [configurationName, setConfigurationName] = useState<string>(initialLoad.activeName || DEFAULT_CONFIG_NAME);
+  const [configurationName, setConfigurationName] = useState<string>(initialLoad.activeName || t('agentConfig.save.defaultName'));
 
   const [isLoading, setIsLoading] = useState(false);
   const [loadingMessage, setLoadingMessage] = useState(() => t('agentConfig.loading.preparing'));
@@ -1307,7 +1306,7 @@ export const AgentConfigurationPanel: React.FC = () => {
       setActiveConfigId(nextId);
       setSelectedConfigId(nextId ?? '');
       setActiveConfigName(nextName);
-      setConfigurationName(nextName || DEFAULT_CONFIG_NAME);
+      setConfigurationName(nextName || t('agentConfig.save.defaultName'));
     }
   }, []);
 
@@ -1838,7 +1837,7 @@ export const AgentConfigurationPanel: React.FC = () => {
   const resetFormToDefaults = useCallback(() => {
     applyConfiguration(createDefaultConfig());
     setActiveCustomizationSection(null);
-    setConfigurationName(DEFAULT_CONFIG_NAME);
+    setConfigurationName(t('agentConfig.save.defaultName'));
     setActiveConfigId(null);
     setActiveConfigName('');
     setSelectedConfigId('');
@@ -2282,8 +2281,8 @@ export const AgentConfigurationPanel: React.FC = () => {
                       agentPlatformUseStreamlit: event.target.value !== 'websocket' ? false : agentRuntimeConfig.agentPlatformUseStreamlit,
                     })}
                   >
-                    <option value="websocket">WebSocket</option>
-                    <option value="telegram">Telegram</option>
+                    <option value="websocket">{t('agentConfig.runtime.platformWebSocket')}</option>
+                    <option value="telegram">{t('agentConfig.runtime.platformTelegram')}</option>
                   </select>
                   {agentRuntimeConfig.agentPlatform === 'websocket' && (
                     <label className="flex items-center gap-2 text-sm cursor-pointer pt-1">
@@ -2292,7 +2291,7 @@ export const AgentConfigurationPanel: React.FC = () => {
                         checked={agentRuntimeConfig.agentPlatformUseStreamlit ?? false}
                         onChange={(e) => updateAgentRuntimeConfig({ agentPlatformUseStreamlit: e.target.checked })}
                       />
-                      Use Streamlit UI
+                      {t('agentConfig.runtime.useStreamlitUi')}
                     </label>
                   )}
                 </div>
@@ -2381,9 +2380,9 @@ export const AgentConfigurationPanel: React.FC = () => {
 
           <Card>
             <CardHeader>
-              <CardTitle>Agent Configuration File (<code>config.yaml</code>)</CardTitle>
+              <CardTitle>{t('agentConfig.yaml.title')}</CardTitle>
               <CardDescription>
-                Edit the <code>config.yaml</code> file that will be included when generating the agent.
+                {t('agentConfig.yaml.description')}
                 {' '}
                 <a
                   href="https://besser-agentic-framework.readthedocs.io/latest/wiki/configuration_properties.html"
@@ -2391,7 +2390,7 @@ export const AgentConfigurationPanel: React.FC = () => {
                   rel="noopener noreferrer"
                   className="text-brand underline underline-offset-2 hover:text-brand/80"
                 >
-                  Configuration properties reference ↗
+                  {t('agentConfig.yaml.linkText')}
                 </a>
               </CardDescription>
             </CardHeader>
