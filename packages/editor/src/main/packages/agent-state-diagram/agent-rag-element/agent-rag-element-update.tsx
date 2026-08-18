@@ -41,6 +41,26 @@ const Select = styled.select`
   color: inherit;
 `;
 
+const Divider = styled.hr`
+  border: none;
+  border-top: 1px solid ${(props) => props.theme.color.gray};
+  margin: 8px 0;
+`;
+
+const CheckboxRow = styled.label`
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  font-size: 0.85em;
+  font-weight: 600;
+`;
+
+const DisabledTextfield = styled.div<{ disabled: boolean }>`
+  opacity: ${(props) => (props.disabled ? 0.4 : 1)};
+  pointer-events: ${(props) => (props.disabled ? 'none' : 'auto')};
+`;
+
 const AgentRagElementUpdateComponent: React.FC<Props> = ({ element, update, elements, translate }) => {
   const llmNames = Array.from(
     new Set(
@@ -134,6 +154,30 @@ const AgentRagElementUpdateComponent: React.FC<Props> = ({ element, update, elem
           </Section>
         </>
       )}
+      <Divider />
+      <Section>
+        <CheckboxRow>
+          <input
+            type="checkbox"
+            checked={element.use_hybrid_rag === true}
+            onChange={(e) => update<AgentRagElement>(element.id, { use_hybrid_rag: e.target.checked })}
+          />
+          Hybrid RAG (BM25)
+        </CheckboxRow>
+      </Section>
+      <DisabledTextfield disabled={!element.use_hybrid_rag}>
+        <Section>
+          <Header>BM25 Weight</Header>
+          <Textfield
+            value={String(element.bm25_weight ?? 0.6)}
+            onSubmit={(raw) => {
+              const parsed = parseFloat(String(raw));
+              const val = !isNaN(parsed) && parsed > 0 && parsed < 1 ? parsed : 0.6;
+              update<AgentRagElement>(element.id, { bm25_weight: val });
+            }}
+          />
+        </Section>
+      </DisabledTextfield>
     </div>
   );
 };
