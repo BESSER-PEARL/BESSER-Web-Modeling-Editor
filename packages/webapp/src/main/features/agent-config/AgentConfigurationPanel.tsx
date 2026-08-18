@@ -1,7 +1,14 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { UMLDiagramType, UMLModel, diagramBridge } from '@besser/wme';
+import {
+  UMLDiagramType,
+  UMLModel,
+  diagramBridge,
+  AGENT_LLM_PROVIDERS,
+  canonicalizeAgentLLMProvider,
+} from '@besser/wme';
+import type { AgentLLMProviderType } from '@besser/wme';
 import { toast } from 'react-toastify';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -354,9 +361,10 @@ const flattenStructuredConfig = (raw: any): Partial<AgentConfigurationPayload> =
 
 const cloneModel = (model: UMLModel): UMLModel => JSON.parse(JSON.stringify(model)) as UMLModel;
 
-type AgentLLMElementProvider = 'openai' | 'huggingface' | 'huggingface_api' | 'replicate' | 'ollama';
+/** Provider on a diagram AgentLLM element. Canonical keys only — see canonicalizeAgentLLMProvider. */
+export type AgentLLMElementProvider = AgentLLMProviderType;
 
-type AgentLLMElement = {
+export type AgentLLMElement = {
   id: string;
   type: 'AgentLLM';
   name: string;
@@ -368,13 +376,35 @@ type AgentLLMElement = {
   global_context: string | null;
 };
 
-const AGENT_LLM_PROVIDER_OPTIONS: Array<{ value: AgentLLMElementProvider; label: string }> = [
-  { value: 'openai', label: 'OpenAI' },
-  { value: 'huggingface', label: 'Hugging Face' },
-  { value: 'huggingface_api', label: 'Hugging Face API' },
-  { value: 'replicate', label: 'Replicate' },
-  { value: 'ollama', label: 'Ollama (local)' },
+// Display order is deliberately different from AGENT_LLM_PROVIDERS (hosted families
+// first, local/self-hosted last). The Record type below is the completeness guard:
+// adding a provider to the canonical list without a label here fails the build.
+const AGENT_LLM_PROVIDER_LABELS: Record<AgentLLMProviderType, string> = {
+  openai: 'OpenAI',
+  mistral: 'Mistral AI',
+  deepseek: 'DeepSeek',
+  google: 'Google (Gemini)',
+  meta: 'Meta (Llama)',
+  anthropic: 'Anthropic (Claude)',
+  qwen: 'Alibaba Qwen',
+  xai: 'xAI (Grok)',
+  groq: 'Groq',
+  together: 'Together AI',
+  openrouter: 'OpenRouter',
+  huggingface: 'Hugging Face (local)',
+  huggingface_api: 'Hugging Face API',
+  replicate: 'Replicate',
+  ollama: 'Ollama (local)',
+};
+
+const AGENT_LLM_PROVIDER_DISPLAY_ORDER: readonly AgentLLMProviderType[] = [
+  'openai', 'mistral', 'deepseek', 'google', 'meta', 'anthropic', 'qwen',
+  'xai', 'groq', 'together', 'openrouter', 'huggingface', 'huggingface_api',
+  'replicate', 'ollama',
 ];
+
+export const AGENT_LLM_PROVIDER_OPTIONS: Array<{ value: AgentLLMElementProvider; label: string }> =
+  AGENT_LLM_PROVIDER_DISPLAY_ORDER.map((value) => ({ value, label: AGENT_LLM_PROVIDER_LABELS[value] }));
 
 const generateAgentLLMId = (): string => {
   if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
@@ -389,10 +419,10 @@ const isAgentLLMElement = (value: unknown): value is AgentLLMElement => {
   return candidate.type === 'AgentLLM';
 };
 
-const normalizeAgentLLMElement = (raw: any, fallbackId: string): AgentLLMElement => {
-  const provider = (['openai', 'huggingface', 'huggingface_api', 'replicate', 'ollama'].includes(raw?.provider)
-    ? raw.provider
-    : 'openai') as AgentLLMElementProvider;
+export const normalizeAgentLLMElement = (raw: any, fallbackId: string): AgentLLMElement => {
+  // Accepts legacy spellings and maps them onto the canonical key, so a config
+  // saved before 'huggingface_api' existed is migrated rather than reset.
+  const provider = canonicalizeAgentLLMProvider(raw?.provider);
   const parameters =
     raw?.parameters && typeof raw.parameters === 'object' && !Array.isArray(raw.parameters)
       ? (raw.parameters as Record<string, unknown>)

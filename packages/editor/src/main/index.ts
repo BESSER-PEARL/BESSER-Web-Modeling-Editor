@@ -49,6 +49,22 @@ export * from './packages/common/uml-association/multiplicity';
 // (e.g. agentBaseModels snapshots written straight to localStorage).
 export { normalizeAgentModel } from './packages/agent-state-diagram/normalize-agent-model';
 
+// Export the canonical LLM provider list so the webapp derives its dropdown,
+// its stored-config union, and its localStorage whitelist from one array
+// instead of re-declaring the key set in every consumer.
+export {
+  AGENT_LLM_PROVIDERS,
+  LEGACY_AGENT_LLM_PROVIDER_ALIASES,
+  ACCEPTED_AGENT_LLM_PROVIDERS,
+  NON_CHAT_AGENT_LLM_PROVIDERS,
+  isAcceptedAgentLLMProvider,
+  canonicalizeAgentLLMProvider,
+} from './packages/agent-state-diagram/agent-llm/agent-llm';
+export type {
+  AgentLLMProviderType,
+  LegacyAgentLLMProviderType,
+} from './packages/agent-state-diagram/agent-llm/agent-llm';
+
 // Export only the Patch type (not the implementation) for type safety
 // Used when working with patching operations in TypeScript
 export type { Patch } from './services/patcher';
