@@ -608,7 +608,7 @@
       "agentDiagramsAvailable": "{{count}} disponible(s) (configurado(s) por componente en la GUI)",
       "noneAvailable": "Ninguno disponible",
       "versions": "Versiones",
-      "versionsDescription": "Algunas páginas tienen variantes personalizadas. Elija qué versión(es) generar.",
+      "versionsDescription": "Algunas páginas tienen variantes personalizadas. Elija qué versión(es) generar. Cada versión utiliza la variante de una página cuando existe y, en caso contrario, la página base.",
       "versionBase": "Solo base",
       "versionProfile": "Perfil único",
       "versionAll": "Todas las versiones",

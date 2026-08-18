@@ -397,7 +397,7 @@
       "syntaxError": "YAML-Syntaxfehler:",
       "customLabel": "Zousätzlech benotzerdefiniert YAML-Eegeschaften",
       "customDescription": "All gültegt YAML, dat hei dobäigesat gëtt, gëtt um Enn vun der generéierter config.yaml ugehaangen.",
-      "rawDescription": "Virschau vum Inhalt vun der generéierter config.yaml. Ännerunge ginn am Tab „Formulaire“ gemaach.",
+      "rawDescription": "Virschau vum Inhalt vun der generéierter config.yaml. Ännerunge ginn am Tab „Formular“ gemaach.",
       "fields": {
         "checkTransitionsDelay": "Zäit a Sekonnen tëscht all Evaluatiounszyklus vun den Iwwergäng.",
         "nlpLanguage": "Erwaart Benotzersprooch (ISO 639-1). Beaflosst d'NLP-Qualitéit.",
@@ -608,7 +608,7 @@
       "agentDiagramsAvailable": "{{count}} verfügbar (pro Komponent am GUI konfiguréiert)",
       "noneAvailable": "Keng verfügbar",
       "versions": "Versiounen",
-      "versionsDescription": "Eenzel Säiten hu personaliséiert Varianten. Wielt, wéi eng Versioun(en) generéiert soll(en) ginn.",
+      "versionsDescription": "Eenzel Säiten hu personaliséiert Varianten. Wielt, wéi eng Versioun(en) generéiert soll(en) ginn. All Versioun benotzt d'Variant vun enger Säit, wa se existéiert, soss d'Basissäit.",
       "versionBase": "Nëmme Basis",
       "versionProfile": "Eenzel Profil",
       "versionAll": "All Versiounen",

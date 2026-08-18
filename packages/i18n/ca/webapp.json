@@ -608,7 +608,7 @@
       "agentDiagramsAvailable": "{{count}} disponible(s) (configurat(s) per component a la GUI)",
       "noneAvailable": "Cap disponible",
       "versions": "Versions",
-      "versionsDescription": "Algunes pàgines tenen variants personalitzades. Trieu quina(es) versió(ns) generar.",
+      "versionsDescription": "Algunes pàgines tenen variants personalitzades. Trieu quina(es) versió(ns) generar. Cada versió utilitza la variant d'una pàgina quan existeix i, en cas contrari, la pàgina base.",
       "versionBase": "Només base",
       "versionProfile": "Perfil únic",
       "versionAll": "Totes les versions",
