@@ -34,12 +34,12 @@ export function getTnsTypeCategory(tnsType: string): TnsTypeCategory {
   }
 
   // Binary: operations that support two operands (layer names OR numeric literals)
-  if (['binop_add', 'binop_subtract', 'binop_multiply', 'binop_divide', 'binop_floor_divide'].includes(tnsType)) {
+  if (['binop_add', 'binop_subtract', 'binop_multiply', 'binop_divide', 'binop_floor_divide', 'multiply'].includes(tnsType)) {
     return 'binary';
   }
 
   // Double: operations that require exactly 2 layer/tensorop names
-  if (['multiply', 'matmultiply'].includes(tnsType)) {
+  if (['matmultiply'].includes(tnsType)) {
     return 'double';
   }
 
