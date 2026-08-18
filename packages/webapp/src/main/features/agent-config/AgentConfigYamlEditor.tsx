@@ -31,6 +31,16 @@ export interface AgentConfigFormData {
     huggingface_token: string;
     openai_api_key: string;
     replicate_api_key: string;
+    mistral_api_key: string;
+    deepseek_api_key: string;
+    google_api_key: string;
+    meta_api_key: string;
+    anthropic_api_key: string;
+    qwen_api_key: string;
+    xai_api_key: string;
+    groq_api_key: string;
+    together_api_key: string;
+    openrouter_api_key: string;
   };
   platforms: {
     websocket: {
@@ -68,6 +78,16 @@ export const DEFAULT_AGENT_CONFIG_FORM: AgentConfigFormData = {
     huggingface_token: 'YOUR-TOKEN',
     openai_api_key: 'YOUR-API-KEY',
     replicate_api_key: 'YOUR-API-KEY',
+    mistral_api_key: 'YOUR-API-KEY',
+    deepseek_api_key: 'YOUR-API-KEY',
+    google_api_key: 'YOUR-API-KEY',
+    meta_api_key: 'YOUR-API-KEY',
+    anthropic_api_key: 'YOUR-API-KEY',
+    qwen_api_key: 'YOUR-API-KEY',
+    xai_api_key: 'YOUR-API-KEY',
+    groq_api_key: 'YOUR-API-KEY',
+    together_api_key: 'YOUR-API-KEY',
+    openrouter_api_key: 'YOUR-API-KEY',
   },
   platforms: {
     websocket: {
@@ -130,6 +150,16 @@ export function agentConfigFormToYaml(form: AgentConfigFormData): string {
   if (form.nlp.huggingface_token) { lines.push('  huggingface:'); lines.push(`    token: ${yamlValue(form.nlp.huggingface_token)}`); }
   if (form.nlp.openai_api_key) { lines.push('  openai:'); lines.push(`    api_key: ${yamlValue(form.nlp.openai_api_key)}`); }
   if (form.nlp.replicate_api_key) { lines.push('  replicate:'); lines.push(`    api_key: ${yamlValue(form.nlp.replicate_api_key)}`); }
+  if (form.nlp.mistral_api_key) { lines.push('  mistral:'); lines.push(`    api_key: ${yamlValue(form.nlp.mistral_api_key)}`); }
+  if (form.nlp.deepseek_api_key) { lines.push('  deepseek:'); lines.push(`    api_key: ${yamlValue(form.nlp.deepseek_api_key)}`); }
+  if (form.nlp.google_api_key) { lines.push('  google:'); lines.push(`    api_key: ${yamlValue(form.nlp.google_api_key)}`); }
+  if (form.nlp.meta_api_key) { lines.push('  meta:'); lines.push(`    api_key: ${yamlValue(form.nlp.meta_api_key)}`); }
+  if (form.nlp.anthropic_api_key) { lines.push('  anthropic:'); lines.push(`    api_key: ${yamlValue(form.nlp.anthropic_api_key)}`); }
+  if (form.nlp.qwen_api_key) { lines.push('  qwen:'); lines.push(`    api_key: ${yamlValue(form.nlp.qwen_api_key)}`); }
+  if (form.nlp.xai_api_key) { lines.push('  xai:'); lines.push(`    api_key: ${yamlValue(form.nlp.xai_api_key)}`); }
+  if (form.nlp.groq_api_key) { lines.push('  groq:'); lines.push(`    api_key: ${yamlValue(form.nlp.groq_api_key)}`); }
+  if (form.nlp.together_api_key) { lines.push('  together:'); lines.push(`    api_key: ${yamlValue(form.nlp.together_api_key)}`); }
+  if (form.nlp.openrouter_api_key) { lines.push('  openrouter:'); lines.push(`    api_key: ${yamlValue(form.nlp.openrouter_api_key)}`); }
   lines.push('');
 
   // ── Platforms ──────────────────────────────
@@ -538,11 +568,41 @@ export function AgentConfigYamlEditor({ currentProject }: AgentConfigYamlEditorP
               <TextField id="nlp-thresh" label="intent_threshold" value={form.nlp.intent_threshold} onChange={v => setNlp({ intent_threshold: v })} description={t('agentConfig.yamlEditor.fields.nlpIntentThreshold')} />
             </div>
             <BoolField id="nlp-prep" label="pre_processing" value={form.nlp.pre_processing} onChange={v => setNlp({ pre_processing: v })} description={t('agentConfig.yamlEditor.fields.nlpPreProcessing')} />
-            <Section title="HuggingFace" defaultOpen={false} indent>
-              <TextField id="nlp-hf-token" label="token" value={form.nlp.huggingface_token} onChange={v => setNlp({ huggingface_token: v })} description={t('agentConfig.yamlEditor.fields.hfToken')} />
-            </Section>
             <Section title="OpenAI" defaultOpen={false} indent>
               <TextField id="nlp-oai-key" label="api_key" value={form.nlp.openai_api_key} onChange={v => setNlp({ openai_api_key: v })} description={t('agentConfig.yamlEditor.fields.openaiKey')} />
+            </Section>
+            <Section title="Mistral AI" defaultOpen={false} indent>
+              <TextField id="nlp-mistral-key" label="api_key" value={form.nlp.mistral_api_key} onChange={v => setNlp({ mistral_api_key: v })} description={t('agentConfig.yamlEditor.fields.mistralKey')} />
+            </Section>
+            <Section title="DeepSeek" defaultOpen={false} indent>
+              <TextField id="nlp-deepseek-key" label="api_key" value={form.nlp.deepseek_api_key} onChange={v => setNlp({ deepseek_api_key: v })} description={t('agentConfig.yamlEditor.fields.deepseekKey')} />
+            </Section>
+            <Section title="Google (Gemini)" defaultOpen={false} indent>
+              <TextField id="nlp-google-key" label="api_key" value={form.nlp.google_api_key} onChange={v => setNlp({ google_api_key: v })} description={t('agentConfig.yamlEditor.fields.googleKey')} />
+            </Section>
+            <Section title="Meta (Llama)" defaultOpen={false} indent>
+              <TextField id="nlp-meta-key" label="api_key" value={form.nlp.meta_api_key} onChange={v => setNlp({ meta_api_key: v })} description={t('agentConfig.yamlEditor.fields.metaKey')} />
+            </Section>
+            <Section title="Anthropic (Claude)" defaultOpen={false} indent>
+              <TextField id="nlp-anthropic-key" label="api_key" value={form.nlp.anthropic_api_key} onChange={v => setNlp({ anthropic_api_key: v })} description={t('agentConfig.yamlEditor.fields.anthropicKey')} />
+            </Section>
+            <Section title="Alibaba Qwen" defaultOpen={false} indent>
+              <TextField id="nlp-qwen-key" label="api_key" value={form.nlp.qwen_api_key} onChange={v => setNlp({ qwen_api_key: v })} description={t('agentConfig.yamlEditor.fields.qwenKey')} />
+            </Section>
+            <Section title="xAI (Grok)" defaultOpen={false} indent>
+              <TextField id="nlp-xai-key" label="api_key" value={form.nlp.xai_api_key} onChange={v => setNlp({ xai_api_key: v })} description={t('agentConfig.yamlEditor.fields.xaiKey')} />
+            </Section>
+            <Section title="Groq" defaultOpen={false} indent>
+              <TextField id="nlp-groq-key" label="api_key" value={form.nlp.groq_api_key} onChange={v => setNlp({ groq_api_key: v })} description={t('agentConfig.yamlEditor.fields.groqKey')} />
+            </Section>
+            <Section title="Together AI" defaultOpen={false} indent>
+              <TextField id="nlp-together-key" label="api_key" value={form.nlp.together_api_key} onChange={v => setNlp({ together_api_key: v })} description={t('agentConfig.yamlEditor.fields.togetherKey')} />
+            </Section>
+            <Section title="OpenRouter" defaultOpen={false} indent>
+              <TextField id="nlp-openrouter-key" label="api_key" value={form.nlp.openrouter_api_key} onChange={v => setNlp({ openrouter_api_key: v })} description={t('agentConfig.yamlEditor.fields.openrouterKey')} />
+            </Section>
+            <Section title="HuggingFace" defaultOpen={false} indent>
+              <TextField id="nlp-hf-token" label="token" value={form.nlp.huggingface_token} onChange={v => setNlp({ huggingface_token: v })} description={t('agentConfig.yamlEditor.fields.hfToken')} />
             </Section>
             <Section title="Replicate" defaultOpen={false} indent>
               <TextField id="nlp-rep-key" label="api_key" value={form.nlp.replicate_api_key} onChange={v => setNlp({ replicate_api_key: v })} description={t('agentConfig.yamlEditor.fields.replicateKey')} />

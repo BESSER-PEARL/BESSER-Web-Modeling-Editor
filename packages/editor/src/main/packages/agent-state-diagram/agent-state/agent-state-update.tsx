@@ -9,6 +9,7 @@ import { TrashIcon } from '../../../components/controls/icon/trash';
 import { Textfield } from '../../../components/controls/textfield/textfield';
 import { Header } from '../../../components/controls/typography/typography';
 import { I18nContext } from '../../../components/i18n/i18n-context';
+import { AGENT_LLM_PROVIDERS, NON_CHAT_AGENT_LLM_PROVIDERS } from '../agent-llm/agent-llm';
 import { localized } from '../../../components/i18n/localized';
 import { ModelState } from '../../../components/store/model-state';
 import { StylePane } from '../../../components/style-pane/style-pane';
@@ -1490,7 +1491,12 @@ class StateUpdate extends Component<Props, State> {
     </LlmFieldRow>
   );
 
-  private isChatCompatibleProvider = (provider: string): boolean => provider === 'openai' || provider === 'huggingface';
+  // Derived from the canonical list rather than re-listed, so a newly added
+  // provider is chat-capable by default and only the genuine exceptions
+  // (huggingface_api, replicate) have to be declared.
+  private isChatCompatibleProvider = (provider: string): boolean =>
+    (AGENT_LLM_PROVIDERS as readonly string[]).includes(provider) &&
+    !NON_CHAT_AGENT_LLM_PROVIDERS.includes(provider);
 
   private renderDbReplyEditor = (
     member: AgentStateMember | undefined,
