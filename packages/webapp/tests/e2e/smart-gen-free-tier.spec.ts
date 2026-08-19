@@ -54,7 +54,11 @@ async function createBlankProject(page: Page, name: string): Promise<void> {
   await expect(dialog).toBeHidden({ timeout: 10_000 });
 }
 
-test('keyless free tier: "Use the free model" starts a run with the right wire contract', async ({ page }) => {
+// NOTE: the free tier is now the DEFAULT — an unauthorised trigger runs on it
+// DIRECTLY with no BYOK popup (the old "Use the free model" dialog button is
+// gone). This test therefore asserts the run starts straight through, and that
+// the dialog never appears.
+test('keyless free tier: an unauthorised trigger runs on free directly — no BYOK popup', async ({ page }) => {
   // Capture the POST body the frontend sends for the free run.
   let smartGenBody: Record<string, unknown> | null = null;
 
@@ -120,20 +124,19 @@ test('keyless free tier: "Use the free model" starts a run with the right wire c
   // send button exists in the collapsed drawer, which foils a global click).
   await composer.press('Enter');
 
-  // 6. The BYOK/run dialog opens and advertises the free option at the top.
-  const freeButton = page.getByRole('button', { name: /use the free model/i });
-  await expect(freeButton).toBeVisible({ timeout: 15_000 });
-
-  // 7. THE regression check: clicking it must START a run, not silently cancel.
-  await freeButton.click();
-
-  // 7a. The run fired with the correct keyless wire contract.
+  // 6. With the free-tier default there is NO BYOK popup — the unauthorised
+  //    trigger runs on the free model DIRECTLY (no dialog, no click needed).
+  //    The run fired with the correct keyless wire contract.
   await expect
     .poll(() => smartGenBody, { timeout: 15_000, message: 'free run never POSTed /smart-generate' })
     .not.toBeNull();
   expect(smartGenBody!.provider).toBe('free');
   expect(smartGenBody!.api_key).toBeUndefined(); // server injects it — never client-side
   expect(smartGenBody!.base_url).toBeUndefined();
+
+  // 7. Now that the run has started, confirm the BYOK "Use the free model"
+  //    dialog button never appeared — the run went straight through, no popup.
+  await expect(page.getByRole('button', { name: /use the free model/i })).toHaveCount(0);
 
   // 7b. The run reached completion (the mocked `done` event was processed) …
   await expect(page.getByText(/finished building|ready to download|download/i).first()).toBeVisible({
