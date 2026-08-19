@@ -95,16 +95,9 @@ test.describe('live: vibe-model then spec-driven free generation', () => {
       await expect(runBtn).toBeVisible({ timeout: 60_000 });
     }
 
-    // Open the run dialog. Click the (top) Run button; if the dialog doesn't
-    // surface the free option, fall back to a natural-language "yes" confirm
-    // (both routes reach the same run dialog). Then pick the keyless free tier.
-    const freeBtn = page.getByRole('button', { name: /use the free model/i });
+    // Free-tier default: clicking Run starts the generation DIRECTLY on qwen —
+    // there is no BYOK popup / "use the free model" button anymore.
     await runBtn.click().catch(() => {});
-    if (!(await freeBtn.isVisible({ timeout: 30_000 }).catch(() => false))) {
-      await send('yes');
-      await expect(freeBtn).toBeVisible({ timeout: 45_000 });
-    }
-    await freeBtn.click();
 
     // ---- 3) the free run starts on qwen and FINISHES ---------------
     await expect(page.getByText(/free\s*\/\s*qwen/i).first()).toBeVisible({ timeout: 45_000 });
