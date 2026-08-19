@@ -17,13 +17,3 @@ export const LAYOUT_START_X = -940;
 
 /** Default Y-origin for the layout grid. */
 export const LAYOUT_START_Y = -600;
-
-/** Calculate grid position for element at the given index. */
-export function calculateGridPosition(index: number): { x: number; y: number } {
-  const col = index % LAYOUT_COLUMNS;
-  const row = Math.floor(index / LAYOUT_COLUMNS);
-  return {
-    x: LAYOUT_START_X + col * LAYOUT_H_GAP,
-    y: LAYOUT_START_Y + row * LAYOUT_V_GAP,
-  };
-}

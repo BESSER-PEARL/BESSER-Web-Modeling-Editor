@@ -66,47 +66,5 @@ export function readAssistantApiKey(): AssistantApiKey | null {
     return null;
   }
 }
-
-/**
- * Store an assistant BYOK key in sessionStorage. Returns true on success.
- *
- * Pass `model=undefined` (or empty string) to clear any previously saved
- * model preference; the backend then falls back to its default for the provider.
- */
-export function writeAssistantApiKey(
-  provider: AssistantApiProvider,
-  apiKey: string,
-  model?: string,
-): boolean {
-  if (!_hasSessionStorage()) return false;
-  try {
-    window.sessionStorage.setItem(sessionStorageAssistantApiKey, apiKey);
-    window.sessionStorage.setItem(sessionStorageAssistantProvider, provider);
-    const trimmed = (model ?? '').trim();
-    if (trimmed) {
-      window.sessionStorage.setItem(sessionStorageAssistantModel, trimmed);
-    } else {
-      window.sessionStorage.removeItem(sessionStorageAssistantModel);
-    }
-    return true;
-  } catch {
-    return false;
-  }
-}
-
-/** Remove the stored assistant BYOK key. No-op if sessionStorage is unavailable. */
-export function clearAssistantApiKey(): void {
-  if (!_hasSessionStorage()) return;
-  try {
-    window.sessionStorage.removeItem(sessionStorageAssistantApiKey);
-    window.sessionStorage.removeItem(sessionStorageAssistantProvider);
-    window.sessionStorage.removeItem(sessionStorageAssistantModel);
-  } catch {
-    /* ignore */
-  }
-}
-
-/** Quick "do we have a key at all?" check that avoids exposing the value. */
-export function hasAssistantApiKey(): boolean {
-  return readAssistantApiKey() !== null;
-}
+// NOTE: write/clear/has helpers removed as dead code — the assistant's key is
+// written via the unified shared BYOK dialog; only the read path is used here.

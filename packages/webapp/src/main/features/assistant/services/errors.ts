@@ -72,12 +72,3 @@ export function formatErrorForUser(error: unknown): string {
     }
     return String(error);
 }
-
-/** Sanitize error text for safe display (strip stack traces, long objects). */
-export function sanitizeForDisplay(text: string): string {
-    // Truncate very long messages
-    if (text.length > 300) {
-        return text.slice(0, 297) + '...';
-    }
-    return text;
-}
