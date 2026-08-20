@@ -20,6 +20,8 @@ import { useUserProfileForm } from './useUserProfileForm';
 import { createEmptyInstance } from './model-serialization';
 import { MetaChildRef, MetaNode, MetaTree } from './metamodel-tree';
 import { AttrValue, Instance, isNumericType, OPERATORS, Operator } from './types';
+import { AttributeChip } from './AttributeChip';
+import { attributeIconService } from '@/shared/services/attribute-icons/attributeIconService';
 
 interface UserProfileFormPanelProps {
   open: boolean;
@@ -392,6 +394,46 @@ export const UserProfileFormPanel: React.FC<UserProfileFormPanelProps> = ({ open
                   ))}
                 </div>
               )}
+            </div>
+
+            {/* Quick-access attribute chips (personalization level) */}
+            <div className="space-y-2">
+              <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Attributes</p>
+              <div className="flex flex-wrap gap-2">
+                {rootMeta.children.map((childRef) => {
+                  const childMeta = tree.byClassName[childRef.className];
+                  if (!childMeta) return null;
+                  const configuredAttrs = attributeIconService.getConfiguredAttributesForContainer(
+                    childRef.className,
+                  );
+                  if (configuredAttrs.length === 0) return null;
+
+                  const childInstances = formState.children[childRef.className] || [];
+                  const firstInstance = childInstances[0];
+                  if (!firstInstance) return null;
+
+                  return configuredAttrs.map((config) => {
+                    const attrIndex = firstInstance.attributes.findIndex((a) => a.name === config.attribute);
+                    if (attrIndex < 0) return null;
+                    const attr = firstInstance.attributes[attrIndex];
+
+                    return (
+                      <AttributeChip
+                        key={`${childRef.className}.${config.attribute}`}
+                        containerClass={childRef.className}
+                        attribute={config.attribute}
+                        value={attr.value}
+                        enumValues={attr.enumValues}
+                        onValueChange={(value) =>
+                          cb.setAttr(firstInstance.key, attrIndex, { value })
+                        }
+                        onRemove={() => cb.setAttr(firstInstance.key, attrIndex, { value: '' })}
+                        displayName={config.displayName}
+                      />
+                    );
+                  });
+                })}
+              </div>
             </div>
 
             {/* Top-level parts of User */}

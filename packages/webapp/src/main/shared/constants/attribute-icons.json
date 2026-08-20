@@ -1,0 +1,14 @@
+{
+  "Personal_Information.gender": {
+    "type": "enum",
+    "containerClass": "Personal_Information",
+    "attribute": "gender",
+    "icons": {
+      "Male": "User",
+      "Female": "User",
+      "Other": "User",
+      "unset": "HelpCircle"
+    },
+    "displayName": "Gender"
+  }
+}
