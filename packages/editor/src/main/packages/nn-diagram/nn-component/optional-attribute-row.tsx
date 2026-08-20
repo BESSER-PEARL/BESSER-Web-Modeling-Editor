@@ -1150,6 +1150,9 @@ class OptionalAttributeRowComponent extends Component<Props, LocalState> {
                                 <Dropdown.Item key="__empty__" value="">
                                   {'(select or enter number)'}
                                 </Dropdown.Item>,
+                                <Dropdown.Item key="INPUT" value="INPUT">
+                                  INPUT
+                                </Dropdown.Item>,
                                 ...predecessorNames.map(name => (
                                   <Dropdown.Item key={name} value={name}>
                                     {name}
@@ -1178,6 +1181,9 @@ class OptionalAttributeRowComponent extends Component<Props, LocalState> {
                             {[
                               <Dropdown.Item key="__empty__" value="">
                                 {'(select)'}
+                              </Dropdown.Item>,
+                              <Dropdown.Item key="INPUT" value="INPUT">
+                                INPUT
                               </Dropdown.Item>,
                               ...predecessorNames.map(name => (
                                 <Dropdown.Item key={name} value={name}>
@@ -1240,6 +1246,9 @@ class OptionalAttributeRowComponent extends Component<Props, LocalState> {
                   {[
                     <Dropdown.Item key="__empty__" value="">
                       {'(select predecessor)'}
+                    </Dropdown.Item>,
+                    <Dropdown.Item key="INPUT" value="INPUT">
+                      INPUT
                     </Dropdown.Item>,
                     ...predecessorNames.map(name => (
                       <Dropdown.Item key={name} value={name}>
@@ -1503,6 +1512,9 @@ class OptionalAttributeRowComponent extends Component<Props, LocalState> {
                   {[
                     <Dropdown.Item key="__empty__" value="">
                       {'(select layer/tensorop)'}
+                    </Dropdown.Item>,
+                    <Dropdown.Item key="INPUT" value="INPUT">
+                      INPUT
                     </Dropdown.Item>,
                     ...predecessorNames.map(name => (
                       <Dropdown.Item key={name} value={name}>

@@ -152,18 +152,18 @@ class NNAttributeUpdateComponent extends Component<Props, ComponentState> {
 
     switch (tnsType) {
       case 'reshape':
-        return [...sharedForAll, 'reshape_dim', 'layers_of_tensors'];
+        return [...sharedForAll, 'reshape_dim'];
       case 'concatenate':
         return [...sharedForAll, 'layers_of_tensors', 'concatenate_dim', 'actual_vars'];
       case 'transpose':
-        return [...sharedForAll, 'transpose_dim', 'layers_of_tensors'];
+        return [...sharedForAll, 'transpose_dim'];
       case 'permute':
         return [...sharedForAll, 'permute_dim'];
       case 'multiply':
       case 'matmultiply':
         return [...sharedForAll, 'layers_of_tensors'];
       case 'split':
-        return [...sharedForAll, 'layers_of_tensors', 'output_vars'];
+        return [...sharedForAll, 'output_vars'];
       case 'binop_add':
       case 'binop_subtract':
       case 'binop_multiply':
@@ -172,18 +172,18 @@ class NNAttributeUpdateComponent extends Component<Props, ComponentState> {
         return [...sharedForAll, 'actual_vars', 'layers_of_tensors'];
       case 'mean':
       case 'max':
-        return [...sharedForAll, 'layers_of_tensors', 'reduce_dim'];
+        return [...sharedForAll, 'reduce_dim'];
       case 'squeeze':
       case 'unsqueeze':
-        return [...sharedForAll, 'layers_of_tensors', 'reduce_dim'];
+        return [...sharedForAll, 'reduce_dim'];
       case 'shape_dim':
-        return [...sharedForAll, 'layers_of_tensors', 'reduce_dim'];
+        return [...sharedForAll, 'reduce_dim'];
       case 'normalize':
-        return [...sharedForAll, 'layers_of_tensors', 'reduce_dim'];
+        return [...sharedForAll, 'reduce_dim'];
       case 'repeat':
-        return [...sharedForAll, 'layers_of_tensors'];
+        return sharedForAll;
       case 'zeros_like':
-        return [...sharedForAll, 'layers_of_tensors'];
+        return sharedForAll;
       case 'subscript':
       case 'interpolate':
       case 'pad':
