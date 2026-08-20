@@ -9,6 +9,7 @@
  */
 
 import { useEffect, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { toast } from 'react-toastify';
 import type { AssistantClient } from '../services';
 
@@ -45,6 +46,7 @@ export function useWebSocketConnection({
   assistantClient,
   isActive,
 }: UseWebSocketConnectionOptions): UseWebSocketConnectionReturn {
+  const { t } = useTranslation();
   const [connectionStatus, setConnectionStatus] = useState<ConnectionStatus>('disconnected');
 
   // Track active state in a ref so handlers (which are registered once) can
@@ -87,7 +89,7 @@ export function useWebSocketConnection({
     // client, this resolves immediately.
     assistantClient.connect().catch(() => {
       setConnectionStatus('disconnected');
-      toast.error('Could not reach the AI assistant \u2014 make sure the backend is running.');
+      toast.error(t('assistant.errors.backendUnreachable'));
     });
 
     // The client is SHARED between the widget and the drawer, so a single

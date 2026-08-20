@@ -16,6 +16,7 @@ import {
   Wrench,
   XCircle,
 } from "lucide-react"
+import { useTranslation } from "react-i18next"
 
 import { cn } from "@/lib/utils"
 import { cancelSmartGenUrl } from "@/main/shared/constants/constant"
@@ -242,26 +243,27 @@ export interface ChatMessageProps extends Message {
 /* ------------------------------------------------------------------ */
 
 function MessageBadge({ message }: { message: ChatMessageProps }) {
+  const { t } = useTranslation()
   if (message.isProgress) {
     return (
       <span className="inline-flex items-center gap-1 rounded-full bg-blue-500/10 px-2 py-0.5 text-[10px] font-medium text-blue-600 dark:text-blue-400">
         <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-blue-500" />
-        In progress
+        {t("assistant.chatKit.badge.inProgress")}
       </span>
     )
   }
   if (message.isError) {
     return (
       <span className="inline-flex items-center gap-1 rounded-full bg-red-500/10 px-2 py-0.5 text-[10px] font-medium text-red-600 dark:text-red-400">
-        Error
+        {t("assistant.chatKit.badge.error")}
       </span>
     )
   }
   if (message.injectionType) {
     const labels: Record<string, string> = {
-      inject_element: "Applied",
-      inject_complete_system: "System created",
-      modify_model: "Modified",
+      inject_element: t("assistant.chatKit.badge.applied"),
+      inject_complete_system: t("assistant.chatKit.badge.systemCreated"),
+      modify_model: t("assistant.chatKit.badge.modified"),
     }
     return (
       <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 px-2 py-0.5 text-[10px] font-medium text-emerald-600 dark:text-emerald-400">
@@ -278,7 +280,7 @@ function MessageBadge({ message }: { message: ChatMessageProps }) {
             strokeLinejoin="round"
           />
         </svg>
-        {labels[message.injectionType] || "Applied"}
+        {labels[message.injectionType] || t("assistant.chatKit.badge.applied")}
       </span>
     )
   }
@@ -286,7 +288,7 @@ function MessageBadge({ message }: { message: ChatMessageProps }) {
     return (
       <span className="inline-flex items-center gap-1 rounded-full bg-brand/10 px-2 py-0.5 text-[10px] font-medium text-brand">
         <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-brand" />
-        Typing
+        {t("assistant.chatKit.badge.typing")}
       </span>
     )
   }
@@ -304,6 +306,7 @@ function StreamingCursor() {
 }
 
 export const ChatMessage: React.FC<ChatMessageProps> = (props) => {
+  const { t } = useTranslation()
   const {
     role,
     content,
@@ -355,7 +358,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = (props) => {
                     <DialogTrigger asChild>
                       <div className="cursor-pointer overflow-hidden rounded-lg border transition-opacity hover:opacity-80">
                         <img
-                          alt={`Attachment ${file.name}`}
+                          alt={t("assistant.chatKit.attachmentAlt", { name: file.name })}
                           className="max-h-48 max-w-[280px] object-contain"
                           src={objectUrl}
                         />
@@ -363,7 +366,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = (props) => {
                     </DialogTrigger>
                     <DialogContent className="flex max-h-[90vh] max-w-[90vw] items-center justify-center border-none bg-transparent p-0 shadow-none">
                       <img
-                        alt={`Attachment ${file.name}`}
+                        alt={t("assistant.chatKit.attachmentAlt", { name: file.name })}
                         className="max-h-[85vh] max-w-[85vw] rounded-lg object-contain"
                         src={objectUrl}
                       />
@@ -546,6 +549,7 @@ function dataUrlToUint8Array(data: string) {
 }
 
 const ReasoningBlock = ({ part }: { part: ReasoningPart }) => {
+  const { t } = useTranslation()
   const [isOpen, setIsOpen] = useState(false)
 
   return (
@@ -557,9 +561,9 @@ const ReasoningBlock = ({ part }: { part: ReasoningPart }) => {
       >
         <div className="flex items-center p-2">
           <CollapsibleTrigger asChild>
-            <button className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground" aria-label="Toggle reasoning details">
+            <button className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground" aria-label={t("assistant.chatKit.toggleReasoning")}>
               <ChevronRight className="h-4 w-4 transition-transform group-data-[state=open]:rotate-90" />
-              <span>Thinking</span>
+              <span>{t("assistant.chatKit.thinking")}</span>
             </button>
           </CollapsibleTrigger>
         </div>
@@ -949,6 +953,7 @@ function SmartGenCard({
 function ToolCall({
   toolInvocations,
 }: Pick<ChatMessageProps, "toolInvocations">) {
+  const { t } = useTranslation()
   if (!toolInvocations?.length) return null
 
   return (
@@ -966,7 +971,7 @@ function ToolCall({
             >
               <Ban className="h-4 w-4" />
               <span>
-                Cancelled{" "}
+                {t("assistant.chatKit.toolCancelled")}{" "}
                 <span className="font-mono">
                   {"`"}
                   {invocation.toolName}
@@ -987,7 +992,7 @@ function ToolCall({
               >
                 <Terminal className="h-4 w-4 text-primary/70" />
                 <span>
-                  Calling{" "}
+                  {t("assistant.chatKit.toolCalling")}{" "}
                   <span className="font-mono">
                     {"`"}
                     {invocation.toolName}
@@ -1007,7 +1012,7 @@ function ToolCall({
                 <div className="flex items-center gap-2 text-muted-foreground">
                   <Code2 className="h-4 w-4 text-primary/60" />
                   <span>
-                    Result from{" "}
+                    {t("assistant.chatKit.toolResultFrom")}{" "}
                     <span className="font-mono">
                       {"`"}
                       {invocation.toolName}

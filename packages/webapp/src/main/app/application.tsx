@@ -197,6 +197,10 @@ function AppContentInner() {
         qiskitShots={configState.qiskitShots}
         // ── Web App checklist ────────────────────────────────────────
         webAppChecklist={configState.webAppChecklist}
+        webAppVersionMode={configState.webAppVersionMode}
+        webAppSelectedProfileId={configState.webAppSelectedProfileId}
+        onWebAppVersionModeChange={configState.onWebAppVersionModeChange}
+        onWebAppSelectedProfileIdChange={configState.onWebAppSelectedProfileIdChange}
         // ── Field change handlers ────────────────────────────────────
         onDjangoProjectNameChange={configState.onDjangoProjectNameChange}
         onDjangoAppNameChange={configState.onDjangoAppNameChange}

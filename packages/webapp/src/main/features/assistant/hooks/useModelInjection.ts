@@ -85,7 +85,14 @@ function centerEditorViewport(model: any, delayMs = 200): void {
   }, delayMs);
 }
 
-const UML_DIAGRAM_TYPES = new Set(['ClassDiagram', 'ObjectDiagram', 'StateMachineDiagram', 'AgentDiagram', 'BPMN']);
+const UML_DIAGRAM_TYPES = new Set([
+  'ClassDiagram',
+  'ObjectDiagram',
+  'StateMachineDiagram',
+  'AgentDiagram',
+  'UserDiagram',
+  'BPMN',
+]);
 const isUmlDiagramType = (t?: string): boolean => (t ? UML_DIAGRAM_TYPES.has(t) : false);
 
 function shouldCenterViewportAfterInjection(command: InjectionCommand, previousModel: any, nextModel: any): boolean {
@@ -338,6 +345,7 @@ export function useModelInjection({
                 command.systemSpec.classes ??
                   command.systemSpec.states ??
                   command.systemSpec.objects ??
+                  command.systemSpec.profiles ??
                   command.systemSpec.intents ??
                   command.systemSpec.nodes,
               )

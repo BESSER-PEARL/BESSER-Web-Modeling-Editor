@@ -9,6 +9,9 @@ import { runStorageMigrations } from './shared/utils/storage-migration';
 import { initLazyAnalytics } from './shared/services/analytics/lazy-analytics';
 import { hasUserConsented } from './shared/components/cookie-consent/CookieConsentBanner';
 
+// Initialise i18next (language detection + resource bundles) before first render.
+import './shared/i18n';
+
 import './styles.css';
 
 // Run localStorage schema migrations before anything else reads stored data

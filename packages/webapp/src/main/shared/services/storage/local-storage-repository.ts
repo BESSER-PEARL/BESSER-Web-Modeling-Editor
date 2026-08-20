@@ -54,7 +54,8 @@ export const normalizeAgentRuntimeConfig = (
     raw.agentLlmProvider === 'openai' ||
     raw.agentLlmProvider === 'huggingface' ||
     raw.agentLlmProvider === 'huggingfaceapi' ||
-    raw.agentLlmProvider === 'replicate'
+    raw.agentLlmProvider === 'replicate' ||
+    raw.agentLlmProvider === 'ollama'
       ? raw.agentLlmProvider
       : '';
   const intent: IntentRecognitionTechnology =

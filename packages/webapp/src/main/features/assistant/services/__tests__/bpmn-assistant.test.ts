@@ -111,6 +111,78 @@ describe('BPMNDiagramConverter', () => {
       const result = converter.convertSingleElement({ type: 'task', name: 'Solo' });
       expect(elementsByType(result, 'BPMNTask')).toHaveLength(1);
     });
+
+    it('emits pools, swimlanes, and lane-owned nodes for pooled specs', () => {
+      const result = converter.convertCompleteSystem({
+        nodes: [
+          {
+            id: 'start',
+            type: 'startEvent',
+            name: 'Order Received',
+            poolId: 'pizza_vendor',
+            laneId: 'clerk',
+            owner: 'clerk',
+          },
+          {
+            id: 'task1',
+            type: 'task',
+            name: 'Check Ingredients',
+            taskType: 'service',
+            poolId: 'pizza_vendor',
+            laneId: 'chef',
+            owner: 'chef',
+          },
+        ],
+        flows: [{ source: 'start', target: 'task1' }],
+        pools: [
+          {
+            id: 'pizza_vendor',
+            name: 'Pizza Vendor',
+            lanes: [
+              { id: 'clerk', name: 'Clerk' },
+              { id: 'chef', name: 'Chef' },
+              { id: 'delivery_driver', name: 'Delivery Driver' },
+            ],
+          },
+        ],
+      });
+
+      const pools = elementsByType(result, 'BPMNPool') as any[];
+      const lanes = elementsByType(result, 'BPMNSwimlane') as any[];
+      const start = elementsByType(result, 'BPMNStartEvent')[0] as any;
+      const task = elementsByType(result, 'BPMNTask')[0] as any;
+      const clerkLane = lanes.find((lane) => lane.name === 'Clerk');
+      const chefLane = lanes.find((lane) => lane.name === 'Chef');
+      const emptyLane = lanes.find((lane) => lane.name === 'Delivery Driver');
+
+      expect(pools).toHaveLength(1);
+      expect(lanes).toHaveLength(3);
+      expect(clerkLane?.owner).toBe(pools[0].id);
+      expect(chefLane?.owner).toBe(pools[0].id);
+      expect(emptyLane).toBeDefined();
+      expect(start.owner).toBe(clerkLane?.id);
+      expect(task.owner).toBe(chefLane?.id);
+      expect(start.owner).not.toBe('clerk');
+      expect(task.owner).not.toBe('chef');
+    });
+
+    it('infers message flows for cross-pool edges', () => {
+      const result = converter.convertCompleteSystem({
+        nodes: [
+          { id: 'customer_send', type: 'task', name: 'Place Order', poolId: 'customer', laneId: 'customer_lane' },
+          { id: 'vendor_receive', type: 'task', name: 'Receive Order', poolId: 'vendor', laneId: 'vendor_lane' },
+        ],
+        flows: [{ source: 'customer_send', target: 'vendor_receive' }],
+        pools: [
+          { id: 'customer', name: 'Customer', lanes: [{ id: 'customer_lane', name: 'Customer' }] },
+          { id: 'vendor', name: 'Vendor', lanes: [{ id: 'vendor_lane', name: 'Vendor' }] },
+        ],
+      });
+
+      const flows = Object.values(result.relationships) as any[];
+      expect(flows).toHaveLength(1);
+      expect(flows[0].flowType).toBe('message');
+    });
   });
 });
 

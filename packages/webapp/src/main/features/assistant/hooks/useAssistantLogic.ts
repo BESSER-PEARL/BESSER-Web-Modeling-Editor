@@ -17,6 +17,7 @@
  */
 
 import { useCallback, useContext, useEffect, useRef, useState, useSyncExternalStore } from 'react';
+import { useTranslation } from 'react-i18next';
 import { toast } from 'react-toastify';
 import type { Message as ChatKitMessage } from '@/components/chatbot-kit/ui/chat-message';
 import { getPostHog } from '../../../shared/services/analytics/lazy-analytics';
@@ -242,6 +243,8 @@ export function useAssistantLogic({
   switchDiagram,
   onGenerate,
 }: UseAssistantLogicOptions): UseAssistantLogicReturn {
+  const { t } = useTranslation();
+
   /* ---- core state (owned by orchestrator) ---- */
   // Conversation lives in a SHARED external store so the floating widget and the
   // workspace drawer render IDENTICAL content (one client, one session, one
@@ -611,8 +614,8 @@ export function useAssistantLogic({
         }
       } catch (error) {
         console.error('[useAssistantLogic] Failed to create diagram tab:', error);
-        const errorMsg = error instanceof Error ? error.message : 'Unknown error';
-        toast.error(`Could not create new tab: ${errorMsg}`);
+        const errorMsg = error instanceof Error ? error.message : t('assistant.errors.unknownError');
+        toast.error(t('assistant.errors.createTabFailed', { error: errorMsg }));
       }
       return;
     }
@@ -622,7 +625,7 @@ export function useAssistantLogic({
       if (!diagramType) return;
       const switched = await injection.ensureTargetDiagramReady(diagramType);
       if (!switched) {
-        setMessages((prev) => [...prev, toKitMessage('assistant', `Could not switch to ${diagramType}.`)]);
+        setMessages((prev) => [...prev, toKitMessage('assistant', t('assistant.errors.switchFailed', { type: diagramType }))]);
       } else {
         const reason = payload.reason;
         if (typeof reason === 'string' && reason.trim()) {
@@ -636,7 +639,7 @@ export function useAssistantLogic({
       const generatorType = payload.generatorType;
       const handler = onGenerateRef.current;
       if (!handler || typeof generatorType !== 'string') {
-        setMessages((prev) => [...prev, toKitMessage('assistant', 'Generation is not available in this context.')]);
+        setMessages((prev) => [...prev, toKitMessage('assistant', t('assistant.errors.generationUnavailable'))]);
         return;
       }
       const result = await handler(generatorType as GeneratorType, payload.config);
@@ -646,7 +649,7 @@ export function useAssistantLogic({
           typeof payload.message === 'string' && payload.message.trim()
             ? payload.message
             : result.ok
-              ? 'Generation completed successfully.'
+              ? t('assistant.generationCompleted')
               : result.error,
         metadata: result.ok && result.filename ? { filename: result.filename } : undefined,
       });
@@ -720,14 +723,14 @@ export function useAssistantLogic({
 
     if (payload.action === 'trigger_export') {
       const format = typeof payload.format === 'string' ? payload.format : 'json';
-      const msg = typeof payload.message === 'string' && payload.message.trim() ? payload.message : `Exporting project as ${format.toUpperCase()}\u2026`;
+      const msg = typeof payload.message === 'string' && payload.message.trim() ? payload.message : t('assistant.exportingProject', { format: format.toUpperCase() });
       setMessages((prev) => [...prev, toKitMessage('assistant', msg)]);
       window.dispatchEvent(new CustomEvent('wme:assistant-export-project', { detail: { format } }));
       return;
     }
 
     if (payload.action === 'trigger_deploy') {
-      const msg = typeof payload.message === 'string' && payload.message.trim() ? payload.message : 'Starting deployment\u2026';
+      const msg = typeof payload.message === 'string' && payload.message.trim() ? payload.message : t('assistant.startingDeployment');
       setMessages((prev) => [...prev, toKitMessage('assistant', msg)]);
       window.dispatchEvent(new CustomEvent('wme:assistant-deploy-app', {
         detail: {
@@ -741,7 +744,7 @@ export function useAssistantLogic({
     /* ---- structured agent_error ---- */
 
     if (payload.action === 'agent_error') {
-      const errorMsg = typeof payload.message === 'string' ? payload.message : 'Something went wrong on the assistant side.';
+      const errorMsg = typeof payload.message === 'string' ? payload.message : t('assistant.errors.genericAgentError');
       const errorCode = typeof (payload as any).errorCode === 'string' ? (payload as any).errorCode as string : undefined;
       const suggestedRecovery = typeof (payload as any).suggestedRecovery === 'string' ? (payload as any).suggestedRecovery as string : undefined;
       const retryable = (payload as any).retryable === true;
@@ -759,7 +762,7 @@ export function useAssistantLogic({
         return [...cleaned, errMsg];
       });
 
-      const meta: MessageMeta = { badge: 'error', badgeLabel: errorCode ? `Error: ${errorCode}` : 'Error' };
+      const meta: MessageMeta = { badge: 'error', badgeLabel: errorCode ? t('assistant.errors.errorWithCode', { code: errorCode }) : t('assistant.errors.error') };
       // A rate-limit or auth error is recoverable by the user supplying their
       // own API key — flag it so the surface shows an inline "Add your API
       // key" button that opens the AssistantByokDialog.
@@ -767,7 +770,7 @@ export function useAssistantLogic({
         meta.needsApiKey = true;
       }
       if (retryable && suggestedRecovery) {
-        meta.suggestedActions = [{ label: 'Try again', prompt: suggestedRecovery }];
+        meta.suggestedActions = [{ label: t('assistant.tryAgain'), prompt: suggestedRecovery }];
       }
       setMessageMeta((prev) => ({ ...prev, [errMsg.id]: { ...prev[errMsg.id], ...meta } }));
 
@@ -778,7 +781,7 @@ export function useAssistantLogic({
     if (payload.action === 'auto_generate_gui') {
       const diagramReady = await injection.ensureTargetDiagramReady('GUINoCodeDiagram');
       if (!diagramReady) {
-        setMessages((prev) => [...prev, toKitMessage('assistant', 'Could not switch to the GUI editor. Please switch manually and try again.')]);
+        setMessages((prev) => [...prev, toKitMessage('assistant', t('assistant.errors.guiSwitchFailed'))]);
         return;
       }
       const editorReady = await new Promise<boolean>((resolve) => {
@@ -795,19 +798,19 @@ export function useAssistantLogic({
         window.addEventListener('wme:gui-editor-ready', onReady);
       });
       if (!editorReady) {
-        setMessages((prev) => [...prev, toKitMessage('assistant', 'The GUI editor did not become ready in time. Please try again.')]);
+        setMessages((prev) => [...prev, toKitMessage('assistant', t('assistant.errors.guiNotReady'))]);
         return;
       }
-      setMessages((prev) => [...prev, toKitMessage('assistant', 'Generating GUI from your Class Diagram\u2026')]);
+      setMessages((prev) => [...prev, toKitMessage('assistant', t('assistant.generatingGui'))]);
       const result = await new Promise<{ ok: boolean; error?: string }>((resolve) => {
         const timeout = setTimeout(() => {
           window.removeEventListener('wme:assistant-auto-generate-gui-done', onDone);
-          resolve({ ok: false, error: 'Timed out' });
+          resolve({ ok: false, error: t('assistant.errors.timedOut') });
         }, 30_000);
         const onDone = (event: Event) => {
           clearTimeout(timeout);
           window.removeEventListener('wme:assistant-auto-generate-gui-done', onDone);
-          resolve((event as CustomEvent).detail ?? { ok: false, error: 'No response' });
+          resolve((event as CustomEvent).detail ?? { ok: false, error: t('assistant.errors.noResponse') });
         };
         window.addEventListener('wme:assistant-auto-generate-gui-done', onDone);
         window.dispatchEvent(new CustomEvent('wme:assistant-auto-generate-gui'));
@@ -818,12 +821,12 @@ export function useAssistantLogic({
           toKitMessage('assistant',
             typeof payload.message === 'string' && payload.message.trim()
               ? payload.message
-              : '\u2713 GUI generated successfully from your Class Diagram!'),
+              : t('assistant.guiGenerated')),
         ]);
       } else {
         setMessages((prev) => [
           ...prev,
-          toKitMessage('assistant', `Could not generate the GUI: ${sanitizeForDisplay(result.error || 'unknown error')}.`),
+          toKitMessage('assistant', t('assistant.errors.guiGenerateFailed', { error: sanitizeForDisplay(result.error || t('assistant.errors.unknownError')) })),
         ]);
       }
       return;
@@ -969,23 +972,23 @@ export function useAssistantLogic({
       if (hasFiles) {
         for (const file of Array.from(attachedFiles!)) {
           if (file.size > MAX_FILE_SIZE) {
-            toast.error(`File "${safeName(file.name)}" is too large (max 10MB).`);
+            toast.error(t('assistant.errors.fileTooLarge', { name: safeName(file.name) }));
             return;
           }
         }
       }
 
       // --- Rate limit check ---
-      const messageText = normalizedInput || (hasFiles ? 'Convert this file to a diagram' : '');
+      const messageText = normalizedInput || (hasFiles ? t('assistant.convertFileToDiagram') : '');
       const rateLimitCheck = await rateLimiter.checkRateLimit(messageText);
       setRateLimitStatus(rateLimiter.getRateLimitStatus());
       if (!rateLimitCheck.allowed) {
-        toast.error(rateLimitCheck.reason || 'Rate limit exceeded. Please wait before sending another message.');
+        toast.error(rateLimitCheck.reason || t('assistant.errors.rateLimit'));
         return;
       }
 
       const displayText = hasFiles
-        ? `${normalizedInput || 'Convert this file'} \ud83d\udcce ${Array.from(attachedFiles!).map((f) => safeName(f.name)).join(', ')}`
+        ? `${normalizedInput || t('assistant.convertThisFile')} \ud83d\udcce ${Array.from(attachedFiles!).map((f) => safeName(f.name)).join(', ')}`
         : normalizedInput;
 
       // Build attachment previews for the message bubble
@@ -1034,7 +1037,7 @@ export function useAssistantLogic({
           );
         } catch (error) {
           console.error('Failed to read attached files:', error);
-          toast.error('Could not read the attached file(s). Please try again.');
+          toast.error(t('assistant.errors.readFileFailed'));
           return;
         }
       }
@@ -1060,11 +1063,11 @@ export function useAssistantLogic({
       setRateLimitStatus(rateLimiter.getRateLimitStatus());
 
       if (sendResult === 'queued') {
-        toast.info('Reconnecting to the assistant \u2014 your message will be sent automatically.');
+        toast.info(t('assistant.reconnectingMessage'));
         connection.setConnectionStatus('connecting');
         assistantClient.connect().catch(() => connection.setConnectionStatus('disconnected'));
       } else if (sendResult === 'error') {
-        toast.error('Could not send your message \u2014 please try again.');
+        toast.error(t('assistant.errors.sendFailed'));
       }
     } finally {
       isSendingRef.current = false;
@@ -1087,7 +1090,7 @@ export function useAssistantLogic({
       const rateLimitCheck = await rateLimiter.checkRateLimit('voice message');
       setRateLimitStatus(rateLimiter.getRateLimitStatus());
       if (!rateLimitCheck.allowed) {
-        toast.error(rateLimitCheck.reason || 'Rate limit exceeded. Please wait before sending another message.');
+        toast.error(rateLimitCheck.reason || t('assistant.errors.rateLimit'));
         return;
       }
 
@@ -1116,18 +1119,18 @@ export function useAssistantLogic({
       if (sendResult === 'queued') {
         // Keep the placeholder: the message will be sent on reconnect and its
         // transcription echo will replace the bubble in place.
-        toast.info('Reconnecting to the assistant \u2014 your voice message will be sent automatically.');
+        toast.info(t('assistant.reconnectingVoice'));
         connection.setConnectionStatus('connecting');
         assistantClient.connect().catch(() => connection.setConnectionStatus('disconnected'));
       } else if (sendResult === 'error') {
         // Send failed outright - no echo is coming, so drop the placeholder.
         removeVoicePlaceholder();
-        toast.error('Could not send your voice message \u2014 please try again.');
+        toast.error(t('assistant.errors.sendVoiceFailed'));
       }
     } catch (error) {
       console.error('Error sending voice message:', error);
       removeVoicePlaceholder();
-      toast.error('Could not process your voice message. Please try again.');
+      toast.error(t('assistant.errors.voiceProcessFailed'));
     } finally {
       isSendingRef.current = false;
     }

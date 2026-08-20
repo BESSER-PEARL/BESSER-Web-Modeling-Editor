@@ -8,6 +8,7 @@
  */
 
 import React, { useState, useEffect, useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { AlertTriangle, ArrowDown, Check, CircleHelp, Code, Flag, KeyRound, X } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
@@ -50,19 +51,19 @@ const getConnectionDotClass = (status: ConnectionStatus): string => {
   }
 };
 
-const getConnectionLabel = (status: ConnectionStatus): string => {
+const getConnectionLabelKey = (status: ConnectionStatus): string => {
   switch (status) {
     case 'connected':
-      return 'Connected';
+      return 'assistant.connection.connected';
     case 'connecting':
-      return 'Connecting\u2026';
+      return 'common.connecting';
     case 'closing':
-      return 'Closing\u2026';
+      return 'assistant.connection.closing';
     case 'closed':
     case 'disconnected':
-      return 'Disconnected';
+      return 'assistant.connection.disconnected';
     default:
-      return 'Unknown';
+      return 'assistant.connection.unknown';
   }
 };
 
@@ -79,6 +80,7 @@ interface AssistantWidgetProps {
 /* ------------------------------------------------------------------ */
 
 export const AssistantWidget: React.FC<AssistantWidgetProps> = ({ onAssistantGenerate }) => {
+  const { t } = useTranslation();
   const [isVisible, setIsVisible] = useState(false);
   const [showDisclaimer, setShowDisclaimer] = useState(false);
   const [byokOpen, setByokOpen] = useState(false);
@@ -227,11 +229,11 @@ export const AssistantWidget: React.FC<AssistantWidgetProps> = ({ onAssistantGen
           <div className="relative flex items-center justify-between overflow-hidden border-b border-border/40 px-4 py-3.5" style={{ background: 'linear-gradient(135deg, hsl(var(--brand) / 0.06) 0%, transparent 100%)' }}>
             <div className="flex items-center gap-3">
               <div className="flex size-9 items-center justify-center overflow-hidden rounded-xl bg-brand/10 ring-1 ring-brand/15">
-                <img src={AGENT_AVATAR_SRC} alt="Agent" className="size-6 object-contain" />
+                <img src={AGENT_AVATAR_SRC} alt={t('assistant.agentAvatarAlt')} className="size-6 object-contain" />
               </div>
               <div>
-                <p className="text-sm font-semibold leading-none tracking-tight text-foreground">Modeling Assistant</p>
-                <p className="mt-1 text-[11px] font-medium text-muted-foreground/60">by BESSER</p>
+                <p className="text-sm font-semibold leading-none tracking-tight text-foreground">{t('assistant.modelingAssistant')}</p>
+                <p className="mt-1 text-[11px] font-medium text-muted-foreground/60">{t('assistant.byBesser')}</p>
               </div>
             </div>
             <div className="flex items-center gap-2.5">
@@ -263,8 +265,8 @@ export const AssistantWidget: React.FC<AssistantWidgetProps> = ({ onAssistantGen
                 size="icon"
                 className="size-7 rounded-lg text-muted-foreground/60 transition-colors hover:bg-brand/5 hover:text-foreground"
                 onClick={() => setShowDisclaimer(true)}
-                title="Privacy and data processing"
-                aria-label="Privacy and data processing"
+                title={t('assistant.privacy.iconLabel')}
+                aria-label={t('assistant.privacy.iconLabel')}
               >
                 <CircleHelp className="size-3.5" />
               </Button>
@@ -278,19 +280,19 @@ export const AssistantWidget: React.FC<AssistantWidgetProps> = ({ onAssistantGen
             {messages.length === 0 && !isGenerating ? (
               <div className="flex h-full flex-col items-center justify-center gap-4 px-4 text-center">
                 <div className="flex size-14 items-center justify-center rounded-2xl bg-brand/8 ring-1 ring-brand/10">
-                  <img src={AGENT_AVATAR_SRC} alt="Agent" className="size-9 object-contain" />
+                  <img src={AGENT_AVATAR_SRC} alt={t('assistant.agentAvatarAlt')} className="size-9 object-contain" />
                 </div>
                 <div>
-                  <p className="text-sm font-semibold text-foreground">Hi! I'm your Modeling Assistant</p>
+                  <p className="text-sm font-semibold text-foreground">{t('assistant.welcome.greeting')}</p>
                   <p className="mt-1.5 text-xs leading-relaxed text-muted-foreground">
-                    I can help you create and modify UML diagrams, generate code, and answer modeling questions. Try something like:
+                    {t('assistant.welcome.intro')}
                   </p>
                 </div>
                 <div className="flex flex-col gap-1.5 w-full max-w-xs">
                   {[
-                    'Build a library app to track books and loans',
-                    'Add a Payment with an amount and a date',
-                    'Generate Django code',
+                    t('assistant.welcome.suggestions.library'),
+                    t('assistant.welcome.suggestions.payment'),
+                    t('assistant.welcome.suggestions.django'),
                   ].map((suggestion) => (
                     <button
                       key={suggestion}
@@ -369,12 +371,12 @@ export const AssistantWidget: React.FC<AssistantWidgetProps> = ({ onAssistantGen
             <div className="mb-2 flex items-center justify-between">
               <div className="flex items-center gap-2 text-[10px] text-muted-foreground/50">
                 <span className={cn('size-1.5 rounded-full', getConnectionDotClass(connectionStatus))} />
-                <span className="font-medium">{getConnectionLabel(connectionStatus)}</span>
+                <span className="font-medium">{t(getConnectionLabelKey(connectionStatus))}</span>
               </div>
               <div className="flex items-center gap-2.5">
                 <span className={cn('font-mono text-[10px] tracking-wide', rateLimitColor)}>{rateLimitStatus.requestsLastMinute}/8</span>
                 <span className="text-[10px] text-muted-foreground/30">|</span>
-                <span className="text-[10px] text-muted-foreground/50">{messages.length} msg{messages.length === 1 ? '' : 's'}</span>
+                <span className="text-[10px] text-muted-foreground/50">{t('assistant.messageCount', { count: messages.length })}</span>
               </div>
             </div>
             <ChatForm className="w-full" isPending={isGenerating} handleSubmit={handleSubmit}>
@@ -383,7 +385,7 @@ export const AssistantWidget: React.FC<AssistantWidgetProps> = ({ onAssistantGen
                   value={inputValue}
                   onChange={(e) => setInputValue(e.target.value)}
                   onKeyDown={handleInputKeyDown}
-                  placeholder="Describe what you want to create or modify..."
+                  placeholder={t('assistant.composer.placeholder')}
                   onVoiceSend={(blob) => sendVoiceMessage(blob)}
                   allowAttachments
                   files={files}
@@ -407,14 +409,14 @@ export const AssistantWidget: React.FC<AssistantWidgetProps> = ({ onAssistantGen
               : 'border-border/40 hover:border-brand/25 hover:bg-brand/5',
           )}
           onClick={() => setIsVisible((p) => !p)}
-          title={isVisible ? 'Close assistant' : 'Open assistant'}
-          aria-label={isVisible ? 'Close assistant' : 'Open assistant'}
+          title={isVisible ? t('assistant.fab.close') : t('assistant.fab.open')}
+          aria-label={isVisible ? t('assistant.fab.close') : t('assistant.fab.open')}
         >
           {isVisible ? (
             <X className="size-5 transition-transform duration-200 group-hover:rotate-90" />
           ) : (
             <>
-              <img src={AGENT_AVATAR_SRC} alt="Agent" className="size-10 rounded-xl transition-transform duration-200 group-hover:scale-110" />
+              <img src={AGENT_AVATAR_SRC} alt={t('assistant.agentAvatarAlt')} className="size-10 rounded-xl transition-transform duration-200 group-hover:scale-110" />
               {connectionStatus === 'connected' && (
                 <span className="absolute -right-0.5 -top-0.5 size-3 rounded-full border-2 border-white bg-emerald-500 dark:border-slate-900" />
               )}
@@ -429,25 +431,25 @@ export const AssistantWidget: React.FC<AssistantWidgetProps> = ({ onAssistantGen
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <CircleHelp className="size-5" />
-              Privacy and Data Processing
+              {t('assistant.privacy.title')}
             </DialogTitle>
             <DialogDescription>
-              Important information about how the assistant processes modeling data.
+              {t('assistant.privacy.subtitle')}
             </DialogDescription>
           </DialogHeader>
           <div className="flex flex-col gap-3 text-sm leading-relaxed text-muted-foreground">
-            <p><strong className="text-foreground">Data processing notice:</strong></p>
-            <p>When you use the Modeling Assistant, your messages and diagram data are processed to provide AI-powered modeling support.</p>
+            <p><strong className="text-foreground">{t('assistant.privacy.noticeHeading')}</strong></p>
+            <p>{t('assistant.privacy.body')}</p>
             <ul className="flex list-disc flex-col gap-1 pl-5">
-              <li>Your diagram models and messages are sent to the AI service for processing.</li>
-              <li>Data is transmitted over encrypted connections.</li>
-              <li>Requests are processed to generate UML updates and modeling suggestions.</li>
-              <li>Conversation history is stored locally in your current browser session.</li>
+              <li>{t('assistant.privacy.bullets.sent')}</li>
+              <li>{t('assistant.privacy.bullets.encrypted')}</li>
+              <li>{t('assistant.privacy.bullets.processed')}</li>
+              <li>{t('assistant.privacy.bullets.stored')}</li>
             </ul>
-            <p><strong className="text-foreground">Privacy:</strong> Avoid sharing sensitive or confidential information in assistant messages.</p>
+            <p><strong className="text-foreground">{t('assistant.privacy.privacyLabel')}</strong> {t('assistant.privacy.privacyBody')}</p>
           </div>
           <DialogFooter>
-            <Button type="button" onClick={() => setShowDisclaimer(false)}>I Understand</Button>
+            <Button type="button" onClick={() => setShowDisclaimer(false)}>{t('assistant.privacy.understand')}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

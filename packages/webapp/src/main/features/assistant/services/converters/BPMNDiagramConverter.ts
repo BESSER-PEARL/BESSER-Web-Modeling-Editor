@@ -21,7 +21,7 @@
  *
  * NOTE on naming: the converter is registered under the STORAGE-BUCKET token
  * "BPMN" (what SupportedDiagramType / the store use), but it emits the Apollon
- * model.type "BPMNDiagram".  See guide 17 §0c for why.
+ * model.type "BPMNDiagram". 
  */
 
 import { DiagramConverter, generateUniqueId } from './base';
@@ -193,6 +193,7 @@ export class BPMNDiagramConverter implements DiagramConverter {
     const elements: Record<string, any> = {};
     const relationships: Record<string, any> = {};
     const idMap: Record<string, string> = {}; // spec id -> apollon id
+    const laneIdMap: Record<string, string> = {}; // spec pool::lane -> apollon swimlane id
 
     // --- Band model: one band per lane, or one band per pool when it has no
     // lanes. Nodes with an unrecognized/missing poolId land in a trailing
@@ -283,6 +284,7 @@ export class BPMNDiagramConverter implements DiagramConverter {
       pool.lanes.forEach((lane, i) => {
         const band = bands[i];
         const laneApollonId = generateUniqueId('bpmn');
+        laneIdMap[`${pool.id}::${lane.id}`] = laneApollonId;
         elements[laneApollonId] = {
           id: laneApollonId,
           name: lane.name,
@@ -312,7 +314,8 @@ export class BPMNDiagramConverter implements DiagramConverter {
       const row = rowOf[n.id] ?? 0;
       const x = POOL_HEADER_WIDTH + layer * COL_GAP;
       const y = bandY + BAND_V_PADDING + row * ROW_GAP;
-      this.emitNodeElement(n, x, y, elements, idMap);
+      const owner = n.poolId && n.laneId ? laneIdMap[`${n.poolId}::${n.laneId}`] ?? null : null;
+      this.emitNodeElement(n, x, y, elements, idMap, owner);
     });
 
     // --- Emit flows: cross-pool flows become message flows with a vertical
@@ -338,6 +341,7 @@ export class BPMNDiagramConverter implements DiagramConverter {
     y: number,
     elements: Record<string, any>,
     idMap: Record<string, string>,
+    owner: string | null = null,
   ): void {
     const apollonType = this.normalizeType(n.type);
     const isTask = apollonType === 'BPMNTask';
@@ -350,7 +354,7 @@ export class BPMNDiagramConverter implements DiagramConverter {
       id: apollonId,
       name: typeof n.name === 'string' ? n.name : '',
       type: apollonType,
-      owner: null,
+      owner,
       bounds: { x, y, width: w, height: h },
     };
 

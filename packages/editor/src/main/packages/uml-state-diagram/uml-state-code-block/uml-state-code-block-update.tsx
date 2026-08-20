@@ -123,7 +123,7 @@ class StateCodeBlockUpdate extends Component<Props, State> {
       <div>
         <section>
           <Flex>
-            <Header>Python Code Block</Header>
+            <Header>{this.props.translate('popup.pythonCodeBlock')}</Header>
             <ColorButton onClick={this.toggleColor} />
             <Button color="link" tabIndex={-1} onClick={() => deleteElement(element.id)}>
               <TrashIcon />

@@ -5,7 +5,8 @@
  * Owns only the drag-to-open/close gesture, layout animation, and rendering.
  */
 
-import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { ArrowDown, ChevronUp, MessageSquarePlus, Layers, Palette, Code2, Sparkles, Flag, KeyRound } from 'lucide-react';
 import { ChatForm } from '@/components/chatbot-kit/ui/chat';
 import { MessageInput } from '@/components/chatbot-kit/ui/message-input';
@@ -53,26 +54,26 @@ const POSITION_SNAP_THRESHOLD = 0.45;
 /** Toggle floating decoration cards on the sides of the welcome screen. */
 const SHOW_FLOATING_CARDS = false;
 
-/** All available starter prompts — a random subset is displayed each session. */
-const ALL_STARTER_PROMPTS = [
-  // Data-focused apps
-  'Build an online store for customers, orders, and products',
-  'Make an app to manage class enrollments for students and courses',
-  'Build an app to manage patient appointments with doctors',
-  'Create a library app to track books, authors, and loans',
-  'Build a banking app for accounts, transactions, and customers',
-  'Make a social app with users, posts, and comments',
-  'Make a restaurant ordering app with menus, tables, and orders',
-  'Build a project tracker for tasks, teams, and sprints',
-  // App with screens
-  'Make a hotel booking app for rooms, guests, and reservations',
-  'Build an inventory dashboard to track stock levels',
-  // Full app (data + screens)
-  'Build a complete library app with data and screens',
-  'Make a task manager app with data and screens',
+/** All available starter prompt i18n keys — a random subset is displayed each session. */
+const ALL_STARTER_PROMPT_KEYS = [
+  // Class Diagrams
+  'assistant.starterPrompts.ecommerce',
+  'assistant.starterPrompts.university',
+  'assistant.starterPrompts.hospital',
+  'assistant.starterPrompts.library',
+  'assistant.starterPrompts.banking',
+  'assistant.starterPrompts.social',
+  'assistant.starterPrompts.restaurant',
+  'assistant.starterPrompts.project',
+  // GUI
+  'assistant.starterPrompts.hotel',
+  'assistant.starterPrompts.dashboard',
+  // Multi-diagram
+  'assistant.starterPrompts.libraryPlatform',
+  'assistant.starterPrompts.taskApp',
 ];
 
-/** Pick N random prompts from the pool, deterministic per session. */
+/** Pick N random prompt keys from the pool, deterministic per session. */
 function pickRandomPrompts(pool: string[], count: number): string[] {
   const shuffled = [...pool];
   let seed = Math.floor(Date.now() / 60_000);
@@ -84,7 +85,7 @@ function pickRandomPrompts(pool: string[], count: number): string[] {
   return shuffled.slice(0, count);
 }
 
-const STARTER_PROMPTS = pickRandomPrompts(ALL_STARTER_PROMPTS, 3);
+const STARTER_PROMPT_KEYS = pickRandomPrompts(ALL_STARTER_PROMPT_KEYS, 3);
 
 /* ------------------------------------------------------------------ */
 /*  Helper functions                                                   */
@@ -105,21 +106,21 @@ const getConnectionDotClass = (status: ConnectionStatus): string => {
   }
 };
 
-const getConnectionLabel = (status: ConnectionStatus): string => {
+const getConnectionLabelKey = (status: ConnectionStatus): string => {
   switch (status) {
     case 'connected':
-      return 'Connected';
+      return 'assistant.connection.connected';
     case 'connecting':
-      return 'Connecting\u2026';
+      return 'common.connecting';
     case 'reconnecting':
-      return 'Reconnecting\u2026';
+      return 'assistant.connection.reconnecting';
     case 'closing':
-      return 'Closing\u2026';
+      return 'assistant.connection.closing';
     case 'closed':
     case 'disconnected':
-      return 'Disconnected';
+      return 'assistant.connection.disconnected';
     default:
-      return 'Unknown';
+      return 'assistant.connection.unknown';
   }
 };
 
@@ -136,6 +137,11 @@ export const AssistantWorkspaceDrawer: React.FC<AssistantWorkspaceDrawerProps> =
   /* ---- Redux ---- */
 
   const dispatch = useAppDispatch();
+
+  /* ---- i18n ---- */
+
+  const { t } = useTranslation();
+  const starterPrompts = useMemo(() => STARTER_PROMPT_KEYS.map((key) => t(key)), [t]);
 
   /* ---- BYOK dialog ---- */
 
@@ -627,7 +633,7 @@ export const AssistantWorkspaceDrawer: React.FC<AssistantWorkspaceDrawerProps> =
                     className="flex items-center gap-1 rounded-full bg-brand/[0.08] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider text-brand ring-1 ring-brand/20 transition-colors hover:bg-brand/[0.15] hover:ring-brand/40"
                   >
                     <Sparkles className="size-3" />
-                    Powered by BAF
+                    {t('assistant.poweredWithBaf')}
                   </a>
                 </div>
 
@@ -636,8 +642,8 @@ export const AssistantWorkspaceDrawer: React.FC<AssistantWorkspaceDrawerProps> =
                   className="animate-fade-up mt-7 text-center font-display text-[2.25rem] leading-[1.12] tracking-tight sm:text-[2.75rem] lg:text-5xl"
                   style={{ animationDelay: '70ms' }}
                 >
-                  What would you like to{' '}
-                  <em className="gradient-text-model font-display italic not-italic">build</em> today?
+                  {t('assistant.welcome.headlinePre')}{' '}
+                  <em className="gradient-text-model font-display italic not-italic">{t('assistant.welcome.headlineEmphasis')}</em> {t('assistant.welcome.headlinePost')}
                 </h1>
 
                 {/* Subtitle + connection status */}
@@ -645,10 +651,10 @@ export const AssistantWorkspaceDrawer: React.FC<AssistantWorkspaceDrawerProps> =
                   className="animate-fade-up mt-4 text-center text-sm leading-relaxed text-muted-foreground sm:text-[15px]"
                   style={{ animationDelay: '130ms' }}
                 >
-                  Describe your system in natural language. Get models, interfaces, and code.
+                  {t('assistant.welcome.subtitle')}
                   <span className="ml-2.5 inline-flex items-center gap-1.5 text-xs font-medium">
                     <span className={cn('inline-block size-1.5 rounded-full', getConnectionDotClass(connectionStatus))} />
-                    <span className="text-muted-foreground/70">{getConnectionLabel(connectionStatus)}</span>
+                    <span className="text-muted-foreground/70">{t(getConnectionLabelKey(connectionStatus))}</span>
                   </span>
                 </p>
 
@@ -667,7 +673,7 @@ export const AssistantWorkspaceDrawer: React.FC<AssistantWorkspaceDrawerProps> =
                   className="animate-fade-up mt-5 flex flex-wrap justify-center gap-2"
                   style={{ animationDelay: '300ms' }}
                 >
-                  {STARTER_PROMPTS.map((prompt) => (
+                  {starterPrompts.map((prompt) => (
                     <button
                       key={prompt}
                       type="button"
@@ -691,9 +697,9 @@ export const AssistantWorkspaceDrawer: React.FC<AssistantWorkspaceDrawerProps> =
                       <div className="mx-auto flex size-8 items-center justify-center rounded-lg bg-brand/10 text-brand ring-1 ring-brand/15">
                         <Layers className="size-4" />
                       </div>
-                      <p className="mt-2.5 text-[11px] font-semibold uppercase tracking-[0.1em] text-foreground/80">System Design</p>
+                      <p className="mt-2.5 text-[11px] font-semibold uppercase tracking-[0.1em] text-foreground/80">{t('assistant.capabilities.systemDesign.title')}</p>
                       <p className="mt-1 text-[10px] leading-relaxed text-muted-foreground/60">
-                        Data structures, workflows, agents, and more
+                        {t('assistant.capabilities.systemDesign.body')}
                       </p>
                     </CardContent>
                   </Card>
@@ -703,9 +709,9 @@ export const AssistantWorkspaceDrawer: React.FC<AssistantWorkspaceDrawerProps> =
                       <div className="mx-auto flex size-8 items-center justify-center rounded-lg bg-brand/10 text-brand ring-1 ring-brand/15">
                         <Palette className="size-4" />
                       </div>
-                      <p className="mt-2.5 text-[11px] font-semibold uppercase tracking-[0.1em] text-foreground/80">Visual Interfaces</p>
+                      <p className="mt-2.5 text-[11px] font-semibold uppercase tracking-[0.1em] text-foreground/80">{t('assistant.capabilities.visualInterfaces.title')}</p>
                       <p className="mt-1 text-[10px] leading-relaxed text-muted-foreground/60">
-                        Screens and layouts from descriptions
+                        {t('assistant.capabilities.visualInterfaces.body')}
                       </p>
                     </CardContent>
                   </Card>
@@ -715,9 +721,9 @@ export const AssistantWorkspaceDrawer: React.FC<AssistantWorkspaceDrawerProps> =
                       <div className="mx-auto flex size-8 items-center justify-center rounded-lg bg-brand/10 text-brand ring-1 ring-brand/15">
                         <Code2 className="size-4" />
                       </div>
-                      <p className="mt-2.5 text-[11px] font-semibold uppercase tracking-[0.1em] text-foreground/80">Code Generation</p>
+                      <p className="mt-2.5 text-[11px] font-semibold uppercase tracking-[0.1em] text-foreground/80">{t('assistant.capabilities.codeGeneration.title')}</p>
                       <p className="mt-1 text-[10px] leading-relaxed text-muted-foreground/60">
-                        Complete WebApp, React, SQL, and more!
+                        {t('assistant.capabilities.codeGeneration.body')}
                       </p>
                     </CardContent>
                   </Card>
@@ -728,7 +734,7 @@ export const AssistantWorkspaceDrawer: React.FC<AssistantWorkspaceDrawerProps> =
               {/* Bottom spacer + footer */}
               <div className="flex-[1_1_8%] min-h-4" />
               <p className="animate-fade-up pb-4 text-center text-[10px] text-muted-foreground/35" style={{ animationDelay: '500ms' }}>
-                Press <kbd className="rounded-[3px] border border-border/30 bg-muted/25 px-1.5 py-0.5 font-mono text-[9px]">Esc</kbd> to close
+                {t('assistant.welcome.pressEscPre')} <kbd className="rounded-[3px] border border-border/30 bg-muted/25 px-1.5 py-0.5 font-mono text-[9px]">Esc</kbd> {t('assistant.welcome.pressEscPost')}
               </p>
             </div>
           ) : (
@@ -796,7 +802,7 @@ export const AssistantWorkspaceDrawer: React.FC<AssistantWorkspaceDrawerProps> =
                   <div className="mb-2 flex items-center justify-between">
                     <div className="flex items-center gap-2 text-[10px] text-muted-foreground/50">
                       <span className={cn('size-1.5 rounded-full', getConnectionDotClass(connectionStatus))} />
-                      <span className="font-medium">{getConnectionLabel(connectionStatus)}</span>
+                      <span className="font-medium">{t(getConnectionLabelKey(connectionStatus))}</span>
                     </div>
                     <div className="flex items-center gap-2.5">
                       <span className={cn('font-mono text-[10px] tracking-wide', rateLimitColor)}>{rateLimitStatus.requestsLastMinute}/8</span>
@@ -825,10 +831,10 @@ export const AssistantWorkspaceDrawer: React.FC<AssistantWorkspaceDrawerProps> =
                         size="sm"
                         className="h-7 gap-1.5 rounded-lg border-border/50 px-2.5 text-xs"
                         onClick={clearConversation}
-                        title="Start a new conversation"
+                        title={t('assistant.chat.newConversationTitle')}
                       >
                         <MessageSquarePlus className="size-3.5" />
-                        New Chat
+                        {t('assistant.chat.newChat')}
                       </Button>
                     </div>
                   </div>
@@ -855,7 +861,7 @@ export const AssistantWorkspaceDrawer: React.FC<AssistantWorkspaceDrawerProps> =
             )}
             onPointerDown={handlePointerDown}
             role="button"
-            aria-label={open ? 'Push up to close assistant' : 'Pull down to open assistant'}
+            aria-label={open ? t('assistant.drawer.pushToClose') : t('assistant.drawer.pullToOpen')}
             tabIndex={0}
           >
             {openProgress > 0.75 ? (
@@ -868,7 +874,7 @@ export const AssistantWorkspaceDrawer: React.FC<AssistantWorkspaceDrawerProps> =
               </div>
             )}
             <span className="text-[9px] font-semibold uppercase tracking-[0.12em] text-muted-foreground/50">
-              {openProgress > 0.75 ? 'Push up' : 'Pull down assistant'}
+              {openProgress > 0.75 ? t('assistant.drawer.pushUp') : t('assistant.drawer.pullDown')}
             </span>
           </div>
         </div>

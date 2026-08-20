@@ -1,6 +1,8 @@
 import { ApollonEditor, UMLModel, diagramBridge } from '@besser/wme';
 import React, { useEffect, useRef, useContext, useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
 
+import { toEditorLocale } from '../../../shared/i18n/languages';
 import { ApollonEditorContext } from './apollon-editor-context';
 import { useAppDispatch, useAppSelector } from '../../../app/store/hooks';
 import { isUMLModel } from '../../../shared/types/project';
@@ -29,6 +31,9 @@ export const ApollonEditorComponent: React.FC = () => {
   const stateMachineDiagrams = useAppSelector(selectStateMachineDiagrams);
   const quantumCircuitDiagrams = useAppSelector(selectQuantumCircuitDiagrams);
   const { setEditor } = useContext(ApollonEditorContext);
+  const { i18n } = useTranslation();
+  const localeRef = useRef(toEditorLocale(i18n.resolvedLanguage ?? i18n.language));
+  localeRef.current = toEditorLocale(i18n.resolvedLanguage ?? i18n.language);
 
   // Stable refs so the setup effect can read current values without
   // needing them in its dependency array (avoids destroy/recreate loops).
@@ -103,6 +108,24 @@ export const ApollonEditorComponent: React.FC = () => {
     };
   }, [cleanupEditor, setEditor]);
 
+  // Keep the editor engine's UI language in sync with the app language.
+  // `set locale` recreates the editor internally while preserving the model.
+  useEffect(() => {
+    const handleLanguageChange = (lng: string) => {
+      const editor = editorRef.current;
+      if (!editor) return;
+      try {
+        editor.locale = toEditorLocale(lng);
+      } catch (error) {
+        console.warn('Failed to update editor locale:', error);
+      }
+    };
+    i18n.on('languageChanged', handleLanguageChange);
+    return () => {
+      i18n.off('languageChanged', handleLanguageChange);
+    };
+  }, [i18n]);
+
   // Handle editor creation/recreation (initial load + diagram switches/templates).
   // Only runs when editorRevision actually changes (not on every Redux update).
   useEffect(() => {
@@ -121,7 +144,7 @@ export const ApollonEditorComponent: React.FC = () => {
       const currentOptions = optionsRef.current;
       const currentDiagram = reduxDiagramRef.current;
 
-      const nextEditor = new ApollonEditor(containerRef.current, currentOptions);
+      const nextEditor = new ApollonEditor(containerRef.current, { ...currentOptions, locale: localeRef.current });
       editorRef.current = nextEditor;
       await nextEditor.nextRender;
       if (runId !== setupRunRef.current || editorRef.current !== nextEditor) {
