@@ -117,6 +117,11 @@ export interface DoneEvent {
   fileName: string;
   isZip: boolean;
   recipe: Record<string, unknown>;
+  /** How many user files the run produced. */
+  fileCount?: number;
+  /** Top-level entries (dir/file names at the project root, capped), for a
+   * concrete "what was generated" summary. */
+  topLevel?: string[];
   /** True when output was produced but the customization loop did not
    * finish cleanly — the download may be missing requested changes. */
   incomplete?: boolean;

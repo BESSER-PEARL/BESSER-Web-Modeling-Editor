@@ -532,6 +532,12 @@ export function useSmartGenTrigger(
             typeof event.recipe?.generator_used === 'string'
               ? event.recipe.generator_used
               : undefined;
+          // Concrete "what was generated" facts from the backend done event.
+          const fileCount =
+            typeof event.fileCount === 'number' && event.fileCount > 0
+              ? event.fileCount
+              : undefined;
+          const topLevel = Array.isArray(event.topLevel) ? event.topLevel : [];
           // Record this successful run as the base for a future
           // incremental vibe-modify of the SAME project — both in the
           // slice (same-session fast path) and localStorage (survives a
@@ -569,6 +575,7 @@ export function useSmartGenTrigger(
               fileName: event.fileName,
               isZip: event.isZip,
               generatorUsed,
+              fileCount,
               status: 'done',
               needsDownload: true,
             }),
@@ -576,18 +583,26 @@ export function useSmartGenTrigger(
           );
           finalizeStreamingMessage(streamingId);
           {
-            // Concise "what was generated" summary. We name the generator
-            // BESSER used (the reliable client-side signal); a richer summary
-            // (file count / full stack) would need a backend field. The
-            // download itself is a small inline button on the compact run
-            // card — no big card, no "to your device" verbosity.
-            const builtWith = generatorUsed
-              ? ` using BESSER's \`${generatorUsed}\` generator`
+            // Concrete "what was generated" summary from the backend done
+            // event: how many files, which generator, and the top-level
+            // entries. The download itself is a small inline button on the
+            // compact run card — no big card, no "to your device" verbosity.
+            const filesPhrase = fileCount
+              ? `**${fileCount}** file${fileCount === 1 ? '' : 's'}`
+              : 'your application code';
+            const withGen = generatorUsed
+              ? ` with BESSER's \`${generatorUsed}\` generator`
+              : '';
+            const topPhrase = topLevel.length
+              ? ` Top level: ${topLevel
+                  .slice(0, 8)
+                  .map((e) => `\`${e}\``)
+                  .join(', ')}${topLevel.length > 8 ? ', …' : ''}.`
               : '';
             appendAssistantMessage(
               event.incomplete
-                ? `⚠️ Your application code is ready${builtWith}, but the run **stopped early — the output may be incomplete**.${event.incompleteReason ? ` ${event.incompleteReason}` : ``} You can resume the run to finish the remaining changes. Use the **Download** button on the run card to save it.`
-                : `✅ Your application code is ready${builtWith}. Use the **Download** button on the run card to save it.`,
+                ? `⚠️ Generated ${filesPhrase}${withGen}, but the run **stopped early — the output may be incomplete**.${event.incompleteReason ? ` ${event.incompleteReason}` : ``}${topPhrase} You can resume the run to finish the remaining changes. Use the **Download** button on the run card to save it.`
+                : `✅ Generated ${filesPhrase}${withGen}.${topPhrase} Use the **Download** button on the run card to save it.`,
             );
             toast.success('Spec-Driven Agent finished -- ready to download');
           }

@@ -191,10 +191,11 @@ export interface SmartGenMessageState {
   /**
    * The deterministic generator BESSER used (e.g. `fastapi`, `django`,
    * `web_app`), read from the done event's recipe. Shown on the compact
-   * completion card as a short "what was generated" hint. Optional — a
-   * richer summary (file count / full stack) would need a backend field.
+   * completion card as a short "what was generated" hint.
    */
   generatorUsed?: string
+  /** Number of user files the run produced — shown on the compact card. */
+  fileCount?: number
   /**
    * Generation succeeded but the browser download failed. The artifact
    * stays on the server (~30 min TTL) so "Download again" can retry.
@@ -752,6 +753,7 @@ function SmartGenCard({
     downloadFailed,
     needsDownload,
     generatorUsed,
+    fileCount,
   } = smartGen
 
   const [stopRequested, setStopRequested] = useState(false)
@@ -819,6 +821,11 @@ function SmartGenCard({
           {generatorUsed ? (
             <span className="font-mono text-[11px] text-muted-foreground">
               · {generatorUsed}
+            </span>
+          ) : null}
+          {typeof fileCount === "number" && fileCount > 0 ? (
+            <span className="text-[11px] text-muted-foreground">
+              · {fileCount} file{fileCount === 1 ? "" : "s"}
             </span>
           ) : null}
           <span className="ml-auto flex items-center gap-2">

@@ -181,8 +181,14 @@ const COMPONENTS = {
           href="#"
           role="button"
           className="cursor-pointer font-medium text-primary underline underline-offset-2"
+          // stopPropagation: this link lives inside the assistant drawer, a
+          // drag-to-close bottom sheet. Without it the click/pointer bubbles to
+          // the sheet's drag+close handlers, which closed the drawer (and reset
+          // the visible conversation) instead of just opening the key dialog.
+          onPointerDown={(e) => e.stopPropagation()}
           onClick={(e) => {
             e.preventDefault()
+            e.stopPropagation()
             if (typeof window !== "undefined") {
               window.dispatchEvent(new CustomEvent("wme:smartgen-open-byok"))
             }
