@@ -351,6 +351,12 @@ export class AssistantClient {
   private readonly responseHardTimeoutMs = 240000;
   private responseStartedAt = 0;
   private responseSoftNoticeShown = false;
+  // True while a user message is awaiting its terminal reply. If the socket
+  // reconnects mid-generation (long runs outlive a connection), the reply can be
+  // routed to the dead socket and lost — leaving the UI stuck on "still working".
+  // On reconnect-while-waiting we ask the agent to replay its last completed
+  // reply (see requestReplayIfPending / the agent's replay_last_response handler).
+  private awaitingResponse = false;
   private heartbeatTimer: ReturnType<typeof setInterval> | null = null;
   // 8s (was 15s): each heartbeat re-claims the server's reply slot for the live
   // socket AND flushes any reply the server buffered during a reconnect gap, so
@@ -424,6 +430,9 @@ export class AssistantClient {
           // Sent BEFORE draining the queue so any queued user message is
           // processed with the key already in place.
           this.rearmUserApiKey();
+          // If a reply was in flight when the socket dropped, ask the agent to
+          // replay its last completed reply — the reconnect may have lost it.
+          this.requestReplayIfPending();
           this.processMessageQueue();
           this.connectingPromise = null;
           resolve();
@@ -468,6 +477,7 @@ export class AssistantClient {
     this.shouldReconnect = options.allowReconnect ?? false;
     // Abort any in-flight async drain loop immediately.
     this._drainAborted = true;
+    this.awaitingResponse = false;
     this.clearResponseTimer();
     this.stopHeartbeat();
     if (this.ws) {
@@ -633,6 +643,28 @@ export class AssistantClient {
     }
   }
 
+  /**
+   * After a reconnect, if a user message is still awaiting its terminal reply,
+   * ask the agent to re-send its last completed reply for this session. The
+   * agent buffers the last reply per stable session id, so a reply lost when the
+   * socket dropped mid-generation is recovered instead of leaving the UI stuck
+   * on "still working…". No-op when nothing is pending; the reply flows back
+   * through the normal handleMessage path (which clears the loading indicator).
+   */
+  private requestReplayIfPending(): void {
+    if (!this.awaitingResponse) return;
+    try {
+      this.sendPayload({
+        action: 'replay_last_response',
+        protocolVersion: '2.0',
+        clientMode: this.clientMode,
+        sessionId: this.sessionId,
+      });
+    } catch {
+      // best-effort — the next heartbeat/reconnect will retry
+    }
+  }
+
   // Each onX adds a subscriber and returns an unsubscribe fn, so one surface
   // unmounting removes only ITS handlers (not the other surface's).
   onMessage(handler: MessageHandler): () => void {
@@ -778,6 +810,12 @@ export class AssistantClient {
     this.ws.send(JSON.stringify(wire));
     this.emitTyping(true);
     this.startResponseTimer();
+    // Only a real user message expects a terminal reply — mark it pending so a
+    // mid-flight reconnect can request a replay. Control frames (frontend_event,
+    // user_set_variable, replay_last_response) don't set this.
+    if (payload.action === 'user_message' || payload.action === 'user_voice') {
+      this.awaitingResponse = true;
+    }
   }
 
   private buildVoicePayload(
@@ -824,6 +862,9 @@ export class AssistantClient {
 
       this.emitTyping(false);
       if (directAction) {
+        // A terminal reply (anything but a 'progress' keep-alive, handled above)
+        // concludes the turn — stop awaiting so we don't request a replay.
+        this.awaitingResponse = false;
         if (isInjectionCommand(directAction)) {
           this.emitInjection({
             ...directAction,
