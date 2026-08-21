@@ -3,7 +3,7 @@ import { test, expect } from '@playwright/test';
 /**
  * Navigation and sidebar tests — verify sidebar diagram type buttons,
  * editor switching, settings navigation, sidebar collapse/expand,
- * dropdown menus, and theme toggling.
+ * and dropdown menus. (Theme toggling is covered by theme.spec.ts.)
  */
 test.describe('Navigation and sidebar', () => {
   test.beforeEach(async ({ page }) => {
@@ -166,31 +166,6 @@ test.describe('Navigation and sidebar', () => {
       const count = await svgs.count();
       expect(count).toBeGreaterThanOrEqual(2);
     }
-  });
-
-  test('theme toggle switches between light and dark', async ({ page }) => {
-    const header = page.locator('header').first();
-    await expect(header).toBeVisible({ timeout: 10_000 });
-
-    // Find the theme toggle button by its aria-label.
-    const themeButton = header.getByRole('button', { name: /switch to (dark|light) mode/i });
-    await expect(themeButton).toBeVisible();
-
-    // Get initial theme state from the document element.
-    const initialIsDark = await page.evaluate(() => document.documentElement.classList.contains('dark'));
-
-    // Click the theme toggle.
-    await themeButton.click();
-
-    // Verify the theme class changed.
-    const afterToggleIsDark = await page.evaluate(() => document.documentElement.classList.contains('dark'));
-    expect(afterToggleIsDark).not.toBe(initialIsDark);
-
-    // Toggle back.
-    await themeButton.click();
-
-    const restoredIsDark = await page.evaluate(() => document.documentElement.classList.contains('dark'));
-    expect(restoredIsDark).toBe(initialIsDark);
   });
 });
 
