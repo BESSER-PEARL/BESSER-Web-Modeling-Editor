@@ -47,6 +47,7 @@ export interface WorkspaceTopBarProps {
   starLoading: boolean;
   onToggleStar: () => void;
   onOpenDeployDialog: () => void;
+  onOpenExternalDbModal?: () => void;
   onOpenHelpDialog: () => void;
   onOpenAboutDialog: () => void;
   onOpenFeedback: () => void;

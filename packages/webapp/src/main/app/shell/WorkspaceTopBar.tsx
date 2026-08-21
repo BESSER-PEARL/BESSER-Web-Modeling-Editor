@@ -50,6 +50,7 @@ const WorkspaceTopBarInner: React.FC<WorkspaceTopBarProps> = ({
   starLoading,
   onToggleStar,
   onOpenDeployDialog,
+  onOpenExternalDbModal,
   onOpenHelpDialog,
   onOpenAboutDialog,
   onOpenFeedback,
@@ -127,6 +128,15 @@ const WorkspaceTopBarInner: React.FC<WorkspaceTopBarProps> = ({
             onGitHubLogin={onGitHubLogin}
             onOpenDeployDialog={onOpenDeployDialog}
           />
+          {onOpenExternalDbModal && (
+            <button
+              type="button"
+              onClick={onOpenExternalDbModal}
+              className={`${outlineButtonClass} hidden sm:flex`}
+            >
+              External DB
+            </button>
+          )}
           <CommunityMenu outlineButtonClass={outlineButtonClass} onOpenFeedback={onOpenFeedback} />
           <HelpMenu
             outlineButtonClass={outlineButtonClass}
