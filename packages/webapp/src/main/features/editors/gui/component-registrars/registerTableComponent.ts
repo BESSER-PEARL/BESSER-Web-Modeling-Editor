@@ -77,7 +77,7 @@ const buildTableProps = (attrs: Record<string, any>, config: TableConfig): any =
 export const registerTableComponent = (editor: any, config: TableConfig) => {
   // Build trait values inside the attributes object
   const traitAttributes: Record<string, any> = { class: `${config.id}-component` };
-  let traitsList = Array.isArray(config.traits) ? [...config.traits] : [];
+  const traitsList = Array.isArray(config.traits) ? [...config.traits] : [];
   
   // Add the trait for action buttons
   traitsList.push({

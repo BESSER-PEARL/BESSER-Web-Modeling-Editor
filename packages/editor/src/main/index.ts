@@ -60,3 +60,19 @@ export type { UMLModelCompat } from './compat';
 // Export the supported-locale enum so consumers (the webapp language selector)
 // can drive the editor's UI language via the `locale` setter.
 export { Locale } from './services/editor/editor-types';
+
+// User-profile modeling: which metamodel attributes are hidden from the
+// modeling frontend (editor-only concrete syntax; the model still transmits
+// them as placeholders). Consumed by the webapp's User Profile form.
+export {
+  HIDDEN_USER_MODEL_ATTRIBUTES,
+  isHiddenUserModelAttribute,
+} from './packages/user-modeling/hidden-attributes';
+
+// User-profile modeling: which grouping classes are hidden from the CANVAS
+// (empty containers whose children attach directly under User). Display-only —
+// the transmitted model still contains them. Consumed by the webapp.
+export {
+  HIDDEN_USER_MODEL_CONTAINERS,
+  isHiddenUserModelContainer,
+} from './packages/user-modeling/hidden-containers';

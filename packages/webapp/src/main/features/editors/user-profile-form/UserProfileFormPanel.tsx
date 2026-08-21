@@ -16,12 +16,13 @@ import { X, Plus, Trash2, ChevronDown, ChevronRight, UserCircle2, Info } from 'l
 import { Button } from '@/components/ui/button';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { cn } from '@/lib/utils';
+import { isHiddenUserModelAttribute } from '@besser/wme';
 import { useUserProfileForm } from './useUserProfileForm';
 import { createEmptyInstance } from './model-serialization';
 import { MetaChildRef, MetaNode, MetaTree } from './metamodel-tree';
 import { AttrValue, Instance, isNumericType, OPERATORS, Operator } from './types';
 import { AttributeChip } from './AttributeChip';
-import { attributeIconService } from '@/shared/services/attribute-icons/attributeIconService';
+import { attributeIconService } from '../../../shared/services/attribute-icons/attributeIconService';
 
 interface UserProfileFormPanelProps {
   open: boolean;
@@ -144,6 +145,13 @@ const InstanceCard: React.FC<{
   label?: string;
 }> = ({ instance, cb, onRemove, label }) => {
   const meta = cb.tree.byClassName[instance.className];
+  // Runtime / too-user-specific attributes (firstName, address, ...) are hidden
+  // from the form so they don't confuse modellers. They stay in
+  // `instance.attributes` (indices preserved for `setAttr`) so serialization
+  // still transmits them as placeholders — this is a display-only filter.
+  const visibleAttributes = instance.attributes
+    .map((attr, idx) => ({ attr, idx }))
+    .filter(({ attr }) => !isHiddenUserModelAttribute(instance.className, attr.name));
   return (
     <div className="rounded-md border border-border/60 bg-card/60 p-2">
       <div className="mb-1.5 flex items-center gap-1.5">
@@ -161,9 +169,9 @@ const InstanceCard: React.FC<{
         )}
       </div>
 
-      {instance.attributes.length > 0 && (
+      {visibleAttributes.length > 0 && (
         <div className="space-y-0.5">
-          {instance.attributes.map((attr, idx) => (
+          {visibleAttributes.map(({ attr, idx }) => (
             <AttributeRow
               key={attr.attributeId || attr.name || idx}
               attr={attr}
@@ -383,15 +391,19 @@ export const UserProfileFormPanel: React.FC<UserProfileFormPanelProps> = ({ open
                   Root
                 </span>
               </div>
-              {formState.attributes.length > 0 && (
+              {formState.attributes.some(
+                (attr) => !isHiddenUserModelAttribute(formState.className, attr.name),
+              ) && (
                 <div className="mt-2 space-y-0.5">
-                  {formState.attributes.map((attr, idx) => (
-                    <AttributeRow
-                      key={attr.attributeId || attr.name || idx}
-                      attr={attr}
-                      onChange={(patch) => setAttr(formState.key, idx, patch)}
-                    />
-                  ))}
+                  {formState.attributes.map((attr, idx) =>
+                    isHiddenUserModelAttribute(formState.className, attr.name) ? null : (
+                      <AttributeRow
+                        key={attr.attributeId || attr.name || idx}
+                        attr={attr}
+                        onChange={(patch) => setAttr(formState.key, idx, patch)}
+                      />
+                    ),
+                  )}
                 </div>
               )}
             </div>

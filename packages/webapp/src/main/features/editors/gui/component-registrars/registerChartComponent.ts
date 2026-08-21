@@ -82,7 +82,7 @@ export const registerChartComponent = (editor: any, config: ChartConfig) => {
       traitAttributes[trait.name] = trait.value !== undefined && trait.value !== null ? trait.value : '';
     });
   }
-  let traitsList = Array.isArray(config.traits) ? [...config.traits] : [];
+  const traitsList = Array.isArray(config.traits) ? [...config.traits] : [];
 
   traitsList.forEach(trait => {
     traitAttributes[trait.name] = trait.value !== undefined && trait.value !== null ? trait.value : '';

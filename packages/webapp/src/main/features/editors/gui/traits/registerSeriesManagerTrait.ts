@@ -428,7 +428,7 @@ export default function registerSeriesManagerTrait(editor: GrapesJSEditor) {
               }, 0);
             });
             hexInput.addEventListener('input', (e: any) => {
-              let val = e.target.value.trim();
+              const val = e.target.value.trim();
               if (/^#[0-9a-fA-F]{3,8}$/.test(val)) {
                 colorBox.style.background = val;
                 s.color = val;

@@ -1,6 +1,6 @@
 import React from 'react';
 import { X, User, HelpCircle } from 'lucide-react';
-import { attributeIconService } from '@/shared/services/attribute-icons/attributeIconService';
+import { attributeIconService } from '../../../shared/services/attribute-icons/attributeIconService';
 
 interface AttributeChipProps {
   containerClass: string;

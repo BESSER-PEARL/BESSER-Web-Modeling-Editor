@@ -5,6 +5,7 @@ import { ThemedPath, ThemedRect } from '../../../components/theme/themedComponen
 import { diagramBridge } from '../../../services/diagram-bridge/diagram-bridge-service';
 import { settingsService } from '../../../services/settings/settings-service';
 import { UserModelElementType } from '../../user-modeling';
+import { isHiddenUserModelContainer } from '../../user-modeling/hidden-containers';
 
 export const UMLObjectNameComponent: FunctionComponent<Props> = ({ element, children, fillColor }) => {
   // Helper function to get the class name from the classId
@@ -12,15 +13,29 @@ export const UMLObjectNameComponent: FunctionComponent<Props> = ({ element, chil
     if (!element.classId) {
       return '';
     }
-    
+
     const classInfo = diagramBridge.getClassById(element.classId);
     return classInfo ? classInfo.name : '';
   };
 
   const className = getClassName();
   const isUserModelElement = element.type === (UserModelElementType as any).UserModelName;
+
+  // Empty grouping containers (Competence/Accessibility) are kept in the
+  // transmitted model — instances + containment links are still emitted so the
+  // B-UML metamodel and backend validation are unchanged — but they carry no
+  // attributes of their own, so drawing them just adds empty tiles. Suppress
+  // the whole subtree (box + icon + rows) from the canvas only. See
+  // hidden-containers.ts.
+  if (isUserModelElement && isHiddenUserModelContainer(className || element.className)) {
+    return null;
+  }
+  // Attribute-level palette chips carry an explicit `displayLabel` (e.g. "gender")
+  // so they can show the attribute name even though the node is still a real
+  // instance of its container class (classId/className unchanged).
+  const chipLabel = (element as any).displayLabel as string | undefined;
   const displayLabel = isUserModelElement
-    ? (className || element.className || element.name)
+    ? (chipLabel || className || element.className || element.name)
     : `${element.name}${className ? ` : ${className}` : ''}`;
   
   // Check if we should show icon view or normal view

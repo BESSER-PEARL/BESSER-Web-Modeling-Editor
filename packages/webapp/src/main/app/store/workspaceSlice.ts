@@ -76,7 +76,7 @@ function deriveEditorOptions(
 
 function buildInitialState(): WorkspaceState {
   let project: BesserProject | null = null;
-  let editorOptions = { ...defaultEditorOptions };
+  const editorOptions = { ...defaultEditorOptions };
 
   try {
     project = ProjectStorageRepository.getCurrentProject();

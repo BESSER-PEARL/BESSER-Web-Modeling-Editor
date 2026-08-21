@@ -16,6 +16,7 @@ export interface IUMLUserModelName extends IUMLClassifier {
   classId?: string;
   className?: string;
   icon?: string;
+  displayLabel?: string;
 }
 
 export class UMLUserModelName extends UMLClassifier implements IUMLUserModelName {
@@ -24,6 +25,13 @@ export class UMLUserModelName extends UMLClassifier implements IUMLUserModelName
   classId?: string;
   className?: string;
   icon?: string;
+  /**
+   * Optional header override. Used by attribute-level palette chips (e.g. a
+   * `gender` chip) so the node can display the attribute name while still being
+   * a real instance of its container class (`classId`/`className` unchanged) —
+   * keeping serialization and downstream generation intact.
+   */
+  displayLabel?: string;
 
   static supportedRelationships = [
     UserModelRelationshipType.UserModelLink,
@@ -41,12 +49,16 @@ export class UMLUserModelName extends UMLClassifier implements IUMLUserModelName
     if (values?.icon) {
       this.icon = values.icon;
     }
+    if (values?.displayLabel) {
+      this.displayLabel = values.displayLabel;
+    }
   }
 
   serialize(children: UMLElement[] = []): Apollon.UMLClassifier & {
     classId?: string;
     className?: string;
     icon?: string;
+    displayLabel?: string;
   } {
     const iconChild = children.find((child) => child.type === UserModelElementType.UserModelIcon);
     return {
@@ -54,6 +66,7 @@ export class UMLUserModelName extends UMLClassifier implements IUMLUserModelName
       classId: this.classId,
       className: this.className,
       icon: iconChild ? iconChild.id : undefined,
+      displayLabel: this.displayLabel,
     };
   }
 
@@ -67,6 +80,9 @@ export class UMLUserModelName extends UMLClassifier implements IUMLUserModelName
     }
     if ('icon' in values && typeof values.icon === 'string') {
       this.icon = values.icon;
+    }
+    if ('displayLabel' in values && typeof (values as any).displayLabel === 'string') {
+      this.displayLabel = (values as any).displayLabel;
     }
   }
 

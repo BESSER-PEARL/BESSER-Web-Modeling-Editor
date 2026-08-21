@@ -56,7 +56,7 @@ describe('webapp i18n locale parity', () => {
       const missing = enKeys.filter((k) => !keys.has(k));
       if (missing.length && !REQUIRE_COMPLETE) {
         const coverage = (((enKeys.length - missing.length) / enKeys.length) * 100).toFixed(1);
-        // eslint-disable-next-line no-console
+         
         console.warn(
           `[i18n] "${code}" is ${coverage}% translated (${missing.length} keys fall back to English). ` +
             `Optional to complete; the BESSER team can fill and review them.`,

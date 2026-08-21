@@ -25,6 +25,7 @@ import UMLObjectAttributeUpdate from '../uml-object-attribute/uml-object-attribu
 import { UserModelElementType } from '../../user-modeling';
 import { UMLUserModelAttribute } from '../../user-modeling/uml-user-model-attribute/uml-user-model-attribute';
 import UMLUserModelAttributeUpdate from '../../user-modeling/uml-user-model-attribute/uml-user-model-attribute-update';
+import { isHiddenUserModelAttribute } from '../../user-modeling/hidden-attributes';
 
 const Flex = styled.div`
   display: flex;
@@ -214,6 +215,18 @@ class ObjectNameComponent extends Component<Props, State> {
       }
       return child instanceof UMLObjectAttribute;
     });
+    // Runtime / too-user-specific attributes (firstName, address, ...) are hidden
+    // from this edit popup so they don't confuse modellers. The underlying
+    // elements stay in `element.ownedElements` so serialization still transmits
+    // them as placeholders — this is a display-only filter, mirroring the form.
+    const ownerClassName = (element as any).className as string | undefined;
+    const visibleAttributes = isUserModelElement
+      ? attributes.filter((attribute) => {
+          const match = attribute.name.match(/^(.*?)(?:\s*(?:<=|>=|==|=|<|>)\s*)(.*)$/);
+          const attrName = (match ? match[1] : attribute.name).trim();
+          return !isHiddenUserModelAttribute(ownerClassName, attrName);
+        })
+      : attributes;
     const methods = children.filter((child) => child instanceof UMLObjectMethod);
     const attributeRefs: (Textfield<string> | null)[] = [];
     const methodRefs: (Textfield<string> | null)[] = [];
@@ -279,7 +292,7 @@ class ObjectNameComponent extends Component<Props, State> {
           <Divider />
         </section>
         <section>          <Header>{this.props.translate('popup.attributes')}</Header>
-          {attributes.map((attribute, index) => {
+          {visibleAttributes.map((attribute, index) => {
             const AttributeComponent: React.ComponentType<any> = isUserModelElement
               ? UMLUserModelAttributeUpdate
               : UMLObjectAttributeUpdate;
@@ -290,7 +303,7 @@ class ObjectNameComponent extends Component<Props, State> {
               value={attribute.name}
               onChange={this.props.update}
               onSubmitKeyUp={() =>
-                index === attributes.length - 1
+                index === visibleAttributes.length - 1
                   ? this.newAttributeField.current?.focus()
                   : this.setState({
                       fieldToFocus: attributeRefs[index + 1],

@@ -7,6 +7,9 @@ import { UMLUserModelIcon } from './uml-user-model-icon/uml-user-model-icon';
 import { UMLUserModelName } from './uml-user-model-name/uml-user-model-name';
 import { diagramBridge } from '../../services/diagram-bridge/diagram-bridge-service';
 import { settingsService } from '../../services/settings/settings-service';
+import { getAttributePaletteConfig } from './attribute-palette-config';
+import { isHiddenUserModelContainer } from './hidden-containers';
+import { IClassInfo, IAttributeInfo } from '../../services/diagram-bridge/diagram-bridge-service';
 
 // User-model preview based on the object-diagram logic but using user-modeling elements.
 export const composeUserModelPreview: ComposePreview = (
@@ -16,15 +19,83 @@ export const composeUserModelPreview: ComposePreview = (
   return shouldShowIconView ? composeIconView(layer) : composeNormalView(layer);
 };
 
+/**
+ * Attributes of a class that are exposed as their own draggable palette chip
+ * (via ATTRIBUTE_PALETTE_CONFIG). A class with at least one is "decomposed"
+ * into chips instead of being drawn as a single grouping box.
+ */
+const configuredAttributes = (classInfo: IClassInfo): IAttributeInfo[] =>
+  classInfo.attributes.filter((attr) => getAttributePaletteConfig(classInfo.name, attr.name));
+
+/**
+ * Build one draggable attribute chip: a real `UMLUserModelName` instance of the
+ * container class carrying a single attribute + its icon. `displayLabel` makes
+ * the header show the attribute label (e.g. "gender") rather than the class
+ * name — the serialized element is otherwise identical to a class node, so the
+ * B-UML model is unchanged.
+ */
+const buildAttributeChip = (
+  layer: ILayer,
+  classInfo: IClassInfo,
+  attr: IAttributeInfo,
+  x: number,
+  width: number,
+  height: number,
+): UMLElement[] => {
+  const config = getAttributePaletteConfig(classInfo.name, attr.name)!;
+  const chip = new UMLUserModelName({
+    name: `${classInfo.name.charAt(0).toLowerCase() + classInfo.name.slice(1)}_1`,
+    classId: classInfo.id,
+    className: classInfo.name,
+    displayLabel: config.label,
+    icon: config.icons.default,
+  });
+  chip.bounds = { ...chip.bounds, x, y: 0, width, height };
+
+  const attribute = new UMLUserModelAttribute({
+    name: `${attr.name} = `,
+    owner: chip.id,
+    bounds: { x: 0, y: 0, width: 0, height: 0 },
+    attributeId: attr.id,
+  });
+  const iconElement = new UMLUserModelIcon({
+    name: 'icon',
+    owner: chip.id,
+    bounds: { x: 0, y: 0, width: 0, height: 0 },
+    icon: config.icons.default,
+  });
+
+  chip.ownedElements = [attribute.id, iconElement.id];
+  return chip.renderObject(layer, [attribute], iconElement) as UMLElement[];
+};
+
 const composeIconView = (layer: ILayer): UMLElement[] => {
   const elements: UMLElement[] = [];
   const shouldShowInstances = settingsService.shouldShowInstancedObjects() && diagramBridge.hasClassDiagramData();
   if (!shouldShowInstances) return elements;
 
-  const availableClasses = diagramBridge.getAvailableClasses();
+  // Empty container groupings (Competence/Accessibility) carry no attributes and
+  // are hidden from the canvas — skip them in the palette too.
+  const availableClasses = diagramBridge
+    .getAvailableClasses()
+    .filter((classInfo) => !isHiddenUserModelContainer(classInfo.name));
+  const width = computeDimension(1.0, 100);
+  const height = computeDimension(1.0, 25);
   let currentX = 0;
 
   availableClasses.forEach((classInfo) => {
+    // Classes with configured attributes (Personal_Information) are exposed as
+    // one chip per attribute (age, gender, nationality). Everything else stays
+    // a single grouping box with its original class icon.
+    const chips = configuredAttributes(classInfo);
+    if (chips.length > 0) {
+      chips.forEach((attr) => {
+        elements.push(...buildAttributeChip(layer, classInfo, attr, currentX, width, height));
+        currentX += width + 50;
+      });
+      return;
+    }
+
     const instanceName = `${classInfo.name.charAt(0).toLowerCase() + classInfo.name.slice(1)}_1`;
     const instanceUser = new UMLUserModelName({
       name: instanceName,
@@ -37,8 +108,8 @@ const composeIconView = (layer: ILayer): UMLElement[] => {
       ...instanceUser.bounds,
       x: currentX,
       y: 0,
-      width: computeDimension(1.0, 100),
-      height: computeDimension(1.0, 25),
+      width,
+      height,
     };
 
     const instanceAttributes: UMLUserModelAttribute[] = [];
@@ -62,8 +133,6 @@ const composeIconView = (layer: ILayer): UMLElement[] => {
       });
       instanceAttributes.push(attribute);
     });
-
-   
 
     instanceUser.ownedElements = instanceAttributes.map((attr) => attr.id);
     if (iconElement) {
@@ -92,10 +161,24 @@ const composeNormalView = (layer: ILayer): UMLElement[] => {
   const shouldShowInstances = settingsService.shouldShowInstancedObjects() && diagramBridge.hasClassDiagramData();
   if (!shouldShowInstances) return elements;
 
-  const availableClasses = diagramBridge.getAvailableClasses();
+  const availableClasses = diagramBridge
+    .getAvailableClasses()
+    .filter((classInfo) => !isHiddenUserModelContainer(classInfo.name));
   let currentX = userModel.bounds.x + userModel.bounds.width + 50;
 
   availableClasses.forEach((classInfo) => {
+    // Same decomposition as the icon view: configured classes become chips.
+    const chips = configuredAttributes(classInfo);
+    if (chips.length > 0) {
+      chips.forEach((attr) => {
+        elements.push(
+          ...buildAttributeChip(layer, classInfo, attr, currentX, userModel.bounds.width, userModel.bounds.height),
+        );
+        currentX += userModel.bounds.width + 50;
+      });
+      return;
+    }
+
     const instanceName = `${classInfo.name.charAt(0).toLowerCase() + classInfo.name.slice(1)}_1`;
     const instanceUser = new UMLUserModelName({
       name: instanceName,
@@ -113,7 +196,6 @@ const composeNormalView = (layer: ILayer): UMLElement[] => {
     };
 
     const instanceAttributes: UMLUserModelAttribute[] = [];
-    let iconElement: UMLUserModelIcon | null = null;
 
     classInfo.attributes.forEach((attr, index) => {
       const attribute = new UMLUserModelAttribute({
