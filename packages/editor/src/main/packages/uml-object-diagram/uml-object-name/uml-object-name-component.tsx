@@ -1,13 +1,53 @@
 import React, { FunctionComponent } from 'react';
+import { connect } from 'react-redux';
 import { Text } from '../../../components/controls/text/text';
 import { UMLObjectName } from './uml-object-name';
 import { ThemedPath, ThemedRect } from '../../../components/theme/themedComponents';
 import { diagramBridge } from '../../../services/diagram-bridge/diagram-bridge-service';
 import { settingsService } from '../../../services/settings/settings-service';
+import { ModelState } from '../../../components/store/model-state';
 import { UserModelElementType } from '../../user-modeling';
 import { isHiddenUserModelContainer } from '../../user-modeling/hidden-containers';
 
-export const UMLObjectNameComponent: FunctionComponent<Props> = ({ element, children, fillColor }) => {
+// The root User element carries a `name` attribute that names the whole profile
+// (see the user metamodel + useUserProfileNameSync). We surface that value as
+// the canvas header so a named profile reads meaningfully, even though element
+// naming is otherwise suppressed in the User editor.
+const ROOT_USER_CLASS_NAME = 'User';
+const USER_NAME_ATTRIBUTE = 'name';
+
+/** Split a criterion like `name = Alice` into its attribute name + value. */
+const parseCriterion = (raw: string): { name: string; value: string } => {
+  const match = raw.match(/^(.*?)(?:\s*(?:<=|>=|==|=|<|>)\s*)(.*)$/);
+  return {
+    name: (match ? match[1] : raw).trim(),
+    value: (match ? match[2] : '').trim(),
+  };
+};
+
+/**
+ * For the root User box, read the profile name from its sibling `name`
+ * `UserModelAttribute` (the live source of truth — canvas edits update that row,
+ * not the box's own `name`). Returns '' for any non-root box or when unset.
+ */
+const resolveUserProfileName = (
+  element: UMLObjectName,
+  className: string,
+  elements: ModelState['elements'],
+): string => {
+  const isRootUser = (className || (element as any).className) === ROOT_USER_CLASS_NAME;
+  if (!isRootUser || !elements) return '';
+  const attribute = Object.values(elements).find(
+    (candidate: any) =>
+      candidate?.owner === element.id &&
+      candidate?.type === (UserModelElementType as any).UserModelAttribute &&
+      typeof candidate.name === 'string' &&
+      parseCriterion(candidate.name).name === USER_NAME_ATTRIBUTE,
+  ) as any;
+  return attribute ? parseCriterion(attribute.name).value : '';
+};
+
+const UMLObjectNameComponentUnconnected: FunctionComponent<Props> = ({ element, children, fillColor, elements }) => {
   // Helper function to get the class name from the classId
   const getClassName = (): string => {
     if (!element.classId) {
@@ -34,8 +74,11 @@ export const UMLObjectNameComponent: FunctionComponent<Props> = ({ element, chil
   // so they can show the attribute name even though the node is still a real
   // instance of its container class (classId/className unchanged).
   const chipLabel = (element as any).displayLabel as string | undefined;
+  // The root User box shows its chosen profile name when one is set (e.g. a
+  // "child" profile), falling back to the class name ("User") when unnamed.
+  const profileName = resolveUserProfileName(element, className, elements);
   const displayLabel = isUserModelElement
-    ? (chipLabel || className || element.className || element.name)
+    ? (chipLabel || profileName || className || element.className || element.name)
     : `${element.name}${className ? ` : ${className}` : ''}`;
   
   // Check if we should show icon view or normal view
@@ -159,8 +202,18 @@ const renderNormalView = (element: UMLObjectName, children: React.ReactNode, fil
   );
 };
 
-interface Props {
+interface OwnProps {
   element: UMLObjectName;
   fillColor?: string;
   children?: React.ReactNode;
 }
+
+interface StateProps {
+  elements: ModelState['elements'];
+}
+
+type Props = OwnProps & StateProps;
+
+export const UMLObjectNameComponent = connect<StateProps, {}, OwnProps, ModelState>((state) => ({
+  elements: state.elements,
+}))(UMLObjectNameComponentUnconnected);

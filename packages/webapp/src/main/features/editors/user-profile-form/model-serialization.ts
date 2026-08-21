@@ -91,6 +91,15 @@ const collectExistingBounds = (model?: UMLModel | null): Record<string, Bounds> 
 const instanceDisplayName = (className: string, ordinal: number): string =>
   `${className.charAt(0).toLowerCase() + className.slice(1)}_${ordinal + 1}`;
 
+/** Name of the identity attribute on the root User element (see the metamodel). */
+export const USER_NAME_ATTRIBUTE = 'name';
+
+/** Read the value of the root User `name` attribute from a form instance. */
+const rootNameValue = (instance: Instance): string => {
+  const attr = instance.attributes.find((a) => a.name === USER_NAME_ATTRIBUTE);
+  return attr && attr.value != null ? String(attr.value).trim() : '';
+};
+
 export const buildUserDiagramModel = (
   root: Instance | null,
   _tree: MetaTree,
@@ -134,11 +143,17 @@ export const buildUserDiagramModel = (
       y = 40 + depth * 200;
     }
 
+    // The root User box is labelled with the profile name (its `name` attribute)
+    // so the canvas node reads meaningfully even in icon-view where attribute
+    // rows are hidden; other boxes keep the generated `class_n` display name.
+    const rootName = instance.className === ROOT_CLASS_NAME ? rootNameValue(instance) : '';
+    const displayName = rootName || instanceDisplayName(instance.className, ord);
+
     const boxId = nextId('name');
     const box: any = {
       type: 'UserModelName',
       id: boxId,
-      name: instanceDisplayName(instance.className, ord),
+      name: displayName,
       owner: null,
       bounds: { x, y, width: 200, height },
       attributes: [] as string[],
@@ -222,6 +237,79 @@ export const buildUserDiagramModel = (
     interactive: { elements: {}, relationships: {} },
     assessments: {},
   } as unknown as UMLModel;
+};
+
+/* ------------------------------------------------------------------ */
+/*  Root User name  <->  raw UMLModel (for the tab-title sync)          */
+/* ------------------------------------------------------------------ */
+
+/** Find the root `User` UserModelName box in a raw model, if present. */
+const findRootUserBox = (elements: Record<string, any>): any | undefined =>
+  Object.values(elements).find(
+    (el: any) => el?.type === 'UserModelName' && el.className === ROOT_CLASS_NAME,
+  );
+
+/**
+ * Read the profile name carried by the root User element's `name` attribute.
+ * Returns '' when there is no User box or the attribute is unset/absent.
+ */
+export const readUserProfileName = (model: UMLModel | null | undefined): string => {
+  const elements = (model?.elements || {}) as Record<string, any>;
+  const box = findRootUserBox(elements);
+  if (!box) return '';
+  const ids: string[] = Array.isArray(box.attributes) ? box.attributes : [];
+  for (const id of ids) {
+    const el = elements[id];
+    if (el?.type !== 'UserModelAttribute') continue;
+    const parsed = parseCriterion(el.name);
+    if (parsed.name === USER_NAME_ATTRIBUTE) return parsed.value;
+  }
+  return '';
+};
+
+let addedNameAttrCounter = 0;
+
+/**
+ * Return a clone of `model` whose root User element carries `name = <value>`.
+ * Updates the existing `name` attribute row when present, otherwise adds one
+ * (backfills old diagrams saved before the metamodel had a `name` attribute).
+ * Also mirrors the value into the box display name so the canvas node relabels.
+ */
+export const writeUserProfileName = (model: UMLModel, value: string): UMLModel => {
+  const clone = structuredClone(model) as UMLModel;
+  const elements = (clone.elements || {}) as Record<string, any>;
+  const box = findRootUserBox(elements);
+  if (!box) return clone;
+
+  const ids: string[] = Array.isArray(box.attributes) ? box.attributes : [];
+  const trimmed = value.trim();
+  let updated = false;
+  for (const id of ids) {
+    const el = elements[id];
+    if (el?.type !== 'UserModelAttribute') continue;
+    if (parseCriterion(el.name).name === USER_NAME_ATTRIBUTE) {
+      el.name = `${USER_NAME_ATTRIBUTE} = ${trimmed}`;
+      updated = true;
+      break;
+    }
+  }
+
+  if (!updated) {
+    const attrId = `up_name_${addedNameAttrCounter++}`;
+    const b = box.bounds || { x: 0, y: 0, width: 200, height: 50 };
+    elements[attrId] = {
+      id: attrId,
+      type: 'UserModelAttribute',
+      name: `${USER_NAME_ATTRIBUTE} = ${trimmed}`,
+      owner: box.id,
+      bounds: { x: b.x + 1, y: b.y + 40, width: 198, height: 30 },
+      attributeOperator: '==',
+    };
+    box.attributes = [attrId, ...ids];
+  }
+
+  if (trimmed) box.name = trimmed;
+  return clone;
 };
 
 /* ------------------------------------------------------------------ */

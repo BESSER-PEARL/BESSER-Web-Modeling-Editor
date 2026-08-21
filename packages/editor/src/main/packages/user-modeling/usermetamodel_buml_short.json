@@ -10,6 +10,20 @@
     "relationships": {}
   },
   "elements": {
+    "c099dfb1-b5ed-4a34-9ede-9593be0a49bc": {
+      "id": "c099dfb1-b5ed-4a34-9ede-9593be0a49bc",
+      "name": "name",
+      "type": "ClassAttribute",
+      "owner": "ce1e2d59-3d7c-4753-adb7-09ca96797f5a",
+      "bounds": {
+        "x": -400,
+        "y": -630,
+        "width": 199,
+        "height": 30
+      },
+      "attributeType": "str",
+      "visibility": "public"
+    },
     "ce1e2d59-3d7c-4753-adb7-09ca96797f5a": {
       "id": "ce1e2d59-3d7c-4753-adb7-09ca96797f5a",
       "name": "User",
@@ -22,7 +36,7 @@
         "height": 40
       },
       "icon": "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"96\" height=\"96\" viewBox=\"0 0 20 20\"> \t<g fill=\"none\"> \t\t<path fill=\"url(#fluentColorPerson200)\" d=\"M5.009 11A2 2 0 0 0 3 13c0 1.691.833 2.966 2.135 3.797C6.417 17.614 8.145 18 10 18s3.583-.386 4.865-1.203C16.167 15.967 17 14.69 17 13a2 2 0 0 0-2-2z\" /> \t\t<path fill=\"url(#fluentColorPerson201)\" d=\"M5.009 11A2 2 0 0 0 3 13c0 1.691.833 2.966 2.135 3.797C6.417 17.614 8.145 18 10 18s3.583-.386 4.865-1.203C16.167 15.967 17 14.69 17 13a2 2 0 0 0-2-2z\" /> \t\t<path fill=\"url(#fluentColorPerson202)\" d=\"M10 2a4 4 0 1 0 0 8a4 4 0 0 0 0-8\" /> \t\t<defs> \t\t\t<linearGradient id=\"fluentColorPerson200\" x1=\"6.329\" x2=\"8.591\" y1=\"11.931\" y2=\"19.153\" gradientUnits=\"userSpaceOnUse\"> \t\t\t\t<stop offset=\".125\" stop-color=\"#5baad0\" /> \t\t\t\t<stop offset=\"1\" stop-color=\"#282233\" /> \t\t\t</linearGradient> \t\t\t<linearGradient id=\"fluentColorPerson201\" x1=\"10\" x2=\"13.167\" y1=\"10.167\" y2=\"22\" gradientUnits=\"userSpaceOnUse\"> \t\t\t\t<stop stop-color=\"#537fff\" stop-opacity=\"0\" /> \t\t\t\t<stop offset=\"1\" stop-color=\"#e362f8\" /> \t\t\t</linearGradient> \t\t\t<linearGradient id=\"fluentColorPerson202\" x1=\"7.902\" x2=\"11.979\" y1=\"3.063\" y2=\"9.574\" gradientUnits=\"userSpaceOnUse\"> \t\t\t\t<stop offset=\".125\" stop-color=\"#5baad0\" /> \t\t\t\t<stop offset=\"1\" stop-color=\"#282233\" /> \t\t\t</linearGradient> \t\t</defs> \t</g> </svg>",
-      "attributes": [],
+      "attributes": ["c099dfb1-b5ed-4a34-9ede-9593be0a49bc"],
       "methods": []
     },
     "5b6e9989-bda3-4434-8fac-89f649dc05d3": {

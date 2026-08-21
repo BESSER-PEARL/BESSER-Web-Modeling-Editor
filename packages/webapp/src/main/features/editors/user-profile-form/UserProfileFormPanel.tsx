@@ -18,7 +18,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/component
 import { cn } from '@/lib/utils';
 import { isHiddenUserModelAttribute } from '@besser/wme';
 import { useUserProfileForm } from './useUserProfileForm';
-import { createEmptyInstance } from './model-serialization';
+import { createEmptyInstance, USER_NAME_ATTRIBUTE } from './model-serialization';
 import { MetaChildRef, MetaNode, MetaTree } from './metamodel-tree';
 import { AttrValue, Instance, isNumericType, OPERATORS, Operator } from './types';
 import { AttributeChip } from './AttributeChip';
@@ -391,11 +391,38 @@ export const UserProfileFormPanel: React.FC<UserProfileFormPanelProps> = ({ open
                   Root
                 </span>
               </div>
+              {/* Profile name — the User identity attribute. Rendered as a plain
+                  labelled input (not a matching criterion); it drives the tab
+                  title via useUserProfileNameSync. */}
+              {(() => {
+                const nameIdx = formState.attributes.findIndex(
+                  (attr) => attr.name === USER_NAME_ATTRIBUTE,
+                );
+                if (nameIdx < 0) return null;
+                const nameAttr = formState.attributes[nameIdx];
+                return (
+                  <div className="mt-2">
+                    <label className="mb-1 block text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                      Profile name
+                    </label>
+                    <input
+                      type="text"
+                      value={nameAttr.value ?? ''}
+                      placeholder="Name this profile…"
+                      onChange={(e) => setAttr(formState.key, nameIdx, { value: e.target.value })}
+                      className="w-full rounded-md border border-brand/25 bg-background px-2 py-1 text-[13px] text-foreground outline-none focus:border-brand"
+                    />
+                  </div>
+                );
+              })()}
               {formState.attributes.some(
-                (attr) => !isHiddenUserModelAttribute(formState.className, attr.name),
+                (attr) =>
+                  attr.name !== USER_NAME_ATTRIBUTE &&
+                  !isHiddenUserModelAttribute(formState.className, attr.name),
               ) && (
                 <div className="mt-2 space-y-0.5">
                   {formState.attributes.map((attr, idx) =>
+                    attr.name === USER_NAME_ATTRIBUTE ||
                     isHiddenUserModelAttribute(formState.className, attr.name) ? null : (
                       <AttributeRow
                         key={attr.attributeId || attr.name || idx}
@@ -413,7 +440,7 @@ export const UserProfileFormPanel: React.FC<UserProfileFormPanelProps> = ({ open
               <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Attributes</p>
               <div className="flex flex-wrap gap-2">
                 {rootMeta.children.map((childRef) => {
-                  const childMeta = tree.byClassName[childRef.className];
+                  const childMeta = cb.tree.byClassName[childRef.className];
                   if (!childMeta) return null;
                   const configuredAttrs = attributeIconService.getConfiguredAttributesForContainer(
                     childRef.className,
