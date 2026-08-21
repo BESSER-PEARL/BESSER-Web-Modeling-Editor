@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { fetchDatabaseMetadata } from '../../../services/external-db/externalDbApi';
 import { useAppDispatch } from '../../../app/store/hooks';
-import { updateDiagramModelThunk } from '../../../app/store/workspaceSlice';
+import { updateDiagramModelThunk, bumpEditorRevision } from '../../../app/store/workspaceSlice';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -53,7 +53,8 @@ export const ExternalDbConnectionModal: React.FC<ExternalDbConnectionModalProps>
     try {
       const url = buildConnectionUrl();
       const diagramJson = await fetchDatabaseMetadata(url);
-      dispatch(updateDiagramModelThunk({ model: diagramJson, title: 'External DB Class Diagram' }));
+      await dispatch(updateDiagramModelThunk({ model: diagramJson, title: 'External DB Class Diagram' }));
+      dispatch(bumpEditorRevision());
       setSuccess(true);
       onHide();
     } catch (err: unknown) {

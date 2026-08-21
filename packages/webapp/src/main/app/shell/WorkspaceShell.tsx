@@ -68,7 +68,6 @@ import { KeyboardShortcutsDialog, useKeyboardShortcutsToggle } from '../../share
 import { CommandPalette, useCommandPaletteShortcut, buildDefaultActions } from '../../shared/components/command-palette/CommandPalette';
 import { HiddenPerspectivesBanner } from '../../features/editors/HiddenPerspectivesBanner';
 import { ExternalDbConnectionModal } from '../../components/modals/external-db-modal/ExternalDbConnectionModal';
-import { APPLICATION_SERVER_VERSION } from '../../shared/constants/constant';
 
 export type { GeneratorType, GeneratorMenuMode } from './workspace-types';
 
@@ -800,7 +799,7 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
         starLoading={starLoading}
         onToggleStar={handleToggleStar}
         onOpenDeployDialog={handleOpenDeployDialog}
-        onOpenExternalDbModal={APPLICATION_SERVER_VERSION ? () => setIsExternalDbModalOpen(true) : undefined}
+        onOpenExternalDbModal={() => setIsExternalDbModalOpen(true)}
         onOpenHelpDialog={() => setIsHelpDialogOpen(true)}
         onOpenAboutDialog={() => setIsAboutDialogOpen(true)}
         onOpenFeedback={() => setIsFeedbackDialogOpen(true)}

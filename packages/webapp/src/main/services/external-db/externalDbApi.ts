@@ -1,4 +1,4 @@
-import { BACKEND_URL } from '../../constant';
+import { BACKEND_URL } from '../../shared/constants/constant';
 
 export const fetchDatabaseMetadata = async (connection_url: string): Promise<any> => {
     const response = await fetch(`${BACKEND_URL}/external-db/metadata`, {
