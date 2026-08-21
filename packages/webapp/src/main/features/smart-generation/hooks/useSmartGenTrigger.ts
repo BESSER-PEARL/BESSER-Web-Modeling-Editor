@@ -524,6 +524,14 @@ export function useSmartGenTrigger(
           const doneRunId =
             event.runId || extractRunId(event.downloadUrl) || undefined;
           if (doneRunId) currentRunIdRef.current = doneRunId;
+          // The deterministic Phase-1 generator BESSER ran (e.g. `fastapi`,
+          // `django`, `web_app`). It's the only reliable "what was generated"
+          // signal available client-side — a richer summary (file count, full
+          // stack) would need a dedicated backend field on the done event.
+          const generatorUsed =
+            typeof event.recipe?.generator_used === 'string'
+              ? event.recipe.generator_used
+              : undefined;
           // Record this successful run as the base for a future
           // incremental vibe-modify of the SAME project — both in the
           // slice (same-session fast path) and localStorage (survives a
@@ -560,6 +568,7 @@ export function useSmartGenTrigger(
               downloadUrl: event.downloadUrl,
               fileName: event.fileName,
               isZip: event.isZip,
+              generatorUsed,
               status: 'done',
               needsDownload: true,
             }),
@@ -567,28 +576,21 @@ export function useSmartGenTrigger(
           );
           finalizeStreamingMessage(streamingId);
           {
-            // Prefer the open project's name over the backend-generated
-            // UUID-suffixed zip filename. Falls back to the raw filename
-            // when we don't have a project (defensive -- shouldn't happen
-            // since the run is guarded on an open project).
-            const projectName = runProject.name;
-            const niceLabel = projectName ? `**${projectName}**` : `\`${event.fileName}\``;
+            // Concise "what was generated" summary. We name the generator
+            // BESSER used (the reliable client-side signal); a richer summary
+            // (file count / full stack) would need a backend field. The
+            // download itself is a small inline button on the compact run
+            // card — no big card, no "to your device" verbosity.
+            const builtWith = generatorUsed
+              ? ` using BESSER's \`${generatorUsed}\` generator`
+              : '';
             appendAssistantMessage(
-              (event.incomplete
-                ? `⚠️ Smart generator finished building ${niceLabel}, but the run **stopped early — the output may be incomplete**.${event.incompleteReason ? ` ${event.incompleteReason}` : ``} You can resume the run to finish the remaining changes.
-
-`
-                : `✅ Smart generator finished building ${niceLabel}.
-
-`) +
-                `  Click **Download** on the run card to save \`${event.fileName}\` to your device.`,
+              event.incomplete
+                ? `⚠️ Your application code is ready${builtWith}, but the run **stopped early — the output may be incomplete**.${event.incompleteReason ? ` ${event.incompleteReason}` : ``} You can resume the run to finish the remaining changes. Use the **Download** button on the run card to save it.`
+                : `✅ Your application code is ready${builtWith}. Use the **Download** button on the run card to save it.`,
             );
             toast.success('Spec-Driven Agent finished -- ready to download');
           }
-          const generatorUsed =
-            typeof event.recipe?.generator_used === 'string'
-              ? event.recipe.generator_used
-              : undefined;
           // The run itself succeeded; the user simply hasn't saved the
           // file yet. Report ok so the modeling agent sees a successful
           // build -- download is now a user-driven step, not part of the run.
@@ -799,21 +801,10 @@ export function useSmartGenTrigger(
         return;
       }
 
-      // Free tier: tell the user they're on the keyless model and how to
-      // upgrade. This chat note REPLACES the old BYOK popup as the place the
-      // "add your own key for better results" affordance lives. The
-      // `wme:add-key` link is intercepted by the markdown renderer and opens
-      // the key dialog (settings mode) so the next run can use their key.
-      if (freeSelected) {
-        const freeModel =
-          (await getSmartGenConfig()).free_tier.model || 'qwen3-coder';
-        appendAssistantMessage(
-          `⚡ Generating with the **free ${freeModel}** model — no API key needed. ` +
-            `For higher-quality results you can [use your own API key](wme:add-key) ` +
-            `(Anthropic · OpenAI · Mistral), then generate again.`,
-        );
-      }
-
+      // The free-tier / BYOK choice was already conveyed by the confirmation
+      // copy shown before the run (see the agent's
+      // ``_build_smart_gen_confirmation``), so we no longer append a mid-run
+      // free-tier note here — the intro line below is enough.
       const introText =
         typeof payload.message === 'string' && payload.message.trim().length > 0
           ? payload.message

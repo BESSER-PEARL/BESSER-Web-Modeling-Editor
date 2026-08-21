@@ -189,6 +189,13 @@ export interface SmartGenMessageState {
   /** Whether the artifact is a zip (done event). */
   isZip?: boolean
   /**
+   * The deterministic generator BESSER used (e.g. `fastapi`, `django`,
+   * `web_app`), read from the done event's recipe. Shown on the compact
+   * completion card as a short "what was generated" hint. Optional — a
+   * richer summary (file count / full stack) would need a backend field.
+   */
+  generatorUsed?: string
+  /**
    * Generation succeeded but the browser download failed. The artifact
    * stays on the server (~30 min TTL) so "Download again" can retry.
    */
@@ -744,6 +751,7 @@ function SmartGenCard({
     isZip,
     downloadFailed,
     needsDownload,
+    generatorUsed,
   } = smartGen
 
   const [stopRequested, setStopRequested] = useState(false)
@@ -795,6 +803,93 @@ function SmartGenCard({
     typeof runId === "string" &&
     typeof fileName === "string"
   const showFooter = showMeter || showStop || canRedownload
+
+  // Completed run: collapse the big phased card to a SMALL inline line with a
+  // compact download button (the process timeline is no longer useful once the
+  // app is ready). Warnings and the download-failed note stay visible.
+  if (status === "done") {
+    const isFirstSave = needsDownload === true && !hasDownloaded
+    return (
+      <div className="w-full overflow-hidden rounded-lg border border-border/60 bg-muted/40 text-sm">
+        <div className="flex flex-wrap items-center gap-x-2 gap-y-1 px-3 py-2 text-xs">
+          <Sparkles className="h-3.5 w-3.5 shrink-0 text-primary" />
+          <span className="text-[13px] font-medium text-foreground">
+            Application ready
+          </span>
+          {generatorUsed ? (
+            <span className="font-mono text-[11px] text-muted-foreground">
+              · {generatorUsed}
+            </span>
+          ) : null}
+          <span className="ml-auto flex items-center gap-2">
+            {redownloadState === "failed" ? (
+              <span className="text-[11px] text-red-600 dark:text-red-400">
+                Retry failed
+              </span>
+            ) : null}
+            {canRedownload ? (
+              <button
+                type="button"
+                onClick={() => void handleRedownload()}
+                disabled={redownloadState === "busy"}
+                className={cn(
+                  "inline-flex items-center gap-1 rounded px-2 py-0.5 text-[11px] font-medium disabled:opacity-50",
+                  isFirstSave
+                    ? "bg-primary text-primary-foreground hover:bg-primary/90"
+                    : "border border-border/60 bg-background text-foreground hover:bg-muted"
+                )}
+              >
+                {redownloadState === "busy" ? (
+                  <Loader2 className="h-3 w-3 animate-spin" />
+                ) : (
+                  <Download className="h-3 w-3" />
+                )}
+                {isFirstSave ? "Download" : "Download again"}
+              </button>
+            ) : null}
+            {canRedownload && onPushToGithub && runId ? (
+              <button
+                type="button"
+                onClick={() => onPushToGithub(runId)}
+                className="inline-flex items-center gap-1 rounded border border-border/60 bg-background px-2 py-0.5 text-[11px] font-medium text-foreground hover:bg-muted"
+              >
+                <Github className="h-3 w-3" />
+                Push to GitHub
+              </button>
+            ) : null}
+          </span>
+        </div>
+
+        {/* Warnings (incomplete / timeout) stay visible on the compact card */}
+        {warnings.length > 0 ? (
+          <div className="flex flex-col gap-1 border-t border-amber-200 bg-amber-50 px-3 py-2 dark:border-amber-800/30 dark:bg-amber-950/20">
+            {warnings.map((w, i) => (
+              <div
+                key={`${w.code}-${i}`}
+                className="flex items-start gap-2 text-xs text-amber-800 dark:text-amber-200"
+              >
+                <AlertTriangle className="mt-0.5 h-3 w-3 shrink-0" />
+                <span className="font-mono">{w.code}</span>
+                <span className="break-words">— {w.message}</span>
+              </div>
+            ))}
+          </div>
+        ) : null}
+
+        {/* Download failed — artifact still retrievable from the server */}
+        {downloadFailed ? (
+          <div className="flex items-start gap-2 border-t border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800 dark:border-amber-800/30 dark:bg-amber-950/20 dark:text-amber-200">
+            <AlertTriangle className="mt-0.5 h-3 w-3 shrink-0" />
+            <span>
+              The download failed, but the generated file is still available on
+              the server for about 30 minutes. Use &ldquo;Download again&rdquo;
+              to retry.
+            </span>
+          </div>
+        ) : null}
+      </div>
+    )
+  }
 
   return (
     <div className="w-full overflow-hidden rounded-lg border border-border/60 bg-muted/40 text-sm">

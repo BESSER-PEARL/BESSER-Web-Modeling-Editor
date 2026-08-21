@@ -27,7 +27,7 @@ import type { SupportedDiagramType } from '../../../shared/types/project';
 import type { GeneratorType } from '../../../app/shell/workspace-types';
 import type { GenerationResult } from '../../generation/types';
 import { useAssistantLogic, type ConnectionStatus, type MessageMeta } from '../hooks/useAssistantLogic';
-import { shouldOpenGuiTab, type GuiActionRouteInput } from '../hooks/suggestedActionRouting';
+import { shouldOpenGuiTab, isReviewSpecAction, type GuiActionRouteInput } from '../hooks/suggestedActionRouting';
 import { AssistantByokDialog } from './AssistantByokDialog';
 import { QuickActions } from './QuickActions';
 import { ProgressSteps } from './ProgressSteps';
@@ -144,6 +144,12 @@ export const AssistantWidget: React.FC<AssistantWidgetProps> = ({ onAssistantGen
 
   /* ---- Suggested-action chip handler: route "modify the GUI" to the GUI tab ---- */
   const handleSuggestedAction = useCallback((action: GuiActionRouteInput) => {
+    // "Review the spec" hides the widget so the diagram on the canvas is
+    // visible — it's a UI-only action, never relayed to the agent.
+    if (isReviewSpecAction(action)) {
+      setIsVisible(false);
+      return;
+    }
     if (shouldOpenGuiTab(action)) {
       void switchDiagram('GUINoCodeDiagram');
       return;

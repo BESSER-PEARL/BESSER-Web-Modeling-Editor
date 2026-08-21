@@ -1,5 +1,9 @@
 import { describe, it, expect } from 'vitest';
-import { shouldOpenGuiTab } from '../suggestedActionRouting';
+import {
+  shouldOpenGuiTab,
+  isReviewSpecAction,
+  REVIEW_SPEC_PROMPT,
+} from '../suggestedActionRouting';
 
 describe('shouldOpenGuiTab', () => {
   it('routes "Modify the GUI" to the GUI tab', () => {
@@ -40,5 +44,27 @@ describe('shouldOpenGuiTab', () => {
     expect(shouldOpenGuiTab(null)).toBe(false);
     expect(shouldOpenGuiTab(undefined)).toBe(false);
     expect(shouldOpenGuiTab({})).toBe(false);
+  });
+});
+
+describe('isReviewSpecAction', () => {
+  it('matches the wme:review-spec sentinel prompt', () => {
+    expect(isReviewSpecAction({ label: 'Review the spec', prompt: REVIEW_SPEC_PROMPT })).toBe(true);
+    expect(isReviewSpecAction({ label: 'Review the spec', prompt: 'wme:review-spec' })).toBe(true);
+  });
+
+  it('matches an explicit action:"review-spec" hint', () => {
+    expect(isReviewSpecAction({ label: 'Review the spec', action: 'review-spec' })).toBe(true);
+  });
+
+  it('does not match a normal chip', () => {
+    expect(isReviewSpecAction({ label: 'Review the spec', prompt: 'describe my diagram' })).toBe(false);
+    expect(isReviewSpecAction({ label: 'Generate the code', prompt: 'generate the application' })).toBe(false);
+  });
+
+  it('is safe on null/undefined/empty input', () => {
+    expect(isReviewSpecAction(null)).toBe(false);
+    expect(isReviewSpecAction(undefined)).toBe(false);
+    expect(isReviewSpecAction({})).toBe(false);
   });
 });

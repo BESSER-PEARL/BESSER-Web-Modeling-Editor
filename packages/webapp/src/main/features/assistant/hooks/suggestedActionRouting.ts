@@ -19,6 +19,26 @@ export interface GuiActionRouteInput {
   action?: string;
 }
 
+/**
+ * Sentinel prompt the agent sends for the "Review the spec" chip after a
+ * class diagram is built. It is NOT a message for the agent: the assistant
+ * surfaces intercept it and collapse/close the assistant panel so the user
+ * sees the diagram already rendered on the canvas.
+ */
+export const REVIEW_SPEC_PROMPT = 'wme:review-spec';
+
+/**
+ * True when a chip is the "Review the spec" action — it must close the
+ * assistant panel to reveal the diagram, never relay its prompt to the agent.
+ * Matches either the ``wme:review-spec`` sentinel prompt or an explicit
+ * ``action: 'review-spec'`` hint.
+ */
+export function isReviewSpecAction(input: GuiActionRouteInput | null | undefined): boolean {
+  if (!input) return false;
+  if (input.action === 'review-spec') return true;
+  return input.prompt === REVIEW_SPEC_PROMPT;
+}
+
 /** Matches "see/open/view/show/modify/edit … gui" in either the label or prompt. */
 const GUI_OPEN_RE = /\b(see|open|view|show|modify|edit)\b[^.]*\bgui\b/i;
 

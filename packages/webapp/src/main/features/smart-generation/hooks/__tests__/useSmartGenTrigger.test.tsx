@@ -342,8 +342,9 @@ describe('useSmartGenTrigger — BYOK missing flow', () => {
 
   it('defaults to the free tier (no popup) when no key is stored and the server offers it', async () => {
     // The free-tier rework: instead of interrupting with the BYOK popup, an
-    // unauthorised trigger runs on the keyless free model directly, and the
-    // chat carries the "use your own API key" upgrade link.
+    // unauthorised trigger runs on the keyless free model directly. The
+    // "use your own API key" affordance now lives in the pre-run confirmation
+    // copy (agent-side), so the run no longer appends a mid-run free-tier note.
     _mockController.events = HAPPY_EVENTS;
     const configModule = await import('../../services/smartGenConfig');
     vi.mocked(configModule.getSmartGenConfig).mockResolvedValue({
@@ -366,13 +367,14 @@ describe('useSmartGenTrigger — BYOK missing flow', () => {
     // The run was dispatched as the keyless free provider…
     const args = vi.mocked(sseClientModule.startSmartGenRun).mock.calls[0][0];
     expect(args.provider).toBe('free');
-    // …and the chat shows the free-tier note with the upgrade link.
+    // …and the run no longer appends a mid-run free-tier note (the upgrade
+    // affordance moved to the pre-run confirmation copy).
     const msgs = apiRef.current!.getMessages() as any[];
     expect(
       msgs.some(
         (m) => typeof m.content === 'string' && m.content.includes('wme:add-key'),
       ),
-    ).toBe(true);
+    ).toBe(false);
   });
 });
 

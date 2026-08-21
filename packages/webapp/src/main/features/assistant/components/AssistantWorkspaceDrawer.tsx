@@ -17,7 +17,7 @@ import { cn } from '@/lib/utils';
 import type { GeneratorType } from '../../../app/shell/workspace-types';
 import type { GenerationResult } from '../../generation/types';
 import { useAssistantLogic, type ConnectionStatus } from '../hooks/useAssistantLogic';
-import { shouldOpenGuiTab, type GuiActionRouteInput } from '../hooks/suggestedActionRouting';
+import { shouldOpenGuiTab, isReviewSpecAction, type GuiActionRouteInput } from '../hooks/suggestedActionRouting';
 import { AssistantByokDialog } from './AssistantByokDialog';
 import { QuickActions } from './QuickActions';
 import { ProgressSteps } from './ProgressSteps';
@@ -268,15 +268,21 @@ export const AssistantWorkspaceDrawer: React.FC<AssistantWorkspaceDrawerProps> =
 
   /* ---- Quick action handler ---- */
 
-  // A "view/modify the GUI" chip switches to the GUI tab instead of relaying a
+  // A "Review the spec" chip closes the drawer so the user sees the diagram
+  // on the canvas (it's already rendered) — never relayed to the agent. A
+  // "view/modify the GUI" chip switches to the GUI tab instead of relaying a
   // prompt the agent can't act on; every other chip relays its prompt as chat.
   const handleQuickAction = useCallback((action: GuiActionRouteInput) => {
+    if (isReviewSpecAction(action)) {
+      onOpenChange(false);
+      return;
+    }
     if (shouldOpenGuiTab(action)) {
       void switchDiagram('GUINoCodeDiagram');
       return;
     }
     handleSubmit(undefined, { overrideText: action.prompt ?? '' });
-  }, [handleSubmit]);
+  }, [handleSubmit, onOpenChange]);
 
   /* ---- Last assistant message meta (for QuickActions) ---- */
 
