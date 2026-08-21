@@ -60,6 +60,8 @@ const enhance = compose<ComponentType<OwnProps>>(
 );
 
 class MouseEventListenerComponent extends Component<Props, LocalState> {
+  private lastSelection: string[] | undefined;
+
   constructor(props: Props) {
     super(props);
     this.state = {
@@ -99,7 +101,7 @@ class MouseEventListenerComponent extends Component<Props, LocalState> {
 
     return (
       this.state.selectionStarted &&
-      width != 0 && (
+      width !== 0 && (
         <svg
           opacity={0.5}
           pointerEvents={'none'}
@@ -186,6 +188,7 @@ class MouseEventListenerComponent extends Component<Props, LocalState> {
       },
     });
 
+    this.lastSelection = undefined;
     this.props.changeSelectionBox(false);
   };
 
@@ -200,7 +203,13 @@ class MouseEventListenerComponent extends Component<Props, LocalState> {
 
     const selection = this.getElementIDsInSelectionBox();
 
-    this.props.select(selection, true);
+    // Only dispatch if selection changed
+    if (this.lastSelection === undefined ||
+        selection.length !== this.lastSelection.length ||
+        selection.some((id, i) => id !== this.lastSelection![i])) {
+      this.props.select(selection, true);
+      this.lastSelection = selection;
+    }
 
     this.setState((prevState) => {
       return {

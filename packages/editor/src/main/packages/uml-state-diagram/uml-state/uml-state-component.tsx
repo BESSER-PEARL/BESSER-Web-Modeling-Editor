@@ -62,7 +62,7 @@ export const UMLStateComponent: FunctionComponent<Props> = ({ element, children,
         height="100%" 
         strokeColor={element.strokeColor} 
         fillColor="none" 
-        pointer-events="none"
+        pointerEvents="none"
         rx={cornerRadius}
       />
       {element.hasBody && (

@@ -20,3 +20,9 @@ Follow these steps to set up the editor:
       docker-compose up
 
 Once the setup is complete, open your browser and navigate to ``http://localhost:8080``.
+
+.. seealso::
+
+   :doc:`../overview/getting-started`
+      Full setup guide including running from source, backend startup,
+      and verification steps.

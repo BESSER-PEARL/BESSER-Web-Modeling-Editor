@@ -7,11 +7,14 @@ import { Textfield } from '../../../components/controls/textfield/textfield';
 import { Dropdown } from '../../../components/controls/dropdown/dropdown';
 import { StylePane } from '../../../components/style-pane/style-pane';
 import { IUMLElement } from '../../../services/uml-element/uml-element';
+import { IUMLContainer } from '../../../services/uml-container/uml-container';
 import { Visibility } from './uml-classifier-member';
+import { I18nContext } from '../../../components/i18n/i18n-context';
+import { localized } from '../../../components/i18n/localized';
 
 const Flex = styled.div`
   display: flex;
-  align-items: baseline;
+  align-items: center;
   justify-content: space-between;
   gap: 4px;
 `;
@@ -19,23 +22,27 @@ const Flex = styled.div`
 const AttributeRow = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  margin-bottom: 8px;
+  gap: 2px;
+  padding: 4px 0;
+
+  & + & {
+    border-top: 1px solid ${(props) => props.theme.color.gray}22;
+  }
 `;
 
 const ControlsRow = styled.div`
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 3px;
 `;
 
 const VisibilityDropdown = styled(Dropdown)`
-  min-width: 80px;
+  min-width: 44px;
   flex-shrink: 0;
 `;
 
 const TypeDropdown = styled(Dropdown)`
-  min-width: 100px;
+  min-width: 80px;
   flex-shrink: 0;
 `;
 
@@ -119,6 +126,9 @@ type AttributeValues = {
   visibility?: Visibility;
   attributeType?: string;
   isOptional?: boolean;
+  isDerived?: boolean;
+  isId?: boolean;
+  isExternalId?: boolean;
   defaultValue?: any;
   fillColor?: string;
   textColor?: string;
@@ -132,6 +142,9 @@ type Props = {
   visibility?: Visibility;
   attributeType?: string;
   isOptional?: boolean;
+  isDerived?: boolean;
+  isId?: boolean;
+  isExternalId?: boolean;
   defaultValue?: any;
   onChange: (id: string, values: AttributeValues) => void;
   onSubmitKeyUp: () => void;
@@ -139,7 +152,8 @@ type Props = {
   element: IUMLElement;
   isEnumeration?: boolean;
   availableEnumerations?: Array<{ value: string; label: string }>;
-};
+  elements?: Record<string, IUMLElement>;
+} & I18nContext;
 
 // Helper function to parse legacy name format for backward compatibility
 const parseLegacyName = (nameValue: string): { visibility: Visibility; name: string; attributeType: string } => {
@@ -181,13 +195,18 @@ const UmlAttributeUpdate = ({
   visibility: propVisibility,
   attributeType: propAttributeType,
   isOptional: propIsOptional,
+  isDerived: propIsDerived,
+  isId: propIsId,
+  isExternalId: propIsExternalId,
   defaultValue: propDefaultValue,
   onChange,
   onSubmitKeyUp,
   onDelete,
   element,
   isEnumeration = false,
-  availableEnumerations = []
+  availableEnumerations = [],
+  elements = {},
+  translate
 }: Props) => {
   const [colorOpen, setColorOpen] = useState(false);
 
@@ -198,7 +217,7 @@ const UmlAttributeUpdate = ({
   // For enumerations, just use the value as-is (it's a literal name)
   if (isEnumeration) {
     const handleNameChange = (newName: string | number) => {
-      const nameStr = String(newName);
+      const nameStr = String(newName).replace(/[^a-zA-Z0-9_]/g, '');
       onChange(id, { name: nameStr });
     };
 
@@ -214,7 +233,7 @@ const UmlAttributeUpdate = ({
             value={value} 
             onChange={handleNameChange} 
             onSubmitKeyUp={onSubmitKeyUp}
-            placeholder="literal name"
+            placeholder={translate('popup.attribute.literalNamePlaceholder')}
           />
           <ColorButton onClick={toggleColor} />
           <Button color="link" tabIndex={-1} onClick={handleDelete}>
@@ -245,6 +264,9 @@ const UmlAttributeUpdate = ({
   }
 
   const isOptional = propIsOptional || false;
+  const isDerived = propIsDerived || false;
+  const isId = propIsId || false;
+  const isExternalId = propIsExternalId || false;
   const defaultValue = propDefaultValue;
 
   // Get available enumerations from the model
@@ -258,17 +280,23 @@ const UmlAttributeUpdate = ({
       visibility: vis,
       attributeType,
       isOptional,
+      isDerived,
+      isId,
+      isExternalId,
       defaultValue,
     });
   };
 
   const handleNameChange = (newName: string | number) => {
-    const nameStr = String(newName);
+    const nameStr = String(newName).replace(/[^a-zA-Z0-9_]/g, '');
     onChange(id, {
       name: nameStr,
       visibility,
       attributeType,
       isOptional,
+      isDerived,
+      isId,
+      isExternalId,
       defaultValue,
     });
   };
@@ -280,6 +308,9 @@ const UmlAttributeUpdate = ({
       visibility,
       attributeType: typeStr,
       isOptional,
+      isDerived,
+      isId,
+      isExternalId,
       defaultValue,
     });
   };
@@ -290,6 +321,50 @@ const UmlAttributeUpdate = ({
       visibility,
       attributeType,
       isOptional: checked,
+      isDerived,
+      isId,
+      isExternalId,
+      defaultValue,
+    });
+  };
+
+  const handleDerivedChange = (checked: boolean) => {
+    onChange(id, {
+      name: attrName,
+      visibility,
+      attributeType,
+      isOptional,
+      isDerived: checked,
+      isId,
+      isExternalId,
+      defaultValue,
+    });
+  };
+
+  const handleIdChange = (checked: boolean) => {
+    onChange(id, {
+      name: attrName,
+      visibility,
+      attributeType,
+      // Metamodel constraint: an attribute cannot be both an id and optional.
+      isOptional: checked ? false : isOptional,
+      isDerived,
+      isId: checked,
+      isExternalId,
+      defaultValue,
+    });
+  };
+
+  const handleExternalIdChange = (checked: boolean) => {
+    onChange(id, {
+      name: attrName,
+      visibility,
+      attributeType,
+      // Metamodel constraint: an attribute cannot be both an external identifier and optional.
+      isOptional: checked ? false : isOptional,
+      isDerived,
+      isId,
+      isExternalId: checked,
       defaultValue,
     });
   };
@@ -300,6 +375,9 @@ const UmlAttributeUpdate = ({
       visibility,
       attributeType,
       isOptional,
+      isDerived,
+      isId,
+      isExternalId,
       defaultValue: newDefaultValue || undefined,
     });
   };
@@ -307,6 +385,24 @@ const UmlAttributeUpdate = ({
   const handleDelete = () => {
     onDelete(id)();
   };
+
+  // Check if the attribute type is an enumeration and get its literals
+  let enumerationLiterals: string[] | undefined;
+  if (attributeType && availableEnumerations.some(e => e.value === attributeType)) {
+    // Find the enumeration element with matching name
+    const enumerationElement = Object.values(elements).find(
+      el => el.name === attributeType && el.type === 'Enumeration'
+    );
+    
+    if (enumerationElement && 'ownedElements' in enumerationElement) {
+      // Get the literal names from the enumeration's owned elements
+      const containerElement = enumerationElement as IUMLContainer;
+      enumerationLiterals = containerElement.ownedElements
+        .map((literalId: string) => elements[literalId])
+        .filter((literal: IUMLElement) => literal && literal.name)
+        .map((literal: IUMLElement) => literal.name);
+    }
+  }
 
   return (
     <AttributeRow>
@@ -323,7 +419,7 @@ const UmlAttributeUpdate = ({
           value={attrName} 
           onChange={handleNameChange} 
           onSubmitKeyUp={onSubmitKeyUp}
-          placeholder="attribute name"
+          placeholder={translate('popup.attribute.namePlaceholder')}
         />
         <TypeDropdown value={attributeType} onChange={handleTypeChange}>
           {allTypes.map(t => (
@@ -345,11 +441,19 @@ const UmlAttributeUpdate = ({
         textColor
         isOptional={isOptional}
         onOptionalChange={handleOptionalChange}
+        isDerived={isDerived}
+        onDerivedChange={handleDerivedChange}
+        isId={isId}
+        onIdChange={handleIdChange}
+        isExternalId={isExternalId}
+        onExternalIdChange={handleExternalIdChange}
         defaultValue={defaultValue}
         onDefaultValueChange={handleDefaultValueChange}
+        attributeType={attributeType}
+        enumerationLiterals={enumerationLiterals}
       />
     </AttributeRow>
   );
 };;
 
-export default UmlAttributeUpdate;
+export default localized(UmlAttributeUpdate);

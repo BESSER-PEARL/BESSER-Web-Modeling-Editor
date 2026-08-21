@@ -22,6 +22,9 @@ import { getPortsForRelationship, canHaveCenterPort } from '../../../services/um
 
 import { diagramBridge } from '../../../services/diagram-bridge';
 
+const DEFAULT_PORT_SIZE = 15;
+const CENTER_PORT_RADIUS = 7;
+
 type StateProps = {
   hovered: boolean;
   selected: boolean;
@@ -74,7 +77,13 @@ const Handle = styled((props) => {
   const defaultPortSize = 15;
   if (alternativePortVisualization) {
     return (
-      <svg {...otherProps}>
+      <svg
+        {...otherProps}
+        width={DEFAULT_PORT_SIZE * 2}
+        height={DEFAULT_PORT_SIZE * 2}
+        viewBox={`-${DEFAULT_PORT_SIZE} -${DEFAULT_PORT_SIZE} ${DEFAULT_PORT_SIZE * 2} ${DEFAULT_PORT_SIZE * 2}`}
+        overflow="visible"
+      >
         <path
           d={`M ${alternativePortWidth / 2
             } 0 v -${alternativePortHeight} h -${alternativePortWidth} v ${alternativePortHeight} Z`}
@@ -91,7 +100,13 @@ const Handle = styled((props) => {
     );
   } else {
     return (
-      <svg {...otherProps}>
+      <svg
+        {...otherProps}
+        width={DEFAULT_PORT_SIZE * 2}
+        height={DEFAULT_PORT_SIZE * 2}
+        viewBox={`-${DEFAULT_PORT_SIZE} -${DEFAULT_PORT_SIZE} ${DEFAULT_PORT_SIZE * 2} ${DEFAULT_PORT_SIZE * 2}`}
+        overflow="visible"
+      >
         <path
           d={`M -${defaultPortSize} 0 A ${defaultPortSize / 2} ${defaultPortSize / 2} 0 0 1 ${defaultPortSize} 0`}
         />
@@ -101,8 +116,8 @@ const Handle = styled((props) => {
 }).attrs<{ direction: Direction; ports: { [key in Direction]: Point } }>(({ direction, ports }) => ({
   fill: '#0064ff',
   fillOpacity: 0.2,
-  x: `${ports[direction].x}px`,
-  y: `${ports[direction].y}px`,
+  x: `${ports[direction].x - DEFAULT_PORT_SIZE}px`,
+  y: `${ports[direction].y - DEFAULT_PORT_SIZE}px`,
   rotate:
     direction === Direction.Up || direction === Direction.Topright || direction === Direction.Topleft
       ? 0
@@ -125,15 +140,21 @@ const Handle = styled((props) => {
 const CenterHandle = styled((props) => {
   const { ...otherProps } = props;
   return (
-    <svg {...otherProps}>
+    <svg
+      {...otherProps}
+      width={CENTER_PORT_RADIUS * 2}
+      height={CENTER_PORT_RADIUS * 2}
+      viewBox={`-${CENTER_PORT_RADIUS} -${CENTER_PORT_RADIUS} ${CENTER_PORT_RADIUS * 2} ${CENTER_PORT_RADIUS * 2}`}
+      overflow="visible"
+    >
       <circle r="7" />
     </svg>
   );
 }).attrs<{ ports: { [key in Direction]: Point } }>(({ ports }) => ({
   fill: '#0064ff',
   fillOpacity: 0.3,
-  x: `${ports[Direction.Center].x}px`,
-  y: `${ports[Direction.Center].y}px`,
+  x: `${ports[Direction.Center].x - CENTER_PORT_RADIUS}px`,
+  y: `${ports[Direction.Center].y - CENTER_PORT_RADIUS}px`,
 }))`
   cursor: crosshair;
   pointer-events: all;
@@ -145,9 +166,9 @@ export const connectable = (
   class Connectable extends Component<Props> {
     componentDidMount() {
       const node = findDOMNode(this) as HTMLElement;
-      node.addEventListener('pointerup', this.elementOnPointerUp.bind(this));
+      node.addEventListener('pointerup', this.elementOnPointerUp);
       if (isMobile({ tablet: true })) {
-        node.addEventListener('touchend', this.elementOnPointerUp.bind(this));
+        node.addEventListener('touchend', this.elementOnPointerUp);
       }
     }
 
@@ -195,6 +216,15 @@ export const connectable = (
       // connecting makes other ports visible to see to which you can connect
 
       
+      // if (connecting && !canConnect) {
+      //   console.debug('[Connection] Target blocked by canConnect=false', {
+      //     elementId: props.id,
+      //     type,
+      //     hovered,
+      //     selected,
+      //   });
+      // }
+
       return (
         <WrappedComponent {...props}>
           {props.children}
@@ -221,6 +251,7 @@ export const connectable = (
                     onPointerDown={this.onPointerDown}
                     onPointerUp={this.onPointerUp}
                     alternativePortVisualization={features.alternativePortVisualization}
+
                   />
                   <Handle
                     ports={ports}
@@ -228,6 +259,7 @@ export const connectable = (
                     onPointerDown={this.onPointerDown}
                     onPointerUp={this.onPointerUp}
                     alternativePortVisualization={features.alternativePortVisualization}
+
                   />
                   <Handle
                     ports={ports}
@@ -235,6 +267,7 @@ export const connectable = (
                     onPointerDown={this.onPointerDown}
                     onPointerUp={this.onPointerUp}
                     alternativePortVisualization={features.alternativePortVisualization}
+
                   />
 
                   {/* Right edge handles */}
@@ -244,6 +277,7 @@ export const connectable = (
                     onPointerDown={this.onPointerDown}
                     onPointerUp={this.onPointerUp}
                     alternativePortVisualization={features.alternativePortVisualization}
+
                   />
                   <Handle
                     ports={ports}
@@ -251,6 +285,7 @@ export const connectable = (
                     onPointerDown={this.onPointerDown}
                     onPointerUp={this.onPointerUp}
                     alternativePortVisualization={features.alternativePortVisualization}
+
                   />
                   <Handle
                     ports={ports}
@@ -258,6 +293,7 @@ export const connectable = (
                     onPointerDown={this.onPointerDown}
                     onPointerUp={this.onPointerUp}
                     alternativePortVisualization={features.alternativePortVisualization}
+
                   />
 
                   {/* Bottom edge handles */}
@@ -267,6 +303,7 @@ export const connectable = (
                     onPointerDown={this.onPointerDown}
                     onPointerUp={this.onPointerUp}
                     alternativePortVisualization={features.alternativePortVisualization}
+
                   />
                   <Handle
                     ports={ports}
@@ -274,6 +311,7 @@ export const connectable = (
                     onPointerDown={this.onPointerDown}
                     onPointerUp={this.onPointerUp}
                     alternativePortVisualization={features.alternativePortVisualization}
+
                   />
                   <Handle
                     ports={ports}
@@ -281,6 +319,7 @@ export const connectable = (
                     onPointerDown={this.onPointerDown}
                     onPointerUp={this.onPointerUp}
                     alternativePortVisualization={features.alternativePortVisualization}
+
                   />
 
                   {/* Left edge handles */}
@@ -290,6 +329,7 @@ export const connectable = (
                     onPointerDown={this.onPointerDown}
                     onPointerUp={this.onPointerUp}
                     alternativePortVisualization={features.alternativePortVisualization}
+
                   />
                   <Handle
                     ports={ports}
@@ -297,6 +337,7 @@ export const connectable = (
                     onPointerDown={this.onPointerDown}
                     onPointerUp={this.onPointerUp}
                     alternativePortVisualization={features.alternativePortVisualization}
+
                   />
                   <Handle
                     ports={ports}
@@ -304,6 +345,7 @@ export const connectable = (
                     onPointerDown={this.onPointerDown}
                     onPointerUp={this.onPointerUp}
                     alternativePortVisualization={features.alternativePortVisualization}
+
                   />
 
                   {/* No center handle for regular elements */}
@@ -400,12 +442,24 @@ export const connectable = (
           }));
 
         // use handle with min distance to connect to
-        const minDistance = Math.min(...distances.map((value) => value.distance));
-        direction = distances.filter((value) => minDistance === value.distance)[0].key as Direction;
+        const closest = distances.reduce((prev, current) =>
+          current.distance < prev.distance ? current : prev
+        );
+        direction = closest.key as Direction;
       }
+
+      // console.debug('[Connection] elementOnPointerUp', {
+      //   elementId: this.props.id,
+      //   direction,
+      //   connecting: this.props.connecting,
+      //   reconnecting: this.props.reconnecting,
+      //   canConnect: this.props.canConnect,
+      // });
 
       if (this.props.connecting && this.props.canConnect) {
         this.props.connect({ element: this.props.id, direction });
+      // } else if (this.props.connecting && !this.props.canConnect) {
+      //   console.warn('[Connection] pointerUp on element but canConnect=false', { elementId: this.props.id });
       }
       if (this.props.reconnecting && !event.defaultPrevented) {
         this.props.reconnect({ element: this.props.id, direction });
@@ -415,22 +469,41 @@ export const connectable = (
 
     private onPointerDown = (event: React.PointerEvent<SVGSVGElement>) => {
       const direction = event.currentTarget.getAttribute('direction') as Direction;
-      const id = event.currentTarget.parentElement!.getAttribute('id') as string;
+      const id = this.props.id;
+
+      // console.debug('[Connection] Port pointerDown', { id, direction });
 
       // Arrêter la propagation de l'événement pour qu'il ne soit pas capturé par d'autres éléments
       event.stopPropagation();
 
-      // Adapter le comportement pour les associations avec le point central
-      const { element } = this.props;
-      if (element && UMLRelationship.isUMLRelationship(element) && direction === Direction.Center) {
-        console.log('Starting connection from relationship center point', element.id);
-      }
-
       this.props.start(direction, id);
+
+      // Debug: one-shot listener to track where pointerup lands globally
+      // const debugPointerUp = (e: PointerEvent) => {
+      //   const el = document.elementFromPoint(e.clientX, e.clientY);
+      //   console.debug('[Connection] GLOBAL pointerUp', {
+      //     target: e.target,
+      //     elementUnderCursor: el,
+      //     elementId: el?.closest('[id]')?.getAttribute('id'),
+      //     clientX: e.clientX,
+      //     clientY: e.clientY,
+      //   });
+      //   document.removeEventListener('pointerup', debugPointerUp, true);
+      // };
+      // document.addEventListener('pointerup', debugPointerUp, true);
     };
 
     private onPointerUp = (event: React.PointerEvent<SVGSVGElement>) => {
       const direction = event.currentTarget.getAttribute('direction') as Direction;
+      // console.debug('[Connection] Port onPointerUp', {
+      //   elementId: this.props.id,
+      //   direction,
+      //   connecting: this.props.connecting,
+      //   reconnecting: this.props.reconnecting,
+      //   canConnect: this.props.canConnect,
+      //   target: event.target,
+      //   currentTarget: event.currentTarget,
+      // });
       if (this.props.connecting) {
         this.props.connect({ element: this.props.id, direction });
       }
@@ -467,14 +540,28 @@ export function canElementConnect(
       const sourceClassId =
         "classId" in sourceElement ? (sourceElement as { classId?: string }).classId : undefined;
 
-      if (
-        sourceClassId &&
-        diagramBridge.getAvailableAssociations(classId, sourceClassId).length
-      ) {
+      const availableAssocs = sourceClassId
+        ? diagramBridge.getAvailableAssociations(classId, sourceClassId)
+        : [];
+
+      if (sourceClassId && availableAssocs.length) {
         return true;
       }
+      // console.debug('[Connection] canElementConnect=false', {
+      //   targetId: props.id,
+      //   targetClassId: classId,
+      //   sourceElementId,
+      //   sourceClassId,
+      //   availableAssocs,
+      //   elementType: element?.type,
+      // });
       return false;
     }
+    // console.debug('[Connection] canElementConnect=false: source not resolved', {
+    //   targetId: props.id,
+    //   sourceElementId,
+    //   sourceInElements: sourceElementId ? sourceElementId in state.elements : false,
+    // });
     return false;
   }
   return true;

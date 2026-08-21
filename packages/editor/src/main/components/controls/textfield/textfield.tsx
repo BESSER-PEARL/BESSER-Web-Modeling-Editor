@@ -14,11 +14,6 @@ export const defaultProps = Object.freeze({
 
 type TextfieldValue = string | number;
 
-const getInitialState = <T extends TextfieldValue>() => ({
-  key: Date.now(),
-  currentValue: undefined,
-});
-
 type Props<T extends TextfieldValue> = {
   onChange?: (value: T) => void;
   onSubmit?: (value: T) => void;
@@ -30,41 +25,64 @@ type Props<T extends TextfieldValue> = {
   typeof defaultProps;
 
 type State<T extends TextfieldValue> = {
-  key: number;
+  /** Local editing value. When defined, the user is actively typing.
+   *  When undefined, the input displays props.value (from parent/Redux). */
   currentValue?: T;
 };
 
+/**
+ * Controlled text input component.
+ *
+ * REFACTORED (2026-03-30): Changed from uncontrolled (`defaultValue`) to
+ * controlled (`value`) input.
+ *
+ * PROBLEM: The old implementation used `defaultValue={props.value}` which only
+ * sets the DOM input value on mount. When the parent switches to a different
+ * element (e.g., clicking a different class in the properties panel), the new
+ * `props.value` was ignored by the already-mounted input — the name field
+ * kept showing the old class name.
+ *
+ * FIX: Use `value={state.currentValue ?? props.value}` (standard controlled
+ * pattern). While the user is typing, `currentValue` holds the local draft.
+ * When not editing (`currentValue` is undefined), the input reflects
+ * `props.value` from the parent and updates immediately when it changes.
+ * On blur/Enter, `currentValue` resets to undefined so the input falls
+ * back to the parent-provided value.
+ *
+ * The external API (props: value, onChange, onSubmit) is unchanged — all 49
+ * files that use Textfield work without modification.
+ */
 export class Textfield<T extends TextfieldValue> extends Component<Props<T>, State<T>> {
   static defaultProps = defaultProps;
-  state = getInitialState<T>();
+  state: State<T> = { currentValue: undefined };
   ref = React.createRef<HTMLTextAreaElement>();
 
-  componentDidUpdate(prevProps: Readonly<Props<T>>, prevState: Readonly<State<T>>, snapshot?: any) {
-    // workaround for infinity values -> if set to infinity -> change key of component to avoid problems with textfield
-    if (Number.isFinite(prevProps.value) && !Number.isFinite(this.props.value)) {
-      this.setState({ key: Date.now() });
+  componentDidUpdate(prevProps: Readonly<Props<T>>) {
+    // If the parent changed the value externally (e.g., switched to a different
+    // element), clear any stale local draft so the input shows the new value.
+    if (prevProps.value !== this.props.value && this.state.currentValue !== undefined) {
+      this.setState({ currentValue: undefined });
     }
   }
 
   componentWillUnmount() {
-    if (!this.state.currentValue || !this.props.onSubmit) {
+    if (this.state.currentValue === undefined || !this.props.onSubmit) {
       return;
     }
-
-    this.props.onSubmit(this.state.currentValue!);
+    this.props.onSubmit(this.state.currentValue);
   }
 
   render() {
     const { onChange, onSubmit, onSubmitKeyUp, size, value, ...props } = this.props;
+    const displayValue = this.state.currentValue ?? value;
 
     return (
       <StyledTextfield
         as={props.multiline ? 'textarea' : 'input'}
         maxLength={props.multiline ? undefined : 20000}
-        key={this.state.key}
         {...props}
         size={size}
-        defaultValue={value}
+        value={displayValue}
         onChange={this.onChange}
         onKeyUp={this.onKeyUp}
         onBlur={this.onBlur}
@@ -80,28 +98,32 @@ export class Textfield<T extends TextfieldValue> extends Component<Props<T>, Sta
   }
 
   private onBlur = ({ currentTarget }: FormEvent<HTMLTextAreaElement>) => {
-    const value: T = typeof this.props.value === 'number' ? (+currentTarget.value as T) : (currentTarget.value as T);
+    const parsed = +currentTarget.value;
+    const value: T = typeof this.props.value === 'number' ? ((Number.isNaN(parsed) ? 0 : parsed) as T) : (currentTarget.value as T);
+
+    // Reset local draft — input will now show props.value
+    this.setState({ currentValue: undefined });
+
     if (!value || !this.props.onSubmit) {
       return;
     }
-
     this.props.onSubmit(value);
-    this.setState(getInitialState());
   };
 
   private onChange = ({ currentTarget }: FormEvent<HTMLTextAreaElement>) => {
-    const value: T = typeof this.props.value === 'number' ? (+currentTarget.value as T) : (currentTarget.value as T);
+    const parsed = +currentTarget.value;
+    const value: T = typeof this.props.value === 'number' ? ((Number.isNaN(parsed) ? 0 : parsed) as T) : (currentTarget.value as T);
     this.setState({ currentValue: value });
 
     if (!this.props.onChange) {
       return;
     }
-
     this.props.onChange(value);
   };
 
   private onKeyUp = ({ key, currentTarget }: KeyboardEvent<HTMLTextAreaElement>) => {
-    const value: T = typeof this.props.value === 'number' ? (+currentTarget.value as T) : (currentTarget.value as T);
+    const parsed = +currentTarget.value;
+    const value: T = typeof this.props.value === 'number' ? ((Number.isNaN(parsed) ? 0 : parsed) as T) : (currentTarget.value as T);
     switch (key) {
       case 'Enter':
         if (this.props.enterToSubmit) {

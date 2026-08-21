@@ -4,6 +4,7 @@
  * @param event originally invoked touchend event
  */
 export function convertTouchEndIntoPointerUp(event: TouchEvent) {
+  if (!event.changedTouches || event.changedTouches.length === 0) return;
   if (event.changedTouches.length > 0) {
     const target = document.elementFromPoint(
       event.changedTouches[event.changedTouches.length - 1].clientX,
@@ -33,6 +34,9 @@ export function convertTouchEndIntoPointerUp(event: TouchEvent) {
 
 export function getClientEventCoordinates(event: PointerEvent | TouchEvent): { clientX: number; clientY: number } {
   // touch events are our own created touch events, see above
+  if (!(event instanceof PointerEvent) && (!event.touches || event.touches.length === 0)) {
+    return { clientX: 0, clientY: 0 };
+  }
   const eventClientX = event instanceof PointerEvent ? event.clientX : event.touches[0].clientX;
   const eventClientY = event instanceof PointerEvent ? event.clientY : event.touches[0].clientY;
   return { clientX: eventClientX, clientY: eventClientY };

@@ -43,16 +43,24 @@ the BESSER repository.
     
         from .json_to_buml.my_new_diagram_processor import process_my_new_diagram
 
-*   **API Endpoint**: Update ``besser/utilities/web_modeling_editor/backend/backend.py``.
-    
-    Find the ``generate_code_output`` function (or the relevant handler) and add a case for your diagram type:
+*   **API Endpoint**: The backend uses a modular router architecture. Add or update
+    endpoints in the appropriate router under
+    ``besser/utilities/web_modeling_editor/backend/routers/`` (e.g.,
+    ``generation_router.py`` for code generation, ``conversion_router.py`` for
+    import/export). Use the ``@handle_endpoint_errors`` decorator from
+    ``routers/error_handler.py`` for consistent error handling:
 
     .. code-block:: python
 
-        if input_data.generator == "my-generator-type":
-             # Or check input_data.diagram_type if available
-             buml_model = process_my_new_diagram(json_data)
-             # ... pass to generator
+        # In the appropriate router file (e.g., generation_router.py)
+        from besser.utilities.web_modeling_editor.backend.routers.error_handler import handle_endpoint_errors
+
+        @router.post("/generate-my-diagram")
+        @handle_endpoint_errors("generate_my_diagram")
+        async def generate_my_diagram(input_data: DiagramInput):
+            json_data = input_data.model.model_dump() if input_data.model else {}
+            buml_model = process_my_new_diagram(json_data)
+            # ... pass to generator
 
 3. Keep conversions and validation in sync
 ------------------------------------------

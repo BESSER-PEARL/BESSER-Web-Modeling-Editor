@@ -193,9 +193,7 @@ export class Patcher<T> {
 
     const skip = Object.keys(this.subscribers).length === 0;
     const patch = !skip && this.options.diff(this.snapshot, nextState);
-    if (discreteChange) {
-      this._snapshot = nextState;
-    }
+    this._snapshot = nextState;
 
     if (patch && patch.length) {
       const router = discreteChange ? this.discreteRouter : this.continuousRouter;

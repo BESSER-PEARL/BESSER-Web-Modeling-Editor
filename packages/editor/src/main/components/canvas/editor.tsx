@@ -6,6 +6,7 @@ import isMobile from 'is-mobile';
 import { UMLElementRepository } from '../../services/uml-element/uml-element-repository';
 import { AsyncDispatch } from '../../utils/actions/actions';
 import { EditorRepository } from '../../services/editor/editor-repository';
+import { AutoLayoutRepository } from '../../services/layouter/auto-layout-repository';
 import { clamp } from '../../utils/clamp';
 import { ZoomPane } from './zoom-pane';
 
@@ -29,17 +30,16 @@ const StyledEditor = styled.div<{ $scale: number }>`
 
   -ms-overflow-style: -ms-autohiding-scrollbar;
   border: ${borderWidth}px solid ${(props) => props.theme.color.gray};
+  background-color: ${(props) => props.theme.color.background};
   background-position: calc(50% + ${(grid * subdivisions - borderWidth) / 2}px)
     calc(50% + ${(grid * subdivisions - borderWidth) / 2}px);
   background-size:
     ${grid * subdivisions}px ${grid * subdivisions}px,
     ${grid * subdivisions}px ${grid * subdivisions}px,
-    ${grid}px ${grid}px,
     ${grid}px ${grid}px;
   background-image: linear-gradient(to right, ${(props) => props.theme.color.grid} 1px, transparent 1px),
     linear-gradient(to bottom, ${(props) => props.theme.color.grid} 1px, transparent 1px),
-    linear-gradient(to right, ${(props) => props.theme.color.gray} 1px, transparent 1px),
-    linear-gradient(to bottom, ${(props) => props.theme.color.gray} 1px, transparent 1px);
+    radial-gradient(circle, ${(props) => props.theme.color.gridMinor} 0.55px, transparent 0.75px);
   background-repeat: repeat;
   background-attachment: local;
   transition:
@@ -57,6 +57,7 @@ type StateProps = { moving: string[]; connecting: boolean; reconnecting: boolean
 type DispatchProps = {
   move: AsyncDispatch<typeof UMLElementRepository.move>;
   setZoomFactor: typeof EditorRepository.setZoomFactor;
+  autoLayout: typeof AutoLayoutRepository.layout;
 };
 
 const enhance = connect<StateProps, DispatchProps, OwnProps, ModelState>(
@@ -69,6 +70,7 @@ const enhance = connect<StateProps, DispatchProps, OwnProps, ModelState>(
   {
     move: UMLElementRepository.move,
     setZoomFactor: EditorRepository.setZoomFactor,
+    autoLayout: AutoLayoutRepository.layout,
   },
 );
 
@@ -92,16 +94,22 @@ class EditorComponent extends Component<Props, State> {
   editor = createRef<HTMLDivElement>();
   zoomContainer = createRef<HTMLDivElement>();
 
+  private wheelHandler = (event: WheelEvent) => {
+    if (event.ctrlKey) {
+      event.preventDefault();
+      const step = 0.1;
+      const direction = event.deltaY < 0 ? step : -step;
+      const newZoom = clamp(this.props.scale + direction, minScale, maxScale);
+      this.props.setZoomFactor(newZoom);
+    }
+  };
+
   componentDidMount() {
-    window.addEventListener(
-      'wheel',
-      (event) => {
-        if (event.ctrlKey) {
-          event.preventDefault();
-        }
-      },
-      { passive: false },
-    );
+    window.addEventListener('wheel', this.wheelHandler, { passive: false });
+  }
+
+  componentWillUnmount() {
+    window.removeEventListener('wheel', this.wheelHandler);
   }
 
   componentDidUpdate(prevProps: Readonly<Props>, prevState: Readonly<State>, snapshot?: any) {
@@ -120,15 +128,22 @@ class EditorComponent extends Component<Props, State> {
   }
 
   render() {
-    const { moving, connecting, reconnecting, scale = 1.0, ...props } = this.props;
+    const { moving, connecting, reconnecting, scale = 1.0, move, setZoomFactor, autoLayout, ...props } = this.props;
 
     if (this.state.isMobile) {
       return (
         <div ref={this.zoomContainer} style={{ width: '100%', overflow: scale > 1.0 ? 'auto' : 'hidden' }}>
-          <StyledEditor ref={this.editor} {...props} onTouchMove={this.customScrolling} $scale={scale} />
+          <StyledEditor
+            ref={this.editor}
+            {...props}
+            onTouchMove={this.customScrolling}
+            $scale={scale}
+            data-editor-scroll="1"
+          />
           <ZoomPane
             value={scale}
             onChange={(zoomFactor) => this.props.setZoomFactor(zoomFactor)}
+            onAutoLayout={() => this.props.autoLayout()}
             min={minScale}
             max={maxScale}
             step={0.2}
@@ -138,10 +153,11 @@ class EditorComponent extends Component<Props, State> {
     } else {
       return (
         <div ref={this.zoomContainer} style={{ width: '100%', overflow: scale > 1.0 ? 'auto' : 'hidden' }}>
-          <StyledEditor ref={this.editor} {...props} $scale={scale} />
+          <StyledEditor ref={this.editor} {...props} $scale={scale} data-editor-scroll="1" />
           <ZoomPane
             value={scale}
             onChange={(zoomFactor) => this.props.setZoomFactor(zoomFactor)}
+            onAutoLayout={() => this.props.autoLayout()}
             min={minScale}
             max={maxScale}
             step={0.2}

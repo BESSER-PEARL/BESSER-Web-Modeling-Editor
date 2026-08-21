@@ -107,7 +107,11 @@ class UMLElementComponentC extends Component<Props, State> {
   state = getInitialState(this.props);
 
   componentDidUpdate(prevProps: Props) {
-    if (prevProps !== this.props) {
+    if (prevProps.type !== this.props.type ||
+        prevProps.features !== this.props.features ||
+        prevProps.readonly !== this.props.readonly ||
+        prevProps.view !== this.props.view ||
+        prevProps.mode !== this.props.mode) {
       this.setState(getInitialState(this.props));
     }
   }

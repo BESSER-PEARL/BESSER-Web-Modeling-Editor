@@ -4,7 +4,9 @@ type Props = {
   isStatic: boolean;
 };
 
-export const CanvasContainer = styled.svg.attrs<Props>({
+export const CanvasContainer = styled.svg.withConfig({
+  shouldForwardProp: (prop: string) => prop !== 'isStatic',
+} as any).attrs<Props>({
   tabIndex: -1,
 })<Props>`
   position: ${({ isStatic }: Props) => (isStatic ? 'static' : 'absolute')};

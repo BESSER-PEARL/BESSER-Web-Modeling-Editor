@@ -47,7 +47,11 @@ class DraggableComponent extends Component<Props> {
       if (this.props.onDrop) {
         this.props.onDrop(dropEvent);
       }
-    } catch (error) {}
+    } catch (error) {
+      // Intentionally empty: the drag promise rejects when the user cancels a
+      // drag operation (e.g. releases without dropping on a valid target).
+      // This is expected behaviour and does not need to be logged.
+    }
   };
 }
 

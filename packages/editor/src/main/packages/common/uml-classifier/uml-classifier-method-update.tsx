@@ -8,6 +8,8 @@ import { Dropdown } from '../../../components/controls/dropdown/dropdown';
 import { StylePane } from '../../../components/style-pane/style-pane';
 import { IUMLElement } from '../../../services/uml-element/uml-element';
 import { MethodImplementationType } from './uml-classifier-member';
+import { I18nContext } from '../../../components/i18n/i18n-context';
+import { localized } from '../../../components/i18n/localized';
 import { Controlled as CodeMirror } from 'react-codemirror2';
 import 'codemirror/lib/codemirror.css';
 import 'codemirror/theme/material.css';
@@ -16,28 +18,32 @@ import 'codemirror/mode/python/python';
 const MethodRow = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  margin-bottom: 8px;
+  gap: 2px;
+  padding: 4px 0;
+
+  & + & {
+    border-top: 1px solid ${(props) => props.theme.color.gray}22;
+  }
 `;
 
 const ControlsRow = styled.div`
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 3px;
 `;
 
 const VisibilityDropdown = styled(Dropdown)`
-  min-width: 80px;
+  min-width: 44px;
   flex-shrink: 0;
 `;
 
 const ImplementationTypeDropdown = styled(Dropdown)`
-  min-width: 140px;
+  min-width: 120px;
   flex-shrink: 0;
 `;
 
 const DiagramDropdown = styled(Dropdown)`
-  min-width: 150px;
+  min-width: 130px;
   flex-shrink: 0;
 `;
 
@@ -47,37 +53,40 @@ const NameField = styled(Textfield)`
 `;
 
 const CodeButton = styled(Button)`
-  padding: 4px 8px;
-  font-size: 12px;
-  min-width: 60px;
+  padding: 3px 8px;
+  font-size: 11px;
+  min-width: 50px;
 `;
 
 const ImplementationRow = styled.div`
   display: flex;
   align-items: center;
-  gap: 8px;
-  margin-top: 4px;
-  padding: 4px 8px;
-  background-color: ${(props) => props.theme.color.grayLight || '#f8f9fa'};
-  border-radius: 4px;
+  gap: 6px;
+  margin-top: 2px;
+  padding: 4px 6px;
+  background-color: ${(props) => props.theme.color.gray}33;
+  border-radius: 3px;
 `;
 
 const ImplementationLabel = styled.span`
-  font-size: 11px;
-  color: ${(props) => props.theme.color.gray || '#666'};
+  font-size: 10px;
+  font-weight: 600;
+  color: ${(props) => props.theme.color.graylight};
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
 `;
 
 const DiagramRefLabel = styled.span`
-  font-size: 12px;
-  padding: 4px 8px;
-  background-color: ${(props) => props.theme.color.primary || '#007bff'}20;
-  color: ${(props) => props.theme.color.primary || '#007bff'};
-  border-radius: 4px;
+  font-size: 11px;
+  padding: 2px 6px;
+  background-color: ${(props) => props.theme.color.primary}15;
+  color: ${(props) => props.theme.color.primary};
+  border-radius: 3px;
 `;
 
 const CodeEditorWrapper = styled.div`
-  margin-top: 8px;
-  border: 1px solid ${(props) => props.theme.color.gray};
+  margin-top: 4px;
+  border: 1px solid ${(props) => props.theme.color.graylight};
   border-radius: 4px;
   overflow: hidden;
 `;
@@ -100,14 +109,14 @@ const CodeEditorHeader = styled.div`
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 8px;
-  background-color: ${(props) => props.theme.color.grayLight || '#f5f5f5'};
-  border-bottom: 1px solid ${(props) => props.theme.color.gray};
+  padding: 4px 8px;
+  background-color: ${(props) => props.theme.color.gray}33;
+  border-bottom: 1px solid ${(props) => props.theme.color.graylight};
 `;
 
 const CodeEditorTitle = styled.span`
-  font-weight: bold;
-  font-size: 12px;
+  font-weight: 600;
+  font-size: 11px;
 `;
 
 const VISIBILITY_OPTIONS = [
@@ -163,7 +172,7 @@ type Props = {
   onSubmitKeyUp: () => void;
   onDelete: (id: string) => () => void;
   element: IUMLElement;
-};
+} & I18nContext;
 
 const UmlMethodUpdate = ({ 
   id, 
@@ -175,10 +184,11 @@ const UmlMethodUpdate = ({
   quantumCircuitId = '',
   availableStateMachines = [],
   availableQuantumCircuits = [],
-  onChange, 
-  onSubmitKeyUp, 
-  onDelete, 
-  element 
+  onChange,
+  onSubmitKeyUp,
+  onDelete,
+  element,
+  translate
 }: Props) => {
   const [colorOpen, setColorOpen] = useState(false);
   const [codeEditorOpen, setCodeEditorOpen] = useState(code ? true : false); // Auto-open if code exists
@@ -334,8 +344,8 @@ const UmlMethodUpdate = ({
   const hasCode = localCode.trim().length > 0;
   const isBalImplementation = localImplType === 'bal';
   const codeImplementationTitle = isBalImplementation
-    ? 'Method defined in BESSER Action Language code'
-    : 'Method defined in Python code';
+    ? translate('popup.method.definedInBal')
+    : translate('popup.method.definedInPython');
 
   // Determine display mode based on implementation type
   const showCodeEditor = CODE_BASED_IMPLEMENTATION_TYPES.includes(localImplType);
@@ -372,7 +382,7 @@ const UmlMethodUpdate = ({
 
       {/* Implementation Type Selection Row */}
       <ImplementationRow>
-        <ImplementationLabel>Type:</ImplementationLabel>
+        <ImplementationLabel>{translate('popup.method.typeLabel')}</ImplementationLabel>
         <ImplementationTypeDropdown 
           value={localImplType} 
           onChange={handleImplementationTypeChange}
@@ -393,7 +403,7 @@ const UmlMethodUpdate = ({
                 onChange={handleStateMachineChange}
               >
                 {[
-                  <Dropdown.Item key="__placeholder__" value="">-- Select State Machine --</Dropdown.Item>,
+                  <Dropdown.Item key="__placeholder__" value="">{translate('popup.method.selectStateMachine')}</Dropdown.Item>,
                   ...availableStateMachines.map(sm => (
                     <Dropdown.Item key={sm.id} value={sm.id}>
                       {sm.name}
@@ -402,8 +412,8 @@ const UmlMethodUpdate = ({
                 ]}
               </DiagramDropdown>
             ) : (
-              <DiagramRefLabel title="Create a State Machine diagram in your project first">
-                No state machines available
+              <DiagramRefLabel title={translate('popup.method.createStateMachineFirst')}>
+                {translate('popup.method.noStateMachines')}
               </DiagramRefLabel>
             )}
           </>
@@ -418,7 +428,7 @@ const UmlMethodUpdate = ({
                 onChange={handleQuantumCircuitChange}
               >
                 {[
-                  <Dropdown.Item key="__placeholder__" value="">-- Select Quantum Circuit --</Dropdown.Item>,
+                  <Dropdown.Item key="__placeholder__" value="">{translate('popup.method.selectQuantumCircuit')}</Dropdown.Item>,
                   ...availableQuantumCircuits.map(qc => (
                     <Dropdown.Item key={qc.id} value={qc.id}>
                       {qc.name}
@@ -427,8 +437,8 @@ const UmlMethodUpdate = ({
                 ]}
               </DiagramDropdown>
             ) : (
-              <DiagramRefLabel title="Create a Quantum Circuit diagram in your project first">
-                No quantum circuits available
+              <DiagramRefLabel title={translate('popup.method.createQuantumCircuitFirst')}>
+                {translate('popup.method.noQuantumCircuits')}
               </DiagramRefLabel>
             )}
           </>
@@ -439,9 +449,9 @@ const UmlMethodUpdate = ({
           <CodeButton 
             color={hasCode ? "primary" : "link"} 
             onClick={toggleCodeEditor}
-            title={codeEditorOpen ? "Hide code editor" : "Show code editor"}
+            title={codeEditorOpen ? translate('popup.method.hideCodeEditor') : translate('popup.method.showCodeEditor')}
           >
-            {codeEditorOpen ? 'Hide Editor' : 'Show Editor'}
+            {codeEditorOpen ? translate('popup.method.hideEditor') : translate('popup.method.showEditor')}
           </CodeButton>
         )}
       </ImplementationRow>
@@ -451,16 +461,16 @@ const UmlMethodUpdate = ({
         <CodeEditorWrapper>
           <CodeEditorHeader>
             <CodeEditorTitle>
-              {isBalImplementation ? 'BESSER Action Language' : 'Python'} Implementation (full method definition)
+              {isBalImplementation ? 'BESSER Action Language' : 'Python'} {translate('popup.method.implementation')}
             </CodeEditorTitle>
             <div>
               {hasCode && (
                 <Button color="link" onClick={clearCode} style={{ padding: '2px 6px', fontSize: '10px', marginRight: '4px' }}>
-                  Clear Code
+                  {translate('popup.method.clearCode')}
                 </Button>
               )}
               <Button color="link" onClick={toggleCodeEditor} style={{ padding: '2px 6px', fontSize: '10px' }}>
-                Close
+                {translate('propertiesPanel.close')}
               </Button>
             </div>
           </CodeEditorHeader>
@@ -489,4 +499,4 @@ const UmlMethodUpdate = ({
   );
 };
 
-export default UmlMethodUpdate;
+export default localized(UmlMethodUpdate);

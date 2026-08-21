@@ -24,7 +24,7 @@ export class AgentIntent extends UMLContainer implements IUMLState {
   static features: UMLElementFeatures = {
     ...UMLContainer.features,
     droppable: false,
-    resizable: 'WIDTH',
+    resizable: true,
   };
   static stereotypeHeaderHeight = 50;
   static nonStereotypeHeaderHeight = 40;
@@ -75,24 +75,28 @@ export class AgentIntent extends UMLContainer implements IUMLState {
 
     this.hasBody = bodies.length > 0;
 
-    const radix = 10;
-    this.bounds.width = [this, ...bodies].reduce(
-      (current, child, index) =>
-        Math.max(
-          current,
-          Math.round(
-            (Text.size(layer, child.name, index === 0 ? { fontWeight: 'bold' } : undefined).width + 110) / radix,
-          ) * radix,
-        ),
-      Math.round(this.bounds.width / radix) * radix,
-    );
+    if (!this.isManuallyLayouted) {
+      const radix = 10;
+      this.bounds.width = [this, ...bodies].reduce(
+        (current, child, index) =>
+          Math.max(
+            current,
+            Math.round(
+              (Text.size(layer, child.name, index === 0 ? { fontWeight: 'bold' } : undefined).width + 110) / radix,
+            ) * radix,
+          ),
+        Math.round(this.bounds.width / radix) * radix,
+      );
 
-    if (hasIntentDescription) {
-      const descriptionWidth = Math.round(
-        (Text.size(layer, this.intent_description, { fontWeight: 'normal' }).width + 110) / radix,
-      ) * radix;
-      this.bounds.width = Math.max(this.bounds.width, descriptionWidth);
+      if (hasIntentDescription) {
+        const descriptionWidth = Math.round(
+          (Text.size(layer, this.intent_description, { fontWeight: 'normal' }).width + 110) / radix,
+        ) * radix;
+        this.bounds.width = Math.max(this.bounds.width, descriptionWidth);
+      }
     }
+
+    this.bounds.width = Math.max(this.bounds.width, 80);
 
     let y = this.headerHeight;
     if (hasIntentDescription) {
@@ -108,7 +112,7 @@ export class AgentIntent extends UMLContainer implements IUMLState {
     this.deviderPosition = y;
 
 
-    this.bounds.height = y;
+    this.bounds.height = this.isManuallyLayouted ? Math.max(this.bounds.height, this.headerHeight) : y;
     return [this, ...bodies];
   }
 }

@@ -5,7 +5,7 @@ This section covers the changes required in the React/TypeScript frontend to sup
 
 If the diagram type already exists in the editor package (``packages/editor``) and you only need to expose it in the
 webapp project UI, skip to the **Webapp wiring** step below and follow
-``packages/webapp/src/main/components/project/ADDING_NEW_DIAGRAM_TYPE.md``.
+``packages/webapp/src/main/features/project/ADDING_NEW_DIAGRAM_TYPE.md``.
 
 1. Define the Diagram and Elements
 ----------------------------------
@@ -159,8 +159,8 @@ Add the display name for your element in ``packages/editor/src/main/i18n/en.json
 5. Webapp wiring (project UI)
 -----------------------------
 
-Once the editor package knows how to render the new diagram, expose it in the webapp:
+Once the editor package knows how to render the new diagram, expose it in webapp:
 
 * Update the project model, sidebar, import/export labels, and settings badges.
-* Follow the checklist in ``packages/webapp/src/main/components/project/ADDING_NEW_DIAGRAM_TYPE.md``.
+* Follow the checklist in ``packages/webapp/src/main/features/project/ADDING_NEW_DIAGRAM_TYPE.md``.
 * Verify that creating a new project includes the new diagram slot.

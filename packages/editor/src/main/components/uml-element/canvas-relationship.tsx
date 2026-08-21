@@ -190,8 +190,7 @@ export class CanvasRelationshipComponent extends Component<Props, State> {
 
   onPointerUp = (event: any) => {
     this.props.endwaypointslayout(this.props.id);
-    const element = event.currentTarget;
-    element.removeEventListener('pointermove', this.onPointerMove);
+    document.removeEventListener('pointermove', this.onPointerMove);
   };
 
   updateRelationshipPoints = (waypointDirection: string, handlerIndex: number, x: number, y: number) => {
@@ -241,7 +240,7 @@ export class CanvasRelationshipComponent extends Component<Props, State> {
         break;
     }
 
-    const points = [new Point()];
+    const points: Point[] = [];
     this.props.relationship.path.forEach((path) => {
       points.push(new Point(path.x, path.y));
     });

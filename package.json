@@ -18,7 +18,8 @@
     "packages/editor"
   ],
   "scripts": {
-    "dev": "concurrently \"npm run start:webapp\" \"npm run start:server\"",
+    "dev": "npm run start --workspace=webapp",
+    "dev:editor": "npm run dev --workspace=@besser/wme",
     "start": "concurrently \"npm run start:webapp\" \"npm run start:server\"",
     "start:webapp": "npm run start --workspace=webapp",
     "start:server": "npm run start --workspace=server",
@@ -32,12 +33,17 @@
     "lint:server": "npm run lint --workspace=server",
     "prettier:check": "prettier --check 'packages/**/{main,tests}/**/*.{json,ts,tsx,js,jsx,css,scss,html}'",
     "prettier:write": "prettier --write 'packages/**/{main,tests}/**/*.{json,ts,tsx,js,jsx,css,scss,html}'",
+    "i18n:check": "node scripts/i18n-check.mjs",
+    "i18n:validate": "node scripts/i18n-validate-strict.mjs",
     "update": "ncu -i --deep --format group"
   },
   "overrides": {
     "semver": "7.6.3",
     "postcss": "8.4.49",
-    "crypto-js": "4.2.0"
+    "crypto-js": "4.2.0",
+    "minimatch": ">=3.1.4",
+    "brace-expansion": ">=1.1.13",
+    "underscore": ">=1.13.7"
   },
   "dependencies": {
     "file-saver": "^2.0.5",
@@ -61,7 +67,7 @@
     "stylelint-config-recommended": "14.0.1",
     "ts-loader": "9.5.1",
     "typescript": "5.6.3",
-    "webpack": "5.96.1",
+    "webpack": "^5.105.4",
     "webpack-cli": "5.1.4",
     "webpack-dev-server": "^5.2.2",
     "webpack-merge": "6.0.1"

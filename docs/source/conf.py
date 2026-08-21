@@ -19,9 +19,9 @@ project = "BESSER Web Modeling Editor"
 copyright = f"{datetime.now():%Y}, BESSER"
 author = "BESSER"
 
-# The short X.Y version and the full version, including alpha/beta/rc tags
-release = "1.0.0"
-version = release
+# Do not display a version number in the title — it is not maintained.
+release = ""
+version = ""
 
 # -- General configuration ---------------------------------------------------
 
@@ -48,6 +48,8 @@ exclude_patterns = [
     "user-guide/diagram types/*",
     "user-guide/diagram_types.rst",
     "user-guide/project.rst",
+    "user-guide/interface.rst",
+    "user-guide/index.rst",
 ]
 
 # -- Options for HTML output -------------------------------------------------

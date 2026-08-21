@@ -5,8 +5,13 @@ export const Updatable = {
   updateStart:
     (id: string | string[]): AsyncAction =>
     (dispatch, getState) => {
-      if (getState().updating.length) {
-        return null;
+      const current = getState().updating;
+      if (current.length) {
+        dispatch<UpdateEndAction>({
+          type: UpdatableActionTypes.END,
+          payload: { ids: current },
+          undoable: false,
+        });
       }
       dispatch<UpdateStartAction>({
         type: UpdatableActionTypes.START,
