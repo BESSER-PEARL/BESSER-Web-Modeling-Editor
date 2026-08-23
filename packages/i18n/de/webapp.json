@@ -81,7 +81,8 @@
         "database": "Datenbank",
         "oop": "OOP",
         "schema": "Schema",
-        "data": "Daten"
+        "data": "Daten",
+        "formalNotations": "Formale Notationen"
       },
       "actions": {
         "djangoProject": "Django-Projekt",
@@ -93,7 +94,8 @@
         "besserAgent": "BESSER-Agent",
         "jsonObjectExport": "JSON-Objekt-Export",
         "userProfileJson": "Benutzerprofil-JSON",
-        "qiskitCode": "Qiskit-Code"
+        "qiskitCode": "Qiskit-Code",
+        "alloySpecification": "Alloy-Spezifikation"
       },
       "notices": {
         "statemachine": "Zustandsautomaten werden als Methodenimplementierungen in Klassendiagrammen verwendet. Generieren Sie Code aus dem Klassendiagramm.",

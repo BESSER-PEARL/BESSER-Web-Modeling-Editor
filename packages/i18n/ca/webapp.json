@@ -81,7 +81,8 @@
         "database": "Base de dades",
         "oop": "POO",
         "schema": "Esquema",
-        "data": "Dades"
+        "data": "Dades",
+        "formalNotations": "Notacions formals"
       },
       "actions": {
         "djangoProject": "Projecte Django",
@@ -93,7 +94,8 @@
         "besserAgent": "Agent BESSER",
         "jsonObjectExport": "Exportació d'objecte JSON",
         "userProfileJson": "JSON de perfil d'usuari",
-        "qiskitCode": "Codi Qiskit"
+        "qiskitCode": "Codi Qiskit",
+        "alloySpecification": "Especificació Alloy"
       },
       "notices": {
         "statemachine": "Les màquines d'estats s'utilitzen com a implementacions de mètodes en els diagrames de classes. Genera codi a partir del diagrama de classes.",

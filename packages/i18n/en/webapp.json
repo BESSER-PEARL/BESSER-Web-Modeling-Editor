@@ -81,7 +81,8 @@
         "database": "Database",
         "oop": "OOP",
         "schema": "Schema",
-        "data": "Data"
+        "data": "Data",
+        "formalNotations": "Formal Notations"
       },
       "actions": {
         "djangoProject": "Django Project",
@@ -93,7 +94,8 @@
         "besserAgent": "BESSER Agent",
         "jsonObjectExport": "JSON Object Export",
         "userProfileJson": "User Profile JSON",
-        "qiskitCode": "Qiskit Code"
+        "qiskitCode": "Qiskit Code",
+        "alloySpecification": "Alloy Specification"
       },
       "notices": {
         "statemachine": "State machines are used as method implementations in Class Diagrams. Generate code from the Class Diagram.",

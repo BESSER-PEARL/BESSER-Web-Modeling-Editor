@@ -81,7 +81,8 @@
         "database": "Base de datos",
         "oop": "POO",
         "schema": "Esquema",
-        "data": "Datos"
+        "data": "Datos",
+        "formalNotations": "Notaciones formales"
       },
       "actions": {
         "djangoProject": "Proyecto Django",
@@ -93,7 +94,8 @@
         "besserAgent": "Agente BESSER",
         "jsonObjectExport": "Exportación de objeto JSON",
         "userProfileJson": "JSON de perfil de usuario",
-        "qiskitCode": "Código Qiskit"
+        "qiskitCode": "Código Qiskit",
+        "alloySpecification": "Especificación Alloy"
       },
       "notices": {
         "statemachine": "Las máquinas de estados se utilizan como implementaciones de métodos en los diagramas de clases. Genera código a partir del diagrama de clases.",

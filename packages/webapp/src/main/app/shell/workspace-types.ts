@@ -15,6 +15,7 @@ export type GeneratorType =
   | 'jsonobject'
   | 'pytorch'
   | 'tensorflow'
+  | 'alloy'
   | 'bpmn'
   | 'test_case';
 

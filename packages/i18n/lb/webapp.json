@@ -81,7 +81,8 @@
         "database": "Datebank",
         "oop": "OOP",
         "schema": "Schema",
-        "data": "Daten"
+        "data": "Daten",
+        "formalNotations": "Formal Notatiounen"
       },
       "actions": {
         "djangoProject": "Django-Projet",
@@ -93,7 +94,8 @@
         "besserAgent": "BESSER-Agent",
         "jsonObjectExport": "JSON-Objet-Export",
         "userProfileJson": "Benotzerprofil-JSON",
-        "qiskitCode": "Qiskit-Code"
+        "qiskitCode": "Qiskit-Code",
+        "alloySpecification": "Alloy-Spezifikatioun"
       },
       "notices": {
         "statemachine": "Zoustandsautomate ginn als Method-Implementatiounen an Klassendiagrammer benotzt. Generéiert de Code aus dem Klassendiagramm.",
