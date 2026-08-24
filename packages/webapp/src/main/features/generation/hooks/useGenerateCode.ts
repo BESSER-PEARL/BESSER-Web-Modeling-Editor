@@ -80,7 +80,11 @@ export const useGenerateCode = () => {
   const { t } = useTranslation();
 
   const generateCodeFromProject = useCallback(
-    async (generatorType: string, config?: GeneratorConfig[keyof GeneratorConfig]): Promise<GenerationResult> => {
+    async (
+      generatorType: string,
+      config?: GeneratorConfig[keyof GeneratorConfig],
+      opts?: { autoDownload?: boolean },
+    ): Promise<GenerationResult> => {
       console.log('Starting code generation from project...');
 
       // Read from storage at generation time as a safety net: although useStorageSync
@@ -177,6 +181,12 @@ export const useGenerateCode = () => {
           }
         }
 
+        // Deferred download (assistant flow): return the blob so the caller
+        // can render a result card with a manual Download button instead of
+        // auto-saving. The menu path leaves autoDownload at its default (true).
+        if (opts?.autoDownload === false) {
+          return { ok: true, filename, blob };
+        }
         downloadFile({ file: blob, filename });
         toast.success(t('generation.toasts.codeGenerationCompleted'));
         return { ok: true, filename };
@@ -206,22 +216,23 @@ export const useGenerateCode = () => {
       config?: GeneratorConfig[keyof GeneratorConfig],
       referenceDiagramData?: Record<string, any>,
       modelOverride?: UMLModel,
+      opts?: { autoDownload?: boolean },
     ): Promise<GenerationResult> => {
       console.log('Starting code generation...');
 
       // For Web App generator, send the entire project (doesn't need editor)
       if (generatorType === 'web_app') {
-        return await generateCodeFromProject(generatorType, config);
+        return await generateCodeFromProject(generatorType, config, opts);
       }
 
       // For Qiskit generator, it uses project data not editor
       if (generatorType === 'qiskit') {
-        return await generateCodeFromProject(generatorType, config);
+        return await generateCodeFromProject(generatorType, config, opts);
       }
 
       // For NN generators, use project data (like Qiskit)
       if (generatorType === 'pytorch' || generatorType === 'tensorflow') {
-        return await generateCodeFromProject(generatorType, config);
+        return await generateCodeFromProject(generatorType, config, opts);
       }
 
       // For other generators, we need the editor and model
@@ -316,6 +327,9 @@ export const useGenerateCode = () => {
           }
         }
 
+        if (opts?.autoDownload === false) {
+          return { ok: true, filename, blob };
+        }
         downloadFile({ file: blob, filename });
         toast.success(t('generation.toasts.codeGenerationCompleted'));
         return { ok: true, filename };

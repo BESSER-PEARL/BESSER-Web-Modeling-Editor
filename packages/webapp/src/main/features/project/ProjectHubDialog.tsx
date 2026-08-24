@@ -23,7 +23,9 @@ import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { FormField } from '@/components/ui/form-field';
-import { BesserProject, PerspectiveSettings } from '../../shared/types/project';
+import { BesserProject, InterfaceMode, PerspectiveSettings } from '../../shared/types/project';
+import { FirstRunLanding } from './FirstRunLanding';
+import { LlmKeyDialog } from '../../shared/components/byok/LlmKeyDialog';
 import { PERSPECTIVES, perspectivesFromDiagramList } from '../../shared/perspectives';
 import { useProject } from '../../app/hooks/useProject';
 import { LanguageSelector } from '../../app/shell/LanguageSelector';
@@ -35,7 +37,9 @@ import { normalizeProjectName } from '../../shared/utils/projectName';
 import { validateProjectName } from '../../shared/utils/validation';
 import {
   BACKEND_URL,
+  localStoragePreferredInterface,
   sessionStorageContinueFromGithubIntent,
+  sessionStorageOpenAssistantOnLoad,
   sessionStoragePendingAssistantPrompt,
 } from '../../shared/constants/constant';
 import { useImportDiagramToProject } from '../import/useImportDiagram';
@@ -47,12 +51,55 @@ import { useGitHubStorage, type GitHubRepository } from '../github/hooks/useGitH
 import { writeProjectLastRun } from '../smart-generation/storage';
 import { setLastRunForProject } from '../smart-generation/state/smartGeneratorSlice';
 
+/** Steps the File menu can open the hub directly at (New / Open / Import Project). */
+export type ProjectHubOpenStep = 'create' | 'open' | 'import' | 'spreadsheet' | 'github';
+
 interface ProjectHubDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  /**
+   * When the hub is opened from a specific File-menu action, jump straight to
+   * that step instead of the default first-run / start logic. Undefined for the
+   * auto-open first-run path (which shows the 'welcome' chooser).
+   */
+  initialStep?: ProjectHubOpenStep;
 }
 
-type ProjectHubStep = 'start' | 'describe' | 'create' | 'import' | 'spreadsheet' | 'open' | 'github';
+type ProjectHubStep = 'welcome' | 'start' | 'describe' | 'create' | 'import' | 'spreadsheet' | 'open' | 'github';
+
+/** Read the per-user default interface saved via "Remember my choice". */
+const readPreferredInterface = (): InterfaceMode | null => {
+  try {
+    const v = localStorage.getItem(localStoragePreferredInterface);
+    return v === 'model' || v === 'agent' ? v : null;
+  } catch {
+    return null;
+  }
+};
+
+/**
+ * Per-link interface override read from the URL for this load only (never
+ * persisted). `?agentic` / `?agentic=true` / `?mode=agent` open straight into
+ * the agentic flow; `?mode=model` forces the modelling flow. Wins over the
+ * stored "Remember my choice" default.
+ */
+const readUrlInterfaceOverride = (): InterfaceMode | null => {
+  try {
+    const params = new URLSearchParams(window.location.search);
+    if (params.has('agentic')) {
+      const v = params.get('agentic');
+      if (v === null || v === '' || v === 'true' || v === '1') {
+        return 'agent';
+      }
+    }
+    const mode = params.get('mode');
+    if (mode === 'agent') return 'agent';
+    if (mode === 'model') return 'model';
+    return null;
+  } catch {
+    return null;
+  }
+};
 
 /** Deploy-link target token for the GitHub push (shared with the Vibe push flow). */
 const GITHUB_TARGET = 'github';
@@ -120,10 +167,22 @@ const readableFileSize = (bytes: number): string => {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 };
 
-export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpenChange }) => {
+export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpenChange, initialStep }) => {
   const { t } = useTranslation();
   const [projects, setProjects] = useState<BesserProject[]>([]);
   const [step, setStep] = useState<ProjectHubStep>('start');
+  // Interface the user picked on the 'welcome' landing (null when the hub was
+  // opened for an existing project or via the manual "start" path). Stored on
+  // the project at creation time.
+  const [pendingPreferredInterface, setPendingPreferredInterface] = useState<InterfaceMode | null>(null);
+  // The step the hub was opened at (from the File menu, first run, or the start
+  // hub). Drives where "Back" goes: a directly-opened step closes on Back; a
+  // step navigated into from a hub returns to that hub. See handleBack.
+  const [entryStep, setEntryStep] = useState<ProjectHubStep>('start');
+  // "Use your own key" on the first-run landing opens the shared key dialog
+  // here (client-less — the key lands in sessionStorage and the assistant picks
+  // it up on connect). Without this the landing footer link was a dead no-op.
+  const [keyDialogOpen, setKeyDialogOpen] = useState(false);
   const [describePrompt, setDescribePrompt] = useState('');
   const [form, setForm] = useState(defaultForm);
   const [createPerspectiveKey, setCreatePerspectiveKey] = useState<string>(DEFAULT_PERSPECTIVE_KEY);
@@ -183,7 +242,35 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
       return;
     }
     refreshProjects();
-    setStep('start');
+    // A File-menu action opens the hub directly at a specific step (New →
+    // create, Open → open, Import → import), overriding the first-run logic.
+    // Otherwise: first run (no project yet) opens the mode chooser — unless a
+    // `?agentic`/`?mode=` URL override or a saved "Remember my choice" default
+    // skips straight to that workspace's flow (URL wins over the stored
+    // default). Opening the hub for an existing project keeps the start screen.
+    if (initialStep) {
+      setPendingPreferredInterface(null);
+      setStep(initialStep);
+      setEntryStep(initialStep);
+    } else if (!currentProject) {
+      const chosen = readUrlInterfaceOverride() ?? readPreferredInterface();
+      if (chosen === 'model' || chosen === 'agent') {
+        // Both interfaces go through the same project-creation form; the mode is
+        // recorded on the project and, for 'agent', the assistant drawer is
+        // opened once the editor loads (see handleCreateProject).
+        setPendingPreferredInterface(chosen);
+        setStep('create');
+        setEntryStep('welcome');
+      } else {
+        setPendingPreferredInterface(null);
+        setStep('welcome');
+        setEntryStep('welcome');
+      }
+    } else {
+      setPendingPreferredInterface(null);
+      setStep('start');
+      setEntryStep('start');
+    }
     setDescribePrompt('');
     setForm(defaultForm);
     setCreatePerspectiveKey(DEFAULT_PERSPECTIVE_KEY);
@@ -294,6 +381,37 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
     onOpenChange(nextOpen);
   };
 
+  // First-run landing: a portal was chosen. Persist the per-user default when
+  // "Remember my choice" is ticked, then advance into the shared project-
+  // creation form. BOTH modes create a project the same way; the only
+  // difference is post-create — 'agent' opens the assistant drawer once the
+  // editor loads (handleCreateProject sets the flag), 'model' stays on canvas.
+  const handleChooseInterface = (mode: InterfaceMode, remember: boolean) => {
+    try {
+      if (remember) {
+        localStorage.setItem(localStoragePreferredInterface, mode);
+      } else {
+        localStorage.removeItem(localStoragePreferredInterface);
+      }
+    } catch {
+      /* storage may be unavailable (private mode / quota) — non-fatal */
+    }
+    setPendingPreferredInterface(mode);
+    setStep('create');
+  };
+
+  // "Back" on a hub sub-step. A step opened directly (from the File menu via
+  // initialStep, so entryStep === step) has no parent to return to — Back closes
+  // the dialog. A step navigated into from the welcome/start hub returns there,
+  // rather than surfacing the start hub when the user never came from it.
+  const handleBack = () => {
+    if (step === entryStep) {
+      handleDialogOpenChange(false);
+      return;
+    }
+    setStep(entryStep === 'welcome' ? 'welcome' : 'start');
+  };
+
   const handleCreateProject = async () => {
     const errors = createValidation.touchAll();
     if (Object.keys(errors).length > 0) {
@@ -306,16 +424,35 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
 
     try {
       setIsBusy(true);
+      // Arm the drawer-open flag BEFORE creating the project. createProject
+      // updates currentProject, which fires WorkspaceShell's consume-and-open
+      // effect — if we set the flag AFTER the await, that effect has already run
+      // and missed it (the race that left the agentic drawer closed on create).
+      if (pendingPreferredInterface === 'agent') {
+        try {
+          sessionStorage.setItem(sessionStorageOpenAssistantOnLoad, '1');
+        } catch {
+          /* storage unavailable — the drawer just won't auto-open, non-fatal */
+        }
+      }
       await createProject(
         name,
         description || defaultForm.description,
         owner || defaultForm.owner,
         resolvePerspectives(createPerspectiveKey),
+        pendingPreferredInterface ?? undefined,
       );
       refreshProjects();
       handleDialogOpenChange(false);
       toast.success(t('project.hub.toasts.created', { name }));
     } catch (error) {
+      // Creation failed — disarm the flag so it can't spuriously open the drawer
+      // on some later, unrelated project load.
+      try {
+        sessionStorage.removeItem(sessionStorageOpenAssistantOnLoad);
+      } catch {
+        /* non-fatal */
+      }
       toast.error(t('project.hub.toasts.createFailed', { error: error instanceof Error ? error.message : t('project.hub.unknownError') }));
     } finally {
       setIsBusy(false);
@@ -338,6 +475,7 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
         defaultForm.description,
         defaultForm.owner,
         resolvePerspectives(DEFAULT_PERSPECTIVE_KEY),
+        pendingPreferredInterface ?? 'agent',
       );
       refreshProjects();
 
@@ -630,6 +768,47 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
     }
   };
 
+  // Low-code vs agentic picker shown inside the create form. Seeded from the
+  // landing choice (pendingPreferredInterface) so clicking "Describe it" on the
+  // landing preselects Agentic here, and vice versa; the user can still flip it.
+  // When Agentic is chosen the modelling-perspective picker is hidden (below),
+  // since the agentic path drops the user straight into the assistant drawer.
+  const renderInterfaceModePicker = () => {
+    const mode: InterfaceMode = pendingPreferredInterface ?? 'model';
+    const options: { key: InterfaceMode; label: string; description: string }[] = [
+      { key: 'model', label: 'Low-code', description: 'Build visually with UML diagrams on the modelling canvas.' },
+      { key: 'agent', label: 'Agentic', description: 'Describe your app in natural language; the assistant builds it.' },
+    ];
+    return (
+      <FormField
+        label="View"
+        htmlFor="create-interface-mode"
+        helperText="Choose how you'll build. You can switch anytime from the assistant drawer."
+      >
+        <div id="create-interface-mode" role="radiogroup" aria-label="View" className="flex flex-wrap gap-2">
+          {options.map((opt) => {
+            const active = opt.key === mode;
+            return (
+              <Button
+                key={opt.key}
+                type="button"
+                variant={active ? 'default' : 'outline'}
+                size="sm"
+                role="radio"
+                aria-checked={active}
+                title={opt.description}
+                onClick={() => setPendingPreferredInterface(opt.key)}
+                data-testid={`create-interface-${opt.key}`}
+              >
+                {opt.label}
+              </Button>
+            );
+          })}
+        </div>
+      </FormField>
+    );
+  };
+
   const renderPerspectivePicker = (
     selected: string,
     onSelect: (key: string) => void,
@@ -726,8 +905,18 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
   );
 
   return (
+    <>
     <Dialog open={open} onOpenChange={handleDialogOpenChange}>
       <DialogContent className={cn('max-h-[92vh] overflow-hidden p-0', !canClose && '[&>button]:hidden')}>
+        {step === 'welcome' && (
+          <FirstRunLanding
+            onChoose={handleChooseInterface}
+            onMoreOptions={() => setStep('start')}
+            onUseOwnKey={() => setKeyDialogOpen(true)}
+            defaultRemember={readPreferredInterface() !== null}
+          />
+        )}
+        {step !== 'welcome' && (
         <DialogHeader className="border-b border-border/60 px-6 pt-5 pb-3">
           <div className="flex items-start justify-between gap-3">
             <div className={cn(step === 'start' && 'flex items-start gap-3.5')}>
@@ -752,6 +941,7 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
             </div>
           </div>
         </DialogHeader>
+        )}
 
         <input
           ref={importFileInputRef}
@@ -769,39 +959,13 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
           onChange={handleSpreadsheetFileSelect}
         />
 
+        {step !== 'welcome' && (
         <div className="max-h-[75vh] overflow-y-auto px-6 py-4">
           {step === 'start' && (
             <div className="flex flex-col gap-5">
-              {/* Hero: "describe your app" (vibe) — the dominant primary path.
-                  Full width, brand accent, larger than the manual options below. */}
-              <button
-                type="button"
-                onClick={() => setStep('describe')}
-                className="group grain-overlay relative w-full overflow-hidden rounded-2xl border border-brand/30 bg-gradient-to-br from-brand/[0.10] via-brand/[0.04] to-background p-6 text-left shadow-elevation-2 transition-all duration-300 hover:-translate-y-0.5 hover:border-brand/50 hover:shadow-elevation-3 sm:p-7"
-              >
-                <div className="pointer-events-none absolute -right-10 -top-10 size-40 rounded-full bg-brand/10 blur-2xl transition-transform duration-300 group-hover:scale-125" />
-                <div className="relative z-[2] flex items-start gap-4">
-                  <div className="inline-flex shrink-0 rounded-2xl bg-brand/15 p-3 text-brand ring-1 ring-brand/20">
-                    <Sparkles className="size-6" />
-                  </div>
-                  <div className="min-w-0">
-                    <p className="font-display text-lg font-semibold tracking-tight text-foreground sm:text-xl">
-                      Describe what you want to build
-                    </p>
-                    <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">
-                      Tell me your idea in plain words and I'll build the model, screens, and code for you.
-                    </p>
-                    <span className="mt-3.5 inline-flex items-center gap-1.5 rounded-full bg-brand px-3.5 py-1.5 text-xs font-semibold text-brand-foreground shadow-elevation-1 transition-colors group-hover:bg-brand-dark">
-                      <Sparkles className="size-3.5" />
-                      Start describing
-                    </span>
-                  </div>
-                </div>
-              </button>
-
-              {/* Secondary: manual start paths, demoted beneath the hero. */}
+              {/* Manual start paths. The old "describe your app" vibe hero was
+                  removed — agentic entry is the landing chooser / assistant now. */}
               <div className="flex flex-col gap-2.5">
-                <p className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground/60">or start manually</p>
                 <div className="grid gap-2.5 md:grid-cols-2">
                   <button
                     type="button"
@@ -915,7 +1079,7 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
                 variant="ghost"
                 size="sm"
                 className="h-8 w-fit gap-1.5 rounded-lg px-2.5 text-xs font-medium"
-                onClick={() => setStep('start')}
+                onClick={handleBack}
               >
                 <ArrowLeft className="size-3.5" />
                 Back
@@ -1004,7 +1168,9 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
                       className="min-h-16"
                     />
                   </FormField>
-                  {renderPerspectivePicker(createPerspectiveKey, setCreatePerspectiveKey, 'create')}
+                  {renderInterfaceModePicker()}
+                  {(pendingPreferredInterface ?? 'model') === 'model' &&
+                    renderPerspectivePicker(createPerspectiveKey, setCreatePerspectiveKey, 'create')}
                   <Button onClick={() => void handleCreateProject()} disabled={isBusy || !createValidation.isValid} className="w-full gap-2 bg-brand text-brand-foreground shadow-elevation-1 transition-all hover:bg-brand-dark hover:shadow-elevation-2">
                     <Sparkles className="size-4" />
                     {t('project.hub.create.submit')}
@@ -1017,7 +1183,7 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
                   <Layers3 className="size-3" />
                   {t('project.hub.create.tip')}
                 </p>
-                <Button variant="ghost" size="sm" className="h-8 gap-1.5 rounded-lg px-2.5 text-xs font-medium" onClick={() => setStep('start')}>
+                <Button variant="ghost" size="sm" className="h-8 gap-1.5 rounded-lg px-2.5 text-xs font-medium" onClick={handleBack}>
                   <ArrowLeft className="size-3.5" />
                   {t('project.hub.back')}
                 </Button>
@@ -1065,7 +1231,7 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
               </Card>
 
               <div className="flex justify-end">
-                <Button variant="ghost" size="sm" className="h-8 gap-1.5 rounded-lg px-2.5 text-xs font-medium" onClick={() => setStep('start')}>
+                <Button variant="ghost" size="sm" className="h-8 gap-1.5 rounded-lg px-2.5 text-xs font-medium" onClick={handleBack}>
                   <ArrowLeft className="size-3.5" />
                   {t('project.hub.back')}
                 </Button>
@@ -1075,7 +1241,7 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
 
           {step === 'spreadsheet' && (
             <div className="flex flex-col gap-5">
-              <Button variant="ghost" size="sm" className="h-8 gap-1.5 rounded-lg px-2.5 text-xs font-medium" onClick={() => setStep('start')}>
+              <Button variant="ghost" size="sm" className="h-8 gap-1.5 rounded-lg px-2.5 text-xs font-medium" onClick={handleBack}>
                 <ArrowLeft className="size-3.5" />
                 {t('project.hub.back')}
               </Button>
@@ -1185,7 +1351,7 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
 
           {step === 'open' && (
             <div className="flex flex-col gap-4">
-              <Button variant="ghost" size="sm" className="h-8 px-2 text-xs" onClick={() => setStep('start')}>
+              <Button variant="ghost" size="sm" className="h-8 px-2 text-xs" onClick={handleBack}>
                 <ArrowLeft className="mr-1.5 size-3.5" />
                 {t('project.hub.back')}
               </Button>
@@ -1203,7 +1369,7 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
                 variant="ghost"
                 size="sm"
                 className="h-8 w-fit gap-1.5 rounded-lg px-2.5 text-xs font-medium"
-                onClick={() => setStep('start')}
+                onClick={handleBack}
               >
                 <ArrowLeft className="size-3.5" />
                 Back
@@ -1282,6 +1448,7 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
             </div>
           )}
         </div>
+        )}
       </DialogContent>
 
       <ConfirmDialog
@@ -1295,5 +1462,7 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
         onCancel={handleCancel}
       />
     </Dialog>
+    <LlmKeyDialog open={keyDialogOpen} onOpenChange={setKeyDialogOpen} />
+    </>
   );
 };

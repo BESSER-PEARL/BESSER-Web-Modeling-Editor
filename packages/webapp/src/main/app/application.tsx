@@ -16,6 +16,7 @@ import { ErrorPanel } from '../shared/components/error-handling/error-panel';
 import { CookieConsentBanner, hasUserConsented } from '../shared/components/cookie-consent/CookieConsentBanner';
 import { ApplicationStore } from './store/application-store';
 import { useProject } from './hooks/useProject';
+import type { ProjectHubOpenStep } from '../features/project/ProjectHubDialog';
 import { WorkspaceShell } from './shell/WorkspaceShell';
 import { useProjectBootstrap } from './hooks/useProjectBootstrap';
 import { useStorageSync } from './hooks/useStorageSync';
@@ -94,6 +95,20 @@ function AppContentInner() {
     loadProject: loadProjectForBootstrap,
     pathname: location.pathname,
   });
+  // Which step the Project Hub opens at. Undefined for the forced first-run
+  // open (which shows the 'welcome' chooser); a File-menu action requests a
+  // specific step (New → create, Open → open, Import → import).
+  const [hubInitialStep, setHubInitialStep] = useState<ProjectHubOpenStep | undefined>(undefined);
+  const openProjectHub = useCallback((step?: ProjectHubOpenStep) => {
+    setHubInitialStep(step);
+    setShowProjectHub(true);
+  }, [setShowProjectHub]);
+  const handleProjectHubOpenChange = useCallback((next: boolean) => {
+    setShowProjectHub(next);
+    if (!next) {
+      setHubInitialStep(undefined);
+    }
+  }, [setShowProjectHub]);
   const { generatorMenuMode } = getWorkspaceContext(
     location.pathname,
     currentProject?.currentDiagramType,
@@ -123,7 +138,7 @@ function AppContentInner() {
   return (
     <ApollonEditorProvider value={{ editor, setEditor }}>
       <WorkspaceShell
-        onOpenProjectHub={() => setShowProjectHub(true)}
+        onOpenProjectHub={openProjectHub}
         onOpenTemplateDialog={() => setShowTemplateDialog(true)}
         onExportProject={handleExport}
         onGenerate={(type, config) => handleGenerateRequest(type, config)}
@@ -145,7 +160,7 @@ function AppContentInner() {
       </WorkspaceShell>
 
       <Suspense fallback={null}>
-        <ProjectHubDialog open={showProjectHub} onOpenChange={setShowProjectHub} />
+        <ProjectHubDialog open={showProjectHub} onOpenChange={handleProjectHubOpenChange} initialStep={hubInitialStep} />
       </Suspense>
       <Suspense fallback={null}>
         <TemplateLibraryDialog open={showTemplateDialog} onOpenChange={setShowTemplateDialog} />

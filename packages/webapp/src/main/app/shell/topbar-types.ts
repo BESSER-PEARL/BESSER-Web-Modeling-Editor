@@ -24,7 +24,8 @@ export interface WorkspaceTopBarProps {
   githubLoading: boolean;
   hasProject: boolean;
   isDeploymentAvailable: boolean;
-  onOpenProjectHub: () => void;
+  /** Opens the Project Hub; an optional step targets New / Open / Import directly. */
+  onOpenProjectHub: (step?: 'create' | 'open' | 'import' | 'spreadsheet' | 'github') => void;
   onOpenTemplateDialog: () => void;
   onExportProject: () => void;
   onImportSingleDiagram: () => void;

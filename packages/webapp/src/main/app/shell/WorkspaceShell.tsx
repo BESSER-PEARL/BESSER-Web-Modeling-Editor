@@ -24,6 +24,7 @@ import {
   besserMainRepositoryLink,
   besserWMERepositoryLink,
 } from '../../shared/constants/application-constants';
+import { sessionStorageOpenAssistantOnLoad } from '../../shared/constants/constant';
 import { normalizeProjectName } from '../../shared/utils/projectName';
 import { getWorkspaceContext } from '../../shared/utils/workspaceContext';
 import { downloadFile, downloadJson } from '../../shared/utils/download';
@@ -100,7 +101,8 @@ interface OnboardingHook {
 
 interface WorkspaceShellProps {
   children: React.ReactNode;
-  onOpenProjectHub: () => void;
+  /** Opens the Project Hub; an optional step targets New / Open / Import directly. */
+  onOpenProjectHub: (step?: 'create' | 'open' | 'import' | 'spreadsheet' | 'github') => void;
   onOpenTemplateDialog: () => void;
   onExportProject: () => void;
   onGenerate: (type: GeneratorType, config?: Record<string, any>) => void;
@@ -321,6 +323,29 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
     window.addEventListener('wme:assistant-export-project', handleAssistantExport);
     return () => window.removeEventListener('wme:assistant-export-project', handleAssistantExport);
   }, [generateProjectBumlPreview, t]);
+
+  // Agentic entry: when a project was created with the "agent" interface (or the
+  // app was opened with ?agentic), open the assistant drawer once the project is
+  // loaded so the user lands on the agentic welcome. The flag is set by
+  // ProjectHubDialog / useProjectBootstrap; consume-and-clear it here so the
+  // drawer opens exactly once and no prompt is auto-sent.
+  useEffect(() => {
+    if (!currentProject) {
+      return;
+    }
+    let shouldOpen = false;
+    try {
+      shouldOpen = sessionStorage.getItem(sessionStorageOpenAssistantOnLoad) === '1';
+      if (shouldOpen) {
+        sessionStorage.removeItem(sessionStorageOpenAssistantOnLoad);
+      }
+    } catch {
+      shouldOpen = false;
+    }
+    if (shouldOpen) {
+      setIsAssistantWorkspaceOpen(true);
+    }
+  }, [currentProject?.id]);
 
   // Theme classes
   const shellBackgroundClass = isDarkTheme

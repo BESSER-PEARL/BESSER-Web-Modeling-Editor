@@ -7,7 +7,7 @@
 
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ArrowDown, ChevronUp, MessageSquarePlus, Layers, Palette, Code2, Sparkles, Flag, KeyRound } from 'lucide-react';
+import { ArrowDown, ChevronUp, MessageSquarePlus, Layers, Palette, Code2, Sparkles, Flag, KeyRound, Check } from 'lucide-react';
 import { ChatForm } from '@/components/chatbot-kit/ui/chat';
 import { MessageInput } from '@/components/chatbot-kit/ui/message-input';
 import { MessageList } from '@/components/chatbot-kit/ui/message-list';
@@ -24,6 +24,7 @@ import { ProgressSteps } from './ProgressSteps';
 import { useAppDispatch } from '../../../app/store/hooks';
 import { openPushDialog } from '../../smart-generation/state/smartGeneratorSlice';
 import { sessionStoragePendingAssistantPrompt } from '../../../shared/constants/constant';
+import { readLlmKey } from '../../../shared/services/llmKeyStorage';
 
 /* ------------------------------------------------------------------ */
 /*  Types & constants                                                  */
@@ -146,6 +147,9 @@ export const AssistantWorkspaceDrawer: React.FC<AssistantWorkspaceDrawerProps> =
   /* ---- BYOK dialog ---- */
 
   const [byokOpen, setByokOpen] = useState(false);
+  // Read at render so the button reflects whether a key is saved. Re-reads when
+  // the BYOK dialog closes (byokOpen flips) after a save/remove.
+  const savedApiKey = readLlmKey();
 
   /* ---- Drag gesture state ---- */
 
@@ -672,6 +676,17 @@ export const AssistantWorkspaceDrawer: React.FC<AssistantWorkspaceDrawerProps> =
                   <div className="input-card-glow rounded-2xl p-3 shadow-elevation-3 sm:p-4">
                     {renderComposer('w-full')}
                   </div>
+                  {/* Free-tier promo — no API key needed; link opens the shared BYOK dialog */}
+                  <p className="mt-2.5 text-center text-xs text-muted-foreground">
+                    {t('assistant.welcome.freeTier')}{' '}
+                    <button
+                      type="button"
+                      onClick={() => setByokOpen(true)}
+                      className="font-medium text-brand underline-offset-2 transition-colors hover:text-brand-dark hover:underline"
+                    >
+                      {t('assistant.welcome.changeModel')}
+                    </button>
+                  </p>
                 </div>
 
                 {/* Starter prompt pills */}
@@ -815,12 +830,22 @@ export const AssistantWorkspaceDrawer: React.FC<AssistantWorkspaceDrawerProps> =
                       <Button
                         variant="outline"
                         size="sm"
-                        className="h-7 gap-1.5 rounded-lg border-border/50 px-2.5 text-xs"
+                        className={cn(
+                          'h-7 gap-1.5 rounded-lg px-2.5 text-xs',
+                          savedApiKey
+                            ? 'border-brand/40 text-brand hover:text-brand'
+                            : 'border-border/50',
+                        )}
                         onClick={() => setByokOpen(true)}
-                        title="Use your own API key (assistant + generator)"
+                        title={
+                          savedApiKey
+                            ? `Your ${savedApiKey.provider} API key is set — click to change or remove`
+                            : 'Use your own API key (assistant + generator)'
+                        }
                       >
                         <KeyRound className="size-3.5" />
-                        API key
+                        {savedApiKey ? 'API key set' : 'API key'}
+                        {savedApiKey ? <Check className="size-3" /> : null}
                       </Button>
                       <Button
                         variant="outline"

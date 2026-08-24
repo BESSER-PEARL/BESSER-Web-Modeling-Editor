@@ -72,3 +72,12 @@ export function formatErrorForUser(error: unknown): string {
     }
     return String(error);
 }
+
+/**
+ * Escape angle brackets so an error/message string renders as literal text
+ * instead of being interpreted as markup. Shared home for the sanitizer that
+ * the assistant hooks use; re-exported from the services barrel.
+ */
+export function sanitizeForDisplay(text: string): string {
+    return text.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}

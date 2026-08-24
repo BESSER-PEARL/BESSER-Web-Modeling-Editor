@@ -1,6 +1,7 @@
 import {
   ALL_DIAGRAM_TYPES,
   BesserProject,
+  InterfaceMode,
   PerspectiveSettings,
   ProjectDiagram,
   createDefaultProject,
@@ -192,8 +193,9 @@ export class ProjectStorageRepository {
     description: string,
     owner: string,
     perspectives?: PerspectiveSettings,
+    preferredInterface?: InterfaceMode,
   ): BesserProject {
-    const project = createDefaultProject(name, description, owner, perspectives);
+    const project = createDefaultProject(name, description, owner, perspectives, preferredInterface);
     this.saveProject(project);
     return project;
   }

@@ -118,8 +118,17 @@ export interface BesserProject {
     autoSave: boolean;
     collaborationEnabled: boolean;
     perspectives: PerspectiveSettings;
+    /**
+     * Workspace the user picked on the first-run landing: `'model'` (low-code
+     * canvas) or `'agent'` (agentic assistant). Optional and purely additive —
+     * projects created before this field load unchanged, so no schema bump.
+     */
+    preferredInterface?: InterfaceMode;
   };
 }
+
+/** The two ways into the editor, chosen on the first-run landing. */
+export type InterfaceMode = 'model' | 'agent';
 
 // Helper to get the active diagram for a type
 export const getActiveDiagram = (project: BesserProject, type: SupportedDiagramType): ProjectDiagram | undefined => {
@@ -382,6 +391,7 @@ export const createDefaultProject = (
   description: string,
   owner: string,
   perspectives?: PerspectiveSettings,
+  preferredInterface?: InterfaceMode,
 ): BesserProject => {
   const projectId = generateUUID();
 
@@ -411,6 +421,7 @@ export const createDefaultProject = (
       autoSave: true,
       collaborationEnabled: false,
       perspectives: perspectives ?? createDefaultPerspectives(),
+      ...(preferredInterface ? { preferredInterface } : {}),
     },
   };
 };

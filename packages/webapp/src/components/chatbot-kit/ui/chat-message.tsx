@@ -21,6 +21,7 @@ import { useTranslation } from "react-i18next"
 import { cn } from "@/lib/utils"
 import { cancelSmartGenUrl } from "@/main/shared/constants/constant"
 import { fetchAndSaveSmartGenArtifact } from "@/main/shared/utils/smartGenDownload"
+import { downloadFile } from "@/main/shared/utils/download"
 import {
   Collapsible,
   CollapsibleContent,
@@ -207,6 +208,15 @@ export interface SmartGenMessageState {
    * the user must click "Download" on the card to consent to the save.
    */
   needsDownload?: boolean
+  /**
+   * True when this card is a purely DETERMINISTIC generator run (no LLM) —
+   * BESSER's built-in generators. Renders "Generated deterministically" with a
+   * "0 tokens" badge instead of provider/model, and downloads the in-hand
+   * artifact blob directly (there is no server-side run id to re-fetch).
+   */
+  deterministic?: boolean
+  /** The generated artifact for a deterministic run's manual Download button. */
+  deterministicBlob?: Blob
 }
 
 export interface Message {
@@ -754,6 +764,8 @@ function SmartGenCard({
     needsDownload,
     generatorUsed,
     fileCount,
+    deterministic,
+    deterministicBlob,
   } = smartGen
 
   const [stopRequested, setStopRequested] = useState(false)
@@ -801,6 +813,19 @@ function SmartGenCard({
     if (result.ok) setHasDownloaded(true)
   }
 
+  // Deterministic runs hold the artifact in-hand (no server run id), so the
+  // Download button saves the blob directly instead of re-fetching by run id.
+  const handleDeterministicDownload = () => {
+    if (!deterministicBlob) return
+    try {
+      downloadFile(deterministicBlob, fileName || "generated_code.zip", deterministicBlob.type || "application/zip")
+      setHasDownloaded(true)
+    } catch {
+      setRedownloadState("failed")
+    }
+  }
+  const canDetDownload = status === "done" && deterministic === true && deterministicBlob instanceof Blob
+
   const showMeter =
     (status === "running" || status === "done") &&
     typeof elapsedSeconds === "number"
@@ -821,7 +846,7 @@ function SmartGenCard({
         <div className="flex flex-wrap items-center gap-x-2 gap-y-1 px-3 py-2 text-xs">
           <Sparkles className="h-3.5 w-3.5 shrink-0 text-primary" />
           <span className="text-[13px] font-medium text-foreground">
-            Application ready
+            {deterministic ? "Generated deterministically" : "Application ready"}
           </span>
           {generatorUsed ? (
             <span className="font-mono text-[11px] text-muted-foreground">
@@ -831,6 +856,14 @@ function SmartGenCard({
           {typeof fileCount === "number" && fileCount > 0 ? (
             <span className="text-[11px] text-muted-foreground">
               · {fileCount} file{fileCount === 1 ? "" : "s"}
+            </span>
+          ) : null}
+          {deterministic ? (
+            <span
+              className="inline-flex items-center gap-1 rounded-full border border-primary/30 bg-primary/10 px-2 py-0.5 font-mono text-[10px] font-medium text-primary"
+              title="Built by BESSER's deterministic generator — no LLM, no tokens, exact output."
+            >
+              0 tokens
             </span>
           ) : null}
           {phases.length > 0 ? (
@@ -851,6 +884,21 @@ function SmartGenCard({
               <span className="text-[11px] text-red-600 dark:text-red-400">
                 Retry failed
               </span>
+            ) : null}
+            {canDetDownload ? (
+              <button
+                type="button"
+                onClick={handleDeterministicDownload}
+                className={cn(
+                  "inline-flex items-center gap-1 rounded px-2 py-0.5 text-[11px] font-medium",
+                  hasDownloaded
+                    ? "border border-border/60 bg-background text-foreground hover:bg-muted"
+                    : "bg-primary text-primary-foreground hover:bg-primary/90"
+                )}
+              >
+                <Download className="h-3 w-3" />
+                {hasDownloaded ? "Download again" : "Download"}
+              </button>
             ) : null}
             {canRedownload ? (
               <button
@@ -897,6 +945,15 @@ function SmartGenCard({
               />
             ))}
           </ol>
+        ) : null}
+
+        {/* The model's own narration/output. Shown while streaming (running
+            card); keep it inspectable after the run too, behind "Show steps",
+            so the LLM's text isn't lost the moment the run finishes. */}
+        {showSteps && typeof text === "string" && text.trim() ? (
+          <div className="border-t border-border/40 bg-background/40 px-3 py-2 text-xs text-muted-foreground">
+            <MarkdownRenderer>{text}</MarkdownRenderer>
+          </div>
         ) : null}
 
         {/* Warnings (incomplete / timeout) stay visible on the compact card */}
@@ -1025,6 +1082,21 @@ function SmartGenCard({
               <span className="text-[11px] text-red-600 dark:text-red-400">
                 Retry failed
               </span>
+            ) : null}
+            {canDetDownload ? (
+              <button
+                type="button"
+                onClick={handleDeterministicDownload}
+                className={cn(
+                  "inline-flex items-center gap-1 rounded px-2 py-0.5 text-[11px] font-medium",
+                  hasDownloaded
+                    ? "border border-border/60 bg-background text-foreground hover:bg-muted"
+                    : "bg-primary text-primary-foreground hover:bg-primary/90"
+                )}
+              >
+                <Download className="h-3 w-3" />
+                {hasDownloaded ? "Download again" : "Download"}
+              </button>
             ) : null}
             {canRedownload ? (
               (() => {

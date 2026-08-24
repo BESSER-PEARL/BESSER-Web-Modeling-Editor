@@ -24,6 +24,7 @@ import { useAppDispatch, useAppSelector } from '../../../app/store/hooks';
 import { selectActiveDiagramType, switchDiagramTypeThunk } from '../../../app/store/workspaceSlice';
 import { openPushDialog } from '../../smart-generation/state/smartGeneratorSlice';
 import type { SupportedDiagramType } from '../../../shared/types/project';
+import { readLlmKey } from '../../../shared/services/llmKeyStorage';
 import type { GeneratorType } from '../../../app/shell/workspace-types';
 import type { GenerationResult } from '../../generation/types';
 import { useAssistantLogic, type ConnectionStatus, type MessageMeta } from '../hooks/useAssistantLogic';
@@ -84,6 +85,8 @@ export const AssistantWidget: React.FC<AssistantWidgetProps> = ({ onAssistantGen
   const [isVisible, setIsVisible] = useState(false);
   const [showDisclaimer, setShowDisclaimer] = useState(false);
   const [byokOpen, setByokOpen] = useState(false);
+  // Reflect whether a BYOK key is saved (re-reads when the dialog closes).
+  const savedApiKey = readLlmKey();
 
   const dispatch = useAppDispatch();
   const location = useLocation();
@@ -247,12 +250,22 @@ export const AssistantWidget: React.FC<AssistantWidgetProps> = ({ onAssistantGen
                 type="button"
                 variant="ghost"
                 size="icon"
-                className="size-7 rounded-lg text-muted-foreground/60 transition-colors hover:bg-brand/5 hover:text-foreground"
+                className={cn(
+                  'relative size-7 rounded-lg transition-colors hover:bg-brand/5 hover:text-foreground',
+                  savedApiKey ? 'text-brand' : 'text-muted-foreground/60',
+                )}
                 onClick={() => setByokOpen(true)}
-                title="Use your own API key (assistant + generator)"
-                aria-label="Use your own API key"
+                title={
+                  savedApiKey
+                    ? `Your ${savedApiKey.provider} API key is set — click to change or remove`
+                    : 'Use your own API key (assistant + generator)'
+                }
+                aria-label={savedApiKey ? 'API key set — click to change' : 'Use your own API key'}
               >
                 <KeyRound className="size-3.5" />
+                {savedApiKey ? (
+                  <Check className="absolute -bottom-0.5 -right-0.5 size-2.5 rounded-full bg-background text-brand" />
+                ) : null}
               </Button>
               <Button
                 type="button"
@@ -310,6 +323,17 @@ export const AssistantWidget: React.FC<AssistantWidgetProps> = ({ onAssistantGen
                     </button>
                   ))}
                 </div>
+                {/* Free-tier promo — no API key needed; link opens the shared BYOK dialog */}
+                <p className="text-[11px] text-muted-foreground">
+                  {t('assistant.welcome.freeTier')}{' '}
+                  <button
+                    type="button"
+                    onClick={() => setByokOpen(true)}
+                    className="font-medium text-brand underline-offset-2 transition-colors hover:text-brand-dark hover:underline"
+                  >
+                    {t('assistant.welcome.changeModel')}
+                  </button>
+                </p>
               </div>
             ) : (
             <MessageList

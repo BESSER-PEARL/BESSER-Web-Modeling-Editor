@@ -642,16 +642,43 @@ export function useAssistantLogic({
         setMessages((prev) => [...prev, toKitMessage('assistant', t('assistant.errors.generationUnavailable'))]);
         return;
       }
+      // Clear any streamed "progress steps" the moment generation is triggered
+      // (deterministic generation is instant and shows its own result card).
+      // Clearing this only AFTER the await let the step popup linger visibly for
+      // the whole request; do it up front so it's gone while the code generates.
+      streaming.setProgressMessage('');
       const result = await handler(generatorType as GeneratorType, payload.config);
+      streaming.setProgressMessage('');
+      // Deterministic generation renders in the SAME card as the Spec-Driven
+      // Agent — one step, a manual Download button, and a "0 tokens" badge —
+      // instead of silently auto-downloading (deterministic transparency).
+      if (result.ok && result.blob) {
+        setMessages((prev) => [
+          ...prev,
+          {
+            ...toKitMessage('assistant', ''),
+            smartGen: {
+              status: 'done',
+              phases: [
+                { phase: 'generate', label: 'Generated deterministically', message: '', toolCalls: [] },
+              ],
+              warnings: [],
+              text: '',
+              generatorUsed: generatorType,
+              fileName: result.filename,
+              deterministic: true,
+              deterministicBlob: result.blob,
+            },
+          },
+        ]);
+      }
       assistantClient.sendFrontendEvent('generator_result', {
         ok: result.ok,
-        message:
-          typeof payload.message === 'string' && payload.message.trim()
-            ? payload.message
-            : result.ok
-              ? t('assistant.generationCompleted')
-              : result.error,
-        metadata: result.ok && result.filename ? { filename: result.filename } : undefined,
+        // Don't echo the "Starting…" trigger text (it reads as "starting" after
+        // completion). Let the agent send a generator-specific "done" line; on
+        // failure, pass the real error through.
+        message: result.ok ? undefined : result.error,
+        metadata: result.ok && result.filename ? { filename: result.filename, generatorType } : undefined,
       });
       return;
     }

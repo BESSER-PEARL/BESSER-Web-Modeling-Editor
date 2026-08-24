@@ -3,6 +3,7 @@ import { useSearchParams } from 'react-router-dom';
 import {
   localStorageLatestProject,
   sessionStorageContinueFromGithubIntent,
+  sessionStorageOpenAssistantOnLoad,
 } from '../../shared/constants/constant';
 import { useGitHubBumlImport } from '../../features/import/useGitHubBumlImport';
 import { notifyError } from '../../shared/utils/notifyError';
@@ -95,6 +96,38 @@ export const useProjectBootstrap = ({
 
     checkForLatestProject().catch(notifyError('Loading latest project'));
   }, [loadProject, hasCheckedForProject, hasTokenInUrl]);
+
+  // ?agentic / ?mode=agent → the user should land in the editor with the
+  // assistant drawer open. Flag it once at mount; WorkspaceShell consumes it
+  // when a project is present. New agentic projects created through the hub set
+  // the same flag from ProjectHubDialog; this covers the existing-project case
+  // where no creation flow runs. Read once — not reactively.
+  const agenticUrlRef = useRef<boolean>(
+    (() => {
+      try {
+        const params = new URLSearchParams(window.location.search);
+        if (params.has('agentic')) {
+          const v = params.get('agentic');
+          if (v === null || v === '' || v === 'true' || v === '1') {
+            return true;
+          }
+        }
+        return params.get('mode') === 'agent';
+      } catch {
+        return false;
+      }
+    })(),
+  );
+  useEffect(() => {
+    if (!agenticUrlRef.current) {
+      return;
+    }
+    try {
+      sessionStorage.setItem(sessionStorageOpenAssistantOnLoad, '1');
+    } catch {
+      /* storage unavailable — the drawer just won't auto-open, non-fatal */
+    }
+  }, []);
 
   // Read ?buml= once on mount — not reactively — to avoid re-triggers
   const bumlUrlRef = useRef(new URLSearchParams(window.location.search).get('buml'));

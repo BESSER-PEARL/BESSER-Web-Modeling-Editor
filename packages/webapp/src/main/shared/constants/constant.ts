@@ -51,6 +51,13 @@ export const localStorageAgentProfileMappings = localStoragePrefix + 'agentProfi
 export const localStorageActiveAgentConfiguration = localStoragePrefix + 'agentActiveConfig';
 export const localStorageAgentBaseModels = localStoragePrefix + 'agentBaseModels';
 /**
+ * Per-user default chosen on the first-run landing: `'model'` (low-code
+ * canvas) or `'agent'` (agentic assistant). When set, the first-run flow skips
+ * the mode-chooser and opens that workspace directly. Written only when the
+ * user ticks "Remember my choice".
+ */
+export const localStoragePreferredInterface = localStoragePrefix + 'preferred_interface';
+/**
  * @deprecated since v7.3.0 — kept for the cleanup migration only. Agent
  * runtime config (platform, intent-recognition technology, LLM
  * provider/model) now lives on the agent diagram itself
@@ -130,6 +137,11 @@ export const sessionStorageAssistantModel = sessionStorageLlmModel;
 // never survives a tab close; the one-shot consume guards against replaying a
 // stale prompt.
 export const sessionStoragePendingAssistantPrompt = localStoragePrefix + 'pending_assistant_prompt';
+
+// Set when an "agentic" project is created (or when the app is opened with
+// ?agentic): WorkspaceShell consumes-and-clears it once a project is loaded to
+// open the assistant drawer automatically (no prompt is auto-sent).
+export const sessionStorageOpenAssistantOnLoad = localStoragePrefix + 'open_assistant_on_load';
 
 // Smart Generator — per-project last successful run id (incremental vibe-modify).
 // When a vibe-generation run finishes, its run_id is stashed here keyed by
