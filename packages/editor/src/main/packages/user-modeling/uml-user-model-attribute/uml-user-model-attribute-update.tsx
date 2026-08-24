@@ -16,6 +16,8 @@ import {
   UserModelAttributeComparator,
   normalizeUserModelAttributeComparator,
 } from './uml-user-model-attribute';
+import { PersonalizationEditor } from '../personalization/PersonalizationEditor';
+import { UserPersonalizationSpec } from '../personalization-spec';
 
 // Define TextfieldValue type locally as it's not exported from textfield
 type TextfieldValue = string | number;
@@ -65,6 +67,7 @@ type Props = {
       textColor?: string;
       lineColor?: string;
       attributeOperator?: Comparator;
+      personalization?: UserPersonalizationSpec;
     },
   ) => void;
   onSubmitKeyUp: () => void;
@@ -192,6 +195,16 @@ const UMLUserModelAttributeUpdate = ({ id, onRefChange, value, onChange, onSubmi
 
   const labelText = resolvedAttributeName || attributeName;
 
+  const personalizationBlock = (
+    <div style={{ marginTop: 6 }}>
+      <PersonalizationEditor
+        value={attributeElement.personalization}
+        onChange={(spec) => onChange(id, { personalization: spec })}
+        label={translate('popup.personalization')}
+      />
+    </div>
+  );
+
   if (labelText) {
     return (
       <>
@@ -238,6 +251,7 @@ const UMLUserModelAttributeUpdate = ({ id, onRefChange, value, onChange, onSubmi
           </Button>
         </Flex>
         <StylePane open={colorOpen} element={element} onColorChange={onChange} showIcon fillColor textColor />
+        {personalizationBlock}
       </>
     );
   }
@@ -258,6 +272,7 @@ const UMLUserModelAttributeUpdate = ({ id, onRefChange, value, onChange, onSubmi
         </Button>
       </Flex>
       <StylePane open={colorOpen} element={element} onColorChange={onChange} showIcon fillColor textColor />
+      {personalizationBlock}
     </>
   );
 };

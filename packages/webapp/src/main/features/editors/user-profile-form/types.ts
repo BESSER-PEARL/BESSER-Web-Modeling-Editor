@@ -7,6 +7,8 @@
  * serialised back into an Apollon `UMLModel`.
  */
 
+import type { UserPersonalizationSpec } from '@besser/wme';
+
 /** Comparison operators available for an attribute criterion (mirror the editor). */
 export const OPERATORS = ['<', '<=', '==', '>=', '>'] as const;
 export type Operator = (typeof OPERATORS)[number];
@@ -26,6 +28,8 @@ export interface AttrValue {
   enumValues?: string[];
   operator: Operator;
   value: string;
+  /** Attribute-level personalization spec (content/presentation/modality). */
+  personalization?: UserPersonalizationSpec;
 }
 
 /** Primitive numeric types whose criteria support comparison operators. */
@@ -48,4 +52,6 @@ export interface Instance {
   icon?: string;
   attributes: AttrValue[];
   children: Record<string, Instance[]>;
+  /** Instance-level personalization spec; on the root `User` this is the profile-level spec. */
+  personalization?: UserPersonalizationSpec;
 }

@@ -8,9 +8,32 @@
  * profile authored in the form is indistinguishable from one drawn by hand.
  */
 
-import type { UMLModel } from '@besser/wme';
+import type { UMLModel, UserPersonalizationSpec } from '@besser/wme';
+import { isPersonalizationSpecEmpty, isUserPersonalizationSpec } from '@besser/wme';
 import { AttrValue, Instance, OPERATORS, Operator } from './types';
 import { MetaNode, MetaTree, ROOT_CLASS_NAME } from './metamodel-tree';
+
+/**
+ * Stable, order-insensitive JSON of a personalization spec for change-detection.
+ * Recursively sorts object keys so semantically-equal specs always stringify
+ * identically. Returns '' for an empty/absent spec.
+ */
+const personalizationSignature = (spec?: UserPersonalizationSpec | null): string => {
+  if (isPersonalizationSpecEmpty(spec)) return '';
+  const sortValue = (value: any): any => {
+    if (Array.isArray(value)) return value.map(sortValue);
+    if (value && typeof value === 'object') {
+      return Object.keys(value)
+        .sort()
+        .reduce((acc: Record<string, any>, k) => {
+          acc[k] = sortValue(value[k]);
+          return acc;
+        }, {});
+    }
+    return value;
+  };
+  return JSON.stringify(sortValue(spec));
+};
 
 let keyCounter = 0;
 /** Unique, deterministic-per-session React key for a form instance. */
@@ -161,6 +184,9 @@ export const buildUserDiagramModel = (
     };
     if (instance.className) box.className = instance.className;
     if (instance.classId) box.classId = instance.classId;
+    if (!isPersonalizationSpecEmpty(instance.personalization)) {
+      box.personalization = instance.personalization;
+    }
 
     if (instance.icon && typeof instance.icon === 'string' && instance.icon.trim() !== '') {
       const iconId = nextId('icon');
@@ -188,6 +214,9 @@ export const buildUserDiagramModel = (
         attributeOperator: attr.operator,
       };
       if (attr.attributeId) attrEl.attributeId = attr.attributeId;
+      if (!isPersonalizationSpecEmpty(attr.personalization)) {
+        attrEl.personalization = attr.personalization;
+      }
       elements[attrId] = attrEl;
       currentY += 30;
     });
@@ -347,9 +376,14 @@ const readAttributes = (
       (attrEl.attributeId && result.find((r) => r.attributeId === attrEl.attributeId)) ||
       result.find((r) => r.name === parsed.name);
 
+    const personalization = isUserPersonalizationSpec(attrEl.personalization)
+      ? (attrEl.personalization as UserPersonalizationSpec)
+      : undefined;
+
     if (target) {
       target.operator = operator;
       target.value = parsed.value;
+      if (!isPersonalizationSpecEmpty(personalization)) target.personalization = personalization;
     } else if (parsed.name) {
       // Criterion not present in the metamodel — keep it so nothing is lost.
       result.push({
@@ -357,6 +391,7 @@ const readAttributes = (
         name: parsed.name,
         operator,
         value: parsed.value,
+        ...(isPersonalizationSpecEmpty(personalization) ? {} : { personalization }),
       });
     }
   });
@@ -391,6 +426,10 @@ export const parseUserDiagramModel = (model: UMLModel | null | undefined, tree: 
       children: {},
     };
 
+    if (box && isUserPersonalizationSpec(box.personalization) && !isPersonalizationSpecEmpty(box.personalization)) {
+      instance.personalization = box.personalization as UserPersonalizationSpec;
+    }
+
     metaNode.children.forEach((childRef) => {
       const childMeta = tree.byClassName[childRef.className];
       if (!childMeta) return;
@@ -419,13 +458,20 @@ export const parseUserDiagramModel = (model: UMLModel | null | undefined, tree: 
 export const instanceSignature = (instance: Instance | null): string => {
   if (!instance) return '';
   const attrs = instance.attributes
-    .filter((a) => a.value != null && String(a.value).trim() !== '')
-    .map((a) => `${a.name}${a.operator}${a.value}`)
+    // Keep an attribute if it carries a value OR a personalization spec —
+    // otherwise a spec on an unset attribute would be invisible to
+    // change-detection and the two views would silently drift.
+    .filter(
+      (a) =>
+        (a.value != null && String(a.value).trim() !== '') ||
+        !isPersonalizationSpecEmpty(a.personalization),
+    )
+    .map((a) => `${a.name}${a.operator}${a.value}#${personalizationSignature(a.personalization)}`)
     .sort()
     .join('|');
   const children = Object.keys(instance.children)
     .sort()
     .map((cn) => `${cn}:[${instance.children[cn].map(instanceSignature).sort().join(',')}]`)
     .join(';');
-  return `${instance.className}{${attrs}}(${children})`;
+  return `${instance.className}{${attrs}}(${children})@${personalizationSignature(instance.personalization)}`;
 };

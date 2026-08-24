@@ -22,7 +22,9 @@ import { createEmptyInstance, USER_NAME_ATTRIBUTE } from './model-serialization'
 import { MetaChildRef, MetaNode, MetaTree } from './metamodel-tree';
 import { AttrValue, Instance, isNumericType, OPERATORS, Operator } from './types';
 import { AttributeChip } from './AttributeChip';
+import { PersonalizationFields } from './PersonalizationFields';
 import { attributeIconService } from '../../../shared/services/attribute-icons/attributeIconService';
+import type { UserPersonalizationSpec } from '@besser/wme';
 
 interface UserProfileFormPanelProps {
   open: boolean;
@@ -69,59 +71,72 @@ const MetaIcon: React.FC<{ svg?: string; className?: string }> = ({ svg, classNa
 const AttributeRow: React.FC<{
   attr: AttrValue;
   onChange: (patch: Partial<AttrValue>) => void;
-}> = ({ attr, onChange }) => {
+  /** Show the attribute-level personalization expander (default true). */
+  showPersonalization?: boolean;
+}> = ({ attr, onChange, showPersonalization = true }) => {
   const isEnum = Array.isArray(attr.enumValues) && attr.enumValues.length > 0;
   const isNumeric = !isEnum && isNumericType(attr.type);
 
   return (
-    <div className="flex items-center gap-1.5 py-0.5">
-      <label className="min-w-[104px] max-w-[104px] truncate text-[13px] font-medium text-muted-foreground" title={attr.name}>
-        {attr.name}
-      </label>
+    <div className="py-0.5">
+      <div className="flex items-center gap-1.5">
+        <label className="min-w-[104px] max-w-[104px] truncate text-[13px] font-medium text-muted-foreground" title={attr.name}>
+          {attr.name}
+        </label>
 
-      {/* Comparison operator only for numeric fields; everything else is an equality value. */}
-      {isNumeric ? (
-        <select
-          className={fieldSelectClass}
-          value={attr.operator}
-          onChange={(e) => onChange({ operator: e.target.value as Operator })}
-          aria-label={`${attr.name} comparison operator`}
-        >
-          {OPERATORS.map((op) => (
-            <option key={op} value={op}>
-              {op === '==' ? '=' : op}
-            </option>
-          ))}
-        </select>
-      ) : (
-        <span className="text-[13px] font-medium text-muted-foreground/70" aria-hidden>
-          =
-        </span>
-      )}
+        {/* Comparison operator only for numeric fields; everything else is an equality value. */}
+        {isNumeric ? (
+          <select
+            className={fieldSelectClass}
+            value={attr.operator}
+            onChange={(e) => onChange({ operator: e.target.value as Operator })}
+            aria-label={`${attr.name} comparison operator`}
+          >
+            {OPERATORS.map((op) => (
+              <option key={op} value={op}>
+                {op === '==' ? '=' : op}
+              </option>
+            ))}
+          </select>
+        ) : (
+          <span className="text-[13px] font-medium text-muted-foreground/70" aria-hidden>
+            =
+          </span>
+        )}
 
-      {isEnum ? (
-        <select
-          className={cn(fieldSelectClass, 'w-full flex-1')}
-          value={attr.value}
-          onChange={(e) => onChange({ value: e.target.value })}
-          aria-label={`${attr.name} value`}
-        >
-          <option value="">—</option>
-          {attr.enumValues!.map((v) => (
-            <option key={v} value={v}>
-              {v}
-            </option>
-          ))}
-        </select>
-      ) : (
-        <input
-          type={isNumeric ? 'number' : 'text'}
-          className={valueInputClass}
-          value={attr.value}
-          placeholder={attr.type || 'value'}
-          onChange={(e) => onChange({ value: e.target.value })}
-          aria-label={`${attr.name} value`}
-        />
+        {isEnum ? (
+          <select
+            className={cn(fieldSelectClass, 'w-full flex-1')}
+            value={attr.value}
+            onChange={(e) => onChange({ value: e.target.value })}
+            aria-label={`${attr.name} value`}
+          >
+            <option value="">—</option>
+            {attr.enumValues!.map((v) => (
+              <option key={v} value={v}>
+                {v}
+              </option>
+            ))}
+          </select>
+        ) : (
+          <input
+            type={isNumeric ? 'number' : 'text'}
+            className={valueInputClass}
+            value={attr.value}
+            placeholder={attr.type || 'value'}
+            onChange={(e) => onChange({ value: e.target.value })}
+            aria-label={`${attr.name} value`}
+          />
+        )}
+      </div>
+
+      {showPersonalization && (
+        <div className="mt-1 pl-[108px]">
+          <PersonalizationFields
+            value={attr.personalization}
+            onChange={(spec) => onChange({ personalization: spec })}
+          />
+        </div>
       )}
     </div>
   );
@@ -134,6 +149,7 @@ const AttributeRow: React.FC<{
 interface EditorCallbacks {
   tree: MetaTree;
   setAttr: (instanceKey: string, attrIndex: number, patch: Partial<AttrValue>) => void;
+  setInstancePersonalization: (instanceKey: string, spec: UserPersonalizationSpec | undefined) => void;
   addChild: (parentKey: string, className: string) => void;
   removeChild: (parentKey: string, className: string, childKey: string) => void;
 }
@@ -310,6 +326,21 @@ export const UserProfileFormPanel: React.FC<UserProfileFormPanelProps> = ({ open
     [applyEdit],
   );
 
+  const setInstancePersonalization = useCallback(
+    (instanceKey: string, spec: UserPersonalizationSpec | undefined) => {
+      applyEdit((prev) => {
+        const clone: Instance = structuredClone(prev);
+        const target = findByKey(clone, instanceKey);
+        if (target) {
+          if (spec) target.personalization = spec;
+          else delete target.personalization;
+        }
+        return clone;
+      });
+    },
+    [applyEdit],
+  );
+
   const addChild = useCallback(
     (parentKey: string, className: string) => {
       applyEdit((prev) => {
@@ -344,7 +375,9 @@ export const UserProfileFormPanel: React.FC<UserProfileFormPanelProps> = ({ open
 
   if (!open) return null;
 
-  const cb: EditorCallbacks | null = tree ? { tree, setAttr, addChild, removeChild } : null;
+  const cb: EditorCallbacks | null = tree
+    ? { tree, setAttr, setInstancePersonalization, addChild, removeChild }
+    : null;
   const rootMeta: MetaNode | null = tree?.root ?? null;
 
   // Rendered through a portal to document.body: the drawer is position:fixed,
@@ -433,6 +466,15 @@ export const UserProfileFormPanel: React.FC<UserProfileFormPanelProps> = ({ open
                   )}
                 </div>
               )}
+
+              {/* Profile-level personalization (applies to the whole profile) */}
+              <div className="mt-2">
+                <PersonalizationFields
+                  label="Profile personalization"
+                  value={formState.personalization}
+                  onChange={(spec) => setInstancePersonalization(formState.key, spec)}
+                />
+              </div>
             </div>
 
             {/* Quick-access attribute chips (personalization level) */}

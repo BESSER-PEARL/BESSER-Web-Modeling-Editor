@@ -11,12 +11,14 @@ import { IUMLElement, UMLElement } from '../../../services/uml-element/uml-eleme
 import { Text } from '../../../utils/svg/text';
 import { settingsService } from '../../../services/settings/settings-service';
 import { GeneralRelationshipType } from '../../uml-relationship-type';
+import { UserPersonalizationSpec, isUserPersonalizationSpec } from '../personalization-spec';
 
 export interface IUMLUserModelName extends IUMLClassifier {
   classId?: string;
   className?: string;
   icon?: string;
   displayLabel?: string;
+  personalization?: UserPersonalizationSpec;
 }
 
 export class UMLUserModelName extends UMLClassifier implements IUMLUserModelName {
@@ -32,6 +34,12 @@ export class UMLUserModelName extends UMLClassifier implements IUMLUserModelName
    * keeping serialization and downstream generation intact.
    */
   displayLabel?: string;
+  /**
+   * Profile-level personalization spec (content / presentation / modality).
+   * Set on the root `User` box; the webapp aggregation collapses it plus the
+   * attribute-level specs into the agent configuration. See personalization-spec.ts.
+   */
+  personalization?: UserPersonalizationSpec;
 
   static supportedRelationships = [
     UserModelRelationshipType.UserModelLink,
@@ -52,6 +60,9 @@ export class UMLUserModelName extends UMLClassifier implements IUMLUserModelName
     if (values?.displayLabel) {
       this.displayLabel = values.displayLabel;
     }
+    if (isUserPersonalizationSpec(values?.personalization)) {
+      this.personalization = values!.personalization as UserPersonalizationSpec;
+    }
   }
 
   serialize(children: UMLElement[] = []): Apollon.UMLClassifier & {
@@ -59,6 +70,7 @@ export class UMLUserModelName extends UMLClassifier implements IUMLUserModelName
     className?: string;
     icon?: string;
     displayLabel?: string;
+    personalization?: UserPersonalizationSpec;
   } {
     const iconChild = children.find((child) => child.type === UserModelElementType.UserModelIcon);
     return {
@@ -67,6 +79,7 @@ export class UMLUserModelName extends UMLClassifier implements IUMLUserModelName
       className: this.className,
       icon: iconChild ? iconChild.id : undefined,
       displayLabel: this.displayLabel,
+      personalization: this.personalization,
     };
   }
 
@@ -83,6 +96,9 @@ export class UMLUserModelName extends UMLClassifier implements IUMLUserModelName
     }
     if ('displayLabel' in values && typeof (values as any).displayLabel === 'string') {
       this.displayLabel = (values as any).displayLabel;
+    }
+    if ('personalization' in values && isUserPersonalizationSpec((values as any).personalization)) {
+      this.personalization = (values as any).personalization;
     }
   }
 

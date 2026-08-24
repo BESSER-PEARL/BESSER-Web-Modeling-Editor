@@ -176,6 +176,73 @@ describe('user-profile-form serialization', () => {
 });
 
 /* ------------------------------------------------------------------ */
+/*  Personalization specs round-trip on both element levels            */
+/* ------------------------------------------------------------------ */
+
+describe('user-profile-form personalization round-trip', () => {
+  it('preserves profile-level and attribute-level specs through build -> parse', () => {
+    const root = createEmptyInstance(syntheticTree.root!);
+    // Profile-level spec on the root User.
+    root.personalization = { content: { languageComplexity: 'simple', useAbbreviations: true } };
+
+    const pi = createEmptyInstance(syntheticTree.byClassName.Personal_Information);
+    pi.attributes[0].operator = '>=';
+    pi.attributes[0].value = '18';
+    // Attribute-level spec on the age criterion.
+    pi.attributes[0].personalization = {
+      presentation: { size: 18, font: 'serif' },
+      modality: { outputModalities: ['voice'], voiceSpeed: 0.9 },
+    };
+    root.children.Personal_Information = [pi];
+
+    const model = buildUserDiagramModel(root, syntheticTree) as any;
+
+    // Specs are emitted onto the model elements.
+    const userBox = Object.values(model.elements).find(
+      (e: any) => e.type === 'UserModelName' && e.className === 'User',
+    ) as any;
+    expect(userBox.personalization).toEqual(root.personalization);
+    const ageRow = Object.values(model.elements).find(
+      (e: any) => e.type === 'UserModelAttribute' && e.name.startsWith('age'),
+    ) as any;
+    expect(ageRow.personalization).toEqual(pi.attributes[0].personalization);
+
+    // And they survive the parse back into form state.
+    const parsed = parseUserDiagramModel(model, syntheticTree);
+    expect(parsed?.personalization).toEqual(root.personalization);
+    const parsedAge = parsed?.children.Personal_Information?.[0].attributes.find((a) => a.name === 'age');
+    expect(parsedAge?.personalization).toEqual(pi.attributes[0].personalization);
+    expect(instanceSignature(parsed)).toBe(instanceSignature(root));
+  });
+
+  it('keeps an attribute-level spec even when the criterion value is empty', () => {
+    const root = createEmptyInstance(syntheticTree.root!);
+    const pi = createEmptyInstance(syntheticTree.byClassName.Personal_Information);
+    // No value on age, but a spec attached.
+    pi.attributes[0].personalization = { presentation: { contrast: 'high' } };
+    root.children.Personal_Information = [pi];
+
+    const model = buildUserDiagramModel(root, syntheticTree);
+    const parsed = parseUserDiagramModel(model, syntheticTree);
+    const parsedAge = parsed?.children.Personal_Information?.[0].attributes.find((a) => a.name === 'age');
+    expect(parsedAge?.personalization).toEqual({ presentation: { contrast: 'high' } });
+    expect(instanceSignature(parsed)).toBe(instanceSignature(root));
+  });
+
+  it('instanceSignature changes iff a spec changes', () => {
+    const a = createEmptyInstance(syntheticTree.root!);
+    const b = createEmptyInstance(syntheticTree.root!);
+    expect(instanceSignature(a)).toBe(instanceSignature(b));
+
+    b.personalization = { content: { sentenceLength: 'concise' } };
+    expect(instanceSignature(a)).not.toBe(instanceSignature(b));
+
+    a.personalization = { content: { sentenceLength: 'concise' } };
+    expect(instanceSignature(a)).toBe(instanceSignature(b));
+  });
+});
+
+/* ------------------------------------------------------------------ */
 /*  Metamodel-tree derivation against the real shipped metamodel       */
 /* ------------------------------------------------------------------ */
 

@@ -76,3 +76,18 @@ export {
   HIDDEN_USER_MODEL_CONTAINERS,
   isHiddenUserModelContainer,
 } from './packages/user-modeling/hidden-containers';
+
+// User-profile modeling: per-element personalization spec (content /
+// presentation / modality) attached to profile + attribute elements. Replaces
+// the separate agent-config personalization tab; consumed by the webapp form
+// and aggregation.
+export type {
+  UserPersonalizationSpec,
+  UserPresentationSpec,
+  UserModalitySpec,
+  UserContentSpec,
+} from './packages/user-modeling/personalization-spec';
+export {
+  isUserPersonalizationSpec,
+  isPersonalizationSpecEmpty,
+} from './packages/user-modeling/personalization-spec';

@@ -26,6 +26,8 @@ import { UserModelElementType } from '../../user-modeling';
 import { UMLUserModelAttribute } from '../../user-modeling/uml-user-model-attribute/uml-user-model-attribute';
 import UMLUserModelAttributeUpdate from '../../user-modeling/uml-user-model-attribute/uml-user-model-attribute-update';
 import { isHiddenUserModelAttribute } from '../../user-modeling/hidden-attributes';
+import { PersonalizationEditor } from '../../user-modeling/personalization/PersonalizationEditor';
+import { UserPersonalizationSpec } from '../../user-modeling/personalization-spec';
 
 const Flex = styled.div`
   display: flex;
@@ -208,6 +210,11 @@ class ObjectNameComponent extends Component<Props, State> {
   render() {
     const { element, getById } = this.props;
     const isUserModelElement = element.type === (UserModelElementType as any).UserModelName;
+    // Box-level personalization is authored only on the root `User` profile
+    // element. Intermediate connected boxes (personal_Information, Culture, …)
+    // carry personalization on their attributes instead — so they don't render a
+    // redundant second "Personalization" toggle next to their attribute rows.
+    const isRootUserElement = isUserModelElement && (element as any).className === 'User';
     const children = element.ownedElements.map((id) => getById(id)).filter(notEmpty);
     const attributes = children.filter((child): child is UMLObjectAttribute | UMLUserModelAttribute => {
       if (isUserModelElement) {
@@ -355,6 +362,18 @@ class ObjectNameComponent extends Component<Props, State> {
             }}
           /> */}
         </section>
+        {isRootUserElement && (
+          <section>
+            <Divider />
+            <PersonalizationEditor
+              value={(element as any).personalization as UserPersonalizationSpec | undefined}
+              onChange={(spec) =>
+                this.props.update(element.id, { personalization: spec } as any)
+              }
+              label={this.props.translate('popup.personalization')}
+            />
+          </section>
+        )}
         {/* <section>
           <Divider />
           <Header>{this.props.translate('popup.methods')}</Header>

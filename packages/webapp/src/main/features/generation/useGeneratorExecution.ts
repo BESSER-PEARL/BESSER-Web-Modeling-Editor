@@ -60,6 +60,7 @@ import {
   type WebAppVersion,
   type WebAppVersionMode,
 } from '../../shared/utils/buildWebAppVersions';
+import { aggregateProfilePersonalization } from '../../shared/utils/personalization-aggregation';
 
 // ─── Pure helpers ──────────────────────────────────────────────────────────────
 
@@ -1059,6 +1060,12 @@ export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGen
     let agentModelOverride: UMLModel | undefined;
 
     if (agentGenerationMode === 'personalization') {
+      // Personalization is now authored directly on each UserDiagram profile:
+      // the per-element specs (profile-level + attribute-level) live on the
+      // model, and `aggregateProfilePersonalization` collapses them into the
+      // flat `configuration` the backend expects. There is no longer a separate
+      // stored agent-config, profile→config mapping, or per-config variant — a
+      // profile IS its configuration.
       const localProfiles = LocalStorageRepository.getUserProfiles();
       const projectProfiles = (currentProject?.diagrams?.UserDiagram ?? [])
         .filter((diagram) => isUMLModel(diagram.model) && diagram.model.type === UMLDiagramType.UserDiagram)
@@ -1074,41 +1081,42 @@ export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGen
         profileByName.set(profile.name, profile);
       }
 
-      const configs = LocalStorageRepository.getAgentConfigurations();
-      const configById = new Map(configs.map((entry) => [entry.id, entry]));
-      const variantByConfigurationId = new Map(agentVariantOptions.map((variant) => [variant.configurationId, variant]));
+      // The un-personalized agent base is the same for every profile — the
+      // backend layers each profile's configuration on top of it. Prefer the
+      // captured base snapshot so generation is deterministic; fall back to the
+      // active editor model.
+      const baseAgentDiagramId = activeAgentDiagram?.id;
+      const storedBase = baseAgentDiagramId
+        ? LocalStorageRepository.getAgentBaseModel(baseAgentDiagramId)
+        : null;
+      const resolvedBase: UMLModel | undefined =
+        storedBase && isUMLModel(storedBase) && storedBase.type === UMLDiagramType.AgentDiagram
+          ? storedBase
+          : (activeAgentDiagram?.model as UMLModel | undefined);
 
-      const mappings = LocalStorageRepository.getAgentProfileConfigurationMappings();
-      const personalizationMapping = mappings
-        .map((entry) => {
-          const profile = profileByName.get(entry.userProfileName) || null;
-          const config = configById.get(entry.agentConfigurationId) || null;
-          const variantModel = variantByConfigurationId.get(entry.agentConfigurationId)?.model;
-          const fallbackAgentModel = config?.personalizedAgentModel || config?.baseAgentModel || null;
-          const agentModel = variantModel || fallbackAgentModel;
+      if (!resolvedBase) {
+        toast.error(t('generation.toasts.noValidPersonalizationMappings'));
+        return;
+      }
+      if (storedBase) {
+        agentModelOverride = resolvedBase;
+      } else {
+        console.warn(
+          '[generation] Personalization mode could not resolve a stored agent base model; ' +
+            'falling back to the active diagram. Open the agent diagram once to capture the base.',
+        );
+      }
 
-          if (!profile || !agentModel || !config) {
-            return null;
-          }
-
-          return {
-            name: profile.name,
-            configuration: structuredClone(config.config),
-            user_profile: structuredClone(profile.model),
-            // Normalize to the canonical nested transition shape before sending.
-            // Variant/config snapshots can bypass the editor (e.g. imported
-            // projects) and still carry the legacy flat shape, which the backend
-            // collapses to when_no_intent_matched. normalizeAgentModel is pure
-            // and idempotent and returns a fresh clone.
-            agent_model: normalizeAgentModel(agentModel as UMLModel) as Record<string, any>,
-          };
-        })
-        .filter((entry): entry is {
-          name: string;
-          configuration: Record<string, any>;
-          user_profile: Record<string, any>;
-          agent_model: Record<string, any>;
-        } => Boolean(entry));
+      // normalizeAgentModel is pure/idempotent and returns a fresh clone, so it
+      // is safe to reuse the same base across every mapping entry.
+      const personalizationMapping = Array.from(profileByName.values())
+        .map((profile) => ({
+          name: profile.name,
+          configuration: aggregateProfilePersonalization(profile.model as UMLModel)
+            .configuration as Record<string, any>,
+          user_profile: structuredClone(profile.model),
+          agent_model: normalizeAgentModel(resolvedBase) as Record<string, any>,
+        }));
 
       if (personalizationMapping.length === 0) {
         toast.error(t('generation.toasts.noValidPersonalizationMappings'));
@@ -1119,28 +1127,6 @@ export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGen
         ...baseConfig,
         personalizationMapping,
       };
-
-      // Personalization codegen rebuilds every variant on top of the model the
-      // backend receives. Send the un-personalized base from localStorage so
-      // generation is deterministic — without this, whichever variant is
-      // active in the editor would silently become the new "base" each variant
-      // is layered onto.
-      const baseAgentDiagramId = activeAgentDiagram?.id;
-      const storedBase = baseAgentDiagramId
-        ? LocalStorageRepository.getAgentBaseModel(baseAgentDiagramId)
-        : null;
-      if (storedBase && isUMLModel(storedBase) && storedBase.type === UMLDiagramType.AgentDiagram) {
-        agentModelOverride = storedBase;
-      } else {
-        // No stored base resolved — generation falls back to the active editor
-        // model, which may be a personalized variant rather than the
-        // un-personalized base. Surface it instead of silently shipping the
-        // wrong base.
-        console.warn(
-          '[generation] Personalization mode could not resolve a stored agent base model; ' +
-            'falling back to the active diagram. Save & Apply at least once to capture the base.',
-        );
-      }
     }
 
     const shouldSendConfig = Object.keys(finalConfig).length > 0;

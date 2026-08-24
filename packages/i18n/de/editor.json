@@ -7,6 +7,7 @@
   },
   "popup": {
     "attributes": "Attribute",
+    "personalization": "Personalisierung",
     "methods": "Methoden",
     "relationship": "Beziehung",
     "association": "Assoziation",
