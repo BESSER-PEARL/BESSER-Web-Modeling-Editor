@@ -12,6 +12,7 @@ import { Text } from '../../../utils/svg/text';
 import { settingsService } from '../../../services/settings/settings-service';
 import { GeneralRelationshipType } from '../../uml-relationship-type';
 import { UserPersonalizationSpec, isUserPersonalizationSpec } from '../personalization-spec';
+import { resolveUserModelChipIcon } from '../attribute-palette-config';
 
 export interface IUMLUserModelName extends IUMLClassifier {
   classId?: string;
@@ -152,12 +153,16 @@ export class UMLUserModelName extends UMLClassifier implements IUMLUserModelName
     baseY: number,
     minWidth: number,
     minHeight: number,
+    contentOverride?: string,
   ): { width: number; height: number } {
     icon.bounds.x = 0.5;
     icon.bounds.y = baseY + 0.5 + 5;
     let svgWidth = minWidth;
     let svgHeight = minHeight;
-    const iconContent = (icon as any).icon;
+    // Prefer the actually-rendered SVG (a value-cue composite is taller/wider
+    // than the stored glyph) so the box grows to fit exactly what is drawn.
+    const iconContent =
+      contentOverride && contentOverride.trim() !== '' ? contentOverride : (icon as any).icon;
     if (iconContent && typeof iconContent === 'string' && iconContent.trim() !== '') {
       const size = UMLUserModelName.extractSvgSize(iconContent);
       svgWidth = size.width;
@@ -222,10 +227,22 @@ export class UMLUserModelName extends UMLClassifier implements IUMLUserModelName
 
     const icon = children.find((x: any) => x.type === UserModelElementType.UserModelIcon) as any;
 
+    // The rendered icon may be a value-cue composite (glyph + value text) that is
+    // taller/wider than the stored glyph. Resolve it here with the same helper the
+    // React component uses, so the box is sized to fit exactly what gets drawn.
+    const composite = resolveUserModelChipIcon({
+      className: this.className,
+      displayLabel: this.displayLabel,
+      fallbackIcon: icon && typeof icon.icon === 'string' ? icon.icon : undefined,
+      attributeNames: attributes
+        .map((attribute) => attribute.name)
+        .filter((name): name is string => typeof name === 'string'),
+    });
+
     let iconSize = { width: 0, height: 0 };
     if (icon && icon.icon && typeof icon.icon === 'string' && icon.icon.trim() !== '') {
       try {
-        iconSize = UMLUserModelName.setupIconBounds(icon, this.bounds.height, 50, 50);
+        iconSize = UMLUserModelName.setupIconBounds(icon, this.bounds.height, 50, 50, composite ?? undefined);
         UMLUserModelName.finalizeBounds(this, layer, icon, iconSize, y);
       } catch (error) {
         const text = this.className || this.name;

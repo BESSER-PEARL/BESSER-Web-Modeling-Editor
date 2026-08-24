@@ -14,7 +14,7 @@ import type {
   UserPresentationSpec,
 } from '@besser/wme';
 import { isPersonalizationSpecEmpty } from '@besser/wme';
-import { ChevronRight, Sparkles } from 'lucide-react';
+import { ChevronRight, Info, Sparkles } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 
@@ -52,13 +52,12 @@ const parseNumber = (raw: string): number | undefined => {
   return Number.isFinite(n) ? n : undefined;
 };
 
-const parseList = (raw: string): string[] | undefined => {
-  const items = raw
-    .split(',')
-    .map((s) => s.trim())
-    .filter(Boolean);
-  return items.length ? items : undefined;
-};
+/**
+ * `text` is always enabled by the agent runtime, so it's shown fixed/checked and
+ * only `speech` is toggleable. A list containing `speech` implies text too; an
+ * empty list is stored as undefined (text-only is the implicit default).
+ */
+const speechModalities = (on: boolean): string[] | undefined => (on ? ['text', 'speech'] : undefined);
 
 const Row: React.FC<{ label: string; children: React.ReactNode }> = ({ label, children }) => (
   <label className="flex items-center gap-2 py-0.5">
@@ -240,24 +239,50 @@ export const PersonalizationFields: React.FC<Props> = ({ value, onChange, label 
           {/* Modality */}
           <div className="space-y-0.5">
             <p className={sectionTitleClass}>Modality</p>
-            <Row label="Input">
-              <input
-                type="text"
-                className={inputClass}
-                placeholder="text, voice…"
-                value={(modality.inputModalities ?? []).join(', ')}
-                onChange={(e) => patchModality({ inputModalities: parseList(e.target.value) })}
-              />
-            </Row>
-            <Row label="Output">
-              <input
-                type="text"
-                className={inputClass}
-                placeholder="text, voice…"
-                value={(modality.outputModalities ?? []).join(', ')}
-                onChange={(e) => patchModality({ outputModalities: parseList(e.target.value) })}
-              />
-            </Row>
+            <div className="flex items-center gap-2 py-0.5">
+              <span className={rowLabelClass}>Input</span>
+              <div className="flex flex-1 items-center gap-3">
+                <span
+                  className="inline-flex cursor-default items-center gap-1 text-[12px] text-foreground"
+                  title="Text is always enabled"
+                >
+                  <input type="checkbox" className="size-3.5 accent-[hsl(var(--brand))]" checked readOnly disabled />
+                  text
+                  <Info className="size-3 text-muted-foreground/60" aria-label="Text is always enabled" />
+                </span>
+                <label className="inline-flex cursor-pointer items-center gap-1 text-[12px] text-foreground">
+                  <input
+                    type="checkbox"
+                    className="size-3.5 accent-[hsl(var(--brand))]"
+                    checked={(modality.inputModalities ?? []).includes('speech')}
+                    onChange={(e) => patchModality({ inputModalities: speechModalities(e.target.checked) })}
+                  />
+                  speech
+                </label>
+              </div>
+            </div>
+            <div className="flex items-center gap-2 py-0.5">
+              <span className={rowLabelClass}>Output</span>
+              <div className="flex flex-1 items-center gap-3">
+                <span
+                  className="inline-flex cursor-default items-center gap-1 text-[12px] text-foreground"
+                  title="Text is always enabled"
+                >
+                  <input type="checkbox" className="size-3.5 accent-[hsl(var(--brand))]" checked readOnly disabled />
+                  text
+                  <Info className="size-3 text-muted-foreground/60" aria-label="Text is always enabled" />
+                </span>
+                <label className="inline-flex cursor-pointer items-center gap-1 text-[12px] text-foreground">
+                  <input
+                    type="checkbox"
+                    className="size-3.5 accent-[hsl(var(--brand))]"
+                    checked={(modality.outputModalities ?? []).includes('speech')}
+                    onChange={(e) => patchModality({ outputModalities: speechModalities(e.target.checked) })}
+                  />
+                  speech
+                </label>
+              </div>
+            </div>
             <Row label="Voice gender">
               <select
                 className={selectClass}

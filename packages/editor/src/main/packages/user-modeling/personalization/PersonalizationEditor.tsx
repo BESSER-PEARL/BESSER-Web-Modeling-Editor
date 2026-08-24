@@ -85,6 +85,41 @@ const Dot = styled.span`
   background: hsl(250, 70%, 60%);
 `;
 
+/* A row whose control area holds inline checkboxes (not a single <label>, so it
+   can nest its own per-option <label>s without invalid label-in-label markup). */
+const CheckRow = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin: 3px 0;
+`;
+const CheckGroup = styled.div`
+  display: flex;
+  gap: 12px;
+  flex: 1;
+  justify-content: flex-end;
+`;
+const CheckLabel = styled.label<{ disabled?: boolean }>`
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  cursor: ${({ disabled }) => (disabled ? 'default' : 'pointer')};
+  white-space: nowrap;
+`;
+const InfoMark = styled.span`
+  cursor: help;
+  opacity: 0.55;
+  font-size: 11px;
+`;
+
+/**
+ * `text` is always enabled by the agent runtime, so it's shown fixed/checked and
+ * only `speech` is toggleable. A list containing `speech` implies text too; an
+ * empty list is stored as undefined (text-only is the implicit default).
+ */
+const speechModalities = (on: boolean): string[] | undefined => (on ? ['text', 'speech'] : undefined);
+
 type Props = {
   value?: UserPersonalizationSpec;
   onChange: (next: UserPersonalizationSpec | undefined) => void;
@@ -118,14 +153,6 @@ const parseNumber = (raw: string): number | undefined => {
   if (raw.trim() === '') return undefined;
   const n = Number(raw);
   return Number.isFinite(n) ? n : undefined;
-};
-
-const parseList = (raw: string): string[] | undefined => {
-  const items = raw
-    .split(',')
-    .map((s) => s.trim())
-    .filter(Boolean);
-  return items.length ? items : undefined;
 };
 
 export const PersonalizationEditor: React.FC<Props> = ({ value, onChange, label, defaultOpen }) => {
@@ -286,24 +313,42 @@ export const PersonalizationEditor: React.FC<Props> = ({ value, onChange, label,
           {/* Modality */}
           <Section>
             <SectionTitle>Modality</SectionTitle>
-            <Row>
+            <CheckRow>
               <RowLabel>Input</RowLabel>
-              <Input
-                type="text"
-                placeholder="text, voice…"
-                value={(modality.inputModalities ?? []).join(', ')}
-                onChange={(e) => patchModality({ inputModalities: parseList(e.target.value) })}
-              />
-            </Row>
-            <Row>
+              <CheckGroup>
+                <CheckLabel disabled title="Text is always enabled">
+                  <input type="checkbox" checked readOnly disabled />
+                  text
+                  <InfoMark title="Text is always enabled">ⓘ</InfoMark>
+                </CheckLabel>
+                <CheckLabel>
+                  <input
+                    type="checkbox"
+                    checked={(modality.inputModalities ?? []).includes('speech')}
+                    onChange={(e) => patchModality({ inputModalities: speechModalities(e.target.checked) })}
+                  />
+                  speech
+                </CheckLabel>
+              </CheckGroup>
+            </CheckRow>
+            <CheckRow>
               <RowLabel>Output</RowLabel>
-              <Input
-                type="text"
-                placeholder="text, voice…"
-                value={(modality.outputModalities ?? []).join(', ')}
-                onChange={(e) => patchModality({ outputModalities: parseList(e.target.value) })}
-              />
-            </Row>
+              <CheckGroup>
+                <CheckLabel disabled title="Text is always enabled">
+                  <input type="checkbox" checked readOnly disabled />
+                  text
+                  <InfoMark title="Text is always enabled">ⓘ</InfoMark>
+                </CheckLabel>
+                <CheckLabel>
+                  <input
+                    type="checkbox"
+                    checked={(modality.outputModalities ?? []).includes('speech')}
+                    onChange={(e) => patchModality({ outputModalities: speechModalities(e.target.checked) })}
+                  />
+                  speech
+                </CheckLabel>
+              </CheckGroup>
+            </CheckRow>
             <Row>
               <RowLabel>Voice gender</RowLabel>
               <Select

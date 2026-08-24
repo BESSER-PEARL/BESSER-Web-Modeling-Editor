@@ -6,7 +6,7 @@ import { settingsService } from '../../../services/settings/settings-service';
 import { ModelState } from '../../../components/store/model-state';
 import { ObjectElementType } from '../../uml-object-diagram';
 import { UserModelElementType } from '../../user-modeling';
-import { getAttributePaletteConfig, resolveAttributeIcon } from '../../user-modeling/attribute-palette-config';
+import { resolveUserModelChipIcon } from '../../user-modeling/attribute-palette-config';
 
 interface OwnProps {
   element: UMLClassifierMember;
@@ -48,40 +48,32 @@ const getIconWidth = (svgString?: string): number => {
   }
 };
 
-/** Split a criterion like `gender = Female` into its attribute name + value. */
-const parseCriterion = (raw: string): { name: string; value: string } => {
-  const match = raw.match(/^(.*?)(?:\s*(?:<=|>=|==|=|<|>)\s*)(.*)$/);
-  return {
-    name: (match ? match[1] : raw).trim(),
-    value: (match ? match[2] : '').trim(),
-  };
-};
+const attributeSiblings = (ownerId: string, elements: ModelState['elements']): any[] =>
+  Object.values(elements).filter(
+    (candidate: any) =>
+      candidate?.owner === ownerId && candidate?.type === UserModelElementType.UserModelAttribute,
+  ) as any[];
 
 /**
- * Resolve a value-driven icon SVG for a User-profile attribute chip, so the
- * glyph swaps live as the user edits the value on the canvas (the component
- * subscribes to `state.elements`). A chip is a `UMLUserModelName` with a
- * `displayLabel` carrying a single configured attribute (e.g. gender ♀/♂).
- *
- * Returns null for anything else (whole grouping boxes keep their stored icon),
- * so this is a pure concrete-syntax layer over the unchanged model.
+ * Resolve a value-driven icon SVG for a User-profile element in icon view, so
+ * the glyph updates live as the user edits values on the canvas (the component
+ * subscribes to `state.elements`). Delegates to the shared
+ * `resolveUserModelChipIcon` so the box layouter (which sizes the element from
+ * this same SVG) and the render stay in lockstep. Returns null when the element
+ * keeps its stored icon unchanged.
  */
 const resolveChipIcon = (element: UMLClassifierMember, elements: ModelState['elements']): string | null => {
   const owner = element.owner ? (elements[element.owner] as any) : undefined;
-  if (!owner || !owner.className || !owner.displayLabel) {
-    return null;
-  }
-
-  const siblings = Object.values(elements).filter(
-    (candidate: any) =>
-      candidate?.owner === owner.id && candidate?.type === UserModelElementType.UserModelAttribute,
-  ) as any[];
-
-  const attribute = siblings[0];
-  if (!attribute || typeof attribute.name !== 'string') return null;
-  const { name, value } = parseCriterion(attribute.name);
-  const config = getAttributePaletteConfig(owner.className, name);
-  return config ? resolveAttributeIcon(config, value || undefined) : null;
+  if (!owner || !owner.className) return null;
+  const attributeNames = attributeSiblings(owner.id, elements)
+    .map((candidate) => candidate?.name)
+    .filter((name): name is string => typeof name === 'string');
+  return resolveUserModelChipIcon({
+    className: owner.className,
+    displayLabel: owner.displayLabel,
+    fallbackIcon: owner.icon || (element as any).icon,
+    attributeNames,
+  });
 };
 
 const UMLClassifierMemberComponentIconUnconnected: FunctionComponent<Props> = ({ element, fillColor, elements }) => {

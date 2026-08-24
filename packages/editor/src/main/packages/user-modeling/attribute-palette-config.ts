@@ -22,6 +22,14 @@ export interface AttributePaletteConfig {
   label: string;
   /** value -> SVG string. `default` is the fallback / unset icon. */
   icons: Record<string, string> & { default: string };
+  /**
+   * When true, the icon-view chip overlays the attribute's current value (with
+   * its comparison operator, e.g. "≥ 18") as a text cue beneath the glyph. Use
+   * for open-valued attributes (age, nationality) where a single static glyph
+   * can't convey the value — as opposed to gender, whose glyph already differs
+   * per value.
+   */
+  showValue?: boolean;
 }
 
 // Rendered size in px. The viewBox stays 24x24, so the artwork scales up to fill
@@ -75,13 +83,26 @@ export const ATTRIBUTE_PALETTE_CONFIG: Record<string, AttributePaletteConfig> = 
     icons: {
       default: CALENDAR,
     },
+    showValue: true,
   },
   'Personal_Information.nationality_iso3166': {
     label: 'nationality',
     icons: {
       default: FLAG,
     },
+    showValue: true,
   },
+};
+
+/**
+ * Grouping-box classes (drawn as a whole box, not decomposed into chips) whose
+ * icon-view glyph should still carry a value cue. Maps the class name to the
+ * attribute whose value is shown beneath its class icon. `Language` keeps both
+ * of its attributes in the model; only the language code (`iso693_3`) is
+ * surfaced as the visual cue.
+ */
+export const BOX_VALUE_ATTRIBUTE: Record<string, string> = {
+  Language: 'iso693_3',
 };
 
 /** Look up a chip config for a given class + attribute, if one exists. */
@@ -100,4 +121,115 @@ export const resolveAttributeIcon = (
 ): string => {
   if (value && config.icons[value]) return config.icons[value];
   return config.icons.default;
+};
+
+/** Comparison operator → display glyph (equality is implied, so shown value-only). */
+const OPERATOR_SYMBOL: Record<string, string> = {
+  '>=': '≥',
+  '<=': '≤',
+  '>': '>',
+  '<': '<',
+  '==': '',
+  '=': '',
+};
+
+/** Format a criterion value for the cue, prefixing the operator when meaningful (e.g. "≥ 18"). */
+export const formatCriterionValue = (operator: string | undefined, value: string): string => {
+  const symbol = operator ? OPERATOR_SYMBOL[operator] ?? '' : '';
+  return symbol ? `${symbol} ${value}` : value;
+};
+
+const escapeXml = (raw: string): string =>
+  raw
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+
+/** Force a glyph SVG to a fixed square size and offset (so 48px chips and 96px class icons compose alike). */
+const placeGlyph = (svg: string, size: number, x: number, y: number): string =>
+  svg
+    .replace(/\bwidth="[^"]*"/, `width="${size}"`)
+    .replace(/\bheight="[^"]*"/, `height="${size}"`)
+    .replace(/<svg\b/, `<svg x="${x}" y="${y}"`);
+
+/**
+ * Compose a glyph with a value label beneath it into a single SVG string, used
+ * as the icon-view cue for open-valued attributes. The outer `width`/`height`
+ * are explicit so the canvas layouter can size and centre the icon.
+ *
+ * The value text carries its colour as an inline `style` (not just the `fill`
+ * presentation attribute) so it wins over any editor CSS that colours `<text>`,
+ * matching the icon blue exactly.
+ */
+export const composeIconWithValue = (glyph: string, text: string): string => {
+  const glyphSize = ICON_SIZE;
+  const gap = 6; // breathing room between the glyph and the value text
+  const fontSize = 14;
+  const width = Math.max(glyphSize + 8, text.length * 9 + 12);
+  const baseline = glyphSize + gap + fontSize; // text baseline sits below the glyph
+  const height = baseline + 6; // descender padding so the text is never clipped
+  const glyphX = (width - glyphSize) / 2;
+  const placed = placeGlyph(glyph, glyphSize, glyphX, 0);
+  return (
+    `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">` +
+    placed +
+    `<text x="${width / 2}" y="${baseline}" text-anchor="middle" font-family="sans-serif" ` +
+    `font-size="${fontSize}" font-weight="600" fill="${CHIP_COLOR}" style="fill:${CHIP_COLOR}">` +
+    `${escapeXml(text)}</text>` +
+    `</svg>`
+  );
+};
+
+/** Split a criterion like `gender = Female` or `age >= 18` into name, operator, value. */
+const parseCriterion = (raw: string): { name: string; operator?: string; value: string } => {
+  const match = raw.match(/^(.*?)\s*(<=|>=|==|=|<|>)\s*(.*)$/);
+  if (!match) return { name: raw.trim(), value: '' };
+  return { name: match[1].trim(), operator: match[2], value: match[3].trim() };
+};
+
+/**
+ * Resolve the icon-view SVG for a User-profile element, shared by the canvas
+ * layouter (which sizes the element box from it) and the React icon component
+ * (which renders it) so the box always fits exactly what is drawn. Pure over the
+ * concrete syntax — the underlying model is unchanged. Returns null when the
+ * element keeps its stored icon unchanged (no value cue applies).
+ *
+ *  - Attribute chip (`displayLabel` set): glyph swaps per value (gender ♀/♂);
+ *    for `showValue` attributes (age, nationality) the value is overlaid.
+ *  - Grouping box (class in `BOX_VALUE_ATTRIBUTE`, e.g. Language): the class
+ *    icon is kept with the cue attribute's value overlaid.
+ */
+export const resolveUserModelChipIcon = (params: {
+  className?: string;
+  displayLabel?: string;
+  fallbackIcon?: string;
+  attributeNames: string[];
+}): string | null => {
+  const { className, displayLabel, fallbackIcon, attributeNames } = params;
+  if (!className) return null;
+
+  // Case 1: attribute chip (single configured attribute, header shows displayLabel).
+  if (displayLabel) {
+    const first = attributeNames[0];
+    if (!first) return null;
+    const { name, operator, value } = parseCriterion(first);
+    const config = getAttributePaletteConfig(className, name);
+    if (!config) return null;
+    const glyph = resolveAttributeIcon(config, value || undefined);
+    if (config.showValue && value) {
+      return composeIconWithValue(glyph, formatCriterionValue(operator, value));
+    }
+    return glyph;
+  }
+
+  // Case 2: grouping box with a configured value cue (e.g. Language.iso693_3).
+  const cueAttribute = BOX_VALUE_ATTRIBUTE[className];
+  if (cueAttribute && fallbackIcon) {
+    const match = attributeNames.map(parseCriterion).find((c) => c.name === cueAttribute);
+    const value = match?.value ?? '';
+    return value ? composeIconWithValue(fallbackIcon, value) : null;
+  }
+
+  return null;
 };
