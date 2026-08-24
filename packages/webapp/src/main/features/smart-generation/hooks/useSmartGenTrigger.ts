@@ -538,6 +538,11 @@ export function useSmartGenTrigger(
               ? event.fileCount
               : undefined;
           const topLevel = Array.isArray(event.topLevel) ? event.topLevel : [];
+          // Total LLM tokens the run consumed (undefined => don't show a badge).
+          const tokensUsed =
+            typeof event.tokensUsed === 'number' && event.tokensUsed > 0
+              ? event.tokensUsed
+              : undefined;
           // Record this successful run as the base for a future
           // incremental vibe-modify of the SAME project — both in the
           // slice (same-session fast path) and localStorage (survives a
@@ -576,6 +581,7 @@ export function useSmartGenTrigger(
               isZip: event.isZip,
               generatorUsed,
               fileCount,
+              tokensUsed,
               status: 'done',
               needsDownload: true,
             }),

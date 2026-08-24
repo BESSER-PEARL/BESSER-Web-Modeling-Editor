@@ -197,6 +197,9 @@ export interface SmartGenMessageState {
   generatorUsed?: string
   /** Number of user files the run produced — shown on the compact card. */
   fileCount?: number
+  /** Total LLM tokens this run consumed — shown as "N tokens" on a spec-driven
+   * run's card (the deterministic card shows "0 tokens" instead). */
+  tokensUsed?: number
   /**
    * Generation succeeded but the browser download failed. The artifact
    * stays on the server (~30 min TTL) so "Download again" can retry.
@@ -764,6 +767,7 @@ function SmartGenCard({
     needsDownload,
     generatorUsed,
     fileCount,
+    tokensUsed,
     deterministic,
     deterministicBlob,
   } = smartGen
@@ -856,6 +860,14 @@ function SmartGenCard({
           {typeof fileCount === "number" && fileCount > 0 ? (
             <span className="text-[11px] text-muted-foreground">
               · {fileCount} file{fileCount === 1 ? "" : "s"}
+            </span>
+          ) : null}
+          {!deterministic && typeof tokensUsed === "number" && tokensUsed > 0 ? (
+            <span
+              className="font-mono text-[11px] text-muted-foreground"
+              title="LLM tokens this run consumed"
+            >
+              · {tokensUsed.toLocaleString()} tokens
             </span>
           ) : null}
           {deterministic ? (

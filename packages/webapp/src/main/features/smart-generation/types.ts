@@ -122,6 +122,8 @@ export interface DoneEvent {
   /** Top-level entries (dir/file names at the project root, capped), for a
    * concrete "what was generated" summary. */
   topLevel?: string[];
+  /** Total LLM tokens the run consumed (0 for a purely deterministic run). */
+  tokensUsed?: number;
   /** True when output was produced but the customization loop did not
    * finish cleanly — the download may be missing requested changes. */
   incomplete?: boolean;
