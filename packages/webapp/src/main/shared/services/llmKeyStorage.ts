@@ -20,6 +20,7 @@ import {
   sessionStorageLlmBaseUrl,
   sessionStorageLlmModel,
   sessionStorageLlmProvider,
+  sessionStorageSmartGenFreeTier,
   sessionStorageSmartGenMaxCostUsd,
   sessionStorageSmartGenMaxRuntimeSeconds,
 } from '../constants/constant';
@@ -105,6 +106,16 @@ export function writeLlmKey(
     } else {
       window.sessionStorage.removeItem(sessionStorageLlmBaseUrl);
     }
+    // Saving a real BYOK key means the user is no longer on the keyless free
+    // tier — clear the sticky free-tier opt-in so the Spec-Driven Agent runs on
+    // THIS key, not qwen. Without this, entering a key via the unified dialog
+    // (assistant popup / drawer / Settings) left the free flag set (free is the
+    // default), and startRun's ``freeSelected ? 'free' : key`` picked free even
+    // though a key was present. The smart-gen dialog already clears it on save
+    // (writeFreeTierSelected(false)); this makes every key-write path agree, so
+    // the invariant "a saved key ⟹ not free tier" holds at the storage choke
+    // point ("last action wins": picking free later re-sets the flag).
+    window.sessionStorage.removeItem(sessionStorageSmartGenFreeTier);
     return true;
   } catch {
     return false;
