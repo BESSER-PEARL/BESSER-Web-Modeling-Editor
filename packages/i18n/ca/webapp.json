@@ -21,7 +21,7 @@
     "baseAgentModel": "Model d'agent base",
     "switchToLight": "Canvia al mode clar",
     "switchToDark": "Canvia al mode fosc",
-    "star": "Afegeix als preferits",
+    "star": "Estrella",
     "starBesser": "Dona a BESSER una estrella a GitHub",
     "githubAccount": "Compte de GitHub: {{name}}",
     "signOut": "Tanca la sessió",
@@ -34,7 +34,9 @@
       "validated": "Validat",
       "issues": "Problemes",
       "needsRecheck": "Cal revisar-ho",
-      "notValidated": "No validat"
+      "notValidated": "No validat",
+      "syntacticCheck": "Comprovació sintàctica",
+      "semanticCheck": "Comprovació semàntica"
     }
   },
   "nav": {
@@ -1802,7 +1804,15 @@
       "referenceEmpty": "El diagrama de classes referenciat és buit (sense classes ni relacions).",
       "generateObjectsTooltip": "Crea una instància d'objecte per cada classe del diagrama referenciat, amb valors predeterminats per a cada atribut.",
       "generate": "Genera",
-      "noClassDiagramsAvailable": "No hi ha diagrames de classes disponibles"
+      "noClassDiagramsAvailable": "No hi ha diagrames de classes disponibles",
+      "semanticGeneration": "Generació semàntica",
+      "semanticGenerationTooltip": "Genera un diagrama d’objectes que instancia el diagrama de classes i satisfà les seves restriccions OCL.",
+      "starting": "Iniciant la generació basada en SAT…",
+      "noResult": "El backend no ha produït cap resultat.",
+      "unsatisfiable": "El model és insatisfactible.",
+      "payloadMissing": "S’ha trobat una instància SAT, però falta el payload del diagrama d’objectes",
+      "success": "Instància SAT generada correctament.",
+      "failed": "Ha fallat la generació de la instància SAT"
     },
     "charts": {
       "loadingChart": "S'està carregant el gràfic...",
@@ -2471,5 +2481,11 @@
       "dropHere": "Deixa-ho anar aquí",
       "invalid": "No vàlid"
     }
+  },
+  "consistency": {
+    "noDiagram": "No hi ha cap diagrama carregat.",
+    "starting": "Iniciant la comprovació de consistència…",
+    "issuesFound": "Problemes trobats:",
+    "unreachable": "Error en la comprovació semàntica: no s'ha pogut connectar amb el backend."
   }
 }

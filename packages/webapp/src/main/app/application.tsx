@@ -1,7 +1,8 @@
-import React, { Suspense, useCallback, useEffect, useState } from 'react';
+import React, { Suspense, useCallback, useEffect, useState, type CSSProperties } from 'react';
 import { BrowserRouter, Route, Routes, useLocation } from 'react-router-dom';
 import { LazyPostHogProvider } from '../shared/services/analytics/LazyPostHogProvider';
-import { ToastContainer } from 'react-toastify';
+import { ToastContainer, toast } from 'react-toastify';
+import { useTranslation } from 'react-i18next';
 import 'react-toastify/dist/ReactToastify.css';
 
 import { ApollonEditor } from '@besser/wme';
@@ -9,6 +10,7 @@ import {
   POSTHOG_HOST,
   POSTHOG_KEY,
 } from '../shared/constants/constant';
+import { checkConsistencyStream } from '../shared/services/validation/checkConsistencyModel';
 import { getActiveDiagram, isUMLModel } from '../shared/types/project';
 import { ApollonEditorProvider } from '../features/editors/uml/apollon-editor-context';
 import { EditorView } from '../features/editors/EditorView';
@@ -55,6 +57,18 @@ const GeneratorConfigDialogs = React.lazy(() =>
 const AssistantWidget = React.lazy(() =>
   import('../features/assistant/components/AssistantWidget').then((m) => ({ default: m.AssistantWidget })),
 );
+
+const CONSISTENCY_TOAST_STYLE: CSSProperties = {
+  fontSize: '16px',
+  padding: '20px',
+  width: '100%',
+  boxSizing: 'border-box',
+  whiteSpace: 'pre-line',
+  maxHeight: '600px',
+  overflow: 'auto',
+  overflowWrap: 'anywhere',
+  wordBreak: 'break-word',
+};
 
 const postHogOptions = {
   api_host: POSTHOG_HOST,
@@ -110,6 +124,60 @@ function AppContentInner() {
     setShowExportDialog(true);
   };
 
+  const { t } = useTranslation();
+
+  const handleConsistencyCheck = useCallback(async () => {
+    if (!editor) {
+      toast.error(t('consistency.noDiagram'));
+      return;
+    }
+
+    const toastId = toast.loading(`🔍 ${t('consistency.starting')}`);
+
+    try {
+      const diagramModel = (editor as any).model;
+
+      await checkConsistencyStream(diagramModel, activeDiagramTitle, (data) => {
+        if (data.done) {
+          if (data.sat === true) {
+            toast.update(toastId, {
+              render: `✅ ${data.message}`,
+              type: 'success',
+              isLoading: false,
+              autoClose: 5000,
+            });
+          } else {
+            toast.update(toastId, {
+              render: `❌ ${data.message}`,
+              type: 'error',
+              isLoading: false,
+              autoClose: 5000,
+            });
+            if (data.errors?.length) {
+              toast.error(`❌ ${t('consistency.issuesFound')}\n\n${data.errors.join('\n\n')}`, {
+                position: 'top-right',
+                autoClose: 5000,
+                theme: 'dark',
+                style: CONSISTENCY_TOAST_STYLE,
+              });
+            }
+          }
+        } else {
+          toast.update(toastId, {
+            render: data.message,
+          });
+        }
+      });
+    } catch {
+      toast.update(toastId, {
+        render: t('consistency.unreachable'),
+        type: 'error',
+        isLoading: false,
+        autoClose: 5000,
+      });
+    }
+  }, [editor, activeDiagramTitle, t]);
+
   // Onboarding system — disabled for now
   // const onboarding = useOnboarding();
   const onboarding = null as any;
@@ -122,6 +190,7 @@ function AppContentInner() {
         onExportProject={handleExport}
         onGenerate={(type, config) => handleGenerateRequest(type, config)}
         onQualityCheck={() => handleQualityCheck()}
+        onConsistencyCheck={handleConsistencyCheck}
         showQualityCheck={true}
         generatorMode={generatorMenuMode}
         isGenerating={isGenerating}

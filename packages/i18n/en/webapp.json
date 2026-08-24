@@ -34,7 +34,9 @@
       "validated": "Validated",
       "issues": "Issues",
       "needsRecheck": "Needs recheck",
-      "notValidated": "Not validated"
+      "notValidated": "Not validated",
+      "syntacticCheck": "Syntactic Check",
+      "semanticCheck": "Semantic Check"
     }
   },
   "nav": {
@@ -1802,7 +1804,15 @@
       "referenceEmpty": "The referenced Class Diagram is empty (no classes or relationships).",
       "generateObjectsTooltip": "Create one Object instance per Class in the referenced diagram, with default values for each attribute.",
       "generate": "Generate",
-      "noClassDiagramsAvailable": "No Class Diagrams available"
+      "noClassDiagramsAvailable": "No Class Diagrams available",
+      "semanticGeneration": "Semantic generation",
+      "semanticGenerationTooltip": "Generate an object diagram that instantiates the class diagram and satisfies its OCL constraints.",
+      "starting": "Starting SAT-based generation…",
+      "noResult": "No result produced by the backend.",
+      "unsatisfiable": "Model is unsatisfiable.",
+      "payloadMissing": "SAT instance found, but Object Diagram payload is missing",
+      "success": "SAT instance generated successfully.",
+      "failed": "Failed to generate SAT instance"
     },
     "charts": {
       "loadingChart": "Loading chart...",
@@ -2471,5 +2481,11 @@
       "dropHere": "Drop here",
       "invalid": "Invalid"
     }
+  },
+  "consistency": {
+    "noDiagram": "No diagram loaded.",
+    "starting": "Starting consistency check…",
+    "issuesFound": "Issues found:",
+    "unreachable": "Semantic check error — could not reach the backend."
   }
 }
