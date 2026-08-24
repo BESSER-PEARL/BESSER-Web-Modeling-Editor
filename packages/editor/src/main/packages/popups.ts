@@ -60,6 +60,7 @@ import { NNElementType } from './nn-diagram';
 import { NNAttributeUpdate } from './nn-diagram/attribute-update/nn-attribute-update';
 import { NNComponentUpdate } from './nn-diagram/nn-component/nn-component-update';
 import { NNReferenceUpdate } from './nn-diagram/nn-reference/nn-reference-update';
+import { NNContainerUpdate } from './nn-diagram/nn-container/nn-container-update';
 
 export type Popups = { [key in UMLElementType | UMLRelationshipType]: ComponentType<{ element: any }> | null };
 export const Popups: { [key in UMLElementType | UMLRelationshipType]: ComponentType<{ element: any }> | null } = {
@@ -448,7 +449,7 @@ export const Popups: { [key in UMLElementType | UMLRelationshipType]: ComponentT
   [NNElementType.NNSectionSeparator]: null,
 
   // Container and Reference elements
-  [NNElementType.NNContainer]: DefaultPopup,
+  [NNElementType.NNContainer]: NNContainerUpdate,
   [NNElementType.NNReference]: NNReferenceUpdate,
 
   [UMLRelationshipType.NNNext]: null,
