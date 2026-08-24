@@ -764,6 +764,11 @@ function SmartGenCard({
   // whether the user has saved it yet so the button reads "Download"
   // before the first save and "Download again" afterwards.
   const [hasDownloaded, setHasDownloaded] = useState(false)
+  // Completed runs collapse to a compact line, but the phase/tool-call timeline
+  // stays available behind a toggle — users asked to still see what the agent
+  // did ("the tool calling and etc") after the run finishes, not just while it
+  // is running.
+  const [showSteps, setShowSteps] = useState(false)
 
   const handleStop = () => {
     if (!runId || stopRequested) return
@@ -828,6 +833,19 @@ function SmartGenCard({
               · {fileCount} file{fileCount === 1 ? "" : "s"}
             </span>
           ) : null}
+          {phases.length > 0 ? (
+            <button
+              type="button"
+              onClick={() => setShowSteps((v) => !v)}
+              aria-expanded={showSteps}
+              className="inline-flex items-center gap-0.5 rounded px-1 py-0.5 text-[11px] text-muted-foreground hover:bg-muted hover:text-foreground"
+            >
+              <span>{showSteps ? "Hide steps" : "Show steps"}</span>
+              <ChevronRight
+                className={`h-3 w-3 transition-transform ${showSteps ? "rotate-90" : ""}`}
+              />
+            </button>
+          ) : null}
           <span className="ml-auto flex items-center gap-2">
             {redownloadState === "failed" ? (
               <span className="text-[11px] text-red-600 dark:text-red-400">
@@ -866,6 +884,20 @@ function SmartGenCard({
             ) : null}
           </span>
         </div>
+
+        {/* Run timeline — hidden by default, revealed via "Show steps" so users
+            can still inspect the phases and tool calls after the run ends. */}
+        {showSteps && phases.length > 0 ? (
+          <ol className="flex flex-col border-t border-border/40">
+            {phases.map((phase, i) => (
+              <SmartGenPhaseRow
+                key={`${phase.phase}-${i}`}
+                phase={phase}
+                isActivePhase={false}
+              />
+            ))}
+          </ol>
+        ) : null}
 
         {/* Warnings (incomplete / timeout) stay visible on the compact card */}
         {warnings.length > 0 ? (
