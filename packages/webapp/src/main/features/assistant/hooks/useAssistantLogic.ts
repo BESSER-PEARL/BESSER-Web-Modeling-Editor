@@ -843,13 +843,14 @@ export function useAssistantLogic({
         window.dispatchEvent(new CustomEvent('wme:assistant-auto-generate-gui'));
       });
       if (result.ok) {
-        setMessages((prev) => [
-          ...prev,
-          toKitMessage('assistant',
-            typeof payload.message === 'string' && payload.message.trim()
-              ? payload.message
-              : t('assistant.guiGenerated')),
-        ]);
+        const guiMsg = toKitMessage('assistant',
+          typeof payload.message === 'string' && payload.message.trim()
+            ? payload.message
+            : t('assistant.guiGenerated'));
+        setMessages((prev) => [...prev, guiMsg]);
+        // Mirror inject_complete_system: render any suggestedActions from the
+        // payload as quick-action buttons below the message.
+        attachMetaFromPayload(guiMsg.id, payload as Record<string, unknown>);
       } else {
         setMessages((prev) => [
           ...prev,
