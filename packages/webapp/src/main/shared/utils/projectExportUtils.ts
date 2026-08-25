@@ -7,6 +7,7 @@ import {
   StoredUserProfile,
 } from '../services/storage/local-storage-types';
 import { normalizeProjectName } from './projectName';
+import { flattenUserDiagramForBackend } from './user-profile-graph';
 
 export const PROJECT_EXPORT_VERSION = '2.0.0';
 
@@ -66,7 +67,14 @@ export const buildProjectPayloadForBackend = (
     if (Array.isArray(arr)) {
       const withContent = arr.filter(diagramHasContent);
       if (withContent.length > 0) {
-        diagrams[type] = withContent;
+        // A UserDiagram is reshaped for the backend's object-model conversion:
+        // one owning User per object (shared boxes copied per User), the
+        // `single`-cardinality granular chips fused (age+nationality → one
+        // Personal_Information), and diagram-wide-unique object names. No-op for
+        // other diagram types.
+        diagrams[type] = withContent.map((d) =>
+          d?.model ? { ...d, model: flattenUserDiagramForBackend(d.model) } : d,
+        );
       }
     }
   }

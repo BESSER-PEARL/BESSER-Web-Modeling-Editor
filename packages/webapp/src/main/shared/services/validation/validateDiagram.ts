@@ -3,6 +3,7 @@ import type { CSSProperties } from 'react';
 import { BACKEND_URL } from '../../constants/constant';
 import { ApollonEditor } from '@besser/wme';
 import i18n from '../../i18n';
+import { flattenUserDiagramForBackend } from '../../utils/user-profile-graph';
 
 /**
  * Validate diagram using the unified backend validation endpoint.
@@ -40,8 +41,15 @@ export async function validateDiagram(editor: ApollonEditor | null | undefined, 
     };
 
     // Get model data from editor or use provided modelData (for quantum circuits)
-    const model = modelData && modelData._suppressToasts ? { ...modelData } : modelData || editor?.model;
+    let model = modelData && modelData._suppressToasts ? { ...modelData } : modelData || editor?.model;
     if (model && model._suppressToasts) delete model._suppressToasts;
+
+    // A UserDiagram must be reshaped for the backend's object-model conversion:
+    // give each `User` its own private copy of every reachable box (one owner
+    // per object), fuse the `single`-cardinality granular chips (age+nationality
+    // → one Personal_Information), and make all object names diagram-wide-unique.
+    // No-op for other diagram types.
+    model = flattenUserDiagramForBackend(model);
 
     if (!model) {
       if (!suppressToasts) toast.error(i18n.t('validation.toasts.noDiagramToValidate'));

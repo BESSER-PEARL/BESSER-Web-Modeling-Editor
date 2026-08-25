@@ -7,6 +7,7 @@ import { buildMetamodelTree, MetaTree } from '../metamodel-tree';
 import {
   buildUserDiagramModel,
   parseUserDiagramModel,
+  parseUserDiagramProfiles,
   createEmptyInstance,
   instanceSignature,
 } from '../model-serialization';
@@ -172,6 +173,93 @@ describe('user-profile-form serialization', () => {
     );
     expect(parsed?.className).toBe('User');
     expect(Object.keys(parsed?.children ?? {})).toHaveLength(0);
+  });
+});
+
+/* ------------------------------------------------------------------ */
+/*  Multiple profiles on one canvas                                    */
+/* ------------------------------------------------------------------ */
+
+describe('user-profile-form multi-profile serialization', () => {
+  const NAME_ATTR = 'name';
+
+  const namedRoot = (tree: MetaTree, name: string): Instance => {
+    const root = createEmptyInstance(tree.root!);
+    const nameAttr = root.attributes.find((a) => a.name === NAME_ATTR);
+    if (nameAttr) nameAttr.value = name;
+    return root;
+  };
+
+  it('emits several Users into one model and parses them back as separate profiles', () => {
+    const a = namedRoot(syntheticTree, 'Alice');
+    const pa = createEmptyInstance(syntheticTree.byClassName.Personal_Information);
+    pa.attributes[0].operator = '>=';
+    pa.attributes[0].value = '18';
+    a.children.Personal_Information = [pa];
+
+    const b = namedRoot(syntheticTree, 'Bob');
+
+    const model = buildUserDiagramModel([a, b], syntheticTree) as any;
+    const users = Object.values(model.elements).filter(
+      (e: any) => e.type === 'UserModelName' && e.className === 'User',
+    );
+    expect(users).toHaveLength(2);
+
+    const profiles = parseUserDiagramProfiles(model, syntheticTree);
+    expect(profiles).toHaveLength(2);
+    // Order-insensitive: match by signature.
+    const sigs = profiles.map(instanceSignature).sort();
+    expect(sigs).toEqual([instanceSignature(a), instanceSignature(b)].sort());
+  });
+
+  it('does not stack profiles: each root User gets a distinct x position', () => {
+    const model = buildUserDiagramModel(
+      [namedRoot(syntheticTree, 'Alice'), namedRoot(syntheticTree, 'Bob')],
+      syntheticTree,
+    ) as any;
+    const userXs = Object.values(model.elements)
+      .filter((e: any) => e.type === 'UserModelName' && e.className === 'User')
+      .map((e: any) => e.bounds.x);
+    expect(new Set(userXs).size).toBe(2);
+  });
+
+  it('keeps a box shared between two Users as a single element on round-trip', () => {
+    // Raw model: a Culture box linked to both Users (a shared "french" culture).
+    const model = {
+      type: 'UserDiagram',
+      elements: {
+        u1: { id: 'u1', type: 'UserModelName', name: 'user_1', className: 'User', owner: null, attributes: ['u1n'] },
+        u1n: { id: 'u1n', type: 'UserModelAttribute', name: 'name = Alice', owner: 'u1' },
+        u2: { id: 'u2', type: 'UserModelName', name: 'user_2', className: 'User', owner: null, attributes: ['u2n'] },
+        u2n: { id: 'u2n', type: 'UserModelAttribute', name: 'name = Bob', owner: 'u2' },
+        cult: { id: 'cult', type: 'UserModelName', name: 'culture_1', className: 'Accessibility', owner: null, attributes: [] },
+      },
+      relationships: {
+        r1: { id: 'r1', type: 'ObjectLink', source: { element: 'u1' }, target: { element: 'cult' } },
+        r2: { id: 'r2', type: 'ObjectLink', source: { element: 'u2' }, target: { element: 'cult' } },
+      },
+    } as unknown as UMLModel;
+
+    const profiles = parseUserDiagramProfiles(model, syntheticTree);
+    expect(profiles).toHaveLength(2);
+    // The shared box shows up under each profile (same backing boxId).
+    expect(profiles.every((p) => (p.children.Accessibility?.length ?? 0) === 1)).toBe(true);
+    const sharedBoxIds = profiles.map((p) => p.children.Accessibility![0].boxId);
+    expect(sharedBoxIds[0]).toBe('cult');
+    expect(sharedBoxIds[1]).toBe('cult');
+
+    // Re-emitting must not duplicate the shared box: still exactly one Accessibility box.
+    const rebuilt = buildUserDiagramModel(profiles, syntheticTree) as any;
+    const accBoxes = Object.values(rebuilt.elements).filter(
+      (e: any) => e.type === 'UserModelName' && e.className === 'Accessibility',
+    );
+    expect(accBoxes).toHaveLength(1);
+    // And both Users still link to it (2 inbound links to the shared box).
+    const sharedId = (accBoxes[0] as any).id;
+    const inbound = Object.values(rebuilt.relationships).filter(
+      (r: any) => r.target.element === sharedId || r.source.element === sharedId,
+    );
+    expect(inbound).toHaveLength(2);
   });
 });
 

@@ -2,11 +2,15 @@
  * Wires the User Profile form to the live Apollon editor and Redux so the form
  * and the graphical canvas stay in sync in both directions.
  *
+ * A single UserDiagram canvas can hold **several** profiles (each a `User`
+ * element plus its reachable subgraph), so the form state is a *list* of
+ * profile `Instance` trees, not a single one.
+ *
  * Design invariant: the editor model is written ONLY in response to an explicit
- * user edit in the form (via `applyEdit`). Opening the drawer, switching tabs,
- * and reflecting external canvas changes are strictly read-only — they never
- * call `editor.model = …`, so simply opening the form can never reload or
- * mutate the canvas.
+ * user edit in the form (via `applyEdit` / add / remove). Opening the drawer,
+ * switching tabs, and reflecting external canvas changes are strictly read-only
+ * — they never call `editor.model = …`, so simply opening the form can never
+ * reload or mutate the canvas.
  *
  *   user form edit -> applyEdit -> (debounced) rebuild UMLModel -> Redux + editor.model
  *   canvas edit    -> subscribeToModelChange -> reparse -> setState (no write-back)
@@ -24,50 +28,58 @@ import {
   buildUserDiagramModel,
   createEmptyInstance,
   instanceSignature,
-  parseUserDiagramModel,
+  parseUserDiagramProfiles,
 } from './model-serialization';
 import { Instance } from './types';
 
 const WRITE_DEBOUNCE_MS = 350;
 
+/** Order-insensitive signature of the whole profile list, for change-detection. */
+const profilesSignature = (profiles: Instance[]): string =>
+  profiles.map(instanceSignature).sort().join('||');
+
 interface UseUserProfileForm {
   tree: MetaTree | null;
-  formState: Instance | null;
-  /** Apply a user edit: updates form state AND schedules a write to the canvas. */
-  applyEdit: (updater: (prev: Instance) => Instance) => void;
-  /** True once a metamodel + root instance are available. */
+  profiles: Instance[];
+  /** Apply a user edit across the profile list; updates state AND schedules a canvas write. */
+  applyEdit: (updater: (prev: Instance[]) => Instance[]) => void;
+  /** Append a new empty profile (a fresh root `User`). */
+  addProfile: () => void;
+  /** Remove the profile whose root instance has the given key. */
+  removeProfile: (rootKey: string) => void;
+  /** True once a metamodel + at least one profile are available. */
   ready: boolean;
 }
 
 export const useUserProfileForm = (open: boolean, editor: ApollonEditor | undefined): UseUserProfileForm => {
   const dispatch = useAppDispatch();
   const [tree, setTree] = useState<MetaTree | null>(null);
-  const [formState, setFormState] = useState<Instance | null>(null);
+  const [profiles, setProfiles] = useState<Instance[]>([]);
 
   const treeRef = useRef<MetaTree | null>(null);
-  const formStateRef = useRef<Instance | null>(null);
+  const profilesRef = useRef<Instance[]>([]);
   const suppressSyncRef = useRef(false);
   const lastSigRef = useRef<string>('');
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const releaseRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Read-only state update (open / external sync). Never writes to the editor.
-  const commitState = useCallback((next: Instance | null) => {
-    formStateRef.current = next;
-    lastSigRef.current = instanceSignature(next);
-    setFormState(next);
+  const commitState = useCallback((next: Instance[]) => {
+    profilesRef.current = next;
+    lastSigRef.current = profilesSignature(next);
+    setProfiles(next);
   }, []);
 
-  // Debounced write of a given form state back to the canvas + storage.
+  // Debounced write of the given profile list back to the canvas + storage.
   const scheduleWrite = useCallback(
-    (state: Instance) => {
+    (state: Instance[]) => {
       if (!editor) return;
       if (debounceRef.current) clearTimeout(debounceRef.current);
       debounceRef.current = setTimeout(async () => {
         const t = treeRef.current;
         if (!t) return;
         const model = buildUserDiagramModel(state, t, editor.model as any);
-        lastSigRef.current = instanceSignature(state);
+        lastSigRef.current = profilesSignature(state);
         suppressSyncRef.current = true;
         try {
           await dispatch(updateDiagramModelThunk({ model: model as any })).unwrap();
@@ -87,18 +99,34 @@ export const useUserProfileForm = (open: boolean, editor: ApollonEditor | undefi
     [editor, dispatch],
   );
 
-  // The ONLY path that writes to the canvas: an explicit user edit.
+  // The ONLY paths that write to the canvas: explicit user edits.
   const applyEdit = useCallback(
-    (updater: (prev: Instance) => Instance) => {
-      const prev = formStateRef.current;
-      if (!prev) return;
+    (updater: (prev: Instance[]) => Instance[]) => {
+      const prev = profilesRef.current;
       const next = updater(prev);
       if (next === prev) return; // updater declined the change
-      formStateRef.current = next;
-      setFormState(next);
+      profilesRef.current = next;
+      setProfiles(next);
       scheduleWrite(next);
     },
     [scheduleWrite],
+  );
+
+  const addProfile = useCallback(() => {
+    const t = treeRef.current;
+    if (!t?.root) return;
+    applyEdit((prev) => [...prev, createEmptyInstance(t.root!)]);
+  }, [applyEdit]);
+
+  const removeProfile = useCallback(
+    (rootKey: string) => {
+      applyEdit((prev) => {
+        if (prev.length <= 1) return prev; // keep at least one profile
+        const next = prev.filter((p) => p.key !== rootKey);
+        return next.length === prev.length ? prev : next;
+      });
+    },
+    [applyEdit],
   );
 
   // On open: build the metamodel tree and parse the current model into the form.
@@ -109,11 +137,11 @@ export const useUserProfileForm = (open: boolean, editor: ApollonEditor | undefi
     treeRef.current = t;
     setTree(t);
     if (!t.root) {
-      commitState(null);
+      commitState([]);
       return;
     }
-    const parsed = (editor ? parseUserDiagramModel(editor.model as any, t) : null) ?? createEmptyInstance(t.root);
-    commitState(parsed);
+    const parsed = editor ? parseUserDiagramProfiles(editor.model as any, t) : [];
+    commitState(parsed.length > 0 ? parsed : [createEmptyInstance(t.root)]);
   }, [open, editor, commitState]);
 
   // Canvas -> form: reflect external model changes while the drawer is open.
@@ -124,9 +152,10 @@ export const useUserProfileForm = (open: boolean, editor: ApollonEditor | undefi
       if (suppressSyncRef.current) return; // ignore the echo of our own write
       const t = treeRef.current;
       if (!t?.root) return;
-      const parsed = parseUserDiagramModel(model, t);
-      if (instanceSignature(parsed) === lastSigRef.current) return; // no meaningful change
-      commitState(parsed);
+      const parsed = parseUserDiagramProfiles(model, t);
+      const next = parsed.length > 0 ? parsed : [createEmptyInstance(t.root)];
+      if (profilesSignature(next) === lastSigRef.current) return; // no meaningful change
+      commitState(next);
     });
     return () => editor.unsubscribeFromModelChange(subId);
   }, [open, editor, commitState]);
@@ -139,5 +168,5 @@ export const useUserProfileForm = (open: boolean, editor: ApollonEditor | undefi
     suppressSyncRef.current = false;
   }, [open]);
 
-  return { tree, formState, applyEdit, ready: !!tree?.root && !!formState };
+  return { tree, profiles, applyEdit, addProfile, removeProfile, ready: !!tree?.root && profiles.length > 0 };
 };

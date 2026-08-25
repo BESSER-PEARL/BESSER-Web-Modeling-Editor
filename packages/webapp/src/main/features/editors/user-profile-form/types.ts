@@ -54,4 +54,12 @@ export interface Instance {
   children: Record<string, Instance[]>;
   /** Instance-level personalization spec; on the root `User` this is the profile-level spec. */
   personalization?: UserPersonalizationSpec;
+  /**
+   * Id of the backing `UserModelName` box in the source model, when this
+   * instance was parsed from one. Preserves element identity across a
+   * build → parse round-trip so shared boxes (reachable from two `User`
+   * roots) are emitted once and their canvas positions are reused. Absent for
+   * instances freshly created in the form.
+   */
+  boxId?: string;
 }

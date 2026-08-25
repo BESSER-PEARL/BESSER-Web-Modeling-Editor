@@ -242,18 +242,25 @@ class ObjectNameComponent extends Component<Props, State> {
 
     return (
       <div>        <section>
-          <Flex>
-            <Textfield 
-              value={this.getDisplayName()} 
-              onChange={this.rename(element.id)} 
-              placeholder={this.getObjectNamePlaceholder()}
-              autoFocus 
-            />
-            <ColorButton onClick={this.toggleColor} />
-            <Button color="link" tabIndex={-1} onClick={this.delete(element.id)}>
-              <TrashIcon />
-            </Button>
-          </Flex>{showClassSelection && (
+          {/* User-model box names ("personal_information", "user_1", …) are now
+              auto-generated and uniquified for the backend object model, so we
+              hide the whole name row — field, color wheel, and delete — from
+              user-model elements. The meaningful profile name is edited via the
+              `name` attribute row, and boxes are removed from the canvas. */}
+          {!isUserModelElement && (
+            <Flex>
+              <Textfield
+                value={this.getDisplayName()}
+                onChange={this.rename(element.id)}
+                placeholder={this.getObjectNamePlaceholder()}
+                autoFocus
+              />
+              <ColorButton onClick={this.toggleColor} />
+              <Button color="link" tabIndex={-1} onClick={this.delete(element.id)}>
+                <TrashIcon />
+              </Button>
+            </Flex>
+          )}{showClassSelection && (
             <div style={{ marginTop: '8px' }}>
               <ClassSelectionFlex>
                 <Body style={{ marginRight: '0.5em' }}>{this.props.translate('popup.objectClass')}</Body>

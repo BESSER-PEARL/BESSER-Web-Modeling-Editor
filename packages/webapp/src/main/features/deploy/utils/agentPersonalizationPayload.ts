@@ -4,6 +4,11 @@ import type { BesserProject } from '../../../shared/types/project';
 import { getActiveDiagram, isUMLModel } from '../../../shared/types/project';
 import { LocalStorageRepository } from '../../../shared/services/storage/local-storage-repository';
 import { aggregateProfilePersonalization } from '../../../shared/utils/personalization-aggregation';
+import {
+  splitUserDiagramIntoProfiles,
+  uniquifyNames,
+  mergeSingletonBoxes,
+} from '../../../shared/utils/user-profile-graph';
 
 export interface PersonalizationMappingEntry {
   name: string;
@@ -44,29 +49,35 @@ export const buildPersonalizationMapping = (
       : null;
   if (!baseAgentModel) return [];
 
+  // Collect every UserDiagram model (stored profile snapshots + project tabs),
+  // then split each into its constituent profiles (a UserDiagram tab may now
+  // hold several `User` elements). Each profile becomes one mapping entry.
   const localProfiles = LocalStorageRepository.getUserProfiles();
-  const projectProfiles = (project.diagrams?.UserDiagram ?? [])
-    .filter((diagram) => isUMLModel(diagram.model) && diagram.model.type === UMLDiagramType.UserDiagram)
-    .map((diagram) => ({
-      id: diagram.id,
-      name: diagram.title,
-      model: diagram.model as UMLModel,
-    }));
-
-  const profileByName = new Map<string, { id: string; name: string; model: UMLModel }>();
+  const userModels: UMLModel[] = [];
   for (const profile of localProfiles) {
     if (profile.model && isUMLModel(profile.model) && profile.model.type === UMLDiagramType.UserDiagram) {
-      profileByName.set(profile.name, { id: profile.id, name: profile.name, model: profile.model as UMLModel });
+      userModels.push(profile.model as UMLModel);
     }
   }
-  for (const profile of projectProfiles) {
-    profileByName.set(profile.name, profile);
+  for (const diagram of project.diagrams?.UserDiagram ?? []) {
+    if (isUMLModel(diagram.model) && diagram.model.type === UMLDiagramType.UserDiagram) {
+      userModels.push(diagram.model as UMLModel);
+    }
   }
 
-  return Array.from(profileByName.values()).map((profile) => ({
-    name: profile.name,
-    configuration: aggregateProfilePersonalization(profile.model).configuration as Record<string, unknown>,
-    user_profile: structuredClone(profile.model) as unknown as Record<string, unknown>,
-    agent_model: structuredClone(baseAgentModel) as unknown as Record<string, unknown>,
-  }));
+  const entries = userModels.flatMap((model) =>
+    splitUserDiagramIntoProfiles(model).map((profile) => {
+      // Fuse the `single`-cardinality granular chips (age+nationality → one
+      // Personal_Information) so the shipped user_profile matches the metamodel.
+      const merged = mergeSingletonBoxes(profile.model);
+      return {
+        name: profile.name,
+        configuration: aggregateProfilePersonalization(merged).configuration as Record<string, unknown>,
+        user_profile: structuredClone(merged) as unknown as Record<string, unknown>,
+        agent_model: structuredClone(baseAgentModel) as unknown as Record<string, unknown>,
+      };
+    }),
+  );
+
+  return uniquifyNames(entries);
 };

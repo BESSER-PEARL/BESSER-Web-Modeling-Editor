@@ -61,6 +61,11 @@ import {
   type WebAppVersionMode,
 } from '../../shared/utils/buildWebAppVersions';
 import { aggregateProfilePersonalization } from '../../shared/utils/personalization-aggregation';
+import {
+  splitUserDiagramIntoProfiles,
+  uniquifyNames,
+  mergeSingletonBoxes,
+} from '../../shared/utils/user-profile-graph';
 
 // ─── Pure helpers ──────────────────────────────────────────────────────────────
 
@@ -1066,19 +1071,20 @@ export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGen
       // flat `configuration` the backend expects. There is no longer a separate
       // stored agent-config, profile→config mapping, or per-config variant — a
       // profile IS its configuration.
+      // A UserDiagram tab may hold several `User` elements; each is its own
+      // profile (a User plus its reachable subgraph — "Users are walls"). Gather
+      // every UserDiagram model and split it into per-profile sub-models.
       const localProfiles = LocalStorageRepository.getUserProfiles();
-      const projectProfiles = (currentProject?.diagrams?.UserDiagram ?? [])
-        .filter((diagram) => isUMLModel(diagram.model) && diagram.model.type === UMLDiagramType.UserDiagram)
-        .map((diagram) => ({ id: diagram.id, name: diagram.title, model: diagram.model as Record<string, any> }));
-
-      const profileByName = new Map<string, { id: string; name: string; model: Record<string, any> }>();
+      const userModels: UMLModel[] = [];
       for (const profile of localProfiles) {
         if (profile.model && isUMLModel(profile.model) && profile.model.type === UMLDiagramType.UserDiagram) {
-          profileByName.set(profile.name, { id: profile.id, name: profile.name, model: profile.model });
+          userModels.push(profile.model as UMLModel);
         }
       }
-      for (const profile of projectProfiles) {
-        profileByName.set(profile.name, profile);
+      for (const diagram of currentProject?.diagrams?.UserDiagram ?? []) {
+        if (isUMLModel(diagram.model) && diagram.model.type === UMLDiagramType.UserDiagram) {
+          userModels.push(diagram.model as UMLModel);
+        }
       }
 
       // The un-personalized agent base is the same for every profile — the
@@ -1109,14 +1115,23 @@ export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGen
 
       // normalizeAgentModel is pure/idempotent and returns a fresh clone, so it
       // is safe to reuse the same base across every mapping entry.
-      const personalizationMapping = Array.from(profileByName.values())
-        .map((profile) => ({
-          name: profile.name,
-          configuration: aggregateProfilePersonalization(profile.model as UMLModel)
-            .configuration as Record<string, any>,
-          user_profile: structuredClone(profile.model),
-          agent_model: normalizeAgentModel(resolvedBase) as Record<string, any>,
-        }));
+      const personalizationMapping = uniquifyNames(
+        userModels.flatMap((model) =>
+          splitUserDiagramIntoProfiles(model).map((profile) => {
+            // Fuse the `single`-cardinality granular chips (age+nationality →
+            // one Personal_Information) so the shipped user_profile matches the
+            // metamodel.
+            const merged = mergeSingletonBoxes(profile.model);
+            return {
+              name: profile.name,
+              configuration: aggregateProfilePersonalization(merged)
+                .configuration as Record<string, any>,
+              user_profile: structuredClone(merged) as Record<string, any>,
+              agent_model: normalizeAgentModel(resolvedBase) as Record<string, any>,
+            };
+          }),
+        ),
+      );
 
       if (personalizationMapping.length === 0) {
         toast.error(t('generation.toasts.noValidPersonalizationMappings'));

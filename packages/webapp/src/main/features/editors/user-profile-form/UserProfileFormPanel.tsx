@@ -292,11 +292,151 @@ const PartSection: React.FC<{
 };
 
 /* ------------------------------------------------------------------ */
+/*  Profile card (one root User + its parts)                           */
+/* ------------------------------------------------------------------ */
+
+/**
+ * One user profile: the root `User` block (name, root attributes, profile-level
+ * personalization, attribute chips) plus its parts. A canvas can hold several,
+ * so this is rendered once per profile.
+ */
+const ProfileCard: React.FC<{
+  root: Instance;
+  rootMeta: MetaNode;
+  cb: EditorCallbacks;
+  index: number;
+  onRemove?: () => void;
+}> = ({ root, rootMeta, cb, index, onRemove }) => {
+  const nameIdx = root.attributes.findIndex((attr) => attr.name === USER_NAME_ATTRIBUTE);
+  const nameAttr = nameIdx >= 0 ? root.attributes[nameIdx] : null;
+
+  return (
+    <div className="space-y-3">
+      {/* Root User block */}
+      <div className="rounded-lg border border-brand/25 bg-brand/[0.04] p-2.5">
+        <div className="flex items-center gap-2">
+          <MetaIcon svg={rootMeta.icon} className="h-5 w-5" />
+          <span className="text-[14px] font-bold text-brand-dark">
+            {nameAttr?.value?.trim() || `${rootMeta.className} ${index + 1}`}
+          </span>
+          <span className="ml-auto rounded-full bg-brand/10 px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-brand">
+            Profile
+          </span>
+          {onRemove && (
+            <button
+              className="rounded-sm p-0.5 text-muted-foreground transition-colors hover:bg-muted hover:text-destructive"
+              onClick={onRemove}
+              aria-label="Remove profile"
+              title="Remove profile"
+            >
+              <Trash2 className="size-3.5" />
+            </button>
+          )}
+        </div>
+
+        {/* Profile name — the User identity attribute. Rendered as a plain
+            labelled input (not a matching criterion); it names this profile and
+            drives the canvas header for this User box. */}
+        {nameAttr && (
+          <div className="mt-2">
+            <label className="mb-1 block text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+              Profile name
+            </label>
+            <input
+              type="text"
+              value={nameAttr.value ?? ''}
+              placeholder="Name this profile…"
+              onChange={(e) => cb.setAttr(root.key, nameIdx, { value: e.target.value })}
+              className="w-full rounded-md border border-brand/25 bg-background px-2 py-1 text-[13px] text-foreground outline-none focus:border-brand"
+            />
+          </div>
+        )}
+
+        {root.attributes.some(
+          (attr) =>
+            attr.name !== USER_NAME_ATTRIBUTE && !isHiddenUserModelAttribute(root.className, attr.name),
+        ) && (
+          <div className="mt-2 space-y-0.5">
+            {root.attributes.map((attr, idx) =>
+              attr.name === USER_NAME_ATTRIBUTE ||
+              isHiddenUserModelAttribute(root.className, attr.name) ? null : (
+                <AttributeRow
+                  key={attr.attributeId || attr.name || idx}
+                  attr={attr}
+                  onChange={(patch) => cb.setAttr(root.key, idx, patch)}
+                />
+              ),
+            )}
+          </div>
+        )}
+
+        {/* Profile-level personalization (applies to the whole profile) */}
+        <div className="mt-2">
+          <PersonalizationFields
+            label="Profile personalization"
+            value={root.personalization}
+            onChange={(spec) => cb.setInstancePersonalization(root.key, spec)}
+          />
+        </div>
+      </div>
+
+      {/* Quick-access attribute chips (personalization level) */}
+      <div className="space-y-2">
+        <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Attributes</p>
+        <div className="flex flex-wrap gap-2">
+          {rootMeta.children.map((childRef) => {
+            const childMeta = cb.tree.byClassName[childRef.className];
+            if (!childMeta) return null;
+            const configuredAttrs = attributeIconService.getConfiguredAttributesForContainer(
+              childRef.className,
+            );
+            if (configuredAttrs.length === 0) return null;
+
+            const childInstances = root.children[childRef.className] || [];
+            const firstInstance = childInstances[0];
+            if (!firstInstance) return null;
+
+            return configuredAttrs.map((config) => {
+              const attrIndex = firstInstance.attributes.findIndex((a) => a.name === config.attribute);
+              if (attrIndex < 0) return null;
+              const attr = firstInstance.attributes[attrIndex];
+
+              return (
+                <AttributeChip
+                  key={`${childRef.className}.${config.attribute}`}
+                  containerClass={childRef.className}
+                  attribute={config.attribute}
+                  value={attr.value}
+                  enumValues={attr.enumValues}
+                  onValueChange={(value) => cb.setAttr(firstInstance.key, attrIndex, { value })}
+                  onRemove={() => cb.setAttr(firstInstance.key, attrIndex, { value: '' })}
+                  displayName={config.displayName}
+                />
+              );
+            });
+          })}
+        </div>
+      </div>
+
+      {/* Top-level parts of this User */}
+      <div className="space-y-2">
+        {rootMeta.children.map((childRef) => (
+          <PartSection key={childRef.className} parent={root} childRef={childRef} cb={cb} />
+        ))}
+        {rootMeta.children.length === 0 && (
+          <p className="text-[13px] italic text-muted-foreground">No parts are defined in the metamodel.</p>
+        )}
+      </div>
+    </div>
+  );
+};
+
+/* ------------------------------------------------------------------ */
 /*  Panel                                                              */
 /* ------------------------------------------------------------------ */
 
 export const UserProfileFormPanel: React.FC<UserProfileFormPanelProps> = ({ open, onClose, editor }) => {
-  const { tree, formState, applyEdit, ready } = useUserProfileForm(open, editor);
+  const { tree, profiles, applyEdit, addProfile, removeProfile, ready } = useUserProfileForm(open, editor);
   const panelRef = useRef<HTMLDivElement>(null);
 
   // Double-clicking a diagram element on the canvas opens its own editor popup;
@@ -312,33 +452,47 @@ export const UserProfileFormPanel: React.FC<UserProfileFormPanelProps> = ({ open
     return () => document.removeEventListener('dblclick', handleDblClick);
   }, [open, onClose]);
 
+  // Locate the instance with `key` across all profile roots, mutate it in place,
+  // and return a fresh cloned list. Returns `prev` unchanged when not found so
+  // `applyEdit` can skip the write.
+  const editByKey = useCallback(
+    (prev: Instance[], key: string, mutate: (target: Instance) => void): Instance[] => {
+      const clone = structuredClone(prev);
+      for (const root of clone) {
+        const target = findByKey(root, key);
+        if (target) {
+          mutate(target);
+          return clone;
+        }
+      }
+      return prev;
+    },
+    [],
+  );
+
   const setAttr = useCallback(
     (instanceKey: string, attrIndex: number, patch: Partial<AttrValue>) => {
-      applyEdit((prev) => {
-        const clone: Instance = structuredClone(prev);
-        const target = findByKey(clone, instanceKey);
-        if (target && target.attributes[attrIndex]) {
-          target.attributes[attrIndex] = { ...target.attributes[attrIndex], ...patch };
-        }
-        return clone;
-      });
+      applyEdit((prev) =>
+        editByKey(prev, instanceKey, (target) => {
+          if (target.attributes[attrIndex]) {
+            target.attributes[attrIndex] = { ...target.attributes[attrIndex], ...patch };
+          }
+        }),
+      );
     },
-    [applyEdit],
+    [applyEdit, editByKey],
   );
 
   const setInstancePersonalization = useCallback(
     (instanceKey: string, spec: UserPersonalizationSpec | undefined) => {
-      applyEdit((prev) => {
-        const clone: Instance = structuredClone(prev);
-        const target = findByKey(clone, instanceKey);
-        if (target) {
+      applyEdit((prev) =>
+        editByKey(prev, instanceKey, (target) => {
           if (spec) target.personalization = spec;
           else delete target.personalization;
-        }
-        return clone;
-      });
+        }),
+      );
     },
-    [applyEdit],
+    [applyEdit, editByKey],
   );
 
   const addChild = useCallback(
@@ -347,30 +501,27 @@ export const UserProfileFormPanel: React.FC<UserProfileFormPanelProps> = ({ open
         if (!tree) return prev;
         const meta = tree.byClassName[className];
         if (!meta) return prev;
-        const clone: Instance = structuredClone(prev);
-        const parent = findByKey(clone, parentKey);
-        if (!parent) return prev;
-        const existing = parent.children[className] || [];
-        parent.children[className] = [...existing, createEmptyInstance(meta)];
-        return clone;
+        return editByKey(prev, parentKey, (parent) => {
+          const existing = parent.children[className] || [];
+          parent.children[className] = [...existing, createEmptyInstance(meta)];
+        });
       });
     },
-    [applyEdit, tree],
+    [applyEdit, editByKey, tree],
   );
 
   const removeChild = useCallback(
     (parentKey: string, className: string, childKey: string) => {
-      applyEdit((prev) => {
-        const clone: Instance = structuredClone(prev);
-        const parent = findByKey(clone, parentKey);
-        if (!parent || !parent.children[className]) return prev;
-        const next = parent.children[className].filter((c) => c.key !== childKey);
-        if (next.length === 0) delete parent.children[className];
-        else parent.children[className] = next;
-        return clone;
-      });
+      applyEdit((prev) =>
+        editByKey(prev, parentKey, (parent) => {
+          if (!parent.children[className]) return;
+          const next = parent.children[className].filter((c) => c.key !== childKey);
+          if (next.length === 0) delete parent.children[className];
+          else parent.children[className] = next;
+        }),
+      );
     },
-    [applyEdit],
+    [applyEdit, editByKey],
   );
 
   if (!open) return null;
@@ -404,8 +555,8 @@ export const UserProfileFormPanel: React.FC<UserProfileFormPanelProps> = ({ open
       </div>
 
       {/* Body */}
-      <div className="flex-1 space-y-3 overflow-y-auto p-3">
-        {!rootMeta || !cb || !ready || !formState ? (
+      <div className="flex-1 space-y-4 overflow-y-auto p-3">
+        {!rootMeta || !cb || !ready ? (
           <div className="flex items-start gap-2 rounded-md border border-dashed border-border bg-muted/30 p-3 text-[13px] text-muted-foreground">
             <Info className="mt-0.5 size-3.5 shrink-0" />
             <span>
@@ -415,126 +566,34 @@ export const UserProfileFormPanel: React.FC<UserProfileFormPanelProps> = ({ open
           </div>
         ) : (
           <>
-            {/* Fixed User root — cannot be removed */}
-            <div className="rounded-lg border border-brand/25 bg-brand/[0.04] p-2.5">
-              <div className="flex items-center gap-2">
-                <MetaIcon svg={rootMeta.icon} className="h-5 w-5" />
-                <span className="text-[14px] font-bold text-brand-dark">{rootMeta.className}</span>
-                <span className="ml-auto rounded-full bg-brand/10 px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-brand">
-                  Root
-                </span>
-              </div>
-              {/* Profile name — the User identity attribute. Rendered as a plain
-                  labelled input (not a matching criterion); it drives the tab
-                  title via useUserProfileNameSync. */}
-              {(() => {
-                const nameIdx = formState.attributes.findIndex(
-                  (attr) => attr.name === USER_NAME_ATTRIBUTE,
-                );
-                if (nameIdx < 0) return null;
-                const nameAttr = formState.attributes[nameIdx];
-                return (
-                  <div className="mt-2">
-                    <label className="mb-1 block text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-                      Profile name
-                    </label>
-                    <input
-                      type="text"
-                      value={nameAttr.value ?? ''}
-                      placeholder="Name this profile…"
-                      onChange={(e) => setAttr(formState.key, nameIdx, { value: e.target.value })}
-                      className="w-full rounded-md border border-brand/25 bg-background px-2 py-1 text-[13px] text-foreground outline-none focus:border-brand"
-                    />
-                  </div>
-                );
-              })()}
-              {formState.attributes.some(
-                (attr) =>
-                  attr.name !== USER_NAME_ATTRIBUTE &&
-                  !isHiddenUserModelAttribute(formState.className, attr.name),
-              ) && (
-                <div className="mt-2 space-y-0.5">
-                  {formState.attributes.map((attr, idx) =>
-                    attr.name === USER_NAME_ATTRIBUTE ||
-                    isHiddenUserModelAttribute(formState.className, attr.name) ? null : (
-                      <AttributeRow
-                        key={attr.attributeId || attr.name || idx}
-                        attr={attr}
-                        onChange={(patch) => setAttr(formState.key, idx, patch)}
-                      />
-                    ),
-                  )}
-                </div>
-              )}
+            {profiles.map((root, i) => (
+              <ProfileCard
+                key={root.key}
+                root={root}
+                rootMeta={rootMeta}
+                cb={cb}
+                index={i}
+                onRemove={profiles.length > 1 ? () => removeProfile(root.key) : undefined}
+              />
+            ))}
 
-              {/* Profile-level personalization (applies to the whole profile) */}
-              <div className="mt-2">
-                <PersonalizationFields
-                  label="Profile personalization"
-                  value={formState.personalization}
-                  onChange={(spec) => setInstancePersonalization(formState.key, spec)}
-                />
-              </div>
-            </div>
-
-            {/* Quick-access attribute chips (personalization level) */}
-            <div className="space-y-2">
-              <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Attributes</p>
-              <div className="flex flex-wrap gap-2">
-                {rootMeta.children.map((childRef) => {
-                  const childMeta = cb.tree.byClassName[childRef.className];
-                  if (!childMeta) return null;
-                  const configuredAttrs = attributeIconService.getConfiguredAttributesForContainer(
-                    childRef.className,
-                  );
-                  if (configuredAttrs.length === 0) return null;
-
-                  const childInstances = formState.children[childRef.className] || [];
-                  const firstInstance = childInstances[0];
-                  if (!firstInstance) return null;
-
-                  return configuredAttrs.map((config) => {
-                    const attrIndex = firstInstance.attributes.findIndex((a) => a.name === config.attribute);
-                    if (attrIndex < 0) return null;
-                    const attr = firstInstance.attributes[attrIndex];
-
-                    return (
-                      <AttributeChip
-                        key={`${childRef.className}.${config.attribute}`}
-                        containerClass={childRef.className}
-                        attribute={config.attribute}
-                        value={attr.value}
-                        enumValues={attr.enumValues}
-                        onValueChange={(value) =>
-                          cb.setAttr(firstInstance.key, attrIndex, { value })
-                        }
-                        onRemove={() => cb.setAttr(firstInstance.key, attrIndex, { value: '' })}
-                        displayName={config.displayName}
-                      />
-                    );
-                  });
-                })}
-              </div>
-            </div>
-
-            {/* Top-level parts of User */}
-            <div className="space-y-2">
-              {rootMeta.children.map((childRef) => (
-                <PartSection key={childRef.className} parent={formState} childRef={childRef} cb={cb} />
-              ))}
-              {rootMeta.children.length === 0 && (
-                <p className="text-[13px] italic text-muted-foreground">
-                  No parts are defined in the metamodel.
-                </p>
-              )}
-            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              className="w-full gap-1.5 border-dashed border-brand/30 text-brand hover:bg-brand/[0.04]"
+              onClick={addProfile}
+            >
+              <Plus className="size-3.5" />
+              Add profile
+            </Button>
           </>
         )}
       </div>
 
       {/* Footer hint */}
       <div className="border-t border-brand/12 px-3 py-2 text-[12px] leading-snug text-muted-foreground">
-        Changes sync live with the diagram. Fill a value to turn a field into a matching criterion.
+        Each profile is a User plus its connected elements. Changes sync live with the diagram; fill a
+        value to turn a field into a matching criterion.
       </div>
     </div>,
     document.body,

@@ -8,6 +8,7 @@ import { BACKEND_URL } from '../../../shared/constants/constant';
 import { ProjectStorageRepository } from '../../../shared/services/storage/ProjectStorageRepository';
 import { normalizeProjectName } from '../../../shared/utils/projectName';
 import { buildProjectPayloadForBackend } from '../../../shared/utils/projectExportUtils';
+import { flattenUserDiagramForBackend } from '../../../shared/utils/user-profile-graph';
 import {
   restoreBaseAgentModels,
   stripAgentConfigToSystem,
@@ -244,7 +245,10 @@ export const useGenerateCode = () => {
       // handleAgentGenerate in useGeneratorExecution.
       const body: any = {
         title: diagramTitle,
-        model: modelOverride ?? editor.model,
+        // Reshape a UserDiagram for the backend's object-model conversion:
+        // one owning User per object, `single`-cardinality chips fused, and
+        // diagram-wide-unique object names (no-op for other diagram types).
+        model: flattenUserDiagramForBackend(modelOverride ?? editor.model),
         generator: generatorType,
         config: config,
         ...(referenceDiagramData ? { referenceDiagramData } : {}),

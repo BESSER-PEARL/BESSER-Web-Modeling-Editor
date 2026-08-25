@@ -25,7 +25,6 @@ import {
 import { ApollonEditorContext } from '../uml/apollon-editor-context';
 import { scaffoldObjectsFromClasses } from './scaffoldObjectsFromClasses';
 import { UserProfileFormPanel } from '../user-profile-form/UserProfileFormPanel';
-import { useUserProfileNameSync } from '../user-profile-form/useUserProfileNameSync';
 
 interface DiagramTabsProps {
   onRequestTabSwitch?: (index: number) => Promise<boolean> | boolean;
@@ -179,9 +178,6 @@ export const DiagramTabs: React.FC<DiagramTabsProps> = ({
   }, [dispatch, currentDiagramType, safeIndex]);
 
   const { editor: apollonEditor } = useContext(ApollonEditorContext);
-
-  // Keep the root User element's `name` attribute and the tab title in sync.
-  useUserProfileNameSync(apollonEditor, activeDiagram, currentDiagramType);
 
   const handleGenerateObjectsFromClasses = useCallback(async () => {
     if (currentDiagramType !== 'ObjectDiagram') return;
