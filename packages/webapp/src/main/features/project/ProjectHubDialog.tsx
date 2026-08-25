@@ -25,7 +25,6 @@ import { Badge } from '@/components/ui/badge';
 import { FormField } from '@/components/ui/form-field';
 import { BesserProject, InterfaceMode, PerspectiveSettings } from '../../shared/types/project';
 import { FirstRunLanding } from './FirstRunLanding';
-import { LlmKeyDialog } from '../../shared/components/byok/LlmKeyDialog';
 import { PERSPECTIVES, perspectivesFromDiagramList } from '../../shared/perspectives';
 import { useProject } from '../../app/hooks/useProject';
 import { LanguageSelector } from '../../app/shell/LanguageSelector';
@@ -179,10 +178,6 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
   // hub). Drives where "Back" goes: a directly-opened step closes on Back; a
   // step navigated into from a hub returns to that hub. See handleBack.
   const [entryStep, setEntryStep] = useState<ProjectHubStep>('start');
-  // "Use your own key" on the first-run landing opens the shared key dialog
-  // here (client-less — the key lands in sessionStorage and the assistant picks
-  // it up on connect). Without this the landing footer link was a dead no-op.
-  const [keyDialogOpen, setKeyDialogOpen] = useState(false);
   const [describePrompt, setDescribePrompt] = useState('');
   const [form, setForm] = useState(defaultForm);
   const [createPerspectiveKey, setCreatePerspectiveKey] = useState<string>(DEFAULT_PERSPECTIVE_KEY);
@@ -905,14 +900,12 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
   );
 
   return (
-    <>
     <Dialog open={open} onOpenChange={handleDialogOpenChange}>
       <DialogContent className={cn('max-h-[92vh] overflow-hidden p-0', !canClose && '[&>button]:hidden')}>
         {step === 'welcome' && (
           <FirstRunLanding
             onChoose={handleChooseInterface}
             onMoreOptions={() => setStep('start')}
-            onUseOwnKey={() => setKeyDialogOpen(true)}
             defaultRemember={readPreferredInterface() !== null}
           />
         )}
@@ -1462,7 +1455,5 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
         onCancel={handleCancel}
       />
     </Dialog>
-    <LlmKeyDialog open={keyDialogOpen} onOpenChange={setKeyDialogOpen} />
-    </>
   );
 };

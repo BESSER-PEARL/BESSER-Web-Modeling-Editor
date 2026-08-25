@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ArrowRight, Check, KeyRound } from 'lucide-react';
+import { ArrowRight, Check } from 'lucide-react';
 
 import { DialogTitle } from '@/components/ui/dialog';
 import { cn } from '@/lib/utils';
@@ -10,8 +10,6 @@ interface FirstRunLandingProps {
   onChoose: (mode: InterfaceMode, remember: boolean) => void;
   /** "More options" → the classic Project Hub start screen. */
   onMoreOptions: () => void;
-  /** "Use your own key" affordance in the footer. */
-  onUseOwnKey: () => void;
   /** Pre-tick "Remember my choice" (e.g. the user set a default before). */
   defaultRemember?: boolean;
 }
@@ -29,7 +27,6 @@ interface FirstRunLandingProps {
 export const FirstRunLanding: React.FC<FirstRunLandingProps> = ({
   onChoose,
   onMoreOptions,
-  onUseOwnKey,
   defaultRemember = false,
 }) => {
   const [remember, setRemember] = useState(defaultRemember);
@@ -223,21 +220,6 @@ export const FirstRunLanding: React.FC<FirstRunLandingProps> = ({
           >
             More options
           </button>
-        </div>
-
-        {/* ---- free-tier footer ---- */}
-        <div className="frl-rise frl-d6 mt-6 flex flex-wrap items-center justify-between gap-3 border-t border-border pt-4 text-sm text-muted-foreground">
-          <span className="flex items-center gap-2.5">
-            <KeyRound className="size-[17px] text-brand" />
-            Free to use with our hosted Qwen model — no API key needed.{' '}
-            <button
-              type="button"
-              onClick={onUseOwnKey}
-              className="font-semibold text-primary underline-offset-2 hover:underline"
-            >
-              Use your own key
-            </button>
-          </span>
         </div>
       </div>
     </div>
