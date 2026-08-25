@@ -1,9 +1,12 @@
-import React, { Component, ComponentType, createRef, RefObject } from 'react';
-import { connect, ConnectedComponent } from 'react-redux';
+import React, { Component, ComponentClass, createRef, RefObject } from 'react';
+import { connect } from 'react-redux';
+import { compose } from 'redux';
 import { IUMLElement } from '../../services/uml-element/uml-element';
 import { UMLElementRepository } from '../../services/uml-element/uml-element-repository';
 import { AsyncAction, AsyncDispatch } from '../../utils/actions/actions';
 import { Button } from '../controls/button/button';
+import { I18nContext } from '../i18n/i18n-context';
+import { localized } from '../i18n/localized';
 import { ModelState } from '../store/model-state';
 import { AssessmentSection } from './assessment-section';
 
@@ -18,7 +21,7 @@ type DispatchProps = {
   assessNext: AsyncDispatch<(current: IUMLElement) => AsyncAction>;
 };
 
-type Props = OwnProps & StateProps & DispatchProps;
+type Props = OwnProps & StateProps & DispatchProps & I18nContext;
 
 const getInitialState = ({ element, getChildren }: Props) => ({
   elements: getChildren(element.id),
@@ -26,23 +29,26 @@ const getInitialState = ({ element, getChildren }: Props) => ({
 
 type State = ReturnType<typeof getInitialState>;
 
-const enhance = connect<StateProps, DispatchProps, OwnProps, ModelState>(null, {
-  getChildren: UMLElementRepository.getChildren as any as AsyncDispatch<typeof UMLElementRepository.getChildren>,
-  assessNext:
-    (current: IUMLElement): AsyncAction =>
-    (dispatch, getState) => {
-      const { elements } = getState();
-      const children = dispatch(UMLElementRepository.getChildren(current.id));
-      const last = children.length ? children[children.length - 1] : current;
-      const index = Object.keys(elements).indexOf(last.id) + 1;
-      const next = Object.keys(elements)[index % Object.keys(elements).length];
+const enhance = compose<ComponentClass<OwnProps>>(
+  localized,
+  connect<StateProps, DispatchProps, OwnProps, ModelState>(null, {
+    getChildren: UMLElementRepository.getChildren as any as AsyncDispatch<typeof UMLElementRepository.getChildren>,
+    assessNext:
+      (current: IUMLElement): AsyncAction =>
+      (dispatch, getState) => {
+        const { elements } = getState();
+        const children = dispatch(UMLElementRepository.getChildren(current.id));
+        const last = children.length ? children[children.length - 1] : current;
+        const index = Object.keys(elements).indexOf(last.id) + 1;
+        const next = Object.keys(elements)[index % Object.keys(elements).length];
 
-      dispatch(UMLElementRepository.updateEnd(current.id));
-      dispatch(UMLElementRepository.deselect(current.id));
-      dispatch(UMLElementRepository.updateStart(next));
-      dispatch(UMLElementRepository.select(next));
-    },
-});
+        dispatch(UMLElementRepository.updateEnd(current.id));
+        dispatch(UMLElementRepository.deselect(current.id));
+        dispatch(UMLElementRepository.updateStart(next));
+        dispatch(UMLElementRepository.select(next));
+      },
+  }),
+);
 
 class AssessmentComponent extends Component<Props, State> {
   state = getInitialState(this.props);
@@ -68,7 +74,7 @@ class AssessmentComponent extends Component<Props, State> {
         ))}
         <section>
           <Button block outline color="primary" onClick={this.next} onKeyDown={this.onKey} onKeyUp={this.onKey}>
-            Next Assessment
+            {this.props.translate('assessment.nextAssessment')}
           </Button>
         </section>
       </div>
@@ -104,4 +110,4 @@ class AssessmentComponent extends Component<Props, State> {
   };
 }
 
-export const Assessment: ConnectedComponent<ComponentType<Props>, OwnProps> = enhance(AssessmentComponent);
+export const Assessment = enhance(AssessmentComponent);

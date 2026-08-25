@@ -2,10 +2,10 @@
 import type { Editor } from 'grapesjs';
 import './grapesjs-styles.css';
 import { getClassOptions, getEndsByClassId, getClassMetadata, getMethodsByClassId } from './diagram-helpers';
-import { chartConfigs } from './configs/chartConfigs';
-import { tableConfig } from './configs/tableConfig';
-import { metricCardConfig } from './configs/metricCardConfigs';
-import { mapConfig } from './configs/mapConfig';
+import { getChartConfigs } from './configs/chartConfigs';
+import { getTableConfig } from './configs/tableConfig';
+import { getMetricCardConfig } from './configs/metricCardConfigs';
+import { getMapConfig } from './configs/mapConfig';
 import { registerChartComponent } from './component-registrars/registerChartComponent';
 import { registerTableComponent } from './component-registrars/registerTableComponent';
 import { registerMetricCardComponent } from './component-registrars/registerMetricCardComponent';
@@ -23,6 +23,8 @@ import { GrapesJSProjectData, isGrapesJSProjectData, normalizeToGrapesJSProjectD
 import { downloadFile } from '../../../shared/utils/download';
 import { globalConfirm } from '../../../shared/services/confirm/globalConfirm';
 import { validateDiagram } from '../../../shared/services/validation/validateDiagram';
+import i18n from '@/main/shared/i18n';
+import grapesjsLocaleLb from './i18n/grapesjsLocaleLb';
 
 // Personalization variant data lives on live GrapesJS page objects (set via
 // page.set(...) in setupPageSystem.ts). It must survive into the STORED GUI
@@ -65,6 +67,21 @@ export const GraphicalUIEditor: React.FC = () => {
   const [saveStatus, setSaveStatus] = useState<'saved' | 'saving' | 'error'>('saved');
   const saveIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  // Track the active language so a switch remounts the editor (see the init
+  // effect's dependency array). GrapesJS labels come from many imperative
+  // subsystems (blocks, traits, DOM-built panels); remounting re-runs every
+  // registrar/setup/config so they all read the new language. Canvas content
+  // survives via the remote StorageManager (autosave/autoload) plus the unmount
+  // flush; the only tradeoff is that undo history resets on a language switch.
+  const [lang, setLang] = useState(i18n.language);
+
+  useEffect(() => {
+    const handleLanguageChanged = (lng: string) => setLang(lng);
+    i18n.on('languageChanged', handleLanguageChanged);
+    return () => {
+      i18n.off('languageChanged', handleLanguageChanged);
+    };
+  }, []);
 
   useEffect(() => {
     if (!containerRef.current) return;
@@ -100,7 +117,7 @@ export const GraphicalUIEditor: React.FC = () => {
           await autoGenerateGUIFromClassDiagram(editor);
           editor.runCommand('notifications:add', {
             type: 'success',
-            message: '✓ GUI generated successfully from Class Diagram.',
+            message: `✓ ${i18n.t('editors.gui.guiGeneratedFromClass')}`,
             group: 'Assistant Auto-Generate',
           });
           window.dispatchEvent(
@@ -109,11 +126,11 @@ export const GraphicalUIEditor: React.FC = () => {
             }),
           );
         } catch (error) {
-          const message = error instanceof Error ? error.message : 'Unknown error';
+          const message = error instanceof Error ? error.message : i18n.t('editors.gui.unknownError');
           console.error('[Assistant Auto-Generate] Error:', error);
           editor.runCommand('notifications:add', {
             type: 'error',
-            message: `✗ Error generating GUI: ${message}`,
+            message: `✗ ${i18n.t('editors.gui.errorGeneratingGui', { message })}`,
             group: 'Assistant Auto-Generate',
           });
           window.dispatchEvent(
@@ -159,7 +176,7 @@ export const GraphicalUIEditor: React.FC = () => {
 
           editor.runCommand('notifications:add', {
             type: 'success',
-            message: '✓ GUI model loaded from assistant.',
+            message: `✓ ${i18n.t('editors.gui.guiModelLoaded')}`,
             group: 'Assistant Load Model',
           });
           window.dispatchEvent(
@@ -312,7 +329,9 @@ export const GraphicalUIEditor: React.FC = () => {
       cancelled = true;
       if (cleanupFn) cleanupFn();
     };
-  }, []);
+    // `lang` is a dependency so switching language remounts the editor and every
+    // GrapesJS registrar/config re-runs in the new language (see the `lang` state above).
+  }, [lang]);
 
   return (
     <div ref={containerRef} id="gjs"></div>
@@ -334,15 +353,33 @@ async function initializeEditor(container: HTMLDivElement): Promise<Editor> {
     { default: gjsPresetWebpage },
     { default: gjsStyleBg },
     { default: gjsBlocksBasic },
+    { default: gjsLocaleDe },
+    { default: gjsLocaleFr },
+    { default: gjsLocaleEs },
+    { default: gjsLocaleCa },
   ] = await Promise.all([
     import('grapesjs'),
     import('grapesjs-preset-webpage'),
     import('grapesjs-style-bg'),
     // @ts-ignore
     import('grapesjs-blocks-basic'),
+    // GrapesJS built-in locale packs translate the editor's own chrome
+    // (Style Manager property labels, panel tooltips, selector/trait managers).
+    // No pack ships for `lb`; we provide `grapesjsLocaleLb` in `messagesAdd`.
+    // @ts-ignore - locale subpaths have no bundled type declarations
+    import('grapesjs/locale/de'),
+    // @ts-ignore
+    import('grapesjs/locale/fr'),
+    // @ts-ignore
+    import('grapesjs/locale/es'),
+    // @ts-ignore
+    import('grapesjs/locale/ca'),
   ]);
   // Load GrapesJS CSS as a side-effect
   await import('grapesjs/dist/css/grapes.min.css');
+
+  // Match GrapesJS's own locale to the app language (base code, no region).
+  const grapesjsLocale = (i18n.language || 'en').split('-')[0];
 
   return grapesjs.init({
     container,
@@ -350,6 +387,28 @@ async function initializeEditor(container: HTMLDivElement): Promise<Editor> {
     width: 'auto',
     fromElement: false,
     components: '', // Empty initially - pages will load default content
+
+    // Translate GrapesJS's built-in UI chrome. `en` is the default; `lb` uses our
+    // own pack (`grapesjsLocaleLb`) since GrapesJS ships none.
+    //  - `detectLocale: false` — otherwise GrapesJS overrides `locale` with the
+    //    browser language, ignoring the app's selected language.
+    //  - `messagesAdd` (not `messages`) — extends the built-in `en` set instead
+    //    of replacing it, so the English base and fallback stay intact.
+    i18n: {
+      locale: grapesjsLocale,
+      localeFallback: 'en',
+      detectLocale: false,
+      messagesAdd: {
+        de: gjsLocaleDe,
+        fr: gjsLocaleFr,
+        es: gjsLocaleEs,
+        ca: gjsLocaleCa,
+        // GrapesJS ships no `lb` pack; supply our own so the editor's own chrome
+        // (Settings/Trait panel title, managers, device names) is translated in
+        // Luxembourgish instead of falling back to English.
+        lb: grapesjsLocaleLb,
+      },
+    },
 
     // Storage configuration
     storageManager: {
@@ -368,8 +427,9 @@ async function initializeEditor(container: HTMLDivElement): Promise<Editor> {
 
     pluginsOpts: {
       'grapesjs-preset-webpage': {
-        modalImportTitle: 'Import Template',
-        modalImportLabel: '<div style="margin-bottom: 10px; font-size: 13px;">Paste here your HTML/CSS and click Import</div>',
+        modalImportTitle: i18n.t('editors.gui.importTemplate'),
+        modalImportButton: i18n.t('editors.gui.importButton'),
+        modalImportLabel: `<div style="margin-bottom: 10px; font-size: 13px;">${i18n.t('editors.gui.importTemplateLabel')}</div>`,
         modalImportContent: (editor: Editor) => editor.getHtml() + '<style>' + editor.getCss() + '</style>',
         filestackOpts: null,
         aviaryOpts: false,
@@ -379,22 +439,22 @@ async function initializeEditor(container: HTMLDivElement): Promise<Editor> {
         },
         customStyleManager: [
           {
-            name: 'Position',
+            name: i18n.t('editors.gui.styleManager.position'),
             open: true,
             buildProps: ['position', 'top', 'right', 'bottom', 'left', 'z-index'],
           },
           {
-            name: 'Dimension',
+            name: i18n.t('editors.gui.styleManager.dimension'),
             open: false,
             buildProps: ['width', 'height', 'max-width', 'min-height', 'padding', 'margin'],
           },
           {
-            name: 'Typography',
+            name: i18n.t('editors.gui.styleManager.typography'),
             open: false,
             buildProps: ['font-size', 'font-weight', 'font-family', 'color', 'line-height', 'text-align'],
           },
           {
-            name: 'Decorations',
+            name: i18n.t('editors.gui.styleManager.decorations'),
             open: false,
             buildProps: ['background-color', 'border-radius', 'border', 'box-shadow'],
           },
@@ -461,19 +521,21 @@ function setupEditorFeatures(
  * Register all custom components
  */
 function registerCustomComponents(editor: Editor) {
+  // Configs are built via factories so labels resolve in the current language
+  // on every (re)mount — e.g. after a language switch remounts the editor.
   // Register charts
-  chartConfigs.forEach((config) => {
+  getChartConfigs().forEach((config) => {
     registerChartComponent(editor, config);
   });
 
   // Register table
-  registerTableComponent(editor, tableConfig);
+  registerTableComponent(editor, getTableConfig());
 
   // Register metric card
-  registerMetricCardComponent(editor, metricCardConfig);
+  registerMetricCardComponent(editor, getMetricCardConfig());
 
   // Register other components
-  registerMapComponent(editor, mapConfig);
+  registerMapComponent(editor, getMapConfig());
   registerButtonComponent(editor);
   // registerFormComponents(editor); // Commented out - forms removed for now
   registerLayoutComponents(editor);
@@ -769,9 +831,9 @@ function updateSaveStatusUI(editor: Editor, status: 'saved' | 'saving' | 'error'
   if (!statusEl) return;
   
   const config = {
-    saved: { icon: '✓', message: 'Saved', color: '#27ae60' },
-    saving: { icon: '⟳', message: 'Saving...', color: '#3498db' },
-    error: { icon: '⚠', message: 'Error saving', color: '#e74c3c' }
+    saved: { icon: '✓', message: i18n.t('editors.gui.statusSaved'), color: '#27ae60' },
+    saving: { icon: '⟳', message: i18n.t('editors.gui.statusSaving'), color: '#3498db' },
+    error: { icon: '⚠', message: i18n.t('editors.gui.statusErrorSaving'), color: '#e74c3c' }
   };
   
   const { icon, message, color } = config[status];
@@ -806,7 +868,7 @@ function setupCommands(editor: Editor) {
         const editorModel = (editor as any).em;
         if (!editorModel || !editorModel.storables) {
           console.warn('[Save] Editor not fully initialized yet, please wait a moment');
-          alert('Editor is still loading. Please wait a moment and try again.');
+          alert(i18n.t('editors.gui.editorStillLoading'));
           return;
         }
         
@@ -814,7 +876,7 @@ function setupCommands(editor: Editor) {
         console.log('[Save] Manual save completed');
       } catch (error) {
         console.error('[Save] Manual save error:', error);
-        alert('Error saving project. Please check the console for details.');
+        alert(i18n.t('editors.gui.errorSavingProject'));
       }
     }
   });
@@ -825,11 +887,11 @@ function setupCommands(editor: Editor) {
       const html = editor.getHtml() || '';
       const css = editor.getCss() || '';
       const fullCode = generateHTMLTemplate(html, css);
-      
-      const downloadBtn = createDownloadButton('download-html-btn', '📥 Download HTML');
-      
+
+      const downloadBtn = createDownloadButton('download-html-btn', `📥 ${i18n.t('editors.gui.downloadHtml')}`);
+
       editor.Modal
-        .setTitle('Export Template')
+        .setTitle(i18n.t('editors.gui.exportTemplate'))
         .setContent(createModalContent(downloadBtn, fullCode, 'export-code-textarea'))
         .open();
         
@@ -843,10 +905,10 @@ function setupCommands(editor: Editor) {
   editor.Commands.add('show-json', {
     run(editor: Editor) {
       const projectData = JSON.stringify(editor.getProjectData(), null, 2);
-      const downloadBtn = createDownloadButton('download-json-btn', '📥 Download JSON');
-      
+      const downloadBtn = createDownloadButton('download-json-btn', `📥 ${i18n.t('editors.gui.downloadJson')}`);
+
       editor.Modal
-        .setTitle('Project JSON')
+        .setTitle(i18n.t('editors.gui.projectJson'))
         .setContent(createModalContent(downloadBtn, projectData, 'json-data-textarea'))
         .open();
         
@@ -860,9 +922,9 @@ function setupCommands(editor: Editor) {
   editor.Commands.add('clear-canvas', {
     async run(editor: Editor) {
       const confirmed = await globalConfirm({
-        title: 'Clear Canvas',
-        description: 'Are you sure you want to clear the entire canvas? This cannot be undone.',
-        confirmLabel: 'Clear',
+        title: i18n.t('editors.gui.clearCanvasTitle'),
+        description: i18n.t('editors.gui.clearCanvasDescription'),
+        confirmLabel: i18n.t('editors.gui.clearCanvasConfirm'),
         variant: 'danger',
       });
       if (confirmed) {
@@ -1032,7 +1094,7 @@ function addAutoGenerateGUIButton(editor: Editor) {
       panelManager.addButton('devices-c', {
         id: 'auto-generate-gui',
         command: 'auto-generate-gui',
-        attributes: { title: 'Auto-Generate GUI from Class Diagram' },
+        attributes: { title: i18n.t('editors.gui.autoGenerateTitle') },
         label: '<svg viewBox="0 0 24 24" style="width: 18px; height: 18px; fill: currentColor;"><path d="M7.5,5.6L5,7L6.4,4.5L5,2L7.5,3.4L10,2L8.6,4.5L10,7L7.5,5.6M19.5,15.4L22,14L20.6,16.5L22,19L19.5,17.6L17,19L18.4,16.5L17,14L19.5,15.4M22,2L20.6,4.5L22,7L19.5,5.6L17,7L18.4,4.5L17,2L19.5,3.4L22,2M13.34,12.78L15.78,10.34L13.66,8.22L11.22,10.66L13.34,12.78M14.37,7.29L16.71,9.63C17.1,10 17.1,10.65 16.71,11.04L5.04,22.71C4.65,23.1 4,23.1 3.63,22.71L1.29,20.37C0.9,20 0.9,19.35 1.29,18.96L12.96,7.29C13.35,6.9 14,6.9 14.37,7.29Z" /></svg>',
       });
     }
@@ -1045,47 +1107,47 @@ function addAutoGenerateGUIButton(editor: Editor) {
       
       // Show custom confirmation modal
       const modal = editor.Modal;
-      modal.setTitle('Auto-Generate GUI from Class Diagram');
-      
+      modal.setTitle(i18n.t('editors.gui.autoGenerateTitle'));
+
       const modalContent = `
         <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;">
           <p style="margin: 0 0 1rem 0; color: #212529; font-size: 1rem; line-height: 1.5;">
-            This will clear your current GUI and generate a new one based on your Class Diagram.
+            ${i18n.t('editors.gui.autoGenerateIntro')}
           </p>
-          
+
           <div style="background-color: #f8f9fa; border: 1px solid #dee2e6; border-radius: 0.375rem; padding: 1rem; margin-bottom: 1rem;">
             <div style="display: flex; align-items-center; margin-bottom: 0.5rem;">
               <svg width="20" height="20" viewBox="0 0 16 16" fill="currentColor" style="color: #198754; margin-right: 0.5rem;">
                 <path d="M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0zm-3.97-3.03a.75.75 0 0 0-1.08.022L7.477 9.417 5.384 7.323a.75.75 0 0 0-1.06 1.06L6.97 11.03a.75.75 0 0 0 1.079-.02l3.992-4.99a.75.75 0 0 0-.01-1.05z"/>
               </svg>
-              <strong style="font-size: 0.875rem;">Created automatically:</strong>
+              <strong style="font-size: 0.875rem;">${i18n.t('editors.gui.autoGenerateCreatedTitle')}</strong>
             </div>
             <ul style="margin: 0; padding-left: 1.5rem; color: #212529; font-size: 0.875rem; line-height: 1.8;">
-              <li>Navigation panel with links to each class</li>
-              <li>A page for each class with a data table</li>
-              <li>Method buttons for classes with methods</li>
+              <li>${i18n.t('editors.gui.autoGenerateItemNav')}</li>
+              <li>${i18n.t('editors.gui.autoGenerateItemPage')}</li>
+              <li>${i18n.t('editors.gui.autoGenerateItemMethods')}</li>
             </ul>
           </div>
-          
+
           <div style="background-color: #fff3cd; border: 1px solid #ffc107; border-radius: 0.375rem; padding: 0.75rem; margin-bottom: 1rem;">
             <div style="display: flex; align-items-center; color: #664d03;">
               <svg width="18" height="18" viewBox="0 0 16 16" fill="currentColor" style="margin-right: 0.5rem;">
                 <path d="M8.982 1.566a1.13 1.13 0 0 0-1.96 0L.165 13.233c-.457.778.091 1.767.98 1.767h13.713c.889 0 1.438-.99.98-1.767L8.982 1.566zM8 5c.535 0 .954.462.9.995l-.35 3.507a.552.552 0 0 1-1.1 0L7.1 5.995A.905.905 0 0 1 8 5zm.002 6a1 1 0 1 1 0 2 1 1 0 0 1 0-2z"/>
               </svg>
-              <strong style="font-size: 0.875rem;">This action cannot be undone</strong>
+              <strong style="font-size: 0.875rem;">${i18n.t('editors.gui.autoGenerateCannotUndo')}</strong>
             </div>
           </div>
-          
+
           <p style="margin: 0 0 1rem 0; color: #212529; font-size: 1rem; font-weight: 500;">
-            Are you sure you want to continue?
+            ${i18n.t('editors.gui.autoGenerateConfirmQuestion')}
           </p>
-          
+
           <div style="display: flex; gap: 0.5rem; justify-content: flex-end; padding-top: 1rem; border-top: 1px solid #dee2e6;">
             <button id="modal-cancel-btn" style="padding: 0.375rem 0.75rem; background-color: #6c757d; color: white; border: 1px solid #6c757d; border-radius: 0.375rem; font-size: 1rem; cursor: pointer; transition: all 0.15s ease-in-out;">
-              Cancel
+              ${i18n.t('common.cancel')}
             </button>
             <button id="modal-confirm-btn" style="padding: 0.375rem 0.75rem; background-color: #0d6efd; color: white; border: 1px solid #0d6efd; border-radius: 0.375rem; font-size: 1rem; cursor: pointer; transition: all 0.15s ease-in-out;">
-              Generate GUI
+              ${i18n.t('editors.gui.generateGui')}
             </button>
           </div>
         </div>
@@ -1114,14 +1176,14 @@ function addAutoGenerateGUIButton(editor: Editor) {
             // Show success notification using GrapesJS notification system
             editor.runCommand('notifications:add', {
               type: 'success',
-              message: '✓ GUI generated successfully! Created pages, tables, and method buttons for all classes.',
+              message: `✓ ${i18n.t('editors.gui.guiGeneratedSuccess')}`,
               group: 'Auto-Generate'
             });
           } catch (error) {
             console.error('[Auto-Generate] Error:', error);
             editor.runCommand('notifications:add', {
               type: 'error',
-              message: '✗ Error generating GUI: ' + (error as Error).message,
+              message: `✗ ${i18n.t('editors.gui.errorGeneratingGui', { message: (error as Error).message })}`,
               group: 'Auto-Generate'
             });
           }
@@ -1152,13 +1214,13 @@ async function autoGenerateGUIFromClassDiagram(editor: Editor) {
   // Get class diagram model for validation
   const project = ProjectStorageRepository.getCurrentProject();
   if (!project) {
-    throw new Error('No active project found.');
+    throw new Error(i18n.t('editors.gui.noActiveProject'));
   }
   const activeGUI = getActiveDiagram(project, 'GUINoCodeDiagram');
   const classDiagramData = getReferencedDiagram(project, activeGUI, 'ClassDiagram');
   const classDiagramModel = classDiagramData?.model;
   if (!classDiagramModel) {
-    throw new Error('No class diagram found. Please create a class diagram first.');
+    throw new Error(i18n.t('editors.gui.noClassDiagramFound'));
   }
 
   // Run backend validation before generating GUI
@@ -1169,22 +1231,22 @@ async function autoGenerateGUIFromClassDiagram(editor: Editor) {
     const modal = editor.Modal;
     const errorList = (result.errors && result.errors.length > 0)
       ? result.errors.map((e: string) => `<li style='margin-bottom:8px;'>${e}</li>`).join('')
-      : '<li>Unknown error</li>';
+      : `<li>${i18n.t('editors.gui.unknownError')}</li>`;
     const modalContent = `
       <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;">
-        <h2 style="color:#e74c3c; margin-bottom:1rem;">Class Diagram Quality Check Failed</h2>
+        <h2 style="color:#e74c3c; margin-bottom:1rem;">${i18n.t('editors.gui.qualityCheckFailed')}</h2>
         <p style="font-size:1rem; color:#333; margin-bottom:1rem;">
-          Errors were found in your class diagram. Please solve them before generating the GUI.
+          ${i18n.t('editors.gui.qualityCheckFailedMessage')}
         </p>
         <ul style="background:#fff3f3; border:1px solid #e74c3c; border-radius:6px; padding:1rem; color:#b30000; font-size:1rem;">
           ${errorList}
         </ul>
         <div style="display:flex; justify-content:flex-end; margin-top:1.5rem;">
-          <button id="modal-close-errors-btn" style="padding:0.5rem 1.2rem; background-color:#e74c3c; color:white; border:none; border-radius:4px; font-size:1rem; cursor:pointer;">Close</button>
+          <button id="modal-close-errors-btn" style="padding:0.5rem 1.2rem; background-color:#e74c3c; color:white; border:none; border-radius:4px; font-size:1rem; cursor:pointer;">${i18n.t('common.close')}</button>
         </div>
       </div>
     `;
-    modal.setTitle('Class Diagram Errors');
+    modal.setTitle(i18n.t('editors.gui.classDiagramErrors'));
     modal.setContent(modalContent);
     modal.open();
     setTimeout(() => {
@@ -1200,7 +1262,7 @@ async function autoGenerateGUIFromClassDiagram(editor: Editor) {
   const classes = getClassOptions();
 
   if (classes.length === 0) {
-    throw new Error('No classes found in the Class Diagram. Please create a class diagram first.');
+    throw new Error(i18n.t('editors.gui.noClassesFound'));
   }
   
   // Clear all existing pages
@@ -1612,7 +1674,7 @@ function setupPageRouting(editor: Editor) {
     run(editor: Editor) {
       const currentPage = editor.Pages.getSelected();
       if (!currentPage) {
-        alert('No page selected');
+        alert(i18n.t('editors.gui.noPageSelected'));
         return;
       }
       
@@ -1623,7 +1685,7 @@ function setupPageRouting(editor: Editor) {
         : `/${pageName.toLowerCase().replace(/\s+/g, '-')}`;
       
       const newRoute = prompt(
-        `Edit route path for page "${pageName}":\n\nExamples:\n- /home\n- /users/:id\n- /products`, 
+        i18n.t('editors.gui.editRoutePrompt', { pageName }),
         currentRoute
       );
       
@@ -1636,7 +1698,7 @@ function setupPageRouting(editor: Editor) {
         currentPage.set('route_path', route);
         
         // console.log(`[Page Routing] Updated route for "${pageName}" to: ${route}`);
-        alert(`Route updated to: ${route}`);
+        alert(i18n.t('editors.gui.routeUpdated', { route }));
       }
     }
   });
@@ -1652,11 +1714,11 @@ function setupPageRouting(editor: Editor) {
 function setupSidebarButtonHoverLabels(editor: Editor) {
   editor.on('load', () => {
     const labelOverrides: Record<string, string> = {
-      'open-blocks': 'Blocks',
-      'open-sm': 'Styles',
-      'open-tm': 'Traits',
-      'open-layers': 'Layers',
-      'open-pages-tab': 'Pages',
+      'open-blocks': i18n.t('editors.gui.sidebarBlocks'),
+      'open-sm': i18n.t('editors.gui.sidebarStyles'),
+      'open-tm': i18n.t('editors.gui.sidebarTraits'),
+      'open-layers': i18n.t('editors.gui.sidebarLayers'),
+      'open-pages-tab': i18n.t('editors.gui.sidebarPages'),
     };
     
     const selector = '.gjs-pn-views .gjs-pn-btn, .gjs-pn-commands .gjs-pn-btn';
@@ -1804,23 +1866,23 @@ function setupDataBindingTraits(editor: Editor) {
       traits.add([
         {
           type: 'text',
-          label: 'Data Source',
+          label: i18n.t('editors.gui.traitDataSource'),
           name: 'data-source',
-          placeholder: 'e.g., User or User.name',
+          placeholder: i18n.t('editors.gui.traitDataSourcePlaceholder'),
           changeProp: 1,
         },
         {
           type: 'text',
-          label: 'Display Field',
+          label: i18n.t('editors.gui.traitDisplayField'),
           name: 'label-field',
-          placeholder: 'Field to display',
+          placeholder: i18n.t('editors.gui.traitDisplayFieldPlaceholder'),
           changeProp: 1,
         },
         {
           type: 'text',
-          label: 'Value Field',
+          label: i18n.t('editors.gui.traitValueField'),
           name: 'value-field',
-          placeholder: 'Field for value',
+          placeholder: i18n.t('editors.gui.traitValueFieldPlaceholder'),
           changeProp: 1,
         }
       ]);

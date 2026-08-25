@@ -1,4 +1,5 @@
 import React, { useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -61,6 +62,7 @@ export const DeployDialog: React.FC<DeployDialogProps> = ({
   onCreateNewInstead,
   onPublish,
 }) => {
+  const { t } = useTranslation();
   // ── Inline validation (only for create-new-repo mode) ──────────────────
   const validators = useMemo(() => ({
     repoName: () => useExistingRepo ? undefined : validateRepoName(repoName),
@@ -76,20 +78,20 @@ export const DeployDialog: React.FC<DeployDialogProps> = ({
 
   const isAgentDeploy = deploymentTarget === 'agent';
   const existingRepoText = isAgentDeploy
-    ? 'Update the existing agent repository with your latest changes.'
-    : 'Update the existing repository with your latest changes.';
+    ? t('deploy.dialog.existingAgent')
+    : t('deploy.dialog.existing');
   const newRepoText = isAgentDeploy
-    ? 'Create a GitHub repository from the active Agent diagram and deploy a standalone agent on Render.'
-    : 'Create a GitHub repository from the current project and deploy it on Render.';
+    ? t('deploy.dialog.newAgent')
+    : t('deploy.dialog.new');
   const publishLabel = isAgentDeploy
-    ? (useExistingRepo ? 'Update & Publish Agent' : 'Publish Agent to Render')
-    : (useExistingRepo ? 'Update & Publish' : 'Publish to Render');
+    ? (useExistingRepo ? t('deploy.actions.updatePublishAgent') : t('deploy.actions.publishAgent'))
+    : (useExistingRepo ? t('deploy.actions.updatePublish') : t('deploy.actions.publish'));
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="sm:max-w-xl">
         <DialogHeader>
-          <DialogTitle>Publish to Render</DialogTitle>
+          <DialogTitle>{t('deploy.dialog.publishTitle')}</DialogTitle>
           <DialogDescription>
             {useExistingRepo
               ? existingRepoText
@@ -98,7 +100,7 @@ export const DeployDialog: React.FC<DeployDialogProps> = ({
         </DialogHeader>
         <div className="flex flex-col gap-4">
           {availableTargets.length > 1 && (
-            <FormField label="Deployment Target" htmlFor="deploy-target">
+            <FormField label={t('deploy.fields.deploymentTarget')} htmlFor="deploy-target">
               <select
                 id="deploy-target"
                 value={deploymentTarget}
@@ -106,10 +108,10 @@ export const DeployDialog: React.FC<DeployDialogProps> = ({
                 className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
               >
                 {availableTargets.includes('webapp') && (
-                  <option value="webapp">Web App (Class + GUI)</option>
+                  <option value="webapp">{t('deploy.targets.webapp')}</option>
                 )}
                 {availableTargets.includes('agent') && (
-                  <option value="agent">Standalone Agent</option>
+                  <option value="agent">{t('deploy.targets.agent')}</option>
                 )}
               </select>
             </FormField>
@@ -120,7 +122,7 @@ export const DeployDialog: React.FC<DeployDialogProps> = ({
               <div className="flex items-center justify-between rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-800 dark:border-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300">
                 <div>
                   <p className="font-medium">
-                    Previously deployed to:{' '}
+                    {t('deploy.existing.previouslyDeployed')}{' '}
                     <a
                       href={`https://github.com/${linkedRepo.owner}/${linkedRepo.repo}`}
                       target="_blank"
@@ -130,43 +132,43 @@ export const DeployDialog: React.FC<DeployDialogProps> = ({
                       {linkedRepo.owner}/{linkedRepo.repo}
                     </a>
                   </p>
-                  <p className="text-xs">Files you added manually will be preserved.</p>
+                  <p className="text-xs">{t('deploy.existing.filesPreserved')}</p>
                 </div>
                 <Button variant="outline" size="sm" onClick={onCreateNewInstead}>
-                  Create new repo instead
+                  {t('deploy.existing.createNewInstead')}
                 </Button>
               </div>
-              <FormField label="Commit Message" htmlFor="deploy-commit-message" helperText="Describe what changed (leave empty for default message)">
+              <FormField label={t('deploy.fields.commitMessage')} htmlFor="deploy-commit-message" helperText={t('deploy.fields.commitMessageHelper')}>
                 <Input
                   id="deploy-commit-message"
                   value={commitMessage}
                   onChange={(event) => onCommitMessageChange(event.target.value)}
-                  placeholder="Update app"
+                  placeholder={t('deploy.fields.commitMessagePlaceholder')}
                 />
               </FormField>
             </>
           ) : (
             <>
-              <FormField label="Repository Name" htmlFor="deploy-repo-name" required error={validation.getError('repoName')}>
+              <FormField label={t('deploy.fields.repoName')} htmlFor="deploy-repo-name" required error={validation.getError('repoName')}>
                 <Input
                   id="deploy-repo-name"
                   value={repoName}
                   onChange={(event) => onRepoNameChange(event.target.value)}
                   onBlur={() => validation.markTouched('repoName')}
-                  placeholder="my-awesome-app"
+                  placeholder={t('deploy.fields.repoNamePlaceholder')}
                   className={validation.getError('repoName') ? 'border-destructive focus-visible:border-destructive focus-visible:ring-destructive/20' : ''}
                 />
               </FormField>
-              <FormField label="Description" htmlFor="deploy-repo-description">
+              <FormField label={t('deploy.fields.description')} htmlFor="deploy-repo-description">
                 <Input
                   id="deploy-repo-description"
                   value={repoDescription}
                   onChange={(event) => onRepoDescriptionChange(event.target.value)}
-                  placeholder="Web application generated by BESSER"
+                  placeholder={t('deploy.fields.descriptionPlaceholder')}
                 />
               </FormField>
               <label className="flex items-center justify-between gap-3 rounded-md border border-border/70 px-3 py-2 text-sm">
-                Make repository private
+                {t('deploy.fields.makePrivate')}
                 <input
                   type="checkbox"
                   checked={repoPrivate}
@@ -175,7 +177,7 @@ export const DeployDialog: React.FC<DeployDialogProps> = ({
               </label>
               {repoPrivate && (
                 <p className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800 dark:border-amber-800 dark:bg-amber-900/30 dark:text-amber-300">
-                  Private repositories may require manual Render permission setup.
+                  {t('deploy.privateWarning')}
                 </p>
               )}
             </>
@@ -184,7 +186,7 @@ export const DeployDialog: React.FC<DeployDialogProps> = ({
           {isAgentDeploy && showPersonalizationOption && (
             <>
               <label className="flex items-center justify-between gap-3 rounded-md border border-border/70 px-3 py-2 text-sm">
-                Personalization
+                {t('deploy.fields.personalization')}
                 <input
                   type="checkbox"
                   checked={includePersonalization}
@@ -193,7 +195,7 @@ export const DeployDialog: React.FC<DeployDialogProps> = ({
               </label>
               {includePersonalization && (
                 <p className="rounded-md border border-sky-200 bg-sky-50 px-3 py-2 text-xs text-sky-800 dark:border-sky-800 dark:bg-sky-900/30 dark:text-sky-300">
-                  The deployed agent will authenticate users and serve the personalized variant matching each user's profile.
+                  {t('deploy.personalizationNote')}
                 </p>
               )}
             </>
@@ -201,10 +203,10 @@ export const DeployDialog: React.FC<DeployDialogProps> = ({
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={() => handleOpenChange(false)} disabled={isDeploying}>
-            Cancel
+            {t('common.cancel')}
           </Button>
           <Button onClick={onPublish} disabled={isDeploying || !validation.isValid} className="bg-brand text-brand-foreground hover:bg-brand-dark">
-            {isDeploying ? 'Publishing...' : publishLabel}
+            {isDeploying ? t('deploy.actions.publishing') : publishLabel}
           </Button>
         </DialogFooter>
       </DialogContent>

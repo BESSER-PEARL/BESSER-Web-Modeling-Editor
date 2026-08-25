@@ -1,0 +1,2473 @@
+{
+  "common": {
+    "connecting": "Connecting...",
+    "cancel": "Cancel",
+    "save": "Save",
+    "close": "Close",
+    "delete": "Delete",
+    "confirm": "Confirm",
+    "loading": "Loading...",
+    "yes": "Yes",
+    "no": "No"
+  },
+  "topbar": {
+    "language": "Language",
+    "openProjectHub": "Open project hub",
+    "projectName": "Project name",
+    "diagramTitle": "Diagram title",
+    "noDiagram": "No Diagram",
+    "variant": "Variant",
+    "selectAgentVariant": "Select agent model variant",
+    "baseAgentModel": "Base agent model",
+    "switchToLight": "Switch to light mode",
+    "switchToDark": "Switch to dark mode",
+    "star": "Star",
+    "starBesser": "Star BESSER on GitHub",
+    "githubAccount": "GitHub account: {{name}}",
+    "signOut": "Sign Out",
+    "githubVersionControl": "GitHub Version Control",
+    "toggleGithubPanel": "Toggle GitHub version control panel",
+    "sync": "Sync",
+    "connectGithub": "Connect GitHub",
+    "quality": {
+      "title": "Quality Check",
+      "validated": "Validated",
+      "issues": "Issues",
+      "needsRecheck": "Needs recheck",
+      "notValidated": "Not validated"
+    }
+  },
+  "nav": {
+    "editors": "Editors",
+    "collapseSidebar": "Collapse sidebar",
+    "expandSidebar": "Expand sidebar",
+    "diagram": {
+      "class": "Class",
+      "object": "Object",
+      "state": "State",
+      "agent": "Agent",
+      "bpmn": "BPMN",
+      "user": "User",
+      "neuralNet": "Neural Net",
+      "gui": "GUI",
+      "quantum": "Quantum"
+    },
+    "route": {
+      "settings": "Settings",
+      "agentCustomization": "Agent Customization",
+      "agentPersonalization": "Agent Personalization",
+      "agentMappings": "Agent Mappings"
+    }
+  },
+  "menu": {
+    "file": {
+      "title": "File",
+      "projectActions": "Project Actions",
+      "newOpenImport": "New / Open / Import Project",
+      "loadTemplate": "Load Template",
+      "exportProject": "Export Project",
+      "importClassDiagramFrom": "Import Class Diagram from",
+      "imageToProject": "Image to Project",
+      "kgToProject": "KG to Project",
+      "previewProject": "Preview Project"
+    },
+    "generate": {
+      "title": "Generate",
+      "generating": "Generating...",
+      "codeGeneration": "Code Generation",
+      "goToClassDiagram": "Go to Class Diagram",
+      "groups": {
+        "web": "Web",
+        "database": "Database",
+        "oop": "OOP",
+        "schema": "Schema",
+        "data": "Data"
+      },
+      "actions": {
+        "djangoProject": "Django Project",
+        "fullBackend": "Full Backend",
+        "webApplication": "Web Application",
+        "pythonClasses": "Python Classes",
+        "javaClasses": "Java Classes",
+        "pydanticModels": "Pydantic Models",
+        "besserAgent": "BESSER Agent",
+        "jsonObjectExport": "JSON Object Export",
+        "userProfileJson": "User Profile JSON",
+        "qiskitCode": "Qiskit Code"
+      },
+      "notices": {
+        "statemachine": "State machines are used as method implementations in Class Diagrams. Generate code from the Class Diagram.",
+        "unavailable": "Not yet available for this diagram"
+      }
+    },
+    "deploy": {
+      "title": "Deploy",
+      "deployment": "Deployment",
+      "connectGitHub": "Connect GitHub to Deploy",
+      "publishToRender": "Publish to Render"
+    },
+    "community": {
+      "title": "Community",
+      "contribute": "Contribute",
+      "githubRepository": "GitHub Repository",
+      "sendFeedback": "Send Feedback",
+      "userSurvey": "User Evaluation Survey",
+      "reportProblem": "Report a Problem"
+    },
+    "help": {
+      "title": "Help",
+      "howItWorks": "How does this editor work?",
+      "startTutorial": "Start Tutorial",
+      "keyboardShortcuts": "Keyboard Shortcuts",
+      "aboutBesser": "About BESSER"
+    }
+  },
+  "agentConfig": {
+    "loadingTitle": "Working on it...",
+    "loadingTitle_comment": "",
+    "loading": {
+      "preparing": "Preparing your configuration...",
+      "rules": "Applying predefined literature-based mapping to recommend a fitting configuration.",
+      "llm": "This might take a while to cook up the best LLM-based configuration for your selected user profile.",
+      "transform": "This might take a while to cook up the best transformed agent setup and apply it to your diagram."
+    },
+    "title": "Agent Customization",
+    "subtitle": "Tailor your agent to a specific user profile from the User Diagram. Adjust how it talks, looks, and behaves to match that audience, then save the result as a named configuration you can switch between later.",
+    "tabsAriaLabel": "Agent configuration sections",
+    "tab": {
+      "runtime": "Agent Runtime",
+      "personalization": "Personalization"
+    },
+    "loadSavedLabel": "Load a saved customization",
+    "activeBadgeTitleFallback": "Unnamed customization",
+    "activeLabel": "Active: {{name}}",
+    "unnamedShort": "Unnamed",
+    "selectAriaLabel": "Load a saved customization",
+    "noSavedYet": "No saved customizations yet",
+    "selectSaved": "Select a saved customization",
+    "load": "Load",
+    "section": {
+      "show": "Show",
+      "hide": "Hide"
+    },
+    "profileMapping": {
+      "title": "User Profile Mapping",
+      "description": "Select the user profile that should guide personalization and automatic configuration proposals.",
+      "label": "User Profile Mapping",
+      "noTabs": "No User Diagram tabs with models available yet",
+      "selectProfile": "Select a user profile",
+      "createFirst": "Create or load a User Diagram tab first.",
+      "statusLine": "Current project User Diagram status: {{status}}.",
+      "statusAvailable": "available",
+      "statusMissing": "missing"
+    },
+    "propose": {
+      "rules": "Automatically propose configuration using predefined rules",
+      "llm": "Automatically propose configuration using LLMs",
+      "rag": "Automatically propose configuration using RAG based"
+    },
+    "recommendation": {
+      "title": "Latest predefined-rule recommendation",
+      "matched_one": "{{count}} literature-based rule matched.",
+      "matched_other": "{{count}} literature-based rules matched.",
+      "none": "No specific literature rule matched. Baseline defaults were preserved.",
+      "signals": "Detected signals: age {{age}}, languages {{languages}}, multilingual {{multilingual}}.",
+      "na": "n/a",
+      "matchedRuleFallback": "Matched rule"
+    },
+    "runtime": {
+      "title": "Agent Runtime",
+      "description": "Runtime settings for the active agent diagram (platform, intent recognition, LLM provider/model). These values live on the agent diagram itself, not in global storage.",
+      "platform": "Platform",
+      "platformWebSocket": "WebSocket",
+      "platformTelegram": "Telegram",
+      "useStreamlitUi": "Use Streamlit UI",
+      "intent": "Intent Recognition",
+      "intentClassical": "Classical",
+      "intentLlmBased": "LLM-based",
+      "llm": "LLM",
+      "useDefault": "(use default)",
+      "defineLlmHint": "Define an LLM in the LLMs section below to use it here."
+    },
+    "llms": {
+      "title": "LLMs",
+      "description": "LLMs available to the agent.",
+      "empty": "No LLMs defined yet. Click \"Add LLM\" to create one.",
+      "add": "Add LLM"
+    },
+    "row": {
+      "default": "Default",
+      "name": "Name",
+      "namePlaceholder": "e.g. gpt-4o-mini",
+      "provider": "Provider",
+      "numPrevMessages": "Number of previous messages",
+      "ollamaBaseUrl": "Base URL",
+      "ollamaModel": "Model",
+      "ollamaModelPlaceholder": "e.g. llama3, mistral, qwen2.5",
+      "parameters": "Parameters (JSON)",
+      "globalContext": "Global context (optional)",
+      "globalContextPlaceholder": "System-level context appended to every prompt",
+      "setDefault": "Set as default",
+      "remove": "Remove",
+      "unnamedLlm": "(unnamed LLM)",
+      "errors": {
+        "notObject": "Parameters must be a JSON object",
+        "invalidJson": "Invalid JSON"
+      }
+    },
+    "overview": {
+      "title": "Personalization Overview",
+      "description": "Open one section at a time to keep the same focused editing flow as in the previous version."
+    },
+    "presentation": {
+      "title": "Presentation",
+      "subtitle": "Language, style, readability, voice, and avatar."
+    },
+    "field": {
+      "language": "Language",
+      "style": "Style",
+      "languageComplexity": "Language Complexity",
+      "sentenceLength": "Sentence Length"
+    },
+    "language": {
+      "original": "Original",
+      "english": "English",
+      "spanish": "Spanish",
+      "french": "French",
+      "german": "German",
+      "portuguese": "Portuguese",
+      "luxembourgish": "Luxembourgish",
+      "italian": "Italian"
+    },
+    "style": {
+      "original": "Original",
+      "formal": "Formal",
+      "informal": "Informal",
+      "friendly": "Friendly",
+      "technical": "Technical"
+    },
+    "complexity": {
+      "original": "Original",
+      "simple": "Simple",
+      "medium": "Medium",
+      "complex": "Complex"
+    },
+    "sentence": {
+      "original": "Original",
+      "concise": "Concise",
+      "verbose": "Verbose"
+    },
+    "useAbbreviations": "Use abbreviations",
+    "interface": {
+      "heading": "Style of text in interface",
+      "size": "Size",
+      "font": "Font",
+      "lineSpacing": "Line Spacing",
+      "alignment": "Alignment",
+      "contrast": "Contrast"
+    },
+    "font": {
+      "sans": "Sans",
+      "serif": "Serif",
+      "monospace": "Monospace",
+      "neutral": "Neutral",
+      "grotesque": "Grotesque",
+      "condensed": "Condensed"
+    },
+    "alignment": {
+      "left": "Left",
+      "center": "Center",
+      "justify": "Justify"
+    },
+    "contrast": {
+      "low": "Low",
+      "medium": "Medium",
+      "high": "High"
+    },
+    "color": {
+      "label": "Color",
+      "help": "Pick a preset suited to different accessibility needs. The swatch shows the actual rendered color.",
+      "radiogroupAria": "Text color preset",
+      "customPrefix": "Current value:",
+      "customSuffix": "(custom — pick a preset above to replace it).",
+      "options": {
+        "default": {
+          "label": "Default (theme)",
+          "description": "Follows the active theme — adapts to light or dark mode."
+        },
+        "black": {
+          "label": "Black — high contrast",
+          "description": "Maximum readability on light backgrounds (WCAG AAA)."
+        },
+        "darkSlate": {
+          "label": "Dark slate — soft high contrast",
+          "description": "High contrast with reduced visual fatigue for long reading."
+        },
+        "slate": {
+          "label": "Slate — medium contrast",
+          "description": "Lower contrast, gentler for low-vision users on bright screens."
+        },
+        "blue": {
+          "label": "Blue — color-blind safe",
+          "description": "Distinguishable across protan and deutan color vision."
+        },
+        "teal": {
+          "label": "Teal — color-blind safe",
+          "description": "Reads as a clear hue across all common color-vision types."
+        },
+        "white": {
+          "label": "White — for dark backgrounds",
+          "description": "Maximum contrast when the agent renders on a dark surface."
+        }
+      }
+    },
+    "voice": {
+      "gender": "Voice Gender",
+      "male": "Male",
+      "female": "Female",
+      "ambiguous": "Ambiguous",
+      "speed": "Voice Speed"
+    },
+    "avatar": {
+      "label": "Avatar",
+      "remove": "Remove avatar"
+    },
+    "modality": {
+      "title": "Modality",
+      "subtitle": "Configure text plus optional speech input/output.",
+      "input": "Input Modalities",
+      "inputAlways": "Text input is always enabled.",
+      "enableSpeechInput": "Enable speech input",
+      "output": "Output Modalities",
+      "outputAlways": "Text output is always enabled.",
+      "enableSpeechOutput": "Enable speech output"
+    },
+    "content": {
+      "title": "Content",
+      "subtitle": "Adapt responses using the selected user profile mapping.",
+      "adapt": "Adapt content to user profile",
+      "profileNote": "The profile used for adaptation is selected in User Profile Mapping.",
+      "enableNote": "Enable this option to tailor generated responses to the selected profile and its attributes."
+    },
+    "behavior": {
+      "title": "Behavior",
+      "subtitle": "Define response timing and delivery style.",
+      "responseTiming": "Response Timing"
+    },
+    "timing": {
+      "instant": "Instant",
+      "delayed": "Simulated Thinking"
+    },
+    "save": {
+      "title": "Save this customization",
+      "defaultName": "Default Agent Configuration",
+      "description": "When you're done filling in the form above, name your customization and save it here. Saved customizations show up in the \"Load a saved customization\" picker at the top of the page so you can switch between them later.",
+      "nameLabel": "Customization Name",
+      "namePlaceholder": "Give this setup a name",
+      "activeBadge": "Active",
+      "unnamed": "Unnamed customization",
+      "notLinked": "Not linked to a saved customization yet.",
+      "savedLabel": "Saved Customizations",
+      "selectCustomization": "Select a customization",
+      "lastUpdated": "Last updated {{date}}",
+      "loadSelected": "Load Selected",
+      "applying": "Applying...",
+      "saveAndApply": "Save & Apply Configuration",
+      "resetDefaults": "Reset to Defaults",
+      "errors": {
+        "generic": "Failed to save configuration."
+      }
+    },
+    "yaml": {
+      "title": "Agent Configuration File (config.yaml)",
+      "description": "Edit the config.yaml file that will be included when generating the agent.",
+      "linkText": "Configuration properties reference ↗"
+    },
+    "yamlEditor": {
+      "tab": {
+        "form": "Form",
+        "raw": "Raw YAML"
+      },
+      "section": {
+        "agent": "Agent",
+        "nlp": "NLP",
+        "platforms": "Platforms",
+        "database": "Database (db)"
+      },
+      "syntaxError": "YAML syntax error:",
+      "customLabel": "Additional custom YAML properties",
+      "customDescription": "Any valid YAML added here is appended at the end of the generated config.yaml.",
+      "rawDescription": "Read-only view of the generated config.yaml content. Edit using the Form tab.",
+      "fields": {
+        "checkTransitionsDelay": "Delay in seconds between each transition evaluation cycle.",
+        "nlpLanguage": "Expected user language (ISO 639-1). Impacts NLP quality.",
+        "nlpRegion": "Language region (ISO 3166-1 alpha-2) for enhanced NLP processing.",
+        "nlpTimezone": "Timezone for datetime operations (tz database format).",
+        "nlpIntentThreshold": "Confidence threshold below which predictions fall back to fallback scenarios.",
+        "nlpPreProcessing": "Enables stemming to reduce words to base forms, improving generalization of user inputs.",
+        "hfToken": "API key needed to access the HuggingFace Inference API for LLM functionality.",
+        "mistralKey": "Mistral AI API key for model access.",
+        "deepseekKey": "DeepSeek API key for model access.",
+        "googleKey": "Google AI (Gemini) API key for model access.",
+        "metaKey": "Meta AI API key for Llama model access.",
+        "anthropicKey": "Anthropic API key for Claude model access.",
+        "qwenKey": "Alibaba DashScope API key for Qwen model access.",
+        "xaiKey": "xAI API key for Grok model access.",
+        "groqKey": "Groq API key for fast inference.",
+        "togetherKey": "Together AI API key for hosted model access.",
+        "openrouterKey": "OpenRouter API key for accessing models from many providers.",
+        "openaiKey": "OpenAI API key for LLM access.",
+        "replicateKey": "Replicate API key for model inference.",
+        "wsHost": "Server address for WebSocket connections.",
+        "wsPort": "Port number for WebSocket server.",
+        "wsStreamlitHost": "Host address for Streamlit UI deployment.",
+        "wsStreamlitPort": "Port for accessing Streamlit UI.",
+        "chatSize": "Default font size for chat messages in Streamlit.",
+        "chatFont": "Font family identifier for chat text.",
+        "chatLineSpacing": "Line height multiplier for chat messages.",
+        "chatAlignment": "Horizontal text alignment in chat interface.",
+        "chatColor": "Text color setting for chat display.",
+        "chatContrast": "Contrast level for text readability.",
+        "telegramToken": "Bot authentication token for Telegram API.",
+        "githubPersonalToken": "Personal Access Token for GitHub API authentication.",
+        "githubWebhookToken": "Secret token defined during webhook creation.",
+        "githubWebhookPort": "Local server port exposed/proxied to GitHub.",
+        "gitlabPersonalToken": "Personal Access Token for GitLab API authentication.",
+        "gitlabWebhookToken": "Secret token for webhook verification.",
+        "gitlabWebhookPort": "Local server port exposed/proxied to GitLab.",
+        "a2aPort": "Local port for inter-agent communication network.",
+        "dbDialect": "Database system identifier (e.g. postgresql)",
+        "dbHost": "Database server address",
+        "dbPort": "Database connection port",
+        "dbDatabase": "Database name",
+        "dbUsername": "Database user credentials",
+        "dbPassword": "Database authentication password"
+      }
+    },
+    "importExport": {
+      "title": "Import / Export",
+      "description": "Download or upload configuration files.",
+      "downloadJson": "Download JSON",
+      "uploadJson": "Upload JSON",
+      "uploadNote": "Uploading replaces the current form values but does not auto-save."
+    },
+    "confirm": {
+      "replace": "Replace",
+      "deleteConfig": "Delete configuration \"{{name}}\"?",
+      "overwrite": {
+        "title": "Replace existing configuration?",
+        "description": "A configuration named \"{{name}}\" already exists. Saving will replace it."
+      },
+      "profile": {
+        "title": "Replace existing user profile mapping?",
+        "description": "User profile \"{{profile}}\" is already mapped to configuration \"{{existing}}\". Saving will replace that mapping with \"{{next}}\"."
+      }
+    },
+    "toasts": {
+      "persistFailed": "Failed to update agent diagram.",
+      "noActiveDiagram": "No active agent diagram.",
+      "nameBeforeDefault": "Give the LLM a name before marking it as default.",
+      "selectToLoad": "Please select a configuration to load.",
+      "notFound": "The selected configuration could not be found.",
+      "loaded": "Configuration \"{{name}}\" loaded.",
+      "selectToDelete": "Please select a configuration to delete.",
+      "deleted": "Configuration deleted.",
+      "selectProfileFirst": "Please select a user profile mapping first.",
+      "profileUnavailable": "The selected user profile is not available. Please select a valid saved user profile.",
+      "signInGitHub": "Sign in to GitHub to use recommendations.",
+      "invalidMappingResponse": "Invalid mapping recommendation response received from backend.",
+      "ruleRecApplied_one": "Predefined-rule recommendation applied ({{count}} rule matched).",
+      "ruleRecApplied_other": "Predefined-rule recommendation applied ({{count}} rules matched).",
+      "ruleRecAppliedNone": "Predefined-rule recommendation applied. No specific rule matched, so defaults were preserved.",
+      "mappingRecFailed": "Failed to get mapping-based recommendation: {{message}}",
+      "mappingRecUnexpected": "An unexpected error occurred while requesting a predefined-rule recommendation.",
+      "ragSoon": "RAG-based automatic configuration proposal will be available soon.",
+      "invalidRecResponse": "Invalid recommendation response received from backend.",
+      "llmRecApplied": "LLM-based recommendation applied to the current configuration.",
+      "llmRecFailed": "Failed to get LLM recommendation: {{message}}",
+      "llmRecUnexpected": "An unexpected error occurred while requesting an LLM-based recommendation.",
+      "resetToDefaults": "Configuration reset to default values.",
+      "nameBeforeSave": "Please provide a configuration name before saving.",
+      "openDiagramFirst": "Please open an Agent diagram before saving and applying.",
+      "selectProfileBeforeApply": "Please select a user profile to map before saving and applying.",
+      "transformFailed": "Failed to transform agent model: {{message}}",
+      "transformTimeout": "Personalization is taking longer than expected. Try again with a shorter agent or fewer transformations.",
+      "transformApplied": "Configuration transformed, saved, and applied successfully.",
+      "saveLocalFailed": "Failed to save configuration locally.",
+      "transformUnexpected": "An unexpected error occurred while transforming the agent model.",
+      "uploadLoaded": "Configuration loaded from file. Remember to save it if you want it in your library.",
+      "invalidFile": "Invalid configuration file."
+    }
+  },
+  "generation": {
+    "generate": "Generate",
+    "deploy": "Deploy",
+    "defaultDiagramTitle": "Diagram",
+    "django": {
+      "title": "Django Project Configuration",
+      "description": "Configure names and containerization options for Django generation.",
+      "projectName": "Project Name",
+      "appName": "App Name",
+      "includeDocker": "Include Docker containerization"
+    },
+    "sql": {
+      "title": "SQL Dialect Selection",
+      "description": "Choose the SQL dialect for generated DDL statements.",
+      "dialect": "Dialect",
+      "selectDialect": "Select SQL dialect"
+    },
+    "sqlAlchemy": {
+      "title": "SQLAlchemy DBMS Selection",
+      "description": "Choose the database system for generated SQLAlchemy code.",
+      "dbms": "DBMS",
+      "selectDbms": "Select DBMS"
+    },
+    "supabase": {
+      "title": "Supabase Configuration",
+      "descriptionBefore": "Generates Postgres DDL with UUID PKs,",
+      "descriptionAfter": "mirroring, and Row Level Security. Specify which class in your diagram maps to auth.users.",
+      "userRootLabel": "User-root class name",
+      "hintBefore": "Leave blank to skip auth integration (no",
+      "hintMiddle": "mirror, no RLS). Default:"
+    },
+    "jsonSchema": {
+      "title": "JSON Schema Mode",
+      "description": "Pick regular JSON schema or NGSI-LD smart data mode.",
+      "mode": "Mode",
+      "selectMode": "Select mode",
+      "regular": "Regular JSON Schema"
+    },
+    "agent": {
+      "title": "Select Agent Languages",
+      "description": "Configure source and target languages for agent translation.",
+      "noSavedConfig": "No saved configuration found. The agent will be generated with the default configuration.",
+      "configureTechnologies": "Configure agent technologies",
+      "sourceLanguage": "Source language (optional)",
+      "addSpokenLanguage": "Add spoken language for agent translation",
+      "selectLanguage": "Select language...",
+      "addLanguage": "Add Language",
+      "translatedToAll": "The agent will be translated to all selected spoken languages.",
+      "warningAriaLabel": "warning",
+      "moreLanguagesWarning": "Adding more languages will increase the generation time.",
+      "systemConfiguration": "System configuration",
+      "editInAgentConfig": "Edit in Agent Config",
+      "platform": "Platform",
+      "platformStreamlit": "WebSocket with Streamlit UI (legacy)",
+      "platformWebSocket": "WebSocket",
+      "platformWebSocketStreamlit": "WebSocket with Streamlit UI",
+      "platformTelegram": "Telegram",
+      "intentRecognition": "Intent Recognition",
+      "classical": "Classical",
+      "llmBased": "LLM-based",
+      "systemConfigHint": "These values come from the System Configuration tab in Agent Config and are used for every generation.",
+      "personalizationStrategy": "Personalization Strategy",
+      "none": "None",
+      "personalizationAll": "Personalization (all)",
+      "personalizationAllHint": "Sends all available profile-to-configuration personalization mappings to the backend.",
+      "personalizationNoneHint": "Generates without attaching saved personalization variants or advanced configuration payloads.",
+      "mode": "Mode",
+      "modeOriginal": "Original",
+      "modeConfiguration": "Configuration",
+      "modePersonalization": "Personalization",
+      "selectMappings": "Select profile → configuration mappings",
+      "selectStoredConfigs": "Select stored configurations",
+      "noMappingsFound": "No mappings with generated agents found. Create mappings and run \"Save & Apply\" first.",
+      "mappingsListHint": "Only mappings whose target configuration already has a generated agent are listed.",
+      "noStoredConfigsFound": "No saved configurations with generated agents found. Use \"Save & Apply\" first to make them available here.",
+      "storedConfigsListHint": "Select one or more configurations (only entries with generated agents are listed) to include in the request. This will generate one agent per configuration.",
+      "selectedLanguages": "Selected Languages",
+      "removeLanguage": "Remove {{language}} language",
+      "languages": {
+        "english": "English",
+        "french": "French",
+        "german": "German",
+        "luxembourgish": "Luxembourgish",
+        "portuguese": "Portuguese",
+        "spanish": "Spanish"
+      }
+    },
+    "qiskit": {
+      "title": "Qiskit Backend Configuration",
+      "description": "Choose execution backend and number of shots.",
+      "executionBackend": "Execution Backend",
+      "selectBackend": "Select backend",
+      "backendAerSimulator": "Aer Simulator (Local)",
+      "backendMockSimulation": "Mock Simulation (Noise Simulation)",
+      "backendIbmQuantum": "IBM Quantum (Real Hardware)",
+      "numberOfShots": "Number of Shots",
+      "shotsLabel": "Shots"
+    },
+    "webApp": {
+      "title": "Web Application Generator",
+      "description": "The following diagrams will be used for generation.",
+      "required": "Required",
+      "optional": "Optional",
+      "referencesHint": "If the Class or GUI diagram is not correct, change the references in the diagram tabs before generating.",
+      "noProjectLoaded": "No project is loaded. Create or load a project first.",
+      "untitled": "(untitled)",
+      "missing": "(missing)",
+      "emptyWillBeSkipped": " (empty - will be skipped)",
+      "referencesClassDiagram": "References: Class Diagram \"{{title}}\"",
+      "diagramRequired": "This diagram is required for Web App generation.",
+      "diagramEmpty": "This diagram is empty. Generation may produce incomplete results.",
+      "noAgentDiagrams": "No Agent Diagrams in project",
+      "agentDiagramsHint": "Agent diagrams are linked per-component inside the GUI editor (drag & drop).",
+      "classDiagramLabel": "Class Diagram",
+      "guiDiagramLabel": "GUI Diagram",
+      "agentDiagramsLabel": "Agent Diagrams",
+      "agentDiagramsAvailable": "{{count}} available (configured per-component in GUI)",
+      "noneAvailable": "None available",
+      "versions": "Versions",
+      "versionsDescription": "Some pages have personalized variants. Choose which version(s) to generate. Each version uses a page's variant where it exists, and the Base page otherwise.",
+      "versionBase": "Base only",
+      "versionProfile": "Single profile",
+      "versionAll": "All versions",
+      "selectProfile": "Select a profile",
+      "versionAllHint": "The download will contain one subfolder per version (base + each profile)."
+    },
+    "toasts": {
+      "validationFailed": "Validation failed",
+      "noDiagram": "No diagram to generate code from",
+      "localDeploymentInProgress": "Local deployment in progress... This may take a few minutes.",
+      "httpError": "HTTP error! status: {{status}}",
+      "localDeploymentCompleted": "Local deployment completed!",
+      "accessApplicationAt": "You can now access your application at: ",
+      "unknownDeploymentError": "Unknown error occurred during deployment",
+      "noProjectAvailable": "No project available for code generation",
+      "codeGenerationCompleted": "Code generation completed successfully",
+      "requestTimedOut": "Request timed out. Please try again.",
+      "unknownError": "Unknown error occurred",
+      "createOrLoadProject": "Create or load a project before generating code.",
+      "couldNotSwitchToGui": "Could not switch to GUI diagram for auto-generation.",
+      "guiEditorNotReady": "GUI editor did not become ready in time.",
+      "couldNotAutoGenerateGui": "Could not auto-generate GUI from Class Diagram.",
+      "guiDiagramEmpty": "Cannot generate web application: GUI diagram is empty.",
+      "openQuantumEditor": "Open the Quantum editor before generating Qiskit code.",
+      "openNnEditor": "Open the NN Diagram editor before generating neural network code.",
+      "switchToUmlDiagram": "Switch to a UML diagram to use this generator.",
+      "noUmlEditor": "No UML editor instance available. Open a UML diagram first.",
+      "switchToObjectOrUserDiagram": "Switch to an Object Diagram or User Diagram to use the JSON Object generator.",
+      "generationFailed": "Generation failed: {{error}}",
+      "createOrLoadProjectValidate": "Create or load a project before validating.",
+      "comingSoon": "coming soon",
+      "noDiagramToValidate": "No diagram available to validate",
+      "qualityCheckFailed": "Quality check failed: {{error}}",
+      "namesRequired": "Project and app names are required.",
+      "namesMustDiffer": "Project and app names must be different.",
+      "namesInvalid": "Names must start with a letter/underscore and contain only letters, numbers, and underscores.",
+      "openUmlBeforeDeploy": "Open a UML diagram before deploying.",
+      "noValidPersonalizationMappings": "No valid personalization mappings found. Create mappings and save personalized variants first."
+    },
+    "context": {
+      "djangoGeneration": "Django generation",
+      "djangoDeployment": "Django deployment",
+      "sqlGeneration": "SQL generation",
+      "supabaseGeneration": "Supabase generation",
+      "sqlAlchemyGeneration": "SQLAlchemy generation",
+      "jsonSchemaGeneration": "JSON Schema generation",
+      "agentGeneration": "Agent generation",
+      "qiskitGeneration": "Qiskit generation",
+      "webAppGeneration": "Web App generation"
+    },
+    "overlay": {
+      "subtitle": "Please wait while your code is being generated",
+      "title": "Generating Code",
+      "stepPackaging": "Packaging output...",
+      "stepGenerating": "Generating code...",
+      "stepParsing": "Parsing diagram..."
+    }
+  },
+  "project": {
+    "field": {
+      "name": "Name",
+      "owner": "Owner",
+      "description": "Description"
+    },
+    "hub": {
+      "stepBadge": "Step {{current}} of {{total}}",
+      "back": "Back",
+      "unknownError": "Unknown error",
+      "create": {
+        "title": "Create A Project",
+        "description": "Define project metadata and start modeling from scratch.",
+        "detailsTitle": "Project Details",
+        "detailsDescription": "Give your workspace a name and description.",
+        "submit": "Create Project",
+        "tip": "Tip: pick a modeling perspective to focus the workspace on the diagrams you need."
+      },
+      "import": {
+        "title": "Import A Project",
+        "description": "Load an exported project file and continue where you left off.",
+        "cardTitle": "Import Project File",
+        "cardDescription": "Supported formats: .json, .py.",
+        "dropAria": "Drop a file or click to browse",
+        "dropPrompt": "Drop a file here or click to browse",
+        "dropHint": "JSON or Python project files"
+      },
+      "spreadsheet": {
+        "title": "Start From Spreadsheet",
+        "description": "Create a project and auto-generate a class diagram from CSV/XLSX files.",
+        "cardTitle": "Spreadsheet Input",
+        "cardDescription": "Create project metadata and upload source files.",
+        "sourceFiles": "Source Files",
+        "selectFiles": "Select CSV / XLSX Files",
+        "submit": "Create From Spreadsheet",
+        "howTitle": "How It Works",
+        "step1": "Project is created first with your metadata.",
+        "step2": "Spreadsheet files are converted to a class diagram.",
+        "step3": "Generated class diagram is imported into the project automatically.",
+        "accepted": "Accepted: .csv, .xlsx, .xls"
+      },
+      "open": {
+        "title": "Open Existing Project",
+        "description": "Pick any saved project and re-enter your workspace instantly.",
+        "allProjects": "All Projects"
+      },
+      "start": {
+        "title": "Welcome to the BESSER Web Modeling Editor",
+        "description": "Choose how you want to start your modeling session and open your workspace.",
+        "heroTitle": "Start Your Modeling Workspace",
+        "heroBody": "BESSER (Better Smart Software Faster) is an open-source model-driven platform for UML design, generation, and deployment. Choose a path below to bootstrap your project quickly.",
+        "cardCreate": {
+          "title": "Create Blank",
+          "description": "Start from scratch with all editors available."
+        },
+        "cardSpreadsheet": {
+          "title": "From Spreadsheet",
+          "description": "Auto-generate a class diagram from CSV/XLSX files."
+        },
+        "cardImport": {
+          "title": "Import Project",
+          "description": "Load an exported .json or .py project."
+        },
+        "existingProjects": "Existing Projects",
+        "viewAll": "View all projects",
+        "noProjects": "No projects yet.",
+        "warningBanner": "Create, import, or open a project to enter the workspace."
+      },
+      "perspective": {
+        "label": "Modeling perspective",
+        "helper": "Tailors which diagrams appear in the sidebar. You can change this later in Settings."
+      },
+      "list": {
+        "emptyHint": "No projects yet. Create one to get started.",
+        "noDescription": "No description provided.",
+        "active": "Active",
+        "open": "Open",
+        "deleteAria": "Delete project {{name}}"
+      },
+      "deleteConfirm": {
+        "title": "Delete Project",
+        "description": "Delete project \"{{name}}\"? This action cannot be undone."
+      },
+      "toasts": {
+        "created": "Project \"{{name}}\" created.",
+        "createFailed": "Could not create project: {{error}}",
+        "loaded": "Project loaded.",
+        "loadFailed": "Could not load project: {{error}}",
+        "deleted": "Deleted project \"{{name}}\".",
+        "deleteFailed": "Could not delete project: {{error}}",
+        "imported": "Imported project \"{{name}}\".",
+        "importFailed": "Import failed: {{error}}",
+        "unsupportedFileType": "Unsupported file type. Please drop a .json or .py file.",
+        "noSpreadsheetFile": "Select at least one CSV/XLSX file.",
+        "spreadsheetGenerateFailed": "Could not generate class diagram from spreadsheet.",
+        "spreadsheetCreated": "Project \"{{name}}\" created and class diagram imported.",
+        "spreadsheetImportFailed": "Spreadsheet import failed: {{error}}"
+      }
+    },
+    "settings": {
+      "title": "Project Settings",
+      "subtitle": "Manage metadata, diagrams, and display preferences",
+      "exportProject": "Export Project",
+      "exporting": "Exporting...",
+      "loadingProject": "Loading project...",
+      "noProject": "Open or create a project to edit settings.",
+      "unknownError": "Unknown error",
+      "general": {
+        "title": "General",
+        "description": "Basic project information",
+        "projectName": "Project Name",
+        "created": "Created",
+        "activeEditor": "Active Editor"
+      },
+      "display": {
+        "title": "Display",
+        "description": "Configure how diagrams are rendered",
+        "showInstancedObjects": "Show Instanced Objects",
+        "showInstancedObjectsDesc": "Toggle object instance visibility",
+        "showAssociationNames": "Show Association Names",
+        "showAssociationNamesDesc": "Toggle association name visibility",
+        "propertiesPanel": "Properties Panel",
+        "propertiesPanelDesc": "Use right-side panel instead of floating popover",
+        "classNotation": "Class Diagram Notation",
+        "classNotationDesc": "UML (default) shows standard UML classes; ER shows a Chen-style entity/relationship rendering"
+      },
+      "diagrams": {
+        "title": "Diagrams",
+        "countWithContent_one": "{{count}} diagram with content",
+        "countWithContent_other": "{{count}} diagrams with content",
+        "noneWithContent": "No diagrams with content yet",
+        "updated": "Updated {{date}}",
+        "empty": "Start editing a diagram to see it here"
+      },
+      "perspectives": {
+        "title": "Modeling Perspectives",
+        "description": "Hide perspectives you don't need. Use a preset to flip several at once, or toggle each individually below. Disabled perspectives are removed from the sidebar; existing models are preserved and restored on re-enable. Generators remain available regardless.",
+        "quickPresets": "Quick presets",
+        "lastEnabledTitle": "At least one perspective must be enabled.",
+        "toggleAria": "Toggle {{label}} visibility",
+        "presets": {
+          "data": {
+            "label": "Data Modeler",
+            "description": "Class + object diagrams (covers OOP, schemas, SQL, SQLAlchemy)."
+          },
+          "agent": {
+            "label": "Agent Developer",
+            "description": "Agent and user diagrams for conversational agents."
+          },
+          "fullApp": {
+            "label": "Full Web Application",
+            "description": "Class, agent, and no-code GUI diagrams."
+          },
+          "quantum": {
+            "label": "Quantum",
+            "description": "Quantum circuit diagrams only."
+          },
+          "all": {
+            "label": "Show All",
+            "description": "Every supported perspective."
+          }
+        },
+        "diagrams": {
+          "ClassDiagram": "Structural / data modeling, including OCL constraints attached to classes.",
+          "ObjectDiagram": "Instances of a class diagram, used for tests and OCL validation.",
+          "StateMachineDiagram": "State-based behavior modeling.",
+          "AgentDiagram": "Conversational / AI agent specification.",
+          "UserDiagram": "Actors and their interactions.",
+          "GUINoCodeDiagram": "Graphical user interface design (IFML-inspired).",
+          "QuantumCircuitDiagram": "Quantum program specification.",
+          "BPMN": "Business Process Model and Notation.",
+          "NNDiagram": "Neural network architecture (PyTorch / TensorFlow)."
+        }
+      },
+      "toasts": {
+        "updatePerspectiveFailed": "Failed to update perspective",
+        "applyPresetFailed": "Failed to apply preset",
+        "exported": "Project exported successfully.",
+        "exportFailed": "Failed to export project: {{error}}"
+      }
+    },
+    "templates": {
+      "title": "Load Template",
+      "description": "Start from ready-made UML, agent, state machine, quantum templates, or full-project bundles.",
+      "loadTemplate": "Load Template",
+      "multiDiagramProject": "Multi-diagram project",
+      "unknownError": "Unknown error",
+      "categories": {
+        "Creational": "Creational",
+        "Class Diagram": "Class Diagram",
+        "Behavioral": "Behavioral",
+        "Agent Diagram": "Agent Diagram",
+        "State Machine Diagram": "State Machine Diagram",
+        "Quantum Circuit": "Quantum Circuit",
+        "Neural Network": "Neural Network",
+        "Full Project": "Full Project"
+      },
+      "confirm": {
+        "title": "Existing diagram detected",
+        "body": "You already have a <strong>{{type}}</strong>. How would you like to load the template?",
+        "newTab": "New tab",
+        "replace": "Replace"
+      },
+      "toasts": {
+        "loadedProjectTemplate": "Loaded project template \"{{name}}\"",
+        "loadFailed": "Failed to load template: {{error}}"
+      }
+    },
+    "toasts": {
+      "createOrLoadFirst": "Create or load a project first."
+    },
+    "preview": {
+      "toasts": {
+        "jsonCopied": "Project JSON copied.",
+        "jsonCopyFailed": "Failed to copy project JSON.",
+        "bumlFailedFallback": "Failed to generate B-UML preview.",
+        "bumlFailed": "Failed to generate B-UML preview: {{message}}",
+        "noBumlToCopy": "No B-UML preview to copy.",
+        "bumlCopied": "Project B-UML copied.",
+        "bumlCopyFailed": "Failed to copy B-UML preview.",
+        "noBumlToDownload": "No B-UML preview to download."
+      }
+    }
+  },
+  "github": {
+    "sync": "GitHub Sync",
+    "closeSidebar": "Close GitHub sidebar",
+    "fullPath": "Full path:",
+    "folderPathLabel": "Folder Path (optional)",
+    "folderPathPlaceholder": "e.g., projects/my-models",
+    "fileNameLabel": "File Name",
+    "defaultRepoDescription": "BESSER project: {{name}}",
+    "defaultGistDescription": "BESSER Project: {{name}}",
+    "connect": {
+      "title": "Connect to GitHub",
+      "subtitle": "Sign in to sync your projects with GitHub.",
+      "button": "Connect GitHub"
+    },
+    "noProject": {
+      "title": "No Project Selected",
+      "subtitle": "Open or create a project to use GitHub sync."
+    },
+    "notLinked": {
+      "title": "Link a Repository",
+      "subtitle": "Connect this project to a GitHub repo for version control.",
+      "linkExisting": "Link Existing",
+      "createNew": "Create New"
+    },
+    "linked": {
+      "repository": "Repository",
+      "checking": "Checking...",
+      "unsavedChanges": "You have unsaved changes",
+      "upToDate": "Up to date",
+      "push": "Push",
+      "pull": "Pull",
+      "history": "History",
+      "refreshHistory": "Refresh commit history",
+      "latest": "Latest",
+      "clickToRestore": "Click to restore",
+      "noCommits": "No commits yet",
+      "share": "Share",
+      "createSecretGist": "Create Secret Gist"
+    },
+    "settings": {
+      "title": "Settings",
+      "autoCommit": "Auto-commit",
+      "enabledWithInterval": "Enabled ({{minutes}}m)",
+      "disabled": "Disabled",
+      "intervalLabel": "Interval (minutes)",
+      "interval5": "5 minutes",
+      "interval10": "10 minutes",
+      "interval15": "15 minutes",
+      "interval30": "30 minutes",
+      "interval60": "1 hour",
+      "autoSaving": "Auto-saving..."
+    },
+    "linkModal": {
+      "goBack": "Go back to repository selection",
+      "titleSelect": "Link to Repository",
+      "titleConfigure": "Configure Link",
+      "descriptionSelect": "Select a repository to sync your project with.",
+      "descriptionConfigure": "Set branch and file path for this project sync.",
+      "private": "Private",
+      "updated": "Updated: {{date}}",
+      "noRepositories": "No repositories found",
+      "branch": "Branch",
+      "browseFiles": "Browse repository files",
+      "browseHint": "Pick an existing project file without typing the path.",
+      "checkFileExists": "Check if file exists",
+      "fileExistsPrompt": "File already exists in repository. Choose how to proceed:",
+      "loadAndLinkRecommended": "Load & link (recommended)",
+      "linkWithoutLoading": "Link without loading (may overwrite)",
+      "filePathAvailable": "File path is available. Click \"Link Repository\" to continue.",
+      "loadAndLink": "Load & Link",
+      "linkRepository": "Link Repository",
+      "selectProjectFile": "Select project file"
+    },
+    "fileBrowser": {
+      "selectFile": "Select File",
+      "loadFailed": "Failed to load directory contents",
+      "root": "root",
+      "upOneLevel": "Up one level",
+      "emptyDirectory": "Empty directory",
+      "dirHint": "Navigate to the target folder, then click \"Select Current Folder\".",
+      "selectCurrentFolder": "Select Current Folder"
+    },
+    "commit": {
+      "title": "Push to GitHub",
+      "description": "Write a commit message for your changes.",
+      "messageLabel": "Commit Message",
+      "messagePlaceholder": "Describe your changes...",
+      "pushing": "Pushing...",
+      "push": "Push"
+    },
+    "gist": {
+      "title": "Create Gist",
+      "description": "Create a GitHub Gist to quickly share your project.",
+      "descriptionLabel": "Description",
+      "descriptionPlaceholder": "Gist description...",
+      "publicGist": "Public Gist",
+      "secretHint": "Secret gists are hidden from search engines but visible to anyone with the link.",
+      "creating": "Creating...",
+      "createGist": "Create Gist"
+    },
+    "createRepo": {
+      "title": "Create Repository",
+      "description": "Create a new GitHub repository and push the current project.",
+      "repoNameLabel": "Repository Name",
+      "repoNameHelper": "Only lowercase letters, numbers, dashes, and underscores are allowed.",
+      "descriptionLabel": "Description",
+      "descriptionPlaceholder": "Optional description...",
+      "privateRepository": "Private repository",
+      "creating": "Creating...",
+      "create": "Create"
+    },
+    "restore": {
+      "title": "Restore Version",
+      "description": "Your current unsaved changes will be lost. Consider pushing your current work first.",
+      "confirmQuestion": "Restore this commit?",
+      "restoring": "Restoring...",
+      "restoreButton": "Restore This Version"
+    },
+    "context": {
+      "loadingDirectory": "Loading directory contents",
+      "githubPush": "GitHub push",
+      "githubPull": "GitHub pull",
+      "fetchingRepositories": "Fetching repositories",
+      "fetchingCommits": "Fetching commits",
+      "checkingChanges": "Checking for changes",
+      "selectingRepository": "Selecting repository",
+      "checkingFile": "Checking file existence",
+      "linkingRepository": "Linking repository",
+      "creatingRepository": "Creating repository",
+      "committing": "Committing to GitHub",
+      "restoringCommit": "Restoring commit",
+      "creatingGist": "Creating gist"
+    },
+    "toasts": {
+      "loadProjectFailed": "Failed to load project",
+      "couldNotLoadProjectData": "Could not load project data",
+      "projectPulled": "Project pulled from GitHub",
+      "projectLoadedFromRepo": "Project loaded from GitHub repository",
+      "loadFromRepoFailedLinking": "Could not load from repo; linking without loading.",
+      "linkedReconnectToPush": "Repository linked. Reconnect GitHub to push the initial project file.",
+      "linkedInitialPushReadFailed": "Repository linked, but initial push failed because the local project could not be read.",
+      "initialSyncCommitMessage": "Initial sync from BESSER Web Modeling Editor",
+      "linkedInitialPushFailed": "Repository linked, but initial push failed. You can push manually from GitHub Sync.",
+      "couldNotLoadRepoContents": "Could not load repository contents",
+      "repoUnlinked": "Repository unlinked",
+      "alreadyLatest": "This is already the latest version",
+      "projectRestored": "Project restored from selected commit",
+      "authFailed": "GitHub authentication failed: {{error}}",
+      "signedInAs": "Signed in as {{username}}",
+      "autoSaveCommitMessage": "Auto-save: {{timestamp}}",
+      "autoSaved": "Auto-saved to GitHub",
+      "noProjectToDeploy": "No project to deploy.",
+      "notSignedIn": "Not signed in to GitHub.",
+      "repoUpdated": "Repository updated: {{name}}",
+      "repoCreated": "Repository created: {{name}}",
+      "deploymentFailed": "Deployment failed",
+      "repoCreationFailed": "Repository creation failed",
+      "requestTimedOut": "Request timed out. Please try again.",
+      "fetchReposFailed": "Failed to fetch GitHub repositories",
+      "repoLinkedPushToSync": "Repository linked! Push to sync your project.",
+      "fetchCommitsFailed": "Failed to fetch commit history",
+      "saveProjectFailed": "Failed to save project to GitHub",
+      "projectSaved": "Project saved to GitHub!",
+      "saveProjectFailedShort": "Failed to save project",
+      "loadProjectFromGitHubFailed": "Failed to load project from GitHub",
+      "loadFromCommitFailed": "Failed to load project from commit",
+      "restoredFromCommitFallback": "commit",
+      "restoredVersionFrom": "Restored version from {{source}}",
+      "createRepoFailed": "Failed to create repository",
+      "repoCreatedQuoted": "Repository \"{{name}}\" created!",
+      "createGistFailed": "Failed to create Gist",
+      "gistCreated": "Gist created successfully!",
+      "invalidGitHubUrl": "Invalid GitHub URL. Please provide a valid GitHub repository URL.",
+      "fetchingFromGitHub": "Fetching {{filename}} from GitHub...",
+      "fileNotFound": "File not found on GitHub. Please check the URL and try again.",
+      "fetchFileFailed": "Failed to fetch file from GitHub: {{status}}",
+      "importProjectSuccess": "Successfully imported project: {{name}}",
+      "importModelFailed": "Failed to import model from GitHub",
+      "starThanks": "Thanks for starring BESSER!",
+      "starFailed": "Failed to update star"
+    }
+  },
+  "assistant": {
+    "import": {
+      "titleImage": "Import Class Diagram from Image",
+      "titleKg": "Import Class Diagram from Knowledge Graph",
+      "description": "Use an OpenAI API key to convert your file to a class diagram and add it to the current project.",
+      "apiKeyLabel": "OpenAI API Key",
+      "uploadImageLabel": "Upload Diagram Image (PNG/JPEG)",
+      "uploadKgLabel": "Upload Knowledge Graph (TTL/RDF/JSON)",
+      "selected": "Selected: {{name}}",
+      "importing": "Importing...",
+      "import": "Import",
+      "errors": {
+        "noProject": "Create or load a project first.",
+        "imageType": "Only PNG or JPEG files are allowed.",
+        "kgType": "Only TTL, RDF, or JSON files are allowed.",
+        "importFailed": "Import failed: {{error}}"
+      }
+    },
+    "connection": {
+      "connected": "Connected",
+      "closing": "Closing…",
+      "reconnecting": "Reconnecting…",
+      "disconnected": "Disconnected",
+      "unknown": "Unknown"
+    },
+    "agentAvatarAlt": "Agent",
+    "modelingAssistant": "Modeling Assistant",
+    "byBesser": "by BESSER",
+    "welcome": {
+      "greeting": "Hi! I'm your Modeling Assistant",
+      "intro": "I can help you create and modify UML diagrams, generate code, and answer modeling questions. Try something like:",
+      "suggestions": {
+        "library": "Create a library management system",
+        "payment": "Add a Payment class with amount and date",
+        "django": "Generate Django code"
+      },
+      "headlinePre": "What would you like to",
+      "headlineEmphasis": "model",
+      "headlinePost": "today?",
+      "subtitle": "Describe your system in natural language. Get models, interfaces, and code.",
+      "pressEscPre": "Press",
+      "pressEscPost": "to close"
+    },
+    "composer": {
+      "placeholder": "Describe what you want to create or modify..."
+    },
+    "messageCount_one": "{{count}} msg",
+    "messageCount_other": "{{count}} msgs",
+    "fab": {
+      "open": "Open assistant",
+      "close": "Close assistant"
+    },
+    "privacy": {
+      "iconLabel": "Privacy and data processing",
+      "title": "Privacy and Data Processing",
+      "subtitle": "Important information about how the assistant processes modeling data.",
+      "noticeHeading": "Data processing notice:",
+      "body": "When you use the Modeling Assistant, your messages and diagram data are processed to provide AI-powered modeling support.",
+      "bullets": {
+        "sent": "Your diagram models and messages are sent to the AI service for processing.",
+        "encrypted": "Data is transmitted over encrypted connections.",
+        "processed": "Requests are processed to generate UML updates and modeling suggestions.",
+        "stored": "Conversation history is stored locally in your current browser session."
+      },
+      "privacyLabel": "Privacy:",
+      "privacyBody": "Avoid sharing sensitive or confidential information in assistant messages.",
+      "understand": "I Understand"
+    },
+    "poweredWithBaf": "Powered with BAF",
+    "capabilities": {
+      "systemDesign": {
+        "title": "System Design",
+        "body": "Data structures, workflows, agents, and more"
+      },
+      "visualInterfaces": {
+        "title": "Visual Interfaces",
+        "body": "Screens and layouts from descriptions"
+      },
+      "codeGeneration": {
+        "title": "Code Generation",
+        "body": "Complete WebApp, React, SQL, and more!"
+      }
+    },
+    "starterPrompts": {
+      "ecommerce": "Create an e-commerce system with customers, orders, and products",
+      "university": "Design a university enrollment system with students, courses, and professors",
+      "hospital": "Model a hospital management system with patients, doctors, and appointments",
+      "library": "Build a library management system with books, authors, and members",
+      "banking": "Create a banking system with accounts, transactions, and customers",
+      "social": "Design a social media platform with users, posts, and comments",
+      "restaurant": "Model a restaurant ordering system with menus, orders, and tables",
+      "project": "Create a project management tool with tasks, teams, and sprints",
+      "hotel": "Design a hotel booking web app with rooms, guests, and reservations",
+      "dashboard": "Design a dashboard for inventory management",
+      "libraryPlatform": "Build a complete library management platform with models and UI",
+      "taskApp": "Build a task management application with models and UI"
+    },
+    "chat": {
+      "newChat": "New Chat",
+      "newConversationTitle": "Start a new conversation"
+    },
+    "drawer": {
+      "pushToClose": "Push up to close assistant",
+      "pullToOpen": "Pull down to open assistant",
+      "pushUp": "Push up",
+      "pullDown": "Pull down assistant"
+    },
+    "generationCompleted": "Generation completed successfully.",
+    "exportingProject": "Exporting project as {{format}}…",
+    "startingDeployment": "Starting deployment…",
+    "generatingGui": "Generating GUI from your Class Diagram…",
+    "guiGenerated": "✓ GUI generated successfully from your Class Diagram!",
+    "convertThisFile": "Convert this file",
+    "convertFileToDiagram": "Convert this file to a diagram",
+    "reconnectingMessage": "Reconnecting to the assistant — your message will be sent automatically.",
+    "reconnectingVoice": "Reconnecting to the assistant — your voice message will be sent automatically.",
+    "tryAgain": "Try again",
+    "errors": {
+      "createTabFailed": "Could not create new tab: {{error}}",
+      "switchFailed": "Could not switch to {{type}}.",
+      "generationUnavailable": "Generation is not available in this context.",
+      "genericAgentError": "Something went wrong on the assistant side.",
+      "error": "Error",
+      "errorWithCode": "Error: {{code}}",
+      "guiSwitchFailed": "Could not switch to the GUI editor. Please switch manually and try again.",
+      "guiNotReady": "The GUI editor did not become ready in time. Please try again.",
+      "guiGenerateFailed": "Could not generate the GUI: {{error}}.",
+      "timedOut": "Timed out",
+      "noResponse": "No response",
+      "unknownError": "Unknown error",
+      "fileTooLarge": "File \"{{name}}\" is too large (max 10MB).",
+      "rateLimit": "Rate limit exceeded. Please wait before sending another message.",
+      "readFileFailed": "Could not read the attached file(s). Please try again.",
+      "sendFailed": "Could not send your message — please try again.",
+      "sendVoiceFailed": "Could not send your voice message — please try again.",
+      "voiceProcessFailed": "Could not process your voice message. Please try again.",
+      "backendUnreachable": "Could not reach the AI assistant — make sure the backend is running."
+    },
+    "chatKit": {
+      "copiedToClipboard": "Copied to clipboard!",
+      "copyFailed": "Failed to copy to clipboard.",
+      "copyToClipboard": "Copy to clipboard",
+      "copiedResponse": "Copied response to clipboard!",
+      "rateHelpful": "Rate response as helpful",
+      "rateUnhelpful": "Rate response as unhelpful",
+      "tryPrompts": "Try these prompts ✨",
+      "scrollToBottom": "Scroll to bottom",
+      "badge": {
+        "inProgress": "In progress",
+        "error": "Error",
+        "applied": "Applied",
+        "systemCreated": "System created",
+        "modified": "Modified",
+        "typing": "Typing"
+      },
+      "attachmentAlt": "Attachment {{name}}",
+      "toggleReasoning": "Toggle reasoning details",
+      "thinking": "Thinking",
+      "toolCancelled": "Cancelled",
+      "toolCalling": "Calling",
+      "toolResultFrom": "Result from",
+      "loading": "Loading...",
+      "removeAttachment": "Remove attachment",
+      "interruptPrompt": "Press Enter again to interrupt",
+      "close": "Close",
+      "pastedText": "Pasted text",
+      "promptAriaLabel": "Write your prompt here",
+      "attachFile": "Attach a file",
+      "stopAndSendVoice": "Stop and send voice message",
+      "startVoiceRecording": "Start voice recording",
+      "pressAgainToStop": "Press again to stop and send",
+      "stopGenerating": "Stop generating",
+      "sendMessage": "Send message",
+      "dropFiles": "Drop your files here to attach them.",
+      "transcribingAudio": "Transcribing audio...",
+      "recordingPrompt": "Recording... click here or press mic again to stop and send ({{time}})",
+      "stopSendVoiceTimer": "Stop & send voice message ({{time}})"
+    }
+  },
+  "deploy": {
+    "dialog": {
+      "publishTitle": "Publish to Render",
+      "existing": "Update the existing repository with your latest changes.",
+      "existingAgent": "Update the existing agent repository with your latest changes.",
+      "new": "Create a GitHub repository from the current project and deploy it on Render.",
+      "newAgent": "Create a GitHub repository from the active Agent diagram and deploy a standalone agent on Render."
+    },
+    "fields": {
+      "deploymentTarget": "Deployment Target",
+      "commitMessage": "Commit Message",
+      "commitMessageHelper": "Describe what changed (leave empty for default message)",
+      "commitMessagePlaceholder": "Update app",
+      "repoName": "Repository Name",
+      "repoNamePlaceholder": "my-awesome-app",
+      "description": "Description",
+      "descriptionPlaceholder": "Web application generated by BESSER",
+      "makePrivate": "Make repository private",
+      "personalization": "Personalization"
+    },
+    "targets": {
+      "webapp": "Web App (Class + GUI)",
+      "agent": "Standalone Agent"
+    },
+    "existing": {
+      "previouslyDeployed": "Previously deployed to:",
+      "filesPreserved": "Files you added manually will be preserved.",
+      "createNewInstead": "Create new repo instead"
+    },
+    "privateWarning": "Private repositories may require manual Render permission setup.",
+    "personalizationNote": "The deployed agent will authenticate users and serve the personalized variant matching each user's profile.",
+    "actions": {
+      "publish": "Publish to Render",
+      "publishAgent": "Publish Agent to Render",
+      "updatePublish": "Update & Publish",
+      "updatePublishAgent": "Update & Publish Agent",
+      "publishing": "Publishing..."
+    },
+    "result": {
+      "titleUpdated": "Repository Updated Successfully",
+      "titleUpdatedAgent": "Agent Repository Updated",
+      "titleCreated": "Repository Created Successfully",
+      "titleCreatedAgent": "Agent Repository Created",
+      "descUpdated": "Your changes were pushed to GitHub. Trigger a redeploy on Render to pick them up.",
+      "descUpdatedAgent": "Your agent changes were pushed to GitHub. Trigger a redeploy on Render to pick them up.",
+      "descCreated": "Continue with one-click Render deployment or inspect the generated repository.",
+      "descCreatedAgent": "Continue with one-click Render deployment for your standalone agent or inspect the generated repository.",
+      "filesUploaded": "{{count}} files uploaded.",
+      "notSeeingChanges": "Don't see your changes yet?",
+      "manualSyncIntro": "Open your Blueprint on Render and click",
+      "manualSyncLabel": "Manual Sync",
+      "manualSyncBody": ". That redeploys every service in the blueprint (backend, frontend, agents) from the latest commit in one click. Render's auto-deploy can miss pushes when the GitHub App isn't granted access to the repo, so Manual Sync is the reliable path.",
+      "manualSyncBodyAgent": ". That redeploys every service in the blueprint from the latest commit in one click. Render's auto-deploy can miss pushes when the GitHub App isn't granted access to the repo, so Manual Sync is the reliable path.",
+      "openLiveAgent": "Open Live Agent",
+      "openLiveApp": "Open Live App",
+      "openRenderDeployment": "Open Render Deployment",
+      "openBlueprint": "Open Render Blueprint",
+      "viewRepo": "View GitHub Repository"
+    },
+    "toasts": {
+      "availableFor": "Deploy is available for Web App and Agent diagrams.",
+      "connectGitHubFirst": "Connect to GitHub first.",
+      "requiresDiagrams": "Deploy requires Class + GUI diagrams (Web App) or at least one Agent diagram (Standalone Agent).",
+      "noProjectAvailable": "No project available for deployment.",
+      "githubSessionNotFound": "GitHub session not found. Please reconnect.",
+      "repoNameRequired": "Repository name is required.",
+      "noPersonalizationMappings": "No valid personalization mappings found. Save personalized variants before enabling this option."
+    }
+  },
+  "diagramTypes": {
+    "ClassDiagram": "Class Diagram",
+    "ObjectDiagram": "Object Diagram",
+    "StateMachineDiagram": "State Machine Diagram",
+    "AgentDiagram": "Agent Diagram",
+    "UserDiagram": "User Diagram",
+    "GUINoCodeDiagram": "GUI Diagram",
+    "QuantumCircuitDiagram": "Quantum Circuit Diagram",
+    "BPMN": "BPMN Diagram",
+    "NNDiagram": "Neural Network Diagram"
+  },
+  "dialogs": {
+    "about": {
+      "title": "About BESSER",
+      "tagline": "Building Better Smart Software Faster",
+      "para1": "BESSER is a low-code platform for smart software modeling and code generation. It provides a Python-based metamodel (B-UML) for describing domain models, state machines, GUI designs, agents, and more.",
+      "para2": "The <brand>Web Modeling Editor</brand> is the online visual editor for creating and editing BESSER models, generating code, and deploying applications.",
+      "besserRepository": "BESSER Repository",
+      "wmeRepository": "WME Repository",
+      "libraryRepository": "Package Repository"
+    },
+    "shortcuts": {
+      "title": "Keyboard Shortcuts",
+      "description": "Available keyboard shortcuts across the editor.",
+      "category": {
+        "general": "General",
+        "guiEditor": "GUI Editor",
+        "quantumEditor": "Quantum Editor",
+        "help": "Help"
+      },
+      "action": {
+        "commandPalette": "Open command palette",
+        "undo": "Undo",
+        "redo": "Redo",
+        "redoAlt": "Redo (alternative)",
+        "deleteElement": "Delete selected element",
+        "moveElement": "Move selected element",
+        "closeDeselect": "Close panel / deselect",
+        "save": "Save",
+        "copyComponent": "Copy component",
+        "pasteComponent": "Paste component",
+        "duplicateComponent": "Duplicate component",
+        "togglePreview": "Toggle preview",
+        "exportTemplate": "Export template",
+        "showJson": "Show JSON",
+        "selectParent": "Select parent component",
+        "copyGate": "Copy selected gate",
+        "pasteGate": "Paste gate",
+        "showShortcuts": "Show keyboard shortcuts"
+      }
+    },
+    "guide": {
+      "title": "How The Editor Works",
+      "description": "Complete modeling guide with examples and visuals.",
+      "diagramTypesHeading": "Diagram Types",
+      "noImage": "No image for this item.",
+      "openDocs": "Open BESSER Docs",
+      "openWmeRepo": "Open WME Repository",
+      "class": {
+        "label": "Class Diagram",
+        "summary": "Model classes, relationships, constraints, and advanced UML structures.",
+        "addClass": {
+          "title": "Add Class",
+          "body": "<p>Drag and drop a class shape from the left palette onto the modeling canvas.</p>",
+          "alt": "Create class element"
+        },
+        "addAssociation": {
+          "title": "Add Association Or Generalization",
+          "body": "<p>Select a source class, then drag from a blue connection point to another class. For multiplicities, use values like <code>1</code>, <code>0..1</code>, <code>0..*</code>, <code>1..*</code>, or <code>2..4</code>.</p>",
+          "alt": "Create class relationship"
+        },
+        "editClass": {
+          "title": "Edit Class",
+          "body": "<p>Double-click a class to edit its name, attributes, and methods.</p><p>Attribute format examples: <code>+ attribute : type</code>, <code>+ attribute</code>, <code>attribute</code>. Primitive types include <code>int</code>, <code>float</code>, <code>str</code>, <code>bool</code>, <code>time</code>, <code>date</code>, <code>datetime</code>, <code>timedelta</code>, and <code>any</code>.</p><p>Visibility: <code>+</code> public, <code>-</code> private, <code>#</code> protected. Method examples: <code>+ notify(sms: str = 'message')</code>, <code>- findBook(title: str): Book</code>, <code>validate()</code>.</p>",
+          "alt": "Edit class element"
+        },
+        "editAssociation": {
+          "title": "Edit Association Or Generalization",
+          "body": "<p>Double-click a relationship to edit type (unidirectional, bidirectional, composition, generalization), name, source/target role names, and multiplicities.</p>",
+          "alt": "Edit class association"
+        },
+        "deleteMove": {
+          "title": "Delete And Move",
+          "body": "<p>Select a class and press <code>Delete</code> or <code>Backspace</code> to remove it.</p><p>Move elements by dragging them or using keyboard arrows.</p><p>Use <code>Ctrl+Z</code> and <code>Ctrl+Y</code> for undo/redo.</p>",
+          "alt": "Move class element"
+        },
+        "oclConstraint": {
+          "title": "OCL Constraint",
+          "body": "<p>Drag the OCL shape, then write constraints such as <code>Context \"ClassName\" ...</code>. You can connect constraints to classes using dotted links.</p><p>Constraint syntax validation runs during Quality Check and is powered by <boclLink>B-OCL</boclLink>.</p>",
+          "alt": "OCL constraint help"
+        },
+        "associationClass": {
+          "title": "Association Class",
+          "body": "<p>Create an association class by linking a class element to an existing association center point. You can define attributes like a regular class. Note: current generators do not support association classes.</p>",
+          "alt": "Association class help"
+        }
+      },
+      "object": {
+        "label": "Object Diagram",
+        "summary": "Represent concrete runtime instances and their links.",
+        "about": {
+          "title": "About Object Diagrams",
+          "body": "<p>Object diagrams show instances of classes at a specific moment in time, including current attribute values and links.</p>"
+        },
+        "addObject": {
+          "title": "Add Object",
+          "body": "<p>Drag and drop an object element from the left panel to the canvas.</p>",
+          "alt": "Create object"
+        },
+        "editObject": {
+          "title": "Edit Object",
+          "body": "<p>Double-click an object to edit name, type, and attribute values.</p><p>Use naming format <code>objectName : ClassName</code>. For values, use <code>attributeName = value</code> (for example <code>age = 25</code>).</p>",
+          "alt": "Edit object"
+        },
+        "addLink": {
+          "title": "Add Object Link",
+          "body": "<p>Click an object, drag from a blue connection point, and drop on another object to create a link.</p>",
+          "alt": "Create object link"
+        },
+        "editLink": {
+          "title": "Edit Object Link",
+          "body": "<p>Double-click a link to update its properties such as role/name information.</p>",
+          "alt": "Edit object link"
+        },
+        "deleteMove": {
+          "title": "Delete, Move, And Best Practices",
+          "body": "<p>Delete objects/links with <code>Delete</code> or <code>Backspace</code>. Move objects by drag-and-drop or arrows.</p><p>Use object diagrams together with class diagrams to validate real scenarios, names, and value consistency.</p>"
+        }
+      },
+      "state": {
+        "label": "State Machine",
+        "summary": "Capture dynamic behavior with states, transitions, and actions.",
+        "about": {
+          "title": "About State Machine Diagrams",
+          "body": "<p>State machine diagrams describe behavior changes over time in response to events and conditions.</p>"
+        },
+        "initialFinal": {
+          "title": "Add Initial And Final Flow",
+          "body": "<p>Start with an initial node and connect it to the first state.</p>",
+          "alt": "State machine initial and final states"
+        },
+        "editState": {
+          "title": "Edit State",
+          "body": "<p>Double-click a state to update its name, <code>Body</code>, and optional <code>Fallback</code> behavior.</p>",
+          "alt": "Edit state"
+        },
+        "codeBlock": {
+          "title": "Link Code Block",
+          "body": "<p>Link code behavior by providing function names in state body/fallback fields for precise execution mapping.</p>",
+          "alt": "State machine code block"
+        },
+        "bestPractices": {
+          "title": "Best Practices",
+          "body": "<p>Keep state names explicit, guard transitions properly, and verify that all relevant event paths are modeled.</p>"
+        }
+      },
+      "agent": {
+        "label": "Agent Diagram",
+        "summary": "Model BAF conversational agents with states, intents, and transition logic.",
+        "about": {
+          "title": "Modeling BAF Agents",
+          "body": "<p>Agent diagrams follow a state-machine style where each state has a behavior body and transitions define routing.</p>"
+        },
+        "addState": {
+          "title": "Add Agent State",
+          "body": "<p>Drag an agent state from the palette to the canvas.</p>",
+          "alt": "Add agent state"
+        },
+        "editBody": {
+          "title": "Edit Agent State Body",
+          "body": "<p>Double-click an agent state to configure behavior.</p><ul><li>Text reply: predefined response message.</li><li>LLM reply: delegate response generation to an LLM.</li><li>RAG reply: answer using a retrieval-augmented knowledge source.</li><li>Python code: execute custom behavior logic.</li></ul>",
+          "alt": "Edit agent body"
+        },
+        "addTransition": {
+          "title": "Add Transition Between States",
+          "body": "<p>Drag from the outer part of a source state to a target state to define a transition.</p>",
+          "alt": "Add agent transition"
+        },
+        "transitionCondition": {
+          "title": "Set Transition Condition",
+          "body": "<p>Double-click a transition and configure condition rules such as:</p><ul><li>When Intent Matched</li><li>When No Intent Matched</li><li>Variable Operation Matched</li><li>File Received</li><li>Auto Transition</li></ul>",
+          "alt": "Agent transition conditions"
+        },
+        "initialState": {
+          "title": "Set Initial State",
+          "body": "<p>Connect the initial node to the state where the conversation should begin.</p>",
+          "alt": "Agent initial state"
+        },
+        "defineIntents": {
+          "title": "Define Intents",
+          "body": "<p>Add intent elements and define intent names plus training sentences to improve recognition quality. Intent descriptions help clarify the meaning and purpose of each intent.</p>",
+          "alt": "Define agent intents"
+        },
+        "customization": {
+          "title": "Agent Customization",
+          "body": "<p>Open Agent Config from the sidebar to configure model and runtime settings for generated agents.</p><ul><li>Classical intent recognition: train a local model from defined intents.</li><li>LLM-based intent recognition: delegate intent classification to an LLM.</li></ul>",
+          "alt": "Agent configuration"
+        }
+      },
+      "gui": {
+        "label": "GUI Editor",
+        "summary": "Build UI screens visually and generate web application frontends.",
+        "coreWorkflow": {
+          "title": "Core Workflow",
+          "body": "<p>Use template blocks, compose layouts, then bind model-based data and actions.</p><p>Keep pages modular so generated output remains predictable and maintainable.</p>"
+        }
+      },
+      "quantum": {
+        "label": "Quantum Editor",
+        "summary": "Design circuits, configure gates, and generate Qiskit-compatible artifacts.",
+        "coreWorkflow": {
+          "title": "Core Workflow",
+          "body": "<p>Place gates on qubit lines, validate structure, then generate with selected backend settings.</p><p>Use shot count and backend selection in Generate for reproducible results.</p>"
+        }
+      },
+      "nn": {
+        "label": "Neural Network",
+        "summary": "Design layered neural networks, attach datasets and training configuration, and generate PyTorch or TensorFlow code.",
+        "coreWorkflow": {
+          "title": "Core Workflow",
+          "body": "<p>Build a neural network by dropping an NNContainer onto the canvas. Drag layers and TensorOps inside it, then connect them with NNNext relationships to define the forward pass.</p><p>Configuration and Training/Test Datasets are optional elements that hold training hyperparameters and dataset metadata. When the diagram is ready, generate PyTorch or TensorFlow code from the Generate menu.</p>",
+          "alt": "NN diagram overview"
+        },
+        "containerLayers": {
+          "title": "Add NN Container, Layers, And TensorOps",
+          "body": "<p>Start by dragging an NNContainer from the palette onto the canvas; all neural network modules must live inside it.</p><p>Available layers: <code>Conv1D</code>, <code>Conv2D</code>, <code>Conv3D</code>, <code>Pooling</code>, <code>Linear</code>, <code>Flatten</code>, <code>Embedding</code>, <code>Dropout</code>, <code>RNN</code>, <code>LSTM</code>, <code>GRU</code>, <code>LayerNormalization</code>, <code>BatchNormalization</code>. Available TensorOps: <code>reshape</code>, <code>concatenate</code>, <code>transpose</code>, <code>permute</code>, <code>multiply</code>, <code>matmultiply</code>.</p>",
+          "alt": "NN palette with a dropped layer"
+        },
+        "connect": {
+          "title": "Connect Modules (NNNext)",
+          "body": "<p>Drag from a blue connection point on a source module to any target module to create an NNNext relationship. The resulting \"next\" arrow defines the order of the forward pass regardless of whether the connected modules are layers, TensorOps, or a mix of both.</p>",
+          "alt": "Two modules connected with an NNNext arrow"
+        },
+        "editAttributes": {
+          "title": "Edit Module Attributes",
+          "body": "<p>Double-click any layer or TensorOp to open its attribute popup. Mandatory attributes are always shown; optional ones are enabled via checkboxes.</p><p>Many fields use dropdowns: <code>pooling_type</code> (<code>max</code>, <code>average</code>, <code>adaptive_max</code>, <code>adaptive_average</code>, <code>global_max</code>, <code>global_average</code>), <code>actv_func</code> (<code>relu</code>, <code>leaky_relu</code>, <code>sigmoid</code>, <code>softmax</code>, <code>tanh</code>), <code>tns_type</code> (<code>reshape</code>, <code>concatenate</code>, <code>transpose</code>, <code>permute</code>, <code>multiply</code>, <code>matmultiply</code>), <code>padding_type</code> (<code>valid</code>, <code>same</code>).</p><p>List-typed attributes adapt to the module's dimension. A Pooling layer with <code>dimension = 2D</code> expects <code>kernel_dim = [3, 3]</code>, while <code>dimension = 3D</code> expects <code>[3, 3, 3]</code>. The same rule applies to <code>stride_dim</code> and <code>output_dim</code>. For TensorOps, the selected <code>tns_type</code> controls which dimension attribute is shown (for example <code>reshape_dim</code> for reshape, <code>concatenate_dim</code> for concatenate).</p>",
+          "alt": "Edit module attributes"
+        },
+        "datasets": {
+          "title": "Datasets (Training And Test)",
+          "body": "<p>Datasets are optional. Drop a Training Dataset and a Test Dataset to declare data sources for the network.</p><p>Mandatory attributes are <code>name</code> and <code>path_data</code> (file or folder path to the dataset). Optional attributes are <code>task_type</code> (<code>binary</code>, <code>multi_class</code>, <code>regression</code>) and <code>input_format</code> (<code>csv</code>, <code>images</code>). When <code>input_format = images</code>, two additional attributes appear: <code>shape</code> (for example <code>[32, 32, 3]</code>) and <code>normalize</code> (<code>true</code> or <code>false</code>).</p><p>Connect each dataset to the NNContainer with an association line.</p>",
+          "alt": "Training and test datasets"
+        },
+        "configuration": {
+          "title": "Configuration",
+          "body": "<p>Configuration is optional. Drag a Configuration element and connect it to the NNContainer with a composition relationship to set training hyperparameters.</p><p>Mandatory attributes: <code>batch_size</code>, <code>epochs</code>, <code>learning_rate</code>, <code>optimizer</code> (<code>sgd</code>, <code>adam</code>, <code>adamW</code>, <code>adagrad</code>), <code>loss_function</code> (<code>crossentropy</code>, <code>binary_crossentropy</code>, <code>mse</code>), and <code>metrics</code> (multi-select from <code>accuracy</code>, <code>precision</code>, <code>recall</code>, <code>f1-score</code>, <code>mae</code>). Optional attributes: <code>weight_decay</code> and <code>momentum</code>.</p>",
+          "alt": "Configuration element with optimizer dropdown"
+        },
+        "reference": {
+          "title": "Reference Another Network (NNReference)",
+          "body": "<p>Use an NNReference element to reuse an NN already defined on the same canvas. Select the target NNContainer from the popup; the referenced network is included as a sub-network during code generation.</p>",
+          "alt": "NNReference with target selection popup"
+        },
+        "validateGenerate": {
+          "title": "Validate And Generate",
+          "body": "<p>Run Quality Check from the top bar to catch structural issues such as disconnected layers or missing mandatory attributes before generating code.</p><p>Open the Generate menu and choose a framework and style:</p><ul><li><strong>PyTorch / Subclassing</strong>: <code>torch.nn.Module</code> subclass with an explicit forward pass.</li><li><strong>PyTorch / Sequential</strong>: <code>nn.Sequential</code> composition for strictly sequential architectures.</li><li><strong>TensorFlow / Subclassing</strong>: <code>tf.keras.Model</code> subclass with a custom <code>call()</code>.</li><li><strong>TensorFlow / Sequential</strong>: <code>keras.Sequential</code> composition.</li></ul><p>NN architecture definition is generated in the selected framework, along with training and evaluation code when datasets and Configuration are defined.</p>",
+          "alt": "Generate code menu"
+        }
+      }
+    }
+  },
+  "shared": {
+    "commandPalette": {
+      "dialogLabel": "Command palette",
+      "placeholder": "Type a command...",
+      "searchLabel": "Search commands",
+      "noResults": "No matching commands",
+      "navigate": "Navigate",
+      "select": "Select",
+      "categories": {
+        "editors": "Editors",
+        "navigation": "Navigation",
+        "actions": "Actions"
+      },
+      "actions": {
+        "switchClass": "Switch to Class Diagram",
+        "switchState": "Switch to State Machine",
+        "switchObject": "Switch to Object Diagram",
+        "switchGui": "Switch to GUI Editor",
+        "switchAgent": "Switch to Agent Diagram",
+        "switchQuantum": "Switch to Quantum Circuit",
+        "goSettings": "Go to Settings",
+        "goQualityCheck": "Go to Quality Check",
+        "exportJson": "Export as JSON",
+        "exportBuml": "Export as B-UML"
+      }
+    },
+    "appErrorBoundary": {
+      "title": "Something went wrong",
+      "description": "An unexpected error has occurred. Please try reloading the application.",
+      "reload": "Reload Application"
+    },
+    "cookie": {
+      "toggleEnable": "Enable analytics",
+      "toggleDisable": "Disable analytics",
+      "settingsTitle": "Privacy Settings",
+      "settingsDesc": "Manage analytics preferences for this browser.",
+      "policyTitle": "Privacy Policy",
+      "policyDesc": "Summary of analytics data handling in BESSER.",
+      "settingsButton": "Privacy Settings",
+      "banner": {
+        "title": "Analytics Cookies",
+        "subtitle": "Anonymous analytics to improve BESSER.",
+        "details": "Details",
+        "hideDetails": "Hide details",
+        "decline": "Decline",
+        "settings": "Settings",
+        "accept": "Accept",
+        "privacyPolicy": "Privacy Policy",
+        "rows": {
+          "generators": "Code generators used",
+          "diagramComplexity": "Diagram type and model complexity",
+          "assistantUsage": "AI assistant usage count",
+          "noContent": "No model content or personal data"
+        }
+      },
+      "settings": {
+        "essentialTitle": "Essential Cookies",
+        "requiredBadge": "Required",
+        "essentialDesc": "Required for editor functionality and local preferences.",
+        "analyticsTitle": "Analytics",
+        "analyticsDesc": "Anonymous usage metrics to improve generators, workflows, and UX quality.",
+        "savePreferences": "Save Preferences"
+      },
+      "privacy": {
+        "aboutTitle": "About BESSER",
+        "aboutBody": "BESSER (Better Smart Software Faster) is an open-source low-code platform developed by the Software Engineering Research Group at LIST (Luxembourg Institute of Science and Technology).",
+        "collectTitle": "Data We Collect",
+        "collect": {
+          "usage": "Feature usage (generators and diagram workflows)",
+          "metrics": "Model metrics (size and structure counts)",
+          "assistant": "AI assistant usage counts (not content)",
+          "session": "Anonymous session metadata"
+        },
+        "noCollectTitle": "Data We Do Not Collect",
+        "noCollect": {
+          "identity": "Personal identity data (name, email)",
+          "content": "Diagram/model content",
+          "recordings": "Screen recordings or session replay",
+          "names": "Project names and diagram titles"
+        },
+        "useTitle": "How We Use Data",
+        "useBody": "Analytics is used only to improve product quality and prioritize feature development. It is not used for marketing or resale.",
+        "providerTitle": "Provider",
+        "providerIntro": "We use PostHog (EU-hosted). See",
+        "providerLinkText": "PostHog Privacy Policy"
+      }
+    },
+    "errors": {
+      "dismiss": "Dismiss error"
+    },
+    "errorBoundary": {
+      "title": "Editor Error",
+      "description": "The editor encountered an unexpected error. Your work has been saved.",
+      "unknownError": "Unknown error",
+      "tryAgainLabel": "Try again after error",
+      "tryAgain": "Try Again"
+    },
+    "jsonViewer": {
+      "jsonTitle": "Project JSON Preview",
+      "diagramBuml": "Diagram B-UML",
+      "closeLabel": "Close preview modal",
+      "expand": "Expand {{name}}",
+      "collapse": "Collapse {{name}}",
+      "root": "root",
+      "generatingBuml": "Generating B-UML preview...",
+      "noBumlPreview": "No B-UML preview is available yet.",
+      "generating": "Generating...",
+      "regenerate": "Regenerate",
+      "downloadBuml": "Download B-UML",
+      "copyBuml": "Copy B-UML",
+      "downloadJson": "Download JSON",
+      "copyJson": "Copy JSON",
+      "copyValue": "Copy value"
+    },
+    "notFound": {
+      "title": "Page not found",
+      "description": "The page you are looking for does not exist or has been moved.",
+      "backHome": "Back to Home"
+    },
+    "offline": {
+      "offlineMessage": "You are offline. Some features may not work.",
+      "backOnline": "Back online.",
+      "dismiss": "Dismiss offline warning"
+    }
+  },
+  "shell": {
+    "errors": {
+      "noProject": "Create or load a project first.",
+      "unknown": "Unknown error",
+      "couldNotSwitchDiagram": "Could not switch to {{type}}."
+    },
+    "export": {
+      "bumlSuccess": "Project exported as B-UML.",
+      "bumlFailed": "B-UML export failed: {{message}}",
+      "jsonSuccess": "Project exported as JSON."
+    },
+    "import": {
+      "failed": "Import failed: {{message}}"
+    },
+    "validateBeforeNav": {
+      "title": "Validate your models before going to the next task",
+      "description": "This User Model has not been validated after your latest changes.",
+      "confirmLabel": "Validate models",
+      "cancelLabel": "Ignore"
+    },
+    "leaveWithIssues": {
+      "title": "There are issues with your diagram, you still want to leave this model?",
+      "description": "Quality check found errors. You can stay to fix them or leave this model anyway.",
+      "confirmLabel": "Leave model",
+      "cancelLabel": "Stay"
+    },
+    "agentVariant": {
+      "createdAt": "Created {{date}}",
+      "noBaseModel": "No base model available for this agent tab yet.",
+      "switchedToBase": "Switched to base agent model.",
+      "notAvailable": "Selected variant is no longer available.",
+      "switchedToVariant": "Switched to {{name}} variant.",
+      "switchFailed": "Failed to switch agent model variant."
+    },
+    "nav": {
+      "open": "Open navigation",
+      "close": "Close navigation",
+      "title": "Navigation"
+    },
+    "preview": {
+      "projectLabel": "Project (V{{version}})",
+      "bumlLabelNamed": "Project B-UML Preview ({{name}})",
+      "bumlLabel": "Project B-UML Preview"
+    }
+  },
+  "editors": {
+    "diagramTabs": {
+      "editorNotReady": "Editor is not ready yet.",
+      "pickClassRefFirst": "Pick a Class Diagram reference first.",
+      "noClassesToInstantiate": "The referenced Class Diagram has no classes to instantiate.",
+      "linksFragment_one": ", {{count}} link",
+      "linksFragment_other": ", {{count}} links",
+      "allClassesHaveInstance_one": "The {{count}} class already has an instance — nothing to add.",
+      "allClassesHaveInstance_other": "All {{count}} classes already have an instance — nothing to add.",
+      "generatedWithSkipped_one": "Generated {{count}} object{{links}}, skipped {{skipped}} already on canvas.",
+      "generatedWithSkipped_other": "Generated {{count}} objects{{links}}, skipped {{skipped}} already on canvas.",
+      "generatedFromClassDiagram_one": "Generated {{count}} object{{links}} from the class diagram.",
+      "generatedFromClassDiagram_other": "Generated {{count}} objects{{links}} from the class diagram.",
+      "maxDiagrams": "Maximum {{count}} diagrams per type.",
+      "classRefTooltipObject": "Select which Class Diagram provides the data model for this Object Diagram",
+      "classRefTooltipGui": "Select which Class Diagram provides the data model for this GUI",
+      "validationValidated": "Validated",
+      "validationIssues": "Issues",
+      "validationNeedsValidation": "Needs validation",
+      "validationNotValidated": "Not validated",
+      "diagramTabLabel": "Diagram tab: {{title}}",
+      "validationStatusLabel": "Validation status: {{status}}",
+      "renameDiagram": "Rename diagram",
+      "closeTabLabel": "Close tab {{title}}",
+      "closeTab": "Close tab",
+      "addNewDiagram": "Add new diagram",
+      "expandLinkedDiagrams": "Expand linked diagrams",
+      "collapseLinkedDiagrams": "Collapse linked diagrams",
+      "showLinkedDiagrams": "Show linked diagrams",
+      "hideLinkedDiagrams": "Hide linked diagrams",
+      "linkedDiagrams": "Linked Diagrams",
+      "references": "References",
+      "classDiagram": "Class Diagram",
+      "referenceBroken": "Reference broken - please reselect",
+      "referenceDeleted": "The referenced diagram was deleted. Please select a new one.",
+      "referenceEmpty": "The referenced Class Diagram is empty (no classes or relationships).",
+      "generateObjectsTooltip": "Create one Object instance per Class in the referenced diagram, with default values for each attribute.",
+      "generate": "Generate",
+      "noClassDiagramsAvailable": "No Class Diagrams available"
+    },
+    "charts": {
+      "loadingChart": "Loading chart...",
+      "noDataAvailable": "No data available"
+    },
+    "table": {
+      "columnLabel": "Label",
+      "columnValue": "Value",
+      "addEntity": "Add {{entity}}",
+      "addRegister": "Add Register",
+      "previewDescription": "Data preview only. Configure bindings to connect table rows to your domain model.",
+      "edit": "Edit",
+      "editRow": "Edit row",
+      "remove": "Remove",
+      "removeRow": "Remove row",
+      "showingRows": "Showing {{visible}} of {{total}} rows",
+      "rowsPerPage": "Rows per page: {{count}}"
+    },
+    "quantum": {
+      "editorTitle": "Quantum Editor",
+      "saved": "Saved",
+      "saving": "Saving...",
+      "error": "Error",
+      "undo": "Undo",
+      "redo": "Redo",
+      "examples": "Examples",
+      "saveNow": "Save Now",
+      "saveNowTooltip": "Manually save circuit to project",
+      "exportJson": "Export JSON",
+      "importJson": "Import JSON",
+      "editFunctionGate": "Edit Function Gate",
+      "closeModal": "Close modal",
+      "gateNamePlaceholder": "Enter gate name (e.g., Bell State, QFT)",
+      "gateColor": "Gate Color:",
+      "selectGateColor": "Select gate color {{color}}",
+      "customColor": "Custom color",
+      "qubits": "Qubits: {{count}}",
+      "removeQubit": "Remove qubit",
+      "addQubit": "Add qubit",
+      "saveCircuit": "Save Circuit",
+      "toolbox1": "Toolbox 1",
+      "toolbox2": "Toolbox 2",
+      "functionGate": {
+        "tooltip": "{{label}} - Double-click to edit nested circuit {{status}}",
+        "configured": "(configured)",
+        "empty": "(empty)"
+      },
+      "gateDescriptions": {
+        "H": "Hadamard Gate: Creates superposition by rotating the qubit state 180° around the X+Z axis. Transforms |0⟩ to |+⟩ and |1⟩ to |−⟩.",
+        "X": "Pauli-X Gate (NOT): Flips the qubit state. Rotates 180° around the X-axis. Transforms |0⟩ ↔ |1⟩.",
+        "Y": "Pauli-Y Gate: Rotates 180° around the Y-axis. Transforms |0⟩ to i|1⟩ and |1⟩ to -i|0⟩.",
+        "Z": "Pauli-Z Gate (Phase Flip): Rotates 180° around the Z-axis. Leaves |0⟩ unchanged, transforms |1⟩ to -|1⟩.",
+        "Z^½": "S Gate (√Z): Rotates 90° around Z-axis. Adds a phase of i to |1⟩. Two S gates = one Z gate.",
+        "S_DAG": "S-Dagger Gate (inverse √Z): Rotates -90° around Z-axis. Adds a phase of -i to |1⟩. Undoes S gate.",
+        "X^½": "V Gate (√X): Rotates 90° around X-axis. Two V gates = one X (NOT) gate.",
+        "V_DAG": "V-Dagger Gate (inverse √X): Rotates -90° around X-axis. Undoes V gate.",
+        "SQRT_Y": "√Y Gate: Rotates 90° around Y-axis. Two √Y gates = one Y gate.",
+        "SQRT_Y_DAG": "√Y-Dagger Gate (inverse √Y): Rotates -90° around Y-axis. Undoes √Y gate.",
+        "T": "T Gate (⁴√Z): Rotates 45° around Z-axis. Adds π/4 phase to |1⟩. Essential for universal quantum computing.",
+        "T_DAG": "T-Dagger Gate (inverse ⁴√Z): Rotates -45° around Z-axis. Removes π/4 phase. Undoes T gate.",
+        "SQRT_SQRT_X": "⁴√X Gate: Rotates 45° around X-axis. Four applications = one X (NOT) gate.",
+        "SQRT_SQRT_X_DAG": "⁴√X-Dagger Gate: Rotates -45° around X-axis. Undoes X^¼ gate.",
+        "SQRT_SQRT_Y": "⁴√Y Gate: Rotates 45° around Y-axis. Four applications = one Y gate.",
+        "SQRT_SQRT_Y_DAG": "⁴√Y-Dagger Gate: Rotates -45° around Y-axis. Undoes Y^¼ gate.",
+        "SWAP": "SWAP Gate: Exchanges the states of two qubits. |01⟩ ↔ |10⟩, while |00⟩ and |11⟩ unchanged.",
+        "MEASURE": "Measurement (Z-basis): Collapses qubit superposition to |0⟩ or |1⟩. Result is probabilistic based on qubit amplitudes.",
+        "MEASURE_X": "Measurement (X-basis): Collapses qubit to |+⟩ or |−⟩. Equivalent to H then Z-measurement then H.",
+        "MEASURE_Y": "Measurement (Y-basis): Collapses qubit to |i⟩ or |−i⟩. Measures phase relative to Y-axis.",
+        "CONTROL": "Control: Conditions other gates on this qubit being |1⟩. Creates CNOT, Toffoli, and other controlled gates.",
+        "ANTI_CONTROL": "Anti-Control: Conditions other gates on this qubit being |0⟩. Opposite of regular control.",
+        "POST_SELECT_OFF": "Post-Select |0⟩: Forces qubit to |0⟩. Discards branches where qubit would be |1⟩.",
+        "POST_SELECT_ON": "Post-Select |1⟩: Forces qubit to |1⟩. Discards branches where qubit would be |0⟩.",
+        "POST_SELECT_X_OFF": "Post-Select |+⟩: Forces qubit to superposition (|0⟩+|1⟩)/√2.",
+        "POST_SELECT_X_ON": "Post-Select |−⟩: Forces qubit to superposition (|0⟩−|1⟩)/√2.",
+        "POST_SELECT_Y_OFF": "Post-Select |i⟩: Forces qubit to Y+ eigenstate (|0⟩+i|1⟩)/√2.",
+        "POST_SELECT_Y_ON": "Post-Select |−i⟩: Forces qubit to Y− eigenstate (|0⟩−i|1⟩)/√2.",
+        "CONTROL_X": "X-Axis Control: Conditions on X-basis (|+⟩/|−⟩) instead of Z-basis (|0⟩/|1⟩).",
+        "CONTROL_Y": "Y-Axis Control: Conditions on Y-basis (|i⟩/|−i⟩) instead of Z-basis.",
+        "X_POW": "X-Rotation (X^t): Rotates by t×180° around X-axis. t=1 is X gate, t=0.5 is √X.",
+        "Y_POW": "Y-Rotation (Y^t): Rotates by t×180° around Y-axis. t=1 is Y gate, t=0.5 is √Y.",
+        "Z_POW": "Z-Rotation (Z^t): Adds t×180° phase to |1⟩. t=1 is Z, t=0.5 is S, t=0.25 is T.",
+        "EXP_X": "X Exponential: e^(-iXt) - rotates around X by angle 2t. Natural form for Hamiltonian simulation.",
+        "EXP_Y": "Y Exponential: e^(-iYt) - rotates around Y by angle 2t. Real-valued rotation matrix.",
+        "EXP_Z": "Z Exponential: e^(-iZt) - phase rotation by angle 2t. Diagonal gate for phase manipulation.",
+        "Z_POW_T": "Spinning Z: Continuously rotates around Z as simulation time t progresses. Phase accumulates over time.",
+        "Z_POW_NEG_T": "Reverse Spinning Z: Rotates backwards around Z axis. Undoes Z^t for time-reversal.",
+        "Y_POW_T": "Spinning Y: Continuously rotates around Y as simulation time progresses.",
+        "Y_POW_NEG_T": "Reverse Spinning Y: Rotates backwards around Y axis as time progresses.",
+        "X_POW_T": "Spinning X: Continuously rotates around X as simulation time progresses.",
+        "X_POW_NEG_T": "Reverse Spinning X: Rotates backwards around X axis as time progresses.",
+        "Z_FUNC_T": "Formulaic Z: Rotation angle is computed from custom function f(t). For complex dynamics.",
+        "RZ_FUNC_T": "Formulaic Rz: Z-axis rotation by f(t) radians. Alternative parametrization of Z rotation.",
+        "Y_FUNC_T": "Formulaic Y: Y-rotation angle from custom function f(t). For complex dynamics.",
+        "RY_FUNC_T": "Formulaic Ry: Y-axis rotation by f(t) radians. Alternative parametrization.",
+        "X_FUNC_T": "Formulaic X: X-rotation angle from custom function f(t). For complex dynamics.",
+        "RX_FUNC_T": "Formulaic Rx: X-axis rotation by f(t) radians. Alternative parametrization.",
+        "TIME_SHIFT": "Time Shift +1: Advances the time parameter for subsequent gates. Used for time-based simulations.",
+        "TIME_SHIFT_INV": "Time Shift -1: Reverses time parameter for subsequent gates. Undoes time advancement.",
+        "QFT": "Quantum Fourier Transform: Converts computational basis to frequency basis. Essential for Shor's algorithm and phase estimation.",
+        "QFT_DAG": "Inverse QFT: Converts frequency basis back to computational basis. Undoes QFT.",
+        "PHASE_GRADIENT": "Phase Gradient: Applies increasing phases across basis states. Used in QFT and phase kickback.",
+        "PHASE_GRADIENT_DAG": "Inverse Phase Gradient: Removes phases applied by Grad. Undoes phase gradient.",
+        "PHASE_GRADIENT_INV": "Inverted Phase Gradient: Applies decreasing phases across basis states.",
+        "PHASE_GRADIENT_INV_DAG": "Inverted Phase Gradient Dagger: Conjugate transpose of Grad⁻¹.",
+        "INC": "Increment: Adds 1 to the quantum register interpreted as a binary number. |n⟩ → |n+1⟩.",
+        "DEC": "Decrement: Subtracts 1 from the quantum register. |n⟩ → |n-1⟩ (wraps around).",
+        "ADD": "Quantum Addition: Adds input register A to target register. Used in quantum arithmetic circuits.",
+        "SUB": "Quantum Subtraction: Subtracts input register A from target. Inverse of addition.",
+        "MUL": "Quantum Multiplication: Multiplies target register by input A. Key for Shor's algorithm.",
+        "ADD_AB": "Add Product: Adds the product A×B to the target register. Multi-register operation.",
+        "SUB_AB": "Subtract Product: Subtracts the product A×B from target. Inverse of +AB.",
+        "MUL_INV": "Inverse Multiplication: Divides by A (multiplies by modular inverse). Undoes ×A.",
+        "MOD_ADD": "Modular Add: Adds A to register mod R. Result wraps around at R. Key for Shor's algorithm.",
+        "MOD_SUB": "Modular Subtract: Subtracts A from register mod R. Inverse of modular addition.",
+        "MOD_MUL": "Modular Multiply: Multiplies register by A mod R. Core of modular exponentiation.",
+        "MOD_INV_MUL": "Modular Division: Multiplies by A⁻¹ mod R. Undoes modular multiplication.",
+        "MOD_INC": "Modular Increment: Adds 1 to register mod R. Wraps R-1 to 0.",
+        "MOD_DEC": "Modular Decrement: Subtracts 1 from register mod R. Wraps 0 to R-1.",
+        "MOD_MUL_B": "Modular Multiply by B: Multiplies by second input B mod R. Multi-register operation.",
+        "MOD_MUL_B_INV": "Modular Multiply B by A-inverse: Computes B×A⁻¹ mod R. For reversible computation.",
+        "COMPARE": "Less Than Comparison: Sets output qubit to |1⟩ if A < B. Quantum comparison circuit.",
+        "GREATER_THAN": "Greater Than Comparison: Sets output to |1⟩ if register A > register B.",
+        "LESS_EQUAL": "Less or Equal: Sets output to |1⟩ if register A ≤ register B.",
+        "GREATER_EQUAL": "Greater or Equal: Sets output to |1⟩ if register A ≥ register B.",
+        "EQUAL": "Equality Test: Sets output to |1⟩ if registers A and B have same value.",
+        "NOT_EQUAL": "Inequality Test: Sets output to |1⟩ if registers A and B differ.",
+        "COMPARE_A_LT": "Compare to Input A: Sets output to |1⟩ if qubit register < input A value.",
+        "COMPARE_A_GT": "Compare to Input A: Sets output to |1⟩ if qubit register > input A value.",
+        "COMPARE_A_EQ": "Compare to Input A: Sets output to |1⟩ if qubit register equals input A value.",
+        "COUNT_1S": "Population Count: Counts the number of |1⟩ qubits in the register. Output is binary representation.",
+        "CYCLE_BITS": "Cycle Bits: Rotates qubit positions cyclically. Top qubit moves to bottom, others shift up.",
+        "XOR": "XOR Parity: Computes XOR of all qubits in register. Output |1⟩ if odd number of |1⟩s.",
+        "INPUT_A": "Input A: Initializes qubits to classical value A (adjustable). Creates computational basis state |A⟩.",
+        "INPUT_B": "Input B: Initializes qubits to classical value B (adjustable). Second input for arithmetic operations.",
+        "RANDOM": "Random State: Initializes qubit to random point on Bloch sphere. Creates mixed state for testing.",
+        "INPUT_R": "Input R (Modulus): Sets the modulus value for modular arithmetic operations.",
+        "MYSTERY": "Mystery Gate: A random unitary gate. Different each time - useful for testing and games.",
+        "ZERO": "Zero Projection: Projects onto |0⟩ state. Non-unitary operation that destroys information.",
+        "UNIVERSAL_NOT": "Universal NOT: Anti-unitary operation that flips any qubit state to its orthogonal. Impossible to build physically.",
+        "ONE": "Identity Gate: Does nothing to the qubit. Useful as placeholder or for circuit clarity.",
+        "MINUS_ONE": "Global Phase (-1): Multiplies entire state by -1. Unobservable but matters in interference.",
+        "PHASE_I": "Global Phase (i): Rotates global phase by 90°. Multiplies state by imaginary unit i.",
+        "PHASE_MINUS_I": "Global Phase (-i): Rotates global phase by -90°. Multiplies state by -i.",
+        "PHASE_SQRT_I": "Global Phase (√i): Rotates global phase by 45°. Two applications give phase i.",
+        "PHASE_SQRT_MINUS_I": "Global Phase (√-i): Rotates global phase by -45°. Two applications give phase -i.",
+        "BLOCH": "Bloch Sphere: Visualizes single qubit state on unit sphere. Poles are |0⟩/|1⟩, equator is superpositions.",
+        "DENSITY": "Density Matrix (ρ): Shows full quantum state including mixed states. Diagonal = probabilities, off-diagonal = coherences.",
+        "AMPLITUDE": "Amplitude Display: Shows complex amplitudes for each basis state. Height = magnitude, angle = phase.",
+        "CHANCE": "Chance Display: Shows probability (0-100%) of measuring |1⟩ for this qubit.",
+        "INTERLEAVE": "Interleave: Shuffles qubits like interleaving two halves of a deck. Useful for QFT optimization.",
+        "DEINTERLEAVE": "Deinterleave: Undoes interleave operation. Separates alternating qubits back into halves.",
+        "REVERSE_BITS": "Reverse Bits: Flips the order of qubits. Often needed after QFT to correct bit ordering.",
+        "ROTATE_BITS_LEFT": "Rotate Left: Cyclically shifts all qubits up by one position. Top wraps to bottom.",
+        "ROTATE_BITS_RIGHT": "Rotate Right: Cyclically shifts all qubits down by one position. Bottom wraps to top.",
+        "SAMPLE": "Sample: Takes a probabilistic sample of qubit state without full collapse. For statistical analysis.",
+        "DETECT": "Detect: Simulates physical detector response. Models realistic measurement imperfections.",
+        "AXIS_SAMPLE": "3-Axis Sample: Samples qubit in X, Y, and Z bases simultaneously. For tomographic reconstruction.",
+        "SPACER": "Spacer"
+      },
+      "nestedCircuitConfigured": "Nested circuit configured"
+    },
+    "gui": {
+      "traits": {
+        "agent": "Agent",
+        "agentTitle": "Agent Title",
+        "buttonLabel": "Button Label",
+        "buttonStyle": "Button Style",
+        "buttonStyleOptions": {
+          "primary": "Primary",
+          "secondary": "Secondary",
+          "success": "Success",
+          "danger": "Danger",
+          "warning": "Warning",
+          "info": "Info"
+        },
+        "actionType": "Action Type",
+        "actionTypeOptions": {
+          "navigate": "Navigate to Screen",
+          "runMethod": "Run Method",
+          "create": "Create Entity",
+          "update": "Update Entity",
+          "delete": "Delete Entity"
+        },
+        "targetScreen": "Target Screen",
+        "requireConfirm": "Require Confirm",
+        "confirmMessage": "Confirm Message",
+        "methodClass": "Method Class",
+        "method": "Method",
+        "instanceSource": "Instance Source",
+        "entityClass": "Class",
+        "series": "Series",
+        "actionButtons": "Action buttons",
+        "direction": "Direction",
+        "directionOptions": {
+          "row": "Row (Horizontal)",
+          "rowReverse": "Row Reverse",
+          "column": "Column (Vertical)",
+          "columnReverse": "Column Reverse"
+        },
+        "justifyContent": "Justify Content",
+        "justifyContentOptions": {
+          "start": "Start",
+          "end": "End",
+          "center": "Center",
+          "spaceBetween": "Space Between",
+          "spaceAround": "Space Around",
+          "spaceEvenly": "Space Evenly"
+        },
+        "alignItems": "Align Items",
+        "alignItemsOptions": {
+          "stretch": "Stretch",
+          "start": "Start",
+          "end": "End",
+          "center": "Center",
+          "baseline": "Baseline"
+        },
+        "wrap": "Wrap",
+        "wrapOptions": {
+          "nowrap": "No Wrap",
+          "wrap": "Wrap",
+          "wrapReverse": "Wrap Reverse"
+        },
+        "gap": "Gap (px)",
+        "padding": "Padding (px)",
+        "flexGrow": "Flex Grow",
+        "flexShrink": "Flex Shrink",
+        "flexBasis": "Flex Basis",
+        "alignSelf": "Align Self",
+        "alignSelfOptions": {
+          "auto": "Auto",
+          "start": "Start",
+          "end": "End",
+          "center": "Center",
+          "baseline": "Baseline",
+          "stretch": "Stretch"
+        },
+        "columns": "Columns",
+        "rows": "Rows",
+        "justifyItems": "Justify Items",
+        "justifyItemsOptions": {
+          "stretch": "Stretch",
+          "start": "Start",
+          "end": "End",
+          "center": "Center"
+        },
+        "elevation": "Elevation",
+        "elevationOptions": {
+          "none": "None",
+          "low": "Low",
+          "medium": "Medium",
+          "high": "High"
+        },
+        "aggregation": "Aggregation",
+        "aggregationOptions": {
+          "none": "None",
+          "sum": "Sum",
+          "avg": "Average",
+          "count": "Count",
+          "min": "Minimum",
+          "max": "Maximum",
+          "median": "Median",
+          "first": "First",
+          "last": "Last"
+        },
+        "groupBy": "Group By",
+        "dataField": "Data Field",
+        "dataSource": "Data Source",
+        "format": "Format",
+        "formatOptions": {
+          "number": "Number",
+          "currency": "Currency",
+          "percentage": "Percentage",
+          "time": "Time Duration"
+        },
+        "labelField": "Label Field",
+        "labelPosition": "Label Position",
+        "labelPositionOptions": {
+          "inside": "Inside",
+          "outside": "Outside"
+        },
+        "legendPosition": "Legend Position",
+        "legendPositionOptions": {
+          "bottom": "Bottom",
+          "top": "Top"
+        },
+        "orientation": "Orientation",
+        "orientationOptions": {
+          "horizontal": "Horizontal",
+          "vertical": "Vertical"
+        },
+        "curveType": "Curve Type",
+        "curveTypeOptions": {
+          "linear": "Linear",
+          "monotone": "Monotone",
+          "step": "Step",
+          "stepAfter": "Step After",
+          "stepBefore": "Step Before"
+        },
+        "chartTitle": "Chart Title",
+        "metricTitle": "Metric Title",
+        "title": "Title",
+        "header": "Header",
+        "headerColor": "Header Color",
+        "stripedRows": "Striped Rows",
+        "pagination": "Pagination",
+        "rowsPerPage": "Rows per Page",
+        "animate": "Animate",
+        "showGrid": "Show Grid",
+        "showLabels": "Show Labels",
+        "showLegend": "Show Legend",
+        "showRadiusAxis": "Show Radius Axis",
+        "showTooltip": "Show Tooltip",
+        "showTrend": "Show Trend",
+        "stacked": "Stacked",
+        "barWidth": "Bar Width",
+        "lineWidth": "Line Width",
+        "endAngle": "End Angle",
+        "startAngle": "Start Angle",
+        "paddingAngle": "Padding Angle",
+        "latitude": "Latitude",
+        "longitude": "Longitude",
+        "zoom": "Zoom",
+        "valueColor": "Value Color",
+        "valueSize": "Value Size",
+        "negativeTrendColor": "Negative Trend Color",
+        "positiveTrendColor": "Positive Trend Color"
+      },
+      "pages": {
+        "title": "Pages",
+        "searchPlaceholder": "Search pages...",
+        "addNewPage": "Add new page",
+        "addPage": "Add Page",
+        "editRoute": "Edit URL route",
+        "renamePage": "Rename page",
+        "duplicatePage": "Duplicate page",
+        "deletePage": "Delete page",
+        "promptRoute": "Enter URL route for this page (e.g., /about-us):",
+        "promptRename": "Enter new page name:",
+        "promptDuplicate": "Enter name for duplicated page:",
+        "promptNewPage": "Enter page name:",
+        "cannotDeleteTitle": "Cannot Delete Page",
+        "cannotDeleteDescription": "Cannot delete the last page. At least one page is required.",
+        "ok": "OK",
+        "deletePageTitle": "Delete Page",
+        "deleteConfirm": "Delete page \"{{name}}\"?",
+        "delete": "Delete",
+        "unnamedProfile": "Unnamed Profile",
+        "loadingNotice": "This can take up to a minute. Please don't close the editor.",
+        "personalizationServiceInvalid": "Personalization service returned an invalid page.",
+        "noProfiles": "No user profiles are available. Create a user profile in the User Diagram first, then try again.",
+        "autoPersonalize": "Auto-personalize with AI",
+        "autoPersonalizeDescription": "Use an LLM to adapt the page's content and style to this profile. Leave unchecked to copy the page as-is.",
+        "userProfile": "User profile",
+        "active": "active",
+        "deleteVariantDescription": "\"{{name}}\" has personalized variants. Choose what to delete.",
+        "basePage": "Base page",
+        "basePageDescription": "deletes the page and all variants",
+        "deleteAll": "Delete all",
+        "deletePageOrVariant": "Delete page or variant",
+        "defaultHome": "Home",
+        "defaultAbout": "About",
+        "defaultContact": "Contact",
+        "switchVariant": "Switch variant",
+        "addPersonalizedVariant": "Add personalized variant",
+        "base": "Base",
+        "createVariantTitle": "Create page variant",
+        "createVariantDescription": "Choose a user profile to create a personalized variant of \"{{name}}\".",
+        "createVariant": "Create variant",
+        "personalizingTitle": "Personalizing page with AI",
+        "personalizingDescription": "Adapting \"{{pageName}}\" for {{profileName}}…",
+        "requestTimedOut": "The request timed out.",
+        "personalized": "✓ Personalized \"{{pageName}}\" for {{profileName}}.",
+        "personalizationFailed": "AI personalization failed",
+        "personalizationFailedDescription": "{{error}}\n\nDo you still want to create a copy to manually personalize?",
+        "somethingWentWrong": "Something went wrong.",
+        "createCopy": "Create copy",
+        "variantExists": "Variant already exists",
+        "variantExistsAiDescription": "A variant for \"{{name}}\" already exists. Continue to regenerate it with AI? This replaces its current content.",
+        "variantExistsBaseDescription": "A personalized variant for \"{{name}}\" already exists. Creating it again will replace its current content with the Base page. Continue?",
+        "regenerateWithAi": "Regenerate with AI",
+        "replaceWithBase": "Replace with Base",
+        "untitledPage": "Untitled page",
+        "copySuffix": "Copy"
+      },
+      "columnsManager": {
+        "title": "Table Columns",
+        "columnType": "Column Type",
+        "columnTypeOptions": {
+          "field": "Field",
+          "lookup": "Lookup",
+          "expression": "Expression"
+        },
+        "field": "Field",
+        "lookupPath": "Lookup Path",
+        "lookupField": "Lookup Field",
+        "expression": "Expression",
+        "addColumn": "Add Column",
+        "moveUp": "Move up",
+        "moveDown": "Move down",
+        "selectField": "-- Select Field --",
+        "selectPath": "-- Select Path --",
+        "selectPathFirst": "(Select path first)",
+        "noDataSource": "(No data source)",
+        "noRelationships": "(No relationships)",
+        "noAttributes": "(No attributes)"
+      },
+      "seriesManager": {
+        "title": "Chart Series",
+        "dataSource": "Data Source",
+        "labelField": "Label Field",
+        "dataField": "Data Field",
+        "color": "Color",
+        "filter": "Filter",
+        "filterPlaceholder": "Filter expression",
+        "pickColor": "Pick color",
+        "addSeries": "Add Series"
+      },
+      "agentPreview": {
+        "previewMode": "Preview Mode",
+        "greeting": "Hello! I'm {{agentName}}. How can I help you?",
+        "previewMessage": "This is a preview of the chat interface",
+        "selectAgent": "Select an agent to start chatting...",
+        "typeMessage": "Type a message...",
+        "selectAgentFirst": "Select an agent first",
+        "send": "Send"
+      },
+      "map": {
+        "location": "Location",
+        "viewLargerMap": "View Larger Map"
+      },
+      "utils": {
+        "selectPage": "-- Select Page --",
+        "customUrl": "Custom URL",
+        "selectSource": "-- Select Source --"
+      },
+      "styleManager": {
+        "position": "Position",
+        "dimension": "Dimension",
+        "typography": "Typography",
+        "decorations": "Decorations"
+      },
+      "guiGeneratedFromClass": "GUI generated successfully from Class Diagram.",
+      "unknownError": "Unknown error",
+      "errorGeneratingGui": "Error generating GUI: {{message}}",
+      "guiModelLoaded": "GUI model loaded from assistant.",
+      "statusSaved": "Saved",
+      "statusSaving": "Saving...",
+      "statusErrorSaving": "Error saving",
+      "editorStillLoading": "Editor is still loading. Please wait a moment and try again.",
+      "errorSavingProject": "Error saving project. Please check the console for details.",
+      "downloadHtml": "Download HTML",
+      "exportTemplate": "Export Template",
+      "downloadJson": "Download JSON",
+      "projectJson": "Project JSON",
+      "clearCanvasTitle": "Clear Canvas",
+      "clearCanvasDescription": "Are you sure you want to clear the entire canvas? This cannot be undone.",
+      "clearCanvasConfirm": "Clear",
+      "autoGenerateTitle": "Auto-Generate GUI from Class Diagram",
+      "autoGenerateIntro": "This will clear your current GUI and generate a new one based on your Class Diagram.",
+      "autoGenerateCreatedTitle": "Created automatically:",
+      "autoGenerateItemNav": "Navigation panel with links to each class",
+      "autoGenerateItemPage": "A page for each class with a data table",
+      "autoGenerateItemMethods": "Method buttons for classes with methods",
+      "autoGenerateCannotUndo": "This action cannot be undone",
+      "autoGenerateConfirmQuestion": "Are you sure you want to continue?",
+      "generateGui": "Generate GUI",
+      "guiGeneratedSuccess": "GUI generated successfully! Created pages, tables, and method buttons for all classes.",
+      "noActiveProject": "No active project found.",
+      "noClassDiagramFound": "No class diagram found. Please create a class diagram first.",
+      "qualityCheckFailed": "Class Diagram Quality Check Failed",
+      "qualityCheckFailedMessage": "Errors were found in your class diagram. Please solve them before generating the GUI.",
+      "classDiagramErrors": "Class Diagram Errors",
+      "noClassesFound": "No classes found in the Class Diagram. Please create a class diagram first.",
+      "noPageSelected": "No page selected",
+      "editRoutePrompt": "Edit route path for page \"{{pageName}}\":\n\nExamples:\n- /home\n- /users/:id\n- /products",
+      "routeUpdated": "Route updated to: {{route}}",
+      "sidebarBlocks": "Blocks",
+      "sidebarStyles": "Styles",
+      "sidebarTraits": "Traits",
+      "sidebarLayers": "Layers",
+      "sidebarPages": "Pages",
+      "traitDataSource": "Data Source",
+      "traitDataSourcePlaceholder": "e.g., User or User.name",
+      "traitDisplayField": "Display Field",
+      "traitDisplayFieldPlaceholder": "Field to display",
+      "traitValueField": "Value Field",
+      "traitValueFieldPlaceholder": "Field for value",
+      "importTemplate": "Import Template",
+      "importButton": "Import",
+      "importTemplateLabel": "Paste here your HTML/CSS and click Import",
+      "formTraits": {
+        "actionUrl": "Action URL",
+        "targetEntity": "Target Entity",
+        "onSubmitAction": "On Submit Action",
+        "validationMode": "Validation Mode",
+        "fieldName": "Field Name",
+        "fieldType": "Field Type",
+        "placeholder": "Placeholder",
+        "required": "Required",
+        "validationPattern": "Validation Pattern",
+        "regularExpressionPlaceholder": "Regular expression",
+        "errorMessage": "Error Message",
+        "customErrorMessagePlaceholder": "Custom error message",
+        "bindToProperty": "Bind to Property",
+        "minLength": "Min Length",
+        "maxLength": "Max Length",
+        "multiple": "Multiple",
+        "cols": "Cols",
+        "options": {
+          "create": "Create",
+          "update": "Update",
+          "custom": "Custom",
+          "onSubmit": "On Submit",
+          "onChange": "On Change",
+          "onBlur": "On Blur",
+          "text": "Text",
+          "password": "Password",
+          "number": "Number",
+          "date": "Date",
+          "time": "Time",
+          "telephone": "Telephone",
+          "color": "Color",
+          "range": "Range",
+          "search": "Search"
+        }
+      }
+    },
+    "loadingGuiEditor": "Loading GUI editor...",
+    "loadingQuantumEditor": "Loading quantum editor...",
+    "hiddenPerspectives": {
+      "messagePlural": "This project uses {{labels}} but those perspectives are hidden.",
+      "messageSingular": "This project uses {{labels}} but that perspective is hidden.",
+      "enable": "Enable {{label}}"
+    }
+  },
+  "feedback": {
+    "feedbackPlaceholder": "Tell us what works, what does not, and what you want next.",
+    "feedbackLabel": "Feedback",
+    "toasts": {
+      "thankYou": "Thank you for your feedback.",
+      "submitFailedDefault": "Failed to submit feedback.",
+      "selectRating": "Please select a satisfaction rating.",
+      "unknownError": "Unknown error",
+      "submitFailed": "Feedback submission failed: {{error}}"
+    },
+    "submitting": "Submitting...",
+    "title": "Help Us Improve BESSER",
+    "description": "Share your feedback about the editor and generation workflow.",
+    "satisfactionQuestion": "How satisfied are you with your experience?",
+    "emailHelper": "Leave your email if you want follow-up from the team.",
+    "submit": "Submit Feedback",
+    "category": "Category",
+    "emailLabel": "Email (optional)",
+    "satisfaction": {
+      "neutral": {
+        "helper": "Mixed experience",
+        "label": "Neutral"
+      },
+      "sad": {
+        "label": "Not Satisfied",
+        "helper": "Needs improvements"
+      },
+      "happy": {
+        "helper": "Great experience",
+        "label": "Very Satisfied"
+      }
+    },
+    "categoryOptions": {
+      "generators": "Code Generation",
+      "feature_request": "Feature Request",
+      "editor": "Diagram Editor",
+      "none": "Select a category (optional)",
+      "deployment": "Deployment",
+      "other": "Other",
+      "bugs": "Bug Report",
+      "performance": "Performance",
+      "documentation": "Documentation"
+    }
+  },
+  "export": {
+    "dialog": {
+      "currentTitle": "Current Diagram",
+      "exportBuml": "Export as B-UML",
+      "exportSvg": "Export as SVG",
+      "noDiagrams": "No diagrams available in the current project.",
+      "title": "Export Project",
+      "multipleDescription": "Export selected diagrams as JSON or B-UML.",
+      "exportDiagramBuml": "Export Diagram as B-UML",
+      "exportJson": "Export as JSON",
+      "multipleTitle": "Multiple Diagrams",
+      "description": "Export full project files or current diagram assets.",
+      "requiresUmlView": "Current diagram exports require a UML diagram view. Use project-level export instead.",
+      "exportPngTransparent": "Export PNG (Transparent)",
+      "exportDiagramJson": "Export Diagram as JSON",
+      "untitledDiagram": "Untitled diagram",
+      "exportPngWhite": "Export PNG (White)",
+      "currentDescription": "Export the current UML diagram as image assets.",
+      "diagramCount": "{{count}} diagrams: {{titles}}"
+    },
+    "toasts": {
+      "unknownError": "Unknown error",
+      "openUmlFirst": "Open a UML diagram first.",
+      "selectAtLeastOne": "Select at least one diagram to export.",
+      "noProject": "No project available to export.",
+      "failed": "Export failed: {{error}}",
+      "validationFailed": "Validation failed",
+      "noDiagramToExport": "No diagram to export",
+      "couldNotParseError": "Could not parse error response",
+      "bumlExportSuccess": "BUML export completed successfully",
+      "noProjectData": "No project data available to export",
+      "projectExportedAs": "Project exported as {{filename}}",
+      "projectExportFailed": "Failed to export project: {{error}}"
+    }
+  },
+  "import": {
+    "success": {
+      "diagram": "{{diagramType}} diagram imported successfully and added to project \"{{projectName}}\". This diagram has been converted from {{fileType}} format to the new project format.",
+      "kg": "{{diagramType}} diagram imported successfully from Knowledge Graph and added to project \"{{projectName}}\".",
+      "image": "{{diagramType}} diagram imported successfully from image and added to project \"{{projectName}}\"."
+    },
+    "descriptions": {
+      "imported": "Imported {{diagramType}} diagram",
+      "importedFromKg": "Imported {{diagramType}} diagram from Knowledge Graph",
+      "importedFromImage": "Imported {{diagramType}} diagram from image"
+    },
+    "errors": {
+      "title": "Import failed",
+      "unsupportedFileType": "Unsupported file type. Please select a .json or .py file.",
+      "invalidMissingType": "Invalid diagram: missing model or type information",
+      "invalidFormat": "Invalid diagram format: missing model or type",
+      "noProjectOpen": "No project is currently open. Please create or open a project first.",
+      "maxDiagramsReached": "Cannot import: maximum of {{max}} {{diagramType}} diagrams per project has been reached.",
+      "unknownDuringImport": "Unknown error occurred during import",
+      "unknownOccurred": "Unknown error occurred",
+      "couldNotImportFile": "Could not import selected file: {{message}}",
+      "couldNotImportDiagram": "Could not import diagram: {{message}}",
+      "couldNotImportFromKg": "Could not import diagram from Knowledge Graph: {{message}}",
+      "couldNotImportFromImage": "Could not import diagram from image: {{message}}",
+      "readFileFailed": "Failed to read file",
+      "invalidFromBackend": "Invalid diagram returned from backend",
+      "couldNotParseError": "Could not parse error response"
+    }
+  },
+  "validation": {
+    "toasts": {
+      "noDiagramToValidate": "No diagram to validate",
+      "diagramEmpty": "The diagram is empty. Add elements before running the quality check.",
+      "validating": "Validating diagram...",
+      "timedOut": "Validation timed out. The backend may be overloaded.",
+      "validationFailed": "Validation failed",
+      "errorsLabel": "Validation Errors:",
+      "warningsLabel": "Warnings:",
+      "validConstraintsLabel": "Valid Constraints:",
+      "invalidConstraintsLabel": "Invalid Constraints:",
+      "diagramValid": "Diagram is valid",
+      "validationErrorGeneric": "Validation error: {{error}}",
+      "unknownError": "Unknown error"
+    }
+  },
+  "quantum": {
+    "circuitGrid": {
+      "cycleInitialStates": "Click to cycle through initial states: |0⟩, |1⟩, |+⟩, |−⟩, |i⟩, |−i⟩",
+      "addQubit": "Add qubit",
+      "addQubitButton": "+ Qubit",
+      "measurementOutput": "Measurement output - auto-generated from measurement gates",
+      "dropHere": "Drop here",
+      "invalid": "Invalid"
+    }
+  }
+}

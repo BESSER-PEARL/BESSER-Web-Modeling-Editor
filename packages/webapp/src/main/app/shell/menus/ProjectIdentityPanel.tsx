@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { FolderKanban } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
@@ -28,6 +29,7 @@ export const ProjectIdentityPanel: React.FC<ProjectIdentityPanelProps> = ({
   onDiagramTitleDraftChange,
   onDiagramRename,
 }) => {
+  const { t } = useTranslation();
   return (
     <div className={`hidden items-center gap-2 rounded-xl border px-3 py-2 lg:flex ${topPanelClass}`}>
       <FolderKanban className={`size-4 ${topPanelIconClass}`} />
@@ -41,7 +43,7 @@ export const ProjectIdentityPanel: React.FC<ProjectIdentityPanelProps> = ({
           }
         }}
         className="h-7 w-40 border-none bg-transparent px-1 py-0 text-sm font-medium shadow-none focus-visible:ring-0"
-        placeholder="Project name"
+        placeholder={t('topbar.projectName')}
       />
       <span className="h-5 w-px bg-brand/20" />
       <Input
@@ -54,10 +56,10 @@ export const ProjectIdentityPanel: React.FC<ProjectIdentityPanelProps> = ({
           }
         }}
         className="h-7 w-44 border-none bg-transparent px-1 py-0 text-sm font-medium shadow-none focus-visible:ring-0"
-        placeholder="Diagram title"
+        placeholder={t('topbar.diagramTitle')}
       />
       <Badge variant="secondary" className={diagramBadgeClass}>
-        {currentDiagramType?.replace('Diagram', '') ?? 'No Diagram'}
+        {currentDiagramType?.replace('Diagram', '') ?? t('topbar.noDiagram')}
       </Badge>
     </div>
   );

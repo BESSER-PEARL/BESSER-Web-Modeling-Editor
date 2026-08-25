@@ -1,0 +1,39 @@
+name: i18n
+
+# Verifies translation coverage on every PR. Policy: English is required and
+# complete; the other languages are optional and fall back to English at runtime.
+# The check FAILS only on an incomplete English reference or stale/mistyped keys —
+# untranslated non-English keys are surfaced as warnings (annotations + a coverage
+# table in the run summary), not errors. See docs/TRANSLATING.md.
+
+on:
+  pull_request:
+    branches: [develop, main]
+    paths:
+      - 'packages/i18n/**'
+      - 'scripts/i18n-check.mjs'
+      - '.github/workflows/i18n.yml'
+  push:
+    branches: [develop, main]
+    paths:
+      - 'packages/i18n/**'
+      - 'scripts/i18n-check.mjs'
+      - '.github/workflows/i18n.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  i18n-check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      # Actions pinned to commit SHAs (matches the BESSER repo's security policy).
+      # The trailing comment records the human-readable version; update both together.
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 20
+      # No dependencies to install — the checker uses only Node built-ins.
+      - name: Check translation coverage
+        run: node scripts/i18n-check.mjs

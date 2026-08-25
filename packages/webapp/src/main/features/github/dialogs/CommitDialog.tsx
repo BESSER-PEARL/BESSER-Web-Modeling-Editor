@@ -1,4 +1,5 @@
 import React, { useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 import { CloudUpload } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -24,9 +25,10 @@ export const CommitDialog: React.FC<CommitDialogProps> = ({
   onMessageChange,
   onCommit,
 }) => {
+  const { t } = useTranslation();
   const validators = useMemo(() => ({
-    message: () => validateRequired(message, 'Commit message'),
-  }), [message]);
+    message: () => validateRequired(message, t('github.commit.messageLabel')),
+  }), [message, t]);
   const validation = useFieldValidation(validators);
 
   const handleOpenChange = (nextOpen: boolean) => {
@@ -40,14 +42,14 @@ export const CommitDialog: React.FC<CommitDialogProps> = ({
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="sm:max-w-xl">
         <DialogHeader>
-          <DialogTitle>Push to GitHub</DialogTitle>
-          <DialogDescription>Write a commit message for your changes.</DialogDescription>
+          <DialogTitle>{t('github.commit.title')}</DialogTitle>
+          <DialogDescription>{t('github.commit.description')}</DialogDescription>
         </DialogHeader>
 
-        <FormField label="Commit Message" required error={validation.getError('message')}>
+        <FormField label={t('github.commit.messageLabel')} required error={validation.getError('message')}>
           <Textarea
             rows={2}
-            placeholder="Describe your changes..."
+            placeholder={t('github.commit.messagePlaceholder')}
             value={message}
             onChange={(event) => onMessageChange(event.target.value)}
             onBlur={() => validation.markTouched('message')}
@@ -58,11 +60,11 @@ export const CommitDialog: React.FC<CommitDialogProps> = ({
 
         <DialogFooter>
           <Button variant="outline" onClick={() => handleOpenChange(false)}>
-            Cancel
+            {t('common.cancel')}
           </Button>
           <Button onClick={onCommit} disabled={isSaving || !validation.isValid} className="gap-2">
-            {isSaving ? 'Pushing...' : <CloudUpload className="size-4" />}
-            Push
+            {isSaving ? t('github.commit.pushing') : <CloudUpload className="size-4" />}
+            {t('github.commit.push')}
           </Button>
         </DialogFooter>
       </DialogContent>
