@@ -843,6 +843,10 @@ export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGen
                 referenceDiagramData = classDiagram.model;
               }
             }
+            // A UserDiagram canvas may hold several profiles (one `User` box
+            // each). The backend detects this from the converted object model
+            // and returns a ZIP of one object-model file per profile; a single
+            // profile keeps the plain single-file response.
             result = await generateCode(editor, 'jsonobject', activeDiagramTitle, undefined, referenceDiagramData);
             break;
           }

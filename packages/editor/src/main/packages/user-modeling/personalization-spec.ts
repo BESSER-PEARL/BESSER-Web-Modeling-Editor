@@ -45,6 +45,12 @@ export interface UserContentSpec {
   languageComplexity?: 'original' | 'simple' | 'medium' | 'complex';
   sentenceLength?: 'original' | 'concise' | 'verbose';
   useAbbreviations?: boolean;
+  /**
+   * When set, the agent adapts its content to this user profile. Can be authored
+   * at the profile level (root `User` box) or on individual attribute rows;
+   * folded into the flat config's `adaptContentToUserProfile`.
+   */
+  adaptContentToUserProfile?: boolean;
 }
 
 export interface UserPersonalizationSpec {

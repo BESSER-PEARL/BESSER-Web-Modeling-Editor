@@ -83,6 +83,9 @@ const applySpec = (config: AggregatedConfiguration, spec: UserPersonalizationSpe
     if (content.languageComplexity !== undefined) config.languageComplexity = content.languageComplexity;
     if (content.sentenceLength !== undefined) config.sentenceLength = content.sentenceLength;
     if (content.useAbbreviations !== undefined) config.useAbbreviations = content.useAbbreviations;
+    if (content.adaptContentToUserProfile !== undefined) {
+      config.adaptContentToUserProfile = content.adaptContentToUserProfile;
+    }
   }
 };
 

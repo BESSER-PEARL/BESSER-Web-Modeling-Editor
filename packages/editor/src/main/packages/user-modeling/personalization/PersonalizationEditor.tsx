@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { SketchPicker } from 'react-color';
 import styled from 'styled-components';
 import { Divider } from '../../../components/controls/divider/divider';
 import {
@@ -32,6 +33,14 @@ const SectionTitle = styled.div`
   text-transform: uppercase;
   letter-spacing: 0.04em;
   opacity: 0.7;
+`;
+
+const SubTitle = styled.div`
+  font-weight: 500;
+  margin: 8px 0 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  opacity: 0.5;
 `;
 
 const Row = styled.label`
@@ -129,6 +138,113 @@ type Props = {
   defaultOpen?: boolean;
 };
 
+/** Content enums default to `original` (no change); everything else to unset. */
+const CONTENT_DEFAULT = 'original';
+
+/**
+ * Preset text colors shown inline for quick one-click picking — the classic
+ * black / red / green / blue set. Anything else goes through the "custom" chip,
+ * which opens a modern color picker (saturation/hue/hex).
+ */
+const COLOR_PRESETS: { label: string; value: string }[] = [
+  { label: 'black', value: '#000000' },
+  { label: 'red', value: '#ff0000' },
+  { label: 'green', value: '#008000' },
+  { label: 'blue', value: '#0000ff' },
+];
+const PRESET_VALUES = COLOR_PRESETS.map((c) => c.value);
+
+const HEX_RE = /^#[0-9a-fA-F]{6}$/;
+
+/** Rainbow gradient used as the "custom color" chip fill. */
+const RAINBOW =
+  'conic-gradient(from 90deg, #ef4444, #f97316, #eab308, #22c55e, #14b8a6, #3b82f6, #6366f1, #a855f7, #ec4899, #ef4444)';
+
+const eqColor = (a?: string, b?: string) => (a ?? '').toLowerCase() === (b ?? '').toLowerCase();
+
+/**
+ * Text-color picker for the canvas popup: preset swatches inline plus a "custom"
+ * chip that toggles a modern `SketchPicker` (rendered inline, not in a floating
+ * layer, so it can't be clipped by the editor's own popup).
+ */
+const ColorField: React.FC<{ value?: string; onChange: (v: string | undefined) => void }> = ({ value, onChange }) => {
+  const [open, setOpen] = useState(false);
+  const isCustom = !!value && !PRESET_VALUES.some((p) => eqColor(value, p));
+  const custom = value && HEX_RE.test(value) ? value : '#000000';
+
+  return (
+    <div style={{ margin: '6px 0' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
+        <RowLabel>Color</RowLabel>
+        {value && (
+          <button
+            type="button"
+            title="Clear color"
+            onClick={() => {
+              onChange(undefined);
+              setOpen(false);
+            }}
+            style={{ background: 'transparent', border: 'none', color: 'inherit', opacity: 0.6, cursor: 'pointer', fontSize: 11 }}
+          >
+            clear
+          </button>
+        )}
+      </div>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+        {COLOR_PRESETS.map((c) => (
+          <button
+            key={c.value}
+            type="button"
+            title={c.label}
+            aria-label={c.label}
+            onClick={() => {
+              onChange(c.value);
+              setOpen(false);
+            }}
+            style={{
+              width: 20,
+              height: 20,
+              borderRadius: '50%',
+              padding: 0,
+              cursor: 'pointer',
+              background: c.value,
+              boxShadow: eqColor(value, c.value) ? '0 0 0 2px hsl(250, 70%, 60%)' : 'none',
+              border: eqColor(value, c.value) ? '1px solid transparent' : '1px solid rgba(127, 127, 127, 0.45)',
+            }}
+          />
+        ))}
+        <button
+          type="button"
+          title="Custom color"
+          aria-label="Custom color"
+          onClick={() => setOpen((o) => !o)}
+          style={{
+            width: 20,
+            height: 20,
+            borderRadius: '50%',
+            padding: 0,
+            cursor: 'pointer',
+            backgroundImage: isCustom ? undefined : RAINBOW,
+            background: isCustom ? value : undefined,
+            boxShadow: isCustom ? '0 0 0 2px hsl(250, 70%, 60%)' : 'none',
+            border: isCustom ? '1px solid transparent' : '1px solid rgba(127, 127, 127, 0.45)',
+          }}
+        />
+      </div>
+      {open && (
+        <div style={{ marginTop: 8 }}>
+          <SketchPicker
+            color={custom}
+            disableAlpha
+            presetColors={PRESET_VALUES}
+            onChange={(c) => onChange(c.hex)}
+          />
+        </div>
+      )}
+    </div>
+  );
+};
+
 /** Drop empty dimensions / fields so the stored spec stays sparse; undefined when fully empty. */
 const clean = (spec: UserPersonalizationSpec): UserPersonalizationSpec | undefined => {
   const prune = <T extends object>(obj?: T): T | undefined => {
@@ -136,6 +252,10 @@ const clean = (spec: UserPersonalizationSpec): UserPersonalizationSpec | undefin
     const out: Record<string, unknown> = {};
     for (const [k, v] of Object.entries(obj)) {
       if (v === undefined || v === '' || v === null) continue;
+      // `original` is the content dimensions' no-change default (shown selected
+      // by default, matching the old personalization view): equivalent to unset,
+      // so drop it to keep the spec sparse.
+      if (v === 'original') continue;
       if (Array.isArray(v) && v.length === 0) continue;
       out[k] = v;
     }
@@ -180,16 +300,15 @@ export const PersonalizationEditor: React.FC<Props> = ({ value, onChange, label,
 
       {open && (
         <div style={{ marginTop: 6 }}>
-          {/* Content */}
+          {/* Presentation (language/style/complexity/sentence + interface styling) */}
           <Section>
-            <SectionTitle>Content</SectionTitle>
+            <SectionTitle>Presentation</SectionTitle>
             <Row>
               <RowLabel>Language</RowLabel>
               <Select
-                value={content.language ?? ''}
+                value={content.language ?? CONTENT_DEFAULT}
                 onChange={(e) => patchContent({ language: (e.target.value || undefined) as UserContentSpec['language'] })}
               >
-                <option value="">—</option>
                 {['original', 'english', 'spanish', 'french', 'german', 'portuguese', 'luxembourgish', 'italian'].map((v) => (
                   <option key={v} value={v}>{v}</option>
                 ))}
@@ -198,10 +317,9 @@ export const PersonalizationEditor: React.FC<Props> = ({ value, onChange, label,
             <Row>
               <RowLabel>Style</RowLabel>
               <Select
-                value={content.style ?? ''}
+                value={content.style ?? CONTENT_DEFAULT}
                 onChange={(e) => patchContent({ style: (e.target.value || undefined) as UserContentSpec['style'] })}
               >
-                <option value="">—</option>
                 {['original', 'formal', 'informal'].map((v) => (
                   <option key={v} value={v}>{v}</option>
                 ))}
@@ -210,10 +328,9 @@ export const PersonalizationEditor: React.FC<Props> = ({ value, onChange, label,
             <Row>
               <RowLabel>Language complexity</RowLabel>
               <Select
-                value={content.languageComplexity ?? ''}
+                value={content.languageComplexity ?? CONTENT_DEFAULT}
                 onChange={(e) => patchContent({ languageComplexity: (e.target.value || undefined) as UserContentSpec['languageComplexity'] })}
               >
-                <option value="">—</option>
                 {['original', 'simple', 'medium', 'complex'].map((v) => (
                   <option key={v} value={v}>{v}</option>
                 ))}
@@ -222,10 +339,9 @@ export const PersonalizationEditor: React.FC<Props> = ({ value, onChange, label,
             <Row>
               <RowLabel>Sentence length</RowLabel>
               <Select
-                value={content.sentenceLength ?? ''}
+                value={content.sentenceLength ?? CONTENT_DEFAULT}
                 onChange={(e) => patchContent({ sentenceLength: (e.target.value || undefined) as UserContentSpec['sentenceLength'] })}
               >
-                <option value="">—</option>
                 {['original', 'concise', 'verbose'].map((v) => (
                   <option key={v} value={v}>{v}</option>
                 ))}
@@ -239,12 +355,8 @@ export const PersonalizationEditor: React.FC<Props> = ({ value, onChange, label,
                 onChange={(e) => patchContent({ useAbbreviations: e.target.checked || undefined })}
               />
             </Row>
-          </Section>
-          <Divider />
 
-          {/* Presentation */}
-          <Section>
-            <SectionTitle>Presentation</SectionTitle>
+            <SubTitle>Interface</SubTitle>
             <Row>
               <RowLabel>Font size</RowLabel>
               <Input
@@ -259,7 +371,7 @@ export const PersonalizationEditor: React.FC<Props> = ({ value, onChange, label,
                 value={presentation.font ?? ''}
                 onChange={(e) => patchPresentation({ font: (e.target.value || undefined) as UserPresentationSpec['font'] })}
               >
-                <option value="">—</option>
+                <option value="">none</option>
                 {['sans', 'serif', 'monospace', 'neutral', 'grotesque', 'condensed'].map((f) => (
                   <option key={f} value={f}>{f}</option>
                 ))}
@@ -280,20 +392,11 @@ export const PersonalizationEditor: React.FC<Props> = ({ value, onChange, label,
                 value={presentation.alignment ?? ''}
                 onChange={(e) => patchPresentation({ alignment: (e.target.value || undefined) as UserPresentationSpec['alignment'] })}
               >
-                <option value="">—</option>
+                <option value="">none</option>
                 {['left', 'center', 'justify'].map((a) => (
                   <option key={a} value={a}>{a}</option>
                 ))}
               </Select>
-            </Row>
-            <Row>
-              <RowLabel>Color</RowLabel>
-              <Input
-                type="text"
-                placeholder="#000000"
-                value={presentation.color ?? ''}
-                onChange={(e) => patchPresentation({ color: e.target.value || undefined })}
-              />
             </Row>
             <Row>
               <RowLabel>Contrast</RowLabel>
@@ -301,12 +404,30 @@ export const PersonalizationEditor: React.FC<Props> = ({ value, onChange, label,
                 value={presentation.contrast ?? ''}
                 onChange={(e) => patchPresentation({ contrast: (e.target.value || undefined) as UserPresentationSpec['contrast'] })}
               >
-                <option value="">—</option>
+                <option value="">none</option>
                 {['low', 'medium', 'high'].map((c) => (
                   <option key={c} value={c}>{c}</option>
                 ))}
               </Select>
             </Row>
+            <ColorField value={presentation.color} onChange={(color) => patchPresentation({ color })} />
+          </Section>
+          <Divider />
+
+          {/* Content */}
+          <Section>
+            <SectionTitle>Content</SectionTitle>
+            <CheckRow style={{ alignItems: 'flex-start' }}>
+              <RowLabel style={{ whiteSpace: 'normal' }}>Adapt content to this user profile</RowLabel>
+              <input
+                type="checkbox"
+                checked={content.adaptContentToUserProfile ?? false}
+                onChange={(e) => patchContent({ adaptContentToUserProfile: e.target.checked || undefined })}
+              />
+            </CheckRow>
+            <div style={{ opacity: 0.6, fontSize: 11, marginTop: 2 }}>
+              When enabled, the agent tailors its responses to this profile.
+            </div>
           </Section>
           <Divider />
 
@@ -355,7 +476,7 @@ export const PersonalizationEditor: React.FC<Props> = ({ value, onChange, label,
                 value={modality.voiceGender ?? ''}
                 onChange={(e) => patchModality({ voiceGender: (e.target.value || undefined) as UserModalitySpec['voiceGender'] })}
               >
-                <option value="">—</option>
+                <option value="">none</option>
                 {['male', 'female', 'ambiguous'].map((g) => (
                   <option key={g} value={g}>{g}</option>
                 ))}
