@@ -23,7 +23,6 @@ import { useStorageSync } from './hooks/useStorageSync';
 import { getWorkspaceContext } from '../shared/utils/workspaceContext';
 import { useGeneratorExecution } from '../features/generation/useGeneratorExecution';
 import { SuspenseFallback } from '../shared/components/loading/SuspenseFallback';
-import { GeneratingOverlay } from '../shared/components/loading/GeneratingOverlay';
 import { GlobalConfirmProvider } from '../shared/services/confirm/GlobalConfirmProvider';
 import { ErrorBoundary } from '../shared/components/error-handling/AppErrorBoundary';
 import { NotFound } from '../shared/components/NotFound';
@@ -269,7 +268,6 @@ function AppContentInner() {
       <Suspense fallback={null}>
         <SmartGenPushDialogHost />
       </Suspense>
-      <GeneratingOverlay visible={isGenerating} />
       <ToastContainer />
       <GlobalConfirmProvider />
     </ApollonEditorProvider>
