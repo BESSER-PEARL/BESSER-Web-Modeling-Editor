@@ -235,18 +235,27 @@ export const useGenerateCode = () => {
         return await generateCodeFromProject(generatorType, config, opts);
       }
 
-      // For other generators, we need the editor and model
-      if (!editor || !editor.model) {
+      // For other generators we need a model — the live editor's, or an
+      // explicit override (the assistant drawer generates from the STORED
+      // class diagram regardless of which tab is visually active).
+      const modelForGeneration = modelOverride ?? editor?.model;
+      if (!modelForGeneration) {
         console.error('No editor or model available');
         toast.error(t('generation.toasts.noDiagram'));
         return { ok: false, error: 'No diagram to generate code from' };
       }
 
-      // Validate diagram before generation
-      const validationResult = await validateDiagram(editor, diagramTitle);
-      if (!validationResult.isValid) {
-        toast.error(validationResult.message || t('generation.toasts.validationFailed'));
-        return { ok: false, error: validationResult.message || 'Validation failed' };
+      // Validate before generation when a live editor is present (the
+      // pre-existing behavior — including the agent-personalization case
+      // that passes BOTH an editor and an override). An override without an
+      // editor comes from stored project data; the backend still validates
+      // structurally during generation.
+      if (editor) {
+        const validationResult = await validateDiagram(editor, diagramTitle);
+        if (!validationResult.isValid) {
+          toast.error(validationResult.message || t('generation.toasts.validationFailed'));
+          return { ok: false, error: validationResult.message || 'Validation failed' };
+        }
       }
 
       // Prepare body for single diagram generation. modelOverride is used by
@@ -255,7 +264,7 @@ export const useGenerateCode = () => {
       // handleAgentGenerate in useGeneratorExecution.
       const body: any = {
         title: diagramTitle,
-        model: modelOverride ?? editor.model,
+        model: modelForGeneration,
         generator: generatorType,
         config: config,
         ...(referenceDiagramData ? { referenceDiagramData } : {}),

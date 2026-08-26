@@ -785,6 +785,43 @@ export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGen
           return nnResult;
         }
 
+        // Agentic flow: a class-diagram generator was requested while a
+        // non-UML tab is active (or no UML editor is mounted). The visible tab
+        // is irrelevant to the request — the assistant knows the project has a
+        // class diagram — so generate from the STORED class diagram instead of
+        // bouncing the user with "Switch to a UML diagram".
+        const CLASS_MODEL_GENERATORS = [
+          'django', 'backend', 'sql', 'sqlalchemy', 'python', 'java',
+          'pydantic', 'jsonschema', 'smartdata', 'rest_api', 'rdf', 'supabase',
+        ];
+        if ((isQuantumContext || isGuiContext || !editor)
+            && CLASS_MODEL_GENERATORS.includes(generatorType)) {
+          const storedClassDiagram = getActiveDiagram(currentProject, 'ClassDiagram');
+          const storedModel = storedClassDiagram?.model as UMLModel | undefined;
+          const hasElements =
+            !!storedModel && Object.keys((storedModel as any).elements ?? {}).length > 0;
+          if (hasElements) {
+            const overrideResult = await runGen(
+              null,
+              generatorType,
+              storedClassDiagram?.title || activeDiagramTitle,
+              config as any,
+              undefined,
+              storedModel,
+            );
+            if (!mountedRef.current) return { ok: false, error: 'Component unmounted' };
+            if (overrideResult.ok) {
+              getPostHog()?.capture('generator_used', {
+                generator_type: generatorType,
+                diagram_type: 'ClassDiagram',
+                from_stored_model: true,
+                ...getModelMetrics(currentProject),
+              });
+            }
+            return overrideResult;
+          }
+        }
+
         if (isQuantumContext || isGuiContext) {
           toast.error(t('generation.toasts.switchToUmlDiagram'));
           return { ok: false, error: 'Switch to a UML diagram to use this generator.' };
