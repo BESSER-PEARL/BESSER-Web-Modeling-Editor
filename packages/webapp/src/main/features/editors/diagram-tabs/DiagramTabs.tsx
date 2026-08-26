@@ -239,8 +239,8 @@ export const DiagramTabs: React.FC<DiagramTabsProps> = ({
 
     const backendBase = (BACKEND_URL || '').replace(/\/$/, '');
     const endpointUrl = backendBase.endsWith('/besser_api')
-      ? `${backendBase}/generate-alloy-do-stream`
-      : `${backendBase}/besser_api/generate-alloy-do-stream`;
+      ? `${backendBase}/generate-object-diagram`
+      : `${backendBase}/besser_api/generate-object-diagram`;
 
     const toastId = toast.loading(`🔍 ${t('editors.diagramTabs.starting')}`);
 
