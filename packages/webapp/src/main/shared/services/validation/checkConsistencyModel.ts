@@ -14,7 +14,7 @@ export async function checkConsistencyStream(
   title: string,
   onMessage: (data: ConsistencyStreamMessage) => void,
 ): Promise<void> {
-  const response = await fetch(`${BACKEND_URL}/check-alloy-consistency-stream`, {
+  const response = await fetch(`${BACKEND_URL}/semantic-consistency-check`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ title, model }),
