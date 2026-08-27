@@ -3,6 +3,7 @@ import { toast } from 'react-toastify';
 import { useTranslation } from 'react-i18next';
 import {
   ArrowLeft,
+  ArrowRight,
   CalendarDays,
   FileSpreadsheet,
   FolderOpen,
@@ -842,58 +843,92 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
     </FormField>
   );
 
+  // Project cards: the whole card opens the project (the primary action);
+  // delete is a hover/focus-revealed corner control so it can't be hit by
+  // accident but is always one hover away.
   const renderProjectList = () => (
-    <div className="flex flex-col gap-3">
+    <div className="grid gap-2.5 md:grid-cols-2">
       {sortedProjects.length === 0 && (
-        <Card className="border-dashed border-border/80 bg-muted/20 shadow-none">
-          <CardContent className="py-6 text-sm text-muted-foreground">
-            {t('project.hub.list.emptyHint')}
-          </CardContent>
-        </Card>
+        <div className="rounded-xl border border-dashed border-border/60 bg-muted/15 px-4 py-10 text-center text-sm text-muted-foreground md:col-span-2">
+          {t('project.hub.list.emptyHint')}
+        </div>
       )}
 
       {sortedProjects.map((project) => {
         const isCurrent = currentProject?.id === project.id;
         return (
-          <Card key={project.id} className={isCurrent ? 'border-brand/40 bg-brand/5 shadow-none' : 'shadow-none'}>
-            <CardContent className="flex flex-col gap-3 p-4">
-              <div className="flex items-start justify-between gap-3">
-                <div className="min-w-0">
-                  <p className="truncate text-sm font-semibold">{project.name}</p>
-                  <p className="mt-1 text-xs text-muted-foreground">{project.description || t('project.hub.list.noDescription')}</p>
+          <div
+            key={project.id}
+            role="button"
+            tabIndex={isBusy ? -1 : 0}
+            aria-disabled={isBusy}
+            onClick={() => { if (!isBusy) void handleOpenProject(project.id); }}
+            onKeyDown={(e) => {
+              if (isBusy) return;
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                void handleOpenProject(project.id);
+              }
+            }}
+            className={cn(
+              'group relative flex cursor-pointer flex-col gap-3 overflow-hidden rounded-xl border bg-card p-4 text-left transition-all duration-300 hover:-translate-y-0.5 hover:shadow-elevation-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/40',
+              isCurrent
+                ? 'border-brand/40 bg-brand/[0.04] hover:border-brand/50'
+                : 'border-border/60 hover:border-brand/30',
+              isBusy && 'pointer-events-none opacity-60',
+            )}
+          >
+            <div className="flex items-start gap-3 pr-7">
+              <div
+                className={cn(
+                  'mt-0.5 inline-flex shrink-0 rounded-lg p-2 ring-1 transition-colors',
+                  isCurrent
+                    ? 'bg-brand/10 text-brand ring-brand/15'
+                    : 'bg-brand/[0.06] text-brand/70 ring-brand/10 group-hover:bg-brand/10 group-hover:text-brand',
+                )}
+              >
+                <FolderOpen className="size-4" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-2">
+                  <p className="truncate text-sm font-semibold tracking-tight">{project.name}</p>
+                  {isCurrent && (
+                    <Badge className="shrink-0 rounded-full border-brand/20 bg-brand/10 px-2 py-0 text-[10px] font-medium text-brand">
+                      {t('project.hub.list.active')}
+                    </Badge>
+                  )}
                 </div>
-                {isCurrent && <Badge className="border-brand/20 bg-brand/10 text-brand">{t('project.hub.list.active')}</Badge>}
+                <p className="mt-0.5 line-clamp-2 text-[11px] leading-relaxed text-muted-foreground">
+                  {project.description || t('project.hub.list.noDescription')}
+                </p>
               </div>
+            </div>
 
-              <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                <CalendarDays className="size-3.5" />
-                <span>{new Date(project.createdAt).toLocaleString()}</span>
-              </div>
+            <div className="flex items-center justify-between">
+              <span className="flex items-center gap-1.5 font-mono text-[10px] tracking-wide text-muted-foreground/70">
+                <CalendarDays className="size-3" />
+                {new Date(project.createdAt).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' })}
+              </span>
+              <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-brand opacity-0 transition-opacity duration-200 group-hover:opacity-100 group-focus-visible:opacity-100">
+                {t('project.hub.list.open')}
+                <ArrowRight className="size-3.5 transition-transform duration-300 group-hover:translate-x-0.5" />
+              </span>
+            </div>
 
-              <div className="flex gap-2">
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => void handleOpenProject(project.id)}
-                  disabled={isBusy}
-                  className="flex-1 gap-1.5 border-brand/20 text-brand hover:border-brand/30 hover:bg-brand/[0.04]"
-                >
-                  <FolderOpen className="size-3.5" />
-                  {t('project.hub.list.open')}
-                </Button>
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  className="text-destructive hover:bg-destructive/10 hover:text-destructive"
-                  onClick={() => void handleDeleteProject(project.id, project.name)}
-                  disabled={isBusy}
-                  aria-label={t('project.hub.list.deleteAria', { name: project.name })}
-                >
-                  <Trash2 className="size-3.5" />
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
+            <Button
+              size="icon"
+              variant="ghost"
+              className="absolute right-2 top-2 size-7 text-muted-foreground opacity-0 transition-opacity hover:bg-destructive/10 hover:text-destructive focus-visible:opacity-100 group-hover:opacity-100"
+              onClick={(e) => {
+                e.stopPropagation();
+                void handleDeleteProject(project.id, project.name);
+              }}
+              disabled={isBusy}
+              aria-label={t('project.hub.list.deleteAria', { name: project.name })}
+            >
+              <Trash2 className="size-3.5" />
+            </Button>
+          </div>
         );
       })}
     </div>
@@ -910,17 +945,30 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
           />
         )}
         {step !== 'welcome' && (
-        <DialogHeader className="border-b border-border/60 px-6 pt-5 pb-3">
+        <>
+        {/* Ambient brand glow, echoing the first-run landing's surface. */}
+        <div
+          aria-hidden
+          className="pointer-events-none absolute -right-16 -top-24 size-72 rounded-full opacity-40 blur-2xl"
+          style={{ background: 'radial-gradient(circle at center, hsl(var(--brand)/0.18), transparent 62%)' }}
+        />
+        <DialogHeader className="border-b border-border/60 px-6 pt-5 pb-4">
           <div className="flex items-start justify-between gap-3">
-            <div className={cn(step === 'start' && 'flex items-start gap-3.5')}>
-              {step === 'start' && (
-                <img src="/images/logo.png" alt="BESSER" className="mt-0.5 h-7 w-auto shrink-0 brightness-0 opacity-80 dark:invert" />
+            <div className="flex min-w-0 items-start gap-3.5">
+              {step === 'start' ? (
+                <img src="/images/logo.png" alt="BESSER" className="mt-1 h-7 w-auto shrink-0 brightness-0 opacity-80 dark:invert" />
+              ) : (
+                <button
+                  type="button"
+                  onClick={handleBack}
+                  aria-label={t('project.hub.back')}
+                  className="mt-1 inline-flex size-8 shrink-0 items-center justify-center rounded-lg border border-border/60 text-muted-foreground transition-colors hover:border-brand/30 hover:bg-brand/[0.04] hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/40"
+                >
+                  <ArrowLeft className="size-4" />
+                </button>
               )}
-              <div>
-                <DialogTitle className={cn(
-                  'text-xl tracking-tight',
-                  step === 'start' && 'font-display text-2xl',
-                )}>
+              <div className="min-w-0">
+                <DialogTitle className="font-display text-2xl tracking-tight">
                   {currentStepInfo.title}
                 </DialogTitle>
                 <DialogDescription className="mt-1">{currentStepInfo.description}</DialogDescription>
@@ -934,6 +982,7 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
             </div>
           </div>
         </DialogHeader>
+        </>
         )}
 
         <input
@@ -1068,16 +1117,6 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
 
           {step === 'describe' && (
             <div className="flex flex-col gap-5">
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-8 w-fit gap-1.5 rounded-lg px-2.5 text-xs font-medium"
-                onClick={handleBack}
-              >
-                <ArrowLeft className="size-3.5" />
-                Back
-              </Button>
-
               <Card className="border-brand/30 bg-gradient-to-br from-brand/[0.05] via-background to-background shadow-elevation-1">
                 <CardHeader className="pb-2">
                   <CardTitle className="flex items-center gap-2 text-base tracking-tight">
@@ -1171,16 +1210,10 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
                 </CardContent>
               </Card>
 
-              <div className="flex items-center justify-between gap-3">
-                <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                  <Layers3 className="size-3" />
-                  {t('project.hub.create.tip')}
-                </p>
-                <Button variant="ghost" size="sm" className="h-8 gap-1.5 rounded-lg px-2.5 text-xs font-medium" onClick={handleBack}>
-                  <ArrowLeft className="size-3.5" />
-                  {t('project.hub.back')}
-                </Button>
-              </div>
+              <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                <Layers3 className="size-3" />
+                {t('project.hub.create.tip')}
+              </p>
             </div>
           )}
 
@@ -1222,23 +1255,11 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
                   </div>
                 </CardContent>
               </Card>
-
-              <div className="flex justify-end">
-                <Button variant="ghost" size="sm" className="h-8 gap-1.5 rounded-lg px-2.5 text-xs font-medium" onClick={handleBack}>
-                  <ArrowLeft className="size-3.5" />
-                  {t('project.hub.back')}
-                </Button>
-              </div>
             </div>
           )}
 
           {step === 'spreadsheet' && (
             <div className="flex flex-col gap-5">
-              <Button variant="ghost" size="sm" className="h-8 gap-1.5 rounded-lg px-2.5 text-xs font-medium" onClick={handleBack}>
-                <ArrowLeft className="size-3.5" />
-                {t('project.hub.back')}
-              </Button>
-
               <div className="grid gap-5 lg:grid-cols-[1.2fr_0.8fr]">
                 <Card className="border-border/50 shadow-elevation-1">
                   <CardHeader>
@@ -1343,14 +1364,12 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
           )}
 
           {step === 'open' && (
-            <div className="flex flex-col gap-4">
-              <Button variant="ghost" size="sm" className="h-8 px-2 text-xs" onClick={handleBack}>
-                <ArrowLeft className="mr-1.5 size-3.5" />
-                {t('project.hub.back')}
-              </Button>
-              <div className="mb-1 flex items-center justify-between">
-                <h3 className="text-base font-semibold">{t('project.hub.open.allProjects')}</h3>
-                <Badge variant="secondary">{sortedProjects.length}</Badge>
+            <div className="flex flex-col gap-3">
+              <div className="flex items-center justify-between">
+                <p className="text-sm font-semibold tracking-tight">{t('project.hub.open.allProjects')}</p>
+                <Badge variant="secondary" className="rounded-full border-brand/15 bg-brand/[0.06] font-mono text-[10px] text-brand">
+                  {sortedProjects.length}
+                </Badge>
               </div>
               {renderProjectList()}
             </div>
@@ -1358,16 +1377,6 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
 
           {step === 'github' && (
             <div className="flex flex-col gap-5">
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-8 w-fit gap-1.5 rounded-lg px-2.5 text-xs font-medium"
-                onClick={handleBack}
-              >
-                <ArrowLeft className="size-3.5" />
-                Back
-              </Button>
-
               <Card className="border-border/50 shadow-elevation-1">
                 <CardHeader className="pb-2">
                   <CardTitle className="flex items-center gap-2 text-base tracking-tight">
