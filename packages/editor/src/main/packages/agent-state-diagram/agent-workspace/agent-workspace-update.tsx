@@ -61,7 +61,7 @@ const AgentWorkspaceUpdateComponent: React.FC<Props> = ({ element, update, eleme
         <Header>{translate('packages.AgentDiagram.filesystemPath')}</Header>
         <Textfield
           value={element.path}
-          placeholder="/path/to/workspace"
+          placeholder={translate('packages.AgentDiagram.workspacePathPlaceholder')}
           onChange={(path) => update<AgentWorkspace>(element.id, { path })}
         />
       </Section>
@@ -71,7 +71,7 @@ const AgentWorkspaceUpdateComponent: React.FC<Props> = ({ element, update, eleme
           value={element.description}
           multiline
           enterToSubmit={false}
-          placeholder="Optional description"
+          placeholder={translate('packages.AgentDiagram.workspaceDescriptionPlaceholder')}
           onChange={(description) => update<AgentWorkspace>(element.id, { description })}
         />
       </Section>

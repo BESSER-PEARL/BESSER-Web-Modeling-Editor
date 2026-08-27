@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
 import { v4 as uuidv4 } from 'uuid';
 import {
   Plus,
@@ -100,6 +101,7 @@ interface ItemRowProps {
 }
 
 function ItemRow({ id, name, badge, extraBadge, expanded, onToggle, onDelete, children }: ItemRowProps) {
+  const { t } = useTranslation();
   return (
     <div className="rounded-md border border-border bg-background">
       <div
@@ -113,7 +115,7 @@ function ItemRow({ id, name, badge, extraBadge, expanded, onToggle, onDelete, ch
             <ChevronRight className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
           )}
           <span className="text-sm font-medium truncate">
-            {name || <span className="text-muted-foreground italic">Unnamed</span>}
+            {name || <span className="text-muted-foreground italic">{t('agentComponents.unnamed')}</span>}
           </span>
           {badge && (
             <Badge variant="outline" className="text-[10px] h-4 px-1 shrink-0">
@@ -352,22 +354,11 @@ function WarningBanner({ message }: { message: string }) {
 }
 
 // ─────────────────────────────────────────────────────────────
-// LLM provider options
-// ─────────────────────────────────────────────────────────────
-
-const LLM_PROVIDERS: { value: LLMProvider; label: string }[] = [
-  { value: 'openai', label: 'OpenAI' },
-  { value: 'huggingface', label: 'HuggingFace (local)' },
-  { value: 'huggingface_api', label: 'HuggingFace API' },
-  { value: 'replicate', label: 'Replicate' },
-  { value: 'ollama', label: 'Ollama (local)' },
-];
-
-// ─────────────────────────────────────────────────────────────
 // Main panel
 // ─────────────────────────────────────────────────────────────
 
 export function AgentComponentsPanel() {
+  const { t } = useTranslation();
   const activeDiagram = useAppSelector(selectActiveDiagram);
   const project = useAppSelector(selectProject);
   const [activeSection, setActiveSection] = useState<ActiveSection>('llms');
@@ -450,15 +441,23 @@ export function AgentComponentsPanel() {
     [elements],
   );
 
+  const LLM_PROVIDERS: { value: LLMProvider; label: string }[] = [
+    { value: 'openai', label: 'OpenAI' },
+    { value: 'huggingface', label: 'HuggingFace (local)' },
+    { value: 'huggingface_api', label: 'HuggingFace API' },
+    { value: 'replicate', label: 'Replicate' },
+    { value: 'ollama', label: 'Ollama (local)' },
+  ];
+
   const NAV_ITEMS: Array<{ key: ActiveSection; label: string; icon: React.ReactNode; count: number }> = [
-    { key: 'llms',       label: 'LLMs',          icon: <Cpu className="h-4 w-4" />,         count: llms.length },
-    { key: 'intents',    label: 'Intents',        icon: <MessageSquare className="h-4 w-4" />, count: intents.length },
-    { key: 'tools',      label: 'Tools',          icon: <Wrench className="h-4 w-4" />,       count: tools.length },
-    { key: 'skills',     label: 'Skills',         icon: <BookOpen className="h-4 w-4" />,     count: skills.length },
-    { key: 'workspaces', label: 'Workspaces',     icon: <FolderOpen className="h-4 w-4" />,   count: workspaces.length },
-    { key: 'rags',       label: 'RAG Databases',  icon: <Database className="h-4 w-4" />,     count: rags.length },
-    { key: 'sql',        label: 'SQL Databases',  icon: <Server className="h-4 w-4" />,       count: sqlDatabases.length },
-    { key: 'guis',       label: 'GUIs',           icon: <Layout className="h-4 w-4" />,       count: guis.length },
+    { key: 'llms',       label: t('agentComponents.nav.llms'),         icon: <Cpu className="h-4 w-4" />,         count: llms.length },
+    { key: 'intents',    label: t('agentComponents.nav.intents'),      icon: <MessageSquare className="h-4 w-4" />, count: intents.length },
+    { key: 'tools',      label: t('agentComponents.nav.tools'),        icon: <Wrench className="h-4 w-4" />,       count: tools.length },
+    { key: 'skills',     label: t('agentComponents.nav.skills'),       icon: <BookOpen className="h-4 w-4" />,     count: skills.length },
+    { key: 'workspaces', label: t('agentComponents.nav.workspaces'),   icon: <FolderOpen className="h-4 w-4" />,   count: workspaces.length },
+    { key: 'rags',       label: t('agentComponents.nav.ragDatabases'), icon: <Database className="h-4 w-4" />,     count: rags.length },
+    { key: 'sql',        label: t('agentComponents.nav.sqlDatabases'), icon: <Server className="h-4 w-4" />,       count: sqlDatabases.length },
+    { key: 'guis',       label: t('agentComponents.nav.guis'),         icon: <Layout className="h-4 w-4" />,       count: guis.length },
   ];
 
   // ── Write helpers ────────────────────────────────────────────
@@ -689,7 +688,7 @@ export function AgentComponentsPanel() {
   if (!activeDiagram) {
     return (
       <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
-        No active agent diagram.
+        {t('agentComponents.noActiveDiagram')}
       </div>
     );
   }
@@ -700,7 +699,7 @@ export function AgentComponentsPanel() {
       {/* ── Left sidebar ──────────────────────────────────────── */}
       <nav className="w-52 shrink-0 border-r border-border overflow-y-auto py-3">
         <p className="px-4 pb-2 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-          Components
+          {t('agentComponents.sidebarTitle')}
         </p>
         {NAV_ITEMS.map(item => (
           <button
@@ -735,13 +734,13 @@ export function AgentComponentsPanel() {
           {/* ── LLMs ──────────────────────────────────────────── */}
           {activeSection === 'llms' && (
             <SectionPage
-              title="LLMs"
-              description="Language models available to the agent. LLMs are referenced by name from states and RAG databases."
+              title={t('agentComponents.llms.title')}
+              description={t('agentComponents.llms.description')}
               onAdd={handleAddLLM}
-              addLabel="Add LLM"
+              addLabel={t('agentComponents.llms.addLabel')}
             >
               {llms.length === 0 && (
-                <p className="py-6 text-center text-sm text-muted-foreground">No LLMs defined yet.</p>
+                <p className="py-6 text-center text-sm text-muted-foreground">{t('agentComponents.llms.empty')}</p>
               )}
               {llms.map((el: any) => (
                 <ItemRow
@@ -749,7 +748,7 @@ export function AgentComponentsPanel() {
                   id={el.id}
                   name={el.name}
                   badge={el.provider}
-                  extraBadge={defaultLlmName === el.name && el.name ? 'default' : undefined}
+                  extraBadge={defaultLlmName === el.name && el.name ? t('agentConfig.row.default') : undefined}
                   expanded={expandedId === el.id}
                   onToggle={() => toggle(el.id)}
                   onDelete={() => removeLLM(el.id, el.name)}
@@ -757,15 +756,15 @@ export function AgentComponentsPanel() {
                   <div className="grid grid-cols-2 gap-4">
                     <TextField
                       id={`llm-name-${el.id}`}
-                      label="Model Name"
+                      label={t('agentComponents.llms.modelName')}
                       value={el.name || ''}
                       onChange={v => updateElement(el.id, { name: v })}
-                      placeholder="e.g. main_llm"
-                      description="Identifier used to reference this LLM."
+                      placeholder={t('agentComponents.llms.modelNamePlaceholder')}
+                      description={t('agentComponents.llms.modelNameDescription')}
                     />
                     <SelectField
                       id={`llm-provider-${el.id}`}
-                      label="Provider"
+                      label={t('agentComponents.llms.provider')}
                       value={el.provider || 'openai'}
                       onChange={v => updateElement(el.id, { provider: v })}
                       options={LLM_PROVIDERS}
@@ -773,34 +772,34 @@ export function AgentComponentsPanel() {
                   </div>
                   <CheckboxField
                     id={`llm-default-${el.id}`}
-                    label="Set as default LLM"
+                    label={t('agentComponents.llms.setDefault')}
                     value={!!el.name && defaultLlmName === el.name}
                     onChange={(checked) => {
                       if (checked && el.name) setDefaultLlm(el.name);
                       else if (!checked && defaultLlmName === el.name) setDefaultLlm('');
                     }}
-                    description="Use this LLM when no specific LLM is selected in a state action."
+                    description={t('agentComponents.llms.setDefaultDescription')}
                   />
                   <NumberField
                     id={`llm-npm-${el.id}`}
-                    label="Num previous messages"
+                    label={t('agentComponents.llms.numPrevMessages')}
                     value={el.num_previous_messages ?? 1}
                     onChange={v => updateElement(el.id, { num_previous_messages: Math.max(0, v) })}
                     min={0}
                   />
                   <JsonField
                     id={`llm-params-${el.id}`}
-                    label="Parameters"
-                    description='Provider-specific parameters as a JSON object (e.g. {"model": "gpt-4o-mini"} or {"base_url": "http://localhost:11434", "model": "llama3"} for Ollama).'
+                    label={t('agentComponents.llms.parameters')}
+                    description={t('agentComponents.llms.parametersDescription')}
                     value={(el.parameters || {}) as Record<string, unknown>}
                     onChange={v => updateElement(el.id, { parameters: v })}
                   />
                   <TextField
                     id={`llm-ctx-${el.id}`}
-                    label="Global context"
+                    label={t('agentComponents.llms.globalContext')}
                     value={el.global_context || ''}
                     onChange={v => updateElement(el.id, { global_context: v })}
-                    placeholder="Optional system-level instructions for this LLM"
+                    placeholder={t('agentComponents.llms.globalContextPlaceholder')}
                     multiline
                   />
                 </ItemRow>
@@ -811,13 +810,13 @@ export function AgentComponentsPanel() {
           {/* ── Intents ───────────────────────────────────────── */}
           {activeSection === 'intents' && (
             <SectionPage
-              title="Intents"
-              description="User intents recognized by the agent. Each intent can have training sentences to improve recognition."
+              title={t('agentComponents.intents.title')}
+              description={t('agentComponents.intents.description')}
               onAdd={handleAddIntent}
-              addLabel="Add Intent"
+              addLabel={t('agentComponents.intents.addLabel')}
             >
               {intents.length === 0 && (
-                <p className="py-6 text-center text-sm text-muted-foreground">No intents defined yet.</p>
+                <p className="py-6 text-center text-sm text-muted-foreground">{t('agentComponents.intents.empty')}</p>
               )}
               {intents.map((el: any) => {
                 const bodyIds: string[] = Array.isArray(el.bodies) ? el.bodies : (el.ownedElements || []);
@@ -830,29 +829,29 @@ export function AgentComponentsPanel() {
                     key={el.id}
                     id={el.id}
                     name={el.name}
-                    badge={sentenceCount > 0 ? `${sentenceCount} sentence${sentenceCount > 1 ? 's' : ''}` : undefined}
+                    badge={sentenceCount > 0 ? t('agentComponents.intents.sentenceCount', { count: sentenceCount }) : undefined}
                     expanded={expandedId === el.id}
                     onToggle={() => toggle(el.id)}
                     onDelete={() => removeIntent(el.id)}
                   >
                     <TextField
                       id={`intent-name-${el.id}`}
-                      label="Intent name"
+                      label={t('agentComponents.intents.name')}
                       value={el.name || ''}
                       onChange={v => updateElement(el.id, { name: v })}
-                      placeholder="e.g. greet_user"
+                      placeholder={t('agentComponents.intents.namePlaceholder')}
                     />
                     <TextField
                       id={`intent-desc-${el.id}`}
-                      label="Description (optional)"
+                      label={t('agentComponents.intents.intentDescription')}
                       value={el.intent_description || ''}
                       onChange={v => updateElement(el.id, { intent_description: v })}
-                      placeholder="Brief description of what this intent captures"
+                      placeholder={t('agentComponents.intents.intentDescriptionPlaceholder')}
                       multiline
                     />
                     <div className="space-y-2">
                       <div className="flex items-center justify-between">
-                        <Label className="text-xs font-medium">Training sentences</Label>
+                        <Label className="text-xs font-medium">{t('agentComponents.intents.trainingSentences')}</Label>
                         <Button
                           type="button"
                           variant="ghost"
@@ -860,12 +859,12 @@ export function AgentComponentsPanel() {
                           className="h-6 gap-1 text-xs px-2"
                           onClick={() => addTrainingSentence(el.id)}
                         >
-                          <Plus className="h-3 w-3" /> Add sentence
+                          <Plus className="h-3 w-3" /> {t('agentComponents.intents.addSentence')}
                         </Button>
                       </div>
                       {bodies.length === 0 && (
                         <p className="text-[11px] text-muted-foreground italic">
-                          No training sentences yet. Add some to improve intent recognition.
+                          {t('agentComponents.intents.noSentences')}
                         </p>
                       )}
                       {bodies.map((body: any) => (
@@ -873,7 +872,7 @@ export function AgentComponentsPanel() {
                           <Input
                             value={body.name || ''}
                             onChange={e => updateTrainingSentence(body.id, e.target.value)}
-                            placeholder="e.g. Hello there"
+                            placeholder={t('agentComponents.intents.sentencePlaceholder')}
                             className="h-7 text-sm flex-1"
                           />
                           <button
@@ -895,16 +894,16 @@ export function AgentComponentsPanel() {
           {/* ── Tools ─────────────────────────────────────────── */}
           {activeSection === 'tools' && (
             <SectionPage
-              title="Tools"
-              description="Python functions callable by reasoning states during agent execution."
+              title={t('agentComponents.tools.title')}
+              description={t('agentComponents.tools.description')}
               onAdd={handleAddTool}
-              addLabel="Add Tool"
+              addLabel={t('agentComponents.tools.addLabel')}
             >
               {!hasReasoningState && (
-                <WarningBanner message="Tools can only be used by a reasoning state. Add a reasoning state to the agent diagram to use tools." />
+                <WarningBanner message={t('agentComponents.tools.warning')} />
               )}
               {tools.length === 0 && (
-                <p className="py-6 text-center text-sm text-muted-foreground">No tools defined yet.</p>
+                <p className="py-6 text-center text-sm text-muted-foreground">{t('agentComponents.tools.empty')}</p>
               )}
               {tools.map((el: any) => (
                 <ItemRow
@@ -917,20 +916,20 @@ export function AgentComponentsPanel() {
                 >
                   <TextField
                     id={`tool-name-${el.id}`}
-                    label="Tool name"
+                    label={t('agentComponents.tools.name')}
                     value={el.name || ''}
                     onChange={v => updateElement(el.id, { name: v })}
-                    placeholder="e.g. search_web"
+                    placeholder={t('agentComponents.tools.namePlaceholder')}
                   />
                   <TextField
                     id={`tool-desc-${el.id}`}
-                    label="Description"
+                    label={t('agentComponents.tools.toolDescription')}
                     value={el.description || ''}
                     onChange={v => updateElement(el.id, { description: v })}
-                    placeholder="Short description shown to the LLM"
+                    placeholder={t('agentComponents.tools.toolDescriptionPlaceholder')}
                     multiline
                   />
-                  <Field id={`tool-code-${el.id}`} label="Python code" description="Use `session` parameter for agent session access.">
+                  <Field id={`tool-code-${el.id}`} label={t('agentComponents.tools.code')} description={t('agentComponents.tools.codeDescription')}>
                     <PythonCodeEditor
                       value={el.code || 'def tool_name(session):\n    pass\n'}
                       onChange={v => updateElement(el.id, { code: v })}
@@ -944,16 +943,16 @@ export function AgentComponentsPanel() {
           {/* ── Skills ────────────────────────────────────────── */}
           {activeSection === 'skills' && (
             <SectionPage
-              title="Skills"
-              description="Markdown knowledge documents provided to reasoning states."
+              title={t('agentComponents.skills.title')}
+              description={t('agentComponents.skills.description')}
               onAdd={handleAddSkill}
-              addLabel="Add Skill"
+              addLabel={t('agentComponents.skills.addLabel')}
             >
               {!hasReasoningState && (
-                <WarningBanner message="Skills can only be used by a reasoning state. Add a reasoning state to the agent diagram to use skills." />
+                <WarningBanner message={t('agentComponents.skills.warning')} />
               )}
               {skills.length === 0 && (
-                <p className="py-6 text-center text-sm text-muted-foreground">No skills defined yet.</p>
+                <p className="py-6 text-center text-sm text-muted-foreground">{t('agentComponents.skills.empty')}</p>
               )}
               {skills.map((el: any) => (
                 <ItemRow
@@ -966,25 +965,25 @@ export function AgentComponentsPanel() {
                 >
                   <TextField
                     id={`skill-name-${el.id}`}
-                    label="Skill name"
+                    label={t('agentComponents.skills.name')}
                     value={el.name || ''}
                     onChange={v => updateElement(el.id, { name: v })}
-                    placeholder="e.g. product_knowledge"
+                    placeholder={t('agentComponents.skills.namePlaceholder')}
                   />
                   <TextField
                     id={`skill-desc-${el.id}`}
-                    label="Description"
+                    label={t('agentComponents.skills.skillDescription')}
                     value={el.description || ''}
                     onChange={v => updateElement(el.id, { description: v })}
-                    placeholder="Optional short description"
+                    placeholder={t('agentComponents.skills.skillDescriptionPlaceholder')}
                     multiline
                   />
                   <TextField
                     id={`skill-content-${el.id}`}
-                    label="Markdown content"
+                    label={t('agentComponents.skills.content')}
                     value={el.content || ''}
                     onChange={v => updateElement(el.id, { content: v })}
-                    placeholder={'# Skill\n\nInstructions in markdown...'}
+                    placeholder={t('agentComponents.skills.contentPlaceholder')}
                     multiline
                   />
                 </ItemRow>
@@ -995,61 +994,61 @@ export function AgentComponentsPanel() {
           {/* ── Workspaces ────────────────────────────────────── */}
           {activeSection === 'workspaces' && (
             <SectionPage
-              title="Workspaces"
-              description="Filesystem directories the agent can read or write during reasoning."
+              title={t('agentComponents.workspaces.title')}
+              description={t('agentComponents.workspaces.description')}
               onAdd={handleAddWorkspace}
-              addLabel="Add Workspace"
+              addLabel={t('agentComponents.workspaces.addLabel')}
             >
               {!hasReasoningState && (
-                <WarningBanner message="Workspaces can only be used by a reasoning state. Add a reasoning state to the agent diagram to use workspaces." />
+                <WarningBanner message={t('agentComponents.workspaces.warning')} />
               )}
               {workspaces.length === 0 && (
-                <p className="py-6 text-center text-sm text-muted-foreground">No workspaces defined yet.</p>
+                <p className="py-6 text-center text-sm text-muted-foreground">{t('agentComponents.workspaces.empty')}</p>
               )}
               {workspaces.map((el: any) => (
                 <ItemRow
                   key={el.id}
                   id={el.id}
                   name={el.name}
-                  badge={el.writable ? 'writable' : 'read-only'}
+                  badge={el.writable ? t('agentComponents.workspaces.badgeWritable') : t('agentComponents.workspaces.badgeReadOnly')}
                   expanded={expandedId === el.id}
                   onToggle={() => toggle(el.id)}
                   onDelete={() => removeElement(el.id)}
                 >
                   <TextField
                     id={`ws-name-${el.id}`}
-                    label="Workspace name"
+                    label={t('agentComponents.workspaces.name')}
                     value={el.name || ''}
                     onChange={v => updateElement(el.id, { name: v })}
-                    placeholder="e.g. project_files"
+                    placeholder={t('agentComponents.workspaces.namePlaceholder')}
                   />
                   <TextField
                     id={`ws-path-${el.id}`}
-                    label="Filesystem path"
+                    label={t('agentComponents.workspaces.path')}
                     value={el.path || ''}
                     onChange={v => updateElement(el.id, { path: v })}
-                    placeholder="/path/to/workspace"
-                    description="Absolute path to the directory on the host system."
+                    placeholder={t('agentComponents.workspaces.pathPlaceholder')}
+                    description={t('agentComponents.workspaces.pathDescription')}
                   />
                   <TextField
                     id={`ws-desc-${el.id}`}
-                    label="Description"
+                    label={t('agentComponents.workspaces.wsDescription')}
                     value={el.description || ''}
                     onChange={v => updateElement(el.id, { description: v })}
-                    placeholder="Optional description"
+                    placeholder={t('agentComponents.workspaces.wsDescriptionPlaceholder')}
                     multiline
                   />
                   <div className="grid grid-cols-2 gap-4">
                     <CheckboxField
                       id={`ws-writable-${el.id}`}
-                      label="Writable"
+                      label={t('agentComponents.workspaces.writable')}
                       value={el.writable ?? true}
                       onChange={v => updateElement(el.id, { writable: v })}
-                      description="Allow the agent to create or modify files."
+                      description={t('agentComponents.workspaces.writableDescription')}
                     />
                     <NumberField
                       id={`ws-maxbytes-${el.id}`}
-                      label="Max read bytes"
+                      label={t('agentComponents.workspaces.maxReadBytes')}
                       value={el.max_read_bytes ?? 200000}
                       onChange={v => updateElement(el.id, { max_read_bytes: Math.max(0, v) })}
                       min={0}
@@ -1063,13 +1062,13 @@ export function AgentComponentsPanel() {
           {/* ── RAG Databases ─────────────────────────────────── */}
           {activeSection === 'rags' && (
             <SectionPage
-              title="RAG Databases"
-              description="Vector databases for retrieval-augmented generation."
+              title={t('agentComponents.rags.title')}
+              description={t('agentComponents.rags.description')}
               onAdd={handleAddRag}
-              addLabel="Add RAG Database"
+              addLabel={t('agentComponents.rags.addLabel')}
             >
               {rags.length === 0 && (
-                <p className="py-6 text-center text-sm text-muted-foreground">No RAG databases defined yet.</p>
+                <p className="py-6 text-center text-sm text-muted-foreground">{t('agentComponents.rags.empty')}</p>
               )}
               {rags.map((el: any) => (
                 <ItemRow
@@ -1084,43 +1083,43 @@ export function AgentComponentsPanel() {
                   <div className="grid grid-cols-2 gap-4">
                     <TextField
                       id={`rag-name-${el.id}`}
-                      label="Name"
+                      label={t('agentComponents.rags.name')}
                       value={el.name || ''}
                       onChange={v => updateElement(el.id, { name: v })}
-                      placeholder="e.g. faq_db"
+                      placeholder={t('agentComponents.rags.namePlaceholder')}
                     />
                     <SelectField
                       id={`rag-llm-${el.id}`}
-                      label="LLM"
+                      label={t('agentComponents.rags.llm')}
                       value={el.llm_name || ''}
                       onChange={v => updateElement(el.id, { llm_name: v })}
                       options={[
-                        { value: '', label: '(use default)' },
+                        { value: '', label: t('agentComponents.rags.llmUseDefault') },
                         ...llmNames.map(n => ({ value: n, label: n })),
                       ]}
-                      description="LLM used to answer retrieved content."
+                      description={t('agentComponents.rags.llmDescription')}
                     />
                   </div>
                   <TextField
                     id={`rag-prompt-${el.id}`}
-                    label="LLM prompt prefix"
+                    label={t('agentComponents.rags.promptPrefix')}
                     value={el.llm_prompt || ''}
                     onChange={v => updateElement(el.id, { llm_prompt: v })}
-                    placeholder="Optional prompt prefix for the LLM"
+                    placeholder={t('agentComponents.rags.promptPrefixPlaceholder')}
                     multiline
                   />
                   <div className="grid grid-cols-2 gap-4">
                     <NumberField
                       id={`rag-k-${el.id}`}
-                      label="K (retrieved chunks)"
+                      label={t('agentComponents.rags.kChunks')}
                       value={el.k ?? 4}
                       onChange={v => updateElement(el.id, { k: Math.max(1, v) })}
                       min={1}
-                      description="Document chunks retrieved per query."
+                      description={t('agentComponents.rags.kChunksDescription')}
                     />
                     <NumberField
                       id={`rag-npm-${el.id}`}
-                      label="Num previous messages"
+                      label={t('agentComponents.rags.numPrevMessages')}
                       value={el.num_previous_messages ?? 0}
                       onChange={v => updateElement(el.id, { num_previous_messages: Math.max(0, v) })}
                       min={0}
@@ -1128,7 +1127,7 @@ export function AgentComponentsPanel() {
                   </div>
                   <SelectField
                     id={`rag-emb-${el.id}`}
-                    label="Embedding provider"
+                    label={t('agentComponents.rags.embeddingProvider')}
                     value={el.embedding_provider || 'openai'}
                     onChange={v => {
                       const updates: Record<string, unknown> = { embedding_provider: v as RagEmbeddingProvider };
@@ -1136,25 +1135,25 @@ export function AgentComponentsPanel() {
                       updateElement(el.id, updates);
                     }}
                     options={[
-                      { value: 'openai', label: 'OpenAI' },
-                      { value: 'ollama', label: 'Ollama (local)' },
+                      { value: 'openai', label: t('agentComponents.rags.embeddingOpenai') },
+                      { value: 'ollama', label: t('agentComponents.rags.embeddingOllama') },
                     ]}
                   />
                   {el.embedding_provider === 'ollama' && (
                     <div className="grid grid-cols-2 gap-4">
                       <TextField
                         id={`rag-emb-url-${el.id}`}
-                        label="Embedding base URL"
+                        label={t('agentComponents.rags.embeddingBaseUrl')}
                         value={el.embedding_base_url || 'http://localhost:11434'}
                         onChange={v => updateElement(el.id, { embedding_base_url: v })}
-                        placeholder="http://localhost:11434"
+                        placeholder={t('agentComponents.rags.embeddingBaseUrlPlaceholder')}
                       />
                       <TextField
                         id={`rag-emb-model-${el.id}`}
-                        label="Embedding model"
+                        label={t('agentComponents.rags.embeddingModel')}
                         value={el.embedding_model || ''}
                         onChange={v => updateElement(el.id, { embedding_model: v })}
-                        placeholder="e.g. nomic-embed-text"
+                        placeholder={t('agentComponents.rags.embeddingModelPlaceholder')}
                       />
                     </div>
                   )}
@@ -1166,55 +1165,55 @@ export function AgentComponentsPanel() {
           {/* ── GUIs ─────────────────────────────────────────── */}
           {activeSection === 'guis' && (
             <SectionPage
-              title="GUIs"
-              description="Graphical UI components the agent can send as chat replies or react to via GUI events."
+              title={t('agentComponents.guis.title')}
+              description={t('agentComponents.guis.description')}
               onAdd={handleAddGUI}
-              addLabel="Create GUI"
+              addLabel={t('agentComponents.guis.addLabel')}
             >
               {guis.length === 0 && (
-                <p className="py-6 text-center text-sm text-muted-foreground">No GUIs defined yet.</p>
+                <p className="py-6 text-center text-sm text-muted-foreground">{t('agentComponents.guis.empty')}</p>
               )}
               {guis.map((el: any) => (
                 <ItemRow
                   key={el.id}
                   id={el.id}
                   name={el.gui_id || el.id}
-                  badge={el.is_form ? 'form' : undefined}
+                  badge={el.is_form ? t('agentComponents.guis.badgeForm') : undefined}
                   expanded={expandedId === el.id}
                   onToggle={() => toggle(el.id)}
                   onDelete={() => removeElement(el.id)}
                 >
                   <TextField
                     id={`gui-id-${el.id}`}
-                    label="GUI ID (message_id)"
+                    label={t('agentComponents.guis.guiId')}
                     value={el.gui_id || ''}
                     onChange={v => updateElement(el.id, { gui_id: v })}
-                    placeholder="Auto-generated UUID"
-                    description="Used as message_id in GUIEvent and form_id in when_form_submitted."
+                    placeholder={t('agentComponents.guis.guiIdPlaceholder')}
+                    description={t('agentComponents.guis.guiIdDescription')}
                   />
                   <div className="grid grid-cols-2 gap-4">
                     <CheckboxField
                       id={`gui-persist-${el.id}`}
-                      label="Persist"
+                      label={t('agentComponents.guis.persist')}
                       value={el.persist !== false}
                       onChange={v => updateElement(el.id, { persist: v })}
-                      description="Keep the GUI visible after user interaction."
+                      description={t('agentComponents.guis.persistDescription')}
                     />
                     <CheckboxField
                       id={`gui-isform-${el.id}`}
-                      label="Is Form"
+                      label={t('agentComponents.guis.isForm')}
                       value={!!el.is_form}
                       onChange={v => updateElement(el.id, { is_form: v })}
-                      description="Enables when_form_submitted transitions for this GUI."
+                      description={t('agentComponents.guis.isFormDescription')}
                     />
                   </div>
                   <TextField
                     id={`gui-width-${el.id}`}
-                    label="Width (optional)"
+                    label={t('agentComponents.guis.width')}
                     value={el.width || ''}
                     onChange={v => updateElement(el.id, { width: v })}
-                    placeholder="e.g. 600px"
-                    description="CSS width of the GUI panel."
+                    placeholder={t('agentComponents.guis.widthPlaceholder')}
+                    description={t('agentComponents.guis.widthDescription')}
                   />
                   {openEditorGuiId === el.id ? (
                     <AgentGUIEditor
@@ -1231,7 +1230,7 @@ export function AgentComponentsPanel() {
                       onClick={() => setOpenEditorGuiId(el.id)}
                       className="w-full rounded-md border border-dashed border-border px-4 py-3 text-xs text-muted-foreground hover:border-primary hover:text-primary transition-colors cursor-pointer"
                     >
-                      {el.guiModel ? 'Edit GUI design' : 'Open GUI Editor'}
+                      {el.guiModel ? t('agentComponents.guis.editDesign') : t('agentComponents.guis.openEditor')}
                     </button>
                   )}
                 </ItemRow>
@@ -1242,13 +1241,13 @@ export function AgentComponentsPanel() {
           {/* ── SQL Databases ─────────────────────────────────── */}
           {activeSection === 'sql' && (
             <SectionPage
-              title="SQL Databases"
-              description="SQL database connections written to db.sql in config.yaml."
+              title={t('agentComponents.sql.title')}
+              description={t('agentComponents.sql.description')}
               onAdd={addSqlDatabase}
-              addLabel="Add SQL Database"
+              addLabel={t('agentComponents.sql.addLabel')}
             >
               {sqlDatabases.length === 0 && (
-                <p className="py-6 text-center text-sm text-muted-foreground">No SQL databases defined yet.</p>
+                <p className="py-6 text-center text-sm text-muted-foreground">{t('agentComponents.sql.empty')}</p>
               )}
               {sqlDatabases.map((db, index) => {
                 const itemId = sqlItemId(index);
@@ -1265,66 +1264,66 @@ export function AgentComponentsPanel() {
                     <div className="grid grid-cols-2 gap-4">
                       <TextField
                         id={`sql-name-${index}`}
-                        label="Name"
+                        label={t('agentComponents.sql.name')}
                         value={db.name}
                         onChange={v => updateSqlDatabase(index, { name: v })}
-                        placeholder="e.g. my_database"
-                        description="Used as the key in config.yaml."
+                        placeholder={t('agentComponents.sql.namePlaceholder')}
+                        description={t('agentComponents.sql.nameDescription')}
                       />
                       <SelectField
                         id={`sql-dialect-${index}`}
-                        label="Dialect"
+                        label={t('agentComponents.sql.dialect')}
                         value={db.dialect}
                         onChange={v => updateSqlDatabase(index, { dialect: v })}
                         options={[
-                          { value: 'postgresql', label: 'PostgreSQL' },
-                          { value: 'sqlite', label: 'SQLite' },
-                          { value: 'mysql', label: 'MySQL' },
-                          { value: 'mariadb', label: 'MariaDB' },
-                          { value: 'mssql', label: 'Microsoft SQL Server' },
-                          { value: 'oracle', label: 'Oracle' },
+                          { value: 'postgresql', label: t('agentComponents.sql.dialectPostgresql') },
+                          { value: 'sqlite', label: t('agentComponents.sql.dialectSqlite') },
+                          { value: 'mysql', label: t('agentComponents.sql.dialectMysql') },
+                          { value: 'mariadb', label: t('agentComponents.sql.dialectMariadb') },
+                          { value: 'mssql', label: t('agentComponents.sql.dialectMssql') },
+                          { value: 'oracle', label: t('agentComponents.sql.dialectOracle') },
                         ]}
                       />
                     </div>
                     <TextField
                       id={`sql-database-${index}`}
-                      label={db.dialect === 'sqlite' ? 'Database file path' : 'Database name'}
+                      label={db.dialect === 'sqlite' ? t('agentComponents.sql.databaseFilePath') : t('agentComponents.sql.databaseName')}
                       value={db.database}
                       onChange={v => updateSqlDatabase(index, { database: v })}
-                      placeholder={db.dialect === 'sqlite' ? '/path/to/local.db' : 'YOUR-DB-NAME'}
+                      placeholder={db.dialect === 'sqlite' ? t('agentComponents.sql.databaseFilePathPlaceholder') : t('agentComponents.sql.databaseNamePlaceholder')}
                     />
                     {db.dialect !== 'sqlite' && (
                       <>
                         <div className="grid grid-cols-2 gap-4">
                           <TextField
                             id={`sql-host-${index}`}
-                            label="Host"
+                            label={t('agentComponents.sql.host')}
                             value={db.host}
                             onChange={v => updateSqlDatabase(index, { host: v })}
-                            placeholder="localhost"
+                            placeholder={t('agentComponents.sql.hostPlaceholder')}
                           />
                           <TextField
                             id={`sql-port-${index}`}
-                            label="Port"
+                            label={t('agentComponents.sql.port')}
                             value={db.port}
                             onChange={v => updateSqlDatabase(index, { port: v })}
-                            placeholder="5432"
+                            placeholder={t('agentComponents.sql.portPlaceholder')}
                           />
                         </div>
                         <div className="grid grid-cols-2 gap-4">
                           <TextField
                             id={`sql-user-${index}`}
-                            label="Username"
+                            label={t('agentComponents.sql.username')}
                             value={db.username}
                             onChange={v => updateSqlDatabase(index, { username: v })}
-                            placeholder="YOUR-DB-USERNAME"
+                            placeholder={t('agentComponents.sql.usernamePlaceholder')}
                           />
                           <TextField
                             id={`sql-pass-${index}`}
-                            label="Password"
+                            label={t('agentComponents.sql.password')}
                             value={db.password}
                             onChange={v => updateSqlDatabase(index, { password: v })}
-                            placeholder="YOUR-DB-PASSWORD"
+                            placeholder={t('agentComponents.sql.passwordPlaceholder')}
                           />
                         </div>
                       </>

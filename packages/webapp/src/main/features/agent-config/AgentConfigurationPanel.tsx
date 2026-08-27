@@ -2198,7 +2198,7 @@ export const AgentConfigurationPanel: React.FC = () => {
 
       {activeTab === 'runtime' && !currentAgentModel && (
         <div className="flex flex-1 items-center justify-center text-sm text-muted-foreground">
-          No active agent diagram. Open an agent diagram first.
+          {t('agentConfig.noActiveDiagram')}
         </div>
       )}
       {activeTab === 'runtime' && currentAgentModel && (

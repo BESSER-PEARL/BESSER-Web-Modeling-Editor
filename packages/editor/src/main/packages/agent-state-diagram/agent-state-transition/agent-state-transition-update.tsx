@@ -443,7 +443,7 @@ class AgentStateTransitionUpdateClass extends Component<Props, State> {
                           })
                         }
                       >
-                        <Dropdown.Item value="__placeholder__">Select operator</Dropdown.Item>
+                        <Dropdown.Item value="__placeholder__">{this.props.translate('popup.agent.transition.selectOperator')}</Dropdown.Item>
                         <Dropdown.Item value="<">&lt;</Dropdown.Item>
                         <Dropdown.Item value="<=">&le;</Dropdown.Item>
                         <Dropdown.Item value="==">==</Dropdown.Item>
@@ -467,7 +467,7 @@ class AgentStateTransitionUpdateClass extends Component<Props, State> {
                       onChange={(value) =>
                         this.props.update<AgentStateTransition>(element.id, { fileType: value })
                       }
-                      placeholder="File types, e.g. pdf, txt, json"
+                      placeholder={this.props.translate('popup.agent.transition.fileTypesPlaceholder')}
                     />
                   )}
 
@@ -475,7 +475,7 @@ class AgentStateTransitionUpdateClass extends Component<Props, State> {
                     const formGuis = diagramBridge.getAgentGUIs().filter((g) => g.is_form);
                     return formGuis.length === 0 ? (
                       <p style={{ fontSize: 12, margin: '4px 0', opacity: 0.7 }}>
-                        No form GUIs defined. Create one with "is_form = True" in the Components page.
+                        {this.props.translate('popup.agent.transition.noFormGuis')}
                       </p>
                     ) : (
                       <Dropdown
@@ -486,7 +486,7 @@ class AgentStateTransitionUpdateClass extends Component<Props, State> {
                           } as any)
                         }
                       >
-                        <Dropdown.Item value="__any__">Any form submission</Dropdown.Item>
+                        <Dropdown.Item value="__any__">{this.props.translate('popup.agent.transition.anyFormSubmission')}</Dropdown.Item>
                         {formGuis.map((g, i) => (
                           <Dropdown.Item key={`fg-${i}`} value={g.gui_id}>{g.gui_id}</Dropdown.Item>
                         ))}
@@ -529,10 +529,10 @@ class AgentStateTransitionUpdateClass extends Component<Props, State> {
                 return (
                   <>
                     <OptionSeparator />
-                    <SectionHeader>GUI (message_id)</SectionHeader>
+                    <SectionHeader>{this.props.translate('popup.agent.transition.guiMessageId')}</SectionHeader>
                     {allGuis.length === 0 ? (
                       <p style={{ fontSize: 12, margin: '4px 0', opacity: 0.7 }}>
-                        No GUIs defined. Create one in the Components page.
+                        {this.props.translate('popup.agent.transition.noGuis')}
                       </p>
                     ) : (
                       <Dropdown
@@ -543,7 +543,7 @@ class AgentStateTransitionUpdateClass extends Component<Props, State> {
                           } as any)
                         }
                       >
-                        <Dropdown.Item value="__any__">Any GUI interaction</Dropdown.Item>
+                        <Dropdown.Item value="__any__">{this.props.translate('popup.agent.transition.anyGuiInteraction')}</Dropdown.Item>
                         {allGuis.map((g, i) => (
                           <Dropdown.Item key={`guie-${i}`} value={g.gui_id}>{g.gui_id}</Dropdown.Item>
                         ))}
@@ -581,7 +581,7 @@ class AgentStateTransitionUpdateClass extends Component<Props, State> {
                 </ConditionRow>
               ))}
               <div style={{ marginTop: '8px' }}>
-                <Button color="primary" onClick={this.addCustomCondition}>Add condition</Button>
+                <Button color="primary" onClick={this.addCustomCondition}>{this.props.translate('popup.agent.transition.addCondition')}</Button>
               </div>
             </>
           )}
