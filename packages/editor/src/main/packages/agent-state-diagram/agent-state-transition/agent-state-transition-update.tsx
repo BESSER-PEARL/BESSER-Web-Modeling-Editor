@@ -362,26 +362,26 @@ class AgentStateTransitionUpdateClass extends Component<Props, State> {
 
         {/* ── Predefined / Custom toggle ──────────────────────── */}
         <Section>
-          <SectionHeader>Transition Type</SectionHeader>
+          <SectionHeader>{this.props.translate('popup.agent.transition.type')}</SectionHeader>
           <TypeToggleRow>
             <TypeToggleBtn
               active={!isCustomTransition}
               onClick={() => this.handleTransitionTypeChange('predefined')}
             >
-              Predefined
+              {this.props.translate('popup.agent.transition.predefined')}
             </TypeToggleBtn>
             <TypeToggleBtn
               active={isCustomTransition}
               onClick={() => this.handleTransitionTypeChange('custom')}
             >
-              Custom
+              {this.props.translate('popup.agent.transition.custom')}
             </TypeToggleBtn>
           </TypeToggleRow>
 
           {/* ── Predefined transitions ──────────────────────── */}
           {!isCustomTransition && (
             <>
-              <SectionHeader style={{ marginTop: 10 }}>Condition</SectionHeader>
+              <SectionHeader style={{ marginTop: 10 }}>{this.props.translate('popup.agent.transition.condition')}</SectionHeader>
               <OptionList>
                 {PREDEFINED_TRANSITIONS.map((t) => (
                   <OptionBtn
@@ -418,7 +418,7 @@ class AgentStateTransitionUpdateClass extends Component<Props, State> {
                       }
                     >
                       {[
-                        <Dropdown.Item value="__placeholder__" key="intent-placeholder">Select intent</Dropdown.Item>,
+                        <Dropdown.Item value="__placeholder__" key="intent-placeholder">{this.props.translate('popup.agent.transition.selectIntent')}</Dropdown.Item>,
                         ...intentNames.map((name, idx) => (
                           <Dropdown.Item key={idx} value={name}>{name}</Dropdown.Item>
                         )),
@@ -433,7 +433,7 @@ class AgentStateTransitionUpdateClass extends Component<Props, State> {
                         onChange={(value) =>
                           this.props.update<AgentStateTransition>(element.id, { variable: value })
                         }
-                        placeholder="Variable"
+                        placeholder={this.props.translate('popup.agent.transition.variablePlaceholder')}
                       />
                       <Dropdown
                         value={element.operator || '__placeholder__'}
@@ -456,7 +456,7 @@ class AgentStateTransitionUpdateClass extends Component<Props, State> {
                         onChange={(value) =>
                           this.props.update<AgentStateTransition>(element.id, { targetValue: value })
                         }
-                        placeholder="Target value"
+                        placeholder={this.props.translate('popup.agent.transition.targetValuePlaceholder')}
                       />
                     </div>
                   )}
@@ -501,7 +501,7 @@ class AgentStateTransitionUpdateClass extends Component<Props, State> {
           {/* ── Custom transitions ──────────────────────────── */}
           {isCustomTransition && (
             <>
-              <SectionHeader style={{ marginTop: 10 }}>Event</SectionHeader>
+              <SectionHeader style={{ marginTop: 10 }}>{this.props.translate('popup.agent.transition.event')}</SectionHeader>
               <OptionList>
                 {CUSTOM_EVENTS.map((e) => (
                   <OptionBtn
@@ -555,7 +555,7 @@ class AgentStateTransitionUpdateClass extends Component<Props, State> {
 
               {/* Conditions */}
               <OptionSeparator style={{ marginTop: hasEventParams ? 16 : 10 }} />
-              <SectionHeader>Conditions</SectionHeader>
+              <SectionHeader>{this.props.translate('popup.agent.transition.conditions')}</SectionHeader>
               {customConditions.map((conditionCode, index) => (
                 <ConditionRow key={`custom-condition-${index}`}>
                   <ResizableCodeMirrorWrapper>
@@ -575,7 +575,7 @@ class AgentStateTransitionUpdateClass extends Component<Props, State> {
                   </ResizableCodeMirrorWrapper>
                   <ConditionActions>
                     <RemoveButton onClick={() => this.removeCustomCondition(index)}>
-                      Remove
+                      {this.props.translate('common.remove')}
                     </RemoveButton>
                   </ConditionActions>
                 </ConditionRow>

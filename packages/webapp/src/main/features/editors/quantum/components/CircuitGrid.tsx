@@ -1,4 +1,5 @@
 import React, { forwardRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import { cn } from '@/lib/utils';
 import { Circuit, Gate as GateInterface, GateType } from '../types';
 import { GATE_SIZE, WIRE_SPACING, TOP_MARGIN, LEFT_MARGIN } from '../layout-constants';
@@ -26,6 +27,7 @@ interface CircuitGridProps {
 }
 
 export const CircuitGrid = forwardRef<HTMLDivElement, CircuitGridProps>(({ circuit, onGateDrop: _onGateDrop, draggedGate, onDragStart, onGateResize, onGateDoubleClick, previewPosition, selectedGate, onGateSelect, onInitialStateChange, onAddQubit }, ref) => {
+    const { t } = useTranslation();
     const qubitWires = Array.from({ length: circuit.qubitCount }, (_, i) => i);
     const classicalBitCount = circuit.classicalBitCount || 0;
     const classicalWires = Array.from({ length: classicalBitCount }, (_, i) => i);
@@ -101,7 +103,7 @@ export const CircuitGrid = forwardRef<HTMLDivElement, CircuitGridProps>(({ circu
                         e.stopPropagation();
                         onInitialStateChange?.(row);
                     }}
-                    title="Click to cycle through initial states: |0⟩, |1⟩, |+⟩, |−⟩, |i⟩, |−i⟩"
+                    title={t('quantum.circuitGrid.cycleInitialStates')}
                 >
                     {getInitialState(row)}
                 </div>
@@ -127,10 +129,10 @@ export const CircuitGrid = forwardRef<HTMLDivElement, CircuitGridProps>(({ circu
                         e.stopPropagation();
                         onAddQubit();
                     }}
-                    aria-label="Add qubit"
-                    title="Add qubit"
+                    aria-label={t('quantum.circuitGrid.addQubit')}
+                    title={t('quantum.circuitGrid.addQubit')}
                 >
-                    + Qubit
+                    {t('quantum.circuitGrid.addQubitButton')}
                 </button>
             )}
 
@@ -152,7 +154,7 @@ export const CircuitGrid = forwardRef<HTMLDivElement, CircuitGridProps>(({ circu
                     key={`c-label-${idx}`}
                     className="absolute left-[5px] z-[2] select-none rounded-[3px] px-1 py-0.5 font-sans text-sm text-[var(--quantum-editor-muted-text,#64748b)]"
                     style={{ top: TOP_MARGIN + (circuit.qubitCount + idx) * WIRE_SPACING + GATE_SIZE / 2 - 10 }}
-                    title="Measurement output - auto-generated from measurement gates"
+                    title={t('quantum.circuitGrid.measurementOutput')}
                 >
                     c{idx} ←
                 </div>
@@ -254,7 +256,7 @@ export const CircuitGrid = forwardRef<HTMLDivElement, CircuitGridProps>(({ circu
                                 textShadow: '0 0 3px var(--quantum-editor-bg, #ffffff)',
                             }}
                         >
-                            {isValid ? 'Drop here' : 'Invalid'}
+                            {isValid ? t('quantum.circuitGrid.dropHere') : t('quantum.circuitGrid.invalid')}
                         </div>
                     </div>
                 );

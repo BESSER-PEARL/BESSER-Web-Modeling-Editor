@@ -69,14 +69,13 @@ collaboration.
    ├── app/                        # Application shell
    │   ├── application.tsx         #   Root component (routing, modals, layout)
    │   ├── shell/                  #   Top bar, sidebar, menus
-   │   │   ├── WorkspaceTopBar.tsx #     File, Generate, Deploy, Community, Help menus
+   │   │   ├── WorkspaceTopBar.tsx #     File, Generate, Deploy, Help menus
    │   │   ├── WorkspaceSidebar.tsx#     Diagram type navigation + settings
    │   │   ├── WorkspaceShell.tsx  #     Layout container
    │   │   └── menus/             #     Individual menu components
    │   │       ├── FileMenu.tsx
    │   │       ├── GenerateMenu.tsx
    │   │       ├── DeployMenu.tsx
-   │   │       ├── CommunityMenu.tsx
    │   │       ├── HelpMenu.tsx
    │   │       └── TopBarUtilities.tsx  # Quality Check, Theme, GitHub, Sync
    │   ├── store/                  #   Redux store

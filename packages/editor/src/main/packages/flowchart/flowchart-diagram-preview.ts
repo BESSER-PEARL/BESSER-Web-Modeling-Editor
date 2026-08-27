@@ -9,35 +9,34 @@ import { FlowchartTerminal } from './flowchart-terminal/flowchart-terminal';
 
 export const composeFlowchartPreview: ComposePreview = (
   layer: ILayer,
-  translate: (id: string) => string,
 ): PreviewElement[] => {
   const elements: PreviewElement[] = [];
   const defaultBounds: IBoundary = { x: 0, y: 0, width: 160, height: computeDimension(1.0, 70) };
 
   elements.push(
     new FlowchartTerminal({
-      name: translate('packages.Flowchart.FlowchartTerminal'),
+      name: 'Terminal',
       bounds: defaultBounds,
     }),
   );
 
   elements.push(
     new FlowchartProcess({
-      name: translate('packages.Flowchart.FlowchartProcess'),
+      name: 'Process',
       bounds: defaultBounds,
     }),
   );
 
   elements.push(
     new FlowchartDecision({
-      name: translate('packages.Flowchart.FlowchartDecision'),
+      name: 'Decision',
       bounds: defaultBounds,
     }),
   );
 
   elements.push(
     new FlowchartInputOutput({
-      name: translate('packages.Flowchart.FlowchartInputOutput'),
+      name: 'Input/Output',
       bounds: {
         ...defaultBounds,
         width: 140,
@@ -47,7 +46,7 @@ export const composeFlowchartPreview: ComposePreview = (
 
   elements.push(
     new FlowchartFunctionCall({
-      name: translate('packages.Flowchart.FlowchartFunctionCall'),
+      name: 'Function Call',
       bounds: defaultBounds,
     }),
   );

@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { ChevronDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Input } from '@/components/ui/input';
@@ -40,6 +41,16 @@ export interface AgentConfigFormData {
     huggingface_token: string;
     openai_api_key: string;
     replicate_api_key: string;
+    mistral_api_key: string;
+    deepseek_api_key: string;
+    google_api_key: string;
+    meta_api_key: string;
+    anthropic_api_key: string;
+    qwen_api_key: string;
+    xai_api_key: string;
+    groq_api_key: string;
+    together_api_key: string;
+    openrouter_api_key: string;
   };
   platforms: {
     websocket: {
@@ -78,6 +89,16 @@ export const DEFAULT_AGENT_CONFIG_FORM: AgentConfigFormData = {
     huggingface_token: 'YOUR-TOKEN',
     openai_api_key: 'YOUR-API-KEY',
     replicate_api_key: 'YOUR-API-KEY',
+    mistral_api_key: 'YOUR-API-KEY',
+    deepseek_api_key: 'YOUR-API-KEY',
+    google_api_key: 'YOUR-API-KEY',
+    meta_api_key: 'YOUR-API-KEY',
+    anthropic_api_key: 'YOUR-API-KEY',
+    qwen_api_key: 'YOUR-API-KEY',
+    xai_api_key: 'YOUR-API-KEY',
+    groq_api_key: 'YOUR-API-KEY',
+    together_api_key: 'YOUR-API-KEY',
+    openrouter_api_key: 'YOUR-API-KEY',
   },
   platforms: {
     websocket: {
@@ -141,6 +162,16 @@ export function agentConfigFormToYaml(form: AgentConfigFormData): string {
   if (form.nlp.huggingface_token) { lines.push('  huggingface:'); lines.push(`    token: ${yamlValue(form.nlp.huggingface_token)}`); }
   if (form.nlp.openai_api_key) { lines.push('  openai:'); lines.push(`    api_key: ${yamlValue(form.nlp.openai_api_key)}`); }
   if (form.nlp.replicate_api_key) { lines.push('  replicate:'); lines.push(`    api_key: ${yamlValue(form.nlp.replicate_api_key)}`); }
+  if (form.nlp.mistral_api_key) { lines.push('  mistral:'); lines.push(`    api_key: ${yamlValue(form.nlp.mistral_api_key)}`); }
+  if (form.nlp.deepseek_api_key) { lines.push('  deepseek:'); lines.push(`    api_key: ${yamlValue(form.nlp.deepseek_api_key)}`); }
+  if (form.nlp.google_api_key) { lines.push('  google:'); lines.push(`    api_key: ${yamlValue(form.nlp.google_api_key)}`); }
+  if (form.nlp.meta_api_key) { lines.push('  meta:'); lines.push(`    api_key: ${yamlValue(form.nlp.meta_api_key)}`); }
+  if (form.nlp.anthropic_api_key) { lines.push('  anthropic:'); lines.push(`    api_key: ${yamlValue(form.nlp.anthropic_api_key)}`); }
+  if (form.nlp.qwen_api_key) { lines.push('  qwen:'); lines.push(`    api_key: ${yamlValue(form.nlp.qwen_api_key)}`); }
+  if (form.nlp.xai_api_key) { lines.push('  xai:'); lines.push(`    api_key: ${yamlValue(form.nlp.xai_api_key)}`); }
+  if (form.nlp.groq_api_key) { lines.push('  groq:'); lines.push(`    api_key: ${yamlValue(form.nlp.groq_api_key)}`); }
+  if (form.nlp.together_api_key) { lines.push('  together:'); lines.push(`    api_key: ${yamlValue(form.nlp.together_api_key)}`); }
+  if (form.nlp.openrouter_api_key) { lines.push('  openrouter:'); lines.push(`    api_key: ${yamlValue(form.nlp.openrouter_api_key)}`); }
   lines.push('');
 
   // ── Platforms ──────────────────────────────
@@ -349,14 +380,15 @@ function DbFields({
   value: AgentConfigFormData['db']['monitoring'];
   onChange: (v: Partial<AgentConfigFormData['db']['monitoring']>) => void;
 }) {
+  const { t } = useTranslation();
   return (
     <div className="grid grid-cols-2 gap-3">
-      <TextField id={`${prefix}-dialect`} label="dialect" value={value.dialect} onChange={v => onChange({ dialect: v })} description="Database system identifier (e.g. postgresql)" />
-      <TextField id={`${prefix}-host`} label="host" value={value.host} onChange={v => onChange({ host: v })} description="Database server address" />
-      <TextField id={`${prefix}-port`} label="port" value={value.port} onChange={v => onChange({ port: v })} description="Database connection port" />
-      <TextField id={`${prefix}-database`} label="database" value={value.database} onChange={v => onChange({ database: v })} description="Database name" />
-      <TextField id={`${prefix}-username`} label="username" value={value.username} onChange={v => onChange({ username: v })} description="Database user credentials" />
-      <TextField id={`${prefix}-password`} label="password" value={value.password} onChange={v => onChange({ password: v })} description="Database authentication password" />
+      <TextField id={`${prefix}-dialect`} label="dialect" value={value.dialect} onChange={v => onChange({ dialect: v })} description={t('agentConfig.yamlEditor.fields.dbDialect')} />
+      <TextField id={`${prefix}-host`} label="host" value={value.host} onChange={v => onChange({ host: v })} description={t('agentConfig.yamlEditor.fields.dbHost')} />
+      <TextField id={`${prefix}-port`} label="port" value={value.port} onChange={v => onChange({ port: v })} description={t('agentConfig.yamlEditor.fields.dbPort')} />
+      <TextField id={`${prefix}-database`} label="database" value={value.database} onChange={v => onChange({ database: v })} description={t('agentConfig.yamlEditor.fields.dbDatabase')} />
+      <TextField id={`${prefix}-username`} label="username" value={value.username} onChange={v => onChange({ username: v })} description={t('agentConfig.yamlEditor.fields.dbUsername')} />
+      <TextField id={`${prefix}-password`} label="password" value={value.password} onChange={v => onChange({ password: v })} description={t('agentConfig.yamlEditor.fields.dbPassword')} />
     </div>
   );
 }
@@ -370,6 +402,7 @@ interface AgentConfigYamlEditorProps {
 }
 
 export function AgentConfigYamlEditor({ currentProject }: AgentConfigYamlEditorProps) {
+  const { t } = useTranslation();
   // ── Initial values from diagram ───────────────────────────
   const initialForm = useMemo<AgentConfigFormData>(() => {
     const d = currentProject ? getActiveDiagram(currentProject, 'AgentDiagram') : null;
@@ -532,7 +565,7 @@ export function AgentConfigYamlEditor({ currentProject }: AgentConfigYamlEditorP
                 : 'text-muted-foreground hover:text-foreground',
             )}
           >
-            {tab === 'form' ? 'Form' : 'Raw YAML'}
+            {tab === 'form' ? t('agentConfig.yamlEditor.tab.form') : t('agentConfig.yamlEditor.tab.raw')}
           </button>
         ))}
       </div>
@@ -542,38 +575,68 @@ export function AgentConfigYamlEditor({ currentProject }: AgentConfigYamlEditorP
         <div className="space-y-3">
 
           {/* Agent */}
-          <Section title="Agent" defaultOpen>
+          <Section title={t('agentConfig.yamlEditor.section.agent')} defaultOpen>
             <TextField
               id="agent-ctd"
               label="check_transitions_delay"
               value={form.agent.check_transitions_delay}
               onChange={v => setAgent({ check_transitions_delay: v })}
-              description="Delay in seconds between each transition evaluation cycle."
+              description={t('agentConfig.yamlEditor.fields.checkTransitionsDelay')}
             />
           </Section>
 
           {/* NLP */}
-          <Section title="NLP" defaultOpen>
+          <Section title={t('agentConfig.yamlEditor.section.nlp')} defaultOpen>
             <div className="grid grid-cols-2 gap-3">
-              <TextField id="nlp-lang" label="language" value={form.nlp.language} onChange={v => setNlp({ language: v })} description="Expected user language (ISO 639-1). Impacts NLP quality." />
-              <TextField id="nlp-region" label="region" value={form.nlp.region} onChange={v => setNlp({ region: v })} description="Language region (ISO 3166-1 alpha-2) for enhanced NLP processing." />
-              <TextField id="nlp-tz" label="timezone" value={form.nlp.timezone} onChange={v => setNlp({ timezone: v })} description="Timezone for datetime operations (tz database format)." />
-              <TextField id="nlp-thresh" label="intent_threshold" value={form.nlp.intent_threshold} onChange={v => setNlp({ intent_threshold: v })} description="Confidence threshold below which predictions fall back to fallback scenarios." />
+              <TextField id="nlp-lang" label="language" value={form.nlp.language} onChange={v => setNlp({ language: v })} description={t('agentConfig.yamlEditor.fields.nlpLanguage')} />
+              <TextField id="nlp-region" label="region" value={form.nlp.region} onChange={v => setNlp({ region: v })} description={t('agentConfig.yamlEditor.fields.nlpRegion')} />
+              <TextField id="nlp-tz" label="timezone" value={form.nlp.timezone} onChange={v => setNlp({ timezone: v })} description={t('agentConfig.yamlEditor.fields.nlpTimezone')} />
+              <TextField id="nlp-thresh" label="intent_threshold" value={form.nlp.intent_threshold} onChange={v => setNlp({ intent_threshold: v })} description={t('agentConfig.yamlEditor.fields.nlpIntentThreshold')} />
             </div>
-            <BoolField id="nlp-prep" label="pre_processing" value={form.nlp.pre_processing} onChange={v => setNlp({ pre_processing: v })} description="Enables stemming to reduce words to base forms, improving generalization of user inputs." />
-            <Section title="HuggingFace" defaultOpen={false} indent>
-              <TextField id="nlp-hf-token" label="token" value={form.nlp.huggingface_token} onChange={v => setNlp({ huggingface_token: v })} description="API key needed to access the HuggingFace Inference API for LLM functionality." />
-            </Section>
+            <BoolField id="nlp-prep" label="pre_processing" value={form.nlp.pre_processing} onChange={v => setNlp({ pre_processing: v })} description={t('agentConfig.yamlEditor.fields.nlpPreProcessing')} />
             <Section title="OpenAI" defaultOpen={false} indent>
-              <TextField id="nlp-oai-key" label="api_key" value={form.nlp.openai_api_key} onChange={v => setNlp({ openai_api_key: v })} description="OpenAI API key for LLM access." />
+              <TextField id="nlp-oai-key" label="api_key" value={form.nlp.openai_api_key} onChange={v => setNlp({ openai_api_key: v })} description={t('agentConfig.yamlEditor.fields.openaiKey')} />
+            </Section>
+            <Section title="Mistral AI" defaultOpen={false} indent>
+              <TextField id="nlp-mistral-key" label="api_key" value={form.nlp.mistral_api_key} onChange={v => setNlp({ mistral_api_key: v })} description={t('agentConfig.yamlEditor.fields.mistralKey')} />
+            </Section>
+            <Section title="DeepSeek" defaultOpen={false} indent>
+              <TextField id="nlp-deepseek-key" label="api_key" value={form.nlp.deepseek_api_key} onChange={v => setNlp({ deepseek_api_key: v })} description={t('agentConfig.yamlEditor.fields.deepseekKey')} />
+            </Section>
+            <Section title="Google (Gemini)" defaultOpen={false} indent>
+              <TextField id="nlp-google-key" label="api_key" value={form.nlp.google_api_key} onChange={v => setNlp({ google_api_key: v })} description={t('agentConfig.yamlEditor.fields.googleKey')} />
+            </Section>
+            <Section title="Meta (Llama)" defaultOpen={false} indent>
+              <TextField id="nlp-meta-key" label="api_key" value={form.nlp.meta_api_key} onChange={v => setNlp({ meta_api_key: v })} description={t('agentConfig.yamlEditor.fields.metaKey')} />
+            </Section>
+            <Section title="Anthropic (Claude)" defaultOpen={false} indent>
+              <TextField id="nlp-anthropic-key" label="api_key" value={form.nlp.anthropic_api_key} onChange={v => setNlp({ anthropic_api_key: v })} description={t('agentConfig.yamlEditor.fields.anthropicKey')} />
+            </Section>
+            <Section title="Alibaba Qwen" defaultOpen={false} indent>
+              <TextField id="nlp-qwen-key" label="api_key" value={form.nlp.qwen_api_key} onChange={v => setNlp({ qwen_api_key: v })} description={t('agentConfig.yamlEditor.fields.qwenKey')} />
+            </Section>
+            <Section title="xAI (Grok)" defaultOpen={false} indent>
+              <TextField id="nlp-xai-key" label="api_key" value={form.nlp.xai_api_key} onChange={v => setNlp({ xai_api_key: v })} description={t('agentConfig.yamlEditor.fields.xaiKey')} />
+            </Section>
+            <Section title="Groq" defaultOpen={false} indent>
+              <TextField id="nlp-groq-key" label="api_key" value={form.nlp.groq_api_key} onChange={v => setNlp({ groq_api_key: v })} description={t('agentConfig.yamlEditor.fields.groqKey')} />
+            </Section>
+            <Section title="Together AI" defaultOpen={false} indent>
+              <TextField id="nlp-together-key" label="api_key" value={form.nlp.together_api_key} onChange={v => setNlp({ together_api_key: v })} description={t('agentConfig.yamlEditor.fields.togetherKey')} />
+            </Section>
+            <Section title="OpenRouter" defaultOpen={false} indent>
+              <TextField id="nlp-openrouter-key" label="api_key" value={form.nlp.openrouter_api_key} onChange={v => setNlp({ openrouter_api_key: v })} description={t('agentConfig.yamlEditor.fields.openrouterKey')} />
+            </Section>
+            <Section title="HuggingFace" defaultOpen={false} indent>
+              <TextField id="nlp-hf-token" label="token" value={form.nlp.huggingface_token} onChange={v => setNlp({ huggingface_token: v })} description={t('agentConfig.yamlEditor.fields.hfToken')} />
             </Section>
             <Section title="Replicate" defaultOpen={false} indent>
-              <TextField id="nlp-rep-key" label="api_key" value={form.nlp.replicate_api_key} onChange={v => setNlp({ replicate_api_key: v })} description="Replicate API key for model inference." />
+              <TextField id="nlp-rep-key" label="api_key" value={form.nlp.replicate_api_key} onChange={v => setNlp({ replicate_api_key: v })} description={t('agentConfig.yamlEditor.fields.replicateKey')} />
             </Section>
           </Section>
 
           {/* Platforms */}
-          <Section title="Platforms" defaultOpen>
+          <Section title={t('agentConfig.yamlEditor.section.platforms')} defaultOpen>
 
             {/* WebSocket */}
             <Section
@@ -585,22 +648,22 @@ export function AgentConfigYamlEditor({ currentProject }: AgentConfigYamlEditorP
               {form.platforms.websocket.enabled && (
                 <>
                   <div className="grid grid-cols-2 gap-3">
-                    <TextField id="ws-host" label="host" value={form.platforms.websocket.host} onChange={v => setWs({ host: v })} description="Server address for WebSocket connections." />
-                    <TextField id="ws-port" label="port" value={form.platforms.websocket.port} onChange={v => setWs({ port: v })} description="Port number for WebSocket server." />
+                    <TextField id="ws-host" label="host" value={form.platforms.websocket.host} onChange={v => setWs({ host: v })} description={t('agentConfig.yamlEditor.fields.wsHost')} />
+                    <TextField id="ws-port" label="port" value={form.platforms.websocket.port} onChange={v => setWs({ port: v })} description={t('agentConfig.yamlEditor.fields.wsPort')} />
                   </div>
                   <Section title="streamlit" defaultOpen={false} indent>
                     <div className="grid grid-cols-2 gap-3">
-                      <TextField id="ws-st-host" label="host" value={form.platforms.websocket.streamlit_host} onChange={v => setWs({ streamlit_host: v })} description="Host address for Streamlit UI deployment." />
-                      <TextField id="ws-st-port" label="port" value={form.platforms.websocket.streamlit_port} onChange={v => setWs({ streamlit_port: v })} description="Port for accessing Streamlit UI." />
+                      <TextField id="ws-st-host" label="host" value={form.platforms.websocket.streamlit_host} onChange={v => setWs({ streamlit_host: v })} description={t('agentConfig.yamlEditor.fields.wsStreamlitHost')} />
+                      <TextField id="ws-st-port" label="port" value={form.platforms.websocket.streamlit_port} onChange={v => setWs({ streamlit_port: v })} description={t('agentConfig.yamlEditor.fields.wsStreamlitPort')} />
                     </div>
                     <Section title="chat" defaultOpen={false} indent>
                       <div className="grid grid-cols-2 gap-3">
-                        <TextField id="ws-chat-size" label="size" value={form.platforms.websocket.chat_size} onChange={v => setWs({ chat_size: v })} description="Default font size for chat messages in Streamlit." />
-                        <TextField id="ws-chat-font" label="font" value={form.platforms.websocket.chat_font} onChange={v => setWs({ chat_font: v })} description="Font family identifier for chat text." />
-                        <TextField id="ws-chat-ls" label="line_spacing" value={form.platforms.websocket.chat_line_spacing} onChange={v => setWs({ chat_line_spacing: v })} description="Line height multiplier for chat messages." />
-                        <TextField id="ws-chat-align" label="alignment" value={form.platforms.websocket.chat_alignment} onChange={v => setWs({ chat_alignment: v })} description="Horizontal text alignment in chat interface." />
-                        <TextField id="ws-chat-color" label="color" value={form.platforms.websocket.chat_color} onChange={v => setWs({ chat_color: v })} description="Text color setting for chat display." />
-                        <TextField id="ws-chat-contrast" label="contrast" value={form.platforms.websocket.chat_contrast} onChange={v => setWs({ chat_contrast: v })} description="Contrast level for text readability." />
+                        <TextField id="ws-chat-size" label="size" value={form.platforms.websocket.chat_size} onChange={v => setWs({ chat_size: v })} description={t('agentConfig.yamlEditor.fields.chatSize')} />
+                        <TextField id="ws-chat-font" label="font" value={form.platforms.websocket.chat_font} onChange={v => setWs({ chat_font: v })} description={t('agentConfig.yamlEditor.fields.chatFont')} />
+                        <TextField id="ws-chat-ls" label="line_spacing" value={form.platforms.websocket.chat_line_spacing} onChange={v => setWs({ chat_line_spacing: v })} description={t('agentConfig.yamlEditor.fields.chatLineSpacing')} />
+                        <TextField id="ws-chat-align" label="alignment" value={form.platforms.websocket.chat_alignment} onChange={v => setWs({ chat_alignment: v })} description={t('agentConfig.yamlEditor.fields.chatAlignment')} />
+                        <TextField id="ws-chat-color" label="color" value={form.platforms.websocket.chat_color} onChange={v => setWs({ chat_color: v })} description={t('agentConfig.yamlEditor.fields.chatColor')} />
+                        <TextField id="ws-chat-contrast" label="contrast" value={form.platforms.websocket.chat_contrast} onChange={v => setWs({ chat_contrast: v })} description={t('agentConfig.yamlEditor.fields.chatContrast')} />
                       </div>
                     </Section>
                   </Section>
@@ -616,7 +679,7 @@ export function AgentConfigYamlEditor({ currentProject }: AgentConfigYamlEditorP
               right={<Toggle value={form.platforms.telegram.enabled} onChange={v => setTelegram({ enabled: v })} />}
             >
               {form.platforms.telegram.enabled && (
-                <TextField id="tg-token" label="token" value={form.platforms.telegram.token} onChange={v => setTelegram({ token: v })} description="Bot authentication token for Telegram API." />
+                <TextField id="tg-token" label="token" value={form.platforms.telegram.token} onChange={v => setTelegram({ token: v })} description={t('agentConfig.yamlEditor.fields.telegramToken')} />
               )}
             </Section>
 
@@ -629,9 +692,9 @@ export function AgentConfigYamlEditor({ currentProject }: AgentConfigYamlEditorP
             >
               {form.platforms.github.enabled && (
                 <div className="grid grid-cols-2 gap-3">
-                  <TextField id="gh-pt" label="personal_token" value={form.platforms.github.personal_token} onChange={v => setGithub({ personal_token: v })} description="Personal Access Token for GitHub API authentication." />
-                  <TextField id="gh-wt" label="webhook_token" value={form.platforms.github.webhook_token} onChange={v => setGithub({ webhook_token: v })} description="Secret token defined during webhook creation." />
-                  <TextField id="gh-wp" label="webhook_port" value={form.platforms.github.webhook_port} onChange={v => setGithub({ webhook_port: v })} description="Local server port exposed/proxied to GitHub." />
+                  <TextField id="gh-pt" label="personal_token" value={form.platforms.github.personal_token} onChange={v => setGithub({ personal_token: v })} description={t('agentConfig.yamlEditor.fields.githubPersonalToken')} />
+                  <TextField id="gh-wt" label="webhook_token" value={form.platforms.github.webhook_token} onChange={v => setGithub({ webhook_token: v })} description={t('agentConfig.yamlEditor.fields.githubWebhookToken')} />
+                  <TextField id="gh-wp" label="webhook_port" value={form.platforms.github.webhook_port} onChange={v => setGithub({ webhook_port: v })} description={t('agentConfig.yamlEditor.fields.githubWebhookPort')} />
                 </div>
               )}
             </Section>
@@ -645,9 +708,9 @@ export function AgentConfigYamlEditor({ currentProject }: AgentConfigYamlEditorP
             >
               {form.platforms.gitlab.enabled && (
                 <div className="grid grid-cols-2 gap-3">
-                  <TextField id="gl-pt" label="personal_token" value={form.platforms.gitlab.personal_token} onChange={v => setGitlab({ personal_token: v })} description="Personal Access Token for GitLab API authentication." />
-                  <TextField id="gl-wt" label="webhook_token" value={form.platforms.gitlab.webhook_token} onChange={v => setGitlab({ webhook_token: v })} description="Secret token for webhook verification." />
-                  <TextField id="gl-wp" label="webhook_port" value={form.platforms.gitlab.webhook_port} onChange={v => setGitlab({ webhook_port: v })} description="Local server port exposed/proxied to GitLab." />
+                  <TextField id="gl-pt" label="personal_token" value={form.platforms.gitlab.personal_token} onChange={v => setGitlab({ personal_token: v })} description={t('agentConfig.yamlEditor.fields.gitlabPersonalToken')} />
+                  <TextField id="gl-wt" label="webhook_token" value={form.platforms.gitlab.webhook_token} onChange={v => setGitlab({ webhook_token: v })} description={t('agentConfig.yamlEditor.fields.gitlabWebhookToken')} />
+                  <TextField id="gl-wp" label="webhook_port" value={form.platforms.gitlab.webhook_port} onChange={v => setGitlab({ webhook_port: v })} description={t('agentConfig.yamlEditor.fields.gitlabWebhookPort')} />
                 </div>
               )}
             </Section>
@@ -660,13 +723,13 @@ export function AgentConfigYamlEditor({ currentProject }: AgentConfigYamlEditorP
               right={<Toggle value={form.platforms.a2a.enabled} onChange={v => setA2a({ enabled: v })} />}
             >
               {form.platforms.a2a.enabled && (
-                <TextField id="a2a-port" label="port" value={form.platforms.a2a.port} onChange={v => setA2a({ port: v })} description="Local port for inter-agent communication network." />
+                <TextField id="a2a-port" label="port" value={form.platforms.a2a.port} onChange={v => setA2a({ port: v })} description={t('agentConfig.yamlEditor.fields.a2aPort')} />
               )}
             </Section>
           </Section>
 
           {/* Database */}
-          <Section title="Database (db)" defaultOpen={false}>
+          <Section title={t('agentConfig.yamlEditor.section.database')} defaultOpen={false}>
             {/* Monitoring */}
             <Section
               title="monitoring"
@@ -704,14 +767,14 @@ export function AgentConfigYamlEditor({ currentProject }: AgentConfigYamlEditorP
           <div className="space-y-1.5">
             {customYamlError && (
               <div className="rounded-md border border-destructive/50 bg-destructive/10 px-3 py-2 text-sm text-destructive">
-                <span className="font-semibold">YAML syntax error:</span> {customYamlError}
+                <span className="font-semibold">{t('agentConfig.yamlEditor.syntaxError')}</span> {customYamlError}
               </div>
             )}
             <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-              Additional custom YAML properties
+              {t('agentConfig.yamlEditor.customLabel')}
             </Label>
             <p className="text-[11px] text-muted-foreground/70">
-              Any valid YAML added here is appended at the end of the generated <code>config.yaml</code>.
+              {t('agentConfig.yamlEditor.customDescription')}
             </p>
             <div
               ref={customCmContainerRef}
@@ -725,7 +788,7 @@ export function AgentConfigYamlEditor({ currentProject }: AgentConfigYamlEditorP
       {activeTab === 'raw' && (
         <div className="space-y-1.5">
           <p className="text-[11px] text-muted-foreground/70">
-            Read-only view of the generated <code>config.yaml</code> content. Edit using the Form tab.
+            {t('agentConfig.yamlEditor.rawDescription')}
           </p>
           <div
             ref={rawCmContainerRef}

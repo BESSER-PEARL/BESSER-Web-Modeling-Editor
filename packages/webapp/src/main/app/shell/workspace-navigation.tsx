@@ -77,35 +77,35 @@ export function diagramCount(project: BesserProject | null, type: SupportedDiagr
   return project.diagrams[type]?.length ?? 0;
 }
 
-export const UML_ITEMS: Array<{ type: UMLDiagramType; label: string; icon: React.ReactNode }> = [
-  { type: UMLDiagramType.ClassDiagram, label: 'Class', icon: <Network className="size-4" /> },
-  { type: UMLDiagramType.ObjectDiagram, label: 'Object', icon: <Layers3 className="size-4" /> },
-  { type: UMLDiagramType.StateMachineDiagram, label: 'State', icon: <Repeat2 className="size-4" /> },
-  { type: UMLDiagramType.AgentDiagram, label: 'Agent', icon: <Bot className="size-4" /> },
-  { type: UMLDiagramType.BPMN, label: 'BPMN', icon: <Workflow className="size-4" /> },
-  { type: UMLDiagramType.UserDiagram, label: 'User', icon: <User className="size-4" /> },
-  { type: UMLDiagramType.NNDiagram, label: 'Neural Net', icon: <Brain className="size-4" /> },
+export const UML_ITEMS: Array<{ type: UMLDiagramType; label: string; labelKey: string; icon: React.ReactNode }> = [
+  { type: UMLDiagramType.ClassDiagram, label: 'Class', labelKey: 'nav.diagram.class', icon: <Network className="size-4" /> },
+  { type: UMLDiagramType.ObjectDiagram, label: 'Object', labelKey: 'nav.diagram.object', icon: <Layers3 className="size-4" /> },
+  { type: UMLDiagramType.StateMachineDiagram, label: 'State', labelKey: 'nav.diagram.state', icon: <Repeat2 className="size-4" /> },
+  { type: UMLDiagramType.AgentDiagram, label: 'Agent', labelKey: 'nav.diagram.agent', icon: <Bot className="size-4" /> },
+  { type: UMLDiagramType.BPMN, label: 'BPMN', labelKey: 'nav.diagram.bpmn', icon: <Workflow className="size-4" /> },
+  { type: UMLDiagramType.UserDiagram, label: 'User', labelKey: 'nav.diagram.user', icon: <User className="size-4" /> },
+  { type: UMLDiagramType.NNDiagram, label: 'Neural Net', labelKey: 'nav.diagram.neuralNet', icon: <Brain className="size-4" /> },
 ];
 
-export const NON_UML_EDITOR_ITEMS: Array<{ type: SupportedDiagramType; label: string; icon: React.ReactNode }> = [
-  { type: 'GUINoCodeDiagram', label: 'GUI', icon: <PanelsTopLeft className="size-4" /> },
-  { type: 'QuantumCircuitDiagram', label: 'Quantum', icon: <Atom className="size-4" /> },
+export const NON_UML_EDITOR_ITEMS: Array<{ type: SupportedDiagramType; label: string; labelKey: string; icon: React.ReactNode }> = [
+  { type: 'GUINoCodeDiagram', label: 'GUI', labelKey: 'nav.diagram.gui', icon: <PanelsTopLeft className="size-4" /> },
+  { type: 'QuantumCircuitDiagram', label: 'Quantum', labelKey: 'nav.diagram.quantum', icon: <Atom className="size-4" /> },
 ];
 
 const personalizationRouteItems = SHOW_AGENT_PERSONALIZATION_BUTTON
   ? [
-    { path: '/agent-personalization', label: 'Agent Personalization', icon: <SlidersHorizontal className="size-4" /> },
-    { path: '/agent-personalization-2', label: 'Agent Mappings', icon: <SlidersHorizontal className="size-4" /> },
+    { path: '/agent-personalization', label: 'Agent Personalization', labelKey: 'nav.route.agentPersonalization', icon: <SlidersHorizontal className="size-4" /> },
+    { path: '/agent-personalization-2', label: 'Agent Mappings', labelKey: 'nav.route.agentMappings', icon: <SlidersHorizontal className="size-4" /> },
   ]
   : [];
 
 export const AGENT_ROUTE_ITEMS = [
-  { path: '/agent-components', label: 'Components', icon: <Blocks className="size-4" /> },
-  { path: '/agent-config', label: 'Customization', icon: <SlidersHorizontal className="size-4" /> },
+  { path: '/agent-components', label: 'Components', labelKey: 'nav.route.agentComponents', icon: <Blocks className="size-4" /> },
+  { path: '/agent-config', label: 'Agent Customization', labelKey: 'nav.route.agentCustomization', icon: <SlidersHorizontal className="size-4" /> },
   ...personalizationRouteItems,
 ] as const;
 
-export const ROUTE_ITEMS = [{ path: '/project-settings', label: 'Settings', icon: <Settings className="size-4" /> }] as const;
+export const ROUTE_ITEMS = [{ path: '/project-settings', label: 'Settings', labelKey: 'nav.route.settings', icon: <Settings className="size-4" /> }] as const;
 
 export function navButtonClass(isActive: boolean, expanded: boolean, isDark: boolean) {
   return [

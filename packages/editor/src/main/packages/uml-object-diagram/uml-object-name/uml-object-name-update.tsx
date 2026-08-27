@@ -236,13 +236,13 @@ class ObjectNameComponent extends Component<Props, State> {
           </Flex>{showClassSelection && (
             <div style={{ marginTop: '8px' }}>
               <ClassSelectionFlex>
-                <Body style={{ marginRight: '0.5em' }}>Class:</Body>                
+                <Body style={{ marginRight: '0.5em' }}>{this.props.translate('popup.objectClass')}</Body>
                 <Dropdown 
                   value={this.getSelectedClass()}
                   onChange={this.onClassChange}
                 >
                   {[
-                    <Dropdown.Item key="empty" value="">No class selected</Dropdown.Item>,
+                    <Dropdown.Item key="empty" value="">{this.props.translate('popup.noClassSelected')}</Dropdown.Item>,
                     ...availableClasses.map((cls: any) => (
                       <Dropdown.Item key={cls.id} value={cls.name}>
                         {this.getClassDisplayName(cls)}

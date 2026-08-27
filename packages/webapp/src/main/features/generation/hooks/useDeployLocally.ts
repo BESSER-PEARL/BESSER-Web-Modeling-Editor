@@ -1,6 +1,7 @@
 import { useCallback } from 'react';
 import { ApollonEditor, UMLModel, normalizeAgentModel } from '@besser/wme';
 import { toast, Id } from 'react-toastify'; // Import Id type
+import { useTranslation } from 'react-i18next';
 import { validateDiagram } from '../../../shared/services/validation/validateDiagram';
 import { BACKEND_URL } from '../../../shared/constants/constant';
 import { ProjectStorageRepository } from '../../../shared/services/storage/ProjectStorageRepository';
@@ -19,6 +20,7 @@ export type GeneratorConfig = {
 };
 
 export const useDeployLocally = () => {
+  const { t } = useTranslation();
   const deployLocally = useCallback(
     async (editor: ApollonEditor, generatorType: string, diagramTitle: string, config?: GeneratorConfig[keyof GeneratorConfig]): Promise<void> => {
       
@@ -46,18 +48,18 @@ export const useDeployLocally = () => {
       // Validate diagram before generation
       const validationResult = await validateDiagram(null, diagramTitle, modelForValidation);
       if (!validationResult.isValid) {
-        toast.error(validationResult.message || 'Validation failed');
+        toast.error(validationResult.message || t('generation.toasts.validationFailed'));
         return;
       }
 
       if (!editor || !editor.model) {
         console.error('No editor or model available');
-        toast.error('No diagram to generate code from');
+        toast.error(t('generation.toasts.noDiagram'));
         return;
       }
 
       // Create a persistent loading toast
-      const toastId = toast.loading('Local deployment in progress... This may take a few minutes.', {
+      const toastId = toast.loading(t('generation.toasts.localDeploymentInProgress'), {
         position: "top-center",
         autoClose: false,
         hideProgressBar: false,
@@ -108,9 +110,9 @@ export const useDeployLocally = () => {
             return;
           }
 
-          toast.update(toastId, { 
-            render: `HTTP error! status: ${response.status}`, 
-            type: "error", 
+          toast.update(toastId, {
+            render: t('generation.toasts.httpError', { status: response.status }),
+            type: "error",
             isLoading: false,
             autoClose: 5000
           });
@@ -119,11 +121,11 @@ export const useDeployLocally = () => {
 
         toast.update(toastId, {
           render: React.createElement('div', null,
-            React.createElement('p', null, 'Local deployment completed!'),
+            React.createElement('p', null, t('generation.toasts.localDeploymentCompleted')),
             React.createElement(
               'p',
               null,
-              'You can now access your application at: ',
+              t('generation.toasts.accessApplicationAt'),
               React.createElement(
                 'a',
                 {
@@ -141,21 +143,21 @@ export const useDeployLocally = () => {
           autoClose: 5000,
         });
       } catch (error) {
-        let errorMessage = 'Unknown error occurred during deployment';
+        let errorMessage = t('generation.toasts.unknownDeploymentError');
         if (error instanceof Error) {
           errorMessage = error.message;
         }
-        
+
         // Update the toast to error
-        toast.update(toastId, { 
-          render: errorMessage, 
-          type: "error", 
+        toast.update(toastId, {
+          render: errorMessage,
+          type: "error",
           isLoading: false,
           autoClose: 5000
         });
       }
     },
-    []
+    [t]
   );
 
   return deployLocally;

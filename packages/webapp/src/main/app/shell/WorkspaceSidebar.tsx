@@ -1,4 +1,5 @@
 import React, { useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 import { UMLDiagramType } from '@besser/wme';
 import { FlaskConical } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
@@ -68,6 +69,7 @@ const WorkspaceSidebarInner: React.FC<WorkspaceSidebarProps> = ({
   onToggleExpanded,
   onTestAgent,
 }) => {
+  const { t } = useTranslation();
   // When a non-UML editor (GUI / Quantum) is active, no UML button should appear selected
   const isNonUmlActive = activeDiagramType === 'GUINoCodeDiagram' || activeDiagramType === 'QuantumCircuitDiagram';
   const isAgentEditorActive = locationPath === '/' && !isNonUmlActive && activeUmlType === UMLDiagramType.AgentDiagram;
@@ -109,12 +111,12 @@ const WorkspaceSidebarInner: React.FC<WorkspaceSidebarProps> = ({
   return (
     <TooltipProvider delayDuration={300}>
       <aside className={`${sidebarBaseClass} animate-slide-in-left ${isSidebarExpanded ? 'w-48' : 'w-[72px]'}`}>
-        {isSidebarExpanded && <p className={sidebarTitleClass}>Editors</p>}
+        {isSidebarExpanded && <p className={sidebarTitleClass}>{t('nav.editors')}</p>}
         {visibleUmlItems.map((item) => {
           const active = locationPath === '/' && !isNonUmlActive && activeUmlType === item.type;
           const isAgentItem = item.type === UMLDiagramType.AgentDiagram;
           const count = countMap[item.type] ?? 0;
-          const displayLabel = labelWithCount(item.label, count);
+          const displayLabel = labelWithCount(t(item.labelKey), count);
 
           if (!isAgentItem) {
             return (
@@ -170,19 +172,20 @@ const WorkspaceSidebarInner: React.FC<WorkspaceSidebarProps> = ({
                 )}
                 {AGENT_ROUTE_ITEMS.map((routeItem) => {
                   const isActiveSubItem = locationPath === routeItem.path;
+                  const routeLabel = t(routeItem.labelKey);
                   return (
-                    <SidebarTooltip key={routeItem.path} label={routeItem.label} collapsed={isCollapsed}>
+                    <SidebarTooltip key={routeItem.path} label={routeLabel} collapsed={isCollapsed}>
                       <button
                         type="button"
                         className={`${navButtonClass(isActiveSubItem, isSidebarExpanded, isDarkTheme)} ${
                           isSidebarExpanded ? 'mt-1 pl-7 text-xs' : 'mt-1'
                         }`}
                         onClick={() => onNavigate(routeItem.path)}
-                        title={isSidebarExpanded ? routeItem.label : undefined}
-                        aria-label={routeItem.label}
+                        title={isSidebarExpanded ? routeLabel : undefined}
+                        aria-label={routeLabel}
                       >
                         {routeItem.icon}
-                        {isSidebarExpanded && <span>{routeItem.label}</span>}
+                        {isSidebarExpanded && <span>{routeLabel}</span>}
                       </button>
                     </SidebarTooltip>
                   );
@@ -195,7 +198,7 @@ const WorkspaceSidebarInner: React.FC<WorkspaceSidebarProps> = ({
         {visibleNonUmlItems.map((item) => {
           const active = locationPath === '/' && activeDiagramType === item.type;
           const count = countMap[item.type] ?? 0;
-          const displayLabel = labelWithCount(item.label, count);
+          const displayLabel = labelWithCount(t(item.labelKey), count);
 
           return (
             <SidebarTooltip key={item.type} label={displayLabel} collapsed={isCollapsed}>
@@ -217,28 +220,29 @@ const WorkspaceSidebarInner: React.FC<WorkspaceSidebarProps> = ({
 
         {ROUTE_ITEMS.map((item) => {
           const active = locationPath === item.path;
+          const routeLabel = t(item.labelKey);
           return (
-            <SidebarTooltip key={item.path} label={item.label} collapsed={isCollapsed}>
+            <SidebarTooltip key={item.path} label={routeLabel} collapsed={isCollapsed}>
               <button
                 type="button"
                 className={navButtonClass(active, isSidebarExpanded, isDarkTheme)}
                 onClick={() => onNavigate(item.path)}
-                title={isSidebarExpanded ? item.label : undefined}
-                aria-label={item.label}
+                title={isSidebarExpanded ? routeLabel : undefined}
+                aria-label={routeLabel}
               >
                 {item.icon}
-                {isSidebarExpanded && <span>{item.label}</span>}
+                {isSidebarExpanded && <span>{routeLabel}</span>}
               </button>
             </SidebarTooltip>
           );
         })}
 
-        <SidebarTooltip label={isSidebarExpanded ? 'Collapse sidebar' : 'Expand sidebar'} collapsed={isCollapsed}>
+        <SidebarTooltip label={isSidebarExpanded ? t('nav.collapseSidebar') : t('nav.expandSidebar')} collapsed={isCollapsed}>
           <button
             type="button"
             onClick={onToggleExpanded}
             className={`${sidebarToggleClass} ${isSidebarExpanded ? 'justify-between gap-2' : 'justify-center'}`}
-            aria-label={isSidebarExpanded ? 'Collapse sidebar' : 'Expand sidebar'}
+            aria-label={isSidebarExpanded ? t('nav.collapseSidebar') : t('nav.expandSidebar')}
           >
             <span className="inline-flex">
               <SidebarToggleIcon expanded={isSidebarExpanded} size={18} />

@@ -2,6 +2,7 @@ import { useCallback } from 'react';
 import { ApollonEditor, UMLModel, normalizeAgentModel } from '@besser/wme';
 import { useFileDownload } from '../../../shared/services/file-download/useFileDownload';
 import { toast } from 'react-toastify';
+import { useTranslation } from 'react-i18next';
 import { validateDiagram } from '../../../shared/services/validation/validateDiagram';
 import { BACKEND_URL } from '../../../shared/constants/constant';
 import { ProjectStorageRepository } from '../../../shared/services/storage/ProjectStorageRepository';
@@ -76,6 +77,7 @@ export type GeneratorConfig = {
 
 export const useGenerateCode = () => {
   const downloadFile = useFileDownload();
+  const { t } = useTranslation();
 
   const generateCodeFromProject = useCallback(
     async (generatorType: string, config?: GeneratorConfig[keyof GeneratorConfig]): Promise<GenerationResult> => {
@@ -87,7 +89,7 @@ export const useGenerateCode = () => {
       const currentProject = ProjectStorageRepository.getCurrentProject();
 
       if (!currentProject) {
-        toast.error('No project available for code generation');
+        toast.error(t('generation.toasts.noProjectAvailable'));
         return { ok: false, error: 'No project available for code generation' };
       }
 
@@ -176,14 +178,14 @@ export const useGenerateCode = () => {
         }
 
         downloadFile({ file: blob, filename });
-        toast.success('Code generation completed successfully');
+        toast.success(t('generation.toasts.codeGenerationCompleted'));
         return { ok: true, filename };
       } catch (error) {
         if (error instanceof DOMException && error.name === 'AbortError') {
-          toast.error('Request timed out. Please try again.');
+          toast.error(t('generation.toasts.requestTimedOut'));
           return { ok: false, error: 'Request timed out' };
         }
-        let errorMessage = 'Unknown error occurred';
+        let errorMessage = t('generation.toasts.unknownError');
         if (error instanceof Error) {
           errorMessage = error.message;
         }
@@ -193,7 +195,7 @@ export const useGenerateCode = () => {
         clearTimeout(timeoutId);
       }
     },
-    [downloadFile],
+    [downloadFile, t],
   );
 
   const generateCode = useCallback(
@@ -225,7 +227,7 @@ export const useGenerateCode = () => {
       // For other generators, we need the editor and model
       if (!editor || !editor.model) {
         console.error('No editor or model available');
-        toast.error('No diagram to generate code from');
+        toast.error(t('generation.toasts.noDiagram'));
         return { ok: false, error: 'No diagram to generate code from' };
       }
 
@@ -233,7 +235,7 @@ export const useGenerateCode = () => {
       const rawModel = modelOverride ?? editor.model;
       const validationResult = await validateDiagram(null, diagramTitle, rawModel);
       if (!validationResult.isValid) {
-        toast.error(validationResult.message || 'Validation failed');
+        toast.error(validationResult.message || t('generation.toasts.validationFailed'));
         return { ok: false, error: validationResult.message || 'Validation failed' };
       }
 
@@ -316,15 +318,15 @@ export const useGenerateCode = () => {
         }
 
         downloadFile({ file: blob, filename });
-        toast.success('Code generation completed successfully');
+        toast.success(t('generation.toasts.codeGenerationCompleted'));
         return { ok: true, filename };
       } catch (error) {
         if (error instanceof DOMException && error.name === 'AbortError') {
-          toast.error('Request timed out. Please try again.');
+          toast.error(t('generation.toasts.requestTimedOut'));
           return { ok: false, error: 'Request timed out' };
         }
 
-        let errorMessage = 'Unknown error occurred';
+        let errorMessage = t('generation.toasts.unknownError');
         if (error instanceof Error) {
           errorMessage = error.message;
         }
@@ -335,7 +337,7 @@ export const useGenerateCode = () => {
         clearTimeout(timeoutId);
       }
     },
-    [downloadFile, generateCodeFromProject],
+    [downloadFile, generateCodeFromProject, t],
   );
 
   return generateCode;
