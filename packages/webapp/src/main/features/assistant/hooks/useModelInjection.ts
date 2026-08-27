@@ -168,6 +168,10 @@ export interface UseModelInjectionOptions {
   setMessages: React.Dispatch<React.SetStateAction<ChatKitMessage[]>>;
   setMessageMeta: React.Dispatch<React.SetStateAction<Record<string, MessageMeta>>>;
   setProgressMessage: React.Dispatch<React.SetStateAction<string>>;
+  /** Called after an assistant model update was successfully applied, with
+   *  the model as it now stands. Used by the orchestrator's post-injection
+   *  validate-and-repair loop. Must never throw into the injection path. */
+  onModelApplied?: (info: { action: string; diagramType: string; model: any }) => void;
 }
 
 export interface UseModelInjectionReturn {
@@ -193,6 +197,7 @@ export function useModelInjection({
   setMessages,
   setMessageMeta,
   setProgressMessage,
+  onModelApplied,
 }: UseModelInjectionOptions): UseModelInjectionReturn {
   const [undoAvailable, setUndoAvailable] = useState(false);
 
@@ -278,6 +283,7 @@ export function useModelInjection({
 
       const targetIsUml = isUmlDiagramType(targetDiagramType);
       let applied = false;
+      let appliedModel: any = null;
 
       // New tab: create it, convert systemSpec -> model, write to Redux directly.
       if ((command as any).createNewTab) {
@@ -303,9 +309,11 @@ export function useModelInjection({
             // editable here too (no-op for UML models). See markTextEditable.
             if (targetDiagramType === 'GUINoCodeDiagram') markTextEditable(convertedModel);
             await dispatch(updateDiagramModelThunk({ model: convertedModel }));
+            appliedModel = convertedModel;
           } else if (command.model) {
             if (targetDiagramType === 'GUINoCodeDiagram') markTextEditable(command.model as any);
             await dispatch(updateDiagramModelThunk({ model: command.model as any }));
+            appliedModel = command.model;
           }
           // Freshly generated class diagram in a new tab -> let ELK arrange it
           // once the new editor instance has the model.
@@ -498,6 +506,7 @@ export function useModelInjection({
             dispatch(bumpEditorRevision());
           }
           applied = true;
+          appliedModel = newModel;
           if (shouldCenterViewportAfterInjection(command, currentModel, newModel)) {
             centerEditorViewport(newModel);
           }
@@ -539,6 +548,7 @@ export function useModelInjection({
             throw new Error(result.error.message || 'Failed to persist assistant model update');
           }
           applied = true;
+          appliedModel = command.model;
         }
       }
 
@@ -549,6 +559,17 @@ export function useModelInjection({
       // Refresh undo state after successful injection
       refreshUndoState();
       setProgressMessage('');
+
+      // Post-injection quality check: hand the applied model to the
+      // orchestrator so it can run the backend validator and, when needed,
+      // ask the agent to repair its own output (validate-and-repair loop).
+      if (onModelApplied && appliedModel) {
+        try {
+          onModelApplied({ action: command.action, diagramType: targetDiagramType, model: appliedModel });
+        } catch (hookError) {
+          console.warn('[useModelInjection] onModelApplied hook failed:', hookError);
+        }
+      }
 
       const injectionTiming = stopTimer('injection');
       const totalTiming = stopTimer('total');

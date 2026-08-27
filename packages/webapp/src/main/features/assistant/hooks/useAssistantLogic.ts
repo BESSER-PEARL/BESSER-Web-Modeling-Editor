@@ -297,6 +297,11 @@ export function useAssistantLogic({
   currentDiagramTypeRef.current = currentDiagramType;
   currentModelRef.current = activeDiagram?.model;
 
+  // Validate-and-repair loop state: one automatic repair attempt per user
+  // message ('attempted'), and whether the modify currently being applied
+  // IS that repair ('fixInFlight' — gates the success/failure follow-up).
+  const autoFixRef = useRef({ attempted: false, fixInFlight: false });
+
   /* ---- singleton services ---- */
 
   // Shared singleton: the floating widget and the workspace drawer use ONE
@@ -439,7 +444,83 @@ export function useAssistantLogic({
     setMessages,
     setMessageMeta,
     setProgressMessage: streaming.setProgressMessage,
+    onModelApplied: handleModelApplied,
   });
+
+  /* ---- post-injection validate-and-repair loop ---- */
+
+  // After an agent-applied ClassDiagram update lands on the canvas, run the
+  // backend validator silently. On errors, send ONE machine-tagged repair
+  // request back to the agent — the '[auto-fix]' marker routes it
+  // deterministically to the modify flow — then re-validate the repaired
+  // model. One attempt per user message (never a loop); any failure in the
+  // check itself fails open and leaves the model exactly as applied.
+  // Function declaration (hoisted) so the injection hook above can reference it.
+  function handleModelApplied(info: { action: string; diagramType: string; model: any }) {
+    void (async () => {
+      try {
+        if (info.diagramType !== 'ClassDiagram') return;
+        if (info.action !== 'inject_complete_system' && info.action !== 'modify_model') return;
+        const { validateDiagram } = await import('../../../shared/services/validation/validateDiagram');
+        const result: any = await validateDiagram(null, currentProjectRef.current?.name || 'Diagram', {
+          ...info.model,
+          _suppressToasts: true,
+        });
+        const errors: string[] = Array.isArray(result?.errors) ? result.errors : [];
+        const wasRepair = autoFixRef.current.fixInFlight;
+        if (errors.length === 0) {
+          if (wasRepair) {
+            autoFixRef.current.fixInFlight = false;
+            setMessages((prev) => [
+              ...prev,
+              toKitMessage('assistant', 'Validation passed — the reported issues are resolved.', {
+                isProgress: true,
+              }),
+            ]);
+          }
+          return;
+        }
+        if (autoFixRef.current.attempted) {
+          // This message's repair attempt is already spent — report and stop.
+          autoFixRef.current.fixInFlight = false;
+          setMessages((prev) => [
+            ...prev,
+            toKitMessage(
+              'assistant',
+              `The diagram still has ${errors.length} validation issue(s):\n\n${errors
+                .map((e) => `• ${e}`)
+                .join('\n')}`,
+            ),
+          ]);
+          return;
+        }
+        autoFixRef.current.attempted = true;
+        autoFixRef.current.fixInFlight = true;
+        setMessages((prev) => [
+          ...prev,
+          toKitMessage(
+            'assistant',
+            `Validation found ${errors.length} issue(s) — fixing ${errors.length === 1 ? 'it' : 'them'} now…`,
+            { isProgress: true },
+          ),
+        ]);
+        const context = buildWorkspaceContext();
+        const repairRequest =
+          '[auto-fix] The last change left the diagram with validation errors. ' +
+          'Fix exactly these, changing only what is necessary:\n' +
+          errors.map((e) => `- ${e}`).join('\n');
+        // Pass the just-applied model explicitly — the store refs can lag one
+        // render behind right after an injection.
+        assistantClient.sendMessage(repairRequest, 'ClassDiagram', {
+          ...context,
+          activeDiagramType: 'ClassDiagram',
+          activeModel: info.model,
+        });
+      } catch (loopError) {
+        console.warn('[auto-fix] validation loop skipped:', loopError);
+      }
+    })();
+  }
 
   /* ---- Smart Generator trigger handler ---- */
 
@@ -1041,6 +1122,9 @@ export function useAssistantLogic({
       ]);
       setInputValue('');
       if (normalizedInput) setLastSentMessage(normalizedInput);
+
+      // Every real user message grants a fresh automatic repair attempt.
+      autoFixRef.current = { attempted: false, fixInFlight: false };
 
       // Clear any displayed quick-action buttons
       setMessageMeta((prev) => {
