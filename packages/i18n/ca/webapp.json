@@ -491,7 +491,7 @@
     "yamlEditor": {
       "tab": {
         "form": "Formulari",
-        "raw": "YAML sense format"
+        "raw": "YAML final"
       },
       "section": {
         "agent": "Agent",
@@ -2708,12 +2708,12 @@
       "kChunks": "K (fragments recuperats)",
       "kChunksDescription": "Fragments de documents recuperats per consulta.",
       "numPrevMessages": "Núm. missatges anteriors",
-      "embeddingProvider": "Proveïdor d'incrustació",
+      "embeddingProvider": "Proveïdor d'embedding",
       "embeddingOpenai": "OpenAI",
       "embeddingOllama": "Ollama (local)",
-      "embeddingBaseUrl": "URL base d'incrustació",
+      "embeddingBaseUrl": "URL base d'embedding",
       "embeddingBaseUrlPlaceholder": "http://localhost:11434",
-      "embeddingModel": "Model d'incrustació",
+      "embeddingModel": "Model d'embedding",
       "embeddingModelPlaceholder": "e.g. nomic-embed-text"
     },
     "guis": {
