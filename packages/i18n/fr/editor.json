@@ -381,7 +381,11 @@
         "flow": "Flux",
         "reasoning": "Raisonnement",
         "knowledge": "Connaissances",
-        "capabilities": "Capacités"
+        "capabilities": "Capacités",
+        "title": "Glissez-déposez les éléments",
+        "addNewState": "Ajouter un nouvel état",
+        "connectInitialState": "Connecter à l'état initial",
+        "addComment": "Ajouter un commentaire"
       },
       "AgentState": "État de l'agent",
       "AgentStateBody": "Corps",

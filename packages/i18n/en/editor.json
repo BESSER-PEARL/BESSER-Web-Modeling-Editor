@@ -381,7 +381,11 @@
         "flow": "Flow",
         "reasoning": "Reasoning",
         "knowledge": "Knowledge",
-        "capabilities": "Capabilities"
+        "capabilities": "Capabilities",
+        "title": "Drag and drop elements",
+        "addNewState": "Add new state",
+        "connectInitialState": "Connect to the initial state",
+        "addComment": "Add a comment"
       },
       "AgentState": "AgentState",
       "AgentStateBody": "Body",

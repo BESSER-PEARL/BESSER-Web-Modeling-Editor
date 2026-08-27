@@ -381,7 +381,11 @@
         "flow": "Flux",
         "reasoning": "Reasoning",
         "knowledge": "Wëssen",
-        "capabilities": "Fäegkeeten"
+        "capabilities": "Fäegkeeten",
+        "title": "Elementer zéien an falen loossen",
+        "addNewState": "Neien Zoustand dobäisetzen",
+        "connectInitialState": "Mam Ufankszoustand verbannen",
+        "addComment": "E Kommentar dobäisetzen"
       },
       "AgentState": "Agentzoustand",
       "AgentStateBody": "Kierper",

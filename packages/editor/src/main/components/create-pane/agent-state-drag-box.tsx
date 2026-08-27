@@ -12,6 +12,8 @@ import { StoreProvider } from '../store/model-store';
 import { PreviewElementComponent } from './preview-element-component';
 import { UMLElement } from '../../services/uml-element/uml-element';
 import { styled } from '../theme/styles';
+import { localized } from '../i18n/localized';
+import { I18nContext } from '../i18n/i18n-context';
 
 const PREVIEW_WIDTH = 160;
 const PREVIEW_HEIGHT = 40;
@@ -83,13 +85,14 @@ type StateProps = { diagramType: string; readonly: boolean };
 type DispatchProps = { create: typeof UMLElementRepository.create };
 
 const enhance = compose<ComponentClass>(
+  localized,
   connect<StateProps, DispatchProps, {}, ModelState>(
     (state) => ({ diagramType: state.diagram.type, readonly: state.editor.readonly }),
     { create: UMLElementRepository.create },
   ),
 );
 
-class AgentStateDragBoxComponent extends Component<StateProps & DispatchProps> {
+class AgentStateDragBoxComponent extends Component<StateProps & DispatchProps & I18nContext> {
   private readonly previewState: AgentState = new AgentState({
     name: 'AgentState',
     bounds: { x: 0, y: 0, width: PREVIEW_WIDTH, height: PREVIEW_HEIGHT },
@@ -112,9 +115,11 @@ class AgentStateDragBoxComponent extends Component<StateProps & DispatchProps> {
     if (this.props.diagramType !== UMLDiagramType.AgentDiagram) return null;
     if (this.props.readonly) return null;
 
+    const { translate } = this.props;
+
     return (
       <FloatingBox>
-        <PaletteTitle>Drag and drop elements</PaletteTitle>
+        <PaletteTitle>{translate('packages.AgentDiagram.palette.title')}</PaletteTitle>
         {/* AgentState */}
         <PaletteItem>
           <StoreProvider initialState={{ elements: this.previewStateElements, editor: { features: FEATURES } }}>
@@ -122,7 +127,7 @@ class AgentStateDragBoxComponent extends Component<StateProps & DispatchProps> {
               <PreviewElementComponent element={this.previewState} create={this.handleCreate} />
             </div>
           </StoreProvider>
-          <DragLabel>Add new state</DragLabel>
+          <DragLabel>{translate('packages.AgentDiagram.palette.addNewState')}</DragLabel>
         </PaletteItem>
 
         <Divider />
@@ -134,7 +139,7 @@ class AgentStateDragBoxComponent extends Component<StateProps & DispatchProps> {
               <PreviewElementComponent element={this.previewInitialNode} create={this.handleCreate} />
             </div>
           </StoreProvider>
-          <DragLabel>Connect to the initial state</DragLabel>
+          <DragLabel>{translate('packages.AgentDiagram.palette.connectInitialState')}</DragLabel>
         </PaletteItem>
 
         <Divider />
@@ -146,7 +151,7 @@ class AgentStateDragBoxComponent extends Component<StateProps & DispatchProps> {
               <PreviewElementComponent element={this.previewComment} create={this.handleCreate} />
             </div>
           </StoreProvider>
-          <DragLabel>Add a comment</DragLabel>
+          <DragLabel>{translate('packages.AgentDiagram.palette.addComment')}</DragLabel>
         </PaletteItem>
       </FloatingBox>
     );

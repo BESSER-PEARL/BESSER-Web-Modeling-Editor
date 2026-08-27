@@ -381,7 +381,11 @@
         "flow": "Flux",
         "reasoning": "Raonament",
         "knowledge": "Coneixement",
-        "capabilities": "Capacitats"
+        "capabilities": "Capacitats",
+        "title": "Arrossega i deixa anar elements",
+        "addNewState": "Afegeix un nou estat",
+        "connectInitialState": "Connecta amb l'estat inicial",
+        "addComment": "Afegeix un comentari"
       },
       "AgentState": "Estat de l'agent",
       "AgentStateBody": "Cos",

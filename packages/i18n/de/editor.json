@@ -381,7 +381,11 @@
         "flow": "Ablauf",
         "reasoning": "Reasoning",
         "knowledge": "Wissen",
-        "capabilities": "Fähigkeiten"
+        "capabilities": "Fähigkeiten",
+        "title": "Elemente per Drag-and-drop hinzufügen",
+        "addNewState": "Neuen Zustand hinzufügen",
+        "connectInitialState": "Mit dem Anfangszustand verbinden",
+        "addComment": "Kommentar hinzufügen"
       },
       "AgentState": "Agentenzustand",
       "AgentStateBody": "Rumpf",

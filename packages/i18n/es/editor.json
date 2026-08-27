@@ -381,7 +381,11 @@
         "flow": "Flujo",
         "reasoning": "Razonamiento",
         "knowledge": "Conocimiento",
-        "capabilities": "Capacidades"
+        "capabilities": "Capacidades",
+        "title": "Arrastra y suelta elementos",
+        "addNewState": "Añadir nuevo estado",
+        "connectInitialState": "Conectar al estado inicial",
+        "addComment": "Añadir un comentario"
       },
       "AgentState": "Estado del agente",
       "AgentStateBody": "Cuerpo",
