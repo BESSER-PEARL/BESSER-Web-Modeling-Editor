@@ -807,15 +807,21 @@ export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGen
             result = await generateCode(editor, 'jsonschema', activeDiagramTitle, config as JSONSchemaConfig);
             break;
           case 'agent': {
-            // agentComponents (intents, tools, etc.) are stored off-canvas on the
-            // diagram object, not inside editor.model.elements. Merge them before
-            // sending to the backend so intent references in transitions resolve.
-            const agentComponents = (activeDiagram as any)?.agentComponents;
+            // Agent components (intents, tools, etc.) live in model.components (new schema)
+            // or legacy agentComponents. Ensure the model sent to the backend has them
+            // in model.components so the backend processor can resolve references.
             const agentBaseModel: UMLModel = (options?.agentModelOverride ?? editor.model) as UMLModel;
-            const agentModelWithComponents: UMLModel =
-              agentComponents && Object.keys(agentComponents).length > 0
-                ? { ...agentBaseModel, elements: { ...(agentBaseModel as any).elements, ...agentComponents } }
-                : agentBaseModel;
+            const legacyComponents = (activeDiagram as any)?.agentComponents;
+            const modelComponents = (agentBaseModel as any)?.components;
+            let agentModelWithComponents: UMLModel = agentBaseModel;
+            if (legacyComponents && Object.keys(legacyComponents).length > 0 && !modelComponents) {
+              const stripped: Record<string, any> = {};
+              for (const [id, comp] of Object.entries(legacyComponents)) {
+                const { bounds, ...rest } = comp as any;
+                stripped[id] = rest;
+              }
+              agentModelWithComponents = { ...agentBaseModel, components: stripped } as any;
+            }
             result = await generateCode(
               editor,
               'agent',
@@ -918,17 +924,18 @@ export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGen
       }
 
       if (editor) {
-        // Agent diagrams store intents, tools, etc. in `agentComponents` — a
-        // property on the diagram object that is separate from editor.model
-        // (those elements never touch the canvas). The backend's validation
-        // checks intent references in model.elements, so we must merge
-        // agentComponents into a copy of the model before sending.
-        const agentComponents = (activeDiagram as any)?.agentComponents;
-        if (agentComponents && Object.keys(agentComponents).length > 0 && (editor.model as any)?.type === 'AgentDiagram') {
-          const mergedModel = {
-            ...editor.model,
-            elements: { ...editor.model.elements, ...agentComponents },
-          };
+        // Agent components (intents, tools, etc.) live in model.components (new schema)
+        // or legacy agentComponents. Ensure the validation model has them in
+        // model.components so the backend resolver finds intent references.
+        const legacyComponents = (activeDiagram as any)?.agentComponents;
+        const modelComponents = (editor.model as any)?.components;
+        if (legacyComponents && Object.keys(legacyComponents).length > 0 && !modelComponents && (editor.model as any)?.type === 'AgentDiagram') {
+          const stripped: Record<string, any> = {};
+          for (const [id, comp] of Object.entries(legacyComponents)) {
+            const { bounds, ...rest } = comp as any;
+            stripped[id] = rest;
+          }
+          const mergedModel = { ...editor.model, components: stripped };
           const result = await validateDiagram(null, activeDiagramTitle, mergedModel);
           return { executed: true, passed: didValidationPass(result) };
         }

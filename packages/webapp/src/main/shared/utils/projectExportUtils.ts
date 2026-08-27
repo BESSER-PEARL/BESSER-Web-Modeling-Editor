@@ -84,23 +84,26 @@ export const buildProjectPayloadForBackend = (
     payload.diagrams = diagrams;
   }
 
-  // Normalise agent diagrams so the backend receives the legacy
-  // StateInitialNode + AgentStateTransitionInit format it expects.
-  // Also merge agentComponents (off-canvas intents, tools, etc.) into
-  // model.elements so the backend can resolve intent references during
-  // validation and BUML export.
+  // Normalise agent diagrams so the backend receives the canonical nested
+  // transition format. Also migrate legacy agentComponents (top-level field)
+  // into model.components (new schema) so the backend can resolve intent
+  // references. When model.components already exists it takes precedence.
   if (Array.isArray((payload.diagrams as any).AgentDiagram)) {
     (payload.diagrams as any).AgentDiagram = (payload.diagrams as any).AgentDiagram.map(
       (diagram: ProjectDiagram) => {
         if (!diagram.model) return diagram;
-        const agentComponents = (diagram as any).agentComponents;
-        const mergedModel =
-          agentComponents && Object.keys(agentComponents).length > 0
-            ? {
-                ...diagram.model,
-                elements: { ...((diagram.model as any).elements || {}), ...agentComponents },
-              }
-            : diagram.model;
+        const legacyComponents = (diagram as any).agentComponents;
+        const modelComponents = (diagram.model as any)?.components;
+        let mergedModel = diagram.model;
+        if (legacyComponents && Object.keys(legacyComponents).length > 0 && !modelComponents) {
+          // Migrate: strip bounds and move into model.components
+          const stripped: Record<string, any> = {};
+          for (const [id, comp] of Object.entries(legacyComponents)) {
+            const { bounds, ...rest } = comp as any;
+            stripped[id] = rest;
+          }
+          mergedModel = { ...diagram.model, components: stripped } as any;
+        }
         return { ...diagram, model: normalizeAgentModel(mergedModel as UMLModel) };
       },
     );

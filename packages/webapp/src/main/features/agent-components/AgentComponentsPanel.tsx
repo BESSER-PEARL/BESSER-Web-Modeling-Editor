@@ -380,9 +380,10 @@ export function AgentComponentsPanel() {
     return {};
   }, [activeDiagram]);
 
-  // Agent components are stored outside model.elements so they never touch the canvas.
+  // Agent components are stored in model.components (new schema).
+  // Fall back to the legacy top-level agentComponents field for older saved projects.
   const agentComponents: Record<string, any> = React.useMemo(() => {
-    return (activeDiagram as any)?.agentComponents || {};
+    return (activeDiagram?.model as any)?.components || (activeDiagram as any)?.agentComponents || {};
   }, [activeDiagram]);
 
   const llms      = React.useMemo(() => Object.values(agentComponents).filter((e: any) => e.type === ELEMENT_TYPES.AgentLLM), [agentComponents]);
@@ -468,11 +469,19 @@ export function AgentComponentsPanel() {
       const latest = ProjectStorageRepository.loadProject(project.id) || project;
       const diagram = getActiveDiagram(latest, 'AgentDiagram');
       if (!diagram) return;
-      const current = (diagram as any).agentComponents || {};
+      // Read from model.components (new schema) with fallback to legacy agentComponents.
+      const current = (diagram.model as any)?.components || (diagram as any).agentComponents || {};
       const next = updater({ ...current });
+      // Strip bounds from components – they are off-canvas and have no position.
+      const nextStripped: Record<string, any> = {};
+      for (const [id, comp] of Object.entries(next)) {
+        const { bounds, ...rest } = comp as any;
+        nextStripped[id] = rest;
+      }
+      const updatedModel = { ...(diagram.model || {}), components: nextStripped };
       ProjectStorageRepository.updateDiagram(project.id, 'AgentDiagram', {
         ...diagram,
-        agentComponents: next,
+        model: updatedModel,
         lastUpdate: new Date().toISOString(),
       });
     },
@@ -585,18 +594,17 @@ export function AgentComponentsPanel() {
         type: ELEMENT_TYPES.AgentIntentBody,
         name: '',
         owner: intentId,
-        bounds: { x: 0, y: 0, width: 160, height: 30 },
-        ownedElements: [],
       };
       writeComponents(els => {
         const intent = els[intentId];
         if (!intent) return els;
+        const currentBodies: string[] = Array.isArray(intent.bodies) ? intent.bodies : (intent.ownedElements || []);
         return {
           ...els,
           [bodyEl.id]: bodyEl,
           [intentId]: {
             ...intent,
-            ownedElements: Array.isArray(intent.ownedElements) ? [...intent.ownedElements, bodyEl.id] : [bodyEl.id],
+            bodies: [...currentBodies, bodyEl.id],
           },
         };
       });
@@ -611,9 +619,10 @@ export function AgentComponentsPanel() {
         if (!intent) return els;
         const next = { ...els };
         delete next[bodyId];
+        const currentBodies: string[] = Array.isArray(intent.bodies) ? intent.bodies : (intent.ownedElements || []);
         next[intentId] = {
           ...intent,
-          ownedElements: (intent.ownedElements || []).filter((id: string) => id !== bodyId),
+          bodies: currentBodies.filter((id: string) => id !== bodyId),
         };
         return next;
       });
@@ -655,7 +664,7 @@ export function AgentComponentsPanel() {
     addElement(ELEMENT_TYPES.AgentLLM, { provider: 'openai', parameters: {}, num_previous_messages: 1, global_context: '' }, llms);
 
   const handleAddIntent = () => {
-    const el = makeVisibleElementBase(ELEMENT_TYPES.AgentIntent, intents.length, { intent_description: '', ownedElements: [] });
+    const el = makeVisibleElementBase(ELEMENT_TYPES.AgentIntent, intents.length, { intent_description: '', bodies: [] });
     writeComponents(els => ({ ...els, [el.id]: el }));
     setExpandedId(el.id);
   };
@@ -811,7 +820,8 @@ export function AgentComponentsPanel() {
                 <p className="py-6 text-center text-sm text-muted-foreground">No intents defined yet.</p>
               )}
               {intents.map((el: any) => {
-                const bodies = (el.ownedElements || [])
+                const bodyIds: string[] = Array.isArray(el.bodies) ? el.bodies : (el.ownedElements || []);
+                const bodies = bodyIds
                   .map((id: string) => agentComponents[id])
                   .filter((b: any) => b && b.type === ELEMENT_TYPES.AgentIntentBody);
                 const sentenceCount = bodies.length;

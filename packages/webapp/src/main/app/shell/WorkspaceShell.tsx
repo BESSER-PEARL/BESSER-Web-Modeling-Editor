@@ -273,9 +273,15 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
 
   const simulationDiagramModel = useMemo((): object => {
     const baseModel = (diagram?.model ?? {}) as any;
-    const agentComponents = (diagram as any)?.agentComponents;
-    if (agentComponents && Object.keys(agentComponents).length > 0) {
-      return { ...baseModel, elements: { ...(baseModel.elements || {}), ...agentComponents } };
+    // Migrate legacy agentComponents into model.components if needed.
+    const legacyComponents = (diagram as any)?.agentComponents;
+    if (legacyComponents && Object.keys(legacyComponents).length > 0 && !baseModel.components) {
+      const stripped: Record<string, any> = {};
+      for (const [id, comp] of Object.entries(legacyComponents)) {
+        const { bounds, ...rest } = comp as any;
+        stripped[id] = rest;
+      }
+      return { ...baseModel, components: stripped };
     }
     return baseModel;
   }, [diagram]);

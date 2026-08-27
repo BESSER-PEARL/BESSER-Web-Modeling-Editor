@@ -22,20 +22,24 @@ export const useDeployLocally = () => {
   const deployLocally = useCallback(
     async (editor: ApollonEditor, generatorType: string, diagramTitle: string, config?: GeneratorConfig[keyof GeneratorConfig]): Promise<void> => {
       
-      // For agent diagrams, intents/tools etc. live in agentComponents (off-canvas),
-      // not in editor.model.elements. Merge them in so the backend validation
-      // endpoint can resolve intent references in transitions.
+      // For agent diagrams, components live in model.components (new schema) or
+      // legacy agentComponents. Ensure the validation model has them in
+      // model.components so the backend can resolve intent references.
       let modelForValidation: any = editor.model;
       if (generatorType === 'agent') {
         const currentProjectForValidation = ProjectStorageRepository.getCurrentProject();
         const agentDiagrams = currentProjectForValidation?.diagrams?.AgentDiagram;
         const idx = currentProjectForValidation?.currentDiagramIndices?.AgentDiagram ?? 0;
-        const agentComponents = (agentDiagrams?.[idx] as any)?.agentComponents;
-        if (agentComponents && Object.keys(agentComponents).length > 0) {
-          modelForValidation = {
-            ...editor.model,
-            elements: { ...(editor.model as any).elements, ...agentComponents },
-          };
+        const agentDiagramObj = agentDiagrams?.[idx];
+        const modelComponents = (agentDiagramObj?.model as any)?.components;
+        const legacyComponents = (agentDiagramObj as any)?.agentComponents;
+        if (legacyComponents && Object.keys(legacyComponents).length > 0 && !modelComponents) {
+          const stripped: Record<string, any> = {};
+          for (const [id, comp] of Object.entries(legacyComponents)) {
+            const { bounds, ...rest } = comp as any;
+            stripped[id] = rest;
+          }
+          modelForValidation = { ...editor.model, components: stripped };
         }
       }
 

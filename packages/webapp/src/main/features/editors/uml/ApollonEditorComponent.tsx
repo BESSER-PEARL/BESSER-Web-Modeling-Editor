@@ -83,7 +83,7 @@ export const ApollonEditorComponent: React.FC = () => {
   // panels (state/transition property editors) would see empty LLM/GUI/RAG/intent
   // lists until that navigation happens.
   useEffect(() => {
-    const agentComponents: Record<string, any> = (reduxDiagram as any)?.agentComponents || {};
+    const agentComponents: Record<string, any> = (reduxDiagram?.model as any)?.components || (reduxDiagram as any)?.agentComponents || {};
     const values = Object.values(agentComponents);
 
     diagramBridge.setAgentGUIs(
