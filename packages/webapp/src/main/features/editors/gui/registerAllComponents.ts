@@ -1,8 +1,8 @@
 import type { Editor } from 'grapesjs';
-import { chartConfigs } from './configs/chartConfigs';
-import { tableConfig } from './configs/tableConfig';
-import { metricCardConfig } from './configs/metricCardConfigs';
-import { mapConfig } from './configs/mapConfig';
+import { getChartConfigs } from './configs/chartConfigs';
+import { getTableConfig } from './configs/tableConfig';
+import { getMetricCardConfig } from './configs/metricCardConfigs';
+import { getMapConfig } from './configs/mapConfig';
 import { registerChartComponent } from './component-registrars/registerChartComponent';
 import { registerTableComponent } from './component-registrars/registerTableComponent';
 import { registerMetricCardComponent } from './component-registrars/registerMetricCardComponent';
@@ -23,10 +23,10 @@ export function registerAllComponents(editor: Editor): void {
   registerColumnsManagerTrait(editor);
   setupLayoutBlocks(editor);
   setupInputBlocks(editor);
-  chartConfigs.forEach((config) => registerChartComponent(editor, config));
-  registerTableComponent(editor, tableConfig);
-  registerMetricCardComponent(editor, metricCardConfig);
-  registerMapComponent(editor, mapConfig);
+  getChartConfigs().forEach((config) => registerChartComponent(editor, config));
+  registerTableComponent(editor, getTableConfig());
+  registerMetricCardComponent(editor, getMetricCardConfig());
+  registerMapComponent(editor, getMapConfig());
   registerButtonComponent(editor);
   // registerFormComponents(editor); // Uncomment when form components are re-enabled
   registerLayoutComponents(editor);
