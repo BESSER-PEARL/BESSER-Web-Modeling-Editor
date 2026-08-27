@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { AlertCircle, Bot, FlaskConical, Folder, Loader2, RotateCcw, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAppDispatch, useAppSelector } from '@/main/app/store/hooks';
@@ -27,6 +28,7 @@ interface AgentSimulationPanelProps {
 }
 
 export const AgentSimulationPanel: React.FC<AgentSimulationPanelProps> = ({ open, diagramTitle }) => {
+  const { t } = useTranslation();
   const dispatch = useAppDispatch();
   const status = useAppSelector(selectAgentSimulationStatus);
   const currentState = useAppSelector(selectCurrentAgentState);
@@ -84,7 +86,7 @@ export const AgentSimulationPanel: React.FC<AgentSimulationPanelProps> = ({ open
           <FlaskConical className="size-4" />
         </div>
         <h1 className="min-w-0 flex-1 truncate text-sm font-semibold">
-          Simulator: {diagramTitle}
+          {t('agentSimulation.panel.header', { title: diagramTitle })}
         </h1>
 
         {status === 'starting' && (
@@ -96,8 +98,8 @@ export const AgentSimulationPanel: React.FC<AgentSimulationPanelProps> = ({ open
           size="sm"
           className="size-8 p-0"
           onClick={handleStop}
-          title="Stop simulation"
-          aria-label="Stop simulation"
+          title={t('agentSimulation.panel.stop')}
+          aria-label={t('agentSimulation.panel.stop')}
         >
           <X className="size-4" />
         </Button>
@@ -108,7 +110,7 @@ export const AgentSimulationPanel: React.FC<AgentSimulationPanelProps> = ({ open
         <div className="flex shrink-0 items-start gap-2.5 border-b border-red-200/60 bg-red-50/80 px-4 py-3 dark:border-red-800/40 dark:bg-red-950/30">
           <AlertCircle className="mt-0.5 size-4 shrink-0 text-red-600 dark:text-red-400" />
           <div className="flex min-w-0 flex-1 flex-col gap-1">
-            <span className="text-sm font-medium text-red-800 dark:text-red-200">Simulation error</span>
+            <span className="text-sm font-medium text-red-800 dark:text-red-200">{t('agentSimulation.panel.errorTitle')}</span>
             <span className="text-xs text-red-700 dark:text-red-300">{error}</span>
           </div>
           <Button
@@ -117,7 +119,7 @@ export const AgentSimulationPanel: React.FC<AgentSimulationPanelProps> = ({ open
             className="shrink-0 border-red-300 text-red-700 hover:bg-red-100 dark:border-red-700 dark:text-red-400"
             onClick={handleStop}
           >
-            Close
+            {t('common.close')}
           </Button>
         </div>
       )}
@@ -138,7 +140,7 @@ export const AgentSimulationPanel: React.FC<AgentSimulationPanelProps> = ({ open
               onClick={() => setLeftTab('diagram')}
             >
               <Bot className="size-3.5" />
-              Diagram
+              {t('agentSimulation.panel.tabDiagram')}
             </button>
             <button
               className={[
@@ -150,21 +152,21 @@ export const AgentSimulationPanel: React.FC<AgentSimulationPanelProps> = ({ open
               onClick={() => setLeftTab('code')}
             >
               <Folder className="size-3.5" />
-              Source
+              {t('agentSimulation.panel.tabSource')}
             </button>
 
             {/* Right side: Reset button + status badges */}
             <div className="ml-auto flex items-center gap-2 py-1">
               {lastTransition && (
                 <div className="flex items-center gap-1.5 rounded-lg border border-border/50 bg-card px-3 py-1 shadow-sm">
-                  <span className="text-xs text-muted-foreground">Last transition:</span>
+                  <span className="text-xs text-muted-foreground">{t('agentSimulation.panel.lastTransition')}</span>
                   <span className="text-xs font-medium">{lastTransition}</span>
                 </div>
               )}
               {!currentState && !lastTransition && status === 'starting' && (
                 <div className="flex items-center gap-2 text-xs text-muted-foreground">
                   <Loader2 className="size-3.5 animate-spin" />
-                  Starting simulation…
+                  {t('agentSimulation.panel.starting')}
                 </div>
               )}
               <Button
@@ -172,10 +174,10 @@ export const AgentSimulationPanel: React.FC<AgentSimulationPanelProps> = ({ open
                 size="sm"
                 className="h-7 gap-1.5 px-2 text-xs text-muted-foreground hover:text-foreground"
                 onClick={handleReset}
-                title="Restart simulation"
+                title={t('agentSimulation.panel.restart')}
               >
                 <RotateCcw className="size-3.5" />
-                Reset
+                {t('agentSimulation.panel.reset')}
               </Button>
             </div>
           </div>
@@ -194,7 +196,7 @@ export const AgentSimulationPanel: React.FC<AgentSimulationPanelProps> = ({ open
         <div
           className="group relative flex w-1.5 shrink-0 cursor-col-resize items-center justify-center bg-border/30 transition-colors hover:bg-primary/40 active:bg-primary/60"
           onMouseDown={handleDragStart}
-          title="Drag to resize"
+          title={t('agentSimulation.panel.dragToResize')}
         >
           {/* Visual grip dots */}
           <div className="flex flex-col gap-1 opacity-0 transition-opacity group-hover:opacity-60">
@@ -213,7 +215,7 @@ export const AgentSimulationPanel: React.FC<AgentSimulationPanelProps> = ({ open
           {(status === 'starting' || (status === 'running' && stdoutLines.length === 0)) && (
             <div className="flex shrink-0 items-center justify-center gap-2 border-y border-border/50 bg-muted/40 px-4 py-2.5 text-sm text-muted-foreground">
               <Loader2 className="size-4 shrink-0 animate-spin" />
-              The agent is loading, please wait.
+              {t('agentSimulation.panel.loading')}
             </div>
           )}
           <TerminalPane

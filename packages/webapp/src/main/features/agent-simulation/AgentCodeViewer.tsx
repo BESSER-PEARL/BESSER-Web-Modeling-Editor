@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Check, Code2, Copy } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
@@ -55,6 +56,7 @@ function useHighlightedTokens(code: string | null) {
 // ---------------------------------------------------------------------------
 
 function CopyCodeButton({ code }: { code: string }) {
+  const { t } = useTranslation();
   const [copied, setCopied] = useState(false);
 
   const handleCopy = useCallback(() => {
@@ -70,8 +72,8 @@ function CopyCodeButton({ code }: { code: string }) {
       size="icon"
       className="size-7 shrink-0 text-muted-foreground hover:text-foreground"
       onClick={handleCopy}
-      title="Copy code"
-      aria-label="Copy generated agent code"
+      title={t('agentSimulation.codeViewer.copyTitle')}
+      aria-label={t('agentSimulation.codeViewer.copyLabel')}
     >
       {copied ? <Check className="size-3.5 text-green-500" /> : <Copy className="size-3.5" />}
     </Button>
@@ -126,13 +128,14 @@ function HighlightedCode({ code }: { code: string }) {
 // ---------------------------------------------------------------------------
 
 export const AgentCodeViewer: React.FC<AgentCodeViewerProps> = ({ code }) => {
+  const { t } = useTranslation();
   if (!code) {
     return (
       <div className="flex flex-1 flex-col items-center justify-center gap-3 text-center">
         <Code2 className="size-10 text-muted-foreground/25" />
-        <p className="text-sm font-medium text-muted-foreground">Generated code will appear here</p>
+        <p className="text-sm font-medium text-muted-foreground">{t('agentSimulation.codeViewer.emptyTitle')}</p>
         <p className="text-xs text-muted-foreground/60">
-          Run the validation step to preview the agent code.
+          {t('agentSimulation.codeViewer.emptyDescription')}
         </p>
       </div>
     );
@@ -143,7 +146,7 @@ export const AgentCodeViewer: React.FC<AgentCodeViewerProps> = ({ code }) => {
       {/* Header */}
       <div className="flex shrink-0 items-center gap-2 border-b border-border/40 bg-muted/30 px-3 py-1.5">
         <Code2 className="size-3.5 shrink-0 text-muted-foreground" />
-        <span className="flex-1 text-xs font-medium text-muted-foreground">Generated Agent Code</span>
+        <span className="flex-1 text-xs font-medium text-muted-foreground">{t('agentSimulation.codeViewer.header')}</span>
         <CopyCodeButton code={code} />
       </div>
 

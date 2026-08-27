@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useTranslation, Trans } from 'react-i18next';
 import { cn } from '@/lib/utils';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -103,11 +104,12 @@ function TextField({ id, label, description, value, onChange, placeholder }: {
 function BoolField({ id, label, description, value, onChange }: {
   id: string; label: string; description?: string; value: boolean; onChange: (v: boolean) => void;
 }) {
+  const { t } = useTranslation();
   return (
     <Field id={id} label={label} description={description}>
       <div className="flex items-center gap-2">
         <Toggle value={value} onChange={onChange} />
-        <span className="text-xs text-muted-foreground">{value ? 'True' : 'False'}</span>
+        <span className="text-xs text-muted-foreground">{value ? t('agentConfig.runtime.boolTrue') : t('agentConfig.runtime.boolFalse')}</span>
       </div>
     </Field>
   );
@@ -120,14 +122,15 @@ function DbFields({
   value: AgentConfigFormData['db']['monitoring'];
   onChange: (v: Partial<AgentConfigFormData['db']['monitoring']>) => void;
 }) {
+  const { t } = useTranslation();
   return (
     <div className="grid grid-cols-2 gap-3">
-      <TextField id={`${prefix}-dialect`} label="dialect" value={value.dialect} onChange={v => onChange({ dialect: v })} description="Database system identifier (e.g. postgresql)" />
-      <TextField id={`${prefix}-host`} label="host" value={value.host} onChange={v => onChange({ host: v })} description="Database server address" />
-      <TextField id={`${prefix}-port`} label="port" value={value.port} onChange={v => onChange({ port: v })} description="Database connection port" />
-      <TextField id={`${prefix}-database`} label="database" value={value.database} onChange={v => onChange({ database: v })} description="Database name" />
-      <TextField id={`${prefix}-username`} label="username" value={value.username} onChange={v => onChange({ username: v })} description="Database user credentials" />
-      <TextField id={`${prefix}-password`} label="password" value={value.password} onChange={v => onChange({ password: v })} description="Database authentication password" />
+      <TextField id={`${prefix}-dialect`} label="dialect" value={value.dialect} onChange={v => onChange({ dialect: v })} description={t('agentConfig.runtime.field.db.dialectDesc')} />
+      <TextField id={`${prefix}-host`} label="host" value={value.host} onChange={v => onChange({ host: v })} description={t('agentConfig.runtime.field.db.hostDesc')} />
+      <TextField id={`${prefix}-port`} label="port" value={value.port} onChange={v => onChange({ port: v })} description={t('agentConfig.runtime.field.db.portDesc')} />
+      <TextField id={`${prefix}-database`} label="database" value={value.database} onChange={v => onChange({ database: v })} description={t('agentConfig.runtime.field.db.databaseDesc')} />
+      <TextField id={`${prefix}-username`} label="username" value={value.username} onChange={v => onChange({ username: v })} description={t('agentConfig.runtime.field.db.usernameDesc')} />
+      <TextField id={`${prefix}-password`} label="password" value={value.password} onChange={v => onChange({ password: v })} description={t('agentConfig.runtime.field.db.passwordDesc')} />
     </div>
   );
 }
@@ -151,6 +154,7 @@ export function AgentRuntimePanel({
   updateAgentRuntimeConfig,
   agentLLMElements,
 }: AgentRuntimePanelProps) {
+  const { t } = useTranslation();
   const [activeSection, setActiveSection] = useState<RuntimeSection>('runtime');
 
   // ── Form state (mirrors AgentConfigYamlEditor) ───────────
@@ -300,11 +304,11 @@ export function AgentRuntimePanel({
   const platformItems: Array<{
     key: RuntimeSection; label: string; enabled: boolean; onToggle: (v: boolean) => void;
   }> = [
-    { key: 'config-platform-websocket', label: 'WebSocket', enabled: form.platforms.websocket.enabled, onToggle: v => setWs({ enabled: v }) },
-    { key: 'config-platform-telegram', label: 'Telegram', enabled: form.platforms.telegram.enabled, onToggle: v => setTelegram({ enabled: v }) },
-    { key: 'config-platform-github', label: 'GitHub', enabled: form.platforms.github.enabled, onToggle: v => setGithub({ enabled: v }) },
-    { key: 'config-platform-gitlab', label: 'GitLab', enabled: form.platforms.gitlab.enabled, onToggle: v => setGitlab({ enabled: v }) },
-    { key: 'config-platform-a2a', label: 'A2A', enabled: form.platforms.a2a.enabled, onToggle: v => setA2a({ enabled: v }) },
+    { key: 'config-platform-websocket', label: t('agentConfig.runtime.section.websocket.title'), enabled: form.platforms.websocket.enabled, onToggle: v => setWs({ enabled: v }) },
+    { key: 'config-platform-telegram', label: t('agentConfig.runtime.section.telegram.title'), enabled: form.platforms.telegram.enabled, onToggle: v => setTelegram({ enabled: v }) },
+    { key: 'config-platform-github', label: t('agentConfig.runtime.section.github.title'), enabled: form.platforms.github.enabled, onToggle: v => setGithub({ enabled: v }) },
+    { key: 'config-platform-gitlab', label: t('agentConfig.runtime.section.gitlab.title'), enabled: form.platforms.gitlab.enabled, onToggle: v => setGitlab({ enabled: v }) },
+    { key: 'config-platform-a2a', label: t('agentConfig.runtime.section.a2a.title'), enabled: form.platforms.a2a.enabled, onToggle: v => setA2a({ enabled: v }) },
   ];
 
   function navBtn(key: RuntimeSection, label: string) {
@@ -334,21 +338,21 @@ export function AgentRuntimePanel({
       <nav className="w-56 shrink-0 border-r border-border py-3">
 
         <p className="px-4 pb-1.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-          Settings
+          {t('agentConfig.runtime.sidebarSettings')}
         </p>
 
-        {navBtn('runtime', 'Agent Runtime')}
+        {navBtn('runtime', t('agentConfig.runtime.title'))}
 
         <div className="mt-4">
           <p className="px-4 pb-1.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-            Config File
+            {t('agentConfig.runtime.sidebarConfigFile')}
           </p>
 
-          {navBtn('config-agent', 'Agent')}
-          {navBtn('config-nlp', 'NLP')}
+          {navBtn('config-agent', t('agentConfig.yamlEditor.section.agent'))}
+          {navBtn('config-nlp', t('agentConfig.yamlEditor.section.nlp'))}
 
           <p className="px-4 pb-1 pt-2 text-[10px] font-medium uppercase tracking-wide text-muted-foreground/70">
-            Platforms
+            {t('agentConfig.runtime.sidebarPlatforms')}
           </p>
 
           {platformItems.map(p => (
@@ -371,9 +375,9 @@ export function AgentRuntimePanel({
             </div>
           ))}
 
-          {navBtn('config-database', 'Database')}
-          {navBtn('config-custom', 'Custom YAML')}
-          {navBtn('config-raw', 'Raw YAML')}
+          {navBtn('config-database', t('agentConfig.runtime.section.database.title'))}
+          {navBtn('config-custom', t('agentConfig.runtime.section.custom.title'))}
+          {navBtn('config-raw', t('agentConfig.yamlEditor.tab.raw'))}
         </div>
       </nav>
 
@@ -385,13 +389,13 @@ export function AgentRuntimePanel({
           {activeSection === 'runtime' && (
             <>
               <SectionHeader
-                title="Agent Runtime"
-                description="Runtime settings for the active agent diagram. Persisted on the diagram itself, not in global storage."
+                title={t('agentConfig.runtime.title')}
+                description={t('agentConfig.runtime.section.runtime.desc')}
               />
               <div className="space-y-4">
                 <div className="grid gap-4 md:grid-cols-2">
                   <div className="space-y-1.5">
-                    <Label htmlFor="arp-platform">Platform</Label>
+                    <Label htmlFor="arp-platform">{t('agentConfig.runtime.platform')}</Label>
                     <select
                       id="arp-platform"
                       className="h-9 w-full rounded-md border border-input bg-background px-3 py-2 text-sm transition-colors hover:border-brand/30 focus:border-brand/40 focus:outline-none focus:ring-2 focus:ring-brand/20"
@@ -401,8 +405,8 @@ export function AgentRuntimePanel({
                         agentPlatformUseStreamlit: e.target.value !== 'websocket' ? false : agentRuntimeConfig.agentPlatformUseStreamlit,
                       })}
                     >
-                      <option value="websocket">WebSocket</option>
-                      <option value="telegram">Telegram</option>
+                      <option value="websocket">{t('agentConfig.runtime.platformWebSocket')}</option>
+                      <option value="telegram">{t('agentConfig.runtime.platformTelegram')}</option>
                     </select>
                     {agentRuntimeConfig.agentPlatform === 'websocket' && (
                       <label className="flex items-center gap-2 text-sm cursor-pointer pt-1">
@@ -411,13 +415,13 @@ export function AgentRuntimePanel({
                           checked={agentRuntimeConfig.agentPlatformUseStreamlit ?? false}
                           onChange={e => updateAgentRuntimeConfig({ agentPlatformUseStreamlit: e.target.checked })}
                         />
-                        Use Streamlit UI
+                        {t('agentConfig.runtime.useStreamlitUi')}
                       </label>
                     )}
                   </div>
 
                   <div className="space-y-1.5">
-                    <Label htmlFor="arp-intent">Intent Recognition</Label>
+                    <Label htmlFor="arp-intent">{t('agentConfig.runtime.intent')}</Label>
                     <select
                       id="arp-intent"
                       className="h-9 w-full rounded-md border border-input bg-background px-3 py-2 text-sm transition-colors hover:border-brand/30 focus:border-brand/40 focus:outline-none focus:ring-2 focus:ring-brand/20"
@@ -426,30 +430,30 @@ export function AgentRuntimePanel({
                         intentRecognitionTechnology: e.target.value as IntentRecognitionTechnology,
                       })}
                     >
-                      <option value="classical">Classical</option>
-                      <option value="llm-based">LLM-based</option>
+                      <option value="classical">{t('agentConfig.runtime.intentClassical')}</option>
+                      <option value="llm-based">{t('agentConfig.runtime.intentLlmBased')}</option>
                     </select>
                   </div>
 
                   {agentRuntimeConfig.intentRecognitionTechnology === 'llm-based' && (
                     <div className="space-y-1.5">
-                      <Label htmlFor="arp-llm">LLM</Label>
+                      <Label htmlFor="arp-llm">{t('agentConfig.runtime.llm')}</Label>
                       <select
                         id="arp-llm"
                         className="h-9 w-full rounded-md border border-input bg-background px-3 py-2 text-sm transition-colors hover:border-brand/30 focus:border-brand/40 focus:outline-none focus:ring-2 focus:ring-brand/20"
                         value={agentRuntimeConfig.agentLlmName}
                         onChange={e => updateAgentRuntimeConfig({ agentLlmName: e.target.value })}
                       >
-                        <option value="">(use default)</option>
+                        <option value="">{t('agentConfig.runtime.useDefault')}</option>
                         {agentLLMElements.map(entry => (
                           <option key={entry.id} value={entry.name}>
-                            {entry.name || '(unnamed LLM)'}
+                            {entry.name || t('agentConfig.row.unnamedLlm')}
                           </option>
                         ))}
                       </select>
                       {agentLLMElements.length === 0 && (
                         <p className="text-xs text-muted-foreground">
-                          Define LLMs in the <strong>Agent Components</strong> page.
+                          <Trans i18nKey="agentConfig.runtime.defineLlmsHint" components={{ strong: <strong /> }} />
                         </p>
                       )}
                     </div>
@@ -462,13 +466,13 @@ export function AgentRuntimePanel({
           {/* Agent config */}
           {activeSection === 'config-agent' && (
             <>
-              <SectionHeader title="Agent" description="Core agent execution settings." />
+              <SectionHeader title={t('agentConfig.yamlEditor.section.agent')} description={t('agentConfig.runtime.section.agent.desc')} />
               <TextField
                 id="cfg-agent-ctd"
                 label="check_transitions_delay"
                 value={form.agent.check_transitions_delay}
                 onChange={v => setAgent({ check_transitions_delay: v })}
-                description="Delay in seconds between each transition evaluation cycle."
+                description={t('agentConfig.runtime.field.agent.checkTransitionsDelayDesc')}
               />
             </>
           )}
@@ -476,20 +480,20 @@ export function AgentRuntimePanel({
           {/* NLP config */}
           {activeSection === 'config-nlp' && (
             <>
-              <SectionHeader title="NLP" description="Natural language processing settings for intent recognition." />
+              <SectionHeader title={t('agentConfig.yamlEditor.section.nlp')} description={t('agentConfig.runtime.section.nlp.desc')} />
               <div className="space-y-3">
                 <div className="grid grid-cols-2 gap-3">
-                  <TextField id="cfg-nlp-lang" label="language" value={form.nlp.language} onChange={v => setNlp({ language: v })} description="Expected user language (ISO 639-1)." />
-                  <TextField id="cfg-nlp-region" label="region" value={form.nlp.region} onChange={v => setNlp({ region: v })} description="Language region (ISO 3166-1 alpha-2)." />
-                  <TextField id="cfg-nlp-tz" label="timezone" value={form.nlp.timezone} onChange={v => setNlp({ timezone: v })} description="Timezone for datetime operations." />
-                  <TextField id="cfg-nlp-thresh" label="intent_threshold" value={form.nlp.intent_threshold} onChange={v => setNlp({ intent_threshold: v })} description="Confidence threshold for intent predictions." />
+                  <TextField id="cfg-nlp-lang" label="language" value={form.nlp.language} onChange={v => setNlp({ language: v })} description={t('agentConfig.runtime.field.nlp.languageDesc')} />
+                  <TextField id="cfg-nlp-region" label="region" value={form.nlp.region} onChange={v => setNlp({ region: v })} description={t('agentConfig.runtime.field.nlp.regionDesc')} />
+                  <TextField id="cfg-nlp-tz" label="timezone" value={form.nlp.timezone} onChange={v => setNlp({ timezone: v })} description={t('agentConfig.runtime.field.nlp.timezoneDesc')} />
+                  <TextField id="cfg-nlp-thresh" label="intent_threshold" value={form.nlp.intent_threshold} onChange={v => setNlp({ intent_threshold: v })} description={t('agentConfig.runtime.field.nlp.intentThresholdDesc')} />
                 </div>
-                <BoolField id="cfg-nlp-prep" label="pre_processing" value={form.nlp.pre_processing} onChange={v => setNlp({ pre_processing: v })} description="Enables stemming to reduce words to base forms." />
+                <BoolField id="cfg-nlp-prep" label="pre_processing" value={form.nlp.pre_processing} onChange={v => setNlp({ pre_processing: v })} description={t('agentConfig.runtime.field.nlp.preProcessingDesc')} />
                 <div className="rounded-md border border-border p-3 space-y-3">
-                  <p className="text-xs font-medium text-muted-foreground">API Keys</p>
-                  <TextField id="cfg-nlp-hf-token" label="HuggingFace token" value={form.nlp.huggingface_token} onChange={v => setNlp({ huggingface_token: v })} description="API key for HuggingFace Inference API." />
-                  <TextField id="cfg-nlp-oai-key" label="OpenAI api_key" value={form.nlp.openai_api_key} onChange={v => setNlp({ openai_api_key: v })} description="OpenAI API key for LLM access." />
-                  <TextField id="cfg-nlp-rep-key" label="Replicate api_key" value={form.nlp.replicate_api_key} onChange={v => setNlp({ replicate_api_key: v })} description="Replicate API key for model inference." />
+                  <p className="text-xs font-medium text-muted-foreground">{t('agentConfig.runtime.apiKeys')}</p>
+                  <TextField id="cfg-nlp-hf-token" label="HuggingFace token" value={form.nlp.huggingface_token} onChange={v => setNlp({ huggingface_token: v })} description={t('agentConfig.runtime.field.nlp.huggingfaceTokenDesc')} />
+                  <TextField id="cfg-nlp-oai-key" label="OpenAI api_key" value={form.nlp.openai_api_key} onChange={v => setNlp({ openai_api_key: v })} description={t('agentConfig.runtime.field.nlp.openaiApiKeyDesc')} />
+                  <TextField id="cfg-nlp-rep-key" label="Replicate api_key" value={form.nlp.replicate_api_key} onChange={v => setNlp({ replicate_api_key: v })} description={t('agentConfig.runtime.field.nlp.replicateApiKeyDesc')} />
                 </div>
               </div>
             </>
@@ -498,33 +502,33 @@ export function AgentRuntimePanel({
           {/* WebSocket platform */}
           {activeSection === 'config-platform-websocket' && (
             <>
-              <SectionHeader title="WebSocket" description="WebSocket server and Streamlit UI configuration." />
+              <SectionHeader title={t('agentConfig.runtime.section.websocket.title')} description={t('agentConfig.runtime.section.websocket.desc')} />
               <div className="space-y-3">
                 <div className="flex items-center gap-3">
-                  <Label className="text-xs font-medium">Enabled</Label>
+                  <Label className="text-xs font-medium">{t('agentConfig.runtime.enabled')}</Label>
                   <Toggle value={form.platforms.websocket.enabled} onChange={v => setWs({ enabled: v })} />
                 </div>
                 {form.platforms.websocket.enabled && (
                   <>
                     <div className="grid grid-cols-2 gap-3">
-                      <TextField id="cfg-ws-host" label="host" value={form.platforms.websocket.host} onChange={v => setWs({ host: v })} description="Server address for WebSocket connections." />
-                      <TextField id="cfg-ws-port" label="port" value={form.platforms.websocket.port} onChange={v => setWs({ port: v })} description="Port number for WebSocket server." />
+                      <TextField id="cfg-ws-host" label="host" value={form.platforms.websocket.host} onChange={v => setWs({ host: v })} description={t('agentConfig.runtime.field.websocket.hostDesc')} />
+                      <TextField id="cfg-ws-port" label="port" value={form.platforms.websocket.port} onChange={v => setWs({ port: v })} description={t('agentConfig.runtime.field.websocket.portDesc')} />
                     </div>
                     <div className="rounded-md border border-border p-3 space-y-3">
-                      <p className="text-xs font-medium text-muted-foreground">Streamlit</p>
+                      <p className="text-xs font-medium text-muted-foreground">{t('agentConfig.runtime.subsectionStreamlit')}</p>
                       <div className="grid grid-cols-2 gap-3">
-                        <TextField id="cfg-ws-st-host" label="host" value={form.platforms.websocket.streamlit_host} onChange={v => setWs({ streamlit_host: v })} description="Host address for Streamlit UI." />
-                        <TextField id="cfg-ws-st-port" label="port" value={form.platforms.websocket.streamlit_port} onChange={v => setWs({ streamlit_port: v })} description="Port for Streamlit UI." />
+                        <TextField id="cfg-ws-st-host" label="host" value={form.platforms.websocket.streamlit_host} onChange={v => setWs({ streamlit_host: v })} description={t('agentConfig.runtime.field.websocket.streamlitHostDesc')} />
+                        <TextField id="cfg-ws-st-port" label="port" value={form.platforms.websocket.streamlit_port} onChange={v => setWs({ streamlit_port: v })} description={t('agentConfig.runtime.field.websocket.streamlitPortDesc')} />
                       </div>
                       <div className="rounded-md border border-border/60 p-3 space-y-3">
-                        <p className="text-xs font-medium text-muted-foreground">Chat</p>
+                        <p className="text-xs font-medium text-muted-foreground">{t('agentConfig.runtime.subsectionChat')}</p>
                         <div className="grid grid-cols-2 gap-3">
-                          <TextField id="cfg-ws-chat-size" label="size" value={form.platforms.websocket.chat_size} onChange={v => setWs({ chat_size: v })} description="Default font size for chat." />
-                          <TextField id="cfg-ws-chat-font" label="font" value={form.platforms.websocket.chat_font} onChange={v => setWs({ chat_font: v })} description="Font family for chat text." />
-                          <TextField id="cfg-ws-chat-ls" label="line_spacing" value={form.platforms.websocket.chat_line_spacing} onChange={v => setWs({ chat_line_spacing: v })} description="Line height multiplier." />
-                          <TextField id="cfg-ws-chat-align" label="alignment" value={form.platforms.websocket.chat_alignment} onChange={v => setWs({ chat_alignment: v })} description="Horizontal text alignment." />
-                          <TextField id="cfg-ws-chat-color" label="color" value={form.platforms.websocket.chat_color} onChange={v => setWs({ chat_color: v })} description="Text color setting." />
-                          <TextField id="cfg-ws-chat-contrast" label="contrast" value={form.platforms.websocket.chat_contrast} onChange={v => setWs({ chat_contrast: v })} description="Contrast level for readability." />
+                          <TextField id="cfg-ws-chat-size" label="size" value={form.platforms.websocket.chat_size} onChange={v => setWs({ chat_size: v })} description={t('agentConfig.runtime.field.websocket.chatSizeDesc')} />
+                          <TextField id="cfg-ws-chat-font" label="font" value={form.platforms.websocket.chat_font} onChange={v => setWs({ chat_font: v })} description={t('agentConfig.runtime.field.websocket.chatFontDesc')} />
+                          <TextField id="cfg-ws-chat-ls" label="line_spacing" value={form.platforms.websocket.chat_line_spacing} onChange={v => setWs({ chat_line_spacing: v })} description={t('agentConfig.runtime.field.websocket.chatLineSpacingDesc')} />
+                          <TextField id="cfg-ws-chat-align" label="alignment" value={form.platforms.websocket.chat_alignment} onChange={v => setWs({ chat_alignment: v })} description={t('agentConfig.runtime.field.websocket.chatAlignmentDesc')} />
+                          <TextField id="cfg-ws-chat-color" label="color" value={form.platforms.websocket.chat_color} onChange={v => setWs({ chat_color: v })} description={t('agentConfig.runtime.field.websocket.chatColorDesc')} />
+                          <TextField id="cfg-ws-chat-contrast" label="contrast" value={form.platforms.websocket.chat_contrast} onChange={v => setWs({ chat_contrast: v })} description={t('agentConfig.runtime.field.websocket.chatContrastDesc')} />
                         </div>
                       </div>
                     </div>
@@ -537,14 +541,14 @@ export function AgentRuntimePanel({
           {/* Telegram platform */}
           {activeSection === 'config-platform-telegram' && (
             <>
-              <SectionHeader title="Telegram" description="Telegram bot integration settings." />
+              <SectionHeader title={t('agentConfig.runtime.section.telegram.title')} description={t('agentConfig.runtime.section.telegram.desc')} />
               <div className="space-y-3">
                 <div className="flex items-center gap-3">
-                  <Label className="text-xs font-medium">Enabled</Label>
+                  <Label className="text-xs font-medium">{t('agentConfig.runtime.enabled')}</Label>
                   <Toggle value={form.platforms.telegram.enabled} onChange={v => setTelegram({ enabled: v })} />
                 </div>
                 {form.platforms.telegram.enabled && (
-                  <TextField id="cfg-tg-token" label="token" value={form.platforms.telegram.token} onChange={v => setTelegram({ token: v })} description="Bot authentication token for Telegram API." />
+                  <TextField id="cfg-tg-token" label="token" value={form.platforms.telegram.token} onChange={v => setTelegram({ token: v })} description={t('agentConfig.runtime.field.telegram.tokenDesc')} />
                 )}
               </div>
             </>
@@ -553,17 +557,17 @@ export function AgentRuntimePanel({
           {/* GitHub platform */}
           {activeSection === 'config-platform-github' && (
             <>
-              <SectionHeader title="GitHub" description="GitHub webhook integration settings." />
+              <SectionHeader title={t('agentConfig.runtime.section.github.title')} description={t('agentConfig.runtime.section.github.desc')} />
               <div className="space-y-3">
                 <div className="flex items-center gap-3">
-                  <Label className="text-xs font-medium">Enabled</Label>
+                  <Label className="text-xs font-medium">{t('agentConfig.runtime.enabled')}</Label>
                   <Toggle value={form.platforms.github.enabled} onChange={v => setGithub({ enabled: v })} />
                 </div>
                 {form.platforms.github.enabled && (
                   <div className="grid grid-cols-2 gap-3">
-                    <TextField id="cfg-gh-pt" label="personal_token" value={form.platforms.github.personal_token} onChange={v => setGithub({ personal_token: v })} description="Personal Access Token for GitHub API." />
-                    <TextField id="cfg-gh-wt" label="webhook_token" value={form.platforms.github.webhook_token} onChange={v => setGithub({ webhook_token: v })} description="Secret token for webhook verification." />
-                    <TextField id="cfg-gh-wp" label="webhook_port" value={form.platforms.github.webhook_port} onChange={v => setGithub({ webhook_port: v })} description="Local server port exposed to GitHub." />
+                    <TextField id="cfg-gh-pt" label="personal_token" value={form.platforms.github.personal_token} onChange={v => setGithub({ personal_token: v })} description={t('agentConfig.runtime.field.github.personalTokenDesc')} />
+                    <TextField id="cfg-gh-wt" label="webhook_token" value={form.platforms.github.webhook_token} onChange={v => setGithub({ webhook_token: v })} description={t('agentConfig.runtime.field.github.webhookTokenDesc')} />
+                    <TextField id="cfg-gh-wp" label="webhook_port" value={form.platforms.github.webhook_port} onChange={v => setGithub({ webhook_port: v })} description={t('agentConfig.runtime.field.github.webhookPortDesc')} />
                   </div>
                 )}
               </div>
@@ -573,17 +577,17 @@ export function AgentRuntimePanel({
           {/* GitLab platform */}
           {activeSection === 'config-platform-gitlab' && (
             <>
-              <SectionHeader title="GitLab" description="GitLab webhook integration settings." />
+              <SectionHeader title={t('agentConfig.runtime.section.gitlab.title')} description={t('agentConfig.runtime.section.gitlab.desc')} />
               <div className="space-y-3">
                 <div className="flex items-center gap-3">
-                  <Label className="text-xs font-medium">Enabled</Label>
+                  <Label className="text-xs font-medium">{t('agentConfig.runtime.enabled')}</Label>
                   <Toggle value={form.platforms.gitlab.enabled} onChange={v => setGitlab({ enabled: v })} />
                 </div>
                 {form.platforms.gitlab.enabled && (
                   <div className="grid grid-cols-2 gap-3">
-                    <TextField id="cfg-gl-pt" label="personal_token" value={form.platforms.gitlab.personal_token} onChange={v => setGitlab({ personal_token: v })} description="Personal Access Token for GitLab API." />
-                    <TextField id="cfg-gl-wt" label="webhook_token" value={form.platforms.gitlab.webhook_token} onChange={v => setGitlab({ webhook_token: v })} description="Secret token for webhook verification." />
-                    <TextField id="cfg-gl-wp" label="webhook_port" value={form.platforms.gitlab.webhook_port} onChange={v => setGitlab({ webhook_port: v })} description="Local server port exposed to GitLab." />
+                    <TextField id="cfg-gl-pt" label="personal_token" value={form.platforms.gitlab.personal_token} onChange={v => setGitlab({ personal_token: v })} description={t('agentConfig.runtime.field.gitlab.personalTokenDesc')} />
+                    <TextField id="cfg-gl-wt" label="webhook_token" value={form.platforms.gitlab.webhook_token} onChange={v => setGitlab({ webhook_token: v })} description={t('agentConfig.runtime.field.gitlab.webhookTokenDesc')} />
+                    <TextField id="cfg-gl-wp" label="webhook_port" value={form.platforms.gitlab.webhook_port} onChange={v => setGitlab({ webhook_port: v })} description={t('agentConfig.runtime.field.gitlab.webhookPortDesc')} />
                   </div>
                 )}
               </div>
@@ -593,14 +597,14 @@ export function AgentRuntimePanel({
           {/* A2A platform */}
           {activeSection === 'config-platform-a2a' && (
             <>
-              <SectionHeader title="A2A" description="Agent-to-agent communication settings." />
+              <SectionHeader title={t('agentConfig.runtime.section.a2a.title')} description={t('agentConfig.runtime.section.a2a.desc')} />
               <div className="space-y-3">
                 <div className="flex items-center gap-3">
-                  <Label className="text-xs font-medium">Enabled</Label>
+                  <Label className="text-xs font-medium">{t('agentConfig.runtime.enabled')}</Label>
                   <Toggle value={form.platforms.a2a.enabled} onChange={v => setA2a({ enabled: v })} />
                 </div>
                 {form.platforms.a2a.enabled && (
-                  <TextField id="cfg-a2a-port" label="port" value={form.platforms.a2a.port} onChange={v => setA2a({ port: v })} description="Local port for inter-agent communication." />
+                  <TextField id="cfg-a2a-port" label="port" value={form.platforms.a2a.port} onChange={v => setA2a({ port: v })} description={t('agentConfig.runtime.field.a2a.portDesc')} />
                 )}
               </div>
             </>
@@ -609,11 +613,11 @@ export function AgentRuntimePanel({
           {/* Database */}
           {activeSection === 'config-database' && (
             <>
-              <SectionHeader title="Database" description="Database connections for monitoring and Streamlit." />
+              <SectionHeader title={t('agentConfig.runtime.section.database.title')} description={t('agentConfig.runtime.section.database.desc')} />
               <div className="space-y-4">
                 <div className="rounded-md border border-border p-4 space-y-3">
                   <div className="flex items-center justify-between">
-                    <p className="text-sm font-medium">Monitoring</p>
+                    <p className="text-sm font-medium">{t('agentConfig.runtime.subsectionMonitoring')}</p>
                     <Toggle value={form.db.monitoring.enabled} onChange={v => setMonitoring({ enabled: v })} />
                   </div>
                   {form.db.monitoring.enabled && (
@@ -622,7 +626,7 @@ export function AgentRuntimePanel({
                 </div>
                 <div className="rounded-md border border-border p-4 space-y-3">
                   <div className="flex items-center justify-between">
-                    <p className="text-sm font-medium">Streamlit</p>
+                    <p className="text-sm font-medium">{t('agentConfig.runtime.subsectionStreamlit')}</p>
                     <Toggle value={form.db.streamlit_db.enabled} onChange={v => setStreamlitDb({ enabled: v })} />
                   </div>
                   {form.db.streamlit_db.enabled && (
@@ -637,13 +641,13 @@ export function AgentRuntimePanel({
           {activeSection === 'config-custom' && (
             <>
               <SectionHeader
-                title="Custom YAML"
-                description="Additional YAML properties appended at the end of the generated config.yaml."
+                title={t('agentConfig.runtime.section.custom.title')}
+                description={t('agentConfig.runtime.section.custom.desc')}
               />
               <div className="space-y-2">
                 {customYamlError && (
                   <div className="rounded-md border border-destructive/50 bg-destructive/10 px-3 py-2 text-sm text-destructive">
-                    <span className="font-semibold">YAML syntax error:</span> {customYamlError}
+                    <span className="font-semibold">{t('agentConfig.yamlEditor.syntaxError')}</span> {customYamlError}
                   </div>
                 )}
                 <div
@@ -658,8 +662,8 @@ export function AgentRuntimePanel({
           {activeSection === 'config-raw' && (
             <>
               <SectionHeader
-                title="Raw YAML"
-                description="Read-only view of the full generated config.yaml. Edit individual sections or add custom YAML."
+                title={t('agentConfig.yamlEditor.tab.raw')}
+                description={t('agentConfig.runtime.section.raw.desc')}
               />
               <div
                 ref={rawCmContainerRef}

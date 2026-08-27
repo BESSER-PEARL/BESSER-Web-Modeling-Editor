@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   Check,
   ChevronRight,
@@ -158,6 +159,7 @@ function useHighlightedTokens(content: string, lang: string) {
 // ---------------------------------------------------------------------------
 
 function CopyButton({ content }: { content: string }) {
+  const { t } = useTranslation();
   const [copied, setCopied] = useState(false);
   const handleCopy = useCallback(() => {
     void navigator.clipboard.writeText(content).then(() => {
@@ -171,7 +173,7 @@ function CopyButton({ content }: { content: string }) {
       size="icon"
       className="size-7 shrink-0 text-muted-foreground hover:text-foreground"
       onClick={handleCopy}
-      title="Copy file content"
+      title={t('agentSimulation.fileExplorer.copy')}
     >
       {copied ? <Check className="size-3.5 text-green-500" /> : <Copy className="size-3.5" />}
     </Button>
@@ -289,6 +291,7 @@ function TreeItem({
 // ---------------------------------------------------------------------------
 
 export const AgentFileExplorer: React.FC = () => {
+  const { t } = useTranslation();
   const sessionId = useAppSelector(selectSessionId);
 
   const [files, setFiles] = useState<SessionFile[]>([]);
@@ -367,9 +370,9 @@ export const AgentFileExplorer: React.FC = () => {
     return (
       <div className="flex flex-1 flex-col items-center justify-center gap-3 text-center">
         <Code2 className="size-10 text-muted-foreground/25" />
-        <p className="text-sm font-medium text-muted-foreground">No active test session</p>
+        <p className="text-sm font-medium text-muted-foreground">{t('agentSimulation.fileExplorer.noSessionTitle')}</p>
         <p className="text-xs text-muted-foreground/60">
-          Start a test session to explore the generated files.
+          {t('agentSimulation.fileExplorer.noSessionDescription')}
         </p>
       </div>
     );
@@ -379,7 +382,7 @@ export const AgentFileExplorer: React.FC = () => {
     return (
       <div className="flex flex-1 flex-col items-center justify-center gap-2">
         <Loader2 className="size-5 animate-spin text-muted-foreground" />
-        <p className="text-xs text-muted-foreground">Loading session files…</p>
+        <p className="text-xs text-muted-foreground">{t('agentSimulation.fileExplorer.loading')}</p>
       </div>
     );
   }
@@ -400,21 +403,21 @@ export const AgentFileExplorer: React.FC = () => {
       {/* Sidebar: file tree */}
       <div className="flex w-48 min-w-48 shrink-0 flex-col overflow-hidden border-r border-border/40">
         <div className="flex shrink-0 items-center gap-1.5 border-b border-border/40 bg-muted/30 px-2 py-1.5">
-          <span className="flex-1 truncate text-xs font-medium text-muted-foreground">Files</span>
+          <span className="flex-1 truncate text-xs font-medium text-muted-foreground">{t('agentSimulation.fileExplorer.filesTitle')}</span>
           <Button
             variant="ghost"
             size="icon"
             className="size-5 text-muted-foreground hover:text-foreground"
             onClick={() => void fetchFiles(sessionId)}
             disabled={loading}
-            title="Refresh files"
+            title={t('agentSimulation.fileExplorer.refresh')}
           >
             <RefreshCw className={['size-3', loading ? 'animate-spin' : ''].join(' ')} />
           </Button>
         </div>
         <div className="min-h-0 flex-1 overflow-y-auto py-1">
           {tree.length === 0 ? (
-            <p className="p-2 text-xs text-muted-foreground/60">No files or folders found</p>
+            <p className="p-2 text-xs text-muted-foreground/60">{t('agentSimulation.fileExplorer.noFiles')}</p>
           ) : (
             tree.map((node) => (
               <TreeItem
@@ -446,7 +449,7 @@ export const AgentFileExplorer: React.FC = () => {
           </>
         ) : (
           <div className="flex flex-1 items-center justify-center text-xs text-muted-foreground">
-            Select a file to view its content
+            {t('agentSimulation.fileExplorer.selectFile')}
           </div>
         )}
       </div>

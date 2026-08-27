@@ -430,30 +430,32 @@ const WS_REPLY_TYPES = new Set([
 
 const PLACEHOLDER_ACTIONS = new Set(['ws_file', 'ws_image', 'ws_dataframe', 'ws_plotly']);
 
-const ACTION_DESCRIPTIONS: Record<string, string> = {
-  text: 'Sends a plain text message to the user.',
-  llm: 'Sends a prompt to an LLM and replies with the generated text.',
-  llm_chat: 'Uses an LLM in conversational (chat) mode, keeping message history.',
-  rag: 'Retrieves relevant documents from a vector database and generates a reply with an LLM.',
-  db_reply: 'Executes a SQL query (manual or LLM-generated) and replies with the result.',
-  web_crawl_llm: 'Crawls a website and uses an LLM to answer questions from the scraped content.',
-  ws_markdown: 'Sends a Markdown-formatted message. Requires WebSocket platform.',
-  ws_html: 'Sends an HTML-formatted message. Requires WebSocket platform.',
-  ws_speech: 'Converts text to speech and sends it as audio. Requires WebSocket platform.',
-  ws_options: 'Sends a list of selectable options for the user to choose from. Requires WebSocket platform.',
-  ws_location: 'Sends a geographic location pin to the user. Requires WebSocket platform.',
-  ws_file: 'Sends a file to the user. Requires WebSocket platform.',
-  ws_image: 'Sends an image to the user. Requires WebSocket platform.',
-  ws_dataframe: 'Sends a pandas DataFrame as a formatted table. Requires WebSocket platform.',
-  ws_plotly: 'Sends a Plotly chart to the user. Requires WebSocket platform.',
-  gui_reply: 'Renders a GUI component (button, form, etc.) in the chat.',
+// Maps of reply-type -> i18n key. Resolved via translate() at render time
+// (module scope cannot access this.props.translate).
+const ACTION_DESCRIPTION_KEYS: Record<string, string> = {
+  text: 'packages.AgentDiagram.actionDesc.text',
+  llm: 'packages.AgentDiagram.actionDesc.llm',
+  llm_chat: 'packages.AgentDiagram.actionDesc.llmChat',
+  rag: 'packages.AgentDiagram.actionDesc.rag',
+  db_reply: 'packages.AgentDiagram.actionDesc.dbReply',
+  web_crawl_llm: 'packages.AgentDiagram.actionDesc.webCrawlLlm',
+  ws_markdown: 'packages.AgentDiagram.actionDesc.wsMarkdown',
+  ws_html: 'packages.AgentDiagram.actionDesc.wsHtml',
+  ws_speech: 'packages.AgentDiagram.actionDesc.wsSpeech',
+  ws_options: 'packages.AgentDiagram.actionDesc.wsOptions',
+  ws_location: 'packages.AgentDiagram.actionDesc.wsLocation',
+  ws_file: 'packages.AgentDiagram.actionDesc.wsFile',
+  ws_image: 'packages.AgentDiagram.actionDesc.wsImage',
+  ws_dataframe: 'packages.AgentDiagram.actionDesc.wsDataframe',
+  ws_plotly: 'packages.AgentDiagram.actionDesc.wsPlotly',
+  gui_reply: 'packages.AgentDiagram.actionDesc.guiReply',
 };
 
-const PLACEHOLDER_WARNINGS: Record<string, string> = {
-  ws_file: 'The generated code contains a placeholder. You must assign a baf.types.File object to reply_file_obj before this state is reached.',
-  ws_image: 'The generated code contains a placeholder. You must assign a numpy.ndarray image to reply_image_arr before this state is reached.',
-  ws_dataframe: 'The generated code contains a placeholder. You must assign a pandas.DataFrame to reply_df before this state is reached.',
-  ws_plotly: 'The generated code contains a placeholder. You must assign a plotly.graph_objs.Figure to reply_plot before this state is reached.',
+const PLACEHOLDER_WARNING_KEYS: Record<string, string> = {
+  ws_file: 'packages.AgentDiagram.placeholderWarning.wsFile',
+  ws_image: 'packages.AgentDiagram.placeholderWarning.wsImage',
+  ws_dataframe: 'packages.AgentDiagram.placeholderWarning.wsDataframe',
+  ws_plotly: 'packages.AgentDiagram.placeholderWarning.wsPlotly',
 };
 
 type ActionSection = 'simple' | 'ai' | 'data';
@@ -560,24 +562,26 @@ interface State {
   fallbackCustomStash: string | null;
 }
 
-const ACTION_TYPE_LABELS: Record<string, string> = {
-  text: 'Text',
-  llm: 'LLM',
-  llm_chat: 'LLM Chat',
-  rag: 'RAG',
-  db_reply: 'SQL Query',
-  code: 'Python Code',
-  web_crawl_llm: 'Web Crawl + LLM',
-  ws_markdown: 'Markdown',
-  ws_html: 'HTML',
-  ws_speech: 'Speech',
-  ws_options: 'Options',
-  ws_location: 'Location',
-  ws_file: 'File',
-  ws_image: 'Image',
-  ws_dataframe: 'Dataframe',
-  ws_plotly: 'Plotly',
-  gui_reply: 'GUI',
+// Maps of reply-type -> i18n key for the short action-type labels. Resolved
+// via translate() at render time (module scope cannot access this.props.translate).
+const ACTION_TYPE_LABEL_KEYS: Record<string, string> = {
+  text: 'packages.AgentDiagram.actionTypeLabel.text',
+  llm: 'packages.AgentDiagram.actionTypeLabel.llm',
+  llm_chat: 'packages.AgentDiagram.actionTypeLabel.llmChat',
+  rag: 'packages.AgentDiagram.actionTypeLabel.rag',
+  db_reply: 'packages.AgentDiagram.actionTypeLabel.dbReply',
+  code: 'packages.AgentDiagram.actionTypeLabel.code',
+  web_crawl_llm: 'packages.AgentDiagram.actionTypeLabel.webCrawlLlm',
+  ws_markdown: 'packages.AgentDiagram.actionTypeLabel.wsMarkdown',
+  ws_html: 'packages.AgentDiagram.actionTypeLabel.wsHtml',
+  ws_speech: 'packages.AgentDiagram.actionTypeLabel.wsSpeech',
+  ws_options: 'packages.AgentDiagram.actionTypeLabel.wsOptions',
+  ws_location: 'packages.AgentDiagram.actionTypeLabel.wsLocation',
+  ws_file: 'packages.AgentDiagram.actionTypeLabel.wsFile',
+  ws_image: 'packages.AgentDiagram.actionTypeLabel.wsImage',
+  ws_dataframe: 'packages.AgentDiagram.actionTypeLabel.wsDataframe',
+  ws_plotly: 'packages.AgentDiagram.actionTypeLabel.wsPlotly',
+  gui_reply: 'packages.AgentDiagram.actionTypeLabel.guiReply',
 };
 
 const enhance = compose<ComponentClass<OwnProps>>(
@@ -626,6 +630,12 @@ class StateUpdate extends Component<Props, State> {
   };
 
   private toggleColor = () => this.setState((s) => ({ colorOpen: !s.colorOpen }));
+
+  // Resolve a reply-type's short label through i18n, falling back to the raw type.
+  private actionTypeLabel = (replyType: string): string => {
+    const key = ACTION_TYPE_LABEL_KEYS[replyType];
+    return key ? this.props.translate(key) : replyType;
+  };
 
   render() {
     const { element, getById, elements } = this.props;
@@ -709,18 +719,17 @@ class StateUpdate extends Component<Props, State> {
             <Divider />
             {needsLlm && (
               <WsWarning>
-                ⚠ No LLM is defined in the diagram, but this state requires one. Add an LLM in the Components page.
+                {this.props.translate('packages.AgentDiagram.noLlmDefinedInDiagram')}
               </WsWarning>
             )}
             {needsChatLlm && (
               <WsWarning>
-                ⚠ LLM Chat requires an OpenAI or Hugging Face LLM, but none are defined. Add a compatible LLM in the Components page.
+                {this.props.translate('packages.AgentDiagram.noLlmDefinedChatComponents')}
               </WsWarning>
             )}
             {needsPlatform && (
               <WsWarning>
-                ⚠ This state has WebSocket reply actions, but the platform is not set to WebSocket. Change the platform
-                in Agent Configuration.
+                {this.props.translate('packages.AgentDiagram.noWebSocketWarning')}
               </WsWarning>
             )}
           </Section>
@@ -970,8 +979,8 @@ class StateUpdate extends Component<Props, State> {
       prefix === 'body' ? this.setState({ newBodyActionType: v }) : this.setState({ newFallbackActionType: v });
 
     const collapsedIds = prefix === 'body' ? this.state.collapsedBodyIds : this.state.collapsedFallbackIds;
-    const wsTooltip = 'Requires WebSocketPlatform. Shown in red as a reminder — add it to dismiss.';
-    const chatTooltip = 'Requires an OpenAI or Hugging Face LLM. Shown in red as a reminder.';
+    const wsTooltip = this.props.translate('packages.AgentDiagram.requiresWebSocketPlatform');
+    const chatTooltip = this.props.translate('packages.AgentDiagram.requiresOpenaiHf');
     const wsColor = hasWebSocketPlatform ? undefined : '#e04040';
     const chatColor = hasCompatibleChatLlm ? undefined : '#e04040';
 
@@ -979,7 +988,7 @@ class StateUpdate extends Component<Props, State> {
       <>
         {actions.length === 0 && (
           <p style={{ fontSize: 12, margin: '4px 0 8px', opacity: 0.6, fontStyle: 'italic' }}>
-            No actions defined.
+            {this.props.translate('packages.AgentDiagram.noActionsDefined')}
           </p>
         )}
         {actions.map((action, index) => {
@@ -1053,14 +1062,14 @@ class StateUpdate extends Component<Props, State> {
             >
               <ActionCardHeader>
                 <DragHandle
-                  title="Drag to reorder"
+                  title={this.props.translate('packages.AgentDiagram.draggToReorder')}
                   onMouseDown={() => this.setState({ dragArmedKey: cardKey })}
                   onMouseUp={() => this.setState({ dragArmedKey: null })}
                 >
                   ⠿
                 </DragHandle>
                 <ActionTypeBadge style={badgeWarning ? { color: '#e04040', background: '#e0404022' } : undefined}>
-                  {ACTION_TYPE_LABELS[action.replyType] ?? action.replyType}
+                  {this.actionTypeLabel(action.replyType)}
                 </ActionTypeBadge>
 
                 <IconBtn
@@ -1095,7 +1104,7 @@ class StateUpdate extends Component<Props, State> {
           );
         })}
 
-        <NewActionLabel>{this.props.translate('packages.AgentDiagram.newActionLabel') || 'New action'}</NewActionLabel>
+        <NewActionLabel>{this.props.translate('packages.AgentDiagram.newActionLabel')}</NewActionLabel>
         <SectionTabRow>
           <SectionTab active={section === 'simple'} onClick={() => setSection('simple')}>
             {this.props.translate('packages.AgentDiagram.simpleReplies')}
@@ -1119,7 +1128,7 @@ class StateUpdate extends Component<Props, State> {
                     warn={isWarn}
                     onClick={() => setNewActionType(type)}
                   >
-                    {ACTION_TYPE_LABELS[type] ?? type}
+                    {this.actionTypeLabel(type)}
                   </NewActionOptionBtn>
                 );
               })}
@@ -1132,7 +1141,7 @@ class StateUpdate extends Component<Props, State> {
                   dimmed
                   onClick={() => setNewActionType(type)}
                 >
-                  {ACTION_TYPE_LABELS[type] ?? type}
+                  {this.actionTypeLabel(type)}
                 </NewActionOptionBtn>
               ))}
             </NewActionOptionList>
@@ -1149,18 +1158,18 @@ class StateUpdate extends Component<Props, State> {
                   warn={isWarn || isChatWarn}
                   onClick={() => setNewActionType(type)}
                 >
-                  {ACTION_TYPE_LABELS[type] ?? type}
+                  {this.actionTypeLabel(type)}
                 </NewActionOptionBtn>
               );
             })}
           </NewActionOptionList>
         )}
-        {ACTION_DESCRIPTIONS[selectedActionType] && (
-          <ActionDesc>{ACTION_DESCRIPTIONS[selectedActionType]}</ActionDesc>
+        {ACTION_DESCRIPTION_KEYS[selectedActionType] && (
+          <ActionDesc>{this.props.translate(ACTION_DESCRIPTION_KEYS[selectedActionType])}</ActionDesc>
         )}
-        {PLACEHOLDER_ACTIONS.has(selectedActionType) && PLACEHOLDER_WARNINGS[selectedActionType] && (
+        {PLACEHOLDER_ACTIONS.has(selectedActionType) && PLACEHOLDER_WARNING_KEYS[selectedActionType] && (
           <WsWarning style={{ marginTop: 2, marginBottom: 4 }}>
-            ⚠ {PLACEHOLDER_WARNINGS[selectedActionType]}
+            ⚠ {this.props.translate(PLACEHOLDER_WARNING_KEYS[selectedActionType])}
           </WsWarning>
         )}
         <div style={{ marginTop: 6 }}>
@@ -1175,7 +1184,7 @@ class StateUpdate extends Component<Props, State> {
               }
             }
           }}>
-            Add {ACTION_TYPE_LABELS[selectedActionType] ?? selectedActionType}
+            {`${this.props.translate('packages.AgentDiagram.addAction')} ${this.actionTypeLabel(selectedActionType)}`}
           </AddActionButton>
         </div>
       </>
@@ -1202,7 +1211,7 @@ class StateUpdate extends Component<Props, State> {
               outline
               value={action.name}
               onChange={(value) => this.props.update(action.id, { name: value })}
-              placeholder="Enter reply message"
+              placeholder={this.props.translate('packages.AgentDiagram.enterReplyMessage')}
             />
             <CheckboxRow style={{ marginTop: 4 }}>
               <input
@@ -1210,10 +1219,10 @@ class StateUpdate extends Component<Props, State> {
                 checked={action.useSessionVars || false}
                 onChange={(e) => this.props.update<AgentStateMember>(action.id, { useSessionVars: e.target.checked })}
               />
-              Interpolate session variables
+              {this.props.translate('packages.AgentDiagram.interpolateSessionVariables')}
             </CheckboxRow>
             {action.useSessionVars && (
-              <VarHint>Use &#123;key&#125; for session values, &#123;user_message&#125; for the current user message.</VarHint>
+              <VarHint>{this.props.translate('packages.AgentDiagram.useSessionValuesHint')}</VarHint>
             )}
           </>
         );
@@ -1233,22 +1242,22 @@ class StateUpdate extends Component<Props, State> {
                 checked={action.systemPromptUseSessionVars || false}
                 onChange={(e) => this.props.update<AgentStateMember>(action.id, { systemPromptUseSessionVars: e.target.checked })}
               />
-              Interpolate &#123;vars&#125; in system message
+              {this.props.translate('packages.AgentDiagram.interpolateVarsSystemMessage')}
             </CheckboxRow>
             <LlmFieldRow style={{ marginTop: 8 }}>
-              <Header>Input (sent to LLM)</Header>
+              <Header>{this.props.translate('packages.AgentDiagram.inputSentToLlm')}</Header>
               <PromptModeRow>
                 <PromptModeBtn
                   active={llmInputMode === 'last_user_message'}
                   onClick={() => this.props.update<AgentStateMember>(action.id, { inputPromptMode: 'last_user_message', customInputPrompt: '' })}
                 >
-                  Last user message
+                  {this.props.translate('packages.AgentDiagram.lastUserMessage')}
                 </PromptModeBtn>
                 <PromptModeBtn
                   active={llmInputMode === 'custom'}
                   onClick={() => this.props.update<AgentStateMember>(action.id, { inputPromptMode: 'custom' })}
                 >
-                  Custom prompt
+                  {this.props.translate('packages.AgentDiagram.customPrompt')}
                 </PromptModeBtn>
               </PromptModeRow>
               {llmInputMode === 'custom' && (
@@ -1259,16 +1268,16 @@ class StateUpdate extends Component<Props, State> {
                     enterToSubmit={false}
                     value={action.customInputPrompt || ''}
                     onChange={(value) => this.props.update<AgentStateMember>(action.id, { customInputPrompt: value })}
-                    placeholder="e.g. Summarise: {user_message}. Context: {ctx}"
+                    placeholder={this.props.translate('packages.AgentDiagram.customPromptExample')}
                   />
-                  <VarHint>Use &#123;user_message&#125; for the user's message, &#123;key&#125; for session values.</VarHint>
+                  <VarHint>{this.props.translate('packages.AgentDiagram.useUserMessageAndSessionHint')}</VarHint>
                   <CheckboxRow>
                     <input
                       type="checkbox"
                       checked={action.customInputPromptUseSessionVars || false}
                       onChange={(e) => this.props.update<AgentStateMember>(action.id, { customInputPromptUseSessionVars: e.target.checked })}
                     />
-                    Replace &#123;vars&#125; at runtime
+                    {this.props.translate('packages.AgentDiagram.replaceVarsAtRuntime')}
                   </CheckboxRow>
                 </>
               )}
@@ -1301,7 +1310,7 @@ class StateUpdate extends Component<Props, State> {
                 checked={action.systemPromptUseSessionVars || false}
                 onChange={(e) => this.props.update<AgentStateMember>(action.id, { systemPromptUseSessionVars: e.target.checked })}
               />
-              Interpolate &#123;vars&#125; in system message
+              {this.props.translate('packages.AgentDiagram.interpolateVarsSystemMessage')}
             </CheckboxRow>
             {this.renderStoreInSession(action)}
             {this.renderSendReply(action)}
@@ -1352,7 +1361,7 @@ class StateUpdate extends Component<Props, State> {
                     checked={action.promptUseSessionVars || false}
                     onChange={(e) => this.props.update<AgentStateMember>(action.id, { promptUseSessionVars: e.target.checked })}
                   />
-                  Interpolate &#123;vars&#125; in prompt
+                  {this.props.translate('packages.AgentDiagram.interpolateVarsInPrompt')}
                 </CheckboxRow>
               </LlmFieldRow>
             ) : (
@@ -1361,19 +1370,19 @@ class StateUpdate extends Component<Props, State> {
               </p>
             )}
             <LlmFieldRow style={{ marginTop: 8 }}>
-              <Header>Input (sent to RAG)</Header>
+              <Header>{this.props.translate('packages.AgentDiagram.inputSentToRag')}</Header>
               <PromptModeRow>
                 <PromptModeBtn
                   active={ragInputMode === 'last_user_message'}
                   onClick={() => this.props.update<AgentStateMember>(action.id, { inputPromptMode: 'last_user_message', customInputPrompt: '' })}
                 >
-                  Last user message
+                  {this.props.translate('packages.AgentDiagram.lastUserMessage')}
                 </PromptModeBtn>
                 <PromptModeBtn
                   active={ragInputMode === 'custom'}
                   onClick={() => this.props.update<AgentStateMember>(action.id, { inputPromptMode: 'custom' })}
                 >
-                  Custom prompt
+                  {this.props.translate('packages.AgentDiagram.customPrompt')}
                 </PromptModeBtn>
               </PromptModeRow>
               {ragInputMode === 'custom' && (
@@ -1384,16 +1393,16 @@ class StateUpdate extends Component<Props, State> {
                     enterToSubmit={false}
                     value={action.customInputPrompt || ''}
                     onChange={(value) => this.props.update<AgentStateMember>(action.id, { customInputPrompt: value })}
-                    placeholder="e.g. Summarise: {user_message}. Context: {ctx}"
+                    placeholder={this.props.translate('packages.AgentDiagram.customPromptExample')}
                   />
-                  <VarHint>Use &#123;user_message&#125; for the user's message, &#123;key&#125; for session values.</VarHint>
+                  <VarHint>{this.props.translate('packages.AgentDiagram.useUserMessageAndSessionHint')}</VarHint>
                   <CheckboxRow>
                     <input
                       type="checkbox"
                       checked={action.customInputPromptUseSessionVars || false}
                       onChange={(e) => this.props.update<AgentStateMember>(action.id, { customInputPromptUseSessionVars: e.target.checked })}
                     />
-                    Replace &#123;vars&#125; at runtime
+                    {this.props.translate('packages.AgentDiagram.replaceVarsAtRuntime')}
                   </CheckboxRow>
                 </>
               )}
@@ -1421,10 +1430,10 @@ class StateUpdate extends Component<Props, State> {
         const guiList: AgentGUIInfo[] = diagramBridge.getAgentGUIs();
         return (
           <LlmFieldRow>
-            <Header>GUI</Header>
+            <Header>{this.props.translate('packages.AgentDiagram.guiHeader')}</Header>
             {guiList.length === 0 ? (
               <p style={{ fontSize: 12, margin: '4px 0', opacity: 0.7 }}>
-                No GUIs defined. Create one in the Components page.
+                {this.props.translate('packages.AgentDiagram.noGuisDefinedAction')}
               </p>
             ) : (
               <Dropdown
@@ -1436,12 +1445,14 @@ class StateUpdate extends Component<Props, State> {
                   const selectedGui = guiList.find(g => g.gui_id === selected);
                   this.props.update<AgentStateMember>(action.id, {
                     guiId: selected,
-                    name: selectedGui ? `GUI Reply: ${selectedGui.name}` : 'GUI Reply (select GUI)',
+                    name: selectedGui
+                      ? `${this.props.translate('packages.AgentDiagram.guiReplyPrefix')} ${selectedGui.name}`
+                      : this.props.translate('packages.AgentDiagram.guiReplySelectGui'),
                   } as any);
                 }}
               >
                 {[
-                  <Dropdown.Item value="__placeholder__" key="gui-placeholder">Select GUI</Dropdown.Item>,
+                  <Dropdown.Item value="__placeholder__" key="gui-placeholder">{this.props.translate('packages.AgentDiagram.selectGui')}</Dropdown.Item>,
                   ...guiList.map((g, i) => (
                     <Dropdown.Item key={`gui-${i}`} value={g.gui_id}>{g.name}</Dropdown.Item>
                   )),
@@ -1461,38 +1472,39 @@ class StateUpdate extends Component<Props, State> {
   private getActionSummary = (action: AgentStateMember): string => {
     const name = action.name || '';
     const truncate = (s: string, n = 40) => (s.length > n ? s.slice(0, n) + '…' : s);
+    const t = this.props.translate;
     switch (action.replyType) {
       case 'llm':
-        return action.llm_name ? `LLM: ${action.llm_name}` : '(default LLM)';
+        return action.llm_name ? `LLM: ${action.llm_name}` : t('packages.AgentDiagram.summaryDefaultLlm');
       case 'llm_chat':
-        return action.llm_name ? `Chat: ${action.llm_name}` : '(default LLM chat)';
+        return action.llm_name ? `Chat: ${action.llm_name}` : t('packages.AgentDiagram.summaryDefaultLlmChat');
       case 'rag':
         return action.ragDatabaseName
           ? `DB: ${action.ragDatabaseName}${action.prompt ? ' (prompt)' : ''}`
-          : '(select database)';
+          : t('packages.AgentDiagram.summarySelectDatabase');
       case 'web_crawl_llm':
         return action.initial_url
-          ? `Crawl: ${truncate(action.initial_url, 30)}${action.run_crawl ? '' : ' (no crawl)'}`
-          : '(set URL)';
+          ? `Crawl: ${truncate(action.initial_url, 30)}${action.run_crawl ? '' : ' ' + t('packages.AgentDiagram.summaryNoCrawl')}`
+          : t('packages.AgentDiagram.summarySetUrl');
       case 'ws_markdown':
       case 'ws_html':
-        return action.ws_message ? truncate(action.ws_message) : '(no message)';
+        return action.ws_message ? truncate(action.ws_message) : t('packages.AgentDiagram.summaryNoMessage');
       case 'ws_speech':
-        return action.ws_message ? truncate(action.ws_message) : '(no message)';
+        return action.ws_message ? truncate(action.ws_message) : t('packages.AgentDiagram.summaryNoMessage');
       case 'ws_options': {
         const opts = (action.ws_options || '').split('\n').filter(Boolean);
-        return opts.length ? `${opts.length} option(s)` : '(no options)';
+        return opts.length ? `${opts.length} ${t('packages.AgentDiagram.optionItems')}` : t('packages.AgentDiagram.noOptions2');
       }
       case 'ws_location':
         return `(${action.ws_latitude ?? 0}, ${action.ws_longitude ?? 0})`;
       case 'ws_file':
-        return '(placeholder: file)';
+        return t('packages.AgentDiagram.summaryPlaceholderFile');
       case 'ws_image':
-        return '(placeholder: image)';
+        return t('packages.AgentDiagram.summaryPlaceholderImage');
       case 'ws_dataframe':
-        return '(placeholder: dataframe)';
+        return t('packages.AgentDiagram.summaryPlaceholderDataframe');
       case 'ws_plotly':
-        return '(placeholder: plot)';
+        return t('packages.AgentDiagram.summaryPlaceholderPlot');
       default:
         return truncate(name);
     }
@@ -1581,13 +1593,13 @@ class StateUpdate extends Component<Props, State> {
     member.replyType = replyType;
     switch (replyType) {
       case 'text':
-        member.name = 'Enter reply message';
+        member.name = this.props.translate('packages.AgentDiagram.enterReplyMessage');
         break;
       case 'llm':
-        member.name = 'LLM Reply';
+        member.name = this.props.translate('packages.AgentDiagram.llmReplyDefault');
         break;
       case 'llm_chat':
-        member.name = 'LLM Chat Reply';
+        member.name = this.props.translate('packages.AgentDiagram.llmChatReplyDefault');
         break;
       case 'rag': {
         member.ragDatabaseName = '';
@@ -1613,47 +1625,47 @@ class StateUpdate extends Component<Props, State> {
         member.crawl_format = 'markdown';
         member.base_url_prefix = '';
         member.run_crawl = true;
-        member.no_crawl_error_message = 'No web crawl data is available yet.';
+        member.no_crawl_error_message = this.props.translate('packages.AgentDiagram.noCrawlDataDefault');
         member.system_message_prefix = '';
-        member.name = 'Web Crawl + LLM (set URL)';
+        member.name = this.props.translate('packages.AgentDiagram.webCrawlLlmSetUrl');
         break;
       case 'ws_markdown':
         member.ws_message = '';
-        member.name = 'Markdown (empty)';
+        member.name = this.props.translate('packages.AgentDiagram.markdownEmpty');
         break;
       case 'ws_html':
         member.ws_message = '';
-        member.name = 'HTML (empty)';
+        member.name = this.props.translate('packages.AgentDiagram.htmlEmpty');
         break;
       case 'ws_speech':
         member.ws_message = '';
         member.ws_audio_speed = null;
-        member.name = 'Speech (empty)';
+        member.name = this.props.translate('packages.AgentDiagram.speechEmpty');
         break;
       case 'ws_options':
         member.ws_options = '';
-        member.name = 'Options (no options)';
+        member.name = this.props.translate('packages.AgentDiagram.optionsNoOptions');
         break;
       case 'ws_location':
         member.ws_latitude = 0;
         member.ws_longitude = 0;
-        member.name = 'Location (0, 0)';
+        member.name = this.props.translate('packages.AgentDiagram.locationDefault');
         break;
       case 'ws_file':
-        member.name = 'File (placeholder)';
+        member.name = this.props.translate('packages.AgentDiagram.filePlaceholderName');
         break;
       case 'ws_image':
-        member.name = 'Image (placeholder)';
+        member.name = this.props.translate('packages.AgentDiagram.imagePlaceholderName');
         break;
       case 'ws_dataframe':
-        member.name = 'Dataframe (placeholder)';
+        member.name = this.props.translate('packages.AgentDiagram.dataframePlaceholderName');
         break;
       case 'ws_plotly':
-        member.name = 'Plotly (placeholder)';
+        member.name = this.props.translate('packages.AgentDiagram.plotlyPlaceholderName');
         break;
       case 'gui_reply':
         (member as any).guiId = '';
-        member.name = 'GUI Reply (select GUI)';
+        member.name = this.props.translate('packages.AgentDiagram.guiReplySelectGui');
         break;
       default:
         member.name = replyType;
@@ -1733,10 +1745,16 @@ class StateUpdate extends Component<Props, State> {
               onChange={(v) =>
                 this.props.update<AgentStateMember>(action.id, {
                   ws_message: v,
-                  name: v ? v.slice(0, 40) : `${ACTION_TYPE_LABELS[action.replyType]} (empty)`,
+                  name: v
+                    ? v.slice(0, 40)
+                    : action.replyType === 'ws_markdown'
+                      ? this.props.translate('packages.AgentDiagram.markdownEmpty')
+                      : this.props.translate('packages.AgentDiagram.htmlEmpty'),
                 })
               }
-              placeholder={action.replyType === 'ws_markdown' ? '**Bold**, *italic*, etc.' : '<p>HTML content</p>'}
+              placeholder={action.replyType === 'ws_markdown'
+                ? this.props.translate('packages.AgentDiagram.markdownPlaceholder')
+                : this.props.translate('packages.AgentDiagram.htmlPlaceholder')}
             />
             <CheckboxRow style={{ marginTop: 4 }}>
               <input
@@ -1744,10 +1762,10 @@ class StateUpdate extends Component<Props, State> {
                 checked={action.useSessionVars || false}
                 onChange={(e) => this.props.update<AgentStateMember>(action.id, { useSessionVars: e.target.checked })}
               />
-              Interpolate &#123;vars&#125; in message
+              {this.props.translate('packages.AgentDiagram.interpolateVarsInMessage')}
             </CheckboxRow>
             {action.useSessionVars && (
-              <VarHint>Use &#123;key&#125; for session values, &#123;user_message&#125; for the current user message.</VarHint>
+              <VarHint>{this.props.translate('packages.AgentDiagram.useSessionValuesHint')}</VarHint>
             )}
           </LlmFieldRow>
         );
@@ -1762,7 +1780,7 @@ class StateUpdate extends Component<Props, State> {
               enterToSubmit={false}
               value={action.ws_message || ''}
               onChange={(v) => this.props.update<AgentStateMember>(action.id, { ws_message: v })}
-              placeholder="Text to convert to speech"
+              placeholder={this.props.translate('packages.AgentDiagram.speechPlaceholder')}
             />
             <CheckboxRow style={{ marginTop: 4 }}>
               <input
@@ -1770,10 +1788,10 @@ class StateUpdate extends Component<Props, State> {
                 checked={action.useSessionVars || false}
                 onChange={(e) => this.props.update<AgentStateMember>(action.id, { useSessionVars: e.target.checked })}
               />
-              Interpolate &#123;vars&#125; in message
+              {this.props.translate('packages.AgentDiagram.interpolateVarsInMessage')}
             </CheckboxRow>
             {action.useSessionVars && (
-              <VarHint>Use &#123;key&#125; for session values, &#123;user_message&#125; for the current user message.</VarHint>
+              <VarHint>{this.props.translate('packages.AgentDiagram.useSessionValuesHint')}</VarHint>
             )}
             <Header style={{ marginTop: 6 }}>{this.props.translate('packages.AgentDiagram.audioSpeedOptional')}</Header>
             <Textfield
@@ -1803,10 +1821,12 @@ class StateUpdate extends Component<Props, State> {
                 const count = v.split('\n').filter(Boolean).length;
                 this.props.update<AgentStateMember>(action.id, {
                   ws_options: v,
-                  name: count > 0 ? `Options: ${count} item(s)` : 'Options (no options)',
+                  name: count > 0
+                    ? `${this.props.translate('packages.AgentDiagram.optionsItemsCountPrefix')} ${count} ${this.props.translate('packages.AgentDiagram.optionItems')}`
+                    : this.props.translate('packages.AgentDiagram.optionsNoOptions'),
                 });
               }}
-              placeholder={'Yes\nNo\nMaybe'}
+              placeholder={this.props.translate('packages.AgentDiagram.optionsPlaceholder')}
             />
           </LlmFieldRow>
         );
@@ -1843,34 +1863,22 @@ class StateUpdate extends Component<Props, State> {
         break;
       case 'ws_file':
         content = (
-          <WsWarning>
-            The generated code contains a placeholder. You must assign a <code>baf.types.File</code> object to{' '}
-            <code>reply_file_obj</code> before this state is reached.
-          </WsWarning>
+          <WsWarning>{this.props.translate('packages.AgentDiagram.placeholderWarning.wsFile')}</WsWarning>
         );
         break;
       case 'ws_image':
         content = (
-          <WsWarning>
-            The generated code contains a placeholder. You must assign a <code>numpy.ndarray</code> image to{' '}
-            <code>reply_image_arr</code> before this state is reached.
-          </WsWarning>
+          <WsWarning>{this.props.translate('packages.AgentDiagram.placeholderWarning.wsImage')}</WsWarning>
         );
         break;
       case 'ws_dataframe':
         content = (
-          <WsWarning>
-            The generated code contains a placeholder. You must assign a <code>pandas.DataFrame</code>
-            to <code>reply_df</code> before this state is reached.
-          </WsWarning>
+          <WsWarning>{this.props.translate('packages.AgentDiagram.placeholderWarning.wsDataframe')}</WsWarning>
         );
         break;
       case 'ws_plotly':
         content = (
-          <WsWarning>
-            The generated code contains a placeholder. You must assign a <code>plotly.graph_objs.Figure</code>
-            to <code>reply_plot</code> before this state is reached.
-          </WsWarning>
+          <WsWarning>{this.props.translate('packages.AgentDiagram.placeholderWarning.wsPlotly')}</WsWarning>
         );
         break;
       default:
@@ -1933,15 +1941,17 @@ class StateUpdate extends Component<Props, State> {
 
   private renderStoreInSession = (action: AgentStateMember): React.ReactNode => (
     <StoreInSessionRow>
-      <Header>Store result in session (optional)</Header>
+      <Header>{this.props.translate('packages.AgentDiagram.storeResultInSession')}</Header>
       <Textfield
         outline
         value={action.storeInSession || ''}
         onChange={(value) => this.props.update<AgentStateMember>(action.id, { storeInSession: value.trim() })}
-        placeholder="session_key (leave empty to skip)"
+        placeholder={this.props.translate('packages.AgentDiagram.sessionKeyPlaceholder')}
       />
       {action.storeInSession && (
-        <VarHint>Result stored as &#123;{action.storeInSession}&#125; — reuse it in later states.</VarHint>
+        <VarHint>
+          {`${this.props.translate('packages.AgentDiagram.resultStoredHintPrefix')} {${action.storeInSession}} ${this.props.translate('packages.AgentDiagram.resultStoredHintSuffix')}`}
+        </VarHint>
       )}
     </StoreInSessionRow>
   );
@@ -1953,7 +1963,7 @@ class StateUpdate extends Component<Props, State> {
         checked={action.sendReply !== false}
         onChange={(e) => this.props.update<AgentStateMember>(action.id, { sendReply: e.target.checked })}
       />
-      Send as agent reply (uncheck to only store, not send)
+      {this.props.translate('packages.AgentDiagram.sendAsAgentReply')}
     </CheckboxRow>
   );
 
@@ -2082,7 +2092,7 @@ class StateUpdate extends Component<Props, State> {
               outline
               multiline
               enterToSubmit={false}
-              placeholder="SELECT * FROM table_name"
+              placeholder={this.props.translate('packages.AgentDiagram.sqlQueryPlaceholder')}
               value={member.dbSqlQuery || ''}
               onChange={(value) => this.updateDbReply(member, { dbSqlQuery: value })}
             />
@@ -2096,19 +2106,19 @@ class StateUpdate extends Component<Props, State> {
               <p>{this.props.translate('packages.AgentDiagram.answerWillBeGenerated')}</p>
               {this.renderLlmNameField(member, llmNames, `db-llm-${member.id}`)}
               <LlmFieldRow style={{ marginTop: 6 }}>
-                <Header>Input (sent to DB + LLM)</Header>
+                <Header>{this.props.translate('packages.AgentDiagram.inputSentToDbLlm')}</Header>
                 <PromptModeRow>
                   <PromptModeBtn
                     active={(member.inputPromptMode || 'last_user_message') === 'last_user_message'}
                     onClick={() => this.props.update<AgentStateMember>(member.id, { inputPromptMode: 'last_user_message', customInputPrompt: '' })}
                   >
-                    Last user message
+                    {this.props.translate('packages.AgentDiagram.lastUserMessage')}
                   </PromptModeBtn>
                   <PromptModeBtn
                     active={(member.inputPromptMode || 'last_user_message') === 'custom'}
                     onClick={() => this.props.update<AgentStateMember>(member.id, { inputPromptMode: 'custom' })}
                   >
-                    Custom prompt
+                    {this.props.translate('packages.AgentDiagram.customPrompt')}
                   </PromptModeBtn>
                 </PromptModeRow>
                 {(member.inputPromptMode || 'last_user_message') === 'custom' && (
@@ -2119,16 +2129,16 @@ class StateUpdate extends Component<Props, State> {
                       enterToSubmit={false}
                       value={member.customInputPrompt || ''}
                       onChange={(value) => this.props.update<AgentStateMember>(member.id, { customInputPrompt: value })}
-                      placeholder="e.g. Find orders for: {user_message}. Customer: {customer_id}"
+                      placeholder={this.props.translate('packages.AgentDiagram.dbCustomPromptExample')}
                     />
-                    <VarHint>Use &#123;user_message&#125; for the user's message, &#123;key&#125; for session values.</VarHint>
+                    <VarHint>{this.props.translate('packages.AgentDiagram.useUserMessageAndSessionHint')}</VarHint>
                     <CheckboxRow>
                       <input
                         type="checkbox"
                         checked={member.customInputPromptUseSessionVars || false}
                         onChange={(e) => this.props.update<AgentStateMember>(member.id, { customInputPromptUseSessionVars: e.target.checked })}
                       />
-                      Replace &#123;vars&#125; at runtime
+                      {this.props.translate('packages.AgentDiagram.replaceVarsAtRuntime')}
                     </CheckboxRow>
                   </>
                 )}
@@ -2158,7 +2168,7 @@ class StateUpdate extends Component<Props, State> {
           onChange={(value) => {
             this.props.update<AgentStateMember>(member.id, {
               initial_url: value,
-              name: value ? `Crawl: ${value.slice(0, 40)}` : 'Web Crawl + LLM (set URL)',
+              name: value ? `Crawl: ${value.slice(0, 40)}` : this.props.translate('packages.AgentDiagram.webCrawlLlmSetUrl'),
             });
           }}
           placeholder={this.props.translate('packages.AgentDiagram.httpsExample')}
@@ -2241,10 +2251,10 @@ class StateUpdate extends Component<Props, State> {
                 checked={member.systemMessagePrefixUseSessionVars || false}
                 onChange={(e) => this.props.update<AgentStateMember>(member.id, { systemMessagePrefixUseSessionVars: e.target.checked })}
               />
-              Interpolate &#123;vars&#125; in system message prefix
+              {this.props.translate('packages.AgentDiagram.interpolateVarsSystemMessagePrefix')}
             </CheckboxRow>
             {member.systemMessagePrefixUseSessionVars && (
-              <VarHint>Use &#123;key&#125; for session values, &#123;user_message&#125; for the current user message.</VarHint>
+              <VarHint>{this.props.translate('packages.AgentDiagram.useSessionValuesHint')}</VarHint>
             )}
           </>
         )}
@@ -2270,7 +2280,9 @@ class StateUpdate extends Component<Props, State> {
 
   private getRagDisplayName = (databaseName: string): string => {
     const trimmed = (databaseName || '').trim();
-    return trimmed.length ? `RAG reply using ${trimmed} database` : 'RAG reply (select database)';
+    return trimmed.length
+      ? `${this.props.translate('packages.AgentDiagram.ragReplyUsingPrefix')} ${trimmed} ${this.props.translate('packages.AgentDiagram.ragReplyUsingSuffix')}`
+      : this.props.translate('packages.AgentDiagram.ragReplySelectDatabase');
   };
 
   private getDefaultDbReplyValues = (): DbReplyValues => ({
@@ -2289,10 +2301,14 @@ class StateUpdate extends Component<Props, State> {
   ): string => {
     const customDb = (dbCustomName || '').trim();
     const dbLabel =
-      dbSelectionType === 'custom' ? (customDb.length ? customDb : 'custom database') : 'Default database';
-    const modeLabel = dbQueryMode === 'sql' ? 'SQL' : 'LLM query';
-    const opLabel = dbOperation === 'any' ? 'Any' : dbOperation.toUpperCase();
-    return `DB action using ${dbLabel} (${modeLabel}, ${opLabel})`;
+      dbSelectionType === 'custom'
+        ? (customDb.length ? customDb : this.props.translate('packages.AgentDiagram.customDatabase'))
+        : this.props.translate('packages.AgentDiagram.defaultDatabase');
+    const modeLabel = dbQueryMode === 'sql'
+      ? this.props.translate('packages.AgentDiagram.sqlMode')
+      : this.props.translate('packages.AgentDiagram.llmQueryMode');
+    const opLabel = dbOperation === 'any' ? this.props.translate('packages.AgentDiagram.any') : dbOperation.toUpperCase();
+    return `${this.props.translate('packages.AgentDiagram.dbActionUsingPrefix')} ${dbLabel} (${modeLabel}, ${opLabel})`;
   };
 
   private updateDbReply = (member: AgentStateMember, values: Partial<AgentStateMember>) => {

@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   ApollonEditor,
   ApollonMode,
@@ -119,6 +120,7 @@ interface AgentDiagramReadOnlyProps {
 }
 
 export const AgentDiagramReadOnly: React.FC<AgentDiagramReadOnlyProps> = ({ currentState }) => {
+  const { t } = useTranslation();
   const containerRef = useRef<HTMLDivElement>(null);
   const editorRef = useRef<ApollonEditor | null>(null);
   const isReadyRef = useRef(false);
@@ -321,7 +323,7 @@ export const AgentDiagramReadOnly: React.FC<AgentDiagramReadOnlyProps> = ({ curr
         <div className="flex shrink-0 flex-wrap items-center gap-2 px-1">
           {currentState && (
             <>
-              <span className="text-xs text-muted-foreground">Current state:</span>
+              <span className="text-xs text-muted-foreground">{t('agentSimulation.diagram.currentState')}</span>
               <span
                 className="rounded-full px-2.5 py-0.5 text-xs font-semibold"
                 style={{
@@ -341,7 +343,8 @@ export const AgentDiagramReadOnly: React.FC<AgentDiagramReadOnlyProps> = ({ curr
               aria-expanded={showHistory}
             >
               {showHistory ? <ChevronUp className="size-3" /> : <ChevronDown className="size-3" />}
-              {showHistory ? 'Hide' : 'View'} transitions ({transitionHistory.length})
+              {showHistory ? t('agentSimulation.diagram.hide') : t('agentSimulation.diagram.view')}{' '}
+              {t('agentSimulation.diagram.transitions', { count: transitionHistory.length })}
             </button>
           )}
         </div>
@@ -404,7 +407,7 @@ export const AgentDiagramReadOnly: React.FC<AgentDiagramReadOnlyProps> = ({ curr
         {!hasModel && (
           <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 text-center">
             <Bot className="size-10 text-muted-foreground/25" />
-            <p className="text-sm font-medium text-muted-foreground">No agent diagram available</p>
+            <p className="text-sm font-medium text-muted-foreground">{t('agentSimulation.diagram.empty')}</p>
           </div>
         )}
         <div

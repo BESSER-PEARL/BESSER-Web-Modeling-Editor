@@ -1,4 +1,5 @@
 import React, { useEffect, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '@/main/app/store/hooks';
 import { selectActiveDiagram } from '@/main/app/store/workspaceSlice';
@@ -6,6 +7,7 @@ import { AgentSimulationPanel } from './AgentSimulationPanel';
 import { selectAgentSimulationStatus, selectSessionId, stopAgentSimulationThunk } from './agentSimulationSlice';
 
 export const AgentSimulationPage: React.FC = () => {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
   const status = useAppSelector(selectAgentSimulationStatus);
@@ -39,5 +41,5 @@ export const AgentSimulationPage: React.FC = () => {
 
   if (status === 'idle') return null;
 
-  return <AgentSimulationPanel open diagramTitle={diagram?.title ?? 'Agent'} />;
+  return <AgentSimulationPanel open diagramTitle={diagram?.title ?? t('agentSimulation.defaultDiagramTitle')} />;
 };

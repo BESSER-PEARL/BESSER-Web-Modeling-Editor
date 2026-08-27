@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { AlertTriangle, ChevronDown, ChevronRight, FlaskConical } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -24,9 +25,6 @@ interface CredentialsDialogProps {
   diagramConfigYaml?: string;
 }
 
-const SENSITIVE_DATA_WARNING =
-  'Do not share sensitive personal information (passwords, personal data, confidential documents) in the simulation chat. Simulation sessions are logged and may be visible to operators of this editor.';
-
 export const CredentialsDialog: React.FC<CredentialsDialogProps> = ({
   open,
   onOpenChange,
@@ -35,6 +33,7 @@ export const CredentialsDialog: React.FC<CredentialsDialogProps> = ({
   diagramConfig,
   diagramConfigYaml,
 }) => {
+  const { t } = useTranslation();
   const dispatch = useAppDispatch();
   const limits = useAppSelector(selectAgentSimulationLimits);
 
@@ -83,7 +82,7 @@ export const CredentialsDialog: React.FC<CredentialsDialogProps> = ({
             <div className="flex size-8 items-center justify-center rounded-xl bg-primary/8 text-primary ring-1 ring-primary/10">
               <FlaskConical className="size-4" />
             </div>
-            Simulate Agent: {diagramTitle}
+            {t('agentSimulation.credentials.title', { name: diagramTitle })}
           </DialogTitle>
         </DialogHeader>
 
@@ -92,13 +91,13 @@ export const CredentialsDialog: React.FC<CredentialsDialogProps> = ({
           <div className="flex items-start gap-2.5 rounded-lg border border-amber-300/60 bg-amber-50/80 p-3 dark:border-amber-700/40 dark:bg-amber-950/30">
             <AlertTriangle className="mt-0.5 size-4 shrink-0 text-amber-600 dark:text-amber-400" />
             <p className="text-xs leading-relaxed text-amber-800 dark:text-amber-200">
-              {SENSITIVE_DATA_WARNING}
+              {t('agentSimulation.credentials.sensitivityWarning')}
             </p>
           </div>
 
           {/* API Keys section */}
           <section className="space-y-3">
-            <h3 className="text-sm font-semibold tracking-tight">API Keys</h3>
+            <h3 className="text-sm font-semibold tracking-tight">{t('agentSimulation.credentials.apiKeysTitle')}</h3>
 
             {/* Mode selector */}
             <div className="flex flex-col gap-2">
@@ -111,7 +110,7 @@ export const CredentialsDialog: React.FC<CredentialsDialogProps> = ({
                   onChange={() => setApiKeyMode('own')}
                   className="accent-primary"
                 />
-                Use my own API keys
+                {t('agentSimulation.credentials.ownKeys')}
               </label>
 
               {editorQuotaEnabled && (
@@ -124,7 +123,7 @@ export const CredentialsDialog: React.FC<CredentialsDialogProps> = ({
                     onChange={() => setApiKeyMode('quota')}
                     className="accent-primary"
                   />
-                  Use editor quota
+                  {t('agentSimulation.credentials.editorQuota')}
                 </label>
               )}
             </div>
@@ -134,13 +133,13 @@ export const CredentialsDialog: React.FC<CredentialsDialogProps> = ({
               <div className="space-y-2.5 rounded-lg border border-border/50 bg-muted/20 p-3">
                 <div className="space-y-1">
                   <label className="text-xs font-medium text-muted-foreground">
-                    OpenAI API Key <span className="text-muted-foreground/70">(optional)</span>
+                    {t('agentSimulation.credentials.openAiLabel')} <span className="text-muted-foreground/70">{t('agentSimulation.credentials.optional')}</span>
                   </label>
                   <input
                     type="password"
                     value={openAiKey}
                     onChange={(e) => setOpenAiKey(e.target.value)}
-                    placeholder="sk-..."
+                    placeholder={t('agentSimulation.credentials.openAiPlaceholder')}
                     className="w-full rounded-md border border-input bg-background px-3 py-1.5 text-sm placeholder:text-muted-foreground/60 focus:outline-none focus:ring-2 focus:ring-primary/30"
                     autoComplete="off"
                   />
@@ -148,14 +147,14 @@ export const CredentialsDialog: React.FC<CredentialsDialogProps> = ({
 
                 <div className="space-y-1">
                   <label className="text-xs font-medium text-muted-foreground">
-                    HuggingFace API Token{' '}
-                    <span className="text-muted-foreground/70">(optional)</span>
+                    {t('agentSimulation.credentials.huggingFaceLabel')}{' '}
+                    <span className="text-muted-foreground/70">{t('agentSimulation.credentials.optional')}</span>
                   </label>
                   <input
                     type="password"
                     value={huggingFaceToken}
                     onChange={(e) => setHuggingFaceToken(e.target.value)}
-                    placeholder="hf_..."
+                    placeholder={t('agentSimulation.credentials.huggingFacePlaceholder')}
                     className="w-full rounded-md border border-input bg-background px-3 py-1.5 text-sm placeholder:text-muted-foreground/60 focus:outline-none focus:ring-2 focus:ring-primary/30"
                     autoComplete="off"
                   />
@@ -163,13 +162,13 @@ export const CredentialsDialog: React.FC<CredentialsDialogProps> = ({
 
                 <div className="space-y-1">
                   <label className="text-xs font-medium text-muted-foreground">
-                    Replicate API Key <span className="text-muted-foreground/70">(optional)</span>
+                    {t('agentSimulation.credentials.replicateLabel')} <span className="text-muted-foreground/70">{t('agentSimulation.credentials.optional')}</span>
                   </label>
                   <input
                     type="password"
                     value={replicateKey}
                     onChange={(e) => setReplicateKey(e.target.value)}
-                    placeholder="r8_..."
+                    placeholder={t('agentSimulation.credentials.replicatePlaceholder')}
                     className="w-full rounded-md border border-input bg-background px-3 py-1.5 text-sm placeholder:text-muted-foreground/60 focus:outline-none focus:ring-2 focus:ring-primary/30"
                     autoComplete="off"
                   />
@@ -186,7 +185,7 @@ export const CredentialsDialog: React.FC<CredentialsDialogProps> = ({
                 onClick={() => setLimitsExpanded((prev) => !prev)}
                 className="flex w-full items-center justify-between text-sm font-semibold tracking-tight"
               >
-                Resource Limits
+                {t('agentSimulation.credentials.limitsTitle')}
                 {limitsExpanded ? (
                   <ChevronDown className="size-4 text-muted-foreground" />
                 ) : (
@@ -198,26 +197,26 @@ export const CredentialsDialog: React.FC<CredentialsDialogProps> = ({
                 <dl className="rounded-lg border border-border/50 bg-muted/20 p-3 text-xs">
                   {limits.memoryMb !== undefined && (
                     <div className="flex justify-between py-0.5">
-                      <dt className="text-muted-foreground">Memory</dt>
-                      <dd className="font-medium">{limits.memoryMb} MB</dd>
+                      <dt className="text-muted-foreground">{t('agentSimulation.credentials.memory')}</dt>
+                      <dd className="font-medium">{limits.memoryMb}{t('agentSimulation.credentials.unitMb')}</dd>
                     </div>
                   )}
                   {limits.cpuCores !== undefined && (
                     <div className="flex justify-between py-0.5">
-                      <dt className="text-muted-foreground">CPU</dt>
-                      <dd className="font-medium">{limits.cpuCores} core(s)</dd>
+                      <dt className="text-muted-foreground">{t('agentSimulation.credentials.cpu')}</dt>
+                      <dd className="font-medium">{limits.cpuCores}{t('agentSimulation.credentials.unitCores')}</dd>
                     </div>
                   )}
                   {limits.diskMb !== undefined && (
                     <div className="flex justify-between py-0.5">
-                      <dt className="text-muted-foreground">Disk</dt>
-                      <dd className="font-medium">{limits.diskMb} MB</dd>
+                      <dt className="text-muted-foreground">{t('agentSimulation.credentials.disk')}</dt>
+                      <dd className="font-medium">{limits.diskMb}{t('agentSimulation.credentials.unitMb')}</dd>
                     </div>
                   )}
                   {limits.sessionLifetimeSeconds !== undefined && (
                     <div className="flex justify-between py-0.5">
-                      <dt className="text-muted-foreground">Session lifetime</dt>
-                      <dd className="font-medium">{Math.round(limits.sessionLifetimeSeconds / 60)} min</dd>
+                      <dt className="text-muted-foreground">{t('agentSimulation.credentials.lifetime')}</dt>
+                      <dd className="font-medium">{Math.round(limits.sessionLifetimeSeconds / 60)}{t('agentSimulation.credentials.unitMin')}</dd>
                     </div>
                   )}
                 </dl>
@@ -229,7 +228,7 @@ export const CredentialsDialog: React.FC<CredentialsDialogProps> = ({
         {validationErrors.length > 0 && (
           <div className="rounded-lg border border-destructive/60 bg-destructive/10 p-3">
             <p className="mb-1.5 text-xs font-semibold text-destructive">
-              Validation failed — agent code could not be generated:
+              {t('agentSimulation.credentials.validationError')}
             </p>
             <ul className="space-y-0.5">
               {validationErrors.map((err, i) => (
@@ -243,11 +242,11 @@ export const CredentialsDialog: React.FC<CredentialsDialogProps> = ({
 
         <DialogFooter className="gap-2 pt-2">
           <Button variant="outline" onClick={() => onOpenChange(false)}>
-            Cancel
+            {t('common.cancel')}
           </Button>
           <Button onClick={handleStartTest} className="gap-2">
             <FlaskConical className="size-4" />
-            Start Simulation
+            {t('agentSimulation.credentials.start')}
           </Button>
         </DialogFooter>
       </DialogContent>

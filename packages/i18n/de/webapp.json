@@ -188,7 +188,111 @@
       "intentLlmBased": "LLM-basiert",
       "llm": "LLM",
       "useDefault": "(Standard verwenden)",
-      "defineLlmHint": "Definieren Sie ein LLM im Abschnitt LLMs unten, um es hier zu verwenden."
+      "defineLlmHint": "Definieren Sie ein LLM im Abschnitt LLMs unten, um es hier zu verwenden.",
+      "defineLlmsHint": "Definiere LLMs auf der Seite <strong>Agent-Komponenten</strong>.",
+      "enabled": "Aktiviert",
+      "boolTrue": "Wahr",
+      "boolFalse": "Falsch",
+      "sidebarSettings": "Einstellungen",
+      "sidebarConfigFile": "Konfigurationsdatei",
+      "sidebarPlatforms": "Plattformen",
+      "apiKeys": "API-Schlüssel",
+      "subsectionStreamlit": "Streamlit",
+      "subsectionChat": "Chat",
+      "subsectionMonitoring": "Überwachung",
+      "field": {
+        "agent": {
+          "checkTransitionsDelayDesc": "Verzögerung in Sekunden zwischen den einzelnen Zyklen zur Auswertung der Übergänge."
+        },
+        "nlp": {
+          "languageDesc": "Erwartete Sprache des Benutzers (ISO 639-1).",
+          "regionDesc": "Sprachregion (ISO 3166-1 alpha-2).",
+          "timezoneDesc": "Zeitzone für Datums- und Zeitoperationen.",
+          "intentThresholdDesc": "Konfidenzschwelle für Intent-Vorhersagen.",
+          "preProcessingDesc": "Aktiviert Stemming, um Wörter auf ihre Grundform zu reduzieren.",
+          "huggingfaceTokenDesc": "API-Schlüssel für die HuggingFace Inference API.",
+          "openaiApiKeyDesc": "OpenAI-API-Schlüssel für den LLM-Zugriff.",
+          "replicateApiKeyDesc": "Replicate-API-Schlüssel für die Modellinferenz."
+        },
+        "websocket": {
+          "hostDesc": "Serveradresse für WebSocket-Verbindungen.",
+          "portDesc": "Portnummer für den WebSocket-Server.",
+          "streamlitHostDesc": "Hostadresse für die Streamlit-Oberfläche.",
+          "streamlitPortDesc": "Port für die Streamlit-Oberfläche.",
+          "chatSizeDesc": "Standardschriftgröße für den Chat.",
+          "chatFontDesc": "Schriftfamilie für den Chat-Text.",
+          "chatLineSpacingDesc": "Multiplikator für die Zeilenhöhe.",
+          "chatAlignmentDesc": "Horizontale Textausrichtung.",
+          "chatColorDesc": "Einstellung der Textfarbe.",
+          "chatContrastDesc": "Kontraststufe für die Lesbarkeit."
+        },
+        "telegram": {
+          "tokenDesc": "Bot-Authentifizierungstoken für die Telegram-API."
+        },
+        "github": {
+          "personalTokenDesc": "Persönliches Zugriffstoken für die GitHub-API.",
+          "webhookTokenDesc": "Geheimes Token zur Webhook-Verifizierung.",
+          "webhookPortDesc": "Lokaler Serverport, der für GitHub freigegeben ist."
+        },
+        "gitlab": {
+          "personalTokenDesc": "Persönliches Zugriffstoken für die GitLab-API.",
+          "webhookTokenDesc": "Geheimes Token zur Webhook-Verifizierung.",
+          "webhookPortDesc": "Lokaler Serverport, der für GitLab freigegeben ist."
+        },
+        "a2a": {
+          "portDesc": "Lokaler Port für die Kommunikation zwischen Agenten."
+        },
+        "db": {
+          "dialectDesc": "Kennung des Datenbanksystems (z. B. postgresql)",
+          "hostDesc": "Adresse des Datenbankservers",
+          "portDesc": "Port für die Datenbankverbindung",
+          "databaseDesc": "Name der Datenbank",
+          "usernameDesc": "Anmeldedaten des Datenbankbenutzers",
+          "passwordDesc": "Authentifizierungspasswort der Datenbank"
+        }
+      },
+      "section": {
+        "runtime": {
+          "desc": "Laufzeiteinstellungen für das aktive Agentendiagramm. Werden im Diagramm selbst gespeichert, nicht im globalen Speicher."
+        },
+        "agent": {
+          "desc": "Grundlegende Ausführungseinstellungen des Agenten."
+        },
+        "nlp": {
+          "desc": "Einstellungen für die Verarbeitung natürlicher Sprache zur Intent-Erkennung."
+        },
+        "websocket": {
+          "title": "WebSocket",
+          "desc": "Konfiguration des WebSocket-Servers und der Streamlit-Oberfläche."
+        },
+        "telegram": {
+          "title": "Telegram",
+          "desc": "Einstellungen für die Telegram-Bot-Integration."
+        },
+        "github": {
+          "title": "GitHub",
+          "desc": "Einstellungen für die GitHub-Webhook-Integration."
+        },
+        "gitlab": {
+          "title": "GitLab",
+          "desc": "Einstellungen für die GitLab-Webhook-Integration."
+        },
+        "a2a": {
+          "title": "A2A",
+          "desc": "Einstellungen für die Kommunikation zwischen Agenten."
+        },
+        "database": {
+          "title": "Datenbank",
+          "desc": "Datenbankverbindungen für Überwachung und Streamlit."
+        },
+        "custom": {
+          "title": "Benutzerdefiniertes YAML",
+          "desc": "Zusätzliche YAML-Eigenschaften, die am Ende der generierten config.yaml angehängt werden."
+        },
+        "raw": {
+          "desc": "Schreibgeschützte Ansicht der vollständigen generierten config.yaml. Bearbeite einzelne Abschnitte oder füge benutzerdefiniertes YAML hinzu."
+        }
+      }
     },
     "llms": {
       "title": "LLMs",
@@ -443,6 +547,31 @@
         "dbDatabase": "Datenbankname",
         "dbUsername": "Benutzeranmeldedaten für die Datenbank",
         "dbPassword": "Datenbank-Authentifizierungspasswort"
+      },
+      "provider": {
+        "openai": "OpenAI",
+        "mistral": "Mistral AI",
+        "deepseek": "DeepSeek",
+        "google": "Google (Gemini)",
+        "meta": "Meta (Llama)",
+        "anthropic": "Anthropic (Claude)",
+        "qwen": "Alibaba Qwen",
+        "xai": "xAI (Grok)",
+        "groq": "Groq",
+        "together": "Together AI",
+        "openrouter": "OpenRouter",
+        "huggingface": "HuggingFace",
+        "replicate": "Replicate"
+      },
+      "subsection": {
+        "websocket": "websocket",
+        "streamlit": "streamlit",
+        "chat": "chat",
+        "telegram": "telegram",
+        "github": "github",
+        "gitlab": "gitlab",
+        "a2a": "a2a",
+        "monitoring": "monitoring"
       }
     },
     "importExport": {
@@ -2633,6 +2762,84 @@
       "usernamePlaceholder": "YOUR-DB-USERNAME",
       "password": "Passwort",
       "passwordPlaceholder": "YOUR-DB-PASSWORD"
+    }
+  },
+  "agentSimulation": {
+    "defaultDiagramTitle": "Agent",
+    "sidebar": {
+      "simulateAgent": "Agent simulieren"
+    },
+    "panel": {
+      "header": "Simulator: {{title}}",
+      "stop": "Simulation stoppen",
+      "errorTitle": "Simulationsfehler",
+      "tabDiagram": "Diagramm",
+      "tabSource": "Quellcode",
+      "lastTransition": "Letzter Übergang:",
+      "starting": "Simulation wird gestartet…",
+      "restart": "Simulation neu starten",
+      "reset": "Zurücksetzen",
+      "dragToResize": "Zum Ändern der Größe ziehen",
+      "loading": "Der Agent wird geladen, bitte warten."
+    },
+    "codeViewer": {
+      "copyTitle": "Code kopieren",
+      "copyLabel": "Generierten Agentencode kopieren",
+      "emptyTitle": "Der generierte Code wird hier angezeigt",
+      "emptyDescription": "Führe den Validierungsschritt aus, um den Agentencode in der Vorschau anzuzeigen.",
+      "header": "Generierter Agentencode"
+    },
+    "diagram": {
+      "currentState": "Aktueller Zustand:",
+      "hide": "Ausblenden",
+      "view": "Anzeigen",
+      "transitions_one": "{{count}} Übergang",
+      "transitions_other": "{{count}} Übergänge",
+      "empty": "Kein Agentendiagramm verfügbar"
+    },
+    "fileExplorer": {
+      "copy": "Dateiinhalt kopieren",
+      "noSessionTitle": "Keine aktive Testsitzung",
+      "noSessionDescription": "Starte eine Testsitzung, um die generierten Dateien zu erkunden.",
+      "loading": "Sitzungsdateien werden geladen…",
+      "filesTitle": "Dateien",
+      "refresh": "Dateien aktualisieren",
+      "noFiles": "Keine Dateien oder Ordner gefunden",
+      "selectFile": "Wähle eine Datei aus, um ihren Inhalt anzuzeigen"
+    },
+    "chat": {
+      "websocketError": "WebSocket-Verbindungsfehler.",
+      "sensitivityWarning": "Teile im Test-Chat keine sensiblen personenbezogenen Daten. Sitzungen können protokolliert werden."
+    },
+    "terminal": {
+      "expand": "Terminal erweitern",
+      "collapse": "Terminal einklappen",
+      "header": "Agentenausgabe",
+      "empty": "Noch keine Ausgabe…"
+    },
+    "credentials": {
+      "sensitivityWarning": "Teile im Simulations-Chat keine sensiblen personenbezogenen Daten (Passwörter, persönliche Daten, vertrauliche Dokumente). Simulationssitzungen werden protokolliert und können für Betreiber dieses Editors sichtbar sein.",
+      "title": "Agent simulieren: {{name}}",
+      "apiKeysTitle": "API-Schlüssel",
+      "ownKeys": "Eigene API-Schlüssel verwenden",
+      "editorQuota": "Editor-Kontingent verwenden",
+      "openAiLabel": "OpenAI-API-Schlüssel",
+      "optional": "(optional)",
+      "openAiPlaceholder": "sk-...",
+      "huggingFaceLabel": "HuggingFace-API-Token",
+      "huggingFacePlaceholder": "hf_...",
+      "replicateLabel": "Replicate-API-Schlüssel",
+      "replicatePlaceholder": "r8_...",
+      "limitsTitle": "Ressourcenlimits",
+      "memory": "Arbeitsspeicher",
+      "unitMb": " MB",
+      "cpu": "CPU",
+      "unitCores": " Kern(e)",
+      "disk": "Festplatte",
+      "lifetime": "Sitzungsdauer",
+      "unitMin": " min",
+      "validationError": "Validierung fehlgeschlagen — der Agentencode konnte nicht generiert werden:",
+      "start": "Simulation starten"
     }
   }
 }

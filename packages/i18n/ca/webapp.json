@@ -188,7 +188,111 @@
       "intentLlmBased": "Basat en LLM",
       "llm": "LLM",
       "useDefault": "(utilitza el predeterminat)",
-      "defineLlmHint": "Defineix un LLM a la secció d'LLMs de sota per fer-lo servir aquí."
+      "defineLlmHint": "Defineix un LLM a la secció d'LLMs de sota per fer-lo servir aquí.",
+      "defineLlmsHint": "Defineix els LLM a la pàgina <strong>Components de l’agent</strong>.",
+      "enabled": "Activat",
+      "boolTrue": "Cert",
+      "boolFalse": "Fals",
+      "sidebarSettings": "Configuració",
+      "sidebarConfigFile": "Fitxer de configuració",
+      "sidebarPlatforms": "Plataformes",
+      "apiKeys": "Claus d’API",
+      "subsectionStreamlit": "Streamlit",
+      "subsectionChat": "Chat",
+      "subsectionMonitoring": "Monitoratge",
+      "field": {
+        "agent": {
+          "checkTransitionsDelayDesc": "Retard en segons entre cada cicle d’avaluació de transicions."
+        },
+        "nlp": {
+          "languageDesc": "Idioma esperat de l’usuari (ISO 639-1).",
+          "regionDesc": "Regió de l’idioma (ISO 3166-1 alpha-2).",
+          "timezoneDesc": "Zona horària per a les operacions de data i hora.",
+          "intentThresholdDesc": "Llindar de confiança per a les prediccions d’intenció.",
+          "preProcessingDesc": "Activa la lematització per reduir les paraules a la seva forma base.",
+          "huggingfaceTokenDesc": "Clau d’API per a l’API d’inferència de HuggingFace.",
+          "openaiApiKeyDesc": "Clau d’API d’OpenAI per accedir al LLM.",
+          "replicateApiKeyDesc": "Clau d’API de Replicate per a la inferència de models."
+        },
+        "websocket": {
+          "hostDesc": "Adreça del servidor per a les connexions WebSocket.",
+          "portDesc": "Número de port del servidor WebSocket.",
+          "streamlitHostDesc": "Adreça de l’amfitrió per a la interfície de Streamlit.",
+          "streamlitPortDesc": "Port per a la interfície de Streamlit.",
+          "chatSizeDesc": "Mida de lletra predeterminada per al xat.",
+          "chatFontDesc": "Família tipogràfica del text del xat.",
+          "chatLineSpacingDesc": "Multiplicador de l’alçada de línia.",
+          "chatAlignmentDesc": "Alineació horitzontal del text.",
+          "chatColorDesc": "Ajust del color del text.",
+          "chatContrastDesc": "Nivell de contrast per a la llegibilitat."
+        },
+        "telegram": {
+          "tokenDesc": "Token d’autenticació del bot per a l’API de Telegram."
+        },
+        "github": {
+          "personalTokenDesc": "Token d’accés personal per a l’API de GitHub.",
+          "webhookTokenDesc": "Token secret per a la verificació del webhook.",
+          "webhookPortDesc": "Port del servidor local exposat a GitHub."
+        },
+        "gitlab": {
+          "personalTokenDesc": "Token d’accés personal per a l’API de GitLab.",
+          "webhookTokenDesc": "Token secret per a la verificació del webhook.",
+          "webhookPortDesc": "Port del servidor local exposat a GitLab."
+        },
+        "a2a": {
+          "portDesc": "Port local per a la comunicació entre agents."
+        },
+        "db": {
+          "dialectDesc": "Identificador del sistema de base de dades (p. ex. postgresql)",
+          "hostDesc": "Adreça del servidor de base de dades",
+          "portDesc": "Port de connexió a la base de dades",
+          "databaseDesc": "Nom de la base de dades",
+          "usernameDesc": "Credencials de l’usuari de la base de dades",
+          "passwordDesc": "Contrasenya d’autenticació de la base de dades"
+        }
+      },
+      "section": {
+        "runtime": {
+          "desc": "Configuració d’execució del diagrama d’agent actiu. Es desa en el mateix diagrama, no en l’emmagatzematge global."
+        },
+        "agent": {
+          "desc": "Configuració principal d’execució de l’agent."
+        },
+        "nlp": {
+          "desc": "Configuració del processament del llenguatge natural per al reconeixement d’intencions."
+        },
+        "websocket": {
+          "title": "WebSocket",
+          "desc": "Configuració del servidor WebSocket i de la interfície de Streamlit."
+        },
+        "telegram": {
+          "title": "Telegram",
+          "desc": "Configuració de la integració del bot de Telegram."
+        },
+        "github": {
+          "title": "GitHub",
+          "desc": "Configuració de la integració del webhook de GitHub."
+        },
+        "gitlab": {
+          "title": "GitLab",
+          "desc": "Configuració de la integració del webhook de GitLab."
+        },
+        "a2a": {
+          "title": "A2A",
+          "desc": "Configuració de la comunicació entre agents."
+        },
+        "database": {
+          "title": "Base de dades",
+          "desc": "Connexions de base de dades per al monitoratge i Streamlit."
+        },
+        "custom": {
+          "title": "YAML personalitzat",
+          "desc": "Propietats YAML addicionals afegides al final del config.yaml generat."
+        },
+        "raw": {
+          "desc": "Vista de només lectura del config.yaml generat complet. Edita seccions individuals o afegeix YAML personalitzat."
+        }
+      }
     },
     "llms": {
       "title": "LLMs",
@@ -443,6 +547,31 @@
         "dbDatabase": "Nom de la base de dades",
         "dbUsername": "Credencials d'usuari de la base de dades",
         "dbPassword": "Contrasenya d'autenticació de la base de dades"
+      },
+      "provider": {
+        "openai": "OpenAI",
+        "mistral": "Mistral AI",
+        "deepseek": "DeepSeek",
+        "google": "Google (Gemini)",
+        "meta": "Meta (Llama)",
+        "anthropic": "Anthropic (Claude)",
+        "qwen": "Alibaba Qwen",
+        "xai": "xAI (Grok)",
+        "groq": "Groq",
+        "together": "Together AI",
+        "openrouter": "OpenRouter",
+        "huggingface": "HuggingFace",
+        "replicate": "Replicate"
+      },
+      "subsection": {
+        "websocket": "websocket",
+        "streamlit": "streamlit",
+        "chat": "chat",
+        "telegram": "telegram",
+        "github": "github",
+        "gitlab": "gitlab",
+        "a2a": "a2a",
+        "monitoring": "monitoring"
       }
     },
     "importExport": {
@@ -2633,6 +2762,84 @@
       "usernamePlaceholder": "YOUR-DB-USERNAME",
       "password": "Contrasenya",
       "passwordPlaceholder": "YOUR-DB-PASSWORD"
+    }
+  },
+  "agentSimulation": {
+    "defaultDiagramTitle": "Agent",
+    "sidebar": {
+      "simulateAgent": "Simula l’agent"
+    },
+    "panel": {
+      "header": "Simulador: {{title}}",
+      "stop": "Atura la simulació",
+      "errorTitle": "Error de simulació",
+      "tabDiagram": "Diagrama",
+      "tabSource": "Codi font",
+      "lastTransition": "Última transició:",
+      "starting": "Iniciant la simulació…",
+      "restart": "Reinicia la simulació",
+      "reset": "Restableix",
+      "dragToResize": "Arrossega per redimensionar",
+      "loading": "L’agent s’està carregant, espera un moment."
+    },
+    "codeViewer": {
+      "copyTitle": "Copia el codi",
+      "copyLabel": "Copia el codi de l’agent generat",
+      "emptyTitle": "El codi generat apareixerà aquí",
+      "emptyDescription": "Executa el pas de validació per previsualitzar el codi de l’agent.",
+      "header": "Codi de l’agent generat"
+    },
+    "diagram": {
+      "currentState": "Estat actual:",
+      "hide": "Amaga",
+      "view": "Mostra",
+      "transitions_one": "{{count}} transició",
+      "transitions_other": "{{count}} transicions",
+      "empty": "No hi ha cap diagrama d’agent disponible"
+    },
+    "fileExplorer": {
+      "copy": "Copia el contingut del fitxer",
+      "noSessionTitle": "No hi ha cap sessió de prova activa",
+      "noSessionDescription": "Inicia una sessió de prova per explorar els fitxers generats.",
+      "loading": "Carregant els fitxers de la sessió…",
+      "filesTitle": "Fitxers",
+      "refresh": "Actualitza els fitxers",
+      "noFiles": "No s’ha trobat cap fitxer ni carpeta",
+      "selectFile": "Selecciona un fitxer per veure’n el contingut"
+    },
+    "chat": {
+      "websocketError": "Error de connexió WebSocket.",
+      "sensitivityWarning": "No comparteixis informació personal sensible al xat de prova. Les sessions es poden registrar."
+    },
+    "terminal": {
+      "expand": "Expandeix el terminal",
+      "collapse": "Redueix el terminal",
+      "header": "Sortida de l’agent",
+      "empty": "Encara no hi ha cap sortida…"
+    },
+    "credentials": {
+      "sensitivityWarning": "No comparteixis informació personal sensible (contrasenyes, dades personals, documents confidencials) al xat de simulació. Les sessions de simulació es registren i poden ser visibles per als operadors d’aquest editor.",
+      "title": "Simula l’agent: {{name}}",
+      "apiKeysTitle": "Claus d’API",
+      "ownKeys": "Usa les meves pròpies claus d’API",
+      "editorQuota": "Usa la quota de l’editor",
+      "openAiLabel": "Clau d’API d’OpenAI",
+      "optional": "(opcional)",
+      "openAiPlaceholder": "sk-...",
+      "huggingFaceLabel": "Token d’API de HuggingFace",
+      "huggingFacePlaceholder": "hf_...",
+      "replicateLabel": "Clau d’API de Replicate",
+      "replicatePlaceholder": "r8_...",
+      "limitsTitle": "Límits de recursos",
+      "memory": "Memòria",
+      "unitMb": " MB",
+      "cpu": "CPU",
+      "unitCores": " nucli(s)",
+      "disk": "Disc",
+      "lifetime": "Durada de la sessió",
+      "unitMin": " min",
+      "validationError": "La validació ha fallat: no s’ha pogut generar el codi de l’agent:",
+      "start": "Inicia la simulació"
     }
   }
 }

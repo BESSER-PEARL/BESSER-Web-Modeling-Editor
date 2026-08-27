@@ -155,18 +155,18 @@ const WorkspaceSidebarInner: React.FC<WorkspaceSidebarProps> = ({
                 }`}
               >
                 {onTestAgent && (
-                  <SidebarTooltip label="Simulate Agent" collapsed={isCollapsed}>
+                  <SidebarTooltip label={t('agentSimulation.sidebar.simulateAgent')} collapsed={isCollapsed}>
                     <button
                       type="button"
                       className={`${navButtonClass(locationPath === '/agent-simulation', isSidebarExpanded, isDarkTheme)} ${
                         isSidebarExpanded ? 'mt-1 pl-7 text-xs' : 'mt-1'
                       }`}
                       onClick={onTestAgent}
-                      title={isSidebarExpanded ? 'Simulate Agent' : undefined}
-                      aria-label="Simulate Agent"
+                      title={isSidebarExpanded ? t('agentSimulation.sidebar.simulateAgent') : undefined}
+                      aria-label={t('agentSimulation.sidebar.simulateAgent')}
                     >
                       <FlaskConical className="size-4" />
-                      {isSidebarExpanded && <span>Simulate Agent</span>}
+                      {isSidebarExpanded && <span>{t('agentSimulation.sidebar.simulateAgent')}</span>}
                     </button>
                   </SidebarTooltip>
                 )}

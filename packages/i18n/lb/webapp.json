@@ -188,7 +188,111 @@
       "intentLlmBased": "LLM-baséiert",
       "llm": "LLM",
       "useDefault": "(Standard benotzen)",
-      "defineLlmHint": "Definéiert en LLM an der LLMs-Sektioun hei drënner fir en hei ze benotzen."
+      "defineLlmHint": "Definéiert en LLM an der LLMs-Sektioun hei drënner fir en hei ze benotzen.",
+      "defineLlmsHint": "Definéier LLMen op der Säit <strong>Agent-Komponenten</strong>.",
+      "enabled": "Aktivéiert",
+      "boolTrue": "Wouer",
+      "boolFalse": "Falsch",
+      "sidebarSettings": "Astellungen",
+      "sidebarConfigFile": "Konfiguratiounsdatei",
+      "sidebarPlatforms": "Plattformen",
+      "apiKeys": "API-Schlësselen",
+      "subsectionStreamlit": "Streamlit",
+      "subsectionChat": "Chat",
+      "subsectionMonitoring": "Iwwerwaachung",
+      "field": {
+        "agent": {
+          "checkTransitionsDelayDesc": "Verzögerung a Sekonnen tëschent all Zyklus vun der Iwwergangsevaluatioun."
+        },
+        "nlp": {
+          "languageDesc": "Erwaart Sprooch vum Benotzer (ISO 639-1).",
+          "regionDesc": "Sproochregioun (ISO 3166-1 alpha-2).",
+          "timezoneDesc": "Zäitzon fir Datums- an Zäitoperatiounen.",
+          "intentThresholdDesc": "Vertrauensschwell fir d’Intent-Prognosen.",
+          "preProcessingDesc": "Aktivéiert Stemming, fir Wierder op hir Grondform ze reduzéieren.",
+          "huggingfaceTokenDesc": "API-Schlëssel fir d’HuggingFace Inference API.",
+          "openaiApiKeyDesc": "OpenAI-API-Schlëssel fir den LLM-Zougang.",
+          "replicateApiKeyDesc": "Replicate-API-Schlëssel fir d’Modellinferenz."
+        },
+        "websocket": {
+          "hostDesc": "Serveradress fir WebSocket-Verbindungen.",
+          "portDesc": "Portnummer fir de WebSocket-Server.",
+          "streamlitHostDesc": "Hostadress fir d’Streamlit-Uewerfläch.",
+          "streamlitPortDesc": "Port fir d’Streamlit-Uewerfläch.",
+          "chatSizeDesc": "Standard-Schrëftgréisst fir de Chat.",
+          "chatFontDesc": "Schrëftfamill fir den Chat-Text.",
+          "chatLineSpacingDesc": "Multiplikator fir d’Zeilenhéicht.",
+          "chatAlignmentDesc": "Horizontal Textausriichtung.",
+          "chatColorDesc": "Astellung vun der Textfaarf.",
+          "chatContrastDesc": "Kontraschtniveau fir d’Liesbarkeet."
+        },
+        "telegram": {
+          "tokenDesc": "Bot-Authentifikatiounstoken fir d’Telegram-API."
+        },
+        "github": {
+          "personalTokenDesc": "Perséinlechen Zougangstoken fir d’GitHub-API.",
+          "webhookTokenDesc": "Geheimen Token fir d’Webhook-Verifikatioun.",
+          "webhookPortDesc": "Lokale Serverport, dee fir GitHub verfügbar ass."
+        },
+        "gitlab": {
+          "personalTokenDesc": "Perséinlechen Zougangstoken fir d’GitLab-API.",
+          "webhookTokenDesc": "Geheimen Token fir d’Webhook-Verifikatioun.",
+          "webhookPortDesc": "Lokale Serverport, dee fir GitLab verfügbar ass."
+        },
+        "a2a": {
+          "portDesc": "Lokale Port fir d’Kommunikatioun tëschent Agenten."
+        },
+        "db": {
+          "dialectDesc": "Identifizéierer vum Datebanksystem (z. B. postgresql)",
+          "hostDesc": "Adress vum Datebankserver",
+          "portDesc": "Port fir d’Datebankverbindung",
+          "databaseDesc": "Numm vun der Datebank",
+          "usernameDesc": "Login-Donnéeë vum Datebankbenotzer",
+          "passwordDesc": "Authentifikatiounspasswuert vun der Datebank"
+        }
+      },
+      "section": {
+        "runtime": {
+          "desc": "Runtime-Astellungen fir dat aktivt Agentendiagramm. Ginn am Diagramm selwer gespäichert, net am globale Späicher."
+        },
+        "agent": {
+          "desc": "Grondleeënd Ausféierungsastellungen vum Agent."
+        },
+        "nlp": {
+          "desc": "Astellunge fir d’Veraarbechtung vun natierlecher Sprooch fir d’Intent-Erkennung."
+        },
+        "websocket": {
+          "title": "WebSocket",
+          "desc": "Konfiguratioun vum WebSocket-Server an der Streamlit-Uewerfläch."
+        },
+        "telegram": {
+          "title": "Telegram",
+          "desc": "Astellunge fir d’Telegram-Bot-Integratioun."
+        },
+        "github": {
+          "title": "GitHub",
+          "desc": "Astellunge fir d’GitHub-Webhook-Integratioun."
+        },
+        "gitlab": {
+          "title": "GitLab",
+          "desc": "Astellunge fir d’GitLab-Webhook-Integratioun."
+        },
+        "a2a": {
+          "title": "A2A",
+          "desc": "Astellunge fir d’Kommunikatioun tëschent Agenten."
+        },
+        "database": {
+          "title": "Datebank",
+          "desc": "Datebankverbindunge fir d’Iwwerwaachung a Streamlit."
+        },
+        "custom": {
+          "title": "Personaliséiert YAML",
+          "desc": "Zousätzlech YAML-Eegeschaften, déi um Enn vun der generéierter config.yaml ugehaange ginn."
+        },
+        "raw": {
+          "desc": "Nëmme-liesen-Usiicht vun der komplett generéierter config.yaml. Änner eenzel Sektiounen oder füüg personaliséiert YAML derbäi."
+        }
+      }
     },
     "llms": {
       "title": "LLMs",
@@ -443,6 +547,31 @@
         "dbDatabase": "Numm vun der Datebank",
         "dbUsername": "Benotzeruganksdaten fir d'Datebank",
         "dbPassword": "Datebank-Authentifikatiounspasswuert"
+      },
+      "provider": {
+        "openai": "OpenAI",
+        "mistral": "Mistral AI",
+        "deepseek": "DeepSeek",
+        "google": "Google (Gemini)",
+        "meta": "Meta (Llama)",
+        "anthropic": "Anthropic (Claude)",
+        "qwen": "Alibaba Qwen",
+        "xai": "xAI (Grok)",
+        "groq": "Groq",
+        "together": "Together AI",
+        "openrouter": "OpenRouter",
+        "huggingface": "HuggingFace",
+        "replicate": "Replicate"
+      },
+      "subsection": {
+        "websocket": "websocket",
+        "streamlit": "streamlit",
+        "chat": "chat",
+        "telegram": "telegram",
+        "github": "github",
+        "gitlab": "gitlab",
+        "a2a": "a2a",
+        "monitoring": "monitoring"
       }
     },
     "importExport": {
@@ -2633,6 +2762,84 @@
       "usernamePlaceholder": "YOUR-DB-USERNAME",
       "password": "Passwuert",
       "passwordPlaceholder": "YOUR-DB-PASSWORD"
+    }
+  },
+  "agentSimulation": {
+    "defaultDiagramTitle": "Agent",
+    "sidebar": {
+      "simulateAgent": "Agent simuléieren"
+    },
+    "panel": {
+      "header": "Simulator: {{title}}",
+      "stop": "Simulatioun stoppen",
+      "errorTitle": "Simulatiounsfeeler",
+      "tabDiagram": "Diagramm",
+      "tabSource": "Quellcode",
+      "lastTransition": "Leschten Iwwergang:",
+      "starting": "Simulatioun start…",
+      "restart": "Simulatioun nei starten",
+      "reset": "Zerécksetzen",
+      "dragToResize": "Zéien fir d’Gréisst z’änneren",
+      "loading": "Den Agent gëtt gelueden, wann ech gelift waart."
+    },
+    "codeViewer": {
+      "copyTitle": "Code kopéieren",
+      "copyLabel": "Generéierten Agentencode kopéieren",
+      "emptyTitle": "De generéierte Code erschéngt hei",
+      "emptyDescription": "Féier de Validéierungsschrëtt aus, fir den Agentencode als Virschau ze weisen.",
+      "header": "Generéierten Agentencode"
+    },
+    "diagram": {
+      "currentState": "Aktuellen Zoustand:",
+      "hide": "Verstoppen",
+      "view": "Weisen",
+      "transitions_one": "{{count}} Iwwergang",
+      "transitions_other": "{{count}} Iwwergäng",
+      "empty": "Keen Agentendiagramm verfügbar"
+    },
+    "fileExplorer": {
+      "copy": "Dateiinhalt kopéieren",
+      "noSessionTitle": "Keng aktiv Testsitzung",
+      "noSessionDescription": "Start eng Testsitzung, fir déi generéiert Dateien z’entdecken.",
+      "loading": "Sitzungsdateie ginn gelueden…",
+      "filesTitle": "Dateien",
+      "refresh": "Dateien aktualiséieren",
+      "noFiles": "Keng Dateien oder Dossiere fonnt",
+      "selectFile": "Wiel eng Datei aus, fir hiren Inhalt ze weisen"
+    },
+    "chat": {
+      "websocketError": "WebSocket-Verbindungsfeeler.",
+      "sensitivityWarning": "Deel am Test-Chat keng sensibel perséinlech Informatiounen. Sitzunge kënne protokolléiert ginn."
+    },
+    "terminal": {
+      "expand": "Terminal opklappen",
+      "collapse": "Terminal zesummeklappen",
+      "header": "Agentenausgab",
+      "empty": "Nach keng Ausgab…"
+    },
+    "credentials": {
+      "sensitivityWarning": "Deel am Simulatiouns-Chat keng sensibel perséinlech Informatiounen (Passwierder, perséinlech Donnéeën, vertraulech Dokumenter). Simulatiounssitzunge ginn protokolléiert a kënne fir d’Bedreiwer vun dësem Editor siichtbar sinn.",
+      "title": "Agent simuléieren: {{name}}",
+      "apiKeysTitle": "API-Schlësselen",
+      "ownKeys": "Meng eege API-Schlësselen benotzen",
+      "editorQuota": "Editor-Kontingent benotzen",
+      "openAiLabel": "OpenAI-API-Schlëssel",
+      "optional": "(fakultativ)",
+      "openAiPlaceholder": "sk-...",
+      "huggingFaceLabel": "HuggingFace-API-Token",
+      "huggingFacePlaceholder": "hf_...",
+      "replicateLabel": "Replicate-API-Schlëssel",
+      "replicatePlaceholder": "r8_...",
+      "limitsTitle": "Ressourcelimiten",
+      "memory": "Späicher",
+      "unitMb": " MB",
+      "cpu": "CPU",
+      "unitCores": " Kär(en)",
+      "disk": "Disk",
+      "lifetime": "Sitzungsdauer",
+      "unitMin": " min",
+      "validationError": "Validéierung feelgeschloen — den Agentencode konnt net generéiert ginn:",
+      "start": "Simulatioun starten"
     }
   }
 }

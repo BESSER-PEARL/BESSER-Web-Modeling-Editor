@@ -1,4 +1,5 @@
 import React, { useEffect, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import { ChevronDown, ChevronUp, Terminal } from 'lucide-react';
 import { useAppSelector } from '@/main/app/store/hooks';
 import { selectStdoutLines } from '@/main/features/agent-simulation';
@@ -11,6 +12,7 @@ interface TerminalPaneProps {
 }
 
 export const TerminalPane: React.FC<TerminalPaneProps> = ({ isCollapsed, onToggleCollapse }) => {
+  const { t } = useTranslation();
   const lines = useAppSelector(selectStdoutLines);
   const bottomRef = useRef<HTMLDivElement>(null);
 
@@ -31,11 +33,11 @@ export const TerminalPane: React.FC<TerminalPaneProps> = ({ isCollapsed, onToggl
         onClick={onToggleCollapse}
         className="flex w-full items-center justify-between bg-gray-100 px-3 py-1.5 text-gray-600 transition-colors hover:bg-gray-200 dark:bg-gray-900 dark:text-gray-300 dark:hover:bg-gray-800"
         aria-expanded={!isCollapsed}
-        aria-label={isCollapsed ? 'Expand terminal' : 'Collapse terminal'}
+        aria-label={isCollapsed ? t('agentSimulation.terminal.expand') : t('agentSimulation.terminal.collapse')}
       >
         <div className="flex items-center gap-2">
           <Terminal className="size-3.5 text-teal-600 dark:text-green-400" />
-          <span className="text-xs font-medium">Agent Output</span>
+          <span className="text-xs font-medium">{t('agentSimulation.terminal.header')}</span>
           {isCollapsed && lines.length > 0 && (
             <span className="rounded-full bg-gray-300 px-1.5 py-0.5 text-[10px] font-medium text-gray-600 dark:bg-gray-700 dark:text-gray-300">
               {lines.length}
@@ -53,7 +55,7 @@ export const TerminalPane: React.FC<TerminalPaneProps> = ({ isCollapsed, onToggl
       {!isCollapsed && (
         <div className="h-48 overflow-y-auto bg-gray-50 p-2 font-mono dark:bg-gray-950">
           {displayedLines.length === 0 ? (
-            <p className="text-[11px] italic text-gray-400 dark:text-gray-600">No output yet…</p>
+            <p className="text-[11px] italic text-gray-400 dark:text-gray-600">{t('agentSimulation.terminal.empty')}</p>
           ) : (
             displayedLines.map((line, index) => {
               const isError =

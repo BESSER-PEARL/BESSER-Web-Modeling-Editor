@@ -1,6 +1,7 @@
 import 'besser-agentic-framework-ui/style.css';
 import './bafChatOverrides.css';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   ChatArea,
   PayloadAction,
@@ -199,6 +200,7 @@ function parseHistoryMessages(message: unknown): ChatMessage[] {
 }
 
 export const BafChatWrapper: React.FC<BafChatWrapperProps> = () => {
+  const { t } = useTranslation();
   const dispatch = useAppDispatch();
   const sessionId = useAppSelector(selectSessionId);
   const status = useAppSelector(selectAgentSimulationStatus);
@@ -242,7 +244,7 @@ export const BafChatWrapper: React.FC<BafChatWrapperProps> = () => {
 
     ws.onerror = () => {
       setWsStatus('error');
-      dispatch(setError('WebSocket connection error.'));
+      dispatch(setError(t('agentSimulation.chat.websocketError')));
     };
 
     ws.onmessage = (event) => {
@@ -346,7 +348,7 @@ export const BafChatWrapper: React.FC<BafChatWrapperProps> = () => {
         <div className="flex items-start gap-2 bg-amber-50/70 px-3 py-2 dark:bg-amber-950/20">
           <AlertTriangle className="mt-0.5 size-3.5 shrink-0 text-amber-600 dark:text-amber-400" />
           <p className="text-[10px] leading-snug text-amber-700 dark:text-amber-300">
-            Do not share sensitive personal information in the test chat. Sessions may be logged.
+            {t('agentSimulation.chat.sensitivityWarning')}
           </p>
         </div>
       </div>

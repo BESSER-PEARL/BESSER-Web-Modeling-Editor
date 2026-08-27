@@ -150,36 +150,42 @@ const ResizableCodeMirrorWrapper = styled.div`
 
 // ─── Static data ──────────────────────────────────────────────────────────────
 
+// These arrays live at module scope, so they cannot call this.props.translate.
+// Instead they hold i18n KEYS, resolved at render time. `value` is used in
+// logic (persisted on the model / matched in code) and is NEVER translated.
+// The custom-event labels are technical identifiers (DummyEvent, GUIEvent, …)
+// used as the display label AND stored value, so they intentionally stay in
+// English; only the descriptions are translated.
 const PREDEFINED_TRANSITIONS = [
   {
     value: 'auto',
-    label: 'Auto',
-    description: 'Fires automatically when the state body finishes executing, without waiting for any user input.',
+    labelKey: 'packages.AgentDiagram.transitionLabel.auto',
+    descriptionKey: 'packages.AgentDiagram.transitionDesc.auto',
   },
   {
     value: 'when_intent_matched',
-    label: 'Intent Matched',
-    description: "Fires when the user's message is classified as matching a specific intent.",
+    labelKey: 'packages.AgentDiagram.transitionLabel.intentMatched',
+    descriptionKey: 'packages.AgentDiagram.transitionDesc.intentMatched',
   },
   {
     value: 'when_no_intent_matched',
-    label: 'No Intent Matched',
-    description: "Fires when none of the defined intents match the user's message.",
+    labelKey: 'packages.AgentDiagram.transitionLabel.noIntentMatched',
+    descriptionKey: 'packages.AgentDiagram.transitionDesc.noIntentMatched',
   },
   {
     value: 'when_variable_operation_matched',
-    label: 'Variable Operation Matched',
-    description: 'Fires when a session variable satisfies a comparison condition (e.g. score > 10).',
+    labelKey: 'packages.AgentDiagram.transitionLabel.variableOperationMatched',
+    descriptionKey: 'packages.AgentDiagram.transitionDesc.variableOperationMatched',
   },
   {
     value: 'when_file_received',
-    label: 'File Received',
-    description: 'Fires when the user sends a file upload. Optionally restrict to specific file types.',
+    labelKey: 'packages.AgentDiagram.transitionLabel.fileReceived',
+    descriptionKey: 'packages.AgentDiagram.transitionDesc.fileReceived',
   },
   {
     value: 'when_form_submitted',
-    label: 'Form Submitted',
-    description: 'Fires when the user submits a GUI form. Optionally target a specific form.',
+    labelKey: 'packages.AgentDiagram.transitionLabel.formSubmitted',
+    descriptionKey: 'packages.AgentDiagram.transitionDesc.formSubmitted',
   },
 ] as const;
 
@@ -187,42 +193,42 @@ const CUSTOM_EVENTS = [
   {
     value: 'None',
     label: 'None',
-    description: 'No event required. The transition fires without waiting for any event.',
+    descriptionKey: 'packages.AgentDiagram.customEventDesc.none',
   },
   {
     value: 'DummyEvent',
     label: 'DummyEvent',
-    description: 'A placeholder event used for testing. Does not correspond to any real user action.',
+    descriptionKey: 'packages.AgentDiagram.customEventDesc.dummyEvent',
   },
   {
     value: 'WildcardEvent',
     label: 'WildcardEvent',
-    description: 'Matches any incoming event. Useful as a catch-all transition.',
+    descriptionKey: 'packages.AgentDiagram.customEventDesc.wildcardEvent',
   },
   {
     value: 'ReceiveMessageEvent',
     label: 'ReceiveMessageEvent',
-    description: 'Fires when any message is received from the user, regardless of type.',
+    descriptionKey: 'packages.AgentDiagram.customEventDesc.receiveMessageEvent',
   },
   {
     value: 'ReceiveTextEvent',
     label: 'ReceiveTextEvent',
-    description: 'Fires when a plain text message is received from the user.',
+    descriptionKey: 'packages.AgentDiagram.customEventDesc.receiveTextEvent',
   },
   {
     value: 'ReceiveJSONEvent',
     label: 'ReceiveJSONEvent',
-    description: 'Fires when a JSON-structured message is received from the user.',
+    descriptionKey: 'packages.AgentDiagram.customEventDesc.receiveJsonEvent',
   },
   {
     value: 'ReceiveFileEvent',
     label: 'ReceiveFileEvent',
-    description: 'Fires when the user sends a file.',
+    descriptionKey: 'packages.AgentDiagram.customEventDesc.receiveFileEvent',
   },
   {
     value: 'GUIEvent',
     label: 'GUIEvent',
-    description: 'Fires when the user interacts with a GUI component (e.g. clicks a button or submits a form).',
+    descriptionKey: 'packages.AgentDiagram.customEventDesc.guiEvent',
   },
 ] as const;
 
@@ -394,13 +400,13 @@ class AgentStateTransitionUpdateClass extends Component<Props, State> {
                       })
                     }
                   >
-                    {t.label}
+                    {this.props.translate(t.labelKey)}
                   </OptionBtn>
                 ))}
               </OptionList>
 
               {activePredefinedInfo && (
-                <OptionDesc>{activePredefinedInfo.description}</OptionDesc>
+                <OptionDesc>{this.props.translate(activePredefinedInfo.descriptionKey)}</OptionDesc>
               )}
 
               {/* Parameters for predefined types that have them */}
@@ -520,7 +526,7 @@ class AgentStateTransitionUpdateClass extends Component<Props, State> {
               </OptionList>
 
               {activeEventInfo && (
-                <OptionDesc>{activeEventInfo.description}</OptionDesc>
+                <OptionDesc>{this.props.translate(activeEventInfo.descriptionKey)}</OptionDesc>
               )}
 
               {/* GUIEvent GUI selector */}
