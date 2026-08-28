@@ -34,6 +34,7 @@ const WorkspaceTopBarInner: React.FC<WorkspaceTopBarProps> = ({
   onImportBpmnDiagram,
   onOpenAssistantImportImage,
   onOpenAssistantImportKg,
+  onImportOwl,
   onOpenProjectPreview,
   onGenerate,
   onQualityCheck,
@@ -110,6 +111,7 @@ const WorkspaceTopBarInner: React.FC<WorkspaceTopBarProps> = ({
             onImportBpmnDiagram={onImportBpmnDiagram}
             onOpenAssistantImportImage={onOpenAssistantImportImage}
             onOpenAssistantImportKg={onOpenAssistantImportKg}
+            onImportOwl={onImportOwl}
             onOpenProjectPreview={onOpenProjectPreview}
           />
           <GenerateMenu

@@ -50,13 +50,15 @@
       "user": "User",
       "neuralNet": "Neural Net",
       "gui": "GUI",
-      "quantum": "Quantum"
+      "quantum": "Quantum",
+      "kg": "KG"
     },
     "route": {
       "settings": "Settings",
       "agentCustomization": "Agent Customization",
       "agentPersonalization": "Agent Personalization",
-      "agentMappings": "Agent Mappings"
+      "agentMappings": "Agent Mappings",
+      "kgSettings": "KG Settings"
     }
   },
   "menu": {
@@ -69,6 +71,7 @@
       "importClassDiagramFrom": "Import Class Diagram from",
       "imageToProject": "Image to Project",
       "kgToProject": "KG to Project",
+      "importKgOwl": "Import KG (OWL)",
       "previewProject": "Preview Project"
     },
     "generate": {
@@ -81,7 +84,9 @@
         "database": "Database",
         "oop": "OOP",
         "schema": "Schema",
-        "data": "Data"
+        "data": "Data",
+        "kgConvert": "Convert to B-UML",
+        "kgExport": "Export Knowledge Graph"
       },
       "actions": {
         "djangoProject": "Django Project",
@@ -93,11 +98,19 @@
         "besserAgent": "BESSER Agent",
         "jsonObjectExport": "JSON Object Export",
         "userProfileJson": "User Profile JSON",
-        "qiskitCode": "Qiskit Code"
+        "qiskitCode": "Qiskit Code",
+        "kgToClassDiagram": "Class Diagram",
+        "kgExportWithOptions": "Export with options…"
       },
       "notices": {
         "statemachine": "State machines are used as method implementations in Class Diagrams. Generate code from the Class Diagram.",
         "unavailable": "Not yet available for this diagram"
+      },
+      "kgGuards": {
+        "openKgBeforeConverting": "Open a Knowledge Graph diagram before converting to UML.",
+        "openKgBeforeRefining": "Open a Knowledge Graph diagram before refining.",
+        "openKgBeforeExporting": "Open a Knowledge Graph diagram before exporting.",
+        "exportFailed": "KG export failed."
       }
     },
     "deploy": {
@@ -830,6 +843,10 @@
             "label": "Full Web Application",
             "description": "Class, agent, and no-code GUI diagrams."
           },
+          "knowledge": {
+            "label": "Knowledge Engineer",
+            "description": "Class, object, and knowledge graph diagrams for ontology and RDF/OWL work."
+          },
           "quantum": {
             "label": "Quantum",
             "description": "Quantum circuit diagrams only."
@@ -848,7 +865,8 @@
           "GUINoCodeDiagram": "Graphical user interface design (IFML-inspired).",
           "QuantumCircuitDiagram": "Quantum program specification.",
           "BPMN": "Business Process Model and Notation.",
-          "NNDiagram": "Neural network architecture (PyTorch / TensorFlow)."
+          "NNDiagram": "Neural network architecture (PyTorch / TensorFlow).",
+          "KnowledgeGraphDiagram": "RDF/OWL knowledge graph authoring, with conversion to and from B-UML."
         }
       },
       "toasts": {
@@ -1340,7 +1358,8 @@
     "GUINoCodeDiagram": "GUI Diagram",
     "QuantumCircuitDiagram": "Quantum Circuit Diagram",
     "BPMN": "BPMN Diagram",
-    "NNDiagram": "Neural Network Diagram"
+    "NNDiagram": "Neural Network Diagram",
+    "KnowledgeGraphDiagram": "Knowledge Graph Diagram"
   },
   "dialogs": {
     "about": {
@@ -2328,8 +2347,629 @@
         }
       }
     },
+    "kg": {
+      "nodeTypes": {
+        "class": {
+          "label": "Class",
+          "description": "A type / concept (owl:Class)"
+        },
+        "individual": {
+          "label": "Individual",
+          "description": "An instance of a class"
+        },
+        "property": {
+          "label": "Property",
+          "description": "A reified property node"
+        },
+        "literal": {
+          "label": "Literal",
+          "description": "A literal value (string, number, …)"
+        },
+        "blank": {
+          "label": "Blank",
+          "description": "Anonymous resource (blank node)"
+        },
+        "nodeConstraint": {
+          "label": "Node Constraint",
+          "description": "Constraints that apply to a class (OWL axioms or SHACL NodeShape)"
+        },
+        "propertyConstraint": {
+          "label": "Property Constraint",
+          "description": "Constraints that apply to a property (OWL restriction or SHACL PropertyShape)"
+        }
+      },
+      "edgeRules": {
+        "class": {
+          "reason": "A class can only link to another class or to a blank node (class expression)."
+        },
+        "individual": {
+          "reason": "An individual can link to a class (rdf:type), other individuals or blank nodes (object properties), or literals (datatype properties)."
+        },
+        "property": {
+          "reason": "A property can link to a class (rdfs:domain / rdfs:range), to another property (subPropertyOf / inverseOf / equivalentProperty), or to a blank node (anonymous class expression)."
+        },
+        "literal": {
+          "reason": "A literal cannot be the subject of an OWL/RDF relation."
+        },
+        "blank": {
+          "reason": "A blank node (anonymous resource) may reference any non-constraint node."
+        },
+        "nodeConstraint": {
+          "reason": "A NodeConstraint can only target a class (constraintTargetClass) or group a PropertyConstraint (sh:property)."
+        },
+        "propertyConstraint": {
+          "reason": "A PropertyConstraint can only target a property (constraintTargetProperty)."
+        },
+        "genericRejection": "Connections from \"{{source}}\" to \"{{target}}\" are not allowed under OWL2 DL.",
+        "noValidTargets": "No valid target types for this node under OWL2 DL."
+      },
+      "constraints": {
+        "categories": {
+          "cardinality": "Cardinality",
+          "value": "Value",
+          "datatype": "Datatype & format",
+          "enumeration": "Enumeration",
+          "logical": "Logical",
+          "classAxiom": "Class axioms",
+          "meta": "Metadata"
+        },
+        "catalog": {
+          "minCardinality": {
+            "label": "At least N values",
+            "description": "The property must have at least N values per instance."
+          },
+          "maxCardinality": {
+            "label": "At most N values",
+            "description": "The property may have at most N values per instance."
+          },
+          "exactCardinality": {
+            "label": "Exactly N values",
+            "description": "The property must have exactly N values per instance."
+          },
+          "minQualifiedCardinality": {
+            "label": "At least N of class X",
+            "description": "At least N values must be instances of the chosen class."
+          },
+          "maxQualifiedCardinality": {
+            "label": "At most N of class X",
+            "description": "At most N values may be instances of the chosen class."
+          },
+          "exactQualifiedCardinality": {
+            "label": "Exactly N of class X",
+            "description": "Exactly N values must be instances of the chosen class."
+          },
+          "someValuesFrom": {
+            "label": "Some value must be a …",
+            "description": "At least one value must be an instance of the chosen class. OWL-only — SHACL has no faithful existential predicate (sh:class means \"every value\", not \"some value\")."
+          },
+          "allValuesFrom": {
+            "label": "All values must be a …",
+            "description": "Every value must be an instance of the chosen class."
+          },
+          "hasValue": {
+            "label": "Must equal",
+            "description": "The property must have this specific value (literal or IRI)."
+          },
+          "hasSelf": {
+            "label": "Is reflexive",
+            "description": "The property relates each individual to itself."
+          },
+          "nodeKind": {
+            "label": "Value must be a …",
+            "description": "Restrict the kind of node a value can take (IRI, BlankNode, Literal)."
+          },
+          "equals": {
+            "label": "Equal to property",
+            "description": "This property's value set must exactly match another property's value set."
+          },
+          "lessThan": {
+            "label": "Less than property",
+            "description": "Each value must be strictly less than the corresponding value of another property."
+          },
+          "lessThanOrEquals": {
+            "label": "Less than or equal to property",
+            "description": "Each value must be less than or equal to the corresponding value of another property."
+          },
+          "datatype": {
+            "label": "Of datatype",
+            "description": "Values must be literals of the chosen XSD datatype."
+          },
+          "pattern": {
+            "label": "Matches pattern",
+            "description": "String values must match this regular expression."
+          },
+          "flags": {
+            "label": "Pattern flags",
+            "description": "Regex flags applied to sh:pattern (e.g. \"i\" for case-insensitive)."
+          },
+          "minLength": {
+            "label": "Length is at least N",
+            "description": "String length must be at least N characters."
+          },
+          "maxLength": {
+            "label": "Length is at most N",
+            "description": "String length must be at most N characters."
+          },
+          "minInclusive": {
+            "label": "Value ≥ N",
+            "description": "Numeric / date values must be at least N (inclusive)."
+          },
+          "maxInclusive": {
+            "label": "Value ≤ N",
+            "description": "Numeric / date values must be at most N (inclusive)."
+          },
+          "minExclusive": {
+            "label": "Value > N",
+            "description": "Numeric / date values must be strictly greater than N."
+          },
+          "maxExclusive": {
+            "label": "Value < N",
+            "description": "Numeric / date values must be strictly less than N."
+          },
+          "languageIn": {
+            "label": "Allowed languages",
+            "description": "Language-tagged literal values must use one of the listed BCP-47 tags."
+          },
+          "uniqueLang": {
+            "label": "Each language at most once",
+            "description": "No two language-tagged values may share a language tag."
+          },
+          "in": {
+            "label": "One of these values",
+            "description": "Values must be one of an enumerated list."
+          },
+          "oneOf": {
+            "label": "One of these individuals",
+            "description": "Class is the enumerated set of these individuals."
+          },
+          "shaclNot": {
+            "label": "Must NOT satisfy",
+            "description": "The value must NOT satisfy the inner constraint shape."
+          },
+          "shaclAnd": {
+            "label": "Must satisfy ALL of",
+            "description": "The value must satisfy every inner constraint shape."
+          },
+          "shaclOr": {
+            "label": "Must satisfy ANY of",
+            "description": "The value must satisfy at least one inner constraint shape."
+          },
+          "shaclXone": {
+            "label": "Must satisfy EXACTLY ONE of",
+            "description": "The value must satisfy exactly one of the inner constraint shapes."
+          },
+          "equivalentClasses": {
+            "label": "Equivalent to",
+            "description": "These classes share all instances."
+          },
+          "disjointWith": {
+            "label": "Disjoint with",
+            "description": "No instance may belong to both classes simultaneously."
+          },
+          "disjointUnionOf": {
+            "label": "Disjoint union of",
+            "description": "Class is the disjoint union of the listed classes."
+          },
+          "subClassOf": {
+            "label": "Sub-class of",
+            "description": "This class is a specialisation of another class."
+          },
+          "complementOf": {
+            "label": "Complement of",
+            "description": "Class is the set complement of another class."
+          },
+          "unionOf": {
+            "label": "Union of",
+            "description": "Class is the union of the listed classes."
+          },
+          "intersectionOf": {
+            "label": "Intersection of",
+            "description": "Class is the intersection of the listed classes."
+          },
+          "hasKey": {
+            "label": "Key properties (uniquely identifies)",
+            "description": "The listed properties together uniquely identify each instance."
+          },
+          "shaclClosed": {
+            "label": "Closed shape (no extra properties)",
+            "description": "Instances may not carry properties beyond those listed in this shape."
+          },
+          "shaclIgnoredProperties": {
+            "label": "Ignored properties (closed-shape exceptions)",
+            "description": "Properties allowed even when the shape is closed."
+          },
+          "shaclSeverity": {
+            "label": "Severity",
+            "description": "Severity of a SHACL validation result that fails this constraint."
+          },
+          "shaclMessage": {
+            "label": "Custom message",
+            "description": "Human-readable message attached to a validation result."
+          },
+          "shaclName": {
+            "label": "Human-readable name",
+            "description": "Display name surfaced by SHACL-aware UIs."
+          },
+          "shaclDescription": {
+            "label": "Description",
+            "description": "Free-form description for documentation purposes."
+          },
+          "shaclDeactivated": {
+            "label": "Disabled",
+            "description": "When true, validators skip this shape."
+          },
+          "shaclOrder": {
+            "label": "Display order",
+            "description": "Hint for UI ordering of shapes."
+          },
+          "shaclGroup": {
+            "label": "Group",
+            "description": "IRI of a sh:PropertyGroup this shape belongs to."
+          }
+        },
+        "templates": {
+          "required": {
+            "label": "Required",
+            "description": "Must have at least one value (minCardinality = 1)."
+          },
+          "optional": {
+            "label": "Optional",
+            "description": "May be missing (minCardinality = 0)."
+          },
+          "single": {
+            "label": "Single-valued",
+            "description": "At most one value (maxCardinality = 1)."
+          },
+          "required-single": {
+            "label": "Required & single-valued",
+            "description": "Exactly one value (min = max = 1)."
+          },
+          "required-multi": {
+            "label": "Required & multi-valued",
+            "description": "At least one value, unbounded above."
+          },
+          "enumeration": {
+            "label": "Enumeration",
+            "description": "Value must be one of an enumerated list — edit the list inline."
+          },
+          "numeric-range": {
+            "label": "Numeric range",
+            "description": "Decimal-typed value between two bounds."
+          },
+          "string-pattern": {
+            "label": "String pattern",
+            "description": "xsd:string value matching a regex."
+          },
+          "email": {
+            "label": "Email",
+            "description": "xsd:string matching a permissive email regex."
+          },
+          "url": {
+            "label": "URL",
+            "description": "xsd:anyURI typed value."
+          },
+          "disjoint": {
+            "label": "Disjoint with",
+            "description": "Class is disjoint with another class — pick the targets inline."
+          },
+          "closed-shape": {
+            "label": "Closed shape",
+            "description": "No properties other than those declared inside this shape are allowed."
+          }
+        },
+        "describe": {
+          "minCardinality_one": "Must have at least {{count}} value",
+          "minCardinality_other": "Must have at least {{count}} values",
+          "maxCardinality_one": "May have at most {{count}} value",
+          "maxCardinality_other": "May have at most {{count}} values",
+          "exactCardinality_one": "Must have exactly {{count}} value",
+          "exactCardinality_other": "Must have exactly {{count}} values",
+          "minQualifiedCardinality_one": "At least {{count}} value of class {{class}}",
+          "minQualifiedCardinality_other": "At least {{count}} values of class {{class}}",
+          "maxQualifiedCardinality_one": "At most {{count}} value of class {{class}}",
+          "maxQualifiedCardinality_other": "At most {{count}} values of class {{class}}",
+          "exactQualifiedCardinality_one": "Exactly {{count}} value of class {{class}}",
+          "exactQualifiedCardinality_other": "Exactly {{count}} values of class {{class}}",
+          "fusedExact_one": "Must have exactly {{count}} value",
+          "fusedExact_other": "Must have exactly {{count}} values",
+          "fusedRange": "Must have between {{min}} and {{max}} values",
+          "someValuesFrom": "Some value must be of class {{class}}",
+          "allValuesFrom": "All values must be of class {{class}}",
+          "hasValue": "{{target}} must equal {{value}}",
+          "hasSelfTrue": "{{target}} is reflexive (self-loop)",
+          "hasSelfFalse": "{{target}} is not reflexive",
+          "nodeKind": "{{target}} must be a {{kind}}",
+          "datatype": "Of datatype {{datatype}}",
+          "pattern": "{{target}} must match regex `{{regex}}`",
+          "flags": "Pattern flags: `{{flags}}`",
+          "minLength": "Length ≥ {{value}}",
+          "maxLength": "Length ≤ {{value}}",
+          "minInclusive": "Value ≥ {{value}}",
+          "maxInclusive": "Value ≤ {{value}}",
+          "minExclusive": "Value > {{value}}",
+          "maxExclusive": "Value < {{value}}",
+          "languageIn": "Allowed languages: {{list}}",
+          "uniqueLangTrue": "Each language at most once",
+          "uniqueLangFalse": "Languages may repeat",
+          "in": "{{target}} must be one of: {{list}}",
+          "oneOf": "Class is the set: {{list}}",
+          "equivalentClasses": "Equivalent to {{list}}",
+          "disjointWith": "Disjoint with {{list}}",
+          "subClassOf": "Sub-class of {{class}}",
+          "complementOf": "Complement of {{class}}",
+          "unionOf": "Union of {{list}}",
+          "intersectionOf": "Intersection of {{list}}",
+          "disjointUnionOf": "Disjoint union of {{list}}",
+          "hasKey": "Identified by {{list}}",
+          "shaclClosedTrue": "Closed shape (no extra properties allowed)",
+          "shaclClosedFalse": "Open shape",
+          "shaclIgnoredProperties": "Closed-shape exceptions: {{list}}",
+          "shaclDisjoint": "SHACL-disjoint from {{class}}",
+          "shaclSeverity": "Severity: {{severity}}",
+          "shaclMessage": "Message: {{message}}",
+          "shaclName": "Name: {{name}}",
+          "shaclDescription": "Description: {{description}}",
+          "shaclDeactivatedTrue": "Disabled",
+          "shaclDeactivatedFalse": "Enabled",
+          "shaclOrder": "Order: {{value}}",
+          "shaclGroup": "In group {{group}}",
+          "shaclNot": "Must NOT satisfy {{shapes}}",
+          "shaclAnd": "Must satisfy ALL of: {{shapes}}",
+          "shaclOr": "Must satisfy ANY of: {{shapes}}",
+          "shaclXone": "Must satisfy EXACTLY ONE of: {{shapes}}",
+          "theValue": "the value",
+          "noneList": "(none)",
+          "noShapes": "(no shapes)",
+          "empty": "No constraints yet — pick one from the picker below."
+        },
+        "editor": {
+          "heading": "Constraints ({{count}})",
+          "appliesTo": "Applies to <target>{{target}}</target>",
+          "quickAdd": "Quick add",
+          "addConstraint": "Add constraint",
+          "removeConstraint": "Remove constraint",
+          "removeValue": "Remove",
+          "addValue": "Add value",
+          "searchPlaceholder": "Search constraints…",
+          "count": "Count",
+          "onClass": "On class",
+          "pickNodeKind": "Pick a node kind",
+          "pickSeverity": "Pick severity",
+          "pickDatatype": "Pick an XSD datatype",
+          "customDatatype": "…or paste a custom datatype IRI",
+          "literalValue": "Literal value",
+          "literalValueOrIri": "Literal value or IRI",
+          "datatypeIriOptional": "datatype IRI (optional)",
+          "langTag": "lang tag (e.g. en)",
+          "enabled": "enabled",
+          "disabled": "disabled",
+          "editorComingSoon": "Editor for \"{{shape}}\" coming soon — value preserved as-is."
+        },
+        "validation": {
+          "minMaxCardinality": "minCardinality ({{min}}) must not exceed maxCardinality ({{max}}).",
+          "minMaxLength": "minLength ({{min}}) must not exceed maxLength ({{max}}).",
+          "minMaxInclusive": "minInclusive ({{min}}) must not exceed maxInclusive ({{max}}).",
+          "badRegex": "Regex pattern \"{{pattern}}\" is not a valid regular expression.",
+          "qualifiedNeedsOnClass": "Qualified cardinality ({{kind}}) needs an \"on class\" picked.",
+          "enumNeedsValue": "Enumeration (in) requires at least one value."
+        },
+        "nested": {
+          "introNot": "Must NOT satisfy",
+          "introAnd": "Must satisfy ALL of",
+          "introOr": "Must satisfy ANY of",
+          "introXone": "Must satisfy EXACTLY ONE of",
+          "addShape": "Add shape",
+          "deeplyNested": "Deeply nested — consider extracting this shape into a separate constraint node so the inspector stays readable.",
+          "confirmSwitchToRef": "Switching to a reference discards the inline constraint specs in this slot. Continue?",
+          "inline": "Inline",
+          "reference": "Reference",
+          "removeSlot": "Remove slot",
+          "pickExisting": "Pick an existing {{type}} to reference",
+          "refPlaceholder": "constraint-node id",
+          "noneWithId": "No {{type}} with that id."
+        },
+        "severities": {
+          "info": "Info",
+          "warning": "Warning",
+          "violation": "Violation"
+        },
+        "datatypeGroups": {
+          "text": "Text",
+          "numeric": "Numeric",
+          "dateTime": "Date/Time",
+          "boolean": "Boolean",
+          "binary": "Binary",
+          "languageTagged": "Language-tagged"
+        }
+      },
+      "palette": {
+        "heading": "Node types",
+        "hint": "Drag a node type onto the canvas to create a new node. To create a relation between existing nodes, click <action>{{addRelation}}</action> in the canvas toolbar, then click the source node followed by the target node."
+      },
+      "toolbar": {
+        "addRelation": "Add relation",
+        "addingRelation": "Adding relation…",
+        "addRelationTooltip": "Add a relation: drag from the source node to the target node",
+        "exportHtml": "Export HTML",
+        "exportHtmlTooltip": "Download the current graph as a standalone interactive HTML file",
+        "connectHint": "Drag from a source node onto a target node to create a relation. Node positions are locked while this mode is on — Esc to exit.",
+        "showingNodes_one": "Showing {{visible}} of {{count}} node",
+        "showingNodes_other": "Showing {{visible}} of {{count}} nodes",
+        "raiseLimit": "raise the limit in KG Settings",
+        "nodesFragment_one": "{{count}} node",
+        "nodesFragment_other": "{{count}} nodes",
+        "relationsFragment_one": "{{count}} relation",
+        "relationsFragment_other": "{{count}} relations",
+        "counts": "{{nodes}} · {{relations}}"
+      },
+      "canvasControls": {
+        "autoLayout": "Auto layout",
+        "fitToView": "Fit to view",
+        "zoomIn": "Zoom in",
+        "zoomOut": "Zoom out"
+      },
+      "nodeList": {
+        "heading": "Nodes ({{count}})",
+        "filterPlaceholder": "Filter by label / IRI",
+        "allFilter": "All",
+        "selectAllAria": "Select all shown nodes",
+        "unselectAllAria": "Unselect all selected nodes in filter",
+        "selectAllTitle": "Select all shown",
+        "unselectAllTitle": "Unselect all selected in filter",
+        "noNodesToShow": "No nodes to show",
+        "noNodesMatch": "No nodes match.",
+        "selectedSummary_one": "{{selected}} of {{count}} shown node selected",
+        "selectedSummary_other": "{{selected}} of {{count}} shown nodes selected",
+        "selectAll": "Select all",
+        "unselectAll": "Unselect all",
+        "metaVocabNote_one": "{{count}} vocabulary node not shown. Enable them in KG Settings.",
+        "metaVocabNote_other": "{{count}} vocabulary nodes not shown. Enable them in KG Settings.",
+        "metaVocabTooltip": "{{terms}} — implied by the node kinds they annotate. They stay in the model and in every export. xsd: datatypes and other sh: terms are not hidden."
+      },
+      "editor": {
+        "showAll": "Show all",
+        "focusBanner_one": "Focused on issue ({{count}} target + neighbours)",
+        "focusBanner_other": "Focused on issue ({{count}} targets + neighbours)",
+        "emptyState": "Drag a node kind from the palette onto the canvas, or use {{fileMenu}} → {{importItem}} to load an OWL ontology.",
+        "showingCap": "Showing {{visible}} of {{total}} nodes (soft: {{soft}}, hard: {{hard}})",
+        "toasts": {
+          "createdButCapped": "Node created, but could not be displayed because the hard limit of {{limit}} is reached. Hide some nodes in the list or raise the hard limit in KG Settings.",
+          "createdSomeCapped": "{{created}} nodes created; {{notShown}} could not be displayed because the hard limit of {{limit}} is reached. Hide some nodes in the list or raise the hard limit in KG Settings.",
+          "visibleCapReached": "Cannot visualize more than {{limit}} nodes at once. Uncheck some in the node list or raise the hard limit in KG Settings.",
+          "visibleCapPartial": "Cannot visualize more than {{limit}} nodes at once. Only {{added}} of the {{selected}} newly-selected nodes were added. Uncheck some in the node list or raise the hard limit in KG Settings.",
+          "focusNotInGraph": "Could not focus: the affected node is not part of this graph.",
+          "exportNotReady": "Could not export the knowledge graph: canvas is not ready."
+        }
+      },
+      "standaloneHtml": {
+        "fallbackTitle": "Knowledge Graph",
+        "cdnFailed": "Failed to load Cytoscape from CDN. Check your network connection.",
+        "renderFailedPrefix": "Failed to render graph: "
+      },
+      "inspector": {
+        "titleNode": "Node",
+        "titleRelation": "Relation",
+        "titleInspector": "Inspector",
+        "selectedCount_one": "{{count}} selected",
+        "selectedCount_other": "{{count}} selected",
+        "unsavedChanges": "Unsaved changes",
+        "close": "Close",
+        "noSelection": "Click a node or relation on the canvas to edit it here. Drag on empty canvas to box-select multiple. Hold Space to pan.",
+        "fields": {
+          "type": "Type",
+          "label": "Label",
+          "value": "Value",
+          "datatypeIri": "Datatype IRI",
+          "iri": "IRI",
+          "predicateIri": "Predicate IRI",
+          "source": "Source",
+          "target": "Target",
+          "idLabel": "id:"
+        },
+        "placeholders": {
+          "predicate": "e.g. knows, type, hasName"
+        },
+        "footer": {
+          "hide": "Hide",
+          "hideTooltip": "Remove the node from the canvas without deleting it from the model",
+          "hideTooltipMulti": "Remove the selected nodes from the canvas without deleting them",
+          "bulkHide_one": "Hide {{count}} node",
+          "bulkHide_other": "Hide {{count}} nodes",
+          "deleteSelection": "Delete selection",
+          "delete": "Delete",
+          "discard": "Discard",
+          "apply": "Apply"
+        },
+        "confirm": {
+          "discardTitle": "Discard unsaved changes?",
+          "discardDescription": "You have unsaved edits in the inspector. Discard them and continue?",
+          "discardConfirm": "Discard",
+          "discardCancel": "Keep editing",
+          "bulkDeleteTitle": "Delete selection?",
+          "bulkNodesFragment_one": "{{count}} node",
+          "bulkNodesFragment_other": "{{count}} nodes",
+          "bulkRelationsFragment_one": "{{count}} relation",
+          "bulkRelationsFragment_other": "{{count}} relations",
+          "bulkDeleteDescription": "This will permanently remove {{nodes}} and {{relations}} from the model. Nodes also drop their attached relations. This cannot be undone.",
+          "bulkDeleteConfirm": "Delete"
+        },
+        "multi": {
+          "hint": "Drag any selected node to move the whole group. Hold Space to pan.",
+          "nodesHeading": "Nodes ({{count}})",
+          "relationsHeading": "Relations ({{count}})"
+        },
+        "attachedConstraints": {
+          "heading": "Constraints ({{count}})",
+          "add": "Add constraint",
+          "constrainThisClass": "Constrain this class…",
+          "constrainThisClassHint": "E.g. disjoint with, has key, closed shape.",
+          "constrainAProperty": "Constrain a property of this class",
+          "noPropertiesInDomain": "No properties in this class's domain yet.",
+          "fallbackNodeConstraint": "Node constraint",
+          "fallbackPropertyConstraint": "Property constraint",
+          "none": "No constraints yet."
+        },
+        "connections": {
+          "heading": "Connections ({{count}})",
+          "add": "Add",
+          "none": "No connections.",
+          "noPredicate": "(no predicate)",
+          "new": "new",
+          "removing": "removing",
+          "discardStaged": "Discard this staged connection",
+          "undoDelete": "Undo delete",
+          "removeConnection": "Remove this connection"
+        },
+        "addConnection": {
+          "title": "Add connection",
+          "outgoing": "Outgoing",
+          "incoming": "Incoming",
+          "predicate": "Predicate",
+          "predicateFree": "Predicate (type or pick)",
+          "targetNode": "Target node",
+          "sourceNode": "Source node",
+          "noOtherNodes": "No other nodes in the model.",
+          "stage": "Stage"
+        },
+        "constraintPredicates": {
+          "targetClass": "Apply this NodeConstraint to a class.",
+          "shProperty": "Group a PropertyConstraint under this NodeConstraint (sh:property).",
+          "targetProperty": "Apply this PropertyConstraint to a property."
+        }
+      },
+      "settings": {
+        "title": "Knowledge Graph Settings",
+        "noActiveDiagram": "No Knowledge Graph diagram is active.",
+        "backToEditor": "Back to editor",
+        "description": "Preferences scoped to the active KG diagram ({{title}}). Changes are saved into the project and round-trip with export/import.",
+        "saved": "KG settings saved.",
+        "saveFailed": "Failed to save KG settings.",
+        "softLimitLabel": "Soft limit — auto-shown on import",
+        "softLimitHelp": "When you load an ontology, this many nodes appear by default — classes first, then properties, blank nodes, constraints, individuals and literals. You can enable more via the node list, up to the hard limit.",
+        "hardLimitLabel": "Hard limit — absolute ceiling",
+        "hardLimitHelp": "The maximum number of nodes that can be visible at the same time. Attempting to exceed it shows an explanatory toast.",
+        "defaultPlaceholder": "{{value}} (default)",
+        "rangeError": "Enter an integer between {{min}} and {{max}}.",
+        "softExceedsHard": "Soft limit ({{soft}}) must be less than or equal to the hard limit ({{hard}}).",
+        "layoutLabel": "Layout",
+        "layoutConcentric": "Concentric (default) — high-degree nodes in the center",
+        "layoutFcose": "fCoSE — force-directed, organic clusters (slower)",
+        "layoutGrid": "Grid — deterministic rows and columns",
+        "layoutHelp": "Changing the layout re-positions all currently visible nodes. After the layout runs, you can drag nodes individually and those positions are preserved.",
+        "metaVocabLabel": "RDF/OWL vocabulary nodes",
+        "metaVocabHelp": "Show <owl/>, <rdf/> and <rdfs/> terms, plus <shNodeShape/> / <shPropertyShape/> — the nodes every class and every shape declares itself against — on the canvas and in the node list. Off by default: they are implied by the node kinds they annotate, and they are the highest-degree nodes in most ontologies, which distorts the layout. Turning this on lists them in the node list; tick the ones you want on the canvas. <xsd/> datatypes and the remaining <sh/> terms are never hidden — they carry a property's declared range and its constraint values.",
+        "metaVocabNote": "This only affects the visualization. Vocabulary nodes always stay in the model and are exported / converted (RDF export, KG → UML, consistency checks) either way.",
+        "summaryNodes_one": "Diagram currently has {{count}} node",
+        "summaryNodes_other": "Diagram currently has {{count}} nodes",
+        "summarySoft": "applied soft limit {{value}}",
+        "summaryHard": "applied hard limit {{value}}",
+        "summaryLayout": "applied layout",
+        "resetToDefaults": "Reset to defaults"
+      }
+    },
     "loadingGuiEditor": "Loading GUI editor...",
     "loadingQuantumEditor": "Loading quantum editor...",
+    "loadingKgEditor": "Loading knowledge graph editor...",
     "hiddenPerspectives": {
       "messagePlural": "This project uses {{labels}} but those perspectives are hidden.",
       "messageSingular": "This project uses {{labels}} but that perspective is hidden.",
@@ -2413,6 +3053,30 @@
       "noProjectData": "No project data available to export",
       "projectExportedAs": "Project exported as {{filename}}",
       "projectExportFailed": "Failed to export project: {{error}}"
+    },
+    "kg": {
+      "options": {
+        "title": "Export Knowledge Graph",
+        "description": "Choose the RDF syntax and which constraint vocabularies to emit.",
+        "rdfSyntax": "RDF syntax",
+        "constraintVocab": "Constraint vocabulary",
+        "vocabBoth": "Both — emit OWL & SHACL where possible",
+        "vocabOwl": "OWL only — owl:Restriction blank nodes",
+        "vocabShacl": "SHACL only — sh:NodeShape / sh:PropertyShape",
+        "emitted_one": "{{emitted}} of {{count}} constraint spec will be emitted",
+        "emitted_other": "{{emitted}} of {{count}} constraint specs will be emitted",
+        "skippedSuffix_one": " — {{count}} skipped because it exists only in the other vocabulary",
+        "skippedSuffix_other": " — {{count}} skipped because they exist only in the other vocabulary",
+        "noSpecs": "No constraint specs in this diagram yet.",
+        "export": "Export"
+      },
+      "toasts": {
+        "noProject": "Open a project before exporting.",
+        "noDiagram": "No active Knowledge Graph diagram to export.",
+        "vocabSuffix": " ({{vocab}} constraints only)",
+        "exportCompleted": "{{format}} export completed{{suffix}}.",
+        "failed": "KG export failed."
+      }
     }
   },
   "import": {
@@ -2442,6 +3106,150 @@
       "readFileFailed": "Failed to read file",
       "invalidFromBackend": "Invalid diagram returned from backend",
       "couldNotParseError": "Could not parse error response"
+    },
+    "kg": {
+      "owl": {
+        "updateFailed": "Failed to update the Knowledge Graph diagram.",
+        "writeNewTabFailed": "Failed to write the imported graph into the new tab.",
+        "invalidJson": "Invalid KG JSON returned from backend",
+        "noProjectOpen": "No project is currently open. Please create or open a project first.",
+        "noActiveDiagram": "No active Knowledge Graph diagram found in this project.",
+        "nodesFragment_one": "{{count}} node",
+        "nodesFragment_other": "{{count}} nodes",
+        "edgesFragment_one": "{{count}} edge",
+        "edgesFragment_other": "{{count}} edges",
+        "imported": "Imported {{nodes}} and {{edges}} from {{file}}.",
+        "importedNewTab": "Imported {{nodes}} and {{edges}} from {{file}} into a new tab.",
+        "merged": "Merged {{nodes}} and {{edges}} from {{file}}",
+        "mergedSkippedSuffix_one": " ({{count}} already present).",
+        "mergedSkippedSuffix_other": " ({{count}} already present).",
+        "unknownError": "Unknown error occurred during import",
+        "failedTitle": "OWL import failed"
+      },
+      "targetModal": {
+        "title": "Where should this graph go?",
+        "nodesFragment_one": "{{count}} node",
+        "nodesFragment_other": "{{count}} nodes",
+        "edgesFragment_one": "{{count}} edge",
+        "edgesFragment_other": "{{count}} edges",
+        "tabNameFragment": " ({{title}})",
+        "description": "<file>{{file}}</file> contains {{nodes}} and {{edges}}. The current tab{{tab}} is not empty — add the import alongside what is already there, or keep it separate in a new tab.",
+        "mergeExplainer": "Merging keeps the current graph as-is and only adds what is missing: terms that both graphs share (same IRI) stay a single node.",
+        "maxTabsReached": "This project already has the maximum number of Knowledge Graph tabs.",
+        "newTab": "New tab",
+        "mergeIntoTab": "Merge into this tab"
+      },
+      "preflight": {
+        "noRecommendedAction": "No recommended action",
+        "dropElement": "Drop the element",
+        "affects": "Affects: {{ids}}",
+        "fixAutomaticallyAria": "Fix automatically for {{code}}",
+        "applyRecommendedAria": "Apply recommended fix for {{code}}",
+        "fixAutomatically": "Fix automatically",
+        "applyRecommended": "Apply recommended:",
+        "fixInKg": "Fix in KG",
+        "fixInKgInstead": "Fix in KG instead",
+        "skipped": "Skipped",
+        "chooseFixAria": "Choose how to fix this issue",
+        "sendToLlm": "Send to LLM",
+        "or": "or",
+        "unknownError": "Unknown error",
+        "invalidResponse": "Invalid preflight response.",
+        "failed": "KG preflight failed."
+      },
+      "consistency": {
+        "title": "Knowledge Graph has inconsistencies",
+        "issuesFragment_one": "{{count}} issue",
+        "issuesFragment_other": "{{count}} issues",
+        "violationsFragment_one": "{{count}} violation",
+        "violationsFragment_other": "{{count}} violations",
+        "warningsFragment_one": "{{count}} warning",
+        "warningsFragment_other": "{{count}} warnings",
+        "description": "The OWL/SHACL consistency check found {{issues}} in the Knowledge Graph ({{violations}}, {{warnings}}, {{info}} info). You can fix them, proceed with the conversion anyway, or cancel.",
+        "onNode": "on {{nodeId}}",
+        "openRefine": "Open Refine to fix",
+        "proceedAnyway": "Proceed anyway"
+      },
+      "refine": {
+        "title": "Refine Knowledge Graph",
+        "titleConvert": "Refine before converting to {{diagram}}",
+        "description": "Clean up the KG before converting it to B-UML. Review automatic recommendations from BESSER, or get AI-driven suggestions targeted at the system you want to build.",
+        "descriptionConvert": "Resolve any inconsistencies in the Knowledge Graph. Once it is clean you can convert it to a {{diagram}}.",
+        "tabsAria": "Refine KG tabs",
+        "tabAutomatic": "Automatic",
+        "tabConsistency": "Consistency",
+        "tabAi": "AI",
+        "classifyBadge": "Classify {{count}}",
+        "analyzingKg": "Analyzing KG…",
+        "noInconsistencies": "The Knowledge Graph has no remaining inconsistencies.",
+        "clickConvert": "Click <action>{{action}}</action> to generate the {{diagram}}.",
+        "noRecommendations": "No automatic recommendations — the KG looks clean.",
+        "staticInstructions": "Tick the suggestions you want to fix. For each one, choose whether to apply the recommended fix or send it to the LLM. Use “Fix in KG” to handle one manually in the canvas.",
+        "selectAll": "Select all",
+        "deselectAll": "Deselect all",
+        "noneSelected": "No suggestions selected — nothing will change.",
+        "ofWillBeFixed": "of {{total}} will be fixed:",
+        "viaRecommended_one": "{{count}} via recommended",
+        "viaRecommended_other": "{{count}} via recommended",
+        "viaLlm_one": "{{count}} via LLM",
+        "viaLlm_other": "{{count}} via LLM",
+        "convertTo": "Convert to {{diagram}}",
+        "applying": "Applying…",
+        "applyMixed": "Apply {{count}} ({{recommended}} rec + {{llm}} LLM)",
+        "sendToLlm": "Send {{count}} to LLM",
+        "applyRecommended": "Apply {{count}} recommended",
+        "analyzeFailed": "Failed to analyze the KG. Try again.",
+        "retry": "Retry",
+        "consistencyExplainer": "Validates the Knowledge Graph against every OWL/SHACL constraint authored on it. Uses pyshacl with OWL2-RL inference on the backend; the check can be slow on large graphs, so it runs only when you click <action>{{action}}</action>.",
+        "consistencyIdle": "No check has been run for this Knowledge Graph yet. Click <action>{{action}}</action> below to evaluate every OWL/SHACL constraint against the current ABox.",
+        "checkingConsistency": "Checking consistency…",
+        "consistencyFailed": "Consistency check failed.",
+        "allSatisfied": "All OWL/SHACL constraints are satisfied.",
+        "severitySummary": "{{violations}}, {{warnings}}, {{info}} info",
+        "lastRun": " — last run {{time}}",
+        "runCheck": "Run check",
+        "reCheck": "Re-check",
+        "orphanBanner_one": "Ready to classify <count>{{count}}</count> orphan node flagged in the Automatic tab. Provide a description and API key, then Analyze to ask the LLM for per-node classifications.",
+        "orphanBanner_other": "Ready to classify <count>{{count}}</count> orphan nodes flagged in the Automatic tab. Provide a description and API key, then Analyze to ask the LLM for per-node classifications.",
+        "deferredBanner_one": "<count>{{count}}</count> issue was routed here from the Automatic tab. Describe the system you want to build, then Analyze to ask the LLM for fixes against the (now partially-cleaned) KG.",
+        "deferredBanner_other": "<count>{{count}}</count> issues were routed here from the Automatic tab. Describe the system you want to build, then Analyze to ask the LLM for fixes against the (now partially-cleaned) KG.",
+        "systemDescription": "System description",
+        "systemDescriptionPlaceholder": "e.g. A library management system that tracks books, members, and loans.",
+        "apiKey": "OpenAI API key",
+        "apiKeyNote": "Stored in this browser session only.",
+        "analyzing": "Analyzing…",
+        "analyze": "Analyze",
+        "llmNoSuggestions": "The LLM did not suggest any changes for the described system.",
+        "llmInstructions": "Tick the suggestions you want to apply. Skip the rest, or use “Fix in KG” to handle one manually in the canvas.",
+        "back": "Back",
+        "applySelected": "Apply {{count}} selected",
+        "confirmReplace": "Replace your current KG with the cleaned graph?",
+        "noProjectOpen": "No project is open.",
+        "noActiveDiagram": "No active Knowledge Graph diagram.",
+        "staticFailed": "Static refinement analysis failed.",
+        "applyNoModel": "Apply endpoint returned no model.",
+        "refined": "Knowledge Graph refined.",
+        "applyFailed": "Apply refinement failed.",
+        "failedTitle": "Refine KG failed",
+        "describeSystemFirst": "Describe the system you want to build first.",
+        "apiKeyRequired": "An OpenAI API key is required.",
+        "invalidLlmResponse": "Invalid LLM cleanup response.",
+        "aiFailed": "AI refinement analysis failed.",
+        "noOrphans": "No orphan nodes to classify.",
+        "invalidOrphanResponse": "Invalid orphan-classification response.",
+        "orphanFailed": "Orphan classification failed.",
+        "applyLlmFailed": "Apply LLM refinement failed."
+      },
+      "toUml": {
+        "noProject": "Open a project before converting.",
+        "noDiagram": "No active Knowledge Graph diagram to convert.",
+        "consistencyCheckFailed": "Consistency check failed.",
+        "consistencyCheckSkipped": "Consistency check skipped: {{message}}",
+        "invalidResponse": "Invalid response from KG conversion endpoint.",
+        "generated": "Generated {{diagram}} from Knowledge Graph.",
+        "conversionFailed": "KG conversion failed.",
+        "failedTitle": "KG → UML conversion failed"
+      }
     }
   },
   "validation": {

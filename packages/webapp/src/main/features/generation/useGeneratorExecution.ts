@@ -60,6 +60,11 @@ import {
   type WebAppVersion,
   type WebAppVersionMode,
 } from '../../shared/utils/buildWebAppVersions';
+import { useKgToUmlConversion } from '../import/useKgToUmlConversion';
+import { useKgPreflight } from '../import/useKgPreflight';
+import type { KgIssue } from '../import/useKgPreflight';
+import * as kgFocus from '../editors/kg/kgFocus';
+import { useExportKgRdf } from '../export/useExportKgRdf';
 
 // ─── Pure helpers ──────────────────────────────────────────────────────────────
 
@@ -507,6 +512,33 @@ export interface UseGeneratorExecutionReturn {
   configState: GeneratorConfigState;
   /** Whether the app is running against localhost */
   isLocalEnvironment: boolean;
+  /** Props bag to spread onto <KgRefineModal /> */
+  kgRefineModalProps: {
+    open: boolean;
+    onClose: () => void;
+    onFixInKg: (issue: KgIssue) => void;
+    onFocusNodes: (nodeIds: string[]) => void;
+    convertMode?: boolean;
+    onConvert?: (kgSignature: string) => void;
+    initialTab?: 'static' | 'consistency' | 'llm';
+  };
+  /** Props bag to spread onto <KgExportOptionsDialog />. Opens when the user
+   *  picks "Export with options…" in the Generate menu on a KG diagram. */
+  kgExportOptionsModalProps: {
+    open: boolean;
+    onClose: () => void;
+    onConfirm: (fmt: 'owl' | 'ttl', vocab: 'owl' | 'shacl' | 'both') => void;
+  };
+  /** Props bag for <KgConsistencyConfirmModal />. Opens before a KG →
+   *  ClassDiagram conversion if the consistency check returned at least
+   *  one issue. */
+  kgConsistencyConfirmModalProps: {
+    open: boolean;
+    report: import('../../shared/types/project').ConsistencyReport | null;
+    onOpenRefine: () => void;
+    onProceed: () => void;
+    onCancel: () => void;
+  };
 }
 
 export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGeneratorExecutionReturn {
@@ -518,11 +550,66 @@ export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGen
   const { currentProject } = useProject();
   const generateCode = useGenerateCode();
   const deployLocally = useDeployLocally();
+  const runKgConversion = useKgToUmlConversion();
+  const { runPreflight: runKgPreflight } = useKgPreflight();
+  // Open/close state for the unified Refine KG modal. The modal owns its
+  // own per-tab state (description / api-key / decisions) and reports
+  // completion via ``onClose``; the parent only needs to know when to
+  // render it.
+  const [kgRefineOpen, setKgRefineOpen] = useState(false);
+  // When set, the refine modal is opened in "convert mode" so the user
+  // can clean the KG before producing a Class Diagram. The modal calls
+  // ``onConvert`` with the kgSignature once the analyzer reports zero
+  // remaining issues.
+  const [kgConvertMode, setKgConvertMode] = useState(false);
+  // KG → RDF export-options modal: opened by the ``kg_export_with_options``
+  // generator entry; lets the user pick syntax + constraint vocabulary.
+  const [kgExportOptionsOpen, setKgExportOptionsOpen] = useState(false);
+  // Pre-conversion consistency gate: when /check-kg-consistency returns
+  // non-zero issues, this state opens KgConsistencyConfirmModal and stores
+  // a resolver that the modal's buttons call back through.
+  const [kgConsistencyGate, setKgConsistencyGate] = useState<{
+    open: boolean;
+    report: import('../../shared/types/project').ConsistencyReport | null;
+    resolve: ((d: 'proceed' | 'cancel') => void) | null;
+  }>({ open: false, report: null, resolve: null });
+  // When the user picks "Open Refine to fix" from the gate, we also open
+  // the Refine modal on the Consistency tab. This flag carries that intent
+  // through to kgRefineModalProps.initialTab.
+  const [kgRefineInitialTab, setKgRefineInitialTab] = useState<
+    'static' | 'consistency' | 'llm' | undefined
+  >(undefined);
 
-  const { isQuantumContext, isGuiContext, isObjectContext, isUserContext, isNNContext } = getWorkspaceContext(
-    location.pathname,
-    currentProject?.currentDiagramType,
+  const onConsistencyIssues = useCallback(
+    (report: import('../../shared/types/project').ConsistencyReport): Promise<'proceed' | 'cancel'> => {
+      return new Promise((resolve) => {
+        setKgConsistencyGate({ open: true, report, resolve });
+      });
+    },
+    [],
   );
+
+  const runKgWithPreflight = useCallback(async (): Promise<void> => {
+    const report = await runKgPreflight();
+    if (!report) return;
+    // Zero-friction path: no preflight issues → still run the
+    // OWL/SHACL consistency gate, then convert.
+    if (report.issueCount === 0) {
+      await runKgConversion({
+        kgSignature: report.kgSignature,
+        onConsistencyIssues,
+      });
+      return;
+    }
+    // Issues present → open the Refine KG modal in convert mode so the
+    // user can clean the KG and then click Convert. The modal handles
+    // its own analyzer calls and decisions.
+    setKgConvertMode(true);
+  }, [runKgPreflight, runKgConversion, onConsistencyIssues]);
+  const exportKgRdf = useExportKgRdf();
+
+  const { isQuantumContext, isGuiContext, isObjectContext, isUserContext, isNNContext, isKgContext } =
+    getWorkspaceContext(location.pathname, currentProject?.currentDiagramType);
 
   const isLocalEnvironment =
     !BACKEND_URL || BACKEND_URL.includes('localhost') || BACKEND_URL.includes('127.0.0.1');
@@ -701,6 +788,65 @@ export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGen
       try {
         setIsGenerating(true);
 
+        if (generatorType === 'kg_to_class') {
+          if (!isKgContext) {
+            const message = t('menu.generate.kgGuards.openKgBeforeConverting');
+            toast.error(message);
+            return { ok: false, error: message };
+          }
+          await runKgWithPreflight();
+          if (!mountedRef.current) return { ok: false, error: 'Component unmounted' };
+          getPostHog()?.capture('generator_used', {
+            generator_type: generatorType,
+            diagram_type: currentProject.currentDiagramType,
+            ...getModelMetrics(currentProject),
+          });
+          return { ok: true };
+        }
+
+        if (generatorType === 'kg_refine') {
+          if (!isKgContext) {
+            const message = t('menu.generate.kgGuards.openKgBeforeRefining');
+            toast.error(message);
+            return { ok: false, error: message };
+          }
+          setKgRefineOpen(true);
+          if (!mountedRef.current) return { ok: false, error: 'Component unmounted' };
+          getPostHog()?.capture('generator_used', {
+            generator_type: generatorType,
+            diagram_type: currentProject.currentDiagramType,
+            ...getModelMetrics(currentProject),
+          });
+          return { ok: true };
+        }
+
+        if (generatorType === 'kg_export_owl' || generatorType === 'kg_export_ttl') {
+          if (!isKgContext) {
+            const message = t('menu.generate.kgGuards.openKgBeforeExporting');
+            toast.error(message);
+            return { ok: false, error: message };
+          }
+          const fmt = generatorType === 'kg_export_owl' ? 'owl' : 'ttl';
+          await exportKgRdf(fmt);
+          if (!mountedRef.current) return { ok: false, error: 'Component unmounted' };
+          getPostHog()?.capture('generator_used', {
+            generator_type: generatorType,
+            diagram_type: currentProject.currentDiagramType,
+            ...getModelMetrics(currentProject),
+          });
+          return { ok: true };
+        }
+
+        if (generatorType === 'kg_export_with_options') {
+          if (!isKgContext) {
+            const message = t('menu.generate.kgGuards.openKgBeforeExporting');
+            toast.error(message);
+            return { ok: false, error: message };
+          }
+          setKgExportOptionsOpen(true);
+          return { ok: true };
+        }
+
         if (generatorType === 'web_app') {
           // Redux state is kept in sync with localStorage via useStorageSync,
           // so currentProject already has the latest GUI model data.
@@ -867,7 +1013,9 @@ export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGen
     },
     [
       currentProject, editor, generateCode, activeDiagram, activeDiagramTitle,
-      isQuantumContext, isGuiContext, isObjectContext, isUserContext, isNNContext, ensureGuiForAssistantWebAppGeneration, t,
+      isQuantumContext, isGuiContext, isObjectContext, isUserContext, isNNContext, isKgContext,
+      runKgConversion, runKgWithPreflight, exportKgRdf,
+      ensureGuiForAssistantWebAppGeneration, t,
     ],
   );
 
@@ -906,6 +1054,15 @@ export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGen
       return { executed: false, passed: false };
     }
 
+    if (isKgContext) {
+      // Quality Check on a Knowledge Graph diagram opens the unified Refine
+      // KG modal (static analysis / consistency / LLM-assisted tabs) rather
+      // than the generic diagram validator. The modal reports its own results,
+      // so no verdict is available synchronously here.
+      await executeGenerator('kg_refine');
+      return { executed: false, passed: false };
+    }
+
     try {
       if (activeDiagram?.model && !isUMLModel(activeDiagram.model)) {
         const result = await validateDiagram(null, activeDiagramTitle, activeDiagram.model);
@@ -925,7 +1082,7 @@ export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGen
       }));
       return { executed: true, passed: false };
     }
-  }, [currentProject, editor, isQuantumContext, isGuiContext, activeDiagram, activeDiagramTitle, t]);
+  }, [currentProject, editor, isQuantumContext, isGuiContext, isKgContext, executeGenerator, activeDiagram, activeDiagramTitle, t]);
 
   // ── Config-dialog handlers ─────────────────────────────────────────────────
 
@@ -1262,6 +1419,73 @@ export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGen
     onWebAppGenerate: () => { handleWebAppGenerate().catch(notifyError(t('generation.context.webAppGeneration'))); },
   };
 
+  // Props for the unified Refine KG modal. The modal handles the full
+  // tabbed (Automatic / AI) flow internally; it only needs to know when
+  // it's open, how to close itself, a "Fix in KG" handler that focuses
+  // affected nodes in the canvas, and — when opened from the Convert
+  // flow — a ``convertMode``/``onConvert`` callback so it can trigger
+  // the conversion once the KG is clean.
+  const kgRefineModalProps = {
+    open: kgRefineOpen || kgConvertMode,
+    onClose: () => {
+      setKgRefineOpen(false);
+      setKgConvertMode(false);
+      setKgRefineInitialTab(undefined);
+    },
+    onFixInKg: (issue: KgIssue) => {
+      const ids = issue?.affectedNodeIds ?? [];
+      if (ids.length > 0) {
+        kgFocus.focus(ids, { maxNeighbors: 15 });
+      }
+    },
+    onFocusNodes: (nodeIds: string[]) => {
+      if (nodeIds.length > 0) {
+        kgFocus.focus(nodeIds, { maxNeighbors: 15 });
+      }
+    },
+    convertMode: kgConvertMode,
+    onConvert: (kgSignature: string) => {
+      void runKgConversion({ kgSignature, onConsistencyIssues });
+    },
+    initialTab: kgRefineInitialTab,
+  };
+
+  // Pre-conversion consistency confirmation modal. Wired so that "Proceed
+  // anyway" re-runs the conversion with the gate suppressed (we don't ask
+  // a second time).
+  const kgConsistencyConfirmModalProps = {
+    open: kgConsistencyGate.open,
+    report: kgConsistencyGate.report,
+    onOpenRefine: () => {
+      // Close the gate (resolve as cancel — we're routing the user to the
+      // Refine modal instead of running the conversion). Open the Refine
+      // modal on the Consistency tab.
+      kgConsistencyGate.resolve?.('cancel');
+      setKgConsistencyGate({ open: false, report: null, resolve: null });
+      setKgRefineInitialTab('consistency');
+      setKgRefineOpen(true);
+    },
+    onProceed: () => {
+      kgConsistencyGate.resolve?.('proceed');
+      setKgConsistencyGate({ open: false, report: null, resolve: null });
+    },
+    onCancel: () => {
+      kgConsistencyGate.resolve?.('cancel');
+      setKgConsistencyGate({ open: false, report: null, resolve: null });
+    },
+  };
+
+  // Props for the KG export-options modal.
+  const kgExportOptionsModalProps = {
+    open: kgExportOptionsOpen,
+    onClose: () => setKgExportOptionsOpen(false),
+    onConfirm: (fmt: 'owl' | 'ttl', vocab: 'owl' | 'shacl' | 'both') => {
+      exportKgRdf(fmt, vocab).catch((err) =>
+        toast.error(err instanceof Error ? err.message : t('menu.generate.kgGuards.exportFailed')),
+      );
+    },
+  };
+
   return {
     isGenerating,
     handleGenerateRequest,
@@ -1269,5 +1493,8 @@ export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGen
     handleQualityCheck,
     configState,
     isLocalEnvironment,
+    kgRefineModalProps,
+    kgExportOptionsModalProps,
+    kgConsistencyConfirmModalProps,
   };
 }

@@ -41,6 +41,9 @@ export interface PerspectiveDefinition {
  *    (database work always uses the class diagram, so they collapse cleanly).
  *  - "Full Application" includes the agent — full-stack flows almost always
  *    pair a UI with an assistant.
+ *  - "Knowledge Engineer" pairs the knowledge graph editor with class + object
+ *    diagrams, since KG authoring round-trips through B-UML (KG → UML and back)
+ *    and individuals are inspected as objects.
  *  - "Show All" is the escape hatch back to the unfiltered workspace.
  */
 export const PERSPECTIVES: PerspectiveDefinition[] = [
@@ -61,6 +64,12 @@ export const PERSPECTIVES: PerspectiveDefinition[] = [
     label: 'Full Web Application',
     description: 'Class, agent, and no-code GUI diagrams.',
     diagrams: ['ClassDiagram', 'AgentDiagram', 'GUINoCodeDiagram'],
+  },
+  {
+    key: 'knowledge',
+    label: 'Knowledge Engineer',
+    description: 'Class, object, and knowledge graph diagrams for ontology and RDF/OWL work.',
+    diagrams: ['ClassDiagram', 'ObjectDiagram', 'KnowledgeGraphDiagram'],
   },
   {
     key: 'quantum',

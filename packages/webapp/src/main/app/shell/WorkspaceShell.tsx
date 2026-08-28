@@ -39,6 +39,7 @@ import { DeployResultDialog } from '../../features/deploy/dialogs/DeployResultDi
 import type { GeneratorMenuMode, GeneratorType } from './workspace-types';
 import { useDeployment } from './hooks/useDeployment';
 import { useAssistantImport } from './hooks/useAssistantImport';
+import { useImportOwlToKg } from '../../features/import/useImportOwlToKg';
 import { useProjectPreview } from './hooks/useProjectPreview';
 import { useGitHubStar } from './hooks/useGitHubStar';
 import { useDialogStates } from './hooks/useDialogStates';
@@ -60,6 +61,9 @@ const FeedbackDialog = React.lazy(() =>
 );
 const HelpGuideDialog = React.lazy(() =>
   import('../../shared/dialogs/HelpGuideDialog').then((m) => ({ default: m.HelpGuideDialog })),
+);
+const KgImportTargetModal = React.lazy(() =>
+  import('../../features/import/KgImportTargetModal').then((m) => ({ default: m.KgImportTargetModal })),
 );
 // The keyboard toggle hook must be imported eagerly (it registers a global listener).
 // KeyboardShortcutsDialog is imported statically alongside the hook to avoid Vite's
@@ -235,6 +239,11 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
     handleAssistantFileChange,
     handleAssistantImport,
   } = useAssistantImport({ currentProject });
+
+  const {
+    openPickerAndImport: openImportOwlPicker,
+    importTargetModalProps: kgImportTargetModalProps,
+  } = useImportOwlToKg();
 
   const {
     isProjectPreviewOpen,
@@ -481,7 +490,13 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
       navigate('/');
     }
     // Don't skip the switch when the active UML type already matches AND we're on /
-    if (location.pathname === '/' && activeUmlType === type && currentDiagramType !== 'GUINoCodeDiagram' && currentDiagramType !== 'QuantumCircuitDiagram') {
+    if (
+      location.pathname === '/' &&
+      activeUmlType === type &&
+      currentDiagramType !== 'GUINoCodeDiagram' &&
+      currentDiagramType !== 'QuantumCircuitDiagram' &&
+      currentDiagramType !== 'KnowledgeGraphDiagram'
+    ) {
       return;
     }
     switchDiagramType(type);
@@ -780,6 +795,7 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
         onImportBpmnDiagram={handleImportBpmnDiagram}
         onOpenAssistantImportImage={() => openAssistantImportDialog('image')}
         onOpenAssistantImportKg={() => openAssistantImportDialog('kg')}
+        onImportOwl={openImportOwlPicker}
         onOpenProjectPreview={handleOpenProjectPreview}
         onGenerate={onGenerate}
         onQualityCheck={handleTrackedQualityCheck}
@@ -965,6 +981,12 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
           handleAssistantImport().catch(console.error);
         }}
       />
+
+      {/* Destination prompt for an OWL/RDF import when the active Knowledge
+          Graph tab already has content: merge alongside, or a new tab. */}
+      <Suspense fallback={null}>
+        <KgImportTargetModal {...kgImportTargetModalProps} />
+      </Suspense>
 
       <JsonViewerModal
         isVisible={isProjectPreviewOpen}

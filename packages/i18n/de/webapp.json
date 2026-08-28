@@ -50,13 +50,15 @@
       "user": "Benutzer",
       "neuralNet": "Neuronales Netz",
       "gui": "GUI",
-      "quantum": "Quanten"
+      "quantum": "Quanten",
+      "kg": "KG"
     },
     "route": {
       "settings": "Einstellungen",
       "agentCustomization": "Agentenanpassung",
       "agentPersonalization": "Agentenpersonalisierung",
-      "agentMappings": "Agentenzuordnungen"
+      "agentMappings": "Agentenzuordnungen",
+      "kgSettings": "KG-Einstellungen"
     }
   },
   "menu": {
@@ -69,6 +71,7 @@
       "importClassDiagramFrom": "Klassendiagramm importieren aus",
       "imageToProject": "Bild in Projekt umwandeln",
       "kgToProject": "Knowledge Graph in Projekt umwandeln",
+      "importKgOwl": "KG importieren (OWL)",
       "previewProject": "Projektvorschau"
     },
     "generate": {
@@ -81,7 +84,9 @@
         "database": "Datenbank",
         "oop": "OOP",
         "schema": "Schema",
-        "data": "Daten"
+        "data": "Daten",
+        "kgConvert": "In B-UML umwandeln",
+        "kgExport": "Knowledge Graph exportieren"
       },
       "actions": {
         "djangoProject": "Django-Projekt",
@@ -93,11 +98,19 @@
         "besserAgent": "BESSER-Agent",
         "jsonObjectExport": "JSON-Objekt-Export",
         "userProfileJson": "Benutzerprofil-JSON",
-        "qiskitCode": "Qiskit-Code"
+        "qiskitCode": "Qiskit-Code",
+        "kgToClassDiagram": "Klassendiagramm",
+        "kgExportWithOptions": "Mit Optionen exportieren…"
       },
       "notices": {
         "statemachine": "Zustandsautomaten werden als Methodenimplementierungen in Klassendiagrammen verwendet. Generieren Sie Code aus dem Klassendiagramm.",
         "unavailable": "Für dieses Diagramm noch nicht verfügbar"
+      },
+      "kgGuards": {
+        "openKgBeforeConverting": "Öffnen Sie ein Knowledge-Graph-Diagramm, bevor Sie in UML umwandeln.",
+        "openKgBeforeRefining": "Öffnen Sie ein Knowledge-Graph-Diagramm, bevor Sie es verfeinern.",
+        "openKgBeforeExporting": "Öffnen Sie ein Knowledge-Graph-Diagramm, bevor Sie exportieren.",
+        "exportFailed": "KG-Export fehlgeschlagen."
       }
     },
     "deploy": {
@@ -830,6 +843,10 @@
             "label": "Vollständige Webanwendung",
             "description": "Klassen-, Agenten- und No-Code-GUI-Diagramme."
           },
+          "knowledge": {
+            "label": "Wissensingenieur",
+            "description": "Klassen-, Objekt- und Wissensgraph-Diagramme für Ontologien und RDF/OWL."
+          },
           "quantum": {
             "label": "Quantenmodellierung",
             "description": "Nur Quantenschaltkreisdiagramme."
@@ -848,7 +865,8 @@
           "GUINoCodeDiagram": "Grafische Benutzeroberflächengestaltung (IFML-inspiriert).",
           "QuantumCircuitDiagram": "Spezifikation eines Quantenprogramms.",
           "BPMN": "Geschäftsprozessmodell- und Notationsdiagramm.",
-          "NNDiagram": "Architektur neuronaler Netze (PyTorch / TensorFlow)."
+          "NNDiagram": "Architektur neuronaler Netze (PyTorch / TensorFlow).",
+          "KnowledgeGraphDiagram": "Erstellung von RDF/OWL-Wissensgraphen, mit Konvertierung von und nach B-UML."
         }
       },
       "toasts": {
@@ -1340,7 +1358,8 @@
     "GUINoCodeDiagram": "GUI-Diagramm",
     "QuantumCircuitDiagram": "Quantenschaltkreisdiagramm",
     "BPMN": "BPMN-Diagramm",
-    "NNDiagram": "Neuronales-Netz-Diagramm"
+    "NNDiagram": "Neuronales-Netz-Diagramm",
+    "KnowledgeGraphDiagram": "Wissensgraph-Diagramm"
   },
   "dialogs": {
     "about": {
@@ -2328,8 +2347,629 @@
         }
       }
     },
+    "kg": {
+      "nodeTypes": {
+        "class": {
+          "label": "Klasse",
+          "description": "Ein Typ / Konzept (owl:Class)"
+        },
+        "individual": {
+          "label": "Individuum",
+          "description": "Eine Instanz einer Klasse"
+        },
+        "property": {
+          "label": "Eigenschaft",
+          "description": "Ein reifizierter Eigenschaftsknoten"
+        },
+        "literal": {
+          "label": "Literal",
+          "description": "Ein Literalwert (Zeichenkette, Zahl, …)"
+        },
+        "blank": {
+          "label": "Blank",
+          "description": "Anonyme Ressource (Blank Node)"
+        },
+        "nodeConstraint": {
+          "label": "Knoten-Constraint",
+          "description": "Constraints, die für eine Klasse gelten (OWL-Axiome oder SHACL NodeShape)"
+        },
+        "propertyConstraint": {
+          "label": "Eigenschafts-Constraint",
+          "description": "Constraints, die für eine Eigenschaft gelten (OWL-Restriktion oder SHACL PropertyShape)"
+        }
+      },
+      "edgeRules": {
+        "class": {
+          "reason": "Eine Klasse kann nur mit einer anderen Klasse oder mit einem Blank Node (Klassenausdruck) verbunden werden."
+        },
+        "individual": {
+          "reason": "Ein Individuum kann mit einer Klasse (rdf:type), mit anderen Individuen oder Blank Nodes (Objekteigenschaften) oder mit Literalen (Datentypeigenschaften) verbunden werden."
+        },
+        "property": {
+          "reason": "Eine Eigenschaft kann mit einer Klasse (rdfs:domain / rdfs:range), mit einer anderen Eigenschaft (subPropertyOf / inverseOf / equivalentProperty) oder mit einem Blank Node (anonymer Klassenausdruck) verbunden werden."
+        },
+        "literal": {
+          "reason": "Ein Literal kann nicht das Subjekt einer OWL/RDF-Beziehung sein."
+        },
+        "blank": {
+          "reason": "Ein Blank Node (anonyme Ressource) darf jeden Knoten referenzieren, der kein Constraint ist."
+        },
+        "nodeConstraint": {
+          "reason": "Eine NodeConstraint kann nur auf eine Klasse zielen (constraintTargetClass) oder eine PropertyConstraint gruppieren (sh:property)."
+        },
+        "propertyConstraint": {
+          "reason": "Eine PropertyConstraint kann nur auf eine Eigenschaft zielen (constraintTargetProperty)."
+        },
+        "genericRejection": "Verbindungen von \"{{source}}\" zu \"{{target}}\" sind unter OWL2 DL nicht erlaubt.",
+        "noValidTargets": "Keine gültigen Zieltypen für diesen Knoten unter OWL2 DL."
+      },
+      "constraints": {
+        "categories": {
+          "cardinality": "Kardinalität",
+          "value": "Wert",
+          "datatype": "Datentyp & Format",
+          "enumeration": "Aufzählung",
+          "logical": "Logisch",
+          "classAxiom": "Klassenaxiome",
+          "meta": "Metadaten"
+        },
+        "catalog": {
+          "minCardinality": {
+            "label": "Mindestens N Werte",
+            "description": "Die Eigenschaft muss pro Instanz mindestens N Werte haben."
+          },
+          "maxCardinality": {
+            "label": "Höchstens N Werte",
+            "description": "Die Eigenschaft darf pro Instanz höchstens N Werte haben."
+          },
+          "exactCardinality": {
+            "label": "Genau N Werte",
+            "description": "Die Eigenschaft muss pro Instanz genau N Werte haben."
+          },
+          "minQualifiedCardinality": {
+            "label": "Mindestens N der Klasse X",
+            "description": "Mindestens N Werte müssen Instanzen der gewählten Klasse sein."
+          },
+          "maxQualifiedCardinality": {
+            "label": "Höchstens N der Klasse X",
+            "description": "Höchstens N Werte dürfen Instanzen der gewählten Klasse sein."
+          },
+          "exactQualifiedCardinality": {
+            "label": "Genau N der Klasse X",
+            "description": "Genau N Werte müssen Instanzen der gewählten Klasse sein."
+          },
+          "someValuesFrom": {
+            "label": "Ein Wert muss sein …",
+            "description": "Mindestens ein Wert muss eine Instanz der gewählten Klasse sein. Nur OWL — SHACL hat kein getreues existenzielles Prädikat (sh:class bedeutet \"jeder Wert\", nicht \"irgendein Wert\")."
+          },
+          "allValuesFrom": {
+            "label": "Alle Werte müssen sein …",
+            "description": "Jeder Wert muss eine Instanz der gewählten Klasse sein."
+          },
+          "hasValue": {
+            "label": "Muss gleich sein",
+            "description": "Die Eigenschaft muss genau diesen Wert haben (Literal oder IRI)."
+          },
+          "hasSelf": {
+            "label": "Ist reflexiv",
+            "description": "Die Eigenschaft setzt jedes Individuum mit sich selbst in Beziehung."
+          },
+          "nodeKind": {
+            "label": "Wert muss sein …",
+            "description": "Schränkt die Art des Knotens ein, den ein Wert annehmen kann (IRI, BlankNode, Literal)."
+          },
+          "equals": {
+            "label": "Gleich Eigenschaft",
+            "description": "Die Wertemenge dieser Eigenschaft muss exakt der Wertemenge einer anderen Eigenschaft entsprechen."
+          },
+          "lessThan": {
+            "label": "Kleiner als Eigenschaft",
+            "description": "Jeder Wert muss strikt kleiner sein als der entsprechende Wert einer anderen Eigenschaft."
+          },
+          "lessThanOrEquals": {
+            "label": "Kleiner oder gleich Eigenschaft",
+            "description": "Jeder Wert muss kleiner oder gleich dem entsprechenden Wert einer anderen Eigenschaft sein."
+          },
+          "datatype": {
+            "label": "Vom Datentyp",
+            "description": "Werte müssen Literale des gewählten XSD-Datentyps sein."
+          },
+          "pattern": {
+            "label": "Entspricht Muster",
+            "description": "Zeichenkettenwerte müssen diesem regulären Ausdruck entsprechen."
+          },
+          "flags": {
+            "label": "Musterflags",
+            "description": "Regex-Flags, die auf sh:pattern angewendet werden (z. B. \"i\" für Groß-/Kleinschreibung ignorieren)."
+          },
+          "minLength": {
+            "label": "Länge ist mindestens N",
+            "description": "Die Zeichenkettenlänge muss mindestens N Zeichen betragen."
+          },
+          "maxLength": {
+            "label": "Länge ist höchstens N",
+            "description": "Die Zeichenkettenlänge darf höchstens N Zeichen betragen."
+          },
+          "minInclusive": {
+            "label": "Wert ≥ N",
+            "description": "Numerische Werte / Datumswerte müssen mindestens N betragen (einschließlich)."
+          },
+          "maxInclusive": {
+            "label": "Wert ≤ N",
+            "description": "Numerische Werte / Datumswerte dürfen höchstens N betragen (einschließlich)."
+          },
+          "minExclusive": {
+            "label": "Wert > N",
+            "description": "Numerische Werte / Datumswerte müssen strikt größer als N sein."
+          },
+          "maxExclusive": {
+            "label": "Wert < N",
+            "description": "Numerische Werte / Datumswerte müssen strikt kleiner als N sein."
+          },
+          "languageIn": {
+            "label": "Erlaubte Sprachen",
+            "description": "Sprachmarkierte Literalwerte müssen eines der aufgeführten BCP-47-Tags verwenden."
+          },
+          "uniqueLang": {
+            "label": "Jede Sprache höchstens einmal",
+            "description": "Keine zwei sprachmarkierten Werte dürfen dasselbe Sprach-Tag teilen."
+          },
+          "in": {
+            "label": "Einer dieser Werte",
+            "description": "Werte müssen aus einer Aufzählungsliste stammen."
+          },
+          "oneOf": {
+            "label": "Eines dieser Individuen",
+            "description": "Die Klasse ist die aufgezählte Menge dieser Individuen."
+          },
+          "shaclNot": {
+            "label": "Darf NICHT erfüllen",
+            "description": "Der Wert darf die innere Constraint-Shape NICHT erfüllen."
+          },
+          "shaclAnd": {
+            "label": "Muss ALLE erfüllen",
+            "description": "Der Wert muss jede innere Constraint-Shape erfüllen."
+          },
+          "shaclOr": {
+            "label": "Muss MINDESTENS EINES erfüllen",
+            "description": "Der Wert muss mindestens eine innere Constraint-Shape erfüllen."
+          },
+          "shaclXone": {
+            "label": "Muss GENAU EINES erfüllen",
+            "description": "Der Wert muss genau eine der inneren Constraint-Shapes erfüllen."
+          },
+          "equivalentClasses": {
+            "label": "Äquivalent zu",
+            "description": "Diese Klassen teilen sich alle Instanzen."
+          },
+          "disjointWith": {
+            "label": "Disjunkt mit",
+            "description": "Keine Instanz darf gleichzeitig zu beiden Klassen gehören."
+          },
+          "disjointUnionOf": {
+            "label": "Disjunkte Vereinigung von",
+            "description": "Die Klasse ist die disjunkte Vereinigung der aufgeführten Klassen."
+          },
+          "subClassOf": {
+            "label": "Unterklasse von",
+            "description": "Diese Klasse ist eine Spezialisierung einer anderen Klasse."
+          },
+          "complementOf": {
+            "label": "Komplement von",
+            "description": "Die Klasse ist das Mengenkomplement einer anderen Klasse."
+          },
+          "unionOf": {
+            "label": "Vereinigung von",
+            "description": "Die Klasse ist die Vereinigung der aufgeführten Klassen."
+          },
+          "intersectionOf": {
+            "label": "Schnittmenge von",
+            "description": "Die Klasse ist die Schnittmenge der aufgeführten Klassen."
+          },
+          "hasKey": {
+            "label": "Schlüsseleigenschaften (identifiziert eindeutig)",
+            "description": "Die aufgeführten Eigenschaften identifizieren zusammen jede Instanz eindeutig."
+          },
+          "shaclClosed": {
+            "label": "Geschlossene Shape (keine zusätzlichen Eigenschaften)",
+            "description": "Instanzen dürfen keine Eigenschaften über die in dieser Shape aufgeführten hinaus tragen."
+          },
+          "shaclIgnoredProperties": {
+            "label": "Ignorierte Eigenschaften (Ausnahmen der geschlossenen Shape)",
+            "description": "Eigenschaften, die auch bei geschlossener Shape erlaubt sind."
+          },
+          "shaclSeverity": {
+            "label": "Schweregrad",
+            "description": "Schweregrad eines SHACL-Validierungsergebnisses, das dieses Constraint verletzt."
+          },
+          "shaclMessage": {
+            "label": "Eigene Meldung",
+            "description": "Lesbare Meldung, die an ein Validierungsergebnis angehängt wird."
+          },
+          "shaclName": {
+            "label": "Lesbarer Name",
+            "description": "Anzeigename, den SHACL-fähige Oberflächen verwenden."
+          },
+          "shaclDescription": {
+            "label": "Beschreibung",
+            "description": "Freie Beschreibung zu Dokumentationszwecken."
+          },
+          "shaclDeactivated": {
+            "label": "Deaktiviert",
+            "description": "Wenn aktiv, überspringen Validierer diese Shape."
+          },
+          "shaclOrder": {
+            "label": "Anzeigereihenfolge",
+            "description": "Hinweis für die Reihenfolge der Shapes in der Oberfläche."
+          },
+          "shaclGroup": {
+            "label": "Gruppe",
+            "description": "IRI einer sh:PropertyGroup, zu der diese Shape gehört."
+          }
+        },
+        "templates": {
+          "required": {
+            "label": "Pflicht",
+            "description": "Muss mindestens einen Wert haben (minCardinality = 1)."
+          },
+          "optional": {
+            "label": "Optional",
+            "description": "Darf fehlen (minCardinality = 0)."
+          },
+          "single": {
+            "label": "Einwertig",
+            "description": "Höchstens ein Wert (maxCardinality = 1)."
+          },
+          "required-single": {
+            "label": "Pflicht & einwertig",
+            "description": "Genau ein Wert (min = max = 1)."
+          },
+          "required-multi": {
+            "label": "Pflicht & mehrwertig",
+            "description": "Mindestens ein Wert, nach oben unbegrenzt."
+          },
+          "enumeration": {
+            "label": "Aufzählung",
+            "description": "Der Wert muss aus einer Aufzählungsliste stammen — die Liste direkt hier bearbeiten."
+          },
+          "numeric-range": {
+            "label": "Zahlenbereich",
+            "description": "Wert vom Typ Decimal zwischen zwei Grenzen."
+          },
+          "string-pattern": {
+            "label": "Zeichenkettenmuster",
+            "description": "Wert vom Typ xsd:string, der einem Regex entspricht."
+          },
+          "email": {
+            "label": "E-Mail",
+            "description": "xsd:string, der einem permissiven E-Mail-Regex entspricht."
+          },
+          "url": {
+            "label": "URL",
+            "description": "Wert vom Typ xsd:anyURI."
+          },
+          "disjoint": {
+            "label": "Disjunkt mit",
+            "description": "Die Klasse ist disjunkt mit einer anderen Klasse — die Ziele direkt hier auswählen."
+          },
+          "closed-shape": {
+            "label": "Geschlossene Shape",
+            "description": "Es sind keine anderen Eigenschaften erlaubt als die in dieser Shape deklarierten."
+          }
+        },
+        "describe": {
+          "minCardinality_one": "Muss mindestens {{count}} Wert haben",
+          "minCardinality_other": "Muss mindestens {{count}} Werte haben",
+          "maxCardinality_one": "Darf höchstens {{count}} Wert haben",
+          "maxCardinality_other": "Darf höchstens {{count}} Werte haben",
+          "exactCardinality_one": "Muss genau {{count}} Wert haben",
+          "exactCardinality_other": "Muss genau {{count}} Werte haben",
+          "minQualifiedCardinality_one": "Mindestens {{count}} Wert der Klasse {{class}}",
+          "minQualifiedCardinality_other": "Mindestens {{count}} Werte der Klasse {{class}}",
+          "maxQualifiedCardinality_one": "Höchstens {{count}} Wert der Klasse {{class}}",
+          "maxQualifiedCardinality_other": "Höchstens {{count}} Werte der Klasse {{class}}",
+          "exactQualifiedCardinality_one": "Genau {{count}} Wert der Klasse {{class}}",
+          "exactQualifiedCardinality_other": "Genau {{count}} Werte der Klasse {{class}}",
+          "fusedExact_one": "Muss genau {{count}} Wert haben",
+          "fusedExact_other": "Muss genau {{count}} Werte haben",
+          "fusedRange": "Muss zwischen {{min}} und {{max}} Werte haben",
+          "someValuesFrom": "Ein Wert muss von der Klasse {{class}} sein",
+          "allValuesFrom": "Alle Werte müssen von der Klasse {{class}} sein",
+          "hasValue": "{{target}} muss gleich {{value}} sein",
+          "hasSelfTrue": "{{target}} ist reflexiv (Selbstbezug)",
+          "hasSelfFalse": "{{target}} ist nicht reflexiv",
+          "nodeKind": "{{target}} muss ein(e) {{kind}} sein",
+          "datatype": "Vom Datentyp {{datatype}}",
+          "pattern": "{{target}} muss dem Regex `{{regex}}` entsprechen",
+          "flags": "Musterflags: `{{flags}}`",
+          "minLength": "Länge ≥ {{value}}",
+          "maxLength": "Länge ≤ {{value}}",
+          "minInclusive": "Wert ≥ {{value}}",
+          "maxInclusive": "Wert ≤ {{value}}",
+          "minExclusive": "Wert > {{value}}",
+          "maxExclusive": "Wert < {{value}}",
+          "languageIn": "Erlaubte Sprachen: {{list}}",
+          "uniqueLangTrue": "Jede Sprache höchstens einmal",
+          "uniqueLangFalse": "Sprachen dürfen sich wiederholen",
+          "in": "{{target}} muss eines von diesen sein: {{list}}",
+          "oneOf": "Die Klasse ist die Menge: {{list}}",
+          "equivalentClasses": "Äquivalent zu {{list}}",
+          "disjointWith": "Disjunkt mit {{list}}",
+          "subClassOf": "Unterklasse von {{class}}",
+          "complementOf": "Komplement von {{class}}",
+          "unionOf": "Vereinigung von {{list}}",
+          "intersectionOf": "Schnittmenge von {{list}}",
+          "disjointUnionOf": "Disjunkte Vereinigung von {{list}}",
+          "hasKey": "Identifiziert durch {{list}}",
+          "shaclClosedTrue": "Geschlossene Shape (keine zusätzlichen Eigenschaften erlaubt)",
+          "shaclClosedFalse": "Offene Shape",
+          "shaclIgnoredProperties": "Ausnahmen der geschlossenen Shape: {{list}}",
+          "shaclDisjoint": "SHACL-disjunkt von {{class}}",
+          "shaclSeverity": "Schweregrad: {{severity}}",
+          "shaclMessage": "Meldung: {{message}}",
+          "shaclName": "Name: {{name}}",
+          "shaclDescription": "Beschreibung: {{description}}",
+          "shaclDeactivatedTrue": "Deaktiviert",
+          "shaclDeactivatedFalse": "Aktiviert",
+          "shaclOrder": "Reihenfolge: {{value}}",
+          "shaclGroup": "In Gruppe {{group}}",
+          "shaclNot": "Darf {{shapes}} NICHT erfüllen",
+          "shaclAnd": "Muss ALLE davon erfüllen: {{shapes}}",
+          "shaclOr": "Muss MINDESTENS EINE davon erfüllen: {{shapes}}",
+          "shaclXone": "Muss GENAU EINE davon erfüllen: {{shapes}}",
+          "theValue": "der Wert",
+          "noneList": "(keine)",
+          "noShapes": "(keine Shapes)",
+          "empty": "Noch keine Constraints — wählen Sie eines aus der Auswahl unten."
+        },
+        "editor": {
+          "heading": "Constraints ({{count}})",
+          "appliesTo": "Gilt für <target>{{target}}</target>",
+          "quickAdd": "Schnell hinzufügen",
+          "addConstraint": "Constraint hinzufügen",
+          "removeConstraint": "Constraint entfernen",
+          "removeValue": "Entfernen",
+          "addValue": "Wert hinzufügen",
+          "searchPlaceholder": "Constraints suchen…",
+          "count": "Anzahl",
+          "onClass": "Für Klasse",
+          "pickNodeKind": "Knotenart wählen",
+          "pickSeverity": "Schweregrad wählen",
+          "pickDatatype": "XSD-Datentyp wählen",
+          "customDatatype": "…oder eine eigene Datentyp-IRI einfügen",
+          "literalValue": "Literalwert",
+          "literalValueOrIri": "Literalwert oder IRI",
+          "datatypeIriOptional": "Datentyp-IRI (optional)",
+          "langTag": "Sprach-Tag (z. B. en)",
+          "enabled": "aktiviert",
+          "disabled": "deaktiviert",
+          "editorComingSoon": "Editor für \"{{shape}}\" folgt in Kürze — der Wert bleibt unverändert."
+        },
+        "validation": {
+          "minMaxCardinality": "minCardinality ({{min}}) darf maxCardinality ({{max}}) nicht überschreiten.",
+          "minMaxLength": "minLength ({{min}}) darf maxLength ({{max}}) nicht überschreiten.",
+          "minMaxInclusive": "minInclusive ({{min}}) darf maxInclusive ({{max}}) nicht überschreiten.",
+          "badRegex": "Das Regex-Muster \"{{pattern}}\" ist kein gültiger regulärer Ausdruck.",
+          "qualifiedNeedsOnClass": "Für die qualifizierte Kardinalität ({{kind}}) muss eine \"on class\" gewählt sein.",
+          "enumNeedsValue": "Die Aufzählung (in) benötigt mindestens einen Wert."
+        },
+        "nested": {
+          "introNot": "Darf NICHT erfüllen",
+          "introAnd": "Muss ALLE erfüllen",
+          "introOr": "Muss MINDESTENS EINE erfüllen",
+          "introXone": "Muss GENAU EINE erfüllen",
+          "addShape": "Shape hinzufügen",
+          "deeplyNested": "Tief verschachtelt — erwägen Sie, diese Shape in einen eigenen Constraint-Knoten auszulagern, damit der Inspektor lesbar bleibt.",
+          "confirmSwitchToRef": "Beim Wechsel zu einer Referenz werden die Inline-Constraint-Specs in diesem Slot verworfen. Fortfahren?",
+          "inline": "Inline",
+          "reference": "Referenz",
+          "removeSlot": "Slot entfernen",
+          "pickExisting": "Einen vorhandenen {{type}} zum Referenzieren wählen",
+          "refPlaceholder": "Constraint-Knoten-ID",
+          "noneWithId": "Kein {{type}} mit dieser ID."
+        },
+        "severities": {
+          "info": "Info",
+          "warning": "Warnung",
+          "violation": "Verletzung"
+        },
+        "datatypeGroups": {
+          "text": "Text",
+          "numeric": "Numerisch",
+          "dateTime": "Datum/Zeit",
+          "boolean": "Boolesch",
+          "binary": "Binär",
+          "languageTagged": "Sprachmarkiert"
+        }
+      },
+      "palette": {
+        "heading": "Knotentypen",
+        "hint": "Ziehen Sie einen Knotentyp auf die Zeichenfläche, um einen neuen Knoten zu erstellen. Um eine Beziehung zwischen bestehenden Knoten zu erstellen, klicken Sie in der Symbolleiste auf <action>{{addRelation}}</action> und dann auf den Quellknoten und anschließend auf den Zielknoten."
+      },
+      "toolbar": {
+        "addRelation": "Beziehung hinzufügen",
+        "addingRelation": "Beziehung wird hinzugefügt…",
+        "addRelationTooltip": "Eine Beziehung hinzufügen: vom Quellknoten zum Zielknoten ziehen",
+        "exportHtml": "HTML exportieren",
+        "exportHtmlTooltip": "Den aktuellen Graphen als eigenständige interaktive HTML-Datei herunterladen",
+        "connectHint": "Ziehen Sie von einem Quellknoten auf einen Zielknoten, um eine Beziehung zu erstellen. Die Knotenpositionen sind gesperrt, solange dieser Modus aktiv ist — Esc zum Beenden.",
+        "showingNodes_one": "{{visible}} von {{count}} Knoten wird angezeigt",
+        "showingNodes_other": "{{visible}} von {{count}} Knoten werden angezeigt",
+        "raiseLimit": "das Limit in den KG-Einstellungen erhöhen",
+        "nodesFragment_one": "{{count}} Knoten",
+        "nodesFragment_other": "{{count}} Knoten",
+        "relationsFragment_one": "{{count}} Beziehung",
+        "relationsFragment_other": "{{count}} Beziehungen",
+        "counts": "{{nodes}} · {{relations}}"
+      },
+      "canvasControls": {
+        "autoLayout": "Automatisches Layout",
+        "fitToView": "An Ansicht anpassen",
+        "zoomIn": "Vergrößern",
+        "zoomOut": "Verkleinern"
+      },
+      "nodeList": {
+        "heading": "Knoten ({{count}})",
+        "filterPlaceholder": "Nach Bezeichnung / IRI filtern",
+        "allFilter": "Alle",
+        "selectAllAria": "Alle angezeigten Knoten auswählen",
+        "unselectAllAria": "Alle ausgewählten Knoten im Filter abwählen",
+        "selectAllTitle": "Alle angezeigten auswählen",
+        "unselectAllTitle": "Alle ausgewählten im Filter abwählen",
+        "noNodesToShow": "Keine Knoten zum Anzeigen",
+        "noNodesMatch": "Keine Knoten gefunden.",
+        "selectedSummary_one": "{{selected}} von {{count}} angezeigten Knoten ausgewählt",
+        "selectedSummary_other": "{{selected}} von {{count}} angezeigten Knoten ausgewählt",
+        "selectAll": "Alle auswählen",
+        "unselectAll": "Alle abwählen",
+        "metaVocabNote_one": "{{count}} Vokabular-Knoten wird nicht angezeigt. Aktivieren Sie sie in den KG-Einstellungen.",
+        "metaVocabNote_other": "{{count}} Vokabular-Knoten werden nicht angezeigt. Aktivieren Sie sie in den KG-Einstellungen.",
+        "metaVocabTooltip": "{{terms}} — impliziert durch die Knotentypen, die sie annotieren. Sie bleiben im Modell und in jedem Export erhalten. xsd:-Datentypen und andere sh:-Begriffe werden nicht ausgeblendet."
+      },
+      "editor": {
+        "showAll": "Alle anzeigen",
+        "focusBanner_one": "Auf das Problem fokussiert ({{count}} Ziel + Nachbarn)",
+        "focusBanner_other": "Auf das Problem fokussiert ({{count}} Ziele + Nachbarn)",
+        "emptyState": "Ziehen Sie einen Knotentyp aus der Palette auf die Zeichenfläche oder verwenden Sie {{fileMenu}} → {{importItem}}, um eine OWL-Ontologie zu laden.",
+        "showingCap": "{{visible}} von {{total}} Knoten werden angezeigt (weich: {{soft}}, hart: {{hard}})",
+        "toasts": {
+          "createdButCapped": "Knoten erstellt, konnte aber nicht angezeigt werden, da das harte Limit von {{limit}} erreicht ist. Blenden Sie Knoten in der Liste aus oder erhöhen Sie das harte Limit in den KG-Einstellungen.",
+          "createdSomeCapped": "{{created}} Knoten erstellt; {{notShown}} konnten nicht angezeigt werden, da das harte Limit von {{limit}} erreicht ist. Blenden Sie Knoten in der Liste aus oder erhöhen Sie das harte Limit in den KG-Einstellungen.",
+          "visibleCapReached": "Es können nicht mehr als {{limit}} Knoten gleichzeitig dargestellt werden. Deaktivieren Sie einige in der Knotenliste oder erhöhen Sie das harte Limit in den KG-Einstellungen.",
+          "visibleCapPartial": "Es können nicht mehr als {{limit}} Knoten gleichzeitig dargestellt werden. Nur {{added}} der {{selected}} neu ausgewählten Knoten wurden hinzugefügt. Deaktivieren Sie einige in der Knotenliste oder erhöhen Sie das harte Limit in den KG-Einstellungen.",
+          "focusNotInGraph": "Fokussieren nicht möglich: Der betroffene Knoten gehört nicht zu diesem Graphen.",
+          "exportNotReady": "Der Knowledge Graph konnte nicht exportiert werden: Die Zeichenfläche ist nicht bereit."
+        }
+      },
+      "standaloneHtml": {
+        "fallbackTitle": "Knowledge Graph",
+        "cdnFailed": "Cytoscape konnte nicht vom CDN geladen werden. Prüfen Sie Ihre Netzwerkverbindung.",
+        "renderFailedPrefix": "Der Graph konnte nicht dargestellt werden: "
+      },
+      "inspector": {
+        "titleNode": "Knoten",
+        "titleRelation": "Beziehung",
+        "titleInspector": "Inspektor",
+        "selectedCount_one": "{{count}} ausgewählt",
+        "selectedCount_other": "{{count}} ausgewählt",
+        "unsavedChanges": "Nicht gespeicherte Änderungen",
+        "close": "Schließen",
+        "noSelection": "Klicken Sie auf einen Knoten oder eine Beziehung auf der Zeichenfläche, um sie hier zu bearbeiten. Ziehen Sie auf leerer Fläche, um mehrere auszuwählen. Halten Sie die Leertaste zum Verschieben.",
+        "fields": {
+          "type": "Typ",
+          "label": "Bezeichnung",
+          "value": "Wert",
+          "datatypeIri": "Datentyp-IRI",
+          "iri": "IRI",
+          "predicateIri": "Prädikat-IRI",
+          "source": "Quelle",
+          "target": "Ziel",
+          "idLabel": "id:"
+        },
+        "placeholders": {
+          "predicate": "z. B. knows, type, hasName"
+        },
+        "footer": {
+          "hide": "Ausblenden",
+          "hideTooltip": "Den Knoten von der Zeichenfläche entfernen, ohne ihn aus dem Modell zu löschen",
+          "hideTooltipMulti": "Die ausgewählten Knoten von der Zeichenfläche entfernen, ohne sie zu löschen",
+          "bulkHide_one": "{{count}} Knoten ausblenden",
+          "bulkHide_other": "{{count}} Knoten ausblenden",
+          "deleteSelection": "Auswahl löschen",
+          "delete": "Löschen",
+          "discard": "Verwerfen",
+          "apply": "Anwenden"
+        },
+        "confirm": {
+          "discardTitle": "Nicht gespeicherte Änderungen verwerfen?",
+          "discardDescription": "Sie haben nicht gespeicherte Änderungen im Inspektor. Verwerfen und fortfahren?",
+          "discardConfirm": "Verwerfen",
+          "discardCancel": "Weiter bearbeiten",
+          "bulkDeleteTitle": "Auswahl löschen?",
+          "bulkNodesFragment_one": "{{count}} Knoten",
+          "bulkNodesFragment_other": "{{count}} Knoten",
+          "bulkRelationsFragment_one": "{{count}} Beziehung",
+          "bulkRelationsFragment_other": "{{count}} Beziehungen",
+          "bulkDeleteDescription": "Dadurch werden {{nodes}} und {{relations}} dauerhaft aus dem Modell entfernt. Knoten verlieren auch ihre zugehörigen Beziehungen. Dies kann nicht rückgängig gemacht werden.",
+          "bulkDeleteConfirm": "Löschen"
+        },
+        "multi": {
+          "hint": "Ziehen Sie an einem ausgewählten Knoten, um die ganze Gruppe zu verschieben. Halten Sie die Leertaste zum Verschieben der Ansicht.",
+          "nodesHeading": "Knoten ({{count}})",
+          "relationsHeading": "Beziehungen ({{count}})"
+        },
+        "attachedConstraints": {
+          "heading": "Constraints ({{count}})",
+          "add": "Constraint hinzufügen",
+          "constrainThisClass": "Diese Klasse einschränken…",
+          "constrainThisClassHint": "Z. B. disjunkt mit, hat Schlüssel, geschlossene Shape.",
+          "constrainAProperty": "Eine Eigenschaft dieser Klasse einschränken",
+          "noPropertiesInDomain": "Noch keine Eigenschaften im Domain dieser Klasse.",
+          "fallbackNodeConstraint": "Knoten-Constraint",
+          "fallbackPropertyConstraint": "Eigenschafts-Constraint",
+          "none": "Noch keine Constraints."
+        },
+        "connections": {
+          "heading": "Verbindungen ({{count}})",
+          "add": "Hinzufügen",
+          "none": "Keine Verbindungen.",
+          "noPredicate": "(kein Prädikat)",
+          "new": "neu",
+          "removing": "wird entfernt",
+          "discardStaged": "Diese vorgemerkte Verbindung verwerfen",
+          "undoDelete": "Löschen rückgängig machen",
+          "removeConnection": "Diese Verbindung entfernen"
+        },
+        "addConnection": {
+          "title": "Verbindung hinzufügen",
+          "outgoing": "Ausgehend",
+          "incoming": "Eingehend",
+          "predicate": "Prädikat",
+          "predicateFree": "Prädikat (tippen oder auswählen)",
+          "targetNode": "Zielknoten",
+          "sourceNode": "Quellknoten",
+          "noOtherNodes": "Keine weiteren Knoten im Modell.",
+          "stage": "Vormerken"
+        },
+        "constraintPredicates": {
+          "targetClass": "Diese NodeConstraint auf eine Klasse anwenden.",
+          "shProperty": "Eine PropertyConstraint unter dieser NodeConstraint gruppieren (sh:property).",
+          "targetProperty": "Diese PropertyConstraint auf eine Eigenschaft anwenden."
+        }
+      },
+      "settings": {
+        "title": "Knowledge-Graph-Einstellungen",
+        "noActiveDiagram": "Es ist kein Knowledge-Graph-Diagramm aktiv.",
+        "backToEditor": "Zurück zum Editor",
+        "description": "Einstellungen für das aktive KG-Diagramm ({{title}}). Änderungen werden im Projekt gespeichert und bleiben bei Export/Import erhalten.",
+        "saved": "KG-Einstellungen gespeichert.",
+        "saveFailed": "KG-Einstellungen konnten nicht gespeichert werden.",
+        "softLimitLabel": "Weiches Limit — beim Import automatisch angezeigt",
+        "softLimitHelp": "Beim Laden einer Ontologie erscheinen standardmäßig so viele Knoten — zuerst Klassen, dann Eigenschaften, Blank Nodes, Constraints, Individuen und Literale. Über die Knotenliste können Sie weitere aktivieren, bis zum harten Limit.",
+        "hardLimitLabel": "Hartes Limit — absolute Obergrenze",
+        "hardLimitHelp": "Die maximale Anzahl gleichzeitig sichtbarer Knoten. Beim Überschreiten erscheint ein erklärender Hinweis.",
+        "defaultPlaceholder": "{{value}} (Standard)",
+        "rangeError": "Geben Sie eine ganze Zahl zwischen {{min}} und {{max}} ein.",
+        "softExceedsHard": "Das weiche Limit ({{soft}}) muss kleiner oder gleich dem harten Limit ({{hard}}) sein.",
+        "layoutLabel": "Layout",
+        "layoutConcentric": "Concentric (Standard) — Knoten mit vielen Verbindungen in der Mitte",
+        "layoutFcose": "fCoSE — kräftebasiert, organische Cluster (langsamer)",
+        "layoutGrid": "Grid — deterministische Zeilen und Spalten",
+        "layoutHelp": "Beim Ändern des Layouts werden alle aktuell sichtbaren Knoten neu positioniert. Danach können Sie Knoten einzeln ziehen; diese Positionen bleiben erhalten.",
+        "metaVocabLabel": "RDF/OWL-Vokabular-Knoten",
+        "metaVocabHelp": "Zeigt <owl/>-, <rdf/>- und <rdfs/>-Begriffe sowie <shNodeShape/> / <shPropertyShape/> — die Knoten, gegen die sich jede Klasse und jede Shape deklariert — auf der Zeichenfläche und in der Knotenliste. Standardmäßig aus: Sie sind durch die Knotentypen impliziert, die sie annotieren, und sie sind in den meisten Ontologien die Knoten mit den meisten Verbindungen, was das Layout verzerrt. Wenn Sie dies aktivieren, werden sie in der Knotenliste aufgeführt; haken Sie die an, die Sie auf der Zeichenfläche möchten. <xsd/>-Datentypen und die übrigen <sh/>-Begriffe werden nie ausgeblendet — sie tragen den deklarierten Wertebereich einer Eigenschaft und ihre Constraint-Werte.",
+        "metaVocabNote": "Dies betrifft nur die Visualisierung. Vokabular-Knoten bleiben immer im Modell und werden ohnehin exportiert / konvertiert (RDF-Export, KG → UML, Konsistenzprüfungen).",
+        "summaryNodes_one": "Das Diagramm hat derzeit {{count}} Knoten",
+        "summaryNodes_other": "Das Diagramm hat derzeit {{count}} Knoten",
+        "summarySoft": "angewendetes weiches Limit {{value}}",
+        "summaryHard": "angewendetes hartes Limit {{value}}",
+        "summaryLayout": "angewendetes Layout",
+        "resetToDefaults": "Auf Standard zurücksetzen"
+      }
+    },
     "loadingGuiEditor": "GUI-Editor wird geladen...",
     "loadingQuantumEditor": "Quanteneditor wird geladen...",
+    "loadingKgEditor": "Knowledge-Graph-Editor wird geladen...",
     "hiddenPerspectives": {
       "messagePlural": "Dieses Projekt verwendet {{labels}}, aber diese Perspektiven sind ausgeblendet.",
       "messageSingular": "Dieses Projekt verwendet {{labels}}, aber diese Perspektive ist ausgeblendet.",
@@ -2413,6 +3053,30 @@
       "noProjectData": "Keine Projektdaten zum Exportieren verfügbar",
       "projectExportedAs": "Projekt exportiert als {{filename}}",
       "projectExportFailed": "Projekt konnte nicht exportiert werden: {{error}}"
+    },
+    "kg": {
+      "options": {
+        "title": "Knowledge Graph exportieren",
+        "description": "Wählen Sie die RDF-Syntax und die auszugebenden Constraint-Vokabulare.",
+        "rdfSyntax": "RDF-Syntax",
+        "constraintVocab": "Constraint-Vokabular",
+        "vocabBoth": "Beide — OWL & SHACL ausgeben, wo möglich",
+        "vocabOwl": "Nur OWL — owl:Restriction Blank Nodes",
+        "vocabShacl": "Nur SHACL — sh:NodeShape / sh:PropertyShape",
+        "emitted_one": "{{emitted}} von {{count}} Constraint-Spec wird ausgegeben",
+        "emitted_other": "{{emitted}} von {{count}} Constraint-Specs werden ausgegeben",
+        "skippedSuffix_one": " — {{count}} übersprungen, da sie nur im anderen Vokabular existiert",
+        "skippedSuffix_other": " — {{count}} übersprungen, da sie nur im anderen Vokabular existieren",
+        "noSpecs": "Noch keine Constraint-Specs in diesem Diagramm.",
+        "export": "Exportieren"
+      },
+      "toasts": {
+        "noProject": "Öffnen Sie ein Projekt, bevor Sie exportieren.",
+        "noDiagram": "Kein aktives Knowledge-Graph-Diagramm zum Exportieren.",
+        "vocabSuffix": " (nur {{vocab}}-Constraints)",
+        "exportCompleted": "{{format}}-Export abgeschlossen{{suffix}}.",
+        "failed": "KG-Export fehlgeschlagen."
+      }
     }
   },
   "import": {
@@ -2442,6 +3106,150 @@
       "readFileFailed": "Datei konnte nicht gelesen werden",
       "invalidFromBackend": "Ungültiges Diagramm vom Backend zurückgegeben",
       "couldNotParseError": "Fehlerantwort konnte nicht verarbeitet werden"
+    },
+    "kg": {
+      "owl": {
+        "updateFailed": "Das Knowledge-Graph-Diagramm konnte nicht aktualisiert werden.",
+        "writeNewTabFailed": "Der importierte Graph konnte nicht in den neuen Tab geschrieben werden.",
+        "invalidJson": "Ungültiges KG-JSON vom Backend erhalten",
+        "noProjectOpen": "Derzeit ist kein Projekt geöffnet. Bitte erstellen oder öffnen Sie zuerst ein Projekt.",
+        "noActiveDiagram": "Kein aktives Knowledge-Graph-Diagramm in diesem Projekt gefunden.",
+        "nodesFragment_one": "{{count}} Knoten",
+        "nodesFragment_other": "{{count}} Knoten",
+        "edgesFragment_one": "{{count}} Kante",
+        "edgesFragment_other": "{{count}} Kanten",
+        "imported": "{{nodes}} und {{edges}} aus {{file}} importiert.",
+        "importedNewTab": "{{nodes}} und {{edges}} aus {{file}} in einen neuen Tab importiert.",
+        "merged": "{{nodes}} und {{edges}} aus {{file}} zusammengeführt",
+        "mergedSkippedSuffix_one": " ({{count}} bereits vorhanden).",
+        "mergedSkippedSuffix_other": " ({{count}} bereits vorhanden).",
+        "unknownError": "Beim Import ist ein unbekannter Fehler aufgetreten",
+        "failedTitle": "OWL-Import fehlgeschlagen"
+      },
+      "targetModal": {
+        "title": "Wohin soll dieser Graph?",
+        "nodesFragment_one": "{{count}} Knoten",
+        "nodesFragment_other": "{{count}} Knoten",
+        "edgesFragment_one": "{{count}} Kante",
+        "edgesFragment_other": "{{count}} Kanten",
+        "tabNameFragment": " ({{title}})",
+        "description": "<file>{{file}}</file> enthält {{nodes}} und {{edges}}. Der aktuelle Tab{{tab}} ist nicht leer — fügen Sie den Import zu dem Vorhandenen hinzu oder halten Sie ihn separat in einem neuen Tab.",
+        "mergeExplainer": "Beim Zusammenführen bleibt der aktuelle Graph unverändert und es wird nur ergänzt, was fehlt: Begriffe, die beide Graphen teilen (gleiche IRI), bleiben ein einzelner Knoten.",
+        "maxTabsReached": "Dieses Projekt hat bereits die maximale Anzahl an Knowledge-Graph-Tabs.",
+        "newTab": "Neuer Tab",
+        "mergeIntoTab": "In diesen Tab zusammenführen"
+      },
+      "preflight": {
+        "noRecommendedAction": "Keine empfohlene Aktion",
+        "dropElement": "Das Element verwerfen",
+        "affects": "Betrifft: {{ids}}",
+        "fixAutomaticallyAria": "Automatisch beheben für {{code}}",
+        "applyRecommendedAria": "Empfohlene Korrektur für {{code}} anwenden",
+        "fixAutomatically": "Automatisch beheben",
+        "applyRecommended": "Empfohlene anwenden:",
+        "fixInKg": "Im KG beheben",
+        "fixInKgInstead": "Stattdessen im KG beheben",
+        "skipped": "Übersprungen",
+        "chooseFixAria": "Wählen Sie, wie dieses Problem behoben wird",
+        "sendToLlm": "An das LLM senden",
+        "or": "oder",
+        "unknownError": "Unbekannter Fehler",
+        "invalidResponse": "Ungültige Preflight-Antwort.",
+        "failed": "KG-Preflight fehlgeschlagen."
+      },
+      "consistency": {
+        "title": "Der Knowledge Graph hat Inkonsistenzen",
+        "issuesFragment_one": "{{count}} Problem",
+        "issuesFragment_other": "{{count}} Probleme",
+        "violationsFragment_one": "{{count}} Verletzung",
+        "violationsFragment_other": "{{count}} Verletzungen",
+        "warningsFragment_one": "{{count}} Warnung",
+        "warningsFragment_other": "{{count}} Warnungen",
+        "description": "Die OWL/SHACL-Konsistenzprüfung hat {{issues}} im Knowledge Graph gefunden ({{violations}}, {{warnings}}, {{info}} Info). Sie können sie beheben, die Umwandlung trotzdem fortsetzen oder abbrechen.",
+        "onNode": "bei {{nodeId}}",
+        "openRefine": "Refine zum Beheben öffnen",
+        "proceedAnyway": "Trotzdem fortfahren"
+      },
+      "refine": {
+        "title": "Knowledge Graph verfeinern",
+        "titleConvert": "Verfeinern, bevor in {{diagram}} umgewandelt wird",
+        "description": "Bereinigen Sie den KG, bevor Sie ihn in B-UML umwandeln. Prüfen Sie die automatischen Empfehlungen von BESSER oder holen Sie KI-gestützte Vorschläge, die auf das gewünschte System zugeschnitten sind.",
+        "descriptionConvert": "Beheben Sie alle Inkonsistenzen im Knowledge Graph. Wenn er sauber ist, können Sie ihn in ein {{diagram}} umwandeln.",
+        "tabsAria": "Refine-KG-Tabs",
+        "tabAutomatic": "Automatisch",
+        "tabConsistency": "Konsistenz",
+        "tabAi": "KI",
+        "classifyBadge": "{{count}} klassifizieren",
+        "analyzingKg": "KG wird analysiert…",
+        "noInconsistencies": "Der Knowledge Graph hat keine verbleibenden Inkonsistenzen.",
+        "clickConvert": "Klicken Sie auf <action>{{action}}</action>, um das {{diagram}} zu erzeugen.",
+        "noRecommendations": "Keine automatischen Empfehlungen — der KG sieht sauber aus.",
+        "staticInstructions": "Haken Sie die Vorschläge an, die Sie beheben möchten. Wählen Sie für jeden, ob die empfohlene Korrektur angewendet oder er an das LLM gesendet wird. Mit „Im KG beheben“ behandeln Sie einen manuell auf der Zeichenfläche.",
+        "selectAll": "Alle auswählen",
+        "deselectAll": "Alle abwählen",
+        "noneSelected": "Keine Vorschläge ausgewählt — es ändert sich nichts.",
+        "ofWillBeFixed": "von {{total}} werden behoben:",
+        "viaRecommended_one": "{{count}} über Empfehlung",
+        "viaRecommended_other": "{{count}} über Empfehlung",
+        "viaLlm_one": "{{count}} über LLM",
+        "viaLlm_other": "{{count}} über LLM",
+        "convertTo": "In {{diagram}} umwandeln",
+        "applying": "Wird angewendet…",
+        "applyMixed": "{{count}} anwenden ({{recommended}} Empf. + {{llm}} LLM)",
+        "sendToLlm": "{{count}} an das LLM senden",
+        "applyRecommended": "{{count}} empfohlene anwenden",
+        "analyzeFailed": "Der KG konnte nicht analysiert werden. Versuchen Sie es erneut.",
+        "retry": "Erneut versuchen",
+        "consistencyExplainer": "Validiert den Knowledge Graph gegen jede darauf definierte OWL/SHACL-Constraint. Verwendet pyshacl mit OWL2-RL-Inferenz im Backend; die Prüfung kann bei großen Graphen langsam sein und läuft daher nur, wenn Sie auf <action>{{action}}</action> klicken.",
+        "consistencyIdle": "Für diesen Knowledge Graph wurde noch keine Prüfung ausgeführt. Klicken Sie unten auf <action>{{action}}</action>, um jede OWL/SHACL-Constraint gegen die aktuelle ABox auszuwerten.",
+        "checkingConsistency": "Konsistenz wird geprüft…",
+        "consistencyFailed": "Die Konsistenzprüfung ist fehlgeschlagen.",
+        "allSatisfied": "Alle OWL/SHACL-Constraints sind erfüllt.",
+        "severitySummary": "{{violations}}, {{warnings}}, {{info}} info",
+        "lastRun": " — zuletzt {{time}}",
+        "runCheck": "Prüfung ausführen",
+        "reCheck": "Erneut prüfen",
+        "orphanBanner_one": "Bereit, <count>{{count}}</count> im Tab „Automatisch“ markierten verwaisten Knoten zu klassifizieren. Geben Sie eine Beschreibung und einen API-Schlüssel an und klicken Sie dann auf Analysieren, um das LLM um Klassifizierungen pro Knoten zu bitten.",
+        "orphanBanner_other": "Bereit, <count>{{count}}</count> im Tab „Automatisch“ markierte verwaiste Knoten zu klassifizieren. Geben Sie eine Beschreibung und einen API-Schlüssel an und klicken Sie dann auf Analysieren, um das LLM um Klassifizierungen pro Knoten zu bitten.",
+        "deferredBanner_one": "<count>{{count}}</count> Problem wurde vom Tab „Automatisch“ hierher geleitet. Beschreiben Sie das gewünschte System und klicken Sie dann auf Analysieren, um das LLM um Korrekturen gegen den (nun teilweise bereinigten) KG zu bitten.",
+        "deferredBanner_other": "<count>{{count}}</count> Probleme wurden vom Tab „Automatisch“ hierher geleitet. Beschreiben Sie das gewünschte System und klicken Sie dann auf Analysieren, um das LLM um Korrekturen gegen den (nun teilweise bereinigten) KG zu bitten.",
+        "systemDescription": "Systembeschreibung",
+        "systemDescriptionPlaceholder": "z. B. Ein Bibliotheksverwaltungssystem, das Bücher, Mitglieder und Ausleihen verwaltet.",
+        "apiKey": "OpenAI-API-Schlüssel",
+        "apiKeyNote": "Nur in dieser Browsersitzung gespeichert.",
+        "analyzing": "Wird analysiert…",
+        "analyze": "Analysieren",
+        "llmNoSuggestions": "Das LLM hat keine Änderungen für das beschriebene System vorgeschlagen.",
+        "llmInstructions": "Haken Sie die Vorschläge an, die Sie anwenden möchten. Überspringen Sie den Rest, oder behandeln Sie mit „Im KG beheben“ einen manuell auf der Zeichenfläche.",
+        "back": "Zurück",
+        "applySelected": "{{count}} ausgewählte anwenden",
+        "confirmReplace": "Ihren aktuellen KG durch den bereinigten Graphen ersetzen?",
+        "noProjectOpen": "Es ist kein Projekt geöffnet.",
+        "noActiveDiagram": "Kein aktives Knowledge-Graph-Diagramm.",
+        "staticFailed": "Die statische Verfeinerungsanalyse ist fehlgeschlagen.",
+        "applyNoModel": "Der Apply-Endpunkt hat kein Modell zurückgegeben.",
+        "refined": "Knowledge Graph verfeinert.",
+        "applyFailed": "Das Anwenden der Verfeinerung ist fehlgeschlagen.",
+        "failedTitle": "Refine KG fehlgeschlagen",
+        "describeSystemFirst": "Beschreiben Sie zuerst das System, das Sie bauen möchten.",
+        "apiKeyRequired": "Ein OpenAI-API-Schlüssel ist erforderlich.",
+        "invalidLlmResponse": "Ungültige LLM-Bereinigungsantwort.",
+        "aiFailed": "Die KI-Verfeinerungsanalyse ist fehlgeschlagen.",
+        "noOrphans": "Keine verwaisten Knoten zu klassifizieren.",
+        "invalidOrphanResponse": "Ungültige Antwort bei der Klassifizierung verwaister Knoten.",
+        "orphanFailed": "Die Klassifizierung verwaister Knoten ist fehlgeschlagen.",
+        "applyLlmFailed": "Das Anwenden der LLM-Verfeinerung ist fehlgeschlagen."
+      },
+      "toUml": {
+        "noProject": "Öffnen Sie ein Projekt, bevor Sie umwandeln.",
+        "noDiagram": "Kein aktives Knowledge-Graph-Diagramm zum Umwandeln.",
+        "consistencyCheckFailed": "Die Konsistenzprüfung ist fehlgeschlagen.",
+        "consistencyCheckSkipped": "Konsistenzprüfung übersprungen: {{message}}",
+        "invalidResponse": "Ungültige Antwort vom KG-Umwandlungsendpunkt.",
+        "generated": "{{diagram}} aus dem Knowledge Graph erzeugt.",
+        "conversionFailed": "Die KG-Umwandlung ist fehlgeschlagen.",
+        "failedTitle": "KG → UML Umwandlung fehlgeschlagen"
+      }
     }
   },
   "validation": {

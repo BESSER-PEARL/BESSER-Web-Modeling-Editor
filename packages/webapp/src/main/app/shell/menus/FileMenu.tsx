@@ -26,6 +26,7 @@ interface FileMenuProps {
   onImportBpmnDiagram: () => void;
   onOpenAssistantImportImage: () => void;
   onOpenAssistantImportKg: () => void;
+  onImportOwl: () => void;
   onOpenProjectPreview: () => void;
 }
 
@@ -40,6 +41,7 @@ export const FileMenu: React.FC<FileMenuProps> = ({
   onImportBpmnDiagram,
   onOpenAssistantImportImage,
   onOpenAssistantImportKg,
+  onImportOwl,
   onOpenProjectPreview,
 }) => {
   const { t } = useTranslation();
@@ -72,6 +74,11 @@ export const FileMenu: React.FC<FileMenuProps> = ({
         {activeDiagramType === 'BPMN' && (
           <DropdownMenuItem onClick={onImportBpmnDiagram} disabled={!hasProject}>
             Import BPMN Diagram (.bpmn / .xml)
+          </DropdownMenuItem>
+        )}
+        {activeDiagramType === 'KnowledgeGraphDiagram' && (
+          <DropdownMenuItem onClick={onImportOwl} disabled={!hasProject}>
+            {t('menu.file.importKgOwl')}
           </DropdownMenuItem>
         )}
         <DropdownMenuItem onClick={onOpenProjectPreview} disabled={!hasProject}>

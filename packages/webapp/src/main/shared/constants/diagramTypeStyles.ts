@@ -10,6 +10,7 @@ export const PERSPECTIVE_LABELS: Record<SupportedDiagramType, string> = {
   QuantumCircuitDiagram: 'Quantum Circuit Diagram',
   NNDiagram: 'Neural Network Diagram',
   BPMN: 'BPMN Diagram',
+  KnowledgeGraphDiagram: 'Knowledge Graph Diagram',
 };
 
 export const PERSPECTIVE_DESCRIPTIONS: Record<SupportedDiagramType, string> = {
@@ -22,6 +23,7 @@ export const PERSPECTIVE_DESCRIPTIONS: Record<SupportedDiagramType, string> = {
   QuantumCircuitDiagram: 'Quantum program specification.',
   NNDiagram: 'Neural network architecture (PyTorch / TensorFlow).',
   BPMN: 'Business process modeling (BPMN 2.0).',
+  KnowledgeGraphDiagram: 'RDF/OWL knowledge graph authoring, with conversion to and from B-UML.',
 };
 
 export const DIAGRAM_TYPE_BADGE: Record<SupportedDiagramType, string> = {
@@ -34,4 +36,5 @@ export const DIAGRAM_TYPE_BADGE: Record<SupportedDiagramType, string> = {
   QuantumCircuitDiagram: 'bg-violet-100 text-violet-900 dark:bg-violet-900/30 dark:text-violet-300',
   NNDiagram: 'bg-orange-100 text-orange-900 dark:bg-orange-900/30 dark:text-orange-300',
   BPMN: 'bg-pink-100 text-pink-900 dark:bg-pink-900/30 dark:text-pink-300',
+  KnowledgeGraphDiagram: 'bg-teal-100 text-teal-900 dark:bg-teal-900/30 dark:text-teal-300',
 };

@@ -113,6 +113,7 @@ function migrateOldWebappProject(data: any): BesserProject {
     QuantumCircuitDiagram: 0,
     NNDiagram: 0,
     BPMN: 0,
+    KnowledgeGraphDiagram: 0,
   };
 
   return {
@@ -154,6 +155,7 @@ function fillMissingDiagrams(project: BesserProject): BesserProject {
     'GUINoCodeDiagram',
     'QuantumCircuitDiagram',
     'BPMN',
+    'KnowledgeGraphDiagram',
   ];
 
   const diagramTypeToUMLType: Record<SupportedDiagramType, UMLDiagramType | null> = {
@@ -164,6 +166,7 @@ function fillMissingDiagrams(project: BesserProject): BesserProject {
     NNDiagram: UMLDiagramType.NNDiagram,
     UserDiagram: UMLDiagramType.UserDiagram,
     GUINoCodeDiagram: null,
+    KnowledgeGraphDiagram: null,
     QuantumCircuitDiagram: null,
     BPMN: UMLDiagramType.BPMN,
   };
@@ -178,6 +181,7 @@ function fillMissingDiagrams(project: BesserProject): BesserProject {
     GUINoCodeDiagram: 'GUI Diagram',
     QuantumCircuitDiagram: 'Quantum Circuit',
     BPMN: 'BPMN Diagram',
+    KnowledgeGraphDiagram: 'Knowledge Graph',
   };
 
   const diagramKinds: Partial<Record<SupportedDiagramType, 'gui' | 'quantum'>> = {
@@ -438,6 +442,7 @@ export async function importProjectFromJson(file: File): Promise<BesserProject> 
             QuantumCircuitDiagram: null,
             NNDiagram: UMLDiagramType.NNDiagram,
             BPMN: UMLDiagramType.BPMN,
+            KnowledgeGraphDiagram: null,
           };
           const diagramTitles: Record<SupportedDiagramType, string> = {
             ClassDiagram: 'Class Diagram',
@@ -449,6 +454,7 @@ export async function importProjectFromJson(file: File): Promise<BesserProject> 
             QuantumCircuitDiagram: 'Quantum Circuit',
             NNDiagram: 'NN Diagram',
             BPMN: 'BPMN Diagram',
+            KnowledgeGraphDiagram: 'Knowledge Graph',
           };
 
 
@@ -491,6 +497,7 @@ export async function importProjectFromJson(file: File): Promise<BesserProject> 
               QuantumCircuitDiagram: 0,
               NNDiagram: 0,
               BPMN: 0,
+              KnowledgeGraphDiagram: 0,
             },
             diagrams,
             settings: {

@@ -1,0 +1,611 @@
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { toast } from 'react-toastify';
+import { useTranslation } from 'react-i18next';
+import { useNavigate } from 'react-router-dom';
+// Toasts fired from the ref-based `useCallback([], ...)` handlers below read the
+// i18n singleton rather than the hook's `t`: those callbacks are deliberately
+// identity-stable, and capturing `t` in them would either pin the language at
+// mount or force `[t]` into deps that exist to stay empty. `i18n.t` resolves at
+// call time, so an imperative toast is always in the current language. JSX in
+// this file uses the hook's `t` as usual.
+import i18n from '../../../shared/i18n';
+import { KnowledgeGraphPalette } from './KnowledgeGraphPalette';
+import { CytoscapeCanvas, CytoscapeCanvasHandle } from './CytoscapeCanvas';
+import { KnowledgeGraphToolbar, ConnectMode } from './KnowledgeGraphToolbar';
+import { KgCanvasControls } from './KgCanvasControls';
+import { KnowledgeGraphInspector, KgSelection } from './KnowledgeGraphInspector';
+import { KnowledgeGraphNodeList } from './KnowledgeGraphNodeList';
+import { KgDeleteConfirmDialog } from './KgDeleteConfirmDialog';
+import { deleteSelectionFromModel } from './delete-selection';
+import * as kgFocus from './kgFocus';
+import {
+  collectHiddenMetaIds,
+  isMetaVocabNode,
+  rejectHidden,
+  withoutHiddenNodes,
+} from './meta-vocab';
+import { kgNodePriority, pickNodeIdsByPriority, sortIdsByPriority } from './node-priority';
+import { useProject } from '../../../app/hooks/useProject';
+import { ProjectStorageRepository } from '../../../shared/services/storage/ProjectStorageRepository';
+import { downloadFile } from '../../../shared/utils/download';
+import {
+  getActiveDiagram,
+  getKgHardLimit,
+  getKgLayout,
+  getKgShowMetaVocab,
+  getKgSoftLimit,
+  isKnowledgeGraphData,
+} from '../../../shared/types/project';
+import type { KnowledgeGraphData } from './types';
+
+const EMPTY_KG: KnowledgeGraphData = {
+  type: 'KnowledgeGraphDiagram',
+  version: '1.0.0',
+  nodes: [],
+  edges: [],
+};
+
+/** Pick the initial visibleIds for a freshly-loaded model. Prefers the
+ *  persisted list (so selection survives remounts, including the empty-set
+ *  case where the user has intentionally hidden every node); otherwise
+ *  seeds the soft-limit worth of highest-priority nodes (see
+ *  `node-priority.ts`: classes first, literals last) and clamps to the hard
+ *  limit.
+ *
+ *  `hiddenMetaIds` (the RDF/OWL vocabulary nodes, unless the user opted into
+ *  showing them) is subtracted from both paths, so those nodes never reach
+ *  the canvas and never eat into the soft/hard limits. */
+function seedVisibleIds(
+  model: KnowledgeGraphData,
+  softLimit: number,
+  hardLimit: number,
+  hiddenMetaIds: ReadonlySet<string>,
+): string[] {
+  const modelIds = new Set(model.nodes.map((n) => n.id));
+  const stored = model.settings?.visibleIds;
+  if (Array.isArray(stored)) {
+    // Filter out any stale ids (nodes removed from the model), then clamp.
+    // An empty array here is intentional ("user hid all nodes") and must be
+    // preserved — only a missing/undefined field falls back to the soft seed.
+    return stored
+      .filter((id) => modelIds.has(id) && !hiddenMetaIds.has(id))
+      .slice(0, hardLimit);
+  }
+  const candidates = model.nodes.filter((n) => !hiddenMetaIds.has(n.id));
+  return pickNodeIdsByPriority(candidates, Math.min(softLimit, hardLimit));
+}
+
+function arrayEqual(a: readonly string[], b: readonly string[]): boolean {
+  if (a.length !== b.length) return false;
+  for (let i = 0; i < a.length; i++) if (a[i] !== b[i]) return false;
+  return true;
+}
+
+function safeFilename(name: string | undefined): string {
+  return (name ?? '').replace(/[^a-zA-Z0-9_-]/g, '_') || 'knowledge-graph';
+}
+
+/** Top-level Knowledge Graph diagram editor.
+ *  Layout: [palette + node list]  |  [toolbar + canvas]  |  [inspector]. */
+export const KnowledgeGraphEditor: React.FC = () => {
+  const { t } = useTranslation();
+  const { currentProject, currentDiagram } = useProject();
+  const navigate = useNavigate();
+
+  const loadFromStorage = useCallback((): KnowledgeGraphData => {
+    try {
+      const project = currentProject?.id
+        ? ProjectStorageRepository.loadProject(currentProject.id)
+        : ProjectStorageRepository.getCurrentProject();
+      const diagram = project ? getActiveDiagram(project, 'KnowledgeGraphDiagram') : undefined;
+      const model = diagram?.model;
+      if (isKnowledgeGraphData(model)) {
+        return model;
+      }
+    } catch (err) {
+      console.error('[KnowledgeGraphEditor] Failed to load from storage', err);
+    }
+    return EMPTY_KG;
+  }, [currentProject?.id]);
+
+  const [model, setModel] = useState<KnowledgeGraphData>(() => loadFromStorage());
+  const [selection, setSelection] = useState<KgSelection>(null);
+  // Selection the user asked to delete with Delete/Backspace, held until the
+  // confirmation dialog is answered. `null` = no prompt open.
+  const [pendingDelete, setPendingDelete] = useState<{ nodeIds: string[]; edgeIds: string[] } | null>(
+    null,
+  );
+  const [connectMode, setConnectMode] = useState<ConnectMode>('off');
+  const canvasRef = useRef<CytoscapeCanvasHandle | null>(null);
+  const modelRef = useRef(model);
+  modelRef.current = model;
+
+  const softLimit = getKgSoftLimit(model.settings);
+  const hardLimit = getKgHardLimit(model.settings);
+  const layout = getKgLayout(model.settings);
+  const showMetaVocab = getKgShowMetaVocab(model.settings);
+  const hardLimitRef = useRef(hardLimit);
+  hardLimitRef.current = hardLimit;
+  const prevLayoutRef = useRef(layout);
+
+  // Declaration-vocabulary nodes (owl:Class, rdf:Property, rdfs:Class,
+  // sh:NodeShape, sh:PropertyShape) are implied by the node kinds they
+  // annotate, so we keep them out of the visualization while leaving them in
+  // the model for the transformation pipelines. Everything downstream of here
+  // treats them as "not visualizable":
+  // they are excluded from the visible set, the node list, and the counts.
+  const hiddenMetaIds = useMemo(
+    () => collectHiddenMetaIds(model.nodes, showMetaVocab),
+    [model.nodes, showMetaVocab],
+  );
+  const hiddenMetaIdsRef = useRef(hiddenMetaIds);
+  hiddenMetaIdsRef.current = hiddenMetaIds;
+
+  /** The model as the user sees it: vocabulary nodes and their incident edges
+   *  removed. Read-only consumers only — the canvas still gets the full model
+   *  (see the note in `meta-vocab.ts`). */
+  const displayModel = useMemo(
+    () => withoutHiddenNodes(model, hiddenMetaIds),
+    [model, hiddenMetaIds],
+  );
+
+  // The set of node IDs currently visible on the canvas. Sticky: deleting
+  // a visible node leaves the remaining visible IDs alone; changing the
+  // soft-limit in settings re-seeds the set to the first N node ids.
+  //
+  // Persisted in `model.settings.visibleIds` so selection survives
+  // navigation (e.g. leaving for KG Settings and coming back). We only
+  // fall back to the soft-limit seed when no persisted list exists, which
+  // matches the "soft limit only kicks in on fresh load" requirement.
+  const [visibleIds, setVisibleIds] = useState<string[]>(() =>
+    seedVisibleIds(model, softLimit, hardLimit, collectHiddenMetaIds(model.nodes, showMetaVocab)),
+  );
+  const visibleIdsRef = useRef(visibleIds);
+  visibleIdsRef.current = visibleIds;
+  const prevSoftLimitRef = useRef<number>(softLimit);
+
+  // Reseed visibleIds with the `softLimit` highest-priority nodes ONLY when
+  // the user actually changes the soft limit in KG Settings (not on normal
+  // re-renders and not on initial mount). Hard-limit changes don't touch
+  // the current visibility set — they just raise/lower the ceiling.
+  useEffect(() => {
+    if (prevSoftLimitRef.current === softLimit) return;
+    prevSoftLimitRef.current = softLimit;
+    const candidates = modelRef.current.nodes.filter((n) => !hiddenMetaIdsRef.current.has(n.id));
+    setVisibleIds(pickNodeIdsByPriority(candidates, Math.min(softLimit, hardLimit)));
+  }, [softLimit, hardLimit]);
+
+  // Vocabulary nodes that were visible before the user turned
+  // `showMetaVocabNodes` off (or before this feature existed) must drop out
+  // of the visible set, otherwise they'd keep occupying slots against the
+  // hard limit while being invisible.
+  useEffect(() => {
+    setVisibleIds((prev) => {
+      const next = rejectHidden(prev, hiddenMetaIds);
+      return next.length === prev.length ? prev : next;
+    });
+  }, [hiddenMetaIds]);
+
+  // Whenever the user picks a different layout algorithm in KG Settings,
+  // trigger a fresh layout pass on the canvas. We skip the first run so
+  // initial mount doesn't clobber persisted positions.
+  useEffect(() => {
+    if (prevLayoutRef.current === layout) return;
+    prevLayoutRef.current = layout;
+    canvasRef.current?.relayout();
+  }, [layout]);
+
+  // Counts are reported over the *displayable* nodes only: the vocabulary
+  // nodes are not "hidden by a limit", they're not part of the visualization
+  // at all, so counting them would make the "Showing X of Y" banner stick
+  // around permanently with no way for the user to clear it.
+  const visibleNodeCount = useMemo(() => {
+    const all = new Set(displayModel.nodes.map((n) => n.id));
+    return visibleIds.filter((id) => all.has(id)).length;
+  }, [displayModel.nodes, visibleIds]);
+  const hiddenCount = Math.max(0, displayModel.nodes.length - visibleNodeCount);
+
+  // Reload when the active project / diagram index changes.
+  useEffect(() => {
+    const external = currentDiagram?.model;
+    if (isKnowledgeGraphData(external)) {
+      if (JSON.stringify(external) !== JSON.stringify(modelRef.current)) {
+        setModel(external);
+        setSelection(null);
+        const soft = getKgSoftLimit(external.settings);
+        const hard = getKgHardLimit(external.settings);
+        prevSoftLimitRef.current = soft;
+        const meta = collectHiddenMetaIds(external.nodes, getKgShowMetaVocab(external.settings));
+        setVisibleIds(seedVisibleIds(external, soft, hard, meta));
+      }
+      return;
+    }
+    const fresh = loadFromStorage();
+    setModel(fresh);
+    setSelection(null);
+    const soft = getKgSoftLimit(fresh.settings);
+    const hard = getKgHardLimit(fresh.settings);
+    prevSoftLimitRef.current = soft;
+    const freshMeta = collectHiddenMetaIds(fresh.nodes, getKgShowMetaVocab(fresh.settings));
+    setVisibleIds(seedVisibleIds(fresh, soft, hard, freshMeta));
+  }, [currentProject?.id, currentDiagram, loadFromStorage]);
+
+  // One debounced save pipeline for BOTH model (nodes/edges/settings) and
+  // the visible-id selection, so the user's selection survives remounts.
+  const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const scheduleSave = useCallback(() => {
+    if (!currentProject?.id) return;
+    if (saveTimer.current) clearTimeout(saveTimer.current);
+    saveTimer.current = setTimeout(() => {
+      const project = ProjectStorageRepository.loadProject(currentProject.id);
+      if (!project) return;
+      const active = getActiveDiagram(project, 'KnowledgeGraphDiagram');
+      if (!active) return;
+      const nextModel: KnowledgeGraphData = {
+        ...modelRef.current,
+        settings: {
+          ...modelRef.current.settings,
+          visibleIds: visibleIdsRef.current,
+        },
+      };
+      ProjectStorageRepository.updateDiagram(currentProject.id, 'KnowledgeGraphDiagram', {
+        ...active,
+        model: nextModel,
+        lastUpdate: new Date().toISOString(),
+      });
+    }, 400);
+  }, [currentProject?.id]);
+
+  const handleChange = useCallback((next: KnowledgeGraphData) => {
+    // Compute the new visibleIds list and any overflow BEFORE we call setState,
+    // so the toast fires exactly once (React may re-execute setState updaters
+    // in StrictMode, which would double-fire a toast placed inside the setter).
+    const prevVisible = visibleIdsRef.current;
+    const prevVisibleSet = new Set(prevVisible);
+    const nextIds = new Set(next.nodes.map((n) => n.id));
+    const priorIds = new Set(modelRef.current.nodes.map((n) => n.id));
+
+    // Drop visible ids that no longer exist in the model (delete path).
+    const pruned = prevVisible.filter((id) => nextIds.has(id));
+
+    // Append ids for nodes that just appeared (palette drop, future batch add).
+    // The filter / query in the node list has no bearing here — newly-created
+    // nodes always attempt to become visible, independent of what's filtered
+    // in the list panel. Vocabulary nodes are the exception: they're tested
+    // against the node itself rather than `hiddenMetaIds`, which was derived
+    // from the *previous* model and so can't know about a node created just now.
+    const showMeta = getKgShowMetaVocab(next.settings);
+    const newlyCreated: string[] = [];
+    for (const n of next.nodes) {
+      if (priorIds.has(n.id) || prevVisibleSet.has(n.id)) continue;
+      if (!showMeta && isMetaVocabNode(n)) continue;
+      newlyCreated.push(n.id);
+    }
+
+    const hardLimit = hardLimitRef.current;
+    const room = Math.max(0, hardLimit - pruned.length);
+    // When more nodes arrive at once than the hard limit can take (a batch
+    // paste / import), the ones that get a seat are chosen by display
+    // priority rather than by their order in the incoming model.
+    const fitting =
+      newlyCreated.length <= room
+        ? newlyCreated
+        : sortIdsByPriority(newlyCreated, new Map(next.nodes.map((n) => [n.id, n]))).slice(0, room);
+    const notShown = newlyCreated.length - fitting.length;
+
+    if (notShown > 0) {
+      if (newlyCreated.length === 1) {
+        toast.error(i18n.t('editors.kg.editor.toasts.createdButCapped', { limit: hardLimit }));
+      } else {
+        toast.error(
+          i18n.t('editors.kg.editor.toasts.createdSomeCapped', {
+            created: newlyCreated.length,
+            notShown,
+            limit: hardLimit,
+          }),
+        );
+      }
+    }
+
+    const nextVisibleIds = fitting.length > 0 ? [...pruned, ...fitting] : pruned;
+    // Only emit a new reference if contents actually changed, to avoid an
+    // unnecessary canvas resync when only node positions moved.
+    const sameVisible =
+      nextVisibleIds.length === prevVisible.length &&
+      nextVisibleIds.every((id, i) => id === prevVisible[i]);
+    if (!sameVisible) setVisibleIds(nextVisibleIds);
+    setModel(next);
+    scheduleSave();
+  }, [scheduleSave]);
+
+  const clearSelection = useCallback(() => {
+    setSelection(null);
+    canvasRef.current?.clearSelection();
+  }, []);
+
+  const confirmDelete = useCallback(() => {
+    if (!pendingDelete) return;
+    handleChange(
+      deleteSelectionFromModel(modelRef.current, pendingDelete.nodeIds, pendingDelete.edgeIds),
+    );
+    setPendingDelete(null);
+    clearSelection();
+  }, [pendingDelete, handleChange, clearSelection]);
+
+  // Whenever visibleIds changes on its own (toggle/bulk from the node list),
+  // schedule the same unified save so the selection is persisted.
+  useEffect(() => {
+    scheduleSave();
+  }, [visibleIds, scheduleSave]);
+
+  useEffect(() => {
+    return () => {
+      if (saveTimer.current) {
+        clearTimeout(saveTimer.current);
+        saveTimer.current = null;
+      }
+    };
+  }, []);
+
+  const toggleNodeVisibility = useCallback(
+    (id: string, shouldBeVisible: boolean) => {
+      setVisibleIds((prev) => {
+        const has = prev.includes(id);
+        // Vocabulary nodes are never visualizable; hiding one is still fine.
+        if (shouldBeVisible && hiddenMetaIdsRef.current.has(id)) return prev;
+        if (shouldBeVisible && !has) {
+          if (prev.length >= hardLimitRef.current) {
+            toast.error(
+              i18n.t('editors.kg.editor.toasts.visibleCapReached', { limit: hardLimitRef.current }),
+            );
+            return prev;
+          }
+          return [...prev, id];
+        }
+        if (!shouldBeVisible && has) {
+          return prev.filter((x) => x !== id);
+        }
+        return prev;
+      });
+    },
+    [],
+  );
+
+  const bulkToggleVisibility = useCallback(
+    (ids: string[], shouldBeVisible: boolean) => {
+      setVisibleIds((prev) => {
+        const prevSet = new Set(prev);
+        if (!shouldBeVisible) {
+          const drop = new Set(ids);
+          return prev.filter((id) => !drop.has(id));
+        }
+        // Adding in bulk: only add ids that aren't already visible, and stop
+        // at the hard limit. If we can't fit them all, toast once. Vocabulary
+        // nodes are dropped silently — the canvas's "reveal neighbours"
+        // action routes through here and would otherwise pull `owl:Class`
+        // and friends back onto the canvas.
+        const toAdd = rejectHidden(ids, hiddenMetaIdsRef.current).filter((id) => !prevSet.has(id));
+        if (toAdd.length === 0) return prev;
+        const room = Math.max(0, hardLimitRef.current - prev.length);
+        if (toAdd.length > room) {
+          // Only `room` of them fit, so spend that budget on the most
+          // informative kinds first (classes before literals).
+          const nodesById = new Map(modelRef.current.nodes.map((n) => [n.id, n]));
+          const ranked = sortIdsByPriority(toAdd, nodesById);
+          toast.error(
+            i18n.t('editors.kg.editor.toasts.visibleCapPartial', {
+              limit: hardLimitRef.current,
+              added: room,
+              selected: toAdd.length,
+            }),
+          );
+          return [...prev, ...ranked.slice(0, room)];
+        }
+        return [...prev, ...toAdd];
+      });
+    },
+    [],
+  );
+
+  const emptyState = useMemo(
+    () => displayModel.nodes.length === 0 && displayModel.edges.length === 0,
+    [displayModel],
+  );
+  const handleOpenSettings = () => navigate('/kg-settings');
+
+  // ── KG focus mode ─────────────────────────────────────────────────────
+  // When the preflight modal's "Fix in KG" button fires, we narrow the
+  // canvas to a problematic node + a bounded set of its first-degree
+  // neighbours (classes/properties prioritised). We stash the previously-
+  // visible set so the "Show all" banner can restore it.
+  const [focusedTargetIds, setFocusedTargetIds] = useState<string[] | null>(null);
+  const priorVisibleRef = useRef<string[] | null>(null);
+
+  const handleFocusOnNodes = useCallback(
+    (targetIds: string[], opts: { maxNeighbors: number }) => {
+      const fullModel = modelRef.current;
+      const hiddenMeta = hiddenMetaIdsRef.current;
+      const idSet = new Set(fullModel.nodes.map((n) => n.id));
+      const targets = targetIds.filter((id) => idSet.has(id) && !hiddenMeta.has(id));
+      if (targets.length === 0) {
+        toast.warn(i18n.t('editors.kg.editor.toasts.focusNotInGraph'));
+        return;
+      }
+
+      // Collect first-degree neighbours of the target set, skipping the
+      // vocabulary nodes — they're the highest-degree nodes in any imported
+      // ontology and would otherwise fill the whole neighbour budget.
+      const targetSet = new Set(targets);
+      const neighborIds = new Set<string>();
+      for (const edge of fullModel.edges) {
+        if (targetSet.has(edge.source) && !targetSet.has(edge.target) && !hiddenMeta.has(edge.target)) {
+          neighborIds.add(edge.target);
+        }
+        if (targetSet.has(edge.target) && !targetSet.has(edge.source) && !hiddenMeta.has(edge.source)) {
+          neighborIds.add(edge.source);
+        }
+      }
+
+      // Rank neighbours by node-type priority, then by id for stability.
+      const nodesById = new Map(fullModel.nodes.map((n) => [n.id, n]));
+      const rankedNeighbors = [...neighborIds]
+        .map((id) => {
+          const n = nodesById.get(id);
+          return { id, prio: kgNodePriority(n?.nodeType), label: n?.label ?? id };
+        })
+        .sort((a, b) => (a.prio - b.prio) || a.id.localeCompare(b.id))
+        .slice(0, opts.maxNeighbors)
+        .map((entry) => entry.id);
+
+      // Stash the previous visibleIds the FIRST time we enter focus mode
+      // (so a re-focus from the modal still restores the original set).
+      if (priorVisibleRef.current === null) {
+        priorVisibleRef.current = visibleIdsRef.current.slice();
+      }
+      const nextVisible = [...new Set([...targets, ...rankedNeighbors])];
+      setFocusedTargetIds(targets);
+      setVisibleIds(nextVisible);
+      // Fit on the next tick once the canvas has rendered the new set.
+      setTimeout(() => canvasRef.current?.fit(), 50);
+    },
+    [],
+  );
+
+  const handleShowAll = useCallback(() => {
+    const restored = priorVisibleRef.current;
+    priorVisibleRef.current = null;
+    setFocusedTargetIds(null);
+    if (restored) {
+      setVisibleIds(restored);
+    }
+    setTimeout(() => canvasRef.current?.fit(), 50);
+  }, []);
+
+  // Register the focus handler so external code (the preflight modal in
+  // ``features/import/``) can call into us via ``kgFocus.focus(ids)``.
+  useEffect(() => {
+    const unregister = kgFocus.register(handleFocusOnNodes);
+    return unregister;
+  }, [handleFocusOnNodes]);
+
+  return (
+    <div className="flex h-full w-full overflow-hidden">
+      <div className="flex h-full w-64 shrink-0 flex-col overflow-hidden border-r border-border/60 bg-muted/20">
+        <KnowledgeGraphPalette />
+        <KnowledgeGraphNodeList
+          model={displayModel}
+          visibleIds={visibleIds}
+          onToggle={toggleNodeVisibility}
+          onBulkToggle={bulkToggleVisibility}
+          metaVocabCount={hiddenMetaIds.size}
+        />
+      </div>
+      <div className="flex min-w-0 flex-1 flex-col">
+        <KnowledgeGraphToolbar
+          connectMode={connectMode}
+          onConnectModeChange={setConnectMode}
+          nodeCount={displayModel.nodes.length}
+          edgeCount={displayModel.edges.length}
+          hiddenCount={hiddenCount}
+          onOpenSettings={handleOpenSettings}
+          onExportHtml={() => {
+            const title = currentDiagram?.title ?? 'knowledge-graph';
+            const html = canvasRef.current?.exportHtml(
+              title,
+              {
+                fallbackTitle: t('editors.kg.standaloneHtml.fallbackTitle'),
+                cdnFailed: t('editors.kg.standaloneHtml.cdnFailed'),
+                renderFailedPrefix: t('editors.kg.standaloneHtml.renderFailedPrefix'),
+              },
+              i18n.language,
+            );
+            if (!html) {
+              toast.error(t('editors.kg.editor.toasts.exportNotReady'));
+              return;
+            }
+            downloadFile(html, `${safeFilename(title)}.html`, 'text/html');
+          }}
+        />
+        <div className="relative flex-1">
+          {focusedTargetIds && (
+            <div
+              data-testid="kg-focus-banner"
+              className="absolute left-1/2 top-2 z-20 -translate-x-1/2 rounded-full border border-amber-300 bg-amber-50 px-3 py-1 text-xs text-amber-900 shadow-sm dark:border-amber-700 dark:bg-amber-950 dark:text-amber-100"
+            >
+              <span className="mr-2">
+                {t('editors.kg.editor.focusBanner', { count: focusedTargetIds.length })}
+              </span>
+              <button
+                type="button"
+                className="font-medium underline underline-offset-2 hover:opacity-80"
+                onClick={handleShowAll}
+                data-testid="kg-focus-show-all"
+              >
+                {t('editors.kg.editor.showAll')}
+              </button>
+            </div>
+          )}
+          <CytoscapeCanvas
+            ref={canvasRef}
+            model={model}
+            visibleIds={visibleIds}
+            nonVisualizableIds={hiddenMetaIds}
+            layout={layout}
+            connectMode={connectMode}
+            onChange={handleChange}
+            onSelect={setSelection}
+            onExitConnectMode={() => setConnectMode('off')}
+            onRevealNodes={(ids) => bulkToggleVisibility(ids, true)}
+            onRelationRejected={(reason) => toast.warning(reason)}
+            onRequestDelete={setPendingDelete}
+          />
+          <KgCanvasControls
+            onZoomIn={() => canvasRef.current?.zoomIn()}
+            onZoomOut={() => canvasRef.current?.zoomOut()}
+            onFit={() => canvasRef.current?.fit()}
+            onResetLayout={() => canvasRef.current?.relayout()}
+          />
+          {emptyState && (
+            <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
+              <div className="rounded-lg border border-dashed border-border/60 bg-background/70 px-4 py-3 text-sm text-muted-foreground backdrop-blur">
+                {/* The two menu labels are interpolated from their own keys so
+                 * the hint always names the menu items as they actually read
+                 * in the user's language. */}
+                {t('editors.kg.editor.emptyState', {
+                  fileMenu: t('menu.file.title'),
+                  importItem: t('menu.file.importKgOwl'),
+                })}
+              </div>
+            </div>
+          )}
+          {!emptyState && hiddenCount > 0 && (
+            <div className="pointer-events-none absolute left-2 top-2 rounded-md border border-amber-400/60 bg-amber-50 px-2 py-1 text-xs text-amber-900 shadow-sm dark:bg-amber-900/30 dark:text-amber-100">
+              {t('editors.kg.editor.showingCap', {
+                visible: visibleNodeCount,
+                total: displayModel.nodes.length,
+                soft: softLimit,
+                hard: hardLimit,
+              })}
+            </div>
+          )}
+        </div>
+      </div>
+      <KnowledgeGraphInspector
+        model={model}
+        selection={selection}
+        onChange={handleChange}
+        onHideNode={(id) => toggleNodeVisibility(id, false)}
+        onBulkHideNodes={(ids) => bulkToggleVisibility(ids, false)}
+        onRequestSelection={setSelection}
+        onClearSelection={clearSelection}
+      />
+      <KgDeleteConfirmDialog
+        open={pendingDelete !== null}
+        nodeCount={pendingDelete?.nodeIds.length ?? 0}
+        relationCount={pendingDelete?.edgeIds.length ?? 0}
+        onConfirm={confirmDelete}
+        onCancel={() => setPendingDelete(null)}
+      />
+    </div>
+  );
+};

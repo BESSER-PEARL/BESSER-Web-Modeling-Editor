@@ -39,6 +39,7 @@ const diagramLabels: Record<SupportedDiagramType, string> = {
   AgentDiagram: 'Agent Diagram',
   UserDiagram: 'User Diagram',
   GUINoCodeDiagram: 'GUI No-Code Diagram',
+  KnowledgeGraphDiagram: 'Knowledge Graph Diagram',
   QuantumCircuitDiagram: 'Quantum Circuit Diagram',
   BPMN: 'BPMN Diagram',
   NNDiagram: 'Neural Network Diagram',
