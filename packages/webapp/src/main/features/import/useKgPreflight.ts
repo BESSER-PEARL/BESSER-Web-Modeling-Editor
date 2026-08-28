@@ -4,15 +4,14 @@
 // One issue = one "non-1-to-1" mapping. Each issue carries a
 // ``recommendedAction`` (pre-checked checkbox in the modal) and a
 // ``skipAction`` ("drop from output"). The user's decision per issue —
-// "accept" or "skip" — is later sent to ``/kg-to-class-diagram`` /
-// ``/kg-to-object-diagram`` along with the ``kgSignature`` echoed here
-// so the backend can detect a stale graph.
+// "accept" or "skip" — is later sent to ``/kg-to-class-diagram`` along
+// with the ``kgSignature`` echoed here so the backend can detect a stale
+// graph.
 import { useCallback, useState } from 'react';
 import { toast } from 'react-toastify';
 import { useTranslation } from 'react-i18next';
 
 import { BACKEND_URL } from '../../shared/constants/constant';
-import type { KgConversionTarget } from './useKgToUmlConversion';
 import { getActiveKgDiagram } from './useKgToUmlConversion';
 
 export interface KgAction {
@@ -38,11 +37,6 @@ export interface KgPreflightReport {
   issues: KgIssue[];
 }
 
-const DIAGRAM_TYPE_BY_TARGET: Record<KgConversionTarget, 'ClassDiagram' | 'ObjectDiagram'> = {
-  kg_to_class: 'ClassDiagram',
-  kg_to_object: 'ObjectDiagram',
-};
-
 export type PreflightStatus = 'idle' | 'loading' | 'success' | 'error';
 
 export const useKgPreflight = () => {
@@ -51,15 +45,14 @@ export const useKgPreflight = () => {
   const [report, setReport] = useState<KgPreflightReport | null>(null);
 
   const runPreflight = useCallback(
-    async (target: KgConversionTarget): Promise<KgPreflightReport | null> => {
+    async (): Promise<KgPreflightReport | null> => {
       const active = getActiveKgDiagram();
       if (!active) return null;
       const { diagram: kgDiagram } = active;
 
       setStatus('loading');
       try {
-        const diagramType = DIAGRAM_TYPE_BY_TARGET[target];
-        const url = `${BACKEND_URL}/analyze-kg-for-buml-conversion?diagramType=${diagramType}`;
+        const url = `${BACKEND_URL}/analyze-kg-for-buml-conversion`;
         const response = await fetch(url, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },

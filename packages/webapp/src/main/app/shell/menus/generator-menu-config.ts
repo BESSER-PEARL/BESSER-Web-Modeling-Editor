@@ -172,12 +172,6 @@ const KG_GENERATORS: GeneratorMenuEntry[] = [
         labelKey: 'menu.generate.actions.kgToClassDiagram',
         generator: 'kg_to_class',
       },
-      {
-        kind: 'action',
-        label: 'Object Diagram',
-        labelKey: 'menu.generate.actions.kgToObjectDiagram',
-        generator: 'kg_to_object',
-      },
     ],
   },
   {

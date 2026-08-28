@@ -100,8 +100,7 @@
         "userProfileJson": "User Profile JSON",
         "qiskitCode": "Qiskit Code",
         "kgToClassDiagram": "Class Diagram",
-        "kgExportWithOptions": "Export with options…",
-        "kgToObjectDiagram": "Object Diagram"
+        "kgExportWithOptions": "Export with options…"
       },
       "notices": {
         "statemachine": "State machines are used as method implementations in Class Diagrams. Generate code from the Class Diagram.",
@@ -3130,18 +3129,6 @@
         "generated": "Generated {{diagram}} from Knowledge Graph.",
         "conversionFailed": "KG conversion failed.",
         "failedTitle": "KG → UML conversion failed"
-      },
-      "individualPicker": {
-        "title": "Choose an individual",
-        "description": "The object diagram is built around one individual and everything related to it. Converting a whole graph at once is rarely readable.",
-        "emptyDescription": "This knowledge graph has no individuals, so there is nothing for an object diagram to show. Add individuals, or convert to a class diagram instead.",
-        "filterPlaceholder": "Filter by name or IRI…",
-        "noMatches": "No individual matches that filter.",
-        "scopeLabel": "Include",
-        "depthDirect": "Direct links",
-        "depthTwo": "Two hops",
-        "depthAll": "All connected",
-        "confirm": "Convert"
       }
     }
   },

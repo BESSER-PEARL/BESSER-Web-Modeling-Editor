@@ -1,11 +1,11 @@
-// Convert a Knowledge Graph diagram into a Class or Object Diagram via the
-// backend's deterministic /kg-to-class-diagram and /kg-to-object-diagram
-// endpoints, then open the result in a new tab in the current project.
+// Convert a Knowledge Graph diagram into a Class Diagram via the backend's
+// deterministic /kg-to-class-diagram endpoint, then open the result in a new
+// tab in the current project.
 //
 // Two-phase API:
 //   - getActiveKgDiagram(): returns the active KG diagram or null + a toast.
-//   - convertKgToUml(target, options?): runs the conversion. ``options`` may
-//     include ``resolutions`` (decision array from the preflight modal) and
+//   - convertKgToUml(options?): runs the conversion. ``options`` may include
+//     ``resolutions`` (decision array from the preflight modal) and
 //     ``kgSignature`` (echoed from the analyze response).
 //
 // Triggered from the Generate menu when in a KnowledgeGraphDiagram context.
@@ -31,8 +31,6 @@ import type {
 } from '../../shared/types/project';
 import { useKgConsistencyCheck } from './useKgConsistencyCheck';
 
-export type KgConversionTarget = 'kg_to_class' | 'kg_to_object';
-
 export interface KgConvertOptions {
   resolutions?: Array<{ issueId: string; decision: 'accept' | 'skip' }>;
   kgSignature?: string;
@@ -45,38 +43,20 @@ export interface KgConvertOptions {
    *    - `"cancel"`: abort silently.
    *  When omitted, the conversion proceeds without showing a gate (back-compat). */
   onConsistencyIssues?: (report: ConsistencyReport) => Promise<'proceed' | 'cancel'>;
-  /** Object diagrams only: restrict the result to these individuals and the
-   *  ones reachable from them. Omitted means the whole ABox. */
-  rootIndividualIds?: string[];
-  /** Object diagrams only: how many individual-to-individual hops to follow
-   *  from the roots. `null` (or omitted) means the full connected component. */
-  maxDepth?: number | null;
 }
 
-const ENDPOINT_BY_TARGET: Record<KgConversionTarget, string> = {
-  kg_to_class: '/kg-to-class-diagram',
-  kg_to_object: '/kg-to-object-diagram',
-};
+const ENDPOINT = '/kg-to-class-diagram';
 
-const DIAGRAM_TYPE_BY_TARGET: Record<KgConversionTarget, SupportedDiagramType> = {
-  kg_to_class: 'ClassDiagram',
-  kg_to_object: 'ObjectDiagram',
-};
+const TARGET_DIAGRAM_TYPE: SupportedDiagramType = 'ClassDiagram';
 
 /** Suffix appended to the generated diagram's TITLE. Deliberately English and
  *  untranslated: the title is persisted into the project, so localising it
  *  would leave a French-authored project showing stale French titles when
  *  reopened in another language. The user-facing toast uses `diagramTypes.*`. */
-const TITLE_SUFFIX_BY_TARGET: Record<KgConversionTarget, string> = {
-  kg_to_class: 'Class Diagram',
-  kg_to_object: 'Object Diagram',
-};
+const TITLE_SUFFIX = 'Class Diagram';
 
-/** Localised display name for the same target, used in toasts only. */
-const DIAGRAM_TYPE_KEY_BY_TARGET: Record<KgConversionTarget, string> = {
-  kg_to_class: 'diagramTypes.ClassDiagram',
-  kg_to_object: 'diagramTypes.ObjectDiagram',
-};
+/** Localised display name for the same diagram, used in toasts only. */
+const DIAGRAM_TYPE_KEY = 'diagramTypes.ClassDiagram';
 
 /**
  * Surface unique warning codes from the backend response as toast warnings,
@@ -122,7 +102,7 @@ export const useKgToUmlConversion = () => {
   const checkConsistency = useKgConsistencyCheck();
 
   return useCallback(
-    async (target: KgConversionTarget, options: KgConvertOptions = {}): Promise<void> => {
+    async (options: KgConvertOptions = {}): Promise<void> => {
       const active = getActiveKgDiagram();
       if (!active) return;
       const { project, diagram: kgDiagram } = active;
@@ -157,15 +137,8 @@ export const useKgToUmlConversion = () => {
         if (options.kgSignature) {
           body.kgSignature = options.kgSignature;
         }
-        if (options.rootIndividualIds && options.rootIndividualIds.length) {
-          body.rootIndividualIds = options.rootIndividualIds;
-          // Only sent alongside the roots: on its own the backend ignores it.
-          if (options.maxDepth != null) {
-            body.maxDepth = options.maxDepth;
-          }
-        }
 
-        const response = await fetch(`${BACKEND_URL}${ENDPOINT_BY_TARGET[target]}`, {
+        const response = await fetch(`${BACKEND_URL}${ENDPOINT}`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(body),
@@ -183,17 +156,16 @@ export const useKgToUmlConversion = () => {
 
         reportWarnings(data.warnings);
 
-        const targetType = DIAGRAM_TYPE_BY_TARGET[target];
         const baseTitle = kgDiagram.title || project.name || 'KG';
-        const newTitle = `${baseTitle} (${TITLE_SUFFIX_BY_TARGET[target]})`;
+        const newTitle = `${baseTitle} (${TITLE_SUFFIX})`;
 
         const addResult = await dispatch(
-          addDiagramThunk({ diagramType: targetType, title: newTitle }),
+          addDiagramThunk({ diagramType: TARGET_DIAGRAM_TYPE, title: newTitle }),
         ).unwrap();
 
         ProjectStorageRepository.updateDiagram(
           project.id,
-          targetType,
+          TARGET_DIAGRAM_TYPE,
           {
             ...addResult.diagram,
             model: data.model,
@@ -202,12 +174,10 @@ export const useKgToUmlConversion = () => {
           addResult.index,
         );
 
-        await dispatch(switchDiagramTypeThunk({ diagramType: targetType }));
-        await dispatch(switchDiagramIndexThunk({ diagramType: targetType, index: addResult.index }));
+        await dispatch(switchDiagramTypeThunk({ diagramType: TARGET_DIAGRAM_TYPE }));
+        await dispatch(switchDiagramIndexThunk({ diagramType: TARGET_DIAGRAM_TYPE, index: addResult.index }));
 
-        toast.success(
-          t('import.kg.toUml.generated', { diagram: t(DIAGRAM_TYPE_KEY_BY_TARGET[target]) }),
-        );
+        toast.success(t('import.kg.toUml.generated', { diagram: t(DIAGRAM_TYPE_KEY) }));
       } catch (error) {
         const message = error instanceof Error ? error.message : t('import.kg.toUml.conversionFailed');
         dispatch(displayError(t('import.kg.toUml.failedTitle'), message));

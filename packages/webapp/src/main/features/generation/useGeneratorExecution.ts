@@ -60,12 +60,11 @@ import {
   type WebAppVersion,
   type WebAppVersionMode,
 } from '../../shared/utils/buildWebAppVersions';
-import { useKgToUmlConversion, type KgConversionTarget } from '../import/useKgToUmlConversion';
+import { useKgToUmlConversion } from '../import/useKgToUmlConversion';
 import { useKgPreflight } from '../import/useKgPreflight';
 import type { KgIssue } from '../import/useKgPreflight';
 import * as kgFocus from '../editors/kg/kgFocus';
 import { useExportKgRdf } from '../export/useExportKgRdf';
-import type { KgIndividualSelection } from '../import/KgIndividualPickerModal';
 
 // ─── Pure helpers ──────────────────────────────────────────────────────────────
 
@@ -519,18 +518,9 @@ export interface UseGeneratorExecutionReturn {
     onClose: () => void;
     onFixInKg: (issue: KgIssue) => void;
     onFocusNodes: (nodeIds: string[]) => void;
-    convertTarget?: KgConversionTarget;
+    convertMode?: boolean;
     onConvert?: (kgSignature: string) => void;
     initialTab?: 'static' | 'consistency' | 'llm';
-  };
-  /** Props bag to spread onto <KgIndividualPickerModal />. Opens before a
-   *  KG -> Object Diagram conversion so the user can pick the individual the
-   *  diagram is built around. */
-  kgIndividualPickerModalProps: {
-    open: boolean;
-    model: import('../../shared/types/project').KnowledgeGraphData | null;
-    onConfirm: (selection: KgIndividualSelection) => void;
-    onCancel: () => void;
   };
   /** Props bag to spread onto <KgExportOptionsDialog />. Opens when the user
    *  picks "Export with options…" in the Generate menu on a KG diagram. */
@@ -540,8 +530,8 @@ export interface UseGeneratorExecutionReturn {
     onConfirm: (fmt: 'owl' | 'ttl', vocab: 'owl' | 'shacl' | 'both') => void;
   };
   /** Props bag for <KgConsistencyConfirmModal />. Opens before a KG →
-   *  ClassDiagram / ObjectDiagram conversion if the consistency check
-   *  returned at least one issue. */
+   *  ClassDiagram conversion if the consistency check returned at least
+   *  one issue. */
   kgConsistencyConfirmModalProps: {
     open: boolean;
     report: import('../../shared/types/project').ConsistencyReport | null;
@@ -568,10 +558,10 @@ export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGen
   // render it.
   const [kgRefineOpen, setKgRefineOpen] = useState(false);
   // When set, the refine modal is opened in "convert mode" so the user
-  // can clean the KG before producing a Class/Object Diagram. The modal
-  // calls ``onConvert`` with the kgSignature once the analyzer reports
-  // zero remaining issues.
-  const [kgConvertTarget, setKgConvertTarget] = useState<KgConversionTarget | null>(null);
+  // can clean the KG before producing a Class Diagram. The modal calls
+  // ``onConvert`` with the kgSignature once the analyzer reports zero
+  // remaining issues.
+  const [kgConvertMode, setKgConvertMode] = useState(false);
   // KG → RDF export-options modal: opened by the ``kg_export_with_options``
   // generator entry; lets the user pick syntax + constraint vocabulary.
   const [kgExportOptionsOpen, setKgExportOptionsOpen] = useState(false);
@@ -583,17 +573,6 @@ export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGen
     report: import('../../shared/types/project').ConsistencyReport | null;
     resolve: ((d: 'proceed' | 'cancel') => void) | null;
   }>({ open: false, report: null, resolve: null });
-  // KG -> Object Diagram individual picker. A whole ABox is unreadable past a
-  // few dozen individuals, so the user names one to build the diagram around
-  // before anything else runs. Promise-gated like the consistency modal above,
-  // and the chosen scope is held in a ref because it has to reach all three
-  // sites that dispatch the conversion (the zero-issue path, the Refine
-  // modal's Convert button, and the consistency gate's "Proceed anyway").
-  const [kgIndividualGate, setKgIndividualGate] = useState<{
-    open: boolean;
-    resolve: ((s: KgIndividualSelection | null) => void) | null;
-  }>({ open: false, resolve: null });
-  const kgObjectScopeRef = useRef<KgIndividualSelection | null>(null);
   // When the user picks "Open Refine to fix" from the gate, we also open
   // the Refine modal on the Consistency tab. This flag carries that intent
   // through to kgRefineModalProps.initialTab.
@@ -610,49 +589,23 @@ export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGen
     [],
   );
 
-  // Every conversion dispatch goes through here so the chosen scope is applied
-  // consistently; for kg_to_class the ref is always null and this is a no-op.
-  const runKgConversionScoped = useCallback(
-    (target: KgConversionTarget, options: Parameters<typeof runKgConversion>[1] = {}) => {
-      const scope = target === 'kg_to_object' ? kgObjectScopeRef.current : null;
-      return runKgConversion(target, scope ? { ...options, ...scope } : options);
-    },
-    [runKgConversion],
-  );
-
-  const runKgWithPreflight = useCallback(
-    async (target: KgConversionTarget): Promise<void> => {
-      // Object diagrams are always scoped to a user-chosen individual; ask
-      // before the preflight so cancelling costs nothing.
-      if (target === 'kg_to_object') {
-        const selection = await new Promise<KgIndividualSelection | null>((resolve) => {
-          setKgIndividualGate({ open: true, resolve });
-        });
-        if (!selection) return;
-        kgObjectScopeRef.current = selection;
-      } else {
-        kgObjectScopeRef.current = null;
-      }
-
-      const report = await runKgPreflight(target);
-      if (!report) return;
-      // Zero-friction path: no preflight issues → still run the
-      // OWL/SHACL consistency gate, then convert.
-      if (report.issueCount === 0) {
-        await runKgConversionScoped(target, {
-          kgSignature: report.kgSignature,
-          onConsistencyIssues,
-        });
-        return;
-      }
-      // Issues present → open the Refine KG modal in convert mode so the
-      // user can clean the KG and then click Convert. The modal handles
-      // its own analyzer calls and decisions; we only need to track the
-      // target so we can dispatch the conversion when the user confirms.
-      setKgConvertTarget(target);
-    },
-    [runKgPreflight, runKgConversionScoped, onConsistencyIssues],
-  );
+  const runKgWithPreflight = useCallback(async (): Promise<void> => {
+    const report = await runKgPreflight();
+    if (!report) return;
+    // Zero-friction path: no preflight issues → still run the
+    // OWL/SHACL consistency gate, then convert.
+    if (report.issueCount === 0) {
+      await runKgConversion({
+        kgSignature: report.kgSignature,
+        onConsistencyIssues,
+      });
+      return;
+    }
+    // Issues present → open the Refine KG modal in convert mode so the
+    // user can clean the KG and then click Convert. The modal handles
+    // its own analyzer calls and decisions.
+    setKgConvertMode(true);
+  }, [runKgPreflight, runKgConversion, onConsistencyIssues]);
   const exportKgRdf = useExportKgRdf();
 
   const { isQuantumContext, isGuiContext, isObjectContext, isUserContext, isNNContext, isKgContext } =
@@ -835,13 +788,13 @@ export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGen
       try {
         setIsGenerating(true);
 
-        if (generatorType === 'kg_to_class' || generatorType === 'kg_to_object') {
+        if (generatorType === 'kg_to_class') {
           if (!isKgContext) {
             const message = t('menu.generate.kgGuards.openKgBeforeConverting');
             toast.error(message);
             return { ok: false, error: message };
           }
-          await runKgWithPreflight(generatorType);
+          await runKgWithPreflight();
           if (!mountedRef.current) return { ok: false, error: 'Component unmounted' };
           getPostHog()?.capture('generator_used', {
             generator_type: generatorType,
@@ -1470,13 +1423,13 @@ export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGen
   // tabbed (Automatic / AI) flow internally; it only needs to know when
   // it's open, how to close itself, a "Fix in KG" handler that focuses
   // affected nodes in the canvas, and — when opened from the Convert
-  // flow — a ``convertTarget``/``onConvert`` callback so it can trigger
+  // flow — a ``convertMode``/``onConvert`` callback so it can trigger
   // the conversion once the KG is clean.
   const kgRefineModalProps = {
-    open: kgRefineOpen || kgConvertTarget !== null,
+    open: kgRefineOpen || kgConvertMode,
     onClose: () => {
       setKgRefineOpen(false);
-      setKgConvertTarget(null);
+      setKgConvertMode(false);
       setKgRefineInitialTab(undefined);
     },
     onFixInKg: (issue: KgIssue) => {
@@ -1490,30 +1443,11 @@ export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGen
         kgFocus.focus(nodeIds, { maxNeighbors: 15 });
       }
     },
-    convertTarget: kgConvertTarget ?? undefined,
+    convertMode: kgConvertMode,
     onConvert: (kgSignature: string) => {
-      const target = kgConvertTarget;
-      if (!target) return;
-      void runKgConversionScoped(target, { kgSignature, onConsistencyIssues });
+      void runKgConversion({ kgSignature, onConsistencyIssues });
     },
     initialTab: kgRefineInitialTab,
-  };
-
-  // Individual picker for KG -> Object Diagram. `model` is read from the
-  // active KG diagram, so the list needs no round trip.
-  const kgIndividualPickerModalProps = {
-    open: kgIndividualGate.open,
-    model: (currentProject
-      ? (getActiveDiagram(currentProject, 'KnowledgeGraphDiagram')?.model ?? null)
-      : null) as import('../../shared/types/project').KnowledgeGraphData | null,
-    onConfirm: (selection: KgIndividualSelection) => {
-      kgIndividualGate.resolve?.(selection);
-      setKgIndividualGate({ open: false, resolve: null });
-    },
-    onCancel: () => {
-      kgIndividualGate.resolve?.(null);
-      setKgIndividualGate({ open: false, resolve: null });
-    },
   };
 
   // Pre-conversion consistency confirmation modal. Wired so that "Proceed
@@ -1562,6 +1496,5 @@ export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGen
     kgRefineModalProps,
     kgExportOptionsModalProps,
     kgConsistencyConfirmModalProps,
-    kgIndividualPickerModalProps,
   };
 }

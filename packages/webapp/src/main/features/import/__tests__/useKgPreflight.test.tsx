@@ -57,7 +57,7 @@ describe('useKgPreflight', () => {
 
     let report: unknown;
     await act(async () => {
-      report = await result.current.runPreflight('kg_to_class');
+      report = await result.current.runPreflight();
     });
     expect(report).toEqual(fakeReport);
     expect(result.current.report).toEqual(fakeReport);
@@ -66,21 +66,8 @@ describe('useKgPreflight', () => {
     expect(fetchSpy).toHaveBeenCalledTimes(1);
     const [url, init] = fetchSpy.mock.calls[0];
     expect(String(url)).toContain('/analyze-kg-for-buml-conversion');
-    expect(String(url)).toContain('diagramType=ClassDiagram');
     const body = JSON.parse((init as RequestInit).body as string);
     expect(body.id).toBe('d1');
-  });
-
-  it('uses ObjectDiagram diagramType for kg_to_object target', async () => {
-    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue({
-      ok: true,
-      json: async () => ({ kgSignature: 's', diagramType: 'ObjectDiagram', issueCount: 0, issues: [] }),
-    } as unknown as Response);
-    const { result } = renderHook(() => useKgPreflight());
-    await act(async () => {
-      await result.current.runPreflight('kg_to_object');
-    });
-    expect(String(fetchSpy.mock.calls[0][0])).toContain('diagramType=ObjectDiagram');
   });
 
   it('sets status="error" and returns null on HTTP failure', async () => {
@@ -93,7 +80,7 @@ describe('useKgPreflight', () => {
     const { result } = renderHook(() => useKgPreflight());
     let returned: unknown = 'unset';
     await act(async () => {
-      returned = await result.current.runPreflight('kg_to_class');
+      returned = await result.current.runPreflight();
     });
     expect(returned).toBeNull();
     expect(result.current.status).toBe('error');

@@ -38,11 +38,10 @@ export interface UseKgRefineReturn {
   // Static tab
   staticStatus: RefineStatus;
   staticReport: KgPreflightReport | null;
-  runStatic: (diagramType?: 'ClassDiagram' | 'ObjectDiagram') => Promise<KgPreflightReport | null>;
+  runStatic: () => Promise<KgPreflightReport | null>;
   applyStatic: (
     decisions: Array<{ issueId: string; decision: RowDecision }>,
     kgSignature: string,
-    diagramType?: 'ClassDiagram' | 'ObjectDiagram',
   ) => Promise<ApplyStaticResult | null>;
 
   // LLM tab
@@ -74,16 +73,14 @@ export const useKgRefine = (): UseKgRefineReturn => {
   const [llmReport, setLlmReport] = useState<KgPreflightReport | null>(null);
 
   const runStatic = useCallback(
-    async (
-      diagramType: 'ClassDiagram' | 'ObjectDiagram' = 'ClassDiagram',
-    ): Promise<KgPreflightReport | null> => {
+    async (): Promise<KgPreflightReport | null> => {
       const active = getActiveKgDiagram();
       if (!active) return null;
       const { diagram: kgDiagram } = active;
 
       setStaticStatus('loading');
       try {
-        const url = `${BACKEND_URL}/analyze-kg-for-buml-conversion?diagramType=${diagramType}`;
+        const url = `${BACKEND_URL}/analyze-kg-for-buml-conversion`;
         const response = await fetch(url, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -119,7 +116,6 @@ export const useKgRefine = (): UseKgRefineReturn => {
     async (
       decisions: Array<{ issueId: string; decision: RowDecision }>,
       kgSignature: string,
-      diagramType: 'ClassDiagram' | 'ObjectDiagram' = 'ClassDiagram',
     ): Promise<ApplyStaticResult | null> => {
       const active = getActiveKgDiagram();
       if (!active) return null;
@@ -134,7 +130,7 @@ export const useKgRefine = (): UseKgRefineReturn => {
           resolutions: decisions,
         };
         const response = await fetch(
-          `${BACKEND_URL}/apply-kg-refinement?diagramType=${diagramType}`,
+          `${BACKEND_URL}/apply-kg-refinement`,
           {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },

@@ -290,7 +290,7 @@ describe('KgRefineModal — partial-apply UX', () => {
         open
         onClose={onClose}
         onFixInKg={vi.fn()}
-        convertTarget="kg_to_class"
+        convertMode
         onConvert={onConvert}
       />,
     );
@@ -313,7 +313,7 @@ describe('KgRefineModal — partial-apply UX', () => {
         open
         onClose={vi.fn()}
         onFixInKg={vi.fn()}
-        convertTarget="kg_to_class"
+        convertMode
         onConvert={vi.fn()}
       />,
     );
@@ -325,13 +325,13 @@ describe('KgRefineModal — partial-apply UX', () => {
     expect(screen.getByTestId('kg-refine-static-apply')).toBeInTheDocument();
   });
 
-  it('convert mode: applyStatic is invoked with the convert target diagram', async () => {
+  it('convert mode: after an apply, the static analyzer is re-run instead of closing', async () => {
     vi.doMock('../useKgRefine', () => {
       const m = {
         staticStatus: 'success',
         staticReport: {
-          kgSignature: 'sig-obj',
-          diagramType: 'ObjectDiagram',
+          kgSignature: 'sig-before',
+          diagramType: 'ClassDiagram',
           issueCount: 1,
           issues: [
             {
@@ -346,14 +346,14 @@ describe('KgRefineModal — partial-apply UX', () => {
           ],
         },
         runStatic: vi.fn().mockResolvedValue({
-          kgSignature: 'sig-obj-after',
-          diagramType: 'ObjectDiagram',
+          kgSignature: 'sig-after',
+          diagramType: 'ClassDiagram',
           issueCount: 0,
           issues: [],
         }),
         applyStatic: vi.fn().mockResolvedValue({
           pendingOrphanClassification: null,
-          newKgSignature: 'sig-obj-after',
+          newKgSignature: 'sig-after',
         }),
         llmStatus: 'idle',
         llmReport: null,
@@ -370,14 +370,9 @@ describe('KgRefineModal — partial-apply UX', () => {
       __mock: { applyStatic: ReturnType<typeof vi.fn>; runStatic: ReturnType<typeof vi.fn> };
     };
 
+    const onClose = vi.fn();
     render(
-      <FreshModal
-        open
-        onClose={vi.fn()}
-        onFixInKg={vi.fn()}
-        convertTarget="kg_to_object"
-        onConvert={vi.fn()}
-      />,
+      <FreshModal open onClose={onClose} onFixInKg={vi.fn()} convertMode onConvert={vi.fn()} />,
     );
 
     await waitFor(() => {
@@ -388,16 +383,13 @@ describe('KgRefineModal — partial-apply UX', () => {
     await waitFor(() => {
       expect(mock.applyStatic).toHaveBeenCalledTimes(1);
     });
-    // Third positional argument is the diagram type derived from the
-    // conversion target (kg_to_object → ObjectDiagram).
-    expect(mock.applyStatic.mock.calls[0][2]).toBe('ObjectDiagram');
-    // After apply, convert mode re-runs the static analyzer instead of
-    // closing.
+    expect(mock.applyStatic.mock.calls[0][1]).toBe('sig-before');
+    // Convert mode re-runs the analyzer so the user sees what is left,
+    // rather than closing the modal.
     await waitFor(() => {
       expect(mock.runStatic).toHaveBeenCalled();
     });
-    const runStaticCalls = mock.runStatic.mock.calls;
-    expect(runStaticCalls[runStaticCalls.length - 1]?.[0]).toBe('ObjectDiagram');
+    expect(onClose).not.toHaveBeenCalled();
   });
 
   it('Orphan LLM-routed rows DO send skip (backend defers via DeferredOrphanClassification)', async () => {

@@ -14,9 +14,9 @@
 //
 // Each tab owns its own decisions state; switching tabs preserves both.
 //
-// Convert mode: when ``convertTarget`` is set, the modal serves as the
-// inconsistency-review surface for "Convert KG → Class/Object Diagram".
-// After every apply (static or LLM) the analyzer is re-run instead of
+// Convert mode: when ``convertMode`` is set, the modal serves as the
+// inconsistency-review surface for "Convert KG → Class Diagram". After
+// every apply (static or LLM) the analyzer is re-run instead of
 // auto-closing. When the static analyzer reports zero remaining issues,
 // the empty-state surfaces a "Convert to <diagram>" button that calls
 // ``onConvert`` with the latest kgSignature.
@@ -37,7 +37,6 @@ import { useOpenAIApiKey } from '../../shared/hooks/useOpenAIApiKey';
 import { KgPreflightIssueRow, type RowDecision, type RowRouting } from './KgPreflightIssueRow';
 import { useKgRefine, type PendingOrphanClassification } from './useKgRefine';
 import type { KgIssue, KgPreflightReport } from './useKgPreflight';
-import type { KgConversionTarget } from './useKgToUmlConversion';
 import { useKgConsistencyCheck } from './useKgConsistencyCheck';
 import { ProjectStorageRepository } from '../../shared/services/storage/ProjectStorageRepository';
 import { getActiveDiagram } from '../../shared/types/project';
@@ -45,20 +44,11 @@ import type { BesserProject, ConsistencyReport } from '../../shared/types/projec
 
 type TabKey = 'static' | 'consistency' | 'llm';
 type LlmPhase = 'input' | 'review';
-type DiagramTypeArg = 'ClassDiagram' | 'ObjectDiagram';
 
-const DIAGRAM_TYPE_BY_TARGET: Record<KgConversionTarget, DiagramTypeArg> = {
-  kg_to_class: 'ClassDiagram',
-  kg_to_object: 'ObjectDiagram',
-};
-
-/** Display-only, so it points at the existing `diagramTypes.*` keys rather
- *  than duplicating those strings. (The persisted diagram TITLE uses the
+/** Display-only, so it points at the existing `diagramTypes.*` key rather
+ *  than duplicating that string. (The persisted diagram TITLE uses the
  *  untranslated suffix in `useKgToUmlConversion`.) */
-const DIAGRAM_LABEL_KEY_BY_TARGET: Record<KgConversionTarget, string> = {
-  kg_to_class: 'diagramTypes.ClassDiagram',
-  kg_to_object: 'diagramTypes.ObjectDiagram',
-};
+const DIAGRAM_LABEL_KEY = 'diagramTypes.ClassDiagram';
 
 export interface KgRefineModalProps {
   open: boolean;
@@ -69,12 +59,12 @@ export interface KgRefineModalProps {
    *  user straight to the offending node. */
   onFocusNodes?: (nodeIds: string[]) => void;
   /**
-   * When set, the modal acts as the pre-conversion review surface for
-   * the given target. Applies don't auto-close the modal; instead the
-   * analyzer is re-run so the user sees remaining issues, and a
-   * "Convert" button appears once the KG is clean.
+   * When set, the modal acts as the pre-conversion review surface.
+   * Applies don't auto-close the modal; instead the analyzer is re-run
+   * so the user sees remaining issues, and a "Convert" button appears
+   * once the KG is clean.
    */
-  convertTarget?: KgConversionTarget;
+  convertMode?: boolean;
   /**
    * Called when the user clicks the Convert button (only available in
    * convert mode and only when the static analyzer reports zero issues).
@@ -157,17 +147,14 @@ export const KgRefineModal: React.FC<KgRefineModalProps> = ({
   onClose,
   onFixInKg,
   onFocusNodes,
-  convertTarget,
+  convertMode,
   onConvert,
   initialTab,
 }) => {
   const { t } = useTranslation();
   const { apiKey, setApiKey } = useOpenAIApiKey();
   const refine = useKgRefine();
-  const diagramType: DiagramTypeArg = convertTarget
-    ? DIAGRAM_TYPE_BY_TARGET[convertTarget]
-    : 'ClassDiagram';
-  const diagramLabel = convertTarget ? t(DIAGRAM_LABEL_KEY_BY_TARGET[convertTarget]) : null;
+  const diagramLabel = convertMode ? t(DIAGRAM_LABEL_KEY) : null;
 
   const [activeTab, setActiveTab] = useState<TabKey>(initialTab ?? 'static');
   // Consistency tab state — independent of static/LLM tabs.
@@ -229,7 +216,7 @@ export const KgRefineModal: React.FC<KgRefineModalProps> = ({
   useEffect(() => {
     if (!open || ranStaticRef.current) return;
     ranStaticRef.current = true;
-    void refine.runStatic(diagramType).then((report) => {
+    void refine.runStatic().then((report) => {
       if (report) {
         setStaticDecisions(_initialDecisions(report.issues));
         setStaticRouting(_initialRouting(report.issues));
@@ -342,7 +329,7 @@ export const KgRefineModal: React.FC<KgRefineModalProps> = ({
     }
     setIsApplyingStatic(true);
     try {
-      const result = await refine.applyStatic(decisions, current.kgSignature, diagramType);
+      const result = await refine.applyStatic(decisions, current.kgSignature);
       if (!result) return;
       setLatestKgSignature(result.newKgSignature);
       setLlmDeferredIds(deferred);
@@ -360,10 +347,10 @@ export const KgRefineModal: React.FC<KgRefineModalProps> = ({
       } else if (deferred.length > 0) {
         setActiveTab('llm');
         setLlmPhase('input');
-      } else if (convertTarget) {
+      } else if (convertMode) {
         // Convert mode: don't close. Re-run the analyzer so the user
         // sees what's left (and the Convert button appears when clean).
-        const refreshed = await refine.runStatic(diagramType);
+        const refreshed = await refine.runStatic();
         if (refreshed) {
           setStaticDecisions(_initialDecisions(refreshed.issues));
           setStaticRouting(_initialRouting(refreshed.issues));
@@ -407,12 +394,12 @@ export const KgRefineModal: React.FC<KgRefineModalProps> = ({
     try {
       const ok = await refine.applyLlm(decisions, current.issues, current.kgSignature);
       if (!ok) return;
-      if (convertTarget) {
+      if (convertMode) {
         // Convert mode: keep the modal open and re-run the static
         // analyzer so the user can see the cleaned KG and convert when
         // it's free of inconsistencies. Switch back to the Automatic
         // tab so the Convert button is visible.
-        const refreshed = await refine.runStatic(diagramType);
+        const refreshed = await refine.runStatic();
         if (refreshed) {
           setStaticDecisions(_initialDecisions(refreshed.issues));
           setStaticRouting(_initialRouting(refreshed.issues));
@@ -429,7 +416,7 @@ export const KgRefineModal: React.FC<KgRefineModalProps> = ({
   };
 
   const handleConvert = () => {
-    if (!convertTarget || !onConvert) return;
+    if (!convertMode || !onConvert) return;
     const sig = latestKgSignature ?? refine.staticReport?.kgSignature;
     if (!sig) return;
     onConvert(sig);
@@ -476,12 +463,12 @@ export const KgRefineModal: React.FC<KgRefineModalProps> = ({
       <DialogContent className="max-h-[90vh] max-w-3xl overflow-y-auto">
         <DialogHeader>
           <DialogTitle>
-            {convertTarget
+            {convertMode
               ? t('import.kg.refine.titleConvert', { diagram: diagramLabel })
               : t('import.kg.refine.title')}
           </DialogTitle>
           <DialogDescription>
-            {convertTarget
+            {convertMode
               ? t('import.kg.refine.descriptionConvert', { diagram: diagramLabel })
               : t('import.kg.refine.description')}
           </DialogDescription>
@@ -511,7 +498,7 @@ export const KgRefineModal: React.FC<KgRefineModalProps> = ({
             {refine.staticStatus === 'success' && refine.staticReport && (
               <>
                 {refine.staticReport.issues.length === 0 ? (
-                  convertTarget ? (
+                  convertMode ? (
                     <div
                       data-testid="kg-refine-convert-ready"
                       className="rounded border border-emerald-300 bg-emerald-50 p-4 text-sm text-emerald-900 dark:border-emerald-700 dark:bg-emerald-950 dark:text-emerald-200"
@@ -623,7 +610,7 @@ export const KgRefineModal: React.FC<KgRefineModalProps> = ({
                   <Button variant="outline" onClick={onClose} disabled={isApplyingStatic}>
                     {t('common.close')}
                   </Button>
-                  {convertTarget && refine.staticReport.issues.length === 0 ? (
+                  {convertMode && refine.staticReport.issues.length === 0 ? (
                     <Button
                       onClick={handleConvert}
                       disabled={isApplyingStatic}
@@ -673,7 +660,7 @@ export const KgRefineModal: React.FC<KgRefineModalProps> = ({
             {refine.staticStatus === 'error' && (
               <div className="space-y-2">
                 <p className="text-sm text-red-600 dark:text-red-400">{t('import.kg.refine.analyzeFailed')}</p>
-                <Button variant="outline" onClick={() => refine.runStatic('ClassDiagram')}>
+                <Button variant="outline" onClick={() => refine.runStatic()}>
                   {t('import.kg.refine.retry')}
                 </Button>
               </div>
