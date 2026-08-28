@@ -45,6 +45,12 @@ export interface KgConvertOptions {
    *    - `"cancel"`: abort silently.
    *  When omitted, the conversion proceeds without showing a gate (back-compat). */
   onConsistencyIssues?: (report: ConsistencyReport) => Promise<'proceed' | 'cancel'>;
+  /** Object diagrams only: restrict the result to these individuals and the
+   *  ones reachable from them. Omitted means the whole ABox. */
+  rootIndividualIds?: string[];
+  /** Object diagrams only: how many individual-to-individual hops to follow
+   *  from the roots. `null` (or omitted) means the full connected component. */
+  maxDepth?: number | null;
 }
 
 const ENDPOINT_BY_TARGET: Record<KgConversionTarget, string> = {
@@ -150,6 +156,13 @@ export const useKgToUmlConversion = () => {
         }
         if (options.kgSignature) {
           body.kgSignature = options.kgSignature;
+        }
+        if (options.rootIndividualIds && options.rootIndividualIds.length) {
+          body.rootIndividualIds = options.rootIndividualIds;
+          // Only sent alongside the roots: on its own the backend ignores it.
+          if (options.maxDepth != null) {
+            body.maxDepth = options.maxDepth;
+          }
         }
 
         const response = await fetch(`${BACKEND_URL}${ENDPOINT_BY_TARGET[target]}`, {

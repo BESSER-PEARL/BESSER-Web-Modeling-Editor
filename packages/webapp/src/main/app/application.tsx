@@ -64,6 +64,11 @@ const KgConsistencyConfirmModal = React.lazy(() =>
     default: m.KgConsistencyConfirmModal,
   })),
 );
+const KgIndividualPickerModal = React.lazy(() =>
+  import('../features/import/KgIndividualPickerModal').then((m) => ({
+    default: m.KgIndividualPickerModal,
+  })),
+);
 const GeneratorConfigDialogs = React.lazy(() =>
   import('../features/generation/dialogs/GeneratorConfigDialogs').then((m) => ({ default: m.GeneratorConfigDialogs })),
 );
@@ -122,6 +127,7 @@ function AppContentInner() {
     kgRefineModalProps,
     kgExportOptionsModalProps,
     kgConsistencyConfirmModalProps,
+    kgIndividualPickerModalProps,
   } = useGeneratorExecution(editor);
 
   // For the KG export-options dialog: feed it the current KG nodes so it
@@ -269,6 +275,13 @@ function AppContentInner() {
           can fix, proceed, or cancel. */}
       <Suspense fallback={null}>
         <KgConsistencyConfirmModal {...kgConsistencyConfirmModalProps} />
+      </Suspense>
+
+      {/* Individual picker: opened before a KG → ObjectDiagram conversion so
+          the user chooses which individual the diagram is built around, and
+          how far to walk from it. The whole ABox is rarely readable. */}
+      <Suspense fallback={null}>
+        <KgIndividualPickerModal {...kgIndividualPickerModalProps} />
       </Suspense>
 
       {/* KG export-options dialog: opened from Generate → Export Knowledge
