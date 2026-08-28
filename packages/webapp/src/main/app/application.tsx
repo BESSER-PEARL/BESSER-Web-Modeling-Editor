@@ -135,7 +135,7 @@ function AppContentInner() {
     const toastId = toast.loading(`🔍 ${t('consistency.starting')}`);
 
     try {
-      const diagramModel = (editor as any).model;
+      const diagramModel = editor.model;
 
       await checkConsistencyStream(diagramModel, activeDiagramTitle, (data) => {
         if (data.done) {

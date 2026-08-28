@@ -1,4 +1,4 @@
-import { BACKEND_URL } from '../../constants/constant';
+import { apiClient } from '../../api/api-client';
 
 export interface ConsistencyStreamMessage {
   sat: boolean | null;
@@ -14,31 +14,5 @@ export async function checkConsistencyStream(
   title: string,
   onMessage: (data: ConsistencyStreamMessage) => void,
 ): Promise<void> {
-  const response = await fetch(`${BACKEND_URL}/semantic-consistency-check`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ title, model }),
-  });
-
-  const reader = response.body!.getReader();
-  const decoder = new TextDecoder();
-
-  while (true) {
-    const { done, value } = await reader.read();
-    if (done) break;
-
-    const text = decoder.decode(value);
-    const lines = text.split('\n');
-
-    for (const line of lines) {
-      if (line.startsWith('data: ')) {
-        try {
-          const data = JSON.parse(line.slice(6));
-          onMessage(data);
-        } catch {
-          // Ignore malformed SSE lines
-        }
-      }
-    }
-  }
+  await apiClient.postSSE<ConsistencyStreamMessage>('/semantic-consistency-check', { title, model }, onMessage);
 }

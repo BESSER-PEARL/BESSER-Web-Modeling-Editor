@@ -6,7 +6,7 @@ import { toast } from 'react-toastify';
 import { useTranslation } from 'react-i18next';
 import { Input } from '@/components/ui/input';
 import { getPostHog } from '../../../shared/services/analytics/lazy-analytics';
-import { BACKEND_URL } from '../../../shared/constants/constant';
+import { apiClient } from '../../../shared/api/api-client';
 import { ProjectDiagram, MAX_DIAGRAMS_PER_TYPE, SupportedDiagramType, isUMLModel, isGrapesJSProjectData, isQuantumCircuitData } from '../../../shared/types/project';
 import { useAppDispatch, useAppSelector } from '../../../app/store/hooks';
 import type { QualityCheckState } from '../../generation/types';
@@ -237,66 +237,27 @@ export const DiagramTabs: React.FC<DiagramTabsProps> = ({
       return;
     }
 
-    const backendBase = (BACKEND_URL || '').replace(/\/$/, '');
-    const endpointUrl = backendBase.endsWith('/besser_api')
-      ? `${backendBase}/generate-object-diagram`
-      : `${backendBase}/besser_api/generate-object-diagram`;
-
     const toastId = toast.loading(`🔍 ${t('editors.diagramTabs.starting')}`);
 
     try {
-      const response = await fetch(endpointUrl, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
+      const finalResult = await apiClient.postSSE<{
+        done?: boolean;
+        sat?: boolean;
+        message?: string;
+        error?: string;
+        object_model?: unknown;
+      }>(
+        '/generate-object-diagram',
+        {
           title: refDiagram?.title ?? 'Class Diagram',
           model: refModel,
-        }),
-      });
-
-      if (!response.ok || !response.body) {
-        const errorBody = await response.text();
-        throw new Error(errorBody || `HTTP ${response.status}`);
-      }
-
-      const reader = response.body.getReader();
-      const decoder = new TextDecoder();
-      let buffer = '';
-      let finalResult: any = null;
-
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-
-        buffer += decoder.decode(value, { stream: true });
-        const lines = buffer.split('\n');
-        buffer = lines.pop() ?? '';
-
-        for (const line of lines) {
-          if (!line.startsWith('data: ')) continue;
-          try {
-            const data = JSON.parse(line.slice(6));
-            if (data?.done) {
-              finalResult = data;
-            } else if (data?.message) {
-              toast.update(toastId, { render: data.message });
-            }
-          } catch {
-            // Ignore malformed SSE lines
+        },
+        (event) => {
+          if (event?.message && !event.done) {
+            toast.update(toastId, { render: event.message });
           }
-        }
-      }
-
-      if (buffer.startsWith('data: ')) {
-        try {
-          const data = JSON.parse(buffer.slice(6));
-          if (data?.done) {
-            finalResult = data;
-          }
-        } catch {
-          // Ignore malformed SSE line
-        }
-      }
+        },
+      );
 
       if (!finalResult) {
         throw new Error(t('editors.diagramTabs.noResult'));
@@ -339,9 +300,9 @@ export const DiagramTabs: React.FC<DiagramTabsProps> = ({
         elements: Object.keys(nextModel.elements ?? {}).length,
         relationships: Object.keys(nextModel.relationships ?? {}).length,
       });
-    } catch (error: any) {
+    } catch (error) {
       toast.dismiss(toastId);
-      const details = typeof error?.message === 'string' ? error.message : String(error);
+      const details = error instanceof Error ? error.message : String(error);
       toast.error(`${t('editors.diagramTabs.failed')}: ${details}`);
     }
   }, [apollonEditor, classDiagrams, classRefId, currentDiagramType, dispatch, t]);

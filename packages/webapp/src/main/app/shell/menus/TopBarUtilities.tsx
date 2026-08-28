@@ -28,7 +28,7 @@ interface TopBarUtilitiesProps {
   activeAgentVariantId?: string;
   onAgentVariantChange?: (variantId: string) => void;
   onQualityCheck: () => Promise<QualityCheckResult>;
-  onConsistencyCheck: () => Promise<QualityCheckResult>;
+  onConsistencyCheck: () => Promise<void>;
   onToggleTheme: () => void;
   onGitHubLogin: () => void;
   onGitHubLogout: () => void;

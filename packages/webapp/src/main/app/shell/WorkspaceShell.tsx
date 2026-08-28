@@ -105,7 +105,7 @@ interface WorkspaceShellProps {
   onExportProject: () => void;
   onGenerate: (type: GeneratorType, config?: Record<string, any>) => void;
   onQualityCheck: () => Promise<QualityCheckResult>;
-  onConsistencyCheck: () => Promise<QualityCheckResult>;
+  onConsistencyCheck: () => Promise<void>;
   showQualityCheck?: boolean;
   generatorMode: GeneratorMenuMode;
   isGenerating?: boolean;
