@@ -34,6 +34,7 @@ export interface WorkspaceTopBarProps {
   onOpenProjectPreview: () => void;
   onGenerate: (type: GeneratorType, config?: Record<string, any>) => void;
   onQualityCheck: () => Promise<QualityCheckResult>;
+  onConsistencyCheck: () => Promise<void>;
   qualityCheckState?: QualityCheckState;
   showAgentVariantSelector?: boolean;
   agentVariantOptions?: AgentVariantOption[];

@@ -21,20 +21,22 @@
     "baseAgentModel": "Modèle d'agent de base",
     "switchToLight": "Passer en mode clair",
     "switchToDark": "Passer en mode sombre",
-    "star": "Etoile",
+    "star": "Étoile",
     "starBesser": "Mettre une étoile à BESSER sur GitHub",
     "githubAccount": "Compte GitHub : {{name}}",
     "signOut": "Se déconnecter",
     "githubVersionControl": "Contrôle de version GitHub",
     "toggleGithubPanel": "Afficher/masquer le panneau de contrôle de version GitHub",
-    "sync": "Sync",
+    "sync": "Synchroniser",
     "connectGithub": "Connecter GitHub",
     "quality": {
       "title": "Contrôle qualité",
       "validated": "Validé",
       "issues": "Problèmes",
       "needsRecheck": "À revérifier",
-      "notValidated": "Non validé"
+      "notValidated": "Non validé",
+      "syntacticCheck": "Vérification syntaxique",
+      "semanticCheck": "Vérification sémantique"
     }
   },
   "nav": {
@@ -81,7 +83,8 @@
         "database": "Base de données",
         "oop": "POO",
         "schema": "Schéma",
-        "data": "Données"
+        "data": "Données",
+        "formalNotations": "Notations formelles"
       },
       "actions": {
         "djangoProject": "Projet Django",
@@ -93,7 +96,8 @@
         "besserAgent": "Agent BESSER",
         "jsonObjectExport": "Export d'objet JSON",
         "userProfileJson": "JSON de profil utilisateur",
-        "qiskitCode": "Code Qiskit"
+        "qiskitCode": "Code Qiskit",
+        "alloySpecification": "Spécification Alloy"
       },
       "notices": {
         "statemachine": "Les machines à états sont utilisées comme implémentations de méthodes dans les diagrammes de classes. Générez le code à partir du diagramme de classes.",
@@ -1800,7 +1804,15 @@
       "referenceEmpty": "Le diagramme de classes référencé est vide (aucune classe ni relation).",
       "generateObjectsTooltip": "Crée une instance d'objet par classe dans le diagramme référencé, avec des valeurs par défaut pour chaque attribut.",
       "generate": "Générer",
-      "noClassDiagramsAvailable": "Aucun diagramme de classes disponible"
+      "noClassDiagramsAvailable": "Aucun diagramme de classes disponible",
+      "semanticGeneration": "Génération sémantique",
+      "semanticGenerationTooltip": "Génère un diagramme d'objets qui instancie le diagramme de classes et satisfait ses contraintes OCL.",
+      "starting": "Démarrage de la génération basée sur SAT…",
+      "noResult": "Aucun résultat produit par le backend.",
+      "unsatisfiable": "Le modèle est insatisfaisable.",
+      "payloadMissing": "Une instance SAT a été trouvée, mais la charge utile du diagramme d'objets est manquante",
+      "success": "Instance SAT générée avec succès.",
+      "failed": "Échec de la génération de l'instance SAT"
     },
     "charts": {
       "loadingChart": "Chargement du graphique...",
@@ -2469,5 +2481,11 @@
       "dropHere": "Déposer ici",
       "invalid": "Non valide"
     }
+  },
+  "consistency": {
+    "noDiagram": "Aucun diagramme chargé.",
+    "starting": "Démarrage de la vérification de cohérence…",
+    "issuesFound": "Problèmes détectés :",
+    "unreachable": "Erreur de la vérification sémantique — backend injoignable."
   }
 }

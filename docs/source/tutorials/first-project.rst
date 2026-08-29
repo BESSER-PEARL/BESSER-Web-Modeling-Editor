@@ -69,7 +69,7 @@ Step 4: Add an Enumeration
 Step 5: Validate Your Model
 ----------------------------
 
-1. Click the **Quality Check** button in the top bar.
+1. Click the **Quality Check** - **Syntactic Check** button in the top bar.
 2. If your model has no errors, you will see a success message.
 3. If there are issues (e.g., duplicate class names), the editor will show
    specific error messages.
@@ -97,7 +97,9 @@ Now that you have the basics, try:
 - Adding **methods** to your classes (e.g., ``+ get_full_name(): str``).
 - Adding **OCL constraints** (drag from palette, write rules like
   ``context Book inv: self.pages > 0``).
+- Check the satisfiability (logical consistency) of the OCL constraints with **Quality Check** - **Semantic Check** button.
 - Creating an **Object Diagram** to model specific instances.
+- Automatically generate an object diagram consistent with the OCL constraints with the **Semantic Generation** button.
 - Switching to a **State Machine** or **Agent Diagram** via the left sidebar.
 
 See :doc:`../user-guide/diagrams/index` for detailed guides on each diagram type.

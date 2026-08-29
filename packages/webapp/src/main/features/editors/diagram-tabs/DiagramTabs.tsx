@@ -6,6 +6,7 @@ import { toast } from 'react-toastify';
 import { useTranslation } from 'react-i18next';
 import { Input } from '@/components/ui/input';
 import { getPostHog } from '../../../shared/services/analytics/lazy-analytics';
+import { apiClient } from '../../../shared/api/api-client';
 import { ProjectDiagram, MAX_DIAGRAMS_PER_TYPE, SupportedDiagramType, isUMLModel, isGrapesJSProjectData, isQuantumCircuitData } from '../../../shared/types/project';
 import { useAppDispatch, useAppSelector } from '../../../app/store/hooks';
 import type { QualityCheckState } from '../../generation/types';
@@ -221,6 +222,90 @@ export const DiagramTabs: React.FC<DiagramTabsProps> = ({
     }
     getPostHog()?.capture('object_diagram_generated_from_class', { created, skipped, links });
   }, [apollonEditor, classDiagrams, classRefId, currentDiagramType, dispatch]);
+
+  const handleGenerateSat = useCallback(async () => {
+    if (currentDiagramType !== 'ObjectDiagram') return;
+    if (!apollonEditor || !apollonEditor.model) {
+      toast.error(t('editors.diagramTabs.editorNotReady'));
+      return;
+    }
+
+    const refDiagram = classDiagrams.find((d) => d.id === classRefId);
+    const refModel = refDiagram?.model;
+    if (!isUMLModel(refModel)) {
+      toast.error(t('editors.diagramTabs.pickClassRefFirst'));
+      return;
+    }
+
+    const toastId = toast.loading(`🔍 ${t('editors.diagramTabs.starting')}`);
+
+    try {
+      const finalResult = await apiClient.postSSE<{
+        done?: boolean;
+        sat?: boolean;
+        message?: string;
+        error?: string;
+        object_model?: unknown;
+      }>(
+        '/generate-object-diagram',
+        {
+          title: refDiagram?.title ?? 'Class Diagram',
+          model: refModel,
+        },
+        (event) => {
+          if (event?.message && !event.done) {
+            toast.update(toastId, { render: event.message });
+          }
+        },
+      );
+
+      if (!finalResult) {
+        throw new Error(t('editors.diagramTabs.noResult'));
+      }
+
+      if (finalResult.sat !== true) {
+        toast.update(toastId, {
+          render: `❌ ${finalResult?.message ?? t('editors.diagramTabs.unsatisfiable')}`,
+          type: 'warning',
+          isLoading: false,
+          autoClose: 5000,
+        });
+        return;
+      }
+
+      const nextModel = finalResult?.object_model;
+      if (!isUMLModel(nextModel)) {
+        const details = typeof finalResult?.error === 'string' ? ` ${finalResult.error}` : '';
+        toast.update(toastId, {
+          render: `⚠️ ${t('editors.diagramTabs.payloadMissing')}.${details}`,
+          type: 'warning',
+          isLoading: false,
+          autoClose: 5000,
+        });
+        return;
+      }
+
+      await dispatch(updateDiagramModelThunk({ model: nextModel as any })).unwrap();
+      await apollonEditor.nextRender;
+      apollonEditor.model = { ...nextModel } as any;
+      await apollonEditor.nextRender;
+
+      toast.update(toastId, {
+        render: `✅ ${finalResult?.message ?? t('editors.diagramTabs.success')}`,
+        type: 'success',
+        isLoading: false,
+        autoClose: 5000,
+      });
+      getPostHog()?.capture('object_diagram_generated_from_sat', {
+        elements: Object.keys(nextModel.elements ?? {}).length,
+        relationships: Object.keys(nextModel.relationships ?? {}).length,
+      });
+    } catch (error) {
+      toast.dismiss(toastId);
+      const details = error instanceof Error ? error.message : String(error);
+      toast.error(`${t('editors.diagramTabs.failed')}: ${details}`);
+    }
+  }, [apollonEditor, classDiagrams, classRefId, currentDiagramType, dispatch, t]);
 
   const showTabs = diagrams.length > 0;
   const [refsCollapsed, setRefsCollapsed] = useState(false);
@@ -493,15 +578,26 @@ export const DiagramTabs: React.FC<DiagramTabsProps> = ({
                       </span>
                     )}
                     {currentDiagramType === 'ObjectDiagram' && !classRefBroken && !classRefEmpty && (
-                      <button
-                        type="button"
-                        className="ml-1 inline-flex items-center gap-1 rounded-md border border-brand/15 bg-card px-2 py-0.5 text-[11px] font-medium text-foreground shadow-sm transition-colors hover:border-brand/30 hover:bg-brand/[0.04] focus:outline-none focus:ring-1 focus:ring-brand/20"
-                        onClick={() => void handleGenerateObjectsFromClasses()}
-                        title={t('editors.diagramTabs.generateObjectsTooltip')}
-                      >
-                        <Wand2 className="size-3" />
-                        {t('editors.diagramTabs.generate')}
-                      </button>
+                      <>
+                        <button
+                          type="button"
+                          className="ml-1 inline-flex items-center gap-1 rounded-md border border-brand/15 bg-card px-2 py-0.5 text-[11px] font-medium text-foreground shadow-sm transition-colors hover:border-brand/30 hover:bg-brand/[0.04] focus:outline-none focus:ring-1 focus:ring-brand/20"
+                          onClick={() => void handleGenerateObjectsFromClasses()}
+                          title={t('editors.diagramTabs.generateObjectsTooltip')}
+                        >
+                          <Wand2 className="size-3" />
+                          {t('editors.diagramTabs.generate')}
+                        </button>
+                        <button
+                          type="button"
+                          className="inline-flex items-center gap-1 rounded-md border border-brand/15 bg-card px-2 py-0.5 text-[11px] font-medium text-foreground shadow-sm transition-colors hover:border-brand/30 hover:bg-brand/[0.04] focus:outline-none focus:ring-1 focus:ring-brand/20"
+                          onClick={handleGenerateSat}
+                          title={t('editors.diagramTabs.semanticGenerationTooltip')}
+                        >
+                          <Wand2 className="size-3" />
+                          {t('editors.diagramTabs.semanticGeneration')}
+                        </button>
+                      </>
                     )}
                   </>
                 ) : (

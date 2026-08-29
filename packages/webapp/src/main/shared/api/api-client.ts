@@ -143,6 +143,80 @@ class ApiClient {
       clearTimeout(timeoutId);
     }
   }
+
+  /**
+   * POST JSON and stream Server-Sent-Events (SSE) responses line by line.
+   *
+   * The backend responds with a stream of `data: {json}` lines. Each parsed
+   * event is passed to `onEvent` as it arrives; the method resolves with the
+   * last event produced, or `null` if the stream ended without one. A pending
+   * final line without a trailing newline is still flushed and parsed.
+   */
+  async postSSE<T>(
+    endpoint: string,
+    data: unknown,
+    onEvent: (event: T) => void,
+    options?: ApiRequestOptions,
+  ): Promise<T | null> {
+    const { timeout: timeoutOverride, ...fetchOptions } = options ?? {};
+    const timeoutMs = timeoutOverride ?? this.timeout;
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(timeoutReason(timeoutMs)), timeoutMs);
+
+    try {
+      const response = await fetch(`${this.baseUrl}${endpoint}`, {
+        ...fetchOptions,
+        method: 'POST',
+        body: JSON.stringify(data),
+        signal: controller.signal,
+        headers: {
+          ...fetchOptions.headers,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok || !response.body) {
+        const errorBody = await response.text().catch(() => '');
+        throw new ApiError(response.status, errorBody || 'Request failed');
+      }
+
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = '';
+      let lastEvent: T | null = null;
+
+      const parseLine = (line: string) => {
+        if (!line.startsWith('data: ')) return;
+        try {
+          lastEvent = JSON.parse(line.slice(6)) as T;
+          onEvent(lastEvent);
+        } catch {
+          // Ignore malformed SSE lines
+        }
+      };
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n');
+        buffer = lines.pop() ?? '';
+
+        for (const line of lines) {
+          parseLine(line);
+        }
+      }
+
+      if (buffer.startsWith('data: ')) {
+        parseLine(buffer);
+      }
+
+      return lastEvent;
+    } finally {
+      clearTimeout(timeoutId);
+    }
+  }
 }
 
 /** Typed error class carrying the HTTP status code. */

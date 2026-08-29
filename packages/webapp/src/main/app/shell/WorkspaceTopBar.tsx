@@ -37,6 +37,7 @@ const WorkspaceTopBarInner: React.FC<WorkspaceTopBarProps> = ({
   onOpenProjectPreview,
   onGenerate,
   onQualityCheck,
+  onConsistencyCheck,
   qualityCheckState,
   showAgentVariantSelector,
   agentVariantOptions,
@@ -148,6 +149,7 @@ const WorkspaceTopBarInner: React.FC<WorkspaceTopBarProps> = ({
             starLoading={starLoading}
             qualityCheckState={qualityCheckState}
             onQualityCheck={onQualityCheck}
+            onConsistencyCheck={onConsistencyCheck}
             showAgentVariantSelector={showAgentVariantSelector}
             agentVariantOptions={agentVariantOptions}
             activeAgentVariantId={activeAgentVariantId}

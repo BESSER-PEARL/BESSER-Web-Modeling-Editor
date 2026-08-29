@@ -34,7 +34,9 @@
       "validated": "Validiert",
       "issues": "Probleme",
       "needsRecheck": "Erneut prüfen",
-      "notValidated": "Nicht validiert"
+      "notValidated": "Nicht validiert",
+      "syntacticCheck": "Syntaktische Prüfung",
+      "semanticCheck": "Semantische Prüfung"
     }
   },
   "nav": {
@@ -81,7 +83,8 @@
         "database": "Datenbank",
         "oop": "OOP",
         "schema": "Schema",
-        "data": "Daten"
+        "data": "Daten",
+        "formalNotations": "Formale Notationen"
       },
       "actions": {
         "djangoProject": "Django-Projekt",
@@ -93,7 +96,8 @@
         "besserAgent": "BESSER-Agent",
         "jsonObjectExport": "JSON-Objekt-Export",
         "userProfileJson": "Benutzerprofil-JSON",
-        "qiskitCode": "Qiskit-Code"
+        "qiskitCode": "Qiskit-Code",
+        "alloySpecification": "Alloy-Spezifikation"
       },
       "notices": {
         "statemachine": "Zustandsautomaten werden als Methodenimplementierungen in Klassendiagrammen verwendet. Generieren Sie Code aus dem Klassendiagramm.",
@@ -1800,7 +1804,15 @@
       "referenceEmpty": "Das referenzierte Klassendiagramm ist leer (keine Klassen oder Beziehungen).",
       "generateObjectsTooltip": "Erstellt eine Objektinstanz pro Klasse im referenzierten Diagramm, mit Standardwerten für jedes Attribut.",
       "generate": "Generieren",
-      "noClassDiagramsAvailable": "Keine Klassendiagramme verfügbar"
+      "noClassDiagramsAvailable": "Keine Klassendiagramme verfügbar",
+      "semanticGeneration": "Semantische Generierung",
+      "semanticGenerationTooltip": "Erzeugt ein Objektdiagramm, das das Klassendiagramm instanziiert und dessen OCL-Beschränkungen erfüllt.",
+      "starting": "SAT-basierte Generierung wird gestartet…",
+      "noResult": "Das Backend hat kein Ergebnis geliefert.",
+      "unsatisfiable": "Das Modell ist unerfüllbar.",
+      "payloadMissing": "SAT-Instanz gefunden, aber die Nutzdaten des Objektdiagramms fehlen",
+      "success": "SAT-Instanz erfolgreich generiert.",
+      "failed": "Generierung der SAT-Instanz fehlgeschlagen"
     },
     "charts": {
       "loadingChart": "Diagramm wird geladen...",
@@ -2469,5 +2481,11 @@
       "dropHere": "Hier ablegen",
       "invalid": "Ungültig"
     }
+  },
+  "consistency": {
+    "noDiagram": "Kein Diagramm geladen.",
+    "starting": "Konsistenzprüfung wird gestartet…",
+    "issuesFound": "Gefundene Probleme:",
+    "unreachable": "Fehler bei der semantischen Prüfung – Backend nicht erreichbar."
   }
 }

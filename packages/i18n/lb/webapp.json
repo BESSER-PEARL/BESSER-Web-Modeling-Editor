@@ -21,20 +21,22 @@
     "baseAgentModel": "Basis-Agentmodell",
     "switchToLight": "Op helle Modus wiesselen",
     "switchToDark": "Op donkele Modus wiesselen",
-    "star": "Star",
+    "star": "Stär",
     "starBesser": "BESSER op GitHub mat engem Stär markéieren",
     "githubAccount": "GitHub-Kont: {{name}}",
     "signOut": "Ofmellen",
     "githubVersionControl": "GitHub-Versiounsverwaltung",
     "toggleGithubPanel": "GitHub-Versiounskontroll-Panel weisen/verstoppen",
-    "sync": "Sync",
+    "sync": "Synchroniséieren",
     "connectGithub": "GitHub verbannen",
     "quality": {
       "title": "Qualitéitscheck",
       "validated": "Validéiert",
       "issues": "Problemer",
       "needsRecheck": "Muss nei gepréift ginn",
-      "notValidated": "Net validéiert"
+      "notValidated": "Net validéiert",
+      "syntacticCheck": "Syntaktesch Prüfung",
+      "semanticCheck": "Semantesch Prüfung"
     }
   },
   "nav": {
@@ -64,7 +66,7 @@
       "title": "Datei",
       "projectActions": "Projetaktiounen",
       "newOpenImport": "Nei / Opmaachen / Projet importéieren",
-      "loadTemplate": "Template lueden",
+      "loadTemplate": "Virlag lueden",
       "exportProject": "Projet exportéieren",
       "importClassDiagramFrom": "Klassendiagramm importéieren vun",
       "imageToProject": "Bild zu Projet",
@@ -81,7 +83,8 @@
         "database": "Datebank",
         "oop": "OOP",
         "schema": "Schema",
-        "data": "Daten"
+        "data": "Daten",
+        "formalNotations": "Formal Notatiounen"
       },
       "actions": {
         "djangoProject": "Django-Projet",
@@ -93,7 +96,8 @@
         "besserAgent": "BESSER-Agent",
         "jsonObjectExport": "JSON-Objet-Export",
         "userProfileJson": "Benotzerprofil-JSON",
-        "qiskitCode": "Qiskit-Code"
+        "qiskitCode": "Qiskit-Code",
+        "alloySpecification": "Alloy-Spezifikatioun"
       },
       "notices": {
         "statemachine": "Zoustandsautomate ginn als Method-Implementatiounen an Klassendiagrammer benotzt. Generéiert de Code aus dem Klassendiagramm.",
@@ -861,7 +865,7 @@
     "templates": {
       "title": "Template lueden",
       "description": "Fänkt mat fäerdege UML-, Agent-, State-Machine-, Quantum-Templates oder Vollprojet-Bündel un.",
-      "loadTemplate": "Template lueden",
+      "loadTemplate": "Virlag lueden",
       "multiDiagramProject": "Multi-Diagramm-Projet",
       "unknownError": "Onbekannte Feeler",
       "categories": {
@@ -1800,7 +1804,15 @@
       "referenceEmpty": "De referenzéierten Klassendiagramm ass eidel (keng Klassen oder Bezéiungen).",
       "generateObjectsTooltip": "Erstellt eng Objet-Instanz pro Klass am referenzéierten Diagramm, mat Standardwäerter fir all Attribut.",
       "generate": "Generéieren",
-      "noClassDiagramsAvailable": "Keng Klassendiagrammer verfügbar"
+      "noClassDiagramsAvailable": "Keng Klassendiagrammer verfügbar",
+      "semanticGeneration": "Semantesch Generéierung",
+      "semanticGenerationTooltip": "Generéiert een Objetdiagramm, dat d’Klassendiagramm instanziéiert an seng OCL-Beschränkungen erfëllt.",
+      "starting": "SAT-baséiert Generéierung gëtt gestart…",
+      "noResult": "D’Backend huet keen Resultat geliwwert.",
+      "unsatisfiable": "D’Modell ass unerfëllbar.",
+      "payloadMissing": "SAT-Instanz fonnt, awer dem Objetdiagramm seng Donnéeën fehlen",
+      "success": "SAT-Instanz erfollegräich generéiert.",
+      "failed": "Generéierung vun der SAT-Instanz ass feelerschloen"
     },
     "charts": {
       "loadingChart": "Diagramm gëtt gelueden...",
@@ -2469,5 +2481,11 @@
       "dropHere": "Hei fale loossen",
       "invalid": "Ongülteg"
     }
+  },
+  "consistency": {
+    "noDiagram": "Keen Diagramm gelueden.",
+    "starting": "Konsistenzkontroll gëtt gestart…",
+    "issuesFound": "Problemer fonnt:",
+    "unreachable": "Feeler bei der semantescher Kontroll – Backend net erreechbar."
   }
 }
