@@ -17,6 +17,22 @@ import './styles.css';
 // Run localStorage schema migrations before anything else reads stored data
 runStorageMigrations();
 
+// Every deploy replaces the content-hashed lazy chunks, so a tab that stayed
+// open across a deploy fails its next dynamic import ("Failed to fetch
+// dynamically imported module") and surfaced an Editor Error. Vite emits
+// vite:preloadError for exactly this — reload ONCE to pick up the new build
+// (guarded per-session so a genuinely broken deploy can't reload-loop).
+window.addEventListener('vite:preloadError', (event) => {
+  try {
+    if (sessionStorage.getItem('besser_chunkReloaded') === '1') return;
+    sessionStorage.setItem('besser_chunkReloaded', '1');
+  } catch {
+    /* private mode — still reload once per page lifetime */
+  }
+  event.preventDefault();
+  window.location.reload();
+});
+
 // Defer Sentry + PostHog initialization until the browser is idle.
 // This removes ~40KB+ of synchronous JS from the critical render path.
 initLazyAnalytics({
