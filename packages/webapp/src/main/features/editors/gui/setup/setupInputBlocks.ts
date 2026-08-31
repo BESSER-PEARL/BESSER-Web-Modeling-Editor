@@ -1,4 +1,5 @@
 import type { Editor } from 'grapesjs';
+import { getClassOptions, getClassMetadata } from '../diagram-helpers';
 
 /**
  * Setup Input blocks for the GUI editor palette.
@@ -179,6 +180,12 @@ export function setupInputBlocks(editor: Editor): void {
     media: iconInput(`<rect x="3" y="4" width="18" height="16" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><line x1="7" y1="9" x2="17" y2="9" stroke="currentColor" stroke-width="1.5"/><line x1="7" y1="13" x2="17" y2="13" stroke="currentColor" stroke-width="1.5"/><rect x="8" y="16" width="8" height="2.5" rx="1" fill="currentColor"/>`),
   });
 
+  // Field dropdown options follow the parent form's bound class — refresh on
+  // every selection so late drops and class-diagram edits are reflected.
+  editor.on('component:selected', (component: any) => {
+    component?.__refreshFieldNameOptions?.();
+  });
+
   bm.add('gui-alert', {
     label: 'Alert',
     category: 'Inputs',
@@ -191,6 +198,53 @@ export function setupInputBlocks(editor: Editor): void {
 
 function iconInput(innerSvg: string): string {
   return `<svg viewBox="0 0 24 24" width="24" height="24">${innerSvg}</svg>`;
+}
+
+
+// ─── Field-name binding (attribute dropdown fed by the parent form) ──────────
+
+/**
+ * Turn a component's free-text `field-name` trait into a select of the parent
+ * form's bound-class attributes. Falls back to free text when the input is
+ * outside a form or the form has no bound class yet. Re-runs via
+ * `__refreshFieldNameOptions` on selection and on form-binding changes.
+ */
+function setupFieldNameBinding(model: any): void {
+  const refresh = () => {
+    try {
+      let parent = model.parent?.();
+      let classId = '';
+      while (parent) {
+        const attrs = parent.getAttributes?.() || {};
+        if (attrs['data-gui-type'] === 'Form') {
+          classId = parent.get?.('data-source') || attrs['data-source'] || '';
+          break;
+        }
+        parent = parent.parent?.();
+      }
+      const traits = model.get('traits');
+      const existing = traits?.where?.({ name: 'field-name' })?.[0];
+      if (!existing) return;
+      const meta = classId ? getClassMetadata(classId) : null;
+      const attributes = meta?.attributes || [];
+      if (!attributes.length) return;
+      const options = [
+        { value: '', label: '—' },
+        ...attributes.map((a: any) => ({ value: a.name, label: a.name })),
+      ];
+      const at = traits.indexOf(existing);
+      const value = model.get('field-name') || '';
+      traits.remove(existing);
+      traits.add(
+        { type: 'select', label: existing.get('label') || 'Field Name', name: 'field-name', options, value, changeProp: 1 },
+        { at },
+      );
+    } catch {
+      /* binding UI is best-effort — never break the editor over it */
+    }
+  };
+  (model as any).__refreshFieldNameOptions = refresh;
+  refresh();
 }
 
 // ─── Helper: store a trait value as an HTML data-attribute ───────────────────
@@ -256,18 +310,15 @@ function registerWrappedInputType(
         draggable: true,
         droppable: false,
         attributes: {
-          class: 'gui-input-field',
+          class: 'gui-input-field ds-field',
           'data-gui-type': htmlInputType,
           'data-gui-component': typeName,
-        },
-        style: {
-          'margin-bottom': '16px',
-          display: 'block',
         },
         traits: baseInputTraits(extraTraits),
         components: buildWrappedInputHtml(displayName, htmlInputType, ''),
       },
       init(this: any) {
+        setupFieldNameBinding(this);
         // Sync current values immediately (handles both fresh placement and load from saved JSON)
         storeAttr(this, 'data-label', this.get('input-label') || '');
         storeAttr(this, 'data-placeholder', this.get('placeholder') || '');
@@ -294,9 +345,8 @@ function registerWrappedInputType(
 
 function buildWrappedInputHtml(label: string, type: string, extraStyle: string): string {
   return `
-    <label style="display:block;margin-bottom:4px;font-size:13px;font-weight:600;color:#374151;">${label}</label>
-    <input type="${type}" placeholder="Enter ${label.toLowerCase()}"
-           style="width:100%;padding:8px 10px;border:1px solid #d1d5db;border-radius:6px;font-size:14px;color:#111827;background:#fff;box-sizing:border-box;${extraStyle}">
+    <label class="ds-label">${label}</label>
+    <input class="ds-input" type="${type}" placeholder="Enter ${label.toLowerCase()}" style="${extraStyle}">
   `;
 }
 
@@ -330,25 +380,25 @@ function registerSliderType(domc: any): void {
         draggable: true,
         droppable: false,
         attributes: {
-          class: 'gui-input-field gui-slider',
+          class: 'gui-input-field ds-field gui-slider',
           'data-gui-type': 'Slider',
         },
-        style: { 'margin-bottom': '16px', display: 'block' },
         traits: baseInputTraits([
           { type: 'number', label: 'Min', name: 'input-min', value: 0, changeProp: 1 },
           { type: 'number', label: 'Max', name: 'input-max', value: 100, changeProp: 1 },
           { type: 'number', label: 'Step', name: 'input-step', value: 1, changeProp: 1 },
         ]),
         components: `
-          <label style="display:block;margin-bottom:4px;font-size:13px;font-weight:600;color:#374151;">Slider</label>
+          <label class="ds-label">Slider</label>
           <input type="range" min="0" max="100" value="50"
-                 style="width:100%;accent-color:#6b47dc;cursor:pointer;">
-          <div style="display:flex;justify-content:space-between;font-size:11px;color:#6b7280;">
+                 style="width:100%;accent-color:var(--ds-primary, #2563eb);cursor:pointer;">
+          <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--ds-muted, #64748b);">
             <span>0</span><span>100</span>
           </div>
         `,
       },
       init(this: any) {
+        setupFieldNameBinding(this);
         storeAttr(this, 'data-label', this.get('input-label') || '');
         storeAttr(this, 'data-field-name', this.get('field-name') || '');
         storeAttr(this, 'data-required', this.get('required') ? 'true' : 'false');
@@ -376,22 +426,22 @@ function registerSpinnerType(domc: any): void {
         draggable: true,
         droppable: false,
         attributes: {
-          class: 'gui-input-field gui-spinner',
+          class: 'gui-input-field ds-field gui-spinner',
           'data-gui-type': 'Spinner',
         },
-        style: { 'margin-bottom': '16px', display: 'block' },
         traits: baseInputTraits([
           { type: 'number', label: 'Min', name: 'input-min', changeProp: 1 },
           { type: 'number', label: 'Max', name: 'input-max', changeProp: 1 },
           { type: 'number', label: 'Step', name: 'input-step', value: 1, changeProp: 1 },
         ]),
         components: `
-          <label style="display:block;margin-bottom:4px;font-size:13px;font-weight:600;color:#374151;">Spinner</label>
+          <label class="ds-label">Spinner</label>
           <input type="number" value="0" step="1"
-                 style="width:100%;padding:8px 10px;border:1px solid #d1d5db;border-radius:6px;font-size:14px;color:#111827;background:#fff;box-sizing:border-box;">
+                 class="ds-input">
         `,
       },
       init(this: any) {
+        setupFieldNameBinding(this);
         storeAttr(this, 'data-label', this.get('input-label') || '');
         storeAttr(this, 'data-placeholder', this.get('placeholder') || '');
         storeAttr(this, 'data-field-name', this.get('field-name') || '');
@@ -424,10 +474,9 @@ function registerDropdownType(domc: any): void {
         draggable: true,
         droppable: false,
         attributes: {
-          class: 'gui-input-field gui-dropdown',
+          class: 'gui-input-field ds-field gui-dropdown',
           'data-gui-type': 'Dropdown',
         },
-        style: { 'margin-bottom': '16px', display: 'block' },
         traits: baseInputTraits([
           {
             type: 'text',
@@ -438,8 +487,8 @@ function registerDropdownType(domc: any): void {
           },
         ]),
         components: `
-          <label style="display:block;margin-bottom:4px;font-size:13px;font-weight:600;color:#374151;">Dropdown</label>
-          <select style="width:100%;padding:8px 10px;border:1px solid #d1d5db;border-radius:6px;font-size:14px;color:#111827;background:#fff;box-sizing:border-box;cursor:pointer;">
+          <label class="ds-label">Dropdown</label>
+          <select class="ds-input" style="cursor:pointer;">
             <option value="">Select an option...</option>
             <option value="option1">Option 1</option>
             <option value="option2">Option 2</option>
@@ -447,6 +496,7 @@ function registerDropdownType(domc: any): void {
         `,
       },
       init(this: any) {
+        setupFieldNameBinding(this);
         storeAttr(this, 'data-label', this.get('input-label') || '');
         storeAttr(this, 'data-placeholder', this.get('placeholder') || '');
         storeAttr(this, 'data-field-name', this.get('field-name') || '');
@@ -475,10 +525,9 @@ function registerToggleType(domc: any): void {
         draggable: true,
         droppable: false,
         attributes: {
-          class: 'gui-input-field gui-toggle',
+          class: 'gui-input-field ds-field gui-toggle',
           'data-gui-type': 'Toggle',
         },
-        style: { 'margin-bottom': '16px', display: 'block' },
         traits: [
           { type: 'text', label: 'Label', name: 'input-label', placeholder: 'Enable feature', changeProp: 1 },
           { type: 'text', label: 'Field Name', name: 'field-name', placeholder: 'e.g. isActive', changeProp: 1 },
@@ -487,14 +536,15 @@ function registerToggleType(domc: any): void {
         components: `
           <div style="display:flex;align-items:center;gap:12px;">
             <div style="position:relative;width:44px;height:24px;flex-shrink:0;">
-              <div style="position:absolute;inset:0;background:#6b47dc;border-radius:12px;"></div>
+              <div style="position:absolute;inset:0;background:var(--ds-primary, #2563eb);border-radius:12px;"></div>
               <div style="position:absolute;top:2px;right:2px;width:20px;height:20px;background:#fff;border-radius:50%;box-shadow:0 1px 3px rgba(0,0,0,0.2);"></div>
             </div>
-            <label style="font-size:13px;font-weight:600;color:#374151;cursor:pointer;">Toggle</label>
+            <label style="font-size:13px;font-weight:600;color:var(--ds-text, #0f172a);cursor:pointer;">Toggle</label>
           </div>
         `,
       },
       init(this: any) {
+        setupFieldNameBinding(this);
         storeAttr(this, 'data-label', this.get('input-label') || '');
         storeAttr(this, 'data-field-name', this.get('field-name') || '');
         storeAttr(this, 'data-default-checked', this.get('default-checked') ? 'true' : 'false');
@@ -516,10 +566,9 @@ function registerCheckboxType(domc: any): void {
         draggable: true,
         droppable: false,
         attributes: {
-          class: 'gui-input-field gui-checkbox',
+          class: 'gui-input-field ds-field gui-checkbox',
           'data-gui-type': 'Checkbox',
         },
-        style: { 'margin-bottom': '16px', display: 'block' },
         traits: [
           { type: 'text', label: 'Label', name: 'input-label', placeholder: 'Accept terms', changeProp: 1 },
           { type: 'text', label: 'Field Name', name: 'field-name', placeholder: 'e.g. accepted', changeProp: 1 },
@@ -527,12 +576,13 @@ function registerCheckboxType(domc: any): void {
         ],
         components: `
           <div style="display:flex;align-items:center;gap:8px;">
-            <input type="checkbox" style="width:16px;height:16px;accent-color:#6b47dc;cursor:pointer;">
-            <label style="font-size:13px;font-weight:600;color:#374151;cursor:pointer;">Checkbox</label>
+            <input type="checkbox" style="width:16px;height:16px;accent-color:var(--ds-primary, #2563eb);cursor:pointer;">
+            <label style="font-size:13px;font-weight:600;color:var(--ds-text, #0f172a);cursor:pointer;">Checkbox</label>
           </div>
         `,
       },
       init(this: any) {
+        setupFieldNameBinding(this);
         storeAttr(this, 'data-label', this.get('input-label') || '');
         storeAttr(this, 'data-field-name', this.get('field-name') || '');
         storeAttr(this, 'data-required', this.get('required') ? 'true' : 'false');
@@ -554,10 +604,9 @@ function registerRadioGroupType(domc: any): void {
         draggable: true,
         droppable: false,
         attributes: {
-          class: 'gui-input-field gui-radio-group',
+          class: 'gui-input-field ds-field gui-radio-group',
           'data-gui-type': 'RadioGroup',
         },
-        style: { 'margin-bottom': '16px', display: 'block' },
         traits: [
           { type: 'text', label: 'Label', name: 'input-label', placeholder: 'Group label', changeProp: 1 },
           { type: 'text', label: 'Field Name', name: 'field-name', placeholder: 'e.g. gender', changeProp: 1 },
@@ -571,18 +620,19 @@ function registerRadioGroupType(domc: any): void {
           { type: 'checkbox', label: 'Required', name: 'required', changeProp: 1 },
         ],
         components: `
-          <label style="display:block;margin-bottom:6px;font-size:13px;font-weight:600;color:#374151;">Radio Group</label>
+          <label class="ds-label">Radio Group</label>
           <div style="display:flex;flex-direction:column;gap:6px;">
-            <label style="display:flex;align-items:center;gap:8px;font-size:13px;color:#374151;cursor:pointer;">
-              <input type="radio" name="radio-group" style="width:14px;height:14px;accent-color:#6b47dc;"> Option 1
+            <label style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--ds-text, #0f172a);cursor:pointer;">
+              <input type="radio" name="radio-group" style="width:14px;height:14px;accent-color:var(--ds-primary, #2563eb);"> Option 1
             </label>
-            <label style="display:flex;align-items:center;gap:8px;font-size:13px;color:#374151;cursor:pointer;">
-              <input type="radio" name="radio-group" style="width:14px;height:14px;accent-color:#6b47dc;"> Option 2
+            <label style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--ds-text, #0f172a);cursor:pointer;">
+              <input type="radio" name="radio-group" style="width:14px;height:14px;accent-color:var(--ds-primary, #2563eb);"> Option 2
             </label>
           </div>
         `,
       },
       init(this: any) {
+        setupFieldNameBinding(this);
         storeAttr(this, 'data-label', this.get('input-label') || '');
         storeAttr(this, 'data-field-name', this.get('field-name') || '');
         storeAttr(this, 'data-required', this.get('required') ? 'true' : 'false');
@@ -606,10 +656,9 @@ function registerCheckboxGroupType(domc: any): void {
         draggable: true,
         droppable: false,
         attributes: {
-          class: 'gui-input-field gui-checkbox-group',
+          class: 'gui-input-field ds-field gui-checkbox-group',
           'data-gui-type': 'CheckboxGroup',
         },
-        style: { 'margin-bottom': '16px', display: 'block' },
         traits: [
           { type: 'text', label: 'Label', name: 'input-label', placeholder: 'Group label', changeProp: 1 },
           { type: 'text', label: 'Field Name', name: 'field-name', placeholder: 'e.g. interests', changeProp: 1 },
@@ -622,18 +671,19 @@ function registerCheckboxGroupType(domc: any): void {
           },
         ],
         components: `
-          <label style="display:block;margin-bottom:6px;font-size:13px;font-weight:600;color:#374151;">Checkbox Group</label>
+          <label class="ds-label">Checkbox Group</label>
           <div style="display:flex;flex-direction:column;gap:6px;">
-            <label style="display:flex;align-items:center;gap:8px;font-size:13px;color:#374151;cursor:pointer;">
-              <input type="checkbox" style="width:14px;height:14px;accent-color:#6b47dc;"> Option 1
+            <label style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--ds-text, #0f172a);cursor:pointer;">
+              <input type="checkbox" style="width:14px;height:14px;accent-color:var(--ds-primary, #2563eb);"> Option 1
             </label>
-            <label style="display:flex;align-items:center;gap:8px;font-size:13px;color:#374151;cursor:pointer;">
-              <input type="checkbox" style="width:14px;height:14px;accent-color:#6b47dc;" checked> Option 2
+            <label style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--ds-text, #0f172a);cursor:pointer;">
+              <input type="checkbox" style="width:14px;height:14px;accent-color:var(--ds-primary, #2563eb);" checked> Option 2
             </label>
           </div>
         `,
       },
       init(this: any) {
+        setupFieldNameBinding(this);
         storeAttr(this, 'data-label', this.get('input-label') || '');
         storeAttr(this, 'data-field-name', this.get('field-name') || '');
         storeAttr(this, 'data-options', this.get('select-options') || '');
@@ -655,10 +705,9 @@ function registerMultiSelectType(domc: any): void {
         draggable: true,
         droppable: false,
         attributes: {
-          class: 'gui-input-field gui-multi-select',
+          class: 'gui-input-field ds-field gui-multi-select',
           'data-gui-type': 'MultiSelect',
         },
-        style: { 'margin-bottom': '16px', display: 'block' },
         traits: baseInputTraits([
           {
             type: 'text',
@@ -669,8 +718,8 @@ function registerMultiSelectType(domc: any): void {
           },
         ]),
         components: `
-          <label style="display:block;margin-bottom:4px;font-size:13px;font-weight:600;color:#374151;">Multi-Select</label>
-          <select multiple style="width:100%;padding:8px 10px;border:1px solid #d1d5db;border-radius:6px;font-size:14px;color:#111827;background:#fff;box-sizing:border-box;min-height:80px;">
+          <label class="ds-label">Multi-Select</label>
+          <select multiple class="ds-input" style="min-height:80px;">
             <option value="option1">Option 1</option>
             <option value="option2">Option 2</option>
             <option value="option3">Option 3</option>
@@ -678,6 +727,7 @@ function registerMultiSelectType(domc: any): void {
         `,
       },
       init(this: any) {
+        setupFieldNameBinding(this);
         storeAttr(this, 'data-label', this.get('input-label') || '');
         storeAttr(this, 'data-placeholder', this.get('placeholder') || '');
         storeAttr(this, 'data-field-name', this.get('field-name') || '');
@@ -706,10 +756,9 @@ function registerTextareaType(domc: any): void {
         draggable: true,
         droppable: false,
         attributes: {
-          class: 'gui-input-field gui-textarea',
+          class: 'gui-input-field ds-field gui-textarea',
           'data-gui-type': 'TextArea',
         },
-        style: { 'margin-bottom': '16px', display: 'block' },
         traits: [
           { type: 'text', label: 'Label', name: 'input-label', placeholder: 'Field label', changeProp: 1 },
           { type: 'text', label: 'Field Name', name: 'field-name', placeholder: 'e.g. description', changeProp: 1 },
@@ -719,12 +768,13 @@ function registerTextareaType(domc: any): void {
           { type: 'checkbox', label: 'Required', name: 'required', changeProp: 1 },
         ],
         components: `
-          <label style="display:block;margin-bottom:4px;font-size:13px;font-weight:600;color:#374151;">Text Area</label>
+          <label class="ds-label">Text Area</label>
           <textarea rows="4" placeholder="Enter text here..."
-                    style="width:100%;padding:8px 10px;border:1px solid #d1d5db;border-radius:6px;font-size:14px;color:#111827;background:#fff;box-sizing:border-box;resize:vertical;"></textarea>
+                    class="ds-input" style="resize:vertical;"></textarea>
         `,
       },
       init(this: any) {
+        setupFieldNameBinding(this);
         storeAttr(this, 'data-label', this.get('input-label') || '');
         storeAttr(this, 'data-placeholder', this.get('placeholder') || '');
         storeAttr(this, 'data-field-name', this.get('field-name') || '');
@@ -755,23 +805,23 @@ function registerRatingType(domc: any): void {
         draggable: true,
         droppable: false,
         attributes: {
-          class: 'gui-input-field gui-rating',
+          class: 'gui-input-field ds-field gui-rating',
           'data-gui-type': 'Rating',
         },
-        style: { 'margin-bottom': '16px', display: 'block' },
         traits: [
           { type: 'text', label: 'Label', name: 'input-label', placeholder: 'Rating', changeProp: 1 },
           { type: 'text', label: 'Field Name', name: 'field-name', placeholder: 'e.g. score', changeProp: 1 },
           { type: 'number', label: 'Max Stars', name: 'max-stars', value: 5, changeProp: 1 },
         ],
         components: `
-          <label style="display:block;margin-bottom:6px;font-size:13px;font-weight:600;color:#374151;">Rating</label>
+          <label class="ds-label">Rating</label>
           <div style="display:flex;gap:4px;font-size:24px;color:#f59e0b;cursor:pointer;">
-            <span>★</span><span>★</span><span>★</span><span style="color:#d1d5db;">★</span><span style="color:#d1d5db;">★</span>
+            <span>★</span><span>★</span><span>★</span><span style="color:var(--ds-border, #e2e8f0);">★</span><span style="color:var(--ds-border, #e2e8f0);">★</span>
           </div>
         `,
       },
       init(this: any) {
+        setupFieldNameBinding(this);
         storeAttr(this, 'data-label', this.get('input-label') || '');
         storeAttr(this, 'data-field-name', this.get('field-name') || '');
         storeAttr(this, 'data-max-stars', String(this.get('max-stars') ?? 5));
@@ -793,24 +843,24 @@ function registerColorPickerType(domc: any): void {
         draggable: true,
         droppable: false,
         attributes: {
-          class: 'gui-input-field gui-color-picker',
+          class: 'gui-input-field ds-field gui-color-picker',
           'data-gui-type': 'Color',
         },
-        style: { 'margin-bottom': '16px', display: 'block' },
         traits: [
           { type: 'text', label: 'Label', name: 'input-label', placeholder: 'Pick color', changeProp: 1 },
           { type: 'text', label: 'Field Name', name: 'field-name', placeholder: 'e.g. themeColor', changeProp: 1 },
         ],
         components: `
-          <label style="display:block;margin-bottom:4px;font-size:13px;font-weight:600;color:#374151;">Color Picker</label>
+          <label class="ds-label">Color Picker</label>
           <div style="display:flex;align-items:center;gap:10px;">
             <input type="color" value="#6b47dc"
-                   style="width:44px;height:36px;border:1px solid #d1d5db;border-radius:6px;cursor:pointer;padding:2px;">
-            <span style="font-size:13px;color:#6b7280;">#6b47dc</span>
+                   style="width:44px;height:36px;border:1px solid var(--ds-border, #e2e8f0);border-radius:6px;cursor:pointer;padding:2px;">
+            <span style="font-size:13px;color:var(--ds-muted, #64748b);">#6b47dc</span>
           </div>
         `,
       },
       init(this: any) {
+        setupFieldNameBinding(this);
         storeAttr(this, 'data-label', this.get('input-label') || '');
         storeAttr(this, 'data-field-name', this.get('field-name') || '');
         this.on('change:input-label', () => updateLabel(this));
@@ -830,10 +880,9 @@ function registerFileUploadType(domc: any): void {
         draggable: true,
         droppable: false,
         attributes: {
-          class: 'gui-input-field gui-file-upload',
+          class: 'gui-input-field ds-field gui-file-upload',
           'data-gui-type': 'File',
         },
-        style: { 'margin-bottom': '16px', display: 'block' },
         traits: [
           { type: 'text', label: 'Label', name: 'input-label', placeholder: 'Upload file', changeProp: 1 },
           { type: 'text', label: 'Field Name', name: 'field-name', placeholder: 'e.g. attachment', changeProp: 1 },
@@ -841,14 +890,15 @@ function registerFileUploadType(domc: any): void {
           { type: 'checkbox', label: 'Multiple Files', name: 'multiple-files', changeProp: 1 },
         ],
         components: `
-          <label style="display:block;margin-bottom:4px;font-size:13px;font-weight:600;color:#374151;">File Upload</label>
-          <div style="border:2px dashed #d1d5db;border-radius:8px;padding:20px;text-align:center;background:#f9fafb;cursor:pointer;">
+          <label class="ds-label">File Upload</label>
+          <div style="border:2px dashed var(--ds-border, #e2e8f0);border-radius:8px;padding:20px;text-align:center;background:var(--ds-background, #f8fafc);cursor:pointer;">
             <div style="font-size:28px;color:#9ca3af;margin-bottom:6px;">📁</div>
-            <div style="font-size:13px;color:#6b7280;">Click to upload or drag & drop</div>
+            <div style="font-size:13px;color:var(--ds-muted, #64748b);">Click to upload or drag & drop</div>
           </div>
         `,
       },
       init(this: any) {
+        setupFieldNameBinding(this);
         storeAttr(this, 'data-label', this.get('input-label') || '');
         storeAttr(this, 'data-field-name', this.get('field-name') || '');
         storeAttr(this, 'data-accept', this.get('accept-types') || '');
@@ -872,18 +922,21 @@ function registerGuiFormType(domc: any): void {
         draggable: true,
         droppable: true,
         attributes: {
-          class: 'gui-form',
+          class: 'gui-form ds-card',
           'data-gui-type': 'Form',
           method: 'POST',
         },
         style: {
-          padding: '24px',
-          border: '1px solid #e5e7eb',
-          'border-radius': '8px',
-          'background-color': '#fff',
           'min-height': '120px',
         },
         traits: [
+          {
+            type: 'select',
+            label: 'Bound class',
+            name: 'data-source',
+            options: [],
+            changeProp: 1,
+          },
           { type: 'text', label: 'Form Name', name: 'form-name', placeholder: 'e.g. createUser', changeProp: 1 },
           {
             type: 'select',
@@ -912,12 +965,29 @@ function registerGuiFormType(domc: any): void {
           },
         ],
         components: `
-          <div style="font-size:12px;color:#9ca3af;text-align:center;padding:10px;border:2px dashed #e5e7eb;border-radius:6px;">
+          <div style="font-size:12px;color:#9ca3af;text-align:center;padding:10px;border:2px dashed var(--ds-border, #e2e8f0);border-radius:6px;">
             Drag input fields here
           </div>
         `,
       },
       init(this: any) {
+        const dsTrait = this.get('traits')?.where?.({ name: 'data-source' })?.[0];
+        if (dsTrait) dsTrait.set('options', [{ value: '', label: '—' }, ...getClassOptions()]);
+        const storedClass = this.getAttributes()['data-source'];
+        if (storedClass && !this.get('data-source')) {
+          this.set('data-source', storedClass, { silent: true });
+        }
+        this.on('change:data-source', () => {
+          const attrs = { ...this.getAttributes() };
+          attrs['data-source'] = this.get('data-source') || '';
+          this.setAttributes(attrs);
+          const walk = (comp: any) =>
+            comp.components?.()?.forEach((c: any) => {
+              c.__refreshFieldNameOptions?.();
+              walk(c);
+            });
+          walk(this);
+        });
         this.on('change:form-method', () => {
           const attrs = { ...this.getAttributes() };
           attrs.method = this.get('form-method') || 'POST';
@@ -973,11 +1043,10 @@ function registerAlertType(domc: any): void {
         draggable: true,
         droppable: false,
         attributes: {
-          class: 'gui-alert',
+          class: 'gui-alert ds-field',
           'data-gui-type': 'Alert',
           'data-severity': 'Info',
         },
-        style: { 'margin-bottom': '16px', display: 'block' },
         'alert-severity': 'Info',
         'alert-title': '',
         'alert-content': 'This is an informational message.',

@@ -1040,12 +1040,52 @@ function setupPageCommands(editor: Editor) {
       const name = prompt('Enter page name:');
       if (!name?.trim() || !editor.Pages) return;
 
-      const id = name.toLowerCase().replace(/\s+/g, '-') + '-' + Date.now();
-      const page = editor.Pages.add({ id, name: name.trim() });
-      if (page) {
-        editor.Pages.select(page);
-        updatePagesList(editor);
+      const trimmed = name.trim();
+      const safeName = trimmed.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+      const slug = trimmed.toLowerCase().replace(/\s+/g, '-');
+      const id = slug + '-' + Date.now();
+      const source = editor.Pages.getSelected();
+      const page = editor.Pages.add({ id, name: trimmed });
+      if (!page) return;
+      (page as any).set?.('route_path', '/' + slug);
+
+      // A new page should belong to the app, not open as a blank white
+      // canvas: carry over the current page's shell (nav/footer bands and
+      // wrapper classes) and seed an on-theme starter section between them.
+      try {
+        const srcRoot: any = (source as any)?.getMainComponent?.();
+        const destRoot: any = (page as any).getMainComponent?.();
+        if (destRoot) {
+          const bandKind = (comp: any): 'nav' | 'footer' | null => {
+            const classes: string[] = comp.getClasses?.() || [];
+            const tag = String(comp.get?.('tagName') || '').toLowerCase();
+            if (classes.includes('ds-nav') || classes.includes('assistant-nav-header') || tag === 'nav') return 'nav';
+            if (classes.includes('ds-footer') || classes.includes('assistant-footer') || tag === 'footer') return 'footer';
+            return null;
+          };
+          let navHtml = '';
+          let footerHtml = '';
+          if (srcRoot) {
+            (srcRoot.getClasses?.() || []).forEach((cls: string) => destRoot.addClass?.(cls));
+            srcRoot.components?.()?.forEach((comp: any) => {
+              const kind = bandKind(comp);
+              if (kind === 'nav' && !navHtml) navHtml = comp.toHTML();
+              if (kind === 'footer' && !footerHtml) footerHtml = comp.toHTML();
+            });
+          }
+          const starter =
+            '<section class="ds-section"><div class="ds-container">' +
+            `<h2 class="ds-heading">${safeName}</h2>` +
+            '<p>Start building this page.</p>' +
+            '</div></section>';
+          destRoot.append(navHtml + starter + footerHtml);
+        }
+      } catch (cloneError) {
+        console.warn('[Pages] Could not clone the app shell into the new page:', cloneError);
       }
+
+      editor.Pages.select(page);
+      updatePagesList(editor);
     }
   });
 

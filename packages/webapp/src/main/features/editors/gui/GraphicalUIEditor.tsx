@@ -1,5 +1,6 @@
 ﻿import React, { useEffect, useRef, useState } from 'react';
 import type { Editor } from 'grapesjs';
+import { AlertTriangle, Check, Loader2 } from 'lucide-react';
 import './grapesjs-styles.css';
 import { getClassOptions, getEndsByClassId, getClassMetadata, getMethodsByClassId } from './diagram-helpers';
 import { getChartConfigs } from './configs/chartConfigs';
@@ -11,10 +12,10 @@ import { registerTableComponent } from './component-registrars/registerTableComp
 import { registerMetricCardComponent } from './component-registrars/registerMetricCardComponent';
 import { registerMapComponent } from './component-registrars/registerMapComponent';
 import { registerButtonComponent } from './component-registrars/registerButtonComponent';
-import { registerFormComponents } from './component-registrars/registerFormComponents';
 import { registerLayoutComponents } from './component-registrars/registerLayoutComponents';
 import { registerAgentComponent } from './component-registrars/registerAgentComponent';
 import { setupPageSystem, loadDefaultPages } from './setup/setupPageSystem';
+import { ensureDesignSystemStyles } from './designSystem';
 import { setupLayoutBlocks } from './setup/setupLayoutBlocks';
 import { setupInputBlocks } from './setup/setupInputBlocks';
 import registerColumnsManagerTrait from './traits/registerColumnsManagerTrait';
@@ -66,6 +67,7 @@ export const GraphicalUIEditor: React.FC = () => {
   const editorRef = useRef<Editor | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [saveStatus, setSaveStatus] = useState<'saved' | 'saving' | 'error'>('saved');
+  const [lastSavedAt, setLastSavedAt] = useState<Date | null>(null);
   const saveIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   // Track the active language so a switch remounts the editor (see the init
@@ -171,6 +173,15 @@ export const GraphicalUIEditor: React.FC = () => {
           // Load the new project data into the live editor
           editor.loadProjectData(model);
 
+          // The undo stack now spans two unrelated documents — Ctrl+Z would
+          // walk back into a mix of the old and new pages. Programmatic loads
+          // are a fresh baseline, not an edit: clear the history.
+          editor.UndoManager?.clear?.();
+
+          // Older agent models may predate the ds-* stylesheet — make sure
+          // the design system exists so palette blocks stay on-theme.
+          ensureDesignSystemStyles(editor);
+
           // Persist to ProjectStorageRepository (Redux sync happens
           // automatically via useStorageSync listening to notifyChange)
           const project = ProjectStorageRepository.getCurrentProject();
@@ -256,17 +267,14 @@ export const GraphicalUIEditor: React.FC = () => {
       // Register all custom components
       registerCustomComponents(editor);
 
-      // Handle editor load event
-      editor.on('load', () => {
-        // console.log('[GraphicalUIEditor] Editor ready, loading stored data');
-        editor.StorageManager.load((data: unknown) => {
-          if (data && Object.keys(data as Record<string, unknown>).length > 0) {
-            console.log('[GraphicalUIEditor] Stored data loaded successfully');
-          } else {
-            console.log('[GraphicalUIEditor] No stored data found, using defaults');
-          }
-        });
-      });
+      // Stored data is loaded by the StorageManager itself (autoload: true in
+      // the init config) — no manual re-load here: a second load re-imported
+      // the project on top of the already-loaded document.
+
+      // Blank/manual projects get the baseline ds-* stylesheet so palette
+      // blocks render in the same design language as agent-generated pages.
+      // (Agent projects already carry their own themed ds-* rules — no-op.)
+      editor.on('load', () => ensureDesignSystemStyles(editor));
 
       // Store cleanup so the synchronous teardown can call it
       cleanupFn = () => {
@@ -345,8 +353,51 @@ export const GraphicalUIEditor: React.FC = () => {
     // GrapesJS registrar/config re-runs in the new language (see the `lang` state above).
   }, [lang]);
 
+  // Stamp the "Saved · hh:mm" time whenever a save round-trip completes.
+  useEffect(() => {
+    if (saveStatus === 'saved') {
+      setLastSavedAt(new Date());
+    }
+  }, [saveStatus]);
+
   return (
-    <div ref={containerRef} id="gjs"></div>
+    <div className="relative h-full min-h-0">
+      <div ref={containerRef} id="gjs"></div>
+      {/* Save-status badge — the only user-visible confirmation that edits
+          persist. Driven by the storage listeners above; pointer-events-none
+          so it never blocks canvas interaction. */}
+      <div
+        aria-live="polite"
+        className="pointer-events-none absolute bottom-3 right-3 z-20 flex items-center gap-1.5 rounded-full border border-border/60 bg-background/90 px-2.5 py-1 text-[11px] font-medium shadow-sm backdrop-blur-sm"
+      >
+        {saveStatus === 'saving' && (
+          <>
+            <Loader2 className="size-3 animate-spin text-brand" />
+            <span className="text-muted-foreground">{i18n.t('editors.gui.statusSaving')}</span>
+          </>
+        )}
+        {saveStatus === 'saved' && (
+          <>
+            <Check className="size-3 text-emerald-600 dark:text-emerald-400" />
+            <span className="text-muted-foreground">
+              {i18n.t('editors.gui.statusSaved')}
+              {lastSavedAt && (
+                <span className="font-mono text-[10px] text-muted-foreground/70">
+                  {' · '}
+                  {lastSavedAt.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })}
+                </span>
+              )}
+            </span>
+          </>
+        )}
+        {saveStatus === 'error' && (
+          <>
+            <AlertTriangle className="size-3 text-destructive" />
+            <span className="text-destructive">{i18n.t('editors.gui.statusErrorSaving')}</span>
+          </>
+        )}
+      </div>
+    </div>
   );
 };
 
@@ -399,6 +450,14 @@ async function initializeEditor(container: HTMLDivElement): Promise<Editor> {
     width: 'auto',
     fromElement: false,
     components: '', // Empty initially - pages will load default content
+
+    // Load the design typefaces (Inter + Fraunces, shipped same-origin in
+    // /public/fonts) into the canvas iframe — the CSP blocks external font
+    // hosts, so real typography has to come from our own origin. The agent's
+    // design-system tokens reference these families.
+    canvas: {
+      styles: ['/fonts/design-fonts.css'],
+    },
 
     // Translate GrapesJS's built-in UI chrome. `en` is the default; `lb` uses our
     // own pack (`grapesjsLocaleLb`) since GrapesJS ships none.
@@ -523,7 +582,6 @@ function setupEditorFeatures(
   setupCustomTraits(editor);
   setupLayoutBlocks(editor);
   setupInputBlocks(editor);
-  // enableAbsolutePositioning(editor);
   
   // Return cleanup function
   return cleanupStorage;
@@ -549,7 +607,6 @@ function registerCustomComponents(editor: Editor) {
   // Register other components
   registerMapComponent(editor, getMapConfig());
   registerButtonComponent(editor);
-  // registerFormComponents(editor); // Commented out - forms removed for now
   registerLayoutComponents(editor);
   registerAgentComponent(editor);
   
@@ -710,7 +767,6 @@ function setupProjectStorageIntegration(
         if (updated) {
           // Redux sync happens automatically via useStorageSync
           setSaveStatus('saved');
-          setTimeout(() => updateSaveStatusUI(editor, 'saved'), 100);
         } else {
           console.error('[Storage] Failed to save data');
           setSaveStatus('error');
@@ -725,17 +781,14 @@ function setupProjectStorageIntegration(
   // Listen to storage events
   editor.on('storage:start', () => {
     setSaveStatus('saving');
-    updateSaveStatusUI(editor, 'saving');
   });
   
   editor.on('storage:end', () => {
     setSaveStatus('saved');
-    updateSaveStatusUI(editor, 'saved');
   });
   
   editor.on('storage:error', () => {
     setSaveStatus('error');
-    updateSaveStatusUI(editor, 'error');
   });
   
   // Wait for editor to be fully loaded before setting up auto-save
@@ -835,30 +888,6 @@ function setupProjectStorageIntegration(
   };
 }
 
-/**
- * Update save status UI indicator
- */
-function updateSaveStatusUI(editor: Editor, status: 'saved' | 'saving' | 'error') {
-  const statusEl = document.getElementById('save-status-indicator');
-  if (!statusEl) return;
-  
-  const config = {
-    saved: { icon: '✓', message: i18n.t('editors.gui.statusSaved'), color: '#27ae60' },
-    saving: { icon: '⟳', message: i18n.t('editors.gui.statusSaving'), color: '#3498db' },
-    error: { icon: '⚠', message: i18n.t('editors.gui.statusErrorSaving'), color: '#e74c3c' }
-  };
-  
-  const { icon, message, color } = config[status];
-  const spinAnimation = status === 'saving' ? 'animation: spin 1s linear infinite;' : '';
-  
-  statusEl.innerHTML = `
-    <span style="color: ${color}; display: flex; align-items: center; gap: 6px;">
-      <span style="font-size: 16px; ${spinAnimation}">${icon}</span>
-      <span style="font-size: 12px; font-weight: 500;">${message}</span>
-    </span>
-  `;
-}
-
 // ============================================
 // COMMANDS
 // ============================================
@@ -946,21 +975,6 @@ function setupCommands(editor: Editor) {
     },
   });
   
-  // // Preview mode with filtering
-  // editor.Commands.add('preview-mode', {
-  //   run(editor: Editor) {
-  //     setTimeout(() => filterPreviewContent(editor), 100);
-  //     editor.runCommand('preview');
-  //   },
-  //   stop(editor: Editor) {
-  //     editor.stopCommand('preview');
-  //     restorePreviewContent(editor);
-  //   },
-  // });
-  
-//   // Filter preview on default preview command
-//   editor.on('run:preview', () => setTimeout(() => filterPreviewContent(editor), 100));
-//   editor.on('stop:preview', () => restorePreviewContent(editor));
 }
 
 /**
@@ -1340,8 +1354,12 @@ async function autoGenerateGUIFromClassDiagram(editor: Editor) {
     
     await new Promise(resolve => setTimeout(resolve, 120));
     editor.store();
+
+    // Auto-generate replaced every page: the undo history behind it mixes
+    // the old and new documents. Reset it so Ctrl+Z can't corrupt the result.
+    editor.UndoManager?.clear?.();
   };
-  
+
   // Execute the async page processing
   return processPages();
   
@@ -1863,42 +1881,73 @@ function resolveSidebarButtonLabel(
  */
 function setupDataBindingTraits(editor: Editor) {
   const dataBindableTypes = ['text', 'input', 'select', 'textarea', 'default', 'list', 'data-list', 'table'];
-  
-  // Add data binding traits to components
+
+  // Bindings are picked from the class diagram, never typed by hand: the
+  // class dropdown lists the referenced diagram's classes, and the two field
+  // dropdowns list the chosen class's attributes. Options are rebuilt on
+  // every selection so they track class-diagram changes.
+  const fieldOptions = (classId: string) => {
+    const meta = classId ? getClassMetadata(classId) : null;
+    const attrs = (meta?.attributes || []).map((a: any) => ({ value: a.name, label: a.name }));
+    return [{ value: '', label: '—' }, ...attrs];
+  };
+
+  const currentValue = (component: any, name: string) =>
+    component.get(name) ?? component.getAttributes()[name] ?? '';
+
+  const rebuildBindingTraits = (component: any) => {
+    const traits = component.get('traits');
+    const classId = currentValue(component, 'data-source');
+    const defs = [
+      {
+        type: 'select',
+        label: i18n.t('editors.gui.traitDataSource'),
+        name: 'data-source',
+        options: [{ value: '', label: '—' }, ...getClassOptions()],
+        changeProp: 1,
+      },
+      {
+        type: 'select',
+        label: i18n.t('editors.gui.traitDisplayField'),
+        name: 'label-field',
+        options: fieldOptions(classId),
+        changeProp: 1,
+      },
+      {
+        type: 'select',
+        label: i18n.t('editors.gui.traitValueField'),
+        name: 'value-field',
+        options: fieldOptions(classId),
+        changeProp: 1,
+      },
+    ];
+    defs.forEach((def) => {
+      const existing = traits.where({ name: def.name })[0];
+      if (existing) traits.remove(existing);
+      traits.add({ ...def, value: currentValue(component, def.name) });
+    });
+  };
+
   editor.on('component:selected', (component: any) => {
     if (!component) return;
-    
+
     const compType = component.get('type');
     if (!dataBindableTypes.includes(compType) && component.get('tagName') !== 'input') return;
-    
-    const traits = component.get('traits');
-    const hasDataSource = traits.where({ name: 'data-source' }).length > 0;
-    
-    if (!hasDataSource) {
-      traits.add([
-        {
-          type: 'text',
-          label: i18n.t('editors.gui.traitDataSource'),
-          name: 'data-source',
-          placeholder: i18n.t('editors.gui.traitDataSourcePlaceholder'),
-          changeProp: 1,
-        },
-        {
-          type: 'text',
-          label: i18n.t('editors.gui.traitDisplayField'),
-          name: 'label-field',
-          placeholder: i18n.t('editors.gui.traitDisplayFieldPlaceholder'),
-          changeProp: 1,
-        },
-        {
-          type: 'text',
-          label: i18n.t('editors.gui.traitValueField'),
-          name: 'value-field',
-          placeholder: i18n.t('editors.gui.traitValueFieldPlaceholder'),
-          changeProp: 1,
-        }
-      ]);
-      console.log('[Data Binding] Added traits to:', compType);
+
+    rebuildBindingTraits(component);
+
+    if (!component.__dsBindingWired) {
+      component.__dsBindingWired = true;
+      // Mirror binding values into HTML attributes (what the generator
+      // reads) and refresh the field dropdowns when the class changes.
+      ['data-source', 'label-field', 'value-field'].forEach((name) => {
+        component.on(`change:${name}`, () => {
+          const attrs = { ...component.getAttributes() };
+          attrs[name] = component.get(name) || '';
+          component.setAttributes(attrs);
+        });
+      });
+      component.on('change:data-source', () => rebuildBindingTraits(component));
     }
   });
   
@@ -1923,199 +1972,4 @@ function setupCustomTraits(editor: Editor) {
   registerColumnsManagerTrait(editor);
   
   // console.log('[Custom Traits] Registered columns-manager trait');
-}
-
-// ============================================
-// ABSOLUTE POSITIONING
-// ============================================
-
-/**
- * Enable absolute positioning with free dragging
- */
-/**
- * Enable absolute positioning with free dragging
- */
-function enableAbsolutePositioning(editor: Editor) {
-  editor.on('load', () => {
-    const canvas = editor.Canvas;
-    const frame = canvas.getFrameEl();
-    
-    if (!frame || !frame.contentWindow) return;
-    
-    const frameDoc = frame.contentWindow.document;
-    let isDragging = false;
-    let dragTarget: any = null;
-    let dragStart = { x: 0, y: 0, left: 0, top: 0 };
-    
-    frameDoc.addEventListener('mousedown', (e: any) => {
-      const el = e.target?.closest('[style*="position: absolute"], [style*="position:absolute"]');
-      if (!el) return;
-      
-      const component = findComponent(editor, el);
-      if (!component) return;
-      
-      const style = component.getStyle();
-      const position = Array.isArray(style.position) ? style.position[0] : style.position;
-      
-      if (position === 'absolute' || position === 'fixed') {
-        isDragging = true;
-        dragTarget = component;
-        dragStart = {
-          x: e.clientX,
-          y: e.clientY,
-          left: parseStyleValue(style.left),
-          top: parseStyleValue(style.top)
-        };
-        
-        el.style.cursor = 'move';
-        e.preventDefault();
-        e.stopPropagation();
-      }
-    });
-    
-    frameDoc.addEventListener('mousemove', (e: any) => {
-      if (!isDragging || !dragTarget) return;
-      
-      const deltaX = e.clientX - dragStart.x;
-      const deltaY = e.clientY - dragStart.y;
-      
-      dragTarget.setStyle({
-        left: `${dragStart.left + deltaX}px`,
-        top: `${dragStart.top + deltaY}px`,
-      });
-      
-      e.preventDefault();
-    });
-    
-    frameDoc.addEventListener('mouseup', () => {
-      if (isDragging && dragTarget) {
-        const el = dragTarget.getEl();
-        if (el) el.style.cursor = '';
-      }
-      isDragging = false;
-      dragTarget = null;
-    });
-    
-    frameDoc.addEventListener('mousemove', (e: any) => {
-      if (isDragging) return;
-      const el = e.target?.closest('[style*="position: absolute"], [style*="position:absolute"]');
-      if (el) el.style.cursor = 'move';
-    });
-  });
-  
-  console.log('[Absolute Positioning] Dragging enabled');
-}
-
-/**
- * Find GrapesJS component for DOM element
- */
-function findComponent(editor: Editor, el: HTMLElement): any {
-  const componentId = el.getAttribute('data-gjs-id');
-  if (componentId) {
-    const wrapper = editor.getWrapper();
-    if (wrapper) {
-      const found = wrapper.find(`[data-gjs-id="${componentId}"]`);
-      if (found && found[0]) return found[0];
-    }
-  }
-  
-  let checkEl: any = el;
-  while (checkEl) {
-    if (checkEl.__gjscomp) return checkEl.__gjscomp;
-    if (!checkEl.parentElement || checkEl.parentElement === el.ownerDocument.body) break;
-    checkEl = checkEl.parentElement;
-  }
-  
-  return null;
-}
-
-/**
- * Parse CSS style value to number
- */
-function parseStyleValue(value: any): number {
-  if (Array.isArray(value)) value = value[0];
-  if (typeof value !== 'string') return 0;
-  const parsed = parseInt(value.replace('px', ''), 10);
-  return isNaN(parsed) ? 0 : parsed;
-}
-
-// ============================================
-// PREVIEW FILTERING
-// ============================================
-
-/**
- * Filter preview content to show only widgets and base components
- */
-/**
- * Filter preview content to show only widgets and base components
- */
-function filterPreviewContent(editor: Editor) {
-  const frame = editor.Canvas.getFrameEl();
-  if (!frame || !frame.contentWindow) return;
-  
-  const frameDoc = frame.contentWindow.document;
-  
-  // Remove existing filter if any
-  const existingStyle = frameDoc.getElementById('preview-filter-style');
-  if (existingStyle) existingStyle.remove();
-  
-  // Add CSS to hide editor UI
-  const style = frameDoc.createElement('style');
-  style.id = 'preview-filter-style';
-  style.textContent = `
-    .gjs-selected, .gjs-hovered, .gjs-highlightable, [data-gjs-highlightable],
-    [data-gjs-type="toolbar"], [data-gjs-type="toolbar-item"], .gjs-toolbar,
-    .gjs-cv-cover, .gjs-cv-canvas > .gjs-cover, .gjs-resizer, .gjs-ruler,
-    .gjs-ruler-v, .gjs-ruler-h, .gjs-offset-v, .gjs-offset-h, .gjs-offset, .gjs-badge {
-      display: none !important;
-      visibility: hidden !important;
-      opacity: 0 !important;
-    }
-    [data-gjs-type]:not([data-gjs-type="toolbar"]):not([data-gjs-type="toolbar-item"]) {
-      visibility: visible !important;
-      display: block !important;
-    }
-  `;
-  frameDoc.head.appendChild(style);
-  
-  // Hide elements programmatically
-  const hideSelectors = ['.gjs-selected', '.gjs-hovered', '.gjs-toolbar', '.gjs-resizer', '.gjs-cv-cover', '.gjs-ruler', '.gjs-offset'];
-  hideSelectors.forEach(selector => {
-    try {
-      frameDoc.body.querySelectorAll(selector).forEach((el: any) => {
-        if (el && !el.hasAttribute('data-gjs-type')) {
-          el.style.display = 'none';
-          el.style.visibility = 'hidden';
-          el.setAttribute('data-preview-hidden', 'true');
-        }
-      });
-    } catch (e) {
-      // Ignore errors
-    }
-  });
-  
-  console.log('[Preview] Content filtered');
-}
-
-/**
- * Restore preview content
- */
-function restorePreviewContent(editor: Editor) {
-  const frame = editor.Canvas.getFrameEl();
-  if (!frame || !frame.contentWindow) return;
-  
-  const frameDoc = frame.contentWindow.document;
-  
-  // Remove filter style
-  const filterStyle = frameDoc.getElementById('preview-filter-style');
-  if (filterStyle) filterStyle.remove();
-  
-  // Restore hidden elements
-  frameDoc.querySelectorAll('[data-preview-hidden="true"]').forEach((el: any) => {
-    el.style.display = '';
-    el.style.visibility = '';
-    el.removeAttribute('data-preview-hidden');
-  });
-  
-  console.log('[Preview] Content restored');
 }
