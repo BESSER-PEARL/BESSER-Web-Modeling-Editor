@@ -767,10 +767,10 @@
           "ClassDiagram": "Structural / data modeling, including OCL constraints attached to classes.",
           "ObjectDiagram": "Instances of a class diagram, used for tests and OCL validation.",
           "StateMachineDiagram": "State-based behavior modeling.",
-          "AgentDiagram": "Conversational / AI agent specification.",
+          "AgentDiagram": "Conversational / AI agent model.",
           "UserDiagram": "Actors and their interactions.",
           "GUINoCodeDiagram": "Graphical user interface design (IFML-inspired).",
-          "QuantumCircuitDiagram": "Quantum program specification.",
+          "QuantumCircuitDiagram": "Quantum program model.",
           "BPMN": "Business Process Model and Notation.",
           "NNDiagram": "Neural network architecture (PyTorch / TensorFlow)."
         }
