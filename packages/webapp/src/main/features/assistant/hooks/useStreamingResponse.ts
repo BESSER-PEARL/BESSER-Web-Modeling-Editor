@@ -146,9 +146,12 @@ export function useStreamingResponse(): UseStreamingResponseReturn {
 
   useEffect(() => {
     if (!isGenerating) return;
+    // 300s: an AI-designed GUI legitimately runs ~80-140s — the old 120s
+    // cap made the typing indicator vanish mid-generation. This is only the
+    // stuck-spinner safety net; real completion clears it much earlier.
     const timeout = setTimeout(() => {
       setIsGenerating(false);
-    }, 120_000);
+    }, 300_000);
     return () => clearTimeout(timeout);
   }, [isGenerating]);
 
