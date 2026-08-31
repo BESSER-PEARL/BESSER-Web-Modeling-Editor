@@ -7,7 +7,7 @@
 
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ArrowDown, ChevronUp, MessageSquarePlus, Layers, Palette, Code2, Sparkles, Flag, KeyRound, Check } from 'lucide-react';
+import { ArrowDown, Boxes, ChevronUp, MessageSquarePlus, Layers, Palette, Code2, Sparkles, Flag, KeyRound, Check } from 'lucide-react';
 import { ChatForm } from '@/components/chatbot-kit/ui/chat';
 import { MessageInput } from '@/components/chatbot-kit/ui/message-input';
 import { MessageList } from '@/components/chatbot-kit/ui/message-list';
@@ -21,6 +21,7 @@ import { shouldOpenGuiTab, isReviewSpecAction, type GuiActionRouteInput } from '
 import { AssistantByokDialog } from './AssistantByokDialog';
 import { QuickActions } from './QuickActions';
 import { ProgressSteps } from './ProgressSteps';
+import { ModelOverviewPanel } from './ModelOverviewPanel';
 import { useAppDispatch } from '../../../app/store/hooks';
 import { openPushDialog } from '../../smart-generation/state/smartGeneratorSlice';
 import { sessionStoragePendingAssistantPrompt } from '../../../shared/constants/constant';
@@ -147,6 +148,8 @@ export const AssistantWorkspaceDrawer: React.FC<AssistantWorkspaceDrawerProps> =
   /* ---- BYOK dialog ---- */
 
   const [byokOpen, setByokOpen] = useState(false);
+  // "Your model" blueprint side panel (data model / relationships / screens).
+  const [overviewOpen, setOverviewOpen] = useState(false);
   // Read at render so the button reflects whether a key is saved. Re-reads when
   // the BYOK dialog closes (byokOpen flips) after a save/remove.
   const savedApiKey = readLlmKey();
@@ -803,6 +806,11 @@ export const AssistantWorkspaceDrawer: React.FC<AssistantWorkspaceDrawerProps> =
                     )}
                   </div>
                 </div>
+                {/* "Your model" blueprint — Mentor-style recap of the data
+                    model, relationships and screens, derived live from the
+                    project store. */}
+                {overviewOpen && <ModelOverviewPanel onClose={() => setOverviewOpen(false)} />}
+
                 {/* Scroll-to-bottom — shown while the user has scrolled up;
                     streaming no longer force-follows their position */}
                 {showScrollToBottom && (
@@ -827,6 +835,21 @@ export const AssistantWorkspaceDrawer: React.FC<AssistantWorkspaceDrawerProps> =
                     </div>
                     <div className="flex items-center gap-2.5">
                       <span className={cn('font-mono text-[10px] tracking-wide', rateLimitColor)}>{rateLimitStatus.requestsLastMinute}/8</span>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className={cn(
+                          'h-7 gap-1.5 rounded-lg px-2.5 text-xs',
+                          overviewOpen
+                            ? 'border-brand/40 bg-brand/[0.06] text-brand hover:text-brand'
+                            : 'border-border/50',
+                        )}
+                        onClick={() => setOverviewOpen((v) => !v)}
+                        title="See a recap of your data model, relationships and screens"
+                      >
+                        <Boxes className="size-3.5" />
+                        Your model
+                      </Button>
                       <Button
                         variant="outline"
                         size="sm"
