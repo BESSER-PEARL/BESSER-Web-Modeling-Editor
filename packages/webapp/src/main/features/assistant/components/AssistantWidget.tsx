@@ -31,7 +31,6 @@ import { useAssistantLogic, type ConnectionStatus, type MessageMeta } from '../h
 import { shouldOpenGuiTab, isReviewSpecAction, type GuiActionRouteInput } from '../hooks/suggestedActionRouting';
 import { AssistantByokDialog } from './AssistantByokDialog';
 import { QuickActions } from './QuickActions';
-import { ProgressSteps } from './ProgressSteps';
 import { Z_INDEX } from '../../../shared/constants/z-index';
 
 /* ------------------------------------------------------------------ */
@@ -339,6 +338,7 @@ export const AssistantWidget: React.FC<AssistantWidgetProps> = ({ onAssistantGen
             <MessageList
               messages={messages}
               isTyping={isGenerating}
+              typingLabel={progressSteps.length > 0 ? progressSteps[progressSteps.length - 1] : undefined}
               showTimeStamps={false}
               messageOptions={(message: ChatKitMessage) => {
                 const meta = messageMeta[message.id];
@@ -360,7 +360,6 @@ export const AssistantWidget: React.FC<AssistantWidgetProps> = ({ onAssistantGen
 
             {/* Progress indicator — evolving step list so long operations
                 visibly show motion. Clears automatically on completion. */}
-            <ProgressSteps steps={progressSteps} />
 
             {/* Quick actions after last assistant message */}
             {lastMeta?.suggestedActions && lastMeta.suggestedActions.length > 0 && (

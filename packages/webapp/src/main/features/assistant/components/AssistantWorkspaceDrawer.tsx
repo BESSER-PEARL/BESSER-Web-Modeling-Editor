@@ -20,7 +20,6 @@ import { useAssistantLogic, type ConnectionStatus } from '../hooks/useAssistantL
 import { shouldOpenGuiTab, isReviewSpecAction, type GuiActionRouteInput } from '../hooks/suggestedActionRouting';
 import { AssistantByokDialog } from './AssistantByokDialog';
 import { QuickActions } from './QuickActions';
-import { ProgressSteps } from './ProgressSteps';
 import { ModelOverviewPanel } from './ModelOverviewPanel';
 import { useAppDispatch } from '../../../app/store/hooks';
 import { openPushDialog } from '../../smart-generation/state/smartGeneratorSlice';
@@ -773,6 +772,7 @@ export const AssistantWorkspaceDrawer: React.FC<AssistantWorkspaceDrawerProps> =
                     <MessageList
                       messages={messages}
                       isTyping={isGenerating}
+                      typingLabel={progressSteps.length > 0 ? progressSteps[progressSteps.length - 1] : undefined}
                       showTimeStamps={false}
                       // Opening the push dialog is a pure dispatch — the dialog
                       // is mounted app-level (SmartGenPushDialogHost) and driven
@@ -780,10 +780,6 @@ export const AssistantWorkspaceDrawer: React.FC<AssistantWorkspaceDrawerProps> =
                       messageOptions={() => ({ onPushToGithub: (runId: string) => dispatch(openPushDialog(runId)) })}
                     />
 
-                    {/* Progress indicator — evolving step list so long
-                        operations (diagram + codegen) visibly show motion.
-                        Clears automatically when the operation finishes. */}
-                    <ProgressSteps steps={progressSteps} />
 
                     {/* Quick actions after last assistant message */}
                     {lastMeta?.suggestedActions && lastMeta.suggestedActions.length > 0 && (
