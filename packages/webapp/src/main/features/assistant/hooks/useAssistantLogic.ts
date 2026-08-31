@@ -1045,9 +1045,23 @@ export function useAssistantLogic({
     });
     const unsubTyping = streaming.registerTypingHandler(assistantClient);
 
+    // Progress frames are ALSO per-surface UI state: the SHARED single-
+    // dispatch action handler is last-writer-wins across surfaces, so
+    // progress ("Designing your screens…") only ever updated the winning
+    // surface's label — the drawer showed a frozen "Thinking…" through
+    // every long generation. Mirror 'progress' payloads into THIS surface's
+    // streaming state; the setState is idempotent, so the dispatch-winning
+    // surface receiving it twice is harmless.
+    const unsubProgress = assistantClient.onAction((payload) => {
+      if (payload?.action === 'progress') {
+        streaming.handleStreamingAction(payload, setMessages);
+      }
+    });
+
     return () => {
       unsubGenClear();
       unsubTyping?.();
+      unsubProgress();
     };
     // NOTE: connection lifecycle (connect/disconnect/onConnection) is handled by
     // useWebSocketConnection. The SHARED message/injection/action dispatchers are
