@@ -2293,6 +2293,17 @@
       "noProjectData": "Keine Projektdaten zum Exportieren verfügbar",
       "projectExportedAs": "Projekt exportiert als {{filename}}",
       "projectExportFailed": "Projekt konnte nicht exportiert werden: {{error}}"
+    },
+    "diagramLabels": {
+      "ClassDiagram": "Klassendiagramm",
+      "ObjectDiagram": "Objektdiagramm",
+      "StateMachineDiagram": "Zustandsdiagramm",
+      "AgentDiagram": "Agentendiagramm",
+      "UserDiagram": "Benutzerdiagramm",
+      "GUINoCodeDiagram": "Bildschirme (GUI)",
+      "QuantumCircuitDiagram": "Quantenschaltkreis",
+      "NNDiagram": "Neuronales-Netz-Diagramm",
+      "BPMN": "BPMN-Prozess"
     }
   },
   "import": {
