@@ -1117,8 +1117,26 @@ export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGen
         );
       }
 
-      // normalizeAgentModel is pure/idempotent and returns a fresh clone, so it
-      // is safe to reuse the same base across every mapping entry.
+      // Build a map from profileName → stored personalized variant model.
+      // The Personalize button saves the output of /transform-agent-model-json
+      // into diagram.config.personalizedVariants; that is the already-personalized
+      // model the backend needs per profile. Fall back to the base when a profile
+      // hasn't been personalized yet.
+      const rawStoredVariants = (activeAgentDiagram?.config as Record<string, unknown> | undefined)?.personalizedVariants;
+      const variantModelByProfileName = new Map<string, UMLModel>();
+      if (Array.isArray(rawStoredVariants)) {
+        for (const v of rawStoredVariants) {
+          if (
+            v && typeof v === 'object' &&
+            typeof (v as any).profileName === 'string' &&
+            isUMLModel((v as any).model) &&
+            (v as any).model.type === UMLDiagramType.AgentDiagram
+          ) {
+            variantModelByProfileName.set((v as any).profileName, (v as any).model as UMLModel);
+          }
+        }
+      }
+
       const personalizationMapping = uniquifyNames(
         userModels.flatMap((model) =>
           splitUserDiagramIntoProfiles(model).map((profile) => {
@@ -1126,12 +1144,15 @@ export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGen
             // one Personal_Information) so the shipped user_profile matches the
             // metamodel.
             const merged = mergeSingletonBoxes(profile.model);
+            // Use the stored personalized model for this profile (output of
+            // the Personalize button). Fall back to the base when not yet personalized.
+            const storedVariantModel = variantModelByProfileName.get(profile.name);
             return {
               name: profile.name,
               configuration: aggregateProfilePersonalization(merged)
                 .configuration as Record<string, any>,
               user_profile: structuredClone(merged) as Record<string, any>,
-              agent_model: normalizeAgentModel(resolvedBase) as Record<string, any>,
+              agent_model: normalizeAgentModel(storedVariantModel ?? resolvedBase) as Record<string, any>,
             };
           }),
         ),
