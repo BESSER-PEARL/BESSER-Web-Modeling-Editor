@@ -1,7 +1,7 @@
 import React, { useCallback, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAppDispatch, useAppSelector } from '../../../app/store/hooks';
-import { selectActiveDiagram, selectWorkspaceLoading, bumpEditorRevision, updateDiagramModelThunk } from '../../../app/store/workspaceSlice';
+import { selectActiveDiagram, selectWorkspaceLoading, bumpEditorRevision, refreshProjectStateThunk } from '../../../app/store/workspaceSlice';
 import { toast } from 'react-toastify';
 import { Button } from '@/components/ui/button';
 import {
@@ -23,11 +23,15 @@ import type { StoredUserProfile, StoredAgentConfiguration } from '../../../share
 import { aggregateProfilePersonalization } from '../../../shared/utils/personalization-aggregation';
 import {
   splitUserDiagramIntoProfiles,
-  uniquifyNames,
   mergeSingletonBoxes,
 } from '../../../shared/utils/user-profile-graph';
+import {
+  type AgentModelVariantSnapshot,
+  upsertVariantForProfile,
+  readAgentVariants,
+} from '../../../shared/services/agent-variants/agent-variants-service';
+import { ProjectStorageRepository } from '../../../shared/services/storage/ProjectStorageRepository';
 import type { UMLModel } from '@besser/wme';
-import { normalizeAgentModel } from '@besser/wme';
 
 interface PersonalizeAgentDialogProps {
   open: boolean;
@@ -71,7 +75,7 @@ export const PersonalizeAgentDialog: React.FC<PersonalizeAgentDialogProps> = ({ 
           tabName,
           showTab: false, // filled in below after counting
           model: mergeSingletonBoxes(p.model),
-          sourceProfile: { id: tabId, name: tabName, model },
+          sourceProfile: { id: tabId, name: tabName, model, savedAt: new Date().toISOString() },
         });
       });
     };
@@ -131,14 +135,15 @@ export const PersonalizeAgentDialog: React.FC<PersonalizeAgentDialogProps> = ({ 
         LocalStorageRepository.saveAgentBaseModel(activeAgentDiagram.id, resolvedBase);
       }
 
-      const personalizationMapping = uniquifyNames([
-        {
-          name: selected.userName,
-          configuration: aggregateProfilePersonalization(selected.model).configuration as Record<string, any>,
-          user_profile: structuredClone(selected.model) as Record<string, any>,
-          agent_model: normalizeAgentModel(resolvedBase) as Record<string, any>,
-        },
-      ]);
+      // Extract the flat agent config from the profile's per-element personalization
+      // specs (language, modality, interface style, etc.), then attach the raw
+      // user profile model so the backend's generate_user_profile_document can
+      // build the full profile document — same structure the old "Save & Apply" sent.
+      const { configuration } = aggregateProfilePersonalization(selected.model);
+      const config: Record<string, any> = {
+        ...configuration,
+        userProfileModel: structuredClone(selected.model),
+      };
 
       toast.info(t('personalize.applying'));
 
@@ -148,7 +153,7 @@ export const PersonalizeAgentDialog: React.FC<PersonalizeAgentDialogProps> = ({ 
         model: resolvedBase,
         lastUpdate: activeAgentDiagram.lastUpdate,
         generator: 'agent',
-        config: { personalizationMapping },
+        config,
       };
 
       let transformedModel: unknown;
@@ -175,17 +180,60 @@ export const PersonalizeAgentDialog: React.FC<PersonalizeAgentDialogProps> = ({ 
           ? ((transformedModel as { model: UMLModel }).model)
           : (transformedModel as UMLModel | undefined);
 
-      if (snapshotModel) {
-        await dispatch(updateDiagramModelThunk({ model: snapshotModel })).unwrap();
-        dispatch(bumpEditorRevision());
-      }
+      if (snapshotModel && currentProject) {
+        const now = new Date().toISOString();
+        const configId = `personalize_${Date.now()}`;
+        const variantId = `${selected.sourceProfile.id}:${configId}`;
 
-      const configEntry: StoredAgentConfiguration = {
-        id: `personalize_${Date.now()}`,
-        name: `${selected.userName} (${new Date().toLocaleString()})`,
-        savedAt: new Date().toISOString(),
-      };
-      LocalStorageRepository.saveAgentProfileConfigurationMapping(selected.sourceProfile, configEntry);
+        const nextVariant: AgentModelVariantSnapshot = {
+          id: variantId,
+          profileId: selected.sourceProfile.id,
+          profileName: selected.userName,
+          configurationId: configId,
+          configurationName: selected.userName,
+          createdAt: now,
+          model: snapshotModel,
+        };
+
+        // Find the current agent diagram index
+        const agentIndex = currentProject.currentDiagramIndices?.AgentDiagram ?? 0;
+        const latestProject =
+          ProjectStorageRepository.loadProject(currentProject.id) ?? currentProject;
+        const agentDiagram =
+          latestProject.diagrams.AgentDiagram?.[agentIndex] ?? activeAgentDiagram;
+
+        const existingVariants = readAgentVariants(agentDiagram);
+        const updatedVariants = upsertVariantForProfile(existingVariants, nextVariant);
+
+        ProjectStorageRepository.updateDiagram(
+          currentProject.id,
+          'AgentDiagram',
+          {
+            ...agentDiagram,
+            model: structuredClone(snapshotModel),
+            config: {
+              ...(agentDiagram.config as Record<string, unknown> | undefined ?? {}),
+              personalizedVariants: updatedVariants,
+              activePersonalizedVariantId: variantId,
+            },
+          },
+          agentIndex,
+        );
+
+        await dispatch(refreshProjectStateThunk()).unwrap();
+        dispatch(bumpEditorRevision());
+
+        // Also save the profile↔config mapping for the agent config panel
+        const configEntry: StoredAgentConfiguration = {
+          id: configId,
+          name: selected.userName,
+          savedAt: now,
+          config: aggregateProfilePersonalization(selected.model).configuration as any,
+          personalizedAgentModel: snapshotModel,
+          originalAgentModel: resolvedBase,
+        };
+        LocalStorageRepository.saveAgentProfileConfigurationMapping(selected.sourceProfile, configEntry);
+      }
 
       toast.success(t('personalize.success'));
       onOpenChange(false);

@@ -542,7 +542,9 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
 
     return readAgentVariants(diagram).map((variant) => ({
       id: variant.id,
-      label: `${variant.profileName} (${variant.configurationName})`,
+      label: variant.configurationName && variant.configurationName !== variant.profileName
+        ? `${variant.profileName} (${variant.configurationName})`
+        : variant.profileName,
       description: t('shell.agentVariant.createdAt', { date: new Date(variant.createdAt).toLocaleString() }),
     }));
   }, [currentProject?.currentDiagramType, diagram, t]);
