@@ -52,6 +52,9 @@ const ExportDialog = React.lazy(() =>
 const GeneratorConfigDialogs = React.lazy(() =>
   import('../features/generation/dialogs/GeneratorConfigDialogs').then((m) => ({ default: m.GeneratorConfigDialogs })),
 );
+const PersonalizeAgentDialog = React.lazy(() =>
+  import('../features/editors/uml/PersonalizeAgentDialog').then((m) => ({ default: m.PersonalizeAgentDialog })),
+);
 const AssistantWidget = React.lazy(() =>
   import('../features/assistant/components/AssistantWidget').then((m) => ({ default: m.AssistantWidget })),
 );
@@ -70,6 +73,7 @@ function AppContentInner() {
   const [editor, setEditor] = useState<ApollonEditor>();
   const [showTemplateDialog, setShowTemplateDialog] = useState(false);
   const [showExportDialog, setShowExportDialog] = useState(false);
+  const [showPersonalizeDialog, setShowPersonalizeDialog] = useState(false);
 
   const location = useLocation();
 
@@ -121,6 +125,7 @@ function AppContentInner() {
         onOpenTemplateDialog={() => setShowTemplateDialog(true)}
         onExportProject={handleExport}
         onGenerate={(type, config) => handleGenerateRequest(type, config)}
+        onOpenPersonalizeDialog={() => setShowPersonalizeDialog(true)}
         onQualityCheck={() => handleQualityCheck()}
         showQualityCheck={true}
         generatorMode={generatorMenuMode}
@@ -150,6 +155,13 @@ function AppContentInner() {
           onOpenChange={setShowExportDialog}
           editor={editor}
           currentDiagramTitle={activeDiagramTitle}
+        />
+      </Suspense>
+
+      <Suspense fallback={null}>
+        <PersonalizeAgentDialog
+          open={showPersonalizeDialog}
+          onOpenChange={setShowPersonalizeDialog}
         />
       </Suspense>
 

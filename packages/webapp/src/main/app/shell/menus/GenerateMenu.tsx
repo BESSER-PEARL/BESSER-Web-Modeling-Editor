@@ -22,6 +22,7 @@ interface GenerateMenuProps {
   mode: GeneratorMenuMode;
   isGenerating: boolean;
   primaryGenerateClass: string;
+  activeDiagramType: SupportedDiagramType;
   onGenerate: (type: GeneratorType, config?: Record<string, any>) => void;
   onSwitchDiagramType?: (type: SupportedDiagramType) => void;
 }
@@ -65,6 +66,7 @@ export const GenerateMenu: React.FC<GenerateMenuProps> = ({
   mode,
   isGenerating,
   primaryGenerateClass,
+  activeDiagramType,
   onGenerate,
   onSwitchDiagramType,
 }) => {

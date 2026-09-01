@@ -1,6 +1,7 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
-import { FolderKanban } from 'lucide-react';
+import { FolderKanban, Users } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { LanguageSelector } from './LanguageSelector';
 import { CommunityMenu } from './menus/CommunityMenu';
@@ -36,6 +37,7 @@ const WorkspaceTopBarInner: React.FC<WorkspaceTopBarProps> = ({
   onOpenAssistantImportKg,
   onOpenProjectPreview,
   onGenerate,
+  onOpenPersonalizeDialog,
   onQualityCheck,
   qualityCheckState,
   showAgentVariantSelector,
@@ -116,9 +118,21 @@ const WorkspaceTopBarInner: React.FC<WorkspaceTopBarProps> = ({
             mode={generatorMode}
             isGenerating={isGenerating}
             primaryGenerateClass={primaryGenerateClass}
+            activeDiagramType={activeDiagramType}
             onGenerate={onGenerate}
             onSwitchDiagramType={onSwitchDiagramType}
           />
+          {activeDiagramType === 'AgentDiagram' && onOpenPersonalizeDialog && (
+            <Button
+              variant="outline"
+              className={outlineButtonClass}
+              onClick={onOpenPersonalizeDialog}
+              title={t('personalize.title')}
+            >
+              <Users className="size-4" />
+              <span className="hidden xl:inline">{t('personalize.title')}</span>
+            </Button>
+          )}
           <DeployMenu
             outlineButtonClass={outlineButtonClass}
             isAuthenticated={isAuthenticated}

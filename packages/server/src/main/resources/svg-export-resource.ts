@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { UMLModel } from '@besser/wme';
+import type { UMLModel } from '@besser/wme';
 import { ConversionService } from '../services/conversion-service/conversion-service';
 
 /**

@@ -2349,5 +2349,24 @@
       "dropHere": "Hei fale loossen",
       "invalid": "Ongülteg"
     }
+  },
+  "personalize": {
+    "title": "Personalize Agent",
+    "description": "Create a personalized variant of the agent model using a user profile",
+    "selectProfile": "Select a User Profile",
+    "selectProfilePlaceholder": "Choose a profile...",
+    "noProfiles": "No user profiles available",
+    "noAgentDiagram": "No agent diagram is currently active",
+    "notAgentDiagram": "Active diagram is not an agent diagram",
+    "profileNotFound": "Selected profile not found",
+    "noValidBase": "Could not resolve base agent model",
+    "noValidProfiles": "No valid profiles found in selected diagram",
+    "applying": "Applying personalization...",
+    "apply": "Apply Personalization",
+    "success": "Personalization applied successfully",
+    "transformFailed": "Personalization failed: {{message}}",
+    "transformTimeout": "Personalization request timed out (>10 minutes)",
+    "error": "Failed to apply personalization",
+    "unnamedUser": "Unnamed user"
   }
 }

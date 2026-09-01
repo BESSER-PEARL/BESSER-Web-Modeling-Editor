@@ -342,10 +342,40 @@ describe('buildMetamodelTree (real metamodel)', () => {
     tree = buildMetamodelTree();
   });
 
-  it('roots the hierarchy at User with the expected direct parts', () => {
+  it('flattens hidden containers: User directly parents Disability/Skill/Language/Education', () => {
     expect(tree.root?.className).toBe('User');
     const parts = tree.root!.children.map((c) => c.className).sort();
-    expect(parts).toEqual(['Accessibility', 'Competence', 'Culture', 'Personal_Information'].sort());
+    // Accessibility/Competence are hidden grouping containers — dropped from
+    // User's direct children and replaced by their own children (repeatable).
+    expect(parts).toEqual(
+      ['Culture', 'Disability', 'Education', 'Language', 'Personal_Information', 'Skill'].sort(),
+    );
+    expect(parts).not.toContain('Accessibility');
+    expect(parts).not.toContain('Competence');
+    // The hoisted children keep their repeatable multiplicity.
+    ['Disability', 'Skill', 'Language', 'Education'].forEach((name) => {
+      expect(tree.root!.children.find((c) => c.className === name)!.multiplicity).toBe('multiple');
+    });
+  });
+
+  it('round-trips a profile with Disability + Skill directly under User (flat tree)', () => {
+    const root = createEmptyInstance(tree.root!);
+    const dis = createEmptyInstance(tree.byClassName.Disability);
+    root.children.Disability = [dis];
+    const skill = createEmptyInstance(tree.byClassName.Skill);
+    root.children.Skill = [skill];
+
+    const model = buildUserDiagramModel(root, tree);
+    const parsed = parseUserDiagramModel(model, tree);
+    expect(instanceSignature(parsed)).toBe(instanceSignature(root));
+    // The form model draws them flat (no Accessibility/Competence box on canvas).
+    const classNames = Object.values((model as any).elements)
+      .filter((e: any) => e.type === 'UserModelName')
+      .map((e: any) => e.className);
+    expect(classNames).toContain('Disability');
+    expect(classNames).toContain('Skill');
+    expect(classNames).not.toContain('Accessibility');
+    expect(classNames).not.toContain('Competence');
   });
 
   it('nests Disability (repeatable) under Accessibility', () => {

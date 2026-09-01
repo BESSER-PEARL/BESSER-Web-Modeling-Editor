@@ -104,6 +104,7 @@ interface WorkspaceShellProps {
   onOpenTemplateDialog: () => void;
   onExportProject: () => void;
   onGenerate: (type: GeneratorType, config?: Record<string, any>) => void;
+  onOpenPersonalizeDialog?: () => void;
   onQualityCheck: () => Promise<QualityCheckResult>;
   showQualityCheck?: boolean;
   generatorMode: GeneratorMenuMode;
@@ -149,6 +150,7 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
   onOpenTemplateDialog,
   onExportProject,
   onGenerate,
+  onOpenPersonalizeDialog,
   onQualityCheck,
   showQualityCheck = false,
   generatorMode,
@@ -782,6 +784,7 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
         onOpenAssistantImportKg={() => openAssistantImportDialog('kg')}
         onOpenProjectPreview={handleOpenProjectPreview}
         onGenerate={onGenerate}
+        onOpenPersonalizeDialog={onOpenPersonalizeDialog}
         onQualityCheck={handleTrackedQualityCheck}
         qualityCheckState={activeQualityCheckState}
         showAgentVariantSelector={currentProject?.currentDiagramType === 'AgentDiagram'}

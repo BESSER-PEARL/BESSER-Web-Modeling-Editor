@@ -23,6 +23,7 @@
  */
 
 import type { UMLModel } from '@besser/wme';
+import { isHiddenUserModelContainer } from '@besser/wme';
 // The fixed user metamodel (a ClassDiagram) is a static asset shipped with the
 // editor package. We read it here only to learn each containment's multiplicity
 // (single `0..1` vs repeatable `0..*`) so the backend-payload merge knows which
@@ -148,8 +149,48 @@ const getContainmentMap = (): Map<string, Map<string, Multiplicity>> => {
     inner.set(child, inner.get(child) === 'multiple' ? 'multiple' : mult);
     map.set(parent, inner);
   }
+  // Flatten hidden containers to match the canvas topology: a parent's hidden
+  // container child (`Accessibility`, `Competence`) is replaced by that
+  // container's own children, each keeping its own multiplicity. This keeps the
+  // singleton-merge (mergeSingletonBoxes) consistent with the flat canvas — the
+  // re-nesting for the backend happens later in reinjectHiddenContainers.
+  flattenContainmentMap(map);
   _containment = map;
   return map;
+};
+
+/**
+ * Replace hidden-container children in the containment map with the container's
+ * own children (recursively), mirroring `metamodel-tree`'s tree flatten so both
+ * derivations agree. Mutates `map` in place; `visiting` guards container cycles.
+ */
+const flattenContainmentMap = (map: Map<string, Map<string, Multiplicity>>): void => {
+  const resolve = (parent: string, visiting: Set<string>): Map<string, Multiplicity> => {
+    const out = new Map<string, Multiplicity>();
+    const inner = map.get(parent);
+    if (!inner) return out;
+    inner.forEach((mult, child) => {
+      if (isHiddenUserModelContainer(child)) {
+        if (visiting.has(child)) return; // cyclic
+        visiting.add(child);
+        resolve(child, visiting).forEach((m, gc) => {
+          out.set(gc, out.get(gc) === 'multiple' ? 'multiple' : m);
+        });
+        visiting.delete(child);
+      } else {
+        out.set(child, out.get(child) === 'multiple' ? 'multiple' : mult);
+      }
+    });
+    return out;
+  };
+
+  const flattened = new Map<string, Map<string, Multiplicity>>();
+  for (const parent of map.keys()) {
+    flattened.set(parent, resolve(parent, new Set<string>([parent])));
+  }
+  for (const [parent, inner] of flattened) {
+    map.set(parent, inner);
+  }
 };
 
 /**
@@ -307,6 +348,185 @@ export const mergeSingletonBoxes = (model: any): any => {
   return { ...model, elements: newElements, relationships: newRelationships };
 };
 
+/* ------------------------------------------------------------------ */
+/*  Hidden-container re-injection (backend payload only)               */
+/* ------------------------------------------------------------------ */
+
+interface ContainerRoute {
+  containerClass: string;
+  containerClassId: string;
+}
+
+let _routes: Map<string, Map<string, ContainerRoute>> | null = null;
+
+/**
+ * Build (once) the re-nesting routes from the bundled user metamodel:
+ * `parentClassName -> childClassName -> { containerClass, containerClassId }`.
+ * For each hidden grouping container `C` (see `hidden-containers.ts`) with a
+ * metamodel-parent `P` and metamodel-children `{X}`, `route[P][X] = C`. This is
+ * the inverse of the canvas/tree flatten: the canvas draws `P → X` directly, and
+ * on the way to the backend we re-insert `C` so the transmitted B-UML model
+ * reads `P → C → X`, matching the original metamodel.
+ */
+const getContainerRoutes = (): Map<string, Map<string, ContainerRoute>> => {
+  if (_routes) return _routes;
+  const routes = new Map<string, Map<string, ContainerRoute>>();
+  const data: any = userMetaModel as any;
+  const els: Record<string, any> = data?.elements || {};
+
+  const nameById: Record<string, string> = {};
+  const idByName: Record<string, string> = {};
+  for (const [id, el] of Object.entries(els) as [string, any][]) {
+    if ((el?.type === 'Class' || el?.type === 'AbstractClass') && typeof el.name === 'string') {
+      nameById[id] = el.name;
+      idByName[el.name] = el.id ?? id;
+    }
+  }
+
+  // Raw (unflattened) containment: parentClassName -> Set(childClassName).
+  const childrenOf = new Map<string, Set<string>>();
+  const parentsOf = new Map<string, Set<string>>();
+  const rels: Record<string, any> = data?.relationships || {};
+  for (const rel of Object.values(rels) as any[]) {
+    if (!rel || rel.type === 'ClassInheritance' || rel.type === 'ClassRealization') continue;
+    const sn = nameById[rel.source?.element];
+    const tn = nameById[rel.target?.element];
+    if (!sn || !tn) continue;
+    const sm = rel.source?.multiplicity;
+    const tm = rel.target?.multiplicity;
+    let parent: string;
+    let child: string;
+    if (isContainerMult(sm) && !isContainerMult(tm)) {
+      parent = sn; child = tn;
+    } else if (isContainerMult(tm) && !isContainerMult(sm)) {
+      parent = tn; child = sn;
+    } else {
+      parent = sn; child = tn;
+    }
+    if (parent === child) continue;
+    (childrenOf.get(parent) ?? childrenOf.set(parent, new Set()).get(parent)!).add(child);
+    (parentsOf.get(child) ?? parentsOf.set(child, new Set()).get(child)!).add(parent);
+  }
+
+  // For each hidden container, route each of its children up to its parent(s).
+  for (const containerClass of Object.keys(idByName)) {
+    if (!isHiddenUserModelContainer(containerClass)) continue;
+    const containerClassId = idByName[containerClass];
+    const parents = parentsOf.get(containerClass) ?? new Set<string>();
+    const children = childrenOf.get(containerClass) ?? new Set<string>();
+    parents.forEach((parent) => {
+      const inner = routes.get(parent) ?? routes.set(parent, new Map()).get(parent)!;
+      children.forEach((child) => inner.set(child, { containerClass, containerClassId }));
+    });
+  }
+
+  _routes = routes;
+  return routes;
+};
+
+/** Lower-case the first letter, matching the editor's `class_n` box-name style. */
+const lowerFirst = (s: string): string => (s ? s.charAt(0).toLowerCase() + s.slice(1) : s);
+
+/** Minimal `ObjectLink` relationship (shape mirrors model-serialization's addLink). */
+const makeObjectLink = (id: string, parentBoxId: string, childBoxId: string): any => ({
+  id,
+  type: 'ObjectLink',
+  source: { element: parentBoxId, direction: 'Right', bounds: { x: 0, y: 0, width: 0, height: 0 } },
+  target: { element: childBoxId, direction: 'Left', bounds: { x: 0, y: 0, width: 0, height: 0 } },
+  bounds: { x: 0, y: 0, width: 0, height: 0 },
+  name: '',
+  path: [
+    { x: 100, y: 10 },
+    { x: 0, y: 10 },
+  ],
+  isManuallyLayouted: false,
+});
+
+/**
+ * Re-insert hidden grouping containers into a (per-profile) `UserDiagram` so the
+ * backend receives the original metamodel nesting. The canvas connects e.g.
+ * `User → Disability` and `User → Skill` directly (containers suppressed); this
+ * rewrites those links to `User → Accessibility → Disability` and
+ * `User → Competence → Skill`, creating **one** container box per
+ * `(parent box, container class)` that all its children share.
+ *
+ * Pure: the input model is never mutated; returns the same reference when there
+ * is nothing to re-nest. Links whose endpoint classes match no route pass
+ * through untouched (Personal_Information chips, Culture, …). Container box names
+ * are left for the final {@link uniquifyUserModelNames} pass to make unique.
+ */
+export const reinjectHiddenContainers = (model: any): any => {
+  if (!model || model.type !== 'UserDiagram' || !model.elements) return model;
+  const routes = getContainerRoutes();
+  if (routes.size === 0) return model;
+
+  const boxById: Record<string, any> = {};
+  Object.values(model.elements as Record<string, any>).forEach((el: any) => {
+    if (el?.type === 'UserModelName') boxById[el.id] = el;
+  });
+
+  const newElements: Record<string, any> = { ...model.elements };
+  const newRelationships: Record<string, any> = {};
+  const containerBoxByKey = new Map<string, string>(); // `${parentBoxId}::${containerClass}` -> boxId
+  let seq = 0;
+  const genId = (p: string) => `reinject_${p}_${seq++}`;
+
+  const ensureContainer = (parentBoxId: string, route: ContainerRoute): string => {
+    const key = `${parentBoxId}::${route.containerClass}`;
+    const existing = containerBoxByKey.get(key);
+    if (existing) return existing;
+    const boxId = genId('name');
+    newElements[boxId] = {
+      type: 'UserModelName',
+      id: boxId,
+      name: `${lowerFirst(route.containerClass)}_1`,
+      owner: null,
+      bounds: { x: 0, y: 0, width: 200, height: 50 },
+      attributes: [],
+      methods: [],
+      className: route.containerClass,
+      classId: route.containerClassId,
+    };
+    containerBoxByKey.set(key, boxId);
+    const linkId = genId('link');
+    newRelationships[linkId] = makeObjectLink(linkId, parentBoxId, boxId);
+    return boxId;
+  };
+
+  Object.entries(model.relationships || {}).forEach(([rid, rel]: [string, any]) => {
+    const a = rel?.source?.element;
+    const b = rel?.target?.element;
+    if (rel?.type !== 'ObjectLink' || !boxById[a] || !boxById[b]) {
+      newRelationships[rid] = rel;
+      return;
+    }
+    const cnA = boxById[a].className;
+    const cnB = boxById[b].className;
+    const routeAB = cnA && cnB ? routes.get(cnA)?.get(cnB) : undefined;
+    const routeBA = cnA && cnB ? routes.get(cnB)?.get(cnA) : undefined;
+    // parent is the endpoint whose class contains the other via a hidden container.
+    const match = routeAB
+      ? { parent: a, child: b, route: routeAB }
+      : routeBA
+        ? { parent: b, child: a, route: routeBA }
+        : null;
+    if (!match) {
+      newRelationships[rid] = rel;
+      return;
+    }
+    const containerId = ensureContainer(match.parent, match.route);
+    // Re-point this link to container → child (preserve the rel's other fields).
+    newRelationships[rid] = {
+      ...rel,
+      source: { ...rel.source, element: containerId },
+      target: { ...rel.target, element: match.child },
+    };
+  });
+
+  if (containerBoxByKey.size === 0) return model;
+  return { ...model, elements: newElements, relationships: newRelationships };
+};
+
 /**
  * Transform a whole-canvas `UserDiagram` into the shape the backend accepts:
  * every object owned by exactly one `User` and every `single` containment
@@ -336,7 +556,10 @@ export const flattenUserDiagramForBackend = (model: any): any => {
   const mergedRelationships: Record<string, any> = {};
 
   profiles.forEach((profile, i) => {
-    const merged = mergeSingletonBoxes(profile.model);
+    // Fuse single-capped siblings, then re-nest the flat canvas (`User→Disability`,
+    // `User→Skill`, …) back through the hidden grouping containers so the backend
+    // receives the original metamodel shape (`User→Accessibility→Disability`, …).
+    const merged = reinjectHiddenContainers(mergeSingletonBoxes(profile.model));
     const subElements = (merged.elements || {}) as Record<string, any>;
     const subRelationships = (merged.relationships || {}) as Record<string, any>;
     const prefix = `p${i}_`;

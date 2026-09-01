@@ -7,6 +7,7 @@ import {
   uniquifyUserModelNames,
   mergeSingletonBoxes,
   flattenUserDiagramForBackend,
+  reinjectHiddenContainers,
 } from '../user-profile-graph';
 
 /* ------------------------------------------------------------------ */
@@ -369,6 +370,165 @@ describe('flattenUserDiagramForBackend', () => {
   it('passes non-UserDiagram models through untouched', () => {
     const model = { type: 'ClassDiagram', elements: {}, relationships: {} } as any;
     expect(flattenUserDiagramForBackend(model)).toBe(model);
+  });
+});
+
+describe('reinjectHiddenContainers', () => {
+  // Helpers to read the re-nested topology by class name.
+  const boxesOfClass = (m: any, className: string) =>
+    Object.values(m.elements).filter((e: any) => e.type === 'UserModelName' && e.className === className) as any[];
+  const links = (m: any) => Object.values(m.relationships) as any[];
+  const classOf = (m: any, id: string) => m.elements[id]?.className;
+
+  it('re-nests flat User→Disability through a single Accessibility container', () => {
+    const elements: Record<string, any> = {
+      u1: box('u1', 'User', []),
+      d1: box('d1', 'Disability', []),
+      d2: box('d2', 'Disability', []),
+    };
+    const relationships: Record<string, any> = {
+      r1: link('r1', 'u1', 'd1'),
+      r2: link('r2', 'u1', 'd2'),
+    };
+
+    const out = reinjectHiddenContainers(asModel(elements, relationships));
+
+    // Exactly one Accessibility box is created and shared by both Disabilities.
+    const acc = boxesOfClass(out, 'Accessibility');
+    expect(acc).toHaveLength(1);
+    const accId = acc[0].id;
+    expect(acc[0].classId).toBeTruthy();
+    expect(acc[0].attributes).toEqual([]);
+
+    // User → Accessibility (once); Accessibility → each Disability.
+    const userToAcc = links(out).filter(
+      (r) => r.source.element === 'u1' && r.target.element === accId,
+    );
+    expect(userToAcc).toHaveLength(1);
+
+    const accToDis = links(out).filter((r) => r.source.element === accId && classOf(out, r.target.element) === 'Disability');
+    expect(accToDis.map((r) => r.target.element).sort()).toEqual(['d1', 'd2']);
+
+    // No direct User→Disability link survives.
+    expect(links(out).some((r) => r.source.element === 'u1' && classOf(out, r.target.element) === 'Disability')).toBe(
+      false,
+    );
+
+    // Input model is untouched (pure).
+    expect(boxesOfClass(asModel(elements, relationships), 'Accessibility')).toHaveLength(0);
+  });
+
+  it('re-nests Skill/Language/Education under a single Competence and leaves Personal_Information direct', () => {
+    const elements: Record<string, any> = {
+      u1: box('u1', 'User', []),
+      s1: box('s1', 'Skill', []),
+      l1: box('l1', 'Language', []),
+      e1: box('e1', 'Education', []),
+      pi: box('pi', 'Personal_Information', ['age']),
+      age: attr('age', 'pi', 'age >= 18'),
+    };
+    const relationships: Record<string, any> = {
+      r1: link('r1', 'u1', 's1'),
+      r2: link('r2', 'u1', 'l1'),
+      r3: link('r3', 'u1', 'e1'),
+      r4: link('r4', 'u1', 'pi'),
+    };
+
+    const out = reinjectHiddenContainers(asModel(elements, relationships));
+
+    // One Competence groups all three competence children.
+    const comp = boxesOfClass(out, 'Competence');
+    expect(comp).toHaveLength(1);
+    const compId = comp[0].id;
+
+    const compChildren = links(out)
+      .filter((r) => r.source.element === compId)
+      .map((r) => classOf(out, r.target.element))
+      .sort();
+    expect(compChildren).toEqual(['Education', 'Language', 'Skill']);
+
+    // Personal_Information stays a direct child of User (no route matches it).
+    expect(links(out).some((r) => r.source.element === 'u1' && r.target.element === 'pi')).toBe(true);
+    expect(boxesOfClass(out, 'Accessibility')).toHaveLength(0);
+  });
+
+  it('handles a direction-reversed link (child→User) the same way', () => {
+    const elements: Record<string, any> = {
+      u1: box('u1', 'User', []),
+      d1: box('d1', 'Disability', []),
+    };
+    // Link drawn Disability → User (reverse of the parent→child convention).
+    const relationships: Record<string, any> = { r1: link('r1', 'd1', 'u1') };
+
+    const out = reinjectHiddenContainers(asModel(elements, relationships));
+    const acc = boxesOfClass(out, 'Accessibility');
+    expect(acc).toHaveLength(1);
+    const accId = acc[0].id;
+    // User → Accessibility and Accessibility → Disability both exist.
+    expect(links(out).some((r) => r.source.element === 'u1' && r.target.element === accId)).toBe(true);
+    expect(links(out).some((r) => r.source.element === accId && r.target.element === 'd1')).toBe(true);
+  });
+
+  it('returns the same reference when there is nothing to re-nest', () => {
+    const elements: Record<string, any> = {
+      u1: box('u1', 'User', []),
+      pi: box('pi', 'Personal_Information', []),
+    };
+    const model = asModel(elements, { r1: link('r1', 'u1', 'pi') });
+    expect(reinjectHiddenContainers(model)).toBe(model);
+  });
+
+  it('passes non-UserDiagram models through untouched', () => {
+    const model = { type: 'ClassDiagram', elements: {}, relationships: {} } as any;
+    expect(reinjectHiddenContainers(model)).toBe(model);
+    expect(reinjectHiddenContainers(null)).toBe(null);
+  });
+});
+
+describe('flattenUserDiagramForBackend (hidden-container re-injection)', () => {
+  const boxes = (m: any) => Object.values(m.elements).filter((e: any) => e.type === 'UserModelName') as any[];
+  const boxesOfClass = (m: any, className: string) => boxes(m).filter((b) => b.className === className);
+  const classOf = (m: any, id: string) => m.elements[id]?.className;
+
+  it('re-nests a flat User→Disability + User→Skill + User→Language profile end-to-end', () => {
+    const elements: Record<string, any> = {
+      u1: box('u1', 'User', ['u1n']),
+      u1n: attr('u1n', 'u1', 'name = Alice'),
+      d1: box('d1', 'Disability', []),
+      s1: box('s1', 'Skill', []),
+      lang1: box('lang1', 'Language', []),
+    };
+    const relationships: Record<string, any> = {
+      r1: link('r1', 'u1', 'd1'),
+      r2: link('r2', 'u1', 's1'),
+      r3: link('r3', 'u1', 'lang1'),
+    };
+
+    const out = flattenUserDiagramForBackend(asModel(elements, relationships));
+
+    // One Accessibility and one Competence container injected for the profile.
+    expect(boxesOfClass(out, 'Accessibility')).toHaveLength(1);
+    expect(boxesOfClass(out, 'Competence')).toHaveLength(1);
+
+    // Container names are diagram-wide-unique (uniquifyUserModelNames ran).
+    const names = boxes(out).map((b) => b.name);
+    expect(new Set(names).size).toBe(names.length);
+
+    // The chain User→Competence→{Skill,Language} holds.
+    const compId = boxesOfClass(out, 'Competence')[0].id;
+    const compChildren = Object.values(out.relationships)
+      .filter((r: any) => r.source.element === compId)
+      .map((r: any) => classOf(out, r.target.element))
+      .sort();
+    expect(compChildren).toEqual(['Language', 'Skill']);
+
+    // No direct User→{Disability,Skill,Language} link leaks to the backend.
+    const userId = boxesOfClass(out, 'User')[0].id;
+    const leaks = Object.values(out.relationships).filter(
+      (r: any) =>
+        r.source.element === userId && ['Disability', 'Skill', 'Language'].includes(classOf(out, r.target.element)),
+    );
+    expect(leaks).toHaveLength(0);
   });
 });
 

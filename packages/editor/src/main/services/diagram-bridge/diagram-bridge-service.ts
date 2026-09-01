@@ -1,5 +1,6 @@
 import { UMLElementType } from '../../packages/uml-element-type';
 import { UMLRelationshipType } from '../../packages/uml-relationship-type';
+import { isHiddenUserModelContainer } from '../../packages/user-modeling/hidden-containers';
 
 /*
 Updated inside model-state.ts
@@ -354,9 +355,42 @@ export class DiagramBridgeService implements IDiagramBridgeService {
     return Array.from(uniqueAttributes.values());
   }
   /**
-   * Get associations between two specific classes, including inherited associations
+   * Get associations between two specific classes, including inherited associations.
+   *
+   * On top of associations declared directly between the two classes, this also
+   * returns **bridged** associations that route through a "hidden" grouping
+   * container (see `hidden-containers.ts`). The user-profile canvas hides the
+   * `Accessibility` / `Competence` containers and lets modellers attach their
+   * children (`Disability`, `Skill`, `Language`, `Education`) directly under
+   * `User`. The metamodel has no direct `User→Disability` association, so without
+   * bridging the connection port never appears. For every hidden container `C`
+   * that has a direct association to both endpoints, we synthesize an
+   * `source→target` association so the connection is offered on the canvas and
+   * labellable in the link popup. Bridging is inert for diagrams without hidden
+   * containers (e.g. object diagrams), so this is safe as a general behaviour.
    */
   getAvailableAssociations(sourceClassId: string, targetClassId: string): IAssociationInfo[] {
+    const direct = this.getDirectAssociations(sourceClassId, targetClassId);
+    const bridged = this.getBridgedAssociations(sourceClassId, targetClassId);
+    if (bridged.length === 0) return direct;
+
+    const seen = new Set(direct.map((a) => a.id));
+    const merged = [...direct];
+    bridged.forEach((assoc) => {
+      if (!seen.has(assoc.id)) {
+        seen.add(assoc.id);
+        merged.push(assoc);
+      }
+    });
+    return merged;
+  }
+
+  /**
+   * Associations declared directly between two classes (incl. their inheritance
+   * hierarchies), in either direction. This is the raw metamodel lookup, without
+   * any hidden-container bridging.
+   */
+  private getDirectAssociations(sourceClassId: string, targetClassId: string): IAssociationInfo[] {
     const data = this.getClassDiagramData();
     if (!data?.relationships) {
       return [];
@@ -415,6 +449,47 @@ export class DiagramBridgeService implements IDiagramBridgeService {
       console.error('Error extracting associations from diagram data:', error);
       return [];
     }
+  }
+
+  /**
+   * Synthesize associations that route `source → target` through a hidden
+   * grouping container `C` (one that carries no attributes and is suppressed on
+   * the canvas). Returns one bridged association per hidden container that has a
+   * direct association to both endpoints. Empty when no hidden-container class
+   * exists or none bridges the two endpoints (the common case for non-user
+   * diagrams), so callers pay almost nothing there.
+   */
+  private getBridgedAssociations(sourceClassId: string, targetClassId: string): IAssociationInfo[] {
+    if (sourceClassId === targetClassId) return [];
+
+    const containers = this.getAvailableClasses().filter((cls) => isHiddenUserModelContainer(cls.name));
+    if (containers.length === 0) return [];
+
+    const bridged: IAssociationInfo[] = [];
+    const seen = new Set<string>();
+    containers.forEach((container) => {
+      if (container.id === sourceClassId || container.id === targetClassId) return;
+      const sourceToContainer = this.getDirectAssociations(sourceClassId, container.id);
+      if (sourceToContainer.length === 0) return;
+      const containerToTarget = this.getDirectAssociations(container.id, targetClassId);
+      if (containerToTarget.length === 0) return;
+
+      // Present the container→child association as a direct source→target one so
+      // the link popup can label it, but keep a stable synthetic id so it never
+      // collides with (or is mistaken for) a real relationship.
+      containerToTarget.forEach((assoc) => {
+        const id = `bridge:${sourceClassId}:${assoc.id}`;
+        if (seen.has(id)) return;
+        seen.add(id);
+        bridged.push({
+          id,
+          name: assoc.name,
+          source: { element: sourceClassId },
+          target: { element: targetClassId, role: assoc.target?.role, multiplicity: assoc.target?.multiplicity },
+        });
+      });
+    });
+    return bridged;
   }
 
   /**

@@ -33,6 +33,7 @@ export interface WorkspaceTopBarProps {
   onOpenAssistantImportKg: () => void;
   onOpenProjectPreview: () => void;
   onGenerate: (type: GeneratorType, config?: Record<string, any>) => void;
+  onOpenPersonalizeDialog?: () => void;
   onQualityCheck: () => Promise<QualityCheckResult>;
   qualityCheckState?: QualityCheckState;
   showAgentVariantSelector?: boolean;
