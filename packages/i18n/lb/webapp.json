@@ -2043,7 +2043,10 @@
         "valueColor": "Wäert-Faarf",
         "valueSize": "Wäert-Gréisst",
         "negativeTrendColor": "Faarf negativen Trend",
-        "positiveTrendColor": "Faarf positiven Trend"
+        "positiveTrendColor": "Faarf positiven Trend",
+        "latitudeField": "Breedegrad-Feld",
+        "longitudeField": "Längegrad-Feld",
+        "markerLabelField": "Marker-Titel-Feld"
       },
       "pages": {
         "title": "Säiten",

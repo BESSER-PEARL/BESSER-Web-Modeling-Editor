@@ -2043,7 +2043,10 @@
         "valueColor": "Color del valor",
         "valueSize": "Mida del valor",
         "negativeTrendColor": "Color tendència negativa",
-        "positiveTrendColor": "Color tendència positiva"
+        "positiveTrendColor": "Color tendència positiva",
+        "latitudeField": "Camp latitud",
+        "longitudeField": "Camp longitud",
+        "markerLabelField": "Camp etiqueta marcador"
       },
       "pages": {
         "title": "Pàgines",

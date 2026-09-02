@@ -2043,7 +2043,10 @@
         "valueColor": "Value Color",
         "valueSize": "Value Size",
         "negativeTrendColor": "Negative Trend Color",
-        "positiveTrendColor": "Positive Trend Color"
+        "positiveTrendColor": "Positive Trend Color",
+        "latitudeField": "Latitude Field",
+        "longitudeField": "Longitude Field",
+        "markerLabelField": "Marker Label Field"
       },
       "pages": {
         "title": "Pages",

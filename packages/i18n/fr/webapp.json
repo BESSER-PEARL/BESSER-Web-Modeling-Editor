@@ -2043,7 +2043,10 @@
         "valueColor": "Couleur de la valeur",
         "valueSize": "Taille de la valeur",
         "negativeTrendColor": "Couleur tendance négative",
-        "positiveTrendColor": "Couleur tendance positive"
+        "positiveTrendColor": "Couleur tendance positive",
+        "latitudeField": "Champ latitude",
+        "longitudeField": "Champ longitude",
+        "markerLabelField": "Champ libellé marqueur"
       },
       "pages": {
         "title": "Pages",
