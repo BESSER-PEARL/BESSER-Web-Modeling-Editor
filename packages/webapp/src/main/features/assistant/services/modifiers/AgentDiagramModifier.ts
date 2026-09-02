@@ -21,7 +21,12 @@ export class AgentDiagramModifier implements DiagramModifier {
       'remove_element',
       'remove_transition',
       'add_state_body',
-      'add_rag_element'
+      'add_rag_element',
+      'add_llm',
+      'add_tool',
+      'add_skill',
+      'add_workspace',
+      'add_gui',
     ].includes(action);
   }
 
@@ -45,6 +50,16 @@ export class AgentDiagramModifier implements DiagramModifier {
         return this.addStateBody(updatedModel, modification);
       case 'add_rag_element':
         return this.addRagElement(updatedModel, modification);
+      case 'add_llm':
+        return this.addLLM(updatedModel, modification);
+      case 'add_tool':
+        return this.addTool(updatedModel, modification);
+      case 'add_skill':
+        return this.addSkill(updatedModel, modification);
+      case 'add_workspace':
+        return this.addWorkspace(updatedModel, modification);
+      case 'add_gui':
+        return this.addGUI(updatedModel, modification);
       case 'remove_element':
         return this.removeElement(updatedModel, modification);
       default:
@@ -86,17 +101,31 @@ export class AgentDiagramModifier implements DiagramModifier {
       const bodyId = ModifierHelpers.generateUniqueId('body');
       bodies.push(bodyId);
 
+      const replyType = reply.replyType || 'text';
+      const ACTION_MAP: Record<string, string> = {
+        text: 'TextReplyAction', llm: 'LLMReplyAction', llm_chat: 'LLMChatAction',
+        rag: 'RAGReplyAction', db_reply: 'DBAction', code: 'CustomCodeAction',
+        web_crawl_llm: 'WebCrawlLLMAction', ws_markdown: 'WebSocketReplyMarkdownAction',
+        ws_html: 'WebSocketReplyHTMLAction', ws_speech: 'WebSocketReplySpeechAction',
+        ws_options: 'WebSocketReplyOptionsAction', ws_location: 'WebSocketReplyLocationAction',
+        ws_file: 'WebSocketReplyFileAction', ws_image: 'WebSocketReplyImageAction',
+        ws_dataframe: 'WebSocketReplyDataframeAction', ws_plotly: 'WebSocketReplyPlotlyAction',
+        gui_reply: 'GUIReplyAction',
+      };
       const bodyElement: any = {
         id: bodyId,
         name: reply.text || '',
         type: 'AgentStateBody',
         owner: stateId,
         bounds: { x: pos.x + 0.5, y: currentY, width: bodyWidth, height: 30 },
-        replyType: reply.replyType || 'text'
+        actionType: ACTION_MAP[replyType] || 'TextReplyAction',
+        replyType,
+        useSessionVars: false,
       };
-      if (reply.ragDatabaseName) {
-        bodyElement.ragDatabaseName = reply.ragDatabaseName;
-      }
+      if (reply.ragDatabaseName) bodyElement.ragDatabaseName = reply.ragDatabaseName;
+      if (reply.llm_name) bodyElement.llm_name = reply.llm_name;
+      if (reply.system_message) bodyElement.system_message = reply.system_message;
+      if (reply.guiId) bodyElement.guiId = reply.guiId;
       model.elements[bodyId] = bodyElement;
       currentY += 30;
     }
@@ -107,67 +136,52 @@ export class AgentDiagramModifier implements DiagramModifier {
       id: stateId,
       name: target.stateName || changes.name || '',
       type: 'AgentState',
+      stateType: 'standard',
       owner: null,
       bounds: { x: pos.x, y: pos.y, width: stateWidth, height: totalHeight },
+      fallbackBodyEnabled: fallbackBodies.length > 0,
+      actions: bodies,
+      fallbackActions: fallbackBodies,
       bodies,
-      fallbackBodies
+      fallbackBodies,
     };
 
     return model;
   }
 
   /**
-   * Add a new intent with optional training phrases
+   * Add a new intent with optional training phrases (goes to components, no bounds)
    */
   private addIntent(model: BESSERModel, modification: ModelModification): BESSERModel {
     const changes = modification.changes;
     const target = modification.target;
 
-    // Auto-position: find max Y of existing elements and place below
-    let maxY = 0;
-    for (const element of Object.values(model.elements)) {
-      const bottom = (element.bounds?.y || 0) + (element.bounds?.height || 0);
-      if (bottom > maxY) maxY = bottom;
+    if (!model.components) {
+      model.components = {};
     }
-    const pos = { x: 100, y: maxY + 40 };
 
     const intentId = ModifierHelpers.generateUniqueId('intent');
     const bodies: string[] = [];
     const phrases = changes.trainingPhrases || [];
 
-    // Estimate width from phrase text lengths
-    let intentWidth = 230;
-    for (const phrase of phrases) {
-      const estimated = phrase.length * 8 + 40;
-      if (estimated > intentWidth) intentWidth = estimated;
-    }
-    const bodyWidth = intentWidth - 1;
-
-    // Create intent body elements from training phrases
-    let currentY = pos.y + 41;
     for (const phrase of phrases) {
       const bodyId = ModifierHelpers.generateUniqueId('intentBody');
       bodies.push(bodyId);
-
-      model.elements[bodyId] = {
+      model.components[bodyId] = {
         id: bodyId,
         name: phrase,
         type: 'AgentIntentBody',
         owner: intentId,
-        bounds: { x: pos.x + 0.5, y: currentY, width: bodyWidth, height: 30 }
       };
-      currentY += 30;
     }
 
-    const totalHeight = Math.max(130, currentY - pos.y + 10);
-
-    model.elements[intentId] = {
+    model.components[intentId] = {
       id: intentId,
       name: target.intentName || changes.intentName || changes.name || '',
       type: 'AgentIntent',
       owner: null,
-      bounds: { x: pos.x, y: pos.y, width: intentWidth, height: totalHeight },
-      bodies
+      intent_description: changes.intentDescription || '',
+      bodies,
     };
 
     return model;
@@ -195,13 +209,12 @@ export class AgentDiagramModifier implements DiagramModifier {
   private modifyIntent(model: BESSERModel, modification: ModelModification): BESSERModel {
     const { intentId, intentName } = modification.target;
     const targetId = intentId || this.findIntentIdByName(model, intentName!);
+    const components = model.components || {};
 
-    if (targetId && model.elements[targetId]) {
+    if (targetId && components[targetId]) {
       if (modification.changes.name) {
-        model.elements[targetId].name = modification.changes.name;
+        components[targetId].name = modification.changes.name;
       }
-      
-      // Add training phrase if specified
       if (modification.changes.text) {
         this.addIntentTrainingPhrase(model, targetId, modification.changes.text);
       }
@@ -211,44 +224,24 @@ export class AgentDiagramModifier implements DiagramModifier {
   }
 
   /**
-   * Add a training phrase to an intent
+   * Add a training phrase to an intent (intent lives in components, no bounds)
    */
   private addIntentTrainingPhrase(model: BESSERModel, intentId: string, phrase: string): void {
-    const intent = model.elements[intentId];
-    if (!intent || intent.type !== 'AgentIntent') return;
+    if (!model.components) model.components = {};
+    const intentElement = model.components[intentId];
+    if (!intentElement || intentElement.type !== 'AgentIntent') return;
 
     const bodyId = ModifierHelpers.generateUniqueId('intentBody');
-    const intentElement = model.elements[intentId];
     const bodies = intentElement.bodies || [];
-    
-    // Calculate position for new body
-    const lastBodyId = bodies[bodies.length - 1];
-    let newY = intentElement.bounds.y + 41;
-    
-    if (lastBodyId && model.elements[lastBodyId]) {
-      const lastBody = model.elements[lastBodyId];
-      newY = lastBody.bounds.y + lastBody.bounds.height;
-    }
 
-    // Create new training phrase body
-    model.elements[bodyId] = {
+    model.components[bodyId] = {
       id: bodyId,
       name: phrase,
       type: 'AgentIntentBody',
       owner: intentId,
-      bounds: { 
-        x: intentElement.bounds.x + 0.5, 
-        y: newY, 
-        width: 229, 
-        height: 30 
-      }
     };
 
-    // Update intent to include new body
     intentElement.bodies = [...bodies, bodyId];
-    
-    // Update intent height
-    intentElement.bounds.height = Math.max(130, newY - intentElement.bounds.y + 40);
   }
 
   /**
@@ -268,8 +261,9 @@ export class AgentDiagramModifier implements DiagramModifier {
     }
 
     const bodyId = ModifierHelpers.generateUniqueId('body');
-    const bodies = stateElement.bodies || [];
-    
+    // Support both 'actions' (new key) and 'bodies' (legacy key)
+    const bodies = stateElement.actions || stateElement.bodies || [];
+
     // Calculate position for new body
     let newY = stateElement.bounds.y + 41;
     if (bodies.length > 0) {
@@ -280,27 +274,81 @@ export class AgentDiagramModifier implements DiagramModifier {
       }
     }
 
-    // Create new state body
+    const ch = modification.changes;
+    const replyType: string = ch.replyType || 'text';
+    const ACTION_TYPE_MAP: Record<string, string> = {
+      text: 'TextReplyAction', llm: 'LLMReplyAction', llm_chat: 'LLMChatAction',
+      rag: 'RAGReplyAction', db_reply: 'DBAction', code: 'CustomCodeAction',
+      web_crawl_llm: 'WebCrawlLLMAction', ws_markdown: 'WebSocketReplyMarkdownAction',
+      ws_html: 'WebSocketReplyHTMLAction', ws_speech: 'WebSocketReplySpeechAction',
+      ws_options: 'WebSocketReplyOptionsAction', ws_location: 'WebSocketReplyLocationAction',
+      ws_file: 'WebSocketReplyFileAction', ws_image: 'WebSocketReplyImageAction',
+      ws_dataframe: 'WebSocketReplyDataframeAction', ws_plotly: 'WebSocketReplyPlotlyAction',
+      gui_reply: 'GUIReplyAction',
+    };
+    const actionType = ACTION_TYPE_MAP[replyType] || 'TextReplyAction';
+
     const newBody: any = {
       id: bodyId,
-      name: modification.changes.text || 'New reply',
+      name: ch.text || 'New reply',
       type: 'AgentStateBody',
       owner: targetId,
-      bounds: {
-        x: stateElement.bounds.x + 0.5,
-        y: newY,
-        width: 209,
-        height: 30
-      },
-      replyType: modification.changes.replyType || 'text'
+      bounds: { x: stateElement.bounds.x + 0.5, y: newY, width: 209, height: 30 },
+      actionType,
+      replyType,
+      useSessionVars: false,
     };
-    if (modification.changes.ragDatabaseName) {
-      newBody.ragDatabaseName = modification.changes.ragDatabaseName;
+
+    if (actionType === 'LLMReplyAction' || actionType === 'LLMChatAction') {
+      newBody.system_message = ch.system_message || '';
+      newBody.llm_name = ch.llm_name || '';
+      newBody.systemPromptUseSessionVars = false;
+      newBody.storeInSession = ch.storeInSession || '';
+      newBody.sendReply = ch.sendReply !== false;
+      newBody.inputPromptMode = ch.inputPromptMode || 'last_user_message';
+      newBody.customInputPrompt = ch.customInputPrompt || '';
+      newBody.customInputPromptUseSessionVars = false;
     }
+    if (actionType === 'RAGReplyAction') {
+      newBody.ragDatabaseName = ch.ragDatabaseName || '';
+      newBody.llm_name = ch.llm_name || '';
+      newBody.storeInSession = ch.storeInSession || '';
+      newBody.sendReply = ch.sendReply !== false;
+    }
+    if (actionType === 'DBAction') {
+      newBody.dbSelectionType = ch.dbSelectionType || 'default';
+      newBody.dbCustomName = ch.dbCustomName || '';
+      newBody.dbQueryMode = ch.dbQueryMode || 'llm_query';
+      newBody.dbOperation = ch.dbOperation || 'any';
+      newBody.dbSqlQuery = ch.dbSqlQuery || '';
+      newBody.llm_name = ch.llm_name || '';
+      newBody.storeInSession = ch.storeInSession || '';
+      newBody.sendReply = ch.sendReply !== false;
+    }
+    if (actionType === 'WebCrawlLLMAction') {
+      newBody.initial_url = ch.initial_url || '';
+      newBody.llm_name = ch.llm_name || '';
+    }
+    if (['WebSocketReplyMarkdownAction', 'WebSocketReplyHTMLAction', 'WebSocketReplySpeechAction'].includes(actionType)) {
+      newBody.ws_message = ch.ws_message || ch.text || '';
+    }
+    if (actionType === 'WebSocketReplyOptionsAction') {
+      newBody.ws_options = ch.ws_options || '';
+    }
+    if (actionType === 'WebSocketReplyLocationAction') {
+      newBody.ws_latitude = ch.ws_latitude ?? 0;
+      newBody.ws_longitude = ch.ws_longitude ?? 0;
+    }
+    if (actionType === 'GUIReplyAction') {
+      newBody.guiId = ch.guiId || ch.gui_id || '';
+    }
+
     model.elements[bodyId] = newBody;
 
-    // Update state to include new body
-    stateElement.bodies = [...bodies, bodyId];
+    // Update state to include new body (keep both keys in sync)
+    const updatedBodies = [...bodies, bodyId];
+    stateElement.actions = updatedBodies;
+    stateElement.bodies = updatedBodies;
     
     // Update state height
     stateElement.bounds.height = Math.max(70, newY - stateElement.bounds.y + 40);
@@ -353,21 +401,25 @@ export class AgentDiagramModifier implements DiagramModifier {
       owner: null,
       bounds: { x: 0, y: 0, width: 100, height: 1 },
       path: [{ x: 0, y: 0 }, { x: 100, y: 0 }],
-      source: {
-        direction: 'Right',
-        element: sourceId
-      },
-      target: {
-        direction: 'Left',
-        element: targetId
-      },
-      isManuallyLayouted: false
+      source: { direction: 'Right', element: sourceId },
+      target: { direction: 'Left', element: targetId },
+      isManuallyLayouted: false,
     };
 
-    // Add condition for intent-based transitions
-    if (changes.condition || sourceElement?.type === 'AgentIntent') {
-      transition.condition = changes.condition || 'intent_matched';
-      transition.conditionValue = changes.name || sourceElement?.name || '';
+    if (!isInitialTransition) {
+      const condition = changes.condition || 'when_intent_matched';
+      transition.transitionType = 'predefined';
+      if (condition === 'when_intent_matched') {
+        transition.predefined = {
+          predefinedType: 'when_intent_matched',
+          intentName: changes.intentName || changes.name || '',
+        };
+      } else if (condition === 'when_no_intent_matched') {
+        transition.predefined = { predefinedType: 'when_no_intent_matched' };
+      } else {
+        transition.predefined = { predefinedType: condition };
+      }
+      transition.custom = { condition: [] };
     }
 
     model.relationships[transitionId] = transition;
@@ -406,28 +458,134 @@ export class AgentDiagramModifier implements DiagramModifier {
   }
 
   /**
-   * Add a RAG knowledge base element
+   * Add a RAG knowledge base component (goes to components, no bounds)
    */
   private addRagElement(model: BESSERModel, modification: ModelModification): BESSERModel {
+    if (!model.components) model.components = {};
+    const ch = modification.changes;
     const target = modification.target;
-    const changes = modification.changes;
-
-    // Auto-position: find max Y of existing elements and place below
-    let maxY = 0;
-    for (const element of Object.values(model.elements)) {
-      const bottom = (element.bounds?.y || 0) + (element.bounds?.height || 0);
-      if (bottom > maxY) maxY = bottom;
-    }
-    const pos = { x: 100, y: maxY + 40 };
-
     const ragId = ModifierHelpers.generateUniqueId('rag');
 
-    model.elements[ragId] = {
-      type: 'AgentRagElement',
+    model.components[ragId] = {
       id: ragId,
-      name: target.name || changes.name || 'RAG DB',
+      type: 'AgentRagElement',
+      name: target.name || ch.name || 'RAG DB',
       owner: null,
-      bounds: { x: pos.x, y: pos.y, width: 140, height: 120 }
+      llm_name: ch.llm_name || '',
+      llm_prompt: ch.llm_prompt || '',
+      k: ch.k ?? 4,
+      embedding_provider: ch.embedding_provider || 'openai',
+    };
+
+    return model;
+  }
+
+  /**
+   * Add an LLM configuration component (goes to components, no bounds)
+   */
+  private addLLM(model: BESSERModel, modification: ModelModification): BESSERModel {
+    if (!model.components) model.components = {};
+    const ch = modification.changes;
+    const target = modification.target;
+    const llmId = ModifierHelpers.generateUniqueId('llm');
+
+    model.components[llmId] = {
+      id: llmId,
+      type: 'AgentLLM',
+      name: target.name || ch.name || 'LLM',
+      owner: null,
+      provider: ch.provider || 'openai',
+      num_previous_messages: ch.num_previous_messages ?? 1,
+      global_context: ch.global_context || '',
+    };
+
+    return model;
+  }
+
+  /**
+   * Add a tool component (goes to components, no bounds)
+   */
+  private addTool(model: BESSERModel, modification: ModelModification): BESSERModel {
+    if (!model.components) model.components = {};
+    const ch = modification.changes;
+    const target = modification.target;
+    const toolId = ModifierHelpers.generateUniqueId('tool');
+
+    model.components[toolId] = {
+      id: toolId,
+      type: 'AgentTool',
+      name: target.name || ch.name || 'Tool',
+      owner: null,
+      description: ch.description || '',
+      code: ch.code || '',
+    };
+
+    return model;
+  }
+
+  /**
+   * Add a skill component (goes to components, no bounds)
+   */
+  private addSkill(model: BESSERModel, modification: ModelModification): BESSERModel {
+    if (!model.components) model.components = {};
+    const ch = modification.changes;
+    const target = modification.target;
+    const skillId = ModifierHelpers.generateUniqueId('skill');
+
+    model.components[skillId] = {
+      id: skillId,
+      type: 'AgentSkill',
+      name: target.name || ch.name || 'Skill',
+      owner: null,
+      content: ch.content || '',
+      description: ch.description || '',
+    };
+
+    return model;
+  }
+
+  /**
+   * Add a workspace component (goes to components, no bounds)
+   */
+  private addWorkspace(model: BESSERModel, modification: ModelModification): BESSERModel {
+    if (!model.components) model.components = {};
+    const ch = modification.changes;
+    const target = modification.target;
+    const wsId = ModifierHelpers.generateUniqueId('workspace');
+
+    model.components[wsId] = {
+      id: wsId,
+      type: 'AgentWorkspace',
+      name: target.name || ch.name || 'Workspace',
+      owner: null,
+      path: ch.path || '',
+      description: ch.description || '',
+      writable: ch.writable !== false,
+      max_read_bytes: 200000,
+    };
+
+    return model;
+  }
+
+  /**
+   * Add a GUI page component (goes to components, no bounds)
+   */
+  private addGUI(model: BESSERModel, modification: ModelModification): BESSERModel {
+    if (!model.components) model.components = {};
+    const ch = modification.changes;
+    const target = modification.target;
+    const guiId = ModifierHelpers.generateUniqueId('gui');
+    const guiPageId = ch.gui_id || target.name || ch.name || 'gui_page';
+
+    model.components[guiId] = {
+      id: guiId,
+      type: 'AgentGUI',
+      name: guiPageId,
+      owner: null,
+      gui_id: guiPageId,
+      persist: ch.persist !== false,
+      is_form: ch.is_form === true,
+      width: ch.width || '',
     };
 
     return model;
@@ -447,11 +605,19 @@ export class AgentDiagramModifier implements DiagramModifier {
       }
     }
 
-    // Remove intent
+    // Remove intent (lives in components in the new format)
     if (intentId || intentName) {
       const targetId = intentId || this.findIntentIdByName(model, intentName!);
       if (targetId) {
-        return ModifierHelpers.removeElementWithChildren(model, targetId);
+        if (model.components && model.components[targetId]) {
+          const intent = model.components[targetId];
+          for (const bodyId of (intent.bodies || [])) {
+            delete model.components[bodyId];
+          }
+          delete model.components[targetId];
+        } else {
+          return ModifierHelpers.removeElementWithChildren(model, targetId);
+        }
       }
     }
 
@@ -464,6 +630,15 @@ export class AgentDiagramModifier implements DiagramModifier {
   }
 
   private findIntentIdByName(model: BESSERModel, intentName: string): string | null {
+    // Intents now live in components (new format)
+    if (model.components) {
+      for (const [id, comp] of Object.entries(model.components)) {
+        if (comp.type === 'AgentIntent' && comp.name === intentName) {
+          return id;
+        }
+      }
+    }
+    // Fallback: legacy format where intents were in elements
     return ModifierHelpers.findElementByName(model, intentName, 'AgentIntent');
   }
 

@@ -2,6 +2,7 @@ import React from 'react';
 import { UMLDiagramType } from '@besser/wme';
 import {
   Atom,
+  Blocks,
   Bot,
   Brain,
   Layers3,
@@ -99,6 +100,7 @@ const personalizationRouteItems = SHOW_AGENT_PERSONALIZATION_BUTTON
   : [];
 
 export const AGENT_ROUTE_ITEMS = [
+  { path: '/agent-components', label: 'Components', labelKey: 'nav.route.agentComponents', icon: <Blocks className="size-4" /> },
   { path: '/agent-config', label: 'Agent Customization', labelKey: 'nav.route.agentCustomization', icon: <SlidersHorizontal className="size-4" /> },
   ...personalizationRouteItems,
 ] as const;

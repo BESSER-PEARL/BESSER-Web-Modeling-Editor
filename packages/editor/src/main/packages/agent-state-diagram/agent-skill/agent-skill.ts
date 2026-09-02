@@ -63,18 +63,7 @@ export class AgentSkill extends UMLElement implements IAgentSkill {
     this.description = values.description || '';
   }
 
-  render(layer: ILayer): ILayoutable[] {
-    if (!this.isManuallyLayouted) {
-      const titleWidth = Text.size(layer, this.name, { fontWeight: 'bold' }).width + 40;
-      const descriptionSource = this.description || this.content;
-      const descriptionWidth = Text.size(layer, descriptionSource, { fontWeight: 'normal' }).width + 40;
-      const autoWidth = Math.max(AGENT_SKILL_DEFAULT_WIDTH, titleWidth, descriptionWidth);
-      this.bounds.width = Math.max(AGENT_SKILL_MIN_WIDTH, Math.min(AGENT_SKILL_MAX_AUTO_WIDTH, autoWidth));
-      this.bounds.height = Math.max(this.bounds.height, 80);
-    } else {
-      this.bounds.width = Math.max(this.bounds.width, AGENT_SKILL_MIN_WIDTH);
-      this.bounds.height = Math.max(this.bounds.height, AGENT_SKILL_MIN_HEIGHT);
-    }
-    return [this];
+  render(_layer: ILayer): ILayoutable[] {
+    return [];
   }
 }

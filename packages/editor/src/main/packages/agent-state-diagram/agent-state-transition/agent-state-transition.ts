@@ -14,7 +14,8 @@ export type CustomTransitionEvent =
   | 'ReceiveMessageEvent'
   | 'ReceiveTextEvent'
   | 'ReceiveJSONEvent'
-  | 'ReceiveFileEvent';
+  | 'ReceiveFileEvent'
+  | 'GUIEvent';
 
 const CUSTOM_TRANSITION_EVENTS: CustomTransitionEvent[] = [
   'None',
@@ -24,13 +25,14 @@ const CUSTOM_TRANSITION_EVENTS: CustomTransitionEvent[] = [
   'ReceiveTextEvent',
   'ReceiveJSONEvent',
   'ReceiveFileEvent',
+  'GUIEvent',
 ];
 
 export class AgentStateTransition extends UMLRelationshipCenteredDescription implements IUMLStateTransition {
   type = AgentRelationshipType.AgentStateTransition;
   params: { [id: string]: string } = {};
   transitionType: 'predefined' | 'custom' = 'predefined';
-  predefinedType: string | undefined = 'when_intent_matched';
+  predefinedType: string | undefined = 'auto';
   intentName: string | undefined = undefined;
   variable: string | undefined = undefined;
   operator: string | undefined = undefined;
@@ -38,6 +40,8 @@ export class AgentStateTransition extends UMLRelationshipCenteredDescription imp
   fileType: string | undefined = undefined;
   event: CustomTransitionEvent = 'WildcardEvent';
   conditions: string[] = [];
+  guiEventGuiId: string | undefined = undefined;
+  formGuiId: string | undefined = undefined;
   constructor(values?: DeepPartial<Apollon.AgentStateTransition>) {
     super(values);
     this.params = {};
@@ -77,6 +81,16 @@ export class AgentStateTransition extends UMLRelationshipCenteredDescription imp
     }
     if (values?.fileType) {
       this.fileType = values.fileType;
+    }
+    if ((values?.custom as any)?.guiEventGuiId) {
+      this.guiEventGuiId = (values.custom as any).guiEventGuiId;
+    } else if ((values as any)?.guiEventGuiId) {
+      this.guiEventGuiId = (values as any).guiEventGuiId;
+    }
+    if ((values?.predefined as any)?.formGuiId) {
+      this.formGuiId = (values.predefined as any).formGuiId;
+    } else if ((values as any)?.formGuiId) {
+      this.formGuiId = (values as any).formGuiId;
     }
     if (values?.custom?.event) {
       this.event = values.custom.event;
@@ -134,6 +148,7 @@ export class AgentStateTransition extends UMLRelationshipCenteredDescription imp
       predefinedType: string;
       intentName?: string;
       fileType?: string;
+      formGuiId?: string;
       conditionValue?: string | { variable: string; operator: string; targetValue: string };
     } = {
       predefinedType,
@@ -143,6 +158,8 @@ export class AgentStateTransition extends UMLRelationshipCenteredDescription imp
       predefined.intentName = this.intentName || '';
     } else if (predefinedType === 'when_file_received') {
       predefined.fileType = this.fileType || '';
+    } else if (predefinedType === 'when_form_submitted') {
+      predefined.formGuiId = this.formGuiId || '';
     } else {
       predefined.conditionValue = conditionValue;
     }
@@ -157,6 +174,7 @@ export class AgentStateTransition extends UMLRelationshipCenteredDescription imp
           ? {
               event: this.event,
               condition: this.conditions,
+              ...(this.event === 'GUIEvent' ? { guiEventGuiId: this.guiEventGuiId || '' } : {}),
             }
           : {
               condition: [],
@@ -174,11 +192,13 @@ export class AgentStateTransition extends UMLRelationshipCenteredDescription imp
         predefinedType?: string;
         intentName?: string;
         fileType?: string;
+        formGuiId?: string;
         conditionValue?: string | { variable: string; operator: string; targetValue: string };
       };
       custom?: {
         event?: CustomTransitionEvent;
         condition?: string[];
+        guiEventGuiId?: string;
       };
       predefinedType?: string;
       event?: CustomTransitionEvent;
@@ -188,6 +208,8 @@ export class AgentStateTransition extends UMLRelationshipCenteredDescription imp
       fileType?: string;
       customEvent?: CustomTransitionEvent;
       customConditions?: string[];
+      guiEventGuiId?: string;
+      formGuiId?: string;
     },
     children?: Apollon.UMLModelElement[],
   ): void {
@@ -211,6 +233,7 @@ export class AgentStateTransition extends UMLRelationshipCenteredDescription imp
     const nextConditionValue = values.predefined?.conditionValue ?? values.conditionValue;
     const nextIntentName = values.predefined?.intentName;
     const nextFileType = values.predefined?.fileType;
+    const nextFormGuiName = values.predefined?.formGuiId ?? values.formGuiId;
 
     const hasExplicitCustomData =
       !!values.custom &&
@@ -236,6 +259,11 @@ export class AgentStateTransition extends UMLRelationshipCenteredDescription imp
         this.conditions = values.condition;
       } else if (values.customConditions) {
         this.conditions = values.customConditions;
+      }
+      if (values.custom?.guiEventGuiId !== undefined) {
+        this.guiEventGuiId = values.custom.guiEventGuiId;
+      } else if (values.guiEventGuiId !== undefined) {
+        this.guiEventGuiId = values.guiEventGuiId;
       }
 
       if (typeof nextConditionValue === 'object' && nextConditionValue && 'events' in nextConditionValue) {
@@ -272,6 +300,8 @@ export class AgentStateTransition extends UMLRelationshipCenteredDescription imp
       }
     } else if (this.predefinedType === 'when_file_received') {
       this.fileType = nextFileType ?? (nextConditionValue as string);
+    } else if (this.predefinedType === 'when_form_submitted') {
+      this.formGuiId = nextFormGuiName ?? '';
     }
   }
-} 
+}

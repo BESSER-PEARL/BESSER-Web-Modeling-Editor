@@ -56,7 +56,8 @@
       "settings": "Configuració",
       "agentCustomization": "Personalització de l'agent",
       "agentPersonalization": "Personalització avançada de l'agent",
-      "agentMappings": "Assignacions de l'agent"
+      "agentMappings": "Assignacions de l'agent",
+      "agentComponents": "Components"
     }
   },
   "menu": {
@@ -187,7 +188,111 @@
       "intentLlmBased": "Basat en LLM",
       "llm": "LLM",
       "useDefault": "(utilitza el predeterminat)",
-      "defineLlmHint": "Defineix un LLM a la secció d'LLMs de sota per fer-lo servir aquí."
+      "defineLlmHint": "Defineix un LLM a la secció d'LLMs de sota per fer-lo servir aquí.",
+      "defineLlmsHint": "Defineix els LLM a la pàgina <strong>Components de l’agent</strong>.",
+      "enabled": "Activat",
+      "boolTrue": "Cert",
+      "boolFalse": "Fals",
+      "sidebarSettings": "Configuració",
+      "sidebarConfigFile": "Fitxer de configuració",
+      "sidebarPlatforms": "Plataformes",
+      "apiKeys": "Claus d’API",
+      "subsectionStreamlit": "Streamlit",
+      "subsectionChat": "Chat",
+      "subsectionMonitoring": "Monitoratge",
+      "field": {
+        "agent": {
+          "checkTransitionsDelayDesc": "Retard en segons entre cada cicle d’avaluació de transicions."
+        },
+        "nlp": {
+          "languageDesc": "Idioma esperat de l’usuari (ISO 639-1).",
+          "regionDesc": "Regió de l’idioma (ISO 3166-1 alpha-2).",
+          "timezoneDesc": "Zona horària per a les operacions de data i hora.",
+          "intentThresholdDesc": "Llindar de confiança per a les prediccions d’intenció.",
+          "preProcessingDesc": "Activa la lematització per reduir les paraules a la seva forma base.",
+          "huggingfaceTokenDesc": "Clau d’API per a l’API d’inferència de HuggingFace.",
+          "openaiApiKeyDesc": "Clau d’API d’OpenAI per accedir al LLM.",
+          "replicateApiKeyDesc": "Clau d’API de Replicate per a la inferència de models."
+        },
+        "websocket": {
+          "hostDesc": "Adreça del servidor per a les connexions WebSocket.",
+          "portDesc": "Número de port del servidor WebSocket.",
+          "streamlitHostDesc": "Adreça de l’amfitrió per a la interfície de Streamlit.",
+          "streamlitPortDesc": "Port per a la interfície de Streamlit.",
+          "chatSizeDesc": "Mida de lletra predeterminada per al xat.",
+          "chatFontDesc": "Família tipogràfica del text del xat.",
+          "chatLineSpacingDesc": "Multiplicador de l’alçada de línia.",
+          "chatAlignmentDesc": "Alineació horitzontal del text.",
+          "chatColorDesc": "Ajust del color del text.",
+          "chatContrastDesc": "Nivell de contrast per a la llegibilitat."
+        },
+        "telegram": {
+          "tokenDesc": "Token d’autenticació del bot per a l’API de Telegram."
+        },
+        "github": {
+          "personalTokenDesc": "Token d’accés personal per a l’API de GitHub.",
+          "webhookTokenDesc": "Token secret per a la verificació del webhook.",
+          "webhookPortDesc": "Port del servidor local exposat a GitHub."
+        },
+        "gitlab": {
+          "personalTokenDesc": "Token d’accés personal per a l’API de GitLab.",
+          "webhookTokenDesc": "Token secret per a la verificació del webhook.",
+          "webhookPortDesc": "Port del servidor local exposat a GitLab."
+        },
+        "a2a": {
+          "portDesc": "Port local per a la comunicació entre agents."
+        },
+        "db": {
+          "dialectDesc": "Identificador del sistema de base de dades (p. ex. postgresql)",
+          "hostDesc": "Adreça del servidor de base de dades",
+          "portDesc": "Port de connexió a la base de dades",
+          "databaseDesc": "Nom de la base de dades",
+          "usernameDesc": "Credencials de l’usuari de la base de dades",
+          "passwordDesc": "Contrasenya d’autenticació de la base de dades"
+        }
+      },
+      "section": {
+        "runtime": {
+          "desc": "Configuració d’execució del diagrama d’agent actiu. Es desa en el mateix diagrama, no en l’emmagatzematge global."
+        },
+        "agent": {
+          "desc": "Configuració principal d’execució de l’agent."
+        },
+        "nlp": {
+          "desc": "Configuració del processament del llenguatge natural per al reconeixement d’intencions."
+        },
+        "websocket": {
+          "title": "WebSocket",
+          "desc": "Configuració del servidor WebSocket i de la interfície de Streamlit."
+        },
+        "telegram": {
+          "title": "Telegram",
+          "desc": "Configuració de la integració del bot de Telegram."
+        },
+        "github": {
+          "title": "GitHub",
+          "desc": "Configuració de la integració del webhook de GitHub."
+        },
+        "gitlab": {
+          "title": "GitLab",
+          "desc": "Configuració de la integració del webhook de GitLab."
+        },
+        "a2a": {
+          "title": "A2A",
+          "desc": "Configuració de la comunicació entre agents."
+        },
+        "database": {
+          "title": "Base de dades",
+          "desc": "Connexions de base de dades per al monitoratge i Streamlit."
+        },
+        "custom": {
+          "title": "YAML personalitzat",
+          "desc": "Propietats YAML addicionals afegides al final del config.yaml generat."
+        },
+        "raw": {
+          "desc": "Vista de només lectura del config.yaml generat complet. Edita seccions individuals o afegeix YAML personalitzat."
+        }
+      }
     },
     "llms": {
       "title": "LLMs",
@@ -386,7 +491,7 @@
     "yamlEditor": {
       "tab": {
         "form": "Formulari",
-        "raw": "YAML sense format"
+        "raw": "YAML final"
       },
       "section": {
         "agent": "Agent",
@@ -442,6 +547,31 @@
         "dbDatabase": "Nom de la base de dades",
         "dbUsername": "Credencials d'usuari de la base de dades",
         "dbPassword": "Contrasenya d'autenticació de la base de dades"
+      },
+      "provider": {
+        "openai": "OpenAI",
+        "mistral": "Mistral AI",
+        "deepseek": "DeepSeek",
+        "google": "Google (Gemini)",
+        "meta": "Meta (Llama)",
+        "anthropic": "Anthropic (Claude)",
+        "qwen": "Alibaba Qwen",
+        "xai": "xAI (Grok)",
+        "groq": "Groq",
+        "together": "Together AI",
+        "openrouter": "OpenRouter",
+        "huggingface": "HuggingFace",
+        "replicate": "Replicate"
+      },
+      "subsection": {
+        "websocket": "websocket",
+        "streamlit": "streamlit",
+        "chat": "chat",
+        "telegram": "telegram",
+        "github": "github",
+        "gitlab": "gitlab",
+        "a2a": "a2a",
+        "monitoring": "monitoring"
       }
     },
     "importExport": {
@@ -463,6 +593,7 @@
         "description": "El perfil d'usuari \"{{profile}}\" ja està assignat a la configuració \"{{existing}}\". En desar-la se substituirà aquesta assignació per \"{{next}}\"."
       }
     },
+    "noActiveDiagram": "No hi ha cap diagrama d'agent actiu. Obre primer un diagrama d'agent.",
     "toasts": {
       "persistFailed": "No s'ha pogut actualitzar el diagrama d'agent.",
       "noActiveDiagram": "No hi ha cap diagrama d'agent actiu.",
@@ -2468,6 +2599,247 @@
       "measurementOutput": "Sortida de mesura: generada automàticament a partir de les portes de mesura",
       "dropHere": "Deixa-ho anar aquí",
       "invalid": "No vàlid"
+    }
+  },
+  "agentComponents": {
+    "noActiveDiagram": "No hi ha cap diagrama d'agent actiu.",
+    "sidebarTitle": "Components",
+    "unnamed": "Sense nom",
+    "nav": {
+      "llms": "LLMs",
+      "intents": "Intencions",
+      "tools": "Eines",
+      "skills": "Habilitats",
+      "workspaces": "Espais de treball",
+      "ragDatabases": "Bases de dades RAG",
+      "sqlDatabases": "Bases de dades SQL",
+      "guis": "GUIs"
+    },
+    "llms": {
+      "title": "LLMs",
+      "description": "Models de llenguatge disponibles per a l'agent. Els LLMs es referencien per nom des dels estats i bases de dades RAG.",
+      "addLabel": "Afegir LLM",
+      "empty": "Encara no hi ha LLMs definits.",
+      "modelName": "Nom del model",
+      "modelNamePlaceholder": "e.g. main_llm",
+      "modelNameDescription": "Identificador usat per referenciar aquest LLM.",
+      "provider": "Proveïdor",
+      "setDefault": "Establir com a LLM predeterminat",
+      "setDefaultDescription": "Usa aquest LLM quan no es seleccioni cap LLM específic en una acció d'estat.",
+      "numPrevMessages": "Núm. missatges anteriors",
+      "parameters": "Paràmetres",
+      "parametersDescription": "Paràmetres específics del proveïdor com a objecte JSON.",
+      "globalContext": "Context global",
+      "globalContextPlaceholder": "Instruccions opcionals a nivell de sistema per a aquest LLM"
+    },
+    "intents": {
+      "title": "Intencions",
+      "description": "Intencions d'usuari reconegudes per l'agent. Cada intenció pot tenir frases d'entrenament per millorar el reconeixement.",
+      "addLabel": "Afegir intenció",
+      "empty": "Encara no hi ha intencions definides.",
+      "sentenceCount_one": "{{count}} frase",
+      "sentenceCount_other": "{{count}} frases",
+      "name": "Nom de la intenció",
+      "namePlaceholder": "e.g. greet_user",
+      "intentDescription": "Descripció (opcional)",
+      "intentDescriptionPlaceholder": "Descripció breu del que captura aquesta intenció",
+      "trainingSentences": "Frases d'entrenament",
+      "addSentence": "Afegir frase",
+      "noSentences": "Encara no hi ha frases d'entrenament. Afegeix-ne per millorar el reconeixement d'intencions.",
+      "sentencePlaceholder": "e.g. Hello there"
+    },
+    "tools": {
+      "title": "Eines",
+      "description": "Funcions Python que es poden cridar des dels estats de raonament durant l'execució de l'agent.",
+      "addLabel": "Afegir eina",
+      "empty": "Encara no hi ha eines definides.",
+      "warning": "Les eines només es poden usar per un estat de raonament. Afegeix un estat de raonament al diagrama d'agent per usar eines.",
+      "name": "Nom de l'eina",
+      "namePlaceholder": "e.g. search_web",
+      "toolDescription": "Descripció",
+      "toolDescriptionPlaceholder": "Descripció breu mostrada a l'LLM",
+      "code": "Codi Python",
+      "codeDescription": "Usa el paràmetre `session` per accedir a la sessió de l'agent."
+    },
+    "skills": {
+      "title": "Habilitats",
+      "description": "Documents de coneixement en Markdown proporcionats als estats de raonament.",
+      "addLabel": "Afegir habilitat",
+      "empty": "Encara no hi ha habilitats definides.",
+      "warning": "Les habilitats només es poden usar per un estat de raonament. Afegeix un estat de raonament al diagrama d'agent per usar habilitats.",
+      "name": "Nom de l'habilitat",
+      "namePlaceholder": "e.g. product_knowledge",
+      "skillDescription": "Descripció",
+      "skillDescriptionPlaceholder": "Descripció breu opcional",
+      "content": "Contingut Markdown",
+      "contentPlaceholder": "# Skill\n\nInstruccions en markdown..."
+    },
+    "workspaces": {
+      "title": "Espais de treball",
+      "description": "Directoris del sistema de fitxers que l'agent pot llegir o escriure durant el raonament.",
+      "addLabel": "Afegir espai de treball",
+      "empty": "Encara no hi ha espais de treball definits.",
+      "warning": "Els espais de treball només es poden usar per un estat de raonament. Afegeix un estat de raonament al diagrama d'agent per usar espais de treball.",
+      "badgeWritable": "escrivible",
+      "badgeReadOnly": "només lectura",
+      "name": "Nom de l'espai de treball",
+      "namePlaceholder": "e.g. project_files",
+      "path": "Camí del sistema de fitxers",
+      "pathPlaceholder": "/path/to/workspace",
+      "pathDescription": "Camí absolut al directori al sistema amfitrió.",
+      "wsDescription": "Descripció",
+      "wsDescriptionPlaceholder": "Descripció opcional",
+      "writable": "Escrivible",
+      "writableDescription": "Permetre a l'agent crear o modificar fitxers.",
+      "maxReadBytes": "Bytes màx. de lectura"
+    },
+    "rags": {
+      "title": "Bases de dades RAG",
+      "description": "Bases de dades vectorials per a generació augmentada per recuperació.",
+      "addLabel": "Afegir base de dades RAG",
+      "empty": "Encara no hi ha bases de dades RAG definides.",
+      "name": "Nom",
+      "namePlaceholder": "e.g. faq_db",
+      "llm": "LLM",
+      "llmUseDefault": "(usar per defecte)",
+      "llmDescription": "LLM usat per respondre el contingut recuperat.",
+      "promptPrefix": "Prefix d'indicació LLM",
+      "promptPrefixPlaceholder": "Prefix d'indicació opcional per al LLM",
+      "kChunks": "K (fragments recuperats)",
+      "kChunksDescription": "Fragments de documents recuperats per consulta.",
+      "numPrevMessages": "Núm. missatges anteriors",
+      "embeddingProvider": "Proveïdor d'embedding",
+      "embeddingOpenai": "OpenAI",
+      "embeddingOllama": "Ollama (local)",
+      "embeddingBaseUrl": "URL base d'embedding",
+      "embeddingBaseUrlPlaceholder": "http://localhost:11434",
+      "embeddingModel": "Model d'embedding",
+      "embeddingModelPlaceholder": "e.g. nomic-embed-text"
+    },
+    "guis": {
+      "title": "GUIs",
+      "description": "Components d'interfície gràfica que l'agent pot enviar com a respostes de xat o reaccionar a través d'esdeveniments GUI.",
+      "addLabel": "Crear GUI",
+      "empty": "Encara no hi ha GUIs definides.",
+      "badgeForm": "formulari",
+      "guiId": "ID de GUI (message_id)",
+      "guiIdPlaceholder": "UUID generat automàticament",
+      "guiIdDescription": "Usat com a message_id a GUIEvent i form_id a when_form_submitted.",
+      "persist": "Persistir",
+      "persistDescription": "Mantenir la GUI visible després de la interacció de l'usuari.",
+      "isForm": "És formulari",
+      "isFormDescription": "Habilita les transicions when_form_submitted per a aquesta GUI.",
+      "width": "Amplada (opcional)",
+      "widthPlaceholder": "e.g. 600px",
+      "widthDescription": "Amplada CSS del panell de la GUI.",
+      "editDesign": "Editar disseny de GUI",
+      "openEditor": "Obrir editor de GUI"
+    },
+    "sql": {
+      "title": "Bases de dades SQL",
+      "description": "Connexions a bases de dades SQL escrites a db.sql a config.yaml.",
+      "addLabel": "Afegir base de dades SQL",
+      "empty": "Encara no hi ha bases de dades SQL definides.",
+      "name": "Nom",
+      "namePlaceholder": "e.g. my_database",
+      "nameDescription": "Usat com a clau a config.yaml.",
+      "dialect": "Dialecte",
+      "dialectPostgresql": "PostgreSQL",
+      "dialectSqlite": "SQLite",
+      "dialectMysql": "MySQL",
+      "dialectMariadb": "MariaDB",
+      "dialectMssql": "Microsoft SQL Server",
+      "dialectOracle": "Oracle",
+      "databaseFilePath": "Camí del fitxer de base de dades",
+      "databaseName": "Nom de la base de dades",
+      "databaseFilePathPlaceholder": "/path/to/local.db",
+      "databaseNamePlaceholder": "YOUR-DB-NAME",
+      "host": "Host",
+      "hostPlaceholder": "localhost",
+      "port": "Port",
+      "portPlaceholder": "5432",
+      "username": "Nom d'usuari",
+      "usernamePlaceholder": "YOUR-DB-USERNAME",
+      "password": "Contrasenya",
+      "passwordPlaceholder": "YOUR-DB-PASSWORD"
+    }
+  },
+  "agentSimulation": {
+    "defaultDiagramTitle": "Agent",
+    "sidebar": {
+      "simulateAgent": "Simula l’agent"
+    },
+    "panel": {
+      "header": "Simulador: {{title}}",
+      "stop": "Atura la simulació",
+      "errorTitle": "Error de simulació",
+      "tabDiagram": "Diagrama",
+      "tabSource": "Codi font",
+      "lastTransition": "Última transició:",
+      "starting": "Iniciant la simulació…",
+      "restart": "Reinicia la simulació",
+      "reset": "Restableix",
+      "dragToResize": "Arrossega per redimensionar",
+      "loading": "L’agent s’està carregant, espera un moment."
+    },
+    "codeViewer": {
+      "copyTitle": "Copia el codi",
+      "copyLabel": "Copia el codi de l’agent generat",
+      "emptyTitle": "El codi generat apareixerà aquí",
+      "emptyDescription": "Executa el pas de validació per previsualitzar el codi de l’agent.",
+      "header": "Codi de l’agent generat"
+    },
+    "diagram": {
+      "currentState": "Estat actual:",
+      "hide": "Amaga",
+      "view": "Mostra",
+      "transitions_one": "{{count}} transició",
+      "transitions_other": "{{count}} transicions",
+      "empty": "No hi ha cap diagrama d’agent disponible"
+    },
+    "fileExplorer": {
+      "copy": "Copia el contingut del fitxer",
+      "noSessionTitle": "No hi ha cap sessió de prova activa",
+      "noSessionDescription": "Inicia una sessió de prova per explorar els fitxers generats.",
+      "loading": "Carregant els fitxers de la sessió…",
+      "filesTitle": "Fitxers",
+      "refresh": "Actualitza els fitxers",
+      "noFiles": "No s’ha trobat cap fitxer ni carpeta",
+      "selectFile": "Selecciona un fitxer per veure’n el contingut"
+    },
+    "chat": {
+      "websocketError": "Error de connexió WebSocket.",
+      "sensitivityWarning": "No comparteixis informació personal sensible al xat de prova. Les sessions es poden registrar."
+    },
+    "terminal": {
+      "expand": "Expandeix el terminal",
+      "collapse": "Redueix el terminal",
+      "header": "Sortida de l’agent",
+      "empty": "Encara no hi ha cap sortida…"
+    },
+    "credentials": {
+      "sensitivityWarning": "No comparteixis informació personal sensible (contrasenyes, dades personals, documents confidencials) al xat de simulació. Les sessions de simulació es registren i poden ser visibles per als operadors d’aquest editor.",
+      "title": "Simula l’agent: {{name}}",
+      "apiKeysTitle": "Claus d’API",
+      "ownKeys": "Usa les meves pròpies claus d’API",
+      "editorQuota": "Usa la quota de l’editor",
+      "openAiLabel": "Clau d’API d’OpenAI",
+      "optional": "(opcional)",
+      "openAiPlaceholder": "sk-...",
+      "huggingFaceLabel": "Token d’API de HuggingFace",
+      "huggingFacePlaceholder": "hf_...",
+      "replicateLabel": "Clau d’API de Replicate",
+      "replicatePlaceholder": "r8_...",
+      "limitsTitle": "Límits de recursos",
+      "memory": "Memòria",
+      "unitMb": " MB",
+      "cpu": "CPU",
+      "unitCores": " nucli(s)",
+      "disk": "Disc",
+      "lifetime": "Durada de la sessió",
+      "unitMin": " min",
+      "validationError": "La validació ha fallat: no s’ha pogut generar el codi de l’agent:",
+      "start": "Inicia la simulació"
     }
   }
 }

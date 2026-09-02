@@ -29,7 +29,7 @@ import 'codemirror/theme/material.css';
 import 'codemirror/mode/python/python';
 import { Dropdown } from '../../../components/controls/dropdown/dropdown';
 import { LayouterRepository } from '../../../services/layouter/layouter-repository';
-import { diagramBridge } from '../../../services/diagram-bridge';
+import { diagramBridge, AgentGUIInfo } from '../../../services/diagram-bridge';
 
 // ─── Styled components ────────────────────────────────────────────────────────
 
@@ -45,29 +45,53 @@ const Section = styled.section`
 `;
 
 const SectionHeader = styled.span`
-  font-size: 11px;
+  font-size: 12px;
+  font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.5px;
-  opacity: 0.6;
-  margin-bottom: 4px;
+  margin-bottom: 6px;
   display: block;
 `;
 
 const RadioGroup = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 2px;
-  padding: 4px 0;
+  gap: 8px;
+  padding: 6px 0;
+
+  label {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    font-size: 13px;
+    cursor: pointer;
+  }
+
+  input[type='radio'] {
+    width: 15px;
+    height: 15px;
+    flex-shrink: 0;
+    accent-color: ${(props: any) => props.theme.color.primary};
+    cursor: pointer;
+  }
 `;
 
 const DbFieldRow = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  padding: 4px 0;
+  gap: 6px;
+  padding: 8px 0;
 
   & + & {
-    border-top: 1px solid ${(props: any) => props.theme.color.gray}22;
+    border-top: 1px solid ${(props: any) => props.theme.color.gray};
+  }
+
+  & > label {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    opacity: 0.55;
   }
 `;
 
@@ -99,8 +123,8 @@ const LlmSelect = styled.select`
 const LlmFieldRow = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  padding: 4px 0;
+  gap: 6px;
+  padding: 6px 0;
 `;
 
 /* Body-type toggle */
@@ -126,14 +150,21 @@ const BodyTypeBtn = styled.button<{ active?: boolean }>`
 
 /* Action card */
 const ActionCard = styled.div`
-  border: 1px solid ${(props: any) => props.theme.color.gray}44;
-  border-radius: 4px;
-  margin-bottom: 6px;
-  background: transparent;
-  transition: border-color 0.15s;
+  border: 2px solid ${(props: any) => props.theme.color.gray};
+  border-left: 4px solid ${(props: any) => props.theme.color.primary}99;
+  border-radius: 8px;
+  margin-bottom: 18px;
+  background: ${(props: any) => props.theme.color.background};
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.07);
+  transition: border-color 0.15s, box-shadow 0.15s;
+  &:hover {
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.11);
+  }
   &[data-drag-over='true'] {
     border-color: ${(props: any) => props.theme.color.primary};
+    border-left-color: ${(props: any) => props.theme.color.primary};
     background: ${(props: any) => props.theme.color.primary}11;
+    box-shadow: 0 2px 8px ${(props: any) => props.theme.color.primary}33;
   }
   &[data-dragging='true'] {
     opacity: 0.4;
@@ -144,19 +175,21 @@ const ActionCardHeader = styled.div`
   display: flex;
   align-items: center;
   gap: 4px;
-  padding: 5px 6px;
+  padding: 7px 8px;
   cursor: default;
+  background: ${(props: any) => props.theme.color.backgroundVariant}55;
+  border-radius: 7px 7px 0 0;
 `;
 
 const DragHandle = styled.span`
   cursor: grab;
-  opacity: 0.4;
+  opacity: 0.35;
   font-size: 14px;
   line-height: 1;
   flex-shrink: 0;
   user-select: none;
   &:hover {
-    opacity: 0.9;
+    opacity: 0.8;
   }
   &:active {
     cursor: grabbing;
@@ -164,18 +197,20 @@ const DragHandle = styled.span`
 `;
 
 const ActionTypeBadge = styled.span`
-  font-size: 10px;
+  font-size: 16px;
   text-transform: uppercase;
-  background: ${(props: any) => props.theme.color.gray}22;
-  padding: 2px 5px;
-  border-radius: 3px;
-  letter-spacing: 0.4px;
+  background: ${(props: any) => props.theme.color.primaryContrast}11;
+  color: ${(props: any) => props.theme.color.primaryContrast};
+  padding: 2px 8px;
+  border-radius: 4px;
+  letter-spacing: 0.5px;
+  font-weight: 600;
   flex-shrink: 0;
 `;
 
 const ActionSummary = styled.span`
   flex: 1;
-  font-size: 12px;
+  font-size: 13px;
   opacity: 0.75;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -187,18 +222,27 @@ const IconBtn = styled.button`
   border: none;
   cursor: pointer;
   padding: 2px 4px;
-  opacity: 0.55;
+  opacity: 0.45;
   font-size: 13px;
   line-height: 1;
   flex-shrink: 0;
+  border-radius: 3px;
+  transition: opacity 0.1s, background 0.1s;
   &:hover {
     opacity: 1;
+    background: ${(props: any) => props.theme.color.gray}66;
   }
 `;
 
 const ActionBody = styled.div`
-  padding: 0 8px 8px 8px;
-  border-top: 1px solid ${(props: any) => props.theme.color.gray}22;
+  padding: 10px 12px 12px 12px;
+  border-top: 1px solid ${(props: any) => props.theme.color.gray};
+  background: ${(props: any) => props.theme.color.backgroundVariant}33;
+  border-radius: 0 0 7px 7px;
+
+  h1 {
+    color: ${(props: any) => props.theme.color.primary};
+  }
 `;
 
 const AddActionRow = styled.div`
@@ -220,8 +264,18 @@ const ToggleLabel = styled.label`
 const CheckboxRow = styled.label`
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 4px 0;
+  gap: 8px;
+  padding: 5px 0;
+  font-size: 13px;
+  cursor: pointer;
+
+  input[type='checkbox'] {
+    width: 15px;
+    height: 15px;
+    flex-shrink: 0;
+    accent-color: ${(props: any) => props.theme.color.primary};
+    cursor: pointer;
+  }
 `;
 
 const WsWarning = styled.p`
@@ -231,13 +285,61 @@ const WsWarning = styled.p`
   opacity: 0.85;
 `;
 
+const ActionIndex = styled.span`
+  font-size: 10px;
+  font-weight: 700;
+  opacity: 0.35;
+  flex-shrink: 0;
+  min-width: 14px;
+  text-align: center;
+`;
+
 const NewActionLabel = styled.div`
-  font-size: 11px;
+  font-size: 12px;
+  font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.5px;
+  margin-top: 18px;
+  margin-bottom: 6px;
+  padding-top: 14px;
+  border-top: 2px solid ${(props: any) => props.theme.color.gray};
+`;
+
+const VarHint = styled.p`
+  font-size: 11px;
   opacity: 0.55;
-  margin-top: 8px;
-  margin-bottom: 4px;
+  margin: 2px 0 4px 0;
+  font-style: italic;
+`;
+
+const PromptModeRow = styled.div`
+  display: flex;
+  gap: 4px;
+  margin-bottom: 6px;
+`;
+
+const PromptModeBtn = styled.button<{ active?: boolean }>`
+  flex: 1;
+  padding: 5px 8px;
+  border-radius: 4px;
+  border: 1px solid ${(props: any) => props.theme.color.gray};
+  background: ${(props: any) => (props.active ? props.theme.color.primary : 'transparent')};
+  color: ${(props: any) => (props.active ? '#fff' : 'inherit')};
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: ${(props: any) => (props.active ? 600 : 400)};
+  &:hover:not(:disabled) { opacity: 0.85; }
+`;
+
+const StoreInSessionRow = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 12px;
+  padding: 10px;
+  border-radius: 6px;
+  border: 1px solid ${(props: any) => props.theme.color.gray};
+  background: ${(props: any) => props.theme.color.background};
 `;
 
 const SectionTabRow = styled.div`
@@ -261,6 +363,59 @@ const SectionTab = styled.button<{ active?: boolean }>`
   }
 `;
 
+const NewActionOptionList = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  margin-bottom: 2px;
+`;
+
+const NewActionOptionBtn = styled.button<{ active?: boolean; dimmed?: boolean; warn?: boolean }>`
+  width: 100%;
+  padding: 6px 10px;
+  border-radius: 4px;
+  border: ${(props: any) =>
+    props.dimmed
+      ? 'none'
+      : props.active
+        ? `1px solid ${props.warn ? '#e04040' : props.theme.color.primary}`
+        : `1px solid ${props.warn ? '#e0404055' : props.theme.color.gray + '88'}`};
+  background: ${(props: any) =>
+    props.active
+      ? props.dimmed ? '#888888' : props.warn ? '#e04040' : props.theme.color.primary
+      : props.theme.color.background};
+  color: ${(props: any) =>
+    props.active ? '#fff' : props.dimmed ? '#888888' : props.warn ? '#e04040' : props.theme.color.primary};
+  cursor: pointer;
+  font-size: 12px;
+  text-align: left;
+  font-weight: ${(props: any) => (props.active ? 600 : 400)};
+  transition: opacity 0.1s;
+  &:hover {
+    opacity: 0.85;
+  }
+`;
+
+const AddActionButton = styled(Button)`
+  && {
+    background-color: #28a745;
+    border-color: #28a745;
+    color: #fff;
+  }
+  &&:hover {
+    background-color: #218838;
+    border-color: #1e7e34;
+  }
+`;
+
+const ActionDesc = styled.p`
+  font-size: 11px;
+  opacity: 0.65;
+  margin: 6px 0 4px 0;
+  font-style: italic;
+  line-height: 1.4;
+`;
+
 const WS_REPLY_TYPES = new Set([
   'ws_markdown',
   'ws_html',
@@ -273,21 +428,43 @@ const WS_REPLY_TYPES = new Set([
   'ws_plotly',
 ]);
 
+const PLACEHOLDER_ACTIONS = new Set(['ws_file', 'ws_image', 'ws_dataframe', 'ws_plotly']);
+
+// Maps of reply-type -> i18n key. Resolved via translate() at render time
+// (module scope cannot access this.props.translate).
+const ACTION_DESCRIPTION_KEYS: Record<string, string> = {
+  text: 'packages.AgentDiagram.actionDesc.text',
+  llm: 'packages.AgentDiagram.actionDesc.llm',
+  llm_chat: 'packages.AgentDiagram.actionDesc.llmChat',
+  rag: 'packages.AgentDiagram.actionDesc.rag',
+  db_reply: 'packages.AgentDiagram.actionDesc.dbReply',
+  web_crawl_llm: 'packages.AgentDiagram.actionDesc.webCrawlLlm',
+  ws_markdown: 'packages.AgentDiagram.actionDesc.wsMarkdown',
+  ws_html: 'packages.AgentDiagram.actionDesc.wsHtml',
+  ws_speech: 'packages.AgentDiagram.actionDesc.wsSpeech',
+  ws_options: 'packages.AgentDiagram.actionDesc.wsOptions',
+  ws_location: 'packages.AgentDiagram.actionDesc.wsLocation',
+  ws_file: 'packages.AgentDiagram.actionDesc.wsFile',
+  ws_image: 'packages.AgentDiagram.actionDesc.wsImage',
+  ws_dataframe: 'packages.AgentDiagram.actionDesc.wsDataframe',
+  ws_plotly: 'packages.AgentDiagram.actionDesc.wsPlotly',
+  gui_reply: 'packages.AgentDiagram.actionDesc.guiReply',
+};
+
+const PLACEHOLDER_WARNING_KEYS: Record<string, string> = {
+  ws_file: 'packages.AgentDiagram.placeholderWarning.wsFile',
+  ws_image: 'packages.AgentDiagram.placeholderWarning.wsImage',
+  ws_dataframe: 'packages.AgentDiagram.placeholderWarning.wsDataframe',
+  ws_plotly: 'packages.AgentDiagram.placeholderWarning.wsPlotly',
+};
+
 type ActionSection = 'simple' | 'ai' | 'data';
 
+const SIMPLE_LEFT_COLUMN  = ['text', 'ws_speech', 'ws_options', 'gui_reply', 'ws_location', 'ws_html', 'ws_markdown'];
+const SIMPLE_RIGHT_COLUMN = ['ws_file', 'ws_image', 'ws_dataframe', 'ws_plotly'];
+
 const SECTION_ACTION_TYPES: Record<ActionSection, string[]> = {
-  simple: [
-    'text',
-    'ws_markdown',
-    'ws_html',
-    'ws_speech',
-    'ws_options',
-    'ws_location',
-    'ws_file',
-    'ws_image',
-    'ws_dataframe',
-    'ws_plotly',
-  ],
+  simple: [...SIMPLE_LEFT_COLUMN, ...SIMPLE_RIGHT_COLUMN],
   ai: ['llm', 'llm_chat'],
   data: ['rag', 'db_reply', 'web_crawl_llm'],
 };
@@ -322,6 +499,43 @@ type DbReplyValues = {
   dbSqlQuery: string;
 };
 
+type MemberSnapshot = {
+  replyType: string;
+  name: string;
+  ragDatabaseName: string;
+  prompt: string;
+  dbSelectionType: string;
+  dbCustomName: string;
+  dbQueryMode: string;
+  dbOperation: string;
+  dbSqlQuery: string;
+  llm_name: string;
+  system_message: string;
+  inputPromptMode: string;
+  customInputPrompt: string;
+  customInputPromptUseSessionVars: boolean;
+  systemPromptUseSessionVars: boolean;
+  promptUseSessionVars: boolean;
+  storeInSession: string;
+  useSessionVars: boolean;
+  initial_url: string;
+  max_depth: number;
+  max_pages: number;
+  crawl_format: string;
+  base_url_prefix: string;
+  run_crawl: boolean;
+  no_crawl_error_message: string;
+  system_message_prefix: string;
+  systemMessagePrefixUseSessionVars: boolean;
+  sendReply: boolean;
+  ws_message: string;
+  ws_audio_speed: number | null;
+  ws_options: string;
+  ws_latitude: number;
+  ws_longitude: number;
+  guiId: string;
+};
+
 interface State {
   colorOpen: boolean;
   newBodyActionType: string;
@@ -341,25 +555,33 @@ interface State {
   // mouse is pressed on that card's drag handle — so clicking inside a text
   // field selects/positions the cursor normally instead of starting a drag.
   dragArmedKey: string | null;
+  // Stashes for preserving content when toggling between predefined / custom body modes.
+  bodyPredefinedStash: MemberSnapshot[] | null;
+  fallbackPredefinedStash: MemberSnapshot[] | null;
+  bodyCustomStash: string | null;
+  fallbackCustomStash: string | null;
 }
 
-const ACTION_TYPE_LABELS: Record<string, string> = {
-  text: 'Text',
-  llm: 'LLM',
-  llm_chat: 'LLM Chat',
-  rag: 'RAG',
-  db_reply: 'SQL Query',
-  code: 'Python Code',
-  web_crawl_llm: 'Web Crawl + LLM',
-  ws_markdown: 'Markdown',
-  ws_html: 'HTML',
-  ws_speech: 'Speech',
-  ws_options: 'Options',
-  ws_location: 'Location',
-  ws_file: 'File',
-  ws_image: 'Image',
-  ws_dataframe: 'Dataframe',
-  ws_plotly: 'Plotly',
+// Maps of reply-type -> i18n key for the short action-type labels. Resolved
+// via translate() at render time (module scope cannot access this.props.translate).
+const ACTION_TYPE_LABEL_KEYS: Record<string, string> = {
+  text: 'packages.AgentDiagram.actionTypeLabel.text',
+  llm: 'packages.AgentDiagram.actionTypeLabel.llm',
+  llm_chat: 'packages.AgentDiagram.actionTypeLabel.llmChat',
+  rag: 'packages.AgentDiagram.actionTypeLabel.rag',
+  db_reply: 'packages.AgentDiagram.actionTypeLabel.dbReply',
+  code: 'packages.AgentDiagram.actionTypeLabel.code',
+  web_crawl_llm: 'packages.AgentDiagram.actionTypeLabel.webCrawlLlm',
+  ws_markdown: 'packages.AgentDiagram.actionTypeLabel.wsMarkdown',
+  ws_html: 'packages.AgentDiagram.actionTypeLabel.wsHtml',
+  ws_speech: 'packages.AgentDiagram.actionTypeLabel.wsSpeech',
+  ws_options: 'packages.AgentDiagram.actionTypeLabel.wsOptions',
+  ws_location: 'packages.AgentDiagram.actionTypeLabel.wsLocation',
+  ws_file: 'packages.AgentDiagram.actionTypeLabel.wsFile',
+  ws_image: 'packages.AgentDiagram.actionTypeLabel.wsImage',
+  ws_dataframe: 'packages.AgentDiagram.actionTypeLabel.wsDataframe',
+  ws_plotly: 'packages.AgentDiagram.actionTypeLabel.wsPlotly',
+  gui_reply: 'packages.AgentDiagram.actionTypeLabel.guiReply',
 };
 
 const enhance = compose<ComponentClass<OwnProps>>(
@@ -387,6 +609,10 @@ class StateUpdate extends Component<Props, State> {
     dragOverIndex: null,
     dragOverPrefix: null,
     dragArmedKey: null,
+    bodyPredefinedStash: null,
+    fallbackPredefinedStash: null,
+    bodyCustomStash: null,
+    fallbackCustomStash: null,
   };
 
   private layoutTimer: ReturnType<typeof setTimeout> | null = null;
@@ -405,32 +631,22 @@ class StateUpdate extends Component<Props, State> {
 
   private toggleColor = () => this.setState((s) => ({ colorOpen: !s.colorOpen }));
 
+  // Resolve a reply-type's short label through i18n, falling back to the raw type.
+  private actionTypeLabel = (replyType: string): string => {
+    const key = ACTION_TYPE_LABEL_KEYS[replyType];
+    return key ? this.props.translate(key) : replyType;
+  };
+
   render() {
     const { element, getById, elements } = this.props;
     const children = element.ownedElements.map((id) => getById(id)).filter(notEmpty);
     const bodies = children.filter((c): c is AgentStateMember => c instanceof AgentStateBody);
     const fallbackBodies = children.filter((c): c is AgentStateMember => c instanceof AgentStateFallbackBody);
 
-    const ragDatabaseNames = Array.from(
-      new Set(
-        Object.values(elements)
-          .filter((el: any) => el.type === AgentElementType.AgentRagElement && typeof el.name === 'string')
-          .map((el: any) => el.name.trim())
-          .filter((n) => n.length > 0),
-      ),
-    );
-    const AGENT_LLM_TYPE = (AgentElementType as Record<string, string>).AgentLLM ?? 'AgentLLM';
-    const llmEntries = Array.from(
-      new Map(
-        Object.values(elements)
-          .filter((el: any) => el.type === AGENT_LLM_TYPE && typeof el.name === 'string')
-          .map((el: any) => {
-            const name = String(el.name).trim();
-            return [name, { name, provider: String((el as any).provider || '').toLowerCase() } as const];
-          })
-          .filter(([name]) => name.length > 0),
-      ).values(),
-    );
+    const ragDatabaseNames = diagramBridge.getAgentRAGs()
+      .map((r) => r.name)
+      .filter((n) => n.length > 0);
+    const llmEntries = diagramBridge.getAgentLLMs().filter((l) => l.name.length > 0);
     const llmNames = llmEntries.map((entry) => entry.name);
     const llmProviderByName = llmEntries.reduce<Record<string, string>>((acc, entry) => {
       acc[entry.name] = entry.provider;
@@ -503,19 +719,17 @@ class StateUpdate extends Component<Props, State> {
             <Divider />
             {needsLlm && (
               <WsWarning>
-                ⚠ No LLM is defined in the diagram, but this state requires one. Add an LLM in the Agent Configuration.
+                {this.props.translate('packages.AgentDiagram.noLlmDefinedInDiagram')}
               </WsWarning>
             )}
             {needsChatLlm && (
               <WsWarning>
-                ⚠ LLM Chat requires an OpenAI or Hugging Face LLM, but none are defined. Add a compatible LLM in the
-                Agent Configuration.
+                {this.props.translate('packages.AgentDiagram.noLlmDefinedChatComponents')}
               </WsWarning>
             )}
             {needsPlatform && (
               <WsWarning>
-                ⚠ This state has WebSocket reply actions, but the platform is not set to WebSocket. Change the platform
-                in Agent Configuration.
+                {this.props.translate('packages.AgentDiagram.noWebSocketWarning')}
               </WsWarning>
             )}
           </Section>
@@ -678,7 +892,7 @@ class StateUpdate extends Component<Props, State> {
           <BodyTypeBtn
             active={bodyType === 'predefined'}
             onClick={() => {
-              if (bodyType !== 'predefined') this.switchBodyType('predefined', actions, Clazz);
+              if (bodyType !== 'predefined') this.switchBodyType('predefined', actions, Clazz, prefix);
             }}
           >
             {this.props.translate('packages.AgentDiagram.predefined')}
@@ -686,7 +900,7 @@ class StateUpdate extends Component<Props, State> {
           <BodyTypeBtn
             active={bodyType === 'custom'}
             onClick={() => {
-              if (bodyType !== 'custom') this.switchBodyType('custom', actions, Clazz);
+              if (bodyType !== 'custom') this.switchBodyType('custom', actions, Clazz, prefix);
             }}
           >
             {this.props.translate('packages.AgentDiagram.customPython')}
@@ -716,10 +930,9 @@ class StateUpdate extends Component<Props, State> {
     const codeAction = actions.find((a) => a.replyType === 'code');
     if (!codeAction) {
       return (
-        <Button
-          color="primary"
-          onClick={() => this.create(Clazz, 'code')("def body_name(session: 'Session'):\n    pass\n")}
-        >
+        <Button color="primary" onClick={() =>
+          this.create(Clazz, 'code')('def body_name(session: Session):\n    pass\n')
+        }>
           {this.props.translate('packages.AgentDiagram.initializePythonCode')}
         </Button>
       );
@@ -766,13 +979,18 @@ class StateUpdate extends Component<Props, State> {
       prefix === 'body' ? this.setState({ newBodyActionType: v }) : this.setState({ newFallbackActionType: v });
 
     const collapsedIds = prefix === 'body' ? this.state.collapsedBodyIds : this.state.collapsedFallbackIds;
-    const wsTooltip = 'Requires WebSocketPlatform. Shown in red as a reminder — add it to dismiss.';
-    const chatTooltip = 'Requires an OpenAI or Hugging Face LLM. Shown in red as a reminder.';
+    const wsTooltip = this.props.translate('packages.AgentDiagram.requiresWebSocketPlatform');
+    const chatTooltip = this.props.translate('packages.AgentDiagram.requiresOpenaiHf');
     const wsColor = hasWebSocketPlatform ? undefined : '#e04040';
     const chatColor = hasCompatibleChatLlm ? undefined : '#e04040';
 
     return (
       <>
+        {actions.length === 0 && (
+          <p style={{ fontSize: 12, margin: '4px 0 8px', opacity: 0.6, fontStyle: 'italic' }}>
+            {this.props.translate('packages.AgentDiagram.noActionsDefined')}
+          </p>
+        )}
         {actions.map((action, index) => {
           const isExpanded = !collapsedIds.has(action.id);
           const isDraggingOver = this.state.dragOverIndex === index && this.state.dragOverPrefix === prefix;
@@ -844,22 +1062,19 @@ class StateUpdate extends Component<Props, State> {
             >
               <ActionCardHeader>
                 <DragHandle
-                  title="Drag to reorder"
+                  title={this.props.translate('packages.AgentDiagram.draggToReorder')}
                   onMouseDown={() => this.setState({ dragArmedKey: cardKey })}
                   onMouseUp={() => this.setState({ dragArmedKey: null })}
                 >
                   ⠿
                 </DragHandle>
-                <ActionTypeBadge style={badgeWarning ? { color: '#e04040' } : undefined}>
-                  {ACTION_TYPE_LABELS[action.replyType] ?? action.replyType}
+                <ActionTypeBadge style={badgeWarning ? { color: '#e04040', background: '#e0404022' } : undefined}>
+                  {this.actionTypeLabel(action.replyType)}
                 </ActionTypeBadge>
-                <ActionSummary title={action.name}>{this.getActionSummary(action)}</ActionSummary>
+
                 <IconBtn
-                  title={
-                    isExpanded
-                      ? this.props.translate('packages.AgentDiagram.collapse')
-                      : this.props.translate('packages.AgentDiagram.expand')
-                  }
+                  style={{ marginLeft: 'auto' }}
+                  title={isExpanded ? this.props.translate('packages.AgentDiagram.collapse') : this.props.translate('packages.AgentDiagram.expand')}
                   onClick={() => this.toggleExpand(action.id, prefix)}
                 >
                   {isExpanded ? '▲' : '✎'}
@@ -889,7 +1104,7 @@ class StateUpdate extends Component<Props, State> {
           );
         })}
 
-        <NewActionLabel>{this.props.translate('packages.AgentDiagram.newActionLabel') || 'New action'}</NewActionLabel>
+        <NewActionLabel>{this.props.translate('packages.AgentDiagram.newActionLabel')}</NewActionLabel>
         <SectionTabRow>
           <SectionTab active={section === 'simple'} onClick={() => setSection('simple')}>
             {this.props.translate('packages.AgentDiagram.simpleReplies')}
@@ -901,86 +1116,77 @@ class StateUpdate extends Component<Props, State> {
             {this.props.translate('packages.AgentDiagram.dataQuery')}
           </SectionTab>
         </SectionTabRow>
-        <AddActionRow>
-          <LlmSelect
-            value={selectedActionType}
-            onChange={(e) => setNewActionType(e.target.value)}
-            style={
-              WS_REPLY_TYPES.has(selectedActionType)
-                ? { color: wsColor }
-                : selectedActionType === 'llm_chat'
-                  ? { color: chatColor }
-                  : undefined
-            }
-          >
-            {section === 'simple' && (
-              <>
-                <option value="text">{ACTION_TYPE_LABELS['text']}</option>
-                <option value="ws_markdown" title={wsTooltip} style={{ color: wsColor }}>
-                  {ACTION_TYPE_LABELS['ws_markdown']}
-                </option>
-                <option value="ws_html" title={wsTooltip} style={{ color: wsColor }}>
-                  {ACTION_TYPE_LABELS['ws_html']}
-                </option>
-                <option value="ws_speech" title={wsTooltip} style={{ color: wsColor }}>
-                  {ACTION_TYPE_LABELS['ws_speech']}
-                </option>
-                <option value="ws_options" title={wsTooltip} style={{ color: wsColor }}>
-                  {ACTION_TYPE_LABELS['ws_options']}
-                </option>
-                <option value="ws_location" title={wsTooltip} style={{ color: wsColor }}>
-                  {ACTION_TYPE_LABELS['ws_location']}
-                </option>
-                <option value="ws_file" title={wsTooltip} style={{ color: wsColor }}>
-                  {ACTION_TYPE_LABELS['ws_file']}
-                </option>
-                <option value="ws_image" title={wsTooltip} style={{ color: wsColor }}>
-                  {ACTION_TYPE_LABELS['ws_image']}
-                </option>
-                <option value="ws_dataframe" title={wsTooltip} style={{ color: wsColor }}>
-                  {ACTION_TYPE_LABELS['ws_dataframe']}
-                </option>
-                <option value="ws_plotly" title={wsTooltip} style={{ color: wsColor }}>
-                  {ACTION_TYPE_LABELS['ws_plotly']}
-                </option>
-              </>
-            )}
-            {section === 'ai' && (
-              <>
-                <option value="llm">{ACTION_TYPE_LABELS['llm']}</option>
-                <option value="llm_chat" title={chatTooltip} style={{ color: chatColor }}>
-                  {ACTION_TYPE_LABELS['llm_chat']}
-                </option>
-              </>
-            )}
-            {section === 'data' && (
-              <>
-                <option value="rag">{ACTION_TYPE_LABELS['rag']}</option>
-                <option value="db_reply">{ACTION_TYPE_LABELS['db_reply']}</option>
-                <option value="web_crawl_llm">{ACTION_TYPE_LABELS['web_crawl_llm']}</option>
-              </>
-            )}
-          </LlmSelect>
-          <Button
-            color="primary"
-            onClick={() => {
-              const id = this.addPredefinedAction(Clazz, selectedActionType);
-              // New actions are expanded by default; make sure a stale collapsed
-              // entry (e.g. from a previously deleted action reusing state) can't
-              // hide the freshly created one.
-              if (id) {
-                const key = prefix === 'body' ? 'collapsedBodyIds' : 'collapsedFallbackIds';
-                if (this.state[key].has(id)) {
-                  const next = new Set(this.state[key]);
-                  next.delete(id);
-                  this.setState({ [key]: next } as any);
-                }
+        {section === 'simple' ? (
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '3px' }}>
+            <NewActionOptionList>
+              {SIMPLE_LEFT_COLUMN.map((type) => {
+                const isWarn = WS_REPLY_TYPES.has(type) && !hasWebSocketPlatform;
+                return (
+                  <NewActionOptionBtn
+                    key={type}
+                    active={selectedActionType === type}
+                    warn={isWarn}
+                    onClick={() => setNewActionType(type)}
+                  >
+                    {this.actionTypeLabel(type)}
+                  </NewActionOptionBtn>
+                );
+              })}
+            </NewActionOptionList>
+            <NewActionOptionList>
+              {SIMPLE_RIGHT_COLUMN.map((type) => (
+                <NewActionOptionBtn
+                  key={type}
+                  active={selectedActionType === type}
+                  dimmed
+                  onClick={() => setNewActionType(type)}
+                >
+                  {this.actionTypeLabel(type)}
+                </NewActionOptionBtn>
+              ))}
+            </NewActionOptionList>
+          </div>
+        ) : (
+          <NewActionOptionList>
+            {sectionTypes.map((type) => {
+              const isWarn = WS_REPLY_TYPES.has(type) && !hasWebSocketPlatform;
+              const isChatWarn = type === 'llm_chat' && !hasCompatibleChatLlm;
+              return (
+                <NewActionOptionBtn
+                  key={type}
+                  active={selectedActionType === type}
+                  warn={isWarn || isChatWarn}
+                  onClick={() => setNewActionType(type)}
+                >
+                  {this.actionTypeLabel(type)}
+                </NewActionOptionBtn>
+              );
+            })}
+          </NewActionOptionList>
+        )}
+        {ACTION_DESCRIPTION_KEYS[selectedActionType] && (
+          <ActionDesc>{this.props.translate(ACTION_DESCRIPTION_KEYS[selectedActionType])}</ActionDesc>
+        )}
+        {PLACEHOLDER_ACTIONS.has(selectedActionType) && PLACEHOLDER_WARNING_KEYS[selectedActionType] && (
+          <WsWarning style={{ marginTop: 2, marginBottom: 4 }}>
+            ⚠ {this.props.translate(PLACEHOLDER_WARNING_KEYS[selectedActionType])}
+          </WsWarning>
+        )}
+        <div style={{ marginTop: 6 }}>
+          <AddActionButton onClick={() => {
+            const id = this.addPredefinedAction(Clazz, selectedActionType);
+            if (id) {
+              const key = prefix === 'body' ? 'collapsedBodyIds' : 'collapsedFallbackIds';
+              if (this.state[key].has(id)) {
+                const next = new Set(this.state[key]);
+                next.delete(id);
+                this.setState({ [key]: next } as any);
               }
-            }}
-          >
-            {this.props.translate('packages.AgentDiagram.add')}
-          </Button>
-        </AddActionRow>
+            }
+          }}>
+            {`${this.props.translate('packages.AgentDiagram.addAction')} ${this.actionTypeLabel(selectedActionType)}`}
+          </AddActionButton>
+        </div>
       </>
     );
   };
@@ -1000,14 +1206,28 @@ class StateUpdate extends Component<Props, State> {
     switch (action.replyType) {
       case 'text':
         return (
-          <Textfield
-            outline
-            value={action.name}
-            onChange={(value) => this.props.update(action.id, { name: value })}
-            placeholder="Enter reply message"
-          />
+          <>
+            <Textfield
+              outline
+              value={action.name}
+              onChange={(value) => this.props.update(action.id, { name: value })}
+              placeholder={this.props.translate('packages.AgentDiagram.enterReplyMessage')}
+            />
+            <CheckboxRow style={{ marginTop: 4 }}>
+              <input
+                type="checkbox"
+                checked={action.useSessionVars || false}
+                onChange={(e) => this.props.update<AgentStateMember>(action.id, { useSessionVars: e.target.checked })}
+              />
+              {this.props.translate('packages.AgentDiagram.interpolateSessionVariables')}
+            </CheckboxRow>
+            {action.useSessionVars && (
+              <VarHint>{this.props.translate('packages.AgentDiagram.useSessionValuesHint')}</VarHint>
+            )}
+          </>
         );
-      case 'llm':
+      case 'llm': {
+        const llmInputMode = action.inputPromptMode || 'last_user_message';
         return (
           <>
             {llmNames.length === 0 && (
@@ -1016,8 +1236,57 @@ class StateUpdate extends Component<Props, State> {
               </WsWarning>
             )}
             {this.renderLlmNameField(action, llmNames, `${fieldId}-llm`)}
+            <CheckboxRow style={{ marginTop: 2 }}>
+              <input
+                type="checkbox"
+                checked={action.systemPromptUseSessionVars || false}
+                onChange={(e) => this.props.update<AgentStateMember>(action.id, { systemPromptUseSessionVars: e.target.checked })}
+              />
+              {this.props.translate('packages.AgentDiagram.interpolateVarsSystemMessage')}
+            </CheckboxRow>
+            <LlmFieldRow style={{ marginTop: 8 }}>
+              <Header>{this.props.translate('packages.AgentDiagram.inputSentToLlm')}</Header>
+              <PromptModeRow>
+                <PromptModeBtn
+                  active={llmInputMode === 'last_user_message'}
+                  onClick={() => this.props.update<AgentStateMember>(action.id, { inputPromptMode: 'last_user_message', customInputPrompt: '' })}
+                >
+                  {this.props.translate('packages.AgentDiagram.lastUserMessage')}
+                </PromptModeBtn>
+                <PromptModeBtn
+                  active={llmInputMode === 'custom'}
+                  onClick={() => this.props.update<AgentStateMember>(action.id, { inputPromptMode: 'custom' })}
+                >
+                  {this.props.translate('packages.AgentDiagram.customPrompt')}
+                </PromptModeBtn>
+              </PromptModeRow>
+              {llmInputMode === 'custom' && (
+                <>
+                  <Textfield
+                    outline
+                    multiline
+                    enterToSubmit={false}
+                    value={action.customInputPrompt || ''}
+                    onChange={(value) => this.props.update<AgentStateMember>(action.id, { customInputPrompt: value })}
+                    placeholder={this.props.translate('packages.AgentDiagram.customPromptExample')}
+                  />
+                  <VarHint>{this.props.translate('packages.AgentDiagram.useUserMessageAndSessionHint')}</VarHint>
+                  <CheckboxRow>
+                    <input
+                      type="checkbox"
+                      checked={action.customInputPromptUseSessionVars || false}
+                      onChange={(e) => this.props.update<AgentStateMember>(action.id, { customInputPromptUseSessionVars: e.target.checked })}
+                    />
+                    {this.props.translate('packages.AgentDiagram.replaceVarsAtRuntime')}
+                  </CheckboxRow>
+                </>
+              )}
+            </LlmFieldRow>
+            {this.renderStoreInSession(action)}
+            {this.renderSendReply(action)}
           </>
         );
+      }
       case 'llm_chat': {
         const selectedProvider = action.llm_name ? llmProviderByName[action.llm_name] : '';
         const hasIncompatibleSelection = Boolean(
@@ -1035,10 +1304,21 @@ class StateUpdate extends Component<Props, State> {
                 ? this.props.translate('packages.AgentDiagram.warningIncompatibleProvider')
                 : undefined,
             })}
+            <CheckboxRow style={{ marginTop: 2 }}>
+              <input
+                type="checkbox"
+                checked={action.systemPromptUseSessionVars || false}
+                onChange={(e) => this.props.update<AgentStateMember>(action.id, { systemPromptUseSessionVars: e.target.checked })}
+              />
+              {this.props.translate('packages.AgentDiagram.interpolateVarsSystemMessage')}
+            </CheckboxRow>
+            {this.renderStoreInSession(action)}
+            {this.renderSendReply(action)}
           </>
         );
       }
-      case 'rag':
+      case 'rag': {
+        const ragInputMode = action.inputPromptMode || 'last_user_message';
         return (
           <>
             {llmNames.length === 0 && (
@@ -1050,11 +1330,7 @@ class StateUpdate extends Component<Props, State> {
               <LlmFieldRow>
                 <Header>{this.props.translate('packages.AgentDiagram.ragDatabase')}</Header>
                 <Dropdown
-                  value={
-                    action.ragDatabaseName && action.ragDatabaseName.length > 0
-                      ? action.ragDatabaseName
-                      : '__placeholder__'
-                  }
+                  value={action.ragDatabaseName && action.ragDatabaseName.length > 0 ? action.ragDatabaseName : '__placeholder__'}
                   onChange={(value) => {
                     const selected = value === '__placeholder__' ? '' : value;
                     this.props.update<AgentStateMember>(action.id, {
@@ -1064,13 +1340,9 @@ class StateUpdate extends Component<Props, State> {
                   }}
                 >
                   {[
-                    <Dropdown.Item value="__placeholder__" key="rag-placeholder">
-                      {this.props.translate('packages.AgentDiagram.selectRagDatabase')}
-                    </Dropdown.Item>,
+                    <Dropdown.Item value="__placeholder__" key="rag-placeholder">{this.props.translate('packages.AgentDiagram.selectRagDatabase')}</Dropdown.Item>,
                     ...ragDatabaseNames.map((name, i) => (
-                      <Dropdown.Item key={`rag-${i}-${name}`} value={name}>
-                        {name}
-                      </Dropdown.Item>
+                      <Dropdown.Item key={`rag-${i}-${name}`} value={name}>{name}</Dropdown.Item>
                     )),
                   ]}
                 </Dropdown>
@@ -1083,14 +1355,63 @@ class StateUpdate extends Component<Props, State> {
                   onChange={(value) => this.props.update<AgentStateMember>(action.id, { prompt: value })}
                   placeholder={this.props.translate('packages.AgentDiagram.optionalPromptPassed')}
                 />
+                <CheckboxRow style={{ marginTop: 2 }}>
+                  <input
+                    type="checkbox"
+                    checked={action.promptUseSessionVars || false}
+                    onChange={(e) => this.props.update<AgentStateMember>(action.id, { promptUseSessionVars: e.target.checked })}
+                  />
+                  {this.props.translate('packages.AgentDiagram.interpolateVarsInPrompt')}
+                </CheckboxRow>
               </LlmFieldRow>
             ) : (
               <p style={{ fontSize: 12, margin: '4px 0', opacity: 0.7 }}>
                 {this.props.translate('packages.AgentDiagram.noRagDatabases')}
               </p>
             )}
+            <LlmFieldRow style={{ marginTop: 8 }}>
+              <Header>{this.props.translate('packages.AgentDiagram.inputSentToRag')}</Header>
+              <PromptModeRow>
+                <PromptModeBtn
+                  active={ragInputMode === 'last_user_message'}
+                  onClick={() => this.props.update<AgentStateMember>(action.id, { inputPromptMode: 'last_user_message', customInputPrompt: '' })}
+                >
+                  {this.props.translate('packages.AgentDiagram.lastUserMessage')}
+                </PromptModeBtn>
+                <PromptModeBtn
+                  active={ragInputMode === 'custom'}
+                  onClick={() => this.props.update<AgentStateMember>(action.id, { inputPromptMode: 'custom' })}
+                >
+                  {this.props.translate('packages.AgentDiagram.customPrompt')}
+                </PromptModeBtn>
+              </PromptModeRow>
+              {ragInputMode === 'custom' && (
+                <>
+                  <Textfield
+                    outline
+                    multiline
+                    enterToSubmit={false}
+                    value={action.customInputPrompt || ''}
+                    onChange={(value) => this.props.update<AgentStateMember>(action.id, { customInputPrompt: value })}
+                    placeholder={this.props.translate('packages.AgentDiagram.customPromptExample')}
+                  />
+                  <VarHint>{this.props.translate('packages.AgentDiagram.useUserMessageAndSessionHint')}</VarHint>
+                  <CheckboxRow>
+                    <input
+                      type="checkbox"
+                      checked={action.customInputPromptUseSessionVars || false}
+                      onChange={(e) => this.props.update<AgentStateMember>(action.id, { customInputPromptUseSessionVars: e.target.checked })}
+                    />
+                    {this.props.translate('packages.AgentDiagram.replaceVarsAtRuntime')}
+                  </CheckboxRow>
+                </>
+              )}
+            </LlmFieldRow>
+            {this.renderStoreInSession(action)}
+            {this.renderSendReply(action)}
           </>
         );
+      }
       case 'db_reply':
         return this.renderDbReplyEditor(action, Clazz, llmNames);
       case 'web_crawl_llm':
@@ -1105,6 +1426,42 @@ class StateUpdate extends Component<Props, State> {
       case 'ws_dataframe':
       case 'ws_plotly':
         return this.renderWebSocketReplyEditor(action, hasWebSocketPlatform);
+      case 'gui_reply': {
+        const guiList: AgentGUIInfo[] = diagramBridge.getAgentGUIs();
+        return (
+          <LlmFieldRow>
+            <Header>{this.props.translate('packages.AgentDiagram.guiHeader')}</Header>
+            {guiList.length === 0 ? (
+              <p style={{ fontSize: 12, margin: '4px 0', opacity: 0.7 }}>
+                {this.props.translate('packages.AgentDiagram.noGuisDefinedAction')}
+              </p>
+            ) : (
+              <Dropdown
+                value={(action as any).guiId && (action as any).guiId.length > 0
+                  ? (action as any).guiId
+                  : '__placeholder__'}
+                onChange={(value) => {
+                  const selected = value === '__placeholder__' ? '' : value;
+                  const selectedGui = guiList.find(g => g.gui_id === selected);
+                  this.props.update<AgentStateMember>(action.id, {
+                    guiId: selected,
+                    name: selectedGui
+                      ? `${this.props.translate('packages.AgentDiagram.guiReplyPrefix')} ${selectedGui.name}`
+                      : this.props.translate('packages.AgentDiagram.guiReplySelectGui'),
+                  } as any);
+                }}
+              >
+                {[
+                  <Dropdown.Item value="__placeholder__" key="gui-placeholder">{this.props.translate('packages.AgentDiagram.selectGui')}</Dropdown.Item>,
+                  ...guiList.map((g, i) => (
+                    <Dropdown.Item key={`gui-${i}`} value={g.gui_id}>{g.name}</Dropdown.Item>
+                  )),
+                ]}
+              </Dropdown>
+            )}
+          </LlmFieldRow>
+        );
+      }
       default:
         return null;
     }
@@ -1115,38 +1472,39 @@ class StateUpdate extends Component<Props, State> {
   private getActionSummary = (action: AgentStateMember): string => {
     const name = action.name || '';
     const truncate = (s: string, n = 40) => (s.length > n ? s.slice(0, n) + '…' : s);
+    const t = this.props.translate;
     switch (action.replyType) {
       case 'llm':
-        return action.llm_name ? `LLM: ${action.llm_name}` : '(default LLM)';
+        return action.llm_name ? `LLM: ${action.llm_name}` : t('packages.AgentDiagram.summaryDefaultLlm');
       case 'llm_chat':
-        return action.llm_name ? `Chat: ${action.llm_name}` : '(default LLM chat)';
+        return action.llm_name ? `Chat: ${action.llm_name}` : t('packages.AgentDiagram.summaryDefaultLlmChat');
       case 'rag':
         return action.ragDatabaseName
           ? `DB: ${action.ragDatabaseName}${action.prompt ? ' (prompt)' : ''}`
-          : '(select database)';
+          : t('packages.AgentDiagram.summarySelectDatabase');
       case 'web_crawl_llm':
         return action.initial_url
-          ? `Crawl: ${truncate(action.initial_url, 30)}${action.run_crawl ? '' : ' (no crawl)'}`
-          : '(set URL)';
+          ? `Crawl: ${truncate(action.initial_url, 30)}${action.run_crawl ? '' : ' ' + t('packages.AgentDiagram.summaryNoCrawl')}`
+          : t('packages.AgentDiagram.summarySetUrl');
       case 'ws_markdown':
       case 'ws_html':
-        return action.ws_message ? truncate(action.ws_message) : '(no message)';
+        return action.ws_message ? truncate(action.ws_message) : t('packages.AgentDiagram.summaryNoMessage');
       case 'ws_speech':
-        return action.ws_message ? truncate(action.ws_message) : '(no message)';
+        return action.ws_message ? truncate(action.ws_message) : t('packages.AgentDiagram.summaryNoMessage');
       case 'ws_options': {
         const opts = (action.ws_options || '').split('\n').filter(Boolean);
-        return opts.length ? `${opts.length} option(s)` : '(no options)';
+        return opts.length ? `${opts.length} ${t('packages.AgentDiagram.optionItems')}` : t('packages.AgentDiagram.noOptions2');
       }
       case 'ws_location':
         return `(${action.ws_latitude ?? 0}, ${action.ws_longitude ?? 0})`;
       case 'ws_file':
-        return '(placeholder: file)';
+        return t('packages.AgentDiagram.summaryPlaceholderFile');
       case 'ws_image':
-        return '(placeholder: image)';
+        return t('packages.AgentDiagram.summaryPlaceholderImage');
       case 'ws_dataframe':
-        return '(placeholder: dataframe)';
+        return t('packages.AgentDiagram.summaryPlaceholderDataframe');
       case 'ws_plotly':
-        return '(placeholder: plot)';
+        return t('packages.AgentDiagram.summaryPlaceholderPlot');
       default:
         return truncate(name);
     }
@@ -1154,14 +1512,74 @@ class StateUpdate extends Component<Props, State> {
 
   // ─── Body type switch ─────────────────────────────────────────────────────────
 
+  private snapshotMember = (a: AgentStateMember): MemberSnapshot => ({
+    replyType: a.replyType,
+    name: a.name,
+    ragDatabaseName: a.ragDatabaseName,
+    prompt: a.prompt,
+    dbSelectionType: a.dbSelectionType,
+    dbCustomName: a.dbCustomName,
+    dbQueryMode: a.dbQueryMode,
+    dbOperation: a.dbOperation,
+    dbSqlQuery: a.dbSqlQuery,
+    llm_name: a.llm_name,
+    system_message: a.system_message,
+    inputPromptMode: a.inputPromptMode,
+    customInputPrompt: a.customInputPrompt,
+    customInputPromptUseSessionVars: a.customInputPromptUseSessionVars,
+    systemPromptUseSessionVars: a.systemPromptUseSessionVars,
+    promptUseSessionVars: a.promptUseSessionVars,
+    storeInSession: a.storeInSession,
+    useSessionVars: a.useSessionVars,
+    initial_url: a.initial_url,
+    max_depth: a.max_depth,
+    max_pages: a.max_pages,
+    crawl_format: a.crawl_format,
+    base_url_prefix: a.base_url_prefix,
+    run_crawl: a.run_crawl,
+    no_crawl_error_message: a.no_crawl_error_message,
+    system_message_prefix: a.system_message_prefix,
+    systemMessagePrefixUseSessionVars: a.systemMessagePrefixUseSessionVars,
+    sendReply: a.sendReply,
+    ws_message: a.ws_message,
+    ws_audio_speed: a.ws_audio_speed,
+    ws_options: a.ws_options,
+    ws_latitude: a.ws_latitude,
+    ws_longitude: a.ws_longitude,
+    guiId: a.guiId,
+  });
+
+  private restoreMember = (
+    Clazz: typeof AgentStateBody | typeof AgentStateFallbackBody,
+    snap: MemberSnapshot,
+  ) => {
+    const { replyType, name, ...rest } = snap;
+    this.create(Clazz, replyType, rest)(name);
+  };
+
   private switchBodyType = (
     type: 'predefined' | 'custom',
     actions: AgentStateMember[],
     Clazz: typeof AgentStateBody | typeof AgentStateFallbackBody,
+    prefix: 'body' | 'fallback',
   ) => {
-    actions.forEach((a) => this.delete(a.id)());
+    const stashKeyPred = prefix === 'body' ? 'bodyPredefinedStash' : 'fallbackPredefinedStash';
+    const stashKeyCustom = prefix === 'body' ? 'bodyCustomStash' : 'fallbackCustomStash';
+
     if (type === 'custom') {
-      this.create(Clazz, 'code')("def body_name(session: 'Session'):\n    pass\n");
+      const predStash = actions.map((a) => this.snapshotMember(a));
+      const savedCode = this.state[stashKeyCustom];
+      this.setState({ [stashKeyPred]: predStash } as any);
+      actions.forEach((a) => this.delete(a.id)());
+      this.create(Clazz, 'code')(savedCode ?? 'def body_name(session: Session):\n    pass\n');
+    } else {
+      const codeAction = actions.find((a) => a.replyType === 'code');
+      const savedStash = this.state[stashKeyPred];
+      this.setState({ [stashKeyCustom]: codeAction?.name ?? null } as any);
+      actions.forEach((a) => this.delete(a.id)());
+      if (savedStash && savedStash.length > 0) {
+        savedStash.forEach((snap) => this.restoreMember(Clazz, snap));
+      }
     }
   };
 
@@ -1175,13 +1593,13 @@ class StateUpdate extends Component<Props, State> {
     member.replyType = replyType;
     switch (replyType) {
       case 'text':
-        member.name = 'Enter reply message';
+        member.name = this.props.translate('packages.AgentDiagram.enterReplyMessage');
         break;
       case 'llm':
-        member.name = 'LLM Reply';
+        member.name = this.props.translate('packages.AgentDiagram.llmReplyDefault');
         break;
       case 'llm_chat':
-        member.name = 'LLM Chat Reply';
+        member.name = this.props.translate('packages.AgentDiagram.llmChatReplyDefault');
         break;
       case 'rag': {
         member.ragDatabaseName = '';
@@ -1207,43 +1625,47 @@ class StateUpdate extends Component<Props, State> {
         member.crawl_format = 'markdown';
         member.base_url_prefix = '';
         member.run_crawl = true;
-        member.no_crawl_error_message = 'No web crawl data is available yet.';
+        member.no_crawl_error_message = this.props.translate('packages.AgentDiagram.noCrawlDataDefault');
         member.system_message_prefix = '';
-        member.name = 'Web Crawl + LLM (set URL)';
+        member.name = this.props.translate('packages.AgentDiagram.webCrawlLlmSetUrl');
         break;
       case 'ws_markdown':
         member.ws_message = '';
-        member.name = 'Markdown (empty)';
+        member.name = this.props.translate('packages.AgentDiagram.markdownEmpty');
         break;
       case 'ws_html':
         member.ws_message = '';
-        member.name = 'HTML (empty)';
+        member.name = this.props.translate('packages.AgentDiagram.htmlEmpty');
         break;
       case 'ws_speech':
         member.ws_message = '';
         member.ws_audio_speed = null;
-        member.name = 'Speech (empty)';
+        member.name = this.props.translate('packages.AgentDiagram.speechEmpty');
         break;
       case 'ws_options':
         member.ws_options = '';
-        member.name = 'Options (no options)';
+        member.name = this.props.translate('packages.AgentDiagram.optionsNoOptions');
         break;
       case 'ws_location':
         member.ws_latitude = 0;
         member.ws_longitude = 0;
-        member.name = 'Location (0, 0)';
+        member.name = this.props.translate('packages.AgentDiagram.locationDefault');
         break;
       case 'ws_file':
-        member.name = 'File (placeholder)';
+        member.name = this.props.translate('packages.AgentDiagram.filePlaceholderName');
         break;
       case 'ws_image':
-        member.name = 'Image (placeholder)';
+        member.name = this.props.translate('packages.AgentDiagram.imagePlaceholderName');
         break;
       case 'ws_dataframe':
-        member.name = 'Dataframe (placeholder)';
+        member.name = this.props.translate('packages.AgentDiagram.dataframePlaceholderName');
         break;
       case 'ws_plotly':
-        member.name = 'Plotly (placeholder)';
+        member.name = this.props.translate('packages.AgentDiagram.plotlyPlaceholderName');
+        break;
+      case 'gui_reply':
+        (member as any).guiId = '';
+        member.name = this.props.translate('packages.AgentDiagram.guiReplySelectGui');
         break;
       default:
         member.name = replyType;
@@ -1293,6 +1715,7 @@ class StateUpdate extends Component<Props, State> {
       ws_options: m.ws_options,
       ws_latitude: m.ws_latitude,
       ws_longitude: m.ws_longitude,
+      guiId: m.guiId,
     });
     this.props.update<AgentStateMember>(a.id, fieldsOf(b));
     this.props.update<AgentStateMember>(b.id, fieldsOf(a));
@@ -1322,11 +1745,28 @@ class StateUpdate extends Component<Props, State> {
               onChange={(v) =>
                 this.props.update<AgentStateMember>(action.id, {
                   ws_message: v,
-                  name: v ? v.slice(0, 40) : `${ACTION_TYPE_LABELS[action.replyType]} (empty)`,
+                  name: v
+                    ? v.slice(0, 40)
+                    : action.replyType === 'ws_markdown'
+                      ? this.props.translate('packages.AgentDiagram.markdownEmpty')
+                      : this.props.translate('packages.AgentDiagram.htmlEmpty'),
                 })
               }
-              placeholder={action.replyType === 'ws_markdown' ? '**Bold**, *italic*, etc.' : '<p>HTML content</p>'}
+              placeholder={action.replyType === 'ws_markdown'
+                ? this.props.translate('packages.AgentDiagram.markdownPlaceholder')
+                : this.props.translate('packages.AgentDiagram.htmlPlaceholder')}
             />
+            <CheckboxRow style={{ marginTop: 4 }}>
+              <input
+                type="checkbox"
+                checked={action.useSessionVars || false}
+                onChange={(e) => this.props.update<AgentStateMember>(action.id, { useSessionVars: e.target.checked })}
+              />
+              {this.props.translate('packages.AgentDiagram.interpolateVarsInMessage')}
+            </CheckboxRow>
+            {action.useSessionVars && (
+              <VarHint>{this.props.translate('packages.AgentDiagram.useSessionValuesHint')}</VarHint>
+            )}
           </LlmFieldRow>
         );
         break;
@@ -1340,8 +1780,19 @@ class StateUpdate extends Component<Props, State> {
               enterToSubmit={false}
               value={action.ws_message || ''}
               onChange={(v) => this.props.update<AgentStateMember>(action.id, { ws_message: v })}
-              placeholder="Text to convert to speech"
+              placeholder={this.props.translate('packages.AgentDiagram.speechPlaceholder')}
             />
+            <CheckboxRow style={{ marginTop: 4 }}>
+              <input
+                type="checkbox"
+                checked={action.useSessionVars || false}
+                onChange={(e) => this.props.update<AgentStateMember>(action.id, { useSessionVars: e.target.checked })}
+              />
+              {this.props.translate('packages.AgentDiagram.interpolateVarsInMessage')}
+            </CheckboxRow>
+            {action.useSessionVars && (
+              <VarHint>{this.props.translate('packages.AgentDiagram.useSessionValuesHint')}</VarHint>
+            )}
             <Header style={{ marginTop: 6 }}>{this.props.translate('packages.AgentDiagram.audioSpeedOptional')}</Header>
             <Textfield
               outline
@@ -1370,10 +1821,12 @@ class StateUpdate extends Component<Props, State> {
                 const count = v.split('\n').filter(Boolean).length;
                 this.props.update<AgentStateMember>(action.id, {
                   ws_options: v,
-                  name: count > 0 ? `Options: ${count} item(s)` : 'Options (no options)',
+                  name: count > 0
+                    ? `${this.props.translate('packages.AgentDiagram.optionsItemsCountPrefix')} ${count} ${this.props.translate('packages.AgentDiagram.optionItems')}`
+                    : this.props.translate('packages.AgentDiagram.optionsNoOptions'),
                 });
               }}
-              placeholder={'Yes\nNo\nMaybe'}
+              placeholder={this.props.translate('packages.AgentDiagram.optionsPlaceholder')}
             />
           </LlmFieldRow>
         );
@@ -1410,34 +1863,22 @@ class StateUpdate extends Component<Props, State> {
         break;
       case 'ws_file':
         content = (
-          <WsWarning>
-            The generated code contains a placeholder. You must assign a <code>baf.types.File</code> object to{' '}
-            <code>reply_file_obj</code> before this state is reached.
-          </WsWarning>
+          <WsWarning>{this.props.translate('packages.AgentDiagram.placeholderWarning.wsFile')}</WsWarning>
         );
         break;
       case 'ws_image':
         content = (
-          <WsWarning>
-            The generated code contains a placeholder. You must assign a <code>numpy.ndarray</code> image to{' '}
-            <code>reply_image_arr</code> before this state is reached.
-          </WsWarning>
+          <WsWarning>{this.props.translate('packages.AgentDiagram.placeholderWarning.wsImage')}</WsWarning>
         );
         break;
       case 'ws_dataframe':
         content = (
-          <WsWarning>
-            The generated code contains a placeholder. You must assign a <code>pandas.DataFrame</code>
-            to <code>reply_df</code> before this state is reached.
-          </WsWarning>
+          <WsWarning>{this.props.translate('packages.AgentDiagram.placeholderWarning.wsDataframe')}</WsWarning>
         );
         break;
       case 'ws_plotly':
         content = (
-          <WsWarning>
-            The generated code contains a placeholder. You must assign a <code>plotly.graph_objs.Figure</code>
-            to <code>reply_plot</code> before this state is reached.
-          </WsWarning>
+          <WsWarning>{this.props.translate('packages.AgentDiagram.placeholderWarning.wsPlotly')}</WsWarning>
         );
         break;
       default:
@@ -1497,6 +1938,34 @@ class StateUpdate extends Component<Props, State> {
   private isChatCompatibleProvider = (provider: string): boolean =>
     (AGENT_LLM_PROVIDERS as readonly string[]).includes(provider) &&
     !NON_CHAT_AGENT_LLM_PROVIDERS.includes(provider);
+
+  private renderStoreInSession = (action: AgentStateMember): React.ReactNode => (
+    <StoreInSessionRow>
+      <Header>{this.props.translate('packages.AgentDiagram.storeResultInSession')}</Header>
+      <Textfield
+        outline
+        value={action.storeInSession || ''}
+        onChange={(value) => this.props.update<AgentStateMember>(action.id, { storeInSession: value.trim() })}
+        placeholder={this.props.translate('packages.AgentDiagram.sessionKeyPlaceholder')}
+      />
+      {action.storeInSession && (
+        <VarHint>
+          {`${this.props.translate('packages.AgentDiagram.resultStoredHintPrefix')} {${action.storeInSession}} ${this.props.translate('packages.AgentDiagram.resultStoredHintSuffix')}`}
+        </VarHint>
+      )}
+    </StoreInSessionRow>
+  );
+
+  private renderSendReply = (action: AgentStateMember): React.ReactNode => (
+    <CheckboxRow style={{ marginTop: 6 }}>
+      <input
+        type="checkbox"
+        checked={action.sendReply !== false}
+        onChange={(e) => this.props.update<AgentStateMember>(action.id, { sendReply: e.target.checked })}
+      />
+      {this.props.translate('packages.AgentDiagram.sendAsAgentReply')}
+    </CheckboxRow>
+  );
 
   private renderDbReplyEditor = (
     member: AgentStateMember | undefined,
@@ -1623,7 +2092,7 @@ class StateUpdate extends Component<Props, State> {
               outline
               multiline
               enterToSubmit={false}
-              placeholder="SELECT * FROM table_name"
+              placeholder={this.props.translate('packages.AgentDiagram.sqlQueryPlaceholder')}
               value={member.dbSqlQuery || ''}
               onChange={(value) => this.updateDbReply(member, { dbSqlQuery: value })}
             />
@@ -1636,9 +2105,49 @@ class StateUpdate extends Component<Props, State> {
               )}
               <p>{this.props.translate('packages.AgentDiagram.answerWillBeGenerated')}</p>
               {this.renderLlmNameField(member, llmNames, `db-llm-${member.id}`)}
+              <LlmFieldRow style={{ marginTop: 6 }}>
+                <Header>{this.props.translate('packages.AgentDiagram.inputSentToDbLlm')}</Header>
+                <PromptModeRow>
+                  <PromptModeBtn
+                    active={(member.inputPromptMode || 'last_user_message') === 'last_user_message'}
+                    onClick={() => this.props.update<AgentStateMember>(member.id, { inputPromptMode: 'last_user_message', customInputPrompt: '' })}
+                  >
+                    {this.props.translate('packages.AgentDiagram.lastUserMessage')}
+                  </PromptModeBtn>
+                  <PromptModeBtn
+                    active={(member.inputPromptMode || 'last_user_message') === 'custom'}
+                    onClick={() => this.props.update<AgentStateMember>(member.id, { inputPromptMode: 'custom' })}
+                  >
+                    {this.props.translate('packages.AgentDiagram.customPrompt')}
+                  </PromptModeBtn>
+                </PromptModeRow>
+                {(member.inputPromptMode || 'last_user_message') === 'custom' && (
+                  <>
+                    <Textfield
+                      outline
+                      multiline
+                      enterToSubmit={false}
+                      value={member.customInputPrompt || ''}
+                      onChange={(value) => this.props.update<AgentStateMember>(member.id, { customInputPrompt: value })}
+                      placeholder={this.props.translate('packages.AgentDiagram.dbCustomPromptExample')}
+                    />
+                    <VarHint>{this.props.translate('packages.AgentDiagram.useUserMessageAndSessionHint')}</VarHint>
+                    <CheckboxRow>
+                      <input
+                        type="checkbox"
+                        checked={member.customInputPromptUseSessionVars || false}
+                        onChange={(e) => this.props.update<AgentStateMember>(member.id, { customInputPromptUseSessionVars: e.target.checked })}
+                      />
+                      {this.props.translate('packages.AgentDiagram.replaceVarsAtRuntime')}
+                    </CheckboxRow>
+                  </>
+                )}
+              </LlmFieldRow>
             </>
           )}
         </DbFieldRow>
+        {this.renderStoreInSession(member)}
+        {this.renderSendReply(member)}
       </>
     );
   };
@@ -1659,7 +2168,7 @@ class StateUpdate extends Component<Props, State> {
           onChange={(value) => {
             this.props.update<AgentStateMember>(member.id, {
               initial_url: value,
-              name: value ? `Crawl: ${value.slice(0, 40)}` : 'Web Crawl + LLM (set URL)',
+              name: value ? `Crawl: ${value.slice(0, 40)}` : this.props.translate('packages.AgentDiagram.webCrawlLlmSetUrl'),
             });
           }}
           placeholder={this.props.translate('packages.AgentDiagram.httpsExample')}
@@ -1734,6 +2243,21 @@ class StateUpdate extends Component<Props, State> {
           onChange={(value) => this.props.update<AgentStateMember>(member.id, { system_message_prefix: value })}
           placeholder={this.props.translate('packages.AgentDiagram.useFollowingWebpageContent')}
         />
+        {member.system_message_prefix && (
+          <>
+            <CheckboxRow>
+              <input
+                type="checkbox"
+                checked={member.systemMessagePrefixUseSessionVars || false}
+                onChange={(e) => this.props.update<AgentStateMember>(member.id, { systemMessagePrefixUseSessionVars: e.target.checked })}
+              />
+              {this.props.translate('packages.AgentDiagram.interpolateVarsSystemMessagePrefix')}
+            </CheckboxRow>
+            {member.systemMessagePrefixUseSessionVars && (
+              <VarHint>{this.props.translate('packages.AgentDiagram.useSessionValuesHint')}</VarHint>
+            )}
+          </>
+        )}
         <Header style={{ marginTop: 6 }}>{this.props.translate('packages.AgentDiagram.llm')}</Header>
         <LlmSelect
           value={member.llm_name || ''}
@@ -1746,6 +2270,8 @@ class StateUpdate extends Component<Props, State> {
             </option>
           ))}
         </LlmSelect>
+        {this.renderStoreInSession(member)}
+        {this.renderSendReply(member)}
       </LlmFieldRow>
     );
   };
@@ -1754,7 +2280,9 @@ class StateUpdate extends Component<Props, State> {
 
   private getRagDisplayName = (databaseName: string): string => {
     const trimmed = (databaseName || '').trim();
-    return trimmed.length ? `RAG reply using ${trimmed} database` : 'RAG reply (select database)';
+    return trimmed.length
+      ? `${this.props.translate('packages.AgentDiagram.ragReplyUsingPrefix')} ${trimmed} ${this.props.translate('packages.AgentDiagram.ragReplyUsingSuffix')}`
+      : this.props.translate('packages.AgentDiagram.ragReplySelectDatabase');
   };
 
   private getDefaultDbReplyValues = (): DbReplyValues => ({
@@ -1773,10 +2301,14 @@ class StateUpdate extends Component<Props, State> {
   ): string => {
     const customDb = (dbCustomName || '').trim();
     const dbLabel =
-      dbSelectionType === 'custom' ? (customDb.length ? customDb : 'custom database') : 'Default database';
-    const modeLabel = dbQueryMode === 'sql' ? 'SQL' : 'LLM query';
-    const opLabel = dbOperation === 'any' ? 'Any' : dbOperation.toUpperCase();
-    return `DB action using ${dbLabel} (${modeLabel}, ${opLabel})`;
+      dbSelectionType === 'custom'
+        ? (customDb.length ? customDb : this.props.translate('packages.AgentDiagram.customDatabase'))
+        : this.props.translate('packages.AgentDiagram.defaultDatabase');
+    const modeLabel = dbQueryMode === 'sql'
+      ? this.props.translate('packages.AgentDiagram.sqlMode')
+      : this.props.translate('packages.AgentDiagram.llmQueryMode');
+    const opLabel = dbOperation === 'any' ? this.props.translate('packages.AgentDiagram.any') : dbOperation.toUpperCase();
+    return `${this.props.translate('packages.AgentDiagram.dbActionUsingPrefix')} ${dbLabel} (${modeLabel}, ${opLabel})`;
   };
 
   private updateDbReply = (member: AgentStateMember, values: Partial<AgentStateMember>) => {

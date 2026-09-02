@@ -77,6 +77,14 @@ export interface AgentModelElement extends UMLModelElement {
   dbSqlQuery?: string;
   llm_name?: string;
   system_message?: string;
+  // prompt customisation & session data flow
+  inputPromptMode?: string;
+  customInputPrompt?: string;
+  customInputPromptUseSessionVars?: boolean;
+  systemPromptUseSessionVars?: boolean;
+  promptUseSessionVars?: boolean;
+  storeInSession?: string;
+  useSessionVars?: boolean;
   // web crawl + LLM fields
   initial_url?: string;
   max_depth?: number;
@@ -86,12 +94,17 @@ export interface AgentModelElement extends UMLModelElement {
   run_crawl?: boolean;
   no_crawl_error_message?: string;
   system_message_prefix?: string;
+  // web crawl session-var interpolation
+  systemMessagePrefixUseSessionVars?: boolean;
+  // send_reply toggle (all LLM-generated answer actions)
+  sendReply?: boolean;
   // websocket-specific reply fields
   ws_message?: string;
   ws_audio_speed?: number | null;
   ws_options?: string;
   ws_latitude?: number;
   ws_longitude?: number;
+  guiId?: string;
 }
 
 export type UMLElement = UMLModelElement & {
@@ -164,6 +177,7 @@ export interface AgentState extends UMLElement {
   // canonical keys
   actions: string[];
   fallbackActions: string[];
+  isInitial?: boolean;
   stateType?: string;
   fallbackBodyEnabled?: boolean;
   // reasoning-state fields (used when stateType = 'reasoning')
@@ -212,6 +226,7 @@ export type AgentStateTransition = UMLRelationship & {
     intentName?: string;
     fileType?: string;
     conditionValue?: string | { variable: string; operator: string; targetValue: string };
+    formGuiId?: string;
   };
   custom?: {
     event?:
@@ -221,8 +236,10 @@ export type AgentStateTransition = UMLRelationship & {
       | 'ReceiveMessageEvent'
       | 'ReceiveTextEvent'
       | 'ReceiveJSONEvent'
-      | 'ReceiveFileEvent';
+      | 'ReceiveFileEvent'
+      | 'GUIEvent';
     condition?: string[];
+    guiEventGuiId?: string;
   };
   // Legacy flat properties — kept for backward compatibility with existing diagrams
   predefinedType?: string;
@@ -233,7 +250,8 @@ export type AgentStateTransition = UMLRelationship & {
     | 'ReceiveMessageEvent'
     | 'ReceiveTextEvent'
     | 'ReceiveJSONEvent'
-    | 'ReceiveFileEvent';
+    | 'ReceiveFileEvent'
+    | 'GUIEvent';
   condition?: string | string[];
   intentName?: string;
   variable?: string;
@@ -251,8 +269,11 @@ export type AgentStateTransition = UMLRelationship & {
     | 'ReceiveMessageEvent'
     | 'ReceiveTextEvent'
     | 'ReceiveJSONEvent'
-    | 'ReceiveFileEvent';
+    | 'ReceiveFileEvent'
+    | 'GUIEvent';
   customConditions?: string[];
+  guiEventGuiId?: string;
+  formGuiId?: string;
 };
 
 export type UMLDeploymentNode = UMLElement & {

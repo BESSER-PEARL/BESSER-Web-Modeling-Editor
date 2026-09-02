@@ -809,16 +809,32 @@ export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGen
           case 'jsonschema':
             result = await generateCode(editor, 'jsonschema', activeDiagramTitle, config as JSONSchemaConfig);
             break;
-          case 'agent':
+          case 'agent': {
+            // Agent components (intents, tools, etc.) live in model.components (new schema)
+            // or legacy agentComponents. Ensure the model sent to the backend has them
+            // in model.components so the backend processor can resolve references.
+            const agentBaseModel: UMLModel = (options?.agentModelOverride ?? editor.model) as UMLModel;
+            const legacyComponents = (activeDiagram as any)?.agentComponents;
+            const modelComponents = (agentBaseModel as any)?.components;
+            let agentModelWithComponents: UMLModel = agentBaseModel;
+            if (legacyComponents && Object.keys(legacyComponents).length > 0 && !modelComponents) {
+              const stripped: Record<string, any> = {};
+              for (const [id, comp] of Object.entries(legacyComponents)) {
+                const { bounds, ...rest } = comp as any;
+                stripped[id] = rest;
+              }
+              agentModelWithComponents = { ...agentBaseModel, components: stripped } as any;
+            }
             result = await generateCode(
               editor,
               'agent',
               activeDiagramTitle,
               config as AgentConfig,
               undefined,
-              options?.agentModelOverride,
+              agentModelWithComponents,
             );
             break;
+          }
           case 'test_case':
             result = await generateCode(editor, 'test_case', activeDiagramTitle);
             break;
@@ -913,6 +929,21 @@ export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGen
       }
 
       if (editor) {
+        // Agent components (intents, tools, etc.) live in model.components (new schema)
+        // or legacy agentComponents. Ensure the validation model has them in
+        // model.components so the backend resolver finds intent references.
+        const legacyComponents = (activeDiagram as any)?.agentComponents;
+        const modelComponents = (editor.model as any)?.components;
+        if (legacyComponents && Object.keys(legacyComponents).length > 0 && !modelComponents && (editor.model as any)?.type === 'AgentDiagram') {
+          const stripped: Record<string, any> = {};
+          for (const [id, comp] of Object.entries(legacyComponents)) {
+            const { bounds, ...rest } = comp as any;
+            stripped[id] = rest;
+          }
+          const mergedModel = { ...editor.model, components: stripped };
+          const result = await validateDiagram(null, activeDiagramTitle, mergedModel);
+          return { executed: true, passed: didValidationPass(result) };
+        }
         const result = await validateDiagram(editor, activeDiagramTitle);
         return { executed: true, passed: didValidationPass(result) };
       }
@@ -999,7 +1030,13 @@ export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGen
     // single source of truth. Falls back to hardcoded defaults when no agent
     // diagram exists in the project (edge case: generator triggered without an
     // agent diagram present).
-    const activeAgentDiagram = currentProject ? getActiveDiagram(currentProject, 'AgentDiagram') : undefined;
+    // Read the diagram config from fresh storage so that fields written directly
+    // to localStorage (e.g. default_llm_name via writeConfig in AgentComponentsPanel)
+    // are not missed by the Redux state which may not yet reflect those writes.
+    const freshProject = currentProject?.id
+      ? (ProjectStorageRepository.loadProject(currentProject.id) ?? currentProject)
+      : currentProject;
+    const activeAgentDiagram = freshProject ? getActiveDiagram(freshProject, 'AgentDiagram') : undefined;
     const diagramConfig = (activeAgentDiagram?.config ?? null) as Record<string, any> | null;
     const llmBlock = diagramConfig && typeof diagramConfig.llm === 'object' && diagramConfig.llm !== null
       ? (diagramConfig.llm as Record<string, any>)

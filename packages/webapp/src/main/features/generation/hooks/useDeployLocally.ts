@@ -1,9 +1,10 @@
 import { useCallback } from 'react';
-import { ApollonEditor } from '@besser/wme';
+import { ApollonEditor, UMLModel, normalizeAgentModel } from '@besser/wme';
 import { toast, Id } from 'react-toastify'; // Import Id type
 import { useTranslation } from 'react-i18next';
 import { validateDiagram } from '../../../shared/services/validation/validateDiagram';
 import { BACKEND_URL } from '../../../shared/constants/constant';
+import { ProjectStorageRepository } from '../../../shared/services/storage/ProjectStorageRepository';
 import React from 'react';
 
 // Add type definitions
@@ -23,8 +24,29 @@ export const useDeployLocally = () => {
   const deployLocally = useCallback(
     async (editor: ApollonEditor, generatorType: string, diagramTitle: string, config?: GeneratorConfig[keyof GeneratorConfig]): Promise<void> => {
       
+      // For agent diagrams, components live in model.components (new schema) or
+      // legacy agentComponents. Ensure the validation model has them in
+      // model.components so the backend can resolve intent references.
+      let modelForValidation: any = editor.model;
+      if (generatorType === 'agent') {
+        const currentProjectForValidation = ProjectStorageRepository.getCurrentProject();
+        const agentDiagrams = currentProjectForValidation?.diagrams?.AgentDiagram;
+        const idx = currentProjectForValidation?.currentDiagramIndices?.AgentDiagram ?? 0;
+        const agentDiagramObj = agentDiagrams?.[idx];
+        const modelComponents = (agentDiagramObj?.model as any)?.components;
+        const legacyComponents = (agentDiagramObj as any)?.agentComponents;
+        if (legacyComponents && Object.keys(legacyComponents).length > 0 && !modelComponents) {
+          const stripped: Record<string, any> = {};
+          for (const [id, comp] of Object.entries(legacyComponents)) {
+            const { bounds, ...rest } = comp as any;
+            stripped[id] = rest;
+          }
+          modelForValidation = { ...editor.model, components: stripped };
+        }
+      }
+
       // Validate diagram before generation
-      const validationResult = await validateDiagram(editor, diagramTitle);
+      const validationResult = await validateDiagram(null, diagramTitle, modelForValidation);
       if (!validationResult.isValid) {
         toast.error(validationResult.message || t('generation.toasts.validationFailed'));
         return;
@@ -56,7 +78,7 @@ export const useDeployLocally = () => {
           },
           body: JSON.stringify({
             title: diagramTitle,
-            model: editor.model,
+            model: generatorType === 'agent' ? normalizeAgentModel(editor.model as UMLModel) : editor.model,
             generator: generatorType,
             config: config,
           }),

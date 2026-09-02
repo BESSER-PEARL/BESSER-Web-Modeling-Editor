@@ -56,7 +56,8 @@
       "settings": "Astellungen",
       "agentCustomization": "Agent-Personnalisatioun",
       "agentPersonalization": "Erweidert Agent-Personnalisatioun",
-      "agentMappings": "Agent-Zuelongen"
+      "agentMappings": "Agent-Zuelongen",
+      "agentComponents": "Komponenten"
     }
   },
   "menu": {
@@ -187,7 +188,111 @@
       "intentLlmBased": "LLM-baséiert",
       "llm": "LLM",
       "useDefault": "(Standard benotzen)",
-      "defineLlmHint": "Definéiert en LLM an der LLMs-Sektioun hei drënner fir en hei ze benotzen."
+      "defineLlmHint": "Definéiert en LLM an der LLMs-Sektioun hei drënner fir en hei ze benotzen.",
+      "defineLlmsHint": "Definéier LLMen op der Säit <strong>Agent-Komponenten</strong>.",
+      "enabled": "Aktivéiert",
+      "boolTrue": "Wouer",
+      "boolFalse": "Falsch",
+      "sidebarSettings": "Astellungen",
+      "sidebarConfigFile": "Konfiguratiounsdatei",
+      "sidebarPlatforms": "Plattformen",
+      "apiKeys": "API-Schlësselen",
+      "subsectionStreamlit": "Streamlit",
+      "subsectionChat": "Chat",
+      "subsectionMonitoring": "Iwwerwaachung",
+      "field": {
+        "agent": {
+          "checkTransitionsDelayDesc": "Verzögerung a Sekonnen tëschent all Zyklus vun der Iwwergangsevaluatioun."
+        },
+        "nlp": {
+          "languageDesc": "Erwaart Sprooch vum Benotzer (ISO 639-1).",
+          "regionDesc": "Sproochregioun (ISO 3166-1 alpha-2).",
+          "timezoneDesc": "Zäitzon fir Datums- an Zäitoperatiounen.",
+          "intentThresholdDesc": "Vertrauensschwell fir d’Intent-Prognosen.",
+          "preProcessingDesc": "Aktivéiert Stemming, fir Wierder op hir Grondform ze reduzéieren.",
+          "huggingfaceTokenDesc": "API-Schlëssel fir d’HuggingFace Inference API.",
+          "openaiApiKeyDesc": "OpenAI-API-Schlëssel fir den LLM-Zougang.",
+          "replicateApiKeyDesc": "Replicate-API-Schlëssel fir d’Modellinferenz."
+        },
+        "websocket": {
+          "hostDesc": "Serveradress fir WebSocket-Verbindungen.",
+          "portDesc": "Portnummer fir de WebSocket-Server.",
+          "streamlitHostDesc": "Hostadress fir d’Streamlit-Uewerfläch.",
+          "streamlitPortDesc": "Port fir d’Streamlit-Uewerfläch.",
+          "chatSizeDesc": "Standard-Schrëftgréisst fir de Chat.",
+          "chatFontDesc": "Schrëftfamill fir den Chat-Text.",
+          "chatLineSpacingDesc": "Multiplikator fir d’Zeilenhéicht.",
+          "chatAlignmentDesc": "Horizontal Textausriichtung.",
+          "chatColorDesc": "Astellung vun der Textfaarf.",
+          "chatContrastDesc": "Kontraschtniveau fir d’Liesbarkeet."
+        },
+        "telegram": {
+          "tokenDesc": "Bot-Authentifikatiounstoken fir d’Telegram-API."
+        },
+        "github": {
+          "personalTokenDesc": "Perséinlechen Zougangstoken fir d’GitHub-API.",
+          "webhookTokenDesc": "Geheimen Token fir d’Webhook-Verifikatioun.",
+          "webhookPortDesc": "Lokale Serverport, dee fir GitHub verfügbar ass."
+        },
+        "gitlab": {
+          "personalTokenDesc": "Perséinlechen Zougangstoken fir d’GitLab-API.",
+          "webhookTokenDesc": "Geheimen Token fir d’Webhook-Verifikatioun.",
+          "webhookPortDesc": "Lokale Serverport, dee fir GitLab verfügbar ass."
+        },
+        "a2a": {
+          "portDesc": "Lokale Port fir d’Kommunikatioun tëschent Agenten."
+        },
+        "db": {
+          "dialectDesc": "Identifizéierer vum Datebanksystem (z. B. postgresql)",
+          "hostDesc": "Adress vum Datebankserver",
+          "portDesc": "Port fir d’Datebankverbindung",
+          "databaseDesc": "Numm vun der Datebank",
+          "usernameDesc": "Login-Donnéeë vum Datebankbenotzer",
+          "passwordDesc": "Authentifikatiounspasswuert vun der Datebank"
+        }
+      },
+      "section": {
+        "runtime": {
+          "desc": "Runtime-Astellungen fir dat aktivt Agentendiagramm. Ginn am Diagramm selwer gespäichert, net am globale Späicher."
+        },
+        "agent": {
+          "desc": "Grondleeënd Ausféierungsastellungen vum Agent."
+        },
+        "nlp": {
+          "desc": "Astellunge fir d’Veraarbechtung vun natierlecher Sprooch fir d’Intent-Erkennung."
+        },
+        "websocket": {
+          "title": "WebSocket",
+          "desc": "Konfiguratioun vum WebSocket-Server an der Streamlit-Uewerfläch."
+        },
+        "telegram": {
+          "title": "Telegram",
+          "desc": "Astellunge fir d’Telegram-Bot-Integratioun."
+        },
+        "github": {
+          "title": "GitHub",
+          "desc": "Astellunge fir d’GitHub-Webhook-Integratioun."
+        },
+        "gitlab": {
+          "title": "GitLab",
+          "desc": "Astellunge fir d’GitLab-Webhook-Integratioun."
+        },
+        "a2a": {
+          "title": "A2A",
+          "desc": "Astellunge fir d’Kommunikatioun tëschent Agenten."
+        },
+        "database": {
+          "title": "Datebank",
+          "desc": "Datebankverbindunge fir d’Iwwerwaachung a Streamlit."
+        },
+        "custom": {
+          "title": "Personaliséiert YAML",
+          "desc": "Zousätzlech YAML-Eegeschaften, déi um Enn vun der generéierter config.yaml ugehaange ginn."
+        },
+        "raw": {
+          "desc": "Nëmme-liesen-Usiicht vun der komplett generéierter config.yaml. Änner eenzel Sektiounen oder füüg personaliséiert YAML derbäi."
+        }
+      }
     },
     "llms": {
       "title": "LLMs",
@@ -442,6 +547,31 @@
         "dbDatabase": "Numm vun der Datebank",
         "dbUsername": "Benotzeruganksdaten fir d'Datebank",
         "dbPassword": "Datebank-Authentifikatiounspasswuert"
+      },
+      "provider": {
+        "openai": "OpenAI",
+        "mistral": "Mistral AI",
+        "deepseek": "DeepSeek",
+        "google": "Google (Gemini)",
+        "meta": "Meta (Llama)",
+        "anthropic": "Anthropic (Claude)",
+        "qwen": "Alibaba Qwen",
+        "xai": "xAI (Grok)",
+        "groq": "Groq",
+        "together": "Together AI",
+        "openrouter": "OpenRouter",
+        "huggingface": "HuggingFace",
+        "replicate": "Replicate"
+      },
+      "subsection": {
+        "websocket": "websocket",
+        "streamlit": "streamlit",
+        "chat": "chat",
+        "telegram": "telegram",
+        "github": "github",
+        "gitlab": "gitlab",
+        "a2a": "a2a",
+        "monitoring": "monitoring"
       }
     },
     "importExport": {
@@ -463,6 +593,7 @@
         "description": "De Benotzerprofil \"{{profile}}\" ass scho mat der Konfiguratioun \"{{existing}}\" zougeuerdent. D'Späichere wäert déi Zouuerdnung mat \"{{next}}\" ersetzen."
       }
     },
+    "noActiveDiagram": "Et ass keen Agent-Diagramm aktiv. Öffne fir d'éischt en Agent-Diagramm.",
     "toasts": {
       "persistFailed": "Den Agent-Diagramm konnt net aktualiséiert ginn.",
       "noActiveDiagram": "Et ass keen Agent-Diagramm aktiv.",
@@ -2468,6 +2599,247 @@
       "measurementOutput": "Mooss-Ausgab – automatesch aus de Moossgatter generéiert",
       "dropHere": "Hei fale loossen",
       "invalid": "Ongülteg"
+    }
+  },
+  "agentComponents": {
+    "noActiveDiagram": "Et ass keen Agent-Diagramm aktiv.",
+    "sidebarTitle": "Komponenten",
+    "unnamed": "Onbenannt",
+    "nav": {
+      "llms": "LLMs",
+      "intents": "Intenten",
+      "tools": "Tools",
+      "skills": "Skills",
+      "workspaces": "Workspaces",
+      "ragDatabases": "RAG-Datebänk",
+      "sqlDatabases": "SQL-Datebänk",
+      "guis": "GUIs"
+    },
+    "llms": {
+      "title": "LLMs",
+      "description": "Sproochmoudeller disponibel fir den Agent. LLMs gi mat Numm aus Zoustänn a RAG-Datebänk referenzéiert.",
+      "addLabel": "LLM derbäisetzen",
+      "empty": "Nach keng LLMs defeneiert.",
+      "modelName": "Modellnumm",
+      "modelNamePlaceholder": "e.g. main_llm",
+      "modelNameDescription": "Identifikateur fir dëst LLM ze referenzéieren.",
+      "provider": "Provider",
+      "setDefault": "Als Standard-LLM setzen",
+      "setDefaultDescription": "Dëst LLM benotzen wann kee spezifescht LLM an enger Zoustandsaktioun ausgewielt ass.",
+      "numPrevMessages": "Unz. fréiere Messaggien",
+      "parameters": "Parameteren",
+      "parametersDescription": "Provider-spezifesch Parameteren als JSON-Objet.",
+      "globalContext": "Globale Kontext",
+      "globalContextPlaceholder": "Optional Systeminstruktiounen fir dëst LLM"
+    },
+    "intents": {
+      "title": "Intenten",
+      "description": "Benotzerintenten déi vum Agent erkannt ginn. All Intent kann Trainingssätz hunn fir d'Erkennung ze verbesseren.",
+      "addLabel": "Intent derbäisetzen",
+      "empty": "Noch keng Intenten defeneiert.",
+      "sentenceCount_one": "{{count}} Saz",
+      "sentenceCount_other": "{{count}} Sätz",
+      "name": "Intent-Numm",
+      "namePlaceholder": "e.g. greet_user",
+      "intentDescription": "Beschreiwung (optional)",
+      "intentDescriptionPlaceholder": "Kuerz Beschreiwung vun deem wat dësen Intent erfaasst",
+      "trainingSentences": "Trainingssätz",
+      "addSentence": "Saz derbäisetzen",
+      "noSentences": "Nach keng Trainingssätz. Setzt w.e.g. w.e.g. e puer bäi fir d'Intent-Erkennung ze verbesseren.",
+      "sentencePlaceholder": "e.g. Hello there"
+    },
+    "tools": {
+      "title": "Tools",
+      "description": "Python-Funktiounen déi vu Reasoning States während der Agentexekutioun opgeruff ginn.",
+      "addLabel": "Tool derbäisetzen",
+      "empty": "Nach keng Tools defeneiert.",
+      "warning": "Tools kënne nëmme vun engem Reasoning State benotzt ginn. Fügt e Reasoning State zum Agent-Diagramm bäi fir Tools ze benotzen.",
+      "name": "Tool-Numm",
+      "namePlaceholder": "e.g. search_web",
+      "toolDescription": "Beschreiwung",
+      "toolDescriptionPlaceholder": "Kuerz Beschreiwung, déi dem LLM ugewise gëtt",
+      "code": "Python-Code",
+      "codeDescription": "Benotzt de Parameter `session` fir Zougang zur Agent-Sessioun."
+    },
+    "skills": {
+      "title": "Skills",
+      "description": "Markdown-Wëssendokumenter déi Reasoning States bereetgestallt ginn.",
+      "addLabel": "Skill derbäisetzen",
+      "empty": "Nach keng Skills defeneiert.",
+      "warning": "Skills kënne nëmme vun engem Reasoning State benotzt ginn. Fügt e Reasoning State zum Agent-Diagramm bäi fir Skills ze benotzen.",
+      "name": "Skill-Numm",
+      "namePlaceholder": "e.g. product_knowledge",
+      "skillDescription": "Beschreiwung",
+      "skillDescriptionPlaceholder": "Optional kuerz Beschreiwung",
+      "content": "Markdown-Inhalt",
+      "contentPlaceholder": "# Skill\n\nUweisungen a markdown..."
+    },
+    "workspaces": {
+      "title": "Workspaces",
+      "description": "Dateisystemverzeechnesser déi den Agent während dem Reasoning liese oder schreiwen kann.",
+      "addLabel": "Workspace derbäisetzen",
+      "empty": "Nach keng Workspaces defeneiert.",
+      "warning": "Workspaces kënne nëmme vun engem Reasoning State benotzt ginn. Fügt e Reasoning State zum Agent-Diagramm bäi fir Workspaces ze benotzen.",
+      "badgeWritable": "schreifbar",
+      "badgeReadOnly": "nëmme liesen",
+      "name": "Workspace-Numm",
+      "namePlaceholder": "e.g. project_files",
+      "path": "Dateisystem-Paad",
+      "pathPlaceholder": "/path/to/workspace",
+      "pathDescription": "Absolutte Paad zum Verzeichnis op dem Host-System.",
+      "wsDescription": "Beschreiwung",
+      "wsDescriptionPlaceholder": "Optional Beschreiwung",
+      "writable": "Schreifbar",
+      "writableDescription": "Dem Agent erlaben Fichieren ze crééieren oder ze änneren.",
+      "maxReadBytes": "Max. Liese-Bytes"
+    },
+    "rags": {
+      "title": "RAG-Datebänk",
+      "description": "Vektordatebänk fir retrieval-augmented generation.",
+      "addLabel": "RAG-Datebank derbäisetzen",
+      "empty": "Nach keng RAG-Datebänk defeneiert.",
+      "name": "Numm",
+      "namePlaceholder": "e.g. faq_db",
+      "llm": "LLM",
+      "llmUseDefault": "(Standard benotzen)",
+      "llmDescription": "LLM dat benotzt gëtt fir ofgerufene Inhalt ze beäntweren.",
+      "promptPrefix": "LLM-Ufforderungspräfix",
+      "promptPrefixPlaceholder": "Optional Ufforderungspräfix fir d'LLM",
+      "kChunks": "K (ofgerufene Stécker)",
+      "kChunksDescription": "Dokumentstécker déi pro Ufro ofgeruff ginn.",
+      "numPrevMessages": "Unz. fréiere Messaggien",
+      "embeddingProvider": "Aibindungsanbieder",
+      "embeddingOpenai": "OpenAI",
+      "embeddingOllama": "Ollama (lokal)",
+      "embeddingBaseUrl": "Aibindungs-Basis-URL",
+      "embeddingBaseUrlPlaceholder": "http://localhost:11434",
+      "embeddingModel": "Aibindungsmodell",
+      "embeddingModelPlaceholder": "e.g. nomic-embed-text"
+    },
+    "guis": {
+      "title": "GUIs",
+      "description": "Grafesch Benotzeroberfläch-Komponenten déi den Agent als Chat-Äntwerten schécke kann oder op GUI-Evenementer reagéiere kann.",
+      "addLabel": "GUI erstellen",
+      "empty": "Nach keng GUIs defeneiert.",
+      "badgeForm": "Formular",
+      "guiId": "GUI-ID (message_id)",
+      "guiIdPlaceholder": "Automatesch generéiert UUID",
+      "guiIdDescription": "Gëtt als message_id an GUIEvent a form_id an when_form_submitted benotzt.",
+      "persist": "Beibehalten",
+      "persistDescription": "D'GUI no der Benotzerinteraktioun siichtbar halen.",
+      "isForm": "Ass Formular",
+      "isFormDescription": "Aktivéiert when_form_submitted-Iwwergäng fir dës GUI.",
+      "width": "Breet (optional)",
+      "widthPlaceholder": "e.g. 600px",
+      "widthDescription": "CSS-Breet vum GUI-Panel.",
+      "editDesign": "GUI-Design beaarbechten",
+      "openEditor": "GUI-Editor opmaachen"
+    },
+    "sql": {
+      "title": "SQL-Datebänk",
+      "description": "SQL-Datebankverbindungen déi an db.sql an config.yaml geschriwwe ginn.",
+      "addLabel": "SQL-Datebank derbäisetzen",
+      "empty": "Nach keng SQL-Datebänk defeneiert.",
+      "name": "Numm",
+      "namePlaceholder": "e.g. my_database",
+      "nameDescription": "Gëtt als Schlëssel an config.yaml benotzt.",
+      "dialect": "Dialekt",
+      "dialectPostgresql": "PostgreSQL",
+      "dialectSqlite": "SQLite",
+      "dialectMysql": "MySQL",
+      "dialectMariadb": "MariaDB",
+      "dialectMssql": "Microsoft SQL Server",
+      "dialectOracle": "Oracle",
+      "databaseFilePath": "Datebankdatei-Paad",
+      "databaseName": "Datebanknumm",
+      "databaseFilePathPlaceholder": "/path/to/local.db",
+      "databaseNamePlaceholder": "YOUR-DB-NAME",
+      "host": "Host",
+      "hostPlaceholder": "localhost",
+      "port": "Port",
+      "portPlaceholder": "5432",
+      "username": "Benotzernumm",
+      "usernamePlaceholder": "YOUR-DB-USERNAME",
+      "password": "Passwuert",
+      "passwordPlaceholder": "YOUR-DB-PASSWORD"
+    }
+  },
+  "agentSimulation": {
+    "defaultDiagramTitle": "Agent",
+    "sidebar": {
+      "simulateAgent": "Agent simuléieren"
+    },
+    "panel": {
+      "header": "Simulator: {{title}}",
+      "stop": "Simulatioun stoppen",
+      "errorTitle": "Simulatiounsfeeler",
+      "tabDiagram": "Diagramm",
+      "tabSource": "Quellcode",
+      "lastTransition": "Leschten Iwwergang:",
+      "starting": "Simulatioun start…",
+      "restart": "Simulatioun nei starten",
+      "reset": "Zerécksetzen",
+      "dragToResize": "Zéien fir d’Gréisst z’änneren",
+      "loading": "Den Agent gëtt gelueden, wann ech gelift waart."
+    },
+    "codeViewer": {
+      "copyTitle": "Code kopéieren",
+      "copyLabel": "Generéierten Agentencode kopéieren",
+      "emptyTitle": "De generéierte Code erschéngt hei",
+      "emptyDescription": "Féier de Validéierungsschrëtt aus, fir den Agentencode als Virschau ze weisen.",
+      "header": "Generéierten Agentencode"
+    },
+    "diagram": {
+      "currentState": "Aktuellen Zoustand:",
+      "hide": "Verstoppen",
+      "view": "Weisen",
+      "transitions_one": "{{count}} Iwwergang",
+      "transitions_other": "{{count}} Iwwergäng",
+      "empty": "Keen Agentendiagramm verfügbar"
+    },
+    "fileExplorer": {
+      "copy": "Dateiinhalt kopéieren",
+      "noSessionTitle": "Keng aktiv Testsitzung",
+      "noSessionDescription": "Start eng Testsitzung, fir déi generéiert Dateien z’entdecken.",
+      "loading": "Sitzungsdateie ginn gelueden…",
+      "filesTitle": "Dateien",
+      "refresh": "Dateien aktualiséieren",
+      "noFiles": "Keng Dateien oder Dossiere fonnt",
+      "selectFile": "Wiel eng Datei aus, fir hiren Inhalt ze weisen"
+    },
+    "chat": {
+      "websocketError": "WebSocket-Verbindungsfeeler.",
+      "sensitivityWarning": "Deel am Test-Chat keng sensibel perséinlech Informatiounen. Sitzunge kënne protokolléiert ginn."
+    },
+    "terminal": {
+      "expand": "Terminal opklappen",
+      "collapse": "Terminal zesummeklappen",
+      "header": "Agentenausgab",
+      "empty": "Nach keng Ausgab…"
+    },
+    "credentials": {
+      "sensitivityWarning": "Deel am Simulatiouns-Chat keng sensibel perséinlech Informatiounen (Passwierder, perséinlech Donnéeën, vertraulech Dokumenter). Simulatiounssitzunge ginn protokolléiert a kënne fir d’Bedreiwer vun dësem Editor siichtbar sinn.",
+      "title": "Agent simuléieren: {{name}}",
+      "apiKeysTitle": "API-Schlësselen",
+      "ownKeys": "Meng eege API-Schlësselen benotzen",
+      "editorQuota": "Editor-Kontingent benotzen",
+      "openAiLabel": "OpenAI-API-Schlëssel",
+      "optional": "(fakultativ)",
+      "openAiPlaceholder": "sk-...",
+      "huggingFaceLabel": "HuggingFace-API-Token",
+      "huggingFacePlaceholder": "hf_...",
+      "replicateLabel": "Replicate-API-Schlëssel",
+      "replicatePlaceholder": "r8_...",
+      "limitsTitle": "Ressourcelimiten",
+      "memory": "Späicher",
+      "unitMb": " MB",
+      "cpu": "CPU",
+      "unitCores": " Kär(en)",
+      "disk": "Disk",
+      "lifetime": "Sitzungsdauer",
+      "unitMin": " min",
+      "validationError": "Validéierung feelgeschloen — den Agentencode konnt net generéiert ginn:",
+      "start": "Simulatioun starten"
     }
   }
 }

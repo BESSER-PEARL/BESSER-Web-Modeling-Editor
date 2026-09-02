@@ -17,6 +17,7 @@ import { UMLDiagramType } from '../../../packages/diagram-type';
 import { BPMNRelationshipType, isCollapsibleBpmnContainer } from '../../../packages/bpmn';
 import { BPMNFlow } from '../../../packages/bpmn/bpmn-flow/bpmn-flow';
 import { getAllowedBpmnFlowTypes, getDefaultBpmnFlowType } from '../../../packages/bpmn/bpmn-flow/bpmn-flow-semantics';
+import { AgentElementType, AgentRelationshipType } from '../../../packages/agent-state-diagram';
 
 export const Connectable = {
   startConnecting:
@@ -36,7 +37,18 @@ export const Connectable = {
           return;
         }
 
-        const ports = ids.map<IUMLElementPort>((elementId, index) => ({
+        // Block starting a connection from StateInitialNode when one already exists.
+        const { elements } = getState();
+        const hasInitTransition = Object.values(elements).some(
+          (el) => UMLRelationship.isUMLRelationship(el) && el.type === AgentRelationshipType.AgentStateTransitionInit,
+        );
+        const filteredIds = hasInitTransition
+          ? ids.filter((elementId) => elements[elementId]?.type !== AgentElementType.StateInitialNode)
+          : ids;
+
+        if (!filteredIds.length) return;
+
+        const ports = filteredIds.map<IUMLElementPort>((elementId, index) => ({
           element: elementId,
           direction: directions.length === 1 ? directions[0] : directions[index],
         }));
@@ -192,6 +204,16 @@ export const Connectable = {
             } else {
               // take default diagram type
               relationshipType = DefaultUMLRelationshipType[getState().diagram.type];
+            }
+          }
+
+          // Only one AgentStateTransitionInit (initial state arrow) is allowed per diagram.
+          if (relationshipType === AgentRelationshipType.AgentStateTransitionInit) {
+            const alreadyExists = Object.values(getState().elements).some(
+              (el) => UMLRelationship.isUMLRelationship(el) && el.type === AgentRelationshipType.AgentStateTransitionInit,
+            );
+            if (alreadyExists) {
+              return null;
             }
           }
 

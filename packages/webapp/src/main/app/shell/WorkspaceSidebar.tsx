@@ -1,6 +1,7 @@
 import React, { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { UMLDiagramType } from '@besser/wme';
+import { FlaskConical } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import type { BesserProject, SupportedDiagramType } from '../../shared/types/project';
@@ -31,6 +32,7 @@ interface WorkspaceSidebarProps {
   onSwitchDiagramType: (type: SupportedDiagramType) => void;
   onNavigate: (path: string) => void;
   onToggleExpanded: () => void;
+  onTestAgent?: () => void;
 }
 
 /** Wraps children with a Tooltip when sidebar is collapsed, otherwise renders children directly. */
@@ -65,12 +67,13 @@ const WorkspaceSidebarInner: React.FC<WorkspaceSidebarProps> = ({
   onSwitchDiagramType,
   onNavigate,
   onToggleExpanded,
+  onTestAgent,
 }) => {
   const { t } = useTranslation();
   // When a non-UML editor (GUI / Quantum) is active, no UML button should appear selected
   const isNonUmlActive = activeDiagramType === 'GUINoCodeDiagram' || activeDiagramType === 'QuantumCircuitDiagram';
   const isAgentEditorActive = locationPath === '/' && !isNonUmlActive && activeUmlType === UMLDiagramType.AgentDiagram;
-  const isAgentSubRouteActive = AGENT_ROUTE_ITEMS.some((item) => item.path === locationPath);
+  const isAgentSubRouteActive = AGENT_ROUTE_ITEMS.some((item) => item.path === locationPath) || locationPath === '/agent-simulation';
   const showAgentSubItems = isAgentEditorActive || isAgentSubRouteActive;
   const agentContainerClass = showAgentSubItems
     ? isDarkTheme
@@ -151,6 +154,22 @@ const WorkspaceSidebarInner: React.FC<WorkspaceSidebarProps> = ({
                   showAgentSubItems ? 'max-h-40 opacity-100' : 'max-h-0 opacity-0'
                 }`}
               >
+                {onTestAgent && (
+                  <SidebarTooltip label={t('agentSimulation.sidebar.simulateAgent')} collapsed={isCollapsed}>
+                    <button
+                      type="button"
+                      className={`${navButtonClass(locationPath === '/agent-simulation', isSidebarExpanded, isDarkTheme)} ${
+                        isSidebarExpanded ? 'mt-1 pl-7 text-xs' : 'mt-1'
+                      }`}
+                      onClick={onTestAgent}
+                      title={isSidebarExpanded ? t('agentSimulation.sidebar.simulateAgent') : undefined}
+                      aria-label={t('agentSimulation.sidebar.simulateAgent')}
+                    >
+                      <FlaskConical className="size-4" />
+                      {isSidebarExpanded && <span>{t('agentSimulation.sidebar.simulateAgent')}</span>}
+                    </button>
+                  </SidebarTooltip>
+                )}
                 {AGENT_ROUTE_ITEMS.map((routeItem) => {
                   const isActiveSubItem = locationPath === routeItem.path;
                   const routeLabel = t(routeItem.labelKey);

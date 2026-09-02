@@ -10,12 +10,15 @@ export default defineConfig(({ mode }) => {
     plugins: [react(), svgr()],
     publicDir: 'assets',
     resolve: {
-      alias: {
-        '@': path.resolve(__dirname, './src'),
-        '@besser/wme': path.resolve(__dirname, '../editor/src/main/index.ts'),
-        shared: path.resolve(__dirname, '../shared/src/index.ts'),
-        webapp: path.resolve(__dirname, '.'),
-      },
+      alias: [
+        { find: '@', replacement: path.resolve(__dirname, './src') },
+        { find: '@besser/wme', replacement: path.resolve(__dirname, '../editor/src/main/index.ts') },
+        { find: 'shared', replacement: path.resolve(__dirname, '../shared/src/index.ts') },
+        { find: 'webapp', replacement: path.resolve(__dirname, '.') },
+        // Exact match required: string alias does prefix matching, which would
+        // also catch 'plotly.js-dist-min/plotly.min.js' inside the shim itself.
+        { find: /^plotly\.js-dist-min$/, replacement: path.resolve(__dirname, './src/plotly-compat.js') },
+      ],
     },
     define: {
       'process.env.APPLICATION_SERVER_VERSION': JSON.stringify(env.APPLICATION_SERVER_VERSION ?? ''),

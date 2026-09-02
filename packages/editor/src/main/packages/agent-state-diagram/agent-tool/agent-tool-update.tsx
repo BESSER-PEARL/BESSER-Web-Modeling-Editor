@@ -75,7 +75,7 @@ const AgentToolUpdateComponent: React.FC<Props> = ({ element, update, elements, 
           value={element.description}
           multiline
           enterToSubmit={false}
-          placeholder="Short description shown to the LLM"
+          placeholder={translate('packages.AgentDiagram.toolDescriptionPlaceholder')}
           onChange={(description) => update<AgentTool>(element.id, { description })}
         />
       </Section>

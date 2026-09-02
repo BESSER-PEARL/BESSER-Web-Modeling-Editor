@@ -56,7 +56,8 @@
       "settings": "Paramètres",
       "agentCustomization": "Personnalisation de l'agent",
       "agentPersonalization": "Personnalisation avancée de l'agent",
-      "agentMappings": "Correspondances d'agent"
+      "agentMappings": "Correspondances d'agent",
+      "agentComponents": "Composants"
     }
   },
   "menu": {
@@ -187,7 +188,111 @@
       "intentLlmBased": "Basée sur LLM",
       "llm": "LLM",
       "useDefault": "(utiliser la valeur par défaut)",
-      "defineLlmHint": "Définissez un LLM dans la section LLMs ci-dessous pour l'utiliser ici."
+      "defineLlmHint": "Définissez un LLM dans la section LLMs ci-dessous pour l'utiliser ici.",
+      "defineLlmsHint": "Définissez les LLM sur la page <strong>Composants de l’agent</strong>.",
+      "enabled": "Activé",
+      "boolTrue": "Vrai",
+      "boolFalse": "Faux",
+      "sidebarSettings": "Paramètres",
+      "sidebarConfigFile": "Fichier de configuration",
+      "sidebarPlatforms": "Plateformes",
+      "apiKeys": "Clés API",
+      "subsectionStreamlit": "Streamlit",
+      "subsectionChat": "Chat",
+      "subsectionMonitoring": "Surveillance",
+      "field": {
+        "agent": {
+          "checkTransitionsDelayDesc": "Délai en secondes entre chaque cycle d’évaluation des transitions."
+        },
+        "nlp": {
+          "languageDesc": "Langue attendue de l’utilisateur (ISO 639-1).",
+          "regionDesc": "Région linguistique (ISO 3166-1 alpha-2).",
+          "timezoneDesc": "Fuseau horaire pour les opérations de date et heure.",
+          "intentThresholdDesc": "Seuil de confiance pour les prédictions d’intention.",
+          "preProcessingDesc": "Active la racinisation pour réduire les mots à leur forme de base.",
+          "huggingfaceTokenDesc": "Clé API pour l’API d’inférence de HuggingFace.",
+          "openaiApiKeyDesc": "Clé API OpenAI pour l’accès au LLM.",
+          "replicateApiKeyDesc": "Clé API Replicate pour l’inférence de modèles."
+        },
+        "websocket": {
+          "hostDesc": "Adresse du serveur pour les connexions WebSocket.",
+          "portDesc": "Numéro de port du serveur WebSocket.",
+          "streamlitHostDesc": "Adresse de l’hôte pour l’interface Streamlit.",
+          "streamlitPortDesc": "Port de l’interface Streamlit.",
+          "chatSizeDesc": "Taille de police par défaut pour le chat.",
+          "chatFontDesc": "Famille de police du texte du chat.",
+          "chatLineSpacingDesc": "Multiplicateur de hauteur de ligne.",
+          "chatAlignmentDesc": "Alignement horizontal du texte.",
+          "chatColorDesc": "Réglage de la couleur du texte.",
+          "chatContrastDesc": "Niveau de contraste pour la lisibilité."
+        },
+        "telegram": {
+          "tokenDesc": "Jeton d’authentification du bot pour l’API Telegram."
+        },
+        "github": {
+          "personalTokenDesc": "Jeton d’accès personnel pour l’API GitHub.",
+          "webhookTokenDesc": "Jeton secret pour la vérification du webhook.",
+          "webhookPortDesc": "Port du serveur local exposé à GitHub."
+        },
+        "gitlab": {
+          "personalTokenDesc": "Jeton d’accès personnel pour l’API GitLab.",
+          "webhookTokenDesc": "Jeton secret pour la vérification du webhook.",
+          "webhookPortDesc": "Port du serveur local exposé à GitLab."
+        },
+        "a2a": {
+          "portDesc": "Port local pour la communication entre agents."
+        },
+        "db": {
+          "dialectDesc": "Identifiant du système de base de données (p. ex. postgresql)",
+          "hostDesc": "Adresse du serveur de base de données",
+          "portDesc": "Port de connexion à la base de données",
+          "databaseDesc": "Nom de la base de données",
+          "usernameDesc": "Identifiants de l’utilisateur de la base de données",
+          "passwordDesc": "Mot de passe d’authentification de la base de données"
+        }
+      },
+      "section": {
+        "runtime": {
+          "desc": "Paramètres d’exécution du diagramme d’agent actif. Enregistrés dans le diagramme lui-même, pas dans le stockage global."
+        },
+        "agent": {
+          "desc": "Paramètres principaux d’exécution de l’agent."
+        },
+        "nlp": {
+          "desc": "Paramètres de traitement du langage naturel pour la reconnaissance des intentions."
+        },
+        "websocket": {
+          "title": "WebSocket",
+          "desc": "Configuration du serveur WebSocket et de l’interface Streamlit."
+        },
+        "telegram": {
+          "title": "Telegram",
+          "desc": "Paramètres d’intégration du bot Telegram."
+        },
+        "github": {
+          "title": "GitHub",
+          "desc": "Paramètres d’intégration du webhook GitHub."
+        },
+        "gitlab": {
+          "title": "GitLab",
+          "desc": "Paramètres d’intégration du webhook GitLab."
+        },
+        "a2a": {
+          "title": "A2A",
+          "desc": "Paramètres de communication entre agents."
+        },
+        "database": {
+          "title": "Base de données",
+          "desc": "Connexions de base de données pour la surveillance et Streamlit."
+        },
+        "custom": {
+          "title": "YAML personnalisé",
+          "desc": "Propriétés YAML supplémentaires ajoutées à la fin du config.yaml généré."
+        },
+        "raw": {
+          "desc": "Vue en lecture seule du config.yaml généré complet. Modifiez des sections individuelles ou ajoutez du YAML personnalisé."
+        }
+      }
     },
     "llms": {
       "title": "LLMs",
@@ -442,6 +547,31 @@
         "dbDatabase": "Nom de la base de données",
         "dbUsername": "Identifiants utilisateur de la base de données",
         "dbPassword": "Mot de passe d'authentification à la base de données"
+      },
+      "provider": {
+        "openai": "OpenAI",
+        "mistral": "Mistral AI",
+        "deepseek": "DeepSeek",
+        "google": "Google (Gemini)",
+        "meta": "Meta (Llama)",
+        "anthropic": "Anthropic (Claude)",
+        "qwen": "Alibaba Qwen",
+        "xai": "xAI (Grok)",
+        "groq": "Groq",
+        "together": "Together AI",
+        "openrouter": "OpenRouter",
+        "huggingface": "HuggingFace",
+        "replicate": "Replicate"
+      },
+      "subsection": {
+        "websocket": "websocket",
+        "streamlit": "streamlit",
+        "chat": "chat",
+        "telegram": "telegram",
+        "github": "github",
+        "gitlab": "gitlab",
+        "a2a": "a2a",
+        "monitoring": "monitoring"
       }
     },
     "importExport": {
@@ -463,6 +593,7 @@
         "description": "Le profil utilisateur \"{{profile}}\" est déjà associé à la configuration \"{{existing}}\". L'enregistrement remplacera cette association par \"{{next}}\"."
       }
     },
+    "noActiveDiagram": "Aucun diagramme d'agent actif. Ouvrez d'abord un diagramme d'agent.",
     "toasts": {
       "persistFailed": "Échec de la mise à jour du diagramme d'agent.",
       "noActiveDiagram": "Aucun diagramme d'agent actif.",
@@ -2468,6 +2599,247 @@
       "measurementOutput": "Sortie de mesure — générée automatiquement à partir des portes de mesure",
       "dropHere": "Déposer ici",
       "invalid": "Non valide"
+    }
+  },
+  "agentComponents": {
+    "noActiveDiagram": "Aucun diagramme d'agent actif.",
+    "sidebarTitle": "Composants",
+    "unnamed": "Sans nom",
+    "nav": {
+      "llms": "LLMs",
+      "intents": "Intentions",
+      "tools": "Outils",
+      "skills": "Compétences",
+      "workspaces": "Espaces de travail",
+      "ragDatabases": "Bases RAG",
+      "sqlDatabases": "Bases SQL",
+      "guis": "GUIs"
+    },
+    "llms": {
+      "title": "LLMs",
+      "description": "Modèles de langage disponibles pour l'agent. Les LLMs sont référencés par nom depuis les états et les bases RAG.",
+      "addLabel": "Ajouter un LLM",
+      "empty": "Aucun LLM défini pour l'instant.",
+      "modelName": "Nom du modèle",
+      "modelNamePlaceholder": "e.g. main_llm",
+      "modelNameDescription": "Identifiant utilisé pour référencer ce LLM.",
+      "provider": "Fournisseur",
+      "setDefault": "Définir comme LLM par défaut",
+      "setDefaultDescription": "Utiliser ce LLM quand aucun LLM spécifique n'est sélectionné dans une action d'état.",
+      "numPrevMessages": "Nb messages précédents",
+      "parameters": "Paramètres",
+      "parametersDescription": "Paramètres spécifiques au fournisseur sous forme d'objet JSON.",
+      "globalContext": "Contexte global",
+      "globalContextPlaceholder": "Instructions système optionnelles pour ce LLM"
+    },
+    "intents": {
+      "title": "Intentions",
+      "description": "Intentions utilisateur reconnues par l'agent. Chaque intention peut avoir des phrases d'entraînement pour améliorer la reconnaissance.",
+      "addLabel": "Ajouter une intention",
+      "empty": "Aucune intention définie pour l'instant.",
+      "sentenceCount_one": "{{count}} phrase",
+      "sentenceCount_other": "{{count}} phrases",
+      "name": "Nom de l'intention",
+      "namePlaceholder": "e.g. greet_user",
+      "intentDescription": "Description (facultatif)",
+      "intentDescriptionPlaceholder": "Brève description de ce que capture cette intention",
+      "trainingSentences": "Phrases d'entraînement",
+      "addSentence": "Ajouter une phrase",
+      "noSentences": "Aucune phrase d'entraînement pour l'instant. Ajoutez-en pour améliorer la reconnaissance des intentions.",
+      "sentencePlaceholder": "e.g. Hello there"
+    },
+    "tools": {
+      "title": "Outils",
+      "description": "Fonctions Python appelables par les états de raisonnement lors de l'exécution de l'agent.",
+      "addLabel": "Ajouter un outil",
+      "empty": "Aucun outil défini pour l'instant.",
+      "warning": "Les outils ne peuvent être utilisés que par un état de raisonnement. Ajoutez un état de raisonnement au diagramme d'agent pour utiliser des outils.",
+      "name": "Nom de l'outil",
+      "namePlaceholder": "e.g. search_web",
+      "toolDescription": "Description",
+      "toolDescriptionPlaceholder": "Description courte présentée au LLM",
+      "code": "Code Python",
+      "codeDescription": "Utilisez le paramètre `session` pour accéder à la session de l'agent."
+    },
+    "skills": {
+      "title": "Compétences",
+      "description": "Documents de connaissances en Markdown fournis aux états de raisonnement.",
+      "addLabel": "Ajouter une compétence",
+      "empty": "Aucune compétence définie pour l'instant.",
+      "warning": "Les compétences ne peuvent être utilisées que par un état de raisonnement. Ajoutez un état de raisonnement au diagramme d'agent pour utiliser des compétences.",
+      "name": "Nom de la compétence",
+      "namePlaceholder": "e.g. product_knowledge",
+      "skillDescription": "Description",
+      "skillDescriptionPlaceholder": "Description courte facultative",
+      "content": "Contenu Markdown",
+      "contentPlaceholder": "# Skill\n\nInstructions en markdown..."
+    },
+    "workspaces": {
+      "title": "Espaces de travail",
+      "description": "Répertoires du système de fichiers que l'agent peut lire ou écrire lors du raisonnement.",
+      "addLabel": "Ajouter un espace de travail",
+      "empty": "Aucun espace de travail défini pour l'instant.",
+      "warning": "Les espaces de travail ne peuvent être utilisés que par un état de raisonnement. Ajoutez un état de raisonnement au diagramme d'agent pour utiliser des espaces de travail.",
+      "badgeWritable": "modifiable",
+      "badgeReadOnly": "lecture seule",
+      "name": "Nom de l'espace de travail",
+      "namePlaceholder": "e.g. project_files",
+      "path": "Chemin du système de fichiers",
+      "pathPlaceholder": "/path/to/workspace",
+      "pathDescription": "Chemin absolu vers le répertoire sur le système hôte.",
+      "wsDescription": "Description",
+      "wsDescriptionPlaceholder": "Description facultative",
+      "writable": "Modifiable",
+      "writableDescription": "Autoriser l'agent à créer ou modifier des fichiers.",
+      "maxReadBytes": "Octets de lecture max"
+    },
+    "rags": {
+      "title": "Bases RAG",
+      "description": "Bases de données vectorielles pour la génération augmentée par récupération.",
+      "addLabel": "Ajouter une base RAG",
+      "empty": "Aucune base RAG définie pour l'instant.",
+      "name": "Nom",
+      "namePlaceholder": "e.g. faq_db",
+      "llm": "LLM",
+      "llmUseDefault": "(utiliser par défaut)",
+      "llmDescription": "LLM utilisé pour répondre au contenu récupéré.",
+      "promptPrefix": "Préfixe d'invite LLM",
+      "promptPrefixPlaceholder": "Préfixe d'invite optionnel pour le LLM",
+      "kChunks": "K (chunks récupérés)",
+      "kChunksDescription": "Fragments de documents récupérés par requête.",
+      "numPrevMessages": "Nb messages précédents",
+      "embeddingProvider": "Fournisseur d'intégration",
+      "embeddingOpenai": "OpenAI",
+      "embeddingOllama": "Ollama (local)",
+      "embeddingBaseUrl": "URL de base d'intégration",
+      "embeddingBaseUrlPlaceholder": "http://localhost:11434",
+      "embeddingModel": "Modèle d'intégration",
+      "embeddingModelPlaceholder": "e.g. nomic-embed-text"
+    },
+    "guis": {
+      "title": "GUIs",
+      "description": "Composants d'interface graphique que l'agent peut envoyer comme réponses de chat ou réagir via des événements GUI.",
+      "addLabel": "Créer un GUI",
+      "empty": "Aucun GUI défini pour l'instant.",
+      "badgeForm": "formulaire",
+      "guiId": "ID GUI (message_id)",
+      "guiIdPlaceholder": "UUID généré automatiquement",
+      "guiIdDescription": "Utilisé comme message_id dans GUIEvent et form_id dans when_form_submitted.",
+      "persist": "Persister",
+      "persistDescription": "Garder le GUI visible après l'interaction de l'utilisateur.",
+      "isForm": "Est un formulaire",
+      "isFormDescription": "Active les transitions when_form_submitted pour ce GUI.",
+      "width": "Largeur (facultatif)",
+      "widthPlaceholder": "e.g. 600px",
+      "widthDescription": "Largeur CSS du panneau GUI.",
+      "editDesign": "Modifier le design du GUI",
+      "openEditor": "Ouvrir l'éditeur GUI"
+    },
+    "sql": {
+      "title": "Bases SQL",
+      "description": "Connexions aux bases de données SQL écrites dans db.sql dans config.yaml.",
+      "addLabel": "Ajouter une base SQL",
+      "empty": "Aucune base SQL définie pour l'instant.",
+      "name": "Nom",
+      "namePlaceholder": "e.g. my_database",
+      "nameDescription": "Utilisé comme clé dans config.yaml.",
+      "dialect": "Dialecte",
+      "dialectPostgresql": "PostgreSQL",
+      "dialectSqlite": "SQLite",
+      "dialectMysql": "MySQL",
+      "dialectMariadb": "MariaDB",
+      "dialectMssql": "Microsoft SQL Server",
+      "dialectOracle": "Oracle",
+      "databaseFilePath": "Chemin du fichier de base de données",
+      "databaseName": "Nom de la base de données",
+      "databaseFilePathPlaceholder": "/path/to/local.db",
+      "databaseNamePlaceholder": "YOUR-DB-NAME",
+      "host": "Hôte",
+      "hostPlaceholder": "localhost",
+      "port": "Port",
+      "portPlaceholder": "5432",
+      "username": "Nom d'utilisateur",
+      "usernamePlaceholder": "YOUR-DB-USERNAME",
+      "password": "Mot de passe",
+      "passwordPlaceholder": "YOUR-DB-PASSWORD"
+    }
+  },
+  "agentSimulation": {
+    "defaultDiagramTitle": "Agent",
+    "sidebar": {
+      "simulateAgent": "Simuler l’agent"
+    },
+    "panel": {
+      "header": "Simulateur : {{title}}",
+      "stop": "Arrêter la simulation",
+      "errorTitle": "Erreur de simulation",
+      "tabDiagram": "Diagramme",
+      "tabSource": "Source",
+      "lastTransition": "Dernière transition :",
+      "starting": "Démarrage de la simulation…",
+      "restart": "Redémarrer la simulation",
+      "reset": "Réinitialiser",
+      "dragToResize": "Faites glisser pour redimensionner",
+      "loading": "L’agent est en cours de chargement, veuillez patienter."
+    },
+    "codeViewer": {
+      "copyTitle": "Copier le code",
+      "copyLabel": "Copier le code de l’agent généré",
+      "emptyTitle": "Le code généré apparaîtra ici",
+      "emptyDescription": "Exécutez l’étape de validation pour prévisualiser le code de l’agent.",
+      "header": "Code de l’agent généré"
+    },
+    "diagram": {
+      "currentState": "État actuel :",
+      "hide": "Masquer",
+      "view": "Afficher",
+      "transitions_one": "{{count}} transition",
+      "transitions_other": "{{count}} transitions",
+      "empty": "Aucun diagramme d’agent disponible"
+    },
+    "fileExplorer": {
+      "copy": "Copier le contenu du fichier",
+      "noSessionTitle": "Aucune session de test active",
+      "noSessionDescription": "Démarrez une session de test pour explorer les fichiers générés.",
+      "loading": "Chargement des fichiers de la session…",
+      "filesTitle": "Fichiers",
+      "refresh": "Actualiser les fichiers",
+      "noFiles": "Aucun fichier ni dossier trouvé",
+      "selectFile": "Sélectionnez un fichier pour afficher son contenu"
+    },
+    "chat": {
+      "websocketError": "Erreur de connexion WebSocket.",
+      "sensitivityWarning": "Ne partagez pas d’informations personnelles sensibles dans le chat de test. Les sessions peuvent être enregistrées."
+    },
+    "terminal": {
+      "expand": "Développer le terminal",
+      "collapse": "Réduire le terminal",
+      "header": "Sortie de l’agent",
+      "empty": "Aucune sortie pour l’instant…"
+    },
+    "credentials": {
+      "sensitivityWarning": "Ne partagez pas d’informations personnelles sensibles (mots de passe, données personnelles, documents confidentiels) dans le chat de simulation. Les sessions de simulation sont enregistrées et peuvent être visibles par les opérateurs de cet éditeur.",
+      "title": "Simuler l’agent : {{name}}",
+      "apiKeysTitle": "Clés API",
+      "ownKeys": "Utiliser mes propres clés API",
+      "editorQuota": "Utiliser le quota de l’éditeur",
+      "openAiLabel": "Clé API OpenAI",
+      "optional": "(facultatif)",
+      "openAiPlaceholder": "sk-...",
+      "huggingFaceLabel": "Jeton API HuggingFace",
+      "huggingFacePlaceholder": "hf_...",
+      "replicateLabel": "Clé API Replicate",
+      "replicatePlaceholder": "r8_...",
+      "limitsTitle": "Limites de ressources",
+      "memory": "Mémoire",
+      "unitMb": " MB",
+      "cpu": "CPU",
+      "unitCores": " cœur(s)",
+      "disk": "Disque",
+      "lifetime": "Durée de la session",
+      "unitMin": " min",
+      "validationError": "Échec de la validation — le code de l’agent n’a pas pu être généré :",
+      "start": "Démarrer la simulation"
     }
   }
 }

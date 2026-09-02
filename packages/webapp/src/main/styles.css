@@ -406,3 +406,43 @@ select {
     transform: translateY(0);
   }
 }
+
+/* ---- besser-agentic-framework-ui theme sync ----
+   The library defaults to prefers-color-scheme media query for dark mode.
+   These overrides tie it to the app's class-based dark/light toggle instead. */
+
+/* Light mode: force light variables (overrides any OS dark preference) */
+:root:not(.dark) .baf-chat {
+  --bg: #f8f9fa;
+  --surface: #fff;
+  --border: #e2e8f0;
+  --code-bg: #f1f5f9;
+  --text-primary: #1a202c;
+  --text-secondary: #64748b;
+  --accent: #0e6e7e;
+  --accent-hover: #0a5a6b;
+  --accent-bg: #0e6e7e14;
+  --error: #ef4444;
+  --error-bg: #ef44441a;
+}
+
+/* Dark mode: force dark variables (overrides any OS light preference) */
+.dark .baf-chat {
+  --bg: #0f172a;
+  --surface: #1e293b;
+  --border: #334155;
+  --code-bg: #1a2535;
+  --text-primary: #f1f5f9;
+  --text-secondary: #94a3b8;
+  --accent: #3b82f6;
+  --accent-hover: #2563eb;
+  --accent-bg: #3b82f61a;
+  --error: #f87171;
+  --error-bg: #f871711a;
+}
+
+/* Chat input row: remove the 10% horizontal padding so the textarea + buttons span full width */
+.baf-chat .chat-area__input-row {
+  padding-left: 12px;
+  padding-right: 12px;
+}
