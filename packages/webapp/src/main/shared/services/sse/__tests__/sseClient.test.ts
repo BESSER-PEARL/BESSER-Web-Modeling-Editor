@@ -221,11 +221,11 @@ describe('streamSse', () => {
     );
     globalThis.fetch = fetchMock;
 
-    await collect(streamSse<unknown>('/besser_api/smart-generate', { hello: 'world' }));
+    await collect(streamSse<unknown>('/besser_api/spec-driven/generate', { hello: 'world' }));
 
     expect(fetchMock).toHaveBeenCalledTimes(1);
     const [url, init] = fetchMock.mock.calls[0];
-    expect(url).toBe('/besser_api/smart-generate');
+    expect(url).toBe('/besser_api/spec-driven/generate');
     expect(init.method).toBe('POST');
     expect(JSON.parse(init.body)).toEqual({ hello: 'world' });
     expect(init.headers['Accept']).toBe('text/event-stream');

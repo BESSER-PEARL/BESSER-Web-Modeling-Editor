@@ -55,11 +55,11 @@ const GeneratorConfigDialogs = React.lazy(() =>
 const AssistantWidget = React.lazy(() =>
   import('../features/assistant/components/AssistantWidget').then((m) => ({ default: m.AssistantWidget })),
 );
-const SmartGenByokDialog = React.lazy(() =>
-  import('../features/smart-generation/components/SmartGenByokDialog').then((m) => ({ default: m.SmartGenByokDialog })),
+const SpecDrivenByokDialog = React.lazy(() =>
+  import('../features/spec-driven/components/SpecDrivenByokDialog').then((m) => ({ default: m.SpecDrivenByokDialog })),
 );
-const SmartGenPushDialogHost = React.lazy(() =>
-  import('../features/github/dialogs/SmartGenPushDialogHost').then((m) => ({ default: m.SmartGenPushDialogHost })),
+const SpecDrivenPushDialogHost = React.lazy(() =>
+  import('../features/github/dialogs/SpecDrivenPushDialogHost').then((m) => ({ default: m.SpecDrivenPushDialogHost })),
 );
 
 const postHogOptions = {
@@ -263,10 +263,10 @@ function AppContentInner() {
         <AssistantWidget onAssistantGenerate={handleAssistantGenerate} />
       </Suspense>
       <Suspense fallback={null}>
-        <SmartGenByokDialog project={currentProject} />
+        <SpecDrivenByokDialog project={currentProject} />
       </Suspense>
       <Suspense fallback={null}>
-        <SmartGenPushDialogHost />
+        <SpecDrivenPushDialogHost />
       </Suspense>
       <ToastContainer />
       <GlobalConfirmProvider />

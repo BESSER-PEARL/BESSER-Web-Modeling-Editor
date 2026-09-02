@@ -1,5 +1,5 @@
 /**
- * useSmartGenTrigger
+ * useSpecDrivenTrigger
  *
  * Handles the `trigger_smart_generator` action emitted by the modeling
  * agent (see `handlers/smart_generation_handler.py` in modeling-agent).
@@ -7,12 +7,12 @@
  * Flow:
  *   1. Modeling agent emits `trigger_smart_generator` via WebSocket.
  *   2. `useAssistantLogic.handleAction` hands the payload to
- *      `useSmartGenTrigger().handleTrigger(payload)` (fire-and-forget —
+ *      `useSpecDrivenTrigger().handleTrigger(payload)` (fire-and-forget —
  *      the run is long and must not block the action queue).
  *   3. If sessionStorage has no BYOK key, `openByokDialog` stashes the
  *      payload in Redux; the modal fires `handleTrigger` again after
  *      the user saves a key.
- *   4. Fetches `/besser_api/smart-generate` with the project payload,
+ *   4. Fetches `/besser_api/spec-driven/generate` with the project payload,
  *      instructions, provider, and BYOK key.
  *   5. Yields each SSE event and injects it into the shared assistant
  *      chat as a streaming assistant message — reusing the chunk-append
@@ -27,7 +27,7 @@
  * Concurrency: only ONE smart-gen run is allowed at a time — GLOBALLY,
  * across all mounted hook instances (AssistantWidget and
  * AssistantWorkspaceDrawer both mount one). The per-instance
- * `isRunningRef` is backed by `smartGenerator.runStatus` in the store,
+ * `isRunningRef` is backed by `specDriven.runStatus` in the store,
  * claimed/consumed synchronously via the `tryClaimRunSlot` /
  * `consumePendingTrigger` thunks. A second `handleTrigger` call while a
  * run is active appends a warning message and returns without starting
@@ -45,18 +45,18 @@ import { toast } from 'react-toastify';
 
 import type {
   Message as ChatKitMessage,
-  SmartGenMessageState,
+  SpecDrivenMessageState,
 } from '@/components/chatbot-kit/ui/chat-message';
 import { useAppDispatch, useAppSelector } from '../../../app/store/hooks';
 import type { BesserProject } from '../../../shared/types/project';
-import { fetchAndSaveSmartGenArtifact } from '../../../shared/utils/smartGenDownload';
+import { fetchAndSaveSpecDrivenArtifact } from '../../../shared/utils/specDrivenDownload';
 import { buildProjectPayloadForBackend } from '../../../shared/utils/projectExportUtils';
 
 import {
   beginRun,
   completeRun,
   consumePendingTrigger,
-  isSmartGenRunActive,
+  isSpecDrivenRunActive,
   openByokDialog,
   releaseRunSlot,
   resetRun,
@@ -66,7 +66,7 @@ import {
   tryClaimRunSlot,
   updateCost,
   updatePhase,
-} from '../state/smartGeneratorSlice';
+} from '../state/specDrivenSlice';
 import {
   clearSessionKey,
   readFreeTierSelected,
@@ -77,16 +77,16 @@ import {
   writeProjectLastRun,
 } from '../storage';
 import {
-  startSmartGenRun,
-  type StartSmartGenRunParams,
-} from '../services/smartGenerationSseClient';
-import { getSmartGenConfig } from '../services/smartGenConfig';
+  startSpecDrivenRun,
+  type StartSpecDrivenRunParams,
+} from '../services/specDrivenSseClient';
+import { getSpecDrivenConfig } from '../services/specDrivenConfig';
 import { decideRunMode } from '../runModeDecision';
 import type {
-  SmartGenEvent,
-  SmartGenPhase,
-  SmartGenProvider,
-  TriggerSmartGeneratorPayload,
+  SpecDrivenEvent,
+  SpecDrivenPhase,
+  SpecDrivenProvider,
+  TriggerSpecDrivenPayload,
 } from '../types';
 
 // Longest we're willing to wait after a COST_CAP or TIMEOUT warning
@@ -102,7 +102,7 @@ const COST_TIMEOUT_FAILSAFE_MS = 45_000;
 // backend has garbage-collected the run's output, so a rebuild is forced.
 const DEFAULT_DOWNLOAD_TTL_SECONDS = 1800;
 
-const isNonTerminalErrorEvent = (event: SmartGenEvent): boolean =>
+const isNonTerminalErrorEvent = (event: SpecDrivenEvent): boolean =>
   event.event === 'error' &&
   (event.code === 'COST_CAP' ||
     event.code === 'TIMEOUT' ||
@@ -115,7 +115,7 @@ const createMessageId = (): string => {
   return `smart-gen-${Date.now()}-${Math.random().toString(16).slice(2)}`;
 };
 
-const PHASE_LABELS: Record<SmartGenPhase, string> = {
+const PHASE_LABELS: Record<SpecDrivenPhase, string> = {
   select: 'Selecting generator',
   generate: 'Running deterministic generator',
   gap: 'Analysing gaps',
@@ -123,7 +123,7 @@ const PHASE_LABELS: Record<SmartGenPhase, string> = {
   validate: 'Validating',
 };
 
-const VALID_PHASES: ReadonlySet<SmartGenPhase> = new Set<SmartGenPhase>([
+const VALID_PHASES: ReadonlySet<SpecDrivenPhase> = new Set<SpecDrivenPhase>([
   'select',
   'generate',
   'gap',
@@ -131,7 +131,7 @@ const VALID_PHASES: ReadonlySet<SmartGenPhase> = new Set<SmartGenPhase>([
   'validate',
 ]);
 
-const VALID_PROVIDERS: ReadonlySet<SmartGenProvider> = new Set<SmartGenProvider>([
+const VALID_PROVIDERS: ReadonlySet<SpecDrivenProvider> = new Set<SpecDrivenProvider>([
   'anthropic',
   'openai',
   'mistral',
@@ -142,7 +142,7 @@ const VALID_PROVIDERS: ReadonlySet<SmartGenProvider> = new Set<SmartGenProvider>
 
 /**
  * Extract the 32-hex run_id from a backend-provided downloadUrl such as
- * `/besser_api/download-smart/7f3c…`. Returns `null` on failure — the
+ * `/besser_api/spec-driven/download/7f3c…`. Returns `null` on failure — the
  * caller must handle that explicitly rather than silently using an
  * empty string as a sentinel.
  */
@@ -155,18 +155,18 @@ const extractRunId = (downloadUrl: string): string | null => {
   return null;
 };
 
-const isValidProvider = (value: unknown): value is SmartGenProvider =>
-  typeof value === 'string' && VALID_PROVIDERS.has(value as SmartGenProvider);
+const isValidProvider = (value: unknown): value is SpecDrivenProvider =>
+  typeof value === 'string' && VALID_PROVIDERS.has(value as SpecDrivenProvider);
 
-const isValidPhase = (value: unknown): value is SmartGenPhase =>
-  typeof value === 'string' && VALID_PHASES.has(value as SmartGenPhase);
+const isValidPhase = (value: unknown): value is SpecDrivenPhase =>
+  typeof value === 'string' && VALID_PHASES.has(value as SpecDrivenPhase);
 
 /**
  * Terminal outcome of a smart-gen run, reported exactly once per run
  * via `onRunFinished` — used by the assistant orchestrator to close
  * the agent loop (`generator_result` frontend event).
  */
-export interface SmartGenRunResult {
+export interface SpecDrivenRunResult {
   ok: boolean;
   runId?: string;
   errorCode?: string;
@@ -180,7 +180,7 @@ export interface SmartGenRunResult {
   incompleteReason?: string;
 }
 
-export interface UseSmartGenTriggerOptions {
+export interface UseSpecDrivenTriggerOptions {
   currentProjectRef: React.MutableRefObject<BesserProject | null | undefined>;
   setMessages: React.Dispatch<React.SetStateAction<ChatKitMessage[]>>;
   setIsGenerating: React.Dispatch<React.SetStateAction<boolean>>;
@@ -189,17 +189,17 @@ export interface UseSmartGenTriggerOptions {
    * download attempt on `done` (ok = download success), on a terminal
    * error event, or on user abort (errorCode 'CANCELLED').
    */
-  onRunFinished?: (result: SmartGenRunResult) => void;
+  onRunFinished?: (result: SpecDrivenRunResult) => void;
 }
 
-export interface UseSmartGenTriggerReturn {
-  handleTrigger: (payload: TriggerSmartGeneratorPayload) => Promise<void>;
+export interface UseSpecDrivenTriggerReturn {
+  handleTrigger: (payload: TriggerSpecDrivenPayload) => Promise<void>;
   abortActive: () => void;
 }
 
-export function useSmartGenTrigger(
-  options: UseSmartGenTriggerOptions,
-): UseSmartGenTriggerReturn {
+export function useSpecDrivenTrigger(
+  options: UseSpecDrivenTriggerOptions,
+): UseSpecDrivenTriggerReturn {
   const dispatch = useAppDispatch();
   const { currentProjectRef, setMessages, setIsGenerating } = options;
 
@@ -233,13 +233,13 @@ export function useSmartGenTrigger(
   const currentRunIdRef = useRef<string | undefined>(undefined);
   const lastCostRef = useRef<number | undefined>(undefined);
 
-  const reportRunFinished = useCallback((result: SmartGenRunResult) => {
+  const reportRunFinished = useCallback((result: SpecDrivenRunResult) => {
     if (runFinishedReportedRef.current) return;
     runFinishedReportedRef.current = true;
     try {
       onRunFinishedRef.current?.(result);
     } catch (err) {
-      console.error('[useSmartGenTrigger] onRunFinished callback failed', err);
+      console.error('[useSpecDrivenTrigger] onRunFinished callback failed', err);
     }
   }, []);
 
@@ -253,9 +253,9 @@ export function useSmartGenTrigger(
     };
   }, []);
 
-  const pendingTrigger = useAppSelector((s) => s.smartGenerator.pendingTrigger);
-  const apiKeyInStore = useAppSelector((s) => s.smartGenerator.apiKeyInStore);
-  const byokDialogOpen = useAppSelector((s) => s.smartGenerator.byokDialogOpen);
+  const pendingTrigger = useAppSelector((s) => s.specDriven.pendingTrigger);
+  const apiKeyInStore = useAppSelector((s) => s.specDriven.apiKeyInStore);
+  const byokDialogOpen = useAppSelector((s) => s.specDriven.byokDialogOpen);
 
   const appendAssistantMessage = useCallback(
     (content: string, extras?: Partial<ChatKitMessage>): string => {
@@ -276,29 +276,29 @@ export function useSmartGenTrigger(
   );
 
   // Initial structured state for a fresh smart-gen run. Stored on the
-  // streaming message under ``smartGen`` and rendered as a card by
+  // streaming message under ``specDriven`` and rendered as a card by
   // ``ChatMessage``.
-  const emptySmartGen = (): SmartGenMessageState => ({
+  const emptySpecDriven = (): SpecDrivenMessageState => ({
     phases: [],
     warnings: [],
     text: '',
     status: 'running',
   });
 
-  const updateSmartGen = useCallback(
+  const updateSpecDriven = useCallback(
     (
       messageId: string,
-      updater: (s: SmartGenMessageState) => SmartGenMessageState,
+      updater: (s: SpecDrivenMessageState) => SpecDrivenMessageState,
       opts: { stopStreaming?: boolean } = {},
     ) => {
       setMessages((prev) => {
         const idx = prev.findIndex((m) => m.id === messageId);
         if (idx === -1) return prev;
         const current = prev[idx];
-        const before = current.smartGen ?? emptySmartGen();
+        const before = current.specDriven ?? emptySpecDriven();
         const updated: ChatKitMessage = {
           ...current,
-          smartGen: updater(before),
+          specDriven: updater(before),
           isStreaming: opts.stopStreaming ? false : true,
         };
         return [...prev.slice(0, idx), updated, ...prev.slice(idx + 1)];
@@ -316,16 +316,16 @@ export function useSmartGenTrigger(
         const updated: ChatKitMessage = {
           ...current,
           isStreaming: false,
-          smartGen: current.smartGen
+          specDriven: current.specDriven
             ? {
-                ...current.smartGen,
+                ...current.specDriven,
                 // Only flip to 'done' if not already 'error' — error is
                 // terminal and shouldn't be overwritten by a finalize call
                 // that comes from the natural end of the stream.
                 status:
-                  current.smartGen.status === 'error' ? 'error' : 'done',
+                  current.specDriven.status === 'error' ? 'error' : 'done',
               }
-            : current.smartGen,
+            : current.specDriven,
         };
         return [...prev.slice(0, idx), updated, ...prev.slice(idx + 1)];
       });
@@ -350,8 +350,8 @@ export function useSmartGenTrigger(
   /**
    * Download the generated output and trigger a browser save. The
    * actual blob fetch/save lives in the shared
-   * `fetchAndSaveSmartGenArtifact` helper (also used by the
-   * SmartGenCard "Download again" button); this wrapper only resolves
+   * `fetchAndSaveSpecDrivenArtifact` helper (also used by the
+   * SpecDrivenCard "Download again" button); this wrapper only resolves
    * the runId.
    *
    * Returns an object describing the outcome:
@@ -372,7 +372,7 @@ export function useSmartGenTrigger(
       if (!runId) {
         return { ok: false };
       }
-      return fetchAndSaveSmartGenArtifact(runId, fileName, isZip);
+      return fetchAndSaveSpecDrivenArtifact(runId, fileName, isZip);
     },
     [],
   );
@@ -391,7 +391,7 @@ export function useSmartGenTrigger(
    */
   const handleSseEvent = useCallback(
     async (
-      event: SmartGenEvent,
+      event: SpecDrivenEvent,
       streamingId: string,
       runProject: { id: string; name?: string },
     ): Promise<void> => {
@@ -399,11 +399,11 @@ export function useSmartGenTrigger(
       switch (event.event) {
         case 'start': {
           if (!isValidProvider(event.provider)) {
-            console.warn('[useSmartGenTrigger] start event with invalid provider', event);
+            console.warn('[useSpecDrivenTrigger] start event with invalid provider', event);
           }
           currentRunIdRef.current = event.runId;
           dispatch(beginRun({ runId: event.runId }));
-          updateSmartGen(streamingId, (s) => ({
+          updateSpecDriven(streamingId, (s) => ({
             ...s,
             runId: event.runId,
             provider: event.provider,
@@ -415,8 +415,8 @@ export function useSmartGenTrigger(
         }
         case 'phase': {
           if (!isValidPhase(event.phase)) {
-            console.warn('[useSmartGenTrigger] phase event with unknown phase', event);
-            updateSmartGen(streamingId, (s) => ({
+            console.warn('[useSpecDrivenTrigger] phase event with unknown phase', event);
+            updateSpecDriven(streamingId, (s) => ({
               ...s,
               phases: [
                 ...s.phases,
@@ -432,7 +432,7 @@ export function useSmartGenTrigger(
           }
           dispatch(updatePhase(event.phase));
           const label = PHASE_LABELS[event.phase];
-          updateSmartGen(streamingId, (s) => ({
+          updateSpecDriven(streamingId, (s) => ({
             ...s,
             phases: [
               ...s.phases,
@@ -453,7 +453,7 @@ export function useSmartGenTrigger(
           // task list after the planning LLM call returns. If no
           // matching phase exists yet (events arrived out of order),
           // skip — the chevron only opens when there's something to show.
-          updateSmartGen(streamingId, (s) => {
+          updateSpecDriven(streamingId, (s) => {
             const phases = [...s.phases];
             for (let i = phases.length - 1; i >= 0; i--) {
               if (phases[i].phase === event.phase) {
@@ -473,7 +473,7 @@ export function useSmartGenTrigger(
           return;
         }
         case 'tool_call': {
-          updateSmartGen(streamingId, (s) => {
+          updateSpecDriven(streamingId, (s) => {
             const phases = [...s.phases];
             // If a tool call arrives before any phase event, attach it to
             // an implicit "Working" phase so the row still has a home in
@@ -499,7 +499,7 @@ export function useSmartGenTrigger(
           return;
         }
         case 'text': {
-          updateSmartGen(streamingId, (s) => ({
+          updateSpecDriven(streamingId, (s) => ({
             ...s,
             text: s.text + event.delta,
           }));
@@ -511,7 +511,7 @@ export function useSmartGenTrigger(
           // Mirror onto the chat card so the user sees a live
           // `$spent / $budget · elapsed / max` meter while the run burns
           // their BYOK budget.
-          updateSmartGen(streamingId, (s) => ({
+          updateSpecDriven(streamingId, (s) => ({
             ...s,
             costUsd: event.usd,
             elapsedSeconds: event.elapsedSeconds,
@@ -571,7 +571,7 @@ export function useSmartGenTrigger(
           // button (`needsDownload`) the user clicks when ready. The
           // backend keeps the file for ~30 min and allows repeated
           // downloads, so the button works whenever the user is ready.
-          updateSmartGen(
+          updateSpecDriven(
             streamingId,
             (s) => ({
               ...s,
@@ -641,7 +641,7 @@ export function useSmartGenTrigger(
             // (product decision) — the run still finalises normally.
             // TIMEOUT / INCOMPLETE surface a warning on the run card.
             if (event.code === 'TIMEOUT' || event.code === 'INCOMPLETE') {
-              updateSmartGen(streamingId, (s) => ({
+              updateSpecDriven(streamingId, (s) => ({
                 ...s,
                 warnings: [
                   ...s.warnings,
@@ -679,7 +679,7 @@ export function useSmartGenTrigger(
           // Mark the streaming card as terminally errored before flipping
           // ``isStreaming`` off — the card's status pill becomes red so the
           // user can see the run failed without scrolling to the toast.
-          updateSmartGen(
+          updateSpecDriven(
             streamingId,
             (s) => ({
               ...s,
@@ -708,7 +708,7 @@ export function useSmartGenTrigger(
           // development. Never throws on the stream.
           if (typeof console !== 'undefined') {
             // eslint-disable-next-line no-console
-            console.warn('[useSmartGenTrigger] unknown SSE event', event);
+            console.warn('[useSpecDrivenTrigger] unknown SSE event', event);
           }
           return;
         }
@@ -725,7 +725,7 @@ export function useSmartGenTrigger(
       fetchAndSaveDownload,
       finalizeStreamingMessage,
       reportRunFinished,
-      updateSmartGen,
+      updateSpecDriven,
     ],
   );
 
@@ -745,7 +745,7 @@ export function useSmartGenTrigger(
    * call the same implementation.
    */
   const startRun = useCallback(
-    async (payload: TriggerSmartGeneratorPayload) => {
+    async (payload: TriggerSpecDrivenPayload) => {
       if (!payload.planApproved) {
         dispatch(openByokDialog(payload));
         return;
@@ -754,7 +754,7 @@ export function useSmartGenTrigger(
       // (isRunningRef) and a run owned by the OTHER mounted hook
       // instance (global runStatus, read synchronously from the live
       // store — a useAppSelector value could be stale in this commit).
-      if (isRunningRef.current || dispatch(isSmartGenRunActive())) {
+      if (isRunningRef.current || dispatch(isSpecDrivenRunActive())) {
         appendErrorToChat(
           'Spec-Driven Agent is already running — please wait for it to finish or click Stop.',
         );
@@ -783,7 +783,7 @@ export function useSmartGenTrigger(
       };
 
       // Resolve the provider with runtime validation — never trust
-      // untyped payload fields to match the StartSmartGenRunParams
+      // untyped payload fields to match the StartSpecDrivenRunParams
       // union without checking.
       //
       // IMPORTANT priority order: the provider stored alongside the
@@ -808,7 +808,7 @@ export function useSmartGenTrigger(
         toast.error('Spec-Driven Agent: invalid provider');
         return;
       }
-      const provider: SmartGenProvider = rawProvider;
+      const provider: SpecDrivenProvider = rawProvider;
 
       // Point of no return: atomically claim the GLOBAL run slot. All
       // code from the guard at the top of this function down to here is
@@ -877,11 +877,11 @@ export function useSmartGenTrigger(
       // run for THIS project and, if it's still within the backend's
       // download-TTL window, edit that app in place (`mode:'modify'` +
       // baseRunId) instead of rebuilding. The decision is automatic; an
-      // explicit `mode` on the trigger payload overrides it. `getSmartGenConfig`
+      // explicit `mode` on the trigger payload overrides it. `getSpecDrivenConfig`
       // is cached and never rejects (resolves to the fallback), so the TTL
       // is always defined.
       const ttlSeconds =
-        (await getSmartGenConfig()).download_ttl_seconds ||
+        (await getSpecDrivenConfig()).download_ttl_seconds ||
         DEFAULT_DOWNLOAD_TTL_SECONDS;
       const runDecision = decideRunMode({
         lastRun: readProjectLastRun(project.id),
@@ -891,7 +891,7 @@ export function useSmartGenTrigger(
         explicitBaseRunId: payload.baseRunId,
       });
 
-      const runParams: StartSmartGenRunParams = {
+      const runParams: StartSpecDrivenRunParams = {
         project: normalisedProject,
         instructions: payload.instructions,
         provider,
@@ -909,7 +909,7 @@ export function useSmartGenTrigger(
 
       let handle;
       try {
-        handle = startSmartGenRun(runParams);
+        handle = startSpecDrivenRun(runParams);
       } catch (err) {
         finalizeStreamingMessage(streamingId);
         appendErrorToChat(
@@ -941,7 +941,7 @@ export function useSmartGenTrigger(
           !terminalEventSeen
         ) {
           const message = 'The generation stream closed before reporting a final result.';
-          updateSmartGen(
+          updateSpecDriven(
             streamingId,
             (state) => ({
               ...state,
@@ -1009,7 +1009,7 @@ export function useSmartGenTrigger(
       handleSseEvent,
       reportRunFinished,
       setIsGenerating,
-      updateSmartGen,
+      updateSpecDriven,
     ],
   );
 
@@ -1018,10 +1018,10 @@ export function useSmartGenTrigger(
    * Decides whether to open the BYOK modal or start the run immediately.
    */
   const handleTrigger = useCallback(
-    async (payload: TriggerSmartGeneratorPayload) => {
+    async (payload: TriggerSpecDrivenPayload) => {
       // Check the per-instance ref AND the global run flag (fresh from
       // the store) — the run may be owned by the other mounted instance.
-      if (isRunningRef.current || dispatch(isSmartGenRunActive())) {
+      if (isRunningRef.current || dispatch(isSpecDrivenRunActive())) {
         appendErrorToChat(
           'Spec-Driven Agent is already running — please wait for it to finish or click Stop.',
         );
@@ -1041,7 +1041,7 @@ export function useSmartGenTrigger(
       // higher-quality results. Only fall back to the dialog when the server
       // doesn't actually offer the free tier (old backend / offline →
       // config.free_tier.available === false).
-      const cfg = await getSmartGenConfig();
+      const cfg = await getSpecDrivenConfig();
       if (cfg.free_tier.available) {
         writeFreeTierSelected(true);
         await startRun({ ...payload, planApproved: true });

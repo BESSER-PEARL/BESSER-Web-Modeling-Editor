@@ -1,5 +1,5 @@
 /**
- * Unit tests for SmartGenByokDialog.
+ * Unit tests for SpecDrivenByokDialog.
  *
  * Covers:
  *   - Dialog reactivity: opens/closes based on Redux state
@@ -16,27 +16,27 @@ import { Provider } from 'react-redux';
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { smartGeneratorReducer, openByokDialog, setApiKeyPresent } from '../../state/smartGeneratorSlice';
+import { specDrivenReducer, openByokDialog, setApiKeyPresent } from '../../state/specDrivenSlice';
 import { workspaceReducer } from '../../../../app/store/workspaceSlice';
 import { errorReducer } from '../../../../app/store/errorManagementSlice';
-import { SmartGenByokDialog } from '../SmartGenByokDialog';
-import { getSmartGenConfig, FALLBACK_SMART_GEN_CONFIG } from '../../services/smartGenConfig';
+import { SpecDrivenByokDialog } from '../SpecDrivenByokDialog';
+import { getSpecDrivenConfig, FALLBACK_SMART_GEN_CONFIG } from '../../services/specDrivenConfig';
 import {
-  sessionStorageSmartGenApiKey,
-  sessionStorageSmartGenFreeTier,
-  sessionStorageSmartGenMaxCostUsd,
-  sessionStorageSmartGenMaxRuntimeSeconds,
-  sessionStorageSmartGenProvider,
+  sessionStorageSpecDrivenApiKey,
+  sessionStorageSpecDrivenFreeTier,
+  sessionStorageSpecDrivenMaxCostUsd,
+  sessionStorageSpecDrivenMaxRuntimeSeconds,
+  sessionStorageSpecDrivenProvider,
 } from '../../../../shared/constants/constant';
 
 // Mock the config service so dialog tests never hit the network. The
 // fallback object mirrors the backend literals (caps 2.0 USD / 900 s,
 // defaults 1.0 USD / 600 s).
-vi.mock('../../services/smartGenConfig', async (importOriginal) => {
-  const mod = await importOriginal<typeof import('../../services/smartGenConfig')>();
+vi.mock('../../services/specDrivenConfig', async (importOriginal) => {
+  const mod = await importOriginal<typeof import('../../services/specDrivenConfig')>();
   return {
     ...mod,
-    getSmartGenConfig: vi.fn(() => Promise.resolve(mod.FALLBACK_SMART_GEN_CONFIG)),
+    getSpecDrivenConfig: vi.fn(() => Promise.resolve(mod.FALLBACK_SMART_GEN_CONFIG)),
   };
 });
 
@@ -49,7 +49,7 @@ function makeStore(preopen = true) {
     reducer: {
       workspace: workspaceReducer,
       errors: errorReducer,
-      smartGenerator: smartGeneratorReducer,
+      specDriven: specDrivenReducer,
     },
   });
   if (preopen) {
@@ -62,7 +62,7 @@ function renderDialog(preopen = true) {
   const store = makeStore(preopen);
   const result = render(
     <Provider store={store}>
-      <SmartGenByokDialog project={PROJECT} />
+      <SpecDrivenByokDialog project={PROJECT} />
     </Provider>,
   );
   return { store, ...result };
@@ -80,17 +80,17 @@ function renderPendingDialog() {
   return rendered;
 }
 
-function clearSmartGenSessionStorage() {
-  window.sessionStorage.removeItem(sessionStorageSmartGenApiKey);
-  window.sessionStorage.removeItem(sessionStorageSmartGenProvider);
-  window.sessionStorage.removeItem(sessionStorageSmartGenMaxCostUsd);
-  window.sessionStorage.removeItem(sessionStorageSmartGenMaxRuntimeSeconds);
-  window.sessionStorage.removeItem(sessionStorageSmartGenFreeTier);
+function clearSpecDrivenSessionStorage() {
+  window.sessionStorage.removeItem(sessionStorageSpecDrivenApiKey);
+  window.sessionStorage.removeItem(sessionStorageSpecDrivenProvider);
+  window.sessionStorage.removeItem(sessionStorageSpecDrivenMaxCostUsd);
+  window.sessionStorage.removeItem(sessionStorageSpecDrivenMaxRuntimeSeconds);
+  window.sessionStorage.removeItem(sessionStorageSpecDrivenFreeTier);
 }
 
 beforeEach(() => {
   vi.clearAllMocks();
-  clearSmartGenSessionStorage();
+  clearSpecDrivenSessionStorage();
 });
 
 afterEach(() => {
@@ -98,10 +98,10 @@ afterEach(() => {
   // clean up the DOM. Without this, `getByLabelText` sees stale
   // elements from prior tests and fails with "multiple elements found".
   cleanup();
-  clearSmartGenSessionStorage();
+  clearSpecDrivenSessionStorage();
 });
 
-describe('SmartGenByokDialog — visibility', () => {
+describe('SpecDrivenByokDialog — visibility', () => {
   it('is not rendered when byokDialogOpen is false', () => {
     renderDialog(false);
     expect(screen.queryByText(/spec-driven agent.*settings/i)).toBeNull();
@@ -113,7 +113,7 @@ describe('SmartGenByokDialog — visibility', () => {
   });
 });
 
-describe('SmartGenByokDialog — save flow', () => {
+describe('SpecDrivenByokDialog — save flow', () => {
   it('saves the key to sessionStorage and dispatches setApiKeyPresent', () => {
     const { store } = renderDialog(true);
     const input = (document.getElementById('smart-gen-api-key') as HTMLInputElement) as HTMLInputElement;
@@ -121,14 +121,14 @@ describe('SmartGenByokDialog — save flow', () => {
     const saveBtn = screen.getByRole('button', { name: /^save$/i });
     fireEvent.click(saveBtn);
 
-    const state = store.getState().smartGenerator;
+    const state = store.getState().specDriven;
     expect(state.apiKeyInStore).toBe(true);
     expect(state.byokDialogOpen).toBe(false);
     expect(state.provider).toBe('anthropic');
-    expect(window.sessionStorage.getItem(sessionStorageSmartGenApiKey)).toBe(
+    expect(window.sessionStorage.getItem(sessionStorageSpecDrivenApiKey)).toBe(
       'sk-ant-abc123-TEST',
     );
-    expect(window.sessionStorage.getItem(sessionStorageSmartGenProvider)).toBe(
+    expect(window.sessionStorage.getItem(sessionStorageSpecDrivenProvider)).toBe(
       'anthropic',
     );
   });
@@ -138,7 +138,7 @@ describe('SmartGenByokDialog — save flow', () => {
     const input = (document.getElementById('smart-gen-api-key') as HTMLInputElement) as HTMLInputElement;
     fireEvent.change(input, { target: { value: '   sk-ant-trimmed   ' } });
     fireEvent.click(screen.getByRole('button', { name: /^save$/i }));
-    expect(window.sessionStorage.getItem(sessionStorageSmartGenApiKey)).toBe(
+    expect(window.sessionStorage.getItem(sessionStorageSpecDrivenApiKey)).toBe(
       'sk-ant-trimmed',
     );
   });
@@ -158,7 +158,7 @@ describe('SmartGenByokDialog — save flow', () => {
   });
 });
 
-describe('SmartGenByokDialog — format hint', () => {
+describe('SpecDrivenByokDialog — format hint', () => {
   it('shows an amber hint when the key does not match the expected prefix', () => {
     renderDialog(true);
     const input = (document.getElementById('smart-gen-api-key') as HTMLInputElement) as HTMLInputElement;
@@ -171,8 +171,8 @@ describe('SmartGenByokDialog — format hint', () => {
     const input = (document.getElementById('smart-gen-api-key') as HTMLInputElement) as HTMLInputElement;
     fireEvent.change(input, { target: { value: 'not-a-sk-key' } });
     fireEvent.click(screen.getByRole('button', { name: /^save$/i }));
-    expect(store.getState().smartGenerator.byokDialogOpen).toBe(false);
-    expect(window.sessionStorage.getItem(sessionStorageSmartGenApiKey)).toBe(
+    expect(store.getState().specDriven.byokDialogOpen).toBe(false);
+    expect(window.sessionStorage.getItem(sessionStorageSpecDrivenApiKey)).toBe(
       'not-a-sk-key',
     );
   });
@@ -188,21 +188,21 @@ describe('SmartGenByokDialog — format hint', () => {
   });
 });
 
-describe('SmartGenByokDialog — cancel flow', () => {
+describe('SpecDrivenByokDialog — cancel flow', () => {
   it('cancel closes the dialog AND clears the pending trigger', () => {
     const { store } = renderPendingDialog();
-    expect(store.getState().smartGenerator.pendingTrigger).not.toBeNull();
+    expect(store.getState().specDriven.pendingTrigger).not.toBeNull();
 
     fireEvent.click(screen.getByRole('button', { name: /cancel/i }));
 
-    const state = store.getState().smartGenerator;
+    const state = store.getState().specDriven;
     expect(state.byokDialogOpen).toBe(false);
     expect(state.pendingTrigger).toBeNull();
-    expect(window.sessionStorage.getItem(sessionStorageSmartGenApiKey)).toBeNull();
+    expect(window.sessionStorage.getItem(sessionStorageSpecDrivenApiKey)).toBeNull();
   });
 });
 
-describe('SmartGenByokDialog — model selector', () => {
+describe('SpecDrivenByokDialog — model selector', () => {
   it('saves the chosen preset model alongside the key and provider', () => {
     renderDialog(true);
     // Default Anthropic preset is claude-sonnet-4-6.
@@ -266,7 +266,7 @@ describe('SmartGenByokDialog — model selector', () => {
     // Leave custom input empty — save should fail with an error and NOT close
     fireEvent.click(screen.getByRole('button', { name: /^save$/i }));
 
-    expect(store.getState().smartGenerator.byokDialogOpen).toBe(true);
+    expect(store.getState().specDriven.byokDialogOpen).toBe(true);
     expect(screen.getByText(/custom model id is empty/i)).toBeTruthy();
   });
 
@@ -281,7 +281,7 @@ describe('SmartGenByokDialog — model selector', () => {
     fireEvent.change(customInput, { target: { value: 'evil"; rm -rf /' } });
 
     fireEvent.click(screen.getByRole('button', { name: /^save$/i }));
-    expect(store.getState().smartGenerator.byokDialogOpen).toBe(true);
+    expect(store.getState().specDriven.byokDialogOpen).toBe(true);
     expect(screen.getByText(/may only contain letters/i)).toBeTruthy();
   });
 
@@ -315,7 +315,7 @@ describe('SmartGenByokDialog — model selector', () => {
   });
 });
 
-describe('SmartGenByokDialog — budget controls', () => {
+describe('SpecDrivenByokDialog — budget controls', () => {
   // The budget fields live behind a collapsed "Cost and runtime limits"
   // disclosure — expand it so the inputs are mounted before we query them.
   const expandBudgetControls = () =>
@@ -336,8 +336,8 @@ describe('SmartGenByokDialog — budget controls', () => {
   });
 
   it('prefers previously saved budget values over the config defaults', async () => {
-    window.sessionStorage.setItem(sessionStorageSmartGenMaxCostUsd, '1.5');
-    window.sessionStorage.setItem(sessionStorageSmartGenMaxRuntimeSeconds, '300');
+    window.sessionStorage.setItem(sessionStorageSpecDrivenMaxCostUsd, '1.5');
+    window.sessionStorage.setItem(sessionStorageSpecDrivenMaxRuntimeSeconds, '300');
     renderDialog(true);
     expandBudgetControls();
     const costInput = document.getElementById('smart-gen-max-cost') as HTMLInputElement;
@@ -366,8 +366,8 @@ describe('SmartGenByokDialog — budget controls', () => {
     });
     fireEvent.click(screen.getByRole('button', { name: /save/i }));
 
-    expect(window.sessionStorage.getItem(sessionStorageSmartGenMaxCostUsd)).toBe('1.25');
-    expect(window.sessionStorage.getItem(sessionStorageSmartGenMaxRuntimeSeconds)).toBe('300');
+    expect(window.sessionStorage.getItem(sessionStorageSpecDrivenMaxCostUsd)).toBe('1.25');
+    expect(window.sessionStorage.getItem(sessionStorageSpecDrivenMaxRuntimeSeconds)).toBe('300');
   });
 
   it('clamps the budget to the config hard caps on save', async () => {
@@ -389,8 +389,8 @@ describe('SmartGenByokDialog — budget controls', () => {
     });
     fireEvent.click(screen.getByRole('button', { name: /save/i }));
 
-    expect(window.sessionStorage.getItem(sessionStorageSmartGenMaxCostUsd)).toBe('2');
-    expect(window.sessionStorage.getItem(sessionStorageSmartGenMaxRuntimeSeconds)).toBe('900');
+    expect(window.sessionStorage.getItem(sessionStorageSpecDrivenMaxCostUsd)).toBe('2');
+    expect(window.sessionStorage.getItem(sessionStorageSpecDrivenMaxRuntimeSeconds)).toBe('900');
   });
 
   it('falls back to the defaults when the inputs are emptied', async () => {
@@ -411,12 +411,12 @@ describe('SmartGenByokDialog — budget controls', () => {
     });
     fireEvent.click(screen.getByRole('button', { name: /save/i }));
 
-    expect(window.sessionStorage.getItem(sessionStorageSmartGenMaxCostUsd)).toBe('1');
-    expect(window.sessionStorage.getItem(sessionStorageSmartGenMaxRuntimeSeconds)).toBe('600');
+    expect(window.sessionStorage.getItem(sessionStorageSpecDrivenMaxCostUsd)).toBe('1');
+    expect(window.sessionStorage.getItem(sessionStorageSpecDrivenMaxRuntimeSeconds)).toBe('600');
   });
 });
 
-describe('SmartGenByokDialog — footer (pending trigger)', () => {
+describe('SpecDrivenByokDialog — footer (pending trigger)', () => {
   it('Save & run persists the key and approves the pending trigger directly (no preview step)', () => {
     const { store } = renderPendingDialog();
     // No plan-review panel — the run button is available immediately.
@@ -425,7 +425,7 @@ describe('SmartGenByokDialog — footer (pending trigger)', () => {
     });
     fireEvent.click(screen.getByRole('button', { name: /save.*run/i }));
 
-    const state = store.getState().smartGenerator;
+    const state = store.getState().specDriven;
     expect(state.byokDialogOpen).toBe(false);
     expect(state.pendingTrigger).toEqual(expect.objectContaining({
       planApproved: true,
@@ -433,7 +433,7 @@ describe('SmartGenByokDialog — footer (pending trigger)', () => {
       instructions: 'build a thing',
     }));
     // The key was persisted so the trigger hook can start the run.
-    expect(window.sessionStorage.getItem(sessionStorageSmartGenApiKey)).toBe('sk-ant-approved');
+    expect(window.sessionStorage.getItem(sessionStorageSpecDrivenApiKey)).toBe('sk-ant-approved');
   });
 
   it('does not surface any plan-review / cost-estimate UI', () => {
@@ -454,7 +454,7 @@ describe('SmartGenByokDialog — footer (pending trigger)', () => {
   });
 });
 
-describe('SmartGenByokDialog — free tier (pending trigger)', () => {
+describe('SpecDrivenByokDialog — free tier (pending trigger)', () => {
   // NOTE ON THE RACE: the production bug where "Use the free model" closed the
   // dialog and did nothing was a real-browser TIMING race (Radix onOpenChange ->
   // handleCancel cleared the approved trigger before the resume effect consumed
@@ -463,14 +463,14 @@ describe('SmartGenByokDialog — free tier (pending trigger)', () => {
   // a production build reproduces it. So this test does NOT guard that race; it
   // guards the FORWARD contract of the free run — that clicking "Use the free
   // model" produces an APPROVED, KEYLESS pending trigger. See the startingRunRef
-  // guard in SmartGenByokDialog for the race fix; keep it.
+  // guard in SpecDrivenByokDialog for the race fix; keep it.
   it('"Use the free model" approves a keyless run and sets the free flag', async () => {
-    vi.mocked(getSmartGenConfig).mockResolvedValue({
+    vi.mocked(getSpecDrivenConfig).mockResolvedValue({
       ...FALLBACK_SMART_GEN_CONFIG,
       free_tier: { available: true, model: 'qwen3-coder:30b' },
     });
     const cancelledSpy = vi.fn();
-    window.addEventListener('wme:smartgen-key-cancelled', cancelledSpy);
+    window.addEventListener('wme:specdriven-key-cancelled', cancelledSpy);
 
     const { store } = renderPendingDialog();
 
@@ -478,7 +478,7 @@ describe('SmartGenByokDialog — free tier (pending trigger)', () => {
     const freeButton = await screen.findByRole('button', { name: /use the free model/i });
     fireEvent.click(freeButton);
 
-    const state = store.getState().smartGenerator;
+    const state = store.getState().specDriven;
     // The approved trigger SURVIVES (the trigger hook's resume effect consumes
     // it) — it must NOT be dropped as if the run were cancelled.
     expect(state.pendingTrigger).toEqual(expect.objectContaining({
@@ -488,15 +488,15 @@ describe('SmartGenByokDialog — free tier (pending trigger)', () => {
     expect(state.byokDialogOpen).toBe(false);
     // Keyless: the dedicated free flag is set, NO BYOK key is written (it would
     // pollute the shared assistant key), and no "no key — cancelled" event fires.
-    expect(window.sessionStorage.getItem(sessionStorageSmartGenFreeTier)).toBe('1');
-    expect(window.sessionStorage.getItem(sessionStorageSmartGenApiKey)).toBeNull();
+    expect(window.sessionStorage.getItem(sessionStorageSpecDrivenFreeTier)).toBe('1');
+    expect(window.sessionStorage.getItem(sessionStorageSpecDrivenApiKey)).toBeNull();
     expect(cancelledSpy).not.toHaveBeenCalled();
 
-    window.removeEventListener('wme:smartgen-key-cancelled', cancelledSpy);
+    window.removeEventListener('wme:specdriven-key-cancelled', cancelledSpy);
   });
 });
 
-describe('SmartGenByokDialog — clear stored key', () => {
+describe('SpecDrivenByokDialog — clear stored key', () => {
   it('clear button appears when apiKeyInStore flag is true', () => {
     const { store } = renderDialog(true);
     expect(screen.queryByRole('button', { name: /clear stored key/i })).toBeNull();
@@ -511,13 +511,13 @@ describe('SmartGenByokDialog — clear stored key', () => {
     act(() => {
       store.dispatch(setApiKeyPresent(true));
     });
-    window.sessionStorage.setItem(sessionStorageSmartGenApiKey, 'sk-old');
-    window.sessionStorage.setItem(sessionStorageSmartGenProvider, 'anthropic');
+    window.sessionStorage.setItem(sessionStorageSpecDrivenApiKey, 'sk-old');
+    window.sessionStorage.setItem(sessionStorageSpecDrivenProvider, 'anthropic');
 
     fireEvent.click(screen.getByRole('button', { name: /clear stored key/i }));
 
-    expect(window.sessionStorage.getItem(sessionStorageSmartGenApiKey)).toBeNull();
-    expect(window.sessionStorage.getItem(sessionStorageSmartGenProvider)).toBeNull();
-    expect(store.getState().smartGenerator.apiKeyInStore).toBe(false);
+    expect(window.sessionStorage.getItem(sessionStorageSpecDrivenApiKey)).toBeNull();
+    expect(window.sessionStorage.getItem(sessionStorageSpecDrivenProvider)).toBeNull();
+    expect(store.getState().specDriven.apiKeyInStore).toBe(false);
   });
 });

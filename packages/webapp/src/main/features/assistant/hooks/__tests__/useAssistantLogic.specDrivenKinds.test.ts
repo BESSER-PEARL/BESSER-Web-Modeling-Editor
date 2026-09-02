@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
-describe('useAssistantLogic SmartGen primary-kind whitelist', () => {
+describe('useAssistantLogic SpecDriven primary-kind whitelist', () => {
   it.each(['bpmn', 'nn'] as const)('forwards the %s primary kind', (kind) => {
     const source = readFileSync(resolve(__dirname, '..', 'useAssistantLogic.ts'), 'utf-8');
     const whitelist = source.match(
@@ -15,7 +15,7 @@ describe('useAssistantLogic SmartGen primary-kind whitelist', () => {
 
   it('does not trust a skip-deterministic attestation from the agent payload', () => {
     const source = readFileSync(resolve(__dirname, '..', 'useAssistantLogic.ts'), 'utf-8');
-    const start = source.indexOf('const smartPayload: TriggerSmartGeneratorPayload');
+    const start = source.indexOf('const smartPayload: TriggerSpecDrivenPayload');
     const end = source.indexOf('if (!smartPayload.instructions)', start);
     const smartPayloadBuilder = source.slice(start, end);
 

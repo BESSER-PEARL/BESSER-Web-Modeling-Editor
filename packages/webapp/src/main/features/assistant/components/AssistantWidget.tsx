@@ -22,7 +22,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { cn } from '@/lib/utils';
 import { useAppDispatch, useAppSelector } from '../../../app/store/hooks';
 import { selectActiveDiagramType, switchDiagramTypeThunk } from '../../../app/store/workspaceSlice';
-import { openPushDialog } from '../../smart-generation/state/smartGeneratorSlice';
+import { openPushDialog } from '../../spec-driven/state/specDrivenSlice';
 import type { SupportedDiagramType } from '../../../shared/types/project';
 import { readLlmKey } from '../../../shared/services/llmKeyStorage';
 import type { GeneratorType } from '../../../app/shell/workspace-types';
@@ -342,10 +342,10 @@ export const AssistantWidget: React.FC<AssistantWidgetProps> = ({ onAssistantGen
               showTimeStamps={false}
               messageOptions={(message: ChatKitMessage) => {
                 const meta = messageMeta[message.id];
-                // onPushToGithub is always threaded so SmartGenCards can push;
+                // onPushToGithub is always threaded so SpecDrivenCards can push;
                 // the badge action is added only when the message has one.
                 // Opening the push dialog is a pure dispatch — it's mounted
-                // app-level (SmartGenPushDialogHost) and Redux-driven.
+                // app-level (SpecDrivenPushDialogHost) and Redux-driven.
                 const base = { onPushToGithub: (runId: string) => dispatch(openPushDialog(runId)) };
                 if (!meta?.badge) return base;
                 return {
@@ -486,7 +486,7 @@ export const AssistantWidget: React.FC<AssistantWidgetProps> = ({ onAssistantGen
       {/* ── Bring-your-own-key dialog ── */}
       <AssistantByokDialog open={byokOpen} onOpenChange={setByokOpen} client={assistantClient} />
 
-      {/* Push-to-GitHub dialog is mounted app-level (SmartGenPushDialogHost) and
+      {/* Push-to-GitHub dialog is mounted app-level (SpecDrivenPushDialogHost) and
           opened via dispatch(openPushDialog(runId)) — see messageOptions above. */}
     </>
   );

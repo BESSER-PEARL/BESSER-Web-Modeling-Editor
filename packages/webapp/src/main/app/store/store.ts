@@ -1,13 +1,13 @@
 import { configureStore } from '@reduxjs/toolkit';
 import { workspaceReducer } from './workspaceSlice';
 import { errorReducer } from './errorManagementSlice';
-import { smartGeneratorReducer } from '../../features/smart-generation/state/smartGeneratorSlice';
+import { specDrivenReducer } from '../../features/spec-driven/state/specDrivenSlice';
 
 export const store = configureStore({
   reducer: {
     workspace: workspaceReducer,
     errors: errorReducer,
-    smartGenerator: smartGeneratorReducer,
+    specDriven: specDrivenReducer,
   },
   middleware: (getDefaultMiddleware) => getDefaultMiddleware(),
   devTools: !import.meta.env.PROD,

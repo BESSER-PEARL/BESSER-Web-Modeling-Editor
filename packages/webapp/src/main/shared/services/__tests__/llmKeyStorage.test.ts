@@ -14,8 +14,8 @@ import { readLlmKey, writeLlmKey, clearLlmKey } from '../llmKeyStorage';
 import {
   readFreeTierSelected,
   writeFreeTierSelected,
-} from '../../../features/smart-generation/storage';
-import { sessionStorageSmartGenFreeTier } from '../../constants/constant';
+} from '../../../features/spec-driven/storage';
+import { sessionStorageSpecDrivenFreeTier } from '../../constants/constant';
 
 beforeEach(() => {
   window.sessionStorage.clear();
@@ -37,7 +37,7 @@ describe('writeLlmKey ↔ free-tier flag', () => {
 
     // The free opt-in must be gone so the run uses the key, not qwen.
     expect(readFreeTierSelected()).toBe(false);
-    expect(window.sessionStorage.getItem(sessionStorageSmartGenFreeTier)).toBeNull();
+    expect(window.sessionStorage.getItem(sessionStorageSpecDrivenFreeTier)).toBeNull();
   });
 
   it('persists the key/provider so smart-gen readSessionKey() sees it', () => {

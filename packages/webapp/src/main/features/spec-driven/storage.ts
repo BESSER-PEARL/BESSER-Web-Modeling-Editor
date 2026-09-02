@@ -13,20 +13,20 @@
  */
 
 import {
-  localStorageSmartGenLastRunPrefix,
+  localStorageSpecDrivenLastRunPrefix,
   sessionStorageLlmBaseUrl,
-  sessionStorageSmartGenApiKey,
-  sessionStorageSmartGenFreeTier,
-  sessionStorageSmartGenLlmModel,
-  sessionStorageSmartGenMaxCostUsd,
-  sessionStorageSmartGenMaxRuntimeSeconds,
-  sessionStorageSmartGenProvider,
+  sessionStorageSpecDrivenApiKey,
+  sessionStorageSpecDrivenFreeTier,
+  sessionStorageSpecDrivenLlmModel,
+  sessionStorageSpecDrivenMaxCostUsd,
+  sessionStorageSpecDrivenMaxRuntimeSeconds,
+  sessionStorageSpecDrivenProvider,
 } from '../../shared/constants/constant';
 import { isValidRunId, type LastRunRecord } from './runModeDecision';
-import type { SmartGenProvider } from './types';
+import type { SpecDrivenProvider } from './types';
 
 export interface SessionKey {
-  provider: SmartGenProvider;
+  provider: SpecDrivenProvider;
   apiKey: string;
   /** Explicit model override; undefined = use backend default for the provider. */
   llmModel?: string;
@@ -56,14 +56,14 @@ function _hasSessionStorage(): boolean {
 export function readSessionKey(): SessionKey | null {
   if (!_hasSessionStorage()) return null;
   try {
-    const apiKey = window.sessionStorage.getItem(sessionStorageSmartGenApiKey);
-    const provider = window.sessionStorage.getItem(sessionStorageSmartGenProvider);
+    const apiKey = window.sessionStorage.getItem(sessionStorageSpecDrivenApiKey);
+    const provider = window.sessionStorage.getItem(sessionStorageSpecDrivenProvider);
     if (!apiKey || !provider || !_VALID_PROVIDERS.has(provider)) return null;
-    const rawLlmModel = window.sessionStorage.getItem(sessionStorageSmartGenLlmModel);
+    const rawLlmModel = window.sessionStorage.getItem(sessionStorageSpecDrivenLlmModel);
     const llmModel = rawLlmModel && rawLlmModel.trim() ? rawLlmModel.trim() : undefined;
     const rawBase = window.sessionStorage.getItem(sessionStorageLlmBaseUrl);
     const baseUrl = rawBase && rawBase.trim() ? rawBase.trim() : undefined;
-    return { apiKey, provider: provider as SmartGenProvider, llmModel, baseUrl };
+    return { apiKey, provider: provider as SpecDrivenProvider, llmModel, baseUrl };
   } catch {
     return null;
   }
@@ -77,19 +77,19 @@ export function readSessionKey(): SessionKey | null {
  * model for the provider.
  */
 export function writeSessionKey(
-  provider: SmartGenProvider,
+  provider: SpecDrivenProvider,
   apiKey: string,
   llmModel?: string,
 ): boolean {
   if (!_hasSessionStorage()) return false;
   try {
-    window.sessionStorage.setItem(sessionStorageSmartGenApiKey, apiKey);
-    window.sessionStorage.setItem(sessionStorageSmartGenProvider, provider);
+    window.sessionStorage.setItem(sessionStorageSpecDrivenApiKey, apiKey);
+    window.sessionStorage.setItem(sessionStorageSpecDrivenProvider, provider);
     const trimmed = (llmModel ?? '').trim();
     if (trimmed) {
-      window.sessionStorage.setItem(sessionStorageSmartGenLlmModel, trimmed);
+      window.sessionStorage.setItem(sessionStorageSpecDrivenLlmModel, trimmed);
     } else {
-      window.sessionStorage.removeItem(sessionStorageSmartGenLlmModel);
+      window.sessionStorage.removeItem(sessionStorageSpecDrivenLlmModel);
     }
     return true;
   } catch {
@@ -101,9 +101,9 @@ export function writeSessionKey(
 export function clearSessionKey(): void {
   if (!_hasSessionStorage()) return;
   try {
-    window.sessionStorage.removeItem(sessionStorageSmartGenApiKey);
-    window.sessionStorage.removeItem(sessionStorageSmartGenProvider);
-    window.sessionStorage.removeItem(sessionStorageSmartGenLlmModel);
+    window.sessionStorage.removeItem(sessionStorageSpecDrivenApiKey);
+    window.sessionStorage.removeItem(sessionStorageSpecDrivenProvider);
+    window.sessionStorage.removeItem(sessionStorageSpecDrivenLlmModel);
   } catch {
     /* ignore */
   }
@@ -127,7 +127,7 @@ export function hasSessionKey(): boolean {
 export function readFreeTierSelected(): boolean {
   if (!_hasSessionStorage()) return false;
   try {
-    return window.sessionStorage.getItem(sessionStorageSmartGenFreeTier) === '1';
+    return window.sessionStorage.getItem(sessionStorageSpecDrivenFreeTier) === '1';
   } catch {
     return false;
   }
@@ -138,9 +138,9 @@ export function writeFreeTierSelected(selected: boolean): void {
   if (!_hasSessionStorage()) return;
   try {
     if (selected) {
-      window.sessionStorage.setItem(sessionStorageSmartGenFreeTier, '1');
+      window.sessionStorage.setItem(sessionStorageSpecDrivenFreeTier, '1');
     } else {
-      window.sessionStorage.removeItem(sessionStorageSmartGenFreeTier);
+      window.sessionStorage.removeItem(sessionStorageSpecDrivenFreeTier);
     }
   } catch {
     /* ignore */
@@ -171,9 +171,9 @@ export interface SessionBudget {
 export function readSessionBudget(): SessionBudget | null {
   if (!_hasSessionStorage()) return null;
   try {
-    const rawCost = window.sessionStorage.getItem(sessionStorageSmartGenMaxCostUsd);
+    const rawCost = window.sessionStorage.getItem(sessionStorageSpecDrivenMaxCostUsd);
     const rawRuntime = window.sessionStorage.getItem(
-      sessionStorageSmartGenMaxRuntimeSeconds,
+      sessionStorageSpecDrivenMaxRuntimeSeconds,
     );
     const budget: SessionBudget = {};
     if (rawCost !== null) {
@@ -203,11 +203,11 @@ export function writeSessionBudget(budget: {
   if (!_hasSessionStorage()) return false;
   try {
     window.sessionStorage.setItem(
-      sessionStorageSmartGenMaxCostUsd,
+      sessionStorageSpecDrivenMaxCostUsd,
       String(budget.maxCostUsd),
     );
     window.sessionStorage.setItem(
-      sessionStorageSmartGenMaxRuntimeSeconds,
+      sessionStorageSpecDrivenMaxRuntimeSeconds,
       String(Math.round(budget.maxRuntimeSeconds)),
     );
     return true;
@@ -235,7 +235,7 @@ function _hasLocalStorage(): boolean {
 }
 
 const _lastRunKey = (projectId: string): string =>
-  `${localStorageSmartGenLastRunPrefix}${projectId}`;
+  `${localStorageSpecDrivenLastRunPrefix}${projectId}`;
 
 /**
  * Read the stored last successful run for a project, or `null` when none

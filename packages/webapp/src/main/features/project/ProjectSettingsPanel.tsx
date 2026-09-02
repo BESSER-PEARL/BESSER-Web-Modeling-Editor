@@ -27,7 +27,7 @@ import { useAppDispatch } from '../../app/store/hooks';
 import { applyPerspectivePresetThunk, setPerspectiveEnabledThunk } from '../../app/store/workspaceSlice';
 import { LlmKeyDialog } from '../../shared/components/byok/LlmKeyDialog';
 import { readLlmKey } from '../../shared/services/llmKeyStorage';
-import { setApiKeyPresent } from '../smart-generation/state/smartGeneratorSlice';
+import { setApiKeyPresent } from '../spec-driven/state/specDrivenSlice';
 
 export const ProjectSettingsPanel: React.FC = () => {
   const { t } = useTranslation();

@@ -9,7 +9,7 @@
  *   - CREATE   — create a brand-new repo (name / description / private default).
  *   - EXISTING — pick one of the user's repos + a branch and push into it.
  *
- * State (open/link/result/push) is owned by ``useSmartGenGithubPush``; this
+ * State (open/link/result/push) is owned by ``useSpecDrivenGithubPush``; this
  * component owns only its form fields and the repo/branch picker.
  */
 
@@ -32,10 +32,10 @@ import { useFieldValidation } from '../../../shared/hooks/useFieldValidation';
 import type { DeployLinkedRepo } from '../../../shared/services/storage/local-storage-repository';
 import { useGitHubStorage } from '../hooks/useGitHubStorage';
 import type {
-  SmartGenPushConfig,
-  SmartGenPushResult,
-  SmartGenPushOutcome,
-} from '../hooks/useSmartGenGithubPush';
+  SpecDrivenPushConfig,
+  SpecDrivenPushResult,
+  SpecDrivenPushOutcome,
+} from '../hooks/useSpecDrivenGithubPush';
 
 const DEFAULT_BRANCH = 'main';
 
@@ -58,10 +58,10 @@ export interface PushToGitHubDialogProps {
   linkedRepo: DeployLinkedRepo | null;
   githubSession: string | null;
   isPushing: boolean;
-  result: SmartGenPushResult | null;
+  result: SpecDrivenPushResult | null;
   onOpenChange: (open: boolean) => void;
   onChangeRepo: () => void;
-  push: (config: SmartGenPushConfig) => Promise<SmartGenPushOutcome>;
+  push: (config: SpecDrivenPushConfig) => Promise<SpecDrivenPushOutcome>;
 }
 
 export const PushToGitHubDialog: React.FC<PushToGitHubDialogProps> = ({
@@ -149,7 +149,7 @@ export const PushToGitHubDialog: React.FC<PushToGitHubDialogProps> = ({
 
   const handlePush = async () => {
     setInlineError(null);
-    let config: SmartGenPushConfig;
+    let config: SpecDrivenPushConfig;
 
     if (isUpdateMode && linkedRepo) {
       config = {

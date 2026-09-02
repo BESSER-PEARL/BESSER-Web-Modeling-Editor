@@ -6,7 +6,7 @@
  * to localStorage or to Redux state. This module is the only place in the
  * assistant feature that touches the raw key.
  *
- * Intentionally self-contained: it does NOT import from the smart-generation
+ * Intentionally self-contained: it does NOT import from the spec-driven
  * feature (feature isolation). The assistant keeps its own independent key,
  * separate from the Spec-Driven Agent's BYOK key.
  *

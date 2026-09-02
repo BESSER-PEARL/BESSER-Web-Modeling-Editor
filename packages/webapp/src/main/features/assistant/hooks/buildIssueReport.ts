@@ -7,7 +7,7 @@
  * the team, instead of describing the issue from scratch.
  *
  * HARD PRIVACY CONSTRAINT: the report MUST NEVER contain the user's BYOK API
- * key. BYOK keys live in the smart-generation Redux state / localStorage and
+ * key. BYOK keys live in the spec-driven Redux state / localStorage and
  * are deliberately not read here. Only the conversation text, per-message
  * metadata, and non-secret workspace context (diagram types, project name,
  * counts) are included. Diagram *models* are intentionally excluded — they can

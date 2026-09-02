@@ -48,8 +48,8 @@ import { LocalStorageRepository } from '../../shared/services/storage/local-stor
 import { useAppDispatch } from '../../app/store/hooks';
 import { useGitHubAuth } from '../github/hooks/useGitHubAuth';
 import { useGitHubStorage, type GitHubRepository } from '../github/hooks/useGitHubStorage';
-import { writeProjectLastRun } from '../smart-generation/storage';
-import { setLastRunForProject } from '../smart-generation/state/smartGeneratorSlice';
+import { writeProjectLastRun } from '../spec-driven/storage';
+import { setLastRunForProject } from '../spec-driven/state/specDrivenSlice';
 
 /** Steps the File menu can open the hub directly at (New / Open / Import Project). */
 export type ProjectHubOpenStep = 'create' | 'open' | 'import' | 'spreadsheet' | 'github';
@@ -106,7 +106,7 @@ const GITHUB_TARGET = 'github';
 const GITHUB_DEFAULT_BRANCH = 'main';
 
 /**
- * Response of ``POST /import-github-run``. ``project`` is a re-importable V2
+ * Response of ``POST /spec-driven/import-github-run``. ``project`` is a re-importable V2
  * project export envelope (same shape as ``buml/diagrams.json``); ``has_model``
  * is false when the repo carries no BESSER model.
  */
@@ -650,7 +650,7 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
   };
 
   // Enter the "Continue from GitHub" step, connecting first when needed. Mirrors
-  // the connect-first pattern in useSmartGenGithubPush: stash the intent, kick
+  // the connect-first pattern in useSpecDrivenGithubPush: stash the intent, kick
   // off OAuth, and let the hub reopen on the repo picker once we're back.
   const handleOpenGithubStep = () => {
     setGithubError(null);
@@ -707,7 +707,7 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
     try {
       setIsBusy(true);
       const response = await apiClient.post<ImportGitHubRunResponse>(
-        '/import-github-run',
+        '/spec-driven/import-github-run',
         { owner, repo: repo.name, branch },
         { headers: { 'X-GitHub-Session': githubSession } },
       );

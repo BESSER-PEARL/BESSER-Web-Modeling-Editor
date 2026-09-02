@@ -47,9 +47,13 @@ import type { GenerationResult } from '../../generation/types';
 import { useWebSocketConnection, type ConnectionStatus } from './useWebSocketConnection';
 import { useStreamingResponse, startTimer, stopTimer } from './useStreamingResponse';
 import { useModelInjection } from './useModelInjection';
-import { useSmartGenTrigger } from '../../smart-generation/hooks/useSmartGenTrigger';
-import { openByokDialog } from '../../smart-generation/state/smartGeneratorSlice';
-import type { TriggerSmartGeneratorPayload } from '../../smart-generation/types';
+import { useSpecDrivenTrigger } from '../../spec-driven/hooks/useSpecDrivenTrigger';
+import { openByokDialog, setLastRunForProject } from '../../spec-driven/state/specDrivenSlice';
+import type { TriggerSpecDrivenPayload } from '../../spec-driven/types';
+import {
+  continueFromGithubRepo,
+  getGithubSessionToken,
+} from '../../spec-driven/services/continueFromGithub';
 import { downloadFile, copyToClipboard } from '../../../shared/utils/download';
 import { appVersion } from '../../../shared/constants/application-constants';
 import {
@@ -281,7 +285,7 @@ export function useAssistantLogic({
   const dispatch = useAppDispatch();
   const { editor } = useContext(ApollonEditorContext);
   const activeDiagram = useAppSelector(selectActiveDiagram);
-  const { currentProject, currentDiagramType } = useProject();
+  const { currentProject, currentDiagramType, loadProject } = useProject();
 
   /* ---- stable refs for callbacks ---- */
   const modelingServiceRef = useRef<UMLModelingService | null>(null);
@@ -408,9 +412,9 @@ export function useAssistantLogic({
         ),
       ]);
     };
-    window.addEventListener('wme:smartgen-key-cancelled', onKeyCancelled);
+    window.addEventListener('wme:specdriven-key-cancelled', onKeyCancelled);
     return () =>
-      window.removeEventListener('wme:smartgen-key-cancelled', onKeyCancelled);
+      window.removeEventListener('wme:specdriven-key-cancelled', onKeyCancelled);
   }, []);
 
   // The free-tier run note ("use your own API key") fires this event via the
@@ -420,9 +424,9 @@ export function useAssistantLogic({
     const onOpenByok = () => {
       dispatch(openByokDialog(null));
     };
-    window.addEventListener('wme:smartgen-open-byok', onOpenByok);
+    window.addEventListener('wme:specdriven-open-byok', onOpenByok);
     return () =>
-      window.removeEventListener('wme:smartgen-open-byok', onOpenByok);
+      window.removeEventListener('wme:specdriven-open-byok', onOpenByok);
   }, [dispatch]);
 
   /* ================================================================ */
@@ -526,10 +530,10 @@ export function useAssistantLogic({
 
   // Pass stable React state setters directly — wrapping them in an
   // arrow function creates a new identity on every render, thrashing
-  // the downstream useCallback deps in `useSmartGenTrigger`.
+  // the downstream useCallback deps in `useSpecDrivenTrigger`.
   // (`onRunFinished` is exempt: the hook stores it in a ref, so the
   // inline arrow's changing identity is harmless.)
-  const smartGen = useSmartGenTrigger({
+  const specDriven = useSpecDrivenTrigger({
     currentProjectRef,
     setMessages,
     setIsGenerating: streaming.setIsGenerating,
@@ -738,7 +742,7 @@ export function useAssistantLogic({
           ...prev,
           {
             ...toKitMessage('assistant', ''),
-            smartGen: {
+            specDriven: {
               status: 'done',
               phases: [
                 { phase: 'generate', label: 'Generated deterministically', message: '', toolCalls: [] },
@@ -764,12 +768,91 @@ export function useAssistantLogic({
       return;
     }
 
+    if (payload.action === 'trigger_github_import') {
+      // Chat path for "continue from github.com/owner/repo": the agent
+      // extracted owner/repo/branch; we import the BESSER-created repo as
+      // a modify seed, load the project, and prime baseRunId — from then
+      // on it behaves exactly like a run generated in this conversation.
+      const ghOwner = typeof payload.owner === 'string' ? payload.owner.trim() : '';
+      const ghRepo = typeof payload.repo === 'string' ? payload.repo.trim() : '';
+      const ghBranch =
+        typeof payload.branch === 'string' && payload.branch.trim()
+          ? payload.branch.trim()
+          : undefined;
+      if (typeof payload.message === 'string' && payload.message) {
+        setMessages((prev) => [...prev, toKitMessage('assistant', payload.message as string)]);
+      }
+      if (!ghOwner || !ghRepo) {
+        setMessages((prev) => [
+          ...prev,
+          toKitMessage(
+            'assistant',
+            'I could not read the repository owner/name from that message — ' +
+              'try the full URL, e.g. github.com/owner/repo.',
+            { isError: true },
+          ),
+        ]);
+        return;
+      }
+      const ghSession = getGithubSessionToken();
+      if (!ghSession) {
+        setMessages((prev) => [
+          ...prev,
+          toKitMessage(
+            'assistant',
+            'You are not signed in with GitHub in this tab. Open the Project Hub ' +
+              '(File → Open) → GitHub tab to sign in, then ask me again.',
+            { isError: true },
+          ),
+        ]);
+        return;
+      }
+      void (async () => {
+        const result = await continueFromGithubRepo({
+          owner: ghOwner,
+          repo: ghRepo,
+          branch: ghBranch,
+          githubSession: ghSession,
+        });
+        if (result.ok && result.projectId && result.runId) {
+          await loadProject(result.projectId);
+          dispatch(
+            setLastRunForProject({
+              projectId: result.projectId,
+              runId: result.runId,
+              at: Date.now(),
+            }),
+          );
+          setMessages((prev) => [
+            ...prev,
+            toKitMessage(
+              'assistant',
+              `Loaded **${result.owner}/${result.repo}**` +
+                (result.branch ? ` (branch \`${result.branch}\`)` : '') +
+                ' — the model is on your canvas and the generated app is armed ' +
+                'as the modify base. Ask for any change (e.g. *"add a search ' +
+                'bar"*) and I will modify this app; a later push can update ' +
+                'the same repo.',
+            ),
+          ]);
+        } else {
+          setMessages((prev) => [
+            ...prev,
+            toKitMessage('assistant', result.error ?? 'Import failed.', {
+              isError: true,
+            }),
+          ]);
+        }
+      })();
+      return;
+    }
+
     if (payload.action === 'trigger_smart_generator') {
       // Emitted by the modeling agent when the user's request is a
       // complex custom build ("full-stack FastAPI + JWT + Postgres").
       // The smart generator runs server-side with the user's BYOK key
       // and streams its progress back into this chat.
-      const smartPayload: TriggerSmartGeneratorPayload = {
+      const smartPayload: TriggerSpecDrivenPayload = {
         action: 'trigger_smart_generator',
         instructions:
           typeof payload.instructions === 'string' ? payload.instructions : '',
@@ -823,8 +906,8 @@ export function useAssistantLogic({
       // React root — the hook already handles user-facing errors
       // internally, but a thrown Redux / dispatch error would otherwise
       // surface as an unhandled promise rejection.
-      smartGen.handleTrigger(smartPayload).catch((err) => {
-        console.error('[useAssistantLogic] smartGen.handleTrigger rejected', err);
+      specDriven.handleTrigger(smartPayload).catch((err) => {
+        console.error('[useAssistantLogic] specDriven.handleTrigger rejected', err);
       });
       return;
     }
@@ -1265,7 +1348,7 @@ export function useAssistantLogic({
   const stopGenerating = () => {
     // Also abort any in-flight Smart Generator run so the SSE stream
     // disconnects and the user stops paying for LLM tokens.
-    smartGen.abortActive();
+    specDriven.abortActive();
     // Reliably tear down the whole "generating/processing" UI state so a
     // stuck modeling-agent op (e.g. lingering "Updating model…") can be
     // dismissed by the user. We can't truly cancel an in-flight WebSocket
@@ -1283,7 +1366,7 @@ export function useAssistantLogic({
     // stream keeps firing events into a cleared message list, where
     // the message-lookup-by-id silently no-ops and the user's BYOK
     // budget keeps draining.
-    smartGen.abortActive();
+    specDriven.abortActive();
     // Drop any pending voice placeholder tracking — the bubble is wiped with
     // the rest of the list, so a late transcription echo should append fresh
     // rather than try to replace a now-gone id.
@@ -1309,7 +1392,7 @@ export function useAssistantLogic({
   // DELIBERATELY drops the heavy/sensitive parts (activeModel,
   // projectSnapshot) — we only keep diagram-type counts, the project name,
   // and the active diagram type. The BYOK API key lives in the
-  // smart-generation Redux state / localStorage and is never touched here.
+  // spec-driven Redux state / localStorage and is never touched here.
   const buildIssueReportContext = (): IssueReportContext => {
     const project = currentProjectRef.current;
     const activeType = currentDiagramTypeRef.current || undefined;

@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { SMART_GEN_ENDPOINT } from '../../../../shared/constants/constant';
 import { streamSse } from '../../../../shared/services/sse/sseClient';
-import { startSmartGenRun } from '../smartGenerationSseClient';
+import { startSpecDrivenRun } from '../specDrivenSseClient';
 
 vi.mock('../../../../shared/services/sse/sseClient', () => ({
   streamSse: vi.fn(() => (async function* () {})()),
@@ -10,9 +10,9 @@ vi.mock('../../../../shared/services/sse/sseClient', () => ({
 
 beforeEach(() => vi.clearAllMocks());
 
-describe('startSmartGenRun request serialization', () => {
+describe('startSpecDrivenRun request serialization', () => {
   it('serializes the approved from-scratch choice in snake_case', () => {
-    const handle = startSmartGenRun({
+    const handle = startSpecDrivenRun({
       project: { id: 'p1' },
       instructions: 'Build from scratch',
       provider: 'anthropic',
@@ -34,7 +34,7 @@ describe('startSmartGenRun request serialization', () => {
   });
 
   it('omits the skip flag unless it was explicitly approved', () => {
-    startSmartGenRun({
+    startSpecDrivenRun({
       project: {},
       instructions: 'Build normally',
       provider: 'openai',

@@ -2,7 +2,7 @@
  * Smart Generator SSE event types — mirror the backend schema at
  * `besser/utilities/web_modeling_editor/backend/services/smart_generation/sse_events.py`.
  *
- * The frontend receives these as a stream from `POST /besser_api/smart-generate`
+ * The frontend receives these as a stream from `POST /besser_api/spec-driven/generate`
  * and renders them into the existing assistant chat message list.
  */
 
@@ -11,10 +11,10 @@
 // maps them). They only work when the WME backend runs locally.
 // 'free' is the keyless server-hosted open-weight tier: sent to the backend as
 // provider='free' with NO api_key and NO base_url — the server injects the
-// hosted endpoint + token. Offered only when /smart-gen/config advertises it.
-export type SmartGenProvider = 'anthropic' | 'openai' | 'mistral' | 'pia' | 'local' | 'free';
+// hosted endpoint + token. Offered only when /spec-driven/config advertises it.
+export type SpecDrivenProvider = 'anthropic' | 'openai' | 'mistral' | 'pia' | 'local' | 'free';
 
-export type SmartGenPrimaryKind =
+export type SpecDrivenPrimaryKind =
   | 'class'
   | 'gui'
   | 'agent'
@@ -25,14 +25,14 @@ export type SmartGenPrimaryKind =
   | 'nn';
 
 /**
- * Run mode sent to `POST /besser_api/smart-generate`.
+ * Run mode sent to `POST /besser_api/spec-driven/generate`.
  *   - `generate` (default): build the app from scratch.
  *   - `modify`: edit an existing run's output in place (incremental
  *     vibe-modify), identified by a companion `base_run_id`.
  */
-export type SmartGenMode = 'generate' | 'modify';
+export type SpecDrivenMode = 'generate' | 'modify';
 
-export type SmartGenPhase =
+export type SpecDrivenPhase =
   | 'select'
   | 'generate'
   | 'gap'
@@ -43,11 +43,11 @@ export type SmartGenPhase =
  * UI-facing run-phase superset: the backend SSE phases plus the three
  * terminal / pre-start states that only live in the frontend slice.
  */
-export type SmartGenRunPhase = SmartGenPhase | 'idle' | 'done' | 'error';
+export type SpecDrivenRunPhase = SpecDrivenPhase | 'idle' | 'done' | 'error';
 
-export type SmartGenToolCallStatus = 'executing' | 'done' | 'error';
+export type SpecDrivenToolCallStatus = 'executing' | 'done' | 'error';
 
-export type SmartGenErrorCode =
+export type SpecDrivenErrorCode =
   | 'INVALID_KEY'
   | 'UPSTREAM_LLM'
   | 'COST_CAP'
@@ -62,7 +62,7 @@ export type SmartGenErrorCode =
 export interface StartEvent {
   event: 'start';
   runId: string;
-  provider: SmartGenProvider;
+  provider: SpecDrivenProvider;
   llmModel: string;
   maxCost: number;
   maxRuntime: number;
@@ -70,7 +70,7 @@ export interface StartEvent {
 
 export interface PhaseEvent {
   event: 'phase';
-  phase: SmartGenPhase;
+  phase: SpecDrivenPhase;
   message: string;
 }
 
@@ -83,7 +83,7 @@ export interface PhaseEvent {
  */
 export interface PhaseUpdateEvent {
   event: 'phase_update';
-  phase: SmartGenPhase;
+  phase: SpecDrivenPhase;
   details: string;
   message?: string | null;
 }
@@ -97,7 +97,7 @@ export interface ToolCallEvent {
   event: 'tool_call';
   turn: number;
   tool: string;
-  status: SmartGenToolCallStatus;
+  status: SpecDrivenToolCallStatus;
   summary?: string | null;
 }
 
@@ -130,13 +130,13 @@ export interface DoneEvent {
   incompleteReason?: string;
 }
 
-export interface SmartGenErrorEvent {
+export interface SpecDrivenErrorEvent {
   event: 'error';
-  code: SmartGenErrorCode;
+  code: SpecDrivenErrorCode;
   message: string;
 }
 
-export type SmartGenEvent =
+export type SpecDrivenEvent =
   | StartEvent
   | PhaseEvent
   | PhaseUpdateEvent
@@ -144,39 +144,39 @@ export type SmartGenEvent =
   | ToolCallEvent
   | CostEvent
   | DoneEvent
-  | SmartGenErrorEvent;
+  | SpecDrivenErrorEvent;
 
 /**
  * The `trigger_smart_generator` action emitted by the modeling agent.
  * The frontend consumes this from the existing assistant WebSocket
- * action dispatcher and kicks off a smart-generation run.
+ * action dispatcher and kicks off a spec-driven run.
  *
  * ``provider``, ``llmModel``, and ``message`` are always sent by the
  * modeling agent today (see
  * ``modeling-agent/src/handlers/smart_generation_handler.py::build_trigger_smart_generator_payload``)
  * but kept optional here so the frontend handles older / alternative
- * sources gracefully — ``useSmartGenTrigger`` falls back to the
+ * sources gracefully — ``useSpecDrivenTrigger`` falls back to the
  * sessionStorage provider and a default intro message when they're
  * absent.
  */
-export interface TriggerSmartGeneratorPayload {
+export interface TriggerSpecDrivenPayload {
   action: 'trigger_smart_generator';
   instructions: string;
-  provider?: SmartGenProvider;
+  provider?: SpecDrivenProvider;
   llmModel?: string;
   message?: string;
   /**
    * Incremental vibe-modify overrides. Normally the frontend decides
-   * automatically (see ``useSmartGenTrigger`` / ``decideRunMode``): a
+   * automatically (see ``useSpecDrivenTrigger`` / ``decideRunMode``): a
    * follow-up run reuses the previous successful run's output while it's
    * still fresh. The agent MAY force the decision by setting these — e.g.
    * ``mode:'modify'`` with an explicit ``baseRunId`` — otherwise they stay
    * absent and the automatic heuristic drives the choice.
    */
-  mode?: SmartGenMode;
+  mode?: SpecDrivenMode;
   baseRunId?: string;
   /** Primary model selected by the user-approved preview plan. */
-  primaryKindOverride?: SmartGenPrimaryKind;
+  primaryKindOverride?: SpecDrivenPrimaryKind;
   /** Deterministic Phase-1 generator selected by the approved preview plan. */
   targetGeneratorOverride?: string;
   /**

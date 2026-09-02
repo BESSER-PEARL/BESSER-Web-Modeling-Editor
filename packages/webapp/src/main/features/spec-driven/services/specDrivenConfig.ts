@@ -1,7 +1,7 @@
 /**
  * Smart Generator backend configuration.
  *
- * Fetches `GET /besser_api/smart-gen/config` ONCE per page load (the
+ * Fetches `GET /besser_api/spec-driven/config` ONCE per page load (the
  * promise is cached at module level) and falls back to hardcoded
  * defaults — mirroring the backend's current literals — when the
  * request fails or returns an unexpected shape. The BYOK dialog uses
@@ -10,7 +10,7 @@
 
 import { SMART_GEN_CONFIG_ENDPOINT } from '../../../shared/constants/constant';
 
-export interface SmartGenConfigCaps {
+export interface SpecDrivenConfigCaps {
   /** Server-enforced ceiling for the per-run cost budget (USD). */
   max_cost_usd_hard_cap: number;
   /** Server-enforced ceiling for the per-run runtime budget (seconds). */
@@ -22,15 +22,15 @@ export interface SmartGenConfigCaps {
 }
 
 /** Keyless server-hosted "Free" tier advertisement. */
-export interface SmartGenFreeTier {
+export interface SpecDrivenFreeTier {
   /** True when the server has a hosted open-weight endpoint configured. */
   available: boolean;
   /** The pinned model name (e.g. `qwen3-coder:30b`), or null when unavailable. */
   model: string | null;
 }
 
-export interface SmartGenConfig {
-  caps: SmartGenConfigCaps;
+export interface SpecDrivenConfig {
+  caps: SpecDrivenConfigCaps;
   /**
    * How long (seconds) the backend keeps a finished run's output around
    * for download AND in-place editing. Drives the incremental
@@ -42,7 +42,7 @@ export interface SmartGenConfig {
   default_models: Record<string, string>;
   supported_providers: string[];
   /** Whether the keyless free tier is offered (and its pinned model). */
-  free_tier: SmartGenFreeTier;
+  free_tier: SpecDrivenFreeTier;
 }
 
 /**
@@ -50,7 +50,7 @@ export interface SmartGenConfig {
  * backend, network failure). Values mirror the backend literals at the
  * time of writing: hard caps 2.0 USD / 900 s, defaults 1.0 USD / 600 s.
  */
-export const FALLBACK_SMART_GEN_CONFIG: SmartGenConfig = {
+export const FALLBACK_SMART_GEN_CONFIG: SpecDrivenConfig = {
   caps: {
     max_cost_usd_hard_cap: 2.0,
     max_runtime_seconds_hard_cap: 900,
@@ -78,8 +78,8 @@ const _isFiniteNumber = (value: unknown): value is number =>
  * Defensive normalisation — accepts the backend payload only when the
  * caps block is fully numeric; everything else merges over the fallback.
  */
-function _normalize(raw: unknown): SmartGenConfig {
-  const data = raw as Partial<SmartGenConfig> | null | undefined;
+function _normalize(raw: unknown): SpecDrivenConfig {
+  const data = raw as Partial<SpecDrivenConfig> | null | undefined;
   const caps = data?.caps;
   if (
     !caps ||
@@ -124,16 +124,16 @@ function _normalize(raw: unknown): SmartGenConfig {
   };
 }
 
-let _configPromise: Promise<SmartGenConfig> | null = null;
+let _configPromise: Promise<SpecDrivenConfig> | null = null;
 
 /**
  * Resolve the smart-gen config. Never rejects — failures resolve to
  * `FALLBACK_SMART_GEN_CONFIG` (and clear the cache so a later call can
  * retry against a recovered backend).
  */
-export function getSmartGenConfig(): Promise<SmartGenConfig> {
+export function getSpecDrivenConfig(): Promise<SpecDrivenConfig> {
   if (!_configPromise) {
-    _configPromise = (async (): Promise<SmartGenConfig> => {
+    _configPromise = (async (): Promise<SpecDrivenConfig> => {
       try {
         const response = await fetch(SMART_GEN_CONFIG_ENDPOINT);
         if (!response.ok) {
@@ -141,7 +141,7 @@ export function getSmartGenConfig(): Promise<SmartGenConfig> {
         }
         return _normalize(await response.json());
       } catch (err) {
-        console.warn('[smartGenConfig] falling back to defaults:', err);
+        console.warn('[specDrivenConfig] falling back to defaults:', err);
         // Allow a retry on the next call — the backend may just be
         // restarting. The CURRENT caller still gets the fallback.
         _configPromise = null;
@@ -153,6 +153,6 @@ export function getSmartGenConfig(): Promise<SmartGenConfig> {
 }
 
 /** Test-only: reset the module-level promise cache. */
-export function _resetSmartGenConfigCacheForTests(): void {
+export function _resetSpecDrivenConfigCacheForTests(): void {
   _configPromise = null;
 }

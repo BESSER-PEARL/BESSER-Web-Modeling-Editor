@@ -22,7 +22,7 @@ import { AssistantByokDialog } from './AssistantByokDialog';
 import { QuickActions } from './QuickActions';
 import { ModelOverviewPanel } from './ModelOverviewPanel';
 import { useAppDispatch } from '../../../app/store/hooks';
-import { openPushDialog } from '../../smart-generation/state/smartGeneratorSlice';
+import { openPushDialog } from '../../spec-driven/state/specDrivenSlice';
 import { sessionStoragePendingAssistantPrompt } from '../../../shared/constants/constant';
 import { readLlmKey } from '../../../shared/services/llmKeyStorage';
 
@@ -775,7 +775,7 @@ export const AssistantWorkspaceDrawer: React.FC<AssistantWorkspaceDrawerProps> =
                       typingLabel={progressSteps.length > 0 ? progressSteps[progressSteps.length - 1] : undefined}
                       showTimeStamps={false}
                       // Opening the push dialog is a pure dispatch — the dialog
-                      // is mounted app-level (SmartGenPushDialogHost) and driven
+                      // is mounted app-level (SpecDrivenPushDialogHost) and driven
                       // by Redux, so it never touches this drawer's lifecycle.
                       messageOptions={() => ({ onPushToGithub: (runId: string) => dispatch(openPushDialog(runId)) })}
                     />
@@ -933,7 +933,7 @@ export const AssistantWorkspaceDrawer: React.FC<AssistantWorkspaceDrawerProps> =
       {/* ── Bring-your-own-key dialog ── */}
       <AssistantByokDialog open={byokOpen} onOpenChange={setByokOpen} client={assistantClient} />
 
-      {/* Push-to-GitHub dialog is mounted app-level (SmartGenPushDialogHost) and
+      {/* Push-to-GitHub dialog is mounted app-level (SpecDrivenPushDialogHost) and
           opened via dispatch(openPushDialog(runId)) — see messageOptions above. */}
     </>
   );

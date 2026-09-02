@@ -190,7 +190,7 @@ const COMPONENTS = {
             e.preventDefault()
             e.stopPropagation()
             if (typeof window !== "undefined") {
-              window.dispatchEvent(new CustomEvent("wme:smartgen-open-byok"))
+              window.dispatchEvent(new CustomEvent("wme:specdriven-open-byok"))
             }
           }}
           {...props}

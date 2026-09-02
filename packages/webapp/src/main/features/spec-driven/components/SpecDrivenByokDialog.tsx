@@ -5,7 +5,7 @@
  * settings). The user enters/confirms their provider + key + model + run
  * budget, then clicks the primary button to start the run directly — there
  * is no separate plan-review/approve step. The run's generate-vs-modify
- * decision is computed by the trigger hook (`useSmartGenTrigger`).
+ * decision is computed by the trigger hook (`useSpecDrivenTrigger`).
  *
  * The raw key never enters Redux — only `apiKeyInStore` (boolean).
  */
@@ -41,19 +41,19 @@ import {
 } from '../storage';
 import {
   FALLBACK_SMART_GEN_CONFIG,
-  getSmartGenConfig,
-  type SmartGenConfig,
-} from '../services/smartGenConfig';
+  getSpecDrivenConfig,
+  type SpecDrivenConfig,
+} from '../services/specDrivenConfig';
 import {
   approvePendingTrigger,
   clearPendingTrigger,
   closeByokDialog,
   setApiKeyPresent,
   setProvider,
-} from '../state/smartGeneratorSlice';
-import type { SmartGenProvider } from '../types';
+} from '../state/specDrivenSlice';
+import type { SpecDrivenProvider } from '../types';
 
-export interface SmartGenByokDialogProps {
+export interface SpecDrivenByokDialogProps {
   /** Optional callback fired when the user saves a key. */
   onKeySaved?: () => void;
   /** Active project (accepted for API stability; not required by the dialog). */
@@ -61,7 +61,7 @@ export interface SmartGenByokDialogProps {
 }
 
 interface ProviderOption {
-  value: SmartGenProvider;
+  value: SpecDrivenProvider;
   label: string;
   placeholder: string;
   hint: string;
@@ -94,12 +94,12 @@ const PROVIDER_OPTIONS: readonly ProviderOption[] = [
 ] as const;
 
 /** Default preset for a provider — used when no prior choice is stored. */
-function _defaultModelForProvider(provider: SmartGenProvider): string {
+function _defaultModelForProvider(provider: SpecDrivenProvider): string {
   return MODEL_PRESETS[provider][0].value;
 }
 
 /** Placeholder shown in the Custom model ID input, per provider. */
-const CUSTOM_MODEL_PLACEHOLDER: Partial<Record<SmartGenProvider, string>> = {
+const CUSTOM_MODEL_PLACEHOLDER: Partial<Record<SpecDrivenProvider, string>> = {
   anthropic: 'e.g. claude-opus-4-6',
   openai: 'e.g. o1-preview',
   mistral: 'e.g. mistral-medium-latest',
@@ -112,7 +112,7 @@ const CUSTOM_MODEL_PLACEHOLDER: Partial<Record<SmartGenProvider, string>> = {
  * (dropdown value = CUSTOM_MODEL_VALUE, custom input = the actual string).
  */
 function _classifyStoredModel(
-  provider: SmartGenProvider,
+  provider: SpecDrivenProvider,
   stored: string | undefined,
 ): { choice: string; custom: string } {
   if (!stored) {
@@ -140,14 +140,14 @@ const PRIVACY_COPY =
  *   ``sk-proj-…``             → openai    (OpenAI project-scoped keys)
  *   ``sk-`` (but not sk-ant-) → openai    (legacy OpenAI user keys)
  */
-function _inferProviderFromKey(trimmedKey: string): SmartGenProvider | null {
+function _inferProviderFromKey(trimmedKey: string): SpecDrivenProvider | null {
   if (!trimmedKey) return null;
   if (trimmedKey.startsWith('sk-ant-')) return 'anthropic';
   if (trimmedKey.startsWith('sk-')) return 'openai';
   return null;
 }
 
-function _providerLabel(provider: SmartGenProvider | null): string {
+function _providerLabel(provider: SpecDrivenProvider | null): string {
   const found = PROVIDER_OPTIONS.find((p) => p.value === provider);
   return found ? found.label : 'the other provider';
 }
@@ -168,19 +168,19 @@ function _clampBudget(
   return Math.min(Math.max(v, min), max);
 }
 
-export const SmartGenByokDialog: React.FC<SmartGenByokDialogProps> = ({
+export const SpecDrivenByokDialog: React.FC<SpecDrivenByokDialogProps> = ({
   onKeySaved,
 }) => {
   const dispatch = useAppDispatch();
-  const open = useAppSelector((s: RootState) => s.smartGenerator.byokDialogOpen);
-  const storedProvider = useAppSelector((s: RootState) => s.smartGenerator.provider);
-  const pendingTrigger = useAppSelector((s: RootState) => s.smartGenerator.pendingTrigger);
+  const open = useAppSelector((s: RootState) => s.specDriven.byokDialogOpen);
+  const storedProvider = useAppSelector((s: RootState) => s.specDriven.provider);
+  const pendingTrigger = useAppSelector((s: RootState) => s.specDriven.pendingTrigger);
   // Reactive — driven by Redux, not by a one-shot `hasSessionKey()` call
   // evaluated at render time. When `handleClear` dispatches
   // `setApiKeyPresent(false)`, this re-renders correctly.
-  const apiKeyPresent = useAppSelector((s: RootState) => s.smartGenerator.apiKeyInStore);
+  const apiKeyPresent = useAppSelector((s: RootState) => s.specDriven.apiKeyInStore);
 
-  const [provider, setLocalProvider] = useState<SmartGenProvider>(
+  const [provider, setLocalProvider] = useState<SpecDrivenProvider>(
     storedProvider ?? pendingTrigger?.provider ?? 'anthropic',
   );
   const [apiKey, setApiKey] = useState<string>('');
@@ -200,9 +200,9 @@ export const SmartGenByokDialog: React.FC<SmartGenByokDialogProps> = ({
   const [customModel, setCustomModel] = useState<string>('');
 
   // Backend run-budget configuration (caps + defaults). Fetched once per
-  // page load (module-level cache in smartGenConfig); the fallback keeps
+  // page load (module-level cache in specDrivenConfig); the fallback keeps
   // the inputs usable while the request is in flight or failing.
-  const [config, setConfig] = useState<SmartGenConfig>(FALLBACK_SMART_GEN_CONFIG);
+  const [config, setConfig] = useState<SpecDrivenConfig>(FALLBACK_SMART_GEN_CONFIG);
   // Budget inputs as raw strings (so the user can clear/retype freely);
   // parsed + clamped on save. Runtime is edited in MINUTES, stored in seconds.
   const [maxCostInput, setMaxCostInput] = useState<string>('');
@@ -239,11 +239,11 @@ export const SmartGenByokDialog: React.FC<SmartGenByokDialogProps> = ({
   }, [open, storedProvider, pendingTrigger]);
 
   // Prefill the budget inputs whenever the dialog opens: previously saved
-  // values win, otherwise the backend's defaults from /smart-gen/config.
+  // values win, otherwise the backend's defaults from /spec-driven/config.
   useEffect(() => {
     if (!open) return;
     let cancelled = false;
-    void getSmartGenConfig().then((cfg) => {
+    void getSpecDrivenConfig().then((cfg) => {
       if (cancelled) return;
       setConfig(cfg);
       const saved = readSessionBudget();
@@ -335,7 +335,7 @@ export const SmartGenByokDialog: React.FC<SmartGenByokDialogProps> = ({
     setLocalProvider(inferredProvider);
   }, [inferredProvider, provider, providerLockedByUser]);
 
-  const handleProviderChange = (next: SmartGenProvider) => {
+  const handleProviderChange = (next: SpecDrivenProvider) => {
     setLocalProvider(next);
     // The user explicitly picked a provider — don't second-guess them.
     setProviderLockedByUser(true);
@@ -488,7 +488,7 @@ export const SmartGenByokDialog: React.FC<SmartGenByokDialogProps> = ({
     // a smart-gen run was pending AND no key is stored, the run cannot start —
     // tell them why in the chat instead of leaving them with silent nothing.
     if (pendingTrigger && !apiKeyPresent) {
-      window.dispatchEvent(new CustomEvent('wme:smartgen-key-cancelled'));
+      window.dispatchEvent(new CustomEvent('wme:specdriven-key-cancelled'));
     }
     // Cancelling the dialog drops any pending trigger so the user's
     // original request doesn't silently resume later when they reopen
@@ -547,7 +547,7 @@ export const SmartGenByokDialog: React.FC<SmartGenByokDialogProps> = ({
             <select
               id="smart-gen-provider"
               value={provider}
-              onChange={(e) => handleProviderChange(e.target.value as SmartGenProvider)}
+              onChange={(e) => handleProviderChange(e.target.value as SpecDrivenProvider)}
               className="block w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground"
             >
               {providerOptions.map((p) => (

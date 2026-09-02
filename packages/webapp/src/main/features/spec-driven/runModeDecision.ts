@@ -12,7 +12,7 @@
  * client (see `__tests__/runModeDecision.test.ts`).
  */
 
-import type { SmartGenMode } from './types';
+import type { SpecDrivenMode } from './types';
 
 /** Canonical backend run id: `uuid.uuid4().hex` → 32 lowercase hex chars. */
 const RUN_ID_RE = /^[a-f0-9]{32}$/i;
@@ -30,7 +30,7 @@ export interface LastRunRecord {
 }
 
 export interface RunModeDecision {
-  mode: SmartGenMode;
+  mode: SpecDrivenMode;
   /** Present ONLY when `mode === 'modify'`. */
   baseRunId?: string;
 }

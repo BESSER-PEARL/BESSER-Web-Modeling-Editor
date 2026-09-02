@@ -9,33 +9,33 @@
  *
  * The raw API key is NEVER stored in Redux. `apiKeyInStore` is a
  * boolean flag indicating whether sessionStorage currently holds one;
- * the actual key is read on demand from `features/smart-generation/storage.ts`.
+ * the actual key is read on demand from `features/spec-driven/storage.ts`.
  */
 
 import { createSlice, type Dispatch, type PayloadAction } from '@reduxjs/toolkit';
 import type {
-  SmartGenErrorCode,
-  SmartGenPhase,
-  SmartGenProvider,
-  SmartGenRunPhase,
-  TriggerSmartGeneratorPayload,
+  SpecDrivenErrorCode,
+  SpecDrivenPhase,
+  SpecDrivenProvider,
+  SpecDrivenRunPhase,
+  TriggerSpecDrivenPayload,
 } from '../types';
 
-export type SmartGenRunStatus = 'idle' | 'running';
+export type SpecDrivenRunStatus = 'idle' | 'running';
 
-export interface SmartGenActiveRun {
+export interface SpecDrivenActiveRun {
   runId: string | null;
-  phase: SmartGenRunPhase;
+  phase: SpecDrivenRunPhase;
   costUsd: number;
   elapsedSeconds: number;
   downloadUrl: string | null;
   fileName: string | null;
   isZip: boolean;
-  errorCode: SmartGenErrorCode | null;
+  errorCode: SpecDrivenErrorCode | null;
   errorMessage: string | null;
 }
 
-export interface SmartGeneratorState {
+export interface SpecDrivenState {
   byokDialogOpen: boolean;
   /**
    * Run id whose "Push to GitHub" dialog is currently open, or ``null`` when
@@ -46,29 +46,29 @@ export interface SmartGeneratorState {
    * loses the chat.
    */
   pushDialogRunId: string | null;
-  provider: SmartGenProvider | null;
+  provider: SpecDrivenProvider | null;
   apiKeyInStore: boolean;
-  pendingTrigger: TriggerSmartGeneratorPayload | null;
-  activeRun: SmartGenActiveRun | null;
+  pendingTrigger: TriggerSpecDrivenPayload | null;
+  activeRun: SpecDrivenActiveRun | null;
   /**
    * GLOBAL single-run guard. The per-instance `isRunningRef` in
-   * `useSmartGenTrigger` only protects one mounted hook instance —
+   * `useSpecDrivenTrigger` only protects one mounted hook instance —
    * AssistantWidget and AssistantWorkspaceDrawer each mount their own.
    * This flag lives in the (single) store so every instance can check
    * and claim the run slot synchronously via `tryClaimRunSlot`.
    */
-  runStatus: SmartGenRunStatus;
+  runStatus: SpecDrivenRunStatus;
   /**
    * Per-project record of the most recent SUCCESSFUL run, keyed by
    * project id. Drives incremental vibe-modify: a follow-up run reuses
    * the recorded `runId` as `base_run_id` while it's still fresh. Mirrored
-   * to localStorage (see `localStorageSmartGenLastRunPrefix`) so it also
+   * to localStorage (see `localStorageSpecDrivenLastRunPrefix`) so it also
    * survives a reload; this in-memory copy is the same-session fast path.
    */
   lastRunByProject: Record<string, { runId: string; at: number }>;
 }
 
-const EMPTY_RUN: SmartGenActiveRun = {
+const EMPTY_RUN: SpecDrivenActiveRun = {
   runId: null,
   phase: 'idle',
   costUsd: 0,
@@ -80,7 +80,7 @@ const EMPTY_RUN: SmartGenActiveRun = {
   errorMessage: null,
 };
 
-const initialState: SmartGeneratorState = {
+const initialState: SpecDrivenState = {
   byokDialogOpen: false,
   pushDialogRunId: null,
   provider: null,
@@ -92,32 +92,32 @@ const initialState: SmartGeneratorState = {
 };
 
 /** Error codes that are non-terminal warnings — the stream continues. */
-const NON_TERMINAL_ERROR_CODES: ReadonlySet<SmartGenErrorCode> = new Set<SmartGenErrorCode>([
+const NON_TERMINAL_ERROR_CODES: ReadonlySet<SpecDrivenErrorCode> = new Set<SpecDrivenErrorCode>([
   'COST_CAP',
   'TIMEOUT',
   'INCOMPLETE',
 ]);
 
-const smartGeneratorSlice = createSlice({
-  name: 'smartGenerator',
+const specDrivenSlice = createSlice({
+  name: 'specDriven',
   initialState,
   reducers: {
     openByokDialog(
       state,
-      action: PayloadAction<TriggerSmartGeneratorPayload | null>,
+      action: PayloadAction<TriggerSpecDrivenPayload | null>,
     ) {
       state.byokDialogOpen = true;
       state.pendingTrigger = action.payload;
     },
     closeByokDialog(state) {
       // Only flip the dialog flag — pendingTrigger is preserved so the
-      // resume effect in useSmartGenTrigger can fire after the user saves
+      // resume effect in useSpecDrivenTrigger can fire after the user saves
       // their key. Cancel paths must dispatch clearPendingTrigger explicitly.
       state.byokDialogOpen = false;
     },
     approvePendingTrigger(
       state,
-      action: PayloadAction<TriggerSmartGeneratorPayload>,
+      action: PayloadAction<TriggerSpecDrivenPayload>,
     ) {
       state.pendingTrigger = action.payload;
       state.byokDialogOpen = false;
@@ -125,7 +125,7 @@ const smartGeneratorSlice = createSlice({
     /**
      * Open the app-level "Push to GitHub" dialog for a finished run. Stores
      * the run id so the single app-level dialog instance knows what to push;
-     * the connect-first / linked-repo logic lives in useSmartGenGithubPush.
+     * the connect-first / linked-repo logic lives in useSpecDrivenGithubPush.
      */
     openPushDialog(state, action: PayloadAction<string>) {
       state.pushDialogRunId = action.payload;
@@ -134,7 +134,7 @@ const smartGeneratorSlice = createSlice({
     closePushDialog(state) {
       state.pushDialogRunId = null;
     },
-    setProvider(state, action: PayloadAction<SmartGenProvider | null>) {
+    setProvider(state, action: PayloadAction<SpecDrivenProvider | null>) {
       state.provider = action.payload;
     },
     setApiKeyPresent(state, action: PayloadAction<boolean>) {
@@ -164,7 +164,7 @@ const smartGeneratorSlice = createSlice({
         phase: 'select',
       };
     },
-    updatePhase(state, action: PayloadAction<SmartGenPhase>) {
+    updatePhase(state, action: PayloadAction<SpecDrivenPhase>) {
       if (state.activeRun) state.activeRun.phase = action.payload;
     },
     updateCost(
@@ -195,7 +195,7 @@ const smartGeneratorSlice = createSlice({
     setRunError(
       state,
       action: PayloadAction<{
-        code: SmartGenErrorCode;
+        code: SpecDrivenErrorCode;
         message: string;
       }>,
     ) {
@@ -216,7 +216,7 @@ const smartGeneratorSlice = createSlice({
     },
     /**
      * Record the most recent successful run for a project (incremental
-     * vibe-modify). Dispatched from `useSmartGenTrigger`'s `done` handler
+     * vibe-modify). Dispatched from `useSpecDrivenTrigger`'s `done` handler
      * alongside the localStorage mirror. Ignores empty ids defensively.
      */
     setLastRunForProject(
@@ -248,10 +248,10 @@ export const {
   setRunError,
   resetRun,
   setLastRunForProject,
-} = smartGeneratorSlice.actions;
+} = specDrivenSlice.actions;
 
-export const smartGeneratorReducer = smartGeneratorSlice.reducer;
-export default smartGeneratorSlice.reducer;
+export const specDrivenReducer = specDrivenSlice.reducer;
+export default specDrivenSlice.reducer;
 
 /* ------------------------------------------------------------------ */
 /*  Synchronous thunks (atomic reads against the LIVE store state)     */
@@ -262,7 +262,7 @@ export default smartGeneratorSlice.reducer;
  * importing the app `RootState`) to avoid a circular import with the
  * store module and so per-test stores type-check too.
  */
-type SmartGenSliceState = { smartGenerator: SmartGeneratorState };
+type SpecDrivenSliceState = { specDriven: SpecDrivenState };
 
 /**
  * Atomically consume the pending trigger.
@@ -279,12 +279,12 @@ type SmartGenSliceState = { smartGenerator: SmartGeneratorState };
 export function consumePendingTrigger() {
   return (
     dispatch: Dispatch,
-    getState: () => SmartGenSliceState,
-  ): TriggerSmartGeneratorPayload | null => {
-    const s = getState().smartGenerator;
+    getState: () => SpecDrivenSliceState,
+  ): TriggerSpecDrivenPayload | null => {
+    const s = getState().specDriven;
     if (!s.pendingTrigger || s.runStatus === 'running') return null;
     const trigger = s.pendingTrigger;
-    dispatch(smartGeneratorSlice.actions.clearPendingTrigger());
+    dispatch(specDrivenSlice.actions.clearPendingTrigger());
     return trigger;
   };
 }
@@ -294,9 +294,9 @@ export function consumePendingTrigger() {
  * now owns the slot; `false` when another run is already active.
  */
 export function tryClaimRunSlot() {
-  return (dispatch: Dispatch, getState: () => SmartGenSliceState): boolean => {
-    if (getState().smartGenerator.runStatus === 'running') return false;
-    dispatch(smartGeneratorSlice.actions.claimRunSlot());
+  return (dispatch: Dispatch, getState: () => SpecDrivenSliceState): boolean => {
+    if (getState().specDriven.runStatus === 'running') return false;
+    dispatch(specDrivenSlice.actions.claimRunSlot());
     return true;
   };
 }
@@ -305,7 +305,7 @@ export function tryClaimRunSlot() {
  * Synchronous fresh-state read of the global run guard (unlike a
  * `useAppSelector` value, which can be stale within the same commit).
  */
-export function isSmartGenRunActive() {
-  return (_dispatch: Dispatch, getState: () => SmartGenSliceState): boolean =>
-    getState().smartGenerator.runStatus === 'running';
+export function isSpecDrivenRunActive() {
+  return (_dispatch: Dispatch, getState: () => SpecDrivenSliceState): boolean =>
+    getState().specDriven.runStatus === 'running';
 }

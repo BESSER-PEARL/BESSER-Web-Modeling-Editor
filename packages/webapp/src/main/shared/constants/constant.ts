@@ -107,21 +107,21 @@ export const PIA_GATEWAY_BASE_URL = 'https://gateway.pia.private.list.lu/v1';
 
 // Smart Generator — BYOK keys now alias the unified keys above (kept as named
 // exports so existing imports keep working with no consumer changes).
-export const sessionStorageSmartGenApiKey = sessionStorageLlmApiKey;
-export const sessionStorageSmartGenProvider = sessionStorageLlmProvider;
-export const sessionStorageSmartGenLlmModel = sessionStorageLlmModel;
+export const sessionStorageSpecDrivenApiKey = sessionStorageLlmApiKey;
+export const sessionStorageSpecDrivenProvider = sessionStorageLlmProvider;
+export const sessionStorageSpecDrivenLlmModel = sessionStorageLlmModel;
 // User-chosen run budget (NOT secret — still session-scoped so it sits
 // next to the key/model it applies to). Values are plain numbers
 // serialised as strings: USD for cost, whole seconds for runtime.
-export const sessionStorageSmartGenMaxCostUsd = localStoragePrefix + 'smart_gen_max_cost_usd';
-export const sessionStorageSmartGenMaxRuntimeSeconds =
+export const sessionStorageSpecDrivenMaxCostUsd = localStoragePrefix + 'smart_gen_max_cost_usd';
+export const sessionStorageSpecDrivenMaxRuntimeSeconds =
   localStoragePrefix + 'smart_gen_max_runtime_seconds';
 // Keyless "Free" tier opt-in for smart-gen. The free tier uses a server-hosted
 // open-weight model and needs NO API key, so it must NOT be represented by
 // writing a placeholder into the unified LLM key above — that store is SHARED
 // with the assistant, and a fake key would break the assistant's own calls.
 // This dedicated flag records the opt-in independently. Value: '1' when set.
-export const sessionStorageSmartGenFreeTier = localStoragePrefix + 'smart_gen_free_tier';
+export const sessionStorageSpecDrivenFreeTier = localStoragePrefix + 'smart_gen_free_tier';
 
 // AI Assistant — BYOK keys also alias the unified keys above, so entering the
 // key via the assistant fills the same store the smart generator reads.
@@ -149,14 +149,14 @@ export const sessionStorageOpenAssistantOnLoad = localStoragePrefix + 'open_assi
 // `base_run_id` and edit the existing app in place instead of rebuilding —
 // as long as the run is still within the backend's download TTL. Stored in
 // localStorage (not sessionStorage) so it survives a reload. Suffix: `<projectId>`.
-export const localStorageSmartGenLastRunPrefix = localStoragePrefix + 'smartgen_lastrun_';
+export const localStorageSpecDrivenLastRunPrefix = localStoragePrefix + 'smartgen_lastrun_';
 
 // Smart-generation "Push to GitHub" connect-first intent.
 // When the user clicks "Push to GitHub" on a finished vibe-generation card but
 // isn't signed in yet, we stash ``{ runId, projectId }`` here and kick off the
 // GitHub OAuth redirect. After the redirect back, the push hook consumes this
 // (once, for the matching project) and reopens the push dialog for that run.
-export const sessionStorageSmartGenPushIntent = localStoragePrefix + 'smart_gen_push_intent';
+export const sessionStorageSpecDrivenPushIntent = localStoragePrefix + 'smart_gen_push_intent';
 
 // "Continue from GitHub" connect-first intent.
 // When the user picks "Continue from GitHub" in the Project Hub but isn't signed
@@ -166,13 +166,13 @@ export const sessionStorageSmartGenPushIntent = localStoragePrefix + 'smart_gen_
 export const sessionStorageContinueFromGithubIntent = localStoragePrefix + 'continue_from_github_intent';
 
 // Smart Generator backend endpoints (derived from BACKEND_URL).
-export const SMART_GEN_ENDPOINT = `${BACKEND_URL}/smart-generate`;
-export const SMART_GEN_PREVIEW_ENDPOINT = `${BACKEND_URL}/smart-preview`;
-export const SMART_GEN_CONFIG_ENDPOINT = `${BACKEND_URL}/smart-gen/config`;
-export const smartGenDownloadUrl = (runId: string): string =>
-  `${BACKEND_URL}/download-smart/${runId}`;
-export const cancelSmartGenUrl = (runId: string): string =>
-  `${BACKEND_URL}/cancel-smart-gen/${runId}`;
+export const SMART_GEN_ENDPOINT = `${BACKEND_URL}/spec-driven/generate`;
+export const SMART_GEN_PREVIEW_ENDPOINT = `${BACKEND_URL}/spec-driven/preview`;
+export const SMART_GEN_CONFIG_ENDPOINT = `${BACKEND_URL}/spec-driven/config`;
+export const specDrivenDownloadUrl = (runId: string): string =>
+  `${BACKEND_URL}/spec-driven/download/${runId}`;
+export const cancelSpecDrivenUrl = (runId: string): string =>
+  `${BACKEND_URL}/spec-driven/cancel/${runId}`;
 
 // date formats
 export const longDate = 'MMMM Do YYYY, h:mm:ss a';

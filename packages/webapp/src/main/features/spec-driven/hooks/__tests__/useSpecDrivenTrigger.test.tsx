@@ -1,5 +1,5 @@
 /**
- * Unit tests for useSmartGenTrigger.
+ * Unit tests for useSpecDrivenTrigger.
  *
  * Strategy:
  *   - Mock the SSE client at the module boundary (`vi.mock`) so we can
@@ -33,18 +33,18 @@ import {
   closeByokDialog,
   openByokDialog,
   setApiKeyPresent,
-  smartGeneratorReducer,
-} from '../../state/smartGeneratorSlice';
+  specDrivenReducer,
+} from '../../state/specDrivenSlice';
 import { workspaceReducer } from '../../../../app/store/workspaceSlice';
 import { errorReducer } from '../../../../app/store/errorManagementSlice';
-import { useSmartGenTrigger, type SmartGenRunResult } from '../useSmartGenTrigger';
-import type { SmartGenEvent, TriggerSmartGeneratorPayload } from '../../types';
+import { useSpecDrivenTrigger, type SpecDrivenRunResult } from '../useSpecDrivenTrigger';
+import type { SpecDrivenEvent, TriggerSpecDrivenPayload } from '../../types';
 import {
-  sessionStorageSmartGenApiKey,
-  sessionStorageSmartGenFreeTier,
-  sessionStorageSmartGenMaxCostUsd,
-  sessionStorageSmartGenMaxRuntimeSeconds,
-  sessionStorageSmartGenProvider,
+  sessionStorageSpecDrivenApiKey,
+  sessionStorageSpecDrivenFreeTier,
+  sessionStorageSpecDrivenMaxCostUsd,
+  sessionStorageSpecDrivenMaxRuntimeSeconds,
+  sessionStorageSpecDrivenProvider,
 } from '../../../../shared/constants/constant';
 
 // Mock the toast so we can assert on it without rendering a real container.
@@ -63,7 +63,7 @@ vi.mock('../../../../shared/utils/download', () => ({
 
 // Mock the SSE client — tests feed scripted events via a shared queue.
 const _mockController: {
-  events: SmartGenEvent[];
+  events: SpecDrivenEvent[];
   abortCalled: boolean;
   throwOnStart: Error | null;
 } = {
@@ -76,16 +76,16 @@ const _mockController: {
 // resolves synchronously to the fallback (download_ttl_seconds) WITHOUT
 // hitting `fetch` — the "nothing written to disk" assertions below count
 // every fetch call, and the config lookup is unrelated to the download.
-vi.mock('../../services/smartGenConfig', async (importOriginal) => {
-  const mod = await importOriginal<typeof import('../../services/smartGenConfig')>();
+vi.mock('../../services/specDrivenConfig', async (importOriginal) => {
+  const mod = await importOriginal<typeof import('../../services/specDrivenConfig')>();
   return {
     ...mod,
-    getSmartGenConfig: vi.fn(() => Promise.resolve(mod.FALLBACK_SMART_GEN_CONFIG)),
+    getSpecDrivenConfig: vi.fn(() => Promise.resolve(mod.FALLBACK_SMART_GEN_CONFIG)),
   };
 });
 
-vi.mock('../../services/smartGenerationSseClient', () => ({
-  startSmartGenRun: vi.fn((_params) => {
+vi.mock('../../services/specDrivenSseClient', () => ({
+  startSpecDrivenRun: vi.fn((_params) => {
     if (_mockController.throwOnStart) throw _mockController.throwOnStart;
     const scripted = [..._mockController.events];
     return {
@@ -106,14 +106,14 @@ function makeStore() {
     reducer: {
       workspace: workspaceReducer,
       errors: errorReducer,
-      smartGenerator: smartGeneratorReducer,
+      specDriven: specDrivenReducer,
     },
   });
 }
 
 // Harness component that exercises the hook and exposes its API via refs.
 interface HarnessAPI {
-  handleTrigger: (payload: TriggerSmartGeneratorPayload) => Promise<void>;
+  handleTrigger: (payload: TriggerSpecDrivenPayload) => Promise<void>;
   abortActive: () => void;
   getMessages: () => unknown[];
   getIsGenerating: () => boolean;
@@ -122,7 +122,7 @@ interface HarnessAPI {
 function Harness(props: {
   apiRef: { current: HarnessAPI | null };
   hasProject?: boolean;
-  onRunFinished?: (result: SmartGenRunResult) => void;
+  onRunFinished?: (result: SpecDrivenRunResult) => void;
 }) {
   const [messages, setMessages] = React.useState<any[]>([]);
   const [isGenerating, setIsGenerating] = React.useState(false);
@@ -136,7 +136,7 @@ function Harness(props: {
           currentDiagramIndices: { ClassDiagram: 0 },
         },
   );
-  const hook = useSmartGenTrigger({
+  const hook = useSpecDrivenTrigger({
     currentProjectRef,
     setMessages,
     setIsGenerating,
@@ -155,7 +155,7 @@ function Harness(props: {
 function renderHarness(
   opts: {
     hasProject?: boolean;
-    onRunFinished?: (result: SmartGenRunResult) => void;
+    onRunFinished?: (result: SpecDrivenRunResult) => void;
   } = {},
 ) {
   const store = makeStore();
@@ -175,7 +175,7 @@ function renderHarness(
 /**
  * Render TWO independent hook instances against ONE store — mirroring
  * production, where AssistantWidget and AssistantWorkspaceDrawer are
- * both always mounted and each instantiates useSmartGenTrigger.
+ * both always mounted and each instantiates useSpecDrivenTrigger.
  */
 function renderDualHarness() {
   const store = makeStore();
@@ -190,7 +190,7 @@ function renderDualHarness() {
   return { store, apiRefA, apiRefB, ...result };
 }
 
-const PAYLOAD: TriggerSmartGeneratorPayload = {
+const PAYLOAD: TriggerSpecDrivenPayload = {
   action: 'trigger_smart_generator',
   instructions: 'build a thing',
   provider: 'anthropic',
@@ -200,23 +200,23 @@ const PAYLOAD: TriggerSmartGeneratorPayload = {
 };
 
 function setSessionKey(key = 'sk-ant-test-NEVER-LEAK-0123') {
-  window.sessionStorage.setItem(sessionStorageSmartGenApiKey, key);
-  window.sessionStorage.setItem(sessionStorageSmartGenProvider, 'anthropic');
+  window.sessionStorage.setItem(sessionStorageSpecDrivenApiKey, key);
+  window.sessionStorage.setItem(sessionStorageSpecDrivenProvider, 'anthropic');
 }
 
 function clearSessionKeyManual() {
-  window.sessionStorage.removeItem(sessionStorageSmartGenApiKey);
-  window.sessionStorage.removeItem(sessionStorageSmartGenProvider);
+  window.sessionStorage.removeItem(sessionStorageSpecDrivenApiKey);
+  window.sessionStorage.removeItem(sessionStorageSpecDrivenProvider);
   // Also clear the optional model key so prior tests don't leak
   // ``llmModel=o1`` into tests that expect the agent hint to win.
   window.sessionStorage.removeItem('besser_llm_model');
   // And the run budget — tests that don't set one expect the
   // maxCostUsd / maxRuntimeSeconds params to stay undefined.
-  window.sessionStorage.removeItem(sessionStorageSmartGenMaxCostUsd);
-  window.sessionStorage.removeItem(sessionStorageSmartGenMaxRuntimeSeconds);
+  window.sessionStorage.removeItem(sessionStorageSpecDrivenMaxCostUsd);
+  window.sessionStorage.removeItem(sessionStorageSpecDrivenMaxRuntimeSeconds);
   // And the keyless free-tier opt-in — a leaked `true` here would force
   // provider='free' on later tests that assert a BYOK provider from the key.
-  window.sessionStorage.removeItem(sessionStorageSmartGenFreeTier);
+  window.sessionStorage.removeItem(sessionStorageSpecDrivenFreeTier);
 }
 
 beforeEach(async () => {
@@ -228,8 +228,8 @@ beforeEach(async () => {
   // clearAllMocks wipes call data but NOT implementations, so re-establish
   // the config mock's default (free tier OFF) — a test that overrides it to
   // free-available must not leak that into later tests.
-  const cfg = await import('../../services/smartGenConfig');
-  vi.mocked(cfg.getSmartGenConfig).mockImplementation(() =>
+  const cfg = await import('../../services/specDrivenConfig');
+  vi.mocked(cfg.getSpecDrivenConfig).mockImplementation(() =>
     Promise.resolve(cfg.FALLBACK_SMART_GEN_CONFIG),
   );
 });
@@ -239,7 +239,7 @@ afterEach(() => {
 });
 
 // Reusable scripted event sequence representing a successful run.
-const HAPPY_EVENTS: SmartGenEvent[] = [
+const HAPPY_EVENTS: SpecDrivenEvent[] = [
   { event: 'start', runId: 'a'.repeat(32), provider: 'anthropic', llmModel: 'claude-sonnet-4-6', maxCost: 1.0, maxRuntime: 600 },
   { event: 'phase', phase: 'select', message: 'Selecting generator' },
   { event: 'phase', phase: 'generate', message: 'running fastapi_backend' },
@@ -249,7 +249,7 @@ const HAPPY_EVENTS: SmartGenEvent[] = [
   {
     event: 'done',
     runId: 'a'.repeat(32),
-    downloadUrl: `/besser_api/download-smart/${'a'.repeat(32)}`,
+    downloadUrl: `/besser_api/spec-driven/download/${'a'.repeat(32)}`,
     fileName: 'besser_smart_output.zip',
     isZip: true,
     recipe: { instructions: 'build a thing', generator_used: 'fastapi_backend' },
@@ -257,7 +257,7 @@ const HAPPY_EVENTS: SmartGenEvent[] = [
 ];
 
 
-describe('useSmartGenTrigger — happy path', () => {
+describe('useSpecDrivenTrigger — happy path', () => {
   it('runs the full stream and surfaces a Download action on done (no auto-save)', async () => {
     setSessionKey();
     _mockController.events = HAPPY_EVENTS;
@@ -289,10 +289,10 @@ describe('useSmartGenTrigger — happy path', () => {
     expect(msgs.some((m) => m.content?.includes('I will build this for you'))).toBe(true);
     expect(msgs.some((m) => m.content?.includes('✅'))).toBe(true);
     // The card is finished and flagged as awaiting a user-initiated save.
-    const card = msgs.find((m) => m.smartGen);
-    expect(card.smartGen.status).toBe('done');
-    expect(card.smartGen.needsDownload).toBe(true);
-    expect(card.smartGen.fileName).toBe('besser_smart_output.zip');
+    const card = msgs.find((m) => m.specDriven);
+    expect(card.specDriven.status).toBe('done');
+    expect(card.specDriven.needsDownload).toBe(true);
+    expect(card.specDriven.fileName).toBe('besser_smart_output.zip');
     // No file was written to disk without consent.
     expect(_fetchMock).not.toHaveBeenCalled();
     expect(apiRef.current!.getIsGenerating()).toBe(false);
@@ -300,7 +300,7 @@ describe('useSmartGenTrigger — happy path', () => {
 });
 
 
-describe('useSmartGenTrigger — BYOK missing flow', () => {
+describe('useSpecDrivenTrigger — BYOK missing flow', () => {
   it('opens BYOK dialog when no key is stored', async () => {
     // Intentionally no setSessionKey call.
     const { apiRef, store } = renderHarness();
@@ -309,7 +309,7 @@ describe('useSmartGenTrigger — BYOK missing flow', () => {
       await apiRef.current!.handleTrigger(PAYLOAD);
     });
 
-    const state = store.getState().smartGenerator;
+    const state = store.getState().specDriven;
     expect(state.byokDialogOpen).toBe(true);
     expect(state.pendingTrigger).not.toBeNull();
     // No messages appended — the stream never started.
@@ -333,10 +333,10 @@ describe('useSmartGenTrigger — BYOK missing flow', () => {
       });
     });
 
-    expect(store.getState().smartGenerator.byokDialogOpen).toBe(false);
-    const sseClientModule = await import('../../services/smartGenerationSseClient');
+    expect(store.getState().specDriven.byokDialogOpen).toBe(false);
+    const sseClientModule = await import('../../services/specDrivenSseClient');
     await waitFor(() => {
-      expect(vi.mocked(sseClientModule.startSmartGenRun)).toHaveBeenCalledTimes(1);
+      expect(vi.mocked(sseClientModule.startSpecDrivenRun)).toHaveBeenCalledTimes(1);
     });
   });
 
@@ -346,8 +346,8 @@ describe('useSmartGenTrigger — BYOK missing flow', () => {
     // "use your own API key" affordance now lives in the pre-run confirmation
     // copy (agent-side), so the run no longer appends a mid-run free-tier note.
     _mockController.events = HAPPY_EVENTS;
-    const configModule = await import('../../services/smartGenConfig');
-    vi.mocked(configModule.getSmartGenConfig).mockResolvedValue({
+    const configModule = await import('../../services/specDrivenConfig');
+    vi.mocked(configModule.getSpecDrivenConfig).mockResolvedValue({
       ...configModule.FALLBACK_SMART_GEN_CONFIG,
       free_tier: { available: true, model: 'qwen3-coder:30b' },
     });
@@ -359,13 +359,13 @@ describe('useSmartGenTrigger — BYOK missing flow', () => {
     });
 
     // No popup — the run starts on the free tier.
-    expect(store.getState().smartGenerator.byokDialogOpen).toBe(false);
-    const sseClientModule = await import('../../services/smartGenerationSseClient');
+    expect(store.getState().specDriven.byokDialogOpen).toBe(false);
+    const sseClientModule = await import('../../services/specDrivenSseClient');
     await waitFor(() => {
-      expect(vi.mocked(sseClientModule.startSmartGenRun)).toHaveBeenCalledTimes(1);
+      expect(vi.mocked(sseClientModule.startSpecDrivenRun)).toHaveBeenCalledTimes(1);
     });
     // The run was dispatched as the keyless free provider…
-    const args = vi.mocked(sseClientModule.startSmartGenRun).mock.calls[0][0];
+    const args = vi.mocked(sseClientModule.startSpecDrivenRun).mock.calls[0][0];
     expect(args.provider).toBe('free');
     // …and the run no longer appends a mid-run free-tier note (the upgrade
     // affordance moved to the pre-run confirmation copy).
@@ -379,7 +379,7 @@ describe('useSmartGenTrigger — BYOK missing flow', () => {
 });
 
 
-describe('useSmartGenTrigger — invalid key error handling', () => {
+describe('useSpecDrivenTrigger — invalid key error handling', () => {
   it('clears the session key when an INVALID_KEY error event arrives', async () => {
     setSessionKey('sk-ant-bogus');
     _mockController.events = [
@@ -395,15 +395,15 @@ describe('useSmartGenTrigger — invalid key error handling', () => {
     });
 
     await waitFor(() => {
-      expect(store.getState().smartGenerator.apiKeyInStore).toBe(false);
+      expect(store.getState().specDriven.apiKeyInStore).toBe(false);
     });
     // Key was cleared from sessionStorage
-    expect(window.sessionStorage.getItem(sessionStorageSmartGenApiKey)).toBeNull();
+    expect(window.sessionStorage.getItem(sessionStorageSpecDrivenApiKey)).toBeNull();
   });
 });
 
 
-describe('useSmartGenTrigger — done event (consent-based download)', () => {
+describe('useSpecDrivenTrigger — done event (consent-based download)', () => {
   it('does NOT auto-save the artifact: no download fetch fires on done', async () => {
     setSessionKey();
     _mockController.events = HAPPY_EVENTS;
@@ -424,7 +424,7 @@ describe('useSmartGenTrigger — done event (consent-based download)', () => {
 
     await waitFor(() => {
       const msgs = apiRef.current!.getMessages() as any[];
-      expect(msgs.some((m) => m.smartGen?.status === 'done')).toBe(true);
+      expect(msgs.some((m) => m.specDriven?.status === 'done')).toBe(true);
     });
 
     expect(fetchMock).not.toHaveBeenCalled();
@@ -457,13 +457,13 @@ describe('useSmartGenTrigger — done event (consent-based download)', () => {
 
     const msgs = apiRef.current!.getMessages() as any[];
     // The card is finished and carries everything the Download button needs.
-    const card = msgs.find((m) => m.smartGen);
-    expect(card.smartGen.status).toBe('done');
-    expect(card.smartGen.needsDownload).toBe(true);
-    expect(card.smartGen.downloadFailed).toBeFalsy();
-    expect(card.smartGen.runId).toBe('a'.repeat(32));
-    expect(card.smartGen.fileName).toBe('besser_smart_output.zip');
-    expect(card.smartGen.isZip).toBe(true);
+    const card = msgs.find((m) => m.specDriven);
+    expect(card.specDriven.status).toBe('done');
+    expect(card.specDriven.needsDownload).toBe(true);
+    expect(card.specDriven.downloadFailed).toBeFalsy();
+    expect(card.specDriven.runId).toBe('a'.repeat(32));
+    expect(card.specDriven.fileName).toBe('besser_smart_output.zip');
+    expect(card.specDriven.isZip).toBe(true);
     // The completion message points the user at the Download action.
     const doneMsg = msgs.find((m) => m.content?.includes('✅'));
     expect(doneMsg.content).toMatch(/download/i);
@@ -471,7 +471,7 @@ describe('useSmartGenTrigger — done event (consent-based download)', () => {
 });
 
 
-describe('useSmartGenTrigger — concurrent trigger guard', () => {
+describe('useSpecDrivenTrigger — concurrent trigger guard', () => {
   it('rejects a second trigger while one is already running', async () => {
     setSessionKey();
     // A never-yielding generator so the first run stays "in progress"
@@ -504,7 +504,7 @@ describe('useSmartGenTrigger — concurrent trigger guard', () => {
 });
 
 
-describe('useSmartGenTrigger — no project', () => {
+describe('useSpecDrivenTrigger — no project', () => {
   it('appends an error message when there is no active project', async () => {
     setSessionKey();
     _mockController.events = HAPPY_EVENTS;
@@ -521,7 +521,7 @@ describe('useSmartGenTrigger — no project', () => {
 });
 
 
-describe('useSmartGenTrigger — BYOK provider wins over agent hint', () => {
+describe('useSpecDrivenTrigger — BYOK provider wins over agent hint', () => {
   it('uses the provider from sessionStorage, NOT the agent\'s trigger payload hint', async () => {
     // Scenario: the modeling agent emits trigger_smart_generator with
     // its default hint ``provider="anthropic"``, but the user has
@@ -529,8 +529,8 @@ describe('useSmartGenTrigger — BYOK provider wins over agent hint', () => {
     // key. The run MUST fire with provider=openai — anything else
     // causes the "OpenAI key hits the Anthropic API, gets 401,
     // orchestrator falls through to Phase 1 FastAPI" bug.
-    window.sessionStorage.setItem(sessionStorageSmartGenApiKey, 'sk-proj-openai-TEST');
-    window.sessionStorage.setItem(sessionStorageSmartGenProvider, 'openai');
+    window.sessionStorage.setItem(sessionStorageSpecDrivenApiKey, 'sk-proj-openai-TEST');
+    window.sessionStorage.setItem(sessionStorageSpecDrivenProvider, 'openai');
 
     _mockController.events = HAPPY_EVENTS;
     globalThis.fetch = vi.fn().mockResolvedValue(
@@ -540,7 +540,7 @@ describe('useSmartGenTrigger — BYOK provider wins over agent hint', () => {
     const { apiRef } = renderHarness();
 
     // Agent hints "anthropic" — user picked openai. User wins.
-    const agentPayload: TriggerSmartGeneratorPayload = {
+    const agentPayload: TriggerSpecDrivenPayload = {
       action: 'trigger_smart_generator',
       instructions: 'build a thing',
       provider: 'anthropic',
@@ -558,10 +558,10 @@ describe('useSmartGenTrigger — BYOK provider wins over agent hint', () => {
       expect(msgs.length).toBeGreaterThanOrEqual(2);
     });
 
-    const sseClientModule = await import('../../services/smartGenerationSseClient');
-    const startSmartGenRunMock = vi.mocked(sseClientModule.startSmartGenRun);
-    expect(startSmartGenRunMock).toHaveBeenCalled();
-    const callArgs = startSmartGenRunMock.mock.calls[0][0];
+    const sseClientModule = await import('../../services/specDrivenSseClient');
+    const startSpecDrivenRunMock = vi.mocked(sseClientModule.startSpecDrivenRun);
+    expect(startSpecDrivenRunMock).toHaveBeenCalled();
+    const callArgs = startSpecDrivenRunMock.mock.calls[0][0];
     expect(callArgs.provider).toBe('openai');
     expect(callArgs.apiKey).toBe('sk-proj-openai-TEST');
   });
@@ -574,8 +574,8 @@ describe('useSmartGenTrigger — BYOK provider wins over agent hint', () => {
     // return 404 ``model_not_found``. The hook MUST drop the llmModel
     // hint when the provider is overridden so the backend can fall
     // back to ``_DEFAULT_MODELS["openai"] = "gpt-4o"``.
-    window.sessionStorage.setItem(sessionStorageSmartGenApiKey, 'sk-proj-openai-TEST');
-    window.sessionStorage.setItem(sessionStorageSmartGenProvider, 'openai');
+    window.sessionStorage.setItem(sessionStorageSpecDrivenApiKey, 'sk-proj-openai-TEST');
+    window.sessionStorage.setItem(sessionStorageSpecDrivenProvider, 'openai');
 
     _mockController.events = HAPPY_EVENTS;
     globalThis.fetch = vi.fn().mockResolvedValue(
@@ -584,7 +584,7 @@ describe('useSmartGenTrigger — BYOK provider wins over agent hint', () => {
 
     const { apiRef } = renderHarness();
 
-    const agentPayload: TriggerSmartGeneratorPayload = {
+    const agentPayload: TriggerSpecDrivenPayload = {
       action: 'trigger_smart_generator',
       instructions: 'build a thing',
       provider: 'anthropic',
@@ -602,9 +602,9 @@ describe('useSmartGenTrigger — BYOK provider wins over agent hint', () => {
       expect(msgs.length).toBeGreaterThanOrEqual(2);
     });
 
-    const sseClientModule = await import('../../services/smartGenerationSseClient');
-    const startSmartGenRunMock = vi.mocked(sseClientModule.startSmartGenRun);
-    const callArgs = startSmartGenRunMock.mock.calls[0][0];
+    const sseClientModule = await import('../../services/specDrivenSseClient');
+    const startSpecDrivenRunMock = vi.mocked(sseClientModule.startSpecDrivenRun);
+    const callArgs = startSpecDrivenRunMock.mock.calls[0][0];
     expect(callArgs.provider).toBe('openai');
     expect(callArgs.llmModel).toBeUndefined();  // dropped
   });
@@ -613,8 +613,8 @@ describe('useSmartGenTrigger — BYOK provider wins over agent hint', () => {
     // Scenario: user saved ``provider=openai, llmModel=o1`` in the
     // dialog. Agent hints ``provider=anthropic, llmModel=claude-sonnet-4-6``.
     // User's choice wins on BOTH fields.
-    window.sessionStorage.setItem(sessionStorageSmartGenApiKey, 'sk-proj-openai-TEST');
-    window.sessionStorage.setItem(sessionStorageSmartGenProvider, 'openai');
+    window.sessionStorage.setItem(sessionStorageSpecDrivenApiKey, 'sk-proj-openai-TEST');
+    window.sessionStorage.setItem(sessionStorageSpecDrivenProvider, 'openai');
     window.sessionStorage.setItem(
       'besser_llm_model',
       'o1',
@@ -627,7 +627,7 @@ describe('useSmartGenTrigger — BYOK provider wins over agent hint', () => {
 
     const { apiRef } = renderHarness();
 
-    const agentPayload: TriggerSmartGeneratorPayload = {
+    const agentPayload: TriggerSpecDrivenPayload = {
       action: 'trigger_smart_generator',
       instructions: 'build a thing',
       provider: 'anthropic',
@@ -645,9 +645,9 @@ describe('useSmartGenTrigger — BYOK provider wins over agent hint', () => {
       expect(msgs.length).toBeGreaterThanOrEqual(2);
     });
 
-    const sseClientModule = await import('../../services/smartGenerationSseClient');
-    const startSmartGenRunMock = vi.mocked(sseClientModule.startSmartGenRun);
-    const callArgs = startSmartGenRunMock.mock.calls[0][0];
+    const sseClientModule = await import('../../services/specDrivenSseClient');
+    const startSpecDrivenRunMock = vi.mocked(sseClientModule.startSpecDrivenRun);
+    const callArgs = startSpecDrivenRunMock.mock.calls[0][0];
     expect(callArgs.provider).toBe('openai');
     expect(callArgs.llmModel).toBe('o1');
   });
@@ -657,8 +657,8 @@ describe('useSmartGenTrigger — BYOK provider wins over agent hint', () => {
     // hint is valid — keep it so the user gets the agent's preferred
     // model instead of the backend default (which may be a smaller
     // cheaper model).
-    window.sessionStorage.setItem(sessionStorageSmartGenApiKey, 'sk-ant-test-TEST');
-    window.sessionStorage.setItem(sessionStorageSmartGenProvider, 'anthropic');
+    window.sessionStorage.setItem(sessionStorageSpecDrivenApiKey, 'sk-ant-test-TEST');
+    window.sessionStorage.setItem(sessionStorageSpecDrivenProvider, 'anthropic');
 
     _mockController.events = HAPPY_EVENTS;
     globalThis.fetch = vi.fn().mockResolvedValue(
@@ -667,7 +667,7 @@ describe('useSmartGenTrigger — BYOK provider wins over agent hint', () => {
 
     const { apiRef } = renderHarness();
 
-    const agentPayload: TriggerSmartGeneratorPayload = {
+    const agentPayload: TriggerSpecDrivenPayload = {
       action: 'trigger_smart_generator',
       instructions: 'build a thing',
       provider: 'anthropic',
@@ -685,19 +685,19 @@ describe('useSmartGenTrigger — BYOK provider wins over agent hint', () => {
       expect(msgs.length).toBeGreaterThanOrEqual(2);
     });
 
-    const sseClientModule = await import('../../services/smartGenerationSseClient');
-    const startSmartGenRunMock = vi.mocked(sseClientModule.startSmartGenRun);
-    const callArgs = startSmartGenRunMock.mock.calls[0][0];
+    const sseClientModule = await import('../../services/specDrivenSseClient');
+    const startSpecDrivenRunMock = vi.mocked(sseClientModule.startSpecDrivenRun);
+    const callArgs = startSpecDrivenRunMock.mock.calls[0][0];
     expect(callArgs.provider).toBe('anthropic');
     expect(callArgs.llmModel).toBe('claude-opus-4-6');  // preserved
   });
 });
 
 
-describe('useSmartGenTrigger — double-instance race (the double-paid-run bug)', () => {
+describe('useSpecDrivenTrigger — double-instance race (the double-paid-run bug)', () => {
   it('starts exactly ONE run when two hook instances resume the same pending trigger', async () => {
     // Production setup: AssistantWidget AND AssistantWorkspaceDrawer are
-    // both always mounted; each instantiates useSmartGenTrigger against
+    // both always mounted; each instantiates useSpecDrivenTrigger against
     // the same store. When the user saves a BYOK key, BOTH resume
     // effects fire in the same commit with the same closure-captured
     // pendingTrigger. Without atomic consumption this started TWO
@@ -725,11 +725,11 @@ describe('useSmartGenTrigger — double-instance race (the double-paid-run bug)'
       store.dispatch(setApiKeyPresent(true));
     });
 
-    const sseClientModule = await import('../../services/smartGenerationSseClient');
-    const startSmartGenRunMock = vi.mocked(sseClientModule.startSmartGenRun);
+    const sseClientModule = await import('../../services/specDrivenSseClient');
+    const startSpecDrivenRunMock = vi.mocked(sseClientModule.startSpecDrivenRun);
 
     await waitFor(() => {
-      expect(startSmartGenRunMock).toHaveBeenCalledTimes(1);
+      expect(startSpecDrivenRunMock).toHaveBeenCalledTimes(1);
     });
 
     // Let everything settle (stream + download), then re-assert: the
@@ -737,8 +737,8 @@ describe('useSmartGenTrigger — double-instance race (the double-paid-run bug)'
     await act(async () => {
       await new Promise((resolve) => setTimeout(resolve, 50));
     });
-    expect(startSmartGenRunMock).toHaveBeenCalledTimes(1);
-    expect(store.getState().smartGenerator.pendingTrigger).toBeNull();
+    expect(startSpecDrivenRunMock).toHaveBeenCalledTimes(1);
+    expect(store.getState().specDriven.pendingTrigger).toBeNull();
   });
 
   it('rejects a handleTrigger on instance B while instance A is mid-run', async () => {
@@ -749,14 +749,14 @@ describe('useSmartGenTrigger — double-instance race (the double-paid-run bug)'
     const gate = new Promise<void>((resolve) => {
       releaseStream = resolve;
     });
-    const sseClientModule = await import('../../services/smartGenerationSseClient');
-    const startSmartGenRunMock = vi.mocked(sseClientModule.startSmartGenRun);
-    startSmartGenRunMock.mockImplementationOnce(() => ({
+    const sseClientModule = await import('../../services/specDrivenSseClient');
+    const startSpecDrivenRunMock = vi.mocked(sseClientModule.startSpecDrivenRun);
+    startSpecDrivenRunMock.mockImplementationOnce(() => ({
       controller: new AbortController(),
       abort: () => {},
       events: (async function* () {
         await gate;
-      })() as AsyncGenerator<SmartGenEvent, void, void>,
+      })() as AsyncGenerator<SpecDrivenEvent, void, void>,
     }));
 
     const { apiRefA, apiRefB } = renderDualHarness();
@@ -778,7 +778,7 @@ describe('useSmartGenTrigger — double-instance race (the double-paid-run bug)'
     const refusal = msgsB.find((m) => m.content?.includes('already running'));
     expect(refusal).toBeTruthy();
     expect(refusal.isError).toBe(true);
-    expect(startSmartGenRunMock).toHaveBeenCalledTimes(1);
+    expect(startSpecDrivenRunMock).toHaveBeenCalledTimes(1);
 
     releaseStream();
     await act(async () => {
@@ -787,7 +787,7 @@ describe('useSmartGenTrigger — double-instance race (the double-paid-run bug)'
   });
 });
 
-describe('useSmartGenTrigger — onRunFinished (agent loop)', () => {
+describe('useSpecDrivenTrigger — onRunFinished (agent loop)', () => {
   it('reports ok:true with runId / fileName / generatorUsed exactly once on success', async () => {
     setSessionKey();
     _mockController.events = HAPPY_EVENTS;
@@ -870,9 +870,9 @@ describe('useSmartGenTrigger — onRunFinished (agent loop)', () => {
       expect.objectContaining({ ok: false, errorCode: 'INTERNAL' }),
     );
     const messages = apiRef.current!.getMessages() as any[];
-    expect(messages.some((message) => message.smartGen?.status === 'error')).toBe(true);
+    expect(messages.some((message) => message.specDriven?.status === 'error')).toBe(true);
     expect(messages.some((message) => message.content?.includes('ended early'))).toBe(true);
-    expect(store.getState().smartGenerator.runStatus).toBe('idle');
+    expect(store.getState().specDriven.runStatus).toBe('idle');
   });
 
   it('reports ok:true on done even though the file is not saved yet (user-initiated download)', async () => {
@@ -912,9 +912,9 @@ describe('useSmartGenTrigger — onRunFinished (agent loop)', () => {
     const gate = new Promise<void>((resolve) => {
       releaseStream = resolve;
     });
-    const sseClientModule = await import('../../services/smartGenerationSseClient');
-    const startSmartGenRunMock = vi.mocked(sseClientModule.startSmartGenRun);
-    startSmartGenRunMock.mockImplementationOnce(() => ({
+    const sseClientModule = await import('../../services/specDrivenSseClient');
+    const startSpecDrivenRunMock = vi.mocked(sseClientModule.startSpecDrivenRun);
+    startSpecDrivenRunMock.mockImplementationOnce(() => ({
       controller: new AbortController(),
       abort: () => {},
       events: (async function* () {
@@ -925,9 +925,9 @@ describe('useSmartGenTrigger — onRunFinished (agent loop)', () => {
           llmModel: 'claude-sonnet-4-6',
           maxCost: 1.0,
           maxRuntime: 600,
-        } as SmartGenEvent;
+        } as SpecDrivenEvent;
         await gate;
-      })() as AsyncGenerator<SmartGenEvent, void, void>,
+      })() as AsyncGenerator<SpecDrivenEvent, void, void>,
     }));
     const onRunFinished = vi.fn();
 
@@ -963,11 +963,11 @@ describe('useSmartGenTrigger — onRunFinished (agent loop)', () => {
   });
 });
 
-describe('useSmartGenTrigger — run budget from sessionStorage', () => {
+describe('useSpecDrivenTrigger — run budget from sessionStorage', () => {
   it('passes the saved maxCostUsd / maxRuntimeSeconds to the SSE client', async () => {
     setSessionKey();
-    window.sessionStorage.setItem(sessionStorageSmartGenMaxCostUsd, '1.5');
-    window.sessionStorage.setItem(sessionStorageSmartGenMaxRuntimeSeconds, '300');
+    window.sessionStorage.setItem(sessionStorageSpecDrivenMaxCostUsd, '1.5');
+    window.sessionStorage.setItem(sessionStorageSpecDrivenMaxRuntimeSeconds, '300');
     _mockController.events = HAPPY_EVENTS;
     globalThis.fetch = vi.fn().mockResolvedValue(
       new Response(new Blob(['fake']), { status: 200 }),
@@ -979,10 +979,10 @@ describe('useSmartGenTrigger — run budget from sessionStorage', () => {
       await apiRef.current!.handleTrigger(PAYLOAD);
     });
 
-    const sseClientModule = await import('../../services/smartGenerationSseClient');
-    const startSmartGenRunMock = vi.mocked(sseClientModule.startSmartGenRun);
-    expect(startSmartGenRunMock).toHaveBeenCalled();
-    const callArgs = startSmartGenRunMock.mock.calls[0][0];
+    const sseClientModule = await import('../../services/specDrivenSseClient');
+    const startSpecDrivenRunMock = vi.mocked(sseClientModule.startSpecDrivenRun);
+    expect(startSpecDrivenRunMock).toHaveBeenCalled();
+    const callArgs = startSpecDrivenRunMock.mock.calls[0][0];
     expect(callArgs.maxCostUsd).toBe(1.5);
     expect(callArgs.maxRuntimeSeconds).toBe(300);
   });
@@ -1000,9 +1000,9 @@ describe('useSmartGenTrigger — run budget from sessionStorage', () => {
       await apiRef.current!.handleTrigger(PAYLOAD);
     });
 
-    const sseClientModule = await import('../../services/smartGenerationSseClient');
-    const startSmartGenRunMock = vi.mocked(sseClientModule.startSmartGenRun);
-    const callArgs = startSmartGenRunMock.mock.calls[0][0];
+    const sseClientModule = await import('../../services/specDrivenSseClient');
+    const startSpecDrivenRunMock = vi.mocked(sseClientModule.startSpecDrivenRun);
+    const callArgs = startSpecDrivenRunMock.mock.calls[0][0];
     expect(callArgs.maxCostUsd).toBeUndefined();
     expect(callArgs.maxRuntimeSeconds).toBeUndefined();
   });
@@ -1022,15 +1022,15 @@ describe('useSmartGenTrigger — run budget from sessionStorage', () => {
       });
     });
 
-    const sseClientModule = await import('../../services/smartGenerationSseClient');
-    const callArgs = vi.mocked(sseClientModule.startSmartGenRun).mock.calls[0][0];
+    const sseClientModule = await import('../../services/specDrivenSseClient');
+    const callArgs = vi.mocked(sseClientModule.startSpecDrivenRun).mock.calls[0][0];
     expect(callArgs.primaryKindOverride).toBe('gui');
     expect(callArgs.targetGeneratorOverride).toBe('generate_web_app');
     expect(callArgs.skipDeterministicGenerator).toBe(true);
   });
 });
 
-describe('useSmartGenTrigger — live cost meter state', () => {
+describe('useSpecDrivenTrigger — live cost meter state', () => {
   it('mirrors start budgets and cost events onto the smart-gen card state', async () => {
     setSessionKey();
     _mockController.events = HAPPY_EVENTS;
@@ -1049,19 +1049,19 @@ describe('useSmartGenTrigger — live cost meter state', () => {
 
     await waitFor(() => {
       const msgs = apiRef.current!.getMessages() as any[];
-      expect(msgs.some((m) => m.smartGen)).toBe(true);
+      expect(msgs.some((m) => m.specDriven)).toBe(true);
     });
 
     const msgs = apiRef.current!.getMessages() as any[];
-    const card = msgs.find((m) => m.smartGen);
-    expect(card.smartGen.maxCost).toBe(1.0);
-    expect(card.smartGen.maxRuntime).toBe(600);
-    expect(card.smartGen.costUsd).toBeCloseTo(0.05);
-    expect(card.smartGen.elapsedSeconds).toBeCloseTo(12.3);
+    const card = msgs.find((m) => m.specDriven);
+    expect(card.specDriven.maxCost).toBe(1.0);
+    expect(card.specDriven.maxRuntime).toBe(600);
+    expect(card.specDriven.costUsd).toBeCloseTo(0.05);
+    expect(card.specDriven.elapsedSeconds).toBeCloseTo(12.3);
   });
 });
 
-describe('useSmartGenTrigger — abort', () => {
+describe('useSpecDrivenTrigger — abort', () => {
   it('abortActive after a completed run is a safe no-op', async () => {
     setSessionKey();
     _mockController.events = HAPPY_EVENTS;
@@ -1080,7 +1080,7 @@ describe('useSmartGenTrigger — abort', () => {
     // download URL. Abort after completion should NOT wipe that state
     // — aborting a completed run is a no-op because isRunningRef is
     // already false.
-    const beforeAbort = store.getState().smartGenerator.activeRun;
+    const beforeAbort = store.getState().specDriven.activeRun;
     expect(beforeAbort).not.toBeNull();
     expect(beforeAbort!.phase).toBe('done');
 
@@ -1090,6 +1090,6 @@ describe('useSmartGenTrigger — abort', () => {
 
     // Abort is idempotent on a completed run — state preserved.
     expect(apiRef.current!.getIsGenerating()).toBe(false);
-    expect(store.getState().smartGenerator.activeRun).not.toBeNull();
+    expect(store.getState().specDriven.activeRun).not.toBeNull();
   });
 });

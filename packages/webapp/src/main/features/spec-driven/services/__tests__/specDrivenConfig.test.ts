@@ -12,9 +12,9 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
   FALLBACK_SMART_GEN_CONFIG,
-  getSmartGenConfig,
-  _resetSmartGenConfigCacheForTests,
-} from '../smartGenConfig';
+  getSpecDrivenConfig,
+  _resetSpecDrivenConfigCacheForTests,
+} from '../specDrivenConfig';
 
 const BACKEND_CONFIG = {
   caps: {
@@ -29,15 +29,15 @@ const BACKEND_CONFIG = {
 };
 
 beforeEach(() => {
-  _resetSmartGenConfigCacheForTests();
+  _resetSpecDrivenConfigCacheForTests();
 });
 
 afterEach(() => {
   vi.restoreAllMocks();
-  _resetSmartGenConfigCacheForTests();
+  _resetSpecDrivenConfigCacheForTests();
 });
 
-describe('getSmartGenConfig', () => {
+describe('getSpecDrivenConfig', () => {
   it('returns the backend payload when the fetch succeeds', async () => {
     globalThis.fetch = vi.fn().mockResolvedValue(
       new Response(JSON.stringify(BACKEND_CONFIG), {
@@ -46,7 +46,7 @@ describe('getSmartGenConfig', () => {
       }),
     );
 
-    const config = await getSmartGenConfig();
+    const config = await getSpecDrivenConfig();
     expect(config.caps.max_cost_usd_hard_cap).toBe(3.5);
     expect(config.caps.default_max_runtime_seconds).toBe(480);
     expect(config.features).toEqual({ gap_analysis: true });
@@ -59,8 +59,8 @@ describe('getSmartGenConfig', () => {
     );
     globalThis.fetch = fetchMock;
 
-    const [a, b] = await Promise.all([getSmartGenConfig(), getSmartGenConfig()]);
-    await getSmartGenConfig();
+    const [a, b] = await Promise.all([getSpecDrivenConfig(), getSpecDrivenConfig()]);
+    await getSpecDrivenConfig();
     expect(fetchMock).toHaveBeenCalledTimes(1);
     expect(a).toEqual(b);
   });
@@ -68,7 +68,7 @@ describe('getSmartGenConfig', () => {
   it('falls back to the hardcoded defaults when the fetch rejects', async () => {
     globalThis.fetch = vi.fn().mockRejectedValue(new Error('network down'));
 
-    const config = await getSmartGenConfig();
+    const config = await getSpecDrivenConfig();
     expect(config).toEqual(FALLBACK_SMART_GEN_CONFIG);
     expect(config.caps.max_cost_usd_hard_cap).toBe(2.0);
     expect(config.caps.max_runtime_seconds_hard_cap).toBe(900);
@@ -79,7 +79,7 @@ describe('getSmartGenConfig', () => {
   it('falls back on a non-OK status', async () => {
     globalThis.fetch = vi.fn().mockResolvedValue(new Response('nope', { status: 404 }));
 
-    const config = await getSmartGenConfig();
+    const config = await getSpecDrivenConfig();
     expect(config).toEqual(FALLBACK_SMART_GEN_CONFIG);
   });
 
@@ -90,7 +90,7 @@ describe('getSmartGenConfig', () => {
       }),
     );
 
-    const config = await getSmartGenConfig();
+    const config = await getSpecDrivenConfig();
     expect(config).toEqual(FALLBACK_SMART_GEN_CONFIG);
   });
 
@@ -103,10 +103,10 @@ describe('getSmartGenConfig', () => {
       );
     globalThis.fetch = fetchMock;
 
-    const first = await getSmartGenConfig();
+    const first = await getSpecDrivenConfig();
     expect(first).toEqual(FALLBACK_SMART_GEN_CONFIG);
 
-    const second = await getSmartGenConfig();
+    const second = await getSpecDrivenConfig();
     expect(second.caps.max_cost_usd_hard_cap).toBe(3.5);
     expect(fetchMock).toHaveBeenCalledTimes(2);
   });

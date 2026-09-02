@@ -32,7 +32,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { ChatMessage, SendStatus } from '../../services/assistant-types';
 import { workspaceReducer } from '../../../../app/store/workspaceSlice';
 import { errorReducer } from '../../../../app/store/errorManagementSlice';
-import { smartGeneratorReducer } from '../../../../features/smart-generation/state/smartGeneratorSlice';
+import { specDrivenReducer } from '../../../../features/spec-driven/state/specDrivenSlice';
 import { ApollonEditorProvider } from '../../../editors/uml/apollon-editor-context';
 
 /* ------------------------------------------------------------------ */
@@ -152,7 +152,7 @@ function makeStore() {
     reducer: {
       workspace: workspaceReducer,
       errors: errorReducer,
-      smartGenerator: smartGeneratorReducer,
+      specDriven: specDrivenReducer,
     },
   });
 }

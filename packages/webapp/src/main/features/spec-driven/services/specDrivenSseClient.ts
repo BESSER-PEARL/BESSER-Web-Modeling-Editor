@@ -2,24 +2,24 @@
  * Thin Smart Generator client over the shared `streamSse` utility.
  *
  * Owns the request shape and the `AbortController`; yields typed
- * `SmartGenEvent` objects. The caller (typically `useSmartGenTrigger`)
+ * `SpecDrivenEvent` objects. The caller (typically `useSpecDrivenTrigger`)
  * handles state updates and chat-message injection.
  */
 
 import { SMART_GEN_ENDPOINT } from '../../../shared/constants/constant';
 import { streamSse } from '../../../shared/services/sse/sseClient';
 import type {
-  SmartGenEvent,
-  SmartGenMode,
-  SmartGenPrimaryKind,
-  SmartGenProvider,
+  SpecDrivenEvent,
+  SpecDrivenMode,
+  SpecDrivenPrimaryKind,
+  SpecDrivenProvider,
 } from '../types';
 
-export interface StartSmartGenRunParams {
+export interface StartSpecDrivenRunParams {
   /** The full BesserProject payload (same shape as /generate-output-from-project). */
   project: unknown;
   instructions: string;
-  provider: SmartGenProvider;
+  provider: SpecDrivenProvider;
   apiKey: string;
   llmModel?: string;
   /** OpenAI-compatible base URL for the 'pia'/'local' providers. */
@@ -33,16 +33,16 @@ export interface StartSmartGenRunParams {
    * Serialised as `base_run_id` / `mode` to match the backend contract.
    */
   baseRunId?: string;
-  mode?: SmartGenMode;
-  primaryKindOverride?: SmartGenPrimaryKind;
+  mode?: SpecDrivenMode;
+  primaryKindOverride?: SpecDrivenPrimaryKind;
   targetGeneratorOverride?: string;
   /** Explicit approved-plan choice to bypass the deterministic Phase-1 generator. */
   skipDeterministicGenerator?: boolean;
 }
 
-export interface SmartGenRunHandle {
-  /** The event stream — each iteration yields one parsed SmartGenEvent. */
-  events: AsyncGenerator<SmartGenEvent, void, void>;
+export interface SpecDrivenRunHandle {
+  /** The event stream — each iteration yields one parsed SpecDrivenEvent. */
+  events: AsyncGenerator<SpecDrivenEvent, void, void>;
   /** Abort the run (cancels fetch + reader). */
   abort: () => void;
   /** Underlying AbortController for advanced consumers. */
@@ -50,16 +50,16 @@ export interface SmartGenRunHandle {
 }
 
 /**
- * Start a smart-generation run and return a handle whose `events`
+ * Start a spec-driven run and return a handle whose `events`
  * async generator yields parsed SSE events. The caller is responsible
  * for iterating and dispatching.
  *
  * The API key travels only in the POST body. It is never added to the
  * URL, headers, or any Redux state.
  */
-export function startSmartGenRun(
-  params: StartSmartGenRunParams,
-): SmartGenRunHandle {
+export function startSpecDrivenRun(
+  params: StartSpecDrivenRunParams,
+): SpecDrivenRunHandle {
   const controller = new AbortController();
 
   // 'pia' / 'local' are OpenAI-compatible endpoints: send them to the backend
@@ -100,7 +100,7 @@ export function startSmartGenRun(
     body.skip_deterministic_generator = true;
   }
 
-  const events = streamSse<SmartGenEvent>(SMART_GEN_ENDPOINT, body, {
+  const events = streamSse<SpecDrivenEvent>(SMART_GEN_ENDPOINT, body, {
     signal: controller.signal,
   });
 

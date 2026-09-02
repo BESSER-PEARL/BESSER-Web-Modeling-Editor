@@ -7,7 +7,7 @@ import {
   closePushDialog,
   completeRun,
   consumePendingTrigger,
-  isSmartGenRunActive,
+  isSpecDrivenRunActive,
   openByokDialog,
   openPushDialog,
   releaseRunSlot,
@@ -15,14 +15,14 @@ import {
   setApiKeyPresent,
   setProvider,
   setRunError,
-  smartGeneratorReducer,
+  specDrivenReducer,
   tryClaimRunSlot,
   updateCost,
   updatePhase,
-} from '../smartGeneratorSlice';
-import type { SmartGeneratorState } from '../smartGeneratorSlice';
+} from '../specDrivenSlice';
+import type { SpecDrivenState } from '../specDrivenSlice';
 
-const INITIAL: SmartGeneratorState = {
+const INITIAL: SpecDrivenState = {
   byokDialogOpen: false,
   pushDialogRunId: null,
   provider: null,
@@ -40,13 +40,13 @@ const PENDING = {
 
 function makeStore() {
   return configureStore({
-    reducer: { smartGenerator: smartGeneratorReducer },
+    reducer: { specDriven: specDrivenReducer },
   });
 }
 
-describe('smartGeneratorSlice', () => {
+describe('specDrivenSlice', () => {
   it('has the expected initial state', () => {
-    const state = smartGeneratorReducer(undefined, { type: '@@init' });
+    const state = specDrivenReducer(undefined, { type: '@@init' });
     expect(state).toEqual(INITIAL);
   });
 
@@ -55,22 +55,22 @@ describe('smartGeneratorSlice', () => {
       action: 'trigger_smart_generator' as const,
       instructions: 'build a thing',
     };
-    const next = smartGeneratorReducer(INITIAL, openByokDialog(pending));
+    const next = specDrivenReducer(INITIAL, openByokDialog(pending));
     expect(next.byokDialogOpen).toBe(true);
     expect(next.pendingTrigger).toEqual(pending);
   });
 
   it('closeByokDialog only flips the dialog flag and preserves the pending trigger', () => {
     // The pending trigger must survive closeByokDialog so the resume
-    // effect in useSmartGenTrigger can fire after a successful save.
+    // effect in useSpecDrivenTrigger can fire after a successful save.
     // Cancel paths clear it explicitly via clearPendingTrigger.
     const pending = { action: 'trigger_smart_generator' as const, instructions: 'x' };
-    const dirty: SmartGeneratorState = {
+    const dirty: SpecDrivenState = {
       ...INITIAL,
       byokDialogOpen: true,
       pendingTrigger: pending,
     };
-    const next = smartGeneratorReducer(dirty, closeByokDialog());
+    const next = specDrivenReducer(dirty, closeByokDialog());
     expect(next.byokDialogOpen).toBe(false);
     expect(next.pendingTrigger).toEqual(pending);
   });
@@ -78,22 +78,22 @@ describe('smartGeneratorSlice', () => {
   it('openPushDialog stores the target run id and closePushDialog clears it', () => {
     // The app-level Push-to-GitHub dialog is Redux-driven (like the BYOK
     // dialog) so it never lives inside — and can't tear down — the drawer.
-    const opened = smartGeneratorReducer(INITIAL, openPushDialog('run-123'));
+    const opened = specDrivenReducer(INITIAL, openPushDialog('run-123'));
     expect(opened.pushDialogRunId).toBe('run-123');
 
-    const closed = smartGeneratorReducer(opened, closePushDialog());
+    const closed = specDrivenReducer(opened, closePushDialog());
     expect(closed.pushDialogRunId).toBeNull();
   });
 
   it('openPushDialog does not disturb byok / pending-trigger / last-run state', () => {
     const pending = { action: 'trigger_smart_generator' as const, instructions: 'x' };
-    const dirty: SmartGeneratorState = {
+    const dirty: SpecDrivenState = {
       ...INITIAL,
       byokDialogOpen: true,
       pendingTrigger: pending,
       lastRunByProject: { p1: { runId: 'r1', at: 42 } },
     };
-    const next = smartGeneratorReducer(dirty, openPushDialog('run-9'));
+    const next = specDrivenReducer(dirty, openPushDialog('run-9'));
     expect(next.pushDialogRunId).toBe('run-9');
     expect(next.byokDialogOpen).toBe(true);
     expect(next.pendingTrigger).toEqual(pending);
@@ -101,8 +101,8 @@ describe('smartGeneratorSlice', () => {
   });
 
   it('setProvider and setApiKeyPresent persist flags only (no raw key)', () => {
-    let state = smartGeneratorReducer(INITIAL, setProvider('anthropic'));
-    state = smartGeneratorReducer(state, setApiKeyPresent(true));
+    let state = specDrivenReducer(INITIAL, setProvider('anthropic'));
+    state = specDrivenReducer(state, setApiKeyPresent(true));
     expect(state.provider).toBe('anthropic');
     expect(state.apiKeyInStore).toBe(true);
     // Raw key field should not exist at all
@@ -110,7 +110,7 @@ describe('smartGeneratorSlice', () => {
   });
 
   it('beginRun initialises an active run', () => {
-    const state = smartGeneratorReducer(INITIAL, beginRun({ runId: 'abc' }));
+    const state = specDrivenReducer(INITIAL, beginRun({ runId: 'abc' }));
     expect(state.activeRun).not.toBeNull();
     expect(state.activeRun!.runId).toBe('abc');
     expect(state.activeRun!.phase).toBe('select');
@@ -118,9 +118,9 @@ describe('smartGeneratorSlice', () => {
   });
 
   it('updatePhase and updateCost mutate the active run', () => {
-    let state = smartGeneratorReducer(INITIAL, beginRun({ runId: 'abc' }));
-    state = smartGeneratorReducer(state, updatePhase('generate'));
-    state = smartGeneratorReducer(
+    let state = specDrivenReducer(INITIAL, beginRun({ runId: 'abc' }));
+    state = specDrivenReducer(state, updatePhase('generate'));
+    state = specDrivenReducer(
       state,
       updateCost({ usd: 0.0123, elapsedSeconds: 42.5 }),
     );
@@ -130,24 +130,24 @@ describe('smartGeneratorSlice', () => {
   });
 
   it('completeRun records the download info', () => {
-    let state = smartGeneratorReducer(INITIAL, beginRun({ runId: 'abc' }));
-    state = smartGeneratorReducer(
+    let state = specDrivenReducer(INITIAL, beginRun({ runId: 'abc' }));
+    state = specDrivenReducer(
       state,
       completeRun({
-        downloadUrl: '/besser_api/download-smart/abc',
+        downloadUrl: '/besser_api/spec-driven/download/abc',
         fileName: 'app.zip',
         isZip: true,
       }),
     );
     expect(state.activeRun!.phase).toBe('done');
-    expect(state.activeRun!.downloadUrl).toBe('/besser_api/download-smart/abc');
+    expect(state.activeRun!.downloadUrl).toBe('/besser_api/spec-driven/download/abc');
     expect(state.activeRun!.fileName).toBe('app.zip');
     expect(state.activeRun!.isZip).toBe(true);
   });
 
   it('setRunError flips phase to error', () => {
-    let state = smartGeneratorReducer(INITIAL, beginRun({ runId: 'abc' }));
-    state = smartGeneratorReducer(
+    let state = specDrivenReducer(INITIAL, beginRun({ runId: 'abc' }));
+    state = specDrivenReducer(
       state,
       setRunError({ code: 'INVALID_KEY', message: 'no key' }),
     );
@@ -157,58 +157,58 @@ describe('smartGeneratorSlice', () => {
   });
 
   it('resetRun clears the active run', () => {
-    let state = smartGeneratorReducer(INITIAL, beginRun({ runId: 'abc' }));
-    state = smartGeneratorReducer(state, resetRun());
+    let state = specDrivenReducer(INITIAL, beginRun({ runId: 'abc' }));
+    state = specDrivenReducer(state, resetRun());
     expect(state.activeRun).toBeNull();
   });
 });
 
-describe('smartGeneratorSlice — global runStatus guard', () => {
+describe('specDrivenSlice — global runStatus guard', () => {
   it('beginRun flips runStatus to running', () => {
-    const state = smartGeneratorReducer(INITIAL, beginRun({ runId: 'abc' }));
+    const state = specDrivenReducer(INITIAL, beginRun({ runId: 'abc' }));
     expect(state.runStatus).toBe('running');
   });
 
   it('claimRunSlot / releaseRunSlot toggle runStatus', () => {
-    let state = smartGeneratorReducer(INITIAL, claimRunSlot());
+    let state = specDrivenReducer(INITIAL, claimRunSlot());
     expect(state.runStatus).toBe('running');
-    state = smartGeneratorReducer(state, releaseRunSlot());
+    state = specDrivenReducer(state, releaseRunSlot());
     expect(state.runStatus).toBe('idle');
   });
 
   it('completeRun and resetRun release the slot', () => {
-    let state = smartGeneratorReducer(INITIAL, beginRun({ runId: 'abc' }));
-    state = smartGeneratorReducer(
+    let state = specDrivenReducer(INITIAL, beginRun({ runId: 'abc' }));
+    state = specDrivenReducer(
       state,
       completeRun({ downloadUrl: '/dl/abc', fileName: 'x.zip', isZip: true }),
     );
     expect(state.runStatus).toBe('idle');
 
-    state = smartGeneratorReducer(state, beginRun({ runId: 'def' }));
-    state = smartGeneratorReducer(state, resetRun());
+    state = specDrivenReducer(state, beginRun({ runId: 'def' }));
+    state = specDrivenReducer(state, resetRun());
     expect(state.runStatus).toBe('idle');
   });
 
   it('terminal errors release the slot, non-terminal warnings do not', () => {
-    let state = smartGeneratorReducer(INITIAL, beginRun({ runId: 'abc' }));
+    let state = specDrivenReducer(INITIAL, beginRun({ runId: 'abc' }));
     // Non-terminal warning — stream continues, slot stays claimed.
-    state = smartGeneratorReducer(
+    state = specDrivenReducer(
       state,
       setRunError({ code: 'COST_CAP', message: 'cap reached' }),
     );
     expect(state.runStatus).toBe('running');
-    state = smartGeneratorReducer(
+    state = specDrivenReducer(
       state,
       setRunError({ code: 'TIMEOUT', message: 'time cap reached' }),
     );
     expect(state.runStatus).toBe('running');
-    state = smartGeneratorReducer(
+    state = specDrivenReducer(
       state,
       setRunError({ code: 'INCOMPLETE', message: 'partial result available' }),
     );
     expect(state.runStatus).toBe('running');
     // Terminal error — slot released.
-    state = smartGeneratorReducer(
+    state = specDrivenReducer(
       state,
       setRunError({ code: 'INTERNAL', message: 'boom' }),
     );
@@ -216,14 +216,14 @@ describe('smartGeneratorSlice — global runStatus guard', () => {
   });
 });
 
-describe('smartGeneratorSlice — atomic thunks', () => {
+describe('specDrivenSlice — atomic thunks', () => {
   it('consumePendingTrigger returns the trigger once and null afterwards', () => {
     const store = makeStore();
     store.dispatch(openByokDialog(PENDING));
 
     const first = store.dispatch(consumePendingTrigger());
     expect(first).toEqual(PENDING);
-    expect(store.getState().smartGenerator.pendingTrigger).toBeNull();
+    expect(store.getState().specDriven.pendingTrigger).toBeNull();
 
     // Second consumer (the other mounted hook instance) gets nothing.
     const second = store.dispatch(consumePendingTrigger());
@@ -237,16 +237,16 @@ describe('smartGeneratorSlice — atomic thunks', () => {
 
     expect(store.dispatch(consumePendingTrigger())).toBeNull();
     // Trigger remains pending for after the active run finishes.
-    expect(store.getState().smartGenerator.pendingTrigger).toEqual(PENDING);
+    expect(store.getState().specDriven.pendingTrigger).toEqual(PENDING);
   });
 
   it('tryClaimRunSlot claims exactly once until released', () => {
     const store = makeStore();
     expect(store.dispatch(tryClaimRunSlot())).toBe(true);
     expect(store.dispatch(tryClaimRunSlot())).toBe(false);
-    expect(store.dispatch(isSmartGenRunActive())).toBe(true);
+    expect(store.dispatch(isSpecDrivenRunActive())).toBe(true);
     store.dispatch(releaseRunSlot());
-    expect(store.dispatch(isSmartGenRunActive())).toBe(false);
+    expect(store.dispatch(isSpecDrivenRunActive())).toBe(false);
     expect(store.dispatch(tryClaimRunSlot())).toBe(true);
   });
 });

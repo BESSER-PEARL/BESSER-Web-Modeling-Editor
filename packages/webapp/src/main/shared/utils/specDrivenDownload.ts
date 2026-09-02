@@ -1,8 +1,8 @@
 /**
  * Smart Generator artifact download helper.
  *
- * Shared between `features/smart-generation/hooks/useSmartGenTrigger`
- * (first download right after the `done` SSE event) and the SmartGenCard
+ * Shared between `features/spec-driven/hooks/useSpecDrivenTrigger`
+ * (first download right after the `done` SSE event) and the SpecDrivenCard
  * "Download again" button in `components/chatbot-kit/ui/chat-message.tsx`.
  * Lives in `main/shared/` because features must not import from other
  * features and the chat card is a shared component.
@@ -12,10 +12,10 @@
  * (or after a successful save) is safe.
  */
 
-import { smartGenDownloadUrl } from '../constants/constant';
+import { specDrivenDownloadUrl } from '../constants/constant';
 import { downloadFile } from './download';
 
-export type SmartGenDownloadResult =
+export type SpecDrivenDownloadResult =
   | { ok: true; sizeBytes: number }
   | { ok: false };
 
@@ -30,28 +30,28 @@ export type SmartGenDownloadResult =
  * friendlier completion message with the payload size) or `{ ok: false }`
  * on any failure.
  */
-export async function fetchAndSaveSmartGenArtifact(
+export async function fetchAndSaveSpecDrivenArtifact(
   runId: string,
   fileName: string,
   isZip: boolean,
-): Promise<SmartGenDownloadResult> {
-  const fullUrl = smartGenDownloadUrl(runId);
+): Promise<SpecDrivenDownloadResult> {
+  const fullUrl = specDrivenDownloadUrl(runId);
   let response: Response;
   try {
     response = await fetch(fullUrl);
   } catch (err) {
-    console.error('[smartGenDownload] download fetch failed', err);
+    console.error('[specDrivenDownload] download fetch failed', err);
     return { ok: false };
   }
   if (!response.ok) {
-    console.error('[smartGenDownload] download status', response.status);
+    console.error('[specDrivenDownload] download status', response.status);
     return { ok: false };
   }
   let blob: Blob;
   try {
     blob = await response.blob();
   } catch (err) {
-    console.error('[smartGenDownload] download blob decode failed', err);
+    console.error('[specDrivenDownload] download blob decode failed', err);
     return { ok: false };
   }
   // For explicit zip results, trust the backend's flag over the
@@ -62,7 +62,7 @@ export async function fetchAndSaveSmartGenArtifact(
   try {
     downloadFile(blob, fileName, mime);
   } catch (err) {
-    console.error('[smartGenDownload] downloadFile failed', err);
+    console.error('[specDrivenDownload] downloadFile failed', err);
     return { ok: false };
   }
   return { ok: true, sizeBytes: blob.size };

@@ -11,7 +11,7 @@
  *
  * This lives in `shared/` (not a feature) so the shared dialog can use it
  * without violating feature isolation. The per-feature helpers
- * (`features/assistant/services/byokStorage`, `features/smart-generation/
+ * (`features/assistant/services/byokStorage`, `features/spec-driven/
  * storage`) now target the same underlying keys.
  */
 
@@ -20,9 +20,9 @@ import {
   sessionStorageLlmBaseUrl,
   sessionStorageLlmModel,
   sessionStorageLlmProvider,
-  sessionStorageSmartGenFreeTier,
-  sessionStorageSmartGenMaxCostUsd,
-  sessionStorageSmartGenMaxRuntimeSeconds,
+  sessionStorageSpecDrivenFreeTier,
+  sessionStorageSpecDrivenMaxCostUsd,
+  sessionStorageSpecDrivenMaxRuntimeSeconds,
 } from '../constants/constant';
 
 // 'pia' and 'local' are OpenAI-compatible endpoints selected in the dialog for
@@ -115,7 +115,7 @@ export function writeLlmKey(
     // (writeFreeTierSelected(false)); this makes every key-write path agree, so
     // the invariant "a saved key ⟹ not free tier" holds at the storage choke
     // point ("last action wins": picking free later re-sets the flag).
-    window.sessionStorage.removeItem(sessionStorageSmartGenFreeTier);
+    window.sessionStorage.removeItem(sessionStorageSpecDrivenFreeTier);
     return true;
   } catch {
     return false;
@@ -143,7 +143,7 @@ export function hasLlmKey(): boolean {
 /* ------------------------------------------------------------------ */
 /*  Spec-Driven Agent run budget (max cost / max runtime)              */
 /*  Not a secret, but session-scoped so it travels with the key. Reads */
-/*  the same keys the smart-generation feature uses, so the two stay   */
+/*  the same keys the spec-driven feature uses, so the two stay   */
 /*  consistent no matter which surface sets them.                       */
 /* ------------------------------------------------------------------ */
 
@@ -158,8 +158,8 @@ export interface LlmRunBudget {
 export function readLlmBudget(): LlmRunBudget | null {
   if (!_hasSessionStorage()) return null;
   try {
-    const rawCost = window.sessionStorage.getItem(sessionStorageSmartGenMaxCostUsd);
-    const rawRuntime = window.sessionStorage.getItem(sessionStorageSmartGenMaxRuntimeSeconds);
+    const rawCost = window.sessionStorage.getItem(sessionStorageSpecDrivenMaxCostUsd);
+    const rawRuntime = window.sessionStorage.getItem(sessionStorageSpecDrivenMaxRuntimeSeconds);
     const budget: LlmRunBudget = {};
     if (rawCost !== null) {
       const cost = Number.parseFloat(rawCost);
@@ -180,9 +180,9 @@ export function readLlmBudget(): LlmRunBudget | null {
 export function writeLlmBudget(budget: { maxCostUsd: number; maxRuntimeSeconds: number }): boolean {
   if (!_hasSessionStorage()) return false;
   try {
-    window.sessionStorage.setItem(sessionStorageSmartGenMaxCostUsd, String(budget.maxCostUsd));
+    window.sessionStorage.setItem(sessionStorageSpecDrivenMaxCostUsd, String(budget.maxCostUsd));
     window.sessionStorage.setItem(
-      sessionStorageSmartGenMaxRuntimeSeconds,
+      sessionStorageSpecDrivenMaxRuntimeSeconds,
       String(Math.round(budget.maxRuntimeSeconds)),
     );
     return true;

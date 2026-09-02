@@ -1,20 +1,20 @@
 /**
- * useSmartGenGithubPush
+ * useSpecDrivenGithubPush
  *
  * Drives the "Push to GitHub" action on a finished Vibe/Smart-generation run
  * card. Owns:
  *   - the connect-first flow (sign in to GitHub before the dialog opens),
  *   - the per-project ``'github'`` linked-repo (load / set / clear) so a
  *     re-push updates the same repo instead of asking every time,
- *   - the actual push request to ``POST /push-smart-to-github``.
+ *   - the actual push request to ``POST /spec-driven/push-to-github``.
  *
- * The dialog is APP-LEVEL and Redux-driven (mirroring ``SmartGenByokDialog``):
- * whether it's open comes from ``smartGenerator.pushDialogRunId`` in the store,
+ * The dialog is APP-LEVEL and Redux-driven (mirroring ``SpecDrivenByokDialog``):
+ * whether it's open comes from ``specDriven.pushDialogRunId`` in the store,
  * NOT from local state inside the assistant drawer/widget. This is the whole
  * point — the push dialog used to be mounted inside the drawer, so dismissing
  * it (Escape / backdrop) tore the drawer down and lost the chat. Now the card's
  * button just dispatches ``openPushDialog(runId)``; this hook (mounted once, at
- * app level via ``SmartGenPushDialogHost``) reacts to that:
+ * app level via ``SpecDrivenPushDialogHost``) reacts to that:
  *   - not signed in → stash the intent and start GitHub OAuth,
  *   - signed in     → load the linked repo and let the dialog render.
  *
@@ -36,20 +36,20 @@ import {
   LocalStorageRepository,
   type DeployLinkedRepo,
 } from '../../../shared/services/storage/local-storage-repository';
-import { sessionStorageSmartGenPushIntent } from '../../../shared/constants/constant';
+import { sessionStorageSpecDrivenPushIntent } from '../../../shared/constants/constant';
 import type { BesserProject } from '../../../shared/types/project';
 import { useAppDispatch, useAppSelector } from '../../../app/store/hooks';
 import {
   closePushDialog,
   openPushDialog,
-} from '../../smart-generation/state/smartGeneratorSlice';
+} from '../../spec-driven/state/specDrivenSlice';
 import { useGitHubAuth } from './useGitHubAuth';
 
 /** Deploy-link target token for the smart-gen push (never collides with Render). */
 const GITHUB_TARGET = 'github';
 const DEFAULT_BRANCH = 'main';
 
-export interface SmartGenPushConfig {
+export interface SpecDrivenPushConfig {
   /** True to push into an already-existing repo, false to create a new one. */
   useExisting: boolean;
   repoName: string;
@@ -59,7 +59,7 @@ export interface SmartGenPushConfig {
   commitMessage?: string;
 }
 
-export interface SmartGenPushResult {
+export interface SpecDrivenPushResult {
   success: boolean;
   repo_url: string;
   owner: string;
@@ -69,10 +69,10 @@ export interface SmartGenPushResult {
 }
 
 /** Friendly discriminated outcome so the dialog can react per error class. */
-export type SmartGenPushErrorCode = 'expired' | 'auth' | 'conflict' | 'other';
-export type SmartGenPushOutcome =
-  | { ok: true; result: SmartGenPushResult }
-  | { ok: false; code: SmartGenPushErrorCode; message: string };
+export type SpecDrivenPushErrorCode = 'expired' | 'auth' | 'conflict' | 'other';
+export type SpecDrivenPushOutcome =
+  | { ok: true; result: SpecDrivenPushResult }
+  | { ok: false; code: SpecDrivenPushErrorCode; message: string };
 
 interface PushResponse {
   success: boolean;
@@ -83,37 +83,37 @@ interface PushResponse {
   files_uploaded: number;
 }
 
-export interface UseSmartGenGithubPushOptions {
+export interface UseSpecDrivenGithubPushOptions {
   currentProject: BesserProject | null | undefined;
 }
 
-export interface SmartGenPushDialogState {
+export interface SpecDrivenPushDialogState {
   open: boolean;
   runId: string | null;
   projectName: string;
   linkedRepo: DeployLinkedRepo | null;
   githubSession: string | null;
   isPushing: boolean;
-  result: SmartGenPushResult | null;
+  result: SpecDrivenPushResult | null;
   onOpenChange: (open: boolean) => void;
   onChangeRepo: () => void;
-  push: (config: SmartGenPushConfig) => Promise<SmartGenPushOutcome>;
+  push: (config: SpecDrivenPushConfig) => Promise<SpecDrivenPushOutcome>;
 }
 
-export interface UseSmartGenGithubPushReturn {
-  dialog: SmartGenPushDialogState;
+export interface UseSpecDrivenGithubPushReturn {
+  dialog: SpecDrivenPushDialogState;
 }
 
-export function useSmartGenGithubPush(
-  { currentProject }: UseSmartGenGithubPushOptions,
-): UseSmartGenGithubPushReturn {
+export function useSpecDrivenGithubPush(
+  { currentProject }: UseSpecDrivenGithubPushOptions,
+): UseSpecDrivenGithubPushReturn {
   const { isAuthenticated, githubSession, login } = useGitHubAuth();
   const dispatch = useAppDispatch();
 
   // The open/target-run state is OWNED BY REDUX so the card's button (in the
   // drawer/widget) can drive this single app-level dialog by dispatching
   // ``openPushDialog(runId)`` — no drawer-coupled local state.
-  const pushDialogRunId = useAppSelector((s) => s.smartGenerator.pushDialogRunId);
+  const pushDialogRunId = useAppSelector((s) => s.specDriven.pushDialogRunId);
 
   // Read the live project from a ref so async handlers never close over a
   // stale project without forcing every callback to re-create on each edit.
@@ -122,7 +122,7 @@ export function useSmartGenGithubPush(
 
   const [linkedRepo, setLinkedRepo] = useState<DeployLinkedRepo | null>(null);
   const [isPushing, setIsPushing] = useState(false);
-  const [result, setResult] = useState<SmartGenPushResult | null>(null);
+  const [result, setResult] = useState<SpecDrivenPushResult | null>(null);
 
   const runId = pushDialogRunId;
 
@@ -147,7 +147,7 @@ export function useSmartGenGithubPush(
       // run once the OAuth redirect returns and the session is established.
       try {
         sessionStorage.setItem(
-          sessionStorageSmartGenPushIntent,
+          sessionStorageSpecDrivenPushIntent,
           JSON.stringify({ runId: pushDialogRunId, projectId: project.id }),
         );
       } catch {
@@ -174,7 +174,7 @@ export function useSmartGenGithubPush(
     if (!project) return;
     let raw: string | null = null;
     try {
-      raw = sessionStorage.getItem(sessionStorageSmartGenPushIntent);
+      raw = sessionStorage.getItem(sessionStorageSpecDrivenPushIntent);
     } catch {
       raw = null;
     }
@@ -187,7 +187,7 @@ export function useSmartGenGithubPush(
     }
     if (!intent?.runId || intent.projectId !== project.id) return;
     try {
-      sessionStorage.removeItem(sessionStorageSmartGenPushIntent);
+      sessionStorage.removeItem(sessionStorageSpecDrivenPushIntent);
     } catch {
       /* ignore */
     }
@@ -214,7 +214,7 @@ export function useSmartGenGithubPush(
   );
 
   const push = useCallback(
-    async (config: SmartGenPushConfig): Promise<SmartGenPushOutcome> => {
+    async (config: SpecDrivenPushConfig): Promise<SpecDrivenPushOutcome> => {
       const project = projectRef.current;
       const id = runId;
       if (!project || !id) {
@@ -235,7 +235,7 @@ export function useSmartGenGithubPush(
         });
 
         const response = await apiClient.post<PushResponse>(
-          '/push-smart-to-github',
+          '/spec-driven/push-to-github',
           {
             run_id: id,
             projectExport,
@@ -256,7 +256,7 @@ export function useSmartGenGithubPush(
           },
         );
 
-        const res: SmartGenPushResult = {
+        const res: SpecDrivenPushResult = {
           success: response.success,
           repo_url: response.repo_url,
           owner: response.owner,

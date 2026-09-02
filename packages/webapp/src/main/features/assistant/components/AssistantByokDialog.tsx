@@ -17,7 +17,7 @@ import React from 'react';
 import { useDispatch } from 'react-redux';
 
 import { LlmKeyDialog } from '../../../shared/components/byok/LlmKeyDialog';
-import { setApiKeyPresent } from '../../smart-generation/state/smartGeneratorSlice';
+import { setApiKeyPresent } from '../../spec-driven/state/specDrivenSlice';
 import type { AssistantClient } from '../services';
 
 export interface AssistantByokDialogProps {

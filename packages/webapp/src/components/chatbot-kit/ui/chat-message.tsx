@@ -19,8 +19,8 @@ import {
 import { useTranslation } from "react-i18next"
 
 import { cn } from "@/lib/utils"
-import { cancelSmartGenUrl } from "@/main/shared/constants/constant"
-import { fetchAndSaveSmartGenArtifact } from "@/main/shared/utils/smartGenDownload"
+import { cancelSpecDrivenUrl } from "@/main/shared/constants/constant"
+import { fetchAndSaveSpecDrivenArtifact } from "@/main/shared/utils/specDrivenDownload"
 import { downloadFile } from "@/main/shared/utils/download"
 import {
   Collapsible,
@@ -143,36 +143,36 @@ type MessagePart =
   | FilePart
   | StepStartPart
 
-export interface SmartGenToolCallView {
+export interface SpecDrivenToolCallView {
   turn: number
   tool: string
   summary?: string | null
 }
 
-export interface SmartGenPhaseView {
+export interface SpecDrivenPhaseView {
   phase: string
   label: string
   message: string
-  toolCalls: SmartGenToolCallView[]
+  toolCalls: SpecDrivenToolCallView[]
   /**
    * Long-form details attached to a phase after the fact (e.g. the gap
    * analyser's task list). Rendered behind a chevron in
-   * SmartGenPhaseRow when present.
+   * SpecDrivenPhaseRow when present.
    */
   details?: string
 }
 
-export interface SmartGenWarningView {
+export interface SpecDrivenWarningView {
   code: string
   message: string
 }
 
-export interface SmartGenMessageState {
+export interface SpecDrivenMessageState {
   runId?: string
   provider?: string
   model?: string
-  phases: SmartGenPhaseView[]
-  warnings: SmartGenWarningView[]
+  phases: SpecDrivenPhaseView[]
+  warnings: SpecDrivenWarningView[]
   text: string
   status: "running" | "done" | "error"
   /** Live spend so far in USD (from the backend's 2s cost events). */
@@ -243,7 +243,7 @@ export interface Message {
   /** The injection action type, if the message was the result of an injection. */
   injectionType?: string
   /** Structured smart-generator run state, rendered as a card. */
-  smartGen?: SmartGenMessageState
+  specDriven?: SpecDrivenMessageState
 }
 
 export interface ChatMessageProps extends Message {
@@ -251,7 +251,7 @@ export interface ChatMessageProps extends Message {
   animation?: Animation
   actions?: React.ReactNode
   /**
-   * Handler for the SmartGenCard's "Push to GitHub" button. Supplied by the
+   * Handler for the SpecDrivenCard's "Push to GitHub" button. Supplied by the
    * assistant surface (via MessageList's messageOptions) so the push flow has
    * access to the current project + GitHub auth. When omitted, the button is
    * hidden (e.g. contexts without a project).
@@ -344,7 +344,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = (props) => {
     isError,
     isStreaming,
     injectionType,
-    smartGen,
+    specDriven,
     onPushToGithub,
   } = props
   const files = useMemo(() => {
@@ -507,11 +507,11 @@ export const ChatMessage: React.FC<ChatMessageProps> = (props) => {
   }
 
   /* ---- Smart Generator: structured run card ---- */
-  if (smartGen) {
+  if (specDriven) {
     return (
       <div className="flex w-full flex-col items-start sm:max-w-[85%]">
-        <SmartGenCard
-          smartGen={smartGen}
+        <SpecDrivenCard
+          specDriven={specDriven}
           isStreaming={isStreaming === true}
           onPushToGithub={onPushToGithub}
         />
@@ -611,7 +611,7 @@ const ReasoningBlock = ({ part }: { part: ReasoningPart }) => {
   )
 }
 
-function SmartGenStatusPill({ status }: { status: SmartGenMessageState["status"] }) {
+function SpecDrivenStatusPill({ status }: { status: SpecDrivenMessageState["status"] }) {
   if (status === "running") {
     return (
       <span className="inline-flex items-center gap-1 rounded-full bg-brand/10 px-2 py-0.5 text-[10px] font-medium text-brand">
@@ -636,11 +636,11 @@ function SmartGenStatusPill({ status }: { status: SmartGenMessageState["status"]
   )
 }
 
-function SmartGenPhaseRow({
+function SpecDrivenPhaseRow({
   phase,
   isActivePhase,
 }: {
-  phase: SmartGenPhaseView
+  phase: SpecDrivenPhaseView
   isActivePhase: boolean
 }) {
   const hasTools = phase.toolCalls.length > 0
@@ -723,13 +723,13 @@ function formatDuration(totalSeconds: number): string {
   return `${m}m ${rem}s`
 }
 
-function SmartGenCard({
-  smartGen,
+function SpecDrivenCard({
+  specDriven,
   isStreaming,
   onStop,
   onPushToGithub,
 }: {
-  smartGen: SmartGenMessageState
+  specDriven: SpecDrivenMessageState
   isStreaming: boolean
   /**
    * Optional override for the Stop action — defaults to a self-contained
@@ -770,7 +770,7 @@ function SmartGenCard({
     tokensUsed,
     deterministic,
     deterministicBlob,
-  } = smartGen
+  } = specDriven
 
   const [stopRequested, setStopRequested] = useState(false)
   const [redownloadState, setRedownloadState] = useState<
@@ -796,7 +796,7 @@ function SmartGenCard({
     // Fire-and-forget — no body needed. Errors are swallowed: if the
     // cancel request itself fails the run simply keeps streaming and
     // the user can hit Stop again after the button re-enables.
-    void fetch(cancelSmartGenUrl(runId), { method: "POST" })
+    void fetch(cancelSpecDrivenUrl(runId), { method: "POST" })
       .then((response) => {
         if (!response.ok) setStopRequested(false)
       })
@@ -808,7 +808,7 @@ function SmartGenCard({
   const handleRedownload = async () => {
     if (!runId || !fileName || redownloadState === "busy") return
     setRedownloadState("busy")
-    const result = await fetchAndSaveSmartGenArtifact(
+    const result = await fetchAndSaveSpecDrivenArtifact(
       runId,
       fileName,
       isZip === true
@@ -950,7 +950,7 @@ function SmartGenCard({
         {showSteps && phases.length > 0 ? (
           <ol className="flex flex-col border-t border-border/40">
             {phases.map((phase, i) => (
-              <SmartGenPhaseRow
+              <SpecDrivenPhaseRow
                 key={`${phase.phase}-${i}`}
                 phase={phase}
                 isActivePhase={false}
@@ -1017,7 +1017,7 @@ function SmartGenCard({
           </span>
         ) : null}
         <span className="ml-auto">
-          <SmartGenStatusPill status={status} />
+          <SpecDrivenStatusPill status={status} />
         </span>
       </div>
 
@@ -1028,7 +1028,7 @@ function SmartGenCard({
             const isLast = i === phases.length - 1
             const isActivePhase = isLast && status === "running"
             return (
-              <SmartGenPhaseRow
+              <SpecDrivenPhaseRow
                 key={`${phase.phase}-${i}`}
                 phase={phase}
                 isActivePhase={isActivePhase}
