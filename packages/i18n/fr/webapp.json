@@ -2043,7 +2043,11 @@
         "valueColor": "Couleur de la valeur",
         "valueSize": "Taille de la valeur",
         "negativeTrendColor": "Couleur tendance négative",
-        "positiveTrendColor": "Couleur tendance positive"
+        "positiveTrendColor": "Couleur tendance positive",
+        "latitudeField": "Champ latitude",
+        "longitudeField": "Champ longitude",
+        "markerLabelField": "Champ libellé marqueur",
+        "layers": "Layers"
       },
       "pages": {
         "title": "Pages",
@@ -2206,6 +2210,10 @@
           "range": "Plage",
           "search": "Recherche"
         }
+      },
+      "layerManager": {
+        "title": "Map Layers",
+        "addLayer": "Add Layer"
       }
     },
     "loadingGuiEditor": "Chargement de l'éditeur GUI...",

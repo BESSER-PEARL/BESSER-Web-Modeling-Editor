@@ -556,7 +556,7 @@ function removeUnwantedBlocks(editor: Editor) {
     'quote',           // Quote
     // 'link',            // Link
     'video',           // Video
-    'map',             // Map (we have custom map in Charts category)
+    // 'map' is our custom Leaflet map block — do NOT remove it
     'sect100',         // Section blocks
     'sect50',
     'sect30',

@@ -2043,7 +2043,11 @@
         "valueColor": "Value Color",
         "valueSize": "Value Size",
         "negativeTrendColor": "Negative Trend Color",
-        "positiveTrendColor": "Positive Trend Color"
+        "positiveTrendColor": "Positive Trend Color",
+        "latitudeField": "Latitude Field",
+        "longitudeField": "Longitude Field",
+        "markerLabelField": "Marker Label Field",
+        "layers": "Layers"
       },
       "pages": {
         "title": "Pages",
@@ -2206,6 +2210,10 @@
           "range": "Range",
           "search": "Search"
         }
+      },
+      "layerManager": {
+        "title": "Map Layers",
+        "addLayer": "Add Layer"
       }
     },
     "loadingGuiEditor": "Loading GUI editor...",
