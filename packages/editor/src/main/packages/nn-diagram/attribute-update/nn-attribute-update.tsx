@@ -99,13 +99,15 @@ type Props = OwnProps & StateProps & DispatchProps;
 interface ComponentState {
   colorOpen: boolean;
   multiSelectOpen: boolean;
+  actualVarsMultiSelectOpen: boolean;
   validationError: string | null;
   submitResetKey: number;
 }
 
 class NNAttributeUpdateComponent extends Component<Props, ComponentState> {
-  state: ComponentState = { colorOpen: false, multiSelectOpen: false, validationError: null, submitResetKey: 0 };
+  state: ComponentState = { colorOpen: false, multiSelectOpen: false, actualVarsMultiSelectOpen: false, validationError: null, submitResetKey: 0 };
   multiSelectButtonRef = createRef<HTMLButtonElement>();
+  actualVarsButtonRef = createRef<HTMLButtonElement>();
 
   private toggleColor = () => {
     this.setState((state) => ({
@@ -114,11 +116,82 @@ class NNAttributeUpdateComponent extends Component<Props, ComponentState> {
   };
 
   private handleValueChange = (newValue: TextfieldValue) => {
-    const { element, update } = this.props;
+    const { element, update, elements } = this.props;
+
+    console.log(`[DEBUG] handleValueChange: ${element.attributeName} = ${newValue}`);
+
+    // Check if this is a tns_type attribute change
+    if (element.type === NNElementType.TnsTypeAttributeTensorOp && element.attributeName === 'tns_type') {
+      // Get the TensorOp element that owns this attribute
+      const tensorOpElement = elements[element.owner];
+      if (tensorOpElement) {
+        // Delete ALL optional attributes when tns_type changes
+        // Each tns_type should start fresh with no optional attributes
+        const childrenIds = tensorOpElement.ownedElements || [];
+        childrenIds.forEach((childId: string) => {
+          const childElement = elements[childId];
+          if (childElement && childElement.attributeName) {
+            const attrName = (childElement as any).attributeName;
+            // Delete all optional attributes (keep only name and tns_type)
+            if (attrName !== 'name' && attrName !== 'tns_type') {
+              this.props.delete(childId);
+            }
+          }
+        });
+      }
+    }
+
     update(element.id, {
       value: String(newValue),
       name: `${element.attributeName} = ${String(newValue)}`
     } as Partial<INNAttribute>);
+  };
+
+  private getValidAttributeNamesForTnsType = (tnsType: string): string[] => {
+    const sharedForAll = ['input_reused', 'permute_in', 'permute_out', 'input_var', 'output_var'];
+
+    switch (tnsType) {
+      case 'reshape':
+        return [...sharedForAll, 'reshape_dim'];
+      case 'concatenate':
+        return [...sharedForAll, 'layers_of_tensors', 'concatenate_dim', 'actual_vars'];
+      case 'transpose':
+        return [...sharedForAll, 'transpose_dim'];
+      case 'permute':
+        return [...sharedForAll, 'permute_dim'];
+      case 'multiply':
+      case 'matmultiply':
+        return [...sharedForAll, 'layers_of_tensors'];
+      case 'split':
+        return [...sharedForAll, 'output_vars'];
+      case 'binop_add':
+      case 'binop_subtract':
+      case 'binop_multiply':
+      case 'binop_divide':
+      case 'binop_floor_divide':
+        return [...sharedForAll, 'actual_vars', 'layers_of_tensors'];
+      case 'mean':
+      case 'max':
+        return [...sharedForAll, 'reduce_dim'];
+      case 'squeeze':
+      case 'unsqueeze':
+        return [...sharedForAll, 'reduce_dim'];
+      case 'shape_dim':
+        return [...sharedForAll, 'reduce_dim'];
+      case 'normalize':
+        return [...sharedForAll, 'reduce_dim'];
+      case 'repeat':
+        return sharedForAll;
+      case 'zeros_like':
+        return sharedForAll;
+      case 'subscript':
+      case 'interpolate':
+      case 'pad':
+      case 'dropout':
+      case 'identity':
+      default:
+        return sharedForAll;
+    }
   };
 
   /**
@@ -243,6 +316,7 @@ class NNAttributeUpdateComponent extends Component<Props, ComponentState> {
 
   componentWillUnmount() {
     document.removeEventListener('click', this.dismissMultiSelect);
+    document.removeEventListener('click', this.dismissActualVarsMultiSelect);
   }
 
   private toggleMultiSelect = (event: React.MouseEvent) => {
@@ -264,6 +338,23 @@ class NNAttributeUpdateComponent extends Component<Props, ComponentState> {
     this.setState({ multiSelectOpen: false });
   };
 
+  private toggleActualVarsMultiSelect = (event: React.MouseEvent) => {
+    event.stopPropagation();
+    const newState = !this.state.actualVarsMultiSelectOpen;
+    this.setState({ actualVarsMultiSelectOpen: newState });
+
+    if (newState) {
+      setTimeout(() => document.addEventListener('click', this.dismissActualVarsMultiSelect), 0);
+    } else {
+      document.removeEventListener('click', this.dismissActualVarsMultiSelect);
+    }
+  };
+
+  private dismissActualVarsMultiSelect = () => {
+    document.removeEventListener('click', this.dismissActualVarsMultiSelect);
+    this.setState({ actualVarsMultiSelectOpen: false });
+  };
+
   private handleMetricsToggle = (option: string) => (event: React.ChangeEvent<HTMLInputElement>) => {
     const { element, update } = this.props;
     // Parse current values - handle both formats: "a, b" and "[a, b]"
@@ -282,6 +373,31 @@ class NNAttributeUpdateComponent extends Component<Props, ComponentState> {
 
     // Store value with brackets for List type
     const newValue = newValues.length > 0 ? `[${newValues.join(', ')}]` : '';
+    console.log(`[DEBUG] handleMultiSelect layers_of_tensors: ${element.attributeName} = ${newValue}`);
+    update(element.id, {
+      value: newValue,
+      name: `${element.attributeName} = ${newValue}`
+    } as Partial<INNAttribute>);
+  };
+
+  private handleActualVarsToggle = (option: string) => (event: React.ChangeEvent<HTMLInputElement>) => {
+    const { element, update } = this.props;
+    // Parse current values - handle both formats: "a, b" and "[a, b]"
+    const rawValue = element.value || '';
+    const cleanedValue = rawValue.replace(/^\[|\]$/g, ''); // Remove surrounding brackets if present
+    const currentValues = cleanedValue ? cleanedValue.split(',').map(v => v.trim()) : [];
+
+    let newValues: string[];
+    if (event.target.checked) {
+      // Add the option
+      newValues = [...currentValues, option];
+    } else {
+      // Remove the option
+      newValues = currentValues.filter(v => v !== option);
+    }
+
+    // Store value with brackets for List type
+    const newValue = newValues.length > 0 ? `[${newValues.join(', ')}]` : '[]';
     update(element.id, {
       value: newValue,
       name: `${element.attributeName} = ${newValue}`
@@ -401,9 +517,14 @@ class NNAttributeUpdateComponent extends Component<Props, ComponentState> {
     const { element } = this.props;
     const { colorOpen } = this.state;
 
+    // Log all TensorOp attributes to debug
+    if (element.attributeName) {
+      console.log('Rendering attribute:', element.attributeName, 'type:', element.type);
+    }
+
     // Check if this is the tns_type attribute for TensorOp
     const isTnsType = element.type === NNElementType.TnsTypeAttributeTensorOp;
-    const tnsTypeOptions = ['reshape', 'concatenate', 'multiply', 'matmultiply', 'transpose', 'permute'];
+    const tnsTypeOptions = ['binop_add', 'binop_divide', 'binop_floor_divide', 'binop_multiply', 'binop_subtract', 'concatenate', 'dropout', 'identity', 'interpolate', 'matmultiply', 'max', 'mean', 'multiply', 'normalize', 'pad', 'permute', 'repeat', 'reshape', 'shape_dim', 'split', 'squeeze', 'subscript', 'transpose', 'unsqueeze', 'zeros_like'];
 
     // Check if this is a padding_type attribute
     const isPaddingType = element.type === NNElementType.PaddingTypeAttributeConv1D ||
@@ -443,6 +564,26 @@ class NNAttributeUpdateComponent extends Component<Props, ComponentState> {
     const cleanedMetricsValue = rawMetricsValue.replace(/^\[|\]$/g, ''); // Remove surrounding brackets if present
     const selectedMetrics = cleanedMetricsValue ? cleanedMetricsValue.split(',').map(v => v.trim()) : [];
     const metricsDisplayValue = selectedMetrics.length > 0 ? `[${selectedMetrics.join(', ')}]` : 'Select metrics';
+
+    // Check if this is an actual_vars attribute (multi-select)
+    // Fallback: also check attributeName for backward compatibility with diagrams created before type was added
+    const isActualVars = element.type === NNElementType.ActualVarsAttributeTensorOp || element.attributeName === 'actual_vars';
+    if (element.attributeName === 'actual_vars') {
+      console.log('ACTUAL_VARS DEBUG:', {
+        attributeName: element.attributeName,
+        elementType: element.type,
+        expectedType: NNElementType.ActualVarsAttributeTensorOp,
+        typeMatch: element.type === NNElementType.ActualVarsAttributeTensorOp,
+        nameMatch: element.attributeName === 'actual_vars',
+        isActualVars: isActualVars
+      });
+    }
+    const actualVarsOptions = ['output', 'hidden'];
+    // Parse actual_vars value - handle both formats: "a, b" and "[a, b]"
+    const rawActualVarsValue = element.value || '';
+    const cleanedActualVarsValue = rawActualVarsValue.replace(/^\[|\]$/g, ''); // Remove surrounding brackets if present
+    const selectedActualVars = cleanedActualVarsValue ? cleanedActualVarsValue.split(',').map(v => v.trim()) : [];
+    const actualVarsDisplayValue = selectedActualVars.length > 0 ? `[${selectedActualVars.join(', ')}]` : 'Select vars';
 
     // Check if this is a task_type attribute (Dataset)
     const isTaskType = element.type === NNElementType.TaskTypeAttributeDataset;
@@ -626,6 +767,41 @@ class NNAttributeUpdateComponent extends Component<Props, ComponentState> {
                   </Dropdown.Item>
                 ))}
               </Dropdown>
+            ) : isActualVars ? (
+              <MultiSelectContainer onClick={(e) => e.stopPropagation()}>
+                <DropdownButton
+                  ref={this.actualVarsButtonRef}
+                  color="primary"
+                  onClick={this.toggleActualVarsMultiSelect}
+                  outline={true}
+                  size="sm"
+                >
+                  {actualVarsDisplayValue}
+                </DropdownButton>
+                {this.state.actualVarsMultiSelectOpen && this.actualVarsButtonRef.current && (
+                  <DropdownMenu
+                    style={{
+                      position: 'absolute',
+                      top: this.actualVarsButtonRef.current.getBoundingClientRect().height,
+                      left: 0,
+                      minWidth: this.actualVarsButtonRef.current.getBoundingClientRect().width,
+                      zIndex: 1000,
+                    }}
+                  >
+                    {actualVarsOptions.map(option => (
+                      <CheckboxLabel key={option} onClick={(e) => e.stopPropagation()}>
+                        <input
+                          type="checkbox"
+                          checked={selectedActualVars.includes(option)}
+                          onChange={this.handleActualVarsToggle(option)}
+                          onClick={(e) => e.stopPropagation()}
+                        />
+                        {option}
+                      </CheckboxLabel>
+                    ))}
+                  </DropdownMenu>
+                )}
+              </MultiSelectContainer>
             ) : element.attributeType === 'int' || element.attributeType === 'float' || element.attributeType === 'List' ? (
               <ValueTextfield
                 key={this.state.submitResetKey}

@@ -47,6 +47,12 @@ import {
   InputReusedAttributeConv1D,
   PermuteInAttributeConv1D,
   PermuteOutAttributeConv1D,
+  DilationAttributeConv1D,
+  GroupsAttributeConv1D,
+  BiasAttributeConv1D,
+  IsLayerCallAttributeConv1D,
+  InputVarAttributeConv1D,
+  OutputVarAttributeConv1D,
   Conv1DAttribute,
 } from '../nn-conv1d-attributes/conv1d-attributes';
 import {
@@ -62,6 +68,12 @@ import {
   InputReusedAttributeConv2D,
   PermuteInAttributeConv2D,
   PermuteOutAttributeConv2D,
+  DilationAttributeConv2D,
+  GroupsAttributeConv2D,
+  BiasAttributeConv2D,
+  IsLayerCallAttributeConv2D,
+  InputVarAttributeConv2D,
+  OutputVarAttributeConv2D,
   Conv2DAttribute,
 } from '../nn-conv2d-attributes/conv2d-attributes';
 import {
@@ -77,6 +89,12 @@ import {
   InputReusedAttributeConv3D,
   PermuteInAttributeConv3D,
   PermuteOutAttributeConv3D,
+  DilationAttributeConv3D,
+  GroupsAttributeConv3D,
+  BiasAttributeConv3D,
+  IsLayerCallAttributeConv3D,
+  InputVarAttributeConv3D,
+  OutputVarAttributeConv3D,
   Conv3DAttribute,
 } from '../nn-conv3d-attributes/conv3d-attributes';
 import {
@@ -93,6 +111,9 @@ import {
   InputReusedAttributePooling,
   PermuteInAttributePooling,
   PermuteOutAttributePooling,
+  IsLayerCallAttributePooling,
+  InputVarAttributePooling,
+  OutputVarAttributePooling,
   PoolingAttribute,
 } from '../nn-pooling-attributes/pooling-attributes';
 import {
@@ -106,6 +127,15 @@ import {
   ActvFuncAttributeRNN,
   NameModuleInputAttributeRNN,
   InputReusedAttributeRNN,
+  BiasAttributeRNN,
+  HxSourceAttributeRNN,
+  IsLayerCallAttributeRNN,
+  InputVarAttributeRNN,
+  OutputVarAttributeRNN,
+  HiddenStateVarAttributeRNN,
+  HiddenUnusedAttributeRNN,
+  HiddenSubscriptSourceAttributeRNN,
+  HiddenSubscriptTargetAttributeRNN,
   RNNAttribute,
 } from '../nn-rnn-attributes/rnn-attributes';
 import {
@@ -119,6 +149,17 @@ import {
   ActvFuncAttributeLSTM,
   NameModuleInputAttributeLSTM,
   InputReusedAttributeLSTM,
+  BiasAttributeLSTM,
+  HxSourceAttributeLSTM,
+  IsLayerCallAttributeLSTM,
+  InputVarAttributeLSTM,
+  OutputVarAttributeLSTM,
+  HiddenStateVarAttributeLSTM,
+  CellStateVarAttributeLSTM,
+  HiddenUnusedAttributeLSTM,
+  CellUnusedAttributeLSTM,
+  HiddenSubscriptSourceAttributeLSTM,
+  HiddenSubscriptTargetAttributeLSTM,
   LSTMAttribute,
 } from '../nn-lstm-attributes/lstm-attributes';
 import {
@@ -132,6 +173,15 @@ import {
   ActvFuncAttributeGRU,
   NameModuleInputAttributeGRU,
   InputReusedAttributeGRU,
+  BiasAttributeGRU,
+  HxSourceAttributeGRU,
+  IsLayerCallAttributeGRU,
+  InputVarAttributeGRU,
+  OutputVarAttributeGRU,
+  HiddenStateVarAttributeGRU,
+  HiddenUnusedAttributeGRU,
+  HiddenSubscriptSourceAttributeGRU,
+  HiddenSubscriptTargetAttributeGRU,
   GRUAttribute,
 } from '../nn-gru-attributes/gru-attributes';
 import {
@@ -141,6 +191,10 @@ import {
   ActvFuncAttributeLinear,
   NameModuleInputAttributeLinear,
   InputReusedAttributeLinear,
+  BiasAttributeLinear,
+  IsLayerCallAttributeLinear,
+  InputVarAttributeLinear,
+  OutputVarAttributeLinear,
   LinearAttribute,
 } from '../nn-linear-attributes/linear-attributes';
 import {
@@ -150,6 +204,9 @@ import {
   ActvFuncAttributeFlatten,
   NameModuleInputAttributeFlatten,
   InputReusedAttributeFlatten,
+  IsLayerCallAttributeFlatten,
+  InputVarAttributeFlatten,
+  OutputVarAttributeFlatten,
   FlattenAttribute,
 } from '../nn-flatten-attributes/flatten-attributes';
 import {
@@ -159,6 +216,10 @@ import {
   ActvFuncAttributeEmbedding,
   NameModuleInputAttributeEmbedding,
   InputReusedAttributeEmbedding,
+  PaddingIdxAttributeEmbedding,
+  IsLayerCallAttributeEmbedding,
+  InputVarAttributeEmbedding,
+  OutputVarAttributeEmbedding,
   EmbeddingAttribute,
 } from '../nn-embedding-attributes/embedding-attributes';
 import {
@@ -166,6 +227,10 @@ import {
   RateAttributeDropout,
   NameModuleInputAttributeDropout,
   InputReusedAttributeDropout,
+  DimensionAttributeDropout,
+  IsLayerCallAttributeDropout,
+  InputVarAttributeDropout,
+  OutputVarAttributeDropout,
   DropoutAttribute,
 } from '../nn-dropout-attributes/dropout-attributes';
 import {
@@ -174,6 +239,11 @@ import {
   ActvFuncAttributeLayerNormalization,
   NameModuleInputAttributeLayerNormalization,
   InputReusedAttributeLayerNormalization,
+  EpsAttributeLayerNormalization,
+  AffineAttributeLayerNormalization,
+  IsLayerCallAttributeLayerNormalization,
+  InputVarAttributeLayerNormalization,
+  OutputVarAttributeLayerNormalization,
   LayerNormalizationAttribute,
 } from '../nn-layernormalization-attributes/layernormalization-attributes';
 import {
@@ -183,6 +253,13 @@ import {
   ActvFuncAttributeBatchNormalization,
   NameModuleInputAttributeBatchNormalization,
   InputReusedAttributeBatchNormalization,
+  EpsAttributeBatchNormalization,
+  MomentumAttributeBatchNormalization,
+  AffineAttributeBatchNormalization,
+  TrackRunningStatsAttributeBatchNormalization,
+  IsLayerCallAttributeBatchNormalization,
+  InputVarAttributeBatchNormalization,
+  OutputVarAttributeBatchNormalization,
   BatchNormalizationAttribute,
 } from '../nn-batchnormalization-attributes/batchnormalization-attributes';
 import {
@@ -194,6 +271,27 @@ import {
   TransposeDimAttributeTensorOp,
   PermuteDimAttributeTensorOp,
   InputReusedAttributeTensorOp,
+  ReduceDimAttributeTensorOp,
+  ReduceKeepdimAttributeTensorOp,
+  ShapeDimAttributeTensorOp,
+  ActualVarsAttributeTensorOp,
+  SubscriptIndicesAttributeTensorOp,
+  RepeatDimAttributeTensorOp,
+  InterpolateSizeAttributeTensorOp,
+  InterpolateScaleAttributeTensorOp,
+  InterpolateModeAttributeTensorOp,
+  PadAmountAttributeTensorOp,
+  PadModeAttributeTensorOp,
+  PadValueAttributeTensorOp,
+  DropoutRateAttributeTensorOp,
+  DropoutTrainingAwareAttributeTensorOp,
+  SplitDimAttributeTensorOp,
+  SplitSizesAttributeTensorOp,
+  PermuteInAttributeTensorOp,
+  PermuteOutAttributeTensorOp,
+  InputVarAttributeTensorOp,
+  OutputVarAttributeTensorOp,
+  OutputVarsAttributeTensorOp,
   TensorOpAttribute,
 } from '../nn-tensorop-attributes/tensorop-attributes';
 import {
@@ -288,6 +386,12 @@ const LAYER_CONFIG: {
       { type: NNElementType.InChannelsAttributeConv1D, ctor: InChannelsAttributeConv1D, label: 'in_channels' },
       { type: NNElementType.PaddingAmountAttributeConv1D, ctor: PaddingAmountAttributeConv1D, label: 'padding_amount' },
       { type: NNElementType.PaddingTypeAttributeConv1D, ctor: PaddingTypeAttributeConv1D, label: 'padding_type' },
+      { type: NNElementType.DilationAttributeConv1D, ctor: DilationAttributeConv1D, label: 'dilation' },
+      { type: NNElementType.GroupsAttributeConv1D, ctor: GroupsAttributeConv1D, label: 'groups' },
+      { type: NNElementType.BiasAttributeConv1D, ctor: BiasAttributeConv1D, label: 'bias' },
+      { type: NNElementType.IsLayerCallAttributeConv1D, ctor: IsLayerCallAttributeConv1D, label: 'is_layer_call' },
+      { type: NNElementType.InputVarAttributeConv1D, ctor: InputVarAttributeConv1D, label: 'input_var' },
+      { type: NNElementType.OutputVarAttributeConv1D, ctor: OutputVarAttributeConv1D, label: 'output_var' },
       { type: NNElementType.ActvFuncAttributeConv1D, ctor: ActvFuncAttributeConv1D, label: 'actv_func' },
       { type: NNElementType.NameModuleInputAttributeConv1D, ctor: NameModuleInputAttributeConv1D, label: 'name_module_input' },
       { type: NNElementType.InputReusedAttributeConv1D, ctor: InputReusedAttributeConv1D, label: 'input_reused' },
@@ -312,6 +416,12 @@ const LAYER_CONFIG: {
       { type: NNElementType.InputReusedAttributeConv2D, ctor: InputReusedAttributeConv2D, label: 'input_reused' },
       { type: NNElementType.PermuteInAttributeConv2D, ctor: PermuteInAttributeConv2D, label: 'permute_in' },
       { type: NNElementType.PermuteOutAttributeConv2D, ctor: PermuteOutAttributeConv2D, label: 'permute_out' },
+      { type: NNElementType.DilationAttributeConv2D, ctor: DilationAttributeConv2D, label: 'dilation' },
+      { type: NNElementType.GroupsAttributeConv2D, ctor: GroupsAttributeConv2D, label: 'groups' },
+      { type: NNElementType.BiasAttributeConv2D, ctor: BiasAttributeConv2D, label: 'bias' },
+      { type: NNElementType.IsLayerCallAttributeConv2D, ctor: IsLayerCallAttributeConv2D, label: 'is_layer_call' },
+      { type: NNElementType.InputVarAttributeConv2D, ctor: InputVarAttributeConv2D, label: 'input_var' },
+      { type: NNElementType.OutputVarAttributeConv2D, ctor: OutputVarAttributeConv2D, label: 'output_var' },
     ],
   },
   [NNElementType.Conv3DLayer]: {
@@ -331,6 +441,12 @@ const LAYER_CONFIG: {
       { type: NNElementType.InputReusedAttributeConv3D, ctor: InputReusedAttributeConv3D, label: 'input_reused' },
       { type: NNElementType.PermuteInAttributeConv3D, ctor: PermuteInAttributeConv3D, label: 'permute_in' },
       { type: NNElementType.PermuteOutAttributeConv3D, ctor: PermuteOutAttributeConv3D, label: 'permute_out' },
+      { type: NNElementType.DilationAttributeConv3D, ctor: DilationAttributeConv3D, label: 'dilation' },
+      { type: NNElementType.GroupsAttributeConv3D, ctor: GroupsAttributeConv3D, label: 'groups' },
+      { type: NNElementType.BiasAttributeConv3D, ctor: BiasAttributeConv3D, label: 'bias' },
+      { type: NNElementType.IsLayerCallAttributeConv3D, ctor: IsLayerCallAttributeConv3D, label: 'is_layer_call' },
+      { type: NNElementType.InputVarAttributeConv3D, ctor: InputVarAttributeConv3D, label: 'input_var' },
+      { type: NNElementType.OutputVarAttributeConv3D, ctor: OutputVarAttributeConv3D, label: 'output_var' },
     ],
   },
   [NNElementType.PoolingLayer]: {
@@ -351,6 +467,9 @@ const LAYER_CONFIG: {
       { type: NNElementType.InputReusedAttributePooling, ctor: InputReusedAttributePooling, label: 'input_reused' },
       { type: NNElementType.PermuteInAttributePooling, ctor: PermuteInAttributePooling, label: 'permute_in' },
       { type: NNElementType.PermuteOutAttributePooling, ctor: PermuteOutAttributePooling, label: 'permute_out' },
+      { type: NNElementType.IsLayerCallAttributePooling, ctor: IsLayerCallAttributePooling, label: 'is_layer_call' },
+      { type: NNElementType.InputVarAttributePooling, ctor: InputVarAttributePooling, label: 'input_var' },
+      { type: NNElementType.OutputVarAttributePooling, ctor: OutputVarAttributePooling, label: 'output_var' },
     ],
   },
   [NNElementType.RNNLayer]: {
@@ -368,6 +487,15 @@ const LAYER_CONFIG: {
       { type: NNElementType.ActvFuncAttributeRNN, ctor: ActvFuncAttributeRNN, label: 'actv_func' },
       { type: NNElementType.NameModuleInputAttributeRNN, ctor: NameModuleInputAttributeRNN, label: 'name_module_input' },
       { type: NNElementType.InputReusedAttributeRNN, ctor: InputReusedAttributeRNN, label: 'input_reused' },
+      { type: NNElementType.BiasAttributeRNN, ctor: BiasAttributeRNN, label: 'bias' },
+      { type: NNElementType.HxSourceAttributeRNN, ctor: HxSourceAttributeRNN, label: 'hx_source' },
+      { type: NNElementType.IsLayerCallAttributeRNN, ctor: IsLayerCallAttributeRNN, label: 'is_layer_call' },
+      { type: NNElementType.InputVarAttributeRNN, ctor: InputVarAttributeRNN, label: 'input_var' },
+      { type: NNElementType.OutputVarAttributeRNN, ctor: OutputVarAttributeRNN, label: 'output_var' },
+      { type: NNElementType.HiddenStateVarAttributeRNN, ctor: HiddenStateVarAttributeRNN, label: 'hidden_state_var' },
+      { type: NNElementType.HiddenUnusedAttributeRNN, ctor: HiddenUnusedAttributeRNN, label: 'hidden_unused' },
+      { type: NNElementType.HiddenSubscriptSourceAttributeRNN, ctor: HiddenSubscriptSourceAttributeRNN, label: 'hidden_subscript_source' },
+      { type: NNElementType.HiddenSubscriptTargetAttributeRNN, ctor: HiddenSubscriptTargetAttributeRNN, label: 'hidden_subscript_target' },
     ],
   },
   [NNElementType.LSTMLayer]: {
@@ -385,6 +513,17 @@ const LAYER_CONFIG: {
       { type: NNElementType.ActvFuncAttributeLSTM, ctor: ActvFuncAttributeLSTM, label: 'actv_func' },
       { type: NNElementType.NameModuleInputAttributeLSTM, ctor: NameModuleInputAttributeLSTM, label: 'name_module_input' },
       { type: NNElementType.InputReusedAttributeLSTM, ctor: InputReusedAttributeLSTM, label: 'input_reused' },
+      { type: NNElementType.BiasAttributeLSTM, ctor: BiasAttributeLSTM, label: 'bias' },
+      { type: NNElementType.HxSourceAttributeLSTM, ctor: HxSourceAttributeLSTM, label: 'hx_source' },
+      { type: NNElementType.IsLayerCallAttributeLSTM, ctor: IsLayerCallAttributeLSTM, label: 'is_layer_call' },
+      { type: NNElementType.InputVarAttributeLSTM, ctor: InputVarAttributeLSTM, label: 'input_var' },
+      { type: NNElementType.OutputVarAttributeLSTM, ctor: OutputVarAttributeLSTM, label: 'output_var' },
+      { type: NNElementType.HiddenStateVarAttributeLSTM, ctor: HiddenStateVarAttributeLSTM, label: 'hidden_state_var' },
+      { type: NNElementType.CellStateVarAttributeLSTM, ctor: CellStateVarAttributeLSTM, label: 'cell_state_var' },
+      { type: NNElementType.HiddenUnusedAttributeLSTM, ctor: HiddenUnusedAttributeLSTM, label: 'hidden_unused' },
+      { type: NNElementType.CellUnusedAttributeLSTM, ctor: CellUnusedAttributeLSTM, label: 'cell_unused' },
+      { type: NNElementType.HiddenSubscriptSourceAttributeLSTM, ctor: HiddenSubscriptSourceAttributeLSTM, label: 'hidden_subscript_source' },
+      { type: NNElementType.HiddenSubscriptTargetAttributeLSTM, ctor: HiddenSubscriptTargetAttributeLSTM, label: 'hidden_subscript_target' },
     ],
   },
   [NNElementType.GRULayer]: {
@@ -402,6 +541,15 @@ const LAYER_CONFIG: {
       { type: NNElementType.ActvFuncAttributeGRU, ctor: ActvFuncAttributeGRU, label: 'actv_func' },
       { type: NNElementType.NameModuleInputAttributeGRU, ctor: NameModuleInputAttributeGRU, label: 'name_module_input' },
       { type: NNElementType.InputReusedAttributeGRU, ctor: InputReusedAttributeGRU, label: 'input_reused' },
+      { type: NNElementType.BiasAttributeGRU, ctor: BiasAttributeGRU, label: 'bias' },
+      { type: NNElementType.HxSourceAttributeGRU, ctor: HxSourceAttributeGRU, label: 'hx_source' },
+      { type: NNElementType.IsLayerCallAttributeGRU, ctor: IsLayerCallAttributeGRU, label: 'is_layer_call' },
+      { type: NNElementType.InputVarAttributeGRU, ctor: InputVarAttributeGRU, label: 'input_var' },
+      { type: NNElementType.OutputVarAttributeGRU, ctor: OutputVarAttributeGRU, label: 'output_var' },
+      { type: NNElementType.HiddenStateVarAttributeGRU, ctor: HiddenStateVarAttributeGRU, label: 'hidden_state_var' },
+      { type: NNElementType.HiddenUnusedAttributeGRU, ctor: HiddenUnusedAttributeGRU, label: 'hidden_unused' },
+      { type: NNElementType.HiddenSubscriptSourceAttributeGRU, ctor: HiddenSubscriptSourceAttributeGRU, label: 'hidden_subscript_source' },
+      { type: NNElementType.HiddenSubscriptTargetAttributeGRU, ctor: HiddenSubscriptTargetAttributeGRU, label: 'hidden_subscript_target' },
     ],
   },
   [NNElementType.LinearLayer]: {
@@ -415,6 +563,10 @@ const LAYER_CONFIG: {
       { type: NNElementType.ActvFuncAttributeLinear, ctor: ActvFuncAttributeLinear, label: 'actv_func' },
       { type: NNElementType.NameModuleInputAttributeLinear, ctor: NameModuleInputAttributeLinear, label: 'name_module_input' },
       { type: NNElementType.InputReusedAttributeLinear, ctor: InputReusedAttributeLinear, label: 'input_reused' },
+      { type: NNElementType.BiasAttributeLinear, ctor: BiasAttributeLinear, label: 'bias' },
+      { type: NNElementType.IsLayerCallAttributeLinear, ctor: IsLayerCallAttributeLinear, label: 'is_layer_call' },
+      { type: NNElementType.InputVarAttributeLinear, ctor: InputVarAttributeLinear, label: 'input_var' },
+      { type: NNElementType.OutputVarAttributeLinear, ctor: OutputVarAttributeLinear, label: 'output_var' },
     ],
   },
   [NNElementType.FlattenLayer]: {
@@ -428,6 +580,9 @@ const LAYER_CONFIG: {
       { type: NNElementType.ActvFuncAttributeFlatten, ctor: ActvFuncAttributeFlatten, label: 'actv_func' },
       { type: NNElementType.NameModuleInputAttributeFlatten, ctor: NameModuleInputAttributeFlatten, label: 'name_module_input' },
       { type: NNElementType.InputReusedAttributeFlatten, ctor: InputReusedAttributeFlatten, label: 'input_reused' },
+      { type: NNElementType.IsLayerCallAttributeFlatten, ctor: IsLayerCallAttributeFlatten, label: 'is_layer_call' },
+      { type: NNElementType.InputVarAttributeFlatten, ctor: InputVarAttributeFlatten, label: 'input_var' },
+      { type: NNElementType.OutputVarAttributeFlatten, ctor: OutputVarAttributeFlatten, label: 'output_var' },
     ],
   },
   [NNElementType.EmbeddingLayer]: {
@@ -441,6 +596,10 @@ const LAYER_CONFIG: {
       { type: NNElementType.ActvFuncAttributeEmbedding, ctor: ActvFuncAttributeEmbedding, label: 'actv_func' },
       { type: NNElementType.NameModuleInputAttributeEmbedding, ctor: NameModuleInputAttributeEmbedding, label: 'name_module_input' },
       { type: NNElementType.InputReusedAttributeEmbedding, ctor: InputReusedAttributeEmbedding, label: 'input_reused' },
+      { type: NNElementType.PaddingIdxAttributeEmbedding, ctor: PaddingIdxAttributeEmbedding, label: 'padding_idx' },
+      { type: NNElementType.IsLayerCallAttributeEmbedding, ctor: IsLayerCallAttributeEmbedding, label: 'is_layer_call' },
+      { type: NNElementType.InputVarAttributeEmbedding, ctor: InputVarAttributeEmbedding, label: 'input_var' },
+      { type: NNElementType.OutputVarAttributeEmbedding, ctor: OutputVarAttributeEmbedding, label: 'output_var' },
     ],
   },
   [NNElementType.DropoutLayer]: {
@@ -452,6 +611,10 @@ const LAYER_CONFIG: {
     optionalAttributes: [
       { type: NNElementType.NameModuleInputAttributeDropout, ctor: NameModuleInputAttributeDropout, label: 'name_module_input' },
       { type: NNElementType.InputReusedAttributeDropout, ctor: InputReusedAttributeDropout, label: 'input_reused' },
+      { type: NNElementType.DimensionAttributeDropout, ctor: DimensionAttributeDropout, label: 'dimension' },
+      { type: NNElementType.IsLayerCallAttributeDropout, ctor: IsLayerCallAttributeDropout, label: 'is_layer_call' },
+      { type: NNElementType.InputVarAttributeDropout, ctor: InputVarAttributeDropout, label: 'input_var' },
+      { type: NNElementType.OutputVarAttributeDropout, ctor: OutputVarAttributeDropout, label: 'output_var' },
     ],
   },
   [NNElementType.LayerNormalizationLayer]: {
@@ -464,6 +627,11 @@ const LAYER_CONFIG: {
       { type: NNElementType.ActvFuncAttributeLayerNormalization, ctor: ActvFuncAttributeLayerNormalization, label: 'actv_func' },
       { type: NNElementType.NameModuleInputAttributeLayerNormalization, ctor: NameModuleInputAttributeLayerNormalization, label: 'name_module_input' },
       { type: NNElementType.InputReusedAttributeLayerNormalization, ctor: InputReusedAttributeLayerNormalization, label: 'input_reused' },
+      { type: NNElementType.EpsAttributeLayerNormalization, ctor: EpsAttributeLayerNormalization, label: 'eps' },
+      { type: NNElementType.AffineAttributeLayerNormalization, ctor: AffineAttributeLayerNormalization, label: 'affine' },
+      { type: NNElementType.IsLayerCallAttributeLayerNormalization, ctor: IsLayerCallAttributeLayerNormalization, label: 'is_layer_call' },
+      { type: NNElementType.InputVarAttributeLayerNormalization, ctor: InputVarAttributeLayerNormalization, label: 'input_var' },
+      { type: NNElementType.OutputVarAttributeLayerNormalization, ctor: OutputVarAttributeLayerNormalization, label: 'output_var' },
     ],
   },
   [NNElementType.BatchNormalizationLayer]: {
@@ -477,6 +645,13 @@ const LAYER_CONFIG: {
       { type: NNElementType.ActvFuncAttributeBatchNormalization, ctor: ActvFuncAttributeBatchNormalization, label: 'actv_func' },
       { type: NNElementType.NameModuleInputAttributeBatchNormalization, ctor: NameModuleInputAttributeBatchNormalization, label: 'name_module_input' },
       { type: NNElementType.InputReusedAttributeBatchNormalization, ctor: InputReusedAttributeBatchNormalization, label: 'input_reused' },
+      { type: NNElementType.EpsAttributeBatchNormalization, ctor: EpsAttributeBatchNormalization, label: 'eps' },
+      { type: NNElementType.MomentumAttributeBatchNormalization, ctor: MomentumAttributeBatchNormalization, label: 'momentum' },
+      { type: NNElementType.AffineAttributeBatchNormalization, ctor: AffineAttributeBatchNormalization, label: 'affine' },
+      { type: NNElementType.TrackRunningStatsAttributeBatchNormalization, ctor: TrackRunningStatsAttributeBatchNormalization, label: 'track_running_stats' },
+      { type: NNElementType.IsLayerCallAttributeBatchNormalization, ctor: IsLayerCallAttributeBatchNormalization, label: 'is_layer_call' },
+      { type: NNElementType.InputVarAttributeBatchNormalization, ctor: InputVarAttributeBatchNormalization, label: 'input_var' },
+      { type: NNElementType.OutputVarAttributeBatchNormalization, ctor: OutputVarAttributeBatchNormalization, label: 'output_var' },
     ],
   },
   [NNElementType.TensorOp]: {
@@ -492,6 +667,27 @@ const LAYER_CONFIG: {
       { type: NNElementType.TransposeDimAttributeTensorOp, ctor: TransposeDimAttributeTensorOp, label: 'transpose_dim' },
       { type: NNElementType.PermuteDimAttributeTensorOp, ctor: PermuteDimAttributeTensorOp, label: 'permute_dim' },
       { type: NNElementType.InputReusedAttributeTensorOp, ctor: InputReusedAttributeTensorOp, label: 'input_reused' },
+      { type: NNElementType.ReduceDimAttributeTensorOp, ctor: ReduceDimAttributeTensorOp, label: 'reduce_dim' },
+      { type: NNElementType.ReduceKeepdimAttributeTensorOp, ctor: ReduceKeepdimAttributeTensorOp, label: 'reduce_keepdims' },
+      { type: NNElementType.ShapeDimAttributeTensorOp, ctor: ShapeDimAttributeTensorOp, label: 'shape_dim' },
+      { type: NNElementType.ActualVarsAttributeTensorOp, ctor: ActualVarsAttributeTensorOp, label: 'actual_vars' },
+      { type: NNElementType.SubscriptIndicesAttributeTensorOp, ctor: SubscriptIndicesAttributeTensorOp, label: 'subscript_indices' },
+      { type: NNElementType.RepeatDimAttributeTensorOp, ctor: RepeatDimAttributeTensorOp, label: 'repeat_dim' },
+      { type: NNElementType.InterpolateSizeAttributeTensorOp, ctor: InterpolateSizeAttributeTensorOp, label: 'interpolate_size' },
+      { type: NNElementType.InterpolateScaleAttributeTensorOp, ctor: InterpolateScaleAttributeTensorOp, label: 'interpolate_scale' },
+      { type: NNElementType.InterpolateModeAttributeTensorOp, ctor: InterpolateModeAttributeTensorOp, label: 'interpolate_mode' },
+      { type: NNElementType.PadAmountAttributeTensorOp, ctor: PadAmountAttributeTensorOp, label: 'pad_amount' },
+      { type: NNElementType.PadModeAttributeTensorOp, ctor: PadModeAttributeTensorOp, label: 'pad_mode' },
+      { type: NNElementType.PadValueAttributeTensorOp, ctor: PadValueAttributeTensorOp, label: 'pad_value' },
+      { type: NNElementType.DropoutRateAttributeTensorOp, ctor: DropoutRateAttributeTensorOp, label: 'dropout_rate' },
+      { type: NNElementType.DropoutTrainingAwareAttributeTensorOp, ctor: DropoutTrainingAwareAttributeTensorOp, label: 'dropout_training_aware' },
+      { type: NNElementType.SplitDimAttributeTensorOp, ctor: SplitDimAttributeTensorOp, label: 'split_dim' },
+      { type: NNElementType.SplitSizesAttributeTensorOp, ctor: SplitSizesAttributeTensorOp, label: 'split_sizes' },
+      { type: NNElementType.PermuteInAttributeTensorOp, ctor: PermuteInAttributeTensorOp, label: 'permute_in' },
+      { type: NNElementType.PermuteOutAttributeTensorOp, ctor: PermuteOutAttributeTensorOp, label: 'permute_out' },
+      { type: NNElementType.InputVarAttributeTensorOp, ctor: InputVarAttributeTensorOp, label: 'input_var' },
+      { type: NNElementType.OutputVarAttributeTensorOp, ctor: OutputVarAttributeTensorOp, label: 'output_var' },
+      { type: NNElementType.OutputVarsAttributeTensorOp, ctor: OutputVarsAttributeTensorOp, label: 'output_vars' },
     ],
   },
   [NNElementType.Configuration]: {
@@ -612,24 +808,169 @@ class NNComponentUpdateComponent extends Component<Props, State> {
   }
 
 
+  // Helper to check if layers_of_tensors contains RNN/LSTM/GRU layers
+  private hasRecurrentLayersSelected = (children?: Array<any>): boolean => {
+    const layersOfTensorsAttr = children?.find(
+      (attr) => (attr as TensorOpAttribute).attributeName === 'layers_of_tensors'
+    ) as TensorOpAttribute | undefined;
+
+    if (!layersOfTensorsAttr || !layersOfTensorsAttr.value) {
+      console.log('[hasRecurrentLayersSelected] No layers_of_tensors attr or empty value');
+      return false;
+    }
+
+    const rawValue = layersOfTensorsAttr.value;
+    console.log('[hasRecurrentLayersSelected] rawValue:', rawValue);
+    const cleaned = rawValue.replace(/^\[|\]$/g, '').trim();
+    if (!cleaned) {
+      console.log('[hasRecurrentLayersSelected] cleaned is empty');
+      return false;
+    }
+
+    const layerNames = cleaned.split(',').map(v => {
+      const trimmed = v.trim();
+      // Remove surrounding quotes if present
+      return trimmed.replace(/^['"]|['"]$/g, '');
+    }).filter(v => v && !/^\d+\.?\d*$/.test(v));
+    console.log('[hasRecurrentLayersSelected] layerNames:', layerNames);
+
+    // Find all RNN/LSTM/GRU layers and their names
+    const recurrentLayers = Object.keys(this.props.elements)
+      .filter(id => {
+        const el = this.props.elements[id];
+        return [NNElementType.RNNLayer, NNElementType.LSTMLayer, NNElementType.GRULayer].includes(el.type);
+      })
+      .map(id => {
+        const nameAttr = Object.values(this.props.elements).find(
+          (attr: any) => attr.owner === id && attr.attributeName === 'name'
+        ) as any;
+        return nameAttr?.value;
+      })
+      .filter(Boolean);
+    console.log('[hasRecurrentLayersSelected] recurrentLayers:', recurrentLayers);
+
+    // Check if any selected layer name is a recurrent layer
+    const result = layerNames.some(name => recurrentLayers.includes(name));
+    console.log('[hasRecurrentLayersSelected] result:', result);
+    return result;
+  };
+
   // Helper to filter TensorOp optional attributes based on tns_type value
   private getTensorOpOptionalAttributes = (
     tnsType: string,
-    optionalAttributes: Array<{ type: string; ctor: any; label: string }>
+    optionalAttributes: Array<{ type: string; ctor: any; label: string }>,
+    children?: Array<any>
   ) => {
+    const sharedForAll = ['input_reused', 'permute_in', 'permute_out', 'input_var'];
+    const outputVar = 'output_var';
+    const outputVars = 'output_vars';
+    const hasRecurrentLayers = this.hasRecurrentLayersSelected(children);
+
     switch (tnsType) {
       case 'reshape':
-        return optionalAttributes.filter((attr) => attr.label === 'reshape_dim');
-      case 'concatenate':
         return optionalAttributes.filter((attr) =>
-          ['layers_of_tensors', 'concatenate_dim'].includes(attr.label)
+          ['reshape_dim', 'layers_of_tensors'].includes(attr.label) || sharedForAll.includes(attr.label) || attr.label === outputVar
         );
+      case 'concatenate':
+        return optionalAttributes.filter((attr) => {
+          if (attr.label === 'actual_vars') {
+            return hasRecurrentLayers;
+          }
+          return ['layers_of_tensors', 'concatenate_dim'].includes(attr.label) || sharedForAll.includes(attr.label) || attr.label === outputVar;
+        });
       case 'transpose':
-        return optionalAttributes.filter((attr) => attr.label === 'transpose_dim');
+        return optionalAttributes.filter((attr) =>
+          ['transpose_dim', 'layers_of_tensors'].includes(attr.label) || sharedForAll.includes(attr.label) || attr.label === outputVar
+        );
       case 'permute':
-        return optionalAttributes.filter((attr) => attr.label === 'permute_dim');
+        return optionalAttributes.filter((attr) =>
+          attr.label === 'permute_dim' || sharedForAll.includes(attr.label) || attr.label === outputVar
+        );
+      case 'multiply':
+      case 'matmultiply':
+        return optionalAttributes.filter((attr) =>
+          attr.label === 'layers_of_tensors' || sharedForAll.includes(attr.label) || attr.label === outputVar
+        );
+      case 'split':
+        return optionalAttributes.filter((attr) =>
+          ['layers_of_tensors', 'split_dim', 'split_sizes'].includes(attr.label) || sharedForAll.includes(attr.label) || attr.label === outputVars
+        );
+      case 'binop_add':
+      case 'binop_subtract':
+      case 'binop_multiply':
+      case 'binop_divide':
+      case 'binop_floor_divide':
+        return optionalAttributes.filter((attr) => {
+          if (attr.label === 'actual_vars') {
+            return hasRecurrentLayers;
+          }
+          return attr.label === 'layers_of_tensors' || sharedForAll.includes(attr.label) || attr.label === outputVar;
+        });
+      case 'mean':
+        return optionalAttributes.filter((attr) =>
+          ['layers_of_tensors', 'reduce_dim'].includes(attr.label) || sharedForAll.includes(attr.label) || attr.label === outputVar
+        );
+      case 'max':
+        return optionalAttributes.filter((attr) =>
+          ['layers_of_tensors', 'reduce_dim', 'reduce_keepdims'].includes(attr.label) || sharedForAll.includes(attr.label) || attr.label === outputVar
+        );
+      case 'squeeze':
+      case 'unsqueeze':
+        return optionalAttributes.filter((attr) =>
+          ['layers_of_tensors', 'reduce_dim'].includes(attr.label) || sharedForAll.includes(attr.label) || attr.label === outputVar
+        );
+      case 'shape_dim':
+        return optionalAttributes.filter((attr) =>
+          ['layers_of_tensors', 'reduce_dim'].includes(attr.label) || sharedForAll.includes(attr.label) || attr.label === outputVar
+        );
+      case 'normalize':
+        return optionalAttributes.filter((attr) =>
+          ['layers_of_tensors', 'reduce_dim'].includes(attr.label) || sharedForAll.includes(attr.label) || attr.label === outputVar
+        );
+      case 'repeat':
+        return optionalAttributes.filter((attr) =>
+          ['layers_of_tensors', 'repeat_dim'].includes(attr.label) || sharedForAll.includes(attr.label) || attr.label === outputVar
+        );
+      case 'zeros_like':
+        return optionalAttributes.filter((attr) =>
+          attr.label === 'layers_of_tensors' || sharedForAll.includes(attr.label) || attr.label === outputVar
+        );
+      case 'interpolate':
+        return optionalAttributes.filter((attr) =>
+          ['layers_of_tensors', 'interpolate_size', 'interpolate_scale', 'interpolate_mode'].includes(attr.label) || sharedForAll.includes(attr.label) || attr.label === outputVar
+        );
+      case 'pad':
+        // Get the current pad_mode value
+        const padModeAttr = children?.find(
+          (attr) => (attr as TensorOpAttribute).attributeName === 'pad_mode'
+        ) as TensorOpAttribute | undefined;
+        const padMode = padModeAttr?.value || '';
+
+        // Only show pad_value if pad_mode is 'constant'
+        const padAttributes = ['layers_of_tensors', 'pad_amount', 'pad_mode'];
+        if (padMode === 'constant') {
+          padAttributes.push('pad_value');
+        }
+
+        return optionalAttributes.filter((attr) =>
+          padAttributes.includes(attr.label) || sharedForAll.includes(attr.label) || attr.label === outputVar
+        );
+      case 'dropout':
+        return optionalAttributes.filter((attr) =>
+          ['dropout_rate', 'dropout_training_aware'].includes(attr.label) || sharedForAll.includes(attr.label) || attr.label === outputVar
+        );
+      case 'subscript':
+        return optionalAttributes.filter((attr) =>
+          attr.label === 'subscript_indices' || sharedForAll.includes(attr.label) || attr.label === outputVar
+        );
+      case 'identity':
+        return optionalAttributes.filter((attr) =>
+          sharedForAll.includes(attr.label) || attr.label === outputVar
+        );
       default:
-        return optionalAttributes.filter((attr) => attr.label === 'layers_of_tensors');
+        return optionalAttributes.filter((attr) =>
+          attr.label === 'layers_of_tensors' || sharedForAll.includes(attr.label) || attr.label === outputVar
+        );
     }
   };
 
@@ -691,12 +1032,13 @@ class NNComponentUpdateComponent extends Component<Props, State> {
 
     // Get optional attributes - filter based on element type and attribute values
     let optionalAttributes = config.optionalAttributes;
+    let tnsType: string | undefined;
     if (element.type === NNElementType.TensorOp) {
       const tnsTypeAttr = children.find(
         (attr) => (attr as TensorOpAttribute).attributeName === 'tns_type'
       ) as TensorOpAttribute | undefined;
-      const tnsType = tnsTypeAttr?.value || 'reshape';
-      optionalAttributes = this.getTensorOpOptionalAttributes(tnsType, config.optionalAttributes);
+      tnsType = tnsTypeAttr?.value || 'reshape';
+      optionalAttributes = this.getTensorOpOptionalAttributes(tnsType, config.optionalAttributes, children);
     } else if (element.type === NNElementType.PoolingLayer) {
       const poolingTypeAttr = children.find(
         (attr) => (attr as PoolingAttribute).attributeName === 'pooling_type'
@@ -744,11 +1086,12 @@ class NNComponentUpdateComponent extends Component<Props, State> {
           {/* Render optional attributes with checkboxes */}
           {optionalAttributes.map((attrDef) => (
             <OptionalAttributeRow
-              key={attrDef.type}
+              key={element.type === NNElementType.TensorOp ? `${attrDef.type}-${tnsType}` : attrDef.type}
               attributeType={attrDef.type}
               attributeCtor={attrDef.ctor}
               label={attrDef.label}
               layerId={element.id}
+              tnsType={tnsType}
             />
           ))}
         </section>

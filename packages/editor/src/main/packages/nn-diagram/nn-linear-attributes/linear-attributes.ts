@@ -130,3 +130,37 @@ export class InputReusedAttributeLinear extends LinearAttribute {
     this.name = `${this.attributeName} = ${this.value}`;
   }
 }
+
+export class BiasAttributeLinear extends LinearAttribute {
+  type: UMLElementType = NNElementType.BiasAttributeLinear;
+  constructor(values?: DeepPartial<ILinearAttribute>) {
+    super({ attributeName: 'bias', value: 'true', isMandatory: false, ...values });
+    this.attributeType = 'bool';
+    this.name = `${this.attributeName} = ${this.value}`;
+  }
+}
+
+export class IsLayerCallAttributeLinear extends LinearAttribute {
+  type: UMLElementType = NNElementType.IsLayerCallAttributeLinear;
+  constructor(values?: DeepPartial<ILinearAttribute>) {
+    super({ attributeName: 'is_layer_call', value: 'false', isMandatory: false, ...values });
+    this.attributeType = 'bool';
+    this.name = `${this.attributeName} = ${this.value}`;
+  }
+}
+
+export class InputVarAttributeLinear extends LinearAttribute {
+  type: UMLElementType = NNElementType.InputVarAttributeLinear;
+  constructor(values?: DeepPartial<ILinearAttribute>) {
+    super({ attributeName: 'input_var', value: '', isMandatory: false, ...values });
+    this.name = `${this.attributeName} = ${this.value}`;
+  }
+}
+
+export class OutputVarAttributeLinear extends LinearAttribute {
+  type: UMLElementType = NNElementType.OutputVarAttributeLinear;
+  constructor(values?: DeepPartial<ILinearAttribute>) {
+    super({ attributeName: 'output_var', value: '', isMandatory: false, ...values });
+    this.name = `${this.attributeName} = ${this.value}`;
+  }
+}
