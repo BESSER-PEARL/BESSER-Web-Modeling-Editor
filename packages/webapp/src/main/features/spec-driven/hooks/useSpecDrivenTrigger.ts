@@ -74,6 +74,7 @@ import {
 } from '../state/specDrivenSlice';
 import {
   clearSessionKey,
+  readFreeTierModel,
   readFreeTierSelected,
   readProjectLastRun,
   readSessionBudget,
@@ -85,7 +86,10 @@ import {
   startSpecDrivenRun,
   type StartSpecDrivenRunParams,
 } from '../services/specDrivenSseClient';
-import { getSpecDrivenConfig } from '../services/specDrivenConfig';
+import {
+  getSpecDrivenConfig,
+  resolveFreeRunModel,
+} from '../services/specDrivenConfig';
 import { decideRunMode } from '../runModeDecision';
 import type {
   SpecDrivenEvent,
@@ -937,7 +941,9 @@ export function useSpecDrivenTrigger(
       //      would reject with ``model_not_found`` (HTTP 404). Drop it.
       //   3. ``undefined`` — lets the backend's
       //      ``_DEFAULT_MODELS[provider]`` pick a safe default.
-      // Free tier is pinned to the server's model — never send a client model.
+      // Free tier: the server pins the model, with ONE exception — the user
+      // may explicitly pick the server's advertised non-default free model
+      // (see below, after the config is available).
       let llmModel: string | undefined = freeSelected ? undefined : key?.llmModel;
       if (!freeSelected && !llmModel) {
         llmModel =
@@ -951,16 +957,25 @@ export function useSpecDrivenTrigger(
       // its own defaults — the SSE client only serialises set values.
       const budget = readSessionBudget();
 
+      // `getSpecDrivenConfig` is cached and never rejects (resolves to the
+      // fallback), so the values below are always defined.
+      const cfg = await getSpecDrivenConfig();
+
+      // Free tier model: send the stored explicit choice only when the
+      // server currently advertises it as a non-default free model. The
+      // default (or any stale/unknown stored id) omits llm_model — the
+      // identical wire shape to a run without any model choice.
+      if (freeSelected) {
+        llmModel = resolveFreeRunModel(cfg.free_tier, readFreeTierModel());
+      }
+
       // Incremental vibe-modify decision. Look up the previous successful
       // run for THIS project and, if it's still within the backend's
       // download-TTL window, edit that app in place (`mode:'modify'` +
       // baseRunId) instead of rebuilding. The decision is automatic; an
-      // explicit `mode` on the trigger payload overrides it. `getSpecDrivenConfig`
-      // is cached and never rejects (resolves to the fallback), so the TTL
-      // is always defined.
+      // explicit `mode` on the trigger payload overrides it.
       const ttlSeconds =
-        (await getSpecDrivenConfig()).download_ttl_seconds ||
-        DEFAULT_DOWNLOAD_TTL_SECONDS;
+        cfg.download_ttl_seconds || DEFAULT_DOWNLOAD_TTL_SECONDS;
       const runDecision = decideRunMode({
         lastRun: readProjectLastRun(project.id),
         nowMs: Date.now(),

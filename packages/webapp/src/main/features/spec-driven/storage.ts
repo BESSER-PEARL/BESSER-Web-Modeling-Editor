@@ -16,6 +16,7 @@ import {
   localStorageSpecDrivenLastRunPrefix,
   sessionStorageLlmBaseUrl,
   sessionStorageSpecDrivenApiKey,
+  sessionStorageSpecDrivenFreeModel,
   sessionStorageSpecDrivenFreeTier,
   sessionStorageSpecDrivenLlmModel,
   sessionStorageSpecDrivenMaxCostUsd,
@@ -141,6 +142,41 @@ export function writeFreeTierSelected(selected: boolean): void {
       window.sessionStorage.setItem(sessionStorageSpecDrivenFreeTier, '1');
     } else {
       window.sessionStorage.removeItem(sessionStorageSpecDrivenFreeTier);
+    }
+  } catch {
+    /* ignore */
+  }
+}
+
+/**
+ * The explicitly chosen free-tier model id, or `null` for the server's
+ * default. Only ever holds an id from the server's advertised free-model
+ * list (the backend enforces its allowlist regardless — an unknown id is
+ * pinned back to the default model server-side).
+ */
+export function readFreeTierModel(): string | null {
+  if (!_hasSessionStorage()) return null;
+  try {
+    const raw = window.sessionStorage.getItem(sessionStorageSpecDrivenFreeModel);
+    return raw && raw.trim() ? raw.trim() : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Persist the free-tier model choice. Pass `null` (or empty) to return to
+ * the server's default — the stored id is then removed so the generate
+ * request omits `llm_model`, exactly as before this choice existed.
+ */
+export function writeFreeTierModel(modelId: string | null): void {
+  if (!_hasSessionStorage()) return;
+  try {
+    const trimmed = (modelId ?? '').trim();
+    if (trimmed) {
+      window.sessionStorage.setItem(sessionStorageSpecDrivenFreeModel, trimmed);
+    } else {
+      window.sessionStorage.removeItem(sessionStorageSpecDrivenFreeModel);
     }
   } catch {
     /* ignore */

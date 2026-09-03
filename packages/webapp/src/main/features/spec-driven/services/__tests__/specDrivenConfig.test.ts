@@ -13,7 +13,9 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   FALLBACK_SMART_GEN_CONFIG,
   getSpecDrivenConfig,
+  resolveFreeRunModel,
   _resetSpecDrivenConfigCacheForTests,
+  type SpecDrivenFreeTier,
 } from '../specDrivenConfig';
 
 const BACKEND_CONFIG = {
@@ -94,6 +96,49 @@ describe('getSpecDrivenConfig', () => {
     expect(config).toEqual(FALLBACK_SMART_GEN_CONFIG);
   });
 
+  it('normalises the free-tier model list (well-formed entries only)', async () => {
+    globalThis.fetch = vi.fn().mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          ...BACKEND_CONFIG,
+          free_tier: {
+            available: true,
+            model: 'meituan/LongCat-2.0:free',
+            models: [
+              { id: 'meituan/LongCat-2.0:free', default: true },
+              { id: 'qwen3.8:27b', default: false },
+              { id: '', default: false }, // malformed — dropped
+              { notAnId: true }, // malformed — dropped
+            ],
+          },
+        }),
+        { status: 200 },
+      ),
+    );
+
+    const config = await getSpecDrivenConfig();
+    expect(config.free_tier.models).toEqual([
+      { id: 'meituan/LongCat-2.0:free', default: true },
+      { id: 'qwen3.8:27b', default: false },
+    ]);
+  });
+
+  it('normalises a missing free-tier model list (old backend) to []', async () => {
+    globalThis.fetch = vi.fn().mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          ...BACKEND_CONFIG,
+          free_tier: { available: true, model: 'qwen3-coder:30b' },
+        }),
+        { status: 200 },
+      ),
+    );
+
+    const config = await getSpecDrivenConfig();
+    expect(config.free_tier.available).toBe(true);
+    expect(config.free_tier.models).toEqual([]);
+  });
+
   it('retries after a failure (failure does not poison the cache)', async () => {
     const fetchMock = vi
       .fn()
@@ -109,5 +154,37 @@ describe('getSpecDrivenConfig', () => {
     const second = await getSpecDrivenConfig();
     expect(second.caps.max_cost_usd_hard_cap).toBe(3.5);
     expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+});
+
+describe('resolveFreeRunModel', () => {
+  const FREE_TIER: SpecDrivenFreeTier = {
+    available: true,
+    model: 'meituan/LongCat-2.0:free',
+    models: [
+      { id: 'meituan/LongCat-2.0:free', default: true },
+      { id: 'qwen3.8:27b', default: false },
+    ],
+  };
+
+  it('returns the stored id when it is an advertised non-default model', () => {
+    expect(resolveFreeRunModel(FREE_TIER, 'qwen3.8:27b')).toBe('qwen3.8:27b');
+  });
+
+  it('omits llm_model for the default choice (identical wire shape to today)', () => {
+    expect(resolveFreeRunModel(FREE_TIER, 'meituan/LongCat-2.0:free')).toBeUndefined();
+  });
+
+  it('omits llm_model when nothing is stored', () => {
+    expect(resolveFreeRunModel(FREE_TIER, null)).toBeUndefined();
+  });
+
+  it('omits llm_model for a stale id the server no longer advertises', () => {
+    expect(resolveFreeRunModel(FREE_TIER, 'gpt-4o')).toBeUndefined();
+  });
+
+  it('tolerates a config without a models list (old backend)', () => {
+    const legacy = { available: true, model: 'qwen3-coder:30b' } as SpecDrivenFreeTier;
+    expect(resolveFreeRunModel(legacy, 'qwen3.8:27b')).toBeUndefined();
   });
 });

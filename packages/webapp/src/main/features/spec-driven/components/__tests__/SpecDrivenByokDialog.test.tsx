@@ -23,6 +23,7 @@ import { SpecDrivenByokDialog } from '../SpecDrivenByokDialog';
 import { getSpecDrivenConfig, FALLBACK_SMART_GEN_CONFIG } from '../../services/specDrivenConfig';
 import {
   sessionStorageSpecDrivenApiKey,
+  sessionStorageSpecDrivenFreeModel,
   sessionStorageSpecDrivenFreeTier,
   sessionStorageSpecDrivenMaxCostUsd,
   sessionStorageSpecDrivenMaxRuntimeSeconds,
@@ -86,6 +87,7 @@ function clearSpecDrivenSessionStorage() {
   window.sessionStorage.removeItem(sessionStorageSpecDrivenMaxCostUsd);
   window.sessionStorage.removeItem(sessionStorageSpecDrivenMaxRuntimeSeconds);
   window.sessionStorage.removeItem(sessionStorageSpecDrivenFreeTier);
+  window.sessionStorage.removeItem(sessionStorageSpecDrivenFreeModel);
 }
 
 beforeEach(() => {
@@ -467,7 +469,11 @@ describe('SpecDrivenByokDialog — free tier (pending trigger)', () => {
   it('"Use the free model" approves a keyless run and sets the free flag', async () => {
     vi.mocked(getSpecDrivenConfig).mockResolvedValue({
       ...FALLBACK_SMART_GEN_CONFIG,
-      free_tier: { available: true, model: 'qwen3-coder:30b' },
+      free_tier: {
+        available: true,
+        model: 'qwen3-coder:30b',
+        models: [{ id: 'qwen3-coder:30b', default: true }],
+      },
     });
     const cancelledSpy = vi.fn();
     window.addEventListener('wme:specdriven-key-cancelled', cancelledSpy);
@@ -493,6 +499,96 @@ describe('SpecDrivenByokDialog — free tier (pending trigger)', () => {
     expect(cancelledSpy).not.toHaveBeenCalled();
 
     window.removeEventListener('wme:specdriven-key-cancelled', cancelledSpy);
+  });
+});
+
+describe('SpecDrivenByokDialog — free-model choice', () => {
+  const TWO_MODEL_FREE_TIER = {
+    available: true,
+    model: 'meituan/LongCat-2.0:free',
+    models: [
+      { id: 'meituan/LongCat-2.0:free', default: true },
+      { id: 'qwen3.8:27b', default: false },
+    ],
+  };
+
+  function mockTwoModelConfig() {
+    vi.mocked(getSpecDrivenConfig).mockResolvedValue({
+      ...FALLBACK_SMART_GEN_CONFIG,
+      free_tier: TWO_MODEL_FREE_TIER,
+    });
+  }
+
+  async function selectFreeProvider() {
+    const rendered = renderPendingDialog();
+    // Wait for the async config load (the free option only exists after it).
+    await screen.findByRole('button', { name: /use the free model/i });
+    const providerSelect = document.getElementById(
+      'smart-gen-provider',
+    ) as HTMLSelectElement;
+    fireEvent.change(providerSelect, { target: { value: 'free' } });
+    return rendered;
+  }
+
+  it('offers both advertised models with derived labels when provider is free', async () => {
+    mockTwoModelConfig();
+    await selectFreeProvider();
+
+    const group = screen.getByRole('radiogroup', { name: /free model/i });
+    const radios = within(group).getAllByRole('radio');
+    expect(radios).toHaveLength(2);
+    // Server-data-first labels: the id, plus a derived qualifier.
+    expect(within(group).getByText('meituan/LongCat-2.0:free (default)')).toBeTruthy();
+    expect(within(group).getByText('qwen3.8:27b (self-hosted)')).toBeTruthy();
+    // The default entry is pre-selected.
+    expect((radios[0] as HTMLInputElement).checked).toBe(true);
+  });
+
+  it('persists a non-default choice on "Run for free"', async () => {
+    mockTwoModelConfig();
+    const { store } = await selectFreeProvider();
+
+    const group = screen.getByRole('radiogroup', { name: /free model/i });
+    const fallbackRadio = within(group)
+      .getAllByRole('radio')
+      .find((r) => (r as HTMLInputElement).value === 'qwen3.8:27b') as HTMLInputElement;
+    fireEvent.click(fallbackRadio);
+    fireEvent.click(screen.getByRole('button', { name: /run for free/i }));
+
+    expect(window.sessionStorage.getItem(sessionStorageSpecDrivenFreeModel)).toBe(
+      'qwen3.8:27b',
+    );
+    expect(window.sessionStorage.getItem(sessionStorageSpecDrivenFreeTier)).toBe('1');
+    expect(store.getState().specDriven.pendingTrigger).toEqual(
+      expect.objectContaining({ planApproved: true }),
+    );
+  });
+
+  it('stores nothing for the default choice (wire shape identical to today)', async () => {
+    mockTwoModelConfig();
+    await selectFreeProvider();
+
+    fireEvent.click(screen.getByRole('button', { name: /run for free/i }));
+    expect(window.sessionStorage.getItem(sessionStorageSpecDrivenFreeModel)).toBeNull();
+  });
+
+  it('clears a stale stored choice when only one free model is advertised', async () => {
+    vi.mocked(getSpecDrivenConfig).mockResolvedValue({
+      ...FALLBACK_SMART_GEN_CONFIG,
+      free_tier: {
+        available: true,
+        model: 'qwen3-coder:30b',
+        models: [{ id: 'qwen3-coder:30b', default: true }],
+      },
+    });
+    window.sessionStorage.setItem(sessionStorageSpecDrivenFreeModel, 'qwen3.8:27b');
+    await selectFreeProvider();
+
+    // No choice UI with a single advertised model.
+    expect(screen.queryByRole('radiogroup', { name: /free model/i })).toBeNull();
+
+    fireEvent.click(screen.getByRole('button', { name: /run for free/i }));
+    expect(window.sessionStorage.getItem(sessionStorageSpecDrivenFreeModel)).toBeNull();
   });
 });
 

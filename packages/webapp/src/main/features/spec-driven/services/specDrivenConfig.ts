@@ -21,12 +21,26 @@ export interface SpecDrivenConfigCaps {
   default_max_runtime_seconds: number;
 }
 
+/** One model a free-tier request may explicitly choose. */
+export interface SpecDrivenFreeModel {
+  /** The model id, exactly as the server honors it in `llm_model`. */
+  id: string;
+  /** True for the server's default (primary) free model. */
+  default: boolean;
+}
+
 /** Keyless server-hosted "Free" tier advertisement. */
 export interface SpecDrivenFreeTier {
   /** True when the server has a hosted open-weight endpoint configured. */
   available: boolean;
   /** The pinned model name (e.g. `qwen3-coder:30b`), or null when unavailable. */
   model: string | null;
+  /**
+   * The choosable free models — exactly the server's allowlist (at most the
+   * primary plus a fallback). A single entry (or an old backend that doesn't
+   * advertise the list) means there is no choice to offer.
+   */
+  models: SpecDrivenFreeModel[];
 }
 
 export interface SpecDrivenConfig {
@@ -68,7 +82,7 @@ export const FALLBACK_SMART_GEN_CONFIG: SpecDrivenConfig = {
   supported_providers: ['anthropic', 'openai', 'mistral'],
   // Off by default — an old backend that doesn't advertise it must not
   // surface a free option that would 500.
-  free_tier: { available: false, model: null },
+  free_tier: { available: false, model: null, models: [] },
 };
 
 const _isFiniteNumber = (value: unknown): value is number =>
@@ -119,9 +133,44 @@ function _normalize(raw: unknown): SpecDrivenConfig {
               typeof data.free_tier.model === 'string' && data.free_tier.model
                 ? data.free_tier.model
                 : null,
+            models: _normalizeFreeModels(data.free_tier.models),
           }
         : FALLBACK_SMART_GEN_CONFIG.free_tier,
   };
+}
+
+/**
+ * Keep only well-formed `{id, default}` entries. An old backend without the
+ * list (or a malformed payload) normalises to `[]` — the UI then offers no
+ * model choice, which matches the pinned-model behavior of that backend.
+ */
+function _normalizeFreeModels(raw: unknown): SpecDrivenFreeModel[] {
+  if (!Array.isArray(raw)) return [];
+  return raw
+    .filter(
+      (entry): entry is { id: string; default?: unknown } =>
+        !!entry &&
+        typeof entry === 'object' &&
+        typeof (entry as { id?: unknown }).id === 'string' &&
+        ((entry as { id: string }).id.trim().length > 0),
+    )
+    .map((entry) => ({ id: entry.id.trim(), default: entry.default === true }));
+}
+
+/**
+ * Resolve the `llm_model` a free-tier run should send for a stored model
+ * choice: the stored id only when the server currently advertises it as a
+ * NON-default free model; `undefined` otherwise (the default choice — and a
+ * stale or unknown id — omits `llm_model`, the exact wire shape of a run
+ * without any choice; the backend pins unknown ids to its default anyway).
+ */
+export function resolveFreeRunModel(
+  freeTier: SpecDrivenFreeTier,
+  storedChoice: string | null,
+): string | undefined {
+  if (!storedChoice) return undefined;
+  const match = (freeTier.models ?? []).find((m) => m.id === storedChoice);
+  return match && !match.default ? match.id : undefined;
 }
 
 let _configPromise: Promise<SpecDrivenConfig> | null = null;

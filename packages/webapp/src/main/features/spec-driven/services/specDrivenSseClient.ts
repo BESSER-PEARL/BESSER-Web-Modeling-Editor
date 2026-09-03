@@ -79,8 +79,10 @@ export function startSpecDrivenRun(
   };
   if (!isFree) body.api_key = params.apiKey;
   if (!isFree && usesBaseUrl && params.baseUrl) body.base_url = params.baseUrl;
-  // Free tier's model is pinned server-side; never send a client model for it.
-  if (!isFree && params.llmModel) body.llm_model = params.llmModel;
+  // llm_model: for the free tier the trigger hook only ever sets this to the
+  // server's advertised non-default free model (the default omits it); the
+  // backend enforces its {primary, fallback} allowlist regardless.
+  if (params.llmModel) body.llm_model = params.llmModel;
   if (typeof params.maxCostUsd === 'number') body.max_cost_usd = params.maxCostUsd;
   if (typeof params.maxRuntimeSeconds === 'number') {
     body.max_runtime_seconds = params.maxRuntimeSeconds;

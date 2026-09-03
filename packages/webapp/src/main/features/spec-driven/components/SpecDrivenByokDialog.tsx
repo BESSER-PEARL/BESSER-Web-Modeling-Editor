@@ -33,8 +33,10 @@ import {
 } from '../../../shared/components/byok/LlmKeyDialog';
 import {
   clearSessionKey,
+  readFreeTierModel,
   readSessionBudget,
   readSessionKey,
+  writeFreeTierModel,
   writeFreeTierSelected,
   writeSessionBudget,
   writeSessionKey,
@@ -43,6 +45,7 @@ import {
   FALLBACK_SMART_GEN_CONFIG,
   getSpecDrivenConfig,
   type SpecDrivenConfig,
+  type SpecDrivenFreeModel,
 } from '../services/specDrivenConfig';
 import {
   approvePendingTrigger,
@@ -133,6 +136,23 @@ const PRIVACY_COPY =
   'servers and it is cleared when you close the tab.';
 
 /**
+ * Display label for a free-tier model — server-data-first (the id itself),
+ * with a short qualifier derived heuristically: the default entry is marked
+ * as such; a non-default entry with a bare (Ollama-style, no "/") id is the
+ * self-hosted model. No model names are hardcoded.
+ */
+function _freeModelLabel(model: SpecDrivenFreeModel): string {
+  if (model.default) return `${model.id} (default)`;
+  if (!model.id.includes('/')) return `${model.id} (self-hosted)`;
+  return model.id;
+}
+
+/** The default free-model id from the server's advertised list, or `''`. */
+function _defaultFreeModelId(models: readonly SpecDrivenFreeModel[]): string {
+  return models.find((m) => m.default)?.id ?? models[0]?.id ?? '';
+}
+
+/**
  * Infer the provider from the key prefix. Returns ``null`` when the
  * prefix is ambiguous or unrecognised (user must pick manually).
  *
@@ -203,6 +223,10 @@ export const SpecDrivenByokDialog: React.FC<SpecDrivenByokDialogProps> = ({
   // page load (module-level cache in specDrivenConfig); the fallback keeps
   // the inputs usable while the request is in flight or failing.
   const [config, setConfig] = useState<SpecDrivenConfig>(FALLBACK_SMART_GEN_CONFIG);
+  // Free-tier model choice — only meaningful when the server advertises
+  // more than one free model. Hydrated from sessionStorage (falling back
+  // to the server's default) once the config resolves.
+  const [freeModelChoice, setFreeModelChoice] = useState<string>('');
   // Budget inputs as raw strings (so the user can clear/retype freely);
   // parsed + clamped on save. Runtime is edited in MINUTES, stored in seconds.
   const [maxCostInput, setMaxCostInput] = useState<string>('');
@@ -246,6 +270,15 @@ export const SpecDrivenByokDialog: React.FC<SpecDrivenByokDialogProps> = ({
     void getSpecDrivenConfig().then((cfg) => {
       if (cancelled) return;
       setConfig(cfg);
+      // Hydrate the free-model choice: a stored id wins only while the
+      // server still advertises it; otherwise fall back to the default.
+      const storedFreeModel = readFreeTierModel();
+      const freeModels = cfg.free_tier.models;
+      setFreeModelChoice(
+        storedFreeModel && freeModels.some((m) => m.id === storedFreeModel)
+          ? storedFreeModel
+          : _defaultFreeModelId(freeModels),
+      );
       const saved = readSessionBudget();
       const costUsd = saved?.maxCostUsd ?? cfg.caps.default_max_cost_usd;
       const runtimeSeconds =
@@ -274,6 +307,9 @@ export const SpecDrivenByokDialog: React.FC<SpecDrivenByokDialogProps> = ({
 
   const freeAvailable = config.free_tier.available;
   const isFreeProvider = provider === 'free';
+  // The server's free-model allowlist. A choice is offered only when it
+  // holds more than one entry (primary + configured fallback).
+  const freeModels = config.free_tier.models;
 
   const trimmedKey = apiKey.trim();
   const storedKeyUsable =
@@ -462,6 +498,16 @@ export const SpecDrivenByokDialog: React.FC<SpecDrivenByokDialogProps> = ({
   const handleRunFree = () => {
     if (!pendingTrigger) return;
     writeFreeTierSelected(true);
+    // Persist the free-model choice. Only a non-default id is stored — the
+    // default is represented by the absence of a stored id, so the generate
+    // request omits llm_model exactly as before this choice existed. When
+    // the server offers no choice, clear any stale stored id.
+    const freeModels = config.free_tier.models;
+    writeFreeTierModel(
+      freeModels.length > 1 && freeModelChoice !== _defaultFreeModelId(freeModels)
+        ? freeModelChoice
+        : null,
+    );
     setSaveError(null);
     dispatch(setProvider('free'));
     startingRunRef.current = true;
@@ -570,6 +616,37 @@ export const SpecDrivenByokDialog: React.FC<SpecDrivenByokDialogProps> = ({
               )
             )}
           </div>
+
+          {/* Free-tier model choice — shown only when the server advertises
+              more than one free model (primary + configured fallback). */}
+          {isFreeProvider && freeModels.length > 1 && (
+            <fieldset className="space-y-1.5">
+              <legend className="text-sm font-medium leading-none">Model</legend>
+              <div className="space-y-1" role="radiogroup" aria-label="Free model">
+                {freeModels.map((m) => (
+                  <label
+                    key={m.id}
+                    className="flex cursor-pointer items-center gap-2 rounded-md border border-border px-3 py-2 text-sm text-foreground has-[:checked]:border-brand"
+                  >
+                    <input
+                      type="radio"
+                      name="smart-gen-free-model"
+                      value={m.id}
+                      checked={freeModelChoice === m.id}
+                      onChange={() => setFreeModelChoice(m.id)}
+                      className="accent-current"
+                    />
+                    <span>{_freeModelLabel(m)}</span>
+                  </label>
+                ))}
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Both options are free. The self-hosted model runs on BESSER
+                infrastructure; if it is unavailable your run reports an error
+                instead of switching models.
+              </p>
+            </fieldset>
+          )}
 
           {!isFreeProvider && (
           <div className="space-y-1.5">

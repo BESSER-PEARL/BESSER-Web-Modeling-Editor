@@ -122,6 +122,11 @@ export const sessionStorageSpecDrivenMaxRuntimeSeconds =
 // with the assistant, and a fake key would break the assistant's own calls.
 // This dedicated flag records the opt-in independently. Value: '1' when set.
 export const sessionStorageSpecDrivenFreeTier = localStoragePrefix + 'smart_gen_free_tier';
+// Explicitly chosen free-tier model id. Stored ONLY when the user picked the
+// server's non-default (fallback/self-hosted) free model; absent = the server's
+// default. Kept apart from the unified LLM model key above for the same reason
+// as the free flag — that store is shared with the assistant's BYOK settings.
+export const sessionStorageSpecDrivenFreeModel = localStoragePrefix + 'smart_gen_free_model';
 
 // AI Assistant — BYOK keys also alias the unified keys above, so entering the
 // key via the assistant fills the same store the smart generator reads.

@@ -41,6 +41,7 @@ import { useSpecDrivenTrigger, type SpecDrivenRunResult } from '../useSpecDriven
 import type { SpecDrivenEvent, TriggerSpecDrivenPayload } from '../../types';
 import {
   sessionStorageSpecDrivenApiKey,
+  sessionStorageSpecDrivenFreeModel,
   sessionStorageSpecDrivenFreeTier,
   sessionStorageSpecDrivenMaxCostUsd,
   sessionStorageSpecDrivenMaxRuntimeSeconds,
@@ -217,6 +218,9 @@ function clearSessionKeyManual() {
   // And the keyless free-tier opt-in — a leaked `true` here would force
   // provider='free' on later tests that assert a BYOK provider from the key.
   window.sessionStorage.removeItem(sessionStorageSpecDrivenFreeTier);
+  // And the explicit free-model choice — a leaked id would add llm_model to
+  // free runs in tests that assert the default wire shape.
+  window.sessionStorage.removeItem(sessionStorageSpecDrivenFreeModel);
 }
 
 beforeEach(async () => {
@@ -349,7 +353,11 @@ describe('useSpecDrivenTrigger — BYOK missing flow', () => {
     const configModule = await import('../../services/specDrivenConfig');
     vi.mocked(configModule.getSpecDrivenConfig).mockResolvedValue({
       ...configModule.FALLBACK_SMART_GEN_CONFIG,
-      free_tier: { available: true, model: 'qwen3-coder:30b' },
+      free_tier: {
+        available: true,
+        model: 'qwen3-coder:30b',
+        models: [{ id: 'qwen3-coder:30b', default: true }],
+      },
     });
 
     const { apiRef, store } = renderHarness();
@@ -375,6 +383,78 @@ describe('useSpecDrivenTrigger — BYOK missing flow', () => {
         (m) => typeof m.content === 'string' && m.content.includes('wme:add-key'),
       ),
     ).toBe(false);
+  });
+});
+
+
+describe('useSpecDrivenTrigger — explicit free-model choice', () => {
+  const FREE_CONFIG_WITH_FALLBACK = {
+    free_tier: {
+      available: true,
+      model: 'meituan/LongCat-2.0:free',
+      models: [
+        { id: 'meituan/LongCat-2.0:free', default: true },
+        { id: 'qwen3.8:27b', default: false },
+      ],
+    },
+  };
+
+  async function mockConfig() {
+    const configModule = await import('../../services/specDrivenConfig');
+    vi.mocked(configModule.getSpecDrivenConfig).mockResolvedValue({
+      ...configModule.FALLBACK_SMART_GEN_CONFIG,
+      ...FREE_CONFIG_WITH_FALLBACK,
+    });
+  }
+
+  async function startFreeRunAndGetArgs() {
+    _mockController.events = HAPPY_EVENTS;
+    window.sessionStorage.setItem(sessionStorageSpecDrivenFreeTier, '1');
+    const { apiRef } = renderHarness();
+    await act(async () => {
+      await apiRef.current!.handleTrigger({ ...PAYLOAD, planApproved: undefined });
+    });
+    const sseClientModule = await import('../../services/specDrivenSseClient');
+    await waitFor(() => {
+      expect(vi.mocked(sseClientModule.startSpecDrivenRun)).toHaveBeenCalledTimes(1);
+    });
+    return vi.mocked(sseClientModule.startSpecDrivenRun).mock.calls[0][0];
+  }
+
+  it('sends llm_model when the stored choice is the advertised non-default model', async () => {
+    await mockConfig();
+    window.sessionStorage.setItem(sessionStorageSpecDrivenFreeModel, 'qwen3.8:27b');
+
+    const args = await startFreeRunAndGetArgs();
+    expect(args.provider).toBe('free');
+    expect(args.llmModel).toBe('qwen3.8:27b');
+  });
+
+  it('omits llm_model when no free-model choice is stored (default)', async () => {
+    await mockConfig();
+
+    const args = await startFreeRunAndGetArgs();
+    expect(args.provider).toBe('free');
+    expect(args.llmModel).toBeUndefined();
+  });
+
+  it('omits llm_model for a stale stored id the server no longer advertises', async () => {
+    await mockConfig();
+    window.sessionStorage.setItem(sessionStorageSpecDrivenFreeModel, 'gpt-4o');
+
+    const args = await startFreeRunAndGetArgs();
+    expect(args.provider).toBe('free');
+    expect(args.llmModel).toBeUndefined();
+  });
+
+  it('never reuses the BYOK llm_model for a free run', async () => {
+    await mockConfig();
+    // A leftover BYOK model preference must not leak into a free run.
+    window.sessionStorage.setItem('besser_llm_model', 'claude-opus-4-6');
+
+    const args = await startFreeRunAndGetArgs();
+    expect(args.provider).toBe('free');
+    expect(args.llmModel).toBeUndefined();
   });
 });
 
