@@ -191,8 +191,8 @@ class OptionalAttributeRowComponent extends Component<Props, LocalState> {
     if (!value || value === '[]') return [];
     // Remove brackets and split by comma
     const cleaned = value.replace(/^\[|\]$/g, '');
-    // Match quoted strings or numbers
-    const matches = cleaned.match(/('[^']*'|"[^"]*"|\d+\.?\d*)/g) || [];
+    // Match quoted strings or numbers (including floats and negative numbers)
+    const matches = cleaned.match(/('[^']*'|"[^"]*"|-?\d+(\.\d+)?)/g) || [];
     return matches.map(s => s.replace(/^['"]|['"]$/g, '').trim());
   };
 
@@ -1140,7 +1140,7 @@ class OptionalAttributeRowComponent extends Component<Props, LocalState> {
                           // Binary: allow dropdown OR text input for numeric literals
                           <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flexGrow: 1 }}>
                             <Dropdown
-                              value={/^-?\d+(\.\d+)?$/.test(selection) ? '' : selection}
+                              value={/^-?(\d+\.?\d*|\.\d*)$/.test(selection) ? '' : selection}
                               onChange={this.handleTensorChange(index)}
                               size="sm"
                               outline
@@ -1163,7 +1163,7 @@ class OptionalAttributeRowComponent extends Component<Props, LocalState> {
                             <span style={{ fontSize: '11px' }}>or</span>
                             <Textfield
                               gutter
-                              value={/^-?\d+(\.\d+)?$/.test(selection) ? selection : ''}
+                              value={/^-?(\d+\.?\d*|\.\d*)$/.test(selection) ? selection : ''}
                               onChange={(val) => this.handleTensorChange(index)(String(val))}
                               placeholder="numeric"
                               style={{ width: '80px' }}
