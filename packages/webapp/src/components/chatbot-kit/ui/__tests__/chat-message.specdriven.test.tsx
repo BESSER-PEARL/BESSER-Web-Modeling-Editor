@@ -251,3 +251,71 @@ describe('SpecDrivenCard — Download again', () => {
     });
   });
 });
+
+describe('SpecDrivenCard — notice severities', () => {
+  it('renders an info-severity notice without alarm styling (no amber, no code prefix)', () => {
+    const { container } = renderCard(
+      baseSpecDriven({
+        warnings: [
+          {
+            code: 'INCOMPLETE',
+            message:
+              'The previous generation has expired, so there is nothing to edit — rebuilding from scratch instead.',
+            severity: 'info',
+          },
+        ],
+      }),
+    );
+    expect(container.textContent).toContain('rebuilding from scratch');
+    // The machine code is a tooltip, not visible copy.
+    expect(container.textContent).not.toContain('INCOMPLETE');
+    const row = container.querySelector('[title="INCOMPLETE"]');
+    expect(row).toBeTruthy();
+    expect(row!.className).not.toContain('amber');
+    expect(row!.className).not.toContain('red');
+  });
+
+  it('renders warning severity in amber and error severity in red', () => {
+    const { container } = renderCard(
+      baseSpecDriven({
+        status: 'error',
+        warnings: [
+          { code: 'TIMEOUT', message: 'Runtime cap reached.', severity: 'warning' },
+          { code: 'UPSTREAM_LLM', message: 'Provider unavailable.', severity: 'error' },
+        ],
+      }),
+      false,
+    );
+    const warningRow = container.querySelector('[title="TIMEOUT"]');
+    const errorRow = container.querySelector('[title="UPSTREAM_LLM"]');
+    expect(warningRow!.className).toContain('amber');
+    expect(errorRow!.className).toContain('red');
+  });
+
+  it('defaults to warning styling when severity is absent (older producers)', () => {
+    const { container } = renderCard(
+      baseSpecDriven({
+        warnings: [{ code: 'TIMEOUT', message: 'Runtime cap reached.' }],
+      }),
+    );
+    const row = container.querySelector('[title="TIMEOUT"]');
+    expect(row!.className).toContain('amber');
+  });
+
+  it('keeps notices visible on the compact done card', () => {
+    const { container } = renderCard(
+      baseSpecDriven({
+        status: 'done',
+        needsDownload: true,
+        fileName: 'besser_smart_output.zip',
+        isZip: true,
+        warnings: [
+          { code: 'INCOMPLETE', message: 'Two issues remain unresolved.', severity: 'warning' },
+        ],
+      }),
+      false,
+    );
+    expect(container.textContent).toContain('Two issues remain unresolved.');
+    expect(container.querySelector('[title="INCOMPLETE"]')!.className).toContain('amber');
+  });
+});

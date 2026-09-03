@@ -9,6 +9,7 @@ import {
   Code2,
   Download,
   Github,
+  Info,
   Loader2,
   Sparkles,
   Square,
@@ -165,6 +166,15 @@ export interface SpecDrivenPhaseView {
 export interface SpecDrivenWarningView {
   code: string
   message: string
+  /**
+   * How severely to render the notice. `error` = the run failed (red);
+   * `warning` = the run continued / finished but the output may be
+   * affected (amber); `info` = an informational note about how the run
+   * proceeded (e.g. "previous generation expired — rebuilding from
+   * scratch"), rendered in a neutral style so it does not read as a
+   * failure. Defaults to `warning` when absent (older producers).
+   */
+  severity?: "info" | "warning" | "error"
 }
 
 export interface SpecDrivenMessageState {
@@ -713,6 +723,51 @@ function SpecDrivenPhaseRow({
   )
 }
 
+/**
+ * Severity-styled notices for the run card. Terminal errors render red,
+ * warnings amber, and informational notes (e.g. "previous generation
+ * expired — rebuilding from scratch") in a neutral info style. Previously
+ * every notice shared one amber block prefixed with a raw CAPS error code,
+ * which made benign mid-run notices read as failures. The machine code is
+ * kept as a tooltip for debugging.
+ */
+function SpecDrivenNoticeList({
+  warnings,
+}: {
+  warnings: SpecDrivenWarningView[]
+}) {
+  if (warnings.length === 0) return null
+  return (
+    <div className="flex flex-col border-t border-border/40">
+      {warnings.map((w, i) => {
+        const severity = w.severity ?? "warning"
+        const styles =
+          severity === "error"
+            ? "bg-red-50 text-red-800 dark:bg-red-950/20 dark:text-red-200"
+            : severity === "info"
+              ? "bg-background/40 text-muted-foreground"
+              : "bg-amber-50 text-amber-800 dark:bg-amber-950/20 dark:text-amber-200"
+        const IconComponent =
+          severity === "error"
+            ? XCircle
+            : severity === "info"
+              ? Info
+              : AlertTriangle
+        return (
+          <div
+            key={`${w.code}-${i}`}
+            title={w.code}
+            className={cn("flex items-start gap-2 px-3 py-2 text-xs", styles)}
+          >
+            <IconComponent className="mt-0.5 h-3 w-3 shrink-0" />
+            <span className="break-words">{w.message}</span>
+          </div>
+        )
+      })}
+    </div>
+  )
+}
+
 /** `3m 10s` / `45s` / `10m` — compact duration for the runtime meter. */
 function formatDuration(totalSeconds: number): string {
   const s = Math.max(0, Math.round(totalSeconds))
@@ -969,20 +1024,7 @@ function SpecDrivenCard({
         ) : null}
 
         {/* Warnings (incomplete / timeout) stay visible on the compact card */}
-        {warnings.length > 0 ? (
-          <div className="flex flex-col gap-1 border-t border-amber-200 bg-amber-50 px-3 py-2 dark:border-amber-800/30 dark:bg-amber-950/20">
-            {warnings.map((w, i) => (
-              <div
-                key={`${w.code}-${i}`}
-                className="flex items-start gap-2 text-xs text-amber-800 dark:text-amber-200"
-              >
-                <AlertTriangle className="mt-0.5 h-3 w-3 shrink-0" />
-                <span className="font-mono">{w.code}</span>
-                <span className="break-words">— {w.message}</span>
-              </div>
-            ))}
-          </div>
-        ) : null}
+        <SpecDrivenNoticeList warnings={warnings} />
 
         {/* Download failed — artifact still retrievable from the server */}
         {downloadFailed ? (
@@ -1042,21 +1084,8 @@ function SpecDrivenCard({
         </div>
       )}
 
-      {/* Warnings */}
-      {warnings.length > 0 ? (
-        <div className="flex flex-col gap-1 border-t border-amber-200 bg-amber-50 px-3 py-2 dark:border-amber-800/30 dark:bg-amber-950/20">
-          {warnings.map((w, i) => (
-            <div
-              key={`${w.code}-${i}`}
-              className="flex items-start gap-2 text-xs text-amber-800 dark:text-amber-200"
-            >
-              <AlertTriangle className="mt-0.5 h-3 w-3 shrink-0" />
-              <span className="font-mono">{w.code}</span>
-              <span className="break-words">— {w.message}</span>
-            </div>
-          ))}
-        </div>
-      ) : null}
+      {/* Warnings / notices, styled by severity */}
+      <SpecDrivenNoticeList warnings={warnings} />
 
       {/* LLM prose */}
       {text ? (
