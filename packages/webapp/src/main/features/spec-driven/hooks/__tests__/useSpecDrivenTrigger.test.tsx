@@ -1093,3 +1093,215 @@ describe('useSpecDrivenTrigger — abort', () => {
     expect(store.getState().specDriven.activeRun).not.toBeNull();
   });
 });
+
+describe('useSpecDrivenTrigger — mid-run model switch (model_update)', () => {
+  it('updates the card model and adds a step note when the fallback takes over', async () => {
+    setSessionKey();
+    _mockController.events = [
+      HAPPY_EVENTS[0],
+      { event: 'phase', phase: 'select', message: 'Selecting generator' },
+      {
+        event: 'model_update',
+        model: 'qwen3-coder:30b',
+        previousModel: 'claude-sonnet-4-6',
+        reason: 'primary_unavailable',
+      },
+      ...HAPPY_EVENTS.slice(2),
+    ];
+
+    const { apiRef } = renderHarness();
+    await act(async () => {
+      await apiRef.current!.handleTrigger(PAYLOAD);
+    });
+
+    await waitFor(() => {
+      const msgs = apiRef.current!.getMessages() as any[];
+      expect(msgs.find((m) => m.specDriven)).toBeTruthy();
+    });
+    const card = (apiRef.current!.getMessages() as any[]).find((m) => m.specDriven);
+    // Header model reflects the model actually serving the run…
+    expect(card.specDriven.model).toBe('qwen3-coder:30b');
+    // …and the switch is visible as a step in the run timeline.
+    const switchRow = card.specDriven.phases.find(
+      (p: any) => p.phase === 'model',
+    );
+    expect(switchRow).toBeTruthy();
+    expect(switchRow.label).toBe('Switched to qwen3-coder:30b');
+    expect(switchRow.message).toBe('The primary model was unavailable.');
+  });
+});
+
+describe('useSpecDrivenTrigger — honest completion copy', () => {
+  it('uses blocker framing (not "stopped early") when the loop completed with blockers', async () => {
+    setSessionKey();
+    const results: SpecDrivenRunResult[] = [];
+    _mockController.events = [
+      ...HAPPY_EVENTS.slice(0, -1),
+      {
+        ...(HAPPY_EVENTS[HAPPY_EVENTS.length - 1] as any),
+        incomplete: true,
+        incompleteReason:
+          'The app was built but 2 blocker-level issue(s) remain that likely stop it from running.',
+        blockerCount: 2,
+      },
+    ];
+
+    const { apiRef } = renderHarness({ onRunFinished: (r) => results.push(r) });
+    await act(async () => {
+      await apiRef.current!.handleTrigger(PAYLOAD);
+    });
+
+    await waitFor(() => {
+      expect(results.length).toBe(1);
+    });
+    const msgs = apiRef.current!.getMessages() as any[];
+    const summary = msgs.find(
+      (m) => typeof m.content === 'string' && m.content.includes('unresolved issue'),
+    );
+    expect(summary).toBeTruthy();
+    expect(summary.content).toContain('finished with 2 unresolved issues');
+    expect(summary.content).toContain('resume the run');
+    // A completed-with-blockers run did NOT stop early — never say it did.
+    expect(summary.content).not.toContain('stopped early');
+    expect(results[0].blockerCount).toBe(2);
+    expect(results[0].incomplete).toBe(true);
+  });
+
+  it('keeps the cut-short framing for runs that genuinely stopped early', async () => {
+    setSessionKey();
+    _mockController.events = [
+      ...HAPPY_EVENTS.slice(0, -1),
+      {
+        ...(HAPPY_EVENTS[HAPPY_EVENTS.length - 1] as any),
+        incomplete: true,
+        incompleteReason:
+          'The customization loop reached its step limit before finishing every requested change.',
+      },
+    ];
+
+    const { apiRef } = renderHarness();
+    await act(async () => {
+      await apiRef.current!.handleTrigger(PAYLOAD);
+    });
+
+    await waitFor(() => {
+      const msgs = apiRef.current!.getMessages() as any[];
+      expect(
+        msgs.some(
+          (m) => typeof m.content === 'string' && m.content.includes('stopped early'),
+        ),
+      ).toBe(true);
+    });
+  });
+});
+
+describe('useSpecDrivenTrigger — failsafe honesty', () => {
+  /** Flush enough microtask ticks for the for-await loop to consume the
+   * scripted events while fake timers are active. */
+  const flushMicrotasks = async () => {
+    for (let i = 0; i < 20; i++) await Promise.resolve();
+  };
+
+  /** Mock one run whose stream yields `events` then hangs (no `done`,
+   * no close) — the shape that used to trip the failsafe. */
+  const mockHangingRun = async (events: SpecDrivenEvent[]) => {
+    const sseClientModule = await import('../../services/specDrivenSseClient');
+    vi.mocked(sseClientModule.startSpecDrivenRun).mockImplementationOnce(() => ({
+      controller: new AbortController(),
+      abort: () => {
+        _mockController.abortCalled = true;
+      },
+      events: (async function* () {
+        for (const ev of events) yield ev;
+        await new Promise<never>(() => {
+          /* hang forever */
+        });
+      })(),
+    }));
+  };
+
+  it('a mid-run INCOMPLETE notice does NOT arm the 45s failsafe', async () => {
+    vi.useFakeTimers();
+    try {
+      setSessionKey();
+      await mockHangingRun([
+        HAPPY_EVENTS[0],
+        {
+          event: 'error',
+          code: 'INCOMPLETE',
+          message:
+            'The previous generation has expired, so there is nothing to edit — rebuilding from scratch instead.',
+        },
+      ]);
+
+      const { apiRef } = renderHarness();
+      act(() => {
+        void apiRef.current!.handleTrigger(PAYLOAD);
+      });
+      await act(flushMicrotasks);
+
+      // The notice lands on the card as an informational entry (it arrived
+      // before any phase — a run-setup note, not an output problem).
+      const card = (apiRef.current!.getMessages() as any[]).find((m) => m.specDriven);
+      expect(card.specDriven.warnings[0].severity).toBe('info');
+
+      // Advance well past the failsafe window: the run must still be alive.
+      await act(async () => {
+        vi.advanceTimersByTime(60_000);
+        await flushMicrotasks();
+      });
+      const msgs = apiRef.current!.getMessages() as any[];
+      expect(
+        msgs.some(
+          (m) =>
+            typeof m.content === 'string' &&
+            m.content.includes('ended unexpectedly'),
+        ),
+      ).toBe(false);
+      expect(_mockController.abortCalled).toBe(false);
+
+      act(() => apiRef.current!.abortActive());
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('a COST_CAP with no done event fires the failsafe with neutral copy (no cap blame)', async () => {
+    vi.useFakeTimers();
+    try {
+      setSessionKey();
+      await mockHangingRun([
+        HAPPY_EVENTS[0],
+        { event: 'error', code: 'COST_CAP', message: 'Cost cap reached ($1.01 > $1.00)' },
+      ]);
+
+      const { apiRef } = renderHarness();
+      act(() => {
+        void apiRef.current!.handleTrigger(PAYLOAD);
+      });
+      await act(flushMicrotasks);
+
+      await act(async () => {
+        vi.advanceTimersByTime(46_000);
+        await flushMicrotasks();
+      });
+
+      const msgs = apiRef.current!.getMessages() as any[];
+      const failsafeMsg = msgs.find(
+        (m) =>
+          typeof m.content === 'string' && m.content.includes('ended unexpectedly'),
+      );
+      expect(failsafeMsg).toBeTruthy();
+      expect(failsafeMsg.content).toContain(
+        'The run ended unexpectedly before reporting a result.',
+      );
+      // The old copy blamed the cost/runtime cap even when the real cause
+      // was a provider outage or crash — that wording must be gone.
+      expect(failsafeMsg.content).not.toContain('exceeded the cost/runtime cap');
+      // The failsafe aborts the hung run.
+      expect(_mockController.abortCalled).toBe(true);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+});

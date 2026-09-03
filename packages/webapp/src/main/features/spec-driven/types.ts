@@ -93,6 +93,20 @@ export interface TextDeltaEvent {
   delta: string;
 }
 
+/**
+ * The LLM serving the run changed mid-run — the provider's outage
+ * fallback switched to a different model (sticky for the rest of the
+ * run). The run card updates its header model and shows a note in the
+ * run steps. `reason` is a short machine-readable cause; today the only
+ * producer is the outage fallback (`primary_unavailable`).
+ */
+export interface ModelUpdateEvent {
+  event: 'model_update';
+  model: string;
+  previousModel?: string | null;
+  reason?: string;
+}
+
 export interface ToolCallEvent {
   event: 'tool_call';
   turn: number;
@@ -128,6 +142,11 @@ export interface DoneEvent {
    * finish cleanly — the download may be missing requested changes. */
   incomplete?: boolean;
   incompleteReason?: string;
+  /** Number of unresolved blocker-severity issues left by a run whose
+   * loop COMPLETED (0 for runs that were genuinely cut short). Drives
+   * "finished with N unresolved issues" framing instead of the
+   * misleading "stopped early" copy. */
+  blockerCount?: number;
 }
 
 export interface SpecDrivenErrorEvent {
@@ -141,6 +160,7 @@ export type SpecDrivenEvent =
   | PhaseEvent
   | PhaseUpdateEvent
   | TextDeltaEvent
+  | ModelUpdateEvent
   | ToolCallEvent
   | CostEvent
   | DoneEvent

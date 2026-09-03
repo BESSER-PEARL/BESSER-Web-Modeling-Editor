@@ -20,9 +20,14 @@
  *   6. On `done`, the download is fetched and finalised in the SAME
  *      try block that writes the success message — so a download
  *      failure produces an error message, never a stale ✅ bubble.
- *   7. `COST_CAP` and `TIMEOUT` are non-terminal warnings — they
- *      annotate the stream but wait for the `done` event (with a
- *      failsafe timeout in case the backend never sends `done`).
+ *   7. `COST_CAP`, `TIMEOUT`, and `INCOMPLETE` are non-terminal
+ *      warnings — they annotate the stream but wait for the `done`
+ *      event. `COST_CAP` / `TIMEOUT` only ever arrive at the very end
+ *      of a run, so they additionally arm a failsafe timeout in case
+ *      the backend never sends `done`. `INCOMPLETE` can arrive mid-run
+ *      (e.g. the base-expired "rebuilding from scratch" notice at the
+ *      START of a modify run), so it must NOT arm the failsafe — doing
+ *      so used to kill legitimate rebuilds 45s in.
  *
  * Concurrency: only ONE smart-gen run is allowed at a time — GLOBALLY,
  * across all mounted hook instances (AssistantWidget and
@@ -178,6 +183,11 @@ export interface SpecDrivenRunResult {
    * report the outcome honestly instead of an unqualified success. */
   incomplete?: boolean;
   incompleteReason?: string;
+  /** Unresolved blocker-severity issues left by a run whose loop
+   * COMPLETED (0 / undefined for genuinely cut-short runs). Lets the
+   * agent report "finished with N unresolved issues" instead of the
+   * misleading "stopped early". */
+  blockerCount?: number;
 }
 
 export interface UseSpecDrivenTriggerOptions {
@@ -505,6 +515,31 @@ export function useSpecDrivenTrigger(
           }));
           return;
         }
+        case 'model_update': {
+          // The provider's outage fallback switched the run to a
+          // different model mid-run (sticky for the rest of the run).
+          // Update the card header so it shows the model actually
+          // serving the run, and add a note to the run steps so the
+          // switch is visible rather than silent.
+          const note =
+            event.reason === 'primary_unavailable'
+              ? 'The primary model was unavailable.'
+              : 'The serving model changed mid-run.';
+          updateSpecDriven(streamingId, (s) => ({
+            ...s,
+            model: event.model,
+            phases: [
+              ...s.phases,
+              {
+                phase: 'model',
+                label: `Switched to ${event.model}`,
+                message: note,
+                toolCalls: [],
+              },
+            ],
+          }));
+          return;
+        }
         case 'cost': {
           dispatch(updateCost({ usd: event.usd, elapsedSeconds: event.elapsedSeconds }));
           lastCostRef.current = event.usd;
@@ -543,6 +578,13 @@ export function useSpecDrivenTrigger(
             typeof event.tokensUsed === 'number' && event.tokensUsed > 0
               ? event.tokensUsed
               : undefined;
+          // Unresolved blocker-severity issues left by a run whose loop
+          // COMPLETED. When > 0 the run did NOT "stop early" — it
+          // finished, with issues — and the copy must say so.
+          const blockerCount =
+            typeof event.blockerCount === 'number' && event.blockerCount > 0
+              ? event.blockerCount
+              : 0;
           // Record this successful run as the base for a future
           // incremental vibe-modify of the SAME project — both in the
           // slice (same-session fast path) and localStorage (survives a
@@ -605,9 +647,20 @@ export function useSpecDrivenTrigger(
                   .map((e) => `\`${e}\``)
                   .join(', ')}${topLevel.length > 8 ? ', …' : ''}.`
               : '';
+            // Three outcomes, three honest messages:
+            //   - clean success;
+            //   - the loop COMPLETED but left blocker-severity issues
+            //     (blockerCount > 0) — the run did not "stop early", it
+            //     finished with unresolved issues;
+            //   - the loop was genuinely cut short (turn cap, provider
+            //     error, cancellation) — "stopped early" is accurate.
+            const incompleteMessage =
+              blockerCount > 0
+                ? `⚠️ Generated ${filesPhrase}${withGen}, but the run **finished with ${blockerCount} unresolved issue${blockerCount === 1 ? '' : 's'} that may stop the app from running**.${topPhrase} You can resume the run to fix ${blockerCount === 1 ? 'it' : 'them'}, or use the **Download** button on the run card to save the code as-is.`
+                : `⚠️ Generated ${filesPhrase}${withGen}, but the run **stopped early — the output may be incomplete**.${event.incompleteReason ? ` ${event.incompleteReason}` : ``}${topPhrase} You can resume the run to finish the remaining changes. Use the **Download** button on the run card to save it.`;
             appendAssistantMessage(
               event.incomplete
-                ? `⚠️ Generated ${filesPhrase}${withGen}, but the run **stopped early — the output may be incomplete**.${event.incompleteReason ? ` ${event.incompleteReason}` : ``}${topPhrase} You can resume the run to finish the remaining changes. Use the **Download** button on the run card to save it.`
+                ? incompleteMessage
                 : `✅ Generated ${filesPhrase}${withGen}.${topPhrase} Use the **Download** button on the run card to save it.`,
             );
             toast.success('Spec-Driven Agent finished -- ready to download');
@@ -623,6 +676,7 @@ export function useSpecDrivenTrigger(
             generatorUsed,
             incomplete: event.incomplete,
             incompleteReason: event.incompleteReason,
+            blockerCount: blockerCount > 0 ? blockerCount : undefined,
           });
           return;
         }
@@ -634,32 +688,56 @@ export function useSpecDrivenTrigger(
             event.code === 'INCOMPLETE'
           ) {
             // Warning — stream continues; the `done` event will follow.
-            // But if the backend hangs and never sends `done`, the
-            // failsafe timer finalises the run ourselves after 45s.
             // COST_CAP is handled silently: its message quotes dollar
             // estimates we don't consider reliable enough to show
             // (product decision) — the run still finalises normally.
             // TIMEOUT / INCOMPLETE surface a warning on the run card.
             if (event.code === 'TIMEOUT' || event.code === 'INCOMPLETE') {
+              const warningCode = event.code;
               updateSpecDriven(streamingId, (s) => ({
                 ...s,
                 warnings: [
                   ...s.warnings,
-                  { code: event.code, message: event.message },
+                  {
+                    code: warningCode,
+                    message: event.message,
+                    // An INCOMPLETE that arrives before any phase has run
+                    // is an informational notice about run SETUP (e.g.
+                    // "previous generation expired — rebuilding from
+                    // scratch"), not a problem with the output. Render it
+                    // as info, not as a warning banner.
+                    severity:
+                      warningCode === 'INCOMPLETE' && s.phases.length === 0
+                        ? ('info' as const)
+                        : ('warning' as const),
+                  },
                 ],
               }));
             }
-            if (failsafeTimerRef.current === null) {
+            // Failsafe: COST_CAP / TIMEOUT only ever arrive at the very
+            // end of a run, so `done` should follow within seconds — if
+            // it doesn't, finalise ourselves after 45s. INCOMPLETE must
+            // NOT arm this: it can arrive mid-run (the base-expired
+            // notice at the START of a modify run) when the run still
+            // has many minutes of legitimate work ahead.
+            if (
+              (event.code === 'COST_CAP' || event.code === 'TIMEOUT') &&
+              failsafeTimerRef.current === null
+            ) {
               const warningCode = event.code;
               failsafeTimerRef.current = setTimeout(() => {
                 if (!isRunningRef.current || abortRequestedRef.current) return;
+                console.error(
+                  '[useSpecDrivenTrigger] no done event within failsafe window',
+                  { runId: currentRunIdRef.current, lastWarning: warningCode },
+                );
                 finalizeStreamingMessage(streamingId);
                 appendErrorToChat(
-                  `Spec-Driven Agent exceeded the cost/runtime cap and the ` +
-                    `backend did not finalise the run. You may need to retry ` +
-                    `with a larger budget.`,
+                  `The run ended unexpectedly before reporting a result. ` +
+                    `You can retry the run; if this keeps happening, the ` +
+                    `model provider may be temporarily unavailable.`,
                 );
-                toast.error('Spec-Driven Agent cap reached — no response');
+                toast.error('Spec-Driven Agent run ended without a result');
                 reportRunFinished({
                   ok: false,
                   runId: currentRunIdRef.current,
@@ -686,7 +764,7 @@ export function useSpecDrivenTrigger(
               status: 'error',
               warnings: [
                 ...s.warnings,
-                { code: event.code, message: event.message },
+                { code: event.code, message: event.message, severity: 'error' as const },
               ],
             }),
             { stopStreaming: true },
@@ -946,7 +1024,10 @@ export function useSpecDrivenTrigger(
             (state) => ({
               ...state,
               status: 'error',
-              warnings: [...state.warnings, { code: 'INTERNAL', message }],
+              warnings: [
+                ...state.warnings,
+                { code: 'INTERNAL', message, severity: 'error' as const },
+              ],
             }),
             { stopStreaming: true },
           );
