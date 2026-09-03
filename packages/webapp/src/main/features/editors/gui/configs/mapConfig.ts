@@ -1,5 +1,4 @@
 import { MapComponent } from '../widgets/MapComponent';
-import { getClassOptions } from '../diagram-helpers';
 import i18n from '@/main/shared/i18n';
 
 export interface MapTrait {
@@ -40,10 +39,7 @@ export const getMapConfig = (): MapConfig => ({
     { type: 'number', label: i18n.t('editors.gui.traits.latitude'), name: 'map-latitude', value: 49.6116, changeProp: 1 },
     { type: 'number', label: i18n.t('editors.gui.traits.longitude'), name: 'map-longitude', value: 6.1319, changeProp: 1 },
     { type: 'number', label: i18n.t('editors.gui.traits.zoom'), name: 'map-zoom', value: 12, changeProp: 1 },
-    // --- data binding: class + geo fields ---
-    { type: 'select', label: i18n.t('editors.gui.traits.dataSource'), name: 'data-source', value: '', options: getClassOptions(), changeProp: 1 },
-    { type: 'select', label: i18n.t('editors.gui.traits.latitudeField'), name: 'latitude-field', value: '', options: [], changeProp: 1 },
-    { type: 'select', label: i18n.t('editors.gui.traits.longitudeField'), name: 'longitude-field', value: '', options: [], changeProp: 1 },
-    { type: 'select', label: i18n.t('editors.gui.traits.markerLabelField'), name: 'marker-label-field', value: '', options: [], changeProp: 1 },
+    // --- layer manager (add/remove layers, per-layer type + field selects) ---
+    { type: 'layer-manager', label: i18n.t('editors.gui.traits.layers', { defaultValue: 'Layers' }), name: 'map-layers', value: '[]', changeProp: 1 },
   ],
 });

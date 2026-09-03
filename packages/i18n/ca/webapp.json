@@ -2046,7 +2046,8 @@
         "positiveTrendColor": "Color tendència positiva",
         "latitudeField": "Camp latitud",
         "longitudeField": "Camp longitud",
-        "markerLabelField": "Camp etiqueta marcador"
+        "markerLabelField": "Camp etiqueta marcador",
+        "layers": "Layers"
       },
       "pages": {
         "title": "Pàgines",
@@ -2209,6 +2210,10 @@
           "range": "Interval",
           "search": "Cerca"
         }
+      },
+      "layerManager": {
+        "title": "Map Layers",
+        "addLayer": "Add Layer"
       }
     },
     "loadingGuiEditor": "S'està carregant l'editor de GUI...",

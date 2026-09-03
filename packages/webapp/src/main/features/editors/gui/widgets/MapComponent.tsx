@@ -2,6 +2,7 @@ import React from 'react';
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
+import { LayerItem } from '../traits/registerLayerManagerTrait';
 
 // Fix Leaflet's default marker icon — Vite asset handling breaks the built-in URL
 // resolution, so we point it at the CDN copies explicitly.
@@ -12,35 +13,37 @@ L.Icon.Default.mergeOptions({
   shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
 });
 
+/** Visual indicator emoji used per layer type in the badge strip. */
+const LAYER_ICON: Record<string, string> = {
+  points:     '📍',
+  geojson:    '🗺️',
+  choropleth: '🎨',
+  heatmap:    '🔥',
+};
+
 interface MapComponentProps {
   title?: string;
   latitude?: number;
   longitude?: number;
   zoom?: number;
-  /** ID of the bound domain class (used in the editor preview label). */
-  'data-source'?: string;
-  'latitude-field'?: string;
-  'longitude-field'?: string;
-  'marker-label-field'?: string;
+  /** Configured map layers (populated by the layer-manager trait). */
+  layers?: LayerItem[];
 }
 
 /**
  * MapComponent — GrapesJS editor preview widget.
  *
  * Renders a real Leaflet/OpenStreetMap tile layer centred on the configured
- * coordinates.  When a data-source class is bound the component shows a badge
- * indicating which class and field names will drive the markers at runtime
- * (the live fetch only happens in the generated React app, not in the editor).
+ * coordinates.  When layers are configured, the component shows a badge strip
+ * listing each layer's name, type, and bound data source.  Live data fetching
+ * only happens in the generated React app (MapBlock.tsx), not here.
  */
 export const MapComponent: React.FC<MapComponentProps> = ({
   title = 'Location Map',
   latitude = 49.6116,
   longitude = 6.1319,
   zoom = 12,
-  'data-source': dataSource,
-  'latitude-field': latitudeField,
-  'longitude-field': longitudeField,
-  'marker-label-field': markerLabelField,
+  layers = [],
 }) => {
   const center: [number, number] = [latitude, longitude];
 
@@ -84,18 +87,19 @@ export const MapComponent: React.FC<MapComponentProps> = ({
             attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
             url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
           />
-          {/* Show a static preview marker at the configured centre. */}
+          {/* Static preview marker at the configured centre. */}
           <Marker position={center}>
             <Popup>
-              {dataSource
-                ? `Markers from: ${dataSource}`
+              {layers.length > 0
+                ? `${layers.length} layer${layers.length === 1 ? '' : 's'} configured`
                 : `${latitude.toFixed(4)}, ${longitude.toFixed(4)}`}
             </Popup>
           </Marker>
         </MapContainer>
       </div>
 
-      {dataSource && (
+      {/* Per-layer badge strip — visible once layers are configured. */}
+      {layers.length > 0 && (
         <div
           style={{
             padding: '6px 12px',
@@ -104,14 +108,34 @@ export const MapComponent: React.FC<MapComponentProps> = ({
             color: '#2980b9',
             fontFamily: 'Arial, sans-serif',
             display: 'flex',
-            gap: '8px',
+            gap: '6px',
             flexWrap: 'wrap',
+            alignItems: 'center',
           }}
         >
-          <span>📍 Bound to: <strong>{dataSource}</strong></span>
-          {latitudeField && <span>lat: <code>{latitudeField}</code></span>}
-          {longitudeField && <span>lng: <code>{longitudeField}</code></span>}
-          {markerLabelField && <span>label: <code>{markerLabelField}</code></span>}
+          {layers.map((layer, idx) => (
+            <span
+              key={idx}
+              title={`type: ${layer.type}${layer.dataSource ? ` | source: ${layer.dataSource}` : ''}`}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '4px',
+                background: '#d6eaf8',
+                border: '1px solid #aed6f1',
+                borderRadius: '4px',
+                padding: '2px 8px',
+                fontSize: '11px',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              <span>{LAYER_ICON[layer.type] ?? '📍'}</span>
+              <strong>{layer.name || `Layer ${idx + 1}`}</strong>
+              {layer.dataSource && (
+                <span style={{ opacity: 0.7 }}>← {layer.dataSource}</span>
+              )}
+            </span>
+          ))}
         </div>
       )}
     </div>

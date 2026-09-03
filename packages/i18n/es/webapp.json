@@ -2046,7 +2046,8 @@
         "positiveTrendColor": "Color tendencia positiva",
         "latitudeField": "Campo latitud",
         "longitudeField": "Campo longitud",
-        "markerLabelField": "Campo etiqueta marcador"
+        "markerLabelField": "Campo etiqueta marcador",
+        "layers": "Layers"
       },
       "pages": {
         "title": "Páginas",
@@ -2209,6 +2210,10 @@
           "range": "Rango",
           "search": "Búsqueda"
         }
+      },
+      "layerManager": {
+        "title": "Map Layers",
+        "addLayer": "Add Layer"
       }
     },
     "loadingGuiEditor": "Cargando el editor de GUI...",

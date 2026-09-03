@@ -1,14 +1,14 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { MapConfig } from '../configs/mapConfig';
-import { getAttributeOptionsByClassId, getClassOptions } from '../diagram-helpers';
+import registerLayerManagerTrait from '../traits/registerLayerManagerTrait';
 
 /**
  * GrapesJS renders its canvas inside an <iframe>, so CSS bundled by Vite for the
  * parent frame is NOT automatically available inside the canvas. Leaflet relies on
  * its CSS for tile / control / marker positioning, so we inject it once into the
- * iframe document via a <link> pointing at the unpkg CDN (same CDN used by the
- * Leaflet icon fix in MapComponent.tsx).  The id guard prevents double-injection.
+ * iframe document via a <link> pointing at the unpkg CDN.  The id guard prevents
+ * double-injection.
  */
 function ensureLeafletCssInFrame(el: HTMLElement): void {
   const frameDoc = el.ownerDocument;
@@ -21,27 +21,38 @@ function ensureLeafletCssInFrame(el: HTMLElement): void {
 }
 
 /** Pull all props for MapComponent out of the GrapesJS attribute bag. */
-const buildMapProps = (attrs: Record<string, any>, config: MapConfig): any => ({
-  title: attrs['map-title'] || config.defaultTitle,
-  latitude: parseFloat(attrs['map-latitude']) || config.defaultLatitude,
-  longitude: parseFloat(attrs['map-longitude']) || config.defaultLongitude,
-  zoom: parseInt(attrs['map-zoom']) || 12,
-  'data-source': attrs['data-source'] || undefined,
-  'latitude-field': attrs['latitude-field'] || undefined,
-  'longitude-field': attrs['longitude-field'] || undefined,
-  'marker-label-field': attrs['marker-label-field'] || undefined,
-});
+const buildMapProps = (attrs: Record<string, any>, config: MapConfig): any => {
+  // Parse the layer list from the serialised JSON string stored in map-layers.
+  let layers: any[] = [];
+  const rawLayers = attrs['map-layers'];
+  if (typeof rawLayers === 'string' && rawLayers.trim().startsWith('[')) {
+    try {
+      layers = JSON.parse(rawLayers);
+    } catch {
+      layers = [];
+    }
+  }
+  return {
+    title: attrs['map-title'] || config.defaultTitle,
+    latitude: parseFloat(attrs['map-latitude']) || config.defaultLatitude,
+    longitude: parseFloat(attrs['map-longitude']) || config.defaultLongitude,
+    zoom: parseInt(attrs['map-zoom']) || 12,
+    layers,
+  };
+};
 
 /**
  * Register the Map component in the GrapesJS editor.
  *
  * Mirrors the `registerMetricCardComponent` pattern:
  * - all trait values live in the GrapesJS "attributes" bag (HTML attributes)
- * - `change:attributes` listener keeps the React preview in sync
- * - when the user picks a data-source class the three geo-field select traits
- *   are dynamically populated with that class's attribute names
+ * - `change:attributes` / `change:map-layers` listeners keep the React preview in sync
+ * - the `layer-manager` custom trait handles add/remove layers + per-layer field selects
  */
 export const registerMapComponent = (editor: any, config: MapConfig) => {
+  // Register the custom layer-manager trait type once (idempotent after first call).
+  registerLayerManagerTrait(editor);
+
   // Pre-populate HTML attributes from trait defaults so the component renders
   // correctly on first drop even before the user opens the sidebar.
   const traitAttributes: Record<string, any> = { class: `${config.id}-component` };
@@ -101,35 +112,10 @@ export const registerMapComponent = (editor: any, config: MapConfig) => {
           });
         }
 
-        // --- populate data-source select with current class names ---
-        const dataSourceTrait = traits.where({ name: 'data-source' })[0];
-        if (dataSourceTrait) {
-          dataSourceTrait.set('options', getClassOptions());
-        }
-
-        /**
-         * When a domain class is selected (or pre-loaded from a saved diagram),
-         * fill the three geo-field selectors with its attribute names so the
-         * user can pick which field is latitude, longitude, and the marker label.
-         */
-        const updateGeoFieldOptions = (classId: string) => {
-          const attrOptions = getAttributeOptionsByClassId(classId);
-          const ALL_GEO_FIELD_TRAITS = ['latitude-field', 'longitude-field', 'marker-label-field'];
-          ALL_GEO_FIELD_TRAITS.forEach(traitName => {
-            const t = traits.where({ name: traitName })[0];
-            if (t) t.set('options', attrOptions);
-          });
-        };
-
-        // On load — hydrate field options if a class is already bound.
-        const initialClass = (this.get('attributes') || {})['data-source'];
-        if (initialClass) updateGeoFieldOptions(initialClass);
-
-        // On change — refresh whenever the class selection changes.
-        this.on('change:attributes', () => {
-          const classId = (this.get('attributes') || {})['data-source'];
-          if (classId) updateGeoFieldOptions(classId);
-        });
+        // Also re-render when the layer-manager trait fires its change event directly
+        // (the custom trait type writes to component.addAttributes, which updates
+        // the attribute bag but may not always trigger change:<traitName>).
+        this.on('change:attributes', () => { this.renderMap(); });
       },
 
       renderMap(this: any) {

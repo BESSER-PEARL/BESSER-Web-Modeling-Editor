@@ -2046,7 +2046,8 @@
         "positiveTrendColor": "Farbe für einen positiven Trend",
         "latitudeField": "Breitengrad-Feld",
         "longitudeField": "Längengrad-Feld",
-        "markerLabelField": "Markierungsbeschriftungsfeld"
+        "markerLabelField": "Markierungsbeschriftungsfeld",
+        "layers": "Layers"
       },
       "pages": {
         "title": "Seiten",
@@ -2209,6 +2210,10 @@
           "range": "Bereich",
           "search": "Suche"
         }
+      },
+      "layerManager": {
+        "title": "Map Layers",
+        "addLayer": "Add Layer"
       }
     },
     "loadingGuiEditor": "GUI-Editor wird geladen...",

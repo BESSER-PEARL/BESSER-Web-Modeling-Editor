@@ -2046,7 +2046,8 @@
         "positiveTrendColor": "Faarf positiven Trend",
         "latitudeField": "Breedegrad-Feld",
         "longitudeField": "Längegrad-Feld",
-        "markerLabelField": "Marker-Titel-Feld"
+        "markerLabelField": "Marker-Titel-Feld",
+        "layers": "Layers"
       },
       "pages": {
         "title": "Säiten",
@@ -2209,6 +2210,10 @@
           "range": "Beräich",
           "search": "Sich"
         }
+      },
+      "layerManager": {
+        "title": "Map Layers",
+        "addLayer": "Add Layer"
       }
     },
     "loadingGuiEditor": "GUI-Editor gëtt gelueden...",
