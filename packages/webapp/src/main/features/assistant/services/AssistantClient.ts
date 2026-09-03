@@ -123,6 +123,7 @@ const KNOWN_ACTIONS = new Set([
   'create_diagram_tab',
   'trigger_generator',
   'trigger_smart_generator',
+  'trigger_github_import',
   'trigger_export',
   'trigger_deploy',
   'auto_generate_gui',
@@ -145,6 +146,10 @@ const SIDE_EFFECT_ACTIONS = new Set([
   'modify_model',
   'trigger_generator',
   'trigger_smart_generator',
+  // Imports a GitHub repo and REPLACES the loaded project — never honour it
+  // when scraped out of prose (prompt-injection surface), only as the whole
+  // structured reply.
+  'trigger_github_import',
   'trigger_export',
   'trigger_deploy',
   'auto_generate_gui',
