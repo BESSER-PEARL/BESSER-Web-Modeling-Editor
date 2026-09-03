@@ -41,6 +41,9 @@ export const AssistantByokDialog: React.FC<AssistantByokDialogProps> = ({
       open={open}
       onOpenChange={onOpenChange}
       client={client}
+      // The assistant's add-key affordances are explicitly about entering a
+      // key — open on the key flow even when the free tier is selected.
+      preferKeyEntry
       onSaved={(detail) => {
         // The unified key now exists — let the Spec-Driven generator know so it
         // won't prompt again for the same key. A free-tier save stores NO key

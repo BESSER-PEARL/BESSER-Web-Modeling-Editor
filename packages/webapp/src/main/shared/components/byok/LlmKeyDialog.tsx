@@ -91,6 +91,15 @@ export interface LlmKeyDialogProps {
   saveLabel?: string;
   /** Show the collapsible "Spec-Driven Agent settings" (run budget). Default true. */
   showRunBudget?: boolean;
+  /**
+   * Open with the key-entry flow even when the free tier is the user's
+   * current selection. For surfaces whose affordance is explicitly about
+   * entering a key (the chat's "use your own API key" link, the assistant's
+   * add-key buttons) — the Free option stays available in the dropdown, it
+   * just is not preselected. Default false (neutral settings surfaces
+   * reflect the current selection).
+   */
+  preferKeyEntry?: boolean;
 }
 
 interface ProviderOption {
@@ -308,6 +317,7 @@ export const LlmKeyDialog: React.FC<LlmKeyDialogProps> = ({
   description,
   saveLabel,
   showRunBudget = true,
+  preferKeyEntry = false,
 }) => {
   const [provider, setProvider] = useState<LlmProvider>('anthropic');
   const [apiKey, setApiKey] = useState<string>('');
@@ -363,9 +373,11 @@ export const LlmKeyDialog: React.FC<LlmKeyDialogProps> = ({
       // setup: opted in AND no BYOK key stored. A user who has a stored key
       // usually opens this dialog to manage that key — keep their provider
       // selected so the key flow is immediately usable (Free stays one pick
-      // away in the dropdown).
+      // away in the dropdown). Surfaces whose affordance is explicitly
+      // key entry opt out entirely via `preferKeyEntry`.
       if (
         cfg.free_tier.available &&
+        !preferKeyEntry &&
         readFreeTierSelected() &&
         readLlmKey() === null &&
         !providerLockedRef.current
@@ -376,7 +388,7 @@ export const LlmKeyDialog: React.FC<LlmKeyDialogProps> = ({
     return () => {
       cancelled = true;
     };
-  }, [open]);
+  }, [open, preferKeyEntry]);
 
   useEffect(() => {
     if (!open) return;

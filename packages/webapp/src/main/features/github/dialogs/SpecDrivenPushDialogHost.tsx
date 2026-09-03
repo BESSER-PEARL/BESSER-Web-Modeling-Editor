@@ -2,7 +2,7 @@
  * SpecDrivenPushDialogHost — the single, app-level mount of the "Push to GitHub"
  * dialog.
  *
- * Mirrors ``SpecDrivenByokDialog``: it lives as a sibling of the assistant drawer
+ * Mirrors ``SpecDrivenKeyDialogHost``: it lives as a sibling of the assistant drawer
  * (in ``application.tsx``), NOT inside it, so opening/closing the push dialog
  * never tears the drawer down. It reads the active project from the store and
  * drives ``useSpecDrivenGithubPush`` — whose open state comes from Redux

@@ -8,7 +8,7 @@
  *     re-push updates the same repo instead of asking every time,
  *   - the actual push request to ``POST /spec-driven/push-to-github``.
  *
- * The dialog is APP-LEVEL and Redux-driven (mirroring ``SpecDrivenByokDialog``):
+ * The dialog is APP-LEVEL and Redux-driven (mirroring ``SpecDrivenKeyDialogHost``):
  * whether it's open comes from ``specDriven.pushDialogRunId`` in the store,
  * NOT from local state inside the assistant drawer/widget. This is the whole
  * point — the push dialog used to be mounted inside the drawer, so dismissing

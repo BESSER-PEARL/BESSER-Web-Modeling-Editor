@@ -68,34 +68,6 @@ export function readSessionKey(): SessionKey | null {
   }
 }
 
-/**
- * Store a BYOK key in sessionStorage. Returns true on success.
- *
- * Pass ``llmModel=undefined`` (or empty string) to clear any previously
- * saved model preference; the backend will then fall back to the default
- * model for the provider.
- */
-export function writeSessionKey(
-  provider: SpecDrivenProvider,
-  apiKey: string,
-  llmModel?: string,
-): boolean {
-  if (!_hasSessionStorage()) return false;
-  try {
-    window.sessionStorage.setItem(sessionStorageSpecDrivenApiKey, apiKey);
-    window.sessionStorage.setItem(sessionStorageSpecDrivenProvider, provider);
-    const trimmed = (llmModel ?? '').trim();
-    if (trimmed) {
-      window.sessionStorage.setItem(sessionStorageSpecDrivenLlmModel, trimmed);
-    } else {
-      window.sessionStorage.removeItem(sessionStorageSpecDrivenLlmModel);
-    }
-    return true;
-  } catch {
-    return false;
-  }
-}
-
 /** Remove the stored BYOK key. No-op if sessionStorage is unavailable. */
 export function clearSessionKey(): void {
   if (!_hasSessionStorage()) return;
@@ -108,24 +80,19 @@ export function clearSessionKey(): void {
   }
 }
 
-/** Quick "do we have a key at all?" check that avoids exposing the value. */
-export function hasSessionKey(): boolean {
-  return readSessionKey() !== null;
-}
-
 /* ------------------------------------------------------------------ */
 /*  Keyless "Free" tier opt-in + explicit free-model choice             */
 /*                                                                      */
 /*  The implementations moved to shared/services/llmKeyStorage so the   */
 /*  unified LlmKeyDialog (shared/) can offer the free tier without      */
 /*  importing from this feature. Re-exported here so spec-driven        */
-/*  callers keep their stable import path.                              */
+/*  callers keep their stable import path. (Writes of the free-model    */
+/*  choice happen only in the shared dialog now.)                       */
 /* ------------------------------------------------------------------ */
 
 export {
   readFreeTierModel,
   readFreeTierSelected,
-  writeFreeTierModel,
   writeFreeTierSelected,
 } from '../../shared/services/llmKeyStorage';
 
@@ -174,27 +141,6 @@ export function readSessionBudget(): SessionBudget | null {
     return budget;
   } catch {
     return null;
-  }
-}
-
-/** Persist the user's run budget. Returns true on success. */
-export function writeSessionBudget(budget: {
-  maxCostUsd: number;
-  maxRuntimeSeconds: number;
-}): boolean {
-  if (!_hasSessionStorage()) return false;
-  try {
-    window.sessionStorage.setItem(
-      sessionStorageSpecDrivenMaxCostUsd,
-      String(budget.maxCostUsd),
-    );
-    window.sessionStorage.setItem(
-      sessionStorageSpecDrivenMaxRuntimeSeconds,
-      String(Math.round(budget.maxRuntimeSeconds)),
-    );
-    return true;
-  } catch {
-    return false;
   }
 }
 

@@ -107,7 +107,13 @@ const specDrivenSlice = createSlice({
       action: PayloadAction<TriggerSpecDrivenPayload | null>,
     ) {
       state.byokDialogOpen = true;
-      state.pendingTrigger = action.payload;
+      // A null payload opens the dialog in settings mode (e.g. the chat's
+      // "use your own API key" link) WITHOUT discarding a trigger that is
+      // still waiting to run — completing the dialog then continues that
+      // run. A non-null payload replaces the pending trigger.
+      if (action.payload !== null) {
+        state.pendingTrigger = action.payload;
+      }
     },
     closeByokDialog(state) {
       // Only flip the dialog flag — pendingTrigger is preserved so the

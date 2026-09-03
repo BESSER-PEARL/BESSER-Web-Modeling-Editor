@@ -55,8 +55,8 @@ const GeneratorConfigDialogs = React.lazy(() =>
 const AssistantWidget = React.lazy(() =>
   import('../features/assistant/components/AssistantWidget').then((m) => ({ default: m.AssistantWidget })),
 );
-const SpecDrivenByokDialog = React.lazy(() =>
-  import('../features/spec-driven/components/SpecDrivenByokDialog').then((m) => ({ default: m.SpecDrivenByokDialog })),
+const SpecDrivenKeyDialogHost = React.lazy(() =>
+  import('../features/spec-driven/components/SpecDrivenKeyDialogHost').then((m) => ({ default: m.SpecDrivenKeyDialogHost })),
 );
 const SpecDrivenPushDialogHost = React.lazy(() =>
   import('../features/github/dialogs/SpecDrivenPushDialogHost').then((m) => ({ default: m.SpecDrivenPushDialogHost })),
@@ -263,7 +263,7 @@ function AppContentInner() {
         <AssistantWidget onAssistantGenerate={handleAssistantGenerate} />
       </Suspense>
       <Suspense fallback={null}>
-        <SpecDrivenByokDialog project={currentProject} />
+        <SpecDrivenKeyDialogHost />
       </Suspense>
       <Suspense fallback={null}>
         <SpecDrivenPushDialogHost />

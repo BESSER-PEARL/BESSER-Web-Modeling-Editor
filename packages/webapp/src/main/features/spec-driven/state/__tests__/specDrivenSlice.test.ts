@@ -60,6 +60,17 @@ describe('specDrivenSlice', () => {
     expect(next.pendingTrigger).toEqual(pending);
   });
 
+  it('openByokDialog(null) opens settings mode WITHOUT discarding a pending trigger', () => {
+    // The chat's "use your own API key" link opens the dialog with a null
+    // payload. A run that is still waiting must survive so completing the
+    // dialog continues it.
+    const pending = { action: 'trigger_smart_generator' as const, instructions: 'x' };
+    const dirty: SpecDrivenState = { ...INITIAL, pendingTrigger: pending };
+    const next = specDrivenReducer(dirty, openByokDialog(null));
+    expect(next.byokDialogOpen).toBe(true);
+    expect(next.pendingTrigger).toEqual(pending);
+  });
+
   it('closeByokDialog only flips the dialog flag and preserves the pending trigger', () => {
     // The pending trigger must survive closeByokDialog so the resume
     // effect in useSpecDrivenTrigger can fire after a successful save.
