@@ -41,10 +41,13 @@ export const AssistantByokDialog: React.FC<AssistantByokDialogProps> = ({
       open={open}
       onOpenChange={onOpenChange}
       client={client}
-      onSaved={() => {
+      onSaved={(detail) => {
         // The unified key now exists — let the Spec-Driven generator know so it
-        // won't prompt again for the same key.
-        dispatch(setApiKeyPresent(true));
+        // won't prompt again for the same key. A free-tier save stores NO key
+        // (only the free flag + model choice), so the flag must not flip then.
+        if (detail.provider !== 'free') {
+          dispatch(setApiKeyPresent(true));
+        }
         onKeySaved?.();
       }}
       onRemoved={() => dispatch(setApiKeyPresent(false))}

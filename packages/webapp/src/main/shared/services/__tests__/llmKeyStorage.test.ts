@@ -10,11 +10,13 @@
  */
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
-import { readLlmKey, writeLlmKey, clearLlmKey } from '../llmKeyStorage';
 import {
+  clearLlmKey,
   readFreeTierSelected,
+  readLlmKey,
   writeFreeTierSelected,
-} from '../../../features/spec-driven/storage';
+  writeLlmKey,
+} from '../llmKeyStorage';
 import { sessionStorageSpecDrivenFreeTier } from '../../constants/constant';
 
 beforeEach(() => {

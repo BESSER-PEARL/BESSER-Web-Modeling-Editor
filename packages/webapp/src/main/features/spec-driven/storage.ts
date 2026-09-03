@@ -16,8 +16,6 @@ import {
   localStorageSpecDrivenLastRunPrefix,
   sessionStorageLlmBaseUrl,
   sessionStorageSpecDrivenApiKey,
-  sessionStorageSpecDrivenFreeModel,
-  sessionStorageSpecDrivenFreeTier,
   sessionStorageSpecDrivenLlmModel,
   sessionStorageSpecDrivenMaxCostUsd,
   sessionStorageSpecDrivenMaxRuntimeSeconds,
@@ -116,72 +114,20 @@ export function hasSessionKey(): boolean {
 }
 
 /* ------------------------------------------------------------------ */
-/*  Keyless "Free" tier opt-in                                          */
+/*  Keyless "Free" tier opt-in + explicit free-model choice             */
 /*                                                                      */
-/*  Stored on its OWN sessionStorage flag — deliberately NOT in the     */
-/*  unified LLM key (which is shared with the assistant). The free tier */
-/*  authorises a smart-gen run WITHOUT a key; the trigger consults this */
-/*  alongside readSessionKey().                                         */
+/*  The implementations moved to shared/services/llmKeyStorage so the   */
+/*  unified LlmKeyDialog (shared/) can offer the free tier without      */
+/*  importing from this feature. Re-exported here so spec-driven        */
+/*  callers keep their stable import path.                              */
 /* ------------------------------------------------------------------ */
 
-/** True when the user has opted into the keyless free tier for smart-gen. */
-export function readFreeTierSelected(): boolean {
-  if (!_hasSessionStorage()) return false;
-  try {
-    return window.sessionStorage.getItem(sessionStorageSpecDrivenFreeTier) === '1';
-  } catch {
-    return false;
-  }
-}
-
-/** Opt into (or out of) the keyless free tier. */
-export function writeFreeTierSelected(selected: boolean): void {
-  if (!_hasSessionStorage()) return;
-  try {
-    if (selected) {
-      window.sessionStorage.setItem(sessionStorageSpecDrivenFreeTier, '1');
-    } else {
-      window.sessionStorage.removeItem(sessionStorageSpecDrivenFreeTier);
-    }
-  } catch {
-    /* ignore */
-  }
-}
-
-/**
- * The explicitly chosen free-tier model id, or `null` for the server's
- * default. Only ever holds an id from the server's advertised free-model
- * list (the backend enforces its allowlist regardless — an unknown id is
- * pinned back to the default model server-side).
- */
-export function readFreeTierModel(): string | null {
-  if (!_hasSessionStorage()) return null;
-  try {
-    const raw = window.sessionStorage.getItem(sessionStorageSpecDrivenFreeModel);
-    return raw && raw.trim() ? raw.trim() : null;
-  } catch {
-    return null;
-  }
-}
-
-/**
- * Persist the free-tier model choice. Pass `null` (or empty) to return to
- * the server's default — the stored id is then removed so the generate
- * request omits `llm_model`, exactly as before this choice existed.
- */
-export function writeFreeTierModel(modelId: string | null): void {
-  if (!_hasSessionStorage()) return;
-  try {
-    const trimmed = (modelId ?? '').trim();
-    if (trimmed) {
-      window.sessionStorage.setItem(sessionStorageSpecDrivenFreeModel, trimmed);
-    } else {
-      window.sessionStorage.removeItem(sessionStorageSpecDrivenFreeModel);
-    }
-  } catch {
-    /* ignore */
-  }
-}
+export {
+  readFreeTierModel,
+  readFreeTierSelected,
+  writeFreeTierModel,
+  writeFreeTierSelected,
+} from '../../shared/services/llmKeyStorage';
 
 /* ------------------------------------------------------------------ */
 /*  Run budget (max cost / max runtime)                                 */

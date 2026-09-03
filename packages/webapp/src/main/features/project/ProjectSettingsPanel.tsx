@@ -479,8 +479,12 @@ export const ProjectSettingsPanel: React.FC = () => {
       <LlmKeyDialog
         open={llmKeyOpen}
         onOpenChange={setLlmKeyOpen}
-        onSaved={() => {
-          dispatch(setApiKeyPresent(true));
+        onSaved={(detail) => {
+          // A free-tier save stores no key — only flip the "key present"
+          // flag for real BYOK saves.
+          if (detail.provider !== 'free') {
+            dispatch(setApiKeyPresent(true));
+          }
           setLlmKeyInfo(readLlmKey());
         }}
         onRemoved={() => {

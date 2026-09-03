@@ -42,10 +42,11 @@ import {
   writeSessionKey,
 } from '../storage';
 import {
+  defaultFreeModelId,
   FALLBACK_SMART_GEN_CONFIG,
+  freeModelLabel,
   getSpecDrivenConfig,
   type SpecDrivenConfig,
-  type SpecDrivenFreeModel,
 } from '../services/specDrivenConfig';
 import {
   approvePendingTrigger,
@@ -134,23 +135,6 @@ const PRIVACY_COPY =
   'Your key stays in this browser tab only and is sent directly to the ' +
   'BESSER backend for each run you start. It is never stored on our ' +
   'servers and it is cleared when you close the tab.';
-
-/**
- * Display label for a free-tier model — server-data-first (the id itself),
- * with a short qualifier derived heuristically: the default entry is marked
- * as such; a non-default entry with a bare (Ollama-style, no "/") id is the
- * self-hosted model. No model names are hardcoded.
- */
-function _freeModelLabel(model: SpecDrivenFreeModel): string {
-  if (model.default) return `${model.id} (default)`;
-  if (!model.id.includes('/')) return `${model.id} (self-hosted)`;
-  return model.id;
-}
-
-/** The default free-model id from the server's advertised list, or `''`. */
-function _defaultFreeModelId(models: readonly SpecDrivenFreeModel[]): string {
-  return models.find((m) => m.default)?.id ?? models[0]?.id ?? '';
-}
 
 /**
  * Infer the provider from the key prefix. Returns ``null`` when the
@@ -277,7 +261,7 @@ export const SpecDrivenByokDialog: React.FC<SpecDrivenByokDialogProps> = ({
       setFreeModelChoice(
         storedFreeModel && freeModels.some((m) => m.id === storedFreeModel)
           ? storedFreeModel
-          : _defaultFreeModelId(freeModels),
+          : defaultFreeModelId(freeModels),
       );
       const saved = readSessionBudget();
       const costUsd = saved?.maxCostUsd ?? cfg.caps.default_max_cost_usd;
@@ -504,7 +488,7 @@ export const SpecDrivenByokDialog: React.FC<SpecDrivenByokDialogProps> = ({
     // the server offers no choice, clear any stale stored id.
     const freeModels = config.free_tier.models;
     writeFreeTierModel(
-      freeModels.length > 1 && freeModelChoice !== _defaultFreeModelId(freeModels)
+      freeModels.length > 1 && freeModelChoice !== defaultFreeModelId(freeModels)
         ? freeModelChoice
         : null,
     );
@@ -636,7 +620,7 @@ export const SpecDrivenByokDialog: React.FC<SpecDrivenByokDialogProps> = ({
                       onChange={() => setFreeModelChoice(m.id)}
                       className="accent-current"
                     />
-                    <span>{_freeModelLabel(m)}</span>
+                    <span>{freeModelLabel(m)}</span>
                   </label>
                 ))}
               </div>
