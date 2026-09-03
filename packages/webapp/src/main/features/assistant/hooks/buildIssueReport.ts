@@ -3,8 +3,9 @@
  * the current assistant session.
  *
  * Requested after a hackathon: when a user hits a problem they should be able
- * to export the conversation + workspace context in one click and send it to
- * the team, instead of describing the issue from scratch.
+ * to report the conversation + workspace context in one click instead of
+ * describing the issue from scratch. Today that means opening a pre-filled
+ * GitHub issue (see `buildGithubIssueUrl` below) with the transcript inlined.
  *
  * HARD PRIVACY CONSTRAINT: the report MUST NEVER contain the user's BYOK API
  * key. BYOK keys live in the spec-driven Redux state / localStorage and
@@ -194,4 +195,151 @@ export function buildIssueReportMarkdown(report: IssueReport): string {
 export function issueReportFilename(extension: 'json' | 'md', date: Date = new Date()): string {
   const stamp = date.toISOString().replace(/[:.]/g, '-').replace(/Z$/, '');
   return `besser-assistant-report-${stamp}.${extension}`;
+}
+
+/* ------------------------------------------------------------------ */
+/*  Pre-filled GitHub issue URL                                        */
+/* ------------------------------------------------------------------ */
+
+/** Non-secret environment block rendered into the GitHub issue body. */
+export interface GithubIssueEnvironment {
+  /** Current page URL / route. */
+  pageUrl?: string;
+  /** Browser user agent. */
+  userAgent?: string;
+  /** App version, if resolvable. */
+  appVersion?: string;
+  /** Present when the report concerns a Smart Generator run. */
+  runId?: string;
+  provider?: string;
+  model?: string;
+}
+
+export interface GithubIssueUrlResult {
+  url: string;
+  /** True when older log lines were dropped to fit GitHub's URL limit. */
+  logsTruncated: boolean;
+}
+
+/**
+ * GitHub silently breaks issue-prefill URLs past ~8KB, so the ENCODED URL
+ * is capped below that with headroom for proxies that add their own bytes.
+ */
+export const GITHUB_ISSUE_URL_MAX_LENGTH = 7500;
+
+const LOG_TRUNCATION_NOTICE = '… (older log lines truncated)';
+
+/** First line of a message, stripped of markdown noise, for use in a title. */
+const firstLine = (text: string): string =>
+  (text.split('\n', 1)[0] ?? '').replace(/[`#*_]/g, '').replace(/\s+/g, ' ').trim();
+
+/**
+ * Derive a short issue title from the report: the first error line when the
+ * conversation contains one (errors are what people report), otherwise the
+ * user's most recent message, otherwise a neutral default.
+ */
+export function buildGithubIssueTitle(report: IssueReport): string {
+  const errorMessage = report.messages.find((m) => m.isError && m.content.trim().length > 0);
+  const lastUserMessage = [...report.messages]
+    .reverse()
+    .find((m) => m.role === 'user' && m.content.trim().length > 0);
+
+  const summary =
+    (errorMessage && firstLine(errorMessage.content)) ||
+    (lastUserMessage && firstLine(lastUserMessage.content)) ||
+    'Issue report from the modeling assistant';
+  const trimmed = summary.length > 90 ? `${summary.slice(0, 89).trimEnd()}…` : summary;
+  return `[Web Editor] ${trimmed}`;
+}
+
+/**
+ * Build a `https://github.com/<repo>/issues/new` URL whose `title` and
+ * `body` query params pre-fill a bug report: a one-line description
+ * placeholder for the user to complete, an Environment section, and the
+ * session log in a collapsed `<details>` block.
+ *
+ * SIZE LIMIT: GitHub breaks prefill URLs past ~8KB, so the ENCODED URL is
+ * capped at `maxUrlLength` (default {@link GITHUB_ISSUE_URL_MAX_LENGTH}).
+ * When the full log does not fit, the largest fitting TAIL is kept — newest
+ * lines matter most — and a truncation notice is prepended to the log block.
+ * The cap is computed against the encoded URL, not the raw markdown.
+ */
+export function buildGithubIssueUrl(input: {
+  /** Target repository as an `owner/repo` slug. */
+  repoSlug: string;
+  title: string;
+  environment: GithubIssueEnvironment;
+  /** Log/transcript text placed in the collapsed details block. */
+  logs: string;
+  maxUrlLength?: number;
+}): GithubIssueUrlResult {
+  const { repoSlug, title, environment, logs } = input;
+  const maxUrlLength = input.maxUrlLength ?? GITHUB_ISSUE_URL_MAX_LENGTH;
+  const base = `https://github.com/${repoSlug}/issues/new`;
+
+  const envLines: string[] = [];
+  if (environment.pageUrl) envLines.push(`- **Page:** ${environment.pageUrl}`);
+  if (environment.userAgent) envLines.push(`- **Browser:** ${environment.userAgent}`);
+  if (environment.appVersion) envLines.push(`- **App version:** ${environment.appVersion}`);
+  if (environment.runId) {
+    const runDetails = [
+      environment.provider ? `provider: ${environment.provider}` : undefined,
+      environment.model ? `model: ${environment.model}` : undefined,
+    ]
+      .filter(Boolean)
+      .join(', ');
+    envLines.push(`- **Generator run:** \`${environment.runId}\`${runDetails ? ` (${runDetails})` : ''}`);
+  }
+
+  const makeUrl = (logsPart: string, truncated: boolean): string => {
+    const logBlock = truncated ? `${LOG_TRUNCATION_NOTICE}\n${logsPart}` : logsPart;
+    const body = [
+      '_Please describe the issue in one or two sentences — the sections below were pre-filled by the editor._',
+      '',
+      '## Environment',
+      '',
+      ...envLines,
+      '',
+      '## Session log',
+      '',
+      '<details>',
+      '<summary>Assistant session transcript</summary>',
+      '',
+      // Four backticks: the transcript itself may contain ``` fences.
+      '````',
+      logBlock,
+      '````',
+      '',
+      '</details>',
+      '',
+    ].join('\n');
+    return `${base}?title=${encodeURIComponent(title)}&body=${encodeURIComponent(body)}`;
+  };
+
+  const full = makeUrl(logs, false);
+  if (full.length <= maxUrlLength) {
+    return { url: full, logsTruncated: false };
+  }
+
+  // Too long: keep the largest tail of the logs whose ENCODED URL still
+  // fits. Encoded length is not linear in raw characters (multi-byte and
+  // reserved characters expand), so binary-search the kept character count.
+  let lo = 0;
+  let hi = logs.length;
+  while (lo < hi) {
+    const mid = Math.ceil((lo + hi) / 2);
+    if (makeUrl(logs.slice(logs.length - mid), true).length <= maxUrlLength) {
+      lo = mid;
+    } else {
+      hi = mid - 1;
+    }
+  }
+
+  // Drop the leading partial line so the kept excerpt starts cleanly.
+  let kept = logs.slice(logs.length - lo);
+  const newline = kept.indexOf('\n');
+  if (newline >= 0 && newline < kept.length - 1) {
+    kept = kept.slice(newline + 1);
+  }
+  return { url: makeUrl(kept, true), logsTruncated: true };
 }

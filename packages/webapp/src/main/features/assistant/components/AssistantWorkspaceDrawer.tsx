@@ -871,7 +871,7 @@ export const AssistantWorkspaceDrawer: React.FC<AssistantWorkspaceDrawerProps> =
                         size="sm"
                         className="h-7 gap-1.5 rounded-lg border-border/50 px-2.5 text-xs"
                         onClick={() => reportIssue()}
-                        title="Export this conversation and context to report a problem to the BESSER team"
+                        title="Open a pre-filled GitHub issue with this conversation's context"
                       >
                         <Flag className="size-3.5" />
                         Report issue

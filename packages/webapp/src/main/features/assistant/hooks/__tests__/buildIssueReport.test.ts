@@ -3,7 +3,10 @@ import type { Message as ChatKitMessage } from '@/components/chatbot-kit/ui/chat
 import {
   buildIssueReport,
   buildIssueReportMarkdown,
+  buildGithubIssueTitle,
+  buildGithubIssueUrl,
   issueReportFilename,
+  GITHUB_ISSUE_URL_MAX_LENGTH,
   type BuildIssueReportInput,
 } from '../buildIssueReport';
 import type { MessageMeta } from '../useAssistantLogic';
@@ -97,5 +100,105 @@ describe('buildIssueReport', () => {
     const name = issueReportFilename('md', new Date('2026-06-22T13:45:09.123Z'));
     expect(name).toBe('besser-assistant-report-2026-06-22T13-45-09-123.md');
     expect(name).not.toMatch(/[:]/);
+  });
+});
+
+describe('buildGithubIssueTitle', () => {
+  it('prefers the first error line over the last user message', () => {
+    const report = buildIssueReport(
+      baseInput({
+        messages: [
+          msg({ id: 'm1', role: 'user', content: 'Generate the app' }),
+          msg({ id: 'm2', role: 'assistant', content: 'Generation failed: backend unreachable\nDetails follow.', isError: true }),
+          msg({ id: 'm3', role: 'user', content: 'Why did that fail?' }),
+        ],
+      }),
+    );
+    expect(buildGithubIssueTitle(report)).toBe('[Web Editor] Generation failed: backend unreachable');
+  });
+
+  it('falls back to the last user message, then to a neutral default', () => {
+    const withUser = buildIssueReport(baseInput());
+    expect(buildGithubIssueTitle(withUser)).toBe('[Web Editor] Create a Payment class');
+
+    const empty = buildIssueReport(baseInput({ messages: [] }));
+    expect(buildGithubIssueTitle(empty)).toBe('[Web Editor] Issue report from the modeling assistant');
+  });
+});
+
+describe('buildGithubIssueUrl', () => {
+  const environment = {
+    pageUrl: 'https://editor.besser-pearl.org/project',
+    userAgent: 'TestBrowser/1.0',
+    appVersion: '7.4.0',
+    runId: 'run-1234',
+    provider: 'openai',
+    model: 'gpt-test',
+  };
+
+  it('targets the given repo and prefills title, environment and logs', () => {
+    const { url, logsTruncated } = buildGithubIssueUrl({
+      repoSlug: 'BESSER-PEARL/BESSER',
+      title: '[Web Editor] Something broke',
+      environment,
+      logs: 'line one\nline two',
+    });
+    expect(logsTruncated).toBe(false);
+    expect(url.startsWith('https://github.com/BESSER-PEARL/BESSER/issues/new?title=')).toBe(true);
+
+    const parsed = new URL(url);
+    expect(parsed.searchParams.get('title')).toBe('[Web Editor] Something broke');
+    const body = parsed.searchParams.get('body') ?? '';
+    expect(body).toContain('## Environment');
+    expect(body).toContain('https://editor.besser-pearl.org/project');
+    expect(body).toContain('TestBrowser/1.0');
+    expect(body).toContain('7.4.0');
+    expect(body).toContain('run-1234');
+    expect(body).toContain('provider: openai, model: gpt-test');
+    expect(body).toContain('<details>');
+    expect(body).toContain('line one\nline two');
+    expect(body).not.toContain('older log lines truncated');
+  });
+
+  it('caps the ENCODED url length and keeps the log tail when truncating', () => {
+    const oldLines = Array.from({ length: 1500 }, (_, i) => `old line ${i}`).join('\n');
+    const logs = `${oldLines}\nNEWEST LINE — must survive truncation`;
+    const { url, logsTruncated } = buildGithubIssueUrl({
+      repoSlug: 'BESSER-PEARL/BESSER',
+      title: '[Web Editor] Big log',
+      environment,
+      logs,
+    });
+    expect(logsTruncated).toBe(true);
+    expect(url.length).toBeLessThanOrEqual(GITHUB_ISSUE_URL_MAX_LENGTH);
+
+    const body = new URL(url).searchParams.get('body') ?? '';
+    expect(body).toContain('older log lines truncated');
+    expect(body).toContain('NEWEST LINE — must survive truncation');
+    expect(body).not.toContain('old line 0');
+  });
+
+  it('accounts for multi-byte characters against the encoded length', () => {
+    // Each '€' encodes to 9 characters (%E2%82%AC) — raw length is a poor proxy.
+    const logs = '€'.repeat(4000);
+    const { url, logsTruncated } = buildGithubIssueUrl({
+      repoSlug: 'BESSER-PEARL/BESSER',
+      title: '[Web Editor] Unicode log',
+      environment,
+      logs,
+    });
+    expect(logsTruncated).toBe(true);
+    expect(url.length).toBeLessThanOrEqual(GITHUB_ISSUE_URL_MAX_LENGTH);
+  });
+
+  it('honours a custom maxUrlLength', () => {
+    const { url } = buildGithubIssueUrl({
+      repoSlug: 'BESSER-PEARL/BESSER',
+      title: '[Web Editor] Custom cap',
+      environment,
+      logs: 'x'.repeat(5000),
+      maxUrlLength: 2000,
+    });
+    expect(url.length).toBeLessThanOrEqual(2000);
   });
 });

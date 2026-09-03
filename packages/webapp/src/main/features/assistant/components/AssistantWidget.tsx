@@ -272,7 +272,7 @@ export const AssistantWidget: React.FC<AssistantWidgetProps> = ({ onAssistantGen
                 size="icon"
                 className="size-7 rounded-lg text-muted-foreground/60 transition-colors hover:bg-brand/5 hover:text-foreground"
                 onClick={() => reportIssue()}
-                title="Report an issue — export this conversation and context for the BESSER team"
+                title="Report an issue — opens a pre-filled GitHub issue with this conversation's context"
                 aria-label="Report an issue"
               >
                 <Flag className="size-3.5" />

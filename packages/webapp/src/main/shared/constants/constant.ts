@@ -180,5 +180,6 @@ export const longDate = 'MMMM Do YYYY, h:mm:ss a';
 // toast hide duration in ms
 export const toastAutohideDelay = 2000;
 
-// bug report url
-export const bugReportURL = 'https://github.com/BESSER-PEARL/BESSER/issues/new?template=bug-report.md';
+// bug report repository ("owner/repo") — the single place to retarget issue reporting
+export const bugReportRepo = 'BESSER-PEARL/BESSER';
+export const bugReportURL = `https://github.com/${bugReportRepo}/issues/new?template=bug-report.md`;

@@ -27,7 +27,7 @@ import {
   setConversationHandlers,
   wireConversationDispatchers,
 } from './assistantConversationStore';
-import { UML_BOT_WS_URL } from '../../../shared/constants/constant';
+import { UML_BOT_WS_URL, bugReportRepo } from '../../../shared/constants/constant';
 import { useAppDispatch, useAppSelector } from '../../../app/store/hooks';
 import { useProject } from '../../../app/hooks/useProject';
 import { updateDiagramModelThunk, selectActiveDiagram, addDiagramThunk, switchDiagramIndexThunk, bumpEditorRevision } from '../../../app/store/workspaceSlice';
@@ -54,12 +54,12 @@ import {
   continueFromGithubRepo,
   getGithubSessionToken,
 } from '../../spec-driven/services/continueFromGithub';
-import { downloadFile, copyToClipboard } from '../../../shared/utils/download';
 import { appVersion } from '../../../shared/constants/application-constants';
 import {
   buildIssueReport,
   buildIssueReportMarkdown,
-  issueReportFilename,
+  buildGithubIssueTitle,
+  buildGithubIssueUrl,
   type IssueReportContext,
 } from './buildIssueReport';
 
@@ -152,8 +152,9 @@ export interface UseAssistantLogicReturn {
   clearConversation: () => void;
   /**
    * Build a privacy-safe issue report (conversation + non-secret workspace
-   * context) and deliver it: downloads a Markdown transcript and copies it to
-   * the clipboard, with a toast confirmation. NEVER includes the BYOK API key.
+   * context) and open a pre-filled GitHub issue on the BESSER repository in a
+   * new browser tab. If the browser blocks the tab, the issue link is posted
+   * into the conversation instead. NEVER includes the BYOK API key.
    */
   reportIssue: () => Promise<void>;
   /** Undo the last assistant-driven model change using the undo stack. */
@@ -1385,7 +1386,7 @@ export function useAssistantLogic({
   };
 
   /* ================================================================ */
-  /*  reportIssue — export conversation + context for the team         */
+  /*  reportIssue — open a pre-filled GitHub issue for the team        */
   /* ================================================================ */
 
   // Builds the non-secret context block. Reuses buildWorkspaceContext but
@@ -1427,21 +1428,56 @@ export function useAssistantLogic({
 
       const markdown = buildIssueReportMarkdown(report);
 
-      // Must-have #1: download a readable Markdown transcript.
-      downloadFile(markdown, issueReportFilename('md'), 'text/markdown');
+      // Latest Smart Generator run in this conversation, if any — its id,
+      // provider and model are the first things needed to triage a run issue.
+      let runInfo: { runId?: string; provider?: string; model?: string } = {};
+      for (let i = messages.length - 1; i >= 0; i--) {
+        const sd = messages[i].specDriven;
+        if (sd?.runId) {
+          runInfo = { runId: sd.runId, provider: sd.provider, model: sd.model };
+          break;
+        }
+      }
 
-      // Must-have #2: copy the transcript to the clipboard so the user can
-      // paste it straight into a chat/ticket without opening the file.
-      const copied = await copyToClipboard(markdown);
+      const { url, logsTruncated } = buildGithubIssueUrl({
+        repoSlug: bugReportRepo,
+        title: buildGithubIssueTitle(report),
+        environment: {
+          pageUrl: window.location.href,
+          userAgent: navigator.userAgent,
+          appVersion: typeof appVersion === 'string' ? appVersion : undefined,
+          ...runInfo,
+        },
+        logs: markdown,
+      });
+      if (logsTruncated) {
+        console.info('[useAssistantLogic] issue report log truncated to fit the GitHub URL limit');
+      }
 
-      toast.success(
-        copied
-          ? 'Issue report downloaded and copied to clipboard. Send it to the BESSER team.'
-          : 'Issue report downloaded. Attach the file when you contact the BESSER team.',
-      );
+      // Deliberately NOT passing "noopener" in the features string: that
+      // makes window.open return null even on success, which would hide
+      // popup blocking. The opener reference is severed manually instead.
+      const issueWindow = window.open(url, '_blank');
+      if (issueWindow) {
+        try {
+          issueWindow.opener = null;
+        } catch {
+          // Some browsers restrict this on cross-origin windows; the tab is open either way.
+        }
+        toast.success('Opened a pre-filled GitHub issue in a new tab. Review it there and submit.');
+      } else {
+        // Popup blocked — surface the link in the conversation so the report is never lost.
+        setMessages((prev) => [
+          ...prev,
+          toKitMessage(
+            'assistant',
+            `Your issue report is ready, but the browser blocked the new tab. [Open the pre-filled GitHub issue](${url}) to review and submit it.`,
+          ),
+        ]);
+      }
     } catch (error) {
       console.error('[useAssistantLogic] failed to build issue report', error);
-      toast.error('Could not build the issue report. Please try again.');
+      toast.error('Could not prepare the issue report. Please try again.');
     }
   };
 
