@@ -1,26 +1,29 @@
 import { configureStore } from '@reduxjs/toolkit';
 import { describe, expect, it } from 'vitest';
 import {
-  beginRun,
+  applySpecDrivenEvent,
   claimRunSlot,
   closeByokDialog,
   closePushDialog,
-  completeRun,
   consumePendingTrigger,
   isSpecDrivenRunActive,
+  liveRunEnded,
+  liveRunEvent,
+  liveRunStarted,
   openByokDialog,
   openPushDialog,
+  readLiveSpecDrivenRun,
   releaseRunSlot,
   resetRun,
+  selectHasLiveSpecDrivenRun,
+  selectLiveSpecDrivenRun,
   setApiKeyPresent,
   setProvider,
-  setRunError,
   specDrivenReducer,
   tryClaimRunSlot,
-  updateCost,
-  updatePhase,
 } from '../specDrivenSlice';
 import type { SpecDrivenState } from '../specDrivenSlice';
+import type { SpecDrivenEvent } from '../../types';
 
 const INITIAL: SpecDrivenState = {
   byokDialogOpen: false,
@@ -28,9 +31,18 @@ const INITIAL: SpecDrivenState = {
   provider: null,
   apiKeyInStore: false,
   pendingTrigger: null,
-  activeRun: null,
+  runs: {},
   runStatus: 'idle',
   lastRunByProject: {},
+};
+
+const START_EVENT: SpecDrivenEvent = {
+  event: 'start',
+  runId: 'a'.repeat(32),
+  provider: 'anthropic',
+  llmModel: 'claude-sonnet-4-6',
+  maxCost: 1.0,
+  maxRuntime: 600,
 };
 
 const PENDING = {
@@ -120,66 +132,181 @@ describe('specDrivenSlice', () => {
     expect((state as unknown as Record<string, unknown>).apiKey).toBeUndefined();
   });
 
-  it('beginRun initialises an active run', () => {
-    const state = specDrivenReducer(INITIAL, beginRun({ runId: 'abc' }));
-    expect(state.activeRun).not.toBeNull();
-    expect(state.activeRun!.runId).toBe('abc');
-    expect(state.activeRun!.phase).toBe('select');
-    expect(state.activeRun!.costUsd).toBe(0);
+  it('liveRunStarted initialises an empty running card, keyed by run key', () => {
+    const state = specDrivenReducer(INITIAL, liveRunStarted({ key: 'k1' }));
+    expect(state.runs.k1).toEqual({
+      phases: [],
+      warnings: [],
+      text: '',
+      status: 'running',
+    });
   });
 
-  it('updatePhase and updateCost mutate the active run', () => {
-    let state = specDrivenReducer(INITIAL, beginRun({ runId: 'abc' }));
-    state = specDrivenReducer(state, updatePhase('generate'));
+  it('liveRunEvent applies stream events to the keyed live run', () => {
+    let state = specDrivenReducer(INITIAL, liveRunStarted({ key: 'k1' }));
+    state = specDrivenReducer(state, liveRunEvent({ key: 'k1', event: START_EVENT }));
     state = specDrivenReducer(
       state,
-      updateCost({ usd: 0.0123, elapsedSeconds: 42.5 }),
-    );
-    expect(state.activeRun!.phase).toBe('generate');
-    expect(state.activeRun!.costUsd).toBeCloseTo(0.0123);
-    expect(state.activeRun!.elapsedSeconds).toBeCloseTo(42.5);
-  });
-
-  it('completeRun records the download info', () => {
-    let state = specDrivenReducer(INITIAL, beginRun({ runId: 'abc' }));
-    state = specDrivenReducer(
-      state,
-      completeRun({
-        downloadUrl: '/besser_api/spec-driven/download/abc',
-        fileName: 'app.zip',
-        isZip: true,
+      liveRunEvent({
+        key: 'k1',
+        event: { event: 'phase', phase: 'generate', message: 'running fastapi' },
       }),
     );
-    expect(state.activeRun!.phase).toBe('done');
-    expect(state.activeRun!.downloadUrl).toBe('/besser_api/spec-driven/download/abc');
-    expect(state.activeRun!.fileName).toBe('app.zip');
-    expect(state.activeRun!.isZip).toBe(true);
-  });
-
-  it('setRunError flips phase to error', () => {
-    let state = specDrivenReducer(INITIAL, beginRun({ runId: 'abc' }));
     state = specDrivenReducer(
       state,
-      setRunError({ code: 'INVALID_KEY', message: 'no key' }),
+      liveRunEvent({
+        key: 'k1',
+        event: { event: 'cost', usd: 0.0123, turns: 1, elapsedSeconds: 42.5 },
+      }),
     );
-    expect(state.activeRun!.phase).toBe('error');
-    expect(state.activeRun!.errorCode).toBe('INVALID_KEY');
-    expect(state.activeRun!.errorMessage).toBe('no key');
+    const card = state.runs.k1;
+    expect(card.runId).toBe('a'.repeat(32));
+    expect(card.provider).toBe('anthropic');
+    expect(card.model).toBe('claude-sonnet-4-6');
+    expect(card.phases).toHaveLength(1);
+    expect(card.phases[0].label).toBe('Running deterministic generator');
+    expect(card.costUsd).toBeCloseTo(0.0123);
+    expect(card.elapsedSeconds).toBeCloseTo(42.5);
+    expect(card.status).toBe('running');
   });
 
-  it('resetRun clears the active run', () => {
-    let state = specDrivenReducer(INITIAL, beginRun({ runId: 'abc' }));
+  it('liveRunEvent keys runs independently (concurrent runs)', () => {
+    let state = specDrivenReducer(INITIAL, liveRunStarted({ key: 'k1' }));
+    state = specDrivenReducer(state, liveRunStarted({ key: 'k2' }));
+    state = specDrivenReducer(
+      state,
+      liveRunEvent({ key: 'k1', event: { event: 'text', delta: 'run one' } }),
+    );
+    expect(state.runs.k1.text).toBe('run one');
+    expect(state.runs.k2.text).toBe('');
+  });
+
+  it('a done event finishes the card with download coords and needsDownload', () => {
+    let state = specDrivenReducer(INITIAL, liveRunStarted({ key: 'k1' }));
+    state = specDrivenReducer(
+      state,
+      liveRunEvent({
+        key: 'k1',
+        event: {
+          event: 'done',
+          runId: 'a'.repeat(32),
+          downloadUrl: `/besser_api/spec-driven/download/${'a'.repeat(32)}`,
+          fileName: 'app.zip',
+          isZip: true,
+          recipe: { generator_used: 'fastapi_backend' },
+        },
+      }),
+    );
+    const card = state.runs.k1;
+    expect(card.status).toBe('done');
+    expect(card.needsDownload).toBe(true);
+    expect(card.fileName).toBe('app.zip');
+    expect(card.isZip).toBe(true);
+    expect(card.generatorUsed).toBe('fastapi_backend');
+  });
+
+  it('a terminal error event flips the card to error with a red notice', () => {
+    let state = specDrivenReducer(INITIAL, liveRunStarted({ key: 'k1' }));
+    state = specDrivenReducer(
+      state,
+      liveRunEvent({
+        key: 'k1',
+        event: { event: 'error', code: 'INVALID_KEY', message: 'no key' },
+      }),
+    );
+    const card = state.runs.k1;
+    expect(card.status).toBe('error');
+    expect(card.warnings).toEqual([
+      { code: 'INVALID_KEY', message: 'no key', severity: 'error' },
+    ]);
+  });
+
+  it('liveRunEnded drops the entry; events for an ended run are dropped', () => {
+    let state = specDrivenReducer(INITIAL, liveRunStarted({ key: 'k1' }));
+    state = specDrivenReducer(state, liveRunEnded({ key: 'k1' }));
+    expect(state.runs.k1).toBeUndefined();
+    // A straggler event never resurrects a finalized run.
+    state = specDrivenReducer(
+      state,
+      liveRunEvent({ key: 'k1', event: { event: 'text', delta: 'late' } }),
+    );
+    expect(state.runs.k1).toBeUndefined();
+  });
+
+  it('resetRun releases the slot but keeps live entries for the finalize path', () => {
+    let state = specDrivenReducer(INITIAL, claimRunSlot());
+    state = specDrivenReducer(state, liveRunStarted({ key: 'k1' }));
     state = specDrivenReducer(state, resetRun());
-    expect(state.activeRun).toBeNull();
+    expect(state.runStatus).toBe('idle');
+    // The trigger hook's finalizeLiveRun snapshots the card into the chat
+    // message BEFORE dispatching liveRunEnded — resetRun must not race it.
+    expect(state.runs.k1).toBeDefined();
+  });
+});
+
+describe('specDrivenSlice — applySpecDrivenEvent (pure card reducer)', () => {
+  const CARD = { phases: [], warnings: [], text: '', status: 'running' as const };
+
+  it('an INCOMPLETE before any phase is an info notice, after a phase a warning', () => {
+    const early = applySpecDrivenEvent(CARD, {
+      event: 'error',
+      code: 'INCOMPLETE',
+      message: 'previous generation expired — rebuilding',
+    });
+    expect(early.status).toBe('running');
+    expect(early.warnings[0].severity).toBe('info');
+
+    const withPhase = applySpecDrivenEvent(CARD, {
+      event: 'phase',
+      phase: 'generate',
+      message: '',
+    });
+    const late = applySpecDrivenEvent(withPhase, {
+      event: 'error',
+      code: 'INCOMPLETE',
+      message: 'loop cut short',
+    });
+    expect(late.warnings[0].severity).toBe('warning');
+  });
+
+  it('COST_CAP is silent (no notice, status unchanged)', () => {
+    const next = applySpecDrivenEvent(CARD, {
+      event: 'error',
+      code: 'COST_CAP',
+      message: 'Cost cap reached ($1.01 > $1.00)',
+    });
+    expect(next).toEqual(CARD);
+  });
+
+  it('a tool_call before any phase gets an implicit Working phase', () => {
+    const next = applySpecDrivenEvent(CARD, {
+      event: 'tool_call',
+      turn: 1,
+      tool: 'write_file',
+      status: 'executing',
+    });
+    expect(next.phases).toHaveLength(1);
+    expect(next.phases[0].label).toBe('Working');
+    expect(next.phases[0].toolCalls).toEqual([
+      { turn: 1, tool: 'write_file', summary: undefined },
+    ]);
+  });
+
+  it('model_update swaps the header model and adds a visible step note', () => {
+    const next = applySpecDrivenEvent(CARD, {
+      event: 'model_update',
+      model: 'qwen3-coder:30b',
+      previousModel: 'claude-sonnet-4-6',
+      reason: 'primary_unavailable',
+    });
+    expect(next.model).toBe('qwen3-coder:30b');
+    const row = next.phases.find((p) => p.phase === 'model');
+    expect(row?.label).toBe('Switched to qwen3-coder:30b');
+    expect(row?.message).toBe('The primary model was unavailable.');
   });
 });
 
 describe('specDrivenSlice — global runStatus guard', () => {
-  it('beginRun flips runStatus to running', () => {
-    const state = specDrivenReducer(INITIAL, beginRun({ runId: 'abc' }));
-    expect(state.runStatus).toBe('running');
-  });
-
   it('claimRunSlot / releaseRunSlot toggle runStatus', () => {
     let state = specDrivenReducer(INITIAL, claimRunSlot());
     expect(state.runStatus).toBe('running');
@@ -187,43 +314,66 @@ describe('specDrivenSlice — global runStatus guard', () => {
     expect(state.runStatus).toBe('idle');
   });
 
-  it('completeRun and resetRun release the slot', () => {
-    let state = specDrivenReducer(INITIAL, beginRun({ runId: 'abc' }));
+  it('a done event and resetRun release the slot', () => {
+    let state = specDrivenReducer(INITIAL, claimRunSlot());
+    state = specDrivenReducer(state, liveRunStarted({ key: 'k1' }));
     state = specDrivenReducer(
       state,
-      completeRun({ downloadUrl: '/dl/abc', fileName: 'x.zip', isZip: true }),
+      liveRunEvent({
+        key: 'k1',
+        event: {
+          event: 'done',
+          downloadUrl: `/dl/${'a'.repeat(32)}`,
+          fileName: 'x.zip',
+          isZip: true,
+          recipe: {},
+        },
+      }),
     );
     expect(state.runStatus).toBe('idle');
 
-    state = specDrivenReducer(state, beginRun({ runId: 'def' }));
+    state = specDrivenReducer(state, claimRunSlot());
     state = specDrivenReducer(state, resetRun());
     expect(state.runStatus).toBe('idle');
   });
 
   it('terminal errors release the slot, non-terminal warnings do not', () => {
-    let state = specDrivenReducer(INITIAL, beginRun({ runId: 'abc' }));
-    // Non-terminal warning — stream continues, slot stays claimed.
-    state = specDrivenReducer(
-      state,
-      setRunError({ code: 'COST_CAP', message: 'cap reached' }),
-    );
+    let state = specDrivenReducer(INITIAL, claimRunSlot());
+    state = specDrivenReducer(state, liveRunStarted({ key: 'k1' }));
+    const errorEvent = (code: 'COST_CAP' | 'TIMEOUT' | 'INCOMPLETE' | 'INTERNAL') =>
+      liveRunEvent({ key: 'k1', event: { event: 'error', code, message: 'x' } });
+    // Non-terminal warnings — stream continues, slot stays claimed.
+    state = specDrivenReducer(state, errorEvent('COST_CAP'));
     expect(state.runStatus).toBe('running');
-    state = specDrivenReducer(
-      state,
-      setRunError({ code: 'TIMEOUT', message: 'time cap reached' }),
-    );
+    state = specDrivenReducer(state, errorEvent('TIMEOUT'));
     expect(state.runStatus).toBe('running');
-    state = specDrivenReducer(
-      state,
-      setRunError({ code: 'INCOMPLETE', message: 'partial result available' }),
-    );
+    state = specDrivenReducer(state, errorEvent('INCOMPLETE'));
     expect(state.runStatus).toBe('running');
     // Terminal error — slot released.
-    state = specDrivenReducer(
-      state,
-      setRunError({ code: 'INTERNAL', message: 'boom' }),
-    );
+    state = specDrivenReducer(state, errorEvent('INTERNAL'));
     expect(state.runStatus).toBe('idle');
+  });
+});
+
+describe('specDrivenSlice — live-run selectors and reads', () => {
+  it('selectLiveSpecDrivenRun / selectHasLiveSpecDrivenRun reflect the runs map', () => {
+    const empty = { specDriven: specDrivenReducer(undefined, { type: '@@init' }) };
+    expect(selectHasLiveSpecDrivenRun(empty)).toBe(false);
+    expect(selectLiveSpecDrivenRun(empty, 'k1')).toBeUndefined();
+
+    const withRun = {
+      specDriven: specDrivenReducer(INITIAL, liveRunStarted({ key: 'k1' })),
+    };
+    expect(selectHasLiveSpecDrivenRun(withRun)).toBe(true);
+    expect(selectLiveSpecDrivenRun(withRun, 'k1')?.status).toBe('running');
+  });
+
+  it('readLiveSpecDrivenRun reads the live store state, null once ended', () => {
+    const store = makeStore();
+    store.dispatch(liveRunStarted({ key: 'k1' }));
+    expect(store.dispatch(readLiveSpecDrivenRun('k1'))).not.toBeNull();
+    store.dispatch(liveRunEnded({ key: 'k1' }));
+    expect(store.dispatch(readLiveSpecDrivenRun('k1'))).toBeNull();
   });
 });
 

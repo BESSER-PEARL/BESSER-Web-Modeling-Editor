@@ -8,6 +8,10 @@
 
 import { SMART_GEN_ENDPOINT } from '../../../shared/constants/constant';
 import { streamSse } from '../../../shared/services/sse/sseClient';
+import {
+  getOrCreateAssistantSessionId,
+  getPilotParticipant,
+} from '../../../shared/services/telemetry/pilotTelemetry';
 import type {
   SpecDrivenEvent,
   SpecDrivenMode,
@@ -100,6 +104,14 @@ export function startSpecDrivenRun(
   }
   if (params.skipDeterministicGenerator === true) {
     body.skip_deterministic_generator = true;
+  }
+  // Pilot experiment: tag the run with the participant label + the per-tab
+  // session id so the backend runner can attach its run summary to the same
+  // telemetry session as the chat events. Absent for regular sessions.
+  const telemetryParticipant = getPilotParticipant();
+  if (telemetryParticipant) {
+    body.telemetry_participant = telemetryParticipant;
+    body.telemetry_session = getOrCreateAssistantSessionId();
   }
 
   const events = streamSse<SpecDrivenEvent>(SMART_GEN_ENDPOINT, body, {

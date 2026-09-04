@@ -45,6 +45,7 @@ import {
 import { useImportDiagramToProject } from '../import/useImportDiagram';
 import { apiClient, ApiError } from '../../shared/api/api-client';
 import { LocalStorageRepository } from '../../shared/services/storage/local-storage-repository';
+import { emitDeliveryEvent } from '../../shared/services/telemetry/pilotTelemetry';
 import { useAppDispatch } from '../../app/store/hooks';
 import { useGitHubAuth } from '../github/hooks/useGitHubAuth';
 import { useGitHubStorage, type GitHubRepository } from '../github/hooks/useGitHubStorage';
@@ -744,6 +745,9 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
 
       refreshProjects();
       handleDialogOpenChange(false);
+      // Pilot telemetry: a completed continue-from-repo import is a delivery
+      // action. Fire-and-forget, no-op outside pilot sessions.
+      emitDeliveryEvent('continue_from_repo', response.run_id);
       toast.success(`Continuing from ${response.owner}/${response.repo}.`);
     } catch (error) {
       if (error instanceof ApiError && error.status === 401) {

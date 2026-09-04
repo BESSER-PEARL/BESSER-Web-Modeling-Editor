@@ -1077,6 +1077,7 @@
       "privacyBody": "Avoid sharing sensitive or confidential information in assistant messages.",
       "understand": "I Understand"
     },
+    "pilotNotice": "This pilot session is recorded for research purposes.",
     "poweredWithBaf": "Powered with BAF",
     "capabilities": {
       "systemDesign": {

@@ -20,8 +20,11 @@ import {
 import { useTranslation } from "react-i18next"
 
 import { cn } from "@/lib/utils"
+import { useAppSelector } from "@/main/app/store/hooks"
+import { selectLiveSpecDrivenRun } from "@/main/features/spec-driven/state/specDrivenSlice"
 import { cancelSpecDrivenUrl } from "@/main/shared/constants/constant"
 import { fetchAndSaveSpecDrivenArtifact } from "@/main/shared/utils/specDrivenDownload"
+import { emitDeliveryEvent } from "@/main/shared/services/telemetry/pilotTelemetry"
 import { downloadFile } from "@/main/shared/utils/download"
 import {
   Collapsible,
@@ -178,6 +181,16 @@ export interface SpecDrivenWarningView {
 }
 
 export interface SpecDrivenMessageState {
+  /**
+   * Live-run subscription key (client-generated, assigned before the
+   * backend run id exists). Present while a spec-driven run is streaming:
+   * the card then renders from the Redux slice entry
+   * `specDriven.runs[liveKey]` — updated on every SSE event — instead of
+   * this embedded snapshot, so live progress re-renders by construction
+   * regardless of which chat surface is mounted or remounts mid-run.
+   * The final snapshot written into the message at completion drops it.
+   */
+  liveKey?: string
   runId?: string
   provider?: string
   model?: string
@@ -520,11 +533,25 @@ export const ChatMessage: React.FC<ChatMessageProps> = (props) => {
   if (specDriven) {
     return (
       <div className="flex w-full flex-col items-start sm:max-w-[85%]">
-        <SpecDrivenCard
-          specDriven={specDriven}
-          isStreaming={isStreaming === true}
-          onPushToGithub={onPushToGithub}
-        />
+        {specDriven.liveKey ? (
+          // Live run: the card subscribes to the Redux slice by run key,
+          // so every SSE event re-renders it regardless of how the
+          // conversation list itself is owned or synced. Mounted only for
+          // live cards so historical/final cards (and Provider-less test
+          // renders) never touch the store.
+          <LiveSpecDrivenCard
+            liveKey={specDriven.liveKey}
+            fallback={specDriven}
+            isStreaming={isStreaming === true}
+            onPushToGithub={onPushToGithub}
+          />
+        ) : (
+          <SpecDrivenCard
+            specDriven={specDriven}
+            isStreaming={isStreaming === true}
+            onPushToGithub={onPushToGithub}
+          />
+        )}
         {showTimeStamp && createdAt ? (
           <time
             dateTime={createdAt.toISOString()}
@@ -778,6 +805,41 @@ function formatDuration(totalSeconds: number): string {
   return `${m}m ${rem}s`
 }
 
+/**
+ * Live run card: renders the run's LIVE state straight from the Redux
+ * spec-driven slice, subscribed by the message's `liveKey`.
+ *
+ * This is the architectural fix for the "empty bubble until the run
+ * finishes" bug: the chat message itself is only a stub while the run
+ * streams, and every SSE event lands in `specDriven.runs[liveKey]` via
+ * `liveRunEvent` — so the card re-renders on every event by construction,
+ * no matter which assistant surface (widget / drawer) is mounted, owns
+ * the SSE loop, or remounts mid-run. When the run finalizes, the slice
+ * entry disappears and the message carries the final snapshot instead
+ * (`fallback` covers the brief window in between).
+ */
+function LiveSpecDrivenCard({
+  liveKey,
+  fallback,
+  isStreaming,
+  onPushToGithub,
+}: {
+  liveKey: string
+  fallback: SpecDrivenMessageState
+  isStreaming: boolean
+  onPushToGithub?: (runId: string) => void
+}) {
+  const live = useAppSelector((state) => selectLiveSpecDrivenRun(state, liveKey))
+  const specDriven = live ?? fallback
+  return (
+    <SpecDrivenCard
+      specDriven={specDriven}
+      isStreaming={isStreaming || specDriven.status === "running"}
+      onPushToGithub={onPushToGithub}
+    />
+  )
+}
+
 function SpecDrivenCard({
   specDriven,
   isStreaming,
@@ -876,6 +938,10 @@ function SpecDrivenCard({
   // Download button saves the blob directly instead of re-fetching by run id.
   const handleDeterministicDownload = () => {
     if (!deterministicBlob) return
+    // Pilot telemetry: deterministic runs hold the artifact in-hand, so this
+    // click never reaches the shared fetch helper — record it here instead.
+    // Fire-and-forget, no-op outside pilot sessions.
+    emitDeliveryEvent("download", runId || undefined)
     try {
       downloadFile(deterministicBlob, fileName || "generated_code.zip", deterministicBlob.type || "application/zip")
       setHasDownloaded(true)

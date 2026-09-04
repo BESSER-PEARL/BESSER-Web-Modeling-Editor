@@ -1369,10 +1369,12 @@ export function useAssistantLogic({
   };
 
   const clearConversation = () => {
-    // Abort any in-flight Smart Generator run first — otherwise the
-    // stream keeps firing events into a cleared message list, where
-    // the message-lookup-by-id silently no-ops and the user's BYOK
-    // budget keeps draining.
+    // Abort any in-flight Smart Generator run first so the user's BYOK
+    // budget stops draining. NOTE: this only aborts a run owned by THIS
+    // hook instance — a run owned by the other mounted surface keeps
+    // streaming, and its next SSE event deliberately UPSERTS its card
+    // back into the cleared list (see useSpecDrivenTrigger) so live
+    // progress is never silently dropped.
     specDriven.abortActive();
     // Drop any pending voice placeholder tracking — the bubble is wiped with
     // the rest of the list, so a late transcription echo should append fresh

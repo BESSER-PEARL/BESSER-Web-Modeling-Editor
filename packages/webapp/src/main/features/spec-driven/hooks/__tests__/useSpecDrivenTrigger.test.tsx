@@ -38,6 +38,7 @@ import {
 import { workspaceReducer } from '../../../../app/store/workspaceSlice';
 import { errorReducer } from '../../../../app/store/errorManagementSlice';
 import { useSpecDrivenTrigger, type SpecDrivenRunResult } from '../useSpecDrivenTrigger';
+import { sanitizeMessageForPersist } from '../../../assistant/hooks/assistantConversationStore';
 import type { SpecDrivenEvent, TriggerSpecDrivenPayload } from '../../types';
 import {
   sessionStorageSpecDrivenApiKey,
@@ -118,6 +119,10 @@ interface HarnessAPI {
   abortActive: () => void;
   getMessages: () => unknown[];
   getIsGenerating: () => boolean;
+  /** Simulate "New Chat" wiping the conversation list mid-run. */
+  clearMessages: () => void;
+  /** Set the surface's isGenerating flag (typing indicator) directly. */
+  setGenerating: (value: boolean) => void;
 }
 
 function Harness(props: {
@@ -149,6 +154,8 @@ function Harness(props: {
     abortActive: hook.abortActive,
     getMessages: () => messages,
     getIsGenerating: () => isGenerating,
+    clearMessages: () => setMessages([]),
+    setGenerating: (value: boolean) => setIsGenerating(value),
   };
   return <div data-testid="msgs">{JSON.stringify(messages.length)}</div>;
 }
@@ -1155,22 +1162,23 @@ describe('useSpecDrivenTrigger — abort', () => {
       await apiRef.current!.handleTrigger(PAYLOAD);
     });
 
-    // After the stream completes, the activeRun state stays populated
-    // (phase: 'done') so the UI can keep showing the final cost /
-    // download URL. Abort after completion should NOT wipe that state
-    // — aborting a completed run is a no-op because isRunningRef is
-    // already false.
-    const beforeAbort = store.getState().specDriven.activeRun;
-    expect(beforeAbort).not.toBeNull();
-    expect(beforeAbort!.phase).toBe('done');
+    // After the stream completes, the FINAL snapshot lives in the chat
+    // message (the live slice entry is gone — finalized) so the UI keeps
+    // showing the finished card / download coords. Abort after
+    // completion is a no-op because isRunningRef is already false.
+    const before = (apiRef.current!.getMessages() as any[]).find((m) => m.specDriven);
+    expect(before.specDriven.status).toBe('done');
+    expect(Object.keys(store.getState().specDriven.runs)).toHaveLength(0);
 
     act(() => {
       apiRef.current!.abortActive();
     });
 
-    // Abort is idempotent on a completed run — state preserved.
+    // Abort is idempotent on a completed run — the snapshot is preserved.
     expect(apiRef.current!.getIsGenerating()).toBe(false);
-    expect(store.getState().specDriven.activeRun).not.toBeNull();
+    const after = (apiRef.current!.getMessages() as any[]).find((m) => m.specDriven);
+    expect(after.specDriven.status).toBe('done');
+    expect(after.specDriven.fileName).toBe('besser_smart_output.zip');
   });
 });
 
@@ -1314,16 +1322,21 @@ describe('useSpecDrivenTrigger — failsafe honesty', () => {
         },
       ]);
 
-      const { apiRef } = renderHarness();
+      const { apiRef, store } = renderHarness();
       act(() => {
         void apiRef.current!.handleTrigger(PAYLOAD);
       });
       await act(flushMicrotasks);
 
-      // The notice lands on the card as an informational entry (it arrived
-      // before any phase — a run-setup note, not an output problem).
+      // The notice lands on the LIVE card state (the Redux slice entry the
+      // card renders from, keyed by the message's liveKey) as an
+      // informational entry — it arrived before any phase, so it's a
+      // run-setup note, not an output problem.
       const card = (apiRef.current!.getMessages() as any[]).find((m) => m.specDriven);
-      expect(card.specDriven.warnings[0].severity).toBe('info');
+      const liveKey = card.specDriven.liveKey as string;
+      expect(liveKey).toBeTruthy();
+      const live = store.getState().specDriven.runs[liveKey];
+      expect(live.warnings[0].severity).toBe('info');
 
       // Advance well past the failsafe window: the run must still be alive.
       await act(async () => {
@@ -1383,5 +1396,205 @@ describe('useSpecDrivenTrigger — failsafe honesty', () => {
     } finally {
       vi.useRealTimers();
     }
+  });
+});
+
+describe('useSpecDrivenTrigger — live run state in the Redux slice (architectural fix)', () => {
+  /** Mock one run that yields `head`, then waits on `gate`, then yields
+   * `tail`, then waits on `endGate` (a controllable live stream). */
+  const mockGatedRun = async (
+    head: SpecDrivenEvent[],
+    gate: Promise<void>,
+    tail: SpecDrivenEvent[],
+    endGate: Promise<void>,
+  ) => {
+    const sseClientModule = await import('../../services/specDrivenSseClient');
+    vi.mocked(sseClientModule.startSpecDrivenRun).mockImplementationOnce(() => ({
+      controller: new AbortController(),
+      abort: () => {
+        _mockController.abortCalled = true;
+      },
+      events: (async function* () {
+        for (const ev of head) yield ev;
+        await gate;
+        for (const ev of tail) yield ev;
+        await endGate;
+      })() as AsyncGenerator<SpecDrivenEvent, void, void>,
+    }));
+  };
+
+  it('(a) mid-run SSE events update the slice entry the card renders from — no other trigger needed', async () => {
+    setSessionKey();
+    let releaseStream: () => void = () => {};
+    const streamGate = new Promise<void>((resolve) => {
+      releaseStream = resolve;
+    });
+    await mockGatedRun(
+      [
+        HAPPY_EVENTS[0],
+        { event: 'phase', phase: 'select', message: 'Selecting generator' },
+        { event: 'text', delta: 'Building…' },
+      ],
+      streamGate,
+      [],
+      Promise.resolve(),
+    );
+
+    const { apiRef, store } = renderHarness();
+    let run: Promise<void> = Promise.resolve();
+    await act(async () => {
+      run = apiRef.current!.handleTrigger(PAYLOAD);
+      await new Promise((resolve) => setTimeout(resolve, 10));
+    });
+
+    const card = (apiRef.current!.getMessages() as any[]).find((m) => m.specDriven);
+    expect(card).toBeTruthy();
+    const liveKey = card.specDriven.liveKey as string;
+    expect(liveKey).toBeTruthy();
+
+    // The chat MESSAGE stays a stub while the run is live…
+    expect(card.specDriven.status).toBe('running');
+    expect(card.specDriven.phases).toHaveLength(0);
+
+    // …while the slice entry the card SUBSCRIBES to carries every event —
+    // so the card re-renders on each SSE event by construction, with no
+    // other trigger (message write, surface re-render) involved.
+    const live = store.getState().specDriven.runs[liveKey];
+    expect(live.runId).toBe('a'.repeat(32));
+    expect(live.provider).toBe('anthropic');
+    expect(live.phases).toHaveLength(1);
+    expect(live.phases[0].label).toBe('Selecting generator');
+    expect(live.text).toBe('Building…');
+
+    act(() => apiRef.current!.abortActive());
+    releaseStream();
+    await act(async () => {
+      await run;
+    });
+  });
+
+  it('(b) an event arriving when the card message is gone upserts the card back', async () => {
+    setSessionKey();
+    let releaseMid: () => void = () => {};
+    const midGate = new Promise<void>((resolve) => {
+      releaseMid = resolve;
+    });
+    let releaseEnd: () => void = () => {};
+    const endGate = new Promise<void>((resolve) => {
+      releaseEnd = resolve;
+    });
+    await mockGatedRun(
+      [HAPPY_EVENTS[0]],
+      midGate,
+      [{ event: 'phase', phase: 'generate', message: 'running fastapi' }],
+      endGate,
+    );
+
+    const { apiRef, store } = renderHarness();
+    let run: Promise<void> = Promise.resolve();
+    await act(async () => {
+      run = apiRef.current!.handleTrigger(PAYLOAD);
+      await new Promise((resolve) => setTimeout(resolve, 10));
+    });
+
+    const before = (apiRef.current!.getMessages() as any[]).find((m) => m.specDriven);
+    const liveKey = before.specDriven.liveKey as string;
+    expect(liveKey).toBeTruthy();
+
+    // The conversation list is wiped mid-run (e.g. "New Chat" fired from a
+    // surface that does NOT own this run — its abortActive is a no-op).
+    await act(async () => {
+      apiRef.current!.clearMessages();
+    });
+    expect(apiRef.current!.getMessages()).toHaveLength(0);
+
+    // The next live event RECREATES the card message instead of silently
+    // no-oping (the old `idx === -1 → return prev` drop).
+    releaseMid();
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 10));
+    });
+    const recreated = (apiRef.current!.getMessages() as any[]).find((m) => m.specDriven);
+    expect(recreated).toBeTruthy();
+    expect(recreated.specDriven.liveKey).toBe(liveKey);
+    expect(store.getState().specDriven.runs[liveKey].phases).toHaveLength(1);
+
+    act(() => apiRef.current!.abortActive());
+    releaseEnd();
+    await act(async () => {
+      await run;
+    });
+  });
+
+  it('(c) completion writes the final snapshot into the message; persistence excludes running cards and keeps the snapshot', async () => {
+    setSessionKey();
+    _mockController.events = HAPPY_EVENTS;
+    const { apiRef, store } = renderHarness();
+    await act(async () => {
+      await apiRef.current!.handleTrigger(PAYLOAD);
+    });
+
+    const card = (apiRef.current!.getMessages() as any[]).find((m) => m.specDriven);
+    // The final snapshot lives IN the message: full run history, live
+    // link severed, streaming off — exactly what history needs.
+    expect(card.specDriven.status).toBe('done');
+    expect(card.specDriven.liveKey).toBeUndefined();
+    expect(card.specDriven.phases.length).toBeGreaterThan(0);
+    expect(card.specDriven.text).toBe('Building your app…');
+    expect(card.specDriven.needsDownload).toBe(true);
+    expect(card.isStreaming).toBe(false);
+    // The live slice entry is gone — nothing leaks across runs.
+    expect(Object.keys(store.getState().specDriven.runs)).toHaveLength(0);
+
+    // Persistence contract unchanged: a still-running card is never
+    // persisted; the finalized snapshot is.
+    const runningStub = {
+      id: 'x1',
+      role: 'assistant',
+      content: '',
+      specDriven: {
+        liveKey: 'k',
+        phases: [],
+        warnings: [],
+        text: '',
+        status: 'running',
+      },
+    } as any;
+    expect(sanitizeMessageForPersist(runningStub)).toBeNull();
+    const persisted = sanitizeMessageForPersist(card);
+    expect(persisted).not.toBeNull();
+    expect((persisted!.specDriven as any).status).toBe('done');
+  });
+
+  it('(d) the typing indicator is cleared when the run card becomes active', async () => {
+    setSessionKey();
+    let releaseEnd: () => void = () => {};
+    const endGate = new Promise<void>((resolve) => {
+      releaseEnd = resolve;
+    });
+    await mockGatedRun([HAPPY_EVENTS[0]], endGate, [], endGate);
+
+    const { apiRef } = renderHarness();
+    // The modeling agent's turn had the surface showing "Typing".
+    act(() => apiRef.current!.setGenerating(true));
+    expect(apiRef.current!.getIsGenerating()).toBe(true);
+
+    let run: Promise<void> = Promise.resolve();
+    await act(async () => {
+      run = apiRef.current!.handleTrigger(PAYLOAD);
+      await new Promise((resolve) => setTimeout(resolve, 10));
+    });
+
+    // The run card is now the progress surface — the typing chip must be
+    // cleared even though the run is still active.
+    expect(apiRef.current!.getIsGenerating()).toBe(false);
+    const card = (apiRef.current!.getMessages() as any[]).find((m) => m.specDriven);
+    expect(card.specDriven.status).toBe('running');
+
+    act(() => apiRef.current!.abortActive());
+    releaseEnd();
+    await act(async () => {
+      await run;
+    });
   });
 });

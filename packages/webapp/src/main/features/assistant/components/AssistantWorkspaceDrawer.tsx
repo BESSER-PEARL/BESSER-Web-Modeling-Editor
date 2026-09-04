@@ -21,10 +21,11 @@ import { shouldOpenGuiTab, isReviewSpecAction, type GuiActionRouteInput } from '
 import { AssistantByokDialog } from './AssistantByokDialog';
 import { QuickActions } from './QuickActions';
 import { ModelOverviewPanel } from './ModelOverviewPanel';
-import { useAppDispatch } from '../../../app/store/hooks';
-import { openPushDialog } from '../../spec-driven/state/specDrivenSlice';
+import { useAppDispatch, useAppSelector } from '../../../app/store/hooks';
+import { openPushDialog, selectHasLiveSpecDrivenRun } from '../../spec-driven/state/specDrivenSlice';
 import { sessionStoragePendingAssistantPrompt } from '../../../shared/constants/constant';
 import { readLlmKey } from '../../../shared/services/llmKeyStorage';
+import { PilotSessionNotice } from '../../../shared/components/pilot/PilotSessionNotice';
 
 /* ------------------------------------------------------------------ */
 /*  Types & constants                                                  */
@@ -138,6 +139,10 @@ export const AssistantWorkspaceDrawer: React.FC<AssistantWorkspaceDrawerProps> =
   /* ---- Redux ---- */
 
   const dispatch = useAppDispatch();
+  // While a Spec-Driven run card is live it shows its own progress —
+  // suppress the chat's "Typing" chip so it doesn't stick for the whole
+  // run (the run card, not the chip, is the progress surface).
+  const hasLiveSpecDrivenRun = useAppSelector(selectHasLiveSpecDrivenRun);
 
   /* ---- i18n ---- */
 
@@ -756,6 +761,8 @@ export const AssistantWorkspaceDrawer: React.FC<AssistantWorkspaceDrawerProps> =
 
               {/* Bottom spacer + footer */}
               <div className="flex-[1_1_8%] min-h-4" />
+              {/* Pilot-experiment transparency line (regular sessions render nothing) */}
+              <PilotSessionNotice className="pb-1.5" />
               <p className="animate-fade-up pb-4 text-center text-[10px] text-muted-foreground/35" style={{ animationDelay: '500ms' }}>
                 {t('assistant.welcome.pressEscPre')} <kbd className="rounded-[3px] border border-border/30 bg-muted/25 px-1.5 py-0.5 font-mono text-[9px]">Esc</kbd> {t('assistant.welcome.pressEscPost')}
               </p>
@@ -769,9 +776,11 @@ export const AssistantWorkspaceDrawer: React.FC<AssistantWorkspaceDrawerProps> =
               <div className="relative min-h-0 flex-1">
                 <div ref={messageListContainerRef} className="h-full overflow-y-auto bg-gradient-to-b from-muted/10 via-background to-muted/5 px-4 py-6 sm:px-8">
                   <div className="mx-auto w-full max-w-4xl">
+                    {/* Pilot-experiment transparency line (regular sessions render nothing) */}
+                    <PilotSessionNotice className="mb-4" />
                     <MessageList
                       messages={messages}
-                      isTyping={isGenerating}
+                      isTyping={isGenerating && !hasLiveSpecDrivenRun}
                       typingLabel={progressSteps.length > 0 ? progressSteps[progressSteps.length - 1] : undefined}
                       showTimeStamps={false}
                       // Opening the push dialog is a pure dispatch — the dialog

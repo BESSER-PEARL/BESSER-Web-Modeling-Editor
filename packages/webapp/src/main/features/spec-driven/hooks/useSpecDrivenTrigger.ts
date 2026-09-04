@@ -14,12 +14,22 @@
  *      the user saves a key.
  *   4. Fetches `/besser_api/spec-driven/generate` with the project payload,
  *      instructions, provider, and BYOK key.
- *   5. Yields each SSE event and injects it into the shared assistant
- *      chat as a streaming assistant message — reusing the chunk-append
- *      semantics from `useStreamingResponse`.
- *   6. On `done`, the download is fetched and finalised in the SAME
- *      try block that writes the success message — so a download
- *      failure produces an error message, never a stale ✅ bubble.
+ *   5. Appends ONE stub card message to the shared assistant chat
+ *      (carrying a client-generated `liveKey`), then dispatches EVERY
+ *      SSE event into the Redux spec-driven slice (`liveRunEvent`,
+ *      keyed by `liveKey`). The run card subscribes to the slice entry
+ *      directly (see `LiveSpecDrivenCard`), so live progress re-renders
+ *      by construction — independent of which assistant surface is
+ *      mounted, remounts mid-run, or owns this hook instance. If the
+ *      card message disappears mid-run (New Chat on another surface, a
+ *      project-switch race), the next event UPSERTS it back instead of
+ *      silently no-oping (the old `idx === -1 → return prev` bug that
+ *      left users staring at an empty bubble until the run finished).
+ *   6. At the run's terminal point (`done`, terminal error, abort,
+ *      stream cut) the final card state is snapshotted from the slice
+ *      INTO the chat message and the slice entry is removed — history
+ *      and the sessionStorage conversation persistence therefore work
+ *      exactly as before (running cards stay excluded from persistence).
  *   7. `COST_CAP`, `TIMEOUT`, and `INCOMPLETE` are non-terminal
  *      warnings — they annotate the stream but wait for the `done`
  *      event. `COST_CAP` / `TIMEOUT` only ever arrive at the very end
@@ -54,23 +64,23 @@ import type {
 } from '@/components/chatbot-kit/ui/chat-message';
 import { useAppDispatch, useAppSelector } from '../../../app/store/hooks';
 import type { BesserProject } from '../../../shared/types/project';
-import { fetchAndSaveSpecDrivenArtifact } from '../../../shared/utils/specDrivenDownload';
 import { buildProjectPayloadForBackend } from '../../../shared/utils/projectExportUtils';
 
 import {
-  beginRun,
-  completeRun,
   consumePendingTrigger,
+  extractSpecDrivenRunId,
   isSpecDrivenRunActive,
+  isValidSpecDrivenPhase,
+  liveRunEnded,
+  liveRunEvent,
+  liveRunStarted,
   openByokDialog,
+  readLiveSpecDrivenRun,
   releaseRunSlot,
   resetRun,
   setApiKeyPresent,
   setLastRunForProject,
-  setRunError,
   tryClaimRunSlot,
-  updateCost,
-  updatePhase,
 } from '../state/specDrivenSlice';
 import {
   clearSessionKey,
@@ -93,7 +103,6 @@ import {
 import { decideRunMode } from '../runModeDecision';
 import type {
   SpecDrivenEvent,
-  SpecDrivenPhase,
   SpecDrivenProvider,
   TriggerSpecDrivenPayload,
 } from '../types';
@@ -124,21 +133,17 @@ const createMessageId = (): string => {
   return `smart-gen-${Date.now()}-${Math.random().toString(16).slice(2)}`;
 };
 
-const PHASE_LABELS: Record<SpecDrivenPhase, string> = {
-  select: 'Selecting generator',
-  generate: 'Running deterministic generator',
-  gap: 'Analysing gaps',
-  customize: 'Customising output',
-  validate: 'Validating',
-};
-
-const VALID_PHASES: ReadonlySet<SpecDrivenPhase> = new Set<SpecDrivenPhase>([
-  'select',
-  'generate',
-  'gap',
-  'customize',
-  'validate',
-]);
+// Initial stub state for a fresh smart-gen run card. The chat message
+// carries only this stub (plus the `liveKey` linking it to the Redux
+// slice entry); the LIVE state the card renders is owned by
+// `specDriven.runs[liveKey]` and updated on every SSE event.
+const emptyCard = (liveKey: string): SpecDrivenMessageState => ({
+  liveKey,
+  phases: [],
+  warnings: [],
+  text: '',
+  status: 'running',
+});
 
 const VALID_PROVIDERS: ReadonlySet<SpecDrivenProvider> = new Set<SpecDrivenProvider>([
   'anthropic',
@@ -149,26 +154,8 @@ const VALID_PROVIDERS: ReadonlySet<SpecDrivenProvider> = new Set<SpecDrivenProvi
   'free',
 ]);
 
-/**
- * Extract the 32-hex run_id from a backend-provided downloadUrl such as
- * `/besser_api/spec-driven/download/7f3c…`. Returns `null` on failure — the
- * caller must handle that explicitly rather than silently using an
- * empty string as a sentinel.
- */
-const extractRunId = (downloadUrl: string): string | null => {
-  if (typeof downloadUrl !== 'string' || downloadUrl.length === 0) return null;
-  // Canonical form: the backend writes `run_id = uuid.uuid4().hex` so
-  // it's always exactly 32 lowercase hex chars. Match on that.
-  const hexMatch = downloadUrl.match(/([a-f0-9]{32})(?:[/?#]|$)/i);
-  if (hexMatch) return hexMatch[1].toLowerCase();
-  return null;
-};
-
 const isValidProvider = (value: unknown): value is SpecDrivenProvider =>
   typeof value === 'string' && VALID_PROVIDERS.has(value as SpecDrivenProvider);
-
-const isValidPhase = (value: unknown): value is SpecDrivenPhase =>
-  typeof value === 'string' && VALID_PHASES.has(value as SpecDrivenPhase);
 
 /**
  * Terminal outcome of a smart-gen run, reported exactly once per run
@@ -246,6 +233,12 @@ export function useSpecDrivenTrigger(
   // Latest runId / cost observed on the stream, for terminal reports.
   const currentRunIdRef = useRef<string | undefined>(undefined);
   const lastCostRef = useRef<number | undefined>(undefined);
+  // The active run's live key + card message id, so `abortActive` can
+  // finalize the card immediately (a hung stream may never surface the
+  // AbortError that would otherwise drive the finalize path).
+  const activeCardRef = useRef<{ liveKey: string; streamingId: string } | null>(
+    null,
+  );
 
   const reportRunFinished = useCallback((result: SpecDrivenRunResult) => {
     if (runFinishedReportedRef.current) return;
@@ -257,8 +250,12 @@ export function useSpecDrivenTrigger(
     }
   }, []);
 
-  // Track mount state so we can bail out if the user navigates away
-  // mid-stream and avoid setState-on-unmounted warnings.
+  // Track mount state — used ONLY to skip the per-surface
+  // `setIsGenerating` after unmount. The run itself deliberately keeps
+  // streaming past an unmount: all its state lives outside React (the
+  // Redux slice + the shared conversation store), so the card keeps
+  // updating and the run finalizes correctly even if the owning surface
+  // unmounts or remounts mid-run.
   const mountedRef = useRef(true);
   useEffect(() => {
     mountedRef.current = true;
@@ -289,31 +286,43 @@ export function useSpecDrivenTrigger(
     [setMessages],
   );
 
-  // Initial structured state for a fresh smart-gen run. Stored on the
-  // streaming message under ``specDriven`` and rendered as a card by
-  // ``ChatMessage``.
-  const emptySpecDriven = (): SpecDrivenMessageState => ({
-    phases: [],
-    warnings: [],
-    text: '',
-    status: 'running',
-  });
-
-  const updateSpecDriven = useCallback(
+  /**
+   * Write `card` into the run's chat message — updating it in place when
+   * the message exists, and RECREATING it when it doesn't (upsert).
+   *
+   * The previous implementation silently dropped the write when the
+   * message id wasn't found (`idx === -1 → return prev`), which turned
+   * every subsequent live update into an invisible no-op once anything
+   * removed the card message from the list. Now the card is re-appended
+   * with the same id, so run state stays visible no matter what happened
+   * to the conversation in between.
+   */
+  const upsertCardMessage = useCallback(
     (
       messageId: string,
-      updater: (s: SpecDrivenMessageState) => SpecDrivenMessageState,
+      card: SpecDrivenMessageState,
       opts: { stopStreaming?: boolean } = {},
     ) => {
       setMessages((prev) => {
         const idx = prev.findIndex((m) => m.id === messageId);
-        if (idx === -1) return prev;
+        if (idx === -1) {
+          return [
+            ...prev,
+            {
+              id: messageId,
+              role: 'assistant',
+              content: '',
+              createdAt: new Date(),
+              isStreaming: opts.stopStreaming ? false : true,
+              specDriven: card,
+            } as ChatKitMessage,
+          ];
+        }
         const current = prev[idx];
-        const before = current.specDriven ?? emptySpecDriven();
         const updated: ChatKitMessage = {
           ...current,
-          specDriven: updater(before),
-          isStreaming: opts.stopStreaming ? false : true,
+          specDriven: card,
+          isStreaming: opts.stopStreaming ? false : current.isStreaming,
         };
         return [...prev.slice(0, idx), updated, ...prev.slice(idx + 1)];
       });
@@ -321,27 +330,28 @@ export function useSpecDrivenTrigger(
     [setMessages],
   );
 
-  const finalizeStreamingMessage = useCallback(
-    (messageId: string) => {
+  /**
+   * Upsert path for live events: make sure the run's card message exists
+   * in the conversation. If something removed it mid-run (New Chat fired
+   * from a surface that doesn't own this run, a project-switch race),
+   * recreate the stub — the card itself renders from the Redux slice, so
+   * a recreated stub immediately shows the full live state again.
+   */
+  const ensureCardMessage = useCallback(
+    (messageId: string, liveKey: string) => {
       setMessages((prev) => {
-        const idx = prev.findIndex((m) => m.id === messageId);
-        if (idx === -1) return prev;
-        const current = prev[idx];
-        const updated: ChatKitMessage = {
-          ...current,
-          isStreaming: false,
-          specDriven: current.specDriven
-            ? {
-                ...current.specDriven,
-                // Only flip to 'done' if not already 'error' — error is
-                // terminal and shouldn't be overwritten by a finalize call
-                // that comes from the natural end of the stream.
-                status:
-                  current.specDriven.status === 'error' ? 'error' : 'done',
-              }
-            : current.specDriven,
-        };
-        return [...prev.slice(0, idx), updated, ...prev.slice(idx + 1)];
+        if (prev.some((m) => m.id === messageId)) return prev;
+        return [
+          ...prev,
+          {
+            id: messageId,
+            role: 'assistant',
+            content: '',
+            createdAt: new Date(),
+            isStreaming: true,
+            specDriven: emptyCard(liveKey),
+          } as ChatKitMessage,
+        ];
       });
     },
     [setMessages],
@@ -362,206 +372,94 @@ export function useSpecDrivenTrigger(
   }, []);
 
   /**
-   * Download the generated output and trigger a browser save. The
-   * actual blob fetch/save lives in the shared
-   * `fetchAndSaveSpecDrivenArtifact` helper (also used by the
-   * SpecDrivenCard "Download again" button); this wrapper only resolves
-   * the runId.
+   * Terminal point for a run's LIVE state. Reads the final card from the
+   * Redux slice, removes the slice entry, and writes the snapshot INTO
+   * the chat message (upserting if the message is gone) with streaming
+   * flipped off and the `liveKey` dropped — so history and the
+   * sessionStorage conversation persistence work on the plain message
+   * exactly as before (running cards stay excluded from persistence;
+   * the finalized snapshot is persisted).
    *
-   * Returns an object describing the outcome:
-   *   - ``{ ok: true, sizeBytes }`` on success, so the caller can render
-   *     a friendlier completion message with the payload size.
-   *   - ``{ ok: false }`` on any failure — used to pick the error branch.
+   * Idempotent: the first caller wins; once the slice entry is gone
+   * every later call is a no-op. `statusIfRunning` maps a card that is
+   * still 'running' at finalize time (user abort, stream cut, failsafe)
+   * to its terminal status; `done`/`error` statuses set by the event
+   * reducer are never overwritten.
    */
-  const fetchAndSaveDownload = useCallback(
-    async (
-      downloadUrl: string,
-      fileName: string,
-      isZip: boolean,
-      explicitRunId?: string,
-    ): Promise<{ ok: true; sizeBytes: number } | { ok: false }> => {
-      // Newer backends carry the run id on the done event itself; the
-      // regex over downloadUrl stays as a fallback for older backends.
-      const runId = explicitRunId || extractRunId(downloadUrl);
-      if (!runId) {
-        return { ok: false };
-      }
-      return fetchAndSaveSpecDrivenArtifact(runId, fileName, isZip);
+  const finalizeLiveRun = useCallback(
+    (
+      liveKey: string,
+      messageId: string,
+      opts: { statusIfRunning?: 'done' | 'error' } = {},
+    ) => {
+      const live = dispatch(readLiveSpecDrivenRun(liveKey));
+      if (!live) return;
+      dispatch(liveRunEnded({ key: liveKey }));
+      const snapshot: SpecDrivenMessageState = {
+        ...live,
+        liveKey: undefined,
+        status:
+          live.status === 'running'
+            ? (opts.statusIfRunning ?? 'done')
+            : live.status,
+      };
+      upsertCardMessage(messageId, snapshot, { stopStreaming: true });
     },
-    [],
+    [dispatch, upsertCardMessage],
   );
 
-  /** Human-readable byte size — never wider than ``XXXX.X MB``. */
-  const _formatBytes = (bytes: number): string => {
-    if (!Number.isFinite(bytes) || bytes < 0) return '';
-    if (bytes < 1024) return `${bytes} B`;
-    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
-  };
-
   /**
-   * Process one SSE event. Separated so the main `for await` loop stays
-   * readable and each event type has a clear local block.
+   * Process one SSE event. STATE FIRST: every event is dispatched into
+   * the Redux slice (`liveRunEvent` — the single write path for what the
+   * run card renders), and the card message is upserted so the live card
+   * always has a home in the chat. The switch below then performs the
+   * per-event SIDE EFFECTS only (refs, toasts, terminal chat messages,
+   * the run-outcome report, the failsafe timer).
    */
   const handleSseEvent = useCallback(
     async (
       event: SpecDrivenEvent,
-      streamingId: string,
-      runProject: { id: string; name?: string },
+      run: { liveKey: string; streamingId: string; projectId: string },
     ): Promise<void> => {
       if (abortRequestedRef.current) return;
+      // A finalized run accepts no more events: once its slice entry is
+      // gone (failsafe fired, user aborted) the message already holds
+      // the terminal snapshot — never resurrect it.
+      if (!dispatch(readLiveSpecDrivenRun(run.liveKey))) return;
+
+      dispatch(liveRunEvent({ key: run.liveKey, event }));
+      ensureCardMessage(run.streamingId, run.liveKey);
+
       switch (event.event) {
         case 'start': {
           if (!isValidProvider(event.provider)) {
             console.warn('[useSpecDrivenTrigger] start event with invalid provider', event);
           }
           currentRunIdRef.current = event.runId;
-          dispatch(beginRun({ runId: event.runId }));
-          updateSpecDriven(streamingId, (s) => ({
-            ...s,
-            runId: event.runId,
-            provider: event.provider,
-            model: event.llmModel,
-            maxCost: event.maxCost,
-            maxRuntime: event.maxRuntime,
-          }));
           return;
         }
         case 'phase': {
-          if (!isValidPhase(event.phase)) {
+          if (!isValidSpecDrivenPhase(event.phase)) {
             console.warn('[useSpecDrivenTrigger] phase event with unknown phase', event);
-            updateSpecDriven(streamingId, (s) => ({
-              ...s,
-              phases: [
-                ...s.phases,
-                {
-                  phase: String(event.phase),
-                  label: String(event.phase),
-                  message: event.message,
-                  toolCalls: [],
-                },
-              ],
-            }));
-            return;
           }
-          dispatch(updatePhase(event.phase));
-          const label = PHASE_LABELS[event.phase];
-          updateSpecDriven(streamingId, (s) => ({
-            ...s,
-            phases: [
-              ...s.phases,
-              {
-                phase: event.phase,
-                label,
-                message: event.message,
-                toolCalls: [],
-              },
-            ],
-          }));
           return;
         }
-        case 'phase_update': {
-          // Attach details (and optionally an updated message) to the
-          // most recent phase entry that matches this event's phase
-          // name. The backend uses this to surface the gap analyser's
-          // task list after the planning LLM call returns. If no
-          // matching phase exists yet (events arrived out of order),
-          // skip — the chevron only opens when there's something to show.
-          updateSpecDriven(streamingId, (s) => {
-            const phases = [...s.phases];
-            for (let i = phases.length - 1; i >= 0; i--) {
-              if (phases[i].phase === event.phase) {
-                phases[i] = {
-                  ...phases[i],
-                  details: event.details,
-                  message:
-                    typeof event.message === 'string' && event.message.length > 0
-                      ? event.message
-                      : phases[i].message,
-                };
-                break;
-              }
-            }
-            return { ...s, phases };
-          });
-          return;
-        }
-        case 'tool_call': {
-          updateSpecDriven(streamingId, (s) => {
-            const phases = [...s.phases];
-            // If a tool call arrives before any phase event, attach it to
-            // an implicit "Working" phase so the row still has a home in
-            // the timeline rather than disappearing.
-            if (phases.length === 0) {
-              phases.push({
-                phase: 'working',
-                label: 'Working',
-                message: '',
-                toolCalls: [],
-              });
-            }
-            const last = phases[phases.length - 1];
-            phases[phases.length - 1] = {
-              ...last,
-              toolCalls: [
-                ...last.toolCalls,
-                { turn: event.turn, tool: event.tool, summary: event.summary },
-              ],
-            };
-            return { ...s, phases };
-          });
-          return;
-        }
-        case 'text': {
-          updateSpecDriven(streamingId, (s) => ({
-            ...s,
-            text: s.text + event.delta,
-          }));
-          return;
-        }
+        case 'phase_update':
+        case 'tool_call':
+        case 'text':
         case 'model_update': {
-          // The provider's outage fallback switched the run to a
-          // different model mid-run (sticky for the rest of the run).
-          // Update the card header so it shows the model actually
-          // serving the run, and add a note to the run steps so the
-          // switch is visible rather than silent.
-          const note =
-            event.reason === 'primary_unavailable'
-              ? 'The primary model was unavailable.'
-              : 'The serving model changed mid-run.';
-          updateSpecDriven(streamingId, (s) => ({
-            ...s,
-            model: event.model,
-            phases: [
-              ...s.phases,
-              {
-                phase: 'model',
-                label: `Switched to ${event.model}`,
-                message: note,
-                toolCalls: [],
-              },
-            ],
-          }));
+          // Pure card-state events — fully handled by the slice reducer.
           return;
         }
         case 'cost': {
-          dispatch(updateCost({ usd: event.usd, elapsedSeconds: event.elapsedSeconds }));
           lastCostRef.current = event.usd;
-          // Mirror onto the chat card so the user sees a live
-          // `$spent / $budget · elapsed / max` meter while the run burns
-          // their BYOK budget.
-          updateSpecDriven(streamingId, (s) => ({
-            ...s,
-            costUsd: event.usd,
-            elapsedSeconds: event.elapsedSeconds,
-          }));
           return;
         }
         case 'done': {
           clearFailsafeTimer();
           if (abortRequestedRef.current) return;
           const doneRunId =
-            event.runId || extractRunId(event.downloadUrl) || undefined;
+            event.runId || extractSpecDrivenRunId(event.downloadUrl) || undefined;
           if (doneRunId) currentRunIdRef.current = doneRunId;
           // The deterministic Phase-1 generator BESSER ran (e.g. `fastapi`,
           // `django`, `web_app`). It's the only reliable "what was generated"
@@ -577,11 +475,6 @@ export function useSpecDrivenTrigger(
               ? event.fileCount
               : undefined;
           const topLevel = Array.isArray(event.topLevel) ? event.topLevel : [];
-          // Total LLM tokens the run consumed (undefined => don't show a badge).
-          const tokensUsed =
-            typeof event.tokensUsed === 'number' && event.tokensUsed > 0
-              ? event.tokensUsed
-              : undefined;
           // Unresolved blocker-severity issues left by a run whose loop
           // COMPLETED. When > 0 the run did NOT "stop early" — it
           // finished, with issues — and the copy must say so.
@@ -594,46 +487,21 @@ export function useSpecDrivenTrigger(
           // slice (same-session fast path) and localStorage (survives a
           // reload). The next `startRun` reads this back and, while still
           // within the download TTL, sends `mode:'modify'` + base_run_id.
-          {
-            const doneProjectId = runProject.id;
-            if (doneRunId && doneProjectId) {
-              const at = Date.now();
-              dispatch(
-                setLastRunForProject({ projectId: doneProjectId, runId: doneRunId, at }),
-              );
-              writeProjectLastRun(doneProjectId, doneRunId, at);
-            }
+          if (doneRunId && run.projectId) {
+            const at = Date.now();
+            dispatch(
+              setLastRunForProject({ projectId: run.projectId, runId: doneRunId, at }),
+            );
+            writeProjectLastRun(run.projectId, doneRunId, at);
           }
-          dispatch(
-            completeRun({
-              downloadUrl: event.downloadUrl,
-              fileName: event.fileName,
-              isZip: event.isZip,
-            }),
-          );
-          // We deliberately do NOT auto-save the file to the user's disk
-          // here — testers reported the webapp being downloaded "without
-          // consent". Instead the card surfaces an explicit Download
-          // button (`needsDownload`) the user clicks when ready. The
-          // backend keeps the file for ~30 min and allows repeated
-          // downloads, so the button works whenever the user is ready.
-          updateSpecDriven(
-            streamingId,
-            (s) => ({
-              ...s,
-              runId: doneRunId ?? s.runId,
-              downloadUrl: event.downloadUrl,
-              fileName: event.fileName,
-              isZip: event.isZip,
-              generatorUsed,
-              fileCount,
-              tokensUsed,
-              status: 'done',
-              needsDownload: true,
-            }),
-            { stopStreaming: true },
-          );
-          finalizeStreamingMessage(streamingId);
+          // The slice reducer already flipped the card to 'done' with
+          // `needsDownload` — we deliberately do NOT auto-save the file
+          // to the user's disk (testers reported the webapp being
+          // downloaded "without consent"); the card surfaces an explicit
+          // Download button instead, and the backend keeps the file for
+          // ~30 min. Snapshot the finished card into the chat message
+          // and drop the live entry.
+          finalizeLiveRun(run.liveKey, run.streamingId);
           {
             // Concrete "what was generated" summary from the backend done
             // event: how many files, which generator, and the top-level
@@ -685,39 +553,17 @@ export function useSpecDrivenTrigger(
           return;
         }
         case 'error': {
-          dispatch(setRunError({ code: event.code, message: event.message }));
           if (
             event.code === 'COST_CAP' ||
             event.code === 'TIMEOUT' ||
             event.code === 'INCOMPLETE'
           ) {
-            // Warning — stream continues; the `done` event will follow.
-            // COST_CAP is handled silently: its message quotes dollar
-            // estimates we don't consider reliable enough to show
-            // (product decision) — the run still finalises normally.
-            // TIMEOUT / INCOMPLETE surface a warning on the run card.
-            if (event.code === 'TIMEOUT' || event.code === 'INCOMPLETE') {
-              const warningCode = event.code;
-              updateSpecDriven(streamingId, (s) => ({
-                ...s,
-                warnings: [
-                  ...s.warnings,
-                  {
-                    code: warningCode,
-                    message: event.message,
-                    // An INCOMPLETE that arrives before any phase has run
-                    // is an informational notice about run SETUP (e.g.
-                    // "previous generation expired — rebuilding from
-                    // scratch"), not a problem with the output. Render it
-                    // as info, not as a warning banner.
-                    severity:
-                      warningCode === 'INCOMPLETE' && s.phases.length === 0
-                        ? ('info' as const)
-                        : ('warning' as const),
-                  },
-                ],
-              }));
-            }
+            // Non-terminal — the stream continues; the `done` event will
+            // follow. The slice reducer already recorded the notice on
+            // the card (COST_CAP deliberately silently: its message
+            // quotes dollar estimates we don't consider reliable enough
+            // to show; an INCOMPLETE before any phase renders as info).
+            //
             // Failsafe: COST_CAP / TIMEOUT only ever arrive at the very
             // end of a run, so `done` should follow within seconds — if
             // it doesn't, finalise ourselves after 45s. INCOMPLETE must
@@ -735,7 +581,9 @@ export function useSpecDrivenTrigger(
                   '[useSpecDrivenTrigger] no done event within failsafe window',
                   { runId: currentRunIdRef.current, lastWarning: warningCode },
                 );
-                finalizeStreamingMessage(streamingId);
+                finalizeLiveRun(run.liveKey, run.streamingId, {
+                  statusIfRunning: 'error',
+                });
                 appendErrorToChat(
                   `The run ended unexpectedly before reporting a result. ` +
                     `You can retry the run; if this keeps happening, the ` +
@@ -758,21 +606,10 @@ export function useSpecDrivenTrigger(
             dispatch(setApiKeyPresent(false));
           }
           clearFailsafeTimer();
-          // Mark the streaming card as terminally errored before flipping
-          // ``isStreaming`` off — the card's status pill becomes red so the
-          // user can see the run failed without scrolling to the toast.
-          updateSpecDriven(
-            streamingId,
-            (s) => ({
-              ...s,
-              status: 'error',
-              warnings: [
-                ...s.warnings,
-                { code: event.code, message: event.message, severity: 'error' as const },
-              ],
-            }),
-            { stopStreaming: true },
-          );
+          // The slice reducer marked the card terminally errored (red
+          // status pill + red notice) — snapshot it into the message so
+          // the user can see the run failed without scrolling to the toast.
+          finalizeLiveRun(run.liveKey, run.streamingId);
           appendErrorToChat(
             `❌ Spec-Driven Agent error (${event.code}): ${event.message}`,
           );
@@ -804,10 +641,9 @@ export function useSpecDrivenTrigger(
       appendErrorToChat,
       clearFailsafeTimer,
       dispatch,
-      fetchAndSaveDownload,
-      finalizeStreamingMessage,
+      ensureCardMessage,
+      finalizeLiveRun,
       reportRunFinished,
-      updateSpecDriven,
     ],
   );
 
@@ -913,14 +749,28 @@ export function useSpecDrivenTrigger(
           ? payload.message
           : 'Starting smart generation…';
       appendAssistantMessage(introText);
-      const streamingId = appendAssistantMessage('', { isStreaming: true });
+      // Client-generated run key: created BEFORE the backend assigns its
+      // run id, it links the card message (`specDriven.liveKey`) to the
+      // Redux slice entry every SSE event updates. Register the slice
+      // entry first so the card's store subscription finds it on its
+      // very first paint.
+      const liveKey = createMessageId();
+      dispatch(liveRunStarted({ key: liveKey }));
+      const streamingId = appendAssistantMessage('', {
+        isStreaming: true,
+        specDriven: emptyCard(liveKey),
+      });
 
       isRunningRef.current = true;
       abortRequestedRef.current = false;
       runFinishedReportedRef.current = false;
       currentRunIdRef.current = undefined;
       lastCostRef.current = undefined;
-      setIsGenerating(true);
+      activeCardRef.current = { liveKey, streamingId };
+      // The run card is the progress surface from here on — CLEAR the
+      // chat's typing indicator instead of pinning it for the whole run
+      // (the "Typing" chip used to stick until the run finished).
+      setIsGenerating(false);
 
       // Route the project through the same normaliser the existing
       // deterministic ``/generate-output-from-project`` path uses.
@@ -1004,12 +854,18 @@ export function useSpecDrivenTrigger(
       try {
         handle = startSpecDrivenRun(runParams);
       } catch (err) {
-        finalizeStreamingMessage(streamingId);
-        appendErrorToChat(
-          `Spec-Driven Agent failed to start: ${err instanceof Error ? err.message : String(err)}`,
+        const message = `Spec-Driven Agent failed to start: ${err instanceof Error ? err.message : String(err)}`;
+        dispatch(
+          liveRunEvent({
+            key: liveKey,
+            event: { event: 'error', code: 'INTERNAL', message },
+          }),
         );
+        finalizeLiveRun(liveKey, streamingId, { statusIfRunning: 'error' });
+        appendErrorToChat(message);
         toast.error('Spec-Driven Agent failed to start');
         isRunningRef.current = false;
+        activeCardRef.current = null;
         setIsGenerating(false);
         dispatch(releaseRunSlot());
         reportRunFinished({ ok: false, errorCode: 'INTERNAL' });
@@ -1018,37 +874,35 @@ export function useSpecDrivenTrigger(
 
       abortRef.current = handle.abort;
 
+      const runCtx = { liveKey, streamingId, projectId: runProject.id };
       let terminalEventSeen = false;
       try {
+        // NOTE: the loop deliberately does NOT stop when this hook's
+        // surface unmounts. All run state lives outside React (the Redux
+        // slice + the shared conversation store), so the stream keeps
+        // being consumed and the card keeps updating even if the owning
+        // surface unmounts or remounts mid-run. `mountedRef` only guards
+        // the per-surface `setIsGenerating` below.
         for await (const event of handle.events) {
-          if (!mountedRef.current) break;
           if (abortRequestedRef.current) break;
           if (event.event === 'done' || (event.event === 'error' && !isNonTerminalErrorEvent(event))) {
             terminalEventSeen = true;
           }
-          await handleSseEvent(event, streamingId, runProject);
+          await handleSseEvent(event, runCtx);
         }
-        if (
-          mountedRef.current &&
-          !abortRequestedRef.current &&
-          !terminalEventSeen
-        ) {
+        if (!abortRequestedRef.current && !terminalEventSeen) {
           const message = 'The generation stream closed before reporting a final result.';
-          updateSpecDriven(
-            streamingId,
-            (state) => ({
-              ...state,
-              status: 'error',
-              warnings: [
-                ...state.warnings,
-                { code: 'INTERNAL', message, severity: 'error' as const },
-              ],
+          // Synthetic terminal event through the SAME single write path
+          // as real SSE errors — the card gets the red status + notice.
+          dispatch(
+            liveRunEvent({
+              key: liveKey,
+              event: { event: 'error', code: 'INTERNAL', message },
             }),
-            { stopStreaming: true },
           );
+          finalizeLiveRun(liveKey, streamingId, { statusIfRunning: 'error' });
           appendErrorToChat(`Spec-Driven Agent stream ended early: ${message}`);
           toast.error('Spec-Driven Agent stream ended early');
-          dispatch(setRunError({ code: 'INTERNAL', message }));
           reportRunFinished({
             ok: false,
             runId: currentRunIdRef.current,
@@ -1057,15 +911,14 @@ export function useSpecDrivenTrigger(
           });
         }
       } catch (err) {
-        if (!mountedRef.current) return;
         const msg = err instanceof Error ? err.message : String(err);
         // Expected: user-triggered abort surfaces as an AbortError.
         // Treat it as a soft stop (no toast) so the chat doesn't look
         // like an error occurred.
         const isAbort =
           err instanceof DOMException && err.name === 'AbortError';
-        finalizeStreamingMessage(streamingId);
         if (isAbort) {
+          finalizeLiveRun(liveKey, streamingId);
           appendAssistantMessage('⏹ Spec-Driven Agent run stopped by user.');
           reportRunFinished({
             ok: false,
@@ -1074,9 +927,15 @@ export function useSpecDrivenTrigger(
             costUsd: lastCostRef.current,
           });
         } else {
+          dispatch(
+            liveRunEvent({
+              key: liveKey,
+              event: { event: 'error', code: 'INTERNAL', message: msg },
+            }),
+          );
+          finalizeLiveRun(liveKey, streamingId, { statusIfRunning: 'error' });
           appendErrorToChat(`Spec-Driven Agent stream error: ${msg}`);
           toast.error('Spec-Driven Agent stream error');
-          dispatch(setRunError({ code: 'INTERNAL', message: msg }));
           reportRunFinished({
             ok: false,
             runId: currentRunIdRef.current,
@@ -1088,6 +947,12 @@ export function useSpecDrivenTrigger(
         abortRef.current = null;
         isRunningRef.current = false;
         clearFailsafeTimer();
+        // Belt-and-braces: any exit path that skipped the terminal
+        // handling above (e.g. the abort break without an AbortError)
+        // still snapshots the card into the message and drops the live
+        // entry — finalizeLiveRun is idempotent.
+        finalizeLiveRun(liveKey, streamingId);
+        activeCardRef.current = null;
         // Release the global run slot in EVERY exit path — including a
         // stream that simply ends without a `done` event (backend
         // closed early), which dispatches nothing else.
@@ -1101,11 +966,10 @@ export function useSpecDrivenTrigger(
       clearFailsafeTimer,
       currentProjectRef,
       dispatch,
-      finalizeStreamingMessage,
+      finalizeLiveRun,
       handleSseEvent,
       reportRunFinished,
       setIsGenerating,
-      updateSpecDriven,
     ],
   );
 
@@ -1193,6 +1057,17 @@ export function useSpecDrivenTrigger(
       isRunningRef.current = false;
       setIsGenerating(false);
       dispatch(resetRun());
+      // Snapshot the card into the message NOW — a hung stream may never
+      // surface the AbortError that would otherwise drive the finalize
+      // path in startRun's catch/finally (both of which stay idempotent
+      // no-ops after this).
+      if (activeCardRef.current) {
+        finalizeLiveRun(
+          activeCardRef.current.liveKey,
+          activeCardRef.current.streamingId,
+        );
+        activeCardRef.current = null;
+      }
       // User-initiated stop is a terminal outcome — report it (the
       // exactly-once guard in reportRunFinished absorbs the AbortError
       // catch in startRun firing right after this).
@@ -1203,7 +1078,7 @@ export function useSpecDrivenTrigger(
         costUsd: lastCostRef.current,
       });
     }
-  }, [clearFailsafeTimer, dispatch, reportRunFinished, setIsGenerating]);
+  }, [clearFailsafeTimer, dispatch, finalizeLiveRun, reportRunFinished, setIsGenerating]);
 
   // Wire up the internal ref so the failsafe timer callback can
   // invoke the same abort logic without circular deps.

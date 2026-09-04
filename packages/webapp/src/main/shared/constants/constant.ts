@@ -134,6 +134,14 @@ export const sessionStorageAssistantApiKey = sessionStorageLlmApiKey;
 export const sessionStorageAssistantProvider = sessionStorageLlmProvider;
 export const sessionStorageAssistantModel = sessionStorageLlmModel;
 
+// Pilot-experiment participant label (research telemetry).
+// Set on app load from the facilitator's `?pilot=P3` link and scoped to the
+// tab (sessionStorage): every telemetry event this tab produces carries the
+// label so the pilot report can group by participant. Regular sessions never
+// have this key and produce no telemetry. Value: `P1`…`Pn` style labels
+// matching ^[A-Za-z0-9_-]{1,16}$ — never a name or email.
+export const sessionStoragePilotParticipant = localStoragePrefix + 'pilot_participant';
+
 // "Describe your app" (vibe) hand-off key.
 // The Project Hub's Describe flow stashes the user's plain-language prompt here,
 // then closes and hands off to the assistant. The assistant consumes-and-clears

@@ -22,7 +22,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { cn } from '@/lib/utils';
 import { useAppDispatch, useAppSelector } from '../../../app/store/hooks';
 import { selectActiveDiagramType, switchDiagramTypeThunk } from '../../../app/store/workspaceSlice';
-import { openPushDialog } from '../../spec-driven/state/specDrivenSlice';
+import { openPushDialog, selectHasLiveSpecDrivenRun } from '../../spec-driven/state/specDrivenSlice';
 import type { SupportedDiagramType } from '../../../shared/types/project';
 import { readLlmKey } from '../../../shared/services/llmKeyStorage';
 import type { GeneratorType } from '../../../app/shell/workspace-types';
@@ -32,6 +32,7 @@ import { shouldOpenGuiTab, isReviewSpecAction, type GuiActionRouteInput } from '
 import { AssistantByokDialog } from './AssistantByokDialog';
 import { QuickActions } from './QuickActions';
 import { Z_INDEX } from '../../../shared/constants/z-index';
+import { PilotSessionNotice } from '../../../shared/components/pilot/PilotSessionNotice';
 
 /* ------------------------------------------------------------------ */
 /*  Constants & helpers                                                */
@@ -91,6 +92,10 @@ export const AssistantWidget: React.FC<AssistantWidgetProps> = ({ onAssistantGen
   const location = useLocation();
   const navigate = useNavigate();
   const activeDiagramType = useAppSelector(selectActiveDiagramType);
+  // While a Spec-Driven run card is live it shows its own progress —
+  // suppress the chat's "Typing" chip so it doesn't stick for the whole
+  // run (the run card, not the chip, is the progress surface).
+  const hasLiveSpecDrivenRun = useAppSelector(selectHasLiveSpecDrivenRun);
 
   const isOnEditorPage = location.pathname === '/';
   // The modeling assistant is UML-oriented and has no reasoning over NN
@@ -333,11 +338,16 @@ export const AssistantWidget: React.FC<AssistantWidgetProps> = ({ onAssistantGen
                     {t('assistant.welcome.changeModel')}
                   </button>
                 </p>
+                {/* Pilot-experiment transparency line (regular sessions render nothing) */}
+                <PilotSessionNotice />
               </div>
             ) : (
+            <>
+            {/* Pilot-experiment transparency line (regular sessions render nothing) */}
+            <PilotSessionNotice className="mb-3" />
             <MessageList
               messages={messages}
-              isTyping={isGenerating}
+              isTyping={isGenerating && !hasLiveSpecDrivenRun}
               typingLabel={progressSteps.length > 0 ? progressSteps[progressSteps.length - 1] : undefined}
               showTimeStamps={false}
               messageOptions={(message: ChatKitMessage) => {
@@ -356,6 +366,7 @@ export const AssistantWidget: React.FC<AssistantWidgetProps> = ({ onAssistantGen
                 };
               }}
             />
+            </>
             )}
 
             {/* Progress indicator — evolving step list so long operations

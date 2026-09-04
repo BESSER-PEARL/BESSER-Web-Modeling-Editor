@@ -13,6 +13,7 @@
  */
 
 import { specDrivenDownloadUrl } from '../constants/constant';
+import { emitDeliveryEvent } from '../services/telemetry/pilotTelemetry';
 import { downloadFile } from './download';
 
 export type SpecDrivenDownloadResult =
@@ -36,6 +37,9 @@ export async function fetchAndSaveSpecDrivenArtifact(
   isZip: boolean,
 ): Promise<SpecDrivenDownloadResult> {
   const fullUrl = specDrivenDownloadUrl(runId);
+  // Pilot telemetry: the user asked to take the generated output with them.
+  // Fire-and-forget, no-op outside pilot sessions.
+  emitDeliveryEvent('download', runId);
   let response: Response;
   try {
     response = await fetch(fullUrl);

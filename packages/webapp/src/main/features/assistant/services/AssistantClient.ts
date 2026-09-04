@@ -17,6 +17,11 @@ import type {
 } from './assistant-types';
 import { ProtocolError } from './errors';
 import { readAssistantApiKey } from './byokStorage';
+import {
+  assistantSessionStorageKey,
+  getOrCreateAssistantSessionId,
+  getPilotParticipant,
+} from '../../../shared/services/telemetry/pilotTelemetry';
 
 interface FileAttachmentPayload {
   filename: string;
@@ -42,7 +47,9 @@ type QueuedMessage =
     context?: Partial<AssistantWorkspaceContext>;
   };
 
-const SESSION_STORAGE_KEY = 'besser-assistant-session-id';
+// Per-tab session id key — owned by the shared telemetry/session service so
+// the pilot-telemetry session id is guaranteed to be the SAME id.
+const SESSION_STORAGE_KEY = assistantSessionStorageKey;
 const USER_ID_STORAGE_KEY = 'besser_assistant_user_id';
 
 const getStableUserId = (): string => {
@@ -85,29 +92,11 @@ const withStableUserParam = (url: string): string => {
   }
 };
 
-const createSessionId = (): string => {
-  // Reuse the session ID within the same browser tab so that closing
-  // and reopening the assistant drawer reconnects to the same backend
-  // session (preserving conversation memory and context).
-  try {
-    const existing = sessionStorage.getItem(SESSION_STORAGE_KEY);
-    if (existing) return existing;
-  } catch {
-    // sessionStorage unavailable (e.g. iframe sandbox) — fall through
-  }
-
-  const id =
-    typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
-      ? crypto.randomUUID()
-      : `session_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
-
-  try {
-    sessionStorage.setItem(SESSION_STORAGE_KEY, id);
-  } catch {
-    // best-effort
-  }
-  return id;
-};
+// Reuse the session ID within the same browser tab so that closing and
+// reopening the assistant drawer reconnects to the same backend session
+// (preserving conversation memory and context). Delegates to the shared
+// helper so pilot telemetry reuses the exact same per-tab id.
+const createSessionId = (): string => getOrCreateAssistantSessionId();
 
 const createMessageId = (): string => `msg_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
 
@@ -754,6 +743,12 @@ export class AssistantClient {
     const context = compactContextPayload(
       mergeContexts(baseContext, contextOverride, diagramType),
     );
+    // Pilot experiment: carry the participant label so the modeling agent can
+    // attach it to its own telemetry events. Absent for regular sessions.
+    const pilotParticipant = getPilotParticipant();
+    if (pilotParticipant) {
+      context.pilotParticipant = pilotParticipant;
+    }
     const payload: Record<string, any> = {
       action: 'user_message',
       protocolVersion: '2.0',
@@ -833,6 +828,10 @@ export class AssistantClient {
     const context = compactContextPayload(
       mergeContexts(baseContext, contextOverride, diagramType),
     );
+    const pilotParticipant = getPilotParticipant();
+    if (pilotParticipant) {
+      context.pilotParticipant = pilotParticipant;
+    }
     return {
       action: 'user_voice',
       protocolVersion: '2.0',

@@ -37,6 +37,7 @@ import {
   type DeployLinkedRepo,
 } from '../../../shared/services/storage/local-storage-repository';
 import { sessionStorageSpecDrivenPushIntent } from '../../../shared/constants/constant';
+import { emitDeliveryEvent } from '../../../shared/services/telemetry/pilotTelemetry';
 import type { BesserProject } from '../../../shared/types/project';
 import { useAppDispatch, useAppSelector } from '../../../app/store/hooks';
 import {
@@ -278,6 +279,9 @@ export function useSpecDrivenGithubPush(
         });
         setLinkedRepo({ owner: res.owner, repo: res.repo_name, branch });
         setResult(res);
+        // Pilot telemetry: a completed push is a delivery action.
+        // Fire-and-forget, no-op outside pilot sessions.
+        emitDeliveryEvent('push_github', id);
         toast.success(
           res.is_first_push
             ? `Pushed to ${res.owner}/${res.repo_name}`

@@ -13,6 +13,7 @@
 import { apiClient, ApiError } from '../../../shared/api/api-client';
 import { importProjectFromJson } from '../../../shared/services/project-import/projectImport';
 import { LocalStorageRepository } from '../../../shared/services/storage/local-storage-repository';
+import { emitDeliveryEvent } from '../../../shared/services/telemetry/pilotTelemetry';
 import { writeProjectLastRun } from '../storage';
 
 const GITHUB_TARGET = 'github';
@@ -89,6 +90,10 @@ export async function continueFromGithubRepo(args: {
     // Prime the modify base: the next Spec-Driven request auto-selects
     // mode=modify + base_run_id via decideRunMode.
     writeProjectLastRun(imported.id, response.run_id, Date.now());
+
+    // Pilot telemetry: a completed continue-from-repo import is a delivery
+    // action. Fire-and-forget, no-op outside pilot sessions.
+    emitDeliveryEvent('continue_from_repo', response.run_id);
 
     return {
       ok: true,
