@@ -8,7 +8,7 @@ these tests?" index.
 > cross-repo test suite and **how to run each layer (bash + PowerShell)** — see
 > **`BESSER/tests/SMART_GEN_TESTING.md`**.
 
-There are three test surfaces:
+There are four test surfaces:
 
 | Surface | Tech | Location | What it proves |
 |---|---|---|---|
@@ -16,6 +16,7 @@ There are three test surfaces:
 | **Component / logic** | Vitest (jsdom) | `packages/webapp/src/**/__tests__/` | Assistant routing, smart-gen SSE/Redux/dialogs, BYOK dialog — in isolation (mocked). |
 | **NL-generation matrix** | Python WS probe | `modeling-agent/tests/live/test_nl_generation_scenarios.py` | Live agent routes real NL phrasings ("generate a database", …) to the right generator. |
 | **Free-tier generation E2E** | Python (live SSE) | `BESSER/tests/live/test_vibe_free_e2e.py` | Real keyless free-tier vibe generation against the deployed stack produces the expected artifact (a backend app; Rust classes). Asserts output is produced — **not** that it boots. |
+| **Agentic interface BDD** | Behave + Playwright (Python) | `packages/webapp/tests/e2e/features/` | Full browser E2E via Gherkin scenarios: walks the agentic interface to generate databases, JSON schemas, web apps, and 9 further artifact types against the **local** app. |
 
 ---
 
@@ -119,6 +120,55 @@ that the produced app *runs*. The boot/run fidelity check (does the generated
 backend actually start?) is the deferred Phase-3 boot-check work — tracked
 separately because free-model output often doesn't boot yet, and we don't want a
 known-flaky fidelity gate blocking these plumbing checks.
+
+## 5. Behave BDD E2E tests (`features/`)
+
+Gherkin scenarios that drive the **agentic interface** in a real Chromium browser via
+Behave + Playwright. By default they target the **local app** at `http://localhost:8080`
+(start the full stack — frontend + backend — before running).
+
+### Setup
+
+```bash
+# Install Python dependencies (from the e2e/ directory)
+pip install -r requirements.txt
+# Install Playwright's Chromium browser
+playwright install chromium
+```
+
+### Running
+
+```bash
+# Run from tests/e2e/
+cd packages/webapp/tests/e2e
+
+# All agentic scenarios (headless, local app)
+behave features/agentic_interface.feature
+
+# Headed (visible browser) — useful for debugging
+behave -D headless=False features/agentic_interface.feature
+
+# Run a specific tag
+behave --tags @database features/agentic_interface.feature
+
+# Override the target URL (e.g. deployed stack)
+behave -D base_url=https://experimental.besser-pearl.org/ features/agentic_interface.feature
+
+# Increase timeout for slow backends (seconds, default 420)
+behave -D agent_timeout=600 features/agentic_interface.feature
+```
+
+Failed steps automatically capture a full-page screenshot to `artifacts/FAILED_<step>.png`.
+Downloads land in `downloads/`.
+
+### Scenarios
+
+| Tag | Scenario | What it proves |
+|---|---|---|
+| `@database` | Generate and download a database | Describes a hospital management system, requests a database, answers dialect prompt ("sqlite"), asserts a `.sql` or `.py` file is downloaded. |
+| `@jsonschema` | Generate and download a JSON Schema | Describes the same system, picks the suggested JSON Schema artifact chip, answers mode prompt ("regular"), asserts download. |
+| `@webapp` | Generate and download a web app | Describes a web app, answers the GUI-generation question ("Auto-generate"), asserts "Generate web app" chip appears as completion signal. |
+| `@generic` | Generate `<artifact>` (9 parameterised rows) | Outline covering: **Django app**, **backend**, **REST API**, **Python classes**, **Java classes**, **Pydantic models**, **Smart Data Model**, **RDF vocabulary**, **Qiskit circuit** — each sends a tailored prompt and asserts a download is offered. |
 
 ---
 
