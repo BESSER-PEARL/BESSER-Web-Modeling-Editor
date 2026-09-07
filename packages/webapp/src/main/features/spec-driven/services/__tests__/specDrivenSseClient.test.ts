@@ -6,7 +6,10 @@ import {
   getOrCreateAssistantSessionId,
   getPilotParticipant,
 } from '../../../../shared/services/telemetry/pilotTelemetry';
-import { startSpecDrivenRun } from '../specDrivenSseClient';
+import {
+  SPEC_DRIVEN_STREAM_STALL_TIMEOUT_MS,
+  startSpecDrivenRun,
+} from '../specDrivenSseClient';
 
 vi.mock('../../../../shared/services/sse/sseClient', () => ({
   streamSse: vi.fn(() => (async function* () {})()),
@@ -36,7 +39,13 @@ describe('startSpecDrivenRun request serialization', () => {
         primary_kind_override: 'bpmn',
         skip_deterministic_generator: true,
       }),
-      { signal: handle.controller.signal },
+      {
+        signal: handle.controller.signal,
+        // The run stream always opts into the dead-transport watchdog —
+        // the backend heartbeats a cost tick every ~2s, so total silence
+        // for the bound means the transport died (frozen-card bug).
+        stallTimeoutMs: SPEC_DRIVEN_STREAM_STALL_TIMEOUT_MS,
+      },
     );
     const body = vi.mocked(streamSse).mock.calls[0][1] as Record<string, unknown>;
     expect(body.target_generator_override).toBeUndefined();

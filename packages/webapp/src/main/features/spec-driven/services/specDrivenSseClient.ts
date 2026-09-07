@@ -8,6 +8,21 @@
 
 import { SMART_GEN_ENDPOINT } from '../../../shared/constants/constant';
 import { streamSse } from '../../../shared/services/sse/sseClient';
+
+/**
+ * Liveness bound for the run stream. The backend's cost emitter puts a
+ * `cost` tick on the stream every ~2s (`cost_emitter_interval_seconds` in
+ * `GET /spec-driven/config`) for the ENTIRE run, so a healthy stream is
+ * never silent for more than a few seconds. 60s of TOTAL silence (~30
+ * missed ticks) therefore means the transport died mid-response — a
+ * condition a streaming `fetch` otherwise never surfaces: `reader.read()`
+ * just stays pending forever and the run card freezes with no error.
+ * Observed in production via a browser↔edge path that stopped forwarding
+ * after the first flush while the same origin streamed perfectly over a
+ * direct connection. On stall the stream throws `SseStallError`, which
+ * `useSpecDrivenTrigger` converts into an honest terminal error card.
+ */
+export const SPEC_DRIVEN_STREAM_STALL_TIMEOUT_MS = 60_000;
 import {
   getOrCreateAssistantSessionId,
   getPilotParticipant,
@@ -116,6 +131,9 @@ export function startSpecDrivenRun(
 
   const events = streamSse<SpecDrivenEvent>(SMART_GEN_ENDPOINT, body, {
     signal: controller.signal,
+    // The backend heartbeats a cost tick every ~2s, so a minute of total
+    // silence is a dead transport — surface it instead of hanging forever.
+    stallTimeoutMs: SPEC_DRIVEN_STREAM_STALL_TIMEOUT_MS,
   });
 
   return {

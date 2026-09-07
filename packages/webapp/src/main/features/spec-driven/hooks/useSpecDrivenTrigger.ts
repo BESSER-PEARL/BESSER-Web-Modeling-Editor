@@ -65,6 +65,7 @@ import type {
 import { useAppDispatch, useAppSelector } from '../../../app/store/hooks';
 import type { BesserProject } from '../../../shared/types/project';
 import { buildProjectPayloadForBackend } from '../../../shared/utils/projectExportUtils';
+import { SseStallError } from '../../../shared/services/sse/sseClient';
 
 import {
   consumePendingTrigger,
@@ -424,11 +425,36 @@ export function useSpecDrivenTrigger(
       if (abortRequestedRef.current) return;
       // A finalized run accepts no more events: once its slice entry is
       // gone (failsafe fired, user aborted) the message already holds
-      // the terminal snapshot — never resurrect it.
-      if (!dispatch(readLiveSpecDrivenRun(run.liveKey))) return;
+      // the terminal snapshot — never resurrect it. This drop is silent
+      // by design for the finalized case, but it must IDENTIFY itself:
+      // if it ever fires for a run the user still sees as live, every
+      // subsequent event vanishes here and the card freezes with no
+      // signal — exactly the failure mode a Report-issue console log
+      // needs to name.
+      if (!dispatch(readLiveSpecDrivenRun(run.liveKey))) {
+        console.error(
+          '[useSpecDrivenTrigger] dropping SSE event — no live slice entry for this run key',
+          { liveKey: run.liveKey, event: event.event, runId: currentRunIdRef.current },
+        );
+        return;
+      }
 
-      dispatch(liveRunEvent({ key: run.liveKey, event }));
-      ensureCardMessage(run.streamingId, run.liveKey);
+      // STATE FIRST — and never let one bad event kill a long stream: a
+      // reducer throw here used to propagate out of the for-await loop
+      // and error the whole run. Log it loudly instead (the slice state
+      // is unchanged on a reducer throw, so skipping is safe) and keep
+      // consuming.
+      try {
+        dispatch(liveRunEvent({ key: run.liveKey, event }));
+        ensureCardMessage(run.streamingId, run.liveKey);
+      } catch (applyError) {
+        console.error(
+          '[useSpecDrivenTrigger] failed to apply SSE event to the live run card',
+          { liveKey: run.liveKey, event: event.event, runId: currentRunIdRef.current },
+          applyError,
+        );
+        return;
+      }
 
       switch (event.event) {
         case 'start': {
@@ -876,6 +902,7 @@ export function useSpecDrivenTrigger(
 
       const runCtx = { liveKey, streamingId, projectId: runProject.id };
       let terminalEventSeen = false;
+      let eventsReceived = 0;
       try {
         // NOTE: the loop deliberately does NOT stop when this hook's
         // surface unmounts. All run state lives outside React (the Redux
@@ -885,6 +912,7 @@ export function useSpecDrivenTrigger(
         // the per-surface `setIsGenerating` below.
         for await (const event of handle.events) {
           if (abortRequestedRef.current) break;
+          eventsReceived += 1;
           if (event.event === 'done' || (event.event === 'error' && !isNonTerminalErrorEvent(event))) {
             terminalEventSeen = true;
           }
@@ -911,7 +939,6 @@ export function useSpecDrivenTrigger(
           });
         }
       } catch (err) {
-        const msg = err instanceof Error ? err.message : String(err);
         // Expected: user-triggered abort surfaces as an AbortError.
         // Treat it as a soft stop (no toast) so the chat doesn't look
         // like an error occurred.
@@ -927,6 +954,31 @@ export function useSpecDrivenTrigger(
             costUsd: lastCostRef.current,
           });
         } else {
+          // A stalled stream (SseStallError) is a DEAD TRANSPORT, not a
+          // failed run: the backend may well still be generating. Without
+          // this branch the old behavior was worse than an error — the
+          // stream never threw at all and the card froze as "Running"
+          // forever. Name the condition honestly, in the card AND on the
+          // console (Report-issue picks up the chat copy; the console
+          // line carries the run id for server-side correlation).
+          const isStall = err instanceof SseStallError;
+          // Cast defeats TS's flow narrowing: it pins `.current` to the
+          // `undefined` assigned at run start and can't see the mutation
+          // inside `handleSseEvent`, so `.slice` would type as `never`.
+          const stallRunId = currentRunIdRef.current as string | undefined;
+          const msg = isStall
+            ? `the live progress stream went quiet (no events for ${Math.round((err as SseStallError).silentMs / 1000)}s) and was closed. ` +
+              `The run may still be finishing on the server — retry in a minute, or start the run again.` +
+              (stallRunId ? ` (run ${stallRunId.slice(0, 8)})` : '')
+            : err instanceof Error ? err.message : String(err);
+          if (isStall) {
+            console.error('[useSpecDrivenTrigger] SSE stream stalled — closing the run card', {
+              runId: currentRunIdRef.current,
+              liveKey,
+              eventsReceived,
+              silentMs: (err as SseStallError).silentMs,
+            });
+          }
           dispatch(
             liveRunEvent({
               key: liveKey,
@@ -935,7 +987,11 @@ export function useSpecDrivenTrigger(
           );
           finalizeLiveRun(liveKey, streamingId, { statusIfRunning: 'error' });
           appendErrorToChat(`Spec-Driven Agent stream error: ${msg}`);
-          toast.error('Spec-Driven Agent stream error');
+          toast.error(
+            isStall
+              ? 'Spec-Driven Agent: live progress stream went quiet'
+              : 'Spec-Driven Agent stream error',
+          );
           reportRunFinished({
             ok: false,
             runId: currentRunIdRef.current,
@@ -944,6 +1000,16 @@ export function useSpecDrivenTrigger(
           });
         }
       } finally {
+        // Reader-exit trace: names HOW the event loop ended and how many
+        // events it saw, so a frozen-card report can be told apart from a
+        // clean run at a glance in the browser console.
+        console.debug('[useSpecDrivenTrigger] SSE event loop ended', {
+          runId: currentRunIdRef.current,
+          liveKey,
+          eventsReceived,
+          terminalEventSeen,
+          abortRequested: abortRequestedRef.current,
+        });
         abortRef.current = null;
         isRunningRef.current = false;
         clearFailsafeTimer();
