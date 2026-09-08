@@ -412,18 +412,19 @@ export function useSpecDrivenTrigger(
   // to cancel via sendBeacon (a normal fetch is aborted when the document tears
   // down). Guarded on THIS session's own active run, so another run is never
   // touched.
-  useEffect(() => {
-    const onUnload = () => {
-      if (!isRunningRef.current) return;
-      cancelRunOnServer(currentRunIdRef.current, { beacon: true });
-    };
-    window.addEventListener('pagehide', onUnload);
-    window.addEventListener('beforeunload', onUnload);
-    return () => {
-      window.removeEventListener('pagehide', onUnload);
-      window.removeEventListener('beforeunload', onUnload);
-    };
-  }, [cancelRunOnServer]);
+  // IMPORTANT: we deliberately do NOT auto-cancel a running generation on
+  // pagehide/beforeunload. Those events fire on a plain REFRESH — which is
+  // exactly what a user does after a transient "network error" — and cannot
+  // be told apart from a genuine tab close. Cancelling here destroyed healthy
+  // in-progress runs on refresh (observed in the pilot: a run ended
+  // failed:CANCELLED with 0 files after the user reloaded). On the free tier
+  // there is no key/billing to protect, so the orphan-billing rationale does
+  // not apply at all; an abandoned run simply completes (bounded by the cost
+  // cap). Explicit cancels (the Stop button and New Chat -> abortActive) still
+  // stop a run on real user intent. A refined, provider-gated version (cancel
+  // on unload ONLY for BYOK/paid runs, and only once a reconnect-to-running-run
+  // path exists) can revisit this later.
+  void cancelRunOnServer;  // retained for the explicit-cancel paths
 
   /**
    * Terminal point for a run's LIVE state. Reads the final card from the

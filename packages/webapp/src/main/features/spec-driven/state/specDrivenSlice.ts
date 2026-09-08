@@ -110,13 +110,29 @@ export function applySpecDrivenEvent(
     }
     case 'phase': {
       const valid = isValidSpecDrivenPhase(event.phase);
+      const defaultLabel = valid
+        ? SPEC_DRIVEN_PHASE_LABELS[event.phase]
+        : String(event.phase);
+      // A seeded modify/fix run reuses the `select` phase key but sends a
+      // truthful message ("Loading your app") because it selects no
+      // generator. Prefer that message as the row label so the card never
+      // reads "Selecting generator" when nothing is being selected.
+      // First-generation runs send message === the default label, so this
+      // is a no-op for them (and the `— message` suffix stays suppressed).
+      const label =
+        valid &&
+        event.phase === 'select' &&
+        typeof event.message === 'string' &&
+        event.message.length > 0
+          ? event.message
+          : defaultLabel;
       return {
         ...card,
         phases: [
           ...card.phases,
           {
             phase: String(event.phase),
-            label: valid ? SPEC_DRIVEN_PHASE_LABELS[event.phase] : String(event.phase),
+            label,
             message: event.message,
             toolCalls: [],
           },
