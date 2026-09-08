@@ -2043,7 +2043,11 @@
         "valueColor": "Color del valor",
         "valueSize": "Mida del valor",
         "negativeTrendColor": "Color tendència negativa",
-        "positiveTrendColor": "Color tendència positiva"
+        "positiveTrendColor": "Color tendència positiva",
+        "latitudeField": "Camp latitud",
+        "longitudeField": "Camp longitud",
+        "markerLabelField": "Camp etiqueta marcador",
+        "layers": "Capes"
       },
       "pages": {
         "title": "Pàgines",
@@ -2106,10 +2110,6 @@
         "typeMessage": "Escriu un missatge...",
         "selectAgentFirst": "Selecciona primer un agent",
         "send": "Envia"
-      },
-      "map": {
-        "location": "Ubicació",
-        "viewLargerMap": "Mostra un mapa més gran"
       },
       "utils": {
         "selectPage": "-- Selecciona una pàgina --",
@@ -2206,6 +2206,20 @@
           "range": "Interval",
           "search": "Cerca"
         }
+      },
+      "layerManager": {
+        "title": "Capes del mapa",
+        "addLayer": "Afegeix una capa",
+        "removeLayer": "Elimina la capa",
+        "defaultLayerName": "Capa {{index}}",
+        "none": "— cap —",
+        "typePoints": "Punts (marcadors lat/long)",
+        "typeGeojson": "Polígons/línies GeoJSON",
+        "typeChoropleth": "Coroplètic (regions acolorides)",
+        "typeHeatmap": "Mapa de calor",
+        "weightField": "Camp de pes",
+        "geometryField": "Camp de geometria (GeoJSON)",
+        "valueField": "Camp de valor"
       }
     },
     "loadingGuiEditor": "S'està carregant l'editor de GUI...",
