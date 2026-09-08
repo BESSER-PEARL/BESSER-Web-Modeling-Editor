@@ -2126,7 +2126,11 @@
         "valueColor": "Value Color",
         "valueSize": "Value Size",
         "negativeTrendColor": "Negative Trend Color",
-        "positiveTrendColor": "Positive Trend Color"
+        "positiveTrendColor": "Positive Trend Color",
+        "latitudeField": "Latitude Field",
+        "longitudeField": "Longitude Field",
+        "markerLabelField": "Marker Label Field",
+        "layers": "Layers"
       },
       "pages": {
         "title": "Pages",
@@ -2227,10 +2231,6 @@
         "selectAgentFirst": "Select an agent first",
         "send": "Send"
       },
-      "map": {
-        "location": "Location",
-        "viewLargerMap": "View Larger Map"
-      },
       "utils": {
         "selectPage": "-- Select Page --",
         "customUrl": "Custom URL",
@@ -2326,6 +2326,20 @@
           "range": "Range",
           "search": "Search"
         }
+      },
+      "layerManager": {
+        "title": "Map Layers",
+        "addLayer": "Add Layer",
+        "removeLayer": "Remove layer",
+        "defaultLayerName": "Layer {{index}}",
+        "none": "— none —",
+        "typePoints": "Points (lat/lng markers)",
+        "typeGeojson": "GeoJSON polygons/lines",
+        "typeChoropleth": "Choropleth (colored regions)",
+        "typeHeatmap": "Heat map",
+        "weightField": "Weight Field",
+        "geometryField": "Geometry Field (GeoJSON)",
+        "valueField": "Value Field"
       }
     },
     "loadingGuiEditor": "Loading GUI editor...",

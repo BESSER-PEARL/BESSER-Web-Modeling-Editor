@@ -2126,7 +2126,11 @@
         "valueColor": "Wertfarbe",
         "valueSize": "Wertgröße",
         "negativeTrendColor": "Farbe für einen negativen Trend",
-        "positiveTrendColor": "Farbe für einen positiven Trend"
+        "positiveTrendColor": "Farbe für einen positiven Trend",
+        "latitudeField": "Breitengrad-Feld",
+        "longitudeField": "Längengrad-Feld",
+        "markerLabelField": "Markierungsbeschriftungsfeld",
+        "layers": "Ebenen"
       },
       "pages": {
         "title": "Seiten",
@@ -2227,10 +2231,6 @@
         "selectAgentFirst": "Wählen Sie zuerst einen Agenten aus.",
         "send": "Senden"
       },
-      "map": {
-        "location": "Standort",
-        "viewLargerMap": "Größere Karte anzeigen"
-      },
       "utils": {
         "selectPage": "-- Seite auswählen --",
         "customUrl": "Benutzerdefinierte URL",
@@ -2326,6 +2326,20 @@
           "range": "Bereich",
           "search": "Suche"
         }
+      },
+      "layerManager": {
+        "title": "Kartenebenen",
+        "addLayer": "Ebene hinzufügen",
+        "removeLayer": "Ebene entfernen",
+        "defaultLayerName": "Ebene {{index}}",
+        "none": "— keine —",
+        "typePoints": "Punkte (Lat/Lng-Marker)",
+        "typeGeojson": "GeoJSON-Polygone/-Linien",
+        "typeChoropleth": "Choroplethenkarte (eingefärbte Regionen)",
+        "typeHeatmap": "Heatmap",
+        "weightField": "Gewichtungsfeld",
+        "geometryField": "Geometriefeld (GeoJSON)",
+        "valueField": "Wertfeld"
       }
     },
     "loadingGuiEditor": "GUI-Editor wird geladen...",
