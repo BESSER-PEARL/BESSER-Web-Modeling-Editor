@@ -24,7 +24,7 @@ import {
   besserMainRepositoryLink,
   besserWMERepositoryLink,
 } from '../../shared/constants/application-constants';
-import { sessionStorageOpenAssistantOnLoad } from '../../shared/constants/constant';
+import { sessionStorageOpenAssistantOnLoad, sessionStorageAssistantDrawerOpen } from '../../shared/constants/constant';
 import { normalizeProjectName } from '../../shared/utils/projectName';
 import { getWorkspaceContext } from '../../shared/utils/workspaceContext';
 import { downloadFile, downloadJson } from '../../shared/utils/download';
@@ -184,7 +184,15 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
   const [diagramTitleDraft, setDiagramTitleDraft] = useState(diagram?.title ?? '');
   const [isDarkTheme, setIsDarkTheme] = useState<boolean>(() => isDarkThemeEnabled());
   const [isGitHubSidebarOpen, setIsGitHubSidebarOpen] = useState(false);
-  const [isAssistantWorkspaceOpen, setIsAssistantWorkspaceOpen] = useState(false);
+  // Restore the drawer to wherever the user left it this tab (sessionStorage).
+  // Defaults to closed when nothing is stored or storage is unavailable.
+  const [isAssistantWorkspaceOpen, setIsAssistantWorkspaceOpen] = useState<boolean>(() => {
+    try {
+      return sessionStorage.getItem(sessionStorageAssistantDrawerOpen) === '1';
+    } catch {
+      return false;
+    }
+  });
   const [userModelValidationByDiagramId, setUserModelValidationByDiagramId] = useState<Record<string, UserModelValidationRecord>>({});
 
   // Derived values
@@ -346,6 +354,22 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
       setIsAssistantWorkspaceOpen(true);
     }
   }, [currentProject?.id]);
+
+  // Persist the drawer's open/closed state for the tab so it stays where the
+  // user left it across in-tab reloads (session-scoped, mirrors the read above),
+  // and keep the floating FAB (AssistantWidget) in sync via the shared event so
+  // only one assistant surface shows — this also covers a restore-open on mount,
+  // when no user toggle fired the event.
+  useEffect(() => {
+    try {
+      sessionStorage.setItem(sessionStorageAssistantDrawerOpen, isAssistantWorkspaceOpen ? '1' : '0');
+    } catch {
+      // Ignore storage failures — persistence is a convenience, not a requirement.
+    }
+    window.dispatchEvent(
+      new CustomEvent('besser:assistant-drawer', { detail: { open: isAssistantWorkspaceOpen } }),
+    );
+  }, [isAssistantWorkspaceOpen]);
 
   // Theme classes
   const shellBackgroundClass = isDarkTheme
@@ -975,10 +999,7 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
         <Suspense fallback={null}>
           <AssistantWorkspaceDrawer
             open={isAssistantWorkspaceOpen}
-            onOpenChange={(open) => {
-              setIsAssistantWorkspaceOpen(open);
-              window.dispatchEvent(new CustomEvent('besser:assistant-drawer', { detail: { open } }));
-            }}
+            onOpenChange={setIsAssistantWorkspaceOpen}
             onTriggerGenerator={onAssistantGenerate}
             onSwitchDiagram={handleAssistantSwitchDiagram}
           />

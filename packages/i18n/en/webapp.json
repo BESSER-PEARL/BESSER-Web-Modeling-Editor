@@ -1114,6 +1114,7 @@
       "newChatConfirmWithRun": "Start a new chat? Your current conversation will be cleared and the running generation will be stopped."
     },
     "drawer": {
+      "label": "Assistant",
       "pushToClose": "Push up to close assistant",
       "pullToOpen": "Pull down to open assistant",
       "pushUp": "Push up",

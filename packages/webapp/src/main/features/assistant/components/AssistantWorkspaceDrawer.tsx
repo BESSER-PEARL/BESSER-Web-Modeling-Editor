@@ -7,7 +7,7 @@
 
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ArrowDown, Boxes, ChevronUp, MessageSquarePlus, Layers, Palette, Code2, Sparkles, Flag, KeyRound, Check } from 'lucide-react';
+import { ArrowDown, Boxes, Bot, ChevronDown, ChevronUp, MessageSquarePlus, Layers, Palette, Code2, Sparkles, Flag, KeyRound, Check } from 'lucide-react';
 import { ChatForm } from '@/components/chatbot-kit/ui/chat';
 import { MessageInput } from '@/components/chatbot-kit/ui/message-input';
 import { MessageList } from '@/components/chatbot-kit/ui/message-list';
@@ -18,12 +18,13 @@ import type { GeneratorType } from '../../../app/shell/workspace-types';
 import type { GenerationResult } from '../../generation/types';
 import { useAssistantLogic, type ConnectionStatus } from '../hooks/useAssistantLogic';
 import { shouldOpenGuiTab, isReviewSpecAction, type GuiActionRouteInput } from '../hooks/suggestedActionRouting';
+import { DRAG_DIRECTION_THRESHOLD, lockDragDirection, resolveDrawerSnap } from '../hooks/drawerGesture';
 import { AssistantByokDialog } from './AssistantByokDialog';
 import { QuickActions } from './QuickActions';
 import { ModelOverviewPanel } from './ModelOverviewPanel';
 import { useAppDispatch, useAppSelector } from '../../../app/store/hooks';
 import { openPushDialog, selectHasLiveSpecDrivenRun } from '../../spec-driven/state/specDrivenSlice';
-import { sessionStoragePendingAssistantPrompt } from '../../../shared/constants/constant';
+import { sessionStoragePendingAssistantPrompt, sessionStorageAssistantHandleHinted } from '../../../shared/constants/constant';
 import { readLlmKey } from '../../../shared/services/llmKeyStorage';
 import { PilotSessionNotice } from '../../../shared/components/pilot/PilotSessionNotice';
 
@@ -46,12 +47,13 @@ interface DragState {
   lastTime: number;
   velocity: number;
   moved: number;
+  /** Direction committed once the gesture passes the drag threshold:
+   *  +1 = dragged down (→ open), -1 = dragged up (→ close), 0 = still a click. */
+  direction: number;
 }
 
 const HANDLE_HEIGHT = 28;
 const FALLBACK_CLOSED_OFFSET = -640;
-const VELOCITY_SNAP_THRESHOLD = 0.35;
-const POSITION_SNAP_THRESHOLD = 0.45;
 
 /** Toggle floating decoration cards on the sides of the welcome screen. */
 const SHOW_FLOATING_CARDS = false;
@@ -169,6 +171,21 @@ export const AssistantWorkspaceDrawer: React.FC<AssistantWorkspaceDrawerProps> =
   const [isMeasured, setIsMeasured] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const [translateY, setTranslateY] = useState(FALLBACK_CLOSED_OFFSET);
+
+  // One-time "you can drag me" hint on the handle. Plays at most once per tab
+  // (sessionStorage-gated) and only when the drawer starts closed, so a
+  // returning user with the drawer already open never sees it. The bob itself
+  // is a finite CSS animation disabled under reduced-motion (see styles.css).
+  const [showHandleHint] = useState<boolean>(() => {
+    try {
+      if (open) return false;
+      if (sessionStorage.getItem(sessionStorageAssistantHandleHinted) === '1') return false;
+      sessionStorage.setItem(sessionStorageAssistantHandleHinted, '1');
+      return true;
+    } catch {
+      return false;
+    }
+  });
 
   /* ---- Drawer-specific switchDiagram: delegates to parent ---- */
 
@@ -377,6 +394,11 @@ export const AssistantWorkspaceDrawer: React.FC<AssistantWorkspaceDrawerProps> =
     const deltaTime = Math.max(1, now - dragState.lastTime);
     dragState.velocity = (clientY - dragState.lastY) / deltaTime;
     dragState.moved = Math.max(dragState.moved, Math.abs(dragDistance));
+    // Lock the snap direction the first time the gesture crosses the threshold,
+    // taken from the START of the drag: dragging down opens, dragging up closes.
+    // Once set it sticks, so a quick flick that settles back still snaps by its
+    // initial intent rather than the exact release position.
+    dragState.direction = lockDragDirection(dragDistance, dragState.direction, DRAG_DIRECTION_THRESHOLD);
     dragState.lastY = clientY;
     dragState.lastTime = now;
     updateTranslateY(nextOffset);
@@ -395,14 +417,13 @@ export const AssistantWorkspaceDrawer: React.FC<AssistantWorkspaceDrawerProps> =
     }
     dragStateRef.current = null;
     setIsDragging(false);
-    const progress = clamp((translateYRef.current - deps.closedOffset) / deps.totalTravel, 0, 1);
-    let shouldOpen = progress >= POSITION_SNAP_THRESHOLD;
-    if (dragState.moved < 6) {
-      shouldOpen = !deps.open;
-    } else if (Math.abs(dragState.velocity) > VELOCITY_SNAP_THRESHOLD) {
-      shouldOpen = dragState.velocity > 0;
-    }
-    deps.onOpenChange(shouldOpen);
+    // Two outcomes only:
+    //  - Barely moved (below threshold, no locked direction) → treat as a click
+    //    and toggle open/closed.
+    //  - Otherwise → snap by the locked drag direction (down opens, up closes),
+    //    regardless of how far the user actually dragged. The section's
+    //    transition-transform animates the snap smoothly (reduced-motion aside).
+    deps.onOpenChange(resolveDrawerSnap(dragState.direction, deps.open));
   };
 
   const handlePointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
@@ -425,8 +446,19 @@ export const AssistantWorkspaceDrawer: React.FC<AssistantWorkspaceDrawerProps> =
       lastTime: performance.now(),
       velocity: 0,
       moved: 0,
+      direction: 0,
     };
     setIsDragging(true);
+  };
+
+  // Keyboard activation: the handle is a focusable toggle button, so Enter and
+  // Space open/close it (pointer drag has no keyboard equivalent — a plain
+  // toggle is the accessible behaviour).
+  const handleHandleKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
+    if (event.key === 'Enter' || event.key === ' ' || event.key === 'Spacebar') {
+      event.preventDefault();
+      onOpenChange(!open);
+    }
   };
 
   // Stable refs for values used inside drag handlers — avoids re-registering
@@ -498,7 +530,7 @@ export const AssistantWorkspaceDrawer: React.FC<AssistantWorkspaceDrawerProps> =
       {/* Backdrop overlay */}
       <div
         className={cn(
-          'pointer-events-none absolute inset-0 z-30 bg-slate-950/50 backdrop-blur-[3px] transition-opacity duration-300',
+          'pointer-events-none absolute inset-0 z-30 bg-slate-950/50 backdrop-blur-[3px] transition-opacity duration-300 motion-reduce:transition-none',
           (open || isDragging) && openProgress > 0.02 && 'pointer-events-auto',
         )}
         style={{ opacity: openProgress * 0.75 }}
@@ -509,7 +541,7 @@ export const AssistantWorkspaceDrawer: React.FC<AssistantWorkspaceDrawerProps> =
         ref={drawerRef}
         className={cn(
           'pointer-events-none absolute inset-0 z-40 flex flex-col overflow-visible bg-transparent',
-          !isDragging && 'transition-transform duration-300 ease-out',
+          !isDragging && 'transition-transform duration-300 ease-out motion-reduce:transition-none',
         )}
         style={{
           transform:
@@ -905,36 +937,38 @@ export const AssistantWorkspaceDrawer: React.FC<AssistantWorkspaceDrawerProps> =
 
         </div>
 
-        {/* Drag handle tab — hangs below the content */}
+        {/* Handle tab — hangs below the content. A single accent pill that
+            reads as both a button (click to toggle) and a drag handle (pull
+            down to open / up to close). When the drawer is open it softens so
+            it doesn't dominate the panel. */}
         <div className="pointer-events-none relative flex shrink-0 justify-center">
           <div
-            className="absolute inset-0 z-0 bg-background transition-opacity duration-300"
+            className="absolute inset-0 z-0 bg-background transition-opacity duration-300 motion-reduce:transition-none"
             style={{ opacity: Math.min(openProgress * 1.5, 1) }}
           />
           <div
             className={cn(
-              'pointer-events-auto relative z-10 flex cursor-row-resize touch-none select-none items-center gap-2 px-5 py-1.5 transition-all duration-200',
+              'pointer-events-auto relative z-10 flex cursor-grab touch-none select-none items-center gap-1.5 rounded-b-xl border border-t-0 px-4 py-1.5 text-xs font-semibold transition-all duration-200 motion-reduce:transition-none active:cursor-grabbing',
+              'outline-none focus-visible:ring-2 focus-visible:ring-brand/70 focus-visible:ring-offset-1 focus-visible:ring-offset-background',
               openProgress > 0.5
-                ? 'bg-transparent'
-                : 'rounded-b-xl bg-background border border-t-0 border-border/40 shadow-[0_4px_12px_-4px_rgba(0,0,0,0.12)] hover:shadow-[0_6px_16px_-4px_rgba(0,0,0,0.16)] dark:shadow-[0_4px_12px_-4px_rgba(0,0,0,0.4)] dark:hover:shadow-[0_6px_16px_-4px_rgba(0,0,0,0.5)]',
+                ? 'border-border/40 bg-background/90 text-muted-foreground shadow-sm backdrop-blur hover:text-foreground'
+                : 'border-brand-dark/20 bg-brand text-brand-foreground shadow-lg hover:bg-brand-dark',
+              showHandleHint && openProgress < 0.5 && 'drawer-handle-bob',
             )}
             onPointerDown={handlePointerDown}
+            onKeyDown={handleHandleKeyDown}
             role="button"
             aria-label={open ? t('assistant.drawer.pushToClose') : t('assistant.drawer.pullToOpen')}
+            aria-expanded={open}
             tabIndex={0}
           >
-            {openProgress > 0.75 ? (
-              <ChevronUp className="size-3.5 text-muted-foreground/40" />
+            <Bot className="size-3.5 shrink-0" aria-hidden="true" />
+            <span className="tracking-wide">{t('assistant.drawer.label')}</span>
+            {openProgress > 0.5 ? (
+              <ChevronUp className="size-3.5 shrink-0" aria-hidden="true" />
             ) : (
-              <div className="flex flex-col items-center gap-[2px]">
-                <span className="block h-[1.5px] w-4 rounded-full bg-brand/20" />
-                <span className="block h-[1.5px] w-3 rounded-full bg-brand/15" />
-                <span className="block h-[1.5px] w-2 rounded-full bg-brand/10" />
-              </div>
+              <ChevronDown className="size-3.5 shrink-0" aria-hidden="true" />
             )}
-            <span className="text-[9px] font-semibold uppercase tracking-[0.12em] text-muted-foreground/50">
-              {openProgress > 0.75 ? t('assistant.drawer.pushUp') : t('assistant.drawer.pullDown')}
-            </span>
           </div>
         </div>
       </section>

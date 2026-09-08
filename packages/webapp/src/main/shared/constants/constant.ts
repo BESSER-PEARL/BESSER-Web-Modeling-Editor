@@ -156,6 +156,18 @@ export const sessionStoragePendingAssistantPrompt = localStoragePrefix + 'pendin
 // open the assistant drawer automatically (no prompt is auto-sent).
 export const sessionStorageOpenAssistantOnLoad = localStoragePrefix + 'open_assistant_on_load';
 
+// Remembers whether the assistant drawer was left open or closed, scoped to the
+// tab (sessionStorage) so it survives an in-tab reload but not a tab close.
+// WorkspaceShell (which owns the drawer's open state) reads this on mount and
+// writes it whenever the user opens/closes the drawer, so the assistant stays
+// where the user left it during a session. Value: '1' when open, '0' when closed.
+export const sessionStorageAssistantDrawerOpen = localStoragePrefix + 'assistant_drawer_open';
+
+// One-shot flag: set once the assistant handle has played its subtle "you can
+// drag me" hint animation this tab, so it plays at most once per session and
+// never replays on a re-render or navigation. Value: '1' when already hinted.
+export const sessionStorageAssistantHandleHinted = localStoragePrefix + 'assistant_handle_hinted';
+
 // Smart Generator — per-project last successful run id (incremental vibe-modify).
 // When a vibe-generation run finishes, its run_id is stashed here keyed by
 // project so a follow-up "add feature X" can send `mode:'modify'` +

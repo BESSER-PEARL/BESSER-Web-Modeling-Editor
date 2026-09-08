@@ -407,6 +407,21 @@ select {
   }
 }
 
+/* ---- Assistant handle "you can drag me" hint ----
+   A subtle downward nudge played at most once per tab (gated in
+   AssistantWorkspaceDrawer via sessionStorage) to hint the top handle can be
+   pulled down or clicked to open the assistant. Finite (self-stops) and
+   disabled entirely under reduced-motion below. */
+@keyframes drawer-handle-bob {
+  0%, 100% { transform: translateY(0); }
+  25% { transform: translateY(3px); }
+  50% { transform: translateY(0); }
+  75% { transform: translateY(3px); }
+}
+.drawer-handle-bob {
+  animation: drawer-handle-bob 1.6s ease-in-out 0.7s 1 both;
+}
+
 /* ---- Respect reduced-motion ----
    The drawer's gradient orbs and the input glow loop forever, and the
    welcome content animates in. Users who ask for less motion get none of
@@ -420,7 +435,8 @@ select {
   .drawer-orb-3,
   .input-card-glow::before,
   .floating-card,
-  .animate-fade-up {
+  .animate-fade-up,
+  .drawer-handle-bob {
     animation: none !important;
   }
 }
