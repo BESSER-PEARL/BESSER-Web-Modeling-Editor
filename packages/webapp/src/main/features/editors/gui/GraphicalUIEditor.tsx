@@ -1,7 +1,7 @@
 ﻿import React, { useEffect, useRef, useState } from 'react';
 import type { Editor } from 'grapesjs';
 import './grapesjs-styles.css';
-import { getClassOptions, getEndsByClassId, getClassMetadata, getMethodsByClassId } from './diagram-helpers';
+import { getClassOptions, getDisplayAttribute, getEndsByClassId, getClassMetadata, getMethodsByClassId } from './diagram-helpers';
 import { getChartConfigs } from './configs/chartConfigs';
 import { getTableConfig } from './configs/tableConfig';
 import { getMetricCardConfig } from './configs/metricCardConfigs';
@@ -1518,7 +1518,7 @@ function buildPageComponents(
             if (classEnds?.length) {
               classEnds.forEach((end: any) => {
                 const targetClassMetadata = getClassMetadata(end.value);
-                const firstAttribute = targetClassMetadata?.attributes?.[0];
+                const firstAttribute = getDisplayAttribute(targetClassMetadata);
                 autoColumns.push({
                   field: end.label || end.value,
                   label: (end.label || end.value).replace(/_/g, ' ').replace(/\b\w/g, (l: string) => l.toUpperCase()),
