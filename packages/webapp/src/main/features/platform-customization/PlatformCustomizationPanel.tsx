@@ -184,12 +184,26 @@ function extractAssociations(model: UMLModel): AssociationInfo[] {
     { all: Set<string>; sources: Set<string>; targets: Set<string> }
   >();
   for (const rel of Object.values(model.relationships ?? {})) {
-    if (typeof rel?.name !== 'string' || rel.name.trim() === '') continue;
-    const slot =
-      byName.get(rel.name) ??
-      { all: new Set<string>(), sources: new Set<string>(), targets: new Set<string>() };
     const sourceName = resolveClassName((rel as any)?.source?.element);
     const targetName = resolveClassName((rel as any)?.target?.element);
+    let name = typeof rel?.name === 'string' ? rel.name.trim() : '';
+    if (!name) {
+      // Mirrors the backend's fallback naming for nameless associations
+      // (json_to_buml/class_diagram_processor.py): "<source>_<target>",
+      // suffixed with "_1", "_2"... on collision. Keeping this in sync
+      // means overrides keyed by this synthetic name still match the
+      // association the generator actually creates.
+      if (!sourceName || !targetName) continue;
+      name = `${sourceName}_${targetName}`;
+      if (byName.has(name)) {
+        let counter = 1;
+        while (byName.has(`${name}_${counter}`)) counter++;
+        name = `${name}_${counter}`;
+      }
+    }
+    const slot =
+      byName.get(name) ??
+      { all: new Set<string>(), sources: new Set<string>(), targets: new Set<string>() };
     if (sourceName) {
       slot.all.add(sourceName);
       slot.sources.add(sourceName);
@@ -198,7 +212,7 @@ function extractAssociations(model: UMLModel): AssociationInfo[] {
       slot.all.add(targetName);
       slot.targets.add(targetName);
     }
-    byName.set(rel.name, slot);
+    byName.set(name, slot);
   }
   return Array.from(byName.entries())
     .map(([name, slot]) => ({
