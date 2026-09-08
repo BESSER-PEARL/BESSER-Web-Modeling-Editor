@@ -2126,7 +2126,11 @@
         "valueColor": "Wäert-Faarf",
         "valueSize": "Wäert-Gréisst",
         "negativeTrendColor": "Faarf negativen Trend",
-        "positiveTrendColor": "Faarf positiven Trend"
+        "positiveTrendColor": "Faarf positiven Trend",
+        "latitudeField": "Breedegrad-Feld",
+        "longitudeField": "Längegrad-Feld",
+        "markerLabelField": "Marker-Titel-Feld",
+        "layers": "Schichten"
       },
       "pages": {
         "title": "Säiten",
@@ -2227,10 +2231,6 @@
         "selectAgentFirst": "Fir d'éischt en Agent auswielen",
         "send": "Schécken"
       },
-      "map": {
-        "location": "Standuert",
-        "viewLargerMap": "Méi grouss Kaart weisen"
-      },
       "utils": {
         "selectPage": "-- Säit auswielen --",
         "customUrl": "Personaliséiert URL",
@@ -2326,6 +2326,20 @@
           "range": "Beräich",
           "search": "Sich"
         }
+      },
+      "layerManager": {
+        "title": "Kaarteschichten",
+        "addLayer": "Schicht dobäisetzen",
+        "removeLayer": "Schicht ewechhuelen",
+        "defaultLayerName": "Schicht {{index}}",
+        "none": "— keng —",
+        "typePoints": "Punkten (Lat/Lng-Marker)",
+        "typeGeojson": "GeoJSON-Polygonen/-Linnen",
+        "typeChoropleth": "Choroplethekaart (agefierfte Regiounen)",
+        "typeHeatmap": "Hëtztkaart",
+        "weightField": "Gewiichtsfeld",
+        "geometryField": "Geometrifeld (GeoJSON)",
+        "valueField": "Wäertfeld"
       }
     },
     "loadingGuiEditor": "GUI-Editor gëtt gelueden...",
