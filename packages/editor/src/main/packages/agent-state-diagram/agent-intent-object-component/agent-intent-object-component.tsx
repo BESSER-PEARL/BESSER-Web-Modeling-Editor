@@ -6,6 +6,7 @@ import {
   AgentIntentDescriptionComponent,
   AGENT_INTENT_DESCRIPTION_HEIGHT,
 } from '../agent-intent-description/agent-intent-description';
+import { truncateTextToWidth } from '../text-truncation';
 
 interface Props {
   element: AgentIntent;
@@ -15,7 +16,7 @@ interface Props {
 
 export const AgentIntentComponent: FunctionComponent<Props> = ({ element, children, fillColor }) => {
   const cornerRadius = 0;
-  element.name = "Intent: " + element.name;
+  const displayName = truncateTextToWidth(`Intent: ${element.name || ''}`, element.bounds.width - 20, 14);
   const hasIntentDescription = element.intent_description.trim().length > 0;
   return (
     <g>
@@ -70,7 +71,7 @@ export const AgentIntentComponent: FunctionComponent<Props> = ({ element, childr
                   fontStyle={element.italic ? 'italic' : undefined}
                   textDecoration={element.underline ? 'underline' : undefined}
                 >
-                  {element.name}
+                      {displayName}
                 </tspan>
               </Text>
             </svg>
@@ -81,7 +82,7 @@ export const AgentIntentComponent: FunctionComponent<Props> = ({ element, childr
                 fontStyle={element.italic ? 'italic' : undefined}
                 textDecoration={element.underline ? 'underline' : undefined}
               >
-                {element.name}
+                {displayName}
 
               </Text>
 

@@ -10,7 +10,8 @@ export type DiagramType =
   | 'AgentDiagram'
   | 'UserDiagram'
   | 'QuantumCircuitDiagram'
-  | 'GUINoCodeDiagram';
+  | 'GUINoCodeDiagram'
+  | 'BPMN';
 
 /**
  * Generate a unique ID with an optional prefix.

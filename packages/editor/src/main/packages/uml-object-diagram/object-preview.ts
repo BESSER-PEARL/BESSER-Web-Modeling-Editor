@@ -10,7 +10,6 @@ import { settingsService } from '../../services/settings/settings-service';
 
 export const composeObjectPreview: ComposePreview = (
   layer: ILayer,
-  translate: (id: string) => string,
 ): UMLElement[] => {
   const elements: UMLElement[] = [];
 
@@ -18,15 +17,14 @@ export const composeObjectPreview: ComposePreview = (
   const shouldShowIconView = settingsService.shouldShowIconView();
 
   if (shouldShowIconView) {
-    return composeIconObjectPreview(layer, translate);
+    return composeIconObjectPreview(layer);
   } else {
-    return composeNormalObjectPreview(layer, translate);
+    return composeNormalObjectPreview(layer);
   }
 };
 
 const composeIconObjectPreview = (
   layer: ILayer,
-  translate: (id: string) => string,
 ): UMLElement[] => {
   const elements: UMLElement[] = [];
 
@@ -117,19 +115,18 @@ const composeIconObjectPreview = (
 
 const composeNormalObjectPreview = (
   layer: ILayer,
-  translate: (id: string) => string,
 ): UMLElement[] => {
   const elements: UMLElement[] = [];
 
   // First object - Generic object
-  const umlObject = new UMLObjectName({ name: translate('packages.ObjectDiagram.ObjectName') });
+  const umlObject = new UMLObjectName({ name: 'Object' });
   umlObject.bounds = {
     ...umlObject.bounds,
     width: umlObject.bounds.width,
     height: umlObject.bounds.height,
   };
   const umlObjectMember = new UMLObjectAttribute({
-    name: translate('sidebar.objectAttribute'),
+    name: 'Attribute',
     owner: umlObject.id,
     bounds: {
       x: 0,

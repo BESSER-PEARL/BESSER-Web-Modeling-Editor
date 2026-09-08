@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { toast } from 'react-toastify';
 import { BesserProject } from '../../../shared/types/project';
 import { LinkedRepository, useGitHubStorage } from './useGitHubStorage';
@@ -30,6 +31,7 @@ export const useAutoCommit = ({
     linkedRepo,
     saveCurrentEditorState,
 }: UseAutoCommitProps) => {
+    const { t } = useTranslation();
     const { saveProjectToGitHub, checkForChanges } = useGitHubStorage();
     const [settings, setSettings] = useState<AutoCommitSettings>({
         enabled: false,
@@ -111,21 +113,21 @@ export const useAutoCommit = ({
                 project,
                 linkedRepo.owner,
                 linkedRepo.repo,
-                `Auto-save: ${timestamp}`,
+                t('github.toasts.autoSaveCommitMessage', { timestamp }),
                 linkedRepo.branch,
                 linkedRepo.filePath
             );
 
             if (result.success) {
                 updateSettings({ lastAutoCommitAt: new Date().toISOString() });
-                toast.info('Auto-saved to GitHub', { autoClose: 2000 });
+                toast.info(t('github.toasts.autoSaved'), { autoClose: 2000 });
             }
         } catch (error) {
             console.error('Auto-commit failed:', error);
         } finally {
             setIsAutoCommitting(false);
         }
-    }, [githubSession, projectId, linkedRepo, saveCurrentEditorState, checkForChanges, saveProjectToGitHub, updateSettings]);
+    }, [githubSession, projectId, linkedRepo, saveCurrentEditorState, checkForChanges, saveProjectToGitHub, updateSettings, t]);
 
     // Set up interval for auto-commit
     useEffect(() => {

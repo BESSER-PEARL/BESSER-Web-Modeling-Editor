@@ -1,3 +1,5 @@
+import type { AgentLLMProviderType, LegacyAgentLLMProviderType } from '@besser/wme';
+
 export type InterfaceStyleSetting = {
   size: number;
   font: 'sans' | 'serif' | 'monospace' | 'neutral' | 'grotesque' | 'condensed';
@@ -14,7 +16,11 @@ export type VoiceStyleSetting = {
 
 export type IntentRecognitionTechnology = 'classical' | 'llm-based';
 
-export type AgentLLMProvider = 'openai' | 'huggingface' | 'huggingfaceapi' | 'replicate' | '';
+/**
+ * Provider stored in the runtime config. Derived from the canonical editor list
+ * so this never drifts; the legacy alias and '' (unset) are the only extras.
+ */
+export type AgentLLMProvider = AgentLLMProviderType | LegacyAgentLLMProviderType | '';
 
 export type AgentLanguageComplexity = 'original' | 'simple' | 'medium' | 'complex';
 
@@ -25,6 +31,10 @@ export interface AgentLLMConfiguration {
   model: string;
 }
 
+export interface AgentLLMNameConfiguration {
+  name: string;
+}
+
 export interface AgentConfigurationPayload {
   agentLanguage: string;
   inputModalities: string[];
@@ -32,7 +42,7 @@ export interface AgentConfigurationPayload {
   agentPlatform: string;
   responseTiming: string;
   agentStyle: string;
-  llm: AgentLLMConfiguration | Record<string, never>;
+  llm: AgentLLMNameConfiguration | AgentLLMConfiguration | Record<string, never>;
   languageComplexity: AgentLanguageComplexity;
   sentenceLength: AgentSentenceLength;
   interfaceStyle: InterfaceStyleSetting;

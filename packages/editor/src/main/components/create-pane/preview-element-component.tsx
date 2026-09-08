@@ -37,6 +37,7 @@ export class PreviewElementComponent extends Component<Props> {
     const element = this.props.element.clone({
       bounds: { ...this.props.element.bounds, ...event.position },
     });
+
     this.props.create(element, event.owner);
   };
 }

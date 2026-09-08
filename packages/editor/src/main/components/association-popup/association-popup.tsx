@@ -97,7 +97,7 @@ type DispatchProps = {
   create: typeof UMLElementRepository.create;
 };
 
-type Props = OwnProps & StateProps & DispatchProps & CanvasContext & RootContext;
+type Props = OwnProps & StateProps & DispatchProps & CanvasContext & RootContext & I18nContext;
 
 const initialState = Object.freeze({
   position: null as { x: number; y: number } | null,
@@ -151,12 +151,12 @@ class UnwrappedAssociationPopup extends Component<Props, State> {
         maxHeight={400}
       >
         <PopupContainer>
-          <Header>{'Add and connect to new Object'}</Header>
+          <Header>{this.props.translate('associationPopup.title')}</Header>
           <Divider />
           {this.renderTargetSelection(availableTargets)}
           <Divider />
           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
-            <Button onClick={this.handleClose}>{'Cancel'}</Button>
+            <Button onClick={this.handleClose}>{this.props.translate('associationPopup.cancel')}</Button>
           </div>
         </PopupContainer>
       </Popover>,
@@ -168,7 +168,7 @@ class UnwrappedAssociationPopup extends Component<Props, State> {
     if (targets.length === 0) {
       return (
         <NoAssociationsMessage>
-          {'No other objects available to connect to'}
+          {this.props.translate('associationPopup.noTargets')}
         </NoAssociationsMessage>
       );
     }
@@ -321,6 +321,7 @@ class UnwrappedAssociationPopup extends Component<Props, State> {
 }
 
 const enhance = compose<ComponentClass<OwnProps>>(
+  localized,
   withCanvas,
   withRoot,
   connect<StateProps, DispatchProps, OwnProps, ModelState>(

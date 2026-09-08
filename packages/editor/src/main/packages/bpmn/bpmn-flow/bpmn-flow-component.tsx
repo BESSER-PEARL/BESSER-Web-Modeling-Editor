@@ -1,7 +1,12 @@
 import React, { FunctionComponent, SVGProps } from 'react';
 import { Point } from '../../../utils/geometry/point';
 import { BPMNFlow } from './bpmn-flow';
-import { ThemedCircle, ThemedPath, ThemedPolyline } from '../../../components/theme/themedComponents';
+import {
+  ThemedCircle,
+  ThemedPath,
+  ThemedPathContrast,
+  ThemedPolyline,
+} from '../../../components/theme/themedComponents';
 
 export const BPMNFlowComponent: FunctionComponent<Props> = ({ element }) => {
   let position = { x: 0, y: 0 };
@@ -72,10 +77,11 @@ export const BPMNFlowComponent: FunctionComponent<Props> = ({ element }) => {
           orient="auto"
           markerUnits="strokeWidth"
         >
-          <ThemedPath
+          <ThemedPathContrast
             d={`M0,0 L10,5 L0,10, L0,0 z`}
             fillRule="evenodd"
-            fillColor="strokeColor"
+            fillColor={element.strokeColor}
+            strokeColor={element.strokeColor}
             strokeLinejoin="round"
           />
         </marker>
@@ -118,6 +124,30 @@ export const BPMNFlowComponent: FunctionComponent<Props> = ({ element }) => {
       >
         {element.name}
       </text>
+      {element.isDefault &&
+        element.flowType === 'sequence' &&
+        path.length >= 2 &&
+        (() => {
+          // BPMN 2.0.2 § 8.3.13 (p. 98), Figure 8.34: default-flow marker is a
+          // diagonal slash at the start of the connector. Rotate dir by 45° CCW
+          // (so a flow going right gets a "\" mark; vertical/diagonal flows
+          // rotate accordingly while keeping the 45° relation to dir).
+          const dir = path[1].subtract(path[0]).normalize();
+          const at = path[0].add(dir.scale(12));
+          const k = Math.SQRT1_2; // sin(45°) = cos(45°) = √2/2
+          const slashDir = new Point((dir.x - dir.y) * k, (dir.x + dir.y) * k);
+          const half = slashDir.scale(5);
+          const a = at.subtract(half);
+          const b = at.add(half);
+          return (
+            <ThemedPath
+              d={`M${a.x} ${a.y} L${b.x} ${b.y}`}
+              strokeColor={element.strokeColor}
+              strokeLinecap="round"
+              fillColor="none"
+            />
+          );
+        })()}
     </g>
   );
 };

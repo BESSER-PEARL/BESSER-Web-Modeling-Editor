@@ -12,13 +12,13 @@ import { UMLEnumeration } from './uml-enumeration/uml-enumeration';
 import { UMLInterface } from './uml-interface/uml-interface';
 import { ClassOCLConstraint } from './uml-class-ocl/uml-class-ocl-constraint';
 
-export const composeClassPreview: ComposePreview = (layer: ILayer, translate: (id: string) => string): UMLElement[] => {
+export const composeClassPreview: ComposePreview = (layer: ILayer): UMLElement[] => {
   const elements: UMLElement[] = [];
   UMLClassifier.stereotypeHeaderHeight = computeDimension(1.0, 50);
   UMLClassifier.nonStereotypeHeaderHeight = computeDimension(1.0, 40);
 
   // // UML Package
-  // const umlPackage = new UMLClassPackage({ name: translate('packages.ClassDiagram.Package') });
+  // const umlPackage = new UMLClassPackage({ name: 'Package' });
   // umlPackage.bounds = {
   //   ...umlPackage.bounds,
   //   width: umlPackage.bounds.width,
@@ -27,7 +27,7 @@ export const composeClassPreview: ComposePreview = (layer: ILayer, translate: (i
   // elements.push(umlPackage);
 
     // UML Class 1 with attribute
-  const umlClass1 = new UMLClass({ name: translate('packages.ClassDiagram.Class') });
+  const umlClass1 = new UMLClass({ name: 'Class' });
   umlClass1.bounds = {
     ...umlClass1.bounds,
     width: umlClass1.bounds.width,
@@ -35,7 +35,7 @@ export const composeClassPreview: ComposePreview = (layer: ILayer, translate: (i
   };
 
   const umlClass1Attribute = new UMLClassAttribute({
-    name: translate('sidebar.classAttribute'),
+    name: 'Attribute',
     owner: umlClass1.id,
     visibility: 'public',
     attributeType: 'str',
@@ -51,14 +51,14 @@ export const composeClassPreview: ComposePreview = (layer: ILayer, translate: (i
   elements.push(...(umlClass1.render(layer, [umlClass1Attribute]) as UMLElement[]));
 
   // UML Class
-  const umlClass = new UMLClass({ name: translate('packages.ClassDiagram.Class') });
+  const umlClass = new UMLClass({ name: 'Class' });
   umlClass.bounds = {
     ...umlClass.bounds,
     width: umlClass.bounds.width,
     height: umlClass.bounds.height,
   };
   const umlClassAttribute = new UMLClassAttribute({
-    name: translate('sidebar.classAttribute'),
+    name: 'Attribute',
     owner: umlClass.id,
     visibility: 'public',
     attributeType: 'str',
@@ -71,7 +71,7 @@ export const composeClassPreview: ComposePreview = (layer: ILayer, translate: (i
   });
 
   const umlClassMethod = new UMLClassMethod({
-    name: translate('sidebar.classMethod'),
+    name: 'Method()',
     owner: umlClass.id,
     bounds: {
       x: 0,
@@ -85,14 +85,14 @@ export const composeClassPreview: ComposePreview = (layer: ILayer, translate: (i
   elements.push(...(umlClass.render(layer, [umlClassAttribute, umlClassMethod]) as UMLElement[]));
 
   // // UML Abstract Class
-  // const umlAbstract = new UMLAbstractClass({ name: translate('packages.ClassDiagram.AbstractClass') });
+  // const umlAbstract = new UMLAbstractClass({ name: 'AbstractClass' });
   // umlAbstract.bounds = {
   //   ...umlAbstract.bounds,
   //   width: umlAbstract.bounds.width,
   //   height: umlAbstract.bounds.height,
   // };
   // const umlAbstractAttribute = new UMLClassAttribute({
-  //   name: translate('sidebar.classAttribute'),
+  //   name: 'Attribute',
   //   owner: umlAbstract.id,
   //   bounds: {
   //     x: 0,
@@ -102,7 +102,7 @@ export const composeClassPreview: ComposePreview = (layer: ILayer, translate: (i
   //   },
   // });
   // const umlAbstractMethod = new UMLClassMethod({
-  //   name: translate('sidebar.classMethod'),
+  //   name: 'Method()',
   //   owner: umlAbstract.id,
   //   bounds: {
   //     x: 0,
@@ -116,7 +116,7 @@ export const composeClassPreview: ComposePreview = (layer: ILayer, translate: (i
 
   // // UML Interface
   // const umlInterface = new UMLInterface({
-  //   name: translate('packages.ClassDiagram.Interface'),
+  //   name: 'Interface',
   //   bounds: { height: 110 },
   // });
   // umlInterface.bounds = {
@@ -125,7 +125,7 @@ export const composeClassPreview: ComposePreview = (layer: ILayer, translate: (i
   //   height: umlInterface.bounds.height,
   // };
   // const umlInterfaceAttribute = new UMLClassAttribute({
-  //   name: translate('sidebar.classAttribute'),
+  //   name: 'Attribute',
   //   owner: umlInterface.id,
   //   bounds: {
   //     x: 0,
@@ -135,7 +135,7 @@ export const composeClassPreview: ComposePreview = (layer: ILayer, translate: (i
   //   },
   // });
   // const umlInterfaceMethod = new UMLClassMethod({
-  //   name: translate('sidebar.classMethod'),
+  //   name: 'Method()',
   //   owner: umlInterface.id,
   //   bounds: {
   //     x: 0,
@@ -149,7 +149,7 @@ export const composeClassPreview: ComposePreview = (layer: ILayer, translate: (i
 
   // UML Enumeration
   const umlEnumeration = new UMLEnumeration({
-    name: translate('packages.ClassDiagram.Enumeration'),
+    name: 'Enumeration',
     bounds: { height: 140 },
   });
   umlEnumeration.bounds = {
@@ -158,7 +158,7 @@ export const composeClassPreview: ComposePreview = (layer: ILayer, translate: (i
     height: umlEnumeration.bounds.height,
   };
   const umlEnumerationCase1 = new UMLClassAttribute({
-    name: translate('sidebar.enumAttribute') + '_1',
+    name: 'Enum Value_1',
     owner: umlEnumeration.id,
     bounds: {
       x: 0,
@@ -168,7 +168,7 @@ export const composeClassPreview: ComposePreview = (layer: ILayer, translate: (i
     },
   });
   const umlEnumerationCase2 = new UMLClassAttribute({
-    name: translate('sidebar.enumAttribute') + '_2',
+    name: 'Enum Value_2',
     owner: umlEnumeration.id,
     bounds: {
       x: 0,
@@ -178,7 +178,7 @@ export const composeClassPreview: ComposePreview = (layer: ILayer, translate: (i
     },
   });
   const umlEnumerationCase3 = new UMLClassAttribute({
-    name: translate('sidebar.enumAttribute') + '_3',
+    name: 'Enum Value_3',
     owner: umlEnumeration.id,
     bounds: {
       x: 0,

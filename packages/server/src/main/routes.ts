@@ -1,6 +1,7 @@
 import express from 'express';
 import cors from 'cors';
 import { UmlAgentRateLimiterResource } from './resources/uml-agent-rate-limiter-resource';
+import { SvgExportResource } from './resources/svg-export-resource';
 
 // options for cors midddleware
 const options: cors.CorsOptions = {
@@ -12,11 +13,13 @@ const options: cors.CorsOptions = {
 
 export const register = (app: express.Application) => {
   const umlAgentRateLimiterResource = new UmlAgentRateLimiterResource();
+  const svgExportResource = new SvgExportResource();
   const router = express.Router();
   router.use(cors(options));
 
   // routes
   router.post('/uml-agent/rate-limit/check', (req, res) => umlAgentRateLimiterResource.checkRateLimit(req, res));
   router.delete('/uml-agent/rate-limit/check', (req, res) => umlAgentRateLimiterResource.resetRateLimit(req, res));
+  router.post('/svg', (req, res) => svgExportResource.exportSvg(req, res));
   app.use('/api', router);
 };

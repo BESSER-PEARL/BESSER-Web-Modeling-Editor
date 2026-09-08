@@ -7,12 +7,11 @@ import { UMLSubsystem } from './uml-component-subsystem/uml-component-subsystem'
 
 export const composeComponentPreview: ComposePreview = (
   layer: ILayer,
-  translate: (id: string) => string,
 ): PreviewElement[] => {
   const elements: PreviewElement[] = [];
 
   // UML Component
-  const umlComponent = new UMLComponentComponent({ name: translate('packages.ComponentDiagram.Component') });
+  const umlComponent = new UMLComponentComponent({ name: 'Component' });
   umlComponent.bounds = {
     ...umlComponent.bounds,
     width: umlComponent.bounds.width,
@@ -21,7 +20,7 @@ export const composeComponentPreview: ComposePreview = (
   elements.push(umlComponent);
 
   // UML Subsystem
-  const umlSubsystem = new UMLSubsystem({ name: translate('packages.ComponentDiagram.Subsystem') });
+  const umlSubsystem = new UMLSubsystem({ name: 'Subsystem' });
   umlSubsystem.bounds = {
     ...umlSubsystem.bounds,
     width: umlSubsystem.bounds.width,
@@ -31,7 +30,7 @@ export const composeComponentPreview: ComposePreview = (
 
   // UML Component Interface
   const umlComponentInterface = new UMLComponentInterface({
-    name: translate('packages.ComponentDiagram.ComponentInterface'),
+    name: 'Component Interface',
   });
   umlComponentInterface.bounds = {
     ...umlComponentInterface.bounds,

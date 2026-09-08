@@ -116,7 +116,7 @@ packages/editor/src/main/
 │   └── diagram-type.ts         # Supported diagram types enum
 ├── services/                   # Domain logic (CRUD, undo, layout, collaboration)
 ├── components/                 # Canvas, sidebar, event listeners
-└── i18n/                       # Translations (en, de, etc.)
+└── i18n/                       # Translations (en)
 ```
 
 ## Key Patterns

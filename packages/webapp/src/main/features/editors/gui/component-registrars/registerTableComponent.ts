@@ -1,7 +1,8 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
+import i18n from '@/main/shared/i18n';
 import { TableConfig } from '../configs/tableConfig';
-import { getAttributeOptionsByClassId, getEndsByClassId, getClassOptions, getClassMetadata, getInheritedAttributeOptionsByClassId, getInheritedEndsByClassId } from '../diagram-helpers';
+import { getAttributeOptionsByClassId, getDisplayAttribute, getEndsByClassId, getClassOptions, getClassMetadata, getInheritedAttributeOptionsByClassId, getInheritedEndsByClassId } from '../diagram-helpers';
 
 /**
  * Build table props from attributes
@@ -82,7 +83,7 @@ export const registerTableComponent = (editor: any, config: TableConfig) => {
   traitsList.push({
     type: 'checkbox',
     name: 'action-buttons',
-    label: 'Action buttons',
+    label: i18n.t('editors.gui.traits.actionButtons'),
     value: true,
     changeProp: 1,
   });
@@ -203,7 +204,7 @@ export const registerTableComponent = (editor: any, config: TableConfig) => {
             classEnds.forEach(end => {
               // Get the target class metadata to find the first attribute
               const targetClassMetadata = getClassMetadata(end.value);
-              const firstAttribute = targetClassMetadata?.attributes?.[0];
+              const firstAttribute = getDisplayAttribute(targetClassMetadata);
               
               autoColumns.push({
                 field: end.label || end.value,
@@ -228,7 +229,7 @@ export const registerTableComponent = (editor: any, config: TableConfig) => {
             
             const traitConfig = {
               type: 'columns-manager',
-              label: 'Columns',
+              label: i18n.t('editors.gui.traits.columns'),
               name: 'columns',
               value: autoColumns,
               changeProp: 1
@@ -297,7 +298,7 @@ export const registerTableComponent = (editor: any, config: TableConfig) => {
   // Add block to Block Manager
   editor.BlockManager.add(config.id, {
     label: config.label,
-    category: 'Basic',
+    category: `Basic`,
     content: { type: config.id },
     media: config.icon,
   });

@@ -20,6 +20,7 @@ import { ModelState } from '../components/store/model-state';
 import { ThemeProvider } from 'styled-components';
 import { UMLClassifierComponent } from '../packages/common/uml-classifier/uml-classifier-component';
 import { UMLClassifierMemberComponent } from '../packages/common/uml-classifier/uml-classifier-member-component';
+import { UMLObjectNameComponent } from '../packages/uml-object-diagram/uml-object-name/uml-object-name-component';
 
 type Props = {
   model: Apollon.UMLModel;
@@ -230,8 +231,11 @@ export class Svg extends Component<Props, State> {
               const ElementComponent = Components[element.type as UMLElementType | UMLRelationshipType];
               switch (ElementComponent) {
                 case UMLClassifierComponent:
-                  // If the ElementComponent is of type UMLClassifierComponent, create an array of all members (attributes and methods) for that component.
-                  // Unlike other components, the UMLClassifierComponent needs its members to be children within the component to avoid border rendering issues.
+                case UMLObjectNameComponent:
+                  // UMLClassifierComponent (classes/enumerations) and UMLObjectNameComponent (object diagrams)
+                  // both need their members (attributes/methods) nested as children within the component, so the
+                  // border rectangle and dividers render after them. Without this, an object box exports as an
+                  // empty header with its attributes dropped entirely (they fall into the skipped member case below).
                   const members = elements.filter((member) => member.owner === element.id);
                   return (
                     <svg

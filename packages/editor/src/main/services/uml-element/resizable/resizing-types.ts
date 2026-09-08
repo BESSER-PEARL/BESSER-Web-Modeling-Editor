@@ -14,6 +14,7 @@ export type ResizeAction = Action<ResizingActionTypes.RESIZE> & {
   payload: {
     ids: string[];
     resizeFrom: ResizeFrom;
+    isManual?: boolean;
     delta: {
       width: number;
       height: number;

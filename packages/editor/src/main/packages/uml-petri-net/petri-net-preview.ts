@@ -7,13 +7,12 @@ import { computeDimension } from '../../utils/geometry/boundary';
 
 export const composePetriNetPreview: ComposePreview = (
   layer: ILayer,
-  translate: (id: string) => string,
 ): PreviewElement[] => {
   const elements: PreviewElement[] = [];
   UMLPetriNetTransition.defaultHeight = computeDimension(1.0, 60);
   UMLPetriNetTransition.defaultWidth = computeDimension(1.0, 25);
 
-  const petriNetTransition = new UMLPetriNetTransition({ name: translate('packages.PetriNet.PetriNetTransition') });
+  const petriNetTransition = new UMLPetriNetTransition({ name: 'Petri Net Transition' });
 
   // Petri Net Transition
   elements.push(
@@ -26,7 +25,7 @@ export const composePetriNetPreview: ComposePreview = (
 
   // Petri Net Place
   const petriNetPlace = new UMLPetriNetPlace({
-    name: translate('packages.PetriNet.PetriNetPlace'),
+    name: 'Petri Net Place',
     bounds: {
       x: 0,
       y: 0,

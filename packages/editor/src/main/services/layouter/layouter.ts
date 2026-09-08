@@ -109,6 +109,7 @@ export function* render(id: string): SagaIterator {
         payload: {
           ids: [update.id],
           resizeFrom: update.resizeFrom,
+          isManual: false,
           delta: size,
         },
         undoable: false,

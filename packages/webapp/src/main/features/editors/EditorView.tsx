@@ -1,4 +1,5 @@
 import React, { Suspense } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useAppSelector } from '../../app/store/hooks';
 import {
   selectActiveDiagramType,
@@ -24,6 +25,7 @@ const PlatformCustomizationPanel = React.lazy(() =>
 );
 
 export const EditorView: React.FC = () => {
+  const { t } = useTranslation();
   const activeDiagramType = useAppSelector(selectActiveDiagramType);
   const activeDiagramIndex = useAppSelector(selectActiveDiagramIndex);
   const isLoading = useAppSelector(selectWorkspaceLoading);
@@ -35,7 +37,7 @@ export const EditorView: React.FC = () => {
   if (activeDiagramType === 'GUINoCodeDiagram') {
     return (
       <EditorErrorBoundary>
-        <Suspense fallback={<SuspenseFallback message="Loading GUI editor..." />}>
+        <Suspense fallback={<SuspenseFallback message={t('editors.loadingGuiEditor')} />}>
           <GraphicalUIEditor key={`gui-${activeDiagramIndex}`} />
         </Suspense>
       </EditorErrorBoundary>
@@ -45,7 +47,7 @@ export const EditorView: React.FC = () => {
   if (activeDiagramType === 'QuantumCircuitDiagram') {
     return (
       <EditorErrorBoundary>
-        <Suspense fallback={<SuspenseFallback message="Loading quantum editor..." />}>
+        <Suspense fallback={<SuspenseFallback message={t('editors.loadingQuantumEditor')} />}>
           <QuantumEditorComponent key={`quantum-${activeDiagramIndex}`} />
         </Suspense>
       </EditorErrorBoundary>

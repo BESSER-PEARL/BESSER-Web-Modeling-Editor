@@ -1,6 +1,7 @@
 // Import diagram from image using backend API
 import { toast } from 'react-toastify';
 import { useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
 import { BACKEND_URL } from '../../shared/constants/constant';
 import { useAppDispatch } from '../../app/store/hooks';
 import { uuid } from '../../shared/utils/uuid';
@@ -12,6 +13,7 @@ import { loadProjectThunk } from '../../app/store/workspaceSlice';
 // Hook to import diagram from image file and API key
 export const useImportDiagramPictureFromImage = () => {
   const dispatch = useAppDispatch();
+  const { t } = useTranslation();
 
   const importDiagramFromImage = useCallback(async (file: File, apiKey: string) => {
     try {
@@ -41,7 +43,7 @@ export const useImportDiagramPictureFromImage = () => {
       });
 
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ detail: 'Could not parse error response' }));
+        const errorData = await response.json().catch(() => ({ detail: t('import.errors.couldNotParseError') }));
         const errorMsg = errorData.detail || `HTTP error! status: ${response.status}`;
         toast.error(errorMsg);
         throw new Error(errorMsg);
@@ -49,12 +51,12 @@ export const useImportDiagramPictureFromImage = () => {
 
       const data = await response.json();
       if (!data || !data.model || !data.model.type) {
-        throw new Error('Invalid diagram returned from backend');
+        throw new Error(t('import.errors.invalidFromBackend'));
       }
 
       const currentProject = ProjectStorageRepository.getCurrentProject();
       if (!currentProject) {
-        throw new Error('No project is currently open. Please create or open a project first.');
+        throw new Error(t('import.errors.noProjectOpen'));
       }
 
       const diagramType = toSupportedDiagramType(data.model.type);
@@ -64,7 +66,7 @@ export const useImportDiagramPictureFromImage = () => {
         id: newId,
         title: data.title || file.name,
         lastUpdate: new Date().toISOString(),
-        description: data.description || `Imported ${diagramType} diagram from image`,
+        description: data.description || t('import.descriptions.importedFromImage', { diagramType }),
       };
 
       // Update the active diagram in the array (preserving the array structure)
@@ -101,14 +103,14 @@ export const useImportDiagramPictureFromImage = () => {
         success: true,
         diagramType,
         diagramTitle: importedDiagram.title,
-        message: `${diagramType} diagram imported successfully from image and added to project "${currentProject.name}".`
+        message: t('import.success.image', { diagramType, projectName: currentProject.name })
       };
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred during import';
-      dispatch(displayError('Import failed', `Could not import diagram from image: ${errorMessage}`));
+      const errorMessage = error instanceof Error ? error.message : t('import.errors.unknownDuringImport');
+      dispatch(displayError(t('import.errors.title'), t('import.errors.couldNotImportFromImage', { message: errorMessage })));
       throw error;
     }
-  }, [dispatch]);
+  }, [dispatch, t]);
 
   return importDiagramFromImage;
 };

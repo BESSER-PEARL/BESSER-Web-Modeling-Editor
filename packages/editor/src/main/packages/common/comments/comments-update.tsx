@@ -57,7 +57,7 @@ class CommentsUpdateComponent extends Component<Props, State> {
           <Flex>
             <TextArea
               value={element.name}
-              placeholder={this.props.translate('packages.SyntaxTree.SyntaxTreeNonterminal')}
+              placeholder={this.props.translate('packages.Comment.placeholder')}
               onChange={(e) => this.onUpdate(e.target.value)}
               autoFocus
             />

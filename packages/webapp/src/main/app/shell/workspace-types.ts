@@ -3,6 +3,7 @@ export type GeneratorType =
   | 'backend'
   | 'web_app'
   | 'sql'
+  | 'supabase'
   | 'sqlalchemy'
   | 'python'
   | 'java'
@@ -14,6 +15,8 @@ export type GeneratorType =
   | 'jsonobject'
   | 'platform'
   | 'pytorch'
-  | 'tensorflow';
+  | 'tensorflow'
+  | 'bpmn'
+  | 'test_case';
 
-export type GeneratorMenuMode = 'class' | 'object' | 'user' | 'statemachine' | 'agent' | 'gui' | 'quantum' | 'nn' | 'platform' | 'none';
+export type GeneratorMenuMode = 'class' | 'object' | 'user' | 'statemachine' | 'agent' | 'gui' | 'quantum' | 'nn' | 'platform' | 'bpmn' | 'none';

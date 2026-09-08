@@ -210,18 +210,18 @@ class AgentStateTransitionUpdateClass extends Component<Props, State> {
           <Divider />
         </Section>
         <Section>
-          <SectionHeader>Transition Type</SectionHeader>
+          <SectionHeader>{this.props.translate('popup.agent.transition.type')}</SectionHeader>
           <Dropdown
             value={isCustomTransition ? 'custom' : 'predefined'}
             onChange={this.handleTransitionTypeChange}
           >
-            <Dropdown.Item value="predefined">Predefined transition</Dropdown.Item>
-            <Dropdown.Item value="custom">Custom transition</Dropdown.Item>
+            <Dropdown.Item value="predefined">{this.props.translate('popup.agent.transition.predefined')}</Dropdown.Item>
+            <Dropdown.Item value="custom">{this.props.translate('popup.agent.transition.custom')}</Dropdown.Item>
           </Dropdown>
 
           {!isCustomTransition && (
             <React.Fragment>
-              <SectionHeader>Condition</SectionHeader>
+              <SectionHeader>{this.props.translate('popup.agent.transition.condition')}</SectionHeader>
               <Dropdown
                 value={element.predefinedType || 'when_intent_matched'}
                 onChange={value =>
@@ -231,11 +231,11 @@ class AgentStateTransitionUpdateClass extends Component<Props, State> {
                   })
                 }
               >
-                <Dropdown.Item value="when_intent_matched">When Intent Matched</Dropdown.Item>
-                <Dropdown.Item value="when_no_intent_matched">When No Intent Matched</Dropdown.Item>
-                <Dropdown.Item value="when_variable_operation_matched">Variable Operation Matched</Dropdown.Item>
-                <Dropdown.Item value="when_file_received">File Received</Dropdown.Item>
-                <Dropdown.Item value="auto">Auto Transition</Dropdown.Item>
+                <Dropdown.Item value="when_intent_matched">{this.props.translate('popup.agent.transition.whenIntentMatched')}</Dropdown.Item>
+                <Dropdown.Item value="when_no_intent_matched">{this.props.translate('popup.agent.transition.whenNoIntentMatched')}</Dropdown.Item>
+                <Dropdown.Item value="when_variable_operation_matched">{this.props.translate('popup.agent.transition.whenVariableOperationMatched')}</Dropdown.Item>
+                <Dropdown.Item value="when_file_received">{this.props.translate('popup.agent.transition.whenFileReceived')}</Dropdown.Item>
+                <Dropdown.Item value="auto">{this.props.translate('popup.agent.transition.auto')}</Dropdown.Item>
               </Dropdown>
               {element.predefinedType === "when_intent_matched" && (
                 <Dropdown
@@ -245,7 +245,7 @@ class AgentStateTransitionUpdateClass extends Component<Props, State> {
                   }
                 >
                   {[
-                    <Dropdown.Item value="__placeholder__" key="intent-placeholder">Select intent</Dropdown.Item>,
+                    <Dropdown.Item value="__placeholder__" key="intent-placeholder">{this.props.translate('popup.agent.transition.selectIntent')}</Dropdown.Item>,
                     ...intentNames.map((name, idx) => (
                       <Dropdown.Item key={idx} value={name}>
                         {name}
@@ -261,7 +261,7 @@ class AgentStateTransitionUpdateClass extends Component<Props, State> {
                     onChange={value =>
                       this.props.update<AgentStateTransition>(element.id, { variable: value })
                     }
-                    placeholder="Variable"
+                    placeholder={this.props.translate('popup.agent.transition.variablePlaceholder')}
                     gutter
                   />
                   <Dropdown
@@ -282,7 +282,7 @@ class AgentStateTransitionUpdateClass extends Component<Props, State> {
                     onChange={value =>
                       this.props.update<AgentStateTransition>(element.id, { targetValue: value })
                     }
-                    placeholder="Target value"
+                    placeholder={this.props.translate('popup.agent.transition.targetValuePlaceholder')}
                   />
                 </React.Fragment>
               )}
@@ -294,7 +294,7 @@ class AgentStateTransitionUpdateClass extends Component<Props, State> {
                   }
                 >
                   {[
-                    <Dropdown.Item value="__placeholder__" key="filetype-placeholder">Select file type</Dropdown.Item>,
+                    <Dropdown.Item value="__placeholder__" key="filetype-placeholder">{this.props.translate('popup.agent.transition.selectFileType')}</Dropdown.Item>,
                     <Dropdown.Item value="PDF" key="pdf">PDF</Dropdown.Item>,
                     <Dropdown.Item value="TXT" key="txt">TXT</Dropdown.Item>,
                     <Dropdown.Item value="JSON" key="json">JSON</Dropdown.Item>
@@ -306,7 +306,7 @@ class AgentStateTransitionUpdateClass extends Component<Props, State> {
 
           {isCustomTransition && (
             <React.Fragment>
-              <SectionHeader>Event</SectionHeader>
+              <SectionHeader>{this.props.translate('popup.agent.transition.event')}</SectionHeader>
               <Dropdown
                 value={element.event || 'WildcardEvent'}
                 onChange={(value) =>
@@ -326,8 +326,8 @@ class AgentStateTransitionUpdateClass extends Component<Props, State> {
               </Dropdown>
 
               <ConditionsHeader>
-                <SectionHeader>Conditions</SectionHeader>
-                <Button onClick={this.addCustomCondition}>Add condition</Button>
+                <SectionHeader>{this.props.translate('popup.agent.transition.conditions')}</SectionHeader>
+                <Button onClick={this.addCustomCondition}>{this.props.translate('popup.agent.transition.addCondition')}</Button>
               </ConditionsHeader>
               {customConditions.map((conditionCode, index) => (
                 <ConditionRow key={`custom-condition-${index}`}>
@@ -348,7 +348,7 @@ class AgentStateTransitionUpdateClass extends Component<Props, State> {
                   </ResizableCodeMirrorWrapper>
                   <ConditionActions>
                     <Button color="link" onClick={() => this.removeCustomCondition(index)}>
-                      Remove
+                      {this.props.translate('common.remove')}
                     </Button>
                   </ConditionActions>
                 </ConditionRow>

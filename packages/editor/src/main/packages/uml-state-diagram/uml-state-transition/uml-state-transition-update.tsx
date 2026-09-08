@@ -138,18 +138,18 @@ class StateTransitionUpdate extends Component<Props, State> {
           <Divider />
         </Section>
         <Section>
-          <SectionHeader>Name</SectionHeader>
+          <SectionHeader>{this.props.translate('popup.name')}</SectionHeader>
           <Textfield value={element.name} onChange={this.rename} autoFocus />
         </Section>
         <Section>
-          <SectionHeader>Guard</SectionHeader>
-          <Textfield value={element.guard} onChange={this.updateGuard} placeholder="Guard expression" />
+          <SectionHeader>{this.props.translate('popup.guard')}</SectionHeader>
+          <Textfield value={element.guard} onChange={this.updateGuard} placeholder={this.props.translate('popup.guardPlaceholder')} />
         </Section>
         <Section>
           <Flex>
-            <SectionHeader>Parameters</SectionHeader>
+            <SectionHeader>{this.props.translate('popup.parameters')}</SectionHeader>
             <Button color="link" onClick={this.addParam}>
-              Add
+              {this.props.translate('common.add')}
             </Button>
           </Flex>
           {this.state.paramIds.map((id, index) => (
@@ -157,7 +157,7 @@ class StateTransitionUpdate extends Component<Props, State> {
               <Textfield
                 value={this.props.element.params[id]}
                 onChange={(value) => this.handleParamChange(id, value)}
-                placeholder={`Parameter ${index + 1}`}
+                placeholder={`${this.props.translate('popup.parameterPlaceholder')} ${index + 1}`}
               />
               {this.state.paramIds.length > 1 && (
                 <ParamControls>

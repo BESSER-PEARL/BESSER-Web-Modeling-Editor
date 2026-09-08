@@ -85,15 +85,24 @@ class BPMNTaskUpdateComponent extends Component<Props, State> {
         <section>
           <Divider />
           <Dropdown value={element.taskType} onChange={this.changeTaskType(element.id)}>
-            <Dropdown.Item value={'default'}>{this.props.translate('packages.BPMN.BPMNTask')}</Dropdown.Item>
-            <Dropdown.Item value={'user'}>{this.props.translate('packages.BPMN.BPMNUserTask')}</Dropdown.Item>
-            <Dropdown.Item value={'send'}>{this.props.translate('packages.BPMN.BPMNSendTask')}</Dropdown.Item>
-            <Dropdown.Item value={'receive'}>{this.props.translate('packages.BPMN.BPMNReceiveTask')}</Dropdown.Item>
-            <Dropdown.Item value={'manual'}>{this.props.translate('packages.BPMN.BPMNManualTask')}</Dropdown.Item>
-            <Dropdown.Item value={'business-rule'}>
-              {this.props.translate('packages.BPMN.BPMNBusinessRuleTask')}
+            <Dropdown.Item value={'default'}>{this.props.translate('packages.BPMNDiagram.BPMNTask')}</Dropdown.Item>
+            <Dropdown.Item value={'user'}>{this.props.translate('packages.BPMNDiagram.BPMNUserTask')}</Dropdown.Item>
+            <Dropdown.Item value={'service'}>
+              {this.props.translate('packages.BPMNDiagram.BPMNServiceTask')}
             </Dropdown.Item>
-            <Dropdown.Item value={'script'}>{this.props.translate('packages.BPMN.BPMNScriptTask')}</Dropdown.Item>
+            <Dropdown.Item value={'send'}>{this.props.translate('packages.BPMNDiagram.BPMNSendTask')}</Dropdown.Item>
+            <Dropdown.Item value={'receive'}>
+              {this.props.translate('packages.BPMNDiagram.BPMNReceiveTask')}
+            </Dropdown.Item>
+            <Dropdown.Item value={'manual'}>
+              {this.props.translate('packages.BPMNDiagram.BPMNManualTask')}
+            </Dropdown.Item>
+            <Dropdown.Item value={'business-rule'}>
+              {this.props.translate('packages.BPMNDiagram.BPMNBusinessRuleTask')}
+            </Dropdown.Item>
+            <Dropdown.Item value={'script'}>
+              {this.props.translate('packages.BPMNDiagram.BPMNScriptTask')}
+            </Dropdown.Item>
           </Dropdown>
         </section>
         <section>

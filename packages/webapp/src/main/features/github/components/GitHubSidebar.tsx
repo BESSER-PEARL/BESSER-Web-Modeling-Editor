@@ -1,4 +1,5 @@
 import React, { useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   AlertTriangle,
   ArrowLeft,
@@ -76,6 +77,7 @@ const sanitizeRepoName = (value: string): string => {
 };
 
 export const GitHubSidebar: React.FC<GitHubSidebarProps> = ({ isOpen, onClose }) => {
+  const { t } = useTranslation();
   const { isAuthenticated, githubSession, login } = useGitHubAuth();
   const { currentProject, updateCurrentDiagram, loadProject } = useProject();
   const apollonEditor = useContext(ApollonEditorContext);
@@ -177,12 +179,12 @@ export const GitHubSidebar: React.FC<GitHubSidebarProps> = ({ isOpen, onClose })
 
         return true;
       } catch (error) {
-        const message = error instanceof Error ? error.message : 'Failed to load project';
+        const message = error instanceof Error ? error.message : t('github.toasts.loadProjectFailed');
         toast.error(message);
         return false;
       }
     },
-    [linkRepoOnly, loadProject],
+    [linkRepoOnly, loadProject, t],
   );
 
   const saveCurrentEditorState = useCallback(() => {
@@ -240,15 +242,15 @@ export const GitHubSidebar: React.FC<GitHubSidebarProps> = ({ isOpen, onClose })
 
   useEffect(() => {
     if (showLinkModal && isAuthenticated && githubSession) {
-      fetchRepositories(githubSession).catch(notifyError('Fetching repositories'));
+      fetchRepositories(githubSession).catch(notifyError(t('github.context.fetchingRepositories')));
     }
-  }, [showLinkModal, isAuthenticated, githubSession, fetchRepositories]);
+  }, [showLinkModal, isAuthenticated, githubSession, fetchRepositories, t]);
 
   useEffect(() => {
     if (isOpen && linkedRepo && isAuthenticated && githubSession) {
-      fetchCommits(githubSession, linkedRepo.owner, linkedRepo.repo, linkedRepo.filePath).catch(notifyError('Fetching commits'));
+      fetchCommits(githubSession, linkedRepo.owner, linkedRepo.repo, linkedRepo.filePath).catch(notifyError(t('github.context.fetchingCommits')));
     }
-  }, [isOpen, linkedRepo, isAuthenticated, githubSession, fetchCommits]);
+  }, [isOpen, linkedRepo, isAuthenticated, githubSession, fetchCommits, t]);
 
   useEffect(() => {
     const checkChanges = async () => {
@@ -271,8 +273,8 @@ export const GitHubSidebar: React.FC<GitHubSidebarProps> = ({ isOpen, onClose })
       }
     };
 
-    checkChanges().catch(notifyError('Checking for changes'));
-  }, [isOpen, linkedRepo, isAuthenticated, githubSession, currentProject, checkForChanges]);
+    checkChanges().catch(notifyError(t('github.context.checkingChanges')));
+  }, [isOpen, linkedRepo, isAuthenticated, githubSession, currentProject, checkForChanges, t]);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -307,7 +309,7 @@ export const GitHubSidebar: React.FC<GitHubSidebarProps> = ({ isOpen, onClose })
 
     const latestProject = ProjectStorageRepository.loadProject(currentProject.id);
     if (!latestProject) {
-      toast.error('Could not load project data');
+      toast.error(t('github.toasts.couldNotLoadProjectData'));
       setIsSaving(false);
       return;
     }
@@ -338,6 +340,7 @@ export const GitHubSidebar: React.FC<GitHubSidebarProps> = ({ isOpen, onClose })
     saveProjectToGitHub,
     fetchCommits,
     saveCurrentEditorState,
+    t,
   ]);
 
   const handleLoad = useCallback(async () => {
@@ -365,13 +368,13 @@ export const GitHubSidebar: React.FC<GitHubSidebarProps> = ({ isOpen, onClose })
         branch: linkedRepo.branch,
         filePath: linkedRepo.filePath,
       },
-      'Project pulled from GitHub',
+      t('github.toasts.projectPulled'),
     );
 
     if (activated) {
       onClose();
     }
-  }, [linkedRepo, githubSession, loadProjectFromGitHub, onClose, persistAndActivateProject]);
+  }, [linkedRepo, githubSession, loadProjectFromGitHub, onClose, persistAndActivateProject, t]);
 
   const handleSelectRepo = useCallback(
     async (repo: GitHubRepository) => {
@@ -434,9 +437,9 @@ export const GitHubSidebar: React.FC<GitHubSidebarProps> = ({ isOpen, onClose })
     return persistAndActivateProject(
       project,
       { owner, repo, branch: selectedBranch, filePath: fullPath },
-      'Project loaded from GitHub repository',
+      t('github.toasts.projectLoadedFromRepo'),
     );
-  }, [githubSession, selectedRepo, linkFolderPath, linkFileName, loadProjectFromGitHub, selectedBranch, persistAndActivateProject]);
+  }, [githubSession, selectedRepo, linkFolderPath, linkFileName, loadProjectFromGitHub, selectedBranch, persistAndActivateProject, t]);
 
   const handleConfirmLink = useCallback(
     async (linkOnly: boolean = false) => {
@@ -473,14 +476,14 @@ export const GitHubSidebar: React.FC<GitHubSidebarProps> = ({ isOpen, onClose })
             onClose();
             return;
           }
-          toast.warn('Could not load from repo; linking without loading.');
+          toast.warn(t('github.toasts.loadFromRepoFailedLinking'));
         }
       }
 
       if (!linkOnly && targetFileExists === false) {
         if (!githubSession) {
           linkRepoOnly(currentProject.id, owner, repo, selectedBranch, fullPath);
-          toast.warn('Repository linked. Reconnect GitHub to push the initial project file.');
+          toast.warn(t('github.toasts.linkedReconnectToPush'));
           resetLinkModalState();
           return;
         }
@@ -491,7 +494,7 @@ export const GitHubSidebar: React.FC<GitHubSidebarProps> = ({ isOpen, onClose })
         const latestProject = ProjectStorageRepository.loadProject(currentProject.id);
         if (!latestProject) {
           linkRepoOnly(currentProject.id, owner, repo, selectedBranch, fullPath);
-          toast.warn('Repository linked, but initial push failed because the local project could not be read.');
+          toast.warn(t('github.toasts.linkedInitialPushReadFailed'));
           resetLinkModalState();
           return;
         }
@@ -501,7 +504,7 @@ export const GitHubSidebar: React.FC<GitHubSidebarProps> = ({ isOpen, onClose })
           latestProject,
           owner,
           repo,
-          'Initial sync from BESSER Web Modeling Editor',
+          t('github.toasts.initialSyncCommitMessage'),
           selectedBranch,
           fullPath,
         );
@@ -513,7 +516,7 @@ export const GitHubSidebar: React.FC<GitHubSidebarProps> = ({ isOpen, onClose })
           return;
         } else {
           linkRepoOnly(currentProject.id, owner, repo, selectedBranch, fullPath);
-          toast.warn('Repository linked, but initial push failed. You can push manually from GitHub Sync.');
+          toast.warn(t('github.toasts.linkedInitialPushFailed'));
           resetLinkModalState();
           return;
         }
@@ -545,6 +548,7 @@ export const GitHubSidebar: React.FC<GitHubSidebarProps> = ({ isOpen, onClose })
       fetchCommits,
       onClose,
       resetLinkModalState,
+      t,
     ],
   );
 
@@ -559,11 +563,11 @@ export const GitHubSidebar: React.FC<GitHubSidebarProps> = ({ isOpen, onClose })
         return await fetchRepoContents(githubSession, owner, repo, path, selectedBranch || selectedRepo.default_branch);
       } catch (error) {
         console.error('Failed to load repository contents:', error);
-        toast.error('Could not load repository contents');
+        toast.error(t('github.toasts.couldNotLoadRepoContents'));
         return [];
       }
     },
-    [githubSession, selectedRepo, fetchRepoContents, selectedBranch],
+    [githubSession, selectedRepo, fetchRepoContents, selectedBranch, t],
   );
 
   const handleFileSelectedFromBrowser = useCallback((path: string) => {
@@ -587,7 +591,7 @@ export const GitHubSidebar: React.FC<GitHubSidebarProps> = ({ isOpen, onClose })
 
     const latestProject = ProjectStorageRepository.loadProject(currentProject.id);
     if (!latestProject) {
-      toast.error('Could not load project data');
+      toast.error(t('github.toasts.couldNotLoadProjectData'));
       return;
     }
 
@@ -599,7 +603,7 @@ export const GitHubSidebar: React.FC<GitHubSidebarProps> = ({ isOpen, onClose })
       githubSession,
       latestProject,
       newRepoName,
-      newRepoDescription || `BESSER project: ${latestProject.name}`,
+      newRepoDescription || t('github.defaultRepoDescription', { name: latestProject.name }),
       isRepoPrivate,
       fullPath,
     );
@@ -622,6 +626,7 @@ export const GitHubSidebar: React.FC<GitHubSidebarProps> = ({ isOpen, onClose })
     isRepoPrivate,
     createRepositoryForProject,
     saveCurrentEditorState,
+    t,
   ]);
 
   const handleUnlink = useCallback(() => {
@@ -630,21 +635,21 @@ export const GitHubSidebar: React.FC<GitHubSidebarProps> = ({ isOpen, onClose })
     }
 
     unlinkRepo(currentProject.id);
-    toast.info('Repository unlinked');
-  }, [currentProject?.id, unlinkRepo]);
+    toast.info(t('github.toasts.repoUnlinked'));
+  }, [currentProject?.id, unlinkRepo, t]);
 
   const handleCommitClick = useCallback(
     (commit: GitHubCommit) => {
       const isLatest = commits.length > 0 && commits[0].sha === commit.sha;
       if (isLatest) {
-        toast.info('This is already the latest version');
+        toast.info(t('github.toasts.alreadyLatest'));
         return;
       }
 
       setSelectedCommit(commit);
       setShowRestoreModal(true);
     },
-    [commits],
+    [commits, t],
   );
 
   const handleRestoreCommit = useCallback(async () => {
@@ -671,7 +676,7 @@ export const GitHubSidebar: React.FC<GitHubSidebarProps> = ({ isOpen, onClose })
           branch: linkedRepo.branch,
           filePath: linkedRepo.filePath,
         },
-        'Project restored from selected commit',
+        t('github.toasts.projectRestored'),
       );
 
       if (activated) {
@@ -682,7 +687,7 @@ export const GitHubSidebar: React.FC<GitHubSidebarProps> = ({ isOpen, onClose })
     }
 
     setIsSaving(false);
-  }, [linkedRepo, githubSession, selectedCommit, loadProjectFromCommit, persistAndActivateProject, onClose]);
+  }, [linkedRepo, githubSession, selectedCommit, loadProjectFromCommit, persistAndActivateProject, onClose, t]);
 
   const handleCreateGist = useCallback(async () => {
     if (!currentProject || !githubSession) {
@@ -694,14 +699,14 @@ export const GitHubSidebar: React.FC<GitHubSidebarProps> = ({ isOpen, onClose })
 
     const latestProject = ProjectStorageRepository.loadProject(currentProject.id);
     if (!latestProject) {
-      toast.error('Could not load project data');
+      toast.error(t('github.toasts.couldNotLoadProjectData'));
       return;
     }
 
     const result = await createGist(
       githubSession,
       latestProject,
-      gistDescription || `BESSER Project: ${latestProject.name}`,
+      gistDescription || t('github.defaultGistDescription', { name: latestProject.name }),
       isGistPublic,
     );
 
@@ -711,18 +716,18 @@ export const GitHubSidebar: React.FC<GitHubSidebarProps> = ({ isOpen, onClose })
       setIsGistPublic(false);
       window.open(result.gistUrl, '_blank');
     }
-  }, [currentProject, githubSession, createGist, gistDescription, isGistPublic, saveCurrentEditorState]);
+  }, [currentProject, githubSession, createGist, gistDescription, isGistPublic, saveCurrentEditorState, t]);
 
   const renderUnauthenticated = () => (
     <div className="flex flex-col gap-4 rounded-xl border border-dashed border-border/70 bg-muted/30 px-5 py-10 text-center">
       <Github className="mx-auto size-8 text-muted-foreground" />
       <div className="flex flex-col gap-1">
-        <p className="text-sm font-semibold">Connect to GitHub</p>
-        <p className="text-xs text-muted-foreground">Sign in to sync your projects with GitHub.</p>
+        <p className="text-sm font-semibold">{t('github.connect.title')}</p>
+        <p className="text-xs text-muted-foreground">{t('github.connect.subtitle')}</p>
       </div>
       <Button onClick={login} className="gap-2">
         <Github className="size-4" />
-        Connect GitHub
+        {t('github.connect.button')}
       </Button>
     </div>
   );
@@ -730,8 +735,8 @@ export const GitHubSidebar: React.FC<GitHubSidebarProps> = ({ isOpen, onClose })
   const renderNoProject = () => (
     <div className="flex flex-col gap-3 rounded-xl border border-dashed border-border/70 bg-muted/30 px-5 py-10 text-center">
       <AlertTriangle className="mx-auto size-8 text-amber-600" />
-      <p className="text-sm font-semibold">No Project Selected</p>
-      <p className="text-xs text-muted-foreground">Open or create a project to use GitHub sync.</p>
+      <p className="text-sm font-semibold">{t('github.noProject.title')}</p>
+      <p className="text-xs text-muted-foreground">{t('github.noProject.subtitle')}</p>
     </div>
   );
 
@@ -739,13 +744,13 @@ export const GitHubSidebar: React.FC<GitHubSidebarProps> = ({ isOpen, onClose })
     <div className="flex flex-col gap-4 rounded-xl border border-dashed border-border/70 bg-muted/30 px-5 py-8 text-center">
       <Link2 className="mx-auto size-8 text-muted-foreground" />
       <div className="flex flex-col gap-1">
-        <p className="text-sm font-semibold">Link a Repository</p>
-        <p className="text-xs text-muted-foreground">Connect this project to a GitHub repo for version control.</p>
+        <p className="text-sm font-semibold">{t('github.notLinked.title')}</p>
+        <p className="text-xs text-muted-foreground">{t('github.notLinked.subtitle')}</p>
       </div>
       <div className="grid gap-2">
         <Button variant="outline" className="gap-2" onClick={() => setShowLinkModal(true)}>
           <Link2 className="size-4" />
-          Link Existing
+          {t('github.notLinked.linkExisting')}
         </Button>
         <Button
           className="gap-2"
@@ -761,7 +766,7 @@ export const GitHubSidebar: React.FC<GitHubSidebarProps> = ({ isOpen, onClose })
           }}
         >
           <PlusCircle className="size-4" />
-          Create New
+          {t('github.notLinked.createNew')}
         </Button>
       </div>
     </div>
@@ -772,7 +777,7 @@ export const GitHubSidebar: React.FC<GitHubSidebarProps> = ({ isOpen, onClose })
       <section className="flex flex-col gap-2">
         <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground">
           <Link2 className="size-3.5" />
-          Repository
+          {t('github.linked.repository')}
         </div>
 
         <div className="flex flex-col gap-3 rounded-xl border border-border/70 bg-card p-4">
@@ -794,29 +799,29 @@ export const GitHubSidebar: React.FC<GitHubSidebarProps> = ({ isOpen, onClose })
             {isCheckingChanges ? (
               <>
                 <Loader2 className="size-3.5 animate-spin" />
-                Checking...
+                {t('github.linked.checking')}
               </>
             ) : hasChanges ? (
               <>
                 <AlertTriangle className="size-3.5" />
-                You have unsaved changes
+                {t('github.linked.unsavedChanges')}
               </>
             ) : (
               <>
                 <CheckCircle2 className="size-3.5" />
-                Up to date
+                {t('github.linked.upToDate')}
               </>
             )}
           </div>
 
           <div className="flex flex-wrap gap-2">
-            <Button size="sm" className="gap-1" onClick={() => { handleSave().catch(notifyError('GitHub push')); }} disabled={isLoading}>
+            <Button size="sm" className="gap-1" onClick={() => { handleSave().catch(notifyError(t('github.context.githubPush'))); }} disabled={isLoading}>
               <CloudUpload className="size-3.5" />
-              Push
+              {t('github.linked.push')}
             </Button>
-            <Button size="sm" variant="outline" className="gap-1" onClick={() => { handleLoad().catch(notifyError('GitHub pull')); }} disabled={isLoading}>
+            <Button size="sm" variant="outline" className="gap-1" onClick={() => { handleLoad().catch(notifyError(t('github.context.githubPull'))); }} disabled={isLoading}>
               <CloudDownload className="size-3.5" />
-              Pull
+              {t('github.linked.pull')}
             </Button>
             <Button size="sm" variant="outline" asChild>
               <a href={`https://github.com/${linkedRepo?.owner}/${linkedRepo?.repo}`} target="_blank" rel="noopener noreferrer">
@@ -833,14 +838,14 @@ export const GitHubSidebar: React.FC<GitHubSidebarProps> = ({ isOpen, onClose })
       <section className="flex flex-col gap-2">
         <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground">
           <History className="size-3.5" />
-          History
+          {t('github.linked.history')}
           <Button
             variant="ghost"
             size="icon"
             className="ml-auto size-7"
             onClick={() => linkedRepo && githubSession && fetchCommits(githubSession, linkedRepo.owner, linkedRepo.repo, linkedRepo.filePath)}
             disabled={isLoading}
-            aria-label="Refresh commit history"
+            aria-label={t('github.linked.refreshHistory')}
           >
             {isLoading ? <Loader2 className="size-3.5 animate-spin" /> : <RefreshCw className="size-3.5" />}
           </Button>
@@ -867,7 +872,7 @@ export const GitHubSidebar: React.FC<GitHubSidebarProps> = ({ isOpen, onClose })
                       <div className="flex flex-col gap-1">
                         <p className="line-clamp-2 text-sm font-medium">
                           {index === 0 && (
-                            <Badge className="mr-2 bg-emerald-600 text-[10px] text-white hover:bg-emerald-600">Latest</Badge>
+                            <Badge className="mr-2 bg-emerald-600 text-[10px] text-white hover:bg-emerald-600">{t('github.linked.latest')}</Badge>
                           )}
                           {commit.message}
                         </p>
@@ -884,7 +889,7 @@ export const GitHubSidebar: React.FC<GitHubSidebarProps> = ({ isOpen, onClose })
                           >
                             {commit.sha.substring(0, 7)}
                           </a>
-                          {canRestore && <span className="text-amber-700">Click to restore</span>}
+                          {canRestore && <span className="text-amber-700">{t('github.linked.clickToRestore')}</span>}
                         </div>
                       </div>
                     </button>
@@ -893,7 +898,7 @@ export const GitHubSidebar: React.FC<GitHubSidebarProps> = ({ isOpen, onClose })
               })}
             </ul>
           ) : (
-            <p className="px-4 py-6 text-center text-xs text-muted-foreground">No commits yet</p>
+            <p className="px-4 py-6 text-center text-xs text-muted-foreground">{t('github.linked.noCommits')}</p>
           )}
         </div>
       </section>
@@ -901,34 +906,36 @@ export const GitHubSidebar: React.FC<GitHubSidebarProps> = ({ isOpen, onClose })
       <section className="flex flex-col gap-2">
         <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground">
           <Share2 className="size-3.5" />
-          Share
+          {t('github.linked.share')}
         </div>
         <Button
           variant="outline"
           size="sm"
           className="w-full justify-start gap-2"
           onClick={() => {
-            setGistDescription(currentProject ? `BESSER Project: ${currentProject.name}` : '');
+            setGistDescription(currentProject ? t('github.defaultGistDescription', { name: currentProject.name }) : '');
             setShowGistModal(true);
           }}
         >
           <FileText className="size-4" />
-          Create Secret Gist
+          {t('github.linked.createSecretGist')}
         </Button>
       </section>
 
       <section className="flex flex-col gap-2">
         <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground">
           <Settings className="size-3.5" />
-          Settings
+          {t('github.settings.title')}
         </div>
 
         <div className="flex flex-col gap-3 rounded-xl border border-border/70 bg-card p-3">
           <label className="flex items-center justify-between gap-2 text-sm">
             <div>
-              <p className="font-medium">Auto-commit</p>
+              <p className="font-medium">{t('github.settings.autoCommit')}</p>
               <p className="text-xs text-muted-foreground">
-                {autoCommitSettings.enabled ? `Enabled (${autoCommitSettings.intervalMinutes}m)` : 'Disabled'}
+                {autoCommitSettings.enabled
+                  ? t('github.settings.enabledWithInterval', { minutes: autoCommitSettings.intervalMinutes })
+                  : t('github.settings.disabled')}
               </p>
             </div>
             <input
@@ -942,17 +949,17 @@ export const GitHubSidebar: React.FC<GitHubSidebarProps> = ({ isOpen, onClose })
 
           {autoCommitSettings.enabled && (
             <div className="flex flex-col gap-1.5">
-              <Label className="text-xs">Interval (minutes)</Label>
+              <Label className="text-xs">{t('github.settings.intervalLabel')}</Label>
               <select
                 value={autoCommitSettings.intervalMinutes}
                 onChange={(event) => updateAutoCommitSettings({ intervalMinutes: parseInt(event.target.value, 10) })}
                 className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm"
               >
-                <option value="5">5 minutes</option>
-                <option value="10">10 minutes</option>
-                <option value="15">15 minutes</option>
-                <option value="30">30 minutes</option>
-                <option value="60">1 hour</option>
+                <option value="5">{t('github.settings.interval5')}</option>
+                <option value="10">{t('github.settings.interval10')}</option>
+                <option value="15">{t('github.settings.interval15')}</option>
+                <option value="30">{t('github.settings.interval30')}</option>
+                <option value="60">{t('github.settings.interval60')}</option>
               </select>
             </div>
           )}
@@ -960,7 +967,7 @@ export const GitHubSidebar: React.FC<GitHubSidebarProps> = ({ isOpen, onClose })
           {isAutoCommitting && (
             <div className="flex items-center gap-2 text-xs text-muted-foreground">
               <Loader2 className="size-3.5 animate-spin" />
-              Auto-saving...
+              {t('github.settings.autoSaving')}
             </div>
           )}
         </div>
@@ -981,7 +988,7 @@ export const GitHubSidebar: React.FC<GitHubSidebarProps> = ({ isOpen, onClose })
       <aside
         role="dialog"
         aria-modal="true"
-        aria-label="GitHub Sync"
+        aria-label={t('github.sync')}
         className={cn(
           'absolute bottom-0 right-0 top-0 z-50 w-[380px] max-w-[96vw] border-l border-border/70 bg-background shadow-xl transition-all duration-200',
           isOpen
@@ -992,9 +999,9 @@ export const GitHubSidebar: React.FC<GitHubSidebarProps> = ({ isOpen, onClose })
         <header className="flex items-center justify-between border-b border-border/70 px-4 py-3">
           <h3 className="flex items-center gap-2 text-sm font-semibold">
             <Github className="size-4" />
-            GitHub Sync
+            {t('github.sync')}
           </h3>
-          <Button variant="ghost" size="icon" className="size-8" onClick={onClose} aria-label="Close GitHub sidebar">
+          <Button variant="ghost" size="icon" className="size-8" onClick={onClose} aria-label={t('github.closeSidebar')}>
             <X className="size-4" />
           </Button>
         </header>
@@ -1012,16 +1019,16 @@ export const GitHubSidebar: React.FC<GitHubSidebarProps> = ({ isOpen, onClose })
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               {linkStep === 'configure' && (
-                <Button variant="ghost" size="icon" className="size-7" onClick={() => setLinkStep('select')} aria-label="Go back to repository selection">
+                <Button variant="ghost" size="icon" className="size-7" onClick={() => setLinkStep('select')} aria-label={t('github.linkModal.goBack')}>
                   <ArrowLeft className="size-4" />
                 </Button>
               )}
-              {linkStep === 'select' ? 'Link to Repository' : 'Configure Link'}
+              {linkStep === 'select' ? t('github.linkModal.titleSelect') : t('github.linkModal.titleConfigure')}
             </DialogTitle>
             <DialogDescription>
               {linkStep === 'select'
-                ? 'Select a repository to sync your project with.'
-                : 'Set branch and file path for this project sync.'}
+                ? t('github.linkModal.descriptionSelect')
+                : t('github.linkModal.descriptionConfigure')}
             </DialogDescription>
           </DialogHeader>
 
@@ -1035,22 +1042,22 @@ export const GitHubSidebar: React.FC<GitHubSidebarProps> = ({ isOpen, onClose })
                     <li key={repo.id}>
                       <button
                         type="button"
-                        onClick={() => { handleSelectRepo(repo).catch(notifyError('Selecting repository')); }}
+                        onClick={() => { handleSelectRepo(repo).catch(notifyError(t('github.context.selectingRepository'))); }}
                         className="w-full px-3 py-2.5 text-left hover:bg-muted/40"
                       >
                         <div className="flex items-center gap-2 text-sm font-medium">
                           <Github className="size-4" />
                           <span className="truncate">{repo.full_name}</span>
-                          {repo.private && <Badge variant="secondary" className="text-[10px]">Private</Badge>}
+                          {repo.private && <Badge variant="secondary" className="text-[10px]">{t('github.linkModal.private')}</Badge>}
                         </div>
                         {repo.description && <p className="mt-1 text-xs text-muted-foreground">{repo.description}</p>}
-                        <p className="mt-1 text-[11px] text-muted-foreground">Updated: {formatDate(repo.updated_at)}</p>
+                        <p className="mt-1 text-[11px] text-muted-foreground">{t('github.linkModal.updated', { date: formatDate(repo.updated_at) })}</p>
                       </button>
                     </li>
                   ))}
                 </ul>
               ) : (
-                <p className="px-4 py-6 text-center text-sm text-muted-foreground">No repositories found</p>
+                <p className="px-4 py-6 text-center text-sm text-muted-foreground">{t('github.linkModal.noRepositories')}</p>
               )}
             </div>
           ) : (
@@ -1060,7 +1067,7 @@ export const GitHubSidebar: React.FC<GitHubSidebarProps> = ({ isOpen, onClose })
               </div>
 
               <div className="flex flex-col gap-1.5">
-                <Label>Branch</Label>
+                <Label>{t('github.linkModal.branch')}</Label>
                 <select
                   value={selectedBranch}
                   onChange={(event) => {
@@ -1078,9 +1085,9 @@ export const GitHubSidebar: React.FC<GitHubSidebarProps> = ({ isOpen, onClose })
               </div>
 
               <div className="flex flex-col gap-1.5">
-                <Label>Folder Path (optional)</Label>
+                <Label>{t('github.folderPathLabel')}</Label>
                 <Input
-                  placeholder="e.g., projects/my-models"
+                  placeholder={t('github.folderPathPlaceholder')}
                   value={linkFolderPath}
                   onChange={(event) => {
                     setLinkFolderPath(event.target.value);
@@ -1090,7 +1097,7 @@ export const GitHubSidebar: React.FC<GitHubSidebarProps> = ({ isOpen, onClose })
               </div>
 
               <div className="flex flex-col gap-1.5">
-                <Label>File Name</Label>
+                <Label>{t('github.fileNameLabel')}</Label>
                 <Input
                   placeholder="my_project.json"
                   value={linkFileName}
@@ -1110,35 +1117,35 @@ export const GitHubSidebar: React.FC<GitHubSidebarProps> = ({ isOpen, onClose })
                   className="gap-1"
                 >
                   <FolderOpen className="size-4" />
-                  Browse repository files
+                  {t('github.linkModal.browseFiles')}
                 </Button>
-                <span className="text-xs text-muted-foreground">Pick an existing project file without typing the path.</span>
+                <span className="text-xs text-muted-foreground">{t('github.linkModal.browseHint')}</span>
               </div>
 
               <div className="rounded-md border border-border/70 bg-muted/30 px-3 py-2 text-xs">
-                <span className="font-semibold">Full path:</span> <code>/{computedFilePath}</code>
+                <span className="font-semibold">{t('github.fullPath')}</span> <code>/{computedFilePath}</code>
               </div>
 
               <div className="flex flex-col gap-2">
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => { handleCheckFileExists().catch(notifyError('Checking file existence')); }}
+                  onClick={() => { handleCheckFileExists().catch(notifyError(t('github.context.checkingFile'))); }}
                   disabled={isCheckingFile || !linkFileName}
                 >
-                  {isCheckingFile ? spinner : 'Check if file exists'}
+                  {isCheckingFile ? spinner : t('github.linkModal.checkFileExists')}
                 </Button>
 
                 {fileExists === true && (
                   <div className="flex flex-col gap-2 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900 dark:border-amber-800 dark:bg-amber-900/30 dark:text-amber-300">
-                    <p>File already exists in repository. Choose how to proceed:</p>
+                    <p>{t('github.linkModal.fileExistsPrompt')}</p>
                     <div className="flex flex-wrap gap-2">
-                      <Button size="sm" variant="outline" onClick={() => { handleConfirmLink().catch(notifyError('Linking repository')); }} className="gap-1">
+                      <Button size="sm" variant="outline" onClick={() => { handleConfirmLink().catch(notifyError(t('github.context.linkingRepository'))); }} className="gap-1">
                         <CloudDownload className="size-4" />
-                        Load & link (recommended)
+                        {t('github.linkModal.loadAndLinkRecommended')}
                       </Button>
-                      <Button size="sm" variant="outline" onClick={() => { handleConfirmLink(true).catch(notifyError('Linking repository')); }}>
-                        Link without loading (may overwrite)
+                      <Button size="sm" variant="outline" onClick={() => { handleConfirmLink(true).catch(notifyError(t('github.context.linkingRepository'))); }}>
+                        {t('github.linkModal.linkWithoutLoading')}
                       </Button>
                     </div>
                   </div>
@@ -1146,7 +1153,7 @@ export const GitHubSidebar: React.FC<GitHubSidebarProps> = ({ isOpen, onClose })
 
                 {fileExists === false && (
                   <div className="rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-900 dark:border-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300">
-                    File path is available. Click "Link Repository" to continue.
+                    {t('github.linkModal.filePathAvailable')}
                   </div>
                 )}
               </div>
@@ -1155,11 +1162,11 @@ export const GitHubSidebar: React.FC<GitHubSidebarProps> = ({ isOpen, onClose })
 
           <DialogFooter>
             <Button variant="outline" onClick={resetLinkModalState}>
-              Cancel
+              {t('common.cancel')}
             </Button>
             {linkStep === 'configure' && (
-              <Button onClick={() => { handleConfirmLink().catch(notifyError('Linking repository')); }} disabled={!linkFileName}>
-                {fileExists ? 'Load & Link' : 'Link Repository'}
+              <Button onClick={() => { handleConfirmLink().catch(notifyError(t('github.context.linkingRepository'))); }} disabled={!linkFileName}>
+                {fileExists ? t('github.linkModal.loadAndLink') : t('github.linkModal.linkRepository')}
               </Button>
             )}
           </DialogFooter>
@@ -1171,7 +1178,7 @@ export const GitHubSidebar: React.FC<GitHubSidebarProps> = ({ isOpen, onClose })
         onHide={() => setShowFileBrowser(false)}
         onSelect={handleFileSelectedFromBrowser}
         fetchContents={fetchSelectedRepoContents}
-        title="Select project file"
+        title={t('github.linkModal.selectProjectFile')}
         selectMode="file"
         initialPath={linkFolderPath}
       />
@@ -1190,7 +1197,7 @@ export const GitHubSidebar: React.FC<GitHubSidebarProps> = ({ isOpen, onClose })
         onRepoPrivateChange={setIsRepoPrivate}
         onFileNameChange={(value) => setCreateFileName(value.replace(/\s+/g, '_'))}
         onFolderPathChange={setCreateFolderPath}
-        onCreate={() => { handleCreateRepo().catch(notifyError('Creating repository')); }}
+        onCreate={() => { handleCreateRepo().catch(notifyError(t('github.context.creatingRepository'))); }}
       />
 
       <CommitDialog
@@ -1199,7 +1206,7 @@ export const GitHubSidebar: React.FC<GitHubSidebarProps> = ({ isOpen, onClose })
         message={commitMessage}
         onOpenChange={setShowCommitModal}
         onMessageChange={setCommitMessage}
-        onCommit={() => { handleConfirmSave().catch(notifyError('Committing to GitHub')); }}
+        onCommit={() => { handleConfirmSave().catch(notifyError(t('github.context.committing'))); }}
       />
 
       <RestoreVersionDialog
@@ -1213,7 +1220,7 @@ export const GitHubSidebar: React.FC<GitHubSidebarProps> = ({ isOpen, onClose })
             setSelectedCommit(null);
           }
         }}
-        onRestore={() => { handleRestoreCommit().catch(notifyError('Restoring commit')); }}
+        onRestore={() => { handleRestoreCommit().catch(notifyError(t('github.context.restoringCommit'))); }}
       />
 
       <CreateGistDialog
@@ -1224,7 +1231,7 @@ export const GitHubSidebar: React.FC<GitHubSidebarProps> = ({ isOpen, onClose })
         onOpenChange={setShowGistModal}
         onDescriptionChange={setGistDescription}
         onPublicChange={setIsGistPublic}
-        onCreate={() => { handleCreateGist().catch(notifyError('Creating gist')); }}
+        onCreate={() => { handleCreateGist().catch(notifyError(t('github.context.creatingGist'))); }}
       />
     </>
   );

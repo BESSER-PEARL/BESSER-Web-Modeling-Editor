@@ -1,7 +1,7 @@
 import { LocalStorageRepository } from '../services/storage/local-storage-repository';
 
 const STORAGE_VERSION_KEY = 'besser_storage_version';
-const CURRENT_VERSION = 3;
+const CURRENT_VERSION = 4;
 
 interface Migration {
   version: number;
@@ -79,6 +79,19 @@ const migrations: Migration[] = [
     migrate: () => {
       LocalStorageRepository.migrateToV3();
       console.info('[storage-migration] v3: Removed deprecated besser_systemConfig key');
+    },
+  },
+  // v4: Normalize stored agent base models to the canonical nested transition
+  // shape. Projects imported before this fix wrote their bundled
+  // `agentBaseModels` snapshot in the legacy flat shape (top-level
+  // `condition`/`conditionValue`), which the backend collapses to
+  // `when_no_intent_matched`. Idempotent: already-nested snapshots round-trip
+  // unchanged, and an empty store is a no-op.
+  {
+    version: 4,
+    migrate: () => {
+      LocalStorageRepository.migrateToV4();
+      console.info('[storage-migration] v4: Normalized agent base models to nested shape');
     },
   },
 ];

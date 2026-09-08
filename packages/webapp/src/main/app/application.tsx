@@ -173,6 +173,7 @@ function AppContentInner() {
         sqlDialect={configState.sqlDialect}
         sqlAlchemyDbms={configState.sqlAlchemyDbms}
         jsonSchemaMode={configState.jsonSchemaMode}
+        supabaseUserRoot={configState.supabaseUserRoot}
         // ── Agent config (languages + advanced/personalization) ──────
         sourceLanguage={configState.sourceLanguage}
         pendingAgentLanguage={configState.pendingAgentLanguage}
@@ -190,6 +191,10 @@ function AppContentInner() {
         qiskitShots={configState.qiskitShots}
         // ── Web App checklist ────────────────────────────────────────
         webAppChecklist={configState.webAppChecklist}
+        webAppVersionMode={configState.webAppVersionMode}
+        webAppSelectedProfileId={configState.webAppSelectedProfileId}
+        onWebAppVersionModeChange={configState.onWebAppVersionModeChange}
+        onWebAppSelectedProfileIdChange={configState.onWebAppSelectedProfileIdChange}
         // ── Field change handlers ────────────────────────────────────
         onDjangoProjectNameChange={configState.onDjangoProjectNameChange}
         onDjangoAppNameChange={configState.onDjangoAppNameChange}
@@ -197,6 +202,7 @@ function AppContentInner() {
         onSqlDialectChange={configState.onSqlDialectChange}
         onSqlAlchemyDbmsChange={configState.onSqlAlchemyDbmsChange}
         onJsonSchemaModeChange={configState.onJsonSchemaModeChange}
+        onSupabaseUserRootChange={configState.onSupabaseUserRootChange}
         onSourceLanguageChange={configState.onSourceLanguageChange}
         onPendingAgentLanguageChange={configState.onPendingAgentLanguageChange}
         onSelectedAgentLanguagesChange={configState.onSelectedAgentLanguagesChange}
@@ -212,6 +218,7 @@ function AppContentInner() {
         onSqlGenerate={configState.onSqlGenerate}
         onSqlAlchemyGenerate={configState.onSqlAlchemyGenerate}
         onJsonSchemaGenerate={configState.onJsonSchemaGenerate}
+        onSupabaseGenerate={configState.onSupabaseGenerate}
         onAgentGenerate={configState.onAgentGenerate}
         onQiskitGenerate={configState.onQiskitGenerate}
         onWebAppGenerate={configState.onWebAppGenerate}

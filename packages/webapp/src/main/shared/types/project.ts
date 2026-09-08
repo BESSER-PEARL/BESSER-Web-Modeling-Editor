@@ -9,13 +9,23 @@ export type SupportedDiagramType =
   | 'GUINoCodeDiagram'
   | 'QuantumCircuitDiagram'
   | 'NNDiagram'
-  | 'PlatformCustomizationDiagram';
+  | 'PlatformCustomizationDiagram'
+  | 'BPMN';
 
 export const MAX_DIAGRAMS_PER_TYPE = 5;
 export const PROJECT_SCHEMA_VERSION = 4;
 
 export const ALL_DIAGRAM_TYPES: SupportedDiagramType[] = [
-  'ClassDiagram', 'ObjectDiagram', 'StateMachineDiagram', 'AgentDiagram', 'UserDiagram', 'GUINoCodeDiagram', 'QuantumCircuitDiagram', 'NNDiagram', 'PlatformCustomizationDiagram',
+  'ClassDiagram',
+  'ObjectDiagram',
+  'StateMachineDiagram',
+  'AgentDiagram',
+  'UserDiagram',
+  'GUINoCodeDiagram',
+  'QuantumCircuitDiagram',
+  'NNDiagram',
+  'PlatformCustomizationDiagram',
+  'BPMN',
 ];
 
 export type PerspectiveSettings = Record<SupportedDiagramType, boolean>;
@@ -202,6 +212,9 @@ export interface ProjectDiagram {
   lastUpdate: string;
   description?: string;
   config?: Record<string, unknown>;  // agent LLM/platform/IC config
+  configYaml?: string;  // generated agent config.yaml (derived from agentConfigForm + agentConfigCustomYaml)
+  agentConfigForm?: Record<string, unknown>;  // structured form state for the yaml editor
+  agentConfigCustomYaml?: string;  // extra YAML appended at the end of config.yaml
   /** Per-diagram cross-references: maps a diagram type to the ID of the diagram this depends on.
    *  E.g. a GUINoCodeDiagram may reference a specific ClassDiagram and AgentDiagram by their UUID. */
   references?: Partial<Record<SupportedDiagramType, string>>;
@@ -230,6 +243,7 @@ export interface BesserProject {
     QuantumCircuitDiagram: ProjectDiagram[];
     NNDiagram: ProjectDiagram[];
     PlatformCustomizationDiagram: ProjectDiagram[];
+    BPMN: ProjectDiagram[];
   };
   settings: {
     defaultDiagramType: SupportedDiagramType;
@@ -266,7 +280,7 @@ export const getReferencedDiagram = (
   // Look up by ID (stable across deletions/reordering)
   const refId = fromDiagram?.references?.[refType];
   if (refId) {
-    const found = diagrams.find(d => d.id === refId);
+    const found = diagrams.find((d) => d.id === refId);
     if (found) return found;
     // Referenced diagram was deleted — fall through to default
   }
@@ -287,6 +301,7 @@ const defaultDiagramIndices = (): Record<SupportedDiagramType, number> => ({
   QuantumCircuitDiagram: 0,
   NNDiagram: 0,
   PlatformCustomizationDiagram: 0,
+  BPMN: 0,
 });
 
 // Migrate v1 project (single diagram per type) to v2 (array per type)
@@ -330,6 +345,8 @@ export const toSupportedDiagramType = (type: UMLDiagramType): SupportedDiagramTy
       return 'NNDiagram';
     case UMLDiagramType.UserDiagram:
       return 'UserDiagram';
+    case UMLDiagramType.BPMN:
+      return 'BPMN';
     default:
       return 'ClassDiagram'; // fallback
   }
@@ -356,6 +373,8 @@ export const toUMLDiagramType = (type: SupportedDiagramType): UMLDiagramType | n
       return null; // QuantumCircuitDiagram doesn't have a UML diagram type
     case 'PlatformCustomizationDiagram':
       return null; // PlatformCustomizationDiagram is a form-based view, not UML
+    case 'BPMN':
+      return UMLDiagramType.BPMN;
     default:
       return null;
   }
@@ -401,7 +420,7 @@ export const createEmptyDiagram = (
         gates: [],
         gateMetadata: {},
         initialStates: [],
-        version: '1.0.0'
+        version: '1.0.0',
       } as QuantumCircuitData,
       lastUpdate: new Date().toISOString(),
     };
@@ -431,20 +450,20 @@ export const createEmptyDiagram = (
                     'background-repeat',
                     'background-attachment',
                     'background-position',
-                    'background-size'
+                    'background-size',
                   ],
                   components: [],
                   head: { type: 'head' },
-                  docEl: { tagName: 'html' }
-                }
-              }
-            ]
-          }
+                  docEl: { tagName: 'html' },
+                },
+              },
+            ],
+          },
         ],
         styles: [],
         assets: [],
         symbols: [],
-        version: '0.21.13'
+        version: '0.21.13',
       } as GrapesJSProjectData,
       lastUpdate: new Date().toISOString(),
     };
@@ -485,20 +504,20 @@ export const createDefaultGUITemplate = (): GrapesJSProjectData => {
                 'background-repeat',
                 'background-attachment',
                 'background-position',
-                'background-size'
+                'background-size',
               ],
               components: [],
               head: { type: 'head' },
-              docEl: { tagName: 'html' }
-            }
-          }
-        ]
-      }
+              docEl: { tagName: 'html' },
+            },
+          },
+        ],
+      },
     ],
     styles: [],
     assets: [],
     symbols: [],
-    version: '0.21.13'
+    version: '0.21.13',
   };
 };
 
@@ -506,7 +525,8 @@ export const createDefaultGUITemplate = (): GrapesJSProjectData => {
 export const createDefaultProject = (
   name: string,
   description: string,
-  owner: string
+  owner: string,
+  perspectives?: PerspectiveSettings,
 ): BesserProject => {
   const projectId = generateUUID();
 
@@ -530,12 +550,13 @@ export const createDefaultProject = (
       QuantumCircuitDiagram: [createEmptyDiagram('Quantum Circuit', null, 'quantum')],
       NNDiagram: [createEmptyDiagram('NN Diagram', UMLDiagramType.NNDiagram)],
       PlatformCustomizationDiagram: [createEmptyDiagram('Platform Customization', null, 'platform-customization')],
+      BPMN: [createEmptyDiagram('BPMN Diagram', UMLDiagramType.BPMN)],
     },
     settings: {
       defaultDiagramType: 'ClassDiagram',
       autoSave: true,
       collaborationEnabled: false,
-      perspectives: createDefaultPerspectives(),
+      perspectives: perspectives ?? createDefaultPerspectives(),
     },
   };
 };
@@ -556,7 +577,8 @@ export const isProject = (obj: any): obj is BesserProject => {
     obj.diagrams.StateMachineDiagram &&
     obj.diagrams.AgentDiagram &&
     obj.diagrams.GUINoCodeDiagram &&
-    obj.diagrams.QuantumCircuitDiagram;
+    obj.diagrams.QuantumCircuitDiagram &&
+    obj.diagrams.BPMN;
 
   // Platform Customization is optional for backward compatibility — old
   // projects that predate v4 simply didn't have this tab.
@@ -568,6 +590,11 @@ export const ensureProjectMigrated = (obj: BesserProject): BesserProject => {
   // Add QuantumCircuitDiagram if missing
   if (!obj.diagrams.QuantumCircuitDiagram) {
     obj.diagrams.QuantumCircuitDiagram = [createEmptyDiagram('Quantum Circuit', null, 'quantum')];
+  }
+
+  // Add BPMN diagram if missing
+  if (!obj.diagrams.BPMN) {
+    obj.diagrams.BPMN = [createEmptyDiagram('BPMN Diagram', UMLDiagramType.BPMN)];
   }
 
   // Add NNDiagram if missing
@@ -601,6 +628,16 @@ export const ensureProjectMigrated = (obj: BesserProject): BesserProject => {
   // Migrate v2 → v3: convert index-based references to ID-based and populate defaults
   if (!obj.schemaVersion || obj.schemaVersion < 3) {
     obj = migrateReferencesToIds(obj);
+  }
+
+  // Back-compat: pre-`BPMNDiagram` BPMN diagrams stored `model.type === 'BPMN'`.
+  // Normalize to the new wire value so the diagram round-trips against the
+  // BESSER backend's `"<Name>Diagram"` convention.
+  for (const diagram of obj.diagrams.BPMN ?? []) {
+    const model = diagram.model as { type?: string } | undefined;
+    if (model && model.type === 'BPMN') {
+      model.type = UMLDiagramType.BPMN;
+    }
   }
 
   // Migrate v3 → v4: ensure settings.perspectives exists (all enabled by default)
@@ -816,13 +853,13 @@ export function diagramHasContent(diagram: ProjectDiagram): boolean {
 
 // Normalize any data to valid GrapesJS format
 export const normalizeToGrapesJSProjectData = (data: unknown): GrapesJSProjectData => {
-  const candidate = (data && typeof data === 'object') ? data as any : {};
+  const candidate = data && typeof data === 'object' ? (data as any) : {};
 
   return {
     pages: Array.isArray(candidate.pages) ? candidate.pages : [],
     styles: Array.isArray(candidate.styles) ? candidate.styles : [],
     assets: Array.isArray(candidate.assets) ? candidate.assets : [],
     symbols: Array.isArray(candidate.symbols) ? candidate.symbols : [],
-    version: typeof candidate.version === 'string' ? candidate.version : '0.21.13'
+    version: typeof candidate.version === 'string' ? candidate.version : '0.21.13',
   };
 };

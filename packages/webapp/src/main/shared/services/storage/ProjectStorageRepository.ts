@@ -1,6 +1,7 @@
 import {
   ALL_DIAGRAM_TYPES,
   BesserProject,
+  PerspectiveSettings,
   ProjectDiagram,
   createDefaultProject,
   createEmptyDiagram,
@@ -186,8 +187,13 @@ export class ProjectStorageRepository {
   }
   
   // Create and save new project
-  static createNewProject(name: string, description: string, owner: string): BesserProject {
-    const project = createDefaultProject(name, description, owner);
+  static createNewProject(
+    name: string,
+    description: string,
+    owner: string,
+    perspectives?: PerspectiveSettings,
+  ): BesserProject {
+    const project = createDefaultProject(name, description, owner, perspectives);
     this.saveProject(project);
     return project;
   }

@@ -6,14 +6,132 @@ import { UMLElements } from '../../packages/uml-elements';
 import { run } from '../../utils/actions/sagas';
 import { ILayer } from '../layouter/layer';
 import { render } from '../layouter/layouter';
-import { MovableActionTypes, MoveEndAction } from '../uml-element/movable/movable-types';
+import { MovableActionTypes, MoveEndAction, MoveStartAction } from '../uml-element/movable/movable-types';
 import { UMLElementState } from '../uml-element/uml-element-types';
 import { UMLContainer } from './uml-container';
 import { UMLContainerRepository } from './uml-container-repository';
 import { AppendAction, RemoveAction, UMLContainerActionTypes } from './uml-container-types';
+import { UMLElementCommonRepository } from '../uml-element/uml-element-common-repository';
+import { IUMLRelationship, UMLRelationship } from '../uml-relationship/uml-relationship';
+import { recalc } from '../uml-relationship/uml-relationship-saga';
+
+/** Bounds captured at each drag-start, consumed by revertOnSiblingOverlap on drag-end. */
+const moveBoundsCache: { [id: string]: { x: number; y: number; width: number; height: number } } = {};
+
+function boundsOverlap(
+  a: { x: number; y: number; width: number; height: number },
+  b: { x: number; y: number; width: number; height: number },
+): boolean {
+  // 1 px inset so touching edges don't trigger a revert
+  return a.x + 1 < b.x + b.width && a.x + a.width - 1 > b.x && a.y + 1 < b.y + b.height && a.y + a.height - 1 > b.y;
+}
+
+function collectRelationshipIdsNeedingRecalc(
+  elements: ModelState['elements'],
+  diagram: ModelState['diagram'],
+  ownerIds: string[],
+  elementIds: string[] = [],
+): string[] {
+  const ownerSet = new Set(ownerIds);
+  const elementSet = new Set(elementIds);
+  const relationshipIds: string[] = [];
+
+  const isElementWithinAffectedOwners = (elementId: string): boolean => {
+    let current = elements[elementId];
+    while (current) {
+      if (ownerSet.has(current.id)) {
+        return true;
+      }
+      if (!current.owner || current.owner === diagram.id) {
+        return ownerSet.has(diagram.id);
+      }
+      current = elements[current.owner];
+    }
+    return false;
+  };
+
+  for (const relId of diagram.ownedRelationships) {
+    const rel = elements[relId] as IUMLRelationship | undefined;
+    if (!rel || !UMLRelationship.isUMLRelationship(rel)) continue;
+
+    const sourceEl = elements[rel.source.element];
+    const targetEl = elements[rel.target.element];
+    if (!sourceEl || !targetEl) continue;
+
+    if (
+      elementSet.has(rel.source.element) ||
+      elementSet.has(rel.target.element) ||
+      isElementWithinAffectedOwners(rel.source.element) ||
+      isElementWithinAffectedOwners(rel.target.element)
+    ) {
+      relationshipIds.push(relId);
+    }
+  }
+
+  return relationshipIds;
+}
+
+function* recordBoundsOnStart(): SagaIterator {
+  const startAction: MoveStartAction = yield take(MovableActionTypes.START);
+  const { elements }: ModelState = yield select();
+  for (const id of startAction.payload.ids) {
+    if (elements[id]) {
+      const { x, y, width, height } = elements[id].bounds;
+      moveBoundsCache[id] = { x, y, width, height };
+    }
+  }
+}
+
+function* revertOnSiblingOverlap(): SagaIterator {
+  const endAction: MoveEndAction = yield take(MovableActionTypes.END);
+  if (endAction.payload.keyboard) return;
+
+  // One frame: lets appendAfterMove (reparent) and renderAfterMove (layout) finish first
+  yield delay(16);
+
+  const { elements, diagram }: ModelState = yield select();
+  const ownersToRerender: string[] = [];
+  const revertedIds: string[] = [];
+
+  for (const id of endAction.payload.ids) {
+    const movedEl = elements[id];
+    const origBounds = moveBoundsCache[id];
+    delete moveBoundsCache[id];
+    if (!movedEl || !origBounds) continue;
+
+    const hasSiblingOverlap = Object.values(elements).some(
+      (el) =>
+        el.id !== id &&
+        el.owner === movedEl.owner &&
+        !('path' in el) && // exclude relationships
+        boundsOverlap(movedEl.bounds, el.bounds),
+    );
+
+    if (hasSiblingOverlap) {
+      yield put(UMLElementCommonRepository.update(id, { bounds: origBounds }));
+      revertedIds.push(id);
+      const owner = movedEl.owner || diagram.id;
+      if (!ownersToRerender.includes(owner)) ownersToRerender.push(owner);
+    }
+  }
+
+  for (const owner of ownersToRerender) {
+    yield call(render, owner);
+  }
+
+  // After reverting overlapping elements, recalculate flows whose endpoints
+  // were repositioned — render() alone does not update relationship geometry.
+  if (ownersToRerender.length > 0) {
+    const { elements: afterElements, diagram: afterDiagram }: ModelState = yield select();
+    const relIdsToRecalc = collectRelationshipIdsNeedingRecalc(afterElements, afterDiagram, ownersToRerender, revertedIds);
+    for (const relId of relIdsToRecalc) {
+      yield call(recalc, relId);
+    }
+  }
+}
 
 export function* UMLContainerSaga(): SagaIterator {
-  yield run([append, remove, appendAfterMove, renderAfterMove]);
+  yield run([append, remove, appendAfterMove, renderAfterMove, recordBoundsOnStart, revertOnSiblingOverlap]);
 }
 
 function* append(): SagaIterator {
@@ -41,6 +159,20 @@ function* remove(): SagaIterator {
   for (const owner of owners) {
     yield call(render, owner);
   }
+
+  // After container re-render (which repositions child elements like BPMN lanes),
+  // relationships whose endpoints moved need their absolute canvas bounds refreshed.
+  // The layoutElement saga handles most cases via MOVE events, but is fragile against
+  // timing gaps (an error during an intermediate recalc restarts the saga after MOVE
+  // events have already been dispatched and dropped). This explicit pass guarantees
+  // correct flow positions on every deletion.
+  if (owners.length > 0) {
+    const { elements: afterElements, diagram: afterDiagram }: ModelState = yield select();
+    const relIdsToRecalc = collectRelationshipIdsNeedingRecalc(afterElements, afterDiagram, owners);
+    for (const relId of relIdsToRecalc) {
+      yield call(recalc, relId);
+    }
+  }
 }
 
 function* appendAfterMove(): SagaIterator {
@@ -63,6 +195,14 @@ function* appendAfterMove(): SagaIterator {
 
   const movedElements = action.payload.ids.filter((id) => elements[id].owner !== containerID && id !== containerID);
   if (!movedElements.length || action.payload.keyboard) {
+    return;
+  }
+
+  // Don't reparent an element into a container of the same type
+  // (e.g. BPMNPool dragged onto BPMNPool must stay at root level so
+  // revertOnSiblingOverlap can detect the overlap and snap it back).
+  const targetContainer = containerID ? elements[containerID] : null;
+  if (targetContainer && movedElements.some((id) => elements[id]?.type === targetContainer.type)) {
     return;
   }
 

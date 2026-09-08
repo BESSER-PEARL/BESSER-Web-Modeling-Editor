@@ -38,6 +38,9 @@ import { BPMNIntermediateEventUpdate } from './bpmn/bpmn-intermediate-event/bpmn
 import { BPMNStartEventUpdate } from './bpmn/bpmn-start-event/bpmn-start-event-update';
 import { BPMNEndEventUpdate } from './bpmn/bpmn-end-event/bpmn-end-event-update';
 import { BPMNTaskUpdate } from './bpmn/bpmn-task/bpmn-task-update';
+import { BPMNSubprocessUpdate } from './bpmn/bpmn-subprocess/bpmn-subprocess-update';
+import { BPMNTransactionUpdate } from './bpmn/bpmn-transaction/bpmn-transaction-update';
+import { BPMNCallActivityUpdate } from './bpmn/bpmn-call-activity/bpmn-call-activity-update';
 import { ClassOCLConstraintUpdate } from './uml-class-diagram/uml-class-ocl/uml-class-ocl-constraint-update';
 import { UMLStateMergeNodeUpdate } from './uml-state-diagram/uml-state-merge-node/uml-state-merge-node-update';
 import { UMLStateTransitionUpdate } from './uml-state-diagram/uml-state-transition/uml-state-transition-update';
@@ -48,6 +51,9 @@ import { AgentIntentBodyUpdate } from './agent-state-diagram/agent-intent-object
 import { AgentRagElementUpdate } from './agent-state-diagram/agent-rag-element/agent-rag-element-update';
 import { AgentStateUpdate } from './agent-state-diagram/agent-state/agent-state-update';
 import { AgentStateTransitionUpdate } from './agent-state-diagram/agent-state-transition/agent-state-transition-update';
+import { AgentToolUpdate } from './agent-state-diagram/agent-tool/agent-tool-update';
+import { AgentSkillUpdate } from './agent-state-diagram/agent-skill/agent-skill-update';
+import { AgentWorkspaceUpdate } from './agent-state-diagram/agent-workspace/agent-workspace-update';
 import UMLUserModelAttributeUpdate from './user-modeling/uml-user-model-attribute/uml-user-model-attribute-update';
 
 import { NNElementType } from './nn-diagram';
@@ -105,10 +111,17 @@ export const Popups: { [key in UMLElementType | UMLRelationshipType]: ComponentT
   [UMLElementType.ColorLegend]: ColorLegendUpdate,
   [UMLElementType.Comments]: CommentsUpdate,
 
+  // BPMN popup policy (iteration 2 / O1): a BPMN element gets a custom popup
+  // ONLY if it exposes element-specific attributes. Subtype-bearing elements
+  // (Task/Gateway/Start/Intermediate/End event, Flow) and the Pool (lane
+  // management) have custom popups; the rest fall back to DefaultPopup
+  // (generic name + style). When a deferred construct gains attributes
+  // (e.g. Subprocess.isExpanded, CallActivity.calledElement — see
+  // 04-bpmn-construct-gaps-guide.md §A.3), give it a custom popup then.
   [UMLElementType.BPMNTask]: BPMNTaskUpdate,
-  [UMLElementType.BPMNSubprocess]: DefaultPopup,
-  [UMLElementType.BPMNTransaction]: DefaultPopup,
-  [UMLElementType.BPMNCallActivity]: DefaultPopup,
+  [UMLElementType.BPMNSubprocess]: BPMNSubprocessUpdate,
+  [UMLElementType.BPMNTransaction]: BPMNTransactionUpdate,
+  [UMLElementType.BPMNCallActivity]: BPMNCallActivityUpdate,
   [UMLElementType.BPMNAnnotation]: DefaultPopup,
   [UMLElementType.BPMNStartEvent]: BPMNStartEventUpdate,
   [UMLElementType.BPMNIntermediateEvent]: BPMNIntermediateEventUpdate,
@@ -136,6 +149,12 @@ export const Popups: { [key in UMLElementType | UMLRelationshipType]: ComponentT
   [UMLElementType.AgentState]: AgentStateUpdate,
   [UMLElementType.AgentStateBody]: null,
   [UMLElementType.AgentStateFallbackBody]: null,
+  [UMLElementType.AgentTool]: AgentToolUpdate,
+  [UMLElementType.AgentSkill]: AgentSkillUpdate,
+  [UMLElementType.AgentWorkspace]: AgentWorkspaceUpdate,
+  [UMLElementType.AgentLLM]: null,
+  [UMLElementType.AgentSectionTitle]: null,
+  [UMLElementType.AgentSectionSeparator]: null,
   // [UMLElementType.AgentStateBody]: null,
   // Relationships
   [UMLRelationshipType.ClassAggregation]: UMLClassAssociationUpdate,

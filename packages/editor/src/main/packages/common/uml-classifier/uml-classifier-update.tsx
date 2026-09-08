@@ -258,7 +258,7 @@ class ClassifierUpdate extends Component<Props, State> {
                     tabIndex={-1}
                     disabled={!canMoveUp}
                     onClick={canMoveUp ? this.moveMember(attribute.id, -1) : undefined}
-                    title="Move up"
+                    title={this.props.translate('popup.classifier.moveUp')}
                   >
                     <ArrowUpIcon width={10} height={10} />
                   </ReorderButton>
@@ -267,7 +267,7 @@ class ClassifierUpdate extends Component<Props, State> {
                     tabIndex={-1}
                     disabled={!canMoveDown}
                     onClick={canMoveDown ? this.moveMember(attribute.id, 1) : undefined}
-                    title="Move down"
+                    title={this.props.translate('popup.classifier.moveDown')}
                   >
                     <ArrowDownIcon />
                   </ReorderButton>
@@ -307,7 +307,11 @@ class ClassifierUpdate extends Component<Props, State> {
             ref={this.newAttributeField}
             outline
             value=""
-            placeholder={isEnumeration ? `+ literal` : `+ attribute: str`}
+            placeholder={
+              isEnumeration
+                ? this.props.translate('popup.classifier.newLiteralPlaceholder')
+                : this.props.translate('popup.classifier.newAttributePlaceholder')
+            }
             onSubmit={this.create(UMLClassAttribute)}
             onSubmitKeyUp={(key: string, value: string) => {
               // if we have a value -> navigate to next field in case we want to create a new element
@@ -359,7 +363,7 @@ class ClassifierUpdate extends Component<Props, State> {
                       tabIndex={-1}
                       disabled={!canMoveUp}
                       onClick={canMoveUp ? this.moveMember(method.id, -1) : undefined}
-                      title="Move up"
+                      title={this.props.translate('popup.classifier.moveUp')}
                     >
                       <ArrowUpIcon />
                     </ReorderButton>
@@ -368,7 +372,7 @@ class ClassifierUpdate extends Component<Props, State> {
                       tabIndex={-1}
                       disabled={!canMoveDown}
                       onClick={canMoveDown ? this.moveMember(method.id, 1) : undefined}
-                      title="Move down"
+                      title={this.props.translate('popup.classifier.moveDown')}
                     >
                       <ArrowDownIcon />
                     </ReorderButton>
@@ -426,9 +430,9 @@ class ClassifierUpdate extends Component<Props, State> {
               <QuickCodeButton
                 color="primary"
                 onClick={this.createMethodWithCode}
-                title="Create method with code behaviour"
+                title={this.props.translate('popup.classifier.createMethodWithCode')}
               >
-                📝 Code
+                📝 {this.props.translate('popup.classifier.codeButton')}
               </QuickCodeButton>
             </InputRow>
             </Section>

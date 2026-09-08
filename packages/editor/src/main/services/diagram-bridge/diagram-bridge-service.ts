@@ -610,6 +610,23 @@ export class DiagramBridgeService implements IDiagramBridgeService {
   setQuantumCircuitDiagrams(diagrams: IDiagramReference[]): void {
     this.quantumCircuitDiagrams = diagrams;
   }
+
+  private agentPlatform: string = 'websocket';
+
+  /**
+   * Get the currently configured agent platform (e.g. 'websocket', 'telegram').
+   * Set by the webapp whenever the active diagram's platform config changes.
+   */
+  getAgentPlatform(): string {
+    return this.agentPlatform;
+  }
+
+  /**
+   * Set the active agent platform so editor components can react to it.
+   */
+  setAgentPlatform(platform: string): void {
+    this.agentPlatform = platform || 'websocket';
+  }
 }
 
 /**

@@ -82,15 +82,33 @@ class BPMNStartEventUpdateComponent extends Component<Props, State> {
         <section>
           <Divider />
           <Dropdown value={element.eventType} onChange={this.changeEventType(element.id)}>
-            <Dropdown.Item value={'default'}>{this.props.translate('packages.BPMN.BPMNStartEvent')}</Dropdown.Item>
+            <Dropdown.Item value={'default'}>
+              {this.props.translate('packages.BPMNDiagram.BPMNStartEvent')}
+            </Dropdown.Item>
             <Dropdown.Item value={'message'}>
-              {this.props.translate('packages.BPMN.BPMNMessageStartEvent')}
+              {this.props.translate('packages.BPMNDiagram.BPMNMessageStartEvent')}
             </Dropdown.Item>
-            <Dropdown.Item value={'timer'}>{this.props.translate('packages.BPMN.BPMNTimerStartEvent')}</Dropdown.Item>
+            <Dropdown.Item value={'timer'}>
+              {this.props.translate('packages.BPMNDiagram.BPMNTimerStartEvent')}
+            </Dropdown.Item>
             <Dropdown.Item value={'conditional'}>
-              {this.props.translate('packages.BPMN.BPMNConditionalStartEvent')}
+              {this.props.translate('packages.BPMNDiagram.BPMNConditionalStartEvent')}
             </Dropdown.Item>
-            <Dropdown.Item value={'signal'}>{this.props.translate('packages.BPMN.BPMNSignalStartEvent')}</Dropdown.Item>
+            <Dropdown.Item value={'signal'}>
+              {this.props.translate('packages.BPMNDiagram.BPMNSignalStartEvent')}
+            </Dropdown.Item>
+            <Dropdown.Item value={'escalation'}>
+              {this.props.translate('packages.BPMNDiagram.BPMNEscalationStartEvent')}
+            </Dropdown.Item>
+            <Dropdown.Item value={'error'}>
+              {this.props.translate('packages.BPMNDiagram.BPMNErrorStartEvent')}
+            </Dropdown.Item>
+            <Dropdown.Item value={'compensation'}>
+              {this.props.translate('packages.BPMNDiagram.BPMNCompensationStartEvent')}
+            </Dropdown.Item>
+            <Dropdown.Item value={'link'}>
+              {this.props.translate('packages.BPMNDiagram.BPMNLinkStartEvent')}
+            </Dropdown.Item>
           </Dropdown>
         </section>
       </div>

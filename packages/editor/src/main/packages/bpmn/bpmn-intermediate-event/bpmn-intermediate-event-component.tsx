@@ -37,6 +37,8 @@ export const BPMNIntermediateEventComponent: FunctionComponent<Props> = ({
         return <BPMNMessageFilledIcon {...props} />;
       case 'timer-catch':
         return <BPMNTimerIcon {...props} />;
+      case 'timer-throw':
+        return <BPMNTimerIcon {...props} />;
       case 'escalation-throw':
         return <BPMNEscalationFilledIcon {...props} />;
       case 'conditional-catch':

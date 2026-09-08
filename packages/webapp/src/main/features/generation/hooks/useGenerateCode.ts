@@ -1,7 +1,8 @@
 import { useCallback } from 'react';
-import { ApollonEditor } from '@besser/wme';
+import { ApollonEditor, UMLModel } from '@besser/wme';
 import { useFileDownload } from '../../../shared/services/file-download/useFileDownload';
 import { toast } from 'react-toastify';
+import { useTranslation } from 'react-i18next';
 import { validateDiagram } from '../../../shared/services/validation/validateDiagram';
 import { BACKEND_URL } from '../../../shared/constants/constant';
 import { ProjectStorageRepository } from '../../../shared/services/storage/ProjectStorageRepository';
@@ -27,6 +28,11 @@ export interface SQLConfig {
 
 export interface SQLAlchemyConfig {
   dbms: 'sqlite' | 'postgresql' | 'mysql' | 'mssql' | 'mariadb' | 'oracle';
+}
+
+export interface SupabaseConfig {
+  /** Class name that maps to auth.users. Empty string skips auth integration. */
+  user_root: string;
 }
 
 export interface JSONSchemaConfig {
@@ -61,6 +67,7 @@ export interface AgentConfig {
 export type GeneratorConfig = {
   django: DjangoConfig;
   sql: SQLConfig;
+  supabase: SupabaseConfig;
   sqlalchemy: SQLAlchemyConfig;
   jsonschema: JSONSchemaConfig;
   qiskit: QiskitConfig;
@@ -70,6 +77,7 @@ export type GeneratorConfig = {
 
 export const useGenerateCode = () => {
   const downloadFile = useFileDownload();
+  const { t } = useTranslation();
 
   const generateCodeFromProject = useCallback(
     async (generatorType: string, config?: GeneratorConfig[keyof GeneratorConfig]): Promise<GenerationResult> => {
@@ -81,7 +89,7 @@ export const useGenerateCode = () => {
       const currentProject = ProjectStorageRepository.getCurrentProject();
 
       if (!currentProject) {
-        toast.error('No project available for code generation');
+        toast.error(t('generation.toasts.noProjectAvailable'));
         return { ok: false, error: 'No project available for code generation' };
       }
 
@@ -111,7 +119,14 @@ export const useGenerateCode = () => {
       };
 
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 300000);
+      // Generating multiple web-app versions produces N complete apps, so scale
+      // the timeout with the version count (bounded at 10 min).
+      const webAppVersionCount = Array.isArray((config as any)?.webAppVersions)
+        ? (config as any).webAppVersions.length
+        : 0;
+      const requestTimeoutMs =
+        webAppVersionCount > 1 ? Math.min(600000, 300000 * webAppVersionCount) : 300000;
+      const timeoutId = setTimeout(() => controller.abort(), requestTimeoutMs);
       try {
         const response = await fetch(`${BACKEND_URL}/generate-output-from-project`, {
           method: 'POST',
@@ -163,14 +178,14 @@ export const useGenerateCode = () => {
         }
 
         downloadFile({ file: blob, filename });
-        toast.success('Code generation completed successfully');
+        toast.success(t('generation.toasts.codeGenerationCompleted'));
         return { ok: true, filename };
       } catch (error) {
         if (error instanceof DOMException && error.name === 'AbortError') {
-          toast.error('Request timed out. Please try again.');
+          toast.error(t('generation.toasts.requestTimedOut'));
           return { ok: false, error: 'Request timed out' };
         }
-        let errorMessage = 'Unknown error occurred';
+        let errorMessage = t('generation.toasts.unknownError');
         if (error instanceof Error) {
           errorMessage = error.message;
         }
@@ -180,7 +195,7 @@ export const useGenerateCode = () => {
         clearTimeout(timeoutId);
       }
     },
-    [downloadFile],
+    [downloadFile, t],
   );
 
   const generateCode = useCallback(
@@ -190,6 +205,7 @@ export const useGenerateCode = () => {
       diagramTitle: string,
       config?: GeneratorConfig[keyof GeneratorConfig],
       referenceDiagramData?: Record<string, any>,
+      modelOverride?: UMLModel,
     ): Promise<GenerationResult> => {
       console.log('Starting code generation...');
 
@@ -217,25 +233,41 @@ export const useGenerateCode = () => {
       // For other generators, we need the editor and model
       if (!editor || !editor.model) {
         console.error('No editor or model available');
-        toast.error('No diagram to generate code from');
+        toast.error(t('generation.toasts.noDiagram'));
         return { ok: false, error: 'No diagram to generate code from' };
       }
 
       // Validate diagram before generation
       const validationResult = await validateDiagram(editor, diagramTitle);
       if (!validationResult.isValid) {
-        toast.error(validationResult.message || 'Validation failed');
+        toast.error(validationResult.message || t('generation.toasts.validationFailed'));
         return { ok: false, error: validationResult.message || 'Validation failed' };
       }
 
-      // Prepare body for single diagram generation
+      // Prepare body for single diagram generation. modelOverride is used by
+      // agent personalization to ship the un-personalized base instead of
+      // whatever variant happens to be active in the editor — see
+      // handleAgentGenerate in useGeneratorExecution.
       const body: any = {
         title: diagramTitle,
-        model: editor.model,
+        model: modelOverride ?? editor.model,
         generator: generatorType,
         config: config,
         ...(referenceDiagramData ? { referenceDiagramData } : {}),
       };
+
+      // For agent generation, include the user-authored config.yaml from the diagram
+      if (generatorType === 'agent') {
+        const currentProject = ProjectStorageRepository.getCurrentProject();
+        const activeAgentDiagram = currentProject
+          ? currentProject.diagrams.AgentDiagram?.[
+              currentProject.currentDiagramIndices?.AgentDiagram ?? 0
+            ]
+          : undefined;
+        if (typeof activeAgentDiagram?.configYaml === 'string') {
+          body.configYaml = activeAgentDiagram.configYaml;
+        }
+      }
 
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 300000);
@@ -291,15 +323,15 @@ export const useGenerateCode = () => {
         }
 
         downloadFile({ file: blob, filename });
-        toast.success('Code generation completed successfully');
+        toast.success(t('generation.toasts.codeGenerationCompleted'));
         return { ok: true, filename };
       } catch (error) {
         if (error instanceof DOMException && error.name === 'AbortError') {
-          toast.error('Request timed out. Please try again.');
+          toast.error(t('generation.toasts.requestTimedOut'));
           return { ok: false, error: 'Request timed out' };
         }
 
-        let errorMessage = 'Unknown error occurred';
+        let errorMessage = t('generation.toasts.unknownError');
         if (error instanceof Error) {
           errorMessage = error.message;
         }
@@ -310,7 +342,7 @@ export const useGenerateCode = () => {
         clearTimeout(timeoutId);
       }
     },
-    [downloadFile, generateCodeFromProject],
+    [downloadFile, generateCodeFromProject, t],
   );
 
   return generateCode;

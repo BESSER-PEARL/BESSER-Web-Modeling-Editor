@@ -82,18 +82,24 @@ class BPMNEndEventUpdateComponent extends Component<Props, State> {
         <section>
           <Divider />
           <Dropdown value={element.eventType} onChange={this.changeEventType(element.id)}>
-            <Dropdown.Item value={'default'}>{this.props.translate('packages.BPMN.BPMNEndEvent')}</Dropdown.Item>
-            <Dropdown.Item value={'message'}>{this.props.translate('packages.BPMN.BPMNMessageEndEvent')}</Dropdown.Item>
+            <Dropdown.Item value={'default'}>{this.props.translate('packages.BPMNDiagram.BPMNEndEvent')}</Dropdown.Item>
+            <Dropdown.Item value={'message'}>
+              {this.props.translate('packages.BPMNDiagram.BPMNMessageEndEvent')}
+            </Dropdown.Item>
             <Dropdown.Item value={'escalation'}>
-              {this.props.translate('packages.BPMN.BPMNEscalationEndEvent')}
+              {this.props.translate('packages.BPMNDiagram.BPMNEscalationEndEvent')}
             </Dropdown.Item>
-            <Dropdown.Item value={'error'}>{this.props.translate('packages.BPMN.BPMNErrorEndEvent')}</Dropdown.Item>
+            <Dropdown.Item value={'error'}>
+              {this.props.translate('packages.BPMNDiagram.BPMNErrorEndEvent')}
+            </Dropdown.Item>
             <Dropdown.Item value={'compensation'}>
-              {this.props.translate('packages.BPMN.BPMNCompensationEndEvent')}
+              {this.props.translate('packages.BPMNDiagram.BPMNCompensationEndEvent')}
             </Dropdown.Item>
-            <Dropdown.Item value={'signal'}>{this.props.translate('packages.BPMN.BPMNSignalEndEvent')}</Dropdown.Item>
+            <Dropdown.Item value={'signal'}>
+              {this.props.translate('packages.BPMNDiagram.BPMNSignalEndEvent')}
+            </Dropdown.Item>
             <Dropdown.Item value={'terminate'}>
-              {this.props.translate('packages.BPMN.BPMNTerminateEndEvent')}
+              {this.props.translate('packages.BPMNDiagram.BPMNTerminateEndEvent')}
             </Dropdown.Item>
           </Dropdown>
         </section>

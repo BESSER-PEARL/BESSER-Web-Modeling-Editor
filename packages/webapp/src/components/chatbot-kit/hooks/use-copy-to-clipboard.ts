@@ -1,5 +1,6 @@
 import { useCallback, useRef, useState } from "react"
 import { toast } from "react-toastify"
+import { useTranslation } from "react-i18next"
 
 type UseCopyToClipboardProps = {
   text: string
@@ -8,8 +9,9 @@ type UseCopyToClipboardProps = {
 
 export function useCopyToClipboard({
   text,
-  copyMessage = "Copied to clipboard!",
+  copyMessage,
 }: UseCopyToClipboardProps) {
+  const { t } = useTranslation()
   const [isCopied, setIsCopied] = useState(false)
   const timeoutRef = useRef<NodeJS.Timeout | null>(null)
 
@@ -17,7 +19,7 @@ export function useCopyToClipboard({
     navigator.clipboard
       .writeText(text)
       .then(() => {
-        toast.success(copyMessage)
+        toast.success(copyMessage ?? t("assistant.chatKit.copiedToClipboard"))
         setIsCopied(true)
         if (timeoutRef.current) {
           clearTimeout(timeoutRef.current)
@@ -28,9 +30,9 @@ export function useCopyToClipboard({
         }, 2000)
       })
       .catch(() => {
-        toast.error("Failed to copy to clipboard.")
+        toast.error(t("assistant.chatKit.copyFailed"))
       })
-  }, [text, copyMessage])
+  }, [text, copyMessage, t])
 
   return { isCopied, handleCopy }
 }

@@ -47,6 +47,17 @@ export class UMLUserModelAttribute extends UMLClassifierAttribute {
   attributeId?: string;
   attributeOperator: UserModelAttributeComparator = DEFAULT_COMPARATOR;
 
+  /**
+   * User-model attributes are matching criteria (e.g. `age >= 18`) rendered
+   * instance-style — the whole expression lives in `name`. Return it verbatim,
+   * mirroring UMLObjectAttribute, so the inherited classifier formatting never
+   * injects the visibility symbol / `: type` suffix (which would otherwise
+   * appear once `attributeType` defaults to `str` after a save/reload).
+   */
+  get displayName(): string {
+    return this.name;
+  }
+
   constructor(values?: DeepPartial<UserModelAttributeInit>) {
     super(values);
     if (values?.attributeId) {
