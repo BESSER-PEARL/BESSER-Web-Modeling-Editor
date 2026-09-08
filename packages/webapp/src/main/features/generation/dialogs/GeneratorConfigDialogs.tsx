@@ -245,12 +245,12 @@ export const GeneratorConfigDialogs: React.FC<GeneratorConfigDialogsProps> = ({
     switch (agentSystemConfig?.agentPlatform) {
       case 'websocket':
         return agentSystemConfig.agentPlatformUseStreamlit
-          ? 'WebSocket with Streamlit UI'
-          : 'WebSocket';
+          ? t('generation.agent.platformWebSocketStreamlit')
+          : t('generation.agent.platformWebSocket');
       case 'streamlit':
         return t('generation.agent.platformStreamlit');
       case 'telegram':
-        return 'Telegram';
+        return t('generation.agent.platformTelegram');
       default:
         return agentSystemConfig?.agentPlatform ?? '—';
     }
@@ -803,20 +803,18 @@ export const GeneratorConfigDialogs: React.FC<GeneratorConfigDialogsProps> = ({
               {/* Version selection — only when the GUI has page variants */}
               {webAppChecklist.hasAnyVariant && (
                 <div className="flex flex-col gap-2">
-                  <p className="text-sm font-medium text-muted-foreground">Versions</p>
+                  <p className="text-sm font-medium text-muted-foreground">{t('generation.webApp.versions')}</p>
                   <p className="text-xs text-muted-foreground">
-                    Some pages have personalized variants. Choose which version(s) to generate.
-                    Each version uses a page&apos;s variant where it exists, and the Base page
-                    otherwise.
+                    {t('generation.webApp.versionsDescription')}
                   </p>
                   <RadioGroup
                     value={webAppVersionMode}
                     onValueChange={(v) => onWebAppVersionModeChange(v as WebAppVersionMode)}
                     className="self-start"
                   >
-                    <RadioGroupItem value="base">Base only</RadioGroupItem>
-                    <RadioGroupItem value="profile">Single profile</RadioGroupItem>
-                    <RadioGroupItem value="all">All versions</RadioGroupItem>
+                    <RadioGroupItem value="base">{t('generation.webApp.versionBase')}</RadioGroupItem>
+                    <RadioGroupItem value="profile">{t('generation.webApp.versionProfile')}</RadioGroupItem>
+                    <RadioGroupItem value="all">{t('generation.webApp.versionAll')}</RadioGroupItem>
                   </RadioGroup>
                   {webAppVersionMode === 'profile' && (
                     <Select
@@ -824,7 +822,7 @@ export const GeneratorConfigDialogs: React.FC<GeneratorConfigDialogsProps> = ({
                       onValueChange={onWebAppSelectedProfileIdChange}
                     >
                       <SelectTrigger className="w-full">
-                        <SelectValue placeholder="Select a profile" />
+                        <SelectValue placeholder={t('generation.webApp.selectProfile')} />
                       </SelectTrigger>
                       <SelectContent>
                         {webAppChecklist.variantProfiles.map((p) => (
@@ -837,7 +835,7 @@ export const GeneratorConfigDialogs: React.FC<GeneratorConfigDialogsProps> = ({
                   )}
                   {webAppVersionMode === 'all' && (
                     <p className="text-xs text-muted-foreground">
-                      The download will contain one subfolder per version (base + each profile).
+                      {t('generation.webApp.versionAllHint')}
                     </p>
                   )}
                 </div>
