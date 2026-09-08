@@ -48,7 +48,7 @@ import { useWebSocketConnection, type ConnectionStatus } from './useWebSocketCon
 import { useStreamingResponse, startTimer, stopTimer } from './useStreamingResponse';
 import { useModelInjection } from './useModelInjection';
 import { useSpecDrivenTrigger } from '../../spec-driven/hooks/useSpecDrivenTrigger';
-import { openByokDialog, setLastRunForProject } from '../../spec-driven/state/specDrivenSlice';
+import { openByokDialog, setLastRunForProject, selectHasLiveSpecDrivenRun } from '../../spec-driven/state/specDrivenSlice';
 import type { TriggerSpecDrivenPayload } from '../../spec-driven/types';
 import {
   continueFromGithubRepo,
@@ -150,6 +150,14 @@ export interface UseAssistantLogicReturn {
   sendVoiceMessage: (audioBlob: Blob) => Promise<void>;
   stopGenerating: () => void;
   clearConversation: () => void;
+  /**
+   * Ask the user to confirm, then start a new chat (clears the conversation).
+   * When a Spec-Driven run is in flight the confirm copy also warns that the
+   * running generation will be stopped. This is the handler the "New Chat"
+   * controls should call — `clearConversation` itself stays guard-free because
+   * it is also invoked on project switch (where no prompt is wanted).
+   */
+  requestNewChat: () => void;
   /**
    * Build a privacy-safe issue report (conversation + non-secret workspace
    * context) and open a pre-filled GitHub issue on the BESSER repository in a
@@ -286,6 +294,12 @@ export function useAssistantLogic({
   const dispatch = useAppDispatch();
   const { editor } = useContext(ApollonEditorContext);
   const activeDiagram = useAppSelector(selectActiveDiagram);
+  // True while a Spec-Driven generation run is in flight (global run slot or a
+  // live run card). Drives the "…the running generation will be stopped" half
+  // of the New Chat confirmation copy.
+  const hasActiveSpecRun = useAppSelector(
+    (s) => s.specDriven.runStatus === 'running' || selectHasLiveSpecDrivenRun(s),
+  );
   const { currentProject, currentDiagramType, loadProject } = useProject();
 
   /* ---- stable refs for callbacks ---- */
@@ -1393,6 +1407,31 @@ export function useAssistantLogic({
     assistantClient.resetSession();
   };
 
+  // New Chat is destructive (it discards the current conversation and, via
+  // clearConversation → specDriven.abortActive, cancels a running Spec-Driven
+  // generation). Guard it behind an explicit confirm so an accidental click
+  // can't wipe an in-progress run. The confirm is ONLY on this user-facing
+  // control — clearConversation stays guard-free for the project-switch path.
+  const requestNewChat = () => {
+    const confirmFn =
+      typeof window !== 'undefined' && typeof window.confirm === 'function'
+        ? window.confirm.bind(window)
+        : null;
+    if (confirmFn) {
+      const message = hasActiveSpecRun
+        ? t(
+            'assistant.chat.newChatConfirmWithRun',
+            'Start a new chat? Your current conversation will be cleared and the running generation will be stopped.',
+          )
+        : t(
+            'assistant.chat.newChatConfirm',
+            'Start a new chat? Your current conversation will be cleared.',
+          );
+      if (!confirmFn(message)) return;
+    }
+    clearConversation();
+  };
+
   /* ================================================================ */
   /*  reportIssue — open a pre-filled GitHub issue for the team        */
   /* ================================================================ */
@@ -1536,6 +1575,7 @@ export function useAssistantLogic({
     sendVoiceMessage,
     stopGenerating,
     clearConversation,
+    requestNewChat,
     reportIssue,
     handleUndo: injection.handleUndo,
     canUndo: injection.undoAvailable,

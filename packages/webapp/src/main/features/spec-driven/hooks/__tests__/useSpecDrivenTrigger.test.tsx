@@ -41,6 +41,7 @@ import { useSpecDrivenTrigger, type SpecDrivenRunResult } from '../useSpecDriven
 import { sanitizeMessageForPersist } from '../../../assistant/hooks/assistantConversationStore';
 import type { SpecDrivenEvent, TriggerSpecDrivenPayload } from '../../types';
 import {
+  cancelSpecDrivenUrl,
   sessionStorageSpecDrivenApiKey,
   sessionStorageSpecDrivenFreeModel,
   sessionStorageSpecDrivenFreeTier,
@@ -1047,6 +1048,62 @@ describe('useSpecDrivenTrigger — onRunFinished (agent loop)', () => {
     });
     // The AbortError / loop-exit path must not double-report.
     expect(onRunFinished).toHaveBeenCalledTimes(1);
+  });
+
+  it('cancels the run SERVER-SIDE (POST /spec-driven/cancel/{runId}) on abort', async () => {
+    // Without this the local abort only closes the SSE reader; the backend
+    // keeps running and billing the user's key (the orphan-run bug #2).
+    setSessionKey();
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response('{"status":"cancelled"}', { status: 200 }),
+    );
+    globalThis.fetch = fetchMock;
+    const RUN_ID = 'd'.repeat(32);
+    let releaseStream: () => void = () => {};
+    const gate = new Promise<void>((resolve) => {
+      releaseStream = resolve;
+    });
+    const sseClientModule = await import('../../services/specDrivenSseClient');
+    const startSpecDrivenRunMock = vi.mocked(sseClientModule.startSpecDrivenRun);
+    startSpecDrivenRunMock.mockImplementationOnce(() => ({
+      controller: new AbortController(),
+      abort: () => {},
+      events: (async function* () {
+        yield {
+          event: 'start',
+          runId: RUN_ID,
+          provider: 'anthropic',
+          llmModel: 'claude-sonnet-4-6',
+          maxCost: 1.0,
+          maxRuntime: 600,
+        } as SpecDrivenEvent;
+        await gate;
+      })() as AsyncGenerator<SpecDrivenEvent, void, void>,
+    }));
+
+    const { apiRef } = renderHarness();
+
+    let run: Promise<void> = Promise.resolve();
+    await act(async () => {
+      run = apiRef.current!.handleTrigger(PAYLOAD);
+      await Promise.resolve();
+    });
+
+    act(() => {
+      apiRef.current!.abortActive();
+    });
+
+    await waitFor(() => {
+      expect(fetchMock).toHaveBeenCalledWith(
+        cancelSpecDrivenUrl(RUN_ID),
+        expect.objectContaining({ method: 'POST' }),
+      );
+    });
+
+    releaseStream();
+    await act(async () => {
+      await run;
+    });
   });
 });
 

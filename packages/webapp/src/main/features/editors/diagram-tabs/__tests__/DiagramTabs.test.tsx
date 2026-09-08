@@ -193,7 +193,7 @@ describe('DiagramTabs', () => {
 
     render(<DiagramTabs />);
 
-    expect(screen.getByLabelText('Add new diagram')).toBeInTheDocument();
+    expect(screen.getByLabelText('Add a new diagram tab')).toBeInTheDocument();
   });
 
   it('hides add button when at MAX_DIAGRAMS_PER_TYPE', () => {

@@ -783,8 +783,10 @@ export const LlmKeyDialog: React.FC<LlmKeyDialogProps> = ({
               />
             )}
             <p className="text-xs text-muted-foreground">
-              Leave on “…” to let the backend pick a sensible default for your provider. Pick a stronger model
-              for complex modeling, or Custom for any model ID your account can access.
+              Each option is labelled with its trade-off: “most capable” models give the
+              best results but cost more and run slower, while “fast &amp; cheap” models are
+              quicker and lower-cost. Leave on “…” to let the backend pick a sensible default
+              for your provider, or choose Custom for any model ID your account can access.
             </p>
           </div>
           )}

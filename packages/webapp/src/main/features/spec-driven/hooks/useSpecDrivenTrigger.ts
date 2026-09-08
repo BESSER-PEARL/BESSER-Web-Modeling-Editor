@@ -63,6 +63,7 @@ import type {
   SpecDrivenMessageState,
 } from '@/components/chatbot-kit/ui/chat-message';
 import { useAppDispatch, useAppSelector } from '../../../app/store/hooks';
+import { cancelSpecDrivenUrl } from '../../../shared/constants/constant';
 import type { BesserProject } from '../../../shared/types/project';
 import { buildProjectPayloadForBackend } from '../../../shared/utils/projectExportUtils';
 import { SseStallError } from '../../../shared/services/sse/sseClient';
@@ -371,6 +372,58 @@ export function useSpecDrivenTrigger(
       failsafeTimerRef.current = null;
     }
   }, []);
+
+  /**
+   * Tell the BACKEND to stop the live run so the user's BYOK budget stops
+   * accruing server-side. The local `abort()` only closes the browser's SSE
+   * reader — without this POST the orchestrator keeps running (and billing)
+   * until it finishes on its own, orphaning the run. Fire-and-forget,
+   * best-effort: cancellation must never throw into a teardown path.
+   *
+   * Only ever called with THIS session's own runId (`currentRunIdRef`), so a
+   * run owned by another tab / user is never cancelled. `beacon` uses
+   * `navigator.sendBeacon` for the page-unload path (a normal fetch is killed
+   * when the document is torn down); every other path uses a keepalive fetch.
+   */
+  const cancelRunOnServer = useCallback(
+    (runId: string | undefined, opts: { beacon?: boolean } = {}) => {
+      if (!runId) return;
+      const url = cancelSpecDrivenUrl(runId);
+      try {
+        if (
+          opts.beacon &&
+          typeof navigator !== 'undefined' &&
+          typeof navigator.sendBeacon === 'function'
+        ) {
+          navigator.sendBeacon(url);
+          return;
+        }
+        void fetch(url, { method: 'POST', keepalive: true }).catch(() => {});
+      } catch {
+        /* best-effort */
+      }
+    },
+    [],
+  );
+
+  // Page unload (tab close, refresh, navigating away from the editor) would
+  // otherwise ORPHAN a running Spec-Driven generation on the server — it keeps
+  // running and billing the user's key with no one watching. Signal the backend
+  // to cancel via sendBeacon (a normal fetch is aborted when the document tears
+  // down). Guarded on THIS session's own active run, so another run is never
+  // touched.
+  useEffect(() => {
+    const onUnload = () => {
+      if (!isRunningRef.current) return;
+      cancelRunOnServer(currentRunIdRef.current, { beacon: true });
+    };
+    window.addEventListener('pagehide', onUnload);
+    window.addEventListener('beforeunload', onUnload);
+    return () => {
+      window.removeEventListener('pagehide', onUnload);
+      window.removeEventListener('beforeunload', onUnload);
+    };
+  }, [cancelRunOnServer]);
 
   /**
    * Terminal point for a run's LIVE state. Reads the final card from the
@@ -1120,6 +1173,10 @@ export function useSpecDrivenTrigger(
     // have it open for a different future run, and forcibly closing
     // it would disrupt that flow.
     if (isRunningRef.current) {
+      // Stop the run SERVER-SIDE too, not just the local SSE reader — this is
+      // what keeps New Chat / Stop from orphaning a run that keeps billing the
+      // user's key. Only ever this session's own runId.
+      cancelRunOnServer(currentRunIdRef.current);
       isRunningRef.current = false;
       setIsGenerating(false);
       dispatch(resetRun());
@@ -1144,7 +1201,7 @@ export function useSpecDrivenTrigger(
         costUsd: lastCostRef.current,
       });
     }
-  }, [clearFailsafeTimer, dispatch, finalizeLiveRun, reportRunFinished, setIsGenerating]);
+  }, [cancelRunOnServer, clearFailsafeTimer, dispatch, finalizeLiveRun, reportRunFinished, setIsGenerating]);
 
   // Wire up the internal ref so the failsafe timer callback can
   // invoke the same abort logic without circular deps.

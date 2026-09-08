@@ -1,5 +1,5 @@
 import React from "react"
-import Markdown from "react-markdown"
+import Markdown, { defaultUrlTransform } from "react-markdown"
 import remarkGfm from "remark-gfm"
 
 import { cn } from "@/lib/utils"
@@ -20,7 +20,18 @@ interface MarkdownRendererProps {
 export function MarkdownRenderer({ children }: MarkdownRendererProps) {
   return (
     <div className="space-y-3">
-      <Markdown remarkPlugins={[remarkGfm]} components={COMPONENTS}>
+      <Markdown
+        remarkPlugins={[remarkGfm]}
+        components={COMPONENTS}
+        // react-markdown's default URL sanitizer strips unknown schemes,
+        // so `wme:add-key` (our in-app action link) was blanked to an
+        // empty href — clicking it reloaded the page instead of opening
+        // the key dialog. Preserve the wme: scheme; keep the safe default
+        // sanitization for every other link.
+        urlTransform={(url) =>
+          url.startsWith("wme:") ? url : defaultUrlTransform(url)
+        }
+      >
         {children}
       </Markdown>
     </div>

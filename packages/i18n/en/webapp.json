@@ -801,7 +801,7 @@
       "confirm": {
         "title": "Existing diagram detected",
         "body": "You already have a <strong>{{type}}</strong>. How would you like to load the template?",
-        "newTab": "New tab",
+        "newTab": "New diagram tab",
         "replace": "Replace"
       },
       "toasts": {
@@ -1109,7 +1109,9 @@
     },
     "chat": {
       "newChat": "New Chat",
-      "newConversationTitle": "Start a new conversation"
+      "newConversationTitle": "Start a new conversation",
+      "newChatConfirm": "Start a new chat? Your current conversation will be cleared.",
+      "newChatConfirmWithRun": "Start a new chat? Your current conversation will be cleared and the running generation will be stopped."
     },
     "drawer": {
       "pushToClose": "Push up to close assistant",
@@ -1714,7 +1716,7 @@
       "renameDiagram": "Rename diagram",
       "closeTabLabel": "Close tab {{title}}",
       "closeTab": "Close tab",
-      "addNewDiagram": "Add new diagram",
+      "addNewDiagram": "Add a new diagram tab",
       "expandLinkedDiagrams": "Expand linked diagrams",
       "collapseLinkedDiagrams": "Collapse linked diagrams",
       "showLinkedDiagrams": "Show linked diagrams",

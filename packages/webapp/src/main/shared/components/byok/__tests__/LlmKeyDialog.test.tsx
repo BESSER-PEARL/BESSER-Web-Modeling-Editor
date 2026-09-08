@@ -59,6 +59,18 @@ describe('LlmKeyDialog — unified BYOK key', () => {
     });
   });
 
+  it('shows quality/speed/cost guidance near the model selector (#6)', () => {
+    render(<LlmKeyDialog open onOpenChange={() => {}} />);
+    // Helper note that explains the trade-off so users choose well.
+    expect(screen.getByText(/cost more and run slower/i)).toBeTruthy();
+    // The model dropdown still carries the data-driven per-preset hints
+    // (from MODEL_PRESETS) — the guidance note complements them.
+    const modelSelect = document.getElementById('llm-key-model') as HTMLSelectElement;
+    expect(modelSelect).toBeTruthy();
+    expect(modelSelect.textContent).toMatch(/fast & cheap/i);
+    expect(modelSelect.textContent).toMatch(/most capable/i);
+  });
+
   it('saves the Local (self-hosted) provider with a base URL', () => {
     const onSaved = vi.fn();
     render(<LlmKeyDialog open onOpenChange={() => {}} onSaved={onSaved} />);

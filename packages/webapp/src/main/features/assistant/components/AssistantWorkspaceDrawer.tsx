@@ -194,7 +194,7 @@ export const AssistantWorkspaceDrawer: React.FC<AssistantWorkspaceDrawerProps> =
     handleSubmit,
     sendVoiceMessage,
     stopGenerating,
-    clearConversation,
+    requestNewChat,
     reportIssue,
     assistantClient,
   } = useAssistantLogic({
@@ -889,7 +889,7 @@ export const AssistantWorkspaceDrawer: React.FC<AssistantWorkspaceDrawerProps> =
                         variant="outline"
                         size="sm"
                         className="h-7 gap-1.5 rounded-lg border-border/50 px-2.5 text-xs"
-                        onClick={clearConversation}
+                        onClick={requestNewChat}
                         title={t('assistant.chat.newConversationTitle')}
                       >
                         <MessageSquarePlus className="size-3.5" />
