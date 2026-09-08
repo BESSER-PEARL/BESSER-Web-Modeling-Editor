@@ -2111,10 +2111,6 @@
         "selectAgentFirst": "Select an agent first",
         "send": "Send"
       },
-      "map": {
-        "location": "Location",
-        "viewLargerMap": "View Larger Map"
-      },
       "utils": {
         "selectPage": "-- Select Page --",
         "customUrl": "Custom URL",
@@ -2213,7 +2209,17 @@
       },
       "layerManager": {
         "title": "Map Layers",
-        "addLayer": "Add Layer"
+        "addLayer": "Add Layer",
+        "removeLayer": "Remove layer",
+        "defaultLayerName": "Layer {{index}}",
+        "none": "— none —",
+        "typePoints": "Points (lat/lng markers)",
+        "typeGeojson": "GeoJSON polygons/lines",
+        "typeChoropleth": "Choropleth (colored regions)",
+        "typeHeatmap": "Heat map",
+        "weightField": "Weight Field",
+        "geometryField": "Geometry Field (GeoJSON)",
+        "valueField": "Value Field"
       }
     },
     "loadingGuiEditor": "Loading GUI editor...",

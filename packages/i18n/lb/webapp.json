@@ -2047,7 +2047,7 @@
         "latitudeField": "Breedegrad-Feld",
         "longitudeField": "Längegrad-Feld",
         "markerLabelField": "Marker-Titel-Feld",
-        "layers": "Layers"
+        "layers": "Schichten"
       },
       "pages": {
         "title": "Säiten",
@@ -2110,10 +2110,6 @@
         "typeMessage": "Message aginn...",
         "selectAgentFirst": "Fir d'éischt en Agent auswielen",
         "send": "Schécken"
-      },
-      "map": {
-        "location": "Standuert",
-        "viewLargerMap": "Méi grouss Kaart weisen"
       },
       "utils": {
         "selectPage": "-- Säit auswielen --",
@@ -2212,8 +2208,18 @@
         }
       },
       "layerManager": {
-        "title": "Map Layers",
-        "addLayer": "Add Layer"
+        "title": "Kaarteschichten",
+        "addLayer": "Schicht dobäisetzen",
+        "removeLayer": "Schicht ewechhuelen",
+        "defaultLayerName": "Schicht {{index}}",
+        "none": "— keng —",
+        "typePoints": "Punkten (Lat/Lng-Marker)",
+        "typeGeojson": "GeoJSON-Polygonen/-Linnen",
+        "typeChoropleth": "Choroplethekaart (agefierfte Regiounen)",
+        "typeHeatmap": "Hëtztkaart",
+        "weightField": "Gewiichtsfeld",
+        "geometryField": "Geometrifeld (GeoJSON)",
+        "valueField": "Wäertfeld"
       }
     },
     "loadingGuiEditor": "GUI-Editor gëtt gelueden...",

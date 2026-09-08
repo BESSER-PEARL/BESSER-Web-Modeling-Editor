@@ -2047,7 +2047,7 @@
         "latitudeField": "Breitengrad-Feld",
         "longitudeField": "Längengrad-Feld",
         "markerLabelField": "Markierungsbeschriftungsfeld",
-        "layers": "Layers"
+        "layers": "Ebenen"
       },
       "pages": {
         "title": "Seiten",
@@ -2110,10 +2110,6 @@
         "typeMessage": "Nachricht eingeben...",
         "selectAgentFirst": "Wählen Sie zuerst einen Agenten aus.",
         "send": "Senden"
-      },
-      "map": {
-        "location": "Standort",
-        "viewLargerMap": "Größere Karte anzeigen"
       },
       "utils": {
         "selectPage": "-- Seite auswählen --",
@@ -2212,8 +2208,18 @@
         }
       },
       "layerManager": {
-        "title": "Map Layers",
-        "addLayer": "Add Layer"
+        "title": "Kartenebenen",
+        "addLayer": "Ebene hinzufügen",
+        "removeLayer": "Ebene entfernen",
+        "defaultLayerName": "Ebene {{index}}",
+        "none": "— keine —",
+        "typePoints": "Punkte (Lat/Lng-Marker)",
+        "typeGeojson": "GeoJSON-Polygone/-Linien",
+        "typeChoropleth": "Choroplethenkarte (eingefärbte Regionen)",
+        "typeHeatmap": "Heatmap",
+        "weightField": "Gewichtungsfeld",
+        "geometryField": "Geometriefeld (GeoJSON)",
+        "valueField": "Wertfeld"
       }
     },
     "loadingGuiEditor": "GUI-Editor wird geladen...",

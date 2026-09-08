@@ -2047,7 +2047,7 @@
         "latitudeField": "Campo latitud",
         "longitudeField": "Campo longitud",
         "markerLabelField": "Campo etiqueta marcador",
-        "layers": "Layers"
+        "layers": "Capas"
       },
       "pages": {
         "title": "Páginas",
@@ -2110,10 +2110,6 @@
         "typeMessage": "Escribe un mensaje...",
         "selectAgentFirst": "Selecciona primero un agente",
         "send": "Enviar"
-      },
-      "map": {
-        "location": "Ubicación",
-        "viewLargerMap": "Ver mapa más grande"
       },
       "utils": {
         "selectPage": "-- Seleccionar página --",
@@ -2212,8 +2208,18 @@
         }
       },
       "layerManager": {
-        "title": "Map Layers",
-        "addLayer": "Add Layer"
+        "title": "Capas del mapa",
+        "addLayer": "Añadir capa",
+        "removeLayer": "Eliminar capa",
+        "defaultLayerName": "Capa {{index}}",
+        "none": "— ninguno —",
+        "typePoints": "Puntos (marcadores lat/long)",
+        "typeGeojson": "Polígonos/líneas GeoJSON",
+        "typeChoropleth": "Coroplético (regiones coloreadas)",
+        "typeHeatmap": "Mapa de calor",
+        "weightField": "Campo de peso",
+        "geometryField": "Campo de geometría (GeoJSON)",
+        "valueField": "Campo de valor"
       }
     },
     "loadingGuiEditor": "Cargando el editor de GUI...",

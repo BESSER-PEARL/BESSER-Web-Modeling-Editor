@@ -21,11 +21,12 @@ export interface LayerItem {
   valueField?: string;
 }
 
+/** Layer types offered in the per-row type selector, with their i18n label keys. */
 const LAYER_TYPES = [
-  { value: 'points', label: 'Points (lat/lng markers)' },
-  { value: 'geojson', label: 'GeoJSON polygons/lines' },
-  { value: 'choropleth', label: 'Choropleth (colored regions)' },
-  { value: 'heatmap', label: 'Heat map' },
+  { value: 'points', labelKey: 'editors.gui.layerManager.typePoints' },
+  { value: 'geojson', labelKey: 'editors.gui.layerManager.typeGeojson' },
+  { value: 'choropleth', labelKey: 'editors.gui.layerManager.typeChoropleth' },
+  { value: 'heatmap', labelKey: 'editors.gui.layerManager.typeHeatmap' },
 ] as const;
 
 /**
@@ -42,15 +43,52 @@ function getFieldsForType(type: string): string[] {
   }
 }
 
-/** Human-readable labels shown beside each field selector. */
-const FIELD_LABELS: Record<string, string> = {
-  latitudeField:  'Latitude field',
-  longitudeField: 'Longitude field',
-  labelField:     'Label field (optional)',
-  weightField:    'Weight field (optional)',
-  geojsonField:   'Geometry field (GeoJSON string)',
-  valueField:     'Value field (for fill colour)',
+/** i18n keys for the label shown beside each field selector. */
+const FIELD_LABEL_KEYS: Record<string, string> = {
+  latitudeField:  'editors.gui.traits.latitudeField',
+  longitudeField: 'editors.gui.traits.longitudeField',
+  labelField:     'editors.gui.traits.markerLabelField',
+  weightField:    'editors.gui.layerManager.weightField',
+  geojsonField:   'editors.gui.layerManager.geometryField',
+  valueField:     'editors.gui.layerManager.valueField',
 };
+
+/**
+ * Parse the serialised `map-layers` attribute into a layer list.
+ *
+ * The attribute holds a JSON array string; anything else — unset, malformed, or
+ * a non-array payload — yields an empty list so every caller can just iterate.
+ * Shared with `registerMapComponent`'s `buildMapProps` so the editor preview and
+ * the trait panel always read the attribute the same way.
+ */
+export function parseLayers(raw: unknown): LayerItem[] {
+  if (typeof raw !== 'string' || !raw.trim().startsWith('[')) return [];
+  try {
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * Resolve a stored layer reference against a list of `{ value, label }` options.
+ *
+ * Edits made in this panel store option *values* (diagram element ids), but a
+ * model imported from BUML carries plain *names* — the backend's
+ * `_parse_map_layer` accepts both. So when the stored string matches no option
+ * value, fall back to matching an option label, and return that option's id so
+ * the select shows the right entry.  Returns '' when nothing matches (the
+ * "— none —" entry), which is also the case while no class diagram is loaded.
+ */
+function resolveOptionValue(
+  options: Array<{ value: string; label: string }>,
+  stored: string | undefined,
+): string {
+  if (!stored) return '';
+  if (options.some(opt => opt.value === stored)) return stored;
+  return options.find(opt => opt.label === stored)?.value ?? '';
+}
 
 /**
  * Register a custom GrapesJS trait type `layer-manager`.
@@ -76,15 +114,7 @@ export default function registerLayerManagerTrait(editor: GrapesJSEditor) {
       el.className = 'series-manager-panel'; // reuse existing panel CSS
 
       // ── Parse current layers from the component attribute ──
-      let layers: LayerItem[] = [];
-      const attrVal = component.getAttributes()['map-layers'];
-      if (typeof attrVal === 'string' && attrVal.trim().startsWith('[')) {
-        try {
-          layers = JSON.parse(attrVal);
-        } catch {
-          layers = [];
-        }
-      }
+      const layers: LayerItem[] = parseLayers(component.getAttributes()['map-layers']);
 
       // ── Write the serialised layer list back to the component ──
       const persist = (silent = false) => {
@@ -111,9 +141,17 @@ export default function registerLayerManagerTrait(editor: GrapesJSEditor) {
       const render = () => {
         el.innerHTML = '';
 
+        // Class list backing every data-source select — one lookup per render.
+        let classOptions: Array<{ value: string; label: string }> = [];
+        try {
+          classOptions = getClassOptions();
+        } catch (_) {
+          // diagram-helpers warns on its own when no class diagram is loaded
+        }
+
         // Section title
         const title = document.createElement('div');
-        title.textContent = i18n.t('editors.gui.layerManager.title', { defaultValue: 'Map Layers' });
+        title.textContent = i18n.t('editors.gui.layerManager.title');
         title.className = 'series-title';
         el.appendChild(title);
 
@@ -133,7 +171,7 @@ export default function registerLayerManagerTrait(editor: GrapesJSEditor) {
 
           const nameInput = document.createElement('input');
           nameInput.type = 'text';
-          nameInput.placeholder = `Layer ${idx + 1}`;
+          nameInput.placeholder = i18n.t('editors.gui.layerManager.defaultLayerName', { index: idx + 1 });
           nameInput.value = layer.name || '';
           nameInput.style.cssText =
             'flex:1;min-width:0;font-weight:600;font-size:13px;' +
@@ -149,7 +187,7 @@ export default function registerLayerManagerTrait(editor: GrapesJSEditor) {
           LAYER_TYPES.forEach(lt => {
             const opt = document.createElement('option');
             opt.value = lt.value;
-            opt.textContent = lt.label;
+            opt.textContent = i18n.t(lt.labelKey);
             if (lt.value === (layer.type || 'points')) opt.selected = true;
             typeSelect.appendChild(opt);
           });
@@ -169,7 +207,7 @@ export default function registerLayerManagerTrait(editor: GrapesJSEditor) {
           removeBtn.innerHTML = '&times;';
           removeBtn.type = 'button';
           removeBtn.className = 'remove-btn remove-btn-x';
-          removeBtn.title = 'Remove layer';
+          removeBtn.title = i18n.t('editors.gui.layerManager.removeLayer');
           removeBtn.addEventListener('click', () => {
             layers.splice(idx, 1);
             update();
@@ -182,7 +220,7 @@ export default function registerLayerManagerTrait(editor: GrapesJSEditor) {
 
           // ── Data source select ──
           const dsLabel = document.createElement('label');
-          dsLabel.textContent = i18n.t('editors.gui.seriesManager.dataSource', { defaultValue: 'Data Source' });
+          dsLabel.textContent = i18n.t('editors.gui.seriesManager.dataSource');
           dsLabel.style.cssText = 'display:block;font-size:12px;margin-top:4px;';
 
           const dsSelect = document.createElement('select');
@@ -190,21 +228,18 @@ export default function registerLayerManagerTrait(editor: GrapesJSEditor) {
 
           const dsBlank = document.createElement('option');
           dsBlank.value = '';
-          dsBlank.textContent = '— none —';
+          dsBlank.textContent = i18n.t('editors.gui.layerManager.none');
           dsSelect.appendChild(dsBlank);
 
-          try {
-            const classOptions = getClassOptions();
-            classOptions.forEach((opt: any) => {
-              const o = document.createElement('option');
-              o.value = opt.value;
-              o.textContent = opt.label || opt.value;
-              if (opt.value === (layer.dataSource ?? '')) o.selected = true;
-              dsSelect.appendChild(o);
-            });
-          } catch (_) {
-            // diagram-helpers may throw if no diagram is loaded yet
-          }
+          // An imported model stores the class NAME, the editor stores its id.
+          const selectedClassId = resolveOptionValue(classOptions, layer.dataSource);
+          classOptions.forEach(opt => {
+            const o = document.createElement('option');
+            o.value = opt.value;
+            o.textContent = opt.label || opt.value;
+            if (opt.value === selectedClassId) o.selected = true;
+            dsSelect.appendChild(o);
+          });
 
           dsSelect.addEventListener('change', () => {
             layer.dataSource = dsSelect.value || undefined;
@@ -225,15 +260,16 @@ export default function registerLayerManagerTrait(editor: GrapesJSEditor) {
           const activeFields = getFieldsForType(layer.type || 'points');
 
           let attrOptions: Array<{ value: string; label: string }> = [];
-          if (layer.dataSource) {
+          if (selectedClassId) {
             try {
-              attrOptions = getAttributeOptionsByClassId(layer.dataSource);
+              attrOptions = getAttributeOptionsByClassId(selectedClassId);
             } catch (_) { /* no class loaded */ }
           }
 
           activeFields.forEach(fieldKey => {
             const fLabel = document.createElement('label');
-            fLabel.textContent = FIELD_LABELS[fieldKey] ?? fieldKey;
+            const labelKey = FIELD_LABEL_KEYS[fieldKey];
+            fLabel.textContent = labelKey ? i18n.t(labelKey) : fieldKey;
             fLabel.style.cssText = 'display:block;font-size:12px;margin-top:4px;';
 
             const fSelect = document.createElement('select');
@@ -241,15 +277,16 @@ export default function registerLayerManagerTrait(editor: GrapesJSEditor) {
 
             const blankOpt = document.createElement('option');
             blankOpt.value = '';
-            blankOpt.textContent = '— none —';
+            blankOpt.textContent = i18n.t('editors.gui.layerManager.none');
             fSelect.appendChild(blankOpt);
 
+            // Same id-or-name resolution as the data source above.
+            const selectedFieldId = resolveOptionValue(attrOptions, (layer as any)[fieldKey]);
             attrOptions.forEach(opt => {
               const o = document.createElement('option');
               o.value = opt.value;
               o.textContent = opt.label;
-              const current = (layer as any)[fieldKey];
-              if (opt.value === (current ?? '')) o.selected = true;
+              if (opt.value === selectedFieldId) o.selected = true;
               fSelect.appendChild(o);
             });
 
@@ -270,9 +307,12 @@ export default function registerLayerManagerTrait(editor: GrapesJSEditor) {
         addBtn.innerHTML = '<span class="add-btn-plus">&#43;</span>';
         addBtn.type = 'button';
         addBtn.className = 'add-btn add-btn-circle';
-        addBtn.title = i18n.t('editors.gui.layerManager.addLayer', { defaultValue: 'Add Layer' });
+        addBtn.title = i18n.t('editors.gui.layerManager.addLayer');
         addBtn.addEventListener('click', () => {
-          layers.push({ name: `Layer ${layers.length + 1}`, type: 'points' });
+          layers.push({
+            name: i18n.t('editors.gui.layerManager.defaultLayerName', { index: layers.length + 1 }),
+            type: 'points',
+          });
           update();
         });
         el.appendChild(addBtn);
@@ -280,10 +320,6 @@ export default function registerLayerManagerTrait(editor: GrapesJSEditor) {
 
       render();
       return el;
-    },
-
-    onEvent({ elInput, component }: { elInput: HTMLElement; component: GrapesJSComponent }) {
-      // All changes are handled inside createInput; this hook is intentionally empty.
     },
   });
 }

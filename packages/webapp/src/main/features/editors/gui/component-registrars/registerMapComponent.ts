@@ -1,45 +1,48 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
+// Vite hands the bundled stylesheet over as a plain string, so the canvas can be
+// styled from the build output instead of a runtime CDN request.
+import leafletCss from 'leaflet/dist/leaflet.css?inline';
 import { MapConfig } from '../configs/mapConfig';
-import registerLayerManagerTrait from '../traits/registerLayerManagerTrait';
+import registerLayerManagerTrait, { parseLayers } from '../traits/registerLayerManagerTrait';
+
+/** Zoom level used when the `map-zoom` attribute is missing or unparseable. */
+const DEFAULT_ZOOM = 12;
 
 /**
  * GrapesJS renders its canvas inside an <iframe>, so CSS bundled by Vite for the
  * parent frame is NOT automatically available inside the canvas. Leaflet relies on
- * its CSS for tile / control / marker positioning, so we inject it once into the
- * iframe document via a <link> pointing at the unpkg CDN.  The id guard prevents
- * double-injection.
+ * its CSS for tile / control / marker positioning, so we inject the bundled
+ * stylesheet text once into the iframe document as a <style> element.  The id
+ * guard prevents double-injection.
  */
 function ensureLeafletCssInFrame(el: HTMLElement): void {
   const frameDoc = el.ownerDocument;
   if (!frameDoc || frameDoc.getElementById('leaflet-css-injected')) return;
-  const link = frameDoc.createElement('link');
-  link.id = 'leaflet-css-injected';
-  link.rel = 'stylesheet';
-  link.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
-  (frameDoc.head || frameDoc.body || frameDoc.documentElement)?.appendChild(link);
+  const style = frameDoc.createElement('style');
+  style.id = 'leaflet-css-injected';
+  style.textContent = leafletCss;
+  (frameDoc.head || frameDoc.body || frameDoc.documentElement)?.appendChild(style);
 }
 
-/** Pull all props for MapComponent out of the GrapesJS attribute bag. */
-const buildMapProps = (attrs: Record<string, any>, config: MapConfig): any => {
-  // Parse the layer list from the serialised JSON string stored in map-layers.
-  let layers: any[] = [];
-  const rawLayers = attrs['map-layers'];
-  if (typeof rawLayers === 'string' && rawLayers.trim().startsWith('[')) {
-    try {
-      layers = JSON.parse(rawLayers);
-    } catch {
-      layers = [];
-    }
-  }
-  return {
-    title: attrs['map-title'] || config.defaultTitle,
-    latitude: parseFloat(attrs['map-latitude']) || config.defaultLatitude,
-    longitude: parseFloat(attrs['map-longitude']) || config.defaultLongitude,
-    zoom: parseInt(attrs['map-zoom']) || 12,
-    layers,
-  };
+/**
+ * Read a numeric attribute, falling back only when it is genuinely unusable.
+ * `parseFloat(x) || fallback` would snap a legitimate 0 (equator / prime
+ * meridian / zoom 0) back to the default.
+ */
+const readNumber = (raw: any, fallback: number): number => {
+  const value = parseFloat(raw);
+  return Number.isFinite(value) ? value : fallback;
 };
+
+/** Pull all props for MapComponent out of the GrapesJS attribute bag. */
+const buildMapProps = (attrs: Record<string, any>, config: MapConfig): any => ({
+  title: attrs['map-title'] || config.defaultTitle,
+  latitude: readNumber(attrs['map-latitude'], config.defaultLatitude),
+  longitude: readNumber(attrs['map-longitude'], config.defaultLongitude),
+  zoom: readNumber(attrs['map-zoom'], DEFAULT_ZOOM),
+  layers: parseLayers(attrs['map-layers']),
+});
 
 /**
  * Register the Map component in the GrapesJS editor.

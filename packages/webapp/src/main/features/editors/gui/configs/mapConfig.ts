@@ -40,6 +40,6 @@ export const getMapConfig = (): MapConfig => ({
     { type: 'number', label: i18n.t('editors.gui.traits.longitude'), name: 'map-longitude', value: 6.1319, changeProp: 1 },
     { type: 'number', label: i18n.t('editors.gui.traits.zoom'), name: 'map-zoom', value: 12, changeProp: 1 },
     // --- layer manager (add/remove layers, per-layer type + field selects) ---
-    { type: 'layer-manager', label: i18n.t('editors.gui.traits.layers', { defaultValue: 'Layers' }), name: 'map-layers', value: '[]', changeProp: 1 },
+    { type: 'layer-manager', label: i18n.t('editors.gui.traits.layers'), name: 'map-layers', value: '[]', changeProp: 1 },
   ],
 });
