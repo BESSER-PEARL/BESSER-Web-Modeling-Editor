@@ -1,7 +1,14 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { UMLDiagramType, UMLModel, diagramBridge } from '@besser/wme';
+import {
+  UMLDiagramType,
+  UMLModel,
+  diagramBridge,
+  AGENT_LLM_PROVIDERS,
+  canonicalizeAgentLLMProvider,
+} from '@besser/wme';
+import type { AgentLLMProviderType } from '@besser/wme';
 import { toast } from 'react-toastify';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -63,7 +70,6 @@ type MappingRecommendationSignals = {
   isMultilingual: boolean;
 };
 
-const DEFAULT_CONFIG_NAME = 'Default Agent Configuration';
 
 // Feature flag — hides agent configuration fields whose runtime support
 // isn't fully wired up yet (voice gender/speed, avatar upload, response
@@ -354,9 +360,10 @@ const flattenStructuredConfig = (raw: any): Partial<AgentConfigurationPayload> =
 
 const cloneModel = (model: UMLModel): UMLModel => JSON.parse(JSON.stringify(model)) as UMLModel;
 
-type AgentLLMElementProvider = 'openai' | 'huggingface' | 'huggingface_api' | 'replicate' | 'ollama';
+/** Provider on a diagram AgentLLM element. Canonical keys only — see canonicalizeAgentLLMProvider. */
+export type AgentLLMElementProvider = AgentLLMProviderType;
 
-type AgentLLMElement = {
+export type AgentLLMElement = {
   id: string;
   type: 'AgentLLM';
   name: string;
@@ -368,13 +375,35 @@ type AgentLLMElement = {
   global_context: string | null;
 };
 
-const AGENT_LLM_PROVIDER_OPTIONS: Array<{ value: AgentLLMElementProvider; label: string }> = [
-  { value: 'openai', label: 'OpenAI' },
-  { value: 'huggingface', label: 'Hugging Face' },
-  { value: 'huggingface_api', label: 'Hugging Face API' },
-  { value: 'replicate', label: 'Replicate' },
-  { value: 'ollama', label: 'Ollama (local)' },
+// Display order is deliberately different from AGENT_LLM_PROVIDERS (hosted families
+// first, local/self-hosted last). The Record type below is the completeness guard:
+// adding a provider to the canonical list without a label here fails the build.
+const AGENT_LLM_PROVIDER_LABELS: Record<AgentLLMProviderType, string> = {
+  openai: 'OpenAI',
+  mistral: 'Mistral AI',
+  deepseek: 'DeepSeek',
+  google: 'Google (Gemini)',
+  meta: 'Meta (Llama)',
+  anthropic: 'Anthropic (Claude)',
+  qwen: 'Alibaba Qwen',
+  xai: 'xAI (Grok)',
+  groq: 'Groq',
+  together: 'Together AI',
+  openrouter: 'OpenRouter',
+  huggingface: 'Hugging Face (local)',
+  huggingface_api: 'Hugging Face API',
+  replicate: 'Replicate',
+  ollama: 'Ollama (local)',
+};
+
+const AGENT_LLM_PROVIDER_DISPLAY_ORDER: readonly AgentLLMProviderType[] = [
+  'openai', 'mistral', 'deepseek', 'google', 'meta', 'anthropic', 'qwen',
+  'xai', 'groq', 'together', 'openrouter', 'huggingface', 'huggingface_api',
+  'replicate', 'ollama',
 ];
+
+export const AGENT_LLM_PROVIDER_OPTIONS: Array<{ value: AgentLLMElementProvider; label: string }> =
+  AGENT_LLM_PROVIDER_DISPLAY_ORDER.map((value) => ({ value, label: AGENT_LLM_PROVIDER_LABELS[value] }));
 
 const generateAgentLLMId = (): string => {
   if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
@@ -389,10 +418,10 @@ const isAgentLLMElement = (value: unknown): value is AgentLLMElement => {
   return candidate.type === 'AgentLLM';
 };
 
-const normalizeAgentLLMElement = (raw: any, fallbackId: string): AgentLLMElement => {
-  const provider = (['openai', 'huggingface', 'huggingface_api', 'replicate', 'ollama'].includes(raw?.provider)
-    ? raw.provider
-    : 'openai') as AgentLLMElementProvider;
+export const normalizeAgentLLMElement = (raw: any, fallbackId: string): AgentLLMElement => {
+  // Accepts legacy spellings and maps them onto the canonical key, so a config
+  // saved before 'huggingface_api' existed is migrated rather than reset.
+  const provider = canonicalizeAgentLLMProvider(raw?.provider);
   const parameters =
     raw?.parameters && typeof raw.parameters === 'object' && !Array.isArray(raw.parameters)
       ? (raw.parameters as Record<string, unknown>)
@@ -756,7 +785,7 @@ const AgentLLMRow: React.FC<AgentLLMRowProps> = ({
           {element.provider === 'ollama' && (
             <div className="grid gap-3 md:grid-cols-2">
               <div className="space-y-1.5">
-                <Label htmlFor={`agent-llm-ollama-url-${element.id}`}>Base URL</Label>
+                <Label htmlFor={`agent-llm-ollama-url-${element.id}`}>{t('agentConfig.row.ollamaBaseUrl')}</Label>
                 <Input
                   id={`agent-llm-ollama-url-${element.id}`}
                   value={(element.parameters.base_url as string) ?? 'http://localhost:11434'}
@@ -765,11 +794,11 @@ const AgentLLMRow: React.FC<AgentLLMRowProps> = ({
                 />
               </div>
               <div className="space-y-1.5">
-                <Label htmlFor={`agent-llm-ollama-model-${element.id}`}>Model</Label>
+                <Label htmlFor={`agent-llm-ollama-model-${element.id}`}>{t('agentConfig.row.ollamaModel')}</Label>
                 <Input
                   id={`agent-llm-ollama-model-${element.id}`}
                   value={(element.parameters.model as string) ?? ''}
-                  placeholder="e.g. llama3, mistral, qwen2.5"
+                  placeholder={t('agentConfig.row.ollamaModelPlaceholder')}
                   onChange={(event) => updateOllamaParam('model', event.target.value)}
                 />
               </div>
@@ -847,7 +876,7 @@ export const AgentConfigurationPanel: React.FC = () => {
   const [selectedConfigId, setSelectedConfigId] = useState<string>(initialLoad.activeId || '');
   const [activeConfigId, setActiveConfigId] = useState<string | null>(initialLoad.activeId);
   const [activeConfigName, setActiveConfigName] = useState<string>(initialLoad.activeName || '');
-  const [configurationName, setConfigurationName] = useState<string>(initialLoad.activeName || DEFAULT_CONFIG_NAME);
+  const [configurationName, setConfigurationName] = useState<string>(initialLoad.activeName || t('agentConfig.save.defaultName'));
 
   const [isLoading, setIsLoading] = useState(false);
   const [loadingMessage, setLoadingMessage] = useState(() => t('agentConfig.loading.preparing'));
@@ -1307,7 +1336,7 @@ export const AgentConfigurationPanel: React.FC = () => {
       setActiveConfigId(nextId);
       setSelectedConfigId(nextId ?? '');
       setActiveConfigName(nextName);
-      setConfigurationName(nextName || DEFAULT_CONFIG_NAME);
+      setConfigurationName(nextName || t('agentConfig.save.defaultName'));
     }
   }, []);
 
@@ -1838,7 +1867,7 @@ export const AgentConfigurationPanel: React.FC = () => {
   const resetFormToDefaults = useCallback(() => {
     applyConfiguration(createDefaultConfig());
     setActiveCustomizationSection(null);
-    setConfigurationName(DEFAULT_CONFIG_NAME);
+    setConfigurationName(t('agentConfig.save.defaultName'));
     setActiveConfigId(null);
     setActiveConfigName('');
     setSelectedConfigId('');
@@ -2282,8 +2311,8 @@ export const AgentConfigurationPanel: React.FC = () => {
                       agentPlatformUseStreamlit: event.target.value !== 'websocket' ? false : agentRuntimeConfig.agentPlatformUseStreamlit,
                     })}
                   >
-                    <option value="websocket">WebSocket</option>
-                    <option value="telegram">Telegram</option>
+                    <option value="websocket">{t('agentConfig.runtime.platformWebSocket')}</option>
+                    <option value="telegram">{t('agentConfig.runtime.platformTelegram')}</option>
                   </select>
                   {agentRuntimeConfig.agentPlatform === 'websocket' && (
                     <label className="flex items-center gap-2 text-sm cursor-pointer pt-1">
@@ -2292,7 +2321,7 @@ export const AgentConfigurationPanel: React.FC = () => {
                         checked={agentRuntimeConfig.agentPlatformUseStreamlit ?? false}
                         onChange={(e) => updateAgentRuntimeConfig({ agentPlatformUseStreamlit: e.target.checked })}
                       />
-                      Use Streamlit UI
+                      {t('agentConfig.runtime.useStreamlitUi')}
                     </label>
                   )}
                 </div>
@@ -2381,9 +2410,9 @@ export const AgentConfigurationPanel: React.FC = () => {
 
           <Card>
             <CardHeader>
-              <CardTitle>Agent Configuration File (<code>config.yaml</code>)</CardTitle>
+              <CardTitle>{t('agentConfig.yaml.title')}</CardTitle>
               <CardDescription>
-                Edit the <code>config.yaml</code> file that will be included when generating the agent.
+                {t('agentConfig.yaml.description')}
                 {' '}
                 <a
                   href="https://besser-agentic-framework.readthedocs.io/latest/wiki/configuration_properties.html"
@@ -2391,7 +2420,7 @@ export const AgentConfigurationPanel: React.FC = () => {
                   rel="noopener noreferrer"
                   className="text-brand underline underline-offset-2 hover:text-brand/80"
                 >
-                  Configuration properties reference ↗
+                  {t('agentConfig.yaml.linkText')}
                 </a>
               </CardDescription>
             </CardHeader>

@@ -166,6 +166,42 @@ export function getClassMetadata(classId: string, includeInherited: boolean = tr
   };
 }
 
+/**
+ * Map a relationship to the association end navigable from any of the given classes.
+ * Only real association types (bidirectional, unidirectional, composition, aggregation)
+ * produce ends — inheritance, OCL links and any other relationship kinds never do,
+ * and an end pointing at an OCL constraint element is never navigable.
+ */
+function getNavigableEndForClassIds(
+  relationship: any,
+  classIds: string[],
+  elements: any,
+): { value: string; label: string } | null {
+  const endFor = (other: any): { value: string; label: string } | null => {
+    const otherElementId = other?.element;
+    const otherElement = elements?.[otherElementId];
+    if (otherElement?.type === 'ClassOCLConstraint') return null;
+    let label = other?.role;
+    if (!label || label.trim() === '') label = otherElement?.name || '';
+    return { value: otherElementId, label };
+  };
+
+  // For bidirectional and composition/aggregation, both ends are navigable
+  if (
+    relationship?.type === 'ClassBidirectional' ||
+    relationship?.type === 'ClassComposition' ||
+    relationship?.type === 'ClassAggregation'
+  ) {
+    if (classIds.includes(relationship.source?.element)) return endFor(relationship.target);
+    if (classIds.includes(relationship.target?.element)) return endFor(relationship.source);
+  }
+  // For unidirectional, only source can navigate to target
+  if (relationship?.type === 'ClassUnidirectional') {
+    if (classIds.includes(relationship.source?.element)) return endFor(relationship.target);
+  }
+  return null;
+}
+
 export function getEndsByClassId(classId: string, includeInherited: boolean = true): { value: string; label: string }[] {
   const classDiagram = getClassDiagramModel();
 
@@ -175,66 +211,7 @@ export function getEndsByClassId(classId: string, includeInherited: boolean = tr
 
   // Only return association ends with navigability from the given class
   const directEnds = Object.values(classDiagram.relationships)
-    .filter((relationship: any) => relationship?.type !== 'ClassInheritance')
-    .map((relationship: any) => {
-      // For bidirectional, both ends are navigable
-      if (relationship.type === 'ClassBidirectional') {
-        if (relationship.source.element === classId) {
-          // Navigable from source to target
-          const otherElementId = relationship.target.element;
-          const role = relationship.target.role;
-          const otherElement = classDiagram.elements?.[otherElementId];
-          if (otherElement?.type === 'ClassOCLConstraint') return null;
-          let label = role;
-          if (!label || label.trim() === '') label = otherElement?.name || '';
-          return { value: otherElementId, label };
-        }
-        if (relationship.target.element === classId) {
-          // Navigable from target to source
-          const otherElementId = relationship.source.element;
-          const role = relationship.source.role;
-          const otherElement = classDiagram.elements?.[otherElementId];
-          if (otherElement?.type === 'ClassOCLConstraint') return null;
-          let label = role;
-          if (!label || label.trim() === '') label = otherElement?.name || '';
-          return { value: otherElementId, label };
-        }
-      }
-      // For unidirectional, only source can navigate to target
-      if (relationship.type === 'ClassUnidirectional') {
-        if (relationship.source.element === classId) {
-          const otherElementId = relationship.target.element;
-          const role = relationship.target.role;
-          const otherElement = classDiagram.elements?.[otherElementId];
-          if (otherElement?.type === 'ClassOCLConstraint') return null;
-          let label = role;
-          if (!label || label.trim() === '') label = otherElement?.name || '';
-          return { value: otherElementId, label };
-        }
-      }
-      // For composition/aggregation, both ends are navigable (same as bidirectional)
-      if (relationship.type === 'ClassComposition' || relationship.type === 'ClassAggregation') {
-        if (relationship.source.element === classId) {
-          const otherElementId = relationship.target.element;
-          const role = relationship.target.role;
-          const otherElement = classDiagram.elements?.[otherElementId];
-          if (otherElement?.type === 'ClassOCLConstraint') return null;
-          let label = role;
-          if (!label || label.trim() === '') label = otherElement?.name || '';
-          return { value: otherElementId, label };
-        }
-        if (relationship.target.element === classId) {
-          const otherElementId = relationship.source.element;
-          const role = relationship.source.role;
-          const otherElement = classDiagram.elements?.[otherElementId];
-          if (otherElement?.type === 'ClassOCLConstraint') return null;
-          let label = role;
-          if (!label || label.trim() === '') label = otherElement?.name || '';
-          return { value: otherElementId, label };
-        }
-      }
-      return null;
-    })
+    .map((relationship: any) => getNavigableEndForClassIds(relationship, [classId], classDiagram.elements))
     .filter((end): end is { value: string; label: string } => end !== null);
 
   // Add inherited association ends if requested
@@ -324,17 +301,11 @@ export function getInheritedEndsByClassId(classId: string): { value: string; lab
   const parentIds = getParentClassIds(classId);
   if (parentIds.length === 0) return [];
 
-  // Collect relationships from all parent classes (excluding inheritance relationships)
-  const inheritedEnds: { value: string; label: string }[] = [];
-  Object.values((classDiagram as any).relationships)
-    .filter((rel: any) => rel?.type !== 'ClassInheritance')
-    .forEach((rel: any) => {
-      if (parentIds.includes(rel?.source?.element)) {
-        inheritedEnds.push({ value: rel.target.element, label: rel.target.role });
-      } else if (parentIds.includes(rel?.target?.element)) {
-        inheritedEnds.push({ value: rel.source.element, label: rel.source.role });
-      }
-    });
+  // Collect association ends from all parent classes — same navigability and
+  // OCL filtering as the direct ends in getEndsByClassId
+  const inheritedEnds = Object.values((classDiagram as any).relationships)
+    .map((rel: any) => getNavigableEndForClassIds(rel, parentIds, (classDiagram as any).elements))
+    .filter((end: any): end is { value: string; label: string } => end !== null);
 
   return inheritedEnds;
 }
