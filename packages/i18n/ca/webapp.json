@@ -50,7 +50,8 @@
       "user": "Usuari",
       "neuralNet": "Xarxa neuronal",
       "gui": "GUI",
-      "quantum": "Quàntic"
+      "quantum": "Quàntic",
+      "platform": "Plataforma"
     },
     "route": {
       "settings": "Configuració",
@@ -1340,7 +1341,8 @@
     "GUINoCodeDiagram": "Diagrama de GUI",
     "QuantumCircuitDiagram": "Diagrama de circuit quàntic",
     "BPMN": "Diagrama BPMN",
-    "NNDiagram": "Diagrama de xarxa neuronal"
+    "NNDiagram": "Diagrama de xarxa neuronal",
+    "PlatformCustomizationDiagram": "Personalització de la plataforma"
   },
   "dialogs": {
     "about": {
@@ -1778,6 +1780,7 @@
       "maxDiagrams": "Màxim {{count}} diagrames per tipus.",
       "classRefTooltipObject": "Selecciona quin diagrama de classes proporciona el model de dades per a aquest diagrama d'objectes",
       "classRefTooltipGui": "Selecciona quin diagrama de classes proporciona el model de dades per a aquesta interfície gràfica",
+      "classRefTooltipPlatform": "Selecciona a quin diagrama de classes s'aplica aquesta personalització de la plataforma",
       "validationValidated": "Validat",
       "validationIssues": "Problemes",
       "validationNeedsValidation": "Cal validació",
@@ -2344,6 +2347,7 @@
     },
     "loadingGuiEditor": "S'està carregant l'editor de GUI...",
     "loadingQuantumEditor": "S'està carregant l'editor quàntic...",
+    "loadingPlatformEditor": "S'està carregant la personalització de la plataforma...",
     "hiddenPerspectives": {
       "messagePlural": "Aquest projecte utilitza {{labels}}, però aquestes perspectives estan amagades.",
       "messageSingular": "Aquest projecte utilitza {{labels}}, però aquesta perspectiva està amagada.",
@@ -2482,6 +2486,177 @@
       "measurementOutput": "Sortida de mesura: generada automàticament a partir de les portes de mesura",
       "dropHere": "Deixa-ho anar aquí",
       "invalid": "No vàlid"
+    }
+  },
+  "platformCustomization": {
+    "header": {
+      "title": "Personalització de la plataforma",
+      "description": "Sobreescriptures visuals aplicades quan el generador de <strong>Plataforma</strong> converteix el vostre diagrama de classes en un editor d'instàncies independent.",
+      "readingFrom": "Origen: {{title}}"
+    },
+    "empty": {
+      "noProject": {
+        "title": "No hi ha cap projecte carregat",
+        "message": "Creeu o obriu un projecte per personalitzar el generador de la plataforma."
+      },
+      "noClassDiagram": {
+        "title": "No hi ha cap diagrama de classes disponible",
+        "message": "Creeu primer un diagrama de classes; aquest panell llista les seves classes i associacions."
+      },
+      "emptyClassDiagram": {
+        "title": "El diagrama de classes és buit",
+        "message": "Afegiu com a mínim una classe al diagrama de classes referenciat."
+      }
+    },
+    "validation": {
+      "title": "El cablejat de connexions necessita atenció ({{count}})",
+      "issue": {
+        "noSourceEndpoint": "La classe de connexió \"{{class}}\" no té cap associació marcada com a punt final d'Origen.",
+        "multipleSourceEndpoints": "La classe de connexió \"{{class}}\" té diverses associacions de punt final d'Origen: {{names}}.",
+        "noTargetEndpoint": "La classe de connexió \"{{class}}\" no té cap associació marcada com a punt final de Destinació.",
+        "multipleTargetEndpoints": "La classe de connexió \"{{class}}\" té diverses associacions de punt final de Destinació: {{names}}.",
+        "endpointTargetsNonPort": "L'associació de punt final \"{{association}}\" apunta a classe(s) que no són Port: {{names}}.",
+        "endpointSourceNotConnection": "L'associació \"{{association}}\" està marcada com a punt final, però la seva classe d'origen no és una Connexió."
+      }
+    },
+    "sections": {
+      "classes": "Classes",
+      "associations": "Associacions",
+      "noAssociationsHint": "No hi ha associacions per personalitzar. Afegiu-ne al Diagrama de classes i torneu aquí per establir colors i fletxes de les arestes."
+    },
+    "diagramCard": {
+      "title": "Diagrama",
+      "lightTheme": "Tema clar",
+      "darkTheme": "Tema fosc",
+      "lightThemeTooltip": "Aplica el preajust de tema clar a totes les classes i associacions",
+      "darkThemeTooltip": "Aplica el preajust de tema fosc a totes les classes i associacions",
+      "body": "Utilitzeu els botons de preajust anteriors per aplicar en bloc un esquema de color a totes les classes i associacions. Els valors per defecte de la graella, el fons, el tema i l'encaminament de les arestes es poden canviar en temps d'execució dins la plataforma generada mitjançant el menú de Configuració."
+    },
+    "representation": {
+      "label": "Representació",
+      "description": "Com es representen les instàncies d'aquesta classe a l'editor generat.",
+      "options": {
+        "node": { "label": "Node", "description": "Caixa independent al llenç (per defecte)" },
+        "container": { "label": "Contenidor", "description": "Allotja altres nodes mitjançant associacions de contenidor" },
+        "port": { "label": "Port", "description": "Es representa com una nansa al seu equip propietari" },
+        "connection": { "label": "Connexió", "description": "Es representa com una aresta entre dos ports" }
+      },
+      "containerTip": "Consell: obriu cada relació a la secció Associacions i activeu <strong>Associació de contenidor</strong> per a aquelles els destins de les quals s'han de niar dins d'aquest contenidor en temps d'execució.",
+      "portTip": "Les instàncies d'aquesta classe es representen com a nanses gràfiques al seu equip propietari, no com a nodes independents.",
+      "connectionTip": "Les instàncies d'aquesta classe es representen com a arestes entre dos ports. Marqueu exactament una associació sortint com a <strong>punt final d'Origen</strong> i una altra com a <strong>punt final de Destinació</strong> (les classes de destinació han de ser Ports)."
+    },
+    "association": {
+      "containerAssociation": {
+        "label": "Associació de contenidor",
+        "helpEnabled": "Quan està activat, deixar anar una instància de destinació dins d'una instància d'origen contenidor crea automàticament aquest enllaç i nia el fill visualment. L'aresta queda amagada perquè el niament ja ho transmet.",
+        "helpDisabled": "Activeu primer una classe contenidor; aquest interruptor només es té en compte quan l'origen d'aquesta associació és un contenidor."
+      },
+      "endpointRole": {
+        "label": "Rol de punt final",
+        "helpBothOk": "Designeu aquesta associació com el punt final de port d'origen o port de destinació de la seva classe de connexió.",
+        "helpNoPortTarget": "La classe d'origen és una connexió, però la classe de destinació no és un Port. Marqueu la classe de destinació com a Port perquè aquest punt final funcioni en temps d'execució.",
+        "helpNotConnection": "Sense efecte: només es té en compte quan la classe d'origen és una Connexió.",
+        "options": {
+          "normal": "Normal",
+          "source": "Origen",
+          "target": "Destinació"
+        }
+      }
+    },
+    "groups": {
+      "line": "Línia",
+      "arrows": "Fletxes",
+      "label": "Etiqueta",
+      "layout": "Disposició",
+      "appearance": "Aparença",
+      "typography": "Tipografia"
+    },
+    "fields": {
+      "color": "Color",
+      "width": "Amplada",
+      "style": "Estil",
+      "routing": "Encaminament",
+      "sourceArrow": "Fletxa d'origen",
+      "targetArrow": "Fletxa de destinació",
+      "visible": "Visible",
+      "fontSize": "Mida de la lletra",
+      "fontColor": "Color de la lletra",
+      "resizable": "Redimensionable",
+      "resizableTooltip": "Mostra nanses d'arrossegament a les instàncies perquè l'usuari pugui redimensionar el node",
+      "widthPx": "Amplada (px)",
+      "heightPx": "Alçada (px)",
+      "shape": "Forma",
+      "labelPosition": "Posició de l'etiqueta",
+      "anchorSide": "Costat d'ancoratge",
+      "useIcon": "Utilitza la icona",
+      "useIconTooltip": "Quan està desactivat, s'utilitza l'estil de forma / farciment / vora en lloc de la icona del diagrama de classes",
+      "fill": "Farciment",
+      "border": "Vora",
+      "borderWidth": "Amplada de la vora",
+      "borderStyle": "Estil de la vora",
+      "borderRadius": "Radi de la vora",
+      "fontWeight": "Gruix de la lletra",
+      "connectionPoints": "Punts de connexió",
+      "preview": "Vista prèvia"
+    },
+    "options": {
+      "lineStyle": { "solid": "Sòlida", "dashed": "Discontínua", "dotted": "Puntejada" },
+      "arrow": {
+        "none": "Cap",
+        "filledTriangle": "Triangle ple ▶",
+        "openTriangle": "Triangle obert",
+        "diamond": "Diamant ◆",
+        "openDiamond": "Diamant obert ◇",
+        "circle": "Cercle ●"
+      },
+      "routing": {
+        "bezier": "Corbada (bézier)",
+        "smoothstep": "Angular (suau)",
+        "step": "Angular (marcada)",
+        "straight": "Recta"
+      },
+      "shape": { "rectangle": "Rectangle", "ellipse": "El·lipse", "diamond": "Diamant", "hexagon": "Hexàgon" },
+      "labelPosition": { "top": "Amunt", "inside": "Dins", "bottom": "Avall" },
+      "fontWeight": { "normal": "Normal", "bold": "Negreta" },
+      "portSide": {
+        "auto": "Automàtic (utilitza l'atribut de direcció)",
+        "top": "Amunt",
+        "right": "Dreta",
+        "bottom": "Avall",
+        "left": "Esquerra"
+      },
+      "side": { "top": "Amunt", "right": "Dreta", "bottom": "Avall", "left": "Esquerra" }
+    },
+    "colors": {
+      "slate": "Pissarra",
+      "sky": "Cel",
+      "teal": "Verd blavós",
+      "emerald": "Maragda",
+      "amber": "Ambre",
+      "rose": "Rosa",
+      "indigo": "Indi",
+      "stone": "Pedra"
+    },
+    "common": {
+      "default": "Per defecte",
+      "defaultSuffix": "(per defecte)",
+      "clear": "Neteja",
+      "pickColor": "Trieu un color",
+      "defaultColor": "Per defecte: {{color}}",
+      "noColorSet": "Cap color establert",
+      "customize": "Personalitza",
+      "resetToDefault": "Restableix al valor per defecte",
+      "hexPlaceholder": "#22c55e o hsl(...)",
+      "auto": "auto",
+      "noConnectionHandles": "No es renderitzarà cap nansa de connexió en aquesta classe."
+    },
+    "aria": {
+      "representationFor": "Representació per a {{name}}",
+      "endpointRoleFor": "Rol de punt final per a {{name}}",
+      "nodePreview": "Vista prèvia de l'estil de node",
+      "edgePreview": "Vista prèvia de l'estil d'aresta",
+      "connectionPreview": "Vista prèvia de l'estil de connexió",
+      "portPreview": "Vista prèvia de l'estil de port"
     }
   }
 }

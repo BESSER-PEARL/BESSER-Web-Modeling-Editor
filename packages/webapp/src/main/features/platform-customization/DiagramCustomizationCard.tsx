@@ -11,6 +11,7 @@
  */
 
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { Palette, Sparkles, Moon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -34,38 +35,35 @@ interface DiagramCustomizationCardProps {
 export const DiagramCustomizationCard: React.FC<DiagramCustomizationCardProps> = ({
   onApplyPreset,
 }) => {
+  const { t } = useTranslation();
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between gap-3">
         <CardTitle className="flex items-center gap-2 text-base">
           <Palette className="size-4 text-brand" />
-          Diagram
+          {t('platformCustomization.diagramCard.title')}
         </CardTitle>
         <div className="flex gap-2">
           <Button
             variant="outline"
             size="sm"
             onClick={() => onApplyPreset('light')}
-            title="Apply the Light theme preset to all classes and associations"
+            title={t('platformCustomization.diagramCard.lightThemeTooltip')}
           >
-            <Sparkles className="size-3.5" /> Light theme
+            <Sparkles className="size-3.5" /> {t('platformCustomization.diagramCard.lightTheme')}
           </Button>
           <Button
             variant="outline"
             size="sm"
             onClick={() => onApplyPreset('dark')}
-            title="Apply the Dark theme preset to all classes and associations"
+            title={t('platformCustomization.diagramCard.darkThemeTooltip')}
           >
-            <Moon className="size-3.5" /> Dark theme
+            <Moon className="size-3.5" /> {t('platformCustomization.diagramCard.darkTheme')}
           </Button>
         </div>
       </CardHeader>
       <CardContent>
-        <p className="text-xs text-muted-foreground">
-          Use the preset buttons above to bulk-apply a color scheme to all classes and associations.
-          Grid, background, theme, and edge-routing defaults can be changed at runtime inside the
-          generated platform via the Settings menu.
-        </p>
+        <p className="text-xs text-muted-foreground">{t('platformCustomization.diagramCard.body')}</p>
       </CardContent>
     </Card>
   );

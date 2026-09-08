@@ -57,7 +57,7 @@ export const EditorView: React.FC = () => {
   if (activeDiagramType === 'PlatformCustomizationDiagram') {
     return (
       <EditorErrorBoundary>
-        <Suspense fallback={<SuspenseFallback message="Loading platform customization..." />}>
+        <Suspense fallback={<SuspenseFallback message={t('editors.loadingPlatformEditor')} />}>
           <PlatformCustomizationPanel key={`platform-${activeDiagramIndex}`} />
         </Suspense>
       </EditorErrorBoundary>

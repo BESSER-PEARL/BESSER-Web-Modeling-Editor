@@ -50,7 +50,8 @@
       "user": "Benutzer",
       "neuralNet": "Neuronales Netz",
       "gui": "GUI",
-      "quantum": "Quanten"
+      "quantum": "Quanten",
+      "platform": "Plattform"
     },
     "route": {
       "settings": "Einstellungen",
@@ -1340,7 +1341,8 @@
     "GUINoCodeDiagram": "GUI-Diagramm",
     "QuantumCircuitDiagram": "Quantenschaltkreisdiagramm",
     "BPMN": "BPMN-Diagramm",
-    "NNDiagram": "Neuronales-Netz-Diagramm"
+    "NNDiagram": "Neuronales-Netz-Diagramm",
+    "PlatformCustomizationDiagram": "Plattform-Anpassung"
   },
   "dialogs": {
     "about": {
@@ -1778,6 +1780,7 @@
       "maxDiagrams": "Maximal {{count}} Diagramme pro Typ.",
       "classRefTooltipObject": "Wählen Sie, welches Klassendiagramm das Datenmodell für dieses Objektdiagramm bereitstellt",
       "classRefTooltipGui": "Wählen Sie, welches Klassendiagramm das Datenmodell für diese GUI bereitstellt",
+      "classRefTooltipPlatform": "Wählen Sie, auf welches Klassendiagramm sich diese Plattform-Anpassung bezieht",
       "validationValidated": "Validiert",
       "validationIssues": "Probleme",
       "validationNeedsValidation": "Validierung erforderlich",
@@ -2344,6 +2347,7 @@
     },
     "loadingGuiEditor": "GUI-Editor wird geladen...",
     "loadingQuantumEditor": "Quanteneditor wird geladen...",
+    "loadingPlatformEditor": "Plattform-Anpassung wird geladen...",
     "hiddenPerspectives": {
       "messagePlural": "Dieses Projekt verwendet {{labels}}, aber diese Perspektiven sind ausgeblendet.",
       "messageSingular": "Dieses Projekt verwendet {{labels}}, aber diese Perspektive ist ausgeblendet.",
@@ -2482,6 +2486,177 @@
       "measurementOutput": "Messausgabe – automatisch aus den Messgattern generiert",
       "dropHere": "Hier ablegen",
       "invalid": "Ungültig"
+    }
+  },
+  "platformCustomization": {
+    "header": {
+      "title": "Plattform-Anpassung",
+      "description": "Visuelle Überschreibungen, die angewendet werden, wenn der <strong>Plattform</strong>-Generator Ihr Klassendiagramm in einen eigenständigen Instanzeditor umwandelt.",
+      "readingFrom": "Quelle: {{title}}"
+    },
+    "empty": {
+      "noProject": {
+        "title": "Kein Projekt geladen",
+        "message": "Erstellen oder öffnen Sie ein Projekt, um den Plattform-Generator anzupassen."
+      },
+      "noClassDiagram": {
+        "title": "Kein Klassendiagramm verfügbar",
+        "message": "Erstellen Sie zunächst ein Klassendiagramm; dieses Panel listet dessen Klassen und Assoziationen auf."
+      },
+      "emptyClassDiagram": {
+        "title": "Klassendiagramm ist leer",
+        "message": "Fügen Sie mindestens eine Klasse im referenzierten Klassendiagramm hinzu."
+      }
+    },
+    "validation": {
+      "title": "Verbindungsverdrahtung erfordert Aufmerksamkeit ({{count}})",
+      "issue": {
+        "noSourceEndpoint": "Verbindungsklasse \"{{class}}\" hat keine Assoziation, die als Quell-Endpunkt markiert ist.",
+        "multipleSourceEndpoints": "Verbindungsklasse \"{{class}}\" hat mehrere Quell-Endpunkt-Assoziationen: {{names}}.",
+        "noTargetEndpoint": "Verbindungsklasse \"{{class}}\" hat keine Assoziation, die als Ziel-Endpunkt markiert ist.",
+        "multipleTargetEndpoints": "Verbindungsklasse \"{{class}}\" hat mehrere Ziel-Endpunkt-Assoziationen: {{names}}.",
+        "endpointTargetsNonPort": "Endpunkt-Assoziation \"{{association}}\" zielt auf Nicht-Port-Klasse(n): {{names}}.",
+        "endpointSourceNotConnection": "Assoziation \"{{association}}\" ist als Endpunkt markiert, aber ihre Quellklasse ist keine Verbindung."
+      }
+    },
+    "sections": {
+      "classes": "Klassen",
+      "associations": "Assoziationen",
+      "noAssociationsHint": "Keine Assoziationen zum Anpassen. Fügen Sie welche im Klassendiagramm hinzu — kommen Sie dann hierher zurück, um Kantenfarben und Pfeile festzulegen."
+    },
+    "diagramCard": {
+      "title": "Diagramm",
+      "lightTheme": "Helles Thema",
+      "darkTheme": "Dunkles Thema",
+      "lightThemeTooltip": "Das helle Themenvoreinstellung auf alle Klassen und Assoziationen anwenden",
+      "darkThemeTooltip": "Das dunkle Themenvoreinstellung auf alle Klassen und Assoziationen anwenden",
+      "body": "Verwenden Sie die Voreinstellungsschaltflächen oben, um ein Farbschema auf alle Klassen und Assoziationen anzuwenden. Standardwerte für Raster, Hintergrund, Thema und Kantenführung können zur Laufzeit in der generierten Plattform über das Einstellungsmenü geändert werden."
+    },
+    "representation": {
+      "label": "Darstellung",
+      "description": "Wie Instanzen dieser Klasse im generierten Editor dargestellt werden.",
+      "options": {
+        "node": { "label": "Knoten", "description": "Eigenständiges Feld auf der Zeichenfläche (Standard)" },
+        "container": { "label": "Container", "description": "Beherbergt andere Knoten über Container-Assoziationen" },
+        "port": { "label": "Port", "description": "Wird als Anschluss an seiner übergeordneten Ausrüstung dargestellt" },
+        "connection": { "label": "Verbindung", "description": "Wird als Kante zwischen zwei Ports dargestellt" }
+      },
+      "containerTip": "Tipp: Öffnen Sie jede Beziehung im Abschnitt Assoziationen und aktivieren Sie <strong>Container-Assoziation</strong> für diejenigen, deren Ziele zur Laufzeit in diesem Container verschachtelt werden sollen.",
+      "portTip": "Instanzen dieser Klasse werden als grafische Anschlüsse an ihrer übergeordneten Ausrüstung dargestellt — nicht als eigenständige Knoten.",
+      "connectionTip": "Instanzen dieser Klasse werden als Kanten zwischen zwei Ports dargestellt. Markieren Sie genau eine ausgehende Assoziation als <strong>Quell-Endpunkt</strong> und eine andere als <strong>Ziel-Endpunkt</strong> (Zielklassen müssen Ports sein)."
+    },
+    "association": {
+      "containerAssociation": {
+        "label": "Container-Assoziation",
+        "helpEnabled": "Wenn aktiviert, erstellt das Ablegen einer Zielinstanz in einer Container-Quellinstanz automatisch diese Verknüpfung und verschachtelt das Kind visuell. Die Kante ist ausgeblendet, weil die Verschachtelung dies bereits vermittelt.",
+        "helpDisabled": "Aktivieren Sie zuerst eine Container-Klasse; dieser Schalter wird nur berücksichtigt, wenn die Quelle dieser Assoziation ein Container ist."
+      },
+      "endpointRole": {
+        "label": "Endpunktrolle",
+        "helpBothOk": "Legen Sie diese Assoziation als Quell-Port- oder Ziel-Port-Endpunkt ihrer Verbindungsklasse fest.",
+        "helpNoPortTarget": "Die Quellklasse ist eine Verbindung — aber die Zielklasse ist kein Port. Markieren Sie die Zielklasse als Port, damit dieser Endpunkt zur Laufzeit funktioniert.",
+        "helpNotConnection": "Keine Wirkung: wird nur berücksichtigt, wenn die Quellklasse eine Verbindung ist.",
+        "options": {
+          "normal": "Normal",
+          "source": "Quelle",
+          "target": "Ziel"
+        }
+      }
+    },
+    "groups": {
+      "line": "Linie",
+      "arrows": "Pfeile",
+      "label": "Beschriftung",
+      "layout": "Layout",
+      "appearance": "Erscheinungsbild",
+      "typography": "Typografie"
+    },
+    "fields": {
+      "color": "Farbe",
+      "width": "Breite",
+      "style": "Stil",
+      "routing": "Führung",
+      "sourceArrow": "Quellpfeil",
+      "targetArrow": "Zielpfeil",
+      "visible": "Sichtbar",
+      "fontSize": "Schriftgröße",
+      "fontColor": "Schriftfarbe",
+      "resizable": "Größenveränderbar",
+      "resizableTooltip": "Ziehgriffe an Instanzen anzeigen, damit der Benutzer den Knoten in der Größe ändern kann",
+      "widthPx": "Breite (px)",
+      "heightPx": "Höhe (px)",
+      "shape": "Form",
+      "labelPosition": "Beschriftungsposition",
+      "anchorSide": "Ankerseite",
+      "useIcon": "Symbol verwenden",
+      "useIconTooltip": "Wenn deaktiviert, wird die Form-/Füll-/Rahmengestaltung anstelle des Klassendiagramm-Symbols verwendet",
+      "fill": "Füllung",
+      "border": "Rahmen",
+      "borderWidth": "Rahmenbreite",
+      "borderStyle": "Rahmenstil",
+      "borderRadius": "Rahmenradius",
+      "fontWeight": "Schriftgewicht",
+      "connectionPoints": "Verbindungspunkte",
+      "preview": "Vorschau"
+    },
+    "options": {
+      "lineStyle": { "solid": "Durchgezogen", "dashed": "Gestrichelt", "dotted": "Gepunktet" },
+      "arrow": {
+        "none": "Keiner",
+        "filledTriangle": "Gefülltes Dreieck ▶",
+        "openTriangle": "Offenes Dreieck",
+        "diamond": "Raute ◆",
+        "openDiamond": "Offene Raute ◇",
+        "circle": "Kreis ●"
+      },
+      "routing": {
+        "bezier": "Kurvig (Bézier)",
+        "smoothstep": "Rechtwinklig (weich)",
+        "step": "Rechtwinklig (scharf)",
+        "straight": "Gerade"
+      },
+      "shape": { "rectangle": "Rechteck", "ellipse": "Ellipse", "diamond": "Raute", "hexagon": "Sechseck" },
+      "labelPosition": { "top": "Oben", "inside": "Innen", "bottom": "Unten" },
+      "fontWeight": { "normal": "Normal", "bold": "Fett" },
+      "portSide": {
+        "auto": "Automatisch (Richtungsattribut verwenden)",
+        "top": "Oben",
+        "right": "Rechts",
+        "bottom": "Unten",
+        "left": "Links"
+      },
+      "side": { "top": "Oben", "right": "Rechts", "bottom": "Unten", "left": "Links" }
+    },
+    "colors": {
+      "slate": "Schiefer",
+      "sky": "Himmelblau",
+      "teal": "Petrol",
+      "emerald": "Smaragd",
+      "amber": "Amber",
+      "rose": "Rosé",
+      "indigo": "Indigo",
+      "stone": "Stein"
+    },
+    "common": {
+      "default": "Standard",
+      "defaultSuffix": "(Standard)",
+      "clear": "Löschen",
+      "pickColor": "Farbe wählen",
+      "defaultColor": "Standard: {{color}}",
+      "noColorSet": "Keine Farbe festgelegt",
+      "customize": "Anpassen",
+      "resetToDefault": "Auf Standard zurücksetzen",
+      "hexPlaceholder": "#22c55e oder hsl(...)",
+      "auto": "auto",
+      "noConnectionHandles": "Für diese Klasse werden keine Verbindungsanschlüsse gerendert."
+    },
+    "aria": {
+      "representationFor": "Darstellung für {{name}}",
+      "endpointRoleFor": "Endpunktrolle für {{name}}",
+      "nodePreview": "Knotenstil-Vorschau",
+      "edgePreview": "Kantenstil-Vorschau",
+      "connectionPreview": "Verbindungsstil-Vorschau",
+      "portPreview": "Portstil-Vorschau"
     }
   }
 }

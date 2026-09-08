@@ -50,7 +50,8 @@
       "user": "Benotzer",
       "neuralNet": "Neuronaalt Netz",
       "gui": "GUI",
-      "quantum": "Quanten"
+      "quantum": "Quanten",
+      "platform": "Plattform"
     },
     "route": {
       "settings": "Astellungen",
@@ -1340,7 +1341,8 @@
     "GUINoCodeDiagram": "GUI-Diagramm",
     "QuantumCircuitDiagram": "Quantenschaltkreesdiagramm",
     "BPMN": "BPMN-Diagramm",
-    "NNDiagram": "Neuronaalt-Netz-Diagramm"
+    "NNDiagram": "Neuronaalt-Netz-Diagramm",
+    "PlatformCustomizationDiagram": "Plattform-Personaliséierung"
   },
   "dialogs": {
     "about": {
@@ -1778,6 +1780,7 @@
       "maxDiagrams": "Maximal {{count}} Diagrammer pro Typ.",
       "classRefTooltipObject": "Wielt wéi eng Klassendiagramm d'Datemodell fir dëst Objektdiagramm liwwert",
       "classRefTooltipGui": "Wielt wéi eng Klassendiagramm d'Datemodell fir dëst GUI liwwert",
+      "classRefTooltipPlatform": "Wielt op wéi ee Klassendiagramm dës Plattform-Personaliséierung sech bezitt",
       "validationValidated": "Validéiert",
       "validationIssues": "Problemer",
       "validationNeedsValidation": "Brauch Validatioun",
@@ -2344,6 +2347,7 @@
     },
     "loadingGuiEditor": "GUI-Editor gëtt gelueden...",
     "loadingQuantumEditor": "Quanten-Editor gëtt gelueden...",
+    "loadingPlatformEditor": "Plattform-Personaliséierung gëtt gelueden...",
     "hiddenPerspectives": {
       "messagePlural": "Dëse Projet benotzt {{labels}}, mee dës Perspektiven si verstoppt.",
       "messageSingular": "Dëse Projet benotzt {{labels}}, mee dës Perspektiv ass verstoppt.",
@@ -2482,6 +2486,177 @@
       "measurementOutput": "Mooss-Ausgab – automatesch aus de Moossgatter generéiert",
       "dropHere": "Hei fale loossen",
       "invalid": "Ongülteg"
+    }
+  },
+  "platformCustomization": {
+    "header": {
+      "title": "Plattform-Personaliséierung",
+      "description": "Visuelle Iwwerschreiwungen, déi ugewannt ginn wann de <strong>Plattform</strong>-Generator Äre Klassendiagramm an en onofhängege Instanz-Editor emwandelt.",
+      "readingFrom": "Quell: {{title}}"
+    },
+    "empty": {
+      "noProject": {
+        "title": "Keen Projet gelueden",
+        "message": "Erstellt oder maacht e Projet op, fir den Plattform-Generator z'personaliséieren."
+      },
+      "noClassDiagram": {
+        "title": "Kee Klassendiagramm verfügbar",
+        "message": "Erstellt fir d'éischt e Klassendiagramm; dëse Panel weist seng Klassen an Associatiounen."
+      },
+      "emptyClassDiagram": {
+        "title": "Klassendiagramm ass eidel",
+        "message": "Füügt op mannst eng Klass am referenzéierte Klassendiagramm derbäi."
+      }
+    },
+    "validation": {
+      "title": "D'Verbindungsverdrahtung brauch Opmierksamkeet ({{count}})",
+      "issue": {
+        "noSourceEndpoint": "D'Verbindungsklass \"{{class}}\" huet keng Associatioun déi als Quell-Endpunkt markéiert ass.",
+        "multipleSourceEndpoints": "D'Verbindungsklass \"{{class}}\" huet mehrfach Quell-Endpunkt-Associatiounen: {{names}}.",
+        "noTargetEndpoint": "D'Verbindungsklass \"{{class}}\" huet keng Associatioun déi als Zil-Endpunkt markéiert ass.",
+        "multipleTargetEndpoints": "D'Verbindungsklass \"{{class}}\" huet mehrfach Zil-Endpunkt-Associatiounen: {{names}}.",
+        "endpointTargetsNonPort": "D'Endpunkt-Associatioun \"{{association}}\" zilt op Net-Port-Klass(en): {{names}}.",
+        "endpointSourceNotConnection": "D'Associatioun \"{{association}}\" ass als Endpunkt markéiert, mä hir Quellklass ass keng Verbindung."
+      }
+    },
+    "sections": {
+      "classes": "Klassen",
+      "associations": "Associatiounen",
+      "noAssociationsHint": "Keng Associatiounen fir z'personaliséieren. Füügt e puer am Klassendiagramm derbäi — kommt duerno heihinner zréck fir Kantefaarwen a Pfeile festzeleeën."
+    },
+    "diagramCard": {
+      "title": "Diagramm",
+      "lightTheme": "Hellt Thema",
+      "darkTheme": "Donkelt Thema",
+      "lightThemeTooltip": "D'hellt Themavirastellung op all Klassen an Associatiounen uwenden",
+      "darkThemeTooltip": "D'donkelt Themavirastellung op all Klassen an Associatiounen uwenden",
+      "body": "Notzt d'Virastellungsknäpp uewen fir e Faarfschema op all Klassen an Associatiounen uwenzewenden. Standardwäerter fir Rooschter, Hannergrond, Thema a Kantefüerung kënnen zur Lafzäit an der generéierter Plattform iwwer d'Astellungsmenü geännert ginn."
+    },
+    "representation": {
+      "label": "Duerstellung",
+      "description": "Wéi Instanzen vun dëser Klass am generéierten Editor duergestallt ginn.",
+      "options": {
+        "node": { "label": "Knuet", "description": "Onofhängeg Këscht op der Leinwand (Standard)" },
+        "container": { "label": "Container", "description": "Beherbergt aner Knäppercher iwwer Container-Associatiounen" },
+        "port": { "label": "Port", "description": "Gëtt als Grëff op senger zoustänneger Ausrüstung duergestallt" },
+        "connection": { "label": "Verbindung", "description": "Gëtt als Kant tëscht zwee Ports duergestallt" }
+      },
+      "containerTip": "Tipp: maacht all Bezéiung am Abschnitt Associatiounen op an aktivéiert <strong>Container-Associatioun</strong> fir déi, deenen hir Ziler zur Lafzäit an dëse Container sollen verschachtelt ginn.",
+      "portTip": "Instanzen vun dëser Klass ginn als grafesch Grëffer op hirer zoustänneger Ausrüstung duergestallt — net als onofhängeg Knäppercher.",
+      "connectionTip": "Instanzen vun dëser Klass ginn als Kanten tëscht zwee Ports duergestallt. Markéiert genau eng erausgoend Associatioun als <strong>Quell-Endpunkt</strong> an eng aner als <strong>Zil-Endpunkt</strong> (Zilklassen mussen Ports sinn)."
+    },
+    "association": {
+      "containerAssociation": {
+        "label": "Container-Associatioun",
+        "helpEnabled": "Wann aktivéiert, erstellt d'Fale-loossen vun enger Zilinstanz an enger Container-Quellinstanz automatesch dëse Link a verschachtelt d'Kand visuell. D'Kant ass verstoppt, well d'Verschachtelung dat scho vermëttelt.",
+        "helpDisabled": "Aktivéiert fir d'éischt eng Container-Klass; dëse Schalter gëtt nëmme berücksichtegt wann d'Quell vun dëser Associatioun e Container ass."
+      },
+      "endpointRole": {
+        "label": "Endpunktrol",
+        "helpBothOk": "Leet dës Associatioun als Quell-Port- oder Zil-Port-Endpunkt vu senger Verbindungsklass fest.",
+        "helpNoPortTarget": "D'Quellklass ass eng Verbindung — mä d'Zilklass ass kee Port. Markéiert d'Zilklass als Port, fir dass dëse Endpunkt zur Lafzäit funktionéiert.",
+        "helpNotConnection": "Keng Wierkung: gëtt nëmme berücksichtegt wann d'Quellklass eng Verbindung ass.",
+        "options": {
+          "normal": "Normal",
+          "source": "Quell",
+          "target": "Zil"
+        }
+      }
+    },
+    "groups": {
+      "line": "Linn",
+      "arrows": "Pfeiler",
+      "label": "Bezeechnung",
+      "layout": "Layout",
+      "appearance": "Erscheinungsbild",
+      "typography": "Typografie"
+    },
+    "fields": {
+      "color": "Faarf",
+      "width": "Breet",
+      "style": "Stil",
+      "routing": "Féierung",
+      "sourceArrow": "Quellpfeil",
+      "targetArrow": "Zilpfeil",
+      "visible": "Siichtbar",
+      "fontSize": "Schrëftgréisst",
+      "fontColor": "Schrëftfaarf",
+      "resizable": "Gréisst verännerbar",
+      "resizableTooltip": "Zéiggrëffer op Instanzen weisen, fir datt de Benotzer d'Gréisst vum Knuet änneren kann",
+      "widthPx": "Breet (px)",
+      "heightPx": "Héicht (px)",
+      "shape": "Form",
+      "labelPosition": "Bezeechnungsposition",
+      "anchorSide": "Ankersäit",
+      "useIcon": "Symbol benotzen",
+      "useIconTooltip": "Wann aus, gëtt d'Form-/Fëll-/Rand-Gestaltung amplaz vum Klassendiagramm-Symbol benotzt",
+      "fill": "Fëllung",
+      "border": "Rand",
+      "borderWidth": "Randbreet",
+      "borderStyle": "Randstil",
+      "borderRadius": "Randradius",
+      "fontWeight": "Schrëftgewiicht",
+      "connectionPoints": "Verbindungspunkten",
+      "preview": "Vorschau"
+    },
+    "options": {
+      "lineStyle": { "solid": "Duerchgezunn", "dashed": "Gestrachelt", "dotted": "Gepunkt" },
+      "arrow": {
+        "none": "Keen",
+        "filledTriangle": "Gefëllt Dräieck ▶",
+        "openTriangle": "Oppent Dräieck",
+        "diamond": "Diamant ◆",
+        "openDiamond": "Oppene Diamant ◇",
+        "circle": "Krees ●"
+      },
+      "routing": {
+        "bezier": "Kromm (bézier)",
+        "smoothstep": "Eckeg (mëll)",
+        "step": "Eckeg (schaarf)",
+        "straight": "Riicht"
+      },
+      "shape": { "rectangle": "Rechteck", "ellipse": "Ellips", "diamond": "Diamant", "hexagon": "Sechseck" },
+      "labelPosition": { "top": "Uewen", "inside": "Bannen", "bottom": "Ënnen" },
+      "fontWeight": { "normal": "Normal", "bold": "Fett" },
+      "portSide": {
+        "auto": "Automatesch (Richtungsattribut benotzen)",
+        "top": "Uewen",
+        "right": "Riets",
+        "bottom": "Ënnen",
+        "left": "Lénks"
+      },
+      "side": { "top": "Uewen", "right": "Riets", "bottom": "Ënnen", "left": "Lénks" }
+    },
+    "colors": {
+      "slate": "Schifer",
+      "sky": "Himmelblo",
+      "teal": "Petrol",
+      "emerald": "Smaragd",
+      "amber": "Amber",
+      "rose": "Rosa",
+      "indigo": "Indigo",
+      "stone": "Steen"
+    },
+    "common": {
+      "default": "Standard",
+      "defaultSuffix": "(Standard)",
+      "clear": "Läschen",
+      "pickColor": "Faarf auswielen",
+      "defaultColor": "Standard: {{color}}",
+      "noColorSet": "Keng Faarf festgeluecht",
+      "customize": "Personaliséieren",
+      "resetToDefault": "Op Standard zrécksetzen",
+      "hexPlaceholder": "#22c55e oder hsl(...)",
+      "auto": "auto",
+      "noConnectionHandles": "Fir dës Klass ginn keng Verbindungsgrëffer gerendert."
+    },
+    "aria": {
+      "representationFor": "Duerstellung fir {{name}}",
+      "endpointRoleFor": "Endpunktrol fir {{name}}",
+      "nodePreview": "Knuetstil-Vorschau",
+      "edgePreview": "Kantestil-Vorschau",
+      "connectionPreview": "Verbindungsstil-Vorschau",
+      "portPreview": "Portstil-Vorschau"
     }
   }
 }

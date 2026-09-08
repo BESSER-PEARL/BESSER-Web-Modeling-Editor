@@ -18,6 +18,7 @@
  */
 
 import React, { useCallback, useMemo } from 'react';
+import { Trans, useTranslation } from 'react-i18next';
 import { AlertTriangle, ChevronDown, Eye, EyeOff, Sliders } from 'lucide-react';
 
 import type { UMLModel } from '@besser/wme';
@@ -297,58 +298,69 @@ const ColorPicker: React.FC<{
   placeholderColor?: string;
   onChange: (v: string | undefined) => void;
   label?: string;
-}> = ({ value, placeholderColor, onChange, label }) => (
-  <div className="flex items-center gap-2">
-    <Popover>
-      <PopoverTrigger asChild>
-        <button
-          type="button"
-          aria-label={label ?? 'Pick color'}
-          className="size-7 rounded-md border border-input shadow-sm"
-          style={{ backgroundColor: value ?? placeholderColor ?? 'transparent' }}
-          title={value ?? (placeholderColor ? `Default: ${placeholderColor}` : 'No color set')}
-        />
-      </PopoverTrigger>
-      <PopoverContent className="w-56">
-        <div className="grid grid-cols-4 gap-2">
-          {COLOR_SWATCHES.map((s) => (
-            <button
-              key={s.value}
-              type="button"
-              onClick={() => onChange(s.value)}
-              className="flex h-8 items-center justify-center rounded border border-input transition-transform hover:scale-105"
-              style={{ backgroundColor: s.value }}
-              title={s.name}
-              aria-label={s.name}
+}> = ({ value, placeholderColor, onChange, label }) => {
+  const { t } = useTranslation();
+  return (
+    <div className="flex items-center gap-2">
+      <Popover>
+        <PopoverTrigger asChild>
+          <button
+            type="button"
+            aria-label={label ?? t('platformCustomization.common.pickColor')}
+            className="size-7 rounded-md border border-input shadow-sm"
+            style={{ backgroundColor: value ?? placeholderColor ?? 'transparent' }}
+            title={
+              value ??
+              (placeholderColor
+                ? t('platformCustomization.common.defaultColor', { color: placeholderColor })
+                : t('platformCustomization.common.noColorSet'))
+            }
+          />
+        </PopoverTrigger>
+        <PopoverContent className="w-56">
+          <div className="grid grid-cols-4 gap-2">
+            {COLOR_SWATCHES.map((s) => {
+              const swatchName = t(`platformCustomization.colors.${s.key}`);
+              return (
+                <button
+                  key={s.value}
+                  type="button"
+                  onClick={() => onChange(s.value)}
+                  className="flex h-8 items-center justify-center rounded border border-input transition-transform hover:scale-105"
+                  style={{ backgroundColor: s.value }}
+                  title={swatchName}
+                  aria-label={swatchName}
+                />
+              );
+            })}
+          </div>
+          <div className="mt-3 flex items-center gap-2">
+            <input
+              type="color"
+              className="h-8 w-12 cursor-pointer rounded-md border border-input bg-background"
+              value={/^#[0-9a-fA-F]{6}$/.test(value ?? '') ? value! : '#3b82f6'}
+              onChange={(e) => onChange(e.target.value)}
             />
-          ))}
-        </div>
-        <div className="mt-3 flex items-center gap-2">
-          <input
-            type="color"
-            className="h-8 w-12 cursor-pointer rounded-md border border-input bg-background"
-            value={/^#[0-9a-fA-F]{6}$/.test(value ?? '') ? value! : '#3b82f6'}
-            onChange={(e) => onChange(e.target.value)}
-          />
-          <Input
-            type="text"
-            placeholder="#22c55e or hsl(...)"
-            className="h-8 text-xs"
-            value={value ?? ''}
-            onChange={(e) => onChange(e.target.value === '' ? undefined : e.target.value)}
-          />
-        </div>
-        <button
-          type="button"
-          className="mt-3 w-full text-xs text-muted-foreground hover:text-foreground"
-          onClick={() => onChange(undefined)}
-        >
-          Clear
-        </button>
-      </PopoverContent>
-    </Popover>
-  </div>
-);
+            <Input
+              type="text"
+              placeholder={t('platformCustomization.common.hexPlaceholder')}
+              className="h-8 text-xs"
+              value={value ?? ''}
+              onChange={(e) => onChange(e.target.value === '' ? undefined : e.target.value)}
+            />
+          </div>
+          <button
+            type="button"
+            className="mt-3 w-full text-xs text-muted-foreground hover:text-foreground"
+            onClick={() => onChange(undefined)}
+          >
+            {t('platformCustomization.common.clear')}
+          </button>
+        </PopoverContent>
+      </Popover>
+    </div>
+  );
+};
 
 const SliderField: React.FC<{
   label: string;
@@ -360,6 +372,7 @@ const SliderField: React.FC<{
   unit?: string;
   onChange: (v: number | undefined) => void;
 }> = ({ label, value, defaultValue, min, max, step = 1, unit, onChange }) => {
+  const { t } = useTranslation();
   const v = value ?? defaultValue;
   return (
     <div className="flex flex-col gap-1.5">
@@ -368,7 +381,9 @@ const SliderField: React.FC<{
         <span className="text-xs tabular-nums text-muted-foreground">
           {v}
           {unit}
-          {value === undefined && <span className="ml-1 italic">(default)</span>}
+          {value === undefined && (
+            <span className="ml-1 italic">{t('platformCustomization.common.defaultSuffix')}</span>
+          )}
         </span>
       </div>
       <Slider
@@ -389,27 +404,31 @@ const SelectField: React.FC<{
   options: Array<{ value: string; label: string }>;
   placeholder?: string;
   onChange: (v: string | undefined) => void;
-}> = ({ label, value, options, placeholder = 'Default', onChange }) => (
-  <div className="flex flex-col gap-1.5">
-    <Label className="text-xs uppercase tracking-wider text-muted-foreground">{label}</Label>
-    <Select
-      value={value ?? '__default__'}
-      onValueChange={(v) => onChange(v === '__default__' ? undefined : v)}
-    >
-      <SelectTrigger className="h-8 text-sm">
-        <SelectValue placeholder={placeholder} />
-      </SelectTrigger>
-      <SelectContent>
-        <SelectItem value="__default__">Default</SelectItem>
-        {options.map((o) => (
-          <SelectItem key={o.value} value={o.value}>
-            {o.label}
-          </SelectItem>
-        ))}
-      </SelectContent>
-    </Select>
-  </div>
-);
+}> = ({ label, value, options, placeholder, onChange }) => {
+  const { t } = useTranslation();
+  const defaultLabel = t('platformCustomization.common.default');
+  return (
+    <div className="flex flex-col gap-1.5">
+      <Label className="text-xs uppercase tracking-wider text-muted-foreground">{label}</Label>
+      <Select
+        value={value ?? '__default__'}
+        onValueChange={(v) => onChange(v === '__default__' ? undefined : v)}
+      >
+        <SelectTrigger className="h-8 text-sm">
+          <SelectValue placeholder={placeholder ?? defaultLabel} />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="__default__">{defaultLabel}</SelectItem>
+          {options.map((o) => (
+            <SelectItem key={o.value} value={o.value}>
+              {o.label}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+    </div>
+  );
+};
 
 /** 4-way side picker for the default xyflow connection handles. Undefined
  *  means "all four sides (default)"; an explicit list — possibly empty —
@@ -421,6 +440,7 @@ const ConnectionPointsField: React.FC<{
   value?: ConnectionSide[];
   onChange: (v: ConnectionSide[] | undefined) => void;
 }> = ({ value, onChange }) => {
+  const { t } = useTranslation();
   const isDefault = value === undefined;
   const sides = value ?? ALL_SIDES;
   const togglesEnabled = !isDefault;
@@ -437,14 +457,16 @@ const ConnectionPointsField: React.FC<{
     <div className="flex flex-col gap-1.5">
       <div className="flex items-center justify-between">
         <Label className="text-xs uppercase tracking-wider text-muted-foreground">
-          Connection points
+          {t('platformCustomization.fields.connectionPoints')}
         </Label>
         <button
           type="button"
           onClick={() => onChange(isDefault ? [] : undefined)}
           className="text-[10px] text-muted-foreground hover:text-foreground"
         >
-          {isDefault ? 'Customize' : 'Reset to default'}
+          {isDefault
+            ? t('platformCustomization.common.customize')
+            : t('platformCustomization.common.resetToDefault')}
         </button>
       </div>
       <div className="grid grid-cols-4 gap-1">
@@ -462,14 +484,14 @@ const ConnectionPointsField: React.FC<{
                   : 'border-input bg-background text-muted-foreground'
               } ${!togglesEnabled ? 'opacity-60 cursor-not-allowed' : 'hover:border-primary/60'}`}
             >
-              {side}
+              {t(`platformCustomization.options.side.${side}`)}
             </button>
           );
         })}
       </div>
       {!isDefault && sides.length === 0 && (
         <p className="text-[10px] italic text-muted-foreground">
-          No connection handles will be rendered on this class.
+          {t('platformCustomization.common.noConnectionHandles')}
         </p>
       )}
     </div>
@@ -501,7 +523,10 @@ const ClassRow: React.FC<{
   override: PlatformClassOverride;
   onPatch: (patch: Partial<PlatformClassOverride>) => void;
 }> = ({ name, icon, override, onPatch }) => {
+  const { t } = useTranslation();
   const [open, setOpen] = React.useState(false);
+  const arrowOpts = useMemo(() => arrowOptions(t), [t]);
+  const routingOpts = useMemo(() => routingOptions(t), [t]);
   return (
     <li>
       <Collapsible open={open} onOpenChange={setOpen}>
@@ -537,45 +562,63 @@ const ClassRow: React.FC<{
               <section className="rounded-md border border-muted bg-muted/20 p-3 space-y-2">
                 <div className="flex items-center justify-between gap-3">
                   <div>
-                    <Label className="text-sm font-semibold text-foreground">Representation</Label>
+                    <Label className="text-sm font-semibold text-foreground">
+                      {t('platformCustomization.representation.label')}
+                    </Label>
                     <p className="text-xs text-muted-foreground">
-                      How instances of this class render in the generated editor.
+                      {t('platformCustomization.representation.description')}
                     </p>
                   </div>
                   <SegmentedControl<ClassRepresentation>
-                    ariaLabel={`Representation for ${name}`}
+                    ariaLabel={t('platformCustomization.aria.representationFor', { name })}
                     value={getRepresentation(override)}
                     options={[
-                      { value: 'node', label: 'Node', description: 'Standalone box on the canvas (default)' },
-                      { value: 'container', label: 'Container', description: 'Hosts other nodes via container associations' },
-                      { value: 'port', label: 'Port', description: 'Renders as a handle on its owning equipment' },
-                      { value: 'connection', label: 'Connection', description: 'Renders as an edge between two ports' },
+                      {
+                        value: 'node',
+                        label: t('platformCustomization.representation.options.node.label'),
+                        description: t('platformCustomization.representation.options.node.description'),
+                      },
+                      {
+                        value: 'container',
+                        label: t('platformCustomization.representation.options.container.label'),
+                        description: t('platformCustomization.representation.options.container.description'),
+                      },
+                      {
+                        value: 'port',
+                        label: t('platformCustomization.representation.options.port.label'),
+                        description: t('platformCustomization.representation.options.port.description'),
+                      },
+                      {
+                        value: 'connection',
+                        label: t('platformCustomization.representation.options.connection.label'),
+                        description: t('platformCustomization.representation.options.connection.description'),
+                      },
                     ]}
                     onChange={(rep) => onPatch(representationPatch(rep))}
                   />
                 </div>
                 {override.isContainer && (
                   <p className="rounded-md border border-brand/30 bg-brand/5 px-2 py-1.5 text-[11px] text-brand-dark dark:text-brand">
-                    Tip: open each relationship in the Associations section and turn on{' '}
-                    <span className="font-semibold">Container association</span> for the ones whose
-                    targets should nest inside this container at runtime.
+                    <Trans
+                      i18nKey="platformCustomization.representation.containerTip"
+                      components={{ strong: <span className="font-semibold" /> }}
+                    />
                   </p>
                 )}
                 {override.isPort && (
                   <div className="space-y-2">
                     <p className="rounded-md border border-brand/30 bg-brand/5 px-2 py-1.5 text-[11px] text-brand-dark dark:text-brand">
-                      Instances of this class render as graphical handles on their owning
-                      equipment node — not as standalone nodes.
+                      {t('platformCustomization.representation.portTip')}
                     </p>
                     <SelectField
-                      label="Anchor side"
+                      label={t('platformCustomization.fields.anchorSide')}
                       value={override.portSide}
                       options={[
-                        { value: 'auto', label: 'Auto (use direction attribute)' },
-                        { value: 'top', label: 'Top' },
-                        { value: 'right', label: 'Right' },
-                        { value: 'bottom', label: 'Bottom' },
-                        { value: 'left', label: 'Left' },
+                        { value: 'auto', label: t('platformCustomization.options.portSide.auto') },
+                        { value: 'top', label: t('platformCustomization.options.portSide.top') },
+                        { value: 'right', label: t('platformCustomization.options.portSide.right') },
+                        { value: 'bottom', label: t('platformCustomization.options.portSide.bottom') },
+                        { value: 'left', label: t('platformCustomization.options.portSide.left') },
                       ]}
                       onChange={(v) => onPatch({ portSide: v as PortSideName | undefined })}
                     />
@@ -583,10 +626,10 @@ const ClassRow: React.FC<{
                 )}
                 {override.isConnectionClass && (
                   <p className="rounded-md border border-brand/30 bg-brand/5 px-2 py-1.5 text-[11px] text-brand-dark dark:text-brand">
-                    Instances of this class render as edges between two ports. Mark exactly one
-                    outgoing association as <span className="font-semibold">Source endpoint</span> and
-                    another as <span className="font-semibold">Target endpoint</span> (target classes
-                    must be Ports).
+                    <Trans
+                      i18nKey="platformCustomization.representation.connectionTip"
+                      components={{ strong: <span className="font-semibold" /> }}
+                    />
                   </p>
                 )}
               </section>
@@ -595,14 +638,16 @@ const ClassRow: React.FC<{
               {override.isConnectionClass && (
                 <div className="grid gap-6 lg:grid-cols-3">
                   <section className="space-y-3">
-                    <h4 className="text-[10px] font-bold uppercase tracking-wider text-brand">Line</h4>
+                    <h4 className="text-[10px] font-bold uppercase tracking-wider text-brand">
+                      {t('platformCustomization.groups.line')}
+                    </h4>
                     <ColorField
-                      label="Color"
+                      label={t('platformCustomization.fields.color')}
                       value={override.edgeColor}
                       onChange={(v) => onPatch({ edgeColor: v })}
                     />
                     <SliderField
-                      label="Width"
+                      label={t('platformCustomization.fields.width')}
                       value={override.lineWidth}
                       defaultValue={2}
                       min={1}
@@ -611,43 +656,47 @@ const ClassRow: React.FC<{
                       onChange={(v) => onPatch({ lineWidth: v })}
                     />
                     <SelectField
-                      label="Style"
+                      label={t('platformCustomization.fields.style')}
                       value={override.lineStyle}
                       options={[
-                        { value: 'solid', label: 'Solid' },
-                        { value: 'dashed', label: 'Dashed' },
-                        { value: 'dotted', label: 'Dotted' },
+                        { value: 'solid', label: t('platformCustomization.options.lineStyle.solid') },
+                        { value: 'dashed', label: t('platformCustomization.options.lineStyle.dashed') },
+                        { value: 'dotted', label: t('platformCustomization.options.lineStyle.dotted') },
                       ]}
                       onChange={(v) => onPatch({ lineStyle: v as LineStyleName | undefined })}
                     />
                     <SelectField
-                      label="Routing"
+                      label={t('platformCustomization.fields.routing')}
                       value={override.lineRouting}
-                      options={ROUTING_OPTIONS}
+                      options={routingOpts}
                       onChange={(v) => onPatch({ lineRouting: v as LineRoutingName | undefined })}
                     />
                   </section>
                   <section className="space-y-3">
-                    <h4 className="text-[10px] font-bold uppercase tracking-wider text-brand">Arrows</h4>
+                    <h4 className="text-[10px] font-bold uppercase tracking-wider text-brand">
+                      {t('platformCustomization.groups.arrows')}
+                    </h4>
                     <SelectField
-                      label="Source arrow"
+                      label={t('platformCustomization.fields.sourceArrow')}
                       value={override.sourceArrowStyle}
-                      options={ARROW_OPTIONS}
+                      options={arrowOpts}
                       onChange={(v) => onPatch({ sourceArrowStyle: v as ArrowStyleName | undefined })}
                     />
                     <SelectField
-                      label="Target arrow"
+                      label={t('platformCustomization.fields.targetArrow')}
                       value={override.targetArrowStyle}
-                      options={ARROW_OPTIONS}
+                      options={arrowOpts}
                       onChange={(v) => onPatch({ targetArrowStyle: v as ArrowStyleName | undefined })}
                     />
                   </section>
                   <section className="space-y-3">
-                    <h4 className="text-[10px] font-bold uppercase tracking-wider text-brand">Label</h4>
+                    <h4 className="text-[10px] font-bold uppercase tracking-wider text-brand">
+                      {t('platformCustomization.groups.label')}
+                    </h4>
                     <div className="flex items-center justify-between gap-2">
                       <Label className="flex items-center gap-1.5 text-xs uppercase tracking-wider text-muted-foreground">
                         {override.labelVisible === false ? <EyeOff className="size-3.5" /> : <Eye className="size-3.5" />}
-                        Visible
+                        {t('platformCustomization.fields.visible')}
                       </Label>
                       <Switch
                         checked={override.labelVisible !== false}
@@ -655,7 +704,7 @@ const ClassRow: React.FC<{
                       />
                     </div>
                     <SliderField
-                      label="Font size"
+                      label={t('platformCustomization.fields.fontSize')}
                       value={override.labelFontSize}
                       defaultValue={11}
                       min={8}
@@ -664,7 +713,7 @@ const ClassRow: React.FC<{
                       onChange={(v) => onPatch({ labelFontSize: v })}
                     />
                     <ColorField
-                      label="Font color"
+                      label={t('platformCustomization.fields.fontColor')}
                       value={override.labelFontColor}
                       onChange={(v) => onPatch({ labelFontColor: v })}
                     />
@@ -682,15 +731,17 @@ const ClassRow: React.FC<{
                   <div className="grid gap-6 lg:grid-cols-3">
                     {/* Layout */}
                     <section className="space-y-3">
-                      <h4 className="text-[10px] font-bold uppercase tracking-wider text-brand">Layout</h4>
+                      <h4 className="text-[10px] font-bold uppercase tracking-wider text-brand">
+                        {t('platformCustomization.groups.layout')}
+                      </h4>
                       {!isPort && (
                         <>
                           <div className="flex items-center justify-between">
                             <Label
                               className="text-xs uppercase tracking-wider text-muted-foreground"
-                              title="Show drag handles on instances so the user can resize the node"
+                              title={t('platformCustomization.fields.resizableTooltip')}
                             >
-                              Resizable
+                              {t('platformCustomization.fields.resizable')}
                             </Label>
                             <Switch
                               checked={!!override.isResizable}
@@ -698,12 +749,12 @@ const ClassRow: React.FC<{
                             />
                           </div>
                           <NumberField
-                            label="Width (px)"
+                            label={t('platformCustomization.fields.widthPx')}
                             value={override.defaultWidth}
                             onChange={(v) => onPatch({ defaultWidth: v })}
                           />
                           <NumberField
-                            label="Height (px)"
+                            label={t('platformCustomization.fields.heightPx')}
                             value={override.defaultHeight}
                             onChange={(v) => onPatch({ defaultHeight: v })}
                           />
@@ -715,13 +766,13 @@ const ClassRow: React.FC<{
                       )}
                       {!iconActive && (
                         <SelectField
-                          label="Shape"
+                          label={t('platformCustomization.fields.shape')}
                           value={override.nodeShape}
                           options={[
-                            { value: 'rectangle', label: 'Rectangle' },
-                            { value: 'ellipse', label: 'Ellipse' },
-                            { value: 'diamond', label: 'Diamond' },
-                            { value: 'hexagon', label: 'Hexagon' },
+                            { value: 'rectangle', label: t('platformCustomization.options.shape.rectangle') },
+                            { value: 'ellipse', label: t('platformCustomization.options.shape.ellipse') },
+                            { value: 'diamond', label: t('platformCustomization.options.shape.diamond') },
+                            { value: 'hexagon', label: t('platformCustomization.options.shape.hexagon') },
                           ]}
                           onChange={(v) => {
                             const shape = v as NodeShape | undefined;
@@ -732,12 +783,12 @@ const ClassRow: React.FC<{
                       )}
                       {!isPort && (
                         <SelectField
-                          label="Label position"
+                          label={t('platformCustomization.fields.labelPosition')}
                           value={override.labelPosition}
                           options={[
-                            { value: 'top', label: 'Top' },
-                            { value: 'inside', label: 'Inside' },
-                            { value: 'bottom', label: 'Bottom' },
+                            { value: 'top', label: t('platformCustomization.options.labelPosition.top') },
+                            { value: 'inside', label: t('platformCustomization.options.labelPosition.inside') },
+                            { value: 'bottom', label: t('platformCustomization.options.labelPosition.bottom') },
                           ]}
                           onChange={(v) => onPatch({ labelPosition: v as LabelPositionName | undefined })}
                         />
@@ -746,14 +797,16 @@ const ClassRow: React.FC<{
 
                     {/* Appearance */}
                     <section className="space-y-3">
-                      <h4 className="text-[10px] font-bold uppercase tracking-wider text-brand">Appearance</h4>
+                      <h4 className="text-[10px] font-bold uppercase tracking-wider text-brand">
+                        {t('platformCustomization.groups.appearance')}
+                      </h4>
                       {!!icon && !isPort && (
                         <div className="flex items-center justify-between">
                           <Label
                             className="text-xs uppercase tracking-wider text-muted-foreground"
-                            title="When off, the shape / fill / border styling is used instead of the class-diagram icon"
+                            title={t('platformCustomization.fields.useIconTooltip')}
                           >
-                            Use icon
+                            {t('platformCustomization.fields.useIcon')}
                           </Label>
                           <Switch
                             checked={iconActive}
@@ -764,20 +817,20 @@ const ClassRow: React.FC<{
                       {!iconActive && (
                         <>
                           <ColorField
-                            label="Fill"
+                            label={t('platformCustomization.fields.fill')}
                             value={override.fillColor}
                             placeholderColor={isPort ? '#000000' : undefined}
                             onChange={(v) => onPatch({ fillColor: v })}
                           />
                           <ColorField
-                            label="Border"
+                            label={t('platformCustomization.fields.border')}
                             value={override.borderColor}
                             placeholderColor={isPort ? '#000000' : undefined}
                             onChange={(v) => onPatch({ borderColor: v })}
                           />
                           {!isPort && (
                             <SliderField
-                              label="Border width"
+                              label={t('platformCustomization.fields.borderWidth')}
                               value={override.borderWidth}
                               defaultValue={2}
                               min={0}
@@ -788,12 +841,12 @@ const ClassRow: React.FC<{
                           )}
                           {!isPort && (
                             <SelectField
-                              label="Border style"
+                              label={t('platformCustomization.fields.borderStyle')}
                               value={override.borderStyle}
                               options={[
-                                { value: 'solid', label: 'Solid' },
-                                { value: 'dashed', label: 'Dashed' },
-                                { value: 'dotted', label: 'Dotted' },
+                                { value: 'solid', label: t('platformCustomization.options.lineStyle.solid') },
+                                { value: 'dashed', label: t('platformCustomization.options.lineStyle.dashed') },
+                                { value: 'dotted', label: t('platformCustomization.options.lineStyle.dotted') },
                               ]}
                               onChange={(v) => onPatch({ borderStyle: v as LineStyleName | undefined })}
                             />
@@ -802,7 +855,7 @@ const ClassRow: React.FC<{
                       )}
                       {!isPort && !iconActive && (override.nodeShape === 'rectangle' || override.nodeShape === undefined) && (
                         <SliderField
-                          label="Border radius"
+                          label={t('platformCustomization.fields.borderRadius')}
                           value={override.borderRadius}
                           defaultValue={8}
                           min={0}
@@ -816,9 +869,11 @@ const ClassRow: React.FC<{
                     {/* Typography — hidden for port classes */}
                     {!isPort && (
                       <section className="space-y-3">
-                        <h4 className="text-[10px] font-bold uppercase tracking-wider text-brand">Typography</h4>
+                        <h4 className="text-[10px] font-bold uppercase tracking-wider text-brand">
+                          {t('platformCustomization.groups.typography')}
+                        </h4>
                         <SliderField
-                          label="Font size"
+                          label={t('platformCustomization.fields.fontSize')}
                           value={override.fontSize}
                           defaultValue={14}
                           min={8}
@@ -827,16 +882,16 @@ const ClassRow: React.FC<{
                           onChange={(v) => onPatch({ fontSize: v })}
                         />
                         <SelectField
-                          label="Font weight"
+                          label={t('platformCustomization.fields.fontWeight')}
                           value={override.fontWeight}
                           options={[
-                            { value: 'normal', label: 'Normal' },
-                            { value: 'bold', label: 'Bold' },
+                            { value: 'normal', label: t('platformCustomization.options.fontWeight.normal') },
+                            { value: 'bold', label: t('platformCustomization.options.fontWeight.bold') },
                           ]}
                           onChange={(v) => onPatch({ fontWeight: v as FontWeightName | undefined })}
                         />
                         <ColorField
-                          label="Font color"
+                          label={t('platformCustomization.fields.fontColor')}
                           value={override.fontColor}
                           onChange={(v) => onPatch({ fontColor: v })}
                         />
@@ -851,7 +906,7 @@ const ClassRow: React.FC<{
             <div className="w-44 flex-shrink-0 self-center">
               <div className="flex flex-col items-center gap-2 rounded-xl border border-border/60 bg-card/80 p-3 shadow-sm">
                 <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-                  Preview
+                  {t('platformCustomization.fields.preview')}
                 </span>
                 <div className="h-36 w-full overflow-hidden rounded-lg border border-border/40 bg-muted/20 p-2 shadow-inner">
                   <ClassNodePreview
@@ -864,8 +919,8 @@ const ClassRow: React.FC<{
                 <span className="max-w-full truncate text-center text-xs font-medium text-foreground">
                   {name}
                 </span>
-                <span className="text-[10px] capitalize text-muted-foreground">
-                  {getRepresentation(override)}
+                <span className="text-[10px] text-muted-foreground">
+                  {t(`platformCustomization.representation.options.${getRepresentation(override)}.label`)}
                 </span>
               </div>
             </div>
@@ -895,7 +950,10 @@ const AssociationRow: React.FC<{
   hasPortTarget: boolean;
   onPatch: (patch: Partial<PlatformAssociationOverride>) => void;
 }> = ({ name, override, hasContainerEndpoint, hasConnectionSource, hasPortTarget, onPatch }) => {
+  const { t } = useTranslation();
   const [open, setOpen] = React.useState(false);
+  const arrowOpts = useMemo(() => arrowOptions(t), [t]);
+  const routingOpts = useMemo(() => routingOptions(t), [t]);
   return (
     <li>
       <Collapsible open={open} onOpenChange={setOpen}>
@@ -931,12 +989,12 @@ const AssociationRow: React.FC<{
           >
             <div className="space-y-1">
               <Label className="text-sm font-semibold text-foreground">
-                Container association
+                {t('platformCustomization.association.containerAssociation.label')}
               </Label>
               <p className="text-xs text-muted-foreground">
                 {hasContainerEndpoint
-                  ? 'When enabled, dropping a target instance inside a container source instance auto-creates this link and nests the child visually. The edge is hidden because the nesting already conveys it.'
-                  : 'Enable on a container class first; this toggle is only honoured when the source of this association is a container.'}
+                  ? t('platformCustomization.association.containerAssociation.helpEnabled')
+                  : t('platformCustomization.association.containerAssociation.helpDisabled')}
               </p>
             </div>
             <Switch
@@ -958,22 +1016,24 @@ const AssociationRow: React.FC<{
           >
             <div className="flex items-center justify-between gap-3">
               <div className="space-y-1">
-                <Label className="text-sm font-semibold text-foreground">Endpoint role</Label>
+                <Label className="text-sm font-semibold text-foreground">
+                  {t('platformCustomization.association.endpointRole.label')}
+                </Label>
                 <p className="text-xs text-muted-foreground">
                   {hasConnectionSource
                     ? hasPortTarget
-                      ? 'Designate this association as the source-port or target-port endpoint of its connection-class.'
-                      : 'Source class is a connection — but the target class is not a Port. Mark the target class as a Port for this endpoint to work at runtime.'
-                    : 'No effect: only honoured when the source class is a Connection.'}
+                      ? t('platformCustomization.association.endpointRole.helpBothOk')
+                      : t('platformCustomization.association.endpointRole.helpNoPortTarget')
+                    : t('platformCustomization.association.endpointRole.helpNotConnection')}
                 </p>
               </div>
               <SegmentedControl<AssociationEndpointRole>
-                ariaLabel={`Endpoint role for ${name}`}
+                ariaLabel={t('platformCustomization.aria.endpointRoleFor', { name })}
                 value={getEndpointRole(override)}
                 options={[
-                  { value: 'normal', label: 'Normal' },
-                  { value: 'source', label: 'Source' },
-                  { value: 'target', label: 'Target' },
+                  { value: 'normal', label: t('platformCustomization.association.endpointRole.options.normal') },
+                  { value: 'source', label: t('platformCustomization.association.endpointRole.options.source') },
+                  { value: 'target', label: t('platformCustomization.association.endpointRole.options.target') },
                 ]}
                 onChange={(role) => onPatch(endpointRolePatch(role))}
               />
@@ -983,14 +1043,16 @@ const AssociationRow: React.FC<{
           <div className="grid gap-6 lg:grid-cols-3">
             {/* Line */}
             <section className="space-y-3">
-              <h4 className="text-[10px] font-bold uppercase tracking-wider text-brand">Line</h4>
+              <h4 className="text-[10px] font-bold uppercase tracking-wider text-brand">
+                {t('platformCustomization.groups.line')}
+              </h4>
               <ColorField
-                label="Color"
+                label={t('platformCustomization.fields.color')}
                 value={override.edgeColor}
                 onChange={(v) => onPatch({ edgeColor: v })}
               />
               <SliderField
-                label="Width"
+                label={t('platformCustomization.fields.width')}
                 value={override.lineWidth}
                 defaultValue={2}
                 min={1}
@@ -999,47 +1061,51 @@ const AssociationRow: React.FC<{
                 onChange={(v) => onPatch({ lineWidth: v })}
               />
               <SelectField
-                label="Style"
+                label={t('platformCustomization.fields.style')}
                 value={override.lineStyle}
                 options={[
-                  { value: 'solid', label: 'Solid' },
-                  { value: 'dashed', label: 'Dashed' },
-                  { value: 'dotted', label: 'Dotted' },
+                  { value: 'solid', label: t('platformCustomization.options.lineStyle.solid') },
+                  { value: 'dashed', label: t('platformCustomization.options.lineStyle.dashed') },
+                  { value: 'dotted', label: t('platformCustomization.options.lineStyle.dotted') },
                 ]}
                 onChange={(v) => onPatch({ lineStyle: v as LineStyleName | undefined })}
               />
               <SelectField
-                label="Routing"
+                label={t('platformCustomization.fields.routing')}
                 value={override.lineRouting}
-                options={ROUTING_OPTIONS}
+                options={routingOpts}
                 onChange={(v) => onPatch({ lineRouting: v as LineRoutingName | undefined })}
               />
             </section>
 
             {/* Arrows */}
             <section className="space-y-3">
-              <h4 className="text-[10px] font-bold uppercase tracking-wider text-brand">Arrows</h4>
+              <h4 className="text-[10px] font-bold uppercase tracking-wider text-brand">
+                {t('platformCustomization.groups.arrows')}
+              </h4>
               <SelectField
-                label="Source arrow"
+                label={t('platformCustomization.fields.sourceArrow')}
                 value={override.sourceArrowStyle}
-                options={ARROW_OPTIONS}
+                options={arrowOpts}
                 onChange={(v) => onPatch({ sourceArrowStyle: v as ArrowStyleName | undefined })}
               />
               <SelectField
-                label="Target arrow"
+                label={t('platformCustomization.fields.targetArrow')}
                 value={override.targetArrowStyle}
-                options={ARROW_OPTIONS}
+                options={arrowOpts}
                 onChange={(v) => onPatch({ targetArrowStyle: v as ArrowStyleName | undefined })}
               />
             </section>
 
             {/* Label */}
             <section className="space-y-3">
-              <h4 className="text-[10px] font-bold uppercase tracking-wider text-brand">Label</h4>
+              <h4 className="text-[10px] font-bold uppercase tracking-wider text-brand">
+                {t('platformCustomization.groups.label')}
+              </h4>
               <div className="flex items-center justify-between gap-2">
                 <Label className="flex items-center gap-1.5 text-xs uppercase tracking-wider text-muted-foreground">
                   {override.labelVisible === false ? <EyeOff className="size-3.5" /> : <Eye className="size-3.5" />}
-                  Visible
+                  {t('platformCustomization.fields.visible')}
                 </Label>
                 <Switch
                   checked={override.labelVisible !== false}
@@ -1047,7 +1113,7 @@ const AssociationRow: React.FC<{
                 />
               </div>
               <SliderField
-                label="Font size"
+                label={t('platformCustomization.fields.fontSize')}
                 value={override.labelFontSize}
                 defaultValue={11}
                 min={8}
@@ -1056,7 +1122,7 @@ const AssociationRow: React.FC<{
                 onChange={(v) => onPatch({ labelFontSize: v })}
               />
               <ColorField
-                label="Font color"
+                label={t('platformCustomization.fields.fontColor')}
                 value={override.labelFontColor}
                 onChange={(v) => onPatch({ labelFontColor: v })}
               />
@@ -1068,33 +1134,41 @@ const AssociationRow: React.FC<{
   );
 };
 
-const ARROW_OPTIONS = [
-  { value: 'none', label: 'None' },
-  { value: 'filled_triangle', label: 'Filled triangle ▶' },
-  { value: 'open_triangle', label: 'Open triangle' },
-  { value: 'diamond', label: 'Diamond ◆' },
-  { value: 'open_diamond', label: 'Open diamond ◇' },
-  { value: 'circle', label: 'Circle ●' },
-];
+type TFunc = (key: string, opts?: Record<string, unknown>) => string;
 
-const ROUTING_OPTIONS = [
-  { value: 'bezier', label: 'Curved (bezier)' },
-  { value: 'smoothstep', label: 'Squared (smooth)' },
-  { value: 'step', label: 'Squared (sharp)' },
-  { value: 'straight', label: 'Straight' },
-];
+function arrowOptions(t: TFunc) {
+  return [
+    { value: 'none', label: t('platformCustomization.options.arrow.none') },
+    { value: 'filled_triangle', label: t('platformCustomization.options.arrow.filledTriangle') },
+    { value: 'open_triangle', label: t('platformCustomization.options.arrow.openTriangle') },
+    { value: 'diamond', label: t('platformCustomization.options.arrow.diamond') },
+    { value: 'open_diamond', label: t('platformCustomization.options.arrow.openDiamond') },
+    { value: 'circle', label: t('platformCustomization.options.arrow.circle') },
+  ];
+}
+
+function routingOptions(t: TFunc) {
+  return [
+    { value: 'bezier', label: t('platformCustomization.options.routing.bezier') },
+    { value: 'smoothstep', label: t('platformCustomization.options.routing.smoothstep') },
+    { value: 'step', label: t('platformCustomization.options.routing.step') },
+    { value: 'straight', label: t('platformCustomization.options.routing.straight') },
+  ];
+}
 
 const NumberField: React.FC<{
   label: string;
   value: number | undefined;
   onChange: (v: number | undefined) => void;
-}> = ({ label, value, onChange }) => (
+}> = ({ label, value, onChange }) => {
+  const { t } = useTranslation();
+  return (
   <div className="flex flex-col gap-1.5">
     <Label className="text-xs uppercase tracking-wider text-muted-foreground">{label}</Label>
     <Input
       type="number"
       min={1}
-      placeholder="auto"
+      placeholder={t('platformCustomization.common.auto')}
       className="h-8 text-sm"
       value={value ?? ''}
       onChange={(e) => {
@@ -1105,7 +1179,8 @@ const NumberField: React.FC<{
       }}
     />
   </div>
-);
+  );
+};
 
 // ---------------------------------------------------------------------------
 // Main panel
@@ -1124,6 +1199,7 @@ function compact<T extends Record<string, any>>(obj: T): T {
 }
 
 export const PlatformCustomizationPanel: React.FC = () => {
+  const { t } = useTranslation();
   const dispatch = useAppDispatch();
   const project = useAppSelector(selectProject);
   const diagrams = useAppSelector(selectDiagramsForActiveType);
@@ -1207,27 +1283,36 @@ export const PlatformCustomizationPanel: React.FC = () => {
         if (ov?.isTargetEndpoint) candidateTargets.push(assoc.name);
       }
       if (candidateSources.length === 0) {
-        issues.push(`Connection class "${connClass}" has no association marked as Source endpoint.`);
+        issues.push(t('platformCustomization.validation.issue.noSourceEndpoint', { class: connClass }));
       } else if (candidateSources.length > 1) {
         issues.push(
-          `Connection class "${connClass}" has multiple Source endpoint associations: ${candidateSources.join(', ')}.`,
+          t('platformCustomization.validation.issue.multipleSourceEndpoints', {
+            class: connClass,
+            names: candidateSources.join(', '),
+          }),
         );
       }
       if (candidateTargets.length === 0) {
-        issues.push(`Connection class "${connClass}" has no association marked as Target endpoint.`);
+        issues.push(t('platformCustomization.validation.issue.noTargetEndpoint', { class: connClass }));
       } else if (candidateTargets.length > 1) {
         issues.push(
-          `Connection class "${connClass}" has multiple Target endpoint associations: ${candidateTargets.join(', ')}.`,
+          t('platformCustomization.validation.issue.multipleTargetEndpoints', {
+            class: connClass,
+            names: candidateTargets.join(', '),
+          }),
         );
       }
       // Ensure the targets of each endpoint association are port-classes.
       for (const endpointAssoc of [...candidateSources, ...candidateTargets]) {
         const a = associations.find((x) => x.name === endpointAssoc);
         if (!a) continue;
-        const nonPortTargets = a.targetClassNames.filter((t) => !portClassNames.has(t));
+        const nonPortTargets = a.targetClassNames.filter((tgt) => !portClassNames.has(tgt));
         if (nonPortTargets.length > 0) {
           issues.push(
-            `Endpoint association "${endpointAssoc}" targets non-Port class(es): ${nonPortTargets.join(', ')}.`,
+            t('platformCustomization.validation.issue.endpointTargetsNonPort', {
+              association: endpointAssoc,
+              names: nonPortTargets.join(', '),
+            }),
           );
         }
       }
@@ -1239,13 +1324,11 @@ export const PlatformCustomizationPanel: React.FC = () => {
       if (!a) continue;
       const validSources = a.sourceClassNames.filter((s) => connectionClassNames.has(s));
       if (validSources.length === 0) {
-        issues.push(
-          `Association "${assocName}" is marked as an endpoint but its source class is not a Connection.`,
-        );
+        issues.push(t('platformCustomization.validation.issue.endpointSourceNotConnection', { association: assocName }));
       }
     }
     return issues;
-  }, [associations, customization.associationOverrides, connectionClassNames, portClassNames, parentIndex]);
+  }, [associations, customization.associationOverrides, connectionClassNames, portClassNames, parentIndex, t]);
 
   const persist = useCallback(
     (next: PlatformCustomizationData) => {
@@ -1308,16 +1391,17 @@ export const PlatformCustomizationPanel: React.FC = () => {
       <div className="border-b bg-card/60 px-6 py-4 backdrop-blur-sm">
         <div className="flex items-center gap-2">
           <Sliders className="size-5 text-brand" />
-          <h2 className="text-lg font-semibold text-foreground">Platform Customization</h2>
+          <h2 className="text-lg font-semibold text-foreground">{t('platformCustomization.header.title')}</h2>
         </div>
         <p className="mt-1 text-xs text-muted-foreground">
-          Visual overrides applied when the{' '}
-          <span className="font-semibold">Platform</span> generator turns your class diagram into a
-          standalone instance editor.
+          <Trans
+            i18nKey="platformCustomization.header.description"
+            components={{ strong: <span className="font-semibold" /> }}
+          />
         </p>
         {referencedClassDiagram && (
           <p className="mt-1 text-[11px] text-muted-foreground">
-            Reading from: <span className="font-semibold">{referencedClassDiagram.title}</span>
+            {t('platformCustomization.header.readingFrom', { title: referencedClassDiagram.title })}
           </p>
         )}
       </div>
@@ -1326,22 +1410,22 @@ export const PlatformCustomizationPanel: React.FC = () => {
         <div className="mx-auto flex max-w-4xl flex-col gap-6">
           {!project && (
             <EmptyState
-              title="No project loaded"
-              message="Create or open a project to customize the platform generator."
+              title={t('platformCustomization.empty.noProject.title')}
+              message={t('platformCustomization.empty.noProject.message')}
             />
           )}
 
           {project && !isUMLModel(classDiagramModel) && (
             <EmptyState
-              title="No Class Diagram available"
-              message="Create a class diagram first; this panel lists its classes and associations."
+              title={t('platformCustomization.empty.noClassDiagram.title')}
+              message={t('platformCustomization.empty.noClassDiagram.message')}
             />
           )}
 
           {isUMLModel(classDiagramModel) && classNames.length === 0 && (
             <EmptyState
-              title="Class Diagram is empty"
-              message="Add at least one class in the referenced Class Diagram."
+              title={t('platformCustomization.empty.emptyClassDiagram.title')}
+              message={t('platformCustomization.empty.emptyClassDiagram.message')}
             />
           )}
 
@@ -1350,7 +1434,7 @@ export const PlatformCustomizationPanel: React.FC = () => {
               <AlertTriangle className="mt-0.5 size-5 flex-shrink-0" />
               <div className="space-y-1">
                 <div className="font-semibold">
-                  Connection wiring needs attention ({validationIssues.length})
+                  {t('platformCustomization.validation.title', { count: validationIssues.length })}
                 </div>
                 <ul className="list-disc space-y-0.5 pl-5 text-xs text-amber-800 dark:text-amber-200">
                   {validationIssues.map((msg, i) => (
@@ -1364,7 +1448,7 @@ export const PlatformCustomizationPanel: React.FC = () => {
           {classNames.length > 0 && (
             <Card>
               <CardHeader>
-                <CardTitle className="text-base">Classes</CardTitle>
+                <CardTitle className="text-base">{t('platformCustomization.sections.classes')}</CardTitle>
               </CardHeader>
               <CardContent className="p-0">
                 <ul className="divide-y">
@@ -1385,7 +1469,7 @@ export const PlatformCustomizationPanel: React.FC = () => {
           {associationNames.length > 0 && (
             <Card>
               <CardHeader>
-                <CardTitle className="text-base">Associations</CardTitle>
+                <CardTitle className="text-base">{t('platformCustomization.sections.associations')}</CardTitle>
               </CardHeader>
               <CardContent className="p-0">
                 <ul className="divide-y">
@@ -1418,8 +1502,7 @@ export const PlatformCustomizationPanel: React.FC = () => {
 
           {associationNames.length === 0 && classNames.length > 0 && (
             <p className="text-center text-xs italic text-muted-foreground">
-              No associations to customize. Add some in the Class Diagram — then come back here to
-              set edge colors and arrows.
+              {t('platformCustomization.sections.noAssociationsHint')}
             </p>
           )}
         </div>

@@ -6,15 +6,15 @@
  * dial in an exact CSS value via the native picker / text input.
  */
 
-export const COLOR_SWATCHES: ReadonlyArray<{ name: string; value: string }> = [
-  { name: 'Slate',    value: '#475569' },
-  { name: 'Sky',      value: '#0ea5e9' },
-  { name: 'Teal',     value: '#0d9488' },
-  { name: 'Emerald',  value: '#10b981' },
-  { name: 'Amber',    value: '#f59e0b' },
-  { name: 'Rose',     value: '#f43f5e' },
-  { name: 'Indigo',   value: '#6366f1' },
-  { name: 'Stone',    value: '#78716c' },
+export const COLOR_SWATCHES: ReadonlyArray<{ key: string; name: string; value: string }> = [
+  { key: 'slate',   name: 'Slate',    value: '#475569' },
+  { key: 'sky',     name: 'Sky',      value: '#0ea5e9' },
+  { key: 'teal',    name: 'Teal',     value: '#0d9488' },
+  { key: 'emerald', name: 'Emerald',  value: '#10b981' },
+  { key: 'amber',   name: 'Amber',    value: '#f59e0b' },
+  { key: 'rose',    name: 'Rose',     value: '#f43f5e' },
+  { key: 'indigo',  name: 'Indigo',   value: '#6366f1' },
+  { key: 'stone',   name: 'Stone',    value: '#78716c' },
 ];
 
 /** Convert a CSS hex (#rrggbb or #rgb) to {r,g,b} 0–255. Returns null if not hex. */

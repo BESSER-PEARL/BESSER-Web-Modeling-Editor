@@ -50,7 +50,8 @@
       "user": "User",
       "neuralNet": "Neural Net",
       "gui": "GUI",
-      "quantum": "Quantum"
+      "quantum": "Quantum",
+      "platform": "Platform"
     },
     "route": {
       "settings": "Settings",
@@ -1340,7 +1341,8 @@
     "GUINoCodeDiagram": "GUI Diagram",
     "QuantumCircuitDiagram": "Quantum Circuit Diagram",
     "BPMN": "BPMN Diagram",
-    "NNDiagram": "Neural Network Diagram"
+    "NNDiagram": "Neural Network Diagram",
+    "PlatformCustomizationDiagram": "Platform Customization"
   },
   "dialogs": {
     "about": {
@@ -2345,6 +2347,7 @@
     },
     "loadingGuiEditor": "Loading GUI editor...",
     "loadingQuantumEditor": "Loading quantum editor...",
+    "loadingPlatformEditor": "Loading platform customization...",
     "hiddenPerspectives": {
       "messagePlural": "This project uses {{labels}} but those perspectives are hidden.",
       "messageSingular": "This project uses {{labels}} but that perspective is hidden.",
@@ -2483,6 +2486,177 @@
       "measurementOutput": "Measurement output - auto-generated from measurement gates",
       "dropHere": "Drop here",
       "invalid": "Invalid"
+    }
+  },
+  "platformCustomization": {
+    "header": {
+      "title": "Platform Customization",
+      "description": "Visual overrides applied when the <strong>Platform</strong> generator turns your class diagram into a standalone instance editor.",
+      "readingFrom": "Reading from: {{title}}"
+    },
+    "empty": {
+      "noProject": {
+        "title": "No project loaded",
+        "message": "Create or open a project to customize the platform generator."
+      },
+      "noClassDiagram": {
+        "title": "No Class Diagram available",
+        "message": "Create a class diagram first; this panel lists its classes and associations."
+      },
+      "emptyClassDiagram": {
+        "title": "Class Diagram is empty",
+        "message": "Add at least one class in the referenced Class Diagram."
+      }
+    },
+    "validation": {
+      "title": "Connection wiring needs attention ({{count}})",
+      "issue": {
+        "noSourceEndpoint": "Connection class \"{{class}}\" has no association marked as Source endpoint.",
+        "multipleSourceEndpoints": "Connection class \"{{class}}\" has multiple Source endpoint associations: {{names}}.",
+        "noTargetEndpoint": "Connection class \"{{class}}\" has no association marked as Target endpoint.",
+        "multipleTargetEndpoints": "Connection class \"{{class}}\" has multiple Target endpoint associations: {{names}}.",
+        "endpointTargetsNonPort": "Endpoint association \"{{association}}\" targets non-Port class(es): {{names}}.",
+        "endpointSourceNotConnection": "Association \"{{association}}\" is marked as an endpoint but its source class is not a Connection."
+      }
+    },
+    "sections": {
+      "classes": "Classes",
+      "associations": "Associations",
+      "noAssociationsHint": "No associations to customize. Add some in the Class Diagram — then come back here to set edge colors and arrows."
+    },
+    "diagramCard": {
+      "title": "Diagram",
+      "lightTheme": "Light theme",
+      "darkTheme": "Dark theme",
+      "lightThemeTooltip": "Apply the Light theme preset to all classes and associations",
+      "darkThemeTooltip": "Apply the Dark theme preset to all classes and associations",
+      "body": "Use the preset buttons above to bulk-apply a color scheme to all classes and associations. Grid, background, theme, and edge-routing defaults can be changed at runtime inside the generated platform via the Settings menu."
+    },
+    "representation": {
+      "label": "Representation",
+      "description": "How instances of this class render in the generated editor.",
+      "options": {
+        "node": { "label": "Node", "description": "Standalone box on the canvas (default)" },
+        "container": { "label": "Container", "description": "Hosts other nodes via container associations" },
+        "port": { "label": "Port", "description": "Renders as a handle on its owning equipment" },
+        "connection": { "label": "Connection", "description": "Renders as an edge between two ports" }
+      },
+      "containerTip": "Tip: open each relationship in the Associations section and turn on <strong>Container association</strong> for the ones whose targets should nest inside this container at runtime.",
+      "portTip": "Instances of this class render as graphical handles on their owning equipment node — not as standalone nodes.",
+      "connectionTip": "Instances of this class render as edges between two ports. Mark exactly one outgoing association as <strong>Source endpoint</strong> and another as <strong>Target endpoint</strong> (target classes must be Ports)."
+    },
+    "association": {
+      "containerAssociation": {
+        "label": "Container association",
+        "helpEnabled": "When enabled, dropping a target instance inside a container source instance auto-creates this link and nests the child visually. The edge is hidden because the nesting already conveys it.",
+        "helpDisabled": "Enable on a container class first; this toggle is only honoured when the source of this association is a container."
+      },
+      "endpointRole": {
+        "label": "Endpoint role",
+        "helpBothOk": "Designate this association as the source-port or target-port endpoint of its connection-class.",
+        "helpNoPortTarget": "Source class is a connection — but the target class is not a Port. Mark the target class as a Port for this endpoint to work at runtime.",
+        "helpNotConnection": "No effect: only honoured when the source class is a Connection.",
+        "options": {
+          "normal": "Normal",
+          "source": "Source",
+          "target": "Target"
+        }
+      }
+    },
+    "groups": {
+      "line": "Line",
+      "arrows": "Arrows",
+      "label": "Label",
+      "layout": "Layout",
+      "appearance": "Appearance",
+      "typography": "Typography"
+    },
+    "fields": {
+      "color": "Color",
+      "width": "Width",
+      "style": "Style",
+      "routing": "Routing",
+      "sourceArrow": "Source arrow",
+      "targetArrow": "Target arrow",
+      "visible": "Visible",
+      "fontSize": "Font size",
+      "fontColor": "Font color",
+      "resizable": "Resizable",
+      "resizableTooltip": "Show drag handles on instances so the user can resize the node",
+      "widthPx": "Width (px)",
+      "heightPx": "Height (px)",
+      "shape": "Shape",
+      "labelPosition": "Label position",
+      "anchorSide": "Anchor side",
+      "useIcon": "Use icon",
+      "useIconTooltip": "When off, the shape / fill / border styling is used instead of the class-diagram icon",
+      "fill": "Fill",
+      "border": "Border",
+      "borderWidth": "Border width",
+      "borderStyle": "Border style",
+      "borderRadius": "Border radius",
+      "fontWeight": "Font weight",
+      "connectionPoints": "Connection points",
+      "preview": "Preview"
+    },
+    "options": {
+      "lineStyle": { "solid": "Solid", "dashed": "Dashed", "dotted": "Dotted" },
+      "arrow": {
+        "none": "None",
+        "filledTriangle": "Filled triangle ▶",
+        "openTriangle": "Open triangle",
+        "diamond": "Diamond ◆",
+        "openDiamond": "Open diamond ◇",
+        "circle": "Circle ●"
+      },
+      "routing": {
+        "bezier": "Curved (bezier)",
+        "smoothstep": "Squared (smooth)",
+        "step": "Squared (sharp)",
+        "straight": "Straight"
+      },
+      "shape": { "rectangle": "Rectangle", "ellipse": "Ellipse", "diamond": "Diamond", "hexagon": "Hexagon" },
+      "labelPosition": { "top": "Top", "inside": "Inside", "bottom": "Bottom" },
+      "fontWeight": { "normal": "Normal", "bold": "Bold" },
+      "portSide": {
+        "auto": "Auto (use direction attribute)",
+        "top": "Top",
+        "right": "Right",
+        "bottom": "Bottom",
+        "left": "Left"
+      },
+      "side": { "top": "Top", "right": "Right", "bottom": "Bottom", "left": "Left" }
+    },
+    "colors": {
+      "slate": "Slate",
+      "sky": "Sky",
+      "teal": "Teal",
+      "emerald": "Emerald",
+      "amber": "Amber",
+      "rose": "Rose",
+      "indigo": "Indigo",
+      "stone": "Stone"
+    },
+    "common": {
+      "default": "Default",
+      "defaultSuffix": "(default)",
+      "clear": "Clear",
+      "pickColor": "Pick color",
+      "defaultColor": "Default: {{color}}",
+      "noColorSet": "No color set",
+      "customize": "Customize",
+      "resetToDefault": "Reset to default",
+      "hexPlaceholder": "#22c55e or hsl(...)",
+      "auto": "auto",
+      "noConnectionHandles": "No connection handles will be rendered on this class."
+    },
+    "aria": {
+      "representationFor": "Representation for {{name}}",
+      "endpointRoleFor": "Endpoint role for {{name}}",
+      "nodePreview": "Node style preview",
+      "edgePreview": "Edge style preview",
+      "connectionPreview": "Connection style preview",
+      "portPreview": "Port style preview"
     }
   }
 }

@@ -7,6 +7,7 @@
  */
 
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import type {
   ClassRepresentation,
   PlatformAssociationOverride,
@@ -56,6 +57,7 @@ export const ClassNodePreview: React.FC<{
    *  undefined the preview defaults to a node-shape preview. */
   representation?: ClassRepresentation;
 }> = ({ override, icon, label = 'Aa', representation }) => {
+  const { t } = useTranslation();
   // Connection-class preview: render an edge using the override's edge
   // styling. The shape/icon are irrelevant here — a connection class is
   // drawn as a line on the canvas, so the preview must match.
@@ -138,7 +140,7 @@ export const ClassNodePreview: React.FC<{
       viewBox="0 0 96 64"
       className="size-full"
       role="img"
-      aria-label="Node style preview"
+      aria-label={t('platformCustomization.aria.nodePreview')}
     >
       {shapeNode}
       <text
@@ -193,6 +195,7 @@ function edgePreviewPath(routing: string | undefined): string {
 export const EdgeStylePreview: React.FC<{ override?: PlatformAssociationOverride }> = ({
   override,
 }) => {
+  const { t } = useTranslation();
   const stroke = override?.edgeColor ?? 'hsl(var(--primary))';
   const sw = override?.lineWidth ?? 2;
   const dash = dashFromLineStyle(override?.lineStyle);
@@ -208,7 +211,7 @@ export const EdgeStylePreview: React.FC<{ override?: PlatformAssociationOverride
       viewBox="0 0 96 32"
       className="size-full"
       role="img"
-      aria-label="Edge style preview"
+      aria-label={t('platformCustomization.aria.edgePreview')}
       style={{ color: stroke }}
     >
       <defs>
@@ -238,6 +241,7 @@ export const EdgeStylePreview: React.FC<{ override?: PlatformAssociationOverride
 const ConnectionClassPreview: React.FC<{ override?: PlatformClassOverride }> = ({
   override,
 }) => {
+  const { t } = useTranslation();
   const stroke = override?.edgeColor ?? 'hsl(var(--primary))';
   const sw = override?.lineWidth ?? 2;
   const dash = dashFromLineStyle(override?.lineStyle);
@@ -249,7 +253,7 @@ const ConnectionClassPreview: React.FC<{ override?: PlatformClassOverride }> = (
       viewBox="0 0 96 32"
       className="size-full"
       role="img"
-      aria-label="Connection style preview"
+      aria-label={t('platformCustomization.aria.connectionPreview')}
       style={{ color: stroke }}
     >
       <defs>
@@ -281,6 +285,7 @@ const ConnectionClassPreview: React.FC<{ override?: PlatformClassOverride }> = (
  *  outline. The shape is driven by `override.nodeShape` so the preview tile
  *  matches what the generated palette and runtime port glyph will render. */
 const PortClassPreview: React.FC<{ override?: PlatformClassOverride }> = ({ override }) => {
+  const { t } = useTranslation();
   const hostStroke = 'hsl(var(--muted-foreground) / 0.45)';
   const hostFill = 'hsl(var(--card))';
   const portFill = override?.fillColor ?? '#000000';
@@ -310,7 +315,7 @@ const PortClassPreview: React.FC<{ override?: PlatformClassOverride }> = ({ over
       viewBox="0 0 96 64"
       className="size-full"
       role="img"
-      aria-label="Port style preview"
+      aria-label={t('platformCustomization.aria.portPreview')}
     >
       {/* Faint host equipment outline */}
       <rect

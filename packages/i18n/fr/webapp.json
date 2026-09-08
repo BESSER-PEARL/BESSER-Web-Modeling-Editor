@@ -50,7 +50,8 @@
       "user": "Utilisateur",
       "neuralNet": "Réseau de neurones",
       "gui": "GUI",
-      "quantum": "Quantique"
+      "quantum": "Quantique",
+      "platform": "Plateforme"
     },
     "route": {
       "settings": "Paramètres",
@@ -1340,7 +1341,8 @@
     "GUINoCodeDiagram": "Diagramme d'IUG",
     "QuantumCircuitDiagram": "Diagramme de circuit quantique",
     "BPMN": "Diagramme BPMN",
-    "NNDiagram": "Diagramme de réseau de neurones"
+    "NNDiagram": "Diagramme de réseau de neurones",
+    "PlatformCustomizationDiagram": "Personnalisation de la plateforme"
   },
   "dialogs": {
     "about": {
@@ -1778,6 +1780,7 @@
       "maxDiagrams": "Maximum {{count}} diagrammes par type.",
       "classRefTooltipObject": "Sélectionnez quel diagramme de classes fournit le modèle de données pour ce diagramme d'objets",
       "classRefTooltipGui": "Sélectionnez quel diagramme de classes fournit le modèle de données pour cette interface graphique",
+      "classRefTooltipPlatform": "Sélectionnez le diagramme de classes auquel s'applique cette personnalisation de la plateforme",
       "validationValidated": "Validé",
       "validationIssues": "Problèmes",
       "validationNeedsValidation": "Validation requise",
@@ -2344,6 +2347,7 @@
     },
     "loadingGuiEditor": "Chargement de l'éditeur GUI...",
     "loadingQuantumEditor": "Chargement de l'éditeur quantique...",
+    "loadingPlatformEditor": "Chargement de la personnalisation de la plateforme...",
     "hiddenPerspectives": {
       "messagePlural": "Ce projet utilise {{labels}}, mais ces perspectives sont masquées.",
       "messageSingular": "Ce projet utilise {{labels}}, mais cette perspective est masquée.",
@@ -2482,6 +2486,177 @@
       "measurementOutput": "Sortie de mesure — générée automatiquement à partir des portes de mesure",
       "dropHere": "Déposer ici",
       "invalid": "Non valide"
+    }
+  },
+  "platformCustomization": {
+    "header": {
+      "title": "Personnalisation de la plateforme",
+      "description": "Substitutions visuelles appliquées lorsque le générateur <strong>Plateforme</strong> transforme votre diagramme de classes en éditeur d'instances autonome.",
+      "readingFrom": "Source : {{title}}"
+    },
+    "empty": {
+      "noProject": {
+        "title": "Aucun projet chargé",
+        "message": "Créez ou ouvrez un projet pour personnaliser le générateur de plateforme."
+      },
+      "noClassDiagram": {
+        "title": "Aucun diagramme de classes disponible",
+        "message": "Créez d'abord un diagramme de classes ; ce panneau liste ses classes et associations."
+      },
+      "emptyClassDiagram": {
+        "title": "Le diagramme de classes est vide",
+        "message": "Ajoutez au moins une classe dans le diagramme de classes référencé."
+      }
+    },
+    "validation": {
+      "title": "Le câblage des connexions nécessite votre attention ({{count}})",
+      "issue": {
+        "noSourceEndpoint": "La classe de connexion « {{class}} » n'a aucune association marquée comme point de terminaison Source.",
+        "multipleSourceEndpoints": "La classe de connexion « {{class}} » a plusieurs associations de point de terminaison Source : {{names}}.",
+        "noTargetEndpoint": "La classe de connexion « {{class}} » n'a aucune association marquée comme point de terminaison Cible.",
+        "multipleTargetEndpoints": "La classe de connexion « {{class}} » a plusieurs associations de point de terminaison Cible : {{names}}.",
+        "endpointTargetsNonPort": "L'association de point de terminaison « {{association}} » cible des classes non-Port : {{names}}.",
+        "endpointSourceNotConnection": "L'association « {{association}} » est marquée comme point de terminaison, mais sa classe source n'est pas une Connexion."
+      }
+    },
+    "sections": {
+      "classes": "Classes",
+      "associations": "Associations",
+      "noAssociationsHint": "Aucune association à personnaliser. Ajoutez-en dans le diagramme de classes, puis revenez ici pour définir les couleurs et les flèches des arêtes."
+    },
+    "diagramCard": {
+      "title": "Diagramme",
+      "lightTheme": "Thème clair",
+      "darkTheme": "Thème sombre",
+      "lightThemeTooltip": "Appliquer le préréglage du thème clair à toutes les classes et associations",
+      "darkThemeTooltip": "Appliquer le préréglage du thème sombre à toutes les classes et associations",
+      "body": "Utilisez les boutons de préréglage ci-dessus pour appliquer en masse un schéma de couleurs à toutes les classes et associations. Les valeurs par défaut de la grille, de l'arrière-plan, du thème et du routage des arêtes peuvent être modifiées à l'exécution dans la plateforme générée via le menu Paramètres."
+    },
+    "representation": {
+      "label": "Représentation",
+      "description": "Comment les instances de cette classe sont rendues dans l'éditeur généré.",
+      "options": {
+        "node": { "label": "Nœud", "description": "Boîte autonome sur le canevas (par défaut)" },
+        "container": { "label": "Conteneur", "description": "Héberge d'autres nœuds via des associations de conteneur" },
+        "port": { "label": "Port", "description": "Se rend comme une poignée sur son équipement propriétaire" },
+        "connection": { "label": "Connexion", "description": "Se rend comme une arête entre deux ports" }
+      },
+      "containerTip": "Astuce : ouvrez chaque relation dans la section Associations et activez <strong>Association de conteneur</strong> pour celles dont les cibles doivent être imbriquées dans ce conteneur à l'exécution.",
+      "portTip": "Les instances de cette classe se rendent comme des poignées graphiques sur leur équipement propriétaire — pas comme des nœuds autonomes.",
+      "connectionTip": "Les instances de cette classe se rendent comme des arêtes entre deux ports. Marquez exactement une association sortante comme <strong>point de terminaison Source</strong> et une autre comme <strong>point de terminaison Cible</strong> (les classes cibles doivent être des Ports)."
+    },
+    "association": {
+      "containerAssociation": {
+        "label": "Association de conteneur",
+        "helpEnabled": "Lorsqu'elle est activée, déposer une instance cible dans une instance source conteneur crée automatiquement ce lien et imbrique visuellement l'enfant. L'arête est masquée car l'imbrication le traduit déjà.",
+        "helpDisabled": "Activez d'abord une classe conteneur ; ce bouton n'est pris en compte que lorsque la source de cette association est un conteneur."
+      },
+      "endpointRole": {
+        "label": "Rôle de point de terminaison",
+        "helpBothOk": "Désigner cette association comme le point de terminaison port-source ou port-cible de sa classe de connexion.",
+        "helpNoPortTarget": "La classe source est une connexion — mais la classe cible n'est pas un Port. Marquez la classe cible comme Port pour que ce point de terminaison fonctionne à l'exécution.",
+        "helpNotConnection": "Aucun effet : pris en compte uniquement lorsque la classe source est une Connexion.",
+        "options": {
+          "normal": "Normal",
+          "source": "Source",
+          "target": "Cible"
+        }
+      }
+    },
+    "groups": {
+      "line": "Ligne",
+      "arrows": "Flèches",
+      "label": "Étiquette",
+      "layout": "Disposition",
+      "appearance": "Apparence",
+      "typography": "Typographie"
+    },
+    "fields": {
+      "color": "Couleur",
+      "width": "Largeur",
+      "style": "Style",
+      "routing": "Routage",
+      "sourceArrow": "Flèche source",
+      "targetArrow": "Flèche cible",
+      "visible": "Visible",
+      "fontSize": "Taille de police",
+      "fontColor": "Couleur de police",
+      "resizable": "Redimensionnable",
+      "resizableTooltip": "Afficher des poignées de glissement sur les instances pour permettre à l'utilisateur de redimensionner le nœud",
+      "widthPx": "Largeur (px)",
+      "heightPx": "Hauteur (px)",
+      "shape": "Forme",
+      "labelPosition": "Position de l'étiquette",
+      "anchorSide": "Côté d'ancrage",
+      "useIcon": "Utiliser l'icône",
+      "useIconTooltip": "Si désactivé, le style forme / remplissage / bordure est utilisé à la place de l'icône du diagramme de classes",
+      "fill": "Remplissage",
+      "border": "Bordure",
+      "borderWidth": "Largeur de bordure",
+      "borderStyle": "Style de bordure",
+      "borderRadius": "Rayon de bordure",
+      "fontWeight": "Graisse de police",
+      "connectionPoints": "Points de connexion",
+      "preview": "Aperçu"
+    },
+    "options": {
+      "lineStyle": { "solid": "Plein", "dashed": "Tirets", "dotted": "Pointillé" },
+      "arrow": {
+        "none": "Aucune",
+        "filledTriangle": "Triangle plein ▶",
+        "openTriangle": "Triangle ouvert",
+        "diamond": "Losange ◆",
+        "openDiamond": "Losange ouvert ◇",
+        "circle": "Cercle ●"
+      },
+      "routing": {
+        "bezier": "Courbé (bézier)",
+        "smoothstep": "Angulaire (lisse)",
+        "step": "Angulaire (net)",
+        "straight": "Droit"
+      },
+      "shape": { "rectangle": "Rectangle", "ellipse": "Ellipse", "diamond": "Losange", "hexagon": "Hexagone" },
+      "labelPosition": { "top": "Haut", "inside": "Intérieur", "bottom": "Bas" },
+      "fontWeight": { "normal": "Normal", "bold": "Gras" },
+      "portSide": {
+        "auto": "Auto (utiliser l'attribut de direction)",
+        "top": "Haut",
+        "right": "Droite",
+        "bottom": "Bas",
+        "left": "Gauche"
+      },
+      "side": { "top": "Haut", "right": "Droite", "bottom": "Bas", "left": "Gauche" }
+    },
+    "colors": {
+      "slate": "Ardoise",
+      "sky": "Ciel",
+      "teal": "Sarcelle",
+      "emerald": "Émeraude",
+      "amber": "Ambre",
+      "rose": "Rose",
+      "indigo": "Indigo",
+      "stone": "Pierre"
+    },
+    "common": {
+      "default": "Par défaut",
+      "defaultSuffix": "(par défaut)",
+      "clear": "Effacer",
+      "pickColor": "Choisir une couleur",
+      "defaultColor": "Par défaut : {{color}}",
+      "noColorSet": "Aucune couleur définie",
+      "customize": "Personnaliser",
+      "resetToDefault": "Réinitialiser par défaut",
+      "hexPlaceholder": "#22c55e ou hsl(...)",
+      "auto": "auto",
+      "noConnectionHandles": "Aucune poignée de connexion ne sera rendue sur cette classe."
+    },
+    "aria": {
+      "representationFor": "Représentation pour {{name}}",
+      "endpointRoleFor": "Rôle de point de terminaison pour {{name}}",
+      "nodePreview": "Aperçu du style de nœud",
+      "edgePreview": "Aperçu du style d'arête",
+      "connectionPreview": "Aperçu du style de connexion",
+      "portPreview": "Aperçu du style de port"
     }
   }
 }
