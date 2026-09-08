@@ -212,6 +212,7 @@ function getNavigableEndForClassIds(
 export function getDisplayAttribute(classMetadata: ClassMetadata | undefined): AttributeMetadata | undefined {
   const attributes = classMetadata?.attributes ?? [];
   return (
+    attributes.find(attr => attr.name === 'name') ??
     attributes.find(attr => attr.isString && attr.name !== 'id') ??
     attributes.find(attr => attr.name !== 'id') ??
     attributes[0]
