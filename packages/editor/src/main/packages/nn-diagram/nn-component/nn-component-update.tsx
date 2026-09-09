@@ -815,15 +815,12 @@ class NNComponentUpdateComponent extends Component<Props, State> {
     ) as TensorOpAttribute | undefined;
 
     if (!layersOfTensorsAttr || !layersOfTensorsAttr.value) {
-      console.log('[hasRecurrentLayersSelected] No layers_of_tensors attr or empty value');
       return false;
     }
 
     const rawValue = layersOfTensorsAttr.value;
-    console.log('[hasRecurrentLayersSelected] rawValue:', rawValue);
     const cleaned = rawValue.replace(/^\[|\]$/g, '').trim();
     if (!cleaned) {
-      console.log('[hasRecurrentLayersSelected] cleaned is empty');
       return false;
     }
 
@@ -832,7 +829,6 @@ class NNComponentUpdateComponent extends Component<Props, State> {
       // Remove surrounding quotes if present
       return trimmed.replace(/^['"]|['"]$/g, '');
     }).filter(v => v && !/^\d+\.?\d*$/.test(v));
-    console.log('[hasRecurrentLayersSelected] layerNames:', layerNames);
 
     // Find all RNN/LSTM/GRU layers and their names
     const recurrentLayers = Object.keys(this.props.elements)
@@ -847,11 +843,9 @@ class NNComponentUpdateComponent extends Component<Props, State> {
         return nameAttr?.value;
       })
       .filter(Boolean);
-    console.log('[hasRecurrentLayersSelected] recurrentLayers:', recurrentLayers);
 
     // Check if any selected layer name is a recurrent layer
     const result = layerNames.some(name => recurrentLayers.includes(name));
-    console.log('[hasRecurrentLayersSelected] result:', result);
     return result;
   };
 

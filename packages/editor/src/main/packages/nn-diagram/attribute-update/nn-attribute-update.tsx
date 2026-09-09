@@ -118,7 +118,6 @@ class NNAttributeUpdateComponent extends Component<Props, ComponentState> {
   private handleValueChange = (newValue: TextfieldValue) => {
     const { element, update, elements } = this.props;
 
-    console.log(`[DEBUG] handleValueChange: ${element.attributeName} = ${newValue}`);
 
     // Check if this is a tns_type attribute change
     if (element.type === NNElementType.TnsTypeAttributeTensorOp && element.attributeName === 'tns_type') {
@@ -373,7 +372,6 @@ class NNAttributeUpdateComponent extends Component<Props, ComponentState> {
 
     // Store value with brackets for List type
     const newValue = newValues.length > 0 ? `[${newValues.join(', ')}]` : '';
-    console.log(`[DEBUG] handleMultiSelect layers_of_tensors: ${element.attributeName} = ${newValue}`);
     update(element.id, {
       value: newValue,
       name: `${element.attributeName} = ${newValue}`
@@ -517,11 +515,6 @@ class NNAttributeUpdateComponent extends Component<Props, ComponentState> {
     const { element } = this.props;
     const { colorOpen } = this.state;
 
-    // Log all TensorOp attributes to debug
-    if (element.attributeName) {
-      console.log('Rendering attribute:', element.attributeName, 'type:', element.type);
-    }
-
     // Check if this is the tns_type attribute for TensorOp
     const isTnsType = element.type === NNElementType.TnsTypeAttributeTensorOp;
     const tnsTypeOptions = ['binop_add', 'binop_divide', 'binop_floor_divide', 'binop_multiply', 'binop_subtract', 'concatenate', 'dropout', 'identity', 'interpolate', 'matmultiply', 'max', 'mean', 'multiply', 'normalize', 'pad', 'permute', 'repeat', 'reshape', 'shape_dim', 'split', 'squeeze', 'subscript', 'transpose', 'unsqueeze', 'zeros_like'];
@@ -568,16 +561,6 @@ class NNAttributeUpdateComponent extends Component<Props, ComponentState> {
     // Check if this is an actual_vars attribute (multi-select)
     // Fallback: also check attributeName for backward compatibility with diagrams created before type was added
     const isActualVars = element.type === NNElementType.ActualVarsAttributeTensorOp || element.attributeName === 'actual_vars';
-    if (element.attributeName === 'actual_vars') {
-      console.log('ACTUAL_VARS DEBUG:', {
-        attributeName: element.attributeName,
-        elementType: element.type,
-        expectedType: NNElementType.ActualVarsAttributeTensorOp,
-        typeMatch: element.type === NNElementType.ActualVarsAttributeTensorOp,
-        nameMatch: element.attributeName === 'actual_vars',
-        isActualVars: isActualVars
-      });
-    }
     const actualVarsOptions = ['output', 'hidden'];
     // Parse actual_vars value - handle both formats: "a, b" and "[a, b]"
     const rawActualVarsValue = element.value || '';
