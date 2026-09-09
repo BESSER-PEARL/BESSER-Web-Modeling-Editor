@@ -312,17 +312,6 @@ export const AssistantWorkspaceDrawer: React.FC<AssistantWorkspaceDrawerProps> =
     handleSubmit(undefined, { overrideText: action.prompt ?? '' });
   }, [handleSubmit, onOpenChange]);
 
-  /* Ask the agent for a plain-language overview of the current model. Goes
-     through the normal submit path so the workspace context travels with it
-     and the agent routes it to describe_model; the reply streams in like any
-     other agent message. Complements the structured "Your model" panel. */
-  const handleExplainModel = useCallback(() => {
-    handleSubmit(undefined, {
-      overrideText:
-        'Give me a plain-language overview of my current model — the main entities and how they relate, in plain words (no multiplicity jargon).',
-    });
-  }, [handleSubmit]);
-
   /* ---- Last assistant message meta (for QuickActions) ---- */
 
   const lastAssistantMsg = messages.length > 0
@@ -897,17 +886,6 @@ export const AssistantWorkspaceDrawer: React.FC<AssistantWorkspaceDrawerProps> =
                       >
                         <Boxes className="size-3.5" />
                         Your model
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="h-7 gap-1.5 rounded-lg border-border/50 px-2.5 text-xs"
-                        onClick={handleExplainModel}
-                        disabled={isGenerating}
-                        title={t('assistant.chat.explainModelTitle')}
-                      >
-                        <Sparkles className="size-3.5" />
-                        {t('assistant.chat.explainModel')}
                       </Button>
                       <Button
                         variant="outline"
