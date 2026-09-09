@@ -205,6 +205,60 @@ describe('specDrivenSlice', () => {
     expect(card.generatorUsed).toBe('fastapi_backend');
   });
 
+  it('a done event with a file split records the deterministic/AI percentages (honest badge)', () => {
+    let state = specDrivenReducer(INITIAL, liveRunStarted({ key: 'k1' }));
+    state = specDrivenReducer(
+      state,
+      liveRunEvent({
+        key: 'k1',
+        event: {
+          event: 'done',
+          runId: 'a'.repeat(32),
+          downloadUrl: `/besser_api/spec-driven/download/${'a'.repeat(32)}`,
+          fileName: 'app.zip',
+          isZip: true,
+          recipe: { generator_used: 'fastapi_backend' },
+          tokensUsed: 120000,
+          fileSplit: {
+            generator_untouched: 10,
+            generator_llm_modified: 1,
+            llm_authored: 1,
+            total: 12,
+            generator_untouched_pct: 83.3,
+            generator_llm_modified_pct: 8.3,
+            llm_authored_pct: 8.3,
+          },
+        },
+      }),
+    );
+    const card = state.runs.k1;
+    expect(card.detPct).toBe(83); // Math.round(83.3)
+    expect(card.aiPct).toBe(8); // Math.round(8.3)
+    // The raw cumulative token count is retained for the badge tooltip only.
+    expect(card.tokensUsed).toBe(120000);
+  });
+
+  it('a done event with no file split leaves the deterministic percentage undefined', () => {
+    let state = specDrivenReducer(INITIAL, liveRunStarted({ key: 'k1' }));
+    state = specDrivenReducer(
+      state,
+      liveRunEvent({
+        key: 'k1',
+        event: {
+          event: 'done',
+          runId: 'a'.repeat(32),
+          downloadUrl: `/besser_api/spec-driven/download/${'a'.repeat(32)}`,
+          fileName: 'app.zip',
+          isZip: true,
+          recipe: { generator_used: 'fastapi_backend' },
+        },
+      }),
+    );
+    const card = state.runs.k1;
+    expect(card.detPct).toBeUndefined();
+    expect(card.aiPct).toBeUndefined();
+  });
+
   it('a terminal error event flips the card to error with a red notice', () => {
     let state = specDrivenReducer(INITIAL, liveRunStarted({ key: 'k1' }));
     state = specDrivenReducer(

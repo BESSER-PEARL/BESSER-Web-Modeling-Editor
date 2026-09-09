@@ -104,6 +104,53 @@ describe('SpecDrivenCard — runtime meter', () => {
   });
 });
 
+describe('SpecDrivenCard — token-honest completion badge', () => {
+  it('shows an "N% deterministic" badge and NOT a raw cumulative token count', () => {
+    const { container } = renderCard(
+      baseSpecDriven({
+        status: 'done',
+        fileName: 'app.zip',
+        isZip: true,
+        fileCount: 12,
+        tokensUsed: 120000,
+        detPct: 83,
+        aiPct: 8,
+      }),
+    );
+    expect(screen.getByText('83% deterministic')).toBeTruthy();
+    // The misleading cumulative token count must not appear as a headline.
+    expect(container.textContent).not.toContain('120,000 tokens');
+    expect(container.textContent).not.toMatch(/\btokens\b/);
+  });
+
+  it('omits the badge entirely when the backend sent no file split', () => {
+    const { container } = renderCard(
+      baseSpecDriven({
+        status: 'done',
+        fileName: 'app.zip',
+        isZip: true,
+        fileCount: 12,
+        tokensUsed: 120000,
+        // detPct/aiPct undefined — older backend with no split
+      }),
+    );
+    expect(container.textContent).not.toContain('deterministic');
+    expect(container.textContent).not.toMatch(/\btokens\b/);
+  });
+
+  it('keeps the deterministic run\'s "0 tokens" badge (pure generator, no LLM)', () => {
+    renderCard(
+      baseSpecDriven({
+        status: 'done',
+        fileName: 'app.zip',
+        isZip: true,
+        deterministic: true,
+      }),
+    );
+    expect(screen.getByText('0 tokens')).toBeTruthy();
+  });
+});
+
 describe('SpecDrivenCard — Stop button', () => {
   it('POSTs the cancel endpoint for the run (fire-and-forget)', async () => {
     const fetchMock = vi.fn().mockResolvedValue(new Response(null, { status: 202 }));

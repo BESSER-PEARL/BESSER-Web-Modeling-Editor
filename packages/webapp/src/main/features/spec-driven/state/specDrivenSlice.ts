@@ -210,6 +210,23 @@ export function applySpecDrivenEvent(
           typeof event.tokensUsed === 'number' && event.tokensUsed > 0
             ? event.tokensUsed
             : undefined,
+        // Honest efficiency headline for the card: the share of files BESSER's
+        // deterministic generator produced for free (0 LLM tokens). Shown as a
+        // "N% deterministic" badge instead of the misleading cumulative token
+        // count. Only trust the split when the backend reported a non-empty
+        // total (older backends omit fileSplit entirely).
+        detPct:
+          typeof event.fileSplit?.total === 'number' &&
+          event.fileSplit.total > 0 &&
+          typeof event.fileSplit.generator_untouched_pct === 'number'
+            ? Math.round(event.fileSplit.generator_untouched_pct)
+            : undefined,
+        aiPct:
+          typeof event.fileSplit?.total === 'number' &&
+          event.fileSplit.total > 0 &&
+          typeof event.fileSplit.llm_authored_pct === 'number'
+            ? Math.round(event.fileSplit.llm_authored_pct)
+            : undefined,
         status: 'done',
         // The run never auto-saves the artifact (consent fix) — the card
         // surfaces an explicit Download button instead.

@@ -220,9 +220,21 @@ export interface SpecDrivenMessageState {
   generatorUsed?: string
   /** Number of user files the run produced — shown on the compact card. */
   fileCount?: number
-  /** Total LLM tokens this run consumed — shown as "N tokens" on a spec-driven
-   * run's card (the deterministic card shows "0 tokens" instead). */
+  /** Total LLM tokens this run consumed. NOT shown as a headline number —
+   * it is a cumulative sum that re-counts context re-sent each turn, so it
+   * overstates effort. Kept only for the deterministic-split badge's tooltip. */
   tokensUsed?: number
+  /**
+   * Share (0–100) of the run's files that BESSER's deterministic generator
+   * produced with zero LLM tokens (from the done event's
+   * `fileSplit.generator_untouched_pct`). Rendered as an honest
+   * "N% deterministic" badge in place of the misleading cumulative token
+   * count. Undefined when the backend sent no file split.
+   */
+  detPct?: number
+  /** Share (0–100) of files the LLM authored from scratch
+   * (`fileSplit.llm_authored_pct`) — shown in the badge tooltip. */
+  aiPct?: number
   /**
    * Generation succeeded but the browser download failed. The artifact
    * stays on the server (~30 min TTL) so "Download again" can retry.
@@ -885,6 +897,8 @@ function SpecDrivenCard({
     generatorUsed,
     fileCount,
     tokensUsed,
+    detPct,
+    aiPct,
     deterministic,
     deterministicBlob,
   } = specDriven
@@ -983,12 +997,20 @@ function SpecDrivenCard({
               · {fileCount} file{fileCount === 1 ? "" : "s"}
             </span>
           ) : null}
-          {!deterministic && typeof tokensUsed === "number" && tokensUsed > 0 ? (
+          {!deterministic && typeof detPct === "number" && detPct > 0 ? (
             <span
-              className="font-mono text-[11px] text-muted-foreground"
-              title="LLM tokens this run consumed"
+              className="inline-flex items-center gap-1 rounded-full border border-primary/30 bg-primary/10 px-2 py-0.5 font-mono text-[10px] font-medium text-primary"
+              title={`${detPct}% of the files were produced by BESSER's deterministic generator with no LLM and no tokens${
+                typeof aiPct === "number" && aiPct > 0
+                  ? `; the LLM authored ${aiPct}%`
+                  : ""
+              }.${
+                typeof tokensUsed === "number" && tokensUsed > 0
+                  ? ` The LLM used ~${tokensUsed.toLocaleString()} tokens on this run (a cumulative count across turns — it re-counts context re-sent each turn, so it overstates effort).`
+                  : ""
+              }`}
             >
-              · {tokensUsed.toLocaleString()} tokens
+              {detPct}% deterministic
             </span>
           ) : null}
           {deterministic ? (
