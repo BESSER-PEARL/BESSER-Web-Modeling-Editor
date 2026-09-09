@@ -1194,7 +1194,9 @@
       "newChat": "New Chat",
       "newConversationTitle": "Start a new conversation",
       "newChatConfirm": "Start a new chat? Your current conversation will be cleared.",
-      "newChatConfirmWithRun": "Start a new chat? Your current conversation will be cleared and the running generation will be stopped."
+      "newChatConfirmWithRun": "Start a new chat? Your current conversation will be cleared and the running generation will be stopped.",
+      "explainModel": "Explain this model",
+      "explainModelTitle": "Get a plain-language overview of your model — the main things it tracks and how they relate"
     },
     "drawer": {
       "label": "Assistant",
