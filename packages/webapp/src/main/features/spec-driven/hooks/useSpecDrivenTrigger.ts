@@ -593,26 +593,39 @@ export function useSpecDrivenTrigger(
             const withGen = generatorUsed
               ? ` with BESSER's \`${generatorUsed}\` generator`
               : '';
-            const topPhrase = topLevel.length
-              ? ` Top level: ${topLevel
-                  .slice(0, 8)
-                  .map((e) => `\`${e}\``)
-                  .join(', ')}${topLevel.length > 8 ? ', …' : ''}.`
-              : '';
+            // Only list top-level entries when they actually say something —
+            // "Top level: .gitignore, web_app" is noise. Drop the phrase when it
+            // would just echo a wrapper dir and dotfiles.
+            const _informativeTop = topLevel.filter(
+              (e) => typeof e === 'string' && !e.startsWith('.'),
+            );
+            const topPhrase =
+              _informativeTop.length > 1
+                ? ` Top level: ${_informativeTop
+                    .slice(0, 8)
+                    .map((e) => `\`${e}\``)
+                    .join(', ')}${_informativeTop.length > 8 ? ', …' : ''}.`
+                : '';
             // Honest efficiency signal: how much of the output the deterministic
             // generator produced for free (0 LLM tokens) vs what the LLM wrote.
             // This — not the cumulative token sum, which re-counts context
             // re-sent each turn — is the truthful "what did it cost" headline.
+            // Phrase it so the percentages SUM TO 100: "N% deterministic; the
+            // LLM wrote or refined the other (100-N)%" — the old copy showed
+            // "N% deterministic; LLM authored K%" and dropped the middle
+            // "generator-written then LLM-edited" bucket, so N+K didn't add up
+            // and looked illogical (pilot feedback).
             const split = event.fileSplit;
             const untouchedPct =
               split && typeof split.total === 'number' && split.total > 0
                 ? Math.round(split.generator_untouched_pct ?? 0)
                 : undefined;
-            const authoredPct = Math.round(split?.llm_authored_pct ?? 0);
             const splitPhrase =
               untouchedPct !== undefined && untouchedPct > 0
                 ? ` **${untouchedPct}%** of these were generated deterministically (0 LLM tokens)${
-                    authoredPct > 0 ? `; the LLM authored ${authoredPct}%` : ''
+                    untouchedPct < 100
+                      ? `; the LLM wrote or refined the other **${100 - untouchedPct}%**`
+                      : ''
                   }.`
                 : '';
             // Three outcomes, three honest messages:

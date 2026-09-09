@@ -118,9 +118,34 @@ describe('SpecDrivenCard — token-honest completion badge', () => {
       }),
     );
     expect(screen.getByText('83% deterministic')).toBeTruthy();
-    // The misleading cumulative token count must not appear as a headline.
+    // The misleading cumulative token count must not appear as a headline, and
+    // the breakdown (which does mention tokens) is collapsed by default.
     expect(container.textContent).not.toContain('120,000 tokens');
     expect(container.textContent).not.toMatch(/\btokens\b/);
+  });
+
+  it('expands a deterministic/AI breakdown when the badge is clicked', () => {
+    const { container } = renderCard(
+      baseSpecDriven({
+        status: 'done',
+        fileName: 'app.zip',
+        isZip: true,
+        fileCount: 12,
+        tokensUsed: 120000,
+        detPct: 71,
+        modPct: 18,
+        aiPct: 11,
+      }),
+    );
+    // Collapsed by default.
+    expect(container.textContent).not.toContain('How this was built');
+    fireEvent.click(screen.getByText('71% deterministic'));
+    // Breakdown now visible, reconciling all three buckets + token note.
+    expect(screen.getByText('How this was built')).toBeTruthy();
+    expect(container.textContent).toContain('71%');
+    expect(container.textContent).toContain('18%');
+    expect(container.textContent).toContain('11%');
+    expect(container.textContent).toContain('120,000 tokens');
   });
 
   it('omits the badge entirely when the backend sent no file split', () => {

@@ -227,6 +227,12 @@ export function applySpecDrivenEvent(
           typeof event.fileSplit.llm_authored_pct === 'number'
             ? Math.round(event.fileSplit.llm_authored_pct)
             : undefined,
+        modPct:
+          typeof event.fileSplit?.total === 'number' &&
+          event.fileSplit.total > 0 &&
+          typeof event.fileSplit.generator_llm_modified_pct === 'number'
+            ? Math.round(event.fileSplit.generator_llm_modified_pct)
+            : undefined,
         status: 'done',
         // The run never auto-saves the artifact (consent fix) — the card
         // surfaces an explicit Download button instead.

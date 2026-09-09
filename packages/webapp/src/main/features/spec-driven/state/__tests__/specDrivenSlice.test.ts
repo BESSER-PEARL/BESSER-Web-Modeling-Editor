@@ -234,7 +234,8 @@ describe('specDrivenSlice', () => {
     const card = state.runs.k1;
     expect(card.detPct).toBe(83); // Math.round(83.3)
     expect(card.aiPct).toBe(8); // Math.round(8.3)
-    // The raw cumulative token count is retained for the badge tooltip only.
+    expect(card.modPct).toBe(8); // Math.round(8.3) — the middle bucket
+    // The raw cumulative token count is retained for the badge breakdown only.
     expect(card.tokensUsed).toBe(120000);
   });
 
