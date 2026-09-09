@@ -93,6 +93,34 @@ export const extractSpecDrivenRunId = (downloadUrl: string): string | null => {
  *    before any phase is a run-SETUP note rendered as info, not a
  *    warning banner. Every other code is terminal: status → 'error'.
  */
+/**
+ * Pull the honest token breakdown out of the done event's recipe. The backend
+ * writes `usage` (from UsageTracker.summary()) into `.besser_recipe.json`, which
+ * rides on the done event as `recipe`. `input_tokens` is fresh input NET of
+ * cache; `cache_read_tokens` is context served from cache (cheap throughput);
+ * `output_tokens` is the real produced work. Returns undefined when the recipe
+ * carries no usable usage (older runs / providers that report only a total).
+ */
+export function extractTokenUsage(
+  recipe: unknown,
+): SpecDrivenMessageState['tokenUsage'] {
+  if (!recipe || typeof recipe !== 'object') return undefined;
+  const usage = (recipe as Record<string, unknown>).usage;
+  if (!usage || typeof usage !== 'object') return undefined;
+  const u = usage as Record<string, unknown>;
+  const num = (v: unknown): number =>
+    typeof v === 'number' && Number.isFinite(v) && v >= 0 ? v : 0;
+  const input = num(u.input_tokens);
+  const output = num(u.output_tokens);
+  const cacheRead = num(u.cache_read_tokens);
+  const total = num(u.total_tokens) || input + output + cacheRead;
+  // Nothing meaningful to show if the provider reported no token counts at all.
+  if (input === 0 && output === 0 && cacheRead === 0 && total === 0) {
+    return undefined;
+  }
+  return { input, output, cacheRead, total };
+}
+
 export function applySpecDrivenEvent(
   card: SpecDrivenMessageState,
   event: SpecDrivenEvent,
@@ -233,6 +261,12 @@ export function applySpecDrivenEvent(
           typeof event.fileSplit.generator_llm_modified_pct === 'number'
             ? Math.round(event.fileSplit.generator_llm_modified_pct)
             : undefined,
+        // Honest token breakdown from the run recipe's usage summary
+        // (input net of cache / output / cache_read). Lets the card show
+        // "active = fresh input + output" as the real cost, with cached
+        // context as a secondary throughput number — instead of the
+        // misleading cumulative total that re-counts re-sent context.
+        tokenUsage: extractTokenUsage(event.recipe),
         status: 'done',
         // The run never auto-saves the artifact (consent fix) — the card
         // surfaces an explicit Download button instead.

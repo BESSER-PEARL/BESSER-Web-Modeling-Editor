@@ -6,6 +6,7 @@ import {
   closeByokDialog,
   closePushDialog,
   consumePendingTrigger,
+  extractTokenUsage,
   isSpecDrivenRunActive,
   liveRunEnded,
   liveRunEvent,
@@ -237,6 +238,53 @@ describe('specDrivenSlice', () => {
     expect(card.modPct).toBe(8); // Math.round(8.3) — the middle bucket
     // The raw cumulative token count is retained for the badge breakdown only.
     expect(card.tokensUsed).toBe(120000);
+  });
+
+  it('a done event surfaces the honest token breakdown from recipe.usage', () => {
+    let state = specDrivenReducer(INITIAL, liveRunStarted({ key: 'k1' }));
+    state = specDrivenReducer(
+      state,
+      liveRunEvent({
+        key: 'k1',
+        event: {
+          event: 'done',
+          runId: 'a'.repeat(32),
+          downloadUrl: `/besser_api/spec-driven/download/${'a'.repeat(32)}`,
+          fileName: 'app.zip',
+          isZip: true,
+          recipe: {
+            generator_used: 'web_app',
+            usage: {
+              input_tokens: 182000,
+              output_tokens: 65000,
+              cache_read_tokens: 2900000,
+              total_tokens: 3147000,
+            },
+          },
+        },
+      }),
+    );
+    expect(state.runs.k1.tokenUsage).toEqual({
+      input: 182000,
+      output: 65000,
+      cacheRead: 2900000,
+      total: 3147000,
+    });
+  });
+
+  it('extractTokenUsage returns undefined when the recipe carries no usage', () => {
+    expect(extractTokenUsage(undefined)).toBeUndefined();
+    expect(extractTokenUsage({})).toBeUndefined();
+    expect(extractTokenUsage({ usage: {} })).toBeUndefined();
+    expect(
+      extractTokenUsage({
+        usage: { input_tokens: 0, output_tokens: 0, cache_read_tokens: 0, total_tokens: 0 },
+      }),
+    ).toBeUndefined();
+    // Derives total when only the parts are present.
+    expect(
+      extractTokenUsage({ usage: { input_tokens: 100, output_tokens: 50, cache_read_tokens: 10 } }),
+    ).toEqual({ input: 100, output: 50, cacheRead: 10, total: 160 });
   });
 
   it('a done event with no file split leaves the deterministic percentage undefined', () => {

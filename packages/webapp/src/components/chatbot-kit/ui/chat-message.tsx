@@ -240,6 +240,21 @@ export interface SpecDrivenMessageState {
    * badge breakdown so detPct + modPct + aiPct reconcile to ~100. */
   modPct?: number
   /**
+   * Honest token breakdown from the run recipe's usage summary.
+   * `input` = fresh input tokens NET of cache; `output` = produced tokens;
+   * `cacheRead` = context served from cache (cheap throughput); `total` = all
+   * processed. The card leads with ACTIVE = input + output (the real cost) and
+   * shows cacheRead as a secondary number, instead of the misleading total
+   * that re-counts re-sent context. Undefined when the provider reported no
+   * split.
+   */
+  tokenUsage?: {
+    input: number
+    output: number
+    cacheRead: number
+    total: number
+  }
+  /**
    * Generation succeeded but the browser download failed. The artifact
    * stays on the server (~30 min TTL) so "Download again" can retry.
    */
@@ -821,6 +836,18 @@ function formatDuration(totalSeconds: number): string {
   return `${m}m ${rem}s`
 }
 
+/** Compact token count: 940 → "940", 3_200 → "3.2k", 2_900_000 → "2.9M". */
+function formatTokens(n: number): string {
+  if (!Number.isFinite(n) || n < 0) return "0"
+  if (n < 1_000) return `${Math.round(n)}`
+  if (n < 1_000_000) {
+    const k = n / 1_000
+    return `${k < 10 ? k.toFixed(1).replace(/\.0$/, "") : Math.round(k)}k`
+  }
+  const mm = n / 1_000_000
+  return `${mm < 10 ? mm.toFixed(2).replace(/\.?0+$/, "") : Math.round(mm)}M`
+}
+
 /**
  * Live run card: renders the run's LIVE state straight from the Redux
  * spec-driven slice, subscribed by the message's `liveKey`.
@@ -903,6 +930,7 @@ function SpecDrivenCard({
     detPct,
     aiPct,
     modPct,
+    tokenUsage,
     deterministic,
     deterministicBlob,
   } = specDriven
@@ -1134,14 +1162,37 @@ function SpecDrivenCard({
                 </li>
               ) : null}
             </ul>
-            {/* Deliberately NOT showing the cumulative token count here: it
-                sums the context re-sent on every turn, so it wildly overstates
-                the real work (a free-tier run costs $0) and alarmed pilots.
-                The deterministic share above IS the honest efficiency signal. */}
-            <div className="mt-1 text-[10px] italic text-muted-foreground/80">
-              The deterministic share cost no tokens; most of the LLM's token
-              count is re-read context, not new work.
-            </div>
+            {/* Honest token accounting. Lead with ACTIVE = fresh input +
+                output (the real work / cost), show cached context as a
+                secondary throughput number, and never lead with the cumulative
+                total that re-counts re-sent context. Falls back to a short note
+                when the provider reported no split. */}
+            {tokenUsage ? (
+              <div className="mt-1.5 border-t border-border/30 pt-1.5">
+                <div className="text-foreground">
+                  <span className="font-mono font-medium">
+                    {formatTokens(tokenUsage.input + tokenUsage.output)}
+                  </span>{" "}
+                  active tokens
+                  <span className="text-muted-foreground">
+                    {" "}
+                    ({formatTokens(tokenUsage.input)} fresh input ·{" "}
+                    {formatTokens(tokenUsage.output)} output)
+                  </span>
+                </div>
+                {tokenUsage.cacheRead > 0 ? (
+                  <div className="text-[10px] text-muted-foreground/80">
+                    {formatTokens(tokenUsage.cacheRead)} cached context (re-read,
+                    not new work)
+                  </div>
+                ) : null}
+              </div>
+            ) : (
+              <div className="mt-1 text-[10px] italic text-muted-foreground/80">
+                The deterministic share cost no tokens; most of the LLM's token
+                count is re-read context, not new work.
+              </div>
+            )}
           </div>
         ) : null}
 

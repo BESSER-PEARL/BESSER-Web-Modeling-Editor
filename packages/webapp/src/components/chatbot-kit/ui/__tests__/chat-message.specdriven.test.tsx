@@ -174,6 +174,30 @@ describe('SpecDrivenCard — token-honest completion badge', () => {
     expect(container.textContent).not.toMatch(/\btokens\b.*cumulative/);
   });
 
+  it('shows an honest token breakdown (active = input + output, cached secondary)', () => {
+    const { container } = renderCard(
+      baseSpecDriven({
+        status: 'done',
+        fileName: 'app.zip',
+        isZip: true,
+        fileCount: 55,
+        detPct: 71,
+        modPct: 18,
+        aiPct: 11,
+        tokenUsage: { input: 182000, output: 65000, cacheRead: 2900000, total: 3147000 },
+      }),
+    );
+    fireEvent.click(screen.getByText('71% deterministic'));
+    // Active = 182k + 65k = 247k, shown as the headline; cached as secondary.
+    expect(container.textContent).toContain('247k active tokens');
+    expect(container.textContent).toContain('182k fresh input');
+    expect(container.textContent).toContain('65k output');
+    expect(container.textContent).toContain('2.9M cached context');
+    // The misleading cumulative total is NOT the headline.
+    expect(container.textContent).not.toContain('3.15M active');
+    expect(container.textContent).not.toContain('3,147,000');
+  });
+
   it('derives the missing middle bucket so the split always sums to ~100', () => {
     // The backend done event often omits generator_llm_modified_pct, which left
     // "71% + 11% = 82%" with an unexplained 18% gap. The card now derives the
