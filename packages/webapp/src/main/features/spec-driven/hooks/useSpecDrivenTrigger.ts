@@ -599,6 +599,22 @@ export function useSpecDrivenTrigger(
                   .map((e) => `\`${e}\``)
                   .join(', ')}${topLevel.length > 8 ? ', …' : ''}.`
               : '';
+            // Honest efficiency signal: how much of the output the deterministic
+            // generator produced for free (0 LLM tokens) vs what the LLM wrote.
+            // This — not the cumulative token sum, which re-counts context
+            // re-sent each turn — is the truthful "what did it cost" headline.
+            const split = event.fileSplit;
+            const untouchedPct =
+              split && typeof split.total === 'number' && split.total > 0
+                ? Math.round(split.generator_untouched_pct ?? 0)
+                : undefined;
+            const authoredPct = Math.round(split?.llm_authored_pct ?? 0);
+            const splitPhrase =
+              untouchedPct !== undefined && untouchedPct > 0
+                ? ` **${untouchedPct}%** of these were generated deterministically (0 LLM tokens)${
+                    authoredPct > 0 ? `; the LLM authored ${authoredPct}%` : ''
+                  }.`
+                : '';
             // Three outcomes, three honest messages:
             //   - clean success;
             //   - the loop COMPLETED but left blocker-severity issues
@@ -613,7 +629,7 @@ export function useSpecDrivenTrigger(
             appendAssistantMessage(
               event.incomplete
                 ? incompleteMessage
-                : `✅ Generated ${filesPhrase}${withGen}.${topPhrase} Use the **Download** button on the run card to save it.`,
+                : `✅ Generated ${filesPhrase}${withGen}.${splitPhrase}${topPhrase} Use the **Download** button on the run card to save it.`,
             );
             toast.success('Spec-Driven Agent finished -- ready to download');
           }

@@ -136,8 +136,26 @@ export interface DoneEvent {
   /** Top-level entries (dir/file names at the project root, capped), for a
    * concrete "what was generated" summary. */
   topLevel?: string[];
-  /** Total LLM tokens the run consumed (0 for a purely deterministic run). */
+  /** Total LLM tokens the run consumed (0 for a purely deterministic run).
+   * NOTE: this is a cumulative sum across turns and re-counts context re-sent
+   * each turn, so it is NOT a clean measure of effort — prefer `fileSplit`
+   * (below) as the honest headline. */
   tokensUsed?: number;
+  /** Deterministic-vs-LLM file breakdown from the backend — the honest "how
+   * much did the generator produce for free" signal. `generator_untouched` =
+   * files the deterministic generator wrote and the LLM never touched (0 LLM
+   * tokens); `generator_llm_modified` = generator-written then LLM-edited;
+   * `llm_authored` = written from scratch by the LLM. `*_pct` are the same as
+   * percentages of `total`. */
+  fileSplit?: {
+    generator_untouched?: number;
+    generator_llm_modified?: number;
+    llm_authored?: number;
+    total?: number;
+    generator_untouched_pct?: number;
+    generator_llm_modified_pct?: number;
+    llm_authored_pct?: number;
+  };
   /** True when output was produced but the customization loop did not
    * finish cleanly — the download may be missing requested changes. */
   incomplete?: boolean;
