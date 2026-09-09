@@ -104,6 +104,30 @@ describe('SpecDrivenCard — runtime meter', () => {
   });
 });
 
+describe('SpecDrivenCard — live activity strip (feels alive on long runs)', () => {
+  it('shows a ticking "Working — N elapsed" while running', () => {
+    renderCard(baseSpecDriven({ elapsedSeconds: 190, maxRuntime: 600 }));
+    expect(screen.getByText(/Working — 3m 10s elapsed/)).toBeTruthy();
+  });
+
+  it('adds a reassurance once a phase has run a while (>=45s)', () => {
+    const { container } = renderCard(baseSpecDriven({ elapsedSeconds: 190 }));
+    expect(container.textContent).toContain('Big steps can take a few minutes');
+  });
+
+  it('omits the reassurance early in a run', () => {
+    const { container } = renderCard(baseSpecDriven({ elapsedSeconds: 10 }));
+    expect(container.textContent).not.toContain('Big steps can take a few minutes');
+  });
+
+  it('does not show the working strip once the run is finished', () => {
+    const { container } = renderCard(
+      baseSpecDriven({ status: 'done', fileName: 'app.zip', isZip: true }),
+    );
+    expect(container.textContent).not.toContain('Working —');
+  });
+});
+
 describe('SpecDrivenCard — token-honest completion badge', () => {
   it('shows an "N% deterministic" badge and NOT a raw cumulative token count', () => {
     const { container } = renderCard(
@@ -140,12 +164,35 @@ describe('SpecDrivenCard — token-honest completion badge', () => {
     // Collapsed by default.
     expect(container.textContent).not.toContain('How this was built');
     fireEvent.click(screen.getByText('71% deterministic'));
-    // Breakdown now visible, reconciling all three buckets + token note.
+    // Breakdown now visible, reconciling all three buckets (71+18+11=100).
     expect(screen.getByText('How this was built')).toBeTruthy();
     expect(container.textContent).toContain('71%');
     expect(container.textContent).toContain('18%');
     expect(container.textContent).toContain('11%');
-    expect(container.textContent).toContain('120,000 tokens');
+    // The alarming cumulative token count is NOT shown on the card anymore.
+    expect(container.textContent).not.toContain('120,000');
+    expect(container.textContent).not.toMatch(/\btokens\b.*cumulative/);
+  });
+
+  it('derives the missing middle bucket so the split always sums to ~100', () => {
+    // The backend done event often omits generator_llm_modified_pct, which left
+    // "71% + 11% = 82%" with an unexplained 18% gap. The card now derives the
+    // middle share as the remainder.
+    const { container } = renderCard(
+      baseSpecDriven({
+        status: 'done',
+        fileName: 'app.zip',
+        isZip: true,
+        fileCount: 12,
+        detPct: 71,
+        aiPct: 11,
+        // modPct intentionally absent
+      }),
+    );
+    fireEvent.click(screen.getByText('71% deterministic'));
+    expect(container.textContent).toContain('71%');
+    expect(container.textContent).toContain('18%'); // 100 - 71 - 11, derived
+    expect(container.textContent).toContain('11%');
   });
 
   it('omits the badge entirely when the backend sent no file split', () => {
