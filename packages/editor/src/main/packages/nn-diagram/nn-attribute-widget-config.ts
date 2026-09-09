@@ -16,8 +16,10 @@ export interface AttributeWidgetConfig {
   getInitialValue?: (elements: Record<string, any>, layerId: string) => string;
   /** For layers_of_tensors: tns_type category determines element count */
   tnsTypeCategory?: TnsTypeCategory;
-  /** Placeholder text shown in the text field */
-  placeholder?: string;
+  /** Translation key of the placeholder shown in the text field (default: popup.nn.row.valuePlaceholder) */
+  placeholderKey?: string;
+  /** Translation key of the help text shown under the row while the attribute is enabled */
+  helpTextKey?: string;
 }
 
 /**
@@ -164,19 +166,19 @@ const WIDGET_CONFIG_MAP: Record<string, AttributeWidgetConfig> = {
   [NNElementType.ReduceDimAttributeTensorOp]:            { widget: 'text', defaultValue: '' },
   [NNElementType.ReduceKeepdimAttributeTensorOp]:        { widget: 'dropdown', options: BOOLEAN_OPTIONS, defaultValue: 'false' },
   [NNElementType.ShapeDimAttributeTensorOp]:             { widget: 'text', defaultValue: '' },
-  [NNElementType.ActualVarsAttributeTensorOp]:           { widget: 'multiselect', defaultValue: '[]', options: ['output', 'hidden'] },
-  [NNElementType.SubscriptIndicesAttributeTensorOp]:     { widget: 'subscript_indices', defaultValue: '' },
-  [NNElementType.RepeatDimAttributeTensorOp]:            { widget: 'text', defaultValue: '' },
-  [NNElementType.InterpolateSizeAttributeTensorOp]:      { widget: 'text', defaultValue: '', placeholder: '' },
-  [NNElementType.InterpolateScaleAttributeTensorOp]:     { widget: 'text', defaultValue: '', placeholder: '' },
+  [NNElementType.ActualVarsAttributeTensorOp]:           { widget: 'multiselect', defaultValue: '[]', options: ['output', 'hidden'], helpTextKey: 'popup.nn.help.actual_vars' },
+  [NNElementType.SubscriptIndicesAttributeTensorOp]:     { widget: 'subscript_indices', defaultValue: '', helpTextKey: 'popup.nn.help.subscript_indices' },
+  [NNElementType.RepeatDimAttributeTensorOp]:            { widget: 'text', defaultValue: '', helpTextKey: 'popup.nn.help.repeat_dim' },
+  [NNElementType.InterpolateSizeAttributeTensorOp]:      { widget: 'text', defaultValue: '', helpTextKey: 'popup.nn.help.interpolate_size' },
+  [NNElementType.InterpolateScaleAttributeTensorOp]:     { widget: 'text', defaultValue: '' },
   [NNElementType.InterpolateModeAttributeTensorOp]:      { widget: 'dropdown', options: INTERPOLATE_MODE_OPTIONS, defaultValue: 'bilinear' },
-  [NNElementType.PadAmountAttributeTensorOp]:            { widget: 'pad_amount', defaultValue: '[]' },
+  [NNElementType.PadAmountAttributeTensorOp]:            { widget: 'pad_amount', defaultValue: '[]', helpTextKey: 'popup.nn.help.pad_amount' },
   [NNElementType.PadModeAttributeTensorOp]:              { widget: 'dropdown', options: PAD_MODE_OPTIONS, defaultValue: 'constant' },
   [NNElementType.PadValueAttributeTensorOp]:             { widget: 'text', defaultValue: '0.0' },
   [NNElementType.DropoutRateAttributeTensorOp]:          { widget: 'text', defaultValue: '' },
   [NNElementType.DropoutTrainingAwareAttributeTensorOp]: { widget: 'dropdown', options: BOOLEAN_OPTIONS, defaultValue: 'false' },
-  [NNElementType.SplitDimAttributeTensorOp]:             { widget: 'text', defaultValue: '' },
-  [NNElementType.SplitSizesAttributeTensorOp]:           { widget: 'text', defaultValue: '' },
+  [NNElementType.SplitDimAttributeTensorOp]:             { widget: 'text', defaultValue: '', helpTextKey: 'popup.nn.help.split_dim' },
+  [NNElementType.SplitSizesAttributeTensorOp]:           { widget: 'text', defaultValue: '', helpTextKey: 'popup.nn.help.split_sizes' },
   [NNElementType.PermuteInAttributeTensorOp]:            { widget: 'dropdown', options: BOOLEAN_OPTIONS, defaultValue: 'false' },
   [NNElementType.PermuteOutAttributeTensorOp]:           { widget: 'dropdown', options: BOOLEAN_OPTIONS, defaultValue: 'false' },
   [NNElementType.InputVarAttributeTensorOp]:             { widget: 'text', defaultValue: '' },

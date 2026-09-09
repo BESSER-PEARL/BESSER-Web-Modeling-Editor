@@ -28,7 +28,9 @@ import { IBatchNormalizationAttribute, BatchNormalizationAttribute } from '../nn
 import { ITensorOpAttribute, TensorOpAttribute } from '../nn-tensorop-attributes/tensorop-attributes';
 import { IConfigurationAttribute, ConfigurationAttribute } from '../nn-configuration-attributes/configuration-attributes';
 import { NNElementType } from '../index';
-import { getAttributeDefaultValue, LIST_STRICT_REGEX, LIST_PERMISSIVE_REGEX, getListExpectation } from '../nn-validation-defaults';
+import { validateOnChange, validateOnSubmit, ValidationContext } from '../nn-attribute-validators';
+import { I18nContext } from '../../../components/i18n/i18n-context';
+import { localized } from '../../../components/i18n/localized';
 import { INNAttribute } from '../nn-component-attribute';
 
 type TextfieldValue = string | number;
@@ -94,7 +96,7 @@ interface DispatchProps {
   delete: typeof UMLElementRepository.delete;
 }
 
-type Props = OwnProps & StateProps & DispatchProps;
+type Props = OwnProps & StateProps & DispatchProps & I18nContext;
 
 interface ComponentState {
   colorOpen: boolean;
@@ -402,112 +404,43 @@ class NNAttributeUpdateComponent extends Component<Props, ComponentState> {
     } as Partial<INNAttribute>);
   };
 
-  private handleValidatedChange = (newValue: string | number) => {
-    const { element, update } = this.props;
-    const str = String(newValue);
-    const type = element.attributeType;
+  private validationContext = (): ValidationContext => {
+    const { element, elements, translate } = this.props;
+    return {
+      attributeName: element.attributeName,
+      attributeType: element.attributeType,
+      elementType: element.type,
+      ownerId: element.owner,
+      elements,
+      currentValue: element.value || '',
+      translate,
+    };
+  };
 
-    if (type === 'int') {
-      if (str === '' || str === '-') {
-        this.setState({ validationError: null });
-      } else if (/^-?\d+$/.test(str)) {
-        this.setState({ validationError: null });
-        update(element.id, { value: str, name: `${element.attributeName} = ${str}` } as Partial<INNAttribute>);
-      } else {
-        this.setState({ validationError: `Must be an integer. Example: ${getAttributeDefaultValue(element)}` });
-      }
-    } else if (type === 'float') {
-      const isIntermediate = str === '' || str === '-' || str === '.' || /^-?\d*\.$/.test(str);
-      const isValid = !isIntermediate && !isNaN(Number(str)) && str !== '';
-      if (isIntermediate) {
-        this.setState({ validationError: null });
-      } else if (isValid) {
-        this.setState({ validationError: null });
-        update(element.id, { value: str, name: `${element.attributeName} = ${str}` } as Partial<INNAttribute>);
-      } else {
-        this.setState({ validationError: `Must be a number. Example: ${getAttributeDefaultValue(element)}` });
-      }
-    } else if (type === 'List') {
-      if (str === '' || LIST_PERMISSIVE_REGEX.test(str)) {
-        if (LIST_STRICT_REGEX.test(str)) {
-          const expected = getListExpectation(element.type, element.owner, this.props.elements);
-          if (expected.count !== null) {
-            const actualCount = str.replace(/^\[|\]$/g, '').split(',').filter((s) => s.trim() !== '').length;
-            if (actualCount !== expected.count) {
-              this.setState({ validationError: `Must be a list with ${expected.count} integer${expected.count > 1 ? 's' : ''}. Example: ${expected.example}` });
-              return;
-            }
-          }
-          this.setState({ validationError: null });
-          update(element.id, { value: str, name: `${element.attributeName} = ${str}` } as Partial<INNAttribute>);
-        } else {
-          this.setState({ validationError: null });
-        }
-      } else {
-        const expected = getListExpectation(element.type, element.owner, this.props.elements);
-        const countMsg = expected.count !== null ? ` with ${expected.count} integer${expected.count > 1 ? 's' : ''}` : ' of integers';
-        this.setState({ validationError: `Must be a list${countMsg}. Example: ${expected.example}` });
-      }
+  private storeValue = (value: string) => {
+    const { element, update } = this.props;
+    update(element.id, { value, name: `${element.attributeName} = ${value}` } as Partial<INNAttribute>);
+  };
+
+  private handleValidatedChange = (newValue: string | number) => {
+    const str = String(newValue);
+    const outcome = validateOnChange(str, this.validationContext());
+    if (!outcome) return;
+    this.setState({ validationError: outcome.error });
+    if (outcome.commit) {
+      this.storeValue(str);
     }
   };
 
   private handleValidatedSubmit = (newValue: string | number) => {
-    const { element, update } = this.props;
     const str = String(newValue).trim();
-    const type = element.attributeType;
-
-    if (type === 'int') {
-      if (/^-?\d+$/.test(str)) {
-        this.setState({ validationError: null });
-        update(element.id, { value: str, name: `${element.attributeName} = ${str}` } as Partial<INNAttribute>);
-      } else {
-        const defaultVal = getAttributeDefaultValue(element);
-        update(element.id, { value: defaultVal, name: `${element.attributeName} = ${defaultVal}` } as Partial<INNAttribute>);
-        const errorMsg = (str === '' || str === '-') ? null : `Must be an integer. Example: ${defaultVal}`;
-        this.setState((s) => ({ validationError: errorMsg, submitResetKey: s.submitResetKey + 1 }));
-      }
-    } else if (type === 'float') {
-      if (!isNaN(Number(str)) && str !== '' && str !== '-' && str !== '.') {
-        this.setState({ validationError: null });
-        update(element.id, { value: str, name: `${element.attributeName} = ${str}` } as Partial<INNAttribute>);
-      } else {
-        const defaultVal = getAttributeDefaultValue(element);
-        update(element.id, { value: defaultVal, name: `${element.attributeName} = ${defaultVal}` } as Partial<INNAttribute>);
-        const isIncomplete = str === '' || str === '-' || str === '.';
-        const errorMsg = isIncomplete ? null : `Must be a number. Example: ${defaultVal}`;
-        this.setState((s) => ({ validationError: errorMsg, submitResetKey: s.submitResetKey + 1 }));
-      }
-    } else if (type === 'List') {
-      if (LIST_STRICT_REGEX.test(str)) {
-        const expected = getListExpectation(element.type, element.owner, this.props.elements);
-        if (expected.count !== null) {
-          const actualCount = str.replace(/^\[|\]$/g, '').split(',').filter((s) => s.trim() !== '').length;
-          if (actualCount !== expected.count) {
-            const defaultVal = expected.example;
-            update(element.id, { value: defaultVal, name: `${element.attributeName} = ${defaultVal}` } as Partial<INNAttribute>);
-            this.setState((s) => ({
-              validationError: `Must be a list with ${expected.count} integer${expected.count! > 1 ? 's' : ''}. Example: ${expected.example}`,
-              submitResetKey: s.submitResetKey + 1,
-            }));
-            return;
-          }
-        }
-        this.setState({ validationError: null });
-        update(element.id, { value: str, name: `${element.attributeName} = ${str}` } as Partial<INNAttribute>);
-      } else if (str === '' || LIST_PERMISSIVE_REGEX.test(str)) {
-        const defaultVal = getListExpectation(element.type, element.owner, this.props.elements).example;
-        update(element.id, { value: defaultVal, name: `${element.attributeName} = ${defaultVal}` } as Partial<INNAttribute>);
-        this.setState((s) => ({ validationError: null, submitResetKey: s.submitResetKey + 1 }));
-      } else {
-        const expected = getListExpectation(element.type, element.owner, this.props.elements);
-        const defaultVal = expected.example;
-        update(element.id, { value: defaultVal, name: `${element.attributeName} = ${defaultVal}` } as Partial<INNAttribute>);
-        const countMsg = expected.count !== null ? ` with ${expected.count} integer${expected.count > 1 ? 's' : ''}` : ' of integers';
-        this.setState((s) => ({
-          validationError: `Must be a list${countMsg}. Example: ${expected.example}`,
-          submitResetKey: s.submitResetKey + 1,
-        }));
-      }
+    const outcome = validateOnSubmit(str, this.validationContext());
+    if (!outcome) return;
+    this.storeValue(outcome.value);
+    if (outcome.reset) {
+      this.setState((s) => ({ validationError: outcome.error, submitResetKey: s.submitResetKey + 1 }));
+    } else {
+      this.setState({ validationError: null });
     }
   };
 
@@ -556,7 +489,7 @@ class NNAttributeUpdateComponent extends Component<Props, ComponentState> {
     const rawMetricsValue = element.value || '';
     const cleanedMetricsValue = rawMetricsValue.replace(/^\[|\]$/g, ''); // Remove surrounding brackets if present
     const selectedMetrics = cleanedMetricsValue ? cleanedMetricsValue.split(',').map(v => v.trim()) : [];
-    const metricsDisplayValue = selectedMetrics.length > 0 ? `[${selectedMetrics.join(', ')}]` : 'Select metrics';
+    const metricsDisplayValue = selectedMetrics.length > 0 ? `[${selectedMetrics.join(', ')}]` : this.props.translate('popup.nn.row.selectMetrics');
 
     // Check if this is an actual_vars attribute (multi-select)
     // Fallback: also check attributeName for backward compatibility with diagrams created before type was added
@@ -566,7 +499,7 @@ class NNAttributeUpdateComponent extends Component<Props, ComponentState> {
     const rawActualVarsValue = element.value || '';
     const cleanedActualVarsValue = rawActualVarsValue.replace(/^\[|\]$/g, ''); // Remove surrounding brackets if present
     const selectedActualVars = cleanedActualVarsValue ? cleanedActualVarsValue.split(',').map(v => v.trim()) : [];
-    const actualVarsDisplayValue = selectedActualVars.length > 0 ? `[${selectedActualVars.join(', ')}]` : 'Select vars';
+    const actualVarsDisplayValue = selectedActualVars.length > 0 ? `[${selectedActualVars.join(', ')}]` : this.props.translate('popup.nn.row.selectVars');
 
     // Check if this is a task_type attribute (Dataset)
     const isTaskType = element.type === NNElementType.TaskTypeAttributeDataset;
@@ -792,14 +725,14 @@ class NNAttributeUpdateComponent extends Component<Props, ComponentState> {
                 value={element.value || ''}
                 onChange={this.handleValidatedChange}
                 onSubmit={this.handleValidatedSubmit}
-                placeholder="value"
+                placeholder={this.props.translate('popup.nn.row.valuePlaceholder')}
               />
             ) : (
               <ValueTextfield
                 gutter
                 value={element.value || ''}
                 onChange={this.handleValueChange}
-                placeholder="value"
+                placeholder={this.props.translate('popup.nn.row.valuePlaceholder')}
               />
             )}
           </AttributeInputContainer>
@@ -827,6 +760,7 @@ const mapStateToProps = (state: ModelState): StateProps => ({
 });
 
 const enhance = compose<ComponentClass<OwnProps>>(
+  localized,
   connect<StateProps, DispatchProps, OwnProps, ModelState>(
     mapStateToProps,
     {

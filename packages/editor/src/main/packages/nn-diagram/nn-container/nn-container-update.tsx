@@ -1,9 +1,12 @@
-import React, { Component, ComponentType } from 'react';
-import { connect, ConnectedComponent } from 'react-redux';
+import React, { Component, ComponentClass } from 'react';
+import { connect } from 'react-redux';
+import { compose } from 'redux';
 import { Button } from '../../../components/controls/button/button';
 import { ColorButton } from '../../../components/controls/color-button/color-button';
 import { TrashIcon } from '../../../components/controls/icon/trash';
 import { Textfield } from '../../../components/controls/textfield/textfield';
+import { I18nContext } from '../../../components/i18n/i18n-context';
+import { localized } from '../../../components/i18n/localized';
 import { ModelState } from '../../../components/store/model-state';
 import { StylePane } from '../../../components/style-pane/style-pane';
 import { styled } from '../../../components/theme/styles';
@@ -94,7 +97,7 @@ class NNContainerUpdateComponent extends Component<Props, State> {
       this.setState({ inputVarError: null });
       this.props.update(this.props.element.id, { input_var: trimmed || undefined });
     } else {
-      this.setState({ inputVarError: 'Must start with an alphabet letter (a-z, A-Z)' });
+      this.setState({ inputVarError: this.props.translate('popup.nn.validation.identifierStart') });
     }
   };
 
@@ -113,13 +116,13 @@ class NNContainerUpdateComponent extends Component<Props, State> {
         this.setState({ returnVarsError: null });
         this.props.update(this.props.element.id, { return_vars: trimmed || undefined });
       } else {
-        this.setState({ returnVarsError: 'Each identifier must start with an alphabet letter (a-z, A-Z)' });
+        this.setState({ returnVarsError: this.props.translate('popup.nn.validation.identifierListStart') });
       }
     }
   };
 
   render() {
-    const { element } = this.props;
+    const { element, translate } = this.props;
     const container = element as NNContainer;
 
     return (
@@ -151,14 +154,14 @@ class NNContainerUpdateComponent extends Component<Props, State> {
               checked={this.state.inputVarEnabled}
               onChange={this.toggleInputVar}
             />
-            Input Variable
+            {translate('popup.nn.container.inputVariable')}
           </CheckboxLabel>
           {this.state.inputVarEnabled && (
             <>
               <Textfield
                 value={container.input_var || ''}
                 onChange={this.onInputVarChange}
-                placeholder="e.g., x"
+                placeholder={translate('popup.nn.container.inputVarPlaceholder')}
               />
               {this.state.inputVarError && (
                 <span style={{ color: 'red', fontSize: '11px', display: 'block', marginTop: '4px' }}>
@@ -175,14 +178,14 @@ class NNContainerUpdateComponent extends Component<Props, State> {
               checked={this.state.returnVarsEnabled}
               onChange={this.toggleReturnVars}
             />
-            Return Variables
+            {translate('popup.nn.container.returnVariables')}
           </CheckboxLabel>
           {this.state.returnVarsEnabled && (
             <>
               <Textfield
                 value={container.return_vars || ''}
                 onChange={this.onReturnVarsChange}
-                placeholder="e.g., y or rep, recon"
+                placeholder={translate('popup.nn.container.returnVarsPlaceholder')}
               />
               {this.state.returnVarsError && (
                 <span style={{ color: 'red', fontSize: '11px', display: 'block', marginTop: '4px' }}>
@@ -208,11 +211,14 @@ type DispatchProps = {
   delete: AsyncDispatch<typeof UMLElementRepository.delete>;
 };
 
-type Props = OwnProps & StateProps & DispatchProps;
+type Props = OwnProps & StateProps & DispatchProps & I18nContext;
 
-const enhance = connect<StateProps, DispatchProps, OwnProps, ModelState>(null, {
-  update: UMLElementRepository.update,
-  delete: UMLElementRepository.delete,
-});
+const enhance = compose<ComponentClass<OwnProps>>(
+  localized,
+  connect<StateProps, DispatchProps, OwnProps, ModelState>(null, {
+    update: UMLElementRepository.update,
+    delete: UMLElementRepository.delete,
+  }),
+);
 
-export const NNContainerUpdate: ConnectedComponent<ComponentType<Props>, OwnProps> = enhance(NNContainerUpdateComponent);
+export const NNContainerUpdate = enhance(NNContainerUpdateComponent);
