@@ -1183,7 +1183,15 @@ function SpecDrivenCard({
                 {tokenUsage.cacheRead > 0 ? (
                   <div className="text-[10px] text-muted-foreground/80">
                     {formatTokens(tokenUsage.cacheRead)} cached context (re-read,
-                    not new work)
+                    not new work
+                    {tokenUsage.input + tokenUsage.cacheRead > 0
+                      ? ` — ${Math.round(
+                          (tokenUsage.cacheRead /
+                            (tokenUsage.cacheRead + tokenUsage.input)) *
+                            100,
+                        )}% served from cache`
+                      : ""}
+                    )
                   </div>
                 ) : null}
               </div>

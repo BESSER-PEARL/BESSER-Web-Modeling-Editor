@@ -193,6 +193,8 @@ describe('SpecDrivenCard — token-honest completion badge', () => {
     expect(container.textContent).toContain('182k fresh input');
     expect(container.textContent).toContain('65k output');
     expect(container.textContent).toContain('2.9M cached context');
+    // Cache-hit ratio: 2.9M / (2.9M + 182k) ≈ 94% — the headline health metric.
+    expect(container.textContent).toContain('94% served from cache');
     // The misleading cumulative total is NOT the headline.
     expect(container.textContent).not.toContain('3.15M active');
     expect(container.textContent).not.toContain('3,147,000');
