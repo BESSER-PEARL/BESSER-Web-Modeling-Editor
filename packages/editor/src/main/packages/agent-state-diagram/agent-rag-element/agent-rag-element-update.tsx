@@ -162,12 +162,12 @@ const AgentRagElementUpdateComponent: React.FC<Props> = ({ element, update, elem
             checked={element.use_hybrid_rag === true}
             onChange={(e) => update<AgentRagElement>(element.id, { use_hybrid_rag: e.target.checked })}
           />
-          Hybrid RAG (BM25)
+          {translate('packages.AgentDiagram.hybridRag')}
         </CheckboxRow>
       </Section>
       <DisabledTextfield disabled={!element.use_hybrid_rag}>
         <Section>
-          <Header>BM25 Weight</Header>
+          <Header>{translate('packages.AgentDiagram.bm25Weight')}</Header>
           <Textfield
             value={String(element.bm25_weight ?? 0.6)}
             onSubmit={(raw) => {
