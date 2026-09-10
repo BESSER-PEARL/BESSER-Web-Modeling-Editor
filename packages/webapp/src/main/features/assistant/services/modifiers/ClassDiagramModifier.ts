@@ -255,9 +255,13 @@ export class ClassDiagramModifier implements DiagramModifier {
       const methodId = ModifierHelpers.generateUniqueId('method');
       const paramStr = methodSpec.parameters?.map((p: any) => p.type ? `${p.name}: ${normalizeType(p.type)}` : p.name).join(', ') || '';
       const returnType = normalizeType(methodSpec.returnType || 'any');
+      const visSymbol = methodSpec.visibility === 'private' ? '-' :
+                        methodSpec.visibility === 'protected' ? '#' : '+';
       methodRows.push({
         id: methodId,
-        name: `${methodSpec.name}(${paramStr})`,
+        // Return type belongs in the name — the backend parses it from there
+        // (parse_method), not from attributeType. Mirror modifyMethod's format.
+        name: `${visSymbol} ${methodSpec.name}(${paramStr}): ${returnType}`,
         attributeType: returnType,
         visibility: (methodSpec.visibility as any) || 'public',
       });
@@ -379,10 +383,17 @@ export class ClassDiagramModifier implements DiagramModifier {
     const name = modification.changes.name || 'newMethod';
     const returnType = normalizeType(modification.changes.returnType || 'any');
     const paramStr = modification.changes.parameters?.map(p => p.type ? `${p.name}: ${normalizeType(p.type)}` : p.name).join(', ') || '';
+    const visibilitySymbol = modification.changes.visibility === 'private' ? '-' :
+                             modification.changes.visibility === 'protected' ? '#' : '+';
 
+    // The method's return type MUST live in the name string, not just in
+    // attributeType: the backend converter parses return type from the name
+    // (`parse_method(method["name"])`) and ignores attributeType for methods.
+    // Mirror modifyMethod's canonical UML signature so an added method carries
+    // its return type into generated code exactly like an edited one does.
     const row: ClassifierMember = {
       id: ModifierHelpers.generateUniqueId('method'),
-      name: `${name}(${paramStr})`,
+      name: `${visibilitySymbol} ${name}(${paramStr}): ${returnType}`,
       attributeType: returnType,
       visibility: (modification.changes.visibility as any) || 'public',
     };
@@ -816,11 +827,15 @@ export class ClassDiagramModifier implements DiagramModifier {
       if (spec.methods) {
         (node.data as any).methods = spec.methods.map((m) => {
           const paramStr = m.parameters?.map((p: any) => p.type ? `${p.name}: ${normalizeType(p.type)}` : p.name).join(', ') || '';
+          const returnType = normalizeType(m.returnType || 'any');
+          const visSymbol = m.visibility === 'private' ? '-' :
+                            m.visibility === 'protected' ? '#' : '+';
           return {
             id: ModifierHelpers.generateUniqueId('method'),
-            name: `${m.name}(${paramStr})`,
-            attributeType: normalizeType(m.returnType || 'any'),
-            visibility: 'public',
+            // Return type belongs in the name (backend parses it from there).
+            name: `${visSymbol} ${m.name}(${paramStr}): ${returnType}`,
+            attributeType: returnType,
+            visibility: (m.visibility as any) || 'public',
           };
         });
       }

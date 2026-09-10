@@ -1,0 +1,18 @@
+/* BESSER GUI design typefaces — served same-origin so the GrapesJS canvas
+   (CSP: no external hosts) and the app preview can both use them.
+   Inter: UI text. Fraunces: display/editorial headings (soft serif).
+   Both are variable fonts (single small file per family, all weights). */
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url('/fonts/Inter-Variable.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Fraunces';
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url('/fonts/Fraunces-Variable.woff2') format('woff2');
+}

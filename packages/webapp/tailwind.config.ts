@@ -81,6 +81,14 @@ const config: Config = {
   					height: '0'
   				}
   			},
+  			'text-shimmer': {
+  				'0%': {
+  					backgroundPosition: '150% center'
+  				},
+  				'100%': {
+  					backgroundPosition: '-50% center'
+  				}
+  			},
   			'typing-dot-bounce': {
   				'0%,40%': {
   					transform: 'translateY(0)'
@@ -123,6 +131,7 @@ const config: Config = {
   		animation: {
   			'accordion-down': 'accordion-down 0.2s ease-out',
   			'accordion-up': 'accordion-up 0.2s ease-out',
+  			'text-shimmer': 'text-shimmer 2.2s linear infinite',
   			'typing-dot-bounce': 'typing-dot-bounce 1.25s ease-out infinite',
   			'fade-up': 'fade-up 0.55s cubic-bezier(0.16, 1, 0.3, 1) both',
   			'slide-in-left': 'slide-in-left 0.4s cubic-bezier(0.16, 1, 0.3, 1) both',

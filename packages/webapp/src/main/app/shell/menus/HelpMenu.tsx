@@ -15,7 +15,6 @@ import {
 const COMMUNITY_URLS = {
   contribute: 'https://github.com/BESSER-PEARL/BESSER/blob/master/CONTRIBUTING.md',
   repository: 'https://github.com/BESSER-PEARL/BESSER',
-  survey: 'https://docs.google.com/forms/d/e/1FAIpQLSdhYVFFu8xiFkoV4u6Pgjf5F7-IS_W7aTj34N5YS2L143vxoQ/viewform',
 };
 
 interface HelpMenuProps {
@@ -77,9 +76,6 @@ export const HelpMenu: React.FC<HelpMenuProps> = ({
           {t('menu.community.githubRepository')}
         </DropdownMenuItem>
         <DropdownMenuItem onClick={onOpenFeedback}>{t('menu.community.sendFeedback')}</DropdownMenuItem>
-        <DropdownMenuItem onClick={() => openExternalUrl(COMMUNITY_URLS.survey)}>
-          {t('menu.community.userSurvey')}
-        </DropdownMenuItem>
         <DropdownMenuItem onClick={() => openExternalUrl(bugReportURL)}>
           {t('menu.community.reportProblem')}
         </DropdownMenuItem>

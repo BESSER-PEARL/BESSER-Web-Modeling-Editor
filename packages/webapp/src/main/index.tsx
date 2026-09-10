@@ -6,6 +6,7 @@ import { LocalStorageRepository } from './shared/services/storage/local-storage-
 import { createRoot } from 'react-dom/client';
 import { NO_HTTP_URL, SENTRY_DSN, POSTHOG_HOST, POSTHOG_KEY } from './shared/constants/constant';
 import { runStorageMigrations } from './shared/utils/storage-migration';
+import { initPilotModeFromUrl } from './shared/services/telemetry/pilotTelemetry';
 import { initLazyAnalytics } from './shared/services/analytics/lazy-analytics';
 import { hasUserConsented } from './shared/components/cookie-consent/CookieConsentBanner';
 
@@ -14,37 +15,29 @@ import './shared/i18n';
 
 import './styles.css';
 
-// ── Auto-recovery: clear stale localStorage on crash and reload once ────
-const CRASH_GUARD_KEY = 'besser_crash_recovery';
-const crashGuard = sessionStorage.getItem(CRASH_GUARD_KEY);
-
-if (!crashGuard) {
-  // First load this session — arm the guard so a crash triggers cleanup
-  sessionStorage.setItem(CRASH_GUARD_KEY, 'pending');
-
-  window.addEventListener('error', () => {
-    if (sessionStorage.getItem(CRASH_GUARD_KEY) !== 'pending') return;
-    sessionStorage.setItem(CRASH_GUARD_KEY, 'recovered');
-    // Clear all besser_* localStorage
-    const keys: string[] = [];
-    for (let i = 0; i < localStorage.length; i++) {
-      const k = localStorage.key(i);
-      if (k?.startsWith('besser_')) keys.push(k);
-    }
-    keys.forEach((k) => localStorage.removeItem(k));
-    // Clear legacy non-prefixed keys
-    ['latestDiagram', 'agentConfig', 'agentPersonalization', 'github_session',
-     'github_username', 'last_published_token', 'last_published_type',
-     'umlAgentRateLimiterState'].forEach((k) => localStorage.removeItem(k));
-    window.location.reload();
-  });
-}
-
 // Run localStorage schema migrations before anything else reads stored data
 runStorageMigrations();
 
-// If we got here without crashing, clear the guard
-sessionStorage.setItem(CRASH_GUARD_KEY, 'ok');
+// Pilot experiment: capture the `?pilot=P3` participant label (facilitator
+// links) before the router can touch the URL. Without the parameter this is
+// a no-op and no telemetry is ever produced.
+initPilotModeFromUrl();
+
+// Every deploy replaces the content-hashed lazy chunks, so a tab that stayed
+// open across a deploy fails its next dynamic import ("Failed to fetch
+// dynamically imported module") and surfaced an Editor Error. Vite emits
+// vite:preloadError for exactly this — reload ONCE to pick up the new build
+// (guarded per-session so a genuinely broken deploy can't reload-loop).
+window.addEventListener('vite:preloadError', (event) => {
+  try {
+    if (sessionStorage.getItem('besser_chunkReloaded') === '1') return;
+    sessionStorage.setItem('besser_chunkReloaded', '1');
+  } catch {
+    /* private mode — still reload once per page lifetime */
+  }
+  event.preventDefault();
+  window.location.reload();
+});
 
 // Defer Sentry + PostHog initialization until the browser is idle.
 // This removes ~40KB+ of synchronous JS from the critical render path.

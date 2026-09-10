@@ -704,8 +704,14 @@ export function useGeneratorExecution(editor: BesserEditor | undefined): UseGene
     async (
       generatorType: GeneratorType,
       config?: unknown,
-      options?: { autoGenerateGuiIfEmpty?: boolean; agentModelOverride?: UMLModel },
+      options?: { autoGenerateGuiIfEmpty?: boolean; agentModelOverride?: UMLModel; deferDownload?: boolean },
     ): Promise<GenerationResult> => {
+      // The assistant flow defers the browser download so the result renders as
+      // a card with a manual Download button; the menu path auto-downloads.
+      const runGen: typeof generateCode = (editorArg, typeArg, titleArg, cfgArg, refArg, overrideArg) =>
+        generateCode(editorArg, typeArg, titleArg, cfgArg, refArg, overrideArg, {
+          autoDownload: !options?.deferDownload,
+        });
       if (!currentProject) {
         toast.error(t('generation.toasts.createOrLoadProject'));
         return { ok: false, error: 'Create or load a project before generating code.' };
@@ -740,7 +746,7 @@ export function useGeneratorExecution(editor: BesserEditor | undefined): UseGene
             }
           }
 
-          const webAppResult = await generateCode(null, 'web_app', activeDiagramTitle, config as any);
+          const webAppResult = await runGen(null, 'web_app', activeDiagramTitle, config as any);
           if (!mountedRef.current) return { ok: false, error: 'Component unmounted' };
           if (webAppResult.ok) {
             getPostHog()?.capture('generator_used', {
@@ -758,7 +764,7 @@ export function useGeneratorExecution(editor: BesserEditor | undefined): UseGene
             return { ok: false, error: 'Open the Quantum editor before generating Qiskit code.' };
           }
 
-          const qiskitResult = await generateCode(
+          const qiskitResult = await runGen(
             null,
             'qiskit',
             activeDiagramTitle,
@@ -780,7 +786,7 @@ export function useGeneratorExecution(editor: BesserEditor | undefined): UseGene
             toast.error(t('generation.toasts.openNnEditor'));
             return { ok: false, error: 'Open the NN Diagram editor before generating neural network code.' };
           }
-          const nnResult = await generateCode(editor, generatorType, activeDiagramTitle, config as any);
+          const nnResult = await runGen(editor, generatorType, activeDiagramTitle, config as any);
           if (!mountedRef.current) return { ok: false, error: 'Component unmounted' };
           if (nnResult.ok) {
             getPostHog()?.capture('generator_used', {
@@ -832,6 +838,42 @@ export function useGeneratorExecution(editor: BesserEditor | undefined): UseGene
           }
         }
 
+        // Agentic flow: a class-diagram generator was requested while a
+        // non-UML tab is active (or no UML editor is mounted). The visible tab
+        // is irrelevant to the request — the assistant knows the project has a
+        // class diagram — so generate from the STORED class diagram instead of
+        // bouncing the user with "Switch to a UML diagram".
+        const CLASS_MODEL_GENERATORS = [
+          'django', 'backend', 'sql', 'sqlalchemy', 'python', 'java',
+          'pydantic', 'jsonschema', 'smartdata', 'rest_api', 'rdf', 'supabase',
+        ];
+        if ((isQuantumContext || isGuiContext || !editor)
+            && CLASS_MODEL_GENERATORS.includes(generatorType)) {
+          const storedClassDiagram = getActiveDiagram(currentProject, 'ClassDiagram');
+          const storedModel = storedClassDiagram?.model as UMLModel | undefined;
+          const hasElements = !!storedModel && Array.isArray((storedModel as any).nodes) && (storedModel as any).nodes.length > 0;
+          if (hasElements) {
+            const overrideResult = await runGen(
+              null,
+              generatorType,
+              storedClassDiagram?.title || activeDiagramTitle,
+              config as any,
+              undefined,
+              storedModel,
+            );
+            if (!mountedRef.current) return { ok: false, error: 'Component unmounted' };
+            if (overrideResult.ok) {
+              getPostHog()?.capture('generator_used', {
+                generator_type: generatorType,
+                diagram_type: 'ClassDiagram',
+                from_stored_model: true,
+                ...getModelMetrics(currentProject),
+              });
+            }
+            return overrideResult;
+          }
+        }
+
         if (isQuantumContext || isGuiContext) {
           toast.error(t('generation.toasts.switchToUmlDiagram'));
           return { ok: false, error: 'Switch to a UML diagram to use this generator.' };
@@ -845,25 +887,25 @@ export function useGeneratorExecution(editor: BesserEditor | undefined): UseGene
         let result: GenerationResult = { ok: false, error: 'Generation was not executed.' };
         switch (generatorType) {
           case 'smartdata':
-            result = await generateCode(editor, 'jsonschema', activeDiagramTitle, { mode: 'smart_data' });
+            result = await runGen(editor, 'jsonschema', activeDiagramTitle, { mode: 'smart_data' });
             break;
           case 'django':
-            result = await generateCode(editor, 'django', activeDiagramTitle, config as DjangoConfig);
+            result = await runGen(editor, 'django', activeDiagramTitle, config as DjangoConfig);
             break;
           case 'sql':
-            result = await generateCode(editor, 'sql', activeDiagramTitle, config as SQLConfig);
+            result = await runGen(editor, 'sql', activeDiagramTitle, config as SQLConfig);
             break;
           case 'supabase':
-            result = await generateCode(editor, 'supabase', activeDiagramTitle, config as SupabaseConfig);
+            result = await runGen(editor, 'supabase', activeDiagramTitle, config as SupabaseConfig);
             break;
           case 'sqlalchemy':
-            result = await generateCode(editor, 'sqlalchemy', activeDiagramTitle, config as SQLAlchemyConfig);
+            result = await runGen(editor, 'sqlalchemy', activeDiagramTitle, config as SQLAlchemyConfig);
             break;
           case 'jsonschema':
-            result = await generateCode(editor, 'jsonschema', activeDiagramTitle, config as JSONSchemaConfig);
+            result = await runGen(editor, 'jsonschema', activeDiagramTitle, config as JSONSchemaConfig);
             break;
           case 'agent':
-            result = await generateCode(
+            result = await runGen(
               editor,
               'agent',
               activeDiagramTitle,
@@ -873,7 +915,7 @@ export function useGeneratorExecution(editor: BesserEditor | undefined): UseGene
             );
             break;
           case 'test_case':
-            result = await generateCode(editor, 'test_case', activeDiagramTitle);
+            result = await runGen(editor, 'test_case', activeDiagramTitle);
             break;
           case 'jsonobject': {
             if (!isObjectContext && !isUserContext) {
@@ -890,11 +932,11 @@ export function useGeneratorExecution(editor: BesserEditor | undefined): UseGene
                 referenceDiagramData = classDiagram.model;
               }
             }
-            result = await generateCode(editor, 'jsonobject', activeDiagramTitle, undefined, referenceDiagramData);
+            result = await runGen(editor, 'jsonobject', activeDiagramTitle, undefined, referenceDiagramData);
             break;
           }
           default:
-            result = await generateCode(editor, generatorType, activeDiagramTitle, config as any);
+            result = await runGen(editor, generatorType, activeDiagramTitle, config as any);
         }
 
         if (!mountedRef.current) return { ok: false, error: 'Component unmounted' };
@@ -944,7 +986,13 @@ export function useGeneratorExecution(editor: BesserEditor | undefined): UseGene
 
   const handleAssistantGenerate = useCallback(
     async (generatorType: GeneratorType, config?: unknown): Promise<GenerationResult> =>
-      executeGenerator(generatorType, config, { autoGenerateGuiIfEmpty: generatorType === 'web_app' }),
+      executeGenerator(generatorType, config, {
+        autoGenerateGuiIfEmpty: generatorType === 'web_app',
+        // Defer the download so the assistant renders a result card with a
+        // manual Download button (deterministic-transparency: 4.3) instead of
+        // auto-saving.
+        deferDownload: true,
+      }),
     [executeGenerator],
   );
 

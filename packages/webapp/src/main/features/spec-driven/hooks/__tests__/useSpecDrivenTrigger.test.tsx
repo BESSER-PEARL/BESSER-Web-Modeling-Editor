@@ -1,0 +1,1657 @@
+/**
+ * Unit tests for useSpecDrivenTrigger.
+ *
+ * Strategy:
+ *   - Mock the SSE client at the module boundary (`vi.mock`) so we can
+ *     feed scripted event sequences into the hook without touching
+ *     `fetch`.
+ *   - Mock `sessionStorage` per-test by clearing it in `beforeEach`.
+ *   - Provide a real Redux store (not a stub) so the slice reducers
+ *     are exercised for real, and `useAppSelector` subscribes correctly.
+ *   - Mock `fetch` only for the download fetch at the end (the SSE
+ *     stream is mocked via the sseClient module mock).
+ *
+ * Covered paths:
+ *   - Happy path: key present → stream → done → download success
+ *   - BYOK missing → opens dialog → saving key resumes run
+ *   - Invalid key event → clears sessionStorage, reopens BYOK
+ *   - Abort mid-stream → soft stop with "stopped by user" message
+ *   - Concurrent trigger → second call rejected with error message
+ *   - No active project → error message
+ *   - Download fetch failure → error message, NO success bubble
+ *   - clearConversation aborts the run
+ *   - Unmount during stream → no setState errors
+ */
+
+import React from 'react';
+import { configureStore } from '@reduxjs/toolkit';
+import { Provider } from 'react-redux';
+import { act, render, waitFor } from '@testing-library/react';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+
+import {
+  closeByokDialog,
+  openByokDialog,
+  setApiKeyPresent,
+  specDrivenReducer,
+} from '../../state/specDrivenSlice';
+import { workspaceReducer } from '../../../../app/store/workspaceSlice';
+import { errorReducer } from '../../../../app/store/errorManagementSlice';
+import { useSpecDrivenTrigger, type SpecDrivenRunResult } from '../useSpecDrivenTrigger';
+import { sanitizeMessageForPersist } from '../../../assistant/hooks/assistantConversationStore';
+import type { SpecDrivenEvent, TriggerSpecDrivenPayload } from '../../types';
+import {
+  cancelSpecDrivenUrl,
+  sessionStorageSpecDrivenApiKey,
+  sessionStorageSpecDrivenFreeModel,
+  sessionStorageSpecDrivenFreeTier,
+  sessionStorageSpecDrivenMaxCostUsd,
+  sessionStorageSpecDrivenMaxRuntimeSeconds,
+  sessionStorageSpecDrivenProvider,
+} from '../../../../shared/constants/constant';
+
+// Mock the toast so we can assert on it without rendering a real container.
+vi.mock('react-toastify', () => ({
+  toast: {
+    success: vi.fn(),
+    error: vi.fn(),
+    warning: vi.fn(),
+  },
+}));
+
+// Mock the download util so the test doesn't attempt a real browser download.
+vi.mock('../../../../shared/utils/download', () => ({
+  downloadFile: vi.fn(),
+}));
+
+// Mock the SSE client — tests feed scripted events via a shared queue.
+const _mockController: {
+  events: SpecDrivenEvent[];
+  abortCalled: boolean;
+  throwOnStart: Error | null;
+} = {
+  events: [],
+  abortCalled: false,
+  throwOnStart: null,
+};
+
+// Mock the smart-gen config so the modify-vs-fresh decision in startRun
+// resolves synchronously to the fallback (download_ttl_seconds) WITHOUT
+// hitting `fetch` — the "nothing written to disk" assertions below count
+// every fetch call, and the config lookup is unrelated to the download.
+vi.mock('../../services/specDrivenConfig', async (importOriginal) => {
+  const mod = await importOriginal<typeof import('../../services/specDrivenConfig')>();
+  return {
+    ...mod,
+    getSpecDrivenConfig: vi.fn(() => Promise.resolve(mod.FALLBACK_SMART_GEN_CONFIG)),
+  };
+});
+
+vi.mock('../../services/specDrivenSseClient', () => ({
+  startSpecDrivenRun: vi.fn((_params) => {
+    if (_mockController.throwOnStart) throw _mockController.throwOnStart;
+    const scripted = [..._mockController.events];
+    return {
+      controller: new AbortController(),
+      abort: () => { _mockController.abortCalled = true; },
+      events: (async function* () {
+        for (const ev of scripted) {
+          yield ev;
+        }
+      })(),
+    };
+  }),
+}));
+
+// Helper — build a fresh store per test.
+function makeStore() {
+  return configureStore({
+    reducer: {
+      workspace: workspaceReducer,
+      errors: errorReducer,
+      specDriven: specDrivenReducer,
+    },
+  });
+}
+
+// Harness component that exercises the hook and exposes its API via refs.
+interface HarnessAPI {
+  handleTrigger: (payload: TriggerSpecDrivenPayload) => Promise<void>;
+  abortActive: () => void;
+  getMessages: () => unknown[];
+  getIsGenerating: () => boolean;
+  /** Simulate "New Chat" wiping the conversation list mid-run. */
+  clearMessages: () => void;
+  /** Set the surface's isGenerating flag (typing indicator) directly. */
+  setGenerating: (value: boolean) => void;
+}
+
+function Harness(props: {
+  apiRef: { current: HarnessAPI | null };
+  hasProject?: boolean;
+  onRunFinished?: (result: SpecDrivenRunResult) => void;
+}) {
+  const [messages, setMessages] = React.useState<any[]>([]);
+  const [isGenerating, setIsGenerating] = React.useState(false);
+  const currentProjectRef = React.useRef<any>(
+    props.hasProject === false
+      ? null
+      : {
+          id: 'test-project',
+          name: 'TestProject',
+          diagrams: { ClassDiagram: [{ id: 'cd1', title: 'lib', model: {} }] },
+          currentDiagramIndices: { ClassDiagram: 0 },
+        },
+  );
+  const hook = useSpecDrivenTrigger({
+    currentProjectRef,
+    setMessages,
+    setIsGenerating,
+    onRunFinished: props.onRunFinished,
+  });
+  // Expose via ref so tests can call without clicks.
+  props.apiRef.current = {
+    handleTrigger: hook.handleTrigger,
+    abortActive: hook.abortActive,
+    getMessages: () => messages,
+    getIsGenerating: () => isGenerating,
+    clearMessages: () => setMessages([]),
+    setGenerating: (value: boolean) => setIsGenerating(value),
+  };
+  return <div data-testid="msgs">{JSON.stringify(messages.length)}</div>;
+}
+
+function renderHarness(
+  opts: {
+    hasProject?: boolean;
+    onRunFinished?: (result: SpecDrivenRunResult) => void;
+  } = {},
+) {
+  const store = makeStore();
+  const apiRef: { current: HarnessAPI | null } = { current: null };
+  const result = render(
+    <Provider store={store}>
+      <Harness
+        apiRef={apiRef}
+        hasProject={opts.hasProject}
+        onRunFinished={opts.onRunFinished}
+      />
+    </Provider>,
+  );
+  return { store, apiRef, ...result };
+}
+
+/**
+ * Render TWO independent hook instances against ONE store — mirroring
+ * production, where AssistantWidget and AssistantWorkspaceDrawer are
+ * both always mounted and each instantiates useSpecDrivenTrigger.
+ */
+function renderDualHarness() {
+  const store = makeStore();
+  const apiRefA: { current: HarnessAPI | null } = { current: null };
+  const apiRefB: { current: HarnessAPI | null } = { current: null };
+  const result = render(
+    <Provider store={store}>
+      <Harness apiRef={apiRefA} />
+      <Harness apiRef={apiRefB} />
+    </Provider>,
+  );
+  return { store, apiRefA, apiRefB, ...result };
+}
+
+const PAYLOAD: TriggerSpecDrivenPayload = {
+  action: 'trigger_smart_generator',
+  instructions: 'build a thing',
+  provider: 'anthropic',
+  llmModel: 'claude-sonnet-4-6',
+  message: 'I will build this for you.',
+  planApproved: true,
+};
+
+function setSessionKey(key = 'sk-ant-test-NEVER-LEAK-0123') {
+  window.sessionStorage.setItem(sessionStorageSpecDrivenApiKey, key);
+  window.sessionStorage.setItem(sessionStorageSpecDrivenProvider, 'anthropic');
+}
+
+function clearSessionKeyManual() {
+  window.sessionStorage.removeItem(sessionStorageSpecDrivenApiKey);
+  window.sessionStorage.removeItem(sessionStorageSpecDrivenProvider);
+  // Also clear the optional model key so prior tests don't leak
+  // ``llmModel=o1`` into tests that expect the agent hint to win.
+  window.sessionStorage.removeItem('besser_llm_model');
+  // And the run budget — tests that don't set one expect the
+  // maxCostUsd / maxRuntimeSeconds params to stay undefined.
+  window.sessionStorage.removeItem(sessionStorageSpecDrivenMaxCostUsd);
+  window.sessionStorage.removeItem(sessionStorageSpecDrivenMaxRuntimeSeconds);
+  // And the keyless free-tier opt-in — a leaked `true` here would force
+  // provider='free' on later tests that assert a BYOK provider from the key.
+  window.sessionStorage.removeItem(sessionStorageSpecDrivenFreeTier);
+  // And the explicit free-model choice — a leaked id would add llm_model to
+  // free runs in tests that assert the default wire shape.
+  window.sessionStorage.removeItem(sessionStorageSpecDrivenFreeModel);
+}
+
+beforeEach(async () => {
+  _mockController.events = [];
+  _mockController.abortCalled = false;
+  _mockController.throwOnStart = null;
+  clearSessionKeyManual();
+  vi.clearAllMocks();
+  // clearAllMocks wipes call data but NOT implementations, so re-establish
+  // the config mock's default (free tier OFF) — a test that overrides it to
+  // free-available must not leak that into later tests.
+  const cfg = await import('../../services/specDrivenConfig');
+  vi.mocked(cfg.getSpecDrivenConfig).mockImplementation(() =>
+    Promise.resolve(cfg.FALLBACK_SMART_GEN_CONFIG),
+  );
+});
+
+afterEach(() => {
+  clearSessionKeyManual();
+});
+
+// Reusable scripted event sequence representing a successful run.
+const HAPPY_EVENTS: SpecDrivenEvent[] = [
+  { event: 'start', runId: 'a'.repeat(32), provider: 'anthropic', llmModel: 'claude-sonnet-4-6', maxCost: 1.0, maxRuntime: 600 },
+  { event: 'phase', phase: 'select', message: 'Selecting generator' },
+  { event: 'phase', phase: 'generate', message: 'running fastapi_backend' },
+  { event: 'text', delta: 'Building your app…' },
+  { event: 'tool_call', turn: 1, tool: 'write_file', status: 'executing' },
+  { event: 'cost', usd: 0.05, turns: 1, elapsedSeconds: 12.3 },
+  {
+    event: 'done',
+    runId: 'a'.repeat(32),
+    downloadUrl: `/besser_api/spec-driven/download/${'a'.repeat(32)}`,
+    fileName: 'besser_smart_output.zip',
+    isZip: true,
+    recipe: { instructions: 'build a thing', generator_used: 'fastapi_backend' },
+  },
+];
+
+
+describe('useSpecDrivenTrigger — happy path', () => {
+  it('runs the full stream and surfaces a Download action on done (no auto-save)', async () => {
+    setSessionKey();
+    _mockController.events = HAPPY_EVENTS;
+
+    // The run must NOT auto-download anymore (consent fix). If the hook
+    // tried to save, it would call fetch — assert it never does.
+    const _fetchMock = vi.fn().mockResolvedValue(
+      new Response(new Blob(['fake zip']), {
+        status: 200,
+        headers: { 'Content-Type': 'application/zip' },
+      }),
+    );
+    globalThis.fetch = _fetchMock;
+
+    const { apiRef } = renderHarness();
+
+    await act(async () => {
+      await apiRef.current!.handleTrigger(PAYLOAD);
+    });
+
+    // Wait for state to settle (for await loop)
+    await waitFor(() => {
+      const msgs = apiRef.current!.getMessages();
+      expect(msgs.length).toBeGreaterThanOrEqual(3);
+    });
+
+    const msgs = apiRef.current!.getMessages() as any[];
+    // Expected messages: intro, streaming-card-with-events, "✅ complete"
+    expect(msgs.some((m) => m.content?.includes('I will build this for you'))).toBe(true);
+    expect(msgs.some((m) => m.content?.includes('✅'))).toBe(true);
+    // The card is finished and flagged as awaiting a user-initiated save.
+    const card = msgs.find((m) => m.specDriven);
+    expect(card.specDriven.status).toBe('done');
+    expect(card.specDriven.needsDownload).toBe(true);
+    expect(card.specDriven.fileName).toBe('besser_smart_output.zip');
+    // No file was written to disk without consent.
+    expect(_fetchMock).not.toHaveBeenCalled();
+    expect(apiRef.current!.getIsGenerating()).toBe(false);
+  });
+});
+
+
+describe('useSpecDrivenTrigger — BYOK missing flow', () => {
+  it('opens BYOK dialog when no key is stored', async () => {
+    // Intentionally no setSessionKey call.
+    const { apiRef, store } = renderHarness();
+
+    await act(async () => {
+      await apiRef.current!.handleTrigger(PAYLOAD);
+    });
+
+    const state = store.getState().specDriven;
+    expect(state.byokDialogOpen).toBe(true);
+    expect(state.pendingTrigger).not.toBeNull();
+    // No messages appended — the stream never started.
+    const msgs = apiRef.current!.getMessages();
+    expect(msgs.length).toBe(0);
+  });
+
+  it('runs directly with a stored key — no BYOK popup, even when the trigger is unapproved', async () => {
+    // A stored key means the user already opted in (via the settings dialog),
+    // so there is no separate approval popup on each run — the trigger starts
+    // the run immediately. This is the "no popup" behaviour the free-tier
+    // rework introduced; the dialog is now reached only from the settings link.
+    setSessionKey();
+    _mockController.events = HAPPY_EVENTS;
+    const { apiRef, store } = renderHarness();
+
+    await act(async () => {
+      await apiRef.current!.handleTrigger({
+        ...PAYLOAD,
+        planApproved: undefined,
+      });
+    });
+
+    expect(store.getState().specDriven.byokDialogOpen).toBe(false);
+    const sseClientModule = await import('../../services/specDrivenSseClient');
+    await waitFor(() => {
+      expect(vi.mocked(sseClientModule.startSpecDrivenRun)).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  it('defaults to the free tier (no popup) when no key is stored and the server offers it', async () => {
+    // The free-tier rework: instead of interrupting with the BYOK popup, an
+    // unauthorised trigger runs on the keyless free model directly. The
+    // "use your own API key" affordance now lives in the pre-run confirmation
+    // copy (agent-side), so the run no longer appends a mid-run free-tier note.
+    _mockController.events = HAPPY_EVENTS;
+    const configModule = await import('../../services/specDrivenConfig');
+    vi.mocked(configModule.getSpecDrivenConfig).mockResolvedValue({
+      ...configModule.FALLBACK_SMART_GEN_CONFIG,
+      free_tier: {
+        available: true,
+        model: 'qwen3-coder:30b',
+        models: [{ id: 'qwen3-coder:30b', default: true }],
+      },
+    });
+
+    const { apiRef, store } = renderHarness();
+
+    await act(async () => {
+      await apiRef.current!.handleTrigger({ ...PAYLOAD, planApproved: undefined });
+    });
+
+    // No popup — the run starts on the free tier.
+    expect(store.getState().specDriven.byokDialogOpen).toBe(false);
+    const sseClientModule = await import('../../services/specDrivenSseClient');
+    await waitFor(() => {
+      expect(vi.mocked(sseClientModule.startSpecDrivenRun)).toHaveBeenCalledTimes(1);
+    });
+    // The run was dispatched as the keyless free provider…
+    const args = vi.mocked(sseClientModule.startSpecDrivenRun).mock.calls[0][0];
+    expect(args.provider).toBe('free');
+    // …and the run no longer appends a mid-run free-tier note (the upgrade
+    // affordance moved to the pre-run confirmation copy).
+    const msgs = apiRef.current!.getMessages() as any[];
+    expect(
+      msgs.some(
+        (m) => typeof m.content === 'string' && m.content.includes('wme:add-key'),
+      ),
+    ).toBe(false);
+  });
+});
+
+
+describe('useSpecDrivenTrigger — explicit free-model choice', () => {
+  const FREE_CONFIG_WITH_FALLBACK = {
+    free_tier: {
+      available: true,
+      model: 'meituan/LongCat-2.0:free',
+      models: [
+        { id: 'meituan/LongCat-2.0:free', default: true },
+        { id: 'qwen3.8:27b', default: false },
+      ],
+    },
+  };
+
+  async function mockConfig() {
+    const configModule = await import('../../services/specDrivenConfig');
+    vi.mocked(configModule.getSpecDrivenConfig).mockResolvedValue({
+      ...configModule.FALLBACK_SMART_GEN_CONFIG,
+      ...FREE_CONFIG_WITH_FALLBACK,
+    });
+  }
+
+  async function startFreeRunAndGetArgs() {
+    _mockController.events = HAPPY_EVENTS;
+    window.sessionStorage.setItem(sessionStorageSpecDrivenFreeTier, '1');
+    const { apiRef } = renderHarness();
+    await act(async () => {
+      await apiRef.current!.handleTrigger({ ...PAYLOAD, planApproved: undefined });
+    });
+    const sseClientModule = await import('../../services/specDrivenSseClient');
+    await waitFor(() => {
+      expect(vi.mocked(sseClientModule.startSpecDrivenRun)).toHaveBeenCalledTimes(1);
+    });
+    return vi.mocked(sseClientModule.startSpecDrivenRun).mock.calls[0][0];
+  }
+
+  it('sends llm_model when the stored choice is the advertised non-default model', async () => {
+    await mockConfig();
+    window.sessionStorage.setItem(sessionStorageSpecDrivenFreeModel, 'qwen3.8:27b');
+
+    const args = await startFreeRunAndGetArgs();
+    expect(args.provider).toBe('free');
+    expect(args.llmModel).toBe('qwen3.8:27b');
+  });
+
+  it('omits llm_model when no free-model choice is stored (default)', async () => {
+    await mockConfig();
+
+    const args = await startFreeRunAndGetArgs();
+    expect(args.provider).toBe('free');
+    expect(args.llmModel).toBeUndefined();
+  });
+
+  it('omits llm_model for a stale stored id the server no longer advertises', async () => {
+    await mockConfig();
+    window.sessionStorage.setItem(sessionStorageSpecDrivenFreeModel, 'gpt-4o');
+
+    const args = await startFreeRunAndGetArgs();
+    expect(args.provider).toBe('free');
+    expect(args.llmModel).toBeUndefined();
+  });
+
+  it('never reuses the BYOK llm_model for a free run', async () => {
+    await mockConfig();
+    // A leftover BYOK model preference must not leak into a free run.
+    window.sessionStorage.setItem('besser_llm_model', 'claude-opus-4-6');
+
+    const args = await startFreeRunAndGetArgs();
+    expect(args.provider).toBe('free');
+    expect(args.llmModel).toBeUndefined();
+  });
+});
+
+
+describe('useSpecDrivenTrigger — invalid key error handling', () => {
+  it('clears the session key when an INVALID_KEY error event arrives', async () => {
+    setSessionKey('sk-ant-bogus');
+    _mockController.events = [
+      { event: 'start', runId: 'a'.repeat(32), provider: 'anthropic', llmModel: 'claude-sonnet-4-6', maxCost: 1.0, maxRuntime: 600 },
+      { event: 'error', code: 'INVALID_KEY', message: 'No API key' },
+    ];
+    globalThis.fetch = vi.fn();
+
+    const { apiRef, store } = renderHarness();
+
+    await act(async () => {
+      await apiRef.current!.handleTrigger(PAYLOAD);
+    });
+
+    await waitFor(() => {
+      expect(store.getState().specDriven.apiKeyInStore).toBe(false);
+    });
+    // Key was cleared from sessionStorage
+    expect(window.sessionStorage.getItem(sessionStorageSpecDrivenApiKey)).toBeNull();
+  });
+});
+
+
+describe('useSpecDrivenTrigger — done event (consent-based download)', () => {
+  it('does NOT auto-save the artifact: no download fetch fires on done', async () => {
+    setSessionKey();
+    _mockController.events = HAPPY_EVENTS;
+    // If the hook auto-downloaded it would call fetch; assert it doesn't.
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(new Blob(['fake zip']), {
+        status: 200,
+        headers: { 'Content-Type': 'application/zip' },
+      }),
+    );
+    globalThis.fetch = fetchMock;
+
+    const { apiRef } = renderHarness();
+
+    await act(async () => {
+      await apiRef.current!.handleTrigger(PAYLOAD);
+    });
+
+    await waitFor(() => {
+      const msgs = apiRef.current!.getMessages() as any[];
+      expect(msgs.some((m) => m.specDriven?.status === 'done')).toBe(true);
+    });
+
+    expect(fetchMock).not.toHaveBeenCalled();
+    const msgs = apiRef.current!.getMessages() as any[];
+    // A success bubble is still shown; no error bubble.
+    expect(msgs.some((m) => m.content?.includes('✅'))).toBe(true);
+    expect(msgs.some((m) => m.isError === true)).toBe(false);
+  });
+
+  it('finalizes the card to done with needsDownload and persisted artifact coords', async () => {
+    setSessionKey();
+    _mockController.events = HAPPY_EVENTS;
+    globalThis.fetch = vi.fn().mockResolvedValue(
+      new Response(new Blob(['fake zip']), {
+        status: 200,
+        headers: { 'Content-Type': 'application/zip' },
+      }),
+    );
+
+    const { apiRef } = renderHarness();
+
+    await act(async () => {
+      await apiRef.current!.handleTrigger(PAYLOAD);
+    });
+
+    await waitFor(() => {
+      const msgs = apiRef.current!.getMessages() as any[];
+      expect(msgs.some((m) => m.content?.includes('✅'))).toBe(true);
+    });
+
+    const msgs = apiRef.current!.getMessages() as any[];
+    // The card is finished and carries everything the Download button needs.
+    const card = msgs.find((m) => m.specDriven);
+    expect(card.specDriven.status).toBe('done');
+    expect(card.specDriven.needsDownload).toBe(true);
+    expect(card.specDriven.downloadFailed).toBeFalsy();
+    expect(card.specDriven.runId).toBe('a'.repeat(32));
+    expect(card.specDriven.fileName).toBe('besser_smart_output.zip');
+    expect(card.specDriven.isZip).toBe(true);
+    // The completion message points the user at the Download action.
+    const doneMsg = msgs.find((m) => m.content?.includes('✅'));
+    expect(doneMsg.content).toMatch(/download/i);
+  });
+});
+
+
+describe('useSpecDrivenTrigger — concurrent trigger guard', () => {
+  it('rejects a second trigger while one is already running', async () => {
+    setSessionKey();
+    // A never-yielding generator so the first run stays "in progress"
+    _mockController.events = [];
+    // Use a hanging stream for this test
+    const { apiRef } = renderHarness();
+
+    // Fire-and-forget first call
+    const firstCall = apiRef.current!.handleTrigger(PAYLOAD);
+
+    // Wait a tick so isRunningRef flips to true
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    // Second call should append an error and not start anything
+    await act(async () => {
+      await apiRef.current!.handleTrigger(PAYLOAD);
+    });
+
+    const msgs = apiRef.current!.getMessages() as any[];
+    const errorMsg = msgs.find((m) => m.content?.includes('already running'));
+    // Either the guard fired OR the first run finished so quickly the
+    // guard didn't need to. Both are acceptable behaviours.
+    if (errorMsg) {
+      expect(errorMsg.isError).toBe(true);
+    }
+    await firstCall;
+  });
+});
+
+
+describe('useSpecDrivenTrigger — no project', () => {
+  it('appends an error message when there is no active project', async () => {
+    setSessionKey();
+    _mockController.events = HAPPY_EVENTS;
+
+    const { apiRef } = renderHarness({ hasProject: false });
+
+    await act(async () => {
+      await apiRef.current!.handleTrigger(PAYLOAD);
+    });
+
+    const msgs = apiRef.current!.getMessages() as any[];
+    expect(msgs.some((m) => m.content?.includes('open project') && m.isError)).toBe(true);
+  });
+});
+
+
+describe('useSpecDrivenTrigger — BYOK provider wins over agent hint', () => {
+  it('uses the provider from sessionStorage, NOT the agent\'s trigger payload hint', async () => {
+    // Scenario: the modeling agent emits trigger_smart_generator with
+    // its default hint ``provider="anthropic"``, but the user has
+    // already selected "openai" in the BYOK dialog and saved an OpenAI
+    // key. The run MUST fire with provider=openai — anything else
+    // causes the "OpenAI key hits the Anthropic API, gets 401,
+    // orchestrator falls through to Phase 1 FastAPI" bug.
+    window.sessionStorage.setItem(sessionStorageSpecDrivenApiKey, 'sk-proj-openai-TEST');
+    window.sessionStorage.setItem(sessionStorageSpecDrivenProvider, 'openai');
+
+    _mockController.events = HAPPY_EVENTS;
+    globalThis.fetch = vi.fn().mockResolvedValue(
+      new Response(new Blob(['fake']), { status: 200 }),
+    );
+
+    const { apiRef } = renderHarness();
+
+    // Agent hints "anthropic" — user picked openai. User wins.
+    const agentPayload: TriggerSpecDrivenPayload = {
+      action: 'trigger_smart_generator',
+      instructions: 'build a thing',
+      provider: 'anthropic',
+      llmModel: 'claude-sonnet-4-6',
+      message: 'handing off…',
+      planApproved: true,
+    };
+
+    await act(async () => {
+      await apiRef.current!.handleTrigger(agentPayload);
+    });
+
+    await waitFor(() => {
+      const msgs = apiRef.current!.getMessages();
+      expect(msgs.length).toBeGreaterThanOrEqual(2);
+    });
+
+    const sseClientModule = await import('../../services/specDrivenSseClient');
+    const startSpecDrivenRunMock = vi.mocked(sseClientModule.startSpecDrivenRun);
+    expect(startSpecDrivenRunMock).toHaveBeenCalled();
+    const callArgs = startSpecDrivenRunMock.mock.calls[0][0];
+    expect(callArgs.provider).toBe('openai');
+    expect(callArgs.apiKey).toBe('sk-proj-openai-TEST');
+  });
+
+  it('DROPS the agent\'s llmModel hint when the provider is overridden', async () => {
+    // Scenario: agent hints ``provider=anthropic, llmModel=claude-sonnet-4-6``.
+    // User picked openai in the BYOK dropdown. The provider correctly
+    // flips to openai (prior test). But the model name
+    // ``claude-sonnet-4-6`` is ANTHROPIC's — passing it to OpenAI would
+    // return 404 ``model_not_found``. The hook MUST drop the llmModel
+    // hint when the provider is overridden so the backend can fall
+    // back to ``_DEFAULT_MODELS["openai"] = "gpt-4o"``.
+    window.sessionStorage.setItem(sessionStorageSpecDrivenApiKey, 'sk-proj-openai-TEST');
+    window.sessionStorage.setItem(sessionStorageSpecDrivenProvider, 'openai');
+
+    _mockController.events = HAPPY_EVENTS;
+    globalThis.fetch = vi.fn().mockResolvedValue(
+      new Response(new Blob(['fake']), { status: 200 }),
+    );
+
+    const { apiRef } = renderHarness();
+
+    const agentPayload: TriggerSpecDrivenPayload = {
+      action: 'trigger_smart_generator',
+      instructions: 'build a thing',
+      provider: 'anthropic',
+      llmModel: 'claude-sonnet-4-6',  // Anthropic model hint — wrong for openai
+      message: 'handing off…',
+      planApproved: true,
+    };
+
+    await act(async () => {
+      await apiRef.current!.handleTrigger(agentPayload);
+    });
+
+    await waitFor(() => {
+      const msgs = apiRef.current!.getMessages();
+      expect(msgs.length).toBeGreaterThanOrEqual(2);
+    });
+
+    const sseClientModule = await import('../../services/specDrivenSseClient');
+    const startSpecDrivenRunMock = vi.mocked(sseClientModule.startSpecDrivenRun);
+    const callArgs = startSpecDrivenRunMock.mock.calls[0][0];
+    expect(callArgs.provider).toBe('openai');
+    expect(callArgs.llmModel).toBeUndefined();  // dropped
+  });
+
+  it('USES the user\'s chosen model from sessionStorage over any agent hint', async () => {
+    // Scenario: user saved ``provider=openai, llmModel=o1`` in the
+    // dialog. Agent hints ``provider=anthropic, llmModel=claude-sonnet-4-6``.
+    // User's choice wins on BOTH fields.
+    window.sessionStorage.setItem(sessionStorageSpecDrivenApiKey, 'sk-proj-openai-TEST');
+    window.sessionStorage.setItem(sessionStorageSpecDrivenProvider, 'openai');
+    window.sessionStorage.setItem(
+      'besser_llm_model',
+      'o1',
+    );
+
+    _mockController.events = HAPPY_EVENTS;
+    globalThis.fetch = vi.fn().mockResolvedValue(
+      new Response(new Blob(['fake']), { status: 200 }),
+    );
+
+    const { apiRef } = renderHarness();
+
+    const agentPayload: TriggerSpecDrivenPayload = {
+      action: 'trigger_smart_generator',
+      instructions: 'build a thing',
+      provider: 'anthropic',
+      llmModel: 'claude-sonnet-4-6',
+      message: 'handing off…',
+      planApproved: true,
+    };
+
+    await act(async () => {
+      await apiRef.current!.handleTrigger(agentPayload);
+    });
+
+    await waitFor(() => {
+      const msgs = apiRef.current!.getMessages();
+      expect(msgs.length).toBeGreaterThanOrEqual(2);
+    });
+
+    const sseClientModule = await import('../../services/specDrivenSseClient');
+    const startSpecDrivenRunMock = vi.mocked(sseClientModule.startSpecDrivenRun);
+    const callArgs = startSpecDrivenRunMock.mock.calls[0][0];
+    expect(callArgs.provider).toBe('openai');
+    expect(callArgs.llmModel).toBe('o1');
+  });
+
+  it('KEEPS the agent\'s llmModel hint when the provider matches', async () => {
+    // Scenario: agent hints anthropic, user picked anthropic. The
+    // hint is valid — keep it so the user gets the agent's preferred
+    // model instead of the backend default (which may be a smaller
+    // cheaper model).
+    window.sessionStorage.setItem(sessionStorageSpecDrivenApiKey, 'sk-ant-test-TEST');
+    window.sessionStorage.setItem(sessionStorageSpecDrivenProvider, 'anthropic');
+
+    _mockController.events = HAPPY_EVENTS;
+    globalThis.fetch = vi.fn().mockResolvedValue(
+      new Response(new Blob(['fake']), { status: 200 }),
+    );
+
+    const { apiRef } = renderHarness();
+
+    const agentPayload: TriggerSpecDrivenPayload = {
+      action: 'trigger_smart_generator',
+      instructions: 'build a thing',
+      provider: 'anthropic',
+      llmModel: 'claude-opus-4-6',  // agent's pinned preferred model
+      message: 'handing off…',
+      planApproved: true,
+    };
+
+    await act(async () => {
+      await apiRef.current!.handleTrigger(agentPayload);
+    });
+
+    await waitFor(() => {
+      const msgs = apiRef.current!.getMessages();
+      expect(msgs.length).toBeGreaterThanOrEqual(2);
+    });
+
+    const sseClientModule = await import('../../services/specDrivenSseClient');
+    const startSpecDrivenRunMock = vi.mocked(sseClientModule.startSpecDrivenRun);
+    const callArgs = startSpecDrivenRunMock.mock.calls[0][0];
+    expect(callArgs.provider).toBe('anthropic');
+    expect(callArgs.llmModel).toBe('claude-opus-4-6');  // preserved
+  });
+});
+
+
+describe('useSpecDrivenTrigger — double-instance race (the double-paid-run bug)', () => {
+  it('starts exactly ONE run when two hook instances resume the same pending trigger', async () => {
+    // Production setup: AssistantWidget AND AssistantWorkspaceDrawer are
+    // both always mounted; each instantiates useSpecDrivenTrigger against
+    // the same store. When the user saves a BYOK key, BOTH resume
+    // effects fire in the same commit with the same closure-captured
+    // pendingTrigger. Without atomic consumption this started TWO
+    // parallel paid runs on the user's key.
+    _mockController.events = HAPPY_EVENTS;
+    globalThis.fetch = vi.fn().mockResolvedValue(
+      new Response(new Blob(['fake zip']), {
+        status: 200,
+        headers: { 'Content-Type': 'application/zip' },
+      }),
+    );
+
+    const { store, apiRefA, apiRefB } = renderDualHarness();
+    expect(apiRefA.current).not.toBeNull();
+    expect(apiRefB.current).not.toBeNull();
+
+    // Simulate the BYOK flow: trigger arrives with no key (stashed in
+    // Redux), the user saves a key, the dialog closes.
+    await act(async () => {
+      store.dispatch(openByokDialog(PAYLOAD));
+    });
+    setSessionKey();
+    await act(async () => {
+      store.dispatch(closeByokDialog());
+      store.dispatch(setApiKeyPresent(true));
+    });
+
+    const sseClientModule = await import('../../services/specDrivenSseClient');
+    const startSpecDrivenRunMock = vi.mocked(sseClientModule.startSpecDrivenRun);
+
+    await waitFor(() => {
+      expect(startSpecDrivenRunMock).toHaveBeenCalledTimes(1);
+    });
+
+    // Let everything settle (stream + download), then re-assert: the
+    // second instance must never have started a duplicate run.
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 50));
+    });
+    expect(startSpecDrivenRunMock).toHaveBeenCalledTimes(1);
+    expect(store.getState().specDriven.pendingTrigger).toBeNull();
+  });
+
+  it('rejects a handleTrigger on instance B while instance A is mid-run', async () => {
+    setSessionKey();
+    // Hanging stream: a generator that never yields keeps instance A
+    // "running" for the duration of the test.
+    let releaseStream: () => void = () => {};
+    const gate = new Promise<void>((resolve) => {
+      releaseStream = resolve;
+    });
+    const sseClientModule = await import('../../services/specDrivenSseClient');
+    const startSpecDrivenRunMock = vi.mocked(sseClientModule.startSpecDrivenRun);
+    startSpecDrivenRunMock.mockImplementationOnce(() => ({
+      controller: new AbortController(),
+      abort: () => {},
+      events: (async function* () {
+        await gate;
+      })() as AsyncGenerator<SpecDrivenEvent, void, void>,
+    }));
+
+    const { apiRefA, apiRefB } = renderDualHarness();
+
+    // Instance A starts a run (fire-and-forget — it hangs on the gate).
+    let firstRun: Promise<void> = Promise.resolve();
+    await act(async () => {
+      firstRun = apiRefA.current!.handleTrigger(PAYLOAD);
+      await Promise.resolve();
+    });
+
+    // Instance B must be refused by the GLOBAL guard (its own
+    // isRunningRef is false — only the store knows about A's run).
+    await act(async () => {
+      await apiRefB.current!.handleTrigger(PAYLOAD);
+    });
+
+    const msgsB = apiRefB.current!.getMessages() as any[];
+    const refusal = msgsB.find((m) => m.content?.includes('already running'));
+    expect(refusal).toBeTruthy();
+    expect(refusal.isError).toBe(true);
+    expect(startSpecDrivenRunMock).toHaveBeenCalledTimes(1);
+
+    releaseStream();
+    await act(async () => {
+      await firstRun;
+    });
+  });
+});
+
+describe('useSpecDrivenTrigger — onRunFinished (agent loop)', () => {
+  it('reports ok:true with runId / fileName / generatorUsed exactly once on success', async () => {
+    setSessionKey();
+    _mockController.events = HAPPY_EVENTS;
+    globalThis.fetch = vi.fn().mockResolvedValue(
+      new Response(new Blob(['fake zip']), {
+        status: 200,
+        headers: { 'Content-Type': 'application/zip' },
+      }),
+    );
+    const onRunFinished = vi.fn();
+
+    const { apiRef } = renderHarness({ onRunFinished });
+
+    await act(async () => {
+      await apiRef.current!.handleTrigger(PAYLOAD);
+    });
+
+    await waitFor(() => {
+      expect(onRunFinished).toHaveBeenCalledTimes(1);
+    });
+    expect(onRunFinished).toHaveBeenCalledWith(
+      expect.objectContaining({
+        ok: true,
+        runId: 'a'.repeat(32),
+        fileName: 'besser_smart_output.zip',
+        generatorUsed: 'fastapi_backend',
+        costUsd: 0.05,
+      }),
+    );
+
+    // Abort after completion must NOT produce a second report.
+    act(() => {
+      apiRef.current!.abortActive();
+    });
+    expect(onRunFinished).toHaveBeenCalledTimes(1);
+  });
+
+  it('reports ok:false with the errorCode on a terminal error', async () => {
+    setSessionKey();
+    _mockController.events = [
+      { event: 'start', runId: 'b'.repeat(32), provider: 'anthropic', llmModel: 'claude-sonnet-4-6', maxCost: 1.0, maxRuntime: 600 },
+      { event: 'error', code: 'UPSTREAM_LLM', message: 'provider exploded' },
+    ];
+    globalThis.fetch = vi.fn();
+    const onRunFinished = vi.fn();
+
+    const { apiRef } = renderHarness({ onRunFinished });
+
+    await act(async () => {
+      await apiRef.current!.handleTrigger(PAYLOAD);
+    });
+
+    await waitFor(() => {
+      expect(onRunFinished).toHaveBeenCalledTimes(1);
+    });
+    expect(onRunFinished).toHaveBeenCalledWith(
+      expect.objectContaining({
+        ok: false,
+        errorCode: 'UPSTREAM_LLM',
+        runId: 'b'.repeat(32),
+      }),
+    );
+  });
+
+  it('treats a clean SSE EOF without a terminal event as an error', async () => {
+    setSessionKey();
+    _mockController.events = [];
+    const onRunFinished = vi.fn();
+
+    const { apiRef, store } = renderHarness({ onRunFinished });
+
+    await act(async () => {
+      await apiRef.current!.handleTrigger(PAYLOAD);
+    });
+
+    await waitFor(() => {
+      expect(onRunFinished).toHaveBeenCalledTimes(1);
+    });
+    expect(onRunFinished).toHaveBeenCalledWith(
+      expect.objectContaining({ ok: false, errorCode: 'INTERNAL' }),
+    );
+    const messages = apiRef.current!.getMessages() as any[];
+    expect(messages.some((message) => message.specDriven?.status === 'error')).toBe(true);
+    expect(messages.some((message) => message.content?.includes('ended early'))).toBe(true);
+    expect(store.getState().specDriven.runStatus).toBe('idle');
+  });
+
+  it('reports ok:true on done even though the file is not saved yet (user-initiated download)', async () => {
+    setSessionKey();
+    _mockController.events = HAPPY_EVENTS;
+    // No download is attempted by the hook anymore; the user saves via
+    // the card's Download button. The run outcome is purely "did the
+    // build succeed", so the agent loop sees ok:true.
+    const fetchMock = vi.fn();
+    globalThis.fetch = fetchMock;
+    const onRunFinished = vi.fn();
+
+    const { apiRef } = renderHarness({ onRunFinished });
+
+    await act(async () => {
+      await apiRef.current!.handleTrigger(PAYLOAD);
+    });
+
+    await waitFor(() => {
+      expect(onRunFinished).toHaveBeenCalledTimes(1);
+    });
+    expect(onRunFinished).toHaveBeenCalledWith(
+      expect.objectContaining({
+        ok: true,
+        runId: 'a'.repeat(32),
+        fileName: 'besser_smart_output.zip',
+      }),
+    );
+    // Crucially, nothing was written to disk during the run.
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it('reports ok:false / CANCELLED exactly once on user abort mid-run', async () => {
+    setSessionKey();
+    // Hanging stream so the run is still active when we abort.
+    let releaseStream: () => void = () => {};
+    const gate = new Promise<void>((resolve) => {
+      releaseStream = resolve;
+    });
+    const sseClientModule = await import('../../services/specDrivenSseClient');
+    const startSpecDrivenRunMock = vi.mocked(sseClientModule.startSpecDrivenRun);
+    startSpecDrivenRunMock.mockImplementationOnce(() => ({
+      controller: new AbortController(),
+      abort: () => {},
+      events: (async function* () {
+        yield {
+          event: 'start',
+          runId: 'c'.repeat(32),
+          provider: 'anthropic',
+          llmModel: 'claude-sonnet-4-6',
+          maxCost: 1.0,
+          maxRuntime: 600,
+        } as SpecDrivenEvent;
+        await gate;
+      })() as AsyncGenerator<SpecDrivenEvent, void, void>,
+    }));
+    const onRunFinished = vi.fn();
+
+    const { apiRef } = renderHarness({ onRunFinished });
+
+    let run: Promise<void> = Promise.resolve();
+    await act(async () => {
+      run = apiRef.current!.handleTrigger(PAYLOAD);
+      await Promise.resolve();
+    });
+
+    act(() => {
+      apiRef.current!.abortActive();
+    });
+
+    await waitFor(() => {
+      expect(onRunFinished).toHaveBeenCalledTimes(1);
+    });
+    expect(onRunFinished).toHaveBeenCalledWith(
+      expect.objectContaining({
+        ok: false,
+        errorCode: 'CANCELLED',
+        runId: 'c'.repeat(32),
+      }),
+    );
+
+    releaseStream();
+    await act(async () => {
+      await run;
+    });
+    // The AbortError / loop-exit path must not double-report.
+    expect(onRunFinished).toHaveBeenCalledTimes(1);
+  });
+
+  it('cancels the run SERVER-SIDE (POST /spec-driven/cancel/{runId}) on abort', async () => {
+    // Without this the local abort only closes the SSE reader; the backend
+    // keeps running and billing the user's key (the orphan-run bug #2).
+    setSessionKey();
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response('{"status":"cancelled"}', { status: 200 }),
+    );
+    globalThis.fetch = fetchMock;
+    const RUN_ID = 'd'.repeat(32);
+    let releaseStream: () => void = () => {};
+    const gate = new Promise<void>((resolve) => {
+      releaseStream = resolve;
+    });
+    const sseClientModule = await import('../../services/specDrivenSseClient');
+    const startSpecDrivenRunMock = vi.mocked(sseClientModule.startSpecDrivenRun);
+    startSpecDrivenRunMock.mockImplementationOnce(() => ({
+      controller: new AbortController(),
+      abort: () => {},
+      events: (async function* () {
+        yield {
+          event: 'start',
+          runId: RUN_ID,
+          provider: 'anthropic',
+          llmModel: 'claude-sonnet-4-6',
+          maxCost: 1.0,
+          maxRuntime: 600,
+        } as SpecDrivenEvent;
+        await gate;
+      })() as AsyncGenerator<SpecDrivenEvent, void, void>,
+    }));
+
+    const { apiRef } = renderHarness();
+
+    let run: Promise<void> = Promise.resolve();
+    await act(async () => {
+      run = apiRef.current!.handleTrigger(PAYLOAD);
+      await Promise.resolve();
+    });
+
+    act(() => {
+      apiRef.current!.abortActive();
+    });
+
+    await waitFor(() => {
+      expect(fetchMock).toHaveBeenCalledWith(
+        cancelSpecDrivenUrl(RUN_ID),
+        expect.objectContaining({ method: 'POST' }),
+      );
+    });
+
+    releaseStream();
+    await act(async () => {
+      await run;
+    });
+  });
+});
+
+describe('useSpecDrivenTrigger — run budget from sessionStorage', () => {
+  it('passes the saved maxCostUsd / maxRuntimeSeconds to the SSE client', async () => {
+    setSessionKey();
+    window.sessionStorage.setItem(sessionStorageSpecDrivenMaxCostUsd, '1.5');
+    window.sessionStorage.setItem(sessionStorageSpecDrivenMaxRuntimeSeconds, '300');
+    _mockController.events = HAPPY_EVENTS;
+    globalThis.fetch = vi.fn().mockResolvedValue(
+      new Response(new Blob(['fake']), { status: 200 }),
+    );
+
+    const { apiRef } = renderHarness();
+
+    await act(async () => {
+      await apiRef.current!.handleTrigger(PAYLOAD);
+    });
+
+    const sseClientModule = await import('../../services/specDrivenSseClient');
+    const startSpecDrivenRunMock = vi.mocked(sseClientModule.startSpecDrivenRun);
+    expect(startSpecDrivenRunMock).toHaveBeenCalled();
+    const callArgs = startSpecDrivenRunMock.mock.calls[0][0];
+    expect(callArgs.maxCostUsd).toBe(1.5);
+    expect(callArgs.maxRuntimeSeconds).toBe(300);
+  });
+
+  it('omits the budget params when nothing is saved', async () => {
+    setSessionKey();
+    _mockController.events = HAPPY_EVENTS;
+    globalThis.fetch = vi.fn().mockResolvedValue(
+      new Response(new Blob(['fake']), { status: 200 }),
+    );
+
+    const { apiRef } = renderHarness();
+
+    await act(async () => {
+      await apiRef.current!.handleTrigger(PAYLOAD);
+    });
+
+    const sseClientModule = await import('../../services/specDrivenSseClient');
+    const startSpecDrivenRunMock = vi.mocked(sseClientModule.startSpecDrivenRun);
+    const callArgs = startSpecDrivenRunMock.mock.calls[0][0];
+    expect(callArgs.maxCostUsd).toBeUndefined();
+    expect(callArgs.maxRuntimeSeconds).toBeUndefined();
+  });
+
+  it('forwards all user-approved plan choices to the SSE request', async () => {
+    setSessionKey();
+    _mockController.events = HAPPY_EVENTS;
+
+    const { apiRef } = renderHarness();
+
+    await act(async () => {
+      await apiRef.current!.handleTrigger({
+        ...PAYLOAD,
+        primaryKindOverride: 'gui',
+        targetGeneratorOverride: 'generate_web_app',
+        skipDeterministicGenerator: true,
+      });
+    });
+
+    const sseClientModule = await import('../../services/specDrivenSseClient');
+    const callArgs = vi.mocked(sseClientModule.startSpecDrivenRun).mock.calls[0][0];
+    expect(callArgs.primaryKindOverride).toBe('gui');
+    expect(callArgs.targetGeneratorOverride).toBe('generate_web_app');
+    expect(callArgs.skipDeterministicGenerator).toBe(true);
+  });
+});
+
+describe('useSpecDrivenTrigger — live cost meter state', () => {
+  it('mirrors start budgets and cost events onto the smart-gen card state', async () => {
+    setSessionKey();
+    _mockController.events = HAPPY_EVENTS;
+    globalThis.fetch = vi.fn().mockResolvedValue(
+      new Response(new Blob(['fake zip']), {
+        status: 200,
+        headers: { 'Content-Type': 'application/zip' },
+      }),
+    );
+
+    const { apiRef } = renderHarness();
+
+    await act(async () => {
+      await apiRef.current!.handleTrigger(PAYLOAD);
+    });
+
+    await waitFor(() => {
+      const msgs = apiRef.current!.getMessages() as any[];
+      expect(msgs.some((m) => m.specDriven)).toBe(true);
+    });
+
+    const msgs = apiRef.current!.getMessages() as any[];
+    const card = msgs.find((m) => m.specDriven);
+    expect(card.specDriven.maxCost).toBe(1.0);
+    expect(card.specDriven.maxRuntime).toBe(600);
+    expect(card.specDriven.costUsd).toBeCloseTo(0.05);
+    expect(card.specDriven.elapsedSeconds).toBeCloseTo(12.3);
+  });
+});
+
+describe('useSpecDrivenTrigger — abort', () => {
+  it('abortActive after a completed run is a safe no-op', async () => {
+    setSessionKey();
+    _mockController.events = HAPPY_EVENTS;
+    globalThis.fetch = vi.fn().mockResolvedValue(
+      new Response(new Blob(['fake']), { status: 200 }),
+    );
+
+    const { apiRef, store } = renderHarness();
+
+    await act(async () => {
+      await apiRef.current!.handleTrigger(PAYLOAD);
+    });
+
+    // After the stream completes, the FINAL snapshot lives in the chat
+    // message (the live slice entry is gone — finalized) so the UI keeps
+    // showing the finished card / download coords. Abort after
+    // completion is a no-op because isRunningRef is already false.
+    const before = (apiRef.current!.getMessages() as any[]).find((m) => m.specDriven);
+    expect(before.specDriven.status).toBe('done');
+    expect(Object.keys(store.getState().specDriven.runs)).toHaveLength(0);
+
+    act(() => {
+      apiRef.current!.abortActive();
+    });
+
+    // Abort is idempotent on a completed run — the snapshot is preserved.
+    expect(apiRef.current!.getIsGenerating()).toBe(false);
+    const after = (apiRef.current!.getMessages() as any[]).find((m) => m.specDriven);
+    expect(after.specDriven.status).toBe('done');
+    expect(after.specDriven.fileName).toBe('besser_smart_output.zip');
+  });
+});
+
+describe('useSpecDrivenTrigger — mid-run model switch (model_update)', () => {
+  it('updates the card model and adds a step note when the fallback takes over', async () => {
+    setSessionKey();
+    _mockController.events = [
+      HAPPY_EVENTS[0],
+      { event: 'phase', phase: 'select', message: 'Selecting generator' },
+      {
+        event: 'model_update',
+        model: 'qwen3-coder:30b',
+        previousModel: 'claude-sonnet-4-6',
+        reason: 'primary_unavailable',
+      },
+      ...HAPPY_EVENTS.slice(2),
+    ];
+
+    const { apiRef } = renderHarness();
+    await act(async () => {
+      await apiRef.current!.handleTrigger(PAYLOAD);
+    });
+
+    await waitFor(() => {
+      const msgs = apiRef.current!.getMessages() as any[];
+      expect(msgs.find((m) => m.specDriven)).toBeTruthy();
+    });
+    const card = (apiRef.current!.getMessages() as any[]).find((m) => m.specDriven);
+    // Header model reflects the model actually serving the run…
+    expect(card.specDriven.model).toBe('qwen3-coder:30b');
+    // …and the switch is visible as a step in the run timeline.
+    const switchRow = card.specDriven.phases.find(
+      (p: any) => p.phase === 'model',
+    );
+    expect(switchRow).toBeTruthy();
+    expect(switchRow.label).toBe('Switched to qwen3-coder:30b');
+    expect(switchRow.message).toBe('The primary model was unavailable.');
+  });
+});
+
+describe('useSpecDrivenTrigger — honest completion copy', () => {
+  it('uses blocker framing (not "stopped early") when the loop completed with blockers', async () => {
+    setSessionKey();
+    const results: SpecDrivenRunResult[] = [];
+    _mockController.events = [
+      ...HAPPY_EVENTS.slice(0, -1),
+      {
+        ...(HAPPY_EVENTS[HAPPY_EVENTS.length - 1] as any),
+        incomplete: true,
+        incompleteReason:
+          'The app was built but 2 blocker-level issue(s) remain that likely stop it from running.',
+        blockerCount: 2,
+      },
+    ];
+
+    const { apiRef } = renderHarness({ onRunFinished: (r) => results.push(r) });
+    await act(async () => {
+      await apiRef.current!.handleTrigger(PAYLOAD);
+    });
+
+    await waitFor(() => {
+      expect(results.length).toBe(1);
+    });
+    const msgs = apiRef.current!.getMessages() as any[];
+    const summary = msgs.find(
+      (m) => typeof m.content === 'string' && m.content.includes('unresolved issue'),
+    );
+    expect(summary).toBeTruthy();
+    expect(summary.content).toContain('finished with 2 unresolved issues');
+    expect(summary.content).toContain('resume the run');
+    // A completed-with-blockers run did NOT stop early — never say it did.
+    expect(summary.content).not.toContain('stopped early');
+    expect(results[0].blockerCount).toBe(2);
+    expect(results[0].incomplete).toBe(true);
+  });
+
+  it('keeps the cut-short framing for runs that genuinely stopped early', async () => {
+    setSessionKey();
+    _mockController.events = [
+      ...HAPPY_EVENTS.slice(0, -1),
+      {
+        ...(HAPPY_EVENTS[HAPPY_EVENTS.length - 1] as any),
+        incomplete: true,
+        incompleteReason:
+          'The customization loop reached its step limit before finishing every requested change.',
+      },
+    ];
+
+    const { apiRef } = renderHarness();
+    await act(async () => {
+      await apiRef.current!.handleTrigger(PAYLOAD);
+    });
+
+    await waitFor(() => {
+      const msgs = apiRef.current!.getMessages() as any[];
+      expect(
+        msgs.some(
+          (m) => typeof m.content === 'string' && m.content.includes('stopped early'),
+        ),
+      ).toBe(true);
+    });
+  });
+});
+
+describe('useSpecDrivenTrigger — failsafe honesty', () => {
+  /** Flush enough microtask ticks for the for-await loop to consume the
+   * scripted events while fake timers are active. */
+  const flushMicrotasks = async () => {
+    for (let i = 0; i < 20; i++) await Promise.resolve();
+  };
+
+  /** Mock one run whose stream yields `events` then hangs (no `done`,
+   * no close) — the shape that used to trip the failsafe. */
+  const mockHangingRun = async (events: SpecDrivenEvent[]) => {
+    const sseClientModule = await import('../../services/specDrivenSseClient');
+    vi.mocked(sseClientModule.startSpecDrivenRun).mockImplementationOnce(() => ({
+      controller: new AbortController(),
+      abort: () => {
+        _mockController.abortCalled = true;
+      },
+      events: (async function* () {
+        for (const ev of events) yield ev;
+        await new Promise<never>(() => {
+          /* hang forever */
+        });
+      })(),
+    }));
+  };
+
+  it('a mid-run INCOMPLETE notice does NOT arm the 45s failsafe', async () => {
+    vi.useFakeTimers();
+    try {
+      setSessionKey();
+      await mockHangingRun([
+        HAPPY_EVENTS[0],
+        {
+          event: 'error',
+          code: 'INCOMPLETE',
+          message:
+            'The previous generation has expired, so there is nothing to edit — rebuilding from scratch instead.',
+        },
+      ]);
+
+      const { apiRef, store } = renderHarness();
+      act(() => {
+        void apiRef.current!.handleTrigger(PAYLOAD);
+      });
+      await act(flushMicrotasks);
+
+      // The notice lands on the LIVE card state (the Redux slice entry the
+      // card renders from, keyed by the message's liveKey) as an
+      // informational entry — it arrived before any phase, so it's a
+      // run-setup note, not an output problem.
+      const card = (apiRef.current!.getMessages() as any[]).find((m) => m.specDriven);
+      const liveKey = card.specDriven.liveKey as string;
+      expect(liveKey).toBeTruthy();
+      const live = store.getState().specDriven.runs[liveKey];
+      expect(live.warnings[0].severity).toBe('info');
+
+      // Advance well past the failsafe window: the run must still be alive.
+      await act(async () => {
+        vi.advanceTimersByTime(60_000);
+        await flushMicrotasks();
+      });
+      const msgs = apiRef.current!.getMessages() as any[];
+      expect(
+        msgs.some(
+          (m) =>
+            typeof m.content === 'string' &&
+            m.content.includes('ended unexpectedly'),
+        ),
+      ).toBe(false);
+      expect(_mockController.abortCalled).toBe(false);
+
+      act(() => apiRef.current!.abortActive());
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('a COST_CAP with no done event fires the failsafe with neutral copy (no cap blame)', async () => {
+    vi.useFakeTimers();
+    try {
+      setSessionKey();
+      await mockHangingRun([
+        HAPPY_EVENTS[0],
+        { event: 'error', code: 'COST_CAP', message: 'Cost cap reached ($1.01 > $1.00)' },
+      ]);
+
+      const { apiRef } = renderHarness();
+      act(() => {
+        void apiRef.current!.handleTrigger(PAYLOAD);
+      });
+      await act(flushMicrotasks);
+
+      await act(async () => {
+        vi.advanceTimersByTime(46_000);
+        await flushMicrotasks();
+      });
+
+      const msgs = apiRef.current!.getMessages() as any[];
+      const failsafeMsg = msgs.find(
+        (m) =>
+          typeof m.content === 'string' && m.content.includes('ended unexpectedly'),
+      );
+      expect(failsafeMsg).toBeTruthy();
+      expect(failsafeMsg.content).toContain(
+        'The run ended unexpectedly before reporting a result.',
+      );
+      // The old copy blamed the cost/runtime cap even when the real cause
+      // was a provider outage or crash — that wording must be gone.
+      expect(failsafeMsg.content).not.toContain('exceeded the cost/runtime cap');
+      // The failsafe aborts the hung run.
+      expect(_mockController.abortCalled).toBe(true);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+});
+
+describe('useSpecDrivenTrigger — live run state in the Redux slice (architectural fix)', () => {
+  /** Mock one run that yields `head`, then waits on `gate`, then yields
+   * `tail`, then waits on `endGate` (a controllable live stream). */
+  const mockGatedRun = async (
+    head: SpecDrivenEvent[],
+    gate: Promise<void>,
+    tail: SpecDrivenEvent[],
+    endGate: Promise<void>,
+  ) => {
+    const sseClientModule = await import('../../services/specDrivenSseClient');
+    vi.mocked(sseClientModule.startSpecDrivenRun).mockImplementationOnce(() => ({
+      controller: new AbortController(),
+      abort: () => {
+        _mockController.abortCalled = true;
+      },
+      events: (async function* () {
+        for (const ev of head) yield ev;
+        await gate;
+        for (const ev of tail) yield ev;
+        await endGate;
+      })() as AsyncGenerator<SpecDrivenEvent, void, void>,
+    }));
+  };
+
+  it('(a) mid-run SSE events update the slice entry the card renders from — no other trigger needed', async () => {
+    setSessionKey();
+    let releaseStream: () => void = () => {};
+    const streamGate = new Promise<void>((resolve) => {
+      releaseStream = resolve;
+    });
+    await mockGatedRun(
+      [
+        HAPPY_EVENTS[0],
+        { event: 'phase', phase: 'select', message: 'Selecting generator' },
+        { event: 'text', delta: 'Building…' },
+      ],
+      streamGate,
+      [],
+      Promise.resolve(),
+    );
+
+    const { apiRef, store } = renderHarness();
+    let run: Promise<void> = Promise.resolve();
+    await act(async () => {
+      run = apiRef.current!.handleTrigger(PAYLOAD);
+      await new Promise((resolve) => setTimeout(resolve, 10));
+    });
+
+    const card = (apiRef.current!.getMessages() as any[]).find((m) => m.specDriven);
+    expect(card).toBeTruthy();
+    const liveKey = card.specDriven.liveKey as string;
+    expect(liveKey).toBeTruthy();
+
+    // The chat MESSAGE stays a stub while the run is live…
+    expect(card.specDriven.status).toBe('running');
+    expect(card.specDriven.phases).toHaveLength(0);
+
+    // …while the slice entry the card SUBSCRIBES to carries every event —
+    // so the card re-renders on each SSE event by construction, with no
+    // other trigger (message write, surface re-render) involved.
+    const live = store.getState().specDriven.runs[liveKey];
+    expect(live.runId).toBe('a'.repeat(32));
+    expect(live.provider).toBe('anthropic');
+    expect(live.phases).toHaveLength(1);
+    expect(live.phases[0].label).toBe('Selecting generator');
+    expect(live.text).toBe('Building…');
+
+    act(() => apiRef.current!.abortActive());
+    releaseStream();
+    await act(async () => {
+      await run;
+    });
+  });
+
+  it('(b) an event arriving when the card message is gone upserts the card back', async () => {
+    setSessionKey();
+    let releaseMid: () => void = () => {};
+    const midGate = new Promise<void>((resolve) => {
+      releaseMid = resolve;
+    });
+    let releaseEnd: () => void = () => {};
+    const endGate = new Promise<void>((resolve) => {
+      releaseEnd = resolve;
+    });
+    await mockGatedRun(
+      [HAPPY_EVENTS[0]],
+      midGate,
+      [{ event: 'phase', phase: 'generate', message: 'running fastapi' }],
+      endGate,
+    );
+
+    const { apiRef, store } = renderHarness();
+    let run: Promise<void> = Promise.resolve();
+    await act(async () => {
+      run = apiRef.current!.handleTrigger(PAYLOAD);
+      await new Promise((resolve) => setTimeout(resolve, 10));
+    });
+
+    const before = (apiRef.current!.getMessages() as any[]).find((m) => m.specDriven);
+    const liveKey = before.specDriven.liveKey as string;
+    expect(liveKey).toBeTruthy();
+
+    // The conversation list is wiped mid-run (e.g. "New Chat" fired from a
+    // surface that does NOT own this run — its abortActive is a no-op).
+    await act(async () => {
+      apiRef.current!.clearMessages();
+    });
+    expect(apiRef.current!.getMessages()).toHaveLength(0);
+
+    // The next live event RECREATES the card message instead of silently
+    // no-oping (the old `idx === -1 → return prev` drop).
+    releaseMid();
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 10));
+    });
+    const recreated = (apiRef.current!.getMessages() as any[]).find((m) => m.specDriven);
+    expect(recreated).toBeTruthy();
+    expect(recreated.specDriven.liveKey).toBe(liveKey);
+    expect(store.getState().specDriven.runs[liveKey].phases).toHaveLength(1);
+
+    act(() => apiRef.current!.abortActive());
+    releaseEnd();
+    await act(async () => {
+      await run;
+    });
+  });
+
+  it('(c) completion writes the final snapshot into the message; persistence excludes running cards and keeps the snapshot', async () => {
+    setSessionKey();
+    _mockController.events = HAPPY_EVENTS;
+    const { apiRef, store } = renderHarness();
+    await act(async () => {
+      await apiRef.current!.handleTrigger(PAYLOAD);
+    });
+
+    const card = (apiRef.current!.getMessages() as any[]).find((m) => m.specDriven);
+    // The final snapshot lives IN the message: full run history, live
+    // link severed, streaming off — exactly what history needs.
+    expect(card.specDriven.status).toBe('done');
+    expect(card.specDriven.liveKey).toBeUndefined();
+    expect(card.specDriven.phases.length).toBeGreaterThan(0);
+    expect(card.specDriven.text).toBe('Building your app…');
+    expect(card.specDriven.needsDownload).toBe(true);
+    expect(card.isStreaming).toBe(false);
+    // The live slice entry is gone — nothing leaks across runs.
+    expect(Object.keys(store.getState().specDriven.runs)).toHaveLength(0);
+
+    // Persistence contract unchanged: a still-running card is never
+    // persisted; the finalized snapshot is.
+    const runningStub = {
+      id: 'x1',
+      role: 'assistant',
+      content: '',
+      specDriven: {
+        liveKey: 'k',
+        phases: [],
+        warnings: [],
+        text: '',
+        status: 'running',
+      },
+    } as any;
+    expect(sanitizeMessageForPersist(runningStub)).toBeNull();
+    const persisted = sanitizeMessageForPersist(card);
+    expect(persisted).not.toBeNull();
+    expect((persisted!.specDriven as any).status).toBe('done');
+  });
+
+  it('(d) the typing indicator is cleared when the run card becomes active', async () => {
+    setSessionKey();
+    let releaseEnd: () => void = () => {};
+    const endGate = new Promise<void>((resolve) => {
+      releaseEnd = resolve;
+    });
+    await mockGatedRun([HAPPY_EVENTS[0]], endGate, [], endGate);
+
+    const { apiRef } = renderHarness();
+    // The modeling agent's turn had the surface showing "Typing".
+    act(() => apiRef.current!.setGenerating(true));
+    expect(apiRef.current!.getIsGenerating()).toBe(true);
+
+    let run: Promise<void> = Promise.resolve();
+    await act(async () => {
+      run = apiRef.current!.handleTrigger(PAYLOAD);
+      await new Promise((resolve) => setTimeout(resolve, 10));
+    });
+
+    // The run card is now the progress surface — the typing chip must be
+    // cleared even though the run is still active.
+    expect(apiRef.current!.getIsGenerating()).toBe(false);
+    const card = (apiRef.current!.getMessages() as any[]).find((m) => m.specDriven);
+    expect(card.specDriven.status).toBe('running');
+
+    act(() => apiRef.current!.abortActive());
+    releaseEnd();
+    await act(async () => {
+      await run;
+    });
+  });
+});

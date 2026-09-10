@@ -3,7 +3,7 @@
  * Central export point for all services used by the AssistantWorkspaceDrawer
  */
 
-export { AssistantClient } from './AssistantClient';
+export { AssistantClient, getSharedAssistantClient } from './AssistantClient';
 export type {
   AssistantWorkspaceContext,
   AssistantActionPayload,

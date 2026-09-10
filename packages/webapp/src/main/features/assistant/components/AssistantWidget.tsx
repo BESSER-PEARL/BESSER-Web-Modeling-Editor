@@ -10,7 +10,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { AlertTriangle, Check, CircleHelp, Code, Loader2, X } from 'lucide-react';
+import { AlertTriangle, ArrowDown, Check, CircleHelp, Code, Flag, KeyRound, X } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { ChatForm } from '@/components/chatbot-kit/ui/chat';
 import { MessageInput } from '@/components/chatbot-kit/ui/message-input';
@@ -22,12 +22,18 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { cn } from '@/lib/utils';
 import { useAppDispatch, useAppSelector } from '../../../app/store/hooks';
 import { selectActiveDiagramType, switchDiagramTypeThunk } from '../../../app/store/workspaceSlice';
+import { openPushDialog, selectHasLiveSpecDrivenRun } from '../../spec-driven/state/specDrivenSlice';
 import type { SupportedDiagramType } from '../../../shared/types/project';
+import { readLlmKey } from '../../../shared/services/llmKeyStorage';
 import type { GeneratorType } from '../../../app/shell/workspace-types';
 import type { GenerationResult } from '../../generation/types';
 import { useAssistantLogic, type ConnectionStatus, type MessageMeta } from '../hooks/useAssistantLogic';
+import { shouldOpenGuiTab, isReviewSpecAction, type GuiActionRouteInput } from '../hooks/suggestedActionRouting';
+import { AssistantByokDialog } from './AssistantByokDialog';
 import { QuickActions } from './QuickActions';
 import { Z_INDEX } from '../../../shared/constants/z-index';
+import { sessionStorageAssistantDrawerOpen } from '../../../shared/constants/constant';
+import { PilotSessionNotice } from '../../../shared/components/pilot/PilotSessionNotice';
 
 /* ------------------------------------------------------------------ */
 /*  Constants & helpers                                                */
@@ -79,11 +85,18 @@ export const AssistantWidget: React.FC<AssistantWidgetProps> = ({ onAssistantGen
   const { t } = useTranslation();
   const [isVisible, setIsVisible] = useState(false);
   const [showDisclaimer, setShowDisclaimer] = useState(false);
+  const [byokOpen, setByokOpen] = useState(false);
+  // Reflect whether a BYOK key is saved (re-reads when the dialog closes).
+  const savedApiKey = readLlmKey();
 
   const dispatch = useAppDispatch();
   const location = useLocation();
   const navigate = useNavigate();
   const activeDiagramType = useAppSelector(selectActiveDiagramType);
+  // While a Spec-Driven run card is live it shows its own progress —
+  // suppress the chat's "Typing" chip so it doesn't stick for the whole
+  // run (the run card, not the chip, is the progress surface).
+  const hasLiveSpecDrivenRun = useAppSelector(selectHasLiveSpecDrivenRun);
 
   const isOnEditorPage = location.pathname === '/';
   // The modeling assistant is UML-oriented and has no reasoning over NN
@@ -116,12 +129,16 @@ export const AssistantWidget: React.FC<AssistantWidgetProps> = ({ onAssistantGen
     connectionStatus,
     rateLimitStatus,
     messageMeta,
-    progressMessage,
+    progressSteps,
     lastSentMessage,
     messageListContainerRef,
+    showScrollToBottom,
+    scrollMessagesToBottom,
     handleSubmit,
     sendVoiceMessage,
     stopGenerating,
+    reportIssue,
+    assistantClient,
   } = useAssistantLogic({
     isActive: isVisible,
     switchDiagram,
@@ -131,6 +148,21 @@ export const AssistantWidget: React.FC<AssistantWidgetProps> = ({ onAssistantGen
   /* ---- Quick action handler: submit a prompt directly ---- */
   const handleQuickAction = useCallback((prompt: string) => {
     handleSubmit(undefined, { overrideText: prompt });
+  }, [handleSubmit]);
+
+  /* ---- Suggested-action chip handler: route "modify the GUI" to the GUI tab ---- */
+  const handleSuggestedAction = useCallback((action: GuiActionRouteInput) => {
+    // "Review the spec" hides the widget so the diagram on the canvas is
+    // visible — it's a UI-only action, never relayed to the agent.
+    if (isReviewSpecAction(action)) {
+      setIsVisible(false);
+      return;
+    }
+    if (shouldOpenGuiTab(action)) {
+      void switchDiagram('GUINoCodeDiagram');
+      return;
+    }
+    handleSubmit(undefined, { overrideText: action.prompt ?? '' });
   }, [handleSubmit]);
 
   /* ---- Keyboard shortcuts on input ---- */
@@ -173,7 +205,15 @@ export const AssistantWidget: React.FC<AssistantWidgetProps> = ({ onAssistantGen
 
   /* ---- Hide widget when the workspace drawer is open ---- */
 
-  const [drawerOpen, setDrawerOpen] = useState(false);
+  // Initialize from the persisted drawer state so a restored-open drawer hides
+  // the FAB on first paint (no reliance on the sync event racing our mount).
+  const [drawerOpen, setDrawerOpen] = useState<boolean>(() => {
+    try {
+      return sessionStorage.getItem(sessionStorageAssistantDrawerOpen) === '1';
+    } catch {
+      return false;
+    }
+  });
 
   useEffect(() => {
     const onDrawer = (e: Event) => {
@@ -223,6 +263,38 @@ export const AssistantWidget: React.FC<AssistantWidgetProps> = ({ onAssistantGen
                 type="button"
                 variant="ghost"
                 size="icon"
+                className={cn(
+                  'relative size-7 rounded-lg transition-colors hover:bg-brand/5 hover:text-foreground',
+                  savedApiKey ? 'text-brand' : 'text-muted-foreground/60',
+                )}
+                onClick={() => setByokOpen(true)}
+                title={
+                  savedApiKey
+                    ? `Your ${savedApiKey.provider} API key is set — click to change or remove`
+                    : 'Use your own API key (assistant + generator)'
+                }
+                aria-label={savedApiKey ? 'API key set — click to change' : 'Use your own API key'}
+              >
+                <KeyRound className="size-3.5" />
+                {savedApiKey ? (
+                  <Check className="absolute -bottom-0.5 -right-0.5 size-2.5 rounded-full bg-background text-brand" />
+                ) : null}
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className="size-7 rounded-lg text-muted-foreground/60 transition-colors hover:bg-brand/5 hover:text-foreground"
+                onClick={() => reportIssue()}
+                title="Report an issue — opens a pre-filled GitHub issue with this conversation's context"
+                aria-label="Report an issue"
+              >
+                <Flag className="size-3.5" />
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
                 className="size-7 rounded-lg text-muted-foreground/60 transition-colors hover:bg-brand/5 hover:text-foreground"
                 onClick={() => setShowDisclaimer(true)}
                 title={t('assistant.privacy.iconLabel')}
@@ -235,7 +307,8 @@ export const AssistantWidget: React.FC<AssistantWidgetProps> = ({ onAssistantGen
           </div>
 
           {/* Message list */}
-          <div ref={messageListContainerRef} className="flex-1 overflow-y-auto bg-gradient-to-b from-muted/10 via-background to-muted/5 p-4">
+          <div className="relative min-h-0 flex-1">
+          <div ref={messageListContainerRef} className="h-full overflow-y-auto bg-gradient-to-b from-muted/10 via-background to-muted/5 p-4">
             {messages.length === 0 && !isGenerating ? (
               <div className="flex h-full flex-col items-center justify-center gap-4 px-4 text-center">
                 <div className="flex size-14 items-center justify-center rounded-2xl bg-brand/8 ring-1 ring-brand/10">
@@ -263,36 +336,83 @@ export const AssistantWidget: React.FC<AssistantWidgetProps> = ({ onAssistantGen
                     </button>
                   ))}
                 </div>
+                {/* Free-tier promo — no API key needed; link opens the shared BYOK dialog */}
+                <p className="text-[11px] text-muted-foreground">
+                  {t('assistant.welcome.freeTier')}{' '}
+                  <button
+                    type="button"
+                    onClick={() => setByokOpen(true)}
+                    className="font-medium text-brand underline-offset-2 transition-colors hover:text-brand-dark hover:underline"
+                  >
+                    {t('assistant.welcome.changeModel')}
+                  </button>
+                </p>
+                {/* Pilot-experiment transparency line (regular sessions render nothing) */}
+                <PilotSessionNotice />
               </div>
             ) : (
+            <>
+            {/* Pilot-experiment transparency line (regular sessions render nothing) */}
+            <PilotSessionNotice className="mb-3" />
             <MessageList
               messages={messages}
-              isTyping={isGenerating}
+              isTyping={isGenerating && !hasLiveSpecDrivenRun}
+              typingLabel={progressSteps.length > 0 ? progressSteps[progressSteps.length - 1] : undefined}
               showTimeStamps={false}
               messageOptions={(message: ChatKitMessage) => {
                 const meta = messageMeta[message.id];
-                if (!meta?.badge) return {};
+                // onPushToGithub is always threaded so SpecDrivenCards can push;
+                // the badge action is added only when the message has one.
+                // Opening the push dialog is a pure dispatch — it's mounted
+                // app-level (SpecDrivenPushDialogHost) and Redux-driven.
+                const base = { onPushToGithub: (runId: string) => dispatch(openPushDialog(runId)) };
+                if (!meta?.badge) return base;
                 return {
+                  ...base,
                   actions: (
                     <MessageBadge badge={meta.badge} label={meta.badgeLabel} />
                   ),
                 };
               }}
             />
+            </>
             )}
 
-            {/* Progress indicator */}
-            {progressMessage && (
-              <div className="mt-3 flex items-center gap-2 text-xs text-muted-foreground animate-in fade-in-0 duration-300">
-                <Loader2 className="size-3 animate-spin" />
-                <span>{progressMessage}</span>
-              </div>
-            )}
+            {/* Progress indicator — evolving step list so long operations
+                visibly show motion. Clears automatically on completion. */}
 
             {/* Quick actions after last assistant message */}
             {lastMeta?.suggestedActions && lastMeta.suggestedActions.length > 0 && (
-              <QuickActions actions={lastMeta.suggestedActions} onAction={handleQuickAction} />
+              <QuickActions actions={lastMeta.suggestedActions} onAction={handleSuggestedAction} />
             )}
+
+            {/* Limit reached / auth error → offer the user their own key */}
+            {lastMeta?.needsApiKey && (
+              <div className="mt-2 flex justify-start">
+                <Button
+                  type="button"
+                  size="sm"
+                  className="h-8 gap-1.5 rounded-lg bg-brand text-brand-foreground hover:bg-brand-dark"
+                  onClick={() => setByokOpen(true)}
+                >
+                  <KeyRound className="size-3.5" />
+                  Add your API key
+                </Button>
+              </div>
+            )}
+          </div>
+          {/* Scroll-to-bottom — shown while the user has scrolled up;
+              streaming no longer force-follows their position */}
+          {showScrollToBottom && (
+            <button
+              type="button"
+              aria-label="Scroll to bottom"
+              onClick={scrollMessagesToBottom}
+              className="absolute bottom-3 right-4 z-10 rounded-full border border-border/60 bg-background/95 p-2 text-muted-foreground shadow-md backdrop-blur transition-colors hover:bg-muted hover:text-foreground animate-in fade-in-0 slide-in-from-bottom-1"
+            >
+              <ArrowDown className="size-4" />
+            </button>
+          )}
           </div>
 
           {/* Input + status */}
@@ -382,6 +502,12 @@ export const AssistantWidget: React.FC<AssistantWidgetProps> = ({ onAssistantGen
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* ── Bring-your-own-key dialog ── */}
+      <AssistantByokDialog open={byokOpen} onOpenChange={setByokOpen} client={assistantClient} />
+
+      {/* Push-to-GitHub dialog is mounted app-level (SpecDrivenPushDialogHost) and
+          opened via dispatch(openPushDialog(runId)) — see messageOptions above. */}
     </>
   );
 };

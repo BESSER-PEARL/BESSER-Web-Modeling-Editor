@@ -25,6 +25,10 @@ export interface ModificationTarget {
   targetClass?: string;
   stateId?: string;
   stateName?: string;
+  // add_transition (agent): the backend's AgentModificationTarget emits these
+  // instead of the generic sourceClass/targetClass/stateName above.
+  sourceStateName?: string;
+  targetStateName?: string;
   intentId?: string;
   intentName?: string;
   transitionId?: string;
@@ -97,6 +101,8 @@ export interface ModificationChanges {
   // add_state (agent) / add_intent fields
   replies?: Array<{ text: string; replyType?: string; ragDatabaseName?: string }>;
   trainingPhrases?: string[];
+  // add_intent_training_phrase: a single phrase to append (vs. the array above).
+  trainingPhrase?: string;
   intentName?: string;
   objectName?: string;
   ragDatabaseName?: string;
@@ -156,7 +162,12 @@ export interface ModelModification {
   newClasses?: Array<{
     name: string;
     attributes: Array<{ name: string; type: string; visibility?: string }>;
-    methods?: Array<{ name: string; returnType: string; parameters?: Array<{ name: string; type: string }> }>;
+    methods?: Array<{
+      name: string;
+      returnType: string;
+      visibility?: string;
+      parameters?: Array<{ name: string; type: string }>;
+    }>;
   }>;
   inheritFrom?: string;
   classes?: string[];

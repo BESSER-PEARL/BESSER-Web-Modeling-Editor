@@ -53,6 +53,7 @@ export class AgentDiagramModifier implements DiagramModifier {
       'remove_element',
       'remove_transition',
       'add_state_body',
+      'add_intent_training_phrase',
       'add_rag_element',
     ].includes(action);
   }
@@ -75,6 +76,8 @@ export class AgentDiagramModifier implements DiagramModifier {
         return this.removeTransition(updatedModel, modification);
       case 'add_state_body':
         return this.addStateBody(updatedModel, modification);
+      case 'add_intent_training_phrase':
+        return this.addIntentTrainingPhraseAction(updatedModel, modification);
       case 'add_rag_element':
         return this.addRagElement(updatedModel, modification);
       case 'remove_element':
@@ -230,6 +233,51 @@ export class AgentDiagramModifier implements DiagramModifier {
     return model;
   }
 
+  /**
+   * Add a training phrase to an intent (v4-native: appends a row to the
+   * AgentIntent node's inline `data.training_phrases[]`, mirroring the
+   * `text` branch of `modifyIntent` above).
+   */
+  private addIntentTrainingPhrase(model: BESSERModel, intentId: string, phrase: string): void {
+    const node = ModifierHelpers.findNodeById(model, intentId);
+    if (!node || (node.type as string) !== AGENT_INTENT) return;
+
+    const data = node.data as any;
+    const phrases: BodyRow[] = Array.isArray(data.training_phrases) ? data.training_phrases : [];
+    phrases.push({
+      id: ModifierHelpers.generateUniqueId('intentBody'),
+      name: phrase,
+    });
+    data.training_phrases = phrases;
+    // Grow the node card visually so the new phrase row fits.
+    node.height = Math.max(130, 41 + phrases.length * 30 + 10);
+    node.measured = { width: node.width, height: node.height };
+  }
+
+  /**
+   * Action wrapper for add_intent_training_phrase. The backend sends
+   * target.intentName + changes.trainingPhrase; previously this action had no
+   * handler, so the editor threw "Unsupported action" and applied nothing.
+   */
+  private addIntentTrainingPhraseAction(model: BESSERModel, modification: ModelModification): BESSERModel {
+    const changes = modification.changes;
+    const target = modification.target;
+    const phrase = changes.trainingPhrase || changes.text || changes.name;
+    const intentName = target.intentName || target.stateName || target.name;
+    const intentId = target.intentId || (intentName ? this.findIntentNode(model, intentName)?.id : undefined);
+    if (!intentId) {
+      throw new Error(`Could not find intent "${intentName || '?'}" to add a training phrase to.`);
+    }
+    if (!phrase) {
+      throw new Error('No training phrase text was provided.');
+    }
+    this.addIntentTrainingPhrase(model, intentId, phrase);
+    return model;
+  }
+
+  /**
+   * Add state body (reply)
+   */
   private addStateBody(model: BESSERModel, modification: ModelModification): BESSERModel {
     const { stateId, stateName } = modification.target;
     const node = (stateId ? ModifierHelpers.findNodeById(model, stateId) : undefined) ||
@@ -271,10 +319,16 @@ export class AgentDiagramModifier implements DiagramModifier {
     const changes = modification.changes;
     const target = modification.target;
 
-    const sourceName = changes.source || target.stateName || target.intentName || '';
-    const targetName = changes.target || (changes as any).targetClass || '';
-    if (!targetName) {
-      throw new Error('Transition requires a target state name.');
+    // The backend (AgentModificationTarget) emits sourceStateName/targetStateName
+    // for transitions, plus changes.intentName for an intent source. Earlier this
+    // only read changes.source/target/stateName, so every generated transition
+    // failed with "requires both source and target".
+    const sourceName = changes.source || target.sourceStateName || target.stateName
+      || target.intentName || changes.intentName;
+    const targetName = changes.target || target.targetStateName || target.targetClass;
+
+    if (!sourceName || !targetName) {
+      throw new Error('Transition requires both source and target (state or intent names).');
     }
 
     let sourceNode: BesserNode | undefined;
@@ -348,8 +402,11 @@ export class AgentDiagramModifier implements DiagramModifier {
       return model;
     }
 
-    const sourceName = modification.changes?.source;
-    const targetName = modification.changes?.target;
+    // Backend emits sourceStateName/targetStateName for agent transitions
+    // (plus the generic changes.source/target); previously only the latter
+    // was read, so remove silently no-op'd while still reporting success.
+    const sourceName = modification.changes?.source || modification.target?.sourceStateName;
+    const targetName = modification.changes?.target || modification.target?.targetStateName;
     if (sourceName && targetName) {
       const src = this.findStateNode(model, sourceName) || this.findIntentNode(model, sourceName);
       const tgt = this.findStateNode(model, targetName);

@@ -7,7 +7,7 @@
 
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ChevronUp, Loader2, MessageSquarePlus, Layers, Palette, Code2, Sparkles } from 'lucide-react';
+import { ArrowDown, Boxes, Bot, ChevronDown, ChevronUp, MessageSquarePlus, Layers, Palette, Code2, Sparkles, Flag, KeyRound, Check } from 'lucide-react';
 import { ChatForm } from '@/components/chatbot-kit/ui/chat';
 import { MessageInput } from '@/components/chatbot-kit/ui/message-input';
 import { MessageList } from '@/components/chatbot-kit/ui/message-list';
@@ -17,7 +17,16 @@ import { cn } from '@/lib/utils';
 import type { GeneratorType } from '../../../app/shell/workspace-types';
 import type { GenerationResult } from '../../generation/types';
 import { useAssistantLogic, type ConnectionStatus } from '../hooks/useAssistantLogic';
+import { shouldOpenGuiTab, isReviewSpecAction, type GuiActionRouteInput } from '../hooks/suggestedActionRouting';
+import { DRAG_DIRECTION_THRESHOLD, lockDragDirection, resolveDrawerSnap } from '../hooks/drawerGesture';
+import { AssistantByokDialog } from './AssistantByokDialog';
 import { QuickActions } from './QuickActions';
+import { ModelOverviewPanel } from './ModelOverviewPanel';
+import { useAppDispatch, useAppSelector } from '../../../app/store/hooks';
+import { openPushDialog, selectHasLiveSpecDrivenRun } from '../../spec-driven/state/specDrivenSlice';
+import { sessionStoragePendingAssistantPrompt, sessionStorageAssistantHandleHinted } from '../../../shared/constants/constant';
+import { readLlmKey } from '../../../shared/services/llmKeyStorage';
+import { PilotSessionNotice } from '../../../shared/components/pilot/PilotSessionNotice';
 
 /* ------------------------------------------------------------------ */
 /*  Types & constants                                                  */
@@ -38,12 +47,13 @@ interface DragState {
   lastTime: number;
   velocity: number;
   moved: number;
+  /** Direction committed once the gesture passes the drag threshold:
+   *  +1 = dragged down (→ open), -1 = dragged up (→ close), 0 = still a click. */
+  direction: number;
 }
 
 const HANDLE_HEIGHT = 28;
 const FALLBACK_CLOSED_OFFSET = -640;
-const VELOCITY_SNAP_THRESHOLD = 0.35;
-const POSITION_SNAP_THRESHOLD = 0.45;
 
 /** Toggle floating decoration cards on the sides of the welcome screen. */
 const SHOW_FLOATING_CARDS = false;
@@ -128,8 +138,27 @@ export const AssistantWorkspaceDrawer: React.FC<AssistantWorkspaceDrawerProps> =
   onTriggerGenerator,
   onSwitchDiagram,
 }) => {
+  /* ---- Redux ---- */
+
+  const dispatch = useAppDispatch();
+  // While a Spec-Driven run card is live it shows its own progress —
+  // suppress the chat's "Typing" chip so it doesn't stick for the whole
+  // run (the run card, not the chip, is the progress surface).
+  const hasLiveSpecDrivenRun = useAppSelector(selectHasLiveSpecDrivenRun);
+
+  /* ---- i18n ---- */
+
   const { t } = useTranslation();
   const starterPrompts = useMemo(() => STARTER_PROMPT_KEYS.map((key) => t(key)), [t]);
+
+  /* ---- BYOK dialog ---- */
+
+  const [byokOpen, setByokOpen] = useState(false);
+  // "Your model" blueprint side panel (data model / relationships / screens).
+  const [overviewOpen, setOverviewOpen] = useState(false);
+  // Read at render so the button reflects whether a key is saved. Re-reads when
+  // the BYOK dialog closes (byokOpen flips) after a save/remove.
+  const savedApiKey = readLlmKey();
 
   /* ---- Drag gesture state ---- */
 
@@ -142,6 +171,21 @@ export const AssistantWorkspaceDrawer: React.FC<AssistantWorkspaceDrawerProps> =
   const [isMeasured, setIsMeasured] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const [translateY, setTranslateY] = useState(FALLBACK_CLOSED_OFFSET);
+
+  // One-time "you can drag me" hint on the handle. Plays at most once per tab
+  // (sessionStorage-gated) and only when the drawer starts closed, so a
+  // returning user with the drawer already open never sees it. The bob itself
+  // is a finite CSS animation disabled under reduced-motion (see styles.css).
+  const [showHandleHint] = useState<boolean>(() => {
+    try {
+      if (open) return false;
+      if (sessionStorage.getItem(sessionStorageAssistantHandleHinted) === '1') return false;
+      sessionStorage.setItem(sessionStorageAssistantHandleHinted, '1');
+      return true;
+    } catch {
+      return false;
+    }
+  });
 
   /* ---- Drawer-specific switchDiagram: delegates to parent ---- */
 
@@ -159,24 +203,114 @@ export const AssistantWorkspaceDrawer: React.FC<AssistantWorkspaceDrawerProps> =
     connectionStatus,
     rateLimitStatus,
     messageMeta,
-    progressMessage,
+    progressSteps,
     lastSentMessage,
     messageListContainerRef,
+    showScrollToBottom,
+    scrollMessagesToBottom,
     handleSubmit,
     sendVoiceMessage,
     stopGenerating,
-    clearConversation,
+    requestNewChat,
+    reportIssue,
+    assistantClient,
   } = useAssistantLogic({
     isActive: open,
     switchDiagram,
     onGenerate: onTriggerGenerator,
   });
 
+  /* ---- "Describe your app" hand-off ----
+   * The Project Hub's Describe flow stashes a plain-language prompt in
+   * sessionStorage (`besser_pending_assistant_prompt`) and fires
+   * `wme:assistant-run-prompt`. We open THIS drawer and, once the shared
+   * WebSocket is connected, consume-and-clear the prompt exactly once and
+   * auto-submit it via handleSubmit so the agent starts building immediately.
+   *
+   * Two feeds drive one one-shot: the live event covers the common case (this
+   * drawer is already mounted when the dialog fires), while the sessionStorage
+   * stash is the fallback for a too-early event (e.g. this lazy chunk was still
+   * loading). `promptConsumedRef` guards against double-submits, and the stash
+   * key is cleared the instant we read it, so a re-render or the sibling widget
+   * surface can never replay it. */
+  const pendingPromptRef = useRef<string | null>(null);
+  const promptConsumedRef = useRef(false);
+  const [hasPendingPrompt, setHasPendingPrompt] = useState(false);
+
+  // Register the trigger listener + do a mount-time stash check. Runs once.
+  useEffect(() => {
+    const armPrompt = (raw: string) => {
+      const prompt = raw.trim();
+      if (!prompt || promptConsumedRef.current || pendingPromptRef.current) return;
+      pendingPromptRef.current = prompt;
+      setHasPendingPrompt(true);
+      // Make the drawer visible so we never submit into a hidden panel. The
+      // parent's onOpenChange also hides the floating widget so only one
+      // assistant surface shows.
+      onOpenChange(true);
+    };
+
+    const readStash = (): string => {
+      try {
+        return sessionStorage.getItem(sessionStoragePendingAssistantPrompt) ?? '';
+      } catch {
+        return '';
+      }
+    };
+
+    // Fallback: a prompt stashed before this listener existed.
+    const stashed = readStash();
+    if (stashed) armPrompt(stashed);
+
+    const onRunPrompt = (event: Event) => {
+      const detail = (event as CustomEvent).detail as { prompt?: string } | undefined;
+      // Prefer the event payload; fall back to the stash if it carried none.
+      armPrompt(typeof detail?.prompt === 'string' && detail.prompt ? detail.prompt : readStash());
+    };
+
+    window.addEventListener('wme:assistant-run-prompt', onRunPrompt);
+    return () => window.removeEventListener('wme:assistant-run-prompt', onRunPrompt);
+    // Intentionally run once — onOpenChange is only used to open the panel.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Consume-and-submit once the panel is open AND the socket is connected.
+  useEffect(() => {
+    if (!hasPendingPrompt || promptConsumedRef.current) return;
+    if (!open || connectionStatus !== 'connected') return;
+    const prompt = pendingPromptRef.current;
+    if (!prompt) return;
+
+    // Consume: flip the guard and clear the stash BEFORE submitting so nothing
+    // can replay it (double render, sibling surface, remount).
+    promptConsumedRef.current = true;
+    pendingPromptRef.current = null;
+    setHasPendingPrompt(false);
+    try {
+      sessionStorage.removeItem(sessionStoragePendingAssistantPrompt);
+    } catch {
+      // Ignore storage failures — the in-memory guard already prevents replay.
+    }
+    void handleSubmit(undefined, { overrideText: prompt });
+  }, [hasPendingPrompt, open, connectionStatus, handleSubmit]);
+
   /* ---- Quick action handler ---- */
 
-  const handleQuickAction = useCallback((prompt: string) => {
-    handleSubmit(undefined, { overrideText: prompt });
-  }, [handleSubmit]);
+  // A "Review the spec" chip closes the drawer so the user sees the diagram
+  // on the canvas (it's already rendered) — never relayed to the agent. A
+  // "view/modify the GUI" chip switches to the GUI tab instead of relaying a
+  // prompt the agent can't act on; every other chip relays its prompt as chat.
+  const handleQuickAction = useCallback((action: GuiActionRouteInput) => {
+    if (isReviewSpecAction(action)) {
+      onOpenChange(false);
+      return;
+    }
+    if (shouldOpenGuiTab(action)) {
+      void switchDiagram('GUINoCodeDiagram');
+      return;
+    }
+    handleSubmit(undefined, { overrideText: action.prompt ?? '' });
+  }, [handleSubmit, onOpenChange]);
 
   /* ---- Last assistant message meta (for QuickActions) ---- */
 
@@ -232,7 +366,13 @@ export const AssistantWorkspaceDrawer: React.FC<AssistantWorkspaceDrawerProps> =
   useEffect(() => {
     if (!open) return;
     const onEscape = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') onOpenChange(false);
+      if (event.key !== 'Escape') return;
+      // A modal dialog (BYOK / Push-to-GitHub) mounted on top owns Escape —
+      // let Radix dismiss it and don't collapse the drawer (which would lose
+      // the chat). The drawer itself is a custom <section> bottom-sheet, not a
+      // [role="dialog"], so this only skips for the Radix dialogs above it.
+      if (document.querySelector('[role="dialog"][data-state="open"]')) return;
+      onOpenChange(false);
     };
     window.addEventListener('keydown', onEscape);
     return () => window.removeEventListener('keydown', onEscape);
@@ -254,6 +394,11 @@ export const AssistantWorkspaceDrawer: React.FC<AssistantWorkspaceDrawerProps> =
     const deltaTime = Math.max(1, now - dragState.lastTime);
     dragState.velocity = (clientY - dragState.lastY) / deltaTime;
     dragState.moved = Math.max(dragState.moved, Math.abs(dragDistance));
+    // Lock the snap direction the first time the gesture crosses the threshold,
+    // taken from the START of the drag: dragging down opens, dragging up closes.
+    // Once set it sticks, so a quick flick that settles back still snaps by its
+    // initial intent rather than the exact release position.
+    dragState.direction = lockDragDirection(dragDistance, dragState.direction, DRAG_DIRECTION_THRESHOLD);
     dragState.lastY = clientY;
     dragState.lastTime = now;
     updateTranslateY(nextOffset);
@@ -272,14 +417,13 @@ export const AssistantWorkspaceDrawer: React.FC<AssistantWorkspaceDrawerProps> =
     }
     dragStateRef.current = null;
     setIsDragging(false);
-    const progress = clamp((translateYRef.current - deps.closedOffset) / deps.totalTravel, 0, 1);
-    let shouldOpen = progress >= POSITION_SNAP_THRESHOLD;
-    if (dragState.moved < 6) {
-      shouldOpen = !deps.open;
-    } else if (Math.abs(dragState.velocity) > VELOCITY_SNAP_THRESHOLD) {
-      shouldOpen = dragState.velocity > 0;
-    }
-    deps.onOpenChange(shouldOpen);
+    // Two outcomes only:
+    //  - Barely moved (below threshold, no locked direction) → treat as a click
+    //    and toggle open/closed.
+    //  - Otherwise → snap by the locked drag direction (down opens, up closes),
+    //    regardless of how far the user actually dragged. The section's
+    //    transition-transform animates the snap smoothly (reduced-motion aside).
+    deps.onOpenChange(resolveDrawerSnap(dragState.direction, deps.open));
   };
 
   const handlePointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
@@ -302,8 +446,19 @@ export const AssistantWorkspaceDrawer: React.FC<AssistantWorkspaceDrawerProps> =
       lastTime: performance.now(),
       velocity: 0,
       moved: 0,
+      direction: 0,
     };
     setIsDragging(true);
+  };
+
+  // Keyboard activation: the handle is a focusable toggle button, so Enter and
+  // Space open/close it (pointer drag has no keyboard equivalent — a plain
+  // toggle is the accessible behaviour).
+  const handleHandleKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
+    if (event.key === 'Enter' || event.key === ' ' || event.key === 'Spacebar') {
+      event.preventDefault();
+      onOpenChange(!open);
+    }
   };
 
   // Stable refs for values used inside drag handlers — avoids re-registering
@@ -345,12 +500,16 @@ export const AssistantWorkspaceDrawer: React.FC<AssistantWorkspaceDrawerProps> =
 
   /* ---- Render helpers ---- */
 
+  // Composer for both the welcome screen and the chat view. Mirrors the
+  // widget's MessageInput wiring exactly so voice recording + transcription
+  // behaves identically here (mic button is gated on `onVoiceSend`).
   const renderComposer = (className: string) => (
     <ChatForm className={className} isPending={isGenerating} handleSubmit={handleSubmit}>
       {({ files, setFiles }) => (
         <MessageInput
           value={inputValue}
           onChange={(event) => setInputValue(event.target.value)}
+          placeholder="Describe what you want to create or modify..."
           onVoiceSend={(blob) => sendVoiceMessage(blob)}
           allowAttachments
           files={files}
@@ -371,7 +530,7 @@ export const AssistantWorkspaceDrawer: React.FC<AssistantWorkspaceDrawerProps> =
       {/* Backdrop overlay */}
       <div
         className={cn(
-          'pointer-events-none absolute inset-0 z-30 bg-slate-950/50 backdrop-blur-[3px] transition-opacity duration-300',
+          'pointer-events-none absolute inset-0 z-30 bg-slate-950/50 backdrop-blur-[3px] transition-opacity duration-300 motion-reduce:transition-none',
           (open || isDragging) && openProgress > 0.02 && 'pointer-events-auto',
         )}
         style={{ opacity: openProgress * 0.75 }}
@@ -382,7 +541,7 @@ export const AssistantWorkspaceDrawer: React.FC<AssistantWorkspaceDrawerProps> =
         ref={drawerRef}
         className={cn(
           'pointer-events-none absolute inset-0 z-40 flex flex-col overflow-visible bg-transparent',
-          !isDragging && 'transition-transform duration-300 ease-out',
+          !isDragging && 'transition-transform duration-300 ease-out motion-reduce:transition-none',
         )}
         style={{
           transform:
@@ -527,7 +686,7 @@ export const AssistantWorkspaceDrawer: React.FC<AssistantWorkspaceDrawerProps> =
                   </a>
                 </div>
 
-                {/* Headline — gradient "model" text */}
+                {/* Headline — gradient "build" text */}
                 <h1
                   className="animate-fade-up mt-7 text-center font-display text-[2.25rem] leading-[1.12] tracking-tight sm:text-[2.75rem] lg:text-5xl"
                   style={{ animationDelay: '70ms' }}
@@ -556,6 +715,17 @@ export const AssistantWorkspaceDrawer: React.FC<AssistantWorkspaceDrawerProps> =
                   <div className="input-card-glow rounded-2xl p-3 shadow-elevation-3 sm:p-4">
                     {renderComposer('w-full')}
                   </div>
+                  {/* Free-tier promo — no API key needed; link opens the shared BYOK dialog */}
+                  <p className="mt-2.5 text-center text-xs text-muted-foreground">
+                    {t('assistant.welcome.freeTier')}{' '}
+                    <button
+                      type="button"
+                      onClick={() => setByokOpen(true)}
+                      className="font-medium text-brand underline-offset-2 transition-colors hover:text-brand-dark hover:underline"
+                    >
+                      {t('assistant.welcome.changeModel')}
+                    </button>
+                  </p>
                 </div>
 
                 {/* Starter prompt pills */}
@@ -575,7 +745,8 @@ export const AssistantWorkspaceDrawer: React.FC<AssistantWorkspaceDrawerProps> =
                   ))}
                 </div>
 
-                {/* Capability cards — three branded cards */}
+                {/* Capability cards — three branded cards (masked for experimental launch; set to true to restore) */}
+                {false && (
                 <div
                   className="animate-fade-up mt-10 grid grid-cols-3 gap-3"
                   style={{ animationDelay: '400ms' }}
@@ -617,10 +788,13 @@ export const AssistantWorkspaceDrawer: React.FC<AssistantWorkspaceDrawerProps> =
                     </CardContent>
                   </Card>
                 </div>
+                )}
               </div>
 
               {/* Bottom spacer + footer */}
               <div className="flex-[1_1_8%] min-h-4" />
+              {/* Pilot-experiment transparency line (regular sessions render nothing) */}
+              <PilotSessionNotice className="pb-1.5" />
               <p className="animate-fade-up pb-4 text-center text-[10px] text-muted-foreground/35" style={{ animationDelay: '500ms' }}>
                 {t('assistant.welcome.pressEscPre')} <kbd className="rounded-[3px] border border-border/30 bg-muted/25 px-1.5 py-0.5 font-mono text-[9px]">Esc</kbd> {t('assistant.welcome.pressEscPost')}
               </p>
@@ -631,23 +805,61 @@ export const AssistantWorkspaceDrawer: React.FC<AssistantWorkspaceDrawerProps> =
             /* ================================================================ */
             <>
               {/* Messages — kept at max-w-4xl (896px) for readability */}
-              <div ref={messageListContainerRef} className="min-h-0 flex-1 overflow-y-auto bg-gradient-to-b from-muted/10 via-background to-muted/5 px-4 py-6 sm:px-8">
-                <div className="mx-auto w-full max-w-4xl">
-                  <MessageList messages={messages} isTyping={isGenerating} showTimeStamps={false} />
+              <div className="relative min-h-0 flex-1">
+                <div ref={messageListContainerRef} className="h-full overflow-y-auto bg-gradient-to-b from-muted/10 via-background to-muted/5 px-4 py-6 sm:px-8">
+                  <div className="mx-auto w-full max-w-4xl">
+                    {/* Pilot-experiment transparency line (regular sessions render nothing) */}
+                    <PilotSessionNotice className="mb-4" />
+                    <MessageList
+                      messages={messages}
+                      isTyping={isGenerating && !hasLiveSpecDrivenRun}
+                      typingLabel={progressSteps.length > 0 ? progressSteps[progressSteps.length - 1] : undefined}
+                      showTimeStamps={false}
+                      // Opening the push dialog is a pure dispatch — the dialog
+                      // is mounted app-level (SpecDrivenPushDialogHost) and driven
+                      // by Redux, so it never touches this drawer's lifecycle.
+                      messageOptions={() => ({ onPushToGithub: (runId: string) => dispatch(openPushDialog(runId)) })}
+                    />
 
-                  {/* Progress indicator */}
-                  {progressMessage && (
-                    <div className="mt-3 flex items-center gap-2 text-xs text-muted-foreground animate-in fade-in-0 duration-300">
-                      <Loader2 className="size-3 animate-spin" />
-                      <span>{progressMessage}</span>
-                    </div>
-                  )}
 
-                  {/* Quick actions after last assistant message */}
-                  {lastMeta?.suggestedActions && lastMeta.suggestedActions.length > 0 && (
-                    <QuickActions actions={lastMeta.suggestedActions} onAction={handleQuickAction} />
-                  )}
+                    {/* Quick actions after last assistant message */}
+                    {lastMeta?.suggestedActions && lastMeta.suggestedActions.length > 0 && (
+                      <QuickActions actions={lastMeta.suggestedActions} onAction={handleQuickAction} />
+                    )}
+
+                    {/* Limit reached / auth error → offer the user their own key */}
+                    {lastMeta?.needsApiKey && (
+                      <div className="mt-3 flex justify-start">
+                        <Button
+                          type="button"
+                          size="sm"
+                          className="h-8 gap-1.5 rounded-lg bg-brand text-brand-foreground hover:bg-brand-dark"
+                          onClick={() => setByokOpen(true)}
+                        >
+                          <KeyRound className="size-3.5" />
+                          Add your API key
+                        </Button>
+                      </div>
+                    )}
+                  </div>
                 </div>
+                {/* "Your model" blueprint — Mentor-style recap of the data
+                    model, relationships and screens, derived live from the
+                    project store. */}
+                {overviewOpen && <ModelOverviewPanel onClose={() => setOverviewOpen(false)} />}
+
+                {/* Scroll-to-bottom — shown while the user has scrolled up;
+                    streaming no longer force-follows their position */}
+                {showScrollToBottom && (
+                  <button
+                    type="button"
+                    aria-label="Scroll to bottom"
+                    onClick={scrollMessagesToBottom}
+                    className="absolute bottom-4 right-6 z-10 rounded-full border border-border/60 bg-background/95 p-2 text-muted-foreground shadow-md backdrop-blur transition-colors hover:bg-muted hover:text-foreground animate-in fade-in-0 slide-in-from-bottom-1"
+                  >
+                    <ArrowDown className="size-4" />
+                  </button>
+                )}
               </div>
 
               {/* Bottom bar — kept at max-w-4xl (896px) to match messages */}
@@ -663,8 +875,53 @@ export const AssistantWorkspaceDrawer: React.FC<AssistantWorkspaceDrawerProps> =
                       <Button
                         variant="outline"
                         size="sm"
+                        className={cn(
+                          'h-7 gap-1.5 rounded-lg px-2.5 text-xs',
+                          overviewOpen
+                            ? 'border-brand/40 bg-brand/[0.06] text-brand hover:text-brand'
+                            : 'border-border/50',
+                        )}
+                        onClick={() => setOverviewOpen((v) => !v)}
+                        title="See a recap of your data model, relationships and screens"
+                      >
+                        <Boxes className="size-3.5" />
+                        Your model
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className={cn(
+                          'h-7 gap-1.5 rounded-lg px-2.5 text-xs',
+                          savedApiKey
+                            ? 'border-brand/40 text-brand hover:text-brand'
+                            : 'border-border/50',
+                        )}
+                        onClick={() => setByokOpen(true)}
+                        title={
+                          savedApiKey
+                            ? `Your ${savedApiKey.provider} API key is set — click to change or remove`
+                            : 'Use your own API key (assistant + generator)'
+                        }
+                      >
+                        <KeyRound className="size-3.5" />
+                        {savedApiKey ? 'API key set' : 'API key'}
+                        {savedApiKey ? <Check className="size-3" /> : null}
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
                         className="h-7 gap-1.5 rounded-lg border-border/50 px-2.5 text-xs"
-                        onClick={clearConversation}
+                        onClick={() => reportIssue()}
+                        title="Open a pre-filled GitHub issue with this conversation's context"
+                      >
+                        <Flag className="size-3.5" />
+                        Report issue
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="h-7 gap-1.5 rounded-lg border-border/50 px-2.5 text-xs"
+                        onClick={requestNewChat}
                         title={t('assistant.chat.newConversationTitle')}
                       >
                         <MessageSquarePlus className="size-3.5" />
@@ -680,39 +937,47 @@ export const AssistantWorkspaceDrawer: React.FC<AssistantWorkspaceDrawerProps> =
 
         </div>
 
-        {/* Drag handle tab — hangs below the content */}
+        {/* Handle tab — hangs below the content. A single accent pill that
+            reads as both a button (click to toggle) and a drag handle (pull
+            down to open / up to close). When the drawer is open it softens so
+            it doesn't dominate the panel. */}
         <div className="pointer-events-none relative flex shrink-0 justify-center">
           <div
-            className="absolute inset-0 z-0 bg-background transition-opacity duration-300"
+            className="absolute inset-0 z-0 bg-background transition-opacity duration-300 motion-reduce:transition-none"
             style={{ opacity: Math.min(openProgress * 1.5, 1) }}
           />
           <div
             className={cn(
-              'pointer-events-auto relative z-10 flex cursor-row-resize touch-none select-none items-center gap-2 px-5 py-1.5 transition-all duration-200',
+              'pointer-events-auto relative z-10 flex cursor-grab touch-none select-none items-center gap-1.5 rounded-b-xl border border-t-0 px-4 py-1.5 text-xs font-semibold transition-all duration-200 motion-reduce:transition-none active:cursor-grabbing',
+              'outline-none focus-visible:ring-2 focus-visible:ring-brand/70 focus-visible:ring-offset-1 focus-visible:ring-offset-background',
               openProgress > 0.5
-                ? 'bg-transparent'
-                : 'rounded-b-xl bg-background border border-t-0 border-border/40 shadow-[0_4px_12px_-4px_rgba(0,0,0,0.12)] hover:shadow-[0_6px_16px_-4px_rgba(0,0,0,0.16)] dark:shadow-[0_4px_12px_-4px_rgba(0,0,0,0.4)] dark:hover:shadow-[0_6px_16px_-4px_rgba(0,0,0,0.5)]',
+                ? 'border-border/40 bg-background/90 text-muted-foreground shadow-sm backdrop-blur hover:text-foreground'
+                : 'border-brand-dark/20 bg-brand text-brand-foreground shadow-lg hover:bg-brand-dark',
+              showHandleHint && openProgress < 0.5 && 'drawer-handle-bob',
             )}
             onPointerDown={handlePointerDown}
+            onKeyDown={handleHandleKeyDown}
             role="button"
             aria-label={open ? t('assistant.drawer.pushToClose') : t('assistant.drawer.pullToOpen')}
+            aria-expanded={open}
             tabIndex={0}
           >
-            {openProgress > 0.75 ? (
-              <ChevronUp className="size-3.5 text-muted-foreground/40" />
+            <Bot className="size-3.5 shrink-0" aria-hidden="true" />
+            <span className="tracking-wide">{t('assistant.drawer.label')}</span>
+            {openProgress > 0.5 ? (
+              <ChevronUp className="size-3.5 shrink-0" aria-hidden="true" />
             ) : (
-              <div className="flex flex-col items-center gap-[2px]">
-                <span className="block h-[1.5px] w-4 rounded-full bg-brand/20" />
-                <span className="block h-[1.5px] w-3 rounded-full bg-brand/15" />
-                <span className="block h-[1.5px] w-2 rounded-full bg-brand/10" />
-              </div>
+              <ChevronDown className="size-3.5 shrink-0" aria-hidden="true" />
             )}
-            <span className="text-[9px] font-semibold uppercase tracking-[0.12em] text-muted-foreground/50">
-              {openProgress > 0.75 ? t('assistant.drawer.pushUp') : t('assistant.drawer.pullDown')}
-            </span>
           </div>
         </div>
       </section>
+
+      {/* ── Bring-your-own-key dialog ── */}
+      <AssistantByokDialog open={byokOpen} onOpenChange={setByokOpen} client={assistantClient} />
+
+      {/* Push-to-GitHub dialog is mounted app-level (SpecDrivenPushDialogHost) and
+          opened via dispatch(openPushDialog(runId)) — see messageOptions above. */}
     </>
   );
 };

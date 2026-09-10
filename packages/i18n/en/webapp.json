@@ -64,6 +64,13 @@
       "title": "File",
       "projectActions": "Project Actions",
       "newOpenImport": "New / Open / Import Project",
+      "newProject": "New Project",
+      "openProject": "Open Project",
+      "importProject": "Import Project",
+      "import": "Import",
+      "importProjectFile": "Project file (.json / .py)",
+      "fromSpreadsheet": "From Spreadsheet",
+      "fromGithub": "From GitHub",
       "loadTemplate": "Load Template",
       "exportProject": "Export Project",
       "importClassDiagramFrom": "Import Class Diagram from",
@@ -848,10 +855,10 @@
           "ClassDiagram": "Structural / data modeling, including OCL constraints attached to classes.",
           "ObjectDiagram": "Instances of a class diagram, used for tests and OCL validation.",
           "StateMachineDiagram": "State-based behavior modeling.",
-          "AgentDiagram": "Conversational / AI agent specification.",
+          "AgentDiagram": "Conversational / AI agent model.",
           "UserDiagram": "Actors and their interactions.",
           "GUINoCodeDiagram": "Graphical user interface design (IFML-inspired).",
-          "QuantumCircuitDiagram": "Quantum program specification.",
+          "QuantumCircuitDiagram": "Quantum program model.",
           "BPMN": "Business Process Model and Notation.",
           "NNDiagram": "Neural network architecture (PyTorch / TensorFlow)."
         }
@@ -883,7 +890,7 @@
       "confirm": {
         "title": "Existing diagram detected",
         "body": "You already have a <strong>{{type}}</strong>. How would you like to load the template?",
-        "newTab": "New tab",
+        "newTab": "New diagram tab",
         "replace": "Replace"
       },
       "toasts": {
@@ -1126,9 +1133,11 @@
         "django": "Generate Django code"
       },
       "headlinePre": "What would you like to",
-      "headlineEmphasis": "model",
+      "headlineEmphasis": "create",
       "headlinePost": "today?",
-      "subtitle": "Describe your system in natural language. Get models, interfaces, and code.",
+      "subtitle": "Describe your app in natural language. Get models, interfaces, and code.",
+      "freeTier": "Free to use with our hosted Qwen model.",
+      "changeModel": "Change the model",
       "pressEscPre": "Press",
       "pressEscPost": "to close"
     },
@@ -1157,6 +1166,7 @@
       "privacyBody": "Avoid sharing sensitive or confidential information in assistant messages.",
       "understand": "I Understand"
     },
+    "pilotNotice": "This pilot session is recorded for research purposes.",
     "poweredWithBaf": "Powered with BAF",
     "capabilities": {
       "systemDesign": {
@@ -1188,9 +1198,14 @@
     },
     "chat": {
       "newChat": "New Chat",
-      "newConversationTitle": "Start a new conversation"
+      "newConversationTitle": "Start a new conversation",
+      "newChatConfirm": "Start a new chat? Your current conversation will be cleared.",
+      "newChatConfirmWithRun": "Start a new chat? Your current conversation will be cleared and the running generation will be stopped.",
+      "explainModel": "Explain this model",
+      "explainModelTitle": "Get a plain-language overview of your model — the main things it tracks and how they relate"
     },
     "drawer": {
+      "label": "Assistant",
       "pushToClose": "Push up to close assistant",
       "pullToOpen": "Pull down to open assistant",
       "pushUp": "Push up",
@@ -1793,7 +1808,7 @@
       "renameDiagram": "Rename diagram",
       "closeTabLabel": "Close tab {{title}}",
       "closeTab": "Close tab",
-      "addNewDiagram": "Add new diagram",
+      "addNewDiagram": "Add a new diagram tab",
       "profileFormOpen": "Edit as Form",
       "profileFormClose": "Close Form",
       "profileFormOpenTitle": "Edit this profile with a guided form",
@@ -2437,6 +2452,17 @@
       "noProjectData": "No project data available to export",
       "projectExportedAs": "Project exported as {{filename}}",
       "projectExportFailed": "Failed to export project: {{error}}"
+    },
+    "diagramLabels": {
+      "ClassDiagram": "Class Diagram",
+      "ObjectDiagram": "Object Diagram",
+      "StateMachineDiagram": "State Machine Diagram",
+      "AgentDiagram": "Agent Diagram",
+      "UserDiagram": "User Diagram",
+      "GUINoCodeDiagram": "Screens (GUI)",
+      "QuantumCircuitDiagram": "Quantum Circuit",
+      "NNDiagram": "Neural Network Diagram",
+      "BPMN": "BPMN Process"
     }
   },
   "import": {

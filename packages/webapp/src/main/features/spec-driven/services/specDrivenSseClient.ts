@@ -1,0 +1,144 @@
+/**
+ * Thin Smart Generator client over the shared `streamSse` utility.
+ *
+ * Owns the request shape and the `AbortController`; yields typed
+ * `SpecDrivenEvent` objects. The caller (typically `useSpecDrivenTrigger`)
+ * handles state updates and chat-message injection.
+ */
+
+import { SMART_GEN_ENDPOINT } from '../../../shared/constants/constant';
+import { streamSse } from '../../../shared/services/sse/sseClient';
+
+/**
+ * Liveness bound for the run stream. The backend's cost emitter puts a
+ * `cost` tick on the stream every ~2s (`cost_emitter_interval_seconds` in
+ * `GET /spec-driven/config`) for the ENTIRE run, so a healthy stream is
+ * never silent for more than a few seconds. 60s of TOTAL silence (~30
+ * missed ticks) therefore means the transport died mid-response — a
+ * condition a streaming `fetch` otherwise never surfaces: `reader.read()`
+ * just stays pending forever and the run card freezes with no error.
+ * Observed in production via a browser↔edge path that stopped forwarding
+ * after the first flush while the same origin streamed perfectly over a
+ * direct connection. On stall the stream throws `SseStallError`, which
+ * `useSpecDrivenTrigger` converts into an honest terminal error card.
+ */
+export const SPEC_DRIVEN_STREAM_STALL_TIMEOUT_MS = 60_000;
+import {
+  getOrCreateAssistantSessionId,
+  getPilotParticipant,
+} from '../../../shared/services/telemetry/pilotTelemetry';
+import type {
+  SpecDrivenEvent,
+  SpecDrivenMode,
+  SpecDrivenPrimaryKind,
+  SpecDrivenProvider,
+} from '../types';
+
+export interface StartSpecDrivenRunParams {
+  /** The full BesserProject payload (same shape as /generate-output-from-project). */
+  project: unknown;
+  instructions: string;
+  provider: SpecDrivenProvider;
+  apiKey: string;
+  llmModel?: string;
+  /** OpenAI-compatible base URL for the 'pia'/'local' providers. */
+  baseUrl?: string;
+  maxCostUsd?: number;
+  maxRuntimeSeconds?: number;
+  /**
+   * Incremental vibe-modify: when `mode === 'modify'`, the backend edits
+   * the app produced by `baseRunId` in place instead of rebuilding.
+   * `baseRunId` is a 32-hex run id from a previous successful run.
+   * Serialised as `base_run_id` / `mode` to match the backend contract.
+   */
+  baseRunId?: string;
+  mode?: SpecDrivenMode;
+  primaryKindOverride?: SpecDrivenPrimaryKind;
+  targetGeneratorOverride?: string;
+  /** Explicit approved-plan choice to bypass the deterministic Phase-1 generator. */
+  skipDeterministicGenerator?: boolean;
+}
+
+export interface SpecDrivenRunHandle {
+  /** The event stream — each iteration yields one parsed SpecDrivenEvent. */
+  events: AsyncGenerator<SpecDrivenEvent, void, void>;
+  /** Abort the run (cancels fetch + reader). */
+  abort: () => void;
+  /** Underlying AbortController for advanced consumers. */
+  controller: AbortController;
+}
+
+/**
+ * Start a spec-driven run and return a handle whose `events`
+ * async generator yields parsed SSE events. The caller is responsible
+ * for iterating and dispatching.
+ *
+ * The API key travels only in the POST body. It is never added to the
+ * URL, headers, or any Redux state.
+ */
+export function startSpecDrivenRun(
+  params: StartSpecDrivenRunParams,
+): SpecDrivenRunHandle {
+  const controller = new AbortController();
+
+  // 'pia' / 'local' are OpenAI-compatible endpoints: send them to the backend
+  // as provider='openai' + base_url so the server builds an OpenAI client
+  // pointed at the gateway / local server.
+  const usesBaseUrl = params.provider === 'pia' || params.provider === 'local';
+  const wireProvider = usesBaseUrl ? 'openai' : params.provider;
+
+  // The keyless free tier sends provider='free' and MUST NOT carry an api_key
+  // or a base_url — the server injects the hosted endpoint + token + model.
+  const isFree = params.provider === 'free';
+
+  const body: Record<string, unknown> = {
+    project: params.project,
+    instructions: params.instructions,
+    provider: wireProvider,
+  };
+  if (!isFree) body.api_key = params.apiKey;
+  if (!isFree && usesBaseUrl && params.baseUrl) body.base_url = params.baseUrl;
+  // llm_model: for the free tier the trigger hook only ever sets this to the
+  // server's advertised non-default free model (the default omits it); the
+  // backend enforces its {primary, fallback} allowlist regardless.
+  if (params.llmModel) body.llm_model = params.llmModel;
+  if (typeof params.maxCostUsd === 'number') body.max_cost_usd = params.maxCostUsd;
+  if (typeof params.maxRuntimeSeconds === 'number') {
+    body.max_runtime_seconds = params.maxRuntimeSeconds;
+  }
+  // Incremental vibe-modify — serialise as the backend's snake_case fields.
+  // `mode` defaults to 'generate' server-side, so only send it when set;
+  // `base_run_id` only travels with a 'modify' run.
+  if (params.mode) body.mode = params.mode;
+  if (params.baseRunId) body.base_run_id = params.baseRunId;
+  if (params.primaryKindOverride) {
+    body.primary_kind_override = params.primaryKindOverride;
+  }
+  if (params.targetGeneratorOverride) {
+    body.target_generator_override = params.targetGeneratorOverride;
+  }
+  if (params.skipDeterministicGenerator === true) {
+    body.skip_deterministic_generator = true;
+  }
+  // Pilot experiment: tag the run with the participant label + the per-tab
+  // session id so the backend runner can attach its run summary to the same
+  // telemetry session as the chat events. Absent for regular sessions.
+  const telemetryParticipant = getPilotParticipant();
+  if (telemetryParticipant) {
+    body.telemetry_participant = telemetryParticipant;
+    body.telemetry_session = getOrCreateAssistantSessionId();
+  }
+
+  const events = streamSse<SpecDrivenEvent>(SMART_GEN_ENDPOINT, body, {
+    signal: controller.signal,
+    // The backend heartbeats a cost tick every ~2s, so a minute of total
+    // silence is a dead transport — surface it instead of hanging forever.
+    stallTimeoutMs: SPEC_DRIVEN_STREAM_STALL_TIMEOUT_MS,
+  });
+
+  return {
+    events,
+    abort: () => controller.abort(),
+    controller,
+  };
+}

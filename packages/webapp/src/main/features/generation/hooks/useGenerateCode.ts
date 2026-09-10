@@ -80,7 +80,11 @@ export const useGenerateCode = () => {
   const { t } = useTranslation();
 
   const generateCodeFromProject = useCallback(
-    async (generatorType: string, config?: GeneratorConfig[keyof GeneratorConfig]): Promise<GenerationResult> => {
+    async (
+      generatorType: string,
+      config?: GeneratorConfig[keyof GeneratorConfig],
+      opts?: { autoDownload?: boolean },
+    ): Promise<GenerationResult> => {
       console.log('Starting code generation from project...');
 
       // Read from storage at generation time as a safety net: although useStorageSync
@@ -177,6 +181,12 @@ export const useGenerateCode = () => {
           }
         }
 
+        // Deferred download (assistant flow): return the blob so the caller
+        // can render a result card with a manual Download button instead of
+        // auto-saving. The menu path leaves autoDownload at its default (true).
+        if (opts?.autoDownload === false) {
+          return { ok: true, filename, blob };
+        }
         downloadFile({ file: blob, filename });
         toast.success(t('generation.toasts.codeGenerationCompleted'));
         return { ok: true, filename };
@@ -206,36 +216,46 @@ export const useGenerateCode = () => {
       config?: GeneratorConfig[keyof GeneratorConfig],
       referenceDiagramData?: Record<string, any>,
       modelOverride?: UMLModel,
+      opts?: { autoDownload?: boolean },
     ): Promise<GenerationResult> => {
       console.log('Starting code generation...');
 
       // For Web App generator, send the entire project (doesn't need editor)
       if (generatorType === 'web_app') {
-        return await generateCodeFromProject(generatorType, config);
+        return await generateCodeFromProject(generatorType, config, opts);
       }
 
       // For Qiskit generator, it uses project data not editor
       if (generatorType === 'qiskit') {
-        return await generateCodeFromProject(generatorType, config);
+        return await generateCodeFromProject(generatorType, config, opts);
       }
 
       // For NN generators, use project data (like Qiskit)
       if (generatorType === 'pytorch' || generatorType === 'tensorflow') {
-        return await generateCodeFromProject(generatorType, config);
+        return await generateCodeFromProject(generatorType, config, opts);
       }
 
-      // For other generators, we need the editor and model
-      if (!editor || !editor.model) {
+      // For other generators we need a model — the live editor's, or an
+      // explicit override (the assistant drawer generates from the STORED
+      // class diagram regardless of which tab is visually active).
+      const modelForGeneration = modelOverride ?? editor?.model;
+      if (!modelForGeneration) {
         console.error('No editor or model available');
         toast.error(t('generation.toasts.noDiagram'));
         return { ok: false, error: 'No diagram to generate code from' };
       }
 
-      // Validate diagram before generation
-      const validationResult = await validateDiagram(editor, diagramTitle);
-      if (!validationResult.isValid) {
-        toast.error(validationResult.message || t('generation.toasts.validationFailed'));
-        return { ok: false, error: validationResult.message || 'Validation failed' };
+      // Validate before generation when a live editor is present (the
+      // pre-existing behavior — including the agent-personalization case
+      // that passes BOTH an editor and an override). An override without an
+      // editor comes from stored project data; the backend still validates
+      // structurally during generation.
+      if (editor) {
+        const validationResult = await validateDiagram(editor, diagramTitle);
+        if (!validationResult.isValid) {
+          toast.error(validationResult.message || t('generation.toasts.validationFailed'));
+          return { ok: false, error: validationResult.message || 'Validation failed' };
+        }
       }
 
       // Prepare body for single diagram generation. modelOverride is used by
@@ -245,7 +265,7 @@ export const useGenerateCode = () => {
       // runs against the live editor model.
       const body: any = {
         title: diagramTitle,
-        model: modelOverride ?? editor.model,
+        model: modelForGeneration,
         generator: generatorType,
         config: config,
         ...(referenceDiagramData ? { referenceDiagramData } : {}),
@@ -317,6 +337,9 @@ export const useGenerateCode = () => {
           }
         }
 
+        if (opts?.autoDownload === false) {
+          return { ok: true, filename, blob };
+        }
         downloadFile({ file: blob, filename });
         toast.success(t('generation.toasts.codeGenerationCompleted'));
         return { ok: true, filename };

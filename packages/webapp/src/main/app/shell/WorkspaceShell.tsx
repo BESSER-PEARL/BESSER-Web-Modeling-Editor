@@ -24,6 +24,7 @@ import {
   besserMainRepositoryLink,
   besserWMERepositoryLink,
 } from '../../shared/constants/application-constants';
+import { sessionStorageOpenAssistantOnLoad, sessionStorageAssistantDrawerOpen } from '../../shared/constants/constant';
 import { normalizeProjectName } from '../../shared/utils/projectName';
 import { getWorkspaceContext } from '../../shared/utils/workspaceContext';
 import { downloadFile, downloadJson } from '../../shared/utils/download';
@@ -101,7 +102,8 @@ interface OnboardingHook {
 
 interface WorkspaceShellProps {
   children: React.ReactNode;
-  onOpenProjectHub: () => void;
+  /** Opens the Project Hub; an optional step targets New / Open / Import directly. */
+  onOpenProjectHub: (step?: 'create' | 'open' | 'import' | 'spreadsheet' | 'github') => void;
   onOpenTemplateDialog: () => void;
   onExportProject: () => void;
   onGenerate: (type: GeneratorType, config?: Record<string, any>) => void;
@@ -183,7 +185,15 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
   const [diagramTitleDraft, setDiagramTitleDraft] = useState(diagram?.title ?? '');
   const [isDarkTheme, setIsDarkTheme] = useState<boolean>(() => isDarkThemeEnabled());
   const [isGitHubSidebarOpen, setIsGitHubSidebarOpen] = useState(false);
-  const [isAssistantWorkspaceOpen, setIsAssistantWorkspaceOpen] = useState(false);
+  // Restore the drawer to wherever the user left it this tab (sessionStorage).
+  // Defaults to closed when nothing is stored or storage is unavailable.
+  const [isAssistantWorkspaceOpen, setIsAssistantWorkspaceOpen] = useState<boolean>(() => {
+    try {
+      return sessionStorage.getItem(sessionStorageAssistantDrawerOpen) === '1';
+    } catch {
+      return false;
+    }
+  });
   const [userModelValidationByDiagramId, setUserModelValidationByDiagramId] = useState<Record<string, UserModelValidationRecord>>({});
 
   // Derived values
@@ -322,6 +332,45 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
     window.addEventListener('wme:assistant-export-project', handleAssistantExport);
     return () => window.removeEventListener('wme:assistant-export-project', handleAssistantExport);
   }, [generateProjectBumlPreview, t]);
+
+  // Agentic entry: when a project was created with the "agent" interface (or the
+  // app was opened with ?agentic), open the assistant drawer once the project is
+  // loaded so the user lands on the agentic welcome. The flag is set by
+  // ProjectHubDialog / useProjectBootstrap; consume-and-clear it here so the
+  // drawer opens exactly once and no prompt is auto-sent.
+  useEffect(() => {
+    if (!currentProject) {
+      return;
+    }
+    let shouldOpen = false;
+    try {
+      shouldOpen = sessionStorage.getItem(sessionStorageOpenAssistantOnLoad) === '1';
+      if (shouldOpen) {
+        sessionStorage.removeItem(sessionStorageOpenAssistantOnLoad);
+      }
+    } catch {
+      shouldOpen = false;
+    }
+    if (shouldOpen) {
+      setIsAssistantWorkspaceOpen(true);
+    }
+  }, [currentProject?.id]);
+
+  // Persist the drawer's open/closed state for the tab so it stays where the
+  // user left it across in-tab reloads (session-scoped, mirrors the read above),
+  // and keep the floating FAB (AssistantWidget) in sync via the shared event so
+  // only one assistant surface shows — this also covers a restore-open on mount,
+  // when no user toggle fired the event.
+  useEffect(() => {
+    try {
+      sessionStorage.setItem(sessionStorageAssistantDrawerOpen, isAssistantWorkspaceOpen ? '1' : '0');
+    } catch {
+      // Ignore storage failures — persistence is a convenience, not a requirement.
+    }
+    window.dispatchEvent(
+      new CustomEvent('besser:assistant-drawer', { detail: { open: isAssistantWorkspaceOpen } }),
+    );
+  }, [isAssistantWorkspaceOpen]);
 
   // Theme classes
   const shellBackgroundClass = isDarkTheme
@@ -933,19 +982,29 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
           <GitHubSidebar isOpen={isGitHubSidebarOpen} onClose={() => setIsGitHubSidebarOpen(false)} />
         </Suspense>
 
-        {/* TODO: re-enable assistant drawer after release
+        {/*
+          Bottom-sheet assistant drawer. Renders a 28-px drag handle at
+          the bottom of the viewport in its closed state; the user drags
+          up to expand into the full-page assistant surface. When the
+          drawer is open, ``AssistantWidget`` (the floating FAB) hides
+          itself automatically via the ``besser:assistant-drawer``
+          custom event so only one assistant surface is visible at a
+          time.
+
+          The drawer internally calls ``useAssistantLogic`` (the same
+          hook the FAB uses), so the ``trigger_smart_generator`` action
+          from the modeling agent is handled there too — a smart-gen
+          run started from the drawer streams its events into the same
+          chat as the modeling-agent conversation.
+        */}
         <Suspense fallback={null}>
           <AssistantWorkspaceDrawer
             open={isAssistantWorkspaceOpen}
-            onOpenChange={(open) => {
-              setIsAssistantWorkspaceOpen(open);
-              window.dispatchEvent(new CustomEvent('besser:assistant-drawer', { detail: { open } }));
-            }}
+            onOpenChange={setIsAssistantWorkspaceOpen}
             onTriggerGenerator={onAssistantGenerate}
             onSwitchDiagram={handleAssistantSwitchDiagram}
           />
         </Suspense>
-        */}
       </div>
 
       <AssistantImportDialog
