@@ -97,14 +97,14 @@ export interface TextDeltaEvent {
  * The LLM serving the run changed mid-run — the provider's outage
  * fallback switched to a different model (sticky for the rest of the
  * run). The run card updates its header model and shows a note in the
- * run steps. `reason` is a short machine-readable cause; today the only
- * producer is the outage fallback (`primary_unavailable`).
+ * run steps. `reason` distinguishes free-tier quota exhaustion from a
+ * generic primary outage.
  */
 export interface ModelUpdateEvent {
   event: 'model_update';
   model: string;
   previousModel?: string | null;
-  reason?: string;
+  reason?: 'quota_exhausted' | 'primary_unavailable' | string;
 }
 
 export interface ToolCallEvent {
@@ -171,9 +171,13 @@ export interface SpecDrivenErrorEvent {
   event: 'error';
   code: SpecDrivenErrorCode;
   message: string;
+  /** Distinguishes an explicit stop from the disconnected grace policy. */
+  reason?: 'user' | 'abandoned';
+  /** True only when the backend verified a checkpoint exists on disk. */
+  resumeAvailable?: boolean;
 }
 
-export type SpecDrivenEvent =
+export type SpecDrivenEvent = (
   | StartEvent
   | PhaseEvent
   | PhaseUpdateEvent
@@ -182,7 +186,11 @@ export type SpecDrivenEvent =
   | ToolCallEvent
   | CostEvent
   | DoneEvent
-  | SpecDrivenErrorEvent;
+  | SpecDrivenErrorEvent
+) & {
+  /** Monotonic durable-log position added by replay-capable backends. */
+  sequence?: number;
+};
 
 /**
  * The `trigger_smart_generator` action emitted by the modeling agent.

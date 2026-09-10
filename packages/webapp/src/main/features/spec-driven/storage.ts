@@ -13,6 +13,8 @@
  */
 
 import {
+  localStorageSpecDrivenActiveRunV1,
+  localStorageSpecDrivenActiveRunV2Prefix,
   localStorageSpecDrivenLastRunPrefix,
   sessionStorageLlmBaseUrl,
   sessionStorageSpecDrivenApiKey,
@@ -197,6 +199,160 @@ export function writeProjectLastRun(
       _lastRunKey(projectId),
       JSON.stringify({ runId, at }),
     );
+  } catch {
+    /* ignore */
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/*  Active durable run pointer (reload/reattach)                       */
+/* ------------------------------------------------------------------ */
+
+export interface ActiveSpecDrivenRunV1 {
+  version: 1;
+  runId: string;
+  projectId: string;
+  lastSequence: number;
+  startedAt: number;
+}
+
+export interface ActiveSpecDrivenRunV2 {
+  version: 2;
+  runId: string;
+  projectId: string;
+  lastSequence: number;
+  startedAt: number;
+}
+
+export type ActiveSpecDrivenRun = ActiveSpecDrivenRunV1 | ActiveSpecDrivenRunV2;
+
+function _parseActiveSpecDrivenRun(
+  raw: string | null,
+  expectedVersion: 1 | 2,
+): ActiveSpecDrivenRun | null {
+  if (!raw) return null;
+  try {
+    const parsed = JSON.parse(raw) as Partial<ActiveSpecDrivenRun> | null;
+    if (
+      !parsed ||
+      parsed.version !== expectedVersion ||
+      !isValidRunId(parsed.runId) ||
+      typeof parsed.projectId !== 'string' ||
+      !parsed.projectId ||
+      parsed.projectId.length > 256 ||
+      typeof parsed.lastSequence !== 'number' ||
+      !Number.isFinite(parsed.lastSequence) ||
+      parsed.lastSequence < 0 ||
+      typeof parsed.startedAt !== 'number' ||
+      !Number.isFinite(parsed.startedAt) ||
+      parsed.startedAt <= 0
+    ) {
+      return null;
+    }
+    return {
+      version: expectedVersion,
+      runId: parsed.runId,
+      projectId: parsed.projectId,
+      lastSequence: Math.trunc(parsed.lastSequence),
+      startedAt: parsed.startedAt,
+    } as ActiveSpecDrivenRun;
+  } catch {
+    return null;
+  }
+}
+
+export function readActiveSpecDrivenRun(
+  projectId?: string,
+): ActiveSpecDrivenRun | null {
+  if (!_hasLocalStorage()) return null;
+  try {
+    const candidates: ActiveSpecDrivenRun[] = [];
+    for (let index = 0; index < window.localStorage.length; index += 1) {
+      const key = window.localStorage.key(index);
+      if (!key?.startsWith(localStorageSpecDrivenActiveRunV2Prefix)) continue;
+      const record = _parseActiveSpecDrivenRun(
+        window.localStorage.getItem(key),
+        2,
+      );
+      if (record && (!projectId || record.projectId === projectId)) {
+        candidates.push(record);
+      }
+    }
+    if (candidates.length > 0) {
+      return candidates.sort((left, right) => right.startedAt - left.startedAt)[0];
+    }
+
+    // Backward-compatible one-release migration path for existing pilots.
+    const legacy = _parseActiveSpecDrivenRun(
+      window.localStorage.getItem(localStorageSpecDrivenActiveRunV1),
+      1,
+    );
+    return legacy && (!projectId || legacy.projectId === projectId) ? legacy : null;
+  } catch {
+    return null;
+  }
+}
+
+/** Persist only the cursor required to reattach; never persist the request/key. */
+export function writeActiveSpecDrivenRun(
+  record: Omit<ActiveSpecDrivenRunV2, 'version'>,
+): void {
+  if (
+    !_hasLocalStorage() ||
+    !isValidRunId(record.runId) ||
+    !record.projectId ||
+    !Number.isFinite(record.lastSequence) ||
+    record.lastSequence < 0
+  ) {
+    return;
+  }
+  try {
+    window.localStorage.setItem(
+      `${localStorageSpecDrivenActiveRunV2Prefix}${record.runId}`,
+      JSON.stringify({
+        version: 2,
+        runId: record.runId,
+        projectId: record.projectId.slice(0, 256),
+        lastSequence: Math.trunc(record.lastSequence),
+        startedAt: record.startedAt,
+      } satisfies ActiveSpecDrivenRunV2),
+    );
+    const legacy = _parseActiveSpecDrivenRun(
+      window.localStorage.getItem(localStorageSpecDrivenActiveRunV1),
+      1,
+    );
+    if (legacy?.runId === record.runId) {
+      window.localStorage.removeItem(localStorageSpecDrivenActiveRunV1);
+    }
+  } catch {
+    /* storage may be unavailable/full in privacy modes */
+  }
+}
+
+/** Clear only the expected run so an old terminal callback cannot erase a newer one. */
+export function clearActiveSpecDrivenRun(expectedRunId?: string): void {
+  if (!_hasLocalStorage()) return;
+  try {
+    if (expectedRunId) {
+      window.localStorage.removeItem(
+        `${localStorageSpecDrivenActiveRunV2Prefix}${expectedRunId}`,
+      );
+      const legacy = _parseActiveSpecDrivenRun(
+        window.localStorage.getItem(localStorageSpecDrivenActiveRunV1),
+        1,
+      );
+      if (legacy?.runId === expectedRunId) {
+        window.localStorage.removeItem(localStorageSpecDrivenActiveRunV1);
+      }
+      return;
+    }
+    const keys: string[] = [];
+    for (let index = 0; index < window.localStorage.length; index += 1) {
+      const key = window.localStorage.key(index);
+      if (key?.startsWith(localStorageSpecDrivenActiveRunV2Prefix)) keys.push(key);
+    }
+    keys.forEach((key) => window.localStorage.removeItem(key));
+    window.localStorage.removeItem(localStorageSpecDrivenActiveRunV1);
   } catch {
     /* ignore */
   }

@@ -39,6 +39,11 @@ vi.mock('react-toastify', () => ({
 let pushEvent: (ev: SpecDrivenEvent) => void = () => {};
 let closeStream: () => void = () => {};
 vi.mock('@/main/features/spec-driven/services/specDrivenSseClient', () => ({
+  followSpecDrivenRun: vi.fn(() => ({
+    controller: new AbortController(),
+    abort: vi.fn(),
+    events: (async function* () {})(),
+  })),
   startSpecDrivenRun: vi.fn(() => {
     const queue: SpecDrivenEvent[] = [];
     let notify: (() => void) | null = null;
@@ -112,6 +117,7 @@ const PAYLOAD: TriggerSpecDrivenPayload = {
 beforeEach(() => {
   conversationStore.clear();
   window.sessionStorage.clear();
+  window.localStorage?.clear();
   window.sessionStorage.setItem(sessionStorageSpecDrivenApiKey, 'sk-test');
   window.sessionStorage.setItem(sessionStorageSpecDrivenProvider, 'anthropic');
 });
@@ -119,6 +125,7 @@ beforeEach(() => {
 afterEach(() => {
   cleanup();
   conversationStore.clear();
+  window.localStorage?.clear();
 });
 
 describe('live-paint repro (production wiring)', () => {

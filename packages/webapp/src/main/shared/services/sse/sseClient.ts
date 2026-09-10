@@ -1,5 +1,5 @@
 /**
- * Generic POST-body SSE (Server-Sent Events) reader.
+ * Generic fetch-based SSE (Server-Sent Events) reader.
  *
  * The browser's native `EventSource` only supports GET, but we need to
  * POST a JSON body (project payload + BYOK API key) to start a smart-
@@ -28,8 +28,12 @@
 
 export interface StreamSseOptions {
   signal?: AbortSignal;
-  /** Extra headers to merge into the POST request. */
+  /** HTTP method. POST remains the backward-compatible default. */
+  method?: 'GET' | 'POST';
+  /** Extra headers to merge into the request. */
   headers?: Record<string, string>;
+  /** Observe accepted response metadata before the stream body is read. */
+  onResponse?: (response: Response) => void;
   /**
    * Liveness bound: when set, the stream is declared DEAD after this many
    * milliseconds without a single byte arriving, and the generator throws
@@ -96,25 +100,27 @@ function _findFrameBoundary(buffer: string): { idx: number; len: number } | null
 }
 
 /**
- * POST `body` to `url` with `Accept: text/event-stream` and yield each
- * parsed SSE event. The caller is responsible for validating the
- * generic-typed result against its own schema.
+ * Fetch `url` with `Accept: text/event-stream` and yield parsed events.
+ * POST requests JSON-encode `body`; GET requests intentionally omit it.
  */
 export async function* streamSse<T = unknown>(
   url: string,
   body: unknown,
   options: StreamSseOptions = {},
 ): AsyncGenerator<T, void, void> {
+  const method = options.method ?? 'POST';
+  const hasBody = method === 'POST' && body !== undefined;
   const response = await fetch(url, {
-    method: 'POST',
+    method,
     headers: {
-      'Content-Type': 'application/json',
       Accept: 'text/event-stream',
+      ...(hasBody ? { 'Content-Type': 'application/json' } : {}),
       ...options.headers,
     },
-    body: JSON.stringify(body),
+    body: hasBody ? JSON.stringify(body) : undefined,
     signal: options.signal,
   });
+  options.onResponse?.(response);
 
   if (!response.ok) {
     let text = '';
@@ -197,7 +203,6 @@ export async function* streamSse<T = unknown>(
           // Malformed frame — skip and keep going rather than
           // poisoning the stream. Log for dev visibility.
           if (typeof console !== 'undefined') {
-            // eslint-disable-next-line no-console
             console.warn('[streamSse] skipping malformed frame:', payload.slice(0, 200));
           }
           continue;

@@ -231,4 +231,37 @@ describe('streamSse', () => {
     expect(init.headers['Accept']).toBe('text/event-stream');
     expect(init.headers['Content-Type']).toBe('application/json');
   });
+
+  it('supports bodyless GET streams for durable replay', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      okResponse(streamOf(['id: 4\nevent: ok\ndata: {"event":"ok","sequence":4}\n\n'])),
+    );
+    globalThis.fetch = fetchMock;
+
+    const events = await collect(
+      streamSse<{ event: string; sequence: number }>('/runs/abc/events?after=3', undefined, {
+        method: 'GET',
+      }),
+    );
+
+    expect(events).toEqual([{ event: 'ok', sequence: 4 }]);
+    const [, init] = fetchMock.mock.calls[0];
+    expect(init.method).toBe('GET');
+    expect(init.body).toBeUndefined();
+    expect(init.headers['Content-Type']).toBeUndefined();
+    expect(init.headers['Accept']).toBe('text/event-stream');
+  });
+
+  it('exposes response headers before reading the event body', async () => {
+    const response = new Response(
+      streamOf(['event: ok\ndata: {"event":"ok"}\n\n']),
+      { status: 200, headers: { 'X-BESSER-Run-Id': 'a'.repeat(32) } },
+    );
+    globalThis.fetch = vi.fn().mockResolvedValue(response);
+    const onResponse = vi.fn();
+
+    await collect(streamSse('/x', {}, { onResponse }));
+
+    expect(onResponse).toHaveBeenCalledWith(response);
+  });
 });

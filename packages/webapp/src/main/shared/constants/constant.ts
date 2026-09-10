@@ -175,6 +175,14 @@ export const sessionStorageAssistantHandleHinted = localStoragePrefix + 'assista
 // as long as the run is still within the backend's download TTL. Stored in
 // localStorage (not sessionStorage) so it survives a reload. Suffix: `<projectId>`.
 export const localStorageSpecDrivenLastRunPrefix = localStoragePrefix + 'smartgen_lastrun_';
+// Minimal pointer to a currently-running durable generation. Versioned so a
+// future schema change never misreads old recovery data. Contains no API key,
+// prompt, model payload, or generated content.
+export const localStorageSpecDrivenActiveRunV1 = localStoragePrefix + 'smartgen_active:v1';
+// V2 stores one pointer per run (`...:v2:<runId>`), preventing concurrent
+// runs in different tabs/projects from overwriting a single global record.
+export const localStorageSpecDrivenActiveRunV2Prefix =
+  localStoragePrefix + 'smartgen_active:v2:';
 
 // Smart-generation "Push to GitHub" connect-first intent.
 // When the user clicks "Push to GitHub" on a finished vibe-generation card but
@@ -198,6 +206,10 @@ export const specDrivenDownloadUrl = (runId: string): string =>
   `${BACKEND_URL}/spec-driven/download/${runId}`;
 export const cancelSpecDrivenUrl = (runId: string): string =>
   `${BACKEND_URL}/spec-driven/cancel/${runId}`;
+export const specDrivenRunStatusUrl = (runId: string): string =>
+  `${BACKEND_URL}/spec-driven/runs/${encodeURIComponent(runId)}`;
+export const specDrivenRunEventsUrl = (runId: string, afterSequence = 0): string =>
+  `${specDrivenRunStatusUrl(runId)}/events?after=${Math.max(0, Math.trunc(afterSequence))}`;
 
 // date formats
 export const longDate = 'MMMM Do YYYY, h:mm:ss a';

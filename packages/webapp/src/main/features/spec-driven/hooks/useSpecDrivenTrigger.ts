@@ -66,7 +66,10 @@ import { useAppDispatch, useAppSelector } from '../../../app/store/hooks';
 import { cancelSpecDrivenUrl } from '../../../shared/constants/constant';
 import type { BesserProject } from '../../../shared/types/project';
 import { buildProjectPayloadForBackend } from '../../../shared/utils/projectExportUtils';
-import { SseStallError } from '../../../shared/services/sse/sseClient';
+import {
+  SseHttpError,
+  SseStallError,
+} from '../../../shared/services/sse/sseClient';
 
 import {
   consumePendingTrigger,
@@ -85,16 +88,20 @@ import {
   tryClaimRunSlot,
 } from '../state/specDrivenSlice';
 import {
+  clearActiveSpecDrivenRun,
   clearSessionKey,
+  readActiveSpecDrivenRun,
   readFreeTierModel,
   readFreeTierSelected,
   readProjectLastRun,
   readSessionBudget,
   readSessionKey,
   writeFreeTierSelected,
+  writeActiveSpecDrivenRun,
   writeProjectLastRun,
 } from '../storage';
 import {
+  followSpecDrivenRun,
   startSpecDrivenRun,
   type StartSpecDrivenRunParams,
 } from '../services/specDrivenSseClient';
@@ -235,6 +242,8 @@ export function useSpecDrivenTrigger(
   // Latest runId / cost observed on the stream, for terminal reports.
   const currentRunIdRef = useRef<string | undefined>(undefined);
   const lastCostRef = useRef<number | undefined>(undefined);
+  const activeRunStartedAtRef = useRef<number>(0);
+  const lastSequenceRef = useRef<number>(0);
   // The active run's live key + card message id, so `abortActive` can
   // finalize the card immediately (a hung stream may never surface the
   // AbortError that would otherwise drive the finalize path).
@@ -421,9 +430,7 @@ export function useSpecDrivenTrigger(
   // there is no key/billing to protect, so the orphan-billing rationale does
   // not apply at all; an abandoned run simply completes (bounded by the cost
   // cap). Explicit cancels (the Stop button and New Chat -> abortActive) still
-  // stop a run on real user intent. A refined, provider-gated version (cancel
-  // on unload ONLY for BYOK/paid runs, and only once a reconnect-to-running-run
-  // path exists) can revisit this later.
+  // stop a run on real user intent. Durable replay now reattaches after a refresh.
   void cancelRunOnServer;  // retained for the explicit-cancel paths
 
   /**
@@ -510,6 +517,36 @@ export function useSpecDrivenTrigger(
         return;
       }
 
+      if (event.event === 'start') currentRunIdRef.current = event.runId;
+      if (
+        typeof event.sequence === 'number' &&
+        Number.isFinite(event.sequence) &&
+        event.sequence > 0
+      ) {
+        lastSequenceRef.current = Math.trunc(event.sequence);
+      }
+      const durableRunId = currentRunIdRef.current;
+      // Avoid synchronous localStorage writes for every text delta. Start
+      // guarantees the pointer exists; phase/cost updates checkpoint it at a
+      // low cadence while the live reconnect still consumes every sequence.
+      const shouldPersistCursor =
+        event.event === 'start' ||
+        event.event === 'phase' ||
+        event.event === 'cost';
+      if (
+        shouldPersistCursor &&
+        durableRunId &&
+        run.projectId &&
+        lastSequenceRef.current > 0
+      ) {
+        writeActiveSpecDrivenRun({
+          runId: durableRunId,
+          projectId: run.projectId,
+          lastSequence: lastSequenceRef.current,
+          startedAt: activeRunStartedAtRef.current || Date.now(),
+        });
+      }
+
       switch (event.event) {
         case 'start': {
           if (!isValidProvider(event.provider)) {
@@ -541,6 +578,7 @@ export function useSpecDrivenTrigger(
           const doneRunId =
             event.runId || extractSpecDrivenRunId(event.downloadUrl) || undefined;
           if (doneRunId) currentRunIdRef.current = doneRunId;
+          clearActiveSpecDrivenRun(doneRunId);
           // The deterministic Phase-1 generator BESSER ran (e.g. `fastapi`,
           // `django`, `web_app`). It's the only reliable "what was generated"
           // signal available client-side — a richer summary (file count, full
@@ -637,8 +675,8 @@ export function useSpecDrivenTrigger(
             //     error, cancellation) — "stopped early" is accurate.
             const incompleteMessage =
               blockerCount > 0
-                ? `⚠️ Generated ${filesPhrase}${withGen}, but the run **finished with ${blockerCount} unresolved issue${blockerCount === 1 ? '' : 's'} that may stop the app from running**.${topPhrase} You can resume the run to fix ${blockerCount === 1 ? 'it' : 'them'}, or use the **Download** button on the run card to save the code as-is.`
-                : `⚠️ Generated ${filesPhrase}${withGen}, but the run **stopped early — the output may be incomplete**.${event.incompleteReason ? ` ${event.incompleteReason}` : ``}${topPhrase} You can resume the run to finish the remaining changes. Use the **Download** button on the run card to save it.`;
+                ? `⚠️ Generated ${filesPhrase}${withGen}, but the run **finished with ${blockerCount} unresolved issue${blockerCount === 1 ? '' : 's'} that may stop the app from running**.${topPhrase} Start a follow-up generation to fix ${blockerCount === 1 ? 'it' : 'them'}, or use the **Download** button on the run card to save the code as-is.`
+                : `⚠️ Generated ${filesPhrase}${withGen}, but the run **stopped early — the output may be incomplete**.${event.incompleteReason ? ` ${event.incompleteReason}` : ``}${topPhrase} Start another generation to finish the remaining changes, or use the **Download** button on the run card to save it.`;
             appendAssistantMessage(
               event.incomplete
                 ? incompleteMessage
@@ -715,14 +753,20 @@ export function useSpecDrivenTrigger(
             dispatch(setApiKeyPresent(false));
           }
           clearFailsafeTimer();
+          clearActiveSpecDrivenRun(currentRunIdRef.current);
           // The slice reducer marked the card terminally errored (red
           // status pill + red notice) — snapshot it into the message so
           // the user can see the run failed without scrolling to the toast.
           finalizeLiveRun(run.liveKey, run.streamingId);
-          appendErrorToChat(
-            `❌ Spec-Driven Agent error (${event.code}): ${event.message}`,
-          );
-          toast.error(`Spec-Driven Agent: ${event.code}`);
+          if (event.code === 'CANCELLED' && event.reason === 'abandoned') {
+            appendAssistantMessage(`⏹ Generation stopped after disconnect. ${event.message}`);
+            toast.warning('Generation stopped after the disconnect grace period');
+          } else {
+            appendErrorToChat(
+              `❌ Spec-Driven Agent error (${event.code}): ${event.message}`,
+            );
+            toast.error(`Spec-Driven Agent: ${event.code}`);
+          }
           reportRunFinished({
             ok: false,
             runId: currentRunIdRef.current,
@@ -735,7 +779,6 @@ export function useSpecDrivenTrigger(
           // Unknown event — log for schema-drift visibility during
           // development. Never throws on the stream.
           if (typeof console !== 'undefined') {
-            // eslint-disable-next-line no-console
             console.warn('[useSpecDrivenTrigger] unknown SSE event', event);
           }
           return;
@@ -744,7 +787,6 @@ export function useSpecDrivenTrigger(
     },
     // `abortActiveInternal` is declared below via a ref so it doesn't
     // need to be in the deps array.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
     [
       appendAssistantMessage,
       appendErrorToChat,
@@ -765,6 +807,119 @@ export function useSpecDrivenTrigger(
   const abortActiveInternal = useCallback(() => {
     abortActiveInternalRef.current();
   }, []);
+
+  const recoveryProjectId = currentProjectRef.current?.id;
+
+  // A page reload destroys React state and the old fetch reader, but the
+  // backend worker now continues independently. Recreate a live card and
+  // replay its durable event log. Two assistant surfaces mount this hook;
+  // the global run-slot claim ensures exactly one becomes the subscriber.
+  useEffect(() => {
+    const saved = readActiveSpecDrivenRun(recoveryProjectId);
+    if (!saved || !recoveryProjectId || saved.projectId !== recoveryProjectId) return;
+    if (isRunningRef.current || !dispatch(tryClaimRunSlot())) return;
+
+    const liveKey = createMessageId();
+    dispatch(liveRunStarted({ key: liveKey }));
+    const streamingId = appendAssistantMessage('', {
+      isStreaming: true,
+      specDriven: emptyCard(liveKey),
+    });
+
+    isRunningRef.current = true;
+    abortRequestedRef.current = false;
+    runFinishedReportedRef.current = false;
+    currentRunIdRef.current = saved.runId;
+    activeRunStartedAtRef.current = saved.startedAt;
+    // The running card itself is intentionally not persisted. Replay from the
+    // beginning so the new card reconstructs every phase and tool entry.
+    lastSequenceRef.current = 0;
+    activeCardRef.current = { liveKey, streamingId };
+    setIsGenerating(false);
+
+    const handle = followSpecDrivenRun(saved.runId, 0);
+    abortRef.current = handle.abort;
+    const runCtx = {
+      liveKey,
+      streamingId,
+      projectId: saved.projectId,
+    };
+
+    void (async () => {
+      let terminalEventSeen = false;
+      try {
+        for await (const event of handle.events) {
+          if (abortRequestedRef.current) break;
+          terminalEventSeen =
+            terminalEventSeen ||
+            event.event === 'done' ||
+            (event.event === 'error' && !isNonTerminalErrorEvent(event));
+          await handleSseEvent(event, runCtx);
+        }
+        if (!abortRequestedRef.current && !terminalEventSeen) {
+          const message = 'The saved generation run ended without a final result.';
+          dispatch(
+            liveRunEvent({
+              key: liveKey,
+              event: { event: 'error', code: 'INTERNAL', message },
+            }),
+          );
+          finalizeLiveRun(liveKey, streamingId, { statusIfRunning: 'error' });
+          appendErrorToChat(message);
+          reportRunFinished({
+            ok: false,
+            runId: saved.runId,
+            errorCode: 'INTERNAL',
+            costUsd: lastCostRef.current,
+          });
+        }
+      } catch (error) {
+        const isAbort = error instanceof DOMException && error.name === 'AbortError';
+        if (!isAbort) {
+          if (
+            error instanceof SseHttpError &&
+            (error.status === 404 || error.status === 410)
+          ) {
+            clearActiveSpecDrivenRun(saved.runId);
+          }
+          const message = error instanceof Error ? error.message : String(error);
+          dispatch(
+            liveRunEvent({
+              key: liveKey,
+              event: { event: 'error', code: 'INTERNAL', message },
+            }),
+          );
+          finalizeLiveRun(liveKey, streamingId, { statusIfRunning: 'error' });
+          appendErrorToChat(`Could not reconnect to generation ${saved.runId.slice(0, 8)}: ${message}`);
+          toast.error('Could not reconnect to the active generation');
+          reportRunFinished({
+            ok: false,
+            runId: saved.runId,
+            errorCode: 'INTERNAL',
+            costUsd: lastCostRef.current,
+          });
+        }
+      } finally {
+        abortRef.current = null;
+        isRunningRef.current = false;
+        clearFailsafeTimer();
+        finalizeLiveRun(liveKey, streamingId);
+        activeCardRef.current = null;
+        dispatch(releaseRunSlot());
+        if (mountedRef.current) setIsGenerating(false);
+      }
+    })();
+  }, [
+    appendAssistantMessage,
+    appendErrorToChat,
+    clearFailsafeTimer,
+    dispatch,
+    finalizeLiveRun,
+    handleSseEvent,
+    recoveryProjectId,
+    reportRunFinished,
+    setIsGenerating,
+  ]);
 
   /**
    * Do the actual SSE run after we know we have a key. Kept separate so
@@ -875,6 +1030,8 @@ export function useSpecDrivenTrigger(
       runFinishedReportedRef.current = false;
       currentRunIdRef.current = undefined;
       lastCostRef.current = undefined;
+      activeRunStartedAtRef.current = Date.now();
+      lastSequenceRef.current = 0;
       activeCardRef.current = { liveKey, streamingId };
       // The run card is the progress surface from here on — CLEAR the
       // chat's typing indicator instead of pinning it for the whole run
@@ -957,6 +1114,15 @@ export function useSpecDrivenTrigger(
         primaryKindOverride: payload.primaryKindOverride,
         targetGeneratorOverride: payload.targetGeneratorOverride,
         skipDeterministicGenerator: payload.skipDeterministicGenerator,
+        onRunAccepted: (runId) => {
+          currentRunIdRef.current = runId;
+          writeActiveSpecDrivenRun({
+            runId,
+            projectId: project.id,
+            lastSequence: 0,
+            startedAt: activeRunStartedAtRef.current || Date.now(),
+          });
+        },
       };
 
       let handle;
@@ -1207,6 +1373,7 @@ export function useSpecDrivenTrigger(
       // what keeps New Chat / Stop from orphaning a run that keeps billing the
       // user's key. Only ever this session's own runId.
       cancelRunOnServer(currentRunIdRef.current);
+      clearActiveSpecDrivenRun(currentRunIdRef.current);
       isRunningRef.current = false;
       setIsGenerating(false);
       dispatch(resetRun());

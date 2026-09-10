@@ -203,8 +203,9 @@ export function applySpecDrivenEvent(
       return { ...card, text: card.text + event.delta };
     }
     case 'model_update': {
-      const note =
-        event.reason === 'primary_unavailable'
+      const note = event.reason === 'quota_exhausted'
+        ? 'The free daily quota was exhausted, so the run continued on the fallback model.'
+        : event.reason === 'primary_unavailable'
           ? 'The primary model was unavailable.'
           : 'The serving model changed mid-run.';
       return {

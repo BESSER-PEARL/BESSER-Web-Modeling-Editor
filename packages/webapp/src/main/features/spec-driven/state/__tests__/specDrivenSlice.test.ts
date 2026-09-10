@@ -407,6 +407,17 @@ describe('specDrivenSlice — applySpecDrivenEvent (pure card reducer)', () => {
     expect(row?.label).toBe('Switched to qwen3-coder:30b');
     expect(row?.message).toBe('The primary model was unavailable.');
   });
+
+  it('model_update explains when the free daily quota is exhausted', () => {
+    const next = applySpecDrivenEvent(CARD, {
+      event: 'model_update',
+      model: 'qwen3-coder:30b',
+      previousModel: 'meituan/LongCat-2.0:free',
+      reason: 'quota_exhausted',
+    });
+    const row = next.phases.find((p) => p.phase === 'model');
+    expect(row?.message).toContain('free daily quota was exhausted');
+  });
 });
 
 describe('specDrivenSlice — global runStatus guard', () => {

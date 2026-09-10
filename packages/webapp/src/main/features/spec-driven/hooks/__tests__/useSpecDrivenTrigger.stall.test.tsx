@@ -130,6 +130,7 @@ describe('useSpecDrivenTrigger — dead mid-run transport (frozen card regressio
 
   beforeEach(() => {
     window.sessionStorage.clear();
+  window.localStorage?.clear();
     window.sessionStorage.setItem(sessionStorageSpecDrivenApiKey, 'sk-test');
     window.sessionStorage.setItem(sessionStorageSpecDrivenProvider, 'anthropic');
   });
@@ -139,6 +140,7 @@ describe('useSpecDrivenTrigger — dead mid-run transport (frozen card regressio
     vi.useRealTimers();
     vi.restoreAllMocks();
     window.sessionStorage.clear();
+    window.localStorage?.clear();
   });
 
   it('paints the early events, then detects the stall and finalizes the card honestly', async () => {
