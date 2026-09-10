@@ -48,9 +48,17 @@ import { PIA_GATEWAY_BASE_URL } from '../../constants/constant';
 
 const DEFAULT_LOCAL_BASE_URL = 'http://localhost:11434/v1';
 
-// Static caps for the Spec-Driven run budget. The server ALSO enforces these
-// (LLM_MAX_COST_USD_HARD_CAP=$5 / runtime hard cap 900s), so this is UX only.
-const RUN_BUDGET = {
+// Last-resort bounds for the Spec-Driven run budget, used ONLY until the
+// server's real caps arrive from GET /spec-driven/config (and if that call
+// fails). These are deliberately NOT the source of truth.
+//
+// They used to be: a hardcoded mirror of the server constants, with a comment
+// asserting the runtime hard cap was 900s. The server's cap later moved to
+// 2400s via BESSER_LLM_MAX_RUNTIME_SECONDS_HARD_CAP and this copy did not, so
+// the UI silently became the binding limit - runs were killed at 15 min by a
+// cap the backend never imposed, losing work that was progressing fine
+// (observed 2026-09-10). Read the caps; never re-hardcode them.
+const RUN_BUDGET_FALLBACK = {
   defaultCostUsd: 1,
   maxCostUsd: 5,
   defaultRuntimeMin: 10,
@@ -328,8 +336,24 @@ export const LlmKeyDialog: React.FC<LlmKeyDialogProps> = ({
   const [customModel, setCustomModel] = useState<string>('');
   const [baseUrl, setBaseUrl] = useState<string>('');
   const [budgetOpen, setBudgetOpen] = useState<boolean>(false);
-  const [maxCostInput, setMaxCostInput] = useState<string>(String(RUN_BUDGET.defaultCostUsd));
-  const [maxRuntimeMinInput, setMaxRuntimeMinInput] = useState<string>(String(RUN_BUDGET.defaultRuntimeMin));
+  const [maxCostInput, setMaxCostInput] = useState<string>(
+    String(RUN_BUDGET_FALLBACK.defaultCostUsd),
+  );
+  const [maxRuntimeMinInput, setMaxRuntimeMinInput] = useState<string>(
+    String(RUN_BUDGET_FALLBACK.defaultRuntimeMin),
+  );
+  // Server-published run-budget caps. The config service already validates
+  // that all four values are finite numbers, so they are safe to use directly.
+  const [caps, setCaps] = useState(FALLBACK_SMART_GEN_CONFIG.caps);
+  const budgetBounds = useMemo(
+    () => ({
+      defaultCostUsd: caps.default_max_cost_usd,
+      maxCostUsd: caps.max_cost_usd_hard_cap,
+      defaultRuntimeMin: Math.max(1, Math.round(caps.default_max_runtime_seconds / 60)),
+      maxRuntimeMin: Math.max(1, Math.round(caps.max_runtime_seconds_hard_cap / 60)),
+    }),
+    [caps],
+  );
   // Free-tier advertisement from GET /spec-driven/config (cached module-level).
   // Starts at the fallback (unavailable) so an old backend never shows a Free
   // option that cannot run.
@@ -362,6 +386,7 @@ export const LlmKeyDialog: React.FC<LlmKeyDialogProps> = ({
     void getSpecDrivenConfig().then((cfg) => {
       if (cancelled) return;
       setFreeTier(cfg.free_tier);
+      setCaps(cfg.caps);
       const storedFreeModel = readFreeTierModel();
       const freeModels = cfg.free_tier.models;
       setFreeModelChoice(
@@ -414,9 +439,11 @@ export const LlmKeyDialog: React.FC<LlmKeyDialogProps> = ({
       stored?.baseUrl && stored.baseUrl !== PIA_GATEWAY_BASE_URL ? stored.baseUrl : '';
     setBaseUrl(nextProvider === 'local' ? storedBase || DEFAULT_LOCAL_BASE_URL : storedBase);
     const budget = readLlmBudget();
-    setMaxCostInput(String(budget?.maxCostUsd ?? RUN_BUDGET.defaultCostUsd));
+    setMaxCostInput(String(budget?.maxCostUsd ?? budgetBounds.defaultCostUsd));
     setMaxRuntimeMinInput(
-      String(Math.round((budget?.maxRuntimeSeconds ?? RUN_BUDGET.defaultRuntimeMin * 60) / 60)),
+      String(
+        Math.round((budget?.maxRuntimeSeconds ?? budgetBounds.defaultRuntimeMin * 60) / 60),
+      ),
     );
     setBudgetOpen(false);
   }, [open]);
@@ -502,9 +529,13 @@ export const LlmKeyDialog: React.FC<LlmKeyDialogProps> = ({
       return Math.min(n, max);
     };
     writeLlmBudget({
-      maxCostUsd: clampNum(maxCostInput, RUN_BUDGET.defaultCostUsd, RUN_BUDGET.maxCostUsd),
+      maxCostUsd: clampNum(
+        maxCostInput, budgetBounds.defaultCostUsd, budgetBounds.maxCostUsd,
+      ),
       maxRuntimeSeconds:
-        clampNum(maxRuntimeMinInput, RUN_BUDGET.defaultRuntimeMin, RUN_BUDGET.maxRuntimeMin) * 60,
+        clampNum(
+          maxRuntimeMinInput, budgetBounds.defaultRuntimeMin, budgetBounds.maxRuntimeMin,
+        ) * 60,
     });
   };
 
@@ -818,7 +849,7 @@ export const LlmKeyDialog: React.FC<LlmKeyDialogProps> = ({
                         type="number"
                         min={0.1}
                         step={0.1}
-                        max={RUN_BUDGET.maxCostUsd}
+                        max={budgetBounds.maxCostUsd}
                         value={maxCostInput}
                         onChange={(e) => setMaxCostInput(e.target.value)}
                       />
@@ -830,14 +861,14 @@ export const LlmKeyDialog: React.FC<LlmKeyDialogProps> = ({
                         type="number"
                         min={1}
                         step={1}
-                        max={RUN_BUDGET.maxRuntimeMin}
+                        max={budgetBounds.maxRuntimeMin}
                         value={maxRuntimeMinInput}
                         onChange={(e) => setMaxRuntimeMinInput(e.target.value)}
                       />
                     </div>
                   </div>
                   <p className="text-xs text-muted-foreground">
-                    Up to ${RUN_BUDGET.maxCostUsd} and {RUN_BUDGET.maxRuntimeMin} min per run.
+                    Up to ${budgetBounds.maxCostUsd} and {budgetBounds.maxRuntimeMin} min per run.
                   </p>
                 </div>
               )}
