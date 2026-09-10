@@ -105,9 +105,23 @@ describe('SpecDrivenCard — runtime meter', () => {
 });
 
 describe('SpecDrivenCard — live activity strip (feels alive on long runs)', () => {
-  it('shows a ticking "Working — N elapsed" while running', () => {
+  it('shows a "Working" strip while running', () => {
     renderCard(baseSpecDriven({ elapsedSeconds: 190, maxRuntime: 600 }));
-    expect(screen.getByText(/Working — 3m 10s elapsed/)).toBeTruthy();
+    expect(screen.getByText(/Working/)).toBeTruthy();
+  });
+
+  it('shows the elapsed clock ONCE - in the footer meter, not the strip', () => {
+    // The strip used to repeat "Working - 3m 10s elapsed" above a footer
+    // already reading "3m 10s / 10m", so the same clock rendered twice in one
+    // card. One timer only: the footer meter, which is driven by the backend
+    // cost heartbeat and therefore freezes if the transport dies.
+    const { container } = renderCard(
+      baseSpecDriven({ elapsedSeconds: 190, maxRuntime: 600 }),
+    );
+    const occurrences = (container.textContent ?? '').match(/3m 10s/g) ?? [];
+    expect(occurrences).toHaveLength(1);
+    expect(container.textContent).toContain('3m 10s / 10m');
+    expect(container.textContent).not.toContain('elapsed');
   });
 
   it('adds a reassurance once a phase has run a while (>=45s)', () => {

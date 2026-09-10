@@ -1288,22 +1288,17 @@ function SpecDrivenCard({
         </div>
       )}
 
-      {/* Live activity strip — the honest "it's still alive" signal during a
-          long, quiet phase (pilot: a healthy 10-min run *looked* frozen because
-          only the footer clock moved and the phase spinner spins even when the
-          stream is dead). The elapsed time here is driven by the backend's ~2s
-          cost heartbeat, so it KEEPS TICKING while the run is genuinely alive
-          and FREEZES if the transport dies (the stall watchdog then surfaces an
-          error) — unlike a CSS spinner, it can't lie. */}
+      {/* Live activity strip — the "it's still alive" signal during a long,
+          quiet phase (pilot: a healthy 10-min run *looked* frozen because the
+          phase spinner spins even when the stream is dead). The clock is NOT
+          repeated here: the footer's runtime meter is the single timer, and it
+          is driven by the backend's ~2s cost heartbeat, so it KEEPS TICKING
+          while the run is genuinely alive and FREEZES if the transport dies
+          (the stall watchdog then surfaces an error). */}
       {status === "running" ? (
         <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 border-t border-border/40 bg-background/40 px-3 py-2 text-xs">
           <Loader2 className="h-3.5 w-3.5 shrink-0 animate-spin text-primary" />
-          <span className="font-medium text-foreground">
-            Working
-            {typeof elapsedSeconds === "number"
-              ? ` — ${formatDuration(elapsedSeconds)} elapsed`
-              : "…"}
-          </span>
+          <span className="font-medium text-foreground">Working…</span>
           {typeof elapsedSeconds === "number" && elapsedSeconds >= 45 ? (
             <span className="text-[11px] text-muted-foreground">
               Big steps can take a few minutes — the timer keeps moving while
