@@ -7,9 +7,9 @@ export enum SoftwarePatternCategory {
   BEHAVIORAL = 'Behavioral',
   AGENT = 'Agent Diagram',
   STATE_MACHINE = 'State Machine Diagram',
+  BPMN = 'BPMN Diagram',
   QUANTUM_CIRCUIT = 'Quantum Circuit',
   NN = 'Neural Network',
-  BPMN = 'BPMN Diagram',
   FULL_PROJECT = 'Full Project',
 }
 
@@ -26,17 +26,18 @@ export enum SoftwarePatternType {
   DB_AGENT = 'Database Agent',
   GYM_AGENT = 'Gym Agent',
   FAQ_RAG_AGENT = 'FAQ RAG Agent',
+  CHATBOT_AGENT = 'Chatbot Agent',
   LIBRARY_AGENT = 'Library Agent',
   // State Machine patterns
   TRAFIC_LIGHT = 'Traffic Light',
+  // BPMN patterns
+  BPMN_PARALLEL_REVIEW = 'Parallel Review',
+  BPMN_CAR_WASH = 'Car Wash',
+  BPMN_PIZZA_STORE = 'Pizza Store',
   // Neural Network patterns
   NN_TUTORIAL_EXAMPLE = 'CIFAR-10 CNN (with Training + Test)',
   NN_ALEXNET = 'AlexNet',
   NN_LSTM = 'LSTM',
-  // BPMN patterns
-  BPMN_CAR_WASH = 'Car Wash',
-  BPMN_PARALLEL_REVIEW = 'Parallel Review',
-  BPMN_PIZZA_STORE = 'Pizza Store',
   // Quantum Circuit patterns
   QUANTUM_EMPTY = 'Empty Circuit',
   QUANTUM_SINGLE_GATES = 'Single Qubit Gates',

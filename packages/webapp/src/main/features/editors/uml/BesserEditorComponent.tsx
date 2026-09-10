@@ -1,7 +1,9 @@
 import { BesserEditor, UMLDiagramType, UMLModel, diagramBridge } from '@besser/wme';
 import React, { useEffect, useRef, useContext, useCallback } from 'react';
 import { useStore } from 'react-redux';
+import { useTranslation } from 'react-i18next';
 
+import { toEditorLocale } from '../../../shared/i18n/languages';
 import { BesserEditorContext } from './besser-editor-context';
 import { useAppDispatch, useAppSelector } from '../../../app/store/hooks';
 import { isUMLModel, SupportedDiagramType } from '../../../shared/types/project';
@@ -49,6 +51,9 @@ export const BesserEditorComponent: React.FC = () => {
   const stateMachineDiagrams = useAppSelector(selectStateMachineDiagrams);
   const quantumCircuitDiagrams = useAppSelector(selectQuantumCircuitDiagrams);
   const { setEditor } = useContext(BesserEditorContext);
+  const { i18n } = useTranslation();
+  const localeRef = useRef(toEditorLocale(i18n.resolvedLanguage ?? i18n.language));
+  localeRef.current = toEditorLocale(i18n.resolvedLanguage ?? i18n.language);
 
   // Stable refs so the setup effect can read current values without
   // needing them in its dependency array (avoids destroy/recreate loops).
@@ -132,6 +137,17 @@ export const BesserEditorComponent: React.FC = () => {
     await destroyEditorDeferred(editor);
   }, [destroyEditorDeferred, flushPendingSave]);
 
+  // Keep the diagramBridge's agentPlatform in sync with the active diagram's config.
+  // This ensures editor popups read the correct platform even when the user hasn't
+  // visited the agent config panel in this session.
+  useEffect(() => {
+    const platform = (reduxDiagram?.config?.agentPlatform as string | undefined) ?? 'websocket';
+    const bridge = diagramBridge as { setAgentPlatform?: (platform: string) => void };
+    if (typeof bridge.setAgentPlatform === 'function') {
+      bridge.setAgentPlatform(platform);
+    }
+  }, [reduxDiagram]);
+
   useEffect(() => {
     const smDiagrams = stateMachineDiagrams ?? [];
     const qcDiagrams = quantumCircuitDiagrams ?? [];
@@ -156,6 +172,24 @@ export const BesserEditorComponent: React.FC = () => {
       setEditor!(undefined);
     };
   }, [cleanupEditor, setEditor]);
+
+  // Keep the editor engine's UI language in sync with the app language.
+  // `set locale` updates the editor's UI language in place, model preserved.
+  useEffect(() => {
+    const handleLanguageChange = (lng: string) => {
+      const editor = editorRef.current;
+      if (!editor) return;
+      try {
+        editor.locale = toEditorLocale(lng);
+      } catch (error) {
+        console.warn('Failed to update editor locale:', error);
+      }
+    };
+    i18n.on('languageChanged', handleLanguageChange);
+    return () => {
+      i18n.off('languageChanged', handleLanguageChange);
+    };
+  }, [i18n]);
 
   // Handle editor creation/recreation (initial load + diagram switches/templates).
   // Only runs when editorRevision actually changes (not on every Redux update).
@@ -187,7 +221,7 @@ export const BesserEditorComponent: React.FC = () => {
         diagramIndex: setupState.activeDiagramIndex,
       };
 
-      const nextEditor = new BesserEditor(containerRef.current, currentOptions);
+      const nextEditor = new BesserEditor(containerRef.current, { ...currentOptions, locale: localeRef.current });
       editorRef.current = nextEditor;
       await nextEditor.nextRender;
       if (runId !== setupRunRef.current || editorRef.current !== nextEditor) {

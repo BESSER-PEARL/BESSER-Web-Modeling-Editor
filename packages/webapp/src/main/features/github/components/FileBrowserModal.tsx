@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { ArrowUp, Check, FileText, Folder, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -28,10 +29,12 @@ export const FileBrowserModal: React.FC<FileBrowserModalProps> = ({
   onHide,
   onSelect,
   fetchContents,
-  title = 'Select File',
+  title,
   selectMode = 'file',
   initialPath = '',
 }) => {
+  const { t } = useTranslation();
+  const resolvedTitle = title ?? t('github.fileBrowser.selectFile');
   const [currentPath, setCurrentPath] = useState(initialPath);
   const [contents, setContents] = useState<GitHubContentItem[]>([]);
   const [loading, setLoading] = useState(false);
@@ -53,7 +56,7 @@ export const FileBrowserModal: React.FC<FileBrowserModalProps> = ({
       const items = await fetchContents(path);
       setContents([...items].sort(itemSorter));
     } catch (err) {
-      setError('Failed to load directory contents');
+      setError(t('github.fileBrowser.loadFailed'));
       console.error(err);
     } finally {
       setLoading(false);
@@ -67,13 +70,13 @@ export const FileBrowserModal: React.FC<FileBrowserModalProps> = ({
 
     setCurrentPath(initialPath);
     setSelectedItem(null);
-    loadContents(initialPath).catch(notifyError('Loading directory contents'));
+    loadContents(initialPath).catch(notifyError(t('github.context.loadingDirectory')));
   }, [show, initialPath]);
 
   const openPath = (path: string) => {
     setCurrentPath(path);
     setSelectedItem(null);
-    loadContents(path).catch(notifyError('Loading directory contents'));
+    loadContents(path).catch(notifyError(t('github.context.loadingDirectory')));
   };
 
   const handleItemClick = (item: GitHubContentItem) => {
@@ -126,7 +129,7 @@ export const FileBrowserModal: React.FC<FileBrowserModalProps> = ({
     <Dialog open={show} onOpenChange={(open) => !open && onHide()}>
       <DialogContent className="max-h-[86vh] overflow-hidden sm:max-w-3xl">
         <DialogHeader>
-          <DialogTitle>{title}</DialogTitle>
+          <DialogTitle>{resolvedTitle}</DialogTitle>
         </DialogHeader>
 
         <div className="flex flex-col gap-3">
@@ -139,7 +142,7 @@ export const FileBrowserModal: React.FC<FileBrowserModalProps> = ({
                 !pathSegments.length && 'bg-accent text-accent-foreground',
               )}
             >
-              root
+              {t('github.fileBrowser.root')}
             </button>
             {pathSegments.map((segment, index) => (
               <React.Fragment key={`${segment}-${index}`}>
@@ -161,7 +164,7 @@ export const FileBrowserModal: React.FC<FileBrowserModalProps> = ({
           {currentPath && (
             <Button variant="outline" size="sm" onClick={handleNavigateUp} className="gap-1">
               <ArrowUp className="size-4" />
-              Up one level
+              {t('github.fileBrowser.upOneLevel')}
             </Button>
           )}
 
@@ -176,7 +179,7 @@ export const FileBrowserModal: React.FC<FileBrowserModalProps> = ({
             ) : error ? (
               <div className="p-4 text-center text-sm text-destructive">{error}</div>
             ) : contents.length === 0 ? (
-              <div className="p-4 text-center text-sm text-muted-foreground">Empty directory</div>
+              <div className="p-4 text-center text-sm text-muted-foreground">{t('github.fileBrowser.emptyDirectory')}</div>
             ) : (
               <ul className="divide-y divide-border/60">
                 {contents.map((item) => {
@@ -209,17 +212,17 @@ export const FileBrowserModal: React.FC<FileBrowserModalProps> = ({
 
           {selectMode === 'dir' && (
             <p className="text-xs text-muted-foreground">
-              Navigate to the target folder, then click "Select Current Folder".
+              {t('github.fileBrowser.dirHint')}
             </p>
           )}
         </div>
 
         <DialogFooter>
           <Button variant="outline" onClick={onHide}>
-            Cancel
+            {t('common.cancel')}
           </Button>
           <Button onClick={handleConfirm} disabled={selectMode === 'file' && !selectedItem}>
-            {selectMode === 'dir' ? 'Select Current Folder' : 'Select File'}
+            {selectMode === 'dir' ? t('github.fileBrowser.selectCurrentFolder') : t('github.fileBrowser.selectFile')}
           </Button>
         </DialogFooter>
       </DialogContent>

@@ -1,25 +1,30 @@
 import { describe, it, expect } from 'vitest';
 import { UMLDiagramType } from '@besser/wme';
 import type { UMLModel, BesserNode, BesserEdge } from '@besser/wme';
-import { apollonBpmnToXml } from '../../export/bpmn-xml-exporter';
-import { bpmnXmlToApollon } from '../bpmn-xml-importer';
+import { apollonBpmnToXmlDetailed } from '../../export/bpmn-xml-exporter';
+import { bpmnXmlToModel } from '../bpmn-xml-importer';
 
 // Round-trip test for the v4 .bpmn XML exporter ↔ importer pair.
 //
 // Builds a representative collaboration (pool, two lanes, task/event/gateway
 // subtypes, sequence + message flows with a default flow, plus BPMN DI bounds),
-// exports it to BPMN 2.0 XML, re-imports it, and asserts structural identity on
-// node types, names, parentId containment, edge types, and the default flag.
+// exports it to BPMN 2.0 XML, re-imports it, and asserts structural + DI
+// identity on node types, names, parentId containment, absolute bounds, edge
+// types, waypoints, and the default flag.
 //
 // Positions are laid out so the node bounding box is centered on the origin; the
-// importer's centerOnOrigin() shift is therefore a no-op.
+// importer's centerOnOrigin() shift is therefore a no-op (dx = dy = 0), which
+// lets absolute DI bounds and edge waypoints round-trip exactly.
+
+type Bounds = { x: number; y: number; width: number; height: number };
+type Point = { x: number; y: number };
 
 function node(
   id: string,
   type: string,
   name: string,
   parentId: string | undefined,
-  position: { x: number; y: number },
+  position: Point,
   size: { width: number; height: number },
   extraData: Record<string, unknown> = {},
 ): BesserNode {
@@ -41,7 +46,7 @@ function edge(
   target: string,
   type: string,
   name: string,
-  points: Array<{ x: number; y: number }>,
+  points: Point[],
   isDefault = false,
 ): BesserEdge {
   return {
@@ -53,6 +58,25 @@ function edge(
     targetHandle: '',
     data: { label: name, name, ...(isDefault ? { isDefault: true } : {}), points },
   };
+}
+
+/**
+ * Absolute canvas bounds of a v4 node: its parent-relative position summed up
+ * the `parentId` chain. This is exactly what the exporter writes as BPMN DI
+ * `dc:Bounds`, so it is the quantity that must survive export → import.
+ */
+function absoluteBounds(n: BesserNode, byId: Map<string, BesserNode>): Bounds {
+  let x = n.position.x;
+  let y = n.position.y;
+  let pid = n.parentId;
+  while (pid) {
+    const p = byId.get(pid);
+    if (!p) break;
+    x += p.position.x;
+    y += p.position.y;
+    pid = p.parentId;
+  }
+  return { x, y, width: n.width, height: n.height };
 }
 
 function buildModel(): UMLModel {
@@ -112,32 +136,48 @@ function buildModel(): UMLModel {
 
 describe('BPMN v4 XML export ↔ import round-trip', () => {
   const original = buildModel();
-  const xml = apollonBpmnToXml(original);
-  const result = bpmnXmlToApollon(xml);
+  const { xml, skipped: exportSkipped } = apollonBpmnToXmlDetailed(original);
+  const result = bpmnXmlToModel(xml);
 
+  const inNodes = new Map(original.nodes.map((n) => [n.id, n]));
   const outNodes = new Map(result.model.nodes.map((n) => [n.id, n]));
   const outEdges = new Map(result.model.edges.map((e) => [e.id, e]));
 
-  it('re-imports as a BPMNDiagram model', () => {
+  it('exports and re-imports without skipping anything or emitting warnings', () => {
+    expect(exportSkipped).toEqual([]);
+    expect(result.skipped).toEqual([]);
+    expect(result.warnings).toEqual([]);
+  });
+
+  it('re-imports as a v4 BPMNDiagram model', () => {
     expect(result.model.type).toBe(UMLDiagramType.BPMN);
     expect(result.model.type).toBe('BPMNDiagram');
     expect(result.model.version).toBe('4.0.0');
+    expect(Array.isArray(result.model.nodes)).toBe(true);
+    expect(Array.isArray(result.model.edges)).toBe(true);
   });
 
   it('preserves the full set of nodes', () => {
     expect([...outNodes.keys()].sort()).toEqual(original.nodes.map((n) => n.id).sort());
   });
 
-  it('round-trips every node: type, name, parentId, and type-specific fields', () => {
+  it('round-trips every node: type, name, parentId, DI bounds, and type-specific fields', () => {
     for (const before of original.nodes) {
       const after = outNodes.get(before.id);
       expect(after, `node ${before.id} missing after import`).toBeDefined();
       expect(after!.type).toBe(before.type);
       expect(after!.data.name).toBe(before.data.name);
+      // undefined parentId on both sides means "top level".
       expect(after!.parentId ?? null).toBe(before.parentId ?? null);
+      // BPMN DI bounds are absolute; the importer re-derives parent-relative
+      // positions, so compare the absolute frame on both sides.
+      expect(absoluteBounds(after!, outNodes)).toEqual(absoluteBounds(before, inNodes));
+      expect(after!.width).toBe(before.width);
+      expect(after!.height).toBe(before.height);
       if (before.data.taskType !== undefined) expect(after!.data.taskType).toBe(before.data.taskType);
       if (before.data.gatewayType !== undefined) expect(after!.data.gatewayType).toBe(before.data.gatewayType);
       if (before.data.eventType !== undefined) expect(after!.data.eventType).toBe(before.data.eventType);
+      // Importer always materializes a marker ('none' when no loop characteristics).
       if (before.type === 'bpmnTask') expect(after!.data.marker).toBe(before.data.marker);
     }
   });
@@ -146,7 +186,7 @@ describe('BPMN v4 XML export ↔ import round-trip', () => {
     expect([...outEdges.keys()].sort()).toEqual(original.edges.map((e) => e.id).sort());
   });
 
-  it('round-trips every edge: type, endpoints, name (data.name + data.label), and default flag', () => {
+  it('round-trips every edge: type, endpoints, name (data.name + data.label), default flag, and DI waypoints', () => {
     for (const before of original.edges) {
       const after = outEdges.get(before.id);
       expect(after, `edge ${before.id} missing after import`).toBeDefined();
@@ -156,11 +196,14 @@ describe('BPMN v4 XML export ↔ import round-trip', () => {
       expect(after!.data.name).toBe(before.data.name);
       expect(after!.data.label).toBe(before.data.name);
       expect(Boolean(after!.data.isDefault)).toBe(Boolean(before.data.isDefault));
+      // DI edge geometry: absolute waypoints survive the cycle unchanged.
+      expect(after!.data.points).toEqual(before.data.points);
     }
   });
 
   it('keeps the gateway default flow attached to exactly one source', () => {
     expect(outEdges.get('Seq_3')!.data.isDefault).toBe(true);
+    // Only the one default flow is marked; sibling branches stay non-default.
     expect(Boolean(outEdges.get('Seq_4')!.data.isDefault)).toBe(false);
     expect(result.model.edges.filter((e) => e.data.isDefault).length).toBe(1);
   });

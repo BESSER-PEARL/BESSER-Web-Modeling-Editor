@@ -1,5 +1,6 @@
 import { useState, useCallback } from 'react';
 import { toast } from 'react-toastify';
+import { useTranslation } from 'react-i18next';
 import { useImportDiagramPictureFromImage } from '../../../features/import/useImportDiagramPicture';
 import { useImportDiagramFromKG } from '../../../features/import/useImportDiagramKG';
 import type { AssistantImportMode } from '../../../features/assistant/components/AssistantImportDialog';
@@ -10,6 +11,7 @@ interface UseAssistantImportOptions {
 }
 
 export function useAssistantImport({ currentProject }: UseAssistantImportOptions) {
+  const { t } = useTranslation();
   const importDiagramPictureFromImage = useImportDiagramPictureFromImage();
   const importDiagramFromKG = useImportDiagramFromKG();
 
@@ -29,14 +31,14 @@ export function useAssistantImport({ currentProject }: UseAssistantImportOptions
 
   const openAssistantImportDialog = useCallback((mode: Exclude<AssistantImportMode, null>) => {
     if (!currentProject) {
-      toast.error('Create or load a project first.');
+      toast.error(t('assistant.import.errors.noProject'));
       return;
     }
     setAssistantImportMode(mode);
     setAssistantApiKey('');
     setAssistantSelectedFile(null);
     setAssistantImportError('');
-  }, [currentProject]);
+  }, [currentProject, t]);
 
   const handleAssistantFileChange = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0] ?? null;
@@ -50,7 +52,7 @@ export function useAssistantImport({ currentProject }: UseAssistantImportOptions
       const allowedTypes = ['image/png', 'image/jpeg'];
       if (!allowedTypes.includes(file.type)) {
         setAssistantSelectedFile(null);
-        setAssistantImportError('Only PNG or JPEG files are allowed.');
+        setAssistantImportError(t('assistant.import.errors.imageType'));
         return;
       }
     } else {
@@ -59,14 +61,14 @@ export function useAssistantImport({ currentProject }: UseAssistantImportOptions
       const extension = file.name.slice(file.name.lastIndexOf('.')).toLowerCase();
       if (!allowedTypes.includes(file.type) && !allowedExtensions.includes(extension)) {
         setAssistantSelectedFile(null);
-        setAssistantImportError('Only TTL, RDF, or JSON files are allowed.');
+        setAssistantImportError(t('assistant.import.errors.kgType'));
         return;
       }
     }
 
     setAssistantSelectedFile(file);
     setAssistantImportError('');
-  }, [assistantImportMode]);
+  }, [assistantImportMode, t]);
 
   const handleAssistantImport = useCallback(async () => {
     if (!assistantImportMode || !assistantSelectedFile || !assistantApiKey || assistantImportError) {
@@ -82,11 +84,13 @@ export function useAssistantImport({ currentProject }: UseAssistantImportOptions
       toast.success(result.message);
       resetAssistantImportDialog();
     } catch (error) {
-      toast.error(`Import failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      toast.error(t('assistant.import.errors.importFailed', {
+        error: error instanceof Error ? error.message : t('assistant.errors.unknownError'),
+      }));
     } finally {
       setIsAssistantImporting(false);
     }
-  }, [assistantImportMode, assistantSelectedFile, assistantApiKey, assistantImportError, importDiagramPictureFromImage, importDiagramFromKG, resetAssistantImportDialog]);
+  }, [assistantImportMode, assistantSelectedFile, assistantApiKey, assistantImportError, importDiagramPictureFromImage, importDiagramFromKG, resetAssistantImportDialog, t]);
 
   return {
     // State

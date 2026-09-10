@@ -3,6 +3,7 @@ import type { UMLModel, BesserNode, BesserEdge, DiagramNodeType, DiagramEdgeType
 import { uuid } from '../../shared/utils/uuid';
 
 // BPMN 2.0 XML importer (v4 {nodes, edges} shape). Inverse of bpmn-xml-exporter.ts.
+// BPMN 2.0.2 spec citations are given inline where a rule is enforced.
 //
 // Ported from develop's `features/import/bpmn-xml-importer.ts`, re-targeted from
 // the v3 `{elements, relationships}` UMLModel to the migration's v4 shape:
@@ -18,15 +19,20 @@ import { uuid } from '../../shared/utils/uuid';
 // `default="…"` handling are faithful to develop; only the node/edge construction
 // is re-targeted to v4 objects.
 
+export const BPMN_NS = 'http://www.omg.org/spec/BPMN/20100524/MODEL';
+export const BPMNDI_NS = 'http://www.omg.org/spec/BPMN/20100524/DI';
+export const DC_NS = 'http://www.omg.org/spec/DD/20100524/DC';
+export const DI_NS = 'http://www.omg.org/spec/DD/20100524/DI';
+
 export interface ParseWarning {
   code: string;
   message: string;
 }
 
 export interface SkippedElement {
+  id: string;
   xmlTag: string;
-  id?: string;
-  reason?: string;
+  reason: string;
 }
 
 export interface ImportResult {
@@ -118,6 +124,8 @@ function canSourceCarryDefault(node: WorkNode | undefined): boolean {
 // ─── DOM helpers (namespace-agnostic via localName) ─────────────────────────
 
 function getLocalName(el: Element): string {
+  // BPMN files in the wild use varying namespace prefixes (bpmn:, bpmn2:, ns:).
+  // localName strips the prefix; works for both prefixed and default-NS files.
   return el.localName;
 }
 
@@ -396,6 +404,10 @@ interface DiMaps {
 
 function parseDiagramInterchange(root: Element): DiMaps {
   const out: DiMaps = { bounds: new Map(), waypoints: new Map() };
+
+  // BPMN 2.0.2 § 12: every BPMN element gets a BPMNShape or BPMNEdge in the
+  // BPMNPlane. Multi-plane files (subprocess drill-down) are rare; for
+  // round-trip with our exporter we only need the primary plane.
   for (const diag of childrenByLocalName(root, 'BPMNDiagram')) {
     for (const plane of childrenByLocalName(diag, 'BPMNPlane')) {
       for (const shape of childrenByLocalName(plane, 'BPMNShape')) {
@@ -423,6 +435,9 @@ function parseDiagramInterchange(root: Element): DiMaps {
   return out;
 }
 
+// BPMN DI bounds are ABSOLUTE canvas coordinates for every shape regardless of
+// the pool / lane nesting. They are kept absolute while parsing; the emit step
+// converts each node to a position relative to its direct `parentId`.
 function applyBoundsToNodes(nodes: WorkNode[], di: DiMaps, warnings: ParseWarning[]): void {
   const abs = di.bounds;
   for (const n of nodes) {
@@ -482,13 +497,15 @@ function centerOnOrigin(nodes: WorkNode[], edges: WorkEdge[]): void {
 
 // ─── Top-level entry point ──────────────────────────────────────────────────
 
-export function bpmnXmlToApollon(xml: string): ImportResult {
+export function bpmnXmlToModel(xml: string): ImportResult {
   if (!xml || !xml.trim()) {
     throw new Error('Empty BPMN file');
   }
 
   const dom = new DOMParser().parseFromString(xml, 'application/xml');
 
+  // DOMParser embeds <parsererror> on bad XML. We deliberately drop the parser's
+  // verbose, locale-dependent error text and surface a concise message instead.
   const errEl = dom.getElementsByTagName('parsererror')[0];
   if (errEl) throw new Error('Not a valid XML file');
 
@@ -503,6 +520,10 @@ export function bpmnXmlToApollon(xml: string): ImportResult {
   const di = parseDiagramInterchange(root);
   applyBoundsToNodes(ctx.nodes, di, ctx.warnings);
   applyWaypointsToEdges(ctx.edges, di, ctx.warnings);
+
+  // Shift the whole diagram so its bounding-box center sits near the canvas
+  // origin. BPMN DI bounds are absolute, so files authored by other tools often
+  // place content far from (0, 0) and would otherwise land off-screen.
   centerOnOrigin(ctx.nodes, ctx.edges);
 
   // Resolve default flows (BPMN 2.0.2 § 8.3.13).

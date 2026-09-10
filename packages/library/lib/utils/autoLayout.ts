@@ -2,6 +2,7 @@ import ELK from "elkjs/lib/elk.bundled.js"
 import type { ElkExtendedEdge, ElkNode } from "elkjs/lib/elk.bundled.js"
 import type { Edge, Node } from "@xyflow/react"
 import { UMLDiagramType } from "@/types"
+import type { BesserEdge, BesserNode, UMLModel } from "@/typings"
 
 const DEFAULT_NODE_WIDTH = 160
 const DEFAULT_NODE_HEIGHT = 100
@@ -252,4 +253,69 @@ const findElkNode = (root: ElkNode, id: string): ElkNode | undefined => {
     if (nested) return nested
   }
   return undefined
+}
+
+/**
+ * Lays out a v4 `UMLModel` with ELK and returns a NEW model whose nodes are
+ * repositioned accordingly. Pure and fully awaitable — no editor instance,
+ * no React Flow, no DOM — so it can run under node / jsdom for headless
+ * uses such as the server's SVG export route.
+ *
+ * Runs the same `computeAutoLayout` the in-canvas button uses (parentId
+ * hierarchy respected, containers grown to fit, edge handles reassigned to
+ * facing sides). Two headless-specific touches on top:
+ *  - the result is recentered onto the model's current bounding-box centre
+ *    so a re-laid-out diagram does not jump toward the origin;
+ *  - node-to-node edges lose their stored manual waypoints (`data.points`)
+ *    — those are relative to the old geometry and the renderer prefers them
+ *    over its computed route, so keeping them would draw stale paths.
+ * Edge-anchored / dangling edges are left untouched.
+ */
+export const layoutModel = async (model: UMLModel): Promise<UMLModel> => {
+  const nodes = (model.nodes ?? []) as unknown as Node[]
+  const edges = (model.edges ?? []) as unknown as Edge[]
+  if (nodes.length === 0) return model
+
+  const layouted = await computeAutoLayout(nodes, edges, model.type)
+  if (layouted.nodes === nodes) return model
+
+  // Recenter top-level nodes (children ride along with their parent).
+  const byId = new Map(nodes.map((n) => [n.id, n]))
+  const roots = (list: Node[]) => list.filter((n) => !n.parentId || !byId.has(n.parentId))
+  const bbox = (list: Node[]) => {
+    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity
+    for (const n of list) {
+      const { width, height } = nodeSize(n)
+      minX = Math.min(minX, n.position.x)
+      minY = Math.min(minY, n.position.y)
+      maxX = Math.max(maxX, n.position.x + width)
+      maxY = Math.max(maxY, n.position.y + height)
+    }
+    return { cx: (minX + maxX) / 2, cy: (minY + maxY) / 2 }
+  }
+  const before = bbox(roots(nodes))
+  const after = bbox(roots(layouted.nodes))
+  const offset = {
+    x: Number.isFinite(before.cx) && Number.isFinite(after.cx) ? before.cx - after.cx : 0,
+    y: Number.isFinite(before.cy) && Number.isFinite(after.cy) ? before.cy - after.cy : 0,
+  }
+  const recentered = layouted.nodes.map((n) =>
+    n.parentId && byId.has(n.parentId)
+      ? n
+      : { ...n, position: { x: n.position.x + offset.x, y: n.position.y + offset.y } },
+  )
+
+  const nodeIds = new Set(nodes.map((n) => n.id))
+  const routedEdges = layouted.edges.map((e) => {
+    if (!nodeIds.has(e.source) || !nodeIds.has(e.target)) return e
+    const data = (e.data ?? {}) as Record<string, unknown>
+    if (!Array.isArray(data.points) || data.points.length === 0) return e
+    return { ...e, data: { ...data, points: [] } }
+  })
+
+  return {
+    ...model,
+    nodes: recentered as unknown as BesserNode[],
+    edges: routedEdges as unknown as BesserEdge[],
+  }
 }

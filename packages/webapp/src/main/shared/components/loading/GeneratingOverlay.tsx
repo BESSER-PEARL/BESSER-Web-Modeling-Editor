@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Code2 } from 'lucide-react';
 
 /* ────────────────────────────────────────────────────────────────────────────
@@ -10,9 +11,9 @@ import { Code2 } from 'lucide-react';
  * ──────────────────────────────────────────────────────────────────────────── */
 
 const STEPS = [
-  { label: 'Parsing diagram...', durationMs: 1800 },
-  { label: 'Generating code...', durationMs: 3500 },
-  { label: 'Packaging output...', durationMs: 2500 },
+  { labelKey: 'generation.overlay.stepParsing', durationMs: 1800 },
+  { labelKey: 'generation.overlay.stepGenerating', durationMs: 3500 },
+  { labelKey: 'generation.overlay.stepPackaging', durationMs: 2500 },
 ] as const;
 
 interface GeneratingOverlayProps {
@@ -28,6 +29,7 @@ interface GeneratingOverlayProps {
  * sets `visible={false}` and the overlay disappears.
  */
 export const GeneratingOverlay: React.FC<GeneratingOverlayProps> = ({ visible }) => {
+  const { t } = useTranslation();
   const [activeStep, setActiveStep] = useState(0);
 
   // Reset and start the step timer whenever the overlay becomes visible.
@@ -67,10 +69,10 @@ export const GeneratingOverlay: React.FC<GeneratingOverlayProps> = ({ visible })
           </div>
           <div>
             <h3 className="text-base font-semibold text-slate-900 dark:text-slate-100">
-              Generating Code
+              {t('generation.overlay.title')}
             </h3>
             <p className="text-xs text-slate-500 dark:text-slate-400">
-              Please wait while your code is being generated
+              {t('generation.overlay.subtitle')}
             </p>
           </div>
         </div>
@@ -92,7 +94,7 @@ export const GeneratingOverlay: React.FC<GeneratingOverlayProps> = ({ visible })
             const isCurrent = index === activeStep;
 
             return (
-              <li key={step.label} className="flex items-center gap-3">
+              <li key={step.labelKey} className="flex items-center gap-3">
                 {/* Step indicator */}
                 <span
                   className={`flex size-6 shrink-0 items-center justify-center rounded-full text-xs font-semibold transition-colors duration-300 ${
@@ -122,7 +124,7 @@ export const GeneratingOverlay: React.FC<GeneratingOverlayProps> = ({ visible })
                         : 'text-slate-400 dark:text-slate-500'
                   }`}
                 >
-                  {step.label}
+                  {t(step.labelKey)}
                 </span>
 
                 {/* Animated dots for current step */}

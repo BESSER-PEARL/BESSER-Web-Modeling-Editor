@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
+import { useTranslation } from 'react-i18next';
 import { WifiOff, Wifi, X } from 'lucide-react';
 import { useOnlineStatus } from '../../hooks/useOnlineStatus';
 import { Z_INDEX } from '../../constants/z-index';
@@ -26,6 +27,7 @@ type BannerState = 'hidden' | 'offline' | 'reconnected';
  * `AppContentInner` in `application.tsx`, after the `<ToastContainer />`).
  */
 export const OfflineBanner: React.FC = () => {
+  const { t } = useTranslation();
   const isOnline = useOnlineStatus();
   const [bannerState, setBannerState] = useState<BannerState>('hidden');
   const [dismissed, setDismissed] = useState(false);
@@ -110,8 +112,8 @@ export const OfflineBanner: React.FC = () => {
 
       <span>
         {isOffline
-          ? 'You are offline. Some features may not work.'
-          : 'Back online.'}
+          ? t('shared.offline.offlineMessage')
+          : t('shared.offline.backOnline')}
       </span>
 
       {isOffline && (
@@ -119,7 +121,7 @@ export const OfflineBanner: React.FC = () => {
           type="button"
           onClick={handleDismiss}
           className="ml-2 rounded p-0.5 transition-colors hover:bg-white/20 focus:outline-none focus:ring-2 focus:ring-white/50"
-          aria-label="Dismiss offline warning"
+          aria-label={t('shared.offline.dismiss')}
         >
           <X className="size-4" />
         </button>

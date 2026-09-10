@@ -30,14 +30,22 @@ export interface ModificationTarget {
   transitionId?: string;
   objectId?: string;
   objectName?: string;
+  // User-profile (UserDiagram) targets
+  profileName?: string;
+  sourceProfile?: string;
+  targetProfile?: string;
   name?: string;
+  // BPMN
+  nodeId?: string;
+  nodeName?: string;
+  flowId?: string;
 }
 
 export interface ModificationChanges {
   name?: string;
   type?: string;
   visibility?: 'public' | 'private' | 'protected';
-  parameters?: Array<{ name: string; type: string; }>;
+  parameters?: Array<{ name: string; type: string }>;
   returnType?: string;
   relationshipType?: string;
   sourceClass?: string;
@@ -56,13 +64,36 @@ export interface ModificationChanges {
   // add_class / add_object fields
   className?: string;
   classId?: string;
-  attributes?: Array<{ name: string; type?: string; visibility?: string; value?: string; attributeId?: string }>;
-  methods?: Array<{ name: string; returnType?: string; visibility?: string; parameters?: Array<{ name: string; type: string }> }>;
+  // User-profile: metamodel class icon SVG for add_object (renders a UserModelIcon child)
+  icon?: string;
+  // User-profile criterion operator ('<' | '<=' | '==' | '>=' | '>')
+  operator?: string;
+  profileName?: string;
+  attributes?: Array<{
+    name: string;
+    type?: string;
+    visibility?: string;
+    value?: string;
+    attributeId?: string;
+    operator?: string;
+  }>;
+  methods?: Array<{
+    name: string;
+    returnType?: string;
+    visibility?: string;
+    parameters?: Array<{ name: string; type: string }>;
+  }>;
   // add_state fields
   stateType?: string;
   entryAction?: string;
   exitAction?: string;
   doActivity?: string;
+  // BPMN add_task / add_gateway / add_event / modify_node fields
+  // (source / target / label / name reused from above for add_flow)
+  taskType?: string;
+  gatewayType?: string;
+  eventKind?: string;
+  eventType?: string;
   // add_state (agent) / add_intent fields
   replies?: Array<{ text: string; replyType?: string; ragDatabaseName?: string }>;
   trainingPhrases?: string[];
@@ -106,7 +137,13 @@ export interface ModelModification {
     | 'add_enum'
     | 'add_code_block'
     | 'add_rag_element'
-    | 'add_ocl_constraint';
+    | 'add_ocl_constraint'
+    | 'add_task'
+    | 'add_gateway'
+    | 'add_event'
+    | 'add_flow'
+    | 'modify_node'
+    | 'remove_flow';
   target: ModificationTarget;
   changes: ModificationChanges;
   message?: string;
@@ -116,7 +153,11 @@ export interface ModelModification {
   newClass?: string;
   attributes?: string[];
   relationshipType?: string;
-  newClasses?: Array<{ name: string; attributes: Array<{ name: string; type: string; visibility?: string }>; methods?: Array<{ name: string; returnType: string; parameters?: Array<{ name: string; type: string }> }> }>;
+  newClasses?: Array<{
+    name: string;
+    attributes: Array<{ name: string; type: string; visibility?: string }>;
+    methods?: Array<{ name: string; returnType: string; parameters?: Array<{ name: string; type: string }> }>;
+  }>;
   inheritFrom?: string;
   classes?: string[];
   targetName?: string;

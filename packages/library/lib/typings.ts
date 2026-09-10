@@ -15,9 +15,19 @@ export type Subscribers = {
 
 export type UMLModelElementType = DiagramNodeType | DiagramEdgeType
 
+/**
+ * UI languages the editor engine can be asked to render in. String values
+ * equal the BCP-47 base code so the webapp's language selector can pass
+ * its code straight through (`toEditorLocale`). Mirrors develop's
+ * `services/editor/editor-types.ts` enum.
+ */
 export enum Locale {
   en = "en",
+  lb = "lb",
   de = "de",
+  fr = "fr",
+  es = "es",
+  ca = "ca",
 }
 
 export enum BesserMode {

@@ -115,7 +115,26 @@ describe('normalizeUmlModelSnapshot', () => {
     expect(findEdge(twice, 'r1')).toEqual(findEdge(once, 'r1'));
   });
 
-  it('does not lift AgentStateTransitionInit data', () => {
+  it('folds the v3 StateInitialNode + AgentStateTransitionInit pair onto the target state', () => {
+    // v4 canonical form has no separate initial marker for agents: the entry
+    // state carries `data.initial === true` and both the marker node and the
+    // init edge are dropped (see `normalizeAgentInitialState`).
+    const marker = {
+      id: 's',
+      name: '',
+      type: 'StateInitialNode',
+      owner: null,
+      bounds: { x: 0, y: 0, width: 40, height: 40 },
+    };
+    const state = {
+      id: 't',
+      name: 'Greeting',
+      type: 'AgentState',
+      owner: null,
+      bounds: { x: 100, y: 0, width: 200, height: 100 },
+      bodies: [],
+      fallbackBodies: [],
+    };
     const init = {
       id: 'init',
       name: '',
@@ -127,11 +146,15 @@ describe('normalizeUmlModelSnapshot', () => {
       path: [],
       isManuallyLayouted: false,
     };
-    const out = normalizeUmlModelSnapshot(agentModelV3({ init }) as any) as AnyModel;
-    const edge = findEdge(out, 'init');
+    const model = agentModelV3({ init });
+    model.elements = { s: marker, t: state };
+    const out = normalizeUmlModelSnapshot(model as any) as AnyModel;
 
-    expect(edge.type).toBe('AgentStateTransitionInit');
-    expect(edge.data?.transitionType).toBeUndefined();
+    expect(findEdge(out, 'init')).toBeUndefined();
+    expect(out.nodes.some((node: AnyModel) => node.id === 's')).toBe(false);
+    const target = out.nodes.find((node: AnyModel) => node.id === 't');
+    expect(target?.type).toBe('AgentState');
+    expect(target?.data?.initial).toBe(true);
   });
 
   it('does not mutate the input model', () => {

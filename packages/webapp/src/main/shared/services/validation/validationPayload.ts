@@ -7,7 +7,7 @@ import { getActiveDiagram, getReferencedDiagram, isUMLModel } from '../../types/
  *
  * The backend's /validate-diagram endpoint rejects ObjectDiagram payloads
  * that don't carry their reference class diagram ("Object diagram requires
- * reference class diagram data"). The Apollon editor used to inject this in
+ * reference class diagram data"). The legacy v3 editor used to inject this in
  * its model getter via the diagram bridge; the React Flow editor knows
  * nothing about the project, so the webapp resolves the reference here —
  * per-diagram `references` by ID first, `currentDiagramIndices` as fallback

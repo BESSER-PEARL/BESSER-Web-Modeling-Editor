@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { FileText, ChevronDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -41,30 +42,31 @@ export const FileMenu: React.FC<FileMenuProps> = ({
   onOpenAssistantImportKg,
   onOpenProjectPreview,
 }) => {
+  const { t } = useTranslation();
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="outline" className={`gap-2 ${outlineButtonClass}`} title="File">
+        <Button variant="outline" className={`gap-2 ${outlineButtonClass}`} title={t('menu.file.title')}>
           <FileText className="size-4" />
-          <span className="hidden xl:inline">File</span>
+          <span className="hidden xl:inline">{t('menu.file.title')}</span>
           <ChevronDown className="size-3 opacity-50" />
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent className="w-72" align="end">
-        <DropdownMenuLabel>Project Actions</DropdownMenuLabel>
+        <DropdownMenuLabel>{t('menu.file.projectActions')}</DropdownMenuLabel>
         <DropdownMenuSeparator />
-        <DropdownMenuItem onClick={onOpenProjectHub}>New / Open / Import Project</DropdownMenuItem>
-        <DropdownMenuItem onClick={onOpenTemplateDialog}>Load Template</DropdownMenuItem>
-        <DropdownMenuItem onClick={onExportProject}>Export Project</DropdownMenuItem>
+        <DropdownMenuItem onClick={onOpenProjectHub}>{t('menu.file.newOpenImport')}</DropdownMenuItem>
+        <DropdownMenuItem onClick={onOpenTemplateDialog}>{t('menu.file.loadTemplate')}</DropdownMenuItem>
+        <DropdownMenuItem onClick={onExportProject}>{t('menu.file.exportProject')}</DropdownMenuItem>
         <DropdownMenuSeparator />
         {/* <DropdownMenuItem onClick={onImportSingleDiagram} disabled={!hasProject}>
           Import Single Diagram to Project
         </DropdownMenuItem> */}
         <DropdownMenuSub>
-          <DropdownMenuSubTrigger disabled={!hasProject}>Import Class Diagram from</DropdownMenuSubTrigger>
+          <DropdownMenuSubTrigger disabled={!hasProject}>{t('menu.file.importClassDiagramFrom')}</DropdownMenuSubTrigger>
           <DropdownMenuSubContent>
-            <DropdownMenuItem onClick={onOpenAssistantImportImage}>Image to Project</DropdownMenuItem>
-            <DropdownMenuItem onClick={onOpenAssistantImportKg}>KG to Project</DropdownMenuItem>
+            <DropdownMenuItem onClick={onOpenAssistantImportImage}>{t('menu.file.imageToProject')}</DropdownMenuItem>
+            <DropdownMenuItem onClick={onOpenAssistantImportKg}>{t('menu.file.kgToProject')}</DropdownMenuItem>
           </DropdownMenuSubContent>
         </DropdownMenuSub>
         {activeDiagramType === 'BPMN' && (
@@ -73,7 +75,7 @@ export const FileMenu: React.FC<FileMenuProps> = ({
           </DropdownMenuItem>
         )}
         <DropdownMenuItem onClick={onOpenProjectPreview} disabled={!hasProject}>
-          Preview Project
+          {t('menu.file.previewProject')}
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>

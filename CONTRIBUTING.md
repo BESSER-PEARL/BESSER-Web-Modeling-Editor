@@ -85,8 +85,10 @@ include:
   suggesting workarounds.
 - **Feedback** — sharing how you use the editor, what is missing, what is
   confusing. Open an issue or discussion.
-- **Translations** — adding or improving locale strings in
-  `packages/library/lib/` and `packages/webapp/src/main/i18n/`.
+- **Translations** — adding or improving a language. The editor is multilingual
+  (English, Luxembourgish, German, French, Spanish, Catalan); you can fix a few
+  strings or add a whole new language. No coding required — see
+  **[docs/TRANSLATING.md](docs/TRANSLATING.md)** for the step-by-step workflow.
 
 If you are looking for a starting point, browse issues labeled
 [`good first issue`](https://github.com/BESSER-PEARL/BESSER-Web-Modeling-Editor/labels/good%20first%20issue)
@@ -194,12 +196,13 @@ python besser/utilities/web_modeling_editor/backend/backend.py
 | `npm run start:server`                          | Serve the built webapp via the Express server      |
 | `npm run lint`                                  | ESLint across workspaces                           |
 | `npm run prettier:check` / `prettier:write`     | Check / auto-format with Prettier                  |
-| `npm run test`                                  | Vitest unit tests (webapp)                        |
-| `npm run test:e2e`                              | Playwright end-to-end tests                        |
-| `npm run test:e2e:ui`                           | Playwright with interactive UI                     |
+| `npm run test --workspace=webapp`               | Vitest unit tests (webapp)                        |
+| `npm run i18n:check`                            | Translation key parity + coverage per language     |
+| `npm run test:e2e --workspace=webapp`           | Playwright end-to-end tests                        |
+| `npm run test:e2e:ui --workspace=webapp`        | Playwright with interactive UI                     |
 
 Per-workspace variants are available via `--workspace=<name>` (e.g.,
-`npm run lint --workspace=editor`).
+`npm run lint --workspace=webapp`).
 
 ---
 
@@ -213,7 +216,7 @@ This is an **npm workspaces monorepo** with three packages:
 | `packages/library` | **Active** | Core diagramming engine (React Flow + Zustand), published as `@besser/wme` on npm |
 | `packages/server`  | **Active** | Express server for standalone hosting (serves built `webapp`)  |
 
-Almost all feature work happens in **`webapp`** and **`editor`**.
+Almost all feature work happens in **`webapp`** and **`library`**.
 
 | Path                                                | Purpose                                                                |
 | --------------------------------------------------- | ---------------------------------------------------------------------- |
@@ -227,6 +230,7 @@ Almost all feature work happens in **`webapp`** and **`editor`**.
 | `packages/library/lib/store/`                       | Zustand stores (diagram, metadata, popover, alignment guides)          |
 | `packages/library/lib/services/`                    | Domain logic (diagram bridge, settings, errors, user metamodel)        |
 | `packages/library/lib/utils/versionConverter.ts`    | v3 → v4 wire-shape migrator                                            |
+| `packages/i18n/`                                    | Translations (shared) — `<lang>/webapp.json` + `<lang>/editor.json`     |
 | `docs/`                                             | Sphinx docs published under the BESSER Read the Docs site              |
 
 For deeper architecture notes, see
@@ -262,7 +266,7 @@ each other**. If two features need the same logic, lift it into
 Configured in both `tsconfig.json` and `vite.config.ts`:
 
 - `@/` → `src/`
-- `@besser/wme` → `../editor/src/main/index.ts` in local dev (npm in
+- `@besser/wme` → `../library/lib/index.tsx` in local dev (npm in
   production)
 - `shared` → `../shared/src/index.ts`
 - `webapp/*` → `./*`
@@ -333,6 +337,33 @@ If you are adding an edge instead, mirror the steps under
 A full walk-through is in
 [`docs/source/contributing/new-diagram-guide/`](docs/source/contributing/new-diagram-guide/).
 
+### Internationalization (i18n)
+
+The editor is multilingual (English, Luxembourgish, German, French, Spanish,
+Catalan), so **any new user-facing text must be translatable** — never hardcode
+a literal string into a component, or it will show English in every language.
+
+Route text through `t('some.key')` (plain) or `<Trans>` (rich text/links) and
+put the English in `packages/i18n/en/webapp.json`
+(or `packages/i18n/en/editor.json` for canvas strings rendered by
+`packages/library`).
+
+**English is required; the other languages are optional.** English is the
+source of truth — every other language falls back to it at runtime, so a missing
+translation never breaks the UI. As a contributor you **must** provide the
+English string for any new text. You are welcome to also translate it into the
+other languages (Luxembourgish, German, French, Spanish, Catalan) — and it's
+appreciated — but you don't have to: you can leave them for the BESSER team to
+complete and review, or open a follow-up. Run `npm run i18n:check` before you
+push; it must pass, which means **English is complete and no locale has stale
+keys**. Untranslated keys in the other languages are reported as warnings, not
+failures. (Maintainers can enforce full parity with `npm run i18n:check --
+--complete`.)
+
+The full "make new text translatable" walk-through (with examples for plain
+text, interpolation, rich text, and menu/category data) and the translator
+workflow are in **[docs/TRANSLATING.md](docs/TRANSLATING.md)**.
+
 ---
 
 ## ✅ Testing Your Changes
@@ -350,7 +381,8 @@ npm run prettier:check
 npm run test --workspace=webapp
 ```
 
-While iterating, target a single test file with `npm run test -- <pattern>`.
+While iterating, target a single test file with
+`npm run test --workspace=webapp -- <pattern>`.
 
 ### End-to-end tests (Playwright)
 

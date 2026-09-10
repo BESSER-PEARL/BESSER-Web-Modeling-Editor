@@ -4,12 +4,21 @@
  * Handles incremental modify_model operations for base BPMN process diagrams by
  * walking v4 `model.nodes[]` / `model.edges[]` directly.
  *
- * Re-targets develop's v3 (elements/relationships) BPMNDiagramModifier to the
- * migration's v4 shape and to the generic action vocabulary the assistant
- * already emits (`add_state`, `modify_state`, `add_transition`,
- * `remove_transition`, `remove_element`): an `add_state` becomes a BPMN
- * node whose kind is inferred from `changes.stateType`, and an `add_transition`
- * becomes a BPMN flow edge whose subtype is resolved from its endpoints.
+ * Two action vocabularies are accepted:
+ *   - the BPMN-specific one the modeling agent emits (`add_task`,
+ *     `add_gateway`, `add_event`, `add_flow`, `modify_node`, `remove_flow`,
+ *     `remove_element`) with `target.nodeId` / `target.nodeName` /
+ *     `target.flowId`, and
+ *   - the generic state-machine-style one (`add_state`, `modify_state`,
+ *     `add_transition`, `remove_transition`) with `target.stateId` /
+ *     `target.stateName`, where the BPMN node kind is inferred from
+ *     `changes.stateType`.
+ *
+ * Node references may be a node id (the agent emits stable ids) or a display
+ * name; an id hit always wins over a name match. Tasks, gateways, events and
+ * the activity containers (call activity, sub-process, transaction) are all
+ * valid flow endpoints; the flow subtype is resolved from its endpoints via
+ * the library's `resolveBpmnEdgeType`.
  *
  * New nodes are placed to the right of existing content (BPMN reads
  * left-to-right); flow geometry is placeholder that the editor's layouter
@@ -37,6 +46,10 @@ const TASK_TYPES = new Set([
 ]);
 const GATEWAY_TYPES = new Set(['exclusive', 'parallel', 'inclusive', 'event-based', 'complex']);
 
+const TASK_W = 140;
+const TASK_H = 60;
+const EVENT_SIZE = 40;
+
 export class BPMNDiagramModifier implements DiagramModifier {
   getDiagramType() {
     return 'BPMN' as const;
@@ -44,11 +57,19 @@ export class BPMNDiagramModifier implements DiagramModifier {
 
   canHandle(action: string): boolean {
     return [
+      // BPMN vocabulary (modeling agent)
+      'add_task',
+      'add_gateway',
+      'add_event',
+      'add_flow',
+      'modify_node',
+      'remove_flow',
+      'remove_element',
+      // Generic state-machine-style vocabulary
       'add_state',
       'modify_state',
       'add_transition',
       'remove_transition',
-      'remove_element',
     ].includes(action);
   }
 
@@ -56,12 +77,21 @@ export class BPMNDiagramModifier implements DiagramModifier {
     const updated = ModifierHelpers.cloneModel(model);
 
     switch (modification.action) {
+      case 'add_task':
+        return this.addTask(updated, modification);
+      case 'add_gateway':
+        return this.addGateway(updated, modification);
+      case 'add_event':
+        return this.addEvent(updated, modification);
       case 'add_state':
         return this.addNode(updated, modification);
-      case 'modify_state':
-        return this.modifyNode(updated, modification);
+      case 'add_flow':
       case 'add_transition':
         return this.addFlow(updated, modification);
+      case 'modify_node':
+      case 'modify_state':
+        return this.modifyNode(updated, modification);
+      case 'remove_flow':
       case 'remove_transition':
         return this.removeFlow(updated, modification);
       case 'remove_element':
@@ -70,6 +100,10 @@ export class BPMNDiagramModifier implements DiagramModifier {
         throw new Error(`Unsupported action for BPMN: ${modification.action}`);
     }
   }
+
+  // ------------------------------------------------------------------
+  // Helpers
+  // ------------------------------------------------------------------
 
   /** Place new nodes to the right of existing BPMN content, near the vertical mean. */
   private nextPosition(model: BESSERModel): { x: number; y: number } {
@@ -97,7 +131,7 @@ export class BPMNDiagramModifier implements DiagramModifier {
     return 'bpmnTask';
   }
 
-  private findBpmnNode(model: BESSERModel, name?: string): BesserNode | undefined {
+  private findBpmnNodeByName(model: BESSERModel, name?: string): BesserNode | undefined {
     if (!name) return undefined;
     for (const type of BPMN_NODE_TYPES) {
       const hit = ModifierHelpers.findNodeByName(model, name, type);
@@ -106,73 +140,150 @@ export class BPMNDiagramModifier implements DiagramModifier {
     return undefined;
   }
 
-  /** Resolve a node reference that may be a node id or a display name. */
+  /**
+   * Resolve a node reference that may be a node id or a display name. A
+   * direct id hit wins (the agent emits stable ids); the name match is the
+   * fallback for user phrasing.
+   */
   private resolveNode(model: BESSERModel, ref?: string): BesserNode | undefined {
     if (!ref) return undefined;
     const byId = ModifierHelpers.findNodeById(model, ref);
     if (byId && BPMN_NODE_TYPES.includes(byId.type)) return byId;
-    return this.findBpmnNode(model, ref);
+    return this.findBpmnNodeByName(model, ref);
   }
 
+  /** Resolve the node addressed by a modification's target (id first, then name). */
+  private resolveTargetNode(model: BESSERModel, m: ModelModification): BesserNode | undefined {
+    const t = m.target || {};
+    return (
+      this.resolveNode(model, t.nodeId) ??
+      this.resolveNode(model, t.stateId) ??
+      this.resolveNode(model, t.nodeName) ??
+      this.resolveNode(model, t.stateName) ??
+      this.resolveNode(model, t.name)
+    );
+  }
+
+  /** Reuse the id the agent proposed when it is free; otherwise mint one. */
+  private newNodeId(model: BESSERModel, proposed?: string): string {
+    if (proposed && proposed.trim() && !ModifierHelpers.findNodeById(model, proposed)) {
+      return proposed.trim();
+    }
+    return ModifierHelpers.generateUniqueId('bpmn');
+  }
+
+  private buildNode(
+    model: BESSERModel,
+    type: string,
+    name: string,
+    data: Record<string, unknown>,
+    proposedId?: string,
+  ): BesserNode {
+    const { x, y } = this.nextPosition(model);
+    const isSmall = EVENT_NODE_TYPES.has(type) || type === 'bpmnGateway';
+    const width = isSmall ? EVENT_SIZE : TASK_W;
+    const height = isSmall ? EVENT_SIZE : TASK_H;
+    return {
+      id: this.newNodeId(model, proposedId),
+      type: type as any,
+      position: { x, y },
+      width,
+      height,
+      measured: { width, height },
+      data: { name, ...data },
+    };
+  }
+
+  // ------------------------------------------------------------------
+  // Action handlers
+  // ------------------------------------------------------------------
+
+  private addTask(model: BESSERModel, m: ModelModification): BESSERModel {
+    const taskType = TASK_TYPES.has(String(m.changes.taskType)) ? m.changes.taskType : 'default';
+    const name = m.target.nodeName || m.changes.name || 'Task';
+    ModifierHelpers.addNode(
+      model,
+      this.buildNode(model, 'bpmnTask', name, { taskType, marker: 'none' }, m.target.nodeId),
+    );
+    return model;
+  }
+
+  private addGateway(model: BESSERModel, m: ModelModification): BESSERModel {
+    const gatewayType = GATEWAY_TYPES.has(String(m.changes.gatewayType)) ? m.changes.gatewayType : 'exclusive';
+    const name = m.target.nodeName || m.changes.name || '';
+    ModifierHelpers.addNode(model, this.buildNode(model, 'bpmnGateway', name, { gatewayType }, m.target.nodeId));
+    return model;
+  }
+
+  private addEvent(model: BESSERModel, m: ModelModification): BESSERModel {
+    const kind = String(m.changes.eventKind || '').toLowerCase();
+    const type =
+      kind === 'start' ? 'bpmnStartEvent' : kind === 'intermediate' ? 'bpmnIntermediateEvent' : 'bpmnEndEvent';
+    const eventType = typeof m.changes.eventType === 'string' && m.changes.eventType ? m.changes.eventType : 'default';
+    const name = m.target.nodeName || m.changes.name || '';
+    ModifierHelpers.addNode(model, this.buildNode(model, type, name, { eventType }, m.target.nodeId));
+    return model;
+  }
+
+  /** Generic `add_state`: the BPMN node kind is inferred from `changes.stateType`. */
   private addNode(model: BESSERModel, m: ModelModification): BESSERModel {
     const changes = m.changes;
     const type = this.normalizeType(changes.stateType || changes.name);
-    const { x, y } = this.nextPosition(model);
-    const id = ModifierHelpers.generateUniqueId('bpmn');
-    const name = m.target.stateName || changes.name || (type === 'bpmnTask' ? 'Task' : '');
+    const name = m.target.stateName || m.target.nodeName || changes.name || (type === 'bpmnTask' ? 'Task' : '');
 
-    const isSmall = EVENT_NODE_TYPES.has(type) || type === 'bpmnGateway';
-    const width = isSmall ? 40 : 140;
-    const height = isSmall ? 40 : 60;
-
-    const data: Record<string, unknown> = { name };
+    const data: Record<string, unknown> = {};
     if (type === 'bpmnTask') {
-      data.taskType = TASK_TYPES.has(String(changes.type)) ? changes.type : 'default';
+      const taskType = changes.taskType ?? changes.type;
+      data.taskType = TASK_TYPES.has(String(taskType)) ? taskType : 'default';
       data.marker = 'none';
     } else if (type === 'bpmnGateway') {
-      data.gatewayType = 'exclusive';
+      data.gatewayType = GATEWAY_TYPES.has(String(changes.gatewayType)) ? changes.gatewayType : 'exclusive';
     } else if (EVENT_NODE_TYPES.has(type)) {
-      data.eventType = 'default';
+      data.eventType = typeof changes.eventType === 'string' && changes.eventType ? changes.eventType : 'default';
     } else if (type === 'bpmnSubprocess' || type === 'bpmnTransaction') {
       data.isExpanded = false;
     } else if (type === 'bpmnCallActivity') {
       data.calledElement = '';
     }
 
-    const node: BesserNode = {
-      id,
-      type: type as any,
-      position: { x, y },
-      width,
-      height,
-      measured: { width, height },
-      data,
-    };
-    ModifierHelpers.addNode(model, node);
+    ModifierHelpers.addNode(model, this.buildNode(model, type, name, data, m.target.nodeId ?? m.target.stateId));
     return model;
   }
 
   private modifyNode(model: BESSERModel, m: ModelModification): BESSERModel {
-    let target: BesserNode | undefined;
-    if (m.target.stateId) target = ModifierHelpers.findNodeById(model, m.target.stateId);
-    if (!target) target = this.resolveNode(model, m.target.stateName);
-    if (target && m.changes.name) {
-      (target.data as any).name = m.changes.name;
+    const target = this.resolveTargetNode(model, m);
+    if (!target) return model;
+
+    const data = target.data as any;
+    const c = m.changes;
+    if (c.name) data.name = c.name;
+
+    // Explicit per-kind fields (BPMN vocabulary) — only applied to the matching node kind.
+    if (c.taskType && target.type === 'bpmnTask' && TASK_TYPES.has(c.taskType)) {
+      data.taskType = c.taskType;
     }
-    if (target && m.changes.type) {
-      if (target.type === 'bpmnTask' && TASK_TYPES.has(m.changes.type)) {
-        (target.data as any).taskType = m.changes.type;
-      } else if (target.type === 'bpmnGateway' && GATEWAY_TYPES.has(m.changes.type)) {
-        (target.data as any).gatewayType = m.changes.type;
+    if (c.gatewayType && target.type === 'bpmnGateway' && GATEWAY_TYPES.has(c.gatewayType)) {
+      data.gatewayType = c.gatewayType;
+    }
+    if (c.eventType && EVENT_NODE_TYPES.has(target.type)) {
+      data.eventType = c.eventType;
+    }
+
+    // Generic `changes.type` (state-machine vocabulary) — routed by node kind.
+    if (c.type) {
+      if (target.type === 'bpmnTask' && TASK_TYPES.has(c.type)) {
+        data.taskType = c.type;
+      } else if (target.type === 'bpmnGateway' && GATEWAY_TYPES.has(c.type)) {
+        data.gatewayType = c.type;
       } else if (EVENT_NODE_TYPES.has(target.type)) {
-        (target.data as any).eventType = m.changes.type;
+        data.eventType = c.type;
       }
     }
     return model;
   }
 
   private addFlow(model: BESSERModel, m: ModelModification): BESSERModel {
-    const source = this.resolveNode(model, m.changes.source);
+    const source = this.resolveNode(model, m.changes.source) ?? this.resolveNode(model, m.target.nodeId);
     const target = this.resolveNode(model, m.changes.target);
     if (!source || !target) {
       throw new Error('Could not locate source or target node for the BPMN flow.');
@@ -202,8 +313,9 @@ export class BPMNDiagramModifier implements DiagramModifier {
 
   private removeFlow(model: BESSERModel, m: ModelModification): BESSERModel {
     const mm = model as any;
-    if (m.target.transitionId) {
-      mm.edges = (mm.edges ?? []).filter((e: BesserEdge) => e.id !== m.target.transitionId);
+    const flowId = m.target.flowId || m.target.transitionId;
+    if (flowId && ModifierHelpers.findEdgeById(model, flowId)) {
+      mm.edges = (mm.edges ?? []).filter((e: BesserEdge) => e.id !== flowId);
       return model;
     }
     const source = this.resolveNode(model, m.changes.source);
@@ -222,12 +334,11 @@ export class BPMNDiagramModifier implements DiagramModifier {
   }
 
   private removeElement(model: BESSERModel, m: ModelModification): BESSERModel {
-    let target: BesserNode | undefined;
-    if (m.target.stateId) target = ModifierHelpers.findNodeById(model, m.target.stateId);
-    if (!target) target = this.resolveNode(model, m.target.stateName);
+    const target = this.resolveTargetNode(model, m);
     if (!target) {
+      const t = m.target || {};
       throw new Error(
-        `Could not find a node matching "${m.target.stateName ?? m.target.stateId ?? ''}" to remove.`,
+        `Could not find a node matching "${t.nodeName ?? t.nodeId ?? t.stateName ?? t.stateId ?? ''}" to remove.`,
       );
     }
     return ModifierHelpers.removeNodeWithChildren(model, target.id);

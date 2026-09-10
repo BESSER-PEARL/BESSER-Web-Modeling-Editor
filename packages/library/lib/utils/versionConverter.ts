@@ -1933,7 +1933,7 @@ function convertV3ElementToV4Node(
  * caller can spread it unconditionally). Also stamps `legacyShape` (1-5)
  * + the original `legacy` bag for round-trip preservation.
  */
-function liftAgentTransitionDataToV4(
+export function liftAgentTransitionDataToV4(
   relationship: V3UMLRelationship
 ): Record<string, unknown> {
   if (relationship.type !== "AgentStateTransition") return {}

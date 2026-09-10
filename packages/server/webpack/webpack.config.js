@@ -16,7 +16,7 @@ module.exports = {
   resolve: {
     extensions: ['.ts', '.tsx', '.js', '.jsx'], //resolve all the modules other than index.ts
     alias: {
-      '@besser/wme': path.resolve(__dirname, '../../editor/src/main/index.ts'),
+      '@besser/wme': path.resolve(__dirname, '../../library/lib/index.tsx'),
     },
     fallback: {
       fs: false,

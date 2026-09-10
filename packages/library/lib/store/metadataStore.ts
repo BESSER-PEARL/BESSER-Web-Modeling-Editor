@@ -4,7 +4,7 @@ import { parseDiagramType } from "@/utils"
 import * as Y from "yjs"
 import { getDiagramMetadata } from "@/sync/ydoc"
 import { UMLDiagramType } from "@/types"
-import { BesserMode, BesserView } from "@/typings"
+import { BesserMode, BesserView, Locale } from "@/typings"
 
 export type MetadataStore = {
   diagramTitle: string
@@ -16,7 +16,14 @@ export type MetadataStore = {
   debug: boolean
   scrollLock: boolean
   scrollEnabled: boolean
+  /**
+   * UI language of the editor chrome (palette, inspectors, tooltips).
+   * Model-independent: it lives here (not on the `UMLModel`) so switching
+   * languages never dirties the diagram or the Yjs document.
+   */
+  locale: Locale
   setMode: (mode: BesserMode) => void
+  setLocale: (locale: Locale) => void
   setView: (view: BesserView) => void
   setAvailableViews: (availableViews: BesserView[]) => void
   setReadonly: (readonly: boolean) => void
@@ -40,6 +47,7 @@ type InitialMetadataState = {
   debug: boolean
   scrollLock: boolean
   scrollEnabled: boolean
+  locale: Locale
 }
 const initialMetadataState: InitialMetadataState = {
   diagramTitle: "Untitled Diagram",
@@ -51,6 +59,7 @@ const initialMetadataState: InitialMetadataState = {
   debug: false,
   scrollLock: false,
   scrollEnabled: false,
+  locale: Locale.en,
 }
 
 export const createMetadataStore = (
@@ -130,6 +139,10 @@ export const createMetadataStore = (
 
         setDebug: (debug) => {
           set({ debug }, undefined, "setDebug")
+        },
+
+        setLocale: (locale) => {
+          set({ locale }, undefined, "setLocale")
         },
 
         reset: () => {

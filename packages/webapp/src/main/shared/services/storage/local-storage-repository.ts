@@ -14,7 +14,7 @@ import {
   localStorageUserProfiles,
   localStorageUserThemePreference,
 } from '../../constants/constant';
-import { UMLModel } from '@besser/wme';
+import { UMLModel, ACCEPTED_AGENT_LLM_PROVIDERS, isAcceptedAgentLLMProvider } from '@besser/wme';
 import { normalizeUmlModelSnapshot } from './migrate-uml-v3-to-v4';
 import { uuid } from '../../utils/uuid';
 import type { AgentConfigurationPayload, AgentLLMProvider, IntentRecognitionTechnology } from '../../types/agent-config';
@@ -27,6 +27,7 @@ const LEGACY_AGENT_CONFIG_KEY = 'agentConfig';
 
 export interface AgentRuntimeConfig {
   agentPlatform: string;
+  agentPlatformUseStreamlit: boolean;
   intentRecognitionTechnology: IntentRecognitionTechnology;
   agentLlmProvider: AgentLLMProvider;
   agentLlmModel: string;
@@ -42,13 +43,22 @@ export interface AgentRuntimeConfig {
 }
 
 export const DEFAULT_AGENT_RUNTIME_CONFIG: AgentRuntimeConfig = {
-  agentPlatform: 'streamlit',
+  agentPlatform: 'websocket',
+  agentPlatformUseStreamlit: true,
   intentRecognitionTechnology: 'classical',
   agentLlmProvider: 'openai',
   agentLlmModel: 'gpt-5.5',
   agentCustomLlmModel: '',
   agentLlmName: '',
 };
+
+/**
+ * Provider spellings accepted when reading a stored config. Re-exported from the
+ * canonical editor list (canonical keys + legacy aliases) so this whitelist can
+ * never fall behind the dropdown — the drift that previously reset a saved
+ * 'huggingfaceapi' selection back to the default.
+ */
+export const VALID_AGENT_LLM_PROVIDERS: readonly string[] = ACCEPTED_AGENT_LLM_PROVIDERS;
 
 export const normalizeAgentRuntimeConfig = (
   raw: Partial<AgentRuntimeConfig> | null | undefined,
@@ -57,16 +67,21 @@ export const normalizeAgentRuntimeConfig = (
     return { ...DEFAULT_AGENT_RUNTIME_CONFIG };
   }
   const provider: AgentLLMProvider =
-    raw.agentLlmProvider === 'openai' ||
-    raw.agentLlmProvider === 'huggingface' ||
-    raw.agentLlmProvider === 'huggingfaceapi' ||
-    raw.agentLlmProvider === 'replicate'
-      ? raw.agentLlmProvider
+    isAcceptedAgentLLMProvider(raw.agentLlmProvider)
+      ? (raw.agentLlmProvider as AgentLLMProvider)
       : '';
   const intent: IntentRecognitionTechnology =
     raw.intentRecognitionTechnology === 'llm-based' ? 'llm-based' : 'classical';
+  // Migrate legacy 'streamlit' value → 'websocket' + use_streamlit=true
+  let agentPlatform = typeof raw.agentPlatform === 'string' && raw.agentPlatform ? raw.agentPlatform : 'websocket';
+  let agentPlatformUseStreamlit = raw.agentPlatformUseStreamlit ?? false;
+  if (agentPlatform === 'streamlit') {
+    agentPlatform = 'websocket';
+    agentPlatformUseStreamlit = true;
+  }
   return {
-    agentPlatform: typeof raw.agentPlatform === 'string' && raw.agentPlatform ? raw.agentPlatform : 'streamlit',
+    agentPlatform,
+    agentPlatformUseStreamlit,
     intentRecognitionTechnology: intent,
     agentLlmProvider: provider,
     agentLlmModel: typeof raw.agentLlmModel === 'string' ? raw.agentLlmModel : '',

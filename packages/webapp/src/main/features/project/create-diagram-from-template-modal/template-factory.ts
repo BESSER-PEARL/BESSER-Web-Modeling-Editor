@@ -15,6 +15,7 @@ import greetingagent from '../../../templates/pattern/agent/greetingagent.json';
 import dbagent from '../../../templates/pattern/agent/dbagent.json';
 import gymagent from '../../../templates/pattern/agent/gymagent.json';
 import faqRagAgent from '../../../templates/pattern/agent/faqragagent.json';
+import chatbotAgent from '../../../templates/pattern/agent/chatbotagent.json';
 import libraryAgent from '../../../templates/pattern/agent/libraryagent.json';
 import traficlightModel from '../../../templates/pattern/statemachine/traficlight.json';
 import nnTutorialExample from '../../../templates/pattern/nn/tutorial_example.json';
@@ -30,7 +31,7 @@ import { serializeCircuit } from '../../editors/quantum/utils';
 
 // Helper function to convert example circuit to QuantumCircuitData format
 const getQuantumCircuitData = (circuitName: string) => {
-  const example = EXAMPLE_CIRCUITS.find(c => c.name === circuitName);
+  const example = EXAMPLE_CIRCUITS.find((c) => c.name === circuitName);
   if (!example) {
     // Return empty circuit as fallback
     return { cols: [], gates: [], gateMetadata: {}, version: '1.0.0' };
@@ -111,6 +112,13 @@ export class TemplateFactory {
           softwarePatternType,
           UMLDiagramType.AgentDiagram,
           faqRagAgent as any,
+          SoftwarePatternCategory.AGENT,
+        );
+      case SoftwarePatternType.CHATBOT_AGENT:
+        return new SoftwarePatternTemplate(
+          softwarePatternType,
+          UMLDiagramType.AgentDiagram,
+          chatbotAgent as any,
           SoftwarePatternCategory.AGENT,
         );
       case SoftwarePatternType.LIBRARY_AGENT:

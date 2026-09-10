@@ -88,6 +88,8 @@ export interface IDiagramBridgeService {
   setStateMachineDiagrams(diagrams: IDiagramReference[]): void
   getQuantumCircuitDiagrams(): IDiagramReference[]
   setQuantumCircuitDiagrams(diagrams: IDiagramReference[]): void
+  getAgentPlatform(): string
+  setAgentPlatform(platform: string): void
 }
 
 const STEREOTYPE_INHERITANCE = "ClassInheritance"
@@ -115,6 +117,7 @@ export class DiagramBridgeService implements IDiagramBridgeService {
   private readonly STORAGE_KEY = "besser-class-diagram-bridge-data"
   private stateMachineDiagrams: IDiagramReference[] = []
   private quantumCircuitDiagrams: IDiagramReference[] = []
+  private agentPlatform: string = "websocket"
 
   /**
    * Set class diagram data and persist it
@@ -559,6 +562,24 @@ export class DiagramBridgeService implements IDiagramBridgeService {
    */
   setQuantumCircuitDiagrams(diagrams: IDiagramReference[]): void {
     this.quantumCircuitDiagrams = diagrams
+  }
+
+  /**
+   * Get the currently configured agent platform (e.g. 'websocket',
+   * 'telegram'). Set by the webapp whenever the active diagram's platform
+   * config changes; the AgentState inspector reads it to gate the
+   * WebSocket-only reply types.
+   */
+  getAgentPlatform(): string {
+    return this.agentPlatform
+  }
+
+  /**
+   * Set the active agent platform so editor components can react to it.
+   * Empty / falsy input falls back to the default `websocket`.
+   */
+  setAgentPlatform(platform: string): void {
+    this.agentPlatform = platform || "websocket"
   }
 }
 

@@ -35,6 +35,13 @@ const ARTIFACT_TYPES: ReadonlySet<string> = new Set(['bpmnAnnotation', 'bpmnGrou
 
 type FlowKind = 'sequence' | 'message' | 'association' | 'data association';
 
+const BPMN_FLOW_EDGE_TYPES: ReadonlySet<string> = new Set([
+  'BPMNSequenceFlow',
+  'BPMNMessageFlow',
+  'BPMNAssociationFlow',
+  'BPMNDataAssociationFlow',
+]);
+
 export interface ExportOptions {
   targetNamespace?: string;
 }
@@ -214,6 +221,10 @@ export function apollonBpmnToXmlDetailed(model: UMLModel, opts: ExportOptions = 
   const messageFlows: BesserEdge[] = [];
 
   for (const edge of edges) {
+    if (!BPMN_FLOW_EDGE_TYPES.has(edge.type as string)) {
+      skipped.push({ id: edge.id, type: edge.type as string, reason: 'relationship not a BPMN flow' });
+      continue;
+    }
     const srcEl = nodeById.get(edge.source);
     const tgtEl = nodeById.get(edge.target);
     if (!srcEl || !tgtEl) {
@@ -386,6 +397,7 @@ export function apollonBpmnToXmlDetailed(model: UMLModel, opts: ExportOptions = 
   }
 
   for (const edge of edges) {
+    if (!BPMN_FLOW_EDGE_TYPES.has(edge.type as string)) continue;
     if (!nodeById.get(edge.source) || !nodeById.get(edge.target)) continue;
     lines.push(edgeXml(edge, absCenter));
   }

@@ -402,7 +402,7 @@
               },
               {
                 "id": "de57bf9a-a91f-4c69-9ad0-4879e2222edd",
-                "type": "classoclconstraint",
+                "type": "ClassOCLConstraint",
                 "position": {
                   "x": 40,
                   "y": 40
@@ -414,7 +414,8 @@
                   "height": 90
                 },
                 "data": {
-                  "name": ""
+                  "name": "",
+                  "expression": "context Book inv inv1: self.pages> 10"
                 }
               }
             ],

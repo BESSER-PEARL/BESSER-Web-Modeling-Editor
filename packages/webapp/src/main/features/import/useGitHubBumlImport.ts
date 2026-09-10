@@ -1,4 +1,5 @@
 import { useCallback, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { toast } from 'react-toastify';
 import { convertToRawUrl, extractFileName, validateGitHubUrl } from '../../shared/utils/githubUrlUtils';
 import { importProjectFromBUML } from '../../shared/services/project-import/projectImport';
@@ -7,11 +8,12 @@ import { useProject } from '../../app/hooks/useProject';
 export const useGitHubBumlImport = () => {
     const [isLoading, setIsLoading] = useState(false);
     const { loadProject } = useProject();
+    const { t } = useTranslation();
 
     const importFromGitHub = useCallback(async (githubUrl: string) => {
         // Validate GitHub URL
         if (!validateGitHubUrl(githubUrl)) {
-            toast.error('Invalid GitHub URL. Please provide a valid GitHub repository URL.');
+            toast.error(t('github.toasts.invalidGitHubUrl'));
             return;
         }
 
@@ -23,7 +25,7 @@ export const useGitHubBumlImport = () => {
             const filename = extractFileName(githubUrl);
 
             // Show loading toast
-            const loadingToast = toast.loading(`Fetching ${filename} from GitHub...`);
+            const loadingToast = toast.loading(t('github.toasts.fetchingFromGitHub', { filename }));
 
             // Fetch the file from GitHub
             const response = await fetch(rawUrl);
@@ -31,9 +33,9 @@ export const useGitHubBumlImport = () => {
             if (!response.ok) {
                 toast.dismiss(loadingToast);
                 if (response.status === 404) {
-                    toast.error('File not found on GitHub. Please check the URL and try again.');
+                    toast.error(t('github.toasts.fileNotFound'));
                 } else {
-                    toast.error(`Failed to fetch file from GitHub: ${response.statusText}`);
+                    toast.error(t('github.toasts.fetchFileFailed', { status: response.statusText }));
                 }
                 setIsLoading(false);
                 return;
@@ -54,12 +56,12 @@ export const useGitHubBumlImport = () => {
             // Load the imported project
             await loadProject(importedProject.id);
 
-            toast.success(`Successfully imported project: ${importedProject.name}`);
+            toast.success(t('github.toasts.importProjectSuccess', { name: importedProject.name }));
 
         } catch (error) {
             console.error('Error importing from GitHub:', error);
 
-            let errorMessage = 'Failed to import model from GitHub';
+            let errorMessage = t('github.toasts.importModelFailed');
             if (error instanceof Error) {
                 errorMessage = error.message;
             }
@@ -68,7 +70,7 @@ export const useGitHubBumlImport = () => {
         } finally {
             setIsLoading(false);
         }
-    }, [loadProject]);
+    }, [loadProject, t]);
 
     return { importFromGitHub, isLoading };
 };

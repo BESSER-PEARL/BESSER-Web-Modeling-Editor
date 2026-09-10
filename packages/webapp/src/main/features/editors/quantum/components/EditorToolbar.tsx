@@ -1,4 +1,5 @@
 import React, { useState, useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
 import { SaveStatus as SaveStatusType } from '../hooks/useCircuitPersistence';
 import { Circuit } from '../types';
 import { EXAMPLE_CIRCUITS, getCircuitsByCategory } from '../exampleCircuits';
@@ -43,6 +44,7 @@ export function EditorToolbar({
     onImport,
     onLoadCircuit,
 }: EditorToolbarProps): JSX.Element {
+    const { t } = useTranslation();
     const [examplesOpen, setExamplesOpen] = useState(false);
     const circuitsByCategory = getCircuitsByCategory();
     const categoryOrder = ['Basic', 'Algorithms', 'Protocols', 'Advanced'];
@@ -63,18 +65,18 @@ export function EditorToolbar({
 
     return (
         <Toolbar>
-            <h3>Quantum Editor</h3>
+            <h3>{t('editors.quantum.editorTitle')}</h3>
             <SaveStatus $status={saveStatus}>
-                {saveStatus === 'saved' && '✓ Saved'}
-                {saveStatus === 'saving' && '⟳ Saving...'}
-                {saveStatus === 'error' && '⚠ Error'}
+                {saveStatus === 'saved' && `✓ ${t('editors.quantum.saved')}`}
+                {saveStatus === 'saving' && `⟳ ${t('editors.quantum.saving')}`}
+                {saveStatus === 'error' && `⚠ ${t('editors.quantum.error')}`}
             </SaveStatus>
             <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
                 <UndoRedoButton onClick={onUndo} disabled={!canUndo} $disabled={!canUndo}>
-                    Undo
+                    {t('editors.quantum.undo')}
                 </UndoRedoButton>
                 <UndoRedoButton onClick={onRedo} disabled={!canRedo} $disabled={!canRedo}>
-                    Redo
+                    {t('editors.quantum.redo')}
                 </UndoRedoButton>
             </div>
             
@@ -85,7 +87,7 @@ export function EditorToolbar({
                     onClick={() => setExamplesOpen(!examplesOpen)}
                     $isOpen={examplesOpen}
                 >
-                    📚 Examples
+                    📚 {t('editors.quantum.examples')}
                 </DropdownButton>
                 <DropdownMenu $isOpen={examplesOpen}>
                     {categoryOrder.map(category => (
@@ -111,15 +113,15 @@ export function EditorToolbar({
                 <ToolbarButton
                     onClick={onSave}
                     $variant={saveStatus === 'saved' ? 'primary' : 'secondary'}
-                    title="Manually save circuit to project"
+                    title={t('editors.quantum.saveNowTooltip')}
                 >
-                    💾 Save Now
+                    💾 {t('editors.quantum.saveNow')}
                 </ToolbarButton>
                 <ToolbarButton onClick={onExport} $variant="success">
-                    Export JSON
+                    {t('editors.quantum.exportJson')}
                 </ToolbarButton>
                 <ToolbarButton onClick={onImport} $variant="info">
-                    Import JSON
+                    {t('editors.quantum.importJson')}
                 </ToolbarButton>
             </div>
         </Toolbar>

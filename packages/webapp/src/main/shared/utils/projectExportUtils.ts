@@ -56,13 +56,12 @@ export const buildProjectPayloadForBackend = (
   project: BesserProject,
   selectedDiagramTypes?: SupportedDiagramType[],
 ): Record<string, unknown> => {
-  const payload = structuredClone(project);
+  const payload = structuredClone(project) as ExportableProjectPayload;
   payload.name = normalizeProjectName(payload.name || 'project');
 
   // Filter out empty diagrams, then remove types with no content
   const diagrams: Record<string, ProjectDiagram[]> = {};
-  for (const type of Object.keys(payload.diagrams)) {
-    const arr = payload.diagrams[type];
+  for (const [type, arr] of Object.entries(payload.diagrams)) {
     if (Array.isArray(arr)) {
       const withContent = arr.filter(diagramHasContent);
       if (withContent.length > 0) {

@@ -10,6 +10,7 @@ import {
   getRenderedDiagramBounds,
   normalizeV4Model,
 } from "./utils"
+import { computeAutoLayout } from "./utils/autoLayout"
 import { UMLDiagramType } from "./types"
 import { createDiagramStore, DiagramStore } from "@/store/diagramStore"
 import { createMetadataStore, MetadataStore } from "@/store/metadataStore"
@@ -148,6 +149,9 @@ export class BesserEditor {
     }
     if (options?.scrollLock !== undefined) {
       this.metadataStore.getState().setScrollLock(options.scrollLock)
+    }
+    if (options?.locale !== undefined) {
+      this.metadataStore.getState().setLocale(options.locale)
     }
 
     if (
@@ -598,6 +602,44 @@ export class BesserEditor {
       return this.assessmentSelectionStore.getState().selectedElementIds
     }
     return this.diagramStore.getState().selectedElementIds
+  }
+
+  /**
+   * Current UI language of the editor chrome.
+   */
+  get locale(): Besser.Locale {
+    return this.metadataStore.getState().locale
+  }
+
+  /**
+   * Switch the editor's UI language in place. Only the metadata store is
+   * touched — the model, selection and undo history are preserved (the v3
+   * editor had to tear down and recreate itself for this).
+   * @param locale supported locale
+   */
+  set locale(locale: Besser.Locale) {
+    this.metadataStore.getState().setLocale(locale)
+  }
+
+  /**
+   * Re-arrange the current diagram with the ELK layered layouter — the
+   * same routine the in-canvas auto-layout button runs. Node positions and
+   * edge handles are replaced in the store (one undoable step) and the
+   * viewport is fitted to the result once React Flow has mounted. Resolves
+   * when the layout has been applied; a no-op for an empty diagram.
+   */
+  public async autoLayout(): Promise<void> {
+    const { nodes, edges, setNodesAndEdges } = this.diagramStore.getState()
+    if (nodes.length === 0) return
+    const { diagramType } = this.metadataStore.getState()
+    const layouted = await computeAutoLayout(nodes, edges, diagramType)
+    setNodesAndEdges(layouted.nodes, layouted.edges)
+    const instance = this.reactFlowInstance
+    if (instance && typeof window !== "undefined") {
+      window.requestAnimationFrame(() => {
+        void instance.fitView({ duration: 300, padding: 0.1 })
+      })
+    }
   }
 
   get view(): Besser.BesserView {

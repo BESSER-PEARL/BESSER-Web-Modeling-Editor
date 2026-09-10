@@ -4,6 +4,7 @@ import { BACKEND_URL } from '../../constants/constant';
 import { BesserEditor } from '@besser/wme';
 import { ProjectStorageRepository } from '../storage/ProjectStorageRepository';
 import { withReferenceDiagramData } from './validationPayload';
+import i18n from '../../i18n';
 
 /**
  * Validate diagram using the unified backend validation endpoint.
@@ -45,7 +46,7 @@ export async function validateDiagram(editor: BesserEditor | null | undefined, d
     if (model && model._suppressToasts) delete model._suppressToasts;
 
     if (!model) {
-      if (!suppressToasts) toast.error('No diagram to validate');
+      if (!suppressToasts) toast.error(i18n.t('validation.toasts.noDiagramToValidate'));
       return { isValid: false, errors: ['No diagram available'] };
     }
 
@@ -58,7 +59,7 @@ export async function validateDiagram(editor: BesserEditor | null | undefined, d
     const hasEdges = Array.isArray(model.edges) && model.edges.length > 0;
     if (!hasNodes && !hasEdges) {
       if (!suppressToasts) {
-        toast.info('The diagram is empty. Add elements before running the quality check.', {
+        toast.info(i18n.t('validation.toasts.diagramEmpty'), {
           position: 'top-right',
           autoClose: 4000,
           theme: 'dark',
@@ -69,7 +70,7 @@ export async function validateDiagram(editor: BesserEditor | null | undefined, d
 
     // Show loading state
     if (!suppressToasts) {
-      toast.loading("Validating diagram...", {
+      toast.loading(i18n.t('validation.toasts.validating'), {
         toastId: VALIDATION_TOAST_ID,
         position: "top-right",
         theme: "dark",
@@ -100,7 +101,7 @@ export async function validateDiagram(editor: BesserEditor | null | undefined, d
       clearTimeout(timeoutId);
       if (fetchError instanceof DOMException && fetchError.name === 'AbortError') {
         toast.dismiss(VALIDATION_TOAST_ID);
-        toast.error('Validation timed out. The backend may be overloaded.');
+        toast.error(i18n.t('validation.toasts.timedOut'));
         return { isValid: false, errors: ['Validation timed out'] };
       }
       throw fetchError;
@@ -115,7 +116,7 @@ export async function validateDiagram(editor: BesserEditor | null | undefined, d
       
       if (!suppressToasts) {
         toast.dismiss(VALIDATION_TOAST_ID);
-        const errorMessage = errorData.errors?.join('\n') || 'Validation failed';
+        const errorMessage = errorData.errors?.join('\n') || i18n.t('validation.toasts.validationFailed');
         toast.error(errorMessage, {
           position: "top-right",
           autoClose: false,
@@ -137,7 +138,7 @@ export async function validateDiagram(editor: BesserEditor | null | undefined, d
 
     // Show validation errors
     if (!suppressToasts && result.errors && result.errors.length > 0) {
-      const errorMessage = "❌ Validation Errors:\n\n" + result.errors.join("\n\n");
+      const errorMessage = `❌ ${i18n.t('validation.toasts.errorsLabel')}\n\n` + result.errors.join("\n\n");
       toast.error(errorMessage, {
         position: "top-right",
         autoClose: false,
@@ -155,7 +156,7 @@ export async function validateDiagram(editor: BesserEditor | null | undefined, d
     
     // Show warnings
     if (!suppressToasts && result.warnings && result.warnings.length > 0) {
-      const warningMessage = "⚠️ Warnings:\n\n" + result.warnings.join("\n\n");
+      const warningMessage = `⚠️ ${i18n.t('validation.toasts.warningsLabel')}\n\n` + result.warnings.join("\n\n");
       toast.warning(warningMessage, {
         position: "top-right",
         autoClose: false,
@@ -173,7 +174,7 @@ export async function validateDiagram(editor: BesserEditor | null | undefined, d
     
     // Show valid OCL constraints
     if (!suppressToasts && result.valid_constraints && result.valid_constraints.length > 0) {
-      const validMessage = "✅ Valid Constraints:\n\n" + result.valid_constraints.join("\n\n");
+      const validMessage = `✅ ${i18n.t('validation.toasts.validConstraintsLabel')}\n\n` + result.valid_constraints.join("\n\n");
       toast.success(validMessage, {
         position: "top-right",
         autoClose: false,
@@ -191,7 +192,7 @@ export async function validateDiagram(editor: BesserEditor | null | undefined, d
     
     // Show invalid OCL constraints
     if (!suppressToasts && result.invalid_constraints && result.invalid_constraints.length > 0) {
-      const invalidMessage = "❌ Invalid Constraints:\n\n" + result.invalid_constraints.join("\n\n");
+      const invalidMessage = `❌ ${i18n.t('validation.toasts.invalidConstraintsLabel')}\n\n` + result.invalid_constraints.join("\n\n");
       toast.error(invalidMessage, {
         position: "top-right",
         autoClose: false,
@@ -222,7 +223,7 @@ export async function validateDiagram(editor: BesserEditor | null | undefined, d
     const hasWarnings = result.warnings && result.warnings.length > 0;
     const hasInvalidConstraints = result.invalid_constraints && result.invalid_constraints.length > 0;
     if (!suppressToasts && result.isValid && (!result.errors || result.errors.length === 0) && !hasWarnings && !hasInvalidConstraints) {
-      toast.success(result.message || "✅ Diagram is valid", {
+      toast.success(result.message || `✅ ${i18n.t('validation.toasts.diagramValid')}`, {
         position: "top-right",
         autoClose: 3000,
         hideProgressBar: false,
@@ -240,7 +241,7 @@ export async function validateDiagram(editor: BesserEditor | null | undefined, d
     console.error('Error during validation:', error);
     if (!suppressToasts) {
       toast.dismiss(VALIDATION_TOAST_ID);
-      toast.error(`Validation error: ${error instanceof Error ? error.message : 'Unknown error'}`, {
+      toast.error(i18n.t('validation.toasts.validationErrorGeneric', { error: error instanceof Error ? error.message : i18n.t('validation.toasts.unknownError') }), {
         position: "top-right",
         autoClose: 5000,
         theme: "dark"

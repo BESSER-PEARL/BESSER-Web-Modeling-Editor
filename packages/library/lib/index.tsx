@@ -3,6 +3,11 @@ export * from "./besser-editor"
 export * from "./utils/helpers"
 export * from "./utils/versionConverter"
 export * from "./utils"
+export { layoutModel } from "./utils/autoLayout"
+export {
+  normalizeAgentModel,
+  normalizeAgentTransitionData,
+} from "./utils/normalizeAgentModel"
 export { log, setLogLevel, setLogger } from "./logger"
 export type { LogLevel } from "./logger"
 
@@ -17,6 +22,40 @@ export type {
   IDiagramReference,
   IDiagramBridgeService,
 } from "./services/diagramBridge"
+
+// Agent LLM provider catalogue (AgentConfigurationPanel.tsx,
+// local-storage-repository.ts).
+export {
+  AGENT_LLM_PROVIDERS,
+  LEGACY_AGENT_LLM_PROVIDER_ALIASES,
+  ACCEPTED_AGENT_LLM_PROVIDERS,
+  NON_CHAT_AGENT_LLM_PROVIDERS,
+  isAcceptedAgentLLMProvider,
+  canonicalizeAgentLLMProvider,
+} from "./services/agentLlm"
+export type {
+  AgentLLMProviderType,
+  LegacyAgentLLMProviderType,
+} from "./services/agentLlm"
+
+// BPMN flow rules (bpmn-xml-importer.ts / bpmn-xml-exporter.ts, assistant).
+export {
+  BPMN_FLOW_EDGE_TYPES,
+  bpmnEdgeTypeToFlowType,
+  bpmnFlowTypeToEdgeType,
+  isBpmnFlowEdge,
+  getAllowedBpmnFlowTypes,
+  getDefaultBpmnFlowType,
+  canSourceCarryDefault,
+  validateBpmnFlow,
+  validateAllBpmnFlows,
+} from "./services/bpmnFlowValidation"
+export type {
+  BpmnFlowType,
+  DefaultFlowSource,
+  BPMNFlowValidationCode,
+  BPMNFlowValidationWarning,
+} from "./services/bpmnFlowValidation"
 
 // settingsService + ClassNotation (used by ProjectSettingsPanel.tsx).
 export {

@@ -13,7 +13,11 @@
  *     `parentId = pool.id`, flow nodes carry `parentId = lane.id` or the pool),
  *   - flows are one of the four v4 edge-type strings; the label is written to
  *     BOTH `edge.data.name` AND `edge.data.label`; cross-pool flows become
- *     message flows; `edge.data.isDefault` carries the default-flow marker.
+ *     message flows; `edge.data.isDefault` carries the default-flow marker,
+ *   - the finished layout is shifted so its bounding box is centred on the
+ *     origin (0,0) — the same convention develop's converter used so the
+ *     viewport-recentering heuristics in `useModelInjection` see a stable,
+ *     origin-anchored diagram after every complete-system injection.
  *
  * NOTE on naming: the converter is registered under the STORAGE-BUCKET token
  * "BPMN" (what `SupportedDiagramType` / the store use), but it emits the model
@@ -160,6 +164,7 @@ export class BPMNDiagramConverter implements DiagramConverter {
       this.layoutWithPools(nodes, flows, pools, layerOf, model);
     }
 
+    this.centerOnOrigin(model);
     return model;
   }
 
@@ -471,6 +476,46 @@ export class BPMNDiagramConverter implements DiagramConverter {
       },
     };
     model.edges.push(edge);
+  }
+
+  /**
+   * Shift the content so its bounding box is centred on the origin. Only
+   * top-level nodes move — children (lanes in a pool, flow nodes in a lane)
+   * are positioned relative to their parent and follow automatically. Flow
+   * geometry is placeholder (the editor re-routes on load), so edges need no
+   * adjustment.
+   */
+  private centerOnOrigin(model: Record<string, any>): void {
+    const nodes: BesserNode[] = Array.isArray(model.nodes) ? model.nodes : [];
+    if (!nodes.length) return;
+
+    const byId = new Map<string, BesserNode>(nodes.map((n) => [n.id, n]));
+    const absoluteOrigin = (node: BesserNode, depth = 0): { x: number; y: number } => {
+      const parent = node.parentId ? byId.get(node.parentId) : undefined;
+      if (!parent || depth > 64) return { x: node.position.x, y: node.position.y };
+      const p = absoluteOrigin(parent, depth + 1);
+      return { x: p.x + node.position.x, y: p.y + node.position.y };
+    };
+
+    let minX = Infinity;
+    let minY = Infinity;
+    let maxX = -Infinity;
+    let maxY = -Infinity;
+    nodes.forEach((n) => {
+      const { x, y } = absoluteOrigin(n);
+      minX = Math.min(minX, x);
+      minY = Math.min(minY, y);
+      maxX = Math.max(maxX, x + (n.width ?? 0));
+      maxY = Math.max(maxY, y + (n.height ?? 0));
+    });
+    if (!Number.isFinite(minX) || !Number.isFinite(minY)) return;
+
+    const offsetX = -(minX + maxX) / 2;
+    const offsetY = -(minY + maxY) / 2;
+    nodes.forEach((n) => {
+      if (n.parentId) return;
+      n.position = { x: n.position.x + offsetX, y: n.position.y + offsetY };
+    });
   }
 
   // ------------------------------------------------------------------

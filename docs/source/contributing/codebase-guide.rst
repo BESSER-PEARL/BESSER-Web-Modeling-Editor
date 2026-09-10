@@ -24,6 +24,8 @@ applications can use it directly.
    │   ├── agentDiagram/        #   Agent states, intents, transitions
    │   ├── nnDiagram/           #   NN container, layers, references
    │   ├── userDiagram/         #   User-modelling nodes
+   │   ├── bpmn/                #   BPMN tasks, events, gateways, pools/lanes
+   │   ├── flowchart/           #   Flowchart shapes
    │   └── common/              #   Shared node wrappers / handles
    ├── edges/                   # React Flow edge renderers and connection logic
    │   ├── edgeTypes/           #   ClassDiagramEdge, StateMachineDiagramEdge, …
@@ -51,6 +53,7 @@ applications can use it directly.
    ├── types/                   # DiagramType + per-node data shapes
    ├── utils/                   # Pure utility functions
    │   ├── versionConverter.ts  #   v3 → v4 migrator
+   │   ├── autoLayout.ts        #   ELK auto-layout (editor.autoLayout / layoutModel)
    │   ├── helpers.ts           #   React Flow / B-UML adapters
    │   ├── classifierMemberDisplay.ts
    │   ├── multiplicity.ts
@@ -101,7 +104,10 @@ collaboration.
    │   └── hooks/                  #   App-level React hooks
    ├── features/                   # Feature modules (one folder per feature)
    │   ├── editors/                #   Editor wrappers
-   │   │   └── uml/BesserEditorComponent.tsx  # Main editor wrapper
+   │   │   ├── uml/BesserEditorComponent.tsx  # Main editor wrapper
+   │   │   ├── gui/                #     GrapesJS GUI editor
+   │   │   ├── quantum/            #     Quantum circuit editor
+   │   │   └── user-profile-form/  #     Form-based user-profile creator
    │   ├── project/                #   Project hub, creation, templates
    │   ├── generation/             #   Code generation dialogs and logic
    │   ├── deploy/                 #   Render deployment
@@ -114,6 +120,7 @@ collaboration.
    ├── shared/                     # Cross-feature shared code
    │   ├── types/project.ts        #   BesserProject, ProjectDiagram types
    │   ├── constants/constant.ts   #   Environment variables, URLs, keys
+   │   ├── i18n/                   #   react-i18next setup + language list
    │   ├── services/               #   Storage, validation, analytics
    │   │   └── storage/ProjectStorageRepository.ts
    │   ├── components/             #   Reusable UI components
@@ -145,21 +152,24 @@ a few API endpoints.
 
    packages/server/src/main/
    ├── server.ts              # Express app setup, middleware, route mounting
-   ├── routes.ts              # API routes (/api/diagrams, /api/collaborate, etc.)
+   ├── routes.ts              # API routes (/api/uml-agent/rate-limit, /api/svg)
+   ├── resources/             # Request handlers
+   │   ├── svg-export-resource.ts            #   Headless model → SVG (optional ELK auto-layout)
+   │   └── uml-agent-rate-limiter-resource.ts #   Assistant rate limiting
    ├── services/              # Business logic
-   │   ├── diagram-service/   #   CRUD for diagrams (file or Redis storage)
-   │   └── pdf-service/       #   SVG-to-PDF conversion
-   ├── resources/             # Static assets
+   │   ├── conversion-service/ #   Renders a UML model to SVG with BesserEditor under jsdom
+   │   ├── storage-service/    #   File-system helpers
+   │   └── uml-agent/          #   Rate-limiter service
    ├── constants.ts           # Port, storage paths
    └── utils.ts               # Shared helpers
 
 **Key patterns:**
 
-- Diagrams are stored on the filesystem by default (``diagrams/`` folder).
-  When ``APOLLON_REDIS_URL`` is set, storage switches to Redis.
+- ``POST /api/svg`` accepts an editor JSON model (v4, or legacy v3 which is
+  lifted automatically) and returns ``{ svg, clip }``; pass
+  ``autoLayout: false`` to keep the incoming positions.
 - The server does NOT run code generation — that is handled by the BESSER
   Python backend at ``BACKEND_URL``.
-- WebSocket connections for collaboration are managed through the server.
 
 
 Where Code Lives: Quick Lookup
@@ -184,26 +194,26 @@ Where Code Lives: Quick Lookup
    * - The AI assistant bot
      - ``webapp/src/main/features/assistant/``
    * - An element's visual appearance
-     - ``editor/src/main/packages/<diagram-type>/<element>-component.tsx``
+     - ``library/lib/nodes/<diagramType>/<Node>.tsx`` (edges: ``library/lib/edges/edgeTypes/``)
    * - An element's data model
-     - ``editor/src/main/packages/<diagram-type>/<element>.ts``
+     - ``library/lib/types/nodes/NodeProps.ts``
    * - The palette for a diagram
-     - ``editor/src/main/packages/compose-preview.ts``
-   * - A property popup
-     - ``editor/src/main/packages/popups.ts``
+     - ``library/lib/components/svgs/nodes/<diagramType>/``
+   * - A property panel / popover
+     - ``library/lib/components/inspectors/<diagramType>/`` + ``library/lib/components/popovers/PopoverManager.tsx``
    * - Cross-diagram data (bridge)
-     - ``editor/src/main/services/diagram-bridge/``
+     - ``library/lib/services/diagramBridge.ts``
    * - Auto-layout
-     - ``editor/src/main/services/layouter/``
+     - ``library/lib/utils/autoLayout.ts``
    * - Undo/redo
-     - ``editor/src/main/services/undo/``
+     - ``library/lib/store/diagramStore.ts``
    * - Translations
-     - ``editor/src/main/i18n/en.json``
+     - ``i18n/<lang>/webapp.json`` (webapp) and ``i18n/<lang>/editor.json`` (library)
    * - Environment variables
      - ``webapp/src/main/shared/constants/constant.ts``
    * - Project data model
      - ``webapp/src/main/shared/types/project.ts``
    * - Local storage persistence
      - ``webapp/src/main/shared/services/storage/ProjectStorageRepository.ts``
-   * - Server diagram storage
-     - ``server/src/main/services/diagram-service/``
+   * - Headless SVG export endpoint
+     - ``server/src/main/resources/svg-export-resource.ts``

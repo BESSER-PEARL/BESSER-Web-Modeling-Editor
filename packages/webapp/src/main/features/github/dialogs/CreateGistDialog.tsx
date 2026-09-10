@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
@@ -25,20 +26,21 @@ export const CreateGistDialog: React.FC<CreateGistDialogProps> = ({
   onPublicChange,
   onCreate,
 }) => {
+  const { t } = useTranslation();
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-xl">
         <DialogHeader>
-          <DialogTitle>Create Gist</DialogTitle>
-          <DialogDescription>Create a GitHub Gist to quickly share your project.</DialogDescription>
+          <DialogTitle>{t('github.gist.title')}</DialogTitle>
+          <DialogDescription>{t('github.gist.description')}</DialogDescription>
         </DialogHeader>
 
         <div className="flex flex-col gap-4">
           <div className="flex flex-col gap-1.5">
-            <Label>Description</Label>
+            <Label>{t('github.gist.descriptionLabel')}</Label>
             <Textarea
               rows={2}
-              placeholder="Gist description..."
+              placeholder={t('github.gist.descriptionPlaceholder')}
               value={description}
               onChange={(event) => onDescriptionChange(event.target.value)}
             />
@@ -51,20 +53,20 @@ export const CreateGistDialog: React.FC<CreateGistDialogProps> = ({
               onChange={(event) => onPublicChange(event.target.checked)}
               className="size-4 rounded border-border"
             />
-            Public Gist
+            {t('github.gist.publicGist')}
           </label>
 
           <p className="text-xs text-muted-foreground">
-            Secret gists are hidden from search engines but visible to anyone with the link.
+            {t('github.gist.secretHint')}
           </p>
         </div>
 
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>
-            Cancel
+            {t('common.cancel')}
           </Button>
           <Button onClick={onCreate} disabled={isLoading}>
-            {isLoading ? 'Creating...' : 'Create Gist'}
+            {isLoading ? t('github.gist.creating') : t('github.gist.createGist')}
           </Button>
         </DialogFooter>
       </DialogContent>

@@ -16,7 +16,15 @@ export const MAX_DIAGRAMS_PER_TYPE = 5;
 export const PROJECT_SCHEMA_VERSION = 5;
 
 export const ALL_DIAGRAM_TYPES: SupportedDiagramType[] = [
-  'ClassDiagram', 'ObjectDiagram', 'StateMachineDiagram', 'AgentDiagram', 'UserDiagram', 'GUINoCodeDiagram', 'QuantumCircuitDiagram', 'NNDiagram', 'BPMN',
+  'ClassDiagram',
+  'ObjectDiagram',
+  'StateMachineDiagram',
+  'AgentDiagram',
+  'UserDiagram',
+  'GUINoCodeDiagram',
+  'QuantumCircuitDiagram',
+  'NNDiagram',
+  'BPMN',
 ];
 
 export type PerspectiveSettings = Record<SupportedDiagramType, boolean>;
@@ -141,7 +149,7 @@ export const getReferencedDiagram = (
   // Look up by ID (stable across deletions/reordering)
   const refId = fromDiagram?.references?.[refType];
   if (refId) {
-    const found = diagrams.find(d => d.id === refId);
+    const found = diagrams.find((d) => d.id === refId);
     if (found) return found;
     // Referenced diagram was deleted — fall through to default
   }
@@ -372,7 +380,11 @@ export const buildUserDiagramSeedNodes = (): UMLModel['nodes'] => {
 };
 
 // Default diagram factory
-export const createEmptyDiagram = (title: string, type: UMLDiagramType | null, diagramKind?: 'gui' | 'quantum'): ProjectDiagram => {
+export const createEmptyDiagram = (
+  title: string,
+  type: UMLDiagramType | null,
+  diagramKind?: 'gui' | 'quantum',
+): ProjectDiagram => {
   // For Quantum Circuit diagram
   if (diagramKind === 'quantum') {
     return {
@@ -383,7 +395,7 @@ export const createEmptyDiagram = (title: string, type: UMLDiagramType | null, d
         gates: [],
         gateMetadata: {},
         initialStates: [],
-        version: '1.0.0'
+        version: '1.0.0',
       } as QuantumCircuitData,
       lastUpdate: new Date().toISOString(),
     };
@@ -413,20 +425,20 @@ export const createEmptyDiagram = (title: string, type: UMLDiagramType | null, d
                     'background-repeat',
                     'background-attachment',
                     'background-position',
-                    'background-size'
+                    'background-size',
                   ],
                   components: [],
                   head: { type: 'head' },
-                  docEl: { tagName: 'html' }
-                }
-              }
-            ]
-          }
+                  docEl: { tagName: 'html' },
+                },
+              },
+            ],
+          },
         ],
         styles: [],
         assets: [],
         symbols: [],
-        version: '0.21.13'
+        version: '0.21.13',
       } as GrapesJSProjectData,
       lastUpdate: new Date().toISOString(),
     };
@@ -472,20 +484,20 @@ export const createDefaultGUITemplate = (): GrapesJSProjectData => {
                 'background-repeat',
                 'background-attachment',
                 'background-position',
-                'background-size'
+                'background-size',
               ],
               components: [],
               head: { type: 'head' },
-              docEl: { tagName: 'html' }
-            }
-          }
-        ]
-      }
+              docEl: { tagName: 'html' },
+            },
+          },
+        ],
+      },
     ],
     styles: [],
     assets: [],
     symbols: [],
-    version: '0.21.13'
+    version: '0.21.13',
   };
 };
 
@@ -823,6 +835,40 @@ const migrateReferencesToIds = (project: BesserProject): BesserProject => {
   return project;
 };
 
+/**
+ * Keys a seeded UserDiagram attribute row may carry. Anything else (e.g. a
+ * user-entered `attributeValue`) means the template has been edited.
+ */
+const USER_SEED_ATTRIBUTE_KEYS = new Set(['id', 'name', 'attributeType', 'attributeId', 'attributeOperator']);
+
+/**
+ * True when a UserDiagram model contains only the pristine seed template
+ * produced by `buildUserDiagramSeedNodes`: no edges, and every node is a
+ * `UserModelName` card for one of the default meta-model classes (each at
+ * most once) whose attribute rows carry no user-entered values. Positions
+ * and generated ids are ignored — moving a card around is not content.
+ */
+export const isUserDiagramSeedOnly = (model: UMLModel): boolean => {
+  if (Array.isArray(model.edges) && model.edges.length > 0) return false;
+  const nodes = Array.isArray(model.nodes) ? model.nodes : [];
+  if (nodes.length === 0) return true;
+  const seen = new Set<string>();
+  for (const node of nodes as any[]) {
+    if (node?.type !== 'UserModelName') return false;
+    const data = node?.data ?? {};
+    const name = data.className ?? data.name;
+    if (!DEFAULT_USER_META_CLASSES.includes(name) || seen.has(name)) return false;
+    seen.add(name);
+    const attrs = Array.isArray(data.attributes) ? data.attributes : [];
+    for (const attr of attrs) {
+      if (!attr || typeof attr !== 'object') return false;
+      if (Object.keys(attr).some((key) => !USER_SEED_ATTRIBUTE_KEYS.has(key))) return false;
+      if (attr.attributeOperator !== undefined && attr.attributeOperator !== '==') return false;
+    }
+  }
+  return true;
+};
+
 export const isUMLModel = (model: unknown): model is UMLModel => {
   if (!model || typeof model !== 'object') {
     return false;
@@ -916,7 +962,13 @@ export function diagramHasContent(diagram: ProjectDiagram): boolean {
   if (isUMLModel(model)) {
     const hasNodes = Array.isArray(model.nodes) && model.nodes.length > 0;
     const hasEdges = Array.isArray(model.edges) && model.edges.length > 0;
-    return hasNodes || hasEdges;
+    if (!hasNodes && !hasEdges) return false;
+    // A UserDiagram still carrying nothing but the untouched meta-model seed
+    // template has no user content: it is re-seeded on import / load anyway
+    // (`createEmptyDiagram` + `retrofitEmptyUserDiagrams`), so treating it as
+    // empty keeps exports and backend payloads free of template noise.
+    if (model.type === UMLDiagramType.UserDiagram && isUserDiagramSeedOnly(model)) return false;
+    return true;
   }
 
   if (isGrapesJSProjectData(model)) {
@@ -937,13 +989,13 @@ export function diagramHasContent(diagram: ProjectDiagram): boolean {
 
 // Normalize any data to valid GrapesJS format
 export const normalizeToGrapesJSProjectData = (data: unknown): GrapesJSProjectData => {
-  const candidate = (data && typeof data === 'object') ? data as any : {};
+  const candidate = data && typeof data === 'object' ? (data as any) : {};
 
   return {
     pages: Array.isArray(candidate.pages) ? candidate.pages : [],
     styles: Array.isArray(candidate.styles) ? candidate.styles : [],
     assets: Array.isArray(candidate.assets) ? candidate.assets : [],
     symbols: Array.isArray(candidate.symbols) ? candidate.symbols : [],
-    version: typeof candidate.version === 'string' ? candidate.version : '0.21.13'
+    version: typeof candidate.version === 'string' ? candidate.version : '0.21.13',
   };
 };
