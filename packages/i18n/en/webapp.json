@@ -805,7 +805,7 @@
         "title": "Display",
         "description": "Configure how diagrams are rendered",
         "showInstancedObjects": "Show Instanced Objects",
-        "showInstancedObjectsDesc": "Toggle object instance visibility",
+        "showInstancedObjectsDesc": "Show one draggable instance per class in the Object Diagram palette",
         "iconView": "Icon View",
         "iconViewDesc": "Render objects with their class icon instead of the attribute table",
         "showAssociationNames": "Show Association Names",

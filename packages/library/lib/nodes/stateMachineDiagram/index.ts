@@ -59,3 +59,17 @@ export * from "./StateFinalNode"
 export * from "./StateMergeNode"
 export * from "./StateForkNode"
 export * from "./StateForkNodeHorizontal"
+
+/** See `AgentDiagramNodeType` in `nodes/agentDiagram/index.ts` for why this is type-only. */
+export type StateMachineDiagramNodeType =
+  | "State"
+  | "StateBody"
+  | "StateFallbackBody"
+  | "StateCodeBlock"
+  | "StateActionNode"
+  | "StateObjectNode"
+  | "StateInitialNode"
+  | "StateFinalNode"
+  | "StateMergeNode"
+  | "StateForkNode"
+  | "StateForkNodeHorizontal"

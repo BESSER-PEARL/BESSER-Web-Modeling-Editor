@@ -301,6 +301,57 @@ const NODE_LABEL_CAPABILITIES = {
   sfcJump: { wrapsName: false, rendersNameLabel: true },
   sfcTransitionBranch: { wrapsName: false, rendersNameLabel: true },
   sfcActionTable: { wrapsName: false, rendersNameLabel: true },
+
+  // Agent diagram (self-registering package — see DiagramNodeType)
+  AgentState: { wrapsName: false, rendersNameLabel: true },
+  AgentIntent: { wrapsName: false, rendersNameLabel: true },
+  AgentRagElement: { wrapsName: false, rendersNameLabel: true },
+  AgentTool: { wrapsName: false, rendersNameLabel: true },
+  AgentSkill: { wrapsName: false, rendersNameLabel: true },
+  AgentWorkspace: { wrapsName: false, rendersNameLabel: true },
+  // Data-only LLM definition — renders null, no visible name label.
+  AgentLLM: { wrapsName: false, rendersNameLabel: false },
+
+  // NN diagram (self-registering package — see DiagramNodeType)
+  Conv1DLayer: { wrapsName: false, rendersNameLabel: true },
+  Conv2DLayer: { wrapsName: false, rendersNameLabel: true },
+  Conv3DLayer: { wrapsName: false, rendersNameLabel: true },
+  PoolingLayer: { wrapsName: false, rendersNameLabel: true },
+  RNNLayer: { wrapsName: false, rendersNameLabel: true },
+  LSTMLayer: { wrapsName: false, rendersNameLabel: true },
+  GRULayer: { wrapsName: false, rendersNameLabel: true },
+  LinearLayer: { wrapsName: false, rendersNameLabel: true },
+  FlattenLayer: { wrapsName: false, rendersNameLabel: true },
+  EmbeddingLayer: { wrapsName: false, rendersNameLabel: true },
+  DropoutLayer: { wrapsName: false, rendersNameLabel: true },
+  LayerNormalizationLayer: { wrapsName: false, rendersNameLabel: true },
+  BatchNormalizationLayer: { wrapsName: false, rendersNameLabel: true },
+  TensorOp: { wrapsName: false, rendersNameLabel: true },
+  Configuration: { wrapsName: false, rendersNameLabel: true },
+  TrainingDataset: { wrapsName: false, rendersNameLabel: true },
+  TestDataset: { wrapsName: false, rendersNameLabel: true },
+  NNContainer: { wrapsName: false, rendersNameLabel: true },
+  NNReference: { wrapsName: false, rendersNameLabel: true },
+
+  // State machine diagram (self-registering package — see DiagramNodeType)
+  State: { wrapsName: false, rendersNameLabel: true },
+  StateBody: { wrapsName: false, rendersNameLabel: true },
+  StateFallbackBody: { wrapsName: false, rendersNameLabel: true },
+  StateCodeBlock: { wrapsName: false, rendersNameLabel: true },
+  StateActionNode: { wrapsName: false, rendersNameLabel: true },
+  StateObjectNode: { wrapsName: false, rendersNameLabel: true },
+  // Pure-symbol markers, no editable name — mirrors the activity-diagram
+  // markers above (activityInitialNode / activityFinalNode / ...).
+  StateInitialNode: { wrapsName: false, rendersNameLabel: false },
+  StateFinalNode: { wrapsName: false, rendersNameLabel: false },
+  StateMergeNode: { wrapsName: false, rendersNameLabel: false },
+  StateForkNode: { wrapsName: false, rendersNameLabel: false },
+  StateForkNodeHorizontal: { wrapsName: false, rendersNameLabel: false },
+
+  // User diagram (self-registering package — see DiagramNodeType)
+  UserModelName: { wrapsName: false, rendersNameLabel: true },
+  UserModelAttribute: { wrapsName: false, rendersNameLabel: true },
+  UserModelIcon: { wrapsName: false, rendersNameLabel: true },
 } as const satisfies Record<DiagramNodeType, NodeLabelCapabilities>
 
 /**

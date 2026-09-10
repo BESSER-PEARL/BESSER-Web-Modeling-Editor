@@ -158,6 +158,7 @@ export function normalizeAgentTransitionData(
     // `legacyShape` stamp are only meaningful for v3 round-trips; keep the
     // ones already on the edge, but don't mint new ones from data that is
     // being normalised in place.
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { legacy: _legacy, legacyShape: _legacyShape, ...fromLifter } =
       liftAgentTransitionDataToV4({
         type: "AgentStateTransition",

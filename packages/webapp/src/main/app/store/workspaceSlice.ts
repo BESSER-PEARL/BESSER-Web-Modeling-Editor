@@ -168,7 +168,7 @@ export const loadProjectThunk = createAsyncThunk(
     // imported / template-loaded projects whose active diagram is a User
     // or Object diagram show the correct palette on first render.
     const activeDiagram = getActiveDiagram(project, project.currentDiagramType);
-    await setupBridgeForActiveDiagram(project, activeDiagram, project.currentDiagramType);
+    await setupBridgeForActiveDiagram(project, activeDiagram ?? null, project.currentDiagramType);
 
     return project;
   },

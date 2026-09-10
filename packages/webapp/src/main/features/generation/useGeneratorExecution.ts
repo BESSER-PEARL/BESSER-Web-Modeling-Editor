@@ -511,7 +511,7 @@ export interface GeneratorConfigState {
 export interface UseGeneratorExecutionReturn {
   isGenerating: boolean;
   /** Passed to WorkspaceShell → onGenerate */
-  handleGenerateRequest: (type: GeneratorType) => Promise<void>;
+  handleGenerateRequest: (type: GeneratorType, config?: Record<string, any>) => Promise<void>;
   /** Passed to WorkspaceShell → onAssistantGenerate  and UMLAgentModeling */
   handleAssistantGenerate: (type: GeneratorType, config?: unknown) => Promise<GenerationResult>;
   /** Passed to WorkspaceShell → onQualityCheck */

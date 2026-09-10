@@ -689,16 +689,17 @@ function setupProjectStorageIntegration(
           }
           
           // Model exists but has no pages - this is a new/empty diagram (first visit)
-          if (project && Array.isArray(model.pages) && model.pages.length === 0) {
+          const activeDiagram = project ? getActiveDiagram(project, 'GUINoCodeDiagram') : undefined;
+          if (project && activeDiagram && Array.isArray(model.pages) && model.pages.length === 0) {
             console.log('[Storage] First visit to GUI editor - initializing with default template');
             const defaultTemplate = createDefaultGUITemplate();
-            
+
             // Save the template to the project (Redux sync via useStorageSync)
             ProjectStorageRepository.updateDiagram(
               project.id,
               'GUINoCodeDiagram',
               {
-                ...(getActiveDiagram(project, 'GUINoCodeDiagram') ?? {}),
+                ...activeDiagram,
                 model: defaultTemplate,
                 lastUpdate: new Date().toISOString(),
               }

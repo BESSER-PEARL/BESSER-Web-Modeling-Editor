@@ -61,6 +61,16 @@ import {
   SfcTransitionBranch,
   SfcJump,
 } from "./sfcDiagram"
+// Type-only: agentDiagram/nnDiagram/stateMachineDiagram/userDiagram register
+// their components into the runtime registry via `registerNodeTypes` (see
+// each barrel's own file) rather than through `defaultNodeTypes` below, to
+// avoid a circular import (those barrels import `registerNodeTypes` from
+// this file). A type-only import has no runtime footprint, so it's safe to
+// pull their node-type keys in here to keep `DiagramNodeType` accurate.
+import type { AgentDiagramNodeType } from "./agentDiagram"
+import type { NNDiagramNodeType } from "./nnDiagram"
+import type { StateMachineDiagramNodeType } from "./stateMachineDiagram"
+import type { UserDiagramNodeType } from "./userDiagram"
 
 /**
  * Default React-Flow node-type registry shipped with BESSER WME.
@@ -158,12 +168,21 @@ export const diagramNodeTypes: NodeTypes = _nodeTypeRegistry
 
 // 2. Union type from keys.
 // Bound to `defaultNodeTypes` (not `diagramNodeTypes`) so that the canonical
-// upstream key set stays visible in the type system. Custom types registered
-// via `registerNodeTypes` widen the runtime registry but pass through as
-// arbitrary strings — consumers cast to `DiagramNodeType` at the boundary.
-export type DiagramNodeType = keyof typeof defaultNodeTypes
+// upstream key set stays visible in the type system, plus the node-type
+// keys of the four diagram packages that self-register at import time
+// (agent/nn/stateMachine/user — see the type-only imports above). Any
+// further `registerNodeTypes` caller still widens the *runtime* registry
+// but passes through as an arbitrary string — consumers cast to
+// `DiagramNodeType` at the boundary in that case.
+export type DiagramNodeType =
+  | keyof typeof defaultNodeTypes
+  | AgentDiagramNodeType
+  | NNDiagramNodeType
+  | StateMachineDiagramNodeType
+  | UserDiagramNodeType
 
-// 3. Enum-like object (manually declared once, same keys)
+// 3. Enum-like object (manually declared once, same keys as `defaultNodeTypes`
+// plus the four self-registering diagram packages above).
 export const DiagramNodeTypeRecord: Record<DiagramNodeType, DiagramNodeType> = {
   package: "package",
   class: "class",
@@ -220,4 +239,44 @@ export const DiagramNodeTypeRecord: Record<DiagramNodeType, DiagramNodeType> = {
   sfcActionTable: "sfcActionTable",
   sfcTransitionBranch: "sfcTransitionBranch",
   sfcJump: "sfcJump",
+  AgentState: "AgentState",
+  AgentIntent: "AgentIntent",
+  AgentRagElement: "AgentRagElement",
+  AgentTool: "AgentTool",
+  AgentSkill: "AgentSkill",
+  AgentWorkspace: "AgentWorkspace",
+  AgentLLM: "AgentLLM",
+  Conv1DLayer: "Conv1DLayer",
+  Conv2DLayer: "Conv2DLayer",
+  Conv3DLayer: "Conv3DLayer",
+  PoolingLayer: "PoolingLayer",
+  RNNLayer: "RNNLayer",
+  LSTMLayer: "LSTMLayer",
+  GRULayer: "GRULayer",
+  LinearLayer: "LinearLayer",
+  FlattenLayer: "FlattenLayer",
+  EmbeddingLayer: "EmbeddingLayer",
+  DropoutLayer: "DropoutLayer",
+  LayerNormalizationLayer: "LayerNormalizationLayer",
+  BatchNormalizationLayer: "BatchNormalizationLayer",
+  TensorOp: "TensorOp",
+  Configuration: "Configuration",
+  TrainingDataset: "TrainingDataset",
+  TestDataset: "TestDataset",
+  NNContainer: "NNContainer",
+  NNReference: "NNReference",
+  State: "State",
+  StateBody: "StateBody",
+  StateFallbackBody: "StateFallbackBody",
+  StateCodeBlock: "StateCodeBlock",
+  StateActionNode: "StateActionNode",
+  StateObjectNode: "StateObjectNode",
+  StateInitialNode: "StateInitialNode",
+  StateFinalNode: "StateFinalNode",
+  StateMergeNode: "StateMergeNode",
+  StateForkNode: "StateForkNode",
+  StateForkNodeHorizontal: "StateForkNodeHorizontal",
+  UserModelName: "UserModelName",
+  UserModelAttribute: "UserModelAttribute",
+  UserModelIcon: "UserModelIcon",
 } as const

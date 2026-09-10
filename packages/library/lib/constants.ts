@@ -969,6 +969,46 @@ const defaultDropElementConfigs: Record<string, ReadonlyArray<DropElementConfig>
       sectionLabel: "Flow",
     },
     {
+      // Develop palette parity (`agent-state-preview.ts` `agentState`):
+      // second AgentState preview carrying one pre-populated body row.
+      // Row ids are template placeholders — `DraggableGhost` re-ids
+      // body/fallback rows on drop (same treatment as the State
+      // palette variants above).
+      type: "AgentState" as never,
+      width: DROPS.DEFAULT_ELEMENT_WIDTH,
+      height: 70,
+      defaultData: {
+        name: "AgentState",
+        bodies: [
+          { id: "agent-state-template-body", name: "Body", replyType: "text" },
+        ],
+      },
+      svg: AgentStateSVG,
+    },
+    {
+      // Develop palette parity (`agent-state-preview.ts`
+      // `stateWithBothBodies`): third AgentState preview with one body
+      // row plus one fallback row so the fallback divider is visible
+      // straight from the sidebar.
+      type: "AgentState" as never,
+      width: DROPS.DEFAULT_ELEMENT_WIDTH,
+      height: 100,
+      defaultData: {
+        name: "AgentState",
+        bodies: [
+          { id: "agent-state-template-body", name: "Body", replyType: "text" },
+        ],
+        fallbackBodies: [
+          {
+            id: "agent-state-template-fallback-body",
+            name: "Fallback Body",
+            replyType: "text",
+          },
+        ],
+      },
+      svg: AgentStateSVG,
+    },
+    {
       // Autonomous reasoning-loop state. Develop folded the standalone
       // `AgentReasoningState` node into `AgentState` with
       // `stateType: "reasoning"`, so this drag source is now an

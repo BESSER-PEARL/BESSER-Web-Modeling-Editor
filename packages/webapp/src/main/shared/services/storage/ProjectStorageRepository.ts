@@ -236,7 +236,7 @@ export class ProjectStorageRepository {
     project.currentDiagramType = newType;
     this.saveProject(project);
 
-    return getActiveDiagram(project, newType);
+    return getActiveDiagram(project, newType) ?? null;
   }
   
   // Add a new diagram to a type (returns index, or null if at limit)

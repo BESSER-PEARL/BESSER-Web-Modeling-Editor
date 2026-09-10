@@ -50,3 +50,19 @@ export * from "./AgentSkill"
 export * from "./AgentWorkspace"
 export * from "./AgentLLM"
 export * from "./agentPrimitiveColors"
+
+/**
+ * Node-type keys registered above. Runtime registration happens via
+ * `registerNodeTypes` (a mutable side-effecting registry, to dodge the
+ * circular import `types.ts` would otherwise have with every diagram
+ * package); this type-only export lets `nodes/types.ts` widen the static
+ * `DiagramNodeType` union to match without importing the components.
+ */
+export type AgentDiagramNodeType =
+  | "AgentState"
+  | "AgentIntent"
+  | "AgentRagElement"
+  | "AgentTool"
+  | "AgentSkill"
+  | "AgentWorkspace"
+  | "AgentLLM"

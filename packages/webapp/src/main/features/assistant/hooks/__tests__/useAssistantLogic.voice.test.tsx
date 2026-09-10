@@ -19,7 +19,7 @@
  *     status, no real WebSocket). Everything else (RateLimiterService, etc.)
  *     stays real.
  *   - Render the real useAssistantLogic with a real Redux store +
- *     ApollonEditorContext provider (editor undefined is fine).
+ *     BesserEditorContext provider (editor undefined is fine).
  *   - Drive the captured onMessage handler to simulate the transcription echo.
  */
 
@@ -33,7 +33,7 @@ import type { ChatMessage, SendStatus } from '../../services/assistant-types';
 import { workspaceReducer } from '../../../../app/store/workspaceSlice';
 import { errorReducer } from '../../../../app/store/errorManagementSlice';
 import { specDrivenReducer } from '../../../../features/spec-driven/state/specDrivenSlice';
-import { ApollonEditorProvider } from '../../../editors/uml/apollon-editor-context';
+import { BesserEditorProvider } from '../../../editors/uml/besser-editor-context';
 
 /* ------------------------------------------------------------------ */
 /*  Mock the AssistantClient (keep the rest of the barrel real)         */
@@ -162,9 +162,9 @@ function renderHarness() {
   const store = makeStore();
   const utils = render(
     <Provider store={store}>
-      <ApollonEditorProvider value={{ editor: undefined, setEditor: () => {} }}>
+      <BesserEditorProvider value={{ editor: undefined, setEditor: () => {} }}>
         <Harness apiRef={apiRef} />
-      </ApollonEditorProvider>
+      </BesserEditorProvider>
     </Provider>,
   );
   return { apiRef, store, ...utils };

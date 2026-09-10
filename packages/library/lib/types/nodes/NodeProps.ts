@@ -504,7 +504,7 @@ export type AgentStateBodyRow = {
  * element id so the migrator emits them back as top-level v3 child
  * elements with their original ids.
  */
-export type AgentStateNodeProps = StateNodeProps & {
+export type AgentStateNodeProps = Omit<StateNodeProps, "bodies" | "fallbackBodies"> & {
   /**
    * Reply discriminator: `'text' | 'image' | 'json' | 'llm' | 'rag' | 'code'
    * | 'db_reply'` per the v3 `AgentStateMember` defaults. Defaults to `'text'`.

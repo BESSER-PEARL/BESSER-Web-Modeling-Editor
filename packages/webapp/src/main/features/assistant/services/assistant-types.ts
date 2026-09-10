@@ -21,6 +21,13 @@ export interface ProjectMetadata {
 export interface AssistantWorkspaceContext {
   activeDiagramType: string;
   activeDiagramId?: string;
+  /**
+   * The active diagram's live model (UMLModel / GrapesJSProjectData /
+   * QuantumCircuitData depending on diagram type), read straight from the
+   * editor/modeling service when available so it never lags a render behind
+   * a just-applied change. Consumers narrow by diagram type before use.
+   */
+  activeModel?: unknown;
   projectSnapshot?: any;
   projectName?: string;
   diagramSummaries?: DiagramSummary[];

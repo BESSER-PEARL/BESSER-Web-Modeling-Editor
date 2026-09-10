@@ -1,5 +1,9 @@
 import { describe, it, expect } from "vitest"
-import { canDropIntoParent } from "@/utils/bpmnConstraints"
+import {
+  canDropIntoParent,
+  applyBpmnCollapseVisibility,
+  type MinimalNodeForCollapse,
+} from "@/utils/bpmnConstraints"
 
 // ---------------------------------------------------------------------------
 // bpmnPool
@@ -244,5 +248,93 @@ describe("canDropIntoParent – unknown parent type", () => {
     expect(canDropIntoParent("class", "unknownParent")).toBe(true)
     expect(canDropIntoParent("bpmnTask", "somethingElse")).toBe(true)
     expect(canDropIntoParent("anything", "whatever")).toBe(true)
+  })
+})
+
+// ---------------------------------------------------------------------------
+// applyBpmnCollapseVisibility
+// ---------------------------------------------------------------------------
+
+describe("applyBpmnCollapseVisibility", () => {
+  const node = (
+    id: string,
+    overrides: Partial<MinimalNodeForCollapse> = {}
+  ): MinimalNodeForCollapse => ({ id, type: "bpmnTask", ...overrides })
+
+  it("leaves nodes unhidden when no ancestor is collapsed", () => {
+    const nodes = [
+      node("sp", { type: "bpmnSubprocess", data: { isExpanded: true } }),
+      node("task1", { parentId: "sp" }),
+    ]
+    const result = applyBpmnCollapseVisibility(nodes)
+    expect(result.find((n) => n.id === "task1")?.hidden).toBeFalsy()
+  })
+
+  it("hides direct children of a collapsed subprocess", () => {
+    const nodes = [
+      node("sp", { type: "bpmnSubprocess", data: { isExpanded: false } }),
+      node("task1", { parentId: "sp" }),
+      node("task2", { parentId: "sp" }),
+    ]
+    const result = applyBpmnCollapseVisibility(nodes)
+    expect(result.find((n) => n.id === "sp")?.hidden).toBeFalsy()
+    expect(result.find((n) => n.id === "task1")?.hidden).toBe(true)
+    expect(result.find((n) => n.id === "task2")?.hidden).toBe(true)
+  })
+
+  it("hides grandchildren transitively (nested lane/pool inside a collapsed subprocess)", () => {
+    const nodes = [
+      node("sp", { type: "bpmnSubprocess", data: { isExpanded: false } }),
+      node("pool", { parentId: "sp", type: "bpmnPool" }),
+      node("lane", { parentId: "pool", type: "bpmnSwimlane" }),
+      node("task1", { parentId: "lane" }),
+    ]
+    const result = applyBpmnCollapseVisibility(nodes)
+    expect(result.find((n) => n.id === "pool")?.hidden).toBe(true)
+    expect(result.find((n) => n.id === "lane")?.hidden).toBe(true)
+    expect(result.find((n) => n.id === "task1")?.hidden).toBe(true)
+  })
+
+  it("hides children of a collapsed transaction the same as a subprocess", () => {
+    const nodes = [
+      node("tx", { type: "bpmnTransaction", data: { isExpanded: false } }),
+      node("task1", { parentId: "tx" }),
+    ]
+    const result = applyBpmnCollapseVisibility(nodes)
+    expect(result.find((n) => n.id === "task1")?.hidden).toBe(true)
+  })
+
+  it("re-shows children when isExpanded flips back to true", () => {
+    const collapsed = [
+      node("sp", { type: "bpmnSubprocess", data: { isExpanded: false } }),
+      node("task1", { parentId: "sp" }),
+    ]
+    const afterCollapse = applyBpmnCollapseVisibility(collapsed)
+    expect(afterCollapse.find((n) => n.id === "task1")?.hidden).toBe(true)
+
+    const expanded = [
+      node("sp", { type: "bpmnSubprocess", data: { isExpanded: true } }),
+      node("task1", { parentId: "sp" }),
+    ]
+    const afterExpand = applyBpmnCollapseVisibility(expanded)
+    expect(afterExpand.find((n) => n.id === "task1")?.hidden).toBeFalsy()
+  })
+
+  it("returns the same array reference when nothing needs to change (no re-render)", () => {
+    const nodes = [
+      node("sp", { type: "bpmnSubprocess", data: { isExpanded: true } }),
+      node("task1", { parentId: "sp" }),
+    ]
+    const result = applyBpmnCollapseVisibility(nodes)
+    expect(result).toBe(nodes)
+  })
+
+  it("does not hide a plain (non-BPMN) parent's children even if it happens to carry isExpanded: false", () => {
+    const nodes = [
+      node("box", { type: "NNContainer", data: { isExpanded: false } }),
+      node("child", { parentId: "box" }),
+    ]
+    const result = applyBpmnCollapseVisibility(nodes)
+    expect(result.find((n) => n.id === "child")?.hidden).toBeFalsy()
   })
 })

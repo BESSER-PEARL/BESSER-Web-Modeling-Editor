@@ -37,7 +37,10 @@ import { usePaneClicked } from "./hooks/usePaneClicked"
 import { BesserMode } from "./typings"
 import { getConnectionLineType } from "./utils/edgeUtils"
 import { isEdgeAnchoredLinkRel } from "./utils/associationClassLink"
-import { isEnumerationClassNode } from "./utils/bpmnConstraints"
+import {
+  isEnumerationClassNode,
+  applyBpmnCollapseVisibility,
+} from "./utils/bpmnConstraints"
 import { useEdgeLinkingStore } from "./store/edgeLinkingStore"
 import { generateUUID } from "./utils"
 import { PropertiesPanel } from "./components/propertiesPanel/PropertiesPanel"
@@ -119,6 +122,16 @@ function App({ onReactFlowInit }: AppProps) {
     return filtered.length === edges.length ? edges : filtered
   }, [edges, nodeIdSet])
 
+  // A collapsed BPMN Subprocess/Transaction renders only itself — none of
+  // its descendants (mirrors the old editor's render()). React Flow has no
+  // container-collapse primitive, so this derives `hidden` from the
+  // `parentId` chain on every nodes change; it auto-hides edges with a
+  // hidden endpoint, so no edge-level handling is needed here.
+  const visibleNodes = useMemo(
+    () => applyBpmnCollapseVisibility(nodes),
+    [nodes]
+  )
+
   // Association-class authoring (click-to-pick): "Attach association
   // class" on an association's midpoint toolbar arms
   // `pendingAssociationEdgeId`; clicking a (non-Enumeration) class node
@@ -193,7 +206,7 @@ function App({ onReactFlowInit }: AppProps) {
         }`}
         nodeTypes={diagramNodeTypes}
         edgeTypes={diagramEdgeTypes}
-        nodes={nodes}
+        nodes={visibleNodes}
         edges={renderableEdges}
         onDragOver={onDragOver}
         onNodesChange={onNodesChange}

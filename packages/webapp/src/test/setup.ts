@@ -1,5 +1,48 @@
 import '@testing-library/jest-dom';
 
+// jsdom has no canvas backend, but @besser/wme's SVG text-measurement helpers
+// (packages/library/lib/utils/textUtils.ts) call `canvas.getContext('2d')` at
+// module-eval time. Any webapp test that transitively imports @besser/wme
+// (directly, or via a hook/component that does) crashes on import without
+// this — matches the identical mock in packages/library/tests/setup.ts.
+class MockCanvasRenderingContext2D {
+  font = '';
+  measureText(text: string) {
+    return { width: text.length * 8 };
+  }
+  fillRect() {}
+  clearRect() {}
+  getImageData() {
+    return { data: [] };
+  }
+  putImageData() {}
+  createImageData() {
+    return { data: [] };
+  }
+  setTransform() {}
+  resetTransform() {}
+  drawImage() {}
+  save() {}
+  restore() {}
+  beginPath() {}
+  moveTo() {}
+  lineTo() {}
+  closePath() {}
+  stroke() {}
+  fill() {}
+  translate() {}
+  scale() {}
+  rotate() {}
+  arc() {}
+  arcTo() {}
+  rect() {}
+  clip() {}
+}
+
+HTMLCanvasElement.prototype.getContext = function () {
+  return new MockCanvasRenderingContext2D() as unknown as CanvasRenderingContext2D;
+} as unknown as typeof HTMLCanvasElement.prototype.getContext;
+
 // Initialise i18next before any component renders so that t() resolves to real
 // (English) strings in unit tests instead of returning raw keys. Resources are
 // bundled synchronously, so translations are available immediately after import.

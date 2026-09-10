@@ -131,7 +131,8 @@ describe('BPMNDiagramConverter', () => {
         ],
         flows: [{ source: 'a', target: 'b' }],
       });
-      const rects = result.nodes.map((n: any) => absoluteRect(result, n));
+      const rects: Array<{ x: number; y: number; width: number; height: number }> =
+        result.nodes.map((n: any) => absoluteRect(result, n));
       const minX = Math.min(...rects.map((r) => r.x));
       const maxX = Math.max(...rects.map((r) => r.x + r.width));
       const minY = Math.min(...rects.map((r) => r.y));

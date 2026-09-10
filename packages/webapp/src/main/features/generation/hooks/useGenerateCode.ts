@@ -116,7 +116,7 @@ export const useGenerateCode = () => {
         ...flatProject,
         name: normalizeProjectName(currentProject.name || 'project'),
         settings: {
-          ...flatProject.settings,
+          ...(flatProject.settings as Record<string, unknown> | undefined),
           generator: generatorType,
           config: config
         }

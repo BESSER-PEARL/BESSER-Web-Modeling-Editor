@@ -252,3 +252,76 @@ export const canDropIntoParent = (
   // Default: allow dropping
   return true
 }
+
+/** The two BPMN node types that can be collapsed/expanded via `data.isExpanded`. */
+const COLLAPSIBLE_BPMN_TYPES = new Set(["bpmnSubprocess", "bpmnTransaction"])
+
+/**
+ * Minimal node shape for computing collapse visibility — kept independent of
+ * `BesserNode` (and thus React Flow) for the same reason as
+ * `MinimalNodeForConnect` above.
+ */
+export interface MinimalNodeForCollapse {
+  id: string
+  type?: string
+  parentId?: string
+  hidden?: boolean
+  data?: { isExpanded?: boolean } | null
+}
+
+/**
+ * Mirrors the old editor's `bpmn-subprocess.ts` / `bpmn-transaction.ts`
+ * `render()`: when `data.isExpanded` is `false`, a Subprocess/Transaction
+ * renders only itself — none of its descendants. React Flow has no
+ * container-collapse primitive of its own, so this derives each node's
+ * `hidden` flag from whether ANY ancestor (walking the `parentId` chain) is
+ * a collapsed Subprocess/Transaction. React Flow auto-hides edges with a
+ * hidden endpoint, so hiding descendant nodes is sufficient — no edge-level
+ * bookkeeping needed.
+ *
+ * Pure and allocation-light: returns the same node object (not a copy)
+ * whenever its `hidden` value doesn't change, so callers that feed this
+ * straight into React Flow's `nodes` prop don't cause spurious re-renders
+ * of unrelated nodes.
+ */
+export const applyBpmnCollapseVisibility = <T extends MinimalNodeForCollapse>(
+  nodes: T[]
+): T[] => {
+  if (nodes.length === 0) return nodes
+
+  const byId = new Map<string, T>()
+  for (const n of nodes) byId.set(n.id, n)
+
+  const hiddenCache = new Map<string, boolean>()
+  const isHidden = (node: T): boolean => {
+    const cached = hiddenCache.get(node.id)
+    if (cached !== undefined) return cached
+    // Cycle guard: parentId chains are tree-shaped in practice, but a
+    // corrupt/legacy model could loop — bail to "not hidden" if we ever
+    // revisit a node while resolving it.
+    hiddenCache.set(node.id, false)
+
+    let result = false
+    if (node.parentId) {
+      const parent = byId.get(node.parentId)
+      if (parent) {
+        const parentCollapsed =
+          !!parent.type &&
+          COLLAPSIBLE_BPMN_TYPES.has(parent.type) &&
+          parent.data?.isExpanded === false
+        result = parentCollapsed || isHidden(parent)
+      }
+    }
+    hiddenCache.set(node.id, result)
+    return result
+  }
+
+  let changed = false
+  const result = nodes.map((node) => {
+    const hidden = isHidden(node)
+    if (hidden === !!node.hidden) return node
+    changed = true
+    return { ...node, hidden }
+  })
+  return changed ? result : nodes
+}

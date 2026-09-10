@@ -22,3 +22,6 @@ registerNodeTypes({
 export * from "./UserModelName"
 export * from "./UserModelAttribute"
 export * from "./UserModelIcon"
+
+/** See `AgentDiagramNodeType` in `nodes/agentDiagram/index.ts` for why this is type-only. */
+export type UserDiagramNodeType = "UserModelName" | "UserModelAttribute" | "UserModelIcon"
