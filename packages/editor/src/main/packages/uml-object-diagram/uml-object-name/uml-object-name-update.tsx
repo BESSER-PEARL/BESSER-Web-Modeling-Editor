@@ -214,7 +214,6 @@ class ObjectNameComponent extends Component<Props, State> {
     // element. Intermediate connected boxes (personal_Information, Culture, …)
     // carry personalization on their attributes instead — so they don't render a
     // redundant second "Personalization" toggle next to their attribute rows.
-    const isRootUserElement = isUserModelElement && (element as any).className === 'User';
     const children = element.ownedElements.map((id) => getById(id)).filter(notEmpty);
     const attributes = children.filter((child): child is UMLObjectAttribute | UMLUserModelAttribute => {
       if (isUserModelElement) {
@@ -369,7 +368,7 @@ class ObjectNameComponent extends Component<Props, State> {
             }}
           /> */}
         </section>
-        {isRootUserElement && (
+        {isUserModelElement && (
           <section>
             <Divider />
             <PersonalizationEditor

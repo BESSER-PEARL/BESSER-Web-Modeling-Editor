@@ -20,10 +20,10 @@ export default defineConfig(({ mode }) => {
     define: {
       'process.env.APPLICATION_SERVER_VERSION': JSON.stringify(env.APPLICATION_SERVER_VERSION ?? ''),
       'process.env.DEPLOYMENT_URL': JSON.stringify(env.DEPLOYMENT_URL ?? ''),
-      'process.env.BACKEND_URL': JSON.stringify(env.BACKEND_URL ?? ''),
+      'process.env.BACKEND_URL': JSON.stringify(env.BACKEND_URL || '__BACKEND_URL__'),
       'process.env.SENTRY_DSN': JSON.stringify(env.SENTRY_DSN ?? ''),
-      'process.env.POSTHOG_HOST': JSON.stringify(env.POSTHOG_HOST ?? ''),
-      'process.env.POSTHOG_KEY': JSON.stringify(env.POSTHOG_KEY ?? ''),
+      'process.env.POSTHOG_HOST': JSON.stringify(env.POSTHOG_HOST || '__POSTHOG_HOST__'),
+      'process.env.POSTHOG_KEY': JSON.stringify(env.POSTHOG_KEY || '__POSTHOG_KEY__'),
       'process.env.UML_BOT_WS_URL': JSON.stringify(env.UML_BOT_WS_URL ?? ''),
     },
     server: {

@@ -20,6 +20,10 @@ import {
 const CONSENT_KEY = 'besser_analytics_consent';
 const CONSENT_VERSION = '1.2';
 
+// When FORCE_ANALYTICS_CONSENT=true is set in the environment, the cookie
+// consent banner is suppressed and analytics are enabled for all users.
+const FORCE_CONSENT = document.querySelector('meta[name="force-analytics-consent"]')?.getAttribute('content') === 'true';
+
 export type ConsentStatus = 'pending' | 'accepted' | 'declined';
 
 interface ConsentData {
@@ -61,6 +65,7 @@ export const setConsentStatus = (status: ConsentStatus): boolean => {
 };
 
 export const hasUserConsented = (): boolean => {
+  if (FORCE_CONSENT) return true;
   return getConsentStatus()?.status === 'accepted';
 };
 
@@ -208,6 +213,12 @@ export const CookieConsentBanner: React.FC = () => {
   }, []);
 
   useEffect(() => {
+    if (FORCE_CONSENT) {
+      setConsentStatus('accepted');
+      applyConsentToPostHog('accepted');
+      return;
+    }
+
     const forceBanner = new URLSearchParams(window.location.search).get('force_cookies') === '1';
     if (forceBanner) {
       setAnalyticsEnabled(false);

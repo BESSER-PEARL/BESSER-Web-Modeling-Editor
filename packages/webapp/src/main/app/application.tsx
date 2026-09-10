@@ -59,10 +59,13 @@ const AssistantWidget = React.lazy(() =>
   import('../features/assistant/components/AssistantWidget').then((m) => ({ default: m.AssistantWidget })),
 );
 
+const ENABLE_RECORDINGS =
+  document.querySelector('meta[name="posthog-enable-recordings"]')?.getAttribute('content') === 'true';
+
 const postHogOptions = {
   api_host: POSTHOG_HOST,
   autocapture: false,
-  disable_session_recording: true,
+  disable_session_recording: !ENABLE_RECORDINGS,
   respect_dnt: true,
   opt_out_capturing_by_default: !hasUserConsented(),
   persistence: (hasUserConsented() ? 'localStorage+cookie' : 'memory') as 'localStorage+cookie' | 'memory',

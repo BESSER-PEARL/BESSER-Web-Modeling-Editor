@@ -20,16 +20,30 @@ if (process.env.SENTRY_DSN) {
   Sentry.setTag('package', 'server');
 }
 
-// Replace http://localhost:8080 with the actual process.env.DEPLOYMENT_URL
-// Only do this in production mode when the build directory exists
+// Replace build-time placeholders with runtime env values.
+// Vite outputs JS into webapp/assets/, so scan that subdirectory.
+// FORCE_ANALYTICS_CONSENT is injected into index.html as a meta tag
+// (JS bundles can't carry it because Vite constant-folds string comparisons).
 if (fs.existsSync(webappPath)) {
-  const jsFiles = fs.readdirSync(webappPath).filter((file) => file.endsWith('.js'));
+  const assetsPath = path.join(webappPath, 'assets');
+  const scanDir = fs.existsSync(assetsPath) ? assetsPath : webappPath;
+  const jsFiles = fs.readdirSync(scanDir).filter((file) => file.endsWith('.js'));
   jsFiles.forEach((file) => {
-    const filePath = path.join(webappPath, file);
+    const filePath = path.join(scanDir, file);
     const content = fs.readFileSync(filePath, 'utf8')
-        .replace(/http:\/\/localhost:8080/g, process.env.DEPLOYMENT_URL || 'http://localhost:8080');
+        .replace(/http:\/\/localhost:8080/g, process.env.DEPLOYMENT_URL || 'http://localhost:8080')
+        .replace(/__BACKEND_URL__/g, process.env.BACKEND_URL || '')
+        .replace(/__POSTHOG_KEY__/g, process.env.POSTHOG_KEY || '')
+        .replace(/__POSTHOG_HOST__/g, process.env.POSTHOG_HOST || '');
     fs.writeFileSync(filePath, content);
   });
+
+  if (fs.existsSync(indexHtml)) {
+    const html = fs.readFileSync(indexHtml, 'utf8')
+        .replace(/__FORCE_ANALYTICS_CONSENT__/g, process.env.FORCE_ANALYTICS_CONSENT === 'true' ? 'true' : '')
+        .replace(/__POSTHOG_ENABLE_RECORDINGS__/g, process.env.POSTHOG_ENABLE_RECORDINGS === 'true' ? 'true' : '');
+    fs.writeFileSync(indexHtml, html);
+  }
 }
 
 app.use('/', express.static(webappPath));
