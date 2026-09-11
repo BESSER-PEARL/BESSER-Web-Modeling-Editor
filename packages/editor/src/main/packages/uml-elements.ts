@@ -99,6 +99,12 @@ import {
   InputReusedAttributeConv1D,
   PermuteInAttributeConv1D,
   PermuteOutAttributeConv1D,
+  DilationAttributeConv1D,
+  GroupsAttributeConv1D,
+  BiasAttributeConv1D,
+  IsLayerCallAttributeConv1D,
+  InputVarAttributeConv1D,
+  OutputVarAttributeConv1D,
 } from './nn-diagram/nn-conv1d-attributes/conv1d-attributes';
 import { Conv2DLayer } from './nn-diagram/nn-conv2d-layer/nn-conv2d-layer';
 import {
@@ -114,6 +120,12 @@ import {
   InputReusedAttributeConv2D,
   PermuteInAttributeConv2D,
   PermuteOutAttributeConv2D,
+  DilationAttributeConv2D,
+  GroupsAttributeConv2D,
+  BiasAttributeConv2D,
+  IsLayerCallAttributeConv2D,
+  InputVarAttributeConv2D,
+  OutputVarAttributeConv2D,
 } from './nn-diagram/nn-conv2d-attributes/conv2d-attributes';
 import { Conv3DLayer } from './nn-diagram/nn-conv3d-layer/nn-conv3d-layer';
 import {
@@ -129,6 +141,12 @@ import {
   InputReusedAttributeConv3D,
   PermuteInAttributeConv3D,
   PermuteOutAttributeConv3D,
+  DilationAttributeConv3D,
+  GroupsAttributeConv3D,
+  BiasAttributeConv3D,
+  IsLayerCallAttributeConv3D,
+  InputVarAttributeConv3D,
+  OutputVarAttributeConv3D,
 } from './nn-diagram/nn-conv3d-attributes/conv3d-attributes';
 
 import { PoolingLayer } from './nn-diagram/nn-pooling-layer/nn-pooling-layer';
@@ -146,6 +164,9 @@ import {
   InputReusedAttributePooling,
   PermuteInAttributePooling,
   PermuteOutAttributePooling,
+  IsLayerCallAttributePooling,
+  InputVarAttributePooling,
+  OutputVarAttributePooling,
 } from './nn-diagram/nn-pooling-attributes/pooling-attributes';
 
 import { RNNLayer } from './nn-diagram/nn-rnn-layer/nn-rnn-layer';
@@ -160,6 +181,15 @@ import {
   ActvFuncAttributeRNN,
   NameModuleInputAttributeRNN,
   InputReusedAttributeRNN,
+  BiasAttributeRNN,
+  HxSourceAttributeRNN,
+  IsLayerCallAttributeRNN,
+  InputVarAttributeRNN,
+  OutputVarAttributeRNN,
+  HiddenStateVarAttributeRNN,
+  HiddenUnusedAttributeRNN,
+  HiddenSubscriptSourceAttributeRNN,
+  HiddenSubscriptTargetAttributeRNN,
 } from './nn-diagram/nn-rnn-attributes/rnn-attributes';
 
 import { LSTMLayer } from './nn-diagram/nn-lstm-layer/nn-lstm-layer';
@@ -174,6 +204,17 @@ import {
   ActvFuncAttributeLSTM,
   NameModuleInputAttributeLSTM,
   InputReusedAttributeLSTM,
+  BiasAttributeLSTM,
+  HxSourceAttributeLSTM,
+  IsLayerCallAttributeLSTM,
+  InputVarAttributeLSTM,
+  OutputVarAttributeLSTM,
+  HiddenStateVarAttributeLSTM,
+  CellStateVarAttributeLSTM,
+  HiddenUnusedAttributeLSTM,
+  CellUnusedAttributeLSTM,
+  HiddenSubscriptSourceAttributeLSTM,
+  HiddenSubscriptTargetAttributeLSTM,
 } from './nn-diagram/nn-lstm-attributes/lstm-attributes';
 
 import { GRULayer } from './nn-diagram/nn-gru-layer/nn-gru-layer';
@@ -188,6 +229,15 @@ import {
   ActvFuncAttributeGRU,
   NameModuleInputAttributeGRU,
   InputReusedAttributeGRU,
+  BiasAttributeGRU,
+  HxSourceAttributeGRU,
+  IsLayerCallAttributeGRU,
+  InputVarAttributeGRU,
+  OutputVarAttributeGRU,
+  HiddenStateVarAttributeGRU,
+  HiddenUnusedAttributeGRU,
+  HiddenSubscriptSourceAttributeGRU,
+  HiddenSubscriptTargetAttributeGRU,
 } from './nn-diagram/nn-gru-attributes/gru-attributes';
 
 import { LinearLayer } from './nn-diagram/nn-linear-layer/nn-linear-layer';
@@ -198,6 +248,10 @@ import {
   ActvFuncAttributeLinear,
   NameModuleInputAttributeLinear,
   InputReusedAttributeLinear,
+  BiasAttributeLinear,
+  IsLayerCallAttributeLinear,
+  InputVarAttributeLinear,
+  OutputVarAttributeLinear,
 } from './nn-diagram/nn-linear-attributes/linear-attributes';
 
 import { FlattenLayer } from './nn-diagram/nn-flatten-layer/nn-flatten-layer';
@@ -208,6 +262,9 @@ import {
   ActvFuncAttributeFlatten,
   NameModuleInputAttributeFlatten,
   InputReusedAttributeFlatten,
+  IsLayerCallAttributeFlatten,
+  InputVarAttributeFlatten,
+  OutputVarAttributeFlatten,
 } from './nn-diagram/nn-flatten-attributes/flatten-attributes';
 
 import { EmbeddingLayer } from './nn-diagram/nn-embedding-layer/nn-embedding-layer';
@@ -218,6 +275,10 @@ import {
   ActvFuncAttributeEmbedding,
   NameModuleInputAttributeEmbedding,
   InputReusedAttributeEmbedding,
+  PaddingIdxAttributeEmbedding,
+  IsLayerCallAttributeEmbedding,
+  InputVarAttributeEmbedding,
+  OutputVarAttributeEmbedding,
 } from './nn-diagram/nn-embedding-attributes/embedding-attributes';
 
 import { DropoutLayer } from './nn-diagram/nn-dropout-layer/nn-dropout-layer';
@@ -226,6 +287,10 @@ import {
   RateAttributeDropout,
   NameModuleInputAttributeDropout,
   InputReusedAttributeDropout,
+  DimensionAttributeDropout,
+  IsLayerCallAttributeDropout,
+  InputVarAttributeDropout,
+  OutputVarAttributeDropout,
 } from './nn-diagram/nn-dropout-attributes/dropout-attributes';
 
 import { LayerNormalizationLayer } from './nn-diagram/nn-layernormalization-layer/nn-layernormalization-layer';
@@ -235,6 +300,11 @@ import {
   ActvFuncAttributeLayerNormalization,
   NameModuleInputAttributeLayerNormalization,
   InputReusedAttributeLayerNormalization,
+  EpsAttributeLayerNormalization,
+  AffineAttributeLayerNormalization,
+  IsLayerCallAttributeLayerNormalization,
+  InputVarAttributeLayerNormalization,
+  OutputVarAttributeLayerNormalization,
 } from './nn-diagram/nn-layernormalization-attributes/layernormalization-attributes';
 
 import { BatchNormalizationLayer } from './nn-diagram/nn-batchnormalization-layer/nn-batchnormalization-layer';
@@ -245,6 +315,13 @@ import {
   ActvFuncAttributeBatchNormalization,
   NameModuleInputAttributeBatchNormalization,
   InputReusedAttributeBatchNormalization,
+  EpsAttributeBatchNormalization,
+  MomentumAttributeBatchNormalization,
+  AffineAttributeBatchNormalization,
+  TrackRunningStatsAttributeBatchNormalization,
+  IsLayerCallAttributeBatchNormalization,
+  InputVarAttributeBatchNormalization,
+  OutputVarAttributeBatchNormalization,
 } from './nn-diagram/nn-batchnormalization-attributes/batchnormalization-attributes';
 
 import { TensorOp } from './nn-diagram/nn-tensorop/nn-tensorop';
@@ -257,6 +334,27 @@ import {
   TransposeDimAttributeTensorOp,
   PermuteDimAttributeTensorOp,
   InputReusedAttributeTensorOp,
+  ReduceDimAttributeTensorOp,
+  ReduceKeepdimAttributeTensorOp,
+  ShapeDimAttributeTensorOp,
+  ActualVarsAttributeTensorOp,
+  SubscriptIndicesAttributeTensorOp,
+  RepeatDimAttributeTensorOp,
+  InterpolateSizeAttributeTensorOp,
+  InterpolateScaleAttributeTensorOp,
+  InterpolateModeAttributeTensorOp,
+  PadAmountAttributeTensorOp,
+  PadModeAttributeTensorOp,
+  PadValueAttributeTensorOp,
+  DropoutRateAttributeTensorOp,
+  DropoutTrainingAwareAttributeTensorOp,
+  SplitDimAttributeTensorOp,
+  SplitSizesAttributeTensorOp,
+  PermuteInAttributeTensorOp,
+  PermuteOutAttributeTensorOp,
+  InputVarAttributeTensorOp,
+  OutputVarAttributeTensorOp,
+  OutputVarsAttributeTensorOp,
   TensorOpAttribute,
 } from './nn-diagram/nn-tensorop-attributes/tensorop-attributes';
 
@@ -385,6 +483,12 @@ export const UMLElements = {
   [NNElementType.InputReusedAttributeConv1D]: InputReusedAttributeConv1D,
   [NNElementType.PermuteInAttributeConv1D]: PermuteInAttributeConv1D,
   [NNElementType.PermuteOutAttributeConv1D]: PermuteOutAttributeConv1D,
+  [NNElementType.DilationAttributeConv1D]: DilationAttributeConv1D,
+  [NNElementType.GroupsAttributeConv1D]: GroupsAttributeConv1D,
+  [NNElementType.BiasAttributeConv1D]: BiasAttributeConv1D,
+  [NNElementType.IsLayerCallAttributeConv1D]: IsLayerCallAttributeConv1D,
+  [NNElementType.InputVarAttributeConv1D]: InputVarAttributeConv1D,
+  [NNElementType.OutputVarAttributeConv1D]: OutputVarAttributeConv1D,
 
   [NNElementType.Conv2DLayer]: Conv2DLayer,
   // Conv2D Attributes - Mandatory
@@ -401,6 +505,12 @@ export const UMLElements = {
   [NNElementType.InputReusedAttributeConv2D]: InputReusedAttributeConv2D,
   [NNElementType.PermuteInAttributeConv2D]: PermuteInAttributeConv2D,
   [NNElementType.PermuteOutAttributeConv2D]: PermuteOutAttributeConv2D,
+  [NNElementType.DilationAttributeConv2D]: DilationAttributeConv2D,
+  [NNElementType.GroupsAttributeConv2D]: GroupsAttributeConv2D,
+  [NNElementType.BiasAttributeConv2D]: BiasAttributeConv2D,
+  [NNElementType.IsLayerCallAttributeConv2D]: IsLayerCallAttributeConv2D,
+  [NNElementType.InputVarAttributeConv2D]: InputVarAttributeConv2D,
+  [NNElementType.OutputVarAttributeConv2D]: OutputVarAttributeConv2D,
 
   [NNElementType.Conv3DLayer]: Conv3DLayer,
   // Conv3D Attributes - Mandatory
@@ -417,6 +527,12 @@ export const UMLElements = {
   [NNElementType.InputReusedAttributeConv3D]: InputReusedAttributeConv3D,
   [NNElementType.PermuteInAttributeConv3D]: PermuteInAttributeConv3D,
   [NNElementType.PermuteOutAttributeConv3D]: PermuteOutAttributeConv3D,
+  [NNElementType.DilationAttributeConv3D]: DilationAttributeConv3D,
+  [NNElementType.GroupsAttributeConv3D]: GroupsAttributeConv3D,
+  [NNElementType.BiasAttributeConv3D]: BiasAttributeConv3D,
+  [NNElementType.IsLayerCallAttributeConv3D]: IsLayerCallAttributeConv3D,
+  [NNElementType.InputVarAttributeConv3D]: InputVarAttributeConv3D,
+  [NNElementType.OutputVarAttributeConv3D]: OutputVarAttributeConv3D,
 
   [NNElementType.PoolingLayer]: PoolingLayer,
   // Pooling Attributes - Mandatory
@@ -434,6 +550,9 @@ export const UMLElements = {
   [NNElementType.InputReusedAttributePooling]: InputReusedAttributePooling,
   [NNElementType.PermuteInAttributePooling]: PermuteInAttributePooling,
   [NNElementType.PermuteOutAttributePooling]: PermuteOutAttributePooling,
+  [NNElementType.IsLayerCallAttributePooling]: IsLayerCallAttributePooling,
+  [NNElementType.InputVarAttributePooling]: InputVarAttributePooling,
+  [NNElementType.OutputVarAttributePooling]: OutputVarAttributePooling,
 
   [NNElementType.RNNLayer]: RNNLayer,
   // RNN Attributes - Mandatory
@@ -448,6 +567,15 @@ export const UMLElements = {
   [NNElementType.ActvFuncAttributeRNN]: ActvFuncAttributeRNN,
   [NNElementType.NameModuleInputAttributeRNN]: NameModuleInputAttributeRNN,
   [NNElementType.InputReusedAttributeRNN]: InputReusedAttributeRNN,
+  [NNElementType.BiasAttributeRNN]: BiasAttributeRNN,
+  [NNElementType.HxSourceAttributeRNN]: HxSourceAttributeRNN,
+  [NNElementType.IsLayerCallAttributeRNN]: IsLayerCallAttributeRNN,
+  [NNElementType.InputVarAttributeRNN]: InputVarAttributeRNN,
+  [NNElementType.OutputVarAttributeRNN]: OutputVarAttributeRNN,
+  [NNElementType.HiddenStateVarAttributeRNN]: HiddenStateVarAttributeRNN,
+  [NNElementType.HiddenUnusedAttributeRNN]: HiddenUnusedAttributeRNN,
+  [NNElementType.HiddenSubscriptSourceAttributeRNN]: HiddenSubscriptSourceAttributeRNN,
+  [NNElementType.HiddenSubscriptTargetAttributeRNN]: HiddenSubscriptTargetAttributeRNN,
 
   [NNElementType.LSTMLayer]: LSTMLayer,
   // LSTM Attributes - Mandatory
@@ -462,6 +590,17 @@ export const UMLElements = {
   [NNElementType.ActvFuncAttributeLSTM]: ActvFuncAttributeLSTM,
   [NNElementType.NameModuleInputAttributeLSTM]: NameModuleInputAttributeLSTM,
   [NNElementType.InputReusedAttributeLSTM]: InputReusedAttributeLSTM,
+  [NNElementType.BiasAttributeLSTM]: BiasAttributeLSTM,
+  [NNElementType.HxSourceAttributeLSTM]: HxSourceAttributeLSTM,
+  [NNElementType.IsLayerCallAttributeLSTM]: IsLayerCallAttributeLSTM,
+  [NNElementType.InputVarAttributeLSTM]: InputVarAttributeLSTM,
+  [NNElementType.OutputVarAttributeLSTM]: OutputVarAttributeLSTM,
+  [NNElementType.HiddenStateVarAttributeLSTM]: HiddenStateVarAttributeLSTM,
+  [NNElementType.CellStateVarAttributeLSTM]: CellStateVarAttributeLSTM,
+  [NNElementType.HiddenUnusedAttributeLSTM]: HiddenUnusedAttributeLSTM,
+  [NNElementType.CellUnusedAttributeLSTM]: CellUnusedAttributeLSTM,
+  [NNElementType.HiddenSubscriptSourceAttributeLSTM]: HiddenSubscriptSourceAttributeLSTM,
+  [NNElementType.HiddenSubscriptTargetAttributeLSTM]: HiddenSubscriptTargetAttributeLSTM,
 
   [NNElementType.GRULayer]: GRULayer,
   // GRU Attributes - Mandatory
@@ -476,6 +615,15 @@ export const UMLElements = {
   [NNElementType.ActvFuncAttributeGRU]: ActvFuncAttributeGRU,
   [NNElementType.NameModuleInputAttributeGRU]: NameModuleInputAttributeGRU,
   [NNElementType.InputReusedAttributeGRU]: InputReusedAttributeGRU,
+  [NNElementType.BiasAttributeGRU]: BiasAttributeGRU,
+  [NNElementType.HxSourceAttributeGRU]: HxSourceAttributeGRU,
+  [NNElementType.IsLayerCallAttributeGRU]: IsLayerCallAttributeGRU,
+  [NNElementType.InputVarAttributeGRU]: InputVarAttributeGRU,
+  [NNElementType.OutputVarAttributeGRU]: OutputVarAttributeGRU,
+  [NNElementType.HiddenStateVarAttributeGRU]: HiddenStateVarAttributeGRU,
+  [NNElementType.HiddenUnusedAttributeGRU]: HiddenUnusedAttributeGRU,
+  [NNElementType.HiddenSubscriptSourceAttributeGRU]: HiddenSubscriptSourceAttributeGRU,
+  [NNElementType.HiddenSubscriptTargetAttributeGRU]: HiddenSubscriptTargetAttributeGRU,
 
   [NNElementType.LinearLayer]: LinearLayer,
   // Linear Attributes - Mandatory
@@ -486,6 +634,10 @@ export const UMLElements = {
   [NNElementType.ActvFuncAttributeLinear]: ActvFuncAttributeLinear,
   [NNElementType.NameModuleInputAttributeLinear]: NameModuleInputAttributeLinear,
   [NNElementType.InputReusedAttributeLinear]: InputReusedAttributeLinear,
+  [NNElementType.BiasAttributeLinear]: BiasAttributeLinear,
+  [NNElementType.IsLayerCallAttributeLinear]: IsLayerCallAttributeLinear,
+  [NNElementType.InputVarAttributeLinear]: InputVarAttributeLinear,
+  [NNElementType.OutputVarAttributeLinear]: OutputVarAttributeLinear,
 
   [NNElementType.FlattenLayer]: FlattenLayer,
   // Flatten Attributes - Mandatory
@@ -496,6 +648,9 @@ export const UMLElements = {
   [NNElementType.ActvFuncAttributeFlatten]: ActvFuncAttributeFlatten,
   [NNElementType.NameModuleInputAttributeFlatten]: NameModuleInputAttributeFlatten,
   [NNElementType.InputReusedAttributeFlatten]: InputReusedAttributeFlatten,
+  [NNElementType.IsLayerCallAttributeFlatten]: IsLayerCallAttributeFlatten,
+  [NNElementType.InputVarAttributeFlatten]: InputVarAttributeFlatten,
+  [NNElementType.OutputVarAttributeFlatten]: OutputVarAttributeFlatten,
 
   [NNElementType.EmbeddingLayer]: EmbeddingLayer,
   // Embedding Attributes - Mandatory
@@ -506,6 +661,10 @@ export const UMLElements = {
   [NNElementType.ActvFuncAttributeEmbedding]: ActvFuncAttributeEmbedding,
   [NNElementType.NameModuleInputAttributeEmbedding]: NameModuleInputAttributeEmbedding,
   [NNElementType.InputReusedAttributeEmbedding]: InputReusedAttributeEmbedding,
+  [NNElementType.PaddingIdxAttributeEmbedding]: PaddingIdxAttributeEmbedding,
+  [NNElementType.IsLayerCallAttributeEmbedding]: IsLayerCallAttributeEmbedding,
+  [NNElementType.InputVarAttributeEmbedding]: InputVarAttributeEmbedding,
+  [NNElementType.OutputVarAttributeEmbedding]: OutputVarAttributeEmbedding,
 
   [NNElementType.DropoutLayer]: DropoutLayer,
   // Dropout Attributes - Mandatory
@@ -514,6 +673,10 @@ export const UMLElements = {
   // Dropout Attributes - Optional
   [NNElementType.NameModuleInputAttributeDropout]: NameModuleInputAttributeDropout,
   [NNElementType.InputReusedAttributeDropout]: InputReusedAttributeDropout,
+  [NNElementType.DimensionAttributeDropout]: DimensionAttributeDropout,
+  [NNElementType.IsLayerCallAttributeDropout]: IsLayerCallAttributeDropout,
+  [NNElementType.InputVarAttributeDropout]: InputVarAttributeDropout,
+  [NNElementType.OutputVarAttributeDropout]: OutputVarAttributeDropout,
 
   [NNElementType.LayerNormalizationLayer]: LayerNormalizationLayer,
   // LayerNormalization Attributes - Mandatory
@@ -523,6 +686,11 @@ export const UMLElements = {
   [NNElementType.ActvFuncAttributeLayerNormalization]: ActvFuncAttributeLayerNormalization,
   [NNElementType.NameModuleInputAttributeLayerNormalization]: NameModuleInputAttributeLayerNormalization,
   [NNElementType.InputReusedAttributeLayerNormalization]: InputReusedAttributeLayerNormalization,
+  [NNElementType.EpsAttributeLayerNormalization]: EpsAttributeLayerNormalization,
+  [NNElementType.AffineAttributeLayerNormalization]: AffineAttributeLayerNormalization,
+  [NNElementType.IsLayerCallAttributeLayerNormalization]: IsLayerCallAttributeLayerNormalization,
+  [NNElementType.InputVarAttributeLayerNormalization]: InputVarAttributeLayerNormalization,
+  [NNElementType.OutputVarAttributeLayerNormalization]: OutputVarAttributeLayerNormalization,
 
   [NNElementType.BatchNormalizationLayer]: BatchNormalizationLayer,
   // BatchNormalization Attributes - Mandatory
@@ -533,6 +701,13 @@ export const UMLElements = {
   [NNElementType.ActvFuncAttributeBatchNormalization]: ActvFuncAttributeBatchNormalization,
   [NNElementType.NameModuleInputAttributeBatchNormalization]: NameModuleInputAttributeBatchNormalization,
   [NNElementType.InputReusedAttributeBatchNormalization]: InputReusedAttributeBatchNormalization,
+  [NNElementType.EpsAttributeBatchNormalization]: EpsAttributeBatchNormalization,
+  [NNElementType.MomentumAttributeBatchNormalization]: MomentumAttributeBatchNormalization,
+  [NNElementType.AffineAttributeBatchNormalization]: AffineAttributeBatchNormalization,
+  [NNElementType.TrackRunningStatsAttributeBatchNormalization]: TrackRunningStatsAttributeBatchNormalization,
+  [NNElementType.IsLayerCallAttributeBatchNormalization]: IsLayerCallAttributeBatchNormalization,
+  [NNElementType.InputVarAttributeBatchNormalization]: InputVarAttributeBatchNormalization,
+  [NNElementType.OutputVarAttributeBatchNormalization]: OutputVarAttributeBatchNormalization,
 
   [NNElementType.TensorOp]: TensorOp,
   // TensorOp Attributes - Mandatory
@@ -545,6 +720,27 @@ export const UMLElements = {
   [NNElementType.TransposeDimAttributeTensorOp]: TransposeDimAttributeTensorOp,
   [NNElementType.PermuteDimAttributeTensorOp]: PermuteDimAttributeTensorOp,
   [NNElementType.InputReusedAttributeTensorOp]: InputReusedAttributeTensorOp,
+  [NNElementType.ReduceDimAttributeTensorOp]: ReduceDimAttributeTensorOp,
+  [NNElementType.ReduceKeepdimAttributeTensorOp]: ReduceKeepdimAttributeTensorOp,
+  [NNElementType.ShapeDimAttributeTensorOp]: ShapeDimAttributeTensorOp,
+  [NNElementType.ActualVarsAttributeTensorOp]: ActualVarsAttributeTensorOp,
+  [NNElementType.SubscriptIndicesAttributeTensorOp]: SubscriptIndicesAttributeTensorOp,
+  [NNElementType.RepeatDimAttributeTensorOp]: RepeatDimAttributeTensorOp,
+  [NNElementType.InterpolateSizeAttributeTensorOp]: InterpolateSizeAttributeTensorOp,
+  [NNElementType.InterpolateScaleAttributeTensorOp]: InterpolateScaleAttributeTensorOp,
+  [NNElementType.InterpolateModeAttributeTensorOp]: InterpolateModeAttributeTensorOp,
+  [NNElementType.PadAmountAttributeTensorOp]: PadAmountAttributeTensorOp,
+  [NNElementType.PadModeAttributeTensorOp]: PadModeAttributeTensorOp,
+  [NNElementType.PadValueAttributeTensorOp]: PadValueAttributeTensorOp,
+  [NNElementType.DropoutRateAttributeTensorOp]: DropoutRateAttributeTensorOp,
+  [NNElementType.DropoutTrainingAwareAttributeTensorOp]: DropoutTrainingAwareAttributeTensorOp,
+  [NNElementType.SplitDimAttributeTensorOp]: SplitDimAttributeTensorOp,
+  [NNElementType.SplitSizesAttributeTensorOp]: SplitSizesAttributeTensorOp,
+  [NNElementType.PermuteInAttributeTensorOp]: PermuteInAttributeTensorOp,
+  [NNElementType.PermuteOutAttributeTensorOp]: PermuteOutAttributeTensorOp,
+  [NNElementType.InputVarAttributeTensorOp]: InputVarAttributeTensorOp,
+  [NNElementType.OutputVarAttributeTensorOp]: OutputVarAttributeTensorOp,
+  [NNElementType.OutputVarsAttributeTensorOp]: OutputVarsAttributeTensorOp,
 
   [NNElementType.Configuration]: Configuration,
   // Configuration Attributes - Mandatory

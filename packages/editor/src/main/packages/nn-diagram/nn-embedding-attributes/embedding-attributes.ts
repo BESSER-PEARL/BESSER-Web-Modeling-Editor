@@ -82,7 +82,7 @@ export abstract class EmbeddingAttribute extends NNComponentAttribute implements
 export class NameAttributeEmbedding extends EmbeddingAttribute {
   type: UMLElementType = NNElementType.NameAttributeEmbedding;
   constructor(values?: DeepPartial<IEmbeddingAttribute>) {
-    super({ attributeName: 'name', value: 'Embedding_layer', isMandatory: true, ...values });
+    super({ attributeName: 'name', value: 'embedding_layer', isMandatory: true, ...values });
     this.name = `${this.attributeName} = ${this.value}`;
   }
 }
@@ -127,6 +127,40 @@ export class InputReusedAttributeEmbedding extends EmbeddingAttribute {
   constructor(values?: DeepPartial<IEmbeddingAttribute>) {
     super({ attributeName: 'input_reused', value: 'false', isMandatory: false, ...values });
     this.attributeType = 'bool';
+    this.name = `${this.attributeName} = ${this.value}`;
+  }
+}
+
+export class PaddingIdxAttributeEmbedding extends EmbeddingAttribute {
+  type: UMLElementType = NNElementType.PaddingIdxAttributeEmbedding;
+  constructor(values?: DeepPartial<IEmbeddingAttribute>) {
+    super({ attributeName: 'padding_idx', value: '', isMandatory: false, ...values });
+    this.attributeType = 'int';
+    this.name = `${this.attributeName} = ${this.value}`;
+  }
+}
+
+export class IsLayerCallAttributeEmbedding extends EmbeddingAttribute {
+  type: UMLElementType = NNElementType.IsLayerCallAttributeEmbedding;
+  constructor(values?: DeepPartial<IEmbeddingAttribute>) {
+    super({ attributeName: 'is_layer_call', value: 'false', isMandatory: false, ...values });
+    this.attributeType = 'bool';
+    this.name = `${this.attributeName} = ${this.value}`;
+  }
+}
+
+export class InputVarAttributeEmbedding extends EmbeddingAttribute {
+  type: UMLElementType = NNElementType.InputVarAttributeEmbedding;
+  constructor(values?: DeepPartial<IEmbeddingAttribute>) {
+    super({ attributeName: 'input_var', value: '', isMandatory: false, ...values });
+    this.name = `${this.attributeName} = ${this.value}`;
+  }
+}
+
+export class OutputVarAttributeEmbedding extends EmbeddingAttribute {
+  type: UMLElementType = NNElementType.OutputVarAttributeEmbedding;
+  constructor(values?: DeepPartial<IEmbeddingAttribute>) {
+    super({ attributeName: 'output_var', value: '', isMandatory: false, ...values });
     this.name = `${this.attributeName} = ${this.value}`;
   }
 }

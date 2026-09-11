@@ -82,7 +82,7 @@ export abstract class BatchNormalizationAttribute extends NNComponentAttribute i
 export class NameAttributeBatchNormalization extends BatchNormalizationAttribute {
   type: UMLElementType = NNElementType.NameAttributeBatchNormalization;
   constructor(values?: DeepPartial<IBatchNormalizationAttribute>) {
-    super({ attributeName: 'name', value: 'BatchNorm_layer', isMandatory: true, ...values });
+    super({ attributeName: 'name', value: 'batchnorm_layer', isMandatory: true, ...values });
     this.name = `${this.attributeName} = ${this.value}`;
   }
 }
@@ -126,6 +126,67 @@ export class InputReusedAttributeBatchNormalization extends BatchNormalizationAt
   constructor(values?: DeepPartial<IBatchNormalizationAttribute>) {
     super({ attributeName: 'input_reused', value: 'false', isMandatory: false, ...values });
     this.attributeType = 'bool';
+    this.name = `${this.attributeName} = ${this.value}`;
+  }
+}
+
+export class EpsAttributeBatchNormalization extends BatchNormalizationAttribute {
+  type: UMLElementType = NNElementType.EpsAttributeBatchNormalization;
+  constructor(values?: DeepPartial<IBatchNormalizationAttribute>) {
+    super({ attributeName: 'eps', value: '1e-5', isMandatory: false, ...values });
+    this.attributeType = 'float';
+    this.name = `${this.attributeName} = ${this.value}`;
+  }
+}
+
+export class MomentumAttributeBatchNormalization extends BatchNormalizationAttribute {
+  type: UMLElementType = NNElementType.MomentumAttributeBatchNormalization;
+  constructor(values?: DeepPartial<IBatchNormalizationAttribute>) {
+    super({ attributeName: 'momentum', value: '0.1', isMandatory: false, ...values });
+    this.attributeType = 'float';
+    this.name = `${this.attributeName} = ${this.value}`;
+  }
+}
+
+export class AffineAttributeBatchNormalization extends BatchNormalizationAttribute {
+  type: UMLElementType = NNElementType.AffineAttributeBatchNormalization;
+  constructor(values?: DeepPartial<IBatchNormalizationAttribute>) {
+    super({ attributeName: 'affine', value: 'true', isMandatory: false, ...values });
+    this.attributeType = 'bool';
+    this.name = `${this.attributeName} = ${this.value}`;
+  }
+}
+
+export class TrackRunningStatsAttributeBatchNormalization extends BatchNormalizationAttribute {
+  type: UMLElementType = NNElementType.TrackRunningStatsAttributeBatchNormalization;
+  constructor(values?: DeepPartial<IBatchNormalizationAttribute>) {
+    super({ attributeName: 'track_running_stats', value: 'true', isMandatory: false, ...values });
+    this.attributeType = 'bool';
+    this.name = `${this.attributeName} = ${this.value}`;
+  }
+}
+
+export class IsLayerCallAttributeBatchNormalization extends BatchNormalizationAttribute {
+  type: UMLElementType = NNElementType.IsLayerCallAttributeBatchNormalization;
+  constructor(values?: DeepPartial<IBatchNormalizationAttribute>) {
+    super({ attributeName: 'is_layer_call', value: 'false', isMandatory: false, ...values });
+    this.attributeType = 'bool';
+    this.name = `${this.attributeName} = ${this.value}`;
+  }
+}
+
+export class InputVarAttributeBatchNormalization extends BatchNormalizationAttribute {
+  type: UMLElementType = NNElementType.InputVarAttributeBatchNormalization;
+  constructor(values?: DeepPartial<IBatchNormalizationAttribute>) {
+    super({ attributeName: 'input_var', value: '', isMandatory: false, ...values });
+    this.name = `${this.attributeName} = ${this.value}`;
+  }
+}
+
+export class OutputVarAttributeBatchNormalization extends BatchNormalizationAttribute {
+  type: UMLElementType = NNElementType.OutputVarAttributeBatchNormalization;
+  constructor(values?: DeepPartial<IBatchNormalizationAttribute>) {
+    super({ attributeName: 'output_var', value: '', isMandatory: false, ...values });
     this.name = `${this.attributeName} = ${this.value}`;
   }
 }

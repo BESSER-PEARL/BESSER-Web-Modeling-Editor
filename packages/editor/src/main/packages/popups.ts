@@ -60,6 +60,7 @@ import { NNElementType } from './nn-diagram';
 import { NNAttributeUpdate } from './nn-diagram/attribute-update/nn-attribute-update';
 import { NNComponentUpdate } from './nn-diagram/nn-component/nn-component-update';
 import { NNReferenceUpdate } from './nn-diagram/nn-reference/nn-reference-update';
+import { NNContainerUpdate } from './nn-diagram/nn-container/nn-container-update';
 
 export type Popups = { [key in UMLElementType | UMLRelationshipType]: ComponentType<{ element: any }> | null };
 export const Popups: { [key in UMLElementType | UMLRelationshipType]: ComponentType<{ element: any }> | null } = {
@@ -205,6 +206,12 @@ export const Popups: { [key in UMLElementType | UMLRelationshipType]: ComponentT
   [NNElementType.InputReusedAttributeConv1D]: NNAttributeUpdate,
   [NNElementType.PermuteInAttributeConv1D]: NNAttributeUpdate,
   [NNElementType.PermuteOutAttributeConv1D]: NNAttributeUpdate,
+  [NNElementType.DilationAttributeConv1D]: NNAttributeUpdate,
+  [NNElementType.GroupsAttributeConv1D]: NNAttributeUpdate,
+  [NNElementType.BiasAttributeConv1D]: NNAttributeUpdate,
+  [NNElementType.IsLayerCallAttributeConv1D]: NNAttributeUpdate,
+  [NNElementType.InputVarAttributeConv1D]: NNAttributeUpdate,
+  [NNElementType.OutputVarAttributeConv1D]: NNAttributeUpdate,
 
   [NNElementType.Conv2DLayer]: NNComponentUpdate,
   // Conv2D Attributes
@@ -220,6 +227,12 @@ export const Popups: { [key in UMLElementType | UMLRelationshipType]: ComponentT
   [NNElementType.InputReusedAttributeConv2D]: NNAttributeUpdate,
   [NNElementType.PermuteInAttributeConv2D]: NNAttributeUpdate,
   [NNElementType.PermuteOutAttributeConv2D]: NNAttributeUpdate,
+  [NNElementType.DilationAttributeConv2D]: NNAttributeUpdate,
+  [NNElementType.GroupsAttributeConv2D]: NNAttributeUpdate,
+  [NNElementType.BiasAttributeConv2D]: NNAttributeUpdate,
+  [NNElementType.IsLayerCallAttributeConv2D]: NNAttributeUpdate,
+  [NNElementType.InputVarAttributeConv2D]: NNAttributeUpdate,
+  [NNElementType.OutputVarAttributeConv2D]: NNAttributeUpdate,
 
   [NNElementType.Conv3DLayer]: NNComponentUpdate,
   // Conv3D Attributes
@@ -235,6 +248,12 @@ export const Popups: { [key in UMLElementType | UMLRelationshipType]: ComponentT
   [NNElementType.InputReusedAttributeConv3D]: NNAttributeUpdate,
   [NNElementType.PermuteInAttributeConv3D]: NNAttributeUpdate,
   [NNElementType.PermuteOutAttributeConv3D]: NNAttributeUpdate,
+  [NNElementType.DilationAttributeConv3D]: NNAttributeUpdate,
+  [NNElementType.GroupsAttributeConv3D]: NNAttributeUpdate,
+  [NNElementType.BiasAttributeConv3D]: NNAttributeUpdate,
+  [NNElementType.IsLayerCallAttributeConv3D]: NNAttributeUpdate,
+  [NNElementType.InputVarAttributeConv3D]: NNAttributeUpdate,
+  [NNElementType.OutputVarAttributeConv3D]: NNAttributeUpdate,
 
   [NNElementType.PoolingLayer]: NNComponentUpdate,
   // Pooling Attributes
@@ -264,6 +283,15 @@ export const Popups: { [key in UMLElementType | UMLRelationshipType]: ComponentT
   [NNElementType.ActvFuncAttributeRNN]: NNAttributeUpdate,
   [NNElementType.NameModuleInputAttributeRNN]: NNAttributeUpdate,
   [NNElementType.InputReusedAttributeRNN]: NNAttributeUpdate,
+  [NNElementType.BiasAttributeRNN]: NNAttributeUpdate,
+  [NNElementType.HxSourceAttributeRNN]: NNAttributeUpdate,
+  [NNElementType.IsLayerCallAttributeRNN]: NNAttributeUpdate,
+  [NNElementType.InputVarAttributeRNN]: NNAttributeUpdate,
+  [NNElementType.OutputVarAttributeRNN]: NNAttributeUpdate,
+  [NNElementType.HiddenStateVarAttributeRNN]: NNAttributeUpdate,
+  [NNElementType.HiddenUnusedAttributeRNN]: NNAttributeUpdate,
+  [NNElementType.HiddenSubscriptSourceAttributeRNN]: NNAttributeUpdate,
+  [NNElementType.HiddenSubscriptTargetAttributeRNN]: NNAttributeUpdate,
 
   [NNElementType.LSTMLayer]: NNComponentUpdate,
   // LSTM Attributes
@@ -277,6 +305,17 @@ export const Popups: { [key in UMLElementType | UMLRelationshipType]: ComponentT
   [NNElementType.ActvFuncAttributeLSTM]: NNAttributeUpdate,
   [NNElementType.NameModuleInputAttributeLSTM]: NNAttributeUpdate,
   [NNElementType.InputReusedAttributeLSTM]: NNAttributeUpdate,
+  [NNElementType.BiasAttributeLSTM]: NNAttributeUpdate,
+  [NNElementType.HxSourceAttributeLSTM]: NNAttributeUpdate,
+  [NNElementType.IsLayerCallAttributeLSTM]: NNAttributeUpdate,
+  [NNElementType.InputVarAttributeLSTM]: NNAttributeUpdate,
+  [NNElementType.OutputVarAttributeLSTM]: NNAttributeUpdate,
+  [NNElementType.HiddenStateVarAttributeLSTM]: NNAttributeUpdate,
+  [NNElementType.CellStateVarAttributeLSTM]: NNAttributeUpdate,
+  [NNElementType.HiddenUnusedAttributeLSTM]: NNAttributeUpdate,
+  [NNElementType.CellUnusedAttributeLSTM]: NNAttributeUpdate,
+  [NNElementType.HiddenSubscriptSourceAttributeLSTM]: NNAttributeUpdate,
+  [NNElementType.HiddenSubscriptTargetAttributeLSTM]: NNAttributeUpdate,
 
   [NNElementType.GRULayer]: NNComponentUpdate,
   // GRU Attributes
@@ -290,6 +329,15 @@ export const Popups: { [key in UMLElementType | UMLRelationshipType]: ComponentT
   [NNElementType.ActvFuncAttributeGRU]: NNAttributeUpdate,
   [NNElementType.NameModuleInputAttributeGRU]: NNAttributeUpdate,
   [NNElementType.InputReusedAttributeGRU]: NNAttributeUpdate,
+  [NNElementType.BiasAttributeGRU]: NNAttributeUpdate,
+  [NNElementType.HxSourceAttributeGRU]: NNAttributeUpdate,
+  [NNElementType.IsLayerCallAttributeGRU]: NNAttributeUpdate,
+  [NNElementType.InputVarAttributeGRU]: NNAttributeUpdate,
+  [NNElementType.OutputVarAttributeGRU]: NNAttributeUpdate,
+  [NNElementType.HiddenStateVarAttributeGRU]: NNAttributeUpdate,
+  [NNElementType.HiddenUnusedAttributeGRU]: NNAttributeUpdate,
+  [NNElementType.HiddenSubscriptSourceAttributeGRU]: NNAttributeUpdate,
+  [NNElementType.HiddenSubscriptTargetAttributeGRU]: NNAttributeUpdate,
 
   [NNElementType.LinearLayer]: NNComponentUpdate,
   // Linear Attributes
@@ -352,6 +400,27 @@ export const Popups: { [key in UMLElementType | UMLRelationshipType]: ComponentT
   [NNElementType.TransposeDimAttributeTensorOp]: NNAttributeUpdate,
   [NNElementType.PermuteDimAttributeTensorOp]: NNAttributeUpdate,
   [NNElementType.InputReusedAttributeTensorOp]: NNAttributeUpdate,
+  [NNElementType.ReduceDimAttributeTensorOp]: NNAttributeUpdate,
+  [NNElementType.ReduceKeepdimAttributeTensorOp]: NNAttributeUpdate,
+  [NNElementType.ShapeDimAttributeTensorOp]: NNAttributeUpdate,
+  [NNElementType.ActualVarsAttributeTensorOp]: NNAttributeUpdate,
+  [NNElementType.SubscriptIndicesAttributeTensorOp]: NNAttributeUpdate,
+  [NNElementType.RepeatDimAttributeTensorOp]: NNAttributeUpdate,
+  [NNElementType.InterpolateSizeAttributeTensorOp]: NNAttributeUpdate,
+  [NNElementType.InterpolateScaleAttributeTensorOp]: NNAttributeUpdate,
+  [NNElementType.InterpolateModeAttributeTensorOp]: NNAttributeUpdate,
+  [NNElementType.PadAmountAttributeTensorOp]: NNAttributeUpdate,
+  [NNElementType.PadModeAttributeTensorOp]: NNAttributeUpdate,
+  [NNElementType.PadValueAttributeTensorOp]: NNAttributeUpdate,
+  [NNElementType.DropoutRateAttributeTensorOp]: NNAttributeUpdate,
+  [NNElementType.DropoutTrainingAwareAttributeTensorOp]: NNAttributeUpdate,
+  [NNElementType.SplitDimAttributeTensorOp]: NNAttributeUpdate,
+  [NNElementType.SplitSizesAttributeTensorOp]: NNAttributeUpdate,
+  [NNElementType.PermuteInAttributeTensorOp]: NNAttributeUpdate,
+  [NNElementType.PermuteOutAttributeTensorOp]: NNAttributeUpdate,
+  [NNElementType.InputVarAttributeTensorOp]: NNAttributeUpdate,
+  [NNElementType.OutputVarAttributeTensorOp]: NNAttributeUpdate,
+  [NNElementType.OutputVarsAttributeTensorOp]: NNAttributeUpdate,
 
   [NNElementType.Configuration]: NNComponentUpdate,
   // Configuration Attributes
@@ -380,7 +449,7 @@ export const Popups: { [key in UMLElementType | UMLRelationshipType]: ComponentT
   [NNElementType.NNSectionSeparator]: null,
 
   // Container and Reference elements
-  [NNElementType.NNContainer]: DefaultPopup,
+  [NNElementType.NNContainer]: NNContainerUpdate,
   [NNElementType.NNReference]: NNReferenceUpdate,
 
   [UMLRelationshipType.NNNext]: null,
