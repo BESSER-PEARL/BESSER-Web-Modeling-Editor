@@ -878,7 +878,7 @@ class NNComponentUpdateComponent extends Component<Props, State> {
         );
       case 'permute':
         return optionalAttributes.filter((attr) =>
-          attr.label === 'permute_dim' || sharedForAll.includes(attr.label) || attr.label === outputVar
+          ['layers_of_tensors', 'permute_dim'].includes(attr.label) || sharedForAll.includes(attr.label) || attr.label === outputVar
         );
       case 'multiply':
       case 'matmultiply':
@@ -951,15 +951,15 @@ class NNComponentUpdateComponent extends Component<Props, State> {
         );
       case 'dropout':
         return optionalAttributes.filter((attr) =>
-          ['dropout_rate', 'dropout_training_aware'].includes(attr.label) || sharedForAll.includes(attr.label) || attr.label === outputVar
+          ['layers_of_tensors', 'dropout_rate', 'dropout_training_aware'].includes(attr.label) || sharedForAll.includes(attr.label) || attr.label === outputVar
         );
       case 'subscript':
         return optionalAttributes.filter((attr) =>
-          attr.label === 'subscript_indices' || sharedForAll.includes(attr.label) || attr.label === outputVar
+          ['layers_of_tensors', 'subscript_indices'].includes(attr.label) || sharedForAll.includes(attr.label) || attr.label === outputVar
         );
       case 'identity':
         return optionalAttributes.filter((attr) =>
-          sharedForAll.includes(attr.label) || attr.label === outputVar
+          attr.label === 'layers_of_tensors' || sharedForAll.includes(attr.label) || attr.label === outputVar
         );
       default:
         return optionalAttributes.filter((attr) =>
