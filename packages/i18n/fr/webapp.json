@@ -2126,7 +2126,11 @@
         "valueColor": "Couleur de la valeur",
         "valueSize": "Taille de la valeur",
         "negativeTrendColor": "Couleur tendance négative",
-        "positiveTrendColor": "Couleur tendance positive"
+        "positiveTrendColor": "Couleur tendance positive",
+        "latitudeField": "Champ latitude",
+        "longitudeField": "Champ longitude",
+        "markerLabelField": "Champ libellé marqueur",
+        "layers": "Couches"
       },
       "pages": {
         "title": "Pages",
@@ -2227,10 +2231,6 @@
         "selectAgentFirst": "Sélectionnez d'abord un agent",
         "send": "Envoyer"
       },
-      "map": {
-        "location": "Emplacement",
-        "viewLargerMap": "Voir une carte plus grande"
-      },
       "utils": {
         "selectPage": "-- Sélectionner une page --",
         "customUrl": "URL personnalisée",
@@ -2326,6 +2326,20 @@
           "range": "Plage",
           "search": "Recherche"
         }
+      },
+      "layerManager": {
+        "title": "Couches de la carte",
+        "addLayer": "Ajouter une couche",
+        "removeLayer": "Supprimer la couche",
+        "defaultLayerName": "Couche {{index}}",
+        "none": "— aucune —",
+        "typePoints": "Points (marqueurs lat/long)",
+        "typeGeojson": "Polygones/lignes GeoJSON",
+        "typeChoropleth": "Choroplèthe (régions colorées)",
+        "typeHeatmap": "Carte de chaleur",
+        "weightField": "Champ de pondération",
+        "geometryField": "Champ de géométrie (GeoJSON)",
+        "valueField": "Champ de valeur"
       }
     },
     "loadingGuiEditor": "Chargement de l'éditeur GUI...",

@@ -550,6 +550,8 @@
       "llmPromptPrefix": "LLM Prompt Prefix",
       "retrievedChunks": "K (retrieved chunks)",
       "numPreviousMessages": "Num Previous Messages",
+      "hybridRag": "Hybrid RAG (BM25)",
+      "bm25Weight": "BM25 weight",
       "embeddingProvider": "Embedding Provider",
       "embeddingBaseUrl": "Embedding Base URL",
       "embeddingModel": "Embedding Model",
