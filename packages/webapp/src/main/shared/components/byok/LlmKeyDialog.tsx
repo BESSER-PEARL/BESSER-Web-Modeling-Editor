@@ -691,8 +691,11 @@ export const LlmKeyDialog: React.FC<LlmKeyDialogProps> = ({
           </div>
 
           {/* Free-tier model choice — shown only when the server advertises
-              more than one free model (primary + configured fallback). Reads
-              and writes the same stored choice as the Spec-Driven run dialog. */}
+              more than one free model. The list is rendered verbatim from the
+              config endpoint (any number of entries: the default, any extra
+              models on the same endpoint, a self-hosted fallback), so the
+              server can add a free model without a frontend change. Reads and
+              writes the same stored choice as the Spec-Driven run dialog. */}
           {isFreeProvider && freeModels.length > 1 && (
             <fieldset className="space-y-1.5">
               <legend className="text-sm font-medium leading-none">Model</legend>
@@ -715,7 +718,7 @@ export const LlmKeyDialog: React.FC<LlmKeyDialogProps> = ({
                 ))}
               </div>
               <p className="text-xs text-muted-foreground">
-                Both options are free. The self-hosted model runs on BESSER
+                Every option is free. The self-hosted model runs on BESSER
                 infrastructure; if it is unavailable your run reports an error
                 instead of switching models.
               </p>

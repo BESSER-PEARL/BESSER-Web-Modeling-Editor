@@ -6,12 +6,15 @@
  *   - Module-level promise cache: only ONE fetch per page load
  *   - Fallback on network failure / non-OK status / malformed payload
  *   - Failure clears the cache so a later call can retry
+ *   - Free-model list: normalisation, run-model resolution, derived labels
  */
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
   FALLBACK_SMART_GEN_CONFIG,
+  defaultFreeModelId,
+  freeModelLabel,
   getSpecDrivenConfig,
   resolveFreeRunModel,
   _resetSpecDrivenConfigCacheForTests,
@@ -123,6 +126,37 @@ describe('getSpecDrivenConfig', () => {
     ]);
   });
 
+  it('normalises a free-tier list of any length (server adds a model)', async () => {
+    // The server may offer extra models on its own endpoint alongside the
+    // default (e.g. an unmetered one with no daily quota). The list is passed
+    // through verbatim — order and the single default preserved — so no
+    // frontend change is needed when the server adds one.
+    globalThis.fetch = vi.fn().mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          ...BACKEND_CONFIG,
+          free_tier: {
+            available: true,
+            model: 'meituan/LongCat-2.0:free',
+            models: [
+              { id: 'meituan/LongCat-2.0:free', default: true },
+              { id: 'poolside/laguna-s-2.1-free', default: false },
+              { id: 'qwen3.8:27b', default: false },
+            ],
+          },
+        }),
+        { status: 200 },
+      ),
+    );
+
+    const config = await getSpecDrivenConfig();
+    expect(config.free_tier.models).toEqual([
+      { id: 'meituan/LongCat-2.0:free', default: true },
+      { id: 'poolside/laguna-s-2.1-free', default: false },
+      { id: 'qwen3.8:27b', default: false },
+    ]);
+  });
+
   it('normalises a missing free-tier model list (old backend) to []', async () => {
     globalThis.fetch = vi.fn().mockResolvedValue(
       new Response(
@@ -163,12 +197,22 @@ describe('resolveFreeRunModel', () => {
     model: 'meituan/LongCat-2.0:free',
     models: [
       { id: 'meituan/LongCat-2.0:free', default: true },
+      { id: 'poolside/laguna-s-2.1-free', default: false },
       { id: 'qwen3.8:27b', default: false },
     ],
   };
 
   it('returns the stored id when it is an advertised non-default model', () => {
     expect(resolveFreeRunModel(FREE_TIER, 'qwen3.8:27b')).toBe('qwen3.8:27b');
+  });
+
+  it('returns a non-default model on the server default endpoint too', () => {
+    // Nothing here distinguishes "same endpoint as the default" from
+    // "self-hosted fallback" — the server owns that routing, the client only
+    // echoes the id it was offered.
+    expect(resolveFreeRunModel(FREE_TIER, 'poolside/laguna-s-2.1-free')).toBe(
+      'poolside/laguna-s-2.1-free',
+    );
   });
 
   it('omits llm_model for the default choice (identical wire shape to today)', () => {
@@ -186,5 +230,48 @@ describe('resolveFreeRunModel', () => {
   it('tolerates a config without a models list (old backend)', () => {
     const legacy = { available: true, model: 'qwen3-coder:30b' } as SpecDrivenFreeTier;
     expect(resolveFreeRunModel(legacy, 'qwen3.8:27b')).toBeUndefined();
+  });
+});
+
+describe('freeModelLabel', () => {
+  it('marks the default entry', () => {
+    expect(freeModelLabel({ id: 'meituan/LongCat-2.0:free', default: true })).toBe(
+      'meituan/LongCat-2.0:free (default)',
+    );
+  });
+
+  it('marks a bare (Ollama-style) non-default id as self-hosted', () => {
+    expect(freeModelLabel({ id: 'qwen3.8:27b', default: false })).toBe(
+      'qwen3.8:27b (self-hosted)',
+    );
+  });
+
+  it('leaves a vendor-prefixed non-default id unqualified', () => {
+    // Another cloud model the server offers alongside the default: its id
+    // already names the vendor, and it is NOT self-hosted, so no qualifier.
+    expect(freeModelLabel({ id: 'poolside/laguna-s-2.1-free', default: false })).toBe(
+      'poolside/laguna-s-2.1-free',
+    );
+  });
+});
+
+describe('defaultFreeModelId', () => {
+  it('returns the flagged default regardless of its position', () => {
+    expect(
+      defaultFreeModelId([
+        { id: 'poolside/laguna-s-2.1-free', default: false },
+        { id: 'meituan/LongCat-2.0:free', default: true },
+      ]),
+    ).toBe('meituan/LongCat-2.0:free');
+  });
+
+  it('falls back to the first entry when nothing is flagged', () => {
+    expect(defaultFreeModelId([{ id: 'a', default: false }, { id: 'b', default: false }])).toBe(
+      'a',
+    );
+  });
+
+  it('returns an empty string for an empty list', () => {
+    expect(defaultFreeModelId([])).toBe('');
   });
 });

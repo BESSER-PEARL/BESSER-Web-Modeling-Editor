@@ -272,6 +272,41 @@ describe('LlmKeyDialog — keyless free tier', () => {
     });
   });
 
+  it('renders every advertised free model, including a third cloud option', async () => {
+    // The server can add a free model on its own endpoint (e.g. one with no
+    // daily request quota) purely by extending the config payload — the picker
+    // renders the list verbatim and the default stays the default.
+    mockFreeConfig({
+      available: true,
+      model: 'meituan/LongCat-2.0:free',
+      models: [
+        { id: 'meituan/LongCat-2.0:free', default: true },
+        { id: 'poolside/laguna-s-2.1-free', default: false },
+        { id: 'qwen3.8:27b', default: false },
+      ],
+    });
+    await renderAndSelectFree();
+
+    const group = screen.getByRole('radiogroup', { name: /free model/i });
+    const radios = within(group).getAllByRole('radio') as HTMLInputElement[];
+    expect(radios.map((r) => r.value)).toEqual([
+      'meituan/LongCat-2.0:free',
+      'poolside/laguna-s-2.1-free',
+      'qwen3.8:27b',
+    ]);
+    // A vendor-prefixed alt is not mislabelled as self-hosted.
+    expect(within(group).getByText('poolside/laguna-s-2.1-free')).toBeTruthy();
+    expect(radios[0].checked).toBe(true);
+
+    // Picking it stores that exact id (the backend honors it and pins
+    // anything else to the default).
+    fireEvent.click(radios[1]);
+    fireEvent.click(screen.getByRole('button', { name: /^save$/i }));
+    expect(window.sessionStorage.getItem('besser_smart_gen_free_model')).toBe(
+      'poolside/laguna-s-2.1-free',
+    );
+  });
+
   it('offers no model choice when the server advertises a single free model', async () => {
     mockFreeConfig({
       available: true,

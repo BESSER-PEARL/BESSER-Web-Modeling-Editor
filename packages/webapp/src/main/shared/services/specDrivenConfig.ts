@@ -44,8 +44,11 @@ export interface SpecDrivenFreeTier {
   /** The pinned model name (e.g. `qwen3-coder:30b`), or null when unavailable. */
   model: string | null;
   /**
-   * The choosable free models — exactly the server's allowlist (at most the
-   * primary plus a fallback). A single entry (or an old backend that doesn't
+   * The choosable free models — exactly the server's allowlist, in the
+   * server's preference order (the primary, then any extra models the server
+   * offers on the same endpoint, then a self-hosted fallback if configured).
+   * Rendered verbatim, so the set of free models is a server-config change
+   * with no frontend deploy. A single entry (or an old backend that doesn't
    * advertise the list) means there is no choice to offer.
    */
   models: SpecDrivenFreeModel[];
@@ -185,8 +188,11 @@ export function resolveFreeRunModel(
  * Display label for a free-tier model — server-data-first (the id itself),
  * with a short qualifier derived heuristically: the default entry is marked
  * as such; a non-default entry with a bare (Ollama-style, no "/") id is the
- * self-hosted model. No model names are hardcoded. Shared by both BYOK
- * dialogs so the two surfaces present the same choice identically.
+ * self-hosted model. A non-default vendor-prefixed id (another cloud model
+ * the server offers alongside the default) gets no qualifier — its id already
+ * names the vendor. No model names are hardcoded, so the server can add or
+ * swap free models on its own. Shared by both BYOK dialogs so the two
+ * surfaces present the same choice identically.
  */
 export function freeModelLabel(model: SpecDrivenFreeModel): string {
   if (model.default) return `${model.id} (default)`;
