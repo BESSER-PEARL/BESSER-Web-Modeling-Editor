@@ -174,8 +174,9 @@ export const resetAgentSimulationThunk = createAsyncThunk(
     if (!sessionId) return;
 
     try {
-      const response = await fetch(`${BACKEND_URL}/test/sessions/${sessionId}/reset`, {
+      const response = await fetch(`${BACKEND_URL}/simulation/sessions/${sessionId}/reset`, {
         method: 'POST',
+        headers: getAgentSimulationAuthHeaders(),
       });
 
       if (!response.ok) {
@@ -198,7 +199,7 @@ export const restartAgentSimulationThunk = createAsyncThunk(
     // Fire-and-forget cleanup of the current session
     const oldSessionId = agentSimulation.sessionId;
     if (oldSessionId) {
-      fetch(`${BACKEND_URL}/test/sessions/${oldSessionId}`, {
+      fetch(`${BACKEND_URL}/simulation/sessions/${oldSessionId}`, {
         method: 'DELETE',
         headers: getAgentSimulationAuthHeaders(),
       }).catch(() => {});
