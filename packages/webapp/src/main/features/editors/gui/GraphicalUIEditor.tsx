@@ -1,7 +1,16 @@
 ﻿import React, { useEffect, useRef, useState } from 'react';
 import type { Editor } from 'grapesjs';
 import './grapesjs-styles.css';
-import { getClassOptions, getEndsByClassId, getClassMetadata, getMethodsByClassId } from './diagram-helpers';
+import { getClassOptions, getDisplayAttribute, getEndsByClassId, getClassMetadata, getMethodsByClassId } from './diagram-helpers';
+import { getChartConfigs } from './configs/chartConfigs';
+import { getTableConfig } from './configs/tableConfig';
+import { getMetricCardConfig } from './configs/metricCardConfigs';
+import { getMapConfig } from './configs/mapConfig';
+import { registerChartComponent } from './component-registrars/registerChartComponent';
+import { registerTableComponent } from './component-registrars/registerTableComponent';
+import { registerMetricCardComponent } from './component-registrars/registerMetricCardComponent';
+import { registerMapComponent } from './component-registrars/registerMapComponent';
+import { registerButtonComponent } from './component-registrars/registerButtonComponent';
 import { registerFormComponents } from './component-registrars/registerFormComponents';
 import { setupPageSystem, loadDefaultPages } from './setup/setupPageSystem';
 import { registerAllComponents } from './registerAllComponents';
@@ -514,7 +523,7 @@ function removeUnwantedBlocks(editor: Editor) {
     'quote',           // Quote
     // 'link',            // Link
     'video',           // Video
-    'map',             // Map (we have custom map in Charts category)
+    // 'map' is our custom Leaflet map block — do NOT remove it
     'sect100',         // Section blocks
     'sect50',
     'sect30',
@@ -1476,7 +1485,7 @@ function buildPageComponents(
             if (classEnds?.length) {
               classEnds.forEach((end: any) => {
                 const targetClassMetadata = getClassMetadata(end.value);
-                const firstAttribute = targetClassMetadata?.attributes?.[0];
+                const firstAttribute = getDisplayAttribute(targetClassMetadata);
                 autoColumns.push({
                   field: end.label || end.value,
                   label: (end.label || end.value).replace(/_/g, ' ').replace(/\b\w/g, (l: string) => l.toUpperCase()),

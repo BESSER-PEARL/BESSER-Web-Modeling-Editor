@@ -2,7 +2,7 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import i18n from '@/main/shared/i18n';
 import { TableConfig } from '../configs/tableConfig';
-import { getAttributeOptionsByClassId, getEndsByClassId, getClassOptions, getClassMetadata, getInheritedAttributeOptionsByClassId, getInheritedEndsByClassId } from '../diagram-helpers';
+import { getAttributeOptionsByClassId, getDisplayAttribute, getEndsByClassId, getClassOptions, getClassMetadata, getInheritedAttributeOptionsByClassId, getInheritedEndsByClassId } from '../diagram-helpers';
 
 /**
  * Build table props from attributes
@@ -204,7 +204,7 @@ export const registerTableComponent = (editor: any, config: TableConfig) => {
             classEnds.forEach(end => {
               // Get the target class metadata to find the first attribute
               const targetClassMetadata = getClassMetadata(end.value);
-              const firstAttribute = targetClassMetadata?.attributes?.[0];
+              const firstAttribute = getDisplayAttribute(targetClassMetadata);
               
               autoColumns.push({
                 field: end.label || end.value,
