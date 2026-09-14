@@ -23,12 +23,12 @@ import { AgentStateTransition } from './agent-state-transition/agent-state-trans
  * (returns a clone) and idempotent on already-nested input.
  */
 export function normalizeAgentModel(model: UMLModel): UMLModel {
-  if (!model || !model.relationships) {
+  if (!model) {
     return model;
   }
 
   const clone: UMLModel = JSON.parse(JSON.stringify(model));
-  for (const [id, relationship] of Object.entries(clone.relationships)) {
+  for (const [id, relationship] of Object.entries(clone.relationships || {})) {
     if (relationship?.type !== AgentRelationshipType.AgentStateTransition) {
       continue;
     }

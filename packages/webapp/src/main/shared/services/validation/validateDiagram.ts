@@ -1,7 +1,7 @@
 import { toast } from 'react-toastify';
 import type { CSSProperties } from 'react';
 import { BACKEND_URL } from '../../constants/constant';
-import { ApollonEditor } from '@besser/wme';
+import { ApollonEditor, normalizeAgentModel } from '@besser/wme';
 import i18n from '../../i18n';
 
 /**
@@ -74,6 +74,10 @@ export async function validateDiagram(editor: ApollonEditor | null | undefined, 
       });
     }
 
+    // Normalise agent models so the backend receives the legacy
+    // StateInitialNode + AgentStateTransitionInit format it expects.
+    const modelToSend = model?.type === 'AgentDiagram' ? normalizeAgentModel(model) : model;
+
     // Call unified validation endpoint with timeout
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 120000);
@@ -86,7 +90,7 @@ export async function validateDiagram(editor: ApollonEditor | null | undefined, 
         },
         body: JSON.stringify({
           title: diagramTitle,
-          model: model
+          model: modelToSend
         }),
         signal: controller.signal,
       });

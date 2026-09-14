@@ -1,5 +1,5 @@
 import { useCallback } from 'react';
-import { ApollonEditor, UMLModel } from '@besser/wme';
+import { ApollonEditor, UMLModel, normalizeAgentModel } from '@besser/wme';
 import { useFileDownload } from '../../../shared/services/file-download/useFileDownload';
 import { toast } from 'react-toastify';
 import { useTranslation } from 'react-i18next';
@@ -232,7 +232,8 @@ export const useGenerateCode = () => {
       }
 
       // Validate diagram before generation
-      const validationResult = await validateDiagram(editor, diagramTitle);
+      const rawModel = modelOverride ?? editor.model;
+      const validationResult = await validateDiagram(null, diagramTitle, rawModel);
       if (!validationResult.isValid) {
         toast.error(validationResult.message || t('generation.toasts.validationFailed'));
         return { ok: false, error: validationResult.message || 'Validation failed' };
@@ -244,7 +245,7 @@ export const useGenerateCode = () => {
       // handleAgentGenerate in useGeneratorExecution.
       const body: any = {
         title: diagramTitle,
-        model: modelOverride ?? editor.model,
+        model: generatorType === 'agent' ? normalizeAgentModel(rawModel as UMLModel) : rawModel,
         generator: generatorType,
         config: config,
         ...(referenceDiagramData ? { referenceDiagramData } : {}),

@@ -1,4 +1,4 @@
-import { UMLModel } from '@besser/wme';
+import { UMLModel, normalizeAgentModel } from '@besser/wme';
 import { BesserProject, ProjectDiagram, SupportedDiagramType, getActiveDiagram, diagramHasContent } from '../types/project';
 import { LocalStorageRepository } from '../services/storage/local-storage-repository';
 import {
@@ -82,6 +82,31 @@ export const buildProjectPayloadForBackend = (
     payload.diagrams = filtered;
   } else {
     payload.diagrams = diagrams;
+  }
+
+  // Normalise agent diagrams so the backend receives the canonical nested
+  // transition format. Also migrate legacy agentComponents (top-level field)
+  // into model.components (new schema) so the backend can resolve intent
+  // references. When model.components already exists it takes precedence.
+  if (Array.isArray((payload.diagrams as any).AgentDiagram)) {
+    (payload.diagrams as any).AgentDiagram = (payload.diagrams as any).AgentDiagram.map(
+      (diagram: ProjectDiagram) => {
+        if (!diagram.model) return diagram;
+        const legacyComponents = (diagram as any).agentComponents;
+        const modelComponents = (diagram.model as any)?.components;
+        let mergedModel = diagram.model;
+        if (legacyComponents && Object.keys(legacyComponents).length > 0 && !modelComponents) {
+          // Migrate: strip bounds and move into model.components
+          const stripped: Record<string, any> = {};
+          for (const [id, comp] of Object.entries(legacyComponents)) {
+            const { bounds, ...rest } = comp as any;
+            stripped[id] = rest;
+          }
+          mergedModel = { ...diagram.model, components: stripped } as any;
+        }
+        return { ...diagram, model: normalizeAgentModel(mergedModel as UMLModel) };
+      },
+    );
   }
 
   return payload;

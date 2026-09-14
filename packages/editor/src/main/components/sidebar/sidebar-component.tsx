@@ -11,6 +11,7 @@ import { Container } from './sidebar-styles';
 import { SelectableState } from '../../services/uml-element/selectable/selectable-types';
 import { settingsService } from '../../services/settings/settings-service';
 import { LayouterRepository } from '../../services/layouter/layouter-repository';
+import { UMLDiagramType } from '../../packages/diagram-type';
 
 declare global {
   interface Window {
@@ -104,6 +105,7 @@ class SidebarComponent extends Component<Props, SidebarComponentState> {
     const isObjectDiagram = diagramType.includes('Object') || isUserDiagram;
     const shouldUseIconMode = isUserDiagram ? true : showIcon;
     if (readonly || mode === ApollonMode.Assessment) return null;
+    if (diagramType === UMLDiagramType.AgentDiagram) return null;
 
     // Sidebar content
     const sidebarContent = (

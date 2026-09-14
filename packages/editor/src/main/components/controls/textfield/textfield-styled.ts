@@ -53,14 +53,7 @@ export const StyledTextfield = styled(Input).withConfig({
 
     ${props.outline &&
     css`
-      &:not(:focus) {
-        border-style: dashed;
-      }
-
-      &:not(:focus):not(:hover) {
-        background: ${props.theme.color.background};
-        opacity: 0.5;
-      }
+      border-color: ${props.theme.color.primaryContrast};
     `}
 
     ${props.block &&

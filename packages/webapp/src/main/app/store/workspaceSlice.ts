@@ -248,9 +248,19 @@ export const updateDiagramModelThunk = createAsyncThunk(
 
     const current = getActiveDiagram(project, activeDiagramType);
     if (!current) return null;
+    let updatedUpdates = updates;
+    // For AgentDiagram: when Apollon fires a canvas model-change it only carries
+    // canvas elements (no components). Preserve the existing model.components so
+    // off-canvas components (intents, tools, RAGs …) are never wiped.
+    if (updates.model && activeDiagramType === 'AgentDiagram') {
+      const existingComponents = (current.model as any)?.components;
+      if (existingComponents && !(updates.model as any)?.components) {
+        updatedUpdates = { ...updates, model: { ...(updates.model as any), components: existingComponents } };
+      }
+    }
     const updated: ProjectDiagram = {
       ...current,
-      ...updates,
+      ...updatedUpdates,
       lastUpdate: new Date().toISOString(),
     };
 

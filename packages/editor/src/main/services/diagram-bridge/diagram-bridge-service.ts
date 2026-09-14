@@ -53,6 +53,38 @@ export interface IAssociationInfo {
 }
 
 /**
+ * Represents a GUI object defined in the agent's components panel.
+ */
+export interface AgentGUIInfo {
+  name: string;
+  gui_id: string;
+  is_form: boolean;
+}
+
+/**
+ * Represents an Intent object defined in the agent's components panel.
+ */
+export interface AgentIntentInfo {
+  name: string;
+  id: string;
+}
+
+/**
+ * Represents an LLM object defined in the agent's components panel.
+ */
+export interface AgentLLMInfo {
+  name: string;
+  provider: string;
+}
+
+/**
+ * Represents a RAG database defined in the agent's components panel.
+ */
+export interface AgentRAGInfo {
+  name: string;
+}
+
+/**
  * Interface for diagram references (state machines, quantum circuits, etc.)
  * Used to reference diagrams from method implementations
  */
@@ -626,6 +658,74 @@ export class DiagramBridgeService implements IDiagramBridgeService {
    */
   setAgentPlatform(platform: string): void {
     this.agentPlatform = platform || 'websocket';
+  }
+
+  private agentGUIs: AgentGUIInfo[] = [];
+
+  /**
+   * Get the list of AgentGUI objects defined in the current agent diagram.
+   * Set by the webapp (AgentComponentsPanel) whenever GUIs change.
+   */
+  getAgentGUIs(): AgentGUIInfo[] {
+    return this.agentGUIs;
+  }
+
+  /**
+   * Set the AgentGUI list so editor components can offer GUI dropdowns.
+   */
+  setAgentGUIs(guis: AgentGUIInfo[]): void {
+    this.agentGUIs = guis || [];
+  }
+
+  private agentIntents: AgentIntentInfo[] = [];
+
+  /**
+   * Get the list of AgentIntent objects defined in the current agent diagram.
+   * Set by the webapp (AgentComponentsPanel) whenever intents change.
+   */
+  getAgentIntents(): AgentIntentInfo[] {
+    return this.agentIntents;
+  }
+
+  /**
+   * Set the AgentIntent list so editor components can offer intent dropdowns.
+   */
+  setAgentIntents(intents: AgentIntentInfo[]): void {
+    this.agentIntents = intents || [];
+  }
+
+  private agentLLMs: AgentLLMInfo[] = [];
+
+  /**
+   * Get the list of LLM objects defined in the current agent diagram.
+   * Set by the webapp (AgentComponentsPanel) whenever LLMs change.
+   */
+  getAgentLLMs(): AgentLLMInfo[] {
+    return this.agentLLMs;
+  }
+
+  /**
+   * Set the LLM list so editor components can offer LLM dropdowns.
+   */
+  setAgentLLMs(llms: AgentLLMInfo[]): void {
+    this.agentLLMs = llms || [];
+  }
+
+  private agentRAGs: AgentRAGInfo[] = [];
+
+  /**
+   * Get the list of RAG database objects defined in the current agent diagram.
+   * Set by the webapp (AgentComponentsPanel) whenever RAGs change.
+   */
+  getAgentRAGs(): AgentRAGInfo[] {
+    return this.agentRAGs;
+  }
+
+  /**
+   * Set the RAG list so editor components can offer RAG dropdowns.
+   */
+  setAgentRAGs(rags: AgentRAGInfo[]): void {
+    this.agentRAGs = rags || [];
   }
 }
 
