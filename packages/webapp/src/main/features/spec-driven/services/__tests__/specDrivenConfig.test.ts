@@ -75,10 +75,13 @@ describe('getSpecDrivenConfig', () => {
 
     const config = await getSpecDrivenConfig();
     expect(config).toEqual(FALLBACK_SMART_GEN_CONFIG);
-    expect(config.caps.max_cost_usd_hard_cap).toBe(2.0);
-    expect(config.caps.max_runtime_seconds_hard_cap).toBe(900);
-    expect(config.caps.default_max_cost_usd).toBe(1.0);
-    expect(config.caps.default_max_runtime_seconds).toBe(600);
+    // These must mirror the backend constants. A fallback that UNDER-states
+    // the real ceilings silently becomes the binding limit in the UI and kills
+    // runs the backend would have allowed.
+    expect(config.caps.max_cost_usd_hard_cap).toBe(5.0);
+    expect(config.caps.max_runtime_seconds_hard_cap).toBe(2400);
+    expect(config.caps.default_max_cost_usd).toBe(5.0);
+    expect(config.caps.default_max_runtime_seconds).toBe(1200);
   });
 
   it('falls back on a non-OK status', async () => {

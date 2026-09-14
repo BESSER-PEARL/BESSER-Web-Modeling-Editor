@@ -76,11 +76,17 @@ export interface SpecDrivenConfig {
  * time of writing: hard caps 2.0 USD / 900 s, defaults 1.0 USD / 600 s.
  */
 export const FALLBACK_SMART_GEN_CONFIG: SpecDrivenConfig = {
+  // Mirrors the backend constants (constants.py). These are only used when
+  // GET /spec-driven/config is unreachable, but they must not UNDER-state the
+  // real ceilings: a stale fallback here silently becomes the binding limit in
+  // the UI and kills runs the backend would have allowed. All four were stale
+  // on 2026-09-14 — the cost ceiling still read $2 after the backend had been
+  // corrected to $5 for exactly that reason.
   caps: {
-    max_cost_usd_hard_cap: 2.0,
-    max_runtime_seconds_hard_cap: 900,
-    default_max_cost_usd: 1.0,
-    default_max_runtime_seconds: 600,
+    max_cost_usd_hard_cap: 5.0,
+    max_runtime_seconds_hard_cap: 2400,
+    default_max_cost_usd: 5.0,
+    default_max_runtime_seconds: 1200,
   },
   // Mirrors the backend default (BESSER_LLM_DOWNLOAD_TTL_SECONDS = 1800).
   download_ttl_seconds: 1800,

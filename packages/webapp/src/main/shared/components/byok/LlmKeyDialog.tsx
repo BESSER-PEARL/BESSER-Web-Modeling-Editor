@@ -59,10 +59,10 @@ const DEFAULT_LOCAL_BASE_URL = 'http://localhost:11434/v1';
 // cap the backend never imposed, losing work that was progressing fine
 // (observed 2026-09-10). Read the caps; never re-hardcode them.
 const RUN_BUDGET_FALLBACK = {
-  defaultCostUsd: 1,
+  defaultCostUsd: 5,
   maxCostUsd: 5,
-  defaultRuntimeMin: 10,
-  maxRuntimeMin: 15,
+  defaultRuntimeMin: 20,
+  maxRuntimeMin: 40,
 } as const;
 
 /** Minimal shape of an agent client we can arm — avoids importing a feature. */
