@@ -1,5 +1,4 @@
 """Behave environment hooks: manage the Playwright browser lifecycle and config."""
-import os
 from pathlib import Path
 
 from playwright.sync_api import sync_playwright
