@@ -344,7 +344,10 @@ export function useAssistantLogic({
       new RateLimiterService({
         maxRequestsPerMinute: 15,
         maxRequestsPerHour: 250,
-        maxMessageLength: 1000,
+        // See the default in RateLimiterService: 1000 blocked a pasted stack
+        // trace or specification, which is a primary way people use the
+        // assistant.
+        maxMessageLength: 32000,
         cooldownPeriodMs: 1000,
       }),
   );

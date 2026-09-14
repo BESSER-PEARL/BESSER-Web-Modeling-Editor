@@ -134,7 +134,13 @@ export class RateLimiterService {
     this.config = {
       maxRequestsPerMinute: options?.maxRequestsPerMinute ?? 20,
       maxRequestsPerHour: options?.maxRequestsPerHour ?? 160,
-      maxMessageLength: options?.maxMessageLength ?? 1000,
+      // 1000 characters rejected legitimate messages. Pasting a stack trace
+      // back in and asking the assistant to fix it is a primary workflow -
+      // pilot participant P2 did exactly that - and a traceback alone clears
+      // 1000 characters easily, as does any real specification. The bound is
+      // kept, but set where only a runaway paste reaches it rather than an
+      // ordinary request (2026-09-14).
+      maxMessageLength: options?.maxMessageLength ?? 32000,
       cooldownPeriodMs: options?.cooldownPeriodMs ?? 1500,
     };
 
