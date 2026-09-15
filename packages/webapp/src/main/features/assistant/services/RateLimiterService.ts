@@ -48,15 +48,21 @@ interface TierLimits {
   perHour: number;
 }
 
+// NOTE: the hourly check counts ALL requests in the window (every tier)
+// against the CURRENT message's tier cap, so the lowest perHour is the
+// effective ceiling on total messages — which is why an exploratory
+// session (chat + model tweaks + a few generations) tripped the old
+// generation cap of 30 well before users felt they'd sent "that many".
+// Raised for the pilot so participants aren't blocked mid-session.
 const RATE_LIMITS: Record<MessageType | 'default', TierLimits> = {
   // Simple messages (short text, greetings, help)
-  simple: { perMinute: 15, perHour: 100 },
+  simple: { perMinute: 30, perHour: 200 },
   // Model operations (create, modify diagrams)
-  model: { perMinute: 10, perHour: 60 },
+  model: { perMinute: 20, perHour: 160 },
   // Generation triggers (generate code)
-  generation: { perMinute: 5, perHour: 30 },
+  generation: { perMinute: 10, perHour: 140 },
   // Default fallback
-  default: { perMinute: 12, perHour: 80 },
+  default: { perMinute: 20, perHour: 160 },
 };
 
 /**
@@ -126,9 +132,15 @@ export class RateLimiterService {
 
   constructor(options?: RateLimiterOptions) {
     this.config = {
-      maxRequestsPerMinute: options?.maxRequestsPerMinute ?? 12,
-      maxRequestsPerHour: options?.maxRequestsPerHour ?? 80,
-      maxMessageLength: options?.maxMessageLength ?? 1000,
+      maxRequestsPerMinute: options?.maxRequestsPerMinute ?? 20,
+      maxRequestsPerHour: options?.maxRequestsPerHour ?? 160,
+      // 1000 characters rejected legitimate messages. Pasting a stack trace
+      // back in and asking the assistant to fix it is a primary workflow -
+      // pilot participant P2 did exactly that - and a traceback alone clears
+      // 1000 characters easily, as does any real specification. The bound is
+      // kept, but set where only a runaway paste reaches it rather than an
+      // ordinary request (2026-09-14).
+      maxMessageLength: options?.maxMessageLength ?? 32000,
       cooldownPeriodMs: options?.cooldownPeriodMs ?? 1500,
     };
 

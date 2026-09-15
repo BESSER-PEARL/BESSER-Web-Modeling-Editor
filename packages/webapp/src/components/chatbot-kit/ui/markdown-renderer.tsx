@@ -1,9 +1,17 @@
-import React, { Suspense } from "react"
-import Markdown from "react-markdown"
+import React from "react"
+import Markdown, { defaultUrlTransform } from "react-markdown"
 import remarkGfm from "remark-gfm"
 
 import { cn } from "@/lib/utils"
 import { CopyButton } from "@/components/chatbot-kit/ui/copy-button"
+
+// Token shape returned by shiki's `codeToTokens` — typed loosely because
+// we only consume `content` and `htmlStyle` and don't want to pin a
+// shiki major version.
+type ShikiToken = {
+  content: string
+  htmlStyle?: string | Record<string, string>
+}
 
 interface MarkdownRendererProps {
   children: string
@@ -12,7 +20,18 @@ interface MarkdownRendererProps {
 export function MarkdownRenderer({ children }: MarkdownRendererProps) {
   return (
     <div className="space-y-3">
-      <Markdown remarkPlugins={[remarkGfm]} components={COMPONENTS}>
+      <Markdown
+        remarkPlugins={[remarkGfm]}
+        components={COMPONENTS}
+        // react-markdown's default URL sanitizer strips unknown schemes,
+        // so `wme:add-key` (our in-app action link) was blanked to an
+        // empty href — clicking it reloaded the page instead of opening
+        // the key dialog. Preserve the wme: scheme; keep the safe default
+        // sanitization for every other link.
+        urlTransform={(url) =>
+          url.startsWith("wme:") ? url : defaultUrlTransform(url)
+        }
+      >
         {children}
       </Markdown>
     </div>
@@ -25,28 +44,53 @@ interface HighlightedPre extends React.HTMLAttributes<HTMLPreElement> {
 }
 
 const HighlightedPre = React.memo(
-  async ({ children, language, ...props }: HighlightedPre) => {
-    const { codeToTokens, bundledLanguages } = await import("shiki/bundle/web")
+  ({ children, language, ...props }: HighlightedPre) => {
+    // Sync component: render the plain <pre> immediately, then swap in
+    // shiki-highlighted tokens once the dynamic import resolves. The
+    // earlier `async` form returned a Promise from the function body,
+    // which React 18 cannot render and crashes with error #31 the moment
+    // a markdown response contains a fenced code block (very common in
+    // streamed LLM output from the smart generator and assistant).
+    const [tokens, setTokens] = React.useState<ShikiToken[][] | null>(null)
+    const [unsupported, setUnsupported] = React.useState(false)
 
-    if (!(language in bundledLanguages)) {
+    React.useEffect(() => {
+      let cancelled = false
+      ;(async () => {
+        try {
+          const { codeToTokens, bundledLanguages } = await import(
+            "shiki/bundle/web"
+          )
+          if (cancelled) return
+          if (!(language in bundledLanguages)) {
+            setUnsupported(true)
+            return
+          }
+          const result = await codeToTokens(children, {
+            lang: language as keyof typeof bundledLanguages,
+            defaultColor: false,
+            themes: { light: "github-light", dark: "github-dark" },
+          })
+          if (!cancelled) setTokens(result.tokens as ShikiToken[][])
+        } catch {
+          if (!cancelled) setUnsupported(true)
+        }
+      })()
+      return () => {
+        cancelled = true
+      }
+    }, [children, language])
+
+    if (unsupported || !tokens) {
       return <pre {...props}>{children}</pre>
     }
-
-    const { tokens } = await codeToTokens(children, {
-      lang: language as keyof typeof bundledLanguages,
-      defaultColor: false,
-      themes: {
-        light: "github-light",
-        dark: "github-dark",
-      },
-    })
 
     return (
       <pre {...props}>
         <code>
           {tokens.map((line, lineIndex) => (
-            <>
-              <span key={lineIndex}>
+            <React.Fragment key={lineIndex}>
+              <span>
                 {line.map((token, tokenIndex) => {
                   const style =
                     typeof token.htmlStyle === "string"
@@ -65,7 +109,7 @@ const HighlightedPre = React.memo(
                 })}
               </span>
               {lineIndex !== tokens.length - 1 && "\n"}
-            </>
+            </React.Fragment>
           ))}
         </code>
       </pre>
@@ -98,17 +142,9 @@ const CodeBlock = ({
 
   return (
     <div className="group/code relative mb-4">
-      <Suspense
-        fallback={
-          <pre className={preClass} {...restProps}>
-            {children}
-          </pre>
-        }
-      >
-        <HighlightedPre language={language} className={preClass}>
-          {code}
-        </HighlightedPre>
-      </Suspense>
+      <HighlightedPre language={language} className={preClass}>
+        {code}
+      </HighlightedPre>
 
       <div className="invisible absolute right-2 top-2 flex space-x-1 rounded-lg border border-border/60 bg-background p-1 shadow-sm opacity-0 transition-all duration-200 group-hover/code:visible group-hover/code:opacity-100">
         <CopyButton content={code} copyMessage="Copied code to clipboard" />
@@ -144,7 +180,46 @@ const COMPONENTS = {
   h4: withClass("h4", "font-semibold text-base"),
   h5: withClass("h5", "font-medium"),
   strong: withClass("strong", "font-semibold"),
-  a: withClass("a", "text-primary underline underline-offset-2"),
+  a: ({ node, href, children, ...props }: any) => {
+    // Special in-app action link: `[label](wme:add-key)` doesn't navigate —
+    // it opens the Spec-Driven Agent key dialog (settings mode). Used by the
+    // free-tier run note so the user can add their own API key for better
+    // results without any popup interrupting the run. All other links render
+    // as normal anchors.
+    if (href === "wme:add-key") {
+      return (
+        <a
+          href="#"
+          role="button"
+          className="cursor-pointer font-medium text-primary underline underline-offset-2"
+          // stopPropagation: this link lives inside the assistant drawer, a
+          // drag-to-close bottom sheet. Without it the click/pointer bubbles to
+          // the sheet's drag+close handlers, which closed the drawer (and reset
+          // the visible conversation) instead of just opening the key dialog.
+          onPointerDown={(e) => e.stopPropagation()}
+          onClick={(e) => {
+            e.preventDefault()
+            e.stopPropagation()
+            if (typeof window !== "undefined") {
+              window.dispatchEvent(new CustomEvent("wme:specdriven-open-byok"))
+            }
+          }}
+          {...props}
+        >
+          {children}
+        </a>
+      )
+    }
+    return (
+      <a
+        href={href}
+        className="text-primary underline underline-offset-2"
+        {...props}
+      >
+        {children}
+      </a>
+    )
+  },
   blockquote: withClass("blockquote", "border-l-2 border-primary pl-4"),
   code: ({ children, className, node, ...rest }: any) => {
     const match = /language-(\w+)/.exec(className || "")

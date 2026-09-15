@@ -21,6 +21,8 @@ import {
   bumpEditorRevision,
 } from '../../../app/store/workspaceSlice';
 import { popUndo, canUndo, pushUndoSnapshot } from '../services/undoStack';
+import { requestAutoLayoutOnNextSetup } from '../../../shared/utils/autoLayoutSignal';
+import { markTextEditable } from '../../../shared/utils/markTextEditable';
 import type { ProjectDiagram, SupportedDiagramType } from '../../../shared/types/project';
 import type { MessageMeta, SuggestedAction } from './useAssistantLogic';
 import { stopTimer, startTimer } from './useStreamingResponse';
@@ -166,6 +168,10 @@ export interface UseModelInjectionOptions {
   setMessages: React.Dispatch<React.SetStateAction<ChatKitMessage[]>>;
   setMessageMeta: React.Dispatch<React.SetStateAction<Record<string, MessageMeta>>>;
   setProgressMessage: React.Dispatch<React.SetStateAction<string>>;
+  /** Called after an assistant model update was successfully applied, with
+   *  the model as it now stands. Used by the orchestrator's post-injection
+   *  validate-and-repair loop. Must never throw into the injection path. */
+  onModelApplied?: (info: { action: string; diagramType: string; model: any }) => void;
 }
 
 export interface UseModelInjectionReturn {
@@ -191,6 +197,7 @@ export function useModelInjection({
   setMessages,
   setMessageMeta,
   setProgressMessage,
+  onModelApplied,
 }: UseModelInjectionOptions): UseModelInjectionReturn {
   const [undoAvailable, setUndoAvailable] = useState(false);
 
@@ -276,6 +283,7 @@ export function useModelInjection({
 
       const targetIsUml = isUmlDiagramType(targetDiagramType);
       let applied = false;
+      let appliedModel: any = null;
 
       // New tab: create it, convert systemSpec -> model, write to Redux directly.
       if ((command as any).createNewTab) {
@@ -297,9 +305,20 @@ export function useModelInjection({
             const { ConverterFactory } = await import('../services/converters');
             const converter = ConverterFactory.getConverter(targetDiagramType as any);
             const convertedModel = converter.convertCompleteSystem(command.systemSpec);
+            // This tab bypasses the GUI editor's load path, so mark agent text
+            // editable here too (no-op for UML models). See markTextEditable.
+            if (targetDiagramType === 'GUINoCodeDiagram') markTextEditable(convertedModel);
             await dispatch(updateDiagramModelThunk({ model: convertedModel }));
+            appliedModel = convertedModel;
           } else if (command.model) {
+            if (targetDiagramType === 'GUINoCodeDiagram') markTextEditable(command.model as any);
             await dispatch(updateDiagramModelThunk({ model: command.model as any }));
+            appliedModel = command.model;
+          }
+          // Freshly generated class diagram in a new tab -> let ELK arrange it
+          // once the new editor instance has the model.
+          if (targetDiagramType === 'ClassDiagram' && (command.systemSpec || command.model)) {
+            requestAutoLayoutOnNextSetup();
           }
           dispatch(bumpEditorRevision());
           applied = true;
@@ -401,18 +420,40 @@ export function useModelInjection({
               const modifier = ModifierFactory.getModifier(targetDiagramType as any);
               let modifiedModel = currentModel ? JSON.parse(JSON.stringify(currentModel)) : {};
               const appliedActions: string[] = [];
+              const failedActions: string[] = [];
+              // Apply each modification independently: a single bad sub-op
+              // (e.g. an unsupported action or a failed transition) must NOT
+              // discard the valid ones in the same batch. Commit what applies,
+              // skip + log what doesn't, and only fail if nothing applied.
               for (const mod of command.modifications) {
                 if (!mod || !mod.action) {
-                  throw new Error('modify_model contains a modification with no action');
+                  failedActions.push('(missing action)');
+                  continue;
                 }
                 if (!modifier.canHandle(mod.action)) {
-                  throw new Error(`Unsupported modification action '${mod.action}' for ${targetDiagramType}`);
+                  failedActions.push(mod.action);
+                  console.warn(`[modify_model] unsupported action '${mod.action}' for ${targetDiagramType} — skipping`);
+                  continue;
                 }
-                modifiedModel = modifier.applyModification(modifiedModel, mod as ModelModification);
-                appliedActions.push(mod.action);
+                try {
+                  modifiedModel = modifier.applyModification(modifiedModel, mod as ModelModification);
+                  appliedActions.push(mod.action);
+                } catch (modErr) {
+                  failedActions.push(mod.action);
+                  console.warn(`[modify_model] action '${mod.action}' failed — skipping:`, modErr);
+                }
               }
               if (appliedActions.length === 0) {
-                throw new Error('modify_model did not apply any modifications');
+                throw new Error(
+                  failedActions.length
+                    ? `Could not apply any of the requested changes (${failedActions.join(', ')}).`
+                    : 'modify_model did not apply any modifications',
+                );
+              }
+              if (failedActions.length > 0) {
+                console.warn(
+                  `[modify_model] applied ${appliedActions.length}, skipped ${failedActions.length}: ${failedActions.join(', ')}`,
+                );
               }
               newModel = modifiedModel;
             } else if (
@@ -457,9 +498,15 @@ export function useModelInjection({
             });
           } else {
             await dispatch(updateDiagramModelThunk({ model: newModel }));
+            // A freshly generated complete class diagram should be ELK-arranged
+            // on the recreated editor. Incremental edits keep their positions.
+            if (command.action === 'inject_complete_system' && targetDiagramType === 'ClassDiagram') {
+              requestAutoLayoutOnNextSetup();
+            }
             dispatch(bumpEditorRevision());
           }
           applied = true;
+          appliedModel = newModel;
           if (shouldCenterViewportAfterInjection(command, currentModel, newModel)) {
             centerEditorViewport(newModel);
           }
@@ -492,11 +539,16 @@ export function useModelInjection({
           }
           applied = true;
         } else {
+          // Editor-not-ready fallback: persist straight to storage. This also
+          // bypasses the GUI editor's load path, so mark agent text editable
+          // before persisting so the reloaded GUI is double-click editable.
+          if (targetDiagramIsGui) markTextEditable(command.model as any);
           const result = await dispatch(updateDiagramModelThunk({ model: command.model as any }));
           if (updateDiagramModelThunk.rejected.match(result)) {
             throw new Error(result.error.message || 'Failed to persist assistant model update');
           }
           applied = true;
+          appliedModel = command.model;
         }
       }
 
@@ -507,6 +559,17 @@ export function useModelInjection({
       // Refresh undo state after successful injection
       refreshUndoState();
       setProgressMessage('');
+
+      // Post-injection quality check: hand the applied model to the
+      // orchestrator so it can run the backend validator and, when needed,
+      // ask the agent to repair its own output (validate-and-repair loop).
+      if (onModelApplied && appliedModel) {
+        try {
+          onModelApplied({ action: command.action, diagramType: targetDiagramType, model: appliedModel });
+        } catch (hookError) {
+          console.warn('[useModelInjection] onModelApplied hook failed:', hookError);
+        }
+      }
 
       const injectionTiming = stopTimer('injection');
       const totalTiming = stopTimer('total');
