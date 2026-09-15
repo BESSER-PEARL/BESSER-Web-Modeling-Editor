@@ -44,6 +44,13 @@ export interface SpecDrivenFreeTier {
   /** The pinned model name (e.g. `qwen3-coder:30b`), or null when unavailable. */
   model: string | null;
   /**
+   * The model a facilitated pilot session should pre-select, or null/absent
+   * when the server has none configured. Pilots are a small, known population
+   * we deliberately spend more on; everyone else keeps the ordinary default.
+   * Server-owned so it can be swapped without a frontend release.
+   */
+  pilot_model?: string | null;
+  /**
    * The choosable free models — exactly the server's allowlist, in the
    * server's preference order (the primary, then any extra models the server
    * offers on the same endpoint, then a self-hosted fallback if configured).
@@ -212,6 +219,29 @@ export function freeModelLabel(model: SpecDrivenFreeModel): string {
   const isOllamaTag = model.id.includes(':') && !model.id.endsWith(':free');
   if (isOllamaTag) return `${model.id} (self-hosted)`;
   return model.id;
+}
+
+/**
+ * The free-model id to pre-select, honouring a pilot session.
+ *
+ * Returns the server's `pilot_model` when this tab is a pilot session AND the
+ * server still advertises that id as choosable; otherwise the ordinary
+ * default. The advertised-list check matters because the stored choice is sent
+ * as `llm_model` — pre-selecting an id the server would refuse just pins the
+ * run back to the default with no explanation.
+ *
+ * `isPilot` is injected rather than read here so this stays a pure function.
+ */
+export function preferredFreeModelId(
+  freeTier: SpecDrivenFreeTier,
+  isPilot: boolean,
+): string {
+  const models = freeTier.models ?? [];
+  if (isPilot && freeTier.pilot_model) {
+    const offered = models.some((m) => m.id === freeTier.pilot_model);
+    if (offered) return freeTier.pilot_model;
+  }
+  return defaultFreeModelId(models);
 }
 
 /** The default free-model id from the server's advertised list, or `''`. */

@@ -15,6 +15,7 @@ import {
   FALLBACK_SMART_GEN_CONFIG,
   defaultFreeModelId,
   freeModelLabel,
+  preferredFreeModelId,
   getSpecDrivenConfig,
   resolveFreeRunModel,
   _resetSpecDrivenConfigCacheForTests,
@@ -295,5 +296,46 @@ describe('defaultFreeModelId', () => {
 
   it('returns an empty string for an empty list', () => {
     expect(defaultFreeModelId([])).toBe('');
+  });
+});
+
+describe('preferredFreeModelId', () => {
+  const tier = (extra: Record<string, unknown> = {}) =>
+    ({
+      available: true,
+      model: 'meituan/LongCat-2.0:free',
+      models: [
+        { id: 'meituan/LongCat-2.0:free', default: true },
+        { id: 'gpt-5.6-luna', default: false },
+        { id: 'qwen3-coder:30b', default: false },
+      ],
+      ...extra,
+    }) as never;
+
+  it('gives an ordinary visitor the server default', () => {
+    expect(preferredFreeModelId(tier({ pilot_model: 'gpt-5.6-luna' }), false)).toBe(
+      'meituan/LongCat-2.0:free',
+    );
+  });
+
+  it('gives a pilot session the server pilot model', () => {
+    expect(preferredFreeModelId(tier({ pilot_model: 'gpt-5.6-luna' }), true)).toBe(
+      'gpt-5.6-luna',
+    );
+  });
+
+  it('falls back to the default when no pilot model is configured', () => {
+    expect(preferredFreeModelId(tier(), true)).toBe('meituan/LongCat-2.0:free');
+    expect(preferredFreeModelId(tier({ pilot_model: null }), true)).toBe(
+      'meituan/LongCat-2.0:free',
+    );
+  });
+
+  it('ignores a pilot model the server no longer advertises', () => {
+    // Pre-selecting an id the server would refuse pins the run back to the
+    // default with no explanation, so treat it as unset.
+    expect(preferredFreeModelId(tier({ pilot_model: 'retired-model' }), true)).toBe(
+      'meituan/LongCat-2.0:free',
+    );
   });
 });

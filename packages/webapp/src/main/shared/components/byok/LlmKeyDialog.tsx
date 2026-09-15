@@ -37,8 +37,10 @@ import {
   writeLlmKey,
   type LlmProvider,
 } from '../../services/llmKeyStorage';
+import { isPilotSession } from '@/main/shared/services/telemetry/pilotTelemetry';
 import {
   defaultFreeModelId,
+  preferredFreeModelId,
   FALLBACK_SMART_GEN_CONFIG,
   freeModelLabel,
   getSpecDrivenConfig,
@@ -389,10 +391,12 @@ export const LlmKeyDialog: React.FC<LlmKeyDialogProps> = ({
       setCaps(cfg.caps);
       const storedFreeModel = readFreeTierModel();
       const freeModels = cfg.free_tier.models;
+      // An explicit stored choice always wins. Otherwise a pilot session gets
+      // the server's pilot model and everyone else the ordinary default.
       setFreeModelChoice(
         storedFreeModel && freeModels.some((m) => m.id === storedFreeModel)
           ? storedFreeModel
-          : defaultFreeModelId(freeModels),
+          : preferredFreeModelId(cfg.free_tier, isPilotSession()),
       );
       // Preselect Free only when it is unambiguously the user's current
       // setup: opted in AND no BYOK key stored. A user who has a stored key
@@ -549,10 +553,15 @@ export const LlmKeyDialog: React.FC<LlmKeyDialogProps> = ({
     // writeLlmKey).
     if (isFreeProvider) {
       writeFreeTierSelected(true);
+      // null means "use the server default". Compare against the PREFERRED id,
+      // not the raw default: for a pilot the preferred id is the pilot model,
+      // and collapsing it to null would silently send them to the public
+      // default on the next run.
+      const preferred = freeTier
+        ? preferredFreeModelId(freeTier, isPilotSession())
+        : defaultFreeModelId(freeModels);
       writeFreeTierModel(
-        freeModels.length > 1 && freeModelChoice !== defaultFreeModelId(freeModels)
-          ? freeModelChoice
-          : null,
+        freeModels.length > 1 && freeModelChoice !== preferred ? freeModelChoice : null,
       );
       persistRunBudget();
       setSaveError(null);
