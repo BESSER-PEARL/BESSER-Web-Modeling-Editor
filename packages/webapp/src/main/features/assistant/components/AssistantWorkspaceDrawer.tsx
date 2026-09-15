@@ -963,7 +963,15 @@ export const AssistantWorkspaceDrawer: React.FC<AssistantWorkspaceDrawerProps> =
             tabIndex={0}
           >
             <Bot className="size-3.5 shrink-0" aria-hidden="true" />
-            <span className="tracking-wide">{t('assistant.drawer.label')}</span>
+            {/* The handle is the only affordance people see when the drawer is
+                shut, so it says what opening it gives you rather than naming the
+                panel. Same threshold the chevron below uses, so the word and the
+                arrow always agree. */}
+            <span className="tracking-wide">
+              {openProgress > 0.5
+                ? t('assistant.drawer.labelOpen')
+                : t('assistant.drawer.labelClosed')}
+            </span>
             {openProgress > 0.5 ? (
               <ChevronUp className="size-3.5 shrink-0" aria-hidden="true" />
             ) : (

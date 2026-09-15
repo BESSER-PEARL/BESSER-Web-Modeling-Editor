@@ -1129,7 +1129,7 @@
       "headlinePre": "What would you like to",
       "headlineEmphasis": "create",
       "headlinePost": "today?",
-      "subtitle": "Describe your app in natural language. Get models, interfaces, and code.",
+      "subtitle": "Describe your app in natural language. Get specs, screens, and code.",
       "freeTier": "Free to use with our hosted Qwen model.",
       "changeModel": "Change the model",
       "pressEscPre": "Press",
@@ -1199,7 +1199,8 @@
       "explainModelTitle": "Get a plain-language overview of your model — the main things it tracks and how they relate"
     },
     "drawer": {
-      "label": "Assistant",
+      "labelClosed": "Describe your app",
+      "labelOpen": "See the Specs",
       "pushToClose": "Push up to close assistant",
       "pullToOpen": "Pull down to open assistant",
       "pushUp": "Push up",
