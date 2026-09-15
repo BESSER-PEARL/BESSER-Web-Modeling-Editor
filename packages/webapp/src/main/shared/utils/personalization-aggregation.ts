@@ -60,6 +60,11 @@ const applySpec = (config: AggregatedConfiguration, spec: UserPersonalizationSpe
     if (presentation.color !== undefined && presentation.color !== '') style.color = presentation.color;
     if (presentation.contrast !== undefined) style.contrast = presentation.contrast;
     if (Object.keys(style).length) config.interfaceStyle = style;
+    if (presentation.language !== undefined) config.agentLanguage = presentation.language;
+    if (presentation.style !== undefined) config.agentStyle = presentation.style;
+    if (presentation.languageComplexity !== undefined) config.languageComplexity = presentation.languageComplexity;
+    if (presentation.sentenceLength !== undefined) config.sentenceLength = presentation.sentenceLength;
+    if (presentation.useAbbreviations !== undefined) config.useAbbreviations = presentation.useAbbreviations;
   }
 
   if (modality) {
@@ -78,11 +83,6 @@ const applySpec = (config: AggregatedConfiguration, spec: UserPersonalizationSpe
   }
 
   if (content) {
-    if (content.language !== undefined) config.agentLanguage = content.language;
-    if (content.style !== undefined) config.agentStyle = content.style;
-    if (content.languageComplexity !== undefined) config.languageComplexity = content.languageComplexity;
-    if (content.sentenceLength !== undefined) config.sentenceLength = content.sentenceLength;
-    if (content.useAbbreviations !== undefined) config.useAbbreviations = content.useAbbreviations;
     if (content.adaptContentToUserProfile !== undefined) {
       config.adaptContentToUserProfile = content.adaptContentToUserProfile;
     }

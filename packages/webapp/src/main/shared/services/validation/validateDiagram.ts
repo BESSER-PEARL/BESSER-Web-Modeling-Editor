@@ -3,7 +3,8 @@ import type { CSSProperties } from 'react';
 import { BACKEND_URL } from '../../constants/constant';
 import { ApollonEditor } from '@besser/wme';
 import i18n from '../../i18n';
-import { flattenUserDiagramForBackend } from '../../utils/user-profile-graph';
+import { flattenUserDiagramForBackend, readUserBoxName } from '../../utils/user-profile-graph';
+import { collectPersonalizationConflicts } from '../../utils/validate-user-profile-personalization';
 
 /**
  * Validate diagram using the unified backend validation endpoint.
@@ -43,6 +44,64 @@ export async function validateDiagram(editor: ApollonEditor | null | undefined, 
     // Get model data from editor or use provided modelData (for quantum circuits)
     let model = modelData && modelData._suppressToasts ? { ...modelData } : modelData || editor?.model;
     if (model && model._suppressToasts) delete model._suppressToasts;
+
+    // For UserDiagrams: every root User element must have a name, because that
+    // name is what appears in the personalization profile selector.
+    if (model?.type === 'UserDiagram') {
+      const elements = (model.elements ?? {}) as Record<string, any>;
+      const unnamedUsers = Object.values(elements).filter(
+        (el: any) =>
+          el?.type === 'UserModelName' &&
+          el?.className === 'User' &&
+          !readUserBoxName(el, elements),
+      );
+      if (unnamedUsers.length > 0) {
+        const msg = i18n.t('validation.toasts.unnamedUserProfile');
+        if (!suppressToasts) {
+          toast.error(`❌ ${msg}`, {
+            position: 'top-right',
+            autoClose: false,
+            hideProgressBar: false,
+            closeOnClick: true,
+            pauseOnHover: true,
+            draggable: true,
+            theme: 'dark',
+          });
+        }
+        return { isValid: false, errors: [msg] };
+      }
+    }
+
+    // Check personalization conflicts on the raw model (before backend reshaping).
+    // Conflicts are purely a frontend concern — specs are extra fields the backend
+    // ignores — so we validate them here and fail-fast before calling the server.
+    const personalizationErrors = collectPersonalizationConflicts(model);
+    if (personalizationErrors.length > 0) {
+      if (!suppressToasts) {
+        const errorMessage = `❌ ${i18n.t('validation.toasts.errorsLabel')}\n\n` + personalizationErrors.join('\n\n');
+        toast.error(errorMessage, {
+          position: 'top-right',
+          autoClose: false,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true,
+          theme: 'dark',
+          style: {
+            fontSize: '16px',
+            padding: '20px',
+            width: '100%',
+            boxSizing: 'border-box' as const,
+            whiteSpace: 'pre-line' as const,
+            maxHeight: '600px',
+            overflow: 'auto',
+            overflowWrap: 'anywhere' as const,
+            wordBreak: 'break-word' as const,
+          },
+        });
+      }
+      return { isValid: false, errors: personalizationErrors };
+    }
 
     // A UserDiagram must be reshaped for the backend's object-model conversion:
     // give each `User` its own private copy of every reachable box (one owner

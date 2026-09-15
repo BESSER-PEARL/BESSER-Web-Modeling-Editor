@@ -2337,7 +2337,8 @@
       "invalidConstraintsLabel": "Restriccions no vàlides:",
       "diagramValid": "El diagrama és vàlid",
       "validationErrorGeneric": "Error de validació: {{error}}",
-      "unknownError": "Error desconegut"
+      "unknownError": "Error desconegut",
+      "unnamedUserProfile": "Un o més elements de perfil d'usuari no tenen nom. Si us plau, doneu un nom a cada usuari; s'utilitza per identificar el perfil al diàleg de personalització."
     }
   },
   "quantum": {

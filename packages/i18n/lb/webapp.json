@@ -2337,7 +2337,8 @@
       "invalidConstraintsLabel": "Ongülteg Contrainten:",
       "diagramValid": "Den Diagramm ass gülteg",
       "validationErrorGeneric": "Validéierungsfeeler: {{error}}",
-      "unknownError": "Onbekannte Feeler"
+      "unknownError": "Onbekannte Feeler",
+      "unnamedUserProfile": "Een oder méi Benotzerprofil-Elementer hunn kee Numm. Gitt w.e.g. all Benotzer e Numm — dësen gëtt benotzt fir de Profil am Personaliséierungsdialog z'identifizéieren."
     }
   },
   "quantum": {

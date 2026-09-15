@@ -22,16 +22,6 @@ export interface UserPresentationSpec {
   alignment?: 'left' | 'center' | 'justify';
   color?: string;
   contrast?: 'low' | 'medium' | 'high';
-}
-
-export interface UserModalitySpec {
-  inputModalities?: string[];
-  outputModalities?: string[];
-  voiceGender?: 'male' | 'female' | 'ambiguous';
-  voiceSpeed?: number;
-}
-
-export interface UserContentSpec {
   language?:
     | 'original'
     | 'english'
@@ -45,10 +35,23 @@ export interface UserContentSpec {
   languageComplexity?: 'original' | 'simple' | 'medium' | 'complex';
   sentenceLength?: 'original' | 'concise' | 'verbose';
   useAbbreviations?: boolean;
+}
+
+export interface UserModalitySpec {
+  inputModalities?: string[];
+  outputModalities?: string[];
+  voiceGender?: 'male' | 'female' | 'ambiguous';
+  voiceSpeed?: number;
+}
+
+export interface UserContentSpec {
   /**
-   * When set, the agent adapts its content to this user profile. Can be authored
-   * at the profile level (root `User` box) or on individual attribute rows;
-   * folded into the flat config's `adaptContentToUserProfile`.
+   * When enabled, the agent tailors the semantic substance of its responses to
+   * this user profile — e.g. surfacing profile-relevant examples, omitting
+   * topics that are not relevant to the user, or emphasising information that
+   * matches the user's background. This is a semantic change to *what* the
+   * agent says, as opposed to presentation settings which only affect *how*
+   * it says it.
    */
   adaptContentToUserProfile?: boolean;
 }

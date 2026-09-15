@@ -65,6 +65,7 @@ import {
   splitUserDiagramIntoProfiles,
   uniquifyNames,
   mergeSingletonBoxes,
+  reinjectHiddenContainers,
 } from '../../shared/utils/user-profile-graph';
 
 // ─── Pure helpers ──────────────────────────────────────────────────────────────
@@ -1142,8 +1143,10 @@ export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGen
           splitUserDiagramIntoProfiles(model).map((profile) => {
             // Fuse the `single`-cardinality granular chips (age+nationality →
             // one Personal_Information) so the shipped user_profile matches the
-            // metamodel.
-            const merged = mergeSingletonBoxes(profile.model);
+            // metamodel. Then re-insert hidden grouping containers (Competence,
+            // Accessibility) so the backend receives the expected nesting depth
+            // (User→Competence→Language rather than the flat User→Language).
+            const merged = reinjectHiddenContainers(mergeSingletonBoxes(profile.model));
             // Use the stored personalized model for this profile (output of
             // the Personalize button). Fall back to the base when not yet personalized.
             const storedVariantModel = variantModelByProfileName.get(profile.name);

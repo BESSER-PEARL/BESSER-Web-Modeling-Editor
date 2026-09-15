@@ -2337,7 +2337,8 @@
       "invalidConstraintsLabel": "Contraintes non valides :",
       "diagramValid": "Le diagramme est valide",
       "validationErrorGeneric": "Erreur de validation : {{error}}",
-      "unknownError": "Erreur inconnue"
+      "unknownError": "Erreur inconnue",
+      "unnamedUserProfile": "Un ou plusieurs éléments de profil utilisateur n'ont pas de nom. Veuillez donner un nom à chaque utilisateur — il sert à l'identifier dans le dialogue de personnalisation."
     }
   },
   "quantum": {

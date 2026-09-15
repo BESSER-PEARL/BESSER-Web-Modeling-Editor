@@ -2337,7 +2337,8 @@
       "invalidConstraintsLabel": "Ungültige Constraints:",
       "diagramValid": "Diagramm ist gültig",
       "validationErrorGeneric": "Validierungsfehler: {{error}}",
-      "unknownError": "Unbekannter Fehler"
+      "unknownError": "Unbekannter Fehler",
+      "unnamedUserProfile": "Mindestens ein Benutzerprofil hat keinen Namen. Bitte geben Sie jedem Benutzer einen Namen — dieser wird zur Identifikation im Personalisierungsdialog verwendet."
     }
   },
   "quantum": {

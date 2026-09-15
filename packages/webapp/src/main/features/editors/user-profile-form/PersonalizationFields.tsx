@@ -235,8 +235,8 @@ export const PersonalizationFields: React.FC<Props> = ({ value, onChange, label 
             <Row label="Language">
               <select
                 className={selectClass}
-                value={content.language ?? CONTENT_DEFAULT}
-                onChange={(e) => patchContent({ language: (e.target.value || undefined) as UserContentSpec['language'] })}
+                value={presentation.language ?? CONTENT_DEFAULT}
+                onChange={(e) => patchPresentation({ language: (e.target.value || undefined) as UserPresentationSpec['language'] })}
               >
                 {['original', 'english', 'spanish', 'french', 'german', 'portuguese', 'luxembourgish', 'italian'].map((v) => (
                   <option key={v} value={v}>{v}</option>
@@ -246,8 +246,8 @@ export const PersonalizationFields: React.FC<Props> = ({ value, onChange, label 
             <Row label="Style">
               <select
                 className={selectClass}
-                value={content.style ?? CONTENT_DEFAULT}
-                onChange={(e) => patchContent({ style: (e.target.value || undefined) as UserContentSpec['style'] })}
+                value={presentation.style ?? CONTENT_DEFAULT}
+                onChange={(e) => patchPresentation({ style: (e.target.value || undefined) as UserPresentationSpec['style'] })}
               >
                 {['original', 'formal', 'informal'].map((v) => (
                   <option key={v} value={v}>{v}</option>
@@ -257,8 +257,8 @@ export const PersonalizationFields: React.FC<Props> = ({ value, onChange, label 
             <Row label="Language complexity">
               <select
                 className={selectClass}
-                value={content.languageComplexity ?? CONTENT_DEFAULT}
-                onChange={(e) => patchContent({ languageComplexity: (e.target.value || undefined) as UserContentSpec['languageComplexity'] })}
+                value={presentation.languageComplexity ?? CONTENT_DEFAULT}
+                onChange={(e) => patchPresentation({ languageComplexity: (e.target.value || undefined) as UserPresentationSpec['languageComplexity'] })}
               >
                 {['original', 'simple', 'medium', 'complex'].map((v) => (
                   <option key={v} value={v}>{v}</option>
@@ -268,8 +268,8 @@ export const PersonalizationFields: React.FC<Props> = ({ value, onChange, label 
             <Row label="Sentence length">
               <select
                 className={selectClass}
-                value={content.sentenceLength ?? CONTENT_DEFAULT}
-                onChange={(e) => patchContent({ sentenceLength: (e.target.value || undefined) as UserContentSpec['sentenceLength'] })}
+                value={presentation.sentenceLength ?? CONTENT_DEFAULT}
+                onChange={(e) => patchPresentation({ sentenceLength: (e.target.value || undefined) as UserPresentationSpec['sentenceLength'] })}
               >
                 {['original', 'concise', 'verbose'].map((v) => (
                   <option key={v} value={v}>{v}</option>
@@ -281,8 +281,8 @@ export const PersonalizationFields: React.FC<Props> = ({ value, onChange, label 
               <input
                 type="checkbox"
                 className="size-3.5 accent-[hsl(var(--brand))]"
-                checked={content.useAbbreviations ?? false}
-                onChange={(e) => patchContent({ useAbbreviations: e.target.checked || undefined })}
+                checked={presentation.useAbbreviations ?? false}
+                onChange={(e) => patchPresentation({ useAbbreviations: e.target.checked || undefined })}
               />
             </label>
 

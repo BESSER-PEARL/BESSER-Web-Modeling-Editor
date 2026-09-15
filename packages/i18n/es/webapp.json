@@ -2337,7 +2337,8 @@
       "invalidConstraintsLabel": "Restricciones no válidas:",
       "diagramValid": "El diagrama es válido",
       "validationErrorGeneric": "Error de validación: {{error}}",
-      "unknownError": "Error desconocido"
+      "unknownError": "Error desconocido",
+      "unnamedUserProfile": "Uno o más perfiles de usuario no tienen nombre. Por favor, asigne un nombre a cada usuario; se utiliza para identificar el perfil en el diálogo de personalización."
     }
   },
   "quantum": {

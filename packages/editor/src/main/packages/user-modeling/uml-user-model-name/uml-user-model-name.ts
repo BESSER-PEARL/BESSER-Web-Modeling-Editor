@@ -108,7 +108,12 @@ export class UMLUserModelName extends UMLClassifier implements IUMLUserModelName
       (x): x is UMLClassifierAttribute => x.type === UserModelElementType.UserModelAttribute,
     );
     const methods = children.filter((x): x is UMLClassifierMethod => x instanceof UMLClassifierMethod);
-    return [...attributes.map((element) => element.id), ...methods.map((element) => element.id)];
+    const icons = children.filter((x) => x.type === UserModelElementType.UserModelIcon);
+    return [
+      ...attributes.map((element) => element.id),
+      ...methods.map((element) => element.id),
+      ...icons.map((element) => element.id),
+    ];
   }
 
   private static extractSvgSize(svgString: string): { width: number; height: number } {

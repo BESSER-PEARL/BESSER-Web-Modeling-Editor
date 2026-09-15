@@ -9,6 +9,7 @@ import {
   UserPresentationSpec,
   isPersonalizationSpecEmpty,
 } from '../personalization-spec';
+import { ALL_PERSONALIZATION_FIELDS, PersonalizationFieldKey } from './personalization-field-config';
 
 /**
  * Compact editor for a per-element personalization spec (presentation /
@@ -17,6 +18,10 @@ import {
  * the editor's own DOM, not the webapp's Tailwind surface). Writes a sparse
  * spec: cleared fields are removed so serialization stays minimal and
  * `isPersonalizationSpecEmpty` stays accurate.
+ *
+ * When `suggestedFields` is provided only the listed fields are shown by
+ * default; the user can reveal all options via the "Show all options" toggle.
+ * Fields that already carry a value are always visible regardless of the list.
  */
 
 const Wrapper = styled.div`
@@ -87,6 +92,23 @@ const ToggleButton = styled.button<{ active?: boolean }>`
   font-size: 12px;
 `;
 
+const ShowAllToggle = styled.button`
+  display: block;
+  margin-top: 8px;
+  background: none;
+  border: none;
+  color: inherit;
+  cursor: pointer;
+  font-size: 11px;
+  opacity: 0.55;
+  padding: 0;
+  text-align: left;
+  &:hover {
+    opacity: 0.9;
+    text-decoration: underline;
+  }
+`;
+
 const Dot = styled.span`
   width: 6px;
   height: 6px;
@@ -136,6 +158,13 @@ type Props = {
   label?: string;
   /** Start expanded (default: expanded when a spec already exists). */
   defaultOpen?: boolean;
+  /**
+   * Restrict the editor to a recommended subset of fields.  Fields not in this
+   * list are hidden by default; the user can reveal them via "Show all options".
+   * Fields that already have an active value are always shown regardless.
+   * When omitted, all fields are always visible.
+   */
+  suggestedFields?: PersonalizationFieldKey[];
 };
 
 /** Content enums default to `original` (no change); everything else to unset. */
@@ -275,13 +304,72 @@ const parseNumber = (raw: string): number | undefined => {
   return Number.isFinite(n) ? n : undefined;
 };
 
-export const PersonalizationEditor: React.FC<Props> = ({ value, onChange, label, defaultOpen }) => {
+export const PersonalizationEditor: React.FC<Props> = ({ value, onChange, label, defaultOpen, suggestedFields }) => {
   const [open, setOpen] = useState<boolean>(defaultOpen ?? !isPersonalizationSpecEmpty(value));
+  const [showAll, setShowAll] = useState(false);
   const spec = value ?? {};
   const presentation = spec.presentation ?? {};
   const modality = spec.modality ?? {};
   const content = spec.content ?? {};
   const active = !isPersonalizationSpecEmpty(value);
+
+  // Whether a "show all / recommended" toggle should appear.
+  // Only when a non-trivial suggested subset is defined (not when all fields are recommended).
+  const hasSuggestions =
+    suggestedFields !== undefined && suggestedFields.length < ALL_PERSONALIZATION_FIELDS.length;
+
+  /** True when the field already carries a user-set value (always show regardless of filtering). */
+  const hasActiveValue = (key: PersonalizationFieldKey): boolean => {
+    switch (key) {
+      case 'presentation.language': return !!presentation.language && presentation.language !== 'original';
+      case 'presentation.style': return !!presentation.style && presentation.style !== 'original';
+      case 'presentation.languageComplexity': return !!presentation.languageComplexity && presentation.languageComplexity !== 'original';
+      case 'presentation.sentenceLength': return !!presentation.sentenceLength && presentation.sentenceLength !== 'original';
+      case 'presentation.useAbbreviations': return !!presentation.useAbbreviations;
+      case 'content.adaptContentToUserProfile': return !!content.adaptContentToUserProfile;
+      case 'presentation.size': return presentation.size !== undefined;
+      case 'presentation.font': return !!presentation.font;
+      case 'presentation.lineSpacing': return presentation.lineSpacing !== undefined;
+      case 'presentation.alignment': return !!presentation.alignment;
+      case 'presentation.color': return !!presentation.color;
+      case 'presentation.contrast': return !!presentation.contrast;
+      case 'modality.inputModalities': return (modality.inputModalities ?? []).length > 0;
+      case 'modality.outputModalities': return (modality.outputModalities ?? []).length > 0;
+      case 'modality.voiceGender': return !!modality.voiceGender;
+      case 'modality.voiceSpeed': return modality.voiceSpeed !== undefined;
+      default: return false;
+    }
+  };
+
+  /**
+   * Whether to render a given field control.
+   * - No `suggestedFields` → always show.
+   * - `showAll` mode → always show.
+   * - Otherwise: show only if the field is in the suggested list, or it already has a value.
+   */
+  const isVisible = (key: PersonalizationFieldKey): boolean => {
+    if (showAll || !suggestedFields) return true;
+    return suggestedFields.includes(key) || hasActiveValue(key);
+  };
+
+  // Section-level visibility: hide a section entirely when none of its fields would render.
+  const section1Visible = (
+    ['presentation.language', 'presentation.style', 'presentation.languageComplexity',
+     'presentation.sentenceLength', 'presentation.useAbbreviations',
+     'presentation.size', 'presentation.font', 'presentation.lineSpacing',
+     'presentation.alignment', 'presentation.contrast', 'presentation.color'] as PersonalizationFieldKey[]
+  ).some(isVisible);
+
+  const interfaceVisible = (
+    ['presentation.size', 'presentation.font', 'presentation.lineSpacing',
+     'presentation.alignment', 'presentation.contrast', 'presentation.color'] as PersonalizationFieldKey[]
+  ).some(isVisible);
+
+  const section2Visible = isVisible('content.adaptContentToUserProfile');
+  const section3Visible = (
+    ['modality.inputModalities', 'modality.outputModalities',
+     'modality.voiceGender', 'modality.voiceSpeed'] as PersonalizationFieldKey[]
+  ).some(isVisible);
 
   const patchPresentation = (patch: Partial<UserPresentationSpec>) =>
     onChange(clean({ ...spec, presentation: { ...presentation, ...patch } }));
@@ -300,198 +388,245 @@ export const PersonalizationEditor: React.FC<Props> = ({ value, onChange, label,
 
       {open && (
         <div style={{ marginTop: 6 }}>
-          {/* Presentation (language/style/complexity/sentence + interface styling) */}
-          <Section>
-            <SectionTitle>Presentation</SectionTitle>
-            <Row>
-              <RowLabel>Language</RowLabel>
-              <Select
-                value={content.language ?? CONTENT_DEFAULT}
-                onChange={(e) => patchContent({ language: (e.target.value || undefined) as UserContentSpec['language'] })}
-              >
-                {['original', 'english', 'spanish', 'french', 'german', 'portuguese', 'luxembourgish', 'italian'].map((v) => (
-                  <option key={v} value={v}>{v}</option>
-                ))}
-              </Select>
-            </Row>
-            <Row>
-              <RowLabel>Style</RowLabel>
-              <Select
-                value={content.style ?? CONTENT_DEFAULT}
-                onChange={(e) => patchContent({ style: (e.target.value || undefined) as UserContentSpec['style'] })}
-              >
-                {['original', 'formal', 'informal'].map((v) => (
-                  <option key={v} value={v}>{v}</option>
-                ))}
-              </Select>
-            </Row>
-            <Row>
-              <RowLabel>Language complexity</RowLabel>
-              <Select
-                value={content.languageComplexity ?? CONTENT_DEFAULT}
-                onChange={(e) => patchContent({ languageComplexity: (e.target.value || undefined) as UserContentSpec['languageComplexity'] })}
-              >
-                {['original', 'simple', 'medium', 'complex'].map((v) => (
-                  <option key={v} value={v}>{v}</option>
-                ))}
-              </Select>
-            </Row>
-            <Row>
-              <RowLabel>Sentence length</RowLabel>
-              <Select
-                value={content.sentenceLength ?? CONTENT_DEFAULT}
-                onChange={(e) => patchContent({ sentenceLength: (e.target.value || undefined) as UserContentSpec['sentenceLength'] })}
-              >
-                {['original', 'concise', 'verbose'].map((v) => (
-                  <option key={v} value={v}>{v}</option>
-                ))}
-              </Select>
-            </Row>
-            <Row>
-              <RowLabel>Use abbreviations</RowLabel>
-              <input
-                type="checkbox"
-                checked={content.useAbbreviations ?? false}
-                onChange={(e) => patchContent({ useAbbreviations: e.target.checked || undefined })}
-              />
-            </Row>
-
-            <SubTitle>Interface</SubTitle>
-            <Row>
-              <RowLabel>Font size</RowLabel>
-              <Input
-                type="number"
-                value={presentation.size ?? ''}
-                onChange={(e) => patchPresentation({ size: parseNumber(e.target.value) })}
-              />
-            </Row>
-            <Row>
-              <RowLabel>Font</RowLabel>
-              <Select
-                value={presentation.font ?? ''}
-                onChange={(e) => patchPresentation({ font: (e.target.value || undefined) as UserPresentationSpec['font'] })}
-              >
-                <option value="">none</option>
-                {['sans', 'serif', 'monospace', 'neutral', 'grotesque', 'condensed'].map((f) => (
-                  <option key={f} value={f}>{f}</option>
-                ))}
-              </Select>
-            </Row>
-            <Row>
-              <RowLabel>Line spacing</RowLabel>
-              <Input
-                type="number"
-                step="0.1"
-                value={presentation.lineSpacing ?? ''}
-                onChange={(e) => patchPresentation({ lineSpacing: parseNumber(e.target.value) })}
-              />
-            </Row>
-            <Row>
-              <RowLabel>Alignment</RowLabel>
-              <Select
-                value={presentation.alignment ?? ''}
-                onChange={(e) => patchPresentation({ alignment: (e.target.value || undefined) as UserPresentationSpec['alignment'] })}
-              >
-                <option value="">none</option>
-                {['left', 'center', 'justify'].map((a) => (
-                  <option key={a} value={a}>{a}</option>
-                ))}
-              </Select>
-            </Row>
-            <Row>
-              <RowLabel>Contrast</RowLabel>
-              <Select
-                value={presentation.contrast ?? ''}
-                onChange={(e) => patchPresentation({ contrast: (e.target.value || undefined) as UserPresentationSpec['contrast'] })}
-              >
-                <option value="">none</option>
-                {['low', 'medium', 'high'].map((c) => (
-                  <option key={c} value={c}>{c}</option>
-                ))}
-              </Select>
-            </Row>
-            <ColorField value={presentation.color} onChange={(color) => patchPresentation({ color })} />
-          </Section>
-          <Divider />
-
-          {/* Content */}
-          <Section>
-            <SectionTitle>Content</SectionTitle>
-            <CheckRow style={{ alignItems: 'flex-start' }}>
-              <RowLabel style={{ whiteSpace: 'normal' }}>Adapt content to this user profile</RowLabel>
-              <input
-                type="checkbox"
-                checked={content.adaptContentToUserProfile ?? false}
-                onChange={(e) => patchContent({ adaptContentToUserProfile: e.target.checked || undefined })}
-              />
-            </CheckRow>
-            <div style={{ opacity: 0.6, fontSize: 11, marginTop: 2 }}>
-              When enabled, the agent tailors its responses to this profile.
-            </div>
-          </Section>
-          <Divider />
-
-          {/* Modality */}
-          <Section>
-            <SectionTitle>Modality</SectionTitle>
-            <CheckRow>
-              <RowLabel>Input</RowLabel>
-              <CheckGroup>
-                <CheckLabel disabled title="Text is always enabled">
-                  <input type="checkbox" checked readOnly disabled />
-                  text
-                  <InfoMark title="Text is always enabled">ⓘ</InfoMark>
-                </CheckLabel>
-                <CheckLabel>
+          {/* Section 1: language/style/complexity + interface styling */}
+          {section1Visible && (
+            <Section>
+              <SectionTitle>Presentation</SectionTitle>
+              {isVisible('presentation.language') && (
+                <Row>
+                  <RowLabel>Language</RowLabel>
+                  <Select
+                    value={presentation.language ?? CONTENT_DEFAULT}
+                    onChange={(e) => patchPresentation({ language: (e.target.value || undefined) as UserPresentationSpec['language'] })}
+                  >
+                    {['original', 'english', 'spanish', 'french', 'german', 'portuguese', 'luxembourgish', 'italian'].map((v) => (
+                      <option key={v} value={v}>{v}</option>
+                    ))}
+                  </Select>
+                </Row>
+              )}
+              {isVisible('presentation.style') && (
+                <Row>
+                  <RowLabel>Style</RowLabel>
+                  <Select
+                    value={presentation.style ?? CONTENT_DEFAULT}
+                    onChange={(e) => patchPresentation({ style: (e.target.value || undefined) as UserPresentationSpec['style'] })}
+                  >
+                    {['original', 'formal', 'informal'].map((v) => (
+                      <option key={v} value={v}>{v}</option>
+                    ))}
+                  </Select>
+                </Row>
+              )}
+              {isVisible('presentation.languageComplexity') && (
+                <Row>
+                  <RowLabel>Language complexity</RowLabel>
+                  <Select
+                    value={presentation.languageComplexity ?? CONTENT_DEFAULT}
+                    onChange={(e) => patchPresentation({ languageComplexity: (e.target.value || undefined) as UserPresentationSpec['languageComplexity'] })}
+                  >
+                    {['original', 'simple', 'medium', 'complex'].map((v) => (
+                      <option key={v} value={v}>{v}</option>
+                    ))}
+                  </Select>
+                </Row>
+              )}
+              {isVisible('presentation.sentenceLength') && (
+                <Row>
+                  <RowLabel>Sentence length</RowLabel>
+                  <Select
+                    value={presentation.sentenceLength ?? CONTENT_DEFAULT}
+                    onChange={(e) => patchPresentation({ sentenceLength: (e.target.value || undefined) as UserPresentationSpec['sentenceLength'] })}
+                  >
+                    {['original', 'concise', 'verbose'].map((v) => (
+                      <option key={v} value={v}>{v}</option>
+                    ))}
+                  </Select>
+                </Row>
+              )}
+              {isVisible('presentation.useAbbreviations') && (
+                <Row>
+                  <RowLabel>Use abbreviations</RowLabel>
                   <input
                     type="checkbox"
-                    checked={(modality.inputModalities ?? []).includes('speech')}
-                    onChange={(e) => patchModality({ inputModalities: speechModalities(e.target.checked) })}
+                    checked={presentation.useAbbreviations ?? false}
+                    onChange={(e) => patchPresentation({ useAbbreviations: e.target.checked || undefined })}
                   />
-                  speech
-                </CheckLabel>
-              </CheckGroup>
-            </CheckRow>
-            <CheckRow>
-              <RowLabel>Output</RowLabel>
-              <CheckGroup>
-                <CheckLabel disabled title="Text is always enabled">
-                  <input type="checkbox" checked readOnly disabled />
-                  text
-                  <InfoMark title="Text is always enabled">ⓘ</InfoMark>
-                </CheckLabel>
-                <CheckLabel>
-                  <input
-                    type="checkbox"
-                    checked={(modality.outputModalities ?? []).includes('speech')}
-                    onChange={(e) => patchModality({ outputModalities: speechModalities(e.target.checked) })}
+                </Row>
+              )}
+
+              {interfaceVisible && (
+                <>
+                  <SubTitle>Interface</SubTitle>
+                  {isVisible('presentation.size') && (
+                    <Row>
+                      <RowLabel>Font size</RowLabel>
+                      <Input
+                        type="number"
+                        value={presentation.size ?? ''}
+                        onChange={(e) => patchPresentation({ size: parseNumber(e.target.value) })}
+                      />
+                    </Row>
+                  )}
+                  {isVisible('presentation.font') && (
+                    <Row>
+                      <RowLabel>Font</RowLabel>
+                      <Select
+                        value={presentation.font ?? ''}
+                        onChange={(e) => patchPresentation({ font: (e.target.value || undefined) as UserPresentationSpec['font'] })}
+                      >
+                        <option value="">none</option>
+                        {['sans', 'serif', 'monospace', 'neutral', 'grotesque', 'condensed'].map((f) => (
+                          <option key={f} value={f}>{f}</option>
+                        ))}
+                      </Select>
+                    </Row>
+                  )}
+                  {isVisible('presentation.lineSpacing') && (
+                    <Row>
+                      <RowLabel>Line spacing</RowLabel>
+                      <Input
+                        type="number"
+                        step="0.1"
+                        value={presentation.lineSpacing ?? ''}
+                        onChange={(e) => patchPresentation({ lineSpacing: parseNumber(e.target.value) })}
+                      />
+                    </Row>
+                  )}
+                  {isVisible('presentation.alignment') && (
+                    <Row>
+                      <RowLabel>Alignment</RowLabel>
+                      <Select
+                        value={presentation.alignment ?? ''}
+                        onChange={(e) => patchPresentation({ alignment: (e.target.value || undefined) as UserPresentationSpec['alignment'] })}
+                      >
+                        <option value="">none</option>
+                        {['left', 'center', 'justify'].map((a) => (
+                          <option key={a} value={a}>{a}</option>
+                        ))}
+                      </Select>
+                    </Row>
+                  )}
+                  {isVisible('presentation.contrast') && (
+                    <Row>
+                      <RowLabel>Contrast</RowLabel>
+                      <Select
+                        value={presentation.contrast ?? ''}
+                        onChange={(e) => patchPresentation({ contrast: (e.target.value || undefined) as UserPresentationSpec['contrast'] })}
+                      >
+                        <option value="">none</option>
+                        {['low', 'medium', 'high'].map((c) => (
+                          <option key={c} value={c}>{c}</option>
+                        ))}
+                      </Select>
+                    </Row>
+                  )}
+                  {isVisible('presentation.color') && (
+                    <ColorField value={presentation.color} onChange={(color) => patchPresentation({ color })} />
+                  )}
+                </>
+              )}
+            </Section>
+          )}
+          {section1Visible && (section2Visible || section3Visible) && <Divider />}
+
+          {/* Section 2: adapt content flag */}
+          {section2Visible && (
+            <Section>
+              <SectionTitle>Content</SectionTitle>
+              <CheckRow style={{ alignItems: 'flex-start' }}>
+                <RowLabel style={{ whiteSpace: 'normal' }}>Adapt content to this user profile</RowLabel>
+                <input
+                  type="checkbox"
+                  checked={content.adaptContentToUserProfile ?? false}
+                  onChange={(e) => patchContent({ adaptContentToUserProfile: e.target.checked || undefined })}
+                />
+              </CheckRow>
+              <div style={{ opacity: 0.6, fontSize: 11, marginTop: 2 }}>
+                When enabled, the agent tailors its responses to this profile.
+              </div>
+            </Section>
+          )}
+          {section2Visible && section3Visible && <Divider />}
+
+          {/* Section 3: modality */}
+          {section3Visible && (
+            <Section>
+              <SectionTitle>Modality</SectionTitle>
+              {isVisible('modality.inputModalities') && (
+                <CheckRow>
+                  <RowLabel>Input</RowLabel>
+                  <CheckGroup>
+                    <CheckLabel disabled title="Text is always enabled">
+                      <input type="checkbox" checked readOnly disabled />
+                      text
+                      <InfoMark title="Text is always enabled">ⓘ</InfoMark>
+                    </CheckLabel>
+                    <CheckLabel>
+                      <input
+                        type="checkbox"
+                        checked={(modality.inputModalities ?? []).includes('speech')}
+                        onChange={(e) => patchModality({ inputModalities: speechModalities(e.target.checked) })}
+                      />
+                      speech
+                    </CheckLabel>
+                  </CheckGroup>
+                </CheckRow>
+              )}
+              {isVisible('modality.outputModalities') && (
+                <CheckRow>
+                  <RowLabel>Output</RowLabel>
+                  <CheckGroup>
+                    <CheckLabel disabled title="Text is always enabled">
+                      <input type="checkbox" checked readOnly disabled />
+                      text
+                      <InfoMark title="Text is always enabled">ⓘ</InfoMark>
+                    </CheckLabel>
+                    <CheckLabel>
+                      <input
+                        type="checkbox"
+                        checked={(modality.outputModalities ?? []).includes('speech')}
+                        onChange={(e) => patchModality({ outputModalities: speechModalities(e.target.checked) })}
+                      />
+                      speech
+                    </CheckLabel>
+                  </CheckGroup>
+                </CheckRow>
+              )}
+              {isVisible('modality.voiceGender') && (
+                <Row>
+                  <RowLabel>Voice gender</RowLabel>
+                  <Select
+                    value={modality.voiceGender ?? ''}
+                    onChange={(e) => patchModality({ voiceGender: (e.target.value || undefined) as UserModalitySpec['voiceGender'] })}
+                  >
+                    <option value="">none</option>
+                    {['male', 'female', 'ambiguous'].map((g) => (
+                      <option key={g} value={g}>{g}</option>
+                    ))}
+                  </Select>
+                </Row>
+              )}
+              {isVisible('modality.voiceSpeed') && (
+                <Row>
+                  <RowLabel>Voice speed</RowLabel>
+                  <Input
+                    type="number"
+                    step="0.1"
+                    value={modality.voiceSpeed ?? ''}
+                    onChange={(e) => patchModality({ voiceSpeed: parseNumber(e.target.value) })}
                   />
-                  speech
-                </CheckLabel>
-              </CheckGroup>
-            </CheckRow>
-            <Row>
-              <RowLabel>Voice gender</RowLabel>
-              <Select
-                value={modality.voiceGender ?? ''}
-                onChange={(e) => patchModality({ voiceGender: (e.target.value || undefined) as UserModalitySpec['voiceGender'] })}
-              >
-                <option value="">none</option>
-                {['male', 'female', 'ambiguous'].map((g) => (
-                  <option key={g} value={g}>{g}</option>
-                ))}
-              </Select>
-            </Row>
-            <Row>
-              <RowLabel>Voice speed</RowLabel>
-              <Input
-                type="number"
-                step="0.1"
-                value={modality.voiceSpeed ?? ''}
-                onChange={(e) => patchModality({ voiceSpeed: parseNumber(e.target.value) })}
-              />
-            </Row>
-          </Section>
+                </Row>
+              )}
+            </Section>
+          )}
+
+          {/* Show all / recommended toggle — only when a non-trivial filter is active */}
+          {hasSuggestions && (
+            <ShowAllToggle type="button" onClick={() => setShowAll((v) => !v)}>
+              {showAll ? '▲ Show recommended only' : '▼ Show all options'}
+            </ShowAllToggle>
+          )}
         </div>
       )}
     </Wrapper>

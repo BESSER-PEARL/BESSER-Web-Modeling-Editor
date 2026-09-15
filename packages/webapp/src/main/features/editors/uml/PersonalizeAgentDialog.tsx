@@ -24,6 +24,7 @@ import { aggregateProfilePersonalization } from '../../../shared/utils/personali
 import {
   splitUserDiagramIntoProfiles,
   mergeSingletonBoxes,
+  reinjectHiddenContainers,
 } from '../../../shared/utils/user-profile-graph';
 import {
   type AgentModelVariantSnapshot,
@@ -74,7 +75,7 @@ export const PersonalizeAgentDialog: React.FC<PersonalizeAgentDialogProps> = ({ 
           userName: p.name,
           tabName,
           showTab: false, // filled in below after counting
-          model: mergeSingletonBoxes(p.model),
+          model: reinjectHiddenContainers(mergeSingletonBoxes(p.model)),
           sourceProfile: { id: tabId, name: tabName, model, savedAt: new Date().toISOString() },
         });
       });

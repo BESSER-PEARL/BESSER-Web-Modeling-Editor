@@ -127,6 +127,46 @@ npm run build:webapp
 npm run start:server
 ```
 
+## Analytics (PostHog)
+
+The application supports optional usage analytics via [PostHog](https://posthog.com).
+
+### Enabling analytics
+
+Set `POSTHOG_KEY` and `POSTHOG_HOST` at build time or via the runtime env file (see Docker section below):
+
+| Variable | Example |
+|---|---|
+| `POSTHOG_KEY` | `phc_xxxx...` |
+| `POSTHOG_HOST` | `https://eu.i.posthog.com` |
+
+When neither variable is set, PostHog is not initialised and no data is sent.
+
+To enable **session recordings**, two things must be true: (1) Session Replay must be on in your PostHog project → **Settings → Session Replay**, and (2) `POSTHOG_ENABLE_RECORDINGS=true` must be set in the environment. If either is absent, recordings are disabled.
+
+### Cookie consent mode
+
+By default the app shows a cookie consent banner and only enables analytics after the user accepts.
+
+Set `FORCE_ANALYTICS_CONSENT=true` in the environment to suppress the banner and treat all users as having consented. Analytics and session recordings are then enabled immediately on load. This is appropriate when participants have already consented via an external process (e.g. a study information sheet / ethics-board approval).
+
+When the variable is absent or set to any other value, the normal banner flow applies and users can accept or decline.
+
+### Docker / runtime configuration
+
+The Express server (`packages/server/src/main/server.ts`) rewrites the built JS bundle on every container start, replacing build-time placeholders with the values of runtime environment variables. This means `POSTHOG_KEY`, `POSTHOG_HOST`, and `DEPLOYMENT_URL` can all be changed via the `.env` file on the host without rebuilding the Docker image — a `docker compose down && docker compose up -d` is sufficient.
+
+Variables supported for runtime substitution:
+
+| Placeholder baked at build | Runtime env var | Purpose |
+|---|---|---|
+| `http://localhost:8080` | `DEPLOYMENT_URL` | Public URL of the deployment |
+| `__BACKEND_URL__` | `BACKEND_URL` | Python backend API URL |
+| `__POSTHOG_KEY__` | `POSTHOG_KEY` | PostHog project API key |
+| `__POSTHOG_HOST__` | `POSTHOG_HOST` | PostHog instance URL |
+| `__FORCE_ANALYTICS_CONSENT__` (in `index.html`) | `FORCE_ANALYTICS_CONSENT` | Set to `true` to skip the cookie banner |
+| `__POSTHOG_ENABLE_RECORDINGS__` (in `index.html`) | `POSTHOG_ENABLE_RECORDINGS` | Set to `true` to enable session recordings |
+
 ### Working from the main BESSER repo
 
 If you are working from the main BESSER repository, initialize the submodule and run the same commands from

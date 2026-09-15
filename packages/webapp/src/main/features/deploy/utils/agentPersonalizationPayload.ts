@@ -8,6 +8,7 @@ import {
   splitUserDiagramIntoProfiles,
   uniquifyNames,
   mergeSingletonBoxes,
+  reinjectHiddenContainers,
 } from '../../../shared/utils/user-profile-graph';
 
 export interface PersonalizationMappingEntry {
@@ -69,7 +70,9 @@ export const buildPersonalizationMapping = (
     splitUserDiagramIntoProfiles(model).map((profile) => {
       // Fuse the `single`-cardinality granular chips (age+nationality → one
       // Personal_Information) so the shipped user_profile matches the metamodel.
-      const merged = mergeSingletonBoxes(profile.model);
+      // Then re-insert hidden grouping containers (Competence, Accessibility) so
+      // the backend receives the expected nesting depth.
+      const merged = reinjectHiddenContainers(mergeSingletonBoxes(profile.model));
       return {
         name: profile.name,
         configuration: aggregateProfilePersonalization(merged).configuration as Record<string, unknown>,

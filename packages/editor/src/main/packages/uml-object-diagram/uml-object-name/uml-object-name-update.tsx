@@ -28,6 +28,7 @@ import UMLUserModelAttributeUpdate from '../../user-modeling/uml-user-model-attr
 import { isHiddenUserModelAttribute } from '../../user-modeling/hidden-attributes';
 import { PersonalizationEditor } from '../../user-modeling/personalization/PersonalizationEditor';
 import { UserPersonalizationSpec } from '../../user-modeling/personalization-spec';
+import { getSuggestedPersonalizationFields } from '../../user-modeling/personalization/personalization-field-config';
 
 const Flex = styled.div`
   display: flex;
@@ -377,6 +378,7 @@ class ObjectNameComponent extends Component<Props, State> {
                 this.props.update(element.id, { personalization: spec } as any)
               }
               label={this.props.translate('popup.personalization')}
+              suggestedFields={getSuggestedPersonalizationFields(ownerClassName)}
             />
           </section>
         )}
