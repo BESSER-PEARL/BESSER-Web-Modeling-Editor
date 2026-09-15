@@ -192,17 +192,25 @@ export function resolveFreeRunModel(
 
 /**
  * Display label for a free-tier model — server-data-first (the id itself),
- * with a short qualifier derived heuristically: the default entry is marked
- * as such; a non-default entry with a bare (Ollama-style, no "/") id is the
- * self-hosted model. A non-default vendor-prefixed id (another cloud model
- * the server offers alongside the default) gets no qualifier — its id already
- * names the vendor. No model names are hardcoded, so the server can add or
- * swap free models on its own. Shared by both BYOK dialogs so the two
- * surfaces present the same choice identically.
+ * with a short qualifier: the default entry is marked as such, and the
+ * self-hosted model is called out because it behaves differently (one request
+ * at a time, and it is BESSER's own hardware rather than a vendor's).
+ *
+ * The self-hosted test is the Ollama `name:tag` shape. It used to be "has no
+ * vendor prefix", which held only while our Ollama box was the sole slashless
+ * entry — adding `gpt-5.6-luna` (a cloud model with no vendor prefix) labelled
+ * it "(self-hosted)", which is simply untrue and, on a paid model, misleading
+ * about who pays. `:free` is excluded because that suffix marks a vendor's
+ * free tier, not our hardware.
+ *
+ * No model names are hardcoded, so the server can add or swap free models on
+ * its own. Shared by both BYOK dialogs so the two surfaces present the same
+ * choice identically.
  */
 export function freeModelLabel(model: SpecDrivenFreeModel): string {
   if (model.default) return `${model.id} (default)`;
-  if (!model.id.includes('/')) return `${model.id} (self-hosted)`;
+  const isOllamaTag = model.id.includes(':') && !model.id.endsWith(':free');
+  if (isOllamaTag) return `${model.id} (self-hosted)`;
   return model.id;
 }
 
