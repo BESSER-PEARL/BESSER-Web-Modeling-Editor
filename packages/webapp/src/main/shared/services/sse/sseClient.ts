@@ -149,17 +149,53 @@ export async function* streamSse<T = unknown>(
   let lastActivityAt = Date.now();
   let stallDetected = false;
   let stallWatchdog: ReturnType<typeof setInterval> | null = null;
+  let releaseWakeChecks: (() => void) | null = null;
   const stallTimeoutMs = options.stallTimeoutMs;
   if (typeof stallTimeoutMs === 'number' && stallTimeoutMs > 0) {
     const checkEveryMs = Math.max(1000, Math.min(5000, Math.floor(stallTimeoutMs / 4)));
-    stallWatchdog = setInterval(() => {
+
+    const checkForStall = () => {
+      if (stallDetected) return;
       if (Date.now() - lastActivityAt >= stallTimeoutMs) {
         stallDetected = true;
         void reader.cancel().catch(() => {
           /* the read loop's own error handling covers the rest */
         });
       }
-    }, checkEveryMs);
+    };
+
+    stallWatchdog = setInterval(checkForStall, checkEveryMs);
+
+    // The interval alone is not enough. Browsers throttle `setInterval` in a
+    // backgrounded or occluded tab (Chrome: ~once a minute, and frozen
+    // outright once the tab is discarded-eligible), which is exactly the
+    // state a tab is in while its owner presents from another window. A run
+    // whose transport died then sat frozen for ~7 minutes with the reconnect
+    // path below never reached, because the only thing that could arm it was
+    // a timer the browser had stopped running (observed 2026-09-16, run
+    // 1f227045c804: no reconnect request was ever issued).
+    //
+    // Re-check the moment the tab is looked at again, so a frozen tab
+    // recovers on the very next glance instead of waiting for a timer that
+    // may never tick.
+    if (typeof document !== 'undefined' && typeof document.addEventListener === 'function') {
+      const onWake = () => {
+        if (document.visibilityState !== 'hidden') checkForStall();
+      };
+      document.addEventListener('visibilitychange', onWake);
+      // Switching applications can leave `visibilityState` as 'visible' while
+      // the tab is occluded and still throttled, so take the window's focus
+      // as a second wake signal.
+      if (typeof window !== 'undefined' && typeof window.addEventListener === 'function') {
+        window.addEventListener('focus', onWake);
+      }
+      releaseWakeChecks = () => {
+        document.removeEventListener('visibilitychange', onWake);
+        if (typeof window !== 'undefined' && typeof window.removeEventListener === 'function') {
+          window.removeEventListener('focus', onWake);
+        }
+      };
+    }
   }
 
   try {
@@ -215,6 +251,9 @@ export async function* streamSse<T = unknown>(
   } finally {
     if (stallWatchdog !== null) {
       clearInterval(stallWatchdog);
+    }
+    if (releaseWakeChecks !== null) {
+      releaseWakeChecks();
     }
     try {
       await reader.cancel();
