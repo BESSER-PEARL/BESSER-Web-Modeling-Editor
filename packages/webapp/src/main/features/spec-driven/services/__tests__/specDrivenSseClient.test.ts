@@ -13,6 +13,7 @@ import {
   getPilotParticipant,
 } from '../../../../shared/services/telemetry/pilotTelemetry';
 import {
+  SPEC_DRIVEN_RESPONSE_TIMEOUT_MS,
   SPEC_DRIVEN_STREAM_STALL_TIMEOUT_MS,
   followSpecDrivenRun,
   startSpecDrivenRun,
@@ -52,14 +53,22 @@ describe('startSpecDrivenRun request serialization', () => {
         primary_kind_override: 'bpmn',
         skip_deterministic_generator: true,
       }),
-      {
+      expect.objectContaining({
         signal: handle.controller.signal,
         onResponse: expect.any(Function),
         // The run stream always opts into the dead-transport watchdog —
         // the backend heartbeats a cost tick every ~2s, so total silence
         // for the bound means the transport died (frozen-card bug).
         stallTimeoutMs: SPEC_DRIVEN_STREAM_STALL_TIMEOUT_MS,
-      },
+        // The handshake is bounded separately: the watchdog above is armed
+        // only after the response exists, so it cannot cover a proxy that
+        // holds the response headers.
+        responseTimeoutMs: SPEC_DRIVEN_RESPONSE_TIMEOUT_MS,
+        // Retrying the start is only safe because every attempt is keyed.
+        headers: expect.objectContaining({
+          'Idempotency-Key': expect.any(String),
+        }),
+      }),
     );
     const body = vi.mocked(streamSse).mock.calls[0][1] as Record<string, unknown>;
     expect(body.target_generator_override).toBeUndefined();

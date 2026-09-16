@@ -8,6 +8,7 @@
 
 import {
   SMART_GEN_ENDPOINT,
+  specDrivenRunEventsJsonUrl,
   specDrivenRunEventsUrl,
 } from '../../../shared/constants/constant';
 import {
@@ -56,6 +57,28 @@ const RECONNECT_BACKOFF_MS = [0, 1_000, 3_000, 7_000, 15_000, 30_000, 30_000, 60
  * "come back to the tab" is always the answer to a dead-looking card.
  */
 const POST_BUDGET_WAKE_WINDOW_MS = 10 * 60_000;
+
+/**
+ * Handshake deadline for the initial POST. Generous, because the server does
+ * real work (model assembly) before the first byte; tight enough that a proxy
+ * holding the response is caught in well under a minute rather than never.
+ */
+export const SPEC_DRIVEN_RESPONSE_TIMEOUT_MS = 45_000;
+
+/**
+ * Consecutive stream failures tolerated before the client stops trying to
+ * stream and switches to polling for the rest of the run.
+ *
+ * One failure is ordinary flakiness. Two in a row, on a transport the server
+ * heartbeats every ~2s, means something in the path is hostile to streaming
+ * — reconnecting to the same stream just repeats the same failure, which is
+ * exactly what users behind Netskope saw. Polling is slower but terminates
+ * each request, so it gets through.
+ */
+const STREAM_FAILURES_BEFORE_POLLING = 2;
+
+/** How often the polling transport asks for new events. */
+const POLL_INTERVAL_MS = 2_000;
 import {
   getOrCreateAssistantSessionId,
   getPilotParticipant,
@@ -174,11 +197,145 @@ function waitForReconnect(delayMs: number, signal: AbortSignal): Promise<boolean
   });
 }
 
+/** Opaque per-start key so a retried POST rejoins its run, not a new one. */
+function newIdempotencyKey(): string {
+  const uuid = globalThis.crypto?.randomUUID?.();
+  if (uuid) return uuid.replace(/-/g, '');
+  return `${Date.now().toString(16)}${Math.random().toString(16).slice(2, 10)}`;
+}
+
+/**
+ * Backoff for the run-start POST. Short: the user is staring at a spinner,
+ * and a proxy-induced failure is usually immediate.
+ */
+const START_RETRY_BACKOFF_MS = [0, 1_000, 3_000, 6_000] as const;
+
+/**
+ * POST the run, retrying a transport-level failure.
+ *
+ * Previously the first failure here was fatal: `withDurableReconnect` gives up
+ * unless a run id is known, and the id only arrives on the response header of
+ * this very request. So a proxy that killed the initial POST produced "Failed
+ * to fetch" with zero retries, while the reconnect budget of 8 attempts sat
+ * unused — it only ever protected an already-identified run. Startup had no
+ * protection at all, which is the failure users actually hit on reload.
+ *
+ * Retries are safe because every attempt carries the same `Idempotency-Key`:
+ * if attempt 1 did reach the server and start a run, attempt 2 attaches to
+ * that run and replays it from the beginning instead of starting another.
+ *
+ * An HTTP response — including 4xx/5xx — means the request arrived and the
+ * server made a decision, so it is surfaced rather than retried.
+ */
+async function* startWithRetry(
+  firstAttempt: AsyncGenerator<SpecDrivenEvent, void, void>,
+  makeAttempt: () => AsyncGenerator<SpecDrivenEvent, void, void>,
+  signal: AbortSignal,
+  runIdKnown: () => boolean,
+): AsyncGenerator<SpecDrivenEvent, void, void> {
+  // The first attempt is created by the caller so the request is issued as
+  // eagerly as it was before retries existed — `startSpecDrivenRun` must not
+  // become lazy just because it can now retry.
+  let source = firstAttempt;
+  let lastError: unknown;
+  for (let attempt = 0; attempt < START_RETRY_BACKOFF_MS.length; attempt += 1) {
+    if (signal.aborted) return;
+    if (attempt > 0) {
+      const delayMs = START_RETRY_BACKOFF_MS[attempt];
+      if (delayMs > 0) await waitForReconnect(delayMs, signal);
+      if (signal.aborted) return;
+      source = makeAttempt();
+    }
+    let delivered = false;
+    try {
+      for await (const event of source) {
+        delivered = true;
+        yield event;
+      }
+      return;
+    } catch (error) {
+      if (signal.aborted) throw error;
+      // The server answered; that is an outcome, not a transport failure.
+      if (error instanceof SseHttpError) throw error;
+      lastError = error;
+      // Retrying the START is only right while the run has no identity. Once
+      // an event has arrived, or the id came back on the response header,
+      // the run exists — reattaching to it with a cursor is `withDurableRe-
+      // connect`'s job, and POSTing again would only duplicate work.
+      if (delivered || runIdKnown()) throw error;
+    }
+  }
+  throw lastError instanceof Error
+    ? lastError
+    : new Error('Could not start the generation run.');
+}
+
+/**
+ * Read a run to completion over plain JSON instead of SSE.
+ *
+ * The fallback transport for a path that will not carry a stream. Every
+ * request terminates, so a buffering proxy releases it normally. Shares the
+ * stream's sequence cursor, so switching mid-run neither loses nor repeats an
+ * event — the caller's own `sequence > lastSequence` filter still applies.
+ */
+async function* pollSpecDrivenRun(
+  runId: string,
+  afterSequence: number,
+  signal: AbortSignal,
+): AsyncGenerator<SpecDrivenEvent, void, void> {
+  let cursor = Math.max(0, Math.trunc(afterSequence));
+  while (!signal.aborted) {
+    const response = await fetch(
+      specDrivenRunEventsJsonUrl(runId, cursor),
+      { signal, headers: { Accept: 'application/json' } },
+    );
+    if (!response.ok) {
+      let text = '';
+      try {
+        text = await response.text();
+      } catch {
+        /* ignore */
+      }
+      throw new SseHttpError(response.status, text);
+    }
+    const page = (await response.json()) as {
+      events?: Array<{ sequence?: number; data?: SpecDrivenEvent }>;
+      cursor?: number;
+      hasMore?: boolean;
+      status?: string;
+    };
+
+    const events = page.events ?? [];
+    for (const item of events) {
+      if (signal.aborted) return;
+      const event = item.data;
+      if (!event) continue;
+      // Carry the sequence on the event so the caller's dedupe and cursor
+      // bookkeeping work identically for both transports.
+      const sequence = Math.trunc(item.sequence ?? 0);
+      if (sequence > cursor) cursor = sequence;
+      yield { ...event, sequence } as SpecDrivenEvent;
+      if (isTerminalEvent(event)) return;
+    }
+
+    if (typeof page.cursor === 'number') cursor = Math.max(cursor, page.cursor);
+    // A terminal event is the normal exit above. Reaching here with a
+    // finished run means the log ended without one — stop rather than poll
+    // a completed run forever.
+    if (!page.hasMore && page.status && page.status !== 'running') return;
+    if (page.hasMore) continue;
+    await waitForReconnect(POLL_INTERVAL_MS, signal);
+  }
+}
+
 /**
  * Follow the initial POST stream and transparently reattach to the durable
  * GET stream after a clean early EOF or transport error. Sequence numbers
  * provide both the replay cursor and duplicate suppression. Older backends
  * emit no sequence, so their behavior remains unchanged.
+ *
+ * After `STREAM_FAILURES_BEFORE_POLLING` consecutive failures the reattach
+ * switches from SSE to the polling transport for the remainder of the run.
  */
 async function* withDurableReconnect(
   initial: AsyncGenerator<SpecDrivenEvent, void, void>,
@@ -192,6 +349,11 @@ async function* withDurableReconnect(
   let terminalSeen = false;
   let reconnectAttempts = 0;
   let lastTransportError: unknown;
+  // Consecutive stream failures. Reset by any event that actually arrives,
+  // so a single bad reconnect on an otherwise healthy path does not
+  // permanently downgrade the run to polling.
+  let streamFailures = 0;
+  let usePolling = false;
 
   while (!signal.aborted) {
     let receivedNewEvent = false;
@@ -243,6 +405,16 @@ async function* withDurableReconnect(
     // A stream that produced durable progress is healthy again; only bound
     // consecutive failed reconnects, not the total number over a long run.
     if (receivedNewEvent) reconnectAttempts = 0;
+    if (receivedNewEvent) {
+      streamFailures = 0;
+    } else if (!usePolling) {
+      streamFailures += 1;
+      if (streamFailures >= STREAM_FAILURES_BEFORE_POLLING) {
+        // Two silent failures in a row on a heartbeated transport: the path
+        // will not carry a stream. Stop retrying SSE and poll instead.
+        usePolling = true;
+      }
+    }
     if (!runId || !durableConfirmed) {
       if (lastTransportError) throw lastTransportError;
       return;
@@ -270,15 +442,17 @@ async function* withDurableReconnect(
     // restore the budget rather than counting this against it.
     const wokeEarly = await waitForReconnect(delayMs, signal);
     if (wokeEarly) reconnectAttempts = 0;
-    source = streamSse<SpecDrivenEvent>(
-      specDrivenRunEventsUrl(runId, lastSequence),
-      undefined,
-      {
-        method: 'GET',
-        signal,
-        stallTimeoutMs: SPEC_DRIVEN_STREAM_STALL_TIMEOUT_MS,
-      },
-    );
+    source = usePolling
+      ? pollSpecDrivenRun(runId, lastSequence, signal)
+      : streamSse<SpecDrivenEvent>(
+          specDrivenRunEventsUrl(runId, lastSequence),
+          undefined,
+          {
+            method: 'GET',
+            signal,
+            stallTimeoutMs: SPEC_DRIVEN_STREAM_STALL_TIMEOUT_MS,
+          },
+        );
   }
 }
 
@@ -370,18 +544,35 @@ export function startSpecDrivenRun(
     body.telemetry_session = getOrCreateAssistantSessionId();
   }
 
-  const initialEvents = streamSse<SpecDrivenEvent>(SMART_GEN_ENDPOINT, body, {
-    signal: controller.signal,
-    onResponse: (response) => {
-      const runId = response.headers.get('X-BESSER-Run-Id')?.trim();
-      if (!runId || !/^[a-f0-9]{32}$/.test(runId)) return;
-      acceptedCursor.runId = runId;
-      params.onRunAccepted?.(runId);
-    },
-    // The backend heartbeats a cost tick every ~2s, so a minute of total
-    // silence is a dead transport — surface it instead of hanging forever.
-    stallTimeoutMs: SPEC_DRIVEN_STREAM_STALL_TIMEOUT_MS,
-  });
+  // Starting a run is not idempotent, which is why the startup POST was never
+  // retried — a retry could spawn a second run. A client-generated key lets
+  // the server hand the retry the SAME run, so the retry below is safe.
+  const idempotencyKey = newIdempotencyKey();
+
+  const attempt = () =>
+    streamSse<SpecDrivenEvent>(SMART_GEN_ENDPOINT, body, {
+      signal: controller.signal,
+      headers: { 'Idempotency-Key': idempotencyKey },
+      onResponse: (response) => {
+        const runId = response.headers.get('X-BESSER-Run-Id')?.trim();
+        if (!runId || !/^[a-f0-9]{32}$/.test(runId)) return;
+        acceptedCursor.runId = runId;
+        params.onRunAccepted?.(runId);
+      },
+      // The backend heartbeats a cost tick every ~2s, so a minute of total
+      // silence is a dead transport — surface it instead of hanging forever.
+      stallTimeoutMs: SPEC_DRIVEN_STREAM_STALL_TIMEOUT_MS,
+      // And bound the handshake itself, which the stall watchdog cannot cover
+      // because it is only armed once the response exists.
+      responseTimeoutMs: SPEC_DRIVEN_RESPONSE_TIMEOUT_MS,
+    });
+
+  const initialEvents = startWithRetry(
+    attempt(),
+    attempt,
+    controller.signal,
+    () => Boolean(acceptedCursor.runId),
+  );
   const events = withDurableReconnect(
     initialEvents,
     controller.signal,

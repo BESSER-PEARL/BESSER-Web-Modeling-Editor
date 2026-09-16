@@ -211,6 +211,23 @@ export const specDrivenRunStatusUrl = (runId: string): string =>
 export const specDrivenRunEventsUrl = (runId: string, afterSequence = 0): string =>
   `${specDrivenRunStatusUrl(runId)}/events?after=${Math.max(0, Math.trunc(afterSequence))}`;
 
+/**
+ * Polling counterpart of `specDrivenRunEventsUrl`: the same durable event log
+ * read as a short, terminating JSON response instead of a stream.
+ *
+ * A TLS-inspecting corporate proxy buffers a response body before releasing
+ * it, and an SSE body never ends — so the stream is the one thing in the app
+ * such a proxy breaks. Short JSON requests traverse it normally, which is why
+ * this exists as a fallback transport. Both share one sequence cursor.
+ */
+export const specDrivenRunEventsJsonUrl = (
+  runId: string,
+  afterSequence = 0,
+  limit = 250,
+): string =>
+  `${specDrivenRunStatusUrl(runId)}/events.json` +
+  `?after=${Math.max(0, Math.trunc(afterSequence))}&limit=${Math.trunc(limit)}`;
+
 // date formats
 export const longDate = 'MMMM Do YYYY, h:mm:ss a';
 

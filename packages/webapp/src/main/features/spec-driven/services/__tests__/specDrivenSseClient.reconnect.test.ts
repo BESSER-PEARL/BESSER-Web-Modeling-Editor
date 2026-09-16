@@ -40,6 +40,7 @@ const DONE = { event: 'done', sequence: 99, fileCount: 3 };
 afterEach(() => {
   vi.useRealTimers();
   vi.restoreAllMocks();
+  vi.unstubAllGlobals();
 });
 
 describe('reconnect budget', () => {
@@ -52,6 +53,13 @@ describe('reconnect budget', () => {
     const spy = vi.spyOn(sse, 'streamSse');
     // Every attempt fails, as during a proxy blackout.
     spy.mockImplementation(() => failingStream() as any);
+    // After two dead streams the client stops streaming and polls instead,
+    // so "still trying" has to be counted across BOTH transports.
+    const fetchMock = vi.fn(async () => {
+      throw new TypeError('Failed to fetch');
+    });
+    vi.stubGlobal('fetch', fetchMock as any);
+    const attempts = () => spy.mock.calls.length + fetchMock.mock.calls.length;
 
     const handle = followSpecDrivenRun('a'.repeat(32), 12);
     const consumer = (async () => {
@@ -62,9 +70,9 @@ describe('reconnect budget', () => {
 
     // 11s was the entire old budget; we must still be trying well past it.
     await vi.advanceTimersByTimeAsync(11_000);
-    const callsAt11s = spy.mock.calls.length;
+    const callsAt11s = attempts();
     await vi.advanceTimersByTimeAsync(60_000);
-    expect(spy.mock.calls.length).toBeGreaterThan(callsAt11s);
+    expect(attempts()).toBeGreaterThan(callsAt11s);
 
     handle.abort();
     await consumer;
@@ -75,6 +83,14 @@ describe('reconnect budget', () => {
     const spy = vi.spyOn(sse, 'streamSse');
     spy.mockImplementation(() => failingStream() as any);
 
+    const fetchMock = vi.fn(async () => {
+      throw new TypeError('Failed to fetch');
+    });
+    vi.stubGlobal('fetch', fetchMock as any);
+    // Counted across both transports: by this point the client has given up
+    // on streaming and is polling, but the wake behaviour is the same.
+    const attempts = () => spy.mock.calls.length + fetchMock.mock.calls.length;
+
     const handle = followSpecDrivenRun('b'.repeat(32), 0);
     const consumer = (async () => {
       try {
@@ -84,13 +100,13 @@ describe('reconnect budget', () => {
 
     // Burn the short backoffs (0, 1s, 3s, 7s) so we sit in a LONG one (15s).
     await vi.advanceTimersByTimeAsync(12_000);
-    const beforeFocus = spy.mock.calls.length;
+    const beforeFocus = attempts();
 
     // Focus must cut the 15s wait short — advance almost no time at all.
     window.dispatchEvent(new Event('focus'));
     await vi.advanceTimersByTimeAsync(10);
 
-    expect(spy.mock.calls.length).toBeGreaterThan(beforeFocus);
+    expect(attempts()).toBeGreaterThan(beforeFocus);
 
     handle.abort();
     await consumer;

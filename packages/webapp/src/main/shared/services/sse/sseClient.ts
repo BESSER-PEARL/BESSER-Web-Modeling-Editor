@@ -52,6 +52,40 @@ export interface StreamSseOptions {
    * go quiet.
    */
   stallTimeoutMs?: number;
+  /**
+   * Bound on the INITIAL response, i.e. how long `fetch` may take to return
+   * its headers. Distinct from `stallTimeoutMs`, which only starts once the
+   * body is being read.
+   *
+   * Rationale: `stallTimeoutMs` is armed *after* `await fetch(...)` resolves,
+   * so it cannot protect the handshake. A TLS-inspecting proxy (Netskope on
+   * LIST laptops) holds a response it intends to scan, and an SSE body never
+   * finishes, so the promise may never settle: `onResponse` never fires, the
+   * run id in `X-BESSER-Run-Id` is never read, the watchdog is never armed
+   * and the caller's reconnect logic is never reached. The UI sits on
+   * "Waiting for the first event…" forever while the run completes happily
+   * on the server. Bounding the handshake turns that silent hang into an
+   * honest error the caller can retry or fall back from.
+   */
+  responseTimeoutMs?: number;
+}
+
+/**
+ * Thrown when `responseTimeoutMs` elapses before the response headers
+ * arrive. Distinct from `SseStallError`: nothing was ever established, so
+ * there is no run to reconnect to — the caller must retry the request
+ * itself, or switch transport.
+ */
+export class SseResponseTimeoutError extends Error {
+  readonly waitedMs: number;
+  constructor(waitedMs: number) {
+    super(
+      `SSE request timed out after ${Math.round(waitedMs / 1000)}s ` +
+        'waiting for response headers',
+    );
+    this.waitedMs = waitedMs;
+    this.name = 'SseResponseTimeoutError';
+  }
 }
 
 export class SseHttpError extends Error {
@@ -110,16 +144,49 @@ export async function* streamSse<T = unknown>(
 ): AsyncGenerator<T, void, void> {
   const method = options.method ?? 'POST';
   const hasBody = method === 'POST' && body !== undefined;
-  const response = await fetch(url, {
-    method,
-    headers: {
-      Accept: 'text/event-stream',
-      ...(hasBody ? { 'Content-Type': 'application/json' } : {}),
-      ...options.headers,
-    },
-    body: hasBody ? JSON.stringify(body) : undefined,
-    signal: options.signal,
-  });
+
+  // Bound the handshake. The caller's AbortSignal still aborts; this adds a
+  // deadline of our own so a proxy that swallows the response headers cannot
+  // park the request forever (see `responseTimeoutMs`).
+  const responseTimeoutMs = options.responseTimeoutMs;
+  const handshakeController = new AbortController();
+  let handshakeTimer: ReturnType<typeof setTimeout> | null = null;
+  let handshakeTimedOut = false;
+  const abortHandshake = () => handshakeController.abort();
+  if (options.signal) {
+    if (options.signal.aborted) handshakeController.abort();
+    else options.signal.addEventListener('abort', abortHandshake, { once: true });
+  }
+  if (typeof responseTimeoutMs === 'number' && responseTimeoutMs > 0) {
+    handshakeTimer = setTimeout(() => {
+      handshakeTimedOut = true;
+      handshakeController.abort();
+    }, responseTimeoutMs);
+  }
+
+  let response: Response;
+  try {
+    response = await fetch(url, {
+      method,
+      headers: {
+        Accept: 'text/event-stream',
+        ...(hasBody ? { 'Content-Type': 'application/json' } : {}),
+        ...options.headers,
+      },
+      body: hasBody ? JSON.stringify(body) : undefined,
+      signal: handshakeController.signal,
+    });
+  } catch (error) {
+    // Our deadline fired, not the caller's abort — report it as such so the
+    // caller retries instead of treating the run as cancelled.
+    if (handshakeTimedOut && !options.signal?.aborted) {
+      throw new SseResponseTimeoutError(responseTimeoutMs as number);
+    }
+    throw error;
+  } finally {
+    if (handshakeTimer) clearTimeout(handshakeTimer);
+    options.signal?.removeEventListener('abort', abortHandshake);
+  }
   options.onResponse?.(response);
 
   if (!response.ok) {
