@@ -455,6 +455,29 @@ export function useModelInjection({
                   `[modify_model] applied ${appliedActions.length}, skipped ${failedActions.length}: ${failedActions.join(', ')}`,
                 );
               }
+
+              // What the batch ACTUALLY did, independent of what it claimed.
+              // The user-facing summary is written by the agent from intent, so
+              // a modification that does something else still reads as success.
+              const { summarizeModelDiff, classesNamedForRemoval } = await import(
+                '../services/modifiers/base'
+              );
+              const diff = summarizeModelDiff(currentModel, modifiedModel);
+              const intended = classesNamedForRemoval(command.modifications);
+              const collateral = diff.removedClasses.filter((name) => !intended.has(name));
+              console.info(
+                `[modify_model] diff: -${diff.removedClasses.length} class(es), ` +
+                `+${diff.addedClasses.length} class(es), ` +
+                `-${diff.removedRelationships} / +${diff.addedRelationships} relationship(s)`,
+              );
+              if (collateral.length > 0) {
+                console.error(
+                  `[modify_model] ${collateral.length} class(es) were deleted that no ` +
+                  `modification asked to remove: ${collateral.join(', ')}. ` +
+                  `Requested: ${[...intended].join(', ') || '(none)'}.`,
+                );
+              }
+
               newModel = modifiedModel;
             } else if (
               command.modification &&
