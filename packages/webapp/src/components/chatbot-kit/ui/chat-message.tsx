@@ -849,6 +849,39 @@ function formatTokens(n: number): string {
 }
 
 /**
+ * What the run cost, as a clearly-labelled estimate.
+ *
+ * The number is derived from token counts times a static price table, so it is
+ * an approximation, not an invoice — which is why it went unrendered for a
+ * long time. Showing nothing turned out to be the worse trade: users could not
+ * answer "what did that run cost?" at all. So it is shown, and labelled.
+ *
+ * Exactly $0 is meaningful rather than missing: the keyless free tier and
+ * self-hosted models are priced at zero deliberately (_is_free_local_model in
+ * llm_client.py), so "no cost" is the true answer, not an absent measurement.
+ */
+function renderRunCost(costUsd?: number) {
+  if (typeof costUsd !== "number" || !Number.isFinite(costUsd)) return null
+  if (costUsd <= 0) {
+    return (
+      <div className="text-[10px] text-muted-foreground/80">
+        No cost — this run used the free tier.
+      </div>
+    )
+  }
+  // Sub-cent runs are common; two decimals would render them all as "$0.00".
+  const shown = costUsd < 0.01 ? costUsd.toFixed(4) : costUsd.toFixed(2)
+  return (
+    <div
+      className="text-[10px] text-muted-foreground/80"
+      title="Estimated from token counts at list prices. Approximate — not a bill."
+    >
+      ~<span className="font-mono">${shown}</span> estimated cost
+    </div>
+  )
+}
+
+/**
  * Live run card: renders the run's LIVE state straight from the Redux
  * spec-driven slice, subscribed by the message's `liveKey`.
  *
@@ -908,9 +941,12 @@ function SpecDrivenCard({
    */
   onPushToGithub?: (runId: string) => void
 }) {
-  // Note: costUsd/maxCost exist on the state (the hook still tracks them
-  // for the agent outcome report) but are deliberately NOT rendered —
-  // the estimate is too rough to show users as if it were a bill.
+  // costUsd used to be withheld because the estimate is too rough to pass off
+  // as a bill. But withholding it left users unable to answer "what did that
+  // run cost me?" at all, which is worse — a labelled estimate beats no
+  // number. It is rendered in the finished-run summary only, explicitly marked
+  // as an estimate, and shown as "no cost" on the keyless free tier (where the
+  // pricing table really is $0, not merely unknown).
   const {
     runId,
     provider,
@@ -919,6 +955,7 @@ function SpecDrivenCard({
     warnings,
     text,
     status,
+    costUsd,
     elapsedSeconds,
     maxRuntime,
     fileName,
@@ -1194,6 +1231,7 @@ function SpecDrivenCard({
                     )
                   </div>
                 ) : null}
+                {renderRunCost(costUsd)}
               </div>
             ) : (
               <div className="mt-1 text-[10px] italic text-muted-foreground/80">
