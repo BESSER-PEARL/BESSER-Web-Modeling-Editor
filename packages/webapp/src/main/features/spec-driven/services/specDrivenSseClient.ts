@@ -29,8 +29,33 @@ import {
  * `useSpecDrivenTrigger` converts into an honest terminal error card.
  */
 export const SPEC_DRIVEN_STREAM_STALL_TIMEOUT_MS = 60_000;
-export const SPEC_DRIVEN_MAX_RECONNECT_ATTEMPTS = 4;
-const RECONNECT_BACKOFF_MS = [0, 1_000, 3_000, 7_000] as const;
+/**
+ * Reconnect budget.
+ *
+ * This used to be 4 attempts over ~11s, which is shorter than the outage it
+ * has to survive. A corporate proxy (Netskope on LIST laptops) inserting
+ * itself into the session tears down the open stream AND blackholes new
+ * connections for a minute or more; all four attempts landed inside that
+ * window, so the UI reported "Failed to fetch" and abandoned a run that was
+ * still generating happily on the server. Reloading the page hit the same
+ * budget on the reattach path and failed the same way (2026-09-16).
+ *
+ * The run itself survives on the server for far longer than this, so the
+ * client should be patient: ~2.5 minutes of backoff, and any wake signal
+ * (tab focus, or the browser coming back online) both retries IMMEDIATELY
+ * and refreshes the budget — so returning to the tab always reattaches
+ * rather than showing a dead error.
+ */
+export const SPEC_DRIVEN_MAX_RECONNECT_ATTEMPTS = 8;
+const RECONNECT_BACKOFF_MS = [0, 1_000, 3_000, 7_000, 15_000, 30_000, 30_000, 60_000] as const;
+
+/**
+ * After the automatic budget is spent, keep the run rescuable for this long:
+ * a wake signal inside the window restarts the whole budget. Runs are capped
+ * server-side at 20 minutes, so waiting a few of them costs nothing and means
+ * "come back to the tab" is always the answer to a dead-looking card.
+ */
+const POST_BUDGET_WAKE_WINDOW_MS = 10 * 60_000;
 import {
   getOrCreateAssistantSessionId,
   getPilotParticipant,
@@ -84,17 +109,67 @@ function isTerminalEvent(event: SpecDrivenEvent): boolean {
   return !['COST_CAP', 'TIMEOUT', 'INCOMPLETE'].includes(event.code);
 }
 
-function waitForReconnect(delayMs: number, signal: AbortSignal): Promise<void> {
-  if (delayMs <= 0 || signal.aborted) return Promise.resolve();
-  return new Promise((resolve, reject) => {
-    const onAbort = () => {
+/**
+ * Signals that the network is worth retrying RIGHT NOW rather than at the
+ * end of a long backoff: the user came back to the tab, or the browser
+ * regained connectivity. Both are the moment a proxy transition has settled.
+ */
+function onWakeSignal(handler: () => void): () => void {
+  const listeners: Array<() => void> = [];
+  const add = (
+    target: { addEventListener?: Function; removeEventListener?: Function } | undefined,
+    type: string,
+    guard?: () => boolean,
+  ) => {
+    if (!target || typeof target.addEventListener !== 'function') return;
+    const fn = () => {
+      if (!guard || guard()) handler();
+    };
+    target.addEventListener(type, fn);
+    listeners.push(() => target.removeEventListener?.(type, fn));
+  };
+
+  const doc = typeof document !== 'undefined' ? document : undefined;
+  add(doc, 'visibilitychange', () => doc?.visibilityState !== 'hidden');
+  const win = typeof window !== 'undefined' ? window : undefined;
+  add(win, 'focus');
+  add(win, 'online');
+
+  return () => {
+    for (const off of listeners) off();
+  };
+}
+
+/**
+ * Wait out the backoff, but cut it short on a wake signal.
+ *
+ * Resolves `true` when a wake signal ended the wait early — the caller uses
+ * that to refresh the reconnect budget, so a user returning to the tab is
+ * never told the run is unrecoverable just because a blackout outlasted the
+ * automatic retries.
+ */
+function waitForReconnect(delayMs: number, signal: AbortSignal): Promise<boolean> {
+  if (signal.aborted) return Promise.resolve(false);
+  if (delayMs <= 0) return Promise.resolve(false);
+  return new Promise<boolean>((resolve, reject) => {
+    let settled = false;
+    const finish = (woke: boolean) => {
+      if (settled) return;
+      settled = true;
       globalThis.clearTimeout(timer);
+      releaseWake();
+      signal.removeEventListener('abort', onAbort);
+      resolve(woke);
+    };
+    const onAbort = () => {
+      if (settled) return;
+      settled = true;
+      globalThis.clearTimeout(timer);
+      releaseWake();
       reject(new DOMException('aborted', 'AbortError'));
     };
-    const timer = globalThis.setTimeout(() => {
-      signal.removeEventListener('abort', onAbort);
-      resolve();
-    }, delayMs);
+    const releaseWake = onWakeSignal(() => finish(true));
+    const timer = globalThis.setTimeout(() => finish(false), delayMs);
     signal.addEventListener('abort', onAbort, { once: true });
   });
 }
@@ -173,14 +248,28 @@ async function* withDurableReconnect(
       return;
     }
     if (reconnectAttempts >= SPEC_DRIVEN_MAX_RECONNECT_ATTEMPTS) {
-      throw lastTransportError instanceof Error
-        ? lastTransportError
-        : new Error('Unable to reconnect to the generation run.');
+      // The budget is spent, but the run may still be alive on the server.
+      // Give the user one last chance to rescue it by coming back to the
+      // tab: wait for a wake signal and, if one arrives, start over with a
+      // fresh budget instead of declaring the run dead.
+      const wokeAfterBudget = await waitForReconnect(
+        POST_BUDGET_WAKE_WINDOW_MS,
+        signal,
+      );
+      if (!wokeAfterBudget) {
+        throw lastTransportError instanceof Error
+          ? lastTransportError
+          : new Error('Unable to reconnect to the generation run.');
+      }
+      reconnectAttempts = 0;
     }
 
-    const delayMs = RECONNECT_BACKOFF_MS[reconnectAttempts] ?? 7_000;
+    const delayMs = RECONNECT_BACKOFF_MS[reconnectAttempts] ?? 60_000;
     reconnectAttempts += 1;
-    await waitForReconnect(delayMs, signal);
+    // A wake signal means the network just changed under us — retry now and
+    // restore the budget rather than counting this against it.
+    const wokeEarly = await waitForReconnect(delayMs, signal);
+    if (wokeEarly) reconnectAttempts = 0;
     source = streamSse<SpecDrivenEvent>(
       specDrivenRunEventsUrl(runId, lastSequence),
       undefined,
