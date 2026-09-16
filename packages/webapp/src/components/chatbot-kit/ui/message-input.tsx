@@ -11,6 +11,11 @@ import { AudioVisualizer } from "@/components/chatbot-kit/ui/audio-visualizer"
 import { Button } from "@/components/ui/button"
 import { FilePreview } from "@/components/chatbot-kit/ui/file-preview"
 import { InterruptPrompt } from "@/components/chatbot-kit/ui/interrupt-prompt"
+import { shouldAttachPaste } from "@/components/chatbot-kit/ui/paste-routing"
+
+/** The chat path's own message cap — a paste longer than this cannot be sent
+ * as text, so it becomes a file whatever its shape. Keep in sync with
+ * `maxMessageLength` in the assistant's rate limiter. */
 
 interface MessageInputBaseProps
   extends React.TextareaHTMLAttributes<HTMLTextAreaElement> {
@@ -127,14 +132,20 @@ export function MessageInput({
     if (!items) return
 
     const text = event.clipboardData.getData("text")
-    // Threshold high enough that a multi-sentence natural-language request (e.g.
-    // "the customer places an order, then the system checks stock, then...", a
-    // typical BPMN/state-machine process description) stays as normal chat text
-    // and goes through intent routing, instead of being silently rerouted into
-    // file-conversion (a different code path with much narrower diagram-type
-    // detection). Still catches genuinely large pastes (JSON dumps, full
-    // PlantUML/CSV files, etc.).
-    if (text && text.length > 3000 && props.allowAttachments) {
+    // Route on WHAT was pasted, not just how long it is.
+    //
+    // This used to divert anything over 3000 characters into file-conversion —
+    // a different path with much narrower diagram-type detection. But a long
+    // natural-language requirements document is the core input of a
+    // spec-driven tool, and the chat path accepts 32000 characters, so a 3000
+    // char cut-off sent ordinary prose down the narrow route. (Reported: a
+    // pasted "Natural-Language Requirements" brief for a hotel booking app.)
+    //
+    // Structured pastes — JSON, XML/XMI, PlantUML, CSV — genuinely belong in
+    // file-conversion, which knows how to parse them. Everything else is prose
+    // and stays in chat, where intent routing can act on it. Anything past the
+    // chat limit has to become a file regardless, or the send is rejected.
+    if (text && shouldAttachPaste(text) && props.allowAttachments) {
       event.preventDefault()
       const blob = new Blob([text], { type: "text/plain" })
       const file = new File([blob], t("assistant.chatKit.pastedText"), {
