@@ -7,7 +7,18 @@ import {
 const DEFAULT_RATE_LIMIT_CONFIG = {
   maxRequestsPerMinute: 8,
   maxRequestsPerHour: 40,
-  maxMessageLength: 1000,
+  // This is the AUTHORITATIVE message-length cap: the client runs its own
+  // check first, but then asks this endpoint and takes its verdict, so a
+  // lower value here silently overrides the client's.
+  //
+  // 1000 rejected legitimate messages. Pasting a stack trace back in and
+  // asking the assistant to fix it is a primary workflow, and a traceback
+  // alone clears 1000 characters, as does any real specification.
+  //
+  // Keep in sync with `maxMessageLength` in the webapp's RateLimiterService
+  // and `MAX_CHAT_PASTE_CHARS` in its paste routing — the webapp test
+  // `rate-limit-cap-parity.test.ts` reads this file and asserts they agree.
+  maxMessageLength: 32000,
   cooldownPeriodMs: 3000,
 };
 
