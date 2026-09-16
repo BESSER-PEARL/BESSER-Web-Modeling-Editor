@@ -18,6 +18,8 @@
 
 import { useCallback, useContext, useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import { useTranslation } from 'react-i18next';
+
+import { settleProgressMessage } from './settleProgressMessage';
 import { toast } from 'react-toastify';
 import type { Message as ChatKitMessage } from '@/components/chatbot-kit/ui/chat-message';
 import { getPostHog } from '../../../shared/services/analytics/lazy-analytics';
@@ -319,7 +321,34 @@ export function useAssistantLogic({
   // Validate-and-repair loop state: one automatic repair attempt per user
   // message ('attempted'), and whether the modify currently being applied
   // IS that repair ('fixInFlight' — gates the success/failure follow-up).
-  const autoFixRef = useRef({ attempted: false, fixInFlight: false });
+  // `progressMessageId` is the id of the "fixing it now…" status line, so the
+  // outcome REPLACES it instead of being appended below it. Progress messages
+  // render with a live spinner and never get removed, so appending left a row
+  // spinning forever next to a second row saying the work had finished.
+  const autoFixRef = useRef<{
+    attempted: boolean;
+    fixInFlight: boolean;
+    progressMessageId: string | null;
+  }>({ attempted: false, fixInFlight: false, progressMessageId: null });
+
+  /**
+   * Settle the auto-fix status line: swap its text for the outcome and stop
+   * the spinner. Falls back to appending if the row is already gone (the user
+   * cleared the conversation mid-repair).
+   */
+  const settleAutoFixProgress = useCallback((text: string, isError = false) => {
+    const id = autoFixRef.current.progressMessageId;
+    autoFixRef.current.progressMessageId = null;
+    setMessages((prev) =>
+      settleProgressMessage(
+        prev,
+        id,
+        text,
+        (body, err) => toKitMessage('assistant', body, err ? { isError: true } : undefined),
+        isError,
+      ),
+    );
+  }, []);
 
   /* ---- singleton services ---- */
 
@@ -493,39 +522,30 @@ export function useAssistantLogic({
         if (errors.length === 0) {
           if (wasRepair) {
             autoFixRef.current.fixInFlight = false;
-            setMessages((prev) => [
-              ...prev,
-              toKitMessage('assistant', 'Validation passed — the reported issues are resolved.', {
-                isProgress: true,
-              }),
-            ]);
+            settleAutoFixProgress('Validation passed — the reported issues are resolved.');
           }
           return;
         }
         if (autoFixRef.current.attempted) {
           // This message's repair attempt is already spent — report and stop.
           autoFixRef.current.fixInFlight = false;
-          setMessages((prev) => [
-            ...prev,
-            toKitMessage(
-              'assistant',
-              `The diagram still has ${errors.length} validation issue(s):\n\n${errors
-                .map((e) => `• ${e}`)
-                .join('\n')}`,
-            ),
-          ]);
+          settleAutoFixProgress(
+            `The diagram still has ${errors.length} validation issue(s):\n\n${errors
+              .map((e) => `• ${e}`)
+              .join('\n')}`,
+            true,
+          );
           return;
         }
         autoFixRef.current.attempted = true;
         autoFixRef.current.fixInFlight = true;
-        setMessages((prev) => [
-          ...prev,
-          toKitMessage(
-            'assistant',
-            `Validation found ${errors.length} issue(s) — fixing ${errors.length === 1 ? 'it' : 'them'} now…`,
-            { isProgress: true },
-          ),
-        ]);
+        const progressMessage = toKitMessage(
+          'assistant',
+          `Validation found ${errors.length} issue(s) — fixing ${errors.length === 1 ? 'it' : 'them'} now…`,
+          { isProgress: true },
+        );
+        autoFixRef.current.progressMessageId = progressMessage.id;
+        setMessages((prev) => [...prev, progressMessage]);
         const context = buildWorkspaceContext();
         const repairRequest =
           '[auto-fix] The last change left the diagram with validation errors. ' +
@@ -1245,7 +1265,7 @@ export function useAssistantLogic({
       if (normalizedInput) setLastSentMessage(normalizedInput);
 
       // Every real user message grants a fresh automatic repair attempt.
-      autoFixRef.current = { attempted: false, fixInFlight: false };
+      autoFixRef.current = { attempted: false, fixInFlight: false, progressMessageId: null };
 
       // Clear any displayed quick-action buttons
       setMessageMeta((prev) => {
