@@ -644,15 +644,12 @@ export function useSpecDrivenTrigger(
                     .map((e) => `\`${e}\``)
                     .join(', ')}${_informativeTop.length > 8 ? ', …' : ''}.`
                 : '';
-            // Honest efficiency signal: how much of the output the deterministic
-            // generator produced for free (0 LLM tokens) vs what the LLM wrote.
-            // This — not the cumulative token sum, which re-counts context
-            // re-sent each turn — is the truthful "what did it cost" headline.
-            // Phrase it so the percentages SUM TO 100: "N% deterministic; the
-            // LLM wrote or refined the other (100-N)%" — the old copy showed
-            // "N% deterministic; LLM authored K%" and dropped the middle
-            // "generator-written then LLM-edited" bucket, so N+K didn't add up
-            // and looked illogical (pilot feedback).
+            // Honest efficiency signal: what the deterministic generator produced
+            // for free vs what the LLM wrote — not the cumulative token sum,
+            // which re-counts context re-sent each turn. Phrase it so the
+            // percentages SUM TO 100 ("the LLM wrote or refined the other
+            // (100-N)%"); naming only the llm_authored bucket drops the
+            // generator-written-then-edited middle and looks illogical.
             const split = event.fileSplit;
             const untouchedPct =
               split && typeof split.total === 'number' && split.total > 0

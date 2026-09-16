@@ -1,17 +1,12 @@
 /**
  * A stalled stream must be detected even when the tab's timers are frozen.
  *
- * The stall watchdog was armed only by `setInterval`. Browsers throttle
- * intervals in a backgrounded or occluded tab — Chrome to roughly once a
- * minute, and to a full stop once the tab is freeze-eligible — which is
- * precisely the state a tab is in while its owner presents from another
- * window. So the one mechanism that could notice a dead transport was the
- * one the browser had stopped running.
- *
- * Live case 2026-09-16, run 1f227045c804: the transport died 70s in at
- * event 39, the server went on to write 497, and the card sat frozen for
- * ~7 minutes. nginx logged NO reconnect attempt at all — not a failed one,
- * none — because the code that issues it was never reached.
+ * The stall watchdog was armed only by `setInterval`, which browsers throttle in
+ * a backgrounded tab (Chrome ~once a minute, frozen once freeze-eligible) — so
+ * the one mechanism that could notice a dead transport was the one the browser
+ * had stopped running. Live case 2026-09-16, run 1f227045c804: the transport
+ * died 70s in at event 39, the server went on to write 497, and the card sat
+ * frozen ~7 minutes with NO reconnect attempt in the nginx log at all.
  *
  * These tests never advance the interval. Detection must come from the tab
  * being looked at again.

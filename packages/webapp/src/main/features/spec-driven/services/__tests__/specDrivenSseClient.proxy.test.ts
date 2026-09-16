@@ -2,19 +2,13 @@
  * Surviving a TLS-inspecting corporate proxy (Netskope on LIST laptops).
  *
  * The proxy buffers a response body before releasing it, and an SSE body never
- * ends — so the stream is the only thing in the app it breaks. Verified live
- * with Netskope ON: REST calls return 200 and the agent WebSocket upgrades to
- * 101; only the spec-driven stream fails, in two shapes.
+ * ends. Verified live with Netskope ON: REST returns 200 and the agent WebSocket
+ * upgrades to 101; only the spec-driven stream fails, in two shapes.
  *
- *   A. the response headers are held, so `fetch` never settles. `onResponse`
- *      never fires, the run id never arrives, the stall watchdog is never
- *      armed (it is set up *after* the await) and the card sits on
- *      "Waiting for the first event…" forever.
- *   B. the connection is torn down. `withDurableReconnect` gives up unless a
- *      run id is already known — and on a fresh start it never is — so the
- *      user got "Failed to fetch" with zero retries while the existing
- *      8-attempt budget sat unused, because that budget only ever protected
- *      an already-identified run.
+ *   A. the response headers are held, so `fetch` never settles — no run id, no
+ *      stall watchdog (armed *after* the await), and the card hangs forever.
+ *   B. the connection is torn down, and `withDurableReconnect` gives up unless a
+ *      run id is already known, which on a fresh start it never is.
  *
  * Three guarantees are locked down here:
  *   1. the initial POST is bounded, so mode A becomes an error, not a hang;

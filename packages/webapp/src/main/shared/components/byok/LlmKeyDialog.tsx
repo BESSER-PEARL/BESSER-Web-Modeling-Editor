@@ -52,14 +52,9 @@ const DEFAULT_LOCAL_BASE_URL = 'http://localhost:11434/v1';
 
 // Last-resort bounds for the Spec-Driven run budget, used ONLY until the
 // server's real caps arrive from GET /spec-driven/config (and if that call
-// fails). These are deliberately NOT the source of truth.
-//
-// They used to be: a hardcoded mirror of the server constants, with a comment
-// asserting the runtime hard cap was 900s. The server's cap later moved to
-// 2400s via BESSER_LLM_MAX_RUNTIME_SECONDS_HARD_CAP and this copy did not, so
-// the UI silently became the binding limit - runs were killed at 15 min by a
-// cap the backend never imposed, losing work that was progressing fine
-// (observed 2026-09-10). Read the caps; never re-hardcode them.
+// fails). Deliberately NOT the source of truth: when this was a hardcoded
+// mirror it went stale and silently became the binding limit, killing runs at
+// 15 min under a cap the backend never imposed (2026-09-10). Read the caps.
 const RUN_BUDGET_FALLBACK = {
   defaultCostUsd: 5,
   maxCostUsd: 5,

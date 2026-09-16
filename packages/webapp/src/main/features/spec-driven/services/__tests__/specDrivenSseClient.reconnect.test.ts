@@ -4,10 +4,8 @@
  * The budget was 4 attempts over ~11s. A corporate proxy (Netskope on LIST
  * laptops) inserting itself into the session tears down the open stream AND
  * blackholes new connections for a minute or more, so every attempt landed
- * inside the outage. The card showed "Failed to fetch" and abandoned a run
- * that was still generating on the server — and reloading the page burned
- * the same budget on the reattach path and failed identically (2026-09-16,
- * run ceccb1fcb5f1 was at sequence 100 with zero subscribers).
+ * inside the outage and the card abandoned a run still generating on the server
+ * (2026-09-16, run ceccb1fcb5f1 at sequence 100 with zero subscribers).
  *
  * Two guarantees are locked down here:
  *   1. the automatic budget spans minutes, not seconds;

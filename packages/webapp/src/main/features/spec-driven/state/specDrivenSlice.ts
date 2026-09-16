@@ -94,12 +94,10 @@ export const extractSpecDrivenRunId = (downloadUrl: string): string | null => {
  *    warning banner. Every other code is terminal: status → 'error'.
  */
 /**
- * Pull the honest token breakdown out of the done event's recipe. The backend
- * writes `usage` (from UsageTracker.summary()) into `.besser_recipe.json`, which
- * rides on the done event as `recipe`. `input_tokens` is fresh input NET of
- * cache; `cache_read_tokens` is context served from cache (cheap throughput);
- * `output_tokens` is the real produced work. Returns undefined when the recipe
- * carries no usable usage (older runs / providers that report only a total).
+ * Pull the honest token breakdown out of the done event's recipe (the backend's
+ * `usage`, from UsageTracker.summary()). `input_tokens` is fresh input NET of
+ * cache, `cache_read_tokens` is context served from cache, `output_tokens` is
+ * the real produced work. Undefined when the recipe carries no usable usage.
  */
 export function extractTokenUsage(
   recipe: unknown,

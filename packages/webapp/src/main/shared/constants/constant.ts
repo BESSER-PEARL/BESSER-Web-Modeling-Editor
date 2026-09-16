@@ -213,12 +213,10 @@ export const specDrivenRunEventsUrl = (runId: string, afterSequence = 0): string
 
 /**
  * Polling counterpart of `specDrivenRunEventsUrl`: the same durable event log
- * read as a short, terminating JSON response instead of a stream.
- *
- * A TLS-inspecting corporate proxy buffers a response body before releasing
- * it, and an SSE body never ends — so the stream is the one thing in the app
- * such a proxy breaks. Short JSON requests traverse it normally, which is why
- * this exists as a fallback transport. Both share one sequence cursor.
+ * read as a short, terminating JSON response instead of a stream, sharing one
+ * sequence cursor. A TLS-inspecting corporate proxy buffers a response body
+ * before releasing it and an SSE body never ends, so the stream is the one thing
+ * in the app such a proxy breaks; short JSON requests traverse it normally.
  */
 export const specDrivenRunEventsJsonUrl = (
   runId: string,

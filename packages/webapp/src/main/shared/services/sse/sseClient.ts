@@ -57,15 +57,12 @@ export interface StreamSseOptions {
    * its headers. Distinct from `stallTimeoutMs`, which only starts once the
    * body is being read.
    *
-   * Rationale: `stallTimeoutMs` is armed *after* `await fetch(...)` resolves,
-   * so it cannot protect the handshake. A TLS-inspecting proxy (Netskope on
-   * LIST laptops) holds a response it intends to scan, and an SSE body never
-   * finishes, so the promise may never settle: `onResponse` never fires, the
-   * run id in `X-BESSER-Run-Id` is never read, the watchdog is never armed
-   * and the caller's reconnect logic is never reached. The UI sits on
-   * "Waiting for the first event…" forever while the run completes happily
-   * on the server. Bounding the handshake turns that silent hang into an
-   * honest error the caller can retry or fall back from.
+   * `stallTimeoutMs` is armed *after* `await fetch(...)` resolves, so it cannot
+   * protect the handshake. A TLS-inspecting proxy (Netskope on LIST laptops)
+   * holds a response it intends to scan, and an SSE body never finishes, so the
+   * promise may never settle — no run id, no watchdog, no reconnect, and the UI
+   * hangs forever on a run that completes happily on the server. Bounding the
+   * handshake turns that silent hang into an error the caller can act on.
    */
   responseTimeoutMs?: number;
 }
@@ -233,18 +230,12 @@ export async function* streamSse<T = unknown>(
 
     stallWatchdog = setInterval(checkForStall, checkEveryMs);
 
-    // The interval alone is not enough. Browsers throttle `setInterval` in a
-    // backgrounded or occluded tab (Chrome: ~once a minute, and frozen
-    // outright once the tab is discarded-eligible), which is exactly the
-    // state a tab is in while its owner presents from another window. A run
-    // whose transport died then sat frozen for ~7 minutes with the reconnect
-    // path below never reached, because the only thing that could arm it was
-    // a timer the browser had stopped running (observed 2026-09-16, run
-    // 1f227045c804: no reconnect request was ever issued).
-    //
-    // Re-check the moment the tab is looked at again, so a frozen tab
-    // recovers on the very next glance instead of waiting for a timer that
-    // may never tick.
+    // The interval alone is not enough: browsers throttle `setInterval` in a
+    // backgrounded tab (Chrome ~once a minute, frozen outright once the tab is
+    // discard-eligible), so the only thing that could arm the reconnect below
+    // was a timer the browser had stopped running — one run sat frozen ~7
+    // minutes with no reconnect ever issued (2026-09-16, 1f227045c804).
+    // Re-check the moment the tab is looked at again.
     if (typeof document !== 'undefined' && typeof document.addEventListener === 'function') {
       const onWake = () => {
         if (document.visibilityState !== 'hidden') checkForStall();

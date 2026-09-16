@@ -31,21 +31,14 @@ import {
  */
 export const SPEC_DRIVEN_STREAM_STALL_TIMEOUT_MS = 60_000;
 /**
- * Reconnect budget.
+ * Reconnect budget: ~2.5 minutes of backoff.
  *
- * This used to be 4 attempts over ~11s, which is shorter than the outage it
- * has to survive. A corporate proxy (Netskope on LIST laptops) inserting
- * itself into the session tears down the open stream AND blackholes new
- * connections for a minute or more; all four attempts landed inside that
- * window, so the UI reported "Failed to fetch" and abandoned a run that was
- * still generating happily on the server. Reloading the page hit the same
- * budget on the reattach path and failed the same way (2026-09-16).
- *
- * The run itself survives on the server for far longer than this, so the
- * client should be patient: ~2.5 minutes of backoff, and any wake signal
- * (tab focus, or the browser coming back online) both retries IMMEDIATELY
- * and refreshes the budget — so returning to the tab always reattaches
- * rather than showing a dead error.
+ * It must outlast the outage. A corporate proxy (Netskope on LIST laptops)
+ * inserting itself into the session tears down the open stream AND blackholes
+ * new connections for a minute or more, so the previous 4 attempts over ~11s all
+ * landed inside that window and abandoned a run still generating happily on the
+ * server (2026-09-16). Any wake signal (tab focus, browser back online) both
+ * retries immediately and refreshes the budget.
  */
 export const SPEC_DRIVEN_MAX_RECONNECT_ATTEMPTS = 8;
 const RECONNECT_BACKOFF_MS = [0, 1_000, 3_000, 7_000, 15_000, 30_000, 30_000, 60_000] as const;
@@ -213,12 +206,10 @@ const START_RETRY_BACKOFF_MS = [0, 1_000, 3_000, 6_000] as const;
 /**
  * POST the run, retrying a transport-level failure.
  *
- * Previously the first failure here was fatal: `withDurableReconnect` gives up
- * unless a run id is known, and the id only arrives on the response header of
- * this very request. So a proxy that killed the initial POST produced "Failed
- * to fetch" with zero retries, while the reconnect budget of 8 attempts sat
- * unused — it only ever protected an already-identified run. Startup had no
- * protection at all, which is the failure users actually hit on reload.
+ * Startup needs its own protection: `withDurableReconnect` gives up unless a run
+ * id is known, and the id only arrives on this very request's response header —
+ * so a proxy that kills the initial POST produced "Failed to fetch" with zero
+ * retries while the 8-attempt reconnect budget sat unused.
  *
  * Retries are safe because every attempt carries the same `Idempotency-Key`:
  * if attempt 1 did reach the server and start a run, attempt 2 attaches to

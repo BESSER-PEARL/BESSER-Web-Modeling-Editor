@@ -790,16 +790,11 @@ export class ClassDiagramModifier implements DiagramModifier {
       modification.target;
 
     // ---- Relationship removal, handled FIRST and always terminal ----------
-    // The agent names a relationship with target.sourceClass / target.targetClass
-    // (that pair is what renders as "Book → BookCopy" in the summary). None of
-    // the fields destructured above are set for such a modification, so every
-    // guard below used to fall through to "Remove entire class", the defensive
-    // fallback matched the *source class* by name, and the class was deleted
-    // instead of the relationship.
-    //
-    // Observed 2026-09-16: "remove book copy" on an 11-class library model
-    // deleted BookCopy, Book AND Loan, taking 9 of 10 relationships with them,
-    // while reporting only "Applied 4 changes".
+    // The agent names a relationship with target.sourceClass / target.targetClass,
+    // and none of the fields destructured above are set for it — so the guards
+    // below fell through to "Remove entire class", whose fallback matched the
+    // SOURCE class by name. Observed 2026-09-16: "remove book copy" deleted
+    // BookCopy, Book AND Loan while reporting "Applied 4 changes".
     //
     // A relationship removal must never degrade into deleting a class: if the
     // relationship cannot be resolved, do nothing.

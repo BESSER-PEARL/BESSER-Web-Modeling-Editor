@@ -132,19 +132,9 @@ export function MessageInput({
     if (!items) return
 
     const text = event.clipboardData.getData("text")
-    // Route on WHAT was pasted, not just how long it is.
-    //
-    // This used to divert anything over 3000 characters into file-conversion —
-    // a different path with much narrower diagram-type detection. But a long
-    // natural-language requirements document is the core input of a
-    // spec-driven tool, and the chat path accepts 32000 characters, so a 3000
-    // char cut-off sent ordinary prose down the narrow route. (Reported: a
-    // pasted "Natural-Language Requirements" brief for a hotel booking app.)
-    //
-    // Structured pastes — JSON, XML/XMI, PlantUML, CSV — genuinely belong in
-    // file-conversion, which knows how to parse them. Everything else is prose
-    // and stays in chat, where intent routing can act on it. Anything past the
-    // chat limit has to become a file regardless, or the send is rejected.
+    // Route on WHAT was pasted, not just how long it is: a length cut-off sent
+    // ordinary prose — a requirements brief is the core input of a spec-driven
+    // tool — down the narrower file-conversion path. See `shouldAttachPaste`.
     if (text && shouldAttachPaste(text) && props.allowAttachments) {
       event.preventDefault()
       const blob = new Blob([text], { type: "text/plain" })

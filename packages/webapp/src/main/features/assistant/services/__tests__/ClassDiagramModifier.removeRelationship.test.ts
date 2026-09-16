@@ -1,19 +1,12 @@
 /**
  * Removing a relationship must never delete a class.
  *
- * The agent names a relationship with `target.sourceClass` / `target.targetClass`
- * — that pair is what renders as "Book → BookCopy" in the change summary. The
- * modifier knew neither field, so every branch in `removeElement` fell through
- * to "Remove entire class", the defensive fallback matched the *source class*
- * by name, and the class was deleted instead of the relationship.
- *
- * Live case, 2026-09-16. "remove book copy" on an 11-class library model sent
- * four modifications: remove class BookCopy, then remove the three
- * relationships touching it. The result was 8 classes and 1 relationship —
- * BookCopy, Book and Loan all deleted, 9 of 10 relationships gone — reported
- * to the user as "Applied 4 changes".
- *
- * The topology below mirrors that exact model.
+ * The agent names a relationship with `target.sourceClass` / `target.targetClass`,
+ * which the modifier knew neither of, so every branch in `removeElement` fell
+ * through to "Remove entire class" and its fallback matched the SOURCE class by
+ * name. Live case 2026-09-16: "remove book copy" on the 11-class library model
+ * below left 8 classes and 1 relationship — BookCopy, Book and Loan all deleted,
+ * 9 of 10 relationships gone — reported as "Applied 4 changes".
  */
 import { describe, expect, it } from 'vitest';
 

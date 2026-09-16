@@ -240,13 +240,10 @@ export interface SpecDrivenMessageState {
    * badge breakdown so detPct + modPct + aiPct reconcile to ~100. */
   modPct?: number
   /**
-   * Honest token breakdown from the run recipe's usage summary.
-   * `input` = fresh input tokens NET of cache; `output` = produced tokens;
-   * `cacheRead` = context served from cache (cheap throughput); `total` = all
-   * processed. The card leads with ACTIVE = input + output (the real cost) and
-   * shows cacheRead as a secondary number, instead of the misleading total
-   * that re-counts re-sent context. Undefined when the provider reported no
-   * split.
+   * Honest token breakdown from the run recipe's usage summary. The card leads
+   * with ACTIVE = input + output (the real cost) and shows `cacheRead` as a
+   * secondary number, instead of the misleading `total` that re-counts re-sent
+   * context. Undefined when the provider reported no split.
    */
   tokenUsage?: {
     input: number
@@ -849,14 +846,10 @@ function formatTokens(n: number): string {
 }
 
 /**
- * What the run cost, as a clearly-labelled estimate.
+ * What the run cost, as a clearly-labelled estimate: token counts times a static
+ * price table, so an approximation rather than an invoice.
  *
- * The number is derived from token counts times a static price table, so it is
- * an approximation, not an invoice — which is why it went unrendered for a
- * long time. Showing nothing turned out to be the worse trade: users could not
- * answer "what did that run cost?" at all. So it is shown, and labelled.
- *
- * Exactly $0 is meaningful rather than missing: the keyless free tier and
+ * Exactly $0 is meaningful rather than missing — the keyless free tier and
  * self-hosted models are priced at zero deliberately (_is_free_local_model in
  * llm_client.py), so "no cost" is the true answer, not an absent measurement.
  */
@@ -941,12 +934,8 @@ function SpecDrivenCard({
    */
   onPushToGithub?: (runId: string) => void
 }) {
-  // costUsd used to be withheld because the estimate is too rough to pass off
-  // as a bill. But withholding it left users unable to answer "what did that
-  // run cost me?" at all, which is worse — a labelled estimate beats no
-  // number. It is rendered in the finished-run summary only, explicitly marked
-  // as an estimate, and shown as "no cost" on the keyless free tier (where the
-  // pricing table really is $0, not merely unknown).
+  // costUsd is rendered in the finished-run summary only and explicitly marked
+  // as an estimate — see renderRunCost.
   const {
     runId,
     provider,

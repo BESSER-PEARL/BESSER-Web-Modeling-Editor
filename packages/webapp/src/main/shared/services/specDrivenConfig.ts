@@ -83,12 +83,10 @@ export interface SpecDrivenConfig {
  * time of writing: hard caps 2.0 USD / 900 s, defaults 1.0 USD / 600 s.
  */
 export const FALLBACK_SMART_GEN_CONFIG: SpecDrivenConfig = {
-  // Mirrors the backend constants (constants.py). These are only used when
-  // GET /spec-driven/config is unreachable, but they must not UNDER-state the
-  // real ceilings: a stale fallback here silently becomes the binding limit in
-  // the UI and kills runs the backend would have allowed. All four were stale
-  // on 2026-09-14 — the cost ceiling still read $2 after the backend had been
-  // corrected to $5 for exactly that reason.
+  // Mirrors the backend constants (constants.py), used only when GET
+  // /spec-driven/config is unreachable. Must not UNDER-state the real ceilings:
+  // a stale fallback silently becomes the binding limit in the UI and kills runs
+  // the backend would have allowed (all four were stale on 2026-09-14).
   caps: {
     max_cost_usd_hard_cap: 5.0,
     max_runtime_seconds_hard_cap: 2400,
@@ -198,21 +196,14 @@ export function resolveFreeRunModel(
 }
 
 /**
- * Display label for a free-tier model — server-data-first (the id itself),
- * with a short qualifier: the default entry is marked as such, and the
- * self-hosted model is called out because it behaves differently (one request
- * at a time, and it is BESSER's own hardware rather than a vendor's).
+ * Display label for a free-tier model — the id itself plus a short qualifier.
+ * No model names are hardcoded, so the server can add or swap free models on its
+ * own, and both BYOK dialogs present the same choice identically.
  *
- * The self-hosted test is the Ollama `name:tag` shape. It used to be "has no
- * vendor prefix", which held only while our Ollama box was the sole slashless
- * entry — adding `gpt-5.6-luna` (a cloud model with no vendor prefix) labelled
- * it "(self-hosted)", which is simply untrue and, on a paid model, misleading
- * about who pays. `:free` is excluded because that suffix marks a vendor's
- * free tier, not our hardware.
- *
- * No model names are hardcoded, so the server can add or swap free models on
- * its own. Shared by both BYOK dialogs so the two surfaces present the same
- * choice identically.
+ * The self-hosted test is the Ollama `name:tag` shape, NOT "has no vendor
+ * prefix": a cloud model such as `gpt-5.6-luna` is also slashless and would be
+ * labelled "(self-hosted)", misleading about who pays. `:free` is excluded
+ * because that suffix marks a vendor's free tier, not our hardware.
  */
 export function freeModelLabel(model: SpecDrivenFreeModel): string {
   if (model.default) return `${model.id} (default)`;
@@ -225,10 +216,9 @@ export function freeModelLabel(model: SpecDrivenFreeModel): string {
  * The free-model id to pre-select, honouring a pilot session.
  *
  * Returns the server's `pilot_model` when this tab is a pilot session AND the
- * server still advertises that id as choosable; otherwise the ordinary
- * default. The advertised-list check matters because the stored choice is sent
- * as `llm_model` — pre-selecting an id the server would refuse just pins the
- * run back to the default with no explanation.
+ * server still advertises that id as choosable; otherwise the ordinary default.
+ * The advertised-list check matters because pre-selecting an id the server would
+ * refuse just pins the run back to the default with no explanation.
  *
  * `isPilot` is injected rather than read here so this stays a pure function.
  */
