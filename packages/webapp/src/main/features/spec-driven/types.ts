@@ -12,7 +12,15 @@
 // 'free' is the keyless server-hosted open-weight tier: sent to the backend as
 // provider='free' with NO api_key and NO base_url — the server injects the
 // hosted endpoint + token. Offered only when /spec-driven/config advertises it.
-export type SpecDrivenProvider = 'anthropic' | 'openai' | 'mistral' | 'pia' | 'local' | 'free';
+export type SpecDrivenProvider =
+  | 'anthropic'
+  | 'openai'
+  | 'mistral'
+  | 'pia'
+  | 'local'
+  | 'free'
+  // Server-paid demo tier: endpoint, token and model all live in server env.
+  | 'sponsored';
 
 export type SpecDrivenPrimaryKind =
   | 'class'

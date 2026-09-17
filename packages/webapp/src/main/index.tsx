@@ -7,6 +7,7 @@ import { createRoot } from 'react-dom/client';
 import { NO_HTTP_URL, SENTRY_DSN, POSTHOG_HOST, POSTHOG_KEY } from './shared/constants/constant';
 import { runStorageMigrations } from './shared/utils/storage-migration';
 import { initPilotModeFromUrl } from './shared/services/telemetry/pilotTelemetry';
+import { initDemoModeFromUrl } from './shared/services/demoMode';
 import { initLazyAnalytics } from './shared/services/analytics/lazy-analytics';
 import { hasUserConsented } from './shared/components/cookie-consent/CookieConsentBanner';
 
@@ -22,6 +23,11 @@ runStorageMigrations();
 // links) before the router can touch the URL. Without the parameter this is
 // a no-op and no telemetry is ever produced.
 initPilotModeFromUrl();
+
+// Facilitated demo: capture the `?demo=<token>` secret before the router can
+// touch the URL. Without the parameter this is a no-op and runs use the
+// ordinary free tier.
+initDemoModeFromUrl();
 
 // Every deploy replaces the content-hashed lazy chunks, so a tab that stayed
 // open across a deploy fails its next dynamic import ("Failed to fetch

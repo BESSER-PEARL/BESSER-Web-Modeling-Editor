@@ -110,6 +110,8 @@ import {
   resolveFreeRunModel,
 } from '../services/specDrivenConfig';
 import { decideRunMode } from '../runModeDecision';
+import { getDemoToken } from '@/main/shared/services/demoMode';
+import { isPilotSession } from '@/main/shared/services/telemetry/pilotTelemetry';
 import type {
   SpecDrivenEvent,
   SpecDrivenProvider,
@@ -161,6 +163,7 @@ const VALID_PROVIDERS: ReadonlySet<SpecDrivenProvider> = new Set<SpecDrivenProvi
   'pia',
   'local',
   'free',
+  'sponsored',
 ]);
 
 const isValidProvider = (value: unknown): value is SpecDrivenProvider =>
@@ -943,9 +946,13 @@ export function useSpecDrivenTrigger(
       // The keyless free tier authorises a run without a BYOK key. When it's
       // selected, `key` may be null and we take the free path below (provider
       // 'free', no api_key/model/base_url — the server injects them).
+      // A demo tab (`?demo=<token>`) runs on the server-paid tier, so it
+      // authorises a run on its own — same as the keyless free tier, but the
+      // spend is ours. Checked first so it wins over a stale stored key.
+      const demoToken = getDemoToken();
       const freeSelected = readFreeTierSelected();
       const key = readSessionKey();
-      if (!freeSelected && !key) {
+      if (!demoToken && !freeSelected && !key) {
         dispatch(openByokDialog(payload));
         return;
       }
@@ -977,9 +984,11 @@ export function useSpecDrivenTrigger(
       // Anthropic API rejected the OpenAI key with a 401 and the
       // orchestrator silently fell through to the Phase 1 deterministic
       // FastAPI output instead of the stack the user asked for.
-      const rawProvider: unknown = freeSelected
-        ? 'free'
-        : (key?.provider ?? payload.provider);
+      const rawProvider: unknown = demoToken
+        ? 'sponsored'
+        : freeSelected
+          ? 'free'
+          : (key?.provider ?? payload.provider);
       if (!isValidProvider(rawProvider)) {
         appendErrorToChat(
           `Spec-Driven Agent: unknown provider ${String(rawProvider)}. Please save a valid key.`,
@@ -1057,8 +1066,12 @@ export function useSpecDrivenTrigger(
       // Free tier: the server pins the model, with ONE exception — the user
       // may explicitly pick the server's advertised non-default free model
       // (see below, after the config is available).
-      let llmModel: string | undefined = freeSelected ? undefined : key?.llmModel;
-      if (!freeSelected && !llmModel) {
+      // Demo: the server's BESSER_SPONSORED_LLM_MODEL decides, for the same
+      // reason the pilot model lives server-side — swapping the model should
+      // be an env edit, not a frontend release.
+      let llmModel: string | undefined =
+        demoToken || freeSelected ? undefined : key?.llmModel;
+      if (!demoToken && !freeSelected && !llmModel) {
         llmModel =
           payload.provider !== undefined && payload.provider !== provider
             ? undefined
@@ -1078,8 +1091,10 @@ export function useSpecDrivenTrigger(
       // server currently advertises it as a non-default free model. The
       // default (or any stale/unknown stored id) omits llm_model — the
       // identical wire shape to a run without any model choice.
-      if (freeSelected) {
-        llmModel = resolveFreeRunModel(cfg.free_tier, readFreeTierModel());
+      if (!demoToken && freeSelected) {
+        llmModel = resolveFreeRunModel(
+          cfg.free_tier, readFreeTierModel(), isPilotSession(),
+        );
       }
 
       // Incremental vibe-modify decision. Look up the previous successful
@@ -1101,9 +1116,10 @@ export function useSpecDrivenTrigger(
         project: normalisedProject,
         instructions: payload.instructions,
         provider,
-        apiKey: freeSelected ? '' : (key?.apiKey ?? ''),
+        apiKey: demoToken || freeSelected ? '' : (key?.apiKey ?? ''),
         llmModel,
-        baseUrl: freeSelected ? undefined : key?.baseUrl,
+        baseUrl: demoToken || freeSelected ? undefined : key?.baseUrl,
+        demoToken: demoToken ?? undefined,
         maxCostUsd: budget?.maxCostUsd,
         maxRuntimeSeconds: budget?.maxRuntimeSeconds,
         mode: runDecision.mode,

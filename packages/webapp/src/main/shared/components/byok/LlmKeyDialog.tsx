@@ -548,15 +548,14 @@ export const LlmKeyDialog: React.FC<LlmKeyDialogProps> = ({
     // writeLlmKey).
     if (isFreeProvider) {
       writeFreeTierSelected(true);
-      // null means "use the server default". Compare against the PREFERRED id,
-      // not the raw default: for a pilot the preferred id is the pilot model,
-      // and collapsing it to null would silently send them to the public
-      // default on the next run.
-      const preferred = freeTier
-        ? preferredFreeModelId(freeTier, isPilotSession())
-        : defaultFreeModelId(freeModels);
+      // null means "use the server default", which for a PILOT is the server's
+      // pilot model. So a pilot's pick is always stored explicitly — comparing
+      // against the preferred id instead collapsed the accepted pilot model to
+      // null, and 17 of 17 pilot runs went out on the public default.
+      const collapsible =
+        !isPilotSession() && freeModelChoice === defaultFreeModelId(freeModels);
       writeFreeTierModel(
-        freeModels.length > 1 && freeModelChoice !== preferred ? freeModelChoice : null,
+        freeModels.length > 1 && !collapsible ? freeModelChoice : null,
       );
       persistRunBudget();
       setSaveError(null);

@@ -210,6 +210,34 @@ describe('resolveFreeRunModel', () => {
     expect(resolveFreeRunModel(FREE_TIER, 'qwen3.8:27b')).toBe('qwen3.8:27b');
   });
 
+  // A pilot's run is the one case where "send nothing" is NOT neutral: the
+  // server fills the gap with BESSER_FREE_LLM_PILOT_MODEL. So a pilot's
+  // deliberate pick has to travel even when it is the public default —
+  // otherwise choosing LongCat would silently hand them the pilot model.
+  it('sends a pilot the DEFAULT model explicitly when they picked it', () => {
+    expect(resolveFreeRunModel(FREE_TIER, 'meituan/LongCat-2.0:free', true))
+      .toBe('meituan/LongCat-2.0:free');
+  });
+
+  it('still omits the default for a non-pilot', () => {
+    expect(resolveFreeRunModel(FREE_TIER, 'meituan/LongCat-2.0:free', false))
+      .toBeUndefined();
+  });
+
+  it('sends a pilot their non-default pick unchanged', () => {
+    expect(resolveFreeRunModel(FREE_TIER, 'qwen3.8:27b', true)).toBe('qwen3.8:27b');
+  });
+
+  it('omits an unadvertised stored id for a pilot too', () => {
+    // Letting a stale id through would pin the run to something the server
+    // does not serve; the pilot default is the better landing place.
+    expect(resolveFreeRunModel(FREE_TIER, 'retired-model', true)).toBeUndefined();
+  });
+
+  it('omits nothing-stored for a pilot, so the SERVER applies their model', () => {
+    expect(resolveFreeRunModel(FREE_TIER, null, true)).toBeUndefined();
+  });
+
   it('returns a non-default model on the server default endpoint too', () => {
     // Nothing here distinguishes "same endpoint as the default" from
     // "self-hosted fallback" — the server owns that routing, the client only

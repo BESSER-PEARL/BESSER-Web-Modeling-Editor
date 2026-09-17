@@ -189,10 +189,16 @@ function _normalizeFreeModels(raw: unknown): SpecDrivenFreeModel[] {
 export function resolveFreeRunModel(
   freeTier: SpecDrivenFreeTier,
   storedChoice: string | null,
+  isPilot = false,
 ): string | undefined {
   if (!storedChoice) return undefined;
   const match = (freeTier.models ?? []).find((m) => m.id === storedChoice);
-  return match && !match.default ? match.id : undefined;
+  if (!match) return undefined;
+  // For a pilot, "no llm_model" means the SERVER applies the pilot model. So a
+  // pilot who deliberately picked the public default must send it explicitly —
+  // omitting it would silently hand them the pilot model instead.
+  if (isPilot) return match.id;
+  return match.default ? undefined : match.id;
 }
 
 /**

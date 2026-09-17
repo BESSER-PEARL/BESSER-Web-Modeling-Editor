@@ -92,6 +92,11 @@ export interface StartSpecDrivenRunParams {
   llmModel?: string;
   /** OpenAI-compatible base URL for the 'pia'/'local' providers. */
   baseUrl?: string;
+  /**
+   * Demo-link secret (`?demo=<token>`), sent only with provider 'sponsored'.
+   * The backend refuses that tier without it — it spends the org's own key.
+   */
+  demoToken?: string;
   maxCostUsd?: number;
   maxRuntimeSeconds?: number;
   /**
@@ -493,17 +498,23 @@ export function startSpecDrivenRun(
   const usesBaseUrl = params.provider === 'pia' || params.provider === 'local';
   const wireProvider = usesBaseUrl ? 'openai' : params.provider;
 
-  // The keyless free tier sends provider='free' and MUST NOT carry an api_key
-  // or a base_url — the server injects the hosted endpoint + token + model.
-  const isFree = params.provider === 'free';
+  // Both server-paid tiers ('free' keyless, 'sponsored' demo) MUST NOT carry
+  // an api_key or a base_url — the server injects the endpoint + token, and
+  // for 'sponsored' the model too. A key sent here would be ignored anyway;
+  // omitting it keeps the wire honest about who is paying.
+  const isServerPaid = params.provider === 'free' || params.provider === 'sponsored';
 
   const body: Record<string, unknown> = {
     project: params.project,
     instructions: params.instructions,
     provider: wireProvider,
   };
-  if (!isFree) body.api_key = params.apiKey;
-  if (!isFree && usesBaseUrl && params.baseUrl) body.base_url = params.baseUrl;
+  if (!isServerPaid) body.api_key = params.apiKey;
+  if (!isServerPaid && usesBaseUrl && params.baseUrl) body.base_url = params.baseUrl;
+  // The demo secret travels with the tier it unlocks, and nowhere else.
+  if (params.provider === 'sponsored' && params.demoToken) {
+    body.demo_token = params.demoToken;
+  }
   // llm_model: for the free tier the trigger hook only ever sets this to the
   // server's advertised non-default free model (the default omits it); the
   // backend enforces its {primary, fallback} allowlist regardless.
