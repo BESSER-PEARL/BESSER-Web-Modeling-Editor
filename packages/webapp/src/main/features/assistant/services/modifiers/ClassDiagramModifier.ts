@@ -263,6 +263,9 @@ export class ClassDiagramModifier implements DiagramModifier {
       if (attrSpec.isOptional) {
         attrElement.isOptional = true;
       }
+      if (attrSpec.isExternalId) {
+        attrElement.isExternalId = true;
+      }
 
       model.elements[attrId] = attrElement;
       model.elements[classId].attributes.push(attrId);

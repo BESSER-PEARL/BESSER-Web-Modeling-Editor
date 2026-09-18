@@ -213,6 +213,11 @@ export class ClassDiagramConverter implements DiagramConverter {
       if (attr.isOptional) {
         attrElement.isOptional = true;
       }
+      // A natural identifier ("identified by its room number"): the agent
+      // marks it and the SQLAlchemy generator emits unique=True for it.
+      if (attr.isExternalId) {
+        attrElement.isExternalId = true;
+      }
 
       attributes[attrId] = attrElement;
       
