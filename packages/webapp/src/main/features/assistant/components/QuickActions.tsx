@@ -4,11 +4,14 @@ import { Code, Layout, ArrowRight, Zap, Download, LayoutTemplate, RefreshCw, Lay
 interface QuickAction {
   label: string;
   prompt: string;
+  /** Optional explicit routing hint (e.g. 'open-gui'); consumed by the handler. */
+  action?: string;
 }
 
 interface QuickActionsProps {
   actions: QuickAction[];
-  onAction: (prompt: string) => void;
+  /** Receives the full action so the handler can route (e.g. open the GUI tab). */
+  onAction: (action: QuickAction) => void;
 }
 
 const ACTION_ICONS: Record<string, React.ReactNode> = {
@@ -23,24 +26,30 @@ const ACTION_ICONS: Record<string, React.ReactNode> = {
   'Llm': <Wand2 className="size-3" />,
 };
 
-function getIcon(label: string): React.ReactNode {
-  const lower = label.toLowerCase();
+function getIcon(label?: string): React.ReactNode {
+  const lower = (label ?? '').toLowerCase();
   for (const [key, icon] of Object.entries(ACTION_ICONS)) {
-    if (lower.includes(key)) return icon;
+    if (lower.includes(key.toLowerCase())) return icon;
   }
   return <Zap className="size-3" />;
 }
 
 export const QuickActions: React.FC<QuickActionsProps> = ({ actions, onAction }) => {
-  if (!actions || actions.length === 0) return null;
+  // Defensive: a single malformed action (missing label/prompt) must never
+  // crash the whole assistant. Drop anything without the required strings.
+  const validActions = (actions ?? []).filter(
+    (a): a is QuickAction =>
+      !!a && typeof a.label === 'string' && typeof a.prompt === 'string',
+  );
+  if (validActions.length === 0) return null;
 
   return (
-    <div className="flex flex-wrap gap-1.5 mt-2">
-      {actions.map((action, i) => (
+    <div className="flex flex-col items-start gap-1.5 mt-2">
+      {validActions.map((action, i) => (
         <button
           key={i}
           type="button"
-          onClick={() => onAction(action.prompt)}
+          onClick={() => onAction(action)}
           className="inline-flex items-center gap-1.5 rounded-full border border-border/60 bg-background px-3 py-1.5 text-xs font-medium text-foreground/80 transition-all hover:border-brand/40 hover:bg-brand/5 hover:text-foreground active:scale-[0.97]"
         >
           {getIcon(action.label)}

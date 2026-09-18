@@ -843,10 +843,10 @@
           "ClassDiagram": "Struktur- und Datenmodellierung einschließlich OCL-Einschränkungen, die Klassen zugeordnet sind.",
           "ObjectDiagram": "Instanzen eines Klassendiagramms, verwendet für Tests und OCL-Validierung.",
           "StateMachineDiagram": "Zustandsbasierte Verhaltensmodellierung.",
-          "AgentDiagram": "Spezifikation von Konversations- und KI-Agenten.",
+          "AgentDiagram": "Modell von Konversations- und KI-Agenten.",
           "UserDiagram": "Akteure und ihre Interaktionen.",
           "GUINoCodeDiagram": "Grafische Benutzeroberflächengestaltung (IFML-inspiriert).",
-          "QuantumCircuitDiagram": "Spezifikation eines Quantenprogramms.",
+          "QuantumCircuitDiagram": "Modell eines Quantenprogramms.",
           "BPMN": "Geschäftsprozessmodell- und Notationsdiagramm.",
           "NNDiagram": "Architektur neuronaler Netze (PyTorch / TensorFlow)."
         }
@@ -2427,6 +2427,17 @@
       "noProjectData": "Keine Projektdaten zum Exportieren verfügbar",
       "projectExportedAs": "Projekt exportiert als {{filename}}",
       "projectExportFailed": "Projekt konnte nicht exportiert werden: {{error}}"
+    },
+    "diagramLabels": {
+      "ClassDiagram": "Klassendiagramm",
+      "ObjectDiagram": "Objektdiagramm",
+      "StateMachineDiagram": "Zustandsdiagramm",
+      "AgentDiagram": "Agentendiagramm",
+      "UserDiagram": "Benutzerdiagramm",
+      "GUINoCodeDiagram": "Bildschirme (GUI)",
+      "QuantumCircuitDiagram": "Quantenschaltkreis",
+      "NNDiagram": "Neuronales-Netz-Diagramm",
+      "BPMN": "BPMN-Prozess"
     }
   },
   "import": {

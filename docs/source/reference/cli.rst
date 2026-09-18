@@ -41,8 +41,18 @@ packages via npm workspaces.
      - Validates formatting across all packages.
    * - ``npm run prettier:write``
      - Applies formatting fixes.
+   * - ``npm run i18n:check``
+     - Reports translation coverage per locale (warnings only; never fails on an
+       untranslated non-English key).
+   * - ``npm run i18n:validate``
+     - Strict translation check — fails when a locale is missing English keys.
    * - ``npm run update``
      - Uses ``npm-check-updates`` to refresh dependency versions interactively.
+
+.. note::
+   There is **no ``test`` script at the workspace root**. Tests live in the
+   webapp package — see below, or run them with
+   ``npm run test --workspace=webapp``.
 
 Package-specific scripts
 ------------------------
@@ -53,10 +63,17 @@ Editor (``packages/editor``)
    * ``npm run prettier:*`` – Formatting helpers scoped to the editor source.
 
 Webapp (``packages/webapp``)
-   * ``npm run start`` – Vite dev server.
+   * ``npm run start`` / ``npm run dev`` – Vite dev server on port 8080.
    * ``npm run build`` – Production bundle under ``build/webapp``.
    * ``npm run build:local`` – Production bundle with local deployment URL.
+   * ``npm run preview`` – Serves the built bundle on port 8081.
    * ``npm run lint`` – ESLint across TypeScript sources.
+   * ``npm run test`` – Vitest unit tests (jsdom).
+   * ``npm run test:watch`` / ``test:coverage`` – Watch mode and coverage report.
+   * ``npm run test:e2e`` / ``test:e2e:ui`` – Playwright end-to-end tests.
+
+   Run these from ``packages/webapp``, or from the root with
+   ``--workspace=webapp``.
 
 Server (``packages/server``)
    * ``npm run start`` – ``tsx watch`` hot-reloading server on port 8080.

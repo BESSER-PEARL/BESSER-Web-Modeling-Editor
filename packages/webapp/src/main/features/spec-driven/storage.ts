@@ -1,0 +1,360 @@
+/**
+ * BYOK (bring-your-own-key) session storage helpers for the Smart Generator.
+ *
+ * The user's Anthropic / OpenAI / Mistral API key is stored ONLY in
+ * `sessionStorage` (tab-lifetime, cleared on tab close). It is never written to localStorage
+ * or to Redux state. This module is the only place in the frontend that
+ * touches the raw key.
+ *
+ * The optional ``llmModel`` is stored alongside the key so the user's
+ * preferred model (e.g. ``o1`` for OpenAI reasoning, ``claude-opus-4-6``
+ * for top-tier Claude) persists across runs in the same tab without
+ * depending on the modeling agent's payload hint.
+ */
+
+import {
+  localStorageSpecDrivenActiveRunV1,
+  localStorageSpecDrivenActiveRunV2Prefix,
+  localStorageSpecDrivenLastRunPrefix,
+  sessionStorageLlmBaseUrl,
+  sessionStorageSpecDrivenApiKey,
+  sessionStorageSpecDrivenLlmModel,
+  sessionStorageSpecDrivenMaxCostUsd,
+  sessionStorageSpecDrivenMaxRuntimeSeconds,
+  sessionStorageSpecDrivenProvider,
+} from '../../shared/constants/constant';
+import { isValidRunId, type LastRunRecord } from './runModeDecision';
+import type { SpecDrivenProvider } from './types';
+
+export interface SessionKey {
+  provider: SpecDrivenProvider;
+  apiKey: string;
+  /** Explicit model override; undefined = use backend default for the provider. */
+  llmModel?: string;
+  /** OpenAI-compatible base URL for the 'local'/'pia' providers. */
+  baseUrl?: string;
+}
+
+const _VALID_PROVIDERS: ReadonlySet<string> = new Set([
+  'anthropic',
+  'openai',
+  'mistral',
+  'nebius',
+  'pia',
+  'local',
+  'free',
+]);
+
+/** True when sessionStorage is reachable (it's not in some SSR / privacy modes). */
+function _hasSessionStorage(): boolean {
+  try {
+    return typeof window !== 'undefined' && typeof window.sessionStorage !== 'undefined';
+  } catch {
+    return false;
+  }
+}
+
+/** Read the currently stored BYOK key, or `null` if none / unavailable. */
+export function readSessionKey(): SessionKey | null {
+  if (!_hasSessionStorage()) return null;
+  try {
+    const apiKey = window.sessionStorage.getItem(sessionStorageSpecDrivenApiKey);
+    const provider = window.sessionStorage.getItem(sessionStorageSpecDrivenProvider);
+    if (!apiKey || !provider || !_VALID_PROVIDERS.has(provider)) return null;
+    const rawLlmModel = window.sessionStorage.getItem(sessionStorageSpecDrivenLlmModel);
+    const llmModel = rawLlmModel && rawLlmModel.trim() ? rawLlmModel.trim() : undefined;
+    const rawBase = window.sessionStorage.getItem(sessionStorageLlmBaseUrl);
+    const baseUrl = rawBase && rawBase.trim() ? rawBase.trim() : undefined;
+    return { apiKey, provider: provider as SpecDrivenProvider, llmModel, baseUrl };
+  } catch {
+    return null;
+  }
+}
+
+/** Remove the stored BYOK key. No-op if sessionStorage is unavailable. */
+export function clearSessionKey(): void {
+  if (!_hasSessionStorage()) return;
+  try {
+    window.sessionStorage.removeItem(sessionStorageSpecDrivenApiKey);
+    window.sessionStorage.removeItem(sessionStorageSpecDrivenProvider);
+    window.sessionStorage.removeItem(sessionStorageSpecDrivenLlmModel);
+  } catch {
+    /* ignore */
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/*  Keyless "Free" tier opt-in + explicit free-model choice             */
+/*                                                                      */
+/*  The implementations moved to shared/services/llmKeyStorage so the   */
+/*  unified LlmKeyDialog (shared/) can offer the free tier without      */
+/*  importing from this feature. Re-exported here so spec-driven        */
+/*  callers keep their stable import path. (Writes of the free-model    */
+/*  choice happen only in the shared dialog now.)                       */
+/* ------------------------------------------------------------------ */
+
+export {
+  readFreeTierModel,
+  readFreeTierSelected,
+  writeFreeTierSelected,
+} from '../../shared/services/llmKeyStorage';
+
+/* ------------------------------------------------------------------ */
+/*  Run budget (max cost / max runtime)                                 */
+/* ------------------------------------------------------------------ */
+
+export interface SessionBudget {
+  /** Per-run cost budget in USD. */
+  maxCostUsd?: number;
+  /** Per-run runtime budget in whole seconds. */
+  maxRuntimeSeconds?: number;
+}
+
+/**
+ * Read the user's saved run budget, or `null` when none is stored /
+ * the stored values are unusable. The budget is NOT a secret — it
+ * still lives in sessionStorage so it travels with the key/model it
+ * applies to and resets on tab close, matching the BYOK lifecycle.
+ *
+ * Intentionally NOT cleared by `clearSessionKey` (an INVALID_KEY error
+ * wipes the key, but the user's budget preference should survive the
+ * re-entry of a corrected key).
+ */
+export function readSessionBudget(): SessionBudget | null {
+  if (!_hasSessionStorage()) return null;
+  try {
+    const rawCost = window.sessionStorage.getItem(sessionStorageSpecDrivenMaxCostUsd);
+    const rawRuntime = window.sessionStorage.getItem(
+      sessionStorageSpecDrivenMaxRuntimeSeconds,
+    );
+    const budget: SessionBudget = {};
+    if (rawCost !== null) {
+      const cost = Number.parseFloat(rawCost);
+      if (Number.isFinite(cost) && cost > 0) budget.maxCostUsd = cost;
+    }
+    if (rawRuntime !== null) {
+      const runtime = Number.parseFloat(rawRuntime);
+      if (Number.isFinite(runtime) && runtime > 0) {
+        budget.maxRuntimeSeconds = Math.round(runtime);
+      }
+    }
+    if (budget.maxCostUsd === undefined && budget.maxRuntimeSeconds === undefined) {
+      return null;
+    }
+    return budget;
+  } catch {
+    return null;
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/*  Per-project last successful run (incremental vibe-modify)           */
+/*                                                                      */
+/*  Unlike the BYOK key/budget above (sessionStorage, tab-lifetime),    */
+/*  the last-run pointer lives in LOCALSTORAGE so a follow-up "add      */
+/*  feature X" can still edit the previous app in place after a reload. */
+/*  It is not a secret — just a run id + timestamp keyed by project.    */
+/* ------------------------------------------------------------------ */
+
+/** True when localStorage is reachable (it's not in some privacy modes). */
+function _hasLocalStorage(): boolean {
+  try {
+    return typeof window !== 'undefined' && typeof window.localStorage !== 'undefined';
+  } catch {
+    return false;
+  }
+}
+
+const _lastRunKey = (projectId: string): string =>
+  `${localStorageSpecDrivenLastRunPrefix}${projectId}`;
+
+/**
+ * Read the stored last successful run for a project, or `null` when none
+ * / unusable. Validates the run id (32-hex) and timestamp so a corrupted
+ * or hand-edited entry degrades to "no last run" (a fresh build) rather
+ * than sending a bad `base_run_id`.
+ */
+export function readProjectLastRun(projectId: string): LastRunRecord | null {
+  if (!projectId || !_hasLocalStorage()) return null;
+  try {
+    const raw = window.localStorage.getItem(_lastRunKey(projectId));
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as Partial<LastRunRecord> | null;
+    if (!parsed || !isValidRunId(parsed.runId)) return null;
+    const at = typeof parsed.at === 'number' && Number.isFinite(parsed.at) ? parsed.at : 0;
+    return { runId: parsed.runId, at };
+  } catch {
+    return null;
+  }
+}
+
+/** Persist the last successful run for a project. No-op on failure. */
+export function writeProjectLastRun(
+  projectId: string,
+  runId: string,
+  at: number,
+): void {
+  if (!projectId || !isValidRunId(runId) || !_hasLocalStorage()) return;
+  try {
+    window.localStorage.setItem(
+      _lastRunKey(projectId),
+      JSON.stringify({ runId, at }),
+    );
+  } catch {
+    /* ignore */
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/*  Active durable run pointer (reload/reattach)                       */
+/* ------------------------------------------------------------------ */
+
+export interface ActiveSpecDrivenRunV1 {
+  version: 1;
+  runId: string;
+  projectId: string;
+  lastSequence: number;
+  startedAt: number;
+}
+
+export interface ActiveSpecDrivenRunV2 {
+  version: 2;
+  runId: string;
+  projectId: string;
+  lastSequence: number;
+  startedAt: number;
+}
+
+export type ActiveSpecDrivenRun = ActiveSpecDrivenRunV1 | ActiveSpecDrivenRunV2;
+
+function _parseActiveSpecDrivenRun(
+  raw: string | null,
+  expectedVersion: 1 | 2,
+): ActiveSpecDrivenRun | null {
+  if (!raw) return null;
+  try {
+    const parsed = JSON.parse(raw) as Partial<ActiveSpecDrivenRun> | null;
+    if (
+      !parsed ||
+      parsed.version !== expectedVersion ||
+      !isValidRunId(parsed.runId) ||
+      typeof parsed.projectId !== 'string' ||
+      !parsed.projectId ||
+      parsed.projectId.length > 256 ||
+      typeof parsed.lastSequence !== 'number' ||
+      !Number.isFinite(parsed.lastSequence) ||
+      parsed.lastSequence < 0 ||
+      typeof parsed.startedAt !== 'number' ||
+      !Number.isFinite(parsed.startedAt) ||
+      parsed.startedAt <= 0
+    ) {
+      return null;
+    }
+    return {
+      version: expectedVersion,
+      runId: parsed.runId,
+      projectId: parsed.projectId,
+      lastSequence: Math.trunc(parsed.lastSequence),
+      startedAt: parsed.startedAt,
+    } as ActiveSpecDrivenRun;
+  } catch {
+    return null;
+  }
+}
+
+export function readActiveSpecDrivenRun(
+  projectId?: string,
+): ActiveSpecDrivenRun | null {
+  if (!_hasLocalStorage()) return null;
+  try {
+    const candidates: ActiveSpecDrivenRun[] = [];
+    for (let index = 0; index < window.localStorage.length; index += 1) {
+      const key = window.localStorage.key(index);
+      if (!key?.startsWith(localStorageSpecDrivenActiveRunV2Prefix)) continue;
+      const record = _parseActiveSpecDrivenRun(
+        window.localStorage.getItem(key),
+        2,
+      );
+      if (record && (!projectId || record.projectId === projectId)) {
+        candidates.push(record);
+      }
+    }
+    if (candidates.length > 0) {
+      return candidates.sort((left, right) => right.startedAt - left.startedAt)[0];
+    }
+
+    // Backward-compatible one-release migration path for existing pilots.
+    const legacy = _parseActiveSpecDrivenRun(
+      window.localStorage.getItem(localStorageSpecDrivenActiveRunV1),
+      1,
+    );
+    return legacy && (!projectId || legacy.projectId === projectId) ? legacy : null;
+  } catch {
+    return null;
+  }
+}
+
+/** Persist only the cursor required to reattach; never persist the request/key. */
+export function writeActiveSpecDrivenRun(
+  record: Omit<ActiveSpecDrivenRunV2, 'version'>,
+): void {
+  if (
+    !_hasLocalStorage() ||
+    !isValidRunId(record.runId) ||
+    !record.projectId ||
+    !Number.isFinite(record.lastSequence) ||
+    record.lastSequence < 0
+  ) {
+    return;
+  }
+  try {
+    window.localStorage.setItem(
+      `${localStorageSpecDrivenActiveRunV2Prefix}${record.runId}`,
+      JSON.stringify({
+        version: 2,
+        runId: record.runId,
+        projectId: record.projectId.slice(0, 256),
+        lastSequence: Math.trunc(record.lastSequence),
+        startedAt: record.startedAt,
+      } satisfies ActiveSpecDrivenRunV2),
+    );
+    const legacy = _parseActiveSpecDrivenRun(
+      window.localStorage.getItem(localStorageSpecDrivenActiveRunV1),
+      1,
+    );
+    if (legacy?.runId === record.runId) {
+      window.localStorage.removeItem(localStorageSpecDrivenActiveRunV1);
+    }
+  } catch {
+    /* storage may be unavailable/full in privacy modes */
+  }
+}
+
+/** Clear only the expected run so an old terminal callback cannot erase a newer one. */
+export function clearActiveSpecDrivenRun(expectedRunId?: string): void {
+  if (!_hasLocalStorage()) return;
+  try {
+    if (expectedRunId) {
+      window.localStorage.removeItem(
+        `${localStorageSpecDrivenActiveRunV2Prefix}${expectedRunId}`,
+      );
+      const legacy = _parseActiveSpecDrivenRun(
+        window.localStorage.getItem(localStorageSpecDrivenActiveRunV1),
+        1,
+      );
+      if (legacy?.runId === expectedRunId) {
+        window.localStorage.removeItem(localStorageSpecDrivenActiveRunV1);
+      }
+      return;
+    }
+    const keys: string[] = [];
+    for (let index = 0; index < window.localStorage.length; index += 1) {
+      const key = window.localStorage.key(index);
+      if (key?.startsWith(localStorageSpecDrivenActiveRunV2Prefix)) keys.push(key);
+    }
+    keys.forEach((key) => window.localStorage.removeItem(key));
+    window.localStorage.removeItem(localStorageSpecDrivenActiveRunV1);
+  } catch {
+    /* ignore */
+  }
+}

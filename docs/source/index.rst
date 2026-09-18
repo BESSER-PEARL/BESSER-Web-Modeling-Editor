@@ -7,6 +7,16 @@ The **BESSER Web Modeling Editor (WME)** is the visual editor that powers
 the `BESSER low-code platform <https://github.com/BESSER-PEARL/BESSER>`_.
 Design UML models, generate code, and deploy applications -- all from your browser.
 
+You can draw a diagram by hand, or describe what you want in plain language and
+let the built-in :doc:`AI assistant <user-guide/ai-assistant>` build and edit it
+on the canvas for you. The assistant talks to the separate
+`modeling agent <https://github.com/BESSER-PEARL/modeling-agent>`_ service over
+a WebSocket and applies the structured actions it returns. The same conversation
+can hand a finished model to a BESSER generator, or to the
+:doc:`Spec-Driven Agent <user-guide/spec-driven-agent>`, which assembles a whole
+application. Both can run on a keyless free tier or on your own API key — see
+:doc:`user-guide/ai-keys`.
+
 .. tip::
    Try it now at `editor.besser-pearl.org <https://editor.besser-pearl.org>`_
    -- no installation needed.
@@ -22,7 +32,9 @@ Design UML models, generate code, and deploy applications -- all from your brows
    :caption: How-to Guides
 
    overview/getting-started
-   user-guide/vibe-modeling
+   user-guide/ai-assistant
+   user-guide/spec-driven-agent
+   user-guide/ai-keys
    user-guide/deploy_locally
    user-guide/deploy_to_render
    user-guide/projects
@@ -59,6 +71,7 @@ Design UML models, generate code, and deploy applications -- all from your brows
 Project resources
 -----------------
 
-* Source: `<https://github.com/BESSER-PEARL/BESSER-WEB-MODELING-EDITOR>`_
+* Source: `<https://github.com/BESSER-PEARL/BESSER-Web-Modeling-Editor>`_
 * Online editor: `<https://editor.besser-pearl.org>`_
 * BESSER platform: `<https://github.com/BESSER-PEARL/BESSER>`_
+* Modeling agent (the AI assistant's backend): `<https://github.com/BESSER-PEARL/modeling-agent>`_

@@ -1,5 +1,5 @@
 import { UMLDiagramType, UMLModel } from '@besser/wme';
-import { BesserProject, PerspectiveSettings } from '../../shared/types/project';
+import { BesserProject, InterfaceMode, PerspectiveSettings } from '../../shared/types/project';
 import { ProjectStorageRepository } from '../../shared/services/storage/ProjectStorageRepository';
 import { exportProjectAsJson } from '../../features/export/useExportProjectJSON';
 import { useCallback } from 'react';
@@ -35,13 +35,14 @@ export const useProject = () => {
     description: string,
     owner: string,
     perspectives?: PerspectiveSettings,
+    preferredInterface?: InterfaceMode,
   ) => {
     const normalizedName = normalizeProjectName(name);
     if (!normalizedName) {
       throw new Error('Project name is required');
     }
 
-    const result = await dispatch(createProjectThunk({ name: normalizedName, description, owner, perspectives }));
+    const result = await dispatch(createProjectThunk({ name: normalizedName, description, owner, perspectives, preferredInterface }));
     if (createProjectThunk.fulfilled.match(result)) {
       return result.payload;
     }

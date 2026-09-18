@@ -19,7 +19,8 @@ interface FileMenuProps {
   outlineButtonClass: string;
   hasProject: boolean;
   activeDiagramType: SupportedDiagramType;
-  onOpenProjectHub: () => void;
+  /** Opens the Project Hub; an optional step targets New / Open / Import directly. */
+  onOpenProjectHub: (step?: 'create' | 'open' | 'import' | 'spreadsheet' | 'github') => void;
   onOpenTemplateDialog: () => void;
   onExportProject: () => void;
   onImportSingleDiagram: () => void;
@@ -55,7 +56,17 @@ export const FileMenu: React.FC<FileMenuProps> = ({
       <DropdownMenuContent className="w-72" align="end">
         <DropdownMenuLabel>{t('menu.file.projectActions')}</DropdownMenuLabel>
         <DropdownMenuSeparator />
-        <DropdownMenuItem onClick={onOpenProjectHub}>{t('menu.file.newOpenImport')}</DropdownMenuItem>
+        <DropdownMenuItem onClick={() => onOpenProjectHub('create')}>{t('menu.file.newProject')}</DropdownMenuItem>
+        <DropdownMenuItem onClick={() => onOpenProjectHub('open')}>{t('menu.file.openProject')}</DropdownMenuItem>
+        <DropdownMenuSub>
+          <DropdownMenuSubTrigger>{t('menu.file.import')}</DropdownMenuSubTrigger>
+          <DropdownMenuSubContent>
+            <DropdownMenuItem onClick={() => onOpenProjectHub('import')}>{t('menu.file.importProjectFile')}</DropdownMenuItem>
+            <DropdownMenuItem onClick={() => onOpenProjectHub('spreadsheet')}>{t('menu.file.fromSpreadsheet')}</DropdownMenuItem>
+            <DropdownMenuItem onClick={() => onOpenProjectHub('github')}>{t('menu.file.fromGithub')}</DropdownMenuItem>
+          </DropdownMenuSubContent>
+        </DropdownMenuSub>
+        <DropdownMenuSeparator />
         <DropdownMenuItem onClick={onOpenTemplateDialog}>{t('menu.file.loadTemplate')}</DropdownMenuItem>
         <DropdownMenuItem onClick={onExportProject}>{t('menu.file.exportProject')}</DropdownMenuItem>
         <DropdownMenuSeparator />
