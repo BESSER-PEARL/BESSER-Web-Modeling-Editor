@@ -115,6 +115,8 @@ export class ClassDiagramConverter implements DiagramConverter {
       }
     });
     
+    this.createConstraints(systemSpec, classIdMap, allElements, allRelationships);
+
     return {
       version: "3.0.0",
       type: "ClassDiagram",
@@ -124,6 +126,63 @@ export class ClassDiagramConverter implements DiagramConverter {
       interactive: { elements: {}, relationships: {} },
       assessments: {}
     };
+  }
+
+  /**
+   * Persist the agent's OCL invariants as ClassOCLConstraint elements linked to
+   * their context class. Without this the agent's `constraints` reach the browser
+   * and are dropped, so business rules the user stated in prose ("guests must not
+   * exceed room capacity") never reach the generator.
+   *
+   * Invariants sharing a context are merged into one box, matching how the backend
+   * parses them (`_process_constraints` reads several `context ... inv ...` blocks
+   * out of a single element) and how the editor's own OCL boxes are authored.
+   */
+  private createConstraints(
+    systemSpec: any,
+    classIdMap: Record<string, string>,
+    allElements: Record<string, any>,
+    allRelationships: Record<string, any>
+  ) {
+    const constraints = systemSpec?.constraints;
+    if (!Array.isArray(constraints) || constraints.length === 0) return;
+
+    const byContext = new Map<string, string[]>();
+    for (const c of constraints) {
+      const context = c?.context;
+      const expression = typeof c?.expression === 'string' ? c.expression.trim() : '';
+      if (!expression || !classIdMap[context]) continue;
+      if (!byContext.has(context)) byContext.set(context, []);
+      byContext.get(context)!.push(expression);
+    }
+
+    let index = 0;
+    for (const [context, expressions] of byContext) {
+      const elementId = generateUniqueId('ocl');
+      allElements[elementId] = {
+        id: elementId,
+        name: '',
+        type: 'ClassOCLConstraint',
+        owner: null,
+        bounds: { x: -700, y: index * 170, width: 640, height: 130 },
+        description: '',
+        constraint: expressions.join('\n\n')
+      };
+
+      const linkId = generateUniqueId('ocllink');
+      allRelationships[linkId] = {
+        id: linkId,
+        name: '',
+        type: 'ClassOCLLink',
+        owner: null,
+        bounds: { x: 0, y: 0, width: 0, height: 0 },
+        path: [{ x: 0, y: 0 }, { x: 100, y: 0 }],
+        source: { element: elementId, direction: 'Right', multiplicity: '', role: '' },
+        target: { element: classIdMap[context], direction: 'Left', multiplicity: '', role: '' },
+        isManuallyLayouted: false
+      };
+      index++;
+    }
   }
 
   private createAttributes(spec: any, classId: string, startY: number, startX: number, classNames?: Set<string>) {
