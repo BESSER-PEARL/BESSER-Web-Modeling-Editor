@@ -91,7 +91,10 @@ export const FALLBACK_SMART_GEN_CONFIG: SpecDrivenConfig = {
     max_cost_usd_hard_cap: 5.0,
     max_runtime_seconds_hard_cap: 2400,
     default_max_cost_usd: 5.0,
-    default_max_runtime_seconds: 1200,
+    // Was 1200 while the backend default was already 2400, so a run stopped
+    // at "1211.7s > 1200s" with 20 minutes of authorised budget unused
+    // (observed 2026-09-18). Exactly the staleness the note above warns about.
+    default_max_runtime_seconds: 2400,
   },
   // Mirrors the backend default (BESSER_LLM_DOWNLOAD_TTL_SECONDS = 1800).
   download_ttl_seconds: 1800,
@@ -100,8 +103,9 @@ export const FALLBACK_SMART_GEN_CONFIG: SpecDrivenConfig = {
     anthropic: 'claude-sonnet-4-6',
     openai: 'gpt-4o',
     mistral: 'mistral-large-latest',
+    nebius: 'Qwen/Qwen3-30B-A3B-Instruct-2507',
   },
-  supported_providers: ['anthropic', 'openai', 'mistral'],
+  supported_providers: ['anthropic', 'openai', 'mistral', 'nebius'],
   // Off by default — an old backend that doesn't advertise it must not
   // surface a free option that would 500.
   free_tier: { available: false, model: null, models: [] },

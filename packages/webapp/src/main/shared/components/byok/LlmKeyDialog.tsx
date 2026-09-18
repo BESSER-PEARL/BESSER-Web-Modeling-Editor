@@ -138,6 +138,15 @@ export const PROVIDER_OPTIONS: readonly ProviderOption[] = [
     expectedPrefix: '',
   },
   {
+    value: 'nebius',
+    label: 'Nebius Token Factory',
+    placeholder: 'Your Nebius Token Factory API key',
+    hint:
+      'Open-weight models on Nebius. Powers the Spec-Driven generator; the ' +
+      'modeling assistant keeps using its default model. No fixed key prefix.',
+    expectedPrefix: '',
+  },
+  {
     value: 'pia',
     label: 'PIA (LIST)',
     placeholder: 'sk-...',
@@ -183,6 +192,22 @@ const LOCAL_BACKEND_NOTE: Partial<Record<LlmProvider, string>> = {
 /** pia/local route over the OpenAI-compatible protocol with a base_url. */
 function _needsBaseUrl(provider: LlmProvider): boolean {
   return provider === 'pia' || provider === 'local';
+}
+
+/**
+ * Whether the modeling assistant can actually use a key for this provider.
+ * Mirrors the agent's own allowlist (modeling-agent `src/byok.py`
+ * SUPPORTED_PROVIDERS) plus the two gateway labels it accepts as 'openai'.
+ * A provider outside it is Spec-Driven-only.
+ */
+function _assistantSupportsProvider(provider: LlmProvider): boolean {
+  return (
+    provider === 'anthropic' ||
+    provider === 'openai' ||
+    provider === 'mistral' ||
+    provider === 'pia' ||
+    provider === 'local'
+  );
 }
 
 /**
@@ -238,6 +263,18 @@ export const MODEL_PRESETS: Record<LlmProvider, readonly ModelPreset[]> = {
     { value: 'mistral-small-latest', label: 'Mistral Small — fast & cheap' },
     { value: CUSTOM_MODEL_VALUE, label: 'Custom model ID…' },
   ],
+  // Nebius Token Factory serves open-weight models under vendor-namespaced
+  // ids. Qwen3-30B-A3B-Instruct-2507 is a small-activation MoE with native
+  // OpenAI-style function calling, which the tool-driven customization loop
+  // requires. A Custom id is billed at the protective fallback rate unless it
+  // has its own row in llm_client._MODEL_PRICING.
+  nebius: [
+    {
+      value: 'Qwen/Qwen3-30B-A3B-Instruct-2507',
+      label: 'Qwen3 30B A3B Instruct — fast MoE (default)',
+    },
+    { value: CUSTOM_MODEL_VALUE, label: 'Custom model ID…' },
+  ],
   // PIA gateway serves both GPT and Claude model names.
   pia: [
     { value: 'claude-sonnet-4-6', label: 'Claude Sonnet 4.6 — balanced (default)' },
@@ -266,6 +303,7 @@ const CUSTOM_MODEL_PLACEHOLDER: Record<LlmProvider, string> = {
   anthropic: 'e.g. claude-opus-4-6',
   openai: 'e.g. gpt-4.1',
   mistral: 'e.g. mistral-medium-latest',
+  nebius: 'e.g. Qwen/Qwen3-235B-A22B-Instruct-2507',
   pia: 'e.g. claude-opus-4-8',
   local: 'e.g. qwen2.5-coder:14b',
   free: '',
@@ -612,7 +650,14 @@ export const LlmKeyDialog: React.FC<LlmKeyDialogProps> = ({
     // Arm the live agent socket immediately when a client is provided. If the
     // socket is momentarily down this is a no-op — the key is in sessionStorage
     // so the next (re)connect re-arms it automatically.
-    if (client) {
+    //
+    // Skipped for providers the modeling agent's own BYOK layer does not
+    // support (it allowlists anthropic/openai/mistral and discards the rest).
+    // Sending the key anyway would hand a secret to a service that will only
+    // log "unsupported provider" and drop it. The assistant then runs on the
+    // server's default model — which is exactly what its own re-arm path does,
+    // since readAssistantApiKey() rejects the stored provider too.
+    if (client && _assistantSupportsProvider(provider)) {
       client.setUserApiKey({
         apiKey: trimmedKey,
         provider,
@@ -651,7 +696,7 @@ export const LlmKeyDialog: React.FC<LlmKeyDialogProps> = ({
           <DialogDescription>
             {description ?? (
               <>
-                Bring your own Anthropic, OpenAI, or Mistral key to power the
+                Bring your own Anthropic, OpenAI, Mistral, or Nebius key to power the
                 modeling assistant and the Spec-Driven generator with your own
                 model and avoid shared rate limits. <strong>{DEFAULT_PRIVACY_COPY}</strong>
               </>

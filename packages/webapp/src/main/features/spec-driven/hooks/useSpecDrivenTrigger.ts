@@ -160,6 +160,7 @@ const VALID_PROVIDERS: ReadonlySet<SpecDrivenProvider> = new Set<SpecDrivenProvi
   'anthropic',
   'openai',
   'mistral',
+  'nebius',
   'pia',
   'local',
   'free',

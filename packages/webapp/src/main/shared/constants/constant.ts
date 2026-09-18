@@ -83,7 +83,7 @@ export const localStorageLatestProject = localStoragePrefix + 'latest_project';
 export const localStorageProjectsList = localStoragePrefix + 'projects';
 
 // Unified LLM BYOK session-storage keys — ONE key for the whole app.
-// The user's Anthropic / OpenAI / Mistral key is stored ONLY in sessionStorage
+// The user's Anthropic / OpenAI / Mistral / Nebius key is stored ONLY in sessionStorage
 // (tab-lifetime, cleared on tab close), never in localStorage or Redux. A
 // single shared key means the user enters it in ONE place (the shared BYOK
 // dialog, reachable from the assistant drawer, the assistant popup, and the

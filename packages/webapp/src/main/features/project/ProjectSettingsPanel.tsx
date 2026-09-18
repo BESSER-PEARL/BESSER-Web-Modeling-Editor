@@ -320,9 +320,9 @@ export const ProjectSettingsPanel: React.FC = () => {
                   <CardTitle className="text-base">AI / LLM API Key</CardTitle>
                 </div>
                 <CardDescription>
-                  Use your own Anthropic, OpenAI, or Mistral key. Entered once here, it powers both the
-                  modeling assistant and the Spec-Driven generator. Stored only in this browser tab, never
-                  on our servers.
+                  Use your own Anthropic, OpenAI, Mistral or Nebius key. Entered once here, it powers
+                  both the modeling assistant and the Spec-Driven generator (Nebius powers the generator
+                  only). Stored only in this browser tab, never on our servers.
                 </CardDescription>
               </CardHeader>
               <CardContent>

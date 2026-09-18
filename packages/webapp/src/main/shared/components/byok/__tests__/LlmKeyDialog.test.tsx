@@ -150,6 +150,66 @@ describe('LlmKeyDialog — unified BYOK key', () => {
     expect(window.sessionStorage.getItem('besser_llm_api_key')).toBeNull();
   });
 
+  it('offers Nebius Token Factory with the Qwen3-30B-A3B endpoint preselectable', () => {
+    render(<LlmKeyDialog open onOpenChange={() => {}} />);
+
+    const select = document.getElementById('llm-key-provider') as HTMLSelectElement;
+    expect(Array.from(select.options).map((o) => o.value)).toContain('nebius');
+
+    fireEvent.change(select, { target: { value: 'nebius' } });
+    const models = document.getElementById('llm-key-model') as HTMLSelectElement;
+    expect(Array.from(models.options).map((o) => o.value)).toContain(
+      'Qwen/Qwen3-30B-A3B-Instruct-2507',
+    );
+  });
+
+  it('saves a Nebius key with NO base URL (the backend pins the endpoint)', () => {
+    const onSaved = vi.fn();
+    render(<LlmKeyDialog open onOpenChange={() => {}} onSaved={onSaved} />);
+
+    fireEvent.change(document.getElementById('llm-key-provider') as HTMLSelectElement, {
+      target: { value: 'nebius' },
+    });
+    fireEvent.change(document.getElementById('llm-key-api-key') as HTMLInputElement, {
+      target: { value: 'nebius-secret-key' },
+    });
+    fireEvent.change(document.getElementById('llm-key-model') as HTMLSelectElement, {
+      target: { value: 'Qwen/Qwen3-30B-A3B-Instruct-2507' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: /^save$/i }));
+
+    expect(window.sessionStorage.getItem('besser_llm_provider')).toBe('nebius');
+    expect(window.sessionStorage.getItem('besser_llm_model')).toBe(
+      'Qwen/Qwen3-30B-A3B-Instruct-2507',
+    );
+    // No base_url: a request carrying one would hit the backend's SSRF gate
+    // (BESSER_LLM_ALLOW_CUSTOM_BASE_URL, off by default) and be rejected.
+    expect(window.sessionStorage.getItem('besser_llm_base_url')).toBeNull();
+    expect(onSaved).toHaveBeenCalledWith(
+      expect.objectContaining({ provider: 'nebius', baseUrl: undefined }),
+    );
+  });
+
+  it('does not ship a Nebius key to the modeling agent, which cannot use it', () => {
+    // modeling-agent's byok.py allowlists anthropic/openai/mistral and discards
+    // anything else, so arming the socket would hand it a secret it only logs
+    // an "unsupported provider" warning for.
+    const setUserApiKey = vi.fn();
+    render(<LlmKeyDialog open onOpenChange={() => {}} client={{ setUserApiKey }} />);
+
+    fireEvent.change(document.getElementById('llm-key-provider') as HTMLSelectElement, {
+      target: { value: 'nebius' },
+    });
+    fireEvent.change(document.getElementById('llm-key-api-key') as HTMLInputElement, {
+      target: { value: 'nebius-secret-key' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: /^save$/i }));
+
+    expect(setUserApiKey).not.toHaveBeenCalled();
+    // The key is still stored — the Spec-Driven Agent reads it from here.
+    expect(window.sessionStorage.getItem('besser_llm_api_key')).toBe('nebius-secret-key');
+  });
+
   it('does NOT offer the Free provider when the server does not advertise it', async () => {
     render(<LlmKeyDialog open onOpenChange={() => {}} />);
     await waitFor(() => {

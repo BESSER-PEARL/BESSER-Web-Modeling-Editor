@@ -16,6 +16,9 @@ export type SpecDrivenProvider =
   | 'anthropic'
   | 'openai'
   | 'mistral'
+  // Nebius Token Factory: a real backend provider, sent on the wire as-is
+  // with NO base_url (the endpoint is pinned server-side).
+  | 'nebius'
   | 'pia'
   | 'local'
   | 'free'

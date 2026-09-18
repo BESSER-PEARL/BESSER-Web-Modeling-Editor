@@ -61,6 +61,10 @@ Supported providers
 -------------------
 
 * **Anthropic**, **OpenAI**, **Mistral** — paste the provider's key.
+* **Nebius Token Factory** — paste your Nebius key. Serves open-weight models
+  (default ``Qwen/Qwen3-30B-A3B-Instruct-2507``) from a fixed endpoint the
+  backend pins, so no URL to configure. Spec-Driven Agent only — the modeling
+  assistant keeps using its own default model.
 * **Local** — any OpenAI-compatible endpoint you run yourself, for example
   ``http://localhost:11434/v1`` for Ollama.
 * **PIA** — the LIST PIA gateway, reachable only from the LIST VPN.

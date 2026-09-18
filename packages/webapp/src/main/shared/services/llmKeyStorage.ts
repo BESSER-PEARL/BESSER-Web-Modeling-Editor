@@ -1,7 +1,8 @@
 /**
  * Unified LLM BYOK (bring-your-own-key) session-storage helpers.
  *
- * ONE key for the whole app: the user's Anthropic / OpenAI / Mistral key is
+ * ONE key for the whole app: the user's Anthropic / OpenAI / Mistral / Nebius
+ * key is
  * entered once (via the shared LlmKeyDialog, reachable from the assistant
  * drawer, the assistant popup, and the Settings page) and read by BOTH the
  * assistant/modeling-agent AND the Spec-Driven (smart) generator.
@@ -33,7 +34,20 @@ import {
 // 'free' is the keyless server-hosted tier (smart-gen only — NOT offered in the
 // assistant key dialog). It carries no key; the model list is a single pinned
 // entry. Kept in this union so MODEL_PRESETS['free'] type-checks.
-export type LlmProvider = 'anthropic' | 'openai' | 'mistral' | 'pia' | 'local' | 'free';
+// 'nebius' is Nebius Token Factory — an OpenAI-compatible cloud endpoint the
+// BACKEND pins server-side (no base_url travels with the request, so it is not
+// subject to the custom-endpoint gate that pia/local are). Spec-Driven Agent
+// only: the modeling assistant's own BYOK layer does not support it, so a
+// Nebius key leaves the assistant on the server's default model (see
+// features/assistant/services/byokStorage.ts).
+export type LlmProvider =
+  | 'anthropic'
+  | 'openai'
+  | 'mistral'
+  | 'nebius'
+  | 'pia'
+  | 'local'
+  | 'free';
 
 export interface LlmKey {
   provider: LlmProvider;
@@ -58,6 +72,7 @@ function _isProvider(value: string | null): value is LlmProvider {
     value === 'anthropic' ||
     value === 'openai' ||
     value === 'mistral' ||
+    value === 'nebius' ||
     value === 'pia' ||
     value === 'local'
   );

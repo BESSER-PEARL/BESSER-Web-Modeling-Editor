@@ -39,6 +39,7 @@ const _VALID_PROVIDERS: ReadonlySet<string> = new Set([
   'anthropic',
   'openai',
   'mistral',
+  'nebius',
   'pia',
   'local',
   'free',
