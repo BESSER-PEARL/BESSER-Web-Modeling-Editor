@@ -604,7 +604,8 @@ export function useSpecDrivenTrigger(
             typeof event.blockerCount === 'number' && event.blockerCount > 0
               ? event.blockerCount
               : 0;
-          // Record this successful run as the base for a future
+          const incomplete = dispatch(readLiveSpecDrivenRun(run.liveKey))?.incomplete === true;
+          // Record this output as the base for a future
           // incremental vibe-modify of the SAME project — both in the
           // slice (same-session fast path) and localStorage (survives a
           // reload). The next `startRun` reads this back and, while still
@@ -648,12 +649,8 @@ export function useSpecDrivenTrigger(
                     .map((e) => `\`${e}\``)
                     .join(', ')}${_informativeTop.length > 8 ? ', …' : ''}.`
                 : '';
-            // Honest efficiency signal: what the deterministic generator produced
-            // for free vs what the LLM wrote — not the cumulative token sum,
-            // which re-counts context re-sent each turn. Phrase it so the
-            // percentages SUM TO 100 ("the LLM wrote or refined the other
-            // (100-N)%"); naming only the llm_authored bucket drops the
-            // generator-written-then-edited middle and looks illogical.
+            // File provenance is separate from the validation verdict. A high
+            // unchanged-scaffold share does not imply requirement coverage.
             const split = event.fileSplit;
             const untouchedPct =
               split && typeof split.total === 'number' && split.total > 0
@@ -661,11 +658,7 @@ export function useSpecDrivenTrigger(
                 : undefined;
             const splitPhrase =
               untouchedPct !== undefined && untouchedPct > 0
-                ? ` **${untouchedPct}%** of these were generated deterministically (0 LLM tokens)${
-                    untouchedPct < 100
-                      ? `; the LLM wrote or refined the other **${100 - untouchedPct}%**`
-                      : ''
-                  }.`
+                ? ` **${untouchedPct}%** of files were unchanged from the scaffold in this run. This measures file provenance, not correctness or requirements coverage.`
                 : '';
             // Three outcomes, three honest messages:
             //   - clean success;
@@ -676,25 +669,28 @@ export function useSpecDrivenTrigger(
             //     error, cancellation) — "stopped early" is accurate.
             const incompleteMessage =
               blockerCount > 0
-                ? `⚠️ Generated ${filesPhrase}${withGen}, but the run **finished with ${blockerCount} unresolved issue${blockerCount === 1 ? '' : 's'} that may stop the app from running**.${topPhrase} Start a follow-up generation to fix ${blockerCount === 1 ? 'it' : 'them'}, or use the **Download** button on the run card to save the code as-is.`
+                ? `⚠️ Generated ${filesPhrase}${withGen}, but the run **finished with ${blockerCount} unresolved implementation or verification issue${blockerCount === 1 ? '' : 's'}**. The generated app is **not verified complete**.${topPhrase} Start a follow-up generation to address ${blockerCount === 1 ? 'it' : 'them'}, or use the **Download** button on the run card to save the code as-is.`
                 : `⚠️ Generated ${filesPhrase}${withGen}, but the run **stopped early — the output may be incomplete**.${event.incompleteReason ? ` ${event.incompleteReason}` : ``}${topPhrase} Start another generation to finish the remaining changes, or use the **Download** button on the run card to save it.`;
             appendAssistantMessage(
-              event.incomplete
+              incomplete
                 ? incompleteMessage
                 : `✅ Generated ${filesPhrase}${withGen}.${splitPhrase}${topPhrase} Use the **Download** button on the run card to save it.`,
             );
-            toast.success('Spec-Driven Agent finished -- ready to download');
+            if (incomplete) {
+              toast.warning('Generation incomplete — output available to inspect');
+            } else {
+              toast.success('Spec-Driven Agent finished -- ready to download');
+            }
           }
-          // The run itself succeeded; the user simply hasn't saved the
-          // file yet. Report ok so the modeling agent sees a successful
-          // build -- download is now a user-driven step, not part of the run.
+          // ok means output is available, not that the app is verified.
+          // Preserve incomplete separately for the modeling agent's verdict.
           reportRunFinished({
             ok: true,
             runId: doneRunId,
             fileName: event.fileName,
             costUsd: lastCostRef.current,
             generatorUsed,
-            incomplete: event.incomplete,
+            incomplete,
             incompleteReason: event.incompleteReason,
             blockerCount: blockerCount > 0 ? blockerCount : undefined,
           });

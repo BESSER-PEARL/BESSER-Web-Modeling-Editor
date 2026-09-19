@@ -24,6 +24,7 @@
  */
 
 import React from 'react';
+import { toast } from 'react-toastify';
 import { configureStore } from '@reduxjs/toolkit';
 import { Provider } from 'react-redux';
 import { act, render, waitFor } from '@testing-library/react';
@@ -1421,7 +1422,7 @@ describe('useSpecDrivenTrigger — honest completion copy', () => {
         ...(HAPPY_EVENTS[HAPPY_EVENTS.length - 1] as any),
         incomplete: true,
         incompleteReason:
-          'The app was built but 2 blocker-level issue(s) remain that likely stop it from running.',
+          'The app was generated, but 2 unresolved implementation or verification issues remain.',
         blockerCount: 2,
       },
     ];
@@ -1436,15 +1437,23 @@ describe('useSpecDrivenTrigger — honest completion copy', () => {
     });
     const msgs = apiRef.current!.getMessages() as any[];
     const summary = msgs.find(
-      (m) => typeof m.content === 'string' && m.content.includes('unresolved issue'),
+      (m) => typeof m.content === 'string' && m.content.includes('unresolved implementation'),
     );
     expect(summary).toBeTruthy();
-    expect(summary.content).toContain('finished with 2 unresolved issues');
+    expect(summary.content).toContain('finished with 2 unresolved implementation or verification issues');
+    expect(summary.content).toContain('not verified complete');
+    expect(summary.content).not.toContain('stop the app from running');
     expect(summary.content).toContain('Start a follow-up generation');
     // A completed-with-blockers run did NOT stop early — never say it did.
     expect(summary.content).not.toContain('stopped early');
     expect(results[0].blockerCount).toBe(2);
     expect(results[0].incomplete).toBe(true);
+    const card = msgs.find((m) => m.specDriven).specDriven;
+    expect(card.incomplete).toBe(true);
+    expect(card.blockerCount).toBe(2);
+    expect(card.incompleteReason).toContain('2 unresolved implementation');
+    expect(toast.success).not.toHaveBeenCalled();
+    expect(toast.warning).toHaveBeenCalledWith('Generation incomplete — output available to inspect');
   });
 
   it('keeps the cut-short framing for runs that genuinely stopped early', async () => {
@@ -1472,6 +1481,9 @@ describe('useSpecDrivenTrigger — honest completion copy', () => {
         ),
       ).toBe(true);
     });
+    const card = (apiRef.current!.getMessages() as any[]).find((m) => m.specDriven).specDriven;
+    expect(card.incomplete).toBe(true);
+    expect(toast.success).not.toHaveBeenCalled();
   });
 });
 

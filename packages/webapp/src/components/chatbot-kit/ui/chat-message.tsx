@@ -198,6 +198,10 @@ export interface SpecDrivenMessageState {
   warnings: SpecDrivenWarningView[]
   text: string
   status: "running" | "done" | "error"
+  /** Finished transport/artifact does not imply the generated app passed validation. */
+  incomplete?: boolean
+  incompleteReason?: string
+  blockerCount?: number
   /** Live spend so far in USD (from the backend's 2s cost events). */
   costUsd?: number
   /** Elapsed run time in seconds (from the backend's 2s cost events). */
@@ -225,14 +229,12 @@ export interface SpecDrivenMessageState {
    * overstates effort. Kept only for the deterministic-split badge's tooltip. */
   tokensUsed?: number
   /**
-   * Share (0–100) of the run's files that BESSER's deterministic generator
-   * produced with zero LLM tokens (from the done event's
-   * `fileSplit.generator_untouched_pct`). Rendered as an honest
-   * "N% deterministic" badge in place of the misleading cumulative token
-   * count. Undefined when the backend sent no file split.
+   * Share (0–100) of output files tagged as scaffold and not edited this run
+   * (`fileSplit.generator_untouched_pct`). File provenance, not a measure of
+   * requirements covered, correctness, lines of code, or token savings.
    */
   detPct?: number
-  /** Share (0–100) of files the LLM authored from scratch
+  /** Share (0–100) of files outside the generator-tagged scaffold
    * (`fileSplit.llm_authored_pct`) — shown in the badge breakdown. */
   aiPct?: number
   /** Share (0–100) of files the generator wrote that the LLM then edited
@@ -944,6 +946,9 @@ function SpecDrivenCard({
     warnings,
     text,
     status,
+    incomplete,
+    incompleteReason,
+    blockerCount,
     costUsd,
     elapsedSeconds,
     maxRuntime,
@@ -974,7 +979,7 @@ function SpecDrivenCard({
   // did ("the tool calling and etc") after the run finishes, not just while it
   // is running.
   const [showSteps, setShowSteps] = useState(false)
-  // The "N% deterministic" badge is a disclosure: a hover-only tooltip wasn't
+  // The file-provenance badge is a disclosure: a hover-only tooltip wasn't
   // discoverable (pilot feedback: "it's nice but it doesn't show"), so clicking
   // the badge toggles an inline breakdown of the deterministic / AI-refined /
   // AI-authored split plus the raw token count.
@@ -1052,16 +1057,31 @@ function SpecDrivenCard({
 
   // Completed run: collapse the big phased card to a SMALL inline line with a
   // compact download button (the process timeline is no longer useful once the
-  // app is ready). Warnings and the download-failed note stay visible.
+  // artifact is available). Warnings and the download-failed note stay visible.
   if (status === "done") {
     const isFirstSave = needsDownload === true && !hasDownloaded
+    const isIncomplete = incomplete === true || (blockerCount ?? 0) > 0 || (
+      // Older persisted cards only retained the INCOMPLETE warning.
+      incomplete === undefined && warnings.some((warning) =>
+        warning.code === "INCOMPLETE" && warning.severity !== "info"
+      )
+    )
     return (
       <div className="w-full overflow-hidden rounded-lg border border-border/60 bg-muted/40 text-sm">
         <div className="flex flex-wrap items-center gap-x-2 gap-y-1 px-3 py-2 text-xs">
-          <Sparkles className="h-3.5 w-3.5 shrink-0 text-primary" />
+          {isIncomplete ? (
+            <AlertTriangle className="h-3.5 w-3.5 shrink-0 text-amber-600" />
+          ) : (
+            <Sparkles className="h-3.5 w-3.5 shrink-0 text-primary" />
+          )}
           <span className="text-[13px] font-medium text-foreground">
-            {deterministic ? "Generated deterministically" : "Application ready"}
+            {isIncomplete ? "Generated — incomplete" : deterministic ? "Generated deterministically" : "Application ready"}
           </span>
+          {isIncomplete && (blockerCount ?? 0) > 0 ? (
+            <span className="text-[11px] text-amber-700 dark:text-amber-400">
+              · {blockerCount} unresolved blocker{blockerCount === 1 ? "" : "s"}
+            </span>
+          ) : null}
           {generatorUsed ? (
             <span className="font-mono text-[11px] text-muted-foreground">
               · {generatorUsed}
@@ -1078,9 +1098,9 @@ function SpecDrivenCard({
               onClick={() => setShowSplit((v) => !v)}
               aria-expanded={showSplit}
               className="inline-flex items-center gap-1 rounded-full border border-primary/30 bg-primary/10 px-2 py-0.5 font-mono text-[10px] font-medium text-primary hover:bg-primary/20"
-              title="Click for the deterministic / AI breakdown"
+              title="File provenance for this run, not requirements coverage or correctness. Click for details."
             >
-              {detPct}% deterministic
+              {detPct}% files unchanged from scaffold
               <ChevronRight
                 className={`h-3 w-3 transition-transform ${showSplit ? "rotate-90" : ""}`}
               />
@@ -1160,11 +1180,13 @@ function SpecDrivenCard({
             ) : null}
           </span>
         </div>
+        {isIncomplete && incompleteReason && !warnings.some((warning) => warning.code === "INCOMPLETE") ? (
+          <p className="border-t border-border/40 px-3 py-2 text-xs text-amber-700 dark:text-amber-400">
+            {incompleteReason}
+          </p>
+        ) : null}
 
-        {/* Deterministic / AI breakdown — revealed by clicking the
-            "N% deterministic" badge. Makes the efficiency story legible and
-            shows that the three buckets reconcile (the header message only
-            states the deterministic share). */}
+        {/* File-count provenance for this run, not a readiness/coverage score. */}
         {showSplit && !deterministic && typeof detPct === "number" ? (
           <div className="border-t border-border/40 bg-background/40 px-3 py-2 text-[11px] text-muted-foreground">
             <div className="mb-1 font-medium text-foreground">
@@ -1173,21 +1195,24 @@ function SpecDrivenCard({
             <ul className="flex flex-col gap-0.5">
               <li>
                 <span className="font-mono text-primary">{detPct}%</span>{" "}
-                generated deterministically by BESSER — <strong>0 LLM tokens</strong>, exact output.
+                scaffold files not edited in this run.
               </li>
               {typeof refinedPct === "number" && refinedPct > 0 ? (
                 <li>
                   <span className="font-mono">{refinedPct}%</span> generated by
-                  BESSER, then refined by the LLM.
+                  BESSER, then edited in this run.
                 </li>
               ) : null}
               {typeof aiPct === "number" && aiPct > 0 ? (
                 <li>
-                  <span className="font-mono">{aiPct}%</span> authored from
-                  scratch by the LLM.
+                  <span className="font-mono">{aiPct}%</span> additional files
+                  outside the scaffold (including harness-created files).
                 </li>
               ) : null}
             </ul>
+            <p className="mt-1 text-[10px]">
+              File counts, not requirements coverage or correctness. Earlier-run edits may be included in the scaffold.
+            </p>
             {/* Honest token accounting. Lead with ACTIVE = fresh input +
                 output (the real work / cost), show cached context as a
                 secondary throughput number, and never lead with the cumulative
@@ -1224,8 +1249,7 @@ function SpecDrivenCard({
               </div>
             ) : (
               <div className="mt-1 text-[10px] italic text-muted-foreground/80">
-                The deterministic share cost no tokens; most of the LLM's token
-                count is re-read context, not new work.
+                File provenance does not measure token savings; unchanged files may still have been read by the agent.
               </div>
             )}
           </div>

@@ -143,7 +143,7 @@ describe('SpecDrivenCard — live activity strip (feels alive on long runs)', ()
 });
 
 describe('SpecDrivenCard — token-honest completion badge', () => {
-  it('shows an "N% deterministic" badge and NOT a raw cumulative token count', () => {
+  it('labels file provenance and does not show a raw cumulative token count', () => {
     const { container } = renderCard(
       baseSpecDriven({
         status: 'done',
@@ -155,7 +155,7 @@ describe('SpecDrivenCard — token-honest completion badge', () => {
         aiPct: 8,
       }),
     );
-    expect(screen.getByText('83% deterministic')).toBeTruthy();
+    expect(screen.getByText('83% files unchanged from scaffold')).toBeTruthy();
     // The misleading cumulative token count must not appear as a headline, and
     // the breakdown (which does mention tokens) is collapsed by default.
     expect(container.textContent).not.toContain('120,000 tokens');
@@ -177,12 +177,15 @@ describe('SpecDrivenCard — token-honest completion badge', () => {
     );
     // Collapsed by default.
     expect(container.textContent).not.toContain('How this was built');
-    fireEvent.click(screen.getByText('71% deterministic'));
+    fireEvent.click(screen.getByText('71% files unchanged from scaffold'));
     // Breakdown now visible, reconciling all three buckets (71+18+11=100).
     expect(screen.getByText('How this was built')).toBeTruthy();
     expect(container.textContent).toContain('71%');
     expect(container.textContent).toContain('18%');
     expect(container.textContent).toContain('11%');
+    expect(container.textContent).toContain('not requirements coverage or correctness');
+    expect(container.textContent).toContain('including harness-created files');
+    expect(container.textContent).not.toContain('0 LLM tokens');
     // The alarming cumulative token count is NOT shown on the card anymore.
     expect(container.textContent).not.toContain('120,000');
     expect(container.textContent).not.toMatch(/\btokens\b.*cumulative/);
@@ -201,7 +204,7 @@ describe('SpecDrivenCard — token-honest completion badge', () => {
         tokenUsage: { input: 182000, output: 65000, cacheRead: 2900000, total: 3147000 },
       }),
     );
-    fireEvent.click(screen.getByText('71% deterministic'));
+    fireEvent.click(screen.getByText('71% files unchanged from scaffold'));
     // Active = 182k + 65k = 247k, shown as the headline; cached as secondary.
     expect(container.textContent).toContain('247k active tokens');
     expect(container.textContent).toContain('182k fresh input');
@@ -229,7 +232,7 @@ describe('SpecDrivenCard — token-honest completion badge', () => {
         // modPct intentionally absent
       }),
     );
-    fireEvent.click(screen.getByText('71% deterministic'));
+    fireEvent.click(screen.getByText('71% files unchanged from scaffold'));
     expect(container.textContent).toContain('71%');
     expect(container.textContent).toContain('18%'); // 100 - 71 - 11, derived
     expect(container.textContent).toContain('11%');

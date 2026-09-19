@@ -12,7 +12,7 @@
  * text, so it becomes a file whatever its shape. Keep in sync with
  * `maxMessageLength` in the assistant's rate limiter.
  */
-export const MAX_CHAT_PASTE_CHARS = 32000;
+export const MAX_CHAT_PASTE_CHARS = 64000;
 
 const SPLIT_LINES = /\r?\n/;
 const DELIMITERS = [",", ";", "\t"];

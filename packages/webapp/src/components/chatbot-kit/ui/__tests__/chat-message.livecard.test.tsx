@@ -134,6 +134,38 @@ describe('LiveSpecDrivenCard — store-driven rendering', () => {
     expect(screen.getByText(/waiting for the first event/i)).toBeTruthy();
   });
 
+  it('keeps an incomplete done artifact downloadable without announcing readiness', () => {
+    const store = makeStore();
+    store.dispatch(liveRunStarted({ key: LIVE_KEY }));
+    const view = renderLiveStub(store);
+    act(() => {
+      store.dispatch(liveRunEvent({ key: LIVE_KEY, event: {
+        event: 'done', runId: 'f'.repeat(32), downloadUrl: '/output.zip',
+        fileName: 'output.zip', isZip: true, recipe: {},
+        // Blockers alone must be sufficient even if the boolean is missing.
+        blockerCount: 19, incompleteReason: 'The app cannot start.',
+      } }));
+    });
+    expect(screen.getByText('Generated — incomplete')).toBeTruthy();
+    expect(screen.getByText(/19 unresolved blockers/)).toBeTruthy();
+    expect(screen.getByText('The app cannot start.')).toBeTruthy();
+    expect(screen.queryByText('Application ready')).toBeNull();
+    expect(screen.getByRole('button', { name: 'Download' })).toBeTruthy();
+
+    // Finalized/history snapshots retain the same verdict without Redux.
+    const snapshot = store.getState().specDriven.runs[LIVE_KEY];
+    view.unmount();
+    const saved = render(<ChatMessage id="saved" role="assistant" content="" specDriven={snapshot} />);
+    expect(screen.getByText('Generated — incomplete')).toBeTruthy();
+    expect(screen.queryByText('Application ready')).toBeNull();
+    saved.rerender(<ChatMessage id="saved" role="assistant" content="" specDriven={{
+      ...snapshot, incomplete: undefined, blockerCount: undefined,
+      warnings: [{ code: 'INCOMPLETE', severity: 'warning', message: 'Legacy incomplete run.' }],
+    }} />);
+    expect(screen.getByText('Generated — incomplete')).toBeTruthy();
+    expect(screen.queryByText('Application ready')).toBeNull();
+  });
+
   it('a message WITHOUT a liveKey renders the plain card and never touches the store', () => {
     // No Provider at all — historical/final cards must not subscribe.
     render(

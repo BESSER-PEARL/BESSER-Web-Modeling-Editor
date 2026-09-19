@@ -376,7 +376,7 @@ export function useAssistantLogic({
         // See the default in RateLimiterService: 1000 blocked a pasted stack
         // trace or specification, which is a primary way people use the
         // assistant.
-        maxMessageLength: 32000,
+        maxMessageLength: 64000,
         cooldownPeriodMs: 1000,
       }),
   );
@@ -588,7 +588,7 @@ export function useAssistantLogic({
               ? // The run COMPLETED its loop but left blocker-severity
                 // issues — it did not "stop early", and the copy must
                 // not say it did.
-                `Spec-Driven Agent finished the build, but ${result.blockerCount} unresolved issue${result.blockerCount === 1 ? '' : 's'} may stop the app from running${result.incompleteReason ? ` (${result.incompleteReason})` : ''}. The user can resume the run to fix ${result.blockerCount === 1 ? 'it' : 'them'} or download the output as-is.`
+                `Spec-Driven Agent produced output, but ${result.blockerCount} unresolved implementation or verification issue${result.blockerCount === 1 ? '' : 's'} remain${result.blockerCount === 1 ? 's' : ''}${result.incompleteReason ? ` (${result.incompleteReason})` : ''}. The generated app is not verified complete. The user can resume the run to address ${result.blockerCount === 1 ? 'it' : 'them'} or download the output as-is.`
               : `Spec-Driven Agent produced output, but the run stopped early so it may be incomplete${result.incompleteReason ? `: ${result.incompleteReason}` : ''}.`
             : `Spec-Driven Agent finished successfully${result.fileName ? ` — ${result.fileName} is ready for the user to download` : ''}.`
           : result.errorCode === 'CANCELLED'

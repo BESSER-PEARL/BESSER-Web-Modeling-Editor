@@ -67,6 +67,7 @@ export class ClassDiagramConverter implements DiagramConverter {
     const allElements: Record<string, any> = {};
     const allRelationships: Record<string, any> = {};
     const classIdMap: Record<string, string> = {};
+    const attachedClasses = new Set<string>();
 
     // Collect all class/enum names so attribute types can reference them
     const allClassNames = new Set<string>();
@@ -85,6 +86,21 @@ export class ClassDiagramConverter implements DiagramConverter {
     systemSpec.relationships?.forEach((rel: any) => {
       const sourceId = classIdMap[rel.sourceClass || rel.source];
       const targetId = classIdMap[rel.targetClass || rel.target];
+      const associationClassId = classIdMap[rel.associationClass];
+      if (rel.associationClass != null) {
+        // Do not silently downgrade an invalid attributed link to a plain
+        // association: that would discard per-link fields in generated apps.
+        if ((rel.type || 'Association').toLowerCase() !== 'association'
+            || !sourceId || !targetId || !associationClassId
+            || allElements[sourceId].type === 'Enumeration'
+            || allElements[targetId].type === 'Enumeration'
+            || allElements[associationClassId].type !== 'Class'
+            || associationClassId === sourceId || associationClassId === targetId
+            || attachedClasses.has(associationClassId)) {
+          throw new Error(`Invalid association-class attachment: ${rel.associationClass}`);
+        }
+        attachedClasses.add(associationClassId);
+      }
       
       if (sourceId && targetId) {
         const relId = generateUniqueId('rel');
@@ -97,7 +113,7 @@ export class ClassDiagramConverter implements DiagramConverter {
             element: sourceId,
             direction: rel.sourceDirection || 'Left',
             multiplicity: rel.sourceMultiplicity || '1',
-            role: '',
+            role: rel.sourceRole || '',
             bounds: { x: 0, y: 0, width: 0, height: 0 }
           },
           target: { 
@@ -112,6 +128,22 @@ export class ClassDiagramConverter implements DiagramConverter {
           path: [{ x: 100, y: 10 }, { x: 0, y: 10 }],
           isManuallyLayouted: false
         };
+        if (associationClassId) {
+          // The editor and BUML converter already support a class-to-
+          // association link. Its target is the relationship, NOT an endpoint.
+          const linkId = generateUniqueId('classlink');
+          allRelationships[linkId] = {
+            id: linkId,
+            type: 'ClassLinkRel',
+            name: '',
+            owner: null,
+            source: { element: associationClassId, direction: 'Right', multiplicity: '', role: '' },
+            target: { element: relId, direction: 'Left', multiplicity: '', role: '' },
+            bounds: { x: 0, y: 0, width: 0, height: 0 },
+            path: [{ x: 0, y: 0 }, { x: 100, y: 0 }],
+            isManuallyLayouted: false
+          };
+        }
       }
     });
     

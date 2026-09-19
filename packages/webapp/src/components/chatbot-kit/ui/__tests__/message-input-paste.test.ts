@@ -3,7 +3,7 @@
  *
  * Pastes over 3000 characters were diverted into file-conversion — a different
  * path with much narrower diagram-type detection — while the chat path itself
- * accepts 32000. So an ordinary "Natural-Language Requirements" brief took the
+ * accepts long specifications. So an ordinary "Natural-Language Requirements" brief took the
  * narrow route purely for being long, and (because that path was also 400ing on
  * an unsupported `temperature`) surfaced as "Failed to process the text file".
  *
@@ -12,7 +12,7 @@
  */
 import { describe, expect, it } from 'vitest';
 
-import { looksStructured, shouldAttachPaste } from '../paste-routing';
+import { MAX_CHAT_PASTE_CHARS, looksStructured, shouldAttachPaste } from '../paste-routing';
 
 const REQUIREMENTS_BRIEF = `Natural-Language Requirements
 
@@ -86,8 +86,9 @@ describe('shouldAttachPaste', () => {
 
   it('attaches anything past the chat limit, prose or not', () => {
     // Beyond this the chat path would reject the send outright.
-    expect(shouldAttachPaste('a'.repeat(32001))).toBe(true);
-    expect(shouldAttachPaste('a'.repeat(31999))).toBe(false);
+    expect(MAX_CHAT_PASTE_CHARS).toBe(64000);
+    expect(shouldAttachPaste('a'.repeat(MAX_CHAT_PASTE_CHARS + 1))).toBe(true);
+    expect(shouldAttachPaste('a'.repeat(MAX_CHAT_PASTE_CHARS))).toBe(false);
   });
 
   it('ignores an empty paste', () => {

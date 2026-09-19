@@ -1,5 +1,5 @@
 /**
- * The message-length cap exists in three places and all three must agree.
+ * The browser, server, paste routing and hook override caps must agree.
  *
  * The client checks its own `maxMessageLength`, and then — because
  * `useServerSideLimit` defaults to true — asks the Express server for the
@@ -52,8 +52,16 @@ describe('message-length cap parity', () => {
     expect(serverMaxMessageLength()).toBeGreaterThanOrEqual(MAX_CHAT_PASTE_CHARS);
   });
 
-  it('all three caps are the same number', () => {
+  it('all caps accept the full specification and reject oversize input explicitly', async () => {
     expect(serverMaxMessageLength()).toBe(clientMaxMessageLength());
     expect(clientMaxMessageLength()).toBe(MAX_CHAT_PASTE_CHARS);
+    expect(MAX_CHAT_PASTE_CHARS).toBe(64000);
+    const hook = readFileSync(path.resolve(__dirname, '../../hooks/useAssistantLogic.ts'), 'utf-8');
+    expect(Number(hook.match(/maxMessageLength:\s*(\d+)/)?.[1])).toBe(MAX_CHAT_PASTE_CHARS);
+    const limiter = new RateLimiterService({ useServerSideLimit: false, persistLocally: false });
+    expect((await limiter.checkRateLimit('x'.repeat(64000))).allowed).toBe(true);
+    const oversized = await limiter.checkRateLimit('x'.repeat(64001));
+    expect(oversized.allowed).toBe(false);
+    expect(oversized.reason).toContain('64000');
   });
 });

@@ -137,7 +137,7 @@ export class RateLimiterService {
       // Mirrors the server's authoritative cap (uml-agent-rate-limiter-resource
       // .ts): 1000 rejected legitimate messages such as a pasted traceback, so
       // the bound is set where only a runaway paste reaches it (2026-09-14).
-      maxMessageLength: options?.maxMessageLength ?? 32000,
+      maxMessageLength: options?.maxMessageLength ?? 64000,
       cooldownPeriodMs: options?.cooldownPeriodMs ?? 1500,
     };
 

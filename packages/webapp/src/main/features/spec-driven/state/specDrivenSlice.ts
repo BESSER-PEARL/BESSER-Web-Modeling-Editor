@@ -225,6 +225,11 @@ export function applySpecDrivenEvent(
         downloadUrl: event.downloadUrl,
         fileName: event.fileName,
         isZip: event.isZip,
+        incomplete: (event.blockerCount ?? 0) > 0 || (event.incomplete ?? card.warnings.some(
+          (warning) => warning.code === 'INCOMPLETE' && warning.severity !== 'info',
+        )),
+        incompleteReason: event.incompleteReason ?? undefined,
+        blockerCount: event.blockerCount,
         generatorUsed:
           typeof event.recipe?.generator_used === 'string'
             ? event.recipe.generator_used
@@ -237,10 +242,8 @@ export function applySpecDrivenEvent(
           typeof event.tokensUsed === 'number' && event.tokensUsed > 0
             ? event.tokensUsed
             : undefined,
-        // Honest efficiency headline for the card: the share of files BESSER's
-        // deterministic generator produced for free (0 LLM tokens). Shown as a
-        // "N% deterministic" badge instead of the misleading cumulative token
-        // count. Only trust the split when the backend reported a non-empty
+        // File provenance, not requirements coverage or token savings.
+        // Only trust the split when the backend reported a non-empty
         // total (older backends omit fileSplit entirely).
         detPct:
           typeof event.fileSplit?.total === 'number' &&

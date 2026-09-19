@@ -55,6 +55,44 @@ const oclLinks = (model: any) =>
 const classIdByName = (model: any, name: string) =>
   (Object.values(model.elements) as any[]).find((e: any) => e.type === 'Class' && e.name === name)?.id;
 
+describe('ClassDiagramConverter — native association classes', () => {
+  const spec = {
+    ...HOTEL_SPEC,
+    classes: [...HOTEL_SPEC.classes, {
+      className: 'ReservedRoom', methods: [], attributes: [
+        { name: 'agreedPrice', type: 'float' }, { name: 'extraCharges', type: 'float' }
+      ]
+    }],
+    relationships: [{ ...HOTEL_SPEC.relationships[0], sourceRole: 'bookings', associationClass: 'ReservedRoom' }]
+  };
+
+  it('attaches the attribute class to the direct association, preserving roles and bounds', () => {
+    const model = new ClassDiagramConverter().convertCompleteSystem(spec);
+    const links = Object.values(model.relationships).filter((r: any) => r.type === 'ClassLinkRel');
+    expect(links).toHaveLength(1);
+    const link = links[0] as any;
+    expect(link.source.element).toBe(classIdByName(model, 'ReservedRoom'));
+    const association = model.relationships[link.target.element];
+    expect(association.type).toBe('ClassBidirectional');
+    expect(association.source).toMatchObject({ role: 'bookings', multiplicity: '0..*' });
+    expect(association.target).toMatchObject({ role: 'rooms', multiplicity: '1..*' });
+    const attributes = model.elements[link.source.element].attributes.map((id: string) => model.elements[id].name);
+    expect(attributes).toEqual(['agreedPrice', 'extraCharges']);
+    // Ordinary specs remain ordinary; never infer an attachment from a name.
+    const plain = new ClassDiagramConverter().convertCompleteSystem({ ...spec, relationships: HOTEL_SPEC.relationships });
+    expect(Object.values(plain.relationships).some((r: any) => r.type === 'ClassLinkRel')).toBe(false);
+  });
+
+  it('rejects missing or multiply attached classes instead of silently discarding link attributes', () => {
+    expect(() => new ClassDiagramConverter().convertCompleteSystem({
+      ...spec, relationships: [{ ...spec.relationships[0], associationClass: 'Missing' }]
+    })).toThrow('Invalid association-class attachment');
+    expect(() => new ClassDiagramConverter().convertCompleteSystem({
+      ...spec, relationships: [...spec.relationships, ...spec.relationships]
+    })).toThrow('Invalid association-class attachment');
+  });
+});
+
 describe('ClassDiagramConverter — OCL constraints', () => {
   it('emits one constraint element per context class', () => {
     const model = new ClassDiagramConverter().convertCompleteSystem(HOTEL_SPEC);

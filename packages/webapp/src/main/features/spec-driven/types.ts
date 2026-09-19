@@ -152,12 +152,11 @@ export interface DoneEvent {
    * each turn, so it is NOT a clean measure of effort — prefer `fileSplit`
    * (below) as the honest headline. */
   tokensUsed?: number;
-  /** Deterministic-vs-LLM file breakdown from the backend — the honest "how
-   * much did the generator produce for free" signal. `generator_untouched` =
-   * files the deterministic generator wrote and the LLM never touched (0 LLM
-   * tokens); `generator_llm_modified` = generator-written then LLM-edited;
-   * `llm_authored` = written from scratch by the LLM. `*_pct` are the same as
-   * percentages of `total`. */
+  /** File provenance in this run, not correctness, coverage, or token savings.
+   * `generator_untouched` = generator-tagged files not edited this run;
+   * `generator_llm_modified` = generator-tagged files edited this run;
+   * `llm_authored` = all other files, including harness-created files.
+   * `*_pct` are percentages of the total file count. */
   fileSplit?: {
     generator_untouched?: number;
     generator_llm_modified?: number;
@@ -167,8 +166,7 @@ export interface DoneEvent {
     generator_llm_modified_pct?: number;
     llm_authored_pct?: number;
   };
-  /** True when output was produced but the customization loop did not
-   * finish cleanly — the download may be missing requested changes. */
+  /** Output exists, but the run stopped early or left unresolved blockers. */
   incomplete?: boolean;
   incompleteReason?: string;
   /** Number of unresolved blocker-severity issues left by a run whose
