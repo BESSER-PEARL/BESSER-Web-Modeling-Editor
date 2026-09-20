@@ -582,6 +582,14 @@ export function useAssistantLogic({
       // instead of staying blind to the run's outcome.
       try {
         if (!assistantClient) return;
+        // Rules the run checked and found MISSING from the delivered code.
+        // Reported separately from blockerCount so the agent can never
+        // summarise such a run as an unqualified success.
+        const unenforced = result.verificationCounts?.shippedUnenforced ?? 0;
+        const unenforcedNote =
+          unenforced > 0
+            ? ` ${unenforced} rule${unenforced === 1 ? '' : 's'} the user asked for ${unenforced === 1 ? 'is' : 'are'} NOT enforced in the delivered code; the run card lists ${unenforced === 1 ? 'it' : 'them'} with the reason.`
+            : '';
         const messageText = result.ok
           ? result.incomplete
             ? typeof result.blockerCount === 'number' && result.blockerCount > 0
@@ -596,7 +604,7 @@ export function useAssistantLogic({
             : `Spec-Driven Agent failed (${result.errorCode ?? 'UNKNOWN'}).`;
         assistantClient.sendFrontendEvent('generator_result', {
           ok: result.ok,
-          message: messageText,
+          message: result.ok ? `${messageText}${unenforcedNote}` : messageText,
           metadata: {
             smart: true,
             runId: result.runId,
@@ -606,6 +614,7 @@ export function useAssistantLogic({
             incomplete: result.incomplete,
             incompleteReason: result.incompleteReason,
             blockerCount: result.blockerCount,
+            verification: result.verificationCounts,
           },
         });
       } catch (error) {

@@ -9,8 +9,11 @@ import {
   Code2,
   Download,
   Github,
+  HelpCircle,
   Info,
   Loader2,
+  ShieldAlert,
+  ShieldCheck,
   Sparkles,
   Square,
   Terminal,
@@ -180,6 +183,37 @@ export interface SpecDrivenWarningView {
   severity?: "info" | "warning" | "error"
 }
 
+/**
+ * One thing the run checked, could not check, or found missing from the
+ * delivered code. Mirrors the backend's `VerificationItem`.
+ */
+export interface SpecDrivenVerificationItemView {
+  kind: "requirement" | "ocl_constraint" | "api_workflow" | "check"
+  /** Stable label (`R7`, an OCL constraint name, a scenario id). May be "". */
+  id: string
+  what: string
+  /** VERIFIED items: what was actually run or re-checked. */
+  how?: string
+  /** The other two: why nothing reached it, or what is missing. */
+  why?: string
+}
+
+/**
+ * The three states a blocker count collapses into one number. `counts`
+ * carries the TRUE totals — the lists are capped by the backend, so the
+ * panel says "showing 5 of 23" rather than quietly under-reporting.
+ */
+export interface SpecDrivenVerificationView {
+  verified: SpecDrivenVerificationItemView[]
+  notVerified: SpecDrivenVerificationItemView[]
+  shippedUnenforced: SpecDrivenVerificationItemView[]
+  counts: {
+    verified: number
+    notVerified: number
+    shippedUnenforced: number
+  }
+}
+
 export interface SpecDrivenMessageState {
   /**
    * Live-run subscription key (client-generated, assigned before the
@@ -202,6 +236,13 @@ export interface SpecDrivenMessageState {
   incomplete?: boolean
   incompleteReason?: string
   blockerCount?: number
+  /**
+   * What the run verified, could not verify, and shipped UNENFORCED. This is
+   * the field a human reads; `blockerCount` is the same evidence collapsed to
+   * one number. Undefined on older or interrupted runs — the card then falls
+   * back to the blocker-count summary.
+   */
+  verification?: SpecDrivenVerificationView
   /** Live spend so far in USD (from the backend's 2s cost events). */
   costUsd?: number
   /** Elapsed run time in seconds (from the backend's 2s cost events). */
@@ -825,6 +866,295 @@ function SpecDrivenNoticeList({
   )
 }
 
+/* ------------------------------------------------------------------ */
+/*  Verification report — what the delivered app actually enforces     */
+/* ------------------------------------------------------------------ */
+
+const VERIFICATION_KIND_LABELS: Record<
+  SpecDrivenVerificationItemView["kind"],
+  string
+> = {
+  requirement: "Requirement",
+  ocl_constraint: "Model constraint",
+  api_workflow: "API workflow",
+  check: "Check",
+}
+
+type VerificationTone = "unenforced" | "unchecked" | "verified"
+
+const VERIFICATION_TONES: Record<
+  VerificationTone,
+  { body: string; chip: string; rule: string }
+> = {
+  unenforced: {
+    body: "bg-red-50 text-red-900 dark:bg-red-950/30 dark:text-red-100",
+    chip: "bg-red-100 text-red-800 dark:bg-red-900/50 dark:text-red-200",
+    rule: "border-red-200 dark:border-red-900/50",
+  },
+  unchecked: {
+    body: "bg-amber-50/70 text-amber-900 dark:bg-amber-950/20 dark:text-amber-100",
+    chip: "bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-200",
+    rule: "border-amber-200 dark:border-amber-900/40",
+  },
+  verified: {
+    body: "bg-emerald-50/70 text-emerald-900 dark:bg-emerald-950/20 dark:text-emerald-100",
+    chip: "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-200",
+    rule: "border-emerald-200 dark:border-emerald-900/40",
+  },
+}
+
+/**
+ * One finding. `what` is the thing; `why` / `how` are the payload — the
+ * evidence that makes the verdict checkable — so neither is clamped or
+ * ellipsised. The backend already caps each string at 240 characters.
+ */
+function VerificationItemRow({
+  item,
+  tone,
+}: {
+  item: SpecDrivenVerificationItemView
+  tone: VerificationTone
+}) {
+  const styles = VERIFICATION_TONES[tone]
+  return (
+    <li className={cn("border-t px-3 py-2 first:border-t-0", styles.rule)}>
+      <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
+        <span
+          className={cn(
+            "rounded px-1.5 py-0.5 font-mono text-[10px] uppercase tracking-wider",
+            styles.chip
+          )}
+        >
+          {VERIFICATION_KIND_LABELS[item.kind]}
+        </span>
+        {item.id ? (
+          <span className="font-mono text-[10px] opacity-70">{item.id}</span>
+        ) : null}
+      </div>
+      <p className="mt-1 whitespace-pre-wrap break-words text-[12px] font-medium leading-snug">
+        {item.what}
+      </p>
+      {item.why ? (
+        <p className="mt-1 whitespace-pre-wrap break-words text-[11px] leading-snug opacity-90">
+          <span className="font-semibold">Why: </span>
+          {item.why}
+        </p>
+      ) : null}
+      {item.how ? (
+        <p className="mt-1 whitespace-pre-wrap break-words text-[11px] leading-snug opacity-90">
+          <span className="font-semibold">Checked by: </span>
+          {item.how}
+        </p>
+      ) : null}
+    </li>
+  )
+}
+
+/** "Showing 5 of 23." — the lists are capped, `counts` carries the truth. */
+function VerificationCapNote({
+  shown,
+  total,
+  className,
+}: {
+  shown: number
+  total: number
+  className?: string
+}) {
+  if (total <= shown) return null
+  return (
+    <p className={cn("px-3 py-1.5 text-[10px] opacity-80", className)}>
+      Showing {shown} of {total}. The full list is in the run report inside the
+      downloaded project.
+    </p>
+  )
+}
+
+/**
+ * A ledger row for the two NON-headline states. Collapsed by default, but
+ * the count is always on the row: the number is never hidden, only the
+ * detail behind it.
+ */
+function VerificationSection({
+  label,
+  blurb,
+  emptyNote,
+  count,
+  items,
+  tone,
+  icon: Icon,
+}: {
+  label: string
+  blurb: string
+  emptyNote: string
+  count: number
+  items: SpecDrivenVerificationItemView[]
+  tone: VerificationTone
+  icon: React.ComponentType<{ className?: string }>
+}) {
+  const [expanded, setExpanded] = useState(false)
+  const styles = VERIFICATION_TONES[tone]
+  const isEmpty = count === 0
+
+  return (
+    <div className="border-t border-border/40">
+      <button
+        type="button"
+        onClick={() => {
+          if (!isEmpty) setExpanded((v) => !v)
+        }}
+        aria-expanded={isEmpty ? undefined : expanded}
+        disabled={isEmpty}
+        className={cn(
+          "flex w-full items-center gap-2 px-3 py-2 text-left text-xs",
+          isEmpty ? "cursor-default text-muted-foreground" : "hover:bg-muted/60"
+        )}
+      >
+        <Icon
+          className={cn(
+            "h-3.5 w-3.5 shrink-0",
+            isEmpty ? "opacity-50" : undefined
+          )}
+        />
+        <span className="font-medium text-foreground">{label}</span>
+        <span
+          className={cn(
+            "rounded-full px-1.5 py-0.5 font-mono text-[10px] font-semibold",
+            isEmpty ? "bg-muted text-muted-foreground" : styles.chip
+          )}
+        >
+          {count}
+        </span>
+        <span className="min-w-0 flex-1 truncate text-[11px] text-muted-foreground">
+          {isEmpty ? emptyNote : blurb}
+        </span>
+        {isEmpty ? null : (
+          <ChevronRight
+            className={cn(
+              "h-3 w-3 shrink-0 transition-transform",
+              expanded ? "rotate-90" : undefined
+            )}
+          />
+        )}
+      </button>
+      {expanded && items.length > 0 ? (
+        <div className={styles.body}>
+          <ul className="flex flex-col">
+            {items.map((item, i) => (
+              <VerificationItemRow
+                key={`${item.kind}-${item.id}-${i}`}
+                item={item}
+                tone={tone}
+              />
+            ))}
+          </ul>
+          <VerificationCapNote shown={items.length} total={count} />
+        </div>
+      ) : null}
+      {expanded && items.length === 0 ? (
+        <p className="border-t border-border/40 px-3 py-2 text-[11px] text-muted-foreground">
+          The run counted {count} of these but sent no detail for them.
+        </p>
+      ) : null}
+    </div>
+  )
+}
+
+/**
+ * The verification report: three visually distinct states, each labelled
+ * with the TRUE total from `counts` rather than the capped list length.
+ *
+ * `shippedUnenforced` is the headline and is never collapsed. "Your app was
+ * delivered, and these rules you asked for are not enforced" is the single
+ * most important sentence this product can say, and a disclosure triangle is
+ * exactly how it got lost inside "21 blockers".
+ */
+function SpecDrivenVerificationPanel({
+  verification,
+}: {
+  verification: SpecDrivenVerificationView
+}) {
+  const { verified, notVerified, shippedUnenforced, counts } = verification
+  const unenforced = counts.shippedUnenforced
+  const alarm = VERIFICATION_TONES.unenforced
+
+  return (
+    <div className="border-t border-border/60">
+      {unenforced > 0 ? (
+        <section className={cn(alarm.body, "border-b-2", alarm.rule)}>
+          <div className="flex items-start gap-2 px-3 py-2">
+            <ShieldAlert className="mt-0.5 h-4 w-4 shrink-0" />
+            <div className="min-w-0">
+              <p className="text-[13px] font-semibold leading-snug">
+                Delivered, but {unenforced}{" "}
+                {unenforced === 1
+                  ? "rule you asked for is"
+                  : "rules you asked for are"}{" "}
+                not enforced
+              </p>
+              <p className="mt-0.5 text-[11px] leading-snug opacity-90">
+                The application was generated and can be downloaded. Nothing in
+                the delivered code enforces the following, so any behaviour
+                that depends on {unenforced === 1 ? "it" : "them"} is
+                unprotected.
+              </p>
+            </div>
+          </div>
+          <ul className={cn("flex flex-col border-t", alarm.rule)}>
+            {shippedUnenforced.map((item, i) => (
+              <VerificationItemRow
+                key={`${item.kind}-${item.id}-${i}`}
+                item={item}
+                tone="unenforced"
+              />
+            ))}
+          </ul>
+          <VerificationCapNote
+            shown={shippedUnenforced.length}
+            total={unenforced}
+            className={cn("border-t", alarm.rule)}
+          />
+        </section>
+      ) : (
+        <VerificationSection
+          label="Not enforced"
+          count={0}
+          items={[]}
+          tone="unenforced"
+          icon={ShieldAlert}
+          blurb=""
+          emptyNote="Nothing we checked was found missing from the delivered code."
+        />
+      )}
+
+      <VerificationSection
+        label="Could not verify"
+        count={counts.notVerified}
+        items={notVerified}
+        tone="unchecked"
+        icon={HelpCircle}
+        blurb="Unknown, not absent — no evidence either way."
+        emptyNote="Everything in scope reached a verdict."
+      />
+
+      <VerificationSection
+        label="Verified"
+        count={counts.verified}
+        items={verified}
+        tone="verified"
+        icon={ShieldCheck}
+        blurb="Checked against the delivered code, with the evidence."
+        emptyNote="Nothing was confirmed working in this run."
+      />
+
+      <p className="border-t border-border/40 px-3 py-1.5 text-[10px] text-muted-foreground">
+        Verified means we ran or re-checked it against the delivered code.
+        Could not verify means there is no evidence either way — it is not a
+        pass.
+      </p>
+    </div>
+  )
+}
+
 /** `3m 10s` / `45s` / `10m` — compact duration for the runtime meter. */
 function formatDuration(totalSeconds: number): string {
   const s = Math.max(0, Math.round(totalSeconds))
@@ -949,6 +1279,7 @@ function SpecDrivenCard({
     incomplete,
     incompleteReason,
     blockerCount,
+    verification,
     costUsd,
     elapsedSeconds,
     maxRuntime,
@@ -1066,17 +1397,37 @@ function SpecDrivenCard({
         warning.code === "INCOMPLETE" && warning.severity !== "info"
       )
     )
+    // Rules the run CHECKED and found missing from the delivered code. This
+    // outranks every other status: a run can finish clean, report zero
+    // blockers and still ship an app that does not enforce what was asked
+    // for (an app scored 11/11 double-sold rooms that way). Never let such a
+    // run render as "Application ready".
+    const unenforcedCount = verification?.counts.shippedUnenforced ?? 0
     return (
       <div className="w-full overflow-hidden rounded-lg border border-border/60 bg-muted/40 text-sm">
         <div className="flex flex-wrap items-center gap-x-2 gap-y-1 px-3 py-2 text-xs">
-          {isIncomplete ? (
+          {unenforcedCount > 0 ? (
+            <ShieldAlert className="h-3.5 w-3.5 shrink-0 text-red-600 dark:text-red-400" />
+          ) : isIncomplete ? (
             <AlertTriangle className="h-3.5 w-3.5 shrink-0 text-amber-600" />
           ) : (
             <Sparkles className="h-3.5 w-3.5 shrink-0 text-primary" />
           )}
           <span className="text-[13px] font-medium text-foreground">
-            {isIncomplete ? "Generated — incomplete" : deterministic ? "Generated deterministically" : "Application ready"}
+            {unenforcedCount > 0
+              ? "Delivered — rules not enforced"
+              : isIncomplete
+                ? "Generated — incomplete"
+                : deterministic
+                  ? "Generated deterministically"
+                  : "Application ready"}
           </span>
+          {unenforcedCount > 0 ? (
+            <span className="text-[11px] font-semibold text-red-700 dark:text-red-400">
+              · {unenforcedCount} rule{unenforcedCount === 1 ? "" : "s"} not
+              enforced
+            </span>
+          ) : null}
           {isIncomplete && (blockerCount ?? 0) > 0 ? (
             <span className="text-[11px] text-amber-700 dark:text-amber-400">
               · {blockerCount} unresolved blocker{blockerCount === 1 ? "" : "s"}
@@ -1180,6 +1531,12 @@ function SpecDrivenCard({
             ) : null}
           </span>
         </div>
+        {/* What the app actually enforces. Absent on older / interrupted
+            runs — the compact summary above then stands on its own. */}
+        {verification ? (
+          <SpecDrivenVerificationPanel verification={verification} />
+        ) : null}
+
         {isIncomplete && incompleteReason && !warnings.some((warning) => warning.code === "INCOMPLETE") ? (
           <p className="border-t border-border/40 px-3 py-2 text-xs text-amber-700 dark:text-amber-400">
             {incompleteReason}

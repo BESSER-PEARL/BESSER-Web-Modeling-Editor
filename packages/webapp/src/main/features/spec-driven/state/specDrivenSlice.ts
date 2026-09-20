@@ -33,6 +33,7 @@ import type {
   SpecDrivenEvent,
   SpecDrivenPhase,
   SpecDrivenProvider,
+  SpecDrivenVerificationItem,
   TriggerSpecDrivenPayload,
 } from '../types';
 
@@ -117,6 +118,83 @@ export function extractTokenUsage(
     return undefined;
   }
   return { input, output, cacheRead, total };
+}
+
+const VERIFICATION_KINDS: ReadonlySet<string> = new Set([
+  'requirement',
+  'ocl_constraint',
+  'api_workflow',
+  'check',
+]);
+
+const readVerificationItems = (raw: unknown): SpecDrivenVerificationItem[] => {
+  if (!Array.isArray(raw)) return [];
+  const items: SpecDrivenVerificationItem[] = [];
+  for (const entry of raw) {
+    if (!entry || typeof entry !== 'object') continue;
+    const e = entry as Record<string, unknown>;
+    const what = typeof e.what === 'string' ? e.what.trim() : '';
+    // An item with nothing to say is worse than no row: it reads as a
+    // finding the user cannot act on. Drop it.
+    if (!what) continue;
+    const kind =
+      typeof e.kind === 'string' && VERIFICATION_KINDS.has(e.kind)
+        ? (e.kind as SpecDrivenVerificationItem['kind'])
+        : 'check';
+    items.push({
+      kind,
+      id: typeof e.id === 'string' ? e.id : '',
+      what,
+      how: typeof e.how === 'string' && e.how.trim() ? e.how.trim() : undefined,
+      why: typeof e.why === 'string' && e.why.trim() ? e.why.trim() : undefined,
+    });
+  }
+  return items;
+};
+
+/**
+ * Normalise the done event's `verification` report into what the card
+ * renders. The three lists are CAPPED by the backend while `counts` carries
+ * the true totals, so a count below its own list length is a backend bug —
+ * clamp up rather than render "showing 12 of 3".
+ *
+ * Returns `undefined` when the report is absent or says nothing (older
+ * backends, interrupted runs): the card then falls back to its existing
+ * blocker-count summary instead of rendering an empty shell.
+ */
+export function extractVerification(
+  raw: unknown,
+): SpecDrivenMessageState['verification'] {
+  if (!raw || typeof raw !== 'object') return undefined;
+  const r = raw as Record<string, unknown>;
+  const verified = readVerificationItems(r.verified);
+  const notVerified = readVerificationItems(r.notVerified);
+  const shippedUnenforced = readVerificationItems(r.shippedUnenforced);
+  const rawCounts =
+    r.counts && typeof r.counts === 'object'
+      ? (r.counts as Record<string, unknown>)
+      : {};
+  const count = (key: string, listed: number): number => {
+    const value = rawCounts[key];
+    const n =
+      typeof value === 'number' && Number.isFinite(value) && value >= 0
+        ? Math.round(value)
+        : 0;
+    return Math.max(n, listed);
+  };
+  const counts = {
+    verified: count('verified', verified.length),
+    notVerified: count('notVerified', notVerified.length),
+    shippedUnenforced: count('shippedUnenforced', shippedUnenforced.length),
+  };
+  if (
+    counts.verified === 0 &&
+    counts.notVerified === 0 &&
+    counts.shippedUnenforced === 0
+  ) {
+    return undefined;
+  }
+  return { verified, notVerified, shippedUnenforced, counts };
 }
 
 export function applySpecDrivenEvent(
@@ -269,6 +347,9 @@ export function applySpecDrivenEvent(
         // context as a secondary throughput number — instead of the
         // misleading cumulative total that re-counts re-sent context.
         tokenUsage: extractTokenUsage(event.recipe),
+        // The three states the blocker count collapses. Undefined for older
+        // backends — the card keeps its blocker-count summary then.
+        verification: extractVerification(event.verification),
         status: 'done',
         // The run never auto-saves the artifact (consent fix) — the card
         // surfaces an explicit Download button instead.

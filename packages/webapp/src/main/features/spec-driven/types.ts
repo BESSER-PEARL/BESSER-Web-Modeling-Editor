@@ -133,6 +133,49 @@ export interface CostEvent {
   elapsedSeconds: number;
 }
 
+/**
+ * What the run checked, could not check, and shipped unenforced.
+ *
+ * A blocker count is one number over three different results. An app scored
+ * 11/11 with a passing booking workflow still double-sold rooms because two
+ * OCL constraints failed conversion and never reached the generated code —
+ * the run knew, and the number hid it. Mirrors ``VerificationReport`` /
+ * ``VerificationItem`` in the backend's ``sse_events.py``.
+ */
+export type SpecDrivenVerificationKind =
+  | 'requirement'
+  | 'ocl_constraint'
+  | 'api_workflow'
+  | 'check';
+
+export interface SpecDrivenVerificationItem {
+  kind: SpecDrivenVerificationKind;
+  /** Stable label (`R7`, an OCL constraint name, a scenario id). May be ''. */
+  id: string;
+  /** What the thing is, in the user's terms. */
+  what: string;
+  /** Set on a VERIFIED item: what was actually run or re-checked. */
+  how?: string;
+  /** Set on the other two: why nothing reached it, or what is missing. */
+  why?: string;
+}
+
+export interface SpecDrivenVerificationReport {
+  /** We checked and it works. */
+  verified: SpecDrivenVerificationItem[];
+  /** We could not check — unknown, not absent. */
+  notVerified: SpecDrivenVerificationItem[];
+  /** We checked and it is MISSING from the delivered code. */
+  shippedUnenforced: SpecDrivenVerificationItem[];
+  /** TRUE totals. The three lists above are capped by the backend, so a
+   * count may exceed its list length — the UI says "showing N of M". */
+  counts: {
+    verified: number;
+    notVerified: number;
+    shippedUnenforced: number;
+  };
+}
+
 export interface DoneEvent {
   event: 'done';
   /** Run id carried explicitly by newer backends; older backends only
@@ -174,6 +217,11 @@ export interface DoneEvent {
    * "finished with N unresolved issues" framing instead of the
    * misleading "stopped early" copy. */
   blockerCount?: number;
+  /** The three states `blockerCount` collapses into one number: what the run
+   * verified, what it could not check, and what it delivered UNENFORCED.
+   * Additive — absent on older/interrupted runs, in which case the card
+   * falls back to the blocker-count summary. */
+  verification?: SpecDrivenVerificationReport;
 }
 
 export interface SpecDrivenErrorEvent {

@@ -7,6 +7,7 @@ import {
   closePushDialog,
   consumePendingTrigger,
   extractTokenUsage,
+  extractVerification,
   isSpecDrivenRunActive,
   liveRunEnded,
   liveRunEvent,
@@ -523,5 +524,108 @@ describe('specDrivenSlice — atomic thunks', () => {
     store.dispatch(releaseRunSlot());
     expect(store.dispatch(isSpecDrivenRunActive())).toBe(false);
     expect(store.dispatch(tryClaimRunSlot())).toBe(true);
+  });
+});
+
+/* ------------------------------------------------------------------ */
+/*  extractVerification — the three states a blocker count collapses   */
+/* ------------------------------------------------------------------ */
+
+describe('extractVerification', () => {
+  const BASE_CARD = {
+    phases: [],
+    warnings: [],
+    text: '',
+    status: 'running' as const,
+  };
+  const ITEM = {
+    kind: 'ocl_constraint',
+    id: 'noDoubleBooking',
+    what: "OCL invariant 'noDoubleBooking' on Booking",
+    why: 'the OCL converter rejected it, so it never reached the generated code',
+  };
+
+  it('returns undefined when the report is absent or says nothing', () => {
+    expect(extractVerification(undefined)).toBeUndefined();
+    expect(extractVerification(null)).toBeUndefined();
+    expect(extractVerification('nope')).toBeUndefined();
+    expect(
+      extractVerification({
+        verified: [],
+        notVerified: [],
+        shippedUnenforced: [],
+        counts: { verified: 0, notVerified: 0, shippedUnenforced: 0 },
+      }),
+    ).toBeUndefined();
+  });
+
+  it('keeps the true totals from counts, not the capped list lengths', () => {
+    const report = extractVerification({
+      verified: [],
+      notVerified: [],
+      shippedUnenforced: [ITEM],
+      counts: { verified: 11, notVerified: 4, shippedUnenforced: 23 },
+    });
+    expect(report?.counts).toEqual({
+      verified: 11,
+      notVerified: 4,
+      shippedUnenforced: 23,
+    });
+    expect(report?.shippedUnenforced).toHaveLength(1);
+  });
+
+  it('clamps a count UP to its own list length rather than under-reporting', () => {
+    const report = extractVerification({
+      shippedUnenforced: [ITEM, { ...ITEM, id: 'other' }],
+      counts: { shippedUnenforced: 0 },
+    });
+    expect(report?.counts.shippedUnenforced).toBe(2);
+  });
+
+  it('drops items with nothing to say and normalises an unknown kind', () => {
+    const report = extractVerification({
+      notVerified: [
+        { kind: 'requirement', id: 'R1', what: '   ' },
+        { kind: 'not_a_kind', id: 'R2', what: 'a thing', why: '  ' },
+        'garbage',
+      ],
+      counts: { notVerified: 2 },
+    });
+    expect(report?.notVerified).toEqual([
+      { kind: 'check', id: 'R2', what: 'a thing', how: undefined, why: undefined },
+    ]);
+  });
+
+  it('lands on the card when the done event carries it', () => {
+    const card = applySpecDrivenEvent(BASE_CARD, {
+      event: 'done',
+      runId: 'c'.repeat(32),
+      downloadUrl: '/besser_api/spec-driven/download/' + 'c'.repeat(32),
+      fileName: 'app.zip',
+      isZip: true,
+      recipe: {},
+      blockerCount: 21,
+      verification: {
+        verified: [],
+        notVerified: [],
+        shippedUnenforced: [ITEM],
+        counts: { verified: 9, notVerified: 3, shippedUnenforced: 2 },
+      },
+    } as unknown as SpecDrivenEvent);
+    expect(card.verification?.counts.shippedUnenforced).toBe(2);
+    expect(card.verification?.shippedUnenforced[0].id).toBe('noDoubleBooking');
+  });
+
+  it('leaves the card untouched for an older backend that sends no report', () => {
+    const card = applySpecDrivenEvent(BASE_CARD, {
+      event: 'done',
+      runId: 'd'.repeat(32),
+      downloadUrl: '/besser_api/spec-driven/download/' + 'd'.repeat(32),
+      fileName: 'app.zip',
+      isZip: true,
+      recipe: {},
+    } as unknown as SpecDrivenEvent);
+    expect(card.verification).toBeUndefined();
+    expect(card.status).toBe('done');
   });
 });

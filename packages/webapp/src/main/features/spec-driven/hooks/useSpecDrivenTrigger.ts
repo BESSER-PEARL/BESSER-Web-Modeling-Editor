@@ -192,6 +192,15 @@ export interface SpecDrivenRunResult {
    * agent report "finished with N unresolved issues" instead of the
    * misleading "stopped early". */
   blockerCount?: number;
+  /** TRUE totals from the done event's verification report — what the run
+   * verified, could not verify, and delivered UNENFORCED. `blockerCount` is
+   * the same evidence collapsed to one number; `shippedUnenforced` is the
+   * one the agent must not round off to "success". */
+  verificationCounts?: {
+    verified: number;
+    notVerified: number;
+    shippedUnenforced: number;
+  };
 }
 
 export interface UseSpecDrivenTriggerOptions {
@@ -604,6 +613,22 @@ export function useSpecDrivenTrigger(
             typeof event.blockerCount === 'number' && event.blockerCount > 0
               ? event.blockerCount
               : 0;
+          // Rules the run CHECKED and found missing from the delivered code.
+          // Independent of `incomplete` and of `blockerCount`: a run can
+          // finish clean, report zero blockers, and still ship an app that
+          // does not enforce what the user asked for.
+          const vCounts = event.verification?.counts;
+          const verificationCounts = vCounts
+            ? {
+                verified: Math.max(0, Math.round(vCounts.verified ?? 0)),
+                notVerified: Math.max(0, Math.round(vCounts.notVerified ?? 0)),
+                shippedUnenforced: Math.max(
+                  0,
+                  Math.round(vCounts.shippedUnenforced ?? 0),
+                ),
+              }
+            : undefined;
+          const unenforcedCount = verificationCounts?.shippedUnenforced ?? 0;
           const incomplete = dispatch(readLiveSpecDrivenRun(run.liveKey))?.incomplete === true;
           // Record this output as the base for a future
           // incremental vibe-modify of the SAME project — both in the
@@ -671,12 +696,24 @@ export function useSpecDrivenTrigger(
               blockerCount > 0
                 ? `⚠️ Generated ${filesPhrase}${withGen}, but the run **finished with ${blockerCount} unresolved implementation or verification issue${blockerCount === 1 ? '' : 's'}**. The generated app is **not verified complete**.${topPhrase} Start a follow-up generation to address ${blockerCount === 1 ? 'it' : 'them'}, or use the **Download** button on the run card to save the code as-is.`
                 : `⚠️ Generated ${filesPhrase}${withGen}, but the run **stopped early — the output may be incomplete**.${event.incompleteReason ? ` ${event.incompleteReason}` : ``}${topPhrase} Start another generation to finish the remaining changes, or use the **Download** button on the run card to save it.`;
+            // The headline the blocker count used to hide: the app was
+            // delivered and these rules are NOT in it.
+            const unenforcedPhrase =
+              unenforcedCount > 0
+                ? `**${unenforcedCount} rule${unenforcedCount === 1 ? '' : 's'} you asked for ${unenforcedCount === 1 ? 'is' : 'are'} not enforced in the delivered code** — the run card lists ${unenforcedCount === 1 ? 'it' : 'each of them'} and why.`
+                : '';
             appendAssistantMessage(
               incomplete
-                ? incompleteMessage
-                : `✅ Generated ${filesPhrase}${withGen}.${splitPhrase}${topPhrase} Use the **Download** button on the run card to save it.`,
+                ? `${incompleteMessage}${unenforcedPhrase ? ` ${unenforcedPhrase}` : ''}`
+                : unenforcedCount > 0
+                  ? `⚠️ Generated ${filesPhrase}${withGen}, but ${unenforcedPhrase}${topPhrase} Use the **Download** button on the run card to save the code as-is.`
+                  : `✅ Generated ${filesPhrase}${withGen}.${splitPhrase}${topPhrase} Use the **Download** button on the run card to save it.`,
             );
-            if (incomplete) {
+            if (unenforcedCount > 0) {
+              toast.warning(
+                `Delivered — ${unenforcedCount} rule${unenforcedCount === 1 ? '' : 's'} not enforced`,
+              );
+            } else if (incomplete) {
               toast.warning('Generation incomplete — output available to inspect');
             } else {
               toast.success('Spec-Driven Agent finished -- ready to download');
@@ -693,6 +730,7 @@ export function useSpecDrivenTrigger(
             incomplete,
             incompleteReason: event.incompleteReason,
             blockerCount: blockerCount > 0 ? blockerCount : undefined,
+            verificationCounts,
           });
           return;
         }
