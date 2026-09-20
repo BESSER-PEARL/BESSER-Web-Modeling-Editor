@@ -82,7 +82,10 @@ describe('getSpecDrivenConfig', () => {
     expect(config.caps.max_cost_usd_hard_cap).toBe(5.0);
     expect(config.caps.max_runtime_seconds_hard_cap).toBe(2400);
     expect(config.caps.default_max_cost_usd).toBe(5.0);
-    expect(config.caps.default_max_runtime_seconds).toBe(1200);
+    // 2400 = LLM_DEFAULT_MAX_RUNTIME_SECONDS in the backend's constants.py,
+    // raised from 1200 in BESSER e0477a8c after two runs overran 1200 s and
+    // lost Phase 3.
+    expect(config.caps.default_max_runtime_seconds).toBe(2400);
   });
 
   it('falls back on a non-OK status', async () => {
