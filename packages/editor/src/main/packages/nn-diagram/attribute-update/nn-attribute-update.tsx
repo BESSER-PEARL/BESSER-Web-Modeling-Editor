@@ -29,6 +29,7 @@ import { ITensorOpAttribute, TensorOpAttribute } from '../nn-tensorop-attributes
 import { IConfigurationAttribute, ConfigurationAttribute } from '../nn-configuration-attributes/configuration-attributes';
 import { NNElementType } from '../index';
 import { validateOnChange, validateOnSubmit, ValidationContext } from '../nn-attribute-validators';
+import { TNS_TYPE_OPTIONS } from '../nn-attribute-widget-config';
 import { I18nContext } from '../../../components/i18n/i18n-context';
 import { localized } from '../../../components/i18n/localized';
 import { INNAttribute } from '../nn-component-attribute';
@@ -130,9 +131,9 @@ class NNAttributeUpdateComponent extends Component<Props, ComponentState> {
         // Each tns_type should start fresh with no optional attributes
         const childrenIds = tensorOpElement.ownedElements || [];
         childrenIds.forEach((childId: string) => {
-          const childElement = elements[childId];
+          const childElement = elements[childId] as INNAttribute | undefined;
           if (childElement && childElement.attributeName) {
-            const attrName = (childElement as any).attributeName;
+            const attrName = childElement.attributeName;
             // Delete all optional attributes (keep only name and tns_type)
             if (attrName !== 'name' && attrName !== 'tns_type') {
               this.props.delete(childId);
@@ -146,53 +147,6 @@ class NNAttributeUpdateComponent extends Component<Props, ComponentState> {
       value: String(newValue),
       name: `${element.attributeName} = ${String(newValue)}`
     } as Partial<INNAttribute>);
-  };
-
-  private getValidAttributeNamesForTnsType = (tnsType: string): string[] => {
-    const sharedForAll = ['input_reused', 'permute_in', 'permute_out', 'input_var', 'output_var'];
-
-    switch (tnsType) {
-      case 'reshape':
-        return [...sharedForAll, 'reshape_dim'];
-      case 'concatenate':
-        return [...sharedForAll, 'layers_of_tensors', 'concatenate_dim', 'actual_vars'];
-      case 'transpose':
-        return [...sharedForAll, 'transpose_dim'];
-      case 'permute':
-        return [...sharedForAll, 'permute_dim'];
-      case 'multiply':
-      case 'matmultiply':
-        return [...sharedForAll, 'layers_of_tensors'];
-      case 'split':
-        return [...sharedForAll, 'output_vars'];
-      case 'binop_add':
-      case 'binop_subtract':
-      case 'binop_multiply':
-      case 'binop_divide':
-      case 'binop_floor_divide':
-        return [...sharedForAll, 'actual_vars', 'layers_of_tensors'];
-      case 'mean':
-      case 'max':
-        return [...sharedForAll, 'reduce_dim'];
-      case 'squeeze':
-      case 'unsqueeze':
-        return [...sharedForAll, 'reduce_dim'];
-      case 'shape_dim':
-        return [...sharedForAll, 'reduce_dim'];
-      case 'normalize':
-        return [...sharedForAll, 'reduce_dim'];
-      case 'repeat':
-        return sharedForAll;
-      case 'zeros_like':
-        return sharedForAll;
-      case 'subscript':
-      case 'interpolate':
-      case 'pad':
-      case 'dropout':
-      case 'identity':
-      default:
-        return sharedForAll;
-    }
   };
 
   /**
@@ -450,7 +404,7 @@ class NNAttributeUpdateComponent extends Component<Props, ComponentState> {
 
     // Check if this is the tns_type attribute for TensorOp
     const isTnsType = element.type === NNElementType.TnsTypeAttributeTensorOp;
-    const tnsTypeOptions = ['binop_add', 'binop_divide', 'binop_floor_divide', 'binop_multiply', 'binop_subtract', 'concatenate', 'dropout', 'identity', 'interpolate', 'matmultiply', 'max', 'mean', 'multiply', 'normalize', 'pad', 'permute', 'repeat', 'reshape', 'shape_dim', 'split', 'squeeze', 'subscript', 'transpose', 'unsqueeze', 'zeros_like'];
+    const tnsTypeOptions = TNS_TYPE_OPTIONS;
 
     // Check if this is a padding_type attribute
     const isPaddingType = element.type === NNElementType.PaddingTypeAttributeConv1D ||

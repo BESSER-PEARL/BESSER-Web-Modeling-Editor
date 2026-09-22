@@ -14,6 +14,8 @@
 import {
   getAttributeDefaultValue,
   getListExpectation,
+  IDENTIFIER_LIST_PARTIAL_REGEX,
+  IDENTIFIER_LIST_REGEX,
   LIST_IDENTIFIER_PERMISSIVE_REGEX,
   LIST_IDENTIFIER_STRICT_REGEX,
   LIST_PERMISSIVE_REGEX,
@@ -68,7 +70,6 @@ export function interpolate(template: string, vars: Record<string, string | numb
   );
 }
 
-const IDENTIFIER_START_REGEX = /^[a-zA-Z]/;
 const INT_REGEX = /^-?\d+$/;
 // Tuple of integers with matched parentheses, e.g. (224, 224) or (112, 112, 112)
 const TUPLE_STRICT_REGEX = /^\(\s*\d+(\s*,\s*\d+)*\s*\)$/;
@@ -77,9 +78,18 @@ const TUPLE_PERMISSIVE_REGEX = /^(\((\d+(\s*,\s*\d+)*(\s*,?\s*)?)?\)?)$/;
 const defaultOf = (ctx: ValidationContext): string =>
   getAttributeDefaultValue({ attributeName: ctx.attributeName, value: ctx.currentValue });
 
-/** Identifier (input_var): must start with a letter. */
+/**
+ * Identifier (input_var): a full Python-style identifier, or a comma-separated
+ * list of them — the grammar `TensorOp.input_var` is checked against in
+ * `NN.validate()`. A leading letter alone is not enough: `my var`, `x-1` and
+ * `a!` all start with a letter and are all rejected server-side.
+ */
 const identifierValidator: AttributeValidator = {
-  check: (value) => (value === '' ? 'intermediate' : IDENTIFIER_START_REGEX.test(value) ? 'valid' : 'invalid'),
+  check: (value) => {
+    if (value === '') return 'intermediate';
+    if (IDENTIFIER_LIST_REGEX.test(value)) return 'valid';
+    return IDENTIFIER_LIST_PARTIAL_REGEX.test(value) ? 'intermediate' : 'invalid';
+  },
   message: (_value, ctx) => ctx.translate('popup.nn.validation.identifierStart'),
   fallback: () => '',
 };
@@ -103,6 +113,24 @@ const intValidator: AttributeValidator = {
   fallback: defaultOf,
 };
 
+/**
+ * Integer strictly greater than zero — sizes, counts and channel widths. The
+ * backend rejects 0 and negatives for every attribute in POSITIVE_INT_ATTRIBUTES
+ * (see `_validate_layer_values` / `_validate_config_values`).
+ */
+const positiveIntValidator: AttributeValidator = {
+  check: (value, ctx) => {
+    const status = intValidator.check(value, ctx);
+    if (status !== 'valid') return status;
+    return Number(value) > 0 ? 'valid' : 'invalid';
+  },
+  message: (value, ctx) => {
+    if (intValidator.check(value, ctx) === 'invalid') return intValidator.message(value, ctx);
+    return interpolate(ctx.translate('popup.nn.validation.positiveInteger'), { example: defaultOf(ctx) });
+  },
+  fallback: defaultOf,
+};
+
 const isIntermediateNumber = (value: string): boolean =>
   value === '' || value === '-' || value === '.' || /^-?\d*\.$/.test(value);
 
@@ -115,7 +143,7 @@ const floatValidator: AttributeValidator = {
   fallback: defaultOf,
 };
 
-/** Float restricted to [0, 1] (dropout_rate). */
+/** Float restricted to [0, 1] — the TensorOp `dropout_rate`, which the backend allows to reach 1. */
 const unitRangeValidator: AttributeValidator = {
   check: (value, ctx) => {
     const status = floatValidator.check(value, ctx);
@@ -126,6 +154,25 @@ const unitRangeValidator: AttributeValidator = {
   message: (value, ctx) => {
     if (floatValidator.check(value, ctx) === 'invalid') return floatValidator.message(value, ctx);
     return interpolate(ctx.translate('popup.nn.validation.unitRange'), { example: defaultOf(ctx) });
+  },
+  fallback: defaultOf,
+};
+
+/**
+ * Float restricted to [0, 1) — the DropoutLayer `rate` and the RNN/LSTM/GRU
+ * `dropout`. `NN.validate()` requires `0 <= x < 1` for both: a rate of exactly
+ * 1 would drop every unit, so the backend rejects it.
+ */
+const unitRangeExclusiveValidator: AttributeValidator = {
+  check: (value, ctx) => {
+    const status = floatValidator.check(value, ctx);
+    if (status !== 'valid') return status;
+    const numeric = Number(value);
+    return numeric < 0 || numeric >= 1 ? 'invalid' : 'valid';
+  },
+  message: (value, ctx) => {
+    if (floatValidator.check(value, ctx) === 'invalid') return floatValidator.message(value, ctx);
+    return interpolate(ctx.translate('popup.nn.validation.unitRangeExclusive'), { example: defaultOf(ctx) });
   },
   fallback: defaultOf,
 };
@@ -183,11 +230,34 @@ const listValidator: AttributeValidator = {
   fallback: (ctx) => getListExpectation(ctx.elementType, ctx.ownerId, ctx.elements).example,
 };
 
+/**
+ * Attributes the backend requires to be strictly positive integers. Sourced from
+ * `_validate_layer_values` and `_validate_config_values` in
+ * besser/BUML/metamodel/nn/neural_network.py — every one of them errors on `<= 0`.
+ */
+export const POSITIVE_INT_ATTRIBUTES = [
+  'hidden_size',
+  'out_features',
+  'in_features',
+  'out_channels',
+  'in_channels',
+  'num_features',
+  'num_embeddings',
+  'embedding_dim',
+  'batch_size',
+  'epochs',
+] as const;
+
 const VALIDATORS_BY_NAME: Record<string, AttributeValidator> = {
   input_var: identifierValidator,
   interpolate_size: tupleValidator,
   split_sizes: intOrListValidator,
+  // TensorOp dropout: the backend accepts [0, 1] here …
   dropout_rate: unitRangeValidator,
+  // … but only [0, 1) for the DropoutLayer rate and the recurrent-layer dropout.
+  rate: unitRangeExclusiveValidator,
+  dropout: unitRangeExclusiveValidator,
+  ...Object.fromEntries(POSITIVE_INT_ATTRIBUTES.map((name) => [name, positiveIntValidator])),
 };
 
 const VALIDATORS_BY_TYPE: Record<string, AttributeValidator> = {

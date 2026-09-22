@@ -13,6 +13,7 @@ import { styled } from '../../../components/theme/styles';
 import { UMLElement } from '../../../services/uml-element/uml-element';
 import { UMLElementRepository } from '../../../services/uml-element/uml-element-repository';
 import { AsyncDispatch } from '../../../utils/actions/actions';
+import { IDENTIFIER_REGEX, RETURN_VAR_REGEX } from '../nn-validation-defaults';
 import { NNContainer } from './nn-container';
 
 const Flex = styled.div`
@@ -89,11 +90,11 @@ class NNContainerUpdateComponent extends Component<Props, State> {
 
   private onInputVarChange = (value: string) => {
     const trimmed = value.trim();
-    // Validate: must start with alphabet letter
+    // Same grammar as the NN.input_var setter: a full identifier, not merely a leading letter.
     if (trimmed === '') {
       this.setState({ inputVarError: null });
       this.props.update(this.props.element.id, { input_var: undefined });
-    } else if (/^[a-zA-Z]/.test(trimmed)) {
+    } else if (IDENTIFIER_REGEX.test(trimmed)) {
       this.setState({ inputVarError: null });
       this.props.update(this.props.element.id, { input_var: trimmed || undefined });
     } else {
@@ -103,14 +104,14 @@ class NNContainerUpdateComponent extends Component<Props, State> {
 
   private onReturnVarsChange = (value: string) => {
     const trimmed = value.trim();
-    // Validate: must start with alphabet letter (or be comma-separated list of valid identifiers)
+    // Same grammar as the NN.return_vars setter: every comma-separated entry must be a
+    // full identifier starting with a letter (no leading underscore, no empty entries).
     if (trimmed === '') {
       this.setState({ returnVarsError: null });
       this.props.update(this.props.element.id, { return_vars: undefined });
     } else {
-      // Split by comma and check each identifier
-      const identifiers = trimmed.split(',').map(s => s.trim()).filter(s => s !== '');
-      const allValid = identifiers.every(id => /^[a-zA-Z]/.test(id));
+      const parts = trimmed.split(',').map((s) => s.trim());
+      const allValid = parts.every((part) => RETURN_VAR_REGEX.test(part));
 
       if (allValid) {
         this.setState({ returnVarsError: null });

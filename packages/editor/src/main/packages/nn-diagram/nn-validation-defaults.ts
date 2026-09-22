@@ -54,6 +54,19 @@ export function getAttributeDefaultValue(element: { attributeName: string; value
   return NN_ATTRIBUTE_DEFAULTS[element.attributeName] || element.value || '';
 }
 
+// Identifier grammars, mirrored from `NN.validate()` / the NN metamodel setters in
+// besser/BUML/metamodel/nn/neural_network.py. Keep them in sync: anything the editor
+// accepts here is sent to the backend as-is.
+//   NN.input_var and Layer/TensorOp input_var  -> ^[a-zA-Z_][a-zA-Z0-9_]*$
+//   TensorOp input_var may also be a comma-separated list of those
+//   NN.return_vars / TensorOp output_vars      -> ^[a-zA-Z][a-zA-Z0-9_]*$ per entry
+export const IDENTIFIER_REGEX = /^[a-zA-Z_][a-zA-Z0-9_]*$/;
+export const IDENTIFIER_LIST_REGEX = /^[a-zA-Z_][a-zA-Z0-9_]*(\s*,\s*[a-zA-Z_][a-zA-Z0-9_]*)*$/;
+/** Same list mid-typing: a trailing comma is incomplete, not yet wrong. */
+export const IDENTIFIER_LIST_PARTIAL_REGEX = /^[a-zA-Z_][a-zA-Z0-9_]*(\s*,\s*[a-zA-Z_][a-zA-Z0-9_]*)*\s*,\s*$/;
+/** Entries of return_vars / output_vars must start with a letter (no leading underscore). */
+export const RETURN_VAR_REGEX = /^[a-zA-Z][a-zA-Z0-9_]*$/;
+
 export const LIST_STRICT_REGEX = /^\[\s*-?\d+(\s*,\s*-?\d+)*\s*\]$/;
 export const LIST_PERMISSIVE_REGEX = /^(\[(-?\d+(\s*,\s*-?\d+)*(\s*,?\s*)?)?\]?)$/;
 

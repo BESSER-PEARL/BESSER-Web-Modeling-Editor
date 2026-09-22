@@ -192,6 +192,8 @@ export const NNElementType = {
   ActvFuncAttributeEmbedding: 'ActvFuncAttributeEmbedding',
   NameModuleInputAttributeEmbedding: 'NameModuleInputAttributeEmbedding',
   InputReusedAttributeEmbedding: 'InputReusedAttributeEmbedding',
+  PermuteInAttributeEmbedding: 'PermuteInAttributeEmbedding',
+  PermuteOutAttributeEmbedding: 'PermuteOutAttributeEmbedding',
   PaddingIdxAttributeEmbedding: 'PaddingIdxAttributeEmbedding',
   IsLayerCallAttributeEmbedding: 'IsLayerCallAttributeEmbedding',
   InputVarAttributeEmbedding: 'InputVarAttributeEmbedding',
@@ -204,6 +206,8 @@ export const NNElementType = {
   // Dropout Layer Attributes - Optional
   NameModuleInputAttributeDropout: 'NameModuleInputAttributeDropout',
   InputReusedAttributeDropout: 'InputReusedAttributeDropout',
+  PermuteInAttributeDropout: 'PermuteInAttributeDropout',
+  PermuteOutAttributeDropout: 'PermuteOutAttributeDropout',
   DimensionAttributeDropout: 'DimensionAttributeDropout',
   IsLayerCallAttributeDropout: 'IsLayerCallAttributeDropout',
   InputVarAttributeDropout: 'InputVarAttributeDropout',

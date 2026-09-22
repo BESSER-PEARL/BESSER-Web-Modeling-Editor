@@ -19,6 +19,7 @@ import { AsyncDispatch } from '../../../utils/actions/actions';
 import { notEmpty } from '../../../utils/not-empty';
 import { NNAttributeUpdate } from '../attribute-update/nn-attribute-update';
 import { INNAttribute } from '../nn-component-attribute';
+import { getTnsTypeAttributeNames } from '../nn-attribute-widget-config';
 import { Conv1DLayer } from '../nn-conv1d-layer/nn-conv1d-layer';
 import { Conv2DLayer } from '../nn-conv2d-layer/nn-conv2d-layer';
 import { Conv3DLayer } from '../nn-conv3d-layer/nn-conv3d-layer';
@@ -216,6 +217,8 @@ import {
   ActvFuncAttributeEmbedding,
   NameModuleInputAttributeEmbedding,
   InputReusedAttributeEmbedding,
+  PermuteInAttributeEmbedding,
+  PermuteOutAttributeEmbedding,
   PaddingIdxAttributeEmbedding,
   IsLayerCallAttributeEmbedding,
   InputVarAttributeEmbedding,
@@ -227,6 +230,8 @@ import {
   RateAttributeDropout,
   NameModuleInputAttributeDropout,
   InputReusedAttributeDropout,
+  PermuteInAttributeDropout,
+  PermuteOutAttributeDropout,
   DimensionAttributeDropout,
   IsLayerCallAttributeDropout,
   InputVarAttributeDropout,
@@ -366,12 +371,15 @@ const getInitialState = (): State => ({
   colorOpen: false,
 });
 
+/** Constructor of any NN attribute element, as stored in LAYER_CONFIG. */
+type NNAttributeConstructor = new (values?: { owner?: string }) => UMLElement & INNAttribute;
+
 // Configuration for each layer type
 const LAYER_CONFIG: {
   [key: string]: {
-    attributeFilter: (element: any) => boolean;
-    mandatoryAttributes: Array<{ ctor: any }>;
-    optionalAttributes: Array<{ type: string; ctor: any; label: string }>;
+    attributeFilter: (type: string) => boolean;
+    mandatoryAttributes: Array<{ ctor: NNAttributeConstructor }>;
+    optionalAttributes: Array<{ type: string; ctor: NNAttributeConstructor; label: string }>;
   };
 } = {
   [NNElementType.Conv1DLayer]: {
@@ -596,6 +604,8 @@ const LAYER_CONFIG: {
       { type: NNElementType.ActvFuncAttributeEmbedding, ctor: ActvFuncAttributeEmbedding, label: 'actv_func' },
       { type: NNElementType.NameModuleInputAttributeEmbedding, ctor: NameModuleInputAttributeEmbedding, label: 'name_module_input' },
       { type: NNElementType.InputReusedAttributeEmbedding, ctor: InputReusedAttributeEmbedding, label: 'input_reused' },
+      { type: NNElementType.PermuteInAttributeEmbedding, ctor: PermuteInAttributeEmbedding, label: 'permute_in' },
+      { type: NNElementType.PermuteOutAttributeEmbedding, ctor: PermuteOutAttributeEmbedding, label: 'permute_out' },
       { type: NNElementType.PaddingIdxAttributeEmbedding, ctor: PaddingIdxAttributeEmbedding, label: 'padding_idx' },
       { type: NNElementType.IsLayerCallAttributeEmbedding, ctor: IsLayerCallAttributeEmbedding, label: 'is_layer_call' },
       { type: NNElementType.InputVarAttributeEmbedding, ctor: InputVarAttributeEmbedding, label: 'input_var' },
@@ -611,6 +621,8 @@ const LAYER_CONFIG: {
     optionalAttributes: [
       { type: NNElementType.NameModuleInputAttributeDropout, ctor: NameModuleInputAttributeDropout, label: 'name_module_input' },
       { type: NNElementType.InputReusedAttributeDropout, ctor: InputReusedAttributeDropout, label: 'input_reused' },
+      { type: NNElementType.PermuteInAttributeDropout, ctor: PermuteInAttributeDropout, label: 'permute_in' },
+      { type: NNElementType.PermuteOutAttributeDropout, ctor: PermuteOutAttributeDropout, label: 'permute_out' },
       { type: NNElementType.DimensionAttributeDropout, ctor: DimensionAttributeDropout, label: 'dimension' },
       { type: NNElementType.IsLayerCallAttributeDropout, ctor: IsLayerCallAttributeDropout, label: 'is_layer_call' },
       { type: NNElementType.InputVarAttributeDropout, ctor: InputVarAttributeDropout, label: 'input_var' },
@@ -809,10 +821,8 @@ class NNComponentUpdateComponent extends Component<Props, State> {
 
 
   // Helper to check if layers_of_tensors contains RNN/LSTM/GRU layers
-  private hasRecurrentLayersSelected = (children?: Array<any>): boolean => {
-    const layersOfTensorsAttr = children?.find(
-      (attr) => (attr as TensorOpAttribute).attributeName === 'layers_of_tensors'
-    ) as TensorOpAttribute | undefined;
+  private hasRecurrentLayersSelected = (children?: Array<INNAttribute>): boolean => {
+    const layersOfTensorsAttr = children?.find((attr) => attr.attributeName === 'layers_of_tensors');
 
     if (!layersOfTensorsAttr || !layersOfTensorsAttr.value) {
       return false;
@@ -838,8 +848,8 @@ class NNComponentUpdateComponent extends Component<Props, State> {
       })
       .map(id => {
         const nameAttr = Object.values(this.props.elements).find(
-          (attr: any) => attr.owner === id && attr.attributeName === 'name'
-        ) as any;
+          (el) => el.owner === id && (el as INNAttribute).attributeName === 'name'
+        ) as INNAttribute | undefined;
         return nameAttr?.value;
       })
       .filter(Boolean);
@@ -849,129 +859,38 @@ class NNComponentUpdateComponent extends Component<Props, State> {
     return result;
   };
 
-  // Helper to filter TensorOp optional attributes based on tns_type value
+  /**
+   * The optional attribute rows a TensorOp offers for its current tns_type.
+   *
+   * The set itself comes from TNS_TYPE_ATTRIBUTES in nn-attribute-widget-config —
+   * the same table the association monitor uses to clean up attributes a tns_type
+   * change left behind. Only the two rows whose visibility depends on *other*
+   * attribute values are decided here.
+   */
   private getTensorOpOptionalAttributes = (
     tnsType: string,
-    optionalAttributes: Array<{ type: string; ctor: any; label: string }>,
-    children?: Array<any>
+    optionalAttributes: Array<{ type: string; ctor: NNAttributeConstructor; label: string }>,
+    children?: Array<INNAttribute>,
   ) => {
-    const sharedForAll = ['input_reused', 'permute_in', 'permute_out', 'input_var'];
-    const outputVar = 'output_var';
-    const outputVars = 'output_vars';
+    const offered = new Set(getTnsTypeAttributeNames(tnsType));
+
+    // actual_vars only makes sense once a recurrent layer feeds this op.
     const hasRecurrentLayers = this.hasRecurrentLayersSelected(children);
+    // pad_value is ignored by every pad_mode other than 'constant'.
+    const padMode = children?.find((attr) => attr.attributeName === 'pad_mode')?.value || '';
 
-    switch (tnsType) {
-      case 'reshape':
-        return optionalAttributes.filter((attr) =>
-          ['reshape_dim', 'layers_of_tensors'].includes(attr.label) || sharedForAll.includes(attr.label) || attr.label === outputVar
-        );
-      case 'concatenate':
-        return optionalAttributes.filter((attr) => {
-          if (attr.label === 'actual_vars') {
-            return hasRecurrentLayers;
-          }
-          return ['layers_of_tensors', 'concatenate_dim'].includes(attr.label) || sharedForAll.includes(attr.label) || attr.label === outputVar;
-        });
-      case 'transpose':
-        return optionalAttributes.filter((attr) =>
-          ['transpose_dim', 'layers_of_tensors'].includes(attr.label) || sharedForAll.includes(attr.label) || attr.label === outputVar
-        );
-      case 'permute':
-        return optionalAttributes.filter((attr) =>
-          ['layers_of_tensors', 'permute_dim'].includes(attr.label) || sharedForAll.includes(attr.label) || attr.label === outputVar
-        );
-      case 'multiply':
-      case 'matmultiply':
-        return optionalAttributes.filter((attr) =>
-          attr.label === 'layers_of_tensors' || sharedForAll.includes(attr.label) || attr.label === outputVar
-        );
-      case 'split':
-        return optionalAttributes.filter((attr) =>
-          ['layers_of_tensors', 'split_dim', 'split_sizes'].includes(attr.label) || sharedForAll.includes(attr.label) || attr.label === outputVars
-        );
-      case 'binop_add':
-      case 'binop_subtract':
-      case 'binop_multiply':
-      case 'binop_divide':
-      case 'binop_floor_divide':
-        return optionalAttributes.filter((attr) => {
-          if (attr.label === 'actual_vars') {
-            return hasRecurrentLayers;
-          }
-          return attr.label === 'layers_of_tensors' || sharedForAll.includes(attr.label) || attr.label === outputVar;
-        });
-      case 'mean':
-        return optionalAttributes.filter((attr) =>
-          ['layers_of_tensors', 'reduce_dim'].includes(attr.label) || sharedForAll.includes(attr.label) || attr.label === outputVar
-        );
-      case 'max':
-        return optionalAttributes.filter((attr) =>
-          ['layers_of_tensors', 'reduce_dim', 'reduce_keepdims'].includes(attr.label) || sharedForAll.includes(attr.label) || attr.label === outputVar
-        );
-      case 'squeeze':
-      case 'unsqueeze':
-        return optionalAttributes.filter((attr) =>
-          ['layers_of_tensors', 'reduce_dim'].includes(attr.label) || sharedForAll.includes(attr.label) || attr.label === outputVar
-        );
-      case 'shape_dim':
-        return optionalAttributes.filter((attr) =>
-          ['layers_of_tensors', 'reduce_dim'].includes(attr.label) || sharedForAll.includes(attr.label) || attr.label === outputVar
-        );
-      case 'normalize':
-        return optionalAttributes.filter((attr) =>
-          ['layers_of_tensors', 'reduce_dim'].includes(attr.label) || sharedForAll.includes(attr.label) || attr.label === outputVar
-        );
-      case 'repeat':
-        return optionalAttributes.filter((attr) =>
-          ['layers_of_tensors', 'repeat_dim'].includes(attr.label) || sharedForAll.includes(attr.label) || attr.label === outputVar
-        );
-      case 'zeros_like':
-        return optionalAttributes.filter((attr) =>
-          attr.label === 'layers_of_tensors' || sharedForAll.includes(attr.label) || attr.label === outputVar
-        );
-      case 'interpolate':
-        return optionalAttributes.filter((attr) =>
-          ['layers_of_tensors', 'interpolate_size', 'interpolate_scale', 'interpolate_mode'].includes(attr.label) || sharedForAll.includes(attr.label) || attr.label === outputVar
-        );
-      case 'pad':
-        // Get the current pad_mode value
-        const padModeAttr = children?.find(
-          (attr) => (attr as TensorOpAttribute).attributeName === 'pad_mode'
-        ) as TensorOpAttribute | undefined;
-        const padMode = padModeAttr?.value || '';
-
-        // Only show pad_value if pad_mode is 'constant'
-        const padAttributes = ['layers_of_tensors', 'pad_amount', 'pad_mode'];
-        if (padMode === 'constant') {
-          padAttributes.push('pad_value');
-        }
-
-        return optionalAttributes.filter((attr) =>
-          padAttributes.includes(attr.label) || sharedForAll.includes(attr.label) || attr.label === outputVar
-        );
-      case 'dropout':
-        return optionalAttributes.filter((attr) =>
-          ['layers_of_tensors', 'dropout_rate', 'dropout_training_aware'].includes(attr.label) || sharedForAll.includes(attr.label) || attr.label === outputVar
-        );
-      case 'subscript':
-        return optionalAttributes.filter((attr) =>
-          ['layers_of_tensors', 'subscript_indices'].includes(attr.label) || sharedForAll.includes(attr.label) || attr.label === outputVar
-        );
-      case 'identity':
-        return optionalAttributes.filter((attr) =>
-          attr.label === 'layers_of_tensors' || sharedForAll.includes(attr.label) || attr.label === outputVar
-        );
-      default:
-        return optionalAttributes.filter((attr) =>
-          attr.label === 'layers_of_tensors' || sharedForAll.includes(attr.label) || attr.label === outputVar
-        );
-    }
+    return optionalAttributes.filter((attr) => {
+      if (!offered.has(attr.label)) return false;
+      if (attr.label === 'actual_vars') return hasRecurrentLayers;
+      if (attr.label === 'pad_value') return padMode === 'constant';
+      return true;
+    });
   };
 
   // Helper to filter Dataset optional attributes based on input_format value
   private getDatasetOptionalAttributes = (
     inputFormat: string,
-    optionalAttributes: Array<{ type: string; ctor: any; label: string }>,
+    optionalAttributes: Array<{ type: string; ctor: NNAttributeConstructor; label: string }>,
   ) => {
     // shape and normalize only apply to image datasets
     if (inputFormat !== 'images') {
@@ -983,7 +902,7 @@ class NNComponentUpdateComponent extends Component<Props, State> {
   // Helper to filter Pooling optional attributes based on pooling_type value
   private getPoolingOptionalAttributes = (
     poolingType: string,
-    optionalAttributes: Array<{ type: string; ctor: any; label: string }>
+    optionalAttributes: Array<{ type: string; ctor: NNAttributeConstructor; label: string }>
   ) => {
     // Attributes to hide for global pooling types
     const globalHiddenAttrs = ['kernel_dim', 'stride_dim', 'padding_amount', 'padding_type', 'output_dim'];

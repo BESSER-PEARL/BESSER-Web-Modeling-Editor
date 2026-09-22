@@ -54,11 +54,13 @@
         "pad_amount": "List of [left, right] integer pairs for padding. Example: [[1, 6], [2, 3]] means pad dimension 0 with 1 on left and 6 on right, dimension 1 with 2 on left and 3 on right."
       },
       "validation": {
-        "identifierStart": "Must start with an alphabet letter (a-z, A-Z)",
-        "identifierListStart": "Each identifier must start with an alphabet letter (a-z, A-Z)",
+        "identifierStart": "Must start with a letter or underscore and contain only letters, digits and underscores",
+        "identifierListStart": "Each variable must start with a letter and contain only letters, digits and underscores",
         "integer": "Must be an integer. Example: {example}",
+        "positiveInteger": "Must be an integer greater than 0. Example: {example}",
         "number": "Must be a number. Example: {example}",
         "unitRange": "Must be between 0 and 1. Example: {example}",
+        "unitRangeExclusive": "Must be at least 0 and less than 1. Example: {example}",
         "tuple": "Must be a tuple of integers. Example: (224, 224)",
         "intOrList": "Must be an integer (e.g., 3) or a list of integers (e.g., [2,3,5])",
         "listCount": "Must be a list with {count} {type}. Example: {example}",

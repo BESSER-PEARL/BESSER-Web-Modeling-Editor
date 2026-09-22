@@ -49,6 +49,68 @@ export function getTnsTypeCategory(tnsType: string): TnsTypeCategory {
   return 'unary';
 }
 
+/**
+ * The optional attributes each `tns_type` owns, beyond the ones every TensorOp
+ * offers (TNS_TYPE_SHARED_ATTRIBUTES plus the output variable).
+ *
+ * Single source of truth: the popup reads it to decide which rows to offer
+ * (`getTensorOpOptionalAttributes`) and the association monitor reads it to drop
+ * attributes left behind by a `tns_type` change (`cleanupHiddenOptionalAttributes`).
+ * The two used to carry their own copies and had already drifted apart.
+ */
+export const TNS_TYPE_ATTRIBUTES: Record<string, string[]> = {
+  reshape: ['reshape_dim'],
+  concatenate: ['concatenate_dim', 'actual_vars'],
+  transpose: ['transpose_dim'],
+  permute: ['permute_dim'],
+  multiply: [],
+  matmultiply: [],
+  split: ['split_dim', 'split_sizes'],
+  binop_add: ['actual_vars'],
+  binop_subtract: ['actual_vars'],
+  binop_multiply: ['actual_vars'],
+  binop_divide: ['actual_vars'],
+  binop_floor_divide: ['actual_vars'],
+  mean: ['reduce_dim'],
+  max: ['reduce_dim', 'reduce_keepdims'],
+  squeeze: ['reduce_dim'],
+  unsqueeze: ['reduce_dim'],
+  shape_dim: ['reduce_dim'],
+  normalize: ['reduce_dim'],
+  repeat: ['repeat_dim'],
+  zeros_like: [],
+  interpolate: ['interpolate_size', 'interpolate_scale', 'interpolate_mode'],
+  pad: ['pad_amount', 'pad_mode', 'pad_value'],
+  dropout: ['dropout_rate', 'dropout_training_aware'],
+  subscript: ['subscript_indices'],
+  identity: [],
+};
+
+/** The tns_type values a TensorOp can take — the keys of TNS_TYPE_ATTRIBUTES, alphabetically. */
+export const TNS_TYPE_OPTIONS: string[] = Object.keys(TNS_TYPE_ATTRIBUTES).sort();
+
+/** Optional attributes every tns_type offers. */
+export const TNS_TYPE_SHARED_ATTRIBUTES = ['layers_of_tensors', 'input_reused', 'permute_in', 'permute_out', 'input_var'];
+
+/** `split` returns several tensors, so it names them with output_vars instead of output_var. */
+export function getTnsTypeOutputAttribute(tnsType: string): string {
+  return tnsType === 'split' ? 'output_vars' : 'output_var';
+}
+
+/** Every optional attribute name that belongs to one tns_type but not to all of them. */
+export const TNS_TYPE_SPECIFIC_ATTRIBUTES: string[] = Array.from(
+  new Set([...Object.values(TNS_TYPE_ATTRIBUTES).flat(), 'output_vars']),
+);
+
+/** The optional attribute names a tns_type offers, shared ones included. */
+export function getTnsTypeAttributeNames(tnsType: string): string[] {
+  return [
+    ...TNS_TYPE_SHARED_ATTRIBUTES,
+    ...(TNS_TYPE_ATTRIBUTES[tnsType] ?? []),
+    getTnsTypeOutputAttribute(tnsType),
+  ];
+}
+
 function getPoolingDimension(elements: Record<string, any>, layerId: string): string {
   const dimAttr = Object.values(elements).find(
     (el: any) => el.owner === layerId && el.type === NNElementType.DimensionAttributePooling,
@@ -60,7 +122,6 @@ const ACTV_FUNC_OPTIONS         = ['relu', 'leaky_relu', 'sigmoid', 'softmax', '
 const BOOLEAN_OPTIONS           = ['true', 'false'];
 const PADDING_OPTIONS           = ['valid', 'same'];
 const RETURN_OPTIONS            = ['hidden', 'last', 'full'];
-const TNS_TYPE_OPTIONS          = ['reshape', 'concatenate', 'multiply', 'matmultiply', 'permute', 'transpose', 'mean', 'max', 'squeeze', 'unsqueeze', 'binop_add', 'binop_subtract', 'binop_multiply', 'binop_divide', 'binop_floor_divide', 'subscript', 'shape_dim', 'normalize', 'repeat', 'interpolate', 'pad', 'dropout', 'zeros_like', 'split', 'identity'];
 const TASK_TYPE_OPTIONS         = ['binary', 'multi_class', 'regression'];
 const INPUT_FORMAT_OPTIONS      = ['csv', 'images'];
 const PAD_MODE_OPTIONS          = ['constant', 'reflect', 'replicate'];
@@ -139,11 +200,15 @@ const WIDGET_CONFIG_MAP: Record<string, AttributeWidgetConfig> = {
   [NNElementType.InputReusedAttributeLinear]:            { widget: 'dropdown', options: BOOLEAN_OPTIONS, defaultValue: 'false' },
   [NNElementType.InputReusedAttributeFlatten]:           { widget: 'dropdown', options: BOOLEAN_OPTIONS, defaultValue: 'false' },
   [NNElementType.InputReusedAttributeEmbedding]:         { widget: 'dropdown', options: BOOLEAN_OPTIONS, defaultValue: 'false' },
+  [NNElementType.PermuteInAttributeEmbedding]:           { widget: 'dropdown', options: BOOLEAN_OPTIONS, defaultValue: 'false' },
+  [NNElementType.PermuteOutAttributeEmbedding]:          { widget: 'dropdown', options: BOOLEAN_OPTIONS, defaultValue: 'false' },
   [NNElementType.PaddingIdxAttributeEmbedding]:          { widget: 'text', defaultValue: '' },
   [NNElementType.IsLayerCallAttributeEmbedding]:         { widget: 'dropdown', options: BOOLEAN_OPTIONS, defaultValue: 'false' },
   [NNElementType.InputVarAttributeEmbedding]:            { widget: 'text', defaultValue: '' },
   [NNElementType.OutputVarAttributeEmbedding]:           { widget: 'text', defaultValue: '' },
   [NNElementType.InputReusedAttributeDropout]:           { widget: 'dropdown', options: BOOLEAN_OPTIONS, defaultValue: 'false' },
+  [NNElementType.PermuteInAttributeDropout]:             { widget: 'dropdown', options: BOOLEAN_OPTIONS, defaultValue: 'false' },
+  [NNElementType.PermuteOutAttributeDropout]:            { widget: 'dropdown', options: BOOLEAN_OPTIONS, defaultValue: 'false' },
   [NNElementType.DimensionAttributeDropout]:             { widget: 'dropdown', options: ['1D', '2D', '3D'], defaultValue: '1D' },
   [NNElementType.IsLayerCallAttributeDropout]:           { widget: 'dropdown', options: BOOLEAN_OPTIONS, defaultValue: 'false' },
   [NNElementType.InputVarAttributeDropout]:              { widget: 'text', defaultValue: '' },

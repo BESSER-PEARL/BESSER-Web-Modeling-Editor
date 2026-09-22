@@ -68,7 +68,7 @@ export function formatSubscriptIndices(dimensions: SubscriptDimension[]): string
     if (dim.type === 'index') {
       return { type: 'index', value: dim.value };
     }
-    const slice: any = { type: 'slice' };
+    const slice: { type: 'slice'; start?: number; stop?: number; step?: number } = { type: 'slice' };
     if (dim.start !== undefined) slice.start = dim.start;
     if (dim.stop !== undefined) slice.stop = dim.stop;
     if (dim.step !== undefined) slice.step = dim.step;

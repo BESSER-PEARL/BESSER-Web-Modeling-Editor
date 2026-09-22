@@ -46,7 +46,8 @@ describe('getAttributeValidator', () => {
 });
 
 describe('int attributes', () => {
-  const c = ctx({ attributeName: 'epochs', attributeType: 'int' });
+  // start_dim is a plain int: the backend puts no sign or zero constraint on it.
+  const c = ctx({ attributeName: 'start_dim', attributeType: 'int' });
 
   it('commits complete integers and waits on partial input', () => {
     expect(validateOnChange('12', c)).toEqual({ commit: true, error: null });
@@ -55,13 +56,19 @@ describe('int attributes', () => {
   });
 
   it('explains invalid input with the attribute default as example', () => {
-    expect(validateOnChange('1.5', c)).toEqual({ commit: false, error: 'Must be an integer. Example: 10' });
+    expect(validateOnChange('1.5', c)).toEqual({ commit: false, error: 'Must be an integer. Example: 1' });
   });
 
   it('falls back to the default on an invalid submit, silently on an incomplete one', () => {
     expect(validateOnSubmit('7', c)).toEqual({ value: '7', error: null, reset: false });
-    expect(validateOnSubmit('abc', c)).toEqual({ value: '10', error: 'Must be an integer. Example: 10', reset: true });
-    expect(validateOnSubmit('-', c)).toEqual({ value: '10', error: null, reset: true });
+    expect(validateOnSubmit('abc', c)).toEqual({ value: '1', error: 'Must be an integer. Example: 1', reset: true });
+    expect(validateOnSubmit('-', c)).toEqual({ value: '1', error: null, reset: true });
+  });
+
+  it('still accepts zero and negatives where the backend allows them', () => {
+    expect(validateOnChange('0', c)).toEqual({ commit: true, error: null });
+    const endDim = ctx({ attributeName: 'end_dim', attributeType: 'int' });
+    expect(validateOnChange('-1', endDim)).toEqual({ commit: true, error: null });
   });
 });
 
@@ -74,25 +81,85 @@ describe('float attributes', () => {
     expect(validateOnChange('x', c)).toEqual({ commit: false, error: 'Must be a number. Example: 0.001' });
   });
 
-  it('keeps dropout_rate inside [0, 1]', () => {
+  it('keeps the TensorOp dropout_rate inside [0, 1], 1 included', () => {
     const rate = ctx({ attributeName: 'dropout_rate', attributeType: 'float' });
     expect(validateOnChange('0.3', rate)).toEqual({ commit: true, error: null });
+    expect(validateOnChange('1', rate)).toEqual({ commit: true, error: null });
     expect(validateOnChange('1.5', rate)).toEqual({ commit: false, error: 'Must be between 0 and 1. Example: 0.5' });
+    expect(validateOnChange('-0.1', rate)).toEqual({ commit: false, error: 'Must be between 0 and 1. Example: 0.5' });
     expect(validateOnSubmit('2', rate)).toEqual({ value: '0.5', error: 'Must be between 0 and 1. Example: 0.5', reset: true });
+  });
+
+  // NN.validate() requires 0 <= x < 1 for the DropoutLayer rate and for the RNN/LSTM/GRU
+  // dropout: exactly 1 is rejected server-side, and `dropout` had no frontend validator at all.
+  it.each([
+    ['rate', '0.5'],
+    ['dropout', '0.0'],
+  ])('keeps %s inside [0, 1), 1 excluded', (attributeName, fallback) => {
+    const c = ctx({ attributeName, attributeType: 'float' });
+    const error = 'Must be at least 0 and less than 1. Example: ' + fallback;
+    expect(validateOnChange('0', c)).toEqual({ commit: true, error: null });
+    expect(validateOnChange('0.9', c)).toEqual({ commit: true, error: null });
+    expect(validateOnChange('1', c)).toEqual({ commit: false, error });
+    expect(validateOnChange('1.5', c)).toEqual({ commit: false, error });
+    expect(validateOnChange('-0.1', c)).toEqual({ commit: false, error });
+    expect(validateOnSubmit('1', c)).toEqual({ value: fallback, error, reset: true });
   });
 });
 
 describe('identifier attributes (input_var)', () => {
   const c = ctx({ attributeName: 'input_var', attributeType: 'str' });
+  const identifierError = 'Must start with a letter or underscore and contain only letters, digits and underscores';
 
-  it('requires a leading letter', () => {
+  it('accepts what the backend accepts', () => {
     expect(validateOnChange('x1', c)).toEqual({ commit: true, error: null });
-    expect(validateOnChange('1x', c)).toEqual({ commit: false, error: 'Must start with an alphabet letter (a-z, A-Z)' });
+    expect(validateOnChange('_x', c)).toEqual({ commit: true, error: null });
+    expect(validateOnChange('my_var', c)).toEqual({ commit: true, error: null });
+    // TensorOp.input_var may also be a comma-separated list of identifiers
+    expect(validateOnChange('a, b', c)).toEqual({ commit: true, error: null });
+    expect(validateOnChange('a,', c)).toEqual({ commit: false, error: null });
+  });
+
+  it('rejects the values the backend rejects, not just a bad first character', () => {
+    expect(validateOnChange('1x', c)).toEqual({ commit: false, error: identifierError });
+    // These all start with a letter, and all failed server-side before this check existed
+    expect(validateOnChange('my var', c)).toEqual({ commit: false, error: identifierError });
+    expect(validateOnChange('x-1', c)).toEqual({ commit: false, error: identifierError });
+    expect(validateOnChange('a!', c)).toEqual({ commit: false, error: identifierError });
   });
 
   it('clears the field on an invalid submit', () => {
-    expect(validateOnSubmit('1x', c)).toEqual({ value: '', error: 'Must start with an alphabet letter (a-z, A-Z)', reset: true });
+    expect(validateOnSubmit('1x', c)).toEqual({ value: '', error: identifierError, reset: true });
     expect(validateOnSubmit('', c)).toEqual({ value: '', error: null, reset: true });
+  });
+});
+
+describe('positive integer attributes', () => {
+  const positiveIntError = (example: string) => 'Must be an integer greater than 0. Example: ' + example;
+
+  // Every attribute NN.validate() requires to be > 0, with its configured default as the example.
+  it.each([
+    ['hidden_size', '128'],
+    ['out_features', '128'],
+    ['in_features', '64'],
+    ['out_channels', '16'],
+    ['in_channels', '3'],
+    ['num_features', '128'],
+    ['num_embeddings', '1000'],
+    ['embedding_dim', '128'],
+    ['batch_size', '32'],
+    ['epochs', '10'],
+  ])('rejects 0 and negatives for %s', (attributeName, example) => {
+    const c = ctx({ attributeName, attributeType: 'int' });
+    expect(validateOnChange('8', c)).toEqual({ commit: true, error: null });
+    expect(validateOnChange('0', c)).toEqual({ commit: false, error: positiveIntError(example) });
+    expect(validateOnChange('-4', c)).toEqual({ commit: false, error: positiveIntError(example) });
+    expect(validateOnSubmit('0', c)).toEqual({ value: example, error: positiveIntError(example), reset: true });
+  });
+
+  it('still reports a non-integer as a plain integer error', () => {
+    const c = ctx({ attributeName: 'epochs', attributeType: 'int' });
+    expect(validateOnChange('1.5', c)).toEqual({ commit: false, error: 'Must be an integer. Example: 10' });
   });
 });
 

@@ -146,3 +146,21 @@ export class OutputVarAttributeDropout extends DropoutAttribute {
     this.name = `${this.attributeName} = ${this.value}`;
   }
 }
+
+export class PermuteInAttributeDropout extends DropoutAttribute {
+  type: UMLElementType = NNElementType.PermuteInAttributeDropout;
+  constructor(values?: DeepPartial<IDropoutAttribute>) {
+    super({ attributeName: 'permute_in', value: 'false', isMandatory: false, ...values });
+    this.attributeType = 'bool';
+    this.name = `${this.attributeName} = ${this.value}`;
+  }
+}
+
+export class PermuteOutAttributeDropout extends DropoutAttribute {
+  type: UMLElementType = NNElementType.PermuteOutAttributeDropout;
+  constructor(values?: DeepPartial<IDropoutAttribute>) {
+    super({ attributeName: 'permute_out', value: 'false', isMandatory: false, ...values });
+    this.attributeType = 'bool';
+    this.name = `${this.attributeName} = ${this.value}`;
+  }
+}

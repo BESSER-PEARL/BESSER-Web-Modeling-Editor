@@ -270,6 +270,9 @@ export const Popups: { [key in UMLElementType | UMLRelationshipType]: ComponentT
   [NNElementType.InputReusedAttributePooling]: NNAttributeUpdate,
   [NNElementType.PermuteInAttributePooling]: NNAttributeUpdate,
   [NNElementType.PermuteOutAttributePooling]: NNAttributeUpdate,
+  [NNElementType.IsLayerCallAttributePooling]: NNAttributeUpdate,
+  [NNElementType.InputVarAttributePooling]: NNAttributeUpdate,
+  [NNElementType.OutputVarAttributePooling]: NNAttributeUpdate,
 
   [NNElementType.RNNLayer]: NNComponentUpdate,
   // RNN Attributes
@@ -347,6 +350,10 @@ export const Popups: { [key in UMLElementType | UMLRelationshipType]: ComponentT
   [NNElementType.ActvFuncAttributeLinear]: NNAttributeUpdate,
   [NNElementType.NameModuleInputAttributeLinear]: NNAttributeUpdate,
   [NNElementType.InputReusedAttributeLinear]: NNAttributeUpdate,
+  [NNElementType.BiasAttributeLinear]: NNAttributeUpdate,
+  [NNElementType.IsLayerCallAttributeLinear]: NNAttributeUpdate,
+  [NNElementType.InputVarAttributeLinear]: NNAttributeUpdate,
+  [NNElementType.OutputVarAttributeLinear]: NNAttributeUpdate,
 
   [NNElementType.FlattenLayer]: NNComponentUpdate,
   // Flatten Attributes
@@ -356,6 +363,9 @@ export const Popups: { [key in UMLElementType | UMLRelationshipType]: ComponentT
   [NNElementType.ActvFuncAttributeFlatten]: NNAttributeUpdate,
   [NNElementType.NameModuleInputAttributeFlatten]: NNAttributeUpdate,
   [NNElementType.InputReusedAttributeFlatten]: NNAttributeUpdate,
+  [NNElementType.IsLayerCallAttributeFlatten]: NNAttributeUpdate,
+  [NNElementType.InputVarAttributeFlatten]: NNAttributeUpdate,
+  [NNElementType.OutputVarAttributeFlatten]: NNAttributeUpdate,
 
   [NNElementType.EmbeddingLayer]: NNComponentUpdate,
   // Embedding Attributes
@@ -365,6 +375,12 @@ export const Popups: { [key in UMLElementType | UMLRelationshipType]: ComponentT
   [NNElementType.ActvFuncAttributeEmbedding]: NNAttributeUpdate,
   [NNElementType.NameModuleInputAttributeEmbedding]: NNAttributeUpdate,
   [NNElementType.InputReusedAttributeEmbedding]: NNAttributeUpdate,
+  [NNElementType.PermuteInAttributeEmbedding]: NNAttributeUpdate,
+  [NNElementType.PermuteOutAttributeEmbedding]: NNAttributeUpdate,
+  [NNElementType.PaddingIdxAttributeEmbedding]: NNAttributeUpdate,
+  [NNElementType.IsLayerCallAttributeEmbedding]: NNAttributeUpdate,
+  [NNElementType.InputVarAttributeEmbedding]: NNAttributeUpdate,
+  [NNElementType.OutputVarAttributeEmbedding]: NNAttributeUpdate,
 
   [NNElementType.DropoutLayer]: NNComponentUpdate,
   // Dropout Attributes
@@ -372,6 +388,12 @@ export const Popups: { [key in UMLElementType | UMLRelationshipType]: ComponentT
   [NNElementType.RateAttributeDropout]: NNAttributeUpdate,
   [NNElementType.NameModuleInputAttributeDropout]: NNAttributeUpdate,
   [NNElementType.InputReusedAttributeDropout]: NNAttributeUpdate,
+  [NNElementType.PermuteInAttributeDropout]: NNAttributeUpdate,
+  [NNElementType.PermuteOutAttributeDropout]: NNAttributeUpdate,
+  [NNElementType.DimensionAttributeDropout]: NNAttributeUpdate,
+  [NNElementType.IsLayerCallAttributeDropout]: NNAttributeUpdate,
+  [NNElementType.InputVarAttributeDropout]: NNAttributeUpdate,
+  [NNElementType.OutputVarAttributeDropout]: NNAttributeUpdate,
 
   [NNElementType.LayerNormalizationLayer]: NNComponentUpdate,
   // LayerNormalization Attributes
@@ -380,6 +402,11 @@ export const Popups: { [key in UMLElementType | UMLRelationshipType]: ComponentT
   [NNElementType.ActvFuncAttributeLayerNormalization]: NNAttributeUpdate,
   [NNElementType.NameModuleInputAttributeLayerNormalization]: NNAttributeUpdate,
   [NNElementType.InputReusedAttributeLayerNormalization]: NNAttributeUpdate,
+  [NNElementType.EpsAttributeLayerNormalization]: NNAttributeUpdate,
+  [NNElementType.AffineAttributeLayerNormalization]: NNAttributeUpdate,
+  [NNElementType.IsLayerCallAttributeLayerNormalization]: NNAttributeUpdate,
+  [NNElementType.InputVarAttributeLayerNormalization]: NNAttributeUpdate,
+  [NNElementType.OutputVarAttributeLayerNormalization]: NNAttributeUpdate,
 
   [NNElementType.BatchNormalizationLayer]: NNComponentUpdate,
   // BatchNormalization Attributes
@@ -389,6 +416,13 @@ export const Popups: { [key in UMLElementType | UMLRelationshipType]: ComponentT
   [NNElementType.ActvFuncAttributeBatchNormalization]: NNAttributeUpdate,
   [NNElementType.NameModuleInputAttributeBatchNormalization]: NNAttributeUpdate,
   [NNElementType.InputReusedAttributeBatchNormalization]: NNAttributeUpdate,
+  [NNElementType.EpsAttributeBatchNormalization]: NNAttributeUpdate,
+  [NNElementType.MomentumAttributeBatchNormalization]: NNAttributeUpdate,
+  [NNElementType.AffineAttributeBatchNormalization]: NNAttributeUpdate,
+  [NNElementType.TrackRunningStatsAttributeBatchNormalization]: NNAttributeUpdate,
+  [NNElementType.IsLayerCallAttributeBatchNormalization]: NNAttributeUpdate,
+  [NNElementType.InputVarAttributeBatchNormalization]: NNAttributeUpdate,
+  [NNElementType.OutputVarAttributeBatchNormalization]: NNAttributeUpdate,
 
   [NNElementType.TensorOp]: NNComponentUpdate,
   // TensorOp Attributes

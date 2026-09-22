@@ -164,3 +164,21 @@ export class OutputVarAttributeEmbedding extends EmbeddingAttribute {
     this.name = `${this.attributeName} = ${this.value}`;
   }
 }
+
+export class PermuteInAttributeEmbedding extends EmbeddingAttribute {
+  type: UMLElementType = NNElementType.PermuteInAttributeEmbedding;
+  constructor(values?: DeepPartial<IEmbeddingAttribute>) {
+    super({ attributeName: 'permute_in', value: 'false', isMandatory: false, ...values });
+    this.attributeType = 'bool';
+    this.name = `${this.attributeName} = ${this.value}`;
+  }
+}
+
+export class PermuteOutAttributeEmbedding extends EmbeddingAttribute {
+  type: UMLElementType = NNElementType.PermuteOutAttributeEmbedding;
+  constructor(values?: DeepPartial<IEmbeddingAttribute>) {
+    super({ attributeName: 'permute_out', value: 'false', isMandatory: false, ...values });
+    this.attributeType = 'bool';
+    this.name = `${this.attributeName} = ${this.value}`;
+  }
+}
