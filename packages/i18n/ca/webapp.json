@@ -47,6 +47,8 @@
       "state": "Estat",
       "agent": "Agent",
       "bpmn": "BPMN",
+      "component": "Component",
+      "deployment": "Desplegament",
       "user": "Usuari",
       "neuralNet": "Xarxa neuronal",
       "gui": "GUI",
@@ -76,6 +78,9 @@
       "generating": "S'està generant...",
       "codeGeneration": "Generació de codi",
       "goToClassDiagram": "Vés al diagrama de classes",
+      "deriveComponentDiagram": "Genera el diagrama de components",
+      "deriveDeploymentDiagram": "Genera el diagrama de desplegament",
+      "generateDockerCompose": "Genera el Docker Compose",
       "groups": {
         "web": "Web",
         "database": "Base de dades",
@@ -1340,6 +1345,8 @@
     "GUINoCodeDiagram": "Diagrama de GUI",
     "QuantumCircuitDiagram": "Diagrama de circuit quàntic",
     "BPMN": "Diagrama BPMN",
+    "ComponentDiagram": "Diagrama de components",
+    "DeploymentDiagram": "Diagrama de desplegament",
     "NNDiagram": "Diagrama de xarxa neuronal"
   },
   "dialogs": {

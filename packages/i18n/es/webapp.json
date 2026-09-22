@@ -47,6 +47,8 @@
       "state": "Estado",
       "agent": "Agente",
       "bpmn": "BPMN",
+      "component": "Componente",
+      "deployment": "Despliegue",
       "user": "Usuario",
       "neuralNet": "Red neuronal",
       "gui": "GUI",
@@ -76,6 +78,9 @@
       "generating": "Generando...",
       "codeGeneration": "Generación de código",
       "goToClassDiagram": "Ir al diagrama de clases",
+      "deriveComponentDiagram": "Generar diagrama de componentes",
+      "deriveDeploymentDiagram": "Generar diagrama de despliegue",
+      "generateDockerCompose": "Generar Docker Compose",
       "groups": {
         "web": "Web",
         "database": "Base de datos",
@@ -1340,6 +1345,8 @@
     "GUINoCodeDiagram": "Diagrama de GUI",
     "QuantumCircuitDiagram": "Diagrama de circuito cuántico",
     "BPMN": "Diagrama BPMN",
+    "ComponentDiagram": "Diagrama de componentes",
+    "DeploymentDiagram": "Diagrama de despliegue",
     "NNDiagram": "Diagrama de red neuronal"
   },
   "dialogs": {
