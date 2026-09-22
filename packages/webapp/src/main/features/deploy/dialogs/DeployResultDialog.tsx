@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import type { DeployToGitHubResult } from '../../github/hooks/useGitHubDeploy';
@@ -16,6 +17,7 @@ export const DeployResultDialog: React.FC<DeployResultDialogProps> = ({
   onOpenChange,
   onOpenExternal,
 }) => {
+  const { t } = useTranslation();
   // Redeploys reuse the existing render.yaml suffix so the live frontend URL
   // is stable. On a first deploy we still send the user through Render's
   // "Create Blueprint" flow since no services exist yet.
@@ -28,8 +30,8 @@ export const DeployResultDialog: React.FC<DeployResultDialogProps> = ({
   const liveTarget = isAgentDeployment ? liveAgent : liveFrontend;
   const primaryUrl = isRedeploy && liveTarget ? liveTarget : renderUrl;
   const primaryLabel = isRedeploy && liveTarget
-    ? (isAgentDeployment ? 'Open Live Agent' : 'Open Live App')
-    : 'Open Render Deployment';
+    ? (isAgentDeployment ? t('deploy.result.openLiveAgent') : t('deploy.result.openLiveApp'))
+    : t('deploy.result.openRenderDeployment');
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -37,17 +39,17 @@ export const DeployResultDialog: React.FC<DeployResultDialogProps> = ({
         <DialogHeader>
           <DialogTitle>
             {isRedeploy
-              ? (isAgentDeployment ? 'Agent Repository Updated' : 'Repository Updated Successfully')
-              : (isAgentDeployment ? 'Agent Repository Created' : 'Repository Created Successfully')}
+              ? (isAgentDeployment ? t('deploy.result.titleUpdatedAgent') : t('deploy.result.titleUpdated'))
+              : (isAgentDeployment ? t('deploy.result.titleCreatedAgent') : t('deploy.result.titleCreated'))}
           </DialogTitle>
           <DialogDescription>
             {isRedeploy
               ? (isAgentDeployment
-                ? 'Your agent changes were pushed to GitHub. Trigger a redeploy on Render to pick them up.'
-                : 'Your changes were pushed to GitHub. Trigger a redeploy on Render to pick them up.')
+                ? t('deploy.result.descUpdatedAgent')
+                : t('deploy.result.descUpdated'))
               : (isAgentDeployment
-                ? 'Continue with one-click Render deployment for your standalone agent or inspect the generated repository.'
-                : 'Continue with one-click Render deployment or inspect the generated repository.')}
+                ? t('deploy.result.descCreatedAgent')
+                : t('deploy.result.descCreated'))}
           </DialogDescription>
         </DialogHeader>
         {deploymentResult && (
@@ -56,17 +58,15 @@ export const DeployResultDialog: React.FC<DeployResultDialogProps> = ({
               <p className="font-medium">
                 {deploymentResult.owner}/{deploymentResult.repo_name}
               </p>
-              <p className="text-xs">{deploymentResult.files_uploaded} files uploaded.</p>
+              <p className="text-xs">{t('deploy.result.filesUploaded', { count: deploymentResult.files_uploaded })}</p>
             </div>
             {isRedeploy && (
               <div className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900 dark:border-amber-800 dark:bg-amber-900/30 dark:text-amber-200">
-                <p className="font-medium">Don&rsquo;t see your changes yet?</p>
+                <p className="font-medium">{t('deploy.result.notSeeingChanges')}</p>
                 <p className="mt-1 text-xs">
-                  Open your Blueprint on Render and click{' '}
-                  <span className="font-semibold">Manual Sync</span>. That redeploys every
-                  service in the blueprint{isAgentDeployment ? '' : ' (backend, frontend, agents)'} from the latest commit in
-                  one click. Render&rsquo;s auto-deploy can miss pushes when the GitHub App
-                  isn&rsquo;t granted access to the repo, so Manual Sync is the reliable path.
+                  {t('deploy.result.manualSyncIntro')}{' '}
+                  <span className="font-semibold">{t('deploy.result.manualSyncLabel')}</span>
+                  {isAgentDeployment ? t('deploy.result.manualSyncBodyAgent') : t('deploy.result.manualSyncBody')}
                 </p>
               </div>
             )}
@@ -84,7 +84,7 @@ export const DeployResultDialog: React.FC<DeployResultDialogProps> = ({
                 className="w-full"
                 onClick={() => onOpenExternal('https://dashboard.render.com/blueprints')}
               >
-                Open Render Blueprint
+                {t('deploy.result.openBlueprint')}
               </Button>
             )}
             <Button
@@ -92,7 +92,7 @@ export const DeployResultDialog: React.FC<DeployResultDialogProps> = ({
               className="w-full"
               onClick={() => onOpenExternal(deploymentResult.repo_url)}
             >
-              View GitHub Repository
+              {t('deploy.result.viewRepo')}
             </Button>
           </div>
         )}

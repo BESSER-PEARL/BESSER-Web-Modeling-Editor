@@ -9,6 +9,8 @@ import { StylePane } from '../../../components/style-pane/style-pane';
 import { IUMLElement } from '../../../services/uml-element/uml-element';
 import { IUMLContainer } from '../../../services/uml-container/uml-container';
 import { Visibility } from './uml-classifier-member';
+import { I18nContext } from '../../../components/i18n/i18n-context';
+import { localized } from '../../../components/i18n/localized';
 
 const Flex = styled.div`
   display: flex;
@@ -151,7 +153,7 @@ type Props = {
   isEnumeration?: boolean;
   availableEnumerations?: Array<{ value: string; label: string }>;
   elements?: Record<string, IUMLElement>;
-};
+} & I18nContext;
 
 // Helper function to parse legacy name format for backward compatibility
 const parseLegacyName = (nameValue: string): { visibility: Visibility; name: string; attributeType: string } => {
@@ -203,7 +205,8 @@ const UmlAttributeUpdate = ({
   element,
   isEnumeration = false,
   availableEnumerations = [],
-  elements = {}
+  elements = {},
+  translate
 }: Props) => {
   const [colorOpen, setColorOpen] = useState(false);
 
@@ -230,7 +233,7 @@ const UmlAttributeUpdate = ({
             value={value} 
             onChange={handleNameChange} 
             onSubmitKeyUp={onSubmitKeyUp}
-            placeholder="literal name"
+            placeholder={translate('popup.attribute.literalNamePlaceholder')}
           />
           <ColorButton onClick={toggleColor} />
           <Button color="link" tabIndex={-1} onClick={handleDelete}>
@@ -416,7 +419,7 @@ const UmlAttributeUpdate = ({
           value={attrName} 
           onChange={handleNameChange} 
           onSubmitKeyUp={onSubmitKeyUp}
-          placeholder="attribute name"
+          placeholder={translate('popup.attribute.namePlaceholder')}
         />
         <TypeDropdown value={attributeType} onChange={handleTypeChange}>
           {allTypes.map(t => (
@@ -453,4 +456,4 @@ const UmlAttributeUpdate = ({
   );
 };;
 
-export default UmlAttributeUpdate;
+export default localized(UmlAttributeUpdate);

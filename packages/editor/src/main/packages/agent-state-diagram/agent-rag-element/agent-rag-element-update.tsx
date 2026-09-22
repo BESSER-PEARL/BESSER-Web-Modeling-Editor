@@ -1,8 +1,11 @@
-import React from 'react';
+import React, { ComponentClass } from 'react';
 import { connect } from 'react-redux';
+import { compose } from 'redux';
 import styled from 'styled-components';
 import { Textfield } from '../../../components/controls/textfield/textfield';
 import { Header } from '../../../components/controls/typography/typography';
+import { I18nContext } from '../../../components/i18n/i18n-context';
+import { localized } from '../../../components/i18n/localized';
 import { ModelState } from '../../../components/store/model-state';
 import { UMLElementRepository } from '../../../services/uml-element/uml-element-repository';
 import { AgentRagElement } from './agent-rag-element';
@@ -22,7 +25,7 @@ type DispatchProps = {
   update: typeof UMLElementRepository.update;
 };
 
-type Props = OwnProps & StateProps & DispatchProps;
+type Props = OwnProps & StateProps & DispatchProps & I18nContext;
 
 const Section = styled.section`
   padding: 8px 0;
@@ -38,7 +41,27 @@ const Select = styled.select`
   color: inherit;
 `;
 
-const AgentRagElementUpdateComponent: React.FC<Props> = ({ element, update, elements }) => {
+const Divider = styled.hr`
+  border: none;
+  border-top: 1px solid ${(props) => props.theme.color.gray};
+  margin: 8px 0;
+`;
+
+const CheckboxRow = styled.label`
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  font-size: 0.85em;
+  font-weight: 600;
+`;
+
+const DisabledTextfield = styled.div<{ disabled: boolean }>`
+  opacity: ${(props) => (props.disabled ? 0.4 : 1)};
+  pointer-events: ${(props) => (props.disabled ? 'none' : 'auto')};
+`;
+
+const AgentRagElementUpdateComponent: React.FC<Props> = ({ element, update, elements, translate }) => {
   const llmNames = Array.from(
     new Set(
       Object.values(elements)
@@ -51,16 +74,16 @@ const AgentRagElementUpdateComponent: React.FC<Props> = ({ element, update, elem
   return (
     <div>
       <Section>
-        <Header>Name of RAG DB</Header>
+        <Header>{translate('popup.agent.rag.name')}</Header>
         <Textfield value={element.name} onChange={(name) => update(element.id, { name })} autoFocus />
       </Section>
       <Section>
-        <Header>LLM</Header>
+        <Header>{translate('popup.agent.llm.label')}</Header>
         <Select
           value={element.llm_name || ''}
           onChange={(event) => update<AgentRagElement>(element.id, { llm_name: event.target.value })}
         >
-          <option value="">(use default)</option>
+          <option value="">{translate('popup.agent.llm.useDefault')}</option>
           {llmNames.map((name) => (
             <option key={name} value={name}>
               {name}
@@ -69,7 +92,7 @@ const AgentRagElementUpdateComponent: React.FC<Props> = ({ element, update, elem
         </Select>
       </Section>
       <Section>
-        <Header>LLM Prompt Prefix</Header>
+        <Header>{translate('packages.AgentDiagram.llmPromptPrefix')}</Header>
         <Textfield
           value={element.llm_prompt || ''}
           onChange={(llm_prompt) => update<AgentRagElement>(element.id, { llm_prompt })}
@@ -78,11 +101,14 @@ const AgentRagElementUpdateComponent: React.FC<Props> = ({ element, update, elem
         />
       </Section>
       <Section>
-        <Header>K (retrieved chunks)</Header>
-        <Textfield value={element.k ?? 4} onChange={(k) => update<AgentRagElement>(element.id, { k: Math.max(1, k) })} />
+        <Header>{translate('packages.AgentDiagram.retrievedChunks')}</Header>
+        <Textfield
+          value={element.k ?? 4}
+          onChange={(k) => update<AgentRagElement>(element.id, { k: Math.max(1, k) })}
+        />
       </Section>
       <Section>
-        <Header>Num Previous Messages</Header>
+        <Header>{translate('packages.AgentDiagram.numPreviousMessages')}</Header>
         <Textfield
           value={element.num_previous_messages ?? 0}
           onChange={(num_previous_messages) =>
@@ -93,7 +119,7 @@ const AgentRagElementUpdateComponent: React.FC<Props> = ({ element, update, elem
         />
       </Section>
       <Section>
-        <Header>Embedding Provider</Header>
+        <Header>{translate('packages.AgentDiagram.embeddingProvider')}</Header>
         <Select
           value={element.embedding_provider || 'openai'}
           onChange={(event) => {
@@ -105,21 +131,22 @@ const AgentRagElementUpdateComponent: React.FC<Props> = ({ element, update, elem
             update<AgentRagElement>(element.id, updates);
           }}
         >
-          <option value="openai">OpenAI</option>
-          <option value="ollama">Ollama (local)</option>
+          <option value="openai">{translate('packages.AgentDiagram.openai')}</option>
+          <option value="ollama">{translate('packages.AgentDiagram.ollamaLocal')}</option>
         </Select>
       </Section>
-      {(element.embedding_provider === 'ollama') && (
+      {element.embedding_provider === 'ollama' && (
         <>
           <Section>
-            <Header>Embedding Base URL</Header>
+            <Header>{translate('packages.AgentDiagram.embeddingBaseUrl')}</Header>
             <Textfield
               value={element.embedding_base_url || 'http://localhost:11434'}
               onChange={(embedding_base_url) => update<AgentRagElement>(element.id, { embedding_base_url })}
+              placeholder={translate('packages.AgentDiagram.embeddingBaseUrlPlaceholder')}
             />
           </Section>
           <Section>
-            <Header>Embedding Model</Header>
+            <Header>{translate('packages.AgentDiagram.embeddingModel')}</Header>
             <Textfield
               value={element.embedding_model || ''}
               onChange={(embedding_model) => update<AgentRagElement>(element.id, { embedding_model })}
@@ -127,15 +154,39 @@ const AgentRagElementUpdateComponent: React.FC<Props> = ({ element, update, elem
           </Section>
         </>
       )}
+      <Divider />
+      <Section>
+        <CheckboxRow>
+          <input
+            type="checkbox"
+            checked={element.use_hybrid_rag === true}
+            onChange={(e) => update<AgentRagElement>(element.id, { use_hybrid_rag: e.target.checked })}
+          />
+          {translate('packages.AgentDiagram.hybridRag')}
+        </CheckboxRow>
+      </Section>
+      <DisabledTextfield disabled={!element.use_hybrid_rag}>
+        <Section>
+          <Header>{translate('packages.AgentDiagram.bm25Weight')}</Header>
+          <Textfield
+            value={String(element.bm25_weight ?? 0.6)}
+            onSubmit={(raw) => {
+              const parsed = parseFloat(String(raw));
+              const val = !isNaN(parsed) && parsed > 0 && parsed < 1 ? parsed : 0.6;
+              update<AgentRagElement>(element.id, { bm25_weight: val });
+            }}
+          />
+        </Section>
+      </DisabledTextfield>
     </div>
   );
 };
 
-const enhance = connect<StateProps, DispatchProps, OwnProps, ModelState>(
-  (state) => ({ elements: state.elements }),
-  {
+const enhance = compose<ComponentClass<OwnProps>>(
+  localized,
+  connect<StateProps, DispatchProps, OwnProps, ModelState>((state) => ({ elements: state.elements }), {
     update: UMLElementRepository.update,
-  },
+  }),
 );
 
 export const AgentRagElementUpdate = enhance(AgentRagElementUpdateComponent);

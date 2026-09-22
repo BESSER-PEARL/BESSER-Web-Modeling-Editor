@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { toast } from 'react-toastify';
 import { BACKEND_URL } from '../../../shared/constants/constant';
 
@@ -8,6 +9,7 @@ interface UseGitHubStarOptions {
 }
 
 export function useGitHubStar({ isAuthenticated, githubSession }: UseGitHubStarOptions) {
+  const { t } = useTranslation();
   const [hasStarred, setHasStarred] = useState(false);
   const [starLoading, setStarLoading] = useState(false);
 
@@ -30,10 +32,10 @@ export function useGitHubStar({ isAuthenticated, githubSession }: UseGitHubStarO
       const res = await fetch(`${BACKEND_URL}/github/star?session_id=${githubSession}`, { method });
       if (res.ok) {
         setHasStarred(!hasStarred);
-        if (!hasStarred) toast.success('Thanks for starring BESSER!');
+        if (!hasStarred) toast.success(t('github.toasts.starThanks'));
       }
     } catch {
-      toast.error('Failed to update star');
+      toast.error(t('github.toasts.starFailed'));
     } finally {
       setStarLoading(false);
     }

@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { SkeletonLine, SkeletonBlock } from './SkeletonLoader';
 
 /* ────────────────────────────────────────────────────────────────────────────
@@ -26,9 +27,12 @@ interface SuspenseFallbackProps {
 }
 
 export const SuspenseFallback: React.FC<SuspenseFallbackProps> = ({
-  message = 'Loading...',
+  message,
   showSkeleton = false,
-}) => (
+}) => {
+  const { t } = useTranslation();
+  const resolvedMessage = message ?? t('common.loading');
+  return (
   <div className="flex h-full w-full flex-col items-center justify-center gap-5 px-6 text-slate-500 dark:text-slate-400">
     {/* App logo */}
     <img
@@ -43,7 +47,7 @@ export const SuspenseFallback: React.FC<SuspenseFallbackProps> = ({
     </div>
 
     {/* Message */}
-    <span className="text-sm font-medium">{message}</span>
+    <span className="text-sm font-medium">{resolvedMessage}</span>
 
     {/* Optional skeleton lines */}
     {showSkeleton && (
@@ -64,4 +68,5 @@ export const SuspenseFallback: React.FC<SuspenseFallbackProps> = ({
       }
     `}</style>
   </div>
-);
+  );
+};

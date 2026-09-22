@@ -17,6 +17,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { ApollonEditor, UMLDiagramType, UMLModel, normalizeAgentModel } from '@besser/wme';
 import { toast } from 'react-toastify';
+import { useTranslation } from 'react-i18next';
 
 import { useAppDispatch } from '../../app/store/hooks';
 import { notifyError } from '../../shared/utils/notifyError';
@@ -51,6 +52,14 @@ import {
 } from './generator-dialog-config';
 import { getWorkspaceContext } from '../../shared/utils/workspaceContext';
 import type { GeneratorType } from '../../app/shell/workspace-types';
+import i18n from '../../shared/i18n';
+import {
+  buildAllWebAppVersions,
+  collectVariantProfiles,
+  type VersionProfile,
+  type WebAppVersion,
+  type WebAppVersionMode,
+} from '../../shared/utils/buildWebAppVersions';
 
 // ─── Pure helpers ──────────────────────────────────────────────────────────────
 
@@ -163,7 +172,7 @@ function buildWebAppChecklist(project: BesserProject | undefined): WebAppCheckli
   };
 
   const classDiagramInfo: WebAppChecklistDiagramInfo = {
-    label: 'Class Diagram',
+    label: i18n.t('generation.webApp.classDiagramLabel'),
     title: truncate(classDiagram?.title),
     exists: classDiagramExists,
     hasContent: classDiagramHasContent,
@@ -171,7 +180,7 @@ function buildWebAppChecklist(project: BesserProject | undefined): WebAppCheckli
   };
 
   const guiDiagramInfo: WebAppChecklistDiagramInfo = {
-    label: 'GUI Diagram',
+    label: i18n.t('generation.webApp.guiDiagramLabel'),
     title: truncate(guiDiagram?.title),
     exists: guiDiagramExists,
     hasContent: guiDiagramHasContent,
@@ -183,10 +192,10 @@ function buildWebAppChecklist(project: BesserProject | undefined): WebAppCheckli
 
   // Agent info is now informational -- agents are configured per-component in the GUI
   const agentDiagramInfo: WebAppChecklistDiagramInfo = {
-    label: 'Agent Diagrams',
+    label: i18n.t('generation.webApp.agentDiagramsLabel'),
     title: agentDiagramCount > 0
-      ? `${agentDiagramCount} available (configured per-component in GUI)`
-      : 'None available',
+      ? i18n.t('generation.webApp.agentDiagramsAvailable', { count: agentDiagramCount })
+      : i18n.t('generation.webApp.noneAvailable'),
     exists: agentDiagramCount > 0,
     hasContent: agentDiagramCount > 0,
     required: false,
@@ -195,11 +204,18 @@ function buildWebAppChecklist(project: BesserProject | undefined): WebAppCheckli
   // canGenerate does NOT depend on agent diagrams -- they are optional and per-component
   const canGenerate = classDiagramExists && guiDiagramExists;
 
+  // Distinct user profiles that have at least one page variant. Drives the
+  // "which version(s) to generate" choice in the dialog. Empty ⇒ no variants
+  // anywhere ⇒ unchanged single-app generation.
+  const variantProfiles = collectVariantProfiles(guiModel);
+
   return {
     classDiagram: classDiagramInfo,
     guiDiagram: guiDiagramInfo,
     agentDiagram: agentDiagramInfo,
     canGenerate,
+    variantProfiles,
+    hasAnyVariant: variantProfiles.length > 0,
   };
 }
 
@@ -256,6 +272,42 @@ function triggerAssistantGuiAutoGenerate(timeoutMs = 25000): Promise<{ ok: boole
   });
 }
 
+/**
+ * Ask the live GUI editor to capture the active page's canvas into its snapshot
+ * and persist the full model (incl. variant fields) to storage, then resolve.
+ * Best-effort: if the editor never answers within the timeout, we resolve ok
+ * anyway and proceed with whatever is already stored.
+ */
+function flushGuiForGeneration(timeoutMs = 8000): Promise<{ ok: boolean; error?: string }> {
+  if (typeof window === 'undefined') return Promise.resolve({ ok: false });
+
+  return new Promise((resolve) => {
+    let done = false;
+    const finish = (result: { ok: boolean; error?: string }) => {
+      if (done) return;
+      done = true;
+      window.removeEventListener('wme:flush-gui-for-generation-done', onDone as EventListener);
+      clearTimeout(timeoutId);
+      resolve(result);
+    };
+
+    const onDone = (event: Event) => {
+      const detail = (event as CustomEvent<{ ok?: boolean; error?: string }>).detail || {};
+      finish({ ok: Boolean(detail.ok), error: detail.ok ? undefined : detail.error });
+    };
+
+    const timeoutId = window.setTimeout(
+      () => {
+        console.warn('[GUI flush] timed out before generation; proceeding with the last-saved GUI model');
+        finish({ ok: true, error: 'flush timed out' });
+      },
+      timeoutMs,
+    );
+    window.addEventListener('wme:flush-gui-for-generation-done', onDone as EventListener);
+    window.dispatchEvent(new CustomEvent('wme:flush-gui-for-generation'));
+  });
+}
+
 // ─── Hook ──────────────────────────────────────────────────────────────────────
 
 /**
@@ -293,6 +345,10 @@ export interface WebAppChecklistInfo {
   agentDiagram: WebAppChecklistDiagramInfo;
   /** True when all required diagrams exist (generation can proceed). */
   canGenerate: boolean;
+  /** Distinct profiles that have at least one page variant (empty ⇒ none). */
+  variantProfiles: VersionProfile[];
+  /** Convenience flag: variantProfiles.length > 0. */
+  hasAnyVariant: boolean;
 }
 
 interface AgentModelVariantSnapshot {
@@ -419,6 +475,12 @@ export interface GeneratorConfigState {
   // ── Web App checklist ──────────────────────────────────────────────────
   /** Pre-generation checklist info for the web_app generator. */
   webAppChecklist: WebAppChecklistInfo | null;
+  /** Which version(s) to generate when the GUI has page variants. */
+  webAppVersionMode: WebAppVersionMode;
+  /** Selected profile id when webAppVersionMode === 'profile'. */
+  webAppSelectedProfileId: string;
+  onWebAppVersionModeChange: (v: WebAppVersionMode) => void;
+  onWebAppSelectedProfileIdChange: (v: string) => void;
 
   // ── Execution callbacks (one per generator) ──────────────────────────────
   /** Validate inputs, call the backend, and close the dialog on success. */
@@ -451,6 +513,7 @@ export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGen
   const location = useLocation();
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
+  const { t } = useTranslation();
 
   const { currentProject } = useProject();
   const generateCode = useGenerateCode();
@@ -473,7 +536,7 @@ export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGen
   const activeDiagram = currentProject
     ? getActiveDiagram(currentProject, currentProject.currentDiagramType)
     : undefined;
-  const activeDiagramTitle = activeDiagram?.title || currentProject?.name || 'Diagram';
+  const activeDiagramTitle = activeDiagram?.title || currentProject?.name || t('generation.defaultDiagramTitle');
 
   // ── Generator config state ─────────────────────────────────────────────────
 
@@ -500,12 +563,24 @@ export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGen
   const [agentVariantOptions, setAgentVariantOptions] = useState<AgentGenerationVariantOption[]>([]);
   const [selectedAgentVariantId, setSelectedAgentVariantId] = useState('');
   const [agentGenerationMode, setAgentGenerationMode] = useState<AgentGenerationMode>('none');
+  // Web App version selection (only meaningful when the GUI has page variants).
+  const [webAppVersionMode, setWebAppVersionMode] = useState<WebAppVersionMode>('all');
+  const [webAppSelectedProfileId, setWebAppSelectedProfileId] = useState('');
 
   // ── Web App checklist (computed from current project) ─────────────────────
   const webAppChecklist = useMemo(
     () => buildWebAppChecklist(currentProject ?? undefined),
     [currentProject],
   );
+
+  // Keep the selected profile valid: default to the first variant profile
+  // whenever the current selection isn't among the available profiles.
+  useEffect(() => {
+    const profiles = webAppChecklist?.variantProfiles ?? [];
+    if (profiles.length > 0 && !profiles.some((p) => p.profileId === webAppSelectedProfileId)) {
+      setWebAppSelectedProfileId(profiles[0].profileId);
+    }
+  }, [webAppChecklist, webAppSelectedProfileId]);
 
   // Auto-derive Django project/app names from current project
   useEffect(() => {
@@ -583,13 +658,13 @@ export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGen
   const ensureGuiForAssistantWebAppGeneration = useCallback(
     async (): Promise<GenerationResult | null> => {
       if (!currentProject) {
-        return { ok: false, error: 'Create or load a project before generating code.' };
+        return { ok: false, error: t('generation.toasts.createOrLoadProject') };
       }
 
       try {
         await dispatch(switchDiagramTypeThunk({ diagramType: 'GUINoCodeDiagram' })).unwrap();
       } catch {
-        return { ok: false, error: 'Could not switch to GUI diagram for auto-generation.' };
+        return { ok: false, error: t('generation.toasts.couldNotSwitchToGui') };
       }
 
       if (location.pathname !== '/') {
@@ -598,18 +673,18 @@ export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGen
 
       const ready = await waitForGuiEditorReady(12000);
       if (!ready) {
-        return { ok: false, error: 'GUI editor did not become ready in time.' };
+        return { ok: false, error: t('generation.toasts.guiEditorNotReady') };
       }
 
       const autoGenerateResult = await triggerAssistantGuiAutoGenerate(30000);
       if (!autoGenerateResult.ok) {
-        return { ok: false, error: autoGenerateResult.error || 'Could not auto-generate GUI from Class Diagram.' };
+        return { ok: false, error: autoGenerateResult.error || t('generation.toasts.couldNotAutoGenerateGui') };
       }
 
       await new Promise((resolve) => setTimeout(resolve, 150));
       return null;
     },
-    [currentProject, dispatch, location.pathname, navigate],
+    [currentProject, dispatch, location.pathname, navigate, t],
   );
 
   const executeGenerator = useCallback(
@@ -619,7 +694,7 @@ export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGen
       options?: { autoGenerateGuiIfEmpty?: boolean; agentModelOverride?: UMLModel },
     ): Promise<GenerationResult> => {
       if (!currentProject) {
-        toast.error('Create or load a project before generating code.');
+        toast.error(t('generation.toasts.createOrLoadProject'));
         return { ok: false, error: 'Create or load a project before generating code.' };
       }
 
@@ -647,7 +722,7 @@ export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGen
             }
 
             if (isGuiModelEmpty(guiModel)) {
-              toast.error('Cannot generate web application: GUI diagram is empty.');
+              toast.error(t('generation.toasts.guiDiagramEmpty'));
               return { ok: false, error: 'Cannot generate web application: GUI diagram is empty.' };
             }
           }
@@ -666,7 +741,7 @@ export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGen
 
         if (generatorType === 'qiskit') {
           if (!isQuantumContext) {
-            toast.error('Open the Quantum editor before generating Qiskit code.');
+            toast.error(t('generation.toasts.openQuantumEditor'));
             return { ok: false, error: 'Open the Quantum editor before generating Qiskit code.' };
           }
 
@@ -689,7 +764,7 @@ export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGen
 
         if (generatorType === 'pytorch' || generatorType === 'tensorflow') {
           if (!isNNContext) {
-            toast.error('Open the NN Diagram editor before generating neural network code.');
+            toast.error(t('generation.toasts.openNnEditor'));
             return { ok: false, error: 'Open the NN Diagram editor before generating neural network code.' };
           }
           const nnResult = await generateCode(editor, generatorType, activeDiagramTitle, config as any);
@@ -705,12 +780,12 @@ export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGen
         }
 
         if (isQuantumContext || isGuiContext) {
-          toast.error('Switch to a UML diagram to use this generator.');
+          toast.error(t('generation.toasts.switchToUmlDiagram'));
           return { ok: false, error: 'Switch to a UML diagram to use this generator.' };
         }
 
         if (!editor) {
-          toast.error('No UML editor instance available. Open a UML diagram first.');
+          toast.error(t('generation.toasts.noUmlEditor'));
           return { ok: false, error: 'No UML editor instance available. Open a UML diagram first.' };
         }
 
@@ -749,7 +824,7 @@ export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGen
             break;
           case 'jsonobject': {
             if (!isObjectContext && !isUserContext) {
-              toast.error('Switch to an Object Diagram or User Diagram to use the JSON Object generator.');
+              toast.error(t('generation.toasts.switchToObjectOrUserDiagram'));
               return { ok: false, error: 'Switch to an Object Diagram or User Diagram to use the JSON Object generator.' };
             }
             // Object diagrams need their referenced ClassDiagram so the backend can build
@@ -781,7 +856,9 @@ export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGen
 
         return result;
       } catch (error) {
-        const errorMessage = `Generation failed: ${error instanceof Error ? error.message : 'Unknown error'}`;
+        const errorMessage = t('generation.toasts.generationFailed', {
+          error: error instanceof Error ? error.message : t('generation.toasts.unknownError'),
+        });
         toast.error(errorMessage);
         return { ok: false, error: errorMessage };
       } finally {
@@ -790,7 +867,7 @@ export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGen
     },
     [
       currentProject, editor, generateCode, activeDiagram, activeDiagramTitle,
-      isQuantumContext, isGuiContext, isObjectContext, isUserContext, isNNContext, ensureGuiForAssistantWebAppGeneration,
+      isQuantumContext, isGuiContext, isObjectContext, isUserContext, isNNContext, ensureGuiForAssistantWebAppGeneration, t,
     ],
   );
 
@@ -799,7 +876,7 @@ export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGen
   const handleGenerateRequest = useCallback(
     async (generatorType: GeneratorType, menuConfig?: Record<string, any>) => {
       if (!currentProject) {
-        toast.error('Create or load a project before generating code.');
+        toast.error(t('generation.toasts.createOrLoadProject'));
         return;
       }
       const requiredDialog = getConfigDialogForGenerator(generatorType);
@@ -809,7 +886,7 @@ export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGen
       }
       await executeGenerator(generatorType, menuConfig);
     },
-    [currentProject, executeGenerator],
+    [currentProject, executeGenerator, t],
   );
 
   const handleAssistantGenerate = useCallback(
@@ -820,12 +897,12 @@ export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGen
 
   const handleQualityCheck = useCallback(async (): Promise<QualityCheckResult> => {
     if (!currentProject) {
-      toast.error('Create or load a project before validating.');
+      toast.error(t('generation.toasts.createOrLoadProjectValidate'));
       return { executed: false, passed: false };
     }
 
     if (isQuantumContext || isGuiContext || currentProject.currentDiagramType === 'QuantumCircuitDiagram') {
-      toast.error('coming soon');
+      toast.error(t('generation.toasts.comingSoon'));
       return { executed: false, passed: false };
     }
 
@@ -840,27 +917,29 @@ export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGen
         return { executed: true, passed: didValidationPass(result) };
       }
 
-      toast.error('No diagram available to validate');
+      toast.error(t('generation.toasts.noDiagramToValidate'));
       return { executed: false, passed: false };
     } catch (error) {
-      toast.error(`Quality check failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      toast.error(t('generation.toasts.qualityCheckFailed', {
+        error: error instanceof Error ? error.message : t('generation.toasts.unknownError'),
+      }));
       return { executed: true, passed: false };
     }
-  }, [currentProject, editor, isQuantumContext, isGuiContext, activeDiagram, activeDiagramTitle]);
+  }, [currentProject, editor, isQuantumContext, isGuiContext, activeDiagram, activeDiagramTitle, t]);
 
   // ── Config-dialog handlers ─────────────────────────────────────────────────
 
   const handleDjangoGenerate = useCallback(async () => {
     if (!djangoProjectName || !djangoAppName) {
-      toast.error('Project and app names are required.');
+      toast.error(t('generation.toasts.namesRequired'));
       return;
     }
     if (djangoProjectName === djangoAppName) {
-      toast.error('Project and app names must be different.');
+      toast.error(t('generation.toasts.namesMustDiffer'));
       return;
     }
     if (!validateDjangoName(djangoProjectName) || !validateDjangoName(djangoAppName)) {
-      toast.error('Names must start with a letter/underscore and contain only letters, numbers, and underscores.');
+      toast.error(t('generation.toasts.namesInvalid'));
       return;
     }
     await executeGenerator('django', {
@@ -869,23 +948,23 @@ export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGen
       containerization: useDocker,
     } as DjangoConfig);
     setConfigDialog('none');
-  }, [djangoProjectName, djangoAppName, useDocker, executeGenerator]);
+  }, [djangoProjectName, djangoAppName, useDocker, executeGenerator, t]);
 
   const handleDjangoDeploy = useCallback(async () => {
     if (!editor || !currentProject) {
-      toast.error('Open a UML diagram before deploying.');
+      toast.error(t('generation.toasts.openUmlBeforeDeploy'));
       return;
     }
     if (!djangoProjectName || !djangoAppName) {
-      toast.error('Project and app names are required.');
+      toast.error(t('generation.toasts.namesRequired'));
       return;
     }
     if (djangoProjectName === djangoAppName) {
-      toast.error('Project and app names must be different.');
+      toast.error(t('generation.toasts.namesMustDiffer'));
       return;
     }
     if (!validateDjangoName(djangoProjectName) || !validateDjangoName(djangoAppName)) {
-      toast.error('Names must start with a letter/underscore and contain only letters, numbers, and underscores.');
+      toast.error(t('generation.toasts.namesInvalid'));
       return;
     }
     await deployLocally(editor, 'django', activeDiagramTitle, {
@@ -893,7 +972,7 @@ export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGen
       app_name: djangoAppName,
       containerization: useDocker,
     } as DjangoConfig);
-  }, [editor, currentProject, djangoProjectName, djangoAppName, useDocker, deployLocally, activeDiagramTitle]);
+  }, [editor, currentProject, djangoProjectName, djangoAppName, useDocker, deployLocally, activeDiagramTitle, t]);
 
   const handleSqlGenerate = useCallback(async () => {
     await executeGenerator('sql', { dialect: sqlDialect } as SQLConfig);
@@ -1032,7 +1111,7 @@ export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGen
         } => Boolean(entry));
 
       if (personalizationMapping.length === 0) {
-        toast.error('No valid personalization mappings found. Create mappings and save personalized variants first.');
+        toast.error(t('generation.toasts.noValidPersonalizationMappings'));
         return;
       }
 
@@ -1078,6 +1157,7 @@ export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGen
     executeGenerator,
     agentGenerationMode,
     agentVariantOptions,
+    t,
   ]);
 
   const handleQiskitGenerate = useCallback(async () => {
@@ -1089,9 +1169,35 @@ export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGen
   }, [qiskitBackend, qiskitShots, executeGenerator]);
 
   const handleWebAppGenerate = useCallback(async () => {
-    await executeGenerator('web_app');
+    // Flush the live GUI canvas (active page) into its snapshot and persist to
+    // storage first, so the version builder below reads the freshest content.
+    if (typeof window !== 'undefined' && (window as any).__WME_GUI_EDITOR_READY__) {
+      await flushGuiForGeneration();
+    }
+
+    // Re-read the freshest project post-flush and decide whether to branch into
+    // per-version generation. When the GUI has no page variants, versions is []
+    // and we fall through to the unchanged single-app path (config undefined).
+    const freshProject = currentProject?.id
+      ? (ProjectStorageRepository.loadProject(currentProject.id) ?? currentProject)
+      : currentProject;
+    const guiModel = freshProject
+      ? (getActiveDiagram(freshProject, 'GUINoCodeDiagram')?.model as GrapesJSProjectData | undefined)
+      : undefined;
+
+    let config: { webAppVersions?: WebAppVersion[] } | undefined;
+    if (guiModel) {
+      const versions = buildAllWebAppVersions(
+        guiModel,
+        webAppVersionMode,
+        webAppSelectedProfileId || null,
+      );
+      if (versions.length > 0) config = { webAppVersions: versions };
+    }
+
+    await executeGenerator('web_app', config);
     setConfigDialog('none');
-  }, [executeGenerator]);
+  }, [executeGenerator, currentProject, webAppVersionMode, webAppSelectedProfileId]);
 
   // ── Return ─────────────────────────────────────────────────────────────────
 
@@ -1125,6 +1231,10 @@ export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGen
     selectedAgentVariantId,
     agentGenerationMode,
     webAppChecklist,
+    webAppVersionMode,
+    webAppSelectedProfileId,
+    onWebAppVersionModeChange: setWebAppVersionMode,
+    onWebAppSelectedProfileIdChange: setWebAppSelectedProfileId,
     onDjangoProjectNameChange: setDjangoProjectName,
     onDjangoAppNameChange: setDjangoAppName,
     onUseDockerChange: setUseDocker,
@@ -1141,15 +1251,15 @@ export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGen
     onStoredAgentConfigToggle: handleStoredAgentConfigToggle,
     onSelectedAgentVariantIdChange: setSelectedAgentVariantId,
     onAgentGenerationModeChange: setAgentGenerationMode,
-    onDjangoGenerate: () => { handleDjangoGenerate().catch(notifyError('Django generation')); },
-    onDjangoDeploy: () => { handleDjangoDeploy().catch(notifyError('Django deployment')); },
-    onSqlGenerate: () => { handleSqlGenerate().catch(notifyError('SQL generation')); },
-    onSupabaseGenerate: () => { handleSupabaseGenerate().catch(notifyError('Supabase generation')); },
-    onSqlAlchemyGenerate: () => { handleSqlAlchemyGenerate().catch(notifyError('SQLAlchemy generation')); },
-    onJsonSchemaGenerate: () => { handleJsonSchemaGenerate().catch(notifyError('JSON Schema generation')); },
-    onAgentGenerate: () => { handleAgentGenerate().catch(notifyError('Agent generation')); },
-    onQiskitGenerate: () => { handleQiskitGenerate().catch(notifyError('Qiskit generation')); },
-    onWebAppGenerate: () => { handleWebAppGenerate().catch(notifyError('Web App generation')); },
+    onDjangoGenerate: () => { handleDjangoGenerate().catch(notifyError(t('generation.context.djangoGeneration'))); },
+    onDjangoDeploy: () => { handleDjangoDeploy().catch(notifyError(t('generation.context.djangoDeployment'))); },
+    onSqlGenerate: () => { handleSqlGenerate().catch(notifyError(t('generation.context.sqlGeneration'))); },
+    onSupabaseGenerate: () => { handleSupabaseGenerate().catch(notifyError(t('generation.context.supabaseGeneration'))); },
+    onSqlAlchemyGenerate: () => { handleSqlAlchemyGenerate().catch(notifyError(t('generation.context.sqlAlchemyGeneration'))); },
+    onJsonSchemaGenerate: () => { handleJsonSchemaGenerate().catch(notifyError(t('generation.context.jsonSchemaGeneration'))); },
+    onAgentGenerate: () => { handleAgentGenerate().catch(notifyError(t('generation.context.agentGeneration'))); },
+    onQiskitGenerate: () => { handleQiskitGenerate().catch(notifyError(t('generation.context.qiskitGeneration'))); },
+    onWebAppGenerate: () => { handleWebAppGenerate().catch(notifyError(t('generation.context.webAppGeneration'))); },
   };
 
   return {

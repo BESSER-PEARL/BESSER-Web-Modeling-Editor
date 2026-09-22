@@ -1,6 +1,7 @@
 // Import diagram from KG using backend API
 import { toast } from 'react-toastify';
 import { useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
 import { BACKEND_URL } from '../../shared/constants/constant';
 import { useAppDispatch } from '../../app/store/hooks';
 import { uuid } from '../../shared/utils/uuid';
@@ -16,6 +17,7 @@ import { useBumlToDiagram } from './useBumlToDiagram';
 // Hook to import diagram from kg file and API key
 export const useImportDiagramFromKG = () => {
   const dispatch = useAppDispatch();
+  const { t } = useTranslation();
   const convertBumlToDiagram = useBumlToDiagram();
 
   const importDiagramFromKG = useCallback(async (file: File, apiKey: string) => {
@@ -31,7 +33,7 @@ export const useImportDiagramFromKG = () => {
       });
 
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ detail: 'Could not parse error response' }));
+        const errorData = await response.json().catch(() => ({ detail: t('import.errors.couldNotParseError') }));
         const errorMsg = errorData.detail || `HTTP error! status: ${response.status}`;
         toast.error(errorMsg);
         throw new Error(errorMsg);
@@ -40,13 +42,13 @@ export const useImportDiagramFromKG = () => {
       const data = await response.json();
       // Should be a diagram JSON
       if (!data || !data.model || !data.model.type) {
-        throw new Error('Invalid diagram returned from backend');
+        throw new Error(t('import.errors.invalidFromBackend'));
       }
 
       // Add to current project
       const currentProject = ProjectStorageRepository.getCurrentProject();
       if (!currentProject) {
-        throw new Error('No project is currently open. Please create or open a project first.');
+        throw new Error(t('import.errors.noProjectOpen'));
       }
       const diagramType = toSupportedDiagramType(data.model.type);
       const newId = uuid();
@@ -55,7 +57,7 @@ export const useImportDiagramFromKG = () => {
         id: newId,
         title: data.title || file.name,
         lastUpdate: new Date().toISOString(),
-        description: data.description || `Imported ${diagramType} diagram from Knowledge Graph`,
+        description: data.description || t('import.descriptions.importedFromKg', { diagramType }),
       };
       const updatedProject = {
         ...currentProject,
@@ -78,14 +80,14 @@ export const useImportDiagramFromKG = () => {
         success: true,
         diagramType,
         diagramTitle: importedDiagram.title,
-        message: `${diagramType} diagram imported successfully from Knowledge Graph and added to project "${currentProject.name}".`
+        message: t('import.success.kg', { diagramType, projectName: currentProject.name })
       };
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred during import';
-      dispatch(displayError('Import failed', `Could not import diagram from Knowledge Graph: ${errorMessage}`));
+      const errorMessage = error instanceof Error ? error.message : t('import.errors.unknownDuringImport');
+      dispatch(displayError(t('import.errors.title'), t('import.errors.couldNotImportFromKg', { message: errorMessage })));
       throw error;
     }
-  }, [dispatch, convertBumlToDiagram]);
+  }, [dispatch, convertBumlToDiagram, t]);
 
   return importDiagramFromKG;
 };

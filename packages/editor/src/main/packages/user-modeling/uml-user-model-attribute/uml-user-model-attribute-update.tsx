@@ -6,6 +6,8 @@ import { TrashIcon } from '../../../components/controls/icon/trash';
 import { Textfield } from '../../../components/controls/textfield/textfield';
 import { Dropdown } from '../../../components/controls/dropdown/dropdown';
 import { StylePane } from '../../../components/style-pane/style-pane';
+import { I18nContext } from '../../../components/i18n/i18n-context';
+import { localized } from '../../../components/i18n/localized';
 import { IUMLElement } from '../../../services/uml-element/uml-element';
 import { diagramBridge } from '../../../services/diagram-bridge/diagram-bridge-service';
 import {
@@ -68,9 +70,9 @@ type Props = {
   onSubmitKeyUp: () => void;
   onDelete: (id: string) => () => void;
   element: IUMLElement;
-};
+} & I18nContext;
 
-const UMLUserModelAttributeUpdate = ({ id, onRefChange, value, onChange, onSubmitKeyUp, onDelete, element }: Props) => {
+const UMLUserModelAttributeUpdate = ({ id, onRefChange, value, onChange, onSubmitKeyUp, onDelete, element, translate }: Props) => {
   const [colorOpen, setColorOpen] = useState(false);
   const attributeElement = element as IUMLUserModelAttribute;
 
@@ -226,7 +228,7 @@ const UMLUserModelAttributeUpdate = ({ id, onRefChange, value, onChange, onSubmi
                 value={attributeValue}
                 onChange={handleValueChange}
                 onSubmitKeyUp={onSubmitKeyUp}
-                placeholder="value"
+                placeholder={translate('popup.attributeValuePlaceholder')}
               />
             )}
           </AttributeInputContainer>
@@ -260,4 +262,4 @@ const UMLUserModelAttributeUpdate = ({ id, onRefChange, value, onChange, onSubmi
   );
 };
 
-export default UMLUserModelAttributeUpdate;
+export default localized(UMLUserModelAttributeUpdate);

@@ -1,4 +1,5 @@
 import { Check, Copy } from "lucide-react"
+import { useTranslation } from "react-i18next"
 
 import { cn } from "@/lib/utils"
 import { useCopyToClipboard } from "@/components/chatbot-kit/hooks/use-copy-to-clipboard"
@@ -10,6 +11,7 @@ type CopyButtonProps = {
 }
 
 export function CopyButton({ content, copyMessage }: CopyButtonProps) {
+  const { t } = useTranslation()
   const { isCopied, handleCopy } = useCopyToClipboard({
     text: content,
     copyMessage,
@@ -20,7 +22,7 @@ export function CopyButton({ content, copyMessage }: CopyButtonProps) {
       variant="ghost"
       size="icon"
       className="relative h-6 w-6 hover:text-primary"
-      aria-label="Copy to clipboard"
+      aria-label={t("assistant.chatKit.copyToClipboard")}
       onClick={handleCopy}
     >
       <div className="absolute inset-0 flex items-center justify-center">

@@ -1,4 +1,5 @@
 import React, { useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 import { AlertTriangle } from 'lucide-react';
 import { findHiddenReferencedPerspectives, SupportedDiagramType } from '../../shared/types/project';
 import { PERSPECTIVE_LABELS } from '../../shared/constants/diagramTypeStyles';
@@ -13,6 +14,7 @@ import { selectProject, setPerspectiveEnabledThunk } from '../../app/store/works
  * Renders nothing when no hidden-but-referenced perspective is detected.
  */
 export const HiddenPerspectivesBanner: React.FC = () => {
+  const { t } = useTranslation();
   const project = useAppSelector(selectProject);
   const dispatch = useAppDispatch();
 
@@ -39,8 +41,9 @@ export const HiddenPerspectivesBanner: React.FC = () => {
       <span className="flex items-center gap-2">
         <AlertTriangle className="size-4 shrink-0" />
         <span>
-          This project uses <span className="font-medium">{labelList}</span> but{' '}
-          {hidden.length === 1 ? 'that perspective is' : 'those perspectives are'} hidden.
+          {hidden.length === 1
+            ? t('editors.hiddenPerspectives.messageSingular', { labels: labelList })
+            : t('editors.hiddenPerspectives.messagePlural', { labels: labelList })}
         </span>
       </span>
       <span className="flex flex-wrap items-center gap-2">
@@ -52,7 +55,7 @@ export const HiddenPerspectivesBanner: React.FC = () => {
             data-testid={`enable-perspective-${type}`}
             className="inline-flex items-center rounded-md border border-amber-400 bg-white px-2 py-1 text-xs font-medium text-amber-900 transition-colors hover:bg-amber-100 dark:border-amber-700 dark:bg-amber-950/40 dark:text-amber-100 dark:hover:bg-amber-900/40"
           >
-            Enable {PERSPECTIVE_LABELS[type]}
+            {t('editors.hiddenPerspectives.enable', { label: PERSPECTIVE_LABELS[type] })}
           </button>
         ))}
       </span>

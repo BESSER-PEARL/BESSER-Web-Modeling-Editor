@@ -88,7 +88,7 @@ class StateUpdate extends Component<Props, State> {
     return (
       <div>
         <section>
-          Intent Name
+          {this.props.translate('popup.agent.intent.name')}
           <Flex>
             <Textfield value={element.name} onChange={this.rename(element.id)} autoFocus />
             <ColorButton onClick={this.toggleColor} />
@@ -107,7 +107,7 @@ class StateUpdate extends Component<Props, State> {
           <Divider />
         </section>
         <section>
-          Training Sentences
+          {this.props.translate('popup.agent.intent.trainingSentences')}
           <Header>{this.props.translate('popup.bodies')}</Header>
           {bodies.map((body, index) => (
             <AgentIntentUpdate
@@ -154,7 +154,7 @@ class StateUpdate extends Component<Props, State> {
         </section>
         <Divider />
         <section>
-          Description (Optional)
+          {this.props.translate('popup.agent.intent.description')}
           <Flex>
             <Textfield
               value={element.intent_description}

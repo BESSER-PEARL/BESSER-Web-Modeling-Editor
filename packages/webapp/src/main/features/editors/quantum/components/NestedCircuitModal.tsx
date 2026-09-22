@@ -1,4 +1,5 @@
 import React, { useState, useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
 import { cn } from '@/lib/utils';
 import { Z_INDEX } from '../../../../shared/constants/z-index';
 import { Circuit, Gate, InitialState } from '../types';
@@ -11,6 +12,7 @@ interface NestedCircuitModalProps {
 }
 
 export function NestedCircuitModal({ gate, onClose, onSave }: NestedCircuitModalProps): JSX.Element {
+  const { t } = useTranslation();
   const [gateName, setGateName] = useState<string>(gate.label || '');
   const [gateColor, setGateColor] = useState<string>(gate.backgroundColor || '#FFE8CC');
   const [circuit, setCircuit] = useState<Circuit>(() => {
@@ -82,13 +84,13 @@ export function NestedCircuitModal({ gate, onClose, onSave }: NestedCircuitModal
         <div className="px-5 py-4 border-b border-[var(--quantum-editor-border,#d5dde8)] flex flex-col gap-3 bg-[var(--quantum-editor-surface,#f8fafc)]">
           <div className="flex justify-between items-center">
             <h2 className="m-0 text-lg font-semibold text-[var(--quantum-editor-text,#0f172a)]">
-              Edit Function Gate
+              {t('editors.quantum.editFunctionGate')}
             </h2>
             <button
               className="bg-transparent border border-transparent text-2xl cursor-pointer p-0 size-8 flex items-center justify-center rounded text-[var(--quantum-editor-muted-text,#64748b)] hover:border-[var(--quantum-editor-border,#d5dde8)] hover:bg-[var(--quantum-editor-surface,#f8fafc)] hover:text-[var(--quantum-editor-text,#0f172a)]"
               onClick={onClose}
-              aria-label="Close modal"
-              title="Close"
+              aria-label={t('editors.quantum.closeModal')}
+              title={t('common.close')}
             >
               ×
             </button>
@@ -96,13 +98,13 @@ export function NestedCircuitModal({ gate, onClose, onSave }: NestedCircuitModal
           <input
             type="text"
             className="w-full px-3 py-2 border border-[var(--quantum-editor-border,#d5dde8)] rounded text-sm font-[inherit] text-[var(--quantum-editor-text,#0f172a)] bg-[var(--quantum-editor-bg,#ffffff)] placeholder:text-[var(--quantum-editor-muted-text,#64748b)] focus:outline-none focus:border-[var(--quantum-editor-primary,#0284c7)] focus:shadow-[0_0_0_3px_var(--quantum-editor-primary-soft,rgba(2,132,199,0.16))]"
-            placeholder="Enter gate name (e.g., Bell State, QFT)"
+            placeholder={t('editors.quantum.gateNamePlaceholder')}
             value={gateName}
             onChange={(e) => setGateName(e.target.value)}
             autoFocus
           />
           <div className="flex items-center gap-3">
-            <span className="text-sm text-[var(--quantum-editor-muted-text,#64748b)]">Gate Color:</span>
+            <span className="text-sm text-[var(--quantum-editor-muted-text,#64748b)]">{t('editors.quantum.gateColor')}</span>
             <div className="flex gap-1.5">
               {['#FFE8CC', '#E8F4FF', '#E8FFE8', '#FFE8E8', '#F0E8FF', '#FFF8E8', '#E8FFFF', '#FFE8F4'].map((color) => (
                 <button
@@ -115,7 +117,7 @@ export function NestedCircuitModal({ gate, onClose, onSave }: NestedCircuitModal
                       : 'border border-[var(--quantum-editor-border,#d5dde8)]'
                   )}
                   style={{ backgroundColor: color }}
-                  aria-label={`Select gate color ${color}`}
+                  aria-label={t('editors.quantum.selectGateColor', { color })}
                   title={color}
                 />
               ))}
@@ -124,7 +126,7 @@ export function NestedCircuitModal({ gate, onClose, onSave }: NestedCircuitModal
                 className="size-6 p-0 border border-[var(--quantum-editor-border,#d5dde8)] rounded cursor-pointer bg-[var(--quantum-editor-bg,#ffffff)]"
                 value={gateColor}
                 onChange={(e) => setGateColor(e.target.value)}
-                title="Custom color"
+                title={t('editors.quantum.customColor')}
               />
             </div>
           </div>
@@ -143,21 +145,21 @@ export function NestedCircuitModal({ gate, onClose, onSave }: NestedCircuitModal
 
         <div className="px-5 py-4 border-t border-[var(--quantum-editor-border,#d5dde8)] flex justify-between items-center gap-3 bg-[var(--quantum-editor-surface,#f8fafc)]">
           <div className="flex items-center gap-2 text-sm text-[var(--quantum-editor-text,#0f172a)]">
-            <span>Qubits: {circuit.qubitCount}</span>
+            <span>{t('editors.quantum.qubits', { count: circuit.qubitCount })}</span>
             <button
               className="px-3 py-1 border border-[var(--quantum-editor-border,#d5dde8)] rounded text-sm cursor-pointer text-[var(--quantum-editor-text,#0f172a)] bg-[var(--quantum-editor-bg,#ffffff)] transition-all duration-200 hover:enabled:bg-[var(--quantum-editor-surface,#f8fafc)] hover:enabled:border-[var(--quantum-editor-muted-text,#64748b)] disabled:opacity-50 disabled:cursor-not-allowed"
               onClick={handleRemoveQubit}
               disabled={circuit.qubitCount <= 1}
-              aria-label="Remove qubit"
-              title="Remove qubit"
+              aria-label={t('editors.quantum.removeQubit')}
+              title={t('editors.quantum.removeQubit')}
             >
               −
             </button>
             <button
               className="px-3 py-1 border border-[var(--quantum-editor-border,#d5dde8)] rounded text-sm cursor-pointer text-[var(--quantum-editor-text,#0f172a)] bg-[var(--quantum-editor-bg,#ffffff)] transition-all duration-200 hover:enabled:bg-[var(--quantum-editor-surface,#f8fafc)] hover:enabled:border-[var(--quantum-editor-muted-text,#64748b)] disabled:opacity-50 disabled:cursor-not-allowed"
               onClick={handleAddQubit}
-              aria-label="Add qubit"
-              title="Add qubit"
+              aria-label={t('editors.quantum.addQubit')}
+              title={t('editors.quantum.addQubit')}
             >
               +
             </button>
@@ -167,13 +169,13 @@ export function NestedCircuitModal({ gate, onClose, onSave }: NestedCircuitModal
               className="px-4 py-2 border border-[var(--quantum-editor-border,#d5dde8)] rounded text-sm font-medium cursor-pointer transition-colors duration-200 bg-[var(--quantum-editor-muted-surface,#f1f5f9)] text-[var(--quantum-editor-text,#0f172a)] hover:bg-[var(--quantum-editor-surface,#f8fafc)] active:translate-y-px"
               onClick={onClose}
             >
-              Cancel
+              {t('common.cancel')}
             </button>
             <button
               className="px-4 py-2 border border-transparent rounded text-sm font-medium cursor-pointer transition-colors duration-200 bg-[var(--quantum-editor-primary,#0284c7)] text-white hover:bg-[#0ea5e9] active:translate-y-px"
               onClick={handleSave}
             >
-              Save Circuit
+              {t('editors.quantum.saveCircuit')}
             </button>
           </div>
         </div>

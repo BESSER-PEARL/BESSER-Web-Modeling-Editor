@@ -1,3 +1,5 @@
+import i18n from '@/main/shared/i18n';
+
 /**
  * Register layout components (Flexbox, Grid, Card)
  * @param editor - GrapesJS editor instance
@@ -39,61 +41,61 @@ export const registerLayoutComponents = (editor: any) => {
         traits.reset([
           {
             type: 'select',
-            label: 'Direction',
+            label: i18n.t('editors.gui.traits.direction'),
             name: 'flex-direction',
             value: 'row',
             changeProp: 1,
             options: [
-              { value: 'row', label: 'Row (Horizontal)' },
-              { value: 'row-reverse', label: 'Row Reverse' },
-              { value: 'column', label: 'Column (Vertical)' },
-              { value: 'column-reverse', label: 'Column Reverse' },
+              { value: 'row', label: i18n.t('editors.gui.traits.directionOptions.row') },
+              { value: 'row-reverse', label: i18n.t('editors.gui.traits.directionOptions.rowReverse') },
+              { value: 'column', label: i18n.t('editors.gui.traits.directionOptions.column') },
+              { value: 'column-reverse', label: i18n.t('editors.gui.traits.directionOptions.columnReverse') },
             ],
           },
           {
             type: 'select',
-            label: 'Justify Content',
+            label: i18n.t('editors.gui.traits.justifyContent'),
             name: 'justify-content',
             value: 'flex-start',
             changeProp: 1,
             options: [
-              { value: 'flex-start', label: 'Start' },
-              { value: 'flex-end', label: 'End' },
-              { value: 'center', label: 'Center' },
-              { value: 'space-between', label: 'Space Between' },
-              { value: 'space-around', label: 'Space Around' },
-              { value: 'space-evenly', label: 'Space Evenly' },
+              { value: 'flex-start', label: i18n.t('editors.gui.traits.justifyContentOptions.start') },
+              { value: 'flex-end', label: i18n.t('editors.gui.traits.justifyContentOptions.end') },
+              { value: 'center', label: i18n.t('editors.gui.traits.justifyContentOptions.center') },
+              { value: 'space-between', label: i18n.t('editors.gui.traits.justifyContentOptions.spaceBetween') },
+              { value: 'space-around', label: i18n.t('editors.gui.traits.justifyContentOptions.spaceAround') },
+              { value: 'space-evenly', label: i18n.t('editors.gui.traits.justifyContentOptions.spaceEvenly') },
             ],
           },
           {
             type: 'select',
-            label: 'Align Items',
+            label: i18n.t('editors.gui.traits.alignItems'),
             name: 'align-items',
             value: 'stretch',
             changeProp: 1,
             options: [
-              { value: 'stretch', label: 'Stretch' },
-              { value: 'flex-start', label: 'Start' },
-              { value: 'flex-end', label: 'End' },
-              { value: 'center', label: 'Center' },
-              { value: 'baseline', label: 'Baseline' },
+              { value: 'stretch', label: i18n.t('editors.gui.traits.alignItemsOptions.stretch') },
+              { value: 'flex-start', label: i18n.t('editors.gui.traits.alignItemsOptions.start') },
+              { value: 'flex-end', label: i18n.t('editors.gui.traits.alignItemsOptions.end') },
+              { value: 'center', label: i18n.t('editors.gui.traits.alignItemsOptions.center') },
+              { value: 'baseline', label: i18n.t('editors.gui.traits.alignItemsOptions.baseline') },
             ],
           },
           {
             type: 'select',
-            label: 'Wrap',
+            label: i18n.t('editors.gui.traits.wrap'),
             name: 'flex-wrap',
             value: 'nowrap',
             changeProp: 1,
             options: [
-              { value: 'nowrap', label: 'No Wrap' },
-              { value: 'wrap', label: 'Wrap' },
-              { value: 'wrap-reverse', label: 'Wrap Reverse' },
+              { value: 'nowrap', label: i18n.t('editors.gui.traits.wrapOptions.nowrap') },
+              { value: 'wrap', label: i18n.t('editors.gui.traits.wrapOptions.wrap') },
+              { value: 'wrap-reverse', label: i18n.t('editors.gui.traits.wrapOptions.wrapReverse') },
             ],
           },
           {
             type: 'text',
-            label: 'Gap (px)',
+            label: i18n.t('editors.gui.traits.gap'),
             name: 'gap',
             value: '16px',
             changeProp: 1,
@@ -101,7 +103,7 @@ export const registerLayoutComponents = (editor: any) => {
           },
           {
             type: 'text',
-            label: 'Padding (px)',
+            label: i18n.t('editors.gui.traits.padding'),
             name: 'padding',
             value: '16px',
             changeProp: 1,
@@ -109,7 +111,7 @@ export const registerLayoutComponents = (editor: any) => {
           },
         ]);
 
-        this.on('change:flex-direction change:justify-content change:align-items change:flex-wrap change:gap change:padding', 
+        this.on('change:flex-direction change:justify-content change:align-items change:flex-wrap change:gap change:padding',
           this.updateContainer);
       },
       updateContainer(this: any) {
@@ -168,7 +170,7 @@ export const registerLayoutComponents = (editor: any) => {
         traits.reset([
           {
             type: 'text',
-            label: 'Flex Grow',
+            label: i18n.t('editors.gui.traits.flexGrow'),
             name: 'flex-grow',
             value: '0',
             changeProp: 1,
@@ -176,7 +178,7 @@ export const registerLayoutComponents = (editor: any) => {
           },
           {
             type: 'text',
-            label: 'Flex Shrink',
+            label: i18n.t('editors.gui.traits.flexShrink'),
             name: 'flex-shrink',
             value: '1',
             changeProp: 1,
@@ -184,7 +186,7 @@ export const registerLayoutComponents = (editor: any) => {
           },
           {
             type: 'text',
-            label: 'Flex Basis',
+            label: i18n.t('editors.gui.traits.flexBasis'),
             name: 'flex-basis',
             value: 'auto',
             changeProp: 1,
@@ -192,17 +194,17 @@ export const registerLayoutComponents = (editor: any) => {
           },
           {
             type: 'select',
-            label: 'Align Self',
+            label: i18n.t('editors.gui.traits.alignSelf'),
             name: 'align-self',
             value: 'auto',
             changeProp: 1,
             options: [
-              { value: 'auto', label: 'Auto' },
-              { value: 'flex-start', label: 'Start' },
-              { value: 'flex-end', label: 'End' },
-              { value: 'center', label: 'Center' },
-              { value: 'baseline', label: 'Baseline' },
-              { value: 'stretch', label: 'Stretch' },
+              { value: 'auto', label: i18n.t('editors.gui.traits.alignSelfOptions.auto') },
+              { value: 'flex-start', label: i18n.t('editors.gui.traits.alignSelfOptions.start') },
+              { value: 'flex-end', label: i18n.t('editors.gui.traits.alignSelfOptions.end') },
+              { value: 'center', label: i18n.t('editors.gui.traits.alignSelfOptions.center') },
+              { value: 'baseline', label: i18n.t('editors.gui.traits.alignSelfOptions.baseline') },
+              { value: 'stretch', label: i18n.t('editors.gui.traits.alignSelfOptions.stretch') },
             ],
           },
         ]);
@@ -264,7 +266,7 @@ export const registerLayoutComponents = (editor: any) => {
         traits.reset([
           {
             type: 'text',
-            label: 'Columns',
+            label: i18n.t('editors.gui.traits.columns'),
             name: 'grid-template-columns',
             value: 'repeat(3, 1fr)',
             changeProp: 1,
@@ -272,7 +274,7 @@ export const registerLayoutComponents = (editor: any) => {
           },
           {
             type: 'text',
-            label: 'Rows',
+            label: i18n.t('editors.gui.traits.rows'),
             name: 'grid-template-rows',
             value: 'auto',
             changeProp: 1,
@@ -280,7 +282,7 @@ export const registerLayoutComponents = (editor: any) => {
           },
           {
             type: 'text',
-            label: 'Gap (px)',
+            label: i18n.t('editors.gui.traits.gap'),
             name: 'grid-gap',
             value: '16px',
             changeProp: 1,
@@ -288,7 +290,7 @@ export const registerLayoutComponents = (editor: any) => {
           },
           {
             type: 'text',
-            label: 'Padding (px)',
+            label: i18n.t('editors.gui.traits.padding'),
             name: 'padding',
             value: '16px',
             changeProp: 1,
@@ -296,28 +298,28 @@ export const registerLayoutComponents = (editor: any) => {
           },
           {
             type: 'select',
-            label: 'Justify Items',
+            label: i18n.t('editors.gui.traits.justifyItems'),
             name: 'justify-items',
             value: 'stretch',
             changeProp: 1,
             options: [
-              { value: 'stretch', label: 'Stretch' },
-              { value: 'start', label: 'Start' },
-              { value: 'end', label: 'End' },
-              { value: 'center', label: 'Center' },
+              { value: 'stretch', label: i18n.t('editors.gui.traits.justifyItemsOptions.stretch') },
+              { value: 'start', label: i18n.t('editors.gui.traits.justifyItemsOptions.start') },
+              { value: 'end', label: i18n.t('editors.gui.traits.justifyItemsOptions.end') },
+              { value: 'center', label: i18n.t('editors.gui.traits.justifyItemsOptions.center') },
             ],
           },
           {
             type: 'select',
-            label: 'Align Items',
+            label: i18n.t('editors.gui.traits.alignItems'),
             name: 'align-items',
             value: 'stretch',
             changeProp: 1,
             options: [
-              { value: 'stretch', label: 'Stretch' },
-              { value: 'start', label: 'Start' },
-              { value: 'end', label: 'End' },
-              { value: 'center', label: 'Center' },
+              { value: 'stretch', label: i18n.t('editors.gui.traits.alignItemsOptions.stretch') },
+              { value: 'start', label: i18n.t('editors.gui.traits.alignItemsOptions.start') },
+              { value: 'end', label: i18n.t('editors.gui.traits.alignItemsOptions.end') },
+              { value: 'center', label: i18n.t('editors.gui.traits.alignItemsOptions.center') },
             ],
           },
         ]);
@@ -411,20 +413,20 @@ export const registerLayoutComponents = (editor: any) => {
         traits.reset([
           {
             type: 'select',
-            label: 'Elevation',
+            label: i18n.t('editors.gui.traits.elevation'),
             name: 'card-elevation',
             value: 'medium',
             changeProp: 1,
             options: [
-              { value: 'none', label: 'None' },
-              { value: 'low', label: 'Low' },
-              { value: 'medium', label: 'Medium' },
-              { value: 'high', label: 'High' },
+              { value: 'none', label: i18n.t('editors.gui.traits.elevationOptions.none') },
+              { value: 'low', label: i18n.t('editors.gui.traits.elevationOptions.low') },
+              { value: 'medium', label: i18n.t('editors.gui.traits.elevationOptions.medium') },
+              { value: 'high', label: i18n.t('editors.gui.traits.elevationOptions.high') },
             ],
           },
           {
             type: 'text',
-            label: 'Padding (px)',
+            label: i18n.t('editors.gui.traits.padding'),
             name: 'card-padding',
             value: '16px',
             changeProp: 1,
@@ -466,8 +468,8 @@ export const registerLayoutComponents = (editor: any) => {
   });
 
   editor.BlockManager.add('card-component', {
-    label: 'Card',
-    category: 'Layout',
+    label: `Card`,
+    category: `Layout`,
     content: { type: 'card-component' },
     media: '<svg viewBox="0 0 24 24" width="24" height="24"><rect x="3" y="3" width="18" height="18" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><line x1="3" y1="9" x2="21" y2="9" stroke="currentColor" stroke-width="2"/></svg>',
   });

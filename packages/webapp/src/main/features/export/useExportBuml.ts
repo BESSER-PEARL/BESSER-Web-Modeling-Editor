@@ -1,4 +1,5 @@
 import { useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
 import { ApollonEditor, UMLModel } from '@besser/wme';
 import { useFileDownload } from '../../shared/services/file-download/useFileDownload';
 import { toast } from 'react-toastify';
@@ -7,17 +8,18 @@ import { BACKEND_URL } from '../../shared/constants/constant';
 
 export const useExportBUML = () => {
   const downloadFile = useFileDownload();
+  const { t } = useTranslation();
 
   const exportBUML = useCallback(
     async (editor: ApollonEditor, diagramTitle: string, referenceDiagramData?: UMLModel) => {
       const validationResult = await validateDiagram(editor, diagramTitle);
       if (!validationResult.isValid) {
-        toast.error(validationResult.message || 'Validation failed');
+        toast.error(validationResult.message || t('export.toasts.validationFailed'));
         return;
       }
 
       if (!editor || !editor.model) {
-        toast.error('No diagram to export');
+        toast.error(t('export.toasts.noDiagramToExport'));
         return;
       }
 
@@ -37,7 +39,7 @@ export const useExportBUML = () => {
         });
 
         if (!response.ok) {
-          const errorData = await response.json().catch(() => ({ detail: 'Could not parse error response' }));
+          const errorData = await response.json().catch(() => ({ detail: t('export.toasts.couldNotParseError') }));
 
           if ((response.status === 400 || response.status === 500) && errorData.detail) {
             toast.error(errorData.detail);
@@ -70,13 +72,13 @@ export const useExportBUML = () => {
         }
 
         downloadFile({ file: blob, filename });
-        toast.success('BUML export completed successfully');
+        toast.success(t('export.toasts.bumlExportSuccess'));
       } catch (error) {
-        const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+        const errorMessage = error instanceof Error ? error.message : t('export.toasts.unknownError');
         toast.error(errorMessage);
       }
     },
-    [downloadFile],
+    [downloadFile, t],
   );
 
   return exportBUML;

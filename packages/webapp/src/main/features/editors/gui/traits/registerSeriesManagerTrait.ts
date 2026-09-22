@@ -10,6 +10,7 @@ import {
   getRelatedClassAttributeOptions,
 } from '../diagram-helpers';
 import 'vanilla-colorful/hex-color-picker.js';
+import i18n from '@/main/shared/i18n';
 
 // Types for GrapesJS editor and component (minimal, for this file)
 type GrapesJSEditor = any;
@@ -95,7 +96,7 @@ export default function registerSeriesManagerTrait(editor: GrapesJSEditor) {
   el.innerHTML = '';
   // Add a title for the section
   const title = document.createElement('div');
-  title.textContent = 'Chart Series';
+  title.textContent = i18n.t('editors.gui.seriesManager.title');
   title.className = 'series-title';
   el.appendChild(title);
   // Add a horizontal line after the title
@@ -205,7 +206,7 @@ export default function registerSeriesManagerTrait(editor: GrapesJSEditor) {
 
           // Data Source (dropdown only)
           const dsLabel = document.createElement('label');
-          dsLabel.textContent = 'Data Source';
+          dsLabel.textContent = i18n.t('editors.gui.seriesManager.dataSource');
           const dsSelect = document.createElement('select');
           dsSelect.setAttribute('data-ds-idx', idx.toString());
           const dsBlank = document.createElement('option');
@@ -228,7 +229,7 @@ export default function registerSeriesManagerTrait(editor: GrapesJSEditor) {
 
           // Label Field (dropdown only)
           const labelFieldLabel = document.createElement('label');
-          labelFieldLabel.textContent = 'Label Field';
+          labelFieldLabel.textContent = i18n.t('editors.gui.seriesManager.labelField');
           const labelFieldSelect = document.createElement('select');
           labelFieldSelect.setAttribute('data-label-idx', idx.toString());
           const labelBlank = document.createElement('option');
@@ -250,7 +251,7 @@ export default function registerSeriesManagerTrait(editor: GrapesJSEditor) {
 
           // Data Field (dropdown only) - use only attributes, not relationships
           const dataFieldLabel = document.createElement('label');
-          dataFieldLabel.textContent = 'Data Field';
+          dataFieldLabel.textContent = i18n.t('editors.gui.seriesManager.dataField');
           const dataFieldSelect = document.createElement('select');
           dataFieldSelect.setAttribute('data-datafield-idx', idx.toString());
           const dataBlank = document.createElement('option');
@@ -272,11 +273,11 @@ export default function registerSeriesManagerTrait(editor: GrapesJSEditor) {
 
           // Filter (text input)
           const filterLabel = document.createElement('label');
-          filterLabel.textContent = 'Filter';
+          filterLabel.textContent = i18n.t('editors.gui.seriesManager.filter');
           const filterInput = document.createElement('input');
           filterInput.type = 'text';
           filterInput.value = s.filter || '';
-          filterInput.placeholder = 'Filter expression';
+          filterInput.placeholder = i18n.t('editors.gui.seriesManager.filterPlaceholder');
           filterInput.setAttribute('data-filter-idx', idx.toString());
           filterInput.style.width = '100%';
           filterInput.style.margin = '4px 0 8px 0';
@@ -284,7 +285,7 @@ export default function registerSeriesManagerTrait(editor: GrapesJSEditor) {
           // Color (GrapesJS-style: text + preview + popover picker, no alpha)
 
           const colorLabel = document.createElement('label');
-          colorLabel.textContent = 'Color';
+          colorLabel.textContent = i18n.t('editors.gui.seriesManager.color');
           let colorInputContainer: HTMLElement;
           // Predefined palette
           const palette = [
@@ -356,7 +357,7 @@ export default function registerSeriesManagerTrait(editor: GrapesJSEditor) {
             const colorBox = document.createElement('div');
             colorBox.className = 'color-box';
             colorBox.style.background = s.color || '#4CAF50';
-            colorBox.title = 'Pick color';
+            colorBox.title = i18n.t('editors.gui.seriesManager.pickColor');
             colorBox.style.display = 'inline-block';
             colorBox.style.width = '28px';
             colorBox.style.height = '28px';
@@ -478,7 +479,7 @@ export default function registerSeriesManagerTrait(editor: GrapesJSEditor) {
       addBtn.innerHTML = '<span class="add-btn-plus">&#43;</span>';
       addBtn.type = 'button';
       addBtn.className = 'add-btn add-btn-circle';
-      addBtn.title = 'Add Series';
+      addBtn.title = i18n.t('editors.gui.seriesManager.addSeries');
       addBtn.onclick = () => {
         // Generate random but close values for each new series
         const defaultNames = ['A', 'B', 'C', 'D', 'E'];

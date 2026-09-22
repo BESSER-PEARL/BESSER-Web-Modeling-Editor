@@ -1,5 +1,6 @@
 import './columnsManagerPanel.css';
 import { getClassMetadata, getEndsByClassId, getElementNameById } from '../diagram-helpers';
+import i18n from '@/main/shared/i18n';
 
 // Types for GrapesJS editor and component (minimal, for this file)
 type GrapesJSEditor = any;
@@ -50,7 +51,7 @@ export default function registerColumnsManagerTrait(editor: GrapesJSEditor) {
         
         // Add a title for the section
         const title = document.createElement('div');
-        title.textContent = 'Table Columns';
+        title.textContent = i18n.t('editors.gui.columnsManager.title');
         title.className = 'columns-title';
         el.appendChild(title);
         
@@ -183,7 +184,7 @@ export default function registerColumnsManagerTrait(editor: GrapesJSEditor) {
           moveUpBtn.setAttribute('data-move-up', idx.toString());
           moveUpBtn.type = 'button';
           moveUpBtn.className = 'move-btn move-btn-up';
-          moveUpBtn.title = 'Move up';
+          moveUpBtn.title = i18n.t('editors.gui.columnsManager.moveUp');
           moveUpBtn.disabled = idx === 0; // Disable if first item
           
           // Move down button
@@ -192,7 +193,7 @@ export default function registerColumnsManagerTrait(editor: GrapesJSEditor) {
           moveDownBtn.setAttribute('data-move-down', idx.toString());
           moveDownBtn.type = 'button';
           moveDownBtn.className = 'move-btn move-btn-down';
-          moveDownBtn.title = 'Move down';
+          moveDownBtn.title = i18n.t('editors.gui.columnsManager.moveDown');
           moveDownBtn.disabled = idx === columns.length - 1; // Disable if last item
 
           // Remove button (in header)
@@ -215,13 +216,13 @@ export default function registerColumnsManagerTrait(editor: GrapesJSEditor) {
 
           // Column Type (Field, Lookup, or Formula)
           const columnTypeLabel = document.createElement('label');
-          columnTypeLabel.textContent = 'Column Type';
+          columnTypeLabel.textContent = i18n.t('editors.gui.columnsManager.columnType');
           const columnTypeSelect = document.createElement('select');
           columnTypeSelect.setAttribute('data-columntype-idx', idx.toString());
           const columnTypeOptions = [
-            { value: 'field', label: 'Field' },
-            { value: 'lookup', label: 'Lookup' },
-            { value: 'expression', label: 'Expression' },
+            { value: 'field', label: i18n.t('editors.gui.columnsManager.columnTypeOptions.field') },
+            { value: 'lookup', label: i18n.t('editors.gui.columnsManager.columnTypeOptions.lookup') },
+            { value: 'expression', label: i18n.t('editors.gui.columnsManager.columnTypeOptions.expression') },
           ];
           columnTypeOptions.forEach(opt => {
             const option = document.createElement('option');
@@ -241,7 +242,7 @@ export default function registerColumnsManagerTrait(editor: GrapesJSEditor) {
           if (currentColumnType === 'field') {
             // Field Name (select/combobox populated from data source)
             const fieldLabel = document.createElement('label');
-            fieldLabel.textContent = 'Field';
+            fieldLabel.textContent = i18n.t('editors.gui.columnsManager.field');
             const fieldSelect = document.createElement('select');
             fieldSelect.setAttribute('data-field-idx', idx.toString());
             
@@ -252,7 +253,7 @@ export default function registerColumnsManagerTrait(editor: GrapesJSEditor) {
             // Add empty option
             const emptyOption = document.createElement('option');
             emptyOption.value = '';
-            emptyOption.textContent = '-- Select Field --';
+            emptyOption.textContent = i18n.t('editors.gui.columnsManager.selectField');
             fieldSelect.appendChild(emptyOption);
             
             // Populate with class attributes if available
@@ -268,7 +269,7 @@ export default function registerColumnsManagerTrait(editor: GrapesJSEditor) {
               // No data source or no attributes - show message
               const noDataOption = document.createElement('option');
               noDataOption.value = '';
-              noDataOption.textContent = '(No data source)';
+              noDataOption.textContent = i18n.t('editors.gui.columnsManager.noDataSource');
               noDataOption.disabled = true;
               fieldSelect.appendChild(noDataOption);
             }
@@ -278,7 +279,7 @@ export default function registerColumnsManagerTrait(editor: GrapesJSEditor) {
           } else if (currentColumnType === 'lookup') {
             // Lookup Path (select/combobox populated from class ends)
             const lookupPathLabel = document.createElement('label');
-            lookupPathLabel.textContent = 'Lookup Path';
+            lookupPathLabel.textContent = i18n.t('editors.gui.columnsManager.lookupPath');
             const lookupPathSelect = document.createElement('select');
             lookupPathSelect.setAttribute('data-lookupentity-idx', idx.toString());
             
@@ -289,7 +290,7 @@ export default function registerColumnsManagerTrait(editor: GrapesJSEditor) {
             // Add empty option
             const emptyPathOption = document.createElement('option');
             emptyPathOption.value = '';
-            emptyPathOption.textContent = '-- Select Path --';
+            emptyPathOption.textContent = i18n.t('editors.gui.columnsManager.selectPath');
             lookupPathSelect.appendChild(emptyPathOption);
             
             // Populate with class ends if available
@@ -305,21 +306,21 @@ export default function registerColumnsManagerTrait(editor: GrapesJSEditor) {
               // No ends available - show message
               const noEndsOption = document.createElement('option');
               noEndsOption.value = '';
-              noEndsOption.textContent = '(No relationships)';
+              noEndsOption.textContent = i18n.t('editors.gui.columnsManager.noRelationships');
               noEndsOption.disabled = true;
               lookupPathSelect.appendChild(noEndsOption);
             }
 
             // Lookup Field (select/combobox populated from target class attributes)
             const lookupFieldLabel = document.createElement('label');
-            lookupFieldLabel.textContent = 'Lookup Field';
+            lookupFieldLabel.textContent = i18n.t('editors.gui.columnsManager.lookupField');
             const lookupFieldSelect = document.createElement('select');
             lookupFieldSelect.setAttribute('data-lookupfield-idx', idx.toString());
             
             // Add empty option
             const emptyFieldOption = document.createElement('option');
             emptyFieldOption.value = '';
-            emptyFieldOption.textContent = '-- Select Field --';
+            emptyFieldOption.textContent = i18n.t('editors.gui.columnsManager.selectField');
             lookupFieldSelect.appendChild(emptyFieldOption);
             
             // If a lookup entity is selected, populate with its attributes
@@ -336,7 +337,7 @@ export default function registerColumnsManagerTrait(editor: GrapesJSEditor) {
               } else {
                 const noAttrsOption = document.createElement('option');
                 noAttrsOption.value = '';
-                noAttrsOption.textContent = '(No attributes)';
+                noAttrsOption.textContent = i18n.t('editors.gui.columnsManager.noAttributes');
                 noAttrsOption.disabled = true;
                 lookupFieldSelect.appendChild(noAttrsOption);
               }
@@ -344,7 +345,7 @@ export default function registerColumnsManagerTrait(editor: GrapesJSEditor) {
               // No lookup entity selected yet
               const selectPathFirstOption = document.createElement('option');
               selectPathFirstOption.value = '';
-              selectPathFirstOption.textContent = '(Select path first)';
+              selectPathFirstOption.textContent = i18n.t('editors.gui.columnsManager.selectPathFirst');
               selectPathFirstOption.disabled = true;
               lookupFieldSelect.appendChild(selectPathFirstOption);
             }
@@ -356,7 +357,7 @@ export default function registerColumnsManagerTrait(editor: GrapesJSEditor) {
           } else if (currentColumnType === 'expression') {
             // Expression
             const expressionLabel = document.createElement('label');
-            expressionLabel.textContent = 'Expression';
+            expressionLabel.textContent = i18n.t('editors.gui.columnsManager.expression');
             const expressionInput = document.createElement('input');
             expressionInput.type = 'text';
             expressionInput.value = col.expression || '';
@@ -397,7 +398,7 @@ export default function registerColumnsManagerTrait(editor: GrapesJSEditor) {
         addBtn.innerHTML = '<span class="add-btn-plus">+</span>';
         addBtn.type = 'button';
         addBtn.className = 'add-btn';
-        addBtn.title = 'Add Column';
+        addBtn.title = i18n.t('editors.gui.columnsManager.addColumn');
         addBtn.onclick = () => {
           const idx = columns.length;
           columns.push({

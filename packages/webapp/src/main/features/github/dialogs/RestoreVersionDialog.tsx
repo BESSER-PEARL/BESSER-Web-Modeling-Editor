@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -21,13 +22,14 @@ export const RestoreVersionDialog: React.FC<RestoreVersionDialogProps> = ({
   onOpenChange,
   onRestore,
 }) => {
+  const { t } = useTranslation();
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-xl">
         <DialogHeader>
-          <DialogTitle>Restore Version</DialogTitle>
+          <DialogTitle>{t('github.restore.title')}</DialogTitle>
           <DialogDescription>
-            Your current unsaved changes will be lost. Consider pushing your current work first.
+            {t('github.restore.description')}
           </DialogDescription>
         </DialogHeader>
 
@@ -42,16 +44,16 @@ export const RestoreVersionDialog: React.FC<RestoreVersionDialogProps> = ({
 
         <div className="flex items-center gap-2 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900 dark:border-amber-800 dark:bg-amber-900/30 dark:text-amber-300">
           <AlertTriangle className="size-4" />
-          Restore this commit?
+          {t('github.restore.confirmQuestion')}
         </div>
 
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>
-            Cancel
+            {t('common.cancel')}
           </Button>
           <Button onClick={onRestore} disabled={isSaving} className="gap-2">
-            {isSaving ? 'Restoring...' : null}
-            Restore This Version
+            {isSaving ? t('github.restore.restoring') : null}
+            {t('github.restore.restoreButton')}
           </Button>
         </DialogFooter>
       </DialogContent>

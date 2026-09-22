@@ -1,8 +1,11 @@
-import React from 'react';
+import React, { ComponentClass } from 'react';
 import { connect } from 'react-redux';
+import { compose } from 'redux';
 import styled from 'styled-components';
 import { Textfield } from '../../../components/controls/textfield/textfield';
 import { Header } from '../../../components/controls/typography/typography';
+import { I18nContext } from '../../../components/i18n/i18n-context';
+import { localized } from '../../../components/i18n/localized';
 import { ModelState } from '../../../components/store/model-state';
 import { UMLElementRepository } from '../../../services/uml-element/uml-element-repository';
 import { AgentElementType } from '..';
@@ -31,28 +34,24 @@ type DispatchProps = {
   update: typeof UMLElementRepository.update;
 };
 
-type Props = OwnProps & StateProps & DispatchProps;
+type Props = OwnProps & StateProps & DispatchProps & I18nContext;
 
 const AGENT_STATE_TYPE = (AgentElementType as Record<string, string>).AgentState ?? 'AgentState';
 
-const AgentSkillUpdateComponent: React.FC<Props> = ({ element, update, elements }) => {
+const AgentSkillUpdateComponent: React.FC<Props> = ({ element, update, elements, translate }) => {
   const hasReasoningState = Object.values(elements).some(
     (el: any) => el.type === AGENT_STATE_TYPE && el.stateType === 'reasoning',
   );
 
   return (
     <div>
-      {!hasReasoningState && (
-        <Warning>
-          ⚠ Skills can only be used by a reasoning state. Add a reasoning state to use this skill.
-        </Warning>
-      )}
+      {!hasReasoningState && <Warning>⚠ {translate('packages.AgentDiagram.skillReasoningStateWarning')}</Warning>}
       <Section>
-        <Header>Skill name</Header>
+        <Header>{translate('packages.AgentDiagram.skillName')}</Header>
         <Textfield value={element.name} onChange={(name) => update<AgentSkill>(element.id, { name })} autoFocus />
       </Section>
       <Section>
-        <Header>Description</Header>
+        <Header>{translate('packages.AgentDiagram.description')}</Header>
         <Textfield
           value={element.description}
           multiline
@@ -62,7 +61,7 @@ const AgentSkillUpdateComponent: React.FC<Props> = ({ element, update, elements 
         />
       </Section>
       <Section>
-        <Header>Markdown content</Header>
+        <Header>{translate('packages.AgentDiagram.markdownContent')}</Header>
         <Textfield
           value={element.content}
           multiline
@@ -75,9 +74,11 @@ const AgentSkillUpdateComponent: React.FC<Props> = ({ element, update, elements 
   );
 };
 
-const enhance = connect<StateProps, DispatchProps, OwnProps, ModelState>(
-  (state) => ({ elements: state.elements }),
-  { update: UMLElementRepository.update },
+const enhance = compose<ComponentClass<OwnProps>>(
+  localized,
+  connect<StateProps, DispatchProps, OwnProps, ModelState>((state) => ({ elements: state.elements }), {
+    update: UMLElementRepository.update,
+  }),
 );
 
 export const AgentSkillUpdate = enhance(AgentSkillUpdateComponent);

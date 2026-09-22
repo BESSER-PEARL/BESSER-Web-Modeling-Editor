@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { toast } from 'react-toastify';
+import { useTranslation } from 'react-i18next';
 import {
   ArrowLeft,
   CalendarDays,
@@ -23,6 +24,7 @@ import { FormField } from '@/components/ui/form-field';
 import { BesserProject, PerspectiveSettings } from '../../shared/types/project';
 import { PERSPECTIVES, perspectivesFromDiagramList } from '../../shared/perspectives';
 import { useProject } from '../../app/hooks/useProject';
+import { LanguageSelector } from '../../app/shell/LanguageSelector';
 import { useConfirmDialog } from '../../shared/hooks/useConfirmDialog';
 import { useFieldValidation } from '../../shared/hooks/useFieldValidation';
 import { ProjectStorageRepository } from '../../shared/services/storage/ProjectStorageRepository';
@@ -73,6 +75,7 @@ const readableFileSize = (bytes: number): string => {
 };
 
 export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpenChange }) => {
+  const { t } = useTranslation();
   const [projects, setProjects] = useState<BesserProject[]>([]);
   const [step, setStep] = useState<ProjectHubStep>('start');
   const [form, setForm] = useState(defaultForm);
@@ -131,38 +134,38 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
   const currentStepInfo = useMemo(() => {
     if (step === 'create') {
       return {
-        title: 'Create A Project',
-        description: 'Define project metadata and start modeling from scratch.',
-        badge: 'Step 2 of 2',
+        title: t('project.hub.create.title'),
+        description: t('project.hub.create.description'),
+        badge: t('project.hub.stepBadge', { current: 2, total: 2 }),
       };
     }
     if (step === 'import') {
       return {
-        title: 'Import A Project',
-        description: 'Load an exported project file and continue where you left off.',
-        badge: 'Step 2 of 2',
+        title: t('project.hub.import.title'),
+        description: t('project.hub.import.description'),
+        badge: t('project.hub.stepBadge', { current: 2, total: 2 }),
       };
     }
     if (step === 'spreadsheet') {
       return {
-        title: 'Start From Spreadsheet',
-        description: 'Create a project and auto-generate a class diagram from CSV/XLSX files.',
-        badge: 'Step 2 of 2',
+        title: t('project.hub.spreadsheet.title'),
+        description: t('project.hub.spreadsheet.description'),
+        badge: t('project.hub.stepBadge', { current: 2, total: 2 }),
       };
     }
     if (step === 'open') {
       return {
-        title: 'Open Existing Project',
-        description: 'Pick any saved project and re-enter your workspace instantly.',
-        badge: 'Step 2 of 2',
+        title: t('project.hub.open.title'),
+        description: t('project.hub.open.description'),
+        badge: t('project.hub.stepBadge', { current: 2, total: 2 }),
       };
     }
     return {
-      title: 'Welcome to the BESSER Web Modeling Editor',
-      description: 'Choose how you want to start your modeling session and open your workspace.',
-      badge: 'Step 1 of 2',
+      title: t('project.hub.start.title'),
+      description: t('project.hub.start.description'),
+      badge: t('project.hub.stepBadge', { current: 1, total: 2 }),
     };
-  }, [step]);
+  }, [step, t]);
 
   const handleDialogOpenChange = (nextOpen: boolean) => {
     if (!nextOpen && !canClose) {
@@ -191,9 +194,9 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
       );
       refreshProjects();
       handleDialogOpenChange(false);
-      toast.success(`Project "${name}" created.`);
+      toast.success(t('project.hub.toasts.created', { name }));
     } catch (error) {
-      toast.error(`Could not create project: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      toast.error(t('project.hub.toasts.createFailed', { error: error instanceof Error ? error.message : t('project.hub.unknownError') }));
     } finally {
       setIsBusy(false);
     }
@@ -204,9 +207,9 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
       setIsBusy(true);
       await loadProject(projectId);
       handleDialogOpenChange(false);
-      toast.success('Project loaded.');
+      toast.success(t('project.hub.toasts.loaded'));
     } catch (error) {
-      toast.error(`Could not load project: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      toast.error(t('project.hub.toasts.loadFailed', { error: error instanceof Error ? error.message : t('project.hub.unknownError') }));
     } finally {
       setIsBusy(false);
     }
@@ -214,9 +217,9 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
 
   const handleDeleteProject = async (projectId: string, projectName: string) => {
     const confirmed = await confirm({
-      title: 'Delete Project',
-      description: `Delete project "${projectName}"? This action cannot be undone.`,
-      confirmLabel: 'Delete',
+      title: t('project.hub.deleteConfirm.title'),
+      description: t('project.hub.deleteConfirm.description', { name: projectName }),
+      confirmLabel: t('common.delete'),
       variant: 'danger',
     });
     if (!confirmed) {
@@ -227,9 +230,9 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
       setIsBusy(true);
       await deleteProject(projectId);
       refreshProjects();
-      toast.success(`Deleted project "${projectName}".`);
+      toast.success(t('project.hub.toasts.deleted', { name: projectName }));
     } catch (error) {
-      toast.error(`Could not delete project: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      toast.error(t('project.hub.toasts.deleteFailed', { error: error instanceof Error ? error.message : t('project.hub.unknownError') }));
     } finally {
       setIsBusy(false);
     }
@@ -247,9 +250,9 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
       await loadProject(importedProject.id);
       refreshProjects();
       handleDialogOpenChange(false);
-      toast.success(`Imported project "${importedProject.name}".`);
+      toast.success(t('project.hub.toasts.imported', { name: importedProject.name }));
     } catch (error) {
-      toast.error(`Import failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      toast.error(t('project.hub.toasts.importFailed', { error: error instanceof Error ? error.message : t('project.hub.unknownError') }));
     } finally {
       setIsBusy(false);
       event.target.value = '';
@@ -266,7 +269,7 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
     }
     const ext = file.name.split('.').pop()?.toLowerCase();
     if (ext !== 'json' && ext !== 'py') {
-      toast.error('Unsupported file type. Please drop a .json or .py file.');
+      toast.error(t('project.hub.toasts.unsupportedFileType'));
       return;
     }
     try {
@@ -275,9 +278,9 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
       await loadProject(importedProject.id);
       refreshProjects();
       handleDialogOpenChange(false);
-      toast.success(`Imported project "${importedProject.name}".`);
+      toast.success(t('project.hub.toasts.imported', { name: importedProject.name }));
     } catch (error) {
-      toast.error(`Import failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      toast.error(t('project.hub.toasts.importFailed', { error: error instanceof Error ? error.message : t('project.hub.unknownError') }));
     } finally {
       setIsBusy(false);
     }
@@ -299,7 +302,7 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
     const owner = spreadsheetForm.owner.trim();
 
     if (spreadsheetFiles.length === 0) {
-      toast.error('Select at least one CSV/XLSX file.');
+      toast.error(t('project.hub.toasts.noSpreadsheetFile'));
       return;
     }
 
@@ -321,7 +324,7 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
       });
 
       if (!response.ok) {
-        let message = 'Could not generate class diagram from spreadsheet.';
+        let message = t('project.hub.toasts.spreadsheetGenerateFailed');
         try {
           const errorData = await response.json();
           if (typeof errorData?.detail === 'string') {
@@ -343,9 +346,9 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
       await importDiagramToProject(generatedDiagramFile);
       refreshProjects();
       handleDialogOpenChange(false);
-      toast.success(`Project "${name}" created and class diagram imported.`);
+      toast.success(t('project.hub.toasts.spreadsheetCreated', { name }));
     } catch (error) {
-      toast.error(`Spreadsheet import failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      toast.error(t('project.hub.toasts.spreadsheetImportFailed', { error: error instanceof Error ? error.message : t('project.hub.unknownError') }));
     } finally {
       setIsBusy(false);
     }
@@ -357,14 +360,14 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
     idPrefix: string,
   ) => (
     <FormField
-      label="Modeling perspective"
+      label={t('project.hub.perspective.label')}
       htmlFor={`${idPrefix}-perspective`}
-      helperText="Tailors which diagrams appear in the sidebar. You can change this later in Settings."
+      helperText={t('project.hub.perspective.helper')}
     >
       <div
         id={`${idPrefix}-perspective`}
         role="radiogroup"
-        aria-label="Modeling perspective"
+        aria-label={t('project.hub.perspective.label')}
         className="flex flex-wrap gap-2"
       >
         {PERSPECTIVES.map((preset) => {
@@ -394,7 +397,7 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
       {sortedProjects.length === 0 && (
         <Card className="border-dashed border-border/80 bg-muted/20 shadow-none">
           <CardContent className="py-6 text-sm text-muted-foreground">
-            No projects yet. Create one to get started.
+            {t('project.hub.list.emptyHint')}
           </CardContent>
         </Card>
       )}
@@ -407,9 +410,9 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
                   <p className="truncate text-sm font-semibold">{project.name}</p>
-                  <p className="mt-1 text-xs text-muted-foreground">{project.description || 'No description provided.'}</p>
+                  <p className="mt-1 text-xs text-muted-foreground">{project.description || t('project.hub.list.noDescription')}</p>
                 </div>
-                {isCurrent && <Badge className="border-brand/20 bg-brand/10 text-brand">Active</Badge>}
+                {isCurrent && <Badge className="border-brand/20 bg-brand/10 text-brand">{t('project.hub.list.active')}</Badge>}
               </div>
 
               <div className="flex items-center gap-2 text-xs text-muted-foreground">
@@ -426,7 +429,7 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
                   className="flex-1 gap-1.5 border-brand/20 text-brand hover:border-brand/30 hover:bg-brand/[0.04]"
                 >
                   <FolderOpen className="size-3.5" />
-                  Open
+                  {t('project.hub.list.open')}
                 </Button>
                 <Button
                   size="sm"
@@ -434,7 +437,7 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
                   className="text-destructive hover:bg-destructive/10 hover:text-destructive"
                   onClick={() => void handleDeleteProject(project.id, project.name)}
                   disabled={isBusy}
-                  aria-label={`Delete project ${project.name}`}
+                  aria-label={t('project.hub.list.deleteAria', { name: project.name })}
                 >
                   <Trash2 className="size-3.5" />
                 </Button>
@@ -465,9 +468,12 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
                 <DialogDescription className="mt-1">{currentStepInfo.description}</DialogDescription>
               </div>
             </div>
-            <Badge variant="secondary" className="shrink-0 rounded-full border-brand/15 bg-brand/[0.06] font-mono text-[10px] tracking-wider text-brand">
-              {currentStepInfo.badge}
-            </Badge>
+            <div className="flex shrink-0 items-center gap-2">
+              {step === 'start' && <LanguageSelector outlineButtonClass="h-9" />}
+              <Badge variant="secondary" className="shrink-0 rounded-full border-brand/15 bg-brand/[0.06] font-mono text-[10px] tracking-wider text-brand">
+                {currentStepInfo.badge}
+              </Badge>
+            </div>
           </div>
         </DialogHeader>
 
@@ -494,10 +500,9 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
               <div className="grain-overlay relative overflow-hidden rounded-2xl border border-brand/15 bg-gradient-to-br from-brand/[0.06] via-background to-brand/[0.03] p-5">
                 <div className="pointer-events-none absolute -right-8 -top-8 size-32 rounded-full bg-brand/10 blur-2xl" />
                 <div className="relative z-[2]">
-                  <p className="text-sm font-semibold tracking-tight text-foreground">Start Your Modeling Workspace</p>
+                  <p className="text-sm font-semibold tracking-tight text-foreground">{t('project.hub.start.heroTitle')}</p>
                   <p className="mt-1.5 text-xs leading-relaxed text-muted-foreground">
-                    BESSER (Better Smart Software Faster) is an open-source model-driven platform for UML design,
-                    generation, and deployment. Choose a path below to bootstrap your project quickly.
+                    {t('project.hub.start.heroBody')}
                   </p>
                 </div>
               </div>
@@ -513,8 +518,8 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
                   <div className="relative mb-3 inline-flex rounded-xl bg-brand/[0.08] p-2.5 text-brand ring-1 ring-brand/10">
                     <Plus className="size-4" />
                   </div>
-                  <p className="text-sm font-semibold tracking-tight">Create Blank</p>
-                  <p className="mt-1 text-xs leading-relaxed text-muted-foreground">Start from scratch with all editors available.</p>
+                  <p className="text-sm font-semibold tracking-tight">{t('project.hub.start.cardCreate.title')}</p>
+                  <p className="mt-1 text-xs leading-relaxed text-muted-foreground">{t('project.hub.start.cardCreate.description')}</p>
                 </button>
 
                 <button
@@ -526,8 +531,8 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
                   <div className="relative mb-3 inline-flex rounded-xl bg-emerald-500/[0.08] p-2.5 text-emerald-700 ring-1 ring-emerald-500/10 dark:text-emerald-400">
                     <FileSpreadsheet className="size-4" />
                   </div>
-                  <p className="text-sm font-semibold tracking-tight">From Spreadsheet</p>
-                  <p className="mt-1 text-xs leading-relaxed text-muted-foreground">Auto-generate a class diagram from CSV/XLSX files.</p>
+                  <p className="text-sm font-semibold tracking-tight">{t('project.hub.start.cardSpreadsheet.title')}</p>
+                  <p className="mt-1 text-xs leading-relaxed text-muted-foreground">{t('project.hub.start.cardSpreadsheet.description')}</p>
                 </button>
 
                 <button
@@ -539,15 +544,15 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
                   <div className="relative mb-3 inline-flex rounded-xl bg-violet-500/[0.08] p-2.5 text-violet-700 ring-1 ring-violet-500/10 dark:text-violet-400">
                     <Upload className="size-4" />
                   </div>
-                  <p className="text-sm font-semibold tracking-tight">Import Project</p>
-                  <p className="mt-1 text-xs leading-relaxed text-muted-foreground">Load an exported `.json` or `.py` project.</p>
+                  <p className="text-sm font-semibold tracking-tight">{t('project.hub.start.cardImport.title')}</p>
+                  <p className="mt-1 text-xs leading-relaxed text-muted-foreground">{t('project.hub.start.cardImport.description')}</p>
                 </button>
               </div>
 
               {/* Existing projects */}
               <div className="rounded-xl border border-border/50 bg-muted/15 p-4">
                 <div className="mb-2.5 flex items-center justify-between">
-                  <p className="text-sm font-semibold tracking-tight">Existing Projects</p>
+                  <p className="text-sm font-semibold tracking-tight">{t('project.hub.start.existingProjects')}</p>
                   <Badge variant="secondary" className="rounded-full border-brand/15 bg-brand/[0.06] font-mono text-[10px] text-brand">{sortedProjects.length}</Badge>
                 </div>
                 {sortedProjects.length > 0 ? (
@@ -572,7 +577,7 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
                           className="size-7 shrink-0 text-muted-foreground opacity-0 transition-opacity hover:bg-destructive/10 hover:text-destructive group-hover:opacity-100"
                           onClick={() => void handleDeleteProject(project.id, project.name)}
                           disabled={isBusy}
-                          aria-label={`Delete project ${project.name}`}
+                          aria-label={t('project.hub.list.deleteAria', { name: project.name })}
                         >
                           <Trash2 className="size-3.5" />
                         </Button>
@@ -584,17 +589,17 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
                       className="mt-1.5 h-8 px-2 text-xs font-medium text-brand hover:bg-brand/[0.04] hover:text-brand"
                       onClick={() => setStep('open')}
                     >
-                      View all projects
+                      {t('project.hub.start.viewAll')}
                     </Button>
                   </div>
                 ) : (
-                  <p className="text-xs text-muted-foreground">No projects yet.</p>
+                  <p className="text-xs text-muted-foreground">{t('project.hub.start.noProjects')}</p>
                 )}
               </div>
 
               {!canClose && (
                 <div className="rounded-xl border border-amber-300/50 bg-gradient-to-r from-amber-50 to-orange-50/50 px-4 py-2.5 text-xs font-medium text-amber-800 dark:border-amber-800/50 dark:from-amber-950/30 dark:to-orange-950/20 dark:text-amber-200">
-                  Create, import, or open a project to enter the workspace.
+                  {t('project.hub.start.warningBanner')}
                 </div>
               )}
             </div>
@@ -604,11 +609,11 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
             <div className="flex flex-col gap-2.5">
               <Card className="border-border/50 shadow-elevation-1">
                 <CardHeader className="pb-2">
-                  <CardTitle className="text-base tracking-tight">Project Details</CardTitle>
-                  <CardDescription className="text-xs">Give your workspace a name and description.</CardDescription>
+                  <CardTitle className="text-base tracking-tight">{t('project.hub.create.detailsTitle')}</CardTitle>
+                  <CardDescription className="text-xs">{t('project.hub.create.detailsDescription')}</CardDescription>
                 </CardHeader>
                 <CardContent className="flex flex-col gap-2.5">
-                  <FormField label="Name" htmlFor="project-name" required error={createValidation.getError('name')}>
+                  <FormField label={t('project.field.name')} htmlFor="project-name" required error={createValidation.getError('name')}>
                     <Input
                       id="project-name"
                       value={form.name}
@@ -618,7 +623,7 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
                       className={createValidation.getError('name') ? 'border-destructive focus-visible:border-destructive focus-visible:ring-destructive/20' : ''}
                     />
                   </FormField>
-                  <FormField label="Owner" htmlFor="project-owner">
+                  <FormField label={t('project.field.owner')} htmlFor="project-owner">
                     <Input
                       id="project-owner"
                       value={form.owner}
@@ -626,7 +631,7 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
                       placeholder="BESSER User"
                     />
                   </FormField>
-                  <FormField label="Description" htmlFor="project-description">
+                  <FormField label={t('project.field.description')} htmlFor="project-description">
                     <Textarea
                       id="project-description"
                       value={form.description}
@@ -637,7 +642,7 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
                   {renderPerspectivePicker(createPerspectiveKey, setCreatePerspectiveKey, 'create')}
                   <Button onClick={() => void handleCreateProject()} disabled={isBusy || !createValidation.isValid} className="w-full gap-2 bg-brand text-brand-foreground shadow-elevation-1 transition-all hover:bg-brand-dark hover:shadow-elevation-2">
                     <Sparkles className="size-4" />
-                    Create Project
+                    {t('project.hub.create.submit')}
                   </Button>
                 </CardContent>
               </Card>
@@ -645,11 +650,11 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
               <div className="flex items-center justify-between gap-3">
                 <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
                   <Layers3 className="size-3" />
-                  Tip: pick a modeling perspective to focus the workspace on the diagrams you need.
+                  {t('project.hub.create.tip')}
                 </p>
                 <Button variant="ghost" size="sm" className="h-8 gap-1.5 rounded-lg px-2.5 text-xs font-medium" onClick={() => setStep('start')}>
                   <ArrowLeft className="size-3.5" />
-                  Back
+                  {t('project.hub.back')}
                 </Button>
               </div>
             </div>
@@ -659,15 +664,15 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
             <div className="flex flex-col gap-5">
               <Card className="border-border/50 shadow-elevation-1">
                 <CardHeader>
-                  <CardTitle className="text-lg tracking-tight">Import Project File</CardTitle>
-                  <CardDescription>Supported formats: `.json`, `.py`.</CardDescription>
+                  <CardTitle className="text-lg tracking-tight">{t('project.hub.import.cardTitle')}</CardTitle>
+                  <CardDescription>{t('project.hub.import.cardDescription')}</CardDescription>
                 </CardHeader>
                 <CardContent className="flex flex-col gap-4">
                   <div
                     role="button"
                     tabIndex={isBusy ? -1 : 0}
                     aria-disabled={isBusy}
-                    aria-label="Drop a file or click to browse"
+                    aria-label={t('project.hub.import.dropAria')}
                     className={cn(
                       'grain-overlay relative overflow-hidden rounded-xl border-2 border-dashed bg-gradient-to-b from-brand/[0.03] to-muted/8 p-8 text-center transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-brand/40',
                       isBusy ? 'cursor-not-allowed opacity-60' : 'cursor-pointer hover:border-brand/40 hover:bg-brand/[0.04]',
@@ -688,8 +693,8 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
                   >
                     <div className="pointer-events-none absolute left-1/2 top-1/2 size-24 -translate-x-1/2 -translate-y-1/2 rounded-full bg-brand/5 blur-2xl" />
                     <Upload className={cn('relative z-[2] mx-auto mb-3 size-8', isDragging ? 'text-brand/60' : 'text-brand/30')} />
-                    <p className="relative z-[2] text-sm font-medium text-muted-foreground">Drop a file here or click to browse</p>
-                    <p className="relative z-[2] mt-1 text-xs text-muted-foreground/60">JSON or Python project files</p>
+                    <p className="relative z-[2] text-sm font-medium text-muted-foreground">{t('project.hub.import.dropPrompt')}</p>
+                    <p className="relative z-[2] mt-1 text-xs text-muted-foreground/60">{t('project.hub.import.dropHint')}</p>
                   </div>
                 </CardContent>
               </Card>
@@ -697,7 +702,7 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
               <div className="flex justify-end">
                 <Button variant="ghost" size="sm" className="h-8 gap-1.5 rounded-lg px-2.5 text-xs font-medium" onClick={() => setStep('start')}>
                   <ArrowLeft className="size-3.5" />
-                  Back
+                  {t('project.hub.back')}
                 </Button>
               </div>
             </div>
@@ -707,17 +712,17 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
             <div className="flex flex-col gap-5">
               <Button variant="ghost" size="sm" className="h-8 gap-1.5 rounded-lg px-2.5 text-xs font-medium" onClick={() => setStep('start')}>
                 <ArrowLeft className="size-3.5" />
-                Back
+                {t('project.hub.back')}
               </Button>
 
               <div className="grid gap-5 lg:grid-cols-[1.2fr_0.8fr]">
                 <Card className="border-border/50 shadow-elevation-1">
                   <CardHeader>
-                    <CardTitle className="text-lg tracking-tight">Spreadsheet Input</CardTitle>
-                    <CardDescription>Create project metadata and upload source files.</CardDescription>
+                    <CardTitle className="text-lg tracking-tight">{t('project.hub.spreadsheet.cardTitle')}</CardTitle>
+                    <CardDescription>{t('project.hub.spreadsheet.cardDescription')}</CardDescription>
                   </CardHeader>
                   <CardContent className="flex flex-col gap-4">
-                    <FormField label="Name" htmlFor="spreadsheet-project-name" required error={spreadsheetValidation.getError('name')}>
+                    <FormField label={t('project.field.name')} htmlFor="spreadsheet-project-name" required error={spreadsheetValidation.getError('name')}>
                       <Input
                         id="spreadsheet-project-name"
                         value={spreadsheetForm.name}
@@ -729,7 +734,7 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
                         className={spreadsheetValidation.getError('name') ? 'border-destructive focus-visible:border-destructive focus-visible:ring-destructive/20' : ''}
                       />
                     </FormField>
-                    <FormField label="Owner" htmlFor="spreadsheet-project-owner">
+                    <FormField label={t('project.field.owner')} htmlFor="spreadsheet-project-owner">
                       <Input
                         id="spreadsheet-project-owner"
                         value={spreadsheetForm.owner}
@@ -739,7 +744,7 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
                         placeholder="BESSER User"
                       />
                     </FormField>
-                    <FormField label="Description" htmlFor="spreadsheet-project-description">
+                    <FormField label={t('project.field.description')} htmlFor="spreadsheet-project-description">
                       <Textarea
                         id="spreadsheet-project-description"
                         value={spreadsheetForm.description}
@@ -753,7 +758,7 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
 
                     <div className="rounded-xl border-2 border-dashed border-border/50 bg-muted/10 p-4">
                       <div className="mb-3 flex items-center justify-between">
-                        <p className="text-sm font-semibold tracking-tight">Source Files</p>
+                        <p className="text-sm font-semibold tracking-tight">{t('project.hub.spreadsheet.sourceFiles')}</p>
                         <Badge variant="secondary" className="rounded-full font-mono text-[10px]">{spreadsheetFiles.length}</Badge>
                       </div>
                       <Button
@@ -763,7 +768,7 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
                         disabled={isBusy}
                       >
                         <FileSpreadsheet className="size-4" />
-                        Select CSV / XLSX Files
+                        {t('project.hub.spreadsheet.selectFiles')}
                       </Button>
                       {spreadsheetFiles.length > 0 && (
                         <div className="mt-3 flex flex-col gap-1.5">
@@ -782,30 +787,30 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
 
                     <Button onClick={() => void handleStartFromSpreadsheet()} disabled={isBusy || !spreadsheetValidation.isValid} className="w-full gap-2 bg-brand text-brand-foreground shadow-elevation-1 transition-all hover:bg-brand-dark hover:shadow-elevation-2">
                       <Sparkles className="size-4" />
-                      Create From Spreadsheet
+                      {t('project.hub.spreadsheet.submit')}
                     </Button>
                   </CardContent>
                 </Card>
 
                 <Card className="border-border/50 shadow-elevation-1">
                   <CardHeader>
-                    <CardTitle className="text-base tracking-tight">How It Works</CardTitle>
+                    <CardTitle className="text-base tracking-tight">{t('project.hub.spreadsheet.howTitle')}</CardTitle>
                   </CardHeader>
                   <CardContent className="flex flex-col gap-3 text-xs text-muted-foreground">
                     <div className="flex items-start gap-2.5">
                       <span className="flex size-5 shrink-0 items-center justify-center rounded-full bg-brand/10 text-[10px] font-bold text-brand">1</span>
-                      <p>Project is created first with your metadata.</p>
+                      <p>{t('project.hub.spreadsheet.step1')}</p>
                     </div>
                     <div className="flex items-start gap-2.5">
                       <span className="flex size-5 shrink-0 items-center justify-center rounded-full bg-brand/10 text-[10px] font-bold text-brand">2</span>
-                      <p>Spreadsheet files are converted to a class diagram.</p>
+                      <p>{t('project.hub.spreadsheet.step2')}</p>
                     </div>
                     <div className="flex items-start gap-2.5">
                       <span className="flex size-5 shrink-0 items-center justify-center rounded-full bg-brand/10 text-[10px] font-bold text-brand">3</span>
-                      <p>Generated class diagram is imported into the project automatically.</p>
+                      <p>{t('project.hub.spreadsheet.step3')}</p>
                     </div>
                     <p className="mt-1 rounded-lg bg-muted/30 px-3 py-2 font-mono text-[10px] tracking-wide">
-                      Accepted: .csv, .xlsx, .xls
+                      {t('project.hub.spreadsheet.accepted')}
                     </p>
                   </CardContent>
                 </Card>
@@ -817,10 +822,10 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
             <div className="flex flex-col gap-4">
               <Button variant="ghost" size="sm" className="h-8 px-2 text-xs" onClick={() => setStep('start')}>
                 <ArrowLeft className="mr-1.5 size-3.5" />
-                Back
+                {t('project.hub.back')}
               </Button>
               <div className="mb-1 flex items-center justify-between">
-                <h3 className="text-base font-semibold">All Projects</h3>
+                <h3 className="text-base font-semibold">{t('project.hub.open.allProjects')}</h3>
                 <Badge variant="secondary">{sortedProjects.length}</Badge>
               </div>
               {renderProjectList()}

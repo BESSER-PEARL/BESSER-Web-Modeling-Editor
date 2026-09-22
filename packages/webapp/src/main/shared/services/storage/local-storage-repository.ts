@@ -14,7 +14,12 @@ import {
   localStorageUserProfiles,
   localStorageUserThemePreference,
 } from '../../constants/constant';
-import { UMLModel, normalizeAgentModel } from '@besser/wme';
+import {
+  UMLModel,
+  normalizeAgentModel,
+  ACCEPTED_AGENT_LLM_PROVIDERS,
+  isAcceptedAgentLLMProvider,
+} from '@besser/wme';
 import { uuid } from '../../utils/uuid';
 import type { AgentConfigurationPayload, AgentLLMProvider, IntentRecognitionTechnology } from '../../types/agent-config';
 
@@ -44,6 +49,14 @@ export const DEFAULT_AGENT_RUNTIME_CONFIG: AgentRuntimeConfig = {
   agentLlmName: '',
 };
 
+/**
+ * Provider spellings accepted when reading a stored config. Re-exported from the
+ * canonical editor list (canonical keys + legacy aliases) so this whitelist can
+ * never fall behind the dropdown — the drift that previously reset a saved
+ * 'huggingfaceapi' selection back to the default.
+ */
+export const VALID_AGENT_LLM_PROVIDERS: readonly string[] = ACCEPTED_AGENT_LLM_PROVIDERS;
+
 export const normalizeAgentRuntimeConfig = (
   raw: Partial<AgentRuntimeConfig> | null | undefined,
 ): AgentRuntimeConfig => {
@@ -51,12 +64,8 @@ export const normalizeAgentRuntimeConfig = (
     return { ...DEFAULT_AGENT_RUNTIME_CONFIG };
   }
   const provider: AgentLLMProvider =
-    raw.agentLlmProvider === 'openai' ||
-    raw.agentLlmProvider === 'huggingface' ||
-    raw.agentLlmProvider === 'huggingfaceapi' ||
-    raw.agentLlmProvider === 'replicate' ||
-    raw.agentLlmProvider === 'ollama'
-      ? raw.agentLlmProvider
+    isAcceptedAgentLLMProvider(raw.agentLlmProvider)
+      ? (raw.agentLlmProvider as AgentLLMProvider)
       : '';
   const intent: IntentRecognitionTechnology =
     raw.intentRecognitionTechnology === 'llm-based' ? 'llm-based' : 'classical';

@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { Rocket, ChevronDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -27,25 +28,26 @@ export const DeployMenu: React.FC<DeployMenuProps> = ({
   onGitHubLogin,
   onOpenDeployDialog,
 }) => {
+  const { t } = useTranslation();
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="outline" className={`gap-2 ${outlineButtonClass}`} title="Deploy">
+        <Button variant="outline" className={`gap-2 ${outlineButtonClass}`} title={t('menu.deploy.title')}>
           <Rocket className="size-4" />
-          <span className="hidden xl:inline">Deploy</span>
+          <span className="hidden xl:inline">{t('menu.deploy.title')}</span>
           <ChevronDown className="size-3 opacity-50" />
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent className="w-72" align="end">
-        <DropdownMenuLabel>Deployment</DropdownMenuLabel>
+        <DropdownMenuLabel>{t('menu.deploy.deployment')}</DropdownMenuLabel>
         <DropdownMenuSeparator />
         {!isAuthenticated && (
           <DropdownMenuItem onClick={onGitHubLogin} disabled={githubLoading}>
-            {githubLoading ? 'Connecting...' : 'Connect GitHub to Deploy'}
+            {githubLoading ? t('common.connecting') : t('menu.deploy.connectGitHub')}
           </DropdownMenuItem>
         )}
         <DropdownMenuItem onClick={onOpenDeployDialog} disabled={!isDeploymentAvailable}>
-          Publish to Render
+          {t('menu.deploy.publishToRender')}
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>

@@ -111,7 +111,7 @@ class ClassAssociationComponent extends Component<Props, State> {
               <Textfield
                 value={element.name}
                 onChange={(value) => this.props.update(element.id, { name: value })}
-                placeholder="Association name"
+                placeholder={this.props.translate('popup.associationNamePlaceholder')}
               />
             </Flex>
             <Divider />

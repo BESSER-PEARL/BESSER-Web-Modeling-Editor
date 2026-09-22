@@ -6,6 +6,8 @@ import { compose } from 'redux';
 import { withTheme, withThemeProps } from '../../../components/theme/styles';
 import { ApollonView } from '../../../services/editor/editor-types';
 import { ThemedCircleContrast } from '../../../components/theme/themedComponents';
+import { I18nContext } from '../../../components/i18n/i18n-context';
+import { localized } from '../../../components/i18n/localized';
 
 type OwnProps = {
   element: UMLStateInitialNode;
@@ -15,9 +17,10 @@ type StateProps = { interactive: boolean; interactable: boolean };
 
 type DispatchProps = {};
 
-type Props = OwnProps & StateProps & DispatchProps & withThemeProps;
+type Props = OwnProps & StateProps & DispatchProps & withThemeProps & I18nContext;
 
 const enhance = compose<ConnectedComponent<ComponentType<Props>, OwnProps>>(
+  localized,
   withTheme,
   connect<StateProps, DispatchProps, OwnProps, ModelState>((state, props) => ({
     interactive: state.interactive.includes(props.element.id),
@@ -25,10 +28,10 @@ const enhance = compose<ConnectedComponent<ComponentType<Props>, OwnProps>>(
   })),
 );
 
-const UMLStateInitialNodeC: FunctionComponent<Props> = ({ element, interactive, interactable, theme }) => {
+const UMLStateInitialNodeC: FunctionComponent<Props> = ({ element, interactive, interactable, theme, translate }) => {
   return (
     <g>
-      <title>Initial State</title>
+      <title>{translate('packages.StateDiagram.StateInitialNode')}</title>
       <ThemedCircleContrast
         cx="50%"
         cy="50%"

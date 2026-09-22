@@ -1,6 +1,7 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { getAgentOptions } from '../diagram-helpers';
+import i18n from '@/main/shared/i18n';
 
 /**
  * Build agent component props from attributes
@@ -94,10 +95,10 @@ const AgentComponentPreview: React.FC<{
       {/* Header */}
       <div style={headerStyle}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <img 
-            src="/img/agent_back.png" 
-            alt="Agent" 
-            style={{ 
+          <img
+            src="/img/agent_back.png"
+            alt={i18n.t('assistant.agentAvatarAlt')}
+            style={{
               width: '32px', 
               height: '32px', 
               borderRadius: '50%',
@@ -108,7 +109,7 @@ const AgentComponentPreview: React.FC<{
         </div>
         <div style={statusStyle}>
           <span>○</span>
-          <span>Preview Mode</span>
+          <span>{i18n.t('editors.gui.agentPreview.previewMode')}</span>
         </div>
       </div>
 
@@ -124,7 +125,7 @@ const AgentComponentPreview: React.FC<{
               backgroundColor: '#e9ecef',
               color: '#333',
             }}>
-              Hello! I'm {agentName}. How can I help you?
+              {i18n.t('editors.gui.agentPreview.greeting', { agentName })}
             </div>
             <div style={{
               padding: '10px 15px',
@@ -134,7 +135,7 @@ const AgentComponentPreview: React.FC<{
               backgroundColor: '#007bff',
               color: '#fff',
             }}>
-              This is a preview of the chat interface
+              {i18n.t('editors.gui.agentPreview.previewMessage')}
             </div>
           </>
         ) : (
@@ -147,7 +148,7 @@ const AgentComponentPreview: React.FC<{
             alignItems: 'center',
             justifyContent: 'center',
           }}>
-            Select an agent to start chatting...
+            {i18n.t('editors.gui.agentPreview.selectAgent')}
           </div>
         )}
       </div>
@@ -156,7 +157,7 @@ const AgentComponentPreview: React.FC<{
       <div style={inputContainerStyle}>
         <input
           type="text"
-          placeholder={agentName ? "Type a message..." : "Select an agent first"}
+          placeholder={agentName ? i18n.t('editors.gui.agentPreview.typeMessage') : i18n.t('editors.gui.agentPreview.selectAgentFirst')}
           disabled={!agentName}
           style={inputStyle}
           readOnly
@@ -169,7 +170,7 @@ const AgentComponentPreview: React.FC<{
             cursor: agentName ? 'pointer' : 'not-allowed',
           }}
         >
-          Send
+          {i18n.t('editors.gui.agentPreview.send')}
         </button>
       </div>
     </div>
@@ -222,7 +223,7 @@ export const registerAgentComponent = (editor: any) => {
         traits.reset([
           {
             type: 'select',
-            label: 'Agent',
+            label: i18n.t('editors.gui.traits.agent'),
             name: 'agent-name',
             value: defaultAgentValue,
             changeProp: 1,
@@ -230,7 +231,7 @@ export const registerAgentComponent = (editor: any) => {
           },
           {
             type: 'text',
-            label: 'Agent Title',
+            label: i18n.t('editors.gui.traits.agentTitle'),
             name: 'agent-title',
             value: 'BESSER Agent',
             changeProp: 1,
@@ -341,10 +342,10 @@ export const registerAgentComponent = (editor: any) => {
 
   // Add agent component to Block Manager
   editor.BlockManager.add('agent-component', {
-    label: 'BESSER Agent',
-    category: 'Basic',
+    label: `BESSER Agent`,
+    category: `Basic`,
     content: { type: 'agent-component' },
-    media: '<img src="/img/agent_back.png" alt="Agent" style="width: 24px; height: 24px; border-radius: 50%; object-fit: contain;" />',
+    media: `<img src="/img/agent_back.png" alt="${i18n.t('assistant.agentAvatarAlt')}" style="width: 24px; height: 24px; border-radius: 50%; object-fit: contain;" />`,
   });
 };
 

@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
+import { useTranslation } from 'react-i18next';
 import { Check, ChevronDown, ChevronRight, Shield } from 'lucide-react';
 import { applyConsentToPostHog } from '../../services/analytics/lazy-analytics';
 import { cn } from '@/lib/utils';
@@ -72,10 +73,11 @@ const Toggle: React.FC<{ enabled: boolean; disabled?: boolean; onToggle?: () => 
   disabled = false,
   onToggle,
 }) => {
+  const { t } = useTranslation();
   return (
     <button
       type="button"
-      aria-label={enabled ? 'Disable analytics' : 'Enable analytics'}
+      aria-label={enabled ? t('shared.cookie.toggleDisable') : t('shared.cookie.toggleEnable')}
       aria-pressed={enabled}
       disabled={disabled}
       onClick={onToggle}
@@ -96,55 +98,50 @@ const Toggle: React.FC<{ enabled: boolean; disabled?: boolean; onToggle?: () => 
 };
 
 const PrivacyPolicyContent: React.FC = () => {
+  const { t } = useTranslation();
   return (
     <div className="max-h-[60vh] flex flex-col gap-5 overflow-y-auto pr-1 text-sm leading-6 text-muted-foreground">
       <section className="flex flex-col gap-2">
-        <h4 className="font-semibold text-foreground">About BESSER</h4>
-        <p>
-          BESSER (Better Smart Software Faster) is an open-source low-code platform developed by the Software Engineering
-          Research Group at LIST (Luxembourg Institute of Science and Technology).
-        </p>
+        <h4 className="font-semibold text-foreground">{t('shared.cookie.privacy.aboutTitle')}</h4>
+        <p>{t('shared.cookie.privacy.aboutBody')}</p>
       </section>
 
       <section className="flex flex-col gap-2">
-        <h4 className="font-semibold text-foreground">Data We Collect</h4>
+        <h4 className="font-semibold text-foreground">{t('shared.cookie.privacy.collectTitle')}</h4>
         <ul className="list-disc flex flex-col gap-1 pl-5">
-          <li>Feature usage (generators and diagram workflows)</li>
-          <li>Model metrics (size and structure counts)</li>
-          <li>AI assistant usage counts (not content)</li>
-          <li>Anonymous session metadata</li>
+          <li>{t('shared.cookie.privacy.collect.usage')}</li>
+          <li>{t('shared.cookie.privacy.collect.metrics')}</li>
+          <li>{t('shared.cookie.privacy.collect.assistant')}</li>
+          <li>{t('shared.cookie.privacy.collect.session')}</li>
         </ul>
       </section>
 
       <section className="flex flex-col gap-2">
-        <h4 className="font-semibold text-foreground">Data We Do Not Collect</h4>
+        <h4 className="font-semibold text-foreground">{t('shared.cookie.privacy.noCollectTitle')}</h4>
         <ul className="list-disc flex flex-col gap-1 pl-5">
-          <li>Personal identity data (name, email)</li>
-          <li>Diagram/model content</li>
-          <li>Screen recordings or session replay</li>
-          <li>Project names and diagram titles</li>
+          <li>{t('shared.cookie.privacy.noCollect.identity')}</li>
+          <li>{t('shared.cookie.privacy.noCollect.content')}</li>
+          <li>{t('shared.cookie.privacy.noCollect.recordings')}</li>
+          <li>{t('shared.cookie.privacy.noCollect.names')}</li>
         </ul>
       </section>
 
       <section className="flex flex-col gap-2">
-        <h4 className="font-semibold text-foreground">How We Use Data</h4>
-        <p>
-          Analytics is used only to improve product quality and prioritize feature development. It is not used for marketing or
-          resale.
-        </p>
+        <h4 className="font-semibold text-foreground">{t('shared.cookie.privacy.useTitle')}</h4>
+        <p>{t('shared.cookie.privacy.useBody')}</p>
       </section>
 
       <section className="flex flex-col gap-2">
-        <h4 className="font-semibold text-foreground">Provider</h4>
+        <h4 className="font-semibold text-foreground">{t('shared.cookie.privacy.providerTitle')}</h4>
         <p>
-          We use PostHog (EU-hosted). See{' '}
+          {t('shared.cookie.privacy.providerIntro')}{' '}
           <a
             href="https://posthog.com/privacy"
             target="_blank"
             rel="noopener noreferrer"
             className="text-primary underline-offset-4 hover:underline"
           >
-            PostHog Privacy Policy
+            {t('shared.cookie.privacy.providerLinkText')}
           </a>
           .
         </p>
@@ -159,27 +156,28 @@ const CookieSettingsContent: React.FC<{
   onCancel: () => void;
   onSave: () => void;
 }> = ({ analyticsEnabled, onToggleAnalytics, onCancel, onSave }) => {
+  const { t } = useTranslation();
   return (
     <>
       <div className="flex flex-col gap-3">
         <div className="flex items-start justify-between gap-4 rounded-lg border border-border/80 bg-muted/30 p-4">
           <div className="flex flex-col gap-1">
             <div className="flex items-center gap-2">
-              <p className="text-sm font-semibold text-foreground">Essential Cookies</p>
+              <p className="text-sm font-semibold text-foreground">{t('shared.cookie.settings.essentialTitle')}</p>
               <Badge variant="secondary" className="text-[10px] uppercase tracking-wide">
-                Required
+                {t('shared.cookie.settings.requiredBadge')}
               </Badge>
             </div>
-            <p className="text-xs text-muted-foreground">Required for editor functionality and local preferences.</p>
+            <p className="text-xs text-muted-foreground">{t('shared.cookie.settings.essentialDesc')}</p>
           </div>
           <Toggle enabled disabled />
         </div>
 
         <div className="flex items-start justify-between gap-4 rounded-lg border border-border/80 bg-muted/30 p-4">
           <div className="flex flex-col gap-1">
-            <p className="text-sm font-semibold text-foreground">Analytics</p>
+            <p className="text-sm font-semibold text-foreground">{t('shared.cookie.settings.analyticsTitle')}</p>
             <p className="text-xs text-muted-foreground">
-              Anonymous usage metrics to improve generators, workflows, and UX quality.
+              {t('shared.cookie.settings.analyticsDesc')}
             </p>
           </div>
           <Toggle enabled={analyticsEnabled} onToggle={onToggleAnalytics} />
@@ -188,15 +186,16 @@ const CookieSettingsContent: React.FC<{
 
       <DialogFooter>
         <Button variant="outline" onClick={onCancel}>
-          Cancel
+          {t('common.cancel')}
         </Button>
-        <Button onClick={onSave}>Save Preferences</Button>
+        <Button onClick={onSave}>{t('shared.cookie.settings.savePreferences')}</Button>
       </DialogFooter>
     </>
   );
 };
 
 export const CookieConsentBanner: React.FC = () => {
+  const { t } = useTranslation();
   const [isMounted, setIsMounted] = useState(false);
   const [isVisible, setIsVisible] = useState(false);
   const [showDetails, setShowDetails] = useState(false);
@@ -233,12 +232,12 @@ export const CookieConsentBanner: React.FC = () => {
 
   const detailRows = useMemo(
     () => [
-      'Code generators used',
-      'Diagram type and model complexity',
-      'AI assistant usage count',
-      'No model content or personal data',
+      t('shared.cookie.banner.rows.generators'),
+      t('shared.cookie.banner.rows.diagramComplexity'),
+      t('shared.cookie.banner.rows.assistantUsage'),
+      t('shared.cookie.banner.rows.noContent'),
     ],
-    [],
+    [t],
   );
 
   const handleAccept = () => {
@@ -283,9 +282,9 @@ export const CookieConsentBanner: React.FC = () => {
                     <Shield className="size-3.5" />
                   </span>
                   <div className="min-w-0">
-                    <p className="text-xs font-semibold text-foreground">Analytics Cookies</p>
+                    <p className="text-xs font-semibold text-foreground">{t('shared.cookie.banner.title')}</p>
                     <p className="mt-0.5 text-[11px] leading-relaxed text-muted-foreground">
-                      Anonymous analytics to improve BESSER.
+                      {t('shared.cookie.banner.subtitle')}
                     </p>
                   </div>
                 </div>
@@ -302,12 +301,12 @@ export const CookieConsentBanner: React.FC = () => {
                     ) : (
                       <ChevronRight className="mr-1 size-3.5" />
                     )}
-                    {showDetails ? 'Hide details' : 'Details'}
+                    {showDetails ? t('shared.cookie.banner.hideDetails') : t('shared.cookie.banner.details')}
                   </Button>
 
                   <div className="flex items-center gap-1.5">
                     <Button size="sm" variant="outline" className="h-8 px-2.5 text-xs" onClick={handleDecline}>
-                      Decline
+                      {t('shared.cookie.banner.decline')}
                     </Button>
                     <Button
                       size="sm"
@@ -318,10 +317,10 @@ export const CookieConsentBanner: React.FC = () => {
                         setShowSettings(true);
                       }}
                     >
-                      Settings
+                      {t('shared.cookie.banner.settings')}
                     </Button>
                     <Button size="sm" className="h-8 px-3 text-xs" onClick={handleAccept}>
-                      Accept
+                      {t('shared.cookie.banner.accept')}
                     </Button>
                   </div>
                 </div>
@@ -342,7 +341,7 @@ export const CookieConsentBanner: React.FC = () => {
                       className="mt-1.5 h-auto p-0 text-[11px]"
                       onClick={() => setShowPrivacy(true)}
                     >
-                      Privacy Policy
+                      {t('shared.cookie.banner.privacyPolicy')}
                     </Button>
                   </div>
                 )}
@@ -355,8 +354,8 @@ export const CookieConsentBanner: React.FC = () => {
       <Dialog open={showSettings} onOpenChange={setShowSettings}>
         <DialogContent className="sm:max-w-xl">
           <DialogHeader>
-            <DialogTitle>Privacy Settings</DialogTitle>
-            <DialogDescription>Manage analytics preferences for this browser.</DialogDescription>
+            <DialogTitle>{t('shared.cookie.settingsTitle')}</DialogTitle>
+            <DialogDescription>{t('shared.cookie.settingsDesc')}</DialogDescription>
           </DialogHeader>
           <CookieSettingsContent
             analyticsEnabled={analyticsEnabled}
@@ -370,13 +369,13 @@ export const CookieConsentBanner: React.FC = () => {
       <Dialog open={showPrivacy} onOpenChange={setShowPrivacy}>
         <DialogContent className="sm:max-w-2xl">
           <DialogHeader>
-            <DialogTitle>Privacy Policy</DialogTitle>
-            <DialogDescription>Summary of analytics data handling in BESSER.</DialogDescription>
+            <DialogTitle>{t('shared.cookie.policyTitle')}</DialogTitle>
+            <DialogDescription>{t('shared.cookie.policyDesc')}</DialogDescription>
           </DialogHeader>
           <PrivacyPolicyContent />
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowPrivacy(false)}>
-              Close
+              {t('common.close')}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -386,6 +385,7 @@ export const CookieConsentBanner: React.FC = () => {
 };
 
 export const PrivacySettingsButton: React.FC = () => {
+  const { t } = useTranslation();
   const [showSettings, setShowSettings] = useState(false);
   const [analyticsEnabled, setAnalyticsEnabled] = useState(hasUserConsented());
 
@@ -407,14 +407,14 @@ export const PrivacySettingsButton: React.FC = () => {
     <>
       <Button variant="link" className="h-auto p-0 text-xs" onClick={() => setShowSettings(true)}>
         <Shield className="mr-1 size-3.5" />
-        Privacy Settings
+        {t('shared.cookie.settingsButton')}
       </Button>
 
       <Dialog open={showSettings} onOpenChange={setShowSettings}>
         <DialogContent className="sm:max-w-xl">
           <DialogHeader>
-            <DialogTitle>Privacy Settings</DialogTitle>
-            <DialogDescription>Manage analytics preferences for this browser.</DialogDescription>
+            <DialogTitle>{t('shared.cookie.settingsTitle')}</DialogTitle>
+            <DialogDescription>{t('shared.cookie.settingsDesc')}</DialogDescription>
           </DialogHeader>
           <CookieSettingsContent
             analyticsEnabled={analyticsEnabled}

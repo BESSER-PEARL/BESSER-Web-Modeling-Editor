@@ -1,10 +1,12 @@
 import React, { FunctionComponent } from 'react';
 import { UMLStateFinalNode } from './uml-state-final-node';
 import { ThemedCircle } from '../../../components/theme/themedComponents';
+import { I18nContext } from '../../../components/i18n/i18n-context';
+import { localized } from '../../../components/i18n/localized';
 
-export const UMLStateFinalNodeComponent: FunctionComponent<Props> = ({ element }) => (
+const UMLStateFinalNodeC: FunctionComponent<Props> = ({ element, translate }) => (
   <g>
-    <title>Final State</title>
+    <title>{translate('packages.StateDiagram.StateFinalNode')}</title>
     <ThemedCircle
       cx="50%"
       cy="50%"
@@ -22,6 +24,8 @@ export const UMLStateFinalNodeComponent: FunctionComponent<Props> = ({ element }
   </g>
 );
 
-interface Props {
+interface Props extends I18nContext {
   element: UMLStateFinalNode;
-} 
+}
+
+export const UMLStateFinalNodeComponent = localized(UMLStateFinalNodeC);

@@ -1,5 +1,6 @@
-import React from 'react';
+import React, { ComponentClass } from 'react';
 import { connect } from 'react-redux';
+import { compose } from 'redux';
 import styled from 'styled-components';
 import { Controlled as CodeMirror } from 'react-codemirror2';
 import 'codemirror/lib/codemirror.css';
@@ -7,6 +8,8 @@ import 'codemirror/theme/material.css';
 import 'codemirror/mode/python/python';
 import { Textfield } from '../../../components/controls/textfield/textfield';
 import { Header } from '../../../components/controls/typography/typography';
+import { I18nContext } from '../../../components/i18n/i18n-context';
+import { localized } from '../../../components/i18n/localized';
 import { ModelState } from '../../../components/store/model-state';
 import { UMLElementRepository } from '../../../services/uml-element/uml-element-repository';
 import { AgentElementType } from '..';
@@ -50,28 +53,24 @@ type DispatchProps = {
   update: typeof UMLElementRepository.update;
 };
 
-type Props = OwnProps & StateProps & DispatchProps;
+type Props = OwnProps & StateProps & DispatchProps & I18nContext;
 
 const AGENT_STATE_TYPE = (AgentElementType as Record<string, string>).AgentState ?? 'AgentState';
 
-const AgentToolUpdateComponent: React.FC<Props> = ({ element, update, elements }) => {
+const AgentToolUpdateComponent: React.FC<Props> = ({ element, update, elements, translate }) => {
   const hasReasoningState = Object.values(elements).some(
     (el: any) => el.type === AGENT_STATE_TYPE && el.stateType === 'reasoning',
   );
 
   return (
     <div>
-      {!hasReasoningState && (
-        <Warning>
-          ⚠ Tools can only be used by a reasoning state. Add a reasoning state to use this tool.
-        </Warning>
-      )}
+      {!hasReasoningState && <Warning>⚠ {translate('packages.AgentDiagram.toolReasoningStateWarning')}</Warning>}
       <Section>
-        <Header>Tool name</Header>
+        <Header>{translate('packages.AgentDiagram.toolName')}</Header>
         <Textfield value={element.name} onChange={(name) => update<AgentTool>(element.id, { name })} autoFocus />
       </Section>
       <Section>
-        <Header>Description</Header>
+        <Header>{translate('packages.AgentDiagram.description')}</Header>
         <Textfield
           value={element.description}
           multiline
@@ -81,7 +80,7 @@ const AgentToolUpdateComponent: React.FC<Props> = ({ element, update, elements }
         />
       </Section>
       <Section>
-        <Header>Python code</Header>
+        <Header>{translate('packages.AgentDiagram.pythonCode')}</Header>
         <ResizableCodeMirrorWrapper>
           <CodeMirror
             value={element.code || ''}
@@ -95,9 +94,11 @@ const AgentToolUpdateComponent: React.FC<Props> = ({ element, update, elements }
   );
 };
 
-const enhance = connect<StateProps, DispatchProps, OwnProps, ModelState>(
-  (state) => ({ elements: state.elements }),
-  { update: UMLElementRepository.update },
+const enhance = compose<ComponentClass<OwnProps>>(
+  localized,
+  connect<StateProps, DispatchProps, OwnProps, ModelState>((state) => ({ elements: state.elements }), {
+    update: UMLElementRepository.update,
+  }),
 );
 
 export const AgentToolUpdate = enhance(AgentToolUpdateComponent);

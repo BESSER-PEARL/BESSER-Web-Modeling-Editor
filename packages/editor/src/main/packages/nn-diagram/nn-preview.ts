@@ -94,7 +94,7 @@ import {
 } from './nn-dataset-attributes/dataset-attributes';
 import { ILayer } from '../../services/layouter/layer';
 
-export const composeNNPreview: ComposePreview = (layer: ILayer, translate: (id: string) => string): UMLElement[] => {
+export const composeNNPreview: ComposePreview = (layer: ILayer): UMLElement[] => {
   const elements: UMLElement[] = [];
   const layerElements: UMLElement[] = [];
   const tensorOpElements: UMLElement[] = [];
@@ -102,7 +102,7 @@ export const composeNNPreview: ComposePreview = (layer: ILayer, translate: (id: 
   const datasetElements: UMLElement[] = [];
 
   // Conv1DLayer setup
-  const conv1DLayer = new Conv1DLayer({ name: translate('packages.NNDiagram.Conv1DLayer') });
+  const conv1DLayer = new Conv1DLayer({ name: 'Conv1D Layer' });
 
   const nameAttrConv1D = new NameAttributeConv1D({ owner: conv1DLayer.id });
   const kernelDimAttrConv1D = new KernelDimAttributeConv1D({ owner: conv1DLayer.id });
@@ -116,7 +116,7 @@ export const composeNNPreview: ComposePreview = (layer: ILayer, translate: (id: 
   layerElements.push(...(conv1DLayer.render(layer, [nameAttrConv1D, kernelDimAttrConv1D, outChannelsAttrConv1D]) as UMLElement[]));
 
   // Conv2DLayer setup
-  const conv2DLayer = new Conv2DLayer({ name: translate('packages.NNDiagram.Conv2DLayer') });
+  const conv2DLayer = new Conv2DLayer({ name: 'Conv2D Layer' });
 
   const nameAttrConv2D = new NameAttributeConv2D({ owner: conv2DLayer.id });
   const kernelDimAttrConv2D = new KernelDimAttributeConv2D({ owner: conv2DLayer.id });
@@ -130,7 +130,7 @@ export const composeNNPreview: ComposePreview = (layer: ILayer, translate: (id: 
   layerElements.push(...(conv2DLayer.render(layer, [nameAttrConv2D, kernelDimAttrConv2D, outChannelsAttrConv2D]) as UMLElement[]));
 
   // Conv3DLayer setup
-  const conv3DLayer = new Conv3DLayer({ name: translate('packages.NNDiagram.Conv3DLayer') });
+  const conv3DLayer = new Conv3DLayer({ name: 'Conv3D Layer' });
 
   const nameAttrConv3D = new NameAttributeConv3D({ owner: conv3DLayer.id });
   const kernelDimAttrConv3D = new KernelDimAttributeConv3D({ owner: conv3DLayer.id });
@@ -144,7 +144,7 @@ export const composeNNPreview: ComposePreview = (layer: ILayer, translate: (id: 
   layerElements.push(...(conv3DLayer.render(layer, [nameAttrConv3D, kernelDimAttrConv3D, outChannelsAttrConv3D]) as UMLElement[]));
 
   // PoolingLayer setup
-  const poolingLayer = new PoolingLayer({ name: translate('packages.NNDiagram.PoolingLayer') });
+  const poolingLayer = new PoolingLayer({ name: 'Pooling Layer' });
 
   const nameAttrPooling = new NameAttributePooling({ owner: poolingLayer.id });
   const poolingTypeAttrPooling = new PoolingTypeAttributePooling({ owner: poolingLayer.id });
@@ -158,7 +158,7 @@ export const composeNNPreview: ComposePreview = (layer: ILayer, translate: (id: 
   layerElements.push(...(poolingLayer.render(layer, [nameAttrPooling, poolingTypeAttrPooling, dimAttrPooling]) as UMLElement[]));
 
   // RNNLayer setup
-  const rnnLayer = new RNNLayer({ name: translate('packages.NNDiagram.RNNLayer') });
+  const rnnLayer = new RNNLayer({ name: 'RNN Layer' });
 
   const nameAttrRNN = new NameAttributeRNN({ owner: rnnLayer.id });
   const hiddenSizeAttrRNN = new HiddenSizeAttributeRNN({ owner: rnnLayer.id });
@@ -170,7 +170,7 @@ export const composeNNPreview: ComposePreview = (layer: ILayer, translate: (id: 
   layerElements.push(...(rnnLayer.render(layer, [nameAttrRNN, hiddenSizeAttrRNN]) as UMLElement[]));
 
   // LSTMLayer setup
-  const lstmLayer = new LSTMLayer({ name: translate('packages.NNDiagram.LSTMLayer') });
+  const lstmLayer = new LSTMLayer({ name: 'LSTM Layer' });
 
   const nameAttrLSTM = new NameAttributeLSTM({ owner: lstmLayer.id });
   const hiddenSizeAttrLSTM = new HiddenSizeAttributeLSTM({ owner: lstmLayer.id });
@@ -182,7 +182,7 @@ export const composeNNPreview: ComposePreview = (layer: ILayer, translate: (id: 
   layerElements.push(...(lstmLayer.render(layer, [nameAttrLSTM, hiddenSizeAttrLSTM]) as UMLElement[]));
 
   // GRULayer setup
-  const gruLayer = new GRULayer({ name: translate('packages.NNDiagram.GRULayer') });
+  const gruLayer = new GRULayer({ name: 'GRU Layer' });
 
   const nameAttrGRU = new NameAttributeGRU({ owner: gruLayer.id });
   const hiddenSizeAttrGRU = new HiddenSizeAttributeGRU({ owner: gruLayer.id });
@@ -194,7 +194,7 @@ export const composeNNPreview: ComposePreview = (layer: ILayer, translate: (id: 
   layerElements.push(...(gruLayer.render(layer, [nameAttrGRU, hiddenSizeAttrGRU]) as UMLElement[]));
 
   // LinearLayer setup
-  const linearLayer = new LinearLayer({ name: translate('packages.NNDiagram.LinearLayer') });
+  const linearLayer = new LinearLayer({ name: 'Linear Layer' });
 
   const nameAttrLinear = new NameAttributeLinear({ owner: linearLayer.id });
   const outFeaturesAttrLinear = new OutFeaturesAttributeLinear({ owner: linearLayer.id });
@@ -206,7 +206,7 @@ export const composeNNPreview: ComposePreview = (layer: ILayer, translate: (id: 
   layerElements.push(...(linearLayer.render(layer, [nameAttrLinear, outFeaturesAttrLinear]) as UMLElement[]));
 
   // FlattenLayer setup
-  const flattenLayer = new FlattenLayer({ name: translate('packages.NNDiagram.FlattenLayer') });
+  const flattenLayer = new FlattenLayer({ name: 'Flatten Layer' });
 
   const nameAttrFlatten = new NameAttributeFlatten({ owner: flattenLayer.id });
 
@@ -216,7 +216,7 @@ export const composeNNPreview: ComposePreview = (layer: ILayer, translate: (id: 
   layerElements.push(...(flattenLayer.render(layer, [nameAttrFlatten]) as UMLElement[]));
 
   // EmbeddingLayer setup
-  const embeddingLayer = new EmbeddingLayer({ name: translate('packages.NNDiagram.EmbeddingLayer') });
+  const embeddingLayer = new EmbeddingLayer({ name: 'Embedding Layer' });
 
   const nameAttrEmbedding = new NameAttributeEmbedding({ owner: embeddingLayer.id });
   const numEmbeddingsAttrEmbedding = new NumEmbeddingsAttributeEmbedding({ owner: embeddingLayer.id });
@@ -230,7 +230,7 @@ export const composeNNPreview: ComposePreview = (layer: ILayer, translate: (id: 
   layerElements.push(...(embeddingLayer.render(layer, [nameAttrEmbedding, numEmbeddingsAttrEmbedding, embeddingDimAttrEmbedding]) as UMLElement[]));
 
   // DropoutLayer setup
-  const dropoutLayer = new DropoutLayer({ name: translate('packages.NNDiagram.DropoutLayer') });
+  const dropoutLayer = new DropoutLayer({ name: 'Dropout Layer' });
 
   const nameAttrDropout = new NameAttributeDropout({ owner: dropoutLayer.id });
   const rateAttrDropout = new RateAttributeDropout({ owner: dropoutLayer.id });
@@ -242,7 +242,7 @@ export const composeNNPreview: ComposePreview = (layer: ILayer, translate: (id: 
   layerElements.push(...(dropoutLayer.render(layer, [nameAttrDropout, rateAttrDropout]) as UMLElement[]));
 
   // LayerNormalizationLayer setup
-  const layerNormLayer = new LayerNormalizationLayer({ name: translate('packages.NNDiagram.LayerNormalizationLayer') });
+  const layerNormLayer = new LayerNormalizationLayer({ name: 'Layer Normalization' });
 
   const nameAttrLayerNorm = new NameAttributeLayerNormalization({ owner: layerNormLayer.id });
   const normalizedShapeAttrLayerNorm = new NormalizedShapeAttributeLayerNormalization({ owner: layerNormLayer.id });
@@ -254,7 +254,7 @@ export const composeNNPreview: ComposePreview = (layer: ILayer, translate: (id: 
   layerElements.push(...(layerNormLayer.render(layer, [nameAttrLayerNorm, normalizedShapeAttrLayerNorm]) as UMLElement[]));
 
   // BatchNormalizationLayer setup
-  const batchNormLayer = new BatchNormalizationLayer({ name: translate('packages.NNDiagram.BatchNormalizationLayer') });
+  const batchNormLayer = new BatchNormalizationLayer({ name: 'Batch Normalization' });
 
   const nameAttrBatchNorm = new NameAttributeBatchNormalization({ owner: batchNormLayer.id });
   const numFeaturesAttrBatchNorm = new NumFeaturesAttributeBatchNormalization({ owner: batchNormLayer.id });
@@ -268,7 +268,7 @@ export const composeNNPreview: ComposePreview = (layer: ILayer, translate: (id: 
   layerElements.push(...(batchNormLayer.render(layer, [nameAttrBatchNorm, numFeaturesAttrBatchNorm, dimensionAttrBatchNorm]) as UMLElement[]));
 
   // TensorOp setup
-  const tensorOp = new TensorOp({ name: translate('packages.NNDiagram.TensorOp') });
+  const tensorOp = new TensorOp({ name: 'Tensor Op' });
 
   const nameAttrTensorOp = new NameAttributeTensorOp({ owner: tensorOp.id });
   const tnsTypeAttrTensorOp = new TnsTypeAttributeTensorOp({ owner: tensorOp.id });
@@ -280,7 +280,7 @@ export const composeNNPreview: ComposePreview = (layer: ILayer, translate: (id: 
   tensorOpElements.push(...(tensorOp.render(layer, [nameAttrTensorOp, tnsTypeAttrTensorOp]) as UMLElement[]));
 
   // Configuration setup
-  const configuration = new Configuration({ name: translate('packages.NNDiagram.Configuration') });
+  const configuration = new Configuration({ name: 'Configuration' });
 
   const batchSizeAttr = new BatchSizeAttributeConfiguration({ owner: configuration.id });
   const epochsAttr = new EpochsAttributeConfiguration({ owner: configuration.id });
@@ -300,7 +300,7 @@ export const composeNNPreview: ComposePreview = (layer: ILayer, translate: (id: 
   configurationElements.push(...(configuration.render(layer, [batchSizeAttr, epochsAttr, learningRateAttr, optimizerAttr, lossFunctionAttr, metricsAttr]) as UMLElement[]));
 
   // TrainingDataset setup
-  const trainingDataset = new TrainingDataset({ name: translate('packages.NNDiagram.TrainingDataset') });
+  const trainingDataset = new TrainingDataset({ name: 'Training Dataset' });
   const nameAttrTrainingDataset = new NameAttributeDataset({ owner: trainingDataset.id, value: 'train_data' });
   const pathAttrTrainingDataset = new PathDataAttributeDataset({ owner: trainingDataset.id });
 
@@ -311,7 +311,7 @@ export const composeNNPreview: ComposePreview = (layer: ILayer, translate: (id: 
   datasetElements.push(...(trainingDataset.render(layer, [nameAttrTrainingDataset, pathAttrTrainingDataset]) as UMLElement[]));
 
   // TestDataset setup
-  const testDataset = new TestDataset({ name: translate('packages.NNDiagram.TestDataset') });
+  const testDataset = new TestDataset({ name: 'Test Dataset' });
   const nameAttrTestDataset = new NameAttributeDataset({ owner: testDataset.id, value: 'test_data' });
   const pathAttrTestDataset = new PathDataAttributeDataset({ owner: testDataset.id });
 
@@ -322,11 +322,11 @@ export const composeNNPreview: ComposePreview = (layer: ILayer, translate: (id: 
   datasetElements.push(...(testDataset.render(layer, [nameAttrTestDataset, pathAttrTestDataset]) as UMLElement[]));
 
   // NNContainer setup - compact in sidebar, clone() sets tall bounds when dropped
-  const nnContainer = new NNContainer({ name: translate('packages.NNDiagram.NNContainer') });
+  const nnContainer = new NNContainer({ name: 'NN Container' });
   nnContainer.bounds = { ...nnContainer.bounds, width: 280, height: 150 };
 
   // NNReference setup
-  const nnReference = new NNReference({ name: translate('packages.NNDiagram.NNReference') });
+  const nnReference = new NNReference({ name: 'NN Reference' });
   nnReference.bounds = { ...nnReference.bounds, width: 120, height: 40 };
 
   // Combine all elements with section titles and separators
@@ -342,7 +342,7 @@ export const composeNNPreview: ComposePreview = (layer: ILayer, translate: (id: 
   const configurationTitle = new NNSectionTitle({ name: 'NN Configuration' });
   (configurationTitle as PreviewElement).styles = { pointerEvents: 'none', cursor: 'default' };
 
-  const datasetsTitle = new NNSectionTitle({ name: translate('packages.NNDiagram.Datasets') });
+  const datasetsTitle = new NNSectionTitle({ name: 'NN Datasets' });
   (datasetsTitle as PreviewElement).styles = { pointerEvents: 'none', cursor: 'default' };
 
   const separator0 = new NNSectionSeparator();
