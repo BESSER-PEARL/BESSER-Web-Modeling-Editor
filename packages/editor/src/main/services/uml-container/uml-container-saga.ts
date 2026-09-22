@@ -136,10 +136,6 @@ export function* UMLContainerSaga(): SagaIterator {
 
 function* append(): SagaIterator {
   const action: AppendAction = yield take(UMLContainerActionTypes.APPEND);
-  console.log('[append-saga] APPEND received', {
-    ids: action.payload.ids,
-    owner: action.payload.owner,
-  });
   const { elements, diagram }: ModelState = yield select();
   const state: UMLElementState = { ...elements, [diagram.id]: diagram };
   const container = UMLContainerRepository.get(state[action.payload.owner]);
@@ -147,8 +143,6 @@ function* append(): SagaIterator {
   if (!container) {
     return;
   }
-
-  console.log('[append-saga] calling render(' + container.id + ')');
 
   yield call(render, container.id);
 }

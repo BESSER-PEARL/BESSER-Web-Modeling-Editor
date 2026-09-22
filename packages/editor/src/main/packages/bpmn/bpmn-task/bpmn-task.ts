@@ -28,8 +28,7 @@ export const AGENTIC_TASK_REFLECTION_RESERVE = 28;
 // A task that renders a top-left type icon (taskType !== 'default') wraps its
 // centred name within an inset width (TASK_ICON_SIDE_INSET on each side) so a
 // long name can't slide under the icon at (10,10). Plain default tasks stay
-// full-width so short names don't needlessly break. Ported (agentic bits
-// stripped) from dev/agentic-swarm-connection's AGENTIC_TASK_SIDE_INSET. 
+// full-width so short names don't needlessly break. 
 export const TASK_ICON_SIDE_INSET = 26;
 
 export type BPMNTaskType = 'default' | 'user' | 'service' | 'send' | 'receive' | 'manual' | 'business-rule' | 'script';
@@ -38,7 +37,7 @@ export class BPMNTask extends UMLContainer {
   static features = { ...UMLContainer.features, droppable: false };
   static defaultTaskType: BPMNTaskType = 'default';
   static defaultMarker: BPMNMarkerType = 'none';
-  // Agentic BPMN (04D): a task is marked agentic via `isAgentic` rather than a
+  // Agentic BPMN: a task is marked agentic via `isAgentic` rather than a
   // separate element type. `reflectionMode` / `trustScore` are only meaningful
   // when set.
   static defaultReflectionMode: BPMNReflectionMode = 'none';
@@ -51,7 +50,7 @@ export class BPMNTask extends UMLContainer {
   isAgentic: boolean;
   reflectionMode: BPMNReflectionMode;
   trustScore: number;
-  // 11 (retarget of 08 D2 from lane → task): forward link to the BESSER
+  // forward link to the BESSER
   // Agent diagram that defines this task's internal agent behavior. Set
   // only when isAgentic === true and the user clicked "Define agent
   // behavior" on the popup. UUID-only; survives an isAgentic toggle off
