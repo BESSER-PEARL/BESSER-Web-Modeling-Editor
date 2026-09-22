@@ -1,9 +1,13 @@
-import React, { Component, ComponentClass } from 'react';
+import React, { Component, ComponentClass, createRef } from 'react';
 import { connect } from 'react-redux';
 import { compose } from 'redux';
 import styled from 'styled-components';
 import { Textfield } from '../../../components/controls/textfield/textfield';
 import { Dropdown } from '../../../components/controls/dropdown/dropdown';
+import { DropdownButton } from '../../../components/controls/dropdown/dropdown-button';
+import { DropdownMenu } from '../../../components/controls/dropdown/dropdown-menu';
+import { I18nContext } from '../../../components/i18n/i18n-context';
+import { localized } from '../../../components/i18n/localized';
 import { ModelState } from '../../../components/store/model-state';
 import { UMLElementRepository } from '../../../services/uml-element/uml-element-repository';
 import { UMLContainerRepository } from '../../../services/uml-container/uml-container-repository';
@@ -11,8 +15,22 @@ import { Conv1DAttribute } from '../nn-conv1d-attributes/conv1d-attributes';
 import { INNAttribute } from '../nn-component-attribute';
 import { IUMLRelationship } from '../../../services/uml-relationship/uml-relationship';
 import { NNRelationshipType } from '../index';
-import { getAttributeDefaultValue, LIST_STRICT_REGEX, LIST_PERMISSIVE_REGEX, getListExpectation } from '../nn-validation-defaults';
-import { getWidgetConfig } from '../nn-attribute-widget-config';
+import { getWidgetConfig, getTnsTypeCategory, TnsTypeCategory } from '../nn-attribute-widget-config';
+import { interpolate, validateOnChange, validateOnSubmit, ValidationContext } from '../nn-attribute-validators';
+import {
+  formatLayersOfTensors,
+  formatPadAmount,
+  formatRepeatDim,
+  formatSubscriptIndices,
+  formatSubscriptIndicesDisplay,
+  isCompletePadAmountPair,
+  PadAmountPair,
+  parseLayersOfTensors,
+  parsePadAmount,
+  parseRepeatDim,
+  parseSubscriptIndices,
+  SubscriptDimension,
+} from '../nn-attribute-value-formats';
 
 const AttributeInputContainer = styled.div`
   display: flex;
@@ -29,11 +47,102 @@ const AttributeLabel = styled.span`
   white-space: nowrap;
 `;
 
+const MultiSelectContainer = styled.div`
+  position: relative;
+  flex-grow: 1;
+`;
+
+const CheckboxLabel = styled.label`
+  display: flex;
+  align-items: center;
+  padding: 4px 8px;
+  cursor: pointer;
+  user-select: none;
+
+  &:hover {
+    background-color: rgba(0, 0, 0, 0.05);
+  }
+
+  input[type="checkbox"] {
+    margin-right: 8px;
+  }
+`;
+
+// Content aligned under the row's checkbox
+const Indented = styled.div`
+  margin-left: 24px;
+  width: calc(100% - 24px);
+`;
+
+const HelpText = styled(Indented)`
+  font-size: 11px;
+  color: #666;
+  margin-top: 6px;
+`;
+
+const ErrorText = styled.span`
+  color: red;
+  font-size: 11px;
+  display: block;
+  margin-left: 24px;
+`;
+
+const DimensionRow = styled(Indented)`
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 6px;
+`;
+
+const SmallLabel = styled.span`
+  font-size: 11px;
+`;
+
+const RemoveButton = styled.button`
+  padding: 2px 6px;
+  font-size: 11px;
+  cursor: pointer;
+  background: #dc3545;
+  color: white;
+  border: none;
+  border-radius: 3px;
+  flex-shrink: 0;
+`;
+
+const AddButton = styled.button`
+  padding: 4px 8px;
+  font-size: 11px;
+  cursor: pointer;
+  background: #28a745;
+  color: white;
+  border: none;
+  border-radius: 3px;
+  margin-top: 6px;
+  margin-left: 24px;
+`;
+
+const ValuePreview = styled.div`
+  margin-top: 6px;
+  margin-left: 24px;
+  padding: 6px 8px;
+  background: #f5f5f5;
+  border: 1px solid #ddd;
+  border-radius: 3px;
+  font-size: 11px;
+  font-family: monospace;
+  color: #333;
+  width: calc(100% - 24px - 16px);
+`;
+
+const NUMERIC_LITERAL_REGEX = /^-?(\d+\.?\d*|\.\d*)$/;
+const INT_REGEX = /^-?\d+$/;
+
 interface OwnProps {
   attributeType: string;
   attributeCtor: any;
   label: string;
   layerId: string;
+  tnsType?: string;  // For layers_of_tensors: the current tns_type value
 }
 
 interface StateProps {
@@ -41,6 +150,7 @@ interface StateProps {
   elements: ModelState['elements'];  // Access to all elements for dimension lookup
   attributeValue: string | undefined;  // Explicit value tracking to force re-render on value changes
   predecessorNames: string[];  // Names of layers/tensor ops that come before this layer via NNNext
+  tensorOpNames: string[];  // Names of ONLY tensor ops (no layers) that come before this layer via NNNext
 }
 
 interface DispatchProps {
@@ -50,31 +160,41 @@ interface DispatchProps {
   appendToParent: (elementId: string, parentId: string) => void;
 }
 
-type Props = OwnProps & StateProps & DispatchProps;
+type Props = OwnProps & StateProps & DispatchProps & I18nContext;
 
 interface LocalState {
   localValue: string;
   isChecked: boolean;
-  // For layers_of_tensors - track selections before both are filled
-  tensor1: string;
-  tensor2: string;
+  // For layers_of_tensors - dynamic array of tensor selections
+  tensorSelections: string[];
+  // For subscript_indices - dynamic array of dimension indices/slices
+  subscriptDimensions: SubscriptDimension[];
+  // For repeat_dim - dynamic array of integers or tensorop names
+  repeatDimensions: string[];
+  // For pad_amount - dynamic array of [int, int] pairs
+  padAmountPairs: PadAmountPair[];
   validationError: string | null;
   submitResetKey: number;
+  // For multiselect dropdown state
+  multiSelectOpen: boolean;
 }
 
 class OptionalAttributeRowComponent extends Component<Props, LocalState> {
+  multiSelectButtonRef = createRef<HTMLButtonElement>();
+
   constructor(props: Props) {
     super(props);
-    // Parse layers_of_tensors value if present
     const initialValue = props.existingAttribute?.value || '';
-    const [t1, t2] = this.parseLayersOfTensors(initialValue);
     this.state = {
       localValue: initialValue,
       isChecked: !!props.existingAttribute,
-      tensor1: t1,
-      tensor2: t2,
+      tensorSelections: parseLayersOfTensors(initialValue),
+      subscriptDimensions: parseSubscriptIndices(initialValue),
+      repeatDimensions: parseRepeatDim(initialValue),
+      padAmountPairs: parsePadAmount(initialValue),
       validationError: null,
       submitResetKey: 0,
+      multiSelectOpen: false,
     };
   }
 
@@ -105,52 +225,98 @@ class OptionalAttributeRowComponent extends Component<Props, LocalState> {
     // Update local state when Redux state changes
     if (!prevProps.existingAttribute && this.props.existingAttribute) {
       const newValue = this.props.existingAttribute.value || '';
-      const [t1, t2] = this.parseLayersOfTensors(newValue);
-      this.setState({
-        localValue: newValue,
-        isChecked: true,
-        tensor1: t1,
-        tensor2: t2,
-      });
+      this.setState({ localValue: newValue, isChecked: true, ...this.parsedWidgetState(newValue) });
     } else if (prevProps.existingAttribute && !this.props.existingAttribute) {
       this.setState({
         localValue: '',
         isChecked: false,
-        tensor1: '',
-        tensor2: '',
+        tensorSelections: [],
+        subscriptDimensions: [],
+        repeatDimensions: [],
+        padAmountPairs: [],
       });
     } else if (prevProps.attributeValue !== this.props.attributeValue &&
                this.props.existingAttribute) {
       // Sync local state with Redux when value changes externally (e.g., dimension change)
       const newValue = this.props.existingAttribute.value || '';
-      const [t1, t2] = this.parseLayersOfTensors(newValue);
-      this.setState({
-        localValue: newValue,
-        tensor1: t1,
-        tensor2: t2,
-      });
+      this.setState({ localValue: newValue, ...this.parsedWidgetState(newValue) });
     }
   }
 
-  // Parse layers_of_tensors value like "['a', 'b']" into [tensor1, tensor2]
-  private parseLayersOfTensors = (value: string): [string, string] => {
-    if (!value || value === '[]') return ['', ''];
-    // Remove brackets and split by comma
-    const cleaned = value.replace(/^\[|\]$/g, '').replace(/'/g, '');
-    const parts = cleaned.split(',').map(s => s.trim());
-    return [parts[0] || '', parts[1] || ''];
+  /** Re-parse only the structured state that belongs to this row's widget; keep the rest. */
+  private parsedWidgetState(value: string) {
+    const config = getWidgetConfig(this.props.attributeType);
+    return {
+      tensorSelections: config.widget === 'layers_of_tensors' ? parseLayersOfTensors(value) : this.state.tensorSelections,
+      subscriptDimensions: config.widget === 'subscript_indices' ? parseSubscriptIndices(value) : this.state.subscriptDimensions,
+      repeatDimensions: config.widget === 'repeat_dim' ? parseRepeatDim(value) : this.state.repeatDimensions,
+      padAmountPairs: config.widget === 'pad_amount' ? parsePadAmount(value) : this.state.padAmountPairs,
+    };
+  }
+
+  // ── Attribute persistence helpers ────────────────────────────────────────────
+  // Every widget stores its result through these three, so the create /
+  // update / delete contract (value + "<name> = <value>" label, parent
+  // ownership, local state sync) lives in exactly one place.
+
+  /** Create the attribute element under the layer, optionally with an initial value. */
+  private createAttribute = (value?: string) => {
+    const { attributeCtor, layerId } = this.props;
+    const instance = new attributeCtor({ owner: layerId });
+    if (value !== undefined) {
+      instance.value = value;
+      instance.name = `${instance.attributeName} = ${value}`;
+    }
+    this.props.create(instance, layerId);
+    // Also add to parent's ownedElements so it persists
+    this.props.appendToParent(instance.id, layerId);
+    this.setState({ localValue: instance.value || '', isChecked: true });
+    return instance;
   };
 
-  // Format two tensors into layers_of_tensors value
-  private formatLayersOfTensors = (tensor1: string, tensor2: string): string => {
-    if (!tensor1 && !tensor2) return '[]';
-    if (!tensor1 || !tensor2) return '[]'; // Both are required
-    return `['${tensor1}', '${tensor2}']`;
+  /** Store a value on the existing attribute element; no-op when it does not exist. */
+  private updateAttribute = (value: string) => {
+    const { existingAttribute } = this.props;
+    if (!existingAttribute) return;
+    this.props.update<Conv1DAttribute>(existingAttribute.id, {
+      value,
+      name: `${existingAttribute.attributeName} = ${value}`,
+    } as Partial<Conv1DAttribute>);
+  };
+
+  /** Store a value, creating the attribute element on first use. */
+  private setAttributeValue = (value: string) => {
+    if (this.props.existingAttribute) {
+      this.updateAttribute(value);
+    } else {
+      this.createAttribute(value);
+    }
+  };
+
+  private deleteAttribute = () => {
+    const { existingAttribute } = this.props;
+    if (!existingAttribute) return;
+    this.props.delete(existingAttribute.id);
+    this.setState({ localValue: '' });
+  };
+
+  private validationContext = (): ValidationContext | null => {
+    const { existingAttribute, elements, translate } = this.props;
+    if (!existingAttribute) return null;
+    return {
+      attributeName: existingAttribute.attributeName,
+      attributeType: existingAttribute.attributeType,
+      elementType: existingAttribute.type,
+      ownerId: existingAttribute.owner,
+      elements,
+      currentValue: existingAttribute.value || '',
+      translate,
+    };
   };
 
   private handleCheckboxChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     e.stopPropagation();
-    const { existingAttribute, attributeCtor, layerId, attributeType, elements } = this.props;
+    const { existingAttribute, layerId, attributeType, elements } = this.props;
     const isChecking = e.target.checked;
 
     // Update local state immediately for responsive UI
@@ -159,374 +325,618 @@ class OptionalAttributeRowComponent extends Component<Props, LocalState> {
     if (isChecking) {
       const config = getWidgetConfig(attributeType);
 
-      // For predecessor / layers_of_tensors: don't create attribute yet, wait for user selection
-      if (config.widget === 'predecessor' || config.widget === 'layers_of_tensors') {
+      // For predecessor / layers_of_tensors / subscript_indices / pad_amount: don't create attribute yet, wait for user selection
+      if (config.widget === 'predecessor' || config.widget === 'layers_of_tensors' || config.widget === 'subscript_indices' || config.widget === 'pad_amount') {
         return;
       }
 
-      // Create attribute only if it doesn't exist
+      // Create attribute only if it doesn't exist, with the dimension-aware initial
+      // value (e.g. pooling kernel/stride/output) or the config default when there is one
       if (!existingAttribute) {
-        const instance = new attributeCtor({ owner: layerId });
-
-        // Apply dimension-aware initial value if defined in config (e.g. pooling kernel/stride/output)
         if (config.getInitialValue) {
-          instance.value = config.getInitialValue(elements, layerId);
-          instance.name = `${instance.attributeName} = ${instance.value}`;
+          this.createAttribute(config.getInitialValue(elements, layerId));
+        } else if (config.defaultValue) {
+          this.createAttribute(config.defaultValue);
+        } else {
+          this.createAttribute();
         }
-
-        this.props.create(instance, layerId);
-        // Also add to parent's ownedElements so it persists
-        this.props.appendToParent(instance.id, layerId);
-        this.setState({ localValue: instance.value || '', isChecked: true });
       }
     } else {
       // Delete attribute - these are optional so they can be deleted
       if (existingAttribute && !existingAttribute.isMandatory) {
         this.props.delete(existingAttribute.id);
-        this.setState({ localValue: '', isChecked: false, tensor1: '', tensor2: '' });
+        this.setState({ localValue: '', isChecked: false, tensorSelections: [], subscriptDimensions: [], padAmountPairs: [] });
       } else {
         // No attribute exists, just reset local state
-        this.setState({ isChecked: false, tensor1: '', tensor2: '' });
+        this.setState({ isChecked: false, tensorSelections: [], subscriptDimensions: [], padAmountPairs: [] });
       }
     }
   };
 
   private handleValueChange = (newValue: string | number) => {
     const valueStr = String(newValue);
-    const { existingAttribute, attributeCtor, layerId, attributeType } = this.props;
+    const { existingAttribute, attributeType } = this.props;
 
     // For predecessor: handle empty value specially (create on select, delete on clear)
     if (getWidgetConfig(attributeType).widget === 'predecessor') {
       if (valueStr === '') {
-        // Empty value selected - delete the attribute if it exists
         if (existingAttribute) {
           this.props.delete(existingAttribute.id);
           this.setState({ localValue: '', isChecked: false });
         }
         return;
       } else if (!existingAttribute) {
-        // Non-empty value selected but attribute doesn't exist - create it
-        const instance = new attributeCtor({ owner: layerId });
-        instance.value = valueStr;
-        instance.name = `${instance.attributeName} = ${valueStr}`;
-        this.props.create(instance, layerId);
-        this.props.appendToParent(instance.id, layerId);
-        this.setState({ localValue: valueStr, isChecked: true });
+        this.createAttribute(valueStr);
         return;
       }
     }
 
-    if (existingAttribute) {
-      this.props.update<Conv1DAttribute>(existingAttribute.id, {
-        value: valueStr,
-        name: `${existingAttribute.attributeName} = ${valueStr}`
-      } as Partial<Conv1DAttribute>);
-    }
+    this.updateAttribute(valueStr);
   };
 
   private handleValidatedTextChange = (newValue: string | number) => {
-    const { existingAttribute } = this.props;
     const str = String(newValue);
-    const attrType = existingAttribute?.attributeType;
-
-    if (attrType === 'int') {
-      if (str === '' || str === '-') {
-        this.setState({ validationError: null });
-      } else if (/^-?\d+$/.test(str)) {
-        this.setState({ validationError: null });
-        this.props.update<Conv1DAttribute>(existingAttribute!.id, {
-          value: str, name: `${existingAttribute!.attributeName} = ${str}`
-        } as Partial<Conv1DAttribute>);
-      } else {
-        this.setState({ validationError: `Must be an integer. Example: ${getAttributeDefaultValue(existingAttribute!)}` });
-      }
-    } else if (attrType === 'float') {
-      const isIntermediate = str === '' || str === '-' || str === '.' || /^-?\d*\.$/.test(str);
-      const isValid = !isIntermediate && !isNaN(Number(str)) && str !== '';
-      if (isIntermediate) {
-        this.setState({ validationError: null });
-      } else if (isValid) {
-        this.setState({ validationError: null });
-        this.props.update<Conv1DAttribute>(existingAttribute!.id, {
-          value: str, name: `${existingAttribute!.attributeName} = ${str}`
-        } as Partial<Conv1DAttribute>);
-      } else {
-        this.setState({ validationError: `Must be a number. Example: ${getAttributeDefaultValue(existingAttribute!)}` });
-      }
-    } else if (attrType === 'List') {
-      if (str === '' || LIST_PERMISSIVE_REGEX.test(str)) {
-        if (LIST_STRICT_REGEX.test(str)) {
-          const expected = getListExpectation(existingAttribute!.type, existingAttribute!.owner, this.props.elements);
-          if (expected.count !== null) {
-            const actualCount = str.replace(/^\[|\]$/g, '').split(',').filter((s) => s.trim() !== '').length;
-            if (actualCount !== expected.count) {
-              this.setState({ validationError: `Must be a list with ${expected.count} integer${expected.count > 1 ? 's' : ''}. Example: ${expected.example}` });
-              return;
-            }
-          }
-          this.setState({ validationError: null });
-          this.props.update<Conv1DAttribute>(existingAttribute!.id, {
-            value: str, name: `${existingAttribute!.attributeName} = ${str}`
-          } as Partial<Conv1DAttribute>);
-        } else {
-          this.setState({ validationError: null });
-        }
-      } else {
-        const expected = getListExpectation(existingAttribute!.type, existingAttribute!.owner, this.props.elements);
-        const countMsg = expected.count !== null ? ` with ${expected.count} integer${expected.count > 1 ? 's' : ''}` : ' of integers';
-        this.setState({ validationError: `Must be a list${countMsg}. Example: ${expected.example}` });
-      }
-    } else {
+    const ctx = this.validationContext();
+    const outcome = ctx && validateOnChange(str, ctx);
+    if (!outcome) {
       this.handleValueChange(newValue);
+      return;
+    }
+    this.setState({ validationError: outcome.error });
+    if (outcome.commit) {
+      this.updateAttribute(str);
     }
   };
 
   private handleValidatedTextSubmit = (newValue: string | number) => {
-    const { existingAttribute } = this.props;
     const str = String(newValue).trim();
-    const attrType = existingAttribute?.attributeType;
-
-    if (attrType === 'int') {
-      if (/^-?\d+$/.test(str)) {
-        this.setState({ validationError: null });
-        this.props.update<Conv1DAttribute>(existingAttribute!.id, {
-          value: str, name: `${existingAttribute!.attributeName} = ${str}`
-        } as Partial<Conv1DAttribute>);
-      } else {
-        const defaultVal = getAttributeDefaultValue(existingAttribute!);
-        this.props.update<Conv1DAttribute>(existingAttribute!.id, {
-          value: defaultVal, name: `${existingAttribute!.attributeName} = ${defaultVal}`
-        } as Partial<Conv1DAttribute>);
-        const errorMsg = (str === '' || str === '-') ? null : `Must be an integer. Example: ${defaultVal}`;
-        this.setState((s) => ({ validationError: errorMsg, submitResetKey: s.submitResetKey + 1 }));
-      }
-    } else if (attrType === 'float') {
-      if (!isNaN(Number(str)) && str !== '' && str !== '-' && str !== '.') {
-        this.setState({ validationError: null });
-        this.props.update<Conv1DAttribute>(existingAttribute!.id, {
-          value: str, name: `${existingAttribute!.attributeName} = ${str}`
-        } as Partial<Conv1DAttribute>);
-      } else {
-        const defaultVal = getAttributeDefaultValue(existingAttribute!);
-        this.props.update<Conv1DAttribute>(existingAttribute!.id, {
-          value: defaultVal, name: `${existingAttribute!.attributeName} = ${defaultVal}`
-        } as Partial<Conv1DAttribute>);
-        const isIncomplete = str === '' || str === '-' || str === '.';
-        const errorMsg = isIncomplete ? null : `Must be a number. Example: ${defaultVal}`;
-        this.setState((s) => ({ validationError: errorMsg, submitResetKey: s.submitResetKey + 1 }));
-      }
-    } else if (attrType === 'List') {
-      if (LIST_STRICT_REGEX.test(str)) {
-        const expected = getListExpectation(existingAttribute!.type, existingAttribute!.owner, this.props.elements);
-        if (expected.count !== null) {
-          const actualCount = str.replace(/^\[|\]$/g, '').split(',').filter((s) => s.trim() !== '').length;
-          if (actualCount !== expected.count) {
-            const defaultVal = expected.example;
-            this.props.update<Conv1DAttribute>(existingAttribute!.id, {
-              value: defaultVal, name: `${existingAttribute!.attributeName} = ${defaultVal}`
-            } as Partial<Conv1DAttribute>);
-            this.setState((s) => ({
-              validationError: `Must be a list with ${expected.count} integer${expected.count! > 1 ? 's' : ''}. Example: ${expected.example}`,
-              submitResetKey: s.submitResetKey + 1,
-            }));
-            return;
-          }
-        }
-        this.setState({ validationError: null });
-        this.props.update<Conv1DAttribute>(existingAttribute!.id, {
-          value: str, name: `${existingAttribute!.attributeName} = ${str}`
-        } as Partial<Conv1DAttribute>);
-      } else if (str === '' || LIST_PERMISSIVE_REGEX.test(str)) {
-        const defaultVal = getListExpectation(existingAttribute!.type, existingAttribute!.owner, this.props.elements).example;
-        this.props.update<Conv1DAttribute>(existingAttribute!.id, {
-          value: defaultVal, name: `${existingAttribute!.attributeName} = ${defaultVal}`
-        } as Partial<Conv1DAttribute>);
-        this.setState((s) => ({ validationError: null, submitResetKey: s.submitResetKey + 1 }));
-      } else {
-        const expected = getListExpectation(existingAttribute!.type, existingAttribute!.owner, this.props.elements);
-        const defaultVal = expected.example;
-        this.props.update<Conv1DAttribute>(existingAttribute!.id, {
-          value: defaultVal, name: `${existingAttribute!.attributeName} = ${defaultVal}`
-        } as Partial<Conv1DAttribute>);
-        const countMsg = expected.count !== null ? ` with ${expected.count} integer${expected.count > 1 ? 's' : ''}` : ' of integers';
-        this.setState((s) => ({
-          validationError: `Must be a list${countMsg}. Example: ${expected.example}`,
-          submitResetKey: s.submitResetKey + 1,
-        }));
-      }
-    } else {
+    const ctx = this.validationContext();
+    const outcome = ctx && validateOnSubmit(str, ctx);
+    if (!outcome) {
       this.handleValueChange(newValue);
+      return;
+    }
+    this.updateAttribute(outcome.value);
+    if (outcome.reset) {
+      this.setState((s) => ({ validationError: outcome.error, submitResetKey: s.submitResetKey + 1 }));
+    } else {
+      this.setState({ validationError: null });
     }
   };
 
-  // Handler for layers_of_tensors tensor selection (index: 0 = first, 1 = second)
-  private handleTensorChange = (tensorIndex: 0 | 1) => (newValue: string | number) => {
-    const valueStr = String(newValue);
-    const { existingAttribute, attributeCtor, layerId } = this.props;
+  private toggleMultiSelect = (event: React.MouseEvent) => {
+    event.stopPropagation();
+    const newState = !this.state.multiSelectOpen;
+    this.setState({ multiSelectOpen: newState });
 
-    // Get current tensors from local state
-    const { tensor1: currentTensor1, tensor2: currentTensor2 } = this.state;
-
-    // Update the appropriate tensor
-    const tensor1 = tensorIndex === 0 ? valueStr : currentTensor1;
-    const tensor2 = tensorIndex === 1 ? valueStr : currentTensor2;
-
-    // Update local state immediately
-    this.setState({ tensor1, tensor2 });
-
-    // Check if both tensors are selected
-    const bothSelected = tensor1 !== '' && tensor2 !== '';
-
-    if (bothSelected) {
-      const formattedValue = this.formatLayersOfTensors(tensor1, tensor2);
-
-      if (!existingAttribute) {
-        // Create the attribute with both values
-        const instance = new attributeCtor({ owner: layerId });
-        instance.value = formattedValue;
-        instance.name = `${instance.attributeName} = ${formattedValue}`;
-        this.props.create(instance, layerId);
-        this.props.appendToParent(instance.id, layerId);
-        this.setState({ localValue: formattedValue, isChecked: true });
-      } else {
-        // Update the attribute
-        this.props.update<Conv1DAttribute>(existingAttribute.id, {
-          value: formattedValue,
-          name: `${existingAttribute.attributeName} = ${formattedValue}`
-        } as Partial<Conv1DAttribute>);
-      }
+    if (newState) {
+      setTimeout(() => document.addEventListener('click', this.dismissMultiSelect), 0);
     } else {
-      // Not both selected - delete attribute if it exists
-      if (existingAttribute) {
-        this.props.delete(existingAttribute.id);
-        this.setState({ localValue: '' });
+      document.removeEventListener('click', this.dismissMultiSelect);
+    }
+  };
+
+  private dismissMultiSelect = () => {
+    document.removeEventListener('click', this.dismissMultiSelect);
+    this.setState({ multiSelectOpen: false });
+  };
+
+  private handleMultiSelectToggle = (option: string) => (event: React.ChangeEvent<HTMLInputElement>) => {
+    // Always add when checked (never remove)
+    if (!event.target.checked) {
+      return;
+    }
+
+    const rawValue = this.props.existingAttribute?.value || '[]';
+    const cleanedValue = rawValue.replace(/^\[|\]$/g, '');
+    const currentValues = cleanedValue ? cleanedValue.split(',').map((v: string) => v.trim()) : [];
+
+    // Add the new value to the end of the list
+    this.setAttributeValue(`[${[...currentValues, option].join(', ')}]`);
+
+    // Uncheck the checkbox after adding (force re-render with setTimeout)
+    setTimeout(() => {
+      event.target.checked = false;
+    }, 0);
+  };
+
+  componentWillUnmount() {
+    document.removeEventListener('click', this.dismissMultiSelect);
+  }
+
+  // Handler for layers_of_tensors tensor selection
+  private handleTensorChange = (tensorIndex: number) => (newValue: string | number) => {
+    const { existingAttribute, tnsType } = this.props;
+    const category = tnsType ? getTnsTypeCategory(tnsType) : 'binary';
+
+    const newSelections = [...this.state.tensorSelections];
+    newSelections[tensorIndex] = String(newValue);
+    this.setState({ tensorSelections: newSelections });
+
+    // Store once the minimum number of operands is selected
+    const requiredCount = (category === 'unary') ? 1 : 2;
+    const nonEmptySelections = newSelections.filter((s) => s !== '');
+
+    if (nonEmptySelections.length >= requiredCount) {
+      this.setAttributeValue(formatLayersOfTensors(nonEmptySelections));
+    } else if (existingAttribute && nonEmptySelections.length === 0) {
+      // Only delete if ALL selections are empty (user explicitly cleared everything)
+      this.deleteAttribute();
+    }
+    // If some but not enough selections, keep the UI state but don't update the attribute
+  };
+
+  // Handler to add a new tensor element (for N-ary operations)
+  private handleAddTensorElement = () => {
+    this.setState((prevState) => ({
+      tensorSelections: [...prevState.tensorSelections, ''],
+    }));
+  };
+
+  // Handler to remove a tensor element at given index (for N-ary operations)
+  private handleRemoveTensorElement = (index: number) => {
+    const newSelections = this.state.tensorSelections.filter((_, i) => i !== index);
+    this.setState({ tensorSelections: newSelections });
+
+    const filteredSelections = newSelections.filter((s) => s !== '');
+    if (filteredSelections.length >= 2) {
+      this.updateAttribute(formatLayersOfTensors(filteredSelections));
+    } else {
+      this.deleteAttribute();
+    }
+  };
+
+  private setSubscriptDimensions = (newDimensions: SubscriptDimension[]) => {
+    this.setState({ subscriptDimensions: newDimensions });
+    this.setAttributeValue(formatSubscriptIndices(newDimensions));
+  };
+
+  // Handler for subscript dimension type change
+  private handleSubscriptDimensionTypeChange = (index: number) => (newType: 'index' | 'slice') => {
+    const newDimensions = [...this.state.subscriptDimensions];
+    newDimensions[index] = newType === 'index' ? { type: 'index', value: 0 } : { type: 'slice' };
+    this.setSubscriptDimensions(newDimensions);
+  };
+
+  // Handler for subscript dimension field change (value for index, start/stop/step for slice)
+  private handleSubscriptDimensionFieldChange = (index: number, field: 'value' | 'start' | 'stop' | 'step') => (newValue: string | number) => {
+    const valueStr = String(newValue).trim();
+    const numValue = valueStr === '' ? undefined : parseInt(valueStr, 10);
+    if (valueStr !== '' && isNaN(numValue!)) return; // Invalid input
+
+    const newDimensions = [...this.state.subscriptDimensions];
+    newDimensions[index] = { ...newDimensions[index], [field]: numValue };
+    this.setSubscriptDimensions(newDimensions);
+  };
+
+  private handleAddSubscriptDimension = () => {
+    this.setSubscriptDimensions([...this.state.subscriptDimensions, { type: 'index', value: 0 }]);
+  };
+
+  private handleRemoveSubscriptDimension = (index: number) => {
+    const newDimensions = this.state.subscriptDimensions.filter((_, i) => i !== index);
+    this.setState({ subscriptDimensions: newDimensions });
+
+    if (newDimensions.length > 0) {
+      this.updateAttribute(formatSubscriptIndices(newDimensions));
+    } else {
+      this.deleteAttribute();
+    }
+  };
+
+  // Handler for repeat_dim dimension change
+  private handleRepeatDimChange = (index: number) => (newValue: string | number) => {
+    const { existingAttribute } = this.props;
+    const newDimensions = [...this.state.repeatDimensions];
+    newDimensions[index] = String(newValue);
+    this.setState({ repeatDimensions: newDimensions });
+
+    const nonEmptyDimensions = newDimensions.filter((d) => d.trim() !== '');
+    if (nonEmptyDimensions.length > 0) {
+      this.setAttributeValue(formatRepeatDim(newDimensions));
+    } else if (existingAttribute) {
+      this.deleteAttribute();
+    }
+  };
+
+  private handleAddRepeatDim = () => {
+    this.setState((prevState) => ({
+      repeatDimensions: [...prevState.repeatDimensions, ''],
+    }));
+  };
+
+  private handleRemoveRepeatDim = (index: number) => {
+    const newDimensions = this.state.repeatDimensions.filter((_, i) => i !== index);
+    this.setState({ repeatDimensions: newDimensions });
+
+    if (newDimensions.some((d) => d.trim() !== '')) {
+      this.updateAttribute(formatRepeatDim(newDimensions));
+    } else {
+      this.deleteAttribute();
+    }
+  };
+
+  // Handler to change a pad_amount pair field (left or right)
+  private handlePadAmountPairChange = (index: number, field: 'left' | 'right') => (newValue: string | number) => {
+    const { existingAttribute } = this.props;
+    const newPairs = [...this.state.padAmountPairs];
+    newPairs[index] = { ...newPairs[index], [field]: String(newValue) };
+    this.setState({ padAmountPairs: newPairs });
+
+    if (newPairs.some(isCompletePadAmountPair)) {
+      this.setAttributeValue(formatPadAmount(newPairs));
+    } else if (existingAttribute) {
+      this.deleteAttribute();
+    }
+  };
+
+  private handleAddPadAmountPair = () => {
+    this.setState((prevState) => ({
+      padAmountPairs: [...prevState.padAmountPairs, { left: '', right: '' }],
+    }));
+  };
+
+  private handleRemovePadAmountPair = (index: number) => {
+    const newPairs = this.state.padAmountPairs.filter((_, i) => i !== index);
+    this.setState({ padAmountPairs: newPairs });
+
+    if (newPairs.some(isCompletePadAmountPair)) {
+      this.updateAttribute(formatPadAmount(newPairs));
+    } else {
+      this.deleteAttribute();
+    }
+  };
+
+  // ── Rendering ────────────────────────────────────────────────────────────────
+
+  private ordinal = (index: number): string => {
+    const { translate } = this.props;
+    if (index === 0) return translate('popup.nn.row.ordinal1');
+    if (index === 1) return translate('popup.nn.row.ordinal2');
+    return interpolate(translate('popup.nn.row.ordinalN'), { n: index + 1 });
+  };
+
+  private dimensionLabel = (index: number): string =>
+    interpolate(this.props.translate('popup.nn.row.dim'), { n: index + 1 });
+
+  /** The predecessor choices shared by every layer/tensorop selector: an empty option, INPUT, then the predecessors. */
+  private renderPredecessorItems = (emptyLabelKey: string) => [
+    <Dropdown.Item key="__empty__" value="">
+      {this.props.translate(emptyLabelKey)}
+    </Dropdown.Item>,
+    <Dropdown.Item key="INPUT" value="INPUT">
+      INPUT
+    </Dropdown.Item>,
+    ...this.props.predecessorNames.map((name) => (
+      <Dropdown.Item key={name} value={name}>
+        {name}
+      </Dropdown.Item>
+    )),
+  ];
+
+  private renderLayersOfTensors = (category: TnsTypeCategory) => {
+    const { translate } = this.props;
+    const initialCount = (category === 'unary') ? 1 : 2;
+
+    // Ensure we have enough elements in tensorSelections array
+    const displaySelections = [...this.state.tensorSelections];
+    while (displaySelections.length < initialCount) {
+      displaySelections.push('');
+    }
+
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', width: '100%' }}>
+        {displaySelections.map((selection, index) => (
+          <div key={index} style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+            <SmallLabel style={{ minWidth: '30px' }}>{this.ordinal(index)}:</SmallLabel>
+            {category === 'binary' ? (
+              // Binary: allow dropdown OR text input for numeric literals
+              <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flexGrow: 1 }}>
+                <Dropdown
+                  value={NUMERIC_LITERAL_REGEX.test(selection) ? '' : selection}
+                  onChange={this.handleTensorChange(index)}
+                  size="sm"
+                  outline
+                  style={{ flexGrow: 1 }}
+                >
+                  {this.renderPredecessorItems('popup.nn.row.selectOrEnterNumber')}
+                </Dropdown>
+                <SmallLabel>{translate('popup.nn.row.or')}</SmallLabel>
+                <Textfield
+                  gutter
+                  value={NUMERIC_LITERAL_REGEX.test(selection) ? selection : ''}
+                  onChange={(val) => this.handleTensorChange(index)(String(val))}
+                  placeholder={translate('popup.nn.row.numericPlaceholder')}
+                  style={{ width: '80px' }}
+                />
+              </div>
+            ) : (
+              // Unary and N-ary: dropdown only
+              <Dropdown
+                value={selection || ''}
+                onChange={this.handleTensorChange(index)}
+                size="sm"
+                outline
+                style={{ flexGrow: 1 }}
+              >
+                {this.renderPredecessorItems('popup.nn.row.select')}
+              </Dropdown>
+            )}
+            {category === 'n-ary' && index >= 2 && (
+              <RemoveButton onClick={() => this.handleRemoveTensorElement(index)}>✕</RemoveButton>
+            )}
+          </div>
+        ))}
+        {category === 'n-ary' && (
+          <AddButton onClick={this.handleAddTensorElement} style={{ marginTop: '4px', marginLeft: 0 }}>
+            {translate('popup.nn.row.addElement')}
+          </AddButton>
+        )}
+      </div>
+    );
+  };
+
+  private renderMultiSelect = (localValue: string, options: string[]) => {
+    const { translate } = this.props;
+    const cleanedValue = (localValue || '[]').replace(/^\[|\]$/g, '');
+    const selectedValues = cleanedValue ? cleanedValue.split(',').map((v) => v.trim()) : [];
+    return (
+      <MultiSelectContainer onClick={(e) => e.stopPropagation()}>
+        <DropdownButton
+          ref={this.multiSelectButtonRef}
+          color="primary"
+          onClick={this.toggleMultiSelect}
+          outline={true}
+          size="sm"
+        >
+          {selectedValues.length > 0 ? `[${selectedValues.join(', ')}]` : translate('popup.nn.row.selectValues')}
+        </DropdownButton>
+        {this.state.multiSelectOpen && this.multiSelectButtonRef.current && (
+          <DropdownMenu
+            style={{
+              position: 'absolute',
+              top: this.multiSelectButtonRef.current.getBoundingClientRect().height,
+              left: 0,
+              minWidth: this.multiSelectButtonRef.current.getBoundingClientRect().width,
+              zIndex: 1000,
+            }}
+          >
+            {options.map((option) => (
+              <CheckboxLabel key={option} onClick={(e) => e.stopPropagation()}>
+                <input
+                  type="checkbox"
+                  checked={false}
+                  onChange={this.handleMultiSelectToggle(option)}
+                  onClick={(e) => e.stopPropagation()}
+                />
+                {option}
+              </CheckboxLabel>
+            ))}
+          </DropdownMenu>
+        )}
+      </MultiSelectContainer>
+    );
+  };
+
+  private renderSubscriptIndices = () => {
+    const { translate } = this.props;
+    const dimensions = this.state.subscriptDimensions.length > 0
+      ? this.state.subscriptDimensions
+      : [{ type: 'index' } as SubscriptDimension];
+
+    return (
+      <>
+        {dimensions.map((dimension, index) => (
+          <Indented key={index} style={{ marginTop: '6px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <SmallLabel style={{ minWidth: '40px' }}>{this.dimensionLabel(index)}</SmallLabel>
+              <Dropdown
+                value={dimension.type}
+                onChange={(val) => this.handleSubscriptDimensionTypeChange(index)(val as 'index' | 'slice')}
+                size="sm"
+                outline
+                placeholder={translate('popup.nn.row.typePlaceholder')}
+                style={{ minWidth: '70px', maxWidth: '70px' }}
+              >
+                <Dropdown.Item value="index">{translate('popup.nn.row.index')}</Dropdown.Item>
+                <Dropdown.Item value="slice">{translate('popup.nn.row.slice')}</Dropdown.Item>
+              </Dropdown>
+              {dimension.type === 'index' ? (
+                <Textfield
+                  gutter
+                  value={dimension.value !== undefined ? String(dimension.value) : ''}
+                  onChange={(val) => this.handleSubscriptDimensionFieldChange(index, 'value')(String(val))}
+                  placeholder="0"
+                  style={{ flexGrow: 1 }}
+                />
+              ) : (
+                <>
+                  {(['start', 'stop', 'step'] as const).map((field, fieldIndex) => (
+                    <React.Fragment key={field}>
+                      {fieldIndex > 0 && <SmallLabel>:</SmallLabel>}
+                      <Textfield
+                        gutter
+                        value={dimension[field] !== undefined ? String(dimension[field]) : ''}
+                        onChange={(val) => this.handleSubscriptDimensionFieldChange(index, field)(String(val))}
+                        placeholder={translate(`popup.nn.row.${field}Placeholder`)}
+                        style={{ flexGrow: 1, minWidth: '50px' }}
+                      />
+                    </React.Fragment>
+                  ))}
+                </>
+              )}
+              {index > 0 && (
+                <RemoveButton onClick={() => this.handleRemoveSubscriptDimension(index)}>✕</RemoveButton>
+              )}
+            </div>
+          </Indented>
+        ))}
+        <AddButton onClick={this.handleAddSubscriptDimension}>{translate('popup.nn.row.addDimension')}</AddButton>
+        <ValuePreview>
+          <strong>{translate('popup.nn.row.value')}</strong> {formatSubscriptIndicesDisplay(this.state.subscriptDimensions)}
+        </ValuePreview>
+      </>
+    );
+  };
+
+  private renderRepeatDim = () => {
+    const { translate } = this.props;
+    const dimensions = this.state.repeatDimensions.length > 0 ? this.state.repeatDimensions : [''];
+
+    return (
+      <>
+        {dimensions.map((dimension, index) => (
+          <DimensionRow key={index}>
+            <SmallLabel style={{ minWidth: '50px' }}>{this.dimensionLabel(index)}</SmallLabel>
+            <Dropdown
+              value={INT_REGEX.test(dimension.trim()) ? '' : dimension}
+              onChange={(val) => this.handleRepeatDimChange(index)(String(val))}
+              size="sm"
+              outline
+              style={{ flexGrow: 1 }}
+            >
+              {this.renderPredecessorItems('popup.nn.row.selectLayerOrTensorOp')}
+            </Dropdown>
+            <SmallLabel>{translate('popup.nn.row.or')}</SmallLabel>
+            <Textfield
+              gutter
+              value={INT_REGEX.test(dimension.trim()) ? dimension : ''}
+              onChange={(val) => this.handleRepeatDimChange(index)(String(val))}
+              placeholder={translate('popup.nn.row.enterIntPlaceholder')}
+              style={{ width: '80px' }}
+            />
+            {index > 0 && (
+              <RemoveButton onClick={() => this.handleRemoveRepeatDim(index)}>✕</RemoveButton>
+            )}
+          </DimensionRow>
+        ))}
+        <AddButton onClick={this.handleAddRepeatDim}>{translate('popup.nn.row.addDimension')}</AddButton>
+        <ValuePreview>
+          <strong>{translate('popup.nn.row.value')}</strong> {formatRepeatDim(this.state.repeatDimensions)}
+        </ValuePreview>
+      </>
+    );
+  };
+
+  private renderPadAmount = () => {
+    const { translate } = this.props;
+    return (
+      <>
+        {this.state.padAmountPairs.map((pair, index) => (
+          <DimensionRow key={index}>
+            <SmallLabel style={{ minWidth: '50px' }}>{this.dimensionLabel(index)}</SmallLabel>
+            {(['left', 'right'] as const).map((side) => (
+              <React.Fragment key={side}>
+                <SmallLabel>{translate(`popup.nn.row.${side}`)}</SmallLabel>
+                <Textfield
+                  gutter
+                  value={pair[side]}
+                  onChange={(val) => this.handlePadAmountPairChange(index, side)(String(val))}
+                  placeholder={translate('popup.nn.row.intPlaceholder')}
+                  style={{ width: '60px' }}
+                />
+              </React.Fragment>
+            ))}
+            {index > 0 && (
+              <RemoveButton onClick={() => this.handleRemovePadAmountPair(index)}>✕</RemoveButton>
+            )}
+          </DimensionRow>
+        ))}
+        <AddButton onClick={this.handleAddPadAmountPair}>{translate('popup.nn.row.addDimension')}</AddButton>
+        <ValuePreview>
+          <strong>{translate('popup.nn.row.value')}</strong> {formatPadAmount(this.state.padAmountPairs)}
+        </ValuePreview>
+      </>
+    );
+  };
+
+  private renderWidget = (localValue: string, category: TnsTypeCategory) => {
+    const { attributeType, translate } = this.props;
+    const config = getWidgetConfig(attributeType);
+
+    switch (config.widget) {
+      case 'layers_of_tensors':
+        return this.renderLayersOfTensors(category);
+      case 'subscript_indices':
+      case 'repeat_dim':
+      case 'pad_amount':
+        return <span style={{ color: '#999' }}>{translate('popup.nn.row.seeBelow')}</span>;
+      case 'predecessor':
+        return (
+          <Dropdown value={localValue || ''} onChange={this.handleValueChange} size="sm" outline>
+            {this.renderPredecessorItems('popup.nn.row.selectPredecessor')}
+          </Dropdown>
+        );
+      case 'dropdown': {
+        // If the stored value is not in the options list (e.g. legacy values like
+        // 'zeros' for padding or 'output' for return_type), fall back to the config's defaultValue.
+        const displayValue = config.options && !config.options.includes(localValue)
+          ? config.defaultValue ?? ''
+          : localValue;
+        return (
+          <Dropdown value={displayValue || config.defaultValue || ''} onChange={this.handleValueChange} size="sm" outline>
+            {config.options!.map((option) => (
+              <Dropdown.Item key={option} value={option}>
+                {option}
+              </Dropdown.Item>
+            ))}
+          </Dropdown>
+        );
       }
+      case 'multiselect':
+        return this.renderMultiSelect(localValue, config.options!);
+      default:
+        return (
+          <Textfield
+            key={this.state.submitResetKey}
+            gutter
+            value={localValue}
+            onChange={this.handleValidatedTextChange}
+            onSubmit={this.handleValidatedTextSubmit}
+            placeholder={translate(config.placeholderKey || 'popup.nn.row.valuePlaceholder')}
+            style={{ flexGrow: 1 }}
+          />
+        );
     }
   };
 
   render() {
-    const { label, attributeType, attributeValue, predecessorNames } = this.props;
-    const { isChecked } = this.state;
+    const { label, attributeType, attributeValue, tnsType, translate } = this.props;
+    const { isChecked, validationError } = this.state;
     const config = getWidgetConfig(attributeType);
 
     // Always use Redux value if available (handles external updates like dimension change)
     const localValue = attributeValue || '';
 
-    // For dropdowns: if the stored value is not in the options list (e.g. legacy values like
-    // 'zeros' for padding or 'output' for return_type), fall back to the config's defaultValue.
-    const displayValue = (config.widget === 'dropdown' && config.options && !config.options.includes(localValue))
-      ? config.defaultValue ?? ''
-      : localValue;
-
-    // Use local state for tensor values (allows tracking before both are selected)
-    const { tensor1, tensor2 } = this.state;
+    // Determine category for layers_of_tensors widget
+    const category: TnsTypeCategory = tnsType ? getTnsTypeCategory(tnsType) : 'binary';
+    const stacked = isChecked && config.widget === 'layers_of_tensors';
 
     return (
       <div style={{ marginTop: '8px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', width: '100%' }}>
+        <div style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', width: '100%' }}>
           <input
             type="checkbox"
             checked={isChecked}
             onChange={this.handleCheckboxChange}
+            style={{ marginTop: '4px' }}
           />
-          <AttributeInputContainer>
-            <AttributeLabel>{label} = </AttributeLabel>
+          <AttributeInputContainer style={stacked ? { flexDirection: 'column', alignItems: 'flex-start' } : undefined}>
+            <AttributeLabel style={stacked ? { display: 'block', marginBottom: '4px' } : undefined}>{label} = </AttributeLabel>
             {isChecked ? (
-              config.widget === 'layers_of_tensors' ? (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', flexGrow: 1 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                    <span style={{ fontSize: '11px', minWidth: '25px' }}>1st:</span>
-                    <Dropdown
-                      value={tensor1 || ''}
-                      onChange={this.handleTensorChange(0)}
-                      size="sm"
-                      outline
-                    >
-                      {[
-                        <Dropdown.Item key="__empty__" value="">
-                          {'(select)'}
-                        </Dropdown.Item>,
-                        ...predecessorNames.map(name => (
-                          <Dropdown.Item key={name} value={name}>
-                            {name}
-                          </Dropdown.Item>
-                        ))
-                      ]}
-                    </Dropdown>
-                  </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                    <span style={{ fontSize: '11px', minWidth: '25px' }}>2nd:</span>
-                    <Dropdown
-                      value={tensor2 || ''}
-                      onChange={this.handleTensorChange(1)}
-                      size="sm"
-                      outline
-                    >
-                      {[
-                        <Dropdown.Item key="__empty__" value="">
-                          {'(select)'}
-                        </Dropdown.Item>,
-                        ...predecessorNames.map(name => (
-                          <Dropdown.Item key={name} value={name}>
-                            {name}
-                          </Dropdown.Item>
-                        ))
-                      ]}
-                    </Dropdown>
-                  </div>
-                </div>
-              ) : config.widget === 'predecessor' ? (
-                <Dropdown
-                  value={localValue || ''}
-                  onChange={this.handleValueChange}
-                  size="sm"
-                  outline
-                >
-                  {[
-                    <Dropdown.Item key="__empty__" value="">
-                      {'(select predecessor)'}
-                    </Dropdown.Item>,
-                    ...predecessorNames.map(name => (
-                      <Dropdown.Item key={name} value={name}>
-                        {name}
-                      </Dropdown.Item>
-                    ))
-                  ]}
-                </Dropdown>
-              ) : config.widget === 'dropdown' ? (
-                <Dropdown
-                  value={displayValue || config.defaultValue || ''}
-                  onChange={this.handleValueChange}
-                  size="sm"
-                  outline
-                >
-                  {config.options!.map(option => (
-                    <Dropdown.Item key={option} value={option}>
-                      {option}
-                    </Dropdown.Item>
-                  ))}
-                </Dropdown>
-              ) : (
-                <Textfield
-                  key={this.state.submitResetKey}
-                  gutter
-                  value={localValue}
-                  onChange={this.handleValidatedTextChange}
-                  onSubmit={this.handleValidatedTextSubmit}
-                  placeholder="value"
-                  style={{ flexGrow: 1 }}
-                />
-              )
+              this.renderWidget(localValue, category)
             ) : (
-              <span style={{ color: '#999' }}>unchecked</span>
+              <span style={{ color: '#999' }}>{translate('popup.nn.row.unchecked')}</span>
             )}
           </AttributeInputContainer>
         </div>
-        {this.state.validationError && (
-          <span style={{ color: 'red', fontSize: '11px', display: 'block', marginLeft: '24px' }}>
-            {this.state.validationError}
-          </span>
+        {validationError && <ErrorText>{validationError}</ErrorText>}
+        {!validationError && isChecked && config.helpTextKey && (
+          <HelpText>{translate(config.helpTextKey)}</HelpText>
         )}
+        {config.widget === 'subscript_indices' && isChecked && this.renderSubscriptIndices()}
+        {config.widget === 'repeat_dim' && isChecked && this.renderRepeatDim()}
+        {config.widget === 'pad_amount' && isChecked && this.renderPadAmount()}
       </div>
     );
   }
@@ -540,13 +950,15 @@ const mapStateToProps = (state: ModelState, ownProps: OwnProps): StateProps => {
       el.type === ownProps.attributeType
   );
 
-  const predecessorNames = _computePredecessors(state.elements, ownProps.layerId);
+  const predecessorNames = _computePredecessors(state.elements, ownProps.layerId, null);
+  const tensorOpNames = _computePredecessors(state.elements, ownProps.layerId, 'TensorOp');
 
   return {
     existingAttribute,
     elements: state.elements,
     attributeValue: (existingAttribute as INNAttribute)?.value,  // Explicit value to trigger re-render
     predecessorNames,
+    tensorOpNames,
   };
 };
 
@@ -566,13 +978,14 @@ const mapStateToProps = (state: ModelState, ownProps: OwnProps): StateProps => {
 // (elements, id) pair and reused across every row bound to that elements ref.
 const _predecessorsCache = new WeakMap<object, Map<string, string[]>>();
 
-function _computePredecessors(elements: any, targetId: string): string[] {
+function _computePredecessors(elements: any, targetId: string, typeFilter: string | null): string[] {
+  const cacheKey = typeFilter ? `${targetId}_${typeFilter}` : targetId;
   let byTarget = _predecessorsCache.get(elements);
   if (!byTarget) {
     byTarget = new Map<string, string[]>();
     _predecessorsCache.set(elements, byTarget);
   }
-  const cached = byTarget.get(targetId);
+  const cached = byTarget.get(cacheKey);
   if (cached) return cached;
 
   const allElements = Object.values(elements) as any[];
@@ -582,6 +995,10 @@ function _computePredecessors(elements: any, targetId: string): string[] {
   const getElementName = (elementId: string): string | null => {
     const element = elements[elementId];
     if (!element) return null;
+
+    // If typeFilter is set, only include elements of that type
+    if (typeFilter && element.type !== typeFilter) return null;
+
     const nameAttr = allElements.find(
       (el) => el.owner === elementId && el.type?.includes('NameAttribute')
     );
@@ -604,11 +1021,12 @@ function _computePredecessors(elements: any, targetId: string): string[] {
   };
   visit(targetId);
 
-  byTarget.set(targetId, names);
+  byTarget.set(cacheKey, names);
   return names;
 }
 
 const enhance = compose<ComponentClass<OwnProps>>(
+  localized,
   connect<StateProps, DispatchProps, OwnProps, ModelState>(
     mapStateToProps,
     {
