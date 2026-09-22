@@ -1,24 +1,26 @@
 {
   "compilerOptions": {
-    "target": "es2021",
-    "module": "es2020",
-    "moduleResolution": "node",
-    "lib": ["es2021", "dom"],
-    "jsx": "react",
-    "declaration": true,
-    "strict": true,
-    "strictNullChecks": true,
+    "target": "ES2021",
+    "useDefineForClassFields": true,
+    "lib": ["ES2021", "DOM", "DOM.Iterable"],
+    "module": "ESNext",
     "skipLibCheck": true,
-    "importHelpers": true,
-    "esModuleInterop": true,
-    "forceConsistentCasingInFileNames": true,
-    "downlevelIteration": true,
+    "moduleResolution": "bundler",
+    "allowImportingTsExtensions": false,
     "resolveJsonModule": true,
-    "sourceMap": true,
+    "isolatedModules": true,
+    "esModuleInterop": true,
+    "jsx": "react-jsx",
+    "strict": true,
+    "noEmit": true,
     "baseUrl": ".",
+    "types": ["vite/client", "node", "vitest/globals"],
     "paths": {
+      "@/*": ["src/*"],
       "@besser/wme": ["../editor/src/main/index.ts"],
-      "shared": ["../shared/src/index.ts"]
+      "shared": ["../shared/src/index.ts"],
+      "webapp/*": ["./*"]
     }
-  }
+  },
+  "include": ["src", "vite.config.ts", "vitest.config.ts"]
 }

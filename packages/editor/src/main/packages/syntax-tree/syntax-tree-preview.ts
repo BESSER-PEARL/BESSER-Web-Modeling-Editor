@@ -6,7 +6,6 @@ import { SyntaxTreeNonterminal } from './syntax-tree-nonterminal/syntax-tree-non
 
 export const composeSyntaxTreePreview: ComposePreview = (
   layer: ILayer,
-  translate: (id: string) => string,
 ): PreviewElement[] => {
   const elements: PreviewElement[] = [];
   const defaultBounds: IBoundary = { x: 0, y: 0, width: 100, height: 50 };

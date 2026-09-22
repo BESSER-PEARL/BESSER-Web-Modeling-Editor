@@ -14,7 +14,7 @@ This repository is a monorepo:
 
 - `packages/editor`: core diagramming engine, published as the [@besser/wme](https://www.npmjs.com/package/@besser/wme)
   npm package.
-- `packages/webapp`: React web application.
+- `packages/webapp`: React web application (deployed at [editor.besser-pearl.org](https://editor.besser-pearl.org)). Uses Vite, Radix UI + Tailwind, and Vitest + Playwright.
 - `packages/server`: Node/Express server for standalone hosting and APIs.
 
 ## Main Features
@@ -99,8 +99,8 @@ Prerequisites: Node.js 20+ and npm.
 ### Clone the repository
 
 ```
-git clone https://github.com/BESSER-PEARL/BESSER-WEB-MODELING-EDITOR.git
-cd BESSER-WEB-MODELING-EDITOR
+git clone https://github.com/BESSER-PEARL/BESSER-Web-Modeling-Editor.git
+cd BESSER-Web-Modeling-Editor
 ```
 
 ### Install dependencies
@@ -112,11 +112,11 @@ npm install
 ### Start the web application
 
 ```
-npm run start:webapp
+npm run dev
 ```
 
 The dev server runs on http://localhost:8080 and, in development mode, expects the BESSER backend at
-http://localhost:9000/besser_api (see `packages/webapp/src/main/constant.ts`).
+http://localhost:9000/besser_api (see `packages/webapp/src/main/constants/constant.ts`).
 
 ### Run the standalone server
 
@@ -136,7 +136,7 @@ If you are working from the main BESSER repository, initialize the submodule and
 git submodule update --init --recursive
 cd besser/utilities/web_modeling_editor/frontend
 npm install
-npm run start:webapp
+npm run dev
 ```
 
 ## License

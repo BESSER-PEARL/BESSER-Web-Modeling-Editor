@@ -14,7 +14,9 @@ packages via npm workspaces.
    * - Script
      - Description
    * - ``npm run dev``
-     - Runs the webapp dev server and Express server concurrently.
+     - Runs the webapp Vite dev server (alias for ``npm run start --workspace=webapp``).
+   * - ``npm run start``
+     - Runs the webapp Vite dev server and Express server concurrently.
    * - ``npm run start:webapp``
      - Alias for ``npm run start --workspace=webapp``.
    * - ``npm run start:server``
@@ -24,7 +26,7 @@ packages via npm workspaces.
    * - ``npm run build:local``
      - Similar to ``build`` but bundles the webapp with a local ``DEPLOYMENT_URL``.
    * - ``npm run build:webapp``
-     - Runs the webapp's production webpack build.
+     - Runs the webapp production Vite build.
    * - ``npm run build:webapp:local``
      - Builds the webapp with ``DEPLOYMENT_URL=http://localhost:8080``.
    * - ``npm run build:server``
@@ -51,7 +53,7 @@ Editor (``packages/editor``)
    * ``npm run prettier:*`` – Formatting helpers scoped to the editor source.
 
 Webapp (``packages/webapp``)
-   * ``npm run start`` – ``webpack-dev-server`` on port 8080.
+   * ``npm run start`` – Vite dev server.
    * ``npm run build`` – Production bundle under ``build/webapp``.
    * ``npm run build:local`` – Production bundle with local deployment URL.
    * ``npm run lint`` – ESLint across TypeScript sources.

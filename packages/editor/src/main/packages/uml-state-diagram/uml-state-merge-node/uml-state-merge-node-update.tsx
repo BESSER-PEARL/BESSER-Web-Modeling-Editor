@@ -20,15 +20,21 @@ import { UMLStateMergeNode } from './uml-state-merge-node';
 
 const Flex = styled.div`
   display: flex;
-  align-items: baseline;
+  align-items: center;
   justify-content: space-between;
+  gap: 4px;
+`;
+
+const Section = styled.section`
+  padding: 8px 0;
 `;
 
 const Controls = styled.div`
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 8px;
+  gap: 8px;
+  padding: 4px 0;
 `;
 
 const SizeInput = styled.input`
@@ -81,7 +87,7 @@ class StateMergeNodeUpdate extends Component<Props, State> {
     const { element, decisions, targets, update } = this.props;
     return (
       <div>
-        <section>
+        <Section>
           <Flex>
             <Textfield value={element.name} onChange={this.onUpdate} />
             <ColorButton onClick={this.toggleColor} />
@@ -116,9 +122,9 @@ class StateMergeNodeUpdate extends Component<Props, State> {
               />
             </div>
           </Controls>
-        </section>
+        </Section>
 
-        <section>
+        <Section>
           {decisions.length > 0 && (
             <>
               <Divider />
@@ -134,12 +140,12 @@ class StateMergeNodeUpdate extends Component<Props, State> {
                   <Button color="link" disabled>
                     <ArrowRightIcon />
                   </Button>
-                  <Body>{targets[i].name}</Body>
+                  {targets[i] ? <Body>{targets[i].name}</Body> : <Body>—</Body>}
                 </Flex>
               ))}
             </>
           )}
-        </section>
+        </Section>
       </div>
     );
   }

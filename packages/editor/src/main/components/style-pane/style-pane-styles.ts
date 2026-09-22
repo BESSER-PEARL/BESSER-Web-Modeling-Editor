@@ -10,18 +10,21 @@ export const Container = styled.div`
   flex-direction: column;
   align-items: center;
   margin: 10px 0;
-  background-color: white;
+  background-color: ${(props) => props.theme.color.background};
   border: 1px solid ${(props) => props.theme.color.gray};
+  border-radius: 6px;
+  overflow: hidden;
 `;
 
 export const Color = styled.button.attrs<Props>({})<Props>`
-  height: 28px;
-  width: 28px;
+  height: 24px;
+  width: 24px;
   background-color: ${({ color, selected }: Props) => (selected ? 'transparent' : color || 'black')};
-  border-radius: 14px;
+  border-radius: 4px;
   cursor: pointer;
-  border: none;
+  border: 1px solid ${(props) => props.theme.color.gray};
   position: relative;
+  flex-shrink: 0;
   &:after,
   &:before {
     content: '';
@@ -43,14 +46,12 @@ export const Row = styled.div`
   display: flex;
   width: 100%;
   justify-content: space-between;
-  padding: 16px;
-  /* border-bottom: 1px solid #353d47; */
-  font-weight: bold;
+  align-items: center;
+  padding: 10px 14px;
+  font-size: 0.85em;
+  font-weight: 600;
   background-color: ${(props) => props.theme.color.background};
   color: ${(props) => props.theme.color.primaryContrast};
-  &:last-of-type {
-    border-bottom: none;
-  }
 `;
 
 export const Divider = styled.div`
@@ -74,15 +75,43 @@ export const Button = styled.button`
 
 export const FieldRow = styled.div`
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   width: 100%;
-  padding: 12px 16px;
+  padding: 10px 14px;
   background-color: ${(props) => props.theme.color.background};
   color: ${(props) => props.theme.color.primaryContrast};
-  
+  align-items: center;
+  gap: 12px;
+
   label {
-    font-weight: bold;
-    margin-bottom: 8px;
-    font-size: 0.9em;
+    font-size: 0.85em;
+    font-weight: 600;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+
+  > *:last-child {
+    flex: 1;
+    min-width: 0;
+  }
+`;
+
+export const CheckboxRow = styled.div`
+  display: flex;
+  width: 100%;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 14px;
+  font-size: 0.85em;
+  font-weight: 600;
+  background-color: ${(props) => props.theme.color.background};
+  color: ${(props) => props.theme.color.primaryContrast};
+  cursor: pointer;
+
+  input[type='checkbox'] {
+    width: 16px;
+    height: 16px;
+    cursor: pointer;
+    accent-color: ${(props) => props.theme.color.primary};
   }
 `;

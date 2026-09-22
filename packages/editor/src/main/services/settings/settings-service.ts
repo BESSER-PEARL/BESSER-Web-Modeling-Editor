@@ -1,4 +1,11 @@
 /**
+ * Rendering flavor for class diagrams.
+ * - 'UML' (default) — standard UML class notation
+ * - 'ER' — Chen-style entity-relationship flavor (rendering-only; no metamodel change)
+ */
+export type ClassNotation = 'UML' | 'ER';
+
+/**
  * Interface for application settings
  */
 export interface IApplicationSettings {
@@ -8,6 +15,10 @@ export interface IApplicationSettings {
   showIconView: boolean;
   /** Whether to show association names in the diagram */
   showAssociationNames: boolean;
+  /** Whether to use the right-side properties panel instead of the floating popover */
+  usePropertiesPanel: boolean;
+  /** Rendering flavor for class diagrams */
+  classNotation: ClassNotation;
   /** Other settings can be added here */
   // theme: 'light' | 'dark';
   // autoSave: boolean;
@@ -20,6 +31,8 @@ export const DEFAULT_SETTINGS: IApplicationSettings = {
   showInstancedObjects: true, // Default to true to show instances
   showIconView: false, // Default to false to hide class icons
   showAssociationNames: false, // Default to false to hide association names
+  usePropertiesPanel: true, // Default to true to use the right-side properties panel
+  classNotation: 'UML', // Default to UML notation for class diagrams
 };
 
 /**
@@ -63,15 +76,20 @@ export class SettingsService implements ISettingsService {
   }
 
   /**
-   * Load settings from localStorage with fallback to defaults
+   * Load settings from localStorage with fallback to defaults.
+   * Drops the legacy `enabledPerspectives` key (replaced by per-project
+   * `BesserProject.settings.perspectives` in v7.4).
    */
   private loadSettings(): IApplicationSettings {
     try {
       const stored = localStorage.getItem(this.STORAGE_KEY);
       if (stored) {
         const parsedSettings = JSON.parse(stored);
-        // Merge with defaults to ensure all properties exist
-        return { ...DEFAULT_SETTINGS, ...parsedSettings };
+        const { enabledPerspectives: _drop, ...rest } = parsedSettings ?? {};
+        return {
+          ...DEFAULT_SETTINGS,
+          ...rest,
+        };
       }
     } catch (error) {
       console.warn('Failed to load settings from localStorage:', error);
@@ -175,6 +193,20 @@ export class SettingsService implements ISettingsService {
    */
   shouldShowAssociationNames(): boolean {
     return this.settings.showAssociationNames;
+  }
+
+  /**
+   * Check if the right-side properties panel should be used instead of the floating popover
+   */
+  shouldUsePropertiesPanel(): boolean {
+    return this.settings.usePropertiesPanel;
+  }
+
+  /**
+   * Get the current class-diagram rendering notation
+   */
+  getClassNotation(): ClassNotation {
+    return this.settings.classNotation;
   }
 }
 

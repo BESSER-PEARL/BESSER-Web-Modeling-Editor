@@ -43,12 +43,13 @@ export const ResizingReducer: Reducer<ResizingState, Actions> = (state = {}, act
           ...(id in elements && {
             [id]: {
               ...elements[id],
+              isManuallyLayouted: payload.isManual ? true : elements[id].isManuallyLayouted,
               bounds: {
                 ...elements[id].bounds,
                 x: getUpdatedPosition(elements[id].bounds, payload, payload.resizeFrom).x,
                 y: getUpdatedPosition(elements[id].bounds, payload, payload.resizeFrom).y,
-                width: Math.max(elements[id].bounds.width + payload.delta.width, 0),
-                height: Math.max(elements[id].bounds.height + payload.delta.height, 0),
+                width: Math.max(elements[id].bounds.width + payload.delta.width, 10),
+                height: Math.max(elements[id].bounds.height + payload.delta.height, 10),
               },
               resizeFrom: payload.resizeFrom,
             },

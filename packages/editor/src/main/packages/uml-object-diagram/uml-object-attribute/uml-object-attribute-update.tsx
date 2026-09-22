@@ -8,28 +8,30 @@ import { Dropdown } from '../../../components/controls/dropdown/dropdown';
 import { StylePane } from '../../../components/style-pane/style-pane';
 import { IUMLElement } from '../../../services/uml-element/uml-element';
 import { diagramBridge } from '../../../services/diagram-bridge/diagram-bridge-service';
+import { I18nContext } from '../../../components/i18n/i18n-context';
+import { localized } from '../../../components/i18n/localized';
 
 // Define TextfieldValue type locally as it's not exported from textfield
 type TextfieldValue = string | number;
 
 const Flex = styled.div`
   display: flex;
-  align-items: baseline;
+  align-items: center;
   justify-content: space-between;
+  gap: 4px;
 `;
 
 const AttributeInputContainer = styled.div`
   display: flex;
   align-items: center;
   flex-grow: 1;
-  margin-right: 8px;
+  gap: 4px;
 `;
 
 const AttributeNameLabel = styled.span`
   font-family: inherit;
   font-size: inherit;
   color: inherit;
-  margin-right: 4px;
   white-space: nowrap;
 `;
 
@@ -92,9 +94,9 @@ type Props = {
   onSubmitKeyUp: () => void;
   onDelete: (id: string) => () => void;
   element: IUMLElement;
-};
+} & I18nContext;
 
-const UMLObjectAttributeUpdate = ({ id, onRefChange, value, onChange, onSubmitKeyUp, onDelete, element }: Props) => {
+const UMLObjectAttributeUpdate = ({ id, onRefChange, value, onChange, onSubmitKeyUp, onDelete, element, translate }: Props) => {
   const [colorOpen, setColorOpen] = useState(false);
 
   const toggleColor = () => {
@@ -289,7 +291,7 @@ const UMLObjectAttributeUpdate = ({ id, onRefChange, value, onChange, onSubmitKe
         }
       }
     } catch (error) {
-      console.warn('Error formatting date/time value:', error);
+      // Gracefully handle date/time formatting errors
     }
 
     return value;
@@ -310,8 +312,8 @@ const UMLObjectAttributeUpdate = ({ id, onRefChange, value, onChange, onSubmitKe
         value={attributeValue}
         onChange={handleValueChange}
         onSubmitKeyUp={onSubmitKeyUp}
-        placeholder="e.g., 1d 2h 30m, P1DT2H30M, 1:30:00"
-        title="Enter duration in formats like: '1d 2h 30m', 'P1DT2H30M' (ISO 8601), or 'HH:mm:ss'"
+        placeholder={translate('popup.durationPlaceholder')}
+        title={translate('popup.durationTooltip')}
       />
     );
   };
@@ -417,4 +419,4 @@ const UMLObjectAttributeUpdate = ({ id, onRefChange, value, onChange, onSubmitKe
   );
 };
 
-export default UMLObjectAttributeUpdate;
+export default localized(UMLObjectAttributeUpdate);

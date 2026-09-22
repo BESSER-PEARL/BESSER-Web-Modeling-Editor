@@ -9,7 +9,7 @@ the relationships between them.
 Palette
 -------
 
-The palette on the left side of the editor contains various shapes and elements you can use to create your class diagram. These include **Classes** (with or without methods), **Enumerations**, and **OCL Constraints**. Other elements like **Associations**, **Generalizations**, and **Association Classes** can be added directly from the canvas.
+The palette on the left side of the editor contains various shapes and elements you can use to create your class diagram. These include **Classes** (with or without methods), **Abstract Classes**, **Interfaces**, **Enumerations**, and **OCL Constraints**. Other elements like **Associations**, **Generalizations**, and **Association Classes** can be added directly from the canvas.
 
 Getting Started
 ---------------
@@ -121,8 +121,12 @@ Code Generation
 Class diagrams support generation for:
 
 *   Django
-*   SQL
+*   FastAPI Backend
+*   Full Web App (combined with a GUI diagram)
+*   SQL DDL
 *   SQLAlchemy
-*   Python (Pydantic)
-*   Java
+*   Python Classes
+*   Java Classes
+*   Pydantic Models
 *   JSON Schema
+*   Smart Data Models

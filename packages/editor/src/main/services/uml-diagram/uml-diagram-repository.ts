@@ -5,7 +5,8 @@ import { IUMLDiagram, UMLDiagram } from './uml-diagram';
 import { AppendRelationshipAction, ReorderElementsAction, UMLDiagramActionTypes } from './uml-diagram-types';
 
 export const UMLDiagramRepository = {
-  isUMLDiagram: (element: IUMLElement): element is IUMLDiagram => element.type in UMLDiagramType,
+  isUMLDiagram: (element: IUMLElement): element is IUMLDiagram =>
+    Object.values(UMLDiagramType).includes(element.type as (typeof UMLDiagramType)[keyof typeof UMLDiagramType]),
 
   get: (element?: IUMLElement): UMLDiagram | null => {
     if (!element || !UMLDiagramRepository.isUMLDiagram(element)) {

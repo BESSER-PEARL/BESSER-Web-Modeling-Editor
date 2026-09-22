@@ -6,15 +6,18 @@ import { DeepPartial } from 'redux';
 
 export interface IUMLStateTransition {
   params: { [id: string]: string };
+  guard: string;
 }
 
 export class UMLStateTransition extends UMLRelationshipCenteredDescription implements IUMLStateTransition {
   type = StateRelationshipType.StateTransition;
   params: { [id: string]: string } = {};
+  guard: string = '';
 
   constructor(values?: DeepPartial<Apollon.UMLStateTransition>) {
     super(values);
     this.params = {};
+    this.guard = (values?.guard as string) || '';
     if (values?.params) {
       if (typeof values.params === 'string') {
         this.params = { '0': values.params };
@@ -36,16 +39,18 @@ export class UMLStateTransition extends UMLRelationshipCenteredDescription imple
       type: this.type,
       params: paramValues.length === 0 ? undefined :
              paramValues.length === 1 ? paramValues[0] :
-             paramValues
+             paramValues,
+      guard: this.guard || undefined,
     };
   }
 
   deserialize<T extends Apollon.UMLModelElement>(
-    values: T & { params?: string | string[] | { [id: string]: string } },
+    values: T & { params?: string | string[] | { [id: string]: string }; guard?: string },
     children?: Apollon.UMLModelElement[],
   ): void {
     super.deserialize(values, children);
     this.params = {};
+    this.guard = (values as any).guard || '';
     if (values.params) {
       if (typeof values.params === 'string') {
         this.params = { '0': values.params };

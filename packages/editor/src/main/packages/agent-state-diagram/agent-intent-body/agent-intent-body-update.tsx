@@ -48,9 +48,7 @@ const AgentIntentUpdate = ({ id, onRefChange, value, onChange, onSubmitKeyUp, on
         <Textfield ref={onRefChange} gutter value={value} onChange={handleNameChange} onSubmitKeyUp={onSubmitKeyUp} />
         <ColorButton onClick={toggleColor} />
         <Button color="link" tabIndex={-1} onClick={handleDelete}>
-          <Button color="link" tabIndex={-1} onClick={handleDelete}>
-            <TrashIcon />
-          </Button>
+          <TrashIcon />
         </Button>
       </Flex>
       <StylePane open={colorOpen} element={element} onColorChange={onChange} fillColor textColor />

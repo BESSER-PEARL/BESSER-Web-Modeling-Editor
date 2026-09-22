@@ -18,13 +18,7 @@ export const ConnectableReducer: Reducer<ConnectableState, Actions> = (state = [
     case UMLElementActionTypes.DELETE: {
       const { payload } = action;
 
-      return state.reduce<ConnectableState>(
-        (ports, port) => ({
-          ...ports,
-          ...(!payload.ids.includes(port.element) && port),
-        }),
-        [],
-      );
+      return state.filter((port) => !payload.ids.includes(port.element));
     }
   }
 

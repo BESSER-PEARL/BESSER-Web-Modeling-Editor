@@ -14,6 +14,7 @@ export type BPMNIntermediateEventType =
   | 'message-catch'
   | 'message-throw'
   | 'timer-catch'
+  | 'timer-throw'
   | 'escalation-throw'
   | 'conditional-catch'
   | 'link-catch'
@@ -24,7 +25,7 @@ export type BPMNIntermediateEventType =
 
 export class BPMNIntermediateEvent extends UMLContainer {
   static supportedRelationships = [BPMNRelationshipType.BPMNFlow];
-  static features: UMLElementFeatures = { ...UMLContainer.features, resizable: false };
+  static features: UMLElementFeatures = { ...UMLContainer.features, resizable: false, droppable: false };
   static defaultEventType: BPMNIntermediateEventType = 'default';
 
   type: UMLElementType = BPMNElementType.BPMNIntermediateEvent;

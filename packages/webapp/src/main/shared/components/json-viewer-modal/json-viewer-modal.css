@@ -1,0 +1,178 @@
+/* ---- JSON Viewer Modal: styles that require custom values or nested selectors ---- */
+
+.jvm-overlay {
+  background: rgba(2, 6, 23, 0.76);
+  backdrop-filter: blur(2px);
+}
+
+.jvm-content {
+  width: min(960px, 92vw);
+  max-height: 88vh;
+  border-color: #1f2a44;
+  background: linear-gradient(180deg, #0f172a 0%, #0b1326 100%);
+  box-shadow: 0 28px 70px rgba(2, 6, 23, 0.68);
+}
+
+.jvm-header {
+  border-bottom: 1px solid #1f2a44;
+}
+
+.jvm-close-btn {
+  border-color: #314062;
+  background: #111d33;
+  color: #b6c3db;
+}
+
+.jvm-close-btn:hover {
+  border-color: #4f6696;
+  background: #172741;
+  color: #e2e8f0;
+}
+
+/* ---- Tab switcher ---- */
+
+.jvm-tab-btn {
+  border: 1px solid #304364;
+  background: #0f1b33;
+  color: #b6c3db;
+}
+
+.jvm-tab-btn:hover {
+  border-color: #4f6696;
+  color: #dbe7ff;
+}
+
+.jvm-tab-btn.active {
+  border-color: #60a5fa;
+  color: #f8fbff;
+  background: linear-gradient(135deg, #2563eb 0%, #0ea5e9 100%);
+  box-shadow: 0 8px 20px rgba(14, 165, 233, 0.28);
+}
+
+/* ---- Placeholder / Error boxes ---- */
+
+.jvm-placeholder {
+  border: 1px dashed #314062;
+  background: #0e1a32;
+  color: #93a7c7;
+}
+
+.jvm-error {
+  border: 1px solid #ef4444;
+  background: rgba(127, 29, 29, 0.4);
+  color: #fecaca;
+}
+
+/* ---- Code block ---- */
+
+.jvm-code-block {
+  border: 1px solid #263754;
+  background: radial-gradient(120% 120% at 0% 0%, #0f1b33 0%, #0b1326 58%, #090f20 100%);
+  color: #dbe5ff;
+  font-family: 'JetBrains Mono', 'Cascadia Code', 'Consolas', 'Monaco', 'Courier New', monospace;
+}
+
+.jvm-code-block code {
+  display: block;
+  min-width: max-content;
+  background: transparent;
+  color: inherit;
+}
+
+.jvm-code-block .hljs-keyword,
+.jvm-code-block .hljs-selector-tag,
+.jvm-code-block .hljs-literal {
+  color: #ff7ab2;
+}
+
+.jvm-code-block .hljs-string,
+.jvm-code-block .hljs-title,
+.jvm-code-block .hljs-name,
+.jvm-code-block .hljs-attr {
+  color: #a6da95;
+}
+
+.jvm-code-block .hljs-number,
+.jvm-code-block .hljs-symbol,
+.jvm-code-block .hljs-bullet {
+  color: #f5a97f;
+}
+
+.jvm-code-block .hljs-built_in,
+.jvm-code-block .hljs-type,
+.jvm-code-block .hljs-attribute {
+  color: #8aadf4;
+}
+
+.jvm-code-block .hljs-comment,
+.jvm-code-block .hljs-quote {
+  color: #7f8aa3;
+  font-style: italic;
+}
+
+.jvm-code-block .hljs-variable,
+.jvm-code-block .hljs-template-variable,
+.jvm-code-block .hljs-selector-attr {
+  color: #eed49f;
+}
+
+.jvm-code-block .hljs-function,
+.jvm-code-block .hljs-title.function_ {
+  color: #7dc4e4;
+}
+
+/* ---- JSON tree block ---- */
+
+.jvm-tree-block {
+  border: 1px solid #263754;
+  background: radial-gradient(120% 120% at 0% 0%, #0f1b33 0%, #0b1326 58%, #090f20 100%);
+  color: #dbe5ff;
+  font-family: 'JetBrains Mono', 'Cascadia Code', 'Consolas', 'Monaco', 'Courier New', monospace;
+}
+
+/* ---- Copy-node button (per row) ---- */
+
+.jvm-tree-row:hover > .jvm-copy-node-btn {
+  opacity: 1;
+}
+
+.jvm-copy-node-btn:hover {
+  color: #e2e8f0;
+}
+
+/* ---- Footer buttons ---- */
+
+.jvm-footer {
+  border-top: 1px solid #1f2a44;
+}
+
+.jvm-footer-btn {
+  border: 1px solid transparent;
+  transition: all 0.2s ease;
+}
+
+.jvm-footer-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.jvm-footer-btn.primary-button {
+  border-color: #60a5fa;
+  background: linear-gradient(135deg, #2563eb 0%, #0ea5e9 100%);
+  color: #f8fbff;
+}
+
+.jvm-footer-btn.primary-button:not(:disabled):hover {
+  box-shadow: 0 8px 18px rgba(14, 165, 233, 0.3);
+}
+
+.jvm-footer-btn.secondary-button {
+  border-color: #314062;
+  background: #111d33;
+  color: #d4def3;
+}
+
+.jvm-footer-btn.secondary-button:not(:disabled):hover {
+  border-color: #4f6696;
+  background: #172741;
+}

@@ -100,7 +100,6 @@ export class UMLObjectName extends UMLClassifier implements IUMLObjectName {
         height: height || 50,
       };
     } catch (error) {
-      console.warn('Error parsing SVG:', error);
       return { width: 50, height: 50 };
     }
   }

@@ -8,11 +8,14 @@ Palette
 
 The palette contains elements for creating your state machine diagram:
 
-*   **Initial States**
-*   **States**
-*   **Final States**
-*   **Transitions**
-*   **Code Blocks**
+*   **State** (empty)
+*   **State with Body**
+*   **State with Body and Fallback Body**
+*   **Initial State Node**
+*   **Final State Node**
+*   **Code Block**
+
+Transitions are created by connecting states directly on the canvas (they are not palette elements).
 
 Getting Started
 ---------------
@@ -32,7 +35,7 @@ To add a state:
 
 *   **Name**: The name of the state.
 *   **Body**: Define the behavior (actions) of the state.
-*   **Fallback Action**: An optional action executed if the state is entered without a specific trigger.
+*   **Fallback Body**: An optional action executed if the state is entered without a specific trigger.
 
 Transitions
 ~~~~~~~~~~~
@@ -47,3 +50,29 @@ To create a transition:
   :width: 330
   :alt: Transition Properties
   :align: center
+
+Initial and Final States
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+Every state machine should have an **Initial State** (the entry point) and optionally
+one or more **Final States** (termination points).
+
+*   Drag the **Initial State** element from the palette. Connect it to the first
+    meaningful state with a transition.
+*   Drag a **Final State** element to indicate where the machine terminates.
+
+Code Blocks
+~~~~~~~~~~~
+
+Code blocks allow you to define custom behavior within states using Python code.
+Drag a **Code Block** element onto the canvas and double-click to open the code editor.
+
+The code receives a ``session`` parameter for accessing state machine context.
+
+Code Generation
+~~~~~~~~~~~~~~~
+
+State machine diagrams do not support direct code generation. They are used as
+**method implementations** within Class Diagrams. To generate code that includes
+state machine behavior, generate from the Class Diagram that references the
+state machine.

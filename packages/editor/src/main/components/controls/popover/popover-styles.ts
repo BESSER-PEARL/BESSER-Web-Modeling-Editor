@@ -1,7 +1,9 @@
 import { css, styled } from '../../theme/styles';
 import { Props } from './popover';
 
-export const PopoverContainer = styled.div<Props>`
+export const PopoverContainer = styled.div.withConfig({
+  shouldForwardProp: (prop: string) => !['placement', 'alignment', 'position', 'maxHeight'].includes(prop),
+} as any)<Props>`
   background-clip: padding-box;
   background-color: ${(props) => props.theme.color.backgroundVariant};
   border: 1px solid ${(props) => props.theme.color.primaryContrast}33;
@@ -66,7 +68,9 @@ export const PopoverContainer = styled.div<Props>`
   }}
 `;
 
-export const PopoverBody = styled.div<Pick<Props, 'maxHeight'>>`
+export const PopoverBody = styled.div.withConfig({
+  shouldForwardProp: (prop: string) => prop !== 'maxHeight',
+} as any)<Pick<Props, 'maxHeight'>>`
   color: ${(props) => props.theme.font.color};
   padding: 0.5em 0.75em;
 
@@ -149,7 +153,9 @@ const ArrowLeft = css`
 
 type ArrowProps = Pick<Props, 'placement' | 'alignment'>;
 
-export const Arrow = styled.div<ArrowProps>`
+export const Arrow = styled.div.withConfig({
+  shouldForwardProp: (prop: string) => !['placement', 'alignment'].includes(prop),
+} as any)<ArrowProps>`
   display: block;
   height: 0.5em;
   position: absolute;

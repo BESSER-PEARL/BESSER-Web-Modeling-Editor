@@ -6,6 +6,10 @@ import { BPMNMessageIcon } from '../common/icons/bpmn-message-icon';
 import { BPMNTimerIcon } from '../common/icons/bpmn-timer-icon';
 import { BPMNSignalIcon } from '../common/icons/bpmn-signal-icon';
 import { BPMNConditionalIcon } from '../common/icons/bpmn-conditional-icon';
+import { BPMNErrorIcon } from '../common/icons/bpmn-error-icon';
+import { BPMNEscalationIcon } from '../common/icons/bpmn-escalation-icon';
+import { BPMNCompensationIcon } from '../common/icons/bpmn-compensation-icon';
+import { BPMNLinkIcon } from '../common/icons/bpmn-link-icon';
 
 /**
  * Retrieve an icon based on a given start event type
@@ -27,6 +31,14 @@ const renderIconForType = (
       return <BPMNConditionalIcon {...props} />;
     case 'signal':
       return <BPMNSignalIcon {...props} />;
+    case 'escalation':
+      return <BPMNEscalationIcon {...props} />;
+    case 'error':
+      return <BPMNErrorIcon {...props} />;
+    case 'compensation':
+      return <BPMNCompensationIcon {...props} />;
+    case 'link':
+      return <BPMNLinkIcon {...props} />;
     default:
       return null;
   }

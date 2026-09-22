@@ -9,8 +9,9 @@ import { I18nContext } from '../i18n/i18n-context';
 import { localized } from '../i18n/localized';
 import { ModelState } from '../store/model-state';
 import { Textfield } from '../controls/textfield/textfield';
+import { Dropdown } from '../controls/dropdown/dropdown';
 import { ColorSelector } from './color-selector';
-import { Color, Container, Divider, Row, FieldRow } from './style-pane-styles';
+import { Color, Container, Divider, Row, FieldRow, CheckboxRow } from './style-pane-styles';
 
 type OwnProps = {
   open: boolean;
@@ -25,8 +26,16 @@ type OwnProps = {
   showIcon?: boolean;
   isOptional?: boolean;
   onOptionalChange?: (checked: boolean) => void;
+  isDerived?: boolean;
+  onDerivedChange?: (checked: boolean) => void;
+  isId?: boolean;
+  onIdChange?: (checked: boolean) => void;
+  isExternalId?: boolean;
+  onExternalIdChange?: (checked: boolean) => void;
   defaultValue?: any;
   onDefaultValueChange?: (value: string) => void;
+  attributeType?: string;
+  enumerationLiterals?: string[];
 };
 
 type StateProps = {};
@@ -43,6 +52,7 @@ const getInitialState = () => ({
   fillSelectOpen: false,
   strokeSelectOpen: false,
   textSelectOpen: false,
+  prevAttributeType: undefined as string | undefined,
 });
 
 type State = ReturnType<typeof getInitialState>;
@@ -66,6 +76,13 @@ const enhance = compose<ComponentClass<OwnProps>>(
 
 class StylePaneComponent extends Component<Props, State> {
   state = getInitialState();
+
+  componentDidUpdate(prevProps: Props) {
+    // Reset default value when attribute type changes
+    if (this.props.attributeType !== prevProps.attributeType && this.props.onDefaultValueChange) {
+      this.props.onDefaultValueChange('');
+    }
+  }
 
   handleFillColorChange = (color: string | undefined) => {
     const { element, onColorChange } = this.props;
@@ -125,40 +142,202 @@ class StylePaneComponent extends Component<Props, State> {
     }));
   };
 
+  renderDefaultValueInput = () => {
+    const { defaultValue, onDefaultValueChange, attributeType, enumerationLiterals, translate } = this.props;
+
+    if (!onDefaultValueChange) return null;
+
+    const isEnumType = enumerationLiterals && enumerationLiterals.length > 0;
+
+    // Enumeration type - render dropdown with literals
+    if (isEnumType) {
+      return (
+        <Dropdown
+          value={defaultValue || ''}
+          onChange={(value: string) => onDefaultValueChange(value)}
+          size="sm"
+        >
+          {[
+            <Dropdown.Item key="_empty" value="">
+              {translate('stylePane.none')}
+            </Dropdown.Item>,
+            ...enumerationLiterals.map((literal) => (
+              <Dropdown.Item key={literal} value={literal}>
+                {literal}
+              </Dropdown.Item>
+            ))
+          ]}
+        </Dropdown>
+      );
+    }
+
+    // Type-specific inputs
+    switch (attributeType) {
+      case 'int':
+      case 'float':
+        return (
+          <Textfield
+            value={defaultValue !== undefined && defaultValue !== null ? String(defaultValue) : ''}
+            onChange={(value) => {
+              // Allow only numbers, decimal point, and minus sign
+              const sanitized = value.replace(/[^0-9.\-]/g, '');
+              onDefaultValueChange(sanitized);
+            }}
+            placeholder={attributeType === 'int' ? translate('stylePane.enterInteger') : translate('stylePane.enterNumber')}
+            size="sm"
+          />
+        );
+
+      case 'bool':
+        return (
+          <Dropdown
+            value={defaultValue || ''}
+            onChange={(value: string) => onDefaultValueChange(value)}
+            size="sm"
+          >
+            <Dropdown.Item key="_empty" value="">
+              {translate('stylePane.none')}
+            </Dropdown.Item>
+            <Dropdown.Item key="true" value="true">
+              true
+            </Dropdown.Item>
+            <Dropdown.Item key="false" value="false">
+              false
+            </Dropdown.Item>
+          </Dropdown>
+        );
+
+      case 'date':
+        return (
+          <Textfield
+            value={defaultValue !== undefined && defaultValue !== null ? String(defaultValue) : ''}
+            onChange={onDefaultValueChange}
+            placeholder="YYYY-MM-DD"
+            size="sm"
+            type="date"
+          />
+        );
+
+      case 'datetime':
+        return (
+          <Textfield
+            value={defaultValue !== undefined && defaultValue !== null ? String(defaultValue) : ''}
+            onChange={onDefaultValueChange}
+            placeholder="YYYY-MM-DD HH:MM:SS"
+            size="sm"
+            type="datetime-local"
+          />
+        );
+
+      case 'time':
+        return (
+          <Textfield
+            value={defaultValue !== undefined && defaultValue !== null ? String(defaultValue) : ''}
+            onChange={onDefaultValueChange}
+            placeholder="HH:MM:SS"
+            size="sm"
+            type="time"
+          />
+        );
+
+      default:
+        // String and other types - regular text input
+        return (
+          <Textfield
+            value={defaultValue !== undefined && defaultValue !== null ? String(defaultValue) : ''}
+            onChange={onDefaultValueChange}
+            placeholder={translate('stylePane.enterDefaultValue')}
+            size="sm"
+          />
+        );
+    }
+  };
+
   render() {
     const { fillSelectOpen, strokeSelectOpen, textSelectOpen } = this.state;
-    const { open, element, fillColor, lineColor, textColor, showDescription, showUri, showIcon, isOptional, onOptionalChange, defaultValue, onDefaultValueChange } = this.props;
+    const { open, element, fillColor, lineColor, textColor, showDescription, showUri, showIcon, isOptional, onOptionalChange, isDerived, onDerivedChange, isId, onIdChange, isExternalId, onExternalIdChange, defaultValue, onDefaultValueChange, enumerationLiterals, translate } = this.props;
     const noneOpen = !fillSelectOpen && !strokeSelectOpen && !textSelectOpen;
 
     if (!open) return null;
+
+    const isEnumType = enumerationLiterals && enumerationLiterals.length > 0;
+
+    // Metamodel rule: an attribute marked as an identifier (primary or
+    // external) cannot also be optional. Lock the conflicting checkbox
+    // on each side so the user can't save invalid state — on submit it
+    // would fail validation in the backend Property() setter anyway.
+    const optionalLockedByIdFlag = Boolean(isId || isExternalId);
+    const idLockedByOptional = Boolean(isOptional);
 
     return (
       <Container>
         {onOptionalChange && (
           <>
-            <Row>
-              <label htmlFor={`optional-${element?.id}`} style={{ cursor: 'pointer', margin: 0 }}>Optional</label>
+            <CheckboxRow as="label" htmlFor={`optional-${element?.id}`}>
+              <span>{translate('stylePane.optional')}</span>
               <input
                 id={`optional-${element?.id}`}
                 type="checkbox"
                 checked={isOptional || false}
+                disabled={optionalLockedByIdFlag}
+                title={optionalLockedByIdFlag ? translate('stylePane.optionalLockedById') : undefined}
                 onChange={(e) => onOptionalChange(e.target.checked)}
-                style={{ cursor: 'pointer', width: '18px', height: '18px' }}
               />
-            </Row>
+            </CheckboxRow>
+            <Divider />
+          </>
+        )}
+        {onDerivedChange && (
+          <>
+            <CheckboxRow as="label" htmlFor={`derived-${element?.id}`}>
+              <span>{translate('stylePane.derived')}</span>
+              <input
+                id={`derived-${element?.id}`}
+                type="checkbox"
+                checked={isDerived || false}
+                onChange={(e) => onDerivedChange(e.target.checked)}
+              />
+            </CheckboxRow>
+            <Divider />
+          </>
+        )}
+        {onIdChange && (
+          <>
+            <CheckboxRow as="label" htmlFor={`id-${element?.id}`}>
+              <span>{translate('stylePane.id')}</span>
+              <input
+                id={`id-${element?.id}`}
+                type="checkbox"
+                checked={isId || false}
+                disabled={idLockedByOptional}
+                title={idLockedByOptional ? translate('stylePane.idLockedByOptional') : undefined}
+                onChange={(e) => onIdChange(e.target.checked)}
+              />
+            </CheckboxRow>
+            <Divider />
+          </>
+        )}
+        {onExternalIdChange && (
+          <>
+            <CheckboxRow as="label" htmlFor={`external-id-${element?.id}`}>
+              <span>{translate('stylePane.externalId')}</span>
+              <input
+                id={`external-id-${element?.id}`}
+                type="checkbox"
+                checked={isExternalId || false}
+                disabled={idLockedByOptional}
+                title={idLockedByOptional ? translate('stylePane.externalIdLockedByOptional') : undefined}
+                onChange={(e) => onExternalIdChange(e.target.checked)}
+              />
+            </CheckboxRow>
             <Divider />
           </>
         )}
         {onDefaultValueChange && (
           <>
             <FieldRow>
-              <label>Default</label>
-              <Textfield
-                value={defaultValue !== undefined && defaultValue !== null ? String(defaultValue) : ''}
-                onChange={onDefaultValueChange}
-                placeholder="Enter default value..."
-                size="sm"
-              />
+              <label>{translate('stylePane.default')}</label>
+              {this.renderDefaultValueInput()}
             </FieldRow>
             <Divider />
           </>
@@ -166,11 +345,11 @@ class StylePaneComponent extends Component<Props, State> {
         {showDescription && (
           <>
             <FieldRow>
-              <label>Description</label>
+              <label>{translate('stylePane.description')}</label>
               <Textfield
                 value={element?.description || ''}
                 onChange={this.handleDescriptionChange}
-                placeholder="Enter description..."
+                placeholder={translate('stylePane.enterDescription')}
                 size="sm"
               />
             </FieldRow>
@@ -184,7 +363,7 @@ class StylePaneComponent extends Component<Props, State> {
               <Textfield
                 value={element?.uri || ''}
                 onChange={this.handleUriChange}
-                placeholder="Enter URI..."
+                placeholder={translate('stylePane.enterUri')}
                 size="sm"
               />
             </FieldRow>
@@ -194,11 +373,11 @@ class StylePaneComponent extends Component<Props, State> {
         {showIcon && (
           <>
             <FieldRow>
-              <label>Icon</label>
+              <label>{translate('stylePane.icon')}</label>
               <Textfield
                 value={element?.icon || ''}
                 onChange={this.handleIconChange}
-                placeholder="Enter icon name..."
+                placeholder={translate('stylePane.enterIcon')}
                 size="sm"
               />
             </FieldRow>
@@ -206,7 +385,7 @@ class StylePaneComponent extends Component<Props, State> {
           </>
         )}
         <ColorRow
-          title="Fill Color"
+          title={translate('stylePane.fillColor')}
           condition={fillColor && (fillSelectOpen || noneOpen)}
           color={element?.fillColor}
           open={fillSelectOpen}
@@ -215,7 +394,7 @@ class StylePaneComponent extends Component<Props, State> {
           noDivider={!textColor && !lineColor}
         />
         <ColorRow
-          title="Line Color"
+          title={translate('stylePane.lineColor')}
           condition={lineColor && (strokeSelectOpen || noneOpen)}
           color={element?.strokeColor}
           open={strokeSelectOpen}
@@ -224,7 +403,7 @@ class StylePaneComponent extends Component<Props, State> {
           noDivider={!textColor}
         />
         <ColorRow
-          title="Text Color"
+          title={translate('stylePane.textColor')}
           condition={textColor && (textSelectOpen || noneOpen)}
           color={element?.textColor}
           open={textSelectOpen}

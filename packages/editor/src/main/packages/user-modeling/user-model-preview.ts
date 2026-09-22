@@ -11,13 +11,12 @@ import { settingsService } from '../../services/settings/settings-service';
 // User-model preview based on the object-diagram logic but using user-modeling elements.
 export const composeUserModelPreview: ComposePreview = (
   layer: ILayer,
-  translate: (id: string) => string,
 ): UMLElement[] => {
   const shouldShowIconView = settingsService.shouldShowIconView();
-  return shouldShowIconView ? composeIconView(layer, translate) : composeNormalView(layer, translate);
+  return shouldShowIconView ? composeIconView(layer) : composeNormalView(layer);
 };
 
-const composeIconView = (layer: ILayer, translate: (id: string) => string): UMLElement[] => {
+const composeIconView = (layer: ILayer): UMLElement[] => {
   const elements: UMLElement[] = [];
   const shouldShowInstances = settingsService.shouldShowInstancedObjects() && diagramBridge.hasClassDiagramData();
   if (!shouldShowInstances) return elements;
@@ -80,10 +79,10 @@ const composeIconView = (layer: ILayer, translate: (id: string) => string): UMLE
   return elements;
 };
 
-const composeNormalView = (layer: ILayer, translate: (id: string) => string): UMLElement[] => {
+const composeNormalView = (layer: ILayer): UMLElement[] => {
   const elements: UMLElement[] = [];
 
-  const userModel = new UMLUserModelName({ name: translate('packages.ObjectDiagram.ObjectName') });
+  const userModel = new UMLUserModelName({ name: 'Object' });
   userModel.bounds = { ...userModel.bounds, width: userModel.bounds.width, height: userModel.bounds.height };
 
 

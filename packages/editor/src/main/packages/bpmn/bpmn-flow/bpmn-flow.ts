@@ -15,11 +15,13 @@ export class BPMNFlow extends UMLRelationshipCenteredDescription {
   name = '';
 
   flowType: BPMNFlowType;
+  isDefault: boolean;
 
   constructor(values?: DeepPartial<Apollon.BPMNFlow>) {
     super(values);
     this.name = values?.name || this.name;
     this.flowType = values?.flowType || BPMNFlow.defaultFlowType;
+    this.isDefault = values?.isDefault ?? false;
   }
 
   serialize(children?: UMLElement[]): Apollon.BPMNFlow {
@@ -27,14 +29,16 @@ export class BPMNFlow extends UMLRelationshipCenteredDescription {
       ...super.serialize(),
       type: this.type as keyof typeof BPMNRelationshipType,
       flowType: this.flowType,
+      isDefault: this.isDefault,
     };
   }
 
   deserialize<T extends Apollon.UMLModelElement>(
-    values: T & { flowType?: BPMNFlowType },
+    values: T & { flowType?: BPMNFlowType; isDefault?: boolean },
     children?: Apollon.UMLModelElement[],
   ): void {
     super.deserialize(values, children);
     this.flowType = values.flowType || BPMNFlow.defaultFlowType;
+    this.isDefault = values.isDefault ?? false;
   }
 }

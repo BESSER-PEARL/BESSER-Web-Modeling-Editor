@@ -749,7 +749,10 @@ function lineSegmentIntersectsRect(p: IPoint, q: IPoint, rect: Rect) {
  * Determines whether the given line lies entirely within the given rectangle.
  */
 function lineSegmentLiesWithinRect(p: IPoint, q: IPoint, rect: Rect) {
-  return p.x > rect.x && p.x < rect.x + rect.height && p.y > rect.y && p.y < rect.y + rect.height;
+  return (
+    p.x > rect.x && p.x < rect.x + rect.width && p.y > rect.y && p.y < rect.y + rect.height &&
+    q.x > rect.x && q.x < rect.x + rect.width && q.y > rect.y && q.y < rect.y + rect.height
+  );
 }
 
 // Adapted from http://www.geeksforgeeks.org/check-if-two-given-line-segments-intersect/

@@ -10,7 +10,7 @@ export const exportDiagram = async (editor: ApollonEditor | null) => {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `diagram_${model.type}_${new Date().toISOString()}.json`;
+    a.download = `diagram_${model.type}_${new Date().toISOString().replace(/[:.]/g, '-')}.json`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);

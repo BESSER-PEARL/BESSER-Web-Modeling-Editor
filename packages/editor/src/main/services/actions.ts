@@ -1,6 +1,7 @@
 import { AssessmentActions } from './assessment/assessment-types';
 import { EditorActions } from './editor/editor-types';
 import { LayouterActions } from './layouter/layouter-types';
+import { AutoLayoutActions } from './layouter/auto-layout-types';
 import { UMLContainerActions } from './uml-container/uml-container-types';
 import { UMLDiagramActions } from './uml-diagram/uml-diagram-types';
 import { ConnectableActions } from './uml-element/connectable/connectable-types';
@@ -26,6 +27,7 @@ import { PaletteActions } from './palette/palette-types';
 export type Actions =
   | EditorActions
   | LayouterActions
+  | AutoLayoutActions
   | PatcherActions
   | UMLContainerActions
   | UMLElementActions

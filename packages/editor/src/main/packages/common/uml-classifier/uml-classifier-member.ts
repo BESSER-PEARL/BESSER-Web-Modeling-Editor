@@ -69,6 +69,9 @@ export interface IUMLClassifierMember extends IUMLElement {
   stateMachineId?: string;
   quantumCircuitId?: string;
   isOptional?: boolean;
+  isDerived?: boolean;
+  isId?: boolean;
+  isExternalId?: boolean;
   defaultValue?: any;
 }
 
@@ -92,6 +95,9 @@ export abstract class UMLClassifierMember extends UMLElement implements IUMLClas
   stateMachineId: string = '';
   quantumCircuitId: string = '';
   isOptional: boolean = false;
+  isDerived: boolean = false;
+  isId: boolean = false;
+  isExternalId: boolean = false;
   defaultValue: any = undefined;
 
   constructor(values?: DeepPartial<IUMLClassifierMember>) {
@@ -109,14 +115,40 @@ export abstract class UMLClassifierMember extends UMLElement implements IUMLClas
       if (/^[+\-#~]\s/.test(this.name)) {
         return this.name;
       }
+      const derivedPrefix = this.isDerived ? '/' : '';
       const optionalMarker = this.isOptional ? '?' : '';
+      const idMarkers = [
+        this.isId ? 'id' : null,
+        this.isExternalId ? 'external id' : null,
+      ].filter(Boolean);
+      const idSuffix = idMarkers.length > 0 ? ` {${idMarkers.join(', ')}}` : '';
       const defaultSuffix = (this.defaultValue !== undefined && this.defaultValue !== null && this.defaultValue !== '')
         ? ` = ${this.defaultValue}`
         : '';
-      return `${visSymbol} ${this.name}${optionalMarker}: ${this.attributeType}${defaultSuffix}`;
+      return `${visSymbol} ${derivedPrefix}${this.name}${optionalMarker}: ${this.attributeType}${defaultSuffix}${idSuffix}`;
     }
     // Fallback to name for backward compatibility or simple display
     return this.name;
+  }
+
+  /**
+   * Get the display name for rendering in ER (Chen) mode. Drops the UML
+   * visibility symbol and the `{id, external id}` suffix — ER has no
+   * visibility semantics and marks identifying attributes with an underline
+   * on the attribute name itself (rendered by the classifier-member
+   * component). Keeps `/` for derived, `?` for optional, and ` = default`.
+   */
+  get displayNameER(): string {
+    const derivedPrefix = this.isDerived ? '/' : '';
+    const optionalMarker = this.isOptional ? '?' : '';
+    const defaultSuffix =
+      this.defaultValue !== undefined && this.defaultValue !== null && this.defaultValue !== ''
+        ? ` = ${this.defaultValue}`
+        : '';
+    if (this.name && this.attributeType) {
+      return `${derivedPrefix}${this.name}${optionalMarker}: ${this.attributeType}${defaultSuffix}`;
+    }
+    return `${derivedPrefix}${this.name}${optionalMarker}${defaultSuffix}`;
   }
 
   /**
@@ -130,27 +162,40 @@ export abstract class UMLClassifierMember extends UMLElement implements IUMLClas
     let attributeType = 'str';
 
     // Check for visibility symbol at the start
+    let afterVisibility = trimmed;
     const visibilityMatch = trimmed.match(/^([+\-#~])\s*/);
     if (visibilityMatch) {
       visibility = SYMBOL_TO_VISIBILITY[visibilityMatch[1]] || 'public';
-      const afterVisibility = trimmed.substring(visibilityMatch[0].length);
+      afterVisibility = trimmed.substring(visibilityMatch[0].length);
+    }
 
-      // Check for type (after colon)
+    // Method signatures contain '(' — split at the colon AFTER the last ')'
+    // so parameter type colons (e.g. "param: str") are not misinterpreted.
+    if (afterVisibility.includes('(')) {
+      const lastParen = afterVisibility.lastIndexOf(')');
+      if (lastParen >= 0) {
+        const signaturePart = afterVisibility.substring(0, lastParen + 1);
+        const afterParen = afterVisibility.substring(lastParen + 1).trim();
+        if (afterParen.startsWith(':')) {
+          parsedName = signaturePart.trim();
+          attributeType = normalizeType(afterParen.substring(1).trim());
+        } else {
+          parsedName = afterVisibility.trim();
+          attributeType = '';
+        }
+      } else {
+        // Has '(' but no ')' — malformed, store as-is
+        parsedName = afterVisibility.trim();
+        attributeType = '';
+      }
+    } else {
+      // Attribute format: split at first colon
       const typeMatch = afterVisibility.match(/^([^:]+):\s*(.+)$/);
       if (typeMatch) {
         parsedName = typeMatch[1].trim();
         attributeType = normalizeType(typeMatch[2].trim());
       } else {
         parsedName = afterVisibility.trim();
-      }
-    } else {
-      // No visibility symbol, check for type
-      const typeMatch = trimmed.match(/^([^:]+):\s*(.+)$/);
-      if (typeMatch) {
-        parsedName = typeMatch[1].trim();
-        attributeType = normalizeType(typeMatch[2].trim());
-      } else {
-        parsedName = trimmed;
       }
     }
 
@@ -168,6 +213,9 @@ export abstract class UMLClassifierMember extends UMLElement implements IUMLClas
       stateMachineId: this.stateMachineId,
       quantumCircuitId: this.quantumCircuitId,
       isOptional: this.isOptional,
+      isDerived: this.isDerived,
+      isId: this.isId,
+      isExternalId: this.isExternalId,
       defaultValue: this.defaultValue,
     } as Apollon.UMLModelElement & Apollon.UMLClassifierMember;
   }
@@ -184,12 +232,18 @@ export abstract class UMLClassifierMember extends UMLElement implements IUMLClas
       this.visibility = memberValues.visibility || 'public';
       this.attributeType = memberValues.attributeType || 'str';
       this.isOptional = memberValues.isOptional || false;
+      this.isDerived = memberValues.isDerived || false;
+      this.isId = memberValues.isId || false;
+      this.isExternalId = memberValues.isExternalId || false;
     } else {
       // Legacy format - parse from name to extract visibility and type
       const parsed = UMLClassifierMember.parseNameFormat(this.name);
       this.visibility = parsed.visibility;
       this.attributeType = parsed.attributeType;
       this.isOptional = false;
+      this.isDerived = false;
+      this.isId = false;
+      this.isExternalId = false;
       // Update name to just the attribute name (without visibility symbol and type)
       this.name = parsed.name;
     }
