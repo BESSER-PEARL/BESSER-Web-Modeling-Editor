@@ -85,6 +85,7 @@
       },
       "actions": {
         "djangoProject": "Projet Django",
+        "springProject": "Projet Spring",
         "fullBackend": "Backend complet",
         "webApplication": "Application web",
         "pythonClasses": "Classes Python",
@@ -510,6 +511,20 @@
       "appName": "Nom de l'application",
       "includeDocker": "Inclure la conteneurisation Docker"
     },
+    "spring": {
+      "title": "Configuration du projet Spring Boot",
+      "description": "Configurez les noms et les versions pour la génération du backend Spring Boot.",
+      "projectName": "Nom du projet",
+      "appName": "Nom de l'application",
+      "appNameHint": "Devient la classe Java de l'application générée, par ex. MyApplication.java.",
+      "packageName": "Nom du paquet",
+      "packageNameHint": "Paquet Java de base, par ex. com.example. Il devient aussi le chemin du répertoire source.",
+      "bootVersion": "Version de Spring Boot",
+      "selectBootVersion": "Sélectionnez une version de Spring Boot",
+      "javaVersion": "Version de Java",
+      "selectJavaVersion": "Sélectionnez une version de Java",
+      "javaVersionOption": "Java {{version}}"
+    },
     "sql": {
       "title": "Sélection du dialecte SQL",
       "description": "Choisissez le dialecte SQL pour les instructions DDL générées.",
@@ -655,12 +670,16 @@
       "namesRequired": "Les noms du projet et de l'application sont requis.",
       "namesMustDiffer": "Les noms du projet et de l'application doivent être différents.",
       "namesInvalid": "Les noms doivent commencer par une lettre/un trait de soulignement et ne contenir que des lettres, des chiffres et des traits de soulignement.",
+      "springFieldsRequired": "Les noms du projet, de l'application et du paquet sont obligatoires.",
+      "springAppNameInvalid": "Le nom de l'application doit être un nom de classe Java valide.",
+      "springPackageNameInvalid": "Le nom du paquet doit être un paquet Java valide, par ex. com.example.",
       "openUmlBeforeDeploy": "Ouvrez un diagramme UML avant de déployer.",
       "noValidPersonalizationMappings": "Aucune correspondance de personnalisation valide trouvée. Créez des correspondances et enregistrez d'abord des variantes personnalisées."
     },
     "context": {
       "djangoGeneration": "Génération Django",
       "djangoDeployment": "Déploiement Django",
+      "springGeneration": "Génération Spring",
       "sqlGeneration": "Génération SQL",
       "supabaseGeneration": "Génération Supabase",
       "sqlAlchemyGeneration": "Génération SQLAlchemy",
