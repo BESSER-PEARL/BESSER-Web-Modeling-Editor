@@ -119,7 +119,7 @@ export const GenerateMenu: React.FC<GenerateMenuProps> = ({
           <>
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={onDeriveDeploymentDiagram}>
-              {t('menu.generate.deploymentComponentDiagram')}
+              {t('menu.generate.deriveDeploymentDiagram')}
             </DropdownMenuItem>
           </>
         )}
