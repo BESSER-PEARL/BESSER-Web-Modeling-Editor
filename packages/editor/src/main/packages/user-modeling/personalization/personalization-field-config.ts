@@ -143,6 +143,7 @@ const ELEMENT_SUGGESTED_FIELDS: Record<string, PersonalizationFieldKey[]> = {
    */
   Personal_Information: [
     'presentation.languageComplexity',
+    'presentation.language',
     'presentation.sentenceLength',
     'presentation.size',
     'content.adaptContentToUserProfile',
