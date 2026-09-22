@@ -92,6 +92,7 @@
       },
       "actions": {
         "djangoProject": "Django Project",
+        "springProject": "Spring Project",
         "fullBackend": "Full Backend",
         "webApplication": "Web Application",
         "pythonClasses": "Python Classes",
@@ -517,6 +518,20 @@
       "appName": "App Name",
       "includeDocker": "Include Docker containerization"
     },
+    "spring": {
+      "title": "Spring Boot Project Configuration",
+      "description": "Configure names and versions for Spring Boot backend generation.",
+      "projectName": "Project Name",
+      "appName": "Application Name",
+      "appNameHint": "Becomes the generated Java application class, e.g. MyApplication.java.",
+      "packageName": "Package Name",
+      "packageNameHint": "Base Java package, e.g. com.example. It also becomes the source directory path.",
+      "bootVersion": "Spring Boot Version",
+      "selectBootVersion": "Select a Spring Boot version",
+      "javaVersion": "Java Version",
+      "selectJavaVersion": "Select a Java version",
+      "javaVersionOption": "Java {{version}}"
+    },
     "sql": {
       "title": "SQL Dialect Selection",
       "description": "Choose the SQL dialect for generated DDL statements.",
@@ -662,12 +677,16 @@
       "namesRequired": "Project and app names are required.",
       "namesMustDiffer": "Project and app names must be different.",
       "namesInvalid": "Names must start with a letter/underscore and contain only letters, numbers, and underscores.",
+      "springFieldsRequired": "Project, application, and package names are required.",
+      "springAppNameInvalid": "Application name must be a valid Java class name.",
+      "springPackageNameInvalid": "Package name must be a valid Java package, e.g. com.example.",
       "openUmlBeforeDeploy": "Open a UML diagram before deploying.",
       "noValidPersonalizationMappings": "No valid personalization mappings found. Create mappings and save personalized variants first."
     },
     "context": {
       "djangoGeneration": "Django generation",
       "djangoDeployment": "Django deployment",
+      "springGeneration": "Spring generation",
       "sqlGeneration": "SQL generation",
       "supabaseGeneration": "Supabase generation",
       "sqlAlchemyGeneration": "SQLAlchemy generation",
