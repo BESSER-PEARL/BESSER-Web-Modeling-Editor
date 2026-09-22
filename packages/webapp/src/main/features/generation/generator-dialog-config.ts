@@ -1,9 +1,10 @@
 import type { GeneratorType } from '../../app/shell/workspace-types';
 
-export type ConfigDialog = 'none' | 'django' | 'sql' | 'supabase' | 'sqlalchemy' | 'jsonschema' | 'agent' | 'qiskit' | 'web_app_checklist';
+export type ConfigDialog = 'none' | 'django' | 'spring' | 'sql' | 'supabase' | 'sqlalchemy' | 'jsonschema' | 'agent' | 'qiskit' | 'web_app_checklist';
 
 const GENERATOR_DIALOG_MAP: Partial<Record<GeneratorType, Exclude<ConfigDialog, 'none'>>> = {
   django: 'django',
+  spring: 'spring',
   sql: 'sql',
   supabase: 'supabase',
   sqlalchemy: 'sqlalchemy',

@@ -33,6 +33,7 @@ const CLASS_GENERATORS: GeneratorMenuEntry[] = [
     labelKey: 'menu.generate.groups.web',
     actions: [
       { kind: 'action', label: 'Django Project', labelKey: 'menu.generate.actions.djangoProject', generator: 'django' },
+      { kind: 'action', label: 'Spring Project', labelKey: 'menu.generate.actions.springProject', generator: 'spring' },
       { kind: 'action', label: 'Full Backend', labelKey: 'menu.generate.actions.fullBackend', generator: 'backend' },
       {
         kind: 'action',
