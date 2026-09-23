@@ -1,12 +1,18 @@
-Agent Components Panel
-======================
+Agent Components
+================
 
-The Agent Components Panel is a two-column sidebar available when an agent diagram is open. It
-provides a centralized view for managing all agent-level resources: LLMs, Intents, Tools, Skills,
-Workspaces, RAG Databases, SQL Databases, and GUIs. These resources are shared across all states
-in the diagram and referenced by body actions and transitions.
+The **Components** page manages the agent-level resources of the active agent diagram: LLMs,
+Intents, Tools, Skills, Workspaces, RAG Databases, SQL Databases, and GUIs. These resources are
+shared by all states of the diagram and are referenced by name from state body actions and
+transitions (see :doc:`diagrams/agent-diagram`).
 
-Open the panel from the toolbar or sidebar while an agent diagram is active.
+To open it, select an agent diagram and click **Components** under **Agent** in the left
+sidebar. The page replaces the canvas: a section list on the left (each entry shows how many
+items it holds) and the selected section on the right. Click **Add ...** (for example
+**Add LLM**) to create an item, and click an item to expand or collapse its fields.
+
+Runtime settings such as the platform, API keys and the ``config.yaml`` file are edited on the
+**Agent Customization** page instead (see :doc:`agent-runtime`).
 
 .. contents:: Sections
    :local:
@@ -15,119 +21,141 @@ Open the panel from the toolbar or sidebar while an agent diagram is active.
 LLMs
 ----
 
-Register the language models available to the agent. Each LLM entry has:
+Register the language models available to the agent. Each LLM has:
 
-- **Name**: identifier used to reference this LLM in state body actions.
-- **Provider**: one of ``openai``, ``huggingface``, ``huggingface_api``, ``replicate``, or
-  ``ollama``.
-- **Model / Parameters**: provider-specific model identifier (for example ``gpt-4o-mini`` for
-  OpenAI).
+- **Model Name**: the model identifier (for example ``gpt-4o-mini``), also used to reference
+  this LLM from state actions and RAG databases.
+- **Provider**: **OpenAI**, **HuggingFace (local)**, **HuggingFace API**, **Replicate**, or
+  **Ollama (local)**.
+- **Set as default LLM**: use this LLM when a state action does not select one.
+- **Num previous messages**: how many previous messages are sent to the model as context.
+- **Parameters**: provider-specific parameters as a JSON object.
+- **Global context**: optional system-level instructions for this LLM.
 
-When no default LLM is set, the first LLM added becomes the agent's default as soon as you give
-it a name. Renaming the default LLM keeps it the default, and removing it clears the default.
-Tick **Set as default** on any entry to change the default. Body actions that do not specify an
-LLM use the default automatically.
+When no default LLM is set, the first LLM added becomes the default as soon as you give it a
+name. Renaming the default LLM keeps it the default, and removing it clears the default.
 
 Intents
 -------
 
-Intents represent the user's goals or vocabulary. Each intent requires:
+Intents represent what the user wants to do. Each intent has:
 
-- **Name**: identifier used in *When Intent Matched* transitions.
-- **Training sentences**: a list of example user phrases the intent classifier learns from.
+- **Intent name**: referenced by *Intent Matched* transitions.
+- **Description (optional)**.
+- **Training sentences**: example user phrases the intent classifier learns from. Click
+  **Add sentence** to add one.
 
-Add one or more training sentences per intent. The more varied the examples, the more robust the
-classifier.
+The more varied the training sentences, the more robust the classifier.
 
 Tools
 -----
 
-Tools are callable Python functions available to reasoning states. Each tool has:
+Tools are Python functions that reasoning states can call. Each tool has:
 
-- **Name**: identifier used in the agent's reasoning loop.
-- **Description**: natural-language description of what the tool does (shown to the LLM).
-- **Code**: Python implementation. The function receives arguments determined by the LLM at
-  runtime.
+- **Tool name**.
+- **Description**: what the tool does, shown to the LLM.
+- **Python code**: the implementation. The function receives the ``session`` parameter for
+  agent session access; the other arguments are chosen by the LLM at runtime.
 
 Skills
 ------
 
-Skills are reusable instruction snippets injected into the reasoning context. Each skill has:
-
-- **Name**: identifier.
-- **Content**: the instruction text injected into the LLM's system context.
-- **Description**: optional description shown alongside the skill.
+Skills are Markdown knowledge documents provided to reasoning states. Each skill has a
+**Skill name**, a **Description**, and the **Markdown content** given to the LLM.
 
 Workspaces
 ----------
 
-Workspaces are file-system locations the agent may read from (and optionally write to). Each
+Workspaces are filesystem directories the agent can read or write during reasoning. Each
 workspace has:
 
-- **Name**: identifier.
-- **Path**: relative or absolute path to the workspace directory.
-- **Description**: optional description of the workspace contents.
-- **Writable**: when enabled, the agent is allowed to write files to this location.
-- **Max read bytes**: optional limit on the amount of data read from the workspace in a single
-  operation.
+- **Workspace name**.
+- **Filesystem path**: absolute path to the directory on the host system.
+- **Description**.
+- **Writable**: allow the agent to create or modify files.
+- **Max read bytes**: limit on the amount of data read in a single operation.
+
+.. note::
+
+   Tools, Skills and Workspaces are only used by a reasoning state. The page shows a warning in
+   these sections while the diagram has no reasoning state.
 
 RAG Databases
 -------------
 
-RAG (Retrieval-Augmented Generation) databases allow the agent to answer questions from a
-collection of documents. Each RAG database entry has:
+RAG (Retrieval-Augmented Generation) databases let the agent answer questions from a
+collection of documents. Each RAG database has:
 
-- **Name**: identifier referenced by *RAG Reply* actions.
-- **Embedding provider**: ``openai`` or ``ollama``.
-- **LLM name**: the LLM used to generate the final answer from retrieved chunks.
-- **Other configuration**: splitter settings, hybrid retrieval (BM25) toggle, and optional
-  hint prompt.
+- **Name**: referenced by *RAG* state actions.
+- **LLM**: the LLM that answers from the retrieved content; **(use default)** uses the
+  default LLM.
+- **LLM prompt prefix**: optional text prepended to the prompt sent to the LLM.
+- **K (retrieved chunks)**: number of document chunks retrieved per query (default ``4``).
+- **Num previous messages**: previous messages included as context (default ``0``).
+- **Embedding provider**: **OpenAI** or **Ollama (local)**. With Ollama, two more fields
+  appear: **Embedding base URL** (default ``http://localhost:11434``) and **Embedding model**.
 
-Place your PDF (or other supported) documents in the generated data folder before running
-the agent. The folder is named after the RAG element (for example, a database named
-``"Knowledge Base"`` produces ``knowledge_base/``).
+Place your PDF (or other supported) documents in the data folder of the generated agent before
+running it. The folder is named after the RAG database, in lowercase: a database named
+``ProductDocs`` uses ``productdocs/``.
 
 SQL Databases
 -------------
 
-SQL Database entries let the agent query relational databases using natural language via the
-*DB Reply* action. Each entry has:
+SQL databases let the agent query relational databases with the *SQL Query* state action.
+Each entry has:
 
-- **Name**: identifier referenced by *DB Reply* actions.
-- **Dialect**: ``postgresql`` (default), ``sqlite``, ``mysql``, ``mariadb``, ``mssql`` or
-  ``oracle``.
-- **Database**: the database name, or the path of the database file for SQLite.
-- **Host** and **Port**: where the database server listens (default ``localhost`` and ``5432``).
-- **Username** and **Password**: the credentials used to connect.
+- **Name**: the key of the connection in ``config.yaml``, and the name to enter as the
+  **Custom database name** of a *SQL Query* action.
+- **Dialect**: PostgreSQL (default), SQLite, MySQL, MariaDB, Microsoft SQL Server or Oracle.
+- **Database name**, or **Database file path** for SQLite.
+- **Host** and **Port**.
+- **Username** and **Password**.
 
 Host, port, username and password are hidden for SQLite, which only needs the file path. SQL
-databases are saved in the agent's configuration file (``config.yaml``), not in the diagram.
+databases are written to the ``db.sql`` section of the agent's ``config.yaml``, which you can
+inspect in **Raw YAML** on the :doc:`agent-runtime` page.
+
+.. warning::
+
+   The SQL database settings, including the **Password**, are saved in plain text in the
+   project's agent configuration. Anyone who receives an export of the project can read them.
+   Use a dedicated database user with limited rights, and remove the password before sharing
+   the project.
 
 GUIs
 ----
 
-GUI entries associate interactive BESSER GUI models with the agent. The agent can send a GUI
-panel directly in the chat using a *GUI Reply* action, and then react to user submissions with
-a *Form Submitted* transition.
+GUIs are graphical components the agent can send as chat replies (with a *GUI* state action)
+and react to with a *Form Submitted* transition. Click **Create GUI** to add one. Each GUI has:
 
-Each GUI entry has:
-
-- **Name / GUI ID**: identifier referenced by ``GUIReplyAction`` in state bodies and by
-  *Form Submitted* transitions.
-- **GUI Editor**: click the edit button to open the built-in GrapesJS-based GUI builder (see
-  `GUI Editor`_ below).
+- **GUI ID (message_id)**: used as ``message_id`` in GUI events and as the form ID in
+  *Form Submitted* transitions. A unique ID is generated when the GUI is created.
+- **Persist**: keep the GUI visible after the user interacts with it (enabled by default).
+- **Is Form**: enables *Form Submitted* transitions for this GUI.
+- **Width (optional)**: CSS width of the GUI panel.
+- **Open GUI Editor** (or **Edit GUI design** once a design exists): opens the GUI Editor
+  described below.
 
 GUI Editor
 ~~~~~~~~~~
 
-The GUI Editor is a visual, drag-and-drop interface (powered by
-`GrapesJS <https://grapesjs.com/>`_) for building the GUI model associated with a given GUI
-entry. It supports forms, buttons, text elements, input fields, and layout containers.
+The GUI Editor is a visual, drag-and-drop editor (powered by
+`GrapesJS <https://grapesjs.com/>`_) for designing the content of a GUI: forms, buttons, text,
+input fields, and layout containers. Click **Save and Exit** to keep the design, or **Cancel**
+to discard it.
 
-Changes made in the GUI Editor are stored directly in the agent's ``gui_models`` dictionary
-and are picked up by the BAF generator when generating the agent code.
+The editor stores each GUI as an ``AgentGUI`` component of the agent diagram, with its design
+attached. When you generate or simulate the agent, the backend converts these components into
+BESSER GUI models that the BAF generator uses.
 
 .. seealso::
 
    :doc:`diagrams/agent-diagram`
-      How to reference GUI entries in state body actions and transitions.
+      How to use these components in state body actions and transitions.
+
+   :doc:`agent-runtime`
+      Platform, API keys and the ``config.yaml`` file of the agent.
+
+   :doc:`agent-simulation`
+      Try the agent from the editor.

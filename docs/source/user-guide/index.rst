@@ -11,5 +11,3 @@ Welcome to the BESSER Web Modeling Editor User Guide. This section provides deta
    projects
    deploy_locally
    diagrams/index
-   agent-components
-   agent-simulation

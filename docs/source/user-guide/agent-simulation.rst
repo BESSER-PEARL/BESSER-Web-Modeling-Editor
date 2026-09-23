@@ -1,107 +1,127 @@
 Agent Simulation
 ================
 
-The Agent Simulator lets you chat with and inspect a running instance of your agent without
-leaving the editor. The agent code is generated from the current diagram, deployed to the BESSER
-backend, and connected to a live session — all in a single click.
+The Agent Simulator lets you chat with a running instance of your agent and watch it move
+through its states without leaving the editor. The backend generates the agent code from the
+current diagram and runs it in an isolated session on the agent simulator service.
 
-.. note::
+Requirements and limitations
+----------------------------
 
-   The Agent Simulator requires a running BESSER backend with simulation support. When using the
-   hosted editor at https://editor.besser-pearl.org, the backend is provided automatically.
-   For local deployments, start the backend with simulation endpoints enabled.
+The hosted editor at https://editor.besser-pearl.org provides the simulator. A self-hosted
+deployment needs:
+
+- the ``besser-wme-agent-simulator`` service running next to the backend, and
+- the same ``AGENT_SIMULATOR_API_TOKEN`` value set on both the backend and the simulator. While
+  the token is unset, the simulator refuses every request.
+
+See the `Agent Simulator <https://besser.readthedocs.io/en/latest/utilities/agent_simulator.html>`_
+page of the BESSER documentation for the architecture, the security model and all the settings.
+
+With the default settings:
+
+- **GitHub sign-in is required** to start a simulation.
+- **Custom Python code is refused**: an agent with a state body in **Custom (Python)** mode
+  cannot be simulated; the validation step reports it. Tools written in Python are allowed.
+- **One session at a time per user**: stop the running simulation before starting another one.
+- **Sessions have a lifetime limit** (15 minutes by default); the session is stopped when it
+  expires. The limit is shown under **Resource Limits** in the dialog described below.
+- **API keys are used only for the session**: the keys you enter are passed to the agent of
+  this session and are not stored. The editor keeps them in memory only so that **Restart** can
+  reuse them, and forgets them when the simulation stops.
+
+.. warning::
+
+   Do not share sensitive personal information in the simulation chat. Simulation sessions are
+   logged and may be visible to the operators of the editor.
 
 Launching a Simulation
 ----------------------
 
 1. Open an agent diagram.
-2. Click the **Simulate Agent** button in the toolbar.
-3. The **Credentials** dialog opens (see `Credentials Dialog`_ below).
-4. Confirm to start — the panel opens and the agent boots in the background.
+2. Click **Simulate Agent** under **Agent** in the left sidebar.
+3. The editor validates the agent first (this also checks the requirements above). If
+   validation fails, the errors are shown in a notification and the simulation does not start.
+4. The **Simulate Agent: <diagram name>** dialog opens (see `Credentials Dialog`_ below).
+5. Click **Start Simulation**. The simulator page opens and the agent starts in the background.
 
 Credentials Dialog
 ------------------
 
-Before the simulation starts, you must provide API credentials for any LLM providers your agent
-uses.
+**API Keys**
 
-**API key mode**
+- **Use my own API keys** (default): enter the keys of the LLM providers your agent uses:
 
-- **Own keys** (default): enter one or more provider keys:
+  - **OpenAI API Key** (optional)
+  - **HuggingFace API Token** (optional)
+  - **Replicate API Key** (optional)
 
-  - *OpenAI API Key* (optional)
-  - *HuggingFace Token* (optional)
-  - *Replicate API Key* (optional)
+  Only fill in the keys your agent needs.
 
-  Only fill in the keys needed by your agent. All values are transmitted securely and are
-  never stored by the editor.
+- **Use editor quota**: shown only when the deployment enables it. The agent then uses the
+  editor host's quota instead of your own keys.
 
-- **Editor quota** (when enabled by the deployment): use a shared quota managed by the editor
-  host rather than your own keys.
+**Resource Limits**
 
-**Resource limits**
-
-Expand the *Resource limits* section to see the constraints applied to your simulation session
-(memory, CPU, disk, and maximum session lifetime). These limits are set by the backend deployment.
+Expand this section to see the limits applied to the session: **Memory**, **CPU**, **Disk** and
+**Session lifetime**. The deployment sets these values.
 
 Simulation Panel
 ----------------
 
-Once the agent is running the simulation panel opens as a full-screen overlay with two resizable
-panes separated by a drag handle.
+The simulator page shows the diagram name in its header (**Simulator: <diagram name>**) and has
+two panes separated by a drag handle that resizes them.
 
-Left pane — Diagram / Code
-~~~~~~~~~~~~~~~~~~~~~~~~~~
+Left pane: Diagram and Source
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-A tab bar switches between two views:
+Two tabs switch the view:
 
-**Diagram tab**
-   A read-only replica of the agent state machine. The currently active state is highlighted in
-   real time as the agent processes transitions, giving a live visual trace of the agent's
-   execution flow.
+**Diagram**
+   A read-only copy of the agent state machine. The current state is highlighted as the agent
+   runs, and **View** / **Hide** shows the list of transitions taken so far.
 
-**Code tab** (via the file explorer)
-   Displays the generated Python code sent to the backend. Use this to verify what was actually
-   deployed.
+**Source**
+   A file explorer of the session's files: the generated ``agent.py`` (selected automatically),
+   ``config.yaml`` and support files such as ``tools.py``, plus the files the agent writes while
+   it runs. Click a file to view its content, or **Refresh files** to reload the list.
 
-**File Explorer**
-   A collapsible tree of files generated by the agent's session (workspace outputs, uploaded
-   files, and other session artefacts). Click any file to inspect its contents.
+The right end of the tab bar shows the **Last transition:** taken by the agent and the
+**Restart** button.
 
-Right pane — Chat & Terminal
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Right pane: Chat and Agent Output
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-**Chat interface**
-   A standard conversational UI where you type messages and receive the agent's replies. GUI
-   panels sent by the agent (via *GUI Reply* actions) are rendered inline in the chat bubble.
+**Chat**
+   Type messages and read the agent's replies. Rich replies, such as options or GUIs sent by a
+   *GUI* action, are rendered in the conversation.
 
-**Terminal pane**
-   A collapsible view showing live ``stdout`` output from the agent process (up to 2,000 lines).
-   Expand it to see log messages, debug output, and any errors produced during execution.
+**Agent Output**
+   A collapsible terminal with the live output of the agent process (the last 2,000 lines).
+   Expand it to see log messages and errors raised while the agent runs.
 
 Simulation Controls
 -------------------
 
-The toolbar at the top of the panel provides:
-
-- **Stop** — terminates the running session and returns the panel to the idle state.
-- **Restart** — stops the current session and immediately starts a new one using the same
-  diagram and credentials (useful after editing the diagram).
+- **Stop simulation** (the close button at the right of the header): ends the session and
+  returns to the editor. Leaving the simulator page or switching project also stops the session.
+- **Restart** (in the tab bar, tooltip **Restart simulation**): stops the session and starts a new one with the
+  same agent and the same API keys.
 
 .. note::
 
-   Changes made to the diagram *after* launching a simulation are not reflected in the running
-   session. Use **Restart** to deploy an updated version.
+   **Restart** reuses the agent as it was when you launched the simulation. To try changes you
+   made to the diagram, stop the simulation and click **Simulate Agent** again.
 
-Status indicator
-~~~~~~~~~~~~~~~~
+Status and errors
+~~~~~~~~~~~~~~~~~
 
-The panel header shows the current simulation status:
-
-- **Starting** — the backend is generating code and booting the agent process.
-- **Running** — the agent is ready and accepting user messages.
-- **Stopping** — the session is being cleaned up.
-- **Error** — something went wrong; check the terminal pane for details.
+- While the agent starts, a spinner is shown in the header, **Starting simulation...** appears
+  in the tab bar, and the banner **The agent is loading, please wait.** is shown above the
+  terminal until the agent produces its first output.
+- If the session cannot be started or fails, a **Simulation error** banner shows the reason.
+  Click **Close** to end the session. Errors raised by the agent code itself are shown in
+  **Agent Output**.
 
 .. seealso::
 
@@ -110,3 +130,6 @@ The panel header shows the current simulation status:
 
    :doc:`agent-components`
       Managing LLMs, intents, tools, and other agent resources.
+
+   :doc:`agent-runtime`
+      Platform, NLP settings and the ``config.yaml`` file of the agent.

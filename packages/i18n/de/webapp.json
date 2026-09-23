@@ -2821,7 +2821,7 @@
       "lastTransition": "Letzter Übergang:",
       "starting": "Simulation wird gestartet…",
       "restart": "Simulation neu starten",
-      "reset": "Zurücksetzen",
+      "reset": "Neu starten",
       "dragToResize": "Zum Ändern der Größe ziehen",
       "loading": "Der Agent wird geladen, bitte warten."
     },

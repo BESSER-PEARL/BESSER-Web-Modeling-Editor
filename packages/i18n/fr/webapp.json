@@ -2821,7 +2821,7 @@
       "lastTransition": "Dernière transition :",
       "starting": "Démarrage de la simulation…",
       "restart": "Redémarrer la simulation",
-      "reset": "Réinitialiser",
+      "reset": "Redémarrer",
       "dragToResize": "Faites glisser pour redimensionner",
       "loading": "L’agent est en cours de chargement, veuillez patienter."
     },

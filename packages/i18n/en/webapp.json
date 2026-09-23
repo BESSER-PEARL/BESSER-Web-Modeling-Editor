@@ -2821,7 +2821,7 @@
       "lastTransition": "Last transition:",
       "starting": "Starting simulation…",
       "restart": "Restart simulation",
-      "reset": "Reset",
+      "reset": "Restart",
       "dragToResize": "Drag to resize",
       "loading": "The agent is loading, please wait."
     },

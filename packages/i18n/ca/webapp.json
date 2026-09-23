@@ -2821,7 +2821,7 @@
       "lastTransition": "Última transició:",
       "starting": "Iniciant la simulació…",
       "restart": "Reinicia la simulació",
-      "reset": "Restableix",
+      "reset": "Reinicia",
       "dragToResize": "Arrossega per redimensionar",
       "loading": "L’agent s’està carregant, espera un moment."
     },

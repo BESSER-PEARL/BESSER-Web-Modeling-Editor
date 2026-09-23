@@ -7,8 +7,9 @@ Agent diagrams are used to design conversational agents and their behaviors, sup
 .. note::
 
    Agent-level components — LLMs, Intents, Tools, Skills, Workspaces, RAG databases, SQL databases, and
-   GUI models — are managed in the :doc:`../agent-components` panel rather than on the diagram canvas
-   directly.
+   GUIs — are managed on the :doc:`../agent-components` page rather than on the diagram canvas.
+   Runtime settings (platform, intent recognition, ``config.yaml``) are on the
+   :doc:`../agent-runtime` page.
 
 Agent States
 ------------
@@ -30,107 +31,144 @@ Double-click an AgentState to edit its body:
 State Body Actions
 ~~~~~~~~~~~~~~~~~~
 
-Each state body is a sequence of one or more actions. Select the action type from the button grid at the
-top of the body editor.
+Each state body is a sequence of one or more actions, run in order. Drag an action to reorder
+it, and click it to expand its fields.
 
-**Text Reply**
+To add an action, use the **New action** picker below the body: choose a tab, pick an action
+type, then click **Add** (the button shows the chosen type, for example **Add Text**). The tabs
+group the action types:
 
-Sends a static text message to the user.
+- **Simple Replies**: **Text**, **Speech**, **Options**, **GUI**, **Location**, **HTML**,
+  **Markdown**, **File**, **Image**, **Dataframe**, **Plotly**.
+- **AI Replies**: **LLM**, **LLM Chat**.
+- **Data Query**: **RAG**, **SQL Query**, **Web Crawl + LLM**.
+
+Several AI and data actions share these fields:
+
+- **LLM**: the LLM to use; **(use default)** uses the agent's default LLM (see
+  :doc:`../agent-components`).
+- **Input (sent to LLM)** (or **Input (sent to RAG)**, **Input (sent to DB + LLM)**): **Last
+  user message** (default) sends the user's latest message; **Custom prompt** sends a template
+  instead. Tick **Replace {vars} at runtime** to fill ``{user_message}`` and ``{key}``
+  placeholders from the session.
+- **Store result in session (optional)**: a session key under which the result is stored, to
+  reuse it in later states.
+- **Send as agent reply**: untick to only store the result without sending it to the user.
+
+**Text**
+
+Sends a plain text message.
 
 - **Message**: the text to send.
-- **Use session vars**: when enabled, ``{key}`` placeholders in the message are replaced at runtime
-  with the value stored in the session under that key. The special placeholder ``{user_message}``
-  resolves to the current user input.
+- **Interpolate session variables**: replaces ``{key}`` placeholders with the session value
+  stored under that key; ``{user_message}`` is the current user message.
 
-**LLM Reply**
+**LLM**
 
-Generates a reply using a Large Language Model.
+Sends a prompt to an LLM and replies with the generated text.
 
-- **LLM**: selects a registered LLM (leave blank for the agent default — see :doc:`../agent-components`).
-- **System prompt**: optional system-level instruction for the LLM.
-- **System prompt uses session vars**: enables ``{key}`` interpolation in the system prompt.
-- **Input prompt mode**: ``last_user_message`` (default) passes the user's latest message as the LLM
-  input; ``custom`` uses the *Custom input prompt* field instead.
-- **Custom input prompt**: template string used when the input mode is ``custom``.
-- **Custom input prompt uses session vars**: enables ``{key}`` interpolation in the custom prompt.
-- **Store in session**: when set, the LLM reply is stored in the session under this key before being
-  sent to the user.
-- **Send reply**: uncheck to suppress sending the reply to the user (useful when only storing the
-  result in the session).
+- **LLM**, **Input (sent to LLM)**, **Store result in session (optional)**, **Send as agent
+  reply**: see above.
+- **System message**: optional system-level instruction. Tick **Interpolate {vars} in system
+  message** to fill session placeholders.
 
-**LLM Chat Reply**
+**LLM Chat**
 
-Like *LLM Reply* but calls the LLM with the full conversation history, making it suitable for
-multi-turn dialogue states. Supports the same **System prompt**, **Store in session**, and
-**Send reply** controls.
+Like **LLM**, but in conversational mode: the LLM receives the message history, which suits
+multi-turn dialogue. It needs an OpenAI or Hugging Face LLM, and offers the **LLM**, **System
+message**, **Store result in session (optional)** and **Send as agent reply** fields.
 
-**RAG Reply**
+**RAG**
 
-Answers using a configured RAG (Retrieval-Augmented Generation) database.
+Answers from a RAG database registered on the :doc:`../agent-components` page, with the LLM
+set on that database.
 
-- **RAG database**: selects a RAG database registered in the :doc:`../agent-components` panel.
-- **Prompt**: optional hint prompt prepended to the retrieved context before the LLM call.
-- **Input prompt mode / Custom input prompt / session-var interpolation**: same semantics as
-  *LLM Reply*.
-- **Prompt uses session vars**: enables ``{key}`` interpolation in the hint prompt.
-- **Store in session** / **Send reply**: same semantics as *LLM Reply*.
+- **RAG database**: the database to query.
+- **Prompt**: optional prompt passed to the RAG call. Tick **Interpolate {vars} in prompt** to
+  fill session placeholders.
+- **Input (sent to RAG)**, **Store result in session (optional)**, **Send as agent reply**: see
+  above.
 
-**DB Reply**
+**SQL Query**
 
-Answers from a SQL database by translating the user's request into a SQL query with an LLM.
+Runs a query on a SQL database and replies with the result. Click **Initialize database
+action** to set it up, then fill in:
 
-- **Database**: selects a SQL database registered in the :doc:`../agent-components` panel (or enter
-  a custom database name).
-- **Query mode**: ``llm_query`` (natural-language to SQL) or direct SQL entry.
-- **LLM**: selects the LLM to use for query generation.
-- **Store in session** / **Send reply**: same semantics as *LLM Reply*.
+- **Select a Database**: **Default (using the app DB)**, or **Custom** with a **Custom database
+  name**, which must match the **Name** of an entry in **SQL Databases** on the
+  :doc:`../agent-components` page.
+- **DB operation**: **Any**, **SELECT**, **INSERT**, **UPDATE** or **DELETE**.
+- Query mode: **LLM query** (an LLM writes the query from the user's request; set the **LLM**
+  and **Input (sent to DB + LLM)**) or **SQL** (enter the SQL query yourself).
+- **Store result in session (optional)**, **Send as agent reply**: see above.
 
-**Web Crawl LLM Reply**
+**Web Crawl + LLM**
 
-Performs a BFS web crawl starting from a URL and queries an LLM with the retrieved content.
+Crawls a website and uses an LLM to answer from the scraped content.
 
-- **Initial URL**: the starting URL for the crawl.
-- **Max depth** / **Max pages**: limit the crawl breadth.
-- **Crawl format**: output format of the crawled content (default: ``markdown``).
-- **Base URL prefix**: restricts the crawl to URLs with this prefix.
-- **Run crawl**: when unchecked, the cached crawl result from the session is reused (avoids
-  re-fetching in subsequent states).
-- **No crawl error message**: message sent to the user when no crawl data is available.
-- **System message prefix**: text prepended to the LLM system message with the crawled content.
-- **System message prefix uses session vars**: enables ``{key}`` interpolation in the prefix.
-- **LLM** / **Store in session** / **Send reply**: same semantics as *LLM Reply*.
+- **Initial URL**: where the crawl starts.
+- **Base URL prefix (optional)**: restricts the crawl to URLs with this prefix.
+- **Max depth** / **Max pages**: limit the crawl.
+- **Crawl format**: **Markdown** (default), **Plain text** or **HTML**.
+- **Run crawl (uncheck to reuse cached result)**: untick to reuse the crawl result already in
+  the session.
+- **No-crawl error message**: sent when no crawl data is available.
+- **System message prefix (optional)**: text placed before the crawled content in the LLM system
+  message. Tick **Interpolate {vars} in system message prefix** to fill session placeholders.
+- **LLM**, **Store result in session (optional)**, **Send as agent reply**: see above.
 
-**GUI Reply**
+**GUI**
 
-Sends a BESSER GUI model as an interactive panel directly in the chat conversation (for example,
-a form or a dashboard).
+Sends a GUI registered on the :doc:`../agent-components` page as an interactive panel in the
+chat (for example, a form). Select it in **GUI**. When the user submits a form, the agent can
+react with a *Form Submitted* transition (see `Transitions`_ below).
 
-- **GUI**: selects a GUI model registered in the :doc:`../agent-components` panel.
+**WebSocket replies**
 
-When the user submits the GUI form, the agent can react with a *Form Submitted* transition (see
-`Transitions`_ below).
+These actions need the **WebSocket** platform, set in **Agent Runtime** on the
+:doc:`../agent-runtime` page. They are shown in red as a reminder while another platform is
+selected.
 
-**Python Code**
+- **Markdown** / **HTML**: sends a Markdown- or HTML-formatted **Message**.
+- **Speech**: converts the **Message** to speech and sends it as audio, with an optional
+  **Audio speed (optional)**.
+- **Options**: sends selectable options, one per line in **Options (one per line)**.
+- **Location**: sends a location pin from a **Latitude** and a **Longitude**.
+- **File**, **Image**, **Dataframe**, **Plotly**: send a file, an image, a pandas DataFrame
+  (as a table) or a Plotly chart. The generated code contains a placeholder: before the state is
+  reached, your code must assign the object to send (``reply_file_obj``, ``reply_image_arr``,
+  ``reply_df`` or ``reply_plot``).
 
-Executes custom Python code. The function must accept ``session`` as its only argument.
+Markdown, HTML and Speech offer **Interpolate {vars} in message** to fill session placeholders.
+
+**Custom Python code**
+
+Instead of a list of actions, a body can be written in Python: switch the body from
+**Predefined** to **Custom (Python)**, then click **Initialize Python code**. The function
+receives ``session`` as its only argument. Agents with custom Python bodies cannot be tried in
+the :doc:`../agent-simulation` with the default settings.
+
+Tick **Enable Fallback Body** to give the state a **Fallback Body**, edited the same way as the
+body.
 
 Transitions
 -----------
 
-Transitions define how the agent moves between states. Supported predefined conditions:
+Transitions define how the agent moves between states. The transition editor has two tabs,
+**Predefined transition** and **Custom transition**. The predefined types are:
 
-*   **When Intent Matched**: Occurs when a specific user intent is recognized.
-*   **When No Intent Matched**: Fallback when no intent is recognized.
-*   **Variable Operation Matched**: Checks if a session variable meets a condition (variable name,
-    operator, and target value).
-*   **File Received**: Occurs when a specific file type is uploaded.
-*   **Form Submitted**: Occurs when the user submits a GUI form. Optionally specify a **GUI ID**
-    to react only to submissions from a particular ``GUIReplyAction``; leave blank to react to any
-    form submission.
-*   **Auto Transition**: Occurs automatically after the state action completes.
+*   **Auto**: fires when the state body finishes, without waiting for user input.
+*   **Intent Matched**: fires when the user's message matches the selected intent.
+*   **No Intent Matched**: fires when none of the intents match.
+*   **Variable Operation Matched**: fires when a session variable satisfies a comparison
+    (variable, operator, and target value).
+*   **File Received**: fires when the user uploads a file; optionally restrict it to some file
+    types.
+*   **Form Submitted**: fires when the user submits a GUI form. Select one of the GUIs that have
+    **Is Form** ticked on the :doc:`../agent-components` page, or keep **Any form submission**.
 
-Custom transitions (using an explicit ``event`` class and free-form condition strings) are also
-supported via the **Custom** tab in the transition editor.
+A **Custom transition** uses an explicit **Event** and free-form **Conditions** (click **Add
+condition**).
 
 .. image:: ../../images/wme/agent/agent_transition.png
   :width: 400
@@ -141,7 +179,7 @@ Intents
 -------
 
 Intents represent the user's goals or vocabulary. Each intent requires a name and a list of
-training sentences and is managed from the :doc:`../agent-components` panel.
+training sentences and is managed on the :doc:`../agent-components` page.
 
 .. image:: ../../images/wme/agent/agent_intent.png
   :width: 400
