@@ -183,3 +183,55 @@ export class PermuteOutAttributeConv3D extends Conv3DAttribute {
     this.name = `${this.attributeName} = ${this.value}`;
   }
 }
+
+export class DilationAttributeConv3D extends Conv3DAttribute {
+  type: UMLElementType = NNElementType.DilationAttributeConv3D;
+  constructor(values?: DeepPartial<IConv3DAttribute>) {
+    super({ attributeName: 'dilation', value: '[1, 1, 1]', isMandatory: false, ...values });
+    this.attributeType = 'List';
+    this.name = `${this.attributeName} = ${this.value}`;
+  }
+}
+
+export class GroupsAttributeConv3D extends Conv3DAttribute {
+  type: UMLElementType = NNElementType.GroupsAttributeConv3D;
+  constructor(values?: DeepPartial<IConv3DAttribute>) {
+    super({ attributeName: 'groups', value: '1', isMandatory: false, ...values });
+    this.attributeType = 'int';
+    this.name = `${this.attributeName} = ${this.value}`;
+  }
+}
+
+export class BiasAttributeConv3D extends Conv3DAttribute {
+  type: UMLElementType = NNElementType.BiasAttributeConv3D;
+  constructor(values?: DeepPartial<IConv3DAttribute>) {
+    super({ attributeName: 'bias', value: 'true', isMandatory: false, ...values });
+    this.attributeType = 'bool';
+    this.name = `${this.attributeName} = ${this.value}`;
+  }
+}
+
+export class IsLayerCallAttributeConv3D extends Conv3DAttribute {
+  type: UMLElementType = NNElementType.IsLayerCallAttributeConv3D;
+  constructor(values?: DeepPartial<IConv3DAttribute>) {
+    super({ attributeName: 'is_layer_call', value: 'false', isMandatory: false, ...values });
+    this.attributeType = 'bool';
+    this.name = `${this.attributeName} = ${this.value}`;
+  }
+}
+
+export class InputVarAttributeConv3D extends Conv3DAttribute {
+  type: UMLElementType = NNElementType.InputVarAttributeConv3D;
+  constructor(values?: DeepPartial<IConv3DAttribute>) {
+    super({ attributeName: 'input_var', value: '', isMandatory: false, ...values });
+    this.name = `${this.attributeName} = ${this.value}`;
+  }
+}
+
+export class OutputVarAttributeConv3D extends Conv3DAttribute {
+  type: UMLElementType = NNElementType.OutputVarAttributeConv3D;
+  constructor(values?: DeepPartial<IConv3DAttribute>) {
+    super({ attributeName: 'output_var', value: '', isMandatory: false, ...values });
+    this.name = `${this.attributeName} = ${this.value}`;
+  }
+}

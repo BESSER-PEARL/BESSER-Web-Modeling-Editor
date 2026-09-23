@@ -90,6 +90,7 @@
       },
       "actions": {
         "djangoProject": "Proyecto Django",
+        "springProject": "Proyecto Spring",
         "fullBackend": "Backend completo",
         "webApplication": "Aplicación web",
         "pythonClasses": "Clases Python",
@@ -515,6 +516,20 @@
       "appName": "Nombre de la aplicación",
       "includeDocker": "Incluir contenedorización con Docker"
     },
+    "spring": {
+      "title": "Configuración del proyecto Spring Boot",
+      "description": "Configura los nombres y las versiones para la generación del backend Spring Boot.",
+      "projectName": "Nombre del proyecto",
+      "appName": "Nombre de la aplicación",
+      "appNameHint": "Se convierte en la clase Java de la aplicación generada, p. ej. MyApplication.java.",
+      "packageName": "Nombre del paquete",
+      "packageNameHint": "Paquete Java base, p. ej. com.example. También se convierte en la ruta del directorio de código fuente.",
+      "bootVersion": "Versión de Spring Boot",
+      "selectBootVersion": "Selecciona una versión de Spring Boot",
+      "javaVersion": "Versión de Java",
+      "selectJavaVersion": "Selecciona una versión de Java",
+      "javaVersionOption": "Java {{version}}"
+    },
     "sql": {
       "title": "Selección de dialecto SQL",
       "description": "Elige el dialecto SQL para las sentencias DDL generadas.",
@@ -660,12 +675,16 @@
       "namesRequired": "Los nombres del proyecto y de la aplicación son obligatorios.",
       "namesMustDiffer": "Los nombres del proyecto y de la aplicación deben ser diferentes.",
       "namesInvalid": "Los nombres deben comenzar con una letra/guion bajo y contener solo letras, números y guiones bajos.",
+      "springFieldsRequired": "Los nombres del proyecto, de la aplicación y del paquete son obligatorios.",
+      "springAppNameInvalid": "El nombre de la aplicación debe ser un nombre de clase Java válido.",
+      "springPackageNameInvalid": "El nombre del paquete debe ser un paquete Java válido, p. ej. com.example.",
       "openUmlBeforeDeploy": "Abre un diagrama UML antes de desplegar.",
       "noValidPersonalizationMappings": "No se encontraron asignaciones de personalización válidas. Cree asignaciones y guarde variantes personalizadas primero."
     },
     "context": {
       "djangoGeneration": "Generación de Django",
       "djangoDeployment": "Despliegue de Django",
+      "springGeneration": "Generación de Spring",
       "sqlGeneration": "Generación de SQL",
       "supabaseGeneration": "Generación de Supabase",
       "sqlAlchemyGeneration": "Generación de SQLAlchemy",

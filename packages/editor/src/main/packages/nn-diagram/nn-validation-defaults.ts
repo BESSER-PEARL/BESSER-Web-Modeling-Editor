@@ -6,6 +6,7 @@ export const NN_ATTRIBUTE_DEFAULTS: Record<string, string> = {
   out_channels: '16',
   in_channels: '3',
   padding_amount: '0',
+  groups: '1',
   // Pooling-specific
   output_dim: '[16, 16]',
   // Linear
@@ -33,29 +34,65 @@ export const NN_ATTRIBUTE_DEFAULTS: Record<string, string> = {
   learning_rate: '0.001',
   weight_decay: '0.0',
   momentum: '0',
+  // TensorOp pad operation
+  pad_value: '0.0',
+  // TensorOp interpolate operation
+  interpolate_scale: '2.0',
+  // TensorOp dropout operation
+  dropout_rate: '0.5',
+  dropout_training_aware: 'true',
+  // TensorOp reduce operations
+  reduce_dim: '0',
+  // TensorOp shape operation
+  shape_dim: '0',
+  // TensorOp split operations
+  split_dim: '0',
+  split_sizes: '2',
 };
 
 export function getAttributeDefaultValue(element: { attributeName: string; value: string }): string {
   return NN_ATTRIBUTE_DEFAULTS[element.attributeName] || element.value || '';
 }
 
+// Identifier grammars, mirrored from `NN.validate()` / the NN metamodel setters in
+// besser/BUML/metamodel/nn/neural_network.py. Keep them in sync: anything the editor
+// accepts here is sent to the backend as-is.
+//   NN.input_var and Layer/TensorOp input_var  -> ^[a-zA-Z_][a-zA-Z0-9_]*$
+//   TensorOp input_var may also be a comma-separated list of those
+//   NN.return_vars / TensorOp output_vars      -> ^[a-zA-Z][a-zA-Z0-9_]*$ per entry
+export const IDENTIFIER_REGEX = /^[a-zA-Z_][a-zA-Z0-9_]*$/;
+export const IDENTIFIER_LIST_REGEX = /^[a-zA-Z_][a-zA-Z0-9_]*(\s*,\s*[a-zA-Z_][a-zA-Z0-9_]*)*$/;
+/** Same list mid-typing: a trailing comma is incomplete, not yet wrong. */
+export const IDENTIFIER_LIST_PARTIAL_REGEX = /^[a-zA-Z_][a-zA-Z0-9_]*(\s*,\s*[a-zA-Z_][a-zA-Z0-9_]*)*\s*,\s*$/;
+/** Entries of return_vars / output_vars must start with a letter (no leading underscore). */
+export const RETURN_VAR_REGEX = /^[a-zA-Z][a-zA-Z0-9_]*$/;
+
 export const LIST_STRICT_REGEX = /^\[\s*-?\d+(\s*,\s*-?\d+)*\s*\]$/;
 export const LIST_PERMISSIVE_REGEX = /^(\[(-?\d+(\s*,\s*-?\d+)*(\s*,?\s*)?)?\]?)$/;
+
+// Regex for identifier lists like [x1, x2] (unquoted identifiers starting with alphabet)
+export const LIST_IDENTIFIER_STRICT_REGEX = /^\[\s*[a-zA-Z_][a-zA-Z0-9_]*(\s*,\s*[a-zA-Z_][a-zA-Z0-9_]*)*\s*\]$/;
+export const LIST_IDENTIFIER_PERMISSIVE_REGEX = /^(\[([a-zA-Z_][a-zA-Z0-9_]*(\s*,\s*[a-zA-Z_][a-zA-Z0-9_]*)*(\s*,?\s*)?)?\]?)$/;
 
 export function getListExpectation(
   elementType: string,
   ownerId: string | null | undefined,
   elements: Record<string, any>,
-): { count: number | null; example: string } {
+): { count: number | null; example: string; type?: 'int' | 'string' } {
   switch (elementType) {
-    case NNElementType.KernelDimAttributeConv1D: return { count: 1, example: '[3]' };
-    case NNElementType.StrideDimAttributeConv1D: return { count: 1, example: '[1]' };
-    case NNElementType.KernelDimAttributeConv2D: return { count: 2, example: '[3, 3]' };
-    case NNElementType.StrideDimAttributeConv2D: return { count: 2, example: '[1, 1]' };
-    case NNElementType.KernelDimAttributeConv3D: return { count: 3, example: '[3, 3, 3]' };
-    case NNElementType.StrideDimAttributeConv3D: return { count: 3, example: '[1, 1, 1]' };
-    case NNElementType.NormalizedShapeAttributeLayerNormalization: return { count: 1, example: '[-1]' };
-    case NNElementType.TransposeDimAttributeTensorOp: return { count: 2, example: '[0, 1]' };
+    case NNElementType.KernelDimAttributeConv1D: return { count: 1, example: '[3]', type: 'int' };
+    case NNElementType.StrideDimAttributeConv1D: return { count: 1, example: '[1]', type: 'int' };
+    case NNElementType.DilationAttributeConv1D: return { count: 1, example: '[1]', type: 'int' };
+    case NNElementType.KernelDimAttributeConv2D: return { count: 2, example: '[3, 3]', type: 'int' };
+    case NNElementType.StrideDimAttributeConv2D: return { count: 2, example: '[1, 1]', type: 'int' };
+    case NNElementType.DilationAttributeConv2D: return { count: 2, example: '[1, 1]', type: 'int' };
+    case NNElementType.KernelDimAttributeConv3D: return { count: 3, example: '[3, 3, 3]', type: 'int' };
+    case NNElementType.StrideDimAttributeConv3D: return { count: 3, example: '[1, 1, 1]', type: 'int' };
+    case NNElementType.DilationAttributeConv3D: return { count: 3, example: '[1, 1, 1]', type: 'int' };
+    case NNElementType.NormalizedShapeAttributeLayerNormalization: return { count: 1, example: '[]', type: 'int' };
+    case NNElementType.TransposeDimAttributeTensorOp: return { count: 2, example: '[0, 1]', type: 'int' };
+    case NNElementType.PermuteDimAttributeTensorOp: return { count: null, example: '[0, 2, 1]', type: 'int' };
+    case NNElementType.ReshapeDimAttributeTensorOp: return { count: null, example: '[32, -1]', type: 'int' };
     case NNElementType.KernelDimAttributePooling:
     case NNElementType.StrideDimAttributePooling: {
       const isKernel = elementType === NNElementType.KernelDimAttributePooling;
@@ -64,12 +101,12 @@ export function getListExpectation(
           (el: any) => el.owner === ownerId && el.type === NNElementType.DimensionAttributePooling,
         );
         switch ((dimAttr as INNAttribute)?.value) {
-          case '1D': return { count: 1, example: isKernel ? '[3]' : '[1]' };
-          case '3D': return { count: 3, example: isKernel ? '[3, 3, 3]' : '[1, 1, 1]' };
-          default:   return { count: 2, example: isKernel ? '[3, 3]' : '[1, 1]' };
+          case '1D': return { count: 1, example: isKernel ? '[3]' : '[1]', type: 'int' };
+          case '3D': return { count: 3, example: isKernel ? '[3, 3, 3]' : '[1, 1, 1]', type: 'int' };
+          default:   return { count: 2, example: isKernel ? '[3, 3]' : '[1, 1]', type: 'int' };
         }
       }
-      return { count: 2, example: isKernel ? '[3, 3]' : '[1, 1]' };
+      return { count: 2, example: isKernel ? '[3, 3]' : '[1, 1]', type: 'int' };
     }
     case NNElementType.OutputDimAttributePooling: {
       if (ownerId) {
@@ -77,13 +114,15 @@ export function getListExpectation(
           (el: any) => el.owner === ownerId && el.type === NNElementType.DimensionAttributePooling,
         );
         switch ((dimAttr as INNAttribute)?.value) {
-          case '1D': return { count: 1, example: '[16]' };
-          case '3D': return { count: 3, example: '[16, 16, 16]' };
-          default:   return { count: 2, example: '[16, 16]' };
+          case '1D': return { count: 1, example: '[16]', type: 'int' };
+          case '3D': return { count: 3, example: '[16, 16, 16]', type: 'int' };
+          default:   return { count: 2, example: '[16, 16]', type: 'int' };
         }
       }
-      return { count: 2, example: '[16, 16]' };
+      return { count: 2, example: '[16, 16]', type: 'int' };
     }
-    default: return { count: null, example: '[1]' };
+    case NNElementType.OutputVarsAttributeTensorOp: return { count: null, example: '[x1, x2, x3]', type: 'string' };
+    case NNElementType.RepeatDimAttributeTensorOp: return { count: null, example: '[2, 3]', type: 'int' };
+    default: return { count: null, example: '', type: 'int' };
   }
 }

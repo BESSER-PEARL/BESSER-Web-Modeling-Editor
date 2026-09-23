@@ -42,6 +42,16 @@ export const validateMaxLength = (
   return undefined;
 };
 
+/** Java keywords plus the literals that cannot appear as identifiers. */
+const JAVA_RESERVED_WORDS = new Set([
+  'abstract', 'assert', 'boolean', 'break', 'byte', 'case', 'catch', 'char', 'class', 'const',
+  'continue', 'default', 'do', 'double', 'else', 'enum', 'extends', 'final', 'finally', 'float',
+  'for', 'goto', 'if', 'implements', 'import', 'instanceof', 'int', 'interface', 'long', 'native',
+  'new', 'package', 'private', 'protected', 'public', 'return', 'short', 'static', 'strictfp',
+  'super', 'switch', 'synchronized', 'this', 'throw', 'throws', 'transient', 'try', 'void',
+  'volatile', 'while', 'true', 'false', 'null', '_',
+]);
+
 // ── Pattern-based validators ────────────────────────────────────────────
 
 /**
@@ -63,6 +73,58 @@ export const validateProjectName = (value: string): string | undefined => {
   }
   if (trimmed.length > 64) {
     return 'Must be at most 64 characters.';
+  }
+  return undefined;
+};
+
+/**
+ * Validates a Java package name (e.g. `com.example.app`).
+ *
+ * The Spring generator turns this straight into a source directory path
+ * (`src/main/java/com/example/app`) and writes it into every generated
+ * `package ...;` statement, so anything that is not a dot-separated list of
+ * Java identifiers produces code that does not compile.
+ */
+export const validateJavaPackageName = (value: string): string | undefined => {
+  const trimmed = value.trim();
+  if (!trimmed) {
+    return 'Package name is required.';
+  }
+  if (trimmed.length > 128) {
+    return 'Must be at most 128 characters.';
+  }
+  const segments = trimmed.split('.');
+  if (segments.some((segment) => segment.length === 0)) {
+    return 'Segments must be separated by single dots (e.g., com.example).';
+  }
+  if (!segments.every((segment) => /^[a-zA-Z_$][a-zA-Z0-9_$]*$/.test(segment))) {
+    return 'Each segment must start with a letter and contain only letters, digits, or underscores.';
+  }
+  if (segments.some((segment) => JAVA_RESERVED_WORDS.has(segment))) {
+    return 'Cannot use a Java reserved word as a package segment.';
+  }
+  return undefined;
+};
+
+/**
+ * Validates a Java class name (e.g. `Hospital`).
+ *
+ * The Spring generator derives `<AppName>.java` from this value, so it has to
+ * be a single Java identifier — no dots, spaces or leading digits.
+ */
+export const validateJavaClassName = (value: string): string | undefined => {
+  const trimmed = value.trim();
+  if (!trimmed) {
+    return 'Application name is required.';
+  }
+  if (trimmed.length > 64) {
+    return 'Must be at most 64 characters.';
+  }
+  if (!/^[a-zA-Z_$][a-zA-Z0-9_$]*$/.test(trimmed)) {
+    return 'Must be a single Java identifier (letters, digits, underscores; no dots or spaces).';
+  }
+  if (JAVA_RESERVED_WORDS.has(trimmed)) {
+    return 'Cannot use a Java reserved word.';
   }
   return undefined;
 };

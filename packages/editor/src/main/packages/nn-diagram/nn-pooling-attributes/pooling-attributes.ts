@@ -82,7 +82,7 @@ export abstract class PoolingAttribute extends NNComponentAttribute implements I
 export class NameAttributePooling extends PoolingAttribute {
   type: UMLElementType = NNElementType.NameAttributePooling;
   constructor(values?: DeepPartial<IPoolingAttribute>) {
-    super({ attributeName: 'name', value: 'Pooling_layer', isMandatory: true, ...values });
+    super({ attributeName: 'name', value: 'pooling_layer', isMandatory: true, ...values });
     this.name = `${this.attributeName} = ${this.value}`;
   }
 }
@@ -187,6 +187,31 @@ export class PermuteOutAttributePooling extends PoolingAttribute {
   constructor(values?: DeepPartial<IPoolingAttribute>) {
     super({ attributeName: 'permute_out', value: 'false', isMandatory: false, ...values });
     this.attributeType = 'bool';
+    this.name = `${this.attributeName} = ${this.value}`;
+  }
+}
+
+export class IsLayerCallAttributePooling extends PoolingAttribute {
+  type: UMLElementType = NNElementType.IsLayerCallAttributePooling;
+  constructor(values?: DeepPartial<IPoolingAttribute>) {
+    super({ attributeName: 'is_layer_call', value: 'false', isMandatory: false, ...values });
+    this.attributeType = 'bool';
+    this.name = `${this.attributeName} = ${this.value}`;
+  }
+}
+
+export class InputVarAttributePooling extends PoolingAttribute {
+  type: UMLElementType = NNElementType.InputVarAttributePooling;
+  constructor(values?: DeepPartial<IPoolingAttribute>) {
+    super({ attributeName: 'input_var', value: '', isMandatory: false, ...values });
+    this.name = `${this.attributeName} = ${this.value}`;
+  }
+}
+
+export class OutputVarAttributePooling extends PoolingAttribute {
+  type: UMLElementType = NNElementType.OutputVarAttributePooling;
+  constructor(values?: DeepPartial<IPoolingAttribute>) {
+    super({ attributeName: 'output_var', value: '', isMandatory: false, ...values });
     this.name = `${this.attributeName} = ${this.value}`;
   }
 }
