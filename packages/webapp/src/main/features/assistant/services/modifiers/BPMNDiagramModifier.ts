@@ -29,7 +29,13 @@ type BPMNNodeRecord = {
   id: string;
   type: string;
   name: string;
-  owner: null;
+  owner: string | null;
+  isAgentic?: boolean;
+  reflectionMode?: string;
+  trustScore?: number;
+  agentDiagramRef?: string;
+  gatewayRole?: string;
+  governanceDsl?: string;
   bounds: { x: number; y: number; width: number; height: number };
   taskType?: string;
   gatewayType?: string;
@@ -138,14 +144,19 @@ export class BPMNDiagramModifier implements DiagramModifier {
     const { x, y } = this.nextPosition(model);
     const id = m.target.nodeId || ModifierHelpers.generateUniqueId('bpmn');
     const taskType = TASK_TYPES.has(String(m.changes.taskType)) ? m.changes.taskType : 'default';
+    const owner = this.findLane(model, m.changes.owner);
     model.elements[id] = {
       id,
       type: 'BPMNTask',
       name: m.target.nodeName || m.changes.name || 'Task',
-      owner: null,
+      owner,
       bounds: { x, y, width: 140, height: 60 },
       taskType,
       marker: 'none',
+      isAgentic: m.changes.isAgentic === true,
+      reflectionMode: m.changes.reflectionMode || 'none',
+      trustScore: typeof m.changes.trustScore === 'number' ? m.changes.trustScore : 0,
+      ...(m.changes.agentDiagramRef ? { agentDiagramRef: m.changes.agentDiagramRef } : {}),
     };
     return model;
   }
@@ -154,13 +165,20 @@ export class BPMNDiagramModifier implements DiagramModifier {
     const { x, y } = this.nextPosition(model);
     const id = m.target.nodeId || ModifierHelpers.generateUniqueId('bpmn');
     const gatewayType = GATEWAY_TYPES.has(String(m.changes.gatewayType)) ? m.changes.gatewayType : 'exclusive';
+    const owner = this.findLane(model, m.changes.owner);
     model.elements[id] = {
       id,
       type: 'BPMNGateway',
       name: m.target.nodeName || m.changes.name || '',
-      owner: null,
+      owner,
       bounds: { x, y, width: 40, height: 40 },
       gatewayType,
+      isAgentic: m.changes.isAgentic === true,
+      gatewayRole: m.changes.gatewayRole || 'diverging',
+      trustScore: typeof m.changes.trustScore === 'number' ? m.changes.trustScore : 0,
+      ...(m.changes.governanceDsl?.trim()
+        ? { governanceDsl: m.changes.governanceDsl }
+        : {}),
     };
     return model;
   }
@@ -172,11 +190,12 @@ export class BPMNDiagramModifier implements DiagramModifier {
     const type =
       kind === 'start' ? 'BPMNStartEvent' : kind === 'intermediate' ? 'BPMNIntermediateEvent' : 'BPMNEndEvent';
     const eventType = typeof m.changes.eventType === 'string' && m.changes.eventType ? m.changes.eventType : 'default';
+    const owner = this.findLane(model, m.changes.owner);
     model.elements[id] = {
       id,
       type,
       name: m.target.nodeName || m.changes.name || '',
-      owner: null,
+      owner,
       bounds: { x, y, width: 40, height: 40 },
       eventType,
     };
@@ -222,6 +241,19 @@ export class BPMNDiagramModifier implements DiagramModifier {
       }
       if (m.changes.eventType && EVENT_ELEMENT_TYPES.has(el.type)) {
         el.eventType = m.changes.eventType;
+      }
+      if (el.type === 'BPMNTask') {
+        if (typeof m.changes.isAgentic === 'boolean') el.isAgentic = m.changes.isAgentic;
+        if (typeof m.changes.reflectionMode === 'string') el.reflectionMode = m.changes.reflectionMode;
+        if (typeof m.changes.trustScore === 'number') el.trustScore = m.changes.trustScore;
+        if (typeof m.changes.agentDiagramRef === 'string') el.agentDiagramRef = m.changes.agentDiagramRef;
+      }
+
+      if (el.type === 'BPMNGateway') {
+        if (typeof m.changes.isAgentic === 'boolean') el.isAgentic = m.changes.isAgentic;
+        if (typeof m.changes.gatewayRole === 'string') el.gatewayRole = m.changes.gatewayRole;
+        if (typeof m.changes.trustScore === 'number') el.trustScore = m.changes.trustScore;
+        if (typeof m.changes.governanceDsl === 'string') el.governanceDsl = m.changes.governanceDsl;
       }
     }
     return model;

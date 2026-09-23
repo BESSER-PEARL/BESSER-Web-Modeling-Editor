@@ -36,6 +36,12 @@ interface SpecNode {
   eventType?: string;
   poolId?: string; // optional: id of the pool (participant) this node belongs to
   laneId?: string; // optional: id of the lane (role) within poolId
+  isAgentic?: boolean;
+  reflectionMode?: string;
+  trustScore?: number;
+  agentDiagramRef?: string;
+  gatewayRole?: string;
+  governanceDsl?: string;
 }
 
 interface SpecFlow {
@@ -51,6 +57,7 @@ interface SpecLane {
   role?: string;
   trustScore?: number;
   multiplicity?: number;
+  agentDiagramRef?: string;
 }
 
 interface SpecPool {
@@ -126,6 +133,7 @@ export class BPMNDiagramConverter implements DiagramConverter {
             role: l.role,
             trustScore: l.trustScore,
             multiplicity: l.multiplicity,
+            agentDiagramRef: l.agentDiagramRef,
         })),
       }));
       
@@ -387,10 +395,29 @@ export class BPMNDiagramConverter implements DiagramConverter {
 
     if (apollonType === 'BPMNTask') {
       const taskType = TASK_TYPES.has(String(n.taskType)) ? n.taskType : 'default';
-      elements[apollonId] = { ...base, taskType, marker: 'none' };
+      elements[apollonId] = {
+        ...base,
+        taskType,
+        marker: 'none',
+        isAgentic: n.isAgentic === true,
+        reflectionMode: typeof n.reflectionMode === 'string' ? n.reflectionMode : 'none',
+        trustScore: typeof n.trustScore === 'number' ? n.trustScore : 0,
+        ...(typeof n.agentDiagramRef === 'string' && n.agentDiagramRef
+          ? { agentDiagramRef: n.agentDiagramRef }
+          : {}),
+      };
     } else if (apollonType === 'BPMNGateway') {
       const gatewayType = GATEWAY_TYPES.has(String(n.gatewayType)) ? n.gatewayType : 'exclusive';
-      elements[apollonId] = { ...base, gatewayType };
+      elements[apollonId] = {
+        ...base,
+        gatewayType,
+        isAgentic: n.isAgentic === true,
+        gatewayRole: typeof n.gatewayRole === 'string' ? n.gatewayRole : 'diverging',
+        trustScore: typeof n.trustScore === 'number' ? n.trustScore : 0,
+        ...(typeof n.governanceDsl === 'string' && n.governanceDsl.trim()
+          ? { governanceDsl: n.governanceDsl }
+          : {}),
+      };
     } else {
       // BPMNStartEvent / BPMNEndEvent / BPMNIntermediateEvent
       const eventType = typeof n.eventType === 'string' && n.eventType ? n.eventType : 'default';
