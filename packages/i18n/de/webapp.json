@@ -86,6 +86,7 @@
       },
       "actions": {
         "djangoProject": "Django-Projekt",
+        "springProject": "Spring-Projekt",
         "fullBackend": "Vollständiges Backend",
         "webApplication": "Webanwendung",
         "pythonClasses": "Python-Klassen",
@@ -641,6 +642,20 @@
       "appName": "App-Name",
       "includeDocker": "Docker-Containerisierung einbeziehen"
     },
+    "spring": {
+      "title": "Spring-Boot-Projektkonfiguration",
+      "description": "Konfigurieren Sie Namen und Versionen für die Spring-Boot-Backend-Generierung.",
+      "projectName": "Projektname",
+      "appName": "Anwendungsname",
+      "appNameHint": "Wird zur generierten Java-Anwendungsklasse, z. B. MyApplication.java.",
+      "packageName": "Paketname",
+      "packageNameHint": "Java-Basispaket, z. B. com.example. Es wird auch zum Pfad des Quellverzeichnisses.",
+      "bootVersion": "Spring-Boot-Version",
+      "selectBootVersion": "Spring-Boot-Version auswählen",
+      "javaVersion": "Java-Version",
+      "selectJavaVersion": "Java-Version auswählen",
+      "javaVersionOption": "Java {{version}}"
+    },
     "sql": {
       "title": "SQL-Dialekt-Auswahl",
       "description": "Wählen Sie den SQL-Dialekt für die generierten DDL-Anweisungen.",
@@ -786,12 +801,16 @@
       "namesRequired": "Projekt- und App-Namen sind erforderlich.",
       "namesMustDiffer": "Projekt- und App-Namen müssen unterschiedlich sein.",
       "namesInvalid": "Namen müssen mit einem Buchstaben oder einem Unterstrich beginnen und dürfen nur Buchstaben, Zahlen und Unterstriche enthalten.",
+      "springFieldsRequired": "Projekt-, Anwendungs- und Paketname sind erforderlich.",
+      "springAppNameInvalid": "Der Anwendungsname muss ein gültiger Java-Klassenname sein.",
+      "springPackageNameInvalid": "Der Paketname muss ein gültiges Java-Paket sein, z. B. com.example.",
       "openUmlBeforeDeploy": "Öffnen Sie ein UML-Diagramm, bevor Sie bereitstellen.",
       "noValidPersonalizationMappings": "Keine gültigen Personalisierungszuordnungen gefunden. Erstellen Sie Zuordnungen und speichern Sie zuerst personalisierte Varianten."
     },
     "context": {
       "djangoGeneration": "Django-Generierung",
       "djangoDeployment": "Django-Bereitstellung",
+      "springGeneration": "Spring-Generierung",
       "sqlGeneration": "SQL-Generierung",
       "supabaseGeneration": "Supabase-Generierung",
       "sqlAlchemyGeneration": "SQLAlchemy-Generierung",

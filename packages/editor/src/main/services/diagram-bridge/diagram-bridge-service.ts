@@ -150,6 +150,16 @@ export interface IDiagramBridgeService {
    * Set available quantum circuit diagram references
    */
   setQuantumCircuitDiagrams(diagrams: IDiagramReference[]): void;
+
+  /**
+   * Get available neural network diagram references
+   */
+  getNeuralNetworkDiagrams(): IDiagramReference[];
+
+  /**
+   * Set available neural network diagram references
+   */
+  setNeuralNetworkDiagrams(diagrams: IDiagramReference[]): void;
 }
 
 /**
@@ -214,6 +224,7 @@ export class DiagramBridgeService implements IDiagramBridgeService {
   private readonly STORAGE_KEY = 'besser-class-diagram-bridge-data';
   private stateMachineDiagrams: IDiagramReference[] = [];
   private quantumCircuitDiagrams: IDiagramReference[] = [];
+  private neuralNetworkDiagrams: IDiagramReference[] = [];
 
   /**
    * Parse attribute name to extract type (for legacy data format)
@@ -641,6 +652,20 @@ export class DiagramBridgeService implements IDiagramBridgeService {
    */
   setQuantumCircuitDiagrams(diagrams: IDiagramReference[]): void {
     this.quantumCircuitDiagrams = diagrams;
+  }
+
+  /**
+   * Get available neural network diagram references
+   */
+  getNeuralNetworkDiagrams(): IDiagramReference[] {
+    return this.neuralNetworkDiagrams;
+  }
+
+  /**
+   * Set available neural network diagram references
+   */
+  setNeuralNetworkDiagrams(diagrams: IDiagramReference[]): void {
+    this.neuralNetworkDiagrams = diagrams;
   }
 
   private agentPlatform: string = 'websocket';

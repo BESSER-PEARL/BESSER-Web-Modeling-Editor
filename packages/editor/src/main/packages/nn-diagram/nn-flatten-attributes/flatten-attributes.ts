@@ -82,7 +82,7 @@ export abstract class FlattenAttribute extends NNComponentAttribute implements I
 export class NameAttributeFlatten extends FlattenAttribute {
   type: UMLElementType = NNElementType.NameAttributeFlatten;
   constructor(values?: DeepPartial<IFlattenAttribute>) {
-    super({ attributeName: 'name', value: 'Flatten_layer', isMandatory: true, ...values });
+    super({ attributeName: 'name', value: 'flatten_layer', isMandatory: true, ...values });
     this.name = `${this.attributeName} = ${this.value}`;
   }
 }
@@ -127,6 +127,31 @@ export class InputReusedAttributeFlatten extends FlattenAttribute {
   constructor(values?: DeepPartial<IFlattenAttribute>) {
     super({ attributeName: 'input_reused', value: 'false', isMandatory: false, ...values });
     this.attributeType = 'bool';
+    this.name = `${this.attributeName} = ${this.value}`;
+  }
+}
+
+export class IsLayerCallAttributeFlatten extends FlattenAttribute {
+  type: UMLElementType = NNElementType.IsLayerCallAttributeFlatten;
+  constructor(values?: DeepPartial<IFlattenAttribute>) {
+    super({ attributeName: 'is_layer_call', value: 'false', isMandatory: false, ...values });
+    this.attributeType = 'bool';
+    this.name = `${this.attributeName} = ${this.value}`;
+  }
+}
+
+export class InputVarAttributeFlatten extends FlattenAttribute {
+  type: UMLElementType = NNElementType.InputVarAttributeFlatten;
+  constructor(values?: DeepPartial<IFlattenAttribute>) {
+    super({ attributeName: 'input_var', value: '', isMandatory: false, ...values });
+    this.name = `${this.attributeName} = ${this.value}`;
+  }
+}
+
+export class OutputVarAttributeFlatten extends FlattenAttribute {
+  type: UMLElementType = NNElementType.OutputVarAttributeFlatten;
+  constructor(values?: DeepPartial<IFlattenAttribute>) {
+    super({ attributeName: 'output_var', value: '', isMandatory: false, ...values });
     this.name = `${this.attributeName} = ${this.value}`;
   }
 }

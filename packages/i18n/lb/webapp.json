@@ -86,6 +86,7 @@
       },
       "actions": {
         "djangoProject": "Django-Projet",
+        "springProject": "Spring-Projet",
         "fullBackend": "Komplett Backend",
         "webApplication": "Webapplikatioun",
         "pythonClasses": "Python-Klassen",
@@ -641,6 +642,20 @@
       "appName": "App-Numm",
       "includeDocker": "Docker-Containeriséierung abezéien"
     },
+    "spring": {
+      "title": "Spring Boot Projet-Konfiguratioun",
+      "description": "Konfiguréiert Nimm a Versioune fir d'Spring-Boot-Backend-Generéierung.",
+      "projectName": "Projetsnumm",
+      "appName": "Applikatiounsnumm",
+      "appNameHint": "Gëtt zur generéierter Java-Applikatiounsklass, z. B. MyApplication.java.",
+      "packageName": "Paketnumm",
+      "packageNameHint": "Java-Basispaket, z. B. com.example. Et gëtt och de Wee vum Quellverzeechnes.",
+      "bootVersion": "Spring-Boot-Versioun",
+      "selectBootVersion": "Spring-Boot-Versioun auswielen",
+      "javaVersion": "Java-Versioun",
+      "selectJavaVersion": "Java-Versioun auswielen",
+      "javaVersionOption": "Java {{version}}"
+    },
     "sql": {
       "title": "SQL-Dialekt Auswiel",
       "description": "Wielt den SQL-Dialekt fir déi generéiert DDL-Uweisungen.",
@@ -786,12 +801,16 @@
       "namesRequired": "Projets- an App-Nimm sinn erfuerderlech.",
       "namesMustDiffer": "Projets- an App-Nimm musse verschidde sinn.",
       "namesInvalid": "Nimm musse mat engem Buschtaf/Ënnerstréch ufänken an nëmme Buschtawen, Zuelen an Ënnerstréch enthalen.",
+      "springFieldsRequired": "Projets-, Applikatiouns- a Paketnumm si verlaangt.",
+      "springAppNameInvalid": "Den Applikatiounsnumm muss e valabelen Java-Klassennumm sinn.",
+      "springPackageNameInvalid": "De Paketnumm muss e valabelt Java-Paket sinn, z. B. com.example.",
       "openUmlBeforeDeploy": "Maacht en UML-Diagramm op ier Dir deployt.",
       "noValidPersonalizationMappings": "Keng gülteg Personaliséierungsmappings fonnt. Erstellt Mappings a späichert fir d'éischt personaliséiert Varianten."
     },
     "context": {
       "djangoGeneration": "Django-Generéierung",
       "djangoDeployment": "Django-Deployment",
+      "springGeneration": "Spring-Generéierung",
       "sqlGeneration": "SQL-Generéierung",
       "supabaseGeneration": "Supabase-Generéierung",
       "sqlAlchemyGeneration": "SQLAlchemy-Generéierung",

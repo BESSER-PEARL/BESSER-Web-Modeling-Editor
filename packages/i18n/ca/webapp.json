@@ -86,6 +86,7 @@
       },
       "actions": {
         "djangoProject": "Projecte Django",
+        "springProject": "Projecte Spring",
         "fullBackend": "Backend complet",
         "webApplication": "Aplicació web",
         "pythonClasses": "Classes Python",
@@ -641,6 +642,20 @@
       "appName": "Nom de l'aplicació",
       "includeDocker": "Inclou la contenidorització amb Docker"
     },
+    "spring": {
+      "title": "Configuració del projecte Spring Boot",
+      "description": "Configura els noms i les versions per a la generació del backend Spring Boot.",
+      "projectName": "Nom del projecte",
+      "appName": "Nom de l'aplicació",
+      "appNameHint": "Esdevé la classe Java de l'aplicació generada, p. ex. MyApplication.java.",
+      "packageName": "Nom del paquet",
+      "packageNameHint": "Paquet Java base, p. ex. com.example. També esdevé el camí del directori de codi font.",
+      "bootVersion": "Versió de Spring Boot",
+      "selectBootVersion": "Selecciona una versió de Spring Boot",
+      "javaVersion": "Versió de Java",
+      "selectJavaVersion": "Selecciona una versió de Java",
+      "javaVersionOption": "Java {{version}}"
+    },
     "sql": {
       "title": "Selecció de dialecte SQL",
       "description": "Tria el dialecte SQL per a les sentències DDL generades.",
@@ -786,12 +801,16 @@
       "namesRequired": "Els noms del projecte i de l'aplicació són obligatoris.",
       "namesMustDiffer": "Els noms del projecte i de l'aplicació han de ser diferents.",
       "namesInvalid": "Els noms han de començar amb una lletra/guió baix i contenir només lletres, números i guions baixos.",
+      "springFieldsRequired": "Els noms del projecte, de l'aplicació i del paquet són obligatoris.",
+      "springAppNameInvalid": "El nom de l'aplicació ha de ser un nom de classe Java vàlid.",
+      "springPackageNameInvalid": "El nom del paquet ha de ser un paquet Java vàlid, p. ex. com.example.",
       "openUmlBeforeDeploy": "Obre un diagrama UML abans de desplegar.",
       "noValidPersonalizationMappings": "No s'han trobat assignacions de personalització vàlides. Crea assignacions i desa primer variants personalitzades."
     },
     "context": {
       "djangoGeneration": "Generació de Django",
       "djangoDeployment": "Desplegament de Django",
+      "springGeneration": "Generació de Spring",
       "sqlGeneration": "Generació de SQL",
       "supabaseGeneration": "Generació de Supabase",
       "sqlAlchemyGeneration": "Generació de SQLAlchemy",

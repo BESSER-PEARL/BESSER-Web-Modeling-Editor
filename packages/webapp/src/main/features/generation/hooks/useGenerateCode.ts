@@ -22,6 +22,49 @@ export interface DjangoConfig {
   containerization: boolean;
 }
 
+/**
+ * Spring Boot parent-POM versions offered in the Spring config dialog.
+ *
+ * Kept to the currently maintained 3.x lines — the generated `pom.xml` pins
+ * this straight into `spring-boot-starter-parent`, so every entry has to be a
+ * version that actually resolves from Maven Central. Refresh when a line goes
+ * end-of-life.
+ */
+export const SPRING_BOOT_VERSIONS = ['3.5.6', '3.4.4', '3.3.13'] as const;
+export type SpringBootVersion = (typeof SPRING_BOOT_VERSIONS)[number];
+/** Mirrors `DEFAULT_SPRING_BOOT_VERSION` in the backend's Spring generator. */
+export const DEFAULT_SPRING_BOOT_VERSION: SpringBootVersion = '3.4.4';
+
+/** Java releases the generated POM can target (Spring Boot 3.x needs 17+). */
+export const SPRING_JAVA_VERSIONS = ['17', '21', '25'] as const;
+export type SpringJavaVersion = (typeof SPRING_JAVA_VERSIONS)[number];
+/** Mirrors `DEFAULT_JAVA_VERSION` in the backend's Spring generator. */
+export const DEFAULT_SPRING_JAVA_VERSION: SpringJavaVersion = '21';
+
+/** Base Java package used when the user does not pick one. */
+export const DEFAULT_SPRING_PACKAGE_NAME = 'com.example';
+
+/**
+ * Spring Boot backend generator options.
+ *
+ * `app_name` becomes the generated Java application class
+ * (`<AppName>.java` / `<AppName>Tests.java`) and `package_name` becomes the
+ * source directory path, so both must be valid Java identifiers — see the
+ * inline validation in the Spring config dialog.
+ */
+export interface SpringConfig {
+  /** Name of the generated project folder / zip. */
+  project_name: string;
+  /** Java application class name (also the Maven artifactId). */
+  app_name: string;
+  /** Spring Boot parent POM version. */
+  spring_boot_version: SpringBootVersion;
+  /** Java release the POM targets. */
+  java_version: SpringJavaVersion;
+  /** Base Java package, e.g. 'com.example'. */
+  package_name: string;
+}
+
 export interface SQLConfig {
   dialect: 'sqlite' | 'postgresql' | 'mysql' | 'mssql' | 'mariadb' | 'oracle';
 }
@@ -66,6 +109,7 @@ export interface AgentConfig {
 
 export type GeneratorConfig = {
   django: DjangoConfig;
+  spring: SpringConfig;
   sql: SQLConfig;
   supabase: SupabaseConfig;
   sqlalchemy: SQLAlchemyConfig;

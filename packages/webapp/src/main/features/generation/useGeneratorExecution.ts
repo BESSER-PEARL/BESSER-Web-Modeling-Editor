@@ -33,6 +33,12 @@ import {
   JSONSchemaConfig,
   AgentConfig,
   QiskitConfig,
+  SpringConfig,
+  DEFAULT_SPRING_BOOT_VERSION,
+  DEFAULT_SPRING_JAVA_VERSION,
+  DEFAULT_SPRING_PACKAGE_NAME,
+  type SpringBootVersion,
+  type SpringJavaVersion,
 } from './hooks/useGenerateCode';
 import type { GenerationResult, QualityCheckResult } from './types';
 import { useDeployLocally } from './hooks/useDeployLocally';
@@ -44,6 +50,11 @@ import {
   normalizeAgentRuntimeConfig,
 } from '../../shared/services/storage/local-storage-repository';
 import { ProjectStorageRepository } from '../../shared/services/storage/ProjectStorageRepository';
+import {
+  validateJavaClassName,
+  validateJavaPackageName,
+  validateProjectName,
+} from '../../shared/utils/validation';
 import { switchDiagramTypeThunk } from '../../app/store/workspaceSlice';
 import { validateDiagram } from '../../shared/services/validation/validateDiagram';
 import {
@@ -76,6 +87,31 @@ const toIdentifier = (value: string, fallback: string): string => {
 
 const validateDjangoName = (name: string): boolean =>
   /^[a-zA-Z_][a-zA-Z0-9_]*$/.test(name);
+
+/**
+ * Turns a free-form title into a PascalCase Java identifier.
+ *
+ * The Spring generator writes `<AppName>.java`, so the derived default has to
+ * be a legal class name rather than the snake_case form Django wants.
+ */
+const toJavaClassName = (value: string, fallback: string): string => {
+  const parts = value
+    .trim()
+    .replace(/[^A-Za-z0-9]+/g, ' ')
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean);
+  const pascal = parts.map((part) => part.charAt(0).toUpperCase() + part.slice(1)).join('');
+  if (!pascal) return fallback;
+  return /^[0-9]/.test(pascal) ? `App${pascal}` : pascal;
+};
+
+/** Lower-cases a title into a single Java package segment. */
+const toPackageSegment = (value: string, fallback: string): string => {
+  const normalized = value.trim().toLowerCase().replace(/[^a-z0-9]+/g, '');
+  if (!normalized) return fallback;
+  return /^[0-9]/.test(normalized) ? `p${normalized}` : normalized;
+};
 
 function isUMLModelEmpty(diagram: ProjectDiagram | undefined): boolean {
   if (!diagram || !diagram.model) return true;
@@ -316,6 +352,7 @@ function flushGuiForGeneration(timeoutMs = 8000): Promise<{ ok: boolean; error?:
  * Grouped by generator:
  *  - Dialog control          – which modal is open
  *  - Django                  – project/app names, Docker flag
+ *  - Spring                  – project/app/package names, Boot & Java versions
  *  - SQL / SQLAlchemy        – dialect / DBMS selection
  *  - JSON Schema             – regular vs smart-data mode
  *  - Agent                   – spoken languages, advanced config & personalization
@@ -413,6 +450,13 @@ export interface GeneratorConfigState {
   djangoAppName: string;
   useDocker: boolean;
 
+  // ── Spring ───────────────────────────────────────────────────────────────
+  springProjectName: string;
+  springAppName: string;
+  springPackageName: string;
+  springBootVersion: SpringBootVersion;
+  springJavaVersion: SpringJavaVersion;
+
   // ── SQL ──────────────────────────────────────────────────────────────────
   sqlDialect: SQLConfig['dialect'];
 
@@ -458,6 +502,11 @@ export interface GeneratorConfigState {
   onDjangoProjectNameChange: (v: string) => void;
   onDjangoAppNameChange: (v: string) => void;
   onUseDockerChange: (v: boolean) => void;
+  onSpringProjectNameChange: (v: string) => void;
+  onSpringAppNameChange: (v: string) => void;
+  onSpringPackageNameChange: (v: string) => void;
+  onSpringBootVersionChange: (v: SpringBootVersion) => void;
+  onSpringJavaVersionChange: (v: SpringJavaVersion) => void;
   onSqlDialectChange: (v: SQLConfig['dialect']) => void;
   onSupabaseUserRootChange: (v: string) => void;
   onSqlAlchemyDbmsChange: (v: SQLAlchemyConfig['dbms']) => void;
@@ -486,6 +535,7 @@ export interface GeneratorConfigState {
   /** Validate inputs, call the backend, and close the dialog on success. */
   onDjangoGenerate: () => void;
   onDjangoDeploy: () => void;
+  onSpringGenerate: () => void;
   onSqlGenerate: () => void;
   onSupabaseGenerate: () => void;
   onSqlAlchemyGenerate: () => void;
@@ -546,6 +596,11 @@ export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGen
   const [djangoProjectName, setDjangoProjectName] = useState('');
   const [djangoAppName, setDjangoAppName] = useState('');
   const [useDocker, setUseDocker] = useState(false);
+  const [springProjectName, setSpringProjectName] = useState('');
+  const [springAppName, setSpringAppName] = useState('');
+  const [springPackageName, setSpringPackageName] = useState(DEFAULT_SPRING_PACKAGE_NAME);
+  const [springBootVersion, setSpringBootVersion] = useState<SpringBootVersion>(DEFAULT_SPRING_BOOT_VERSION);
+  const [springJavaVersion, setSpringJavaVersion] = useState<SpringJavaVersion>(DEFAULT_SPRING_JAVA_VERSION);
   const [sqlDialect, setSqlDialect] = useState<SQLConfig['dialect']>('sqlite');
   const [supabaseUserRoot, setSupabaseUserRoot] = useState<string>('User');
   const [sqlAlchemyDbms, setSqlAlchemyDbms] = useState<SQLAlchemyConfig['dbms']>('sqlite');
@@ -589,6 +644,22 @@ export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGen
     const appName = toIdentifier(activeDiagram?.title || 'core_app', 'core_app');
     setDjangoProjectName(projectName);
     setDjangoAppName(appName === projectName ? `${appName}_app` : appName);
+  }, [currentProject?.id, currentProject?.name, activeDiagram?.title]);
+
+  // Auto-derive Spring project/app/package names from current project.
+  // Kept separate from the Django derivation because Spring needs Java-shaped
+  // defaults: a PascalCase class name and a dotted package.
+  useEffect(() => {
+    if (!currentProject) return;
+    const projectName = toIdentifier(currentProject.name || 'besser_project', 'besser_project');
+    setSpringProjectName(projectName);
+    setSpringAppName(toJavaClassName(activeDiagram?.title || currentProject.name || 'Application', 'Application'));
+    // A project named e.g. "package" would derive a reserved-word segment and
+    // leave the dialog permanently invalid, so fall back to the plain default.
+    const derivedPackage = `${DEFAULT_SPRING_PACKAGE_NAME}.${toPackageSegment(currentProject.name || 'app', 'app')}`;
+    setSpringPackageName(
+      validateJavaPackageName(derivedPackage) ? DEFAULT_SPRING_PACKAGE_NAME : derivedPackage,
+    );
   }, [currentProject?.id, currentProject?.name, activeDiagram?.title]);
 
   // Load agent configurations when dialog opens
@@ -797,6 +868,9 @@ export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGen
           case 'django':
             result = await generateCode(editor, 'django', activeDiagramTitle, config as DjangoConfig);
             break;
+          case 'spring':
+            result = await generateCode(editor, 'spring', activeDiagramTitle, config as SpringConfig);
+            break;
           case 'sql':
             result = await generateCode(editor, 'sql', activeDiagramTitle, config as SQLConfig);
             break;
@@ -1004,6 +1078,44 @@ export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGen
       containerization: useDocker,
     } as DjangoConfig);
   }, [editor, currentProject, djangoProjectName, djangoAppName, useDocker, deployLocally, activeDiagramTitle, t]);
+
+  const handleSpringGenerate = useCallback(async () => {
+    // `app_name` becomes the generated Java class and `package_name` becomes a
+    // source directory path, so invalid identifiers here produce a project that
+    // does not compile. Guard with the same validators the dialog shows inline.
+    if (!springProjectName || !springAppName || !springPackageName) {
+      toast.error(t('generation.toasts.springFieldsRequired'));
+      return;
+    }
+    if (validateProjectName(springProjectName)) {
+      toast.error(t('generation.toasts.namesInvalid'));
+      return;
+    }
+    if (validateJavaClassName(springAppName)) {
+      toast.error(t('generation.toasts.springAppNameInvalid'));
+      return;
+    }
+    if (validateJavaPackageName(springPackageName)) {
+      toast.error(t('generation.toasts.springPackageNameInvalid'));
+      return;
+    }
+    await executeGenerator('spring', {
+      project_name: springProjectName.trim(),
+      app_name: springAppName.trim(),
+      spring_boot_version: springBootVersion,
+      java_version: springJavaVersion,
+      package_name: springPackageName.trim(),
+    } as SpringConfig);
+    setConfigDialog('none');
+  }, [
+    springProjectName,
+    springAppName,
+    springPackageName,
+    springBootVersion,
+    springJavaVersion,
+    executeGenerator,
+    t,
+  ]);
 
   const handleSqlGenerate = useCallback(async () => {
     await executeGenerator('sql', { dialect: sqlDialect } as SQLConfig);
@@ -1250,6 +1362,11 @@ export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGen
     djangoProjectName,
     djangoAppName,
     useDocker,
+    springProjectName,
+    springAppName,
+    springPackageName,
+    springBootVersion,
+    springJavaVersion,
     sqlDialect,
     supabaseUserRoot,
     sqlAlchemyDbms,
@@ -1275,6 +1392,11 @@ export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGen
     onDjangoProjectNameChange: setDjangoProjectName,
     onDjangoAppNameChange: setDjangoAppName,
     onUseDockerChange: setUseDocker,
+    onSpringProjectNameChange: setSpringProjectName,
+    onSpringAppNameChange: setSpringAppName,
+    onSpringPackageNameChange: setSpringPackageName,
+    onSpringBootVersionChange: setSpringBootVersion,
+    onSpringJavaVersionChange: setSpringJavaVersion,
     onSqlDialectChange: setSqlDialect,
     onSupabaseUserRootChange: setSupabaseUserRoot,
     onSqlAlchemyDbmsChange: setSqlAlchemyDbms,
@@ -1290,6 +1412,7 @@ export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGen
     onAgentGenerationModeChange: setAgentGenerationMode,
     onDjangoGenerate: () => { handleDjangoGenerate().catch(notifyError(t('generation.context.djangoGeneration'))); },
     onDjangoDeploy: () => { handleDjangoDeploy().catch(notifyError(t('generation.context.djangoDeployment'))); },
+    onSpringGenerate: () => { handleSpringGenerate().catch(notifyError(t('generation.context.springGeneration'))); },
     onSqlGenerate: () => { handleSqlGenerate().catch(notifyError(t('generation.context.sqlGeneration'))); },
     onSupabaseGenerate: () => { handleSupabaseGenerate().catch(notifyError(t('generation.context.supabaseGeneration'))); },
     onSqlAlchemyGenerate: () => { handleSqlAlchemyGenerate().catch(notifyError(t('generation.context.sqlAlchemyGeneration'))); },

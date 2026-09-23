@@ -384,8 +384,10 @@ class ClassifierUpdate extends Component<Props, State> {
                       implementationType={methodMember.implementationType || 'none'}
                       stateMachineId={methodMember.stateMachineId || ''}
                       quantumCircuitId={methodMember.quantumCircuitId || ''}
+                      neuralNetworkId={methodMember.neuralNetworkId || ''}
                       availableStateMachines={diagramBridge.getStateMachineDiagrams()}
                       availableQuantumCircuits={diagramBridge.getQuantumCircuitDiagrams()}
+                      availableNeuralNetworks={diagramBridge.getNeuralNetworkDiagrams()}
                       onChange={this.props.update}
                       onSubmitKeyUp={() =>
                         index === methods.length - 1
