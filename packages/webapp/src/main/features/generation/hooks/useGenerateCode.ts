@@ -1,5 +1,5 @@
 import { useCallback } from 'react';
-import { ApollonEditor, UMLModel, normalizeAgentModel } from '@besser/wme';
+import { ApollonEditor, UMLModel } from '@besser/wme';
 import { useFileDownload } from '../../../shared/services/file-download/useFileDownload';
 import { toast } from 'react-toastify';
 import { useTranslation } from 'react-i18next';
@@ -7,7 +7,7 @@ import { validateDiagram } from '../../../shared/services/validation/validateDia
 import { BACKEND_URL } from '../../../shared/constants/constant';
 import { ProjectStorageRepository } from '../../../shared/services/storage/ProjectStorageRepository';
 import { normalizeProjectName } from '../../../shared/utils/projectName';
-import { buildProjectPayloadForBackend } from '../../../shared/utils/projectExportUtils';
+import { buildProjectPayloadForBackend, prepareAgentModelForBackend } from '../../../shared/utils/projectExportUtils';
 import {
   restoreBaseAgentModels,
   stripAgentConfigToSystem,
@@ -289,7 +289,7 @@ export const useGenerateCode = () => {
       // handleAgentGenerate in useGeneratorExecution.
       const body: any = {
         title: diagramTitle,
-        model: generatorType === 'agent' ? normalizeAgentModel(rawModel as UMLModel) : rawModel,
+        model: generatorType === 'agent' ? prepareAgentModelForBackend(rawModel) : rawModel,
         generator: generatorType,
         config: config,
         ...(referenceDiagramData ? { referenceDiagramData } : {}),

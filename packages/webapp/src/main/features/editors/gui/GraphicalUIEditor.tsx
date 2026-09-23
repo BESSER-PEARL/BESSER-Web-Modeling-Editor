@@ -2,16 +2,6 @@
 import type { Editor } from 'grapesjs';
 import './grapesjs-styles.css';
 import { getClassOptions, getDisplayAttribute, getEndsByClassId, getClassMetadata, getMethodsByClassId } from './diagram-helpers';
-import { getChartConfigs } from './configs/chartConfigs';
-import { getTableConfig } from './configs/tableConfig';
-import { getMetricCardConfig } from './configs/metricCardConfigs';
-import { getMapConfig } from './configs/mapConfig';
-import { registerChartComponent } from './component-registrars/registerChartComponent';
-import { registerTableComponent } from './component-registrars/registerTableComponent';
-import { registerMetricCardComponent } from './component-registrars/registerMetricCardComponent';
-import { registerMapComponent } from './component-registrars/registerMapComponent';
-import { registerButtonComponent } from './component-registrars/registerButtonComponent';
-import { registerFormComponents } from './component-registrars/registerFormComponents';
 import { setupPageSystem, loadDefaultPages } from './setup/setupPageSystem';
 import { registerAllComponents } from './registerAllComponents';
 import { ProjectStorageRepository } from '../../../shared/services/storage/ProjectStorageRepository';
@@ -237,8 +227,8 @@ export const GraphicalUIEditor: React.FC = () => {
       (window as any).__WME_GUI_EDITOR_READY__ = true;
       window.dispatchEvent(new CustomEvent('wme:gui-editor-ready'));
 
-      // Register all custom components
-      registerAllComponents(editor);
+      // Custom components, blocks and traits are registered once in
+      // setupEditorFeatures() via registerAllComponents().
 
       // Handle editor load event
       editor.on('load', () => {
@@ -504,6 +494,7 @@ function setupEditorFeatures(
   
   // Additional features
   setupDataBindingTraits(editor);
+  // Shared components, blocks and traits (also used by AgentGUIEditor).
   registerAllComponents(editor);
   // enableAbsolutePositioning(editor);
   

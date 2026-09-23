@@ -1,6 +1,7 @@
-import { UMLModel, normalizeAgentModel } from '@besser/wme';
-import { BesserProject, ProjectDiagram, SupportedDiagramType, getActiveDiagram, diagramHasContent } from '../types/project';
+import { UMLModel, UMLModelComponent, normalizeAgentComponents, normalizeAgentModel } from '@besser/wme';
+import { BesserProject, ProjectDiagram, SupportedDiagramType, getActiveDiagram, diagramHasContent, isUMLModel } from '../types/project';
 import { LocalStorageRepository } from '../services/storage/local-storage-repository';
+import { ProjectStorageRepository } from '../services/storage/ProjectStorageRepository';
 import {
   StoredAgentConfiguration,
   StoredAgentProfileConfigurationMapping,
@@ -13,6 +14,62 @@ export const PROJECT_EXPORT_VERSION = '2.0.0';
 export type ExportableProjectPayload = Omit<BesserProject, 'diagrams'> & {
   diagrams: Record<string, ProjectDiagram[]>;
 };
+
+/**
+ * A ProjectDiagram saved by an early build of the agent components panel, which kept the
+ * components on the diagram itself instead of in `model.components`.
+ */
+type LegacyAgentProjectDiagram = ProjectDiagram & { agentComponents?: { [id: string]: UMLModelComponent } };
+
+/**
+ * The single place where an AgentDiagram model is prepared to leave the editor — code
+ * generation, local deploy, validation, project export and simulation all go through it.
+ *
+ * - When the outgoing model carries no `components` (e.g. a canvas snapshot), the stored
+ *   diagram's `model.components` are attached, or its legacy diagram-level `agentComponents`.
+ * - {@link normalizeAgentComponents} then folds every legacy location into `model.components`.
+ * - {@link normalizeAgentModel} upgrades transitions to the canonical nested shape.
+ *
+ * @param diagram The stored diagram the model belongs to. Defaults to the active AgentDiagram
+ *   of the current project in storage.
+ */
+export function prepareAgentModelForBackend(model: UMLModel, diagram?: ProjectDiagram | null): UMLModel {
+  if (!model || model.type !== 'AgentDiagram') return model;
+  return normalizeAgentModel(normalizeAgentComponents(withStoredAgentComponents(model, diagram)));
+}
+
+/**
+ * Read the agent components of a stored AgentDiagram (normalized, keyed by id). Used by the
+ * agent components panel and the diagram bridge so both see exactly what the backend receives.
+ */
+export function getAgentComponents(diagram: ProjectDiagram | null | undefined): { [id: string]: UMLModelComponent } {
+  return normalizeStoredAgentModel(diagram)?.components ?? {};
+}
+
+/**
+ * The stored model of an AgentDiagram with every legacy component location (canvas elements,
+ * `model.agentComponents`, diagram-level `agentComponents`) folded into `model.components`.
+ */
+export function normalizeStoredAgentModel(diagram: ProjectDiagram | null | undefined): UMLModel | undefined {
+  if (!diagram || !isUMLModel(diagram.model)) return undefined;
+  return normalizeAgentComponents(withStoredAgentComponents(diagram.model, diagram));
+}
+
+function withStoredAgentComponents(model: UMLModel, diagram?: ProjectDiagram | null): UMLModel {
+  if (model.components || model.agentComponents) return model;
+  const source = diagram === undefined ? getCurrentAgentDiagram() : diagram;
+  if (!source) return model;
+  if (isUMLModel(source.model) && source.model.components) {
+    return { ...model, components: source.model.components };
+  }
+  const legacy = (source as LegacyAgentProjectDiagram).agentComponents;
+  return legacy ? { ...model, agentComponents: legacy } : model;
+}
+
+function getCurrentAgentDiagram(): ProjectDiagram | null {
+  const project = ProjectStorageRepository.getCurrentProject();
+  return project ? getActiveDiagram(project, 'AgentDiagram') ?? null : null;
+}
 
 /**
  * @internal
@@ -84,28 +141,10 @@ export const buildProjectPayloadForBackend = (
     payload.diagrams = diagrams;
   }
 
-  // Normalise agent diagrams so the backend receives the canonical nested
-  // transition format. Also migrate legacy agentComponents (top-level field)
-  // into model.components (new schema) so the backend can resolve intent
-  // references. When model.components already exists it takes precedence.
-  if (Array.isArray((payload.diagrams as any).AgentDiagram)) {
-    (payload.diagrams as any).AgentDiagram = (payload.diagrams as any).AgentDiagram.map(
-      (diagram: ProjectDiagram) => {
-        if (!diagram.model) return diagram;
-        const legacyComponents = (diagram as any).agentComponents;
-        const modelComponents = (diagram.model as any)?.components;
-        let mergedModel = diagram.model;
-        if (legacyComponents && Object.keys(legacyComponents).length > 0 && !modelComponents) {
-          // Migrate: strip bounds and move into model.components
-          const stripped: Record<string, any> = {};
-          for (const [id, comp] of Object.entries(legacyComponents)) {
-            const { bounds, ...rest } = comp as any;
-            stripped[id] = rest;
-          }
-          mergedModel = { ...diagram.model, components: stripped } as any;
-        }
-        return { ...diagram, model: normalizeAgentModel(mergedModel as UMLModel) };
-      },
+  const agentDiagrams = payload.diagrams.AgentDiagram;
+  if (Array.isArray(agentDiagrams)) {
+    payload.diagrams.AgentDiagram = agentDiagrams.map((diagram) =>
+      isUMLModel(diagram.model) ? { ...diagram, model: prepareAgentModelForBackend(diagram.model, diagram) } : diagram,
     );
   }
 

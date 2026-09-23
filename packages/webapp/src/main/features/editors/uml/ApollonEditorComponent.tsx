@@ -1,4 +1,4 @@
-import { ApollonEditor, UMLModel, diagramBridge } from '@besser/wme';
+import { AgentComponentType, ApollonEditor, UMLModel, diagramBridge } from '@besser/wme';
 import React, { useEffect, useRef, useContext, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 
@@ -6,6 +6,7 @@ import { toEditorLocale } from '../../../shared/i18n/languages';
 import { ApollonEditorContext } from './apollon-editor-context';
 import { useAppDispatch, useAppSelector } from '../../../app/store/hooks';
 import { isUMLModel } from '../../../shared/types/project';
+import { getAgentComponents } from '../../../shared/utils/projectExportUtils';
 import {
   updateDiagramModelThunk,
   selectActiveDiagram,
@@ -84,38 +85,29 @@ export const ApollonEditorComponent: React.FC = () => {
     diagramBridge.setAgentPlatform(platform);
   }, [reduxDiagram]);
 
-  // Eagerly populate all agent component lists in diagramBridge whenever the active
-  // diagram changes. Without this, the bridge would only be populated when the user
-  // navigates to the Components tab (where AgentComponentsPanel mounts), so editor
-  // panels (state/transition property editors) would see empty LLM/GUI/RAG/intent
-  // lists until that navigation happens.
+  // Single writer of the agent component lists in diagramBridge (like the diagram
+  // references below): state/transition popups read LLM/GUI/RAG/intent names from it.
+  // Runs whenever the active diagram changes, including edits made in the agent
+  // components panel (which persist to storage and flow back through Redux).
   useEffect(() => {
-    const agentComponents: Record<string, any> = (reduxDiagram?.model as any)?.components || (reduxDiagram as any)?.agentComponents || {};
-    const values = Object.values(agentComponents);
+    const components = Object.values(getAgentComponents(reduxDiagram));
+    const ofType = (type: AgentComponentType) => components.filter((component) => (component.type as string) === type);
+    const named = (type: AgentComponentType) => ofType(type).filter((component) => component.name);
 
     diagramBridge.setAgentGUIs(
-      values
-        .filter((e: any) => e.type === 'AgentGUI')
-        .map((g: any) => ({ name: g.gui_id || g.id, gui_id: g.gui_id || '', is_form: !!g.is_form })),
+      ofType(AgentComponentType.AgentGUI)
+        .map((gui) => ({ name: gui.gui_id || gui.id, gui_id: gui.gui_id || '', is_form: !!gui.is_form })),
     );
-
     diagramBridge.setAgentIntents(
-      values
-        .filter((e: any) => e.type === 'AgentIntent' && e.name)
-        .map((intent: any) => ({ name: String(intent.name), id: intent.id })),
+      named(AgentComponentType.AgentIntent).map((intent) => ({ name: String(intent.name), id: intent.id })),
     );
-
     diagramBridge.setAgentLLMs(
-      values
-        .filter((e: any) => e.type === 'AgentLLM' && e.name)
-        .map((l: any) => ({ name: String(l.name), provider: String(l.provider || '').toLowerCase() })),
+      named(AgentComponentType.AgentLLM).map((llm) => ({
+        name: String(llm.name),
+        provider: String(llm.provider || '').toLowerCase(),
+      })),
     );
-
-    diagramBridge.setAgentRAGs(
-      values
-        .filter((e: any) => e.type === 'AgentRagElement' && e.name)
-        .map((r: any) => ({ name: String(r.name) })),
-    );
+    diagramBridge.setAgentRAGs(named(AgentComponentType.AgentRagElement).map((rag) => ({ name: String(rag.name) })));
   }, [reduxDiagram]);
 
   useEffect(() => {

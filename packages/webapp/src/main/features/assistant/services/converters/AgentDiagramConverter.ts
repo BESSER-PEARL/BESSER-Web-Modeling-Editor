@@ -5,6 +5,7 @@
  * states/state-bodies stay in `elements` (with bounds).
  */
 
+import { AgentComponentType } from '@besser/wme';
 import { DiagramConverter, PositionGenerator, generateUniqueId } from './base';
 
 function estimateWidth(texts: string[], baseWidth: number): number {
@@ -18,7 +19,7 @@ function estimateWidth(texts: string[], baseWidth: number): number {
   return Math.max(maxW, baseWidth);
 }
 
-const REPLY_TYPE_TO_ACTION_TYPE: Record<string, string> = {
+export const REPLY_TYPE_TO_ACTION_TYPE: Record<string, string> = {
   text: 'TextReplyAction',
   llm: 'LLMReplyAction',
   llm_chat: 'LLMChatAction',
@@ -37,6 +38,100 @@ const REPLY_TYPE_TO_ACTION_TYPE: Record<string, string> = {
   ws_plotly: 'WebSocketReplyPlotlyAction',
   gui_reply: 'GUIReplyAction',
 };
+
+export type AgentStateBodyElementType = 'AgentStateBody' | 'AgentStateFallbackBody';
+
+/**
+ * Build one agent state body (reply) element from an assistant reply spec — a plain string
+ * (text reply) or an object with ``replyType`` and the type-specific fields. Shared by the
+ * converter and by AgentDiagramModifier (``add_state`` and ``add_state_body``) so every path
+ * produces identical bodies.
+ */
+export function buildAgentStateBody(
+  raw: any,
+  options: {
+    id: string;
+    owner: string;
+    elementType: AgentStateBodyElementType;
+    bounds: { x: number; y: number; width: number; height: number };
+  },
+): Record<string, any> {
+  const body = typeof raw === 'string' ? { text: raw, replyType: 'text' } : (raw || {});
+  const replyType: string = body.replyType || 'text';
+  const actionType = REPLY_TYPE_TO_ACTION_TYPE[replyType] || 'TextReplyAction';
+
+  const el: Record<string, any> = {
+    id: options.id,
+    name: body.text || '',
+    type: options.elementType,
+    owner: options.owner,
+    bounds: options.bounds,
+    actionType,
+    replyType,
+    useSessionVars: false,
+  };
+
+  // LLM / LLMChat fields
+  if (actionType === 'LLMReplyAction' || actionType === 'LLMChatAction') {
+    el.system_message = body.system_message || '';
+    el.llm_name = body.llm_name || '';
+    el.systemPromptUseSessionVars = false;
+    el.storeInSession = body.storeInSession || '';
+    el.sendReply = body.sendReply !== false;
+    el.inputPromptMode = body.inputPromptMode || 'last_user_message';
+    el.customInputPrompt = body.customInputPrompt || '';
+    el.customInputPromptUseSessionVars = false;
+  }
+
+  // RAG fields
+  if (actionType === 'RAGReplyAction') {
+    el.ragDatabaseName = body.ragDatabaseName || '';
+    el.llm_name = body.llm_name || '';
+    el.inputPromptMode = body.inputPromptMode || 'last_user_message';
+    el.storeInSession = body.storeInSession || '';
+    el.sendReply = body.sendReply !== false;
+  }
+
+  // DB fields
+  if (actionType === 'DBAction') {
+    el.dbSelectionType = body.dbSelectionType || 'default';
+    el.dbCustomName = body.dbCustomName || '';
+    el.dbQueryMode = body.dbQueryMode || 'llm_query';
+    el.dbOperation = body.dbOperation || 'any';
+    el.dbSqlQuery = body.dbSqlQuery || '';
+    el.llm_name = body.llm_name || '';
+    el.inputPromptMode = body.inputPromptMode || 'last_user_message';
+    el.storeInSession = body.storeInSession || '';
+    el.sendReply = body.sendReply !== false;
+  }
+
+  // WebCrawlLLM fields
+  if (actionType === 'WebCrawlLLMAction') {
+    el.initial_url = body.initial_url || '';
+    el.llm_name = body.llm_name || '';
+    el.storeInSession = body.storeInSession || '';
+    el.sendReply = body.sendReply !== false;
+  }
+
+  // WebSocket message fields
+  if (['WebSocketReplyMarkdownAction', 'WebSocketReplyHTMLAction', 'WebSocketReplySpeechAction'].includes(actionType)) {
+    el.ws_message = body.ws_message || body.text || '';
+  }
+  if (actionType === 'WebSocketReplyOptionsAction') {
+    el.ws_options = body.ws_options || '';
+  }
+  if (actionType === 'WebSocketReplyLocationAction') {
+    el.ws_latitude = body.ws_latitude ?? 0;
+    el.ws_longitude = body.ws_longitude ?? 0;
+  }
+
+  // GUI reply field
+  if (actionType === 'GUIReplyAction') {
+    el.guiId = body.guiId || body.gui_id || '';
+  }
+
+  return el;
+}
 
 export class AgentDiagramConverter implements DiagramConverter {
   private positionGenerator = new PositionGenerator();
@@ -120,95 +215,27 @@ export class AgentDiagramConverter implements DiagramConverter {
 
     let currentY = pos.y + 41;
 
-    const buildBodyElement = (raw: any, elementType: 'AgentStateBody' | 'AgentStateFallbackBody', id: string) => {
-      const body = typeof raw === 'string' ? { text: raw, replyType: 'text' } : raw;
-      const replyType: string = body.replyType || 'text';
-      const actionType = REPLY_TYPE_TO_ACTION_TYPE[replyType] || 'TextReplyAction';
-
-      const el: any = {
-        id,
-        name: body.text || '',
-        type: elementType,
-        owner: stateId,
-        bounds: { x: pos.x + 0.5, y: currentY, width: bodyWidth, height: 30 },
-        actionType,
-        replyType,
-        useSessionVars: false,
-      };
-
-      // LLM / LLMChat fields
-      if (actionType === 'LLMReplyAction' || actionType === 'LLMChatAction') {
-        el.system_message = body.system_message || '';
-        el.llm_name = body.llm_name || '';
-        el.systemPromptUseSessionVars = false;
-        el.storeInSession = body.storeInSession || '';
-        el.sendReply = body.sendReply !== false;
-        el.inputPromptMode = body.inputPromptMode || 'last_user_message';
-        el.customInputPrompt = body.customInputPrompt || '';
-        el.customInputPromptUseSessionVars = false;
-      }
-
-      // RAG fields
-      if (actionType === 'RAGReplyAction') {
-        el.ragDatabaseName = body.ragDatabaseName || '';
-        el.llm_name = body.llm_name || '';
-        el.inputPromptMode = body.inputPromptMode || 'last_user_message';
-        el.storeInSession = body.storeInSession || '';
-        el.sendReply = body.sendReply !== false;
-      }
-
-      // DB fields
-      if (actionType === 'DBAction') {
-        el.dbSelectionType = body.dbSelectionType || 'default';
-        el.dbCustomName = body.dbCustomName || '';
-        el.dbQueryMode = body.dbQueryMode || 'llm_query';
-        el.dbOperation = body.dbOperation || 'any';
-        el.dbSqlQuery = body.dbSqlQuery || '';
-        el.llm_name = body.llm_name || '';
-        el.inputPromptMode = body.inputPromptMode || 'last_user_message';
-        el.storeInSession = body.storeInSession || '';
-        el.sendReply = body.sendReply !== false;
-      }
-
-      // WebCrawlLLM fields
-      if (actionType === 'WebCrawlLLMAction') {
-        el.initial_url = body.initial_url || '';
-        el.llm_name = body.llm_name || '';
-        el.storeInSession = body.storeInSession || '';
-        el.sendReply = body.sendReply !== false;
-      }
-
-      // WebSocket message fields
-      if (['WebSocketReplyMarkdownAction', 'WebSocketReplyHTMLAction', 'WebSocketReplySpeechAction'].includes(actionType)) {
-        el.ws_message = body.ws_message || body.text || '';
-      }
-      if (actionType === 'WebSocketReplyOptionsAction') {
-        el.ws_options = body.ws_options || '';
-      }
-      if (actionType === 'WebSocketReplyLocationAction') {
-        el.ws_latitude = body.ws_latitude ?? 0;
-        el.ws_longitude = body.ws_longitude ?? 0;
-      }
-
-      // GUI reply field
-      if (actionType === 'GUIReplyAction') {
-        el.guiId = body.guiId || body.gui_id || '';
-      }
-
-      return el;
-    };
-
     (spec.bodies || spec.replies || []).forEach((body: any) => {
       const bodyId = generateUniqueId('body');
       actionIds.push(bodyId);
-      bodyElements[bodyId] = buildBodyElement(body, 'AgentStateBody', bodyId);
+      bodyElements[bodyId] = buildAgentStateBody(body, {
+        id: bodyId,
+        owner: stateId,
+        elementType: 'AgentStateBody',
+        bounds: { x: pos.x + 0.5, y: currentY, width: bodyWidth, height: 30 },
+      });
       currentY += 30;
     });
 
     (spec.fallbackBodies || []).forEach((fallback: any) => {
       const fallbackId = generateUniqueId('fallback');
       fallbackActionIds.push(fallbackId);
-      bodyElements[fallbackId] = buildBodyElement(fallback, 'AgentStateFallbackBody', fallbackId);
+      bodyElements[fallbackId] = buildAgentStateBody(fallback, {
+        id: fallbackId,
+        owner: stateId,
+        elementType: 'AgentStateFallbackBody',
+        bounds: { x: pos.x + 0.5, y: currentY, width: bodyWidth, height: 30 },
+      });
       currentY += 30;
     });
 
@@ -245,7 +272,7 @@ export class AgentDiagramConverter implements DiagramConverter {
       componentElements[bodyId] = {
         id: bodyId,
         name: typeof phrase === 'string' ? phrase : phrase.text,
-        type: 'AgentIntentBody',
+        type: AgentComponentType.AgentIntentBody,
         owner: intentId,
       };
     });
@@ -253,7 +280,7 @@ export class AgentDiagramConverter implements DiagramConverter {
     const intentElement = {
       id: intentId,
       name: spec.intentName || spec.name,
-      type: 'AgentIntent',
+      type: AgentComponentType.AgentIntent,
       owner: null,
       intent_description: spec.intentDescription || spec.intent_description || '',
       bodies,
@@ -359,7 +386,7 @@ export class AgentDiagramConverter implements DiagramConverter {
       const ragId = generateUniqueId('rag');
       allComponents[ragId] = {
         id: ragId,
-        type: 'AgentRagElement',
+        type: AgentComponentType.AgentRagElement,
         name: ragSpec.name || 'RAG DB',
         owner: null,
         llm_name: ragSpec.llm_name || '',
@@ -373,7 +400,7 @@ export class AgentDiagramConverter implements DiagramConverter {
       const llmId = generateUniqueId('llm');
       allComponents[llmId] = {
         id: llmId,
-        type: 'AgentLLM',
+        type: AgentComponentType.AgentLLM,
         name: llmSpec.name,
         owner: null,
         provider: llmSpec.provider || 'openai',
@@ -386,7 +413,7 @@ export class AgentDiagramConverter implements DiagramConverter {
       const toolId = generateUniqueId('tool');
       allComponents[toolId] = {
         id: toolId,
-        type: 'AgentTool',
+        type: AgentComponentType.AgentTool,
         name: toolSpec.name,
         owner: null,
         description: toolSpec.description || '',
@@ -398,7 +425,7 @@ export class AgentDiagramConverter implements DiagramConverter {
       const skillId = generateUniqueId('skill');
       allComponents[skillId] = {
         id: skillId,
-        type: 'AgentSkill',
+        type: AgentComponentType.AgentSkill,
         name: skillSpec.name,
         owner: null,
         content: skillSpec.content || '',
@@ -410,7 +437,7 @@ export class AgentDiagramConverter implements DiagramConverter {
       const wsId = generateUniqueId('workspace');
       allComponents[wsId] = {
         id: wsId,
-        type: 'AgentWorkspace',
+        type: AgentComponentType.AgentWorkspace,
         name: wsSpec.name,
         owner: null,
         path: wsSpec.path || '',
@@ -424,7 +451,7 @@ export class AgentDiagramConverter implements DiagramConverter {
       const guiId = generateUniqueId('gui');
       allComponents[guiId] = {
         id: guiId,
-        type: 'AgentGUI',
+        type: AgentComponentType.AgentGUI,
         name: guiSpec.gui_id || guiSpec.name || '',
         owner: null,
         gui_id: guiSpec.gui_id || '',

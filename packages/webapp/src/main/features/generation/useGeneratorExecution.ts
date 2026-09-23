@@ -15,7 +15,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { ApollonEditor, UMLDiagramType, UMLModel, normalizeAgentModel } from '@besser/wme';
+import { ApollonEditor, UMLDiagramType, UMLModel } from '@besser/wme';
 import { toast } from 'react-toastify';
 import { useTranslation } from 'react-i18next';
 
@@ -62,6 +62,7 @@ import {
   getConfigDialogForGenerator,
 } from './generator-dialog-config';
 import { getWorkspaceContext } from '../../shared/utils/workspaceContext';
+import { prepareAgentModelForBackend } from '../../shared/utils/projectExportUtils';
 import type { GeneratorType } from '../../app/shell/workspace-types';
 import i18n from '../../shared/i18n';
 import {
@@ -883,32 +884,16 @@ export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGen
           case 'jsonschema':
             result = await generateCode(editor, 'jsonschema', activeDiagramTitle, config as JSONSchemaConfig);
             break;
-          case 'agent': {
-            // Agent components (intents, tools, etc.) live in model.components (new schema)
-            // or legacy agentComponents. Ensure the model sent to the backend has them
-            // in model.components so the backend processor can resolve references.
-            const agentBaseModel: UMLModel = (options?.agentModelOverride ?? editor.model) as UMLModel;
-            const legacyComponents = (activeDiagram as any)?.agentComponents;
-            const modelComponents = (agentBaseModel as any)?.components;
-            let agentModelWithComponents: UMLModel = agentBaseModel;
-            if (legacyComponents && Object.keys(legacyComponents).length > 0 && !modelComponents) {
-              const stripped: Record<string, any> = {};
-              for (const [id, comp] of Object.entries(legacyComponents)) {
-                const { bounds, ...rest } = comp as any;
-                stripped[id] = rest;
-              }
-              agentModelWithComponents = { ...agentBaseModel, components: stripped } as any;
-            }
+          case 'agent':
             result = await generateCode(
               editor,
               'agent',
               activeDiagramTitle,
               config as AgentConfig,
               undefined,
-              agentModelWithComponents,
+              options?.agentModelOverride,
             );
             break;
-          }
           case 'test_case':
             result = await generateCode(editor, 'test_case', activeDiagramTitle);
             break;
@@ -1003,21 +988,6 @@ export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGen
       }
 
       if (editor) {
-        // Agent components (intents, tools, etc.) live in model.components (new schema)
-        // or legacy agentComponents. Ensure the validation model has them in
-        // model.components so the backend resolver finds intent references.
-        const legacyComponents = (activeDiagram as any)?.agentComponents;
-        const modelComponents = (editor.model as any)?.components;
-        if (legacyComponents && Object.keys(legacyComponents).length > 0 && !modelComponents && (editor.model as any)?.type === 'AgentDiagram') {
-          const stripped: Record<string, any> = {};
-          for (const [id, comp] of Object.entries(legacyComponents)) {
-            const { bounds, ...rest } = comp as any;
-            stripped[id] = rest;
-          }
-          const mergedModel = { ...editor.model, components: stripped };
-          const result = await validateDiagram(null, activeDiagramTitle, mergedModel);
-          return { executed: true, passed: didValidationPass(result) };
-        }
         const result = await validateDiagram(editor, activeDiagramTitle);
         return { executed: true, passed: didValidationPass(result) };
       }
@@ -1247,9 +1217,9 @@ export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGen
             // Normalize to the canonical nested transition shape before sending.
             // Variant/config snapshots can bypass the editor (e.g. imported
             // projects) and still carry the legacy flat shape, which the backend
-            // collapses to when_no_intent_matched. normalizeAgentModel is pure
-            // and idempotent and returns a fresh clone.
-            agent_model: normalizeAgentModel(agentModel as UMLModel) as Record<string, any>,
+            // collapses to when_no_intent_matched. The shared helper is pure and
+            // idempotent, and also attaches the diagram's off-canvas components.
+            agent_model: prepareAgentModelForBackend(agentModel as UMLModel, activeAgentDiagram ?? null) as Record<string, any>,
           };
         })
         .filter((entry): entry is {

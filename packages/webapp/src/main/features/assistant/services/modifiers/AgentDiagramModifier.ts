@@ -3,8 +3,24 @@
  * Handles all modification operations for Agent Diagrams
  */
 
+import { AgentComponentType, UMLModel, normalizeAgentComponents } from '@besser/wme';
 import { DiagramModifier, ModelModification, ModifierHelpers } from './base';
 import { BESSERModel } from '../UMLModelingService';
+import { buildAgentStateBody } from '../converters/AgentDiagramConverter';
+
+/**
+ * An agent model as the modifier edits it: canvas `elements` plus the off-canvas
+ * `components` (intents, LLMs, RAG databases, tools, skills, workspaces, GUIs).
+ */
+type AgentModel = BESSERModel & { components?: Record<string, any> };
+
+/** Agent actions carry type-specific fields not declared on the shared ModificationChanges. */
+type AgentChanges = Record<string, any>;
+
+function componentsOf(model: AgentModel): Record<string, any> {
+  if (!model.components) model.components = {};
+  return model.components;
+}
 
 export class AgentDiagramModifier implements DiagramModifier {
   getDiagramType() {
@@ -30,10 +46,16 @@ export class AgentDiagramModifier implements DiagramModifier {
     ].includes(action);
   }
 
-  applyModification(model: BESSERModel, modification: ModelModification): BESSERModel {
-    const updatedModel = ModifierHelpers.cloneModel(model);
+  applyModification(model: AgentModel, modification: ModelModification): BESSERModel {
+    // Older models kept intents, LLMs, ... on the canvas (`elements`); move them into
+    // `components` first so every action below works on one format.
+    const updatedModel = normalizeAgentComponents(
+      ModifierHelpers.cloneModel(model) as unknown as UMLModel,
+    ) as unknown as AgentModel;
+    // add_llm/add_tool/add_skill/add_workspace/add_gui are agent-only actions, not in the shared union.
+    const action: string = modification.action;
 
-    switch (modification.action) {
+    switch (action) {
       case 'add_state':
         return this.addState(updatedModel, modification);
       case 'add_intent':
@@ -63,15 +85,15 @@ export class AgentDiagramModifier implements DiagramModifier {
       case 'remove_element':
         return this.removeElement(updatedModel, modification);
       default:
-        throw new Error(`Unsupported action for AgentDiagram: ${modification.action}`);
+        throw new Error(`Unsupported action for AgentDiagram: ${action}`);
     }
   }
 
   /**
    * Add a new agent state with optional reply bodies
    */
-  private addState(model: BESSERModel, modification: ModelModification): BESSERModel {
-    const changes = modification.changes;
+  private addState(model: AgentModel, modification: ModelModification): BESSERModel {
+    const changes = modification.changes as AgentChanges;
     const target = modification.target;
 
     // Auto-position: find max Y of existing elements and place below
@@ -87,46 +109,26 @@ export class AgentDiagramModifier implements DiagramModifier {
     const fallbackBodies: string[] = [];
 
     // Estimate width from reply text lengths
-    const replies = changes.replies || [];
+    const replies: any[] = changes.replies || [];
     let stateWidth = 210;
     for (const reply of replies) {
-      const estimated = (reply.text || '').length * 8 + 40;
+      const text = typeof reply === 'string' ? reply : reply?.text || '';
+      const estimated = text.length * 8 + 40;
       if (estimated > stateWidth) stateWidth = estimated;
     }
     const bodyWidth = stateWidth - 1;
 
-    // Create state body elements from replies
+    // Create state body elements from replies (same builder as add_state_body and the converter)
     let currentY = pos.y + 41;
     for (const reply of replies) {
       const bodyId = ModifierHelpers.generateUniqueId('body');
       bodies.push(bodyId);
-
-      const replyType = reply.replyType || 'text';
-      const ACTION_MAP: Record<string, string> = {
-        text: 'TextReplyAction', llm: 'LLMReplyAction', llm_chat: 'LLMChatAction',
-        rag: 'RAGReplyAction', db_reply: 'DBAction', code: 'CustomCodeAction',
-        web_crawl_llm: 'WebCrawlLLMAction', ws_markdown: 'WebSocketReplyMarkdownAction',
-        ws_html: 'WebSocketReplyHTMLAction', ws_speech: 'WebSocketReplySpeechAction',
-        ws_options: 'WebSocketReplyOptionsAction', ws_location: 'WebSocketReplyLocationAction',
-        ws_file: 'WebSocketReplyFileAction', ws_image: 'WebSocketReplyImageAction',
-        ws_dataframe: 'WebSocketReplyDataframeAction', ws_plotly: 'WebSocketReplyPlotlyAction',
-        gui_reply: 'GUIReplyAction',
-      };
-      const bodyElement: any = {
+      model.elements[bodyId] = buildAgentStateBody(reply, {
         id: bodyId,
-        name: reply.text || '',
-        type: 'AgentStateBody',
         owner: stateId,
+        elementType: 'AgentStateBody',
         bounds: { x: pos.x + 0.5, y: currentY, width: bodyWidth, height: 30 },
-        actionType: ACTION_MAP[replyType] || 'TextReplyAction',
-        replyType,
-        useSessionVars: false,
-      };
-      if (reply.ragDatabaseName) bodyElement.ragDatabaseName = reply.ragDatabaseName;
-      if (reply.llm_name) bodyElement.llm_name = reply.llm_name;
-      if (reply.system_message) bodyElement.system_message = reply.system_message;
-      if (reply.guiId) bodyElement.guiId = reply.guiId;
-      model.elements[bodyId] = bodyElement;
+      });
       currentY += 30;
     }
 
@@ -152,13 +154,9 @@ export class AgentDiagramModifier implements DiagramModifier {
   /**
    * Add a new intent with optional training phrases (goes to components, no bounds)
    */
-  private addIntent(model: BESSERModel, modification: ModelModification): BESSERModel {
-    const changes = modification.changes;
+  private addIntent(model: AgentModel, modification: ModelModification): BESSERModel {
+    const changes = modification.changes as AgentChanges;
     const target = modification.target;
-
-    if (!model.components) {
-      model.components = {};
-    }
 
     const intentId = ModifierHelpers.generateUniqueId('intent');
     const bodies: string[] = [];
@@ -167,18 +165,18 @@ export class AgentDiagramModifier implements DiagramModifier {
     for (const phrase of phrases) {
       const bodyId = ModifierHelpers.generateUniqueId('intentBody');
       bodies.push(bodyId);
-      model.components[bodyId] = {
+      componentsOf(model)[bodyId] = {
         id: bodyId,
         name: phrase,
-        type: 'AgentIntentBody',
+        type: AgentComponentType.AgentIntentBody,
         owner: intentId,
       };
     }
 
-    model.components[intentId] = {
+    componentsOf(model)[intentId] = {
       id: intentId,
       name: target.intentName || changes.intentName || changes.name || '',
-      type: 'AgentIntent',
+      type: AgentComponentType.AgentIntent,
       owner: null,
       intent_description: changes.intentDescription || '',
       bodies,
@@ -190,7 +188,7 @@ export class AgentDiagramModifier implements DiagramModifier {
   /**
    * Modify state properties (rename, etc.)
    */
-  private modifyState(model: BESSERModel, modification: ModelModification): BESSERModel {
+  private modifyState(model: AgentModel, modification: ModelModification): BESSERModel {
     const { stateId, stateName } = modification.target;
     const targetId = stateId || this.findStateIdByName(model, stateName!);
 
@@ -206,7 +204,7 @@ export class AgentDiagramModifier implements DiagramModifier {
   /**
    * Modify intent properties (rename, add training phrases)
    */
-  private modifyIntent(model: BESSERModel, modification: ModelModification): BESSERModel {
+  private modifyIntent(model: AgentModel, modification: ModelModification): BESSERModel {
     const { intentId, intentName } = modification.target;
     const targetId = intentId || this.findIntentIdByName(model, intentName!);
     const components = model.components || {};
@@ -226,18 +224,17 @@ export class AgentDiagramModifier implements DiagramModifier {
   /**
    * Add a training phrase to an intent (intent lives in components, no bounds)
    */
-  private addIntentTrainingPhrase(model: BESSERModel, intentId: string, phrase: string): void {
-    if (!model.components) model.components = {};
-    const intentElement = model.components[intentId];
-    if (!intentElement || intentElement.type !== 'AgentIntent') return;
+  private addIntentTrainingPhrase(model: AgentModel, intentId: string, phrase: string): void {
+    const intentElement = componentsOf(model)[intentId];
+    if (!intentElement || intentElement.type !== AgentComponentType.AgentIntent) return;
 
     const bodyId = ModifierHelpers.generateUniqueId('intentBody');
     const bodies = intentElement.bodies || [];
 
-    model.components[bodyId] = {
+    componentsOf(model)[bodyId] = {
       id: bodyId,
       name: phrase,
-      type: 'AgentIntentBody',
+      type: AgentComponentType.AgentIntentBody,
       owner: intentId,
     };
 
@@ -247,7 +244,7 @@ export class AgentDiagramModifier implements DiagramModifier {
   /**
    * Add state body (reply)
    */
-  private addStateBody(model: BESSERModel, modification: ModelModification): BESSERModel {
+  private addStateBody(model: AgentModel, modification: ModelModification): BESSERModel {
     const { stateId, stateName } = modification.target;
     const targetId = stateId || this.findStateIdByName(model, stateName!);
 
@@ -274,74 +271,13 @@ export class AgentDiagramModifier implements DiagramModifier {
       }
     }
 
-    const ch = modification.changes;
-    const replyType: string = ch.replyType || 'text';
-    const ACTION_TYPE_MAP: Record<string, string> = {
-      text: 'TextReplyAction', llm: 'LLMReplyAction', llm_chat: 'LLMChatAction',
-      rag: 'RAGReplyAction', db_reply: 'DBAction', code: 'CustomCodeAction',
-      web_crawl_llm: 'WebCrawlLLMAction', ws_markdown: 'WebSocketReplyMarkdownAction',
-      ws_html: 'WebSocketReplyHTMLAction', ws_speech: 'WebSocketReplySpeechAction',
-      ws_options: 'WebSocketReplyOptionsAction', ws_location: 'WebSocketReplyLocationAction',
-      ws_file: 'WebSocketReplyFileAction', ws_image: 'WebSocketReplyImageAction',
-      ws_dataframe: 'WebSocketReplyDataframeAction', ws_plotly: 'WebSocketReplyPlotlyAction',
-      gui_reply: 'GUIReplyAction',
-    };
-    const actionType = ACTION_TYPE_MAP[replyType] || 'TextReplyAction';
-
-    const newBody: any = {
+    const newBody = buildAgentStateBody(modification.changes, {
       id: bodyId,
-      name: ch.text || 'New reply',
-      type: 'AgentStateBody',
       owner: targetId,
+      elementType: 'AgentStateBody',
       bounds: { x: stateElement.bounds.x + 0.5, y: newY, width: 209, height: 30 },
-      actionType,
-      replyType,
-      useSessionVars: false,
-    };
-
-    if (actionType === 'LLMReplyAction' || actionType === 'LLMChatAction') {
-      newBody.system_message = ch.system_message || '';
-      newBody.llm_name = ch.llm_name || '';
-      newBody.systemPromptUseSessionVars = false;
-      newBody.storeInSession = ch.storeInSession || '';
-      newBody.sendReply = ch.sendReply !== false;
-      newBody.inputPromptMode = ch.inputPromptMode || 'last_user_message';
-      newBody.customInputPrompt = ch.customInputPrompt || '';
-      newBody.customInputPromptUseSessionVars = false;
-    }
-    if (actionType === 'RAGReplyAction') {
-      newBody.ragDatabaseName = ch.ragDatabaseName || '';
-      newBody.llm_name = ch.llm_name || '';
-      newBody.storeInSession = ch.storeInSession || '';
-      newBody.sendReply = ch.sendReply !== false;
-    }
-    if (actionType === 'DBAction') {
-      newBody.dbSelectionType = ch.dbSelectionType || 'default';
-      newBody.dbCustomName = ch.dbCustomName || '';
-      newBody.dbQueryMode = ch.dbQueryMode || 'llm_query';
-      newBody.dbOperation = ch.dbOperation || 'any';
-      newBody.dbSqlQuery = ch.dbSqlQuery || '';
-      newBody.llm_name = ch.llm_name || '';
-      newBody.storeInSession = ch.storeInSession || '';
-      newBody.sendReply = ch.sendReply !== false;
-    }
-    if (actionType === 'WebCrawlLLMAction') {
-      newBody.initial_url = ch.initial_url || '';
-      newBody.llm_name = ch.llm_name || '';
-    }
-    if (['WebSocketReplyMarkdownAction', 'WebSocketReplyHTMLAction', 'WebSocketReplySpeechAction'].includes(actionType)) {
-      newBody.ws_message = ch.ws_message || ch.text || '';
-    }
-    if (actionType === 'WebSocketReplyOptionsAction') {
-      newBody.ws_options = ch.ws_options || '';
-    }
-    if (actionType === 'WebSocketReplyLocationAction') {
-      newBody.ws_latitude = ch.ws_latitude ?? 0;
-      newBody.ws_longitude = ch.ws_longitude ?? 0;
-    }
-    if (actionType === 'GUIReplyAction') {
-      newBody.guiId = ch.guiId || ch.gui_id || '';
-    }
+    });
+    if (!newBody.name) newBody.name = 'New reply';
 
     model.elements[bodyId] = newBody;
 
@@ -359,12 +295,12 @@ export class AgentDiagramModifier implements DiagramModifier {
   /**
    * Add transition between states or from intent to state
    */
-  private addTransition(model: BESSERModel, modification: ModelModification): BESSERModel {
+  private addTransition(model: AgentModel, modification: ModelModification): BESSERModel {
     if (!model.relationships) {
       model.relationships = {};
     }
 
-    const changes = modification.changes;
+    const changes = modification.changes as AgentChanges;
     const target = modification.target;
 
     const sourceName = changes.source || target.stateName || target.intentName;
@@ -430,7 +366,7 @@ export class AgentDiagramModifier implements DiagramModifier {
   /**
    * Remove transition
    */
-  private removeTransition(model: BESSERModel, modification: ModelModification): BESSERModel {
+  private removeTransition(model: AgentModel, modification: ModelModification): BESSERModel {
     const { transitionId } = modification.target;
 
     if (transitionId && model.relationships?.[transitionId]) {
@@ -460,15 +396,14 @@ export class AgentDiagramModifier implements DiagramModifier {
   /**
    * Add a RAG knowledge base component (goes to components, no bounds)
    */
-  private addRagElement(model: BESSERModel, modification: ModelModification): BESSERModel {
-    if (!model.components) model.components = {};
-    const ch = modification.changes;
+  private addRagElement(model: AgentModel, modification: ModelModification): BESSERModel {
+    const ch = modification.changes as AgentChanges;
     const target = modification.target;
     const ragId = ModifierHelpers.generateUniqueId('rag');
 
-    model.components[ragId] = {
+    componentsOf(model)[ragId] = {
       id: ragId,
-      type: 'AgentRagElement',
+      type: AgentComponentType.AgentRagElement,
       name: target.name || ch.name || 'RAG DB',
       owner: null,
       llm_name: ch.llm_name || '',
@@ -483,15 +418,14 @@ export class AgentDiagramModifier implements DiagramModifier {
   /**
    * Add an LLM configuration component (goes to components, no bounds)
    */
-  private addLLM(model: BESSERModel, modification: ModelModification): BESSERModel {
-    if (!model.components) model.components = {};
-    const ch = modification.changes;
+  private addLLM(model: AgentModel, modification: ModelModification): BESSERModel {
+    const ch = modification.changes as AgentChanges;
     const target = modification.target;
     const llmId = ModifierHelpers.generateUniqueId('llm');
 
-    model.components[llmId] = {
+    componentsOf(model)[llmId] = {
       id: llmId,
-      type: 'AgentLLM',
+      type: AgentComponentType.AgentLLM,
       name: target.name || ch.name || 'LLM',
       owner: null,
       provider: ch.provider || 'openai',
@@ -505,15 +439,14 @@ export class AgentDiagramModifier implements DiagramModifier {
   /**
    * Add a tool component (goes to components, no bounds)
    */
-  private addTool(model: BESSERModel, modification: ModelModification): BESSERModel {
-    if (!model.components) model.components = {};
-    const ch = modification.changes;
+  private addTool(model: AgentModel, modification: ModelModification): BESSERModel {
+    const ch = modification.changes as AgentChanges;
     const target = modification.target;
     const toolId = ModifierHelpers.generateUniqueId('tool');
 
-    model.components[toolId] = {
+    componentsOf(model)[toolId] = {
       id: toolId,
-      type: 'AgentTool',
+      type: AgentComponentType.AgentTool,
       name: target.name || ch.name || 'Tool',
       owner: null,
       description: ch.description || '',
@@ -526,15 +459,14 @@ export class AgentDiagramModifier implements DiagramModifier {
   /**
    * Add a skill component (goes to components, no bounds)
    */
-  private addSkill(model: BESSERModel, modification: ModelModification): BESSERModel {
-    if (!model.components) model.components = {};
-    const ch = modification.changes;
+  private addSkill(model: AgentModel, modification: ModelModification): BESSERModel {
+    const ch = modification.changes as AgentChanges;
     const target = modification.target;
     const skillId = ModifierHelpers.generateUniqueId('skill');
 
-    model.components[skillId] = {
+    componentsOf(model)[skillId] = {
       id: skillId,
-      type: 'AgentSkill',
+      type: AgentComponentType.AgentSkill,
       name: target.name || ch.name || 'Skill',
       owner: null,
       content: ch.content || '',
@@ -547,15 +479,14 @@ export class AgentDiagramModifier implements DiagramModifier {
   /**
    * Add a workspace component (goes to components, no bounds)
    */
-  private addWorkspace(model: BESSERModel, modification: ModelModification): BESSERModel {
-    if (!model.components) model.components = {};
-    const ch = modification.changes;
+  private addWorkspace(model: AgentModel, modification: ModelModification): BESSERModel {
+    const ch = modification.changes as AgentChanges;
     const target = modification.target;
     const wsId = ModifierHelpers.generateUniqueId('workspace');
 
-    model.components[wsId] = {
+    componentsOf(model)[wsId] = {
       id: wsId,
-      type: 'AgentWorkspace',
+      type: AgentComponentType.AgentWorkspace,
       name: target.name || ch.name || 'Workspace',
       owner: null,
       path: ch.path || '',
@@ -570,16 +501,15 @@ export class AgentDiagramModifier implements DiagramModifier {
   /**
    * Add a GUI page component (goes to components, no bounds)
    */
-  private addGUI(model: BESSERModel, modification: ModelModification): BESSERModel {
-    if (!model.components) model.components = {};
-    const ch = modification.changes;
+  private addGUI(model: AgentModel, modification: ModelModification): BESSERModel {
+    const ch = modification.changes as AgentChanges;
     const target = modification.target;
     const guiId = ModifierHelpers.generateUniqueId('gui');
     const guiPageId = ch.gui_id || target.name || ch.name || 'gui_page';
 
-    model.components[guiId] = {
+    componentsOf(model)[guiId] = {
       id: guiId,
-      type: 'AgentGUI',
+      type: AgentComponentType.AgentGUI,
       name: guiPageId,
       owner: null,
       gui_id: guiPageId,
@@ -594,7 +524,7 @@ export class AgentDiagramModifier implements DiagramModifier {
   /**
    * Remove element (state, intent, or their bodies)
    */
-  private removeElement(model: BESSERModel, modification: ModelModification): BESSERModel {
+  private removeElement(model: AgentModel, modification: ModelModification): BESSERModel {
     const { stateId, stateName, intentId, intentName } = modification.target;
 
     // Remove state
@@ -609,12 +539,12 @@ export class AgentDiagramModifier implements DiagramModifier {
     if (intentId || intentName) {
       const targetId = intentId || this.findIntentIdByName(model, intentName!);
       if (targetId) {
-        if (model.components && model.components[targetId]) {
-          const intent = model.components[targetId];
+        if (model.components && componentsOf(model)[targetId]) {
+          const intent = componentsOf(model)[targetId];
           for (const bodyId of (intent.bodies || [])) {
-            delete model.components[bodyId];
+            delete componentsOf(model)[bodyId];
           }
-          delete model.components[targetId];
+          delete componentsOf(model)[targetId];
         } else {
           return ModifierHelpers.removeElementWithChildren(model, targetId);
         }
@@ -629,17 +559,17 @@ export class AgentDiagramModifier implements DiagramModifier {
     return ModifierHelpers.findElementByName(model, stateName, 'AgentState');
   }
 
-  private findIntentIdByName(model: BESSERModel, intentName: string): string | null {
+  private findIntentIdByName(model: AgentModel, intentName: string): string | null {
     // Intents now live in components (new format)
     if (model.components) {
       for (const [id, comp] of Object.entries(model.components)) {
-        if (comp.type === 'AgentIntent' && comp.name === intentName) {
+        if (comp.type === AgentComponentType.AgentIntent && comp.name === intentName) {
           return id;
         }
       }
     }
     // Fallback: legacy format where intents were in elements
-    return ModifierHelpers.findElementByName(model, intentName, 'AgentIntent');
+    return ModifierHelpers.findElementByName(model, intentName, AgentComponentType.AgentIntent);
   }
 
   private findInitialNodeId(model: BESSERModel): string | null {

@@ -23,8 +23,10 @@ Register the language models available to the agent. Each LLM entry has:
 - **Model / Parameters**: provider-specific model identifier (for example ``gpt-4o-mini`` for
   OpenAI).
 
-The first LLM added becomes the agent's default. Click **Set as default** on any entry to change
-the default. Body actions that do not specify an LLM use the default automatically.
+When no default LLM is set, the first LLM added becomes the agent's default as soon as you give
+it a name. Renaming the default LLM keeps it the default, and removing it clears the default.
+Tick **Set as default** on any entry to change the default. Body actions that do not specify an
+LLM use the default automatically.
 
 Intents
 -------
@@ -92,8 +94,14 @@ SQL Database entries let the agent query relational databases using natural lang
 *DB Reply* action. Each entry has:
 
 - **Name**: identifier referenced by *DB Reply* actions.
-- **Connection string**: the database connection URL (for example a SQLite file path or a
-  PostgreSQL URI).
+- **Dialect**: ``postgresql`` (default), ``sqlite``, ``mysql``, ``mariadb``, ``mssql`` or
+  ``oracle``.
+- **Database**: the database name, or the path of the database file for SQLite.
+- **Host** and **Port**: where the database server listens (default ``localhost`` and ``5432``).
+- **Username** and **Password**: the credentials used to connect.
+
+Host, port, username and password are hidden for SQLite, which only needs the file path. SQL
+databases are saved in the agent's configuration file (``config.yaml``), not in the diagram.
 
 GUIs
 ----

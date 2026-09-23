@@ -1,4 +1,5 @@
 import React, { useEffect, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import type { Editor } from 'grapesjs';
 import '../editors/gui/grapesjs-styles.css';
 import { registerAllComponents } from '../editors/gui/registerAllComponents';
@@ -16,6 +17,7 @@ export interface AgentGUIEditorProps {
 }
 
 export function AgentGUIEditor({ initialData, onSave, onCancel }: AgentGUIEditorProps) {
+  const { t } = useTranslation();
   const editorRef = useRef<Editor | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -113,7 +115,7 @@ export function AgentGUIEditor({ initialData, onSave, onCancel }: AgentGUIEditor
           flexShrink: 0,
         }}
       >
-        <span style={{ fontSize: '13px', fontWeight: 600 }}>GUI Editor</span>
+        <span style={{ fontSize: '13px', fontWeight: 600 }}>{t('agentComponents.guis.editorTitle')}</span>
         <div style={{ display: 'flex', gap: '8px' }}>
           <button
             type="button"
@@ -127,7 +129,7 @@ export function AgentGUIEditor({ initialData, onSave, onCancel }: AgentGUIEditor
               cursor: 'pointer',
             }}
           >
-            Cancel
+            {t('common.cancel')}
           </button>
           <button
             type="button"
@@ -143,7 +145,7 @@ export function AgentGUIEditor({ initialData, onSave, onCancel }: AgentGUIEditor
               fontWeight: 600,
             }}
           >
-            Save and Exit
+            {t('agentComponents.guis.editorSaveAndExit')}
           </button>
         </div>
       </div>
