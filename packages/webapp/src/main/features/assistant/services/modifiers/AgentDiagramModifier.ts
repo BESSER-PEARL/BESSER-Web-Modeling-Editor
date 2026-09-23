@@ -37,6 +37,7 @@ export class AgentDiagramModifier implements DiagramModifier {
       'remove_element',
       'remove_transition',
       'add_state_body',
+      'add_intent_training_phrase',
       'add_rag_element',
       'add_llm',
       'add_tool',
@@ -70,6 +71,8 @@ export class AgentDiagramModifier implements DiagramModifier {
         return this.removeTransition(updatedModel, modification);
       case 'add_state_body':
         return this.addStateBody(updatedModel, modification);
+      case 'add_intent_training_phrase':
+        return this.addTrainingPhraseToIntent(updatedModel, modification);
       case 'add_rag_element':
         return this.addRagElement(updatedModel, modification);
       case 'add_llm':
@@ -218,6 +221,23 @@ export class AgentDiagramModifier implements DiagramModifier {
       }
     }
 
+    return model;
+  }
+
+  /**
+   * add_intent_training_phrase: add one example phrase (changes.trainingPhrase) to an existing intent
+   */
+  private addTrainingPhraseToIntent(model: AgentModel, modification: ModelModification): BESSERModel {
+    const { intentId, intentName } = modification.target;
+    const targetId = intentId || this.findIntentIdByName(model, intentName!);
+    if (!targetId || !componentsOf(model)[targetId]) {
+      throw new Error(`Intent not found: ${intentName || intentId}`);
+    }
+    const phrase = (modification.changes as AgentChanges).trainingPhrase;
+    if (!phrase) {
+      throw new Error('add_intent_training_phrase requires changes.trainingPhrase');
+    }
+    this.addIntentTrainingPhrase(model, targetId, phrase);
     return model;
   }
 

@@ -169,4 +169,26 @@ describe('AgentDiagramModifier on old-format models (components on the canvas)',
     expect(result.components).toEqual({});
     expect(Object.keys(result.elements)).toEqual(['state']);
   });
+
+  it('add_intent_training_phrase appends one phrase to the intent', () => {
+    expect(modifier.canHandle('add_intent_training_phrase')).toBe(true);
+    const result = apply(legacyModel(), {
+      type: 'single', action: 'add_intent_training_phrase', target: { intentName: 'greet' },
+      changes: { trainingPhrase: 'good morning' },
+    });
+    const intent = result.components?.intent;
+    expect(intent.bodies).toHaveLength(2);
+    const added = result.components?.[intent.bodies[1]];
+    expect(added).toMatchObject({ name: 'good morning', type: 'AgentIntentBody', owner: 'intent' });
+  });
+
+  it('add_intent_training_phrase rejects an unknown intent or a missing phrase', () => {
+    expect(() => apply(legacyModel(), {
+      type: 'single', action: 'add_intent_training_phrase', target: { intentName: 'nope' },
+      changes: { trainingPhrase: 'x' },
+    })).toThrow('Intent not found');
+    expect(() => apply(legacyModel(), {
+      type: 'single', action: 'add_intent_training_phrase', target: { intentName: 'greet' }, changes: {},
+    })).toThrow('trainingPhrase');
+  });
 });
