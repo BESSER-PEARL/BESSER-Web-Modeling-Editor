@@ -119,7 +119,7 @@ export type UMLClassifier = UMLElement & {
 
 export type Visibility = 'public' | 'private' | 'protected' | 'package';
 
-export type MethodImplementationType = 'none' | 'code' | 'bal' | 'state_machine' | 'quantum_circuit';
+export type MethodImplementationType = 'none' | 'code' | 'bal' | 'state_machine' | 'quantum_circuit' | 'neural_network';
 
 export type DiagramReference = {
   id: string;
@@ -134,6 +134,7 @@ export type UMLClassifierMember = UMLElement & {
   implementationType?: MethodImplementationType;
   stateMachineId?: string;
   quantumCircuitId?: string;
+  neuralNetworkId?: string;
   isOptional?: boolean;
   isDerived?: boolean;
   isId?: boolean;

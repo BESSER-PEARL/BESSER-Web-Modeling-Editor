@@ -13,6 +13,7 @@ import {
   selectEditorRevision,
   selectStateMachineDiagrams,
   selectQuantumCircuitDiagrams,
+  selectNNDiagrams,
 } from '../../../app/store/workspaceSlice';
 import { notifyError } from '../../../shared/utils/notifyError';
 
@@ -29,6 +30,7 @@ export const ApollonEditorComponent: React.FC = () => {
   const editorRevision = useAppSelector(selectEditorRevision);
   const stateMachineDiagrams = useAppSelector(selectStateMachineDiagrams);
   const quantumCircuitDiagrams = useAppSelector(selectQuantumCircuitDiagrams);
+  const nnDiagrams = useAppSelector(selectNNDiagrams);
   const { setEditor } = useContext(ApollonEditorContext);
   const { i18n } = useTranslation();
   const localeRef = useRef(toEditorLocale(i18n.resolvedLanguage ?? i18n.language));
@@ -85,6 +87,7 @@ export const ApollonEditorComponent: React.FC = () => {
   useEffect(() => {
     const smDiagrams = stateMachineDiagrams ?? [];
     const qcDiagrams = quantumCircuitDiagrams ?? [];
+    const neuralNetworkDiagrams = nnDiagrams ?? [];
 
     const stateMachines = smDiagrams
       .filter(d => d.id && d.title)
@@ -94,9 +97,14 @@ export const ApollonEditorComponent: React.FC = () => {
       .filter(d => d.id && d.title)
       .map(d => ({ id: d.id, name: d.title }));
 
+    const neuralNetworks = neuralNetworkDiagrams
+      .filter(d => d.id && d.title)
+      .map(d => ({ id: d.id, name: d.title }));
+
     diagramBridge.setStateMachineDiagrams(stateMachines);
     diagramBridge.setQuantumCircuitDiagrams(quantumCircuits);
-  }, [stateMachineDiagrams, quantumCircuitDiagrams]);
+    diagramBridge.setNeuralNetworkDiagrams(neuralNetworks);
+  }, [stateMachineDiagrams, quantumCircuitDiagrams, nnDiagrams]);
 
   // Cleanup on unmount
   useEffect(() => {
