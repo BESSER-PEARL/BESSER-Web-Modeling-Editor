@@ -34,6 +34,10 @@ const defaultBotWsUrl = import.meta.env.DEV
 
 export const UML_BOT_WS_URL = _env(process.env.UML_BOT_WS_URL, import.meta.env.VITE_UML_BOT_WS_URL) || defaultBotWsUrl;
 
+export const ENABLE_STUDY_DEPLOY = Boolean(
+  _env(process.env.ENABLE_STUDY_DEPLOY, import.meta.env.VITE_ENABLE_STUDY_DEPLOY),
+);
+
 // prefixes
 export const localStoragePrefix = 'besser_';
 export const localStorageDiagramPrefix = localStoragePrefix + 'diagram_';

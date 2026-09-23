@@ -10,6 +10,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { ENABLE_STUDY_DEPLOY } from '../../../shared/constants/constant';
 
 interface DeployMenuProps {
   outlineButtonClass: string;
@@ -18,6 +19,7 @@ interface DeployMenuProps {
   isDeploymentAvailable: boolean;
   onGitHubLogin: () => void;
   onOpenDeployDialog: () => void;
+  onOpenStudyDeployDialog?: () => void;
 }
 
 export const DeployMenu: React.FC<DeployMenuProps> = ({
@@ -27,6 +29,7 @@ export const DeployMenu: React.FC<DeployMenuProps> = ({
   isDeploymentAvailable,
   onGitHubLogin,
   onOpenDeployDialog,
+  onOpenStudyDeployDialog,
 }) => {
   const { t } = useTranslation();
   return (
@@ -49,6 +52,11 @@ export const DeployMenu: React.FC<DeployMenuProps> = ({
         <DropdownMenuItem onClick={onOpenDeployDialog} disabled={!isDeploymentAvailable}>
           {t('menu.deploy.publishToRender')}
         </DropdownMenuItem>
+        {ENABLE_STUDY_DEPLOY && (
+          <DropdownMenuItem onClick={onOpenStudyDeployDialog} disabled={!isDeploymentAvailable}>
+            {t('deploy.study.menuItem')}
+          </DropdownMenuItem>
+        )}
       </DropdownMenuContent>
     </DropdownMenu>
   );

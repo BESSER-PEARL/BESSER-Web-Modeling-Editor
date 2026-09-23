@@ -48,6 +48,7 @@ export interface WorkspaceTopBarProps {
   starLoading: boolean;
   onToggleStar: () => void;
   onOpenDeployDialog: () => void;
+  onOpenStudyDeployDialog?: () => void;
   onOpenHelpDialog: () => void;
   onOpenAboutDialog: () => void;
   onOpenFeedback: () => void;

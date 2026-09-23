@@ -25,6 +25,7 @@ export default defineConfig(({ mode }) => {
       'process.env.POSTHOG_HOST': JSON.stringify(env.POSTHOG_HOST || '__POSTHOG_HOST__'),
       'process.env.POSTHOG_KEY': JSON.stringify(env.POSTHOG_KEY || '__POSTHOG_KEY__'),
       'process.env.UML_BOT_WS_URL': JSON.stringify(env.UML_BOT_WS_URL ?? ''),
+      'process.env.ENABLE_STUDY_DEPLOY': JSON.stringify(env.ENABLE_STUDY_DEPLOY ?? ''),
     },
     server: {
       host: '0.0.0.0',

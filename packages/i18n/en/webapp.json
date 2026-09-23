@@ -1246,6 +1246,23 @@
       "githubSessionNotFound": "GitHub session not found. Please reconnect.",
       "repoNameRequired": "Repository name is required.",
       "noPersonalizationMappings": "No valid personalization mappings found. Save personalized variants before enabling this option."
+    },
+    "study": {
+      "menuItem": "Deploy for Study",
+      "dialogTitle": "Deploy Agent for Study",
+      "dialogDesc": "Deploy your agent to the study server. Any currently running study agent will be replaced.",
+      "deploy": "Deploy",
+      "deploying": "Deploying your agent, please wait…",
+      "successTitle": "Agent is running!",
+      "successDesc": "Your agent has been deployed and is ready to test.",
+      "openAgent": "Open Agent",
+      "copyUrl": "Copy URL",
+      "urlCopied": "URL copied to clipboard!",
+      "errorTitle": "Deployment failed",
+      "retry": "Retry",
+      "toasts": {
+        "noProject": "No project available. Open or create a project first."
+      }
     }
   },
   "diagramTypes": {

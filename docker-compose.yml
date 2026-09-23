@@ -1,0 +1,32 @@
+services:
+  backend:
+    image: artefacts.list.lu/besser/web_modeling_editor/backend:studydeployment
+    restart: unless-stopped
+    ports:
+      - "9000:9000"
+      - "5000:5000"
+    environment:
+      # /baf_packages is a persistent volume where BAF is installed once manually.
+      # Add it to PYTHONPATH so the spawned agent process can import it.
+      PYTHONPATH: /baf_packages
+    volumes:
+      - baf_packages:/baf_packages
+    networks:
+      - app
+
+  frontend:
+    image: artefacts.list.lu/besser/web_modeling_editor/frontend:studydeployment
+    restart: unless-stopped
+    ports:
+      - "80:8080"
+    networks:
+      - app
+    depends_on:
+      - backend
+
+networks:
+  app:
+    driver: bridge
+
+volumes:
+  baf_packages:

@@ -52,6 +52,7 @@ const WorkspaceTopBarInner: React.FC<WorkspaceTopBarProps> = ({
   starLoading,
   onToggleStar,
   onOpenDeployDialog,
+  onOpenStudyDeployDialog,
   onOpenHelpDialog,
   onOpenAboutDialog,
   onOpenFeedback,
@@ -140,6 +141,7 @@ const WorkspaceTopBarInner: React.FC<WorkspaceTopBarProps> = ({
             isDeploymentAvailable={isDeploymentAvailable}
             onGitHubLogin={onGitHubLogin}
             onOpenDeployDialog={onOpenDeployDialog}
+            onOpenStudyDeployDialog={onOpenStudyDeployDialog}
           />
           <CommunityMenu outlineButtonClass={outlineButtonClass} onOpenFeedback={onOpenFeedback} />
           <HelpMenu

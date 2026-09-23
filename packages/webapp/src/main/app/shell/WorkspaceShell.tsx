@@ -36,6 +36,8 @@ import { AboutDialog } from '../../shared/dialogs/AboutDialog';
 import { AssistantImportDialog } from '../../features/assistant/components/AssistantImportDialog';
 import { DeployDialog } from '../../features/deploy/dialogs/DeployDialog';
 import { DeployResultDialog } from '../../features/deploy/dialogs/DeployResultDialog';
+import { StudyDeployDialog } from '../../features/deploy/dialogs/StudyDeployDialog';
+import { useStudyDeploy } from '../../features/deploy/hooks/useStudyDeploy';
 import type { GeneratorMenuMode, GeneratorType } from './workspace-types';
 import { useDeployment } from './hooks/useDeployment';
 import { useAssistantImport } from './hooks/useAssistantImport';
@@ -224,6 +226,23 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
     handlePublishToRender,
     handleCreateNewInstead,
   } = useDeployment({ currentProject, isDeploymentAvailable });
+
+  const { isDeploying: isStudyDeploying, result: studyDeployResult, error: studyDeployError, deploy: deployToStudyServer, reset: resetStudyDeploy } = useStudyDeploy();
+  const [isStudyDeployDialogOpen, setIsStudyDeployDialogOpen] = useState(false);
+
+  const handleOpenStudyDeployDialog = useCallback(() => {
+    if (!currentProject) {
+      toast.error(t('deploy.study.toasts.noProject'));
+      return;
+    }
+    resetStudyDeploy();
+    setIsStudyDeployDialogOpen(true);
+  }, [currentProject, resetStudyDeploy, t]);
+
+  const handleStudyDeploy = useCallback(() => {
+    if (!currentProject) return;
+    deployToStudyServer(currentProject).catch(console.error);
+  }, [currentProject, deployToStudyServer]);
 
   const {
     assistantImportMode,
@@ -801,6 +820,7 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
         starLoading={starLoading}
         onToggleStar={handleToggleStar}
         onOpenDeployDialog={handleOpenDeployDialog}
+        onOpenStudyDeployDialog={handleOpenStudyDeployDialog}
         onOpenHelpDialog={() => setIsHelpDialogOpen(true)}
         onOpenAboutDialog={() => setIsAboutDialogOpen(true)}
         onOpenFeedback={() => setIsFeedbackDialogOpen(true)}
@@ -1031,6 +1051,16 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
         deploymentResult={deploymentResult}
         onOpenChange={setIsDeployResultOpen}
         onOpenExternal={(url) => openExternalUrl(url)}
+      />
+
+      <StudyDeployDialog
+        open={isStudyDeployDialogOpen}
+        isDeploying={isStudyDeploying}
+        result={studyDeployResult}
+        error={studyDeployError}
+        onOpenChange={setIsStudyDeployDialogOpen}
+        onDeploy={handleStudyDeploy}
+        onOpenAgent={(url) => openExternalUrl(url)}
       />
 
       <AboutDialog
