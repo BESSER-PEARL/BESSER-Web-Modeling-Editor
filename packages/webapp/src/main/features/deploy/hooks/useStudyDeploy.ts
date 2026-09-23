@@ -3,6 +3,10 @@ import { UMLDiagramType } from '@besser/wme';
 import { apiClient } from '../../../shared/api/api-client';
 import { getActiveDiagram, isUMLModel } from '../../../shared/types/project';
 import { ProjectStorageRepository } from '../../../shared/services/storage/ProjectStorageRepository';
+import {
+  normalizeAgentRuntimeConfig,
+} from '../../../shared/services/storage/local-storage-repository';
+import type { AgentRuntimeConfig } from '../../../shared/services/storage/local-storage-repository';
 import type { BesserProject } from '../../../shared/types/project';
 import {
   buildPersonalizationMapping,
@@ -20,7 +24,7 @@ export const useStudyDeploy = () => {
   const [result, setResult] = useState<StudyDeployResult | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const deploy = useCallback(async (project: BesserProject): Promise<StudyDeployResult | null> => {
+  const deploy = useCallback(async (project: BesserProject, personalized = false): Promise<StudyDeployResult | null> => {
     setIsDeploying(true);
     setResult(null);
     setError(null);
@@ -33,13 +37,43 @@ export const useStudyDeploy = () => {
         throw new Error('No agent diagram found in the current project.');
       }
 
-      const personalizationMapping = hasPersonalizationVariants(freshProject)
-        ? buildPersonalizationMapping(freshProject)
-        : null;
+      const personalizationMapping =
+        personalized && hasPersonalizationVariants(freshProject)
+          ? buildPersonalizationMapping(freshProject)
+          : null;
+
+      // Build a normalized agent config with guaranteed runtime fields (mirrors
+      // useGeneratorExecution handleAgentGenerate). agentDiagram.config may lack
+      // intentRecognitionTechnology / agentPlatform when they were never changed
+      // from the defaults — normalizeAgentRuntimeConfig fills those in.
+      const diagramConfig = (agentDiagram.config ?? null) as Record<string, unknown> | null;
+      const agentRuntimeConfig = normalizeAgentRuntimeConfig(diagramConfig as Partial<AgentRuntimeConfig>);
+      const resolvedAgentPlatform =
+        agentRuntimeConfig.agentPlatform === 'websocket' && agentRuntimeConfig.agentPlatformUseStreamlit
+          ? 'streamlit'
+          : agentRuntimeConfig.agentPlatform;
+      const llmConfigBlock = agentRuntimeConfig.agentLlmName
+        ? { llm: { name: agentRuntimeConfig.agentLlmName } }
+        : agentRuntimeConfig.agentLlmProvider
+        ? {
+            llm: {
+              provider: agentRuntimeConfig.agentLlmProvider,
+              ...(agentRuntimeConfig.agentLlmModel ? { model: agentRuntimeConfig.agentLlmModel } : {}),
+            },
+          }
+        : {};
+      const normalizedAgentConfig = {
+        ...(diagramConfig ?? {}),
+        agentPlatform: resolvedAgentPlatform,
+        intentRecognitionTechnology: agentRuntimeConfig.intentRecognitionTechnology,
+        ...llmConfigBlock,
+        // Study deploy always runs without streamlit DB (no persistent session store).
+        streamlitDb: false,
+      };
 
       const payload = {
         agent_model: agentDiagram.model,
-        agent_config: agentDiagram.config ?? null,
+        agent_config: normalizedAgentConfig,
         agent_config_yaml: typeof agentDiagram.configYaml === 'string' ? agentDiagram.configYaml : null,
         personalization_mapping: personalizationMapping,
       };

@@ -555,7 +555,7 @@ export const AgentConfigurationPanel: React.FC = () => {
     const existingEntries = Object.values(nextModel.elements || {}).filter((entry) => isAgentLLMElement(entry));
     const existingCount = existingEntries.length;
     const offsetY = 40 + existingCount * 110;
-    const newName = 'gpt-4o-mini';
+    const newName = 'gpt-6-luna';
     const newLLM: AgentLLMElement = {
       id,
       type: 'AgentLLM',

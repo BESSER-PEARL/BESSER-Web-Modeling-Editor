@@ -1258,11 +1258,34 @@
       "openAgent": "Open Agent",
       "copyUrl": "Copy URL",
       "urlCopied": "URL copied to clipboard!",
+      "personalizedAgent": "Personalized agent",
       "errorTitle": "Deployment failed",
       "retry": "Retry",
       "toasts": {
         "noProject": "No project available. Open or create a project first."
       }
+    }
+  },
+  "study": {
+    "upload": {
+      "success": "Model uploaded successfully!",
+      "error": "Upload failed. Please try again."
+    },
+    "sidebar": {
+      "upload": "Upload my model",
+      "uploadDone": "Model uploaded",
+      "questionnaire": "Study questionnaire",
+      "questionnaireBlocked": "Upload your model first"
+    },
+    "welcome": {
+      "title": "User Study Mode",
+      "description": "You are participating in a user study. Please read the following before you begin.",
+      "idIntro": "Your participant ID has been generated automatically. Please copy it and note it down somewhere safe:",
+      "copyId": "Copy ID",
+      "idCopied": "ID copied to clipboard!",
+      "idNote": "You may need to provide this ID to the study coordinator. It will also be saved in your browser for this session.",
+      "formLink": "Open study questionnaire (your ID is pre-filled)",
+      "confirm": "I understand, let's start"
     }
   },
   "diagramTypes": {

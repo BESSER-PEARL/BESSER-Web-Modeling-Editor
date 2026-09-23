@@ -39,7 +39,7 @@ export const DEFAULT_AGENT_RUNTIME_CONFIG: AgentRuntimeConfig = {
   agentPlatformUseStreamlit: true,
   intentRecognitionTechnology: 'classical',
   agentLlmProvider: 'openai',
-  agentLlmModel: 'gpt-5.5',
+  agentLlmModel: 'gpt-6-luna',
   agentCustomLlmModel: '',
   agentLlmName: '',
 };

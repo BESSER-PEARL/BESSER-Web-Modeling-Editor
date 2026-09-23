@@ -8,7 +8,9 @@ import { ApollonEditor } from '@besser/wme';
 import {
   POSTHOG_HOST,
   POSTHOG_KEY,
+  ENABLE_STUDY_DEPLOY,
 } from '../shared/constants/constant';
+import studyTemplateJson from '../templates/pattern/project/study_template.json';
 import { getActiveDiagram, isUMLModel } from '../shared/types/project';
 import { ApollonEditorProvider } from '../features/editors/uml/apollon-editor-context';
 import { EditorView } from '../features/editors/EditorView';
@@ -94,6 +96,7 @@ function AppContentInner() {
     currentProject,
     loadProject: loadProjectForBootstrap,
     pathname: location.pathname,
+    studyTemplate: ENABLE_STUDY_DEPLOY ? studyTemplateJson : undefined,
   });
   const { generatorMenuMode } = getWorkspaceContext(
     location.pathname,

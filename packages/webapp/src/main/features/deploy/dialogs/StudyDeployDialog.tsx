@@ -17,6 +17,9 @@ interface StudyDeployDialogProps {
   isDeploying: boolean;
   result: StudyDeployResult | null;
   error: string | null;
+  hasPersonalizationVariants?: boolean;
+  isPersonalized?: boolean;
+  onPersonalizedChange?: (value: boolean) => void;
   onOpenChange: (open: boolean) => void;
   onDeploy: () => void;
   onOpenAgent: (url: string) => void;
@@ -27,6 +30,9 @@ export const StudyDeployDialog: React.FC<StudyDeployDialogProps> = ({
   isDeploying,
   result,
   error,
+  hasPersonalizationVariants = false,
+  isPersonalized = false,
+  onPersonalizedChange,
   onOpenChange,
   onDeploy,
   onOpenAgent,
@@ -56,6 +62,18 @@ export const StudyDeployDialog: React.FC<StudyDeployDialogProps> = ({
         </DialogHeader>
 
         <div className="flex flex-col gap-4">
+          {hasPersonalizationVariants && !isDeploying && !result && (
+            <label className="flex items-center gap-2 text-sm cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={isPersonalized}
+                onChange={(e) => onPersonalizedChange?.(e.target.checked)}
+                className="size-4 cursor-pointer rounded border-border accent-brand"
+              />
+              {t('deploy.study.personalizedAgent')}
+            </label>
+          )}
+
           {isDeploying && (
             <div className="flex items-center gap-3 rounded-md border border-border/70 px-4 py-3 text-sm text-muted-foreground">
               <Loader2 className="size-4 shrink-0 animate-spin" />

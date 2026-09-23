@@ -2,6 +2,7 @@ import { Dispatch, SetStateAction, useEffect, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { localStorageLatestProject } from '../../shared/constants/constant';
 import { useGitHubBumlImport } from '../../features/import/useGitHubBumlImport';
+import { importProjectFromJson } from '../../shared/services/project-import/projectImport';
 import { notifyError } from '../../shared/utils/notifyError';
 import type { BesserProject } from '../../shared/types/project';
 
@@ -17,6 +18,8 @@ interface UseProjectBootstrapOptions {
   currentProject: BesserProject | null | undefined;
   loadProject: (projectId: string) => Promise<void>;
   pathname: string;
+  /** When set and no project exists in localStorage, silently import and load this template instead of showing the project hub. */
+  studyTemplate?: object;
 }
 
 interface UseProjectBootstrapResult {
@@ -28,6 +31,7 @@ export const useProjectBootstrap = ({
   currentProject,
   loadProject,
   pathname,
+  studyTemplate,
 }: UseProjectBootstrapOptions): UseProjectBootstrapResult => {
   const [showProjectHub, setShowProjectHub] = useState(false);
   const [hasCheckedForProject, setHasCheckedForProject] = useState(false);
@@ -57,6 +61,19 @@ export const useProjectBootstrap = ({
       if (latestProjectId) {
         try {
           await loadProject(latestProjectId);
+          setShowProjectHub(false);
+        } catch {
+          setShowProjectHub(true);
+        }
+      } else if (studyTemplate) {
+        try {
+          const file = new File(
+            [JSON.stringify(studyTemplate)],
+            'study_template.json',
+            { type: 'application/json' },
+          );
+          const imported = await importProjectFromJson(file);
+          await loadProject(imported.id);
           setShowProjectHub(false);
         } catch {
           setShowProjectHub(true);

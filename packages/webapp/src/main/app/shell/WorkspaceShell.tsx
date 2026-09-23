@@ -24,6 +24,8 @@ import {
   besserMainRepositoryLink,
   besserWMERepositoryLink,
 } from '../../shared/constants/application-constants';
+import { ENABLE_STUDY_DEPLOY, localStorageStudyParticipantId, localStorageStudyModelUploaded } from '../../shared/constants/constant';
+import { apiClient } from '../../shared/api/api-client';
 import { normalizeProjectName } from '../../shared/utils/projectName';
 import { getWorkspaceContext } from '../../shared/utils/workspaceContext';
 import { downloadFile, downloadJson } from '../../shared/utils/download';
@@ -37,7 +39,9 @@ import { AssistantImportDialog } from '../../features/assistant/components/Assis
 import { DeployDialog } from '../../features/deploy/dialogs/DeployDialog';
 import { DeployResultDialog } from '../../features/deploy/dialogs/DeployResultDialog';
 import { StudyDeployDialog } from '../../features/deploy/dialogs/StudyDeployDialog';
+import { StudyWelcomeDialog } from '../../features/deploy/dialogs/StudyWelcomeDialog';
 import { useStudyDeploy } from '../../features/deploy/hooks/useStudyDeploy';
+import { hasPersonalizationVariants } from '../../features/deploy/utils/agentPersonalizationPayload';
 import type { GeneratorMenuMode, GeneratorType } from './workspace-types';
 import { useDeployment } from './hooks/useDeployment';
 import { useAssistantImport } from './hooks/useAssistantImport';
@@ -229,6 +233,49 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
 
   const { isDeploying: isStudyDeploying, result: studyDeployResult, error: studyDeployError, deploy: deployToStudyServer, reset: resetStudyDeploy } = useStudyDeploy();
   const [isStudyDeployDialogOpen, setIsStudyDeployDialogOpen] = useState(false);
+  const [isPersonalizedStudyDeploy, setIsPersonalizedStudyDeploy] = useState(false);
+
+  const [studyWelcomeOpen, setStudyWelcomeOpen] = useState(false);
+  const [studyParticipantId, setStudyParticipantId] = useState('');
+  const [studyModelUploaded, setStudyModelUploaded] = useState(
+    () => ENABLE_STUDY_DEPLOY && localStorage.getItem(localStorageStudyModelUploaded) === '1',
+  );
+  const [studyUploading, setStudyUploading] = useState(false);
+
+  const handleUploadStudyModel = useCallback(async () => {
+    if (!currentProject || !studyParticipantId || studyModelUploaded || studyUploading) return;
+    setStudyUploading(true);
+    try {
+      await apiClient.post('/upload_study_model', {
+        participant_id: studyParticipantId,
+        project: currentProject,
+      });
+      localStorage.setItem(localStorageStudyModelUploaded, '1');
+      setStudyModelUploaded(true);
+      toast.success(t('study.upload.success'));
+    } catch {
+      toast.error(t('study.upload.error'));
+    } finally {
+      setStudyUploading(false);
+    }
+  }, [currentProject, studyParticipantId, studyModelUploaded, studyUploading, t]);
+
+  const studyFormUrl = ENABLE_STUDY_DEPLOY && studyParticipantId
+    ? 'https://docs.google.com/forms/d/e/1FAIpQLScjqyRv9uH7M7UYQStrdoBko5v7q2yUax4uRGLrI8AS_YQKkQ/viewform' +
+      '?usp=pp_url&entry.153355410=' + encodeURIComponent(studyParticipantId)
+    : undefined;
+  useEffect(() => {
+    if (!ENABLE_STUDY_DEPLOY) return;
+    const existing = localStorage.getItem(localStorageStudyParticipantId);
+    if (existing) {
+      setStudyParticipantId(existing);
+      return;
+    }
+    const newId = crypto.randomUUID();
+    localStorage.setItem(localStorageStudyParticipantId, newId);
+    setStudyParticipantId(newId);
+    setStudyWelcomeOpen(true);
+  }, []);
 
   const handleOpenStudyDeployDialog = useCallback(() => {
     if (!currentProject) {
@@ -241,8 +288,8 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
 
   const handleStudyDeploy = useCallback(() => {
     if (!currentProject) return;
-    deployToStudyServer(currentProject).catch(console.error);
-  }, [currentProject, deployToStudyServer]);
+    deployToStudyServer(currentProject, isPersonalizedStudyDeploy).catch(console.error);
+  }, [currentProject, deployToStudyServer, isPersonalizedStudyDeploy]);
 
   const {
     assistantImportMode,
@@ -899,6 +946,10 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
             onSwitchDiagramType={handleMobileSwitchDiagramType}
             onNavigate={handleMobileNavigate}
             onToggleExpanded={closeMobileDrawer}
+            studyFormUrl={studyFormUrl}
+            studyModelUploaded={studyModelUploaded}
+            studyUploading={studyUploading}
+            onUploadStudyModel={() => { void handleUploadStudyModel(); }}
           />
         </div>
       </div>
@@ -926,6 +977,10 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
             void handleSafeNavigate(path);
           }}
           onToggleExpanded={() => setIsSidebarExpanded((previous) => !previous)}
+          studyFormUrl={studyFormUrl}
+          studyModelUploaded={studyModelUploaded}
+          studyUploading={studyUploading}
+          onUploadStudyModel={() => { void handleUploadStudyModel(); }}
         />
 
         <main className="relative flex min-h-0 flex-1 flex-col overflow-hidden">
@@ -1053,11 +1108,20 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
         onOpenExternal={(url) => openExternalUrl(url)}
       />
 
+      <StudyWelcomeDialog
+        open={studyWelcomeOpen}
+        participantId={studyParticipantId}
+        onConfirm={() => setStudyWelcomeOpen(false)}
+      />
+
       <StudyDeployDialog
         open={isStudyDeployDialogOpen}
         isDeploying={isStudyDeploying}
         result={studyDeployResult}
         error={studyDeployError}
+        hasPersonalizationVariants={hasPersonalizationVariants(currentProject)}
+        isPersonalized={isPersonalizedStudyDeploy}
+        onPersonalizedChange={setIsPersonalizedStudyDeploy}
         onOpenChange={setIsStudyDeployDialogOpen}
         onDeploy={handleStudyDeploy}
         onOpenAgent={(url) => openExternalUrl(url)}

@@ -66,6 +66,11 @@ export const localStorageSystemConfig = localStoragePrefix + 'systemConfig';
 // per-project deploy linkage (suffix: `<projectId>_<target>`)
 export const localStorageDeployLinkedRepoPrefix = localStoragePrefix + 'deploy_linked_';
 
+// study mode participant ID (generated on first visit when ENABLE_STUDY_DEPLOY is set)
+export const localStorageStudyParticipantId = localStoragePrefix + 'study_participant_id';
+// set to '1' once the participant has successfully uploaded their model
+export const localStorageStudyModelUploaded = localStoragePrefix + 'study_model_uploaded';
+
 // external service URLs
 export const RENDER_DEPLOY_URL_BASE = 'https://render.com/deploy';
 

@@ -1,6 +1,7 @@
 import React, { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { UMLDiagramType } from '@besser/wme';
+import { ClipboardList, Upload, Check } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import type { BesserProject, SupportedDiagramType } from '../../shared/types/project';
@@ -31,6 +32,10 @@ interface WorkspaceSidebarProps {
   onSwitchDiagramType: (type: SupportedDiagramType) => void;
   onNavigate: (path: string) => void;
   onToggleExpanded: () => void;
+  studyFormUrl?: string;
+  studyModelUploaded?: boolean;
+  studyUploading?: boolean;
+  onUploadStudyModel?: () => void;
 }
 
 /** Wraps children with a Tooltip when sidebar is collapsed, otherwise renders children directly. */
@@ -65,6 +70,10 @@ const WorkspaceSidebarInner: React.FC<WorkspaceSidebarProps> = ({
   onSwitchDiagramType,
   onNavigate,
   onToggleExpanded,
+  studyFormUrl,
+  studyModelUploaded,
+  studyUploading,
+  onUploadStudyModel,
 }) => {
   const { t } = useTranslation();
   // When a non-UML editor (GUI / Quantum) is active, no UML button should appear selected
@@ -217,6 +226,68 @@ const WorkspaceSidebarInner: React.FC<WorkspaceSidebarProps> = ({
             </SidebarTooltip>
           );
         })}
+
+        {studyFormUrl && (
+          <>
+            <Separator className="my-1" />
+
+            {/* Upload model button */}
+            <SidebarTooltip
+              label={studyModelUploaded ? t('study.sidebar.uploadDone') : t('study.sidebar.upload')}
+              collapsed={isCollapsed}
+            >
+              <button
+                type="button"
+                className={
+                  navButtonClass(false, isSidebarExpanded, isDarkTheme) +
+                  (studyModelUploaded ? ' text-emerald-500' : ' text-brand') +
+                  (studyUploading ? ' opacity-60 cursor-wait' : '')
+                }
+                onClick={onUploadStudyModel}
+                disabled={studyModelUploaded || studyUploading}
+                title={isSidebarExpanded ? undefined : (studyModelUploaded ? t('study.sidebar.uploadDone') : t('study.sidebar.upload'))}
+                aria-label={studyModelUploaded ? t('study.sidebar.uploadDone') : t('study.sidebar.upload')}
+              >
+                {studyModelUploaded
+                  ? <Check className="size-[18px] shrink-0" />
+                  : <Upload className="size-[18px] shrink-0" />}
+                {isSidebarExpanded && (
+                  <span>{studyModelUploaded ? t('study.sidebar.uploadDone') : t('study.sidebar.upload')}</span>
+                )}
+              </button>
+            </SidebarTooltip>
+
+            {/* Questionnaire link — only active after upload */}
+            <SidebarTooltip
+              label={studyModelUploaded ? t('study.sidebar.questionnaire') : t('study.sidebar.questionnaireBlocked')}
+              collapsed={isCollapsed}
+            >
+              {studyModelUploaded ? (
+                <a
+                  href={studyFormUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={navButtonClass(false, isSidebarExpanded, isDarkTheme) + ' text-brand'}
+                  title={isSidebarExpanded ? t('study.sidebar.questionnaire') : undefined}
+                  aria-label={t('study.sidebar.questionnaire')}
+                >
+                  <ClipboardList className="size-[18px] shrink-0" />
+                  {isSidebarExpanded && <span>{t('study.sidebar.questionnaire')}</span>}
+                </a>
+              ) : (
+                <button
+                  type="button"
+                  disabled
+                  className={navButtonClass(false, isSidebarExpanded, isDarkTheme) + ' opacity-40 cursor-not-allowed'}
+                  aria-label={t('study.sidebar.questionnaireBlocked')}
+                >
+                  <ClipboardList className="size-[18px] shrink-0" />
+                  {isSidebarExpanded && <span>{t('study.sidebar.questionnaire')}</span>}
+                </button>
+              )}
+            </SidebarTooltip>
+          </>
+        )}
 
         <SidebarTooltip label={isSidebarExpanded ? t('nav.collapseSidebar') : t('nav.expandSidebar')} collapsed={isCollapsed}>
           <button

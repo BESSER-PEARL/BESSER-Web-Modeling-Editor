@@ -1,0 +1,921 @@
+{
+  "project": {
+    "id": "0b29d780-5ca7-4f30-8ebb-39cf38c94f58",
+    "type": "Project",
+    "schemaVersion": 4,
+    "name": "New_Project",
+    "description": "Modern workspace project for UML, GUI and quantum modeling.",
+    "owner": "BESSER User",
+    "createdAt": "2026-09-07T13:50:27.350Z",
+    "currentDiagramType": "AgentDiagram",
+    "currentDiagramIndices": {
+      "ClassDiagram": 0,
+      "ObjectDiagram": 0,
+      "StateMachineDiagram": 0,
+      "AgentDiagram": 0,
+      "UserDiagram": 0,
+      "GUINoCodeDiagram": 0,
+      "QuantumCircuitDiagram": 0,
+      "NNDiagram": 0,
+      "BPMN": 0
+    },
+    "diagrams": {
+      "AgentDiagram": [
+        {
+          "id": "5d85fc75-7ca1-4d58-a677-1f59e55a7806",
+          "title": "Gym Agent",
+          "model": {
+            "version": "3.0.0",
+            "type": "AgentDiagram",
+            "size": {
+              "width": 1470,
+              "height": 760
+            },
+            "interactive": {
+              "elements": {},
+              "relationships": {}
+            },
+            "elements": {
+              "699853eb-918b-4674-b08c-cf0af3cc61d7": {
+                "id": "699853eb-918b-4674-b08c-cf0af3cc61d7",
+                "name": "",
+                "type": "StateInitialNode",
+                "owner": null,
+                "bounds": {
+                  "x": -45,
+                  "y": -330,
+                  "width": 45,
+                  "height": 45
+                }
+              },
+              "0cba5357-2c30-414b-8d74-ac74ac4ab158": {
+                "id": "0cba5357-2c30-414b-8d74-ac74ac4ab158",
+                "name": "Idle",
+                "type": "AgentState",
+                "owner": null,
+                "bounds": {
+                  "x": 5,
+                  "y": -160,
+                  "width": 420,
+                  "height": 100
+                },
+                "stateType": "standard",
+                "fallbackBodyEnabled": true,
+                "actions": [
+                  "63a2c160-ebbb-457b-953a-93fd2e643224"
+                ],
+                "fallbackActions": [
+                  "1f369122-06c2-4050-ba54-4ea160f95a8c"
+                ],
+                "bodies": [
+                  "63a2c160-ebbb-457b-953a-93fd2e643224"
+                ],
+                "fallbackBodies": [
+                  "1f369122-06c2-4050-ba54-4ea160f95a8c"
+                ]
+              },
+              "63a2c160-ebbb-457b-953a-93fd2e643224": {
+                "id": "63a2c160-ebbb-457b-953a-93fd2e643224",
+                "name": "I am here to answer any questions regarding exercises, nutrition and recovery.",
+                "type": "AgentStateBody",
+                "owner": "0cba5357-2c30-414b-8d74-ac74ac4ab158",
+                "bounds": {
+                  "x": 5.5,
+                  "y": -119.5,
+                  "width": 419,
+                  "height": 30
+                },
+                "actionType": "TextReplyAction",
+                "replyType": "text",
+                "llm_name": ""
+              },
+              "1f369122-06c2-4050-ba54-4ea160f95a8c": {
+                "id": "1f369122-06c2-4050-ba54-4ea160f95a8c",
+                "name": "I focus on gym and fitness topics only dude.",
+                "type": "AgentStateFallbackBody",
+                "owner": "0cba5357-2c30-414b-8d74-ac74ac4ab158",
+                "bounds": {
+                  "x": 5.5,
+                  "y": -89.5,
+                  "width": 419,
+                  "height": 30
+                },
+                "actionType": "TextReplyAction",
+                "replyType": "text",
+                "llm_name": ""
+              },
+              "8dba49ff-2fc1-4066-b124-19e2df7981e2": {
+                "id": "8dba49ff-2fc1-4066-b124-19e2df7981e2",
+                "name": "Muscles_intent",
+                "type": "AgentIntent",
+                "owner": null,
+                "bounds": {
+                  "x": -715,
+                  "y": -360,
+                  "width": 630,
+                  "height": 100
+                },
+                "bodies": [
+                  "a0a69f3a-bb64-42ee-b9e6-a8bacdf2818b"
+                ],
+                "intent_description": "Question about how to become muscular and which exercises to perform."
+              },
+              "a0a69f3a-bb64-42ee-b9e6-a8bacdf2818b": {
+                "id": "a0a69f3a-bb64-42ee-b9e6-a8bacdf2818b",
+                "name": "I want muscles",
+                "type": "AgentIntentBody",
+                "owner": "8dba49ff-2fc1-4066-b124-19e2df7981e2",
+                "bounds": {
+                  "x": -714.5,
+                  "y": -289.5,
+                  "width": 629,
+                  "height": 30
+                }
+              },
+              "68ccb630-b264-41a0-b70e-1e369bd5706c": {
+                "id": "68ccb630-b264-41a0-b70e-1e369bd5706c",
+                "name": "TrainingPlan",
+                "type": "AgentState",
+                "owner": null,
+                "bounds": {
+                  "x": -615,
+                  "y": 10,
+                  "width": 420,
+                  "height": 130
+                },
+                "stateType": "standard",
+                "fallbackBodyEnabled": true,
+                "actions": [
+                  "aa261be5-9c53-4df1-a72f-5a107ce8f1b7",
+                  "747b8558-325d-4a15-baba-0d18a6602a8d",
+                  "900f7fd9-738a-4981-a7d9-6c7334621981"
+                ],
+                "fallbackActions": [],
+                "bodies": [
+                  "aa261be5-9c53-4df1-a72f-5a107ce8f1b7",
+                  "747b8558-325d-4a15-baba-0d18a6602a8d",
+                  "900f7fd9-738a-4981-a7d9-6c7334621981"
+                ],
+                "fallbackBodies": []
+              },
+              "aa261be5-9c53-4df1-a72f-5a107ce8f1b7": {
+                "id": "aa261be5-9c53-4df1-a72f-5a107ce8f1b7",
+                "name": "Focus on heavy compound lifts like squats, deadlifts, bench press, overhead press, and rows to build overall muscle mass. ",
+                "type": "AgentStateBody",
+                "owner": "68ccb630-b264-41a0-b70e-1e369bd5706c",
+                "bounds": {
+                  "x": -614.5,
+                  "y": 50.5,
+                  "width": 419,
+                  "height": 30
+                },
+                "actionType": "TextReplyAction",
+                "replyType": "text",
+                "llm_name": ""
+              },
+              "747b8558-325d-4a15-baba-0d18a6602a8d": {
+                "id": "747b8558-325d-4a15-baba-0d18a6602a8d",
+                "name": "Train 3–5 times per week, progressively increasing the weight while eating enough protein and calories to support growth. ",
+                "type": "AgentStateBody",
+                "owner": "68ccb630-b264-41a0-b70e-1e369bd5706c",
+                "bounds": {
+                  "x": -614.5,
+                  "y": 80.5,
+                  "width": 419,
+                  "height": 30
+                },
+                "actionType": "TextReplyAction",
+                "replyType": "text",
+                "llm_name": ""
+              },
+              "900f7fd9-738a-4981-a7d9-6c7334621981": {
+                "id": "900f7fd9-738a-4981-a7d9-6c7334621981",
+                "name": "Get good sleep and stay consistent—muscle comes from steady effort over time.",
+                "type": "AgentStateBody",
+                "owner": "68ccb630-b264-41a0-b70e-1e369bd5706c",
+                "bounds": {
+                  "x": -614.5,
+                  "y": 110.5,
+                  "width": 419,
+                  "height": 30
+                },
+                "actionType": "TextReplyAction",
+                "replyType": "text",
+                "llm_name": ""
+              },
+              "77976ef7-599d-4c49-9f4d-1ecb23239fe3": {
+                "id": "77976ef7-599d-4c49-9f4d-1ecb23239fe3",
+                "name": "Initial",
+                "type": "AgentState",
+                "owner": null,
+                "bounds": {
+                  "x": 85,
+                  "y": -330,
+                  "width": 420,
+                  "height": 70
+                },
+                "stateType": "standard",
+                "fallbackBodyEnabled": true,
+                "actions": [
+                  "ad226172-93d8-4644-80c5-62825565dd24"
+                ],
+                "fallbackActions": [],
+                "bodies": [
+                  "ad226172-93d8-4644-80c5-62825565dd24"
+                ],
+                "fallbackBodies": []
+              },
+              "ad226172-93d8-4644-80c5-62825565dd24": {
+                "id": "ad226172-93d8-4644-80c5-62825565dd24",
+                "name": "Hi, I am your buddy, the fitness agent.",
+                "type": "AgentStateBody",
+                "owner": "77976ef7-599d-4c49-9f4d-1ecb23239fe3",
+                "bounds": {
+                  "x": 85.5,
+                  "y": -289.5,
+                  "width": 419,
+                  "height": 30
+                },
+                "actionType": "TextReplyAction",
+                "replyType": "text",
+                "llm_name": ""
+              },
+              "7610bbda-21ef-4637-a188-1da1352bea17": {
+                "id": "7610bbda-21ef-4637-a188-1da1352bea17",
+                "name": "Nutrition",
+                "type": "AgentState",
+                "owner": null,
+                "bounds": {
+                  "x": 35,
+                  "y": 170,
+                  "width": 420,
+                  "height": 190
+                },
+                "stateType": "standard",
+                "fallbackBodyEnabled": true,
+                "actions": [
+                  "bb7e67bd-ead9-4f14-93db-c18af0d806af",
+                  "13072ea8-9b51-45fe-927e-a9323627701b",
+                  "95241c3a-f8a2-4bf0-b169-5dcff5a926fb",
+                  "44904a03-ac46-4f9f-983a-f6a740b81c0e",
+                  "90dfba4f-6dec-4ca8-8c15-786ed36587a1"
+                ],
+                "fallbackActions": [],
+                "bodies": [
+                  "bb7e67bd-ead9-4f14-93db-c18af0d806af",
+                  "13072ea8-9b51-45fe-927e-a9323627701b",
+                  "95241c3a-f8a2-4bf0-b169-5dcff5a926fb",
+                  "44904a03-ac46-4f9f-983a-f6a740b81c0e",
+                  "90dfba4f-6dec-4ca8-8c15-786ed36587a1"
+                ],
+                "fallbackBodies": []
+              },
+              "bb7e67bd-ead9-4f14-93db-c18af0d806af": {
+                "id": "bb7e67bd-ead9-4f14-93db-c18af0d806af",
+                "name": "Nutrition basics: Eat mostly whole foods (lean protein, vegetables, fruits, whole grains, healthy fats). Protein: ~1.6–2.2 g per kg of body weight daily..",
+                "type": "AgentStateBody",
+                "owner": "7610bbda-21ef-4637-a188-1da1352bea17",
+                "bounds": {
+                  "x": 35.5,
+                  "y": 210.5,
+                  "width": 419,
+                  "height": 30
+                },
+                "actionType": "TextReplyAction",
+                "replyType": "text",
+                "llm_name": ""
+              },
+              "13072ea8-9b51-45fe-927e-a9323627701b": {
+                "id": "13072ea8-9b51-45fe-927e-a9323627701b",
+                "name": "Match calories to your goal: slight surplus to gain muscle, deficit to lose fat, maintenance to stay the same. ",
+                "type": "AgentStateBody",
+                "owner": "7610bbda-21ef-4637-a188-1da1352bea17",
+                "bounds": {
+                  "x": 35.5,
+                  "y": 240.5,
+                  "width": 419,
+                  "height": 30
+                },
+                "actionType": "TextReplyAction",
+                "replyType": "text",
+                "llm_name": ""
+              },
+              "95241c3a-f8a2-4bf0-b169-5dcff5a926fb": {
+                "id": "95241c3a-f8a2-4bf0-b169-5dcff5a926fb",
+                "name": " Carbs fuel training; fats support hormones.",
+                "type": "AgentStateBody",
+                "owner": "7610bbda-21ef-4637-a188-1da1352bea17",
+                "bounds": {
+                  "x": 35.5,
+                  "y": 270.5,
+                  "width": 419,
+                  "height": 30
+                },
+                "actionType": "TextReplyAction",
+                "replyType": "text",
+                "llm_name": ""
+              },
+              "44904a03-ac46-4f9f-983a-f6a740b81c0e": {
+                "id": "44904a03-ac46-4f9f-983a-f6a740b81c0e",
+                "name": " Drink plenty of water and limit ultra-processed foods and alcohol. ",
+                "type": "AgentStateBody",
+                "owner": "7610bbda-21ef-4637-a188-1da1352bea17",
+                "bounds": {
+                  "x": 35.5,
+                  "y": 300.5,
+                  "width": 419,
+                  "height": 30
+                },
+                "actionType": "TextReplyAction",
+                "replyType": "text",
+                "llm_name": ""
+              },
+              "90dfba4f-6dec-4ca8-8c15-786ed36587a1": {
+                "id": "90dfba4f-6dec-4ca8-8c15-786ed36587a1",
+                "name": "Be consistent — results come from habits, not perfection",
+                "type": "AgentStateBody",
+                "owner": "7610bbda-21ef-4637-a188-1da1352bea17",
+                "bounds": {
+                  "x": 35.5,
+                  "y": 330.5,
+                  "width": 419,
+                  "height": 30
+                },
+                "actionType": "TextReplyAction",
+                "replyType": "text",
+                "llm_name": ""
+              },
+              "8c760b7d-7e72-4cd7-a92a-d5491c021a5b": {
+                "id": "8c760b7d-7e72-4cd7-a92a-d5491c021a5b",
+                "name": "OtherQuestions",
+                "type": "AgentState",
+                "owner": null,
+                "bounds": {
+                  "x": 535,
+                  "y": -50,
+                  "width": 180,
+                  "height": 70
+                },
+                "stateType": "standard",
+                "fallbackBodyEnabled": true,
+                "actions": [
+                  "6a3aeb02-bb44-4472-8489-595e8dc8ceb1"
+                ],
+                "fallbackActions": [],
+                "bodies": [
+                  "6a3aeb02-bb44-4472-8489-595e8dc8ceb1"
+                ],
+                "fallbackBodies": []
+              },
+              "6a3aeb02-bb44-4472-8489-595e8dc8ceb1": {
+                "id": "6a3aeb02-bb44-4472-8489-595e8dc8ceb1",
+                "name": "AI response 🪄",
+                "type": "AgentStateBody",
+                "owner": "8c760b7d-7e72-4cd7-a92a-d5491c021a5b",
+                "bounds": {
+                  "x": 535.5,
+                  "y": -9.5,
+                  "width": 179,
+                  "height": 30
+                },
+                "actionType": "LLMReplyAction",
+                "replyType": "llm",
+                "llm_name": "",
+                "system_message": ""
+              },
+              "659e810a-f686-47fb-aea8-d23ad06e482c": {
+                "id": "659e810a-f686-47fb-aea8-d23ad06e482c",
+                "name": "Nutrition_intent",
+                "type": "AgentIntent",
+                "owner": null,
+                "bounds": {
+                  "x": -715,
+                  "y": -250,
+                  "width": 630,
+                  "height": 100
+                },
+                "bodies": [
+                  "f1fc7bc1-016d-404f-90a8-c2c8f4a8dad0"
+                ],
+                "intent_description": "Question about nutrition in gym."
+              },
+              "f1fc7bc1-016d-404f-90a8-c2c8f4a8dad0": {
+                "id": "f1fc7bc1-016d-404f-90a8-c2c8f4a8dad0",
+                "name": "Which food to eat?",
+                "type": "AgentIntentBody",
+                "owner": "659e810a-f686-47fb-aea8-d23ad06e482c",
+                "bounds": {
+                  "x": -714.5,
+                  "y": -179.5,
+                  "width": 629,
+                  "height": 30
+                }
+              },
+              "37dff3e2-013c-42f0-ad6e-bbc197247d14": {
+                "id": "37dff3e2-013c-42f0-ad6e-bbc197247d14",
+                "name": "Other",
+                "type": "AgentIntent",
+                "owner": null,
+                "bounds": {
+                  "x": -675,
+                  "y": 190,
+                  "width": 630,
+                  "height": 70
+                },
+                "bodies": [],
+                "intent_description": "Any question that does not fit in \"Muscles\" or \"Nutrition\""
+              },
+              "60aa455a-c72f-423a-bffe-336cfaee2d86": {
+                "id": "60aa455a-c72f-423a-bffe-336cfaee2d86",
+                "name": "gpt-6-luna",
+                "type": "AgentLLM",
+                "owner": null,
+                "bounds": {
+                  "x": 0,
+                  "y": 0,
+                  "width": 0,
+                  "height": 0
+                },
+                "provider": "openai",
+                "parameters": {},
+                "num_previous_messages": 1,
+                "global_context": ""
+              }
+            },
+            "relationships": {
+              "bbd03bdd-b76e-47df-9e13-5a305885f94c": {
+                "id": "bbd03bdd-b76e-47df-9e13-5a305885f94c",
+                "name": "",
+                "type": "AgentStateTransitionInit",
+                "owner": null,
+                "bounds": {
+                  "x": 0,
+                  "y": -307.5,
+                  "width": 85,
+                  "height": 1
+                },
+                "path": [
+                  {
+                    "x": 0,
+                    "y": 0
+                  },
+                  {
+                    "x": 85,
+                    "y": 0
+                  }
+                ],
+                "source": {
+                  "direction": "Right",
+                  "element": "699853eb-918b-4674-b08c-cf0af3cc61d7",
+                  "bounds": {
+                    "x": -535,
+                    "y": -37.5,
+                    "width": 0,
+                    "height": 0
+                  }
+                },
+                "target": {
+                  "direction": "Left",
+                  "element": "77976ef7-599d-4c49-9f4d-1ecb23239fe3",
+                  "bounds": {
+                    "x": -280,
+                    "y": -45,
+                    "width": 0,
+                    "height": 0
+                  }
+                },
+                "isManuallyLayouted": false
+              },
+              "0d7d8895-3eb0-44b0-bb41-e902684d0d2c": {
+                "id": "0d7d8895-3eb0-44b0-bb41-e902684d0d2c",
+                "name": "",
+                "type": "AgentStateTransition",
+                "owner": null,
+                "bounds": {
+                  "x": -405,
+                  "y": -110,
+                  "width": 410,
+                  "height": 120
+                },
+                "path": [
+                  {
+                    "x": 410,
+                    "y": 0
+                  },
+                  {
+                    "x": 0,
+                    "y": 0
+                  },
+                  {
+                    "x": 0,
+                    "y": 120
+                  }
+                ],
+                "source": {
+                  "direction": "Left",
+                  "element": "0cba5357-2c30-414b-8d74-ac74ac4ab158"
+                },
+                "target": {
+                  "direction": "Up",
+                  "element": "68ccb630-b264-41a0-b70e-1e369bd5706c"
+                },
+                "isManuallyLayouted": false,
+                "transitionType": "predefined",
+                "predefined": {
+                  "predefinedType": "when_intent_matched",
+                  "intentName": "Muscles_intent"
+                },
+                "custom": {
+                  "condition": []
+                }
+              },
+              "7d65df96-e669-4fc6-a882-dbfe92a57073": {
+                "id": "7d65df96-e669-4fc6-a882-dbfe92a57073",
+                "name": "",
+                "type": "AgentStateTransition",
+                "owner": null,
+                "bounds": {
+                  "x": 255,
+                  "y": -260,
+                  "width": 1,
+                  "height": 100
+                },
+                "path": [
+                  {
+                    "x": 0,
+                    "y": 0
+                  },
+                  {
+                    "x": 0,
+                    "y": 100
+                  }
+                ],
+                "source": {
+                  "direction": "Down",
+                  "element": "77976ef7-599d-4c49-9f4d-1ecb23239fe3"
+                },
+                "target": {
+                  "direction": "Up",
+                  "element": "0cba5357-2c30-414b-8d74-ac74ac4ab158"
+                },
+                "isManuallyLayouted": false,
+                "transitionType": "predefined",
+                "predefined": {
+                  "predefinedType": "auto",
+                  "conditionValue": ""
+                },
+                "custom": {
+                  "condition": []
+                }
+              },
+              "6ae258b8-3d74-4e45-bdb7-98cbcfc7ca31": {
+                "id": "6ae258b8-3d74-4e45-bdb7-98cbcfc7ca31",
+                "name": "",
+                "type": "AgentStateTransition",
+                "owner": null,
+                "bounds": {
+                  "x": 425,
+                  "y": -90,
+                  "width": 200,
+                  "height": 40
+                },
+                "path": [
+                  {
+                    "x": 0,
+                    "y": 5
+                  },
+                  {
+                    "x": 40,
+                    "y": 5
+                  },
+                  {
+                    "x": 40,
+                    "y": 0
+                  },
+                  {
+                    "x": 200,
+                    "y": 0
+                  },
+                  {
+                    "x": 200,
+                    "y": 40
+                  }
+                ],
+                "source": {
+                  "direction": "Downright",
+                  "element": "0cba5357-2c30-414b-8d74-ac74ac4ab158"
+                },
+                "target": {
+                  "direction": "Up",
+                  "element": "8c760b7d-7e72-4cd7-a92a-d5491c021a5b"
+                },
+                "isManuallyLayouted": true,
+                "transitionType": "predefined",
+                "predefined": {
+                  "predefinedType": "when_intent_matched",
+                  "intentName": "Other"
+                },
+                "custom": {
+                  "condition": []
+                }
+              },
+              "c0d4d1e9-bfd1-408e-a6b6-a64a9df6f88e": {
+                "id": "c0d4d1e9-bfd1-408e-a6b6-a64a9df6f88e",
+                "name": "",
+                "type": "AgentStateTransition",
+                "owner": null,
+                "bounds": {
+                  "x": -195,
+                  "y": -85,
+                  "width": 200,
+                  "height": 127.5
+                },
+                "path": [
+                  {
+                    "x": 0,
+                    "y": 127.5
+                  },
+                  {
+                    "x": 100,
+                    "y": 127.5
+                  },
+                  {
+                    "x": 100,
+                    "y": 0
+                  },
+                  {
+                    "x": 200,
+                    "y": 0
+                  }
+                ],
+                "source": {
+                  "direction": "Upright",
+                  "element": "68ccb630-b264-41a0-b70e-1e369bd5706c"
+                },
+                "target": {
+                  "direction": "Downleft",
+                  "element": "0cba5357-2c30-414b-8d74-ac74ac4ab158"
+                },
+                "isManuallyLayouted": false,
+                "transitionType": "predefined",
+                "predefined": {
+                  "predefinedType": "auto",
+                  "conditionValue": ""
+                },
+                "custom": {
+                  "condition": []
+                }
+              },
+              "6fb943ba-3cb3-4a6a-9494-2b7c96dabf32": {
+                "id": "6fb943ba-3cb3-4a6a-9494-2b7c96dabf32",
+                "name": "",
+                "type": "AgentStateTransition",
+                "owner": null,
+                "bounds": {
+                  "x": 320,
+                  "y": -60,
+                  "width": 215,
+                  "height": 40
+                },
+                "path": [
+                  {
+                    "x": 215,
+                    "y": 27.5
+                  },
+                  {
+                    "x": 175,
+                    "y": 27.5
+                  },
+                  {
+                    "x": 175,
+                    "y": 40
+                  },
+                  {
+                    "x": 0,
+                    "y": 40
+                  },
+                  {
+                    "x": 0,
+                    "y": 0
+                  }
+                ],
+                "source": {
+                  "direction": "Upleft",
+                  "element": "8c760b7d-7e72-4cd7-a92a-d5491c021a5b"
+                },
+                "target": {
+                  "direction": "Bottomright",
+                  "element": "0cba5357-2c30-414b-8d74-ac74ac4ab158"
+                },
+                "isManuallyLayouted": false,
+                "transitionType": "predefined",
+                "predefined": {
+                  "predefinedType": "auto",
+                  "conditionValue": ""
+                },
+                "custom": {
+                  "condition": []
+                }
+              },
+              "3564da62-bea0-4489-81b2-fda2effddd02": {
+                "id": "3564da62-bea0-4489-81b2-fda2effddd02",
+                "name": "",
+                "type": "AgentStateTransition",
+                "owner": null,
+                "bounds": {
+                  "x": -5,
+                  "y": -60,
+                  "width": 115,
+                  "height": 277.5
+                },
+                "path": [
+                  {
+                    "x": 40,
+                    "y": 277.5
+                  },
+                  {
+                    "x": 0,
+                    "y": 277.5
+                  },
+                  {
+                    "x": 0,
+                    "y": 115
+                  },
+                  {
+                    "x": 115,
+                    "y": 115
+                  },
+                  {
+                    "x": 115,
+                    "y": 0
+                  }
+                ],
+                "source": {
+                  "direction": "Upleft",
+                  "element": "7610bbda-21ef-4637-a188-1da1352bea17"
+                },
+                "target": {
+                  "direction": "Bottomleft",
+                  "element": "0cba5357-2c30-414b-8d74-ac74ac4ab158"
+                },
+                "isManuallyLayouted": false,
+                "transitionType": "predefined",
+                "predefined": {
+                  "predefinedType": "auto",
+                  "conditionValue": ""
+                },
+                "custom": {
+                  "condition": []
+                }
+              },
+              "b696a5f6-f328-42fb-bdbc-83569b2beb06": {
+                "id": "b696a5f6-f328-42fb-bdbc-83569b2beb06",
+                "name": "",
+                "type": "AgentStateTransition",
+                "owner": null,
+                "bounds": {
+                  "x": 230,
+                  "y": -60,
+                  "width": 1,
+                  "height": 230
+                },
+                "path": [
+                  {
+                    "x": 0,
+                    "y": 0
+                  },
+                  {
+                    "x": 0,
+                    "y": 230
+                  }
+                ],
+                "source": {
+                  "direction": "Down",
+                  "element": "0cba5357-2c30-414b-8d74-ac74ac4ab158"
+                },
+                "target": {
+                  "direction": "Up",
+                  "element": "7610bbda-21ef-4637-a188-1da1352bea17"
+                },
+                "isManuallyLayouted": false,
+                "transitionType": "predefined",
+                "predefined": {
+                  "predefinedType": "when_intent_matched",
+                  "intentName": "Nutrition_intent"
+                },
+                "custom": {
+                  "condition": []
+                }
+              }
+            },
+            "assessments": {}
+          },
+          "lastUpdate": "2026-09-23T14:45:50.310Z",
+          "config": {
+            "agentPlatform": "websocket",
+            "agentPlatformUseStreamlit": true,
+            "intentRecognitionTechnology": "llm-based",
+            "agentLlmProvider": "openai",
+            "agentLlmModel": "gpt-6-luna",
+            "agentCustomLlmModel": "",
+            "agentLlmName": "gpt-6-luna",
+            "llm": {
+              "name": "gpt-6-luna"
+            },
+            "default_llm_name": "gpt-6-luna"
+          },
+          "configYaml": "agent:\n  check_transitions_delay: 5\n\nnlp:\n  language: en\n  region: US\n  timezone: Europe/Madrid\n  pre_processing: True\n  intent_threshold: 0.4\n  huggingface:\n    token: YOUR-TOKEN\n  openai:\n    api_key: YOUR-OPENAI-API-KEY\n  replicate:\n    api_key: YOUR-API-KEY\n\nplatforms:\n  websocket:\n    host: localhost\n    port: 8765\n    streamlit:\n      host: 0.0.0.0\n      port: 5000\n      chat:\n        size: 16\n        font: sans\n        line_spacing: 1.5\n        alignment: left\n        color: inherit\n        contrast: medium\n  telegram:\n    token: YOUR-BOT-TOKEN\n  github:\n    personal_token: YOUR-PERSONAL-TOKEN\n    webhook_token: YOUR-WEBHOOK-TOKEN\n    webhook_port: 8901\n  gitlab:\n    personal_token: YOUR-PERSONAL-TOKEN\n    webhook_token: YOUR-WEBHOOK-TOKEN\n    webhook_port: 8901\n  a2a:\n    port: 8000\n\ndb:\n  monitoring:\n    enabled: True\n    dialect: postgresql\n    host: YOUR-DB-HOST\n    port: 5432\n    database: YOUR-DB-NAME\n    username: YOUR-DB-USERNAME\n    password: YOUR-DB-PASSWORD\n  streamlit:\n    enabled: True\n    dialect: postgresql\n    host: YOUR-DB-HOST\n    port: 5432\n    database: YOUR-DB-NAME\n    username: YOUR-DB-USERNAME\n    password: YOUR-DB-PASSWORD",
+          "agentConfigForm": {
+            "agent": {
+              "check_transitions_delay": "5"
+            },
+            "nlp": {
+              "language": "en",
+              "region": "US",
+              "timezone": "Europe/Madrid",
+              "pre_processing": true,
+              "intent_threshold": "0.4",
+              "huggingface_token": "YOUR-TOKEN",
+              "openai_api_key": "YOUR-OPENAI-API-KEY",
+              "replicate_api_key": "YOUR-API-KEY"
+            },
+            "platforms": {
+              "websocket": {
+                "enabled": true,
+                "host": "localhost",
+                "port": "8765",
+                "streamlit_host": "0.0.0.0",
+                "streamlit_port": "5000",
+                "chat_size": "16",
+                "chat_font": "sans",
+                "chat_line_spacing": "1.5",
+                "chat_alignment": "left",
+                "chat_color": "inherit",
+                "chat_contrast": "medium"
+              },
+              "telegram": {
+                "enabled": true,
+                "token": "YOUR-BOT-TOKEN"
+              },
+              "github": {
+                "enabled": true,
+                "personal_token": "YOUR-PERSONAL-TOKEN",
+                "webhook_token": "YOUR-WEBHOOK-TOKEN",
+                "webhook_port": "8901"
+              },
+              "gitlab": {
+                "enabled": true,
+                "personal_token": "YOUR-PERSONAL-TOKEN",
+                "webhook_token": "YOUR-WEBHOOK-TOKEN",
+                "webhook_port": "8901"
+              },
+              "a2a": {
+                "enabled": true,
+                "port": "8000"
+              }
+            },
+            "db": {
+              "monitoring": {
+                "enabled": true,
+                "dialect": "postgresql",
+                "host": "YOUR-DB-HOST",
+                "port": "5432",
+                "database": "YOUR-DB-NAME",
+                "username": "YOUR-DB-USERNAME",
+                "password": "YOUR-DB-PASSWORD"
+              },
+              "streamlit_db": {
+                "enabled": true,
+                "dialect": "postgresql",
+                "host": "YOUR-DB-HOST",
+                "port": "5432",
+                "database": "YOUR-DB-NAME",
+                "username": "YOUR-DB-USERNAME",
+                "password": "YOUR-DB-PASSWORD"
+              }
+            }
+          },
+          "agentConfigCustomYaml": ""
+        }
+      ]
+    },
+    "settings": {
+      "defaultDiagramType": "ClassDiagram",
+      "autoSave": true,
+      "collaborationEnabled": false,
+      "perspectives": {
+        "ClassDiagram": true,
+        "ObjectDiagram": true,
+        "StateMachineDiagram": true,
+        "AgentDiagram": true,
+        "UserDiagram": true,
+        "GUINoCodeDiagram": true,
+        "QuantumCircuitDiagram": true,
+        "NNDiagram": true,
+        "BPMN": true
+      }
+    }
+  },
+  "exportedAt": "2026-09-23T14:45:54.580Z",
+  "version": "2.0.0"
+}

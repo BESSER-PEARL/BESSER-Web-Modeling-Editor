@@ -50,6 +50,28 @@ export const buildPersonalizationMapping = (
       : null;
   if (!baseAgentModel) return [];
 
+  // Build a map from profileName → stored personalized variant model, mirroring
+  // useGeneratorExecution. The Personalize button saves these into
+  // diagram.config.personalizedVariants. Using them means each profile ships its
+  // already-personalized model (no LLM add_user_context calls needed at runtime).
+  const rawStoredVariants = (agentDiagram?.config as Record<string, unknown> | undefined)?.personalizedVariants;
+  const variantModelByProfileName = new Map<string, UMLModel>();
+  if (Array.isArray(rawStoredVariants)) {
+    for (const v of rawStoredVariants) {
+      if (
+        v && typeof v === 'object' &&
+        typeof (v as Record<string, unknown>).profileName === 'string' &&
+        isUMLModel((v as Record<string, unknown>).model) &&
+        ((v as Record<string, unknown>).model as UMLModel).type === UMLDiagramType.AgentDiagram
+      ) {
+        variantModelByProfileName.set(
+          (v as Record<string, unknown>).profileName as string,
+          (v as Record<string, unknown>).model as UMLModel,
+        );
+      }
+    }
+  }
+
   // Collect every UserDiagram model (stored profile snapshots + project tabs),
   // then split each into its constituent profiles (a UserDiagram tab may now
   // hold several `User` elements). Each profile becomes one mapping entry.
@@ -73,11 +95,14 @@ export const buildPersonalizationMapping = (
       // Then re-insert hidden grouping containers (Competence, Accessibility) so
       // the backend receives the expected nesting depth.
       const merged = reinjectHiddenContainers(mergeSingletonBoxes(profile.model));
+      // Use the stored personalized variant if the Personalize button was run for
+      // this profile; fall back to the base model. Mirrors useGeneratorExecution.
+      const variantModel = variantModelByProfileName.get(profile.name) ?? baseAgentModel;
       return {
         name: profile.name,
         configuration: aggregateProfilePersonalization(merged).configuration as Record<string, unknown>,
         user_profile: structuredClone(merged) as unknown as Record<string, unknown>,
-        agent_model: structuredClone(baseAgentModel) as unknown as Record<string, unknown>,
+        agent_model: structuredClone(variantModel) as unknown as Record<string, unknown>,
       };
     }),
   );
