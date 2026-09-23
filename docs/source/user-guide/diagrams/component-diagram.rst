@@ -2,7 +2,7 @@ Component Diagrams
 ==================
 
 Component diagrams describe the logical structure of a system at the component
-level. In the agentic modeling workflow, they are the first whole-swarm view:
+level. In the agentic modeling workflow, they are the first architectural view of a multi-agent system:
 agentic BPMN lanes become agent Components, pools become Subsystems, and
 cross-lane interactions become Component dependencies.
 

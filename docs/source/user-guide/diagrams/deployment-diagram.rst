@@ -3,7 +3,7 @@ Deployment Diagrams
 
 Deployment diagrams describe the runtime topology of a system: execution nodes,
 deployed components, artifacts, interfaces, and communication paths. In the
-agentic workflow, Deployment is the second whole-swarm view and can be generated
+agentic workflow, Deployment is the second architectural view of a multi-agent system and can be generated
 from a Component diagram.
 
 Creating a Deployment Diagram
