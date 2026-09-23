@@ -1077,8 +1077,60 @@ function SpecDrivenVerificationPanel({
   const unenforced = counts.shippedUnenforced
   const alarm = VERIFICATION_TONES.unenforced
 
+  // Three always-open sections cost ~10 lines of card to say "0 / 1 / 1". They
+  // collapse to one summary row the user can open.
+  //
+  // NEVER when something shipped unenforced. "Your app was delivered and these
+  // rules you asked for are not enforced" is the most important sentence this
+  // product can say, and a disclosure triangle is exactly how it got lost
+  // inside "21 blockers" before.
+  const collapsible = unenforced === 0
+  const [open, setOpen] = React.useState(false)
+
+  if (collapsible && !open) {
+    return (
+      <div className="border-t border-border/60">
+        <button
+          type="button"
+          onClick={() => setOpen(true)}
+          aria-expanded={false}
+          className="flex w-full items-center gap-2 px-3 py-1.5 text-left hover:bg-muted/50"
+        >
+          <ShieldCheck className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+          <span className="text-[11px] font-medium text-foreground">
+            Verification
+          </span>
+          <span className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+            <span className={counts.verified > 0 ? "text-foreground" : undefined}>
+              {counts.verified} verified
+            </span>
+            <span aria-hidden>·</span>
+            <span className={counts.notVerified > 0 ? "text-foreground" : undefined}>
+              {counts.notVerified} unverified
+            </span>
+          </span>
+          <ChevronRight className="ml-auto h-3 w-3 shrink-0 text-muted-foreground" />
+        </button>
+      </div>
+    )
+  }
+
   return (
     <div className="border-t border-border/60">
+      {collapsible ? (
+        <button
+          type="button"
+          onClick={() => setOpen(false)}
+          aria-expanded
+          className="flex w-full items-center gap-2 px-3 py-1.5 text-left hover:bg-muted/50"
+        >
+          <ShieldCheck className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+          <span className="text-[11px] font-medium text-foreground">
+            Verification
+          </span>
+          <ChevronRight className="ml-auto h-3 w-3 shrink-0 rotate-90 text-muted-foreground" />
+        </button>
+      ) : null}
       {unenforced > 0 ? (
         <section className={cn(alarm.body, "border-b-2", alarm.rule)}>
           <div className="flex items-start gap-2 px-3 py-2">
@@ -1443,7 +1495,9 @@ function SpecDrivenCard({
               · {fileCount} file{fileCount === 1 ? "" : "s"}
             </span>
           ) : null}
-          {!deterministic && typeof detPct === "number" && detPct > 0 ? (
+          {!deterministic && (
+            (typeof detPct === "number" && detPct > 0) || tokenUsage
+          ) ? (
             <button
               type="button"
               onClick={() => setShowSplit((v) => !v)}
@@ -1451,7 +1505,9 @@ function SpecDrivenCard({
               className="inline-flex items-center gap-1 rounded-full border border-primary/30 bg-primary/10 px-2 py-0.5 font-mono text-[10px] font-medium text-primary hover:bg-primary/20"
               title="File provenance for this run, not requirements coverage or correctness. Click for details."
             >
-              {detPct}% files unchanged from scaffold
+              {typeof detPct === "number" && detPct > 0
+                ? `${detPct}% files unchanged from scaffold`
+                : "file & token breakdown"}
               <ChevronRight
                 className={`h-3 w-3 transition-transform ${showSplit ? "rotate-90" : ""}`}
               />
@@ -1463,6 +1519,17 @@ function SpecDrivenCard({
               title="Built by BESSER's deterministic generator — no LLM, no tokens, exact output."
             >
               0 tokens
+            </span>
+          ) : tokenUsage ? (
+            // ACTIVE = fresh input + output, never the cumulative total: that
+            // re-counts context re-sent every turn and runs ~87% cache on the
+            // free tier, so it reads 5x the real work. Cached context is in the
+            // breakdown, one click away.
+            <span
+              className="inline-flex items-center gap-1 rounded-full border border-border/60 bg-background/60 px-2 py-0.5 font-mono text-[10px] font-medium text-muted-foreground"
+              title="Fresh input + output — the tokens this run actually paid for. Re-sent context is counted separately in the breakdown."
+            >
+              {formatTokens(tokenUsage.input + tokenUsage.output)} tokens
             </span>
           ) : null}
           {phases.length > 0 ? (

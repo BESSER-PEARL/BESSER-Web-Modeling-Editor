@@ -143,23 +143,33 @@ describe('run card — the other two states', () => {
     counts: { verified: 11, notVerified: 4, shippedUnenforced: 0 },
   };
 
-  it('shows all three counts without interaction, and says nothing is missing', () => {
+  it('summarises the counts in one row, with the sections behind it', () => {
+    // Three always-open sections cost ~10 lines of card to say "0 / 4 / 11".
+    // They collapse to one summary the user opens when they care.
     renderCard(doneCard(mixed));
+    expect(screen.getByText(/11 verified/)).toBeTruthy();
+    expect(screen.getByText(/4 unverified/)).toBeTruthy();
+    // The sections themselves, and their detail, stay closed.
+    expect(screen.queryByText('Could not verify')).toBeNull();
+    expect(screen.queryByText(/3 request\(s\) run against the app/)).toBeNull();
+  });
+
+  it('opens the sections from the summary row', async () => {
+    const user = userEvent.setup();
+    renderCard(doneCard(mixed));
+    await user.click(screen.getByRole('button', { name: /Verification/ }));
     expect(screen.getByText('Verified')).toBeTruthy();
-    expect(screen.getByText('11')).toBeTruthy();
     expect(screen.getByText('Could not verify')).toBeTruthy();
-    expect(screen.getByText('4')).toBeTruthy();
     expect(screen.getByText('Not enforced')).toBeTruthy();
     expect(
       screen.getByText(/Nothing we checked was found missing/i),
     ).toBeTruthy();
-    // Detail stays behind the disclosure for these two states.
-    expect(screen.queryByText(/3 request\(s\) run against the app/)).toBeNull();
   });
 
   it('reveals what was actually RUN behind the verified disclosure', async () => {
     const user = userEvent.setup();
     renderCard(doneCard(mixed));
+    await user.click(screen.getByRole('button', { name: /Verification/ }));
     await user.click(screen.getByRole('button', { name: /Verified/ }));
     expect(
       screen.getByText(
@@ -172,6 +182,7 @@ describe('run card — the other two states', () => {
   it('reveals why a check could not conclude', async () => {
     const user = userEvent.setup();
     renderCard(doneCard(mixed));
+    await user.click(screen.getByRole('button', { name: /Verification/ }));
     await user.click(screen.getByRole('button', { name: /Could not verify/ }));
     expect(
       screen.getByText(/no API workflow was run against it/),
@@ -187,10 +198,11 @@ describe('run card — degradation', () => {
     expect(screen.queryByText('Could not verify')).toBeNull();
   });
 
-  it('renders nothing extra for an all-zero report', () => {
+  it('collapses an all-zero report to one summary row', () => {
     // `extractVerification` returns undefined for this, but a persisted card
     // from another producer could still carry it — it must not become an
-    // empty shell of three zero rows on top of a healthy run.
+    // empty shell of three zero rows on top of a healthy run. The summary row
+    // is that guarantee, stated as one line instead of three sections.
     renderCard(
       doneCard({
         verified: [],
@@ -200,8 +212,10 @@ describe('run card — degradation', () => {
       }),
     );
     expect(screen.getByText('Application ready')).toBeTruthy();
+    expect(screen.getByText(/0 verified/)).toBeTruthy();
     expect(
-      screen.getByText(/Nothing was confirmed working in this run/i),
-    ).toBeTruthy();
+      screen.queryByText(/Nothing was confirmed working in this run/i),
+    ).toBeNull();
+    expect(screen.queryByText('Could not verify')).toBeNull();
   });
 });
