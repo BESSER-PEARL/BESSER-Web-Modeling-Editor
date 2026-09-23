@@ -449,11 +449,7 @@
         "flow": "Flujo",
         "reasoning": "Razonamiento",
         "knowledge": "Conocimiento",
-        "capabilities": "Capacidades",
-        "title": "Arrastra y suelta elementos",
-        "addNewState": "Añadir nuevo estado",
-        "connectInitialState": "Conectar al estado inicial",
-        "addComment": "Añadir un comentario"
+        "capabilities": "Capacidades"
       },
       "AgentState": "Estado del agente",
       "AgentStateBody": "Cuerpo",
@@ -566,6 +562,8 @@
       "llmPromptPrefix": "Prefijo de indicación LLM",
       "retrievedChunks": "K (fragmentos recuperados)",
       "numPreviousMessages": "Número de mensajes anteriores",
+      "hybridRag": "RAG híbrido (BM25)",
+      "bm25Weight": "Peso BM25",
       "embeddingProvider": "Proveedor de embedding",
       "embeddingBaseUrl": "URL base de embedding",
       "embeddingModel": "Modelo de embedding",
@@ -681,17 +679,7 @@
       "guiReplyPrefix": "Respuesta GUI:",
       "guiReplySelectGui": "Respuesta GUI (seleccionar GUI)",
       "selectGui": "Seleccionar GUI",
-      "summaryDefaultLlm": "(LLM predeterminado)",
-      "summaryDefaultLlmChat": "(chat LLM predeterminado)",
-      "summarySelectDatabase": "(seleccionar base de datos)",
-      "summaryNoCrawl": "(sin rastreo)",
-      "summarySetUrl": "(establecer URL)",
-      "summaryNoMessage": "(sin mensaje)",
       "noOptions2": "(sin opciones)",
-      "summaryPlaceholderFile": "(marcador de posición: archivo)",
-      "summaryPlaceholderImage": "(marcador de posición: imagen)",
-      "summaryPlaceholderDataframe": "(marcador de posición: marco de datos)",
-      "summaryPlaceholderPlot": "(marcador de posición: gráfico)",
       "llmReplyDefault": "Respuesta LLM",
       "llmChatReplyDefault": "Respuesta LLM Chat",
       "noCrawlDataDefault": "Aún no hay datos de rastreo web disponibles.",
@@ -726,7 +714,16 @@
       "defaultDatabase": "Base de datos predeterminada",
       "sqlMode": "SQL",
       "llmQueryMode": "Consulta LLM",
-      "dbActionUsingPrefix": "Acción de base de datos usando"
+      "dbActionUsingPrefix": "Acción de base de datos usando",
+      "transitionCanvasLabel": {
+        "noEvent": "Sin evento",
+        "conditionsShort": "cond.",
+        "intent": "Intención",
+        "noIntent": "Sin intención",
+        "file": "Archivo",
+        "submitted": "Enviado"
+      },
+      "webCrawlNamePrefix": "Rastreo:"
     },
     "UserDiagram": {
       "UserModelName": "Usuario",

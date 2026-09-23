@@ -449,11 +449,7 @@
         "flow": "Flow",
         "reasoning": "Reasoning",
         "knowledge": "Knowledge",
-        "capabilities": "Capabilities",
-        "title": "Drag and drop elements",
-        "addNewState": "Add new state",
-        "connectInitialState": "Connect to the initial state",
-        "addComment": "Add a comment"
+        "capabilities": "Capabilities"
       },
       "AgentState": "AgentState",
       "AgentStateBody": "Body",
@@ -683,17 +679,7 @@
       "guiReplyPrefix": "GUI Reply:",
       "guiReplySelectGui": "GUI Reply (select GUI)",
       "selectGui": "Select GUI",
-      "summaryDefaultLlm": "(default LLM)",
-      "summaryDefaultLlmChat": "(default LLM chat)",
-      "summarySelectDatabase": "(select database)",
-      "summaryNoCrawl": "(no crawl)",
-      "summarySetUrl": "(set URL)",
-      "summaryNoMessage": "(no message)",
       "noOptions2": "(no options)",
-      "summaryPlaceholderFile": "(placeholder: file)",
-      "summaryPlaceholderImage": "(placeholder: image)",
-      "summaryPlaceholderDataframe": "(placeholder: dataframe)",
-      "summaryPlaceholderPlot": "(placeholder: plot)",
       "llmReplyDefault": "LLM Reply",
       "llmChatReplyDefault": "LLM Chat Reply",
       "noCrawlDataDefault": "No web crawl data is available yet.",
@@ -728,7 +714,16 @@
       "defaultDatabase": "Default database",
       "sqlMode": "SQL",
       "llmQueryMode": "LLM query",
-      "dbActionUsingPrefix": "DB action using"
+      "dbActionUsingPrefix": "DB action using",
+      "transitionCanvasLabel": {
+        "noEvent": "No event",
+        "conditionsShort": "cond.",
+        "intent": "Intent",
+        "noIntent": "No intent",
+        "file": "File",
+        "submitted": "Submitted"
+      },
+      "webCrawlNamePrefix": "Crawl:"
     },
     "UserDiagram": {
       "UserModelName": "User",

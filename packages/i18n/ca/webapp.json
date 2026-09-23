@@ -213,7 +213,10 @@
           "preProcessingDesc": "Activa la lematització per reduir les paraules a la seva forma base.",
           "huggingfaceTokenDesc": "Clau d’API per a l’API d’inferència de HuggingFace.",
           "openaiApiKeyDesc": "Clau d’API d’OpenAI per accedir al LLM.",
-          "replicateApiKeyDesc": "Clau d’API de Replicate per a la inferència de models."
+          "replicateApiKeyDesc": "Clau d’API de Replicate per a la inferència de models.",
+          "huggingfaceToken": "Token de HuggingFace",
+          "openaiApiKey": "api_key d'OpenAI",
+          "replicateApiKey": "api_key de Replicate"
         },
         "websocket": {
           "hostDesc": "Adreça del servidor per a les connexions WebSocket.",
@@ -2679,7 +2682,7 @@
       "trainingSentences": "Frases d'entrenament",
       "addSentence": "Afegir frase",
       "noSentences": "Encara no hi ha frases d'entrenament. Afegeix-ne per millorar el reconeixement d'intencions.",
-      "sentencePlaceholder": "e.g. Hello there"
+      "sentencePlaceholder": "p. ex. Hola"
     },
     "tools": {
       "title": "Eines",
@@ -2766,7 +2769,9 @@
       "widthPlaceholder": "e.g. 600px",
       "widthDescription": "Amplada CSS del panell de la GUI.",
       "editDesign": "Editar disseny de GUI",
-      "openEditor": "Obrir editor de GUI"
+      "openEditor": "Obrir editor de GUI",
+      "editorTitle": "Editor de GUI",
+      "editorSaveAndExit": "Desa i surt"
     },
     "sql": {
       "title": "Bases de dades SQL",
@@ -2795,6 +2800,11 @@
       "usernamePlaceholder": "YOUR-DB-USERNAME",
       "password": "Contrasenya",
       "passwordPlaceholder": "YOUR-DB-PASSWORD"
+    },
+    "remove": "Elimina",
+    "json": {
+      "mustBeObject": "Ha de ser un objecte JSON",
+      "invalid": "JSON no vàlid"
     }
   },
   "agentSimulation": {
@@ -2838,11 +2848,17 @@
       "filesTitle": "Fitxers",
       "refresh": "Actualitza els fitxers",
       "noFiles": "No s’ha trobat cap fitxer ni carpeta",
-      "selectFile": "Selecciona un fitxer per veure’n el contingut"
+      "selectFile": "Selecciona un fitxer per veure’n el contingut",
+      "fetchFailed": "No s'han pogut carregar els fitxers de la sessió: {{message}}"
     },
     "chat": {
       "websocketError": "Error de connexió WebSocket.",
-      "sensitivityWarning": "No comparteixis informació personal sensible al xat de prova. Les sessions es poden registrar."
+      "sensitivityWarning": "No comparteixis informació personal sensible al xat de prova. Les sessions es poden registrar.",
+      "authRequired": "Cal autenticar-se amb GitHub per simular l'agent. Inicia la sessió primer.",
+      "agentError": "Error de l'agent: {{message}}",
+      "unknownError": "Error desconegut de l'agent",
+      "backendUnavailable": "L'URL del servei de simulació no està configurada.",
+      "connectionRejected": "El servei de simulació ha rebutjat la connexió."
     },
     "terminal": {
       "expand": "Expandeix el terminal",
@@ -2871,8 +2887,22 @@
       "disk": "Disc",
       "lifetime": "Durada de la sessió",
       "unitMin": " min",
-      "validationError": "La validació ha fallat: no s’ha pogut generar el codi de l’agent:",
       "start": "Inicia la simulació"
+    },
+    "errors": {
+      "startFailed": "No s'ha pogut iniciar la simulació de l'agent.",
+      "validateFailed": "No s'ha pogut validar l'agent.",
+      "stopFailed": "No s'ha pogut aturar la simulació de l'agent.",
+      "restartFailed": "No s'ha pogut reiniciar la simulació de l'agent.",
+      "restartUnavailable": "No hi ha res per reiniciar: primer inicia la simulació.",
+      "limitsFailed": "No s'han pogut carregar els límits de la simulació.",
+      "timeout": "El servei de simulació no ha respost a temps.",
+      "networkError": "Error de xarxa"
+    },
+    "launch": {
+      "emptyDiagram": "El diagrama de l'agent és buit. Afegeix estats, transicions i intencions abans de simular.",
+      "validationFailed": "La validació de l'agent ha fallat: {{message}}",
+      "validationFailedGeneric": "La validació ha fallat"
     }
   }
 }

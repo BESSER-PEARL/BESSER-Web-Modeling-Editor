@@ -213,7 +213,10 @@
           "preProcessingDesc": "Aktivéiert Stemming, fir Wierder op hir Grondform ze reduzéieren.",
           "huggingfaceTokenDesc": "API-Schlëssel fir d’HuggingFace Inference API.",
           "openaiApiKeyDesc": "OpenAI-API-Schlëssel fir den LLM-Zougang.",
-          "replicateApiKeyDesc": "Replicate-API-Schlëssel fir d’Modellinferenz."
+          "replicateApiKeyDesc": "Replicate-API-Schlëssel fir d’Modellinferenz.",
+          "huggingfaceToken": "HuggingFace-Token",
+          "openaiApiKey": "OpenAI-api_key",
+          "replicateApiKey": "Replicate-api_key"
         },
         "websocket": {
           "hostDesc": "Serveradress fir WebSocket-Verbindungen.",
@@ -2679,7 +2682,7 @@
       "trainingSentences": "Trainingssätz",
       "addSentence": "Saz derbäisetzen",
       "noSentences": "Nach keng Trainingssätz. Setzt w.e.g. w.e.g. e puer bäi fir d'Intent-Erkennung ze verbesseren.",
-      "sentencePlaceholder": "e.g. Hello there"
+      "sentencePlaceholder": "z. B. Moien"
     },
     "tools": {
       "title": "Tools",
@@ -2766,7 +2769,9 @@
       "widthPlaceholder": "e.g. 600px",
       "widthDescription": "CSS-Breet vum GUI-Panel.",
       "editDesign": "GUI-Design beaarbechten",
-      "openEditor": "GUI-Editor opmaachen"
+      "openEditor": "GUI-Editor opmaachen",
+      "editorTitle": "GUI-Editeur",
+      "editorSaveAndExit": "Späicheren an zoumaachen"
     },
     "sql": {
       "title": "SQL-Datebänk",
@@ -2795,6 +2800,11 @@
       "usernamePlaceholder": "YOUR-DB-USERNAME",
       "password": "Passwuert",
       "passwordPlaceholder": "YOUR-DB-PASSWORD"
+    },
+    "remove": "Ewechhuelen",
+    "json": {
+      "mustBeObject": "Muss en JSON-Objet sinn",
+      "invalid": "Ongültegen JSON"
     }
   },
   "agentSimulation": {
@@ -2838,11 +2848,17 @@
       "filesTitle": "Dateien",
       "refresh": "Dateien aktualiséieren",
       "noFiles": "Keng Dateien oder Dossiere fonnt",
-      "selectFile": "Wiel eng Datei aus, fir hiren Inhalt ze weisen"
+      "selectFile": "Wiel eng Datei aus, fir hiren Inhalt ze weisen",
+      "fetchFailed": "D'Sessiounsfichiere konnten net geluede ginn: {{message}}"
     },
     "chat": {
       "websocketError": "WebSocket-Verbindungsfeeler.",
-      "sensitivityWarning": "Deel am Test-Chat keng sensibel perséinlech Informatiounen. Sitzunge kënne protokolléiert ginn."
+      "sensitivityWarning": "Deel am Test-Chat keng sensibel perséinlech Informatiounen. Sitzunge kënne protokolléiert ginn.",
+      "authRequired": "Fir d'Agentesimulatioun ass eng GitHub-Umeldung néideg. Mell dech w.e.g. fir d'éischt un.",
+      "agentError": "Agentefeeler: {{message}}",
+      "unknownError": "Onbekannten Agentefeeler",
+      "backendUnavailable": "D'URL vum Simulatiounsdéngscht ass net konfiguréiert.",
+      "connectionRejected": "De Simulatiounsdéngscht huet d'Verbindung refuséiert."
     },
     "terminal": {
       "expand": "Terminal opklappen",
@@ -2871,8 +2887,22 @@
       "disk": "Disk",
       "lifetime": "Sitzungsdauer",
       "unitMin": " min",
-      "validationError": "Validéierung feelgeschloen — den Agentencode konnt net generéiert ginn:",
       "start": "Simulatioun starten"
+    },
+    "errors": {
+      "startFailed": "D'Agentesimulatioun konnt net gestart ginn.",
+      "validateFailed": "Den Agent konnt net validéiert ginn.",
+      "stopFailed": "D'Agentesimulatioun konnt net gestoppt ginn.",
+      "restartFailed": "D'Agentesimulatioun konnt net nei gestart ginn.",
+      "restartUnavailable": "Näischt fir nei ze starten: start fir d'éischt d'Simulatioun.",
+      "limitsFailed": "D'Simulatiounslimitten konnten net geluede ginn.",
+      "timeout": "De Simulatiounsdéngscht huet net rechtzäiteg geäntwert.",
+      "networkError": "Netzwierkfeeler"
+    },
+    "launch": {
+      "emptyDiagram": "D'Agentediagramm ass eidel. Setz Zoustänn, Iwwergäng an Intents derbäi, ier s de simuléiers.",
+      "validationFailed": "D'Validatioun vum Agent ass feelgeschloen: {{message}}",
+      "validationFailedGeneric": "Validatioun feelgeschloen"
     }
   }
 }

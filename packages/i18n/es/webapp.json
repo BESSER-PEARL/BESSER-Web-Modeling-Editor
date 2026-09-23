@@ -213,7 +213,10 @@
           "preProcessingDesc": "Activa la lematización para reducir las palabras a su forma base.",
           "huggingfaceTokenDesc": "Clave de API para la API de inferencia de HuggingFace.",
           "openaiApiKeyDesc": "Clave de API de OpenAI para acceder al LLM.",
-          "replicateApiKeyDesc": "Clave de API de Replicate para la inferencia de modelos."
+          "replicateApiKeyDesc": "Clave de API de Replicate para la inferencia de modelos.",
+          "huggingfaceToken": "Token de HuggingFace",
+          "openaiApiKey": "api_key de OpenAI",
+          "replicateApiKey": "api_key de Replicate"
         },
         "websocket": {
           "hostDesc": "Dirección del servidor para las conexiones WebSocket.",
@@ -2679,7 +2682,7 @@
       "trainingSentences": "Frases de entrenamiento",
       "addSentence": "Añadir frase",
       "noSentences": "No hay frases de entrenamiento aún. Añade algunas para mejorar el reconocimiento de intenciones.",
-      "sentencePlaceholder": "e.g. Hello there"
+      "sentencePlaceholder": "p. ej. Hola"
     },
     "tools": {
       "title": "Herramientas",
@@ -2766,7 +2769,9 @@
       "widthPlaceholder": "e.g. 600px",
       "widthDescription": "Ancho CSS del panel de la GUI.",
       "editDesign": "Editar diseño de GUI",
-      "openEditor": "Abrir editor de GUI"
+      "openEditor": "Abrir editor de GUI",
+      "editorTitle": "Editor de GUI",
+      "editorSaveAndExit": "Guardar y salir"
     },
     "sql": {
       "title": "Bases de datos SQL",
@@ -2795,6 +2800,11 @@
       "usernamePlaceholder": "YOUR-DB-USERNAME",
       "password": "Contraseña",
       "passwordPlaceholder": "YOUR-DB-PASSWORD"
+    },
+    "remove": "Eliminar",
+    "json": {
+      "mustBeObject": "Debe ser un objeto JSON",
+      "invalid": "JSON no válido"
     }
   },
   "agentSimulation": {
@@ -2838,11 +2848,17 @@
       "filesTitle": "Archivos",
       "refresh": "Actualizar archivos",
       "noFiles": "No se han encontrado archivos ni carpetas",
-      "selectFile": "Selecciona un archivo para ver su contenido"
+      "selectFile": "Selecciona un archivo para ver su contenido",
+      "fetchFailed": "No se pudieron cargar los archivos de la sesión: {{message}}"
     },
     "chat": {
       "websocketError": "Error de conexión WebSocket.",
-      "sensitivityWarning": "No compartas información personal sensible en el chat de prueba. Las sesiones pueden quedar registradas."
+      "sensitivityWarning": "No compartas información personal sensible en el chat de prueba. Las sesiones pueden quedar registradas.",
+      "authRequired": "Se requiere autenticación de GitHub para simular el agente. Inicia sesión primero.",
+      "agentError": "Error del agente: {{message}}",
+      "unknownError": "Error desconocido del agente",
+      "backendUnavailable": "La URL del servicio de simulación no está configurada.",
+      "connectionRejected": "El servicio de simulación rechazó la conexión."
     },
     "terminal": {
       "expand": "Expandir terminal",
@@ -2871,8 +2887,22 @@
       "disk": "Disco",
       "lifetime": "Duración de la sesión",
       "unitMin": " min",
-      "validationError": "La validación ha fallado: no se pudo generar el código del agente:",
       "start": "Iniciar simulación"
+    },
+    "errors": {
+      "startFailed": "No se pudo iniciar la simulación del agente.",
+      "validateFailed": "No se pudo validar el agente.",
+      "stopFailed": "No se pudo detener la simulación del agente.",
+      "restartFailed": "No se pudo reiniciar la simulación del agente.",
+      "restartUnavailable": "No hay nada que reiniciar: primero inicia la simulación.",
+      "limitsFailed": "No se pudieron cargar los límites de la simulación.",
+      "timeout": "El servicio de simulación no respondió a tiempo.",
+      "networkError": "Error de red"
+    },
+    "launch": {
+      "emptyDiagram": "El diagrama del agente está vacío. Añade estados, transiciones e intenciones antes de simular.",
+      "validationFailed": "La validación del agente falló: {{message}}",
+      "validationFailedGeneric": "La validación falló"
     }
   }
 }

@@ -213,7 +213,10 @@
           "preProcessingDesc": "Enables stemming to reduce words to base forms.",
           "huggingfaceTokenDesc": "API key for HuggingFace Inference API.",
           "openaiApiKeyDesc": "OpenAI API key for LLM access.",
-          "replicateApiKeyDesc": "Replicate API key for model inference."
+          "replicateApiKeyDesc": "Replicate API key for model inference.",
+          "huggingfaceToken": "HuggingFace token",
+          "openaiApiKey": "OpenAI api_key",
+          "replicateApiKey": "Replicate api_key"
         },
         "websocket": {
           "hostDesc": "Server address for WebSocket connections.",
@@ -2766,7 +2769,9 @@
       "widthPlaceholder": "e.g. 600px",
       "widthDescription": "CSS width of the GUI panel.",
       "editDesign": "Edit GUI design",
-      "openEditor": "Open GUI Editor"
+      "openEditor": "Open GUI Editor",
+      "editorTitle": "GUI Editor",
+      "editorSaveAndExit": "Save and Exit"
     },
     "sql": {
       "title": "SQL Databases",
@@ -2795,6 +2800,11 @@
       "usernamePlaceholder": "YOUR-DB-USERNAME",
       "password": "Password",
       "passwordPlaceholder": "YOUR-DB-PASSWORD"
+    },
+    "remove": "Remove",
+    "json": {
+      "mustBeObject": "Must be a JSON object",
+      "invalid": "Invalid JSON"
     }
   },
   "agentSimulation": {
@@ -2838,11 +2848,17 @@
       "filesTitle": "Files",
       "refresh": "Refresh files",
       "noFiles": "No files or folders found",
-      "selectFile": "Select a file to view its content"
+      "selectFile": "Select a file to view its content",
+      "fetchFailed": "Failed to load the session files: {{message}}"
     },
     "chat": {
       "websocketError": "WebSocket connection error.",
-      "sensitivityWarning": "Do not share sensitive personal information in the test chat. Sessions may be logged."
+      "sensitivityWarning": "Do not share sensitive personal information in the test chat. Sessions may be logged.",
+      "authRequired": "GitHub authentication required for agent simulation. Please sign in first.",
+      "agentError": "Agent error: {{message}}",
+      "unknownError": "Unknown agent error",
+      "backendUnavailable": "The simulation service URL is not configured.",
+      "connectionRejected": "The simulation service refused the connection."
     },
     "terminal": {
       "expand": "Expand terminal",
@@ -2871,8 +2887,22 @@
       "disk": "Disk",
       "lifetime": "Session lifetime",
       "unitMin": " min",
-      "validationError": "Validation failed — agent code could not be generated:",
       "start": "Start Simulation"
+    },
+    "errors": {
+      "startFailed": "Failed to start the agent simulation.",
+      "validateFailed": "Failed to validate the agent.",
+      "stopFailed": "Failed to stop the agent simulation.",
+      "restartFailed": "Failed to restart the agent simulation.",
+      "restartUnavailable": "Nothing to restart: start the simulation first.",
+      "limitsFailed": "Failed to load the simulation limits.",
+      "timeout": "The simulation service did not respond in time.",
+      "networkError": "Network error"
+    },
+    "launch": {
+      "emptyDiagram": "The agent diagram is empty. Add states, transitions, and intents before simulating.",
+      "validationFailed": "Agent validation failed: {{message}}",
+      "validationFailedGeneric": "Validation failed"
     }
   }
 }

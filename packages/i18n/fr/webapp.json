@@ -213,7 +213,10 @@
           "preProcessingDesc": "Active la racinisation pour réduire les mots à leur forme de base.",
           "huggingfaceTokenDesc": "Clé API pour l’API d’inférence de HuggingFace.",
           "openaiApiKeyDesc": "Clé API OpenAI pour l’accès au LLM.",
-          "replicateApiKeyDesc": "Clé API Replicate pour l’inférence de modèles."
+          "replicateApiKeyDesc": "Clé API Replicate pour l’inférence de modèles.",
+          "huggingfaceToken": "Jeton HuggingFace",
+          "openaiApiKey": "api_key OpenAI",
+          "replicateApiKey": "api_key Replicate"
         },
         "websocket": {
           "hostDesc": "Adresse du serveur pour les connexions WebSocket.",
@@ -2679,7 +2682,7 @@
       "trainingSentences": "Phrases d'entraînement",
       "addSentence": "Ajouter une phrase",
       "noSentences": "Aucune phrase d'entraînement pour l'instant. Ajoutez-en pour améliorer la reconnaissance des intentions.",
-      "sentencePlaceholder": "e.g. Hello there"
+      "sentencePlaceholder": "p. ex. Bonjour"
     },
     "tools": {
       "title": "Outils",
@@ -2766,7 +2769,9 @@
       "widthPlaceholder": "e.g. 600px",
       "widthDescription": "Largeur CSS du panneau GUI.",
       "editDesign": "Modifier le design du GUI",
-      "openEditor": "Ouvrir l'éditeur GUI"
+      "openEditor": "Ouvrir l'éditeur GUI",
+      "editorTitle": "Éditeur d'interface",
+      "editorSaveAndExit": "Enregistrer et quitter"
     },
     "sql": {
       "title": "Bases SQL",
@@ -2795,6 +2800,11 @@
       "usernamePlaceholder": "YOUR-DB-USERNAME",
       "password": "Mot de passe",
       "passwordPlaceholder": "YOUR-DB-PASSWORD"
+    },
+    "remove": "Supprimer",
+    "json": {
+      "mustBeObject": "Doit être un objet JSON",
+      "invalid": "JSON non valide"
     }
   },
   "agentSimulation": {
@@ -2838,11 +2848,17 @@
       "filesTitle": "Fichiers",
       "refresh": "Actualiser les fichiers",
       "noFiles": "Aucun fichier ni dossier trouvé",
-      "selectFile": "Sélectionnez un fichier pour afficher son contenu"
+      "selectFile": "Sélectionnez un fichier pour afficher son contenu",
+      "fetchFailed": "Impossible de charger les fichiers de la session : {{message}}"
     },
     "chat": {
       "websocketError": "Erreur de connexion WebSocket.",
-      "sensitivityWarning": "Ne partagez pas d’informations personnelles sensibles dans le chat de test. Les sessions peuvent être enregistrées."
+      "sensitivityWarning": "Ne partagez pas d’informations personnelles sensibles dans le chat de test. Les sessions peuvent être enregistrées.",
+      "authRequired": "Une authentification GitHub est requise pour simuler l'agent. Veuillez d'abord vous connecter.",
+      "agentError": "Erreur de l'agent : {{message}}",
+      "unknownError": "Erreur inconnue de l'agent",
+      "backendUnavailable": "L'URL du service de simulation n'est pas configurée.",
+      "connectionRejected": "Le service de simulation a refusé la connexion."
     },
     "terminal": {
       "expand": "Développer le terminal",
@@ -2871,8 +2887,22 @@
       "disk": "Disque",
       "lifetime": "Durée de la session",
       "unitMin": " min",
-      "validationError": "Échec de la validation — le code de l’agent n’a pas pu être généré :",
       "start": "Démarrer la simulation"
+    },
+    "errors": {
+      "startFailed": "Impossible de démarrer la simulation de l'agent.",
+      "validateFailed": "Impossible de valider l'agent.",
+      "stopFailed": "Impossible d'arrêter la simulation de l'agent.",
+      "restartFailed": "Impossible de redémarrer la simulation de l'agent.",
+      "restartUnavailable": "Rien à redémarrer : démarrez d'abord la simulation.",
+      "limitsFailed": "Impossible de charger les limites de la simulation.",
+      "timeout": "Le service de simulation n'a pas répondu à temps.",
+      "networkError": "Erreur réseau"
+    },
+    "launch": {
+      "emptyDiagram": "Le diagramme de l'agent est vide. Ajoutez des états, des transitions et des intentions avant de simuler.",
+      "validationFailed": "La validation de l'agent a échoué : {{message}}",
+      "validationFailedGeneric": "La validation a échoué"
     }
   }
 }

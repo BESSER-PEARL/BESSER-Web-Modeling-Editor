@@ -449,11 +449,7 @@
         "flow": "Flux",
         "reasoning": "Reasoning",
         "knowledge": "Wëssen",
-        "capabilities": "Fäegkeeten",
-        "title": "Elementer zéien an falen loossen",
-        "addNewState": "Neien Zoustand dobäisetzen",
-        "connectInitialState": "Mam Ufankszoustand verbannen",
-        "addComment": "E Kommentar dobäisetzen"
+        "capabilities": "Fäegkeeten"
       },
       "AgentState": "Agentzoustand",
       "AgentStateBody": "Kierper",
@@ -566,6 +562,8 @@
       "llmPromptPrefix": "LLM-Ufforderungspräfix",
       "retrievedChunks": "K (ofgerufene Stécker)",
       "numPreviousMessages": "Anzuel vun fréiere Messaggie",
+      "hybridRag": "Hybridd RAG (BM25)",
+      "bm25Weight": "BM25-Gewiicht",
       "embeddingProvider": "Aibindungsanbieder",
       "embeddingBaseUrl": "Aibindungs-Basis-URL",
       "embeddingModel": "Aibindungsmodell",
@@ -681,17 +679,7 @@
       "guiReplyPrefix": "GUI-Äntwert:",
       "guiReplySelectGui": "GUI-Äntwert (GUI auswielen)",
       "selectGui": "GUI auswielen",
-      "summaryDefaultLlm": "(Standard-LLM)",
-      "summaryDefaultLlmChat": "(Standard-LLM-Chat)",
-      "summarySelectDatabase": "(Datebank auswielen)",
-      "summaryNoCrawl": "(kee Crawl)",
-      "summarySetUrl": "(URL setzen)",
-      "summaryNoMessage": "(keng Noricht)",
       "noOptions2": "(keng Optiounen)",
-      "summaryPlaceholderFile": "(Plazhalter: Datei)",
-      "summaryPlaceholderImage": "(Plazhalter: Bild)",
-      "summaryPlaceholderDataframe": "(Plazhalter: Dataframe)",
-      "summaryPlaceholderPlot": "(Plazhalter: Diagramm)",
       "llmReplyDefault": "LLM-Äntwert",
       "llmChatReplyDefault": "LLM-Chat-Äntwert",
       "noCrawlDataDefault": "Et sinn nach keng Web-Crawl-Donnéeë verfügbar.",
@@ -726,7 +714,16 @@
       "defaultDatabase": "Standarddatebank",
       "sqlMode": "SQL",
       "llmQueryMode": "LLM-Ufro",
-      "dbActionUsingPrefix": "DB-Aktioun mat"
+      "dbActionUsingPrefix": "DB-Aktioun mat",
+      "transitionCanvasLabel": {
+        "noEvent": "Keen Event",
+        "conditionsShort": "Bed.",
+        "intent": "Intent",
+        "noIntent": "Keen Intent",
+        "file": "Fichier",
+        "submitted": "Geschéckt"
+      },
+      "webCrawlNamePrefix": "Crawl:"
     },
     "UserDiagram": {
       "UserModelName": "Benotzer",

@@ -449,11 +449,7 @@
         "flow": "Ablauf",
         "reasoning": "Reasoning",
         "knowledge": "Wissen",
-        "capabilities": "Fähigkeiten",
-        "title": "Elemente per Drag-and-drop hinzufügen",
-        "addNewState": "Neuen Zustand hinzufügen",
-        "connectInitialState": "Mit dem Anfangszustand verbinden",
-        "addComment": "Kommentar hinzufügen"
+        "capabilities": "Fähigkeiten"
       },
       "AgentState": "Agentenzustand",
       "AgentStateBody": "Rumpf",
@@ -566,6 +562,8 @@
       "llmPromptPrefix": "LLM-Aufforderungspräfix",
       "retrievedChunks": "K (abgerufene Chunks)",
       "numPreviousMessages": "Anzahl vorheriger Nachrichten",
+      "hybridRag": "Hybrides RAG (BM25)",
+      "bm25Weight": "BM25-Gewichtung",
       "embeddingProvider": "Einbettungsanbieter",
       "embeddingBaseUrl": "Einbettungs-Basis-URL",
       "embeddingModel": "Einbettungsmodell",
@@ -681,17 +679,7 @@
       "guiReplyPrefix": "GUI-Antwort:",
       "guiReplySelectGui": "GUI-Antwort (GUI auswählen)",
       "selectGui": "GUI auswählen",
-      "summaryDefaultLlm": "(Standard-LLM)",
-      "summaryDefaultLlmChat": "(Standard-LLM-Chat)",
-      "summarySelectDatabase": "(Datenbank auswählen)",
-      "summaryNoCrawl": "(kein Crawl)",
-      "summarySetUrl": "(URL festlegen)",
-      "summaryNoMessage": "(keine Nachricht)",
       "noOptions2": "(keine Optionen)",
-      "summaryPlaceholderFile": "(Platzhalter: Datei)",
-      "summaryPlaceholderImage": "(Platzhalter: Bild)",
-      "summaryPlaceholderDataframe": "(Platzhalter: Dataframe)",
-      "summaryPlaceholderPlot": "(Platzhalter: Diagramm)",
       "llmReplyDefault": "LLM-Antwort",
       "llmChatReplyDefault": "LLM-Chat-Antwort",
       "noCrawlDataDefault": "Es sind noch keine Web-Crawl-Daten verfügbar.",
@@ -726,7 +714,16 @@
       "defaultDatabase": "Standarddatenbank",
       "sqlMode": "SQL",
       "llmQueryMode": "LLM-Abfrage",
-      "dbActionUsingPrefix": "DB-Aktion mit"
+      "dbActionUsingPrefix": "DB-Aktion mit",
+      "transitionCanvasLabel": {
+        "noEvent": "Kein Ereignis",
+        "conditionsShort": "Bed.",
+        "intent": "Intent",
+        "noIntent": "Kein Intent",
+        "file": "Datei",
+        "submitted": "Gesendet"
+      },
+      "webCrawlNamePrefix": "Crawl:"
     },
     "UserDiagram": {
       "UserModelName": "Benutzer",

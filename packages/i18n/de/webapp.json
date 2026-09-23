@@ -213,7 +213,10 @@
           "preProcessingDesc": "Aktiviert Stemming, um Wörter auf ihre Grundform zu reduzieren.",
           "huggingfaceTokenDesc": "API-Schlüssel für die HuggingFace Inference API.",
           "openaiApiKeyDesc": "OpenAI-API-Schlüssel für den LLM-Zugriff.",
-          "replicateApiKeyDesc": "Replicate-API-Schlüssel für die Modellinferenz."
+          "replicateApiKeyDesc": "Replicate-API-Schlüssel für die Modellinferenz.",
+          "huggingfaceToken": "HuggingFace-Token",
+          "openaiApiKey": "OpenAI-api_key",
+          "replicateApiKey": "Replicate-api_key"
         },
         "websocket": {
           "hostDesc": "Serveradresse für WebSocket-Verbindungen.",
@@ -2679,7 +2682,7 @@
       "trainingSentences": "Trainingssätze",
       "addSentence": "Satz hinzufügen",
       "noSentences": "Noch keine Trainingssätze. Fügen Sie welche hinzu, um die Intent-Erkennung zu verbessern.",
-      "sentencePlaceholder": "e.g. Hello there"
+      "sentencePlaceholder": "z. B. Hallo"
     },
     "tools": {
       "title": "Tools",
@@ -2766,7 +2769,9 @@
       "widthPlaceholder": "e.g. 600px",
       "widthDescription": "CSS-Breite des GUI-Panels.",
       "editDesign": "GUI-Design bearbeiten",
-      "openEditor": "GUI-Editor öffnen"
+      "openEditor": "GUI-Editor öffnen",
+      "editorTitle": "GUI-Editor",
+      "editorSaveAndExit": "Speichern und schließen"
     },
     "sql": {
       "title": "SQL-Datenbanken",
@@ -2795,6 +2800,11 @@
       "usernamePlaceholder": "YOUR-DB-USERNAME",
       "password": "Passwort",
       "passwordPlaceholder": "YOUR-DB-PASSWORD"
+    },
+    "remove": "Entfernen",
+    "json": {
+      "mustBeObject": "Muss ein JSON-Objekt sein",
+      "invalid": "Ungültiges JSON"
     }
   },
   "agentSimulation": {
@@ -2838,11 +2848,17 @@
       "filesTitle": "Dateien",
       "refresh": "Dateien aktualisieren",
       "noFiles": "Keine Dateien oder Ordner gefunden",
-      "selectFile": "Wähle eine Datei aus, um ihren Inhalt anzuzeigen"
+      "selectFile": "Wähle eine Datei aus, um ihren Inhalt anzuzeigen",
+      "fetchFailed": "Die Sitzungsdateien konnten nicht geladen werden: {{message}}"
     },
     "chat": {
       "websocketError": "WebSocket-Verbindungsfehler.",
-      "sensitivityWarning": "Teile im Test-Chat keine sensiblen personenbezogenen Daten. Sitzungen können protokolliert werden."
+      "sensitivityWarning": "Teile im Test-Chat keine sensiblen personenbezogenen Daten. Sitzungen können protokolliert werden.",
+      "authRequired": "Für die Agentensimulation ist eine GitHub-Anmeldung erforderlich. Bitte melden Sie sich zuerst an.",
+      "agentError": "Agentenfehler: {{message}}",
+      "unknownError": "Unbekannter Agentenfehler",
+      "backendUnavailable": "Die URL des Simulationsdienstes ist nicht konfiguriert.",
+      "connectionRejected": "Der Simulationsdienst hat die Verbindung abgelehnt."
     },
     "terminal": {
       "expand": "Terminal erweitern",
@@ -2871,8 +2887,22 @@
       "disk": "Festplatte",
       "lifetime": "Sitzungsdauer",
       "unitMin": " min",
-      "validationError": "Validierung fehlgeschlagen — der Agentencode konnte nicht generiert werden:",
       "start": "Simulation starten"
+    },
+    "errors": {
+      "startFailed": "Die Agentensimulation konnte nicht gestartet werden.",
+      "validateFailed": "Der Agent konnte nicht validiert werden.",
+      "stopFailed": "Die Agentensimulation konnte nicht gestoppt werden.",
+      "restartFailed": "Die Agentensimulation konnte nicht neu gestartet werden.",
+      "restartUnavailable": "Nichts neu zu starten: Starten Sie zuerst die Simulation.",
+      "limitsFailed": "Die Simulationsgrenzen konnten nicht geladen werden.",
+      "timeout": "Der Simulationsdienst hat nicht rechtzeitig geantwortet.",
+      "networkError": "Netzwerkfehler"
+    },
+    "launch": {
+      "emptyDiagram": "Das Agentendiagramm ist leer. Fügen Sie vor der Simulation Zustände, Übergänge und Intents hinzu.",
+      "validationFailed": "Die Validierung des Agenten ist fehlgeschlagen: {{message}}",
+      "validationFailedGeneric": "Validierung fehlgeschlagen"
     }
   }
 }
