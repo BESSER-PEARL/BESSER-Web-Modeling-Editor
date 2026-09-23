@@ -182,6 +182,42 @@ describe('AgentDiagramModifier on old-format models (components on the canvas)',
     expect(added).toMatchObject({ name: 'good morning', type: 'AgentIntentBody', owner: 'intent' });
   });
 
+  it('add_transition connects the states the assistant names on the target', () => {
+    const model = legacyModel();
+    model.elements.other = {
+      id: 'other', name: 'Help', type: 'AgentState', owner: null,
+      bounds: { x: 0, y: 0, width: 100, height: 30 }, bodies: [], actions: [],
+    };
+    const result = apply(model, {
+      type: 'single', action: 'add_transition',
+      target: { sourceStateName: 'Welcome', targetStateName: 'Help' },
+      changes: { condition: 'when_intent_matched', intentName: 'greet' },
+    });
+    const [transition] = Object.values(result.relationships) as any[];
+    expect(transition).toMatchObject({
+      type: 'AgentStateTransition',
+      source: { element: 'state' },
+      target: { element: 'other' },
+      predefined: { predefinedType: 'when_intent_matched', intentName: 'greet' },
+    });
+
+    const removed = apply(result, {
+      type: 'single', action: 'remove_transition',
+      target: { sourceStateName: 'Welcome', targetStateName: 'Help' }, changes: {},
+    });
+    expect(removed.relationships).toEqual({});
+  });
+
+  it('add_transition and remove_transition fail clearly when endpoints are missing', () => {
+    expect(() => apply(legacyModel(), {
+      type: 'single', action: 'add_transition', target: { sourceStateName: 'Welcome' }, changes: {},
+    })).toThrow('target.sourceStateName and target.targetStateName');
+    expect(() => apply(legacyModel(), {
+      type: 'single', action: 'remove_transition',
+      target: { sourceStateName: 'Welcome', targetStateName: 'Welcome' }, changes: {},
+    })).toThrow('No transition from Welcome to Welcome');
+  });
+
   it('add_intent_training_phrase rejects an unknown intent or a missing phrase', () => {
     expect(() => apply(legacyModel(), {
       type: 'single', action: 'add_intent_training_phrase', target: { intentName: 'nope' },

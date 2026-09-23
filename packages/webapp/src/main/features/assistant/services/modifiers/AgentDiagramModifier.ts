@@ -321,25 +321,17 @@ export class AgentDiagramModifier implements DiagramModifier {
     }
 
     const changes = modification.changes as AgentChanges;
-    const target = modification.target;
-
-    const sourceName = changes.source || target.stateName || target.intentName;
-    const targetName = changes.target || target.targetClass;
+    // The modeling assistant names both endpoints on the target
+    // (target.sourceStateName / target.targetStateName); "initial" is the entry node.
+    const { sourceStateName: sourceName, targetStateName: targetName } = modification.target;
 
     if (!sourceName || !targetName) {
-      throw new Error('Transition requires both source and target (state or intent names).');
+      throw new Error('Transition requires target.sourceStateName and target.targetStateName.');
     }
 
-    // Find source (could be state, intent, or initial node)
-    let sourceId: string | null = null;
-    if (sourceName.toLowerCase() === 'initial') {
-      sourceId = this.findInitialNodeId(model);
-    } else {
-      sourceId = this.findStateIdByName(model, sourceName) || 
-                 this.findIntentIdByName(model, sourceName);
-    }
-
-    // Find target (should be state)
+    const sourceId = sourceName.toLowerCase() === 'initial'
+      ? this.findInitialNodeId(model)
+      : this.findStateIdByName(model, sourceName);
     const targetId = this.findStateIdByName(model, targetName);
 
     if (!sourceId || !targetId) {
@@ -387,28 +379,32 @@ export class AgentDiagramModifier implements DiagramModifier {
    * Remove transition
    */
   private removeTransition(model: AgentModel, modification: ModelModification): BESSERModel {
-    const { transitionId } = modification.target;
+    const { transitionId, sourceStateName, targetStateName } = modification.target;
 
-    if (transitionId && model.relationships?.[transitionId]) {
-      delete model.relationships[transitionId];
-    } else if (modification.changes.source && modification.changes.target) {
-      // Find transition by source and target
-      const sourceName = modification.changes.source;
-      const targetName = modification.changes.target;
-      
-      const sourceId = this.findStateIdByName(model, sourceName) || 
-                       this.findIntentIdByName(model, sourceName);
-      const targetId = this.findStateIdByName(model, targetName);
-
-      if (sourceId && targetId && model.relationships) {
-        for (const [relId, rel] of Object.entries(model.relationships)) {
-          if (rel.source?.element === sourceId && rel.target?.element === targetId) {
-            delete model.relationships[relId];
-            break;
-          }
-        }
+    if (transitionId) {
+      if (!model.relationships?.[transitionId]) {
+        throw new Error(`Transition not found: ${transitionId}`);
       }
+      delete model.relationships[transitionId];
+      return model;
     }
+
+    if (!sourceStateName || !targetStateName) {
+      throw new Error(
+        'remove_transition requires target.transitionId, or target.sourceStateName and target.targetStateName.',
+      );
+    }
+    const sourceId = sourceStateName.toLowerCase() === 'initial'
+      ? this.findInitialNodeId(model)
+      : this.findStateIdByName(model, sourceStateName);
+    const targetId = this.findStateIdByName(model, targetStateName);
+    const match = Object.entries(model.relationships || {}).find(
+      ([, rel]) => rel.source?.element === sourceId && rel.target?.element === targetId,
+    );
+    if (!sourceId || !targetId || !match) {
+      throw new Error(`No transition from ${sourceStateName} to ${targetStateName}.`);
+    }
+    delete model.relationships[match[0]];
 
     return model;
   }
