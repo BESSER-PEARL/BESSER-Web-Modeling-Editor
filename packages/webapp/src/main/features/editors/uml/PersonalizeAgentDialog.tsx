@@ -188,7 +188,7 @@ export const PersonalizeAgentDialog: React.FC<PersonalizeAgentDialogProps> = ({ 
 
         const nextVariant: AgentModelVariantSnapshot = {
           id: variantId,
-          profileId: selected.sourceProfile.id,
+          profileId: selected.key,
           profileName: selected.userName,
           configurationId: configId,
           configurationName: selected.userName,
