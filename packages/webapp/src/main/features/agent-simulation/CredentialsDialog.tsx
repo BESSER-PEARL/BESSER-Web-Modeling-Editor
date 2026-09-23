@@ -10,11 +10,13 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { useAppDispatch, useAppSelector } from '@/main/app/store/hooks';
+import type { AgentSimulationCredentials } from '@/main/shared/api/agentSimulation';
 import {
   fetchLimitsThunk,
   selectAgentSimulationLimits,
   startAgentSimulationThunk,
-} from '@/main/features/agent-simulation';
+} from './agentSimulationSlice';
+import { agentSimulationCredentialStore } from './credentialStore';
 
 interface CredentialsDialogProps {
   open: boolean;
@@ -42,7 +44,6 @@ export const CredentialsDialog: React.FC<CredentialsDialogProps> = ({
   const [huggingFaceToken, setHuggingFaceToken] = useState('');
   const [replicateKey, setReplicateKey] = useState('');
   const [limitsExpanded, setLimitsExpanded] = useState(false);
-  const [validationErrors] = useState<string[]>([]);
 
   useEffect(() => {
     if (open) {
@@ -51,7 +52,7 @@ export const CredentialsDialog: React.FC<CredentialsDialogProps> = ({
   }, [open, dispatch]);
 
   const handleStartTest = () => {
-    const credentials =
+    const credentials: AgentSimulationCredentials | undefined =
       apiKeyMode === 'own'
         ? {
             openAiApiKey: openAiKey || undefined,
@@ -60,15 +61,16 @@ export const CredentialsDialog: React.FC<CredentialsDialogProps> = ({
           }
         : undefined;
 
-    const payload = {
-      title: diagramTitle,
-      model: diagramModel,
-      config: diagramConfig,
-      configYaml: diagramConfigYaml,
-      credentials,
-    };
-
-    dispatch(startAgentSimulationThunk(payload));
+    // API keys go to the module-scoped credential store, never into Redux.
+    agentSimulationCredentialStore.set(credentials);
+    dispatch(
+      startAgentSimulationThunk({
+        title: diagramTitle,
+        model: diagramModel,
+        config: diagramConfig,
+        configYaml: diagramConfigYaml,
+      }),
+    );
     onOpenChange(false);
   };
 
@@ -224,21 +226,6 @@ export const CredentialsDialog: React.FC<CredentialsDialogProps> = ({
             </section>
           )}
         </div>
-
-        {validationErrors.length > 0 && (
-          <div className="rounded-lg border border-destructive/60 bg-destructive/10 p-3">
-            <p className="mb-1.5 text-xs font-semibold text-destructive">
-              {t('agentSimulation.credentials.validationError')}
-            </p>
-            <ul className="space-y-0.5">
-              {validationErrors.map((err, i) => (
-                <li key={i} className="text-xs text-destructive/90">
-                  {err}
-                </li>
-              ))}
-            </ul>
-          </div>
-        )}
 
         <DialogFooter className="gap-2 pt-2">
           <Button variant="outline" onClick={() => onOpenChange(false)}>

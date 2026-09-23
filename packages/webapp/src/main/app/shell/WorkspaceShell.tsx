@@ -16,10 +16,11 @@ import {
   LocalStorageRepository,
   DEFAULT_AGENT_RUNTIME_CONFIG,
   normalizeAgentRuntimeConfig,
+  type AgentRuntimeConfig,
 } from '../../shared/services/storage/local-storage-repository';
 import { readAgentVariants, getActiveAgentVariantId } from '../../shared/services/agent-variants/agent-variants-service';
 import { useImportDiagramToProjectWorkflow, useImportBpmnDiagramToProjectWorkflow } from '../../features/import/useImportDiagram';
-import { buildProjectExportEnvelope, PROJECT_EXPORT_VERSION } from '../../shared/utils/projectExportUtils';
+import { buildProjectExportEnvelope, PROJECT_EXPORT_VERSION, prepareAgentModelForBackend } from '../../shared/utils/projectExportUtils';
 import {
   besserLibraryRepositoryLink,
   besserMainRepositoryLink,
@@ -31,7 +32,7 @@ import { downloadFile, downloadJson } from '../../shared/utils/download';
 import type { GenerationResult } from '../../features/generation/types';
 import { JsonViewerModal } from '../../shared/components/json-viewer-modal/json-viewer-modal';
 import { CredentialsDialog, selectIsSimulationRunning, selectSessionId, stopAgentSimulationThunk, validateAgentThunk } from '../../features/agent-simulation';
-import { BACKEND_URL } from '../../shared/constants/constant';
+import { agentSimulationApi } from '../../shared/api/agentSimulation';
 import { WorkspaceTopBar } from './WorkspaceTopBar';
 import { DiagramTabs } from '../../features/editors/diagram-tabs/DiagramTabs';
 import { WorkspaceSidebar } from './WorkspaceSidebar';
@@ -178,10 +179,10 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
 
   const isSimulationActive = useAppSelector(selectIsSimulationRunning);
   const simulationSessionId = useAppSelector(selectSessionId);
-  const showSimulateAgent = currentProject?.currentDiagramType === 'AgentDiagram';
+  const showSimulateAgent = currentProject?.currentDiagramType === UMLDiagramType.AgentDiagram;
   const [isCredentialsDialogOpen, setIsCredentialsDialogOpen] = useState(false);
   const [isValidatingBeforeTest, setIsValidatingBeforeTest] = useState(false);
-  const [simulationConfig, setSimulationConfig] = useState<Record<string, any>>({});
+  const [simulationConfig, setSimulationConfig] = useState<Record<string, unknown>>({});
 
   // Local UI state
   // Sidebar starts expanded so diagram-type labels are visible; users can
@@ -273,20 +274,11 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
     };
   }, [currentProject]);
 
-  const simulationDiagramModel = useMemo((): object => {
-    const baseModel = (diagram?.model ?? {}) as any;
-    // Migrate legacy agentComponents into model.components if needed.
-    const legacyComponents = (diagram as any)?.agentComponents;
-    if (legacyComponents && Object.keys(legacyComponents).length > 0 && !baseModel.components) {
-      const stripped: Record<string, any> = {};
-      for (const [id, comp] of Object.entries(legacyComponents)) {
-        const { bounds, ...rest } = comp as any;
-        stripped[id] = rest;
-      }
-      return { ...baseModel, components: stripped };
-    }
-    return baseModel;
-  }, [diagram]);
+  const simulationDiagramModel = useMemo(
+    (): object =>
+      diagram && isUMLModel(diagram.model) ? prepareAgentModelForBackend(diagram.model, diagram) : (diagram?.model ?? {}),
+    [diagram],
+  );
 
   // Extracted hooks
   const { hasStarred, starLoading, handleToggleStar } = useGitHubStar({ isAuthenticated, githubSession });
@@ -405,15 +397,12 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
   }, [currentProject?.id, dispatch]);
 
   // Best-effort session cleanup when the browser tab is closed or reloaded.
-  // Uses fetch with keepalive:true so the request can outlive the page.
+  // Uses keepalive so the request can outlive the page.
   useEffect(() => {
     const sessionId = simulationSessionId;
     if (!sessionId) return;
     const handleBeforeUnload = () => {
-      fetch(`${BACKEND_URL}/simulation/sessions/${sessionId}`, {
-        method: 'DELETE',
-        keepalive: true,
-      }).catch(() => {});
+      agentSimulationApi.stopSession(sessionId, { keepalive: true }).catch(() => {});
     };
     window.addEventListener('beforeunload', handleBeforeUnload);
     return () => window.removeEventListener('beforeunload', handleBeforeUnload);
@@ -823,7 +812,7 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
 
   const handleSimulateAgent = async () => {
     if (isModelEmpty(diagram?.model)) {
-      toast.info('The agent diagram is empty. Add states, transitions, and intents before simulating.');
+      toast.info(t('agentSimulation.launch.emptyDiagram'));
       return;
     }
 
@@ -835,30 +824,27 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
     const freshProject = currentProject?.id
       ? (ProjectStorageRepository.loadProject(currentProject.id) ?? currentProject)
       : currentProject;
-    const freshAgentDiagram = freshProject ? getActiveDiagram(freshProject, 'AgentDiagram') : undefined;
-    const freshDiagramConfig = (freshAgentDiagram?.config ?? null) as Record<string, any> | null;
+    const freshAgentDiagram = freshProject ? getActiveDiagram(freshProject, UMLDiagramType.AgentDiagram) : undefined;
+    const freshDiagramConfig = freshAgentDiagram?.config ?? null;
+    const asString = (value: unknown): string | undefined => (typeof value === 'string' ? value : undefined);
     const freshLlmBlock =
       freshDiagramConfig && typeof freshDiagramConfig.llm === 'object' && freshDiagramConfig.llm !== null
-        ? (freshDiagramConfig.llm as Record<string, any>)
+        ? (freshDiagramConfig.llm as Record<string, unknown>)
         : null;
     const freshAgentConfig = freshDiagramConfig
       ? normalizeAgentRuntimeConfig({
-          agentPlatform:
-            typeof freshDiagramConfig.agentPlatform === 'string' ? freshDiagramConfig.agentPlatform : undefined,
+          agentPlatform: asString(freshDiagramConfig.agentPlatform),
           agentPlatformUseStreamlit:
             typeof freshDiagramConfig.agentPlatformUseStreamlit === 'boolean'
               ? freshDiagramConfig.agentPlatformUseStreamlit
               : undefined,
-          intentRecognitionTechnology: freshDiagramConfig.intentRecognitionTechnology,
-          agentLlmProvider: freshLlmBlock?.provider,
-          agentLlmModel: typeof freshLlmBlock?.model === 'string' ? freshLlmBlock.model : undefined,
+          intentRecognitionTechnology: asString(freshDiagramConfig.intentRecognitionTechnology) as
+            | AgentRuntimeConfig['intentRecognitionTechnology']
+            | undefined,
+          agentLlmProvider: asString(freshLlmBlock?.provider) as AgentRuntimeConfig['agentLlmProvider'] | undefined,
+          agentLlmModel: asString(freshLlmBlock?.model),
           agentCustomLlmModel: undefined,
-          agentLlmName:
-            typeof freshDiagramConfig.agentLlmName === 'string'
-              ? freshDiagramConfig.agentLlmName
-              : typeof freshLlmBlock?.name === 'string'
-              ? freshLlmBlock.name
-              : undefined,
+          agentLlmName: asString(freshDiagramConfig.agentLlmName) ?? asString(freshLlmBlock?.name),
         })
       : { ...DEFAULT_AGENT_RUNTIME_CONFIG };
     const freshResolvedOpenAiModel =
@@ -869,13 +855,8 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
       freshAgentConfig.agentPlatform === 'websocket' && freshAgentConfig.agentPlatformUseStreamlit
         ? 'streamlit'
         : freshAgentConfig.agentPlatform;
-    const freshDefaultLlmName =
-      freshDiagramConfig &&
-      typeof freshDiagramConfig.default_llm_name === 'string' &&
-      freshDiagramConfig.default_llm_name
-        ? freshDiagramConfig.default_llm_name
-        : undefined;
-    const freshConfig: Record<string, any> = {
+    const freshDefaultLlmName = asString(freshDiagramConfig?.default_llm_name) || undefined;
+    const freshConfig: Record<string, unknown> = {
       agentPlatform: freshResolvedAgentPlatform,
       intentRecognitionTechnology: freshAgentConfig.intentRecognitionTechnology,
       ...(freshDefaultLlmName ? { default_llm_name: freshDefaultLlmName } : {}),
@@ -894,27 +875,25 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
 
     const result = await dispatch(
       validateAgentThunk({
-        title: diagram?.title ?? 'Agent',
+        title: diagram?.title ?? t('agentSimulation.defaultDiagramTitle'),
         model: diagram?.model ?? {},
         config: freshConfig,
-        configYaml: (diagram as any)?.configYaml as string | undefined,
+        configYaml: diagram?.configYaml,
       }),
     );
 
     setIsValidatingBeforeTest(false);
 
     if (validateAgentThunk.rejected.match(result)) {
-      const msg =
-        typeof result.payload === 'string' ? result.payload : 'Validation failed';
-      toast.error(`Agent validation failed: ${msg}`);
+      const msg = result.payload ?? t('agentSimulation.launch.validationFailedGeneric');
+      toast.error(t('agentSimulation.launch.validationFailed', { message: msg }));
       return;
     }
 
     if (validateAgentThunk.fulfilled.match(result) && !result.payload.valid) {
       const errors = result.payload.errors;
-      const msg =
-        errors.length > 0 ? errors.join('\n') : 'Validation failed';
-      toast.error(`Agent validation failed:\n${msg}`);
+      const msg = errors.length > 0 ? `\n${errors.join('\n')}` : t('agentSimulation.launch.validationFailedGeneric');
+      toast.error(t('agentSimulation.launch.validationFailed', { message: msg }));
       return;
     }
 
@@ -1281,10 +1260,10 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
       <CredentialsDialog
         open={isCredentialsDialogOpen}
         onOpenChange={setIsCredentialsDialogOpen}
-        diagramTitle={diagram?.title ?? 'Agent'}
+        diagramTitle={diagram?.title ?? t('agentSimulation.defaultDiagramTitle')}
         diagramModel={simulationDiagramModel}
         diagramConfig={simulationConfig}
-        diagramConfigYaml={(diagram as any)?.configYaml as string | undefined}
+        diagramConfigYaml={diagram?.configYaml}
       />
 
     </div>

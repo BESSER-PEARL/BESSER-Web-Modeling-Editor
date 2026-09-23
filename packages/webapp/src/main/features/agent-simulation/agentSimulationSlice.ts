@@ -1,30 +1,29 @@
 /**
  * Redux slice for the Agent Simulation feature.
  *
- * NOTE: This file provides the full implementation of the agentSimulation Redux slice,
- * including state shape, thunks, selectors, and the WebSocket session hook.
- *
  * State shape:
  *   status: 'idle' | 'starting' | 'running' | 'stopping' | 'error'
+ *     — session LIFECYCLE only. Runtime errors reported by the running agent
+ *       are routed to the terminal via `reportRuntimeError` and never change it.
  *   sessionId: string | null
- *   currentState: string | null  — name of the active agent state
- *   lastTransition: string | null
- *   messages: Message[]
- *   stdoutLines: string[]
- *   eventList: string[]
- *   limits: AgentSimulationLimits | null
- *   error: string | null
+ *   startPayload — the NON-SECRET start request, reused by Restart. LLM API keys
+ *     live in `agentSimulationCredentialStore`, never in Redux.
+ *   currentState / lastTransition — live agent state reported over the WebSocket
+ *   stdoutLines, eventList, limits, error (lifecycle error), agentCode, validationErrors
  */
 import { createAsyncThunk, createSlice, PayloadAction } from '@reduxjs/toolkit';
-import { BACKEND_URL } from '@/main/shared/constants/constant';
-import type { RootState } from '@/main/app/store/store';
+import i18n from '@/main/shared/i18n';
+import {
+  agentSimulationApi,
+  getAgentSimulationErrorMessage,
+  type AgentSimulationLimits,
+  type AgentSimulationRequest,
+  type StartAgentSimulationSessionResponse,
+  type ValidateAgentResponse,
+} from '@/main/shared/api/agentSimulation';
+import { agentSimulationCredentialStore } from './credentialStore';
 
-function getAgentSimulationAuthHeaders(base: Record<string, string> = {}): Record<string, string> {
-  const githubSession = sessionStorage.getItem('github_session');
-  return githubSession
-    ? { ...base, 'X-GitHub-Session': githubSession }
-    : base;
-}
+export type { AgentSimulationLimits } from '@/main/shared/api/agentSimulation';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -32,44 +31,18 @@ function getAgentSimulationAuthHeaders(base: Record<string, string> = {}): Recor
 
 export type AgentSimulationStatus = 'idle' | 'starting' | 'running' | 'stopping' | 'error';
 
-export interface Message {
-  id: string;
-  role: 'user' | 'agent' | 'error' | 'system';
-  content: string;
-  timestamp: string;
-}
+/**
+ * Non-secret start payload. Credentials are passed through
+ * `agentSimulationCredentialStore` so they never enter Redux actions or state.
+ */
+export type StartAgentSimulationPayload = AgentSimulationRequest;
 
-export interface AgentSimulationLimits {
-  memoryMb?: number;
-  cpuCores?: number;
-  diskMb?: number;
-  sessionLifetimeSeconds?: number;
-  editorQuotaEnabled?: boolean;
-}
-
-export interface StartAgentSimulationPayload {
-  title: string;
-  model: object;
-  config?: object;
-  configYaml?: string;
-  credentials?: {
-    openAiApiKey?: string;
-    huggingFaceToken?: string;
-    replicateApiKey?: string;
-  };
-}
-
-// ---------------------------------------------------------------------------
-// Initial state
-// ---------------------------------------------------------------------------
-
-interface AgentSimulationState {
+export interface AgentSimulationState {
   status: AgentSimulationStatus;
   sessionId: string | null;
   startPayload: StartAgentSimulationPayload | null;
   currentState: string | null;
   lastTransition: string | null;
-  messages: Message[];
   stdoutLines: string[];
   eventList: string[];
   limits: AgentSimulationLimits | null;
@@ -78,13 +51,30 @@ interface AgentSimulationState {
   validationErrors: string[];
 }
 
-const initialState: AgentSimulationState = {
+/**
+ * Minimal root-state shape the thunks and selectors need. Declared locally
+ * (instead of importing `RootState` from the store) to avoid a circular
+ * type dependency between the store and this slice.
+ */
+export interface AgentSimulationRootState {
+  agentSimulation: AgentSimulationState;
+}
+
+interface ThunkConfig {
+  state: AgentSimulationRootState;
+  rejectValue: string;
+}
+
+// ---------------------------------------------------------------------------
+// Initial state
+// ---------------------------------------------------------------------------
+
+export const initialAgentSimulationState: AgentSimulationState = {
   status: 'idle',
   sessionId: null,
   startPayload: null,
   currentState: null,
   lastTransition: null,
-  messages: [],
   stdoutLines: [],
   eventList: [],
   limits: null,
@@ -97,143 +87,82 @@ const initialState: AgentSimulationState = {
 // Thunks
 // ---------------------------------------------------------------------------
 
-export const startAgentSimulationThunk = createAsyncThunk(
-  'agentSimulation/start',
-  async (payload: StartAgentSimulationPayload, { rejectWithValue }) => {
-    try {
-      const response = await fetch(`${BACKEND_URL}/simulation/sessions`, {
-        method: 'POST',
-        headers: getAgentSimulationAuthHeaders({ 'Content-Type': 'application/json' }),
-        body: JSON.stringify(payload),
-      });
+function toErrorMessage(error: unknown, fallbackKey: string): string {
+  return getAgentSimulationErrorMessage(error, i18n.t(fallbackKey), i18n.t('agentSimulation.errors.timeout'));
+}
 
-      if (!response.ok) {
-        const text = await response.text();
-        return rejectWithValue(text || `HTTP ${response.status}`);
-      }
+function startSession(payload: StartAgentSimulationPayload): Promise<StartAgentSimulationSessionResponse> {
+  return agentSimulationApi.startSession({ ...payload, credentials: agentSimulationCredentialStore.get() });
+}
 
-      const data = (await response.json()) as { sessionId: string; eventList?: string[] };
-      return data;
-    } catch (err) {
-      return rejectWithValue(err instanceof Error ? err.message : 'Failed to start agent simulation');
-    }
-  },
-);
+/**
+ * Start a session. Set the credentials with `agentSimulationCredentialStore.set()`
+ * before dispatching; the thunk argument itself must stay non-secret.
+ */
+export const startAgentSimulationThunk = createAsyncThunk<
+  StartAgentSimulationSessionResponse,
+  StartAgentSimulationPayload,
+  ThunkConfig
+>('agentSimulation/start', async (payload, { rejectWithValue }) => {
+  try {
+    return await startSession(payload);
+  } catch (err) {
+    return rejectWithValue(toErrorMessage(err, 'agentSimulation.errors.startFailed'));
+  }
+});
 
-export const validateAgentThunk = createAsyncThunk(
+export const validateAgentThunk = createAsyncThunk<ValidateAgentResponse, StartAgentSimulationPayload, ThunkConfig>(
   'agentSimulation/validate',
-  async (payload: StartAgentSimulationPayload, { rejectWithValue }) => {
+  async (payload, { rejectWithValue }) => {
     try {
-      const response = await fetch(`${BACKEND_URL}/simulation/validate`, {
-        method: 'POST',
-        headers: getAgentSimulationAuthHeaders({ 'Content-Type': 'application/json' }),
-        body: JSON.stringify(payload),
-      });
-
-      if (!response.ok) {
-        const text = await response.text();
-        return rejectWithValue(text || `HTTP ${response.status}`);
-      }
-
-      const data = (await response.json()) as {
-        valid: boolean;
-        agentCode: string;
-        eventList: string[];
-        errors: string[];
-      };
-      return data;
+      return await agentSimulationApi.validate(payload);
     } catch (err) {
-      return rejectWithValue(err instanceof Error ? err.message : 'Failed to validate agent');
+      return rejectWithValue(toErrorMessage(err, 'agentSimulation.errors.validateFailed'));
     }
   },
 );
 
-export const stopAgentSimulationThunk = createAsyncThunk(
+export const stopAgentSimulationThunk = createAsyncThunk<void, void, ThunkConfig>(
   'agentSimulation/stop',
   async (_, { getState, rejectWithValue }) => {
-    const state = getState() as RootState;
-    const sessionId = (state as any).agentSimulation?.sessionId as string | null;
+    agentSimulationCredentialStore.clear();
+    const { sessionId } = getState().agentSimulation;
     if (!sessionId) return;
 
     try {
-      await fetch(`${BACKEND_URL}/simulation/sessions/${sessionId}`, {
-        method: 'DELETE',
-        headers: getAgentSimulationAuthHeaders(),
-      });
+      await agentSimulationApi.stopSession(sessionId);
     } catch (err) {
-      return rejectWithValue(err instanceof Error ? err.message : 'Failed to stop agent simulation');
+      return rejectWithValue(toErrorMessage(err, 'agentSimulation.errors.stopFailed'));
     }
   },
 );
 
-export const resetAgentSimulationThunk = createAsyncThunk(
-  'agentSimulation/reset',
-  async (_, { getState, rejectWithValue }) => {
-    const state = getState() as RootState;
-    const sessionId = (state as any).agentSimulation?.sessionId as string | null;
-    if (!sessionId) return;
-
-    try {
-      const response = await fetch(`${BACKEND_URL}/simulation/sessions/${sessionId}/reset`, {
-        method: 'POST',
-        headers: getAgentSimulationAuthHeaders(),
-      });
-
-      if (!response.ok) {
-        const text = await response.text();
-        return rejectWithValue(text || `HTTP ${response.status}`);
-      }
-    } catch (err) {
-      return rejectWithValue(err instanceof Error ? err.message : 'Failed to reset agent simulation');
-    }
-  },
-);
-
-export const restartAgentSimulationThunk = createAsyncThunk(
+export const restartAgentSimulationThunk = createAsyncThunk<StartAgentSimulationSessionResponse, void, ThunkConfig>(
   'agentSimulation/restart',
   async (_, { getState, rejectWithValue }) => {
-    const agentSimulation = (getState() as any).agentSimulation as AgentSimulationState;
-    const payload = agentSimulation?.startPayload;
-    if (!payload) return rejectWithValue('No start payload stored — cannot restart');
+    const { startPayload, sessionId: oldSessionId } = getState().agentSimulation;
+    if (!startPayload) return rejectWithValue(i18n.t('agentSimulation.errors.restartUnavailable'));
 
     // Fire-and-forget cleanup of the current session
-    const oldSessionId = agentSimulation.sessionId;
     if (oldSessionId) {
-      fetch(`${BACKEND_URL}/simulation/sessions/${oldSessionId}`, {
-        method: 'DELETE',
-        headers: getAgentSimulationAuthHeaders(),
-      }).catch(() => {});
+      agentSimulationApi.stopSession(oldSessionId).catch(() => {});
     }
 
     try {
-      const response = await fetch(`${BACKEND_URL}/simulation/sessions`, {
-        method: 'POST',
-        headers: getAgentSimulationAuthHeaders({ 'Content-Type': 'application/json' }),
-        body: JSON.stringify(payload),
-      });
-      if (!response.ok) {
-        const text = await response.text();
-        return rejectWithValue(text || `HTTP ${response.status}`);
-      }
-      const data = (await response.json()) as { sessionId: string; eventList?: string[] };
-      return data;
+      return await startSession(startPayload);
     } catch (err) {
-      return rejectWithValue(err instanceof Error ? err.message : 'Failed to restart agent simulation');
+      return rejectWithValue(toErrorMessage(err, 'agentSimulation.errors.restartFailed'));
     }
   },
 );
 
-export const fetchLimitsThunk = createAsyncThunk(
+export const fetchLimitsThunk = createAsyncThunk<AgentSimulationLimits, void, ThunkConfig>(
   'agentSimulation/fetchLimits',
   async (_, { rejectWithValue }) => {
     try {
-      const response = await fetch(`${BACKEND_URL}/simulation/limits`, {
-        headers: getAgentSimulationAuthHeaders(),
-      });
-      if (!response.ok) return rejectWithValue(`HTTP ${response.status}`);
-      return (await response.json()) as AgentSimulationLimits;
+      return await agentSimulationApi.getLimits();
     } catch (err) {
-      return rejectWithValue(err instanceof Error ? err.message : 'Failed to fetch limits');
+      return rejectWithValue(toErrorMessage(err, 'agentSimulation.errors.limitsFailed'));
     }
   },
 );
@@ -244,28 +173,37 @@ export const fetchLimitsThunk = createAsyncThunk(
 
 const MAX_STDOUT_LINES = 2000;
 
+function pushStdoutLine(state: AgentSimulationState, line: string) {
+  state.stdoutLines.push(line);
+  if (state.stdoutLines.length > MAX_STDOUT_LINES) {
+    state.stdoutLines = state.stdoutLines.slice(-MAX_STDOUT_LINES);
+  }
+}
+
+function clearSessionOutput(state: AgentSimulationState) {
+  state.error = null;
+  state.stdoutLines = [];
+  state.currentState = null;
+  state.lastTransition = null;
+}
+
 const agentSimulationSlice = createSlice({
   name: 'agentSimulation',
-  initialState,
+  initialState: initialAgentSimulationState,
   reducers: {
+    /** Lifecycle error: the session is unusable (e.g. WebSocket auth rejected). */
     setError(state, action: PayloadAction<string | null>) {
       state.error = action.payload;
       if (action.payload) {
         state.status = 'error';
       }
     },
-    addMessage(state, action: PayloadAction<Omit<Message, 'id' | 'timestamp'>>) {
-      state.messages.push({
-        id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
-        timestamp: new Date().toISOString(),
-        ...action.payload,
-      });
+    /** Runtime error reported by the running agent — shown in the terminal, lifecycle untouched. */
+    reportRuntimeError(state, action: PayloadAction<string>) {
+      pushStdoutLine(state, `[error] ${action.payload}`);
     },
     appendStdoutLine(state, action: PayloadAction<string>) {
-      state.stdoutLines.push(action.payload);
-      if (state.stdoutLines.length > MAX_STDOUT_LINES) {
-        state.stdoutLines = state.stdoutLines.slice(-MAX_STDOUT_LINES);
-      }
+      pushStdoutLine(state, action.payload);
     },
     setCurrentAgentState(state, action: PayloadAction<string>) {
       state.currentState = action.payload;
@@ -276,23 +214,13 @@ const agentSimulationSlice = createSlice({
     setEventList(state, action: PayloadAction<string[]>) {
       state.eventList = action.payload;
     },
-    resetSession(state) {
-      state.messages = [];
-      state.stdoutLines = [];
-      state.currentState = null;
-      state.lastTransition = null;
-    },
   },
   extraReducers: (builder) => {
     // startAgentSimulationThunk
     builder
       .addCase(startAgentSimulationThunk.pending, (state, action) => {
         state.status = 'starting';
-        state.error = null;
-        state.messages = [];
-        state.stdoutLines = [];
-        state.currentState = null;
-        state.lastTransition = null;
+        clearSessionOutput(state);
         state.sessionId = null;
         state.startPayload = action.meta.arg;
       })
@@ -303,7 +231,7 @@ const agentSimulationSlice = createSlice({
       })
       .addCase(startAgentSimulationThunk.rejected, (state, action) => {
         state.status = 'error';
-        state.error = (action.payload as string) ?? 'Failed to start agent simulation';
+        state.error = action.payload ?? i18n.t('agentSimulation.errors.startFailed');
       });
 
     // stopAgentSimulationThunk
@@ -314,51 +242,40 @@ const agentSimulationSlice = createSlice({
       .addCase(stopAgentSimulationThunk.fulfilled, (state) => {
         state.status = 'idle';
         state.sessionId = null;
+        state.startPayload = null;
       })
       .addCase(stopAgentSimulationThunk.rejected, (state) => {
         state.status = 'idle';
         state.sessionId = null;
-      });
-
-    // resetAgentSimulationThunk
-    builder
-      .addCase(resetAgentSimulationThunk.fulfilled, (state) => {
-        state.messages = [];
-        state.stdoutLines = [];
-        state.currentState = null;
-        state.lastTransition = null;
+        state.startPayload = null;
       });
 
     // restartAgentSimulationThunk — tears down the current session and starts fresh
-    // without transitioning through 'idle' (which would navigate away from the test page)
+    // without transitioning through 'idle' (which would navigate away from the test page).
+    // `sessionId` is deliberately kept while pending: the thunk body (which runs after
+    // this reducer) reads it to delete the old session; `fulfilled` replaces it.
     builder
       .addCase(restartAgentSimulationThunk.pending, (state) => {
         state.status = 'starting';
-        state.error = null;
-        state.messages = [];
-        state.stdoutLines = [];
-        state.currentState = null;
-        state.lastTransition = null;
-        state.sessionId = null;
+        clearSessionOutput(state);
         state.validationErrors = [];
         state.eventList = [];
       })
       .addCase(restartAgentSimulationThunk.fulfilled, (state, action) => {
-        if (!action.payload) return;
         state.status = 'running';
         state.sessionId = action.payload.sessionId;
         state.eventList = action.payload.eventList ?? [];
       })
       .addCase(restartAgentSimulationThunk.rejected, (state, action) => {
         state.status = 'error';
-        state.error = (action.payload as string) ?? 'Failed to restart agent simulation';
+        state.sessionId = null;
+        state.error = action.payload ?? i18n.t('agentSimulation.errors.restartFailed');
       });
 
     // fetchLimitsThunk
-    builder
-      .addCase(fetchLimitsThunk.fulfilled, (state, action) => {
-        state.limits = action.payload;
-      });
+    builder.addCase(fetchLimitsThunk.fulfilled, (state, action) => {
+      state.limits = action.payload;
+    });
 
     // validateAgentThunk — intentionally does NOT change `status`.
     // Validation is a pre-flight check; the status should stay 'idle' until
@@ -373,28 +290,26 @@ const agentSimulationSlice = createSlice({
         state.validationErrors = [];
       })
       .addCase(validateAgentThunk.fulfilled, (state, action) => {
+        state.agentCode = action.payload.agentCode;
         if (!action.payload.valid) {
           state.validationErrors = action.payload.errors;
-          state.agentCode = action.payload.agentCode;
         } else {
-          state.agentCode = action.payload.agentCode;
           state.eventList = action.payload.eventList;
         }
       })
       .addCase(validateAgentThunk.rejected, (state, action) => {
-        state.validationErrors = [(action.payload as string) ?? 'Failed to validate agent'];
+        state.validationErrors = [action.payload ?? i18n.t('agentSimulation.errors.validateFailed')];
       });
   },
 });
 
 export const {
   setError,
-  addMessage,
+  reportRuntimeError,
   appendStdoutLine,
   setCurrentAgentState,
   setLastTransition,
   setEventList,
-  resetSession,
 } = agentSimulationSlice.actions;
 
 export const agentSimulationReducer = agentSimulationSlice.reducer;
@@ -403,25 +318,20 @@ export const agentSimulationReducer = agentSimulationSlice.reducer;
 // Selectors
 // ---------------------------------------------------------------------------
 
-// Use a local type that includes agentSimulation to avoid circular dependency with store.ts
-type AgentSimulationRootState = RootState & { agentSimulation: AgentSimulationState };
+const selectAgentSimulation = (state: AgentSimulationRootState) => state.agentSimulation;
 
-const selectAgentSimulation = (state: RootState) => (state as AgentSimulationRootState).agentSimulation;
-
-export const selectAgentSimulationStatus = (state: RootState) => selectAgentSimulation(state).status;
-export const selectSessionId = (state: RootState) => selectAgentSimulation(state).sessionId;
-export const selectCurrentAgentState = (state: RootState) => selectAgentSimulation(state).currentState;
-export const selectLastTransition = (state: RootState) => selectAgentSimulation(state).lastTransition;
-export const selectMessages = (state: RootState) => selectAgentSimulation(state).messages;
-export const selectStdoutLines = (state: RootState) => selectAgentSimulation(state).stdoutLines;
-export const selectEventList = (state: RootState) => selectAgentSimulation(state).eventList;
-export const selectAgentSimulationLimits = (state: RootState) => selectAgentSimulation(state).limits;
-export const selectAgentSimulationError = (state: RootState) => selectAgentSimulation(state).error;
-export const selectIsSimulationRunning = (state: RootState) => {
+export const selectAgentSimulationStatus = (state: AgentSimulationRootState) => selectAgentSimulation(state).status;
+export const selectSessionId = (state: AgentSimulationRootState) => selectAgentSimulation(state).sessionId;
+export const selectCurrentAgentState = (state: AgentSimulationRootState) => selectAgentSimulation(state).currentState;
+export const selectLastTransition = (state: AgentSimulationRootState) => selectAgentSimulation(state).lastTransition;
+export const selectStdoutLines = (state: AgentSimulationRootState) => selectAgentSimulation(state).stdoutLines;
+export const selectEventList = (state: AgentSimulationRootState) => selectAgentSimulation(state).eventList;
+export const selectAgentSimulationLimits = (state: AgentSimulationRootState) => selectAgentSimulation(state).limits;
+export const selectAgentSimulationError = (state: AgentSimulationRootState) => selectAgentSimulation(state).error;
+export const selectIsSimulationRunning = (state: AgentSimulationRootState) => {
   const status = selectAgentSimulationStatus(state);
   return status !== 'idle';
 };
-export const selectAgentCode = (state: RootState) => selectAgentSimulation(state).agentCode;
-export const selectValidationErrors = (state: RootState) => selectAgentSimulation(state).validationErrors;
-export const selectStartPayload = (state: RootState) => selectAgentSimulation(state).startPayload;
-
+export const selectAgentCode = (state: AgentSimulationRootState) => selectAgentSimulation(state).agentCode;
+export const selectValidationErrors = (state: AgentSimulationRootState) => selectAgentSimulation(state).validationErrors;
+export const selectStartPayload = (state: AgentSimulationRootState) => selectAgentSimulation(state).startPayload;

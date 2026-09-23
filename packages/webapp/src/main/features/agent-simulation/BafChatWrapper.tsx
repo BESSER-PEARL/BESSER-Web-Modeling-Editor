@@ -1,6 +1,6 @@
 import 'besser-agentic-framework-ui/style.css';
 import './bafChatOverrides.css';
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   ChatArea,
@@ -9,19 +9,12 @@ import {
   isReasoningEnd,
   isReasoningStart,
 } from 'besser-agentic-framework-ui';
-import type { ChatMessage, ConnectionStatus } from 'besser-agentic-framework-ui';
+import type { ChatMessage } from 'besser-agentic-framework-ui';
 import type { ReasoningStep, ReasoningTraceMessage, Task } from 'besser-agentic-framework-ui';
 import { AlertTriangle } from 'lucide-react';
-import { useAppDispatch, useAppSelector } from '@/main/app/store/hooks';
-import {
-  selectSessionId,
-  selectAgentSimulationStatus,
-  setCurrentAgentState,
-  setLastTransition,
-  appendStdoutLine,
-  setError,
-} from '@/main/features/agent-simulation';
-import { BACKEND_URL } from '@/main/shared/constants/constant';
+import { useAppSelector } from '@/main/app/store/hooks';
+import { selectSessionId } from './agentSimulationSlice';
+import { useAgentSimulationSocket, type BafFrame } from './useAgentSimulationSocket';
 
 interface BafChatWrapperProps {}
 
@@ -201,12 +194,7 @@ function parseHistoryMessages(message: unknown): ChatMessage[] {
 
 export const BafChatWrapper: React.FC<BafChatWrapperProps> = () => {
   const { t } = useTranslation();
-  const dispatch = useAppDispatch();
   const sessionId = useAppSelector(selectSessionId);
-  const status = useAppSelector(selectAgentSimulationStatus);
-
-  const wsRef = useRef<WebSocket | null>(null);
-  const [wsStatus, setWsStatus] = useState<ConnectionStatus>('disconnected');
   const [messages, setMessages] = useState<ChatMessage[]>([]);
 
   // Clear messages when a new session starts
@@ -214,122 +202,71 @@ export const BafChatWrapper: React.FC<BafChatWrapperProps> = () => {
     setMessages([]);
   }, [sessionId]);
 
-  // WebSocket lifecycle
-  useEffect(() => {
-    if (!sessionId || (status !== 'running' && status !== 'starting')) {
-      wsRef.current?.close();
-      wsRef.current = null;
-      setWsStatus('disconnected');
+  const handleBafFrame = useCallback((frame: BafFrame) => {
+    const timestamp = typeof frame.timestamp === 'string' ? frame.timestamp : nowTimestamp();
+    const action = frame.action;
+    const parsed = tryParseMessage(frame.message);
+
+    if (action === PayloadAction.RESET) {
+      setMessages([]);
       return;
     }
 
-    const wsBase = BACKEND_URL
-      ? BACKEND_URL.replace(/^https/, 'wss').replace(/^http/, 'ws')
-      : 'ws://localhost:9000/besser_api';
-    const githubSession = sessionStorage.getItem('github_session');
-    const query = githubSession ? `?github_session=${encodeURIComponent(githubSession)}` : '';
-    const wsUrl = `${wsBase}/simulation/${sessionId}/ws${query}`;
-
-    setWsStatus('connecting');
-    const ws = new WebSocket(wsUrl);
-    wsRef.current = ws;
-
-    ws.onopen = () => {
-      setWsStatus('connected');
-    };
-
-    ws.onclose = () => {
-      setWsStatus('disconnected');
-    };
-
-    ws.onerror = () => {
-      setWsStatus('error');
-      dispatch(setError(t('agentSimulation.chat.websocketError')));
-    };
-
-    ws.onmessage = (event) => {
-      let raw: Record<string, unknown>;
-      try {
-        raw = JSON.parse(event.data as string) as Record<string, unknown>;
-      } catch {
-        dispatch(appendStdoutLine(String(event.data)));
-        return;
-      }
-
-      // BAF native message — has an `action` field
-      if (typeof raw.action === 'string') {
-        const timestamp = typeof raw.timestamp === 'string' ? raw.timestamp : nowTimestamp();
-        const action = raw.action as string;
-        const parsed = tryParseMessage(raw.message);
-
-        if (action === PayloadAction.RESET) {
-          setMessages([]);
-          return;
-        }
-
-        if (action === PayloadAction.FETCH_USER_MESSAGES) {
-          const historyMessages = parseHistoryMessages(parsed);
-          if (historyMessages.length === 0) return;
-          setMessages((prev) => [...prev, ...historyMessages]);
-          return;
-        }
-
-        if (action === PayloadAction.AGENT_REPLY_REASONING_STEP) {
-          const step = parseReasoningStep(parsed);
-          if (!step) return;
-          setMessages((prev) => withReasoningStep(prev, step, timestamp));
-          return;
-        }
-
-        if (action === PayloadAction.AGENT_REPLY_TASK_LIST_UPDATE) {
-          const tasks = parseTaskList(parsed);
-          if (!tasks) return;
-          setMessages((prev) => withTaskListUpdate(prev, tasks, timestamp));
-          return;
-        }
-
-        setMessages((prev) => [
-          ...prev,
-          {
-            id: crypto.randomUUID(),
-            action,
-            message: parsed,
-            isUser: isUserPayloadAction(action),
-            timestamp,
-          },
-        ]);
-        return;
-      }
-
-      // Test events injected by the sandbox from agent stdout
-      switch (raw.type as string) {
-        case 'state_change':
-          if (raw.state) dispatch(setCurrentAgentState(String(raw.state)));
-          if (raw.transition) dispatch(setLastTransition(String(raw.transition)));
-          break;
-        case 'stdout':
-          dispatch(appendStdoutLine(String(raw.line ?? '')));
-          break;
-        case 'error':
-          dispatch(setError(String(raw.message ?? 'Unknown error')));
-          break;
-        default:
-          break;
-      }
-    };
-
-    return () => {
-      ws.close();
-      wsRef.current = null;
-      setWsStatus('disconnected');
-    };
-  }, [sessionId, status, dispatch]);
-
-  const send = useCallback((action: string, message: unknown) => {
-    if (wsRef.current?.readyState === WebSocket.OPEN) {
-      wsRef.current.send(JSON.stringify({ action, message }));
+    if (action === PayloadAction.FETCH_USER_MESSAGES) {
+      const historyMessages = parseHistoryMessages(parsed);
+      if (historyMessages.length === 0) return;
+      setMessages((prev) => [...prev, ...historyMessages]);
+      return;
     }
+
+    if (action === PayloadAction.AGENT_REPLY_REASONING_STEP) {
+      const step = parseReasoningStep(parsed);
+      if (!step) return;
+      setMessages((prev) => withReasoningStep(prev, step, timestamp));
+      return;
+    }
+
+    if (action === PayloadAction.AGENT_REPLY_TASK_LIST_UPDATE) {
+      const tasks = parseTaskList(parsed);
+      if (!tasks) return;
+      setMessages((prev) => withTaskListUpdate(prev, tasks, timestamp));
+      return;
+    }
+
+    setMessages((prev) => [
+      ...prev,
+      {
+        id: crypto.randomUUID(),
+        action,
+        message: parsed,
+        isUser: isUserPayloadAction(action),
+        timestamp,
+      },
+    ]);
   }, []);
+
+  // Agent runtime errors are shown inline in the chat (and in the terminal by
+  // the socket hook) without ending the session.
+  const handleRuntimeError = useCallback(
+    (message: string) => {
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: crypto.randomUUID(),
+          action: PayloadAction.AGENT_REPLY_STR,
+          message: t('agentSimulation.chat.agentError', { message }),
+          isUser: false,
+          timestamp: nowTimestamp(),
+        },
+      ]);
+    },
+    [t],
+  );
+
+  const { status: wsStatus, send } = useAgentSimulationSocket(sessionId, {
+    onBafFrame: handleBafFrame,
+    onRuntimeError: handleRuntimeError,
+  });
 
   return (
     <div className="baf-chat flex min-h-0 flex-1 flex-col overflow-hidden">

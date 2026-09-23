@@ -2,16 +2,14 @@
 export {
   agentSimulationReducer,
   setError,
-  addMessage,
+  reportRuntimeError,
   appendStdoutLine,
   setCurrentAgentState,
   setLastTransition,
   setEventList,
-  resetSession,
   // Thunks
   startAgentSimulationThunk,
   stopAgentSimulationThunk,
-  resetAgentSimulationThunk,
   restartAgentSimulationThunk,
   fetchLimitsThunk,
   validateAgentThunk,
@@ -20,7 +18,6 @@ export {
   selectSessionId,
   selectCurrentAgentState,
   selectLastTransition,
-  selectMessages,
   selectStdoutLines,
   selectEventList,
   selectAgentSimulationLimits,
@@ -28,9 +25,17 @@ export {
   selectIsSimulationRunning,
   selectAgentCode,
   selectValidationErrors,
+  selectStartPayload,
 } from './agentSimulationSlice';
 
-export type { AgentSimulationLimits, AgentSimulationStatus, Message } from './agentSimulationSlice';
+export type {
+  AgentSimulationLimits,
+  AgentSimulationStatus,
+  AgentSimulationState,
+  StartAgentSimulationPayload,
+} from './agentSimulationSlice';
+
+export { agentSimulationCredentialStore } from './credentialStore';
 
 // UI Components
 export { AgentSimulationPage } from './AgentSimulationPage';

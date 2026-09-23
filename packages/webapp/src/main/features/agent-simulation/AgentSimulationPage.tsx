@@ -5,6 +5,7 @@ import { useAppDispatch, useAppSelector } from '@/main/app/store/hooks';
 import { selectActiveDiagram } from '@/main/app/store/workspaceSlice';
 import { AgentSimulationPanel } from './AgentSimulationPanel';
 import { selectAgentSimulationStatus, selectSessionId, stopAgentSimulationThunk } from './agentSimulationSlice';
+import { agentSimulationCredentialStore } from './credentialStore';
 
 export const AgentSimulationPage: React.FC = () => {
   const { t } = useTranslation();
@@ -36,6 +37,8 @@ export const AgentSimulationPage: React.FC = () => {
       if (sessionIdRef.current) {
         dispatch(stopAgentSimulationThunk());
       }
+      // API keys are only kept for Restart while this page is open.
+      agentSimulationCredentialStore.clear();
     };
   }, [dispatch]);
 

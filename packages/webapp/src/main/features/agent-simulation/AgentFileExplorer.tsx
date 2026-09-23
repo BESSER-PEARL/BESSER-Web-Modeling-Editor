@@ -13,26 +13,22 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAppSelector } from '@/main/app/store/hooks';
-import { selectSessionId } from '@/main/features/agent-simulation';
-import { BACKEND_URL } from '@/main/shared/constants/constant';
+import {
+  agentSimulationApi,
+  getAgentSimulationErrorMessage,
+  type AgentSimulationSessionFile,
+} from '@/main/shared/api/agentSimulation';
+import { selectSessionId } from './agentSimulationSlice';
 
 // ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
 
-interface SessionFile {
-  path: string;
-  content: string;
-}
+type SessionFile = AgentSimulationSessionFile;
 
 type TreeNode =
   | { kind: 'file'; name: string; fullPath: string; content: string }
   | { kind: 'dir'; name: string; fullPath: string; children: TreeNode[] };
-
-interface SessionFilesResponse {
-  files: SessionFile[];
-  directories?: string[];
-}
 
 interface ShikiToken {
   content: string;
@@ -118,11 +114,6 @@ function detectLanguage(filename: string): string {
     toml: 'toml',
   };
   return langMap[ext] ?? 'text';
-}
-
-function getAuthHeaders(): Record<string, string> {
-  const githubSession = sessionStorage.getItem('github_session');
-  return githubSession ? { 'X-GitHub-Session': githubSession } : {};
 }
 
 // ---------------------------------------------------------------------------
@@ -305,15 +296,7 @@ export const AgentFileExplorer: React.FC = () => {
     setLoading(true);
     setFetchError(null);
     try {
-      const resp = await fetch(`${BACKEND_URL}/simulation/sessions/${sid}/files`, {
-        headers: getAuthHeaders(),
-      });
-      if (!resp.ok) {
-        const text = await resp.text();
-        setFetchError(`Failed to fetch files: ${text || String(resp.status)}`);
-        return;
-      }
-      const data = (await resp.json()) as SessionFilesResponse;
+      const data = await agentSimulationApi.getSessionFiles(sid);
       const normalizedFiles = data.files.map((file) => ({
         ...file,
         path: normalizePath(file.path),
@@ -331,11 +314,19 @@ export const AgentFileExplorer: React.FC = () => {
           ?? null;
       });
     } catch (err) {
-      setFetchError(err instanceof Error ? err.message : 'Network error');
+      setFetchError(
+        t('agentSimulation.fileExplorer.fetchFailed', {
+          message: getAgentSimulationErrorMessage(
+            err,
+            t('agentSimulation.errors.networkError'),
+            t('agentSimulation.errors.timeout'),
+          ),
+        }),
+      );
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [t]);
 
   // Fetch whenever sessionId appears or changes
   useEffect(() => {
