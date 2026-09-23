@@ -1,38 +1,33 @@
 import { ILayer } from '../../services/layouter/layer';
 import { UMLElement } from '../../services/uml-element/uml-element';
-import { ComposePreview } from '../compose-preview';
+import { ComposePreview, PreviewElement } from '../compose-preview';
+import { UMLStateInitialNode } from '../uml-state-diagram/uml-state-initial-node/uml-state-initial-node';
 
+import { AgentSectionTitle } from './agent-section-elements';
 import { AgentState } from './agent-state/agent-state';
-import { AgentStateBody } from './agent-state-body/agent-state-body';
 
-const computeDimension = (scale: number, value: number): number => {
-  return Math.round((scale * value) / 10) * 10;
+// Palette section titles are inert (not draggable) — matches the NN diagram.
+const inert = (element: UMLElement): PreviewElement => {
+  (element as PreviewElement).styles = { pointerEvents: 'none', cursor: 'default' };
+  return element;
 };
 
-export const composeBotPreview: ComposePreview = (
-  layer: ILayer,
-  translate: (id: string) => string,
-): UMLElement[] => {
-  // Empty State
-  const emptyAgentState = new AgentState({ name: 'AgentState' });
+/**
+ * Sidebar palette of the agent diagram. Only the conversation flow lives on the canvas (initial
+ * node + states; comments are added by the create pane for every diagram). Agent components
+ * (intents, LLMs, RAG databases, tools, skills, workspaces, GUIs) are off-canvas and edited in the
+ * webapp's agent components panel.
+ */
+export const composeBotPreview: ComposePreview = (_layer: ILayer): PreviewElement[] => {
+  // The title's name is an i18n key, resolved by AgentSectionTitleComponent at render time
+  // (compose functions are called without a translate function).
+  const flowTitle = inert(new AgentSectionTitle({ name: 'packages.AgentDiagram.palette.flow' }));
 
-  // State with Body
-  const agentState = new AgentState({ name: 'AgentState' });
-  const botBody = new AgentStateBody({
-    name: 'Body',
-    owner: agentState.id,
-    bounds: {
-      x: 0,
-      y: 0,
-      width: computeDimension(1.0, 200),
-      height: computeDimension(1.0, 30),
-    },
+  const stateInitialNode = new UMLStateInitialNode({
+    bounds: { x: 0, y: 0, width: 45, height: 45 },
   });
-  agentState.ownedElements = [botBody.id];
-  const agentStateRendered = agentState.render(layer, [botBody]) as UMLElement[];
 
-  return [
-    emptyAgentState,
-    ...agentStateRendered,
-  ];
+  const agentState = new AgentState({ name: 'AgentState' });
+
+  return [flowTitle, stateInitialNode, agentState];
 };

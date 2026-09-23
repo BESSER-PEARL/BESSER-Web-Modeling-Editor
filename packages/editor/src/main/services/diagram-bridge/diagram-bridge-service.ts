@@ -160,6 +160,53 @@ export interface IDiagramBridgeService {
    * Set available neural network diagram references
    */
   setNeuralNetworkDiagrams(diagrams: IDiagramReference[]): void;
+
+  /**
+   * Build a display name for a relationship (name, roles, multiplicities or object names)
+   */
+  getRelationshipDisplayName(relationship: IAssociationInfo, sourceObjectName?: string, targetObjectName?: string): string;
+
+  /**
+   * Get a class by id from the stored class diagram
+   */
+  getClassById(classId: string): IClassInfo | null;
+
+  /**
+   * Get the inheritance hierarchy (class names) of a class
+   */
+  getClassHierarchy(classId: string): string[];
+
+  // ── Agent diagram data (populated by the webapp from the agent components panel) ──
+
+  /** Get the configured agent platform (e.g. 'websocket', 'telegram') */
+  getAgentPlatform(): string;
+
+  /** Set the configured agent platform */
+  setAgentPlatform(platform: string): void;
+
+  /** Get the GUIs defined in the agent components panel */
+  getAgentGUIs(): AgentGUIInfo[];
+
+  /** Set the GUIs defined in the agent components panel */
+  setAgentGUIs(guis: AgentGUIInfo[]): void;
+
+  /** Get the intents defined in the agent components panel */
+  getAgentIntents(): AgentIntentInfo[];
+
+  /** Set the intents defined in the agent components panel */
+  setAgentIntents(intents: AgentIntentInfo[]): void;
+
+  /** Get the LLMs defined in the agent components panel */
+  getAgentLLMs(): AgentLLMInfo[];
+
+  /** Set the LLMs defined in the agent components panel */
+  setAgentLLMs(llms: AgentLLMInfo[]): void;
+
+  /** Get the RAG databases defined in the agent components panel */
+  getAgentRAGs(): AgentRAGInfo[];
+
+  /** Set the RAG databases defined in the agent components panel */
+  setAgentRAGs(rags: AgentRAGInfo[]): void;
 }
 
 /**

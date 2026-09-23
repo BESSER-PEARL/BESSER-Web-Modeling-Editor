@@ -12,7 +12,6 @@ import { ModelStore, StoreProvider } from '../components/store/model-store';
 import { Styles } from '../components/theme/styles';
 import { Theme } from '../components/theme/theme';
 import { PropertiesPanel } from '../components/properties-panel';
-import { AgentStateDragBox } from '../components/create-pane/agent-state-drag-box';
 import { UpdatePane } from '../components/update-pane/update-pane';
 import { AssociationPopupComponent } from '../components/association-popup/association-popup';
 import { ILayer } from '../services/layouter/layer';
@@ -114,7 +113,6 @@ export class Application extends React.Component<Props, State> {
                           <Editor>
                             <Canvas ref={this.setCanvas} />
                           </Editor>
-                          {canvasContext && <AgentStateDragBox />}
                           {canvasContext && (
                             <MouseEventListener />
                           )}

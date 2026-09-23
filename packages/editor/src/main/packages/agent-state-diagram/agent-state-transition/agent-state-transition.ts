@@ -28,11 +28,25 @@ const CUSTOM_TRANSITION_EVENTS: CustomTransitionEvent[] = [
   'GUIEvent',
 ];
 
+/**
+ * Condition of a transition the user draws now. Intents live off-canvas in the components panel,
+ * so a fresh arrow starts as an unconditional ("auto") transition instead of an intent match
+ * that would point at no intent.
+ */
+export const NEW_TRANSITION_PREDEFINED_TYPE = 'auto';
+
+/**
+ * Condition assumed for *stored* transitions that carry no condition at all. Before the "auto"
+ * default existed every transition was an intent match, so legacy data keeps loading (and
+ * serializing) as ``when_intent_matched``.
+ */
+export const LEGACY_TRANSITION_PREDEFINED_TYPE = 'when_intent_matched';
+
 export class AgentStateTransition extends UMLRelationshipCenteredDescription implements IUMLStateTransition {
   type = AgentRelationshipType.AgentStateTransition;
   params: { [id: string]: string } = {};
   transitionType: 'predefined' | 'custom' = 'predefined';
-  predefinedType: string | undefined = 'auto';
+  predefinedType: string | undefined = NEW_TRANSITION_PREDEFINED_TYPE;
   intentName: string | undefined = undefined;
   variable: string | undefined = undefined;
   operator: string | undefined = undefined;
@@ -82,15 +96,15 @@ export class AgentStateTransition extends UMLRelationshipCenteredDescription imp
     if (values?.fileType) {
       this.fileType = values.fileType;
     }
-    if ((values?.custom as any)?.guiEventGuiId) {
-      this.guiEventGuiId = (values.custom as any).guiEventGuiId;
-    } else if ((values as any)?.guiEventGuiId) {
-      this.guiEventGuiId = (values as any).guiEventGuiId;
+    if (values?.custom?.guiEventGuiId) {
+      this.guiEventGuiId = values.custom.guiEventGuiId;
+    } else if (values?.guiEventGuiId) {
+      this.guiEventGuiId = values.guiEventGuiId;
     }
-    if ((values?.predefined as any)?.formGuiId) {
-      this.formGuiId = (values.predefined as any).formGuiId;
-    } else if ((values as any)?.formGuiId) {
-      this.formGuiId = (values as any).formGuiId;
+    if (values?.predefined?.formGuiId) {
+      this.formGuiId = values.predefined.formGuiId;
+    } else if (values?.formGuiId) {
+      this.formGuiId = values.formGuiId;
     }
     if (values?.custom?.event) {
       this.event = values.custom.event;
@@ -127,7 +141,7 @@ export class AgentStateTransition extends UMLRelationshipCenteredDescription imp
       | string
       | { variable: string; operator: string; targetValue: string } = '';
 
-    let predefinedType = this.predefinedType || 'when_intent_matched';
+    let predefinedType = this.predefinedType || LEGACY_TRANSITION_PREDEFINED_TYPE;
     if (this.transitionType === 'custom') {
       predefinedType = 'custom_transition';
     } else if (predefinedType === 'when_intent_matched') {
@@ -229,7 +243,7 @@ export class AgentStateTransition extends UMLRelationshipCenteredDescription imp
     this.transitionType = values.transitionType || 'predefined';
 
     const legacyCondition = typeof values.condition === 'string' ? values.condition : undefined;
-    const nextPredefinedType = values.predefined?.predefinedType || values.predefinedType || legacyCondition || 'when_intent_matched';
+    const nextPredefinedType = values.predefined?.predefinedType || values.predefinedType || legacyCondition || LEGACY_TRANSITION_PREDEFINED_TYPE;
     const nextConditionValue = values.predefined?.conditionValue ?? values.conditionValue;
     const nextIntentName = values.predefined?.intentName;
     const nextFileType = values.predefined?.fileType;

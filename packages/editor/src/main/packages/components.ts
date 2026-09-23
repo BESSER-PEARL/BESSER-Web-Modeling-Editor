@@ -83,6 +83,7 @@ import { AgentStateComponent } from './agent-state-diagram/agent-state/agent-sta
 import { AgentStateMemberComponent } from './agent-state-diagram/agent-state/agent-state-member-component';
 import { AgentStateTransitionComponent } from './agent-state-diagram/agent-state-transition/agent-state-transition-component';
 import { AgentStateTransitionInitComponent } from './agent-state-diagram/agent-state-transition-init/agent-state-transition-init-component';
+import { AgentSectionTitleComponent } from './agent-state-diagram/agent-section-title-component';
 import { NNElementType } from './nn-diagram';
 import { NNRelationshipType } from './nn-diagram';
 import { NNAssociationComponent } from './nn-diagram/nn-association/nn-association-component';
@@ -97,8 +98,9 @@ import { NNLayerIconComponent } from './nn-diagram/nn-layer-icon/nn-layer-icon-c
 
 // Agent component elements (LLM, Tool, Skill, Workspace, RAG, Intent) are
 // data-only elements managed from the agent components panel; they have no
-// SVG presence on the canvas. We register a no-op component for each type
-// to avoid "undefined component" crashes when they are present in the model.
+// SVG presence on the canvas. Every editor load moves them from `elements` to
+// `model.components` (normalizeAgentComponents); the no-op components only
+// guard against "undefined component" crashes should one still reach the canvas.
 const AgentNoopComponent: FunctionComponent<PropsWithChildren<{ element: any; fillColor?: string }>> = () => null;
 
 export const Components: {
@@ -220,7 +222,7 @@ export const Components: {
   [UMLElementType.AgentSkill]: AgentNoopComponent,
   [UMLElementType.AgentWorkspace]: AgentNoopComponent,
   [UMLElementType.AgentLLM]: AgentNoopComponent,
-  [UMLElementType.AgentSectionTitle]: NNSectionTitleComponent as any,
+  [UMLElementType.AgentSectionTitle]: AgentSectionTitleComponent,
   [UMLElementType.AgentSectionSeparator]: NNSectionSeparatorComponent as any,
   [UMLRelationshipType.AgentStateTransition]: AgentStateTransitionComponent,
   [UMLRelationshipType.AgentStateTransitionInit]: AgentStateTransitionInitComponent,

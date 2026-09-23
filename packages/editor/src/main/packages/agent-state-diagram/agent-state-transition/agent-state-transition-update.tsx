@@ -1,7 +1,6 @@
 import React, { Component, ComponentClass } from 'react';
 import { connect } from 'react-redux';
 import { compose } from 'redux';
-import styled from 'styled-components';
 import { Button } from '../../../components/controls/button/button';
 import { Divider } from '../../../components/controls/divider/divider';
 import { ExchangeIcon } from '../../../components/controls/icon/exchange';
@@ -22,230 +21,27 @@ import { Controlled as CodeMirror } from 'react-codemirror2';
 import 'codemirror/lib/codemirror.css';
 import 'codemirror/theme/material.css';
 import 'codemirror/mode/python/python';
-
-// ─── Styled components ────────────────────────────────────────────────────────
-
-const Flex = styled.div`
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 4px;
-`;
-
-const Section = styled.section`
-  padding: 8px 0;
-`;
-
-const SectionHeader = styled(Header)`
-  font-size: 11px;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  opacity: 0.6;
-  margin-bottom: 4px;
-`;
-
-/* Predefined / Custom toggle — same style as state body type toggle */
-const TypeToggleRow = styled.div`
-  display: flex;
-  gap: 4px;
-  margin-bottom: 8px;
-`;
-
-const TypeToggleBtn = styled.button<{ active?: boolean }>`
-  flex: 1;
-  padding: 4px 8px;
-  border-radius: 4px;
-  border: 1px solid ${(props) => props.theme.color.gray}88;
-  background: ${(props) => (props.active ? props.theme.color.primary : 'transparent')};
-  color: ${(props) => (props.active ? '#fff' : 'inherit')};
-  cursor: pointer;
-  font-size: 12px;
-  &:hover:not(:disabled) {
-    opacity: 0.85;
-  }
-`;
-
-/* Option list buttons */
-const OptionList = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-  margin-bottom: 2px;
-`;
-
-const OptionBtn = styled.button<{ active?: boolean }>`
-  width: 100%;
-  padding: 6px 10px;
-  border-radius: 4px;
-  border: 1px solid ${(props) => (props.active ? props.theme.color.primary : props.theme.color.gray + '88')};
-  background: ${(props) => (props.active ? props.theme.color.primary : props.theme.color.background)};
-  color: ${(props) => (props.active ? '#fff' : props.theme.color.primary)};
-  cursor: pointer;
-  font-size: 12px;
-  text-align: left;
-  font-weight: ${(props) => (props.active ? 600 : 400)};
-  transition: opacity 0.1s;
-  &:hover {
-    opacity: 0.85;
-  }
-`;
-
-const OptionDesc = styled.p`
-  font-size: 11px;
-  opacity: 0.65;
-  margin: 6px 0 4px 0;
-  font-style: italic;
-  line-height: 1.4;
-`;
-
-const OptionSeparator = styled.hr`
-  border: none;
-  border-top: 1px solid ${(props) => props.theme.color.gray}44;
-  margin: 10px 0 8px;
-`;
-
-const ConditionRow = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  padding: 12px 0 8px;
-
-  & + & {
-    border-top: 1px solid ${(props) => props.theme.color.gray}44;
-    margin-top: 8px;
-  }
-`;
-
-const ConditionActions = styled.div`
-  display: flex;
-  gap: 4px;
-`;
-
-const RemoveButton = styled(Button)`
-  && {
-    background-color: #dc3545;
-    border-color: #dc3545;
-    color: #fff;
-  }
-  &&:hover {
-    background-color: #c82333;
-    border-color: #bd2130;
-  }
-`;
-
-const ResizableCodeMirrorWrapper = styled.div`
-  resize: both;
-  overflow: auto;
-  min-height: 220px;
-  border: 1px solid ${(props) => props.theme.color.gray};
-  border-radius: 4px;
-  padding: 8px;
-  box-sizing: border-box;
-
-  .CodeMirror {
-    height: 100% !important;
-    width: 100%;
-  }
-`;
-
-// ─── Static data ──────────────────────────────────────────────────────────────
-
-// These arrays live at module scope, so they cannot call this.props.translate.
-// Instead they hold i18n KEYS, resolved at render time. `value` is used in
-// logic (persisted on the model / matched in code) and is NEVER translated.
-// The custom-event labels are technical identifiers (DummyEvent, GUIEvent, …)
-// used as the display label AND stored value, so they intentionally stay in
-// English; only the descriptions are translated.
-const PREDEFINED_TRANSITIONS = [
-  {
-    value: 'auto',
-    labelKey: 'packages.AgentDiagram.transitionLabel.auto',
-    descriptionKey: 'packages.AgentDiagram.transitionDesc.auto',
-  },
-  {
-    value: 'when_intent_matched',
-    labelKey: 'packages.AgentDiagram.transitionLabel.intentMatched',
-    descriptionKey: 'packages.AgentDiagram.transitionDesc.intentMatched',
-  },
-  {
-    value: 'when_no_intent_matched',
-    labelKey: 'packages.AgentDiagram.transitionLabel.noIntentMatched',
-    descriptionKey: 'packages.AgentDiagram.transitionDesc.noIntentMatched',
-  },
-  {
-    value: 'when_variable_operation_matched',
-    labelKey: 'packages.AgentDiagram.transitionLabel.variableOperationMatched',
-    descriptionKey: 'packages.AgentDiagram.transitionDesc.variableOperationMatched',
-  },
-  {
-    value: 'when_file_received',
-    labelKey: 'packages.AgentDiagram.transitionLabel.fileReceived',
-    descriptionKey: 'packages.AgentDiagram.transitionDesc.fileReceived',
-  },
-  {
-    value: 'when_form_submitted',
-    labelKey: 'packages.AgentDiagram.transitionLabel.formSubmitted',
-    descriptionKey: 'packages.AgentDiagram.transitionDesc.formSubmitted',
-  },
-] as const;
-
-const CUSTOM_EVENTS = [
-  {
-    value: 'None',
-    label: 'None',
-    descriptionKey: 'packages.AgentDiagram.customEventDesc.none',
-  },
-  {
-    value: 'DummyEvent',
-    label: 'DummyEvent',
-    descriptionKey: 'packages.AgentDiagram.customEventDesc.dummyEvent',
-  },
-  {
-    value: 'WildcardEvent',
-    label: 'WildcardEvent',
-    descriptionKey: 'packages.AgentDiagram.customEventDesc.wildcardEvent',
-  },
-  {
-    value: 'ReceiveMessageEvent',
-    label: 'ReceiveMessageEvent',
-    descriptionKey: 'packages.AgentDiagram.customEventDesc.receiveMessageEvent',
-  },
-  {
-    value: 'ReceiveTextEvent',
-    label: 'ReceiveTextEvent',
-    descriptionKey: 'packages.AgentDiagram.customEventDesc.receiveTextEvent',
-  },
-  {
-    value: 'ReceiveJSONEvent',
-    label: 'ReceiveJSONEvent',
-    descriptionKey: 'packages.AgentDiagram.customEventDesc.receiveJsonEvent',
-  },
-  {
-    value: 'ReceiveFileEvent',
-    label: 'ReceiveFileEvent',
-    descriptionKey: 'packages.AgentDiagram.customEventDesc.receiveFileEvent',
-  },
-  {
-    value: 'GUIEvent',
-    label: 'GUIEvent',
-    descriptionKey: 'packages.AgentDiagram.customEventDesc.guiEvent',
-  },
-] as const;
-
-const CUSTOM_CONDITION_TEMPLATE = `def condition(session: 'Session', params: dict) -> bool:
-    """Boolean function
-
-    Args:
-        session (Session): the current user session
-        params (dict): the function parameters
-
-    Returns:
-        bool: True or False
-    """
-    if session.get('x') > 10:
-        return True
-    else:
-        return False`;
+import { NEW_TRANSITION_PREDEFINED_TYPE } from './agent-state-transition';
+import {
+  CUSTOM_CONDITION_TEMPLATE,
+  CUSTOM_EVENTS,
+  PREDEFINED_TRANSITIONS,
+} from './agent-state-transition-update-constants';
+import {
+  ConditionActions,
+  ConditionRow,
+  Flex,
+  OptionBtn,
+  OptionDesc,
+  OptionList,
+  OptionSeparator,
+  RemoveButton,
+  ResizableCodeMirrorWrapper,
+  Section,
+  SectionHeader,
+  TypeToggleBtn,
+  TypeToggleRow,
+} from './agent-state-transition-update-styles';
 
 // ─── Component types ──────────────────────────────────────────────────────────
 
@@ -299,7 +95,7 @@ class AgentStateTransitionUpdateClass extends Component<Props, State> {
     }
     this.props.update<AgentStateTransition>(element.id, {
       transitionType: 'predefined',
-      predefinedType: element.predefinedType || 'auto',
+      predefinedType: element.predefinedType || NEW_TRANSITION_PREDEFINED_TYPE,
     });
   };
 
@@ -338,7 +134,7 @@ class AgentStateTransitionUpdateClass extends Component<Props, State> {
 
     const intentNames: string[] = diagramBridge.getAgentIntents().map((i) => i.name).filter(Boolean);
 
-    const activePredefined = element.predefinedType || 'auto';
+    const activePredefined = element.predefinedType || NEW_TRANSITION_PREDEFINED_TYPE;
     const activePredefinedInfo = PREDEFINED_TRANSITIONS.find((t) => t.value === activePredefined);
 
     const activeEvent = element.event || 'WildcardEvent';
@@ -489,7 +285,7 @@ class AgentStateTransitionUpdateClass extends Component<Props, State> {
                         onChange={(value) =>
                           this.props.update<AgentStateTransition>(element.id, {
                             formGuiId: value === '__any__' ? '' : value,
-                          } as any)
+                          })
                         }
                       >
                         <Dropdown.Item value="__any__">{this.props.translate('popup.agent.transition.anyFormSubmission')}</Dropdown.Item>
@@ -546,7 +342,7 @@ class AgentStateTransitionUpdateClass extends Component<Props, State> {
                         onChange={(value) =>
                           this.props.update<AgentStateTransition>(element.id, {
                             guiEventGuiId: value === '__any__' ? '' : value,
-                          } as any)
+                          })
                         }
                       >
                         <Dropdown.Item value="__any__">{this.props.translate('popup.agent.transition.anyGuiInteraction')}</Dropdown.Item>

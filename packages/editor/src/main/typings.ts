@@ -45,6 +45,27 @@ export type UMLModel = {
   relationships: { [id: string]: UMLRelationship };
   assessments: { [id: string]: Assessment };
   referenceDiagramData?: any;
+  /**
+   * Off-canvas agent components (LLMs, intents + intent bodies, RAG databases, tools, skills,
+   * workspaces, GUIs), keyed by id. Only used by agent diagrams; managed by the webapp's agent
+   * components panel. Components carry no canvas position, so `bounds` is optional.
+   */
+  components?: { [id: string]: UMLModelComponent };
+  /**
+   * @deprecated Legacy location of the agent components. Migrated into `components` by
+   * `normalizeAgentComponents` on every editor load; never written by the editor.
+   */
+  agentComponents?: { [id: string]: UMLModelComponent };
+};
+
+/**
+ * An off-canvas agent component stored in `UMLModel.components`. Same shape as a canvas element
+ * minus the mandatory geometry, plus the type-specific payload fields (e.g. `bodies`,
+ * `intent_description`, `provider`, `gui_id`, `is_form`).
+ */
+export type UMLModelComponent = Omit<UMLModelElement, 'bounds'> & {
+  bounds?: IBoundary;
+  [field: string]: any;
 };
 
 export type UMLModelElementType = UMLElementType | UMLRelationshipType | UMLDiagramType;
@@ -178,7 +199,6 @@ export interface AgentState extends UMLElement {
   // canonical keys
   actions: string[];
   fallbackActions: string[];
-  isInitial?: boolean;
   stateType?: string;
   fallbackBodyEnabled?: boolean;
   // reasoning-state fields (used when stateType = 'reasoning')

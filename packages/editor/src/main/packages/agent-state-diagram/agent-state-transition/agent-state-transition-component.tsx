@@ -2,8 +2,10 @@ import React, { FunctionComponent } from 'react';
 import { Point } from '../../../utils/geometry/point';
 import { AgentStateTransition } from './agent-state-transition';
 import { ThemedPath, ThemedPolyline } from '../../../components/theme/themedComponents';
+import { I18nContext } from '../../../components/i18n/i18n-context';
+import { localized } from '../../../components/i18n/localized';
 
-export const AgentStateTransitionComponent: FunctionComponent<Props> = ({ element }) => {
+const AgentStateTransitionC: FunctionComponent<Props & I18nContext> = ({ element, translate }) => {
   let position = { x: 0, y: 0 };
   let direction: 'v' | 'h' = 'v';
   const path = element.path.map((point) => new Point(point.x, point.y));
@@ -55,21 +57,30 @@ export const AgentStateTransitionComponent: FunctionComponent<Props> = ({ elemen
     if (element.transitionType === 'custom') {
       const ev = element.event || 'WildcardEvent';
       const n = element.conditions?.length || 0;
-      return ev === 'None' ? `No event + ${n} cond.` : `${ev} + ${n} cond.`;
+      const conditions = `${n} ${translate('packages.AgentDiagram.transitionCanvasLabel.conditionsShort')}`;
+      return ev === 'None'
+        ? `${translate('packages.AgentDiagram.transitionCanvasLabel.noEvent')} + ${conditions}`
+        : `${ev} + ${conditions}`;
     }
     const pt = element.predefinedType;
     if (!pt) return '';
-    if (pt === 'when_intent_matched') return element.intentName || 'Intent';
-    if (pt === 'when_no_intent_matched') return 'No intent';
+    if (pt === 'when_intent_matched') {
+      return element.intentName || translate('packages.AgentDiagram.transitionCanvasLabel.intent');
+    }
+    if (pt === 'when_no_intent_matched') return translate('packages.AgentDiagram.transitionCanvasLabel.noIntent');
     if (pt === 'when_variable_operation_matched') {
       const v = element.variable || '?';
       const op = element.operator || '?';
       const tv = element.targetValue || '?';
       return `${v} ${op} ${tv}`;
     }
-    if (pt === 'when_file_received') return 'File';
-    if (pt === 'when_form_submitted') return element.formGuiId ? `${element.formGuiId} Submitted` : 'Form Submitted';
-    if (pt === 'auto') return 'Auto';
+    if (pt === 'when_file_received') return translate('packages.AgentDiagram.transitionCanvasLabel.file');
+    if (pt === 'when_form_submitted') {
+      return element.formGuiId
+        ? `${element.formGuiId} ${translate('packages.AgentDiagram.transitionCanvasLabel.submitted')}`
+        : translate('packages.AgentDiagram.transitionLabel.formSubmitted');
+    }
+    if (pt === 'auto') return translate('packages.AgentDiagram.transitionLabel.auto');
     return '';
   };
 
@@ -109,3 +120,5 @@ export const AgentStateTransitionComponent: FunctionComponent<Props> = ({ elemen
 interface Props {
   element: AgentStateTransition;
 }
+
+export const AgentStateTransitionComponent = localized(AgentStateTransitionC);
