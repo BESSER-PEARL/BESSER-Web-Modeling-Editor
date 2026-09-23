@@ -900,6 +900,11 @@ export const selectQuantumCircuitDiagrams = createSelector(
   (diagrams) => diagrams?.QuantumCircuitDiagram ?? EMPTY_DIAGRAMS,
 );
 
+export const selectNNDiagrams = createSelector(
+  selectDiagrams,
+  (diagrams) => diagrams?.NNDiagram ?? EMPTY_DIAGRAMS,
+);
+
 export const selectUMLDiagramType = createSelector(
   selectActiveDiagramType,
   (activeDiagramType) => toUMLDiagramType(activeDiagramType) ?? UMLDiagramType.ClassDiagram,

@@ -59,7 +59,8 @@ export type MethodImplementationType =
   | 'code'
   | 'bal'
   | 'state_machine'
-  | 'quantum_circuit';
+  | 'quantum_circuit'
+  | 'neural_network';
 
 export interface IUMLClassifierMember extends IUMLElement {
   code?: string;
@@ -68,6 +69,7 @@ export interface IUMLClassifierMember extends IUMLElement {
   implementationType?: MethodImplementationType;
   stateMachineId?: string;
   quantumCircuitId?: string;
+  neuralNetworkId?: string;
   isOptional?: boolean;
   isDerived?: boolean;
   isId?: boolean;
@@ -94,6 +96,7 @@ export abstract class UMLClassifierMember extends UMLElement implements IUMLClas
   implementationType: MethodImplementationType = 'none';
   stateMachineId: string = '';
   quantumCircuitId: string = '';
+  neuralNetworkId: string = '';
   isOptional: boolean = false;
   isDerived: boolean = false;
   isId: boolean = false;
@@ -212,6 +215,7 @@ export abstract class UMLClassifierMember extends UMLElement implements IUMLClas
       implementationType: this.implementationType,
       stateMachineId: this.stateMachineId,
       quantumCircuitId: this.quantumCircuitId,
+      neuralNetworkId: this.neuralNetworkId,
       isOptional: this.isOptional,
       isDerived: this.isDerived,
       isId: this.isId,
@@ -253,6 +257,7 @@ export abstract class UMLClassifierMember extends UMLElement implements IUMLClas
     this.implementationType = memberValues.implementationType || 'none';
     this.stateMachineId = memberValues.stateMachineId || '';
     this.quantumCircuitId = memberValues.quantumCircuitId || '';
+    this.neuralNetworkId = memberValues.neuralNetworkId || '';
     
     // Auto-detect implementation type if not set but code exists
     if (this.implementationType === 'none' && this.code) {
