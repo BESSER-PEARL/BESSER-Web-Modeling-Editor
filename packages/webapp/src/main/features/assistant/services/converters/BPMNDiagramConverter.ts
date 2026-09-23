@@ -331,6 +331,9 @@ export class BPMNDiagramConverter implements DiagramConverter {
           role: lane.role,
           trustScore: typeof lane.trustScore === 'number' ? lane.trustScore : 0,
           multiplicity: typeof lane.multiplicity === 'number' ? lane.multiplicity : 1,
+          ...(typeof lane.agentDiagramRef === 'string' && lane.agentDiagramRef
+            ? { agentDiagramRef: lane.agentDiagramRef }
+            : {}),
         };
       });
 

@@ -206,8 +206,31 @@ export class BPMNDiagramModifier implements DiagramModifier {
     const sourceId = this.resolveNode(model, m.changes.source);
     const targetId = this.resolveNode(model, m.changes.target);
     if (!sourceId || !targetId) {
-      throw new Error('Could not locate source or target node for the sequence flow.');
+      throw new Error('Could not locate source or target node for the BPMN flow.');
     }
+
+    // The model agent never provides flowType. Infer ordinary BPMN sequence/message
+    // rendering from the actual WME ownership hierarchy instead.
+    const sourcePoolId = this.findOwningPoolForNode(model, sourceId);
+    const targetPoolId = this.findOwningPoolForNode(model, targetId);
+    const isCrossPool = (
+      sourcePoolId !== null
+      && targetPoolId !== null
+      && sourcePoolId !== targetPoolId
+    );
+
+    let sourceDirection = 'Right';
+    let targetDirection = 'Left';
+
+    if (isCrossPool) {
+      const sourcePool = model.elements[sourcePoolId] as { bounds?: { y?: number } };
+      const targetPool = model.elements[targetPoolId] as { bounds?: { y?: number } };
+      const sourceAboveTarget = (sourcePool.bounds?.y ?? 0) <= (targetPool.bounds?.y ?? 0);
+
+      sourceDirection = sourceAboveTarget ? 'Down' : 'Up';
+      targetDirection = sourceAboveTarget ? 'Up' : 'Down';
+    }
+
     const id = ModifierHelpers.generateUniqueId('flow');
     model.relationships[id] = {
       id,
@@ -219,10 +242,10 @@ export class BPMNDiagramModifier implements DiagramModifier {
         { x: 0, y: 0 },
         { x: 100, y: 0 },
       ],
-      source: { element: sourceId, direction: 'Right' },
-      target: { element: targetId, direction: 'Left' },
+      source: { element: sourceId, direction: sourceDirection },
+      target: { element: targetId, direction: targetDirection },
       isManuallyLayouted: false,
-      flowType: 'sequence',
+      flowType: isCrossPool ? 'message' : 'sequence',
       isDefault: false,
     };
     return model;
@@ -306,6 +329,28 @@ export class BPMNDiagramModifier implements DiagramModifier {
     return null;
   }
 
+  private findOwningPoolForNode(model: BESSERModel, nodeId: string): string | null {
+    const node = model.elements[nodeId] as BPMNNodeRecord | undefined;
+    if (!node || !node.owner) return null;
+
+    const owner = model.elements[node.owner] as { type?: string; owner?: string } | undefined;
+    if (!owner) return null;
+
+    // Support a node directly owned by a pool.
+    if (owner.type === 'BPMNPool') return node.owner;
+
+    // Normal Agentic BPMN case: node -> lane -> pool.
+    if (
+      owner.type === 'BPMNSwimlane'
+      && typeof owner.owner === 'string'
+      && model.elements[owner.owner]?.type === 'BPMNPool'
+    ) {
+      return owner.owner;
+    }
+
+    return null;
+  }
+
   private addPool(model: BESSERModel, m: ModelModification): BESSERModel {
     const id = ModifierHelpers.generateUniqueId('pool');
     const name = (m.target as any).nodeName || m.changes?.name || 'Pool';
@@ -337,6 +382,10 @@ export class BPMNDiagramModifier implements DiagramModifier {
       role: (m.changes as any)?.role || 'solution',
       trustScore: (m.changes as any)?.trustScore ?? 0,
       multiplicity: (m.changes as any)?.multiplicity ?? 1,
+      ...(typeof (m.changes as any)?.agentDiagramRef === 'string'
+        && (m.changes as any).agentDiagramRef.trim()
+        ? { agentDiagramRef: (m.changes as any).agentDiagramRef.trim() }
+        : {}),
     };
     // Expand pool height
     if (poolId && model.elements[poolId]) {
@@ -356,6 +405,9 @@ export class BPMNDiagramModifier implements DiagramModifier {
       if (typeof (m.changes as any)?.trustScore === 'number') el.trustScore = (m.changes as any).trustScore;
       if (typeof (m.changes as any)?.multiplicity === 'number') el.multiplicity = (m.changes as any).multiplicity;
       if (typeof (m.changes as any)?.isAgentic === 'boolean') el.isAgentic = (m.changes as any).isAgentic;
+      if (typeof (m.changes as any)?.agentDiagramRef === 'string') {
+        el.agentDiagramRef = (m.changes as any).agentDiagramRef.trim();
+      }
     }
     return model;
   }
