@@ -205,6 +205,7 @@ function _assistantSupportsProvider(provider: LlmProvider): boolean {
     provider === 'anthropic' ||
     provider === 'openai' ||
     provider === 'mistral' ||
+    provider === 'nebius' ||
     provider === 'pia' ||
     provider === 'local'
   );
@@ -652,7 +653,7 @@ export const LlmKeyDialog: React.FC<LlmKeyDialogProps> = ({
     // so the next (re)connect re-arms it automatically.
     //
     // Skipped for providers the modeling agent's own BYOK layer does not
-    // support (it allowlists anthropic/openai/mistral and discards the rest).
+    // support (it allowlists anthropic/openai/mistral/nebius and discards the rest).
     // Sending the key anyway would hand a secret to a service that will only
     // log "unsupported provider" and drop it. The assistant then runs on the
     // server's default model — which is exactly what its own re-arm path does,

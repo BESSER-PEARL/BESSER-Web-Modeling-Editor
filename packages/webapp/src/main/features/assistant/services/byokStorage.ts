@@ -20,7 +20,13 @@ import {
   sessionStorageLlmBaseUrl,
 } from '../../../shared/constants/constant';
 
-export type AssistantApiProvider = 'anthropic' | 'openai' | 'mistral' | 'pia' | 'local';
+export type AssistantApiProvider =
+  | 'anthropic'
+  | 'openai'
+  | 'mistral'
+  | 'nebius'
+  | 'pia'
+  | 'local';
 
 export interface AssistantApiKey {
   provider: AssistantApiProvider;
@@ -45,6 +51,7 @@ function _isProvider(value: string | null): value is AssistantApiProvider {
     value === 'anthropic' ||
     value === 'openai' ||
     value === 'mistral' ||
+    value === 'nebius' ||
     value === 'pia' ||
     value === 'local'
   );

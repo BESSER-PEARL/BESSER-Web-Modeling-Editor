@@ -190,10 +190,9 @@ describe('LlmKeyDialog — unified BYOK key', () => {
     );
   });
 
-  it('does not ship a Nebius key to the modeling agent, which cannot use it', () => {
-    // modeling-agent's byok.py allowlists anthropic/openai/mistral and discards
-    // anything else, so arming the socket would hand it a secret it only logs
-    // an "unsupported provider" warning for.
+  it('ships a Nebius key to the modeling agent, which now routes it to Nebius', () => {
+    // modeling-agent's byok.py accepts nebius (OpenAI-compatible Token Factory
+    // endpoint), so the assistant runs on the user's key like other providers.
     const setUserApiKey = vi.fn();
     render(<LlmKeyDialog open onOpenChange={() => {}} client={{ setUserApiKey }} />);
 
@@ -205,8 +204,10 @@ describe('LlmKeyDialog — unified BYOK key', () => {
     });
     fireEvent.click(screen.getByRole('button', { name: /^save$/i }));
 
-    expect(setUserApiKey).not.toHaveBeenCalled();
-    // The key is still stored — the Spec-Driven Agent reads it from here.
+    expect(setUserApiKey).toHaveBeenCalledWith(
+      expect.objectContaining({ provider: 'nebius', apiKey: 'nebius-secret-key' }),
+    );
+    // The key is also stored — the Spec-Driven Agent reads it from here.
     expect(window.sessionStorage.getItem('besser_llm_api_key')).toBe('nebius-secret-key');
   });
 
