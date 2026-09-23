@@ -2,8 +2,10 @@ import React, { Component, ComponentType } from 'react';
 import { connect, ConnectedComponent } from 'react-redux';
 import { Button } from '../../../components/controls/button/button';
 import { ColorButton } from '../../../components/controls/color-button/color-button';
+import { Divider } from '../../../components/controls/divider/divider';
 import { TrashIcon } from '../../../components/controls/icon/trash';
 import { Textfield } from '../../../components/controls/textfield/textfield';
+import { Body } from '../../../components/controls/typography/typography';
 import { ModelState } from '../../../components/store/model-state';
 import { StylePane } from '../../../components/style-pane/style-pane';
 import { styled } from '../../../components/theme/styles';
@@ -11,6 +13,7 @@ import { UMLElementRepository } from '../../../services/uml-element/uml-element-
 import { AsyncDispatch } from '../../../utils/actions/actions';
 import { IUMLSubsystem, UMLSubsystem } from './uml-component-subsystem';
 import { StereotypeToggle } from '../../../components/controls/stereotype-toggle/stereotype-toggle';
+import { LineageSourceLink } from '../../../components/lineage/LineageSourceLink';
 
 const Flex = styled.div`
   display: flex;
@@ -44,6 +47,17 @@ class ComponentSubsystemUpdate extends Component<Props, State> {
             </Button>
           </Flex>
         </section>
+        <section>
+          <Divider />
+          <Flex>
+            <Body style={{ marginRight: '0.5em' }}>Stereotype</Body>
+            <Textfield
+              value={element.stereotype}
+              onChange={this.onStereotypeRename}
+              placeholder="e.g. subsystem, solution"
+            />
+          </Flex>
+        </section>
         <StylePane
           open={this.state.colorOpen}
           element={element}
@@ -52,6 +66,8 @@ class ComponentSubsystemUpdate extends Component<Props, State> {
           textColor
           fillColor
         />
+        {/* Self-gating: only renders for derived Subsystems. */}
+        <LineageSourceLink elementId={element.id} />
       </div>
     );
   }
@@ -65,6 +81,11 @@ class ComponentSubsystemUpdate extends Component<Props, State> {
     const { element, update } = this.props;
     const newVisibilityValue = !element.displayStereotype;
     update<IUMLSubsystem>(element.id, { displayStereotype: newVisibilityValue });
+  };
+
+  private onStereotypeRename = (value: string) => {
+    const { element, update } = this.props;
+    update<IUMLSubsystem>(element.id, { stereotype: value });
   };
 }
 

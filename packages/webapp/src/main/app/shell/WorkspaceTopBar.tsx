@@ -59,6 +59,9 @@ const WorkspaceTopBarInner: React.FC<WorkspaceTopBarProps> = ({
   perspectives,
   onSwitchUml,
   onSwitchDiagramType,
+  onDeriveComponentDiagram,
+  onDeriveDeploymentDiagram,
+  onGenerateDockerCompose,
   onNavigate,
   projectNameDraft,
   onProjectNameDraftChange,
@@ -116,8 +119,12 @@ const WorkspaceTopBarInner: React.FC<WorkspaceTopBarProps> = ({
             mode={generatorMode}
             isGenerating={isGenerating}
             primaryGenerateClass={primaryGenerateClass}
+            activeDiagramType={activeDiagramType}
             onGenerate={onGenerate}
             onSwitchDiagramType={onSwitchDiagramType}
+            onDeriveComponentDiagram={onDeriveComponentDiagram}
+            onDeriveDeploymentDiagram={onDeriveDeploymentDiagram}
+            onGenerateDockerCompose={onGenerateDockerCompose}
           />
           <DeployMenu
             outlineButtonClass={outlineButtonClass}

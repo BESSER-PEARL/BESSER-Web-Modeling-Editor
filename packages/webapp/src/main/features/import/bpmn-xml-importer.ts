@@ -1,7 +1,20 @@
-import { UMLModel, UMLElement, UMLRelationship, UMLDiagramType, canSourceCarryDefault } from '@besser/wme';
+import {
+  BPMNAgentRole,
+  migrateLegacyRole,
+  BPMNGatewayRole,
+  BPMNReflectionMode,
+  UMLDiagramType,
+  UMLElement,
+  UMLModel,
+  UMLRelationship,
+  canSourceCarryDefault,
+  clampTrustScore,
+  clampMultiplicity,
+  findOrphanedMergingGateways,
+} from '@besser/wme';
 
-// Inverse of bpmn-xml-exporter.ts. See .adem/bpmn/04B-bpmn-xml-import-guide.md.
-// BPMN 2.0.2 spec citations follow the convention in 04A1.
+// Inverse of bpmn-xml-exporter.ts.
+
 
 export const BPMN_NS = 'http://www.omg.org/spec/BPMN/20100524/MODEL';
 export const BPMNDI_NS = 'http://www.omg.org/spec/BPMN/20100524/DI';
@@ -122,6 +135,124 @@ function findFirstEventDefinitionChild(node: Element): Element | null {
   return null;
 }
 
+// Find the agentic extension block on a BPMN element. Looks for a
+// `*:extensionElements` child (any namespace prefix) and, inside it, a child
+// whose localName is 'agentic' (any prefix). Returns the agentic element or
+// null. Namespace-agnostic, matching the rest of this importer.
+function findAgenticExtension(parent: Element): Element | null {
+  const ext = childByLocalName(parent, 'extensionElements');
+  if (!ext) return null;
+  for (const c of Array.from(ext.children)) {
+    if (getLocalName(c) === 'agentic') return c;
+  }
+  return null;
+}
+
+// Read the governance DSL CDATA child from a construct's extensionElements.
+// Returns the trimmed text, or null if absent. Adjacent CDATA sections produced
+// by the exporter's `]]>` split are concatenated by the DOM parser, so the
+// original text comes back intact.
+function findGovernanceText(parent: Element): string | null {
+  const ext = childByLocalName(parent, 'extensionElements');
+  if (!ext) return null;
+  for (const c of Array.from(ext.children)) {
+    if (getLocalName(c) === 'governance') {
+      const t = c.textContent;
+      return t === null ? null : t.trim();
+    }
+  }
+  return null;
+}
+
+// Parse the agentic extension into a partial-fields object. Unknown
+// enum values and bad numerics emit a warning and the field is left unset
+// (the model class's default kicks in). Returns null if no agentic extension
+// is present.
+function parseAgenticExtension(
+  parent: Element,
+  warnings: ParseWarning[],
+  _elementId: string,
+): null | {
+  isAgentic: true;
+  role?: BPMNAgentRole;
+  reflectionMode?: BPMNReflectionMode;
+  gatewayRole?: BPMNGatewayRole;
+  trustScore?: number;
+  multiplicity?: number;
+  // Lane/task Agent diagram ref. Free-form UUID; never validated here because the
+  // target project may not even contain the diagram.
+
+  agentDiagramRef?: string;
+  // Reviewer lane UUID for cross-reflection.
+  reflectionReviewerLaneId?: string;
+  // Governance DSL CDATA child (merging gateways only). Opaque string.
+  governanceDsl?: string;
+} {
+  const a = findAgenticExtension(parent);
+  if (!a) return null;
+  const out: Record<string, unknown> = { isAgentic: true };
+  // Toast wording is kept short because hash IDs are not user-meaningful and the
+  // file is short enough to inspect directly.
+  const oneOf = <T extends string>(name: string, allowed: readonly T[]): T | undefined => {
+    const v = a.getAttribute(name);
+    if (v === null) return undefined;
+    if ((allowed as readonly string[]).includes(v)) return v as T;
+    warnings.push({
+      code: 'agentic-unknown-enum',
+      message: `Agentic ${name}="${v}" not recognised; ignored.`,
+    });
+    return undefined;
+  };
+  // Accept the four AgentCategory tokens and legacy worker/manager
+  // values (migrated), so older .bpmn files still import their lane role. Only emit
+  // when the attribute was actually present — absence keeps the model default.
+  const rawRole = a.getAttribute('role');
+  if (rawRole !== null) out.role = migrateLegacyRole(rawRole);
+  const reflectionMode = oneOf('reflectionMode', ['none', 'self', 'cross', 'human'] as const);
+  if (reflectionMode !== undefined) out.reflectionMode = reflectionMode;
+  const gatewayRole = oneOf('gatewayRole', ['diverging', 'merging'] as const);
+  if (gatewayRole !== undefined) out.gatewayRole = gatewayRole;
+  const tsRaw = a.getAttribute('trustScore');
+  if (tsRaw !== null) {
+    const n = Number.parseInt(tsRaw, 10);
+    if (Number.isFinite(n)) {
+      out.trustScore = clampTrustScore(n);
+    } else {
+      warnings.push({
+        code: 'agentic-bad-trust-score',
+        message: `Agentic trustScore="${tsRaw}" is not a number; ignored.`,
+      });
+    }
+  }
+  const mRaw = a.getAttribute('multiplicity');
+  if (mRaw !== null) {
+    const n = Number.parseInt(mRaw, 10);
+    if (Number.isFinite(n)) {
+      out.multiplicity = clampMultiplicity(n);
+    } else {
+      warnings.push({
+        code: 'agentic-bad-multiplicity',
+        message: `Agentic multiplicity="${mRaw}" is not a number; ignored.`,
+      });
+    }
+  }
+  // Opaque pass-through. Empty string ("") is treated as absent so
+  // a malformed export doesn't create an unresolvable dead ref.
+  const ref = a.getAttribute('agentDiagramRef');
+  if (ref !== null && ref !== '') {
+    out.agentDiagramRef = ref;
+  }
+  const reviewerRef = a.getAttribute('reflectionReviewerLaneId');
+  if (reviewerRef !== null && reviewerRef !== '') {
+    out.reflectionReviewerLaneId = reviewerRef;
+  }
+  // Governance DSL is a sibling CDATA child of <agentic:agentic>, not an
+  // attribute. Read it off the same extensionElements parent.
+  const gov = findGovernanceText(parent);
+  if (gov !== null && gov !== '') out.governanceDsl = gov;
+  return out as ReturnType<typeof parseAgenticExtension>;
+}
+
 // ─── Internal types (closed-over by the parser) ─────────────────────────────
 
 interface AnyBPMNElement extends UMLElement {
@@ -183,7 +314,10 @@ function parseDefinitions(root: Element, ctx: SemanticContext): void {
     }
     // Message flows live at the collaboration level.
     for (const mf of childrenByLocalName(collab, 'messageFlow')) {
-      ctx.edges.push(makeEdge(mf, 'message'));
+      const edge = makeEdge(mf, 'message');
+      const mfExt = parseAgenticExtension(mf, ctx.warnings, edge.id);
+      if (mfExt) Object.assign(edge, mfExt);
+      ctx.edges.push(edge);
     }
   }
 
@@ -206,7 +340,10 @@ function parseProcess(proc: Element, poolId: string | null, ctx: SemanticContext
         ctx.warnings.push({ code: 'lane-without-pool', message: `Lane ${laneId} in pool-less process; ignored` });
         continue;
       }
-      ctx.nodes.push(makeNode(laneId, 'BPMNSwimlane', name, poolId));
+      const laneNode = makeNode(laneId, 'BPMNSwimlane', name, poolId);
+      const laneExt = parseAgenticExtension(lane, ctx.warnings, laneId);
+      if (laneExt) Object.assign(laneNode, laneExt);
+      ctx.nodes.push(laneNode);
       for (const ref of childrenByLocalName(lane, 'flowNodeRef')) {
         const id = (ref.textContent ?? '').trim();
         if (id) laneOf.set(id, laneId);
@@ -223,6 +360,8 @@ function parseProcess(proc: Element, poolId: string | null, ctx: SemanticContext
     const owner = laneOf.get(id) ?? poolId ?? undefined;
     const node = createFlowNode(child, tag, id, name, owner);
     if (!node) continue;
+    const nodeExt = parseAgenticExtension(child, ctx.warnings, id);
+    if (nodeExt) Object.assign(node, nodeExt);
     ctx.nodes.push(node);
 
     // Default-flow attribute (BPMN 2.0.2 § 8.3.13).
@@ -409,7 +548,7 @@ function parseDiagramInterchange(root: Element): DiMaps {
   return out;
 }
 
-// ─── Coordinate transform (§4 of the guide) ─────────────────────────────────
+// ─── Coordinate transform ─────────────────────────────────
 
 // Apollon's BPMN package stores bounds in ABSOLUTE canvas coordinates for every
 // element regardless of the `owner` chain (pool, lane, flow node, data, artifact).
@@ -545,7 +684,37 @@ export function bpmnXmlToApollon(xml: string): ImportResult {
     assessments: {},
   };
 
+  // T1/P3′: collaborationMode is deleted, so the F3 mode-derivation post-pass
+  // is gone. Keep only the orphaned-merging-gateway warning (a merging gateway
+  // with no upstream diverging gateway is still a structural smell).
+  warnOrphanedMergingGateways(model, ctx.warnings);
+
   return { model, warnings: ctx.warnings, skipped: ctx.skipped };
+}
+
+// Build the unified element + relationship map the validator helpers consume.
+// Same shape as `validateAllBpmnFlows`'s input after the 04C FB1 fix.
+function unifiedElementsById(model: UMLModel): Record<string, { id: string; type: string; [k: string]: unknown }> {
+  const out: Record<string, { id: string; type: string; [k: string]: unknown }> = {};
+  for (const id of Object.keys(model.elements)) out[id] = model.elements[id] as never;
+  for (const id of Object.keys(model.relationships)) out[id] = model.relationships[id] as never;
+  return out;
+}
+
+// T1/P3′: warn on agentic merging gateways with no upstream diverging gateway.
+// (Was the F3 post-pass that also re-derived the now-deleted collaborationMode
+// and aligned gateway types — both removed with the SEAA'25 merge vocabulary.)
+function warnOrphanedMergingGateways(model: UMLModel, warnings: ParseWarning[]): void {
+  const unified = unifiedElementsById(model);
+  const orphanIds = findOrphanedMergingGateways(unified);
+  for (const id of orphanIds) {
+    const el = model.elements[id] as unknown as { name?: string };
+    const label = el?.name && el.name.length > 0 ? `"${el.name}"` : 'unnamed';
+    warnings.push({
+      code: 'orphaned-merging-gateway',
+      message: `Agentic merging gateway ${label} has no upstream diverging gateway; collaboration mode unknown.`,
+    });
+  }
 }
 
 function centerOnOrigin(nodes: AnyBPMNElement[], edges: AnyBPMNFlow[]): void {

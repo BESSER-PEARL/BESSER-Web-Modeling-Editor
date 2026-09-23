@@ -35,6 +35,11 @@ export interface ModificationTarget {
   nodeId?: string;
   nodeName?: string;
   flowId?: string;
+  // Component / Deployment
+  elementId?: string;
+  elementName?: string;
+  poolName?: string;
+  swimlaneName?: string;
 }
 
 export interface ModificationChanges {
@@ -57,6 +62,19 @@ export interface ModificationChanges {
   target?: string;
   label?: string;
   value?: string;
+  // BPMN add_task / add_gateway / add_event / modify_node fields
+  // (source / target / label / name reused from above for add_flow)
+  taskType?: string;
+  gatewayType?: string;
+  eventKind?: string;
+  // Component / Deployment / Agentic BPMN
+  dependencyStereotype?: string;
+  role?: string;
+  isAgentic?: boolean;
+  trustScore?: number;
+  multiplicity?: number;
+  poolName?: string;
+  owner?: string;
   // add_class / add_object fields
   className?: string;
   classId?: string;
@@ -84,12 +102,6 @@ export interface ModificationChanges {
   entryAction?: string;
   exitAction?: string;
   doActivity?: string;
-  // BPMN add_task / add_gateway / add_event / modify_node fields
-  // (source / target / label / name reused from above for add_flow)
-  taskType?: string;
-  gatewayType?: string;
-  eventKind?: string;
-  eventType?: string;
   // add_state (agent) / add_intent fields
   replies?: Array<{ text: string; replyType?: string; ragDatabaseName?: string }>;
   trainingPhrases?: string[];
@@ -134,12 +146,28 @@ export interface ModelModification {
     | 'add_code_block'
     | 'add_rag_element'
     | 'add_ocl_constraint'
+    // BPMN (task/gateway/event/flow) already covered; pool/lane are new:
     | 'add_task'
     | 'add_gateway'
     | 'add_event'
     | 'add_flow'
     | 'modify_node'
-    | 'remove_flow';
+    | 'remove_flow'
+    // Component diagram
+    | 'add_component'
+    | 'add_subsystem'
+    | 'add_dependency'
+    | 'modify_element'
+    | 'remove_dependency'
+    // Deployment diagram
+    | 'add_node'
+    | 'add_artifact'
+    // Agentic BPMN
+    | 'add_pool'
+    | 'add_swimlane'
+    | 'modify_swimlane'
+    | 'remove_swimlane'
+    | 'remove_pool';
   target: ModificationTarget;
   changes: ModificationChanges;
   message?: string;

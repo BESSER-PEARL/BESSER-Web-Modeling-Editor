@@ -15,16 +15,20 @@ import { BPMNTask, BPMNTaskType } from './bpmn-task';
 import { StylePane } from '../../../components/style-pane/style-pane';
 import { ColorButton } from '../../../components/controls/color-button/color-button';
 import { Switch } from '../../../components/controls/switch/switch';
-import { BPMNMarkerType } from '../common/types';
+import { BPMNMarkerType, BPMNReflectionMode, clampTrustScore } from '../common/types';
 import { BpmnLoopMarkerIcon } from '../common/markers/bpmn-loop-marker-icon';
 import { BPMNParallelMarkerIcon } from '../common/markers/bpmn-parallel-marker-icon';
 import { BPMNSequentialMarkerIcon } from '../common/markers/bpmn-sequential-marker-icon';
+import { AgentDiagramLinkSection } from '../../../components/agent-diagram-linker/AgentDiagramLinkSection';
 
 interface OwnProps {
   element: BPMNTask;
 }
 
-type StateProps = {};
+// Agentic lanes available as cross-reflection reviewer candidates.
+interface StateProps {
+  agenticLanes: Array<{ id: string; name: string }>;
+}
 
 interface DispatchProps {
   update: typeof UMLElementRepository.update;
@@ -33,9 +37,20 @@ interface DispatchProps {
 
 type Props = OwnProps & StateProps & DispatchProps & I18nContext;
 
+const mapStateToProps = (state: ModelState, ownProps: OwnProps): StateProps => ({
+  agenticLanes: Object.values(state.elements)
+    .filter(
+      (el) =>
+        el.type === 'BPMNSwimlane' &&
+        (el as { isAgentic?: boolean }).isAgentic === true &&
+        el.id !== ownProps.element.owner,
+    )
+    .map((el) => ({ id: el.id, name: el.name })),
+});
+
 const enhance = compose<ComponentClass<OwnProps>>(
   localized,
-  connect<StateProps, DispatchProps, OwnProps, ModelState>(null, {
+  connect<StateProps, DispatchProps, OwnProps, ModelState>(mapStateToProps, {
     update: UMLElementRepository.update,
     delete: UMLElementRepository.delete,
   }),
@@ -119,6 +134,69 @@ class BPMNTaskUpdateComponent extends Component<Props, State> {
             </Switch.Item>
           </Switch>
         </section>
+        {/* Agentic BPMN (04D): the "Agentic" toggle marks the task as agentic
+            and reveals the reflection-mode / trust-score fields. */}
+        <section>
+          <Divider />
+          <Switch value={element.isAgentic ? 'agentic' : ''} onChange={this.toggleAgentic(element.id)} color="primary">
+            <Switch.Item value={'agentic'}>{this.props.translate('packages.BPMNDiagram.BPMNAgentic')}</Switch.Item>
+          </Switch>
+        </section>
+        {element.isAgentic && (
+          <>
+            <section>
+              <Divider />
+              <Dropdown value={element.reflectionMode} onChange={this.changeReflectionMode(element.id)}>
+                <Dropdown.Item value={'none'}>
+                  {this.props.translate('packages.BPMNDiagram.BPMNReflectionNone')}
+                </Dropdown.Item>
+                <Dropdown.Item value={'self'}>
+                  {this.props.translate('packages.BPMNDiagram.BPMNReflectionSelf')}
+                </Dropdown.Item>
+                <Dropdown.Item value={'cross'}>
+                  {this.props.translate('packages.BPMNDiagram.BPMNReflectionCross')}
+                </Dropdown.Item>
+                <Dropdown.Item value={'human'}>
+                  {this.props.translate('packages.BPMNDiagram.BPMNReflectionHuman')}
+                </Dropdown.Item>
+              </Dropdown>
+            </section>
+            {element.reflectionMode === 'cross' && (
+              <section>
+                <Divider />
+                <span>{this.props.translate('packages.BPMNDiagram.BPMNReflectionReviewerLabel')}</span>
+                <Dropdown
+                  value={element.reflectionReviewerLaneId ?? ''}
+                  onChange={this.changeReviewerLane(element.id)}
+                >
+                  <Dropdown.Item value={''}>
+                    {this.props.translate('packages.BPMNDiagram.BPMNReflectionReviewerUnspecified')}
+                  </Dropdown.Item>
+                  {this.props.agenticLanes.map((l) => (
+                    <Dropdown.Item key={l.id} value={l.id}>
+                      {l.name || l.id}
+                    </Dropdown.Item>
+                  ))}
+                </Dropdown>
+              </section>
+            )}
+            <section>
+              <Divider />
+              <Flex>
+                <span>{this.props.translate('packages.BPMNDiagram.BPMNTrustScore')}</span>
+                <Textfield value={String(element.trustScore)} onChange={this.changeTrustScore(element.id)} />
+              </Flex>
+            </section>
+            {/* Agentic-task → Agent-diagram link. Reuses the generic
+                section 08 built for the lane (props named laneId/laneName
+                are carry-over misnomers — they hold the task id/name). */}
+            <AgentDiagramLinkSection
+              laneId={element.id}
+              laneName={element.name}
+              agentDiagramRef={element.agentDiagramRef}
+            />
+          </>
+        )}
       </div>
     );
   }
@@ -150,6 +228,36 @@ class BPMNTaskUpdateComponent extends Component<Props, State> {
     }
 
     this.props.update<BPMNTask>(id, { marker: value as BPMNMarkerType });
+  };
+
+  /**
+   * Toggle whether the task is agentic (Agentic BPMN — 04D)
+   * @param id The ID of the task to toggle
+   */
+  private toggleAgentic = (id: string) => (_value: string) => {
+    this.props.update<BPMNTask>(id, { isAgentic: !this.props.element.isAgentic });
+  };
+
+  /**
+   * Change the reflection mode of an agentic task
+   * @param id The ID of the task whose reflection mode should be changed
+   */
+  private changeReflectionMode = (id: string) => (value: string) => {
+    this.props.update<BPMNTask>(id, { reflectionMode: value as BPMNReflectionMode });
+  };
+
+  // Set or clear the reviewer lane for cross-reflection.
+  private changeReviewerLane = (id: string) => (value: string) => {
+    this.props.update<BPMNTask>(id, { reflectionReviewerLaneId: value === '' ? undefined : value });
+  };
+
+  /**
+   * Change the trust score of an agentic task (clamped to 0–100)
+   * @param id The ID of the task whose trust score should be changed
+   */
+  private changeTrustScore = (id: string) => (value: string) => {
+    const parsed = Number.parseInt(value, 10);
+    this.props.update<BPMNTask>(id, { trustScore: clampTrustScore(Number.isFinite(parsed) ? parsed : 0) });
   };
 
   /**

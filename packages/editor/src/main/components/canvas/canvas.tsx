@@ -115,6 +115,8 @@ export class CanvasComponent extends Component<Props> implements Omit<ILayer, 'l
                   .map((relationship) => (
                     <UMLElementComponent key={relationship} id={relationship} />
                   ))}
+                {/* Drag overlay: moving elements portal here so they paint above all lanes/pools */}
+                <g id="apollon-drag-overlay" />
                 <ConnectionPreview />
               </svg>
             )}

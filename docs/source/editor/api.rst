@@ -83,6 +83,12 @@ Model management
 ``editor.select(selection)`` (method)
    Programmatically select/deselect elements by ID using the ``Selection`` type.
 
+``editor.setLineageProvider(provider?)``
+   Registers an optional provider used by element popups to show **Derived
+   from** source links. The host application owns lineage storage and navigation;
+   the editor only asks the provider to resolve an element ID and to handle the
+   source-navigation request. Pass ``undefined`` to clear the provider.
+
 Subscriptions
 -------------
 

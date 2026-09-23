@@ -33,7 +33,8 @@ export enum SoftwarePatternType {
   // BPMN patterns
   BPMN_PARALLEL_REVIEW = 'Parallel Document Review',
   BPMN_CAR_WASH = 'Car Wash Collaboration',
-  BPMN_ORDER_FULFILLMENT = 'Pizza Store Collaboration',
+  BPMN_PIZZA_STORE = 'Pizza Store Collaboration',
+  BPMN_AGENTIC_STARTER = 'Agentic Bug-fixing Process',
   // Neural Network patterns
   NN_TUTORIAL_EXAMPLE = 'CIFAR-10 CNN (with Training + Test)',
   NN_ALEXNET = 'AlexNet',

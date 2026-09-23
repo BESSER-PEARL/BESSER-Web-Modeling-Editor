@@ -2,6 +2,7 @@ import React, { FunctionComponent } from 'react';
 import { Point } from '../../../utils/geometry/point';
 import { AgentStateTransition } from './agent-state-transition';
 import { ThemedPath, ThemedPolyline } from '../../../components/theme/themedComponents';
+import { A2ABadge, a2aTitle, parseA2ATag } from '../a2a-notation/a2a-notation';
 
 export const AgentStateTransitionComponent: FunctionComponent<Props> = ({ element }) => {
   let position = { x: 0, y: 0 };
@@ -42,6 +43,8 @@ export const AgentStateTransitionComponent: FunctionComponent<Props> = ({ elemen
   };
 
   const fill = element.textColor ? { fill: element.textColor } : {};
+  const a2aTag = parseA2ATag(element.name);
+  const showA2AReceive = a2aTag?.dir === 'in';
 
   const getConditionName = () => {
     const predefinedType = element.predefinedType;
@@ -134,6 +137,14 @@ export const AgentStateTransitionComponent: FunctionComponent<Props> = ({ elemen
         strokeWidth={1}
         markerEnd={`url(#marker-${element.id})`}
       />
+      {showA2AReceive && (
+        <A2ABadge
+          dir="in"
+          x={position.x + (direction === 'v' ? -56 : -122)}
+          y={position.y + (direction === 'v' ? -8 : -44)}
+          title={a2aTitle([a2aTag], 'BPMN-derived A2A receive')}
+        />
+      )}
       <text x={position.x} y={position.y} {...layoutText(direction)} pointerEvents="none" style={{ ...fill }}>
         {getConditionName()}
       </text>

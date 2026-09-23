@@ -3,7 +3,7 @@ import {
   BPMNStartEventType,
 } from '../../../../../main/packages/bpmn/bpmn-start-event/bpmn-start-event';
 
-describe('BPMNStartEvent - eventType (Phase A construct gaps)', () => {
+describe('BPMNStartEvent - eventType (construct gaps)', () => {
   const newTypes: BPMNStartEventType[] = ['escalation', 'error', 'compensation', 'link'];
 
   it.each(newTypes)('should accept %s as a valid start-event type', (type) => {

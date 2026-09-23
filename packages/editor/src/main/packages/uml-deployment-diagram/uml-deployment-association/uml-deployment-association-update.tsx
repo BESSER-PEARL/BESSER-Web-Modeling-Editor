@@ -11,7 +11,7 @@ import { ModelState } from '../../../components/store/model-state';
 import { UMLElementRepository } from '../../../services/uml-element/uml-element-repository';
 import { UMLRelationshipRepository } from '../../../services/uml-relationship/uml-relationship-repository';
 import { UMLDeploymentAssociation } from './uml-deployment-association';
-import { Header } from '../../../components/controls/typography/typography';
+import { Body, Header } from '../../../components/controls/typography/typography';
 import { ExchangeIcon } from '../../../components/controls/icon/exchange';
 import { Divider } from '../../../components/controls/divider/divider';
 import { Dropdown } from '../../../components/controls/dropdown/dropdown';
@@ -21,6 +21,7 @@ import { DeploymentRelationshipType } from '../index';
 import { UMLDeploymentDependency } from '../uml-deployment-dependency/uml-deployment-dependency';
 import { ColorButton } from '../../../components/controls/color-button/color-button';
 import { StylePane } from '../../../components/style-pane/style-pane';
+import { LineageSourceLink } from '../../../components/lineage/LineageSourceLink';
 
 const Flex = styled.div`
   display: flex;
@@ -92,14 +93,27 @@ class DeploymentAssociationUpdate extends Component<Props, State> {
             <Divider />
             <section>
               <Flex>
-                <Textfield value={element.name} onChange={this.rename} autoFocus />
+                <Body style={{ marginRight: '0.5em' }}>Label</Body>
+                <Textfield value={element.name} onChange={this.rename} autoFocus placeholder="e.g. kv-store-conn" />
                 <Button color="link" onClick={() => this.props.delete(element.id)}>
                   <TrashIcon />
                 </Button>
               </Flex>
             </section>
+            <section>
+              <Flex>
+                <Body style={{ marginRight: '0.5em' }}>Stereotype</Body>
+                <Textfield
+                  value={(element as unknown as { stereotype?: string }).stereotype ?? ''}
+                  onChange={this.onStereotypeChange}
+                  placeholder="e.g. HTTPS, gRPC, device"
+                />
+              </Flex>
+            </section>
           </>
         )}
+        {/* Self-gating: only renders for derived edges. */}
+        <LineageSourceLink elementId={element.id} />
       </div>
     );
   }
@@ -112,6 +126,11 @@ class DeploymentAssociationUpdate extends Component<Props, State> {
   private rename = (value: string) => {
     const { element, update } = this.props;
     update(element.id, { name: value });
+  };
+
+  private onStereotypeChange = (value: string) => {
+    const { element, update } = this.props;
+    update(element.id, { stereotype: value } as any);
   };
 }
 

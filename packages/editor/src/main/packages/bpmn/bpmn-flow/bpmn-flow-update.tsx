@@ -173,10 +173,6 @@ class BPMNFlowUpdateComponent extends Component<Props, State> {
     this.props.update(id, { name: value });
   };
 
-  /**
-   * Change the type of the gateway
-   * @param id The ID of the gateway whose type should be changed
-   */
   private changeFlowType = (id: string) => (value: string) => {
     this.props.update<BPMNFlow>(id, { flowType: value as BPMNFlowType });
   };
@@ -199,7 +195,7 @@ class BPMNFlowUpdateComponent extends Component<Props, State> {
   // `isDefault` is set and the post-flip source (= current target) is not a
   // valid default source, clear `isDefault` before the flip so the data
   // reflects the spec. Endpoint-drag is not intercepted here — see §11 of the
-  // 04A1 guide for the deferred saga-based fix.
+  // Deferred until the saga-based connection fix is implemented.
   private handleFlip = () => {
     const { element, targetElement } = this.props;
     if (element.isDefault && !canBeDefault(element.flowType, targetElement)) {

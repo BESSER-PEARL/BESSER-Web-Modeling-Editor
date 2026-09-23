@@ -1,6 +1,9 @@
 import React, { FunctionComponent } from 'react';
 import { ThemedCircle, ThemedPolyline } from '../../../../components/theme/themedComponents';
 import { Multiline } from '../../../../utils/svg/multiline';
+import { BPMNBotIcon } from '../../common/icons/bpmn-bot-icon';
+import { BPMNMergeMarkerIcon } from '../../common/icons/bpmn-merge-marker-icon';
+import { BPMNGovernanceBadgeIcon } from '../../common/icons/bpmn-governance-badge-icon';
 import { Props } from '../bpmn-gateway-component';
 
 export const BPMNInclusiveGatewayComponent: FunctionComponent<Props> = ({ element, fillColor }) => (
@@ -31,5 +34,27 @@ export const BPMNInclusiveGatewayComponent: FunctionComponent<Props> = ({ elemen
     >
       {element.name}
     </Multiline>
+    {/* Agentic BPMN (T1/P3′ rationalization): bot icon top-left marks the
+        agentic gateway. The diverging side carries NO bottom-right marker
+        (O3 — collaborationMode deleted, the BPMN gateway pair already shows
+        the block boundary). The merging side keeps the merge glyph and gains a
+        small "governed" badge when a governance policy is attached (O4). */}
+    {element.isAgentic && (
+      <>
+        <BPMNBotIcon x={-4} y={-4} color={element.strokeColor} />
+        {element.gatewayRole === 'merging' && (
+          <BPMNMergeMarkerIcon
+            x={element.bounds.width - 12}
+            y={element.bounds.height - 12}
+            color={element.strokeColor}
+          />
+        )}
+        {element.gatewayRole === 'merging' &&
+          element.governanceDsl !== undefined &&
+          element.governanceDsl.trim() !== '' && (
+            <BPMNGovernanceBadgeIcon x={element.bounds.width - 12} y={-6} color={element.strokeColor} />
+          )}
+      </>
+    )}
   </g>
 );

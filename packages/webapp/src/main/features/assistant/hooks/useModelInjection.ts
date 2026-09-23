@@ -71,7 +71,7 @@ function getModelBounds(model: any): ModelBounds | null {
  * (all AI-generated models after the §1.1 centering fix) this keeps the
  * diagram in view without a manual pan.
  */
-function centerEditorViewport(model: any, delayMs = 200): void {
+export function centerEditorViewport(model: any, delayMs = 200): void {
   setTimeout(() => {
     const sc = document.querySelector('[data-editor-scroll="1"]') as HTMLElement | null;
     if (!sc) return;

@@ -22,6 +22,9 @@ it, but external applications can use it directly.
    │   ├── uml-object-diagram/  #   Object instances, links
    │   ├── uml-state-diagram/   #   States, transitions, initial/final nodes
    │   ├── agent-state-diagram/ #   Agent states, intents, transitions
+   │   ├── bpmn/                #   BPMN and agentic BPMN elements
+   │   ├── uml-component-diagram/  # Component diagram elements
+   │   ├── uml-deployment-diagram/ # Deployment diagram elements
    │   ├── common/              #   Shared element logic
    │   ├── diagram-type.ts      #   Registry of all diagram types
    │   ├── uml-element-type.ts  #   Registry of all element types
@@ -91,6 +94,7 @@ collaboration.
    │   ├── github/                 #   GitHub OAuth and deploy-to-repo
    │   ├── import/                 #   Import dialogs (file, image, KG)
    │   ├── export/                 #   Export dialogs (BUML, JSON, SVG, PDF)
+   │   ├── inter-diagram/          #   BPMN -> Component, Component -> Deployment, lineage
    │   ├── agent-config/           #   Agent-specific configuration
    │   ├── assistant/              #   AI agent widget (bot icon)
    │   └── onboarding/             #   Tutorial / first-use flow

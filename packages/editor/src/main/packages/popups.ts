@@ -38,6 +38,7 @@ import { BPMNIntermediateEventUpdate } from './bpmn/bpmn-intermediate-event/bpmn
 import { BPMNStartEventUpdate } from './bpmn/bpmn-start-event/bpmn-start-event-update';
 import { BPMNEndEventUpdate } from './bpmn/bpmn-end-event/bpmn-end-event-update';
 import { BPMNTaskUpdate } from './bpmn/bpmn-task/bpmn-task-update';
+import { BPMNSwimlaneUpdate } from './bpmn/bpmn-swimlane/bpmn-swimlane-update';
 import { BPMNSubprocessUpdate } from './bpmn/bpmn-subprocess/bpmn-subprocess-update';
 import { BPMNTransactionUpdate } from './bpmn/bpmn-transaction/bpmn-transaction-update';
 import { BPMNCallActivityUpdate } from './bpmn/bpmn-call-activity/bpmn-call-activity-update';
@@ -118,7 +119,7 @@ export const Popups: { [key in UMLElementType | UMLRelationshipType]: ComponentT
   // management) have custom popups; the rest fall back to DefaultPopup
   // (generic name + style). When a deferred construct gains attributes
   // (e.g. Subprocess.isExpanded, CallActivity.calledElement — see
-  // 04-bpmn-construct-gaps-guide.md §A.3), give it a custom popup then.
+  // BPMN-specific validation later needs a dedicated editor, give it a custom popup then.
   [UMLElementType.BPMNTask]: BPMNTaskUpdate,
   [UMLElementType.BPMNSubprocess]: BPMNSubprocessUpdate,
   [UMLElementType.BPMNTransaction]: BPMNTransactionUpdate,
@@ -132,7 +133,7 @@ export const Popups: { [key in UMLElementType | UMLRelationshipType]: ComponentT
   [UMLElementType.BPMNDataStore]: DefaultPopup,
   [UMLElementType.BPMNGroup]: DefaultPopup,
   [UMLElementType.BPMNPool]: BPMNPoolUpdate,
-  [UMLElementType.BPMNSwimlane]: DefaultPopup,
+  [UMLElementType.BPMNSwimlane]: BPMNSwimlaneUpdate,
   [UMLElementType.State]: UMLStateUpdate,
   [UMLElementType.StateBody]: null,
   [UMLElementType.StateFallbackBody]: null,

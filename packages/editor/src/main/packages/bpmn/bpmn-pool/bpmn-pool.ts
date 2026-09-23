@@ -18,7 +18,7 @@ export class BPMNPool extends UMLPackage {
     movable: true,
     // Both axes allowed at the gesture level; the real constraint is enforced
     // per-instance in render(): an empty pool resizes vertically, a laned pool
-    // stays lane-driven (its height delta is rejected). See guide 15.
+    // stays lane-driven (its height delta is rejected).
     resizable: true,
     connectable: true,
   };
@@ -34,7 +34,7 @@ export class BPMNPool extends UMLPackage {
 
   // Swimlanes must paint before non-lane children so their background rect sits
   // behind tasks/events. SVG renders later elements on top; putting lanes first
-  // in ownedElements ensures tasks always appear above lane backgrounds. (Guide 16.)
+  // in ownedElements ensures tasks always appear above lane backgrounds.
   reorderChildren(children: IUMLElement[]): string[] {
     const lanes = children.filter((c) => c.type === BPMNElementType.BPMNSwimlane);
     const rest = children.filter((c) => c.type !== BPMNElementType.BPMNSwimlane);
@@ -50,7 +50,7 @@ export class BPMNPool extends UMLPackage {
     if (swimlanes.length === 0) {
       // No lanes: nothing drives the pool's height, so the pool itself is the
       // vertically resizable element (features.resizable === true). Respect the
-      // user's dragged height; only enforce a sensible floor. (Guide 15.)
+      // user's dragged height; only enforce a sensible floor.
       if (this.bounds.height < BPMNPool.MIN_HEIGHT) {
         this.bounds.height = BPMNPool.MIN_HEIGHT;
       }
@@ -108,7 +108,7 @@ export class BPMNPool extends UMLPackage {
 
     // 4a. If the stacked lane total is shorter than the pool's current height
     // (e.g. first lane dropped on a tall empty pool), expand the last lane to
-    // fill instead of snapping the pool down. (Guide 16.)
+    // fill instead of snapping the pool down.
     if (currentY < this.bounds.height && orderedSwimlanes.length > 0) {
       const lastLane = orderedSwimlanes[orderedSwimlanes.length - 1];
       lastLane.bounds.height += this.bounds.height - currentY;
@@ -121,7 +121,7 @@ export class BPMNPool extends UMLPackage {
     // TOPRIGHT) additionally shifted the pool's y by the same delta (see
     // ResizingReducer.getUpdatedPosition); undo that shift so rejecting the
     // height change doesn't drift the pool upward. Bottom-edge drags change
-    // height only — y is untouched, so no correction there. (Guide 15.)
+    // height only — y is untouched, so no correction there.
     const totalHeight = currentY;
     const desiredHeight = Math.max(totalHeight, BPMNPool.MIN_HEIGHT);
     if (this.resizeFrom === ResizeFrom.TOPLEFT || this.resizeFrom === ResizeFrom.TOPRIGHT) {

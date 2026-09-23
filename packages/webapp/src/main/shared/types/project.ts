@@ -5,6 +5,8 @@ export type SupportedDiagramType =
   | 'ObjectDiagram'
   | 'StateMachineDiagram'
   | 'AgentDiagram'
+  | 'ComponentDiagram'
+  | 'DeploymentDiagram'
   | 'UserDiagram'
   | 'GUINoCodeDiagram'
   | 'QuantumCircuitDiagram'
@@ -24,6 +26,8 @@ export const ALL_DIAGRAM_TYPES: SupportedDiagramType[] = [
   'QuantumCircuitDiagram',
   'NNDiagram',
   'BPMN',
+  'ComponentDiagram',
+  'DeploymentDiagram',
 ];
 
 export type PerspectiveSettings = Record<SupportedDiagramType, boolean>;
@@ -73,6 +77,24 @@ export interface QuantumCircuitData {
   version?: string;
 }
 
+/**
+ * Diagram-level lineage recorded by the inter-diagram
+ * derivations (BPMN→Component, Component→Deployment). Sidecar shape
+ * without requiring editor-package storage changes.
+ */
+export interface DiagramLineage {
+  /** id of the source ProjectDiagram (same project). */
+  sourceDiagramId: string;
+  /** which diagram type the source is, so the UI doesn't have to look it up. */
+  sourceDiagramType: SupportedDiagramType;
+  /** which transform produced this diagram. */
+  derivationKind: 'bpmn-to-component' | 'component-to-deployment' | 'bpmn-to-agent';
+  /** ISO timestamp at derivation time. */
+  derivedAt: string;
+  /** djb2 hash of the source UMLModel at derivation time. */
+  sourceModelHash: string;
+}
+
 // Diagram structure within a project
 export interface ProjectDiagram {
   id: string;
@@ -87,7 +109,18 @@ export interface ProjectDiagram {
   /** Per-diagram cross-references: maps a diagram type to the ID of the diagram this depends on.
    *  E.g. a GUINoCodeDiagram may reference a specific ClassDiagram and AgentDiagram by their UUID. */
   references?: Partial<Record<SupportedDiagramType, string>>;
+  /** Set by inter-diagram derivation hooks. Undefined on
+   *  user-imported diagrams and on the source side of any derivation. */
+  derivedFrom?: DiagramLineage;
 }
+
+/**
+ * Per-derived-diagram element mapping: derived element id →
+ * source element id. The source diagram is implied by the containing
+ * `ProjectDiagram.derivedFrom.sourceDiagramId`. Sidecar on
+ * `BesserProject` without requiring editor-package storage changes.
+ */
+export type ElementLineageMap = Record<string, string>;
 
 export type ProjectDiagramModel = UMLModel | GrapesJSProjectData | QuantumCircuitData;
 
@@ -107,6 +140,8 @@ export interface BesserProject {
     ObjectDiagram: ProjectDiagram[];
     StateMachineDiagram: ProjectDiagram[];
     AgentDiagram: ProjectDiagram[];
+    ComponentDiagram: ProjectDiagram[];
+    DeploymentDiagram: ProjectDiagram[];
     UserDiagram: ProjectDiagram[];
     GUINoCodeDiagram: ProjectDiagram[];
     QuantumCircuitDiagram: ProjectDiagram[];
@@ -119,6 +154,10 @@ export interface BesserProject {
     collaborationEnabled: boolean;
     perspectives: PerspectiveSettings;
   };
+  /** derivedDiagramId → ElementLineageMap. Sidecar; populated
+   *  by the inter-diagram derivation hooks after the derived diagram
+   *  is added. Survives import/export. */
+  elementLineage?: Record<string, ElementLineageMap>;
 }
 
 // Helper to get the active diagram for a type
@@ -164,6 +203,8 @@ const defaultDiagramIndices = (): Record<SupportedDiagramType, number> => ({
   ObjectDiagram: 0,
   StateMachineDiagram: 0,
   AgentDiagram: 0,
+  ComponentDiagram: 0,
+  DeploymentDiagram: 0,
   UserDiagram: 0,
   GUINoCodeDiagram: 0,
   QuantumCircuitDiagram: 0,
@@ -208,6 +249,10 @@ export const toSupportedDiagramType = (type: UMLDiagramType): SupportedDiagramTy
       return 'StateMachineDiagram';
     case UMLDiagramType.AgentDiagram:
       return 'AgentDiagram';
+    case UMLDiagramType.ComponentDiagram:
+      return 'ComponentDiagram';
+    case UMLDiagramType.DeploymentDiagram:
+      return 'DeploymentDiagram';
     case UMLDiagramType.NNDiagram:
       return 'NNDiagram';
     case UMLDiagramType.UserDiagram:
@@ -230,6 +275,10 @@ export const toUMLDiagramType = (type: SupportedDiagramType): UMLDiagramType | n
       return UMLDiagramType.StateMachineDiagram;
     case 'AgentDiagram':
       return UMLDiagramType.AgentDiagram;
+    case 'ComponentDiagram':
+      return UMLDiagramType.ComponentDiagram;
+    case 'DeploymentDiagram':
+      return UMLDiagramType.DeploymentDiagram;
     case 'NNDiagram':
       return UMLDiagramType.NNDiagram;
     case 'UserDiagram':
@@ -400,6 +449,8 @@ export const createDefaultProject = (
       ObjectDiagram: [createEmptyDiagram('Object Diagram', UMLDiagramType.ObjectDiagram)],
       StateMachineDiagram: [createEmptyDiagram('State Machine Diagram', UMLDiagramType.StateMachineDiagram)],
       AgentDiagram: [createEmptyDiagram('Agent Diagram', UMLDiagramType.AgentDiagram)],
+      ComponentDiagram: [createEmptyDiagram('Component Diagram', UMLDiagramType.ComponentDiagram)],
+      DeploymentDiagram: [createEmptyDiagram('Deployment Diagram', UMLDiagramType.DeploymentDiagram)],
       UserDiagram: [createEmptyDiagram('User Diagram', UMLDiagramType.UserDiagram)],
       GUINoCodeDiagram: [createEmptyDiagram('GUI Diagram', null, 'gui')],
       QuantumCircuitDiagram: [createEmptyDiagram('Quantum Circuit', null, 'quantum')],
@@ -431,17 +482,28 @@ export const isProject = (obj: any): obj is BesserProject => {
     obj.diagrams.StateMachineDiagram &&
     obj.diagrams.AgentDiagram &&
     obj.diagrams.GUINoCodeDiagram &&
-    obj.diagrams.QuantumCircuitDiagram &&
-    obj.diagrams.BPMN;
+    obj.diagrams.QuantumCircuitDiagram;
 
   return !!hasRequiredDiagrams;
 };
 
 // Migrate/normalize a project object (called after isProject check, mutates in place)
 export const ensureProjectMigrated = (obj: BesserProject): BesserProject => {
-  // Add QuantumCircuitDiagram if missing
-  if (!obj.diagrams.QuantumCircuitDiagram) {
-    obj.diagrams.QuantumCircuitDiagram = [createEmptyDiagram('Quantum Circuit', null, 'quantum')];
+  // Defensive bucket-fill: any diagram type added in `ALL_DIAGRAM_TYPES` after the
+  // project was last saved gets an empty seed diagram. Catches projects from older
+  // commits without forcing a schema-version bump for every new diagram type.
+  for (const type of ALL_DIAGRAM_TYPES) {
+    if (!(obj.diagrams as any)[type]) {
+      const umlType = toUMLDiagramType(type);
+      const kind = type === 'GUINoCodeDiagram' ? 'gui' : type === 'QuantumCircuitDiagram' ? 'quantum' : undefined;
+      const title =
+        type === 'QuantumCircuitDiagram'
+          ? 'Quantum Circuit'
+          : type === 'GUINoCodeDiagram'
+            ? 'GUI Diagram'
+            : type.replace('Diagram', ' Diagram');
+      (obj.diagrams as any)[type] = [createEmptyDiagram(title, umlType, kind)];
+    }
   }
 
   // Add BPMN diagram if missing

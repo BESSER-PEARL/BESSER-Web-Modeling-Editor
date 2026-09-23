@@ -5,6 +5,7 @@ import { ColorButton } from '../../../components/controls/color-button/color-but
 import { Divider } from '../../../components/controls/divider/divider';
 import { TrashIcon } from '../../../components/controls/icon/trash';
 import { Textfield } from '../../../components/controls/textfield/textfield';
+import { Body } from '../../../components/controls/typography/typography';
 import { ModelState } from '../../../components/store/model-state';
 import { StylePane } from '../../../components/style-pane/style-pane';
 import { styled } from '../../../components/theme/styles';
@@ -12,6 +13,7 @@ import { UMLElementRepository } from '../../../services/uml-element/uml-element-
 import { AsyncDispatch } from '../../../utils/actions/actions';
 import { IUMLDeploymentNode, UMLDeploymentNode } from './uml-deployment-node';
 import { StereotypeToggle } from '../../../components/controls/stereotype-toggle/stereotype-toggle';
+import { LineageSourceLink } from '../../../components/lineage/LineageSourceLink';
 
 const Flex = styled.div`
   display: flex;
@@ -56,9 +58,16 @@ class DeploymentNodeUpdate extends Component<Props, State> {
         <section>
           <Divider />
           <Flex>
-            <Textfield value={element.stereotype} onChange={this.onStereotypeRename} />
+            <Body style={{ marginRight: '0.5em' }}>Stereotype</Body>
+            <Textfield
+              value={element.stereotype}
+              onChange={this.onStereotypeRename}
+              placeholder="e.g. node, device, executionEnvironment"
+            />
           </Flex>
         </section>
+        {/* Self-gating: only renders for derived DeploymentNodes. */}
+        <LineageSourceLink elementId={element.id} />
       </div>
     );
   }

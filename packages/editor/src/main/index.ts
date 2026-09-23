@@ -39,6 +39,12 @@ export * from './services/settings/settings-service';
 export * from './packages/bpmn/bpmn-flow/bpmn-flow-semantics';
 export * from './packages/bpmn/bpmn-flow/bpmn-flow-validator';
 
+// Export BPMN common attribute types — including the Agentic BPMN attributes
+// (BPMNAgentRole / BPMNReflectionMode / clampTrustScore) consumed by the
+// agentic vitest coverage and the extension serializer.
+export * from './packages/bpmn/common/types';
+export * from './packages/bpmn/common/governance-dsl';
+
 // Export the multiplicity helpers used by the ER-notation rendering
 // (parseMultiplicity / toERCardinality). Pure functions, safe to import
 // from tests and from consumer webapps.
@@ -68,6 +74,15 @@ export type {
 // Export only the Patch type (not the implementation) for type safety
 // Used when working with patching operations in TypeScript
 export type { Patch } from './services/patcher';
+
+// Public type for the agent-diagram linker callback object; the host
+// The host implements this and passes it to `editor.setAgentDiagramLinker`.
+export type { AgentDiagramLinker } from './components/agent-diagram-linker/AgentDiagramLinkerContext';
+
+// Public types for the cross-diagram element-picker provider; the host
+// The host implements `ElementPickerProvider` and passes it to
+// `editor.setElementPickerProvider` (see `useElementPickerProvider`).
+export type { ElementPickerProvider, PickableElement } from './components/element-picker/ElementPickerContext';
 
 // Export only the UMLModelCompat type for compatibility purposes
 // Provides type definitions for compatibility with different UML model versions

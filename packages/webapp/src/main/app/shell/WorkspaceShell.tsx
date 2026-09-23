@@ -16,6 +16,11 @@ import {
   useImportDiagramToProjectWorkflow,
   useImportBpmnDiagramToProjectWorkflow,
 } from '../../features/import/useImportDiagram';
+import {
+  useGenerateComponentDiagram,
+  useGenerateDeploymentDiagram,
+  useGenerateDockerCompose,
+} from '../../features/inter-diagram';
 import { LocalStorageRepository } from '../../shared/services/storage/local-storage-repository';
 import { readAgentVariants, getActiveAgentVariantId } from '../../shared/services/agent-variants/agent-variants-service';
 import { buildProjectExportEnvelope, PROJECT_EXPORT_VERSION } from '../../shared/utils/projectExportUtils';
@@ -67,6 +72,7 @@ const HelpGuideDialog = React.lazy(() =>
 import { KeyboardShortcutsDialog, useKeyboardShortcutsToggle } from '../../shared/dialogs/KeyboardShortcutsDialog';
 import { CommandPalette, useCommandPaletteShortcut, buildDefaultActions } from '../../shared/components/command-palette/CommandPalette';
 import { HiddenPerspectivesBanner } from '../../features/editors/HiddenPerspectivesBanner';
+import { GeneratingOverlay } from '../../shared/components/loading/GeneratingOverlay';
 
 export type { GeneratorType, GeneratorMenuMode } from './workspace-types';
 
@@ -487,6 +493,105 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
     switchDiagramType(type);
   }, [location.pathname, navigate, activeUmlType, currentDiagramType, switchDiagramType, ensureUserModelValidationBeforeNavigation]);
 
+  const deriveComponentDiagram = useGenerateComponentDiagram();
+  const handleDeriveComponentDiagram = useCallback(async () => {
+    try {
+      const r = await deriveComponentDiagram();
+      if (!r.ok) {
+        const msg =
+          r.reason === 'no-pools'
+            ? 'Add at least one pool with lanes to this BPMN diagram first.'
+            : r.reason === 'no-lanes-in-any-pool'
+              ? 'Add at least one lane inside a pool first.'
+              : 'This action only works on a BPMN diagram.';
+        toast.error(`Cannot derive Component diagram: ${msg}`);
+        return;
+      }
+      if (r.warnings.length > 0) {
+        toast.warning(
+          `Generated Component diagram with ${r.warnings.length} warning${r.warnings.length === 1 ? '' : 's'} — see console.`,
+        );
+        console.info('[inter-diagram] derivation warnings:', r.warnings);
+      } else {
+        toast.success('Component diagram generated — switched to the new diagram.');
+      }
+    } catch (err) {
+      // The addDiagramThunk inside useGenerateComponentDiagram throws
+      // "Cannot add more diagrams (limit reached)" when the project hits
+      // its per-type diagram cap. Surface that (and any other thunk
+      // rejection) as a toast instead of letting React swallow the
+      // unhandled rejection. Surface both the raw error message and the
+      // actionable hint, so the user knows what happened AND what to do
+      // next.
+      // `.unwrap()` on a rejected createAsyncThunk re-throws a
+      // SerializedError (plain object with `.message`), not the original
+      // Error. `instanceof Error` is false, so reading `.message` off the
+      // object directly is required when present.
+      const message =
+        err instanceof Error
+          ? err.message
+          : typeof err === 'object' &&
+              err !== null &&
+              'message' in err &&
+              typeof (err as { message?: unknown }).message === 'string'
+            ? (err as { message: string }).message
+            : String(err);
+      const body = /limit reached/i.test(message)
+        ? `${message}. Close an existing Component diagram before generating a new one.`
+        : message;
+      toast.error(`Cannot derive Component diagram: ${body}`);
+      console.error('[inter-diagram] derivation failed:', err);
+    }
+  }, [deriveComponentDiagram]);
+
+  const deriveDeploymentDiagram = useGenerateDeploymentDiagram();
+  const handleDeriveDeploymentDiagram = useCallback(async () => {
+    try {
+      const r = await deriveDeploymentDiagram();
+      if (!r.ok) {
+        const msg =
+          r.reason === 'no-components'
+            ? 'Add at least one Component to this Component diagram first.'
+            : 'This action only works on a Component diagram.';
+        toast.error(`Cannot derive Deployment diagram: ${msg}`);
+        return;
+      }
+      if (r.warnings.length > 0) {
+        // The only warning kind is `flat-scaffold`. The wording leads with
+        // what was emitted (the synthetic Default Host) rather than the
+        // abstract "flat scaffold" framing.
+        toast.warning(
+          'Default Host node created as a placeholder — add Subsystems to your Component diagram for a richer layout.',
+        );
+        console.info('[inter-diagram] deployment derivation warnings:', r.warnings);
+      } else {
+        toast.success('Deployment diagram generated — switched to the new diagram.');
+      }
+    } catch (err) {
+      // Read `.message` off the rejected thunk's SerializedError
+      // regardless of `instanceof Error`.
+      const message =
+        err instanceof Error
+          ? err.message
+          : typeof err === 'object' &&
+              err !== null &&
+              'message' in err &&
+              typeof (err as { message?: unknown }).message === 'string'
+            ? (err as { message: string }).message
+            : String(err);
+      const body = /limit reached/i.test(message)
+        ? `${message}. Close an existing Deployment diagram before generating a new one.`
+        : message;
+      toast.error(`Cannot derive Deployment diagram: ${body}`);
+      console.error('[inter-diagram] deployment derivation failed:', err);
+    }
+  }, [deriveDeploymentDiagram]);
+
+  const { generate: generateDockerCompose, isLoading: isDockerComposing } = useGenerateDockerCompose();
+  const handleGenerateDockerCompose = useCallback(async () => {
+    await generateDockerCompose();
+  }, [generateDockerCompose]);
+
   // Wrappers that close mobile drawer after navigating
   const handleMobileSwitchUml = useCallback((type: UMLDiagramType) => {
     void handleSwitchUml(type);
@@ -765,7 +870,7 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
         primaryGenerateClass={primaryGenerateClass}
         showQualityCheck={showQualityCheck}
         generatorMode={generatorMode}
-        isGenerating={isGenerating}
+        isGenerating={isGenerating || isDockerComposing}
         locationPath={location.pathname}
         activeUmlType={activeUmlType}
         isAuthenticated={isAuthenticated}
@@ -809,6 +914,9 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
         onSwitchDiagramType={(type) => {
           void handleSwitchDiagramType(type);
         }}
+        onDeriveComponentDiagram={handleDeriveComponentDiagram}
+        onDeriveDeploymentDiagram={handleDeriveDeploymentDiagram}
+        onGenerateDockerCompose={handleGenerateDockerCompose}
         onNavigate={(path) => {
           void handleSafeNavigate(path);
         }}
@@ -1041,6 +1149,7 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
         onOpenChange={setIsCommandPaletteOpen}
         actions={commandPaletteActions}
       />
+      <GeneratingOverlay visible={isDockerComposing} />
     </div>
   );
 };

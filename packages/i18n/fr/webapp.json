@@ -47,6 +47,9 @@
       "state": "État",
       "agent": "Agent",
       "bpmn": "BPMN",
+      "__comment__": "TODO: THE FOLLOWING TWO FIELDS NEED REVISION (THEY REFER TO UML COMPONENT AND DEPLOYMENT DIAGRAMS)!!!!!!!",
+      "component": "Composant",
+      "deployment": "Déploiement",
       "user": "Utilisateur",
       "neuralNet": "Réseau de neurones",
       "gui": "GUI",
@@ -76,6 +79,10 @@
       "generating": "Génération...",
       "codeGeneration": "Génération de code",
       "goToClassDiagram": "Aller au diagramme de classes",
+      "__comment__": "TODO: THE FOLLOWING THREE FIELDS NEED REVISION!!!!!!!",
+      "deriveComponentDiagram": "Générer le diagramme de composants",
+      "deriveDeploymentDiagram": "Générer le diagramme de déploiement",
+      "generateDockerCompose": "Générer Docker Compose",
       "groups": {
         "web": "Web",
         "database": "Base de données",
@@ -1359,6 +1366,9 @@
     "GUINoCodeDiagram": "Diagramme d'IUG",
     "QuantumCircuitDiagram": "Diagramme de circuit quantique",
     "BPMN": "Diagramme BPMN",
+    "__comment__":"TODO: THE FOLLOWING TWO FIELDS NEED REVISION (THEY REFER TO UML COMPONENT AND DEPLOYMENT DIAGRAMS)!!!!!!!",
+    "ComponentDiagram": "Diagramme de composants",
+    "DeploymentDiagram": "Diagramme de déploiement",
     "NNDiagram": "Diagramme de réseau de neurones"
   },
   "dialogs": {

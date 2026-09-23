@@ -56,6 +56,9 @@ export interface WorkspaceTopBarProps {
   perspectives: PerspectiveSettings | undefined;
   onSwitchUml: (type: UMLDiagramType) => void;
   onSwitchDiagramType: (type: SupportedDiagramType) => void;
+  onDeriveComponentDiagram?: () => void;
+  onDeriveDeploymentDiagram?: () => void;
+  onGenerateDockerCompose?: () => void;
   onNavigate: (path: string) => void;
   projectNameDraft: string;
   onProjectNameDraftChange: (value: string) => void;

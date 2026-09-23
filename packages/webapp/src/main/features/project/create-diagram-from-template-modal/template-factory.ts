@@ -18,9 +18,10 @@ import faqRagAgent from '../../../templates/pattern/agent/faqragagent.json';
 import chatbotAgent from '../../../templates/pattern/agent/chatbotagent.json';
 import libraryAgent from '../../../templates/pattern/agent/libraryagent.json';
 import traficlightModel from '../../../templates/pattern/statemachine/traficlight.json';
-import bpmnParallelReview from '../../../templates/pattern/bpmn/parallel_review.json';
-import bpmnCarWash from '../../../templates/pattern/bpmn/car_wash.json';
-import bpmnOrderFulfillment from '../../../templates/pattern/bpmn/pizza_store.json';
+import parallelReviewBPMN from '../../../templates/pattern/bpmn/parallel_review.json';
+import carWashBPMN from '../../../templates/pattern/bpmn/car_wash.json';
+import pizzaStoreBPMN from '../../../templates/pattern/bpmn/pizza_store.json';
+import agenticStarterBPMN from '../../../templates/pattern/bpmn/agentic_starter.json';
 import nnTutorialExample from '../../../templates/pattern/nn/tutorial_example.json';
 import nnAlexnet from '../../../templates/pattern/nn/alexnet_nn.json';
 import nnLstm from '../../../templates/pattern/nn/lstm_nn.json';
@@ -135,25 +136,33 @@ export class TemplateFactory {
           traficlightModel as any,
           SoftwarePatternCategory.STATE_MACHINE,
         );
-      case SoftwarePatternType.BPMN_PARALLEL_REVIEW:
-        return new SoftwarePatternTemplate(
-          softwarePatternType,
-          UMLDiagramType.BPMN,
-          bpmnParallelReview as any,
-          SoftwarePatternCategory.BPMN,
-        );
+      // BPMN templates
       case SoftwarePatternType.BPMN_CAR_WASH:
         return new SoftwarePatternTemplate(
           softwarePatternType,
           UMLDiagramType.BPMN,
-          bpmnCarWash as any,
+          carWashBPMN as any,
           SoftwarePatternCategory.BPMN,
         );
-      case SoftwarePatternType.BPMN_ORDER_FULFILLMENT:
+      case SoftwarePatternType.BPMN_PARALLEL_REVIEW:
         return new SoftwarePatternTemplate(
           softwarePatternType,
           UMLDiagramType.BPMN,
-          bpmnOrderFulfillment as any,
+          parallelReviewBPMN as any,
+          SoftwarePatternCategory.BPMN,
+        );
+      case SoftwarePatternType.BPMN_PIZZA_STORE:
+        return new SoftwarePatternTemplate(
+          softwarePatternType,
+          UMLDiagramType.BPMN,
+          pizzaStoreBPMN as any,
+          SoftwarePatternCategory.BPMN,
+        );
+      case SoftwarePatternType.BPMN_AGENTIC_STARTER:
+        return new SoftwarePatternTemplate(
+          softwarePatternType,
+          UMLDiagramType.BPMN,
+          agenticStarterBPMN as any,
           SoftwarePatternCategory.BPMN,
         );
       case SoftwarePatternType.NN_TUTORIAL_EXAMPLE:

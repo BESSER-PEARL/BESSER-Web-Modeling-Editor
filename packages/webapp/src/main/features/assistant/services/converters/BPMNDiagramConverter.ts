@@ -3,10 +3,11 @@
  * Converts a simplified BPMN process spec (nodes + flows, optionally grouped
  * into pools/lanes) emitted by the modeling agent into the Apollon
  * BPMNDiagram model.
- *
- * No other agentic fields (isAgentic, role, gatewayRole, collaborationMode,
- * mergingStrategy, trustScore, governanceDsl, …). Output shape matches the
- * verified BPMN template shape (see .claude/bpmn/11-bpmn-load-template-examples-guide.md):
+ * 
+ * Agentic lane metadata is preserved when explicitly supplied
+ * (`isAgentic`, `role`, `trustScore`, `multiplicity`), but the converter
+ * does not infer agentic semantics on its own. Output shape matches the
+ * verified BPMN template shape :
  * model.type === "BPMNDiagram"; sequence-flow paths are left for the editor's
  * layouter to recompute on load (isManuallyLayouted: false), so only element
  * bounds need to be correct here.
@@ -35,6 +36,12 @@ interface SpecNode {
   eventType?: string;
   poolId?: string; // optional: id of the pool (participant) this node belongs to
   laneId?: string; // optional: id of the lane (role) within poolId
+  isAgentic?: boolean;
+  reflectionMode?: string;
+  trustScore?: number;
+  agentDiagramRef?: string;
+  gatewayRole?: string;
+  governanceDsl?: string;
 }
 
 interface SpecFlow {
@@ -46,6 +53,11 @@ interface SpecFlow {
 interface SpecLane {
   id?: string;
   name?: string;
+  isAgentic?: boolean;
+  role?: string;
+  trustScore?: number;
+  multiplicity?: number;
+  agentDiagramRef?: string;
 }
 
 interface SpecPool {
@@ -55,8 +67,18 @@ interface SpecPool {
 }
 
 type StableNode = SpecNode & { id: string };
-type Pool = { id: string; name: string; lanes: { id: string; name: string }[] };
-
+type Pool = {
+  id: string;
+  name: string;
+  lanes: Array<{
+    id: string;
+    name: string;
+    isAgentic?: boolean;
+    role?: string;
+    trustScore?: number;
+    multiplicity?: number;
+  }>;
+};
 const COL_GAP = 220; // horizontal distance between layers
 const ROW_GAP = 120; // vertical distance between sibling nodes within a layer/band
 const EVENT_SIZE = 40;
@@ -82,7 +104,7 @@ export class BPMNDiagramConverter implements DiagramConverter {
   convertSingleElement(spec: any) {
     // Single-element generation funnels into a one-node process so the
     // DiagramConverter contract still holds (the agent funnels these the
-    // same way — see the agent guide's generate_single_element).
+    // same way as the single-element generation path).
     return this.convertCompleteSystem({ nodes: [spec], flows: [] });
   }
 
@@ -104,8 +126,17 @@ export class BPMNDiagramConverter implements DiagramConverter {
         name: typeof p.name === 'string' ? p.name : '',
         lanes: (Array.isArray(p.lanes) ? p.lanes : [])
           .filter((l): l is SpecLane & { id: string } => typeof l.id === 'string' && l.id.trim().length > 0)
-          .map((l) => ({ id: l.id.trim(), name: typeof l.name === 'string' ? l.name : '' })),
+          .map((l) => ({
+            id: l.id.trim(),
+            name: typeof l.name === 'string' ? l.name : '',
+            isAgentic: l.isAgentic,
+            role: l.role,
+            trustScore: l.trustScore,
+            multiplicity: l.multiplicity,
+            agentDiagramRef: l.agentDiagramRef,
+        })),
       }));
+      
 
     // --- Layered left-to-right layout (longest-path layering). Computed over
     // the FULL flow graph (including cross-pool message flows) so columns
@@ -296,6 +327,13 @@ export class BPMNDiagramConverter implements DiagramConverter {
             width: poolWidth - POOL_HEADER_WIDTH,
             height: Math.max(BAND_MIN_HEIGHT, (maxRowsOf[band.key] || 1) * ROW_GAP + BAND_V_PADDING * 2),
           },
+          isAgentic: lane.isAgentic === true,
+          role: lane.role,
+          trustScore: typeof lane.trustScore === 'number' ? lane.trustScore : 0,
+          multiplicity: typeof lane.multiplicity === 'number' ? lane.multiplicity : 1,
+          ...(typeof lane.agentDiagramRef === 'string' && lane.agentDiagramRef
+            ? { agentDiagramRef: lane.agentDiagramRef }
+            : {}),
         };
       });
 
@@ -360,10 +398,29 @@ export class BPMNDiagramConverter implements DiagramConverter {
 
     if (apollonType === 'BPMNTask') {
       const taskType = TASK_TYPES.has(String(n.taskType)) ? n.taskType : 'default';
-      elements[apollonId] = { ...base, taskType, marker: 'none' };
+      elements[apollonId] = {
+        ...base,
+        taskType,
+        marker: 'none',
+        isAgentic: n.isAgentic === true,
+        reflectionMode: typeof n.reflectionMode === 'string' ? n.reflectionMode : 'none',
+        trustScore: typeof n.trustScore === 'number' ? n.trustScore : 0,
+        ...(typeof n.agentDiagramRef === 'string' && n.agentDiagramRef
+          ? { agentDiagramRef: n.agentDiagramRef }
+          : {}),
+      };
     } else if (apollonType === 'BPMNGateway') {
       const gatewayType = GATEWAY_TYPES.has(String(n.gatewayType)) ? n.gatewayType : 'exclusive';
-      elements[apollonId] = { ...base, gatewayType };
+      elements[apollonId] = {
+        ...base,
+        gatewayType,
+        isAgentic: n.isAgentic === true,
+        gatewayRole: typeof n.gatewayRole === 'string' ? n.gatewayRole : 'diverging',
+        trustScore: typeof n.trustScore === 'number' ? n.trustScore : 0,
+        ...(typeof n.governanceDsl === 'string' && n.governanceDsl.trim()
+          ? { governanceDsl: n.governanceDsl }
+          : {}),
+      };
     } else {
       // BPMNStartEvent / BPMNEndEvent / BPMNIntermediateEvent
       const eventType = typeof n.eventType === 'string' && n.eventType ? n.eventType : 'default';

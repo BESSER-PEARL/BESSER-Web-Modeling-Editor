@@ -32,18 +32,6 @@ interface ExportDialogProps {
 
 type ExportFormat = 'SVG' | 'PNG_WHITE' | 'PNG' | 'JSON' | 'BUML' | 'SINGLE_JSON' | 'SINGLE_BUML';
 
-const diagramLabels: Record<SupportedDiagramType, string> = {
-  ClassDiagram: 'Class Diagram',
-  ObjectDiagram: 'Object Diagram',
-  StateMachineDiagram: 'State Machine Diagram',
-  AgentDiagram: 'Agent Diagram',
-  UserDiagram: 'User Diagram',
-  GUINoCodeDiagram: 'GUI No-Code Diagram',
-  QuantumCircuitDiagram: 'Quantum Circuit Diagram',
-  BPMN: 'BPMN Diagram',
-  NNDiagram: 'Neural Network Diagram',
-};
-
 const formatsRequiringSelection = new Set<ExportFormat>(['JSON', 'BUML']);
 
 export const ExportDialog: React.FC<ExportDialogProps> = ({ open, onOpenChange, editor, currentDiagramTitle }) => {
@@ -180,7 +168,7 @@ export const ExportDialog: React.FC<ExportDialogProps> = ({ open, onOpenChange, 
                         onChange={() => toggleDiagramSelection(type)}
                       />
                       <div className="flex flex-col">
-                        <span className="font-medium">{t(`export.diagramLabels.${type}`)}</span>
+                        <span className="font-medium">{t(`diagramTypes.${type}`)}</span>
                         {diagrams.length > 1 && (
                           <span className="text-xs text-muted-foreground">
                             {t('export.dialog.diagramCount', {

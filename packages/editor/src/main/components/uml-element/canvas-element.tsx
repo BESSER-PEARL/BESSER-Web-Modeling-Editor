@@ -1,4 +1,5 @@
 import React, { Component, ComponentClass, SVGProps } from 'react';
+import { createPortal } from 'react-dom';
 import { connect } from 'react-redux';
 import { compose } from 'redux';
 import { Components } from '../../packages/components';
@@ -55,6 +56,19 @@ const enhance = compose<ComponentClass<OwnProps>>(
 );
 
 class CanvasElementComponent extends Component<Props> {
+  private computeAbsoluteBounds(): { x: number; y: number; width: number; height: number } {
+    const { element, allElements } = this.props;
+    let absX = element!.bounds.x;
+    let absY = element!.bounds.y;
+    let ownerId = element!.owner;
+    while (ownerId && allElements[ownerId]) {
+      absX += allElements[ownerId].bounds.x;
+      absY += allElements[ownerId].bounds.y;
+      ownerId = allElements[ownerId].owner;
+    }
+    return { x: absX, y: absY, width: element!.bounds.width, height: element!.bounds.height };
+  }
+
   render() {
     const {
       hovered,
@@ -110,10 +124,10 @@ class CanvasElementComponent extends Component<Props> {
               ? element.fillColor
               : theme.color.background;
 
-    return (
+    const svgContent = (bounds: { x: number; y: number; width: number; height: number }) => (
       <svg
         {...props}
-        {...element.bounds}
+        {...bounds}
         overflow="visible"
         pointerEvents={moving ? 'none' : undefined}
         fillOpacity={moving ? 0.7 : undefined}
@@ -177,6 +191,18 @@ class CanvasElementComponent extends Component<Props> {
         )}
       </svg>
     );
+
+    // Portal path: lift moving non-container elements into the drag overlay so they
+    // paint above all lane backgrounds regardless of SVG document order.
+    if (moving && !UMLContainer.isUMLContainer(element)) {
+      const overlay = document.getElementById('apollon-drag-overlay');
+      if (overlay) {
+        const absBounds = this.computeAbsoluteBounds();
+        return createPortal(svgContent(absBounds), overlay) as unknown as React.ReactElement;
+      }
+    }
+
+    return svgContent(element.bounds);
   }
 }
 

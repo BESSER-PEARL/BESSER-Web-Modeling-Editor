@@ -57,6 +57,12 @@ export const PERSPECTIVES: PerspectiveDefinition[] = [
     diagrams: ['AgentDiagram', 'UserDiagram'],
   },
   {
+    key: 'agenticSwarm',
+    label: 'Multi-Agent',
+    description: 'Agentic BPMN, agent, component, and deployment diagrams.',
+    diagrams: ['BPMN', 'AgentDiagram', 'ComponentDiagram', 'DeploymentDiagram'],
+  },
+  {
     key: 'fullApp',
     label: 'Full Web Application',
     description: 'Class, agent, and no-code GUI diagrams.',

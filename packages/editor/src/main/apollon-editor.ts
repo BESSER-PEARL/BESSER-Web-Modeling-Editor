@@ -22,6 +22,12 @@ import { delay } from './utils/delay';
 import { ErrorBoundary } from './components/controls/error-boundary/ErrorBoundary';
 import { replaceColorVariables } from './utils/replace-color-variables';
 import { UMLModelCompat } from './compat';
+import { LineageProvider, LineageProviderRoot } from './components/lineage/LineageContext';
+import { ElementPickerProvider, ElementPickerProviderRoot } from './components/element-picker/ElementPickerContext';
+import {
+  AgentDiagramLinker,
+  AgentDiagramLinkerProviderRoot,
+} from './components/agent-diagram-linker/AgentDiagramLinkerContext';
 
 export class ApollonEditor {
   private ensureInitialized() {
@@ -121,6 +127,24 @@ export class ApollonEditor {
   private errorSubscribers: { [key: number]: (error: Error) => void } = {};
   private nextRenderPromise: Promise<void>;
 
+  // Lineage provider supplied by the host. The
+  // `_lineageProviderUpdater` is captured by the `LineageProviderRoot`
+  // component on mount so subsequent setLineageProvider calls update
+  // React state without rebuilding the editor tree.
+  private _lineageProvider: LineageProvider | null = null;
+  private _lineageProviderUpdater: ((v: LineageProvider | null) => void) | null = null;
+
+  // Element-picker provider, same lifecycle as `_lineageProvider`.
+  private _elementPickerProvider: ElementPickerProvider | null = null;
+  private _elementPickerProviderUpdater: ((v: ElementPickerProvider | null) => void) | null = null;
+
+  // Agent-diagram linker provider supplied by the host.
+  // Same pattern as `_lineageProvider`: the React provider root captures
+  // an updater on mount so subsequent setAgentDiagramLinker calls flow
+  // through it without tearing down the editor tree.
+  private _agentDiagramLinker: AgentDiagramLinker | null = null;
+  private _agentDiagramLinkerUpdater: ((v: AgentDiagramLinker | null) => void) | null = null;
+
   constructor(
     private container: HTMLElement,
     private options: Apollon.ApollonOptions,
@@ -160,7 +184,7 @@ export class ApollonEditor {
       nextRenderResolve = resolve;
     });
 
-    const element = createElement(Application, {
+    const appElement = createElement(Application, {
       ref: async (app) => {
         if (app == null) return;
         this.application = app;
@@ -173,7 +197,46 @@ export class ApollonEditor {
       styles: options.theme,
       locale: options.locale,
     });
-    const errorBoundary = createElement(ErrorBoundary, { onError: this.onErrorOccurred.bind(this) }, element);
+    // Wrap so the editor's popup tree can read the host-supplied lineage provider.
+    // Also wrap with the agent-diagram linker provider for the BPMN lane popup.
+    const linkedElement = createElement(
+      AgentDiagramLinkerProviderRoot,
+      {
+        initialValue: this._agentDiagramLinker,
+        register: (listener: (v: AgentDiagramLinker | null) => void) => {
+          this._agentDiagramLinkerUpdater = listener;
+          // Flush: if setAgentDiagramLinker was called between
+          // ApollonEditor construction and the provider root's useEffect
+          // firing, the value is stored on the instance but never reached
+          // React state (the updater was null). Apply it now.
+          if (this._agentDiagramLinker !== null) {
+            listener(this._agentDiagramLinker);
+          }
+        },
+      },
+      appElement,
+    );
+    const element = createElement(
+      LineageProviderRoot,
+      {
+        initialValue: this._lineageProvider,
+        register: (listener: (v: LineageProvider | null) => void) => {
+          this._lineageProviderUpdater = listener;
+        },
+      },
+      linkedElement,
+    );
+    const pickerElement = createElement(
+      ElementPickerProviderRoot,
+      {
+        initialValue: this._elementPickerProvider,
+        register: (listener: (v: ElementPickerProvider | null) => void) => {
+          this._elementPickerProviderUpdater = listener;
+        },
+      },
+      element,
+    );
+    const errorBoundary = createElement(ErrorBoundary, { onError: this.onErrorOccurred.bind(this) }, pickerElement);
     this.root = createRoot(container);
     this.root.render(errorBoundary);
     try {
@@ -234,6 +297,38 @@ export class ApollonEditor {
    */
   unsubscribeFromSelectionChange(subscriptionId: number) {
     delete this.selectionSubscribers[subscriptionId];
+  }
+
+  /**
+   * Register a lineage provider so derived-element popups can
+   * render a "← Derived from X" link and dispatch click-through.
+   * Pass `null` to clear. Safe to call before or after mount; the
+   * editor captures the latest value on its next render.
+   */
+  setLineageProvider(provider: LineageProvider | null): void {
+    this._lineageProvider = provider;
+    this._lineageProviderUpdater?.(provider);
+  }
+
+  /**
+   * Register an element-picker provider so cross-diagram pickers
+   * (`realizes`, `manifests`) can list elements from other diagrams.
+   * Pass `null` to clear. Safe before or after mount.
+   */
+  setElementPickerProvider(provider: ElementPickerProvider | null): void {
+    this._elementPickerProvider = provider;
+    this._elementPickerProviderUpdater?.(provider);
+  }
+
+  /**
+   * Register an agent-diagram linker so the agentic-lane popup can
+   * render the Define / Open affordance and dispatch the project-mutating
+   * callbacks. Pass `null` to clear. Safe to call before or after mount;
+   * the editor captures the latest value on its next render.
+   */
+  setAgentDiagramLinker(linker: AgentDiagramLinker | null): void {
+    this._agentDiagramLinker = linker;
+    this._agentDiagramLinkerUpdater?.(linker);
   }
 
   /**
@@ -515,7 +610,7 @@ export class ApollonEditor {
       nextRenderResolve = resolve;
     });
 
-    const element = createElement(Application, {
+    const appElement = createElement(Application, {
       ref: async (app: Application) => {
         if (app == null) return;
         this.application = app;
@@ -528,7 +623,43 @@ export class ApollonEditor {
       styles: this.options.theme,
       locale: this.options.locale,
     } as any);
-    const errorBoundary = createElement(ErrorBoundary, { onError: this.onErrorOccurred.bind(this) }, element);
+    // Re-wrap on every editor rebuild; the updater is captured fresh.
+    // Same re-wrap for the agent-diagram linker provider, including
+    // the post-mount flush to handle restoreEditor's re-mount timing too.
+    const linkedElement = createElement(
+      AgentDiagramLinkerProviderRoot,
+      {
+        initialValue: this._agentDiagramLinker,
+        register: (listener: (v: AgentDiagramLinker | null) => void) => {
+          this._agentDiagramLinkerUpdater = listener;
+          if (this._agentDiagramLinker !== null) {
+            listener(this._agentDiagramLinker);
+          }
+        },
+      },
+      appElement,
+    );
+    const element = createElement(
+      LineageProviderRoot,
+      {
+        initialValue: this._lineageProvider,
+        register: (listener: (v: LineageProvider | null) => void) => {
+          this._lineageProviderUpdater = listener;
+        },
+      },
+      linkedElement,
+    );
+    const pickerElement = createElement(
+      ElementPickerProviderRoot,
+      {
+        initialValue: this._elementPickerProvider,
+        register: (listener: (v: ElementPickerProvider | null) => void) => {
+          this._elementPickerProviderUpdater = listener;
+        },
+      },
+      element,
+    );
+    const errorBoundary = createElement(ErrorBoundary, { onError: this.onErrorOccurred.bind(this) }, pickerElement);
     this.root = createRoot(this.container);
     this.root.render(errorBoundary);
     this.componentDidMount();

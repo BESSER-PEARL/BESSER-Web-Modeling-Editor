@@ -12,11 +12,14 @@ import {
   SupportedDiagramType,
   toUMLDiagramType,
 } from '../../types/project';
-import { localStorageProjectPrefix, localStorageLatestProject, localStorageProjectsList } from '../../constants/constant';
+import {
+  localStorageProjectPrefix,
+  localStorageLatestProject,
+  localStorageProjectsList,
+} from '../../constants/constant';
 import { checkLocalStorageQuota } from '../../utils/localStorageQuota';
 
 export class ProjectStorageRepository {
-
   // ── Write coalescing ────────────────────────────────────────────────────
   // Multiple async thunks may call saveProject in quick succession.
   // Although localStorage is synchronous, reentrant calls (e.g. from
@@ -73,7 +76,7 @@ export class ProjectStorageRepository {
   static onProjectChange(listener: () => void): () => void {
     this.changeListeners.push(listener);
     return () => {
-      this.changeListeners = this.changeListeners.filter(l => l !== listener);
+      this.changeListeners = this.changeListeners.filter((l) => l !== listener);
     };
   }
 
@@ -128,20 +131,20 @@ export class ProjectStorageRepository {
     // Check localStorage quota and warn if approaching limit
     checkLocalStorageQuota();
   }
-  
+
   // Load complete project by ID
   static loadProject(projectId: string): BesserProject | null {
     try {
       const projectKey = `${localStorageProjectPrefix}${projectId}`;
       const projectData = localStorage.getItem(projectKey);
-      
+
       if (!projectData) {
         console.warn(`Project not found: ${projectId}`);
         return null;
       }
-      
+
       const project = JSON.parse(projectData);
-      
+
       if (!isProject(project)) {
         console.warn(`Invalid project structure: ${projectId}`);
         return null;
@@ -153,22 +156,22 @@ export class ProjectStorageRepository {
       return null;
     }
   }
-  
+
   // Get current active project
   static getCurrentProject(): BesserProject | null {
     const latestProjectId = localStorage.getItem(localStorageLatestProject);
     if (!latestProjectId) {
       return null;
     }
-    
+
     return this.loadProject(latestProjectId);
   }
-  
+
   // Get all projects (metadata only for performance)
   static getAllProjects(): Array<Pick<BesserProject, 'id' | 'name' | 'description' | 'owner' | 'createdAt'>> {
     const projectIds = this.getProjectsList();
     const projects: Array<Pick<BesserProject, 'id' | 'name' | 'description' | 'owner' | 'createdAt'>> = [];
-    
+
     for (const id of projectIds) {
       const project = this.loadProject(id);
       if (project) {
@@ -181,11 +184,11 @@ export class ProjectStorageRepository {
         });
       }
     }
-    
+
     // Sort by creation date (newest first)
     return projects.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
   }
-  
+
   // Create and save new project
   static createNewProject(
     name: string,
@@ -197,16 +200,21 @@ export class ProjectStorageRepository {
     this.saveProject(project);
     return project;
   }
-  
+
   // Update specific diagram within project
-  static updateDiagram(projectId: string, diagramType: SupportedDiagramType, diagram: ProjectDiagram, diagramIndex?: number): boolean {
+  static updateDiagram(
+    projectId: string,
+    diagramType: SupportedDiagramType,
+    diagram: ProjectDiagram,
+    diagramIndex?: number,
+  ): boolean {
     const project = this.loadProject(projectId);
     if (!project) {
       console.error(`Project not found: ${projectId}`);
       return false;
     }
 
-    const index = diagramIndex ?? (project.currentDiagramIndices[diagramType] ?? 0);
+    const index = diagramIndex ?? project.currentDiagramIndices[diagramType] ?? 0;
     const diagrams = project.diagrams[diagramType];
 
     if (index < 0 || index >= diagrams.length) {
@@ -222,7 +230,7 @@ export class ProjectStorageRepository {
     this.saveProject(project);
     return true;
   }
-  
+
   // Switch active diagram type
   static switchDiagramType(projectId: string, newType: SupportedDiagramType): ProjectDiagram | null {
     const project = this.loadProject(projectId);
@@ -236,9 +244,15 @@ export class ProjectStorageRepository {
 
     return getActiveDiagram(project, newType);
   }
-  
+
   // Add a new diagram to a type (returns index, or null if at limit)
-  static addDiagram(projectId: string, diagramType: SupportedDiagramType, title?: string): { index: number; diagram: ProjectDiagram } | null {
+  static addDiagram(
+    projectId: string,
+    diagramType: SupportedDiagramType,
+    title?: string,
+    /** Set on hook-driven derivations; absent on user-created diagrams. */
+    derivedFrom?: import('../../types/project').DiagramLineage,
+  ): { index: number; diagram: ProjectDiagram } | null {
     const project = this.loadProject(projectId);
     if (!project) {
       return null;
@@ -293,6 +307,12 @@ export class ProjectStorageRepository {
       }
     }
 
+    // Lineage set by inter-diagram derivation hooks (sidecar
+    // on ProjectDiagram).
+    if (derivedFrom) {
+      diagram.derivedFrom = derivedFrom;
+    }
+
     diagrams.push(diagram);
     const newIndex = diagrams.length - 1;
     project.currentDiagramIndices[diagramType] = newIndex;
@@ -336,6 +356,23 @@ export class ProjectStorageRepository {
       }
     }
 
+    // Do not clear derivedFrom on source deletion. The
+    // dangling pointer is what lets the UI render the "← Source
+    // diagram deleted" badge (DiagramTabs.tsx checks
+    // !sourceDiagram at render time). Eager cleanup would leave the
+    // user with no visual cue that the diagram had a lineage at all
+    // The lineage object is
+    // tiny so leaving it dangling has no storage cost worth
+    // optimising against.
+
+    // Drop the element-lineage sidecar for the deleted diagram
+    // itself (it's the *derived* side that the sidecar is keyed on,
+    // not the source). If the deleted diagram was a derived one, its
+    // sidecar is now garbage and should be cleared.
+    if (project.elementLineage) {
+      delete project.elementLineage[deletedId];
+    }
+
     this.saveProject(project);
     return true;
   }
@@ -363,7 +400,11 @@ export class ProjectStorageRepository {
   }
 
   // Switch active diagram index within a type
-  static switchDiagramIndex(projectId: string, diagramType: SupportedDiagramType, index: number): ProjectDiagram | null {
+  static switchDiagramIndex(
+    projectId: string,
+    diagramType: SupportedDiagramType,
+    index: number,
+  ): ProjectDiagram | null {
     const project = this.loadProject(projectId);
     if (!project) {
       return null;
@@ -388,7 +429,7 @@ export class ProjectStorageRepository {
 
       // Update projects list
       const projectsList = this.getProjectsList();
-      const updatedList = projectsList.filter(id => id !== projectId);
+      const updatedList = projectsList.filter((id) => id !== projectId);
       localStorage.setItem(localStorageProjectsList, JSON.stringify(updatedList));
 
       // Clear latest project if it was deleted
@@ -448,7 +489,7 @@ export class ProjectStorageRepository {
     // Clean up deploy linked repo entry (per-project key)
     localStorage.removeItem(`besser_deploy_linked_${projectId}`);
   }
-  
+
   // Helper: Update projects list
   private static updateProjectsList(projectId: string): void {
     const existingList = this.getProjectsList();
@@ -457,7 +498,7 @@ export class ProjectStorageRepository {
       localStorage.setItem(localStorageProjectsList, JSON.stringify(existingList));
     }
   }
-  
+
   // Helper: Get projects list
   private static getProjectsList(): string[] {
     const listData = localStorage.getItem(localStorageProjectsList);
@@ -470,5 +511,4 @@ export class ProjectStorageRepository {
     }
     return [];
   }
-  
 }
