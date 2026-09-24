@@ -76,8 +76,8 @@ To create relationships between classes:
 3.  Double-click the relationship line to edit its properties.
 
 .. image:: ../../images/wme/class_diagram/relationship_prop.png
-  :width: 350
-  :alt: Association properties
+  :width: 650
+  :alt: Association properties panel with a Navigable checkbox for each end
   :align: center
 
 *   **Name**: Assign a name to the association.
