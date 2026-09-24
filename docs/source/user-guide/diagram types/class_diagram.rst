@@ -81,9 +81,13 @@ Then, you can double-click the relationship line to open the editing popup.
   :align: center
 
 * **Name**: Assign a name to the association
-* **Association Type**: Unidirectional, Bidirectional, Composition, or Generalization
+* **Association Type**: Association, Composition, or Generalization
 * **End Names**: Set source and target end names
 * **Multiplicity**: Modify multiplicity at both ends
+* **Navigable**: Set, for each end, whether it can be reached from the class at the
+  other end. With both ends navigable the line has no arrowhead; with only one, the
+  arrowhead points at the navigable end. At least one end must stay navigable, and
+  the part end of a composition (opposite the diamond) is always navigable.
 
 **Multiplicity Format:**
 

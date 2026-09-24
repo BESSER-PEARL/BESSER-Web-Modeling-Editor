@@ -50,7 +50,8 @@ Step 3: Add a Relationship
 2. Drag from a blue connection point on ``Book`` to the ``Author`` class.
 3. A relationship line appears. Double-click it to edit properties.
 4. Set the **Name** to ``written_by``.
-5. Set the **Type** to ``Bidirectional``.
+5. Set the **Type** to ``Association`` and leave both ends **Navigable**, so
+   a book knows its authors and an author knows their books.
 6. Set the multiplicity: ``*`` on the Book side, ``1..*`` on the Author side
    (a book has one or more authors, an author can write many books).
 
