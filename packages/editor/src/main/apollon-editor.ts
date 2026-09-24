@@ -21,7 +21,8 @@ import { debounce } from './utils/debounce';
 import { delay } from './utils/delay';
 import { ErrorBoundary } from './components/controls/error-boundary/ErrorBoundary';
 import { replaceColorVariables } from './utils/replace-color-variables';
-import { UMLModelCompat } from './compat';
+import { backwardsCompatibleModel, UMLModelCompat } from './compat';
+import { normalizeAgentComponents } from './packages/agent-state-diagram/normalize-agent-model';
 
 export class ApollonEditor {
   private ensureInitialized() {
@@ -41,7 +42,7 @@ export class ApollonEditor {
    */
   get model(): Apollon.UMLModel {
     this.ensureInitialized();
-    return ModelState.toModel(this.store!.getState());
+    return this.toPublicModel(this.store!.getState());
   }
 
   /**
@@ -51,7 +52,7 @@ export class ApollonEditor {
   set model(model: UMLModelCompat) {
     this.ensureInitialized();
     const state: PartialModelState = {
-      ...ModelState.fromModel(model),
+      ...ModelState.fromModel(this.prepareModel(model)),
       editor: { ...this.store!.getState().editor },
     };
     this.recreateEditor(state);
@@ -89,15 +90,17 @@ export class ApollonEditor {
    * @param model the apollon model to export as a svg
    * @param options options to change the export behavior (add margin, exclude element ...)
    * @param theme the theme which should be applied on the svg
+   * @param locale language of translated labels in the svg (defaults to English)
    */
   static async exportModelAsSvg(
     model: Apollon.UMLModel,
     options?: Apollon.ExportOptions,
     theme?: DeepPartial<Styles>,
+    locale?: Locale,
   ): Promise<Apollon.SVG> {
     const container = document.createElement('div');
     const root = createRoot(container);
-    const element = createElement(Svg, { model, options, styles: theme });
+    const element = createElement(Svg, { model, options, styles: theme, locale });
     const svg = new Svg({ model, options, styles: theme });
     root.render(element);
     await delay(50);
@@ -120,12 +123,20 @@ export class ApollonEditor {
   private discreteModelSubscribers: { [key: number]: (model: Apollon.UMLModel) => void } = {};
   private errorSubscribers: { [key: number]: (error: Error) => void } = {};
   private nextRenderPromise: Promise<void>;
+  /**
+   * Agent components migrated out of a legacy model on load (see `prepareModel`). They are not
+   * part of the editor state, so they are attached to the emitted model until the first model
+   * change notification has handed them to the host for persisting.
+   */
+  private migratedAgentComponents?: { [id: string]: Apollon.UMLModelComponent };
 
   constructor(
     private container: HTMLElement,
     private options: Apollon.ApollonOptions,
   ) {
-    let state: PartialModelState | undefined = options.model ? ModelState.fromModel(options.model) : {};
+    let state: PartialModelState | undefined = options.model
+      ? ModelState.fromModel(this.prepareModel(options.model))
+      : {};
 
     state = {
       ...state,
@@ -399,7 +410,7 @@ export class ApollonEditor {
    * @param options options to change the export behavior (add margin, exclude element ...)
    */
   exportAsSVG(options?: Apollon.ExportOptions): Promise<Apollon.SVG> {
-    return ApollonEditor.exportModelAsSvg(this.model, options, this.options.theme);
+    return ApollonEditor.exportModelAsSvg(this.model, options, this.options.theme, this.options.locale);
   }
 
   /**
@@ -480,7 +491,7 @@ export class ApollonEditor {
         this.store.getState().lastAction.endsWith('END') ||
         this.store.getState().lastAction.endsWith('DELETE')
       ) {
-        const lastModel = ModelState.toModel(this.store.getState());
+        const lastModel = this.toPublicModel(this.store.getState());
         Object.values(this.discreteModelSubscribers).forEach((subscriber) => subscriber(lastModel));
       }
     } catch (error) {
@@ -498,6 +509,9 @@ export class ApollonEditor {
       if ((!lastModel && model) || (lastModel && JSON.stringify(model) !== JSON.stringify(lastModel))) {
         Object.values(this.modelSubscribers).forEach((subscriber) => subscriber(model));
         this.currentModelState = this.store.getState();
+        // The host now has the migrated components; later emissions must not overwrite
+        // the host's (possibly newer) copy with this load-time snapshot.
+        this.migratedAgentComponents = undefined;
       } else {
         this.currentModelState = this.store.getState();
       }
@@ -506,6 +520,23 @@ export class ApollonEditor {
       // -> no need to emit latest changes
     }
   }, 50);
+
+  /**
+   * Normalizes a model on every load path: upgrades older model versions and, for agent
+   * diagrams, moves off-canvas agent components out of `elements` / legacy `agentComponents`
+   * into `components` so they never reach the canvas state.
+   */
+  private prepareModel(compatModel: UMLModelCompat): UMLModel {
+    const model = backwardsCompatibleModel(compatModel);
+    const normalized = normalizeAgentComponents(model);
+    this.migratedAgentComponents = normalized !== model ? normalized.components : undefined;
+    return normalized;
+  }
+
+  private toPublicModel(state: ModelState): UMLModel {
+    const model = ModelState.toModel(state);
+    return this.migratedAgentComponents ? { ...model, components: this.migratedAgentComponents } : model;
+  }
 
   private recreateEditor(state: PartialModelState) {
     this.destroy();

@@ -20,6 +20,16 @@ import * as jsyaml from 'js-yaml';
 // Types
 // ─────────────────────────────────────────────────────────────
 
+export interface SqlDatabaseEntry {
+  name: string;
+  dialect: string;
+  database: string;
+  host: string;
+  port: string;
+  username: string;
+  password: string;
+}
+
 export interface AgentConfigFormData {
   agent: { check_transitions_delay: string };
   nlp: {
@@ -64,6 +74,7 @@ export interface AgentConfigFormData {
   db: {
     monitoring: { enabled: boolean; dialect: string; host: string; port: string; database: string; username: string; password: string };
     streamlit_db: { enabled: boolean; dialect: string; host: string; port: string; database: string; username: string; password: string };
+    sqlDatabases: SqlDatabaseEntry[];
   };
 }
 
@@ -103,14 +114,15 @@ export const DEFAULT_AGENT_CONFIG_FORM: AgentConfigFormData = {
       chat_color: 'inherit',
       chat_contrast: 'medium',
     },
-    telegram: { enabled: true, token: 'YOUR-BOT-TOKEN' },
-    github: { enabled: true, personal_token: 'YOUR-PERSONAL-TOKEN', webhook_token: 'YOUR-WEBHOOK-TOKEN', webhook_port: '8901' },
-    gitlab: { enabled: true, personal_token: 'YOUR-PERSONAL-TOKEN', webhook_token: 'YOUR-WEBHOOK-TOKEN', webhook_port: '8901' },
-    a2a: { enabled: true, port: '8000' },
+    telegram: { enabled: false, token: 'YOUR-BOT-TOKEN' },
+    github: { enabled: false, personal_token: 'YOUR-PERSONAL-TOKEN', webhook_token: 'YOUR-WEBHOOK-TOKEN', webhook_port: '8901' },
+    gitlab: { enabled: false, personal_token: 'YOUR-PERSONAL-TOKEN', webhook_token: 'YOUR-WEBHOOK-TOKEN', webhook_port: '8901' },
+    a2a: { enabled: false, port: '8000' },
   },
   db: {
-    monitoring: { enabled: true, dialect: 'postgresql', host: 'YOUR-DB-HOST', port: '5432', database: 'YOUR-DB-NAME', username: 'YOUR-DB-USERNAME', password: 'YOUR-DB-PASSWORD' },
-    streamlit_db: { enabled: true, dialect: 'postgresql', host: 'YOUR-DB-HOST', port: '5432', database: 'YOUR-DB-NAME', username: 'YOUR-DB-USERNAME', password: 'YOUR-DB-PASSWORD' },
+    monitoring: { enabled: false, dialect: 'postgresql', host: 'YOUR-DB-HOST', port: '5432', database: 'YOUR-DB-NAME', username: 'YOUR-DB-USERNAME', password: 'YOUR-DB-PASSWORD' },
+    streamlit_db: { enabled: false, dialect: 'postgresql', host: 'YOUR-DB-HOST', port: '5432', database: 'YOUR-DB-NAME', username: 'YOUR-DB-USERNAME', password: 'YOUR-DB-PASSWORD' },
+    sqlDatabases: [],
   },
 };
 
@@ -206,8 +218,9 @@ export function agentConfigFormToYaml(form: AgentConfigFormData): string {
   }
 
   // ── DB ─────────────────────────────────────
-  const { monitoring, streamlit_db } = form.db;
-  if (monitoring.enabled || streamlit_db.enabled) {
+  const { monitoring, streamlit_db, sqlDatabases } = form.db;
+  const hasSqlDbs = Array.isArray(sqlDatabases) && sqlDatabases.length > 0;
+  if (monitoring.enabled || streamlit_db.enabled || hasSqlDbs) {
     lines.push('db:');
     if (monitoring.enabled) {
       lines.push('  monitoring:');
@@ -228,6 +241,19 @@ export function agentConfigFormToYaml(form: AgentConfigFormData): string {
       if (streamlit_db.database) lines.push(`    database: ${yamlValue(streamlit_db.database)}`);
       if (streamlit_db.username) lines.push(`    username: ${yamlValue(streamlit_db.username)}`);
       if (streamlit_db.password) lines.push(`    password: ${yamlValue(streamlit_db.password)}`);
+    }
+    if (hasSqlDbs) {
+      lines.push('  sql:');
+      for (const db of sqlDatabases) {
+        const safeName = (db.name || 'db').replace(/[^A-Za-z0-9_]/g, '_') || 'db';
+        lines.push(`    - ${safeName}:`);
+        if (db.dialect) lines.push(`        dialect: ${yamlValue(db.dialect)}`);
+        if (db.database) lines.push(`        database: ${yamlValue(db.database)}`);
+        if (db.host) lines.push(`        host: ${yamlValue(db.host)}`);
+        if (db.port && db.port.trim()) lines.push(`        port: ${yamlValue(db.port)}`);
+        if (db.username) lines.push(`        username: ${yamlValue(db.username)}`);
+        if (db.password) lines.push(`        password: ${yamlValue(db.password)}`);
+      }
     }
   }
 
@@ -568,43 +594,43 @@ export function AgentConfigYamlEditor({ currentProject }: AgentConfigYamlEditorP
               <TextField id="nlp-thresh" label="intent_threshold" value={form.nlp.intent_threshold} onChange={v => setNlp({ intent_threshold: v })} description={t('agentConfig.yamlEditor.fields.nlpIntentThreshold')} />
             </div>
             <BoolField id="nlp-prep" label="pre_processing" value={form.nlp.pre_processing} onChange={v => setNlp({ pre_processing: v })} description={t('agentConfig.yamlEditor.fields.nlpPreProcessing')} />
-            <Section title="OpenAI" defaultOpen={false} indent>
+            <Section title={t('agentConfig.yamlEditor.provider.openai')} defaultOpen={false} indent>
               <TextField id="nlp-oai-key" label="api_key" value={form.nlp.openai_api_key} onChange={v => setNlp({ openai_api_key: v })} description={t('agentConfig.yamlEditor.fields.openaiKey')} />
             </Section>
-            <Section title="Mistral AI" defaultOpen={false} indent>
+            <Section title={t('agentConfig.yamlEditor.provider.mistral')} defaultOpen={false} indent>
               <TextField id="nlp-mistral-key" label="api_key" value={form.nlp.mistral_api_key} onChange={v => setNlp({ mistral_api_key: v })} description={t('agentConfig.yamlEditor.fields.mistralKey')} />
             </Section>
-            <Section title="DeepSeek" defaultOpen={false} indent>
+            <Section title={t('agentConfig.yamlEditor.provider.deepseek')} defaultOpen={false} indent>
               <TextField id="nlp-deepseek-key" label="api_key" value={form.nlp.deepseek_api_key} onChange={v => setNlp({ deepseek_api_key: v })} description={t('agentConfig.yamlEditor.fields.deepseekKey')} />
             </Section>
-            <Section title="Google (Gemini)" defaultOpen={false} indent>
+            <Section title={t('agentConfig.yamlEditor.provider.google')} defaultOpen={false} indent>
               <TextField id="nlp-google-key" label="api_key" value={form.nlp.google_api_key} onChange={v => setNlp({ google_api_key: v })} description={t('agentConfig.yamlEditor.fields.googleKey')} />
             </Section>
-            <Section title="Meta (Llama)" defaultOpen={false} indent>
+            <Section title={t('agentConfig.yamlEditor.provider.meta')} defaultOpen={false} indent>
               <TextField id="nlp-meta-key" label="api_key" value={form.nlp.meta_api_key} onChange={v => setNlp({ meta_api_key: v })} description={t('agentConfig.yamlEditor.fields.metaKey')} />
             </Section>
-            <Section title="Anthropic (Claude)" defaultOpen={false} indent>
+            <Section title={t('agentConfig.yamlEditor.provider.anthropic')} defaultOpen={false} indent>
               <TextField id="nlp-anthropic-key" label="api_key" value={form.nlp.anthropic_api_key} onChange={v => setNlp({ anthropic_api_key: v })} description={t('agentConfig.yamlEditor.fields.anthropicKey')} />
             </Section>
-            <Section title="Alibaba Qwen" defaultOpen={false} indent>
+            <Section title={t('agentConfig.yamlEditor.provider.qwen')} defaultOpen={false} indent>
               <TextField id="nlp-qwen-key" label="api_key" value={form.nlp.qwen_api_key} onChange={v => setNlp({ qwen_api_key: v })} description={t('agentConfig.yamlEditor.fields.qwenKey')} />
             </Section>
-            <Section title="xAI (Grok)" defaultOpen={false} indent>
+            <Section title={t('agentConfig.yamlEditor.provider.xai')} defaultOpen={false} indent>
               <TextField id="nlp-xai-key" label="api_key" value={form.nlp.xai_api_key} onChange={v => setNlp({ xai_api_key: v })} description={t('agentConfig.yamlEditor.fields.xaiKey')} />
             </Section>
-            <Section title="Groq" defaultOpen={false} indent>
+            <Section title={t('agentConfig.yamlEditor.provider.groq')} defaultOpen={false} indent>
               <TextField id="nlp-groq-key" label="api_key" value={form.nlp.groq_api_key} onChange={v => setNlp({ groq_api_key: v })} description={t('agentConfig.yamlEditor.fields.groqKey')} />
             </Section>
-            <Section title="Together AI" defaultOpen={false} indent>
+            <Section title={t('agentConfig.yamlEditor.provider.together')} defaultOpen={false} indent>
               <TextField id="nlp-together-key" label="api_key" value={form.nlp.together_api_key} onChange={v => setNlp({ together_api_key: v })} description={t('agentConfig.yamlEditor.fields.togetherKey')} />
             </Section>
-            <Section title="OpenRouter" defaultOpen={false} indent>
+            <Section title={t('agentConfig.yamlEditor.provider.openrouter')} defaultOpen={false} indent>
               <TextField id="nlp-openrouter-key" label="api_key" value={form.nlp.openrouter_api_key} onChange={v => setNlp({ openrouter_api_key: v })} description={t('agentConfig.yamlEditor.fields.openrouterKey')} />
             </Section>
-            <Section title="HuggingFace" defaultOpen={false} indent>
+            <Section title={t('agentConfig.yamlEditor.provider.huggingface')} defaultOpen={false} indent>
               <TextField id="nlp-hf-token" label="token" value={form.nlp.huggingface_token} onChange={v => setNlp({ huggingface_token: v })} description={t('agentConfig.yamlEditor.fields.hfToken')} />
             </Section>
-            <Section title="Replicate" defaultOpen={false} indent>
+            <Section title={t('agentConfig.yamlEditor.provider.replicate')} defaultOpen={false} indent>
               <TextField id="nlp-rep-key" label="api_key" value={form.nlp.replicate_api_key} onChange={v => setNlp({ replicate_api_key: v })} description={t('agentConfig.yamlEditor.fields.replicateKey')} />
             </Section>
           </Section>
@@ -614,7 +640,7 @@ export function AgentConfigYamlEditor({ currentProject }: AgentConfigYamlEditorP
 
             {/* WebSocket */}
             <Section
-              title="websocket"
+              title={t('agentConfig.yamlEditor.subsection.websocket')}
               defaultOpen={form.platforms.websocket.enabled}
               indent
               right={<Toggle value={form.platforms.websocket.enabled} onChange={v => setWs({ enabled: v })} />}
@@ -625,12 +651,12 @@ export function AgentConfigYamlEditor({ currentProject }: AgentConfigYamlEditorP
                     <TextField id="ws-host" label="host" value={form.platforms.websocket.host} onChange={v => setWs({ host: v })} description={t('agentConfig.yamlEditor.fields.wsHost')} />
                     <TextField id="ws-port" label="port" value={form.platforms.websocket.port} onChange={v => setWs({ port: v })} description={t('agentConfig.yamlEditor.fields.wsPort')} />
                   </div>
-                  <Section title="streamlit" defaultOpen={false} indent>
+                  <Section title={t('agentConfig.yamlEditor.subsection.streamlit')} defaultOpen={false} indent>
                     <div className="grid grid-cols-2 gap-3">
                       <TextField id="ws-st-host" label="host" value={form.platforms.websocket.streamlit_host} onChange={v => setWs({ streamlit_host: v })} description={t('agentConfig.yamlEditor.fields.wsStreamlitHost')} />
                       <TextField id="ws-st-port" label="port" value={form.platforms.websocket.streamlit_port} onChange={v => setWs({ streamlit_port: v })} description={t('agentConfig.yamlEditor.fields.wsStreamlitPort')} />
                     </div>
-                    <Section title="chat" defaultOpen={false} indent>
+                    <Section title={t('agentConfig.yamlEditor.subsection.chat')} defaultOpen={false} indent>
                       <div className="grid grid-cols-2 gap-3">
                         <TextField id="ws-chat-size" label="size" value={form.platforms.websocket.chat_size} onChange={v => setWs({ chat_size: v })} description={t('agentConfig.yamlEditor.fields.chatSize')} />
                         <TextField id="ws-chat-font" label="font" value={form.platforms.websocket.chat_font} onChange={v => setWs({ chat_font: v })} description={t('agentConfig.yamlEditor.fields.chatFont')} />
@@ -647,7 +673,7 @@ export function AgentConfigYamlEditor({ currentProject }: AgentConfigYamlEditorP
 
             {/* Telegram */}
             <Section
-              title="telegram"
+              title={t('agentConfig.yamlEditor.subsection.telegram')}
               defaultOpen={form.platforms.telegram.enabled}
               indent
               right={<Toggle value={form.platforms.telegram.enabled} onChange={v => setTelegram({ enabled: v })} />}
@@ -659,7 +685,7 @@ export function AgentConfigYamlEditor({ currentProject }: AgentConfigYamlEditorP
 
             {/* GitHub */}
             <Section
-              title="github"
+              title={t('agentConfig.yamlEditor.subsection.github')}
               defaultOpen={form.platforms.github.enabled}
               indent
               right={<Toggle value={form.platforms.github.enabled} onChange={v => setGithub({ enabled: v })} />}
@@ -675,7 +701,7 @@ export function AgentConfigYamlEditor({ currentProject }: AgentConfigYamlEditorP
 
             {/* GitLab */}
             <Section
-              title="gitlab"
+              title={t('agentConfig.yamlEditor.subsection.gitlab')}
               defaultOpen={form.platforms.gitlab.enabled}
               indent
               right={<Toggle value={form.platforms.gitlab.enabled} onChange={v => setGitlab({ enabled: v })} />}
@@ -691,7 +717,7 @@ export function AgentConfigYamlEditor({ currentProject }: AgentConfigYamlEditorP
 
             {/* A2A */}
             <Section
-              title="a2a"
+              title={t('agentConfig.yamlEditor.subsection.a2a')}
               defaultOpen={form.platforms.a2a.enabled}
               indent
               right={<Toggle value={form.platforms.a2a.enabled} onChange={v => setA2a({ enabled: v })} />}
@@ -706,7 +732,7 @@ export function AgentConfigYamlEditor({ currentProject }: AgentConfigYamlEditorP
           <Section title={t('agentConfig.yamlEditor.section.database')} defaultOpen={false}>
             {/* Monitoring */}
             <Section
-              title="monitoring"
+              title={t('agentConfig.yamlEditor.subsection.monitoring')}
               defaultOpen={form.db.monitoring.enabled}
               indent
               right={<Toggle value={form.db.monitoring.enabled} onChange={v => setMonitoring({ enabled: v })} />}
@@ -722,7 +748,7 @@ export function AgentConfigYamlEditor({ currentProject }: AgentConfigYamlEditorP
 
             {/* Streamlit DB */}
             <Section
-              title="streamlit"
+              title={t('agentConfig.yamlEditor.subsection.streamlit')}
               defaultOpen={form.db.streamlit_db.enabled}
               indent
               right={<Toggle value={form.db.streamlit_db.enabled} onChange={v => setStreamlitDb({ enabled: v })} />}

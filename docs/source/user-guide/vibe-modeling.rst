@@ -30,7 +30,7 @@ Suggested **quick actions** (e.g. *create*, *generate code*, *export*) appear as
 one-click chips to speed up common follow-ups.
 
 What you can ask it to do
-------------------------
+-------------------------
 
 The modeling agent understands natural-language modeling requests such as:
 
@@ -47,7 +47,7 @@ The modeling agent understands natural-language modeling requests such as:
   generation pipeline as the *Generate* menu.
 
 Supported diagram types
-----------------------
+-----------------------
 
 The modeling agent can create and edit these diagram types:
 
@@ -73,7 +73,7 @@ Beyond typing, you can:
   sketch, or an existing model to convert into a B-UML diagram.
 
 Running it locally
------------------
+------------------
 
 The assistant is optional: the editor works without it, but the chat widget only
 connects when a modeling-agent service is reachable. When running the editor

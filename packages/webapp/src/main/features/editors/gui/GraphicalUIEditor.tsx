@@ -2,22 +2,8 @@
 import type { Editor } from 'grapesjs';
 import './grapesjs-styles.css';
 import { getClassOptions, getDisplayAttribute, getEndsByClassId, getClassMetadata, getMethodsByClassId } from './diagram-helpers';
-import { getChartConfigs } from './configs/chartConfigs';
-import { getTableConfig } from './configs/tableConfig';
-import { getMetricCardConfig } from './configs/metricCardConfigs';
-import { getMapConfig } from './configs/mapConfig';
-import { registerChartComponent } from './component-registrars/registerChartComponent';
-import { registerTableComponent } from './component-registrars/registerTableComponent';
-import { registerMetricCardComponent } from './component-registrars/registerMetricCardComponent';
-import { registerMapComponent } from './component-registrars/registerMapComponent';
-import { registerButtonComponent } from './component-registrars/registerButtonComponent';
-import { registerFormComponents } from './component-registrars/registerFormComponents';
-import { registerLayoutComponents } from './component-registrars/registerLayoutComponents';
-import { registerAgentComponent } from './component-registrars/registerAgentComponent';
 import { setupPageSystem, loadDefaultPages } from './setup/setupPageSystem';
-import { setupLayoutBlocks } from './setup/setupLayoutBlocks';
-import { setupInputBlocks } from './setup/setupInputBlocks';
-import registerColumnsManagerTrait from './traits/registerColumnsManagerTrait';
+import { registerAllComponents } from './registerAllComponents';
 import { ProjectStorageRepository } from '../../../shared/services/storage/ProjectStorageRepository';
 import { GrapesJSProjectData, isGrapesJSProjectData, normalizeToGrapesJSProjectData, createDefaultGUITemplate, getActiveDiagram, getReferencedDiagram } from '../../../shared/types/project';
 import { downloadFile } from '../../../shared/utils/download';
@@ -241,8 +227,8 @@ export const GraphicalUIEditor: React.FC = () => {
       (window as any).__WME_GUI_EDITOR_READY__ = true;
       window.dispatchEvent(new CustomEvent('wme:gui-editor-ready'));
 
-      // Register all custom components
-      registerCustomComponents(editor);
+      // Custom components, blocks and traits are registered once in
+      // setupEditorFeatures() via registerAllComponents().
 
       // Handle editor load event
       editor.on('load', () => {
@@ -508,40 +494,12 @@ function setupEditorFeatures(
   
   // Additional features
   setupDataBindingTraits(editor);
-  setupCustomTraits(editor);
-  setupLayoutBlocks(editor);
-  setupInputBlocks(editor);
+  // Shared components, blocks and traits (also used by AgentGUIEditor).
+  registerAllComponents(editor);
   // enableAbsolutePositioning(editor);
   
   // Return cleanup function
   return cleanupStorage;
-}
-
-/**
- * Register all custom components
- */
-function registerCustomComponents(editor: Editor) {
-  // Configs are built via factories so labels resolve in the current language
-  // on every (re)mount — e.g. after a language switch remounts the editor.
-  // Register charts
-  getChartConfigs().forEach((config) => {
-    registerChartComponent(editor, config);
-  });
-
-  // Register table
-  registerTableComponent(editor, getTableConfig());
-
-  // Register metric card
-  registerMetricCardComponent(editor, getMetricCardConfig());
-
-  // Register other components
-  registerMapComponent(editor, getMapConfig());
-  registerButtonComponent(editor);
-  // registerFormComponents(editor); // Commented out - forms removed for now
-  registerLayoutComponents(editor);
-  registerAgentComponent(editor);
-  
-  // console.log('[GraphicalUIEditor] All custom components registered');
 }
 
 /**
@@ -1901,16 +1859,6 @@ function setupDataBindingTraits(editor: Editor) {
   });
   
   console.log('[Data Binding] System initialized');
-}
-
-/**
- * Setup custom traits (columns-manager, etc.)
- */
-function setupCustomTraits(editor: Editor) {
-  // Register columns-manager trait for tables
-  registerColumnsManagerTrait(editor);
-  
-  // console.log('[Custom Traits] Registered columns-manager trait');
 }
 
 // ============================================

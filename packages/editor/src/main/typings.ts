@@ -45,6 +45,27 @@ export type UMLModel = {
   relationships: { [id: string]: UMLRelationship };
   assessments: { [id: string]: Assessment };
   referenceDiagramData?: any;
+  /**
+   * Off-canvas agent components (LLMs, intents + intent bodies, RAG databases, tools, skills,
+   * workspaces, GUIs), keyed by id. Only used by agent diagrams; managed by the webapp's agent
+   * components panel. Components carry no canvas position, so `bounds` is optional.
+   */
+  components?: { [id: string]: UMLModelComponent };
+  /**
+   * @deprecated Legacy location of the agent components. Migrated into `components` by
+   * `normalizeAgentComponents` on every editor load; never written by the editor.
+   */
+  agentComponents?: { [id: string]: UMLModelComponent };
+};
+
+/**
+ * An off-canvas agent component stored in `UMLModel.components`. Same shape as a canvas element
+ * minus the mandatory geometry, plus the type-specific payload fields (e.g. `bodies`,
+ * `intent_description`, `provider`, `gui_id`, `is_form`).
+ */
+export type UMLModelComponent = Omit<UMLModelElement, 'bounds'> & {
+  bounds?: IBoundary;
+  [field: string]: any;
 };
 
 export type UMLModelElementType = UMLElementType | UMLRelationshipType | UMLDiagramType;
@@ -77,6 +98,14 @@ export interface AgentModelElement extends UMLModelElement {
   dbSqlQuery?: string;
   llm_name?: string;
   system_message?: string;
+  // prompt customisation & session data flow
+  inputPromptMode?: string;
+  customInputPrompt?: string;
+  customInputPromptUseSessionVars?: boolean;
+  systemPromptUseSessionVars?: boolean;
+  promptUseSessionVars?: boolean;
+  storeInSession?: string;
+  useSessionVars?: boolean;
   // web crawl + LLM fields
   initial_url?: string;
   max_depth?: number;
@@ -86,12 +115,17 @@ export interface AgentModelElement extends UMLModelElement {
   run_crawl?: boolean;
   no_crawl_error_message?: string;
   system_message_prefix?: string;
+  // web crawl session-var interpolation
+  systemMessagePrefixUseSessionVars?: boolean;
+  // send_reply toggle (all LLM-generated answer actions)
+  sendReply?: boolean;
   // websocket-specific reply fields
   ws_message?: string;
   ws_audio_speed?: number | null;
   ws_options?: string;
   ws_latitude?: number;
   ws_longitude?: number;
+  guiId?: string;
 }
 
 export type UMLElement = UMLModelElement & {
@@ -119,7 +153,7 @@ export type UMLClassifier = UMLElement & {
 
 export type Visibility = 'public' | 'private' | 'protected' | 'package';
 
-export type MethodImplementationType = 'none' | 'code' | 'bal' | 'state_machine' | 'quantum_circuit';
+export type MethodImplementationType = 'none' | 'code' | 'bal' | 'state_machine' | 'quantum_circuit' | 'neural_network';
 
 export type DiagramReference = {
   id: string;
@@ -134,6 +168,7 @@ export type UMLClassifierMember = UMLElement & {
   implementationType?: MethodImplementationType;
   stateMachineId?: string;
   quantumCircuitId?: string;
+  neuralNetworkId?: string;
   isOptional?: boolean;
   isDerived?: boolean;
   isId?: boolean;
@@ -212,6 +247,7 @@ export type AgentStateTransition = UMLRelationship & {
     intentName?: string;
     fileType?: string;
     conditionValue?: string | { variable: string; operator: string; targetValue: string };
+    formGuiId?: string;
   };
   custom?: {
     event?:
@@ -221,8 +257,10 @@ export type AgentStateTransition = UMLRelationship & {
       | 'ReceiveMessageEvent'
       | 'ReceiveTextEvent'
       | 'ReceiveJSONEvent'
-      | 'ReceiveFileEvent';
+      | 'ReceiveFileEvent'
+      | 'GUIEvent';
     condition?: string[];
+    guiEventGuiId?: string;
   };
   // Legacy flat properties — kept for backward compatibility with existing diagrams
   predefinedType?: string;
@@ -233,7 +271,8 @@ export type AgentStateTransition = UMLRelationship & {
     | 'ReceiveMessageEvent'
     | 'ReceiveTextEvent'
     | 'ReceiveJSONEvent'
-    | 'ReceiveFileEvent';
+    | 'ReceiveFileEvent'
+    | 'GUIEvent';
   condition?: string | string[];
   intentName?: string;
   variable?: string;
@@ -251,8 +290,11 @@ export type AgentStateTransition = UMLRelationship & {
     | 'ReceiveMessageEvent'
     | 'ReceiveTextEvent'
     | 'ReceiveJSONEvent'
-    | 'ReceiveFileEvent';
+    | 'ReceiveFileEvent'
+    | 'GUIEvent';
   customConditions?: string[];
+  guiEventGuiId?: string;
+  formGuiId?: string;
 };
 
 export type UMLDeploymentNode = UMLElement & {
@@ -324,10 +366,22 @@ export type UMLAssociation = UMLRelationship & {
   source: UMLRelationship['source'] & {
     multiplicity: string;
     role: string;
+    /**
+     * Whether this end can be navigated to. The editor always writes an explicit
+     * boolean for class-diagram associations; when it is missing (legacy data),
+     * see `resolveAssociationNavigability` for the defaults.
+     */
+    navigable?: boolean;
   };
   target: UMLRelationship['target'] & {
     multiplicity: string;
     role: string;
+    /**
+     * Whether this end can be navigated to. The editor always writes an explicit
+     * boolean for class-diagram associations; when it is missing (legacy data),
+     * see `resolveAssociationNavigability` for the defaults.
+     */
+    navigable?: boolean;
   };
 };
 

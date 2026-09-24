@@ -27,6 +27,9 @@ Design UML models, generate code, and deploy applications -- all from your brows
    user-guide/deploy_to_render
    user-guide/projects
    user-guide/diagrams/index
+   user-guide/agent-components
+   user-guide/agent-runtime
+   user-guide/agent-simulation
    contributing/new-diagram-guide/index
 
 .. toctree::
