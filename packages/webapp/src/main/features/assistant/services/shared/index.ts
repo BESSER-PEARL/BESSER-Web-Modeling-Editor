@@ -12,3 +12,4 @@ export {
   LAYOUT_START_Y,
   calculateGridPosition,
 } from './layoutUtils';
+export { mapAssistantRelationshipType, applyAssistantRelationshipType } from './relationshipMapping';

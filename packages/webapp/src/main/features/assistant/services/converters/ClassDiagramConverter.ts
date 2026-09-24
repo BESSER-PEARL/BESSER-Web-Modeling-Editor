@@ -5,6 +5,7 @@
 
 import { DiagramConverter, PositionGenerator, generateUniqueId } from './base';
 import { normalizeType } from '../shared/typeNormalization';
+import { applyAssistantRelationshipType } from '../shared/relationshipMapping';
 
 export class ClassDiagramConverter implements DiagramConverter {
   private positionGenerator = new PositionGenerator();
@@ -88,11 +89,9 @@ export class ClassDiagramConverter implements DiagramConverter {
       
       if (sourceId && targetId) {
         const relId = generateUniqueId('rel');
-        const relationshipType = this.getRelationshipType(rel.type);
-        
-        allRelationships[relId] = {
+        const relationship: any = {
           id: relId,
-          type: relationshipType,
+          type: 'ClassBidirectional',
           source: { 
             element: sourceId,
             direction: rel.sourceDirection || 'Left',
@@ -112,6 +111,8 @@ export class ClassDiagramConverter implements DiagramConverter {
           path: [{ x: 100, y: 10 }, { x: 0, y: 10 }],
           isManuallyLayouted: false
         };
+        applyAssistantRelationshipType(relationship, rel.type);
+        allRelationships[relId] = relationship;
       }
     });
     
@@ -207,19 +208,5 @@ export class ClassDiagramConverter implements DiagramConverter {
     });
     
     return { methods, endY: currentY };
-  }
-
-  private getRelationshipType(type: string): string {
-    switch (type?.toLowerCase()) {
-      case 'inheritance':
-      case 'generalization':
-        return 'ClassInheritance';
-      case 'composition':
-        return 'ClassComposition';
-      case 'aggregation':
-        return 'ClassAggregation';
-      default:
-        return 'ClassBidirectional';
-    }
   }
 }
