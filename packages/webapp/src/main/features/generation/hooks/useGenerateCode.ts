@@ -7,7 +7,7 @@ import { validateDiagram } from '../../../shared/services/validation/validateDia
 import { BACKEND_URL } from '../../../shared/constants/constant';
 import { ProjectStorageRepository } from '../../../shared/services/storage/ProjectStorageRepository';
 import { normalizeProjectName } from '../../../shared/utils/projectName';
-import { buildProjectPayloadForBackend } from '../../../shared/utils/projectExportUtils';
+import { buildProjectPayloadForBackend, prepareAgentModelForBackend } from '../../../shared/utils/projectExportUtils';
 import {
   restoreBaseAgentModels,
   stripAgentConfigToSystem,
@@ -276,7 +276,8 @@ export const useGenerateCode = () => {
       }
 
       // Validate diagram before generation
-      const validationResult = await validateDiagram(editor, diagramTitle);
+      const rawModel = modelOverride ?? editor.model;
+      const validationResult = await validateDiagram(null, diagramTitle, rawModel);
       if (!validationResult.isValid) {
         toast.error(validationResult.message || t('generation.toasts.validationFailed'));
         return { ok: false, error: validationResult.message || 'Validation failed' };
@@ -288,7 +289,7 @@ export const useGenerateCode = () => {
       // handleAgentGenerate in useGeneratorExecution.
       const body: any = {
         title: diagramTitle,
-        model: modelOverride ?? editor.model,
+        model: generatorType === 'agent' ? prepareAgentModelForBackend(rawModel) : rawModel,
         generator: generatorType,
         config: config,
         ...(referenceDiagramData ? { referenceDiagramData } : {}),

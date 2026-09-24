@@ -2,304 +2,173 @@
   "version": "3.0.0",
   "type": "AgentDiagram",
   "size": {
-    "width": 1080,
-    "height": 400
+    "width": 1192,
+    "height": 434
   },
   "interactive": {
     "elements": {},
     "relationships": {}
   },
   "elements": {
-    "97627a74-e4e6-48af-9989-8d714dfe83b8": {
-      "id": "97627a74-e4e6-48af-9989-8d714dfe83b8",
+    "de7fd93b-1a51-406d-a4f1-a37966b96db1": {
+      "id": "de7fd93b-1a51-406d-a4f1-a37966b96db1",
       "name": "initial",
       "type": "AgentState",
       "owner": null,
       "bounds": {
-        "x": -350,
-        "y": -30,
-        "width": 140,
+        "x": -484,
+        "y": -34,
+        "width": 160,
         "height": 40
       },
+      "stateType": "standard",
+      "fallbackBodyEnabled": false,
+      "actions": [],
+      "fallbackActions": [],
       "bodies": [],
       "fallbackBodies": []
     },
-    "269178e5-8e58-4ddc-803f-d91e99e93fde": {
-      "id": "269178e5-8e58-4ddc-803f-d91e99e93fde",
+    "d7876c4c-7ea0-4ae8-8b40-9c3530e608d5": {
+      "id": "d7876c4c-7ea0-4ae8-8b40-9c3530e608d5",
       "name": "greeting",
       "type": "AgentState",
       "owner": null,
       "bounds": {
-        "x": -20,
-        "y": -60,
+        "x": -153,
+        "y": -63,
         "width": 210,
         "height": 100
       },
-      "bodies": ["354aee35-fcda-486b-85d8-854a3e620d2f", "40894ba0-5b4b-4229-9b17-49fffeeea4d8"],
+      "stateType": "standard",
+      "fallbackBodyEnabled": false,
+      "actions": ["3c1a1d99-1758-4d49-af3c-0385d028baf8", "a70aee8d-8e3d-4f1b-829d-ef0afd06cd38"],
+      "fallbackActions": [],
+      "bodies": ["3c1a1d99-1758-4d49-af3c-0385d028baf8", "a70aee8d-8e3d-4f1b-829d-ef0afd06cd38"],
       "fallbackBodies": []
     },
-    "354aee35-fcda-486b-85d8-854a3e620d2f": {
-      "id": "354aee35-fcda-486b-85d8-854a3e620d2f",
-      "name": "Hi!",
+    "3c1a1d99-1758-4d49-af3c-0385d028baf8": {
+      "id": "3c1a1d99-1758-4d49-af3c-0385d028baf8",
+      "name": "Hi",
       "type": "AgentStateBody",
-      "owner": "269178e5-8e58-4ddc-803f-d91e99e93fde",
+      "owner": "d7876c4c-7ea0-4ae8-8b40-9c3530e608d5",
       "bounds": {
-        "x": -19.5,
-        "y": -19.5,
+        "x": -152.5,
+        "y": -22.5,
         "width": 209,
         "height": 30
       },
-      "replyType": "text"
+      "actionType": "TextReplyAction",
+      "replyType": "text",
+      "useSessionVars": false,
+      "llm_name": ""
     },
-    "40894ba0-5b4b-4229-9b17-49fffeeea4d8": {
-      "id": "40894ba0-5b4b-4229-9b17-49fffeeea4d8",
+    "a70aee8d-8e3d-4f1b-829d-ef0afd06cd38": {
+      "id": "a70aee8d-8e3d-4f1b-829d-ef0afd06cd38",
       "name": "How are you?",
       "type": "AgentStateBody",
-      "owner": "269178e5-8e58-4ddc-803f-d91e99e93fde",
+      "owner": "d7876c4c-7ea0-4ae8-8b40-9c3530e608d5",
       "bounds": {
-        "x": -19.5,
-        "y": 10.5,
+        "x": -152.5,
+        "y": 7.5,
         "width": 209,
         "height": 30
       },
-      "replyType": "text"
+      "actionType": "TextReplyAction",
+      "replyType": "text",
+      "useSessionVars": false,
+      "llm_name": ""
     },
-    "d2c3ac6c-2869-4555-a599-4810168a3164": {
-      "id": "d2c3ac6c-2869-4555-a599-4810168a3164",
-      "name": "bad",
-      "type": "AgentState",
-      "owner": null,
-      "bounds": {
-        "x": 310,
-        "y": 120,
-        "width": 220,
-        "height": 70
-      },
-      "bodies": ["408f0c9a-e2f3-42b9-87fd-ec0e203b5d85"],
-      "fallbackBodies": []
-    },
-    "408f0c9a-e2f3-42b9-87fd-ec0e203b5d85": {
-      "id": "408f0c9a-e2f3-42b9-87fd-ec0e203b5d85",
-      "name": "I'm sorry to hear that...",
-      "type": "AgentStateBody",
-      "owner": "d2c3ac6c-2869-4555-a599-4810168a3164",
-      "bounds": {
-        "x": 310.5,
-        "y": 160.5,
-        "width": 219,
-        "height": 30
-      },
-      "replyType": "text"
-    },
-    "95bd55b0-680a-4f0c-9dd4-d4416344daca": {
-      "id": "95bd55b0-680a-4f0c-9dd4-d4416344daca",
-      "name": "",
-      "type": "StateInitialNode",
-      "owner": null,
-      "bounds": {
-        "x": -470,
-        "y": -30,
-        "width": 45,
-        "height": 45
-      }
-    },
-    "c629ac2b-4ce7-40bf-8382-41af767383c9": {
-      "id": "c629ac2b-4ce7-40bf-8382-41af767383c9",
-      "name": "Greeting_intent",
-      "type": "AgentIntent",
-      "owner": null,
-      "bounds": {
-        "x": -640,
-        "y": -350,
-        "width": 230,
-        "height": 130
-      },
-      "bodies": [
-        "87648564-ea5f-43d2-aef0-0b8f1e4bb19c",
-        "b230fdc3-0bf9-409e-b22e-a83b0017d9e3",
-        "73e5374e-6fa8-42a8-b6ef-03f3b32be48b"
-      ]
-    },
-    "87648564-ea5f-43d2-aef0-0b8f1e4bb19c": {
-      "id": "87648564-ea5f-43d2-aef0-0b8f1e4bb19c",
-      "name": "Hi",
-      "type": "AgentIntentBody",
-      "owner": "c629ac2b-4ce7-40bf-8382-41af767383c9",
-      "bounds": {
-        "x": -639.5,
-        "y": -309.5,
-        "width": 229,
-        "height": 30
-      }
-    },
-    "b230fdc3-0bf9-409e-b22e-a83b0017d9e3": {
-      "id": "b230fdc3-0bf9-409e-b22e-a83b0017d9e3",
-      "name": "Hello",
-      "type": "AgentIntentBody",
-      "owner": "c629ac2b-4ce7-40bf-8382-41af767383c9",
-      "bounds": {
-        "x": -639.5,
-        "y": -279.5,
-        "width": 229,
-        "height": 30
-      }
-    },
-    "73e5374e-6fa8-42a8-b6ef-03f3b32be48b": {
-      "id": "73e5374e-6fa8-42a8-b6ef-03f3b32be48b",
-      "name": "Howdy",
-      "type": "AgentIntentBody",
-      "owner": "c629ac2b-4ce7-40bf-8382-41af767383c9",
-      "bounds": {
-        "x": -639.5,
-        "y": -249.5,
-        "width": 229,
-        "height": 30
-      }
-    },
-    "83ffb8ea-e7bc-489b-b799-89c79df708b8": {
-      "id": "83ffb8ea-e7bc-489b-b799-89c79df708b8",
+    "22ffd05a-ea5f-42fe-8fb5-b7666e02de3d": {
+      "id": "22ffd05a-ea5f-42fe-8fb5-b7666e02de3d",
       "name": "good",
       "type": "AgentState",
       "owner": null,
       "bounds": {
-        "x": 320,
-        "y": -170,
-        "width": 220,
+        "x": 236,
+        "y": -157,
+        "width": 240,
         "height": 70
       },
-      "bodies": ["89df378b-5793-4fc4-bd6c-5ba8eeb173e0"],
+      "stateType": "standard",
+      "fallbackBodyEnabled": false,
+      "actions": ["9933e657-4654-43e9-affa-fbbc6d21b804"],
+      "fallbackActions": [],
+      "bodies": ["9933e657-4654-43e9-affa-fbbc6d21b804"],
       "fallbackBodies": []
     },
-    "89df378b-5793-4fc4-bd6c-5ba8eeb173e0": {
-      "id": "89df378b-5793-4fc4-bd6c-5ba8eeb173e0",
+    "9933e657-4654-43e9-affa-fbbc6d21b804": {
+      "id": "9933e657-4654-43e9-affa-fbbc6d21b804",
       "name": "I am glad to hear that!",
       "type": "AgentStateBody",
-      "owner": "83ffb8ea-e7bc-489b-b799-89c79df708b8",
+      "owner": "22ffd05a-ea5f-42fe-8fb5-b7666e02de3d",
       "bounds": {
-        "x": 320.5,
-        "y": -129.5,
-        "width": 219,
+        "x": 236.5,
+        "y": -116.5,
+        "width": 239,
         "height": 30
       },
-      "replyType": "text"
+      "actionType": "TextReplyAction",
+      "replyType": "text",
+      "useSessionVars": false,
+      "llm_name": ""
     },
-    "4331ac3a-aac0-439e-a43b-622ceec672b4": {
-      "id": "4331ac3a-aac0-439e-a43b-622ceec672b4",
-      "name": "Good_intent",
-      "type": "AgentIntent",
+    "ce9bd57d-2a3a-45e0-a4d9-2aa22f206d2d": {
+      "id": "ce9bd57d-2a3a-45e0-a4d9-2aa22f206d2d",
+      "name": "bad",
+      "type": "AgentState",
       "owner": null,
       "bounds": {
-        "x": -380,
-        "y": -350,
-        "width": 230,
-        "height": 130
+        "x": 224,
+        "y": 86,
+        "width": 260,
+        "height": 70
       },
-      "bodies": [
-        "a4f9f789-d4da-4db4-8f1f-1afd2c24fdff",
-        "2e98b7ce-722a-4402-a995-3ca1d4e56605",
-        "d58d039f-1851-4d83-aefb-b8adf392190e"
-      ]
+      "stateType": "standard",
+      "fallbackBodyEnabled": false,
+      "actions": ["a09a21da-58e2-4c43-9dcb-77097080fd10"],
+      "fallbackActions": [],
+      "bodies": ["a09a21da-58e2-4c43-9dcb-77097080fd10"],
+      "fallbackBodies": []
     },
-    "a4f9f789-d4da-4db4-8f1f-1afd2c24fdff": {
-      "id": "a4f9f789-d4da-4db4-8f1f-1afd2c24fdff",
-      "name": "Good",
-      "type": "AgentIntentBody",
-      "owner": "4331ac3a-aac0-439e-a43b-622ceec672b4",
+    "a09a21da-58e2-4c43-9dcb-77097080fd10": {
+      "id": "a09a21da-58e2-4c43-9dcb-77097080fd10",
+      "name": "I am sorry to hear that...",
+      "type": "AgentStateBody",
+      "owner": "ce9bd57d-2a3a-45e0-a4d9-2aa22f206d2d",
       "bounds": {
-        "x": -379.5,
-        "y": -309.5,
-        "width": 229,
+        "x": 224.5,
+        "y": 126.5,
+        "width": 259,
         "height": 30
-      }
+      },
+      "actionType": "TextReplyAction",
+      "replyType": "text",
+      "useSessionVars": false,
+      "llm_name": ""
     },
-    "2e98b7ce-722a-4402-a995-3ca1d4e56605": {
-      "id": "2e98b7ce-722a-4402-a995-3ca1d4e56605",
-      "name": "Fine",
-      "type": "AgentIntentBody",
-      "owner": "4331ac3a-aac0-439e-a43b-622ceec672b4",
-      "bounds": {
-        "x": -379.5,
-        "y": -279.5,
-        "width": 229,
-        "height": 30
-      }
-    },
-    "d58d039f-1851-4d83-aefb-b8adf392190e": {
-      "id": "d58d039f-1851-4d83-aefb-b8adf392190e",
-      "name": "I'm alright",
-      "type": "AgentIntentBody",
-      "owner": "4331ac3a-aac0-439e-a43b-622ceec672b4",
-      "bounds": {
-        "x": -379.5,
-        "y": -249.5,
-        "width": 229,
-        "height": 30
-      }
-    },
-    "e999a3c8-25d5-4180-9c77-cdd78dcd9f74": {
-      "id": "e999a3c8-25d5-4180-9c77-cdd78dcd9f74",
-      "name": "Bad_intent",
-      "type": "AgentIntent",
+    "cd5c65eb-7b60-4a20-bd4a-2b2d2d36a93f": {
+      "id": "cd5c65eb-7b60-4a20-bd4a-2b2d2d36a93f",
+      "name": "",
+      "type": "StateInitialNode",
       "owner": null,
       "bounds": {
-        "x": -130,
-        "y": -350,
-        "width": 230,
-        "height": 130
-      },
-      "bodies": [
-        "b27ef549-9a7c-42b2-b64b-9923bc83a663",
-        "cf17937f-875e-49c9-a39e-e99c09d9c466",
-        "36e8e944-a64a-429b-8c36-907cc3bf80a0"
-      ]
-    },
-    "b27ef549-9a7c-42b2-b64b-9923bc83a663": {
-      "id": "b27ef549-9a7c-42b2-b64b-9923bc83a663",
-      "name": "Bad",
-      "type": "AgentIntentBody",
-      "owner": "e999a3c8-25d5-4180-9c77-cdd78dcd9f74",
-      "bounds": {
-        "x": -129.5,
-        "y": -309.5,
-        "width": 229,
-        "height": 30
-      }
-    },
-    "cf17937f-875e-49c9-a39e-e99c09d9c466": {
-      "id": "cf17937f-875e-49c9-a39e-e99c09d9c466",
-      "name": "Not so good",
-      "type": "AgentIntentBody",
-      "owner": "e999a3c8-25d5-4180-9c77-cdd78dcd9f74",
-      "bounds": {
-        "x": -129.5,
-        "y": -279.5,
-        "width": 229,
-        "height": 30
-      }
-    },
-    "36e8e944-a64a-429b-8c36-907cc3bf80a0": {
-      "id": "36e8e944-a64a-429b-8c36-907cc3bf80a0",
-      "name": "Could be better",
-      "type": "AgentIntentBody",
-      "owner": "e999a3c8-25d5-4180-9c77-cdd78dcd9f74",
-      "bounds": {
-        "x": -129.5,
-        "y": -249.5,
-        "width": 229,
+        "x": -576,
+        "y": -34,
+        "width": 30,
         "height": 30
       }
     }
   },
   "relationships": {
-    "f21d5200-0820-4ea2-a1a7-1f208d8bfa3a": {
-      "id": "f21d5200-0820-4ea2-a1a7-1f208d8bfa3a",
+    "edda0968-00a1-47cd-9718-5cb9928d36e8": {
+      "id": "edda0968-00a1-47cd-9718-5cb9928d36e8",
       "name": "",
       "type": "AgentStateTransition",
       "owner": null,
       "bounds": {
-        "x": -210,
-        "y": -10,
-        "width": 190,
+        "x": -324,
+        "y": -14,
+        "width": 171,
         "height": 1
       },
       "path": [
@@ -308,223 +177,145 @@
           "y": 0
         },
         {
-          "x": 190,
+          "x": 171,
           "y": 0
-        }
-      ],
-      "source": {
-        "direction": "Right",
-        "element": "97627a74-e4e6-48af-9989-8d714dfe83b8"
-      },
-      "target": {
-        "direction": "Downleft",
-        "element": "269178e5-8e58-4ddc-803f-d91e99e93fde"
-      },
-      "isManuallyLayouted": false,
-      "transitionType": "predefined",
-      "predefined": {
-        "predefinedType": "when_intent_matched",
-        "intentName": "Greeting_intent"
-      },
-      "custom": {
-        "condition": []
-      }
-    },
-    "44b4863b-d7da-4316-bfc1-8dc0cfefc2d0": {
-      "id": "44b4863b-d7da-4316-bfc1-8dc0cfefc2d0",
-      "name": "",
-      "type": "AgentStateTransitionInit",
-      "owner": null,
-      "bounds": {
-        "x": -425,
-        "y": -10,
-        "width": 75,
-        "height": 1
-      },
-      "path": [
-        {
-          "x": 0,
-          "y": 0
-        },
-        {
-          "x": 75,
-          "y": 0
-        }
-      ],
-      "source": {
-        "direction": "Right",
-        "element": "95bd55b0-680a-4f0c-9dd4-d4416344daca"
-      },
-      "target": {
-        "direction": "Left",
-        "element": "97627a74-e4e6-48af-9989-8d714dfe83b8"
-      },
-      "isManuallyLayouted": false
-    },
-    "324b41be-02fe-4dfa-8ab3-079b8e84fd01": {
-      "id": "324b41be-02fe-4dfa-8ab3-079b8e84fd01",
-      "name": "",
-      "type": "AgentStateTransition",
-      "owner": null,
-      "bounds": {
-        "x": 190,
-        "y": -135,
-        "width": 130,
-        "height": 125
-      },
-      "path": [
-        {
-          "x": 0,
-          "y": 125
-        },
-        {
-          "x": 65,
-          "y": 125
-        },
-        {
-          "x": 65,
-          "y": 0
-        },
-        {
-          "x": 130,
-          "y": 0
-        }
-      ],
-      "source": {
-        "direction": "Right",
-        "element": "269178e5-8e58-4ddc-803f-d91e99e93fde"
-      },
-      "target": {
-        "direction": "Left",
-        "element": "83ffb8ea-e7bc-489b-b799-89c79df708b8"
-      },
-      "isManuallyLayouted": true,
-      "transitionType": "predefined",
-      "predefined": {
-        "predefinedType": "when_intent_matched",
-        "intentName": "Good_intent"
-      },
-      "custom": {
-        "condition": []
-      }
-    },
-    "08c4c033-e087-4e5a-948d-d694f951fd9e": {
-      "id": "08c4c033-e087-4e5a-948d-d694f951fd9e",
-      "name": "",
-      "type": "AgentStateTransition",
-      "owner": null,
-      "bounds": {
-        "x": 190,
-        "y": 15,
-        "width": 120,
-        "height": 140
-      },
-      "path": [
-        {
-          "x": 0,
-          "y": 0
-        },
-        {
-          "x": 60,
-          "y": 0
-        },
-        {
-          "x": 60,
-          "y": 140
-        },
-        {
-          "x": 120,
-          "y": 140
         }
       ],
       "source": {
         "direction": "Downright",
-        "element": "269178e5-8e58-4ddc-803f-d91e99e93fde"
+        "element": "de7fd93b-1a51-406d-a4f1-a37966b96db1"
       },
       "target": {
         "direction": "Left",
-        "element": "d2c3ac6c-2869-4555-a599-4810168a3164"
+        "element": "d7876c4c-7ea0-4ae8-8b40-9c3530e608d5"
       },
       "isManuallyLayouted": false,
       "transitionType": "predefined",
       "predefined": {
         "predefinedType": "when_intent_matched",
-        "intentName": "Bad_intent"
+        "intentName": "greeting_intent"
       },
       "custom": {
         "condition": []
       }
     },
-    "b10d2d94-f9b2-431b-bce1-dea689ea34ae": {
-      "id": "b10d2d94-f9b2-431b-bce1-dea689ea34ae",
+    "bbcf8812-9989-43cb-8097-1a94350dc0e4": {
+      "id": "bbcf8812-9989-43cb-8097-1a94350dc0e4",
       "name": "",
       "type": "AgentStateTransition",
       "owner": null,
       "bounds": {
-        "x": -280,
-        "y": -210,
-        "width": 720,
-        "height": 180
+        "x": 57,
+        "y": -122,
+        "width": 179,
+        "height": 109
       },
       "path": [
         {
-          "x": 710,
-          "y": 40
-        },
-        {
-          "x": 710,
-          "y": 29
-        },
-        {
           "x": 0,
-          "y": 29
+          "y": 109
         },
         {
-          "x": 0,
-          "y": 180
+          "x": 89.5,
+          "y": 109
+        },
+        {
+          "x": 89.5,
+          "y": 0
+        },
+        {
+          "x": 179,
+          "y": 0
         }
       ],
       "source": {
-        "direction": "Up",
-        "element": "83ffb8ea-e7bc-489b-b799-89c79df708b8"
+        "direction": "Right",
+        "element": "d7876c4c-7ea0-4ae8-8b40-9c3530e608d5"
       },
       "target": {
-        "direction": "Up",
-        "element": "97627a74-e4e6-48af-9989-8d714dfe83b8"
+        "direction": "Left",
+        "element": "22ffd05a-ea5f-42fe-8fb5-b7666e02de3d"
       },
-      "isManuallyLayouted": true,
+      "isManuallyLayouted": false,
       "transitionType": "predefined",
       "predefined": {
-        "predefinedType": "auto",
-        "conditionValue": ""
+        "predefinedType": "when_intent_matched",
+        "intentName": "good_intent"
       },
       "custom": {
         "condition": []
       }
     },
-    "a744cb97-e58a-431b-b1fa-f2dbe0905192": {
-      "id": "a744cb97-e58a-431b-b1fa-f2dbe0905192",
+    "22315f95-af47-4943-9589-f6097264b679": {
+      "id": "22315f95-af47-4943-9589-f6097264b679",
       "name": "",
       "type": "AgentStateTransition",
       "owner": null,
       "bounds": {
-        "x": -280,
-        "y": 10,
-        "width": 645,
-        "height": 220
+        "x": 57,
+        "y": 12,
+        "width": 167,
+        "height": 109
       },
       "path": [
         {
-          "x": 645,
-          "y": 180
+          "x": 0,
+          "y": 0
         },
         {
-          "x": 645,
-          "y": 220
+          "x": 83.5,
+          "y": 0
+        },
+        {
+          "x": 83.5,
+          "y": 109
+        },
+        {
+          "x": 167,
+          "y": 109
+        }
+      ],
+      "source": {
+        "direction": "Downright",
+        "element": "d7876c4c-7ea0-4ae8-8b40-9c3530e608d5"
+      },
+      "target": {
+        "direction": "Left",
+        "element": "ce9bd57d-2a3a-45e0-a4d9-2aa22f206d2d"
+      },
+      "isManuallyLayouted": false,
+      "transitionType": "predefined",
+      "predefined": {
+        "predefinedType": "when_intent_matched",
+        "intentName": "bad_intent"
+      },
+      "custom": {
+        "condition": []
+      }
+    },
+    "b473e836-0378-4565-8f19-76917a923e76": {
+      "id": "b473e836-0378-4565-8f19-76917a923e76",
+      "name": "",
+      "type": "AgentStateTransition",
+      "owner": null,
+      "bounds": {
+        "x": -404,
+        "y": 6,
+        "width": 758,
+        "height": 190
+      },
+      "path": [
+        {
+          "x": 758,
+          "y": 150
+        },
+        {
+          "x": 758,
+          "y": 190
         },
         {
           "x": 0,
-          "y": 220
+          "y": 190
         },
         {
           "x": 0,
@@ -532,14 +323,14 @@
         }
       ],
       "source": {
-        "direction": "Bottomleft",
-        "element": "d2c3ac6c-2869-4555-a599-4810168a3164"
+        "direction": "Down",
+        "element": "ce9bd57d-2a3a-45e0-a4d9-2aa22f206d2d"
       },
       "target": {
         "direction": "Down",
-        "element": "97627a74-e4e6-48af-9989-8d714dfe83b8"
+        "element": "de7fd93b-1a51-406d-a4f1-a37966b96db1"
       },
-      "isManuallyLayouted": true,
+      "isManuallyLayouted": false,
       "transitionType": "predefined",
       "predefined": {
         "predefinedType": "auto",
@@ -548,7 +339,177 @@
       "custom": {
         "condition": []
       }
+    },
+    "5b5b157d-6010-4798-b549-2c00f14a8c97": {
+      "id": "5b5b157d-6010-4798-b549-2c00f14a8c97",
+      "name": "",
+      "type": "AgentStateTransition",
+      "owner": null,
+      "bounds": {
+        "x": -404,
+        "y": -197,
+        "width": 760,
+        "height": 163
+      },
+      "path": [
+        {
+          "x": 760,
+          "y": 40
+        },
+        {
+          "x": 760,
+          "y": 0
+        },
+        {
+          "x": 0,
+          "y": 0
+        },
+        {
+          "x": 0,
+          "y": 163
+        }
+      ],
+      "source": {
+        "direction": "Up",
+        "element": "22ffd05a-ea5f-42fe-8fb5-b7666e02de3d"
+      },
+      "target": {
+        "direction": "Up",
+        "element": "de7fd93b-1a51-406d-a4f1-a37966b96db1"
+      },
+      "isManuallyLayouted": false,
+      "transitionType": "predefined",
+      "predefined": {
+        "predefinedType": "auto",
+        "conditionValue": ""
+      },
+      "custom": {
+        "condition": []
+      }
+    },
+    "29323cff-96c3-46d0-93b3-7b5ef6b69340": {
+      "id": "29323cff-96c3-46d0-93b3-7b5ef6b69340",
+      "name": "",
+      "type": "AgentStateTransitionInit",
+      "owner": null,
+      "bounds": {
+        "x": -546,
+        "y": -14,
+        "width": 62,
+        "height": 1
+      },
+      "path": [
+        {
+          "x": 0,
+          "y": 0
+        },
+        {
+          "x": 62,
+          "y": 0
+        }
+      ],
+      "source": {
+        "direction": "Downright",
+        "element": "cd5c65eb-7b60-4a20-bd4a-2b2d2d36a93f"
+      },
+      "target": {
+        "direction": "Left",
+        "element": "de7fd93b-1a51-406d-a4f1-a37966b96db1"
+      },
+      "isManuallyLayouted": false
     }
   },
-  "assessments": {}
+  "assessments": {},
+  "components": {
+    "b3282310-36ba-4e3b-a223-1f55a5047b96": {
+      "id": "b3282310-36ba-4e3b-a223-1f55a5047b96",
+      "type": "AgentIntent",
+      "name": "greeting_intent",
+      "owner": null,
+      "intent_description": "The user says hello to the agent",
+      "bodies": [
+        "428c15bc-838d-4ab6-aadc-9d570e1813e3",
+        "284a677d-a6b0-4101-bfd7-0fc328193757",
+        "7f04696d-d966-49c4-97b7-45c0dc46f4eb"
+      ]
+    },
+    "428c15bc-838d-4ab6-aadc-9d570e1813e3": {
+      "id": "428c15bc-838d-4ab6-aadc-9d570e1813e3",
+      "type": "AgentIntentBody",
+      "name": "Hi",
+      "owner": "b3282310-36ba-4e3b-a223-1f55a5047b96"
+    },
+    "284a677d-a6b0-4101-bfd7-0fc328193757": {
+      "id": "284a677d-a6b0-4101-bfd7-0fc328193757",
+      "type": "AgentIntentBody",
+      "name": "Hello",
+      "owner": "b3282310-36ba-4e3b-a223-1f55a5047b96"
+    },
+    "7f04696d-d966-49c4-97b7-45c0dc46f4eb": {
+      "id": "7f04696d-d966-49c4-97b7-45c0dc46f4eb",
+      "type": "AgentIntentBody",
+      "name": "Howdy",
+      "owner": "b3282310-36ba-4e3b-a223-1f55a5047b96"
+    },
+    "ef574f96-f7fc-4a0c-8145-1c5372d497bd": {
+      "id": "ef574f96-f7fc-4a0c-8145-1c5372d497bd",
+      "type": "AgentIntent",
+      "name": "good_intent",
+      "owner": null,
+      "intent_description": "The user feels good",
+      "bodies": [
+        "edf355f2-2843-41b7-979c-5526c5e04edd",
+        "e637aac4-5d1a-4fb2-9e15-7173abe02f3d",
+        "9dd3d2de-d4d1-402f-95ca-c568c3714cff"
+      ]
+    },
+    "edf355f2-2843-41b7-979c-5526c5e04edd": {
+      "id": "edf355f2-2843-41b7-979c-5526c5e04edd",
+      "type": "AgentIntentBody",
+      "name": "Good",
+      "owner": "ef574f96-f7fc-4a0c-8145-1c5372d497bd"
+    },
+    "e637aac4-5d1a-4fb2-9e15-7173abe02f3d": {
+      "id": "e637aac4-5d1a-4fb2-9e15-7173abe02f3d",
+      "type": "AgentIntentBody",
+      "name": "Fine",
+      "owner": "ef574f96-f7fc-4a0c-8145-1c5372d497bd"
+    },
+    "9dd3d2de-d4d1-402f-95ca-c568c3714cff": {
+      "id": "9dd3d2de-d4d1-402f-95ca-c568c3714cff",
+      "type": "AgentIntentBody",
+      "name": "I am allright",
+      "owner": "ef574f96-f7fc-4a0c-8145-1c5372d497bd"
+    },
+    "bddf00f2-3d69-46ec-a489-802f0b1c0e52": {
+      "id": "bddf00f2-3d69-46ec-a489-802f0b1c0e52",
+      "type": "AgentIntent",
+      "name": "bad_intent",
+      "owner": null,
+      "intent_description": "The user feels bad",
+      "bodies": [
+        "0c62a40e-a42f-4a0f-9b43-01a7d8100e46",
+        "10fda33d-9603-4fa9-a465-b190e0b2d341",
+        "931457f2-3a41-4ab3-aa4d-16c3bbe3c9f9"
+      ]
+    },
+    "0c62a40e-a42f-4a0f-9b43-01a7d8100e46": {
+      "id": "0c62a40e-a42f-4a0f-9b43-01a7d8100e46",
+      "type": "AgentIntentBody",
+      "name": "Bad",
+      "owner": "bddf00f2-3d69-46ec-a489-802f0b1c0e52"
+    },
+    "10fda33d-9603-4fa9-a465-b190e0b2d341": {
+      "id": "10fda33d-9603-4fa9-a465-b190e0b2d341",
+      "type": "AgentIntentBody",
+      "name": "Not so good",
+      "owner": "bddf00f2-3d69-46ec-a489-802f0b1c0e52"
+    },
+    "931457f2-3a41-4ab3-aa4d-16c3bbe3c9f9": {
+      "id": "931457f2-3a41-4ab3-aa4d-16c3bbe3c9f9",
+      "type": "AgentIntentBody",
+      "name": "Could be better",
+      "owner": "bddf00f2-3d69-46ec-a489-802f0b1c0e52"
+    }
+  }
 }

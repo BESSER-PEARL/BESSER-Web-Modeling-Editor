@@ -26,6 +26,12 @@ function elementsByType(model: BESSERModel, type: string) {
   return Object.values(model.elements).filter((el: any) => el.type === type);
 }
 
+/** Return the off-canvas agent components (intents, RAG databases, ...) whose `type` matches. */
+function componentsByType(model: BESSERModel, type: string) {
+  const components = (model as BESSERModel & { components?: Record<string, any> }).components ?? {};
+  return Object.values(components).filter((el: any) => el.type === type);
+}
+
 // ═══════════════════════════════════════════════════════════════════════════════
 // ClassDiagramModifier
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -510,11 +516,13 @@ describe('AgentDiagramModifier', () => {
 
       const result = modifier.applyModification(model, mod);
 
-      const intents = elementsByType(result, 'AgentIntent');
+      // Intents are off-canvas components.
+      expect(elementsByType(result, 'AgentIntent')).toHaveLength(0);
+      const intents = componentsByType(result, 'AgentIntent');
       expect(intents).toHaveLength(1);
       expect(intents[0].name).toBe('BookFlight');
 
-      const bodies = elementsByType(result, 'AgentIntentBody');
+      const bodies = componentsByType(result, 'AgentIntentBody');
       expect(bodies).toHaveLength(2);
       expect(bodies[0].name).toBe('I want to book a flight');
       expect(bodies[1].name).toBe('Book me a ticket');
@@ -532,7 +540,7 @@ describe('AgentDiagramModifier', () => {
 
       const result = modifier.applyModification(model, mod);
 
-      const rags = elementsByType(result, 'AgentRagElement');
+      const rags = componentsByType(result, 'AgentRagElement');
       expect(rags).toHaveLength(1);
       expect(rags[0].name).toBe('KnowledgeBase');
     });
