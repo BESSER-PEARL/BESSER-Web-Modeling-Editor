@@ -2369,5 +2369,31 @@
     "transformTimeout": "Personalization request timed out (>10 minutes)",
     "error": "Failed to apply personalization",
     "unnamedUser": "Unnamed user"
+  },
+  "recommendPersonalization": {
+    "title": "Recomanar personalització",
+    "description": "Obteniu configuracions de personalització recomanades basades en el model de perfil d'usuari.",
+    "reviewDescription": "Reviseu els canvis recomanats a continuació. Desmarqueu els que no voleu aplicar.",
+    "chooseMethod": "Trieu el mètode de recomanació",
+    "methodRules": "Regles predefinides",
+    "methodLlm": "LLM (IA)",
+    "methodRag": "RAG",
+    "selectProfilesHint": "Trieu els perfils d'usuari per als quals obtenir recomanacions.",
+    "noProfiles": "No s'han trobat perfils d'usuari en aquest diagrama.",
+    "noProfilesSelected": "Seleccioneu almenys un perfil d'usuari.",
+    "invalidResponse": "Resposta no vàlida rebuda del backend.",
+    "noChanges": "No es recomanen canvis per a aquest perfil.",
+    "next": "Següent",
+    "back": "Enrere",
+    "getRecommendations": "Obtenir recomanacions",
+    "fetching": "Carregant…",
+    "selectAll": "Seleccionar tot",
+    "deselectAll": "Deseleccionar tot",
+    "apply": "Aplicar recomanacions",
+    "applySelected": "Aplicar ({{count}} canvi(s))",
+    "applied": "Recomanacions de personalització aplicades correctament.",
+    "failed": "No s'ha pogut obtenir la recomanació: {{message}}",
+    "validating": "Validant...",
+    "validationFailed": "El diagrama té errors de validació. Si us plau, corregiu-los abans d'aplicar les recomanacions."
   }
 }

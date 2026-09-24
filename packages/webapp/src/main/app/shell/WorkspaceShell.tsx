@@ -112,6 +112,7 @@ interface WorkspaceShellProps {
   onExportProject: () => void;
   onGenerate: (type: GeneratorType, config?: Record<string, any>) => void;
   onOpenPersonalizeDialog?: () => void;
+  onOpenRecommendPersonalizationDialog?: () => void;
   onQualityCheck: () => Promise<QualityCheckResult>;
   showQualityCheck?: boolean;
   generatorMode: GeneratorMenuMode;
@@ -158,6 +159,7 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
   onExportProject,
   onGenerate,
   onOpenPersonalizeDialog,
+  onOpenRecommendPersonalizationDialog,
   onQualityCheck,
   showQualityCheck = false,
   generatorMode,
@@ -856,6 +858,7 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
         onOpenProjectPreview={handleOpenProjectPreview}
         onGenerate={onGenerate}
         onOpenPersonalizeDialog={onOpenPersonalizeDialog}
+        onOpenRecommendPersonalizationDialog={onOpenRecommendPersonalizationDialog}
         onQualityCheck={handleTrackedQualityCheck}
         qualityCheckState={activeQualityCheckState}
         showAgentVariantSelector={currentProject?.currentDiagramType === 'AgentDiagram'}

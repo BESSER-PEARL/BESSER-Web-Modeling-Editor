@@ -2369,5 +2369,31 @@
     "transformTimeout": "Personalization request timed out (>10 minutes)",
     "error": "Failed to apply personalization",
     "unnamedUser": "Unnamed user"
+  },
+  "recommendPersonalization": {
+    "title": "Personalisierung empfehlen",
+    "description": "Empfohlene Personalisierungseinstellungen basierend auf dem Benutzerprofilmodell erhalten.",
+    "reviewDescription": "Überprüfen Sie die empfohlenen Änderungen. Deaktivieren Sie alle, die Sie nicht anwenden möchten.",
+    "chooseMethod": "Empfehlungsmethode auswählen",
+    "methodRules": "Vordefinierte Regeln",
+    "methodLlm": "LLM (KI)",
+    "methodRag": "RAG",
+    "selectProfilesHint": "Wählen Sie die Benutzerprofile aus, für die Empfehlungen abgerufen werden sollen.",
+    "noProfiles": "Keine Benutzerprofile in diesem Diagramm gefunden.",
+    "noProfilesSelected": "Bitte wählen Sie mindestens ein Benutzerprofil aus.",
+    "invalidResponse": "Ungültige Antwort vom Backend erhalten.",
+    "noChanges": "Keine Änderungen für dieses Profil empfohlen.",
+    "next": "Weiter",
+    "back": "Zurück",
+    "getRecommendations": "Empfehlungen abrufen",
+    "fetching": "Wird abgerufen…",
+    "selectAll": "Alle auswählen",
+    "deselectAll": "Alle abwählen",
+    "apply": "Empfehlungen anwenden",
+    "applySelected": "Anwenden ({{count}} Änderung(en))",
+    "applied": "Personalisierungsempfehlungen erfolgreich angewendet.",
+    "failed": "Empfehlung konnte nicht abgerufen werden: {{message}}",
+    "validating": "Validierung...",
+    "validationFailed": "Das Diagramm hat Validierungsfehler. Bitte beheben Sie diese, bevor Sie Empfehlungen anwenden."
   }
 }

@@ -2369,5 +2369,31 @@
     "transformTimeout": "Personalization request timed out (>10 minutes)",
     "error": "Failed to apply personalization",
     "unnamedUser": "Unnamed user"
+  },
+  "recommendPersonalization": {
+    "title": "Recommander la personnalisation",
+    "description": "Obtenez des recommandations de personnalisation basées sur le modèle de profil utilisateur.",
+    "reviewDescription": "Examinez les modifications recommandées ci-dessous. Décochez celles que vous ne souhaitez pas appliquer.",
+    "chooseMethod": "Choisir la méthode de recommandation",
+    "methodRules": "Règles prédéfinies",
+    "methodLlm": "LLM (IA)",
+    "methodRag": "RAG",
+    "selectProfilesHint": "Choisissez les profils utilisateur pour lesquels récupérer des recommandations.",
+    "noProfiles": "Aucun profil utilisateur trouvé dans ce diagramme.",
+    "noProfilesSelected": "Veuillez sélectionner au moins un profil utilisateur.",
+    "invalidResponse": "Réponse invalide reçue du backend.",
+    "noChanges": "Aucune modification recommandée pour ce profil.",
+    "next": "Suivant",
+    "back": "Retour",
+    "getRecommendations": "Obtenir les recommandations",
+    "fetching": "Chargement…",
+    "selectAll": "Tout sélectionner",
+    "deselectAll": "Tout désélectionner",
+    "apply": "Appliquer les recommandations",
+    "applySelected": "Appliquer ({{count}} modification(s))",
+    "applied": "Recommandations de personnalisation appliquées avec succès.",
+    "failed": "Impossible d'obtenir la recommandation : {{message}}",
+    "validating": "Validation...",
+    "validationFailed": "Le diagramme contient des erreurs de validation. Veuillez les corriger avant d'appliquer les recommandations."
   }
 }

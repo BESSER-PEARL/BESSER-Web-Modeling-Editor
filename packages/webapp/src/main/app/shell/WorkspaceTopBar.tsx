@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { FolderKanban, Users } from 'lucide-react';
+import { FolderKanban, Sparkles, Users } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { getPostHog } from '../../shared/services/analytics/lazy-analytics';
@@ -42,6 +42,7 @@ const WorkspaceTopBarInner: React.FC<WorkspaceTopBarProps> = ({
   onOpenProjectPreview,
   onGenerate,
   onOpenPersonalizeDialog,
+  onOpenRecommendPersonalizationDialog,
   onQualityCheck,
   qualityCheckState,
   showAgentVariantSelector,
@@ -175,6 +176,20 @@ const WorkspaceTopBarInner: React.FC<WorkspaceTopBarProps> = ({
             >
               <Users className="size-4" />
               <span className={showXlLabels !== undefined ? (showXlLabels ? '' : 'hidden') : 'hidden xl:inline'}>{t('personalize.title')}</span>
+            </Button>
+          )}
+          {activeDiagramType === 'UserDiagram' && onOpenRecommendPersonalizationDialog && (
+            <Button
+              variant="outline"
+              className={outlineButtonClass}
+              onClick={() => {
+                getPostHog()?.capture('recommend_personalization_opened', { diagram_type: activeDiagramType });
+                onOpenRecommendPersonalizationDialog();
+              }}
+              title={t('recommendPersonalization.title')}
+            >
+              <Sparkles className="size-4" />
+              <span className={showXlLabels !== undefined ? (showXlLabels ? '' : 'hidden') : 'hidden xl:inline'}>{t('recommendPersonalization.title')}</span>
             </Button>
           )}
           <DeployMenu

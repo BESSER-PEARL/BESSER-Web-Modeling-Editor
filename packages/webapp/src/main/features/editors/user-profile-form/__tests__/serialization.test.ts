@@ -271,7 +271,7 @@ describe('user-profile-form personalization round-trip', () => {
   it('preserves profile-level and attribute-level specs through build -> parse', () => {
     const root = createEmptyInstance(syntheticTree.root!);
     // Profile-level spec on the root User.
-    root.personalization = { content: { languageComplexity: 'simple', useAbbreviations: true } };
+    root.personalization = { presentation: { languageComplexity: 'simple', useAbbreviations: true } };
 
     const pi = createEmptyInstance(syntheticTree.byClassName.Personal_Information);
     pi.attributes[0].operator = '>=';
@@ -322,10 +322,10 @@ describe('user-profile-form personalization round-trip', () => {
     const b = createEmptyInstance(syntheticTree.root!);
     expect(instanceSignature(a)).toBe(instanceSignature(b));
 
-    b.personalization = { content: { sentenceLength: 'concise' } };
+    b.personalization = { presentation: { sentenceLength: 'concise' } };
     expect(instanceSignature(a)).not.toBe(instanceSignature(b));
 
-    a.personalization = { content: { sentenceLength: 'concise' } };
+    a.personalization = { presentation: { sentenceLength: 'concise' } };
     expect(instanceSignature(a)).toBe(instanceSignature(b));
   });
 });

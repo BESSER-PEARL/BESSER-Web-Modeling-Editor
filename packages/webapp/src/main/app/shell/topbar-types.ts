@@ -34,6 +34,7 @@ export interface WorkspaceTopBarProps {
   onOpenProjectPreview: () => void;
   onGenerate: (type: GeneratorType, config?: Record<string, any>) => void;
   onOpenPersonalizeDialog?: () => void;
+  onOpenRecommendPersonalizationDialog?: () => void;
   onQualityCheck: () => Promise<QualityCheckResult>;
   qualityCheckState?: QualityCheckState;
   showAgentVariantSelector?: boolean;

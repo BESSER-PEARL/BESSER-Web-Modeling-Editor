@@ -31,6 +31,7 @@ import { NotFound } from '../shared/components/NotFound';
 import { useOnboarding } from '../features/onboarding/useOnboarding';
 import { useAppSelector } from './store/hooks';
 import { selectActiveDiagram } from './store/workspaceSlice';
+import { validateDiagram } from '../shared/services/validation/validateDiagram';
 
 // Lazy-loaded route-level components (only fetched when their route is visited)
 const AgentConfigurationPanel = React.lazy(() =>
@@ -57,6 +58,9 @@ const GeneratorConfigDialogs = React.lazy(() =>
 const PersonalizeAgentDialog = React.lazy(() =>
   import('../features/editors/uml/PersonalizeAgentDialog').then((m) => ({ default: m.PersonalizeAgentDialog })),
 );
+const RecommendPersonalizationDialog = React.lazy(() =>
+  import('../features/editors/uml/RecommendPersonalizationDialog').then((m) => ({ default: m.RecommendPersonalizationDialog })),
+);
 const AssistantWidget = React.lazy(() =>
   import('../features/assistant/components/AssistantWidget').then((m) => ({ default: m.AssistantWidget })),
 );
@@ -80,6 +84,7 @@ function AppContentInner() {
   const [showTemplateDialog, setShowTemplateDialog] = useState(false);
   const [showExportDialog, setShowExportDialog] = useState(false);
   const [showPersonalizeDialog, setShowPersonalizeDialog] = useState(false);
+  const [showRecommendPersonalizationDialog, setShowRecommendPersonalizationDialog] = useState(false);
 
   const location = useLocation();
 
@@ -121,6 +126,13 @@ function AppContentInner() {
     setShowExportDialog(true);
   };
 
+  const handleOpenRecommendPersonalizationDialog = useCallback(async () => {
+    const result = await validateDiagram(editor ?? null, activeDiagramTitle);
+    if (result.isValid) {
+      setShowRecommendPersonalizationDialog(true);
+    }
+  }, [editor, activeDiagramTitle]);
+
   // Onboarding system — disabled for now
   // const onboarding = useOnboarding();
   const onboarding = null as any;
@@ -133,6 +145,7 @@ function AppContentInner() {
         onExportProject={handleExport}
         onGenerate={(type, config) => handleGenerateRequest(type, config)}
         onOpenPersonalizeDialog={() => setShowPersonalizeDialog(true)}
+        onOpenRecommendPersonalizationDialog={() => { void handleOpenRecommendPersonalizationDialog(); }}
         onQualityCheck={() => handleQualityCheck()}
         showQualityCheck={true}
         generatorMode={generatorMenuMode}
@@ -169,6 +182,13 @@ function AppContentInner() {
         <PersonalizeAgentDialog
           open={showPersonalizeDialog}
           onOpenChange={setShowPersonalizeDialog}
+        />
+      </Suspense>
+
+      <Suspense fallback={null}>
+        <RecommendPersonalizationDialog
+          open={showRecommendPersonalizationDialog}
+          onOpenChange={setShowRecommendPersonalizationDialog}
         />
       </Suspense>
 

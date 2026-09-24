@@ -2369,5 +2369,31 @@
     "transformTimeout": "Personalization request timed out (>10 minutes)",
     "error": "Failed to apply personalization",
     "unnamedUser": "Unnamed user"
+  },
+  "recommendPersonalization": {
+    "title": "Personaliséierung recommandéieren",
+    "description": "Empfuelene Personaliséierungsastellunge baséiert op dem Benotzerprofil-Modell kréien.",
+    "reviewDescription": "Iwwerpréift d'Recommandatioune hei ënnen. Deselectéiert déi, déi Dir net wëllt applizéieren.",
+    "chooseMethod": "Recommandatiounsmethode wielen",
+    "methodRules": "Virdefiniéiert Regelen",
+    "methodLlm": "LLM (KI)",
+    "methodRag": "RAG",
+    "selectProfilesHint": "Wielt d'Benotzerprofile, fir déi Dir Recommandatioune wëllt kréien.",
+    "noProfiles": "Keng Benotzerprofile an dësem Diagramm fonnt.",
+    "noProfilesSelected": "Wannechgelift mindestens ee Benotzerprofil auswälen.",
+    "invalidResponse": "Onvälteg Äntwert vum Backend kritt.",
+    "noChanges": "Keng Ännerunge fir dëst Profil recommandéiert.",
+    "next": "Weider",
+    "back": "Zréck",
+    "getRecommendations": "Recommandatioune kréien",
+    "fetching": "Gëtt gelueden…",
+    "selectAll": "Alles auswälen",
+    "deselectAll": "Alles deselectéieren",
+    "apply": "Recommandatioune applizéieren",
+    "applySelected": "Applizéieren ({{count}} Ännerung(en))",
+    "applied": "Personaliséierungsrecommandatioune erfollegräich applizéiert.",
+    "failed": "Recommandatioun konnt net geholl ginn: {{message}}",
+    "validating": "Validéierung...",
+    "validationFailed": "D'Diagramm huet Validéierungsfehler. Wannechgelift korrigéiert se ier Dir d'Recommandatioune applizéiert."
   }
 }

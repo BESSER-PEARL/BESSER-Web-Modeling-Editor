@@ -2409,5 +2409,31 @@
     "transformTimeout": "Personalization request timed out (>10 minutes)",
     "error": "Failed to apply personalization",
     "unnamedUser": "Unnamed user"
+  },
+  "recommendPersonalization": {
+    "title": "Recommend Personalization",
+    "description": "Get recommended personalization settings based on the user profile model.",
+    "reviewDescription": "Review the recommended changes below. Uncheck any you don't want to apply.",
+    "chooseMethod": "Choose recommendation method",
+    "methodRules": "Predefined rules",
+    "methodLlm": "LLM (AI)",
+    "methodRag": "RAG",
+    "selectProfilesHint": "Choose which user profiles to fetch recommendations for.",
+    "noProfiles": "No user profiles found in this diagram.",
+    "noProfilesSelected": "Please select at least one user profile.",
+    "invalidResponse": "Invalid response received from the backend.",
+    "noChanges": "No changes recommended for this profile.",
+    "next": "Next",
+    "back": "Back",
+    "getRecommendations": "Get Recommendations",
+    "fetching": "Fetching…",
+    "selectAll": "Select all",
+    "deselectAll": "Deselect all",
+    "apply": "Apply Recommendations",
+    "applySelected": "Apply ({{count}} change(s))",
+    "applied": "Personalization recommendations applied successfully.",
+    "failed": "Failed to get recommendation: {{message}}",
+    "validating": "Validating...",
+    "validationFailed": "The diagram has validation errors. Please fix them before applying recommendations."
   }
 }
