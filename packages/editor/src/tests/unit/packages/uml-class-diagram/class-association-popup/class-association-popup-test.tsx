@@ -8,6 +8,9 @@ import { UMLElement } from '../../../../../main/services/uml-element/uml-element
 import { wrappedRender } from '../../../test-utils/render';
 import { ClassRelationshipType } from '../../../../../main/packages/uml-class-diagram';
 import { act, fireEvent } from '@testing-library/react';
+import { UMLClassComposition } from '../../../../../main/packages/uml-class-diagram/uml-class-composition/uml-class-composition';
+import { UMLAssociation } from '../../../../../main/packages/common/uml-association/uml-association';
+import { UMLElementActionTypes } from '../../../../../main/services/uml-element/uml-element-types';
 
 describe('test class association popup', () => {
   let elements: UMLElement[] = [];
@@ -106,5 +109,97 @@ describe('test class association popup', () => {
 
     expect(updatedElement.source.multiplicity).toEqual(sourceMultiplicityValue);
     expect(updatedElement.source.role).toEqual(sourceRole);
+  });
+  describe('navigability', () => {
+    const makeAssociation = (
+      Type: typeof UMLClassBidirectional | typeof UMLClassComposition,
+      sourceNavigable: boolean,
+      targetNavigable: boolean,
+    ) =>
+      new Type({
+        id: 'nav-id',
+        source: { element: source.id, direction: Direction.Up, navigable: sourceNavigable },
+        target: { element: target.id, direction: Direction.Up, navigable: targetNavigable },
+      });
+
+    const renderPopup = (association: UMLAssociation) => {
+      const store = getRealStore(undefined, [source, target, association]);
+      // record every plain action the popup dispatches
+      const dispatched: any[] = [];
+      const dispatch = store.dispatch;
+      store.dispatch = ((action: any) => {
+        if (typeof action === 'object') dispatched.push(action);
+        return dispatch(action);
+      }) as typeof store.dispatch;
+      const updates = () => dispatched.filter((action) => action.type === UMLElementActionTypes.UPDATE);
+      const result = wrappedRender(<UMLClassAssociationUpdate element={association} />, { store });
+      const current = () => store.getState().elements[association.id] as UMLAssociation;
+      return { store, current, updates, ...result };
+    };
+
+    it('toggling a checkbox flips navigable on that end', () => {
+      const { getAllByRole, current, updates } = renderPopup(makeAssociation(UMLClassBidirectional, true, true));
+      const [sourceBox, targetBox] = getAllByRole('checkbox') as HTMLInputElement[];
+      expect(sourceBox.checked).toBe(true);
+      expect(targetBox.checked).toBe(true);
+
+      act(() => {
+        fireEvent.click(sourceBox);
+      });
+
+      expect(updates()).toHaveLength(1);
+      expect(current().source.navigable).toBe(false);
+      expect(current().target.navigable).toBe(true);
+      expect(current().type).toEqual(ClassRelationshipType.ClassBidirectional);
+    });
+
+    it('disables the last navigable end', () => {
+      const { getAllByRole } = renderPopup(makeAssociation(UMLClassBidirectional, false, true));
+      const [sourceBox, targetBox] = getAllByRole('checkbox') as HTMLInputElement[];
+      expect(sourceBox.disabled).toBe(false);
+      expect(targetBox.disabled).toBe(true);
+    });
+
+    it('locks the part (source) end of a composition', () => {
+      const { getAllByRole, current } = renderPopup(makeAssociation(UMLClassComposition, true, true));
+      const [sourceBox, targetBox] = getAllByRole('checkbox') as HTMLInputElement[];
+      expect(sourceBox.checked).toBe(true);
+      expect(sourceBox.disabled).toBe(true);
+      expect(targetBox.disabled).toBe(false);
+
+      act(() => {
+        fireEvent.click(sourceBox);
+      });
+      expect(current().source.navigable).toBe(true);
+    });
+
+    it('switching to Composition with the part end unchecked yields a valid model in one update', () => {
+      const association = makeAssociation(UMLClassBidirectional, false, true);
+      const { current, updates, getByText, getByRole, rerender } = renderPopup(association);
+
+      act(() => {
+        fireEvent.click(getByRole('button', { name: 'Association' }));
+      });
+      act(() => {
+        fireEvent.click(getByText('Composition'));
+      });
+
+      expect(current().type).toEqual(ClassRelationshipType.ClassComposition);
+      expect(current().source.navigable).toBe(true);
+      expect(current().target.navigable).toBe(true);
+
+      expect(updates()).toHaveLength(1);
+
+      // re-rendering with the updated element must not dispatch a follow-up fix
+      rerender(<UMLClassAssociationUpdate element={current()} />);
+      expect(updates()).toHaveLength(1);
+    });
+
+    it('hides the navigable checkboxes where navigability has no meaning', () => {
+      const association = makeAssociation(UMLClassBidirectional, true, true);
+      association.type = ClassRelationshipType.ClassDependency;
+      const { queryAllByRole } = renderPopup(association);
+      expect(queryAllByRole('checkbox')).toHaveLength(0);
+    });
   });
 });

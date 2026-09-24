@@ -366,10 +366,22 @@ export type UMLAssociation = UMLRelationship & {
   source: UMLRelationship['source'] & {
     multiplicity: string;
     role: string;
+    /**
+     * Whether this end can be navigated to. The editor always writes an explicit
+     * boolean for class-diagram associations; when it is missing (legacy data),
+     * see `resolveAssociationNavigability` for the defaults.
+     */
+    navigable?: boolean;
   };
   target: UMLRelationship['target'] & {
     multiplicity: string;
     role: string;
+    /**
+     * Whether this end can be navigated to. The editor always writes an explicit
+     * boolean for class-diagram associations; when it is missing (legacy data),
+     * see `resolveAssociationNavigability` for the defaults.
+     */
+    navigable?: boolean;
   };
 };
 

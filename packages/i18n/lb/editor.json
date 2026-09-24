@@ -80,7 +80,7 @@
     "navigable": "Navigéierbar",
     "navigableInfo": "Op d'mannst een Enn muss navigéierbar sinn",
     "navigableDisabledHint": "Op d'mannst een Enn vun enger Associatioun muss navigéierbar sinn",
-    "navigableCompositionHint": "D'Kompositioun kann ëmmer op hir Deeler navigéieren",
+    "navigableCompositionHint": "Dat Ganzt vun der Kompositioun kann ëmmer op seng Deeler navigéieren",
     "messages": "Noriichten",
     "condition": "Bedéngungen",
     "tokens": "Tokens",
@@ -256,7 +256,6 @@
       "ClassDependency": "Ofhängegkeet",
       "ClassInheritance": "Generaliséierung",
       "ClassRealization": "Realiséierung",
-      "ClassUnidirectional": "Associatioun (unidirektional)",
       "ClassOCLConstraint": "OCL-Constraint",
       "Comments": "Kommentaren"
     },

@@ -6,11 +6,17 @@ import { Direction, IUMLElementPort } from '../../../services/uml-element/uml-el
 import { IUMLRelationship, UMLRelationship } from '../../../services/uml-relationship/uml-relationship';
 import { assign } from '../../../utils/fx/assign';
 import { computeBoundingBoxForElements, IBoundary } from '../../../utils/geometry/boundary';
+import * as Apollon from '../../../typings';
 import {
   computeTextPositionForUMLAssociation,
-  getMarkerForTypeForUMLAssociation,
+  getMarkersForUMLAssociation,
   layoutTextForUMLAssociation,
 } from './uml-association-component';
+import {
+  normalizeAssociationType,
+  resolveAssociationNavigability,
+  supportsNavigability,
+} from './uml-association-navigability';
 import { Text } from '../../../utils/svg/text';
 import { Point } from '../../../utils/geometry/point';
 
@@ -68,6 +74,31 @@ export abstract class UMLAssociation extends UMLRelationship implements IUMLAsso
     assign<IUMLAssociation>(this, values);
   }
 
+  deserialize<T extends Apollon.UMLModelElement>(values: T, children?: Apollon.UMLModelElement[]) {
+    super.deserialize(values, children);
+    this.applyNavigabilityDefaults();
+  }
+
+  /**
+   * Fills in missing `navigable` flags (see `resolveAssociationNavigability`)
+   * and turns the legacy `ClassUnidirectional` type into `ClassBidirectional`,
+   * so old data shows up as a plain association and is saved in the new shape.
+   */
+  protected applyNavigabilityDefaults() {
+    if (!this.source || !this.target) {
+      return;
+    }
+    if (supportsNavigability(this.type)) {
+      const navigability = resolveAssociationNavigability(this);
+      this.type = normalizeAssociationType(this.type);
+      this.source = { ...this.source, navigable: navigability.source };
+      this.target = { ...this.target, navigable: navigability.target };
+    } else {
+      this.source = { ...this.source, navigable: this.source.navigable ?? true };
+      this.target = { ...this.target, navigable: this.target.navigable ?? true };
+    }
+  }
+
   render(canvas: ILayer, source?: UMLElement, target?: UMLElement): ILayoutable[] {
     super.render(canvas, source, target);
 
@@ -84,10 +115,13 @@ export abstract class UMLAssociation extends UMLRelationship implements IUMLAsso
 
     // calculate anchor points
     // anchor point = endOfPath + this.position
-    const marker = getMarkerForTypeForUMLAssociation(this.type);
+    const markers = getMarkersForUMLAssociation(this);
     const path = this.path.map((point) => new Point(point.x, point.y));
-    const sourceAnchor: Point = computeTextPositionForUMLAssociation(path).add(this.bounds.x, this.bounds.y);
-    const targetAnchor: Point = computeTextPositionForUMLAssociation(path.reverse(), !!marker).add(
+    const sourceAnchor: Point = computeTextPositionForUMLAssociation(path, !!markers.source).add(
+      this.bounds.x,
+      this.bounds.y,
+    );
+    const targetAnchor: Point = computeTextPositionForUMLAssociation(path.reverse(), !!markers.target).add(
       this.bounds.x,
       this.bounds.y,
     );

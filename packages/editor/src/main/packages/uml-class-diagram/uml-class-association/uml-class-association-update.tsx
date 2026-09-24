@@ -3,6 +3,7 @@ import { connect } from 'react-redux';
 import { compose } from 'redux';
 import { ClassRelationshipType } from '..';
 import { Button } from '../../../components/controls/button/button';
+import { Checkbox } from '../../../components/controls/checkbox/checkbox';
 import { ColorButton } from '../../../components/controls/color-button/color-button';
 import { Divider } from '../../../components/controls/divider/divider';
 import { Dropdown } from '../../../components/controls/dropdown/dropdown';
@@ -22,6 +23,14 @@ import { UMLRelationshipRepository } from '../../../services/uml-relationship/um
 import { AsyncDispatch } from '../../../utils/actions/actions';
 import { UMLAssociation } from '../../common/uml-association/uml-association';
 import { erCardinalityToUML } from '../../common/uml-association/multiplicity';
+import {
+  AssociationEnd,
+  canToggleNavigability,
+  enforceNavigabilityRules,
+  normalizeAssociationType,
+  resolveAssociationNavigability,
+  supportsNavigability,
+} from '../../common/uml-association/uml-association-navigability';
 import { settingsService } from '../../../services/settings/settings-service';
 
 type OwnProps = {
@@ -88,26 +97,6 @@ class ClassAssociationComponent extends Component<Props, State> {
     }));
   };
 
-  componentDidMount() {
-    this.enforceCompositionNavigability();
-  }
-
-  componentDidUpdate() {
-    this.enforceCompositionNavigability();
-  }
-
-  // The converter always puts the composite ("whole") end on target, so the
-  // source end is the "part" and must stay navigable -- self-heal instead of
-  // just relying on the UI, in case the element arrived with stale data
-  // (e.g. the type was switched to Composition while source was off).
-  private enforceCompositionNavigability = () => {
-    const { element, update } = this.props;
-    if (element.type === ClassRelationshipType.ClassComposition && !element.source.navigable) {
-      update<UMLAssociation>(element.id, { source: { ...element.source, navigable: true } });
-    }
-  };
-
-
   render() {
     const { element, getById } = this.props;
     const source = element.source && getById(element.source.element);
@@ -115,6 +104,8 @@ class ClassAssociationComponent extends Component<Props, State> {
     if (!source || !target) return null;
 
     const isInheritance = element.type === ClassRelationshipType.ClassInheritance;
+    const showsNavigability = supportsNavigability(element.type);
+    const navigability = resolveAssociationNavigability(element);
     // Hint both accepted syntaxes when ER display mode is active. The
     // stored value is still UML, so the textfield itself shows the UML
     // form — the placeholder is just there so ER-native users know
@@ -160,7 +151,10 @@ class ClassAssociationComponent extends Component<Props, State> {
           </section>
         )}
         <section>
-          <Dropdown value={element.type as keyof typeof ClassRelationshipType} onChange={this.onChange}>
+          <Dropdown
+            value={normalizeAssociationType(element.type) as keyof typeof ClassRelationshipType}
+            onChange={this.onChange}
+          >
             {/*<Dropdown.Item value={ClassRelationshipType.ClassAggregation}>
               {this.props.translate('packages.ClassDiagram.ClassAggregation')}
             </Dropdown.Item>*/}
@@ -201,21 +195,22 @@ class ClassAssociationComponent extends Component<Props, State> {
                 <Body style={{ marginRight: '0.5em' }}>{this.props.translate('popup.role')}</Body>
                 <Textfield value={element.source.role} onChange={this.onUpdate('role', 'source')} />
               </Flex>
-              <Flex>
-                <Label>
-                  <Body>{this.props.translate('popup.navigable')}</Body>
-                  <InfoIcon title={this.navigableInfoText('source')}>
-                    <HelpIcon />
-                  </InfoIcon>
-                </Label>
-                <input
-                  type="checkbox"
-                  checked={element.source.navigable}
-                  disabled={!this.canToggle('source')}
-                  title={this.navigableHint('source')}
-                  onChange={this.onToggleNavigable('source')}
-                />
-              </Flex>
+              {showsNavigability && (
+                <Flex>
+                  <Label>
+                    <Body>{this.props.translate('popup.navigable')}</Body>
+                    <InfoIcon title={this.navigableInfoText('source')}>
+                      <HelpIcon />
+                    </InfoIcon>
+                  </Label>
+                  <Checkbox
+                    checked={navigability.source}
+                    disabled={!canToggleNavigability(element, 'source')}
+                    title={this.navigableHint('source')}
+                    onChange={this.onToggleNavigable('source')}
+                  />
+                </Flex>
+              )}
               <Divider />
             </section>
             <section>
@@ -234,30 +229,43 @@ class ClassAssociationComponent extends Component<Props, State> {
                 <Body style={{ marginRight: '0.5em' }}>{this.props.translate('popup.role')}</Body>
                 <Textfield value={element.target.role} onChange={this.onUpdate('role', 'target')} />
               </Flex>
-              <Flex>
-                <Label>
-                  <Body>{this.props.translate('popup.navigable')}</Body>
-                  <InfoIcon title={this.navigableInfoText('target')}>
-                    <HelpIcon />
-                  </InfoIcon>
-                </Label>
-                <input
-                  type="checkbox"
-                  checked={element.target.navigable}
-                  disabled={!this.canToggle('target')}
-                  title={this.navigableHint('target')}
-                  onChange={this.onToggleNavigable('target')}
-                />
-              </Flex>
+              {showsNavigability && (
+                <Flex>
+                  <Label>
+                    <Body>{this.props.translate('popup.navigable')}</Body>
+                    <InfoIcon title={this.navigableInfoText('target')}>
+                      <HelpIcon />
+                    </InfoIcon>
+                  </Label>
+                  <Checkbox
+                    checked={navigability.target}
+                    disabled={!canToggleNavigability(element, 'target')}
+                    title={this.navigableHint('target')}
+                    onChange={this.onToggleNavigable('target')}
+                  />
+                </Flex>
+              )}
             </section>
           </>
         )}
       </div>
     );
   }
+  // A type change carries the navigability the new type requires (e.g. the part
+  // end of a composition is always navigable) in the same update, so it is a
+  // single undo step and never leaves an invalid association behind.
   private onChange = (type: keyof typeof ClassRelationshipType) => {
     const { element, update } = this.props;
-    update(element.id, { type });
+    if (!supportsNavigability(type)) {
+      update(element.id, { type });
+      return;
+    }
+    const navigability = resolveAssociationNavigability({ ...element, type });
+    update<UMLAssociation>(element.id, {
+      type,
+      source: { ...element.source, navigable: navigability.source },
+      target: { ...element.target, navigable: navigability.target },
+    });
   };
 
   private onUpdate = (type: 'multiplicity' | 'role', end: 'source' | 'target') => (value: string) => {
@@ -271,42 +279,43 @@ class ClassAssociationComponent extends Component<Props, State> {
     update<UMLAssociation>(element.id, { [end]: { ...element[end], [type]: storedValue } });
   };
 
-  // Both ends being non-navigable is not a valid association (nothing could
-  // ever reference the other class), so the last remaining navigable end
-  // can't be switched off. In a composition the "part" (source) end has the
-  // extra rule that it must always stay navigable, regardless of the target.
-  private canToggle = (end: 'source' | 'target'): boolean => {
-    const { element } = this.props;
-    if (element.type === ClassRelationshipType.ClassComposition && end === 'source') {
-      return false;
-    }
-    const other = end === 'source' ? 'target' : 'source';
-    return !element[end].navigable || element[other].navigable;
-  };
-
   // Disabled form controls don't show their `title` tooltip in most browsers,
   // so the explanation also has to live on the always-hoverable info icon
   // next to the label -- both read from this same source of truth.
-  private navigableInfoText = (end: 'source' | 'target'): string => {
-    if (this.props.element.type === ClassRelationshipType.ClassComposition && end === 'source') {
+  private navigableInfoText = (end: AssociationEnd): string => {
+    const { element } = this.props;
+    if (element.type === ClassRelationshipType.ClassComposition && end === 'source') {
       return this.props.translate('popup.navigableCompositionHint');
     }
-    if (!this.canToggle(end)) {
+    if (!canToggleNavigability(element, end)) {
       return this.props.translate('popup.navigableDisabledHint');
     }
     return this.props.translate('popup.navigableInfo');
   };
 
-  private navigableHint = (end: 'source' | 'target'): string | undefined => {
-    return this.canToggle(end) ? undefined : this.navigableInfoText(end);
+  private navigableHint = (end: AssociationEnd): string | undefined => {
+    return canToggleNavigability(this.props.element, end) ? undefined : this.navigableInfoText(end);
   };
 
-  private onToggleNavigable = (end: 'source' | 'target') => () => {
+  // Both ends being non-navigable is not a valid association, so the last
+  // navigable end can't be switched off, and the part (source) end of a
+  // composition always stays navigable. Both flags (and the legacy type, if
+  // any) are written in one update so the toggle is a single undo step.
+  private onToggleNavigable = (end: AssociationEnd) => (checked: boolean) => {
     const { element, update } = this.props;
-    if (!this.canToggle(end)) {
+    if (!canToggleNavigability(element, end)) {
       return;
     }
-    update<UMLAssociation>(element.id, { [end]: { ...element[end], navigable: !element[end].navigable } });
+    const navigability = enforceNavigabilityRules(
+      element.type,
+      { ...resolveAssociationNavigability(element), [end]: checked },
+      end,
+    );
+    update<UMLAssociation>(element.id, {
+      type: normalizeAssociationType(element.type),
+      source: { ...element.source, navigable: navigability.source },
+      target: { ...element.target, navigable: navigability.target },
+    });
   };
 }
 

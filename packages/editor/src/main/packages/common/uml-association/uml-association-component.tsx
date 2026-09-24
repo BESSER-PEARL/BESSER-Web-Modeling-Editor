@@ -7,9 +7,14 @@ import { GeneralRelationshipType, UMLRelationshipType } from '../../uml-relation
 import { ThemedPath, ThemedPathContrast, ThemedPolygon, ThemedPolyline } from '../../../components/theme/themedComponents';
 import { settingsService } from '../../../services/settings/settings-service';
 import { parseMultiplicity, toERCardinality } from './multiplicity';
+import { resolveAssociationNavigability } from './uml-association-navigability';
 // Re-export so downstream consumers can keep importing these from the
 // association component module.
 export { parseMultiplicity, toERCardinality };
+
+const markerPath = (d: string, fillColor: string | undefined, strokeColor?: string) => (
+  <ThemedPath d={d} fillColor={fillColor} strokeColor={strokeColor} />
+);
 
 const Marker = {
   // `orient` defaults to pointing along the path (for a markerEnd, i.e. an
@@ -27,7 +32,7 @@ const Marker = {
       orient={orient}
       markerUnits="strokeWidth"
     >
-      <ThemedPath d={`M0,29 L30,15 L0,1`} fillColor="none" strokeColor={color} />
+      {markerPath('M0,29 L30,15 L0,1', 'none', color)}
     </marker>
   ),
   Rhombus: (id: string, color?: string) => (
@@ -42,6 +47,23 @@ const Marker = {
       markerUnits="strokeWidth"
     >
       <ThemedPath d="M0,15 L15,22 L30,15 L15,8 z" fillColor={color} strokeColor={color} />
+    </marker>
+  ),
+  // Aggregation diamond at a navigable whole end: the open navigability
+  // arrowhead sits on the line just before the diamond, which is unchanged.
+  RhombusArrow: (id: string, color?: string) => (
+    <marker
+      id={id}
+      viewBox="0 0 52 30"
+      markerWidth="52"
+      markerHeight="30"
+      refX="52"
+      refY="15"
+      orient="auto"
+      markerUnits="strokeWidth"
+    >
+      {markerPath('M0,29 L22,15 L0,1', 'none', color)}
+      {markerPath('M22,15 L37,22 L52,15 L37,8 z', color, color)}
     </marker>
   ),
   RhombusFilled: (id: string, color?: string) => (
@@ -126,10 +148,9 @@ export const computeMiddlePositionForUMLAssociation = (alignmentPath: Point[]): 
   return new Point(alignmentPath[midIndex].x, alignmentPath[midIndex].y);
 };
 
-// Plain associations (the generic "Association" type, plus the legacy
-// ClassUnidirectional kept for backward compatibility) don't get a marker
-// from their type alone -- whether/where an arrowhead is drawn on them is
-// entirely driven by each end's navigability, computed in the component below.
+// Plain associations (ClassBidirectional, and the legacy ClassUnidirectional)
+// don't get a marker from their type alone: their arrowheads come from each
+// end's navigability, see getMarkersForUMLAssociation.
 export const getMarkerForTypeForUMLAssociation = (relationshipType: UMLRelationshipType) => {
   return ((type) => {
     switch (type) {
@@ -148,52 +169,68 @@ export const getMarkerForTypeForUMLAssociation = (relationshipType: UMLRelations
   })(relationshipType);
 };
 
+type MarkerFactory = (id: string, color?: string, orient?: string) => React.JSX.Element;
+
+// In ER (Chen) mode, replace the UML arrow/rhombus end markers with a named
+// diamond drawn at the midpoint — but only for the four "plain" binary
+// associations that have an ER counterpart. Inheritance, realization, OCL,
+// dependency, and link relationships keep their UML rendering. Using an
+// explicit allow-list here (instead of excluding types) means new
+// relationship types won't silently inherit the ER diamond.
+const ER_DIAMOND_RELATIONSHIP_TYPES: ReadonlyArray<string> = [
+  ClassRelationshipType.ClassBidirectional,
+  ClassRelationshipType.ClassUnidirectional,
+  ClassRelationshipType.ClassAggregation,
+  ClassRelationshipType.ClassComposition,
+];
+
+export const showsERDiamondForUMLAssociation = (type: UMLRelationshipType): boolean =>
+  settingsService.getClassNotation() === 'ER' && ER_DIAMOND_RELATIONSHIP_TYPES.includes(type);
+
+/**
+ * The end markers drawn for an association, following UML notation: an open
+ * arrowhead at a navigable end when the other end is not navigable (no arrows
+ * when both ends are navigable). The diamond of an aggregation or composition
+ * always stays on the target (whole) end; for an aggregation whose only
+ * navigable end is the whole, the arrowhead is drawn in front of the diamond.
+ * Relationships without navigability keep their type-based marker.
+ */
+export const getMarkersForUMLAssociation = (element: {
+  type: UMLRelationshipType;
+  source: { navigable?: boolean };
+  target: { navigable?: boolean };
+}): { source?: MarkerFactory; target?: MarkerFactory } => {
+  if (showsERDiamondForUMLAssociation(element.type)) {
+    return {};
+  }
+  const typeMarker = getMarkerForTypeForUMLAssociation(element.type);
+  switch (element.type) {
+    case ClassRelationshipType.ClassBidirectional:
+    case ClassRelationshipType.ClassUnidirectional:
+    case ClassRelationshipType.ClassAggregation:
+    case ClassRelationshipType.ClassComposition: {
+      const navigability = resolveAssociationNavigability(element);
+      const onlySource = navigability.source && !navigability.target;
+      const onlyTarget = navigability.target && !navigability.source;
+      let target: MarkerFactory | undefined = typeMarker;
+      if (onlyTarget) {
+        target = element.type === ClassRelationshipType.ClassAggregation ? Marker.RhombusArrow : typeMarker || Marker.Arrow;
+      }
+      return { source: onlySource ? Marker.Arrow : undefined, target };
+    }
+    default:
+      return { target: typeMarker };
+  }
+};
+
 export const UMLAssociationComponent: FunctionComponent<Props> = ({ element }) => {
   const isInheritance = element.type === ClassRelationshipType.ClassInheritance;
   // Add special check for OCL Link
   const isLinkRel = element.type === ClassRelationshipType.ClassLinkRel;
   const showAssociationNames = settingsService.shouldShowAssociationNames();
-  const notation = settingsService.getClassNotation();
-  const isER = notation === 'ER';
-
-  // In ER (Chen) mode, replace the UML arrow/rhombus end markers with a named
-  // diamond drawn at the midpoint — but only for the four "plain" binary
-  // associations that have an ER counterpart. Inheritance, realization, OCL,
-  // dependency, and link relationships keep their UML rendering. Using an
-  // explicit allow-list here (instead of excluding types) means new
-  // relationship types won't silently inherit the ER diamond.
-  const ER_DIAMOND_RELATIONSHIP_TYPES: ReadonlyArray<string> = [
-    ClassRelationshipType.ClassBidirectional,
-    ClassRelationshipType.ClassUnidirectional,
-    ClassRelationshipType.ClassAggregation,
-    ClassRelationshipType.ClassComposition,
-  ];
-  const showsERDiamond = isER && ER_DIAMOND_RELATIONSHIP_TYPES.includes(element.type);
-
-  // For a plain association, the arrowhead is derived from navigability
-  // instead of the type: no arrow when both ends are navigable, and one
-  // arrow pointing at whichever single end is navigable otherwise (both
-  // ends non-navigable is prevented by the editor).
-  const isPlainAssociation =
-    element.type === ClassRelationshipType.ClassBidirectional ||
-    element.type === ClassRelationshipType.ClassUnidirectional;
-  // In a composition the target end is always the composite ("whole") and
-  // keeps its diamond regardless of navigability; the source ("part") end
-  // is normally always navigable, but if the whole is made non-navigable an
-  // arrow appears at the part end to show that's the only way to navigate.
-  const isComposition = element.type === ClassRelationshipType.ClassComposition;
-  const sourceNavigable = element.source.navigable !== false;
-  const targetNavigable = element.target.navigable !== false;
-  const showSourceArrow =
-    (isPlainAssociation && sourceNavigable && !targetNavigable) || (isComposition && !targetNavigable);
-  const showTargetArrow = isPlainAssociation && targetNavigable && !sourceNavigable;
-
-  const targetMarker = showsERDiamond
-    ? undefined
-    : showTargetArrow
-      ? Marker.Arrow
-      : getMarkerForTypeForUMLAssociation(element.type);
-  const sourceMarker = showsERDiamond || !showSourceArrow ? undefined : Marker.Arrow;
+  const isER = settingsService.getClassNotation() === 'ER';
+  const showsERDiamond = showsERDiamondForUMLAssociation(element.type);
+  const { source: sourceMarker, target: targetMarker } = getMarkersForUMLAssociation(element);
 
   const stroke = ((type) => {
     switch (type) {

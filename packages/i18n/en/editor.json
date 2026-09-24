@@ -256,7 +256,6 @@
       "ClassDependency": "Dependency",
       "ClassInheritance": "Generalization",
       "ClassRealization": "Realization",
-      "ClassUnidirectional": "Association (unidirectional)",
       "ClassOCLConstraint": "OCL Constraint",
       "Comments": "Comments"
     },
