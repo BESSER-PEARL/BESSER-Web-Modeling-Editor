@@ -67,7 +67,8 @@ const ENABLE_RECORDINGS =
 const postHogOptions = {
   api_host: POSTHOG_HOST,
   autocapture: false,
-  disable_session_recording: !ENABLE_RECORDINGS,
+  // In study mode, always record sessions for full interaction replay.
+  disable_session_recording: ENABLE_STUDY_DEPLOY ? false : !ENABLE_RECORDINGS,
   respect_dnt: true,
   opt_out_capturing_by_default: !hasUserConsented(),
   persistence: (hasUserConsented() ? 'localStorage+cookie' : 'memory') as 'localStorage+cookie' | 'memory',

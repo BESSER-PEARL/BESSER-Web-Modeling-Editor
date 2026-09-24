@@ -17,6 +17,7 @@ import type { SupportedDiagramType } from '../../../shared/types/project';
 
 interface FileMenuProps {
   outlineButtonClass: string;
+  showXlLabels?: boolean;
   hasProject: boolean;
   activeDiagramType: SupportedDiagramType;
   onOpenProjectHub: () => void;
@@ -31,6 +32,7 @@ interface FileMenuProps {
 
 export const FileMenu: React.FC<FileMenuProps> = ({
   outlineButtonClass,
+  showXlLabels,
   hasProject,
   activeDiagramType,
   onOpenProjectHub,
@@ -48,7 +50,7 @@ export const FileMenu: React.FC<FileMenuProps> = ({
       <DropdownMenuTrigger asChild>
         <Button variant="outline" className={`gap-2 ${outlineButtonClass}`} title={t('menu.file.title')}>
           <FileText className="size-4" />
-          <span className="hidden xl:inline">{t('menu.file.title')}</span>
+          <span className={showXlLabels !== undefined ? (showXlLabels ? '' : 'hidden') : 'hidden xl:inline'}>{t('menu.file.title')}</span>
           <ChevronDown className="size-3 opacity-50" />
         </Button>
       </DropdownMenuTrigger>

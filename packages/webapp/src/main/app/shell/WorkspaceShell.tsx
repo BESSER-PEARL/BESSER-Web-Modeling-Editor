@@ -25,6 +25,7 @@ import {
   besserWMERepositoryLink,
 } from '../../shared/constants/application-constants';
 import { ENABLE_STUDY_DEPLOY, localStorageStudyParticipantId, localStorageStudyModelUploaded } from '../../shared/constants/constant';
+import { getPostHog } from '../../shared/services/analytics/lazy-analytics';
 import { apiClient } from '../../shared/api/api-client';
 import { normalizeProjectName } from '../../shared/utils/projectName';
 import { getWorkspaceContext } from '../../shared/utils/workspaceContext';
@@ -252,6 +253,7 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
       });
       localStorage.setItem(localStorageStudyModelUploaded, '1');
       setStudyModelUploaded(true);
+      getPostHog()?.capture('study_model_uploaded');
       toast.success(t('study.upload.success'));
     } catch {
       toast.error(t('study.upload.error'));
@@ -267,14 +269,15 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
   useEffect(() => {
     if (!ENABLE_STUDY_DEPLOY) return;
     const existing = localStorage.getItem(localStorageStudyParticipantId);
-    if (existing) {
-      setStudyParticipantId(existing);
-      return;
+    const participantId = existing ?? crypto.randomUUID();
+    if (!existing) {
+      localStorage.setItem(localStorageStudyParticipantId, participantId);
+      setStudyWelcomeOpen(true);
     }
-    const newId = crypto.randomUUID();
-    localStorage.setItem(localStorageStudyParticipantId, newId);
-    setStudyParticipantId(newId);
-    setStudyWelcomeOpen(true);
+    setStudyParticipantId(participantId);
+    // Link all PostHog events to this participant for the duration of the session.
+    getPostHog()?.identify(participantId);
+    getPostHog()?.register({ participant_id: participantId, study_mode: true });
   }, []);
 
   const handleOpenStudyDeployDialog = useCallback(() => {

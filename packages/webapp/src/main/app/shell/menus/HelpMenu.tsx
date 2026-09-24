@@ -20,6 +20,7 @@ const COMMUNITY_URLS = {
 
 interface HelpMenuProps {
   outlineButtonClass: string;
+  showXlLabels?: boolean;
   onOpenHelpDialog: () => void;
   onOpenAboutDialog: () => void;
   onOpenKeyboardShortcuts: () => void;
@@ -33,6 +34,7 @@ interface HelpMenuProps {
  */
 export const HelpMenu: React.FC<HelpMenuProps> = ({
   outlineButtonClass,
+  showXlLabels,
   onOpenHelpDialog,
   onOpenAboutDialog,
   onOpenKeyboardShortcuts,
@@ -49,7 +51,7 @@ export const HelpMenu: React.FC<HelpMenuProps> = ({
       <DropdownMenuTrigger asChild>
         <Button variant="outline" className={`gap-2 ${outlineButtonClass}`} title={t('menu.help.title')}>
           <HelpCircle className="size-4" />
-          <span className="hidden xl:inline">{t('menu.help.title')}</span>
+          <span className={showXlLabels !== undefined ? (showXlLabels ? '' : 'hidden') : 'hidden xl:inline'}>{t('menu.help.title')}</span>
           <ChevronDown className="size-3 opacity-50" />
         </Button>
       </DropdownMenuTrigger>

@@ -20,6 +20,7 @@ import type { SupportedDiagramType } from '../../../shared/types/project';
 
 interface GenerateMenuProps {
   mode: GeneratorMenuMode;
+  showXlLabels?: boolean;
   isGenerating: boolean;
   primaryGenerateClass: string;
   activeDiagramType: SupportedDiagramType;
@@ -64,6 +65,7 @@ const renderGeneratorMenuEntry = (
 
 export const GenerateMenu: React.FC<GenerateMenuProps> = ({
   mode,
+  showXlLabels,
   isGenerating,
   primaryGenerateClass,
   activeDiagramType,
@@ -83,7 +85,7 @@ export const GenerateMenu: React.FC<GenerateMenuProps> = ({
           title={t('menu.generate.title')}
         >
           <Code2 className="size-4" />
-          <span className="hidden xl:inline">
+          <span className={showXlLabels !== undefined ? (showXlLabels ? '' : 'hidden') : 'hidden xl:inline'}>
             {isGenerating ? t('menu.generate.generating') : t('menu.generate.title')}
           </span>
           <ChevronDown className="size-3 opacity-50" />

@@ -11,9 +11,11 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { ENABLE_STUDY_DEPLOY } from '../../../shared/constants/constant';
+import { getPostHog } from '../../../shared/services/analytics/lazy-analytics';
 
 interface DeployMenuProps {
   outlineButtonClass: string;
+  showXlLabels?: boolean;
   isAuthenticated: boolean;
   githubLoading: boolean;
   isDeploymentAvailable: boolean;
@@ -24,6 +26,7 @@ interface DeployMenuProps {
 
 export const DeployMenu: React.FC<DeployMenuProps> = ({
   outlineButtonClass,
+  showXlLabels,
   isAuthenticated,
   githubLoading,
   isDeploymentAvailable,
@@ -33,11 +36,11 @@ export const DeployMenu: React.FC<DeployMenuProps> = ({
 }) => {
   const { t } = useTranslation();
   return (
-    <DropdownMenu>
+    <DropdownMenu onOpenChange={(open) => { if (open) getPostHog()?.capture('deploy_menu_opened'); }}>
       <DropdownMenuTrigger asChild>
         <Button variant="outline" className={`gap-2 ${outlineButtonClass}`} title={t('menu.deploy.title')}>
           <Rocket className="size-4" />
-          <span className="hidden xl:inline">{t('menu.deploy.title')}</span>
+          <span className={showXlLabels !== undefined ? (showXlLabels ? '' : 'hidden') : 'hidden xl:inline'}>{t('menu.deploy.title')}</span>
           <ChevronDown className="size-3 opacity-50" />
         </Button>
       </DropdownMenuTrigger>

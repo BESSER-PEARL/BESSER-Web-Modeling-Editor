@@ -27,6 +27,10 @@ interface TopBarUtilitiesProps {
   agentVariantOptions?: AgentVariantOption[];
   activeAgentVariantId?: string;
   onAgentVariantChange?: (variantId: string) => void;
+  /** When provided, JS overrides the xl CSS breakpoint for text label visibility. */
+  showXlLabels?: boolean;
+  /** When provided, JS overrides the 2xl CSS breakpoint for text label visibility. */
+  show2xlLabels?: boolean;
   onQualityCheck: () => Promise<QualityCheckResult>;
   onToggleTheme: () => void;
   onGitHubLogin: () => void;
@@ -49,6 +53,8 @@ export const TopBarUtilities: React.FC<TopBarUtilitiesProps> = ({
   agentVariantOptions,
   activeAgentVariantId,
   onAgentVariantChange,
+  showXlLabels,
+  show2xlLabels,
   onQualityCheck,
   onToggleTheme,
   onGitHubLogin,
@@ -57,6 +63,18 @@ export const TopBarUtilities: React.FC<TopBarUtilitiesProps> = ({
   onToggleStar,
 }) => {
   const { t } = useTranslation();
+
+  const activeVariantLabel = !activeAgentVariantId
+    ? t('topbar.baseAgentModel')
+    : (agentVariantOptions?.find((o) => o.id === activeAgentVariantId)?.label ?? t('topbar.baseAgentModel'));
+  // Approximate text-sm char width (~7.5px) + px-2 padding + native select arrow
+  const selectWidthPx = Math.min(Math.max(100, activeVariantLabel.length * 7.5 + 48), 280);
+
+  // Helper: when parent passes a JS-computed boolean, use it; otherwise fall back to the Tailwind class.
+  const xlClass = (show: boolean | undefined, visibleClass: string, hiddenFallback: string) =>
+    show !== undefined ? (show ? visibleClass : 'hidden') : hiddenFallback;
+
+
   const qualityStateLabel = qualityCheckState === 'valid'
     ? t('topbar.quality.validated')
     : qualityCheckState === 'errors'
@@ -78,14 +96,17 @@ export const TopBarUtilities: React.FC<TopBarUtilitiesProps> = ({
   return (
     <>
       {showAgentVariantSelector && (
-        <div className="hidden min-w-0 shrink items-center gap-1.5 xl:flex 2xl:gap-2">
-          <span className="hidden text-[11px] font-medium uppercase tracking-wide text-muted-foreground 2xl:inline">{t('topbar.variant')}</span>
+        <div className="hidden min-w-0 shrink items-center gap-1.5 xl:flex">
+          <span className={xlClass(show2xlLabels, 'text-[11px] font-medium uppercase tracking-wide text-muted-foreground', 'hidden text-[11px] font-medium uppercase tracking-wide text-muted-foreground 2xl:inline')}>
+            {t('topbar.variant')}
+          </span>
           <select
-            className="h-9 w-[140px] min-w-0 shrink rounded-md border border-input bg-background px-2 py-1 text-sm transition-colors hover:border-brand/30 focus:border-brand/40 focus:outline-none focus:ring-2 focus:ring-brand/20 2xl:w-[210px] 2xl:px-3"
+            className="h-9 min-w-[80px] shrink rounded-md border border-input bg-background px-2 py-1 text-sm transition-colors hover:border-brand/30 focus:border-brand/40 focus:outline-none focus:ring-2 focus:ring-brand/20"
+            style={{ width: `${selectWidthPx}px` }}
             value={activeAgentVariantId ?? ''}
             onChange={(event) => onAgentVariantChange?.(event.target.value)}
             aria-label={t('topbar.selectAgentVariant')}
-            title={t('topbar.selectAgentVariant')}
+            title={activeVariantLabel}
           >
             <option value="">{t('topbar.baseAgentModel')}</option>
             {(agentVariantOptions ?? []).map((option) => (
@@ -107,9 +128,9 @@ export const TopBarUtilities: React.FC<TopBarUtilitiesProps> = ({
           title={qualityStateLabel ? `${t('topbar.quality.title')} (${qualityStateLabel})` : t('topbar.quality.title')}
         >
           <CheckCircle className="size-4" />
-          <span className="hidden 2xl:inline">{t('topbar.quality.title')}</span>
+          <span className={xlClass(show2xlLabels, '', 'hidden 2xl:inline')}>{t('topbar.quality.title')}</span>
           {qualityStateLabel && (
-            <span className="hidden items-center gap-1 rounded-full border border-border/60 bg-muted/50 px-2 py-0.5 text-[10px] font-medium xl:inline-flex">
+            <span className={`items-center gap-1 rounded-full border border-border/60 bg-muted/50 px-2 py-0.5 text-[10px] font-medium ${xlClass(showXlLabels, 'inline-flex', 'hidden xl:inline-flex')}`}>
               <span className={`size-1.5 rounded-full ${qualityStateDotClass}`} aria-hidden="true" />
               <span>{qualityStateLabel}</span>
             </span>
@@ -136,7 +157,7 @@ export const TopBarUtilities: React.FC<TopBarUtilitiesProps> = ({
           title={t('topbar.starBesser')}
         >
           <Star className="size-4" />
-          <span className="hidden 2xl:inline">{t('topbar.star')}</span>
+          <span className={xlClass(show2xlLabels, '', 'hidden 2xl:inline')}>{t('topbar.star')}</span>
         </Button>
       )}
 
@@ -150,8 +171,8 @@ export const TopBarUtilities: React.FC<TopBarUtilitiesProps> = ({
                 title={t('topbar.githubAccount', { name: username || 'GitHub' })}
               >
                 <Github className="size-4" />
-                <span className="hidden max-w-[120px] truncate 2xl:inline">{username || 'GitHub'}</span>
-                <ChevronDown className="hidden size-3.5 opacity-70 2xl:inline" />
+                <span className={`max-w-[120px] truncate ${xlClass(show2xlLabels, '', 'hidden 2xl:inline')}`}>{username || 'GitHub'}</span>
+                <ChevronDown className={`size-3.5 opacity-70 ${xlClass(show2xlLabels, '', 'hidden 2xl:inline')}`} />
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="min-w-[170px]">
@@ -172,13 +193,13 @@ export const TopBarUtilities: React.FC<TopBarUtilitiesProps> = ({
             aria-label={t('topbar.toggleGithubPanel')}
           >
             <GitBranch className="size-4" />
-            <span className="hidden 2xl:inline">{t('topbar.sync')}</span>
+            <span className={xlClass(show2xlLabels, '', 'hidden 2xl:inline')}>{t('topbar.sync')}</span>
           </Button>
         </>
       ) : (
         <Button variant="outline" className={`gap-2 ${outlineButtonClass}`} onClick={onGitHubLogin} disabled={githubLoading} title={t('topbar.connectGithub')}>
           <Github className="size-4" />
-          <span className="hidden 2xl:inline">{githubLoading ? t('common.connecting') : 'GitHub'}</span>
+          <span className={xlClass(show2xlLabels, '', 'hidden 2xl:inline')}>{githubLoading ? t('common.connecting') : 'GitHub'}</span>
         </Button>
       )}
     </>

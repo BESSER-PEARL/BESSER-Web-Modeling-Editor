@@ -904,15 +904,15 @@
       "autoSave": true,
       "collaborationEnabled": false,
       "perspectives": {
-        "ClassDiagram": true,
-        "ObjectDiagram": true,
-        "StateMachineDiagram": true,
+        "ClassDiagram": false,
+        "ObjectDiagram": false,
+        "StateMachineDiagram": false,
         "AgentDiagram": true,
         "UserDiagram": true,
-        "GUINoCodeDiagram": true,
-        "QuantumCircuitDiagram": true,
-        "NNDiagram": true,
-        "BPMN": true
+        "GUINoCodeDiagram": false,
+        "QuantumCircuitDiagram": false,
+        "NNDiagram": false,
+        "BPMN": false
       }
     }
   },

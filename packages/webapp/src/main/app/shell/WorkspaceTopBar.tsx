@@ -1,8 +1,9 @@
-import React from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { FolderKanban, Users } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { getPostHog } from '../../shared/services/analytics/lazy-analytics';
 import { LanguageSelector } from './LanguageSelector';
 import { CommunityMenu } from './menus/CommunityMenu';
 import { DeployMenu } from './menus/DeployMenu';
@@ -12,6 +13,9 @@ import { HelpMenu } from './menus/HelpMenu';
 import { MobileNavigation } from './menus/MobileNavigation';
 import { TopBarUtilities } from './menus/TopBarUtilities';
 import type { WorkspaceTopBarProps } from './topbar-types';
+
+const computeVariantLabelWidth = (label: string) =>
+  Math.min(Math.max(100, label.length * 7.5 + 48), 280);
 
 const WorkspaceTopBarInner: React.FC<WorkspaceTopBarProps> = ({
   isDarkTheme,
@@ -68,8 +72,42 @@ const WorkspaceTopBarInner: React.FC<WorkspaceTopBarProps> = ({
   onProjectRename,
 }) => {
   const { t } = useTranslation();
+
+  // Track header width so we can shift collapse thresholds when the variant
+  // selector is present and consuming variable amounts of space.
+  const headerRef = useRef<HTMLElement>(null);
+  const [headerWidth, setHeaderWidth] = useState(() =>
+    typeof window !== 'undefined' ? window.innerWidth : 1920,
+  );
+  useEffect(() => {
+    const el = headerRef.current;
+    if (!el) return;
+    const ro = new ResizeObserver(([entry]) => setHeaderWidth(entry.contentRect.width));
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
+  const activeVariantLabel = !activeAgentVariantId
+    ? t('topbar.baseAgentModel')
+    : (agentVariantOptions?.find((o) => o.id === activeAgentVariantId)?.label ?? t('topbar.baseAgentModel'));
+  const selectWidthPx = computeVariantLabelWidth(activeVariantLabel);
+
+  // Shift the xl (1280px) and 2xl (1536px) collapse breakpoints upward by
+  // however many pixels the variant selector exceeds a short-label baseline.
+  // When no variant selector: pass undefined → CSS breakpoints take over.
+  const BASELINE_SELECT_WIDTH = 100;
+  const extraVariantWidth = showAgentVariantSelector
+    ? Math.max(0, selectWidthPx - BASELINE_SELECT_WIDTH)
+    : 0;
+  const showXlLabels: boolean | undefined = showAgentVariantSelector
+    ? headerWidth >= 1280 + extraVariantWidth
+    : undefined;
+  const show2xlLabels: boolean | undefined = showAgentVariantSelector
+    ? headerWidth >= 1536 + extraVariantWidth
+    : undefined;
+
   return (
-    <header className={`relative z-20 animate-slide-in-down px-4 py-2 sm:px-6 ${headerBackgroundClass}`}>
+    <header ref={headerRef} className={`relative z-20 animate-slide-in-down px-4 py-2 sm:px-6 ${headerBackgroundClass}`}>
       <div className="flex items-center justify-between gap-3">
         <div className="flex min-w-0 items-center gap-2">
           <button
@@ -104,6 +142,7 @@ const WorkspaceTopBarInner: React.FC<WorkspaceTopBarProps> = ({
         <div className="flex min-w-0 items-center gap-1 xl:gap-1.5">
           <FileMenu
             outlineButtonClass={outlineButtonClass}
+            showXlLabels={showXlLabels}
             hasProject={hasProject}
             activeDiagramType={activeDiagramType}
             onOpenProjectHub={onOpenProjectHub}
@@ -117,6 +156,7 @@ const WorkspaceTopBarInner: React.FC<WorkspaceTopBarProps> = ({
           />
           <GenerateMenu
             mode={generatorMode}
+            showXlLabels={showXlLabels}
             isGenerating={isGenerating}
             primaryGenerateClass={primaryGenerateClass}
             activeDiagramType={activeDiagramType}
@@ -127,15 +167,19 @@ const WorkspaceTopBarInner: React.FC<WorkspaceTopBarProps> = ({
             <Button
               variant="outline"
               className={outlineButtonClass}
-              onClick={onOpenPersonalizeDialog}
+              onClick={() => {
+                getPostHog()?.capture('personalize_dialog_opened', { diagram_type: activeDiagramType });
+                onOpenPersonalizeDialog();
+              }}
               title={t('personalize.title')}
             >
               <Users className="size-4" />
-              <span className="hidden xl:inline">{t('personalize.title')}</span>
+              <span className={showXlLabels !== undefined ? (showXlLabels ? '' : 'hidden') : 'hidden xl:inline'}>{t('personalize.title')}</span>
             </Button>
           )}
           <DeployMenu
             outlineButtonClass={outlineButtonClass}
+            showXlLabels={showXlLabels}
             isAuthenticated={isAuthenticated}
             githubLoading={githubLoading}
             isDeploymentAvailable={isDeploymentAvailable}
@@ -143,9 +187,10 @@ const WorkspaceTopBarInner: React.FC<WorkspaceTopBarProps> = ({
             onOpenDeployDialog={onOpenDeployDialog}
             onOpenStudyDeployDialog={onOpenStudyDeployDialog}
           />
-          <CommunityMenu outlineButtonClass={outlineButtonClass} onOpenFeedback={onOpenFeedback} />
+          <CommunityMenu outlineButtonClass={outlineButtonClass} showXlLabels={showXlLabels} onOpenFeedback={onOpenFeedback} />
           <HelpMenu
             outlineButtonClass={outlineButtonClass}
+            showXlLabels={showXlLabels}
             onOpenHelpDialog={onOpenHelpDialog}
             onOpenAboutDialog={onOpenAboutDialog}
             onOpenKeyboardShortcuts={onOpenKeyboardShortcuts}
@@ -168,6 +213,8 @@ const WorkspaceTopBarInner: React.FC<WorkspaceTopBarProps> = ({
             agentVariantOptions={agentVariantOptions}
             activeAgentVariantId={activeAgentVariantId}
             onAgentVariantChange={onAgentVariantChange}
+            showXlLabels={showXlLabels}
+            show2xlLabels={show2xlLabels}
             onToggleTheme={onToggleTheme}
             onGitHubLogin={onGitHubLogin}
             onGitHubLogout={onGitHubLogout}
