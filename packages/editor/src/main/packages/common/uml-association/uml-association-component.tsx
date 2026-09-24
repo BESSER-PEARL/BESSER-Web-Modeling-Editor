@@ -12,7 +12,11 @@ import { parseMultiplicity, toERCardinality } from './multiplicity';
 export { parseMultiplicity, toERCardinality };
 
 const Marker = {
-  Arrow: (id: string, color?: string) => (
+  // `orient` defaults to pointing along the path (for a markerEnd, i.e. an
+  // arrowhead at the target). Pass 'auto-start-reverse' when the same arrow
+  // is used as a markerStart, so it points back at the source instead of
+  // forward past it.
+  Arrow: (id: string, color?: string, orient: string = 'auto') => (
     <marker
       id={id}
       viewBox={'0 0 30 30'}
@@ -20,7 +24,7 @@ const Marker = {
       markerHeight={30}
       refX={30}
       refY={15}
-      orient="auto"
+      orient={orient}
       markerUnits="strokeWidth"
     >
       <ThemedPath d={`M0,29 L30,15 L0,1`} fillColor="none" strokeColor={color} />
@@ -122,11 +126,14 @@ export const computeMiddlePositionForUMLAssociation = (alignmentPath: Point[]): 
   return new Point(alignmentPath[midIndex].x, alignmentPath[midIndex].y);
 };
 
+// Plain associations (the generic "Association" type, plus the legacy
+// ClassUnidirectional kept for backward compatibility) don't get a marker
+// from their type alone -- whether/where an arrowhead is drawn on them is
+// entirely driven by each end's navigability, computed in the component below.
 export const getMarkerForTypeForUMLAssociation = (relationshipType: UMLRelationshipType) => {
   return ((type) => {
     switch (type) {
       case ClassRelationshipType.ClassDependency:
-      case ClassRelationshipType.ClassUnidirectional:
         return Marker.Arrow;
       case ClassRelationshipType.ClassAggregation:
         return Marker.Rhombus;
@@ -163,7 +170,30 @@ export const UMLAssociationComponent: FunctionComponent<Props> = ({ element }) =
   ];
   const showsERDiamond = isER && ER_DIAMOND_RELATIONSHIP_TYPES.includes(element.type);
 
-  const marker = showsERDiamond ? undefined : getMarkerForTypeForUMLAssociation(element.type);
+  // For a plain association, the arrowhead is derived from navigability
+  // instead of the type: no arrow when both ends are navigable, and one
+  // arrow pointing at whichever single end is navigable otherwise (both
+  // ends non-navigable is prevented by the editor).
+  const isPlainAssociation =
+    element.type === ClassRelationshipType.ClassBidirectional ||
+    element.type === ClassRelationshipType.ClassUnidirectional;
+  // In a composition the target end is always the composite ("whole") and
+  // keeps its diamond regardless of navigability; the source ("part") end
+  // is normally always navigable, but if the whole is made non-navigable an
+  // arrow appears at the part end to show that's the only way to navigate.
+  const isComposition = element.type === ClassRelationshipType.ClassComposition;
+  const sourceNavigable = element.source.navigable !== false;
+  const targetNavigable = element.target.navigable !== false;
+  const showSourceArrow =
+    (isPlainAssociation && sourceNavigable && !targetNavigable) || (isComposition && !targetNavigable);
+  const showTargetArrow = isPlainAssociation && targetNavigable && !sourceNavigable;
+
+  const targetMarker = showsERDiamond
+    ? undefined
+    : showTargetArrow
+      ? Marker.Arrow
+      : getMarkerForTypeForUMLAssociation(element.type);
+  const sourceMarker = showsERDiamond || !showSourceArrow ? undefined : Marker.Arrow;
 
   const stroke = ((type) => {
     switch (type) {
@@ -178,21 +208,25 @@ export const UMLAssociationComponent: FunctionComponent<Props> = ({ element }) =
   })(element.type);
 
   const path = element.path.map((point) => new Point(point.x, point.y));
-  const source: Point = computeTextPositionForUMLAssociation(path);
+  const source: Point = computeTextPositionForUMLAssociation(path, !!sourceMarker);
   const middle: Point = computeMiddlePositionForUMLAssociation(path);
-  const target: Point = computeTextPositionForUMLAssociation(path.reverse(), !!marker);
+  const target: Point = computeTextPositionForUMLAssociation(path.reverse(), !!targetMarker);
   const id = `marker-${element.id}`;
+  const startMarkerId = `${id}-start`;
+  const endMarkerId = `${id}-end`;
 
   const textFill = element.textColor ? { fill: element.textColor } : {};
   return (
     <g>
-      {marker && marker(id, element.strokeColor)}
+      {targetMarker && targetMarker(endMarkerId, element.strokeColor)}
+      {sourceMarker && sourceMarker(startMarkerId, element.strokeColor, 'auto-start-reverse')}
       <ThemedPolyline
         points={element.path.map((point) => `${point.x} ${point.y}`).join(',')}
         strokeColor={element.strokeColor}
         fillColor="none"
         strokeWidth={1}
-        markerEnd={`url(#${id})`}
+        markerStart={sourceMarker ? `url(#${startMarkerId})` : undefined}
+        markerEnd={targetMarker ? `url(#${endMarkerId})` : undefined}
         strokeDasharray={stroke}
       />
       {showAssociationNames && element.name && !isInheritance && !isLinkRel && !showsERDiamond && (

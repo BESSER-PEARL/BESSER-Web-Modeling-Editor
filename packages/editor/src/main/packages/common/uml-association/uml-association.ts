@@ -18,10 +18,12 @@ export interface IUMLAssociation extends IUMLRelationship {
   source: IUMLElementPort & {
     multiplicity: string;
     role: string;
+    navigable: boolean;
   };
   target: IUMLElementPort & {
     multiplicity: string;
     role: string;
+    navigable: boolean;
   };
 }
 
@@ -51,12 +53,14 @@ export abstract class UMLAssociation extends UMLRelationship implements IUMLAsso
     element: '',
     multiplicity: '',
     role: '',
+    navigable: true,
   };
   target: IUMLAssociation['target'] = {
     direction: Direction.Up,
     element: '',
     multiplicity: '',
     role: '',
+    navigable: true,
   };
 
   constructor(values?: DeepPartial<IUMLAssociation>) {
