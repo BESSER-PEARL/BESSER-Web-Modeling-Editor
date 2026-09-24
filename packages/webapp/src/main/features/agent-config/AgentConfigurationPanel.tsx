@@ -52,7 +52,7 @@ import {
   removeConfigurationVariantsFromProject,
   upsertVariantForProfile,
 } from '../../shared/services/agent-variants/agent-variants-service';
-import { AgentConfigYamlEditor } from './AgentConfigYamlEditor';
+import { AgentRuntimePanel } from './AgentRuntimePanel';
 
 type AgentTransformationConfig = Partial<AgentConfigurationPayload> & { userProfileModel?: UMLModel };
 
@@ -2101,7 +2101,7 @@ export const AgentConfigurationPanel: React.FC = () => {
   const showVoiceControls = outputModalities.includes('speech');
 
   return (
-    <div className="relative h-full overflow-auto px-4 py-6 sm:px-8">
+    <div className="relative flex h-full flex-col overflow-hidden">
       {isLoading && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 px-4">
           <div className="w-full max-w-xl rounded-2xl border border-border bg-card p-6 text-center shadow-2xl">
@@ -2112,7 +2112,8 @@ export const AgentConfigurationPanel: React.FC = () => {
         </div>
       )}
 
-      <div className="mx-auto flex max-w-6xl flex-col gap-6">
+      <div className="shrink-0 border-b border-border/50 px-4 pt-6 pb-4 sm:px-8">
+      <div className="mx-auto max-w-6xl space-y-4">
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-foreground">{t('agentConfig.title')}</h1>
           <p className="mt-1 text-sm text-muted-foreground">
@@ -2192,7 +2193,24 @@ export const AgentConfigurationPanel: React.FC = () => {
             </Button>
           </div>
         )}
+      </div>
+      </div>
 
+      {activeTab === 'runtime' && !currentAgentModel && (
+        <div className="flex flex-1 items-center justify-center text-sm text-muted-foreground">
+          {t('agentConfig.noActiveDiagram')}
+        </div>
+      )}
+      {activeTab === 'runtime' && currentAgentModel && (
+        <AgentRuntimePanel
+          currentProject={currentProject}
+          agentRuntimeConfig={agentRuntimeConfig}
+          updateAgentRuntimeConfig={updateAgentRuntimeConfig}
+          agentLLMElements={agentLLMElements}
+        />
+      )}
+      <div className={activeTab === 'personalization' ? 'flex-1 overflow-auto px-4 pb-6 pt-6 sm:px-8' : 'hidden'}>
+      <div className="mx-auto max-w-6xl">
         <form
           onSubmit={(event) => event.preventDefault()}
           className="flex flex-col gap-6"
@@ -2287,148 +2305,6 @@ export const AgentConfigurationPanel: React.FC = () => {
             </CardContent>
           </Card>
 
-          )}
-
-          {activeTab === 'runtime' && currentAgentModel && (
-          <>
-          <Card>
-            <CardHeader>
-              <CardTitle>{t('agentConfig.runtime.title')}</CardTitle>
-              <CardDescription>
-                {t('agentConfig.runtime.description')}
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid gap-4 md:grid-cols-2">
-                <div className="space-y-1.5">
-                  <Label htmlFor="agent-runtime-platform">{t('agentConfig.runtime.platform')}</Label>
-                  <select
-                    id="agent-runtime-platform"
-                    className="h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm transition-colors hover:border-brand/30 focus:border-brand/40 focus:outline-none focus:ring-2 focus:ring-brand/20"
-                    value={agentRuntimeConfig.agentPlatform}
-                    onChange={(event) => updateAgentRuntimeConfig({
-                      agentPlatform: event.target.value,
-                      agentPlatformUseStreamlit: event.target.value !== 'websocket' ? false : agentRuntimeConfig.agentPlatformUseStreamlit,
-                    })}
-                  >
-                    <option value="websocket">{t('agentConfig.runtime.platformWebSocket')}</option>
-                    <option value="telegram">{t('agentConfig.runtime.platformTelegram')}</option>
-                  </select>
-                  {agentRuntimeConfig.agentPlatform === 'websocket' && (
-                    <label className="flex items-center gap-2 text-sm cursor-pointer pt-1">
-                      <input
-                        type="checkbox"
-                        checked={agentRuntimeConfig.agentPlatformUseStreamlit ?? false}
-                        onChange={(e) => updateAgentRuntimeConfig({ agentPlatformUseStreamlit: e.target.checked })}
-                      />
-                      {t('agentConfig.runtime.useStreamlitUi')}
-                    </label>
-                  )}
-                </div>
-
-                <div className="space-y-1.5">
-                  <Label htmlFor="agent-runtime-intent">{t('agentConfig.runtime.intent')}</Label>
-                  <select
-                    id="agent-runtime-intent"
-                    className="h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm transition-colors hover:border-brand/30 focus:border-brand/40 focus:outline-none focus:ring-2 focus:ring-brand/20"
-                    value={agentRuntimeConfig.intentRecognitionTechnology}
-                    onChange={(event) =>
-                      updateAgentRuntimeConfig({
-                        intentRecognitionTechnology: event.target.value as IntentRecognitionTechnology,
-                      })
-                    }
-                  >
-                    <option value="classical">{t('agentConfig.runtime.intentClassical')}</option>
-                    <option value="llm-based">{t('agentConfig.runtime.intentLlmBased')}</option>
-                  </select>
-                </div>
-
-                {agentRuntimeConfig.intentRecognitionTechnology === 'llm-based' && (
-                  <div className="space-y-1.5">
-                    <Label htmlFor="agent-runtime-llm-name">{t('agentConfig.runtime.llm')}</Label>
-                    <select
-                      id="agent-runtime-llm-name"
-                      className="h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm transition-colors hover:border-brand/30 focus:border-brand/40 focus:outline-none focus:ring-2 focus:ring-brand/20"
-                      value={agentRuntimeConfig.agentLlmName}
-                      onChange={(event) =>
-                        updateAgentRuntimeConfig({ agentLlmName: event.target.value })
-                      }
-                    >
-                      <option value="">{t('agentConfig.runtime.useDefault')}</option>
-                      {agentLLMElements.map((entry) => (
-                        <option key={entry.id} value={entry.name}>
-                          {entry.name || t('agentConfig.row.unnamedLlm')}
-                        </option>
-                      ))}
-                    </select>
-                    {agentLLMElements.length === 0 && (
-                      <p className="text-xs text-muted-foreground">
-                        {t('agentConfig.runtime.defineLlmHint')}
-                      </p>
-                    )}
-                  </div>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>{t('agentConfig.llms.title')}</CardTitle>
-              <CardDescription>
-                {t('agentConfig.llms.description')}
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              {agentLLMElements.length === 0 ? (
-                <p className="text-sm text-muted-foreground">
-                  {t('agentConfig.llms.empty')}
-                </p>
-              ) : (
-                <div className="space-y-2">
-                  {agentLLMElements.map((llm) => (
-                    <AgentLLMRow
-                      key={llm.id}
-                      element={llm}
-                      expanded={expandedLlmId === llm.id}
-                      isDefault={Boolean(defaultLlmName) && llm.name === defaultLlmName}
-                      onToggleExpanded={handleToggleExpandedLlm}
-                      onChange={handleUpdateAgentLLM}
-                      onRemove={handleRemoveAgentLLM}
-                      onSetDefault={handleSetDefaultLlm}
-                    />
-                  ))}
-                </div>
-              )}
-              <div>
-                <Button type="button" onClick={handleAddAgentLLM}>
-                  {t('agentConfig.llms.add')}
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>{t('agentConfig.yaml.title')}</CardTitle>
-              <CardDescription>
-                {t('agentConfig.yaml.description')}
-                {' '}
-                <a
-                  href="https://besser-agentic-framework.readthedocs.io/latest/wiki/configuration_properties.html"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-brand underline underline-offset-2 hover:text-brand/80"
-                >
-                  {t('agentConfig.yaml.linkText')}
-                </a>
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <AgentConfigYamlEditor currentProject={currentProject} />
-            </CardContent>
-          </Card>
-          </>
           )}
 
           {activeTab === 'personalization' && (
@@ -2977,6 +2853,7 @@ export const AgentConfigurationPanel: React.FC = () => {
           </>
           )}
         </form>
+      </div>
       </div>
     </div>
   );

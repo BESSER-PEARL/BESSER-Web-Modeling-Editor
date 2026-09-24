@@ -1,4 +1,4 @@
-import { ApollonEditor, UMLModel, diagramBridge } from '@besser/wme';
+import { AgentComponentType, ApollonEditor, UMLModel, diagramBridge } from '@besser/wme';
 import React, { useEffect, useRef, useContext, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 
@@ -6,6 +6,7 @@ import { toEditorLocale } from '../../../shared/i18n/languages';
 import { ApollonEditorContext } from './apollon-editor-context';
 import { useAppDispatch, useAppSelector } from '../../../app/store/hooks';
 import { isUMLModel } from '../../../shared/types/project';
+import { getAgentComponents } from '../../../shared/utils/projectExportUtils';
 import {
   updateDiagramModelThunk,
   selectActiveDiagram,
@@ -13,6 +14,7 @@ import {
   selectEditorRevision,
   selectStateMachineDiagrams,
   selectQuantumCircuitDiagrams,
+  selectNNDiagrams,
 } from '../../../app/store/workspaceSlice';
 import { notifyError } from '../../../shared/utils/notifyError';
 
@@ -29,6 +31,7 @@ export const ApollonEditorComponent: React.FC = () => {
   const editorRevision = useAppSelector(selectEditorRevision);
   const stateMachineDiagrams = useAppSelector(selectStateMachineDiagrams);
   const quantumCircuitDiagrams = useAppSelector(selectQuantumCircuitDiagrams);
+  const nnDiagrams = useAppSelector(selectNNDiagrams);
   const { setEditor } = useContext(ApollonEditorContext);
   const { i18n } = useTranslation();
   const localeRef = useRef(toEditorLocale(i18n.resolvedLanguage ?? i18n.language));
@@ -82,9 +85,35 @@ export const ApollonEditorComponent: React.FC = () => {
     diagramBridge.setAgentPlatform(platform);
   }, [reduxDiagram]);
 
+  // Single writer of the agent component lists in diagramBridge (like the diagram
+  // references below): state/transition popups read LLM/GUI/RAG/intent names from it.
+  // Runs whenever the active diagram changes, including edits made in the agent
+  // components panel (which persist to storage and flow back through Redux).
+  useEffect(() => {
+    const components = Object.values(getAgentComponents(reduxDiagram));
+    const ofType = (type: AgentComponentType) => components.filter((component) => (component.type as string) === type);
+    const named = (type: AgentComponentType) => ofType(type).filter((component) => component.name);
+
+    diagramBridge.setAgentGUIs(
+      ofType(AgentComponentType.AgentGUI)
+        .map((gui) => ({ name: gui.gui_id || gui.id, gui_id: gui.gui_id || '', is_form: !!gui.is_form })),
+    );
+    diagramBridge.setAgentIntents(
+      named(AgentComponentType.AgentIntent).map((intent) => ({ name: String(intent.name), id: intent.id })),
+    );
+    diagramBridge.setAgentLLMs(
+      named(AgentComponentType.AgentLLM).map((llm) => ({
+        name: String(llm.name),
+        provider: String(llm.provider || '').toLowerCase(),
+      })),
+    );
+    diagramBridge.setAgentRAGs(named(AgentComponentType.AgentRagElement).map((rag) => ({ name: String(rag.name) })));
+  }, [reduxDiagram]);
+
   useEffect(() => {
     const smDiagrams = stateMachineDiagrams ?? [];
     const qcDiagrams = quantumCircuitDiagrams ?? [];
+    const neuralNetworkDiagrams = nnDiagrams ?? [];
 
     const stateMachines = smDiagrams
       .filter(d => d.id && d.title)
@@ -94,9 +123,14 @@ export const ApollonEditorComponent: React.FC = () => {
       .filter(d => d.id && d.title)
       .map(d => ({ id: d.id, name: d.title }));
 
+    const neuralNetworks = neuralNetworkDiagrams
+      .filter(d => d.id && d.title)
+      .map(d => ({ id: d.id, name: d.title }));
+
     diagramBridge.setStateMachineDiagrams(stateMachines);
     diagramBridge.setQuantumCircuitDiagrams(quantumCircuits);
-  }, [stateMachineDiagrams, quantumCircuitDiagrams]);
+    diagramBridge.setNeuralNetworkDiagrams(neuralNetworks);
+  }, [stateMachineDiagrams, quantumCircuitDiagrams, nnDiagrams]);
 
   // Cleanup on unmount
   useEffect(() => {

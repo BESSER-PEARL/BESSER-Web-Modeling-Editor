@@ -45,9 +45,13 @@ export * from './packages/bpmn/bpmn-flow/bpmn-flow-validator';
 export * from './packages/common/uml-association/multiplicity';
 
 // Export the agent-model normalizer (flat → canonical nested transition shape).
-// Pure function, used by the webapp to normalize models that bypass the editor
+// plus the agent-components migration (elements / legacy agentComponents → components).
+// Pure functions, used by the webapp to normalize models that bypass the editor
 // (e.g. agentBaseModels snapshots written straight to localStorage).
-export { normalizeAgentModel } from './packages/agent-state-diagram/normalize-agent-model';
+export { normalizeAgentModel, normalizeAgentComponents } from './packages/agent-state-diagram/normalize-agent-model';
+
+// Agent element / component type names, so consumers don't re-declare the string constants.
+export { AgentElementType, AgentRelationshipType, AgentComponentType } from './packages/agent-state-diagram';
 
 // Export the canonical LLM provider list so the webapp derives its dropdown,
 // its stored-config union, and its localStorage whitelist from one array

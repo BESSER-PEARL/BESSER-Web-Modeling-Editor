@@ -1,0 +1,16 @@
+.baf-chat .chat-area__messages {
+  padding-left: 12px;
+  padding-right: 12px;
+}
+
+.baf-chat .chat-area__input-row {
+  width: 100%;
+  padding-left: 12px;
+  padding-right: 12px;
+}
+
+.baf-chat .chat-area__input-line {
+  width: 100%;
+}
+
+
