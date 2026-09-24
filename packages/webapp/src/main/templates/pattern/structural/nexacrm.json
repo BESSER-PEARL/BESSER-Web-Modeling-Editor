@@ -2621,7 +2621,8 @@
           "y": 805,
           "width": 0,
           "height": 0
-        }
+        },
+        "navigable": true
       },
       "target": {
         "direction": "Downright",
@@ -2633,7 +2634,8 @@
           "y": 250,
           "width": 0,
           "height": 0
-        }
+        },
+        "navigable": true
       },
       "isManuallyLayouted": false
     },
@@ -2668,7 +2670,8 @@
           "y": 125,
           "width": 0,
           "height": 0
-        }
+        },
+        "navigable": true
       },
       "target": {
         "direction": "Right",
@@ -2680,7 +2683,8 @@
           "y": 310,
           "width": 0,
           "height": 0
-        }
+        },
+        "navigable": true
       },
       "isManuallyLayouted": false
     },
@@ -2715,7 +2719,8 @@
           "y": 700,
           "width": 0,
           "height": 0
-        }
+        },
+        "navigable": true
       },
       "target": {
         "direction": "Downright",
@@ -2727,7 +2732,8 @@
           "y": 230,
           "width": 0,
           "height": 0
-        }
+        },
+        "navigable": true
       },
       "isManuallyLayouted": false
     },
@@ -2766,7 +2772,8 @@
           "y": 100,
           "width": 0,
           "height": 0
-        }
+        },
+        "navigable": true
       },
       "target": {
         "direction": "Downright",
@@ -2778,7 +2785,8 @@
           "y": 350,
           "width": 0,
           "height": 0
-        }
+        },
+        "navigable": true
       },
       "isManuallyLayouted": false
     },
@@ -2813,7 +2821,8 @@
           "y": 65,
           "width": 0,
           "height": 0
-        }
+        },
+        "navigable": true
       },
       "target": {
         "direction": "Left",
@@ -2825,7 +2834,8 @@
           "y": 250,
           "width": 0,
           "height": 0
-        }
+        },
+        "navigable": true
       },
       "isManuallyLayouted": false
     },
@@ -2860,7 +2870,8 @@
           "y": 125,
           "width": 0,
           "height": 0
-        }
+        },
+        "navigable": true
       },
       "target": {
         "direction": "Right",
@@ -2872,7 +2883,8 @@
           "y": -240,
           "width": 0,
           "height": 0
-        }
+        },
+        "navigable": true
       },
       "isManuallyLayouted": false
     },
@@ -2911,7 +2923,8 @@
           "y": 805,
           "width": 0,
           "height": 0
-        }
+        },
+        "navigable": true
       },
       "target": {
         "direction": "Downright",
@@ -2923,7 +2936,8 @@
           "y": 605,
           "width": 0,
           "height": 0
-        }
+        },
+        "navigable": true
       },
       "isManuallyLayouted": false
     },
@@ -2966,7 +2980,8 @@
           "y": 350,
           "width": 0,
           "height": 0
-        }
+        },
+        "navigable": true
       },
       "target": {
         "direction": "Up",
@@ -2978,7 +2993,8 @@
           "y": 700,
           "width": 0,
           "height": 0
-        }
+        },
+        "navigable": true
       },
       "isManuallyLayouted": false
     },
@@ -3013,7 +3029,8 @@
           "y": 390,
           "width": 0,
           "height": 0
-        }
+        },
+        "navigable": true
       },
       "target": {
         "direction": "Upleft",
@@ -3025,7 +3042,8 @@
           "y": 125,
           "width": 0,
           "height": 0
-        }
+        },
+        "navigable": true
       },
       "isManuallyLayouted": false
     },
@@ -3064,7 +3082,8 @@
           "y": 100,
           "width": 0,
           "height": 0
-        }
+        },
+        "navigable": true
       },
       "target": {
         "direction": "Downleft",
@@ -3076,7 +3095,8 @@
           "y": 230,
           "width": 0,
           "height": 0
-        }
+        },
+        "navigable": true
       },
       "isManuallyLayouted": false
     },
@@ -3115,7 +3135,8 @@
           "y": 500,
           "width": 0,
           "height": 0
-        }
+        },
+        "navigable": true
       },
       "target": {
         "direction": "Upright",
@@ -3127,7 +3148,8 @@
           "y": 400,
           "width": 0,
           "height": 0
-        }
+        },
+        "navigable": true
       },
       "isManuallyLayouted": false
     },
@@ -3166,7 +3188,8 @@
           "y": -60,
           "width": 0,
           "height": 0
-        }
+        },
+        "navigable": true
       },
       "target": {
         "direction": "Topright",
@@ -3178,7 +3201,8 @@
           "y": 100,
           "width": 0,
           "height": 0
-        }
+        },
+        "navigable": true
       },
       "isManuallyLayouted": false
     },
@@ -3217,7 +3241,8 @@
           "y": 700,
           "width": 0,
           "height": 0
-        }
+        },
+        "navigable": true
       },
       "target": {
         "direction": "Down",
@@ -3229,7 +3254,8 @@
           "y": 400,
           "width": 0,
           "height": 0
-        }
+        },
+        "navigable": true
       },
       "isManuallyLayouted": false
     },
@@ -3264,7 +3290,8 @@
           "y": 350,
           "width": 0,
           "height": 0
-        }
+        },
+        "navigable": true
       },
       "target": {
         "direction": "Upleft",
@@ -3276,7 +3303,8 @@
           "y": 300,
           "width": 0,
           "height": 0
-        }
+        },
+        "navigable": true
       },
       "isManuallyLayouted": false
     },
@@ -3311,7 +3339,8 @@
           "y": 125,
           "width": 0,
           "height": 0
-        }
+        },
+        "navigable": true
       },
       "target": {
         "direction": "Up",
@@ -3323,7 +3352,8 @@
           "y": 65,
           "width": 0,
           "height": 0
-        }
+        },
+        "navigable": true
       },
       "isManuallyLayouted": false
     },
@@ -3358,7 +3388,8 @@
           "y": 350,
           "width": 0,
           "height": 0
-        }
+        },
+        "navigable": true
       },
       "target": {
         "direction": "Upleft",
@@ -3370,7 +3401,8 @@
           "y": 500,
           "width": 0,
           "height": 0
-        }
+        },
+        "navigable": true
       },
       "isManuallyLayouted": false
     },
@@ -3405,7 +3437,8 @@
           "y": 310,
           "width": 0,
           "height": 0
-        }
+        },
+        "navigable": true
       },
       "target": {
         "direction": "Left",
@@ -3417,7 +3450,8 @@
           "y": 250,
           "width": 0,
           "height": 0
-        }
+        },
+        "navigable": true
       },
       "isManuallyLayouted": false
     },
@@ -3456,7 +3490,8 @@
           "y": -60,
           "width": 0,
           "height": 0
-        }
+        },
+        "navigable": true
       },
       "target": {
         "direction": "Up",
@@ -3468,7 +3503,8 @@
           "y": -100,
           "width": 0,
           "height": 0
-        }
+        },
+        "navigable": true
       },
       "isManuallyLayouted": false
     },
@@ -3503,7 +3539,8 @@
           "y": 100,
           "width": 0,
           "height": 0
-        }
+        },
+        "navigable": true
       },
       "target": {
         "direction": "Down",
@@ -3515,7 +3552,8 @@
           "y": -180,
           "width": 0,
           "height": 0
-        }
+        },
+        "navigable": true
       },
       "isManuallyLayouted": false
     }

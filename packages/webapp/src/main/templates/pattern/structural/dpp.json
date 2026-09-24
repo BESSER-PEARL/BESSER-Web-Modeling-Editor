@@ -235,7 +235,7 @@
     "f497993c-4607-4858-9ffb-6adc5869a784": {
         "id": "f497993c-4607-4858-9ffb-6adc5869a784",
         "name": "product_lifecycle",
-        "type": "ClassUnidirectional",
+        "type": "ClassBidirectional",
         "owner": null,
         "bounds": {
             "x": -103.38333511352539,
@@ -263,7 +263,8 @@
                 "y": -100,
                 "width": 0,
                 "height": 0
-            }
+            },
+            "navigable": false
         },
         "target": {
             "direction": "Up",
@@ -275,14 +276,15 @@
                 "y": -200,
                 "width": 0,
                 "height": 0
-            }
+            },
+            "navigable": true
         },
         "isManuallyLayouted": false
     },
     "afcc1027-4651-4ccf-8fd3-8771ca20e721": {
         "id": "afcc1027-4651-4ccf-8fd3-8771ca20e721",
         "name": "product_reparations",
-        "type": "ClassUnidirectional",
+        "type": "ClassBidirectional",
         "owner": null,
         "bounds": {
             "x": 250,
@@ -314,7 +316,8 @@
                 "y": 150,
                 "width": 0,
                 "height": 0
-            }
+            },
+            "navigable": false
         },
         "target": {
             "direction": "Down",
@@ -326,14 +329,15 @@
                 "y": -50,
                 "width": 0,
                 "height": 0
-            }
+            },
+            "navigable": true
         },
         "isManuallyLayouted": false
     },
     "013e68a9-aecd-440c-ad74-7bbd60e60546": {
         "id": "013e68a9-aecd-440c-ad74-7bbd60e60546",
         "name": "material_spend",
-        "type": "ClassUnidirectional",
+        "type": "ClassBidirectional",
         "owner": null,
         "bounds": {
             "x": -350,
@@ -361,7 +365,8 @@
                 "y": -250,
                 "width": 0,
                 "height": 0
-            }
+            },
+            "navigable": false
         },
         "target": {
             "direction": "Downright",
@@ -373,7 +378,8 @@
                 "y": -250,
                 "width": 0,
                 "height": 0
-            }
+            },
+            "navigable": true
         },
         "isManuallyLayouted": false
     },

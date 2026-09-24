@@ -26,6 +26,10 @@ export { layoutModel } from './services/layouter/model-layout';
 // These utilities help with backward compatibility and cross-version support
 export * from './compat/helpers';
 
+// Export the class-diagram association navigability rules (legacy defaults,
+// "at least one navigable end", composition part end always navigable)
+export * from './packages/common/uml-association/uml-association-navigability';
+
 // Export the diagram bridge service
 // Handles communication between different parts of the editor and external integrations
 export * from './services/diagram-bridge';

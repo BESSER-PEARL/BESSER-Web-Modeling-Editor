@@ -2,6 +2,7 @@ import { ProjectStorageRepository } from '../../../shared/services/storage/Proje
 import { isUMLModel, getActiveDiagram, getReferencedDiagram } from '../../../shared/types/project';
 import { ClassMetadata, AttributeMetadata, isNumericType, isStringType } from './utils/classBindingHelpers';
 import i18n from '@/main/shared/i18n';
+import { resolveAssociationNavigability, supportsNavigability } from '@besser/wme';
 
 /**
  * Remove UML visibility characters (+, -, #, ~) from the beginning of a string
@@ -168,9 +169,10 @@ export function getClassMetadata(classId: string, includeInherited: boolean = tr
 
 /**
  * Map a relationship to the association end navigable from any of the given classes.
- * Only real association types (bidirectional, unidirectional, composition, aggregation)
- * produce ends — inheritance, OCL links and any other relationship kinds never do,
- * and an end pointing at an OCL constraint element is never navigable.
+ * Only real association types (bidirectional, legacy unidirectional, composition,
+ * aggregation) produce ends, and only towards an end that is navigable (per-end
+ * `navigable` flag) — inheritance, OCL links and any other relationship kinds never
+ * do, and an end pointing at an OCL constraint element is never navigable.
  */
 function getNavigableEndForClassIds(
   relationship: any,
@@ -186,18 +188,15 @@ function getNavigableEndForClassIds(
     return { value: otherElementId, label };
   };
 
-  // For bidirectional and composition/aggregation, both ends are navigable
-  if (
-    relationship?.type === 'ClassBidirectional' ||
-    relationship?.type === 'ClassComposition' ||
-    relationship?.type === 'ClassAggregation'
-  ) {
-    if (classIds.includes(relationship.source?.element)) return endFor(relationship.target);
-    if (classIds.includes(relationship.target?.element)) return endFor(relationship.source);
+  // Only an end whose `navigable` flag is set can be reached (legacy data without
+  // the flag falls back to the old ClassUnidirectional/ClassBidirectional rule).
+  if (!relationship || !supportsNavigability(relationship.type)) return null;
+  const navigable = resolveAssociationNavigability(relationship);
+  if (navigable.target && classIds.includes(relationship.source?.element)) {
+    return endFor(relationship.target);
   }
-  // For unidirectional, only source can navigate to target
-  if (relationship?.type === 'ClassUnidirectional') {
-    if (classIds.includes(relationship.source?.element)) return endFor(relationship.target);
+  if (navigable.source && classIds.includes(relationship.target?.element)) {
+    return endFor(relationship.source);
   }
   return null;
 }
