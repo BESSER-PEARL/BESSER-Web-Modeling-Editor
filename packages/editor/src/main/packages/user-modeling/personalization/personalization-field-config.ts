@@ -147,6 +147,8 @@ const ELEMENT_SUGGESTED_FIELDS: Record<string, PersonalizationFieldKey[]> = {
     'presentation.sentenceLength',
     'presentation.size',
     'content.adaptContentToUserProfile',
+    'presentation.font',
+    'presentation.lineSpacing',
   ],
 };
 
