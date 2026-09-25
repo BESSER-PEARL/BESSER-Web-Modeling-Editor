@@ -25,8 +25,6 @@ npm workspaces: `packages/server`, `packages/webapp`, `packages/editor` (declare
 Almost all feature work happens in `webapp` and `editor`.
 
 > `--workspace=editor` does NOT resolve (the package is named `@besser/wme`). Use `--workspace=@besser/wme`.
->
-> `packages/webapp2/` is an untracked leftover directory containing only `node_modules`. Ignore it.
 
 ## Essential Commands
 
@@ -167,7 +165,7 @@ This is a first-class part of the app, not an add-on. Two independent backends:
 - Endpoints are built in `shared/constants/constant.ts`: `/spec-driven/generate` (SSE), `/config`, `/cancel/<runId>`, `/download/<runId>`, `/runs/<runId>/events?after=N`. `SMART_GEN_PREVIEW_ENDPOINT` is declared but **has no callers**.
 - `features/spec-driven/services/specDrivenSseClient.ts` owns the request shape and the `AbortController`; `hooks/useSpecDrivenTrigger.ts` owns the run lifecycle; `state/specDrivenSlice.ts` owns the run card.
 - Guards worth preserving: `planApproved` must be set by a UI path (the agent can never inject it — `useAssistantLogic` rebuilds the payload field by field), one run at a time via an atomic Redux slot claim, no auto-download, a 60 s stream-stall watchdog, and durable reattach after a reload via a minimal `localStorage` pointer.
-- Server config (free-tier models, cost/runtime caps, download TTL) is fetched once per page load by `shared/services/specDrivenConfig.ts`. **Never re-hardcode caps** — a stale hardcoded copy once became the binding limit and killed healthy runs.
+- Server config (free-tier models, cost/runtime caps, download TTL) is fetched once per page load by `shared/services/specDrivenConfig.ts`. **Never re-hardcode caps** — a stale hardcoded copy silently becomes the binding limit.
 
 **3. BYOK, shared by both.**
 

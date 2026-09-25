@@ -72,7 +72,10 @@ Supported providers
   only).
 
 The *Local* and *PIA* options require the BESSER backend to be running locally,
-because the backend — not the browser — makes the model call.
+because the backend — not the browser — makes the model call. The dialog lists
+them when the editor is opened on ``localhost``; the backend must also set
+``BESSER_LLM_ALLOW_CUSTOM_BASE_URL=true`` (and the modeling agent
+``BESSER_AGENT_ALLOW_CUSTOM_BASE_URL=true``) to accept a custom endpoint.
 
 You may optionally pin a specific model; leaving it blank uses the backend's
 default for that provider.
