@@ -3,20 +3,15 @@ import { test, expect, type Page } from '@playwright/test';
 /**
  * E2E: the keyless "Free" tier of the Spec-Driven Agent.
  *
- * This is the FIRST spec that drives the AI-assistant → generate flow, and it
- * exists because the free-tier "Use the free model" button once closed the
- * dialog and silently did nothing — a race between Radix's `onOpenChange`
- * (which ran the cancel handler) and the trigger hook's resume effect. That
- * bug slipped past 95 unit tests and a backend SSE check because it only
- * manifests in a REAL browser closing a REAL dialog. So this test drives the
- * actual click and asserts a run actually starts.
+ * Drives the assistant → generate flow in a real browser and asserts a run
+ * actually starts; dialog/effect races in this flow do not reproduce in jsdom.
  *
  * The two slow / flaky externals are mocked so the test is deterministic and
- * fast (no classifier LLM, no GPU):
+ * fast (no classifier LLM, no model server):
  *   - the assistant WebSocket (ws://localhost:8765) → we inject the
  *     `trigger_smart_generator` action the way the agent would;
- *   - the SSE endpoint (/besser_api/smart-generate) → a canned start/phase/done
- *     stream, plus we capture the POST body to assert the wire contract.
+ *   - the generation SSE endpoint → a canned start/phase/done stream, plus we
+ *     capture the POST body to assert the wire contract.
  * The config endpoint is mocked so the free tier is advertised (else the UI is
  * hidden by design).
  */
@@ -54,10 +49,9 @@ async function createBlankProject(page: Page, name: string): Promise<void> {
   await expect(dialog).toBeHidden({ timeout: 10_000 });
 }
 
-// NOTE: the free tier is now the DEFAULT — an unauthorised trigger runs on it
-// DIRECTLY with no BYOK popup (the old "Use the free model" dialog button is
-// gone). This test therefore asserts the run starts straight through, and that
-// the dialog never appears.
+// The free tier is the default: an unauthorised trigger runs on it directly,
+// with no BYOK popup. Assert the run starts straight through and the dialog
+// never appears.
 test('keyless free tier: an unauthorised trigger runs on free directly — no BYOK popup', async ({ page }) => {
   // Capture the POST body the frontend sends for the free run.
   let smartGenBody: Record<string, unknown> | null = null;
@@ -112,10 +106,9 @@ test('keyless free tier: an unauthorised trigger runs on free directly — no BY
   await createBlankProject(page, 'E2E_FreeTier');
 
   // 5. Open the assistant and send a prompt (the WS mock turns it into a
-  //    trigger_smart_generator, which opens the run dialog). The widget and
-  //    drawer each mount a composer, so target the VISIBLE one (only the
-  //    toggled widget is shown). The SmartGenByokDialog itself is a single
-  //    app-level instance (application.tsx), so its selectors stay unscoped.
+  //    trigger_smart_generator). The widget and drawer each mount a composer,
+  //    so target the VISIBLE one (only the toggled widget is shown). The key
+  //    dialog is a single app-level instance, so its selectors stay unscoped.
   await page.evaluate(() => window.dispatchEvent(new Event('besser:toggle-agent-widget')));
   const composer = page.locator('textarea[aria-label="Write your prompt here"]:visible').first();
   await expect(composer).toBeVisible({ timeout: 10_000 });

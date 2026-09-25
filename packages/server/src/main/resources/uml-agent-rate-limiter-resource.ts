@@ -8,9 +8,8 @@ const DEFAULT_RATE_LIMIT_CONFIG = {
   maxRequestsPerMinute: 8,
   maxRequestsPerHour: 40,
   // The AUTHORITATIVE message-length cap: the client checks first but then takes
-  // this endpoint's verdict, so a lower value here silently overrides it. 1000
-  // rejected legitimate messages — a pasted traceback alone clears it, as does
-  // any real specification.
+  // this endpoint's verdict, so a lower value here silently overrides it. Sized
+  // for pasted tracebacks and full specifications.
   //
   // Keep in sync with `maxMessageLength` in the webapp's RateLimiterService
   // and `MAX_CHAT_PASTE_CHARS` in its paste routing — the webapp test

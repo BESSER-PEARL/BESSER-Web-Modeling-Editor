@@ -44,7 +44,7 @@ test.describe('live: model from a description, then spec-driven free generation'
     await page.waitForTimeout(1500);
     const nameField = page.getByLabel(/name/i);
     if (await nameField.isVisible().catch(() => false)) {
-      await nameField.fill('E2E_Vibe').catch(() => {});
+      await nameField.fill('E2E_Live').catch(() => {});
       await page.getByRole('button', { name: /^create|next|continue/i }).first().click().catch(() => {});
       await page.waitForTimeout(2000);
     }
@@ -70,7 +70,7 @@ test.describe('live: model from a description, then spec-driven free generation'
     }
 
     // The agent draws the class diagram on the canvas; a class renders as SVG
-    // text (verified). Wait for it to appear.
+    // text. Wait for it to appear.
     await expect(page.locator('svg text').getByText('Book', { exact: false }).first()).toBeVisible({
       timeout: 180_000,
     });
@@ -94,8 +94,8 @@ test.describe('live: model from a description, then spec-driven free generation'
       await expect(runBtn).toBeVisible({ timeout: 60_000 });
     }
 
-    // Free-tier default: clicking Run starts the generation DIRECTLY on qwen —
-    // there is no BYOK popup / "use the free model" button anymore.
+    // Free-tier default: clicking Run starts the generation directly, with no
+    // BYOK popup.
     await runBtn.click().catch(() => {});
 
     // ---- 3) the free run starts on qwen and FINISHES ---------------

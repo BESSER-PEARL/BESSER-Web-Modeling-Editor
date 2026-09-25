@@ -3,13 +3,13 @@ import { test, expect, type Page } from '@playwright/test';
 /**
  * E2E: the FULL Spec-Driven Agent conversation, driven through the real editor
  * UI — with NO AI. The two slow/flaky externals are mocked so the whole journey
- * is deterministic and fast (no classifier LLM, no qwen, no GPU):
+ * is deterministic and fast (no classifier LLM, no model server):
  *
  *   - the assistant WebSocket (ws://localhost:8765) → a scripted 3-turn
  *     conversation: build the model, offer the GUI choice, then (after the GUI)
  *     PAUSE with "generate the web app?" instead of auto-generating, then on
  *     request trigger the generator;
- *   - the generation SSE (/besser_api/smart-generate) → a canned start/phase/done
+ *   - the generation SSE endpoint → a canned start/phase/done
  *     stream; the config endpoint advertises the free tier.
  *
  * What this proves end-to-end in a real browser:
