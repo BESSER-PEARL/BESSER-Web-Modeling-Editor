@@ -71,7 +71,6 @@ export function ensureDesignSystemStyles(editor: Editor): void {
   try {
     if (hasDesignSystemStyles(editor)) return;
     editor.Css.addRules(DS_BASELINE_CSS);
-    console.log('[DesignSystem] Baseline ds-* stylesheet injected');
   } catch (error) {
     console.warn('[DesignSystem] Could not inject baseline stylesheet:', error);
   }
