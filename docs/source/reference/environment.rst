@@ -123,6 +123,10 @@ with ``docker build --build-arg``:
      --build-arg UML_BOT_WS_URL=wss://agent.example.com \
      -t besser-wme .
 
+``NPM_STRICT_SSL`` (default ``true``) is a build-only switch: set it to
+``false`` only when building behind a TLS-inspecting proxy whose CA the
+container does not trust.
+
 .. warning::
    The ``Dockerfile`` also declares ``GITHUB_CLIENT_ID`` as an ``ARG``/``ENV``.
    It is **dead**: it is not in the Vite ``define`` block, nothing in the webapp
