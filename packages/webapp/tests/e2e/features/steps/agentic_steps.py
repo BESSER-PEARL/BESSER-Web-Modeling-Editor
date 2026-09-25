@@ -273,8 +273,8 @@ def step_generate_suggested(context):
 def step_asks_gui(context):
     # For a web-app prompt the agent posts, after the spec:
     #   "How would you like me to generate the GUI?
-    #     1. Auto-generate - Fast & deterministic ...
-    #     2. AI-generated (experimental) ..."
+    #     1. Basic CRUD pages ...
+    #     2. Experimental AI design ..."
     deadline = time.time() + context.agent_timeout
     while time.time() < deadline:
         _assert_no_server_error(context.page)

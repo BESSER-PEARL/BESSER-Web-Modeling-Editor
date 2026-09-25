@@ -150,7 +150,7 @@ test('full conversation (no AI): request → model → GUI → PAUSE → generat
           message: 'How would you like me to generate the GUI?',
           suggestedActions: [
             { label: 'Auto-generate', prompt: 'auto' },
-            { label: 'AI-generated (experimental)', prompt: 'llm' },
+            { label: 'Experimental AI design', prompt: 'llm' },
           ],
         }));
         return;
