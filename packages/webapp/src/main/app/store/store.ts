@@ -2,12 +2,14 @@ import { configureStore } from '@reduxjs/toolkit';
 import { workspaceReducer } from './workspaceSlice';
 import { errorReducer } from './errorManagementSlice';
 import { specDrivenReducer } from '../../features/spec-driven/state/specDrivenSlice';
+import { agentSimulationReducer } from '../../features/agent-simulation';
 
 export const store = configureStore({
   reducer: {
     workspace: workspaceReducer,
     errors: errorReducer,
     specDriven: specDrivenReducer,
+    agentSimulation: agentSimulationReducer,
   },
   middleware: (getDefaultMiddleware) => getDefaultMiddleware(),
   devTools: !import.meta.env.PROD,

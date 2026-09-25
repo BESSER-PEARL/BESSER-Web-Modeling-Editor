@@ -7,7 +7,7 @@ import { validateDiagram } from '../../../shared/services/validation/validateDia
 import { BACKEND_URL } from '../../../shared/constants/constant';
 import { ProjectStorageRepository } from '../../../shared/services/storage/ProjectStorageRepository';
 import { normalizeProjectName } from '../../../shared/utils/projectName';
-import { buildProjectPayloadForBackend } from '../../../shared/utils/projectExportUtils';
+import { buildProjectPayloadForBackend, prepareAgentModelForBackend } from '../../../shared/utils/projectExportUtils';
 import {
   restoreBaseAgentModels,
   stripAgentConfigToSystem,
@@ -293,9 +293,10 @@ export const useGenerateCode = () => {
       // pre-existing behavior — including the agent-personalization case
       // that passes BOTH an editor and an override). An override without an
       // editor comes from stored project data; the backend still validates
-      // structurally during generation.
+      // structurally during generation. The model actually being sent is
+      // what gets validated.
       if (editor) {
-        const validationResult = await validateDiagram(editor, diagramTitle);
+        const validationResult = await validateDiagram(null, diagramTitle, modelForGeneration);
         if (!validationResult.isValid) {
           toast.error(validationResult.message || t('generation.toasts.validationFailed'));
           return { ok: false, error: validationResult.message || 'Validation failed' };
@@ -308,7 +309,7 @@ export const useGenerateCode = () => {
       // handleAgentGenerate in useGeneratorExecution.
       const body: any = {
         title: diagramTitle,
-        model: modelForGeneration,
+        model: generatorType === 'agent' ? prepareAgentModelForBackend(modelForGeneration) : modelForGeneration,
         generator: generatorType,
         config: config,
         ...(referenceDiagramData ? { referenceDiagramData } : {}),

@@ -6,6 +6,7 @@
 import { DiagramModifier, ModelModification, ModifierHelpers } from './base';
 import { BESSERModel } from '../UMLModelingService';
 import { normalizeType } from '../shared/typeNormalization';
+import { applyAssistantRelationshipType } from '../shared/relationshipMapping';
 
 export class ClassDiagramModifier implements DiagramModifier {
   getDiagramType() {
@@ -664,14 +665,13 @@ export class ClassDiagramModifier implements DiagramModifier {
     const relationshipId = ModifierHelpers.generateUniqueId('rel');
     // Accept both 'relationshipType' and 'type' for compatibility with backend
     const relType = changes.relationshipType || (changes as any).type || 'Association';
-    const relationshipType = this.mapRelationshipType(relType);
     const sourceMultiplicity = changes.sourceMultiplicity || '1';
     const targetMultiplicity = changes.targetMultiplicity || '*';
     const relationshipName = changes.name || changes.roleName || target.relationshipName || '';
 
-    model.relationships[relationshipId] = {
+    const relationship: any = {
       id: relationshipId,
-      type: relationshipType,
+      type: 'ClassBidirectional',
       source: {
         element: sourceClassId,
         direction: 'Left',
@@ -694,6 +694,8 @@ export class ClassDiagramModifier implements DiagramModifier {
       ],
       isManuallyLayouted: false
     };
+    applyAssistantRelationshipType(relationship, relType);
+    model.relationships[relationshipId] = relationship;
 
     return model;
   }
@@ -765,8 +767,7 @@ export class ClassDiagramModifier implements DiagramModifier {
 
     // --- Apply changes ---
     if (changes.relationshipType || (changes as any).type) {
-      const newType = this.mapRelationshipType(changes.relationshipType || (changes as any).type);
-      rel.type = newType;
+      applyAssistantRelationshipType(rel, changes.relationshipType || (changes as any).type);
     }
 
     if (changes.sourceMultiplicity !== undefined && rel.source) {
@@ -1737,18 +1738,6 @@ export class ClassDiagramModifier implements DiagramModifier {
       case 'private': return '-';
       case 'protected': return '#';
       default: return '';
-    }
-  }
-
-  private mapRelationshipType(type: string): string {
-    switch ((type || '').toLowerCase()) {
-      case 'inheritance': 
-      case 'generalization': return 'ClassInheritance';
-      case 'composition': return 'ClassComposition';
-      case 'aggregation': return 'ClassAggregation';
-      case 'dependency': return 'ClassDependency';
-      case 'unidirectional': return 'ClassUnidirectional';
-      default: return 'ClassBidirectional';
     }
   }
 }

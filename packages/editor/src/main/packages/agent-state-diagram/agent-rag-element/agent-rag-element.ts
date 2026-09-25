@@ -141,16 +141,7 @@ export class AgentRagElement extends UMLElement implements IAgentRagElement {
         : 0.6;
   }
 
-  render(layer: ILayer): ILayoutable[] {
-    if (!this.isManuallyLayouted) {
-      const nameWidth = Text.size(layer, this.name, { fontWeight: 'normal' }).width + 40;
-      const autoWidth = Math.max(AGENT_RAG_DEFAULT_WIDTH, nameWidth);
-      this.bounds.width = Math.max(AGENT_RAG_MIN_WIDTH, Math.min(AGENT_RAG_MAX_AUTO_WIDTH, autoWidth));
-      this.bounds.height = Math.max(this.bounds.height, 110);
-    } else {
-      this.bounds.width = Math.max(this.bounds.width, AGENT_RAG_MIN_WIDTH);
-      this.bounds.height = Math.max(this.bounds.height, AGENT_RAG_MIN_HEIGHT);
-    }
-    return [this];
+  render(_layer: ILayer): ILayoutable[] {
+    return [];
   }
 }

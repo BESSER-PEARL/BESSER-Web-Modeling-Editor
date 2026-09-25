@@ -23,6 +23,9 @@ export interface ModificationTarget {
   stateName?: string;
   intentId?: string;
   intentName?: string;
+  // AgentDiagram add_transition / remove_transition endpoints
+  sourceStateName?: string;
+  targetStateName?: string;
   transitionId?: string;
   objectId?: string;
   objectName?: string;

@@ -15,7 +15,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { ApollonEditor, UMLDiagramType, UMLModel, normalizeAgentModel } from '@besser/wme';
+import { ApollonEditor, UMLDiagramType, UMLModel } from '@besser/wme';
 import { toast } from 'react-toastify';
 import { useTranslation } from 'react-i18next';
 
@@ -62,6 +62,7 @@ import {
   getConfigDialogForGenerator,
 } from './generator-dialog-config';
 import { getWorkspaceContext } from '../../shared/utils/workspaceContext';
+import { prepareAgentModelForBackend } from '../../shared/utils/projectExportUtils';
 import type { GeneratorType } from '../../app/shell/workspace-types';
 import i18n from '../../shared/i18n';
 import {
@@ -1160,7 +1161,13 @@ export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGen
     // single source of truth. Falls back to hardcoded defaults when no agent
     // diagram exists in the project (edge case: generator triggered without an
     // agent diagram present).
-    const activeAgentDiagram = currentProject ? getActiveDiagram(currentProject, 'AgentDiagram') : undefined;
+    // Read the diagram config from fresh storage so that fields written directly
+    // to localStorage (e.g. default_llm_name via writeConfig in AgentComponentsPanel)
+    // are not missed by the Redux state which may not yet reflect those writes.
+    const freshProject = currentProject?.id
+      ? (ProjectStorageRepository.loadProject(currentProject.id) ?? currentProject)
+      : currentProject;
+    const activeAgentDiagram = freshProject ? getActiveDiagram(freshProject, 'AgentDiagram') : undefined;
     const diagramConfig = (activeAgentDiagram?.config ?? null) as Record<string, any> | null;
     const llmBlock = diagramConfig && typeof diagramConfig.llm === 'object' && diagramConfig.llm !== null
       ? (diagramConfig.llm as Record<string, any>)
@@ -1259,9 +1266,9 @@ export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGen
             // Normalize to the canonical nested transition shape before sending.
             // Variant/config snapshots can bypass the editor (e.g. imported
             // projects) and still carry the legacy flat shape, which the backend
-            // collapses to when_no_intent_matched. normalizeAgentModel is pure
-            // and idempotent and returns a fresh clone.
-            agent_model: normalizeAgentModel(agentModel as UMLModel) as Record<string, any>,
+            // collapses to when_no_intent_matched. The shared helper is pure and
+            // idempotent, and also attaches the diagram's off-canvas components.
+            agent_model: prepareAgentModelForBackend(agentModel as UMLModel, activeAgentDiagram ?? null) as Record<string, any>,
           };
         })
         .filter((entry): entry is {

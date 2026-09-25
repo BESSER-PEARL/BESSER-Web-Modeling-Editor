@@ -18,6 +18,15 @@ interface IAgentStateMemberValues extends IUMLElement {
   dbSqlQuery?: string;
   llm_name?: string;
   system_message?: string;
+  // prompt customisation & session data flow
+  inputPromptMode?: string;
+  customInputPrompt?: string;
+  customInputPromptUseSessionVars?: boolean;
+  systemPromptUseSessionVars?: boolean;
+  promptUseSessionVars?: boolean;
+  storeInSession?: string;
+  useSessionVars?: boolean;
+  // web crawl + LLM fields
   initial_url?: string;
   max_depth?: number;
   max_pages?: number;
@@ -26,11 +35,15 @@ interface IAgentStateMemberValues extends IUMLElement {
   run_crawl?: boolean;
   no_crawl_error_message?: string;
   system_message_prefix?: string;
+  systemMessagePrefixUseSessionVars?: boolean;
+  // send_reply toggle
+  sendReply?: boolean;
   ws_message?: string;
   ws_audio_speed?: number | null;
   ws_options?: string;
   ws_latitude?: number;
   ws_longitude?: number;
+  guiId?: string;
 }
 
 export abstract class AgentStateMember extends UMLElement {
@@ -56,6 +69,15 @@ export abstract class AgentStateMember extends UMLElement {
   dbSqlQuery: string = '';
   llm_name: string = '';
   system_message: string = '';
+  // prompt customisation & session data flow
+  inputPromptMode: string = 'last_user_message';
+  customInputPrompt: string = '';
+  customInputPromptUseSessionVars: boolean = false;
+  systemPromptUseSessionVars: boolean = false;
+  promptUseSessionVars: boolean = false;
+  storeInSession: string = '';
+  useSessionVars: boolean = false;
+  // web crawl + LLM fields
   initial_url: string = '';
   max_depth: number = 2;
   max_pages: number = 20;
@@ -64,11 +86,14 @@ export abstract class AgentStateMember extends UMLElement {
   run_crawl: boolean = true;
   no_crawl_error_message: string = 'No web crawl data is available yet.';
   system_message_prefix: string = '';
+  systemMessagePrefixUseSessionVars: boolean = false;
+  sendReply: boolean = true;
   ws_message: string = '';
   ws_audio_speed: number | null = null;
   ws_options: string = '';
   ws_latitude: number = 0;
   ws_longitude: number = 0;
+  guiId: string = '';
 
   constructor(values?: DeepPartial<IAgentStateMemberValues>) {
     super(values);
@@ -100,6 +125,27 @@ export abstract class AgentStateMember extends UMLElement {
     if (values?.system_message !== undefined) {
       this.system_message = values.system_message ?? '';
     }
+    if (values?.inputPromptMode !== undefined) {
+      this.inputPromptMode = values.inputPromptMode ?? 'last_user_message';
+    }
+    if (values?.customInputPrompt !== undefined) {
+      this.customInputPrompt = values.customInputPrompt ?? '';
+    }
+    if (values?.customInputPromptUseSessionVars !== undefined) {
+      this.customInputPromptUseSessionVars = values.customInputPromptUseSessionVars ?? false;
+    }
+    if (values?.systemPromptUseSessionVars !== undefined) {
+      this.systemPromptUseSessionVars = values.systemPromptUseSessionVars ?? false;
+    }
+    if (values?.promptUseSessionVars !== undefined) {
+      this.promptUseSessionVars = values.promptUseSessionVars ?? false;
+    }
+    if (values?.storeInSession !== undefined) {
+      this.storeInSession = values.storeInSession ?? '';
+    }
+    if (values?.useSessionVars !== undefined) {
+      this.useSessionVars = values.useSessionVars ?? false;
+    }
     if (values?.initial_url !== undefined) {
       this.initial_url = values.initial_url ?? '';
     }
@@ -123,6 +169,12 @@ export abstract class AgentStateMember extends UMLElement {
     }
     if (values?.system_message_prefix !== undefined) {
       this.system_message_prefix = values.system_message_prefix ?? '';
+    }
+    if (values?.systemMessagePrefixUseSessionVars !== undefined) {
+      this.systemMessagePrefixUseSessionVars = values.systemMessagePrefixUseSessionVars ?? false;
+    }
+    if (values?.sendReply !== undefined) {
+      this.sendReply = values.sendReply ?? true;
     }
     if (values?.ws_message !== undefined) {
       this.ws_message = values.ws_message ?? '';
@@ -160,6 +212,7 @@ export abstract class AgentStateMember extends UMLElement {
     ws_image: 'WebSocketReplyImageAction',
     ws_dataframe: 'WebSocketReplyDataframeAction',
     ws_plotly: 'WebSocketReplyPlotlyAction',
+    gui_reply: 'GUIReplyAction',
   };
 
   // Reverse map: actionType class names → internal replyType values (for deserialization compat).
@@ -180,6 +233,7 @@ export abstract class AgentStateMember extends UMLElement {
     WebSocketReplyImageAction: 'ws_image',
     WebSocketReplyDataframeAction: 'ws_dataframe',
     WebSocketReplyPlotlyAction: 'ws_plotly',
+    GUIReplyAction: 'gui_reply',
   };
 
   /** Serializes an `UMLElement` to an `Apollon.UMLElement` */
@@ -202,9 +256,19 @@ export abstract class AgentStateMember extends UMLElement {
       replyType: this.replyType,
     };
 
+    if (this.replyType === 'text') {
+      serialized.useSessionVars = this.useSessionVars;
+    }
+
     if (this.replyType === 'rag') {
       serialized.ragDatabaseName = this.ragDatabaseName;
       serialized.prompt = this.prompt;
+      serialized.inputPromptMode = this.inputPromptMode;
+      serialized.customInputPrompt = this.customInputPrompt;
+      serialized.customInputPromptUseSessionVars = this.customInputPromptUseSessionVars;
+      serialized.promptUseSessionVars = this.promptUseSessionVars;
+      serialized.storeInSession = this.storeInSession;
+      serialized.sendReply = this.sendReply;
     }
 
     if (this.replyType === 'db_reply') {
@@ -213,6 +277,11 @@ export abstract class AgentStateMember extends UMLElement {
       serialized.dbQueryMode = this.dbQueryMode;
       serialized.dbOperation = this.dbOperation;
       serialized.dbSqlQuery = this.dbSqlQuery;
+      serialized.inputPromptMode = this.inputPromptMode;
+      serialized.customInputPrompt = this.customInputPrompt;
+      serialized.customInputPromptUseSessionVars = this.customInputPromptUseSessionVars;
+      serialized.storeInSession = this.storeInSession;
+      serialized.sendReply = this.sendReply;
     }
 
     // Always persist llm_name so a chosen LLM survives a temporary switch of
@@ -223,6 +292,15 @@ export abstract class AgentStateMember extends UMLElement {
 
     if (this.replyType === 'llm' || this.replyType === 'llm_chat') {
       serialized.system_message = this.system_message;
+      serialized.systemPromptUseSessionVars = this.systemPromptUseSessionVars;
+      serialized.storeInSession = this.storeInSession;
+      serialized.sendReply = this.sendReply;
+    }
+
+    if (this.replyType === 'llm') {
+      serialized.inputPromptMode = this.inputPromptMode;
+      serialized.customInputPrompt = this.customInputPrompt;
+      serialized.customInputPromptUseSessionVars = this.customInputPromptUseSessionVars;
     }
 
     if (this.replyType === 'web_crawl_llm') {
@@ -234,6 +312,9 @@ export abstract class AgentStateMember extends UMLElement {
       serialized.run_crawl = this.run_crawl;
       serialized.no_crawl_error_message = this.no_crawl_error_message;
       serialized.system_message_prefix = this.system_message_prefix;
+      serialized.systemMessagePrefixUseSessionVars = this.systemMessagePrefixUseSessionVars;
+      serialized.storeInSession = this.storeInSession;
+      serialized.sendReply = this.sendReply;
     }
 
     if (this.replyType.startsWith('ws_')) {
@@ -242,6 +323,13 @@ export abstract class AgentStateMember extends UMLElement {
       serialized.ws_options = this.ws_options;
       serialized.ws_latitude = this.ws_latitude;
       serialized.ws_longitude = this.ws_longitude;
+      if (this.replyType === 'ws_markdown' || this.replyType === 'ws_html' || this.replyType === 'ws_speech') {
+        serialized.useSessionVars = this.useSessionVars;
+      }
+    }
+
+    if (this.replyType === 'gui_reply') {
+      serialized.guiId = this.guiId;
     }
 
     return serialized;
@@ -258,6 +346,14 @@ export abstract class AgentStateMember extends UMLElement {
     dbOperation?: string;
     dbSqlQuery?: string;
     llm_name?: string;
+    system_message?: string;
+    inputPromptMode?: string;
+    customInputPrompt?: string;
+    customInputPromptUseSessionVars?: boolean;
+    systemPromptUseSessionVars?: boolean;
+    promptUseSessionVars?: boolean;
+    storeInSession?: string;
+    useSessionVars?: boolean;
     initial_url?: string;
     max_depth?: number;
     max_pages?: number;
@@ -266,11 +362,14 @@ export abstract class AgentStateMember extends UMLElement {
     run_crawl?: boolean;
     no_crawl_error_message?: string;
     system_message_prefix?: string;
+    systemMessagePrefixUseSessionVars?: boolean;
+    sendReply?: boolean;
     ws_message?: string;
     ws_audio_speed?: number | null;
     ws_options?: string;
     ws_latitude?: number;
     ws_longitude?: number;
+    guiId?: string;
   }) {
     this.id = values.id;
     this.name = values.name;
@@ -297,6 +396,13 @@ export abstract class AgentStateMember extends UMLElement {
     this.dbSqlQuery = values.dbSqlQuery ?? '';
     this.llm_name = values.llm_name ?? '';
     this.system_message = values.system_message ?? '';
+    this.inputPromptMode = values.inputPromptMode ?? 'last_user_message';
+    this.customInputPrompt = values.customInputPrompt ?? '';
+    this.customInputPromptUseSessionVars = values.customInputPromptUseSessionVars ?? false;
+    this.systemPromptUseSessionVars = values.systemPromptUseSessionVars ?? false;
+    this.promptUseSessionVars = values.promptUseSessionVars ?? false;
+    this.storeInSession = values.storeInSession ?? '';
+    this.useSessionVars = values.useSessionVars ?? false;
     this.initial_url = values.initial_url ?? '';
     this.max_depth = values.max_depth ?? 2;
     this.max_pages = values.max_pages ?? 20;
@@ -305,11 +411,14 @@ export abstract class AgentStateMember extends UMLElement {
     this.run_crawl = values.run_crawl ?? true;
     this.no_crawl_error_message = values.no_crawl_error_message ?? 'No web crawl data is available yet.';
     this.system_message_prefix = values.system_message_prefix ?? '';
+    this.systemMessagePrefixUseSessionVars = values.systemMessagePrefixUseSessionVars ?? false;
+    this.sendReply = values.sendReply ?? true;
     this.ws_message = values.ws_message ?? '';
     this.ws_audio_speed = values.ws_audio_speed ?? null;
     this.ws_options = values.ws_options ?? '';
     this.ws_latitude = values.ws_latitude != null ? Number(values.ws_latitude) : 0;
     this.ws_longitude = values.ws_longitude != null ? Number(values.ws_longitude) : 0;
+    this.guiId = values.guiId ?? '';
   }
 
   render(layer: ILayer): ILayoutable[] {
