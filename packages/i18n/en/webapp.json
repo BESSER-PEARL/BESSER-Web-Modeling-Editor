@@ -118,6 +118,7 @@
       "title": "Help",
       "howItWorks": "How does this editor work?",
       "startTutorial": "Start Tutorial",
+      "tutorials": "Tutorials",
       "keyboardShortcuts": "Keyboard Shortcuts",
       "aboutBesser": "About BESSER"
     }
@@ -2435,5 +2436,33 @@
     "failed": "Failed to get recommendation: {{message}}",
     "validating": "Validating...",
     "validationFailed": "The diagram has validation errors. Please fix them before applying recommendations."
+  },
+  "tutorials": {
+    "pageTitle": "Tutorials",
+    "pageDescription": "Practical guides to help you get the most out of the editor.",
+    "listHeading": "Tutorials",
+    "docsLink": "Open BESSER Documentation",
+    "personalization": {
+      "label": "Personalization",
+      "summary": "People differ in their needs, abilities, preferences, and expectations. The default application might not be inclusive, accessible, or user friendly enough for everyone. In BESSER, you start from a single base application and describe the groups of people who will use it. The tool then generates one adapted version per group automatically, while keeping the core behavior shared across all of them. This tutorial walks you through that process using a gym chatbot as a running example, designed for two groups with very different needs.",
+      "modelUsers": {
+        "title": "Step 1. Model Your Users",
+        "body": "<p>Open the sidebar and switch to the <strong>User Diagram</strong>. This is where you describe the people your system is designed for.</p><p>Drag a <strong>User</strong> element onto the canvas for each group you want to support. For the gym chatbot, add one named <code>YoungParaplegic</code> and one named <code>OlderAdult</code>. Each element represents a category of users, not a single individual. These become the foundation for everything that follows.</p>"
+      },
+      "defineSpecs": {
+        "title": "Step 2. Describe What Makes Each Group Different",
+        "imageAlt": "User Diagram with a ParaplegicYoung user connected to a Disability element and an age attribute set to under 14, an Elderly user with an age attribute set to over 65, and the personalization properties panel open on the right",
+        "body": "<p>Click a User element to open its properties. Fill in the attributes that describe that group. For <code>YoungParaplegic</code>, you might indicate a young age range, a physical disability, and a need for exercise guidance adapted to limited lower-body mobility. For <code>OlderAdult</code>, you might indicate an older age range, a preference for simple and encouraging language, and a slower interaction pace.</p><p>The available attributes include age, skills, language, education, and accessibility needs. You do not need to fill in everything. Focus on the differences that actually matter for how your system should behave with each group.</p>"
+      },
+      "createVariants": {
+        "title": "Step 3. Generate the Adapted Variants",
+        "imageAlt": "Agent Diagram showing a gym chatbot with the variant selector dropdown open, listing Base agent model, ParaplegicYoung, and Elderly as available variants",
+        "body": "<p>Once your users are described, open the model you want to adapt. Switch to your <strong>Agent Diagram</strong> and click the <strong>Personalize</strong> button in the top bar (the people icon). Select the user groups you want to target and confirm.</p><p>The editor creates one adapted variant of your agent per selected group. For the gym chatbot, you get a YoungParaplegic variant and an OlderAdult variant, each adjusted to fit that group while sharing the same conversation structure. You can switch between them using the selector in the top bar and edit each one independently before deploying.</p>"
+      },
+      "agentRecommendation": {
+        "title": "Not Sure Where to Start. Let the Tool Suggest Adaptations",
+        "body": "<p>If you are not sure how your agent should behave differently for each user group, BESSER can help you figure that out. While viewing your <strong>User Diagram</strong>, click the <strong>Recommend</strong> button in the top bar (the sparkle icon). The tool looks at your user descriptions and suggests what adaptations would make sense for each group.</p><p>You can review those suggestions, adjust anything that does not fit, and then apply them to generate your variants. This works well as a starting point when you have described your users but are still thinking through what the differences should mean in practice.</p>"
+      }
+    }
   }
 }

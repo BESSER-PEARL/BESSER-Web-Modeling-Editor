@@ -34,6 +34,10 @@ import { selectActiveDiagram } from './store/workspaceSlice';
 import { validateDiagram } from '../shared/services/validation/validateDiagram';
 
 // Lazy-loaded route-level components (only fetched when their route is visited)
+const TutorialsPage = React.lazy(() =>
+  import('../features/tutorials/TutorialsPage').then((m) => ({ default: m.TutorialsPage })),
+);
+
 const AgentConfigurationPanel = React.lazy(() =>
   import('../features/agent-config/AgentConfigurationPanel').then((m) => ({ default: m.AgentConfigurationPanel })),
 );
@@ -291,7 +295,17 @@ function AppContentInner() {
 function AppContent() {
   return (
     <BrowserRouter>
-      <AppContentInner />
+      <Routes>
+        <Route
+          path="/tutorials"
+          element={
+            <Suspense fallback={<SuspenseFallback />}>
+              <TutorialsPage />
+            </Suspense>
+          }
+        />
+        <Route path="*" element={<AppContentInner />} />
+      </Routes>
     </BrowserRouter>
   );
 }

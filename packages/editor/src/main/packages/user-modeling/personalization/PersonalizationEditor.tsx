@@ -80,16 +80,41 @@ const Input = styled.input`
 `;
 
 const ToggleButton = styled.button<{ active?: boolean }>`
-  display: inline-flex;
+  display: flex;
   align-items: center;
+  justify-content: space-between;
+  width: 100%;
   gap: 6px;
-  border: 1px solid rgba(127, 127, 127, 0.4);
-  border-radius: 4px;
-  padding: 3px 8px;
-  background: ${({ active }) => (active ? 'rgba(120, 120, 255, 0.12)' : 'transparent')};
+  border: 1px solid ${({ active }) => (active ? 'rgba(120, 100, 255, 0.55)' : 'rgba(127, 127, 127, 0.3)')};
+  border-radius: 6px;
+  padding: 7px 10px;
+  background: ${({ active }) =>
+    active
+      ? 'linear-gradient(135deg, rgba(120, 100, 255, 0.15) 0%, rgba(80, 150, 255, 0.08) 100%)'
+      : 'rgba(127, 127, 127, 0.07)'};
   color: inherit;
   cursor: pointer;
   font-size: 12px;
+  font-weight: 500;
+  box-sizing: border-box;
+  transition: background 0.15s, border-color 0.15s, box-shadow 0.15s;
+  &:hover {
+    background: ${({ active }) =>
+      active
+        ? 'linear-gradient(135deg, rgba(120, 100, 255, 0.22) 0%, rgba(80, 150, 255, 0.14) 100%)'
+        : 'rgba(127, 127, 127, 0.13)'};
+    border-color: ${({ active }) => (active ? 'rgba(120, 100, 255, 0.75)' : 'rgba(127, 127, 127, 0.5)')};
+    box-shadow: ${({ active }) => (active ? '0 0 0 3px rgba(120, 100, 255, 0.08)' : 'none')};
+  }
+`;
+
+const ButtonDescription = styled.div`
+  font-size: 11px;
+  opacity: 0.5;
+  margin-top: 5px;
+  margin-bottom: 2px;
+  line-height: 1.4;
+  padding: 0 2px;
 `;
 
 const ShowAllToggle = styled.button`
@@ -110,10 +135,12 @@ const ShowAllToggle = styled.button`
 `;
 
 const Dot = styled.span`
-  width: 6px;
-  height: 6px;
+  width: 7px;
+  height: 7px;
   border-radius: 50%;
-  background: hsl(250, 70%, 60%);
+  background: hsl(250, 80%, 65%);
+  box-shadow: 0 0 4px rgba(120, 100, 255, 0.5);
+  flex-shrink: 0;
 `;
 
 /* A row whose control area holds inline checkboxes (not a single <label>, so it
@@ -380,11 +407,22 @@ export const PersonalizationEditor: React.FC<Props> = ({ value, onChange, label,
 
   return (
     <Wrapper>
-      <ToggleButton type="button" active={active} onClick={() => setOpen((o) => !o)}>
-        {active && <Dot />}
-        {label ?? 'Personalization'}
-        <span style={{ opacity: 0.6 }}>{open ? '▾' : '▸'}</span>
+      <ToggleButton
+        type="button"
+        active={active}
+        onClick={() => setOpen((o) => !o)}
+        title="Configure how the agent adapts its responses for this user group: language, style, interface, and modality"
+      >
+        <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <span style={{ opacity: 0.7, fontSize: 11, lineHeight: 1 }}>✦</span>
+          {label ?? 'Personalization'}
+          {active && <Dot />}
+        </span>
+        <span style={{ opacity: 0.55, fontSize: 10 }}>{open ? '▾' : '▸'}</span>
       </ToggleButton>
+      <ButtonDescription>
+        Define how the agent adapts its responses for this user group.
+      </ButtonDescription>
 
       {open && (
         <div style={{ marginTop: 6 }}>

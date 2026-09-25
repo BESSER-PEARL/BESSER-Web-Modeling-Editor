@@ -1,6 +1,6 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
-import { HelpCircle, Keyboard, PlayCircle, ChevronDown } from 'lucide-react';
+import { HelpCircle, Keyboard, PlayCircle, GraduationCap, ChevronDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { bugReportURL } from '../../../shared/constants/constant';
 import {
@@ -57,6 +57,10 @@ export const HelpMenu: React.FC<HelpMenuProps> = ({
       </DropdownMenuTrigger>
       <DropdownMenuContent className="w-64" align="end">
         <DropdownMenuItem onClick={onOpenHelpDialog}>{t('menu.help.howItWorks')}</DropdownMenuItem>
+        <DropdownMenuItem onClick={() => openExternalUrl('/tutorials')}>
+          <GraduationCap className="mr-2 size-4" />
+          {t('menu.help.tutorials')}
+        </DropdownMenuItem>
         {onShowWelcomeGuide && (
           <DropdownMenuItem onClick={onShowWelcomeGuide}>
             <PlayCircle className="mr-2 size-4" />
