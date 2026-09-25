@@ -1207,7 +1207,7 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
 
           The drawer internally calls ``useAssistantLogic`` (the same
           hook the FAB uses), so the ``trigger_smart_generator`` action
-          from the modeling agent is handled there too — a smart-gen
+          from the modeling agent is handled there too — a spec-driven
           run started from the drawer streams its events into the same
           chat as the modeling-agent conversation.
         */}

@@ -1012,8 +1012,7 @@ export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGen
       executeGenerator(generatorType, config, {
         autoGenerateGuiIfEmpty: generatorType === 'web_app',
         // Defer the download so the assistant renders a result card with a
-        // manual Download button (deterministic-transparency: 4.3) instead of
-        // auto-saving.
+        // manual Download button instead of auto-saving.
         deferDownload: true,
       }),
     [executeGenerator],

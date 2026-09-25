@@ -102,7 +102,7 @@ const readUrlInterfaceOverride = (): InterfaceMode | null => {
   }
 };
 
-/** Deploy-link target token for the GitHub push (shared with the Vibe push flow). */
+/** Deploy-link target token for the GitHub push (shared with the spec-driven push flow). */
 const GITHUB_TARGET = 'github';
 const GITHUB_DEFAULT_BRANCH = 'main';
 
@@ -132,7 +132,7 @@ const DESCRIBE_EXAMPLES = [
 ];
 
 // Default name for a project bootstrapped from the "Describe your app" flow —
-// the user shouldn't be forced through the naming form for the vibe path.
+// the user shouldn't be forced through the naming form for this path.
 const DESCRIBE_DEFAULT_PROJECT_NAME = 'My App';
 
 const defaultForm = {
@@ -360,7 +360,7 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
     if (step === 'github') {
       return {
         title: 'Continue From GitHub',
-        description: 'Pick a repository BESSER created — its model loads and the next Vibe run edits its code.',
+        description: 'Pick a repository BESSER created — its model loads and the next Spec-Driven Agent run edits its code.',
         badge: 'Step 2 of 2',
       };
     }
@@ -687,7 +687,7 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
   };
 
   // Load a BESSER-created repo's model into a fresh project AND prime the next
-  // Vibe run to modify that repo's code and push back to the same repo.
+  // Spec-Driven Agent run to modify that repo's code and push back to the same repo.
   const handleContinueGithubRepo = async () => {
     setGithubError(null);
     const repo: GitHubRepository | undefined = githubRepositories.find(
@@ -729,7 +729,7 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
       const imported = await importProjectFromJson(file);
       await loadProject(imported.id);
 
-      // Link the push target so a later Vibe push updates the same repo.
+      // Link the push target so a later spec-driven push updates the same repo.
       LocalStorageRepository.setDeployLinkedRepo(imported.id, GITHUB_TARGET, {
         owner: response.owner,
         repo: response.repo,
@@ -737,7 +737,7 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
       });
 
       // Prime the modify base: record this run as the project's last successful
-      // run so the NEXT Vibe request auto-selects mode=modify + base_run_id
+      // run so the next spec-driven request auto-selects mode=modify + base_run_id
       // (via decideRunMode). Mirror to localStorage AND the in-memory store.
       const at = Date.now();
       writeProjectLastRun(imported.id, response.run_id, at);
@@ -745,8 +745,8 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
 
       refreshProjects();
       handleDialogOpenChange(false);
-      // Pilot telemetry: a completed continue-from-repo import is a delivery
-      // action. Fire-and-forget, no-op outside pilot sessions.
+      // Opt-in research telemetry: a completed continue-from-repo import is a
+      // delivery action. Fire-and-forget; no-op unless opened with `?pilot=<label>`.
       emitDeliveryEvent('continue_from_repo', response.run_id);
       toast.success(`Continuing from ${response.owner}/${response.repo}.`);
     } catch (error) {
@@ -1009,8 +1009,7 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
         <div className="max-h-[75vh] overflow-y-auto px-6 py-4">
           {step === 'start' && (
             <div className="flex flex-col gap-5">
-              {/* Manual start paths. The old "describe your app" vibe hero was
-                  removed — agentic entry is the landing chooser / assistant now. */}
+              {/* Manual start paths; agentic entry is the landing chooser / assistant. */}
               <div className="flex flex-col gap-2.5">
                 <div className="grid gap-2.5 md:grid-cols-2">
                   <button
@@ -1389,7 +1388,7 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
                   </CardTitle>
                   <CardDescription className="text-xs">
                     Pick a repository BESSER created (one that contains a saved model). Its model loads into
-                    the editor, and the next Vibe run edits that repo&apos;s code and pushes back to it.
+                    the editor, and the next Spec-Driven Agent run edits that repo&apos;s code and pushes back to it.
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="flex flex-col gap-4">

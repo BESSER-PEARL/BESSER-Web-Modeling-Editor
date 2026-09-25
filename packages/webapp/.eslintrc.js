@@ -33,11 +33,9 @@ module.exports = [
       '@typescript-eslint/ban-types': 'off', 
       '@typescript-eslint/no-namespace': 'off', 
 
-      // The codebase already carries `eslint-disable` comments for
-      // exhaustive-deps; without the plugin registered those comments were
-      // themselves 11 lint ERRORS ("rule not found"), so the gate was red at
-      // every commit. rules-of-hooks is at 'error' because it is clean today
-      // and a violation is a real bug, not a style opinion.
+      // The codebase carries `eslint-disable` comments for exhaustive-deps,
+      // which fail as "rule not found" unless the plugin is registered.
+      // rules-of-hooks is an error because a violation is a real bug.
       'react-hooks/rules-of-hooks': 'error',
       'react-hooks/exhaustive-deps': 'warn',
     },

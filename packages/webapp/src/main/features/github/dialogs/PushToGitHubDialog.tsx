@@ -1,5 +1,5 @@
 /**
- * PushToGitHubDialog — pushes a finished Vibe/Smart-generation run (generated
+ * PushToGitHubDialog — pushes a finished Spec-Driven Agent run (generated
  * code + project model) to a GitHub repo.
  *
  * Modes:
