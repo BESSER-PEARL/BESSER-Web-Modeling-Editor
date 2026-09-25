@@ -3,7 +3,7 @@
  *
  * A progress message renders as a status bar with a live spinner and nothing
  * ever removes it, so an outcome that is APPENDED rather than substituted leaves
- * a row spinning forever next to a row saying the work finished (2026-09-16).
+ * a row spinning forever next to a row saying the work finished.
  *
  * A pure function in its own module so the behaviour can be tested without
  * mounting `useAssistantLogic` (WebSocket client, store and i18n).

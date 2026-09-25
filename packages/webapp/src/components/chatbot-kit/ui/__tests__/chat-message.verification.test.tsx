@@ -2,11 +2,9 @@
  * The run card's verification report — the UI that tells the user what the
  * delivered app actually enforces.
  *
- * Motivating incident: an app scored 11/11 with a passing booking workflow
- * still double-sold rooms. Two OCL constraints had failed conversion and
- * never reached the generated code. The run KNEW — it listed both and
- * reported "21 blockers" — but one number hid which. These tests lock the
- * three properties that make that impossible to repeat:
+ * A run can pass its checks and still deliver an app that does not enforce
+ * some requested rules (e.g. OCL constraints that failed conversion); a single
+ * blocker count hides which ones. These tests lock three properties:
  *
  *   1. `shippedUnenforced` is rendered expanded, with no interaction, and
  *      the card's headline stops claiming the app is ready.

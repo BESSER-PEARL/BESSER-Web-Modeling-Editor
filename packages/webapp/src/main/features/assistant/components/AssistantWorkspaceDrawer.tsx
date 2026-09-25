@@ -745,7 +745,7 @@ export const AssistantWorkspaceDrawer: React.FC<AssistantWorkspaceDrawerProps> =
                   ))}
                 </div>
 
-                {/* Capability cards — three branded cards (masked for experimental launch; set to true to restore) */}
+                {/* Capability cards — three branded cards (hidden; set to true to show) */}
                 {false && (
                 <div
                   className="animate-fade-up mt-10 grid grid-cols-3 gap-3"

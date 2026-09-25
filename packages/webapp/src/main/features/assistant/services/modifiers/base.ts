@@ -288,7 +288,7 @@ const CLASS_LIKE = ['Class', 'AbstractClass', 'Interface', 'Enumeration'];
  * The change summary the user sees is written by the agent from what it
  * INTENDED, so a modification that does something else entirely is still
  * reported as a success: "remove book copy" deleted three classes and nine
- * relationships and announced "Applied 4 changes" (2026-09-16). Diffing the
+ * relationships and announced "Applied 4 changes". Diffing the
  * real before/after is the only description that cannot lie.
  */
 export function summarizeModelDiff(before: any, after: any): ModelDiff {

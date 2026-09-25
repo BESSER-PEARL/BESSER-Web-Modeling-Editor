@@ -564,7 +564,7 @@ export function useAssistantLogic({
     })();
   }
 
-  /* ---- Smart Generator trigger handler ---- */
+  /* ---- Spec-Driven Agent trigger handler ---- */
 
   // Pass stable React state setters directly — wrapping them in an
   // arrow function creates a new identity on every render, thrashing
@@ -576,7 +576,7 @@ export function useAssistantLogic({
     setMessages,
     setIsGenerating: streaming.setIsGenerating,
     onRunFinished: (result) => {
-      // Close the agent loop: report the smart-gen outcome back to the
+      // Close the agent loop: report the spec-driven run outcome back to the
       // modeling agent exactly like the deterministic trigger_generator
       // path does, so the agent can react ("the build failed because…")
       // instead of staying blind to the run's outcome.
@@ -618,7 +618,7 @@ export function useAssistantLogic({
           },
         });
       } catch (error) {
-        console.error('[useAssistantLogic] failed to report smart-gen result', error);
+        console.error('[useAssistantLogic] failed to report spec-driven result', error);
       }
     },
   });
@@ -903,7 +903,7 @@ export function useAssistantLogic({
     if (payload.action === 'trigger_smart_generator') {
       // Emitted by the modeling agent when the user's request is a
       // complex custom build ("full-stack FastAPI + JWT + Postgres").
-      // The smart generator runs server-side with the user's BYOK key
+      // The Spec-Driven Agent runs server-side with the user's BYOK key
       // and streams its progress back into this chat.
       const smartPayload: TriggerSpecDrivenPayload = {
         action: 'trigger_smart_generator',
@@ -950,7 +950,7 @@ export function useAssistantLogic({
         ]);
         return;
       }
-      // Fire-and-forget: a smart-gen run can take 5-15 minutes, and the
+      // Fire-and-forget: a spec-driven run can take 5-15 minutes, and the
       // action queue serialises handleAction calls. Awaiting here would
       // block every other incoming WebSocket action (modeling agent
       // stream chunks, injections, progress markers) for the duration.
@@ -1399,7 +1399,7 @@ export function useAssistantLogic({
   };
 
   const stopGenerating = () => {
-    // Also abort any in-flight Smart Generator run so the SSE stream
+    // Also abort any in-flight spec-driven run so the SSE stream
     // disconnects and the user stops paying for LLM tokens.
     specDriven.abortActive();
     // Reliably tear down the whole "generating/processing" UI state so a
@@ -1415,7 +1415,7 @@ export function useAssistantLogic({
   };
 
   const clearConversation = () => {
-    // Abort any in-flight Smart Generator run first so the user's BYOK
+    // Abort any in-flight spec-driven run first so the user's BYOK
     // budget stops draining. NOTE: this only aborts a run owned by THIS
     // hook instance — a run owned by the other mounted surface keeps
     // streaming, and its next SSE event deliberately UPSERTS its card
@@ -1507,7 +1507,7 @@ export function useAssistantLogic({
 
       const markdown = buildIssueReportMarkdown(report);
 
-      // Latest Smart Generator run in this conversation, if any — its id,
+      // Latest spec-driven run in this conversation, if any — its id,
       // provider and model are the first things needed to triage a run issue.
       let runInfo: { runId?: string; provider?: string; model?: string } = {};
       for (let i = messages.length - 1; i >= 0; i--) {

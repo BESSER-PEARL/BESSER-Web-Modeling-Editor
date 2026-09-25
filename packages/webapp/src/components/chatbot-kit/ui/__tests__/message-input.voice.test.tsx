@@ -1,8 +1,8 @@
 /**
  * Voice-input parity tests for MessageInput.
  *
- * Regression guard for the hackathon bug "voice works in the widget but not
- * the drawer": the mic control must render (and the voice path must be wired)
+ * Regression guard for "voice works in the widget but not the drawer": the
+ * mic control must render (and the voice path must be wired)
  * whenever `onVoiceSend` is supplied — regardless of which surface's prop set
  * is used. The widget and the drawer pass slightly different prop bags
  * (placeholder/onKeyDown vs lastSentMessage/onValueChange); voice support must

@@ -336,7 +336,7 @@ export interface Message {
   isStreaming?: boolean
   /** The injection action type, if the message was the result of an injection. */
   injectionType?: string
-  /** Structured smart-generator run state, rendered as a card. */
+  /** Structured spec-driven run state, rendered as a card. */
   specDriven?: SpecDrivenMessageState
 }
 
@@ -600,7 +600,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = (props) => {
     )
   }
 
-  /* ---- Smart Generator: structured run card ---- */
+  /* ---- Spec-Driven Agent: structured run card ---- */
   if (specDriven) {
     return (
       <div className="flex w-full flex-col items-start sm:max-w-[85%]">
@@ -1063,10 +1063,9 @@ function VerificationSection({
  * The verification report: three visually distinct states, each labelled
  * with the TRUE total from `counts` rather than the capped list length.
  *
- * `shippedUnenforced` is the headline and is never collapsed. "Your app was
- * delivered, and these rules you asked for are not enforced" is the single
- * most important sentence this product can say, and a disclosure triangle is
- * exactly how it got lost inside "21 blockers".
+ * `shippedUnenforced` is the headline and is never collapsed: rules the user
+ * asked for that the delivered app does not enforce must not hide behind a
+ * disclosure or an aggregate blocker count.
  */
 function SpecDrivenVerificationPanel({
   verification,
@@ -1079,11 +1078,7 @@ function SpecDrivenVerificationPanel({
 
   // Three always-open sections cost ~10 lines of card to say "0 / 1 / 1". They
   // collapse to one summary row the user can open.
-  //
-  // NEVER when something shipped unenforced. "Your app was delivered and these
-  // rules you asked for are not enforced" is the most important sentence this
-  // product can say, and a disclosure triangle is exactly how it got lost
-  // inside "21 blockers" before.
+  // Never when something shipped unenforced — see above.
   const collapsible = unenforced === 0
   const [open, setOpen] = React.useState(false)
 
@@ -1307,7 +1302,7 @@ function SpecDrivenCard({
    * then terminates the SSE stream with a CANCELLED event which the
    * run's existing error handling renders. Deliberately independent of
    * the chat's `isGenerating` flag (which auto-clears after 120s and on
-   * any incoming WS message — long before a smart-gen run finishes).
+   * any incoming WS message — long before a spec-driven run finishes).
    */
   onStop?: (runId: string) => void
   /**
@@ -1358,14 +1353,11 @@ function SpecDrivenCard({
   // before the first save and "Download again" afterwards.
   const [hasDownloaded, setHasDownloaded] = useState(false)
   // Completed runs collapse to a compact line, but the phase/tool-call timeline
-  // stays available behind a toggle — users asked to still see what the agent
-  // did ("the tool calling and etc") after the run finishes, not just while it
-  // is running.
+  // stays available behind a toggle so users can still see what the agent did.
   const [showSteps, setShowSteps] = useState(false)
-  // The file-provenance badge is a disclosure: a hover-only tooltip wasn't
-  // discoverable (pilot feedback: "it's nice but it doesn't show"), so clicking
-  // the badge toggles an inline breakdown of the deterministic / AI-refined /
-  // AI-authored split plus the raw token count.
+  // The file-provenance badge is a disclosure (a hover-only tooltip wasn't
+  // discoverable): clicking it toggles an inline breakdown of the
+  // deterministic / AI-refined / AI-authored split plus the raw token count.
   const [showSplit, setShowSplit] = useState(false)
 
   const handleStop = () => {
@@ -1403,9 +1395,9 @@ function SpecDrivenCard({
   // Download button saves the blob directly instead of re-fetching by run id.
   const handleDeterministicDownload = () => {
     if (!deterministicBlob) return
-    // Pilot telemetry: deterministic runs hold the artifact in-hand, so this
-    // click never reaches the shared fetch helper — record it here instead.
-    // Fire-and-forget, no-op outside pilot sessions.
+    // Opt-in research telemetry (no-op unless the tab was opened with
+    // `?pilot=<label>`). This click never reaches the shared fetch helper,
+    // so it is recorded here.
     emitDeliveryEvent("download", runId || undefined)
     try {
       downloadFile(deterministicBlob, fileName || "generated_code.zip", deterministicBlob.type || "application/zip")
@@ -1418,9 +1410,8 @@ function SpecDrivenCard({
 
   // The "generator wrote it, then the LLM refined it" middle bucket. The
   // backend done event doesn't always carry generator_llm_modified_pct, which
-  // left the breakdown showing e.g. 71% + 11% = 82% with a mystery 18% gap
-  // (pilot: "is this logical?"). Derive it as the remainder so the three shares
-  // ALWAYS reconcile to ~100, whether or not the middle percentage was sent.
+  // left an unexplained gap (e.g. 71% + 11% = 82%). Derive it as the remainder
+  // so the three shares always reconcile to ~100.
   const refinedPct =
     typeof modPct === "number"
       ? modPct
@@ -1452,8 +1443,7 @@ function SpecDrivenCard({
     // Rules the run CHECKED and found missing from the delivered code. This
     // outranks every other status: a run can finish clean, report zero
     // blockers and still ship an app that does not enforce what was asked
-    // for (an app scored 11/11 double-sold rooms that way). Never let such a
-    // run render as "Application ready".
+    // for. Never let such a run render as "Application ready".
     const unenforcedCount = verification?.counts.shippedUnenforced ?? 0
     return (
       <div className="w-full overflow-hidden rounded-lg border border-border/60 bg-muted/40 text-sm">
@@ -1764,8 +1754,8 @@ function SpecDrivenCard({
       )}
 
       {/* Live activity strip — the "it's still alive" signal during a long,
-          quiet phase (pilot: a healthy 10-min run *looked* frozen because the
-          phase spinner spins even when the stream is dead). The clock is NOT
+          quiet phase (the phase spinner spins even when the stream is dead,
+          so it cannot tell a healthy run from a frozen one). The clock is NOT
           repeated here: the footer's runtime meter is the single timer, and it
           is driven by the backend's ~2s cost heartbeat, so it KEEPS TICKING
           while the run is genuinely alive and FREEZES if the transport dies

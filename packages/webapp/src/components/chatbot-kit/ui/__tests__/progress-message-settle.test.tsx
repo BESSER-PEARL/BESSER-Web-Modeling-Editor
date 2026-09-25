@@ -5,7 +5,6 @@
  * with a live spinner and an "in progress" badge. Nothing ever removed it, and
  * the outcome was APPENDED as a second progress row — so the chat kept two
  * permanently spinning lines describing work that had finished minutes ago.
- * Reported 2026-09-16: "this never vanish in the chat".
  *
  * The outcome now replaces the status line in place and clears `isProgress`.
  */

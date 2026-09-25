@@ -48,7 +48,7 @@ type QueuedMessage =
   };
 
 // Per-tab session id key — owned by the shared telemetry/session service so
-// the pilot-telemetry session id is guaranteed to be the SAME id.
+// the telemetry session id is guaranteed to be the SAME id.
 const SESSION_STORAGE_KEY = assistantSessionStorageKey;
 const USER_ID_STORAGE_KEY = 'besser_assistant_user_id';
 
@@ -95,7 +95,7 @@ const withStableUserParam = (url: string): string => {
 // Reuse the session ID within the same browser tab so that closing and
 // reopening the assistant drawer reconnects to the same backend session
 // (preserving conversation memory and context). Delegates to the shared
-// helper so pilot telemetry reuses the exact same per-tab id.
+// helper so telemetry reuses the exact same per-tab id.
 const createSessionId = (): string => getOrCreateAssistantSessionId();
 
 const createMessageId = (): string => `msg_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
@@ -128,7 +128,6 @@ const KNOWN_ACTIONS = new Set([
 // they arrive as the WHOLE structured reply — never when scraped out of prose.
 // Otherwise a prompt-injected JSON blob inside an otherwise-normal assistant
 // message could silently mutate the model or kick off a paid generation.
-// (Security hardening — assistant review finding C1c.)
 const SIDE_EFFECT_ACTIONS = new Set([
   'inject_element',
   'inject_complete_system',
@@ -743,8 +742,8 @@ export class AssistantClient {
     const context = compactContextPayload(
       mergeContexts(baseContext, contextOverride, diagramType),
     );
-    // Pilot experiment: carry the participant label so the modeling agent can
-    // attach it to its own telemetry events. Absent for regular sessions.
+    // Opt-in research telemetry: carry the `?pilot=<label>` participant label
+    // so the modeling agent can tag its own events. Absent otherwise.
     const pilotParticipant = getPilotParticipant();
     if (pilotParticipant) {
       context.pilotParticipant = pilotParticipant;
@@ -852,11 +851,9 @@ export class AssistantClient {
       // A 'progress' frame is an intermediate keep-alive emitted DURING a
       // long generation — it is NOT the reply. Keep the "thinking…"
       // indicator on for the whole run and re-arm the response-timeout
-      // safety net for the actual reply. The old code cleared typing on
-      // EVERY incoming frame, so the first progress update (~2s into a
-      // ~45s generation) hid the loading indicator for the rest of the run
-      // and the socket looked idle — the "I didn't get a loading message"
-      // report. Keeping isGenerating true also blocks a concurrent send
+      // safety net for the actual reply. Clearing typing on every frame hid
+      // the loading indicator after the first progress update and made the
+      // socket look idle. Keeping isGenerating true also blocks a concurrent send
       // while a generation is still in flight.
       if (directAction && directAction.action === 'progress') {
         this.startResponseTimer();

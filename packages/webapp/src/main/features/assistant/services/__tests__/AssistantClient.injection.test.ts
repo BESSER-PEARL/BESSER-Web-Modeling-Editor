@@ -1,5 +1,5 @@
 /**
- * Prompt-injection guard for AssistantClient.extractActionPayload (finding C1c).
+ * Prompt-injection guard for AssistantClient.extractActionPayload.
  *
  * Side-effect actions (model mutations, paid generation runs) must only be
  * honoured when they arrive as the WHOLE structured reply — never when scraped

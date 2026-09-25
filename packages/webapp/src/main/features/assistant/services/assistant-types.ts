@@ -27,8 +27,8 @@ export interface AssistantWorkspaceContext {
   projectMetadata?: ProjectMetadata;
   currentDiagramIndices?: Record<string, number>;
   /**
-   * Pilot-experiment participant label (e.g. `P3`), present only when the tab
-   * was opened through a facilitator's `?pilot=` link. The modeling agent
+   * Research-telemetry participant label, present only when the tab was
+   * opened with a `?pilot=<label>` link. The modeling agent
    * attaches it to its research-telemetry events; it is never a name/email.
    */
   pilotParticipant?: string;

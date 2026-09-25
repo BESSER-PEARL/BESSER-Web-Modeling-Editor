@@ -50,10 +50,9 @@ interface TierLimits {
 
 // NOTE: the hourly check counts ALL requests in the window (every tier)
 // against the CURRENT message's tier cap, so the lowest perHour is the
-// effective ceiling on total messages — which is why an exploratory
-// session (chat + model tweaks + a few generations) tripped the old
-// generation cap of 30 well before users felt they'd sent "that many".
-// Raised for the pilot so participants aren't blocked mid-session.
+// effective ceiling on total messages. The caps are sized so an
+// exploratory session (chat + model tweaks + a few generations) is not
+// blocked mid-session.
 const RATE_LIMITS: Record<MessageType | 'default', TierLimits> = {
   // Simple messages (short text, greetings, help)
   simple: { perMinute: 30, perHour: 200 },
@@ -136,7 +135,7 @@ export class RateLimiterService {
       maxRequestsPerHour: options?.maxRequestsPerHour ?? 160,
       // Mirrors the server's authoritative cap (uml-agent-rate-limiter-resource
       // .ts): 1000 rejected legitimate messages such as a pasted traceback, so
-      // the bound is set where only a runaway paste reaches it (2026-09-14).
+      // the bound is set where only a runaway paste reaches it.
       maxMessageLength: options?.maxMessageLength ?? 64000,
       cooldownPeriodMs: options?.cooldownPeriodMs ?? 1500,
     };

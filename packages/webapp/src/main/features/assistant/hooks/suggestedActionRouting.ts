@@ -6,7 +6,7 @@
  * ("Generate web app", "Generate read frontend"). But a "Modify the GUI" chip
  * has no actionable prompt for the agent, so relaying it looks dead. Instead,
  * such chips should switch the editor to the GUI tab so the user can edit it
- * directly — matching the tester's "See GUI" suggestion.
+ * directly.
  *
  * This is a pure decision helper so it can be unit-tested and shared by the
  * drawer and widget handlers.

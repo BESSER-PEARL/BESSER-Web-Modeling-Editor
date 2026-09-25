@@ -4,7 +4,7 @@
  * The agent names a relationship with `target.sourceClass` / `target.targetClass`,
  * which the modifier knew neither of, so every branch in `removeElement` fell
  * through to "Remove entire class" and its fallback matched the SOURCE class by
- * name. Live case 2026-09-16: "remove book copy" on the 11-class library model
+ * name. "remove book copy" on the 11-class library model
  * below left 8 classes and 1 relationship — BookCopy, Book and Loan all deleted,
  * 9 of 10 relationships gone — reported as "Applied 4 changes".
  */
@@ -172,7 +172,7 @@ describe('the live "remove book copy" batch', () => {
   it('leaves 10 classes and 7 relationships', () => {
     let model = makeLibraryModel();
 
-    // Exactly what the agent sent at 10:00:37 on 2026-09-16.
+    // A batch as the agent actually sends it.
     const batch: ModelModification[] = [
       { action: 'remove_element', target: { className: 'BookCopy' } },
       { action: 'remove_element', target: { sourceClass: 'Book', targetClass: 'BookCopy' } },

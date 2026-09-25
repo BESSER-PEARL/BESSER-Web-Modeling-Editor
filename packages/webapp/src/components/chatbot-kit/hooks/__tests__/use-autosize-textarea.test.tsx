@@ -1,7 +1,7 @@
 /**
  * The composer must shrink back after a long message is sent.
  *
- * Observed live 2026-09-16: pasting a 4608-character prompt and sending it
+ * Pasting a 4608-character prompt and sending it
  * left an EMPTY textarea still 1284px tall, even though the hook is called
  * with maxHeight 240. Two defects combined —
  *

@@ -2,10 +2,9 @@
  * buildIssueReport — assembles a privacy-safe "Report an issue" payload from
  * the current assistant session.
  *
- * Requested after a hackathon: when a user hits a problem they should be able
- * to report the conversation + workspace context in one click instead of
- * describing the issue from scratch. Today that means opening a pre-filled
- * GitHub issue (see `buildGithubIssueUrl` below) with the transcript inlined.
+ * When a user hits a problem they can report the conversation + workspace
+ * context in one click instead of describing the issue from scratch, via a
+ * pre-filled GitHub issue (see `buildGithubIssueUrl` below) with the transcript inlined.
  *
  * HARD PRIVACY CONSTRAINT: the report MUST NEVER contain the user's BYOK API
  * key. BYOK keys live in the spec-driven Redux state / localStorage and
@@ -209,7 +208,7 @@ export interface GithubIssueEnvironment {
   userAgent?: string;
   /** App version, if resolvable. */
   appVersion?: string;
-  /** Present when the report concerns a Smart Generator run. */
+  /** Present when the report concerns a Spec-Driven Agent run. */
   runId?: string;
   provider?: string;
   model?: string;

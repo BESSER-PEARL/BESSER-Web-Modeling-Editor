@@ -797,8 +797,8 @@ export class ClassDiagramModifier implements DiagramModifier {
     // The agent names a relationship with target.sourceClass / target.targetClass,
     // and none of the fields destructured above are set for it — so the guards
     // below fell through to "Remove entire class", whose fallback matched the
-    // SOURCE class by name. Observed 2026-09-16: "remove book copy" deleted
-    // BookCopy, Book AND Loan while reporting "Applied 4 changes".
+    // SOURCE class by name (e.g. "remove book copy" deleted BookCopy, Book
+    // AND Loan while reporting "Applied 4 changes").
     //
     // A relationship removal must never degrade into deleting a class: if the
     // relationship cannot be resolved, do nothing.

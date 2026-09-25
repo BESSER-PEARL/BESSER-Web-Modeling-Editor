@@ -50,7 +50,7 @@ const HighlightedPre = React.memo(
     // earlier `async` form returned a Promise from the function body,
     // which React 18 cannot render and crashes with error #31 the moment
     // a markdown response contains a fenced code block (very common in
-    // streamed LLM output from the smart generator and assistant).
+    // streamed LLM output from the Spec-Driven Agent and assistant).
     const [tokens, setTokens] = React.useState<ShikiToken[][] | null>(null)
     const [unsupported, setUnsupported] = React.useState(false)
 

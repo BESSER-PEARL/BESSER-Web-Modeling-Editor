@@ -1,7 +1,7 @@
 /**
  * Whitelist + extraction regression tests for `trigger_github_import`.
  *
- * Live bug (2026-09-03): the modeling agent emitted a well-formed
+ * Regression: the modeling agent emitted a well-formed
  * `trigger_github_import` action for "continue from this please
  * https://github.com/owner/repo", but the action name was missing from
  * AssistantClient's KNOWN_ACTIONS whitelist — `isActionPayload()` rejected the

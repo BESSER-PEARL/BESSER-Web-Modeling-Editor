@@ -1,5 +1,5 @@
 /**
- * Tests for the progress-step accumulation in useStreamingResponse (#19).
+ * Tests for the progress-step accumulation in useStreamingResponse.
  *
  * The agent streams transient `progress` lines; we accumulate the recent
  * sequence into `progressSteps` so long operations show evolving motion
@@ -13,7 +13,7 @@ import { describe, expect, it } from 'vitest';
 
 import { useStreamingResponse } from '../useStreamingResponse';
 
-describe('useStreamingResponse — progressSteps (#19)', () => {
+describe('useStreamingResponse — progressSteps', () => {
   it('starts empty', () => {
     const { result } = renderHook(() => useStreamingResponse());
     expect(result.current.progressSteps).toEqual([]);
