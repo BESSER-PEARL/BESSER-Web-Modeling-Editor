@@ -1,5 +1,5 @@
 /**
- * Smart Generator artifact download helper.
+ * Spec-Driven Agent artifact download helper.
  *
  * Shared between `features/spec-driven/hooks/useSpecDrivenTrigger`
  * (first download right after the `done` SSE event) and the SpecDrivenCard
@@ -37,8 +37,8 @@ export async function fetchAndSaveSpecDrivenArtifact(
   isZip: boolean,
 ): Promise<SpecDrivenDownloadResult> {
   const fullUrl = specDrivenDownloadUrl(runId);
-  // Pilot telemetry: the user asked to take the generated output with them.
-  // Fire-and-forget, no-op outside pilot sessions.
+  // Research telemetry: the user took the generated output with them.
+  // Fire-and-forget, no-op unless telemetry is active.
   emitDeliveryEvent('download', runId);
   let response: Response;
   try {

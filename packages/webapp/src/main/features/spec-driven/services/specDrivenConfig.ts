@@ -1,5 +1,5 @@
 /**
- * Smart Generator backend configuration — re-export of the shared module.
+ * Spec-Driven Agent backend configuration — re-export of the shared module.
  *
  * The implementation moved to `shared/services/specDrivenConfig` so the
  * unified key dialog (`shared/components/byok/LlmKeyDialog`) can read the

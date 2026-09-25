@@ -1,5 +1,5 @@
 /**
- * Redux slice for the Smart Generator feature.
+ * Redux slice for the Spec-Driven Agent feature.
  *
  * Owns the UI-facing state: whether the BYOK dialog is open, which
  * provider the user picked, whether the key is currently in
@@ -422,7 +422,7 @@ export interface SpecDrivenState {
   runStatus: SpecDrivenRunStatus;
   /**
    * Per-project record of the most recent SUCCESSFUL run, keyed by
-   * project id. Drives incremental vibe-modify: a follow-up run reuses
+   * project id. Drives incremental modify: a follow-up run reuses
    * the recorded `runId` as `base_run_id` while it's still fresh. Mirrored
    * to localStorage (see `localStorageSpecDrivenLastRunPrefix`) so it also
    * survives a reload; this in-memory copy is the same-session fast path.
@@ -577,7 +577,7 @@ const specDrivenSlice = createSlice({
     },
     /**
      * Record the most recent successful run for a project (incremental
-     * vibe-modify). Dispatched from `useSpecDrivenTrigger`'s `done` handler
+     * modify). Dispatched from `useSpecDrivenTrigger`'s `done` handler
      * alongside the localStorage mirror. Ignores empty ids defensively.
      */
     setLastRunForProject(
@@ -699,7 +699,7 @@ export const selectLiveSpecDrivenRun = (
 /**
  * Whether ANY spec-driven run is currently live. The assistant surfaces
  * use this to suppress the chat's "Typing" indicator while a run card is
- * showing its own progress (the chip used to stick for the whole run).
+ * showing its own progress.
  */
 export const selectHasLiveSpecDrivenRun = (state: SpecDrivenSliceState): boolean => {
   for (const _key in state.specDriven.runs) return true;

@@ -1,5 +1,5 @@
 /**
- * Unit tests for the incremental vibe-modify decision helper.
+ * Unit tests for the incremental modify decision helper.
  *
  * Exercises the modify-vs-fresh branching in isolation from React,
  * Redux, and the SSE client.

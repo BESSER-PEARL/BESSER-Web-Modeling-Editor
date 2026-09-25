@@ -5,12 +5,8 @@ import { FALLBACK_SMART_GEN_CONFIG } from '../specDrivenConfig';
 /**
  * The fallback is used when GET /spec-driven/config is unreachable. If any
  * value UNDER-states the real backend ceiling it silently becomes the binding
- * limit in the UI and kills runs the backend would have allowed.
- *
- * Observed 2026-09-18: default_max_runtime_seconds was 1200 while the backend
- * default was 2400, and a live run stopped at "1211.7s > 1200s" with 20
- * minutes of authorised budget unused. A near-identical staleness across all
- * four values was already fixed once on 2026-09-14.
+ * limit in the UI and kills runs the backend would have allowed (e.g. a
+ * 1200 s runtime fallback stopping runs the backend's 2400 s default allows).
  */
 describe('FALLBACK_SMART_GEN_CONFIG', () => {
   const { caps } = FALLBACK_SMART_GEN_CONFIG;

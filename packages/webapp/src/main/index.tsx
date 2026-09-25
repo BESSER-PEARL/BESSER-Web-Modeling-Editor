@@ -19,12 +19,12 @@ import './styles.css';
 // Run localStorage schema migrations before anything else reads stored data
 runStorageMigrations();
 
-// Pilot experiment: capture the `?pilot=P3` participant label (facilitator
-// links) before the router can touch the URL. Without the parameter this is
-// a no-op and no telemetry is ever produced.
+// Opt-in research telemetry: capture the `?pilot=<label>` parameter before
+// the router can touch the URL. Without it this is a no-op and no telemetry
+// is ever produced.
 initPilotModeFromUrl();
 
-// Facilitated demo: capture the `?demo=<token>` secret before the router can
+// Demo mode: capture the `?demo=<token>` secret before the router can
 // touch the URL. Without the parameter this is a no-op and runs use the
 // ordinary free tier.
 initDemoModeFromUrl();

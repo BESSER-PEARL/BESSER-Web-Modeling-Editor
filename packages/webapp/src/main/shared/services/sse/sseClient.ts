@@ -58,8 +58,8 @@ export interface StreamSseOptions {
    * body is being read.
    *
    * `stallTimeoutMs` is armed *after* `await fetch(...)` resolves, so it cannot
-   * protect the handshake. A TLS-inspecting proxy (Netskope on LIST laptops)
-   * holds a response it intends to scan, and an SSE body never finishes, so the
+   * protect the handshake. A TLS-inspecting corporate proxy holds a response
+   * it intends to scan, and an SSE body never finishes, so the
    * promise may never settle — no run id, no watchdog, no reconnect, and the UI
    * hangs forever on a run that completes happily on the server. Bounding the
    * handshake turns that silent hang into an error the caller can act on.
@@ -232,10 +232,9 @@ export async function* streamSse<T = unknown>(
 
     // The interval alone is not enough: browsers throttle `setInterval` in a
     // backgrounded tab (Chrome ~once a minute, frozen outright once the tab is
-    // discard-eligible), so the only thing that could arm the reconnect below
-    // was a timer the browser had stopped running — one run sat frozen ~7
-    // minutes with no reconnect ever issued (2026-09-16, 1f227045c804).
-    // Re-check the moment the tab is looked at again.
+    // discard-eligible), so the reconnect below could otherwise wait on a timer
+    // the browser has stopped running. Re-check the moment the tab is looked
+    // at again.
     if (typeof document !== 'undefined' && typeof document.addEventListener === 'function') {
       const onWake = () => {
         if (document.visibilityState !== 'hidden') checkForStall();

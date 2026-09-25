@@ -1,5 +1,5 @@
 /**
- * Pilot-experiment telemetry — regression tests.
+ * Opt-in research telemetry (`?pilot=<label>`) — regression tests.
  *
  * The load-bearing invariants:
  *  - collection is OFF by default: without a valid `?pilot=` label nothing is

@@ -91,8 +91,8 @@ export async function continueFromGithubRepo(args: {
     // mode=modify + base_run_id via decideRunMode.
     writeProjectLastRun(imported.id, response.run_id, Date.now());
 
-    // Pilot telemetry: a completed continue-from-repo import is a delivery
-    // action. Fire-and-forget, no-op outside pilot sessions.
+    // Research telemetry: a completed continue-from-repo import is a delivery
+    // action. Fire-and-forget, no-op unless telemetry is active.
     emitDeliveryEvent('continue_from_repo', response.run_id);
 
     return {

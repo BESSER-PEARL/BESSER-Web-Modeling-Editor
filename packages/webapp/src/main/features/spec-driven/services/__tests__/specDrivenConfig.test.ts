@@ -1,5 +1,5 @@
 /**
- * Unit tests for the smart-gen config service.
+ * Unit tests for the Spec-Driven Agent config service.
  *
  * Covers:
  *   - Happy path: backend payload is normalised and returned
@@ -213,10 +213,9 @@ describe('resolveFreeRunModel', () => {
     expect(resolveFreeRunModel(FREE_TIER, 'qwen3.8:27b')).toBe('qwen3.8:27b');
   });
 
-  // A pilot's run is the one case where "send nothing" is NOT neutral: the
-  // server fills the gap with BESSER_FREE_LLM_PILOT_MODEL. So a pilot's
-  // deliberate pick has to travel even when it is the public default —
-  // otherwise choosing LongCat would silently hand them the pilot model.
+  // In a telemetry (`?pilot=`) session "send nothing" is NOT neutral: the
+  // server fills the gap with BESSER_FREE_LLM_PILOT_MODEL. So a deliberate
+  // pick has to travel even when it is the public default.
   it('sends a pilot the DEFAULT model explicitly when they picked it', () => {
     expect(resolveFreeRunModel(FREE_TIER, 'meituan/LongCat-2.0:free', true))
       .toBe('meituan/LongCat-2.0:free');
@@ -276,10 +275,8 @@ describe('freeModelLabel', () => {
   });
 
   it('does NOT call a slashless cloud model self-hosted', () => {
-    // The rule used to be "no vendor prefix => self-hosted", which held only
-    // while the Ollama box was the one slashless entry. gpt-5.6-luna has no
-    // prefix and is a PAID cloud model; labelling it self-hosted is untrue and
-    // misleads about who pays.
+    // "No vendor prefix" is not "self-hosted": gpt-5.6-luna has no prefix and
+    // is a PAID cloud model; labelling it self-hosted misleads about who pays.
     expect(freeModelLabel({ id: 'gpt-5.6-luna', default: false })).toBe(
       'gpt-5.6-luna',
     );

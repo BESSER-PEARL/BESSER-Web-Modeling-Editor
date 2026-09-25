@@ -1,9 +1,9 @@
 /**
- * Facilitated demo sessions.
+ * Demo sessions.
  *
  * A tab opened through `?demo=<token>` routes its generation runs to the
- * server-paid `sponsored` tier — our own OpenAI key on a strong model —
- * instead of the keyless free tier. No key to paste on stage.
+ * server-paid `sponsored` tier (the operator's own key on a strong model)
+ * instead of the keyless free tier, so no key has to be pasted.
  *
  * The token is a shared secret the backend checks against `BESSER_DEMO_TOKEN`
  * (an unset env there keeps the tier closed). It is a bearer secret in a URL:
@@ -19,7 +19,7 @@ const sessionStorageDemoToken = 'besser-demo-token';
 
 /**
  * URL-safe token of a plausible length. The minimum is the point: it stops a
- * stray `?demo=1` from putting a tab on the org's paid key, and anything the
+ * stray `?demo=1` from putting a tab on the operator's paid key, and anything the
  * backend would accept is far longer than this anyway.
  */
 const DEMO_TOKEN_PATTERN = /^[A-Za-z0-9_-]{8,128}$/;

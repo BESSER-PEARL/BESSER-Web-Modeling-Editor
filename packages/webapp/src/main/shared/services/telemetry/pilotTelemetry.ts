@@ -1,9 +1,9 @@
 /**
- * Pilot-experiment telemetry (research data collection).
+ * Opt-in research telemetry.
  *
- * A pilot session starts by opening the editor with `?pilot=P3` (the
- * facilitator's link). The participant label is stored for the tab and
- * attached to every telemetry event; without it NOTHING is collected —
+ * Active only when the editor is opened with `?pilot=<label>`. The label is
+ * stored for the tab and attached to every telemetry event; without it
+ * NOTHING is collected —
  * regular users never produce telemetry. The backend applies its own
  * master switch on top (`BESSER_TELEMETRY_ENABLED`), so posting here is
  * always safe: the collector answers 204 whether or not it records.
@@ -21,12 +21,12 @@
 import { BACKEND_URL, sessionStoragePilotParticipant } from '../../constants/constant';
 
 /**
- * Per-tab assistant session id key. Predates the pilot experiment (hence
- * the non-`besser_` spelling) — kept stable so existing tabs keep their id.
+ * Per-tab assistant session id key. Predates telemetry (hence the
+ * non-`besser_` spelling) — kept stable so existing tabs keep their id.
  */
 export const assistantSessionStorageKey = 'besser-assistant-session-id';
 
-/** Participant labels are P1…Pn style tokens — never names or emails. */
+/** Labels are short opaque tokens (e.g. `P1`) — never names or emails. */
 const PILOT_PARTICIPANT_PATTERN = /^[A-Za-z0-9_-]{1,16}$/;
 
 export type TelemetryEventKind = 'prompt' | 'agent_action' | 'delivery' | 'friction';
@@ -65,7 +65,7 @@ export const getPilotParticipant = (): string | null => {
   }
 };
 
-/** True when this tab was opened through a facilitator's pilot link. */
+/** True when this tab was opened with a valid `?pilot=<label>`. */
 export const isPilotSession = (): boolean => getPilotParticipant() !== null;
 
 /**

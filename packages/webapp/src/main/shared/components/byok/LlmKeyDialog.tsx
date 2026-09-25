@@ -52,9 +52,8 @@ const DEFAULT_LOCAL_BASE_URL = 'http://localhost:11434/v1';
 
 // Last-resort bounds for the Spec-Driven run budget, used ONLY until the
 // server's real caps arrive from GET /spec-driven/config (and if that call
-// fails). Deliberately NOT the source of truth: when this was a hardcoded
-// mirror it went stale and silently became the binding limit, killing runs at
-// 15 min under a cap the backend never imposed (2026-09-10). Read the caps.
+// fails). Not the source of truth: a stale hardcoded mirror silently becomes
+// the binding limit and kills runs the backend would allow.
 const RUN_BUDGET_FALLBACK = {
   defaultCostUsd: 5,
   maxCostUsd: 5,
@@ -213,8 +212,8 @@ function _assistantSupportsProvider(provider: LlmProvider): boolean {
 
 /**
  * pia/local only work when the WME BACKEND runs locally (it opens the URL, not
- * the browser), so they're offered only on a localhost deployment. On the
- * shared hosted editor (experimental / editor.besser-pearl.org) they're hidden.
+ * the browser), so they're offered only on a localhost deployment and hidden
+ * on a hosted deployment.
  */
 function _isLocalDeployment(): boolean {
   try {
@@ -425,8 +424,8 @@ export const LlmKeyDialog: React.FC<LlmKeyDialogProps> = ({
       setCaps(cfg.caps);
       const storedFreeModel = readFreeTierModel();
       const freeModels = cfg.free_tier.models;
-      // An explicit stored choice always wins. Otherwise a pilot session gets
-      // the server's pilot model and everyone else the ordinary default.
+      // An explicit stored choice always wins. Otherwise a telemetry session
+      // gets the server's pilot_model and everyone else the ordinary default.
       setFreeModelChoice(
         storedFreeModel && freeModels.some((m) => m.id === storedFreeModel)
           ? storedFreeModel
@@ -587,10 +586,9 @@ export const LlmKeyDialog: React.FC<LlmKeyDialogProps> = ({
     // writeLlmKey).
     if (isFreeProvider) {
       writeFreeTierSelected(true);
-      // null means "use the server default", which for a PILOT is the server's
-      // pilot model. So a pilot's pick is always stored explicitly — comparing
-      // against the preferred id instead collapsed the accepted pilot model to
-      // null, and 17 of 17 pilot runs went out on the public default.
+      // null means "use the server default", which for a telemetry session is
+      // the server's pilot_model — so there the pick is always stored
+      // explicitly, or choosing it would collapse to the public default.
       const collapsible =
         !isPilotSession() && freeModelChoice === defaultFreeModelId(freeModels);
       writeFreeTierModel(

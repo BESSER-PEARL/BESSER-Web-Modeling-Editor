@@ -6,8 +6,7 @@ import { isPilotSession } from '../../services/telemetry/pilotTelemetry';
 
 /**
  * One unobtrusive transparency line shown in the assistant chat surfaces
- * while a pilot-experiment session is active (tab opened via a facilitator's
- * `?pilot=` link): "This pilot session is recorded for research purposes."
+ * while research telemetry is active (tab opened with `?pilot=<label>`).
  *
  * Renders nothing for regular sessions, so it can be mounted unconditionally.
  */

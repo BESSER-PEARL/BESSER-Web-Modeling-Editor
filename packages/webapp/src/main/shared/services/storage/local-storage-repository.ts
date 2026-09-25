@@ -202,7 +202,7 @@ export interface DeployLinkedRepo {
   /**
    * Target branch for the linked repo. Optional so older links (written
    * before this field existed) round-trip; ``parseDeployLinkedRepo`` backfills
-   * ``'main'`` when it is missing. Used by the smart-gen ``'github'`` push
+   * ``'main'`` when it is missing. Used by the Spec-Driven Agent ``'github'`` push
    * target so re-pushes go to the same branch.
    */
   branch?: string;
@@ -216,7 +216,7 @@ const DEFAULT_LINKED_BRANCH = 'main';
  *   ``besser_deploy_linked_<projectId>_<target>`` -> ``{ owner, repo, branch? }`` JSON.
  *
  * Targets in use: ``'webapp'`` / ``'agent'`` (Render deploys) and ``'github'``
- * (the Vibe/Smart-generation "Push to GitHub" flow — a distinct token so push
+ * (the Spec-Driven Agent "Push to GitHub" flow — a distinct token so push
  * links never collide with Render deploy links).
  *
  * The two legacy fallback keys (``..._chatbot`` and the bare

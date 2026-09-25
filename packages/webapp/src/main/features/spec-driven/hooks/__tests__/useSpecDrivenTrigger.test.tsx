@@ -82,7 +82,7 @@ const _mockController: {
   throwOnStart: null,
 };
 
-// Mock the smart-gen config so the modify-vs-fresh decision in startRun
+// Mock the spec-driven config so the modify-vs-fresh decision in startRun
 // resolves synchronously to the fallback (download_ttl_seconds) WITHOUT
 // hitting `fetch` — the "nothing written to disk" assertions below count
 // every fetch call, and the config lookup is unrelated to the download.
@@ -1311,7 +1311,7 @@ describe('useSpecDrivenTrigger — run budget from sessionStorage', () => {
 });
 
 describe('useSpecDrivenTrigger — live cost meter state', () => {
-  it('mirrors start budgets and cost events onto the smart-gen card state', async () => {
+  it('mirrors start budgets and cost events onto the spec-driven card state', async () => {
     setSessionKey();
     _mockController.events = HAPPY_EVENTS;
     globalThis.fetch = vi.fn().mockResolvedValue(

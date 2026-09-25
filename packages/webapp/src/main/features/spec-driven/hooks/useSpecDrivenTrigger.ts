@@ -23,8 +23,7 @@
  *      mounted, remounts mid-run, or owns this hook instance. If the
  *      card message disappears mid-run (New Chat on another surface, a
  *      project-switch race), the next event UPSERTS it back instead of
- *      silently no-oping (the old `idx === -1 → return prev` bug that
- *      left users staring at an empty bubble until the run finished).
+ *      silently no-oping.
  *   6. At the run's terminal point (`done`, terminal error, abort,
  *      stream cut) the final card state is snapshotted from the slice
  *      INTO the chat message and the slice entry is removed — history
@@ -36,10 +35,10 @@
  *      of a run, so they additionally arm a failsafe timeout in case
  *      the backend never sends `done`. `INCOMPLETE` can arrive mid-run
  *      (e.g. the base-expired "rebuilding from scratch" notice at the
- *      START of a modify run), so it must NOT arm the failsafe — doing
- *      so used to kill legitimate rebuilds 45s in.
+ *      START of a modify run), so it must NOT arm the failsafe — that
+ *      would kill legitimate rebuilds 45s in.
  *
- * Concurrency: only ONE smart-gen run is allowed at a time — GLOBALLY,
+ * Concurrency: only ONE spec-driven run is allowed at a time — GLOBALLY,
  * across all mounted hook instances (AssistantWidget and
  * AssistantWorkspaceDrawer both mount one). The per-instance
  * `isRunningRef` is backed by `specDriven.runStatus` in the store,
@@ -125,7 +124,7 @@ import type {
 // disk, while still freeing the user promptly if the backend hangs.
 const COST_TIMEOUT_FAILSAFE_MS = 45_000;
 
-// Incremental vibe-modify window used when the server's
+// Incremental modify window used when the server's
 // `download_ttl_seconds` is unavailable. Mirrors the backend default
 // (BESSER_LLM_DOWNLOAD_TTL_SECONDS = 1800s / 30 min): after this the
 // backend has garbage-collected the run's output, so a rebuild is forced.
@@ -144,7 +143,7 @@ const createMessageId = (): string => {
   return `smart-gen-${Date.now()}-${Math.random().toString(16).slice(2)}`;
 };
 
-// Initial stub state for a fresh smart-gen run card. The chat message
+// Initial stub state for a fresh spec-driven run card. The chat message
 // carries only this stub (plus the `liveKey` linking it to the Redux
 // slice entry); the LIVE state the card renders is owned by
 // `specDriven.runs[liveKey]` and updated on every SSE event.
@@ -171,7 +170,7 @@ const isValidProvider = (value: unknown): value is SpecDrivenProvider =>
   typeof value === 'string' && VALID_PROVIDERS.has(value as SpecDrivenProvider);
 
 /**
- * Terminal outcome of a smart-gen run, reported exactly once per run
+ * Terminal outcome of a spec-driven run, reported exactly once per run
  * via `onRunFinished` — used by the assistant orchestrator to close
  * the agent loop (`generator_result` frontend event).
  */
@@ -226,7 +225,7 @@ export function useSpecDrivenTrigger(
   const dispatch = useAppDispatch();
   const { currentProjectRef, setMessages, setIsGenerating } = options;
 
-  // Exactly one smart-gen run is allowed at a time. We guard against
+  // Exactly one spec-driven run is allowed at a time. We guard against
   // accidental double-triggers (two rapid agent actions, double-save in
   // the BYOK modal, etc.).
   const isRunningRef = useRef(false);
@@ -312,14 +311,9 @@ export function useSpecDrivenTrigger(
 
   /**
    * Write `card` into the run's chat message — updating it in place when
-   * the message exists, and RECREATING it when it doesn't (upsert).
-   *
-   * The previous implementation silently dropped the write when the
-   * message id wasn't found (`idx === -1 → return prev`), which turned
-   * every subsequent live update into an invisible no-op once anything
-   * removed the card message from the list. Now the card is re-appended
-   * with the same id, so run state stays visible no matter what happened
-   * to the conversation in between.
+   * the message exists, and RECREATING it when it doesn't (upsert), so
+   * run state stays visible even if something removed the card message
+   * from the conversation in between.
    */
   const upsertCardMessage = useCallback(
     (
@@ -437,9 +431,8 @@ export function useSpecDrivenTrigger(
   // IMPORTANT: we deliberately do NOT auto-cancel a running generation on
   // pagehide/beforeunload. Those events fire on a plain REFRESH — which is
   // exactly what a user does after a transient "network error" — and cannot
-  // be told apart from a genuine tab close. Cancelling here destroyed healthy
-  // in-progress runs on refresh (observed in the pilot: a run ended
-  // failed:CANCELLED with 0 files after the user reloaded). On the free tier
+  // be told apart from a genuine tab close, so cancelling here would destroy
+  // healthy in-progress runs on refresh. On the free tier
   // there is no key/billing to protect, so the orphan-billing rationale does
   // not apply at all; an abandoned run simply completes (bounded by the cost
   // cap). Explicit cancels (the Stop button and New Chat -> abortActive) still
@@ -514,8 +507,8 @@ export function useSpecDrivenTrigger(
       }
 
       // STATE FIRST — and never let one bad event kill a long stream: a
-      // reducer throw here used to propagate out of the for-await loop
-      // and error the whole run. Log it loudly instead (the slice state
+      // reducer throw would propagate out of the for-await loop and error
+      // the whole run. Log it loudly instead (the slice state
       // is unchanged on a reducer throw, so skipping is safe) and keep
       // consuming.
       try {
@@ -631,7 +624,7 @@ export function useSpecDrivenTrigger(
           const unenforcedCount = verificationCounts?.shippedUnenforced ?? 0;
           const incomplete = dispatch(readLiveSpecDrivenRun(run.liveKey))?.incomplete === true;
           // Record this output as the base for a future
-          // incremental vibe-modify of the SAME project — both in the
+          // incremental modify of the SAME project — both in the
           // slice (same-session fast path) and localStorage (survives a
           // reload). The next `startRun` reads this back and, while still
           // within the download TTL, sends `mode:'modify'` + base_run_id.
@@ -644,8 +637,7 @@ export function useSpecDrivenTrigger(
           }
           // The slice reducer already flipped the card to 'done' with
           // `needsDownload` — we deliberately do NOT auto-save the file
-          // to the user's disk (testers reported the webapp being
-          // downloaded "without consent"); the card surfaces an explicit
+          // to the user's disk without consent; the card surfaces an explicit
           // Download button instead, and the backend keeps the file for
           // ~30 min. Snapshot the finished card into the chat message
           // and drop the live entry.
@@ -696,7 +688,7 @@ export function useSpecDrivenTrigger(
               blockerCount > 0
                 ? `⚠️ Generated ${filesPhrase}${withGen}, but the run **finished with ${blockerCount} unresolved implementation or verification issue${blockerCount === 1 ? '' : 's'}**. The generated app is **not verified complete**.${topPhrase} Start a follow-up generation to address ${blockerCount === 1 ? 'it' : 'them'}, or use the **Download** button on the run card to save the code as-is.`
                 : `⚠️ Generated ${filesPhrase}${withGen}, but the run **stopped early — the output may be incomplete**.${event.incompleteReason ? ` ${event.incompleteReason}` : ``}${topPhrase} Start another generation to finish the remaining changes, or use the **Download** button on the run card to save it.`;
-            // The headline the blocker count used to hide: the app was
+            // Stated separately from the blocker count: the app was
             // delivered and these rules are NOT in it.
             const unenforcedPhrase =
               unenforcedCount > 0
@@ -1012,13 +1004,8 @@ export function useSpecDrivenTrigger(
       // payload. The agent's ``payload.provider`` is just a
       // suggestion; the BYOK dropdown is the authoritative source of
       // which provider to use because it's tied to the key the user
-      // actually pasted. Reversing this priority (the old bug) caused
-      // a user who picked OpenAI in the dropdown to have their run
-      // dispatched with ``provider=anthropic`` anyway — because the
-      // modeling agent's default hint is ``anthropic`` — so the
-      // Anthropic API rejected the OpenAI key with a 401 and the
-      // orchestrator silently fell through to the Phase 1 deterministic
-      // FastAPI output instead of the stack the user asked for.
+      // actually pasted. The agent's default hint is ``anthropic``, so
+      // reversing this would send e.g. an OpenAI key to Anthropic (401).
       const rawProvider: unknown = demoToken
         ? 'sponsored'
         : freeSelected
@@ -1045,14 +1032,12 @@ export function useSpecDrivenTrigger(
         return;
       }
 
-      // The free-tier / BYOK choice was already conveyed by the confirmation
-      // copy shown before the run (see the agent's
-      // ``_build_smart_gen_confirmation``), so we no longer append a mid-run
-      // free-tier note here — the intro line below is enough.
+      // The free-tier / BYOK choice was already conveyed by the agent's
+      // confirmation copy before the run, so the intro line below is enough.
       const introText =
         typeof payload.message === 'string' && payload.message.trim().length > 0
           ? payload.message
-          : 'Starting smart generation…';
+          : 'Starting the Spec-Driven Agent…';
       appendAssistantMessage(introText);
       // Client-generated run key: created BEFORE the backend assigns its
       // run id, it links the card message (`specDriven.liveKey`) to the
@@ -1075,15 +1060,14 @@ export function useSpecDrivenTrigger(
       lastSequenceRef.current = 0;
       activeCardRef.current = { liveKey, streamingId };
       // The run card is the progress surface from here on — CLEAR the
-      // chat's typing indicator instead of pinning it for the whole run
-      // (the "Typing" chip used to stick until the run finished).
+      // chat's typing indicator instead of pinning it for the whole run.
       setIsGenerating(false);
 
       // Route the project through the same normaliser the existing
       // deterministic ``/generate-output-from-project`` path uses.
       // This strips empty diagrams, normalises the project name, and
       // otherwise mirrors the payload shape the backend already
-      // expects — so a smart-gen run of project X behaves identically
+      // expects — so a spec-driven run of project X behaves identically
       // to a deterministic run of project X at the payload-level.
       const normalisedProject = buildProjectPayloadForBackend(project);
 
@@ -1101,9 +1085,8 @@ export function useSpecDrivenTrigger(
       // Free tier: the server pins the model, with ONE exception — the user
       // may explicitly pick the server's advertised non-default free model
       // (see below, after the config is available).
-      // Demo: the server's BESSER_SPONSORED_LLM_MODEL decides, for the same
-      // reason the pilot model lives server-side — swapping the model should
-      // be an env edit, not a frontend release.
+      // Demo: the server's BESSER_SPONSORED_LLM_MODEL decides, so swapping
+      // the model is an env edit, not a frontend release.
       let llmModel: string | undefined =
         demoToken || freeSelected ? undefined : key?.llmModel;
       if (!demoToken && !freeSelected && !llmModel) {
@@ -1132,7 +1115,7 @@ export function useSpecDrivenTrigger(
         );
       }
 
-      // Incremental vibe-modify decision. Look up the previous successful
+      // Incremental modify decision. Look up the previous successful
       // run for THIS project and, if it's still within the backend's
       // download-TTL window, edit that app in place (`mode:'modify'` +
       // baseRunId) instead of rebuilding. The decision is automatic; an
@@ -1252,10 +1235,8 @@ export function useSpecDrivenTrigger(
           });
         } else {
           // A stalled stream (SseStallError) is a DEAD TRANSPORT, not a
-          // failed run: the backend may well still be generating. Without
-          // this branch the old behavior was worse than an error — the
-          // stream never threw at all and the card froze as "Running"
-          // forever. Name the condition honestly, in the card AND on the
+          // failed run: the backend may well still be generating. Name
+          // the condition honestly, in the card AND on the
           // console (Report-issue picks up the chat copy; the console
           // line carries the run id for server-side correlation).
           const isStall = err instanceof SseStallError;
@@ -1352,8 +1333,7 @@ export function useSpecDrivenTrigger(
       }
       // Already authorised — a BYOK key is stored, or the free tier was
       // opted into on a previous run: start directly. `planApproved` is set
-      // here because there is no separate plan-review step; the BYOK popup
-      // used to be the only thing that set it.
+      // here because there is no separate plan-review step.
       if (readSessionKey() || readFreeTierSelected()) {
         await startRun({ ...payload, planApproved: true });
         return;

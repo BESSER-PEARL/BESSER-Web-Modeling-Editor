@@ -448,7 +448,7 @@ export class ProjectStorageRepository {
     }
 
     // Clean up deploy linked repo entries (per-project keys). The bare key is
-    // the legacy Render webapp link; ``_github`` is the smart-gen "Push to
+    // the legacy Render webapp link; ``_github`` is the Spec-Driven Agent "Push to
     // GitHub" link, kept separate so it never collides with Render targets.
     localStorage.removeItem(`besser_deploy_linked_${projectId}`);
     localStorage.removeItem(`besser_deploy_linked_${projectId}_github`);

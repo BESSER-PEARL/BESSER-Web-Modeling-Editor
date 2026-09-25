@@ -4,7 +4,7 @@
  * The load-bearing invariant: saving a real key clears the Spec-Driven Agent's
  * sticky "free tier" opt-in. Without it, a user who entered their OpenAI key via
  * the unified dialog (assistant popup / drawer / Settings) still had their
- * smart-gen run dispatched on the keyless free qwen tier, because free is the
+ * spec-driven run dispatched on the keyless free tier, because free is the
  * default and startRun's `freeSelected ? 'free' : key` picks free whenever the
  * flag is set — even with a key present.
  */
@@ -37,12 +37,12 @@ describe('writeLlmKey ↔ free-tier flag', () => {
     const ok = writeLlmKey('openai', 'sk-test-123', 'gpt-4o');
     expect(ok).toBe(true);
 
-    // The free opt-in must be gone so the run uses the key, not qwen.
+    // The free opt-in must be gone so the run uses the key, not the free model.
     expect(readFreeTierSelected()).toBe(false);
     expect(window.sessionStorage.getItem(sessionStorageSpecDrivenFreeTier)).toBeNull();
   });
 
-  it('persists the key/provider so smart-gen readSessionKey() sees it', () => {
+  it('persists the key/provider so the spec-driven readSessionKey() sees it', () => {
     writeLlmKey('openai', 'sk-test-123', 'gpt-4o');
     const key = readLlmKey();
     expect(key).not.toBeNull();

@@ -1,6 +1,6 @@
 /**
- * Smart Generator SSE event types — mirror the backend schema at
- * `besser/utilities/web_modeling_editor/backend/services/smart_generation/sse_events.py`.
+ * Spec-Driven Agent SSE event types — mirror the backend schema at
+ * `besser/utilities/web_modeling_editor/backend/services/spec_driven/sse_events.py`.
  *
  * The frontend receives these as a stream from `POST /besser_api/spec-driven/generate`
  * and renders them into the existing assistant chat message list.
@@ -39,7 +39,7 @@ export type SpecDrivenPrimaryKind =
  * Run mode sent to `POST /besser_api/spec-driven/generate`.
  *   - `generate` (default): build the app from scratch.
  *   - `modify`: edit an existing run's output in place (incremental
- *     vibe-modify), identified by a companion `base_run_id`.
+ *     modify), identified by a companion `base_run_id`.
  */
 export type SpecDrivenMode = 'generate' | 'modify';
 
@@ -89,7 +89,7 @@ export interface PhaseEvent {
  * Adds details to an existing phase row (e.g. the gap analyser surfaces
  * its task list this way after the planning LLM call returns). The
  * frontend looks up the matching phase entry by name and merges the
- * details into it so the chevron-expand in the smart-gen card has
+ * details into it so the chevron-expand in the run card has
  * something to show.
  */
 export interface PhaseUpdateEvent {
@@ -269,7 +269,7 @@ export interface TriggerSpecDrivenPayload {
   llmModel?: string;
   message?: string;
   /**
-   * Incremental vibe-modify overrides. Normally the frontend decides
+   * Incremental modify overrides. Normally the frontend decides
    * automatically (see ``useSpecDrivenTrigger`` / ``decideRunMode``): a
    * follow-up run reuses the previous successful run's output while it's
    * still fresh. The agent MAY force the decision by setting these — e.g.

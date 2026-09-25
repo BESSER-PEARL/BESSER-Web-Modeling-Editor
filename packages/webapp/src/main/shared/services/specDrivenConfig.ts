@@ -1,5 +1,5 @@
 /**
- * Smart Generator backend configuration.
+ * Spec-Driven Agent backend configuration.
  *
  * Fetches `GET /besser_api/spec-driven/config` ONCE per page load (the
  * promise is cached at module level) and falls back to hardcoded
@@ -44,10 +44,9 @@ export interface SpecDrivenFreeTier {
   /** The pinned model name (e.g. `qwen3-coder:30b`), or null when unavailable. */
   model: string | null;
   /**
-   * The model a facilitated pilot session should pre-select, or null/absent
-   * when the server has none configured. Pilots are a small, known population
-   * we deliberately spend more on; everyone else keeps the ordinary default.
-   * Server-owned so it can be swapped without a frontend release.
+   * The model a research-telemetry (`?pilot=`) session should pre-select, or
+   * null/absent when the server has none configured; everyone else keeps the
+   * ordinary default. Server-owned so it can be swapped without a release.
    */
   pilot_model?: string | null;
   /**
@@ -66,7 +65,7 @@ export interface SpecDrivenConfig {
   /**
    * How long (seconds) the backend keeps a finished run's output around
    * for download AND in-place editing. Drives the incremental
-   * vibe-modify window: a follow-up run can `mode:'modify'` the previous
+   * modify window: a follow-up run can `mode:'modify'` the previous
    * run only while it's still within this TTL.
    */
   download_ttl_seconds: number;
@@ -79,21 +78,16 @@ export interface SpecDrivenConfig {
 
 /**
  * Hardcoded fallback used when the config endpoint is unreachable (old
- * backend, network failure). Values mirror the backend literals at the
- * time of writing: hard caps 2.0 USD / 900 s, defaults 1.0 USD / 600 s.
+ * backend, network failure).
  */
 export const FALLBACK_SMART_GEN_CONFIG: SpecDrivenConfig = {
-  // Mirrors the backend constants (constants.py), used only when GET
-  // /spec-driven/config is unreachable. Must not UNDER-state the real ceilings:
-  // a stale fallback silently becomes the binding limit in the UI and kills runs
-  // the backend would have allowed (all four were stale on 2026-09-14).
+  // Mirrors the backend constants (constants.py). Must not UNDER-state the
+  // real ceilings: a stale fallback silently becomes the binding limit in the
+  // UI and kills runs the backend would have allowed.
   caps: {
     max_cost_usd_hard_cap: 5.0,
     max_runtime_seconds_hard_cap: 2400,
     default_max_cost_usd: 5.0,
-    // Was 1200 while the backend default was already 2400, so a run stopped
-    // at "1211.7s > 1200s" with 20 minutes of authorised budget unused
-    // (observed 2026-09-18). Exactly the staleness the note above warns about.
     default_max_runtime_seconds: 2400,
   },
   // Mirrors the backend default (BESSER_LLM_DOWNLOAD_TTL_SECONDS = 1800).
@@ -198,9 +192,8 @@ export function resolveFreeRunModel(
   if (!storedChoice) return undefined;
   const match = (freeTier.models ?? []).find((m) => m.id === storedChoice);
   if (!match) return undefined;
-  // For a pilot, "no llm_model" means the SERVER applies the pilot model. So a
-  // pilot who deliberately picked the public default must send it explicitly —
-  // omitting it would silently hand them the pilot model instead.
+  // In a telemetry session, "no llm_model" means the server applies its
+  // pilot_model, so an explicit pick of the public default must be sent.
   if (isPilot) return match.id;
   return match.default ? undefined : match.id;
 }
@@ -223,9 +216,9 @@ export function freeModelLabel(model: SpecDrivenFreeModel): string {
 }
 
 /**
- * The free-model id to pre-select, honouring a pilot session.
+ * The free-model id to pre-select, honouring a telemetry session.
  *
- * Returns the server's `pilot_model` when this tab is a pilot session AND the
+ * Returns the server's `pilot_model` when this tab is a telemetry session AND the
  * server still advertises that id as choosable; otherwise the ordinary default.
  * The advertised-list check matters because pre-selecting an id the server would
  * refuse just pins the run back to the default with no explanation.
@@ -252,7 +245,7 @@ export function defaultFreeModelId(models: readonly SpecDrivenFreeModel[]): stri
 let _configPromise: Promise<SpecDrivenConfig> | null = null;
 
 /**
- * Resolve the smart-gen config. Never rejects — failures resolve to
+ * Resolve the Spec-Driven Agent config. Never rejects — failures resolve to
  * `FALLBACK_SMART_GEN_CONFIG` (and clear the cache so a later call can
  * retry against a recovered backend).
  */

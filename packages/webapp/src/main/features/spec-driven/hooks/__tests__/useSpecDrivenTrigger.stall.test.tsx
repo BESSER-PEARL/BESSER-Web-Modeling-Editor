@@ -1,14 +1,13 @@
 /**
- * Regression test for the frozen-run-card bug (run 9b851145 class).
+ * Regression test for the frozen-run-card bug.
  *
- * PRODUCTION MECHANISM: the browser's SSE fetch delivered the first
- * flush (start + phase "select"), then the transport went dead without
- * error or close — `reader.read()` stayed pending for the whole run.
- * The card painted the early events (proving the store-keyed paint path)
- * and then froze as "Running" FOREVER, silently: no exception, no
- * finalize, no notice, while the backend kept generating. Verified live:
- * the same origin streamed every frame over a direct TCP connection, so
- * the stall is a transport-path property the frontend must survive.
+ * MECHANISM: the browser's SSE fetch delivered the first flush (start +
+ * phase "select"), then the transport went dead without error or close —
+ * `reader.read()` stayed pending for the whole run. The card painted the
+ * early events and then froze as "Running" FOREVER, silently, while the
+ * backend kept generating. The stall is a property of the network path
+ * (the same origin streams fine over a direct connection), so the
+ * frontend must survive it.
  *
  * The fix: `streamSse` has an opt-in liveness bound (the backend
  * heartbeats a cost tick every ~2s, so a minute of total silence is a

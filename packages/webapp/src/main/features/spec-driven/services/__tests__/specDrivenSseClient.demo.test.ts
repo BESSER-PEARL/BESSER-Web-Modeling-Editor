@@ -1,7 +1,7 @@
 /**
  * What a demo run puts on the wire.
  *
- * The `sponsored` tier spends the organisation's own OpenAI key, so the
+ * The `sponsored` tier spends the operator's own key, so the
  * backend refuses it without the demo secret. Two failure shapes are worth
  * locking down: the secret never travelling (every demo run silently 403s),
  * and the secret travelling on runs that are not demo runs.

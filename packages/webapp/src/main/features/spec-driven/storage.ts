@@ -1,5 +1,5 @@
 /**
- * BYOK (bring-your-own-key) session storage helpers for the Smart Generator.
+ * BYOK (bring-your-own-key) session storage helpers for the Spec-Driven Agent.
  *
  * The user's Anthropic / OpenAI / Mistral API key is stored ONLY in
  * `sessionStorage` (tab-lifetime, cleared on tab close). It is never written to localStorage
@@ -148,7 +148,7 @@ export function readSessionBudget(): SessionBudget | null {
 }
 
 /* ------------------------------------------------------------------ */
-/*  Per-project last successful run (incremental vibe-modify)           */
+/*  Per-project last successful run (incremental modify)                */
 /*                                                                      */
 /*  Unlike the BYOK key/budget above (sessionStorage, tab-lifetime),    */
 /*  the last-run pointer lives in LOCALSTORAGE so a follow-up "add      */
@@ -283,7 +283,7 @@ export function readActiveSpecDrivenRun(
       return candidates.sort((left, right) => right.startedAt - left.startedAt)[0];
     }
 
-    // Backward-compatible one-release migration path for existing pilots.
+    // Backward-compatible one-release migration path for v1 pointers.
     const legacy = _parseActiveSpecDrivenRun(
       window.localStorage.getItem(localStorageSpecDrivenActiveRunV1),
       1,

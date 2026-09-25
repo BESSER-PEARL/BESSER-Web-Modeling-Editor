@@ -1,9 +1,9 @@
 /**
- * Surviving a TLS-inspecting corporate proxy (Netskope on LIST laptops).
+ * Surviving a TLS-inspecting corporate proxy.
  *
  * The proxy buffers a response body before releasing it, and an SSE body never
- * ends. Verified live with Netskope ON: REST returns 200 and the agent WebSocket
- * upgrades to 101; only the spec-driven stream fails, in two shapes.
+ * ends. Behind such a proxy REST returns 200 and the agent WebSocket upgrades
+ * to 101; only the spec-driven stream fails, in two shapes.
  *
  *   A. the response headers are held, so `fetch` never settles — no run id, no
  *      stall watchdog (armed *after* the await), and the card hangs forever.

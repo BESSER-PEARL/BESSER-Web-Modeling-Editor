@@ -1,5 +1,5 @@
 /**
- * Pure decision helper for incremental vibe-modify.
+ * Pure decision helper for incremental modify.
  *
  * Given the previously recorded successful run for the current project
  * (if any) and the backend's download-TTL window, decides whether a new

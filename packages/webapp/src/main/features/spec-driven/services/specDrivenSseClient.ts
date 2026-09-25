@@ -1,5 +1,5 @@
 /**
- * Thin Smart Generator client over the shared `streamSse` utility.
+ * Thin Spec-Driven Agent client over the shared `streamSse` utility.
  *
  * Owns the request shape and the `AbortController`; yields typed
  * `SpecDrivenEvent` objects. The caller (typically `useSpecDrivenTrigger`)
@@ -23,22 +23,19 @@ import {
  * never silent for more than a few seconds. 60s of TOTAL silence (~30
  * missed ticks) therefore means the transport died mid-response — a
  * condition a streaming `fetch` otherwise never surfaces: `reader.read()`
- * just stays pending forever and the run card freezes with no error.
- * Observed in production via a browser↔edge path that stopped forwarding
- * after the first flush while the same origin streamed perfectly over a
- * direct connection. On stall the stream throws `SseStallError`, which
+ * just stays pending forever and the run card freezes with no error
+ * (e.g. an intermediary that stops forwarding after the first flush).
+ * On stall the stream throws `SseStallError`, which
  * `useSpecDrivenTrigger` converts into an honest terminal error card.
  */
 export const SPEC_DRIVEN_STREAM_STALL_TIMEOUT_MS = 60_000;
 /**
  * Reconnect budget: ~2.5 minutes of backoff.
  *
- * It must outlast the outage. A corporate proxy (Netskope on LIST laptops)
- * inserting itself into the session tears down the open stream AND blackholes
- * new connections for a minute or more, so the previous 4 attempts over ~11s all
- * landed inside that window and abandoned a run still generating happily on the
- * server (2026-09-16). Any wake signal (tab focus, browser back online) both
- * retries immediately and refreshes the budget.
+ * It must outlast the outage: a TLS-inspecting corporate proxy can tear down
+ * the open stream AND blackhole new connections for a minute or more while the
+ * run keeps generating on the server. Any wake signal (tab focus, browser back
+ * online) both retries immediately and refreshes the budget.
  */
 export const SPEC_DRIVEN_MAX_RECONNECT_ATTEMPTS = 8;
 const RECONNECT_BACKOFF_MS = [0, 1_000, 3_000, 7_000, 15_000, 30_000, 30_000, 60_000] as const;
@@ -64,9 +61,9 @@ export const SPEC_DRIVEN_RESPONSE_TIMEOUT_MS = 45_000;
  *
  * One failure is ordinary flakiness. Two in a row, on a transport the server
  * heartbeats every ~2s, means something in the path is hostile to streaming
- * — reconnecting to the same stream just repeats the same failure, which is
- * exactly what users behind Netskope saw. Polling is slower but terminates
- * each request, so it gets through.
+ * (e.g. a TLS-inspecting proxy) — reconnecting to the same stream just
+ * repeats the failure. Polling is slower but terminates each request, so it
+ * gets through.
  */
 const STREAM_FAILURES_BEFORE_POLLING = 2;
 
@@ -100,7 +97,7 @@ export interface StartSpecDrivenRunParams {
   maxCostUsd?: number;
   maxRuntimeSeconds?: number;
   /**
-   * Incremental vibe-modify: when `mode === 'modify'`, the backend edits
+   * Incremental modify: when `mode === 'modify'`, the backend edits
    * the app produced by `baseRunId` in place instead of rebuilding.
    * `baseRunId` is a 32-hex run id from a previous successful run.
    * Serialised as `base_run_id` / `mode` to match the backend contract.
@@ -523,7 +520,7 @@ export function startSpecDrivenRun(
   if (typeof params.maxRuntimeSeconds === 'number') {
     body.max_runtime_seconds = params.maxRuntimeSeconds;
   }
-  // Incremental vibe-modify — serialise as the backend's snake_case fields.
+  // Incremental modify — serialise as the backend's snake_case fields.
   // `mode` defaults to 'generate' server-side, so only send it when set;
   // `base_run_id` only travels with a 'modify' run.
   if (params.mode) body.mode = params.mode;
@@ -537,8 +534,8 @@ export function startSpecDrivenRun(
   if (params.skipDeterministicGenerator === true) {
     body.skip_deterministic_generator = true;
   }
-  // Pilot experiment: tag the run with the participant label + the per-tab
-  // session id so the backend runner can attach its run summary to the same
+  // Research telemetry: tag the run with the `?pilot=` label + the per-tab
+  // session id so the backend can attach its run summary to the same
   // telemetry session as the chat events. Absent for regular sessions.
   const telemetryParticipant = getPilotParticipant();
   if (telemetryParticipant) {

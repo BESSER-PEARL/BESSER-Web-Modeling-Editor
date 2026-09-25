@@ -1,11 +1,10 @@
 /**
  * A run must survive a network blackout longer than the retry budget.
  *
- * The budget was 4 attempts over ~11s. A corporate proxy (Netskope on LIST
- * laptops) inserting itself into the session tears down the open stream AND
- * blackholes new connections for a minute or more, so every attempt landed
- * inside the outage and the card abandoned a run still generating on the server
- * (2026-09-16, run ceccb1fcb5f1 at sequence 100 with zero subscribers).
+ * A TLS-inspecting corporate proxy can tear down the open stream AND
+ * blackhole new connections for a minute or more. A budget of 4 attempts over
+ * ~11s lands entirely inside that outage and abandons a run still generating
+ * on the server.
  *
  * Two guarantees are locked down here:
  *   1. the automatic budget spans minutes, not seconds;

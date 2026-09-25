@@ -4,9 +4,8 @@
  * The stall watchdog was armed only by `setInterval`, which browsers throttle in
  * a backgrounded tab (Chrome ~once a minute, frozen once freeze-eligible) — so
  * the one mechanism that could notice a dead transport was the one the browser
- * had stopped running. Live case 2026-09-16, run 1f227045c804: the transport
- * died 70s in at event 39, the server went on to write 497, and the card sat
- * frozen ~7 minutes with NO reconnect attempt in the nginx log at all.
+ * had stopped running, leaving the card frozen for minutes with no reconnect
+ * attempt while the server kept writing events.
  *
  * These tests never advance the interval. Detection must come from the tab
  * being looked at again.

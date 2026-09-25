@@ -1,5 +1,5 @@
 /**
- * `?demo=<token>` puts one tab on the server-paid tier — our own OpenAI key.
+ * `?demo=<token>` puts one tab on the server-paid tier (the operator's key).
  *
  * Two things matter here and nothing else does: a stray or malformed value
  * must NOT switch the tab onto the paid key, and the token must not outlive
