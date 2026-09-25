@@ -27,16 +27,16 @@ describe('AssistantClient — trigger_github_import action recognition', () => {
     // double-encoded into the agent_reply_str envelope by the wire protocol.
     const wireMessage = JSON.stringify({
       action: 'trigger_github_import',
-      owner: 'ArmenSl',
-      repo: 'new_project-opemco',
+      owner: 'octocat',
+      repo: 'library-app',
       branch: null,
-      message: "Importing **ArmenSl/new_project-opemco** from GitHub — I'll load the project.",
+      message: "Importing **octocat/library-app** from GitHub — I'll load the project.",
     });
     const result = extract(wireMessage);
     expect(result).not.toBeNull();
     expect(result.action).toBe('trigger_github_import');
-    expect(result.owner).toBe('ArmenSl');
-    expect(result.repo).toBe('new_project-opemco');
+    expect(result.owner).toBe('octocat');
+    expect(result.repo).toBe('library-app');
     expect(result.branch).toBeNull();
   });
 
