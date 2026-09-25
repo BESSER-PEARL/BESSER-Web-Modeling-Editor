@@ -15,6 +15,47 @@ export type ExportableProjectPayload = Omit<BesserProject, 'diagrams'> & {
   diagrams: Record<string, ProjectDiagram[]>;
 };
 
+/** Filter a cloned payload without changing active or legacy referenced models. */
+const filterProjectDiagrams = (
+  payload: ExportableProjectPayload,
+  selectedDiagramTypes?: SupportedDiagramType[],
+): ExportableProjectPayload => {
+  const originalDiagrams = payload.diagrams;
+  const filtered: Record<string, ProjectDiagram[]> = {};
+  const indices = { ...payload.currentDiagramIndices };
+
+  for (const [type, diagrams] of Object.entries(originalDiagrams)) {
+    const diagramType = type as SupportedDiagramType;
+    const arr = Array.isArray(diagrams) ? diagrams : [];
+    const active = arr[indices[diagramType] ?? 0] ?? arr[0];
+    indices[diagramType] = 0;
+    if (selectedDiagramTypes?.length && !selectedDiagramTypes.includes(diagramType)) continue;
+    const withContent = arr.filter(diagramHasContent);
+    if (!withContent.length) continue;
+    filtered[type] = withContent;
+    // Filtering [empty, A, B] must not turn active index 1 (A) into B.
+    // If the active diagram itself was empty, select the first retained one.
+    indices[diagramType] = Math.max(0, withContent.indexOf(active));
+  }
+
+  for (const diagrams of Object.values(filtered)) {
+    for (const diagram of diagrams) {
+      if (!diagram.references) continue;
+      // Older imported projects can still contain numeric references despite
+      // the current string-ID type. Resolve them against the ORIGINAL arrays.
+      for (const [type, reference] of Object.entries(diagram.references)) {
+        if (typeof reference !== 'number' || !Number.isInteger(reference) || reference < 0) continue;
+        const referenced = originalDiagrams[type]?.[reference];
+        if (referenced?.id) diagram.references[type as SupportedDiagramType] = referenced.id;
+      }
+    }
+  }
+
+  payload.diagrams = filtered;
+  payload.currentDiagramIndices = indices;
+  return payload;
+};
+
 /**
  * A ProjectDiagram saved by an early build of the agent components panel, which kept the
  * components on the diagram itself instead of in `model.components`.
@@ -84,22 +125,7 @@ export const buildExportableProjectPayload = (
   const projectClone = structuredClone(project) as ExportableProjectPayload;
   projectClone.name = normalizeProjectName(projectClone.name || 'project');
 
-  // Filter out empty diagrams from each type, then remove types with no content
-  const filtered: Record<string, ProjectDiagram[]> = {};
-  for (const [type, diagrams] of Object.entries(projectClone.diagrams)) {
-    if (selectedDiagramTypes && selectedDiagramTypes.length > 0 && !selectedDiagramTypes.includes(type as SupportedDiagramType)) {
-      continue;
-    }
-    const arr = Array.isArray(diagrams) ? diagrams : [];
-    const withContent = (arr as ProjectDiagram[]).filter(diagramHasContent);
-    if (withContent.length > 0) {
-      filtered[type] = withContent;
-    }
-  }
-
-  projectClone.diagrams = filtered;
-
-  return projectClone;
+  return filterProjectDiagrams(projectClone, selectedDiagramTypes);
 };
 
 /**
@@ -113,33 +139,7 @@ export const buildProjectPayloadForBackend = (
   project: BesserProject,
   selectedDiagramTypes?: SupportedDiagramType[],
 ): Record<string, unknown> => {
-  const payload = structuredClone(project);
-  payload.name = normalizeProjectName(payload.name || 'project');
-
-  // Filter out empty diagrams, then remove types with no content
-  const diagrams: Record<string, ProjectDiagram[]> = {};
-  for (const type of Object.keys(payload.diagrams)) {
-    const arr = payload.diagrams[type];
-    if (Array.isArray(arr)) {
-      const withContent = arr.filter(diagramHasContent);
-      if (withContent.length > 0) {
-        diagrams[type] = withContent;
-      }
-    }
-  }
-
-  // Optionally filter to only the requested diagram types
-  if (selectedDiagramTypes && selectedDiagramTypes.length > 0) {
-    const filtered: Record<string, ProjectDiagram[]> = {};
-    for (const type of selectedDiagramTypes) {
-      if (diagrams[type]) {
-        filtered[type] = diagrams[type];
-      }
-    }
-    payload.diagrams = filtered;
-  } else {
-    payload.diagrams = diagrams;
-  }
+  const payload = buildExportableProjectPayload(project, selectedDiagramTypes);
 
   const agentDiagrams = payload.diagrams.AgentDiagram;
   if (Array.isArray(agentDiagrams)) {

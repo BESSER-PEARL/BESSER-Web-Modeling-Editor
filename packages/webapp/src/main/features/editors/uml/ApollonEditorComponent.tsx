@@ -6,6 +6,7 @@ import { toEditorLocale } from '../../../shared/i18n/languages';
 import { ApollonEditorContext } from './apollon-editor-context';
 import { useAppDispatch, useAppSelector } from '../../../app/store/hooks';
 import { isUMLModel } from '../../../shared/types/project';
+import { consumeAutoLayoutRequest } from '../../../shared/utils/autoLayoutSignal';
 import { getAgentComponents } from '../../../shared/utils/projectExportUtils';
 import {
   updateDiagramModelThunk,
@@ -199,6 +200,24 @@ export const ApollonEditorComponent: React.FC = () => {
       });
 
       setEditor!(nextEditor);
+
+      // If the assistant just injected a freshly generated class diagram, let
+      // ELK arrange it now that this new editor instance has the model loaded.
+      // Setting `model` above triggers recreateEditor(), which rebuilds the
+      // store + auto-layout saga and re-arms nextRender; we MUST await that
+      // before dispatching autoLayout, otherwise the layout action fires before
+      // the saga is listening and is silently dropped. Guards bail if the
+      // editor was swapped/destroyed in the meantime.
+      if (consumeAutoLayoutRequest()) {
+        try {
+          await nextEditor.nextRender;
+          if (runId === setupRunRef.current && editorRef.current === nextEditor) {
+            nextEditor.autoLayout();
+          }
+        } catch (error) {
+          console.warn('[ApollonEditorComponent] auto-layout failed:', error);
+        }
+      }
     };
 
     setupEditor().catch(notifyError('Editor setup'));

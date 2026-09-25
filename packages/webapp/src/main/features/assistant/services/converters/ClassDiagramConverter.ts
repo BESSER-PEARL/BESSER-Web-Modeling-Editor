@@ -68,6 +68,7 @@ export class ClassDiagramConverter implements DiagramConverter {
     const allElements: Record<string, any> = {};
     const allRelationships: Record<string, any> = {};
     const classIdMap: Record<string, string> = {};
+    const attachedClasses = new Set<string>();
 
     // Collect all class/enum names so attribute types can reference them
     const allClassNames = new Set<string>();
@@ -86,6 +87,21 @@ export class ClassDiagramConverter implements DiagramConverter {
     systemSpec.relationships?.forEach((rel: any) => {
       const sourceId = classIdMap[rel.sourceClass || rel.source];
       const targetId = classIdMap[rel.targetClass || rel.target];
+      const associationClassId = classIdMap[rel.associationClass];
+      if (rel.associationClass != null) {
+        // Do not silently downgrade an invalid attributed link to a plain
+        // association: that would discard per-link fields in generated apps.
+        if ((rel.type || 'Association').toLowerCase() !== 'association'
+            || !sourceId || !targetId || !associationClassId
+            || allElements[sourceId].type === 'Enumeration'
+            || allElements[targetId].type === 'Enumeration'
+            || allElements[associationClassId].type !== 'Class'
+            || associationClassId === sourceId || associationClassId === targetId
+            || attachedClasses.has(associationClassId)) {
+          throw new Error(`Invalid association-class attachment: ${rel.associationClass}`);
+        }
+        attachedClasses.add(associationClassId);
+      }
       
       if (sourceId && targetId) {
         const relId = generateUniqueId('rel');
@@ -96,7 +112,7 @@ export class ClassDiagramConverter implements DiagramConverter {
             element: sourceId,
             direction: rel.sourceDirection || 'Left',
             multiplicity: rel.sourceMultiplicity || '1',
-            role: '',
+            role: rel.sourceRole || '',
             bounds: { x: 0, y: 0, width: 0, height: 0 }
           },
           target: { 
@@ -113,9 +129,27 @@ export class ClassDiagramConverter implements DiagramConverter {
         };
         applyAssistantRelationshipType(relationship, rel.type);
         allRelationships[relId] = relationship;
+        if (associationClassId) {
+          // The editor and BUML converter already support a class-to-
+          // association link. Its target is the relationship, NOT an endpoint.
+          const linkId = generateUniqueId('classlink');
+          allRelationships[linkId] = {
+            id: linkId,
+            type: 'ClassLinkRel',
+            name: '',
+            owner: null,
+            source: { element: associationClassId, direction: 'Right', multiplicity: '', role: '' },
+            target: { element: relId, direction: 'Left', multiplicity: '', role: '' },
+            bounds: { x: 0, y: 0, width: 0, height: 0 },
+            path: [{ x: 0, y: 0 }, { x: 100, y: 0 }],
+            isManuallyLayouted: false
+          };
+        }
       }
     });
     
+    this.createConstraints(systemSpec, classIdMap, allElements, allRelationships);
+
     return {
       version: "3.0.0",
       type: "ClassDiagram",
@@ -125,6 +159,63 @@ export class ClassDiagramConverter implements DiagramConverter {
       interactive: { elements: {}, relationships: {} },
       assessments: {}
     };
+  }
+
+  /**
+   * Persist the agent's OCL invariants as ClassOCLConstraint elements linked to
+   * their context class. Without this the agent's `constraints` reach the browser
+   * and are dropped, so business rules the user stated in prose ("guests must not
+   * exceed room capacity") never reach the generator.
+   *
+   * Invariants sharing a context are merged into one box, matching how the backend
+   * parses them (`_process_constraints` reads several `context ... inv ...` blocks
+   * out of a single element) and how the editor's own OCL boxes are authored.
+   */
+  private createConstraints(
+    systemSpec: any,
+    classIdMap: Record<string, string>,
+    allElements: Record<string, any>,
+    allRelationships: Record<string, any>
+  ) {
+    const constraints = systemSpec?.constraints;
+    if (!Array.isArray(constraints) || constraints.length === 0) return;
+
+    const byContext = new Map<string, string[]>();
+    for (const c of constraints) {
+      const context = c?.context;
+      const expression = typeof c?.expression === 'string' ? c.expression.trim() : '';
+      if (!expression || !classIdMap[context]) continue;
+      if (!byContext.has(context)) byContext.set(context, []);
+      byContext.get(context)!.push(expression);
+    }
+
+    let index = 0;
+    for (const [context, expressions] of byContext) {
+      const elementId = generateUniqueId('ocl');
+      allElements[elementId] = {
+        id: elementId,
+        name: '',
+        type: 'ClassOCLConstraint',
+        owner: null,
+        bounds: { x: -700, y: index * 170, width: 640, height: 130 },
+        description: '',
+        constraint: expressions.join('\n\n')
+      };
+
+      const linkId = generateUniqueId('ocllink');
+      allRelationships[linkId] = {
+        id: linkId,
+        name: '',
+        type: 'ClassOCLLink',
+        owner: null,
+        bounds: { x: 0, y: 0, width: 0, height: 0 },
+        path: [{ x: 0, y: 0 }, { x: 100, y: 0 }],
+        source: { element: elementId, direction: 'Right', multiplicity: '', role: '' },
+        target: { element: classIdMap[context], direction: 'Left', multiplicity: '', role: '' },
+        isManuallyLayouted: false
+      };
+      index++;
+    }
   }
 
   private createAttributes(spec: any, classId: string, startY: number, startX: number, classNames?: Set<string>) {
@@ -154,6 +245,11 @@ export class ClassDiagramConverter implements DiagramConverter {
       }
       if (attr.isOptional) {
         attrElement.isOptional = true;
+      }
+      // A natural identifier ("identified by its room number"): the agent
+      // marks it and the SQLAlchemy generator emits unique=True for it.
+      if (attr.isExternalId) {
+        attrElement.isExternalId = true;
       }
 
       attributes[attrId] = attrElement;

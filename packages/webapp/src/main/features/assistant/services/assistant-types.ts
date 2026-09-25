@@ -26,6 +26,12 @@ export interface AssistantWorkspaceContext {
   diagramSummaries?: DiagramSummary[];
   projectMetadata?: ProjectMetadata;
   currentDiagramIndices?: Record<string, number>;
+  /**
+   * Research-telemetry participant label, present only when the tab was
+   * opened with a `?pilot=<label>` link. The modeling agent
+   * attaches it to its research-telemetry events; it is never a name/email.
+   */
+  pilotParticipant?: string;
 }
 
 export interface AssistantClientOptions {
@@ -41,6 +47,8 @@ export type AssistantActionName =
   | 'modify_model'
   | 'switch_diagram'
   | 'trigger_generator'
+  | 'trigger_smart_generator'
+  | 'trigger_github_import'
   | 'trigger_export'
   | 'trigger_deploy'
   | 'auto_generate_gui'

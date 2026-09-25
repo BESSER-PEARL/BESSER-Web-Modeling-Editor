@@ -51,6 +51,13 @@ export const localStorageAgentProfileMappings = localStoragePrefix + 'agentProfi
 export const localStorageActiveAgentConfiguration = localStoragePrefix + 'agentActiveConfig';
 export const localStorageAgentBaseModels = localStoragePrefix + 'agentBaseModels';
 /**
+ * Per-user default chosen on the first-run landing: `'model'` (low-code
+ * canvas) or `'agent'` (agentic assistant). When set, the first-run flow skips
+ * the mode-chooser and opens that workspace directly. Written only when the
+ * user ticks "Remember my choice".
+ */
+export const localStoragePreferredInterface = localStoragePrefix + 'preferred_interface';
+/**
  * @deprecated since v7.3.0 — kept for the cleanup migration only. Agent
  * runtime config (platform, intent-recognition technology, LLM
  * provider/model) now lives on the agent diagram itself
@@ -75,11 +82,152 @@ export const localStorageProjectPrefix = localStoragePrefix + 'project_';
 export const localStorageLatestProject = localStoragePrefix + 'latest_project';
 export const localStorageProjectsList = localStoragePrefix + 'projects';
 
+// Unified LLM BYOK session-storage keys — ONE key for the whole app.
+// The user's Anthropic / OpenAI / Mistral / Nebius key is stored ONLY in sessionStorage
+// (tab-lifetime, cleared on tab close), never in localStorage or Redux. A
+// single shared key means the user enters it in ONE place (the shared BYOK
+// dialog, reachable from the assistant drawer, the assistant popup, and the
+// Settings page) and it applies to BOTH the assistant/modeling-agent AND the
+// Spec-Driven Agent.
+export const sessionStorageLlmApiKey = localStoragePrefix + 'llm_api_key';
+export const sessionStorageLlmProvider = localStoragePrefix + 'llm_provider';
+export const sessionStorageLlmModel = localStoragePrefix + 'llm_model';
+// OpenAI-compatible base URL for the 'local' provider (user-supplied, e.g.
+// http://localhost:11434/v1 for Ollama) and the 'pia' provider (the fixed PIA
+// gateway, see PIA_GATEWAY_BASE_URL). Empty/missing = use the backend's own
+// default (its OPENAI_BASE_URL env, or the SDK default).
+export const sessionStorageLlmBaseUrl = localStoragePrefix + 'llm_base_url';
+
+// PIA is LIST's OpenAI-compatible gateway, sent as the base URL for the 'pia'
+// provider regardless of the backend's OPENAI_BASE_URL env. Reachable only from
+// the LIST VPN, so it works when the WME backend runs locally on the VPN.
+export const PIA_GATEWAY_BASE_URL = 'https://gateway.pia.private.list.lu/v1';
+
+// Spec-Driven Agent — BYOK keys alias the unified keys above (kept as named
+// exports so existing imports keep working).
+export const sessionStorageSpecDrivenApiKey = sessionStorageLlmApiKey;
+export const sessionStorageSpecDrivenProvider = sessionStorageLlmProvider;
+export const sessionStorageSpecDrivenLlmModel = sessionStorageLlmModel;
+// User-chosen run budget (NOT secret — still session-scoped so it sits
+// next to the key/model it applies to). Values are plain numbers
+// serialised as strings: USD for cost, whole seconds for runtime.
+export const sessionStorageSpecDrivenMaxCostUsd = localStoragePrefix + 'smart_gen_max_cost_usd';
+export const sessionStorageSpecDrivenMaxRuntimeSeconds =
+  localStoragePrefix + 'smart_gen_max_runtime_seconds';
+// Keyless "Free" tier opt-in for the Spec-Driven Agent. The free tier uses a server-hosted
+// open-weight model and needs NO API key, so it must NOT be represented by
+// writing a placeholder into the unified LLM key above — that store is SHARED
+// with the assistant, and a fake key would break the assistant's own calls.
+// This dedicated flag records the opt-in independently. Value: '1' when set.
+export const sessionStorageSpecDrivenFreeTier = localStoragePrefix + 'smart_gen_free_tier';
+// Explicitly chosen free-tier model id. Stored ONLY when the user picked the
+// server's non-default (fallback/self-hosted) free model; absent = the server's
+// default. Kept apart from the unified LLM model key above for the same reason
+// as the free flag — that store is shared with the assistant's BYOK settings.
+export const sessionStorageSpecDrivenFreeModel = localStoragePrefix + 'smart_gen_free_model';
+
+// AI Assistant — BYOK keys also alias the unified keys above, so entering the
+// key via the assistant fills the same store the Spec-Driven Agent reads.
+export const sessionStorageAssistantApiKey = sessionStorageLlmApiKey;
+export const sessionStorageAssistantProvider = sessionStorageLlmProvider;
+export const sessionStorageAssistantModel = sessionStorageLlmModel;
+
+// Opt-in research telemetry label, set on app load from a `?pilot=<label>`
+// URL and scoped to the tab. Every telemetry event this tab produces carries
+// it; sessions without it produce no telemetry. Value matches
+// ^[A-Za-z0-9_-]{1,16}$ — never a name or email.
+export const sessionStoragePilotParticipant = localStoragePrefix + 'pilot_participant';
+
+// "Describe your app" hand-off key.
+// The Project Hub's Describe flow stashes the user's plain-language prompt here,
+// then closes and hands off to the assistant. The assistant consumes-and-clears
+// it exactly once — after it has mounted AND its WebSocket is connected — and
+// auto-submits it so the agent starts building immediately. Session-scoped so it
+// never survives a tab close; the one-shot consume guards against replaying a
+// stale prompt.
+export const sessionStoragePendingAssistantPrompt = localStoragePrefix + 'pending_assistant_prompt';
+
+// Set when an "agentic" project is created (or when the app is opened with
+// ?agentic): WorkspaceShell consumes-and-clears it once a project is loaded to
+// open the assistant drawer automatically (no prompt is auto-sent).
+export const sessionStorageOpenAssistantOnLoad = localStoragePrefix + 'open_assistant_on_load';
+
+// Remembers whether the assistant drawer was left open or closed, scoped to the
+// tab (sessionStorage) so it survives an in-tab reload but not a tab close.
+// WorkspaceShell (which owns the drawer's open state) reads this on mount and
+// writes it whenever the user opens/closes the drawer, so the assistant stays
+// where the user left it during a session. Value: '1' when open, '0' when closed.
+export const sessionStorageAssistantDrawerOpen = localStoragePrefix + 'assistant_drawer_open';
+
+// One-shot flag: set once the assistant handle has played its subtle "you can
+// drag me" hint animation this tab, so it plays at most once per session and
+// never replays on a re-render or navigation. Value: '1' when already hinted.
+export const sessionStorageAssistantHandleHinted = localStoragePrefix + 'assistant_handle_hinted';
+
+// Spec-Driven Agent — per-project last successful run id (incremental modify).
+// When a spec-driven run finishes, its run_id is stashed here keyed by
+// project so a follow-up "add feature X" can send `mode:'modify'` +
+// `base_run_id` and edit the existing app in place instead of rebuilding —
+// as long as the run is still within the backend's download TTL. Stored in
+// localStorage (not sessionStorage) so it survives a reload. Suffix: `<projectId>`.
+export const localStorageSpecDrivenLastRunPrefix = localStoragePrefix + 'smartgen_lastrun_';
+// Minimal pointer to a currently-running durable generation. Versioned so a
+// future schema change never misreads old recovery data. Contains no API key,
+// prompt, model payload, or generated content.
+export const localStorageSpecDrivenActiveRunV1 = localStoragePrefix + 'smartgen_active:v1';
+// V2 stores one pointer per run (`...:v2:<runId>`), preventing concurrent
+// runs in different tabs/projects from overwriting a single global record.
+export const localStorageSpecDrivenActiveRunV2Prefix =
+  localStoragePrefix + 'smartgen_active:v2:';
+
+// Spec-Driven Agent "Push to GitHub" connect-first intent.
+// When the user clicks "Push to GitHub" on a finished spec-driven run card but
+// isn't signed in yet, we stash ``{ runId, projectId }`` here and kick off the
+// GitHub OAuth redirect. After the redirect back, the push hook consumes this
+// (once, for the matching project) and reopens the push dialog for that run.
+export const sessionStorageSpecDrivenPushIntent = localStoragePrefix + 'smart_gen_push_intent';
+
+// "Continue from GitHub" connect-first intent.
+// When the user picks "Continue from GitHub" in the Project Hub but isn't signed
+// in yet, we stash this flag and kick off the GitHub OAuth redirect. After the
+// redirect back, the Project Hub bootstrap keeps the hub open and the hub jumps
+// straight to the GitHub repo picker (consuming-and-clearing this flag once).
+export const sessionStorageContinueFromGithubIntent = localStoragePrefix + 'continue_from_github_intent';
+
+// Spec-Driven Agent backend endpoints (derived from BACKEND_URL).
+export const SMART_GEN_ENDPOINT = `${BACKEND_URL}/spec-driven/generate`;
+export const SMART_GEN_PREVIEW_ENDPOINT = `${BACKEND_URL}/spec-driven/preview`;
+export const SMART_GEN_CONFIG_ENDPOINT = `${BACKEND_URL}/spec-driven/config`;
+export const specDrivenDownloadUrl = (runId: string): string =>
+  `${BACKEND_URL}/spec-driven/download/${runId}`;
+export const cancelSpecDrivenUrl = (runId: string): string =>
+  `${BACKEND_URL}/spec-driven/cancel/${runId}`;
+export const specDrivenRunStatusUrl = (runId: string): string =>
+  `${BACKEND_URL}/spec-driven/runs/${encodeURIComponent(runId)}`;
+export const specDrivenRunEventsUrl = (runId: string, afterSequence = 0): string =>
+  `${specDrivenRunStatusUrl(runId)}/events?after=${Math.max(0, Math.trunc(afterSequence))}`;
+
+/**
+ * Polling counterpart of `specDrivenRunEventsUrl`: the same durable event log
+ * read as a short, terminating JSON response instead of a stream, sharing one
+ * sequence cursor. A TLS-inspecting corporate proxy buffers a response body
+ * before releasing it and an SSE body never ends, so the stream is the one thing
+ * in the app such a proxy breaks; short JSON requests traverse it normally.
+ */
+export const specDrivenRunEventsJsonUrl = (
+  runId: string,
+  afterSequence = 0,
+  limit = 250,
+): string =>
+  `${specDrivenRunStatusUrl(runId)}/events.json` +
+  `?after=${Math.max(0, Math.trunc(afterSequence))}&limit=${Math.trunc(limit)}`;
+
 // date formats
 export const longDate = 'MMMM Do YYYY, h:mm:ss a';
 
 // toast hide duration in ms
 export const toastAutohideDelay = 2000;
 
-// bug report url
-export const bugReportURL = 'https://github.com/BESSER-PEARL/BESSER/issues/new?template=bug-report.md';
+// bug report repository ("owner/repo") — the single place to retarget issue reporting
+export const bugReportRepo = 'BESSER-PEARL/BESSER';
+export const bugReportURL = `https://github.com/${bugReportRepo}/issues/new?template=bug-report.md`;

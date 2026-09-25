@@ -11,6 +11,11 @@ import { AudioVisualizer } from "@/components/chatbot-kit/ui/audio-visualizer"
 import { Button } from "@/components/ui/button"
 import { FilePreview } from "@/components/chatbot-kit/ui/file-preview"
 import { InterruptPrompt } from "@/components/chatbot-kit/ui/interrupt-prompt"
+import { shouldAttachPaste } from "@/components/chatbot-kit/ui/paste-routing"
+
+/** The chat path's own message cap — a paste longer than this cannot be sent
+ * as text, so it becomes a file whatever its shape. Keep in sync with
+ * `maxMessageLength` in the assistant's rate limiter. */
 
 interface MessageInputBaseProps
   extends React.TextareaHTMLAttributes<HTMLTextAreaElement> {
@@ -127,14 +132,10 @@ export function MessageInput({
     if (!items) return
 
     const text = event.clipboardData.getData("text")
-    // Threshold high enough that a multi-sentence natural-language request (e.g.
-    // "the customer places an order, then the system checks stock, then...", a
-    // typical BPMN/state-machine process description) stays as normal chat text
-    // and goes through intent routing, instead of being silently rerouted into
-    // file-conversion (a different code path with much narrower diagram-type
-    // detection). Still catches genuinely large pastes (JSON dumps, full
-    // PlantUML/CSV files, etc.).
-    if (text && text.length > 3000 && props.allowAttachments) {
+    // Route on WHAT was pasted, not just how long it is: a length cut-off sent
+    // ordinary prose — a requirements brief is the core input of a spec-driven
+    // tool — down the narrower file-conversion path. See `shouldAttachPaste`.
+    if (text && shouldAttachPaste(text) && props.allowAttachments) {
       event.preventDefault()
       const blob = new Blob([text], { type: "text/plain" })
       const file = new File([blob], t("assistant.chatKit.pastedText"), {

@@ -3,6 +3,7 @@ import { ApollonMode, Locale, Styles, UMLDiagramType, UMLModel } from '@besser/w
 import {
   ALL_DIAGRAM_TYPES,
   BesserProject,
+  InterfaceMode,
   MAX_DIAGRAMS_PER_TYPE,
   PerspectiveSettings,
   ProjectDiagram,
@@ -175,15 +176,17 @@ export const createProjectThunk = createAsyncThunk(
     description,
     owner,
     perspectives,
+    preferredInterface,
   }: {
     name: string;
     description: string;
     owner: string;
     perspectives?: PerspectiveSettings;
+    preferredInterface?: InterfaceMode;
   }) => {
     let project!: BesserProject;
     ProjectStorageRepository.withoutNotify(() => {
-      project = ProjectStorageRepository.createNewProject(name, description, owner, perspectives);
+      project = ProjectStorageRepository.createNewProject(name, description, owner, perspectives, preferredInterface);
     });
     return project;
   },

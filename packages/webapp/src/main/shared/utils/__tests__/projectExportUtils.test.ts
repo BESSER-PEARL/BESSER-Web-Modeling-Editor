@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { UMLDiagramType } from '@besser/wme';
 import {
   buildExportableProjectPayload,
+  buildProjectPayloadForBackend,
   buildProjectExportEnvelope,
   ExportableProjectPayload,
 } from '../projectExportUtils';
@@ -115,6 +116,45 @@ describe('diagramHasContent', () => {
 // ────────────────────────────────────────────────────────────────────────────
 // buildExportableProjectPayload
 // ────────────────────────────────────────────────────────────────────────────
+
+describe.each([
+  ['export', buildExportableProjectPayload],
+  ['backend', buildProjectPayloadForBackend],
+] as const)('%s diagram selection preservation', (_name, buildPayload) => {
+  it('preserves active identities and resolves legacy references before filtering', () => {
+    const project = createDefaultProject('Selection', 'desc', 'owner');
+    const classA = createNonEmptyUMLDiagram('A', UMLDiagramType.ClassDiagram);
+    const classB = createNonEmptyUMLDiagram('B', UMLDiagramType.ClassDiagram);
+    const guiA = createNonEmptyGUIDiagram('GUI A');
+    const guiB = createNonEmptyGUIDiagram('GUI B');
+    guiA.references = { ClassDiagram: 1 } as unknown as ProjectDiagram['references'];
+    guiB.references = { ClassDiagram: classB.id };
+    project.diagrams.ClassDiagram = [createEmptyDiagram('Empty', UMLDiagramType.ClassDiagram), classA, classB];
+    project.diagrams.GUINoCodeDiagram = [createEmptyDiagram('Empty GUI', null, 'gui'), guiA, guiB];
+    project.currentDiagramIndices.ClassDiagram = 2;
+    project.currentDiagramIndices.GUINoCodeDiagram = 1;
+    const original = structuredClone(project);
+
+    const payload = buildPayload(project) as ExportableProjectPayload;
+    expect(payload.currentDiagramIndices.ClassDiagram).toBe(1);
+    expect(payload.currentDiagramIndices.GUINoCodeDiagram).toBe(0);
+    expect(payload.diagrams.GUINoCodeDiagram[0].id).toBe(guiA.id);
+    expect(payload.diagrams.GUINoCodeDiagram[0].references?.ClassDiagram).toBe(classA.id);
+    expect(payload.diagrams.GUINoCodeDiagram[1].references?.ClassDiagram).toBe(classB.id);
+    expect(project).toEqual(original);
+  });
+
+  it('selects the first retained diagram when the active one is empty and respects type filters', () => {
+    const project = createDefaultProject('Selection', 'desc', 'owner');
+    const retained = createNonEmptyUMLDiagram('Retained', UMLDiagramType.ClassDiagram);
+    project.diagrams.ClassDiagram = [createEmptyDiagram('Empty', UMLDiagramType.ClassDiagram), retained];
+    project.diagrams.GUINoCodeDiagram = [createNonEmptyGUIDiagram('GUI')];
+    const payload = buildPayload(project, ['ClassDiagram']) as ExportableProjectPayload;
+    expect(payload.currentDiagramIndices.ClassDiagram).toBe(0);
+    expect(payload.diagrams.ClassDiagram[0].id).toBe(retained.id);
+    expect(payload.diagrams.GUINoCodeDiagram).toBeUndefined();
+  });
+});
 
 describe('buildExportableProjectPayload', () => {
   it('filters out diagram types where ALL diagrams are empty', () => {
@@ -274,6 +314,7 @@ describe('round-trip: export filters empty diagrams, import restores them', () =
       GUINoCodeDiagram: null,
       QuantumCircuitDiagram: null,
       NNDiagram: null,
+      BPMN: null,
     };
     const diagramTitles: Record<SupportedDiagramType, string> = {
       ClassDiagram: 'Class Diagram',
@@ -284,6 +325,7 @@ describe('round-trip: export filters empty diagrams, import restores them', () =
       GUINoCodeDiagram: 'GUI Diagram',
       QuantumCircuitDiagram: 'Quantum Circuit',
       NNDiagram: 'Neural Network Diagram',
+      BPMN: 'BPMN Diagram',
     };
     const diagramKinds: Partial<Record<SupportedDiagramType, 'gui' | 'quantum'>> = {
       GUINoCodeDiagram: 'gui',
