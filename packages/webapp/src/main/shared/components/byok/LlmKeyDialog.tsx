@@ -256,7 +256,8 @@ export const MODEL_PRESETS: Record<LlmProvider, readonly ModelPreset[]> = {
   // GPT-6 (astra/sol/luna) is newer; whether it needs the same flag is decided
   // backend-side.
   openai: [
-    { value: 'gpt-6-astra', label: 'GPT-6 Astra — flagship, highest cost' },
+    // gpt-6-astra is left out: it rejects function tools with reasoning off,
+    // which the Spec-Driven Agent needs.
     { value: 'gpt-6-sol', label: 'GPT-6 Sol — balanced' },
     { value: 'gpt-6-luna', label: 'GPT-6 Luna — fast & cheap' },
     { value: 'gpt-5.6-terra', label: 'GPT-5.6 Terra — balanced (recommended)' },

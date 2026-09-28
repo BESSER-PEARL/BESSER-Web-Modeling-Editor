@@ -249,7 +249,6 @@ describe('LlmKeyDialog — model pickers', () => {
   it('offers GPT-6 alongside the GPT-5.6 family', () => {
     expect(modelOptions('openai')).toEqual([
       '',
-      'gpt-6-astra',
       'gpt-6-sol',
       'gpt-6-luna',
       'gpt-5.6-terra',
