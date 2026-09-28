@@ -19,9 +19,9 @@ import './styles.css';
 // Run localStorage schema migrations before anything else reads stored data
 runStorageMigrations();
 
-// Opt-in research telemetry: capture the `?pilot=<label>` parameter before
-// the router can touch the URL. Without it this is a no-op and no telemetry
-// is ever produced.
+// Opt-in research study mode: capture the `?study=<label>` (or legacy
+// `?pilot=<label>`) parameter before the router can touch the URL. Without it
+// this is a no-op and no telemetry is ever produced.
 initPilotModeFromUrl();
 
 // Demo mode: capture the `?demo=<token>` secret before the router can

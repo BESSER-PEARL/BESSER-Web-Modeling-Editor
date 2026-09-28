@@ -1,8 +1,9 @@
 /**
- * Opt-in research telemetry (`?pilot=<label>`) — regression tests.
+ * Opt-in research study mode (`?study=<label>`, alias `?pilot=<label>`) —
+ * regression tests.
  *
  * The load-bearing invariants:
- *  - collection is OFF by default: without a valid `?pilot=` label nothing is
+ *  - collection is OFF by default: without a valid study label nothing is
  *    stored and nothing is ever posted;
  *  - the telemetry session id is the assistant's per-tab session id (one id,
  *    never two);
@@ -44,6 +45,25 @@ describe('initPilotModeFromUrl', () => {
     expect(getPilotParticipant()).toBe('P3');
     expect(isPilotSession()).toBe(true);
     expect(window.sessionStorage.getItem(sessionStoragePilotParticipant)).toBe('P3');
+  });
+
+  it('accepts the study link form ?study=', () => {
+    setUrl('?study=P4');
+    initPilotModeFromUrl();
+    expect(getPilotParticipant()).toBe('P4');
+    expect(window.sessionStorage.getItem(sessionStoragePilotParticipant)).toBe('P4');
+  });
+
+  it('prefers ?study= when a link carries both forms', () => {
+    setUrl('?study=P4&pilot=P9');
+    initPilotModeFromUrl();
+    expect(getPilotParticipant()).toBe('P4');
+  });
+
+  it('applies the label pattern to ?study= too', () => {
+    setUrl(`?study=${encodeURIComponent('P 4')}`);
+    initPilotModeFromUrl();
+    expect(getPilotParticipant()).toBeNull();
   });
 
   it('ignores labels that fail the contract pattern', () => {

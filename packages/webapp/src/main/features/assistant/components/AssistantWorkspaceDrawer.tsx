@@ -793,7 +793,7 @@ export const AssistantWorkspaceDrawer: React.FC<AssistantWorkspaceDrawerProps> =
 
               {/* Bottom spacer + footer */}
               <div className="flex-[1_1_8%] min-h-4" />
-              {/* Pilot-experiment transparency line (regular sessions render nothing) */}
+              {/* Study-mode notice (regular sessions render nothing) */}
               <PilotSessionNotice className="pb-1.5" />
               <p className="animate-fade-up pb-4 text-center text-[10px] text-muted-foreground/35" style={{ animationDelay: '500ms' }}>
                 {t('assistant.welcome.pressEscPre')} <kbd className="rounded-[3px] border border-border/30 bg-muted/25 px-1.5 py-0.5 font-mono text-[9px]">Esc</kbd> {t('assistant.welcome.pressEscPost')}
@@ -808,7 +808,7 @@ export const AssistantWorkspaceDrawer: React.FC<AssistantWorkspaceDrawerProps> =
               <div className="relative min-h-0 flex-1">
                 <div ref={messageListContainerRef} className="h-full overflow-y-auto bg-gradient-to-b from-muted/10 via-background to-muted/5 px-4 py-6 sm:px-8">
                   <div className="mx-auto w-full max-w-4xl">
-                    {/* Pilot-experiment transparency line (regular sessions render nothing) */}
+                    {/* Study-mode notice (regular sessions render nothing) */}
                     <PilotSessionNotice className="mb-4" />
                     <MessageList
                       messages={messages}

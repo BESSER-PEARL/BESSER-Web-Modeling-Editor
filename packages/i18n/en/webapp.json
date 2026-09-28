@@ -1313,7 +1313,7 @@
       "privacyBody": "Avoid sharing sensitive or confidential information in assistant messages.",
       "understand": "I Understand"
     },
-    "pilotNotice": "This pilot session is recorded for research purposes.",
+    "pilotNotice": "Research study mode is on. This tab records your prompts, what the assistant did with them, generation-run results, and downloads or GitHub actions, for a research study. It is on only because you opened a study link. Close this tab to stop.",
     "poweredWithBaf": "Powered with BAF",
     "capabilities": {
       "systemDesign": {
