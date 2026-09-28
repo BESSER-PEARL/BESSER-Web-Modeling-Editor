@@ -2352,7 +2352,7 @@
     }
   },
   "personalize": {
-    "title": "Personalize Agent",
+    "title": "Personalize",
     "description": "Create a personalized variant of the agent model using a user profile",
     "selectProfile": "Select a User Profile",
     "selectProfilePlaceholder": "Choose a profile...",

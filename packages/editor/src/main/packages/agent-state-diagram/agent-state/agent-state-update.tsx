@@ -22,6 +22,7 @@ import { AgentStateFallbackBody } from '../agent-state-fallback-body/agent-state
 import { AgentState } from './agent-state';
 import { AgentStateMember } from '../agent-state/agent-state-member';
 
+import { ExpandableTextfield } from '../expandable-textfield';
 import { Controlled as CodeMirror } from 'react-codemirror2';
 import 'codemirror/lib/codemirror.css';
 import 'codemirror/theme/material.css';
@@ -635,23 +636,35 @@ class StateUpdate extends Component<Props, State> {
       </Section>
       <Section>
         <Header>{this.props.translate('packages.AgentDiagram.systemPrompt')}</Header>
-        <Textfield
+        <ExpandableTextfield
           value={element.system_prompt || ''}
-          multiline
-          enterToSubmit={false}
-          placeholder={this.props.translate('packages.AgentDiagram.optionalSystemPromptPrefix')}
-          onChange={(system_prompt) => this.props.update<AgentState>(element.id, { system_prompt } as any)}
-        />
+          onSave={(system_prompt) => this.props.update<AgentState>(element.id, { system_prompt } as any)}
+          label={this.props.translate('packages.AgentDiagram.systemPrompt')}
+        >
+          <Textfield
+            value={element.system_prompt || ''}
+            multiline
+            enterToSubmit={false}
+            placeholder={this.props.translate('packages.AgentDiagram.optionalSystemPromptPrefix')}
+            onChange={(system_prompt) => this.props.update<AgentState>(element.id, { system_prompt } as any)}
+          />
+        </ExpandableTextfield>
       </Section>
       <Section>
         <Header>{this.props.translate('packages.AgentDiagram.fallbackMessage')}</Header>
-        <Textfield
+        <ExpandableTextfield
           value={element.fallback_message || ''}
-          multiline
-          enterToSubmit={false}
-          placeholder={this.props.translate('packages.AgentDiagram.messageReturnedIfReasoningFails')}
-          onChange={(fallback_message) => this.props.update<AgentState>(element.id, { fallback_message } as any)}
-        />
+          onSave={(fallback_message) => this.props.update<AgentState>(element.id, { fallback_message } as any)}
+          label={this.props.translate('packages.AgentDiagram.fallbackMessage')}
+        >
+          <Textfield
+            value={element.fallback_message || ''}
+            multiline
+            enterToSubmit={false}
+            placeholder={this.props.translate('packages.AgentDiagram.messageReturnedIfReasoningFails')}
+            onChange={(fallback_message) => this.props.update<AgentState>(element.id, { fallback_message } as any)}
+          />
+        </ExpandableTextfield>
       </Section>
     </>
   );
@@ -999,12 +1012,20 @@ class StateUpdate extends Component<Props, State> {
     switch (action.replyType) {
       case 'text':
         return (
-          <Textfield
-            outline
+          <ExpandableTextfield
             value={action.name}
-            onChange={(value) => this.props.update(action.id, { name: value })}
-            placeholder="Enter reply message"
-          />
+            onSave={(value) => this.props.update(action.id, { name: value })}
+            label={this.props.translate('packages.AgentDiagram.replyMessage') || 'Reply message'}
+          >
+            <Textfield
+              outline
+              multiline
+              enterToSubmit={false}
+              value={action.name}
+              onChange={(value) => this.props.update(action.id, { name: value })}
+              placeholder="Enter reply message"
+            />
+          </ExpandableTextfield>
         );
       case 'llm':
         return (
@@ -1074,14 +1095,20 @@ class StateUpdate extends Component<Props, State> {
                   ]}
                 </Dropdown>
                 <Header style={{ marginTop: 6 }}>{this.props.translate('packages.AgentDiagram.prompt')}</Header>
-                <Textfield
-                  outline
-                  multiline
-                  enterToSubmit={false}
+                <ExpandableTextfield
                   value={action.prompt || ''}
-                  onChange={(value) => this.props.update<AgentStateMember>(action.id, { prompt: value })}
-                  placeholder={this.props.translate('packages.AgentDiagram.optionalPromptPassed')}
-                />
+                  onSave={(value) => this.props.update<AgentStateMember>(action.id, { prompt: value })}
+                  label={this.props.translate('packages.AgentDiagram.prompt')}
+                >
+                  <Textfield
+                    outline
+                    multiline
+                    enterToSubmit={false}
+                    value={action.prompt || ''}
+                    onChange={(value) => this.props.update<AgentStateMember>(action.id, { prompt: value })}
+                    placeholder={this.props.translate('packages.AgentDiagram.optionalPromptPassed')}
+                  />
+                </ExpandableTextfield>
               </LlmFieldRow>
             ) : (
               <p style={{ fontSize: 12, margin: '4px 0', opacity: 0.7 }}>
@@ -1313,19 +1340,30 @@ class StateUpdate extends Component<Props, State> {
         content = (
           <LlmFieldRow>
             <Header>{this.props.translate('packages.AgentDiagram.message')}</Header>
-            <Textfield
-              outline
-              multiline
-              enterToSubmit={false}
+            <ExpandableTextfield
               value={action.ws_message || ''}
-              onChange={(v) =>
+              onSave={(v) =>
                 this.props.update<AgentStateMember>(action.id, {
                   ws_message: v,
                   name: v ? v.slice(0, 40) : `${ACTION_TYPE_LABELS[action.replyType]} (empty)`,
                 })
               }
-              placeholder={action.replyType === 'ws_markdown' ? '**Bold**, *italic*, etc.' : '<p>HTML content</p>'}
-            />
+              label={this.props.translate('packages.AgentDiagram.message')}
+            >
+              <Textfield
+                outline
+                multiline
+                enterToSubmit={false}
+                value={action.ws_message || ''}
+                onChange={(v) =>
+                  this.props.update<AgentStateMember>(action.id, {
+                    ws_message: v,
+                    name: v ? v.slice(0, 40) : `${ACTION_TYPE_LABELS[action.replyType]} (empty)`,
+                  })
+                }
+                placeholder={action.replyType === 'ws_markdown' ? '**Bold**, *italic*, etc.' : '<p>HTML content</p>'}
+              />
+            </ExpandableTextfield>
           </LlmFieldRow>
         );
         break;
@@ -1333,14 +1371,20 @@ class StateUpdate extends Component<Props, State> {
         content = (
           <LlmFieldRow>
             <Header>{this.props.translate('packages.AgentDiagram.message')}</Header>
-            <Textfield
-              outline
-              multiline
-              enterToSubmit={false}
+            <ExpandableTextfield
               value={action.ws_message || ''}
-              onChange={(v) => this.props.update<AgentStateMember>(action.id, { ws_message: v })}
-              placeholder="Text to convert to speech"
-            />
+              onSave={(v) => this.props.update<AgentStateMember>(action.id, { ws_message: v })}
+              label={this.props.translate('packages.AgentDiagram.message')}
+            >
+              <Textfield
+                outline
+                multiline
+                enterToSubmit={false}
+                value={action.ws_message || ''}
+                onChange={(v) => this.props.update<AgentStateMember>(action.id, { ws_message: v })}
+                placeholder="Text to convert to speech"
+              />
+            </ExpandableTextfield>
             <Header style={{ marginTop: 6 }}>{this.props.translate('packages.AgentDiagram.audioSpeedOptional')}</Header>
             <Textfield
               outline
@@ -1360,20 +1404,32 @@ class StateUpdate extends Component<Props, State> {
         content = (
           <LlmFieldRow>
             <Header>{this.props.translate('packages.AgentDiagram.optionsOnePerLine')}</Header>
-            <Textfield
-              outline
-              multiline
-              enterToSubmit={false}
+            <ExpandableTextfield
               value={action.ws_options || ''}
-              onChange={(v) => {
+              onSave={(v) => {
                 const count = v.split('\n').filter(Boolean).length;
                 this.props.update<AgentStateMember>(action.id, {
                   ws_options: v,
                   name: count > 0 ? `Options: ${count} item(s)` : 'Options (no options)',
                 });
               }}
-              placeholder={'Yes\nNo\nMaybe'}
-            />
+              label={this.props.translate('packages.AgentDiagram.optionsOnePerLine')}
+            >
+              <Textfield
+                outline
+                multiline
+                enterToSubmit={false}
+                value={action.ws_options || ''}
+                onChange={(v) => {
+                  const count = v.split('\n').filter(Boolean).length;
+                  this.props.update<AgentStateMember>(action.id, {
+                    ws_options: v,
+                    name: count > 0 ? `Options: ${count} item(s)` : 'Options (no options)',
+                  });
+                }}
+                placeholder={'Yes\nNo\nMaybe'}
+              />
+            </ExpandableTextfield>
           </LlmFieldRow>
         );
         break;
@@ -1481,12 +1537,18 @@ class StateUpdate extends Component<Props, State> {
       </LlmSelect>
       {options?.warning && <p style={{ fontSize: 12, margin: '4px 0', opacity: 0.7 }}>{options.warning}</p>}
       <Header style={{ marginTop: 6 }}>{this.props.translate('packages.AgentDiagram.systemMessage')}</Header>
-      <Textfield
-        outline
+      <ExpandableTextfield
         value={member.system_message || ''}
-        onChange={(value) => this.props.update<AgentStateMember>(member.id, { system_message: value })}
-        placeholder={this.props.translate('packages.AgentDiagram.youAreHelpfulAssistant')}
-      />
+        onSave={(value) => this.props.update<AgentStateMember>(member.id, { system_message: value })}
+        label={this.props.translate('packages.AgentDiagram.systemMessage')}
+      >
+        <Textfield
+          outline
+          value={member.system_message || ''}
+          onChange={(value) => this.props.update<AgentStateMember>(member.id, { system_message: value })}
+          placeholder={this.props.translate('packages.AgentDiagram.youAreHelpfulAssistant')}
+        />
+      </ExpandableTextfield>
     </LlmFieldRow>
   );
 
@@ -1613,14 +1675,20 @@ class StateUpdate extends Component<Props, State> {
             </label>
           </RadioGroup>
           {dbQueryMode === 'sql' ? (
-            <Textfield
-              outline
-              multiline
-              enterToSubmit={false}
-              placeholder="SELECT * FROM table_name"
+            <ExpandableTextfield
               value={member.dbSqlQuery || ''}
-              onChange={(value) => this.updateDbReply(member, { dbSqlQuery: value })}
-            />
+              onSave={(value) => this.updateDbReply(member, { dbSqlQuery: value })}
+              label="SQL Query"
+            >
+              <Textfield
+                outline
+                multiline
+                enterToSubmit={false}
+                placeholder="SELECT * FROM table_name"
+                value={member.dbSqlQuery || ''}
+                onChange={(value) => this.updateDbReply(member, { dbSqlQuery: value })}
+              />
+            </ExpandableTextfield>
           ) : (
             <>
               {llmNames.length === 0 && (
@@ -1720,14 +1788,20 @@ class StateUpdate extends Component<Props, State> {
         <Header style={{ marginTop: 6 }}>
           {this.props.translate('packages.AgentDiagram.systemMessagePrefixOptional')}
         </Header>
-        <Textfield
-          outline
-          multiline
-          enterToSubmit={false}
+        <ExpandableTextfield
           value={member.system_message_prefix || ''}
-          onChange={(value) => this.props.update<AgentStateMember>(member.id, { system_message_prefix: value })}
-          placeholder={this.props.translate('packages.AgentDiagram.useFollowingWebpageContent')}
-        />
+          onSave={(value) => this.props.update<AgentStateMember>(member.id, { system_message_prefix: value })}
+          label={this.props.translate('packages.AgentDiagram.systemMessagePrefixOptional')}
+        >
+          <Textfield
+            outline
+            multiline
+            enterToSubmit={false}
+            value={member.system_message_prefix || ''}
+            onChange={(value) => this.props.update<AgentStateMember>(member.id, { system_message_prefix: value })}
+            placeholder={this.props.translate('packages.AgentDiagram.useFollowingWebpageContent')}
+          />
+        </ExpandableTextfield>
         <Header style={{ marginTop: 6 }}>{this.props.translate('packages.AgentDiagram.llm')}</Header>
         <LlmSelect
           value={member.llm_name || ''}

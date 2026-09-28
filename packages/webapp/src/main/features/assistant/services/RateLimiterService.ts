@@ -128,7 +128,7 @@ export class RateLimiterService {
     this.config = {
       maxRequestsPerMinute: options?.maxRequestsPerMinute ?? 12,
       maxRequestsPerHour: options?.maxRequestsPerHour ?? 80,
-      maxMessageLength: options?.maxMessageLength ?? 1000,
+      maxMessageLength: options?.maxMessageLength ?? 10000,
       cooldownPeriodMs: options?.cooldownPeriodMs ?? 1500,
     };
 

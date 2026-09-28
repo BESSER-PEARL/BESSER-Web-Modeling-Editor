@@ -1,0 +1,1351 @@
+{
+  "project": {
+    "id": "effd5b10-f8bf-4c91-a043-767ed4687b0f",
+    "type": "Project",
+    "schemaVersion": 4,
+    "name": "MuseumAgent",
+    "description": "Workspace to create the museum assistant. ",
+    "owner": "Study Participant",
+    "createdAt": "2026-09-28T06:53:28.164Z",
+    "currentDiagramType": "AgentDiagram",
+    "currentDiagramIndices": {
+      "ClassDiagram": 0,
+      "ObjectDiagram": 0,
+      "StateMachineDiagram": 0,
+      "AgentDiagram": 0,
+      "UserDiagram": 0,
+      "GUINoCodeDiagram": 0,
+      "QuantumCircuitDiagram": 0,
+      "NNDiagram": 0,
+      "BPMN": 0
+    },
+    "diagrams": {
+      "AgentDiagram": [
+        {
+          "id": "e63c37a7-ad22-4df6-a2b5-f46ed792d7b4",
+          "title": "Museum Agent",
+          "model": {
+            "version": "3.0.0",
+            "type": "AgentDiagram",
+            "size": {
+              "width": 2478,
+              "height": 1300
+            },
+            "interactive": {
+              "elements": {},
+              "relationships": {}
+            },
+            "elements": {
+              "initial_72th6ksf3_mm9b38u1": {
+                "id": "initial_72th6ksf3_mm9b38u1",
+                "name": "",
+                "type": "StateInitialNode",
+                "owner": null,
+                "bounds": {
+                  "x": -1043,
+                  "y": -263,
+                  "width": 45,
+                  "height": 45
+                }
+              },
+              "intent_jtmr4apyg_mm9b38u1": {
+                "id": "intent_jtmr4apyg_mm9b38u1",
+                "name": "OpeningHours",
+                "type": "AgentIntent",
+                "owner": null,
+                "bounds": {
+                  "x": -1219,
+                  "y": -573,
+                  "width": 430,
+                  "height": 190
+                },
+                "bodies": [
+                  "intentBody_jn9sy9wl2_mm9b38u1",
+                  "intentBody_61dj9fnk0_mm9b38u1",
+                  "intentBody_b8jkj9t1s_mm9b38u1",
+                  "intentBody_jl9eozt0r_mm9b38u1"
+                ],
+                "intent_description": "Asking for the opening hours of the museum."
+              },
+              "intentBody_jn9sy9wl2_mm9b38u1": {
+                "id": "intentBody_jn9sy9wl2_mm9b38u1",
+                "name": "what are the opening hours?",
+                "type": "AgentIntentBody",
+                "owner": "intent_jtmr4apyg_mm9b38u1",
+                "bounds": {
+                  "x": -1218.5,
+                  "y": -502.5,
+                  "width": 429,
+                  "height": 30
+                }
+              },
+              "intentBody_61dj9fnk0_mm9b38u1": {
+                "id": "intentBody_61dj9fnk0_mm9b38u1",
+                "name": "museum hours",
+                "type": "AgentIntentBody",
+                "owner": "intent_jtmr4apyg_mm9b38u1",
+                "bounds": {
+                  "x": -1218.5,
+                  "y": -472.5,
+                  "width": 429,
+                  "height": 30
+                }
+              },
+              "intentBody_b8jkj9t1s_mm9b38u1": {
+                "id": "intentBody_b8jkj9t1s_mm9b38u1",
+                "name": "when do you open?",
+                "type": "AgentIntentBody",
+                "owner": "intent_jtmr4apyg_mm9b38u1",
+                "bounds": {
+                  "x": -1218.5,
+                  "y": -442.5,
+                  "width": 429,
+                  "height": 30
+                }
+              },
+              "intentBody_jl9eozt0r_mm9b38u1": {
+                "id": "intentBody_jl9eozt0r_mm9b38u1",
+                "name": "hours of operation",
+                "type": "AgentIntentBody",
+                "owner": "intent_jtmr4apyg_mm9b38u1",
+                "bounds": {
+                  "x": -1218.5,
+                  "y": -412.5,
+                  "width": 429,
+                  "height": 30
+                }
+              },
+              "intent_ggq3p9gv8_mm9b38u1": {
+                "id": "intent_ggq3p9gv8_mm9b38u1",
+                "name": "Fortress",
+                "type": "AgentIntent",
+                "owner": null,
+                "bounds": {
+                  "x": -1198,
+                  "y": 212,
+                  "width": 630,
+                  "height": 160
+                },
+                "bodies": [
+                  "intentBody_06wxt0vga_mm9b38u1",
+                  "intentBody_14tgxxf1f_mm9b38u1",
+                  "intentBody_j2ugmtuh8_mm9b38u1"
+                ],
+                "intent_description": "user is stating that they state in front of the exhibit fortress of luxembourg"
+              },
+              "intentBody_06wxt0vga_mm9b38u1": {
+                "id": "intentBody_06wxt0vga_mm9b38u1",
+                "name": "i am standing in front of the fortress",
+                "type": "AgentIntentBody",
+                "owner": "intent_ggq3p9gv8_mm9b38u1",
+                "bounds": {
+                  "x": -1197.5,
+                  "y": 282.5,
+                  "width": 629,
+                  "height": 30
+                }
+              },
+              "intentBody_14tgxxf1f_mm9b38u1": {
+                "id": "intentBody_14tgxxf1f_mm9b38u1",
+                "name": "fortress model",
+                "type": "AgentIntentBody",
+                "owner": "intent_ggq3p9gv8_mm9b38u1",
+                "bounds": {
+                  "x": -1197.5,
+                  "y": 312.5,
+                  "width": 629,
+                  "height": 30
+                }
+              },
+              "intentBody_j2ugmtuh8_mm9b38u1": {
+                "id": "intentBody_j2ugmtuh8_mm9b38u1",
+                "name": "fortification",
+                "type": "AgentIntentBody",
+                "owner": "intent_ggq3p9gv8_mm9b38u1",
+                "bounds": {
+                  "x": -1197.5,
+                  "y": 342.5,
+                  "width": 629,
+                  "height": 30
+                }
+              },
+              "intent_zuidaui0x_mm9b38u1": {
+                "id": "intent_zuidaui0x_mm9b38u1",
+                "name": "Pricing",
+                "type": "AgentIntent",
+                "owner": null,
+                "bounds": {
+                  "x": -1215,
+                  "y": -128,
+                  "width": 430,
+                  "height": 190
+                },
+                "bodies": [
+                  "intentBody_9kmxc6vnq_mm9b38u1",
+                  "intentBody_mxczpzj8h_mm9b38u1",
+                  "intentBody_8yqem5n2k_mm9b38u1",
+                  "ff890f28-1e0d-44d3-9293-b6d59f497bd9"
+                ],
+                "intent_description": "question about the price to enter the museum"
+              },
+              "intentBody_9kmxc6vnq_mm9b38u1": {
+                "id": "intentBody_9kmxc6vnq_mm9b38u1",
+                "name": "price",
+                "type": "AgentIntentBody",
+                "owner": "intent_zuidaui0x_mm9b38u1",
+                "bounds": {
+                  "x": -1214.5,
+                  "y": -57.5,
+                  "width": 429,
+                  "height": 30
+                }
+              },
+              "intentBody_mxczpzj8h_mm9b38u1": {
+                "id": "intentBody_mxczpzj8h_mm9b38u1",
+                "name": "prices",
+                "type": "AgentIntentBody",
+                "owner": "intent_zuidaui0x_mm9b38u1",
+                "bounds": {
+                  "x": -1214.5,
+                  "y": -27.5,
+                  "width": 429,
+                  "height": 30
+                }
+              },
+              "intentBody_8yqem5n2k_mm9b38u1": {
+                "id": "intentBody_8yqem5n2k_mm9b38u1",
+                "name": "cost",
+                "type": "AgentIntentBody",
+                "owner": "intent_zuidaui0x_mm9b38u1",
+                "bounds": {
+                  "x": -1214.5,
+                  "y": 2.5,
+                  "width": 429,
+                  "height": 30
+                }
+              },
+              "ff890f28-1e0d-44d3-9293-b6d59f497bd9": {
+                "id": "ff890f28-1e0d-44d3-9293-b6d59f497bd9",
+                "name": "entry fee",
+                "type": "AgentIntentBody",
+                "owner": "intent_zuidaui0x_mm9b38u1",
+                "bounds": {
+                  "x": -1214.5,
+                  "y": 32.5,
+                  "width": 429,
+                  "height": 30
+                }
+              },
+              "state_zl3bfe65n_mm9b38u1": {
+                "id": "state_zl3bfe65n_mm9b38u1",
+                "name": "Idle",
+                "type": "AgentState",
+                "owner": null,
+                "bounds": {
+                  "x": -423,
+                  "y": -305,
+                  "width": 420,
+                  "height": 100
+                },
+                "stateType": "standard",
+                "fallbackBodyEnabled": true,
+                "actions": [
+                  "body_wybm5pc31_mm9b38u1"
+                ],
+                "fallbackActions": [
+                  "b3d4dca0-b357-4d0c-b4ff-0e29c3c13c41"
+                ],
+                "bodies": [
+                  "body_wybm5pc31_mm9b38u1"
+                ],
+                "fallbackBodies": [
+                  "b3d4dca0-b357-4d0c-b4ff-0e29c3c13c41"
+                ]
+              },
+              "body_wybm5pc31_mm9b38u1": {
+                "id": "body_wybm5pc31_mm9b38u1",
+                "name": "Let me know how I can help you!",
+                "type": "AgentStateBody",
+                "owner": "state_zl3bfe65n_mm9b38u1",
+                "bounds": {
+                  "x": -422.5,
+                  "y": -264.5,
+                  "width": 419,
+                  "height": 30
+                },
+                "actionType": "TextReplyAction",
+                "replyType": "text",
+                "llm_name": ""
+              },
+              "b3d4dca0-b357-4d0c-b4ff-0e29c3c13c41": {
+                "id": "b3d4dca0-b357-4d0c-b4ff-0e29c3c13c41",
+                "name": "I’m sorry, but I’m not able to answer that question.\n\nYou can ask me about the Fortress Model, the Historic Tram, navigation through the museum, opening hours, or ticket prices.\n\nFor any other questions, please contact us at museum@luxembourg.lu.",
+                "type": "AgentStateFallbackBody",
+                "owner": "state_zl3bfe65n_mm9b38u1",
+                "bounds": {
+                  "x": -422.5,
+                  "y": -234.5,
+                  "width": 419,
+                  "height": 30
+                },
+                "actionType": "TextReplyAction",
+                "replyType": "text",
+                "llm_name": ""
+              },
+              "46badadf-e50d-481e-8246-3ba2393fce47": {
+                "id": "46badadf-e50d-481e-8246-3ba2393fce47",
+                "name": "Greeting",
+                "type": "AgentState",
+                "owner": null,
+                "bounds": {
+                  "x": -934,
+                  "y": -293,
+                  "width": 420,
+                  "height": 70
+                },
+                "stateType": "standard",
+                "fallbackBodyEnabled": true,
+                "actions": [
+                  "e3aad61a-89b4-46a6-8c16-6f80b861d717"
+                ],
+                "fallbackActions": [],
+                "bodies": [
+                  "e3aad61a-89b4-46a6-8c16-6f80b861d717"
+                ],
+                "fallbackBodies": []
+              },
+              "e3aad61a-89b4-46a6-8c16-6f80b861d717": {
+                "id": "e3aad61a-89b4-46a6-8c16-6f80b861d717",
+                "name": "Welcome to the Luxembourg Museum! I’m your digital museum guide.",
+                "type": "AgentStateBody",
+                "owner": "46badadf-e50d-481e-8246-3ba2393fce47",
+                "bounds": {
+                  "x": -933.5,
+                  "y": -252.5,
+                  "width": 419,
+                  "height": 30
+                },
+                "actionType": "TextReplyAction",
+                "replyType": "text",
+                "llm_name": ""
+              },
+              "0edea0d9-cfa4-48e4-ae68-dfd226aa9f13": {
+                "id": "0edea0d9-cfa4-48e4-ae68-dfd226aa9f13",
+                "name": "Other",
+                "type": "AgentIntent",
+                "owner": null,
+                "bounds": {
+                  "x": -1008.8571428571429,
+                  "y": 89.71428571428571,
+                  "width": 300,
+                  "height": 70
+                },
+                "bodies": [],
+                "intent_description": "Any other question."
+              },
+              "d641d121-69e7-4849-97f9-f1d1583bff25": {
+                "id": "d641d121-69e7-4849-97f9-f1d1583bff25",
+                "name": "FortressModel",
+                "type": "AgentState",
+                "owner": null,
+                "bounds": {
+                  "x": 146.28571428571428,
+                  "y": 32.28571428571425,
+                  "width": 420,
+                  "height": 130
+                },
+                "stateType": "standard",
+                "fallbackBodyEnabled": false,
+                "actions": [
+                  "18c02a46-9083-4b99-a0d8-ce19b0daa883",
+                  "e8a9cdc6-58cc-4f70-9719-a283152e97fc",
+                  "26f5870d-1c05-4058-8303-09ddf08e9697"
+                ],
+                "fallbackActions": [],
+                "bodies": [
+                  "18c02a46-9083-4b99-a0d8-ce19b0daa883",
+                  "e8a9cdc6-58cc-4f70-9719-a283152e97fc",
+                  "26f5870d-1c05-4058-8303-09ddf08e9697"
+                ],
+                "fallbackBodies": []
+              },
+              "18c02a46-9083-4b99-a0d8-ce19b0daa883": {
+                "id": "18c02a46-9083-4b99-a0d8-ce19b0daa883",
+                "name": "You are standing in front of the Fortress Model, a scale representation of the historic fortifications of Luxembourg City. ",
+                "type": "AgentStateBody",
+                "owner": "d641d121-69e7-4849-97f9-f1d1583bff25",
+                "bounds": {
+                  "x": 146.78571428571428,
+                  "y": 72.78571428571425,
+                  "width": 419,
+                  "height": 30
+                },
+                "actionType": "TextReplyAction",
+                "replyType": "text",
+                "llm_name": ""
+              },
+              "e8a9cdc6-58cc-4f70-9719-a283152e97fc": {
+                "id": "e8a9cdc6-58cc-4f70-9719-a283152e97fc",
+                "name": "For centuries, Luxembourg was one of Europe’s most heavily fortified cities. Its walls, bastions, gates, and steep surrounding valleys made it an important military stronghold.",
+                "type": "AgentStateBody",
+                "owner": "d641d121-69e7-4849-97f9-f1d1583bff25",
+                "bounds": {
+                  "x": 146.78571428571428,
+                  "y": 102.78571428571425,
+                  "width": 419,
+                  "height": 30
+                },
+                "actionType": "TextReplyAction",
+                "replyType": "text",
+                "llm_name": ""
+              },
+              "26f5870d-1c05-4058-8303-09ddf08e9697": {
+                "id": "26f5870d-1c05-4058-8303-09ddf08e9697",
+                "name": "Look closely at the model and you can see how the old city was protected by several layers of defensive structures. Many of these fortifications were dismantled in the nineteenth century, but traces of them can still be seen across Luxembourg City today. ",
+                "type": "AgentStateBody",
+                "owner": "d641d121-69e7-4849-97f9-f1d1583bff25",
+                "bounds": {
+                  "x": 146.78571428571428,
+                  "y": 132.78571428571425,
+                  "width": 419,
+                  "height": 30
+                },
+                "actionType": "TextReplyAction",
+                "replyType": "text",
+                "llm_name": ""
+              },
+              "6c3ea37d-7283-43ce-8343-e4a32f15299d": {
+                "id": "6c3ea37d-7283-43ce-8343-e4a32f15299d",
+                "name": "HistoricTram",
+                "type": "AgentState",
+                "owner": null,
+                "bounds": {
+                  "x": -29.095238095238045,
+                  "y": 200.8095238095238,
+                  "width": 420,
+                  "height": 100
+                },
+                "stateType": "standard",
+                "fallbackBodyEnabled": false,
+                "actions": [
+                  "aeec99e7-7625-4964-a036-c73f8d0d867b",
+                  "7271a943-da88-4fac-9fe8-9a053948a05e"
+                ],
+                "fallbackActions": [],
+                "bodies": [
+                  "aeec99e7-7625-4964-a036-c73f8d0d867b",
+                  "7271a943-da88-4fac-9fe8-9a053948a05e"
+                ],
+                "fallbackBodies": []
+              },
+              "aeec99e7-7625-4964-a036-c73f8d0d867b": {
+                "id": "aeec99e7-7625-4964-a036-c73f8d0d867b",
+                "name": "You are standing in front of the Historic Tram, an exhibit showing the development of public transport in Luxembourg City.  ",
+                "type": "AgentStateBody",
+                "owner": "6c3ea37d-7283-43ce-8343-e4a32f15299d",
+                "bounds": {
+                  "x": -28.595238095238045,
+                  "y": 241.3095238095238,
+                  "width": 419,
+                  "height": 30
+                },
+                "actionType": "TextReplyAction",
+                "replyType": "text",
+                "llm_name": ""
+              },
+              "7271a943-da88-4fac-9fe8-9a053948a05e": {
+                "id": "7271a943-da88-4fac-9fe8-9a053948a05e",
+                "name": "Trams once played an important role in connecting the city centre with surrounding neighbourhoods. Over time, buses and cars became more common, and the original tram network disappeared.  Decades later, trams returned to Luxembourg as part of a modern public transport system. This exhibit shows how urban transport has changed over time and how the tram has become part of the city again.",
+                "type": "AgentStateBody",
+                "owner": "6c3ea37d-7283-43ce-8343-e4a32f15299d",
+                "bounds": {
+                  "x": -28.595238095238045,
+                  "y": 271.3095238095238,
+                  "width": 419,
+                  "height": 30
+                },
+                "actionType": "TextReplyAction",
+                "replyType": "text",
+                "llm_name": ""
+              },
+              "083160dc-613e-49c2-a18f-fc9e310d3d05": {
+                "id": "083160dc-613e-49c2-a18f-fc9e310d3d05",
+                "name": "OpeningHours",
+                "type": "AgentState",
+                "owner": null,
+                "bounds": {
+                  "x": -184.42857142857144,
+                  "y": -630,
+                  "width": 360,
+                  "height": 70
+                },
+                "stateType": "standard",
+                "fallbackBodyEnabled": false,
+                "actions": [
+                  "266d70f0-d20b-47ef-9451-14f6b57946ec"
+                ],
+                "fallbackActions": [],
+                "bodies": [
+                  "266d70f0-d20b-47ef-9451-14f6b57946ec"
+                ],
+                "fallbackBodies": []
+              },
+              "266d70f0-d20b-47ef-9451-14f6b57946ec": {
+                "id": "266d70f0-d20b-47ef-9451-14f6b57946ec",
+                "name": "The museum is open from 10:00 to 18:00.",
+                "type": "AgentStateBody",
+                "owner": "083160dc-613e-49c2-a18f-fc9e310d3d05",
+                "bounds": {
+                  "x": -183.92857142857144,
+                  "y": -589.5,
+                  "width": 359,
+                  "height": 30
+                },
+                "actionType": "TextReplyAction",
+                "replyType": "text",
+                "llm_name": ""
+              },
+              "0b70b175-970e-4295-9b98-e45ed183a315": {
+                "id": "0b70b175-970e-4295-9b98-e45ed183a315",
+                "name": "Pricing",
+                "type": "AgentState",
+                "owner": null,
+                "bounds": {
+                  "x": 110.42857142857144,
+                  "y": -481.57142857142856,
+                  "width": 420,
+                  "height": 70
+                },
+                "stateType": "standard",
+                "fallbackBodyEnabled": false,
+                "actions": [
+                  "db921cf5-ce72-4201-9131-bf781ce2700a"
+                ],
+                "fallbackActions": [],
+                "bodies": [
+                  "db921cf5-ce72-4201-9131-bf781ce2700a"
+                ],
+                "fallbackBodies": []
+              },
+              "db921cf5-ce72-4201-9131-bf781ce2700a": {
+                "id": "db921cf5-ce72-4201-9131-bf781ce2700a",
+                "name": "A standard ticket costs €10. Reduced admission is €6.",
+                "type": "AgentStateBody",
+                "owner": "0b70b175-970e-4295-9b98-e45ed183a315",
+                "bounds": {
+                  "x": 110.92857142857144,
+                  "y": -441.07142857142856,
+                  "width": 419,
+                  "height": 30
+                },
+                "actionType": "TextReplyAction",
+                "replyType": "text",
+                "llm_name": ""
+              },
+              "3485a481-f318-4156-842d-e6ca10bf1e58": {
+                "id": "3485a481-f318-4156-842d-e6ca10bf1e58",
+                "name": "Navigation",
+                "type": "AgentState",
+                "owner": null,
+                "bounds": {
+                  "x": -475.47619047619037,
+                  "y": 323.71428571428567,
+                  "width": 420,
+                  "height": 70
+                },
+                "stateType": "standard",
+                "fallbackBodyEnabled": false,
+                "actions": [
+                  "02b80ce4-e4fa-42c1-803d-f01d5a520b77"
+                ],
+                "fallbackActions": [],
+                "bodies": [
+                  "02b80ce4-e4fa-42c1-803d-f01d5a520b77"
+                ],
+                "fallbackBodies": []
+              },
+              "02b80ce4-e4fa-42c1-803d-f01d5a520b77": {
+                "id": "02b80ce4-e4fa-42c1-803d-f01d5a520b77",
+                "name": "Enter the museum using the main stairs and entrance. An elevator is also available for accessible entry.\n\nOnce inside, you will find the Fortress Model on your left and the Historic Tram on your right.\n\nTo leave the museum, continue straight ahead toward the exit stairs. An accessibility platform is available there as well.",
+                "type": "AgentStateBody",
+                "owner": "3485a481-f318-4156-842d-e6ca10bf1e58",
+                "bounds": {
+                  "x": -474.97619047619037,
+                  "y": 364.21428571428567,
+                  "width": 419,
+                  "height": 30
+                },
+                "actionType": "TextReplyAction",
+                "replyType": "text",
+                "llm_name": ""
+              },
+              "ee412e92-1d4f-45e8-a4d2-58261a26340d": {
+                "id": "ee412e92-1d4f-45e8-a4d2-58261a26340d",
+                "name": "Tram",
+                "type": "AgentIntent",
+                "owner": null,
+                "bounds": {
+                  "x": -1164,
+                  "y": 423,
+                  "width": 630,
+                  "height": 160
+                },
+                "bodies": [
+                  "f9fd0460-8dea-4ed5-96fa-57c12fecc262",
+                  "2d699e46-afc5-43f4-b91b-d17e0c0adeca",
+                  "932b45b1-9c9c-4221-a6a3-938936b5c3b2"
+                ],
+                "intent_description": "user is stating that they state in front of the exhibit fortress of luxembourg"
+              },
+              "f9fd0460-8dea-4ed5-96fa-57c12fecc262": {
+                "id": "f9fd0460-8dea-4ed5-96fa-57c12fecc262",
+                "name": "i am standing in front of the tram",
+                "type": "AgentIntentBody",
+                "owner": "ee412e92-1d4f-45e8-a4d2-58261a26340d",
+                "bounds": {
+                  "x": -1163.5,
+                  "y": 493.5,
+                  "width": 629,
+                  "height": 30
+                }
+              },
+              "2d699e46-afc5-43f4-b91b-d17e0c0adeca": {
+                "id": "2d699e46-afc5-43f4-b91b-d17e0c0adeca",
+                "name": "tram model",
+                "type": "AgentIntentBody",
+                "owner": "ee412e92-1d4f-45e8-a4d2-58261a26340d",
+                "bounds": {
+                  "x": -1163.5,
+                  "y": 523.5,
+                  "width": 629,
+                  "height": 30
+                }
+              },
+              "932b45b1-9c9c-4221-a6a3-938936b5c3b2": {
+                "id": "932b45b1-9c9c-4221-a6a3-938936b5c3b2",
+                "name": "tram tram",
+                "type": "AgentIntentBody",
+                "owner": "ee412e92-1d4f-45e8-a4d2-58261a26340d",
+                "bounds": {
+                  "x": -1163.5,
+                  "y": 553.5,
+                  "width": 629,
+                  "height": 30
+                }
+              },
+              "fe11f0b8-059f-4253-a339-6254a5078d5b": {
+                "id": "fe11f0b8-059f-4253-a339-6254a5078d5b",
+                "name": "Navigation",
+                "type": "AgentIntent",
+                "owner": null,
+                "bounds": {
+                  "x": -692,
+                  "y": -516,
+                  "width": 380,
+                  "height": 160
+                },
+                "bodies": [
+                  "fef8cf42-4011-4560-a2ad-01854951005e",
+                  "c8eaf60a-e6f1-4081-b0f4-5ba0c9ef2f57",
+                  "e6f44969-b0d2-47ba-a98d-f9450670297c"
+                ],
+                "intent_description": "question about navigating the museum"
+              },
+              "fef8cf42-4011-4560-a2ad-01854951005e": {
+                "id": "fef8cf42-4011-4560-a2ad-01854951005e",
+                "name": "i am standing in front of the fortress",
+                "type": "AgentIntentBody",
+                "owner": "fe11f0b8-059f-4253-a339-6254a5078d5b",
+                "bounds": {
+                  "x": -691.5,
+                  "y": -445.5,
+                  "width": 379,
+                  "height": 30
+                }
+              },
+              "c8eaf60a-e6f1-4081-b0f4-5ba0c9ef2f57": {
+                "id": "c8eaf60a-e6f1-4081-b0f4-5ba0c9ef2f57",
+                "name": "fortress model",
+                "type": "AgentIntentBody",
+                "owner": "fe11f0b8-059f-4253-a339-6254a5078d5b",
+                "bounds": {
+                  "x": -691.5,
+                  "y": -415.5,
+                  "width": 379,
+                  "height": 30
+                }
+              },
+              "e6f44969-b0d2-47ba-a98d-f9450670297c": {
+                "id": "e6f44969-b0d2-47ba-a98d-f9450670297c",
+                "name": "fortification",
+                "type": "AgentIntentBody",
+                "owner": "fe11f0b8-059f-4253-a339-6254a5078d5b",
+                "bounds": {
+                  "x": -691.5,
+                  "y": -385.5,
+                  "width": 379,
+                  "height": 30
+                }
+              },
+              "ea4600c1-c8b8-4b07-bf29-77dffe2fbe74": {
+                "id": "ea4600c1-c8b8-4b07-bf29-77dffe2fbe74",
+                "name": "gpt-6-luna",
+                "type": "AgentLLM",
+                "owner": null,
+                "bounds": {
+                  "x": 0,
+                  "y": 0,
+                  "width": 0,
+                  "height": 0
+                },
+                "provider": "openai",
+                "parameters": {},
+                "num_previous_messages": 1,
+                "global_context": ""
+              }
+            },
+            "relationships": {
+              "transition_ixdyt9fr7_mm9b38u1": {
+                "id": "transition_ixdyt9fr7_mm9b38u1",
+                "name": "",
+                "type": "AgentStateTransitionInit",
+                "owner": null,
+                "bounds": {
+                  "x": -998,
+                  "y": -243,
+                  "width": 64,
+                  "height": 1
+                },
+                "path": [
+                  {
+                    "x": 0,
+                    "y": 0
+                  },
+                  {
+                    "x": 64,
+                    "y": 0
+                  }
+                ],
+                "source": {
+                  "direction": "Right",
+                  "element": "initial_72th6ksf3_mm9b38u1"
+                },
+                "target": {
+                  "direction": "Left",
+                  "element": "46badadf-e50d-481e-8246-3ba2393fce47"
+                },
+                "isManuallyLayouted": false
+              },
+              "5cf30015-c8cf-47be-8ad0-80bbba94d35e": {
+                "id": "5cf30015-c8cf-47be-8ad0-80bbba94d35e",
+                "name": "",
+                "type": "AgentStateTransition",
+                "owner": null,
+                "bounds": {
+                  "x": -514,
+                  "y": -258,
+                  "width": 91,
+                  "height": 1
+                },
+                "path": [
+                  {
+                    "x": 0,
+                    "y": 0
+                  },
+                  {
+                    "x": 91,
+                    "y": 0
+                  }
+                ],
+                "source": {
+                  "direction": "Downright",
+                  "element": "46badadf-e50d-481e-8246-3ba2393fce47"
+                },
+                "target": {
+                  "direction": "Left",
+                  "element": "state_zl3bfe65n_mm9b38u1"
+                },
+                "isManuallyLayouted": false,
+                "transitionType": "predefined",
+                "predefined": {
+                  "predefinedType": "auto",
+                  "conditionValue": ""
+                },
+                "custom": {
+                  "condition": []
+                }
+              },
+              "c6b8752b-f18e-454e-9e1a-0c6b6c73c36b": {
+                "id": "c6b8752b-f18e-454e-9e1a-0c6b6c73c36b",
+                "name": "",
+                "type": "AgentStateTransition",
+                "owner": null,
+                "bounds": {
+                  "x": -343.7142857142857,
+                  "y": -577.5,
+                  "width": 235.71428571428572,
+                  "height": 272.5
+                },
+                "path": [
+                  {
+                    "x": 235.71428571428572,
+                    "y": 272.5
+                  },
+                  {
+                    "x": 235.71428571428572,
+                    "y": 232.5
+                  },
+                  {
+                    "x": 0,
+                    "y": 232.5
+                  },
+                  {
+                    "x": 0,
+                    "y": 0
+                  },
+                  {
+                    "x": 159.28571428571428,
+                    "y": 0
+                  }
+                ],
+                "source": {
+                  "direction": "Topright",
+                  "element": "state_zl3bfe65n_mm9b38u1"
+                },
+                "target": {
+                  "direction": "Downleft",
+                  "element": "083160dc-613e-49c2-a18f-fc9e310d3d05"
+                },
+                "isManuallyLayouted": false,
+                "transitionType": "predefined",
+                "predefined": {
+                  "predefinedType": "when_intent_matched",
+                  "intentName": "OpeningHours"
+                },
+                "custom": {
+                  "condition": []
+                }
+              },
+              "796b4ac2-ec50-4866-8be9-08dd206d211a": {
+                "id": "796b4ac2-ec50-4866-8be9-08dd206d211a",
+                "name": "",
+                "type": "AgentStateTransition",
+                "owner": null,
+                "bounds": {
+                  "x": -224.42857142857144,
+                  "y": -595,
+                  "width": 40,
+                  "height": 290
+                },
+                "path": [
+                  {
+                    "x": 40,
+                    "y": 0
+                  },
+                  {
+                    "x": 0,
+                    "y": 0
+                  },
+                  {
+                    "x": 0,
+                    "y": 162.5
+                  },
+                  {
+                    "x": 11.428571428571445,
+                    "y": 162.5
+                  },
+                  {
+                    "x": 11.428571428571445,
+                    "y": 290
+                  }
+                ],
+                "source": {
+                  "direction": "Left",
+                  "element": "083160dc-613e-49c2-a18f-fc9e310d3d05"
+                },
+                "target": {
+                  "direction": "Up",
+                  "element": "state_zl3bfe65n_mm9b38u1"
+                },
+                "isManuallyLayouted": false,
+                "transitionType": "predefined",
+                "predefined": {
+                  "predefinedType": "auto",
+                  "conditionValue": ""
+                },
+                "custom": {
+                  "condition": []
+                }
+              },
+              "7fd37f94-31e4-4eaf-b2ce-eaa772ddacbc": {
+                "id": "7fd37f94-31e4-4eaf-b2ce-eaa772ddacbc",
+                "name": "",
+                "type": "AgentStateTransition",
+                "owner": null,
+                "bounds": {
+                  "x": -3,
+                  "y": -411.57142857142856,
+                  "width": 218.42857142857144,
+                  "height": 181.57142857142856
+                },
+                "path": [
+                  {
+                    "x": 0,
+                    "y": 181.57142857142856
+                  },
+                  {
+                    "x": 218.42857142857144,
+                    "y": 181.57142857142856
+                  },
+                  {
+                    "x": 218.42857142857144,
+                    "y": 0
+                  }
+                ],
+                "source": {
+                  "direction": "Downright",
+                  "element": "state_zl3bfe65n_mm9b38u1"
+                },
+                "target": {
+                  "direction": "Bottomleft",
+                  "element": "0b70b175-970e-4295-9b98-e45ed183a315"
+                },
+                "isManuallyLayouted": false,
+                "transitionType": "predefined",
+                "predefined": {
+                  "predefinedType": "when_intent_matched",
+                  "intentName": "Pricing"
+                },
+                "custom": {
+                  "condition": []
+                }
+              },
+              "c3227598-738f-46b1-84d1-64c69975abd6": {
+                "id": "c3227598-738f-46b1-84d1-64c69975abd6",
+                "name": "",
+                "type": "AgentStateTransition",
+                "owner": null,
+                "bounds": {
+                  "x": -3,
+                  "y": -446.57142857142856,
+                  "width": 113.42857142857144,
+                  "height": 166.57142857142856
+                },
+                "path": [
+                  {
+                    "x": 113.42857142857144,
+                    "y": 0
+                  },
+                  {
+                    "x": 56.71428571428572,
+                    "y": 0
+                  },
+                  {
+                    "x": 56.71428571428572,
+                    "y": 166.57142857142856
+                  },
+                  {
+                    "x": 0,
+                    "y": 166.57142857142856
+                  }
+                ],
+                "source": {
+                  "direction": "Left",
+                  "element": "0b70b175-970e-4295-9b98-e45ed183a315"
+                },
+                "target": {
+                  "direction": "Upright",
+                  "element": "state_zl3bfe65n_mm9b38u1"
+                },
+                "isManuallyLayouted": false,
+                "transitionType": "predefined",
+                "predefined": {
+                  "predefinedType": "auto",
+                  "conditionValue": ""
+                },
+                "custom": {
+                  "condition": []
+                }
+              },
+              "7d2e98ef-2b28-40e9-9982-98799cc8e97c": {
+                "id": "7d2e98ef-2b28-40e9-9982-98799cc8e97c",
+                "name": "",
+                "type": "AgentStateTransition",
+                "owner": null,
+                "bounds": {
+                  "x": -213,
+                  "y": -205,
+                  "width": 359.2857142857143,
+                  "height": 269.7857142857142
+                },
+                "path": [
+                  {
+                    "x": 0,
+                    "y": 0
+                  },
+                  {
+                    "x": 0,
+                    "y": 269.7857142857142
+                  },
+                  {
+                    "x": 359.2857142857143,
+                    "y": 269.7857142857142
+                  }
+                ],
+                "source": {
+                  "direction": "Down",
+                  "element": "state_zl3bfe65n_mm9b38u1"
+                },
+                "target": {
+                  "direction": "Upleft",
+                  "element": "d641d121-69e7-4849-97f9-f1d1583bff25"
+                },
+                "isManuallyLayouted": false,
+                "transitionType": "predefined",
+                "predefined": {
+                  "predefinedType": "when_intent_matched",
+                  "intentName": "Fortress"
+                },
+                "custom": {
+                  "condition": []
+                }
+              },
+              "ec351009-2a1e-457f-b0e3-232d667ecc2a": {
+                "id": "ec351009-2a1e-457f-b0e3-232d667ecc2a",
+                "name": "",
+                "type": "AgentStateTransition",
+                "owner": null,
+                "bounds": {
+                  "x": -108,
+                  "y": -205,
+                  "width": 359.2857142857143,
+                  "height": 237.28571428571425
+                },
+                "path": [
+                  {
+                    "x": 359.2857142857143,
+                    "y": 237.28571428571425
+                  },
+                  {
+                    "x": 359.2857142857143,
+                    "y": 118.64285714285712
+                  },
+                  {
+                    "x": 0,
+                    "y": 118.64285714285712
+                  },
+                  {
+                    "x": 0,
+                    "y": 0
+                  }
+                ],
+                "source": {
+                  "direction": "Topleft",
+                  "element": "d641d121-69e7-4849-97f9-f1d1583bff25"
+                },
+                "target": {
+                  "direction": "Bottomright",
+                  "element": "state_zl3bfe65n_mm9b38u1"
+                },
+                "isManuallyLayouted": false,
+                "transitionType": "predefined",
+                "predefined": {
+                  "predefinedType": "auto",
+                  "conditionValue": ""
+                },
+                "custom": {
+                  "condition": []
+                }
+              },
+              "5a46cf19-9bd5-4e68-9196-5622864757d5": {
+                "id": "5a46cf19-9bd5-4e68-9196-5622864757d5",
+                "name": "",
+                "type": "AgentStateTransition",
+                "owner": null,
+                "bounds": {
+                  "x": -318,
+                  "y": -205,
+                  "width": 288.9047619047619,
+                  "height": 455.8095238095238
+                },
+                "path": [
+                  {
+                    "x": 0,
+                    "y": 0
+                  },
+                  {
+                    "x": 0,
+                    "y": 455.8095238095238
+                  },
+                  {
+                    "x": 288.9047619047619,
+                    "y": 455.8095238095238
+                  }
+                ],
+                "source": {
+                  "direction": "Bottomleft",
+                  "element": "state_zl3bfe65n_mm9b38u1"
+                },
+                "target": {
+                  "direction": "Left",
+                  "element": "6c3ea37d-7283-43ce-8343-e4a32f15299d"
+                },
+                "isManuallyLayouted": false,
+                "transitionType": "predefined",
+                "predefined": {
+                  "predefinedType": "when_intent_matched",
+                  "intentName": "Tram"
+                },
+                "custom": {
+                  "condition": []
+                }
+              },
+              "5e705549-61f9-4ff5-8b5c-61d607f3dd4f": {
+                "id": "5e705549-61f9-4ff5-8b5c-61d607f3dd4f",
+                "name": "",
+                "type": "AgentStateTransition",
+                "owner": null,
+                "bounds": {
+                  "x": -108,
+                  "y": -205,
+                  "width": 183.90476190476195,
+                  "height": 405.8095238095238
+                },
+                "path": [
+                  {
+                    "x": 183.90476190476195,
+                    "y": 405.8095238095238
+                  },
+                  {
+                    "x": 183.90476190476195,
+                    "y": 202.9047619047619
+                  },
+                  {
+                    "x": 0,
+                    "y": 202.9047619047619
+                  },
+                  {
+                    "x": 0,
+                    "y": 0
+                  }
+                ],
+                "source": {
+                  "direction": "Topleft",
+                  "element": "6c3ea37d-7283-43ce-8343-e4a32f15299d"
+                },
+                "target": {
+                  "direction": "Bottomright",
+                  "element": "state_zl3bfe65n_mm9b38u1"
+                },
+                "isManuallyLayouted": false,
+                "transitionType": "predefined",
+                "predefined": {
+                  "predefinedType": "auto",
+                  "conditionValue": ""
+                },
+                "custom": {
+                  "condition": []
+                }
+              },
+              "74a584d8-c870-4e7e-802f-cf5b99cf2e14": {
+                "id": "74a584d8-c870-4e7e-802f-cf5b99cf2e14",
+                "name": "",
+                "type": "AgentStateTransition",
+                "owner": null,
+                "bounds": {
+                  "x": -515.4761904761904,
+                  "y": -205,
+                  "width": 197.47619047619037,
+                  "height": 581.2142857142857
+                },
+                "path": [
+                  {
+                    "x": 197.47619047619037,
+                    "y": 0
+                  },
+                  {
+                    "x": 197.47619047619037,
+                    "y": 40
+                  },
+                  {
+                    "x": 0,
+                    "y": 40
+                  },
+                  {
+                    "x": 0,
+                    "y": 581.2142857142857
+                  },
+                  {
+                    "x": 40,
+                    "y": 581.2142857142857
+                  }
+                ],
+                "source": {
+                  "direction": "Bottomleft",
+                  "element": "state_zl3bfe65n_mm9b38u1"
+                },
+                "target": {
+                  "direction": "Downleft",
+                  "element": "3485a481-f318-4156-842d-e6ca10bf1e58"
+                },
+                "isManuallyLayouted": false,
+                "transitionType": "predefined",
+                "predefined": {
+                  "predefinedType": "when_intent_matched",
+                  "intentName": "Navigation"
+                },
+                "custom": {
+                  "condition": []
+                }
+              },
+              "d8070a06-268b-4282-a7c1-9ad37adf6d80": {
+                "id": "d8070a06-268b-4282-a7c1-9ad37adf6d80",
+                "name": "",
+                "type": "AgentStateTransition",
+                "owner": null,
+                "bounds": {
+                  "x": -239.23809523809518,
+                  "y": -205,
+                  "width": 1,
+                  "height": 528.7142857142857
+                },
+                "path": [
+                  {
+                    "x": 0,
+                    "y": 528.7142857142857
+                  },
+                  {
+                    "x": 0,
+                    "y": 0
+                  }
+                ],
+                "source": {
+                  "direction": "Topleft",
+                  "element": "3485a481-f318-4156-842d-e6ca10bf1e58"
+                },
+                "target": {
+                  "direction": "Bottomleft",
+                  "element": "state_zl3bfe65n_mm9b38u1"
+                },
+                "isManuallyLayouted": false,
+                "transitionType": "predefined",
+                "predefined": {
+                  "predefinedType": "auto",
+                  "conditionValue": ""
+                },
+                "custom": {
+                  "condition": []
+                }
+              }
+            },
+            "assessments": {}
+          },
+          "lastUpdate": "2026-09-28T12:58:01.484Z",
+          "config": {
+            "agentPlatform": "websocket",
+            "agentPlatformUseStreamlit": true,
+            "intentRecognitionTechnology": "llm-based",
+            "agentLlmProvider": "openai",
+            "agentLlmModel": "gpt-6-luna",
+            "agentCustomLlmModel": "",
+            "agentLlmName": "gpt-6-luna",
+            "llm": {
+              "name": "gpt-6-luna"
+            },
+            "default_llm_name": "gpt-6-luna"
+          },
+          "configYaml": "agent:\n  check_transitions_delay: 5\n\nnlp:\n  language: en\n  region: US\n  timezone: Europe/Madrid\n  pre_processing: True\n  intent_threshold: 0.4\n  huggingface:\n    token: YOUR-TOKEN\n  openai:\n    api_key: YOUR-API-KEY\n  replicate:\n    api_key: YOUR-API-KEY\n\nplatforms:\n  websocket:\n    host: localhost\n    port: 8765\n    streamlit:\n      host: 0.0.0.0\n      port: 5000\n      chat:\n        size: 16\n        font: sans\n        line_spacing: 1.5\n        alignment: left\n        color: inherit\n        contrast: medium\n  telegram:\n    token: YOUR-BOT-TOKEN\n  github:\n    personal_token: YOUR-PERSONAL-TOKEN\n    webhook_token: YOUR-WEBHOOK-TOKEN\n    webhook_port: 8901\n  gitlab:\n    personal_token: YOUR-PERSONAL-TOKEN\n    webhook_token: YOUR-WEBHOOK-TOKEN\n    webhook_port: 8901\n  a2a:\n    port: 8000\n\ndb:\n  monitoring:\n    enabled: True\n    dialect: postgresql\n    host: YOUR-DB-HOST\n    port: 5432\n    database: YOUR-DB-NAME\n    username: YOUR-DB-USERNAME\n    password: YOUR-DB-PASSWORD\n  streamlit:\n    enabled: True\n    dialect: postgresql\n    host: YOUR-DB-HOST\n    port: 5432\n    database: YOUR-DB-NAME\n    username: YOUR-DB-USERNAME\n    password: YOUR-DB-PASSWORD",
+          "agentConfigForm": {
+            "agent": {
+              "check_transitions_delay": "5"
+            },
+            "nlp": {
+              "language": "en",
+              "region": "US",
+              "timezone": "Europe/Madrid",
+              "pre_processing": true,
+              "intent_threshold": "0.4",
+              "huggingface_token": "YOUR-TOKEN",
+              "openai_api_key": "YOUR-API-KEY",
+              "replicate_api_key": "YOUR-API-KEY"
+            },
+            "platforms": {
+              "websocket": {
+                "enabled": true,
+                "host": "localhost",
+                "port": "8765",
+                "streamlit_host": "0.0.0.0",
+                "streamlit_port": "5000",
+                "chat_size": "16",
+                "chat_font": "sans",
+                "chat_line_spacing": "1.5",
+                "chat_alignment": "left",
+                "chat_color": "inherit",
+                "chat_contrast": "medium"
+              },
+              "telegram": {
+                "enabled": true,
+                "token": "YOUR-BOT-TOKEN"
+              },
+              "github": {
+                "enabled": true,
+                "personal_token": "YOUR-PERSONAL-TOKEN",
+                "webhook_token": "YOUR-WEBHOOK-TOKEN",
+                "webhook_port": "8901"
+              },
+              "gitlab": {
+                "enabled": true,
+                "personal_token": "YOUR-PERSONAL-TOKEN",
+                "webhook_token": "YOUR-WEBHOOK-TOKEN",
+                "webhook_port": "8901"
+              },
+              "a2a": {
+                "enabled": true,
+                "port": "8000"
+              }
+            },
+            "db": {
+              "monitoring": {
+                "enabled": true,
+                "dialect": "postgresql",
+                "host": "YOUR-DB-HOST",
+                "port": "5432",
+                "database": "YOUR-DB-NAME",
+                "username": "YOUR-DB-USERNAME",
+                "password": "YOUR-DB-PASSWORD"
+              },
+              "streamlit_db": {
+                "enabled": true,
+                "dialect": "postgresql",
+                "host": "YOUR-DB-HOST",
+                "port": "5432",
+                "database": "YOUR-DB-NAME",
+                "username": "YOUR-DB-USERNAME",
+                "password": "YOUR-DB-PASSWORD"
+              }
+            }
+          },
+          "agentConfigCustomYaml": ""
+        }
+      ]
+    },
+    "settings": {
+      "defaultDiagramType": "AgentDiagram",
+      "autoSave": true,
+      "collaborationEnabled": false,
+      "perspectives": {
+        "ClassDiagram": false,
+        "ObjectDiagram": false,
+        "StateMachineDiagram": false,
+        "AgentDiagram": true,
+        "UserDiagram": true,
+        "GUINoCodeDiagram": false,
+        "QuantumCircuitDiagram": false,
+        "NNDiagram": false,
+        "BPMN": false
+      }
+    }
+  },
+  "exportedAt": "2026-09-28T12:58:02.751Z",
+  "version": "2.0.0"
+}

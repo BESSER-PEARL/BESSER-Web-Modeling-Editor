@@ -244,7 +244,7 @@ export function useAssistantLogic({
       new RateLimiterService({
         maxRequestsPerMinute: 8,
         maxRequestsPerHour: 40,
-        maxMessageLength: 1000,
+        maxMessageLength: 10000,
         cooldownPeriodMs: 3000,
       }),
   );
