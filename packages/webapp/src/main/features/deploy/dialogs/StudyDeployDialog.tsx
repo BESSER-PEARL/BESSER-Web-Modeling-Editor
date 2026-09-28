@@ -53,7 +53,13 @@ export const StudyDeployDialog: React.FC<StudyDeployDialogProps> = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent
+        className="sm:max-w-md"
+        onEscapeKeyDown={(e) => isDeploying && e.preventDefault()}
+        onInteractOutside={(e) => isDeploying && e.preventDefault()}
+        {...(isDeploying ? { 'data-deploying': '' } : {})}
+      >
+        <style>{`[data-deploying] > button[data-radix-dialog-close] { display: none; }`}</style>
         <DialogHeader>
           <DialogTitle>{t('deploy.study.dialogTitle')}</DialogTitle>
           {!isDeploying && !result && !error && (
@@ -75,9 +81,14 @@ export const StudyDeployDialog: React.FC<StudyDeployDialogProps> = ({
           )}
 
           {isDeploying && (
-            <div className="flex items-center gap-3 rounded-md border border-border/70 px-4 py-3 text-sm text-muted-foreground">
-              <Loader2 className="size-4 shrink-0 animate-spin" />
-              <span>{t('deploy.study.deploying')}</span>
+            <div className="flex flex-col gap-3 rounded-md border border-border/70 px-4 py-4">
+              <div className="flex items-center gap-3 text-sm text-muted-foreground">
+                <Loader2 className="size-4 shrink-0 animate-spin" />
+                <span>{t('deploy.study.deploying')}</span>
+              </div>
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                {t('deploy.study.deployingHint')}
+              </p>
             </div>
           )}
 

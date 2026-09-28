@@ -2363,6 +2363,8 @@
     "noValidBase": "Could not resolve base agent model",
     "noValidProfiles": "No valid profiles found in selected diagram",
     "applying": "Applying personalization...",
+    "applyingLabel": "Äert Agent-Modell gëtt personaliséiert…",
+    "applyingHint": "Dat kann bis zu enger Minutt daueren. Wannechgelift waarden.",
     "apply": "Apply Personalization",
     "success": "Personalization applied successfully",
     "transformFailed": "Personalization failed: {{message}}",

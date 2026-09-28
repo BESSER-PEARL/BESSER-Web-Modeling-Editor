@@ -14,6 +14,7 @@ import {
 } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
+import { Loader2 } from 'lucide-react';
 import { UMLDiagramType } from '@besser/wme';
 import { isUMLModel } from '../../../shared/types/project';
 import { ApiError, apiClient } from '../../../shared/api/api-client';
@@ -146,8 +147,6 @@ export const PersonalizeAgentDialog: React.FC<PersonalizeAgentDialogProps> = ({ 
         userProfileModel: structuredClone(selected.model),
       };
 
-      toast.info(t('personalize.applying'));
-
       const payload = {
         id: activeAgentDiagram.id,
         title: activeAgentDiagram.title,
@@ -256,40 +255,62 @@ export const PersonalizeAgentDialog: React.FC<PersonalizeAgentDialogProps> = ({ 
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent
+        className="sm:max-w-[425px]"
+        // Hide the Radix close (×) button while the request is in flight so
+        // the user cannot accidentally dismiss a non-cancellable operation.
+        onEscapeKeyDown={(e) => isApplying && e.preventDefault()}
+        onInteractOutside={(e) => isApplying && e.preventDefault()}
+        style={isApplying ? { '--close-btn-display': 'none' } as React.CSSProperties : undefined}
+        {...(isApplying ? { 'data-loading': '' } : {})}
+      >
+        <style>{`[data-loading] > button[data-radix-dialog-close] { display: none; }`}</style>
+
         <DialogHeader>
           <DialogTitle>{t('personalize.title')}</DialogTitle>
           <DialogDescription>{t('personalize.description')}</DialogDescription>
         </DialogHeader>
 
-        <div className="grid gap-4 py-4">
-          <div className="grid gap-2">
-            <Label htmlFor="profile-select">{t('personalize.selectProfile')}</Label>
-            <Select
-              value={selectedKey}
-              onValueChange={setSelectedKey}
-              disabled={isApplying || availableProfiles.length === 0}
-            >
-              <SelectTrigger id="profile-select">
-                <SelectValue
-                  placeholder={
-                    availableProfiles.length === 0
-                      ? t('personalize.noProfiles')
-                      : t('personalize.selectProfilePlaceholder')
-                  }
-                />
-              </SelectTrigger>
-              <SelectContent>
-                {availableProfiles.map((option) => (
-                  <SelectItem key={option.key} value={option.key}>
-                    {option.userName || t('personalize.unnamedUser')}
-                    {option.showTab ? ` — ${option.tabName}` : ''}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+        {isApplying ? (
+          <div className="flex flex-col items-center justify-center gap-4 py-8">
+            <Loader2 className="size-10 animate-spin text-brand" />
+            <p className="text-center text-sm font-medium text-foreground">
+              {t('personalize.applyingLabel')}
+            </p>
+            <p className="text-center text-xs text-muted-foreground">
+              {t('personalize.applyingHint')}
+            </p>
           </div>
-        </div>
+        ) : (
+          <div className="grid gap-4 py-4">
+            <div className="grid gap-2">
+              <Label htmlFor="profile-select">{t('personalize.selectProfile')}</Label>
+              <Select
+                value={selectedKey}
+                onValueChange={setSelectedKey}
+                disabled={availableProfiles.length === 0}
+              >
+                <SelectTrigger id="profile-select">
+                  <SelectValue
+                    placeholder={
+                      availableProfiles.length === 0
+                        ? t('personalize.noProfiles')
+                        : t('personalize.selectProfilePlaceholder')
+                    }
+                  />
+                </SelectTrigger>
+                <SelectContent>
+                  {availableProfiles.map((option) => (
+                    <SelectItem key={option.key} value={option.key}>
+                      {option.userName || t('personalize.unnamedUser')}
+                      {option.showTab ? ` — ${option.tabName}` : ''}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+        )}
 
         <DialogFooter>
           <Button
@@ -305,7 +326,7 @@ export const PersonalizeAgentDialog: React.FC<PersonalizeAgentDialogProps> = ({ 
             onClick={handleApply}
             disabled={!selectedKey || isApplying || availableProfiles.length === 0 || workspaceLoading}
           >
-            {isApplying ? t('personalize.applying') : t('personalize.apply')}
+            {t('personalize.apply')}
           </Button>
         </DialogFooter>
       </DialogContent>

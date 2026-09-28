@@ -19,6 +19,9 @@ export interface StudyDeployResult {
   message: string;
 }
 
+/** Minimum time the loading state is shown after a successful deploy (ms). */
+const MIN_DEPLOY_WAIT_MS = 60_000;
+
 export const useStudyDeploy = () => {
   const [isDeploying, setIsDeploying] = useState(false);
   const [result, setResult] = useState<StudyDeployResult | null>(null);
@@ -28,6 +31,8 @@ export const useStudyDeploy = () => {
     setIsDeploying(true);
     setResult(null);
     setError(null);
+
+    const deployStart = Date.now();
 
     try {
       const freshProject = ProjectStorageRepository.loadProject(project.id) ?? project;
@@ -83,6 +88,15 @@ export const useStudyDeploy = () => {
         payload,
         { timeout: 120_000 },
       );
+
+      // Keep the loading state visible for at least MIN_DEPLOY_WAIT_MS so users
+      // understand the agent service needs time to start (502s are normal briefly).
+      const elapsed = Date.now() - deployStart;
+      const remaining = MIN_DEPLOY_WAIT_MS - elapsed;
+      if (remaining > 0) {
+        await new Promise<void>((resolve) => setTimeout(resolve, remaining));
+      }
+
       setResult(data);
       return data;
     } catch (err) {
