@@ -146,6 +146,32 @@ modeling-agent service. Projects themselves stay in your browser — the assista
 is sent a snapshot of the current project so it can reason about it, not a copy
 that is stored. The chat header links to a privacy summary.
 
+Research study mode
+~~~~~~~~~~~~~~~~~~~
+
+For facilitated research studies the editor has an opt-in study mode. It is
+off unless you open the editor through a study link, one ending in
+``?study=<label>`` (links of the older form ``?pilot=<label>`` work the same
+way). The label is a short code such as ``P3`` that identifies a study
+session, never your name or email. Links without it record nothing.
+
+While study mode is on, a notice under the chat says so, and the following
+is recorded against the label and a random per-tab session id:
+
+- your assistant prompts (up to 2000 characters each) and what the assistant
+  did with each one;
+- a summary of each Spec-Driven Agent run (outcome, duration, model, tokens,
+  cost and validation results) and its step-by-step trace, which includes the
+  start of your instructions;
+- when you download the generated code, push it to GitHub, or continue from a
+  repository.
+
+The records go to the BESSER server the editor is connected to, and only if
+its operator has turned study collection on (``BESSER_TELEMETRY_ENABLED``).
+Study mode lasts for the browser tab: close the tab to stop it. The server
+side, including storage, is documented in the BESSER backend's *Web Editor
+Backend* page.
+
 Running it locally
 ------------------
 
