@@ -318,10 +318,17 @@ const CUSTOM_MODEL_PLACEHOLDER: Record<LlmProvider, string> = {
   free: '',
 } as const;
 
+// Stored ids that were presets before and now have a preset under another
+// name. The dated Haiku snapshot still works, but the alias is the preset.
+const LEGACY_MODEL_ALIASES: Partial<Record<LlmProvider, Record<string, string>>> = {
+  anthropic: { 'claude-haiku-4-5-20251001': 'claude-haiku-4-5' },
+};
+
 function _classifyStoredModel(
   provider: LlmProvider,
-  stored: string | undefined,
+  storedRaw: string | undefined,
 ): { choice: string; custom: string } {
+  const stored = (storedRaw && LEGACY_MODEL_ALIASES[provider]?.[storedRaw]) || storedRaw;
   if (!stored) {
     // pia/local have no server-side "default" that maps to a real model, so
     // pre-select their first preset. anthropic/openai/mistral use the "…"

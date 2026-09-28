@@ -273,6 +273,24 @@ describe('LlmKeyDialog — model pickers', () => {
     expect(select.textContent).toMatch(/GPT-6 Sol/);
   });
 
+  it('maps a stored dated Haiku id onto the claude-haiku-4-5 preset', () => {
+    window.sessionStorage.setItem('besser_llm_api_key', 'sk-ant-stored');
+    window.sessionStorage.setItem('besser_llm_provider', 'anthropic');
+    window.sessionStorage.setItem('besser_llm_model', 'claude-haiku-4-5-20251001');
+    const onSaved = vi.fn();
+    render(<LlmKeyDialog open onOpenChange={() => {}} onSaved={onSaved} />);
+
+    const select = document.getElementById('llm-key-model') as HTMLSelectElement;
+    expect(select.value).toBe('claude-haiku-4-5');
+    expect(document.getElementById('llm-key-model-custom')).toBeNull();
+
+    fireEvent.change(document.getElementById('llm-key-api-key') as HTMLInputElement, {
+      target: { value: 'sk-ant-stored' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: /^save$/i }));
+    expect(window.sessionStorage.getItem('besser_llm_model')).toBe('claude-haiku-4-5');
+  });
+
   it('keeps a stored id that is no longer a preset as a working custom model', () => {
     window.sessionStorage.setItem('besser_llm_api_key', 'sk-ant-stored');
     window.sessionStorage.setItem('besser_llm_provider', 'anthropic');
