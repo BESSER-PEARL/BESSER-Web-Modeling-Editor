@@ -237,9 +237,13 @@ export const DEFAULT_MODEL_VALUE = '';
 
 export const MODEL_PRESETS: Record<LlmProvider, readonly ModelPreset[]> = {
   anthropic: [
-    { value: 'claude-sonnet-4-6', label: 'Claude Sonnet 4.6 — balanced' },
-    { value: 'claude-opus-4-6', label: 'Claude Opus 4.6 — most capable' },
-    { value: 'claude-haiku-4-5-20251001', label: 'Claude Haiku 4.5 — fast & cheap' },
+    { value: 'claude-fable-5-1', label: 'Claude Fable 5.1 — most capable' },
+    { value: 'claude-opus-5-5', label: 'Claude Opus 5.5 — top tier, lower cost than Opus 5' },
+    { value: 'claude-opus-5', label: 'Claude Opus 5 — top tier' },
+    { value: 'claude-sonnet-5', label: 'Claude Sonnet 5 — balanced' },
+    { value: 'claude-sonnet-4-6', label: 'Claude Sonnet 4.6 — previous generation' },
+    { value: 'claude-opus-4-6', label: 'Claude Opus 4.6 — previous generation' },
+    { value: 'claude-haiku-4-5', label: 'Claude Haiku 4.5 — fast & cheap' },
     { value: CUSTOM_MODEL_VALUE, label: 'Custom model ID…' },
   ],
   // All of these work with the Spec-Driven Agent's tool-driven loop. The
@@ -249,7 +253,12 @@ export const MODEL_PRESETS: Record<LlmProvider, readonly ModelPreset[]> = {
   // with reasoning OFF here, the only way to use tools. Verified empirically
   // (probe_tools): gpt-5.5/5.4-mini/4o support tools natively; gpt-5.6-* need
   // the flag. gpt-5/gpt-4o REJECT the param, so it's applied ONLY to gpt-5.6-*.
+  // GPT-6 (astra/sol/luna) is newer; whether it needs the same flag is decided
+  // backend-side.
   openai: [
+    { value: 'gpt-6-astra', label: 'GPT-6 Astra — flagship, highest cost' },
+    { value: 'gpt-6-sol', label: 'GPT-6 Sol — balanced' },
+    { value: 'gpt-6-luna', label: 'GPT-6 Luna — fast & cheap' },
     { value: 'gpt-5.6-terra', label: 'GPT-5.6 Terra — balanced (recommended)' },
     { value: 'gpt-5.6-sol', label: 'GPT-5.6 Sol — most capable' },
     { value: 'gpt-5.6-luna', label: 'GPT-5.6 Luna — fast & cheap' },
@@ -300,7 +309,7 @@ export const MODEL_PRESETS: Record<LlmProvider, readonly ModelPreset[]> = {
 } as const;
 
 const CUSTOM_MODEL_PLACEHOLDER: Record<LlmProvider, string> = {
-  anthropic: 'e.g. claude-opus-4-6',
+  anthropic: 'e.g. claude-opus-4-8',
   openai: 'e.g. gpt-4.1',
   mistral: 'e.g. mistral-medium-latest',
   nebius: 'e.g. Qwen/Qwen3-235B-A22B-Instruct-2507',

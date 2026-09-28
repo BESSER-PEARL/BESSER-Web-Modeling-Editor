@@ -222,6 +222,93 @@ describe('LlmKeyDialog — unified BYOK key', () => {
   });
 });
 
+describe('LlmKeyDialog — model pickers', () => {
+  function modelOptions(provider: string): string[] {
+    render(<LlmKeyDialog open onOpenChange={() => {}} />);
+    fireEvent.change(document.getElementById('llm-key-provider') as HTMLSelectElement, {
+      target: { value: provider },
+    });
+    const select = document.getElementById('llm-key-model') as HTMLSelectElement;
+    return Array.from(select.options).map((o) => o.value);
+  }
+
+  it('offers the current Claude models and no dated or retired ids', () => {
+    expect(modelOptions('anthropic')).toEqual([
+      '',
+      'claude-fable-5-1',
+      'claude-opus-5-5',
+      'claude-opus-5',
+      'claude-sonnet-5',
+      'claude-sonnet-4-6',
+      'claude-opus-4-6',
+      'claude-haiku-4-5',
+      '__custom__',
+    ]);
+  });
+
+  it('offers GPT-6 alongside the GPT-5.6 family', () => {
+    expect(modelOptions('openai')).toEqual([
+      '',
+      'gpt-6-astra',
+      'gpt-6-sol',
+      'gpt-6-luna',
+      'gpt-5.6-terra',
+      'gpt-5.6-sol',
+      'gpt-5.6-luna',
+      'gpt-5.5',
+      'gpt-5.4-mini',
+      'gpt-4o',
+      '__custom__',
+    ]);
+  });
+
+  it('labels the new models clearly', () => {
+    render(<LlmKeyDialog open onOpenChange={() => {}} />);
+    const select = document.getElementById('llm-key-model') as HTMLSelectElement;
+    expect(select.textContent).toMatch(/Claude Fable 5\.1/);
+    expect(select.textContent).toMatch(/Claude Opus 5\.5/);
+    fireEvent.change(document.getElementById('llm-key-provider') as HTMLSelectElement, {
+      target: { value: 'openai' },
+    });
+    expect(select.textContent).toMatch(/GPT-6 Sol/);
+  });
+
+  it('keeps a stored id that is no longer a preset as a working custom model', () => {
+    window.sessionStorage.setItem('besser_llm_api_key', 'sk-ant-stored');
+    window.sessionStorage.setItem('besser_llm_provider', 'anthropic');
+    window.sessionStorage.setItem('besser_llm_model', 'claude-opus-4-1');
+    const onSaved = vi.fn();
+    render(<LlmKeyDialog open onOpenChange={() => {}} onSaved={onSaved} />);
+
+    expect((document.getElementById('llm-key-model') as HTMLSelectElement).value).toBe(
+      '__custom__',
+    );
+    expect(
+      (document.getElementById('llm-key-model-custom') as HTMLInputElement).value,
+    ).toBe('claude-opus-4-1');
+
+    fireEvent.change(document.getElementById('llm-key-api-key') as HTMLInputElement, {
+      target: { value: 'sk-ant-stored' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: /^save$/i }));
+    expect(onSaved).toHaveBeenCalledWith(
+      expect.objectContaining({ provider: 'anthropic', model: 'claude-opus-4-1' }),
+    );
+  });
+
+  it('keeps the dated Haiku id on PIA, whose preset list is unchanged', () => {
+    // jsdom runs on localhost, so the local-only PIA provider is offered.
+    window.sessionStorage.setItem('besser_llm_api_key', 'sk-pia');
+    window.sessionStorage.setItem('besser_llm_provider', 'pia');
+    window.sessionStorage.setItem('besser_llm_model', 'claude-haiku-4-5-20251001');
+    render(<LlmKeyDialog open onOpenChange={() => {}} />);
+
+    expect((document.getElementById('llm-key-model') as HTMLSelectElement).value).toBe(
+      'claude-haiku-4-5-20251001',
+    );
+  });
+});
+
 describe('LlmKeyDialog — keyless free tier', () => {
   const TWO_MODEL_FREE_TIER = {
     available: true,
