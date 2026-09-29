@@ -624,7 +624,12 @@ export class AssistantClient {
   private rearmUserApiKey(): void {
     try {
       const stored = readAssistantApiKey();
-      if (!stored) return;
+      if (!stored) {
+        // The agent session outlives the tab (keyed by the persistent user
+        // id): clear a key the user removed or that died with an old tab.
+        this.setUserApiKey({ apiKey: '' });
+        return;
+      }
       this.setUserApiKey({
         apiKey: stored.apiKey,
         provider: stored.provider,

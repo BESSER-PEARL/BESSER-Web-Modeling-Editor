@@ -51,6 +51,13 @@ describe('reading the demo link', () => {
     expect(getDemoToken()).toBeNull();
   });
 
+  it('removes the token from the page URL, keeping other parameters', () => {
+    openWith(`demo=${VALID}&study=P3`);
+    expect(window.location.search).toBe('?study=P3');
+    expect(window.location.href).not.toContain(VALID);
+    expect(getDemoToken()).toBe(VALID);
+  });
+
   it('is idempotent', () => {
     openWith(`demo=${VALID}`);
     initDemoModeFromUrl();

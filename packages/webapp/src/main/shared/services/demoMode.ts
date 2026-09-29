@@ -32,9 +32,16 @@ const DEMO_TOKEN_PATTERN = /^[A-Za-z0-9_-]{8,128}$/;
 export const initDemoModeFromUrl = (): void => {
   try {
     if (typeof window === 'undefined') return;
-    const token = new URLSearchParams(window.location.search).get('demo');
+    const url = new URL(window.location.href);
+    const token = url.searchParams.get('demo');
     if (token && DEMO_TOKEN_PATTERN.test(token)) {
       window.sessionStorage.setItem(sessionStorageDemoToken, token);
+    }
+    // Drop the secret from the address bar so it cannot leak through the page
+    // URL (history, analytics, the issue report's page link).
+    if (url.searchParams.has('demo')) {
+      url.searchParams.delete('demo');
+      window.history.replaceState(window.history.state, '', url.toString());
     }
   } catch {
     // Storage or URL unavailable — demo mode simply stays off.

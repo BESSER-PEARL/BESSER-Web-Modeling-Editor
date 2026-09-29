@@ -56,7 +56,9 @@ export const DS_BASELINE_CSS = `
 /** True when the project already defines ds-* component rules. */
 export function hasDesignSystemStyles(editor: Editor): boolean {
   try {
-    return (editor.getCss() || '').includes('.ds-card');
+    // keepUnusedStyles: without it getCss() drops rules no component on the
+    // open page uses, and an agent theme would look absent.
+    return (editor.getCss({ keepUnusedStyles: true }) || '').includes('.ds-card');
   } catch {
     return false;
   }

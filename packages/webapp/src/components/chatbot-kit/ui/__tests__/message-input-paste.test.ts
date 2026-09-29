@@ -54,6 +54,19 @@ describe('looksStructured', () => {
     expect(looksStructured(text)).toBe(true);
   });
 
+  it('routes JSON lines to file conversion', () => {
+    expect(looksStructured('{"id": 1}\n{"id": 2}')).toBe(true);
+  });
+
+  it.each([
+    ['a bracketed prefix', '[Library] add a Book class with a title'],
+    ['a markdown link', '[the spec](https://example.com) describes the model'],
+    ['an angle-bracketed name', '<Book> needs a title and an author'],
+    ['a brace-led sentence', '{id} should be the primary key'],
+  ])('keeps %s in chat', (_label, text) => {
+    expect(looksStructured(text)).toBe(false);
+  });
+
   it('routes a CSV table to file conversion', () => {
     const csv = ['name,type,rate', 'Room 1,single,80', 'Room 2,suite,220'].join('\n');
     expect(looksStructured(csv)).toBe(true);

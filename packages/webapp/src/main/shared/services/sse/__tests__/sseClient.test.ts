@@ -135,10 +135,38 @@ describe('streamSse', () => {
 
     // Abort and ensure the generator returns cleanly without hanging.
     abortCtl.abort();
-    controllerRef!.close();
+    try {
+      controllerRef!.close();
+    } catch {
+      /* the abort already cancelled the body */
+    }
     const tail = await reader.next();
     // Either we get `done: true` or we get nothing — but we must not hang.
     expect(tail.done).toBe(true);
+  });
+
+  it('ends a read parked on a silent stream when the caller aborts', async () => {
+    // A frozen transport: headers arrived, then nothing. Stop must not wait
+    // for another byte (or the stall watchdog) to release the reader.
+    let controllerRef: ReadableStreamDefaultController<Uint8Array> | null = null;
+    const body = new ReadableStream<Uint8Array>({
+      start(c) { controllerRef = c; },
+    });
+    globalThis.fetch = vi.fn().mockResolvedValue(okResponse(body));
+
+    const abortCtl = new AbortController();
+    const reader = streamSse<unknown>('/x', {}, { signal: abortCtl.signal })[Symbol.asyncIterator]();
+    const first = reader.next();
+    controllerRef!.enqueue(encoder.encode('data: {"event":"a"}\n\n'));
+    expect((await first).value).toEqual({ event: 'a' });
+
+    const parked = reader.next();
+    abortCtl.abort();
+    const outcome = await Promise.race([
+      parked,
+      new Promise<'hung'>((resolve) => setTimeout(() => resolve('hung'), 200)),
+    ]);
+    expect(outcome).toEqual({ done: true, value: undefined });
   });
 
   it('handles CRLF frame separators', async () => {

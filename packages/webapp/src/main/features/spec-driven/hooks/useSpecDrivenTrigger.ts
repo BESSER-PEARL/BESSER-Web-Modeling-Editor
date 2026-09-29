@@ -1104,6 +1104,9 @@ export function useSpecDrivenTrigger(
       // `getSpecDrivenConfig` is cached and never rejects (resolves to the
       // fallback), so the values below are always defined.
       const cfg = await getSpecDrivenConfig();
+      // Stopped while the config loaded: abortActive already cleaned up, and
+      // starting now would orphan a paid run on the server.
+      if (abortRequestedRef.current) return;
 
       // Free tier model: send the stored explicit choice only when the
       // server currently advertises it as a non-default free model. The

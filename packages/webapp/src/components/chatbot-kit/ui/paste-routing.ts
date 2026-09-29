@@ -17,6 +17,24 @@ export const MAX_CHAT_PASTE_CHARS = 64000;
 const SPLIT_LINES = /\r?\n/;
 const DELIMITERS = [",", ";", "\t"];
 
+/** A JSON document, or JSON lines (one value per line). */
+function parsesAsJson(text: string): boolean {
+  try {
+    JSON.parse(text);
+    return true;
+  } catch {
+    /* fall through to JSON lines */
+  }
+  const lines = text.split(SPLIT_LINES).filter((l) => l.trim());
+  if (lines.length < 2) return false;
+  try {
+    lines.forEach((line) => JSON.parse(line));
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 /**
  * Does this paste look like a structured document rather than prose?
  *
@@ -28,9 +46,11 @@ export function looksStructured(text: string): boolean {
   const trimmed = text.trim();
   if (!trimmed) return false;
 
-  // JSON / JSON-lines, XML / XMI / HTML, PlantUML-family diagrams.
-  if (/^[[{]/.test(trimmed)) return true;
-  if (/^<\??[a-zA-Z]/.test(trimmed)) return true;
+  // JSON / JSON-lines, XML / XMI / HTML, PlantUML-family diagrams. The shape
+  // must hold, not just the first character: "[Library] add a Book" and
+  // "<Book> needs a title" are chat.
+  if (/^[[{]/.test(trimmed) && parsesAsJson(trimmed)) return true;
+  if (/^<\??[a-zA-Z]/.test(trimmed) && trimmed.endsWith('>')) return true;
   if (/^@start[a-z]+/i.test(trimmed)) return true;
 
   // CSV/TSV: several lines sharing the same delimiter count, and enough

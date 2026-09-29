@@ -310,16 +310,23 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
     setStep('github');
   }, [open, isGithubAuthenticated]);
 
-  // Lazy-load the user's repositories when the GitHub step opens.
+  // Lazy-load the user's repositories when the GitHub step opens. Once per
+  // visit: an empty or failed result must not re-trigger the fetch.
+  const githubReposRequestedRef = useRef(false);
   useEffect(() => {
-    if (step !== 'github' || !isGithubAuthenticated || !githubSession) {
+    if (!open || step !== 'github') {
+      githubReposRequestedRef.current = false;
       return;
     }
-    if (githubRepositories.length > 0 || githubReposLoading) {
+    if (!isGithubAuthenticated || !githubSession) {
       return;
     }
+    if (githubRepositories.length > 0 || githubReposLoading || githubReposRequestedRef.current) {
+      return;
+    }
+    githubReposRequestedRef.current = true;
     void fetchGithubRepositories(githubSession);
-  }, [step, isGithubAuthenticated, githubSession, githubRepositories.length, githubReposLoading, fetchGithubRepositories]);
+  }, [open, step, isGithubAuthenticated, githubSession, githubRepositories.length, githubReposLoading, fetchGithubRepositories]);
 
   const currentStepInfo = useMemo(() => {
     if (step === 'describe') {

@@ -332,28 +332,20 @@ export function writeActiveSpecDrivenRun(
 
 /** Clear only the expected run so an old terminal callback cannot erase a newer one. */
 export function clearActiveSpecDrivenRun(expectedRunId?: string): void {
-  if (!_hasLocalStorage()) return;
+  // No id (a run stopped before the server named it) has nothing to clear;
+  // wiping every pointer would drop other tabs' live runs.
+  if (!expectedRunId || !_hasLocalStorage()) return;
   try {
-    if (expectedRunId) {
-      window.localStorage.removeItem(
-        `${localStorageSpecDrivenActiveRunV2Prefix}${expectedRunId}`,
-      );
-      const legacy = _parseActiveSpecDrivenRun(
-        window.localStorage.getItem(localStorageSpecDrivenActiveRunV1),
-        1,
-      );
-      if (legacy?.runId === expectedRunId) {
-        window.localStorage.removeItem(localStorageSpecDrivenActiveRunV1);
-      }
-      return;
+    window.localStorage.removeItem(
+      `${localStorageSpecDrivenActiveRunV2Prefix}${expectedRunId}`,
+    );
+    const legacy = _parseActiveSpecDrivenRun(
+      window.localStorage.getItem(localStorageSpecDrivenActiveRunV1),
+      1,
+    );
+    if (legacy?.runId === expectedRunId) {
+      window.localStorage.removeItem(localStorageSpecDrivenActiveRunV1);
     }
-    const keys: string[] = [];
-    for (let index = 0; index < window.localStorage.length; index += 1) {
-      const key = window.localStorage.key(index);
-      if (key?.startsWith(localStorageSpecDrivenActiveRunV2Prefix)) keys.push(key);
-    }
-    keys.forEach((key) => window.localStorage.removeItem(key));
-    window.localStorage.removeItem(localStorageSpecDrivenActiveRunV1);
   } catch {
     /* ignore */
   }

@@ -57,6 +57,22 @@ describe('active durable run storage', () => {
     expect(readActiveSpecDrivenRun('project-a')?.runId).toBe(firstRunId);
   });
 
+  it('leaves other runs alone when cleared without a run id', () => {
+    // Stop before the server assigned an id passes `undefined`; that must not
+    // wipe the pointer another tab needs to reattach to its live run.
+    const otherRunId = 'e'.repeat(32);
+    writeActiveSpecDrivenRun({
+      runId: otherRunId,
+      projectId: 'project-a',
+      lastSequence: 1,
+      startedAt: 100,
+    });
+
+    clearActiveSpecDrivenRun(undefined);
+
+    expect(readActiveSpecDrivenRun('project-a')?.runId).toBe(otherRunId);
+  });
+
   it('reads a legacy v1 pointer and migrates it on the next write', () => {
     const runId = 'c'.repeat(32);
     window.localStorage.setItem(

@@ -873,11 +873,14 @@ export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGen
           const hasElements =
             !!storedModel && Object.keys((storedModel as any).elements ?? {}).length > 0;
           if (hasElements) {
+            // Smart Data Models is the jsonschema generator in smart_data mode
+            // (the backend has no 'smartdata' generator), as in the switch below.
+            const isSmartData = generatorType === 'smartdata';
             const overrideResult = await runGen(
               null,
-              generatorType,
+              isSmartData ? 'jsonschema' : generatorType,
               storedClassDiagram?.title || activeDiagramTitle,
-              config as any,
+              isSmartData ? { mode: 'smart_data' } : (config as any),
               undefined,
               storedModel,
             );

@@ -204,6 +204,16 @@ export async function* streamSse<T = unknown>(
   const decoder = new TextDecoder('utf-8');
   let buffer = '';
 
+  // The handshake listener is gone by now, so wire the caller's abort to the
+  // body as well: cancelling the reader ends a parked `read()` as a clean EOF.
+  const cancelOnAbort = () => {
+    void reader.cancel().catch(() => {
+      /* the read loop's own error handling covers the rest */
+    });
+  };
+  if (options.signal?.aborted) cancelOnAbort();
+  else options.signal?.addEventListener('abort', cancelOnAbort, { once: true });
+
   // ---- Stall watchdog (opt-in) ----
   // `reader.cancel()` resolves a pending `read()` as `{done: true}`, so
   // the loop below exits; `stallDetected` then converts that exit into an
@@ -306,6 +316,7 @@ export async function* streamSse<T = unknown>(
       throw new SseStallError(Date.now() - lastActivityAt);
     }
   } finally {
+    options.signal?.removeEventListener('abort', cancelOnAbort);
     if (stallWatchdog !== null) {
       clearInterval(stallWatchdog);
     }
