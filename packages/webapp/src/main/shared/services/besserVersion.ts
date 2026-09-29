@@ -6,7 +6,7 @@
  * than guess.
  */
 
-import { BACKEND_URL } from '../constants/constant';
+import { apiClient } from '../api/api-client';
 
 const TIMEOUT_MS = 3000;
 
@@ -23,18 +23,14 @@ export function loadBesserVersion(): Promise<string | undefined> {
   if (cached) return Promise.resolve(cached);
   if (!pending) {
     pending = (async () => {
-      const controller = new AbortController();
-      const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
       try {
-        const response = await fetch(`${BACKEND_URL}/`, { signal: controller.signal });
-        if (!response.ok) return undefined;
-        const version = (await response.json())?.besser_version;
+        const body = await apiClient.get<{ besser_version?: unknown }>('/', { timeout: TIMEOUT_MS });
+        const version = body?.besser_version;
         if (typeof version === 'string' && version && version !== 'unknown') cached = version;
         return cached;
       } catch {
         return undefined;
       } finally {
-        clearTimeout(timer);
         pending = null;
       }
     })();

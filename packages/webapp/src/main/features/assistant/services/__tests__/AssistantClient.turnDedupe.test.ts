@@ -143,6 +143,26 @@ describe('AssistantClient — turn-scoped reply dedupe', () => {
     expect(actions).toEqual(['assistant_message', 'assistant_message', 'assistant_message']);
   });
 
+  it("a late earlier-turn reply keeps the current turn's timer and thinking indicator", () => {
+    const { client, priv, actions, inner } = setup();
+    const typing: boolean[] = [];
+    client.onTyping((t) => typing.push(t));
+    client.sendMessage('first');
+    const t1 = inner(0).turnId;
+    // Turn 1 never answered in time; the user sends again (hard timeout path).
+    client.sendMessage('second');
+    const timer = (client as unknown as { responseTimeout: unknown }).responseTimeout;
+    typing.length = 0;
+
+    priv.handleMessage(wire({ action: 'progress', message: 'still on 1', turnId: t1, replySeq: 1 }));
+    priv.handleMessage(wire({ action: 'assistant_message', message: 'answer 1', turnId: t1, replySeq: 2 }));
+
+    expect(actions).toEqual(['progress', 'assistant_message']); // still delivered
+    expect((client as unknown as { responseTimeout: unknown }).responseTimeout).toBe(timer);
+    expect(typing).not.toContain(false);
+    expect(priv.awaitingResponse).toBe(true);
+  });
+
   it('ignores replies for a turn this client never sent', () => {
     const { client, priv, injections } = setup();
     client.sendMessage('make a library system');

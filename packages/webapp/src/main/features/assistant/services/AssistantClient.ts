@@ -914,7 +914,11 @@ export class AssistantClient {
       if (directAction && !this.acceptTurnFrame(directAction)) {
         return;
       }
-      this.clearResponseTimer();
+      // A late frame for an earlier turn is still delivered, but must not touch
+      // the awaited turn's timeout net or thinking indicator.
+      const forCurrentTurn =
+        typeof directAction?.turnId !== 'string' || directAction.turnId === this.currentTurnId;
+      if (forCurrentTurn) this.clearResponseTimer();
 
       // A 'progress' frame is an intermediate keep-alive emitted DURING a
       // long generation — it is NOT the reply. Keep the "thinking…"
@@ -924,12 +928,12 @@ export class AssistantClient {
       // socket look idle. Keeping isGenerating true also blocks a concurrent send
       // while a generation is still in flight.
       if (directAction && directAction.action === 'progress') {
-        this.startResponseTimer();
+        if (forCurrentTurn) this.startResponseTimer();
         this.emitAction(directAction);
         return;
       }
 
-      this.emitTyping(false);
+      if (forCurrentTurn) this.emitTyping(false);
       if (directAction) {
         // A terminal reply (anything but a 'progress' keep-alive, handled above)
         // concludes the turn — stop awaiting so we don't request a replay. A
