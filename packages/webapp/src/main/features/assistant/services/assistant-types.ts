@@ -61,6 +61,10 @@ export type AssistantActionName =
 export interface AssistantActionPayload {
   action: AssistantActionName | string;
   message?: string;
+  /** Echo of the user_message's turnId (agents that support turn-scoped replay). */
+  turnId?: string;
+  /** Per-turn frame sequence number, set alongside turnId. */
+  replySeq?: number;
   [key: string]: unknown;
 }
 
