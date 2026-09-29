@@ -111,6 +111,29 @@ describe('agentSimulation slice — lifecycle', () => {
     expect(lastRequest().init.method).toBe('DELETE');
   });
 
+  it('stop during the starting phase discards the session and closes it on the server', async () => {
+    const store = makeStore();
+    let resolveStart!: (value: unknown) => void;
+    fetchMock.mockImplementationOnce(() => new Promise((resolve) => (resolveStart = resolve)));
+    const starting = store.dispatch(startAgentSimulationThunk(payload));
+    expect(store.getState().agentSimulation.status).toBe('starting');
+
+    await store.dispatch(stopAgentSimulationThunk());
+    expect(store.getState().agentSimulation.status).toBe('idle');
+
+    fetchMock.mockResolvedValue(mockResponse({ body: { ok: true } }));
+    resolveStart(mockResponse({ body: { sessionId: 'sess-late' } }));
+    await starting;
+
+    const state = store.getState().agentSimulation;
+    expect(state.status).toBe('idle');
+    expect(state.sessionId).toBeNull();
+    await vi.waitFor(() => {
+      expect(lastRequest().url).toMatch(/\/simulation\/sessions\/sess-late$/);
+      expect(lastRequest().init.method).toBe('DELETE');
+    });
+  });
+
   it('stop still resets to idle when the DELETE fails', async () => {
     const store = makeStore();
     fetchMock.mockResolvedValueOnce(mockResponse({ body: { sessionId: 'sess-1' } }));

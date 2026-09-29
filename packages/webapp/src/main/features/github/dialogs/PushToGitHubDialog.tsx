@@ -131,7 +131,11 @@ export const PushToGitHubDialog: React.FC<PushToGitHubDialogProps> = ({
     void fetchRepositories(githubSession);
   }, [open, mode, githubSession, repositories.length, reposLoading, fetchRepositories]);
 
+  // Only the latest repo selection may apply its branch list; an earlier,
+  // slower response would otherwise overwrite the current repo's branches.
+  const branchRequestRef = useRef(0);
   const handleSelectRepo = async (fullName: string) => {
+    const requestId = ++branchRequestRef.current;
     setSelectedRepoFullName(fullName);
     setBranches([]);
     setSelectedBranch('');
@@ -141,6 +145,7 @@ export const PushToGitHubDialog: React.FC<PushToGitHubDialogProps> = ({
     setLoadingBranches(true);
     const [owner] = repo.full_name.split('/');
     const list = await fetchBranches(githubSession, owner, repo.name);
+    if (requestId !== branchRequestRef.current) return;
     setLoadingBranches(false);
     const resolved = list.length > 0 ? list : [repo.default_branch].filter(Boolean);
     setBranches(resolved);

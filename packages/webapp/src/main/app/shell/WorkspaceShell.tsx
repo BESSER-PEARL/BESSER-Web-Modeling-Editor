@@ -925,7 +925,8 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
     const result = await dispatch(
       validateAgentThunk({
         title: diagram?.title ?? t('agentSimulation.defaultDiagramTitle'),
-        model: diagram?.model ?? {},
+        // The same prepared model CredentialsDialog starts the session with.
+        model: simulationDiagramModel,
         config: freshConfig,
         configYaml: diagram?.configYaml,
       }),

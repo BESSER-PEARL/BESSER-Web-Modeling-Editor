@@ -72,7 +72,8 @@ export function hasDesignSystemStyles(editor: Editor): boolean {
 export function ensureDesignSystemStyles(editor: Editor): void {
   try {
     if (hasDesignSystemStyles(editor)) return;
-    editor.Css.addRules(DS_BASELINE_CSS);
+    // Setup, not a user edit: keep it off the undo stack.
+    editor.UndoManager.skip(() => editor.Css.addRules(DS_BASELINE_CSS));
   } catch (error) {
     console.warn('[DesignSystem] Could not inject baseline stylesheet:', error);
   }

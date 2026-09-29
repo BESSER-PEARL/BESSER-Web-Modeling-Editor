@@ -350,3 +350,57 @@ export function clearActiveSpecDrivenRun(expectedRunId?: string): void {
     /* ignore */
   }
 }
+
+/* ------------------------------------------------------------------ */
+/*  Run ownership across tabs                                          */
+/* ------------------------------------------------------------------ */
+
+// The active-run pointer lives in localStorage, which every tab of the
+// origin shares, so without an owner marker a second tab would adopt (and
+// could cancel) a run the first tab is still driving. The owning tab holds
+// a Web Lock for the run's lifetime; the browser drops it when that tab
+// closes or reloads, which is exactly when adopting the run is right.
+const _runLockName = (runId: string) => `besser_spec_driven_run_${runId}`;
+
+type _LockManager = {
+  request: (
+    name: string,
+    options: { ifAvailable?: boolean },
+    callback: (lock: unknown) => Promise<void> | void,
+  ) => Promise<unknown>;
+};
+
+function _lockManager(): _LockManager | null {
+  const locks = (globalThis.navigator as { locks?: _LockManager } | undefined)?.locks;
+  return locks && typeof locks.request === 'function' ? locks : null;
+}
+
+/**
+ * Claim ownership of `runId` for this tab. Resolves to a release function,
+ * or `null` when another live tab already owns the run. Without Web Locks
+ * support every tab may adopt (the pre-lock behaviour).
+ */
+export function claimSpecDrivenRunOwnership(
+  runId: string,
+  opts: { ifAvailable?: boolean } = {},
+): Promise<(() => void) | null> {
+  const locks = _lockManager();
+  const noop = () => {};
+  if (!locks) return Promise.resolve(noop);
+  return new Promise((resolve) => {
+    let release: () => void = noop;
+    const held = new Promise<void>((done) => {
+      release = done;
+    });
+    locks
+      .request(_runLockName(runId), { ifAvailable: opts.ifAvailable ?? false }, (lock) => {
+        if (!lock) {
+          resolve(null);
+          return;
+        }
+        resolve(release);
+        return held;
+      })
+      .catch(() => resolve(noop));
+  });
+}
