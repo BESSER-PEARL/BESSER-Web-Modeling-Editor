@@ -8,6 +8,8 @@ import {
   StoredUserProfile,
 } from '../services/storage/local-storage-types';
 import { normalizeProjectName } from './projectName';
+import { EDITOR_VERSION } from '../constants/constant';
+import { getCachedBesserVersion } from '../services/besserVersion';
 
 export const PROJECT_EXPORT_VERSION = '2.0.0';
 
@@ -164,7 +166,12 @@ export const buildProjectPayloadForBackend = (
 export interface ProjectExportEnvelope {
   project: ExportableProjectPayload;
   exportedAt: string;
+  /** Envelope format version ({@link PROJECT_EXPORT_VERSION}); not the project's `schemaVersion`. */
   version: string;
+  /** BESSER version the backend reported; absent when it could not be reached. */
+  besserVersion?: string;
+  /** Webapp version that wrote the file. */
+  editorVersion?: string;
   /**
    * Optional bundled personalization state. Lives in localStorage at runtime
    * (besser_agentConfigs, besser_userProfiles, besser_agentProfileMappings,
@@ -189,6 +196,18 @@ export interface BuildProjectExportEnvelopeOptions {
   includePersonalization?: boolean;
 }
 
+/**
+ * `besserVersion` / `editorVersion` for an exported JSON file, each omitted when unknown.
+ * Call `loadBesserVersion()` first where the backend version should be included.
+ */
+export function versionMetadata(): { besserVersion?: string; editorVersion?: string } {
+  const besserVersion = getCachedBesserVersion();
+  return {
+    ...(besserVersion ? { besserVersion } : {}),
+    ...(EDITOR_VERSION ? { editorVersion: EDITOR_VERSION } : {}),
+  };
+}
+
 /** Build a V2 project-export envelope (project + exportedAt + version). */
 export function buildProjectExportEnvelope(
   project: BesserProject,
@@ -201,6 +220,7 @@ export function buildProjectExportEnvelope(
     project: buildExportableProjectPayload(project, diagramTypes),
     exportedAt: new Date().toISOString(),
     version: PROJECT_EXPORT_VERSION,
+    ...versionMetadata(),
   };
 
   if (includePersonalization) {

@@ -122,7 +122,7 @@ export const useProject = () => {
     }
     
     // Use the simple JSON export function instead of ZIP export
-    exportProjectAsJson(project);
+    await exportProjectAsJson(project);
   }, [currentProject]);
   
   return {
