@@ -1456,6 +1456,41 @@ describe('useSpecDrivenTrigger — honest completion copy', () => {
     expect(toast.warning).toHaveBeenCalledWith('Generation incomplete — output available to inspect');
   });
 
+  it('trusts incomplete:false: remaining blockers are reported as could-not-verify', async () => {
+    setSessionKey();
+    const results: SpecDrivenRunResult[] = [];
+    _mockController.events = [
+      ...HAPPY_EVENTS.slice(0, -1),
+      {
+        ...(HAPPY_EVENTS[HAPPY_EVENTS.length - 1] as any),
+        incomplete: false,
+        blockerCount: 2,
+      },
+    ];
+
+    const { apiRef } = renderHarness({ onRunFinished: (r) => results.push(r) });
+    await act(async () => {
+      await apiRef.current!.handleTrigger(PAYLOAD);
+    });
+
+    await waitFor(() => {
+      expect(results.length).toBe(1);
+    });
+    const msgs = apiRef.current!.getMessages() as any[];
+    const summary = msgs.find(
+      (m) => typeof m.content === 'string' && m.content.includes('could not be verified'),
+    );
+    expect(summary).toBeTruthy();
+    expect(summary.content).toContain('2 checks could not be verified');
+    expect(summary.content).not.toContain('unresolved');
+    expect(results[0].incomplete).toBe(false);
+    expect(results[0].blockerCount).toBe(2);
+    const card = msgs.find((m) => m.specDriven).specDriven;
+    expect(card.incomplete).toBe(false);
+    expect(toast.warning).not.toHaveBeenCalled();
+    expect(toast.success).toHaveBeenCalled();
+  });
+
   it('keeps the cut-short framing for runs that genuinely stopped early', async () => {
     setSessionKey();
     _mockController.events = [

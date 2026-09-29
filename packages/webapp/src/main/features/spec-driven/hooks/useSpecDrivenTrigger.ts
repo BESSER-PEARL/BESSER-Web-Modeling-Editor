@@ -694,12 +694,17 @@ export function useSpecDrivenTrigger(
               unenforcedCount > 0
                 ? `**${unenforcedCount} rule${unenforcedCount === 1 ? '' : 's'} you asked for ${unenforcedCount === 1 ? 'is' : 'are'} not enforced in the delivered code** — the run card lists ${unenforcedCount === 1 ? 'it' : 'each of them'} and why.`
                 : '';
+            // A complete run's blockerCount is unverified findings only.
+            const unverifiedPhrase =
+              !incomplete && blockerCount > 0
+                ? ` ${blockerCount} check${blockerCount === 1 ? '' : 's'} could not be verified.`
+                : '';
             appendAssistantMessage(
               incomplete
                 ? `${incompleteMessage}${unenforcedPhrase ? ` ${unenforcedPhrase}` : ''}`
                 : unenforcedCount > 0
-                  ? `⚠️ Generated ${filesPhrase}${withGen}, but ${unenforcedPhrase}${topPhrase} Use the **Download** button on the run card to save the code as-is.`
-                  : `✅ Generated ${filesPhrase}${withGen}.${splitPhrase}${topPhrase} Use the **Download** button on the run card to save it.`,
+                  ? `⚠️ Generated ${filesPhrase}${withGen}, but ${unenforcedPhrase}${unverifiedPhrase}${topPhrase} Use the **Download** button on the run card to save the code as-is.`
+                  : `✅ Generated ${filesPhrase}${withGen}.${unverifiedPhrase}${splitPhrase}${topPhrase} Use the **Download** button on the run card to save it.`,
             );
             if (unenforcedCount > 0) {
               toast.warning(

@@ -303,7 +303,10 @@ export function applySpecDrivenEvent(
         downloadUrl: event.downloadUrl,
         fileName: event.fileName,
         isZip: event.isZip,
-        incomplete: (event.blockerCount ?? 0) > 0 || (event.incomplete ?? card.warnings.some(
+        // The backend's flag is authoritative: blockerCount also counts
+        // unverified findings, which do not make a run incomplete. Derive
+        // only when an older backend omitted the flag.
+        incomplete: event.incomplete ?? ((event.blockerCount ?? 0) > 0 || card.warnings.some(
           (warning) => warning.code === 'INCOMPLETE' && warning.severity !== 'info',
         )),
         incompleteReason: event.incompleteReason ?? undefined,

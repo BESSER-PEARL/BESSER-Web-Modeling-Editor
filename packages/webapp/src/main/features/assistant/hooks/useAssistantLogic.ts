@@ -598,7 +598,11 @@ export function useAssistantLogic({
                 // not say it did.
                 `Spec-Driven Agent produced output, but ${result.blockerCount} unresolved implementation or verification issue${result.blockerCount === 1 ? '' : 's'} remain${result.blockerCount === 1 ? 's' : ''}${result.incompleteReason ? ` (${result.incompleteReason})` : ''}. The generated app is not verified complete. The user can resume the run to address ${result.blockerCount === 1 ? 'it' : 'them'} or download the output as-is.`
               : `Spec-Driven Agent produced output, but the run stopped early so it may be incomplete${result.incompleteReason ? `: ${result.incompleteReason}` : ''}.`
-            : `Spec-Driven Agent finished successfully${result.fileName ? ` — ${result.fileName} is ready for the user to download` : ''}.`
+            : `Spec-Driven Agent finished successfully${result.fileName ? ` — ${result.fileName} is ready for the user to download` : ''}.${
+                typeof result.blockerCount === 'number' && result.blockerCount > 0
+                  ? ` ${result.blockerCount} check${result.blockerCount === 1 ? '' : 's'} could not be verified.`
+                  : ''
+              }`
           : result.errorCode === 'CANCELLED'
             ? 'Spec-Driven Agent run was cancelled by the user.'
             : `Spec-Driven Agent failed (${result.errorCode ?? 'UNKNOWN'}).`;

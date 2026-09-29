@@ -94,7 +94,7 @@ export const FALLBACK_SMART_GEN_CONFIG: SpecDrivenConfig = {
   download_ttl_seconds: 1800,
   features: {},
   default_models: {
-    anthropic: 'claude-sonnet-4-6',
+    anthropic: 'claude-sonnet-5',
     openai: 'gpt-4o',
     mistral: 'mistral-large-latest',
     nebius: 'Qwen/Qwen3-30B-A3B-Instruct-2507',

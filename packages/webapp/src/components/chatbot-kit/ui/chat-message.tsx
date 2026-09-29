@@ -1434,9 +1434,13 @@ function SpecDrivenCard({
   // artifact is available). Warnings and the download-failed note stay visible.
   if (status === "done") {
     const isFirstSave = needsDownload === true && !hasDownloaded
-    const isIncomplete = incomplete === true || (blockerCount ?? 0) > 0 || (
+    // Trust the backend's verdict; derive it only for cards that predate
+    // the flag. blockerCount also counts unverified findings, so on a
+    // complete run it means "could not verify", not "unresolved".
+    const isIncomplete = incomplete ?? (
+      (blockerCount ?? 0) > 0 ||
       // Older persisted cards only retained the INCOMPLETE warning.
-      incomplete === undefined && warnings.some((warning) =>
+      warnings.some((warning) =>
         warning.code === "INCOMPLETE" && warning.severity !== "info"
       )
     )
@@ -1473,6 +1477,11 @@ function SpecDrivenCard({
           {isIncomplete && (blockerCount ?? 0) > 0 ? (
             <span className="text-[11px] text-amber-700 dark:text-amber-400">
               · {blockerCount} unresolved blocker{blockerCount === 1 ? "" : "s"}
+            </span>
+          ) : null}
+          {!isIncomplete && (blockerCount ?? 0) > 0 ? (
+            <span className="text-[11px] text-muted-foreground">
+              · {blockerCount} could not be verified
             </span>
           ) : null}
           {generatorUsed ? (
