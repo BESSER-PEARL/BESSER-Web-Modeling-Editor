@@ -127,7 +127,7 @@ vi.mock('../../../../shared/services/analytics/lazy-analytics', () => ({
 
 // Imported AFTER vi.mock calls are hoisted so the hook picks up the fake.
 import { useAssistantLogic } from '../useAssistantLogic';
-import { conversationStore } from '../assistantConversationStore';
+import { conversationStore, voicePlaceholderIdRef } from '../assistantConversationStore';
 
 interface HarnessAPI {
   sendVoiceMessage: (blob: Blob) => Promise<void>;
@@ -213,6 +213,8 @@ beforeEach(() => {
   // it so each test starts from an empty message list; otherwise bubbles leak
   // across tests and the length assertions climb (1 → 3 → 4 → 5 …).
   conversationStore.clear();
+  // The pending-placeholder id is module-level too (shared by both surfaces).
+  voicePlaceholderIdRef.current = null;
 });
 
 afterEach(() => {

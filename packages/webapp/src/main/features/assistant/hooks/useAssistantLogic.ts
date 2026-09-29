@@ -25,8 +25,10 @@ import type { Message as ChatKitMessage } from '@/components/chatbot-kit/ui/chat
 import { getPostHog } from '../../../shared/services/analytics/lazy-analytics';
 import { AssistantClient, getSharedAssistantClient, type AssistantActionPayload } from '../services';
 import {
+  autoFixRef,
   conversationStore,
   setConversationHandlers,
+  voicePlaceholderIdRef,
   wireConversationDispatchers,
 } from './assistantConversationStore';
 import { UML_BOT_WS_URL, bugReportRepo } from '../../../shared/constants/constant';
@@ -288,9 +290,9 @@ export function useAssistantLogic({
    * the text path does. When the agent's transcription echo (an incoming
    * `isUser` message carrying the spoken text) arrives, we replace this bubble
    * in place rather than appending a second one — see the onMessage handler.
-   * Null when no voice message is awaiting its transcription echo.
+   * Lives in the conversation store (`voicePlaceholderIdRef`): the echo may be
+   * handled by the other surface.
    */
-  const voicePlaceholderIdRef = useRef<string | null>(null);
 
   /* ---- external deps ---- */
   const dispatch = useAppDispatch();
@@ -325,11 +327,8 @@ export function useAssistantLogic({
   // outcome REPLACES it instead of being appended below it. Progress messages
   // render with a live spinner and never get removed, so appending left a row
   // spinning forever next to a second row saying the work had finished.
-  const autoFixRef = useRef<{
-    attempted: boolean;
-    fixInFlight: boolean;
-    progressMessageId: string | null;
-  }>({ attempted: false, fixInFlight: false, progressMessageId: null });
+  // Shared via the conversation store (`autoFixRef`): the surface that sends
+  // resets it, the dispatch winner that applies the model reads it.
 
   /**
    * Settle the auto-fix status line: swap its text for the outcome and stop
