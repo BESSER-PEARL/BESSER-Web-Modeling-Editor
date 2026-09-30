@@ -271,7 +271,8 @@ Walkthrough: `docs/source/contributing/new-diagram-guide/`.
 ## Environment Variables
 All configuration is **build time** — no runtime config endpoint. `vite.config.ts` passes exactly seven names to
 `define` (`BACKEND_URL`, `DEPLOYMENT_URL`, `UML_BOT_WS_URL`, `POSTHOG_HOST`, `POSTHOG_KEY`, `SENTRY_DSN`,
-`APPLICATION_SERVER_VERSION`); `shared/constants/constant.ts` is the only reader. For local dev none are needed.
+`APPLICATION_SERVER_VERSION`), plus `EDITOR_VERSION`, which is not an env var but the webapp `package.json`
+version (stamped into JSON exports); `shared/constants/constant.ts` is the only reader. For local dev none are needed.
 Full reference: `docs/source/reference/environment.rst`.
 - **`define` is a text substitution**: `process.env[name]` is never replaced. A new variable needs a static name
   added to both `vite.config.ts` and `constant.ts`.

@@ -49,6 +49,8 @@ export interface AgentSimulationState {
   error: string | null;
   agentCode: string | null;
   validationErrors: string[];
+  /** requestId of the start/restart whose result is still wanted; Stop clears it. */
+  pendingStartId: string | null;
 }
 
 /**
@@ -81,6 +83,7 @@ export const initialAgentSimulationState: AgentSimulationState = {
   error: null,
   agentCode: null,
   validationErrors: [],
+  pendingStartId: null,
 };
 
 // ---------------------------------------------------------------------------
@@ -91,8 +94,21 @@ function toErrorMessage(error: unknown, fallbackKey: string): string {
   return getAgentSimulationErrorMessage(error, i18n.t(fallbackKey), i18n.t('agentSimulation.errors.timeout'));
 }
 
-function startSession(payload: StartAgentSimulationPayload): Promise<StartAgentSimulationSessionResponse> {
-  return agentSimulationApi.startSession({ ...payload, credentials: agentSimulationCredentialStore.get() });
+async function startSession(
+  payload: StartAgentSimulationPayload,
+  requestId: string,
+  getState: () => AgentSimulationRootState,
+): Promise<StartAgentSimulationSessionResponse> {
+  const response = await agentSimulationApi.startSession({
+    ...payload,
+    credentials: agentSimulationCredentialStore.get(),
+  });
+  // Stopped (or superseded) while starting: nobody wants this session, and the
+  // reducers ignore it, so close it on the server instead of orphaning it.
+  if (getState().agentSimulation.pendingStartId !== requestId) {
+    agentSimulationApi.stopSession(response.sessionId).catch(() => {});
+  }
+  return response;
 }
 
 /**
@@ -103,9 +119,9 @@ export const startAgentSimulationThunk = createAsyncThunk<
   StartAgentSimulationSessionResponse,
   StartAgentSimulationPayload,
   ThunkConfig
->('agentSimulation/start', async (payload, { rejectWithValue }) => {
+>('agentSimulation/start', async (payload, { getState, requestId, rejectWithValue }) => {
   try {
-    return await startSession(payload);
+    return await startSession(payload, requestId, getState);
   } catch (err) {
     return rejectWithValue(toErrorMessage(err, 'agentSimulation.errors.startFailed'));
   }
@@ -139,7 +155,7 @@ export const stopAgentSimulationThunk = createAsyncThunk<void, void, ThunkConfig
 
 export const restartAgentSimulationThunk = createAsyncThunk<StartAgentSimulationSessionResponse, void, ThunkConfig>(
   'agentSimulation/restart',
-  async (_, { getState, rejectWithValue }) => {
+  async (_, { getState, requestId, rejectWithValue }) => {
     const { startPayload, sessionId: oldSessionId } = getState().agentSimulation;
     if (!startPayload) return rejectWithValue(i18n.t('agentSimulation.errors.restartUnavailable'));
 
@@ -149,7 +165,7 @@ export const restartAgentSimulationThunk = createAsyncThunk<StartAgentSimulation
     }
 
     try {
-      return await startSession(startPayload);
+      return await startSession(startPayload, requestId, getState);
     } catch (err) {
       return rejectWithValue(toErrorMessage(err, 'agentSimulation.errors.restartFailed'));
     }
@@ -223,13 +239,18 @@ const agentSimulationSlice = createSlice({
         clearSessionOutput(state);
         state.sessionId = null;
         state.startPayload = action.meta.arg;
+        state.pendingStartId = action.meta.requestId;
       })
       .addCase(startAgentSimulationThunk.fulfilled, (state, action) => {
+        if (state.pendingStartId !== action.meta.requestId) return;
+        state.pendingStartId = null;
         state.status = 'running';
         state.sessionId = action.payload.sessionId;
         state.eventList = action.payload.eventList ?? [];
       })
       .addCase(startAgentSimulationThunk.rejected, (state, action) => {
+        if (state.pendingStartId !== action.meta.requestId) return;
+        state.pendingStartId = null;
         state.status = 'error';
         state.error = action.payload ?? i18n.t('agentSimulation.errors.startFailed');
       });
@@ -238,6 +259,7 @@ const agentSimulationSlice = createSlice({
     builder
       .addCase(stopAgentSimulationThunk.pending, (state) => {
         state.status = 'stopping';
+        state.pendingStartId = null;
       })
       .addCase(stopAgentSimulationThunk.fulfilled, (state) => {
         state.status = 'idle';
@@ -255,18 +277,23 @@ const agentSimulationSlice = createSlice({
     // `sessionId` is deliberately kept while pending: the thunk body (which runs after
     // this reducer) reads it to delete the old session; `fulfilled` replaces it.
     builder
-      .addCase(restartAgentSimulationThunk.pending, (state) => {
+      .addCase(restartAgentSimulationThunk.pending, (state, action) => {
         state.status = 'starting';
         clearSessionOutput(state);
         state.validationErrors = [];
         state.eventList = [];
+        state.pendingStartId = action.meta.requestId;
       })
       .addCase(restartAgentSimulationThunk.fulfilled, (state, action) => {
+        if (state.pendingStartId !== action.meta.requestId) return;
+        state.pendingStartId = null;
         state.status = 'running';
         state.sessionId = action.payload.sessionId;
         state.eventList = action.payload.eventList ?? [];
       })
       .addCase(restartAgentSimulationThunk.rejected, (state, action) => {
+        if (state.pendingStartId !== action.meta.requestId) return;
+        state.pendingStartId = null;
         state.status = 'error';
         state.sessionId = null;
         state.error = action.payload ?? i18n.t('agentSimulation.errors.restartFailed');

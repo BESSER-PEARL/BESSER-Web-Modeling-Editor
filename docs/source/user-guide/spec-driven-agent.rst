@@ -62,7 +62,8 @@ one. Creating or editing a model never triggers generation.
 
 **A model to run on.** If the free tier is available and you have no API key,
 the first run silently opts you into it and starts — no dialog. If you have
-already saved your own key, that key is used and the run starts immediately. The
+already saved your own key, that key is used and the run starts immediately,
+incurring provider charges. The
 key dialog only interrupts you when neither is available, in which case it opens
 titled **Spec-Driven Agent — Run** with a *Save & run* button. Dismissing it
 cancels the run and the assistant says so in the chat.

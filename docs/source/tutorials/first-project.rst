@@ -1,104 +1,128 @@
-Tutorial: Your First Project
-=============================
+Your first project
+==================
 
-In this tutorial you will create a simple library model, validate it, and
-generate a Python backend -- all within the BESSER Web Modeling Editor. By the
-end you will understand projects, class diagrams, and code generation.
+**Goal:** model books and authors, check the diagram, download Python classes,
+and save the project. You need only a browser, and this tutorial makes no AI
+calls.
 
-.. note::
-   This tutorial uses the online editor at
-   `editor.besser-pearl.org <https://editor.besser-pearl.org>`_.
-   No installation is required.
+Create the project
+------------------
 
-Step 1: Create a Project
+.. figure:: ../images/wme/v8/interface-choice.png
+   :width: 640
+   :alt: Welcome screen with Model it and Describe it choices
+
+   **Model it** opens the visual modeling workflow used in this tutorial.
+
+1. Open `editor.besser-pearl.org <https://editor.besser-pearl.org>`_.
+2. On the welcome screen choose **Model it**. If a project is already open,
+   choose **File > New Project**, then **Low-code**.
+3. Enter ``My Library`` as the name, select **Data Modeler** as the modeling
+   perspective, and click **Create Project**. Spaces in the name become
+   underscores, so the workspace title is ``My_Library``.
+
+.. figure:: ../images/wme/v8/new-project.png
+   :width: 640
+   :alt: Project details with Low-code view and Data Modeler perspective selected
+
+   Create ``My Library`` with the **Data Modeler** perspective.
+
+You should see an empty canvas and a palette of class-diagram elements.
+
+Add two classes
+---------------
+
+Drag a **Class** from the palette onto the canvas and double-click it.
+Name it ``Book``. Rename the default attribute to ``title`` and leave its
+type as **str (string)**. Add the next line in the attribute input and press
+Enter:
+
+.. code-block:: text
+
+   + pages: int
+
+.. figure:: ../images/wme/v8/book-properties.png
+   :width: 100%
+   :alt: Book class with title and pages attributes in the class properties panel
+
+   The ``Book`` class and its attributes in the properties panel.
+
+Add another class named ``Author``. Rename its default attribute to ``name``
+and leave its type as ``str``:
+
+.. code-block:: text
+
+   + name: str
+
+You should now have two class boxes. Their attribute lines describe the
+fields the generator will put in the source code.
+
+Connect books to authors
 ------------------------
 
-1. Open the editor in your browser.
-2. Click **File > New / Open / Import Project**.
-3. Enter a project name (e.g., "My Library") and click **Create Project**.
+1. Select ``Book`` and drag from a connection point to ``Author``.
+2. Double-click the line to open its properties.
+3. Choose **Association** and name it ``written_by``.
+4. Set the end at ``Book`` to ``*`` and the end at ``Author`` to ``1``.
+   Leave both ends navigable.
 
-You are now in the editor with an empty class diagram canvas.
+This means an author may have many books, and every book has one author.
+Multiplicity is read at the opposite end: the ``1`` next to ``Author`` tells
+you how many authors one book has.
 
-Step 2: Add Classes
+.. figure:: ../images/wme/v8/book-author-association.png
+   :width: 100%
+   :alt: Book and Author connected by written_by, with Book multiplicity star and Author multiplicity one
+
+   Set the two multiplicities in the association properties panel. Both
+   **Navigable** boxes are selected in this example.
+
+Check the model
+---------------
+
+Click **Quality Check** in the top bar. Resolve any errors before continuing.
+For example, give two classes different names if the check reports a duplicate.
+
+Download code
+-------------
+
+Open **Generate > OOP > Python Classes**. The downloaded
+``.py`` file should define ``Book`` and ``Author``, their attributes, and their
+association.
+
+.. figure:: ../images/wme/v8/generate-python.png
+   :width: 700
+   :alt: Generate menu with OOP expanded and Python Classes available
+
+   Choose **OOP > Python Classes** to download this model as Python code.
+
+This output is Python classes, not a running backend. For an API choose
+the backend generator; for a full web application you also need a linked
+GUI model. :doc:`../user-guide/generate-code` explains the options.
+
+Save a project copy
 -------------------
 
-Let's model a simple library with books and authors.
+Use **File > Export Project**, include the class diagram, and choose
+**Export as JSON**. Keep this file so you can import the project in another
+browser or after clearing site data.
 
-1. From the **Palette** on the left, drag a **Class** element onto the canvas.
-2. Double-click the class to open its properties.
-3. Set the name to ``Book``.
-4. Add attributes (one per line):
+.. figure:: ../images/wme/v8/export-project.png
+   :width: 700
+   :alt: Export Project dialog with Class Diagram selected and Export as JSON in Multiple Diagrams
 
-   .. code-block:: text
+   **Export as JSON** under **Multiple Diagrams** saves the selected diagrams
+   as a project backup.
 
-      + title: str
-      + pages: int
-      + price: float
+.. important::
 
-5. Drag another **Class** onto the canvas and name it ``Author``.
-6. Add attributes:
+   Automatic saving uses this browser's site storage. Downloading generated
+   code does not back up your project.
 
-   .. code-block:: text
+Next steps
+----------
 
-      + name: str
-      + birth: date
-
-Step 3: Add a Relationship
---------------------------
-
-1. Click on the ``Book`` class.
-2. Drag from a blue connection point on ``Book`` to the ``Author`` class.
-3. A relationship line appears. Double-click it to edit properties.
-4. Set the **Name** to ``written_by``.
-5. Set the **Type** to ``Association`` and leave both ends **Navigable**, so
-   a book knows its authors and an author knows their books.
-6. Set the multiplicity: ``*`` on the Book side, ``1..*`` on the Author side
-   (a book has one or more authors, an author can write many books).
-
-Step 4: Add an Enumeration
---------------------------
-
-1. Drag an **Enumeration** from the palette onto the canvas.
-2. Double-click it and set the name to ``Genre``.
-3. Add values (one per line): ``Poetry``, ``Thriller``, ``History``, ``Romance``.
-4. Now open the ``Book`` class properties and add an attribute:
-
-   .. code-block:: text
-
-      + genre: Genre
-
-Step 5: Validate Your Model
-----------------------------
-
-1. Click the **Quality Check** button in the top bar.
-2. If your model has no errors, you will see a success message.
-3. If there are issues (e.g., duplicate class names), the editor will show
-   specific error messages.
-
-Step 6: Generate Code
----------------------
-
-1. Click the **Generate** menu in the top bar.
-2. Select **Python Classes** from the dropdown.
-3. A ``.py`` file is downloaded containing Python class definitions for
-   ``Book``, ``Author``, and ``Genre``.
-
-You can also try other generators:
-
-- **SQL DDL**: Generates SQL ``CREATE TABLE`` statements.
-- **Django**: Generates a full Django project with admin panel.
-- **Full Web App**: Generates a React + FastAPI application (requires a GUI
-  diagram -- see :doc:`../user-guide/diagrams/gui-diagram`).
-
-Step 7: Explore Further
-------------------------
-
-Now that you have the basics, try:
-
-- Adding **methods** to your classes (e.g., ``+ get_full_name(): str``).
-- Adding **OCL constraints** (drag from palette, write rules like
-  ``context Book inv: self.pages > 0``).
-- Creating an **Object Diagram** to model specific instances.
-- Switching to a **State Machine** or **Agent Diagram** via the left sidebar.
-
-See :doc:`../user-guide/diagrams/index` for detailed guides on each diagram type.
+* :doc:`../user-guide/diagrams/gui-diagram`: add screens to the data model.
+* :doc:`../user-guide/ai-assistant`: describe changes in natural language.
+* :doc:`../user-guide/spec-driven-agent`: generate a customised application.
+* :doc:`../user-guide/projects`: import, export, and organise diagrams.

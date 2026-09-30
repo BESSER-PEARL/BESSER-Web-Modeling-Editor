@@ -157,6 +157,7 @@ describe('startSpecDrivenRun request serialization', () => {
         method: 'GET',
         signal: handle.controller.signal,
         stallTimeoutMs: SPEC_DRIVEN_STREAM_STALL_TIMEOUT_MS,
+        responseTimeoutMs: SPEC_DRIVEN_RESPONSE_TIMEOUT_MS,
       },
     );
   });
@@ -207,6 +208,7 @@ describe('startSpecDrivenRun request serialization', () => {
         method: 'GET',
         signal: handle.controller.signal,
         stallTimeoutMs: SPEC_DRIVEN_STREAM_STALL_TIMEOUT_MS,
+        responseTimeoutMs: SPEC_DRIVEN_RESPONSE_TIMEOUT_MS,
       },
     );
   });
@@ -222,6 +224,7 @@ describe('startSpecDrivenRun request serialization', () => {
         method: 'GET',
         signal: handle.controller.signal,
         stallTimeoutMs: SPEC_DRIVEN_STREAM_STALL_TIMEOUT_MS,
+        responseTimeoutMs: SPEC_DRIVEN_RESPONSE_TIMEOUT_MS,
       },
     );
   });

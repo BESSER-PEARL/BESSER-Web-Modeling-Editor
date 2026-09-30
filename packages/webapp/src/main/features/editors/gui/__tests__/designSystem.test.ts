@@ -50,4 +50,16 @@ describe('design system baseline', () => {
 
     expect(ed.Css.getRule('.ds-card')).toBeTruthy();
   });
+
+  it('keeps the injected baseline off the undo stack', () => {
+    const ed = makeEditor();
+    ed.setComponents('<div>plain</div>');
+    ed.UndoManager.clear();
+
+    ensureDesignSystemStyles(ed);
+
+    expect(ed.Css.getRule('.ds-card')).toBeTruthy();
+    // Ctrl+Z must not strip the design system as if it were a user edit.
+    expect(ed.UndoManager.hasUndo()).toBe(false);
+  });
 });

@@ -100,6 +100,15 @@ const createSessionId = (): string => getOrCreateAssistantSessionId();
 
 const createMessageId = (): string => `msg_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
 
+// Unique across page loads: the agent's per-user outbox can outlive a page.
+const createTurnId = (): string =>
+  typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
+    ? `turn_${crypto.randomUUID()}`
+    : `turn_${Date.now()}_${Math.random().toString(36).slice(2, 11)}`;
+
+// How many recent turns keep their applied reply seqs (older turns are superseded).
+const MAX_TRACKED_TURNS = 20;
+
 const isObject = (value: unknown): value is Record<string, any> =>
   typeof value === 'object' && value !== null && !Array.isArray(value);
 
@@ -362,6 +371,16 @@ export class AssistantClient {
   // a fast (~4s) reply lost to a stale slot is recovered within one beat. A
   // shorter beat shrinks that recovery window.
   private readonly heartbeatMs = 8000;
+  // Turn tracking. Each user_message carries a fresh `turnId`; the agent echoes
+  // it with a per-turn `replySeq` on every frame, so each (turnId, replySeq) is
+  // applied at most once — a reconnect's outbox flush and replay can both deliver
+  // the same reply. Frames for a turn this client never sent, or older than the
+  // newest turn that has replied (the agent answers turns in order), are stale.
+  // Frames without a turnId (older agent, voice turns) take the legacy path.
+  private currentTurnId: string | null = null;
+  private turnCounter = 0;
+  private newestRepliedTurnOrder = 0;
+  private readonly turns = new Map<string, { order: number; applied: Set<number> }>();
 
   private readonly clientMode: AssistantClientMode;
   private sessionId: string;
@@ -657,12 +676,17 @@ export class AssistantClient {
    */
   private requestReplayIfPending(): void {
     if (!this.awaitingResponse) return;
+    const turn = this.currentTurnId ? this.turns.get(this.currentTurnId) : undefined;
     try {
       this.sendPayload({
         action: 'replay_last_response',
         protocolVersion: '2.0',
         clientMode: this.clientMode,
         sessionId: this.sessionId,
+        // Scope the replay to the awaited turn, minus what already arrived.
+        ...(turn
+          ? { turnId: this.currentTurnId, appliedSeqs: [...turn.applied].sort((a, b) => a - b) }
+          : {}),
       });
     } catch {
       // best-effort — the next heartbeat/reconnect will retry
@@ -721,6 +745,10 @@ export class AssistantClient {
       // sessionStorage unavailable — fall through to a fresh in-memory id
     }
     this.sessionId = createSessionId();
+    // Replies to the old conversation's turns must not land in the new one.
+    this.turns.clear();
+    this.currentTurnId = null;
+    this.awaitingResponse = false;
   }
 
   get connected(): boolean {
@@ -801,6 +829,12 @@ export class AssistantClient {
     if (!this.isConnected || !this.ws) {
       throw new Error('WebSocket is not connected');
     }
+    if (payload.action === 'user_message') {
+      payload.turnId = this.beginTurn();
+    } else if (payload.action === 'user_voice') {
+      // The voice wire format carries no v2 payload, so no turnId reaches the agent.
+      this.currentTurnId = null;
+    }
     const wire = this.buildWirePayload(payload);
 
     // For voice messages, send the workspace context as a USER_SET_VARIABLE
@@ -853,11 +887,44 @@ export class AssistantClient {
     };
   }
 
+  private beginTurn(): string {
+    const turnId = createTurnId();
+    this.turns.set(turnId, { order: ++this.turnCounter, applied: new Set() });
+    if (this.turns.size > MAX_TRACKED_TURNS) {
+      this.turns.delete(this.turns.keys().next().value as string);
+    }
+    this.currentTurnId = turnId;
+    return turnId;
+  }
+
+  /** False for a duplicate or stale turn-stamped frame; records the frame otherwise. */
+  private acceptTurnFrame(frame: AssistantActionPayload): boolean {
+    const { turnId, replySeq } = frame;
+    if (typeof turnId !== 'string') return true;
+    const turn = this.turns.get(turnId);
+    if (!turn || turn.order < this.newestRepliedTurnOrder) return false;
+    if (typeof replySeq === 'number') {
+      if (turn.applied.has(replySeq)) return false;
+      turn.applied.add(replySeq);
+    }
+    this.newestRepliedTurnOrder = turn.order;
+    return true;
+  }
+
   private handleMessage(event: MessageEvent): void {
-    this.clearResponseTimer();
     try {
       const payload = JSON.parse(event.data) as AgentResponse;
       const directAction = this.extractActionPayload(payload);
+      // Dropped before touching the timer or typing state: the awaited turn is
+      // still in flight.
+      if (directAction && !this.acceptTurnFrame(directAction)) {
+        return;
+      }
+      // A late frame for an earlier turn is still delivered, but must not touch
+      // the awaited turn's timeout net or thinking indicator.
+      const forCurrentTurn =
+        typeof directAction?.turnId !== 'string' || directAction.turnId === this.currentTurnId;
+      if (forCurrentTurn) this.clearResponseTimer();
 
       // A 'progress' frame is an intermediate keep-alive emitted DURING a
       // long generation — it is NOT the reply. Keep the "thinking…"
@@ -867,16 +934,24 @@ export class AssistantClient {
       // socket look idle. Keeping isGenerating true also blocks a concurrent send
       // while a generation is still in flight.
       if (directAction && directAction.action === 'progress') {
-        this.startResponseTimer();
+        if (forCurrentTurn) this.startResponseTimer();
         this.emitAction(directAction);
         return;
       }
 
-      this.emitTyping(false);
+      if (forCurrentTurn) this.emitTyping(false);
       if (directAction) {
         // A terminal reply (anything but a 'progress' keep-alive, handled above)
-        // concludes the turn — stop awaiting so we don't request a replay.
-        this.awaitingResponse = false;
+        // concludes the turn — stop awaiting so we don't request a replay. A
+        // stamped reply concludes only its own turn, and a stamped stream only at
+        // stream_done (the agent replays a stream's stream_done). Unstamped
+        // stream_start still concludes it: an older agent's replay would re-send
+        // the previous turn's reply.
+        const stamped = typeof directAction.turnId === 'string';
+        const midStream = directAction.action === 'stream_start' || directAction.action === 'stream_chunk';
+        if (!stamped || (directAction.turnId === this.currentTurnId && !midStream)) {
+          this.awaitingResponse = false;
+        }
         if (isInjectionCommand(directAction)) {
           this.emitInjection({
             ...directAction,
@@ -919,6 +994,7 @@ export class AssistantClient {
       };
       this.emitMessage(chatMessage);
     } catch (error) {
+      this.clearResponseTimer();
       const rawData = typeof event.data === 'string' ? event.data : '';
       const protocolError = new ProtocolError(
         'Failed to parse assistant WebSocket message',

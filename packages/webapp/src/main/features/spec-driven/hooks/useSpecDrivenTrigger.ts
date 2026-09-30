@@ -87,6 +87,7 @@ import {
   tryClaimRunSlot,
 } from '../state/specDrivenSlice';
 import {
+  claimSpecDrivenRunOwnership,
   clearActiveSpecDrivenRun,
   clearSessionKey,
   readActiveSpecDrivenRun,
@@ -694,12 +695,17 @@ export function useSpecDrivenTrigger(
               unenforcedCount > 0
                 ? `**${unenforcedCount} rule${unenforcedCount === 1 ? '' : 's'} you asked for ${unenforcedCount === 1 ? 'is' : 'are'} not enforced in the delivered code** — the run card lists ${unenforcedCount === 1 ? 'it' : 'each of them'} and why.`
                 : '';
+            // A complete run's blockerCount is unverified findings only.
+            const unverifiedPhrase =
+              !incomplete && blockerCount > 0
+                ? ` ${blockerCount} check${blockerCount === 1 ? '' : 's'} could not be verified.`
+                : '';
             appendAssistantMessage(
               incomplete
                 ? `${incompleteMessage}${unenforcedPhrase ? ` ${unenforcedPhrase}` : ''}`
                 : unenforcedCount > 0
-                  ? `⚠️ Generated ${filesPhrase}${withGen}, but ${unenforcedPhrase}${topPhrase} Use the **Download** button on the run card to save the code as-is.`
-                  : `✅ Generated ${filesPhrase}${withGen}.${splitPhrase}${topPhrase} Use the **Download** button on the run card to save it.`,
+                  ? `⚠️ Generated ${filesPhrase}${withGen}, but ${unenforcedPhrase}${unverifiedPhrase}${topPhrase} Use the **Download** button on the run card to save the code as-is.`
+                  : `✅ Generated ${filesPhrase}${withGen}.${unverifiedPhrase}${splitPhrase}${topPhrase} Use the **Download** button on the run card to save it.`,
             );
             if (unenforcedCount > 0) {
               toast.warning(
@@ -841,38 +847,52 @@ export function useSpecDrivenTrigger(
   // backend worker now continues independently. Recreate a live card and
   // replay its durable event log. Two assistant surfaces mount this hook;
   // the global run-slot claim ensures exactly one becomes the subscriber.
+  // The pointer is shared by every tab, so the run is adopted only when no
+  // live tab still owns it (a reload or a closed tab releases ownership).
   useEffect(() => {
     const saved = readActiveSpecDrivenRun(recoveryProjectId);
     if (!saved || !recoveryProjectId || saved.projectId !== recoveryProjectId) return;
-    if (isRunningRef.current || !dispatch(tryClaimRunSlot())) return;
-
-    const liveKey = createMessageId();
-    dispatch(liveRunStarted({ key: liveKey }));
-    const streamingId = appendAssistantMessage('', {
-      isStreaming: true,
-      specDriven: emptyCard(liveKey),
-    });
-
-    isRunningRef.current = true;
-    abortRequestedRef.current = false;
-    runFinishedReportedRef.current = false;
-    currentRunIdRef.current = saved.runId;
-    activeRunStartedAtRef.current = saved.startedAt;
-    // The running card itself is intentionally not persisted. Replay from the
-    // beginning so the new card reconstructs every phase and tool entry.
-    lastSequenceRef.current = 0;
-    activeCardRef.current = { liveKey, streamingId };
-    setIsGenerating(false);
-
-    const handle = followSpecDrivenRun(saved.runId, 0);
-    abortRef.current = handle.abort;
-    const runCtx = {
-      liveKey,
-      streamingId,
-      projectId: saved.projectId,
-    };
-
+    if (isRunningRef.current) return;
     void (async () => {
+      const releaseOwnership = await claimSpecDrivenRunOwnership(saved.runId, {
+        ifAvailable: true,
+      });
+      if (!releaseOwnership) return;
+      if (
+        isRunningRef.current ||
+        currentProjectRef.current?.id !== saved.projectId ||
+        !dispatch(tryClaimRunSlot())
+      ) {
+        releaseOwnership();
+        return;
+      }
+
+      const liveKey = createMessageId();
+      dispatch(liveRunStarted({ key: liveKey }));
+      const streamingId = appendAssistantMessage('', {
+        isStreaming: true,
+        specDriven: emptyCard(liveKey),
+      });
+
+      isRunningRef.current = true;
+      abortRequestedRef.current = false;
+      runFinishedReportedRef.current = false;
+      currentRunIdRef.current = saved.runId;
+      activeRunStartedAtRef.current = saved.startedAt;
+      // The running card itself is intentionally not persisted. Replay from the
+      // beginning so the new card reconstructs every phase and tool entry.
+      lastSequenceRef.current = 0;
+      activeCardRef.current = { liveKey, streamingId };
+      setIsGenerating(false);
+
+      const handle = followSpecDrivenRun(saved.runId, 0);
+      abortRef.current = handle.abort;
+      const runCtx = {
+        liveKey,
+        streamingId,
+        projectId: saved.projectId,
+      };
+
       let terminalEventSeen = false;
       try {
         for await (const event of handle.events) {
@@ -933,6 +953,7 @@ export function useSpecDrivenTrigger(
         finalizeLiveRun(liveKey, streamingId);
         activeCardRef.current = null;
         dispatch(releaseRunSlot());
+        releaseOwnership();
         if (mountedRef.current) setIsGenerating(false);
       }
     })();
@@ -940,6 +961,7 @@ export function useSpecDrivenTrigger(
     appendAssistantMessage,
     appendErrorToChat,
     clearFailsafeTimer,
+    currentProjectRef,
     dispatch,
     finalizeLiveRun,
     handleSseEvent,
@@ -1133,6 +1155,9 @@ export function useSpecDrivenTrigger(
         explicitBaseRunId: payload.baseRunId,
       });
 
+      // This tab's claim on the run (see claimSpecDrivenRunOwnership). An
+      // object, so TS does not narrow away the assignment made in the callback.
+      const ownership: { claim?: Promise<(() => void) | null> } = {};
       const runParams: StartSpecDrivenRunParams = {
         project: normalisedProject,
         instructions: payload.instructions,
@@ -1150,6 +1175,7 @@ export function useSpecDrivenTrigger(
         skipDeterministicGenerator: payload.skipDeterministicGenerator,
         onRunAccepted: (runId) => {
           currentRunIdRef.current = runId;
+          ownership.claim = claimSpecDrivenRunOwnership(runId);
           writeActiveSpecDrivenRun({
             runId,
             projectId: project.id,
@@ -1304,6 +1330,7 @@ export function useSpecDrivenTrigger(
         // stream that simply ends without a `done` event (backend
         // closed early), which dispatches nothing else.
         dispatch(releaseRunSlot());
+        void ownership.claim?.then((release) => release?.());
         if (mountedRef.current) setIsGenerating(false);
       }
     },

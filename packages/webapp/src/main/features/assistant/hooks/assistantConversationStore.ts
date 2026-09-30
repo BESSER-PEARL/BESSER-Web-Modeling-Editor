@@ -277,6 +277,31 @@ export const conversationStore = {
 };
 
 /* ------------------------------------------------------------------ */
+/*  Per-turn state shared by both surfaces                            */
+/* ------------------------------------------------------------------ */
+
+// Written by the surface that sends, read by the single-dispatch winner that
+// receives the reply, which may be the other surface. Per-surface refs made
+// voice from the drawer stick on "Transcribing…" and auto-fix run once per
+// page load.
+
+/** Id of the optimistic "🎤 Transcribing…" bubble awaiting its echo, or null. */
+export const voicePlaceholderIdRef: { current: string | null } = { current: null };
+
+export interface AutoFixState {
+  /** The current user message's one automatic repair attempt is spent. */
+  attempted: boolean;
+  /** The modify being applied IS that repair. */
+  fixInFlight: boolean;
+  /** Id of the "fixing it now…" status line, replaced by the outcome. */
+  progressMessageId: string | null;
+}
+
+export const autoFixRef: { current: AutoFixState } = {
+  current: { attempted: false, fixInFlight: false, progressMessageId: null },
+};
+
+/* ------------------------------------------------------------------ */
 /*  Single-dispatch handler registry                                  */
 /* ------------------------------------------------------------------ */
 

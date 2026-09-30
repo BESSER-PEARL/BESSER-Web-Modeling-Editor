@@ -19,9 +19,10 @@ project = "BESSER Web Modeling Editor"
 copyright = f"{datetime.now():%Y}, BESSER"
 author = "BESSER"
 
-# Do not display a version number in the title — it is not maintained.
-release = ""
-version = ""
+# The editor ships with the coordinated BESSER v8 release.
+release = "8.0.0"
+version = "8.0"
+html_title = "BESSER Web Modeling Editor"
 
 # -- General configuration ---------------------------------------------------
 
@@ -49,25 +50,46 @@ exclude_patterns = [
     "user-guide/diagram_types.rst",
     "user-guide/project.rst",
     "user-guide/interface.rst",
-    "user-guide/index.rst",
 ]
 
 # -- Options for HTML output -------------------------------------------------
 
-html_theme = "furo"
+html_theme = "sphinx_immaterial"
+extensions.append("sphinx_immaterial")
+html_logo = "_static/besser_logo_dark.png"
 html_static_path = ["_static"]
-
-# Use Furo's light/dark logos. Place the images in docs/source/_static/
+html_css_files = ["docs.css"]
 html_theme_options = {
-    "light_logo": "besser_logo_light.png",
-    "dark_logo": "besser_logo_dark.png",
+    "font": False,
+    "features": ["navigation.sections", "navigation.top", "search.highlight"],
+    "palette": [
+        {
+            "media": "(prefers-color-scheme: light)",
+            "scheme": "default",
+            "primary": "cyan",
+            "accent": "cyan",
+            "toggle": {"icon": "material/weather-night", "name": "Switch to dark mode"},
+        },
+        {
+            "media": "(prefers-color-scheme: dark)",
+            "scheme": "slate",
+            "primary": "cyan",
+            "accent": "cyan",
+            "toggle": {"icon": "material/weather-sunny", "name": "Switch to light mode"},
+        },
+    ],
+    "repo_url": "https://github.com/BESSER-PEARL/BESSER-Web-Modeling-Editor",
+    "repo_name": "Source",
+    "globaltoc_collapse": True,
+    "toc_title": "On this page",
 }
+html_show_sourcelink = False
 
 # Optional: favicon placed in _static directory
 html_favicon = "_static/besser_ico.ico"
 
 # If true, `todo` and `todoList` produce output, else they produce nothing.
-todo_include_todos = True
+todo_include_todos = False
 
 # -- Options for Napoleon ----------------------------------------------------
 

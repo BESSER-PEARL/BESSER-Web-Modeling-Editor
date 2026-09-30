@@ -69,6 +69,13 @@ const STREAM_FAILURES_BEFORE_POLLING = 2;
 
 /** How often the polling transport asks for new events. */
 const POLL_INTERVAL_MS = 2_000;
+
+/**
+ * Deadline for one polling request (headers + JSON body). Each page is a
+ * short read, so a request still open after this is held by the path, not
+ * the server; timing it out hands control back to the reconnect loop.
+ */
+export const SPEC_DRIVEN_POLL_REQUEST_TIMEOUT_MS = 30_000;
 import {
   getOrCreateAssistantSessionId,
   getPilotParticipant,
@@ -278,25 +285,48 @@ async function* pollSpecDrivenRun(
 ): AsyncGenerator<SpecDrivenEvent, void, void> {
   let cursor = Math.max(0, Math.trunc(afterSequence));
   while (!signal.aborted) {
-    const response = await fetch(
-      specDrivenRunEventsJsonUrl(runId, cursor),
-      { signal, headers: { Accept: 'application/json' } },
-    );
-    if (!response.ok) {
-      let text = '';
-      try {
-        text = await response.text();
-      } catch {
-        /* ignore */
-      }
-      throw new SseHttpError(response.status, text);
-    }
-    const page = (await response.json()) as {
+    const requestController = new AbortController();
+    const abortRequest = () => requestController.abort();
+    signal.addEventListener('abort', abortRequest, { once: true });
+    let timedOut = false;
+    const timer = setTimeout(() => {
+      timedOut = true;
+      requestController.abort();
+    }, SPEC_DRIVEN_POLL_REQUEST_TIMEOUT_MS);
+    let page: {
       events?: Array<{ sequence?: number; data?: SpecDrivenEvent }>;
       cursor?: number;
       hasMore?: boolean;
       status?: string;
     };
+    try {
+      const response = await fetch(
+        specDrivenRunEventsJsonUrl(runId, cursor),
+        { signal: requestController.signal, headers: { Accept: 'application/json' } },
+      );
+      if (!response.ok) {
+        let text = '';
+        try {
+          text = await response.text();
+        } catch {
+          /* ignore */
+        }
+        throw new SseHttpError(response.status, text);
+      }
+      page = await response.json();
+    } catch (error) {
+      // Our deadline, not the caller's abort: a transport failure the
+      // reconnect loop retries.
+      if (timedOut && !signal.aborted) {
+        throw new Error(
+          `Polling request timed out after ${SPEC_DRIVEN_POLL_REQUEST_TIMEOUT_MS / 1000}s`,
+        );
+      }
+      throw error;
+    } finally {
+      clearTimeout(timer);
+      signal.removeEventListener('abort', abortRequest);
+    }
 
     const events = page.events ?? [];
     for (const item of events) {
@@ -444,6 +474,7 @@ async function* withDurableReconnect(
             method: 'GET',
             signal,
             stallTimeoutMs: SPEC_DRIVEN_STREAM_STALL_TIMEOUT_MS,
+            responseTimeoutMs: SPEC_DRIVEN_RESPONSE_TIMEOUT_MS,
           },
         );
   }
@@ -463,6 +494,7 @@ export function followSpecDrivenRun(
       method: 'GET',
       signal: controller.signal,
       stallTimeoutMs: SPEC_DRIVEN_STREAM_STALL_TIMEOUT_MS,
+      responseTimeoutMs: SPEC_DRIVEN_RESPONSE_TIMEOUT_MS,
     },
   );
   return {

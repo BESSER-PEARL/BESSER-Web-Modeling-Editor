@@ -210,8 +210,14 @@ export function useStreamingResponse(): UseStreamingResponseReturn {
     if (payload.action === 'stream_done') {
       const { streamId, fullText } = payload as Record<string, any>;
       if (typeof streamId !== 'string') return true;
-      setMessages((prev) =>
-        prev.map((msg) =>
+      setMessages((prev) => {
+        // A stream_done replayed after a reconnect may be all that arrived.
+        if (!prev.some((msg) => msg.id === streamId)) {
+          return typeof fullText === 'string' && fullText
+            ? [...prev, { id: streamId, role: 'assistant' as const, content: fullText, isStreaming: false, createdAt: new Date() }]
+            : prev;
+        }
+        return prev.map((msg) =>
           msg.id === streamId
             ? {
                 ...msg,
@@ -219,8 +225,8 @@ export function useStreamingResponse(): UseStreamingResponseReturn {
                 isStreaming: false,
               }
             : msg,
-        ),
-      );
+        );
+      });
       setStreamingMessageId(null);
       setProgressMessage('');
 

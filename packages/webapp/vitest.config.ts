@@ -1,5 +1,6 @@
 import { defineConfig } from 'vitest/config';
 import react from '@vitejs/plugin-react';
+import { readFileSync } from 'node:fs';
 import path from 'node:path';
 
 const libraryLib = path.resolve(__dirname, '../library/lib');
@@ -44,6 +45,12 @@ const conditionalAtAlias = {
 
 export default defineConfig({
   plugins: [react()],
+  // Same injection as vite.config.ts, so tests see the real editor version.
+  define: {
+    'process.env.EDITOR_VERSION': JSON.stringify(
+      JSON.parse(readFileSync(path.resolve(__dirname, 'package.json'), 'utf-8')).version,
+    ),
+  },
   test: {
     environment: 'jsdom',
     globals: true,

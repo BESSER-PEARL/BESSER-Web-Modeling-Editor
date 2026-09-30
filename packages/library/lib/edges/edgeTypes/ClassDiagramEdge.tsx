@@ -316,6 +316,25 @@ export const ClassDiagramEdge = ({
       direction: endInfo.direction,
     }
   }, [showArrowBeforeEndDiamond, currentPath])
+  // How far each end marker reaches back along the line (the aggregation
+  // diamond plus its arrowhead is longer), so the end's labels clear it.
+  const markerLength = (marker?: string, withArrow = false): number => {
+    const markerId = marker?.match(/#([^)]+)/)?.[1]
+    const config =
+      markerId && markerId in MARKER_CONFIGS
+        ? MARKER_CONFIGS[markerId as keyof typeof MARKER_CONFIGS]
+        : undefined
+    const arrow = MARKER_CONFIGS["black-arrow"]
+    return (
+      (config ? config.size * config.widthFactor : 0) +
+      (withArrow ? arrow.size * arrow.widthFactor : 0)
+    )
+  }
+  const sourceMarkerLength = markerLength(effectiveMarkerStart)
+  const targetMarkerLength = markerLength(
+    effectiveMarkerEnd,
+    showArrowBeforeEndDiamond
+  )
   const markerKey = `${id}-${effectiveMarkerStart ?? "none"}-${
     effectiveMarkerEnd ?? "none"
   }-${showArrowBeforeEndDiamond ? "arrow" : ""}-${showsERDiamond ? "er" : "uml"}`
@@ -421,6 +440,8 @@ export const ClassDiagramEdge = ({
           sourcePosition={sourcePosition}
           targetPosition={targetPosition}
           textColor={textColor}
+          sourceMarkerLength={sourceMarkerLength}
+          targetMarkerLength={targetMarkerLength}
         />
 
         {/* ER (Chen) diamond at the path midpoint, replacing the UML

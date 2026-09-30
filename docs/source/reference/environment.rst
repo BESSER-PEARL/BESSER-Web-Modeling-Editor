@@ -3,7 +3,7 @@ Environment Variables
 
 The web application has **no runtime configuration**: every variable is baked
 into the JavaScript bundle when the webapp is built. There is therefore no
-``.env`` file in the repository and no configuration endpoint the browser can
+committed ``.env`` file in the repository and no configuration endpoint the browser can
 call — changing any of these values requires a rebuild.
 
 How the values reach the bundle

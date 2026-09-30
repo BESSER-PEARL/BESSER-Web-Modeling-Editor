@@ -25,6 +25,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { FormField } from '@/components/ui/form-field';
 import { BesserProject, InterfaceMode, PerspectiveSettings } from '../../shared/types/project';
+import { trackInterfaceChoice, trackProjectCreated } from '../../shared/services/analytics/interfaceChoice';
 import { FirstRunLanding } from './FirstRunLanding';
 import { PERSPECTIVES, perspectivesFromDiagramList } from '../../shared/perspectives';
 import { useProject } from '../../app/hooks/useProject';
@@ -244,12 +245,15 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
     // Otherwise: first run (no project yet) opens the mode chooser — unless a
     // `?agentic`/`?mode=` URL override or a saved "Remember my choice" default
     // skips straight to that workspace's flow (URL wins over the stored
-    // default). Opening the hub for an existing project keeps the start screen.
+    // default). Opening the hub for an existing project keeps the start screen,
+    // and so does a returning user whose saved projects exist but none is open.
     if (initialStep) {
+      // New project: pick low-code or agentic first, then the settings form.
+      const first = initialStep === 'create' ? 'welcome' : initialStep;
       setPendingPreferredInterface(null);
-      setStep(initialStep);
-      setEntryStep(initialStep);
-    } else if (!currentProject) {
+      setStep(first);
+      setEntryStep(first);
+    } else if (!currentProject && ProjectStorageRepository.getAllProjects().length === 0) {
       const chosen = readUrlInterfaceOverride() ?? readPreferredInterface();
       if (chosen === 'model' || chosen === 'agent') {
         // Both interfaces go through the same project-creation form; the mode is
@@ -401,6 +405,8 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
       /* storage may be unavailable (private mode / quota) — non-fatal */
     }
     setPendingPreferredInterface(mode);
+    const firstRun = ProjectStorageRepository.getAllProjects().length === 0;
+    trackInterfaceChoice(mode, firstRun ? 'first_run' : 'new_project', { remembered: remember });
     setStep('create');
   };
 
@@ -446,6 +452,7 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
         resolvePerspectives(createPerspectiveKey),
         pendingPreferredInterface ?? undefined,
       );
+      trackProjectCreated(pendingPreferredInterface ?? 'model', 'form');
       refreshProjects();
       handleDialogOpenChange(false);
       toast.success(t('project.hub.toasts.created', { name }));
@@ -481,6 +488,7 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
         resolvePerspectives(DEFAULT_PERSPECTIVE_KEY),
         pendingPreferredInterface ?? 'agent',
       );
+      trackProjectCreated(pendingPreferredInterface ?? 'agent', 'describe_it');
       refreshProjects();
 
       // (c) Hand the typed prompt to the AI assistant. Stash it FIRST so the
@@ -875,7 +883,8 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
             aria-disabled={isBusy}
             onClick={() => { if (!isBusy) void handleOpenProject(project.id); }}
             onKeyDown={(e) => {
-              if (isBusy) return;
+              // Keys on the nested delete button are that button's own.
+              if (isBusy || e.target !== e.currentTarget) return;
               if (e.key === 'Enter' || e.key === ' ') {
                 e.preventDefault();
                 void handleOpenProject(project.id);
@@ -1021,7 +1030,7 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
                 <div className="grid gap-2.5 md:grid-cols-2">
                   <button
                     type="button"
-                    onClick={() => setStep('create')}
+                    onClick={() => setStep('welcome')}
                     className="group relative overflow-hidden rounded-xl border border-border/60 bg-card p-3.5 text-left shadow-none transition-all duration-300 hover:-translate-y-0.5 hover:border-brand/30 hover:shadow-elevation-1"
                   >
                     <div className="mb-2 inline-flex rounded-lg bg-brand/[0.08] p-2 text-brand ring-1 ring-brand/10">
@@ -1385,7 +1394,31 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
             </div>
           )}
 
-          {step === 'github' && (
+          {step === 'github' && !isGithubAuthenticated && (
+            <Card className="border-border/50 shadow-elevation-1">
+              <CardHeader className="pb-2">
+                <CardTitle className="flex items-center gap-2 text-base tracking-tight">
+                  <Github className="size-4" />
+                  Continue from a GitHub repository
+                </CardTitle>
+                <CardDescription className="text-xs">
+                  Connect your GitHub account to pick one of your repositories. You&apos;ll come back here
+                  once you&apos;ve signed in.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Button
+                  onClick={handleOpenGithubStep}
+                  className="w-full gap-2 bg-brand text-brand-foreground shadow-elevation-1 transition-all hover:bg-brand-dark hover:shadow-elevation-2"
+                >
+                  <Github className="size-4" />
+                  Connect GitHub
+                </Button>
+              </CardContent>
+            </Card>
+          )}
+
+          {step === 'github' && isGithubAuthenticated && (
             <div className="flex flex-col gap-5">
               <Card className="border-border/50 shadow-elevation-1">
                 <CardHeader className="pb-2">

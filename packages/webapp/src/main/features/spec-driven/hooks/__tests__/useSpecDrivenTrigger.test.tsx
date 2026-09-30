@@ -74,12 +74,14 @@ const _mockController: {
   followError: Error | null;
   abortCalled: boolean;
   throwOnStart: Error | null;
+  acceptedRunId: string | null;
 } = {
   events: [],
   followEvents: [],
   followError: null,
   abortCalled: false,
   throwOnStart: null,
+  acceptedRunId: null,
 };
 
 // Mock the spec-driven config so the modify-vs-fresh decision in startRun
@@ -108,6 +110,7 @@ vi.mock('../../services/specDrivenSseClient', () => ({
   }),
   startSpecDrivenRun: vi.fn((_params) => {
     if (_mockController.throwOnStart) throw _mockController.throwOnStart;
+    if (_mockController.acceptedRunId) _params.onRunAccepted?.(_mockController.acceptedRunId);
     const scripted = [..._mockController.events];
     return {
       controller: new AbortController(),
@@ -255,6 +258,7 @@ beforeEach(async () => {
   _mockController.followError = null;
   _mockController.abortCalled = false;
   _mockController.throwOnStart = null;
+  _mockController.acceptedRunId = null;
   clearSessionKeyManual();
   window.localStorage?.clear();
   vi.clearAllMocks();
@@ -368,6 +372,87 @@ describe('useSpecDrivenTrigger — durable reload recovery', () => {
     expect(
       window.localStorage.getItem(localStorageSpecDrivenActiveRunV1),
     ).toBeNull();
+  });
+});
+
+
+/** Minimal Web Locks stand-in; `held` models locks other tabs hold. */
+function installFakeLocks(heldElsewhere: string[] = []) {
+  const held = new Set<string>(heldElsewhere);
+  const requests: Array<{ name: string; ifAvailable?: boolean }> = [];
+  const locks = {
+    request: (
+      name: string,
+      opts: { ifAvailable?: boolean },
+      callback: (lock: unknown) => Promise<void> | void,
+    ) => {
+      requests.push({ name, ifAvailable: opts.ifAvailable });
+      if (held.has(name)) {
+        return opts.ifAvailable
+          ? Promise.resolve(callback(null))
+          : new Promise(() => {});
+      }
+      held.add(name);
+      return Promise.resolve(callback({ name })).finally(() => held.delete(name));
+    },
+  };
+  Object.defineProperty(window.navigator, 'locks', { configurable: true, value: locks });
+  return { held, requests };
+}
+
+describe('useSpecDrivenTrigger — run ownership across tabs', () => {
+  afterEach(() => {
+    delete (window.navigator as { locks?: unknown }).locks;
+  });
+
+  it('does not adopt a run another live tab still owns', async () => {
+    const runId = 'f'.repeat(32);
+    installFakeLocks([`besser_spec_driven_run_${runId}`]);
+    window.localStorage.setItem(
+      localStorageSpecDrivenActiveRunV1,
+      JSON.stringify({
+        version: 1,
+        runId,
+        projectId: 'test-project',
+        lastSequence: 0,
+        startedAt: Date.now() - 1_000,
+      }),
+    );
+    _mockController.followEvents = [{ event: 'phase', phase: 'generate', message: 'x', sequence: 1 }];
+
+    const { apiRef, store } = renderHarness();
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 20));
+    });
+
+    const client = await import('../../services/specDrivenSseClient');
+    expect(vi.mocked(client.followSpecDrivenRun)).not.toHaveBeenCalled();
+    expect(apiRef.current!.getMessages()).toHaveLength(0);
+    expect(store.getState().specDriven.runStatus).not.toBe('running');
+    // The owner's pointer is left alone.
+    expect(window.localStorage.getItem(localStorageSpecDrivenActiveRunV1)).not.toBeNull();
+  });
+
+  it('holds ownership of its own run until the run ends', async () => {
+    const runId = 'a'.repeat(32);
+    const { held, requests } = installFakeLocks();
+    setSessionKey();
+    _mockController.acceptedRunId = runId;
+    _mockController.events = HAPPY_EVENTS;
+    globalThis.fetch = vi.fn() as any;
+    const onRunFinished = vi.fn();
+
+    const { apiRef } = renderHarness({ onRunFinished });
+    await act(async () => {
+      await apiRef.current!.handleTrigger(PAYLOAD);
+    });
+    await waitFor(() => expect(onRunFinished).toHaveBeenCalled());
+
+    expect(requests).toContainEqual({
+      name: `besser_spec_driven_run_${runId}`,
+      ifAvailable: false,
+    });
+    await waitFor(() => expect(held.size).toBe(0));
   });
 });
 
@@ -1454,6 +1539,41 @@ describe('useSpecDrivenTrigger — honest completion copy', () => {
     expect(card.incompleteReason).toContain('2 unresolved implementation');
     expect(toast.success).not.toHaveBeenCalled();
     expect(toast.warning).toHaveBeenCalledWith('Generation incomplete — output available to inspect');
+  });
+
+  it('trusts incomplete:false: remaining blockers are reported as could-not-verify', async () => {
+    setSessionKey();
+    const results: SpecDrivenRunResult[] = [];
+    _mockController.events = [
+      ...HAPPY_EVENTS.slice(0, -1),
+      {
+        ...(HAPPY_EVENTS[HAPPY_EVENTS.length - 1] as any),
+        incomplete: false,
+        blockerCount: 2,
+      },
+    ];
+
+    const { apiRef } = renderHarness({ onRunFinished: (r) => results.push(r) });
+    await act(async () => {
+      await apiRef.current!.handleTrigger(PAYLOAD);
+    });
+
+    await waitFor(() => {
+      expect(results.length).toBe(1);
+    });
+    const msgs = apiRef.current!.getMessages() as any[];
+    const summary = msgs.find(
+      (m) => typeof m.content === 'string' && m.content.includes('could not be verified'),
+    );
+    expect(summary).toBeTruthy();
+    expect(summary.content).toContain('2 checks could not be verified');
+    expect(summary.content).not.toContain('unresolved');
+    expect(results[0].incomplete).toBe(false);
+    expect(results[0].blockerCount).toBe(2);
+    const card = msgs.find((m) => m.specDriven).specDriven;
+    expect(card.incomplete).toBe(false);
+    expect(toast.warning).not.toHaveBeenCalled();
+    expect(toast.success).toHaveBeenCalled();
   });
 
   it('keeps the cut-short framing for runs that genuinely stopped early', async () => {

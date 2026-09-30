@@ -22,6 +22,18 @@ import {
   bumpEditorRevision,
 } from '../../../app/store/workspaceSlice';
 import { popUndo, canUndo, pushUndoSnapshot } from '../services/undoStack';
+
+/** User-facing notice for a modification batch that only partly applied. */
+export function describeSkippedChanges(appliedCount: number, skipped: string[]): string {
+  return `Applied ${appliedCount} of ${appliedCount + skipped.length} requested changes; ` +
+    `skipped: ${skipped.join(', ')}.`;
+}
+
+/** User-facing notice for classes a modification removed without being asked to. */
+export function describeCollateralRemoval(classNames: string[]): string {
+  return `This change also removed ${classNames.join(', ')}, which you did not ask to delete. ` +
+    'Check the diagram before continuing.';
+}
 import { requestAutoLayoutOnNextSetup } from '../../../shared/utils/autoLayoutSignal';
 import { markTextEditable } from '../../../shared/utils/markTextEditable';
 import type { ProjectDiagram, SupportedDiagramType } from '../../../shared/types/project';
@@ -528,6 +540,8 @@ export function useModelInjection({
                 console.warn(
                   `[modify_model] applied ${appliedActions.length}, skipped ${failedActions.length}: ${failedActions.join(', ')}`,
                 );
+                // The agent's summary describes intent, so a partial apply must be visible.
+                toast.warning(describeSkippedChanges(appliedActions.length, failedActions));
               }
 
               // What the batch ACTUALLY did, independent of what it claimed.
@@ -550,6 +564,7 @@ export function useModelInjection({
                   `modification asked to remove: ${collateral.join(', ')}. ` +
                   `Requested: ${[...intended].join(', ') || '(none)'}.`,
                 );
+                toast.warning(describeCollateralRemoval(collateral));
               }
 
               newModel = modifiedModel;

@@ -20,6 +20,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import {
+  SPEC_DRIVEN_POLL_REQUEST_TIMEOUT_MS,
   SPEC_DRIVEN_RESPONSE_TIMEOUT_MS,
   startSpecDrivenRun,
   followSpecDrivenRun,
@@ -179,5 +180,54 @@ describe('structural cure — fall back to polling', () => {
 
     // A working stream must never be downgraded to polling.
     expect(fetchMock).not.toHaveBeenCalled();
+  });
+});
+
+describe('reattach and polling requests are bounded too', () => {
+  it('passes a response timeout on the reattach GET stream', async () => {
+    const spy = vi.spyOn(sse, 'streamSse');
+    spy.mockImplementation(() => streamOf([{ event: 'done', sequence: 5 }]) as any);
+
+    await drain(followSpecDrivenRun(RUN_ID, 0).events);
+
+    expect(spy.mock.calls[0][2]?.responseTimeoutMs).toBe(SPEC_DRIVEN_RESPONSE_TIMEOUT_MS);
+  });
+
+  it('times out a held poll request and polls again', async () => {
+    vi.useFakeTimers();
+    vi.spyOn(sse, 'streamSse').mockImplementation(() => failingStream() as any);
+
+    // First poll: a proxy holds it open forever (settles only on abort).
+    // Second poll: the run's terminal page.
+    let calls = 0;
+    const fetchMock = vi.fn((_url: string, init: RequestInit) => {
+      calls += 1;
+      if (calls === 1) {
+        return new Promise((_resolve, reject) => {
+          init.signal?.addEventListener('abort', () =>
+            reject(new DOMException('aborted', 'AbortError')),
+          );
+        });
+      }
+      return Promise.resolve({
+        ok: true,
+        json: async () => ({
+          events: [{ sequence: 31, event: 'done', data: { event: 'done' } }],
+          cursor: 31,
+          hasMore: false,
+          status: 'completed',
+        }),
+      });
+    });
+    vi.stubGlobal('fetch', fetchMock as any);
+
+    const handle = followSpecDrivenRun(RUN_ID, 12);
+    const consumer = drain(handle.events);
+    await vi.advanceTimersByTimeAsync(SPEC_DRIVEN_POLL_REQUEST_TIMEOUT_MS + 120_000);
+    handle.abort();
+    const seen = await consumer;
+
+    expect(fetchMock.mock.calls.length).toBeGreaterThanOrEqual(2);
+    expect(seen.some((e) => e.event === 'done')).toBe(true);
   });
 });

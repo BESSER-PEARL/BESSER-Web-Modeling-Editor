@@ -166,6 +166,34 @@ describe('LiveSpecDrivenCard — store-driven rendering', () => {
     expect(screen.queryByText('Application ready')).toBeNull();
   });
 
+  it('trusts incomplete:false from the backend: remaining blockers read as could-not-verify', () => {
+    // Live evidence: done carried incomplete:false + blockerCount:2 (unverified
+    // findings only) and the card still said "Generated — incomplete".
+    const store = makeStore();
+    store.dispatch(liveRunStarted({ key: LIVE_KEY }));
+    renderLiveStub(store);
+    act(() => {
+      store.dispatch(liveRunEvent({ key: LIVE_KEY, event: {
+        event: 'done', runId: 'e'.repeat(32), downloadUrl: '/output.zip',
+        fileName: 'output.zip', isZip: true, recipe: {},
+        incomplete: false, blockerCount: 2,
+      } }));
+    });
+    expect(store.getState().specDriven.runs[LIVE_KEY].incomplete).toBe(false);
+    expect(screen.queryByText('Generated — incomplete')).toBeNull();
+    expect(screen.queryByText(/unresolved blocker/)).toBeNull();
+    expect(screen.getByText(/2 could not be verified/)).toBeTruthy();
+
+    // The card itself trusts the flag too (persisted snapshot, no Redux).
+    cleanup();
+    render(<ChatMessage id="saved" role="assistant" content="" specDriven={{
+      phases: [], warnings: [], text: '', status: 'done',
+      incomplete: false, blockerCount: 2,
+    }} />);
+    expect(screen.queryByText('Generated — incomplete')).toBeNull();
+    expect(screen.getByText(/2 could not be verified/)).toBeTruthy();
+  });
+
   it('a message WITHOUT a liveKey renders the plain card and never touches the store', () => {
     // No Provider at all — historical/final cards must not subscribe.
     render(
