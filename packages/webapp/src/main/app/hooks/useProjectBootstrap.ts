@@ -8,6 +8,7 @@ import {
 import { useGitHubBumlImport } from '../../features/import/useGitHubBumlImport';
 import { notifyError } from '../../shared/utils/notifyError';
 import type { BesserProject } from '../../shared/types/project';
+import { trackInterfaceChoice } from '../../shared/services/analytics/interfaceChoice';
 
 const KNOWN_ROUTES = [
   '/',
@@ -122,6 +123,7 @@ export const useProjectBootstrap = ({
     if (!agenticUrlRef.current) {
       return;
     }
+    trackInterfaceChoice('agent', 'url');
     try {
       sessionStorage.setItem(sessionStorageOpenAssistantOnLoad, '1');
     } catch {

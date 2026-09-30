@@ -25,6 +25,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { FormField } from '@/components/ui/form-field';
 import { BesserProject, InterfaceMode, PerspectiveSettings } from '../../shared/types/project';
+import { trackInterfaceChoice, trackProjectCreated } from '../../shared/services/analytics/interfaceChoice';
 import { FirstRunLanding } from './FirstRunLanding';
 import { PERSPECTIVES, perspectivesFromDiagramList } from '../../shared/perspectives';
 import { useProject } from '../../app/hooks/useProject';
@@ -247,9 +248,11 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
     // default). Opening the hub for an existing project keeps the start screen,
     // and so does a returning user whose saved projects exist but none is open.
     if (initialStep) {
+      // New project: pick low-code or agentic first, then the settings form.
+      const first = initialStep === 'create' ? 'welcome' : initialStep;
       setPendingPreferredInterface(null);
-      setStep(initialStep);
-      setEntryStep(initialStep);
+      setStep(first);
+      setEntryStep(first);
     } else if (!currentProject && ProjectStorageRepository.getAllProjects().length === 0) {
       const chosen = readUrlInterfaceOverride() ?? readPreferredInterface();
       if (chosen === 'model' || chosen === 'agent') {
@@ -402,6 +405,8 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
       /* storage may be unavailable (private mode / quota) — non-fatal */
     }
     setPendingPreferredInterface(mode);
+    const firstRun = ProjectStorageRepository.getAllProjects().length === 0;
+    trackInterfaceChoice(mode, firstRun ? 'first_run' : 'new_project', { remembered: remember });
     setStep('create');
   };
 
@@ -447,6 +452,7 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
         resolvePerspectives(createPerspectiveKey),
         pendingPreferredInterface ?? undefined,
       );
+      trackProjectCreated(pendingPreferredInterface ?? 'model', 'form');
       refreshProjects();
       handleDialogOpenChange(false);
       toast.success(t('project.hub.toasts.created', { name }));
@@ -482,6 +488,7 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
         resolvePerspectives(DEFAULT_PERSPECTIVE_KEY),
         pendingPreferredInterface ?? 'agent',
       );
+      trackProjectCreated(pendingPreferredInterface ?? 'agent', 'describe_it');
       refreshProjects();
 
       // (c) Hand the typed prompt to the AI assistant. Stash it FIRST so the
@@ -1023,7 +1030,7 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
                 <div className="grid gap-2.5 md:grid-cols-2">
                   <button
                     type="button"
-                    onClick={() => setStep('create')}
+                    onClick={() => setStep('welcome')}
                     className="group relative overflow-hidden rounded-xl border border-border/60 bg-card p-3.5 text-left shadow-none transition-all duration-300 hover:-translate-y-0.5 hover:border-brand/30 hover:shadow-elevation-1"
                   >
                     <div className="mb-2 inline-flex rounded-lg bg-brand/[0.08] p-2 text-brand ring-1 ring-brand/10">
