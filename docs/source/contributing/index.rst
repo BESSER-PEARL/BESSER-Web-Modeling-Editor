@@ -62,7 +62,7 @@ Branching and PR Workflow
 -------------------------
 
 1. Fork the repository and clone locally.
-2. Create a feature branch from ``main`` (e.g., ``feature/add-sequence-diagram``).
+2. Create a feature branch from ``develop`` (e.g., ``feature/add-sequence-diagram``).
 3. Make focused, incremental commits.
 4. Run the full check suite:
 
@@ -72,10 +72,18 @@ Branching and PR Workflow
       npm run test --workspace=webapp
       npm run build
 
-5. Push and open a pull request against ``main``.
+5. Push and open a pull request against ``develop``.
 6. In the PR description, explain: what changed, why, how to test.
 7. Respond to review feedback — reviews are collaborative.
 
 .. note::
-   The WME repository uses ``main`` as its default branch (not ``master``).
-   The parent BESSER repository uses ``master``.
+   ``develop`` is the integration branch; release pull requests merge it into
+   ``main``. The parent BESSER repository uses ``development`` and ``master``.
+
+.. toctree::
+   :maxdepth: 1
+
+   development-workflow
+   codebase-guide
+   documentation
+   new-diagram-guide/index

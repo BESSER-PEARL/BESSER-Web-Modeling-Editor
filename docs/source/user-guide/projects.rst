@@ -12,6 +12,12 @@ The first thing you see
 
 On a first visit the editor asks how you want to work:
 
+.. figure:: ../images/wme/v8/interface-choice.png
+   :width: 640
+   :alt: Editor welcome screen with visual modeling and natural language choices
+
+   Choose the visual canvas or the assistant when starting a project.
+
 * **Model it** — the low-code canvas: drag elements from the palette and edit
   them by hand.
 * **Describe it** — the agentic workspace: the :doc:`AI assistant
@@ -40,18 +46,23 @@ Recently opened projects are listed underneath.
 Creating a New Project
 ----------------------
 
-.. image:: ../images/wme/project/new_project.png
+.. image:: ../images/wme/v8/new-project.png
   :width: 600
   :alt: New Project Dialog
   :align: center
 
 1.  Click the **Home** icon 🏠 or select **File > New Project**.
-2.  Enter the project details:
+2.  Choose **Low-code** for the visual canvas or **Agentic** for the assistant.
+3.  Enter the project details:
+
     *   **Name**: A descriptive name for your project.
     *   **Description**: (Optional) A brief summary of the project's purpose.
     *   **Owner**: The name of the project owner.
-    *   **Default Diagram**: Select the initial diagram type to start with.
-3.  Click **Create Project**.
+    *   **Modeling Perspective**: Choose Data Modeler, Agent Developer,
+        Full Web Application, Quantum, or Show All to select the diagrams
+        visible in the sidebar. You can change this later in Settings.
+
+4.  Click **Create Project**.
 
 Importing Projects
 ------------------
@@ -107,10 +118,12 @@ Exporting Projects
 
 To save your work or use it with other BESSER tools:
 
-.. image:: ../images/wme/project/export_project.png
-  :width: 600
-  :alt: Export Project Dialog
-  :align: center
+.. figure:: ../images/wme/v8/export-project.png
+   :width: 700
+   :alt: Current Export Project dialog with project backup options on the left and diagram assets on the right
+
+   Use **Export as JSON** on the left for a project backup; image exports
+   on the right save only the current diagram.
 
 1.  Click **File > Export Project**.
 2.  The dialog has two halves.
@@ -124,7 +137,7 @@ To save your work or use it with other BESSER tools:
 **Current diagram** — requires a UML diagram to be open:
 
 *   **Export as SVG**
-*   **Export PNG (White background)** / **Export PNG (Transparent)**
+*   **Export PNG (White)** / **Export PNG (Transparent)**
 *   **Export Diagram as JSON**
 *   **Export Diagram as B-UML** (the model is validated first)
 

@@ -77,8 +77,34 @@ Suggested **quick actions** appear as one-click chips underneath the
 assistant's replies (for example *Generate web app*, *Open the GUI*, *Replace* /
 *Keep both* when an import would collide, or *Try again* after a recoverable
 error). Most chips simply send their text as your next message; a couple are
-purely local — *Review the spec* just closes the chat so you can see the canvas,
+purely local — *Review the model* closes the chat so you can see the canvas,
 and the GUI chips switch the active diagram.
+
+Review a change
+---------------
+
+For a small first request, open the library model from
+:doc:`../tutorials/first-project` and ask:
+
+.. code-block:: text
+
+   Add an integer attribute named publication_year to the existing Book class.
+   Keep Author and the written_by association unchanged.
+
+.. figure:: ../images/wme/v8/assistant-result.png
+   :width: 520
+   :alt: Modeling Assistant response confirming an attribute was added to Book, with a Review the model action
+
+   A captured response from the hosted assistant. **Review the model** returns
+   you to the canvas to inspect the change.
+
+Check that ``Book`` now contains ``publication_year: int`` and that ``Author``
+and the association are unchanged. Click **Quality Check** in the top bar
+and resolve any reported model errors before generating code.
+
+The reply can vary between runs. A **Modified** response confirms an edit was
+applied; use the canvas and Quality Check to inspect the resulting model.
+That check validates the model, not the behaviour of a generated application.
 
 Supported diagram types
 -----------------------

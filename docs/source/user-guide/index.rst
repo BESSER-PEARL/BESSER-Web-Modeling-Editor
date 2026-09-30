@@ -1,13 +1,44 @@
-User Guide
-==========
+Task guides
+===========
 
-Welcome to the BESSER Web Modeling Editor User Guide. This section provides detailed instructions on how to use the editor to create, manage, and export your models.
+Manage your work
+----------------
 
 .. toctree::
-   :maxdepth: 2
-   :caption: Contents:
+   :maxdepth: 1
 
-   use_the_wme
    projects
-   deploy_locally
    diagrams/index
+
+Use AI
+------
+
+.. toctree::
+   :maxdepth: 1
+
+   ai-assistant
+   spec-driven-agent
+   ai-keys
+
+Generate and deploy
+-------------------
+
+.. toctree::
+   :maxdepth: 1
+
+   generate-code
+   deploy_locally
+   deploy_to_render
+
+Build agents
+------------
+
+.. toctree::
+   :maxdepth: 1
+
+   agent-components
+   agent-runtime
+   agent-simulation
+
+For a tour of each control, use :doc:`use_the_wme`. For problems, use
+:doc:`troubleshooting`.
