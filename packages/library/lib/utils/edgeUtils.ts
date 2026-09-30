@@ -1,4 +1,4 @@
-import { EDGES, INTERFACE } from "@/constants"
+import { EDGES, INTERFACE, MARKER_CONFIGS } from "@/constants"
 import { IPoint } from "@/edges/Connection"
 import { DiagramEdgeType, UMLDiagramType } from "@/typings"
 import {
@@ -174,6 +174,25 @@ export interface EdgeMarkerStyles {
   markerPadding?: number
   strokeDashArray?: string
   offset?: number
+}
+
+/**
+ * How far an end marker (`url(#id)`) reaches back along the line, so the
+ * end's role / multiplicity labels can start just past it. `withArrow` adds
+ * the arrowhead an aggregation draws in front of its diamond when the whole
+ * is the only navigable end. 0 when there is no marker.
+ */
+export const endMarkerLength = (marker?: string, withArrow = false): number => {
+  const markerId = marker?.match(/#([^)]+)/)?.[1]
+  const config =
+    markerId && markerId in MARKER_CONFIGS
+      ? MARKER_CONFIGS[markerId as keyof typeof MARKER_CONFIGS]
+      : undefined
+  const arrow = MARKER_CONFIGS["black-arrow"]
+  return (
+    (config ? config.size * config.widthFactor : 0) +
+    (withArrow ? arrow.size * arrow.widthFactor : 0)
+  )
 }
 
 export function getEdgeMarkerStyles(edgeType: string): EdgeMarkerStyles {
