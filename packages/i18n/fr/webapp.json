@@ -1304,6 +1304,7 @@
       "privacyBody": "Évitez de partager des informations sensibles ou confidentielles dans les messages de l'assistant.",
       "understand": "J'ai compris"
     },
+    "pilotNotice": "Le mode étude de recherche est activé. Cet onglet enregistre, pour une étude de recherche, vos requêtes, ce que l'assistant en a fait, les résultats des générations ainsi que les téléchargements et actions GitHub. Il n'est actif que parce que vous avez ouvert un lien d'étude. Fermez cet onglet pour l'arrêter.",
     "poweredWithBaf": "Propulsé par BAF",
     "capabilities": {
       "systemDesign": {

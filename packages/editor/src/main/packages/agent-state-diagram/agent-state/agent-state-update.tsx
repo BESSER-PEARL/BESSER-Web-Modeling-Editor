@@ -145,6 +145,19 @@ class StateUpdate extends Component<Props, State> {
 
   private layoutTimer: ReturnType<typeof setTimeout> | null = null;
 
+  componentDidUpdate(prevProps: Props) {
+    // The popup instance is reused across states: never carry one state's
+    // predefined/custom stash into another.
+    if (prevProps.element.id !== this.props.element.id) {
+      this.setState({
+        bodyPredefinedStash: null,
+        fallbackPredefinedStash: null,
+        bodyCustomStash: null,
+        fallbackCustomStash: null,
+      });
+    }
+  }
+
   componentWillUnmount() {
     if (this.layoutTimer) clearTimeout(this.layoutTimer);
   }
@@ -732,35 +745,9 @@ class StateUpdate extends Component<Props, State> {
   private swapActions = (actions: AgentStateMember[], indexA: number, indexB: number) => {
     const a = actions[indexA];
     const b = actions[indexB];
-    const fieldsOf = (m: AgentStateMember) => ({
-      name: m.name,
-      replyType: m.replyType,
-      ragDatabaseName: m.ragDatabaseName,
-      prompt: m.prompt,
-      dbSelectionType: m.dbSelectionType,
-      dbCustomName: m.dbCustomName,
-      dbQueryMode: m.dbQueryMode,
-      dbOperation: m.dbOperation,
-      dbSqlQuery: m.dbSqlQuery,
-      llm_name: m.llm_name,
-      system_message: m.system_message,
-      initial_url: m.initial_url,
-      max_depth: m.max_depth,
-      max_pages: m.max_pages,
-      crawl_format: m.crawl_format,
-      base_url_prefix: m.base_url_prefix,
-      run_crawl: m.run_crawl,
-      no_crawl_error_message: m.no_crawl_error_message,
-      system_message_prefix: m.system_message_prefix,
-      ws_message: m.ws_message,
-      ws_audio_speed: m.ws_audio_speed,
-      ws_options: m.ws_options,
-      ws_latitude: m.ws_latitude,
-      ws_longitude: m.ws_longitude,
-      guiId: m.guiId,
-    });
-    this.props.update<AgentStateMember>(a.id, fieldsOf(b));
-    this.props.update<AgentStateMember>(b.id, fieldsOf(a));
+    // snapshotMember covers every serialized action field.
+    this.props.update<AgentStateMember>(a.id, snapshotMember(b));
+    this.props.update<AgentStateMember>(b.id, snapshotMember(a));
   };
 
   private createDefaultDbAction = (Clazz: AgentStateMemberClass) => {

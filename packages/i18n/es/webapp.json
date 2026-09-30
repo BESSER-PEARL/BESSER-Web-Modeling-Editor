@@ -1304,6 +1304,7 @@
       "privacyBody": "Evita compartir información sensible o confidencial en los mensajes del asistente.",
       "understand": "Entendido"
     },
+    "pilotNotice": "El modo de estudio de investigación está activado. Esta pestaña registra, para un estudio de investigación, tus peticiones, lo que el asistente hizo con ellas, los resultados de las generaciones y las descargas o acciones de GitHub. Solo está activo porque abriste un enlace de estudio. Cierra esta pestaña para detenerlo.",
     "poweredWithBaf": "Impulsado con BAF",
     "capabilities": {
       "systemDesign": {

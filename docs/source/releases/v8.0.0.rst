@@ -1,0 +1,46 @@
+Version 8.0.0
+=============
+
+This release brings Spec-Driven Agent runs into the editor and improves
+assistant recovery, generated GUI integration, and project creation.
+
+What's new
+----------
+
+* **Choose how to work.** A new project starts with a choice of Low-code
+  canvas or Agentic assistant, followed by the project settings.
+* **Application run cards.** Follow live progress, stop a run, read findings,
+  download the result, or push it to GitHub. A reload can reattach to an
+  existing run. Only one tab owns a run's controls.
+* **Continue from GitHub.** Reopen a BESSER-generated repository as a new
+  project and use its application files for the next modification run.
+* **Provider and budget controls.** Choose an available free tier or your own
+  provider key, then set per-run time and spend limits. Availability and
+  ceilings come from the backend.
+
+Fixes
+-----
+
+* Reply identifiers prevent the same assistant action being applied twice
+  after a reconnect. Partial model modifications are reported.
+* Voice and auto-fix state are shared between the assistant widget and drawer.
+* Polling and recovery requests time out; stale branch results cannot replace
+  a newer repository selection in the GitHub dialog.
+* Agent simulation stop works during startup, SQL database edits preserve
+  existing YAML, and GitHub import offers a sign-in path.
+* JSON exports record version metadata and keep Agent diagram components.
+
+Upgrade notes
+-------------
+
+Deploy with the v8 BESSER backend and Modeling Agent. Older saved projects and
+exports without version metadata still import. Projects remain stored in
+the browser; export a copy before clearing site data or changing hosts.
+
+A ready run card can include checks that could not be verified. Read the
+findings before deploying generated output. A saved API key can start a
+requested generation run immediately; check your budget before asking for it.
+
+Start with :doc:`../tutorials/first-project`,
+:doc:`../user-guide/spec-driven-agent`, or
+:doc:`../user-guide/ai-keys`.

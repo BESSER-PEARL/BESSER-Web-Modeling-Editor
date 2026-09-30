@@ -1304,6 +1304,7 @@
       "privacyBody": "Evita compartir informació sensible o confidencial als missatges de l'assistent.",
       "understand": "Ho entenc"
     },
+    "pilotNotice": "El mode d'estudi de recerca està activat. Aquesta pestanya registra, per a un estudi de recerca, les teves peticions, què n'ha fet l'assistent, els resultats de les generacions i les baixades o accions de GitHub. Només està actiu perquè has obert un enllaç d'estudi. Tanca aquesta pestanya per aturar-lo.",
     "poweredWithBaf": "Funciona amb BAF",
     "capabilities": {
       "systemDesign": {

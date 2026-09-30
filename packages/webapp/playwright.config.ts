@@ -40,6 +40,13 @@ export default defineConfig({
 
     /* Default action timeout. */
     actionTimeout: 15_000,
+
+    /* Watch mode: `PW_WATCH=1` slows actions down and records a video so a
+     * human can follow the run live (add --headed) or replay it afterwards.
+     * Off by default — normal runs are unaffected. */
+    ...(process.env.PW_WATCH
+      ? { video: 'on' as const, launchOptions: { slowMo: 700 } }
+      : {}),
   },
 
   /* Browser projects — chromium only for now. */
@@ -50,15 +57,18 @@ export default defineConfig({
     },
   ],
 
-  /* Start the Vite dev server before running tests. */
-  webServer: {
-    command: 'npm run dev',
-    url: 'http://localhost:8080',
-    reuseExistingServer: !process.env.CI,
-    timeout: 120_000,
-    stdout: 'pipe',
-    stderr: 'pipe',
-  },
+  /* Start the Vite dev server before running tests — UNLESS we're pointing at a
+   * remote deployment (live e2e), where no local server is needed. */
+  webServer: process.env.LIVE_E2E_BASE_URL
+    ? undefined
+    : {
+        command: 'npm run dev',
+        url: 'http://localhost:8080',
+        reuseExistingServer: !process.env.CI,
+        timeout: 120_000,
+        stdout: 'pipe',
+        stderr: 'pipe',
+      },
 
   /* Output directory for test artifacts (screenshots, traces, videos). */
   outputDir: './tests/e2e/test-results',

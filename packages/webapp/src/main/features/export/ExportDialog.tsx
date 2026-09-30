@@ -135,7 +135,7 @@ export const ExportDialog: React.FC<ExportDialogProps> = ({ open, onOpenChange, 
         }
         await exportAsBUML(editor!, normalizedTitle, refData);
       } else if (format === 'SINGLE_JSON') {
-        if (diagram) exportAsJSON(editor!, diagram as any);
+        if (diagram) await exportAsJSON(editor!, diagram as any);
       }
 
       onOpenChange(false);

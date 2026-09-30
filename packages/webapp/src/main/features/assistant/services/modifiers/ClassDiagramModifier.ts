@@ -264,6 +264,9 @@ export class ClassDiagramModifier implements DiagramModifier {
       if (attrSpec.isOptional) {
         attrElement.isOptional = true;
       }
+      if (attrSpec.isExternalId) {
+        attrElement.isExternalId = true;
+      }
 
       model.elements[attrId] = attrElement;
       model.elements[classId].attributes.push(attrId);
@@ -282,7 +285,9 @@ export class ClassDiagramModifier implements DiagramModifier {
 
       model.elements[methodId] = {
         id: methodId,
-        name: `${methodSpec.name}(${paramStr})`,
+        // Return type belongs in the name — the backend parses it from there
+        // (parse_method), not from attributeType. Mirror modifyMethod's format.
+        name: `${visSymbol} ${methodSpec.name}(${paramStr}): ${returnType}`,
         type: 'ClassMethod',
         owner: classId,
         bounds: { x: posX + 1, y: methodY, width: 218, height: 25 },
@@ -454,6 +459,11 @@ export class ClassDiagramModifier implements DiagramModifier {
 
     const methodElement: any = {
       id: methodId,
+      // The method's return type MUST live in the name string, not just in
+      // attributeType: the backend converter parses return type from the name
+      // (`parse_method(method["name"])`) and ignores attributeType for methods.
+      // Mirror modifyMethod's canonical UML signature so an added method carries
+      // its return type into generated code exactly like an edited one does.
       name: `${visibilitySymbol} ${name}(${paramStr}): ${returnType}`,
       type: 'ClassMethod',
       owner: classId,
@@ -783,10 +793,52 @@ export class ClassDiagramModifier implements DiagramModifier {
     let { classId, className, attributeId, attributeName, methodId, methodName, relationshipId, relationshipName } =
       modification.target;
 
+    // ---- Relationship removal, handled FIRST and always terminal ----------
+    // The agent names a relationship with target.sourceClass / target.targetClass,
+    // and none of the fields destructured above are set for it — so the guards
+    // below fell through to "Remove entire class", whose fallback matched the
+    // SOURCE class by name (e.g. "remove book copy" deleted BookCopy, Book
+    // AND Loan while reporting "Applied 4 changes").
+    //
+    // A relationship removal must never degrade into deleting a class: if the
+    // relationship cannot be resolved, do nothing.
+    const endpoints = this.relationshipEndpoints(modification.target || {});
+    if (endpoints && !attributeId && !attributeName && !methodId && !methodName) {
+      const resolvedRelId =
+        relationshipId && model.relationships?.[relationshipId]
+          ? relationshipId
+          : this.findRelationshipIdByEndpoints(model, endpoints.source, endpoints.target);
+      if (resolvedRelId && model.relationships?.[resolvedRelId]) {
+        delete model.relationships[resolvedRelId];
+      } else {
+        console.warn(
+          `[ClassDiagramModifier] removeElement: no relationship '${endpoints.source} → ` +
+          `${endpoints.target}' found — leaving the model unchanged. A relationship ` +
+          `removal never deletes a class as a fallback.`,
+        );
+      }
+      return model;
+    }
+
     // Defensive fallback: some LLMs misplace the class name into other fields
     // (e.g. target.name, target.element) or leave className undefined even
     // when the action is clearly removing a class. Scan the target object for
     // any string value and try to match it as a class name if we have nothing.
+    //
+    // Never runs when the target carries ANY relationship hint — a lone
+    // sourceClass/targetClass is an unresolvable relationship, not a licence
+    // to delete the class that happens to share its name.
+    const hasRelationshipHint = Boolean(
+      (modification.target as Record<string, unknown> | undefined)?.sourceClass ||
+      (modification.target as Record<string, unknown> | undefined)?.targetClass,
+    );
+    if (hasRelationshipHint && !className && !classId) {
+      console.warn(
+        '[ClassDiagramModifier] removeElement: target names relationship endpoints but no ' +
+        'relationship matched — leaving the model unchanged.',
+      );
+      return model;
+    }
     if (!className && !classId && !relationshipId && !relationshipName && !attributeId && !attributeName && !methodId && !methodName) {
       const candidates = Object.values(modification.target || {}).filter(
         (v): v is string => typeof v === 'string' && v.trim().length > 0
@@ -1050,9 +1102,12 @@ export class ClassDiagramModifier implements DiagramModifier {
           const methodY = newY + 50 + attrCount * 25 + 10 + mi * 25;
           const paramStr = methodSpec.parameters?.map(p => p.type ? `${p.name}: ${normalizeType(p.type)}` : p.name).join(', ') || '';
           const returnType = normalizeType(methodSpec.returnType || 'any');
+          const visSymbol = methodSpec.visibility === 'private' ? '-' :
+                            methodSpec.visibility === 'protected' ? '#' : '+';
           model.elements[methodId] = {
             id: methodId,
-            name: `${methodSpec.name}(${paramStr})`,
+            // Return type belongs in the name (backend parses it from there).
+            name: `${visSymbol} ${methodSpec.name}(${paramStr}): ${returnType}`,
             type: 'ClassMethod',
             owner: newClassId,
             bounds: { x: newX + 1, y: methodY, width: 218, height: 25 },
@@ -1479,6 +1534,65 @@ export class ClassDiagramModifier implements DiagramModifier {
   // ─── Lookup helpers ──────────────────────────────────────────────────────────
 
   // Helper methods
+  /**
+   * The endpoint pair naming a relationship, or null if the target names none.
+   *
+   * Two shapes are accepted, because the agent produces the first and LLMs
+   * sometimes collapse it into the second:
+   *   - `{ sourceClass: 'Book', targetClass: 'BookCopy' }`  (what the agent sends)
+   *   - `{ relationshipName: 'Book → BookCopy' }`           (the rendered label)
+   */
+  private relationshipEndpoints(
+    target: Record<string, any>,
+  ): { source: string; target: string } | null {
+    const src = target.sourceClass;
+    const dst = target.targetClass;
+    if (typeof src === 'string' && typeof dst === 'string' && src.trim() && dst.trim()) {
+      return { source: src.trim(), target: dst.trim() };
+    }
+
+    const label = target.relationshipName;
+    if (typeof label === 'string') {
+      const arrow = label.match(/^\s*(.+?)\s*(?:→|-+>|—>)\s*(.+?)\s*$/);
+      if (arrow) {
+        return { source: arrow[1].trim(), target: arrow[2].trim() };
+      }
+    }
+    return null;
+  }
+
+  /**
+   * Resolve a relationship from the names of the classes it connects.
+   *
+   * Matching by `rel.name` alone is not enough: the agent's label is the arrow
+   * form ("Book → BookCopy") while the stored name is the role ("copies"), so
+   * a name comparison never matches and the caller is left with nothing to do.
+   */
+  private findRelationshipIdByEndpoints(
+    model: BESSERModel,
+    sourceName: string,
+    targetName: string,
+  ): string | null {
+    const sourceId = this.findClassIdByName(model, sourceName);
+    const targetId = this.findClassIdByName(model, targetName);
+    if (!sourceId || !targetId) return null;
+
+    const entries = Object.entries(model.relationships || {});
+    const endpointsOf = (rel: any) => [rel?.source?.element, rel?.target?.element];
+
+    for (const [relId, rel] of entries) {
+      const [from, to] = endpointsOf(rel);
+      if (from === sourceId && to === targetId) return relId;
+    }
+    // An association is drawn one way but reads either way, and the LLM names
+    // the endpoints in whichever order it described them.
+    for (const [relId, rel] of entries) {
+      const [from, to] = endpointsOf(rel);
+      if (from === targetId && to === sourceId) return relId;
+    }
+    return null;
+  }
+
   private findClassIdByName(model: BESSERModel, className: string): string | null {
     // Search across all class-like types (Class, AbstractClass, Interface, Enumeration)
     return ModifierHelpers.findElementByName(model, className, 'Class')

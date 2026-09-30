@@ -130,8 +130,14 @@ export const layoutTextForUMLAssociation = (location: IUMLElementPort['direction
   }
 };
 
-export const computeTextPositionForUMLAssociation = (alignmentPath: Point[], hasMarker: boolean = false): Point => {
-  const distance = hasMarker ? 31 : 8;
+// `markerLength` is how far the end marker reaches back along the line; the
+// end's labels start just past it.
+export const computeTextPositionForUMLAssociation = (
+  alignmentPath: Point[],
+  hasMarker: boolean = false,
+  markerLength: number = 30,
+): Point => {
+  const distance = hasMarker ? markerLength + 1 : 8;
   if (alignmentPath.length < 2) return new Point();
   const vector = alignmentPath[1].subtract(alignmentPath[0]);
   return alignmentPath[0].add(vector.normalize().scale(distance));
@@ -170,6 +176,10 @@ export const getMarkerForTypeForUMLAssociation = (relationshipType: UMLRelations
 };
 
 type MarkerFactory = (id: string, color?: string, orient?: string) => React.JSX.Element;
+
+/** Length of an end marker along the line (the aggregation diamond + arrowhead is longer). */
+export const markerLengthForUMLAssociation = (marker?: MarkerFactory): number =>
+  marker === Marker.RhombusArrow ? 52 : 30;
 
 // In ER (Chen) mode, replace the UML arrow/rhombus end markers with a named
 // diamond drawn at the midpoint — but only for the four "plain" binary
@@ -245,9 +255,17 @@ export const UMLAssociationComponent: FunctionComponent<Props> = ({ element }) =
   })(element.type);
 
   const path = element.path.map((point) => new Point(point.x, point.y));
-  const source: Point = computeTextPositionForUMLAssociation(path, !!sourceMarker);
+  const source: Point = computeTextPositionForUMLAssociation(
+    path,
+    !!sourceMarker,
+    markerLengthForUMLAssociation(sourceMarker),
+  );
   const middle: Point = computeMiddlePositionForUMLAssociation(path);
-  const target: Point = computeTextPositionForUMLAssociation(path.reverse(), !!targetMarker);
+  const target: Point = computeTextPositionForUMLAssociation(
+    path.reverse(),
+    !!targetMarker,
+    markerLengthForUMLAssociation(targetMarker),
+  );
   const id = `marker-${element.id}`;
   const startMarkerId = `${id}-start`;
   const endMarkerId = `${id}-end`;

@@ -71,7 +71,7 @@ const WorkspaceTopBarInner: React.FC<WorkspaceTopBarProps> = ({
         <div className="flex min-w-0 items-center gap-2">
           <button
             type="button"
-            onClick={onOpenProjectHub}
+            onClick={() => onOpenProjectHub()}
             aria-label={t('topbar.openProjectHub')}
             className="group flex shrink-0 items-center p-0 text-left transition-opacity hover:opacity-85"
           >

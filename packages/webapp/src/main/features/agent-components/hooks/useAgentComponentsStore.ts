@@ -7,7 +7,11 @@ import { ProjectStorageRepository } from '../../../shared/services/storage/Proje
 import { getActiveDiagram, isUMLModel } from '../../../shared/types/project';
 import { getAgentComponents, normalizeStoredAgentModel } from '../../../shared/utils/projectExportUtils';
 import type { SqlDatabaseEntry } from '../../agent-config/AgentConfigYamlEditor';
-import { DEFAULT_AGENT_CONFIG_FORM, buildConfigYaml } from '../../agent-config/AgentConfigYamlEditor';
+import {
+  DEFAULT_AGENT_CONFIG_FORM,
+  agentConfigFormToYaml,
+  buildConfigYaml,
+} from '../../agent-config/AgentConfigYamlEditor';
 import {
   AgentComponents,
   CreatableComponentType,
@@ -124,10 +128,21 @@ export function useAgentComponentsStore() {
         ...currentForm,
         db: { ...(currentForm.db || DEFAULT_AGENT_CONFIG_FORM.db), sqlDatabases: updater(currentDbs) },
       };
-      const customYaml = typeof diagram.agentConfigCustomYaml === 'string' ? diagram.agentConfigCustomYaml : '';
+      // Same migration as the config editor: an older project's hand-written
+      // configYaml (no form yet) becomes the custom YAML instead of being lost.
+      let customYaml = typeof diagram.agentConfigCustomYaml === 'string' ? diagram.agentConfigCustomYaml : '';
+      if (
+        typeof diagram.agentConfigCustomYaml !== 'string' &&
+        !diagram.agentConfigForm &&
+        typeof diagram.configYaml === 'string' &&
+        diagram.configYaml !== agentConfigFormToYaml(DEFAULT_AGENT_CONFIG_FORM)
+      ) {
+        customYaml = diagram.configYaml;
+      }
       ProjectStorageRepository.updateDiagram(project.id, 'AgentDiagram', {
         ...diagram,
         agentConfigForm: nextForm as unknown as Record<string, unknown>,
+        agentConfigCustomYaml: customYaml,
         configYaml: buildConfigYaml(nextForm, customYaml),
         lastUpdate: new Date().toISOString(),
       });
