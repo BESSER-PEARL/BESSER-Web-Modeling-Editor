@@ -8,6 +8,7 @@ import {
   getEdgesToRemove,
   createClipboardData,
   createNewNodeDataWithNewIds,
+  materializeClipboardData,
 } from "@/utils/copyPasteUtils"
 import type { Node, Edge } from "@xyflow/react"
 
@@ -238,7 +239,7 @@ describe("createClipboardData", () => {
 
     expect(result.nodes).toHaveLength(2) // p + descendant c
     expect(result.edges).toHaveLength(1)
-    expect(result.parentChildRelations.length).toBeGreaterThanOrEqual(1)
+    expect(result.parentChildRelations!.length).toBeGreaterThanOrEqual(1)
     expect(result.timestamp).toBeGreaterThan(0)
   })
 
@@ -306,5 +307,178 @@ describe("createNewNodeDataWithNewIds", () => {
     }
     createNewNodeDataWithNewIds(data)
     expect(data.attributes[0].id).toBe("original")
+  })
+})
+
+// ---------------------------------------------------------------------------
+// Upstream Apollon #817 / #826 ports
+// ---------------------------------------------------------------------------
+
+describe("getRelevantEdges between individually selected nodes (#817)", () => {
+  it("carries edges between two copied nodes even when the edge is not selected", () => {
+    const edges = [
+      makeEdge("assoc", "a", "b"),
+      makeEdge("outside", "a", "z"),
+    ]
+    const result = getRelevantEdges(["a", "b"], edges, ["a", "b"])
+    expect(result.map((e) => e.id)).toEqual(["assoc"])
+  })
+
+  it("createClipboardData keeps the association between two clicked classes", () => {
+    const nodes = [makeNode("a"), makeNode("b"), makeNode("z")]
+    const edges = [makeEdge("assoc", "a", "b"), makeEdge("az", "a", "z")]
+    const result = createClipboardData(["a", "b"], nodes, edges)
+    expect(result.edges.map((e) => e.id)).toEqual(["assoc"])
+  })
+
+  it("carries an edge-anchored association-class link with its association", () => {
+    const edges = [
+      makeEdge("assoc", "a", "b"),
+      {
+        ...makeEdge("link", "assoc", "ac"),
+        type: "ClassLinkRel",
+      } as Edge,
+      { ...makeEdge("dangling", "other-edge", "ac"), type: "ClassLinkRel" },
+    ] as Edge[]
+    const result = getRelevantEdges(["a", "b", "ac"], edges, ["a", "b", "ac"])
+    expect(result.map((e) => e.id).sort()).toEqual(["assoc", "link"])
+  })
+})
+
+describe("remintNestedChildIds (#826)", () => {
+  it("re-mints every id-bearing list, including nested and BESSER-only ones", () => {
+    const data = {
+      name: "C",
+      attributes: [{ id: "at1", name: "a" }],
+      methods: [
+        {
+          id: "m1",
+          name: "run",
+          parameters: [{ id: "p1", name: "x" }],
+        },
+      ],
+      oclConstraints: [
+        { id: "o1", name: "pre", expression: "x > 0", targetMethodId: "m1" },
+      ],
+      bodies: [{ id: "b1", name: "reply" }],
+      fallbackBodies: [{ id: "f1", name: "sorry" }],
+      training_phrases: [{ id: "t1", name: "hi" }],
+      entity_slots: [{ id: "s1", name: "slot" }],
+      actionRows: [{ id: "r1", identifier: "N" }],
+      return_vars: ["out"],
+    }
+    const idMap = new Map<string, string>()
+    const result = createNewNodeDataWithNewIds(data, idMap)
+
+    const oldIds = ["at1", "m1", "p1", "o1", "b1", "f1", "t1", "s1", "r1"]
+    const newIds = [
+      result.attributes[0].id,
+      result.methods[0].id,
+      result.methods[0].parameters[0].id,
+      result.oclConstraints[0].id,
+      result.bodies[0].id,
+      result.fallbackBodies[0].id,
+      result.training_phrases[0].id,
+      result.entity_slots[0].id,
+      result.actionRows[0].id,
+    ]
+    newIds.forEach((id, i) => expect(id).not.toBe(oldIds[i]))
+    expect(new Set(newIds).size).toBe(newIds.length)
+    oldIds.forEach((id) => expect(idMap.has(id)).toBe(true))
+    // A pre/post OCL row follows its re-minted target method.
+    expect(result.oclConstraints[0].targetMethodId).toBe(result.methods[0].id)
+    // Non-id lists and scalar fields pass through.
+    expect(result.return_vars).toEqual(["out"])
+    expect(result.methods[0].parameters[0].name).toBe("x")
+  })
+
+  it("leaves the NN layer attributes dict alone and never mutates the input", () => {
+    const data = {
+      attributes: { "pooling.dimension": "2D" },
+      methods: [{ id: "m", name: "f", parameters: [{ id: "p", name: "q" }] }],
+    }
+    const snapshot = structuredClone(data)
+    const result = createNewNodeDataWithNewIds(data)
+    expect(result.attributes).toEqual({ "pooling.dimension": "2D" })
+    expect(data).toEqual(snapshot)
+  })
+})
+
+describe("materializeClipboardData", () => {
+  it("offsets only top-level nodes: children inside a copied parent keep their relative position", () => {
+    const parent = makeNode("pool", 100, 100)
+    const lane = { ...makeNode("lane", 0, 0, "pool"), draggable: false }
+    const task = makeNode("task", 40, 30, "lane")
+    const clip = createClipboardData(["pool"], [parent, lane, task], [])
+    const result = materializeClipboardData(clip, 2)
+
+    const byOld = (old: string) =>
+      result.nodes[clip.nodes.findIndex((n) => n.id === old)]
+    // 2 pastes deep -> 2 x PASTE_OFFSET_PX on the top-level node only.
+    expect(byOld("pool").position).toEqual({ x: 140, y: 140 })
+    expect(byOld("lane").position).toEqual({ x: 0, y: 0 })
+    expect(byOld("task").position).toEqual({ x: 40, y: 30 })
+    expect(byOld("lane").parentId).toBe(byOld("pool").id)
+    expect(byOld("task").parentId).toBe(byOld("lane").id)
+    expect(byOld("lane").draggable).toBe(false)
+  })
+
+  it("offsets a lone child whose parent was not copied (it stays in the old parent)", () => {
+    const child = makeNode("c", 10, 10, "external")
+    const result = materializeClipboardData({ nodes: [child], edges: [] }, 1)
+    expect(result.nodes[0].position).toEqual({ x: 30, y: 30 })
+    expect(result.nodes[0].parentId).toBe("external")
+  })
+
+  it("remaps edge endpoints (incl. edge-anchored links), re-mints message ids and offsets points", () => {
+    const nodes = [makeNode("a"), makeNode("b"), makeNode("ac")]
+    const edges = [
+      {
+        ...makeEdge("assoc", "a", "b"),
+        data: {
+          points: [{ x: 1, y: 2 }],
+          messages: [{ id: "msg", name: "call()" }],
+        },
+      },
+      { ...makeEdge("link", "assoc", "ac"), type: "ClassLinkRel" },
+    ] as Edge[]
+    const clip = createClipboardData(["a", "b", "ac"], nodes, edges)
+    const result = materializeClipboardData(clip, 1)
+    const [assoc, link] = result.edges
+    const newIds = new Map(clip.nodes.map((n, i) => [n.id, result.nodes[i].id]))
+
+    expect(assoc.source).toBe(newIds.get("a"))
+    expect(assoc.target).toBe(newIds.get("b"))
+    expect((assoc.data as any).points).toEqual([{ x: 21, y: 22 }])
+    expect((assoc.data as any).messages[0].id).not.toBe("msg")
+    expect(link.source).toBe(assoc.id)
+    expect(link.target).toBe(newIds.get("ac"))
+    expect(result.newElementIds).toEqual(
+      expect.arrayContaining([assoc.id, link.id, ...newIds.values()])
+    )
+  })
+
+  it("remaps a node-level entryLayerId and cross-node targetMethodId", () => {
+    const container = {
+      ...makeNode("nn", 0, 0),
+      data: { entryLayerId: "layer" },
+    } as Node
+    const layer = makeNode("layer", 5, 5, "nn")
+    const cls = {
+      ...makeNode("cls"),
+      data: { methods: [{ id: "m1", name: "f" }] },
+    } as Node
+    const ocl = {
+      ...makeNode("ocl"),
+      data: { expression: "pre: true", targetMethodId: "m1" },
+    } as Node
+    const result = materializeClipboardData(
+      { nodes: [container, layer, cls, ocl], edges: [] },
+      1
+    )
+    expect((result.nodes[0].data as any).entryLayerId).toBe(result.nodes[1].id)
+    expect((result.nodes[3].data as any).targetMethodId).toBe(
+      (result.nodes[2].data as any).methods[0].id
+    )
   })
 })

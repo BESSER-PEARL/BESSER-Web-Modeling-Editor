@@ -105,9 +105,23 @@ describe('SpecDrivenCard — runtime meter', () => {
 });
 
 describe('SpecDrivenCard — live activity strip (feels alive on long runs)', () => {
-  it('shows a ticking "Working — N elapsed" while running', () => {
+  it('shows a "Working" strip while running', () => {
     renderCard(baseSpecDriven({ elapsedSeconds: 190, maxRuntime: 600 }));
-    expect(screen.getByText(/Working — 3m 10s elapsed/)).toBeTruthy();
+    expect(screen.getByText(/Working/)).toBeTruthy();
+  });
+
+  it('shows the elapsed clock ONCE - in the footer meter, not the strip', () => {
+    // The strip used to repeat "Working - 3m 10s elapsed" above a footer
+    // already reading "3m 10s / 10m", so the same clock rendered twice in one
+    // card. One timer only: the footer meter, which is driven by the backend
+    // cost heartbeat and therefore freezes if the transport dies.
+    const { container } = renderCard(
+      baseSpecDriven({ elapsedSeconds: 190, maxRuntime: 600 }),
+    );
+    const occurrences = (container.textContent ?? '').match(/3m 10s/g) ?? [];
+    expect(occurrences).toHaveLength(1);
+    expect(container.textContent).toContain('3m 10s / 10m');
+    expect(container.textContent).not.toContain('elapsed');
   });
 
   it('adds a reassurance once a phase has run a while (>=45s)', () => {
@@ -129,7 +143,7 @@ describe('SpecDrivenCard — live activity strip (feels alive on long runs)', ()
 });
 
 describe('SpecDrivenCard — token-honest completion badge', () => {
-  it('shows an "N% deterministic" badge and NOT a raw cumulative token count', () => {
+  it('labels file provenance and does not show a raw cumulative token count', () => {
     const { container } = renderCard(
       baseSpecDriven({
         status: 'done',
@@ -141,7 +155,7 @@ describe('SpecDrivenCard — token-honest completion badge', () => {
         aiPct: 8,
       }),
     );
-    expect(screen.getByText('83% deterministic')).toBeTruthy();
+    expect(screen.getByText('83% files unchanged from scaffold')).toBeTruthy();
     // The misleading cumulative token count must not appear as a headline, and
     // the breakdown (which does mention tokens) is collapsed by default.
     expect(container.textContent).not.toContain('120,000 tokens');
@@ -163,12 +177,15 @@ describe('SpecDrivenCard — token-honest completion badge', () => {
     );
     // Collapsed by default.
     expect(container.textContent).not.toContain('How this was built');
-    fireEvent.click(screen.getByText('71% deterministic'));
+    fireEvent.click(screen.getByText('71% files unchanged from scaffold'));
     // Breakdown now visible, reconciling all three buckets (71+18+11=100).
     expect(screen.getByText('How this was built')).toBeTruthy();
     expect(container.textContent).toContain('71%');
     expect(container.textContent).toContain('18%');
     expect(container.textContent).toContain('11%');
+    expect(container.textContent).toContain('not requirements coverage or correctness');
+    expect(container.textContent).toContain('including harness-created files');
+    expect(container.textContent).not.toContain('0 LLM tokens');
     // The alarming cumulative token count is NOT shown on the card anymore.
     expect(container.textContent).not.toContain('120,000');
     expect(container.textContent).not.toMatch(/\btokens\b.*cumulative/);
@@ -187,7 +204,7 @@ describe('SpecDrivenCard — token-honest completion badge', () => {
         tokenUsage: { input: 182000, output: 65000, cacheRead: 2900000, total: 3147000 },
       }),
     );
-    fireEvent.click(screen.getByText('71% deterministic'));
+    fireEvent.click(screen.getByText('71% files unchanged from scaffold'));
     // Active = 182k + 65k = 247k, shown as the headline; cached as secondary.
     expect(container.textContent).toContain('247k active tokens');
     expect(container.textContent).toContain('182k fresh input');
@@ -215,7 +232,7 @@ describe('SpecDrivenCard — token-honest completion badge', () => {
         // modPct intentionally absent
       }),
     );
-    fireEvent.click(screen.getByText('71% deterministic'));
+    fireEvent.click(screen.getByText('71% files unchanged from scaffold'));
     expect(container.textContent).toContain('71%');
     expect(container.textContent).toContain('18%'); // 100 - 71 - 11, derived
     expect(container.textContent).toContain('11%');

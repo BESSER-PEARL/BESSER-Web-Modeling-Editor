@@ -1,6 +1,6 @@
 import { NodeProps, type Node } from "@xyflow/react"
+import { usePopoverAnchor } from "@/hooks/usePopoverAnchor"
 import { DefaultNodeWrapper } from "../wrappers"
-import { useRef } from "react"
 import { useDiagramModifiable } from "@/hooks/useDiagramModifiable"
 import { DefaultNodeProps } from "@/types"
 import { SfcStartNodeSVG } from "@/components"
@@ -13,7 +13,7 @@ export function SfcStart({
   height,
   data,
 }: NodeProps<Node<DefaultNodeProps>>) {
-  const svgWrapperRef = useRef<HTMLDivElement | null>(null)
+  const [svgWrapperEl, svgWrapperRef] = usePopoverAnchor<HTMLDivElement>()
   const isDiagramModifiable = useDiagramModifiable()
 
   if (!width || !height) {
@@ -35,7 +35,7 @@ export function SfcStart({
       </div>
 
       <PopoverManager
-        anchorEl={svgWrapperRef.current}
+        anchorEl={svgWrapperEl}
         elementId={id}
         type="default"
       />

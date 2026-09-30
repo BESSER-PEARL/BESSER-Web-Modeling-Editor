@@ -13,6 +13,7 @@ import { DividerLine, NodeStyleEditor, Typography } from "@/components/ui"
 import { PopoverProps } from "@/components/popovers/types"
 import { normalizeType } from "@/utils/typeNormalization"
 import { getUserMetaModelV4 } from "@/services/userMetaModel"
+import { useTranslation } from "@/i18n"
 
 /**
  * Inspector body for stand-alone `UserModelAttribute`
@@ -66,6 +67,7 @@ function buildEnumLookup(): Map<string, string[]> {
 export const UserModelAttributeEditPanel: React.FC<PopoverProps> = ({
   elementId,
 }) => {
+  const { t } = useTranslation()
   const { nodes, setNodes } = useDiagramStore(
     useShallow((state) => ({
       nodes: state.nodes,
@@ -129,14 +131,14 @@ export const UserModelAttributeEditPanel: React.FC<PopoverProps> = ({
         size="small"
         variant="outlined"
         fullWidth
-        label="name"
+        label={t("popup.name", "Name")}
         value={data.name}
         onChange={(e) => update({ name: e.target.value })}
       />
 
       <Stack direction="row" alignItems="center" spacing={0.5}>
         <Typography variant="caption" sx={{ minWidth: 70 }}>
-          type
+          {t("common.type", "Type")}
         </Typography>
         <Select
           size="small"
@@ -167,7 +169,7 @@ export const UserModelAttributeEditPanel: React.FC<PopoverProps> = ({
       {isInteger && (
         <Stack direction="row" alignItems="center" spacing={0.5}>
           <Typography variant="caption" sx={{ minWidth: 70 }}>
-            operator
+            {t("popup.user.operator", "operator")}
           </Typography>
           <Select
             size="small"
@@ -194,7 +196,7 @@ export const UserModelAttributeEditPanel: React.FC<PopoverProps> = ({
       {isEnumeration ? (
         <Stack direction="row" alignItems="center" spacing={0.5}>
           <Typography variant="caption" sx={{ minWidth: 70 }}>
-            value
+            {t("common.value", "Value")}
           </Typography>
           <Select
             size="small"
@@ -203,7 +205,9 @@ export const UserModelAttributeEditPanel: React.FC<PopoverProps> = ({
             displayEmpty
             sx={{ flex: 1 }}
           >
-            <MenuItem value="">— select literal —</MenuItem>
+            <MenuItem value="">
+              {t("popup.object.selectLiteral", "— select literal —")}
+            </MenuItem>
             {enumLiterals.map((lit) => (
               <MenuItem key={lit} value={lit}>
                 {lit}
@@ -214,7 +218,7 @@ export const UserModelAttributeEditPanel: React.FC<PopoverProps> = ({
       ) : isBool ? (
         <Stack direction="row" alignItems="center" spacing={0.5}>
           <Typography variant="caption" sx={{ minWidth: 70 }}>
-            value
+            {t("common.value", "Value")}
           </Typography>
           <Select
             size="small"
@@ -223,7 +227,9 @@ export const UserModelAttributeEditPanel: React.FC<PopoverProps> = ({
             displayEmpty
             sx={{ flex: 1 }}
           >
-            <MenuItem value="">— select —</MenuItem>
+            <MenuItem value="">
+              {t("popup.user.selectPlaceholder", "— select —")}
+            </MenuItem>
             <MenuItem value="true">true</MenuItem>
             <MenuItem value="false">false</MenuItem>
           </Select>
@@ -233,7 +239,7 @@ export const UserModelAttributeEditPanel: React.FC<PopoverProps> = ({
           size="small"
           variant="outlined"
           fullWidth
-          label="default value"
+          label={t("popup.user.defaultValue", "default value")}
           type={isDate ? "date" : isTime ? "time" : "datetime-local"}
           value={currentValue}
           onChange={(e) => onValueChange(e.target.value)}
@@ -243,7 +249,10 @@ export const UserModelAttributeEditPanel: React.FC<PopoverProps> = ({
           size="small"
           variant="outlined"
           fullWidth
-          label='default value (will be quoted: "…")'
+          label={t(
+            "popup.user.defaultValueQuoted",
+            'default value (will be quoted: "…")'
+          )}
           value={currentValue}
           onChange={(e) => onValueChange(e.target.value)}
         />
@@ -252,7 +261,7 @@ export const UserModelAttributeEditPanel: React.FC<PopoverProps> = ({
           size="small"
           variant="outlined"
           fullWidth
-          label="default value"
+          label={t("popup.user.defaultValue", "default value")}
           value={currentValue}
           onChange={(e) => onValueChange(e.target.value)}
         />

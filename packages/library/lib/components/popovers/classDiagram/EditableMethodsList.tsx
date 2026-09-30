@@ -23,6 +23,7 @@ import {
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable"
 import { CSS } from "@dnd-kit/utilities"
+import { useTranslation } from "@/i18n"
 
 interface Props {
   nodeId: string
@@ -107,6 +108,7 @@ export const EditableMethodsList: React.FC<Props> = ({ nodeId }) => {
   const { nodes, setNodes } = useDiagramStore(
     useShallow((state) => ({ setNodes: state.setNodes, nodes: state.nodes }))
   )
+  const { t } = useTranslation()
   const [newItem, setNewItem] = useState("")
 
   const nodeData = nodes.find((node) => node.id === nodeId)?.data as
@@ -188,7 +190,7 @@ export const EditableMethodsList: React.FC<Props> = ({ nodeId }) => {
 
   return (
     <Box sx={{ display: "flex", flexDirection: "column", gap: 0.5 }}>
-      <Typography variant="h6">Methods</Typography>
+      <Typography variant="h6">{t("popup.methods", "Methods")}</Typography>
 
       <DndContext
         sensors={sensors}
@@ -215,7 +217,7 @@ export const EditableMethodsList: React.FC<Props> = ({ nodeId }) => {
         size="small"
         fullWidth
         variant="outlined"
-        placeholder="+ Add method"
+        placeholder={t("popup.classifier.addMethodPlaceholder", "+ Add method")}
         value={newItem}
         onChange={(e: ChangeEvent<HTMLInputElement>) =>
           setNewItem(e.target.value)

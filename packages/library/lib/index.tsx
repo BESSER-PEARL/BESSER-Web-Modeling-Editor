@@ -3,11 +3,30 @@ export * from "./besser-editor"
 export * from "./utils/helpers"
 export * from "./utils/versionConverter"
 export * from "./utils"
-export { layoutModel } from "./utils/autoLayout"
+export { layoutModel, getAutoLayoutStrategies } from "./utils/autoLayout"
+export type { AutoLayoutOptions, AutoLayoutStrategy } from "./utils/autoLayout"
 export {
   normalizeAgentModel,
   normalizeAgentTransitionData,
+  normalizeAgentBodyRow,
 } from "./utils/normalizeAgentModel"
+export {
+  REPLY_TYPE_TO_ACTION_TYPE,
+  ACTION_TYPE_TO_REPLY_TYPE,
+  resolveReplyType,
+  withActionType,
+} from "./utils/agentActions"
+// Off-canvas agent components (v4 `model.components`): type names, entry
+// type and the legacy-location migrator (canvas nodes / agentComponents →
+// components). Used by the webapp's agent Components page and assistant.
+export {
+  AgentComponentType,
+  AGENT_COMPONENT_TYPES,
+  isAgentComponentType,
+  normalizeAgentComponents,
+  getAgentComponentsOfType,
+} from "./utils/agentComponents"
+export type { AgentComponents } from "./utils/agentComponents"
 export { log, setLogLevel, setLogger } from "./logger"
 export type { LogLevel } from "./logger"
 
@@ -21,6 +40,10 @@ export type {
   IAssociationInfo,
   IDiagramReference,
   IDiagramBridgeService,
+  AgentGUIInfo,
+  AgentIntentInfo,
+  AgentLLMInfo,
+  AgentRAGInfo,
 } from "./services/diagramBridge"
 
 // Agent LLM provider catalogue (AgentConfigurationPanel.tsx,

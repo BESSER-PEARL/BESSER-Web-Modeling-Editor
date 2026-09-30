@@ -135,10 +135,38 @@ describe('streamSse', () => {
 
     // Abort and ensure the generator returns cleanly without hanging.
     abortCtl.abort();
-    controllerRef!.close();
+    try {
+      controllerRef!.close();
+    } catch {
+      /* the abort already cancelled the body */
+    }
     const tail = await reader.next();
     // Either we get `done: true` or we get nothing — but we must not hang.
     expect(tail.done).toBe(true);
+  });
+
+  it('ends a read parked on a silent stream when the caller aborts', async () => {
+    // A frozen transport: headers arrived, then nothing. Stop must not wait
+    // for another byte (or the stall watchdog) to release the reader.
+    let controllerRef: ReadableStreamDefaultController<Uint8Array> | null = null;
+    const body = new ReadableStream<Uint8Array>({
+      start(c) { controllerRef = c; },
+    });
+    globalThis.fetch = vi.fn().mockResolvedValue(okResponse(body));
+
+    const abortCtl = new AbortController();
+    const reader = streamSse<unknown>('/x', {}, { signal: abortCtl.signal })[Symbol.asyncIterator]();
+    const first = reader.next();
+    controllerRef!.enqueue(encoder.encode('data: {"event":"a"}\n\n'));
+    expect((await first).value).toEqual({ event: 'a' });
+
+    const parked = reader.next();
+    abortCtl.abort();
+    const outcome = await Promise.race([
+      parked,
+      new Promise<'hung'>((resolve) => setTimeout(() => resolve('hung'), 200)),
+    ]);
+    expect(outcome).toEqual({ done: true, value: undefined });
   });
 
   it('handles CRLF frame separators', async () => {
@@ -230,5 +258,38 @@ describe('streamSse', () => {
     expect(JSON.parse(init.body)).toEqual({ hello: 'world' });
     expect(init.headers['Accept']).toBe('text/event-stream');
     expect(init.headers['Content-Type']).toBe('application/json');
+  });
+
+  it('supports bodyless GET streams for durable replay', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      okResponse(streamOf(['id: 4\nevent: ok\ndata: {"event":"ok","sequence":4}\n\n'])),
+    );
+    globalThis.fetch = fetchMock;
+
+    const events = await collect(
+      streamSse<{ event: string; sequence: number }>('/runs/abc/events?after=3', undefined, {
+        method: 'GET',
+      }),
+    );
+
+    expect(events).toEqual([{ event: 'ok', sequence: 4 }]);
+    const [, init] = fetchMock.mock.calls[0];
+    expect(init.method).toBe('GET');
+    expect(init.body).toBeUndefined();
+    expect(init.headers['Content-Type']).toBeUndefined();
+    expect(init.headers['Accept']).toBe('text/event-stream');
+  });
+
+  it('exposes response headers before reading the event body', async () => {
+    const response = new Response(
+      streamOf(['event: ok\ndata: {"event":"ok"}\n\n']),
+      { status: 200, headers: { 'X-BESSER-Run-Id': 'a'.repeat(32) } },
+    );
+    globalThis.fetch = vi.fn().mockResolvedValue(response);
+    const onResponse = vi.fn();
+
+    await collect(streamSse('/x', {}, { onResponse }));
+
+    expect(onResponse).toHaveBeenCalledWith(response);
   });
 });

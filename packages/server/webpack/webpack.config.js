@@ -22,6 +22,15 @@ module.exports = {
       // knowledge of that alias on its own, so bundling `@besser/wme` from
       // source (above) needs the same mapping here.
       '@': path.resolve(__dirname, '../../library/lib'),
+      // Exactly one React in the bundle. packages/library ships its own
+      // react / react-dom copy while React Flow, MUI, zustand, … resolve the
+      // hoisted root copy; with both bundled, hooks inside those deps ran
+      // against the other copy's (null) dispatcher and headless SVG export
+      // crashed the server ("Cannot read properties of null (reading
+      // 'useState')"). Prefix aliases so `react/jsx-runtime` and
+      // `react-dom/client` follow.
+      react: path.resolve(__dirname, '../../../node_modules/react'),
+      'react-dom': path.resolve(__dirname, '../../../node_modules/react-dom'),
     },
     fallback: {
       fs: false,
@@ -37,7 +46,12 @@ module.exports = {
             transpileOnly: true,
             compilerOptions: {
               declaration: false,
-              jsx: 'react',
+              // The bundled library (`@besser/wme` from source) is written for
+              // the automatic JSX runtime (packages/library/tsconfig.json
+              // `"jsx": "react-jsx"`) and does not `import React` in every
+              // file; the classic `'react'` transform made headless SVG
+              // export fail with "React is not defined".
+              jsx: 'react-jsx',
             },
             onlyCompileBundledFiles: true,
           },

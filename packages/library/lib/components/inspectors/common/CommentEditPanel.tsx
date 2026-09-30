@@ -5,6 +5,7 @@ import { useDiagramStore } from "@/store/context"
 import { CommentNodeProps } from "@/types"
 import { DividerLine, NodeStyleEditor } from "@/components/ui"
 import { PopoverProps } from "@/components/popovers/types"
+import { useTranslation } from "@/i18n"
 
 /**
  * Inspector body for the free-form Comment sticky-note
@@ -15,6 +16,7 @@ import { PopoverProps } from "@/components/popovers/types"
  * defaults as the canonical yellow-on-amber look.
  */
 export const CommentEditPanel: React.FC<PopoverProps> = ({ elementId }) => {
+  const { t } = useTranslation()
   const { nodes, setNodes } = useDiagramStore(
     useShallow((state) => ({
       nodes: state.nodes,
@@ -51,7 +53,7 @@ export const CommentEditPanel: React.FC<PopoverProps> = ({ elementId }) => {
         multiline
         minRows={4}
         maxRows={20}
-        placeholder="Comment text…"
+        placeholder={t("packages.Comment.placeholder", "Comment")}
         value={data.name ?? ""}
         onChange={(e) => updateData({ name: e.target.value })}
         autoFocus

@@ -13,6 +13,14 @@ export type CustomEdgeProps = {
   sourceMultiplicity: string | null
   targetRole: string | null
   targetMultiplicity: string | null
+  /**
+   * Class-diagram associations only (ClassBidirectional / Composition /
+   * Aggregation): whether each end can be navigated to. The editor always
+   * writes explicit booleans; when missing (legacy data) see
+   * `resolveAssociationNavigability` in `utils/uml-association-navigability`.
+   */
+  sourceNavigable?: boolean
+  targetNavigable?: boolean
   points: IPoint[]
   label?: string | null
   messages?: MessageData[] // For communication diagram edges with direction-aware messages

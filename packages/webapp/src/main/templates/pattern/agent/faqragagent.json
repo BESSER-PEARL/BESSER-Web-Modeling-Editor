@@ -5,28 +5,11 @@
   "type": "AgentDiagram",
   "nodes": [
     {
-      "id": "0c1693ac-768b-44b0-83c4-7686fea85ee0",
-      "type": "StateInitialNode",
-      "position": {
-        "x": 40,
-        "y": 120
-      },
-      "width": 45,
-      "height": 45,
-      "measured": {
-        "width": 45,
-        "height": 45
-      },
-      "data": {
-        "name": ""
-      }
-    },
-    {
-      "id": "8aa7d581-a5b7-4180-b205-0151cb7451d3",
+      "id": "350b1235-0202-44f6-beb4-e403241defde",
       "type": "AgentState",
       "position": {
-        "x": 330,
-        "y": 70
+        "x": 5,
+        "y": -612
       },
       "width": 420,
       "height": 70,
@@ -36,149 +19,98 @@
       },
       "data": {
         "name": "Greeting",
-        "replyType": "text"
+        "replyType": "text",
+        "stateType": "standard",
+        "fallbackBodyEnabled": false,
+        "bodies": [
+          {
+            "id": "01276d66-235c-4ced-84f1-d776e729bfe1",
+            "name": "Hi, I am your friendly assistant, I can answer questions related to BESSER.",
+            "replyType": "text",
+            "actionType": "TextReplyAction",
+            "useSessionVars": false,
+            "llm_name": ""
+          }
+        ],
+        "initial": true
       }
     },
     {
-      "id": "0914f151-3e00-4fba-ba2d-89efb0e1467e",
-      "type": "AgentStateBody",
-      "position": {
-        "x": 680.5,
-        "y": 280.5
-      },
-      "width": 419,
-      "height": 30,
-      "measured": {
-        "width": 419,
-        "height": 30
-      },
-      "data": {
-        "name": "Hi, I am your friendly assistant, I can answer questions related to BESSER.",
-        "replyType": "text",
-        "ragDatabaseName": ""
-      },
-      "parentId": "8aa7d581-a5b7-4180-b205-0151cb7451d3"
-    },
-    {
-      "id": "073e90b9-9b2a-4a2e-807c-42c8ec90dc1f",
+      "id": "e0239d77-e47a-4d39-bc34-0a9c2676e681",
       "type": "AgentState",
       "position": {
-        "x": 1030,
-        "y": 40
+        "x": 17.666748046875,
+        "y": -474.33331298828125
       },
-      "width": 420,
+      "width": 380,
       "height": 70,
       "measured": {
-        "width": 420,
+        "width": 380,
         "height": 70
       },
       "data": {
         "name": "Idle",
-        "replyType": "text"
-      }
-    },
-    {
-      "id": "4ab8c422-2c84-493b-ae49-52bd0817e3d6",
-      "type": "AgentStateBody",
-      "position": {
-        "x": 680.5,
-        "y": 280.5
-      },
-      "width": 419,
-      "height": 30,
-      "measured": {
-        "width": 419,
-        "height": 30
-      },
-      "data": {
-        "name": "What would you like to know about BESSER?",
         "replyType": "text",
-        "ragDatabaseName": ""
-      },
-      "parentId": "073e90b9-9b2a-4a2e-807c-42c8ec90dc1f"
-    },
-    {
-      "id": "72a9a181-3dc0-4f95-8adb-bddade2fccf4",
-      "type": "AgentRagElement",
-      "position": {
-        "x": 480,
-        "y": 240
-      },
-      "width": 120,
-      "height": 110,
-      "measured": {
-        "width": 120,
-        "height": 110
-      },
-      "data": {
-        "name": "BESSER"
+        "stateType": "standard",
+        "fallbackBodyEnabled": false,
+        "bodies": [
+          {
+            "id": "e58f24df-cea4-4eea-bed9-53209b2819a2",
+            "name": "What would you like to know about BESSER?",
+            "replyType": "text",
+            "actionType": "TextReplyAction",
+            "useSessionVars": false,
+            "llm_name": ""
+          }
+        ]
       }
     },
     {
-      "id": "ceeeda0d-b8f2-4025-ab23-4953ae07c264",
+      "id": "d97b5daa-b93e-4b71-ae25-3749eb3dacbe",
       "type": "AgentState",
       "position": {
-        "x": 950,
-        "y": 360
+        "x": 40,
+        "y": -174
       },
-      "width": 420,
+      "width": 320,
       "height": 70,
       "measured": {
-        "width": 420,
+        "width": 320,
         "height": 70
       },
       "data": {
         "name": "Response",
-        "replyType": "text"
+        "replyType": "text",
+        "stateType": "standard",
+        "fallbackBodyEnabled": false,
+        "bodies": [
+          {
+            "id": "8d595938-fd40-4f98-a1dc-0a93a0b684e3",
+            "name": "RAG reply using BESSER database",
+            "replyType": "rag",
+            "actionType": "RAGReplyAction",
+            "inputPromptMode": "last_user_message",
+            "customInputPrompt": "",
+            "customInputPromptUseSessionVars": false,
+            "promptUseSessionVars": false,
+            "storeInSession": "",
+            "sendReply": true,
+            "llm_name": "",
+            "ragDatabaseName": "BESSER",
+            "prompt": ""
+          }
+        ]
       }
-    },
-    {
-      "id": "10da515c-b8a4-489f-b3d9-fdf698922546",
-      "type": "AgentStateBody",
-      "position": {
-        "x": 680.5,
-        "y": 280.5
-      },
-      "width": 419,
-      "height": 30,
-      "measured": {
-        "width": 419,
-        "height": 30
-      },
-      "data": {
-        "name": "RAG reply using BESSER database",
-        "replyType": "rag",
-        "ragDatabaseName": "BESSER"
-      },
-      "parentId": "ceeeda0d-b8f2-4025-ab23-4953ae07c264"
     }
   ],
   "edges": [
     {
-      "id": "20b192c6-49fd-4260-b958-5c85fab9cdfa",
-      "source": "0c1693ac-768b-44b0-83c4-7686fea85ee0",
-      "target": "8aa7d581-a5b7-4180-b205-0151cb7451d3",
-      "type": "AgentStateTransitionInit",
-      "sourceHandle": "right",
-      "targetHandle": "left-top",
-      "data": {
-        "label": "",
-        "sourceMultiplicity": "",
-        "targetMultiplicity": "",
-        "sourceRole": "",
-        "targetRole": "",
-        "isManuallyLayouted": false,
-        "messages": [],
-        "points": []
-      }
-    },
-    {
-      "id": "db270a25-0697-4201-9275-da9c30a07dc2",
-      "source": "8aa7d581-a5b7-4180-b205-0151cb7451d3",
-      "target": "073e90b9-9b2a-4a2e-807c-42c8ec90dc1f",
+      "id": "7932ec1e-de7f-4315-a755-3f9b3f98d088",
+      "source": "350b1235-0202-44f6-beb4-e403241defde",
+      "target": "e0239d77-e47a-4d39-bc34-0a9c2676e681",
       "type": "AgentStateTransition",
-      "sourceHandle": "right",
-      "targetHandle": "left-top",
+      "sourceHandle": "bottom",
+      "targetHandle": "top",
       "data": {
         "label": "",
         "sourceMultiplicity": "",
@@ -192,20 +124,36 @@
           "predefinedType": "auto",
           "conditionValue": ""
         },
+        "legacyShape": 1,
         "legacy": {
-          "condition": "auto",
-          "conditionValue": ""
+          "transitionType": "predefined",
+          "predefined": {
+            "predefinedType": "auto",
+            "conditionValue": ""
+          },
+          "custom": {
+            "condition": []
+          }
         },
-        "points": []
+        "points": [
+          {
+            "x": 207.666748046875,
+            "y": -542
+          },
+          {
+            "x": 207.666748046875,
+            "y": -474.33331298828125
+          }
+        ]
       }
     },
     {
-      "id": "b8e27aba-df6f-4816-afb5-0bb39ebc1fda",
-      "source": "073e90b9-9b2a-4a2e-807c-42c8ec90dc1f",
-      "target": "ceeeda0d-b8f2-4025-ab23-4953ae07c264",
+      "id": "2d8d765c-9d27-4aff-a6c5-b51b873596e3",
+      "source": "e0239d77-e47a-4d39-bc34-0a9c2676e681",
+      "target": "d97b5daa-b93e-4b71-ae25-3749eb3dacbe",
       "type": "AgentStateTransition",
-      "sourceHandle": "bottom-left",
-      "targetHandle": "left",
+      "sourceHandle": "bottom",
+      "targetHandle": "top",
       "data": {
         "label": "",
         "sourceMultiplicity": "",
@@ -214,24 +162,40 @@
         "targetRole": "",
         "isManuallyLayouted": false,
         "messages": [],
-        "transitionType": "predefined",
-        "predefined": {
-          "predefinedType": "when_no_intent_matched",
-          "conditionValue": ""
+        "transitionType": "custom",
+        "custom": {
+          "event": "ReceiveTextEvent",
+          "condition": []
         },
+        "legacyShape": 2,
         "legacy": {
-          "condition": "when_no_intent_matched",
-          "conditionValue": ""
+          "transitionType": "custom",
+          "predefined": {
+            "predefinedType": ""
+          },
+          "custom": {
+            "event": "ReceiveTextEvent",
+            "condition": []
+          }
         },
-        "points": []
+        "points": [
+          {
+            "x": 200,
+            "y": -404.33331298828125
+          },
+          {
+            "x": 200,
+            "y": -174
+          }
+        ]
       }
     },
     {
-      "id": "ee33f473-5d40-4a58-b5e8-5ad985e15644",
-      "source": "ceeeda0d-b8f2-4025-ab23-4953ae07c264",
-      "target": "073e90b9-9b2a-4a2e-807c-42c8ec90dc1f",
+      "id": "4dfbe2a2-6d28-4e19-8523-cdd5bfeb29f2",
+      "source": "d97b5daa-b93e-4b71-ae25-3749eb3dacbe",
+      "target": "e0239d77-e47a-4d39-bc34-0a9c2676e681",
       "type": "AgentStateTransition",
-      "sourceHandle": "top-left",
+      "sourceHandle": "left-bottom",
       "targetHandle": "bottom-left",
       "data": {
         "label": "",
@@ -246,13 +210,66 @@
           "predefinedType": "auto",
           "conditionValue": ""
         },
+        "legacyShape": 1,
         "legacy": {
-          "condition": "auto",
-          "conditionValue": ""
+          "transitionType": "predefined",
+          "predefined": {
+            "predefinedType": "auto",
+            "conditionValue": ""
+          },
+          "custom": {
+            "condition": []
+          }
         },
-        "points": []
+        "points": [
+          {
+            "x": 40,
+            "y": -121.5
+          },
+          {
+            "x": 0,
+            "y": -121.5
+          },
+          {
+            "x": 0,
+            "y": -289.1666564941406
+          },
+          {
+            "x": 112.666748046875,
+            "y": -289.1666564941406
+          },
+          {
+            "x": 112.666748046875,
+            "y": -404.33331298828125
+          }
+        ]
       }
     }
   ],
-  "assessments": {}
+  "assessments": {},
+  "components": {
+    "e330d680-dd85-460c-83c6-23f788a74de4": {
+      "id": "e330d680-dd85-460c-83c6-23f788a74de4",
+      "type": "AgentRagElement",
+      "name": "BESSER",
+      "owner": null,
+      "llm_name": "",
+      "llm_prompt": "",
+      "k": 4,
+      "num_previous_messages": 0,
+      "embedding_provider": "openai",
+      "embedding_base_url": "",
+      "embedding_model": ""
+    },
+    "6b434d60-495f-4fb8-8994-1848f5bbeb16": {
+      "id": "6b434d60-495f-4fb8-8994-1848f5bbeb16",
+      "type": "AgentLLM",
+      "name": "gpt-4o-mini",
+      "owner": null,
+      "provider": "openai",
+      "parameters": {},
+      "num_previous_messages": 1,
+      "global_context": ""
+    }
+  }
 }

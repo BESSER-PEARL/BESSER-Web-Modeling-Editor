@@ -292,6 +292,8 @@ describe('AgentDiagramConverter (v4)', () => {
     ],
     transitions: [
       { source: 'initial', target: 'Welcome' },
+      { source: 'Welcome', target: 'Welcome', condition: 'when_intent_matched', conditionValue: 'Greet' },
+      // Intents are off-canvas components: an intent-sourced transition has no canvas source.
       { source: 'Greet', target: 'Welcome' },
     ],
     ragElements: [{ name: 'Docs' }],
@@ -318,20 +320,25 @@ describe('AgentDiagramConverter (v4)', () => {
     expect(nodesByType(model, 'AgentStateFallbackBody')).toHaveLength(0);
   });
 
-  it('emits intents with inline training_phrases rows (rendered by AgentIntent.tsx)', () => {
+  it('emits intents as off-canvas components with AgentIntentBody training sentences', () => {
     const model = converter.convertCompleteSystem(systemSpec);
 
-    const greet = nodeByName(model, 'Greet');
-    expect(greet.type).toBe('AgentIntent');
-    expect(greet.data.training_phrases.map((p: any) => p.name)).toEqual(['hello', 'hi there']);
+    expect(nodesByType(model, 'AgentIntent')).toHaveLength(0);
     expect(nodesByType(model, 'AgentIntentBody')).toHaveLength(0);
+    const components = Object.values(model.components) as any[];
+    const greet = components.find((c) => c.type === 'AgentIntent');
+    expect(greet).toMatchObject({ name: 'Greet', owner: null });
+    const phrases = greet.bodies.map((id: string) => model.components[id]);
+    expect(phrases.map((p: any) => p.name)).toEqual(['hello', 'hi there']);
+    expect(phrases.every((p: any) => p.type === 'AgentIntentBody' && p.owner === greet.id)).toBe(true);
   });
 
-  it('emits AgentRagElement nodes', () => {
+  it('emits AgentRagElement components (not nodes)', () => {
     const model = converter.convertCompleteSystem(systemSpec);
-    const rags = nodesByType(model, 'AgentRagElement');
+    expect(nodesByType(model, 'AgentRagElement')).toHaveLength(0);
+    const rags = (Object.values(model.components) as any[]).filter((c) => c.type === 'AgentRagElement');
     expect(rags).toHaveLength(1);
-    expect(rags[0].data.name).toBe('Docs');
+    expect(rags[0].name).toBe('Docs');
   });
 
   it('emits canonical transition data: init edge bare, intent edge predefined', () => {
@@ -339,13 +346,13 @@ describe('AgentDiagramConverter (v4)', () => {
     expect(model.edges).toHaveLength(2);
 
     const initialId = nodesByType(model, 'StateInitialNode')[0].id;
-    const greetId = nodeByName(model, 'Greet').id;
+    const welcomeId = nodeByName(model, 'Welcome').id;
 
     const initEdge = model.edges.find((e: any) => e.source === initialId);
     expect(initEdge.type).toBe('AgentStateTransitionInit');
     expect(initEdge.data.transitionType).toBeUndefined();
 
-    const intentEdge = model.edges.find((e: any) => e.source === greetId);
+    const intentEdge = model.edges.find((e: any) => e.source === welcomeId);
     expect(intentEdge.type).toBe('AgentStateTransition');
     expect(intentEdge.data.transitionType).toBe('predefined');
     expect(intentEdge.data.predefined).toEqual({
@@ -491,9 +498,11 @@ describe('single-element injection (mergeElementIntoModel acceptance)', () => {
       intentName: 'Greet',
       trainingPhrases: ['hi'],
     });
-    expect(model.nodes).toHaveLength(1);
-    expect(model.nodes[0].type).toBe('AgentIntent');
-    expect(model.nodes[0].data.training_phrases.map((p: any) => p.name)).toEqual(['hi']);
+    // Intents are off-canvas components, merged into `model.components`.
+    expect(model.nodes).toHaveLength(0);
+    const components = Object.values(model.components) as any[];
+    expect(components.find((c) => c.type === 'AgentIntent')).toMatchObject({ name: 'Greet' });
+    expect(components.filter((c) => c.type === 'AgentIntentBody').map((c) => c.name)).toEqual(['hi']);
   });
 
   it('merges an object spec into the current ObjectDiagram model', async () => {

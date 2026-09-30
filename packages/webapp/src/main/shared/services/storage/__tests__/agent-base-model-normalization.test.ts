@@ -265,6 +265,72 @@ describe('agent base model storage normalization', () => {
   });
 });
 
+describe('read-side tolerance for stale v3 snapshots', () => {
+  beforeEach(() => {
+    localStorage.clear();
+  });
+
+  it('getters lift v3 snapshots to v4 even when no storage migration ran', () => {
+    const v3UserModel = {
+      version: '3.0.0',
+      type: 'UserDiagram',
+      size: { width: 10, height: 10 },
+      elements: {},
+      relationships: {},
+      interactive: { elements: {}, relationships: {} },
+      assessments: {},
+    };
+    localStorage.setItem(
+      localStorageUserProfiles,
+      JSON.stringify([{ id: 'p1', name: 'Teen', savedAt: new Date().toISOString(), model: v3UserModel }]),
+    );
+    localStorage.setItem(
+      localStorageAgentConfigurations,
+      JSON.stringify([
+        {
+          id: 'c1',
+          name: 'Config',
+          savedAt: new Date().toISOString(),
+          config: {},
+          baseAgentModel: agentModelV3({ r1: flatTransition('r1', 'auto', '') }),
+          originalAgentModel: null,
+          personalizedAgentModel: agentModelV3({ r1: flatTransition('r1', 'when_intent_matched', 'Hi') }),
+        },
+      ]),
+    );
+    localStorage.setItem(
+      localStorageAgentBaseModels,
+      JSON.stringify({ d1: agentModelV3({ r1: flatTransition('r1', 'auto', '') }) }),
+    );
+
+    const [profile] = LocalStorageRepository.getUserProfiles();
+    expect(isUMLModel(profile.model)).toBe(true);
+    const [config] = LocalStorageRepository.getAgentConfigurations();
+    expect(isUMLModel(config.baseAgentModel)).toBe(true);
+    expect(config.originalAgentModel).toBeNull();
+    expect(findEdge(config.personalizedAgentModel as AnyModel, 'r1').data.predefined.intentName).toBe('Hi');
+    expect(isUMLModel(LocalStorageRepository.getAgentBaseModel('d1'))).toBe(true);
+    expect(isUMLModel(LocalStorageRepository.getAllAgentBaseModels().d1)).toBe(true);
+  });
+
+  it('never throws on an unliftable snapshot', () => {
+    localStorage.setItem(
+      localStorageUserProfiles,
+      JSON.stringify([
+        {
+          id: 'p1',
+          name: 'Broken',
+          savedAt: new Date().toISOString(),
+          model: { version: '3.0.0', type: 'NotARealDiagramType', elements: {}, relationships: {} },
+        },
+      ]),
+    );
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    expect(() => LocalStorageRepository.getUserProfiles()).not.toThrow();
+    warn.mockRestore();
+  });
+});
+
 describe('mergeImportedPersonalization', () => {
   beforeEach(() => {
     localStorage.clear();

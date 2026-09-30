@@ -1,5 +1,5 @@
 import { NodeProps, NodeResizer, type Node } from "@xyflow/react"
-import { useRef } from "react"
+import { usePopoverAnchor } from "@/hooks/usePopoverAnchor"
 import { DefaultNodeWrapper, HandleId } from "../wrappers"
 import { useHandleOnResize } from "@/hooks"
 import { useDiagramModifiable } from "@/hooks/useDiagramModifiable"
@@ -27,7 +27,7 @@ export function StateForkNode({
   data,
   parentId,
 }: NodeProps<Node<StateMarkerNodeProps>>) {
-  const wrapperRef = useRef<HTMLDivElement | null>(null)
+  const [wrapperEl, wrapperRef] = usePopoverAnchor<HTMLDivElement>()
   const { onResize } = useHandleOnResize(parentId)
   const isDiagramModifiable = useDiagramModifiable()
 
@@ -77,7 +77,7 @@ export function StateForkNode({
         </svg>
       </div>
       <PopoverManager
-        anchorEl={wrapperRef.current}
+        anchorEl={wrapperEl}
         elementId={id}
         type={"StateForkNode" as const}
       />

@@ -1,4 +1,4 @@
-import { BesserEditor, UMLDiagramType, UMLModel, diagramBridge } from '@besser/wme';
+import { AgentComponentType, BesserEditor, UMLDiagramType, UMLModel, diagramBridge } from '@besser/wme';
 import React, { useEffect, useRef, useContext, useCallback } from 'react';
 import { useStore } from 'react-redux';
 import { useTranslation } from 'react-i18next';
@@ -15,9 +15,11 @@ import {
   selectEditorRevision,
   selectStateMachineDiagrams,
   selectQuantumCircuitDiagrams,
+  selectNNDiagrams,
 } from '../../../app/store/workspaceSlice';
 import { notifyError } from '../../../shared/utils/notifyError';
 import { consumeAutoLayoutRequest } from '../../../shared/utils/autoLayoutSignal';
+import { getAgentComponents } from '../../../shared/utils/projectExportUtils';
 
 /**
  * Identifies the (project, diagram type, diagram index) tuple that the
@@ -51,6 +53,7 @@ export const BesserEditorComponent: React.FC = () => {
   const editorRevision = useAppSelector(selectEditorRevision);
   const stateMachineDiagrams = useAppSelector(selectStateMachineDiagrams);
   const quantumCircuitDiagrams = useAppSelector(selectQuantumCircuitDiagrams);
+  const nnDiagrams = useAppSelector(selectNNDiagrams);
   const { setEditor } = useContext(BesserEditorContext);
   const { i18n } = useTranslation();
   const localeRef = useRef(toEditorLocale(i18n.resolvedLanguage ?? i18n.language));
@@ -149,9 +152,39 @@ export const BesserEditorComponent: React.FC = () => {
     }
   }, [reduxDiagram]);
 
+  // Single writer of the agent component lists in diagramBridge: the AgentState /
+  // transition inspectors read LLM / GUI / RAG / intent names from it. Runs whenever
+  // the active diagram changes, including edits made on the agent Components page
+  // (which persist to storage and flow back through Redux). Components live in the
+  // stored diagram's `model.components` (legacy canvas nodes are normalized in).
+  useEffect(() => {
+    const components = Object.values(getAgentComponents(reduxDiagram));
+    const ofType = (type: AgentComponentType) => components.filter((component) => component.type === type);
+    const named = (type: AgentComponentType) => ofType(type).filter((component) => component.name);
+
+    diagramBridge.setAgentGUIs(
+      ofType(AgentComponentType.AgentGUI).map((gui) => ({
+        name: String(gui.gui_id || gui.name || gui.id),
+        gui_id: String(gui.gui_id || ''),
+        is_form: !!gui.is_form,
+      })),
+    );
+    diagramBridge.setAgentIntents(
+      named(AgentComponentType.AgentIntent).map((intent) => ({ name: String(intent.name), id: intent.id })),
+    );
+    diagramBridge.setAgentLLMs(
+      named(AgentComponentType.AgentLLM).map((llm) => ({
+        name: String(llm.name),
+        provider: String(llm.provider || '').toLowerCase(),
+      })),
+    );
+    diagramBridge.setAgentRAGs(named(AgentComponentType.AgentRagElement).map((rag) => ({ name: String(rag.name) })));
+  }, [reduxDiagram]);
+
   useEffect(() => {
     const smDiagrams = stateMachineDiagrams ?? [];
     const qcDiagrams = quantumCircuitDiagrams ?? [];
+    const neuralNetworkDiagrams = nnDiagrams ?? [];
 
     const stateMachines = smDiagrams
       .filter(d => d.id && d.title)
@@ -162,8 +195,14 @@ export const BesserEditorComponent: React.FC = () => {
       .map(d => ({ id: d.id, name: d.title }));
 
     diagramBridge.setStateMachineDiagrams(stateMachines);
+    // Targets for methods implemented by a neural network (`neuralNetworkId`).
+    const neuralNetworks = neuralNetworkDiagrams
+      .filter(d => d.id && d.title)
+      .map(d => ({ id: d.id, name: d.title }));
+
     diagramBridge.setQuantumCircuitDiagrams(quantumCircuits);
-  }, [stateMachineDiagrams, quantumCircuitDiagrams]);
+    diagramBridge.setNeuralNetworkDiagrams(neuralNetworks);
+  }, [stateMachineDiagrams, quantumCircuitDiagrams, nnDiagrams]);
 
   // Cleanup on unmount
   useEffect(() => {

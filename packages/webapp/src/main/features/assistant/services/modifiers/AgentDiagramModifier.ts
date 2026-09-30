@@ -1,42 +1,45 @@
 /**
  * Agent Diagram Modifier (v4-native)
  *
- * Walks v4 `model.nodes[]` / `model.edges[]` directly — no v3↔v4
- * conversion seam.
- *
- * v4 AgentDiagram shape (per docs/source/migrations/uml-v4-shape.md and
- * docs/source/migrations/parity-final/agentDiagram.md):
- *   - `AgentState` has inline `data.bodies[]` and `data.fallbackBodies[]`
- *     row arrays (`{id, name}` plus optional `replyType`, `code`, RAG
- *     fields). v3 AgentStateBody / AgentStateFallbackBody collapse into
- *     these rows.
- *   - `AgentIntent` has inline `data.training_phrases[]` rows plus
- *     `data.intent_description`. v3 AgentIntentBody / IntentDescription
- *     collapse into these rows.
- *   - `AgentRagElement` is its own node (no children to collapse).
- *   - Edge type `AgentStateTransition` carries the canonical
- *     `{transitionType, predefined, custom, params, points}` data shape.
- *     `AgentStateTransitionInit` is the initial-state marker edge — no
- *     extra payload.
+ * Walks v4 `model.nodes[]` / `model.edges[]` for canvas items and the
+ * top-level `model.components` map for off-canvas agent components (per
+ * docs/source/migrations/uml-v4-shape.md → AgentDiagram):
+ *   - `AgentState` has inline `data.bodies[]` / `data.fallbackBodies[]`
+ *     action rows ({id, name, replyType, actionType, …}); built by the same
+ *     `buildAgentStateBody` the converter uses.
+ *   - Intents (+ `AgentIntentBody` training sentences), LLMs, RAG databases,
+ *     tools, skills, workspaces and GUIs are flat `model.components`
+ *     entries (no position). Older models that kept them on the canvas are
+ *     migrated first by the library's `normalizeAgentComponents`.
+ *   - `AgentStateTransition` edges carry the canonical
+ *     `{transitionType, predefined | custom, params, points}` data;
+ *     `AgentStateTransitionInit` is the initial-state marker edge.
  */
-import type { BesserEdge, BesserNode } from '@besser/wme';
+import { AgentComponentType, normalizeAgentComponents } from '@besser/wme';
+import type { BesserEdge, BesserNode, UMLModel } from '@besser/wme';
 import { DiagramModifier, ModelModification, ModifierHelpers } from './base';
 import { BESSERModel } from '../UMLModelingService';
 import { estimateAgentNodeWidth } from '../shared/v4Builders';
+import {
+  AgentBodyRow,
+  AgentComponentEntry,
+  agentStateHeight,
+  buildAgentComponent,
+  buildAgentStateBody,
+  buildIntentComponents,
+} from '../converters/AgentDiagramConverter';
 
-type BodyRow = {
-  id: string;
-  name: string;
-  replyType?: string;
-  ragDatabaseName?: string;
-  code?: string;
-  kind?: string;
-};
+/** Agent actions carry type-specific fields not declared on the shared ModificationChanges. */
+type AgentChanges = Record<string, any>;
 
 const AGENT_STATE = 'AgentState';
-const AGENT_INTENT = 'AgentIntent';
-const AGENT_RAG = 'AgentRagElement';
 const STATE_INITIAL = 'StateInitialNode';
+
+function componentsOf(model: BESSERModel): Record<string, AgentComponentEntry> {
+  const m = model as UMLModel;
+  if (!m.components) m.components = {};
+  return m.components as Record<string, AgentComponentEntry>;
+}
 
 export class AgentDiagramModifier implements DiagramModifier {
   getDiagramType() {
@@ -55,13 +58,22 @@ export class AgentDiagramModifier implements DiagramModifier {
       'add_state_body',
       'add_intent_training_phrase',
       'add_rag_element',
+      'add_llm',
+      'add_tool',
+      'add_skill',
+      'add_workspace',
+      'add_gui',
     ].includes(action);
   }
 
   applyModification(model: BESSERModel, modification: ModelModification): BESSERModel {
-    const updatedModel = ModifierHelpers.cloneModel(model);
+    // Older models kept intents, LLMs, ... on the canvas (`nodes`); move them into
+    // `components` first so every action below works on one format.
+    const updatedModel = normalizeAgentComponents(ModifierHelpers.cloneModel(model) as UMLModel) as BESSERModel;
+    // add_llm/add_tool/add_skill/add_workspace/add_gui are agent-only actions, not in the shared union.
+    const action: string = modification.action;
 
-    switch (modification.action) {
+    switch (action) {
       case 'add_state':
         return this.addState(updatedModel, modification);
       case 'add_intent':
@@ -77,13 +89,23 @@ export class AgentDiagramModifier implements DiagramModifier {
       case 'add_state_body':
         return this.addStateBody(updatedModel, modification);
       case 'add_intent_training_phrase':
-        return this.addIntentTrainingPhraseAction(updatedModel, modification);
+        return this.addTrainingPhraseToIntent(updatedModel, modification);
       case 'add_rag_element':
-        return this.addRagElement(updatedModel, modification);
+        return this.addComponent(updatedModel, buildAgentComponent.rag(this.componentSpec(modification)));
+      case 'add_llm':
+        return this.addComponent(updatedModel, buildAgentComponent.llm(this.componentSpec(modification)));
+      case 'add_tool':
+        return this.addComponent(updatedModel, buildAgentComponent.tool(this.componentSpec(modification)));
+      case 'add_skill':
+        return this.addComponent(updatedModel, buildAgentComponent.skill(this.componentSpec(modification)));
+      case 'add_workspace':
+        return this.addComponent(updatedModel, buildAgentComponent.workspace(this.componentSpec(modification)));
+      case 'add_gui':
+        return this.addComponent(updatedModel, buildAgentComponent.gui(this.componentSpec(modification)));
       case 'remove_element':
         return this.removeElement(updatedModel, modification);
       default:
-        throw new Error(`Unsupported action for AgentDiagram: ${modification.action}`);
+        throw new Error(`Unsupported action for AgentDiagram: ${action}`);
     }
   }
 
@@ -98,62 +120,70 @@ export class AgentDiagramModifier implements DiagramModifier {
     return { x: 100, y: maxY + 40 };
   }
 
-  private findNodeByNameAndType(
-    model: BESSERModel,
-    name: string,
-    type: string,
-  ): BesserNode | undefined {
-    return ModifierHelpers.findNodeByName(model, name, type);
-  }
-
   private findStateNode(model: BESSERModel, name: string): BesserNode | undefined {
-    return this.findNodeByNameAndType(model, name, AGENT_STATE);
-  }
-
-  private findIntentNode(model: BESSERModel, name: string): BesserNode | undefined {
-    return this.findNodeByNameAndType(model, name, AGENT_INTENT);
+    return ModifierHelpers.findNodeByName(model, name, AGENT_STATE);
   }
 
   private findInitialNode(model: BESSERModel): BesserNode | undefined {
     return ModifierHelpers.findNodesByType(model, STATE_INITIAL)[0];
   }
 
+  private findIntent(model: BESSERModel, intentId?: string, intentName?: string): AgentComponentEntry | undefined {
+    const components = componentsOf(model);
+    if (intentId && components[intentId]?.type === AgentComponentType.AgentIntent) return components[intentId];
+    if (!intentName) return undefined;
+    return Object.values(components).find(
+      (component) => component.type === AgentComponentType.AgentIntent && component.name === intentName,
+    );
+  }
+
+  /** The endpoint node a transition names: "initial" → the StateInitialNode, else an AgentState. */
+  private findEndpoint(model: BESSERModel, name: string): BesserNode | undefined {
+    return name.toLowerCase() === 'initial' ? this.findInitialNode(model) : this.findStateNode(model, name);
+  }
+
+  /** `changes` + the target's `name` (the assistant may name a component on either). */
+  private componentSpec(modification: ModelModification): AgentChanges {
+    const changes = modification.changes as AgentChanges;
+    const targetName = (modification.target as AgentChanges).name;
+    return { ...changes, name: targetName || changes.name };
+  }
+
+  private addComponent(model: BESSERModel, component: AgentComponentEntry): BESSERModel {
+    componentsOf(model)[component.id] = component;
+    return model;
+  }
+
   // ─── Action handlers ────────────────────────────────────────────────────
 
   private addState(model: BESSERModel, modification: ModelModification): BESSERModel {
-    const changes = modification.changes;
+    const changes = modification.changes as AgentChanges;
     const target = modification.target;
     const pos = this.nextPosition(model);
 
-    const replies = changes.replies || [];
-    const stateWidth = estimateAgentNodeWidth(replies.map((r) => r.text), 210);
+    const replies: any[] = changes.replies || [];
+    const stateWidth = estimateAgentNodeWidth(
+      replies.map((r) => (typeof r === 'string' ? r : r?.text)),
+      210,
+    );
+    // Same builder as add_state_body and the converter.
+    const bodies: AgentBodyRow[] = replies.map((reply) => buildAgentStateBody(reply, ModifierHelpers.generateUniqueId('body')));
+    const totalHeight = agentStateHeight(bodies.length);
 
-    const bodies: BodyRow[] = replies.map((reply) => {
-      const row: BodyRow = {
-        id: ModifierHelpers.generateUniqueId('body'),
-        name: reply.text || '',
-        replyType: reply.replyType || 'text',
-      };
-      if (reply.ragDatabaseName) row.ragDatabaseName = reply.ragDatabaseName;
-      return row;
-    });
-
-    const totalHeight = Math.max(70, 41 + bodies.length * 30);
-    const stateName = target.stateName || changes.name || '';
-
-    const stateId = ModifierHelpers.generateUniqueId('state');
     const node: BesserNode = {
-      id: stateId,
+      id: ModifierHelpers.generateUniqueId('state'),
       type: AGENT_STATE as any,
       position: pos,
       width: stateWidth,
       height: totalHeight,
       measured: { width: stateWidth, height: totalHeight },
       data: {
-        name: stateName,
-        bodies,
-        fallbackBodies: [] as BodyRow[],
+        name: target.stateName || changes.name || '',
+        stateType: 'standard',
         replyType: 'text',
+        fallbackBodyEnabled: false,
+        bodies,
+        fallbackBodies: [] as AgentBodyRow[],
       },
     };
 
@@ -161,40 +191,16 @@ export class AgentDiagramModifier implements DiagramModifier {
     return model;
   }
 
+  /** Add an intent (off-canvas component) with optional training phrases. */
   private addIntent(model: BESSERModel, modification: ModelModification): BESSERModel {
-    const changes = modification.changes;
+    const changes = modification.changes as AgentChanges;
     const target = modification.target;
-    const pos = this.nextPosition(model);
-
-    const phrases = changes.trainingPhrases || [];
-    const intentWidth = estimateAgentNodeWidth(phrases, 230);
-
-    // Canonical v4: training phrases live on `data.training_phrases`
-    // (rendered inline by AgentIntent.tsx), not on `data.bodies`.
-    const trainingPhrases: BodyRow[] = phrases.map((phrase) => ({
-      id: ModifierHelpers.generateUniqueId('intentBody'),
-      name: phrase,
-    }));
-
-    const totalHeight = Math.max(130, 41 + trainingPhrases.length * 30 + 10);
-    const intentName = target.intentName || changes.intentName || changes.name || '';
-
-    const intentId = ModifierHelpers.generateUniqueId('intent');
-    const node: BesserNode = {
-      id: intentId,
-      type: AGENT_INTENT as any,
-      position: pos,
-      width: intentWidth,
-      height: totalHeight,
-      measured: { width: intentWidth, height: totalHeight },
-      data: {
-        name: intentName,
-        training_phrases: trainingPhrases,
-        intent_description: '',
-      },
-    };
-
-    ModifierHelpers.addNode(model, node);
+    const { components } = buildIntentComponents({
+      intentName: target.intentName || changes.intentName || changes.name || '',
+      trainingPhrases: changes.trainingPhrases || [],
+      intentDescription: changes.intentDescription || changes.intent_description || '',
+    });
+    Object.assign(componentsOf(model), components);
     return model;
   }
 
@@ -208,76 +214,46 @@ export class AgentDiagramModifier implements DiagramModifier {
     return model;
   }
 
+  /** Rename an intent and/or append a training phrase (`changes.text`). */
   private modifyIntent(model: BESSERModel, modification: ModelModification): BESSERModel {
     const { intentId, intentName } = modification.target;
-    const node = (intentId ? ModifierHelpers.findNodeById(model, intentId) : undefined) ||
-      (intentName ? this.findIntentNode(model, intentName) : undefined);
-    if (!node) return model;
+    const intent = this.findIntent(model, intentId, intentName);
+    if (!intent) return model;
 
-    const data = node.data as any;
-    if (modification.changes.name) data.name = modification.changes.name;
-
-    // `text` is the LLM's idiom for "append a training phrase".
-    if (modification.changes.text) {
-      const phrases: BodyRow[] = Array.isArray(data.training_phrases) ? data.training_phrases : [];
-      phrases.push({
-        id: ModifierHelpers.generateUniqueId('intentBody'),
-        name: modification.changes.text,
-      });
-      data.training_phrases = phrases;
-      // Grow the node card visually so the new phrase row fits.
-      node.height = Math.max(130, 41 + phrases.length * 30 + 10);
-      node.measured = { width: node.width, height: node.height };
-    }
-
+    if (modification.changes.name) intent.name = modification.changes.name;
+    if (modification.changes.text) this.addIntentTrainingPhrase(model, intent, modification.changes.text);
     return model;
   }
 
-  /**
-   * Add a training phrase to an intent (v4-native: appends a row to the
-   * AgentIntent node's inline `data.training_phrases[]`, mirroring the
-   * `text` branch of `modifyIntent` above).
-   */
-  private addIntentTrainingPhrase(model: BESSERModel, intentId: string, phrase: string): void {
-    const node = ModifierHelpers.findNodeById(model, intentId);
-    if (!node || (node.type as string) !== AGENT_INTENT) return;
-
-    const data = node.data as any;
-    const phrases: BodyRow[] = Array.isArray(data.training_phrases) ? data.training_phrases : [];
-    phrases.push({
-      id: ModifierHelpers.generateUniqueId('intentBody'),
-      name: phrase,
-    });
-    data.training_phrases = phrases;
-    // Grow the node card visually so the new phrase row fits.
-    node.height = Math.max(130, 41 + phrases.length * 30 + 10);
-    node.measured = { width: node.width, height: node.height };
-  }
-
-  /**
-   * Action wrapper for add_intent_training_phrase. The backend sends
-   * target.intentName + changes.trainingPhrase; previously this action had no
-   * handler, so the editor threw "Unsupported action" and applied nothing.
-   */
-  private addIntentTrainingPhraseAction(model: BESSERModel, modification: ModelModification): BESSERModel {
-    const changes = modification.changes;
-    const target = modification.target;
-    const phrase = changes.trainingPhrase || changes.text || changes.name;
-    const intentName = target.intentName || target.stateName || target.name;
-    const intentId = target.intentId || (intentName ? this.findIntentNode(model, intentName)?.id : undefined);
-    if (!intentId) {
-      throw new Error(`Could not find intent "${intentName || '?'}" to add a training phrase to.`);
+  /** add_intent_training_phrase: add one example phrase (changes.trainingPhrase) to an existing intent. */
+  private addTrainingPhraseToIntent(model: BESSERModel, modification: ModelModification): BESSERModel {
+    const { intentId, intentName } = modification.target;
+    const intent = this.findIntent(model, intentId, intentName);
+    if (!intent) {
+      throw new Error(`Intent not found: ${intentName || intentId}`);
     }
+    const changes = modification.changes as AgentChanges;
+    const phrase = changes.trainingPhrase || changes.text;
     if (!phrase) {
-      throw new Error('No training phrase text was provided.');
+      throw new Error('add_intent_training_phrase requires changes.trainingPhrase');
     }
-    this.addIntentTrainingPhrase(model, intentId, phrase);
+    this.addIntentTrainingPhrase(model, intent, phrase);
     return model;
   }
 
-  /**
-   * Add state body (reply)
-   */
+  private addIntentTrainingPhrase(model: BESSERModel, intent: AgentComponentEntry, phrase: string): void {
+    const bodyId = ModifierHelpers.generateUniqueId('intentBody');
+    componentsOf(model)[bodyId] = {
+      id: bodyId,
+      name: phrase,
+      type: AgentComponentType.AgentIntentBody,
+      owner: intent.id,
+    };
+    const bodies = Array.isArray(intent.bodies) ? (intent.bodies as string[]) : [];
+    intent.bodies = [...bodies, bodyId];
+  }
+
+  /** Add an action row (reply) to a state. */
   private addStateBody(model: BESSERModel, modification: ModelModification): BESSERModel {
     const { stateId, stateName } = modification.target;
     const node = (stateId ? ModifierHelpers.findNodeById(model, stateId) : undefined) ||
@@ -291,66 +267,43 @@ export class AgentDiagramModifier implements DiagramModifier {
     }
 
     const data = node.data as any;
-    const bodies: BodyRow[] = Array.isArray(data.bodies) ? data.bodies : [];
-    const newBody: BodyRow = {
-      id: ModifierHelpers.generateUniqueId('body'),
-      name: modification.changes.text || 'New reply',
-      replyType: modification.changes.replyType || 'text',
-    };
-    if (modification.changes.ragDatabaseName) newBody.ragDatabaseName = modification.changes.ragDatabaseName;
-    if (modification.changes.code) newBody.code = modification.changes.code;
+    const bodies: AgentBodyRow[] = Array.isArray(data.bodies) ? data.bodies : [];
+    const fallbackCount = Array.isArray(data.fallbackBodies) ? data.fallbackBodies.length : 0;
+    const newBody = buildAgentStateBody(modification.changes, ModifierHelpers.generateUniqueId('body'));
+    if (!newBody.name) newBody.name = 'New reply';
     bodies.push(newBody);
     data.bodies = bodies;
 
-    node.height = Math.max(70, 41 + bodies.length * 30);
+    node.height = agentStateHeight(bodies.length + fallbackCount);
     node.measured = { width: node.width, height: node.height };
-
     return model;
   }
 
   /**
-   * Add a transition between states / intents (or from the initial node).
-   *
-   * Source/target resolution priority:
-   *  - "initial" or empty string → the StateInitialNode (any) → init edge
-   *  - otherwise look up by AgentState name first, then AgentIntent name
+   * Add a transition between two states (or from the initial node). The
+   * modeling assistant names both endpoints on the target
+   * (`target.sourceStateName` / `target.targetStateName`; "initial" is the
+   * entry node); `changes.source` / `changes.target` are accepted too.
    */
   private addTransition(model: BESSERModel, modification: ModelModification): BESSERModel {
-    const changes = modification.changes;
+    const changes = modification.changes as AgentChanges;
     const target = modification.target;
-
-    // The backend (AgentModificationTarget) emits sourceStateName/targetStateName
-    // for transitions, plus changes.intentName for an intent source. Earlier this
-    // only read changes.source/target/stateName, so every generated transition
-    // failed with "requires both source and target".
-    const sourceName = changes.source || target.sourceStateName || target.stateName
-      || target.intentName || changes.intentName;
-    const targetName = changes.target || target.targetStateName || target.targetClass;
+    const sourceName: string | undefined = target.sourceStateName || changes.source;
+    const targetName: string | undefined = target.targetStateName || changes.target;
 
     if (!sourceName || !targetName) {
-      throw new Error('Transition requires both source and target (state or intent names).');
+      throw new Error('Transition requires target.sourceStateName and target.targetStateName.');
     }
 
-    let sourceNode: BesserNode | undefined;
-    if (!sourceName || sourceName.toLowerCase() === 'initial') {
-      sourceNode = this.findInitialNode(model);
-    } else {
-      sourceNode = this.findStateNode(model, sourceName) || this.findIntentNode(model, sourceName);
-    }
+    const sourceNode = this.findEndpoint(model, sourceName);
     const targetNode = this.findStateNode(model, targetName);
-
     if (!sourceNode || !targetNode) {
       throw new Error(`Could not locate source (${sourceName}) or target (${targetName}) for transition.`);
     }
 
     const isInit = (sourceNode.type as string) === STATE_INITIAL;
-    const transitionId = ModifierHelpers.generateUniqueId('transition');
-
-    // Build canonical v4 transition data. `predefined` / `custom` are
-    // populated based on whether the source is an AgentIntent (intent
-    // match) or has a free-form condition.
     const transitionData: Record<string, unknown> = {
-      name: changes.label || changes.name || '',
+      name: changes.label || '',
       params: {} as Record<string, string>,
       points: [
         { x: 0, y: 0 },
@@ -360,27 +313,31 @@ export class AgentDiagramModifier implements DiagramModifier {
     };
 
     if (!isInit) {
-      if ((sourceNode.type as string) === AGENT_INTENT) {
-        const intentName = (sourceNode.data as any)?.name || sourceName || '';
-        transitionData.transitionType = 'predefined';
-        transitionData.predefined = {
-          predefinedType: 'when_intent_matched',
-          intentName,
-        };
-      } else if (changes.condition) {
+      const condition: string = changes.condition || (changes.intentName ? 'when_intent_matched' : 'auto');
+      if (condition === 'custom_transition') {
         transitionData.transitionType = 'custom';
         transitionData.custom = {
-          event: 'ReceiveTextEvent',
-          condition: [changes.condition],
+          event: changes.event || 'WildcardEvent',
+          condition: changes.conditionValue ? [String(changes.conditionValue)] : [],
         };
       } else {
+        const predefined: Record<string, unknown> = { predefinedType: condition };
+        if (condition === 'when_intent_matched') {
+          predefined.intentName = changes.intentName || changes.conditionValue || changes.name || '';
+        } else if (condition === 'when_file_received') {
+          predefined.fileType = changes.fileType || changes.conditionValue || '';
+        } else if (condition === 'when_form_submitted') {
+          predefined.formGuiId = changes.formGuiId || changes.guiId || changes.conditionValue || '';
+        } else if (changes.conditionValue !== undefined && condition !== 'auto' && condition !== 'when_no_intent_matched') {
+          predefined.conditionValue = changes.conditionValue;
+        }
         transitionData.transitionType = 'predefined';
-        transitionData.predefined = { predefinedType: 'auto' };
+        transitionData.predefined = predefined;
       }
     }
 
     const edge: BesserEdge = {
-      id: transitionId,
+      id: ModifierHelpers.generateUniqueId('transition'),
       source: sourceNode.id,
       target: targetNode.id,
       type: (isInit ? 'AgentStateTransitionInit' : 'AgentStateTransition') as any,
@@ -395,56 +352,35 @@ export class AgentDiagramModifier implements DiagramModifier {
 
   private removeTransition(model: BESSERModel, modification: ModelModification): BESSERModel {
     const m = model as any;
+    const edges: BesserEdge[] = m.edges ?? [];
     const { transitionId } = modification.target;
 
     if (transitionId) {
-      m.edges = (m.edges ?? []).filter((e: BesserEdge) => e.id !== transitionId);
+      if (!edges.some((e) => e.id === transitionId)) {
+        throw new Error(`Transition not found: ${transitionId}`);
+      }
+      m.edges = edges.filter((e) => e.id !== transitionId);
       return model;
     }
 
-    // Backend emits sourceStateName/targetStateName for agent transitions
-    // (plus the generic changes.source/target); previously only the latter
-    // was read, so remove silently no-op'd while still reporting success.
-    const sourceName = modification.changes?.source || modification.target?.sourceStateName;
-    const targetName = modification.changes?.target || modification.target?.targetStateName;
-    if (sourceName && targetName) {
-      const src = this.findStateNode(model, sourceName) || this.findIntentNode(model, sourceName);
-      const tgt = this.findStateNode(model, targetName);
-      if (src && tgt) {
-        m.edges = (m.edges ?? []).filter(
-          (e: BesserEdge) => !(e.source === src.id && e.target === tgt.id),
-        );
-      }
+    const sourceName: string | undefined = modification.target?.sourceStateName || modification.changes?.source;
+    const targetName: string | undefined = modification.target?.targetStateName || modification.changes?.target;
+    if (!sourceName || !targetName) {
+      throw new Error(
+        'remove_transition requires target.transitionId, or target.sourceStateName and target.targetStateName.',
+      );
     }
-
+    const src = this.findEndpoint(model, sourceName);
+    const tgt = this.findStateNode(model, targetName);
+    const match = src && tgt ? edges.find((e) => e.source === src.id && e.target === tgt.id) : undefined;
+    if (!match) {
+      throw new Error(`No transition from ${sourceName} to ${targetName}.`);
+    }
+    m.edges = edges.filter((e) => e.id !== match.id);
     return model;
   }
 
-  private addRagElement(model: BESSERModel, modification: ModelModification): BESSERModel {
-    const target = modification.target;
-    const changes = modification.changes;
-    const pos = this.nextPosition(model);
-
-    const ragId = ModifierHelpers.generateUniqueId('rag');
-    const data: Record<string, unknown> = {
-      name: target.name || changes.name || 'RAG DB',
-    };
-    if (changes.ragDatabaseName) data.ragDatabaseName = changes.ragDatabaseName;
-
-    const node: BesserNode = {
-      id: ragId,
-      type: AGENT_RAG as any,
-      position: pos,
-      width: 140,
-      height: 120,
-      measured: { width: 140, height: 120 },
-      data,
-    };
-
-    ModifierHelpers.addNode(model, node);
-    return model;
-  }
-
+  /** Remove a state (canvas node) or an intent (component, with its training phrases). */
   private removeElement(model: BESSERModel, modification: ModelModification): BESSERModel {
     const { stateId, stateName, intentId, intentName } = modification.target;
 
@@ -455,9 +391,13 @@ export class AgentDiagramModifier implements DiagramModifier {
     }
 
     if (intentId || intentName) {
-      const node = (intentId ? ModifierHelpers.findNodeById(model, intentId) : undefined) ||
-        (intentName ? this.findIntentNode(model, intentName) : undefined);
-      if (node) return ModifierHelpers.removeNodeWithChildren(model, node.id);
+      const intent = this.findIntent(model, intentId, intentName);
+      if (intent) {
+        const components = componentsOf(model);
+        for (const [id, component] of Object.entries(components)) {
+          if (id === intent.id || component.owner === intent.id) delete components[id];
+        }
+      }
     }
 
     return model;

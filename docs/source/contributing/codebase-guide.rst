@@ -63,6 +63,10 @@ applications can use it directly.
    ├── App.tsx                  # Top-level React Flow root
    └── constants.ts             # Layout constants, palette sizes, grid snap
 
+Translation *strings* for both packages live outside the workspaces, in
+``packages/i18n/<locale>/{editor,webapp}.json`` (``en``, ``lb``, ``de``, ``fr``,
+``es``, ``ca``). English is the source of truth and the runtime fallback.
+
 **Key patterns:**
 
 - Each diagram folder contains the node components plus an ``index.ts`` that
@@ -79,8 +83,8 @@ Web Application (``packages/webapp``)
 --------------------------------------
 
 The webapp is the React SPA deployed at editor.besser-pearl.org. It embeds
-the editor and adds project management, code generation, deployment, and
-collaboration.
+the editor and adds project management, the AI assistant, code generation, and
+deployment.
 
 .. code-block:: text
 
@@ -100,33 +104,36 @@ collaboration.
    │   │       └── TopBarUtilities.tsx  # Quality Check, Theme, GitHub, Sync
    │   ├── store/                  #   Redux store
    │   │   ├── workspaceSlice.ts   #     Unified project + diagram state
-   │   │   └── errorManagementSlice.ts
+   │   │   ├── errorManagementSlice.ts
+   │   │   └── (specDrivenSlice lives in features/spec-driven/state)
    │   └── hooks/                  #   App-level React hooks
    ├── features/                   # Feature modules (one folder per feature)
-   │   ├── editors/                #   Editor wrappers
+   │   ├── editors/                #   Editor wrappers + diagram tab strip
    │   │   ├── uml/BesserEditorComponent.tsx  # Main editor wrapper
    │   │   ├── gui/                #     GrapesJS GUI editor
    │   │   ├── quantum/            #     Quantum circuit editor
    │   │   └── user-profile-form/  #     Form-based user-profile creator
-   │   ├── project/                #   Project hub, creation, templates
+   │   ├── project/                #   Project hub, settings, templates
    │   ├── generation/             #   Code generation dialogs and logic
    │   ├── deploy/                 #   Render deployment
-   │   ├── github/                 #   GitHub OAuth and deploy-to-repo
-   │   ├── import/                 #   Import dialogs (file, image, KG)
-   │   ├── export/                 #   Export dialogs (BUML, JSON, SVG, PDF)
+   │   ├── github/                 #   GitHub sign-in, repo storage, push
+   │   ├── import/                 #   Import dialogs (file, image, KG, BPMN XML)
+   │   ├── export/                 #   Export dialogs (BUML, JSON, SVG, PNG, PDF)
    │   ├── agent-config/           #   Agent-specific configuration
-   │   ├── assistant/              #   AI agent widget (bot icon)
-   │   └── onboarding/             #   Tutorial / first-use flow
+   │   ├── assistant/              #   AI assistant (WebSocket client, converters)
+   │   └── spec-driven/            #   Spec-Driven Agent runs (HTTP + SSE)
    ├── shared/                     # Cross-feature shared code
    │   ├── types/project.ts        #   BesserProject, ProjectDiagram types
-   │   ├── constants/constant.ts   #   Environment variables, URLs, keys
-   │   ├── i18n/                   #   react-i18next setup + language list
-   │   ├── services/               #   Storage, validation, analytics
+   │   ├── constants/constant.ts   #   Environment variables, URLs, storage keys
+   │   ├── perspectives.ts         #   Diagram-visibility presets
+   │   ├── services/               #   Storage, validation, analytics, SSE,
+   │   │   │                       #   telemetry, llmKeyStorage
    │   │   └── storage/ProjectStorageRepository.ts
-   │   ├── components/             #   Reusable UI components
+   │   ├── components/             #   Reusable UI, incl. byok/LlmKeyDialog
    │   ├── hooks/                  #   Shared React hooks
    │   ├── dialogs/                #   Shared dialog components
-   │   ├── api/                    #   Backend API client functions
+   │   ├── i18n/                   #   react-i18next setup + language list
+   │   ├── api/                    #   ApiClient (centralised fetch wrapper)
    │   └── utils/                  #   Pure utility functions
    └── templates/                  # Starter project templates
 
@@ -145,8 +152,8 @@ collaboration.
 Server (``packages/server``)
 -----------------------------
 
-The Express server is lightweight. It serves the compiled webapp and provides
-a few API endpoints.
+The Express server is deliberately minimal. It serves the compiled webapp and
+exposes two small endpoints.
 
 .. code-block:: text
 
@@ -168,8 +175,19 @@ a few API endpoints.
 - ``POST /api/svg`` accepts an editor JSON model (v4, or legacy v3 which is
   lifted automatically) and returns ``{ svg, clip }``; pass
   ``autoLayout: false`` to keep the incoming positions.
-- The server does NOT run code generation — that is handled by the BESSER
-  Python backend at ``BACKEND_URL``.
+- The server does NOT run code generation, validation, or GitHub OAuth — all of
+  that is handled by the BESSER Python backend at ``BACKEND_URL``.
+- It does NOT talk to the modeling agent either; the browser opens that
+  WebSocket directly (``UML_BOT_WS_URL``).
+- The listening port is hardcoded to ``8080``.
+- On start-up it rewrites literal ``http://localhost:8080`` strings inside
+  ``build/webapp/*.js`` using ``DEPLOYMENT_URL`` — the one piece of runtime
+  configuration in the whole frontend.
+
+.. note::
+   Real-time collaboration and server-side shared diagram storage (the
+   ``diagram-service`` and the ``APOLLON_REDIS_*`` variables) have been removed.
+   Projects are stored in the browser; see :doc:`../webapp/local-projects`.
 
 
 Where Code Lives: Quick Lookup
@@ -191,8 +209,12 @@ Where Code Lives: Quick Lookup
      - ``webapp/src/main/features/generation/``
    * - GitHub deploy / OAuth
      - ``webapp/src/main/features/github/``
-   * - The AI assistant bot
+   * - The AI assistant (chat, WebSocket client, diagram converters)
      - ``webapp/src/main/features/assistant/``
+   * - The Spec-Driven Agent (full-app generation runs)
+     - ``webapp/src/main/features/spec-driven/``
+   * - The BYOK / API-key dialog
+     - ``webapp/src/main/shared/components/byok/LlmKeyDialog.tsx``
    * - An element's visual appearance
      - ``library/lib/nodes/<diagramType>/<Node>.tsx`` (edges: ``library/lib/edges/edgeTypes/``)
    * - An element's data model
@@ -208,12 +230,14 @@ Where Code Lives: Quick Lookup
    * - Undo/redo
      - ``library/lib/store/diagramStore.ts``
    * - Translations
-     - ``i18n/<lang>/webapp.json`` (webapp) and ``i18n/<lang>/editor.json`` (library)
+     - ``packages/i18n/<locale>/webapp.json`` (webapp) and ``packages/i18n/<locale>/editor.json`` (library)
    * - Environment variables
      - ``webapp/src/main/shared/constants/constant.ts``
    * - Project data model
      - ``webapp/src/main/shared/types/project.ts``
    * - Local storage persistence
      - ``webapp/src/main/shared/services/storage/ProjectStorageRepository.ts``
+   * - Browser project storage
+     - ``webapp/src/main/shared/services/storage/``
    * - Headless SVG export endpoint
      - ``server/src/main/resources/svg-export-resource.ts``

@@ -1,5 +1,5 @@
 import { NodeProps, NodeResizer, type Node } from "@xyflow/react"
-import { useRef } from "react"
+import { usePopoverAnchor } from "@/hooks/usePopoverAnchor"
 import { DefaultNodeWrapper } from "../wrappers"
 import { useDiagramModifiable } from "@/hooks/useDiagramModifiable"
 import { PopoverManager } from "@/components/popovers/PopoverManager"
@@ -21,7 +21,7 @@ export function AgentTool({
   height,
   data,
 }: NodeProps<Node<AgentToolNodeProps>>) {
-  const wrapperRef = useRef<HTMLDivElement | null>(null)
+  const [wrapperEl, wrapperRef] = usePopoverAnchor<HTMLDivElement>()
   const isDiagramModifiable = useDiagramModifiable()
 
   if (!width || !height) return null
@@ -66,7 +66,7 @@ export function AgentTool({
         </AgentNodeCard>
       </div>
       <PopoverManager
-        anchorEl={wrapperRef.current}
+        anchorEl={wrapperEl}
         elementId={id}
         type={"AgentTool" as const}
       />

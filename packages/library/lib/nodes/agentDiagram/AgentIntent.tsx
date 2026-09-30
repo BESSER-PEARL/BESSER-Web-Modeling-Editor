@@ -1,5 +1,6 @@
 import { NodeProps, NodeResizer, type Node } from "@xyflow/react"
-import { useEffect, useRef } from "react"
+import { usePopoverAnchor } from "@/hooks/usePopoverAnchor"
+import { useEffect } from "react"
 import { MessagesSquare, Tag } from "lucide-react"
 import { DefaultNodeWrapper } from "../wrappers"
 import { useHandleOnResize } from "@/hooks"
@@ -45,7 +46,7 @@ export function AgentIntent({
   data,
   parentId,
 }: NodeProps<Node<AgentIntentNodeProps>>) {
-  const wrapperRef = useRef<HTMLDivElement | null>(null)
+  const [wrapperEl, wrapperRef] = usePopoverAnchor<HTMLDivElement>()
   const { onResize } = useHandleOnResize(parentId)
   const isDiagramModifiable = useDiagramModifiable()
   const setNodes = useDiagramStore((state) => state.setNodes)
@@ -157,7 +158,7 @@ export function AgentIntent({
         </AgentNodeCard>
       </div>
       <PopoverManager
-        anchorEl={wrapperRef.current}
+        anchorEl={wrapperEl}
         elementId={id}
         type={"AgentIntent" as const}
       />

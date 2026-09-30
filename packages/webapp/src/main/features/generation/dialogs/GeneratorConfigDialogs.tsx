@@ -17,6 +17,12 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { FormField } from '@/components/ui/form-field';
 import type { WebAppVersionMode } from '../../../shared/utils/buildWebAppVersions';
 import type { JSONSchemaConfig, QiskitConfig, SQLAlchemyConfig, SQLConfig, SupabaseConfig } from '../hooks/useGenerateCode';
+import {
+  SPRING_BOOT_VERSIONS,
+  SPRING_JAVA_VERSIONS,
+  type SpringBootVersion,
+  type SpringJavaVersion,
+} from '../hooks/useGenerateCode';
 import type { ConfigDialog } from '../generator-dialog-config';
 import { SHOW_FULL_AGENT_CONFIGURATION } from '../../../shared/constants/constant';
 import type { StoredAgentConfiguration, StoredAgentProfileConfigurationMapping } from '../../../shared/services/storage/local-storage-types';
@@ -26,7 +32,12 @@ import {
   type AgentRuntimeConfig,
 } from '../../../shared/services/storage/local-storage-repository';
 import type { AgentGenerationMode, AgentGenerationVariantOption, WebAppChecklistInfo, WebAppChecklistDiagramInfo } from '../useGeneratorExecution';
-import { validateProjectName, validateNumberRange } from '../../../shared/utils/validation';
+import {
+  validateProjectName,
+  validateNumberRange,
+  validateJavaClassName,
+  validateJavaPackageName,
+} from '../../../shared/utils/validation';
 import { useFieldValidation } from '../../../shared/hooks/useFieldValidation';
 import { useProject } from '../../../app/hooks/useProject';
 import { getActiveDiagram } from '../../../shared/types/project';
@@ -34,8 +45,8 @@ import { getActiveDiagram } from '../../../shared/types/project';
 /**
  * Props for the <GeneratorConfigDialogs /> component.
  *
- * This component renders one <Dialog /> per generator (Django, SQL, SQLAlchemy,
- * JSON Schema, Agent, Qiskit). Only one dialog is visible at a time, controlled
+ * This component renders one <Dialog /> per generator (Django, Spring, SQL,
+ * SQLAlchemy, JSON Schema, Agent, Qiskit). Only one dialog is visible at a time, controlled
  * by `configDialog`.
  *
  * State and callbacks are provided by the `useGeneratorExecution` hook via the
@@ -56,6 +67,16 @@ interface GeneratorConfigDialogsProps {
   djangoProjectName: string;
   djangoAppName: string;
   useDocker: boolean;
+
+  // ── Spring ───────────────────────────────────────────────────────────────
+  /** Name of the generated project folder / zip. */
+  springProjectName: string;
+  /** Java application class name (also the Maven artifactId). */
+  springAppName: string;
+  /** Base Java package — becomes the generated source directory path. */
+  springPackageName: string;
+  springBootVersion: SpringBootVersion;
+  springJavaVersion: SpringJavaVersion;
 
   // ── SQL ──────────────────────────────────────────────────────────────────
   sqlDialect: SQLConfig['dialect'];
@@ -101,6 +122,11 @@ interface GeneratorConfigDialogsProps {
   onDjangoProjectNameChange: (value: string) => void;
   onDjangoAppNameChange: (value: string) => void;
   onUseDockerChange: (value: boolean) => void;
+  onSpringProjectNameChange: (value: string) => void;
+  onSpringAppNameChange: (value: string) => void;
+  onSpringPackageNameChange: (value: string) => void;
+  onSpringBootVersionChange: (value: SpringBootVersion) => void;
+  onSpringJavaVersionChange: (value: SpringJavaVersion) => void;
   onSqlDialectChange: (value: SQLConfig['dialect']) => void;
   onSupabaseUserRootChange: (value: string) => void;
   onSqlAlchemyDbmsChange: (value: SQLAlchemyConfig['dbms']) => void;
@@ -129,6 +155,7 @@ interface GeneratorConfigDialogsProps {
   /** Validate inputs, call the backend, and close the dialog on success. */
   onDjangoGenerate: () => void;
   onDjangoDeploy: () => void;
+  onSpringGenerate: () => void;
   onSqlGenerate: () => void;
   onSupabaseGenerate: () => void;
   onSqlAlchemyGenerate: () => void;
@@ -149,6 +176,11 @@ export const GeneratorConfigDialogs: React.FC<GeneratorConfigDialogsProps> = ({
   djangoProjectName,
   djangoAppName,
   useDocker,
+  springProjectName,
+  springAppName,
+  springPackageName,
+  springBootVersion,
+  springJavaVersion,
   sqlDialect,
   supabaseUserRoot,
   sqlAlchemyDbms,
@@ -169,6 +201,11 @@ export const GeneratorConfigDialogs: React.FC<GeneratorConfigDialogsProps> = ({
   onDjangoProjectNameChange,
   onDjangoAppNameChange,
   onUseDockerChange,
+  onSpringProjectNameChange,
+  onSpringAppNameChange,
+  onSpringPackageNameChange,
+  onSpringBootVersionChange,
+  onSpringJavaVersionChange,
   onSqlDialectChange,
   onSupabaseUserRootChange,
   onSqlAlchemyDbmsChange,
@@ -189,6 +226,7 @@ export const GeneratorConfigDialogs: React.FC<GeneratorConfigDialogsProps> = ({
   onWebAppSelectedProfileIdChange,
   onDjangoGenerate,
   onDjangoDeploy,
+  onSpringGenerate,
   onSqlGenerate,
   onSupabaseGenerate,
   onSqlAlchemyGenerate,
@@ -206,6 +244,17 @@ export const GeneratorConfigDialogs: React.FC<GeneratorConfigDialogsProps> = ({
     appName: () => validateProjectName(djangoAppName),
   }), [djangoProjectName, djangoAppName]);
   const djangoValidation = useFieldValidation(djangoValidators);
+
+  // ── Spring inline validation ──────────────────────────────────────────
+  // The backend turns `app_name` into a Java class file and `package_name`
+  // into a source directory, so both need Java-identifier checks on top of the
+  // generic project-name rules the Django dialog uses.
+  const springValidators = useMemo(() => ({
+    projectName: () => validateProjectName(springProjectName),
+    appName: () => validateJavaClassName(springAppName),
+    packageName: () => validateJavaPackageName(springPackageName),
+  }), [springProjectName, springAppName, springPackageName]);
+  const springValidation = useFieldValidation(springValidators);
 
   // ── Qiskit inline validation ──────────────────────────────────────────
   const qiskitValidators = useMemo(() => ({
@@ -307,6 +356,116 @@ export const GeneratorConfigDialogs: React.FC<GeneratorConfigDialogsProps> = ({
                 {t('generation.deploy')}
               </Button>
             )}
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog
+        open={configDialog === 'spring'}
+        onOpenChange={(open) => {
+          if (!open) {
+            closeDialog(setConfigDialog);
+            springValidation.resetTouched();
+          }
+        }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{t('generation.spring.title')}</DialogTitle>
+            <DialogDescription>{t('generation.spring.description')}</DialogDescription>
+          </DialogHeader>
+          <div className="flex flex-col gap-4">
+            <FormField
+              label={t('generation.spring.projectName')}
+              htmlFor="spring-project-name"
+              required
+              error={springValidation.getError('projectName')}
+            >
+              <Input
+                id="spring-project-name"
+                value={springProjectName}
+                onChange={(event) => onSpringProjectNameChange(event.target.value.replace(/\s/g, '_'))}
+                onBlur={() => springValidation.markTouched('projectName')}
+                placeholder="my_spring_project"
+                className={springValidation.getError('projectName') ? 'border-destructive focus-visible:border-destructive focus-visible:ring-destructive/20' : ''}
+              />
+            </FormField>
+            <FormField
+              label={t('generation.spring.appName')}
+              htmlFor="spring-app-name"
+              required
+              error={springValidation.getError('appName')}
+              helperText={t('generation.spring.appNameHint')}
+            >
+              <Input
+                id="spring-app-name"
+                value={springAppName}
+                onChange={(event) => onSpringAppNameChange(event.target.value.replace(/\s/g, ''))}
+                onBlur={() => springValidation.markTouched('appName')}
+                placeholder="MyApplication"
+                className={springValidation.getError('appName') ? 'border-destructive focus-visible:border-destructive focus-visible:ring-destructive/20' : ''}
+              />
+            </FormField>
+            <FormField
+              label={t('generation.spring.packageName')}
+              htmlFor="spring-package-name"
+              required
+              error={springValidation.getError('packageName')}
+              helperText={t('generation.spring.packageNameHint')}
+            >
+              <Input
+                id="spring-package-name"
+                value={springPackageName}
+                onChange={(event) => onSpringPackageNameChange(event.target.value.replace(/\s/g, ''))}
+                onBlur={() => springValidation.markTouched('packageName')}
+                placeholder="com.example"
+                className={springValidation.getError('packageName') ? 'border-destructive focus-visible:border-destructive focus-visible:ring-destructive/20' : ''}
+              />
+            </FormField>
+            <div className="flex flex-col gap-1.5">
+              <Label>{t('generation.spring.bootVersion')}</Label>
+              <Select
+                value={springBootVersion}
+                onValueChange={(value) => onSpringBootVersionChange(value as SpringBootVersion)}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder={t('generation.spring.selectBootVersion')} />
+                </SelectTrigger>
+                <SelectContent>
+                  {SPRING_BOOT_VERSIONS.map((version) => (
+                    <SelectItem key={version} value={version}>
+                      {version}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <Label>{t('generation.spring.javaVersion')}</Label>
+              <Select
+                value={springJavaVersion}
+                onValueChange={(value) => onSpringJavaVersionChange(value as SpringJavaVersion)}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder={t('generation.spring.selectJavaVersion')} />
+                </SelectTrigger>
+                <SelectContent>
+                  {SPRING_JAVA_VERSIONS.map((version) => (
+                    <SelectItem key={version} value={version}>
+                      {t('generation.spring.javaVersionOption', { version })}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => closeDialog(setConfigDialog)}>
+              {t('common.cancel')}
+            </Button>
+            <Button onClick={onSpringGenerate} disabled={!springValidation.isValid}>
+              {t('generation.generate')}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

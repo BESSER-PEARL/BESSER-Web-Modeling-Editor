@@ -1,6 +1,7 @@
 import { useState } from "react"
 import { Box, Button, IconButton, Stack, Typography } from "@mui/material"
 import { TextField } from "@/components/ui"
+import { useTranslation } from "@/i18n"
 import { PopoverProps } from "../types"
 import { useDiagramStore } from "@/store/context"
 import { useShallow } from "zustand/shallow"
@@ -28,6 +29,7 @@ export const BPMNPoolEditPopover = ({ elementId }: PopoverProps) => {
     }))
   )
   const [newLaneName, setNewLaneName] = useState("")
+  const { t } = useTranslation()
 
   const poolNode = nodes.find((node) => node.id === elementId) as
     | Node<BPMNPoolProps>
@@ -80,7 +82,9 @@ export const BPMNPoolEditPopover = ({ elementId }: PopoverProps) => {
     )
 
   const addLane = () => {
-    const name = newLaneName.trim() || `Lane ${lanes.length + 1}`
+    const name =
+      newLaneName.trim() ||
+      `${t("packages.BPMNDiagram.BPMNSwimlane", "Lane")} ${lanes.length + 1}`
     const newLaneId = generateUUID()
     const poolWidth = poolNode.width ?? 200
     const poolHeight = poolNode.height ?? 120
@@ -128,14 +132,16 @@ export const BPMNPoolEditPopover = ({ elementId }: PopoverProps) => {
     >
       <TextField
         fullWidth
-        label="Pool Name"
+        label={t("popup.bpmn.poolName", "Pool Name")}
         value={poolNode.data.name ?? ""}
         onChange={(e) => updatePoolName(e.target.value)}
         variant="outlined"
         size="small"
       />
 
-      <Typography variant="subtitle2">Swimlanes</Typography>
+      <Typography variant="subtitle2">
+        {t("packages.BPMNDiagram.BPMNSwimlanes", "Lanes")}
+      </Typography>
       {lanes.map((lane, i) => (
         <Stack key={lane.id} direction="row" spacing={0.5} alignItems="center">
           <TextField
@@ -148,7 +154,7 @@ export const BPMNPoolEditPopover = ({ elementId }: PopoverProps) => {
             size="small"
             disabled={i === 0}
             onClick={() => swapLanes(i, i - 1)}
-            aria-label="Move lane up"
+            aria-label={t("popup.bpmn.moveLaneUp", "Move lane up")}
           >
             ↑
           </IconButton>
@@ -156,14 +162,14 @@ export const BPMNPoolEditPopover = ({ elementId }: PopoverProps) => {
             size="small"
             disabled={i === lanes.length - 1}
             onClick={() => swapLanes(i, i + 1)}
-            aria-label="Move lane down"
+            aria-label={t("popup.bpmn.moveLaneDown", "Move lane down")}
           >
             ↓
           </IconButton>
           <IconButton
             size="small"
             onClick={() => deleteLane(lane.id)}
-            aria-label="Delete lane"
+            aria-label={t("popup.bpmn.deleteLane", "Delete lane")}
           >
             ✕
           </IconButton>
@@ -174,12 +180,12 @@ export const BPMNPoolEditPopover = ({ elementId }: PopoverProps) => {
         <TextField
           fullWidth
           size="small"
-          placeholder="New lane name"
+          placeholder={t("popup.bpmn.newLaneName", "New lane name")}
           value={newLaneName}
           onChange={(e) => setNewLaneName(e.target.value)}
         />
         <Button size="small" variant="outlined" onClick={addLane}>
-          Add Swimlane
+          {t("popup.bpmn.addLane", "Add Lane")}
         </Button>
       </Stack>
     </Box>

@@ -5,29 +5,32 @@
   "type": "AgentDiagram",
   "nodes": [
     {
-      "id": "97627a74-e4e6-48af-9989-8d714dfe83b8",
+      "id": "de7fd93b-1a51-406d-a4f1-a37966b96db1",
       "type": "AgentState",
       "position": {
-        "x": 330,
-        "y": 360
+        "x": -484,
+        "y": -34
       },
-      "width": 140,
+      "width": 160,
       "height": 40,
       "measured": {
-        "width": 140,
+        "width": 160,
         "height": 40
       },
       "data": {
         "name": "initial",
-        "replyType": "text"
+        "replyType": "text",
+        "stateType": "standard",
+        "fallbackBodyEnabled": false,
+        "initial": true
       }
     },
     {
-      "id": "269178e5-8e58-4ddc-803f-d91e99e93fde",
+      "id": "d7876c4c-7ea0-4ae8-8b40-9c3530e608d5",
       "type": "AgentState",
       "position": {
-        "x": 660,
-        "y": 330
+        "x": -153,
+        "y": -63
       },
       "width": 210,
       "height": 100,
@@ -37,429 +40,95 @@
       },
       "data": {
         "name": "greeting",
-        "replyType": "text"
+        "replyType": "text",
+        "stateType": "standard",
+        "fallbackBodyEnabled": false,
+        "bodies": [
+          {
+            "id": "3c1a1d99-1758-4d49-af3c-0385d028baf8",
+            "name": "Hi",
+            "replyType": "text",
+            "actionType": "TextReplyAction",
+            "useSessionVars": false,
+            "llm_name": ""
+          },
+          {
+            "id": "a70aee8d-8e3d-4f1b-829d-ef0afd06cd38",
+            "name": "How are you?",
+            "replyType": "text",
+            "actionType": "TextReplyAction",
+            "useSessionVars": false,
+            "llm_name": ""
+          }
+        ]
       }
     },
     {
-      "id": "354aee35-fcda-486b-85d8-854a3e620d2f",
-      "type": "AgentStateBody",
-      "position": {
-        "x": 680.5,
-        "y": 430.5
-      },
-      "width": 209,
-      "height": 30,
-      "measured": {
-        "width": 209,
-        "height": 30
-      },
-      "data": {
-        "name": "Hi!",
-        "replyType": "text"
-      },
-      "parentId": "269178e5-8e58-4ddc-803f-d91e99e93fde"
-    },
-    {
-      "id": "40894ba0-5b4b-4229-9b17-49fffeeea4d8",
-      "type": "AgentStateBody",
-      "position": {
-        "x": 680.5,
-        "y": 460.5
-      },
-      "width": 209,
-      "height": 30,
-      "measured": {
-        "width": 209,
-        "height": 30
-      },
-      "data": {
-        "name": "How are you?",
-        "replyType": "text"
-      },
-      "parentId": "269178e5-8e58-4ddc-803f-d91e99e93fde"
-    },
-    {
-      "id": "d2c3ac6c-2869-4555-a599-4810168a3164",
+      "id": "22ffd05a-ea5f-42fe-8fb5-b7666e02de3d",
       "type": "AgentState",
       "position": {
-        "x": 990,
-        "y": 510
+        "x": 236,
+        "y": -157
       },
-      "width": 220,
+      "width": 240,
       "height": 70,
       "measured": {
-        "width": 220,
-        "height": 70
-      },
-      "data": {
-        "name": "bad",
-        "replyType": "text"
-      }
-    },
-    {
-      "id": "408f0c9a-e2f3-42b9-87fd-ec0e203b5d85",
-      "type": "AgentStateBody",
-      "position": {
-        "x": 680.5,
-        "y": 430.5
-      },
-      "width": 219,
-      "height": 30,
-      "measured": {
-        "width": 219,
-        "height": 30
-      },
-      "data": {
-        "name": "I'm sorry to hear that...",
-        "replyType": "text"
-      },
-      "parentId": "d2c3ac6c-2869-4555-a599-4810168a3164"
-    },
-    {
-      "id": "95bd55b0-680a-4f0c-9dd4-d4416344daca",
-      "type": "StateInitialNode",
-      "position": {
-        "x": 210,
-        "y": 360
-      },
-      "width": 45,
-      "height": 45,
-      "measured": {
-        "width": 45,
-        "height": 45
-      },
-      "data": {
-        "name": ""
-      }
-    },
-    {
-      "id": "c629ac2b-4ce7-40bf-8382-41af767383c9",
-      "type": "AgentIntent",
-      "position": {
-        "x": 40,
-        "y": 40
-      },
-      "width": 230,
-      "height": 130,
-      "measured": {
-        "width": 230,
-        "height": 130
-      },
-      "data": {
-        "name": "Greeting_intent"
-      }
-    },
-    {
-      "id": "87648564-ea5f-43d2-aef0-0b8f1e4bb19c",
-      "type": "AgentIntentBody",
-      "position": {
-        "x": 680.5,
-        "y": 430.5
-      },
-      "width": 229,
-      "height": 30,
-      "measured": {
-        "width": 229,
-        "height": 30
-      },
-      "data": {
-        "name": "Hi"
-      },
-      "parentId": "c629ac2b-4ce7-40bf-8382-41af767383c9"
-    },
-    {
-      "id": "b230fdc3-0bf9-409e-b22e-a83b0017d9e3",
-      "type": "AgentIntentBody",
-      "position": {
-        "x": 680.5,
-        "y": 460.5
-      },
-      "width": 229,
-      "height": 30,
-      "measured": {
-        "width": 229,
-        "height": 30
-      },
-      "data": {
-        "name": "Hello"
-      },
-      "parentId": "c629ac2b-4ce7-40bf-8382-41af767383c9"
-    },
-    {
-      "id": "73e5374e-6fa8-42a8-b6ef-03f3b32be48b",
-      "type": "AgentIntentBody",
-      "position": {
-        "x": 680.5,
-        "y": 490.5
-      },
-      "width": 229,
-      "height": 30,
-      "measured": {
-        "width": 229,
-        "height": 30
-      },
-      "data": {
-        "name": "Howdy"
-      },
-      "parentId": "c629ac2b-4ce7-40bf-8382-41af767383c9"
-    },
-    {
-      "id": "83ffb8ea-e7bc-489b-b799-89c79df708b8",
-      "type": "AgentState",
-      "position": {
-        "x": 1000,
-        "y": 220
-      },
-      "width": 220,
-      "height": 70,
-      "measured": {
-        "width": 220,
+        "width": 240,
         "height": 70
       },
       "data": {
         "name": "good",
-        "replyType": "text"
+        "replyType": "text",
+        "stateType": "standard",
+        "fallbackBodyEnabled": false,
+        "bodies": [
+          {
+            "id": "9933e657-4654-43e9-affa-fbbc6d21b804",
+            "name": "I am glad to hear that!",
+            "replyType": "text",
+            "actionType": "TextReplyAction",
+            "useSessionVars": false,
+            "llm_name": ""
+          }
+        ]
       }
     },
     {
-      "id": "89df378b-5793-4fc4-bd6c-5ba8eeb173e0",
-      "type": "AgentStateBody",
+      "id": "ce9bd57d-2a3a-45e0-a4d9-2aa22f206d2d",
+      "type": "AgentState",
       "position": {
-        "x": 680.5,
-        "y": 430.5
+        "x": 224,
+        "y": 86
       },
-      "width": 219,
-      "height": 30,
+      "width": 260,
+      "height": 70,
       "measured": {
-        "width": 219,
-        "height": 30
+        "width": 260,
+        "height": 70
       },
       "data": {
-        "name": "I am glad to hear that!",
-        "replyType": "text"
-      },
-      "parentId": "83ffb8ea-e7bc-489b-b799-89c79df708b8"
-    },
-    {
-      "id": "4331ac3a-aac0-439e-a43b-622ceec672b4",
-      "type": "AgentIntent",
-      "position": {
-        "x": 300,
-        "y": 40
-      },
-      "width": 230,
-      "height": 130,
-      "measured": {
-        "width": 230,
-        "height": 130
-      },
-      "data": {
-        "name": "Good_intent"
+        "name": "bad",
+        "replyType": "text",
+        "stateType": "standard",
+        "fallbackBodyEnabled": false,
+        "bodies": [
+          {
+            "id": "a09a21da-58e2-4c43-9dcb-77097080fd10",
+            "name": "I am sorry to hear that...",
+            "replyType": "text",
+            "actionType": "TextReplyAction",
+            "useSessionVars": false,
+            "llm_name": ""
+          }
+        ]
       }
-    },
-    {
-      "id": "a4f9f789-d4da-4db4-8f1f-1afd2c24fdff",
-      "type": "AgentIntentBody",
-      "position": {
-        "x": 680.5,
-        "y": 430.5
-      },
-      "width": 229,
-      "height": 30,
-      "measured": {
-        "width": 229,
-        "height": 30
-      },
-      "data": {
-        "name": "Good"
-      },
-      "parentId": "4331ac3a-aac0-439e-a43b-622ceec672b4"
-    },
-    {
-      "id": "2e98b7ce-722a-4402-a995-3ca1d4e56605",
-      "type": "AgentIntentBody",
-      "position": {
-        "x": 680.5,
-        "y": 460.5
-      },
-      "width": 229,
-      "height": 30,
-      "measured": {
-        "width": 229,
-        "height": 30
-      },
-      "data": {
-        "name": "Fine"
-      },
-      "parentId": "4331ac3a-aac0-439e-a43b-622ceec672b4"
-    },
-    {
-      "id": "d58d039f-1851-4d83-aefb-b8adf392190e",
-      "type": "AgentIntentBody",
-      "position": {
-        "x": 680.5,
-        "y": 490.5
-      },
-      "width": 229,
-      "height": 30,
-      "measured": {
-        "width": 229,
-        "height": 30
-      },
-      "data": {
-        "name": "I'm alright"
-      },
-      "parentId": "4331ac3a-aac0-439e-a43b-622ceec672b4"
-    },
-    {
-      "id": "e999a3c8-25d5-4180-9c77-cdd78dcd9f74",
-      "type": "AgentIntent",
-      "position": {
-        "x": 550,
-        "y": 40
-      },
-      "width": 230,
-      "height": 130,
-      "measured": {
-        "width": 230,
-        "height": 130
-      },
-      "data": {
-        "name": "Bad_intent"
-      }
-    },
-    {
-      "id": "b27ef549-9a7c-42b2-b64b-9923bc83a663",
-      "type": "AgentIntentBody",
-      "position": {
-        "x": 680.5,
-        "y": 430.5
-      },
-      "width": 229,
-      "height": 30,
-      "measured": {
-        "width": 229,
-        "height": 30
-      },
-      "data": {
-        "name": "Bad"
-      },
-      "parentId": "e999a3c8-25d5-4180-9c77-cdd78dcd9f74"
-    },
-    {
-      "id": "cf17937f-875e-49c9-a39e-e99c09d9c466",
-      "type": "AgentIntentBody",
-      "position": {
-        "x": 680.5,
-        "y": 460.5
-      },
-      "width": 229,
-      "height": 30,
-      "measured": {
-        "width": 229,
-        "height": 30
-      },
-      "data": {
-        "name": "Not so good"
-      },
-      "parentId": "e999a3c8-25d5-4180-9c77-cdd78dcd9f74"
-    },
-    {
-      "id": "36e8e944-a64a-429b-8c36-907cc3bf80a0",
-      "type": "AgentIntentBody",
-      "position": {
-        "x": 680.5,
-        "y": 490.5
-      },
-      "width": 229,
-      "height": 30,
-      "measured": {
-        "width": 229,
-        "height": 30
-      },
-      "data": {
-        "name": "Could be better"
-      },
-      "parentId": "e999a3c8-25d5-4180-9c77-cdd78dcd9f74"
     }
   ],
   "edges": [
     {
-      "id": "f21d5200-0820-4ea2-a1a7-1f208d8bfa3a",
-      "source": "97627a74-e4e6-48af-9989-8d714dfe83b8",
-      "target": "269178e5-8e58-4ddc-803f-d91e99e93fde",
-      "type": "AgentStateTransition",
-      "sourceHandle": "right",
-      "targetHandle": "left-bottom",
-      "data": {
-        "label": "",
-        "sourceMultiplicity": "",
-        "targetMultiplicity": "",
-        "sourceRole": "",
-        "targetRole": "",
-        "isManuallyLayouted": false,
-        "messages": [],
-        "transitionType": "predefined",
-        "predefined": {
-          "predefinedType": "when_intent_matched",
-          "intentName": "Greeting_intent"
-        },
-        "legacy": {
-          "condition": "when_intent_matched",
-          "conditionValue": "Greeting_intent"
-        },
-        "points": []
-      }
-    },
-    {
-      "id": "44b4863b-d7da-4316-bfc1-8dc0cfefc2d0",
-      "source": "95bd55b0-680a-4f0c-9dd4-d4416344daca",
-      "target": "97627a74-e4e6-48af-9989-8d714dfe83b8",
-      "type": "AgentStateTransitionInit",
-      "sourceHandle": "right",
-      "targetHandle": "left",
-      "data": {
-        "label": "",
-        "sourceMultiplicity": "",
-        "targetMultiplicity": "",
-        "sourceRole": "",
-        "targetRole": "",
-        "isManuallyLayouted": false,
-        "messages": [],
-        "points": []
-      }
-    },
-    {
-      "id": "324b41be-02fe-4dfa-8ab3-079b8e84fd01",
-      "source": "269178e5-8e58-4ddc-803f-d91e99e93fde",
-      "target": "83ffb8ea-e7bc-489b-b799-89c79df708b8",
-      "type": "AgentStateTransition",
-      "sourceHandle": "right",
-      "targetHandle": "left",
-      "data": {
-        "label": "",
-        "sourceMultiplicity": "",
-        "targetMultiplicity": "",
-        "sourceRole": "",
-        "targetRole": "",
-        "isManuallyLayouted": true,
-        "messages": [],
-        "transitionType": "predefined",
-        "predefined": {
-          "predefinedType": "when_intent_matched",
-          "intentName": "Good_intent"
-        },
-        "legacy": {
-          "condition": "when_intent_matched",
-          "conditionValue": "Good_intent"
-        },
-        "points": []
-      }
-    },
-    {
-      "id": "08c4c033-e087-4e5a-948d-d694f951fd9e",
-      "source": "269178e5-8e58-4ddc-803f-d91e99e93fde",
-      "target": "d2c3ac6c-2869-4555-a599-4810168a3164",
+      "id": "edda0968-00a1-47cd-9718-5cb9928d36e8",
+      "source": "de7fd93b-1a51-406d-a4f1-a37966b96db1",
+      "target": "d7876c4c-7ea0-4ae8-8b40-9c3530e608d5",
       "type": "AgentStateTransition",
       "sourceHandle": "right-bottom",
       "targetHandle": "left",
@@ -474,19 +143,188 @@
         "transitionType": "predefined",
         "predefined": {
           "predefinedType": "when_intent_matched",
-          "intentName": "Bad_intent"
+          "intentName": "greeting_intent"
         },
+        "legacyShape": 1,
         "legacy": {
-          "condition": "when_intent_matched",
-          "conditionValue": "Bad_intent"
+          "transitionType": "predefined",
+          "predefined": {
+            "predefinedType": "when_intent_matched",
+            "intentName": "greeting_intent"
+          },
+          "custom": {
+            "condition": []
+          }
         },
-        "points": []
+        "points": [
+          {
+            "x": -324,
+            "y": -14
+          },
+          {
+            "x": -153,
+            "y": -14
+          }
+        ]
       }
     },
     {
-      "id": "b10d2d94-f9b2-431b-bce1-dea689ea34ae",
-      "source": "83ffb8ea-e7bc-489b-b799-89c79df708b8",
-      "target": "97627a74-e4e6-48af-9989-8d714dfe83b8",
+      "id": "bbcf8812-9989-43cb-8097-1a94350dc0e4",
+      "source": "d7876c4c-7ea0-4ae8-8b40-9c3530e608d5",
+      "target": "22ffd05a-ea5f-42fe-8fb5-b7666e02de3d",
+      "type": "AgentStateTransition",
+      "sourceHandle": "right",
+      "targetHandle": "left",
+      "data": {
+        "label": "",
+        "sourceMultiplicity": "",
+        "targetMultiplicity": "",
+        "sourceRole": "",
+        "targetRole": "",
+        "isManuallyLayouted": false,
+        "messages": [],
+        "transitionType": "predefined",
+        "predefined": {
+          "predefinedType": "when_intent_matched",
+          "intentName": "good_intent"
+        },
+        "legacyShape": 1,
+        "legacy": {
+          "transitionType": "predefined",
+          "predefined": {
+            "predefinedType": "when_intent_matched",
+            "intentName": "good_intent"
+          },
+          "custom": {
+            "condition": []
+          }
+        },
+        "points": [
+          {
+            "x": 57,
+            "y": -13
+          },
+          {
+            "x": 146.5,
+            "y": -13
+          },
+          {
+            "x": 146.5,
+            "y": -122
+          },
+          {
+            "x": 236,
+            "y": -122
+          }
+        ]
+      }
+    },
+    {
+      "id": "22315f95-af47-4943-9589-f6097264b679",
+      "source": "d7876c4c-7ea0-4ae8-8b40-9c3530e608d5",
+      "target": "ce9bd57d-2a3a-45e0-a4d9-2aa22f206d2d",
+      "type": "AgentStateTransition",
+      "sourceHandle": "right-bottom",
+      "targetHandle": "left",
+      "data": {
+        "label": "",
+        "sourceMultiplicity": "",
+        "targetMultiplicity": "",
+        "sourceRole": "",
+        "targetRole": "",
+        "isManuallyLayouted": false,
+        "messages": [],
+        "transitionType": "predefined",
+        "predefined": {
+          "predefinedType": "when_intent_matched",
+          "intentName": "bad_intent"
+        },
+        "legacyShape": 1,
+        "legacy": {
+          "transitionType": "predefined",
+          "predefined": {
+            "predefinedType": "when_intent_matched",
+            "intentName": "bad_intent"
+          },
+          "custom": {
+            "condition": []
+          }
+        },
+        "points": [
+          {
+            "x": 57,
+            "y": 12
+          },
+          {
+            "x": 140.5,
+            "y": 12
+          },
+          {
+            "x": 140.5,
+            "y": 121
+          },
+          {
+            "x": 224,
+            "y": 121
+          }
+        ]
+      }
+    },
+    {
+      "id": "b473e836-0378-4565-8f19-76917a923e76",
+      "source": "ce9bd57d-2a3a-45e0-a4d9-2aa22f206d2d",
+      "target": "de7fd93b-1a51-406d-a4f1-a37966b96db1",
+      "type": "AgentStateTransition",
+      "sourceHandle": "bottom",
+      "targetHandle": "bottom",
+      "data": {
+        "label": "",
+        "sourceMultiplicity": "",
+        "targetMultiplicity": "",
+        "sourceRole": "",
+        "targetRole": "",
+        "isManuallyLayouted": false,
+        "messages": [],
+        "transitionType": "predefined",
+        "predefined": {
+          "predefinedType": "auto",
+          "conditionValue": ""
+        },
+        "legacyShape": 1,
+        "legacy": {
+          "transitionType": "predefined",
+          "predefined": {
+            "predefinedType": "auto",
+            "conditionValue": ""
+          },
+          "custom": {
+            "condition": []
+          }
+        },
+        "points": [
+          {
+            "x": 354,
+            "y": 156
+          },
+          {
+            "x": 354,
+            "y": 196
+          },
+          {
+            "x": -404,
+            "y": 196
+          },
+          {
+            "x": -404,
+            "y": 6
+          }
+        ]
+      }
+    },
+    {
+      "id": "5b5b157d-6010-4798-b549-2c00f14a8c97",
+      "source": "22ffd05a-ea5f-42fe-8fb5-b7666e02de3d",
+      "target": "de7fd93b-1a51-406d-a4f1-a37966b96db1",
       "type": "AgentStateTransition",
       "sourceHandle": "top",
       "targetHandle": "top",
@@ -496,47 +334,136 @@
         "targetMultiplicity": "",
         "sourceRole": "",
         "targetRole": "",
-        "isManuallyLayouted": true,
+        "isManuallyLayouted": false,
         "messages": [],
         "transitionType": "predefined",
         "predefined": {
           "predefinedType": "auto",
           "conditionValue": ""
         },
+        "legacyShape": 1,
         "legacy": {
-          "condition": "auto",
-          "conditionValue": ""
+          "transitionType": "predefined",
+          "predefined": {
+            "predefinedType": "auto",
+            "conditionValue": ""
+          },
+          "custom": {
+            "condition": []
+          }
         },
-        "points": []
-      }
-    },
-    {
-      "id": "a744cb97-e58a-431b-b1fa-f2dbe0905192",
-      "source": "d2c3ac6c-2869-4555-a599-4810168a3164",
-      "target": "97627a74-e4e6-48af-9989-8d714dfe83b8",
-      "type": "AgentStateTransition",
-      "sourceHandle": "bottom-left",
-      "targetHandle": "bottom",
-      "data": {
-        "label": "",
-        "sourceMultiplicity": "",
-        "targetMultiplicity": "",
-        "sourceRole": "",
-        "targetRole": "",
-        "isManuallyLayouted": true,
-        "messages": [],
-        "transitionType": "predefined",
-        "predefined": {
-          "predefinedType": "auto",
-          "conditionValue": ""
-        },
-        "legacy": {
-          "condition": "auto",
-          "conditionValue": ""
-        },
-        "points": []
+        "points": [
+          {
+            "x": 356,
+            "y": -157
+          },
+          {
+            "x": 356,
+            "y": -197
+          },
+          {
+            "x": -404,
+            "y": -197
+          },
+          {
+            "x": -404,
+            "y": -34
+          }
+        ]
       }
     }
   ],
-  "assessments": {}
+  "assessments": {},
+  "components": {
+    "b3282310-36ba-4e3b-a223-1f55a5047b96": {
+      "id": "b3282310-36ba-4e3b-a223-1f55a5047b96",
+      "type": "AgentIntent",
+      "name": "greeting_intent",
+      "owner": null,
+      "intent_description": "The user says hello to the agent",
+      "bodies": [
+        "428c15bc-838d-4ab6-aadc-9d570e1813e3",
+        "284a677d-a6b0-4101-bfd7-0fc328193757",
+        "7f04696d-d966-49c4-97b7-45c0dc46f4eb"
+      ]
+    },
+    "428c15bc-838d-4ab6-aadc-9d570e1813e3": {
+      "id": "428c15bc-838d-4ab6-aadc-9d570e1813e3",
+      "type": "AgentIntentBody",
+      "name": "Hi",
+      "owner": "b3282310-36ba-4e3b-a223-1f55a5047b96"
+    },
+    "284a677d-a6b0-4101-bfd7-0fc328193757": {
+      "id": "284a677d-a6b0-4101-bfd7-0fc328193757",
+      "type": "AgentIntentBody",
+      "name": "Hello",
+      "owner": "b3282310-36ba-4e3b-a223-1f55a5047b96"
+    },
+    "7f04696d-d966-49c4-97b7-45c0dc46f4eb": {
+      "id": "7f04696d-d966-49c4-97b7-45c0dc46f4eb",
+      "type": "AgentIntentBody",
+      "name": "Howdy",
+      "owner": "b3282310-36ba-4e3b-a223-1f55a5047b96"
+    },
+    "ef574f96-f7fc-4a0c-8145-1c5372d497bd": {
+      "id": "ef574f96-f7fc-4a0c-8145-1c5372d497bd",
+      "type": "AgentIntent",
+      "name": "good_intent",
+      "owner": null,
+      "intent_description": "The user feels good",
+      "bodies": [
+        "edf355f2-2843-41b7-979c-5526c5e04edd",
+        "e637aac4-5d1a-4fb2-9e15-7173abe02f3d",
+        "9dd3d2de-d4d1-402f-95ca-c568c3714cff"
+      ]
+    },
+    "edf355f2-2843-41b7-979c-5526c5e04edd": {
+      "id": "edf355f2-2843-41b7-979c-5526c5e04edd",
+      "type": "AgentIntentBody",
+      "name": "Good",
+      "owner": "ef574f96-f7fc-4a0c-8145-1c5372d497bd"
+    },
+    "e637aac4-5d1a-4fb2-9e15-7173abe02f3d": {
+      "id": "e637aac4-5d1a-4fb2-9e15-7173abe02f3d",
+      "type": "AgentIntentBody",
+      "name": "Fine",
+      "owner": "ef574f96-f7fc-4a0c-8145-1c5372d497bd"
+    },
+    "9dd3d2de-d4d1-402f-95ca-c568c3714cff": {
+      "id": "9dd3d2de-d4d1-402f-95ca-c568c3714cff",
+      "type": "AgentIntentBody",
+      "name": "I am allright",
+      "owner": "ef574f96-f7fc-4a0c-8145-1c5372d497bd"
+    },
+    "bddf00f2-3d69-46ec-a489-802f0b1c0e52": {
+      "id": "bddf00f2-3d69-46ec-a489-802f0b1c0e52",
+      "type": "AgentIntent",
+      "name": "bad_intent",
+      "owner": null,
+      "intent_description": "The user feels bad",
+      "bodies": [
+        "0c62a40e-a42f-4a0f-9b43-01a7d8100e46",
+        "10fda33d-9603-4fa9-a465-b190e0b2d341",
+        "931457f2-3a41-4ab3-aa4d-16c3bbe3c9f9"
+      ]
+    },
+    "0c62a40e-a42f-4a0f-9b43-01a7d8100e46": {
+      "id": "0c62a40e-a42f-4a0f-9b43-01a7d8100e46",
+      "type": "AgentIntentBody",
+      "name": "Bad",
+      "owner": "bddf00f2-3d69-46ec-a489-802f0b1c0e52"
+    },
+    "10fda33d-9603-4fa9-a465-b190e0b2d341": {
+      "id": "10fda33d-9603-4fa9-a465-b190e0b2d341",
+      "type": "AgentIntentBody",
+      "name": "Not so good",
+      "owner": "bddf00f2-3d69-46ec-a489-802f0b1c0e52"
+    },
+    "931457f2-3a41-4ab3-aa4d-16c3bbe3c9f9": {
+      "id": "931457f2-3a41-4ab3-aa4d-16c3bbe3c9f9",
+      "type": "AgentIntentBody",
+      "name": "Could be better",
+      "owner": "bddf00f2-3d69-46ec-a489-802f0b1c0e52"
+    }
+  }
 }

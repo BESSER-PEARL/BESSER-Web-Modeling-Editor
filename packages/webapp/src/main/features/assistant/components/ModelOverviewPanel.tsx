@@ -9,6 +9,7 @@
  */
 
 import React, { useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Boxes, Database, GitBranch, MonitorSmartphone, ShieldCheck, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -20,15 +21,24 @@ import { useProject } from '../../../app/hooks/useProject';
 
 interface ClassInfo {
   name: string;
-  kind: 'class' | 'enum' | 'interface' | 'abstract';
+  kind: ClassKind;
   attributes: { name: string; type: string }[];
   methods: string[];
 }
 
+type ClassKind = 'class' | 'enum' | 'interface' | 'abstract';
+type RelationKind =
+  | 'association'
+  | 'inheritance'
+  | 'composition'
+  | 'aggregation'
+  | 'realization'
+  | 'dependency';
+
 interface RelationInfo {
   source: string;
   target: string;
-  label: string;
+  kind: RelationKind;
   sourceMultiplicity?: string;
   targetMultiplicity?: string;
 }
@@ -38,7 +48,7 @@ interface ScreenInfo {
   sections: string[];
 }
 
-const REL_LABELS: Record<string, string> = {
+const REL_KINDS: Record<string, RelationKind> = {
   ClassBidirectional: 'association',
   ClassUnidirectional: 'association',
   ClassInheritance: 'inheritance',
@@ -55,15 +65,84 @@ function activeDiagramModel(project: any, type: string): any {
   return (list[idx] ?? list[0])?.model;
 }
 
-function parseClassDiagram(model: any): { classes: ClassInfo[]; relations: RelationInfo[]; constraints: string[] } {
+export type ParsedClassDiagram = { classes: ClassInfo[]; relations: RelationInfo[]; constraints: string[] };
+
+/** v4 `class` node stereotype (`ClassType` casing; older data may be lowercase). */
+function kindFromStereotype(stereotype: unknown): ClassKind {
+  const s = typeof stereotype === 'string' ? stereotype.toLowerCase() : '';
+  if (s === 'enumeration') return 'enum';
+  if (s === 'interface') return 'interface';
+  if (s === 'abstract') return 'abstract';
+  return 'class';
+}
+
+const rows = (value: unknown): any[] => (Array.isArray(value) ? value : []);
+
+/** Canonical v4 shape: `nodes` / `edges` arrays (React Flow editor). */
+function parseClassDiagramV4(model: any): ParsedClassDiagram {
+  const classes: ClassInfo[] = [];
+  const constraints: string[] = [];
+  const nameById = new Map<string, string>();
+
+  for (const node of rows(model?.nodes)) {
+    if (!node || typeof node !== 'object') continue;
+    const data = (node.data ?? {}) as Record<string, any>;
+    if (node.type === 'ClassOCLConstraint') {
+      const text = data.expression ?? data.constraint;
+      if (text) constraints.push(String(text));
+      continue;
+    }
+    if (node.type !== 'class') continue;
+    const name = typeof data.name === 'string' ? data.name : '';
+    nameById.set(node.id, name);
+    classes.push({
+      name,
+      kind: kindFromStereotype(data.stereotype),
+      attributes: rows(data.attributes)
+        .filter((a) => a && typeof a === 'object')
+        .map((a) => ({ name: a.name ?? '', type: a.attributeType ?? '' })),
+      methods: rows(data.methods)
+        .map((m) => m?.name)
+        .filter(Boolean),
+    });
+    for (const row of rows(data.oclConstraints)) {
+      const text = row?.expression ?? row?.constraint;
+      if (text) constraints.push(String(text));
+    }
+  }
+
+  const relations: RelationInfo[] = [];
+  for (const edge of rows(model?.edges)) {
+    if (!edge || typeof edge !== 'object') continue;
+    const kind = REL_KINDS[edge.type];
+    // OCL tethers, comment links and association-class links are not relationships.
+    if (!kind) continue;
+    const source = nameById.get(edge.source);
+    const target = nameById.get(edge.target);
+    if (source === undefined || target === undefined) continue;
+    const data = (edge.data ?? {}) as Record<string, any>;
+    relations.push({
+      source,
+      target,
+      kind,
+      sourceMultiplicity: data.sourceMultiplicity || undefined,
+      targetMultiplicity: data.targetMultiplicity || undefined,
+    });
+  }
+
+  return { classes, relations, constraints };
+}
+
+/** Legacy v3 shape (`elements` / `relationships` records), kept for tolerance. */
+function parseClassDiagramV3(model: any): ParsedClassDiagram {
   const elements: Record<string, any> = model?.elements ?? {};
   const classes: ClassInfo[] = [];
   const constraints: string[] = [];
 
   for (const el of Object.values(elements)) {
     if (!el || typeof el !== 'object') continue;
-    if (el.type === 'ClassOCLConstraint' && el.constraint) {
-      constraints.push(String(el.constraint));
+    if (el.type === 'ClassOCLConstraint' && (el.constraint || el.expression)) {
+      constraints.push(String(el.constraint ?? el.expression));
       continue;
     }
     if (!['Class', 'AbstractClass', 'Interface', 'Enumeration'].includes(el.type)) continue;
@@ -75,7 +154,7 @@ function parseClassDiagram(model: any): { classes: ClassInfo[]; relations: Relat
       .map((id: string) => elements[id]?.name)
       .filter(Boolean);
     classes.push({
-      name: el.name ?? 'Unnamed',
+      name: el.name ?? '',
       kind: el.type === 'Enumeration' ? 'enum'
         : el.type === 'Interface' ? 'interface'
           : el.type === 'AbstractClass' ? 'abstract' : 'class',
@@ -87,19 +166,29 @@ function parseClassDiagram(model: any): { classes: ClassInfo[]; relations: Relat
   const relations: RelationInfo[] = [];
   for (const rel of Object.values((model?.relationships ?? {}) as Record<string, any>)) {
     if (!rel || typeof rel !== 'object') continue;
+    const kind = REL_KINDS[rel.type];
+    if (!kind) continue;
     const source = elements[rel.source?.element]?.name;
     const target = elements[rel.target?.element]?.name;
     if (!source || !target) continue;
     relations.push({
       source,
       target,
-      label: REL_LABELS[rel.type] ?? 'association',
+      kind,
       sourceMultiplicity: rel.source?.multiplicity || undefined,
       targetMultiplicity: rel.target?.multiplicity || undefined,
     });
   }
 
   return { classes, relations, constraints };
+}
+
+/** Summarize the active class diagram (v4 `nodes`/`edges`; v3 tolerated). */
+export function parseClassDiagram(model: any): ParsedClassDiagram {
+  if (model && typeof model === 'object' && Array.isArray(model.nodes)) {
+    return parseClassDiagramV4(model);
+  }
+  return parseClassDiagramV3(model);
 }
 
 function collectHeadings(node: any, out: string[]): void {
@@ -121,7 +210,7 @@ function parseScreens(model: any): ScreenInfo[] {
     .map((page: any) => {
       const sections: string[] = [];
       collectHeadings(page.frames?.[0]?.component, sections);
-      return { name: page.name ?? 'Page', sections };
+      return { name: page.name ?? '', sections };
     });
 }
 
@@ -140,6 +229,7 @@ const SectionHeader: React.FC<{ icon: React.ReactNode; title: string; count: num
 );
 
 export const ModelOverviewPanel: React.FC<{ onClose: () => void }> = ({ onClose }) => {
+  const { t } = useTranslation();
   const { currentProject } = useProject();
 
   const { classes, relations, constraints, screens } = useMemo(() => {
@@ -157,9 +247,9 @@ export const ModelOverviewPanel: React.FC<{ onClose: () => void }> = ({ onClose 
       <div className="flex shrink-0 items-center justify-between border-b border-border/40 px-4 py-3">
         <div className="flex items-center gap-2">
           <Boxes className="size-4 text-brand" />
-          <span className="text-sm font-semibold tracking-tight">Your model</span>
+          <span className="text-sm font-semibold tracking-tight">{t('assistant.modelOverview.title')}</span>
         </div>
-        <Button variant="ghost" size="icon" className="size-7 text-muted-foreground" onClick={onClose} aria-label="Close model overview">
+        <Button variant="ghost" size="icon" className="size-7 text-muted-foreground" onClick={onClose} aria-label={t('assistant.modelOverview.close')}>
           <X className="size-4" />
         </Button>
       </div>
@@ -167,23 +257,22 @@ export const ModelOverviewPanel: React.FC<{ onClose: () => void }> = ({ onClose 
       <div className="min-h-0 flex-1 space-y-5 overflow-y-auto px-4 py-4">
         {empty && (
           <p className="rounded-lg border border-dashed border-border/60 bg-muted/15 px-3 py-6 text-center text-xs text-muted-foreground">
-            Nothing modeled yet — ask the assistant to create a system and the
-            blueprint will appear here.
+            {t('assistant.modelOverview.empty')}
           </p>
         )}
 
         {/* Data model */}
         {classes.length > 0 && (
           <section>
-            <SectionHeader icon={<Database className="size-3.5" />} title="Data model" count={classes.length} />
+            <SectionHeader icon={<Database className="size-3.5" />} title={t('assistant.modelOverview.dataModel')} count={classes.length} />
             <div className="space-y-2">
-              {classes.map((cls) => (
-                <div key={cls.name} className="rounded-lg border border-border/50 bg-card/60 px-3 py-2">
+              {classes.map((cls, ci) => (
+                <div key={`${cls.name}-${ci}`} className="rounded-lg border border-border/50 bg-card/60 px-3 py-2">
                   <div className="flex items-center gap-2">
-                    <span className="text-xs font-semibold tracking-tight">{cls.name}</span>
+                    <span className="text-xs font-semibold tracking-tight">{cls.name || t('assistant.modelOverview.unnamed')}</span>
                     {cls.kind !== 'class' && (
                       <span className="rounded-full bg-brand/10 px-1.5 py-px font-mono text-[9px] text-brand">
-                        {cls.kind}
+                        {t(`assistant.modelOverview.kinds.${cls.kind}`)}
                       </span>
                     )}
                   </div>
@@ -223,15 +312,15 @@ export const ModelOverviewPanel: React.FC<{ onClose: () => void }> = ({ onClose 
         {/* Relationships */}
         {relations.length > 0 && (
           <section>
-            <SectionHeader icon={<GitBranch className="size-3.5" />} title="Relationships" count={relations.length} />
+            <SectionHeader icon={<GitBranch className="size-3.5" />} title={t('assistant.modelOverview.relationships')} count={relations.length} />
             <ul className="space-y-1">
               {relations.map((rel, i) => (
                 <li key={i} className="flex items-center gap-1.5 rounded-md border border-border/40 bg-card/40 px-2.5 py-1.5 text-[11px]">
-                  <span className="font-medium">{rel.source}</span>
+                  <span className="font-medium">{rel.source || t('assistant.modelOverview.unnamed')}</span>
                   {rel.sourceMultiplicity && <span className="font-mono text-[9px] text-muted-foreground">{rel.sourceMultiplicity}</span>}
-                  <span className="text-muted-foreground/70">—{rel.label}→</span>
+                  <span className="text-muted-foreground/70">—{t(`assistant.modelOverview.relationKinds.${rel.kind}`)}→</span>
                   {rel.targetMultiplicity && <span className="font-mono text-[9px] text-muted-foreground">{rel.targetMultiplicity}</span>}
-                  <span className="font-medium">{rel.target}</span>
+                  <span className="font-medium">{rel.target || t('assistant.modelOverview.unnamed')}</span>
                 </li>
               ))}
             </ul>
@@ -241,11 +330,11 @@ export const ModelOverviewPanel: React.FC<{ onClose: () => void }> = ({ onClose 
         {/* Screens */}
         {screens.length > 0 && (
           <section>
-            <SectionHeader icon={<MonitorSmartphone className="size-3.5" />} title="Screens" count={screens.length} />
+            <SectionHeader icon={<MonitorSmartphone className="size-3.5" />} title={t('assistant.modelOverview.screens')} count={screens.length} />
             <div className="space-y-2">
-              {screens.map((screen) => (
-                <div key={screen.name} className="rounded-lg border border-border/50 bg-card/60 px-3 py-2">
-                  <span className="text-xs font-semibold tracking-tight">{screen.name}</span>
+              {screens.map((screen, si) => (
+                <div key={`${screen.name}-${si}`} className="rounded-lg border border-border/50 bg-card/60 px-3 py-2">
+                  <span className="text-xs font-semibold tracking-tight">{screen.name || t('assistant.modelOverview.page')}</span>
                   {screen.sections.length > 0 && (
                     <ul className="mt-1 space-y-0.5">
                       {screen.sections.map((s, i) => (
@@ -262,7 +351,7 @@ export const ModelOverviewPanel: React.FC<{ onClose: () => void }> = ({ onClose 
         {/* Constraints */}
         {constraints.length > 0 && (
           <section>
-            <SectionHeader icon={<ShieldCheck className="size-3.5" />} title="Constraints" count={constraints.length} />
+            <SectionHeader icon={<ShieldCheck className="size-3.5" />} title={t('assistant.modelOverview.constraints')} count={constraints.length} />
             <ul className="space-y-1">
               {constraints.map((c, i) => (
                 <li key={i} className="rounded-md border border-border/40 bg-muted/20 px-2.5 py-1.5 font-mono text-[10px] leading-relaxed text-muted-foreground">

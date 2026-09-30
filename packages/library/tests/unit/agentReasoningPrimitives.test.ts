@@ -34,7 +34,6 @@ import { dropElementConfigs } from "@/constants"
 import { UMLDiagramType } from "@/types"
 import type {
   AgentStateNodeProps,
-  AgentSkillNodeProps,
   AgentToolNodeProps,
   AgentWorkspaceNodeProps,
   UMLModel,
@@ -132,33 +131,34 @@ describe("AgentReasoningState legacy fold + primitives v3 → v4", () => {
     )
   })
 
-  it("migrates AgentTool with description + code", () => {
-    const tool = v4.nodes.find((n) => n.id === "tool-1")!
+  // smart-gen Components page: tools / skills / workspaces are off-canvas
+  // components, carried verbatim (bounds stripped) into v4 `components`.
+  it("moves AgentTool into components with description + code", () => {
+    expect(v4.nodes.find((n) => n.id === "tool-1")).toBeUndefined()
+    const tool = v4.components!["tool-1"]
     expect(tool.type).toBe("AgentTool")
-    const data = tool.data as AgentToolNodeProps
-    expect(data.name).toBe("ping")
-    expect(data.description).toBe("Ping the server.")
-    expect(data.code).toContain("def ping")
+    expect(tool.name).toBe("ping")
+    expect(tool.description).toBe("Ping the server.")
+    expect(tool.code).toContain("def ping")
+    expect(tool.bounds).toBeUndefined()
   })
 
-  it("migrates AgentSkill with content + description", () => {
-    const skill = v4.nodes.find((n) => n.id === "skill-1")!
+  it("moves AgentSkill into components with content + description", () => {
+    const skill = v4.components!["skill-1"]
     expect(skill.type).toBe("AgentSkill")
-    const data = skill.data as AgentSkillNodeProps
-    expect(data.name).toBe("GreetByName")
-    expect(data.content).toBe("Always greet the user by name.")
-    expect(data.description).toBe("Greeting playbook.")
+    expect(skill.name).toBe("GreetByName")
+    expect(skill.content).toBe("Always greet the user by name.")
+    expect(skill.description).toBe("Greeting playbook.")
   })
 
-  it("migrates AgentWorkspace with path / writable / max_read_bytes", () => {
-    const ws = v4.nodes.find((n) => n.id === "ws-1")!
+  it("moves AgentWorkspace into components with path / writable / max_read_bytes", () => {
+    const ws = v4.components!["ws-1"]
     expect(ws.type).toBe("AgentWorkspace")
-    const data = ws.data as AgentWorkspaceNodeProps
-    expect(data.name).toBe("cinema")
-    expect(data.path).toBe("/tmp/cinema")
-    expect(data.description).toBe("Cinema files.")
-    expect(data.writable).toBe(false)
-    expect(data.max_read_bytes).toBe(50000)
+    expect(ws.name).toBe("cinema")
+    expect(ws.path).toBe("/tmp/cinema")
+    expect(ws.description).toBe("Cinema files.")
+    expect(ws.writable).toBe(false)
+    expect(ws.max_read_bytes).toBe(50000)
   })
 
   it("seeds develop reasoning defaults when a legacy state omits them", () => {
@@ -197,11 +197,9 @@ describe("AgentReasoningState legacy fold + primitives v3 → v4", () => {
     expect(rsData.stream_steps).toBe(true)
     expect(rsData.system_prompt).toBe("")
     expect(rsData.fallback_message).toBe("")
-    const ws = out.nodes.find((n) => n.id === "ws-min")!
-      .data as AgentWorkspaceNodeProps
-    expect(ws.path).toBe("")
-    expect(ws.writable).toBe(true)
-    expect(ws.max_read_bytes).toBe(200000)
+    // The workspace is a component now: carried verbatim, no canvas node.
+    expect(out.nodes.find((n) => n.id === "ws-min")).toBeUndefined()
+    expect(out.components?.["ws-min"]?.name).toBe("wsmin")
   })
 })
 
@@ -224,14 +222,17 @@ describe("Reasoning state + primitives v4 → v3 inverse", () => {
     expect(rs.fallback_message).toBe("Loop failed.")
   })
 
-  it("re-emits AgentTool / AgentSkill / AgentWorkspace fields", () => {
-    const tool = v3.elements["tool-1"] as Record<string, unknown>
+  const v3Components = (v3 as { components?: Record<string, Record<string, unknown>> })
+    .components!
+
+  it("re-emits AgentTool / AgentSkill / AgentWorkspace in components", () => {
+    const tool = v3Components["tool-1"]
     expect(tool.description).toBe("Ping the server.")
     expect(tool.code).toContain("def ping")
-    const skill = v3.elements["skill-1"] as Record<string, unknown>
+    const skill = v3Components["skill-1"]
     expect(skill.content).toBe("Always greet the user by name.")
     expect(skill.description).toBe("Greeting playbook.")
-    const ws = v3.elements["ws-1"] as Record<string, unknown>
+    const ws = v3Components["ws-1"]
     expect(ws.path).toBe("/tmp/cinema")
     expect(ws.writable).toBe(false)
     expect(ws.max_read_bytes).toBe(50000)
@@ -255,7 +256,7 @@ describe("Reasoning state + primitives v4 → v3 inverse", () => {
     const source = (reasoningV3 as { elements: Record<string, never> }).elements
     for (const id of ["tool-1", "skill-1", "ws-1"]) {
       const before = source[id] as Record<string, unknown>
-      const after = v3.elements[id] as Record<string, unknown>
+      const after = v3Components[id]
       for (const key of Object.keys(before)) {
         if (key === "bounds" || key === "owner") continue
         expect(after[key], `${id}.${key}`).toEqual(before[key])
@@ -373,66 +374,28 @@ describe("resolveAgentEdgeType — AgentState (covers reasoning)", () => {
 
 /* ───────────────────────────── palette layout ──────────────────────── */
 
-describe("AgentDiagram palette — develop section layout", () => {
+describe("AgentDiagram palette — smart-gen composeBotPreview parity", () => {
   const palette = dropElementConfigs[UMLDiagramType.AgentDiagram]
 
-  it("carries the three titled sections in develop order", () => {
-    const labels = palette
-      .map((entry) => entry.sectionLabel)
-      .filter((label): label is string => !!label)
-    expect(labels).toEqual(["Flow", "Knowledge", "Capabilities"])
+  it("carries a single Flow section with one AgentState", () => {
+    expect(palette).toHaveLength(1)
+    expect(palette[0].type as string).toBe("AgentState")
+    expect(palette[0].sectionLabel).toBe("Flow")
+    expect(palette[0].sectionLabelKey).toBe("packages.AgentDiagram.palette.flow")
   })
 
-  it("offers a drag source for each capability primitive + a reasoning AgentState", () => {
+  it("offers no component types (they are off-canvas)", () => {
     const types = palette.map((entry) => entry.type as string)
-    expect(types).toContain("AgentState")
-    expect(types).toContain("AgentTool")
-    expect(types).toContain("AgentSkill")
-    expect(types).toContain("AgentWorkspace")
-    // No standalone AgentReasoningState palette type after the fold.
-    expect(types).not.toContain("AgentReasoningState")
-    // The reasoning shortcut is an AgentState-typed entry.
-    const reasoning = palette.find(
-      (e) =>
-        (e.type as string) === "AgentState" &&
-        (e.defaultData as { stateType?: string })?.stateType === "reasoning"
-    )
-    expect(reasoning).toBeDefined()
-  })
-
-  it("reasoning drag source ships the develop element defaults on AgentState", () => {
-    const entry = palette.find(
-      (e) =>
-        (e.type as string) === "AgentState" &&
-        (e.defaultData as { stateType?: string })?.stateType === "reasoning"
-    )!
-    expect(entry.defaultData).toMatchObject({
-      name: "ReasoningState",
-      stateType: "reasoning",
-      llm_name: "",
-      max_steps: 8,
-      enable_task_planning: true,
-      stream_steps: true,
-    })
-  })
-
-  it("tool / skill / workspace drag sources mirror the develop previews", () => {
-    const tool = palette.find((e) => (e.type as string) === "AgentTool")!
-    expect(tool.defaultData).toMatchObject({
-      name: "tool_name",
-      description: "What this tool does",
-    })
-    const skill = palette.find((e) => (e.type as string) === "AgentSkill")!
-    expect(skill.defaultData).toMatchObject({
-      name: "skill_name",
-      description: "What this skill teaches",
-    })
-    const ws = palette.find((e) => (e.type as string) === "AgentWorkspace")!
-    expect(ws.defaultData).toMatchObject({
-      name: "workspace_name",
-      path: "/path/to/dir",
-      writable: true,
-      max_read_bytes: 200000,
-    })
+    for (const component of [
+      "AgentTool",
+      "AgentSkill",
+      "AgentWorkspace",
+      "AgentIntent",
+      "AgentRagElement",
+      "AgentLLM",
+      "AgentReasoningState",
+    ]) {
+      expect(types).not.toContain(component)
+    }
   })
 })

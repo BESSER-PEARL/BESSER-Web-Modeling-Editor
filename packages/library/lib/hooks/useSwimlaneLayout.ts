@@ -31,6 +31,75 @@ export const POOL_MIN_HEIGHT = 80
 export const SWIMLANE_MIN_WIDTH = 80
 export const SWIMLANE_MIN_HEIGHT = 80
 
+/**
+ * Pure variant of `relayoutPool` for a node array, used when a lane is
+ * dropped from the palette into a pool: the pool's lanes are stacked
+ * top-to-bottom (ordered by their current `y`, so the drop point decides
+ * where the new lane lands), locked to `x = POOL_HEADER_WIDTH` with
+ * `width = pool.width - POOL_HEADER_WIDTH`; the last lane fills a taller
+ * pool (c), otherwise the pool grows to the summed lane heights (d).
+ * Returns the input array unchanged when `poolId` has no lanes.
+ */
+export function stackPoolLanes<
+  N extends {
+    id: string
+    type?: string
+    parentId?: string
+    position: { x: number; y: number }
+    width?: number
+    height?: number
+    measured?: { width?: number; height?: number }
+  },
+>(nodes: N[], poolId: string): N[] {
+  const pool = nodes.find((n) => n.id === poolId)
+  if (!pool) return nodes
+  const lanes = nodes
+    .filter((n) => n.parentId === poolId && n.type === "bpmnSwimlane")
+    .sort((a, b) => a.position.y - b.position.y)
+  if (lanes.length === 0) return nodes
+
+  const poolWidth = pool.width ?? pool.measured?.width ?? 200
+  const poolHeight = pool.height ?? pool.measured?.height ?? POOL_MIN_HEIGHT
+  const laneWidth = Math.max(poolWidth - POOL_HEADER_WIDTH, SWIMLANE_MIN_WIDTH)
+  const heights = lanes.map((l) =>
+    Math.max(l.height ?? l.measured?.height ?? SWIMLANE_MIN_HEIGHT, SWIMLANE_MIN_HEIGHT)
+  )
+  let total = heights.reduce((s, h) => s + h, 0)
+  if (total < poolHeight) {
+    heights[heights.length - 1] += poolHeight - total
+    total = poolHeight
+  }
+  const laneLayout = new Map<string, { y: number; height: number }>()
+  let y = 0
+  lanes.forEach((lane, i) => {
+    laneLayout.set(lane.id, { y, height: heights[i] })
+    y += heights[i]
+  })
+  const newPoolHeight = Math.max(total, POOL_MIN_HEIGHT)
+
+  return nodes.map((n) => {
+    const lane = laneLayout.get(n.id)
+    if (lane) {
+      return {
+        ...n,
+        position: { x: POOL_HEADER_WIDTH, y: lane.y },
+        width: laneWidth,
+        height: lane.height,
+        measured: { width: laneWidth, height: lane.height },
+      }
+    }
+    if (n.id === poolId) {
+      return {
+        ...n,
+        width: poolWidth,
+        height: newPoolHeight,
+        measured: { width: poolWidth, height: newPoolHeight },
+      }
+    }
+    return n
+  })
+}
+
 interface RelayoutOptions {
   /** Intended pool width for this pass. */
   poolWidth: number

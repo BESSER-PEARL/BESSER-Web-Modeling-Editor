@@ -634,10 +634,12 @@ export const ensureProjectMigrated = (obj: BesserProject): BesserProject => {
     obj = migratePerspectiveSettings(obj);
   }
 
-  // Migrate v4 → v5: convert v3-shape UML models (elements/relationships) to v4 (nodes/edges)
-  if (!obj.schemaVersion || obj.schemaVersion < 5) {
-    obj = migrateProjectToV5(obj);
-  }
+  // Migrate v4 → v5: convert v3-shape UML models (elements/relationships) to v4 (nodes/edges).
+  // Un-gated: the per-diagram lift keys off each model's own shape/version,
+  // not the envelope's schemaVersion — a project stamped >= 5 can still
+  // carry v3 models (hand-edited exports, templates, a partial earlier
+  // migration). Cheap and idempotent on canonical v4 data.
+  obj = migrateProjectToV5(obj);
 
   // Fix #3: retrofit existing-but-empty UserDiagrams. v3
   // showed a 4-class meta-model template via `composeUserModelPreview`,
@@ -735,8 +737,10 @@ const retrofitAgentVariantSnapshots = (project: BesserProject): void => {
  * error so operators can spot the bad data in the browser console.
  */
 export const migrateProjectToV5 = (project: BesserProject): BesserProject => {
-  if (project.schemaVersion >= 5) return project;
-
+  // No early return on `schemaVersion >= 5`: whether a diagram needs the
+  // lift is decided per model (`isV3UMLModel` — `version` "3.x" or an
+  // `elements` table without a `nodes` array), so a project stamped 5+
+  // that still holds v3 models gets repaired too.
   let allSucceeded = true;
 
   for (const type of ALL_DIAGRAM_TYPES) {
@@ -759,7 +763,7 @@ export const migrateProjectToV5 = (project: BesserProject): BesserProject => {
     }
   }
 
-  if (allSucceeded) {
+  if (allSucceeded && !(project.schemaVersion >= 5)) {
     project.schemaVersion = 5;
   }
   return project;
@@ -902,7 +906,15 @@ export const isUMLModel = (model: unknown): model is UMLModel => {
 export const isV3UMLModel = (model: unknown): boolean => {
   if (!model || typeof model !== 'object') return false;
   const candidate = model as Record<string, unknown>;
-  return 'elements' in candidate && 'relationships' in candidate;
+  // A model that already has a v4 `nodes` array is never re-lifted.
+  if (Array.isArray(candidate.nodes)) return false;
+  const elements = candidate.elements;
+  if (!elements || typeof elements !== 'object') return false;
+  // v3 shape: an `elements` id→element table (with or without
+  // `relationships`), or any `elements` holder that declares itself 3.x.
+  // (v2 used `elements` *arrays* and is not handled here.)
+  const version = candidate.version;
+  return !Array.isArray(elements) || (typeof version === 'string' && version.startsWith('3.'));
 };
 
 export const isGrapesJSProjectData = (model: unknown): model is GrapesJSProjectData => {

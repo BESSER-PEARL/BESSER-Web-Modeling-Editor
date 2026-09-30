@@ -30,6 +30,17 @@ export const useDiagramStore = <T>(selector: (state: DiagramStore) => T): T => {
   return useStore(store, selector)
 }
 
+/**
+ * The raw diagram store API, for reading live state (`getState()`) inside a
+ * callback -- e.g. an async paste that must build on the latest nodes, not
+ * on the render closure's snapshot.
+ */
+export const useDiagramStoreApi = (): StoreApi<DiagramStore> => {
+  const store = useContext(DiagramStoreContext)
+  if (!store) throw new Error("DiagramStoreContext not provided")
+  return store
+}
+
 export const useMetadataStore = <T>(
   selector: (state: MetadataStore) => T
 ): T => {

@@ -26,6 +26,16 @@ export type WidgetType =
   | "multiselect"
   | "predecessor"
   | "layers_of_tensors"
+  /** List built by appending options one at a time (duplicates allowed),
+   * e.g. `actual_vars = [output, hidden]` — one entry per input tensor. */
+  | "append_list"
+  | "subscript_indices"
+  | "repeat_dim"
+  | "pad_amount"
+
+/** Declared value type of an attribute; drives the text validators
+ * (`nnAttributeValidators.ts`). Mirrors the v3 `attributeType`. */
+export type AttributeValueType = "int" | "float" | "List" | "bool" | "str"
 
 export interface AttributeWidgetConfig {
   /** v4 slug stored on `node.data.attributes` (or qualified slug when
@@ -40,6 +50,12 @@ export interface AttributeWidgetConfig {
   label?: string
   /** Mandatory in v3; surfaced by the inspector as required. */
   mandatory?: boolean
+  /** Declared value type (validator dispatch). */
+  valueType?: AttributeValueType
+  /** i18n key of the help text shown under the row while enabled. */
+  helpTextKey?: string
+  /** i18n key of the text-field placeholder (default `popup.nn.row.valuePlaceholder`). */
+  placeholderKey?: string
 }
 
 /* ── Shared option lists (verbatim from v3 nn-attribute-widget-config) ─── */
@@ -53,14 +69,121 @@ export const ACTV_FUNC_OPTIONS = [
 export const BOOLEAN_OPTIONS = ["true", "false"] as const
 export const PADDING_OPTIONS = ["valid", "same"] as const
 export const RETURN_OPTIONS = ["hidden", "last", "full"] as const
-export const TNS_TYPE_OPTIONS = [
-  "reshape",
-  "concatenate",
-  "multiply",
-  "matmultiply",
-  "transpose",
-  "permute",
+/**
+ * The optional attributes each `tns_type` owns, beyond the ones every
+ * TensorOp offers (`TNS_TYPE_SHARED_ATTRIBUTES` plus the output variable).
+ * Single source of truth for the inspector's row filter and for the
+ * pruning applied when `tns_type` changes (smart-gen
+ * `nn-attribute-widget-config.ts::TNS_TYPE_ATTRIBUTES`).
+ */
+export const TNS_TYPE_ATTRIBUTES: Readonly<Record<string, readonly string[]>> =
+  Object.freeze({
+    reshape: ["reshape_dim"],
+    concatenate: ["concatenate_dim", "actual_vars"],
+    transpose: ["transpose_dim"],
+    permute: ["permute_dim"],
+    multiply: [],
+    matmultiply: [],
+    split: ["split_dim", "split_sizes"],
+    binop_add: ["actual_vars"],
+    binop_subtract: ["actual_vars"],
+    binop_multiply: ["actual_vars"],
+    binop_divide: ["actual_vars"],
+    binop_floor_divide: ["actual_vars"],
+    mean: ["reduce_dim"],
+    max: ["reduce_dim", "reduce_keepdims"],
+    squeeze: ["reduce_dim"],
+    unsqueeze: ["reduce_dim"],
+    shape_dim: ["reduce_dim"],
+    normalize: ["reduce_dim"],
+    repeat: ["repeat_dim"],
+    zeros_like: [],
+    interpolate: ["interpolate_size", "interpolate_scale", "interpolate_mode"],
+    pad: ["pad_amount", "pad_mode", "pad_value"],
+    dropout: ["dropout_rate", "dropout_training_aware"],
+    subscript: ["subscript_indices"],
+    identity: [],
+  })
+
+/** The tns_type values a TensorOp can take — the keys of
+ * `TNS_TYPE_ATTRIBUTES`, alphabetically (backend `ALLOWED_TENSOR_OP_TYPES`). */
+export const TNS_TYPE_OPTIONS: readonly string[] = Object.freeze(
+  Object.keys(TNS_TYPE_ATTRIBUTES).sort()
+)
+
+/** Optional attributes every tns_type offers. */
+export const TNS_TYPE_SHARED_ATTRIBUTES: readonly string[] = [
+  "layers_of_tensors",
+  "input_reused",
+  "permute_in",
+  "permute_out",
+  "input_var",
+]
+
+/** `split` returns several tensors, so it names them with `output_vars`. */
+export function getTnsTypeOutputAttribute(tnsType: string): string {
+  return tnsType === "split" ? "output_vars" : "output_var"
+}
+
+/** Every optional attribute that belongs to one tns_type but not to all. */
+export const TNS_TYPE_SPECIFIC_ATTRIBUTES: readonly string[] = Array.from(
+  new Set([...Object.values(TNS_TYPE_ATTRIBUTES).flat(), "output_vars"])
+)
+
+/** The optional attribute slugs a tns_type offers, shared ones included. */
+export function getTnsTypeAttributeNames(tnsType: string): string[] {
+  return [
+    ...TNS_TYPE_SHARED_ATTRIBUTES,
+    ...(TNS_TYPE_ATTRIBUTES[tnsType] ?? []),
+    getTnsTypeOutputAttribute(tnsType),
+  ]
+}
+
+/**
+ * `layers_of_tensors` operand shape per tns_type:
+ * - unary: 1 layer/tensorop name
+ * - binary: 2 operands, each a name OR a numeric literal
+ * - double: 2 names only
+ * - n-ary: N >= 2 names (concatenate)
+ */
+export type TnsTypeCategory = "unary" | "binary" | "double" | "n-ary"
+
+export function getTnsTypeCategory(tnsType: string): TnsTypeCategory {
+  if (tnsType === "concatenate") return "n-ary"
+  if (
+    [
+      "binop_add",
+      "binop_subtract",
+      "binop_multiply",
+      "binop_divide",
+      "binop_floor_divide",
+      "multiply",
+    ].includes(tnsType)
+  ) {
+    return "binary"
+  }
+  if (tnsType === "matmultiply") return "double"
+  return "unary"
+}
+
+export const PAD_MODE_OPTIONS = ["constant", "reflect", "replicate"] as const
+export const INTERPOLATE_MODE_OPTIONS = [
+  "nearest",
+  "linear",
+  "bilinear",
+  "bicubic",
+  "trilinear",
+  "area",
+  "nearest-exact",
+  "lanczos3",
+  "lanczos5",
+  "gaussian",
+  "mitchellcubic",
 ] as const
+export const DROPOUT_DIMENSION_OPTIONS = ["1D", "2D", "3D"] as const
+export const ACTUAL_VARS_OPTIONS = ["output", "hidden"] as const
+/** Sentinel predecessor meaning "the network's own input" (smart-gen d128be4f). */
+export const NN_INPUT_MODULE = "INPUT"
 export const TASK_TYPE_OPTIONS = ["binary", "multi_class", "regression"] as const
 export const INPUT_FORMAT_OPTIONS = ["csv", "images"] as const
 // Include the v3 `global_*` pooling types so legacy
@@ -111,8 +234,17 @@ export const COLLIDING_SLUGS: ReadonlySet<string> = new Set(["dimension"])
  */
 export function qualifySlug(layerKind: string, slug: string): string {
   if (!COLLIDING_SLUGS.has(slug)) return slug
+  // Only Pooling and BatchNormalization disambiguate (backend
+  // `_LAYER_KIND_PREFIX`); DropoutLayer's own optional `dimension` is
+  // stored plain.
+  if (!QUALIFIED_LAYER_KINDS.has(layerKind)) return slug
   return `${kindToSlugPrefix(layerKind)}.${slug}`
 }
+
+const QUALIFIED_LAYER_KINDS: ReadonlySet<string> = new Set([
+  "PoolingLayer",
+  "BatchNormalizationLayer",
+])
 
 /** Layer kind (v4 node-type string) → slug prefix used in qualified attribute keys. */
 export function kindToSlugPrefix(layerKind: string): string {
@@ -190,6 +322,7 @@ const NAME_FIELD: AttributeWidgetConfig = {
   widget: "text",
   label: "name",
   mandatory: true,
+  valueType: "str",
 }
 
 const ACTV_FUNC_FIELD: AttributeWidgetConfig = {
@@ -206,28 +339,71 @@ const NAME_MODULE_INPUT_FIELD: AttributeWidgetConfig = {
   label: "name_module_input",
 }
 
-const INPUT_REUSED_FIELD: AttributeWidgetConfig = {
-  slug: "input_reused",
+/** Optional boolean dropdown row. */
+const boolField = (
+  slug: string,
+  defaultValue: "true" | "false"
+): AttributeWidgetConfig => ({
+  slug,
   widget: "dropdown",
   options: BOOLEAN_OPTIONS,
-  defaultValue: "false",
-  label: "input_reused",
-}
+  defaultValue,
+  label: slug,
+  valueType: "bool",
+})
 
-/** Conv (1D/2D/3D) shared schema; each kind specialises the slug-only
- * fields by example value (see migrator). */
+/** Optional free-text row. */
+const textField = (
+  slug: string,
+  valueType: AttributeValueType = "str",
+  extra: Partial<AttributeWidgetConfig> = {}
+): AttributeWidgetConfig => ({
+  slug,
+  widget: "text",
+  label: slug,
+  valueType,
+  ...extra,
+})
+
+const INPUT_REUSED_FIELD = boolField("input_reused", "false")
+const PERMUTE_IN_FIELD = boolField("permute_in", "false")
+const PERMUTE_OUT_FIELD = boolField("permute_out", "false")
+const BIAS_FIELD = boolField("bias", "true")
+const IS_LAYER_CALL_FIELD = boolField("is_layer_call", "false")
+/** Explicit variable names for the forward pass (smart-gen efd85b50):
+ * the variable this module reads and the one it writes. */
+const INPUT_VAR_FIELD = textField("input_var")
+const OUTPUT_VAR_FIELD = textField("output_var")
+
+/** Fields every layer inherits from `Layer` (backend
+ * `_append_base_layer_fields`). */
+const BASE_LAYER_VAR_FIELDS: AttributeWidgetConfig[] = [
+  IS_LAYER_CALL_FIELD,
+  INPUT_VAR_FIELD,
+  OUTPUT_VAR_FIELD,
+]
+
+/** Conv (1D/2D/3D) shared schema; list shapes specialise per kind via
+ * `getListExpectation`. */
 const CONV_FIELDS: AttributeWidgetConfig[] = [
   NAME_FIELD,
-  { slug: "kernel_dim", widget: "text", label: "kernel_dim", mandatory: true },
+  {
+    slug: "kernel_dim",
+    widget: "text",
+    label: "kernel_dim",
+    mandatory: true,
+    valueType: "List",
+  },
   {
     slug: "out_channels",
     widget: "text",
     label: "out_channels",
     mandatory: true,
+    valueType: "int",
   },
-  { slug: "stride_dim", widget: "text", label: "stride_dim" },
-  { slug: "in_channels", widget: "text", label: "in_channels" },
-  { slug: "padding_amount", widget: "text", label: "padding_amount" },
+  textField("stride_dim", "List"),
+  textField("in_channels", "int"),
+  textField("padding_amount", "int"),
   {
     slug: "padding_type",
     widget: "dropdown",
@@ -235,23 +411,15 @@ const CONV_FIELDS: AttributeWidgetConfig[] = [
     defaultValue: "valid",
     label: "padding_type",
   },
+  textField("dilation", "List"),
+  textField("groups", "int"),
+  BIAS_FIELD,
+  ...BASE_LAYER_VAR_FIELDS,
   ACTV_FUNC_FIELD,
   NAME_MODULE_INPUT_FIELD,
   INPUT_REUSED_FIELD,
-  {
-    slug: "permute_in",
-    widget: "dropdown",
-    options: BOOLEAN_OPTIONS,
-    defaultValue: "false",
-    label: "permute_in",
-  },
-  {
-    slug: "permute_out",
-    widget: "dropdown",
-    options: BOOLEAN_OPTIONS,
-    defaultValue: "false",
-    label: "permute_out",
-  },
+  PERMUTE_IN_FIELD,
+  PERMUTE_OUT_FIELD,
 ]
 
 const POOLING_FIELDS: AttributeWidgetConfig[] = [
@@ -273,9 +441,9 @@ const POOLING_FIELDS: AttributeWidgetConfig[] = [
     label: "dimension",
     mandatory: true,
   },
-  { slug: "kernel_dim", widget: "text", label: "kernel_dim" },
-  { slug: "stride_dim", widget: "text", label: "stride_dim" },
-  { slug: "padding_amount", widget: "text", label: "padding_amount" },
+  textField("kernel_dim", "List"),
+  textField("stride_dim", "List"),
+  textField("padding_amount", "int"),
   {
     slug: "padding_type",
     widget: "dropdown",
@@ -283,31 +451,18 @@ const POOLING_FIELDS: AttributeWidgetConfig[] = [
     defaultValue: "valid",
     label: "padding_type",
   },
-  { slug: "output_dim", widget: "text", label: "output_dim" },
+  textField("output_dim", "List"),
   ACTV_FUNC_FIELD,
   NAME_MODULE_INPUT_FIELD,
   INPUT_REUSED_FIELD,
-  {
-    slug: "permute_in",
-    widget: "dropdown",
-    options: BOOLEAN_OPTIONS,
-    defaultValue: "false",
-    label: "permute_in",
-  },
-  {
-    slug: "permute_out",
-    widget: "dropdown",
-    options: BOOLEAN_OPTIONS,
-    defaultValue: "false",
-    label: "permute_out",
-  },
+  PERMUTE_IN_FIELD,
+  PERMUTE_OUT_FIELD,
+  ...BASE_LAYER_VAR_FIELDS,
 ]
 
-/** RNN-family `actv_func` defaults to `tanh` in v3
- * (mirrors PyTorch's `RNN`/`LSTM`/`GRU` activation default), distinct
- * from the convolutional `relu` baseline. Inlined here rather than
- * sharing `ACTV_FUNC_FIELD` so the recurrent panel renders the v3
- * default. */
+/** RNN-family `actv_func` defaults to `tanh` in v3 (PyTorch's
+ * `RNN`/`LSTM`/`GRU` activation default), distinct from the
+ * convolutional `relu` baseline. */
 const RECURRENT_ACTV_FUNC_FIELD: AttributeWidgetConfig = {
   slug: "actv_func",
   widget: "dropdown",
@@ -316,9 +471,15 @@ const RECURRENT_ACTV_FUNC_FIELD: AttributeWidgetConfig = {
   label: "actv_func",
 }
 
-const RECURRENT_FIELDS: AttributeWidgetConfig[] = [
+const RECURRENT_BASE_FIELDS: AttributeWidgetConfig[] = [
   NAME_FIELD,
-  { slug: "hidden_size", widget: "text", label: "hidden_size", mandatory: true },
+  {
+    slug: "hidden_size",
+    widget: "text",
+    label: "hidden_size",
+    mandatory: true,
+    valueType: "int",
+  },
   // V3 default = 'full' (not 'last').
   {
     slug: "return_type",
@@ -327,27 +488,36 @@ const RECURRENT_FIELDS: AttributeWidgetConfig[] = [
     defaultValue: "full",
     label: "return_type",
   },
-  { slug: "input_size", widget: "text", label: "input_size" },
-  {
-    slug: "bidirectional",
-    widget: "dropdown",
-    options: BOOLEAN_OPTIONS,
-    defaultValue: "false",
-    label: "bidirectional",
-  },
-  { slug: "dropout", widget: "text", label: "dropout" },
-  // V3 default = 'true' (PyTorch-style channel-first
-  // tensors with the batch dimension leading).
-  {
-    slug: "batch_first",
-    widget: "dropdown",
-    options: BOOLEAN_OPTIONS,
-    defaultValue: "true",
-    label: "batch_first",
-  },
+  textField("input_size", "int"),
+  boolField("bidirectional", "false"),
+  textField("dropout", "float"),
+  // V3 default = 'true' (batch dimension leading).
+  boolField("batch_first", "true"),
   RECURRENT_ACTV_FUNC_FIELD,
   NAME_MODULE_INPUT_FIELD,
   INPUT_REUSED_FIELD,
+  BIAS_FIELD,
+  // Initial hidden state source + recurrent state variables.
+  textField("hx_source"),
+  ...BASE_LAYER_VAR_FIELDS,
+  textField("hidden_state_var"),
+]
+
+const RECURRENT_FIELDS: AttributeWidgetConfig[] = [
+  ...RECURRENT_BASE_FIELDS,
+  boolField("hidden_unused", "false"),
+  textField("hidden_subscript_source"),
+  textField("hidden_subscript_target"),
+]
+
+/** LSTM adds the cell-state pair. */
+const LSTM_FIELDS: AttributeWidgetConfig[] = [
+  ...RECURRENT_BASE_FIELDS,
+  textField("cell_state_var"),
+  boolField("hidden_unused", "false"),
+  boolField("cell_unused", "false"),
+  textField("hidden_subscript_source"),
+  textField("hidden_subscript_target"),
 ]
 
 const LINEAR_FIELDS: AttributeWidgetConfig[] = [
@@ -357,20 +527,24 @@ const LINEAR_FIELDS: AttributeWidgetConfig[] = [
     widget: "text",
     label: "out_features",
     mandatory: true,
+    valueType: "int",
   },
-  { slug: "in_features", widget: "text", label: "in_features" },
+  textField("in_features", "int"),
   ACTV_FUNC_FIELD,
   NAME_MODULE_INPUT_FIELD,
   INPUT_REUSED_FIELD,
+  BIAS_FIELD,
+  ...BASE_LAYER_VAR_FIELDS,
 ]
 
 const FLATTEN_FIELDS: AttributeWidgetConfig[] = [
   NAME_FIELD,
-  { slug: "start_dim", widget: "text", label: "start_dim" },
-  { slug: "end_dim", widget: "text", label: "end_dim" },
+  textField("start_dim", "int"),
+  textField("end_dim", "int"),
   ACTV_FUNC_FIELD,
   NAME_MODULE_INPUT_FIELD,
   INPUT_REUSED_FIELD,
+  ...BASE_LAYER_VAR_FIELDS,
 ]
 
 const EMBEDDING_FIELDS: AttributeWidgetConfig[] = [
@@ -380,23 +554,46 @@ const EMBEDDING_FIELDS: AttributeWidgetConfig[] = [
     widget: "text",
     label: "num_embeddings",
     mandatory: true,
+    valueType: "int",
   },
   {
     slug: "embedding_dim",
     widget: "text",
     label: "embedding_dim",
     mandatory: true,
+    valueType: "int",
   },
   ACTV_FUNC_FIELD,
   NAME_MODULE_INPUT_FIELD,
   INPUT_REUSED_FIELD,
+  textField("padding_idx", "int"),
+  ...BASE_LAYER_VAR_FIELDS,
+  PERMUTE_IN_FIELD,
+  PERMUTE_OUT_FIELD,
 ]
 
 const DROPOUT_FIELDS: AttributeWidgetConfig[] = [
   NAME_FIELD,
-  { slug: "rate", widget: "text", label: "rate", mandatory: true },
+  {
+    slug: "rate",
+    widget: "text",
+    label: "rate",
+    mandatory: true,
+    valueType: "float",
+  },
   NAME_MODULE_INPUT_FIELD,
   INPUT_REUSED_FIELD,
+  // Optional here and stored plain (only Pooling / BatchNorm qualify it).
+  {
+    slug: "dimension",
+    widget: "dropdown",
+    options: DROPOUT_DIMENSION_OPTIONS,
+    defaultValue: "1D",
+    label: "dimension",
+  },
+  ...BASE_LAYER_VAR_FIELDS,
+  PERMUTE_IN_FIELD,
+  PERMUTE_OUT_FIELD,
 ]
 
 const LAYER_NORM_FIELDS: AttributeWidgetConfig[] = [
@@ -406,10 +603,14 @@ const LAYER_NORM_FIELDS: AttributeWidgetConfig[] = [
     widget: "text",
     label: "normalized_shape",
     mandatory: true,
+    valueType: "List",
   },
   ACTV_FUNC_FIELD,
   NAME_MODULE_INPUT_FIELD,
   INPUT_REUSED_FIELD,
+  textField("eps", "float", { defaultValue: "1e-5" }),
+  boolField("affine", "true"),
+  ...BASE_LAYER_VAR_FIELDS,
 ]
 
 const BATCH_NORM_FIELDS: AttributeWidgetConfig[] = [
@@ -419,11 +620,10 @@ const BATCH_NORM_FIELDS: AttributeWidgetConfig[] = [
     widget: "text",
     label: "num_features",
     mandatory: true,
+    valueType: "int",
   },
-  // Collision-aware: stored as `batch_normalization.dimension` on a
-  // BatchNormalization node.
-  // V3 default = '2D' (mirrors the convolutional
-  // baseline so `BatchNorm2d` lands where users expect).
+  // Collision-aware: stored as `batch_normalization.dimension`.
+  // V3 default = '2D'.
   {
     slug: "dimension",
     widget: "dropdown",
@@ -435,14 +635,18 @@ const BATCH_NORM_FIELDS: AttributeWidgetConfig[] = [
   ACTV_FUNC_FIELD,
   NAME_MODULE_INPUT_FIELD,
   INPUT_REUSED_FIELD,
+  textField("eps", "float", { defaultValue: "1e-5" }),
+  textField("momentum", "float", { defaultValue: "0.1" }),
+  boolField("affine", "true"),
+  boolField("track_running_stats", "true"),
+  PERMUTE_IN_FIELD,
+  PERMUTE_OUT_FIELD,
+  ...BASE_LAYER_VAR_FIELDS,
 ]
 
-// V3 TensorOp shipped defaults per `tns_type` branch
-// (e.g. `reshape_dim = '[-1]'`, `transpose_dim = '[0, 1]'`,
-// `permute_dim = '[0, 1, 2]'`, `concatenate_dim = '0'`,
-// `layers_of_tensors = '[]'`). Surfacing them as `defaultValue` here
-// drives the inspector's "enable optional row" experience to a
-// non-empty starter value.
+// V3 TensorOp shipped defaults per `tns_type` branch (e.g.
+// `reshape_dim = '[-1]'`, `transpose_dim = '[0, 1]'`). Which rows are
+// offered for the current `tns_type` comes from `TNS_TYPE_ATTRIBUTES`.
 const TENSOR_OP_FIELDS: AttributeWidgetConfig[] = [
   NAME_FIELD,
   {
@@ -453,51 +657,105 @@ const TENSOR_OP_FIELDS: AttributeWidgetConfig[] = [
     label: "tns_type",
     mandatory: true,
   },
-  {
-    slug: "concatenate_dim",
-    widget: "text",
-    label: "concatenate_dim",
-    defaultValue: "0",
-  },
+  textField("concatenate_dim", "int", { defaultValue: "0" }),
   {
     slug: "layers_of_tensors",
     widget: "layers_of_tensors",
     label: "layers_of_tensors",
     defaultValue: "[]",
+    valueType: "List",
   },
-  {
-    slug: "reshape_dim",
-    widget: "text",
-    label: "reshape_dim",
-    defaultValue: "[-1]",
-  },
-  {
-    slug: "transpose_dim",
-    widget: "text",
-    label: "transpose_dim",
-    defaultValue: "[0, 1]",
-  },
-  {
-    slug: "permute_dim",
-    widget: "text",
-    label: "permute_dim",
-    defaultValue: "[0, 1, 2]",
-  },
+  textField("reshape_dim", "List", { defaultValue: "[-1]" }),
+  textField("transpose_dim", "List", { defaultValue: "[0, 1]" }),
+  textField("permute_dim", "List", { defaultValue: "[0, 1, 2]" }),
   INPUT_REUSED_FIELD,
+  textField("reduce_dim", "int"),
+  boolField("reduce_keepdims", "false"),
+  textField("shape_dim", "int"),
+  {
+    slug: "actual_vars",
+    widget: "append_list",
+    options: ACTUAL_VARS_OPTIONS,
+    defaultValue: "[]",
+    label: "actual_vars",
+    valueType: "List",
+    helpTextKey: "popup.nn.help.actual_vars",
+  },
+  {
+    slug: "subscript_indices",
+    widget: "subscript_indices",
+    label: "subscript_indices",
+    helpTextKey: "popup.nn.help.subscript_indices",
+  },
+  {
+    slug: "repeat_dim",
+    widget: "repeat_dim",
+    label: "repeat_dim",
+    valueType: "List",
+    helpTextKey: "popup.nn.help.repeat_dim",
+  },
+  textField("interpolate_size", "str", {
+    helpTextKey: "popup.nn.help.interpolate_size",
+  }),
+  textField("interpolate_scale", "float"),
+  {
+    slug: "interpolate_mode",
+    widget: "dropdown",
+    options: INTERPOLATE_MODE_OPTIONS,
+    defaultValue: "bilinear",
+    label: "interpolate_mode",
+  },
+  {
+    slug: "pad_amount",
+    widget: "pad_amount",
+    label: "pad_amount",
+    defaultValue: "[]",
+    helpTextKey: "popup.nn.help.pad_amount",
+  },
+  {
+    slug: "pad_mode",
+    widget: "dropdown",
+    options: PAD_MODE_OPTIONS,
+    defaultValue: "constant",
+    label: "pad_mode",
+  },
+  textField("pad_value", "float", { defaultValue: "0.0" }),
+  textField("dropout_rate", "float"),
+  boolField("dropout_training_aware", "false"),
+  textField("split_dim", "int", { helpTextKey: "popup.nn.help.split_dim" }),
+  textField("split_sizes", "List", {
+    helpTextKey: "popup.nn.help.split_sizes",
+  }),
+  PERMUTE_IN_FIELD,
+  PERMUTE_OUT_FIELD,
+  INPUT_VAR_FIELD,
+  OUTPUT_VAR_FIELD,
+  textField("output_vars", "List", { defaultValue: "[]" }),
 ]
 
-// V3 Configuration shipped string defaults for every
-// mandatory training field. Surface them on the schema so the
-// auto-fill effect seeds the node on drop. `weight_decay` /
-// `momentum` defaults live in NN_ATTRIBUTE_DEFAULTS already.
+// V3 Configuration shipped string defaults for every mandatory training
+// field. `weight_decay` / `momentum` defaults live in NN_ATTRIBUTE_DEFAULTS.
 const CONFIGURATION_FIELDS: AttributeWidgetConfig[] = [
-  { slug: "batch_size", widget: "text", label: "batch_size", mandatory: true },
-  { slug: "epochs", widget: "text", label: "epochs", mandatory: true },
+  {
+    slug: "batch_size",
+    widget: "text",
+    label: "batch_size",
+    mandatory: true,
+    valueType: "int",
+  },
+  {
+    slug: "epochs",
+    widget: "text",
+    label: "epochs",
+    mandatory: true,
+    valueType: "int",
+  },
   {
     slug: "learning_rate",
     widget: "text",
     label: "learning_rate",
     mandatory: true,
+    valueType: "float",
   },
   {
     slug: "optimizer",
@@ -526,14 +784,13 @@ const CONFIGURATION_FIELDS: AttributeWidgetConfig[] = [
     mandatory: true,
     defaultValue: "[accuracy]",
   },
-  { slug: "weight_decay", widget: "text", label: "weight_decay" },
-  { slug: "momentum", widget: "text", label: "momentum" },
+  textField("weight_decay", "float"),
+  textField("momentum", "float"),
 ]
 
 const DATASET_FIELDS: AttributeWidgetConfig[] = [
   NAME_FIELD,
-  // V3 default = 'path/to/data'. Mandatory in v3, so
-  // surface the placeholder default for parity with the v3 auto-fill.
+  // V3 default = 'path/to/data'.
   {
     slug: "path_data",
     widget: "text",
@@ -556,13 +813,7 @@ const DATASET_FIELDS: AttributeWidgetConfig[] = [
     label: "input_format",
   },
   { slug: "shape", widget: "text", label: "shape" },
-  {
-    slug: "normalize",
-    widget: "dropdown",
-    options: BOOLEAN_OPTIONS,
-    defaultValue: "false",
-    label: "normalize",
-  },
+  boolField("normalize", "false"),
 ]
 
 /**
@@ -578,7 +829,7 @@ export const LAYER_ATTRIBUTE_SCHEMA: Readonly<
   Conv3DLayer: CONV_FIELDS,
   PoolingLayer: POOLING_FIELDS,
   RNNLayer: RECURRENT_FIELDS,
-  LSTMLayer: RECURRENT_FIELDS,
+  LSTMLayer: LSTM_FIELDS,
   GRULayer: RECURRENT_FIELDS,
   LinearLayer: LINEAR_FIELDS,
   FlattenLayer: FLATTEN_FIELDS,
@@ -757,6 +1008,109 @@ export const V3_ATTRIBUTE_TYPE_TO_SLUG: Readonly<Record<string, string>> =
     InputFormatAttributeDataset: "input_format",
     ShapeAttributeDataset: "shape",
     NormalizeAttributeDataset: "normalize",
+    /* Extended attributes (smart-gen efd85b50 … 34060d56). */
+    EpsAttributeBatchNormalization: "eps",
+    MomentumAttributeBatchNormalization: "momentum",
+    AffineAttributeBatchNormalization: "affine",
+    TrackRunningStatsAttributeBatchNormalization: "track_running_stats",
+    IsLayerCallAttributeBatchNormalization: "is_layer_call",
+    InputVarAttributeBatchNormalization: "input_var",
+    OutputVarAttributeBatchNormalization: "output_var",
+    DilationAttributeConv1D: "dilation",
+    GroupsAttributeConv1D: "groups",
+    BiasAttributeConv1D: "bias",
+    IsLayerCallAttributeConv1D: "is_layer_call",
+    InputVarAttributeConv1D: "input_var",
+    OutputVarAttributeConv1D: "output_var",
+    DilationAttributeConv2D: "dilation",
+    GroupsAttributeConv2D: "groups",
+    BiasAttributeConv2D: "bias",
+    IsLayerCallAttributeConv2D: "is_layer_call",
+    InputVarAttributeConv2D: "input_var",
+    OutputVarAttributeConv2D: "output_var",
+    DilationAttributeConv3D: "dilation",
+    GroupsAttributeConv3D: "groups",
+    BiasAttributeConv3D: "bias",
+    IsLayerCallAttributeConv3D: "is_layer_call",
+    InputVarAttributeConv3D: "input_var",
+    OutputVarAttributeConv3D: "output_var",
+    DimensionAttributeDropout: "dimension",
+    IsLayerCallAttributeDropout: "is_layer_call",
+    InputVarAttributeDropout: "input_var",
+    OutputVarAttributeDropout: "output_var",
+    PermuteInAttributeDropout: "permute_in",
+    PermuteOutAttributeDropout: "permute_out",
+    PaddingIdxAttributeEmbedding: "padding_idx",
+    IsLayerCallAttributeEmbedding: "is_layer_call",
+    InputVarAttributeEmbedding: "input_var",
+    OutputVarAttributeEmbedding: "output_var",
+    PermuteInAttributeEmbedding: "permute_in",
+    PermuteOutAttributeEmbedding: "permute_out",
+    IsLayerCallAttributeFlatten: "is_layer_call",
+    InputVarAttributeFlatten: "input_var",
+    OutputVarAttributeFlatten: "output_var",
+    BiasAttributeGRU: "bias",
+    HxSourceAttributeGRU: "hx_source",
+    IsLayerCallAttributeGRU: "is_layer_call",
+    InputVarAttributeGRU: "input_var",
+    OutputVarAttributeGRU: "output_var",
+    HiddenStateVarAttributeGRU: "hidden_state_var",
+    HiddenUnusedAttributeGRU: "hidden_unused",
+    HiddenSubscriptSourceAttributeGRU: "hidden_subscript_source",
+    HiddenSubscriptTargetAttributeGRU: "hidden_subscript_target",
+    EpsAttributeLayerNormalization: "eps",
+    AffineAttributeLayerNormalization: "affine",
+    IsLayerCallAttributeLayerNormalization: "is_layer_call",
+    InputVarAttributeLayerNormalization: "input_var",
+    OutputVarAttributeLayerNormalization: "output_var",
+    BiasAttributeLinear: "bias",
+    IsLayerCallAttributeLinear: "is_layer_call",
+    InputVarAttributeLinear: "input_var",
+    OutputVarAttributeLinear: "output_var",
+    BiasAttributeLSTM: "bias",
+    HxSourceAttributeLSTM: "hx_source",
+    IsLayerCallAttributeLSTM: "is_layer_call",
+    InputVarAttributeLSTM: "input_var",
+    OutputVarAttributeLSTM: "output_var",
+    HiddenStateVarAttributeLSTM: "hidden_state_var",
+    CellStateVarAttributeLSTM: "cell_state_var",
+    HiddenUnusedAttributeLSTM: "hidden_unused",
+    CellUnusedAttributeLSTM: "cell_unused",
+    HiddenSubscriptSourceAttributeLSTM: "hidden_subscript_source",
+    HiddenSubscriptTargetAttributeLSTM: "hidden_subscript_target",
+    IsLayerCallAttributePooling: "is_layer_call",
+    InputVarAttributePooling: "input_var",
+    OutputVarAttributePooling: "output_var",
+    BiasAttributeRNN: "bias",
+    HxSourceAttributeRNN: "hx_source",
+    IsLayerCallAttributeRNN: "is_layer_call",
+    InputVarAttributeRNN: "input_var",
+    OutputVarAttributeRNN: "output_var",
+    HiddenStateVarAttributeRNN: "hidden_state_var",
+    HiddenUnusedAttributeRNN: "hidden_unused",
+    HiddenSubscriptSourceAttributeRNN: "hidden_subscript_source",
+    HiddenSubscriptTargetAttributeRNN: "hidden_subscript_target",
+    ReduceDimAttributeTensorOp: "reduce_dim",
+    ReduceKeepdimAttributeTensorOp: "reduce_keepdims",
+    ShapeDimAttributeTensorOp: "shape_dim",
+    ActualVarsAttributeTensorOp: "actual_vars",
+    SubscriptIndicesAttributeTensorOp: "subscript_indices",
+    RepeatDimAttributeTensorOp: "repeat_dim",
+    InterpolateSizeAttributeTensorOp: "interpolate_size",
+    InterpolateScaleAttributeTensorOp: "interpolate_scale",
+    InterpolateModeAttributeTensorOp: "interpolate_mode",
+    PadAmountAttributeTensorOp: "pad_amount",
+    PadModeAttributeTensorOp: "pad_mode",
+    PadValueAttributeTensorOp: "pad_value",
+    DropoutRateAttributeTensorOp: "dropout_rate",
+    DropoutTrainingAwareAttributeTensorOp: "dropout_training_aware",
+    SplitDimAttributeTensorOp: "split_dim",
+    SplitSizesAttributeTensorOp: "split_sizes",
+    PermuteInAttributeTensorOp: "permute_in",
+    PermuteOutAttributeTensorOp: "permute_out",
+    InputVarAttributeTensorOp: "input_var",
+    OutputVarAttributeTensorOp: "output_var",
+    OutputVarsAttributeTensorOp: "output_vars",
   })
 
 /**

@@ -59,10 +59,12 @@ missing key per language. Untranslated keys show the English text in the running
 
 Say you want to add Italian (`it`). Codes are ISO 639-1 (lowercase).
 
-1. **Register the editor locale.** In
-   `packages/editor/src/main/services/editor/editor-types.ts`, add `it = 'it',` to the
-   `Locale` enum, and register it in `packages/editor/src/main/components/i18n/i18n-provider.tsx`
-   (import the new JSON and add it to the `dictionary` map).
+1. **Register the editor locale.** The diagram editor is the React Flow library
+   (`packages/library`, published as `@besser/wme`):
+   - In `packages/library/lib/typings.ts`, add `it = "it",` to the `Locale` enum.
+   - In `packages/library/lib/i18n/index.ts`, import the new bundle next to the others
+     (`import it from "../../../i18n/it/editor.json"`) and add it to the `dictionary`
+     map (`[Locale.it]: it,`). TypeScript will flag the map as incomplete until you do.
 
 2. **Register the webapp language.** In
    `packages/webapp/src/main/shared/i18n/languages.ts`, add an entry to `SUPPORTED_LANGUAGES`:
@@ -138,7 +140,8 @@ Every non-English string must be reviewed by a native/fluent speaker before merg
 The golden rule: **never hardcode a user-facing string.** If you write literal English into a
 component, it can never localize — it will show English in every language, silently. Instead,
 route it through `t()` (plain text) or `<Trans>` (rich text) with a **key**, and put the actual
-English text in `packages/i18n/en/webapp.json`. English is the single source of truth every other
+English text in `packages/i18n/en/webapp.json` (or `en/editor.json` for strings inside the diagram
+editor — see step 6). English is the single source of truth every other
 language is translated from; a key with no `en` entry renders the raw key string (e.g.
 `dialogs.feedback.title`) in the UI, which is your signal you forgot step 5.
 
@@ -213,8 +216,25 @@ check, or leave them for the BESSER team to complete and review. Then run
 stale keys. Untranslated keys in the other languages are reported as warnings, not failures,
 and fall back to English at runtime.
 
+**6. Editor (canvas) strings** — the React Flow library does not use react-i18next. It has its
+own small translator over the same `packages/i18n/<lang>/editor.json` bundles:
+
+```tsx
+import { useTranslation } from "@/i18n" // inside packages/library/lib
+
+const { t } = useTranslation()
+<InputLabel>{t("common.edgeType", "Edge Type")}</InputLabel>
+t("popup.nn.row.dim", "Dim {n}:", { n: 2 }) // {{name}} and {name} placeholders
+```
+
+The second argument is an English fallback used only if the key is missing from every bundle
+(the English entry in `en/editor.json` is still required). The hook re-renders when the host
+changes the language (`editor.locale = "de"`, driven by the webapp's language selector) and
+falls back to English when no editor store is mounted. Outside React, use
+`translate(key, fallback, locale, params)` from the same module.
+
 > **Tip:** i18next *does* accept an inline English default (`t('key', 'English text')`), but
-> this project's convention is **key-only** — all English lives in `en/webapp.json` (and
+> the webapp's convention is **key-only** — all English lives in `en/webapp.json` (and
 > `en/editor.json`) as the single source of truth (a quick grep finds ~1000 `t('…')` calls and
 > zero inline defaults). Keeping every string in the English files is what lets
 > `npm run i18n:check` verify each key is present in English and track coverage for the
@@ -265,5 +285,6 @@ node scripts/i18n-check.mjs --complete
       only warn. If you renamed or removed keys, fix the resulting extra-key failures.
 - [ ] `npm run test --workspace=webapp` passes.
 - [ ] Reviewed by a native/fluent speaker — name them or note "self, native speaker" in the PR.
-- [ ] For a brand-new language: registered in `editor-types.ts`, `i18n-provider.tsx`,
-      `languages.ts`, and `shared/i18n/index.ts`.
+- [ ] For a brand-new language: registered in the library's `typings.ts` (`Locale` enum)
+      and `lib/i18n/index.ts` (`dictionary`), and in the webapp's `languages.ts` and
+      `shared/i18n/index.ts`.

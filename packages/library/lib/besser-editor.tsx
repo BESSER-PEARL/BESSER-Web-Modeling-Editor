@@ -10,7 +10,10 @@ import {
   getRenderedDiagramBounds,
   normalizeV4Model,
 } from "./utils"
-import { computeAutoLayout } from "./utils/autoLayout"
+import { computeAutoLayout, type AutoLayoutOptions } from "./utils/autoLayout"
+import { normalizeAgentComponents } from "./utils/agentComponents"
+import { hardenImportedModel } from "./utils/importHardening"
+import { createOffscreenExportContainer } from "./utils/exportContainer"
 import { UMLDiagramType } from "./types"
 import { createDiagramStore, DiagramStore } from "@/store/diagramStore"
 import { createMetadataStore, MetadataStore } from "@/store/metadataStore"
@@ -60,6 +63,19 @@ export class BesserEditor {
   private readonly assessmentSelectionStore: StoreApi<AssessmentSelectionStore>
   private readonly alignmentGuidesStore: StoreApi<AlignmentGuidesStore>
   private subscribers: Besser.Subscribers = {}
+  /** `options.scale` at construction (v3 `getScaleFactor()`). */
+  private scaleFactor = 1
+  /**
+   * Agent components migrated out of a legacy model on load (canvas nodes /
+   * `agentComponents` → `components`, see `prepareAgentModel`). They are
+   * not editor state, so they ride on the emitted `model` only until the
+   * first model-change notification has handed them to the host for
+   * persisting; later emissions omit `components` so they never overwrite
+   * the host's (possibly newer) copy — the webapp keeps the stored
+   * `model.components` when an emitted model lacks them.
+   */
+  private migratedAgentComponents?: Besser.UMLModel["components"]
+  private clearMigratedScheduled = false
   // `ready` resolves once React Flow has initialised (i.e. once
   // `setReactFlowInstance` has been invoked by `<AppWithProvider
   // onReactFlowInit={...} />`). It replaces the v3 `nextRender` getter
@@ -110,6 +126,10 @@ export class BesserEditor {
       .updateMetaData(diagramName, parseDiagramType(diagramType))
 
     if (options?.model) {
+      // AgentDiagram: move legacy component nodes off the canvas.
+      options = { ...options, model: this.prepareAgentModel(options.model) }
+    }
+    if (options?.model) {
       const nodes = options.model.nodes || []
       const edges = options.model.edges || []
       const assessments = options.model.assessments || {}
@@ -153,6 +173,8 @@ export class BesserEditor {
     if (options?.locale !== undefined) {
       this.metadataStore.getState().setLocale(options.locale)
     }
+    // v3 `getScaleFactor()` parity: the configured `options.scale`.
+    this.scaleFactor = options?.scale || 1
 
     if (
       this.metadataStore.getState().mode === Besser.BesserMode.Modelling &&
@@ -265,14 +287,10 @@ export class BesserEditor {
     model: Besser.UMLModel,
     options?: Besser.ExportOptions
   ): Promise<Besser.SVG> {
-    const container = document.createElement("div")
-    container.style.display = "flex"
-    container.style.width = "4000px"
-    container.style.height = "4000px"
-    container.style.zIndex = "-1000"
-    container.style.top = "0"
-    container.style.position = "absolute"
-    container.style.left = "-99px"
+    // Fixed, pointer-inert off-screen mount (upstream Apollon #841): an
+    // absolute 4000x4000 box grew the host page's scroll area while an
+    // async export ran.
+    const container = createOffscreenExportContainer()
 
     document.body.appendChild(container)
 
@@ -296,6 +314,11 @@ export class BesserEditor {
       identifierPrefix: `besser-exportAsSVG-${diagramId}`,
     })
 
+    // Agent components never render: strip legacy component nodes
+    // (smart-gen 3d720bdd — exporting an agent diagram with an intent
+    // crashed the old editor's SVG export).
+    // Same contract-neutral load hardening as `set model`.
+    model = normalizeAgentComponents(hardenImportedModel(model))
     diagramStore.getState().setNodesAndEdges(model.nodes, model.edges)
     diagramStore.getState().setAssessments(model.assessments)
 
@@ -397,11 +420,34 @@ export class BesserEditor {
     callback: (state: Besser.UMLModel) => void
   ): number {
     const subscriberId = this.getNewSubscriptionId()
-    const unsubscribeCallback = this.diagramStore.subscribe(() =>
+    const unsubscribeCallback = this.diagramStore.subscribe(() => {
       callback(this.model)
-    )
+      this.scheduleClearMigratedAgentComponents()
+    })
     this.subscribers[subscriberId] = unsubscribeCallback
     return subscriberId
+  }
+
+  /**
+   * Normalizes an AgentDiagram model on load: component-typed nodes and
+   * legacy `agentComponents` move into `components`. Remembers what was
+   * migrated so the next emitted model hands it to the host once.
+   */
+  private prepareAgentModel(model: Besser.UMLModel): Besser.UMLModel {
+    const normalized = normalizeAgentComponents(model)
+    this.migratedAgentComponents =
+      normalized !== model ? normalized.components : undefined
+    return normalized
+  }
+
+  /** Drop the load-time components after every subscriber saw them once. */
+  private scheduleClearMigratedAgentComponents() {
+    if (!this.migratedAgentComponents || this.clearMigratedScheduled) return
+    this.clearMigratedScheduled = true
+    queueMicrotask(() => {
+      this.migratedAgentComponents = undefined
+      this.clearMigratedScheduled = false
+    })
   }
 
   public subscribeToDiagramNameChange(
@@ -424,6 +470,75 @@ export class BesserEditor {
     )
     this.subscribers[subscriberId] = unsubscribeCallback
     return subscriberId
+  }
+
+  /**
+   * v3 API parity (`apollon-editor.ts` `subscribeToModelDiscreteChange`):
+   * notify only on *discrete* model changes — i.e. not on every
+   * intermediate frame of a drag / resize, and not on selection-only
+   * changes. Fires once when the gesture ends (the store update that
+   * clears `dragging` / `resizing`) and after any other committed edit.
+   * Returns a numeric id usable with `unsubscribe(id)`.
+   */
+  public subscribeToModelDiscreteChange(
+    callback: (model: Besser.UMLModel) => void
+  ): number {
+    const subscriberId = this.getNewSubscriptionId()
+    let lastSerialized: string | null = null
+    const unsubscribeCallback = this.diagramStore.subscribe((state, prev) => {
+      if (
+        state.nodes === prev.nodes &&
+        state.edges === prev.edges &&
+        state.assessments === prev.assessments
+      ) {
+        return
+      }
+      if (state.nodes.some((node) => node.dragging || node.resizing)) return
+      const model = this.model
+      // `model` strips view-only fields (selection, dragging), so an
+      // unchanged serialization means nothing discrete happened.
+      const serialized = JSON.stringify({
+        nodes: model.nodes,
+        edges: model.edges,
+        assessments: model.assessments,
+      })
+      if (serialized === lastSerialized) return
+      lastSerialized = serialized
+      callback(model)
+    })
+    this.subscribers[subscriberId] = unsubscribeCallback
+    return subscriberId
+  }
+
+  /**
+   * v3 API parity (`apollon-editor.ts` `subscribeToAssessmentChange`):
+   * called with the full assessment list whenever an assessment is added,
+   * changed or removed. Returns a numeric id usable with `unsubscribe(id)`.
+   */
+  public subscribeToAssessmentChange(
+    callback: (assessments: Besser.Assessment[]) => void
+  ): number {
+    const subscriberId = this.getNewSubscriptionId()
+    let lastSerialized = JSON.stringify(
+      this.diagramStore.getState().assessments
+    )
+    const unsubscribeCallback = this.diagramStore.subscribe((state, prev) => {
+      if (state.assessments === prev.assessments) return
+      const serialized = JSON.stringify(state.assessments)
+      if (serialized === lastSerialized) return
+      lastSerialized = serialized
+      callback(Object.values(state.assessments))
+    })
+    this.subscribers[subscriberId] = unsubscribeCallback
+    return subscriberId
+  }
+
+  /**
+   * v3 API parity (`apollon-editor.ts` `getScaleFactor`): the scale factor
+   * the editor was configured with (`options.scale`, default 1).
+   */
+  public getScaleFactor(): number {
+    return this.scaleFactor
   }
 
   public unsubscribe(subscriberId: number) {
@@ -484,6 +599,9 @@ export class BesserEditor {
       edges: edges.map((edge) => mapFromReactFlowEdgeToBesserEdge(edge)),
       assessments: this.diagramStore.getState().assessments,
       ...(interactive && { interactive }),
+      ...(this.migratedAgentComponents && {
+        components: this.migratedAgentComponents,
+      }),
     }
   }
 
@@ -495,7 +613,12 @@ export class BesserEditor {
     // editor sees it. Webapp call sites set `editor.model = template`
     // directly, bypassing `importDiagram`, so this is the only chokepoint
     // we can rely on to scrub legacy inputs.
-    const normalized = normalizeV4Model(model)
+    // Contract-neutral hardening first (strip persisted selected / dragging
+    // / resizing flags, guard edges with null `data` or missing `points`)
+    // so the normalizers below never dereference a malformed edge.
+    const normalized = this.prepareAgentModel(
+      normalizeV4Model(hardenImportedModel(model))
+    )
     const { nodes, edges, assessments, interactive } = normalized
 
     // Replacing the model wholesale should also
@@ -622,17 +745,18 @@ export class BesserEditor {
   }
 
   /**
-   * Re-arrange the current diagram with the ELK layered layouter — the
-   * same routine the in-canvas auto-layout button runs. Node positions and
+   * Re-arrange the current diagram with ELK — the same per-diagram-type
+   * routine the in-canvas auto-layout button runs (`options.strategy` picks
+   * one of `getAutoLayoutStrategies(diagramType)`; default: the first). Node positions and
    * edge handles are replaced in the store (one undoable step) and the
    * viewport is fitted to the result once React Flow has mounted. Resolves
    * when the layout has been applied; a no-op for an empty diagram.
    */
-  public async autoLayout(): Promise<void> {
+  public async autoLayout(options: AutoLayoutOptions = {}): Promise<void> {
     const { nodes, edges, setNodesAndEdges } = this.diagramStore.getState()
     if (nodes.length === 0) return
     const { diagramType } = this.metadataStore.getState()
-    const layouted = await computeAutoLayout(nodes, edges, diagramType)
+    const layouted = await computeAutoLayout(nodes, edges, diagramType, options)
     setNodesAndEdges(layouted.nodes, layouted.edges)
     const instance = this.reactFlowInstance
     if (instance && typeof window !== "undefined") {

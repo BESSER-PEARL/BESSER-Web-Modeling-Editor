@@ -8,8 +8,8 @@
       "id": "5101d9d5-7741-47dc-b374-8f31b481977b",
       "type": "class",
       "position": {
-        "x": 65,
-        "y": 325
+        "x": -510,
+        "y": -40
       },
       "width": 160,
       "height": 70,
@@ -34,8 +34,8 @@
       "id": "02393d14-1c7f-46ed-ac34-edfdb15a0a11",
       "type": "class",
       "position": {
-        "x": 460,
-        "y": 310
+        "x": -120,
+        "y": -60
       },
       "width": 160,
       "height": 100,
@@ -66,8 +66,8 @@
       "id": "7b869892-2779-4a06-9885-016987001106",
       "type": "class",
       "position": {
-        "x": 40,
-        "y": 590
+        "x": -540,
+        "y": 220
       },
       "width": 160,
       "height": 40,
@@ -85,8 +85,8 @@
       "id": "e809cf0e-9a3e-4054-9ecf-6f8279b3e1d1",
       "type": "class",
       "position": {
-        "x": 880,
-        "y": 340
+        "x": 300,
+        "y": -30
       },
       "width": 160,
       "height": 100,
@@ -117,13 +117,13 @@
       "id": "660b100c-850b-4b0a-8e40-34587b2e26f6",
       "type": "class",
       "position": {
-        "x": 455,
-        "y": 40
+        "x": -130,
+        "y": -330
       },
-      "width": 170,
+      "width": 160,
       "height": 130,
       "measured": {
-        "width": 170,
+        "width": 160,
         "height": 130
       },
       "data": {
@@ -155,8 +155,8 @@
       "id": "19468ddd-4cb4-4fc7-b517-3ca791c0dd2d",
       "type": "class",
       "position": {
-        "x": 460,
-        "y": 590
+        "x": -120,
+        "y": 220
       },
       "width": 160,
       "height": 40,
@@ -174,8 +174,8 @@
       "id": "33767060-a21f-45a3-bbaa-5a0f98ce9554",
       "type": "class",
       "position": {
-        "x": 270,
-        "y": 590
+        "x": -310,
+        "y": 220
       },
       "width": 160,
       "height": 40,
@@ -193,8 +193,8 @@
       "id": "408d2eed-bff8-4749-9cfb-63156d692f93",
       "type": "class",
       "position": {
-        "x": 670,
-        "y": 590
+        "x": 90,
+        "y": 220
       },
       "width": 160,
       "height": 40,
@@ -214,7 +214,7 @@
       "id": "f497993c-4607-4858-9ffb-6adc5869a784",
       "source": "660b100c-850b-4b0a-8e40-34587b2e26f6",
       "target": "02393d14-1c7f-46ed-ac34-edfdb15a0a11",
-      "type": "ClassUnidirectional",
+      "type": "ClassBidirectional",
       "sourceHandle": "bottom",
       "targetHandle": "top",
       "data": {
@@ -224,16 +224,27 @@
         "targetMultiplicity": "1..*",
         "sourceRole": "product",
         "targetRole": "stages",
+        "sourceNavigable": false,
+        "targetNavigable": true,
         "isManuallyLayouted": false,
         "messages": [],
-        "points": []
+        "points": [
+          {
+            "x": -45,
+            "y": -200
+          },
+          {
+            "x": -45,
+            "y": -60
+          }
+        ]
       }
     },
     {
       "id": "afcc1027-4651-4ccf-8fd3-8771ca20e721",
       "source": "408d2eed-bff8-4749-9cfb-63156d692f93",
       "target": "e809cf0e-9a3e-4054-9ecf-6f8279b3e1d1",
-      "type": "ClassUnidirectional",
+      "type": "ClassBidirectional",
       "sourceHandle": "right-bottom",
       "targetHandle": "bottom",
       "data": {
@@ -243,18 +254,33 @@
         "targetMultiplicity": "0..*",
         "sourceRole": "stage",
         "targetRole": "reparations",
+        "sourceNavigable": false,
+        "targetNavigable": true,
         "isManuallyLayouted": false,
         "messages": [],
-        "points": []
+        "points": [
+          {
+            "x": 250,
+            "y": 250
+          },
+          {
+            "x": 380,
+            "y": 250
+          },
+          {
+            "x": 380,
+            "y": 70
+          }
+        ]
       }
     },
     {
       "id": "013e68a9-aecd-440c-ad74-7bbd60e60546",
       "source": "02393d14-1c7f-46ed-ac34-edfdb15a0a11",
       "target": "5101d9d5-7741-47dc-b374-8f31b481977b",
-      "type": "ClassUnidirectional",
+      "type": "ClassBidirectional",
       "sourceHandle": "left",
-      "targetHandle": "right",
+      "targetHandle": "right-bottom",
       "data": {
         "label": "material_spend",
         "name": "material_spend",
@@ -262,9 +288,20 @@
         "targetMultiplicity": "1..*",
         "sourceRole": "used_for",
         "targetRole": "use",
+        "sourceNavigable": false,
+        "targetNavigable": true,
         "isManuallyLayouted": false,
         "messages": [],
-        "points": []
+        "points": [
+          {
+            "x": -120,
+            "y": -5
+          },
+          {
+            "x": -350,
+            "y": -5
+          }
+        ]
       }
     },
     {
@@ -282,7 +319,24 @@
         "targetRole": "",
         "isManuallyLayouted": false,
         "messages": [],
-        "points": []
+        "points": [
+          {
+            "x": -460,
+            "y": 220
+          },
+          {
+            "x": -460,
+            "y": 130
+          },
+          {
+            "x": -40,
+            "y": 130
+          },
+          {
+            "x": -40,
+            "y": 40
+          }
+        ]
       }
     },
     {
@@ -300,7 +354,16 @@
         "targetRole": "",
         "isManuallyLayouted": false,
         "messages": [],
-        "points": []
+        "points": [
+          {
+            "x": -40,
+            "y": 220
+          },
+          {
+            "x": -40,
+            "y": 40
+          }
+        ]
       }
     },
     {
@@ -318,7 +381,24 @@
         "targetRole": "",
         "isManuallyLayouted": false,
         "messages": [],
-        "points": []
+        "points": [
+          {
+            "x": 170,
+            "y": 220
+          },
+          {
+            "x": 170,
+            "y": 130
+          },
+          {
+            "x": -40,
+            "y": 130
+          },
+          {
+            "x": -40,
+            "y": 40
+          }
+        ]
       }
     },
     {
@@ -336,7 +416,24 @@
         "targetRole": "",
         "isManuallyLayouted": false,
         "messages": [],
-        "points": []
+        "points": [
+          {
+            "x": -230,
+            "y": 220
+          },
+          {
+            "x": -230,
+            "y": 130
+          },
+          {
+            "x": -40,
+            "y": 130
+          },
+          {
+            "x": -40,
+            "y": 40
+          }
+        ]
       }
     }
   ],

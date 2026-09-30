@@ -330,10 +330,24 @@ describe("convertV3EdgeTypeToV4", () => {
       )
     })
 
-    it("returns BPMNFlow as-is when flowType is undefined (not in edge map)", () => {
-      // BPMNFlow is NOT in edgeTypeMap, and flowType is undefined so the
-      // BPMN branch is skipped → falls through to identity return
-      expect(convertV3EdgeTypeToV4("BPMNFlow")).toBe("BPMNFlow")
+    it("defaults BPMNFlow without flowType to BPMNSequenceFlow (old-editor default)", () => {
+      // smart-generator `BPMNFlow.defaultFlowType = 'sequence'`; an
+      // unregistered v4 `BPMNFlow` edge type would never render.
+      expect(convertV3EdgeTypeToV4("BPMNFlow")).toBe("BPMNSequenceFlow")
+    })
+
+    it("maps the old editor's 'data association' spelling (with a space)", () => {
+      for (const spelling of [
+        "data association",
+        "dataAssociation",
+        "data_association",
+        "data-association",
+        "Data Association",
+      ]) {
+        expect(convertV3EdgeTypeToV4("BPMNFlow", spelling)).toBe(
+          "BPMNDataAssociationFlow"
+        )
+      }
     })
   })
 
@@ -668,6 +682,42 @@ describe("convertV3ToV4", () => {
     const result = convertV3ToV4(data)
     expect(result.edges[0].type).toBe("BPMNMessageFlow")
     expect(result.edges[0].data.flowType).toBe("message")
+  })
+
+  it("carries BPMN isDefault onto the v4 edge data (default flow)", () => {
+    const rel = makeV3Relationship({
+      id: "r1",
+      type: "BPMNFlow",
+      flowType: "sequence",
+      isDefault: true,
+      source: { element: "e1", direction: "Right" },
+      target: { element: "e2", direction: "Left" },
+    })
+    const plain = makeV3Relationship({
+      id: "r2",
+      type: "BPMNFlow",
+      flowType: "sequence",
+      isDefault: false,
+      source: { element: "e1", direction: "Right" },
+      target: { element: "e2", direction: "Left" },
+    })
+    const data = makeV3Wrapped({ relationships: { r1: rel, r2: plain } })
+    const result = convertV3ToV4(data)
+    const byId = Object.fromEntries(result.edges.map((e) => [e.id, e]))
+    expect(byId.r1.type).toBe("BPMNSequenceFlow")
+    expect(byId.r1.data.isDefault).toBe(true)
+    expect(byId.r2.data.isDefault).toBeUndefined()
+  })
+
+  it("maps a v3 'data association' flow to BPMNDataAssociationFlow", () => {
+    const rel = makeV3Relationship({
+      type: "BPMNFlow",
+      flowType: "data association",
+      source: { element: "e1", direction: "Right" },
+      target: { element: "e2", direction: "Left" },
+    })
+    const result = convertV3ToV4(makeV3Wrapped({ relationships: { r1: rel } }))
+    expect(result.edges[0].type).toBe("BPMNDataAssociationFlow")
   })
 
   it("includes messages in edge data", () => {

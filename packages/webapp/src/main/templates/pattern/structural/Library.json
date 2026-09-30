@@ -8,8 +8,8 @@
       "id": "7cb2a7d3-e224-4b6d-8134-5bf644d8bd31",
       "type": "class",
       "position": {
-        "x": 40,
-        "y": 50
+        "x": -600,
+        "y": -300
       },
       "width": 160,
       "height": 100,
@@ -40,8 +40,8 @@
       "id": "2997ca04-d773-4288-b4a0-3ea2f2ba0ac8",
       "type": "class",
       "position": {
-        "x": 440,
-        "y": 50
+        "x": -200,
+        "y": -300
       },
       "width": 160,
       "height": 130,
@@ -54,16 +54,16 @@
         "methods": [],
         "attributes": [
           {
-            "id": "dc75094a-7f91-45ff-ab74-a14900df8084",
-            "name": "title",
-            "visibility": "public",
-            "attributeType": "str"
-          },
-          {
             "id": "d9542708-d9c0-4325-92f0-90d0e426c441",
             "name": "pages",
             "visibility": "public",
             "attributeType": "int"
+          },
+          {
+            "id": "dc75094a-7f91-45ff-ab74-a14900df8084",
+            "name": "title",
+            "visibility": "public",
+            "attributeType": "str"
           },
           {
             "id": "d8bf5afa-4e73-4ff7-8010-9de687b55906",
@@ -78,8 +78,8 @@
       "id": "7d5052ba-ac69-4057-93a1-78b970c8bd9b",
       "type": "class",
       "position": {
-        "x": 800,
-        "y": 40
+        "x": 160,
+        "y": -310
       },
       "width": 160,
       "height": 100,
@@ -121,9 +121,20 @@
         "targetMultiplicity": "0..*",
         "sourceRole": "writtenBy",
         "targetRole": "publishes",
+        "sourceNavigable": true,
+        "targetNavigable": true,
         "isManuallyLayouted": false,
         "messages": [],
-        "points": []
+        "points": [
+          {
+            "x": -440,
+            "y": -250
+          },
+          {
+            "x": -200,
+            "y": -250
+          }
+        ]
       }
     },
     {
@@ -139,9 +150,20 @@
         "targetMultiplicity": "0..*",
         "sourceRole": "locatedIn",
         "targetRole": "has",
+        "sourceNavigable": true,
+        "targetNavigable": true,
         "isManuallyLayouted": false,
         "messages": [],
-        "points": []
+        "points": [
+          {
+            "x": 160,
+            "y": -255
+          },
+          {
+            "x": -40,
+            "y": -255
+          }
+        ]
       }
     }
   ],

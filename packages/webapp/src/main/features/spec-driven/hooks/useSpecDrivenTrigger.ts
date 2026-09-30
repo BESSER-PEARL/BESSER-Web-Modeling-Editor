@@ -23,8 +23,7 @@
  *      mounted, remounts mid-run, or owns this hook instance. If the
  *      card message disappears mid-run (New Chat on another surface, a
  *      project-switch race), the next event UPSERTS it back instead of
- *      silently no-oping (the old `idx === -1 → return prev` bug that
- *      left users staring at an empty bubble until the run finished).
+ *      silently no-oping.
  *   6. At the run's terminal point (`done`, terminal error, abort,
  *      stream cut) the final card state is snapshotted from the slice
  *      INTO the chat message and the slice entry is removed — history
@@ -36,10 +35,10 @@
  *      of a run, so they additionally arm a failsafe timeout in case
  *      the backend never sends `done`. `INCOMPLETE` can arrive mid-run
  *      (e.g. the base-expired "rebuilding from scratch" notice at the
- *      START of a modify run), so it must NOT arm the failsafe — doing
- *      so used to kill legitimate rebuilds 45s in.
+ *      START of a modify run), so it must NOT arm the failsafe — that
+ *      would kill legitimate rebuilds 45s in.
  *
- * Concurrency: only ONE smart-gen run is allowed at a time — GLOBALLY,
+ * Concurrency: only ONE spec-driven run is allowed at a time — GLOBALLY,
  * across all mounted hook instances (AssistantWidget and
  * AssistantWorkspaceDrawer both mount one). The per-instance
  * `isRunningRef` is backed by `specDriven.runStatus` in the store,
@@ -66,7 +65,10 @@ import { useAppDispatch, useAppSelector } from '../../../app/store/hooks';
 import { cancelSpecDrivenUrl } from '../../../shared/constants/constant';
 import type { BesserProject } from '../../../shared/types/project';
 import { buildProjectPayloadForBackend } from '../../../shared/utils/projectExportUtils';
-import { SseStallError } from '../../../shared/services/sse/sseClient';
+import {
+  SseHttpError,
+  SseStallError,
+} from '../../../shared/services/sse/sseClient';
 
 import {
   consumePendingTrigger,
@@ -85,16 +87,20 @@ import {
   tryClaimRunSlot,
 } from '../state/specDrivenSlice';
 import {
+  clearActiveSpecDrivenRun,
   clearSessionKey,
+  readActiveSpecDrivenRun,
   readFreeTierModel,
   readFreeTierSelected,
   readProjectLastRun,
   readSessionBudget,
   readSessionKey,
   writeFreeTierSelected,
+  writeActiveSpecDrivenRun,
   writeProjectLastRun,
 } from '../storage';
 import {
+  followSpecDrivenRun,
   startSpecDrivenRun,
   type StartSpecDrivenRunParams,
 } from '../services/specDrivenSseClient';
@@ -103,6 +109,8 @@ import {
   resolveFreeRunModel,
 } from '../services/specDrivenConfig';
 import { decideRunMode } from '../runModeDecision';
+import { getDemoToken } from '@/main/shared/services/demoMode';
+import { isPilotSession } from '@/main/shared/services/telemetry/pilotTelemetry';
 import type {
   SpecDrivenEvent,
   SpecDrivenProvider,
@@ -116,7 +124,7 @@ import type {
 // disk, while still freeing the user promptly if the backend hangs.
 const COST_TIMEOUT_FAILSAFE_MS = 45_000;
 
-// Incremental vibe-modify window used when the server's
+// Incremental modify window used when the server's
 // `download_ttl_seconds` is unavailable. Mirrors the backend default
 // (BESSER_LLM_DOWNLOAD_TTL_SECONDS = 1800s / 30 min): after this the
 // backend has garbage-collected the run's output, so a rebuild is forced.
@@ -135,7 +143,7 @@ const createMessageId = (): string => {
   return `smart-gen-${Date.now()}-${Math.random().toString(16).slice(2)}`;
 };
 
-// Initial stub state for a fresh smart-gen run card. The chat message
+// Initial stub state for a fresh spec-driven run card. The chat message
 // carries only this stub (plus the `liveKey` linking it to the Redux
 // slice entry); the LIVE state the card renders is owned by
 // `specDriven.runs[liveKey]` and updated on every SSE event.
@@ -151,16 +159,18 @@ const VALID_PROVIDERS: ReadonlySet<SpecDrivenProvider> = new Set<SpecDrivenProvi
   'anthropic',
   'openai',
   'mistral',
+  'nebius',
   'pia',
   'local',
   'free',
+  'sponsored',
 ]);
 
 const isValidProvider = (value: unknown): value is SpecDrivenProvider =>
   typeof value === 'string' && VALID_PROVIDERS.has(value as SpecDrivenProvider);
 
 /**
- * Terminal outcome of a smart-gen run, reported exactly once per run
+ * Terminal outcome of a spec-driven run, reported exactly once per run
  * via `onRunFinished` — used by the assistant orchestrator to close
  * the agent loop (`generator_result` frontend event).
  */
@@ -181,6 +191,15 @@ export interface SpecDrivenRunResult {
    * agent report "finished with N unresolved issues" instead of the
    * misleading "stopped early". */
   blockerCount?: number;
+  /** TRUE totals from the done event's verification report — what the run
+   * verified, could not verify, and delivered UNENFORCED. `blockerCount` is
+   * the same evidence collapsed to one number; `shippedUnenforced` is the
+   * one the agent must not round off to "success". */
+  verificationCounts?: {
+    verified: number;
+    notVerified: number;
+    shippedUnenforced: number;
+  };
 }
 
 export interface UseSpecDrivenTriggerOptions {
@@ -206,7 +225,7 @@ export function useSpecDrivenTrigger(
   const dispatch = useAppDispatch();
   const { currentProjectRef, setMessages, setIsGenerating } = options;
 
-  // Exactly one smart-gen run is allowed at a time. We guard against
+  // Exactly one spec-driven run is allowed at a time. We guard against
   // accidental double-triggers (two rapid agent actions, double-save in
   // the BYOK modal, etc.).
   const isRunningRef = useRef(false);
@@ -235,6 +254,8 @@ export function useSpecDrivenTrigger(
   // Latest runId / cost observed on the stream, for terminal reports.
   const currentRunIdRef = useRef<string | undefined>(undefined);
   const lastCostRef = useRef<number | undefined>(undefined);
+  const activeRunStartedAtRef = useRef<number>(0);
+  const lastSequenceRef = useRef<number>(0);
   // The active run's live key + card message id, so `abortActive` can
   // finalize the card immediately (a hung stream may never surface the
   // AbortError that would otherwise drive the finalize path).
@@ -290,14 +311,9 @@ export function useSpecDrivenTrigger(
 
   /**
    * Write `card` into the run's chat message — updating it in place when
-   * the message exists, and RECREATING it when it doesn't (upsert).
-   *
-   * The previous implementation silently dropped the write when the
-   * message id wasn't found (`idx === -1 → return prev`), which turned
-   * every subsequent live update into an invisible no-op once anything
-   * removed the card message from the list. Now the card is re-appended
-   * with the same id, so run state stays visible no matter what happened
-   * to the conversation in between.
+   * the message exists, and RECREATING it when it doesn't (upsert), so
+   * run state stays visible even if something removed the card message
+   * from the conversation in between.
    */
   const upsertCardMessage = useCallback(
     (
@@ -415,15 +431,12 @@ export function useSpecDrivenTrigger(
   // IMPORTANT: we deliberately do NOT auto-cancel a running generation on
   // pagehide/beforeunload. Those events fire on a plain REFRESH — which is
   // exactly what a user does after a transient "network error" — and cannot
-  // be told apart from a genuine tab close. Cancelling here destroyed healthy
-  // in-progress runs on refresh (observed in the pilot: a run ended
-  // failed:CANCELLED with 0 files after the user reloaded). On the free tier
+  // be told apart from a genuine tab close, so cancelling here would destroy
+  // healthy in-progress runs on refresh. On the free tier
   // there is no key/billing to protect, so the orphan-billing rationale does
   // not apply at all; an abandoned run simply completes (bounded by the cost
   // cap). Explicit cancels (the Stop button and New Chat -> abortActive) still
-  // stop a run on real user intent. A refined, provider-gated version (cancel
-  // on unload ONLY for BYOK/paid runs, and only once a reconnect-to-running-run
-  // path exists) can revisit this later.
+  // stop a run on real user intent. Durable replay now reattaches after a refresh.
   void cancelRunOnServer;  // retained for the explicit-cancel paths
 
   /**
@@ -494,8 +507,8 @@ export function useSpecDrivenTrigger(
       }
 
       // STATE FIRST — and never let one bad event kill a long stream: a
-      // reducer throw here used to propagate out of the for-await loop
-      // and error the whole run. Log it loudly instead (the slice state
+      // reducer throw would propagate out of the for-await loop and error
+      // the whole run. Log it loudly instead (the slice state
       // is unchanged on a reducer throw, so skipping is safe) and keep
       // consuming.
       try {
@@ -508,6 +521,36 @@ export function useSpecDrivenTrigger(
           applyError,
         );
         return;
+      }
+
+      if (event.event === 'start') currentRunIdRef.current = event.runId;
+      if (
+        typeof event.sequence === 'number' &&
+        Number.isFinite(event.sequence) &&
+        event.sequence > 0
+      ) {
+        lastSequenceRef.current = Math.trunc(event.sequence);
+      }
+      const durableRunId = currentRunIdRef.current;
+      // Avoid synchronous localStorage writes for every text delta. Start
+      // guarantees the pointer exists; phase/cost updates checkpoint it at a
+      // low cadence while the live reconnect still consumes every sequence.
+      const shouldPersistCursor =
+        event.event === 'start' ||
+        event.event === 'phase' ||
+        event.event === 'cost';
+      if (
+        shouldPersistCursor &&
+        durableRunId &&
+        run.projectId &&
+        lastSequenceRef.current > 0
+      ) {
+        writeActiveSpecDrivenRun({
+          runId: durableRunId,
+          projectId: run.projectId,
+          lastSequence: lastSequenceRef.current,
+          startedAt: activeRunStartedAtRef.current || Date.now(),
+        });
       }
 
       switch (event.event) {
@@ -541,6 +584,7 @@ export function useSpecDrivenTrigger(
           const doneRunId =
             event.runId || extractSpecDrivenRunId(event.downloadUrl) || undefined;
           if (doneRunId) currentRunIdRef.current = doneRunId;
+          clearActiveSpecDrivenRun(doneRunId);
           // The deterministic Phase-1 generator BESSER ran (e.g. `fastapi`,
           // `django`, `web_app`). It's the only reliable "what was generated"
           // signal available client-side — a richer summary (file count, full
@@ -562,8 +606,25 @@ export function useSpecDrivenTrigger(
             typeof event.blockerCount === 'number' && event.blockerCount > 0
               ? event.blockerCount
               : 0;
-          // Record this successful run as the base for a future
-          // incremental vibe-modify of the SAME project — both in the
+          // Rules the run CHECKED and found missing from the delivered code.
+          // Independent of `incomplete` and of `blockerCount`: a run can
+          // finish clean, report zero blockers, and still ship an app that
+          // does not enforce what the user asked for.
+          const vCounts = event.verification?.counts;
+          const verificationCounts = vCounts
+            ? {
+                verified: Math.max(0, Math.round(vCounts.verified ?? 0)),
+                notVerified: Math.max(0, Math.round(vCounts.notVerified ?? 0)),
+                shippedUnenforced: Math.max(
+                  0,
+                  Math.round(vCounts.shippedUnenforced ?? 0),
+                ),
+              }
+            : undefined;
+          const unenforcedCount = verificationCounts?.shippedUnenforced ?? 0;
+          const incomplete = dispatch(readLiveSpecDrivenRun(run.liveKey))?.incomplete === true;
+          // Record this output as the base for a future
+          // incremental modify of the SAME project — both in the
           // slice (same-session fast path) and localStorage (survives a
           // reload). The next `startRun` reads this back and, while still
           // within the download TTL, sends `mode:'modify'` + base_run_id.
@@ -576,8 +637,7 @@ export function useSpecDrivenTrigger(
           }
           // The slice reducer already flipped the card to 'done' with
           // `needsDownload` — we deliberately do NOT auto-save the file
-          // to the user's disk (testers reported the webapp being
-          // downloaded "without consent"); the card surfaces an explicit
+          // to the user's disk without consent; the card surfaces an explicit
           // Download button instead, and the backend keeps the file for
           // ~30 min. Snapshot the finished card into the chat message
           // and drop the live entry.
@@ -606,15 +666,8 @@ export function useSpecDrivenTrigger(
                     .map((e) => `\`${e}\``)
                     .join(', ')}${_informativeTop.length > 8 ? ', …' : ''}.`
                 : '';
-            // Honest efficiency signal: how much of the output the deterministic
-            // generator produced for free (0 LLM tokens) vs what the LLM wrote.
-            // This — not the cumulative token sum, which re-counts context
-            // re-sent each turn — is the truthful "what did it cost" headline.
-            // Phrase it so the percentages SUM TO 100: "N% deterministic; the
-            // LLM wrote or refined the other (100-N)%" — the old copy showed
-            // "N% deterministic; LLM authored K%" and dropped the middle
-            // "generator-written then LLM-edited" bucket, so N+K didn't add up
-            // and looked illogical (pilot feedback).
+            // File provenance is separate from the validation verdict. A high
+            // unchanged-scaffold share does not imply requirement coverage.
             const split = event.fileSplit;
             const untouchedPct =
               split && typeof split.total === 'number' && split.total > 0
@@ -622,11 +675,7 @@ export function useSpecDrivenTrigger(
                 : undefined;
             const splitPhrase =
               untouchedPct !== undefined && untouchedPct > 0
-                ? ` **${untouchedPct}%** of these were generated deterministically (0 LLM tokens)${
-                    untouchedPct < 100
-                      ? `; the LLM wrote or refined the other **${100 - untouchedPct}%**`
-                      : ''
-                  }.`
+                ? ` **${untouchedPct}%** of files were unchanged from the scaffold in this run. This measures file provenance, not correctness or requirements coverage.`
                 : '';
             // Three outcomes, three honest messages:
             //   - clean success;
@@ -637,27 +686,43 @@ export function useSpecDrivenTrigger(
             //     error, cancellation) — "stopped early" is accurate.
             const incompleteMessage =
               blockerCount > 0
-                ? `⚠️ Generated ${filesPhrase}${withGen}, but the run **finished with ${blockerCount} unresolved issue${blockerCount === 1 ? '' : 's'} that may stop the app from running**.${topPhrase} You can resume the run to fix ${blockerCount === 1 ? 'it' : 'them'}, or use the **Download** button on the run card to save the code as-is.`
-                : `⚠️ Generated ${filesPhrase}${withGen}, but the run **stopped early — the output may be incomplete**.${event.incompleteReason ? ` ${event.incompleteReason}` : ``}${topPhrase} You can resume the run to finish the remaining changes. Use the **Download** button on the run card to save it.`;
+                ? `⚠️ Generated ${filesPhrase}${withGen}, but the run **finished with ${blockerCount} unresolved implementation or verification issue${blockerCount === 1 ? '' : 's'}**. The generated app is **not verified complete**.${topPhrase} Start a follow-up generation to address ${blockerCount === 1 ? 'it' : 'them'}, or use the **Download** button on the run card to save the code as-is.`
+                : `⚠️ Generated ${filesPhrase}${withGen}, but the run **stopped early — the output may be incomplete**.${event.incompleteReason ? ` ${event.incompleteReason}` : ``}${topPhrase} Start another generation to finish the remaining changes, or use the **Download** button on the run card to save it.`;
+            // Stated separately from the blocker count: the app was
+            // delivered and these rules are NOT in it.
+            const unenforcedPhrase =
+              unenforcedCount > 0
+                ? `**${unenforcedCount} rule${unenforcedCount === 1 ? '' : 's'} you asked for ${unenforcedCount === 1 ? 'is' : 'are'} not enforced in the delivered code** — the run card lists ${unenforcedCount === 1 ? 'it' : 'each of them'} and why.`
+                : '';
             appendAssistantMessage(
-              event.incomplete
-                ? incompleteMessage
-                : `✅ Generated ${filesPhrase}${withGen}.${splitPhrase}${topPhrase} Use the **Download** button on the run card to save it.`,
+              incomplete
+                ? `${incompleteMessage}${unenforcedPhrase ? ` ${unenforcedPhrase}` : ''}`
+                : unenforcedCount > 0
+                  ? `⚠️ Generated ${filesPhrase}${withGen}, but ${unenforcedPhrase}${topPhrase} Use the **Download** button on the run card to save the code as-is.`
+                  : `✅ Generated ${filesPhrase}${withGen}.${splitPhrase}${topPhrase} Use the **Download** button on the run card to save it.`,
             );
-            toast.success('Spec-Driven Agent finished -- ready to download');
+            if (unenforcedCount > 0) {
+              toast.warning(
+                `Delivered — ${unenforcedCount} rule${unenforcedCount === 1 ? '' : 's'} not enforced`,
+              );
+            } else if (incomplete) {
+              toast.warning('Generation incomplete — output available to inspect');
+            } else {
+              toast.success('Spec-Driven Agent finished -- ready to download');
+            }
           }
-          // The run itself succeeded; the user simply hasn't saved the
-          // file yet. Report ok so the modeling agent sees a successful
-          // build -- download is now a user-driven step, not part of the run.
+          // ok means output is available, not that the app is verified.
+          // Preserve incomplete separately for the modeling agent's verdict.
           reportRunFinished({
             ok: true,
             runId: doneRunId,
             fileName: event.fileName,
             costUsd: lastCostRef.current,
             generatorUsed,
-            incomplete: event.incomplete,
+            incomplete,
             incompleteReason: event.incompleteReason,
             blockerCount: blockerCount > 0 ? blockerCount : undefined,
+            verificationCounts,
           });
           return;
         }
@@ -715,14 +780,20 @@ export function useSpecDrivenTrigger(
             dispatch(setApiKeyPresent(false));
           }
           clearFailsafeTimer();
+          clearActiveSpecDrivenRun(currentRunIdRef.current);
           // The slice reducer marked the card terminally errored (red
           // status pill + red notice) — snapshot it into the message so
           // the user can see the run failed without scrolling to the toast.
           finalizeLiveRun(run.liveKey, run.streamingId);
-          appendErrorToChat(
-            `❌ Spec-Driven Agent error (${event.code}): ${event.message}`,
-          );
-          toast.error(`Spec-Driven Agent: ${event.code}`);
+          if (event.code === 'CANCELLED' && event.reason === 'abandoned') {
+            appendAssistantMessage(`⏹ Generation stopped after disconnect. ${event.message}`);
+            toast.warning('Generation stopped after the disconnect grace period');
+          } else {
+            appendErrorToChat(
+              `❌ Spec-Driven Agent error (${event.code}): ${event.message}`,
+            );
+            toast.error(`Spec-Driven Agent: ${event.code}`);
+          }
           reportRunFinished({
             ok: false,
             runId: currentRunIdRef.current,
@@ -735,7 +806,6 @@ export function useSpecDrivenTrigger(
           // Unknown event — log for schema-drift visibility during
           // development. Never throws on the stream.
           if (typeof console !== 'undefined') {
-            // eslint-disable-next-line no-console
             console.warn('[useSpecDrivenTrigger] unknown SSE event', event);
           }
           return;
@@ -744,7 +814,6 @@ export function useSpecDrivenTrigger(
     },
     // `abortActiveInternal` is declared below via a ref so it doesn't
     // need to be in the deps array.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
     [
       appendAssistantMessage,
       appendErrorToChat,
@@ -765,6 +834,119 @@ export function useSpecDrivenTrigger(
   const abortActiveInternal = useCallback(() => {
     abortActiveInternalRef.current();
   }, []);
+
+  const recoveryProjectId = currentProjectRef.current?.id;
+
+  // A page reload destroys React state and the old fetch reader, but the
+  // backend worker now continues independently. Recreate a live card and
+  // replay its durable event log. Two assistant surfaces mount this hook;
+  // the global run-slot claim ensures exactly one becomes the subscriber.
+  useEffect(() => {
+    const saved = readActiveSpecDrivenRun(recoveryProjectId);
+    if (!saved || !recoveryProjectId || saved.projectId !== recoveryProjectId) return;
+    if (isRunningRef.current || !dispatch(tryClaimRunSlot())) return;
+
+    const liveKey = createMessageId();
+    dispatch(liveRunStarted({ key: liveKey }));
+    const streamingId = appendAssistantMessage('', {
+      isStreaming: true,
+      specDriven: emptyCard(liveKey),
+    });
+
+    isRunningRef.current = true;
+    abortRequestedRef.current = false;
+    runFinishedReportedRef.current = false;
+    currentRunIdRef.current = saved.runId;
+    activeRunStartedAtRef.current = saved.startedAt;
+    // The running card itself is intentionally not persisted. Replay from the
+    // beginning so the new card reconstructs every phase and tool entry.
+    lastSequenceRef.current = 0;
+    activeCardRef.current = { liveKey, streamingId };
+    setIsGenerating(false);
+
+    const handle = followSpecDrivenRun(saved.runId, 0);
+    abortRef.current = handle.abort;
+    const runCtx = {
+      liveKey,
+      streamingId,
+      projectId: saved.projectId,
+    };
+
+    void (async () => {
+      let terminalEventSeen = false;
+      try {
+        for await (const event of handle.events) {
+          if (abortRequestedRef.current) break;
+          terminalEventSeen =
+            terminalEventSeen ||
+            event.event === 'done' ||
+            (event.event === 'error' && !isNonTerminalErrorEvent(event));
+          await handleSseEvent(event, runCtx);
+        }
+        if (!abortRequestedRef.current && !terminalEventSeen) {
+          const message = 'The saved generation run ended without a final result.';
+          dispatch(
+            liveRunEvent({
+              key: liveKey,
+              event: { event: 'error', code: 'INTERNAL', message },
+            }),
+          );
+          finalizeLiveRun(liveKey, streamingId, { statusIfRunning: 'error' });
+          appendErrorToChat(message);
+          reportRunFinished({
+            ok: false,
+            runId: saved.runId,
+            errorCode: 'INTERNAL',
+            costUsd: lastCostRef.current,
+          });
+        }
+      } catch (error) {
+        const isAbort = error instanceof DOMException && error.name === 'AbortError';
+        if (!isAbort) {
+          if (
+            error instanceof SseHttpError &&
+            (error.status === 404 || error.status === 410)
+          ) {
+            clearActiveSpecDrivenRun(saved.runId);
+          }
+          const message = error instanceof Error ? error.message : String(error);
+          dispatch(
+            liveRunEvent({
+              key: liveKey,
+              event: { event: 'error', code: 'INTERNAL', message },
+            }),
+          );
+          finalizeLiveRun(liveKey, streamingId, { statusIfRunning: 'error' });
+          appendErrorToChat(`Could not reconnect to generation ${saved.runId.slice(0, 8)}: ${message}`);
+          toast.error('Could not reconnect to the active generation');
+          reportRunFinished({
+            ok: false,
+            runId: saved.runId,
+            errorCode: 'INTERNAL',
+            costUsd: lastCostRef.current,
+          });
+        }
+      } finally {
+        abortRef.current = null;
+        isRunningRef.current = false;
+        clearFailsafeTimer();
+        finalizeLiveRun(liveKey, streamingId);
+        activeCardRef.current = null;
+        dispatch(releaseRunSlot());
+        if (mountedRef.current) setIsGenerating(false);
+      }
+    })();
+  }, [
+    appendAssistantMessage,
+    appendErrorToChat,
+    clearFailsafeTimer,
+    dispatch,
+    finalizeLiveRun,
+    handleSseEvent,
+    recoveryProjectId,
+    reportRunFinished,
+    setIsGenerating,
+  ]);
 
   /**
    * Do the actual SSE run after we know we have a key. Kept separate so
@@ -791,9 +973,13 @@ export function useSpecDrivenTrigger(
       // The keyless free tier authorises a run without a BYOK key. When it's
       // selected, `key` may be null and we take the free path below (provider
       // 'free', no api_key/model/base_url — the server injects them).
+      // A demo tab (`?demo=<token>`) runs on the server-paid tier, so it
+      // authorises a run on its own — same as the keyless free tier, but the
+      // spend is ours. Checked first so it wins over a stale stored key.
+      const demoToken = getDemoToken();
       const freeSelected = readFreeTierSelected();
       const key = readSessionKey();
-      if (!freeSelected && !key) {
+      if (!demoToken && !freeSelected && !key) {
         dispatch(openByokDialog(payload));
         return;
       }
@@ -818,16 +1004,13 @@ export function useSpecDrivenTrigger(
       // payload. The agent's ``payload.provider`` is just a
       // suggestion; the BYOK dropdown is the authoritative source of
       // which provider to use because it's tied to the key the user
-      // actually pasted. Reversing this priority (the old bug) caused
-      // a user who picked OpenAI in the dropdown to have their run
-      // dispatched with ``provider=anthropic`` anyway — because the
-      // modeling agent's default hint is ``anthropic`` — so the
-      // Anthropic API rejected the OpenAI key with a 401 and the
-      // orchestrator silently fell through to the Phase 1 deterministic
-      // FastAPI output instead of the stack the user asked for.
-      const rawProvider: unknown = freeSelected
-        ? 'free'
-        : (key?.provider ?? payload.provider);
+      // actually pasted. The agent's default hint is ``anthropic``, so
+      // reversing this would send e.g. an OpenAI key to Anthropic (401).
+      const rawProvider: unknown = demoToken
+        ? 'sponsored'
+        : freeSelected
+          ? 'free'
+          : (key?.provider ?? payload.provider);
       if (!isValidProvider(rawProvider)) {
         appendErrorToChat(
           `Spec-Driven Agent: unknown provider ${String(rawProvider)}. Please save a valid key.`,
@@ -849,14 +1032,12 @@ export function useSpecDrivenTrigger(
         return;
       }
 
-      // The free-tier / BYOK choice was already conveyed by the confirmation
-      // copy shown before the run (see the agent's
-      // ``_build_smart_gen_confirmation``), so we no longer append a mid-run
-      // free-tier note here — the intro line below is enough.
+      // The free-tier / BYOK choice was already conveyed by the agent's
+      // confirmation copy before the run, so the intro line below is enough.
       const introText =
         typeof payload.message === 'string' && payload.message.trim().length > 0
           ? payload.message
-          : 'Starting smart generation…';
+          : 'Starting the Spec-Driven Agent…';
       appendAssistantMessage(introText);
       // Client-generated run key: created BEFORE the backend assigns its
       // run id, it links the card message (`specDriven.liveKey`) to the
@@ -875,17 +1056,18 @@ export function useSpecDrivenTrigger(
       runFinishedReportedRef.current = false;
       currentRunIdRef.current = undefined;
       lastCostRef.current = undefined;
+      activeRunStartedAtRef.current = Date.now();
+      lastSequenceRef.current = 0;
       activeCardRef.current = { liveKey, streamingId };
       // The run card is the progress surface from here on — CLEAR the
-      // chat's typing indicator instead of pinning it for the whole run
-      // (the "Typing" chip used to stick until the run finished).
+      // chat's typing indicator instead of pinning it for the whole run.
       setIsGenerating(false);
 
       // Route the project through the same normaliser the existing
       // deterministic ``/generate-output-from-project`` path uses.
       // This strips empty diagrams, normalises the project name, and
       // otherwise mirrors the payload shape the backend already
-      // expects — so a smart-gen run of project X behaves identically
+      // expects — so a spec-driven run of project X behaves identically
       // to a deterministic run of project X at the payload-level.
       const normalisedProject = buildProjectPayloadForBackend(project);
 
@@ -903,8 +1085,11 @@ export function useSpecDrivenTrigger(
       // Free tier: the server pins the model, with ONE exception — the user
       // may explicitly pick the server's advertised non-default free model
       // (see below, after the config is available).
-      let llmModel: string | undefined = freeSelected ? undefined : key?.llmModel;
-      if (!freeSelected && !llmModel) {
+      // Demo: the server's BESSER_SPONSORED_LLM_MODEL decides, so swapping
+      // the model is an env edit, not a frontend release.
+      let llmModel: string | undefined =
+        demoToken || freeSelected ? undefined : key?.llmModel;
+      if (!demoToken && !freeSelected && !llmModel) {
         llmModel =
           payload.provider !== undefined && payload.provider !== provider
             ? undefined
@@ -919,16 +1104,21 @@ export function useSpecDrivenTrigger(
       // `getSpecDrivenConfig` is cached and never rejects (resolves to the
       // fallback), so the values below are always defined.
       const cfg = await getSpecDrivenConfig();
+      // Stopped while the config loaded: abortActive already cleaned up, and
+      // starting now would orphan a paid run on the server.
+      if (abortRequestedRef.current) return;
 
       // Free tier model: send the stored explicit choice only when the
       // server currently advertises it as a non-default free model. The
       // default (or any stale/unknown stored id) omits llm_model — the
       // identical wire shape to a run without any model choice.
-      if (freeSelected) {
-        llmModel = resolveFreeRunModel(cfg.free_tier, readFreeTierModel());
+      if (!demoToken && freeSelected) {
+        llmModel = resolveFreeRunModel(
+          cfg.free_tier, readFreeTierModel(), isPilotSession(),
+        );
       }
 
-      // Incremental vibe-modify decision. Look up the previous successful
+      // Incremental modify decision. Look up the previous successful
       // run for THIS project and, if it's still within the backend's
       // download-TTL window, edit that app in place (`mode:'modify'` +
       // baseRunId) instead of rebuilding. The decision is automatic; an
@@ -947,9 +1137,10 @@ export function useSpecDrivenTrigger(
         project: normalisedProject,
         instructions: payload.instructions,
         provider,
-        apiKey: freeSelected ? '' : (key?.apiKey ?? ''),
+        apiKey: demoToken || freeSelected ? '' : (key?.apiKey ?? ''),
         llmModel,
-        baseUrl: freeSelected ? undefined : key?.baseUrl,
+        baseUrl: demoToken || freeSelected ? undefined : key?.baseUrl,
+        demoToken: demoToken ?? undefined,
         maxCostUsd: budget?.maxCostUsd,
         maxRuntimeSeconds: budget?.maxRuntimeSeconds,
         mode: runDecision.mode,
@@ -957,6 +1148,15 @@ export function useSpecDrivenTrigger(
         primaryKindOverride: payload.primaryKindOverride,
         targetGeneratorOverride: payload.targetGeneratorOverride,
         skipDeterministicGenerator: payload.skipDeterministicGenerator,
+        onRunAccepted: (runId) => {
+          currentRunIdRef.current = runId;
+          writeActiveSpecDrivenRun({
+            runId,
+            projectId: project.id,
+            lastSequence: 0,
+            startedAt: activeRunStartedAtRef.current || Date.now(),
+          });
+        },
       };
 
       let handle;
@@ -1038,10 +1238,8 @@ export function useSpecDrivenTrigger(
           });
         } else {
           // A stalled stream (SseStallError) is a DEAD TRANSPORT, not a
-          // failed run: the backend may well still be generating. Without
-          // this branch the old behavior was worse than an error — the
-          // stream never threw at all and the card froze as "Running"
-          // forever. Name the condition honestly, in the card AND on the
+          // failed run: the backend may well still be generating. Name
+          // the condition honestly, in the card AND on the
           // console (Report-issue picks up the chat copy; the console
           // line carries the run id for server-side correlation).
           const isStall = err instanceof SseStallError;
@@ -1138,8 +1336,7 @@ export function useSpecDrivenTrigger(
       }
       // Already authorised — a BYOK key is stored, or the free tier was
       // opted into on a previous run: start directly. `planApproved` is set
-      // here because there is no separate plan-review step; the BYOK popup
-      // used to be the only thing that set it.
+      // here because there is no separate plan-review step.
       if (readSessionKey() || readFreeTierSelected()) {
         await startRun({ ...payload, planApproved: true });
         return;
@@ -1207,6 +1404,7 @@ export function useSpecDrivenTrigger(
       // what keeps New Chat / Stop from orphaning a run that keeps billing the
       // user's key. Only ever this session's own runId.
       cancelRunOnServer(currentRunIdRef.current);
+      clearActiveSpecDrivenRun(currentRunIdRef.current);
       isRunningRef.current = false;
       setIsGenerating(false);
       dispatch(resetRun());

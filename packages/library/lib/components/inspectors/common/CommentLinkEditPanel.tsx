@@ -5,6 +5,7 @@ import { useDiagramStore } from "@/store/context"
 import { EdgeStyleEditor } from "@/components/ui"
 import { CustomEdgeProps } from "@/edges/EdgeProps"
 import { PopoverProps } from "@/components/popovers/types"
+import { useTranslation } from "@/i18n"
 
 /**
  * Inspector body for the `CommentLink` tether edge — the v4 spelling of
@@ -20,6 +21,7 @@ import { PopoverProps } from "@/components/popovers/types"
 export const CommentLinkEditPanel: React.FC<PopoverProps> = ({
   elementId,
 }) => {
+  const { t } = useTranslation()
   const { edges, setEdges } = useDiagramStore(
     useShallow((state) => ({
       edges: state.edges,
@@ -48,7 +50,7 @@ export const CommentLinkEditPanel: React.FC<PopoverProps> = ({
       <EdgeStyleEditor
         edgeData={data}
         handleDataFieldUpdate={handleStyleFieldUpdate}
-        label="Comment Link"
+        label={t("comment.link", "Comment Link")}
       />
     </Box>
   )

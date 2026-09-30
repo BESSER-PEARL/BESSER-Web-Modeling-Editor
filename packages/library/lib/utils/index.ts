@@ -17,6 +17,9 @@ export * from "./versionConverter"
 export * from "./labelUtils"
 export * from "./alignmentUtils"
 export * from "./requiredInterfaceUtils"
+// Class-diagram association navigability rules (legacy defaults, "at least
+// one navigable end", composition part end always navigable).
+export * from "./uml-association-navigability"
 // Deliberately narrow: only the helpers that node SVGs genuinely need to
 // reach for get re-exported through the public barrel. Internal machinery
 // (the prepared-text cache, `toCanvasFont`, `clearPrepareCache`, type

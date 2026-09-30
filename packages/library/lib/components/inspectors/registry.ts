@@ -56,13 +56,97 @@ export const registerInspectors = (
 }
 
 /**
- * Look up an inspector. Returns `null` if no entry is registered for the
- * (type, kind) pair, so consumers can fall back to a default rendering.
+ * Type aliases: `aliasType` resolves to whatever is registered for
+ * `targetType` (for every kind) when `aliasType` has no slot of its own.
+ *
+ * Bridges the two lookup keys that exist for the same element: the
+ * React-Flow `node.type` (camelCase for most stock diagrams, e.g.
+ * `activityMergeNode`, `bpmnTask`) that the right-side `PropertiesPanel`
+ * reads, and the popover type (`"default"`, `"BPMNTask"`, …) each node
+ * component passes to `PopoverManager`. Resolution happens at lookup time,
+ * so a later `registerInspector(targetType, …)` override is picked up by
+ * every alias automatically.
+ */
+const _aliases: Record<string, string> = {}
+
+export const registerInspectorAlias = (
+  aliasType: string,
+  targetType: string
+): void => {
+  if (aliasType === targetType) return
+  _aliases[aliasType] = targetType
+}
+
+export const registerInspectorAliases = (
+  entries: Record<string, string>
+): void => {
+  for (const [aliasType, targetType] of Object.entries(entries)) {
+    registerInspectorAlias(aliasType, targetType)
+  }
+}
+
+/**
+ * Per-kind fallback used when neither the type nor its alias has a slot.
+ * Assessment mode registers a generic node/edge feedback body here so every
+ * element can be assessed (v3 `assessable.tsx` wrapped EVERY element),
+ * including diagram packages that only register an `edit` panel.
+ * `edit` deliberately gets no fallback: v3 `popups.ts` mapped some element
+ * types to `null` (no editor), and those must keep opening nothing.
+ */
+const _fallbacks: Partial<Record<InspectorKind, InspectorComponent>> = {}
+
+export const registerInspectorFallback = (
+  kind: InspectorKind,
+  component: InspectorComponent | null
+): void => {
+  if (component) _fallbacks[kind] = component
+  else delete _fallbacks[kind]
+}
+
+/** Own slot, then the alias chain (cycle-guarded). No fallback. */
+const lookup = (
+  type: string,
+  kind: InspectorKind
+): InspectorComponent | null => {
+  let current = type
+  const seen = new Set<string>()
+  while (!seen.has(current)) {
+    seen.add(current)
+    const hit = _inspectors[slot(current, kind)]
+    if (hit) return hit
+    const next = _aliases[current]
+    if (!next) break
+    current = next
+  }
+  return null
+}
+
+/**
+ * Look up an inspector. Resolution order: the type's own slot, then the
+ * slot of its alias target (see `registerInspectorAlias`), then the kind's
+ * fallback (see `registerInspectorFallback`). Returns `null` when nothing
+ * matches, so consumers render nothing.
  */
 export const getInspector = (
   type: string,
   kind: InspectorKind
-): InspectorComponent | null => _inspectors[slot(type, kind)] ?? null
+): InspectorComponent | null => lookup(type, kind) ?? _fallbacks[kind] ?? null
+
+/**
+ * Resolve the inspector for a concrete diagram element: its React-Flow
+ * `type` first (own slot or alias — this is what `PropertiesPanel` uses, so
+ * the floating popover and the panel always agree), then the popover type
+ * the node component passed (if any), then the kind's fallback.
+ */
+export const resolveElementInspector = (
+  elementType: string | null | undefined,
+  kind: InspectorKind,
+  popoverType?: string | null
+): InspectorComponent | null =>
+  (elementType ? lookup(elementType, kind) : null) ??
+  (popoverType ? lookup(popoverType, kind) : null) ??
+  _fallbacks[kind] ??
+  null
 
 /**
  * For debug / introspection: return all registered slots.

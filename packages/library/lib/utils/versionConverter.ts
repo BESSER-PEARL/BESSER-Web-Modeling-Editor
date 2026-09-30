@@ -42,8 +42,47 @@ import {
   StateMarkerNodeProps,
 } from "../types/nodes/NodeProps"
 import { MessageData } from "@/edges/EdgeProps"
+import { isAgentComponentType } from "./agentComponents"
+import type { UMLModelComponent } from "./agentComponents"
+import { resolveReplyType } from "./agentActions"
+import { canonicalizeAgentLLMProvider } from "../services/agentLlm"
+import { adoptBpmnContainment } from "./bpmnContainment"
+
+/**
+ * smart-gen session-data-flow / GUI-reply fields of an AgentState body row
+ * (v3 `AgentStateMember`). Carried verbatim in both migration directions —
+ * v4 rows use the same field names (see the v4 spec, AgentDiagram).
+ */
+const AGENT_ROW_PASSTHROUGH_FIELDS = [
+  "actionType",
+  "inputPromptMode",
+  "customInputPrompt",
+  "customInputPromptUseSessionVars",
+  "systemPromptUseSessionVars",
+  "promptUseSessionVars",
+  "storeInSession",
+  "useSessionVars",
+  "systemMessagePrefixUseSessionVars",
+  "sendReply",
+  "guiId",
+] as const
+
+const pickAgentRowPassthrough = (
+  row: Record<string, unknown>
+): Record<string, unknown> => {
+  const out: Record<string, unknown> = {}
+  for (const key of AGENT_ROW_PASSTHROUGH_FIELDS) {
+    if (row[key] !== undefined) out[key] = row[key]
+  }
+  return out
+}
 import { parseLegacyNameFormat } from "./classifierMemberDisplay"
 import { normalizeNNCompositionEndpoints } from "./edgeUtils"
+import {
+  liftV3AssociationNavigability,
+  normalizeModelAssociationNavigability,
+  supportsNavigability,
+} from "./uml-association-navigability"
 import {
   COLLIDING_SLUGS,
   V3_ATTRIBUTE_TYPE_TO_SLUG,
@@ -304,6 +343,10 @@ export function convertV3NodeTypeToV4(v3Type: string): string {
 
     // Special nodes
     ColorDescription: "colorDescription",
+    // The v3 (smart-generator) element type is `ColorLegend`
+    // (`common/color-legend`, name-only note) — without this entry it fell
+    // through to the lowercase fallback `colorlegend`, an unknown node type.
+    ColorLegend: "colorDescription",
     TitleAndDescription: "titleAndDesctiption", // Note the typo in V4: "desctiption"
     // Free-form sticky-note Comment ported from v3
     // `common/comments`. v3 stored the body text on `UMLElement.name`,
@@ -485,14 +528,25 @@ export function convertV3EdgeTypeToV4(
     NNComposition: "NNComposition",
     NNAssociation: "NNAssociation",
   }
-  if (v3Type === "BPMNFlow" && flowType) {
+  if (v3Type === "BPMNFlow") {
+    // v3 `BPMNFlow.flowType` — the old editor (smart-generator
+    // `bpmn-flow.ts`) emitted `'sequence' | 'message' | 'association' |
+    // 'data association'` (with a space). Normalise case / separators so
+    // `dataAssociation`, `data_association`, `data-association` all land
+    // on the same v4 edge type. A missing flowType is the old editor's
+    // default (`BPMNFlow.defaultFlowType = 'sequence'`).
+    const key = (flowType ?? "sequence").toLowerCase().replace(/[\s_-]+/g, "")
     const flowTypeMap: Record<string, string> = {
       sequence: "BPMNSequenceFlow",
+      sequenceflow: "BPMNSequenceFlow",
       message: "BPMNMessageFlow",
+      messageflow: "BPMNMessageFlow",
       association: "BPMNAssociationFlow",
-      dataAssociation: "BPMNDataAssociationFlow",
+      associationflow: "BPMNAssociationFlow",
+      dataassociation: "BPMNDataAssociationFlow",
+      dataassociationflow: "BPMNDataAssociationFlow",
     }
-    return flowTypeMap[flowType] || "BPMNSequenceFlow" // Default to sequence flow
+    return flowTypeMap[key] || "BPMNSequenceFlow" // Default to sequence flow
   }
 
   return edgeTypeMap[v3Type] || v3Type
@@ -556,6 +610,7 @@ function extractClassifierMember(
     implementationType?: ClassifierMethodImplementationType
     stateMachineId?: string
     quantumCircuitId?: string
+    neuralNetworkId?: string
     isOptional?: boolean
     isDerived?: boolean
     isId?: boolean
@@ -597,6 +652,9 @@ function extractClassifierMember(
       }),
       ...(childElement.quantumCircuitId && {
         quantumCircuitId: childElement.quantumCircuitId,
+      }),
+      ...(childElement.neuralNetworkId && {
+        neuralNetworkId: childElement.neuralNetworkId,
       }),
       ...(childElement.isOptional !== undefined && {
         isOptional: childElement.isOptional,
@@ -651,6 +709,9 @@ function extractClassifierMember(
     ...(childElement.quantumCircuitId && {
       quantumCircuitId: childElement.quantumCircuitId,
     }),
+    ...(childElement.neuralNetworkId && {
+      neuralNetworkId: childElement.neuralNetworkId,
+    }),
   }
 }
 
@@ -667,79 +728,51 @@ function extractClassifierMember(
 function extractOCLConstraint(
   element: V3UMLElement & {
     expression?: string
+    constraint?: string
     description?: string
     kind?: string
+    constraintName?: string
+    targetMethodId?: string
   }
 ): ClassOCLConstraint {
   return {
     id: element.id,
     name: element.name ?? "",
-    expression: element.expression ?? "",
+    // v3 (smart-generator) stores the body on `constraint`; older
+    // fixtures use `expression`.
+    expression: element.expression ?? element.constraint ?? "",
     ...(element.description && { description: element.description }),
     ...(element.kind && { kind: element.kind }),
+    // Legacy body-only rows (`kind` + body without a `context` header)
+    // need these to be re-synthesised into full OCL text by the backend
+    // (`_ocl_box_to_full_text`): the constraint name and, for pre/post,
+    // the id of the method they target.
+    ...(element.constraintName && { constraintName: element.constraintName }),
+    ...(element.targetMethodId && { targetMethodId: element.targetMethodId }),
   }
-}
-
-/**
- * Normalize a legacy v3 dropdown value to the current whitelist
- * (Wave-3 NN-9). Develop persisted these one-shot rewrites on popup
- * mount (`nn-attribute-update.tsx::componentDidMount` 133-162 +
- * `optional-attribute-row.tsx::componentDidMount` 81-102); the
- * migrator applies them once at import time instead. The explicit
- * develop table:
- *
- *  | v3 attribute element type                     | legacy | new     |
- *  |-----------------------------------------------|--------|---------|
- *  | `PaddingTypeAttribute{Conv1D,2D,3D,Pooling}`  | zeros  | valid   |
- *  | `LossFunctionAttributeConfiguration`          | cross_entropy | crossentropy |
- *  | `DimensionAttribute{Pooling,BatchNorm}`       | ∉ {1D,2D,3D} (e.g. `'2'`) | 2D |
- *
- * plus develop's generic rule: any `widget: 'dropdown'` value outside
- * the options list rewrites to the schema default. The generic rule
- * subsumes the explicit table because each listed field is a dropdown
- * whose `defaultValue` matches the rewrite target (`padding_type` →
- * 'valid', `loss_function` → 'crossentropy', `dimension` → '2D').
- *
- * Known deliberate deviation (per the Wave-3 brief): the migration
- * schema's defaults differ from develop's widget-config for
- * `return_type` ('full' here vs develop 'last') and `batch_first`
- * ('true' here vs develop 'false') — out-of-whitelist values normalize
- * to the **migration schema's** `defaultValue`.
- *
- * Boolean-typed dropdowns are excluded here — the caller coerces
- * `'true'`/`'false'` to JS booleans BEFORE this rule runs, so
- * boolean-options fields are never clobbered. `metrics` is a
- * `multiselect` widget and is correctly skipped (develop never
- * normalized metrics).
- */
-function normalizeLegacyNNDropdownValue(
-  layerKind: string,
-  slug: string,
-  raw: string
-): string {
-  if (raw === "") return raw
-  const field = getLayerSchema(layerKind).find((f) => f.slug === slug)
-  if (!field || field.widget !== "dropdown" || !field.options) return raw
-  if ((field.options as readonly string[]).includes(raw)) return raw
-  return field.defaultValue ?? raw
 }
 
 /**
  * Collapse all v3 attribute child elements owned by a layer into
  * a flat `Record<string, unknown>` keyed by the v4 slug. Booleans
  * (`'true'` / `'false'`) are normalized to JS booleans per the brief;
- * legacy dropdown values outside the current whitelists rewrite to the
- * schema default (`normalizeLegacyNNDropdownValue`); everything else
- * (numeric strings, free-text, list literals like `'[3, 3]'`) is
- * preserved as a string so the Python codegen can keep its current
- * `int(...)` / `float(...)` parsing behaviour.
+ * everything else (numeric strings, free-text, list literals like
+ * `'[3, 3]'`, dropdown values) is preserved verbatim as a string so the
+ * Python codegen can keep its current `int(...)` / `float(...)` parsing
+ * behaviour.
+ *
+ * Dropdown values outside the current whitelists (legacy `zeros` padding,
+ * `cross_entropy`, `rmsprop`, `avg`, `Same`, …) are deliberately NOT
+ * rewritten to the schema default: the old editor only rewrote them when
+ * the user opened the attribute popup, and the smart-generator backend
+ * received the raw value and reported it as a validation error. Silently
+ * substituting a default here would hand the user a different model; the
+ * v4 backend processor validates and reports the real value instead.
  *
  * disambiguation: when the v3 element type's mapped
  * slug appears in `COLLIDING_SLUGS`, the result key is qualified with
  * the layer-kind prefix (e.g. `pooling.dimension`). Backend
- * (`nn_diagram_processor.py`) already does the same. (The dropdown
- * normalization runs on the plain slug, before qualification — the
- * schema is keyed unqualified.)
+ * (`nn_diagram_processor.py`) already does the same.
  */
 function collapseV3LayerAttributes(
   layerId: string,
@@ -747,9 +780,28 @@ function collapseV3LayerAttributes(
   allElements: Record<string, V3UMLElement>
 ): Record<string, unknown> {
   const out: Record<string, unknown> = {}
-  for (const child of Object.values(allElements)) {
-    if (child.owner !== layerId) continue
-    const slug = V3_ATTRIBUTE_TYPE_TO_SLUG[child.type]
+  const layer = allElements[layerId]
+  // Members come from the layer's `attributes` id list (what the old
+  // backend read) plus any `owner`-linked child.
+  const children = layer
+    ? collectV3ClassifierChildren(layer, allElements)
+    : Object.values(allElements).filter((c) => c.owner === layerId)
+  const schema = getLayerSchema(layerKind)
+  for (const child of children) {
+    // Primary key: the v3 element `type` (e.g. `KernelDimAttributeConv2D`).
+    // Fallback: the `attributeName` field the old backend matched on
+    // (smart-generator `nn_diagram_processor.get_element_attribute`),
+    // accepted only when it names a field of this layer's schema.
+    let slug: string | undefined = V3_ATTRIBUTE_TYPE_TO_SLUG[child.type]
+    if (!slug) {
+      const attributeName = (child as { attributeName?: unknown }).attributeName
+      if (
+        typeof attributeName === "string" &&
+        schema.some((f) => f.slug === attributeName)
+      ) {
+        slug = attributeName
+      }
+    }
     if (!slug) continue
     // Read the raw v3 value (most v3 attribute elements store it on a
     // `value` field rather than `name`; both legacy fixtures exist).
@@ -758,20 +810,51 @@ function collapseV3LayerAttributes(
         ? (child as { value?: unknown }).value
         : child.name
     let coerced: unknown = raw
-    // Boolean coercion FIRST so boolean-options dropdowns are never
-    // routed through (and clobbered by) the whitelist normalization.
     if (raw === "true") coerced = true
     else if (raw === "false") coerced = false
-    else if (typeof raw === "string") {
-      const normalized = normalizeLegacyNNDropdownValue(layerKind, slug, raw)
-      // A normalization that lands on a boolean default (defensive —
-      // no current schema does) still coerces like a wire boolean.
-      coerced =
-        normalized === "true" ? true : normalized === "false" ? false : normalized
-    }
     const key = COLLIDING_SLUGS.has(slug) ? qualifySlug(layerKind, slug) : slug
     out[key] = coerced
   }
+  return out
+}
+
+/**
+ * Collect the member elements of a v3 classifier. The old backend
+ * (smart-generator `class_diagram_processor.py` / `object_diagram_processor.py`)
+ * read members from the parent's `attributes` / `methods` id arrays, not
+ * from the child's `owner`; the old editor kept both in sync, but
+ * hand-edited / generated files sometimes list a member without setting
+ * its `owner`. Walk the listed ids first (preserving the v3 display
+ * order), then append any owner-linked child not already listed — so a
+ * member reachable by either link survives.
+ */
+function collectV3ClassifierChildren(
+  element: V3UMLElement,
+  allElements: Record<string, V3UMLElement>
+): V3UMLElement[] {
+  const listed = element as V3UMLElement & {
+    attributes?: unknown
+    methods?: unknown
+  }
+  const seen = new Set<string>()
+  const out: V3UMLElement[] = []
+  const push = (child: V3UMLElement | undefined) => {
+    if (!child || seen.has(child.id)) return
+    // A listed member owned by some *other* classifier belongs there.
+    if (child.owner && child.owner !== element.id) return
+    seen.add(child.id)
+    out.push(child)
+  }
+  for (const key of ["attributes", "methods"] as const) {
+    const ids = listed[key]
+    if (!Array.isArray(ids)) continue
+    for (const id of ids) {
+      if (typeof id === "string") push(allElements[id])
+    }
+  }
+  Object.values(allElements).forEach((child) => {
+    if (child.owner === element.id) push(child)
+  })
   return out
 }
 
@@ -799,8 +882,8 @@ function convertV3NodeDataToV4(
       const attributes: ClassNodeElement[] = []
       const methods: ClassNodeElement[] = []
       const oclConstraints: ClassOCLConstraint[] = []
-      Object.values(allElements).forEach((childElement) => {
-        if (childElement.owner === element.id) {
+      collectV3ClassifierChildren(element, allElements).forEach(
+        (childElement) => {
           if (childElement.type === "ClassAttribute") {
             attributes.push(extractClassifierMember(childElement))
           } else if (childElement.type === "ClassMethod") {
@@ -809,7 +892,7 @@ function convertV3NodeDataToV4(
             oclConstraints.push(extractOCLConstraint(childElement))
           }
         }
-      })
+      )
 
       // Determine stereotype. freeform v3
       // `stereotype` strings survive too.
@@ -861,6 +944,8 @@ function convertV3NodeDataToV4(
         expression?: string
         description?: string
         kind?: string
+        constraintName?: string
+        targetMethodId?: string
       }
       return {
         ...baseData,
@@ -869,44 +954,46 @@ function convertV3NodeDataToV4(
         expression: e.expression ?? e.constraint ?? "",
         ...(e.description && { description: e.description }),
         ...(e.kind && { kind: e.kind }),
+        // Legacy body-only metadata (see `extractOCLConstraint`): without
+        // these, pre/post body-only rows can't be resolved to a method.
+        ...(e.constraintName && { constraintName: e.constraintName }),
+        ...(e.targetMethodId && { targetMethodId: e.targetMethodId }),
       }
     }
 
     case "ObjectName": {
       const attributes: ObjectNodeAttribute[] = []
 
-      Object.values(allElements).forEach((childElement) => {
-        if (childElement.owner === element.id) {
-          if (childElement.type === "ObjectAttribute") {
-            const member = extractClassifierMember(childElement) as
-              ObjectNodeAttribute
-            // v3 ObjectAttribute carried optional `attributeId` linking to a
-            // class attribute in the sibling ClassDiagram.
-            const linkedId = (childElement as { attributeId?: string })
-              .attributeId
-            if (linkedId) member.attributeId = linkedId
-            // Object diagrams stash the runtime value in the row name as
-            // `attribute = value`. Lift the value side into a structured
-            // `value` field so the inspector can edit it cleanly.
-            const rawName = childElement.name ?? ""
-            const eqIndex = rawName.indexOf(" = ")
-            if (eqIndex !== -1) {
-              member.name = rawName.substring(0, eqIndex)
-              member.value = rawName.substring(eqIndex + 3)
-            }
-            attributes.push(member)
-          } else if (childElement.type === "ObjectMethod") {
-            // V3 ObjectMethod was a mistake —
-            // UML object diagrams don't render methods because objects
-            // are instances, not types. Drop the row on import (don't
-            // surface it on the v4 node) and log a warning so legacy
-            // fixtures with stray ObjectMethod elements are visible.
-            // eslint-disable-next-line no-console
-            console.warn(
-              `[versionConverter] Dropping legacy ObjectMethod ${childElement.id} ` +
-                `under ObjectName ${element.id}; object instances do not carry methods.`
-            )
+      collectV3ClassifierChildren(element, allElements).forEach((childElement) => {
+        if (childElement.type === "ObjectAttribute") {
+          const member = extractClassifierMember(childElement) as
+            ObjectNodeAttribute
+          // v3 ObjectAttribute carried optional `attributeId` linking to a
+          // class attribute in the sibling ClassDiagram.
+          const linkedId = (childElement as { attributeId?: string })
+            .attributeId
+          if (linkedId) member.attributeId = linkedId
+          // Object diagrams stash the runtime value in the row name as
+          // `attribute = value`. Lift the value side into a structured
+          // `value` field so the inspector can edit it cleanly.
+          const rawName = childElement.name ?? ""
+          const eqIndex = rawName.indexOf(" = ")
+          if (eqIndex !== -1) {
+            member.name = rawName.substring(0, eqIndex)
+            member.value = rawName.substring(eqIndex + 3)
           }
+          attributes.push(member)
+        } else if (childElement.type === "ObjectMethod") {
+          // V3 ObjectMethod was a mistake —
+          // UML object diagrams don't render methods because objects
+          // are instances, not types. Drop the row on import (don't
+          // surface it on the v4 node) and log a warning so legacy
+          // fixtures with stray ObjectMethod elements are visible.
+          // eslint-disable-next-line no-console
+          console.warn(
+            `[versionConverter] Dropping legacy ObjectMethod ${childElement.id} ` +
+              `under ObjectName ${element.id}; object instances do not carry methods.`
+          )
         }
       })
 
@@ -1269,7 +1356,13 @@ function convertV3NodeDataToV4(
         return {
           id: r.id,
           name: r.name,
-          ...(r.replyType !== undefined && { replyType: r.replyType }),
+          // smart-gen rows may carry only the canonical `actionType`
+          // (metamodel class name); derive the editor `replyType` from it.
+          ...((r.replyType !== undefined ||
+            (r as { actionType?: string }).actionType !== undefined) && {
+            replyType: resolveReplyType(r as Record<string, unknown>),
+          }),
+          ...pickAgentRowPassthrough(r as unknown as Record<string, unknown>),
           // v3 `AgentStateMember` always persists `llm_name` (default
           // ''). Pass it through verbatim; empty = "(use default)".
           ...(r.llm_name !== undefined && { llm_name: r.llm_name }),
@@ -1448,9 +1541,28 @@ function convertV3NodeDataToV4(
         llm_prompt?: string
         k?: number
         num_previous_messages?: number
+        embedding_provider?: string
+        embedding_base_url?: string
+        embedding_model?: string
+        use_hybrid_rag?: boolean
+        bm25_weight?: number
       }
       return {
         ...baseData,
+        // smart-gen embedding + hybrid RAG settings (70b3852d, 42bbd00c).
+        ...(e.embedding_provider !== undefined && {
+          embedding_provider: e.embedding_provider,
+        }),
+        ...(e.embedding_base_url !== undefined && {
+          embedding_base_url: e.embedding_base_url,
+        }),
+        ...(e.embedding_model !== undefined && {
+          embedding_model: e.embedding_model,
+        }),
+        ...(e.use_hybrid_rag !== undefined && {
+          use_hybrid_rag: !!e.use_hybrid_rag,
+        }),
+        ...(e.bm25_weight !== undefined && { bm25_weight: e.bm25_weight }),
         ...(e.ragDatabaseName !== undefined && {
           ragDatabaseName: e.ragDatabaseName,
         }),
@@ -1485,11 +1597,9 @@ function convertV3NodeDataToV4(
       }
       return {
         ...baseData,
-        provider: ["openai", "huggingface", "huggingface_api", "replicate"].includes(
-          e.provider as string
-        )
-          ? e.provider
-          : "openai",
+        // Keep every provider this build accepts (incl. the 11 providers
+        // added after the first four); unknown input falls back to openai.
+        provider: canonicalizeAgentLLMProvider(e.provider),
         parameters:
           e.parameters && typeof e.parameters === "object" && !Array.isArray(e.parameters)
             ? e.parameters
@@ -1735,23 +1845,18 @@ function convertV3NodeDataToV4(
         element.type,
         allElements
       )
-      // The v3 `Name*Attribute*` element holds the same name as the
-      // layer's `name` field; prefer the layer name (the v3 view's
-      // canonical authoring surface), falling back to the attribute
-      // value if the layer name is empty (per spec note in
-      // `uml-v4-shape.md` NNDiagram §).
+      // The v3 `Name*Attribute*` element holds the layer's instance
+      // name (`conv1d_layer`, `l1`, …); the v3 layer element's own
+      // `name` is only the palette label (`Conv1D Layer`). Prefer the
+      // attribute, fall back to the layer name, and keep both in sync:
+      // `data.name` is what the canvas shows, `attributes.name` is what
+      // the backend reads (`nn_diagram_processor.py`).
       const nameFromAttr = attributes["name"]
-      if (
-        (!element.name || element.name.trim() === "") &&
-        typeof nameFromAttr === "string" &&
-        nameFromAttr !== ""
-      ) {
+      if (typeof nameFromAttr === "string" && nameFromAttr.trim() !== "") {
         ;(baseData as { name: string }).name = nameFromAttr
+      } else if (element.name && element.name.trim() !== "") {
+        attributes["name"] = element.name
       }
-      // The collapsed `name` attribute is redundant with the layer's
-      // own `name` field — drop it from the `attributes` dict so the
-      // round-trip doesn't double-write.
-      if ("name" in attributes) delete attributes["name"]
       const e = element as {
         description?: string
         assessmentNote?: string
@@ -1773,12 +1878,23 @@ function convertV3NodeDataToV4(
         inputLayer?: string
         entryLayerId?: string
         description?: string
+        input_var?: string
+        return_vars?: string | string[]
       }
       const entryLayerId = e.entryLayerId ?? e.entryLayer ?? e.inputLayer
+      // Forward signature (smart-gen fd3e904f): v3 stored `return_vars`
+      // as the comma-separated text the user typed; v4 keeps a list.
+      const returnVars = Array.isArray(e.return_vars)
+        ? e.return_vars.map((v) => String(v).trim()).filter(Boolean)
+        : typeof e.return_vars === "string"
+          ? e.return_vars.split(",").map((v) => v.trim()).filter(Boolean)
+          : []
       return {
         ...baseData,
         ...(entryLayerId && { entryLayerId }),
         ...(e.description && { description: e.description }),
+        ...(e.input_var && { input_var: e.input_var }),
+        ...(returnVars.length > 0 && { return_vars: returnVars }),
       }
     }
 
@@ -1959,6 +2075,7 @@ export function liftAgentTransitionDataToV4(
       predefinedType?: string
       intentName?: string
       fileType?: string
+      formGuiId?: string
       conditionValue?:
         | string
         | { variable?: string; operator?: string; targetValue?: string }
@@ -1966,8 +2083,12 @@ export function liftAgentTransitionDataToV4(
     custom?: {
       event?: string
       condition?: string[]
+      guiEventGuiId?: string
     }
     params?: Record<string, unknown>
+    // smart-gen GUI transitions (flat legacy spellings).
+    formGuiId?: string
+    guiEventGuiId?: string
   }
 
   const legacyConditionStr =
@@ -2053,9 +2174,15 @@ export function liftAgentTransitionDataToV4(
       condition = nested.conditions
     }
 
+    const guiEventGuiId = r.custom?.guiEventGuiId ?? r.guiEventGuiId
     return {
       transitionType: "custom" as const,
-      custom: { event, condition },
+      custom: {
+        event,
+        condition,
+        ...(event === "GUIEvent" &&
+          guiEventGuiId && { guiEventGuiId }),
+      },
       ...(legacyShape !== undefined && { legacyShape }),
       legacy: {
         ...(r.transitionType !== undefined && { transitionType: r.transitionType }),
@@ -2087,6 +2214,7 @@ export function liftAgentTransitionDataToV4(
     predefinedType: string
     intentName?: string
     fileType?: string
+    formGuiId?: string
     conditionValue?:
       | string
       | { variable?: string; operator?: string; targetValue?: string }
@@ -2110,6 +2238,11 @@ export function liftAgentTransitionDataToV4(
         : typeof r.conditionValue === "string"
           ? r.conditionValue
           : "")
+  } else if (predefinedType === "when_form_submitted") {
+    // smart-gen: optional target form (`gui_id` of an AgentGUI with
+    // is_form); empty = any form submission.
+    const formGuiId = r.predefined?.formGuiId ?? r.formGuiId
+    if (formGuiId) predefined.formGuiId = formGuiId
   } else if (predefinedType === "when_variable_operation_matched") {
     // Prefer the structured form on `predefined.conditionValue`, else
     // fall back to flat fields, else the top-level `conditionValue`.
@@ -2190,8 +2323,14 @@ export function liftAgentTransitionDataToV4(
 function convertV3RelationshipToV4Edge(
   relationship: V3UMLRelationship
 ): BesserEdge {
+  // Class associations: v3 per-end `source.navigable` / `target.navigable`
+  // (and the legacy ClassUnidirectional type) lift to a ClassBidirectional
+  // edge with explicit `data.sourceNavigable` / `data.targetNavigable`.
+  const navigabilityLift = supportsNavigability(relationship.type)
+    ? liftV3AssociationNavigability(relationship)
+    : undefined
   const edgeType = convertV3EdgeTypeToV4(
-    relationship.type,
+    navigabilityLift?.type ?? relationship.type,
     relationship.flowType
   )
   let points: IPoint[] = []
@@ -2257,10 +2396,19 @@ function convertV3RelationshipToV4Edge(
       targetMultiplicity: relationship.target.multiplicity || "",
       sourceRole: relationship.source.role || "",
       targetRole: relationship.target.role || "",
+      ...(navigabilityLift?.data ?? {}),
       isManuallyLayouted: relationship.isManuallyLayouted || false,
       messages: convertV3MessagesToV4(relationship.messages),
       // Preserve flowType for BPMN edges
       ...(relationship.flowType && { flowType: relationship.flowType }),
+      // BPMN default (gateway/activity "otherwise") sequence flow — v3
+      // `BPMNFlow.isDefault` → v4 `edge.data.isDefault` (spec: BPMN §,
+      // `BPMNSequenceFlow` only; the backend processor validates the
+      // source and downgrades illegal flags with a warning).
+      ...(relationship.type === "BPMNFlow" &&
+        (relationship as { isDefault?: unknown }).isDefault === true && {
+          isDefault: true,
+        }),
       // StateTransition-specific data — v3 parity: `name` + `params`
       // (ordered string array) + optional `guard`. No `code`, no
       // `eventName`.
@@ -2316,6 +2464,81 @@ function convertV3AssessmentToV4(v3Assessment: V3Assessment): Assessment {
 /**
  * Main conversion function from v3 to v4 format
  */
+/**
+ * Collect the agent components of a v3 AgentDiagram model: component-typed
+ * `elements`, legacy `agentComponents`, and `components` (highest priority).
+ * Entries are copied verbatim minus `bounds`. An intent's
+ * `AgentIntentDescription` child (legacy canvas intent) is folded onto
+ * `intent_description` when the intent has none. Returns `undefined` for
+ * non-agent models and agent models without any component.
+ */
+function extractV3AgentComponents(
+  model: V3UMLModel
+): Record<string, UMLModelComponent> | undefined {
+  if ((model.type as string) !== "AgentDiagram") return undefined
+  const raw = model as V3UMLModel & {
+    components?: Record<string, Record<string, unknown>>
+    agentComponents?: Record<string, Record<string, unknown>>
+  }
+  const components: Record<string, UMLModelComponent> = {}
+  const strip = (entry: Record<string, unknown>, id: string) => {
+    const { bounds: _bounds, ...rest } = entry
+    return { ...rest, id } as UMLModelComponent
+  }
+  const elements = (model.elements ?? {}) as Record<string, V3UMLElement>
+  for (const [elementId, element] of Object.entries(elements)) {
+    if (!isAgentComponentType(element?.type)) continue
+    components[elementId] = strip(
+      element as unknown as Record<string, unknown>,
+      elementId
+    )
+  }
+  for (const source of [raw.agentComponents, raw.components]) {
+    if (!source || typeof source !== "object") continue
+    for (const [entryId, entry] of Object.entries(source)) {
+      if (entry && typeof entry === "object") {
+        components[entryId] = strip(entry, entryId)
+      }
+    }
+  }
+  if (Object.keys(components).length === 0) return undefined
+  // Legacy canvas intents: fold an AgentIntentDescription child onto the
+  // component and make sure `bodies` lists the owned training sentences.
+  for (const component of Object.values(components)) {
+    if (component.type !== "AgentIntent") continue
+    const owned = Object.values(elements).filter(
+      (child) => child?.owner === component.id
+    )
+    const description = owned.find(
+      (child) => child.type === "AgentIntentDescription"
+    )
+    if (!component.intent_description && description?.name) {
+      component.intent_description = description.name
+    }
+    if (!Array.isArray(component.bodies)) {
+      component.bodies = Array.isArray(component.ownedElements)
+        ? component.ownedElements
+        : owned
+            .filter((child) => child.type === "AgentIntentBody")
+            .map((child) => child.id)
+    }
+    if (component.intent_description === undefined) {
+      component.intent_description = ""
+    }
+    // Entity-slot rows of a legacy canvas intent follow it verbatim so
+    // they are not lost (no editor surface; round-trip only).
+    for (const child of owned) {
+      if (child.type === "AgentIntentObjectComponent" && !components[child.id]) {
+        components[child.id] = strip(
+          child as unknown as Record<string, unknown>,
+          child.id
+        )
+      }
+    }
+  }
+  return components
+}
+
 export function convertV3ToV4(v3Data: V3DiagramFormat | V3UMLModel): UMLModel {
   // Support both wrapped and flat V3 shapes
   const model: V3UMLModel =
@@ -2323,8 +2546,31 @@ export function convertV3ToV4(v3Data: V3DiagramFormat | V3UMLModel): UMLModel {
   const id = (v3Data as V3DiagramFormat).id || "converted-diagram-" + Date.now()
   const title = (v3Data as V3DiagramFormat).title || ""
 
+  // AgentDiagram: off-canvas agent components (intents + intent bodies, LLMs,
+  // RAG databases, tools, skills, workspaces, GUIs) are carried verbatim into
+  // the v4 `components` map (smart-gen v3 flat shape, geometry stripped)
+  // instead of becoming nodes. Sources, lowest priority first: component-typed
+  // `elements` (pre-Components-page saves), legacy `agentComponents`, and
+  // `components` itself.
+  const agentComponents = extractV3AgentComponents(model)
+  const movedComponentIds = new Set(
+    agentComponents ? Object.keys(agentComponents) : []
+  )
+
   const nodes: BesserNode[] = Object.values(model.elements)
     .filter((element) => {
+      if (movedComponentIds.has(element.id)) return false
+      // Intent sub-rows that are not components (description / object slot)
+      // follow their intent off the canvas.
+      if (
+        agentComponents &&
+        element.owner &&
+        movedComponentIds.has(element.owner) &&
+        (element.type === "AgentIntentDescription" ||
+          element.type === "AgentIntentObjectComponent")
+      ) {
+        return false
+      }
       // Skip child rows that are collapsed into their owner's data.
       if (
         [
@@ -2398,6 +2644,17 @@ export function convertV3ToV4(v3Data: V3DiagramFormat | V3UMLModel): UMLModel {
       if (V3_ATTRIBUTE_TYPE_TO_SLUG[element.type] !== undefined) {
         return false
       }
+      // Attribute rows with an unknown `type` but an `attributeName`
+      // (what the old backend matched on) are folded by
+      // `collapseV3LayerAttributes`; don't also emit them as nodes.
+      if (
+        typeof (element as { attributeName?: unknown }).attributeName ===
+          "string" &&
+        element.owner &&
+        getLayerSchema(model.elements[element.owner]?.type ?? "").length > 0
+      ) {
+        return false
+      }
       if (
         element.type === "NNSectionTitle" ||
         element.type === "NNSectionSeparator"
@@ -2408,9 +2665,19 @@ export function convertV3ToV4(v3Data: V3DiagramFormat | V3UMLModel): UMLModel {
     })
     .map((element) => convertV3ElementToV4Node(element, model.elements))
 
-  const edges: BesserEdge[] = Object.values(model.relationships).map(
-    (relationship) => convertV3RelationshipToV4Edge(relationship)
-  )
+  const edges: BesserEdge[] = Object.values(model.relationships)
+    .filter(
+      (relationship) =>
+        !movedComponentIds.has(
+          (relationship as { source?: { element?: string } }).source
+            ?.element ?? ""
+        ) &&
+        !movedComponentIds.has(
+          (relationship as { target?: { element?: string } }).target
+            ?.element ?? ""
+        )
+    )
+    .map((relationship) => convertV3RelationshipToV4Edge(relationship))
 
   const assessments: Record<string, Assessment> = {}
   if (model.assessments) {
@@ -2434,6 +2701,7 @@ export function convertV3ToV4(v3Data: V3DiagramFormat | V3UMLModel): UMLModel {
     nodes,
     edges,
     assessments,
+    ...(agentComponents && { components: agentComponents }),
     interactive:
       model.interactive &&
       (Object.values(model.interactive.elements ?? {}).some(Boolean) ||
@@ -2533,7 +2801,9 @@ export function migrateBpmnDiagramV3ToV4(
       `migrateBpmnDiagramV3ToV4: expected BPMNDiagram, got ${v4.type}`
     )
   }
-  return v4
+  // v3 BPMN saves (incl. the smart-generator templates) carry `owner: null`
+  // on flow nodes drawn inside pools/lanes — adopt them geometrically.
+  return adoptBpmnContainment(v4)
 }
 
 /**
@@ -2726,10 +2996,18 @@ export function convertV4ToV3Class(v4: UMLModel): V3UMLModel {
             description?: string
           }),
           ...(ocl.kind && { kind: ocl.kind } as { kind?: string }),
+          ...(ocl.constraintName && {
+            constraintName: ocl.constraintName,
+          } as { constraintName?: string }),
+          ...(ocl.targetMethodId && {
+            targetMethodId: ocl.targetMethodId,
+          } as { targetMethodId?: string }),
         } as V3UMLElement & {
           expression?: string
           description?: string
           kind?: string
+          constraintName?: string
+          targetMethodId?: string
         }
       }
     } else if (node.type === "objectName") {
@@ -2804,6 +3082,8 @@ export function convertV4ToV3Class(v4: UMLModel): V3UMLModel {
         expression?: string
         description?: string
         kind?: string
+        constraintName?: string
+        targetMethodId?: string
       }
       elements[node.id] = {
         id: node.id,
@@ -2821,10 +3101,14 @@ export function convertV4ToV3Class(v4: UMLModel): V3UMLModel {
         }),
         ...(data.description !== undefined && { description: data.description }),
         ...(data.kind !== undefined && { kind: data.kind }),
+        ...(data.constraintName && { constraintName: data.constraintName }),
+        ...(data.targetMethodId && { targetMethodId: data.targetMethodId }),
       } as V3UMLElement & {
         constraint?: string
         description?: string
         kind?: string
+        constraintName?: string
+        targetMethodId?: string
       }
     } else {
       // Other node types (e.g. Package): pass through with v3 type
@@ -2868,6 +3152,10 @@ export function convertV4ToV3Class(v4: UMLModel): V3UMLModel {
         ...(typeof data.sourceRole === "string" && data.sourceRole && {
           role: data.sourceRole as string,
         }),
+        // v4 `data.sourceNavigable` → v3 end `navigable`.
+        ...(typeof data.sourceNavigable === "boolean" && {
+          navigable: data.sourceNavigable,
+        }),
       },
       target: {
         element: edge.target,
@@ -2878,6 +3166,9 @@ export function convertV4ToV3Class(v4: UMLModel): V3UMLModel {
           }),
         ...(typeof data.targetRole === "string" && data.targetRole && {
           role: data.targetRole as string,
+        }),
+        ...(typeof data.targetNavigable === "boolean" && {
+          navigable: data.targetNavigable,
         }),
       },
       ...(data.isManuallyLayouted === true && { isManuallyLayouted: true }),
@@ -2932,6 +3223,7 @@ function childRowToV3(
     implementationType?: ClassifierMethodImplementationType
     stateMachineId?: string
     quantumCircuitId?: string
+    neuralNetworkId?: string
     isOptional?: boolean
     isDerived?: boolean
     isId?: boolean
@@ -2961,6 +3253,7 @@ function childRowToV3(
     out.implementationType = row.implementationType
   if (row.stateMachineId) out.stateMachineId = row.stateMachineId
   if (row.quantumCircuitId) out.quantumCircuitId = row.quantumCircuitId
+  if (row.neuralNetworkId) out.neuralNetworkId = row.neuralNetworkId
   if (row.isOptional !== undefined) out.isOptional = row.isOptional
   if (row.isDerived !== undefined) out.isDerived = row.isDerived
   if (row.isId !== undefined) out.isId = row.isId
@@ -2990,6 +3283,8 @@ const invertNodeType = (v4Type: string): string => {
     // Free-form sticky-note Comment. v3 element type is
     // `Comments` (plural — see `v3 source: common/comments/`).
     comment: "Comments",
+    // v3 `common/color-legend` element type.
+    colorDescription: "ColorLegend",
     // StateMachine node-type strings are PascalCase identical to
     // v3 element types — falling through is correct, but listed here
     // for grep-ability.
@@ -3335,7 +3630,7 @@ type AgentTransitionV4 = {
       | string
       | { variable?: string; operator?: string; targetValue?: string }
   }
-  custom?: { event?: string; condition?: string[] }
+  custom?: { event?: string; condition?: string[]; guiEventGuiId?: string }
   params?: { [k: string]: string }
   legacyShape?: 1 | 2 | 3 | 4 | 5
   legacy?: Record<string, unknown>
@@ -3520,6 +3815,9 @@ export function convertV4ToV3Agent(v4: UMLModel): V3UMLModel {
               row.ws_longitude !== undefined && {
                 ws_longitude: row.ws_longitude,
               }),
+            ...pickAgentRowPassthrough(
+              row as unknown as Record<string, unknown>
+            ),
             ...(row.fillColor && { fillColor: row.fillColor }),
             ...(row.textColor && { textColor: row.textColor }),
           } as V3UMLElement
@@ -3687,6 +3985,22 @@ export function convertV4ToV3Agent(v4: UMLModel): V3UMLModel {
           ...(data.num_previous_messages !== undefined && {
             num_previous_messages: data.num_previous_messages,
           }),
+          // smart-gen embedding + hybrid RAG settings.
+          ...(data.embedding_provider !== undefined && {
+            embedding_provider: data.embedding_provider,
+          }),
+          ...(data.embedding_base_url !== undefined && {
+            embedding_base_url: data.embedding_base_url,
+          }),
+          ...(data.embedding_model !== undefined && {
+            embedding_model: data.embedding_model,
+          }),
+          ...(data.use_hybrid_rag !== undefined && {
+            use_hybrid_rag: !!data.use_hybrid_rag,
+          }),
+          ...(data.bm25_weight !== undefined && {
+            bm25_weight: data.bm25_weight,
+          }),
         } as V3UMLElement
         break
       }
@@ -3696,11 +4010,7 @@ export function convertV4ToV3Agent(v4: UMLModel): V3UMLModel {
         const data = node.data as Record<string, unknown>
         elements[node.id] = {
           ...baseV3,
-          provider: ["openai", "huggingface", "huggingface_api", "replicate"].includes(
-            data.provider as string
-          )
-            ? (data.provider as string)
-            : "openai",
+          provider: canonicalizeAgentLLMProvider(data.provider),
           parameters:
             data.parameters &&
             typeof data.parameters === "object" &&
@@ -3793,7 +4103,13 @@ export function convertV4ToV3Agent(v4: UMLModel): V3UMLModel {
           ...baseRel,
           transitionType: "custom",
           predefined: { predefinedType: "" },
-          custom: { event: ev, condition: cond },
+          custom: {
+            event: ev,
+            condition: cond,
+            ...(data.custom?.guiEventGuiId && {
+              guiEventGuiId: data.custom.guiEventGuiId,
+            }),
+          },
           ...(Object.keys(params).length > 0 && { params }),
         } as V3UMLRelationship
       } else {
@@ -3863,6 +4179,9 @@ export function convertV4ToV3Agent(v4: UMLModel): V3UMLModel {
       : { elements: {}, relationships: {} },
     elements,
     relationships,
+    // Off-canvas agent components round-trip verbatim (v3 and v4 share the
+    // flat smart-gen entry shape).
+    ...(v4.components && { components: v4.components }),
     assessments:
       v4.assessments &&
       Object.fromEntries(
@@ -4170,6 +4489,11 @@ export function convertV4ToV3NN(v4: UMLModel): V3UMLModel {
         assessmentNote?: string
       }
       const attrs = data.attributes ?? {}
+      // Name attribute value: the instance name the backend reads.
+      const instanceName =
+        typeof attrs["name"] === "string" && attrs["name"] !== ""
+          ? (attrs["name"] as string)
+          : baseV3.name
       // Re-emit one v3 element per (slug, value) pair.
       const ownedAttributeIds: string[] = []
       // Always synthesize the `Name*` attribute element that v3 expected
@@ -4183,11 +4507,12 @@ export function convertV4ToV3NN(v4: UMLModel): V3UMLModel {
           type: nameType,
           owner: node.id,
           bounds: { x: 0, y: 0, width: 0, height: 0 },
-          value: baseV3.name,
+          value: instanceName,
         } as V3UMLElement & { value?: unknown }
         ownedAttributeIds.push(nameId)
       }
       for (const [key, value] of Object.entries(attrs)) {
+        if (key === "name") continue // emitted above
         // Strip the layer-kind prefix off qualified slugs.
         const plainSlug = key.includes(".") ? key.split(".").pop()! : key
         const v3Type = v3AttributeTypeFor(nt, plainSlug)
@@ -4221,11 +4546,18 @@ export function convertV4ToV3NN(v4: UMLModel): V3UMLModel {
       const data = node.data as Record<string, unknown> & {
         entryLayerId?: string
         description?: string
+        input_var?: string
+        return_vars?: string[]
       }
       elements[node.id] = {
         ...baseV3,
         ...(data.entryLayerId && { entryLayerId: data.entryLayerId }),
         ...(data.description && { description: data.description }),
+        ...(data.input_var && { input_var: data.input_var }),
+        ...(Array.isArray(data.return_vars) &&
+          data.return_vars.length > 0 && {
+            return_vars: data.return_vars.join(", "),
+          }),
       } as V3UMLElement & { entryLayerId?: string; description?: string }
     } else if (nt === "NNReference") {
       // Emit both the v4 `referenceTarget` and the v3
@@ -4709,6 +5041,13 @@ export function normalizeV4Model(model: UMLModel): UMLModel {
   m = normalizeOCLConstraintNodes(m)
   m = normalizeClassStereotypeCase(m)
   m = normalizeStateBodyNodesInline(m)
+  // Class associations: legacy ClassUnidirectional → ClassBidirectional and
+  // explicit, rule-abiding `sourceNavigable` / `targetNavigable` flags.
+  m = normalizeModelAssociationNavigability(m)
+  // BPMN: top-level flow nodes / artifacts that visually sit inside a pool,
+  // lane or expanded subprocess get that container as `parentId`, so moving
+  // the container moves its content (utils/bpmnContainment.ts).
+  m = adoptBpmnContainment(m)
   return m
 }
 

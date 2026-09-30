@@ -1,5 +1,6 @@
 import {
   Box,
+  Button,
   Checkbox,
   MenuItem,
   Select,
@@ -8,80 +9,96 @@ import {
 } from "@mui/material"
 import React from "react"
 import { useShallow } from "zustand/shallow"
+import type { Node } from "@xyflow/react"
 import { useDiagramStore } from "@/store/context"
 import { NNLayerNodeProps } from "@/types"
 import { DividerLine, NodeStyleEditor, Typography } from "@/components/ui"
 import { PopoverProps } from "@/components/popovers/types"
+import { useTranslation, type Translate } from "@/i18n"
 import { InspectorSectionHeader } from "../_shared"
 import {
   AttributeWidgetConfig,
   COLLIDING_SLUGS,
   getLayerSchema,
+  getTnsTypeAttributeNames,
+  getTnsTypeCategory,
+  NN_INPUT_MODULE,
   qualifySlug,
+  TnsTypeCategory,
 } from "@/nodes/nnDiagram/nnAttributeWidgetConfig"
 import {
-  getAttributeDefaultValue,
   getListExpectation,
-  LIST_STRICT_REGEX,
   NN_ATTRIBUTE_DEFAULTS,
 } from "@/nodes/nnDiagram/nnValidationDefaults"
+import {
+  interpolate,
+  validateOnChange,
+  validateOnSubmit,
+  ValidationContext,
+} from "@/nodes/nnDiagram/nnAttributeValidators"
+import {
+  formatLayersOfTensors as formatLayersOfTensorsList,
+  formatPadAmount,
+  formatRepeatDim,
+  formatSubscriptIndices,
+  formatSubscriptIndicesDisplay,
+  isCompletePadAmountPair,
+  PadAmountPair,
+  parseLayersOfTensors as parseLayersOfTensorsList,
+  parsePadAmount,
+  parseRepeatDim,
+  parseSubscriptIndices,
+  SubscriptDimension,
+} from "@/nodes/nnDiagram/nnAttributeValueFormats"
 import { computeNNPredecessors } from "@/utils/nnPredecessors"
 
 /**
- * Generic NN inspector.
+ * Generic NN inspector: drives the 17 layer-kind panels from a single
+ * body that reads its field schema from `nnAttributeWidgetConfig`.
  *
- * Baseline: drives 17 layer-kind panels from a single body that
- * reads its field schema from `nnAttributeWidgetConfig`.
+ * Ported behaviour (v3 develop + smart-generator):
+ *   - per-layer conditional optional-attribute filtering — TensorOp by
+ *     `tns_type` (`TNS_TYPE_ATTRIBUTES`, plus `actual_vars` only once a
+ *     recurrent layer feeds the op and `pad_value` only for
+ *     `pad_mode = constant`), Pooling by `pooling_type`, Datasets by
+ *     `input_format`;
+ *   - mandatory-attribute auto-population and legacy dropdown
+ *     normalization on first render;
+ *   - a per-row "enable this optional attribute" checkbox;
+ *   - config-driven validation of every free-text value
+ *     (`nnAttributeValidators`, smart-gen b8272e99): complete values
+ *     commit while typing, invalid ones show a translated message, a
+ *     submit of anything else falls back to the default;
+ *   - structured editors for `layers_of_tensors` (operand count per
+ *     `tns_type` category, numeric literals for binary ops, `INPUT` as a
+ *     source), `subscript_indices`, `repeat_dim`, `pad_amount` and the
+ *     `actual_vars` append list;
+ *   - every string goes through the `popup.nn.*` translation keys.
  *
- * Deltas (audit recommendations 29–33):
- *   - #29: per-layer conditional optional-attribute filtering for
- *     TensorOp (by `tns_type`), Pooling (by `pooling_type`), and
- *     Datasets (by `input_format`). Source-of-truth port of v3's
- *     `getTensorOpOptionalAttributes`, `getPoolingOptionalAttributes`,
- *     and `getDatasetOptionalAttributes` at
- *     `nn-component-update.tsx:614-669`.
- *   - #30: mandatory-attribute auto-population on first render. v3's
- *     `componentDidMount` (`nn-component-update.tsx:588-605`) created
- *     the mandatory attribute children with default values when none
- *     existed; this runs the equivalent for v4 nodes via a `useEffect`
- *     that fills missing keys on `data.attributes`.
- *   - #31: per-row "enable this optional attribute" checkbox. When
- *     unchecked, the attribute key is removed from `data.attributes`.
- *     Mirrors v3's `OptionalAttributeRow` toggle behaviour.
- *   - #33: `getListExpectation` placeholder + `LIST_STRICT_REGEX`
- *     warning for kernel_dim / stride_dim / output_dim fields. Pooling
- *     placeholders re-resolve when the user changes the layer's
- *     `dimension`.
- *
- * (DimensionAttribute slug collision) — the panel
- * stores the value under the qualified slug (`pooling.dimension` /
- * `batch_normalization.dimension`) when the slug appears in
- * `COLLIDING_SLUGS`. Reads tolerate both forms for backward-compat.
+ * The `dimension` slug is stored qualified (`pooling.dimension` /
+ * `batch_normalization.dimension`) on Pooling / BatchNorm; reads
+ * tolerate both forms.
  */
 
 /* -------------------------------------------------------------------------- */
 /* Conditional optional-attribute filtering                                    */
 /* -------------------------------------------------------------------------- */
 
-/** TensorOp optional fields filtered by `tns_type`. */
+/** TensorOp optional fields offered for `tns_type` (`TNS_TYPE_ATTRIBUTES`). */
 function filterTensorOpOptionals(
   optionalSlugs: string[],
-  tnsType: string
+  tnsType: string,
+  options: { hasRecurrentInput: boolean; padMode: string }
 ): string[] {
-  switch (tnsType) {
-    case "reshape":
-      return optionalSlugs.filter((s) => s === "reshape_dim")
-    case "concatenate":
-      return optionalSlugs.filter(
-        (s) => s === "layers_of_tensors" || s === "concatenate_dim"
-      )
-    case "transpose":
-      return optionalSlugs.filter((s) => s === "transpose_dim")
-    case "permute":
-      return optionalSlugs.filter((s) => s === "permute_dim")
-    default:
-      return optionalSlugs.filter((s) => s === "layers_of_tensors")
-  }
+  const offered = new Set(getTnsTypeAttributeNames(tnsType))
+  return optionalSlugs.filter((slug) => {
+    if (!offered.has(slug)) return false
+    // actual_vars only makes sense once a recurrent layer feeds this op.
+    if (slug === "actual_vars") return options.hasRecurrentInput
+    // pad_value is ignored by every pad_mode other than 'constant'.
+    if (slug === "pad_value") return options.padMode === "constant"
+    return true
+  })
 }
 
 /** Pooling optional fields filtered by `pooling_type`. */
@@ -89,7 +106,6 @@ function filterPoolingOptionals(
   optionalSlugs: string[],
   poolingType: string
 ): string[] {
-  // Per v3 source-of-truth at `nn-component-update.tsx:649-669`:
   // - `global_*` hide kernel/stride/padding/output_dim
   // - `adaptive_*` hide kernel/stride/padding (keep output_dim)
   // - `average`/`max` hide output_dim only
@@ -132,41 +148,52 @@ function filterDatasetOptionals(
   return optionalSlugs
 }
 
+/** Instance name of an NN node (`attributes.name`, else `data.name`). */
+function nnNodeName(node: Node): string {
+  const data = (node.data ?? {}) as {
+    name?: string
+    attributes?: Record<string, unknown>
+  }
+  const attrName = data.attributes?.name
+  return typeof attrName === "string" && attrName !== ""
+    ? attrName
+    : (data.name ?? "")
+}
+
+const RECURRENT_KINDS = new Set(["RNNLayer", "LSTMLayer", "GRULayer"])
+
+/** Whether `layers_of_tensors` references an RNN / LSTM / GRU layer. */
+export function hasRecurrentLayersSelected(
+  layersOfTensors: unknown,
+  nodes: Node[]
+): boolean {
+  if (typeof layersOfTensors !== "string" || layersOfTensors === "") return false
+  const names = parseLayersOfTensorsList(layersOfTensors).filter(
+    (v) => v && !/^-?\d+\.?\d*$/.test(v)
+  )
+  if (names.length === 0) return false
+  const recurrent = new Set(
+    nodes.filter((n) => RECURRENT_KINDS.has(n.type ?? "")).map(nnNodeName)
+  )
+  return names.some((name) => recurrent.has(name))
+}
+
 /* -------------------------------------------------------------------------- */
-/* Discriminator-change pruning (develop's monitor, made synchronous)          */
+/* Discriminator-change pruning                                                */
 /* -------------------------------------------------------------------------- */
 
 /**
- * Develop's `cleanupHiddenOptionalAttributes`
- * (`nn-association-monitor.tsx` 225-282) ran on every store update and
- * **deleted** attributes invalid for the current discriminator; v4
- * applies the same prune synchronously in the `setNodes` call that
- * writes the new discriminator. The functions below return a pruned
- * copy of the attributes dict. Exported for unit tests.
+ * TensorOp: a `tns_type` change starts the op fresh — every optional
+ * attribute is deleted, only `name` and `tns_type` survive (smart-gen
+ * `nn-attribute-update.tsx::handleValueChange`). Exported for unit tests.
  */
-
-/** TensorOp: keep only the `*_dim` attr matching `tns_type`
- *  (`layers_of_tensors` is never auto-deleted). */
 export function pruneTensorOpAttributes(
   attributes: Record<string, unknown>,
-  tnsType: string
+  _tnsType: string
 ): Record<string, unknown> {
-  const keepBytype: Record<string, string | undefined> = {
-    reshape: "reshape_dim",
-    concatenate: "concatenate_dim",
-    transpose: "transpose_dim",
-    permute: "permute_dim",
-    // multiply / matmultiply keep none.
-  }
-  const keep = keepBytype[tnsType]
-  const next = { ...attributes }
-  for (const slug of [
-    "reshape_dim",
-    "concatenate_dim",
-    "transpose_dim",
-    "permute_dim",
-  ]) {
-    if (slug !== keep) delete next[slug]
+  const next: Record<string, unknown> = {}
+  for (const key of ["name", "tns_type"]) {
+    if (key in attributes) next[key] = attributes[key]
   }
   return next
 }
@@ -213,12 +240,9 @@ export function pruneDatasetAttributes(
 }
 
 /**
- * Pooling dimension sync (develop `handleDimensionChange`,
- * `nn-attribute-update.tsx` 165-238 — wired ONLY for the Pooling
- * dimension; BatchNorm uses the plain write path): rewrite
+ * Pooling dimension sync (`handleDimensionChange`): rewrite
  * `kernel_dim` / `stride_dim` / `output_dim` to the new dimension's
- * arity **iff the key is currently present**. Values come from
- * `getListExpectation` (`[3]`/`[1]`/`[16]` × arity).
+ * arity **iff the key is currently present**.
  */
 export function syncPoolingDimensionAttributes(
   attributes: Record<string, unknown>,
@@ -237,8 +261,7 @@ export function syncPoolingDimensionAttributes(
 /* -------------------------------------------------------------------------- */
 
 /** Parse the canonical bracketed metrics string (`"[accuracy, mae]"` or
- *  the bare legacy `"accuracy, mae"`) into the selected list — develop
- *  `nn-attribute-update.tsx` 267-272. Exported for unit tests. */
+ *  the bare legacy `"accuracy, mae"`) into the selected list. */
 export function parseMetricsValue(value: string): string[] {
   return value
     .replace(/^\[|\]$/g, "")
@@ -257,30 +280,31 @@ export function formatMetricsValue(selected: string[]): string {
 /* layers_of_tensors (de)serialization                                         */
 /* -------------------------------------------------------------------------- */
 
-/** Parse develop's wire form `"['layerA', 'layerB']"` (brackets +
- *  single quotes) into the two selections — develop
- *  `optional-attribute-row.tsx::parseLayersOfTensors` 135-142. */
+/** Parse the wire form `"['layerA', 'layerB']"` / `"['x', 1.5]"`. */
 export function parseLayersOfTensors(value: string): string[] {
-  return value
-    .replace(/^\[|\]$/g, "")
-    .split(",")
-    .map((s) => s.trim().replace(/^'|'$/g, ""))
-    .filter(Boolean)
+  return parseLayersOfTensorsList(value)
 }
 
-/** Serialize the two selections back to develop's wire form. Only
- *  meaningful when both are chosen (`formatLayersOfTensors` 144-149). */
-export function formatLayersOfTensors(first: string, second: string): string {
-  return `['${first}', '${second}']`
+/** Serialize operands to the wire form: names quoted, numbers bare. */
+export function formatLayersOfTensors(...selections: string[]): string {
+  return formatLayersOfTensorsList(selections)
 }
 
 /* -------------------------------------------------------------------------- */
 /* Component                                                                   */
 /* -------------------------------------------------------------------------- */
 
+const SELECTION_WIDGETS = new Set([
+  "predecessor",
+  "layers_of_tensors",
+  "subscript_indices",
+  "pad_amount",
+])
+
 export const NNComponentEditPanel: React.FC<PopoverProps> = ({
   elementId,
 }) => {
+  const { t } = useTranslation()
   const { nodes, edges, setNodes } = useDiagramStore(
     useShallow((state) => ({
       nodes: state.nodes,
@@ -289,44 +313,29 @@ export const NNComponentEditPanel: React.FC<PopoverProps> = ({
     }))
   )
 
-  // UI-only "armed" rows: develop's `handleCheckboxChange` early-returned
-  // for `predecessor` / `layers_of_tensors` widgets — ticking the
-  // checkbox shows the dropdowns WITHOUT creating the attribute (it is
-  // only persisted once a selection is made). Keyed by element so a
-  // panel reused across nodes doesn't leak armed state.
+  // UI-only "armed" rows: ticking the checkbox of a selection widget
+  // shows its editor WITHOUT creating the attribute (it is only
+  // persisted once a value is picked). Keyed by element.
   const [armedRows, setArmedRows] = React.useState<Record<string, boolean>>({})
 
   const node = nodes.find((n) => n.id === elementId)
-  if (!node) return null
 
-  const layerKind = node.type as string
+  const layerKind = (node?.type as string) ?? ""
   const schema = getLayerSchema(layerKind)
-  const data = node.data as NNLayerNodeProps
+  const data = (node?.data ?? {}) as NNLayerNodeProps
   const attributes = data.attributes ?? {}
 
-  // Predecessor candidates for the `predecessor` / `layers_of_tensors`
-  // widgets — graph-aware upstream walk over incoming `NNNext` edges
-  // (develop `_computePredecessors`): TensorOps / NNReferences
-  // included, no container filter, nearest-first order.
-  const predecessorCandidates = computeNNPredecessors(
-    nodes,
-    edges,
-    elementId
-  )
-
-  /* ─────────────────────────── State helpers ────────────────────────── */
-
-  const updateName = (name: string) => {
-    setNodes((all) =>
-      all.map((n) =>
-        n.id === elementId ? { ...n, data: { ...n.data, name } } : n
-      )
-    )
+  // Read the current value for an attribute slug, tolerating both the
+  // qualified and unqualified key forms.
+  const readAttribute = (slug: string): unknown => {
+    if (COLLIDING_SLUGS.has(slug)) {
+      const q = qualifySlug(layerKind, slug)
+      if (q in attributes) return attributes[q]
+    }
+    return attributes[slug]
   }
 
-  const updateAttributes = (
-    next: Record<string, unknown>
-  ) => {
+  const updateAttributes = (next: Record<string, unknown>) => {
     setNodes((all) =>
       all.map((n) =>
         n.id === elementId
@@ -339,71 +348,14 @@ export const NNComponentEditPanel: React.FC<PopoverProps> = ({
     )
   }
 
-  const updateAttribute = (slug: string, value: unknown) => {
-    const key = COLLIDING_SLUGS.has(slug) ? qualifySlug(layerKind, slug) : slug
-    let next: Record<string, unknown> = {
-      ...((node.data as NNLayerNodeProps).attributes ?? {}),
-      [key]: value,
-    }
-    // Discriminator-change pruning + pooling dimension sync — ONE
-    // attributes patch per write (replaces develop's post-hoc monitor).
-    if (layerKind === "TensorOp" && slug === "tns_type") {
-      next = pruneTensorOpAttributes(next, String(value))
-    } else if (layerKind === "PoolingLayer" && slug === "pooling_type") {
-      next = prunePoolingAttributes(next, String(value))
-    } else if (
-      (layerKind === "TrainingDataset" || layerKind === "TestDataset") &&
-      slug === "input_format"
-    ) {
-      next = pruneDatasetAttributes(next, String(value))
-    } else if (layerKind === "PoolingLayer" && slug === "dimension") {
-      // BatchNorm dimension deliberately takes the plain write path —
-      // develop only wired the sibling sync for DimensionAttributePooling.
-      next = syncPoolingDimensionAttributes(next, String(value))
-    }
-    updateAttributes(next)
-  }
-
-  const removeAttribute = (slug: string) => {
-    const key = COLLIDING_SLUGS.has(slug) ? qualifySlug(layerKind, slug) : slug
-    const next = { ...((node.data as NNLayerNodeProps).attributes ?? {}) }
-    delete next[key]
-    delete next[slug] // tolerate both forms
-    updateAttributes(next)
-  }
-
-  const handleStyleFieldUpdate = (key: string, value: string) => {
-    setNodes((all) =>
-      all.map((n) =>
-        n.id === elementId
-          ? { ...n, data: { ...n.data, [key]: value } as NNLayerNodeProps }
-          : n
-      )
-    )
-  }
-
-  // Read the current value for an attribute slug, tolerating both the
-  // qualified and unqualified key forms.
-  const readAttribute = (slug: string): unknown => {
-    if (COLLIDING_SLUGS.has(slug)) {
-      const q = qualifySlug(layerKind, slug)
-      if (q in attributes) return attributes[q]
-    }
-    return attributes[slug]
-  }
-
-  /* ──────────── #30 mandatory auto-fill + legacy normalization ────── */
+  /* ──────────── mandatory auto-fill + legacy normalization ─────────── */
 
   // Run once per node — populate mandatory attribute keys with defaults
-  // when the layer was just dropped from the palette and `data.attributes`
-  // is missing them. Additionally (Wave-3 NN-9, mirroring develop's
-  // popup-mount rewrites at `nn-attribute-update.tsx` 133-162 +
-  // `optional-attribute-row.tsx` 81-102): any dropdown value outside the
-  // current whitelist rewrites to the schema default — covers
-  // `cross_entropy` → `crossentropy`, `zeros` → `valid` and numeric
-  // dimensions → `2D` already stored on v4 documents.
+  // when the layer was just dropped from the palette, and rewrite any
+  // dropdown value outside the current whitelist to the schema default
+  // (`cross_entropy` → `crossentropy`, `zeros` → `valid`, …).
   React.useEffect(() => {
-    if (schema.length === 0) return
+    if (!node || schema.length === 0) return
     const patch: Record<string, unknown> = {}
     for (const f of schema) {
       const key = COLLIDING_SLUGS.has(f.slug)
@@ -411,9 +363,6 @@ export const NNComponentEditPanel: React.FC<PopoverProps> = ({
         : f.slug
       const stored = readAttribute(f.slug)
 
-      // One-shot dropdown whitelist normalization (booleans were
-      // coerced to JS booleans by the migrator and are skipped;
-      // `multiselect` metrics are never normalized — develop parity).
       if (
         f.widget === "dropdown" &&
         f.options &&
@@ -428,10 +377,8 @@ export const NNComponentEditPanel: React.FC<PopoverProps> = ({
 
       if (!f.mandatory) continue
       if (stored !== undefined && stored !== null && stored !== "") continue
-      // Provide a default. For `name`, derive from the node's `name`
-      // field (mirrors v3's `createMandatoryAttributes`); for fixed-
-      // option dropdowns use `defaultValue`; otherwise reach into
-      // NN_ATTRIBUTE_DEFAULTS.
+      // `name` mirrors the node's own name (the backend reads
+      // `attributes.name`).
       if (f.slug === "name") {
         patch[key] = data.name ?? ""
         continue
@@ -441,12 +388,7 @@ export const NNComponentEditPanel: React.FC<PopoverProps> = ({
         continue
       }
       // List-shaped mandatory fields whose shape varies by layer kind
-      // (Conv1D/2D/3D `kernel_dim`, LayerNormalization
-      // `normalized_shape`) can't live in the flat NN_ATTRIBUTE_DEFAULTS
-      // table — source them from `getListExpectation`, the same
-      // per-(layerKind, slug) table develop's constructors
-      // (conv1d/2d/3d-attributes.ts, layernormalization-attributes.ts)
-      // hard-code as `[3]` / `[3, 3]` / `[3, 3, 3]` / `[-1]`.
+      // (Conv `kernel_dim`, LayerNormalization `normalized_shape`).
       const listExpectation = getListExpectation(layerKind, f.slug)
       if (listExpectation.count !== null) {
         patch[key] = listExpectation.example
@@ -463,62 +405,134 @@ export const NNComponentEditPanel: React.FC<PopoverProps> = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [elementId])
 
+  if (!node) return null
+
+  // Predecessor candidates — graph-aware upstream walk over incoming
+  // `NNNext` edges (TensorOps / NNReferences included, nearest first).
+  const predecessorCandidates = computeNNPredecessors(nodes, edges, elementId)
+
+  /* ─────────────────────────── State helpers ────────────────────────── */
+
+  const updateName = (name: string) => {
+    setNodes((all) =>
+      all.map((n) => {
+        if (n.id !== elementId) return n
+        const current = (n.data as NNLayerNodeProps).attributes ?? {}
+        // Keep `attributes.name` (what the backend reads) in sync with the
+        // canvas label.
+        const nextAttrs = schema.some((f) => f.slug === "name")
+          ? { ...current, name }
+          : current
+        return {
+          ...n,
+          data: { ...n.data, name, attributes: nextAttrs } as NNLayerNodeProps,
+        }
+      })
+    )
+  }
+
+  const keyFor = (slug: string) =>
+    COLLIDING_SLUGS.has(slug) ? qualifySlug(layerKind, slug) : slug
+
+  const updateAttribute = (slug: string, value: unknown) => {
+    let next: Record<string, unknown> = {
+      ...((node.data as NNLayerNodeProps).attributes ?? {}),
+      [keyFor(slug)]: value,
+    }
+    // Discriminator-change pruning + pooling dimension sync — ONE
+    // attributes patch per write.
+    if (layerKind === "TensorOp" && slug === "tns_type") {
+      next = pruneTensorOpAttributes(next, String(value))
+    } else if (layerKind === "PoolingLayer" && slug === "pooling_type") {
+      next = prunePoolingAttributes(next, String(value))
+    } else if (
+      (layerKind === "TrainingDataset" || layerKind === "TestDataset") &&
+      slug === "input_format"
+    ) {
+      next = pruneDatasetAttributes(next, String(value))
+    } else if (layerKind === "PoolingLayer" && slug === "dimension") {
+      // BatchNorm dimension deliberately takes the plain write path.
+      next = syncPoolingDimensionAttributes(next, String(value))
+    }
+    updateAttributes(next)
+  }
+
+  const removeAttribute = (slug: string) => {
+    const next = { ...((node.data as NNLayerNodeProps).attributes ?? {}) }
+    delete next[keyFor(slug)]
+    delete next[slug] // tolerate both forms
+    updateAttributes(next)
+  }
+
+  const handleStyleFieldUpdate = (key: string, value: string) => {
+    if (key === "name") {
+      updateName(value)
+      return
+    }
+    setNodes((all) =>
+      all.map((n) =>
+        n.id === elementId
+          ? { ...n, data: { ...n.data, [key]: value } as NNLayerNodeProps }
+          : n
+      )
+    )
+  }
+
   /* ─────────────────────────── Field filtering ─────────────────────── */
 
-  // Mandatory + optional separation. v3's `OptionalAttributeRow` only
-  // surfaced optional fields when the user opted in; the v4 inspector
-  // uses a per-row checkbox to mirror that UX.
   const mandatoryFields = schema.filter((f) => f.mandatory && f.slug !== "name")
   let optionalFields = schema.filter((f) => !f.mandatory && f.slug !== "name")
 
-  // Gate optional-field visibility on a per-layer
-  // discriminator. Read the discriminator before filtering so the
-  // panel responds live as the user changes it.
+  const readString = (slug: string, fallback: string): string => {
+    const v = readAttribute(slug)
+    return typeof v === "string" && v !== "" ? v : fallback
+  }
+
+  let tnsType: string | undefined
   if (layerKind === "TensorOp") {
-    const tnsType =
-      (typeof readAttribute("tns_type") === "string"
-        ? (readAttribute("tns_type") as string)
-        : null) ?? "reshape"
+    tnsType = readString("tns_type", "reshape")
     const allowed = new Set(
       filterTensorOpOptionals(
         optionalFields.map((f) => f.slug),
-        tnsType
+        tnsType,
+        {
+          hasRecurrentInput: hasRecurrentLayersSelected(
+            readAttribute("layers_of_tensors"),
+            nodes
+          ),
+          padMode: readString("pad_mode", ""),
+        }
       )
     )
     optionalFields = optionalFields.filter((f) => allowed.has(f.slug))
   } else if (layerKind === "PoolingLayer") {
-    const poolingType =
-      (typeof readAttribute("pooling_type") === "string"
-        ? (readAttribute("pooling_type") as string)
-        : null) ?? "max"
     const allowed = new Set(
       filterPoolingOptionals(
         optionalFields.map((f) => f.slug),
-        poolingType
+        readString("pooling_type", "max")
       )
     )
     optionalFields = optionalFields.filter((f) => allowed.has(f.slug))
   } else if (layerKind === "TrainingDataset" || layerKind === "TestDataset") {
-    const inputFormat =
-      (typeof readAttribute("input_format") === "string"
-        ? (readAttribute("input_format") as string)
-        : null) ?? "images"
     const allowed = new Set(
       filterDatasetOptionals(
         optionalFields.map((f) => f.slug),
-        inputFormat
+        readString("input_format", "images")
       )
     )
     optionalFields = optionalFields.filter((f) => allowed.has(f.slug))
   }
 
-  // Resolve the pooling dimension once for the placeholder helper.
   const poolingDimension =
-    layerKind === "PoolingLayer"
-      ? typeof readAttribute("dimension") === "string"
-        ? (readAttribute("dimension") as string)
-        : "2D"
-      : undefined
+    layerKind === "PoolingLayer" ? readString("dimension", "2D") : undefined
+
+  const rowContext = {
+    layerKind,
+    poolingDimension,
+    predecessorCandidates,
+    tnsCategory: tnsType ? getTnsTypeCategory(tnsType) : ("binary" as const),
+    t,
+  }
 
   return (
     <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
@@ -544,68 +558,61 @@ export const NNComponentEditPanel: React.FC<PopoverProps> = ({
           key={`m-${field.slug}`}
           field={field}
           value={readAttribute(field.slug)}
-          predecessorCandidates={predecessorCandidates}
-          layerKind={layerKind}
-          poolingDimension={poolingDimension}
+          {...rowContext}
           onChange={(v) => updateAttribute(field.slug, v)}
-          // Mandatory fields can't be toggled off.
+          onClear={() => removeAttribute(field.slug)}
           enabled
-          onEnabledChange={undefined}
         />
       ))}
 
       {optionalFields.length > 0 && (
         <>
           <DividerLine width="100%" />
-          <InspectorSectionHeader>optional attributes</InspectorSectionHeader>
+          <InspectorSectionHeader>
+            {t("popup.nn.optionalAttributes", "optional attributes")}
+          </InspectorSectionHeader>
           {optionalFields.map((field) => {
             const armedKey = `${elementId}:${field.slug}`
-            const isSelectionWidget =
-              field.widget === "predecessor" ||
-              field.widget === "layers_of_tensors"
+            const isSelectionWidget = SELECTION_WIDGETS.has(field.widget)
             const enabled =
               readAttribute(field.slug) !== undefined ||
-              (isSelectionWidget && armedRows[armedKey] === true)
+              armedRows[armedKey] === true
+            const arm = (on: boolean) =>
+              setArmedRows((prev) => ({ ...prev, [armedKey]: on }))
             return (
               <NNAttributeRow
-                key={`o-${field.slug}`}
+                // Re-mount per tns_type so structured editors start fresh.
+                key={`o-${field.slug}-${tnsType ?? ""}`}
                 field={field}
                 value={readAttribute(field.slug)}
-                predecessorCandidates={predecessorCandidates}
-                layerKind={layerKind}
-                poolingDimension={poolingDimension}
+                {...rowContext}
                 onChange={(v) => {
-                  // Predecessor: the empty item REMOVES the attribute
-                  // (develop deleted it on `(select predecessor)`);
-                  // `layers_of_tensors` commits `null` when either
-                  // dropdown is cleared — same removal semantics. The
-                  // row stays armed so the dropdowns remain visible
-                  // (develop's checkbox stayed ticked).
-                  if (isSelectionWidget && (v === "" || v === null)) {
+                  // Predecessor: the empty item REMOVES the attribute; the
+                  // row stays armed so the dropdown remains visible.
+                  if (field.widget === "predecessor" && (v === "" || v === null)) {
                     removeAttribute(field.slug)
-                    setArmedRows((prev) => ({ ...prev, [armedKey]: true }))
+                    arm(true)
                     return
                   }
                   updateAttribute(field.slug, v)
+                }}
+                onClear={() => {
+                  removeAttribute(field.slug)
+                  arm(true)
                 }}
                 enabled={enabled}
                 onEnabledChange={(next) => {
                   if (!next) {
                     removeAttribute(field.slug)
-                    setArmedRows((prev) => ({ ...prev, [armedKey]: false }))
+                    arm(false)
                     return
                   }
-                  // Develop parity: enabling a predecessor /
-                  // layers_of_tensors row must NOT create the attribute
-                  // until a selection is made (`handleCheckboxChange`
-                  // early-returns for these widgets).
+                  // Selection widgets arm without creating the attribute.
                   if (isSelectionWidget) {
-                    setArmedRows((prev) => ({ ...prev, [armedKey]: true }))
+                    arm(true)
                     return
                   }
-                  // Pooling list fields seed the dimension-aware example
-                  // (develop's `getInitialValue` via `getListExpectation`)
-                  // instead of an empty string / static default.
+                  // Pooling list fields seed the dimension-aware example.
                   if (
                     layerKind === "PoolingLayer" &&
                     (field.slug === "kernel_dim" ||
@@ -614,19 +621,13 @@ export const NNComponentEditPanel: React.FC<PopoverProps> = ({
                   ) {
                     updateAttribute(
                       field.slug,
-                      getListExpectation(
-                        layerKind,
-                        field.slug,
-                        poolingDimension
-                      ).example
+                      getListExpectation(layerKind, field.slug, poolingDimension)
+                        .example
                     )
                     return
                   }
-                  // Enable: store the schema default (if any).
                   const def =
-                    field.defaultValue ??
-                    NN_ATTRIBUTE_DEFAULTS[field.slug] ??
-                    ""
+                    field.defaultValue ?? NN_ATTRIBUTE_DEFAULTS[field.slug] ?? ""
                   updateAttribute(field.slug, def)
                 }}
               />
@@ -648,38 +649,23 @@ interface NNAttributeRowProps {
   predecessorCandidates: { id: string; name: string }[]
   layerKind: string
   poolingDimension?: string
+  tnsCategory: TnsTypeCategory
+  t: Translate
   onChange: (value: unknown) => void
-  /** When `false`, the row is rendered greyed-out (optional and
-   * disabled). When `true`, the field is rendered active. Mandatory
-   * rows pass `enabled` always-true and don't render the checkbox. */
+  /** Remove the attribute while keeping the row open. */
+  onClear: () => void
+  /** Mandatory rows are always enabled and render no checkbox. */
   enabled: boolean
-  /** When provided, render an enable/disable checkbox per-row. When
-   * undefined, the checkbox is omitted (mandatory rows). */
   onEnabledChange?: (next: boolean) => void
 }
 
-const NNAttributeRow: React.FC<NNAttributeRowProps> = ({
-  field,
-  value,
-  predecessorCandidates,
-  layerKind,
-  poolingDimension,
-  onChange,
-  enabled,
-  onEnabledChange,
-}) => {
-  // List-shape placeholder + warning.
-  const expectation = getListExpectation(
-    layerKind,
-    field.slug,
-    poolingDimension
-  )
-  const isListField = expectation.count !== null
-  const stringValue = typeof value === "string" ? value : ""
-  const malformed =
-    isListField && enabled && stringValue !== ""
-      ? !LIST_STRICT_REGEX.test(stringValue)
-      : false
+const asString = (value: unknown): string =>
+  value === undefined || value === null ? "" : String(value)
+
+const NNAttributeRow: React.FC<NNAttributeRowProps> = (props) => {
+  const { field, enabled, onEnabledChange, t } = props
+  const [error, setError] = React.useState<string | null>(null)
+  const label = field.label ?? field.slug
 
   const checkbox = onEnabledChange ? (
     <Checkbox
@@ -689,241 +675,734 @@ const NNAttributeRow: React.FC<NNAttributeRowProps> = ({
     />
   ) : null
 
-  const disabledStyle = enabled ? {} : { opacity: 0.6, pointerEvents: "none" }
+  const stacked = field.widget === "layers_of_tensors"
+  const below =
+    enabled &&
+    (field.widget === "subscript_indices" ||
+      field.widget === "repeat_dim" ||
+      field.widget === "pad_amount")
 
+  return (
+    <Box>
+      <Stack
+        direction="row"
+        alignItems={stacked ? "flex-start" : "center"}
+        spacing={0.5}
+      >
+        {checkbox}
+        <Typography variant="caption" sx={{ minWidth: 100, pt: stacked ? 1 : 0 }}>
+          {label}
+        </Typography>
+        {enabled ? (
+          <NNAttributeWidget {...props} onError={setError} />
+        ) : (
+          <Typography variant="caption" sx={{ color: "text.secondary" }}>
+            {t("popup.nn.row.unchecked", "unchecked")}
+          </Typography>
+        )}
+      </Stack>
+      {below && <NNStructuredEditor {...props} />}
+      {enabled && error && (
+        <Typography variant="caption" sx={{ color: "error.main", display: "block", ml: 4 }}>
+          {error}
+        </Typography>
+      )}
+      {enabled && !error && field.helpTextKey && (
+        <Typography
+          variant="caption"
+          sx={{ color: "text.secondary", display: "block", ml: 4 }}
+        >
+          {t(field.helpTextKey)}
+        </Typography>
+      )}
+    </Box>
+  )
+}
+
+/** Empty + INPUT + predecessor items shared by every module selector. */
+const predecessorItems = (
+  candidates: { id: string; name: string }[],
+  emptyLabel: string
+) => [
+  <MenuItem key="__empty__" value="">
+    {emptyLabel}
+  </MenuItem>,
+  <MenuItem key="__input__" value={NN_INPUT_MODULE}>
+    {NN_INPUT_MODULE}
+  </MenuItem>,
+  ...candidates
+    .filter((p) => p.name !== NN_INPUT_MODULE)
+    .map((p) => (
+      <MenuItem key={p.id} value={p.name}>
+        {p.name}
+      </MenuItem>
+    )),
+]
+
+const NNAttributeWidget: React.FC<
+  NNAttributeRowProps & { onError: (error: string | null) => void }
+> = ({
+  field,
+  value,
+  predecessorCandidates,
+  layerKind,
+  poolingDimension,
+  tnsCategory,
+  t,
+  onChange,
+  onClear,
+  onError,
+}) => {
   switch (field.widget) {
     case "dropdown": {
       const opts = field.options ?? []
+      const stored = asString(value)
+      // Legacy values outside the whitelist render as the default.
       const current =
-        typeof value === "string" && value !== ""
-          ? value
+        stored !== "" && (opts as readonly string[]).includes(stored)
+          ? stored
           : (field.defaultValue ?? opts[0] ?? "")
       return (
-        <Stack direction="row" alignItems="center" spacing={0.5}>
-          {checkbox}
-          <Typography variant="caption" sx={{ minWidth: 100 }}>
-            {field.label ?? field.slug}
-          </Typography>
-          <Select
-            size="small"
-            value={current}
-            onChange={(e) => onChange(String(e.target.value))}
-            sx={{ flex: 1, ...disabledStyle }}
-            disabled={!enabled}
-          >
-            {opts.map((o) => (
-              <MenuItem key={o} value={o}>
-                {o}
-              </MenuItem>
-            ))}
-          </Select>
-        </Stack>
+        <Select
+          size="small"
+          value={current}
+          onChange={(e) => onChange(String(e.target.value))}
+          sx={{ flex: 1 }}
+        >
+          {opts.map((o) => (
+            <MenuItem key={o} value={o}>
+              {o}
+            </MenuItem>
+          ))}
+        </Select>
       )
     }
     case "multiselect": {
-      // Metrics-style checkbox multi-select (develop
-      // `nn-attribute-update.tsx` 555-589 + `handleMetricsToggle`).
+      // Metrics-style toggle multi-select.
       const opts = field.options ?? []
-      const selected = parseMetricsValue(
-        typeof value === "string" ? value : ""
-      ).filter((m) => (opts as readonly string[]).includes(m))
+      const selected = parseMetricsValue(asString(value)).filter((m) =>
+        (opts as readonly string[]).includes(m)
+      )
       return (
-        <Stack direction="row" alignItems="center" spacing={0.5}>
-          {checkbox}
-          <Typography variant="caption" sx={{ minWidth: 100 }}>
-            {field.label ?? field.slug}
-          </Typography>
-          <Select
-            multiple
-            displayEmpty
-            size="small"
-            value={selected}
-            onChange={(e) => {
-              const next =
-                typeof e.target.value === "string"
-                  ? e.target.value.split(",").map((s) => s.trim())
-                  : e.target.value
-              onChange(formatMetricsValue(next))
-            }}
-            renderValue={(picked) =>
-              picked.length > 0 ? `[${picked.join(", ")}]` : "Select metrics"
-            }
-            sx={{ flex: 1, ...disabledStyle }}
-            disabled={!enabled}
-          >
-            {opts.map((o) => (
-              <MenuItem key={o} value={o}>
-                <Checkbox size="small" checked={selected.includes(o)} />
-                {o}
-              </MenuItem>
-            ))}
-          </Select>
-        </Stack>
+        <Select
+          multiple
+          displayEmpty
+          size="small"
+          value={selected}
+          onChange={(e) => {
+            const next =
+              typeof e.target.value === "string"
+                ? e.target.value.split(",").map((s) => s.trim())
+                : e.target.value
+            onChange(formatMetricsValue(next))
+          }}
+          renderValue={(picked) =>
+            picked.length > 0
+              ? `[${picked.join(", ")}]`
+              : t("popup.nn.row.selectMetrics", "Select metrics")
+          }
+          sx={{ flex: 1 }}
+        >
+          {opts.map((o) => (
+            <MenuItem key={o} value={o}>
+              <Checkbox size="small" checked={selected.includes(o)} />
+              {o}
+            </MenuItem>
+          ))}
+        </Select>
       )
     }
-    case "predecessor": {
-      const current = typeof value === "string" ? value : ""
+    case "append_list":
       return (
-        <Stack direction="row" alignItems="center" spacing={0.5}>
-          {checkbox}
-          <Typography variant="caption" sx={{ minWidth: 100 }}>
-            {field.label ?? field.slug}
-          </Typography>
-          <Select
-            size="small"
-            value={current}
-            onChange={(e) => onChange(String(e.target.value))}
-            displayEmpty
-            sx={{ flex: 1, ...disabledStyle }}
-            disabled={!enabled}
-          >
-            <MenuItem value="">— none —</MenuItem>
-            {predecessorCandidates.map((p) => (
-              <MenuItem key={p.id} value={p.name}>
-                {p.name}
-              </MenuItem>
-            ))}
-          </Select>
-        </Stack>
-      )
-    }
-    case "layers_of_tensors": {
-      return (
-        <LayersOfTensorsRow
-          label={field.label ?? field.slug}
-          value={typeof value === "string" ? value : ""}
-          predecessorCandidates={predecessorCandidates}
-          enabled={enabled}
-          checkbox={checkbox}
-          disabledStyle={disabledStyle}
-          onCommit={onChange}
+        <AppendListWidget
+          value={asString(value)}
+          options={field.options ?? []}
+          t={t}
+          onChange={onChange}
         />
       )
-    }
-    case "text":
-    default: {
-      const current =
-        typeof value === "string"
-          ? value
-          : value === undefined || value === null
-            ? ""
-            : String(value)
-      const placeholder = isListField
-        ? expectation.example
-        : (getAttributeDefaultValue(field.slug) || undefined)
+    case "predecessor":
       return (
-        <Stack direction="row" alignItems="center" spacing={0.5}>
-          {checkbox}
-          <MuiTextField
-            size="small"
-            variant="outlined"
-            fullWidth
-            label={field.label ?? field.slug}
-            value={current}
-            onChange={(e) => onChange(e.target.value)}
-            placeholder={placeholder}
-            disabled={!enabled}
-            error={malformed}
-            helperText={
-              malformed
-                ? `Expected list shape, e.g. ${expectation.example}`
-                : undefined
-            }
-            sx={{ flex: 1, ...disabledStyle }}
-          />
-        </Stack>
+        <Select
+          size="small"
+          value={asString(value)}
+          onChange={(e) => onChange(String(e.target.value))}
+          displayEmpty
+          sx={{ flex: 1 }}
+        >
+          {predecessorItems(
+            predecessorCandidates,
+            t("popup.nn.row.selectPredecessor", "(select predecessor)")
+          )}
+        </Select>
       )
-    }
+    case "layers_of_tensors":
+      return (
+        <LayersOfTensorsWidget
+          value={asString(value)}
+          category={tnsCategory}
+          predecessorCandidates={predecessorCandidates}
+          t={t}
+          onCommit={onChange}
+          onClear={onClear}
+        />
+      )
+    case "subscript_indices":
+    case "repeat_dim":
+    case "pad_amount":
+      return (
+        <Typography variant="caption" sx={{ color: "text.secondary" }}>
+          {t("popup.nn.row.seeBelow", "see below")}
+        </Typography>
+      )
+    case "text":
+    default:
+      return (
+        <ValidatedTextField
+          value={asString(value)}
+          field={field}
+          layerKind={layerKind}
+          poolingDimension={poolingDimension}
+          t={t}
+          onCommit={onChange}
+          onError={onError}
+        />
+      )
   }
 }
 
 /* -------------------------------------------------------------------------- */
-/* layers_of_tensors — dual predecessor dropdowns                              */
+/* Validated free-text field                                                   */
 /* -------------------------------------------------------------------------- */
 
-interface LayersOfTensorsRowProps {
-  label: string
-  /** Stored wire value, e.g. `"['layerA', 'layerB']"` (or `""`). */
+const ValidatedTextField: React.FC<{
   value: string
-  predecessorCandidates: { id: string; name: string }[]
-  enabled: boolean
-  checkbox: React.ReactNode
-  disabledStyle: Record<string, unknown>
-  /** `"['a', 'b']"` when both chosen; `null` when either is cleared
-   *  (the parent removes the attribute — develop `handleTensorChange`
-   *  deleted it). */
-  onCommit: (value: string | null) => void
-}
-
-/**
- * Develop parity (`optional-attribute-row.tsx` 435-477): TWO labelled
- * `1st:` / `2nd:` dropdowns fed by the predecessor list. Partial
- * selections live in component state (develop kept `tensor1/tensor2`
- * in state); the attribute is only persisted once BOTH are chosen, and
- * removed when either is cleared.
- */
-const LayersOfTensorsRow: React.FC<LayersOfTensorsRowProps> = ({
-  label,
-  value,
-  predecessorCandidates,
-  enabled,
-  checkbox,
-  disabledStyle,
-  onCommit,
-}) => {
-  // Initialize from the stored value once (develop's constructor); the
-  // local state stays authoritative for partial picks because a commit
-  // of `null` clears the stored attribute.
-  const [selection, setSelection] = React.useState<[string, string]>(() => {
-    const parsed = parseLayersOfTensors(value)
-    return [parsed[0] ?? "", parsed[1] ?? ""]
+  field: AttributeWidgetConfig
+  layerKind: string
+  poolingDimension?: string
+  t: Translate
+  onCommit: (value: string) => void
+  onError: (error: string | null) => void
+}> = ({ value, field, layerKind, poolingDimension, t, onCommit, onError }) => {
+  // Draft keeps an incomplete / invalid entry visible without storing it.
+  const [draft, setDraft] = React.useState<string | null>(null)
+  const ctx = (): ValidationContext => ({
+    attributeName: field.slug,
+    attributeType: field.valueType ?? "str",
+    layerKind,
+    poolingDimension,
+    currentValue: value,
+    translate: (key) => t(key),
   })
 
-  const handlePick = (which: 0 | 1, picked: string) => {
-    const next: [string, string] = [...selection] as [string, string]
-    next[which] = picked
-    setSelection(next)
-    if (next[0] !== "" && next[1] !== "") {
-      onCommit(formatLayersOfTensors(next[0], next[1]))
-    } else {
-      onCommit(null)
+  const expectation = getListExpectation(layerKind, field.slug, poolingDimension)
+  const placeholder =
+    field.valueType === "List" && expectation.count !== null
+      ? expectation.example
+      : t(field.placeholderKey ?? "popup.nn.row.valuePlaceholder", "value")
+
+  const handleChange = (next: string) => {
+    const outcome = validateOnChange(next, ctx())
+    if (!outcome) {
+      setDraft(null)
+      onError(null)
+      onCommit(next)
+      return
     }
+    setDraft(next)
+    onError(outcome.error)
+    if (outcome.commit) onCommit(next)
   }
 
-  const renderSelect = (which: 0 | 1, slotLabel: string) => (
-    <Stack
-      direction="row"
-      alignItems="center"
-      spacing={0.5}
+  const handleSubmit = () => {
+    if (draft === null) return
+    const outcome = validateOnSubmit(draft.trim(), ctx())
+    setDraft(null)
+    if (!outcome) return
+    onError(outcome.error)
+    if (outcome.value !== value) onCommit(outcome.value)
+  }
+
+  return (
+    <MuiTextField
+      size="small"
+      variant="outlined"
+      fullWidth
+      value={draft ?? value}
+      placeholder={placeholder}
+      onChange={(e) => handleChange(e.target.value)}
+      onBlur={handleSubmit}
+      onKeyDown={(e) => {
+        if (e.key === "Enter") handleSubmit()
+      }}
       sx={{ flex: 1 }}
-    >
-      <Typography variant="caption">{slotLabel}</Typography>
+    />
+  )
+}
+
+/* -------------------------------------------------------------------------- */
+/* actual_vars append list                                                     */
+/* -------------------------------------------------------------------------- */
+
+const AppendListWidget: React.FC<{
+  value: string
+  options: readonly string[]
+  t: Translate
+  onChange: (value: string) => void
+}> = ({ value, options, t, onChange }) => {
+  const current = value
+    .replace(/^\[|\]$/g, "")
+    .split(",")
+    .map((v) => v.trim())
+    .filter(Boolean)
+  return (
+    <Stack direction="row" spacing={0.5} alignItems="center" sx={{ flex: 1 }}>
       <Select
         size="small"
-        value={selection[which]}
-        onChange={(e) => handlePick(which, String(e.target.value))}
         displayEmpty
-        sx={{ flex: 1, ...disabledStyle }}
-        disabled={!enabled}
+        value=""
+        renderValue={() =>
+          current.length > 0
+            ? `[${current.join(", ")}]`
+            : t("popup.nn.row.selectValues", "Select values")
+        }
+        // Always appends (one entry per input tensor, duplicates allowed).
+        onChange={(e) => {
+          const picked = String(e.target.value)
+          if (picked) onChange(`[${[...current, picked].join(", ")}]`)
+        }}
+        sx={{ flex: 1 }}
       >
-        <MenuItem value="">— none —</MenuItem>
-        {predecessorCandidates.map((p) => (
-          <MenuItem key={p.id} value={p.name}>
-            {p.name}
+        {options.map((o) => (
+          <MenuItem key={o} value={o}>
+            {o}
           </MenuItem>
         ))}
       </Select>
+      {current.length > 0 && (
+        <Button
+          size="small"
+          aria-label="remove last"
+          onClick={() => onChange(`[${current.slice(0, -1).join(", ")}]`)}
+          sx={{ minWidth: 0 }}
+        >
+          ✕
+        </Button>
+      )}
     </Stack>
   )
+}
+
+/* -------------------------------------------------------------------------- */
+/* layers_of_tensors                                                           */
+/* -------------------------------------------------------------------------- */
+
+const NUMERIC_LITERAL_REGEX = /^-?(\d+\.?\d*|\.\d*)$/
+
+const ordinal = (t: Translate, index: number): string => {
+  if (index === 0) return t("popup.nn.row.ordinal1", "1st")
+  if (index === 1) return t("popup.nn.row.ordinal2", "2nd")
+  return interpolate(t("popup.nn.row.ordinalN", "{n}th"), { n: index + 1 })
+}
+
+const dimensionLabel = (t: Translate, index: number): string =>
+  interpolate(t("popup.nn.row.dim", "Dim {n}:"), { n: index + 1 })
+
+/**
+ * Operand editor sized by the `tns_type` category (smart-gen
+ * `renderLayersOfTensors`): unary = 1 selector; binary = 2 operands,
+ * each a module OR a numeric literal (floats included, 216e12b7);
+ * double = 2 modules; n-ary = 2+ modules with add/remove. `INPUT` is
+ * always offered (d128be4f). The value is stored once the minimum
+ * operand count is reached, and removed only when every operand is
+ * cleared.
+ */
+const LayersOfTensorsWidget: React.FC<{
+  value: string
+  category: TnsTypeCategory
+  predecessorCandidates: { id: string; name: string }[]
+  t: Translate
+  onCommit: (value: string) => void
+  onClear: () => void
+}> = ({ value, category, predecessorCandidates, t, onCommit, onClear }) => {
+  const [selections, setSelections] = React.useState<string[]>(() =>
+    parseLayersOfTensorsList(value)
+  )
+  const minimum = category === "unary" ? 1 : 2
+  const display = [...selections]
+  while (display.length < minimum) display.push("")
+
+  const store = (next: string[]) => {
+    setSelections(next)
+    const nonEmpty = next.filter((s) => s !== "")
+    if (nonEmpty.length >= minimum) {
+      onCommit(formatLayersOfTensorsList(nonEmpty))
+    } else if (nonEmpty.length === 0) {
+      onClear()
+    }
+  }
+
+  const pick = (index: number, picked: string) => {
+    const next = [...display]
+    next[index] = picked
+    store(next)
+  }
+
+  const remove = (index: number) => {
+    const next = display.filter((_, i) => i !== index)
+    setSelections(next)
+    const nonEmpty = next.filter((s) => s !== "")
+    if (nonEmpty.length >= 2) onCommit(formatLayersOfTensorsList(nonEmpty))
+    else onClear()
+  }
 
   return (
-    <Stack direction="row" alignItems="center" spacing={0.5}>
-      {checkbox}
-      <Typography variant="caption" sx={{ minWidth: 100 }}>
-        {label}
-      </Typography>
-      {renderSelect(0, "1st:")}
-      {renderSelect(1, "2nd:")}
+    <Stack spacing={0.5} sx={{ flex: 1 }}>
+      {display.map((selection, index) => {
+        const isNumber = NUMERIC_LITERAL_REGEX.test(selection)
+        return (
+          <Stack key={index} direction="row" alignItems="center" spacing={0.5}>
+            <Typography variant="caption" sx={{ minWidth: 30 }}>
+              {ordinal(t, index)}:
+            </Typography>
+            <Select
+              size="small"
+              value={isNumber ? "" : selection}
+              onChange={(e) => pick(index, String(e.target.value))}
+              displayEmpty
+              sx={{ flex: 1 }}
+            >
+              {predecessorItems(
+                predecessorCandidates,
+                category === "binary"
+                  ? t("popup.nn.row.selectOrEnterNumber", "(select or enter number)")
+                  : t("popup.nn.row.select", "(select)")
+              )}
+            </Select>
+            {category === "binary" && (
+              <>
+                <Typography variant="caption">
+                  {t("popup.nn.row.or", "or")}
+                </Typography>
+                <MuiTextField
+                  size="small"
+                  value={isNumber ? selection : ""}
+                  placeholder={t("popup.nn.row.numericPlaceholder", "numeric")}
+                  onChange={(e) => pick(index, e.target.value)}
+                  sx={{ width: 90 }}
+                />
+              </>
+            )}
+            {category === "n-ary" && index >= 2 && (
+              <Button size="small" onClick={() => remove(index)} sx={{ minWidth: 0 }}>
+                ✕
+              </Button>
+            )}
+          </Stack>
+        )
+      })}
+      {category === "n-ary" && (
+        <Button
+          size="small"
+          variant="text"
+          onClick={() => setSelections([...display, ""])}
+          sx={{ alignSelf: "flex-start", textTransform: "none" }}
+        >
+          {t("popup.nn.row.addElement", "+ Add Element")}
+        </Button>
+      )}
     </Stack>
+  )
+}
+
+/* -------------------------------------------------------------------------- */
+/* subscript_indices / repeat_dim / pad_amount                                 */
+/* -------------------------------------------------------------------------- */
+
+const NNStructuredEditor: React.FC<NNAttributeRowProps> = ({
+  field,
+  value,
+  predecessorCandidates,
+  t,
+  onChange,
+  onClear,
+}) => {
+  const stored = asString(value)
+  switch (field.widget) {
+    case "subscript_indices":
+      return (
+        <SubscriptIndicesEditor value={stored} t={t} onChange={onChange} onClear={onClear} />
+      )
+    case "repeat_dim":
+      return (
+        <RepeatDimEditor
+          value={stored}
+          predecessorCandidates={predecessorCandidates}
+          t={t}
+          onChange={onChange}
+          onClear={onClear}
+        />
+      )
+    case "pad_amount":
+      return <PadAmountEditor value={stored} t={t} onChange={onChange} onClear={onClear} />
+    default:
+      return null
+  }
+}
+
+const EditorBox: React.FC<{ children: React.ReactNode }> = ({ children }) => (
+  <Stack spacing={0.5} sx={{ ml: 4, mt: 0.5 }}>
+    {children}
+  </Stack>
+)
+
+const ValuePreview: React.FC<{ t: Translate; text: string }> = ({ t, text }) => (
+  <Typography
+    variant="caption"
+    sx={{ fontFamily: "monospace", color: "text.secondary" }}
+  >
+    <strong>{t("popup.nn.row.value", "Value:")}</strong> {text}
+  </Typography>
+)
+
+const SubscriptIndicesEditor: React.FC<{
+  value: string
+  t: Translate
+  onChange: (value: string) => void
+  onClear: () => void
+}> = ({ value, t, onChange, onClear }) => {
+  const [dims, setDims] = React.useState<SubscriptDimension[]>(() =>
+    parseSubscriptIndices(value)
+  )
+  const shown = dims.length > 0 ? dims : [{ type: "index" } as SubscriptDimension]
+
+  const store = (next: SubscriptDimension[]) => {
+    setDims(next)
+    if (next.length > 0) onChange(formatSubscriptIndices(next))
+    else onClear()
+  }
+
+  const setField = (
+    index: number,
+    key: "value" | "start" | "stop" | "step",
+    raw: string
+  ) => {
+    const text = raw.trim()
+    const num = text === "" ? undefined : parseInt(text, 10)
+    if (text !== "" && (num === undefined || isNaN(num))) return
+    const next = [...shown]
+    next[index] = { ...next[index], [key]: num }
+    store(next)
+  }
+
+  return (
+    <EditorBox>
+      {shown.map((dim, index) => (
+        <Stack key={index} direction="row" spacing={0.5} alignItems="center">
+          <Typography variant="caption" sx={{ minWidth: 44 }}>
+            {dimensionLabel(t, index)}
+          </Typography>
+          <Select
+            size="small"
+            value={dim.type}
+            onChange={(e) => {
+              const next = [...shown]
+              next[index] =
+                e.target.value === "index"
+                  ? { type: "index", value: 0 }
+                  : { type: "slice" }
+              store(next)
+            }}
+            sx={{ minWidth: 80 }}
+          >
+            <MenuItem value="index">{t("popup.nn.row.index", "index")}</MenuItem>
+            <MenuItem value="slice">{t("popup.nn.row.slice", "slice")}</MenuItem>
+          </Select>
+          {dim.type === "index" ? (
+            <MuiTextField
+              size="small"
+              value={dim.value !== undefined ? String(dim.value) : ""}
+              placeholder="0"
+              onChange={(e) => setField(index, "value", e.target.value)}
+              sx={{ flex: 1 }}
+            />
+          ) : (
+            (["start", "stop", "step"] as const).map((key, i) => (
+              <React.Fragment key={key}>
+                {i > 0 && <Typography variant="caption">:</Typography>}
+                <MuiTextField
+                  size="small"
+                  value={dim[key] !== undefined ? String(dim[key]) : ""}
+                  placeholder={t(`popup.nn.row.${key}Placeholder`, key)}
+                  onChange={(e) => setField(index, key, e.target.value)}
+                  sx={{ flex: 1, minWidth: 50 }}
+                />
+              </React.Fragment>
+            ))
+          )}
+          {index > 0 && (
+            <Button
+              size="small"
+              onClick={() => store(shown.filter((_, i) => i !== index))}
+              sx={{ minWidth: 0 }}
+            >
+              ✕
+            </Button>
+          )}
+        </Stack>
+      ))}
+      <Button
+        size="small"
+        variant="text"
+        onClick={() => store([...shown, { type: "index", value: 0 }])}
+        sx={{ alignSelf: "flex-start", textTransform: "none" }}
+      >
+        {t("popup.nn.row.addDimension", "+ Add Dimension")}
+      </Button>
+      <ValuePreview t={t} text={formatSubscriptIndicesDisplay(dims)} />
+    </EditorBox>
+  )
+}
+
+const INT_REGEX = /^-?\d+$/
+
+const RepeatDimEditor: React.FC<{
+  value: string
+  predecessorCandidates: { id: string; name: string }[]
+  t: Translate
+  onChange: (value: string) => void
+  onClear: () => void
+}> = ({ value, predecessorCandidates, t, onChange, onClear }) => {
+  const [dims, setDims] = React.useState<string[]>(() => parseRepeatDim(value))
+  const shown = dims.length > 0 ? dims : [""]
+
+  const store = (next: string[]) => {
+    setDims(next)
+    if (next.some((d) => d.trim() !== "")) onChange(formatRepeatDim(next))
+    else onClear()
+  }
+
+  const setAt = (index: number, v: string) => {
+    const next = [...shown]
+    next[index] = v
+    store(next)
+  }
+
+  return (
+    <EditorBox>
+      {shown.map((dim, index) => {
+        const isInt = INT_REGEX.test(dim.trim())
+        return (
+          <Stack key={index} direction="row" spacing={0.5} alignItems="center">
+            <Typography variant="caption" sx={{ minWidth: 50 }}>
+              {dimensionLabel(t, index)}
+            </Typography>
+            <Select
+              size="small"
+              value={isInt ? "" : dim}
+              displayEmpty
+              onChange={(e) => setAt(index, String(e.target.value))}
+              sx={{ flex: 1 }}
+            >
+              {predecessorItems(
+                predecessorCandidates,
+                t("popup.nn.row.selectLayerOrTensorOp", "(select layer/tensorop)")
+              )}
+            </Select>
+            <Typography variant="caption">{t("popup.nn.row.or", "or")}</Typography>
+            <MuiTextField
+              size="small"
+              value={isInt ? dim : ""}
+              placeholder={t("popup.nn.row.enterIntPlaceholder", "enter int")}
+              onChange={(e) => setAt(index, e.target.value)}
+              sx={{ width: 90 }}
+            />
+            {index > 0 && (
+              <Button
+                size="small"
+                onClick={() => store(shown.filter((_, i) => i !== index))}
+                sx={{ minWidth: 0 }}
+              >
+                ✕
+              </Button>
+            )}
+          </Stack>
+        )
+      })}
+      <Button
+        size="small"
+        variant="text"
+        onClick={() => setDims([...shown, ""])}
+        sx={{ alignSelf: "flex-start", textTransform: "none" }}
+      >
+        {t("popup.nn.row.addDimension", "+ Add Dimension")}
+      </Button>
+      <ValuePreview t={t} text={formatRepeatDim(dims)} />
+    </EditorBox>
+  )
+}
+
+const PadAmountEditor: React.FC<{
+  value: string
+  t: Translate
+  onChange: (value: string) => void
+  onClear: () => void
+}> = ({ value, t, onChange, onClear }) => {
+  const [pairs, setPairs] = React.useState<PadAmountPair[]>(() =>
+    parsePadAmount(value)
+  )
+
+  const store = (next: PadAmountPair[]) => {
+    setPairs(next)
+    if (next.some(isCompletePadAmountPair)) onChange(formatPadAmount(next))
+    else onClear()
+  }
+
+  return (
+    <EditorBox>
+      {pairs.map((pair, index) => (
+        <Stack key={index} direction="row" spacing={0.5} alignItems="center">
+          <Typography variant="caption" sx={{ minWidth: 50 }}>
+            {dimensionLabel(t, index)}
+          </Typography>
+          {(["left", "right"] as const).map((side) => (
+            <React.Fragment key={side}>
+              <Typography variant="caption">
+                {t(`popup.nn.row.${side}`, `${side}:`)}
+              </Typography>
+              <MuiTextField
+                size="small"
+                value={pair[side]}
+                placeholder={t("popup.nn.row.intPlaceholder", "int")}
+                onChange={(e) => {
+                  const next = [...pairs]
+                  next[index] = { ...next[index], [side]: e.target.value }
+                  store(next)
+                }}
+                sx={{ width: 70 }}
+              />
+            </React.Fragment>
+          ))}
+          {index > 0 && (
+            <Button
+              size="small"
+              onClick={() => store(pairs.filter((_, i) => i !== index))}
+              sx={{ minWidth: 0 }}
+            >
+              ✕
+            </Button>
+          )}
+        </Stack>
+      ))}
+      <Button
+        size="small"
+        variant="text"
+        onClick={() => setPairs([...pairs, { left: "", right: "" }])}
+        sx={{ alignSelf: "flex-start", textTransform: "none" }}
+      >
+        {t("popup.nn.row.addDimension", "+ Add Dimension")}
+      </Button>
+      <ValuePreview t={t} text={formatPadAmount(pairs)} />
+    </EditorBox>
   )
 }

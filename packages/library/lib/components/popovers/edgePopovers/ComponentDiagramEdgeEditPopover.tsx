@@ -1,32 +1,51 @@
 import { Box, FormControl, Select, MenuItem, InputLabel } from "@mui/material"
+import { useReactiveEdge, useReactiveNode } from "@/hooks/useReactiveElement"
 import { EdgeStyleEditor, Typography } from "@/components/ui"
 import { useReactFlow } from "@xyflow/react"
 import { SwapHorizIcon } from "@/components/Icon"
 import { useEdgePopOver } from "@/hooks"
 import { PopoverProps } from "../types"
 import { CustomEdgeProps } from "@/edges"
+import { useTranslation } from "@/i18n"
 
 export const ComponentEdgeEditPopover: React.FC<PopoverProps> = ({
   elementId,
 }) => {
-  const { getEdge, getNode, updateEdgeData } = useReactFlow()
+  const { t } = useTranslation()
+  const { updateEdgeData } = useReactFlow()
 
-  const edge = getEdge(elementId)
+  const edge = useReactiveEdge(elementId)
+  const sourceNode = useReactiveNode(edge?.source)
+  const targetNode = useReactiveNode(edge?.target)
   const { handleEdgeTypeChange, handleSwap } = useEdgePopOver(elementId)
 
   if (!edge) {
     return null
   }
-
-  const sourceNode = getNode(edge.source)
-  const targetNode = getNode(edge.target)
-  const sourceName = (sourceNode?.data?.name as string) ?? "Source"
-  const targetName = (targetNode?.data?.name as string) ?? "Target"
+  const sourceName =
+    (sourceNode?.data?.name as string) ?? t("common.source", "Source")
+  const targetName =
+    (targetNode?.data?.name as string) ?? t("common.target", "Target")
 
   const componentEdgeTypeOptions = [
-    { value: "ComponentDependency", label: "Dependency" },
-    { value: "ComponentProvidedInterface", label: "Provided Interface" },
-    { value: "ComponentRequiredInterface", label: "Required Interface" },
+    {
+      value: "ComponentDependency",
+      label: t("packages.ComponentDiagram.ComponentDependency", "Dependency"),
+    },
+    {
+      value: "ComponentProvidedInterface",
+      label: t(
+        "packages.ComponentDiagram.ComponentInterfaceProvided",
+        "Provided Interface"
+      ),
+    },
+    {
+      value: "ComponentRequiredInterface",
+      label: t(
+        "packages.ComponentDiagram.ComponentInterfaceRequired",
+        "Required Interface"
+      ),
+    },
   ]
 
   const edgeData = edge.data as CustomEdgeProps | undefined
@@ -38,7 +57,7 @@ export const ComponentEdgeEditPopover: React.FC<PopoverProps> = ({
         handleDataFieldUpdate={(key, value) =>
           updateEdgeData(elementId, { ...edge.data, [key]: value })
         }
-        label="Control Flow"
+        label={t("popup.association", "Association")}
         sideElements={[
           handleSwap && (
             <Box sx={{ display: "flex", justifyContent: "flex-end" }}>
@@ -52,12 +71,14 @@ export const ComponentEdgeEditPopover: React.FC<PopoverProps> = ({
       />
 
       <FormControl fullWidth size="small">
-        <InputLabel id="edge-type-label">Edge Type</InputLabel>
+        <InputLabel id="edge-type-label">
+          {t("common.edgeType", "Edge Type")}
+        </InputLabel>
         <Select
           labelId="edge-type-label"
           id="edge-type-select"
           value={edge.type}
-          label="Edge Type"
+          label={t("common.edgeType", "Edge Type")}
           onChange={(e) => handleEdgeTypeChange(e.target.value)}
         >
           {componentEdgeTypeOptions.map((option) => (

@@ -1,7 +1,8 @@
 import { NodeProps, NodeResizer, type Node } from "@xyflow/react"
+import { usePopoverAnchor } from "@/hooks/usePopoverAnchor"
 import { DefaultNodeWrapper } from "@/nodes/wrappers"
 import { ObjectNameSVG, resolveObjectHeaderLabel } from "@/components"
-import { useEffect, useMemo, useRef } from "react"
+import { useEffect, useMemo } from "react"
 import { ClassNodeElement, ObjectNodeAttribute, ObjectNodeProps } from "@/types"
 import { useDiagramStore } from "@/store/context"
 import { useShallow } from "zustand/shallow"
@@ -53,7 +54,7 @@ export function ObjectName({
 
   const isDiagramModifiable = useDiagramModifiable()
 
-  const objectSvgWrapperRef = useRef<HTMLDivElement | null>(null)
+  const [objectSvgWrapperEl, objectSvgWrapperRef] = usePopoverAnchor<HTMLDivElement>()
 
   // ObjectName carries an optional stereotype band; widen
   // the header height to make room for the `«…»` line when set.
@@ -185,7 +186,7 @@ export function ObjectName({
         />
       </div>
       <PopoverManager
-        anchorEl={objectSvgWrapperRef.current}
+        anchorEl={objectSvgWrapperEl}
         elementId={id}
         type={"objectName" as const}
       />

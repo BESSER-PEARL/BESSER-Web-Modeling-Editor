@@ -1,10 +1,11 @@
 import { NodeProps, type Node } from "@xyflow/react"
-import { useRef } from "react"
+import { usePopoverAnchor } from "@/hooks/usePopoverAnchor"
 import { DefaultNodeWrapper, HandleId } from "../wrappers"
 import { useDiagramModifiable } from "@/hooks/useDiagramModifiable"
 import { PopoverManager } from "@/components/popovers/PopoverManager"
 import { NodeToolbar } from "@/components/toolbars/NodeToolbar"
 import { StateMarkerNodeProps } from "@/types"
+import { useTranslation } from "@/i18n"
 
 /**
  * Filled circle marking the entry point of a state machine. v3 source:
@@ -25,8 +26,9 @@ export function StateInitialNode({
   height,
   data,
 }: NodeProps<Node<StateMarkerNodeProps>>) {
-  const wrapperRef = useRef<HTMLDivElement | null>(null)
+  const [wrapperEl, wrapperRef] = usePopoverAnchor<HTMLDivElement>()
   useDiagramModifiable()
+  const { t } = useTranslation()
 
   if (!width || !height) return null
 
@@ -60,7 +62,9 @@ export function StateInitialNode({
           viewBox={`0 0 ${width} ${height}`}
           overflow="visible"
         >
-          <title>Initial State</title>
+          <title>
+            {t("packages.StateDiagram.StateInitialNode", "Initial State")}
+          </title>
           <circle
             cx={width / 2}
             cy={height / 2}
@@ -71,7 +75,7 @@ export function StateInitialNode({
         </svg>
       </div>
       <PopoverManager
-        anchorEl={wrapperRef.current}
+        anchorEl={wrapperEl}
         elementId={id}
         type={"StateInitialNode" as const}
       />

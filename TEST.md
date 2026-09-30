@@ -7,15 +7,11 @@ All tests live in the **`packages/webapp`** workspace. There are two layers:
 
 | Layer | Tech | Location | What it proves |
 |---|---|---|---|
-| **Unit / component** | Vitest + jsdom | `packages/webapp/src/**/__tests__/*.{test,spec}.{ts,tsx}` (co-located with source) | Pure logic and React components in isolation — assistant routing, smart-gen SSE/Redux/dialogs, storage, converters/modifiers, GUI helpers, i18n. Everything network- or browser-adjacent is mocked. |
+| **Unit / component** | Vitest + jsdom | `packages/webapp/src/**/__tests__/*.{test,spec}.{ts,tsx}` (co-located with source) | Pure logic and React components in isolation — assistant routing, Spec-Driven Agent SSE/Redux/dialogs, storage, converters/modifiers, GUI helpers, i18n. Everything network- or browser-adjacent is mocked. |
 | **End-to-end (UI)** | Playwright (Chromium) | `packages/webapp/tests/e2e/*.spec.ts` | A real browser drives the app shell, project lifecycle, settings, theme, the deploy contract, and the assistant → generate flow. |
 
-> **See also**
-> - `packages/webapp/tests/e2e/README.md` — the narrative "test catalogue" for the
->   E2E + NL-generation surfaces. (That file predates `smart-gen-full-flow.spec.ts`
->   and the free-tier-default rewrite; **this document is the current inventory.**)
-> - `BESSER/tests/SMART_GEN_TESTING.md` — the cross-repo Spec-Driven-Agent / free-tier
->   test suite and how to run each layer (bash + PowerShell).
+> **See also** `packages/webapp/tests/e2e/README.md` — the narrative test catalogue
+> for the E2E and natural-language generation surfaces.
 
 There are **no** unit or E2E tests in `packages/editor` or `packages/server` today —
 the whole suite is in `packages/webapp`.
@@ -55,7 +51,7 @@ expect the BESSER backend on `:9000`, but the mocked specs stub what they need.
 | Env var | Effect |
 |---|---|
 | `PLAYWRIGHT_BASE_URL` | Base URL for the local/mocked specs (default `http://localhost:8080`). |
-| `LIVE_E2E_BASE_URL` | Target URL for the **live** vibe spec (default `https://experimental.besser-pearl.org`). Setting it also tells `playwright.config.ts` **not** to start the local Vite server (you point at a deployment instead). |
+| `LIVE_E2E_BASE_URL` | Target URL for the **live** spec (default `http://localhost:8080`). Setting it also tells `playwright.config.ts` **not** to start the local Vite server (you point at a deployment instead). |
 | `RUN_LIVE_E2E=1` | Enables the gated live spec `smart-gen-vibe-live` (skipped otherwise). |
 | `PW_WATCH=1` | "Watch mode": slow-mo (700 ms) + video capture so a human can follow the run live (pair with `--headed`) or replay it. Off by default; normal runs unaffected. |
 | `CI` | Turns on retries (2), 2 workers, the `github` reporter, and `forbidOnly`. |
@@ -71,7 +67,8 @@ expect the BESSER backend on `:9000`, but the mocked specs stub what they need.
   and initialises i18next to English so `t()` returns real strings, not raw keys.
 - **Convention:** tests are co-located next to the code they cover, in `__tests__/`
   folders (a couple sit directly beside the source file).
-- **Scale:** **39 files, ~440 test cases.**
+- **Scale:** **79 files, ~890 test cases.** The tables below list a representative
+  subset, not every file.
 
 ### By area
 
@@ -81,10 +78,10 @@ expect the BESSER backend on `:9000`, but the mocked specs stub what they need.
 |---|---|---|
 | `AssistantClient.injection.test.ts` | 6 | Prompt-injection guard — side-effect actions (`modify_model`, `trigger_smart_generator`, `inject_complete_system`) scraped from prose are rejected; only whole/structured replies act. |
 | `AssistantClient.loading.test.ts` | 1 | Typing/loading indicator stays on across `progress` frames, clears only on the terminal reply (regression). |
-| `AssistantClient.whitelist.test.ts` | 3 | `KNOWN_ACTIONS` whitelist includes `trigger_smart_generator` (source-text scan — see fragility note). |
+| `AssistantClient.whitelist.test.ts` | 3 | `KNOWN_ACTIONS` whitelist includes `trigger_smart_generator` (source-text scan, so it breaks if the constant is reformatted). |
 | `suggestedActionRouting.test.ts` | 8 | `shouldOpenGuiTab` routes GUI chips to the GUI tab, never hijacks "Generate web app". |
 | `useStreamingResponse.progress.test.ts` | 5 | `progressSteps` accumulation — order, dedupe, cap at 4, clear on completion. |
-| `useAssistantLogic.smartgenKinds.test.ts` | 3 | `primaryKindOverride` whitelist forwards only `bpmn`/`nn`; agent's `skipDeterministicGenerator` not trusted (source-text scan). |
+| `useAssistantLogic.specDrivenKinds.test.ts` | 2 | `primaryKindOverride` whitelist forwards only `bpmn`/`nn`; agent's `skipDeterministicGenerator` not trusted (source-text scan). |
 | `useAssistantLogic.voice.test.tsx` | 6 | `sendVoiceMessage` optimistic "Transcribing…" bubble, replace-in-place, error/timeout cleanup. |
 | `buildIssueReport.test.ts` | 6 | Issue-report capture, secret redaction, Markdown transcript, filesystem-safe filename. |
 
@@ -96,22 +93,22 @@ expect the BESSER backend on `:9000`, but the mocked specs stub what they need.
 | `bpmn-assistant.test.ts` | 19 | `BPMNDiagramConverter` + `BPMNDiagramModifier` (nodes/flows/pools/lanes, message-flow inference, `add_flow`/`add_event`/`modify_node`). |
 | `userDiagram.test.ts` | 9 | `UserDiagramConverter` + `UserDiagramModifier` via the assistant path (objects, links, icon children, className-referenced links). |
 
-**Smart generation** (`src/main/features/smart-generation/…`)
+**Spec-Driven Agent** (`src/main/features/spec-driven/…`)
 
 | File | ~cases | Covers |
 |---|---|---|
-| `useSmartGenTrigger.test.tsx` | 25 | The trigger hook end-to-end (mocked SSE): happy stream→done, BYOK-missing dialog, free-tier default, override rules, single-run guard, cost meter, abort. |
-| `SmartGenByokDialog.test.tsx` | 29 | The smart-gen BYOK dialog — visibility, key→sessionStorage, provider/model presets, budget controls, Save-&-run, keyless free tier. |
-| `smartGeneratorSlice.test.ts` | 18 | Redux slice/thunks — dialog state, run lifecycle, global run-slot guard, atomic `consumePendingTrigger`/`tryClaimRunSlot`. |
+| `useSpecDrivenTrigger.test.tsx` | 42 | The trigger hook end-to-end (mocked SSE): happy stream→done, BYOK-missing dialog, free-tier default, override rules, single-run guard, cost meter, abort. |
+| `SpecDrivenKeyDialogHost.test.tsx` | 9 | The run-time key dialog host — visibility, Save-&-run, cancel. |
+| `specDrivenSlice.test.ts` | 37 | Redux slice/thunks — dialog state, run lifecycle, global run-slot guard, atomic `consumePendingTrigger`/`tryClaimRunSlot`. |
 | `runModeDecision.test.ts` | 12 | `isValidRunId` (32-hex) + `decideRunMode` modify-vs-fresh heuristic. |
-| `smartGenConfig.test.ts` | 6 | `getSmartGenConfig` payload normalization, promise cache, fallback-on-failure. |
-| `smartGenerationSseClient.test.ts` | 2 | `startSmartGenRun` snake_case body serialization (skip flag omitted unless approved). |
+| `specDrivenConfig.test.ts` | 32 | `getSpecDrivenConfig` payload normalization, promise cache, fallback-on-failure. |
+| `specDrivenSseClient*.test.ts` | ~23 | `startSpecDrivenRun` snake_case body serialization, reconnect, polling fallback. |
 
 **BYOK dialog (shared)** (`src/main/shared/components/byok/`)
 
 | File | ~cases | Covers |
 |---|---|---|
-| `LlmKeyDialog.test.tsx` | 5 | The unified `besser_llm_*` key dialog — sessionStorage writes, `setUserApiKey`, Local/PIA providers, key-prefix mismatch refusal. |
+| `LlmKeyDialog.test.tsx` | 19 | The unified `besser_llm_*` key dialog — sessionStorage writes, `setUserApiKey`, Local/PIA providers, key-prefix mismatch refusal. |
 
 **Storage** (`src/main/shared/services/storage/`)
 
@@ -159,28 +156,17 @@ expect the BESSER backend on `:9000`, but the mocked specs stub what they need.
 | File | ~cases | Covers |
 |---|---|---|
 | `sseClient.test.ts` | 14 | Generic `streamSse` client — frame parsing (split/CRLF/heartbeat/multiline), abort, `SseHttpError`. |
-| `chat-message.smartgen.test.tsx` | 12 | `SmartGenCard` — runtime meter (never shows `$`), Stop/cancel, Download states. |
+| `chat-message.specdriven.test.tsx` | 27 | `SpecDrivenCard` — runtime meter (never shows `$`), Stop/cancel, Download states. |
 | `use-auto-scroll.test.ts` | 5 | `useAutoScroll` — disable on scroll-up, re-enable at bottom, `scrollToBottom`. |
 | `message-input.voice.test.tsx` | 3 | `MessageInput` mic button renders for widget & drawer prop sets when `onVoiceSend` is set. |
 | `locale-parity.test.ts` | 12 | i18n parity — supported-codes match shipped locales, each non-en locale is a subset of English (no stale keys). |
 
-### Known caveat: the ~32 jsdom "storage undefined" failures
+### Browser storage in tests
 
-There is a **known, pre-existing set of ~32 failing Vitest cases** (a deferred
-follow-up, **not** a regression). They fail because `src/test/setup.ts` provides no
-`localStorage`/`sessionStorage` shim, so tests that exercise real browser storage
-hit "storage undefined" under the current jsdom configuration. The likely-affected
-files are the ones that touch real storage:
-
-- `ProjectStorageRepository.test.ts`, `diagram-helpers.test.ts`,
-  `agent-base-model-normalization.test.ts` (its storage sub-block only) — **localStorage**;
-- `SmartGenByokDialog.test.tsx`, `useSmartGenTrigger.test.tsx`, `LlmKeyDialog.test.tsx` — **sessionStorage**.
-
-These are **"should-be-fixed", not dead weight** — they cover real, important code
-(project persistence, BYOK key storage, the trigger flow). The fix is a test-harness
-change (add a storage polyfill / guard in `setup.ts`, or opt those suites into a
-jsdom storage env), **not** deleting the tests. None of them test a removed feature.
-`ProjectSettingsPanel.test.tsx` sidesteps the issue by mocking `ProjectStorageRepository`.
+`src/test/setup.ts` imports `src/test/storage-shim.ts`, which installs a fresh
+`localStorage`/`sessionStorage` per test file. Newer Node versions define their own
+storage globals that would otherwise shadow jsdom's, so keep the shim imported
+before anything that touches storage.
 
 ---
 
@@ -196,8 +182,8 @@ Two flavours:
 - **Mocked** — the spec stubs the backend with `page.route(...)` /
   `page.routeWebSocket(...)`, so it is deterministic and CI-safe. Nothing hits a real
   server or LLM.
-- **Live** — the spec runs against the **real deployed stack** (real agent, real
-  backend, real free-tier GPU). Slow and non-deterministic; gated behind an env flag.
+- **Live** — the spec runs against a **real stack** (real agent, real backend, real
+  free-tier model). Slow and non-deterministic; gated behind an env flag.
 
 The seven UI specs below run against the **local** Vite dev server with **no network
 stubs** — they seed only the `besser_analytics_consent` localStorage key and assert
@@ -214,6 +200,6 @@ don't need the backend for their assertions.
 | `er-notation.spec.ts` | 5 | Local · real UI | Class-diagram UML↔ER notation toggle, persistence to `besser-standalone-settings`, survives reload, ER editor renders (#508). |
 | `theme.spec.ts` | 6 | Local · real UI | Dark/light toggle — `dark` class + `data-theme` on `<html>`, add/remove, persistence across reload, aria-label updates. |
 | `github-deploy.spec.ts` | 1 | **Mocked** | Deploy contract — mocks GitHub auth + `deploy-webapp`, drives Deploy → Publish to Render, asserts the POST body carries the V2 `projectExport` envelope (`2.0.0`, ISO `exportedAt`, non-empty `diagrams`). |
-| `smart-gen-free-tier.spec.ts` | 1 | **Mocked** | Keyless free tier — mocks the assistant WS (`trigger_smart_generator`), `/smart-gen/config` (advertise free), and the `/smart-generate` SSE; asserts an unauthorised trigger runs on `provider:'free'` with **no** `api_key`/`base_url`, **no** BYOK popup, reaches completion. |
+| `smart-gen-free-tier.spec.ts` | 1 | **Mocked** | Keyless free tier — mocks the assistant WS (`trigger_smart_generator`), the config endpoint (advertise free), and the generation SSE; asserts an unauthorised trigger runs on `provider:'free'` with **no** `api_key`/`base_url`, **no** BYOK popup, reaches completion. |
 | `smart-gen-full-flow.spec.ts` | 1 | **Mocked** | Full scripted conversation (no AI) — request → class **model** rendered on canvas → GUI-choice → Auto-generate builds the GUI → **the PAUSE** ("generate the web app?" instead of auto-running) → user asks → free-tier generation runs and completes. |
-| `smart-gen-vibe-live.spec.ts` | 1 · gated | **Live** | The real "describe an app → get an app, no API key" path against the deployed stack — agent models a class diagram, spec-driven-generate on the free tier, asserts it finishes. Gated by `RUN_LIVE_E2E=1`; ~5–9 min, non-deterministic. |
+| `smart-gen-vibe-live.spec.ts` | 1 · gated | **Live** | The real "describe an app → get an app, no API key" path against a running stack — agent models a class diagram, spec-driven-generate on the free tier, asserts it finishes. Gated by `RUN_LIVE_E2E=1`; ~5–9 min, non-deterministic. |

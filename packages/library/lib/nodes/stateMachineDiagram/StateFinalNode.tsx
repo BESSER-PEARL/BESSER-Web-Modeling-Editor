@@ -1,10 +1,11 @@
 import { NodeProps, type Node } from "@xyflow/react"
-import { useRef } from "react"
+import { usePopoverAnchor } from "@/hooks/usePopoverAnchor"
 import { DefaultNodeWrapper, HandleId } from "../wrappers"
 import { useDiagramModifiable } from "@/hooks/useDiagramModifiable"
 import { PopoverManager } from "@/components/popovers/PopoverManager"
 import { NodeToolbar } from "@/components/toolbars/NodeToolbar"
 import { StateMarkerNodeProps } from "@/types"
+import { useTranslation } from "@/i18n"
 import { getCustomColorsFromData } from "@/utils/layoutUtils"
 
 /**
@@ -18,8 +19,9 @@ export function StateFinalNode({
   height,
   data,
 }: NodeProps<Node<StateMarkerNodeProps>>) {
-  const wrapperRef = useRef<HTMLDivElement | null>(null)
+  const [wrapperEl, wrapperRef] = usePopoverAnchor<HTMLDivElement>()
   useDiagramModifiable()
+  const { t } = useTranslation()
 
   if (!width || !height) return null
 
@@ -54,7 +56,7 @@ export function StateFinalNode({
           viewBox={`0 0 ${width} ${height}`}
           overflow="visible"
         >
-          <title>Final State</title>
+          <title>{t("packages.StateDiagram.StateFinalNode", "Final State")}</title>
           <circle
             cx={width / 2}
             cy={height / 2}
@@ -73,7 +75,7 @@ export function StateFinalNode({
         </svg>
       </div>
       <PopoverManager
-        anchorEl={wrapperRef.current}
+        anchorEl={wrapperEl}
         elementId={id}
         type={"StateFinalNode" as const}
       />

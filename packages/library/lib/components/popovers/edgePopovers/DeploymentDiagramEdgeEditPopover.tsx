@@ -1,17 +1,22 @@
 import { Box, FormControl, Select, MenuItem, InputLabel } from "@mui/material"
+import { useReactiveEdge, useReactiveNode } from "@/hooks/useReactiveElement"
 import { EdgeStyleEditor, TextField, Typography } from "@/components/ui"
 import { SwapHorizIcon } from "@/components/Icon"
 import { useReactFlow } from "@xyflow/react"
 import { CustomEdgeProps } from "@/edges/EdgeProps"
 import { useEdgePopOver } from "@/hooks"
 import { PopoverProps } from "../types"
+import { useTranslation } from "@/i18n"
 
 export const DeploymentEdgeEditPopover: React.FC<PopoverProps> = ({
   elementId,
 }) => {
-  const { getEdge, getNode, updateEdgeData } = useReactFlow()
+  const { t } = useTranslation()
+  const { updateEdgeData } = useReactFlow()
 
-  const edge = getEdge(elementId)
+  const edge = useReactiveEdge(elementId)
+  const sourceNode = useReactiveNode(edge?.source)
+  const targetNode = useReactiveNode(edge?.target)
   const { handleEdgeTypeChange, handleLabelChange, handleSwap } =
     useEdgePopOver(elementId)
 
@@ -20,16 +25,40 @@ export const DeploymentEdgeEditPopover: React.FC<PopoverProps> = ({
   }
 
   const edgeData = edge.data as CustomEdgeProps | undefined
-  const sourceNode = getNode(edge.source)
-  const targetNode = getNode(edge.target)
-  const sourceName = (sourceNode?.data?.name as string) ?? "Source"
-  const targetName = (targetNode?.data?.name as string) ?? "Target"
+  const sourceName =
+    (sourceNode?.data?.name as string) ?? t("common.source", "Source")
+  const targetName =
+    (targetNode?.data?.name as string) ?? t("common.target", "Target")
 
   const deploymentEdgeTypeOptions = [
-    { value: "DeploymentAssociation", label: "Deployment Association" },
-    { value: "DeploymentDependency", label: "Deployment Dependency" },
-    { value: "DeploymentProvidedInterface", label: "Provided Interface" },
-    { value: "DeploymentRequiredInterface", label: "Required Interface" },
+    {
+      value: "DeploymentAssociation",
+      label: t(
+        "packages.DeploymentDiagram.DeploymentAssociation",
+        "Deployment Association"
+      ),
+    },
+    {
+      value: "DeploymentDependency",
+      label: t(
+        "packages.DeploymentDiagram.DeploymentDependency",
+        "Deployment Dependency"
+      ),
+    },
+    {
+      value: "DeploymentProvidedInterface",
+      label: t(
+        "packages.DeploymentDiagram.DeploymentInterfaceProvided",
+        "Provided Interface"
+      ),
+    },
+    {
+      value: "DeploymentRequiredInterface",
+      label: t(
+        "packages.DeploymentDiagram.DeploymentInterfaceRequired",
+        "Required Interface"
+      ),
+    },
   ]
 
   return (
@@ -39,7 +68,7 @@ export const DeploymentEdgeEditPopover: React.FC<PopoverProps> = ({
         handleDataFieldUpdate={(key, value) =>
           updateEdgeData(elementId, { ...edge.data, [key]: value })
         }
-        label="Edge Type"
+        label={t("common.edgeType", "Edge Type")}
         sideElements={[
           handleSwap && (
             <Box sx={{ display: "flex", justifyContent: "flex-end" }}>
@@ -53,12 +82,14 @@ export const DeploymentEdgeEditPopover: React.FC<PopoverProps> = ({
       />
       {/* Edge type selection */}
       <FormControl fullWidth size="small">
-        <InputLabel id="edge-type-label">Edge Type</InputLabel>
+        <InputLabel id="edge-type-label">
+          {t("common.edgeType", "Edge Type")}
+        </InputLabel>
         <Select
           labelId="edge-type-label"
           id="edge-type-select"
           value={edge.type}
-          label="Edge Type"
+          label={t("common.edgeType", "Edge Type")}
           onChange={(e) => handleEdgeTypeChange(e.target.value)}
         >
           {deploymentEdgeTypeOptions.map((option) => (
@@ -77,12 +108,15 @@ export const DeploymentEdgeEditPopover: React.FC<PopoverProps> = ({
       {/* Show label input only for associations */}
       {edge.type === "DeploymentAssociation" && (
         <TextField
-          label="Edge Label"
+          label={t("common.edgeLabel", "Edge Label")}
           value={edgeData?.label ?? ""}
           onChange={(e) => handleLabelChange(e.target.value)}
           size="small"
           fullWidth
-          placeholder="Optional label for association"
+          placeholder={t(
+            "popup.deployment.optionalAssociationLabel",
+            "Optional label for association"
+          )}
         />
       )}
     </Box>

@@ -39,6 +39,12 @@ function classNode(id: string, name: string, extraData: Record<string, unknown> 
   };
 }
 
+/** Return the off-canvas agent components (intents, RAG databases, ...) whose `type` matches. */
+function componentsByType(model: BESSERModel, type: string) {
+  const components = (model as BESSERModel & { components?: Record<string, any> }).components ?? {};
+  return Object.values(components).filter((el: any) => el.type === type);
+}
+
 // ═══════════════════════════════════════════════════════════════════════════════
 // ClassDiagramModifier
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -487,7 +493,7 @@ describe('AgentDiagramModifier', () => {
   });
 
   describe('add_intent', () => {
-    it('creates an AgentIntent with inline training_phrases rows', () => {
+    it('creates an off-canvas AgentIntent component with AgentIntentBody components', () => {
       const model = makeEmptyModel('AgentDiagram');
       const mod: ModelModification = {
         action: 'add_intent',
@@ -500,22 +506,23 @@ describe('AgentDiagramModifier', () => {
 
       const result = modifier.applyModification(model, mod);
 
-      const intents = nodesByType(result, 'AgentIntent');
+      // Intents are off-canvas components (v4 `model.components`), never nodes.
+      expect(nodesByType(result, 'AgentIntent')).toHaveLength(0);
+      const intents = componentsByType(result, 'AgentIntent') as any[];
       expect(intents).toHaveLength(1);
-      expect(intents[0].data.name).toBe('BookFlight');
+      expect(intents[0].name).toBe('BookFlight');
 
-      // Training phrases live on `data.training_phrases` (rendered inline
-      // by AgentIntent.tsx) — never as separate nodes.
       expect(nodesByType(result, 'AgentIntentBody')).toHaveLength(0);
-      const phrases = intents[0].data.training_phrases;
-      expect(phrases).toHaveLength(2);
-      expect(phrases[0].name).toBe('I want to book a flight');
-      expect(phrases[1].name).toBe('Book me a ticket');
+      const bodies = componentsByType(result, 'AgentIntentBody') as any[];
+      expect(bodies).toHaveLength(2);
+      expect(bodies[0].name).toBe('I want to book a flight');
+      expect(bodies[1].name).toBe('Book me a ticket');
+      expect(intents[0].bodies).toEqual(bodies.map((body) => body.id));
     });
   });
 
   describe('add_rag_element', () => {
-    it('creates an AgentRagElement', () => {
+    it('creates an off-canvas AgentRagElement component', () => {
       const model = makeEmptyModel('AgentDiagram');
       const mod: ModelModification = {
         action: 'add_rag_element',
@@ -525,9 +532,10 @@ describe('AgentDiagramModifier', () => {
 
       const result = modifier.applyModification(model, mod);
 
-      const rags = nodesByType(result, 'AgentRagElement');
+      expect(nodesByType(result, 'AgentRagElement')).toHaveLength(0);
+      const rags = componentsByType(result, 'AgentRagElement') as any[];
       expect(rags).toHaveLength(1);
-      expect(rags[0].data.name).toBe('KnowledgeBase');
+      expect(rags[0].name).toBe('KnowledgeBase');
     });
   });
 });

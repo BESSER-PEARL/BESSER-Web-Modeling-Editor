@@ -1,12 +1,11 @@
 import {
   Box,
+  Button,
   IconButton,
   MenuItem,
   Select,
   Stack,
   TextField as MuiTextField,
-  ToggleButton,
-  ToggleButtonGroup,
   Tooltip,
 } from "@mui/material"
 import React from "react"
@@ -18,29 +17,26 @@ import { DividerLine, EdgeStyleEditor, Typography } from "@/components/ui"
 import { DeleteIcon, SwapHorizIcon } from "@/components/Icon"
 import { CustomEdgeProps } from "@/edges/EdgeProps"
 import { PopoverProps } from "@/components/popovers/types"
+import { useTranslation } from "@/i18n"
 import { InspectorSectionHeader, AddRowButton } from "../_shared"
+import { getAgentComponentLists } from "./agentComponentLists"
 
 /**
  * Inspector body for the `AgentStateTransition` edge.
  *
- * Source-of-truth port:
- * `v3 source: agent-state-transition-update.tsx`.
+ * Port of smart-gen `agent-state-transition-update.tsx` (+ its constants):
+ * a Predefined / Custom toggle, the condition / event option lists with a
+ * description of the active option, and per-option parameters:
+ *   - when_intent_matched → intent (from the agent Components page)
+ *   - when_variable_operation_matched → variable / operator / target value
+ *   - when_file_received → file types (free text, e.g. "pdf, txt")
+ *   - when_form_submitted → form GUI (`formGuiId`, empty = any form)
+ *   - custom GUIEvent → GUI (`guiEventGuiId`, empty = any GUI interaction)
+ * Custom transitions also edit Python conditions (CodeMirror). Flip and
+ * colors stay on the `EdgeStyleEditor` header; parameters are kept.
  *
- * Deltas (audit recommendations 23–26):
- *   - #23: when `predefinedType === 'when_intent_matched'`, the
- *     intent-name picker is a Select sourced from sibling
- *     `AgentIntent` nodes (was free TextField).
- *   - #24: when `predefinedType === 'when_file_received'`, fileType
- *     becomes a Select with options PDF / TXT / JSON.
- *   - #25: the custom-condition editor uses CodeMirror with Python
- *     syntax highlighting.
- *   - #26: flip + color editing surface via `EdgeStyleEditor` +
- *     `SwapHorizIcon`, mirroring class-edge approach.
- *
- * The edge data shape mirrors `docs/source/migrations/uml-v4-shape.md`'s
- * canonical `AgentStateTransitionData`. The migrator collapses the 5
- * legacy v3 transition shapes onto this canonical form (see
- * `versionConverter.ts::liftAgentTransitionDataToV4`).
+ * Edge data is the canonical v4 `AgentStateTransitionData`
+ * (`docs/source/migrations/uml-v4-shape.md`).
  */
 type EdgeData = CustomEdgeProps & {
   name?: string
@@ -49,6 +45,7 @@ type EdgeData = CustomEdgeProps & {
     predefinedType?: string
     intentName?: string
     fileType?: string
+    formGuiId?: string
     conditionValue?:
       | string
       | { variable?: string; operator?: string; targetValue?: string }
@@ -56,38 +53,80 @@ type EdgeData = CustomEdgeProps & {
   custom?: {
     event?: string
     condition?: string[]
+    guiEventGuiId?: string
   }
   params?: { [key: string]: string }
-  // Legacy bag — preserved verbatim by the migrator.
   legacyShape?: 1 | 2 | 3 | 4 | 5
   legacy?: Record<string, unknown>
-  // Flat aliases (writer convenience).
-  customEvent?: string
-  customCondition?: string
-  customParams?: Record<string, unknown>
 }
 
-const PREDEFINED_TYPES = [
-  "when_intent_matched",
-  "when_no_intent_matched",
-  "when_variable_operation_matched",
-  "when_file_received",
-  "auto",
+/** smart-gen NEW_TRANSITION_PREDEFINED_TYPE. */
+const NEW_TRANSITION_PREDEFINED_TYPE = "auto"
+
+const PREDEFINED_TRANSITIONS = [
+  {
+    value: "auto",
+    labelKey: "packages.AgentDiagram.transitionLabel.auto",
+    label: "Auto",
+    descriptionKey: "packages.AgentDiagram.transitionDesc.auto",
+  },
+  {
+    value: "when_intent_matched",
+    labelKey: "packages.AgentDiagram.transitionLabel.intentMatched",
+    label: "Intent Matched",
+    descriptionKey: "packages.AgentDiagram.transitionDesc.intentMatched",
+  },
+  {
+    value: "when_no_intent_matched",
+    labelKey: "packages.AgentDiagram.transitionLabel.noIntentMatched",
+    label: "No Intent Matched",
+    descriptionKey: "packages.AgentDiagram.transitionDesc.noIntentMatched",
+  },
+  {
+    value: "when_variable_operation_matched",
+    labelKey: "packages.AgentDiagram.transitionLabel.variableOperationMatched",
+    label: "Variable Operation Matched",
+    descriptionKey: "packages.AgentDiagram.transitionDesc.variableOperationMatched",
+  },
+  {
+    value: "when_file_received",
+    labelKey: "packages.AgentDiagram.transitionLabel.fileReceived",
+    label: "File Received",
+    descriptionKey: "packages.AgentDiagram.transitionDesc.fileReceived",
+  },
+  {
+    value: "when_form_submitted",
+    labelKey: "packages.AgentDiagram.transitionLabel.formSubmitted",
+    label: "Form Submitted",
+    descriptionKey: "packages.AgentDiagram.transitionDesc.formSubmitted",
+  },
 ] as const
 
+/** Event labels are technical identifiers (stored value = label). */
 const CUSTOM_EVENTS = [
-  "None",
-  "DummyEvent",
-  "WildcardEvent",
-  "ReceiveMessageEvent",
-  "ReceiveTextEvent",
-  "ReceiveJSONEvent",
-  "ReceiveFileEvent",
+  { value: "None", descriptionKey: "packages.AgentDiagram.customEventDesc.none" },
+  { value: "DummyEvent", descriptionKey: "packages.AgentDiagram.customEventDesc.dummyEvent" },
+  { value: "WildcardEvent", descriptionKey: "packages.AgentDiagram.customEventDesc.wildcardEvent" },
+  {
+    value: "ReceiveMessageEvent",
+    descriptionKey: "packages.AgentDiagram.customEventDesc.receiveMessageEvent",
+  },
+  {
+    value: "ReceiveTextEvent",
+    descriptionKey: "packages.AgentDiagram.customEventDesc.receiveTextEvent",
+  },
+  {
+    value: "ReceiveJSONEvent",
+    descriptionKey: "packages.AgentDiagram.customEventDesc.receiveJsonEvent",
+  },
+  {
+    value: "ReceiveFileEvent",
+    descriptionKey: "packages.AgentDiagram.customEventDesc.receiveFileEvent",
+  },
+  { value: "GUIEvent", descriptionKey: "packages.AgentDiagram.customEventDesc.guiEvent" },
 ] as const
 
-const VARIABLE_OPERATORS = ["==", "!=", "<", "<=", ">", ">="] as const
-
-const FILE_TYPES = ["PDF", "TXT", "JSON"] as const
+const VARIABLE_OPERATORS = ["<", "<=", "==", ">=", ">", "!="] as const
 
 const CUSTOM_CONDITION_TEMPLATE = `def condition(session: 'Session', params: dict) -> bool:
     """Boolean function
@@ -104,9 +143,25 @@ const CUSTOM_CONDITION_TEMPLATE = `def condition(session: 'Session', params: dic
     else:
         return False`
 
+const OptionButton: React.FC<{
+  active: boolean
+  onClick: () => void
+  children: React.ReactNode
+}> = ({ active, onClick, children }) => (
+  <Button
+    size="small"
+    variant={active ? "contained" : "outlined"}
+    onClick={onClick}
+    sx={{ justifyContent: "flex-start", textTransform: "none", fontSize: 12, py: 0.25 }}
+  >
+    {children}
+  </Button>
+)
+
 export const AgentDiagramEdgeEditPanel: React.FC<PopoverProps> = ({
   elementId,
 }) => {
+  const { t } = useTranslation()
   const { nodes, edges, setEdges } = useDiagramStore(
     useShallow((state) => ({
       nodes: state.nodes,
@@ -123,21 +178,10 @@ export const AgentDiagramEdgeEditPanel: React.FC<PopoverProps> = ({
   const custom = data.custom ?? { event: "None", condition: [] }
   const params = data.params ?? {}
 
-  // Source intent-name options from sibling AgentIntent
-  // nodes. v3 read these from `state.elements`; v4 reads them off the
-  // store's `nodes` array.
-  const intentNames = React.useMemo(
-    () =>
-      Array.from(
-        new Set(
-          nodes
-            .filter((n) => n.type === "AgentIntent")
-            .map((n) => ((n.data as { name?: string }).name ?? "").trim())
-            .filter((s) => s.length > 0)
-        )
-      ),
-    [nodes]
-  )
+  const lists = getAgentComponentLists(nodes)
+  const intentNames = lists.intents.map((i) => i.name)
+  const allGuis = lists.guis
+  const formGuis = allGuis.filter((g) => g.is_form)
 
   const update = (patch: Partial<EdgeData>) => {
     setEdges((all) =>
@@ -154,8 +198,6 @@ export const AgentDiagramEdgeEditPanel: React.FC<PopoverProps> = ({
     update({ [key]: value } as Partial<EdgeData>)
   }
 
-  // Flip swaps source/target/handle pairs on the edge,
-  // mirroring `ClassEdgeEditPanel.handleSwap`.
   const handleSwap = () => {
     setEdges((all) =>
       all.map((e) => {
@@ -171,13 +213,16 @@ export const AgentDiagramEdgeEditPanel: React.FC<PopoverProps> = ({
     )
   }
 
-  // Sub-field helpers.
   const setPredefined = (
     patch: Partial<NonNullable<EdgeData["predefined"]>>
-  ) => update({ predefined: { ...predefined, ...patch } })
+  ) =>
+    update({
+      transitionType: "predefined",
+      predefined: { ...predefined, ...patch },
+    })
 
   const setCustom = (patch: Partial<NonNullable<EdgeData["custom"]>>) =>
-    update({ custom: { ...custom, ...patch } })
+    update({ transitionType: "custom", custom: { ...custom, ...patch } })
 
   const setMode = (next: "predefined" | "custom") => {
     if (next === mode) return
@@ -186,7 +231,7 @@ export const AgentDiagramEdgeEditPanel: React.FC<PopoverProps> = ({
         transitionType: "predefined",
         predefined: predefined.predefinedType
           ? predefined
-          : { predefinedType: "when_intent_matched", intentName: "" },
+          : { predefinedType: NEW_TRANSITION_PREDEFINED_TYPE },
       })
     } else {
       update({
@@ -196,7 +241,6 @@ export const AgentDiagramEdgeEditPanel: React.FC<PopoverProps> = ({
     }
   }
 
-  // Param helpers (numeric-keyed dict).
   const setParam = (key: string, value: string) =>
     update({ params: { ...params, [key]: value } })
   const removeParam = (key: string) => {
@@ -214,40 +258,24 @@ export const AgentDiagramEdgeEditPanel: React.FC<PopoverProps> = ({
     update({ params: { ...params, [nextKey]: "" } })
   }
 
-  // Custom-condition list helpers.
   const setCondition = (idx: number, value: string) => {
     const next = [...(custom.condition ?? [])]
     next[idx] = value
     setCustom({ condition: next })
   }
   const addCondition = () =>
-    setCustom({
-      condition: [
-        ...(custom.condition ?? []),
-        CUSTOM_CONDITION_TEMPLATE,
-      ],
-    })
+    setCustom({ condition: [...(custom.condition ?? []), CUSTOM_CONDITION_TEMPLATE] })
   const removeCondition = (idx: number) => {
     const next = [...(custom.condition ?? [])]
     next.splice(idx, 1)
     setCustom({ condition: next })
   }
 
-  // Variable-operation conditionValue (object form).
   const cv = predefined.conditionValue
-  const variable =
-    typeof cv === "object" && cv !== null && "variable" in cv
-      ? (cv.variable ?? "")
-      : ""
-  const operator =
-    typeof cv === "object" && cv !== null && "operator" in cv
-      ? (cv.operator ?? "==")
-      : "=="
-  const targetValue =
-    typeof cv === "object" && cv !== null && "targetValue" in cv
-      ? (cv.targetValue ?? "")
-      : ""
-
+  const cvObj = typeof cv === "object" && cv !== null ? cv : {}
+  const variable = cvObj.variable ?? ""
+  const operator = cvObj.operator ?? ""
+  const targetValue = cvObj.targetValue ?? ""
   const setVariableOp = (next: {
     variable?: string
     operator?: string
@@ -262,15 +290,22 @@ export const AgentDiagramEdgeEditPanel: React.FC<PopoverProps> = ({
     })
   }
 
+  const activePredefined =
+    predefined.predefinedType || NEW_TRANSITION_PREDEFINED_TYPE
+  const activePredefinedInfo = PREDEFINED_TRANSITIONS.find(
+    (p) => p.value === activePredefined
+  )
+  const activeEvent = custom.event || "WildcardEvent"
+  const activeEventInfo = CUSTOM_EVENTS.find((e) => e.value === activeEvent)
+
   return (
     <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
-      {/* Color editor + flip action */}
       <EdgeStyleEditor
         edgeData={data}
         handleDataFieldUpdate={handleStyleFieldUpdate}
-        label="Transition"
+        label={t("packages.AgentDiagram.StateTransition", "Transition")}
         sideElements={[
-          <Tooltip key="flip" title="Flip source / target">
+          <Tooltip key="flip" title={t("packages.AgentDiagram.flipTransition", "Flip source / target")}>
             <IconButton size="small" onClick={handleSwap}>
               <SwapHorizIcon />
             </IconButton>
@@ -283,125 +318,108 @@ export const AgentDiagramEdgeEditPanel: React.FC<PopoverProps> = ({
         size="small"
         variant="outlined"
         fullWidth
-        label="name"
+        label={t("packages.AgentDiagram.transitionName", "name")}
         value={data.name ?? ""}
         onChange={(e) => update({ name: e.target.value })}
       />
 
-      <ToggleButtonGroup
-        size="small"
-        exclusive
-        value={mode}
-        onChange={(_, v) => v && setMode(v as "predefined" | "custom")}
-      >
-        <ToggleButton value="predefined">predefined</ToggleButton>
-        <ToggleButton value="custom">custom</ToggleButton>
-      </ToggleButtonGroup>
+      <InspectorSectionHeader>
+        {t("popup.agent.transition.type", "Transition Type")}
+      </InspectorSectionHeader>
+      <Stack direction="row" spacing={0.5}>
+        <Button
+          size="small"
+          variant={mode !== "custom" ? "contained" : "outlined"}
+          onClick={() => setMode("predefined")}
+          sx={{ flex: 1, fontSize: 11, textTransform: "none" }}
+        >
+          {t("popup.agent.transition.predefined", "Predefined transition")}
+        </Button>
+        <Button
+          size="small"
+          variant={mode === "custom" ? "contained" : "outlined"}
+          onClick={() => setMode("custom")}
+          sx={{ flex: 1, fontSize: 11, textTransform: "none" }}
+        >
+          {t("popup.agent.transition.custom", "Custom transition")}
+        </Button>
+      </Stack>
 
-      {mode === "predefined" ? (
+      {mode !== "custom" ? (
         <>
-          <Stack direction="row" alignItems="center" spacing={0.5}>
-            {/* Caption col 90 → 70 for sibling consistency. */}
-            <Typography variant="caption" sx={{ minWidth: 70 }}>
-              predefinedType
-            </Typography>
-            <Select
-              size="small"
-              value={predefined.predefinedType ?? "when_intent_matched"}
-              onChange={(e) =>
-                setPredefined({ predefinedType: String(e.target.value) })
-              }
-              sx={{ flex: 1 }}
-            >
-              {PREDEFINED_TYPES.map((p) => (
-                <MenuItem key={p} value={p}>
-                  {p}
-                </MenuItem>
-              ))}
-            </Select>
+          <InspectorSectionHeader>
+            {t("popup.agent.transition.condition", "Condition")}
+          </InspectorSectionHeader>
+          <Stack direction="column" spacing={0.4}>
+            {PREDEFINED_TRANSITIONS.map((p) => (
+              <OptionButton
+                key={p.value}
+                active={activePredefined === p.value}
+                onClick={() => setPredefined({ predefinedType: p.value })}
+              >
+                {t(p.labelKey, p.label)}
+              </OptionButton>
+            ))}
           </Stack>
+          {activePredefinedInfo && (
+            <Typography variant="caption" sx={{ opacity: 0.7 }}>
+              {t(activePredefinedInfo.descriptionKey)}
+            </Typography>
+          )}
 
-          {/* Intent-name dropdown sourced from sibling
-              AgentIntent nodes; falls back to a free TextField when no
-              intents exist (pre-authoring scenario). */}
-          {predefined.predefinedType === "when_intent_matched" ? (
-            intentNames.length > 0 ? (
-              <Stack direction="row" alignItems="center" spacing={0.5}>
-                <Typography variant="caption" sx={{ minWidth: 70 }}>
-                  intentName
-                </Typography>
-                <Select
-                  size="small"
-                  value={predefined.intentName ?? ""}
-                  onChange={(e) =>
-                    setPredefined({ intentName: String(e.target.value) })
-                  }
-                  displayEmpty
-                  sx={{ flex: 1 }}
-                >
-                  <MenuItem value="">— select intent —</MenuItem>
-                  {intentNames.map((name) => (
-                    <MenuItem key={name} value={name}>
-                      {name}
-                    </MenuItem>
-                  ))}
-                </Select>
-              </Stack>
+          {activePredefined === "when_intent_matched" &&
+            (intentNames.length > 0 ||
+            (predefined.intentName ?? "") !== "" ? (
+              <Select
+                size="small"
+                fullWidth
+                displayEmpty
+                value={predefined.intentName ?? ""}
+                onChange={(e) => setPredefined({ intentName: String(e.target.value) })}
+              >
+                <MenuItem value="">
+                  {t("popup.agent.transition.selectIntent", "Select intent")}
+                </MenuItem>
+                {(predefined.intentName && !intentNames.includes(predefined.intentName)
+                  ? [...intentNames, predefined.intentName]
+                  : intentNames
+                ).map((name) => (
+                  <MenuItem key={name} value={name}>
+                    {name}
+                  </MenuItem>
+                ))}
+              </Select>
             ) : (
               <MuiTextField
                 size="small"
                 variant="outlined"
                 fullWidth
-                label="intentName"
+                placeholder={t("popup.agent.transition.selectIntent", "Select intent")}
                 value={predefined.intentName ?? ""}
                 onChange={(e) => setPredefined({ intentName: e.target.value })}
-                helperText="No AgentIntent nodes — create one to enable the dropdown."
               />
-            )
-          ) : null}
+            ))}
 
-          {/* FileType dropdown (PDF / TXT / JSON). */}
-          {predefined.predefinedType === "when_file_received" ? (
-            <Stack direction="row" alignItems="center" spacing={0.5}>
-              <Typography variant="caption" sx={{ minWidth: 70 }}>
-                fileType
-              </Typography>
-              <Select
-                size="small"
-                value={predefined.fileType ?? ""}
-                onChange={(e) =>
-                  setPredefined({ fileType: String(e.target.value) })
-                }
-                displayEmpty
-                sx={{ flex: 1 }}
-              >
-                <MenuItem value="">— select file type —</MenuItem>
-                {FILE_TYPES.map((ft) => (
-                  <MenuItem key={ft} value={ft}>
-                    {ft}
-                  </MenuItem>
-                ))}
-              </Select>
-            </Stack>
-          ) : null}
-
-          {predefined.predefinedType === "when_variable_operation_matched" ? (
-            <Stack direction="row" spacing={0.5}>
+          {activePredefined === "when_variable_operation_matched" && (
+            <Stack direction="column" spacing={0.75}>
               <MuiTextField
                 size="small"
                 variant="outlined"
-                label="variable"
+                fullWidth
+                placeholder={t("popup.agent.transition.variablePlaceholder", "Variable")}
                 value={variable}
                 onChange={(e) => setVariableOp({ variable: e.target.value })}
-                sx={{ flex: 1 }}
               />
               <Select
                 size="small"
+                fullWidth
+                displayEmpty
                 value={operator}
-                onChange={(e) =>
-                  setVariableOp({ operator: String(e.target.value) })
-                }
+                onChange={(e) => setVariableOp({ operator: String(e.target.value) })}
               >
+                <MenuItem value="">
+                  {t("popup.agent.transition.selectOperator", "Select operator")}
+                </MenuItem>
                 {VARIABLE_OPERATORS.map((o) => (
                   <MenuItem key={o} value={o}>
                     {o}
@@ -411,42 +429,114 @@ export const AgentDiagramEdgeEditPanel: React.FC<PopoverProps> = ({
               <MuiTextField
                 size="small"
                 variant="outlined"
-                label="targetValue"
+                fullWidth
+                placeholder={t("popup.agent.transition.targetValuePlaceholder", "Target value")}
                 value={targetValue}
-                onChange={(e) =>
-                  setVariableOp({ targetValue: e.target.value })
-                }
-                sx={{ flex: 1 }}
+                onChange={(e) => setVariableOp({ targetValue: e.target.value })}
               />
             </Stack>
-          ) : null}
+          )}
+
+          {activePredefined === "when_file_received" && (
+            <MuiTextField
+              size="small"
+              variant="outlined"
+              fullWidth
+              placeholder={t(
+                "popup.agent.transition.fileTypesPlaceholder",
+                "File types, e.g. pdf, txt, json"
+              )}
+              value={predefined.fileType ?? ""}
+              onChange={(e) => setPredefined({ fileType: e.target.value })}
+            />
+          )}
+
+          {activePredefined === "when_form_submitted" &&
+            (formGuis.length === 0 ? (
+              <Typography variant="caption" sx={{ opacity: 0.7 }}>
+                {t(
+                  "popup.agent.transition.noFormGuis",
+                  'No form GUIs defined. Create one with "is_form = True" in the Components page.'
+                )}
+              </Typography>
+            ) : (
+              <Select
+                size="small"
+                fullWidth
+                displayEmpty
+                value={predefined.formGuiId ?? ""}
+                onChange={(e) => setPredefined({ formGuiId: String(e.target.value) })}
+              >
+                <MenuItem value="">
+                  {t("popup.agent.transition.anyFormSubmission", "Any form submission")}
+                </MenuItem>
+                {formGuis.map((g) => (
+                  <MenuItem key={g.gui_id} value={g.gui_id}>
+                    {g.gui_id}
+                  </MenuItem>
+                ))}
+              </Select>
+            ))}
         </>
       ) : (
         <>
-          <Stack direction="row" alignItems="center" spacing={0.5}>
-            <Typography variant="caption" sx={{ minWidth: 70 }}>
-              event
-            </Typography>
-            <Select
-              size="small"
-              value={custom.event ?? "WildcardEvent"}
-              onChange={(e) => setCustom({ event: String(e.target.value) })}
-              sx={{ flex: 1 }}
-            >
-              {CUSTOM_EVENTS.map((ev) => (
-                <MenuItem key={ev} value={ev}>
-                  {ev}
-                </MenuItem>
-              ))}
-            </Select>
+          <InspectorSectionHeader>
+            {t("popup.agent.transition.event", "Event")}
+          </InspectorSectionHeader>
+          <Stack direction="column" spacing={0.4}>
+            {CUSTOM_EVENTS.map((ev) => (
+              <OptionButton
+                key={ev.value}
+                active={activeEvent === ev.value}
+                onClick={() => setCustom({ event: ev.value })}
+              >
+                {ev.value}
+              </OptionButton>
+            ))}
           </Stack>
+          {activeEventInfo && (
+            <Typography variant="caption" sx={{ opacity: 0.7 }}>
+              {t(activeEventInfo.descriptionKey)}
+            </Typography>
+          )}
 
-          <Stack
-            direction="row"
-            alignItems="center"
-            justifyContent="space-between"
-          >
-            <InspectorSectionHeader>conditions</InspectorSectionHeader>
+          {activeEvent === "GUIEvent" && (
+            <>
+              <InspectorSectionHeader>
+                {t("popup.agent.transition.guiMessageId", "GUI (message_id)")}
+              </InspectorSectionHeader>
+              {allGuis.length === 0 ? (
+                <Typography variant="caption" sx={{ opacity: 0.7 }}>
+                  {t(
+                    "popup.agent.transition.noGuis",
+                    "No GUIs defined. Create one in the Components page."
+                  )}
+                </Typography>
+              ) : (
+                <Select
+                  size="small"
+                  fullWidth
+                  displayEmpty
+                  value={custom.guiEventGuiId ?? ""}
+                  onChange={(e) => setCustom({ guiEventGuiId: String(e.target.value) })}
+                >
+                  <MenuItem value="">
+                    {t("popup.agent.transition.anyGuiInteraction", "Any GUI interaction")}
+                  </MenuItem>
+                  {allGuis.map((g) => (
+                    <MenuItem key={g.gui_id} value={g.gui_id}>
+                      {g.gui_id}
+                    </MenuItem>
+                  ))}
+                </Select>
+              )}
+            </>
+          )}
+
+          <Stack direction="row" alignItems="center" justifyContent="space-between">
+            <InspectorSectionHeader>
+              {t("popup.agent.transition.conditions", "Conditions")}
+            </InspectorSectionHeader>
             <AddRowButton onClick={addCondition} />
           </Stack>
           {(custom.condition ?? []).map((c, idx) => (
@@ -457,13 +547,12 @@ export const AgentDiagramEdgeEditPanel: React.FC<PopoverProps> = ({
               spacing={0.5}
               sx={{ padding: "4px 0" }}
             >
-              {/* CodeMirror Python editor for custom
-                  conditions, mirroring v3's `react-codemirror2` Python
-                  mode at `agent-state-transition-update.tsx:329-348`. */}
               <Box
                 sx={{
                   border: "1px solid var(--besser-gray, #ccc)",
                   borderRadius: "4px",
+                  resize: "vertical",
+                  overflow: "auto",
                   "& .cm-editor": { fontSize: "13px", minHeight: 120 },
                 }}
               >
@@ -471,34 +560,39 @@ export const AgentDiagramEdgeEditPanel: React.FC<PopoverProps> = ({
                   value={c}
                   extensions={[python()]}
                   onChange={(v) => setCondition(idx, v)}
-                  basicSetup={{
-                    lineNumbers: true,
-                    tabSize: 4,
-                    indentOnInput: true,
-                  }}
+                  basicSetup={{ lineNumbers: true, tabSize: 4, indentOnInput: true }}
                 />
               </Box>
               <Stack direction="row" justifyContent="flex-end">
-                <IconButton
+                <Button
                   size="small"
+                  color="error"
                   onClick={() => removeCondition(idx)}
-                  aria-label="Remove condition"
+                  aria-label={t("common.remove", "Remove")}
+                  startIcon={<DeleteIcon width={14} height={14} />}
+                  sx={{ textTransform: "none" }}
                 >
-                  <DeleteIcon width={14} height={14} />
-                </IconButton>
+                  {t("common.remove", "Remove")}
+                </Button>
               </Stack>
             </Stack>
           ))}
+          <Button
+            size="small"
+            variant="outlined"
+            onClick={addCondition}
+            sx={{ alignSelf: "flex-start", textTransform: "none" }}
+          >
+            {t("popup.agent.transition.addCondition", "Add condition")}
+          </Button>
         </>
       )}
 
       <DividerLine width="100%" />
-      <Stack
-        direction="row"
-        alignItems="center"
-        justifyContent="space-between"
-      >
-        <InspectorSectionHeader>parameters</InspectorSectionHeader>
+      <Stack direction="row" alignItems="center" justifyContent="space-between">
+        <InspectorSectionHeader>
+          {t("packages.AgentDiagram.parameters", "parameters")}
+        </InspectorSectionHeader>
         <AddRowButton onClick={addParam} />
       </Stack>
       {Object.keys(params)

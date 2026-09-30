@@ -1,5 +1,6 @@
 import { NodeProps, NodeResizer, type Node } from "@xyflow/react"
-import { useEffect, useRef } from "react"
+import { usePopoverAnchor } from "@/hooks/usePopoverAnchor"
+import { useEffect } from "react"
 import { Bot, Map, RotateCw } from "lucide-react"
 import { DefaultNodeWrapper } from "../wrappers"
 import { useHandleOnResize } from "@/hooks"
@@ -8,6 +9,8 @@ import { PopoverManager } from "@/components/popovers/PopoverManager"
 import { NodeToolbar } from "@/components/toolbars/NodeToolbar"
 import { useDiagramStore } from "@/store/context"
 import { AgentStateNodeProps } from "@/types"
+import { useTranslation } from "@/i18n"
+import { resolveReplyType } from "@/utils/agentActions"
 import {
   AGENT_PRIMITIVE_COLORS,
   replyTypeIcon,
@@ -43,10 +46,11 @@ export function AgentState({
   data,
   parentId,
 }: NodeProps<Node<AgentStateNodeProps>>) {
-  const wrapperRef = useRef<HTMLDivElement | null>(null)
+  const [wrapperEl, wrapperRef] = usePopoverAnchor<HTMLDivElement>()
   const { onResize } = useHandleOnResize(parentId)
   const isDiagramModifiable = useDiagramModifiable()
   const setNodes = useDiagramStore((state) => state.setNodes)
+  const { t } = useTranslation()
 
   const { name, italic, underline } = data
   const isReasoning = data.stateType === "reasoning"
@@ -99,7 +103,9 @@ export function AgentState({
 
   // ── Reasoning card ─────────────────────────────────────────────────────
   if (isReasoning) {
-    const llmLabel = data.llm_name ? data.llm_name : "default"
+    const llmLabel = data.llm_name
+      ? data.llm_name
+      : t("packages.AgentDiagram.card.defaultLlm", "default")
     return (
       <DefaultNodeWrapper width={width} height={height} elementId={id}>
         <NodeToolbar elementId={id} />
@@ -116,7 +122,7 @@ export function AgentState({
             height={height}
             accent={accent}
             icon={<TypeIcon size={15} />}
-            typeLabel="reasoning"
+            typeLabel={t("packages.AgentDiagram.card.reasoning", "reasoning")}
             name={name}
             surface={surface}
             textColor={textColor}
@@ -134,16 +140,22 @@ export function AgentState({
               <AgentPill
                 accent={accent}
                 icon={<RotateCw size={12} />}
-                label={`≤ ${data.max_steps ?? 8} steps`}
+                label={t("packages.AgentDiagram.card.maxSteps", "≤ {{count}} steps", {
+                  count: data.max_steps ?? 8,
+                })}
               />
               {data.enable_task_planning !== false ? (
-                <AgentPill accent={accent} icon={<Map size={12} />} label="planning" />
+                <AgentPill
+                  accent={accent}
+                  icon={<Map size={12} />}
+                  label={t("packages.AgentDiagram.card.planning", "planning")}
+                />
               ) : null}
             </div>
           </AgentNodeCard>
         </div>
         <PopoverManager
-          anchorEl={wrapperRef.current}
+          anchorEl={wrapperEl}
           elementId={id}
           type={"AgentState" as const}
         />
@@ -168,7 +180,7 @@ export function AgentState({
           height={height}
           accent={accent}
           icon={<TypeIcon size={15} />}
-          typeLabel="state"
+          typeLabel={t("packages.AgentDiagram.card.state", "state")}
           name={name}
           surface={surface}
           textColor={textColor}
@@ -179,9 +191,10 @@ export function AgentState({
           {hasAnyBody ? (
             <>
               {mainBodies.map((b) => {
-                const isCode = b.replyType === "code"
+                const replyType = resolveReplyType(b)
+                const isCode = replyType === "code"
                 const label = isCode ? b.code ?? b.name ?? "" : b.name ?? ""
-                const RIcon = replyTypeIcon(b.replyType)
+                const RIcon = replyTypeIcon(replyType)
                 return (
                   <AgentPill
                     key={b.id}
@@ -192,12 +205,15 @@ export function AgentState({
                 )
               })}
               {hasFallbackDivider ? (
-                <AgentSectionLabel>fallback</AgentSectionLabel>
+                <AgentSectionLabel>
+                  {t("packages.AgentDiagram.card.fallback", "fallback")}
+                </AgentSectionLabel>
               ) : null}
               {fallbackBodies.map((b) => {
-                const isCode = b.replyType === "code"
+                const replyType = resolveReplyType(b)
+                const isCode = replyType === "code"
                 const label = isCode ? b.code ?? b.name ?? "" : b.name ?? ""
-                const RIcon = replyTypeIcon(b.replyType)
+                const RIcon = replyTypeIcon(replyType)
                 return (
                   <AgentPill
                     key={b.id}
@@ -213,7 +229,7 @@ export function AgentState({
         </AgentNodeCard>
       </div>
       <PopoverManager
-        anchorEl={wrapperRef.current}
+        anchorEl={wrapperEl}
         elementId={id}
         type={"AgentState" as const}
       />

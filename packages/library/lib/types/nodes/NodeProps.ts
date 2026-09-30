@@ -1,3 +1,5 @@
+import type { AgentLLMProviderType } from "../../services/agentLlm"
+
 export type DefaultNodeProps = {
   name: string
   fillColor?: string
@@ -14,7 +16,7 @@ export type ClassifierVisibility = "public" | "private" | "protected" | "package
 /**
  * BESSER method implementation type — drives the inspector to render either a
  * code editor (`code` / `bal`) or a cross-diagram dropdown (`state_machine`,
- * `quantum_circuit`). `none` is the pure-UML default.
+ * `quantum_circuit`, `neural_network`). `none` is the pure-UML default.
  */
 export type ClassifierMethodImplementationType =
   | "none"
@@ -22,6 +24,7 @@ export type ClassifierMethodImplementationType =
   | "bal"
   | "state_machine"
   | "quantum_circuit"
+  | "neural_network"
 
 /**
  * Method parameter row (used by ClassMethod members).
@@ -64,6 +67,8 @@ export type ClassNodeElement = {
   stateMachineId?: string
   /** Cross-diagram link when `implementationType === 'quantum_circuit'`. */
   quantumCircuitId?: string
+  /** Cross-diagram link when `implementationType === 'neural_network'` (NNDiagram id). */
+  neuralNetworkId?: string
   /** UML "?" marker — attribute may be null. */
   isOptional?: boolean
   /** UML "/" marker — derived attribute. */
@@ -118,6 +123,13 @@ export type ClassOCLConstraint = {
   description?: string
   /** Optional kind discriminator (`'invariant'`, `'pre'`, `'post'`). */
   kind?: string
+  /**
+   * Legacy body-only rows (v3 `constraintName`): the constraint name the
+   * backend uses when re-synthesising the `context …` header.
+   */
+  constraintName?: string
+  /** Legacy body-only pre/post rows (v3 `targetMethodId`): target method row id. */
+  targetMethodId?: string
 }
 
 /**
@@ -134,6 +146,10 @@ export type ClassOCLConstraintNodeProps = {
   description?: string
   /** Constraint kind: 'inv' | 'pre' | 'post' (auto-derived if omitted). */
   kind?: string
+  /** Legacy body-only constraint name (v3 `constraintName`). */
+  constraintName?: string
+  /** Legacy body-only pre/post target method row id (v3 `targetMethodId`). */
+  targetMethodId?: string
 } & DefaultNodeProps
 
 /**
@@ -275,8 +291,11 @@ export type BPMNEndEventType =
   | "signal"
   | "terminate"
 
+// Shared by start / intermediate / end event nodes, so eventType is the union
+// of all three (upstream Apollon). Typing it as the start-event union alone
+// forced casts at every intermediate / end call site.
 export type BPMNEventProps = DefaultNodeProps & {
-  eventType: BPMNStartEventType
+  eventType: BPMNStartEventType | BPMNIntermediateEventType | BPMNEndEventType
 }
 
 export type BPMNGatewayType =
@@ -488,6 +507,32 @@ export type AgentStateBodyRow = {
   ws_latitude?: number
   /** `ws_location`: longitude. */
   ws_longitude?: number
+  /* --- smart-gen session data flow + GUI replies (d765a3f8, f0d17038).
+     Same field names as the v3 `AgentStateMember`. --- */
+  /**
+   * Metamodel action class name (`TextReplyAction`, `LLMReplyAction`, …).
+   * The writer emits it next to `replyType`; readers prefer it.
+   */
+  actionType?: string
+  /** `llm` / `rag` / `db_reply`: `'last_user_message'` (default) | `'custom'`. */
+  inputPromptMode?: string
+  /** Custom input prompt when `inputPromptMode === 'custom'`. */
+  customInputPrompt?: string
+  customInputPromptUseSessionVars?: boolean
+  /** `llm` / `llm_chat`: interpolate `{vars}` in the system message. */
+  systemPromptUseSessionVars?: boolean
+  /** `rag`: interpolate `{vars}` in the prompt. */
+  promptUseSessionVars?: boolean
+  /** LLM-generated answers: session key to store the result under. */
+  storeInSession?: string
+  /** `text` / `ws_markdown` / `ws_html` / `ws_speech`: interpolate `{vars}`. */
+  useSessionVars?: boolean
+  /** `web_crawl_llm`: interpolate `{vars}` in the system-message prefix. */
+  systemMessagePrefixUseSessionVars?: boolean
+  /** LLM-generated answers: send the result as the agent reply (default true). */
+  sendReply?: boolean
+  /** `gui_reply`: `gui_id` of the AgentGUI component to render. */
+  guiId?: string
   /** Optional fillColor / textColor passthrough for round-trip parity. */
   fillColor?: string
   textColor?: string
@@ -676,6 +721,18 @@ export type AgentRagElementNodeProps = DefaultNodeProps & {
    * clamped to `>= 0` in the inspector.
    */
   num_previous_messages?: number
+  /**
+   * Embedding backend (smart-gen 70b3852d). `'openai'` (default) or
+   * `'ollama'`; with Ollama, `embedding_base_url` defaults to
+   * `http://localhost:11434`.
+   */
+  embedding_provider?: "openai" | "ollama"
+  embedding_base_url?: string
+  embedding_model?: string
+  /** Hybrid RAG (vector + BM25, smart-gen 42bbd00c). Default `false`. */
+  use_hybrid_rag?: boolean
+  /** BM25 weight in (0, 1) for hybrid RAG. Default `0.6`. */
+  bm25_weight?: number
 }
 
 /**
@@ -692,7 +749,7 @@ export type AgentRagElementNodeProps = DefaultNodeProps & {
  */
 export type AgentLLMNodeProps = DefaultNodeProps & {
   /** v3 `AgentLLMProviderType`. Defaults to `'openai'`. */
-  provider?: "openai" | "huggingface" | "huggingface_api" | "replicate"
+  provider?: AgentLLMProviderType
   /** Free-form constructor parameters (e.g. `{ "model": "gpt-4o" }`). */
   parameters?: Record<string, unknown>
   /** Chat-history window handed to the wrapper. v3 default 1. */
@@ -879,6 +936,10 @@ export type NNContainerNodeProps = DefaultNodeProps & {
   /** Optional entry-layer pointer (v3 named `entryLayer` / `inputLayer`). */
   entryLayerId?: string
   description?: string
+  /** Variable the network's forward pass takes (`NN.input_var`). */
+  input_var?: string
+  /** Variables the network returns (`NN.return_vars`, one entry each). */
+  return_vars?: string[]
 }
 
 /**

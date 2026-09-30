@@ -1,6 +1,7 @@
 import { NodeProps, NodeResizer, type Node } from "@xyflow/react"
+import { usePopoverAnchor } from "@/hooks/usePopoverAnchor"
 import { DefaultNodeWrapper } from "../wrappers"
-import { useEffect, useRef } from "react"
+import { useEffect } from "react"
 import { PopoverManager } from "@/components/popovers/PopoverManager"
 import { useDiagramModifiable } from "@/hooks/useDiagramModifiable"
 import { BPMNSwimlaneProps } from "@/types"
@@ -59,7 +60,7 @@ export function BPMNSwimlane({
   data,
   parentId,
 }: NodeProps<Node<BPMNSwimlaneProps>>) {
-  const svgWrapperRef = useRef<HTMLDivElement | null>(null)
+  const [svgWrapperEl, svgWrapperRef] = usePopoverAnchor<HTMLDivElement>()
   const isDiagramModifiable = useDiagramModifiable()
   const { onLaneResize } = useSwimlaneLayout()
 
@@ -107,7 +108,7 @@ export function BPMNSwimlane({
         />
       </div>
       <PopoverManager
-        anchorEl={svgWrapperRef.current}
+        anchorEl={svgWrapperEl}
         elementId={id}
         type="BPMNSwimlane"
       />

@@ -1,5 +1,6 @@
 import { NodeProps, NodeResizer, type Node } from "@xyflow/react"
-import { useEffect, useMemo, useRef } from "react"
+import { usePopoverAnchor } from "@/hooks/usePopoverAnchor"
+import { useEffect, useMemo } from "react"
 import { DefaultNodeWrapper } from "../wrappers"
 import {
   UserModelNameSVG,
@@ -85,7 +86,7 @@ export function UserModelName({
   )
 
   const isDiagramModifiable = useDiagramModifiable()
-  const userSvgWrapperRef = useRef<HTMLDivElement | null>(null)
+  const [userSvgWrapperEl, userSvgWrapperRef] = usePopoverAnchor<HTMLDivElement>()
 
   const headerHeight = LAYOUT.DEFAULT_HEADER_HEIGHT
   const attributeHeight = LAYOUT.DEFAULT_ATTRIBUTE_HEIGHT
@@ -210,7 +211,7 @@ export function UserModelName({
         />
       </div>
       <PopoverManager
-        anchorEl={userSvgWrapperRef.current}
+        anchorEl={userSvgWrapperEl}
         elementId={id}
         type={"UserModelName" as const}
       />

@@ -434,6 +434,51 @@ describe('migrateProjectToV5 atomicity', () => {
     expect(result.diagrams.ClassDiagram[0].model).toBe(before);
   });
 
+  it('repairs v3 models inside a project already stamped schemaVersion >= 5', () => {
+    const project = createDefaultProject('StampedButStale', '', 'me');
+    project.schemaVersion = 5;
+    project.diagrams.ClassDiagram[0].model = v3Model('ClassDiagram') as any;
+    // A v3 model detected by shape only (no version, no relationships table).
+    project.diagrams.StateMachineDiagram[0].model = {
+      type: 'StateMachineDiagram',
+      elements: {},
+    } as any;
+
+    const result = migrateProjectToV5(project);
+    expect(result.schemaVersion).toBe(5);
+    const classModel = result.diagrams.ClassDiagram[0].model as any;
+    expect(classModel.elements).toBeUndefined();
+    expect(Array.isArray(classModel.nodes)).toBe(true);
+    expect(classModel.version).toMatch(/^4\./);
+    const smModel = result.diagrams.StateMachineDiagram[0].model as any;
+    expect(Array.isArray(smModel.nodes)).toBe(true);
+    expect(warnSpy).not.toHaveBeenCalled();
+  });
+
+  it('ensureProjectMigrated repairs a v5+ project holding a v3 BPMN model', () => {
+    const project = createDefaultProject('StampedBpmn', '', 'me');
+    project.schemaVersion = 6 as any;
+    project.diagrams.BPMN[0].model = {
+      version: '3.0.0',
+      type: 'BPMNDiagram',
+      size: { width: 0, height: 0 },
+      interactive: { elements: {}, relationships: {} },
+      elements: {
+        t1: { id: 't1', name: 'Do', type: 'BPMNTask', owner: null, bounds: { x: 0, y: 0, width: 100, height: 60 }, taskType: 'default', marker: 'none' },
+      },
+      relationships: {},
+      assessments: {},
+    } as any;
+
+    const migrated = ensureProjectMigrated(project);
+    // A later stamp is never downgraded.
+    expect(migrated.schemaVersion).toBe(6);
+    const bpmn = migrated.diagrams.BPMN[0].model as any;
+    expect(bpmn.elements).toBeUndefined();
+    expect(bpmn.type).toBe('BPMNDiagram');
+    expect(bpmn.nodes.map((n: any) => n.id)).toEqual(['t1']);
+  });
+
   it('leaves schemaVersion at 4 when ANY diagram migration throws', () => {
     const project = v4Project();
     // Two v3 diagrams; one is well-formed, one will throw because its

@@ -1,10 +1,15 @@
 import { DefaultNodeEditPopover } from "../DefaultNodeEditPopover"
 import { PopoverProps } from "../types"
+import { useTranslation } from "@/i18n"
 
 export const SyntaxTreeNonterminalEditPopover: React.FC<PopoverProps> = ({
   elementId,
 }) => {
+  const { t } = useTranslation()
   return (
-    <DefaultNodeEditPopover elementId={elementId} placeholder="Nonterminal" />
+    <DefaultNodeEditPopover
+      elementId={elementId}
+      placeholder={t("packages.SyntaxTree.SyntaxTreeNonterminal", "Nonterminal")}
+    />
   )
 }

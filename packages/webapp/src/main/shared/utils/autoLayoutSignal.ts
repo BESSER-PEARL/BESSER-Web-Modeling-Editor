@@ -4,9 +4,9 @@
  *
  * When the assistant injects a freshly generated complete system, it writes the
  * model to Redux and bumps `editorRevision`, which tears down the live
- * ApollonEditor and creates a new one. There is therefore no stable editor
+ * BesserEditor and creates a new one. There is therefore no stable editor
  * handle to lay out at injection time. Instead the injection side raises this
- * flag and `ApollonEditorComponent` consumes it once the new editor instance
+ * flag and `BesserEditorComponent` consumes it once the new editor instance
  * has the model loaded, then calls `editor.autoLayout()`.
  *
  * Class diagrams only: the editor's auto-layout saga is a no-op for other

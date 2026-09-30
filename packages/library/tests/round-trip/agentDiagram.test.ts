@@ -49,8 +49,10 @@ describe("AgentDiagram v3 → v4 round-trip", () => {
     // v3 elements, 3 AgentState body/fallback rows are absorbed by their
     // parent state and 5 AgentIntent child rows are absorbed by their
     // parent intents. The `StateInitialNode` marker (init-1) is also folded
-    // away — onto the target state's `data.initial` — leaving 5 v4 nodes.
-    expect(v4.nodes.length).toBe(5)
+    // away — onto the target state's `data.initial`. The intents and the
+    // RAG element are off-canvas agent components (smart-gen Components
+    // page): they move into `components`, leaving the 2 states as nodes.
+    expect(v4.nodes.length).toBe(2)
 
     // AgentState — retains stereotype/replyType + inline bodies.
     const greet = v4.nodes.find((n) => n.id === "as-Greet")!
@@ -84,36 +86,29 @@ describe("AgentDiagram v3 → v4 round-trip", () => {
     expect(v4.nodes.find((n) => n.id === "asfb-Greet-1")).toBeUndefined()
     expect(v4.nodes.find((n) => n.id === "asb-Help-1")).toBeUndefined()
 
-    // SA-FIX-INTENT-INLINE: AgentIntentBody / AgentIntentDescription rows
-    // are folded onto the parent intent's inline arrays. The v3 fixture
-    // has 2 training utterances for "Greeting" (aib-Greeting-1 /
-    // aib-Greeting-2) plus a description row (aid-Greeting-1).
-    const greetIntent = v4.nodes.find((n) => n.id === "ai-Greeting")!
+    // Components: intents keep their v3 flat shape — `bodies` lists the
+    // AgentIntentBody component ids, the description row folds onto
+    // `intent_description`, and the RAG element keeps BOTH db names.
+    const components = v4.components!
+    const greetIntent = components["ai-Greeting"]
     expect(greetIntent.type).toBe("AgentIntent")
-    const greetIntentData = greetIntent.data as AgentIntentNodeProps
-    expect(greetIntentData.intent_description).toBe("User says hello.")
-    expect(greetIntentData.training_phrases?.length).toBe(2)
-    expect(greetIntentData.training_phrases?.[0].id).toBe("aib-Greeting-1")
-    expect(greetIntentData.training_phrases?.[0].name).toBe("hello")
-    expect(greetIntentData.training_phrases?.[1].id).toBe("aib-Greeting-2")
-    expect(greetIntentData.training_phrases?.[1].name).toBe("hi there")
-    // No leftover separate intent-child nodes.
+    expect(greetIntent.intent_description).toBe("User says hello.")
+    expect(greetIntent.bodies).toEqual(["aib-Greeting-1", "aib-Greeting-2"])
+    expect(components["aib-Greeting-1"].type).toBe("AgentIntentBody")
+    expect(components["aib-Greeting-1"].name).toBe("hello")
+    expect(components["aib-Greeting-1"].owner).toBe("ai-Greeting")
+    expect(components["aib-Greeting-2"].name).toBe("hi there")
+    expect(v4.nodes.find((n) => n.id === "ai-Greeting")).toBeUndefined()
     expect(v4.nodes.find((n) => n.id === "aib-Greeting-1")).toBeUndefined()
-    expect(v4.nodes.find((n) => n.id === "aib-Greeting-2")).toBeUndefined()
     expect(v4.nodes.find((n) => n.id === "aid-Greeting-1")).toBeUndefined()
 
-    // RAG element — open question #5: BOTH names preserved verbatim
-    // on `data` (migrator passthrough). SA-FIX-AGENT-OCL trimmed the
-    // typed `AgentRagElementNodeProps` to `name` only, but the
-    // migrator still keeps legacy DB fields on the raw data for v3
-    // round-trip parity, so we assert via a structural cast.
-    const rag = v4.nodes.find((n) => n.id === "rag-1")!
+    const rag = components["rag-1"]
     expect(rag.type).toBe("AgentRagElement")
-    const ragRaw = rag.data as Record<string, unknown>
-    expect(ragRaw.ragDatabaseName).toBe("kb_main")
-    expect(ragRaw.dbCustomName).toBe("knowledge_corpus_v2")
-    expect(ragRaw.dbSelectionType).toBe("custom")
-    expect(ragRaw.dbQueryMode).toBe("llm_query")
+    expect(rag.ragDatabaseName).toBe("kb_main")
+    expect(rag.dbCustomName).toBe("knowledge_corpus_v2")
+    expect(rag.dbSelectionType).toBe("custom")
+    expect(rag.dbQueryMode).toBe("llm_query")
+    expect(rag.bounds).toBeUndefined()
 
     // Initial state — the legacy `StateInitialNode` marker + init edge are
     // folded onto `data.initial` on the target state; neither survives in v4.
@@ -122,22 +117,13 @@ describe("AgentDiagram v3 → v4 round-trip", () => {
     const greetState = v4.nodes.find((n) => n.id === "as-Greet")!
     expect((greetState.data as { initial?: boolean }).initial).toBe(true)
 
-    // 4 transitions — covering all five legacy shapes.
+    // The fixture wires shapes #1 and #4 from an intent to a state; those
+    // edges leave with the intents (components are not connectable). The
+    // parameterized suite below still covers all five legacy shapes.
     const trans = v4.edges.filter((e) => e.type === "AgentStateTransition")
-    expect(trans).toHaveLength(4)
-
-    // Shape #1 — canonical predefined.
-    const t1 = v4.edges.find((e) => e.id === "trans-shape1")!
-    expect((t1.data as { transitionType: string }).transitionType).toBe(
-      "predefined"
-    )
-    expect(
-      (
-        t1.data as {
-          predefined: { predefinedType?: string; intentName?: string }
-        }
-      ).predefined.intentName
-    ).toBe("Greeting")
+    expect(trans).toHaveLength(2)
+    expect(v4.edges.find((e) => e.id === "trans-shape1")).toBeUndefined()
+    expect(v4.edges.find((e) => e.id === "trans-shape4")).toBeUndefined()
 
     // Shape #2 — canonical custom.
     const t2 = v4.edges.find((e) => e.id === "trans-shape2")!
@@ -165,20 +151,6 @@ describe("AgentDiagram v3 → v4 round-trip", () => {
       operator: ">=",
       targetValue: "10",
     })
-
-    // Shape #4 — legacy flat custom.
-    const t4 = v4.edges.find((e) => e.id === "trans-shape4")!
-    expect((t4.data as { transitionType: string }).transitionType).toBe(
-      "custom"
-    )
-    expect(
-      (t4.data as { custom: { event: string; condition: string[] } }).custom
-        .event
-    ).toBe("WildcardEvent")
-    expect(
-      (t4.data as { custom: { event: string; condition: string[] } }).custom
-        .condition[0]
-    ).toBe("x == 1")
   })
 
   it("round-trips v4 → v3 → v4 with structural equality", () => {
@@ -287,6 +259,8 @@ describe("AgentDiagram v3 → v4 round-trip", () => {
     expect(JSON.stringify(canonical(v4Again))).toBe(
       JSON.stringify(canonical(v4))
     )
+    // Off-canvas components round-trip verbatim.
+    expect(v4Again.components).toEqual(v4.components)
   })
 
   it("preserves a transition rename through a v4 → v3 → v4 cycle", () => {
@@ -1032,19 +1006,18 @@ describe("normalizeV4Model — template (v4.0.0) inputs with legacy shape", () =
     }
 
     const v4 = migrateAgentDiagramV3ToV4(v3Fixture as never)
-    expect(v4.nodes.length).toBe(1)
-    const intent = v4.nodes[0]
+    // Intents are off-canvas components now (smart-gen v3 flat shape).
+    expect(v4.nodes.length).toBe(0)
+    const intent = v4.components!["ai-Book"]
     expect(intent.type).toBe("AgentIntent")
-    const data = intent.data as AgentIntentNodeProps
-    expect(data.intent_description).toBe("User books a flight")
-    expect(data.training_phrases?.length).toBe(2)
-    expect(data.training_phrases?.[0].id).toBe("aib-Book-1")
-    expect(data.training_phrases?.[0].name).toBe("book a flight")
-    expect(data.training_phrases?.[1].id).toBe("aib-Book-2")
-    expect(data.entity_slots?.length).toBe(1)
-    expect(data.entity_slots?.[0]).toEqual({
-      id: "aioc-Book-1",
-      name: "origin",
+    expect(intent.intent_description).toBe("User books a flight")
+    expect(intent.bodies).toEqual(["aib-Book-1", "aib-Book-2"])
+    expect(v4.components!["aib-Book-1"].name).toBe("book a flight")
+    expect(v4.components!["aib-Book-2"].owner).toBe("ai-Book")
+    // The entity-slot row follows its intent verbatim.
+    expect(v4.components!["aioc-Book-1"]).toMatchObject({
+      type: "AgentIntentObjectComponent",
+      owner: "ai-Book",
       entity: "city",
       slot: "departure",
       value: "Paris",
@@ -1111,18 +1084,13 @@ describe("normalizeV4Model — template (v4.0.0) inputs with legacy shape", () =
     expect((v3.elements["intent-rt"] as { intent_description?: string }).intent_description)
       .toBe("User books a flight")
 
+    // Re-importing the v3 form turns the legacy canvas intent into
+    // components (training phrases → AgentIntentBody entries).
     const v4Again = migrateAgentDiagramV3ToV4(v3 as never)
-    expect(v4Again.nodes.length).toBe(1)
-    const intentAgain = v4Again.nodes[0]
-    const dataAgain = intentAgain.data as AgentIntentNodeProps
-    expect(dataAgain.intent_description).toBe("User books a flight")
-    expect(dataAgain.training_phrases?.length).toBe(2)
-    expect(dataAgain.training_phrases?.map((p) => p.id).sort()).toEqual([
-      "phrase-1",
-      "phrase-2",
-    ])
-    expect(dataAgain.entity_slots?.length).toBe(1)
-    expect(dataAgain.entity_slots?.[0].id).toBe("slot-1")
-    expect(dataAgain.entity_slots?.[0].entity).toBe("city")
+    expect(v4Again.nodes.length).toBe(0)
+    const intentAgain = v4Again.components!["intent-rt"]
+    expect(intentAgain.intent_description).toBe("User books a flight")
+    expect([...intentAgain.bodies].sort()).toEqual(["phrase-1", "phrase-2"])
+    expect(v4Again.components!["slot-1"].entity).toBe("city")
   })
 })

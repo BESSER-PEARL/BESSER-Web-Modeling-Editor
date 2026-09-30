@@ -98,16 +98,29 @@ describe("layoutModel (headless)", () => {
     expect(centre(out.nodes).y).toBeCloseTo(centre(m.nodes).y, 5)
   })
 
-  it("reassigns handles to facing sides and clears stale manual waypoints", async () => {
+  it("reassigns handles to facing sides and replaces stale waypoints with the ELK route", async () => {
+    const stale = [{ x: 10, y: 10 }, { x: 20, y: 20 }]
     const m = model(
       [node("a"), node("b")],
-      [edge("e1", "a", "b", { points: [{ x: 10, y: 10 }, { x: 20, y: 20 }], label: "keep" })]
+      [edge("e1", "a", "b", { points: stale, label: "keep" })]
     )
     const out = await layoutModel(m)
     const e = out.edges[0]
     expect(e.sourceHandle).toMatch(/^bottom/)
     expect(e.targetHandle).toMatch(/^top/)
-    expect(e.data.points).toEqual([])
+    const points = e.data.points as { x: number; y: number }[]
+    expect(points).not.toEqual(stale)
+    expect(points.length).toBeGreaterThanOrEqual(2)
+    // Absolute route from a's bottom border to b's top border, orthogonal.
+    const a = out.nodes.find((n) => n.id === "a")!
+    const b = out.nodes.find((n) => n.id === "b")!
+    expect(points[0].y).toBe(a.position.y + a.height)
+    expect(points[points.length - 1].y).toBe(b.position.y)
+    for (let i = 0; i + 1 < points.length; i++) {
+      const horizontal = points[i].y === points[i + 1].y
+      const vertical = points[i].x === points[i + 1].x
+      expect(horizontal || vertical).toBe(true)
+    }
     expect(e.data.label).toBe("keep")
   })
 

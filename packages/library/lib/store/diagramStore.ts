@@ -67,6 +67,39 @@ export type DiagramStoreData = {
   edges: Edge[]
 }
 
+// React Flow's runtime interaction flags (`selected`, `dragging`,
+// `resizing`) are view state, not model state. They are re-overlaid locally
+// on read (`updateNodesFromYjs` / `updateEdgesFromYjs`), so they must never be
+// persisted into the shared Y.Doc: otherwise every selection toggle becomes a
+// Yjs write, an undo entry and a peer broadcast (upstream Apollon #763).
+export function stripRuntimeNodeFlags(node: Node): Node {
+  if (
+    node.selected === undefined &&
+    node.dragging === undefined &&
+    node.resizing === undefined
+  ) {
+    return node
+  }
+  const persisted = { ...node }
+  delete persisted.selected
+  delete persisted.dragging
+  delete persisted.resizing
+  return persisted
+}
+
+export function stripRuntimeEdgeFlags(edge: Edge): Edge {
+  if (edge.selected === undefined) return edge
+  const persisted = { ...edge }
+  delete persisted.selected
+  return persisted
+}
+
+const nodeEntriesForPersistence = (nodes: Node[]) =>
+  nodes.map((node) => [node.id, stripRuntimeNodeFlags(node)] as const)
+
+const edgeEntriesForPersistence = (edges: Edge[]) =>
+  edges.map((edge) => [edge.id, stripRuntimeEdgeFlags(edge)] as const)
+
 type InitialDiagramState = {
   nodes: Node[]
   edges: Edge[]
@@ -346,14 +379,14 @@ export const createDiagramStore = (
             return
           }
           ydoc.transact(() => {
-            getNodesMap(ydoc).set(node.id, node)
+            getNodesMap(ydoc).set(node.id, stripRuntimeNodeFlags(node))
           }, "store")
           set({ nodes: [...get().nodes, node] }, undefined, "addNode")
         },
 
         addEdge: (edge) => {
           ydoc.transact(() => {
-            getEdgesMap(ydoc).set(edge.id, edge)
+            getEdgesMap(ydoc).set(edge.id, stripRuntimeEdgeFlags(edge))
           }, "store")
           set({ edges: [...get().edges, edge] }, undefined, "addEdge")
         },
@@ -368,10 +401,7 @@ export const createDiagramStore = (
           }
 
           ydoc.transact(() => {
-            reconcileYMap(
-              getNodesMap(ydoc),
-              nodes.map((node) => [node.id, node] as const)
-            )
+            reconcileYMap(getNodesMap(ydoc), nodeEntriesForPersistence(nodes))
           }, "store")
           const prunedInteractive = pruneInteractiveElements(
             {
@@ -408,12 +438,18 @@ export const createDiagramStore = (
           if (deepEqual(get().edges, edges)) {
             return
           }
-          ydoc.transact(() => {
-            reconcileYMap(
-              getEdgesMap(ydoc),
-              edges.map((edge) => [edge.id, edge] as const)
-            )
-          }, "store")
+          // Edge writes made while a node gesture is in flight (e.g. route
+          // points following a dragged BPMN pool) are transient too: keep
+          // them local and let the settle frame in `onNodesChange` commit
+          // them together with the nodes, as one undo step.
+          const gestureInFlight =
+            get().undoManager !== null &&
+            get().nodes.some((node) => node.dragging || node.resizing)
+          if (!gestureInFlight) {
+            ydoc.transact(() => {
+              reconcileYMap(getEdgesMap(ydoc), edgeEntriesForPersistence(edges))
+            }, "store")
+          }
           const prunedInteractive = pruneInteractiveElements(
             {
               elements: get().interactiveElements,
@@ -444,14 +480,8 @@ export const createDiagramStore = (
             new Set(nodes.map((n) => n.id))
           )
           ydoc.transact(() => {
-            reconcileYMap(
-              getNodesMap(ydoc),
-              nodes.map((node) => [node.id, node] as const)
-            )
-            reconcileYMap(
-              getEdgesMap(ydoc),
-              edges.map((edge) => [edge.id, edge] as const)
-            )
+            reconcileYMap(getNodesMap(ydoc), nodeEntriesForPersistence(nodes))
+            reconcileYMap(getEdgesMap(ydoc), edgeEntriesForPersistence(edges))
           }, "store")
           const prunedInteractive = pruneInteractiveElements(
             {
@@ -529,10 +559,42 @@ export const createDiagramStore = (
             return
           }
 
+          // Transient gesture frames (upstream Apollon #763). With an
+          // UndoManager present (single-user modelling) every per-frame
+          // write of a drag/resize is pinned by the undo stack, so a long
+          // session grows the document unbounded and the editor freezes.
+          // There, only the settle frame is committed: while a gesture is in
+          // flight (React Flow's live `dragging` / `resizing` flag on any
+          // node) position / dimension / mid-gesture `replace` writes are
+          // skipped, and the settle batch (drag-stop `dragging: false`,
+          // resize-end `resizing: false`) reconciles the full node list so
+          // every deferred geometry change -- the dragged nodes, a
+          // top/left-handle resize's position, children kept in place and
+          // parents auto-grown around a resizing child
+          // (`useHandleOnResize`) -- lands as ONE write set, i.e. one undo
+          // step. Without an UndoManager (collaboration) the per-frame
+          // writes are GC-reclaimed and drive the live remote drag, so they
+          // are kept.
+          const deferTransientFrames = get().undoManager !== null
+          const gestureInFlight =
+            deferTransientFrames &&
+            nextNodes.some((node) => node.dragging || node.resizing)
+          const gestureSettled =
+            deferTransientFrames &&
+            filteredChanges.some(
+              (change) =>
+                (change.type === "position" && change.dragging === false) ||
+                (change.type === "dimensions" && change.resizing === false)
+            )
+
           ydoc.transact(() => {
             for (const change of filteredChanges) {
               if (change.type === "add" || change.type === "replace") {
-                getNodesMap(ydoc).set(change.item.id, change.item)
+                if (change.type === "replace" && gestureInFlight) continue
+                getNodesMap(ydoc).set(
+                  change.item.id,
+                  stripRuntimeNodeFlags(change.item)
+                )
               } else if (change.type === "remove") {
                 set(
                   (state) => ({
@@ -570,9 +632,36 @@ export const createDiagramStore = (
                   })
                 }
               } else {
+                const isTransient =
+                  (change.type === "position" && change.dragging === true) ||
+                  (change.type === "dimensions" && change.resizing === true) ||
+                  // A resize batch also carries flag-less position changes
+                  // (top/left handles, children kept in place) -- part of the
+                  // same gesture, committed by the settle reconcile below.
+                  (change.type === "position" &&
+                    change.dragging === undefined &&
+                    gestureInFlight)
+                if (isTransient && deferTransientFrames) continue
                 const node = nextNodes.find((n) => n.id === change.id)
-                if (node) getNodesMap(ydoc).set(change.id, node)
+                if (node) {
+                  getNodesMap(ydoc).set(change.id, stripRuntimeNodeFlags(node))
+                }
               }
+            }
+
+            // Commit everything deferred while the gesture was in flight.
+            // `reconcileYMap` writes only keys whose value actually changed,
+            // so this is a no-op for nodes the loop above already wrote.
+            if (gestureSettled && !gestureInFlight) {
+              reconcileYMap(
+                getNodesMap(ydoc),
+                nodeEntriesForPersistence(nextNodes)
+              )
+              // Edge updates deferred by `setEdges` during the gesture.
+              reconcileYMap(
+                getEdgesMap(ydoc),
+                edgeEntriesForPersistence(get().edges)
+              )
             }
           }, "store")
           const prunedInteractive = pruneInteractiveElements(
@@ -668,7 +757,10 @@ export const createDiagramStore = (
           ydoc.transact(() => {
             for (const change of changes) {
               if (change.type === "add" || change.type === "replace") {
-                getEdgesMap(ydoc).set(change.item.id, change.item)
+                getEdgesMap(ydoc).set(
+                  change.item.id,
+                  stripRuntimeEdgeFlags(change.item)
+                )
               } else if (change.type === "remove") {
                 set(
                   (state) => ({
@@ -720,7 +812,14 @@ export const createDiagramStore = (
           ).map((node) => {
             const currentNode = get().nodes.find((n) => n.id === node.id)
             if (currentNode) {
-              return { ...node, selected: currentNode.selected }
+              // Runtime flags are never persisted (see
+              // `stripRuntimeNodeFlags`): re-overlay the local ones so a
+              // remote update landing mid-gesture does not drop this
+              // client's live `dragging` / `resizing` state.
+              const overlaid: Node = { ...node, selected: currentNode.selected }
+              if (currentNode.dragging) overlaid.dragging = true
+              if (currentNode.resizing) overlaid.resizing = true
+              return overlaid
             } else {
               return node
             }

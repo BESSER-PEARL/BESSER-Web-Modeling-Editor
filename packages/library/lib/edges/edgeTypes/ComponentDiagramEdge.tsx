@@ -1,4 +1,5 @@
 import { BaseEdge } from "@xyflow/react"
+import { usePopoverAnchor } from "@/hooks/usePopoverAnchor"
 import {
   BaseEdgeProps,
   EdgeEndpointMarkers,
@@ -9,7 +10,6 @@ import { useShallow } from "zustand/shallow"
 import { useEdgeConfig } from "@/hooks/useEdgeConfig"
 import { useStepPathEdge } from "@/hooks/useStepPathEdge"
 import { useToolbar } from "@/hooks"
-import { useRef } from "react"
 import { EDGES } from "@/constants"
 import { FeedbackDropzone } from "@/components/wrapper/FeedbackDropzone"
 import { AssessmentSelectableWrapper } from "@/components"
@@ -39,7 +39,8 @@ export const ComponentDiagramEdge = ({
   data,
   selected,
 }: BaseEdgeProps) => {
-  const anchorRef = useRef<SVGSVGElement | null>(null)
+  const [anchorEl, anchorRef] =
+    usePopoverAnchor<SVGForeignObjectElement>()
   const { handleDelete } = useToolbar({ id })
 
   const config = useEdgeConfig(
@@ -193,6 +194,7 @@ export const ComponentDiagramEdge = ({
           isDiagramModifiable={isDiagramModifiable}
           assessments={assessments}
           anchorRef={anchorRef}
+          anchorEl={anchorEl}
           handleDelete={handleDelete}
           setPopOverElementId={setPopOverElementId}
           type={dynamicEdgeType}

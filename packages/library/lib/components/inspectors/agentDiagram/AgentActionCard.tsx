@@ -2,6 +2,7 @@ import { Box, IconButton, Stack } from "@mui/material"
 import React from "react"
 import { Typography } from "@/components/ui"
 import { DeleteIcon } from "@/components/Icon"
+import { useTranslation } from "@/i18n"
 
 /**
  * Presentational collapsible "action card" for the AgentState body /
@@ -61,14 +62,21 @@ export const AgentActionCard: React.FC<AgentActionCardProps> = ({
   onDelete,
   children,
 }) => {
+  const { t } = useTranslation()
+  // smart-gen a46002d5: drag is armed only while the mouse is pressed on
+  // the handle, so clicking into a text field never starts a drag.
+  const [dragArmed, setDragArmed] = React.useState(false)
   return (
     <Box
-      draggable={draggable}
+      draggable={!!draggable && dragArmed}
       onDragStart={onDragStart}
       onDragOver={onDragOver}
       onDragLeave={onDragLeave}
       onDrop={onDrop}
-      onDragEnd={onDragEnd}
+      onDragEnd={(e) => {
+        setDragArmed(false)
+        onDragEnd?.(e)
+      }}
       sx={{
         border: "1px solid",
         borderColor: dragOver
@@ -89,7 +97,9 @@ export const AgentActionCard: React.FC<AgentActionCardProps> = ({
       >
         <Box
           component="span"
-          title="Drag to reorder"
+          title={t("packages.AgentDiagram.draggToReorder", "Drag to reorder")}
+          onMouseDown={() => setDragArmed(true)}
+          onMouseUp={() => setDragArmed(false)}
           sx={{
             cursor: "grab",
             opacity: 0.4,
@@ -134,18 +144,26 @@ export const AgentActionCard: React.FC<AgentActionCardProps> = ({
         </Typography>
         <IconButton
           size="small"
-          title={expanded ? "Collapse" : "Expand"}
+          title={
+            expanded
+              ? t("packages.AgentDiagram.collapse", "Collapse")
+              : t("packages.AgentDiagram.expand", "Expand")
+          }
           onClick={onToggleExpand}
-          aria-label={expanded ? "Collapse action" : "Expand action"}
+          aria-label={
+            expanded
+              ? t("packages.AgentDiagram.collapse", "Collapse")
+              : t("packages.AgentDiagram.expand", "Expand")
+          }
           sx={{ flexShrink: 0, fontSize: 13, opacity: 0.55, "&:hover": { opacity: 1 } }}
         >
           {expanded ? "▲" : "✎"}
         </IconButton>
         <IconButton
           size="small"
-          title="Delete action"
+          title={t("packages.AgentDiagram.deleteAction", "Delete action")}
           onClick={onDelete}
-          aria-label="Delete action"
+          aria-label={t("packages.AgentDiagram.deleteAction", "Delete action")}
           sx={{ flexShrink: 0, opacity: 0.55, "&:hover": { opacity: 1 } }}
         >
           <DeleteIcon width={14} height={14} />

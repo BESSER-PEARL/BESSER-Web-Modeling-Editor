@@ -5,12 +5,16 @@ import { useDiagramStore, useMetadataStore, usePopoverStore } from "@/store/cont
 import { BesserMode } from "@/typings"
 import { useResizable } from "./useResizable"
 import { getInspector, InspectorKind } from "../inspectors/registry"
+// camelCase `node.type` → inspector key aliases (package, activity*, …).
+import "../inspectors/nodeTypeInspectorAliases"
 import { CrossIcon } from "../Icon/CrossIcon"
 // Approach B — keep MUI primitives but theme them to
 // match the webapp's Tailwind/Radix design tokens. The override file
 // maps borderRadius, font, padding, and focus rings to the same look as
 // `packages/webapp/src/components/ui/`.
 import { inspectorTheme } from "@/styles/inspector-theme"
+import { useTranslation } from "@/i18n"
+import { getTypeLabel } from "./typeLabel"
 
 /**
  * CSS custom property published on `:root` so fixed-position siblings (e.g.
@@ -43,6 +47,7 @@ const PANEL_WIDTH_VAR = "--besser-properties-panel-width"
 export const PropertiesPanel: React.FC = () => {
   const wrapperRef = useRef<HTMLDivElement>(null)
   const { width, onResizeStart } = useResizable()
+  const { t, locale } = useTranslation()
 
   const { nodes, edges } = useDiagramStore(
     useShallow((s) => ({
@@ -63,8 +68,12 @@ export const PropertiesPanel: React.FC = () => {
     }))
   )
 
-  const { mode, readonly } = useMetadataStore(
-    useShallow((s) => ({ mode: s.mode, readonly: s.readonly }))
+  const { mode, readonly, diagramType } = useMetadataStore(
+    useShallow((s) => ({
+      mode: s.mode,
+      readonly: s.readonly,
+      diagramType: s.diagramType,
+    }))
   )
 
   const selectedId = popoverElementId ?? null
@@ -107,7 +116,7 @@ export const PropertiesPanel: React.FC = () => {
     return null
   }
 
-  const typeLabel = formatTypeName(selectedType ?? "")
+  const typeLabel = getTypeLabel(selectedType ?? "", diagramType, locale)
 
   return (
     <ThemeProvider theme={inspectorTheme}>
@@ -181,8 +190,8 @@ export const PropertiesPanel: React.FC = () => {
             </span>
             <button
               type="button"
-              aria-label="Close editor"
-              title="Close editor"
+              aria-label={t("propertiesPanel.closeEditor", "Close editor")}
+              title={t("propertiesPanel.closeEditor", "Close editor")}
               onClick={() => setPopOverElementId(null)}
               style={{
                 display: "flex",
@@ -225,5 +234,3 @@ export const PropertiesPanel: React.FC = () => {
   )
 }
 
-const formatTypeName = (type: string): string =>
-  type.replace(/([A-Z])/g, " $1").trim()

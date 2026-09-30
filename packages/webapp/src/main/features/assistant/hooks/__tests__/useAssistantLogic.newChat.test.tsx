@@ -1,5 +1,5 @@
 /**
- * #1 — "New Chat" must ask before it discards the conversation.
+ * "New Chat" must ask before it discards the conversation.
  *
  * `requestNewChat` is the guarded handler the New Chat control calls: it
  * confirms first, then delegates to `clearConversation` (which resets the

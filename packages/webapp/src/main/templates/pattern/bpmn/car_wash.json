@@ -37,7 +37,8 @@
       "data": {
         "name": "Customer arrives",
         "eventType": "default"
-      }
+      },
+      "parentId": "cu-pool"
     },
     {
       "id": "cu-pull",
@@ -56,7 +57,8 @@
         "name": "Pulls car up to car wash",
         "taskType": "user",
         "marker": "none"
-      }
+      },
+      "parentId": "cu-pool"
     },
     {
       "id": "cu-choose",
@@ -75,7 +77,8 @@
         "name": "Chooses wash",
         "taskType": "user",
         "marker": "none"
-      }
+      },
+      "parentId": "cu-pool"
     },
     {
       "id": "cu-gw",
@@ -93,7 +96,8 @@
       "data": {
         "name": "Which wash program?",
         "gatewayType": "exclusive"
-      }
+      },
+      "parentId": "cu-pool"
     },
     {
       "id": "cu-pay8",
@@ -112,7 +116,8 @@
         "name": "Pay 8",
         "taskType": "send",
         "marker": "none"
-      }
+      },
+      "parentId": "cu-pool"
     },
     {
       "id": "cu-pay15",
@@ -131,7 +136,8 @@
         "name": "Pay 15",
         "taskType": "send",
         "marker": "none"
-      }
+      },
+      "parentId": "cu-pool"
     },
     {
       "id": "cu-drive",
@@ -150,7 +156,8 @@
         "name": "Drives away",
         "taskType": "receive",
         "marker": "none"
-      }
+      },
+      "parentId": "cu-pool"
     },
     {
       "id": "cu-end",
@@ -168,7 +175,8 @@
       "data": {
         "name": "",
         "eventType": "default"
-      }
+      },
+      "parentId": "cu-pool"
     },
     {
       "id": "ma-pool",
@@ -192,7 +200,7 @@
       "type": "bpmnTask",
       "position": {
         "x": 435,
-        "y": 380
+        "y": 40
       },
       "width": 110,
       "height": 60,
@@ -204,14 +212,15 @@
         "name": "Soft Cloth Wash",
         "taskType": "service",
         "marker": "none"
-      }
+      },
+      "parentId": "ma-pool"
     },
     {
       "id": "ma-gw",
       "type": "bpmnGateway",
       "position": {
         "x": 600,
-        "y": 390
+        "y": 50
       },
       "width": 40,
       "height": 40,
@@ -222,14 +231,15 @@
       "data": {
         "name": "Which wash program?",
         "gatewayType": "exclusive"
-      }
+      },
+      "parentId": "ma-pool"
     },
     {
       "id": "ma-wheelclean",
       "type": "bpmnTask",
       "position": {
         "x": 725,
-        "y": 380
+        "y": 40
       },
       "width": 110,
       "height": 60,
@@ -241,14 +251,15 @@
         "name": "Wheel Clean",
         "taskType": "service",
         "marker": "none"
-      }
+      },
+      "parentId": "ma-pool"
     },
     {
       "id": "ma-dry",
       "type": "bpmnTask",
       "position": {
         "x": 875,
-        "y": 380
+        "y": 40
       },
       "width": 110,
       "height": 60,
@@ -260,14 +271,15 @@
         "name": "Dry",
         "taskType": "send",
         "marker": "none"
-      }
+      },
+      "parentId": "ma-pool"
     },
     {
       "id": "ma-double",
       "type": "bpmnTask",
       "position": {
         "x": 565,
-        "y": 500
+        "y": 160
       },
       "width": 110,
       "height": 60,
@@ -279,14 +291,15 @@
         "name": "Double Polish",
         "taskType": "service",
         "marker": "none"
-      }
+      },
+      "parentId": "ma-pool"
     },
     {
       "id": "ma-clear",
       "type": "bpmnTask",
       "position": {
         "x": 725,
-        "y": 500
+        "y": 160
       },
       "width": 110,
       "height": 60,
@@ -298,14 +311,15 @@
         "name": "Clear Coat Protection",
         "taskType": "service",
         "marker": "none"
-      }
+      },
+      "parentId": "ma-pool"
     },
     {
       "id": "ma-luster",
       "type": "bpmnTask",
       "position": {
         "x": 875,
-        "y": 500
+        "y": 160
       },
       "width": 110,
       "height": 60,
@@ -317,7 +331,8 @@
         "name": "Wheel Luster Wheel Clean",
         "taskType": "service",
         "marker": "none"
-      }
+      },
+      "parentId": "ma-pool"
     }
   ],
   "edges": [

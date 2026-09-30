@@ -1,4 +1,5 @@
 import { Box, IconButton } from "@mui/material"
+import { useReactiveEdge, useReactiveNode } from "@/hooks/useReactiveElement"
 import { useReactFlow } from "@xyflow/react"
 import { CustomEdgeProps, MessageData } from "@/edges/EdgeProps"
 import { ArrowBackIcon, ArrowForwardIcon, DeleteIcon } from "@/components/Icon"
@@ -7,20 +8,21 @@ import { useState, useEffect } from "react"
 import { generateUUID } from "@/utils"
 import { EdgeStyleEditor, TextField } from "@/components/ui"
 import { log } from "../../../logger"
+import { useTranslation } from "@/i18n"
 
 export const CommunicationDiagramEdgeEditPopover: React.FC<PopoverProps> = ({
   elementId,
 }) => {
-  const { getEdge, setEdges, getNode, updateEdgeData } = useReactFlow()
-  const edge = getEdge(elementId)
+  const { t } = useTranslation()
+  const { setEdges, updateEdgeData } = useReactFlow()
+  const edge = useReactiveEdge(elementId)
+  const sourceNode = useReactiveNode(edge?.source)
+  const targetNode = useReactiveNode(edge?.target)
   const [messages, setMessages] = useState<MessageData[]>([])
   const [newLabelInput, setNewLabelInput] = useState("")
   const [duplicateError, setDuplicateError] = useState(false)
-
-  const sourceNode = getNode(edge?.source || "")
-  const targetNode = getNode(edge?.target || "")
-  const sourceName = (sourceNode?.data?.name as string) ?? "Source"
-  const targetName = (targetNode?.data?.name as string) ?? "Target"
+  const sourceName = (sourceNode?.data?.name as string) ?? t("common.source", "Source")
+  const targetName = (targetNode?.data?.name as string) ?? t("common.target", "Target")
 
   useEffect(() => {
     if (edge?.data) {
@@ -133,7 +135,10 @@ export const CommunicationDiagramEdgeEditPopover: React.FC<PopoverProps> = ({
         handleDataFieldUpdate={(key, value) =>
           updateEdgeData(elementId, { ...edge.data, [key]: value })
         }
-        label="Communication Link"
+        label={t(
+          "packages.CommunicationDiagram.CommunicationLink",
+          "Communication Link"
+        )}
       />
 
       {messages.map((message, index) => {
@@ -154,11 +159,12 @@ export const CommunicationDiagramEdgeEditPopover: React.FC<PopoverProps> = ({
               size="small"
               onClick={() => handleMessageDirectionToggle(index)}
               color={message.direction === "target" ? "primary" : "secondary"}
-              title={`Direction: ${
-                message.direction === "target"
-                  ? `${sourceName} → ${targetName}`
-                  : `${targetName} → ${sourceName}`
-              }`}
+              title={t("popup.communication.direction", "Direction: {{direction}}", {
+                direction:
+                  message.direction === "target"
+                    ? `${sourceName} → ${targetName}`
+                    : `${targetName} → ${sourceName}`,
+              })}
             >
               {message.direction === "target" ? (
                 <ArrowForwardIcon
@@ -179,15 +185,22 @@ export const CommunicationDiagramEdgeEditPopover: React.FC<PopoverProps> = ({
               onChange={(e) => handleMessageTextUpdate(index, e.target.value)}
               size="small"
               fullWidth
-              placeholder={`Message ${index + 1}`}
+              placeholder={t("popup.communication.messagePlaceholder", "Message {{index}}", {
+                index: index + 1,
+              })}
               error={isDuplicateText}
-              helperText={isDuplicateText ? "Duplicate message" : ""}
+              helperText={
+                isDuplicateText
+                  ? t("popup.communication.duplicateMessage", "Duplicate message")
+                  : ""
+              }
             />
 
             {/* Delete Button */}
             <DeleteIcon
               width={16}
               height={16}
+              aria-label={t("popup.communication.deleteMessage", "Delete message")}
               style={{ cursor: "pointer" }}
               onClick={() => handleDeleteMessage(index)}
             />
@@ -203,9 +216,16 @@ export const CommunicationDiagramEdgeEditPopover: React.FC<PopoverProps> = ({
           onKeyDown={handleKeyDown}
           size="small"
           fullWidth
-          placeholder="+ Add Message"
+          placeholder={t("popup.communication.addMessagePlaceholder", "+ Add Message")}
           error={duplicateError}
-          helperText={duplicateError ? "This message already exists" : ""}
+          helperText={
+            duplicateError
+              ? t(
+                  "popup.communication.messageExists",
+                  "This message already exists"
+                )
+              : ""
+          }
         />
       </Box>
     </Box>

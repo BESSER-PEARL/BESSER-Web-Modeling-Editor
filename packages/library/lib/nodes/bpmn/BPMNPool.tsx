@@ -1,6 +1,6 @@
 import { NodeProps, NodeResizer, type Node } from "@xyflow/react"
+import { usePopoverAnchor } from "@/hooks/usePopoverAnchor"
 import { DefaultNodeWrapper } from "../wrappers"
-import { useRef } from "react"
 import { PopoverManager } from "@/components/popovers/PopoverManager"
 import { useDiagramModifiable } from "@/hooks/useDiagramModifiable"
 import { BPMNPoolProps } from "@/types"
@@ -14,7 +14,7 @@ export function BPMNPool({
   height,
   data,
 }: NodeProps<Node<BPMNPoolProps>>) {
-  const svgWrapperRef = useRef<HTMLDivElement | null>(null)
+  const [svgWrapperEl, svgWrapperRef] = usePopoverAnchor<HTMLDivElement>()
   // A pool with swimlanes is lane-driven: resizing re-flows its lanes and
   // clamps its own height to the summed lane heights (develop's pool
   // render()). An empty pool resizes freely (floor only).
@@ -46,7 +46,7 @@ export function BPMNPool({
         />
       </div>
       <PopoverManager
-        anchorEl={svgWrapperRef.current}
+        anchorEl={svgWrapperEl}
         elementId={id}
         type="BPMNPool"
       />

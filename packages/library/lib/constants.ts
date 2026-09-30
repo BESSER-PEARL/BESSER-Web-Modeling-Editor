@@ -42,6 +42,7 @@ import {
   BPMNDataObjectNodeSVG,
   BPMNDataStoreNodeSVG,
   BPMNPoolNodeSVG,
+  BPMNSwimlaneNodeSVG,
   BPMNGroupNodeSVG,
   SfcStartNodeSVG,
   SfcStepNodeSVG,
@@ -61,15 +62,7 @@ import {
 // child-of-AgentIntent slot row, not a top-level draggable. Its SVG
 // remains importable from `@/components/svgs/nodes/agentDiagram` for
 // the inline canvas rendering of folded entity-slot rows.
-import {
-  AgentStateSVG,
-  AgentIntentSVG,
-  AgentRagElementSVG,
-  AgentReasoningStateSVG,
-  AgentToolSVG,
-  AgentSkillSVG,
-  AgentWorkspaceSVG,
-} from "@/components/svgs/nodes/agentDiagram"
+import { AgentStateSVG } from "@/components/svgs/nodes/agentDiagram"
 import {
   UserModelStaticPreviewSVG,
   getUserModelNamePaletteEntries,
@@ -104,6 +97,7 @@ import {
 } from "@/components/svgs/nodes/nnDiagram"
 import { DiagramNodeType } from "@/nodes"
 import { ClassType, UMLDiagramType } from "@/types"
+import { settingsService } from "@/services/settingsService"
 import { v4 as uuidv4 } from "uuid"
 
 /* -------------------------------------------------------------------------- */
@@ -201,6 +195,16 @@ export const INTERFACE = Object.freeze({
 // Base marker sizes (exported for reference in marker configs)
 export const MARKER_BASE_SIZE = 18
 export const BPMN_MARKER_SIZE = 11
+// Aggregation/composition diamonds run longer than the other class markers so
+// they carry at least the inheritance triangle's visual weight, as in draw.io
+// (24-long diamond vs 16-long triangle) and Mermaid (equal areas) -- upstream
+// Apollon #805. Capped at 24 because 24 * RHOMBUS_HEIGHT_FACTOR stays under the
+// triangle's height, so the diamond (drawn tip-on-endpoint at the target/whole
+// end, see `getEdgeMarkerStyles`) never overhangs a node border further than
+// the triangle does.
+export const RHOMBUS_MARKER_SIZE = 24
+// 1/phi, inside the 0.588-0.706 thickness band those tools use.
+export const RHOMBUS_HEIGHT_FACTOR = 0.618
 
 export const EDGES = Object.freeze({
   /** Negative padding extends target point to node boundary (React Flow handles are offset 3px) */
@@ -255,16 +259,16 @@ export const MARKER_CONFIGS = Object.freeze({
   "black-rhombus": {
     type: "rhombus",
     filled: true,
-    size: MARKER_BASE_SIZE,
+    size: RHOMBUS_MARKER_SIZE,
     widthFactor: 1.0,
-    heightFactor: 0.618,
+    heightFactor: RHOMBUS_HEIGHT_FACTOR,
   },
   "white-rhombus": {
     type: "rhombus",
     filled: false,
-    size: MARKER_BASE_SIZE,
+    size: RHOMBUS_MARKER_SIZE,
     widthFactor: 1.0,
-    heightFactor: 0.618,
+    heightFactor: RHOMBUS_HEIGHT_FACTOR,
   },
   "white-triangle": {
     type: "triangle",
@@ -390,6 +394,19 @@ export type DropElementConfig = {
    * rendering the entry. Leave undefined to skip.
    */
   readonly sectionLabel?: string
+  /**
+   * Optional i18n key for `sectionLabel` (editor.json dotted key). The
+   * sidebar renders `t(sectionLabelKey, sectionLabel)` when set.
+   */
+  readonly sectionLabelKey?: string
+  /**
+   * Optional i18n key for `defaultData.name`. When set, the default name
+   * is translated into the editor locale in the palette preview and when
+   * the node is dropped (v3 parity: only the BPMN palette did this —
+   * `bpmn-diagram-preview.ts`). The English `defaultData.name` is the
+   * fallback. See `resolvePaletteDefaultData` in `DraggableGhost.tsx`.
+   */
+  readonly nameKey?: string
   /**
    * Optional override for the size of the node actually created on
    * canvas-drop, when it must differ from the sidebar-preview
@@ -662,7 +679,7 @@ const defaultDropElementConfigs: Record<string, ReadonlyArray<DropElementConfig>
       width: 160,
       height: 100,
       defaultData: {
-        name: "Node",
+        name: "Deployment Node",
         isComponentHeaderShown: true,
         stereotype: "node",
       },
@@ -672,21 +689,21 @@ const defaultDropElementConfigs: Record<string, ReadonlyArray<DropElementConfig>
       type: "deploymentComponent",
       width: 160,
       height: 100,
-      defaultData: { name: "Component", isComponentHeaderShown: true },
+      defaultData: { name: "Deployment Component", isComponentHeaderShown: true },
       svg: DeploymentComponentSVG,
     },
     {
       type: "deploymentArtifact",
       width: 160,
       height: 50,
-      defaultData: { name: "Artifact" },
+      defaultData: { name: "Deployment Artifact" },
       svg: DeploymentArtifactSVG,
     },
     {
       type: "deploymentInterface",
       width: INTERFACE_SIZE,
       height: INTERFACE_SIZE,
-      defaultData: { name: "Interface" },
+      defaultData: { name: "Deployment Interface" },
       svg: DeploymentInterfaceSVG,
       marginTop: 10,
     }, // Must use INTERFACE.SIZE
@@ -777,6 +794,7 @@ const defaultDropElementConfigs: Record<string, ReadonlyArray<DropElementConfig>
       width: 160,
       height: 60,
       defaultData: { name: "Task" },
+      nameKey: "packages.BPMNDiagram.BPMNTask",
       svg: BPMNTaskNodeSVG,
     },
     {
@@ -784,6 +802,7 @@ const defaultDropElementConfigs: Record<string, ReadonlyArray<DropElementConfig>
       width: 160,
       height: 60,
       defaultData: { name: "Subprocess" },
+      nameKey: "packages.BPMNDiagram.BPMNSubprocess",
       svg: BPMNSubprocessNodeSVG,
     },
     {
@@ -791,6 +810,7 @@ const defaultDropElementConfigs: Record<string, ReadonlyArray<DropElementConfig>
       width: 160,
       height: 60,
       defaultData: { name: "Transaction", variant: "transaction" },
+      nameKey: "packages.BPMNDiagram.BPMNTransaction",
       svg: BPMNSubprocessNodeSVG,
     },
     {
@@ -798,6 +818,7 @@ const defaultDropElementConfigs: Record<string, ReadonlyArray<DropElementConfig>
       width: 160,
       height: 60,
       defaultData: { name: "Call Activity", variant: "call" },
+      nameKey: "packages.BPMNDiagram.BPMNCallActivity",
       svg: BPMNSubprocessNodeSVG,
     },
     {
@@ -805,6 +826,7 @@ const defaultDropElementConfigs: Record<string, ReadonlyArray<DropElementConfig>
       width: 160,
       height: 60,
       defaultData: { name: "Group" },
+      nameKey: "packages.BPMNDiagram.BPMNGroup",
       svg: BPMNGroupNodeSVG,
     },
     {
@@ -812,6 +834,7 @@ const defaultDropElementConfigs: Record<string, ReadonlyArray<DropElementConfig>
       width: 160,
       height: 60,
       defaultData: { name: "Annotation" },
+      nameKey: "packages.BPMNDiagram.BPMNAnnotation",
       svg: BPMNAnnotationNodeSVG,
     },
     {
@@ -863,7 +886,19 @@ const defaultDropElementConfigs: Record<string, ReadonlyArray<DropElementConfig>
       width: 200,
       height: 120,
       defaultData: { name: "Pool" },
+      nameKey: "packages.BPMNDiagram.BPMNPool",
       svg: BPMNPoolNodeSVG,
+    },
+    {
+      // Standalone lane (old editor's bpmn-diagram-preview.ts). Only drops
+      // into a pool (`requiresParent` / `canDropIntoParent`); the pool then
+      // re-stacks its lanes (`stackPoolLanes`).
+      type: "bpmnSwimlane",
+      width: 200,
+      height: 80,
+      defaultData: { name: "Lane" },
+      nameKey: "packages.BPMNDiagram.BPMNSwimlane",
+      svg: BPMNSwimlaneNodeSVG,
     },
   ],
   // BESSER StateMachineDiagram palette. Mirrors the v3 fork's
@@ -947,19 +982,23 @@ const defaultDropElementConfigs: Record<string, ReadonlyArray<DropElementConfig>
   // body / fallback / intent body / description child nodes are NOT
   // included — they're inserted automatically inside the parent
   // container, mirroring v3 behaviour.
-  // Visual section order — Flow → Knowledge → Capabilities. The
-  // reasoning-state drag source lives in the Flow section (as an
-  // `AgentState`-typed entry with `stateType: "reasoning"`) since develop
-  // folded reasoning into AgentState and dropped the separate "Reasoning"
-  // palette section. The `sectionLabel` field on a group's first entry
-  // tells `Sidebar.tsx` to prepend a divider + heading (same mechanism as
-  // the NN palette).
   [UMLDiagramType.AgentDiagram]: [
-    // The initial-state marker node was dropped from the AgentDiagram
-    // palette: "initial" is now a boolean property on an AgentState
-    // (toggled in the inspector), not a separate marker node + init edge.
-    // (The final-state marker was likewise removed — the BESSER agent
-    // metamodel has no final-state concept; an agent loops on user input.)
+    // smart-gen `composeBotPreview` parity (3d720bdd / ada9a2c6): the
+    // palette carries only the conversation flow — one "Flow" section with
+    // one AgentState. Agent components (intents, LLMs, RAG databases,
+    // tools, skills, workspaces, GUIs) are off-canvas, edited in the
+    // webapp's agent Components page and stored in `model.components`;
+    // legacy on-canvas component nodes are migrated by
+    // `normalizeAgentComponents` on load.
+    //
+    // Deliberate deltas from smart-gen:
+    //  - no initial-node marker: v4 stores the entry state as
+    //    `AgentState.data.initial` (inspector "Initial state" toggle +
+    //    "initial" pill on the card). A dropped marker + init edge only
+    //    folds into `data.initial` on the next load, so it would not
+    //    round-trip cleanly while editing.
+    //  - reasoning states are the inspector's "State Type" toggle (as in
+    //    smart-gen), not a separate palette entry.
     {
       type: "AgentState" as never,
       width: DROPS.DEFAULT_ELEMENT_WIDTH,
@@ -967,194 +1006,15 @@ const defaultDropElementConfigs: Record<string, ReadonlyArray<DropElementConfig>
       defaultData: { name: "AgentState", replyType: "text" },
       svg: AgentStateSVG,
       sectionLabel: "Flow",
-    },
-    {
-      // Develop palette parity (`agent-state-preview.ts` `agentState`):
-      // second AgentState preview carrying one pre-populated body row.
-      // Row ids are template placeholders — `DraggableGhost` re-ids
-      // body/fallback rows on drop (same treatment as the State
-      // palette variants above).
-      type: "AgentState" as never,
-      width: DROPS.DEFAULT_ELEMENT_WIDTH,
-      height: 70,
-      defaultData: {
-        name: "AgentState",
-        bodies: [
-          { id: "agent-state-template-body", name: "Body", replyType: "text" },
-        ],
-      },
-      svg: AgentStateSVG,
-    },
-    {
-      // Develop palette parity (`agent-state-preview.ts`
-      // `stateWithBothBodies`): third AgentState preview with one body
-      // row plus one fallback row so the fallback divider is visible
-      // straight from the sidebar.
-      type: "AgentState" as never,
-      width: DROPS.DEFAULT_ELEMENT_WIDTH,
-      height: 100,
-      defaultData: {
-        name: "AgentState",
-        bodies: [
-          { id: "agent-state-template-body", name: "Body", replyType: "text" },
-        ],
-        fallbackBodies: [
-          {
-            id: "agent-state-template-fallback-body",
-            name: "Fallback Body",
-            replyType: "text",
-          },
-        ],
-      },
-      svg: AgentStateSVG,
-    },
-    {
-      // Autonomous reasoning-loop state. Develop folded the standalone
-      // `AgentReasoningState` node into `AgentState` with
-      // `stateType: "reasoning"`, so this drag source is now an
-      // `AgentState`-typed entry carrying the reasoning defaults
-      // (`agent-state.ts`): max_steps 8, planning + streaming on, empty
-      // llm_name = "(use default)". Develop's current palette has no
-      // reasoning shortcut (users flip "State Type" in the inspector);
-      // this entry is a discoverability superset over the identical
-      // data model, kept per the project's "no deliberate drops" policy.
-      // It folds into the "Flow" section (no `sectionLabel` — develop has
-      // no "Reasoning" palette section header).
-      type: "AgentState" as never,
-      width: 200,
-      height: 80,
-      defaultData: {
-        name: "ReasoningState",
-        stateType: "reasoning",
-        llm_name: "",
-        max_steps: 8,
-        enable_task_planning: true,
-        stream_steps: true,
-        system_prompt: "",
-        fallback_message: "",
-      },
-      svg: AgentReasoningStateSVG,
-    },
-    {
-      type: "AgentIntent" as never,
-      width: DROPS.DEFAULT_ELEMENT_WIDTH,
-      height: 100,
-      defaultData: { name: "Intent", intent_description: "" },
-      svg: AgentIntentSVG,
-      sectionLabel: "Knowledge",
-    },
-    // `AgentIntentObjectComponent` removed from the
-    // palette — it's a child-of-AgentIntent slot row (added via the
-    // intent inspector), not a top-level draggable.
-    {
-      type: "AgentRagElement" as never,
-      width: 160,
-      height: 120,
-      // DefaultData stripped to just `name`. The
-      // standalone RAG palette element no longer carries DB-mode
-      // fields (`ragDatabaseName`, `dbCustomName`, `dbSelectionType`,
-      // `dbQueryMode`) — those belong to the AgentState `db_reply`
-      // mode (see `AgentStateEditPanel.tsx`), not to the cylinder.
-      defaultData: { name: "RAG" },
-      svg: AgentRagElementSVG,
-    },
-    {
-      type: "AgentTool" as never,
-      width: 160,
-      height: 80,
-      defaultData: {
-        name: "tool_name",
-        description: "What this tool does",
-        code: "",
-      },
-      svg: AgentToolSVG,
-      sectionLabel: "Capabilities",
-    },
-    {
-      type: "AgentSkill" as never,
-      width: 160,
-      height: 80,
-      defaultData: {
-        name: "skill_name",
-        description: "What this skill teaches",
-        content: "",
-      },
-      svg: AgentSkillSVG,
-    },
-    {
-      type: "AgentWorkspace" as never,
-      width: 160,
-      height: 80,
-      defaultData: {
-        name: "workspace_name",
-        path: "/path/to/dir",
-        description: "",
-        writable: true,
-        max_read_bytes: 200000,
-      },
-      svg: AgentWorkspaceSVG,
+      sectionLabelKey: "packages.AgentDiagram.palette.flow",
     },
   ],
-  // BESSER UserDiagram palette. v3 generated one
-  // drag-source per meta-model class via `composeUserModelPreview`
-  // walking `getAvailableClasses()`. We replicate that here at module
-  // load by reading the user meta-model JSON and producing N entries —
-  // one per Personal_Information / Skill / Education / Disability / …
-  // Each entry's `defaultData` pre-populates the `attributes` rows so
-  // the dropped node lands fully wired to the meta-model. The
-  // `UserModelIcon` entry stays as a static second drag-source.
-  [UMLDiagramType.UserDiagram]: [
-    // Align dropped node's `defaultData.name` with the
-    // preview SVG's header label. The preview uses
-    // `${className[0].toLowerCase()}${className.slice(1)}_1` (e.g.
-    // `personal_Information_1`) — keep parity so the dropped node
-    // visually matches the palette card the user clicked.
-    ...getUserModelNamePaletteEntries().map((entry) => ({
-      type: "UserModelName" as never,
-      // Dropped node defaults to the icon view, so
-      // only reserve room for the header (~40) and the glyph slot
-      // (~60) — drop the attributes-driven height that was used for
-      // the old class-style preview.
-      width: DROPS.DEFAULT_ELEMENT_WIDTH,
-      height: 100,
-      defaultData: {
-        name: `${entry.className.charAt(0).toLowerCase() + entry.className.slice(1)}_1`,
-        // Meta-model class binding: without it
-        // `diagramBridge.getAvailableAssociations(classId)` returns []
-        // and the link inspector's association dropdown stays empty.
-        classId: entry.classId,
-        className: entry.className,
-        attributes: entry.attributes.map((a) => ({
-          id: a.id,
-          name: a.name,
-          attributeType: a.attributeType,
-          attributeOperator: "==",
-        })),
-        // Dropped nodes default to icon view (matches
-        // the v3 fork's preferred UserDiagram preview). The inspector
-        // exposes a toggle to opt into the attributes view.
-        view: "icon" as const,
-      },
-      svg: entry.svg,
-    })),
-    {
-      type: "UserModelName" as never,
-      width: DROPS.DEFAULT_ELEMENT_WIDTH,
-      height: 100,
-      defaultData: {
-        name: "Alice",
-        className: "User",
-        attributes: [],
-        // Static fallback drag-source also defaults
-        // to icon view.
-        view: "icon" as const,
-      },
-      svg: UserModelStaticPreviewSVG,
-    },
-    // Per user (2025-05): the standalone UserModelIcon palette entry is
-    // dropped — every UserModelName already renders in icon view by
-    // default, so the dedicated icon-only drag-source was redundant.
-  ],
+  // BESSER UserDiagram palette — fully dynamic: see
+  // `getUserDiagramPaletteEntries` and its `registerDynamicPaletteProvider`
+  // registration below (v3 `composeUserModelPreview` gated the
+  // per-metaclass cards on "Show Instanced Objects", so they must
+  // recompose when that setting is toggled).
+  [UMLDiagramType.UserDiagram]: [],
   // BESSER NNDiagram palette. One palette item per top-level
   // draggable: NNContainer, the 13 layer kinds, TrainingDataset,
   // TestDataset, TensorOp, Configuration, NNReference. Inlined here per
@@ -1181,6 +1041,7 @@ const defaultDropElementConfigs: Record<string, ReadonlyArray<DropElementConfig>
       defaultData: { name: "Neural_Network" },
       svg: NNContainerSVG,
       sectionLabel: "NN Structure",
+      sectionLabelKey: "packages.NNDiagram.SectionStructure",
     },
     {
       type: "NNReference" as never,
@@ -1196,22 +1057,23 @@ const defaultDropElementConfigs: Record<string, ReadonlyArray<DropElementConfig>
       type: "Conv1DLayer" as never,
       width: 90,
       height: 100,
-      defaultData: { name: "Conv1D", attributes: {} },
+      defaultData: { name: "conv1d_layer", attributes: { name: "conv1d_layer" } },
       svg: Conv1DLayerSVG,
       sectionLabel: "NN Layers",
+      sectionLabelKey: "packages.NNDiagram.SectionLayers",
     },
     {
       type: "Conv2DLayer" as never,
       width: 90,
       height: 100,
-      defaultData: { name: "Conv2D", attributes: {} },
+      defaultData: { name: "conv2d_layer", attributes: { name: "conv2d_layer" } },
       svg: Conv2DLayerSVG,
     },
     {
       type: "Conv3DLayer" as never,
       width: 90,
       height: 100,
-      defaultData: { name: "Conv3D", attributes: {} },
+      defaultData: { name: "conv3d_layer", attributes: { name: "conv3d_layer" } },
       svg: Conv3DLayerSVG,
     },
     {
@@ -1219,12 +1081,13 @@ const defaultDropElementConfigs: Record<string, ReadonlyArray<DropElementConfig>
       width: 90,
       height: 100,
       defaultData: {
-        name: "Pooling",
+        name: "pooling_layer",
         // Disambiguated dimension slug: see open question #2.
         // Seed the `pooling_type` mandatory slug so
         // a freshly dropped node reads the v3 default `max` before the
         // inspector's auto-fill effect runs.
         attributes: {
+          name: "pooling_layer",
           "pooling.dimension": "2D",
           pooling_type: "max",
         },
@@ -1235,56 +1098,56 @@ const defaultDropElementConfigs: Record<string, ReadonlyArray<DropElementConfig>
       type: "RNNLayer" as never,
       width: 90,
       height: 100,
-      defaultData: { name: "RNN", attributes: {} },
+      defaultData: { name: "rnn_layer", attributes: { name: "rnn_layer" } },
       svg: RNNLayerSVG,
     },
     {
       type: "LSTMLayer" as never,
       width: 90,
       height: 100,
-      defaultData: { name: "LSTM", attributes: {} },
+      defaultData: { name: "lstm_layer", attributes: { name: "lstm_layer" } },
       svg: LSTMLayerSVG,
     },
     {
       type: "GRULayer" as never,
       width: 90,
       height: 100,
-      defaultData: { name: "GRU", attributes: {} },
+      defaultData: { name: "gru_layer", attributes: { name: "gru_layer" } },
       svg: GRULayerSVG,
     },
     {
       type: "LinearLayer" as never,
       width: 90,
       height: 100,
-      defaultData: { name: "Linear", attributes: {} },
+      defaultData: { name: "linear_layer", attributes: { name: "linear_layer" } },
       svg: LinearLayerSVG,
     },
     {
       type: "FlattenLayer" as never,
       width: 90,
       height: 100,
-      defaultData: { name: "Flatten", attributes: {} },
+      defaultData: { name: "flatten_layer", attributes: { name: "flatten_layer" } },
       svg: FlattenLayerSVG,
     },
     {
       type: "EmbeddingLayer" as never,
       width: 90,
       height: 100,
-      defaultData: { name: "Embedding", attributes: {} },
+      defaultData: { name: "embedding_layer", attributes: { name: "embedding_layer" } },
       svg: EmbeddingLayerSVG,
     },
     {
       type: "DropoutLayer" as never,
       width: 90,
       height: 100,
-      defaultData: { name: "Dropout", attributes: {} },
+      defaultData: { name: "dropout_layer", attributes: { name: "dropout_layer" } },
       svg: DropoutLayerSVG,
     },
     {
       type: "LayerNormalizationLayer" as never,
       width: 90,
       height: 100,
-      defaultData: { name: "LayerNorm", attributes: {} },
+      defaultData: { name: "layernorm_layer", attributes: { name: "layernorm_layer" } },
       svg: LayerNormalizationLayerSVG,
     },
     {
@@ -1292,11 +1155,14 @@ const defaultDropElementConfigs: Record<string, ReadonlyArray<DropElementConfig>
       width: 90,
       height: 100,
       defaultData: {
-        name: "BatchNorm",
+        name: "batchnorm_layer",
         // Disambiguated dimension slug: see open question #2.
         // V3 default = '2D' (mirrors the conv2d
         // baseline). The widget's auto-fill effect honours this seed.
-        attributes: { "batch_normalization.dimension": "2D" },
+        attributes: {
+          name: "batchnorm_layer",
+          "batch_normalization.dimension": "2D",
+        },
       },
       svg: BatchNormalizationLayerSVG,
     },
@@ -1304,9 +1170,10 @@ const defaultDropElementConfigs: Record<string, ReadonlyArray<DropElementConfig>
       type: "TensorOp" as never,
       width: 90,
       height: 100,
-      defaultData: { name: "TensorOp", attributes: {} },
+      defaultData: { name: "tensorop", attributes: { name: "tensorop" } },
       svg: TensorOpSVG,
       sectionLabel: "NN TensorOps",
+      sectionLabelKey: "packages.NNDiagram.SectionTensorOps",
     },
     {
       type: "Configuration" as never,
@@ -1315,20 +1182,22 @@ const defaultDropElementConfigs: Record<string, ReadonlyArray<DropElementConfig>
       defaultData: { name: "Configuration", attributes: {} },
       svg: ConfigurationSVG,
       sectionLabel: "NN Configuration",
+      sectionLabelKey: "packages.NNDiagram.SectionConfiguration",
     },
     {
       type: "TrainingDataset" as never,
       width: 90,
       height: 100,
-      defaultData: { name: "TrainingDataset", attributes: {} },
+      defaultData: { name: "dataset", attributes: { name: "dataset" } },
       svg: TrainingDatasetSVG,
       sectionLabel: "NN Datasets",
+      sectionLabelKey: "packages.NNDiagram.Datasets",
     },
     {
       type: "TestDataset" as never,
       width: 90,
       height: 100,
-      defaultData: { name: "TestDataset", attributes: {} },
+      defaultData: { name: "dataset", attributes: { name: "dataset" } },
       svg: TestDatasetSVG,
     },
   ],
@@ -1466,6 +1335,85 @@ export const dropElementConfigs: Readonly<
 // to invocation (sidebar render) sidesteps the cycle entirely.
 registerDynamicPaletteProvider(UMLDiagramType.ObjectDiagram, () =>
   getObjectDiagramPaletteEntries()
+)
+
+/**
+ * BESSER UserDiagram per-metaclass palette cards. v3 generated one
+ * drag-source per meta-model class via `composeUserModelPreview` walking
+ * `getAvailableClasses()`; we read the user meta-model JSON and produce
+ * one entry per Personal_Information / Skill / Education / Disability / …
+ * Each entry's `defaultData` pre-populates the `attributes` rows so the
+ * dropped node lands fully wired to the meta-model. Built lazily on first
+ * sidebar render (the meta-model is static) to stay clear of import
+ * cycles at module-evaluation time.
+ */
+let _userDiagramMetaClassEntries: ReadonlyArray<DropElementConfig> | null =
+  null
+const getUserDiagramMetaClassEntries = (): ReadonlyArray<DropElementConfig> =>
+  (_userDiagramMetaClassEntries ??= getUserModelNamePaletteEntries().map(
+    (entry) => ({
+      type: "UserModelName" as never,
+      // Dropped node defaults to the icon view, so only reserve room for
+      // the header (~40) and the glyph slot (~60).
+      width: DROPS.DEFAULT_ELEMENT_WIDTH,
+      height: 100,
+      defaultData: {
+        // Align dropped node's `defaultData.name` with the preview SVG's
+        // header label (`${className[0].toLowerCase()}${rest}_1`, e.g.
+        // `personal_Information_1`) so the dropped node visually matches
+        // the palette card the user clicked.
+        name: `${entry.className.charAt(0).toLowerCase() + entry.className.slice(1)}_1`,
+        // Meta-model class binding: without it
+        // `diagramBridge.getAvailableAssociations(classId)` returns []
+        // and the link inspector's association dropdown stays empty.
+        classId: entry.classId,
+        className: entry.className,
+        attributes: entry.attributes.map((a) => ({
+          id: a.id,
+          name: a.name,
+          attributeType: a.attributeType,
+          attributeOperator: "==",
+        })),
+        // Dropped nodes default to icon view (matches the v3 fork's
+        // preferred UserDiagram preview). The inspector exposes a toggle
+        // to opt into the attributes view.
+        view: "icon" as const,
+      },
+      svg: entry.svg,
+    })
+  ))
+
+/** Static "Alice" fallback drag-source (not class-bound). */
+const USER_DIAGRAM_STATIC_ENTRY: DropElementConfig = {
+  type: "UserModelName" as never,
+  width: DROPS.DEFAULT_ELEMENT_WIDTH,
+  height: 100,
+  defaultData: {
+    name: "Alice",
+    className: "User",
+    attributes: [],
+    // Static fallback drag-source also defaults to icon view.
+    view: "icon" as const,
+  },
+  svg: UserModelStaticPreviewSVG,
+}
+
+/**
+ * UserDiagram palette, recomposed per sidebar render. v3 parity
+ * (`user-model-preview.ts`): the per-metaclass instance cards only appear
+ * while "Show Instanced Objects" is on. The standalone UserModelIcon entry
+ * stays dropped — every UserModelName already renders in icon view.
+ */
+export const getUserDiagramPaletteEntries =
+  (): ReadonlyArray<DropElementConfig> => [
+    ...(settingsService.shouldShowInstancedObjects()
+      ? getUserDiagramMetaClassEntries()
+      : []),
+    USER_DIAGRAM_STATIC_ENTRY,
+  ]
+
+registerDynamicPaletteProvider(UMLDiagramType.UserDiagram, () =>
+  getUserDiagramPaletteEntries()
 )
 
 /**

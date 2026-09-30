@@ -18,7 +18,8 @@
  * become `Conv2D` / `Conv2D2` instead of both `Conv2D`.
  */
 import { NodeProps, NodeResizer, type Node } from "@xyflow/react"
-import { useEffect, useRef } from "react"
+import { usePopoverAnchor } from "@/hooks/usePopoverAnchor"
+import { useEffect } from "react"
 import { useShallow } from "zustand/shallow"
 import { DefaultNodeWrapper } from "../wrappers"
 import { useHandleOnResize } from "@/hooks"
@@ -117,17 +118,25 @@ export function useUniqueNNName(id: string, nodeType: string) {
       if (typeof currentName !== "string" || currentName === "") return all
       const unique = nextUniqueNNLayerName(currentName, nodeType, all, id)
       if (unique === currentName) return all
-      return all.map((n) =>
-        n.id === id
-          ? {
-              ...n,
-              data: {
-                ...(n.data as Record<string, unknown>),
-                name: unique,
-              },
-            }
-          : n
-      )
+      return all.map((n) => {
+        if (n.id !== id) return n
+        const data = n.data as Record<string, unknown> & {
+          attributes?: Record<string, unknown>
+        }
+        // Keep `attributes.name` (what the backend reads) in step.
+        const attributes =
+          data.attributes && "name" in data.attributes
+            ? { ...data.attributes, name: unique }
+            : data.attributes
+        return {
+          ...n,
+          data: {
+            ...data,
+            name: unique,
+            ...(attributes !== undefined && { attributes }),
+          },
+        }
+      })
     })
     // Run only on first mount per node — same pattern as the
     // mandatory-attribute auto-fill in `NNComponentEditPanel`.
@@ -158,7 +167,7 @@ export function NNLayerBase({
   nodeType,
   defaultFill,
 }: NNLayerBaseProps) {
-  const wrapperRef = useRef<HTMLDivElement | null>(null)
+  const [wrapperEl, wrapperRef] = usePopoverAnchor<HTMLDivElement>()
   const { onResize } = useHandleOnResize(parentId)
   const isDiagramModifiable = useDiagramModifiable()
 
@@ -258,7 +267,7 @@ export function NNLayerBase({
         </svg>
       </div>
       <PopoverManager
-        anchorEl={wrapperRef.current}
+        anchorEl={wrapperEl}
         elementId={id}
         type={nodeType as never}
       />

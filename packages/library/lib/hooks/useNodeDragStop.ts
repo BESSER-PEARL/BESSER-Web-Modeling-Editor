@@ -6,10 +6,27 @@ import {
   resizeAllParents,
   sortNodesTopologically,
 } from "@/utils"
-import { canDropIntoParent } from "@/utils/bpmnConstraints"
+import { canDropIntoParent, clampIntoLaneBody } from "@/utils/bpmnConstraints"
 import { CANVAS } from "@/constants"
 import { useDiagramStore, useAlignmentGuidesStore } from "@/store/context"
 import { useShallow } from "zustand/shallow"
+
+/** True when `nodeId` sits (transitively) inside `ancestorId`. */
+const isDescendantOf = (
+  nodeId: string,
+  ancestorId: string,
+  nodes: readonly Node[]
+): boolean => {
+  const seen = new Set<string>()
+  let current = nodes.find((n) => n.id === nodeId)
+  while (current?.parentId && !seen.has(current.id)) {
+    if (current.parentId === ancestorId) return true
+    seen.add(current.id)
+    const parentId: string = current.parentId
+    current = nodes.find((n) => n.id === parentId)
+  }
+  return false
+}
 
 export const useNodeDragStop = () => {
   const { screenToFlowPosition, getIntersectingNodes } = useReactFlow()
@@ -55,6 +72,13 @@ export const useNodeDragStop = () => {
         return (
           isParentNodeType(n.type) &&
           n.id !== draggedNode.id &&
+          // A container dragged over its own content (a pool released over
+          // one of its groups/subprocesses) must not become its descendant's
+          // child — that would be a parentId cycle.
+          !isDescendantOf(n.id, draggedNode.id, nodes) &&
+          // Pools stay at the canvas root (old editor: appendAfterMove never
+          // reparents an element into a container of its own type).
+          !(draggedNode.type === "bpmnPool" && n.type === "bpmnPool") &&
           n.type &&
           draggedNode.type &&
           canDropIntoParent(draggedNode.type, n.type)
@@ -94,6 +118,11 @@ export const useNodeDragStop = () => {
 
         updatedNode.position.x -= parentsFlowPosition.x
         updatedNode.position.y -= parentsFlowPosition.y
+        // Children of a BPMN lane stay out of its header strip.
+        updatedNode.position = clampIntoLaneBody(
+          updatedNode.position,
+          parentNode.type
+        )
         updatedNode.parentId = parentNode.id
 
         const updatedNodes = structuredClone(nodes)
@@ -109,12 +138,19 @@ export const useNodeDragStop = () => {
       }
 
       if (draggedNode.parentId) {
+        const currentParentType = nodes.find(
+          (n) => n.id === draggedNode.parentId
+        )?.type
+        const movedNode = {
+          ...draggedNode,
+          position: clampIntoLaneBody(draggedNode.position, currentParentType),
+        }
         const updatedNodes = structuredClone(nodes)
         const updatedNodesList = sortNodesTopologically(
           resizeAllParents(
-            draggedNode,
+            movedNode,
             updatedNodes.map((n) =>
-              n.id === draggedNode.id ? { ...draggedNode } : n
+              n.id === draggedNode.id ? { ...movedNode } : n
             )
           )
         )

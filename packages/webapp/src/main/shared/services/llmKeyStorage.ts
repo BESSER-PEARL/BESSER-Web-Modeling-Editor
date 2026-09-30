@@ -1,10 +1,11 @@
 /**
  * Unified LLM BYOK (bring-your-own-key) session-storage helpers.
  *
- * ONE key for the whole app: the user's Anthropic / OpenAI / Mistral key is
+ * ONE key for the whole app: the user's Anthropic / OpenAI / Mistral / Nebius
+ * key is
  * entered once (via the shared LlmKeyDialog, reachable from the assistant
  * drawer, the assistant popup, and the Settings page) and read by BOTH the
- * assistant/modeling-agent AND the Spec-Driven (smart) generator.
+ * assistant/modeling-agent AND the Spec-Driven Agent.
  *
  * The raw key lives ONLY in sessionStorage (tab-lifetime, cleared on tab
  * close) — never in localStorage, never in Redux, and it is NEVER logged.
@@ -30,10 +31,23 @@ import {
 // UX; on the wire they are sent as provider='openai' + a base_url (see the
 // dialog / SSE client / AssistantClient). They only work when the WME backend
 // runs locally (and, for 'pia', on the LIST VPN).
-// 'free' is the keyless server-hosted tier (smart-gen only — NOT offered in the
+// 'free' is the keyless server-hosted tier (Spec-Driven Agent only — NOT offered in the
 // assistant key dialog). It carries no key; the model list is a single pinned
 // entry. Kept in this union so MODEL_PRESETS['free'] type-checks.
-export type LlmProvider = 'anthropic' | 'openai' | 'mistral' | 'pia' | 'local' | 'free';
+// 'nebius' is Nebius Token Factory — an OpenAI-compatible cloud endpoint the
+// BACKEND pins server-side (no base_url travels with the request, so it is not
+// subject to the custom-endpoint gate that pia/local are). Spec-Driven Agent
+// only: the modeling assistant's own BYOK layer does not support it, so a
+// Nebius key leaves the assistant on the server's default model (see
+// features/assistant/services/byokStorage.ts).
+export type LlmProvider =
+  | 'anthropic'
+  | 'openai'
+  | 'mistral'
+  | 'nebius'
+  | 'pia'
+  | 'local'
+  | 'free';
 
 export interface LlmKey {
   provider: LlmProvider;
@@ -58,6 +72,7 @@ function _isProvider(value: string | null): value is LlmProvider {
     value === 'anthropic' ||
     value === 'openai' ||
     value === 'mistral' ||
+    value === 'nebius' ||
     value === 'pia' ||
     value === 'local'
   );
@@ -109,12 +124,8 @@ export function writeLlmKey(
     }
     // Saving a real BYOK key means the user is no longer on the keyless free
     // tier — clear the sticky free-tier opt-in so the Spec-Driven Agent runs on
-    // THIS key, not qwen. Without this, entering a key via the unified dialog
-    // (assistant popup / drawer / Settings) left the free flag set (free is the
-    // default), and startRun's ``freeSelected ? 'free' : key`` picked free even
-    // though a key was present. The smart-gen dialog already clears it on save
-    // (writeFreeTierSelected(false)); this makes every key-write path agree, so
-    // the invariant "a saved key ⟹ not free tier" holds at the storage choke
+    // THIS key, not the free model. Doing it here makes every key-write path
+    // agree, so "a saved key ⟹ not free tier" holds at the storage choke
     // point ("last action wins": picking free later re-sets the flag).
     window.sessionStorage.removeItem(sessionStorageSpecDrivenFreeTier);
     return true;
@@ -204,7 +215,7 @@ export function writeLlmBudget(budget: { maxCostUsd: number; maxRuntimeSeconds: 
 /*  feature re-exports these from `features/spec-driven/storage`.      */
 /* ------------------------------------------------------------------ */
 
-/** True when the user has opted into the keyless free tier for smart-gen. */
+/** True when the user has opted into the keyless free tier for the Spec-Driven Agent. */
 export function readFreeTierSelected(): boolean {
   if (!_hasSessionStorage()) return false;
   try {

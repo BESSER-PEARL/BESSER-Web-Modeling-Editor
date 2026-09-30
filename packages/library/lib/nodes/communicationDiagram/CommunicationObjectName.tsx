@@ -1,7 +1,8 @@
 import { NodeProps, NodeResizer, type Node } from "@xyflow/react"
+import { usePopoverAnchor } from "@/hooks/usePopoverAnchor"
 import { DefaultNodeWrapper } from "@/nodes/wrappers"
 import { CommunicationObjectNameSVG } from "@/components"
-import { useEffect, useMemo, useRef } from "react"
+import { useEffect, useMemo } from "react"
 import { CommunicationObjectNodeProps } from "@/types"
 import { useDiagramStore } from "@/store/context"
 import { useShallow } from "zustand/shallow"
@@ -28,7 +29,7 @@ export function CommunicationObjectName({
     }))
   )
   const isDiagramModifiable = useDiagramModifiable()
-  const communicationObjectSvgWrapperRef = useRef<HTMLDivElement | null>(null)
+  const [communicationObjectSvgWrapperEl, communicationObjectSvgWrapperRef] = usePopoverAnchor<HTMLDivElement>()
 
   // Communication diagrams don't have stereotypes, so header height is consistent
   const headerHeight = LAYOUT.DEFAULT_HEADER_HEIGHT
@@ -149,7 +150,7 @@ export function CommunicationObjectName({
         />
       </div>
       <PopoverManager
-        anchorEl={communicationObjectSvgWrapperRef.current}
+        anchorEl={communicationObjectSvgWrapperEl}
         elementId={id}
         type={"communicationObjectName" as const}
       />

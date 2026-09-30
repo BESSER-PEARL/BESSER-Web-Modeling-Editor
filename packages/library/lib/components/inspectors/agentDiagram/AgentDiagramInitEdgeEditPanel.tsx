@@ -6,6 +6,7 @@ import { EdgeStyleEditor } from "@/components/ui"
 import { DeleteIcon, SwapHorizIcon } from "@/components/Icon"
 import { CustomEdgeProps } from "@/edges/EdgeProps"
 import { PopoverProps } from "@/components/popovers/types"
+import { useTranslation } from "@/i18n"
 
 /**
  * Inspector body for `AgentStateTransitionInit`.
@@ -28,6 +29,7 @@ import { PopoverProps } from "@/components/popovers/types"
 export const AgentDiagramInitEdgeEditPanel: React.FC<PopoverProps> = ({
   elementId,
 }) => {
+  const { t } = useTranslation()
   const { edges, setEdges } = useDiagramStore(
     useShallow((state) => ({
       edges: state.edges,
@@ -82,22 +84,22 @@ export const AgentDiagramInitEdgeEditPanel: React.FC<PopoverProps> = ({
       <EdgeStyleEditor
         edgeData={data}
         handleDataFieldUpdate={handleStyleFieldUpdate}
-        label="Init Transition"
+        label={t("packages.AgentDiagram.initTransition", "Init Transition")}
         sideElements={[
-          <Tooltip key="flip" title="Flip source / target">
+          <Tooltip key="flip" title={t("packages.AgentDiagram.flipTransition", "Flip source / target")}>
             <IconButton
               size="small"
               onClick={handleSwap}
-              aria-label="Flip source / target"
+              aria-label={t("packages.AgentDiagram.flipTransition", "Flip source / target")}
             >
               <SwapHorizIcon />
             </IconButton>
           </Tooltip>,
-          <Tooltip key="delete" title="Delete init transition">
+          <Tooltip key="delete" title={t("packages.AgentDiagram.deleteInitTransition", "Delete init transition")}>
             <IconButton
               size="small"
               onClick={handleDelete}
-              aria-label="Delete init transition"
+              aria-label={t("packages.AgentDiagram.deleteInitTransition", "Delete init transition")}
             >
               <DeleteIcon width={16} height={16} />
             </IconButton>

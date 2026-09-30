@@ -745,7 +745,7 @@ export const AssistantWorkspaceDrawer: React.FC<AssistantWorkspaceDrawerProps> =
                   ))}
                 </div>
 
-                {/* Capability cards — three branded cards (masked for experimental launch; set to true to restore) */}
+                {/* Capability cards — three branded cards (hidden; set to true to show) */}
                 {false && (
                 <div
                   className="animate-fade-up mt-10 grid grid-cols-3 gap-3"
@@ -793,7 +793,7 @@ export const AssistantWorkspaceDrawer: React.FC<AssistantWorkspaceDrawerProps> =
 
               {/* Bottom spacer + footer */}
               <div className="flex-[1_1_8%] min-h-4" />
-              {/* Pilot-experiment transparency line (regular sessions render nothing) */}
+              {/* Study-mode notice (regular sessions render nothing) */}
               <PilotSessionNotice className="pb-1.5" />
               <p className="animate-fade-up pb-4 text-center text-[10px] text-muted-foreground/35" style={{ animationDelay: '500ms' }}>
                 {t('assistant.welcome.pressEscPre')} <kbd className="rounded-[3px] border border-border/30 bg-muted/25 px-1.5 py-0.5 font-mono text-[9px]">Esc</kbd> {t('assistant.welcome.pressEscPost')}
@@ -808,7 +808,7 @@ export const AssistantWorkspaceDrawer: React.FC<AssistantWorkspaceDrawerProps> =
               <div className="relative min-h-0 flex-1">
                 <div ref={messageListContainerRef} className="h-full overflow-y-auto bg-gradient-to-b from-muted/10 via-background to-muted/5 px-4 py-6 sm:px-8">
                   <div className="mx-auto w-full max-w-4xl">
-                    {/* Pilot-experiment transparency line (regular sessions render nothing) */}
+                    {/* Study-mode notice (regular sessions render nothing) */}
                     <PilotSessionNotice className="mb-4" />
                     <MessageList
                       messages={messages}
@@ -963,7 +963,15 @@ export const AssistantWorkspaceDrawer: React.FC<AssistantWorkspaceDrawerProps> =
             tabIndex={0}
           >
             <Bot className="size-3.5 shrink-0" aria-hidden="true" />
-            <span className="tracking-wide">{t('assistant.drawer.label')}</span>
+            {/* The handle is the only affordance people see when the drawer is
+                shut, so it says what opening it gives you rather than naming the
+                panel. Same threshold the chevron below uses, so the word and the
+                arrow always agree. */}
+            <span className="tracking-wide">
+              {openProgress > 0.5
+                ? t('assistant.drawer.labelOpen')
+                : t('assistant.drawer.labelClosed')}
+            </span>
             {openProgress > 0.5 ? (
               <ChevronUp className="size-3.5 shrink-0" aria-hidden="true" />
             ) : (

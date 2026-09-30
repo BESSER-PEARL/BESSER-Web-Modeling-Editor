@@ -91,6 +91,37 @@ const NN_LAYER_KINDS_IN_CONTAINER: ReadonlySet<string> = new Set([
 ])
 
 /**
+ * Width (lane-local coordinates) of a swimlane's header strip, where the
+ * rotated lane name is drawn. Port of the old editor's
+ * `BPMNSwimlane.LANE_HEADER_WIDTH` (bpmn-swimlane.ts): children of a lane
+ * must keep `position.x >= LANE_HEADER_WIDTH` so the name stays readable.
+ */
+export const LANE_HEADER_WIDTH = 30
+
+/**
+ * Keep a child of a `bpmnSwimlane` out of the lane's header strip: returns
+ * the (lane-relative) position with `x` clamped to the lane body. Any other
+ * parent type returns the position unchanged (same reference).
+ */
+export const clampIntoLaneBody = <P extends { x: number; y: number }>(
+  position: P,
+  parentType: string | undefined
+): P => {
+  if (parentType !== "bpmnSwimlane" || position.x >= LANE_HEADER_WIDTH) {
+    return position
+  }
+  return { ...position, x: LANE_HEADER_WIDTH }
+}
+
+/**
+ * Node types that may not sit at the canvas root: a swimlane only exists as
+ * a subdivision of a pool (the old editor's lane preview dropped only into a
+ * pool).
+ */
+export const requiresParent = (childType: string | undefined): boolean =>
+  childType === "bpmnSwimlane"
+
+/**
  * Determines if a node type can be dropped into a parent node type
  * based on BPMN rules and constraints
  */
@@ -161,8 +192,9 @@ export const canDropIntoParent = (
 
   // BPMN Group constraints
   if (parentType === "bpmnGroup") {
-    // Groups can contain any BPMN elements
-    return childType.startsWith("bpmn")
+    // Groups can contain any BPMN elements — except lanes, which only
+    // exist inside a pool.
+    return childType.startsWith("bpmn") && childType !== "bpmnSwimlane"
   }
 
   // BPMN Swimlane constraints — a lane holds the same elements a

@@ -38,6 +38,16 @@ export const NN_ATTRIBUTE_DEFAULTS: Readonly<Record<string, string>> =
     transpose_dim: "[0, 1]",
     permute_dim: "[0, 1, 2]",
     layers_of_tensors: "[]",
+    // Extended attributes (smart-gen nn-validation-defaults.ts).
+    groups: "1",
+    pad_value: "0.0",
+    interpolate_scale: "2.0",
+    dropout_rate: "0.5",
+    dropout_training_aware: "true",
+    reduce_dim: "0",
+    shape_dim: "0",
+    split_dim: "0",
+    split_sizes: "2",
   })
 
 /** Look up the default text for a given slug, falling back to the
@@ -45,6 +55,26 @@ export const NN_ATTRIBUTE_DEFAULTS: Readonly<Record<string, string>> =
 export function getAttributeDefaultValue(slug: string, currentValue?: string): string {
   return NN_ATTRIBUTE_DEFAULTS[slug] ?? currentValue ?? ""
 }
+
+// Identifier grammars, mirrored from `NN.validate()` / the NN metamodel
+// setters (besser/BUML/metamodel/nn/neural_network.py):
+//   NN.input_var and Layer/TensorOp input_var  -> ^[a-zA-Z_][a-zA-Z0-9_]*$
+//   TensorOp input_var may also be a comma-separated list of those
+//   NN.return_vars / TensorOp output_vars      -> ^[a-zA-Z][a-zA-Z0-9_]*$ per entry
+export const IDENTIFIER_REGEX = /^[a-zA-Z_][a-zA-Z0-9_]*$/
+export const IDENTIFIER_LIST_REGEX =
+  /^[a-zA-Z_][a-zA-Z0-9_]*(\s*,\s*[a-zA-Z_][a-zA-Z0-9_]*)*$/
+/** Same list mid-typing: a trailing comma is incomplete, not yet wrong. */
+export const IDENTIFIER_LIST_PARTIAL_REGEX =
+  /^[a-zA-Z_][a-zA-Z0-9_]*(\s*,\s*[a-zA-Z_][a-zA-Z0-9_]*)*\s*,\s*$/
+/** Entries of return_vars / output_vars must start with a letter. */
+export const RETURN_VAR_REGEX = /^[a-zA-Z][a-zA-Z0-9_]*$/
+
+/** Identifier lists like `[x1, x2]` (unquoted identifiers). */
+export const LIST_IDENTIFIER_STRICT_REGEX =
+  /^\[\s*[a-zA-Z_][a-zA-Z0-9_]*(\s*,\s*[a-zA-Z_][a-zA-Z0-9_]*)*\s*\]$/
+export const LIST_IDENTIFIER_PERMISSIVE_REGEX =
+  /^(\[([a-zA-Z_][a-zA-Z0-9_]*(\s*,\s*[a-zA-Z_][a-zA-Z0-9_]*)*(\s*,?\s*)?)?\]?)$/
 
 /** Strict integer-list shape (e.g. `[1, 2, 3]`). */
 export const LIST_STRICT_REGEX = /^\[\s*-?\d+(\s*,\s*-?\d+)*\s*\]$/
@@ -56,6 +86,8 @@ export interface ListExpectation {
   count: number | null
   /** Worked example string for the placeholder. */
   example: string
+  /** Item type: integers (default) or identifiers. */
+  type?: "int" | "string"
 }
 
 /**
@@ -73,14 +105,25 @@ export function getListExpectation(
   if (layerKind === "Conv1DLayer") {
     if (slug === "kernel_dim") return { count: 1, example: "[3]" }
     if (slug === "stride_dim") return { count: 1, example: "[1]" }
+    if (slug === "dilation") return { count: 1, example: "[1]" }
   }
   if (layerKind === "Conv2DLayer") {
     if (slug === "kernel_dim") return { count: 2, example: "[3, 3]" }
     if (slug === "stride_dim") return { count: 2, example: "[1, 1]" }
+    if (slug === "dilation") return { count: 2, example: "[1, 1]" }
   }
   if (layerKind === "Conv3DLayer") {
     if (slug === "kernel_dim") return { count: 3, example: "[3, 3, 3]" }
     if (slug === "stride_dim") return { count: 3, example: "[1, 1, 1]" }
+    if (slug === "dilation") return { count: 3, example: "[1, 1, 1]" }
+  }
+  if (layerKind === "TensorOp") {
+    if (slug === "permute_dim") return { count: null, example: "[0, 2, 1]" }
+    if (slug === "reshape_dim") return { count: null, example: "[32, -1]" }
+    if (slug === "repeat_dim") return { count: null, example: "[2, 3]" }
+    if (slug === "output_vars") {
+      return { count: null, example: "[x1, x2, x3]", type: "string" }
+    }
   }
   if (layerKind === "LayerNormalizationLayer" && slug === "normalized_shape") {
     return { count: 1, example: "[-1]" }

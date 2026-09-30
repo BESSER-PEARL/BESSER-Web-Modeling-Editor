@@ -9,8 +9,11 @@ import {
   Code2,
   Download,
   Github,
+  HelpCircle,
   Info,
   Loader2,
+  ShieldAlert,
+  ShieldCheck,
   Sparkles,
   Square,
   Terminal,
@@ -180,6 +183,37 @@ export interface SpecDrivenWarningView {
   severity?: "info" | "warning" | "error"
 }
 
+/**
+ * One thing the run checked, could not check, or found missing from the
+ * delivered code. Mirrors the backend's `VerificationItem`.
+ */
+export interface SpecDrivenVerificationItemView {
+  kind: "requirement" | "ocl_constraint" | "api_workflow" | "check"
+  /** Stable label (`R7`, an OCL constraint name, a scenario id). May be "". */
+  id: string
+  what: string
+  /** VERIFIED items: what was actually run or re-checked. */
+  how?: string
+  /** The other two: why nothing reached it, or what is missing. */
+  why?: string
+}
+
+/**
+ * The three states a blocker count collapses into one number. `counts`
+ * carries the TRUE totals — the lists are capped by the backend, so the
+ * panel says "showing 5 of 23" rather than quietly under-reporting.
+ */
+export interface SpecDrivenVerificationView {
+  verified: SpecDrivenVerificationItemView[]
+  notVerified: SpecDrivenVerificationItemView[]
+  shippedUnenforced: SpecDrivenVerificationItemView[]
+  counts: {
+    verified: number
+    notVerified: number
+    shippedUnenforced: number
+  }
+}
+
 export interface SpecDrivenMessageState {
   /**
    * Live-run subscription key (client-generated, assigned before the
@@ -198,6 +232,17 @@ export interface SpecDrivenMessageState {
   warnings: SpecDrivenWarningView[]
   text: string
   status: "running" | "done" | "error"
+  /** Finished transport/artifact does not imply the generated app passed validation. */
+  incomplete?: boolean
+  incompleteReason?: string
+  blockerCount?: number
+  /**
+   * What the run verified, could not verify, and shipped UNENFORCED. This is
+   * the field a human reads; `blockerCount` is the same evidence collapsed to
+   * one number. Undefined on older or interrupted runs — the card then falls
+   * back to the blocker-count summary.
+   */
+  verification?: SpecDrivenVerificationView
   /** Live spend so far in USD (from the backend's 2s cost events). */
   costUsd?: number
   /** Elapsed run time in seconds (from the backend's 2s cost events). */
@@ -225,14 +270,12 @@ export interface SpecDrivenMessageState {
    * overstates effort. Kept only for the deterministic-split badge's tooltip. */
   tokensUsed?: number
   /**
-   * Share (0–100) of the run's files that BESSER's deterministic generator
-   * produced with zero LLM tokens (from the done event's
-   * `fileSplit.generator_untouched_pct`). Rendered as an honest
-   * "N% deterministic" badge in place of the misleading cumulative token
-   * count. Undefined when the backend sent no file split.
+   * Share (0–100) of output files tagged as scaffold and not edited this run
+   * (`fileSplit.generator_untouched_pct`). File provenance, not a measure of
+   * requirements covered, correctness, lines of code, or token savings.
    */
   detPct?: number
-  /** Share (0–100) of files the LLM authored from scratch
+  /** Share (0–100) of files outside the generator-tagged scaffold
    * (`fileSplit.llm_authored_pct`) — shown in the badge breakdown. */
   aiPct?: number
   /** Share (0–100) of files the generator wrote that the LLM then edited
@@ -240,13 +283,10 @@ export interface SpecDrivenMessageState {
    * badge breakdown so detPct + modPct + aiPct reconcile to ~100. */
   modPct?: number
   /**
-   * Honest token breakdown from the run recipe's usage summary.
-   * `input` = fresh input tokens NET of cache; `output` = produced tokens;
-   * `cacheRead` = context served from cache (cheap throughput); `total` = all
-   * processed. The card leads with ACTIVE = input + output (the real cost) and
-   * shows cacheRead as a secondary number, instead of the misleading total
-   * that re-counts re-sent context. Undefined when the provider reported no
-   * split.
+   * Honest token breakdown from the run recipe's usage summary. The card leads
+   * with ACTIVE = input + output (the real cost) and shows `cacheRead` as a
+   * secondary number, instead of the misleading `total` that re-counts re-sent
+   * context. Undefined when the provider reported no split.
    */
   tokenUsage?: {
     input: number
@@ -296,7 +336,7 @@ export interface Message {
   isStreaming?: boolean
   /** The injection action type, if the message was the result of an injection. */
   injectionType?: string
-  /** Structured smart-generator run state, rendered as a card. */
+  /** Structured spec-driven run state, rendered as a card. */
   specDriven?: SpecDrivenMessageState
 }
 
@@ -560,7 +600,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = (props) => {
     )
   }
 
-  /* ---- Smart Generator: structured run card ---- */
+  /* ---- Spec-Driven Agent: structured run card ---- */
   if (specDriven) {
     return (
       <div className="flex w-full flex-col items-start sm:max-w-[85%]">
@@ -826,6 +866,342 @@ function SpecDrivenNoticeList({
   )
 }
 
+/* ------------------------------------------------------------------ */
+/*  Verification report — what the delivered app actually enforces     */
+/* ------------------------------------------------------------------ */
+
+const VERIFICATION_KIND_LABELS: Record<
+  SpecDrivenVerificationItemView["kind"],
+  string
+> = {
+  requirement: "Requirement",
+  ocl_constraint: "Model constraint",
+  api_workflow: "API workflow",
+  check: "Check",
+}
+
+type VerificationTone = "unenforced" | "unchecked" | "verified"
+
+const VERIFICATION_TONES: Record<
+  VerificationTone,
+  { body: string; chip: string; rule: string }
+> = {
+  unenforced: {
+    body: "bg-red-50 text-red-900 dark:bg-red-950/30 dark:text-red-100",
+    chip: "bg-red-100 text-red-800 dark:bg-red-900/50 dark:text-red-200",
+    rule: "border-red-200 dark:border-red-900/50",
+  },
+  unchecked: {
+    body: "bg-amber-50/70 text-amber-900 dark:bg-amber-950/20 dark:text-amber-100",
+    chip: "bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-200",
+    rule: "border-amber-200 dark:border-amber-900/40",
+  },
+  verified: {
+    body: "bg-emerald-50/70 text-emerald-900 dark:bg-emerald-950/20 dark:text-emerald-100",
+    chip: "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-200",
+    rule: "border-emerald-200 dark:border-emerald-900/40",
+  },
+}
+
+/**
+ * One finding. `what` is the thing; `why` / `how` are the payload — the
+ * evidence that makes the verdict checkable — so neither is clamped or
+ * ellipsised. The backend already caps each string at 240 characters.
+ */
+function VerificationItemRow({
+  item,
+  tone,
+}: {
+  item: SpecDrivenVerificationItemView
+  tone: VerificationTone
+}) {
+  const styles = VERIFICATION_TONES[tone]
+  return (
+    <li className={cn("border-t px-3 py-2 first:border-t-0", styles.rule)}>
+      <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
+        <span
+          className={cn(
+            "rounded px-1.5 py-0.5 font-mono text-[10px] uppercase tracking-wider",
+            styles.chip
+          )}
+        >
+          {VERIFICATION_KIND_LABELS[item.kind]}
+        </span>
+        {item.id ? (
+          <span className="font-mono text-[10px] opacity-70">{item.id}</span>
+        ) : null}
+      </div>
+      <p className="mt-1 whitespace-pre-wrap break-words text-[12px] font-medium leading-snug">
+        {item.what}
+      </p>
+      {item.why ? (
+        <p className="mt-1 whitespace-pre-wrap break-words text-[11px] leading-snug opacity-90">
+          <span className="font-semibold">Why: </span>
+          {item.why}
+        </p>
+      ) : null}
+      {item.how ? (
+        <p className="mt-1 whitespace-pre-wrap break-words text-[11px] leading-snug opacity-90">
+          <span className="font-semibold">Checked by: </span>
+          {item.how}
+        </p>
+      ) : null}
+    </li>
+  )
+}
+
+/** "Showing 5 of 23." — the lists are capped, `counts` carries the truth. */
+function VerificationCapNote({
+  shown,
+  total,
+  className,
+}: {
+  shown: number
+  total: number
+  className?: string
+}) {
+  if (total <= shown) return null
+  return (
+    <p className={cn("px-3 py-1.5 text-[10px] opacity-80", className)}>
+      Showing {shown} of {total}. The full list is in the run report inside the
+      downloaded project.
+    </p>
+  )
+}
+
+/**
+ * A ledger row for the two NON-headline states. Collapsed by default, but
+ * the count is always on the row: the number is never hidden, only the
+ * detail behind it.
+ */
+function VerificationSection({
+  label,
+  blurb,
+  emptyNote,
+  count,
+  items,
+  tone,
+  icon: Icon,
+}: {
+  label: string
+  blurb: string
+  emptyNote: string
+  count: number
+  items: SpecDrivenVerificationItemView[]
+  tone: VerificationTone
+  icon: React.ComponentType<{ className?: string }>
+}) {
+  const [expanded, setExpanded] = useState(false)
+  const styles = VERIFICATION_TONES[tone]
+  const isEmpty = count === 0
+
+  return (
+    <div className="border-t border-border/40">
+      <button
+        type="button"
+        onClick={() => {
+          if (!isEmpty) setExpanded((v) => !v)
+        }}
+        aria-expanded={isEmpty ? undefined : expanded}
+        disabled={isEmpty}
+        className={cn(
+          "flex w-full items-center gap-2 px-3 py-2 text-left text-xs",
+          isEmpty ? "cursor-default text-muted-foreground" : "hover:bg-muted/60"
+        )}
+      >
+        <Icon
+          className={cn(
+            "h-3.5 w-3.5 shrink-0",
+            isEmpty ? "opacity-50" : undefined
+          )}
+        />
+        <span className="font-medium text-foreground">{label}</span>
+        <span
+          className={cn(
+            "rounded-full px-1.5 py-0.5 font-mono text-[10px] font-semibold",
+            isEmpty ? "bg-muted text-muted-foreground" : styles.chip
+          )}
+        >
+          {count}
+        </span>
+        <span className="min-w-0 flex-1 truncate text-[11px] text-muted-foreground">
+          {isEmpty ? emptyNote : blurb}
+        </span>
+        {isEmpty ? null : (
+          <ChevronRight
+            className={cn(
+              "h-3 w-3 shrink-0 transition-transform",
+              expanded ? "rotate-90" : undefined
+            )}
+          />
+        )}
+      </button>
+      {expanded && items.length > 0 ? (
+        <div className={styles.body}>
+          <ul className="flex flex-col">
+            {items.map((item, i) => (
+              <VerificationItemRow
+                key={`${item.kind}-${item.id}-${i}`}
+                item={item}
+                tone={tone}
+              />
+            ))}
+          </ul>
+          <VerificationCapNote shown={items.length} total={count} />
+        </div>
+      ) : null}
+      {expanded && items.length === 0 ? (
+        <p className="border-t border-border/40 px-3 py-2 text-[11px] text-muted-foreground">
+          The run counted {count} of these but sent no detail for them.
+        </p>
+      ) : null}
+    </div>
+  )
+}
+
+/**
+ * The verification report: three visually distinct states, each labelled
+ * with the TRUE total from `counts` rather than the capped list length.
+ *
+ * `shippedUnenforced` is the headline and is never collapsed: rules the user
+ * asked for that the delivered app does not enforce must not hide behind a
+ * disclosure or an aggregate blocker count.
+ */
+function SpecDrivenVerificationPanel({
+  verification,
+}: {
+  verification: SpecDrivenVerificationView
+}) {
+  const { verified, notVerified, shippedUnenforced, counts } = verification
+  const unenforced = counts.shippedUnenforced
+  const alarm = VERIFICATION_TONES.unenforced
+
+  // Three always-open sections cost ~10 lines of card to say "0 / 1 / 1". They
+  // collapse to one summary row the user can open.
+  // Never when something shipped unenforced — see above.
+  const collapsible = unenforced === 0
+  const [open, setOpen] = React.useState(false)
+
+  if (collapsible && !open) {
+    return (
+      <div className="border-t border-border/60">
+        <button
+          type="button"
+          onClick={() => setOpen(true)}
+          aria-expanded={false}
+          className="flex w-full items-center gap-2 px-3 py-1.5 text-left hover:bg-muted/50"
+        >
+          <ShieldCheck className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+          <span className="text-[11px] font-medium text-foreground">
+            Verification
+          </span>
+          <span className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+            <span className={counts.verified > 0 ? "text-foreground" : undefined}>
+              {counts.verified} verified
+            </span>
+            <span aria-hidden>·</span>
+            <span className={counts.notVerified > 0 ? "text-foreground" : undefined}>
+              {counts.notVerified} unverified
+            </span>
+          </span>
+          <ChevronRight className="ml-auto h-3 w-3 shrink-0 text-muted-foreground" />
+        </button>
+      </div>
+    )
+  }
+
+  return (
+    <div className="border-t border-border/60">
+      {collapsible ? (
+        <button
+          type="button"
+          onClick={() => setOpen(false)}
+          aria-expanded
+          className="flex w-full items-center gap-2 px-3 py-1.5 text-left hover:bg-muted/50"
+        >
+          <ShieldCheck className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+          <span className="text-[11px] font-medium text-foreground">
+            Verification
+          </span>
+          <ChevronRight className="ml-auto h-3 w-3 shrink-0 rotate-90 text-muted-foreground" />
+        </button>
+      ) : null}
+      {unenforced > 0 ? (
+        <section className={cn(alarm.body, "border-b-2", alarm.rule)}>
+          <div className="flex items-start gap-2 px-3 py-2">
+            <ShieldAlert className="mt-0.5 h-4 w-4 shrink-0" />
+            <div className="min-w-0">
+              <p className="text-[13px] font-semibold leading-snug">
+                Delivered, but {unenforced}{" "}
+                {unenforced === 1
+                  ? "rule you asked for is"
+                  : "rules you asked for are"}{" "}
+                not enforced
+              </p>
+              <p className="mt-0.5 text-[11px] leading-snug opacity-90">
+                The application was generated and can be downloaded. Nothing in
+                the delivered code enforces the following, so any behaviour
+                that depends on {unenforced === 1 ? "it" : "them"} is
+                unprotected.
+              </p>
+            </div>
+          </div>
+          <ul className={cn("flex flex-col border-t", alarm.rule)}>
+            {shippedUnenforced.map((item, i) => (
+              <VerificationItemRow
+                key={`${item.kind}-${item.id}-${i}`}
+                item={item}
+                tone="unenforced"
+              />
+            ))}
+          </ul>
+          <VerificationCapNote
+            shown={shippedUnenforced.length}
+            total={unenforced}
+            className={cn("border-t", alarm.rule)}
+          />
+        </section>
+      ) : (
+        <VerificationSection
+          label="Not enforced"
+          count={0}
+          items={[]}
+          tone="unenforced"
+          icon={ShieldAlert}
+          blurb=""
+          emptyNote="Nothing we checked was found missing from the delivered code."
+        />
+      )}
+
+      <VerificationSection
+        label="Could not verify"
+        count={counts.notVerified}
+        items={notVerified}
+        tone="unchecked"
+        icon={HelpCircle}
+        blurb="Unknown, not absent — no evidence either way."
+        emptyNote="Everything in scope reached a verdict."
+      />
+
+      <VerificationSection
+        label="Verified"
+        count={counts.verified}
+        items={verified}
+        tone="verified"
+        icon={ShieldCheck}
+        blurb="Checked against the delivered code, with the evidence."
+        emptyNote="Nothing was confirmed working in this run."
+      />
+
+      <p className="border-t border-border/40 px-3 py-1.5 text-[10px] text-muted-foreground">
+        Verified means we ran or re-checked it against the delivered code.
+        Could not verify means there is no evidence either way — it is not a
+        pass.
+      </p>
+    </div>
+  )
+}
+
 /** `3m 10s` / `45s` / `10m` — compact duration for the runtime meter. */
 function formatDuration(totalSeconds: number): string {
   const s = Math.max(0, Math.round(totalSeconds))
@@ -846,6 +1222,35 @@ function formatTokens(n: number): string {
   }
   const mm = n / 1_000_000
   return `${mm < 10 ? mm.toFixed(2).replace(/\.?0+$/, "") : Math.round(mm)}M`
+}
+
+/**
+ * What the run cost, as a clearly-labelled estimate: token counts times a static
+ * price table, so an approximation rather than an invoice.
+ *
+ * Exactly $0 is meaningful rather than missing — the keyless free tier and
+ * self-hosted models are priced at zero deliberately (_is_free_local_model in
+ * llm_client.py), so "no cost" is the true answer, not an absent measurement.
+ */
+function renderRunCost(costUsd?: number) {
+  if (typeof costUsd !== "number" || !Number.isFinite(costUsd)) return null
+  if (costUsd <= 0) {
+    return (
+      <div className="text-[10px] text-muted-foreground/80">
+        No cost — this run used the free tier.
+      </div>
+    )
+  }
+  // Sub-cent runs are common; two decimals would render them all as "$0.00".
+  const shown = costUsd < 0.01 ? costUsd.toFixed(4) : costUsd.toFixed(2)
+  return (
+    <div
+      className="text-[10px] text-muted-foreground/80"
+      title="Estimated from token counts at list prices. Approximate — not a bill."
+    >
+      ~<span className="font-mono">${shown}</span> estimated cost
+    </div>
+  )
 }
 
 /**
@@ -897,7 +1302,7 @@ function SpecDrivenCard({
    * then terminates the SSE stream with a CANCELLED event which the
    * run's existing error handling renders. Deliberately independent of
    * the chat's `isGenerating` flag (which auto-clears after 120s and on
-   * any incoming WS message — long before a smart-gen run finishes).
+   * any incoming WS message — long before a spec-driven run finishes).
    */
   onStop?: (runId: string) => void
   /**
@@ -908,9 +1313,8 @@ function SpecDrivenCard({
    */
   onPushToGithub?: (runId: string) => void
 }) {
-  // Note: costUsd/maxCost exist on the state (the hook still tracks them
-  // for the agent outcome report) but are deliberately NOT rendered —
-  // the estimate is too rough to show users as if it were a bill.
+  // costUsd is rendered in the finished-run summary only and explicitly marked
+  // as an estimate — see renderRunCost.
   const {
     runId,
     provider,
@@ -919,6 +1323,11 @@ function SpecDrivenCard({
     warnings,
     text,
     status,
+    incomplete,
+    incompleteReason,
+    blockerCount,
+    verification,
+    costUsd,
     elapsedSeconds,
     maxRuntime,
     fileName,
@@ -944,14 +1353,11 @@ function SpecDrivenCard({
   // before the first save and "Download again" afterwards.
   const [hasDownloaded, setHasDownloaded] = useState(false)
   // Completed runs collapse to a compact line, but the phase/tool-call timeline
-  // stays available behind a toggle — users asked to still see what the agent
-  // did ("the tool calling and etc") after the run finishes, not just while it
-  // is running.
+  // stays available behind a toggle so users can still see what the agent did.
   const [showSteps, setShowSteps] = useState(false)
-  // The "N% deterministic" badge is a disclosure: a hover-only tooltip wasn't
-  // discoverable (pilot feedback: "it's nice but it doesn't show"), so clicking
-  // the badge toggles an inline breakdown of the deterministic / AI-refined /
-  // AI-authored split plus the raw token count.
+  // The file-provenance badge is a disclosure (a hover-only tooltip wasn't
+  // discoverable): clicking it toggles an inline breakdown of the
+  // deterministic / AI-refined / AI-authored split plus the raw token count.
   const [showSplit, setShowSplit] = useState(false)
 
   const handleStop = () => {
@@ -989,9 +1395,9 @@ function SpecDrivenCard({
   // Download button saves the blob directly instead of re-fetching by run id.
   const handleDeterministicDownload = () => {
     if (!deterministicBlob) return
-    // Pilot telemetry: deterministic runs hold the artifact in-hand, so this
-    // click never reaches the shared fetch helper — record it here instead.
-    // Fire-and-forget, no-op outside pilot sessions.
+    // Opt-in research telemetry (no-op unless the tab was opened with
+    // `?pilot=<label>`). This click never reaches the shared fetch helper,
+    // so it is recorded here.
     emitDeliveryEvent("download", runId || undefined)
     try {
       downloadFile(deterministicBlob, fileName || "generated_code.zip", deterministicBlob.type || "application/zip")
@@ -1004,9 +1410,8 @@ function SpecDrivenCard({
 
   // The "generator wrote it, then the LLM refined it" middle bucket. The
   // backend done event doesn't always carry generator_llm_modified_pct, which
-  // left the breakdown showing e.g. 71% + 11% = 82% with a mystery 18% gap
-  // (pilot: "is this logical?"). Derive it as the remainder so the three shares
-  // ALWAYS reconcile to ~100, whether or not the middle percentage was sent.
+  // left an unexplained gap (e.g. 71% + 11% = 82%). Derive it as the remainder
+  // so the three shares always reconcile to ~100.
   const refinedPct =
     typeof modPct === "number"
       ? modPct
@@ -1026,16 +1431,50 @@ function SpecDrivenCard({
 
   // Completed run: collapse the big phased card to a SMALL inline line with a
   // compact download button (the process timeline is no longer useful once the
-  // app is ready). Warnings and the download-failed note stay visible.
+  // artifact is available). Warnings and the download-failed note stay visible.
   if (status === "done") {
     const isFirstSave = needsDownload === true && !hasDownloaded
+    const isIncomplete = incomplete === true || (blockerCount ?? 0) > 0 || (
+      // Older persisted cards only retained the INCOMPLETE warning.
+      incomplete === undefined && warnings.some((warning) =>
+        warning.code === "INCOMPLETE" && warning.severity !== "info"
+      )
+    )
+    // Rules the run CHECKED and found missing from the delivered code. This
+    // outranks every other status: a run can finish clean, report zero
+    // blockers and still ship an app that does not enforce what was asked
+    // for. Never let such a run render as "Application ready".
+    const unenforcedCount = verification?.counts.shippedUnenforced ?? 0
     return (
       <div className="w-full overflow-hidden rounded-lg border border-border/60 bg-muted/40 text-sm">
         <div className="flex flex-wrap items-center gap-x-2 gap-y-1 px-3 py-2 text-xs">
-          <Sparkles className="h-3.5 w-3.5 shrink-0 text-primary" />
+          {unenforcedCount > 0 ? (
+            <ShieldAlert className="h-3.5 w-3.5 shrink-0 text-red-600 dark:text-red-400" />
+          ) : isIncomplete ? (
+            <AlertTriangle className="h-3.5 w-3.5 shrink-0 text-amber-600" />
+          ) : (
+            <Sparkles className="h-3.5 w-3.5 shrink-0 text-primary" />
+          )}
           <span className="text-[13px] font-medium text-foreground">
-            {deterministic ? "Generated deterministically" : "Application ready"}
+            {unenforcedCount > 0
+              ? "Delivered — rules not enforced"
+              : isIncomplete
+                ? "Generated — incomplete"
+                : deterministic
+                  ? "Generated deterministically"
+                  : "Application ready"}
           </span>
+          {unenforcedCount > 0 ? (
+            <span className="text-[11px] font-semibold text-red-700 dark:text-red-400">
+              · {unenforcedCount} rule{unenforcedCount === 1 ? "" : "s"} not
+              enforced
+            </span>
+          ) : null}
+          {isIncomplete && (blockerCount ?? 0) > 0 ? (
+            <span className="text-[11px] text-amber-700 dark:text-amber-400">
+              · {blockerCount} unresolved blocker{blockerCount === 1 ? "" : "s"}
+            </span>
+          ) : null}
           {generatorUsed ? (
             <span className="font-mono text-[11px] text-muted-foreground">
               · {generatorUsed}
@@ -1046,15 +1485,19 @@ function SpecDrivenCard({
               · {fileCount} file{fileCount === 1 ? "" : "s"}
             </span>
           ) : null}
-          {!deterministic && typeof detPct === "number" && detPct > 0 ? (
+          {!deterministic && (
+            (typeof detPct === "number" && detPct > 0) || tokenUsage
+          ) ? (
             <button
               type="button"
               onClick={() => setShowSplit((v) => !v)}
               aria-expanded={showSplit}
               className="inline-flex items-center gap-1 rounded-full border border-primary/30 bg-primary/10 px-2 py-0.5 font-mono text-[10px] font-medium text-primary hover:bg-primary/20"
-              title="Click for the deterministic / AI breakdown"
+              title="File provenance for this run, not requirements coverage or correctness. Click for details."
             >
-              {detPct}% deterministic
+              {typeof detPct === "number" && detPct > 0
+                ? `${detPct}% files unchanged from scaffold`
+                : "file & token breakdown"}
               <ChevronRight
                 className={`h-3 w-3 transition-transform ${showSplit ? "rotate-90" : ""}`}
               />
@@ -1066,6 +1509,17 @@ function SpecDrivenCard({
               title="Built by BESSER's deterministic generator — no LLM, no tokens, exact output."
             >
               0 tokens
+            </span>
+          ) : tokenUsage ? (
+            // ACTIVE = fresh input + output, never the cumulative total: that
+            // re-counts context re-sent every turn and runs ~87% cache on the
+            // free tier, so it reads 5x the real work. Cached context is in the
+            // breakdown, one click away.
+            <span
+              className="inline-flex items-center gap-1 rounded-full border border-border/60 bg-background/60 px-2 py-0.5 font-mono text-[10px] font-medium text-muted-foreground"
+              title="Fresh input + output — the tokens this run actually paid for. Re-sent context is counted separately in the breakdown."
+            >
+              {formatTokens(tokenUsage.input + tokenUsage.output)} tokens
             </span>
           ) : null}
           {phases.length > 0 ? (
@@ -1134,11 +1588,19 @@ function SpecDrivenCard({
             ) : null}
           </span>
         </div>
+        {/* What the app actually enforces. Absent on older / interrupted
+            runs — the compact summary above then stands on its own. */}
+        {verification ? (
+          <SpecDrivenVerificationPanel verification={verification} />
+        ) : null}
 
-        {/* Deterministic / AI breakdown — revealed by clicking the
-            "N% deterministic" badge. Makes the efficiency story legible and
-            shows that the three buckets reconcile (the header message only
-            states the deterministic share). */}
+        {isIncomplete && incompleteReason && !warnings.some((warning) => warning.code === "INCOMPLETE") ? (
+          <p className="border-t border-border/40 px-3 py-2 text-xs text-amber-700 dark:text-amber-400">
+            {incompleteReason}
+          </p>
+        ) : null}
+
+        {/* File-count provenance for this run, not a readiness/coverage score. */}
         {showSplit && !deterministic && typeof detPct === "number" ? (
           <div className="border-t border-border/40 bg-background/40 px-3 py-2 text-[11px] text-muted-foreground">
             <div className="mb-1 font-medium text-foreground">
@@ -1147,21 +1609,24 @@ function SpecDrivenCard({
             <ul className="flex flex-col gap-0.5">
               <li>
                 <span className="font-mono text-primary">{detPct}%</span>{" "}
-                generated deterministically by BESSER — <strong>0 LLM tokens</strong>, exact output.
+                scaffold files not edited in this run.
               </li>
               {typeof refinedPct === "number" && refinedPct > 0 ? (
                 <li>
                   <span className="font-mono">{refinedPct}%</span> generated by
-                  BESSER, then refined by the LLM.
+                  BESSER, then edited in this run.
                 </li>
               ) : null}
               {typeof aiPct === "number" && aiPct > 0 ? (
                 <li>
-                  <span className="font-mono">{aiPct}%</span> authored from
-                  scratch by the LLM.
+                  <span className="font-mono">{aiPct}%</span> additional files
+                  outside the scaffold (including harness-created files).
                 </li>
               ) : null}
             </ul>
+            <p className="mt-1 text-[10px]">
+              File counts, not requirements coverage or correctness. Earlier-run edits may be included in the scaffold.
+            </p>
             {/* Honest token accounting. Lead with ACTIVE = fresh input +
                 output (the real work / cost), show cached context as a
                 secondary throughput number, and never lead with the cumulative
@@ -1194,11 +1659,11 @@ function SpecDrivenCard({
                     )
                   </div>
                 ) : null}
+                {renderRunCost(costUsd)}
               </div>
             ) : (
               <div className="mt-1 text-[10px] italic text-muted-foreground/80">
-                The deterministic share cost no tokens; most of the LLM's token
-                count is re-read context, not new work.
+                File provenance does not measure token savings; unchanged files may still have been read by the agent.
               </div>
             )}
           </div>
@@ -1288,22 +1753,17 @@ function SpecDrivenCard({
         </div>
       )}
 
-      {/* Live activity strip — the honest "it's still alive" signal during a
-          long, quiet phase (pilot: a healthy 10-min run *looked* frozen because
-          only the footer clock moved and the phase spinner spins even when the
-          stream is dead). The elapsed time here is driven by the backend's ~2s
-          cost heartbeat, so it KEEPS TICKING while the run is genuinely alive
-          and FREEZES if the transport dies (the stall watchdog then surfaces an
-          error) — unlike a CSS spinner, it can't lie. */}
+      {/* Live activity strip — the "it's still alive" signal during a long,
+          quiet phase (the phase spinner spins even when the stream is dead,
+          so it cannot tell a healthy run from a frozen one). The clock is NOT
+          repeated here: the footer's runtime meter is the single timer, and it
+          is driven by the backend's ~2s cost heartbeat, so it KEEPS TICKING
+          while the run is genuinely alive and FREEZES if the transport dies
+          (the stall watchdog then surfaces an error). */}
       {status === "running" ? (
         <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 border-t border-border/40 bg-background/40 px-3 py-2 text-xs">
           <Loader2 className="h-3.5 w-3.5 shrink-0 animate-spin text-primary" />
-          <span className="font-medium text-foreground">
-            Working
-            {typeof elapsedSeconds === "number"
-              ? ` — ${formatDuration(elapsedSeconds)} elapsed`
-              : "…"}
-          </span>
+          <span className="font-medium text-foreground">Working…</span>
           {typeof elapsedSeconds === "number" && elapsedSeconds >= 45 ? (
             <span className="text-[11px] text-muted-foreground">
               Big steps can take a few minutes — the timer keeps moving while

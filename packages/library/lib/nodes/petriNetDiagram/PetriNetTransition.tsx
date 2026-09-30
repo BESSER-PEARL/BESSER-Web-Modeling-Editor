@@ -1,7 +1,7 @@
 import { NodeProps, NodeResizer, type Node } from "@xyflow/react"
+import { usePopoverAnchor } from "@/hooks/usePopoverAnchor"
 import { DefaultNodeWrapper } from "@/nodes/wrappers"
 import { PetriNetTransitionSVG } from "@/components"
-import { useRef } from "react"
 import { DefaultNodeProps } from "@/types"
 import { PopoverManager } from "@/components/popovers/PopoverManager"
 import { useDiagramModifiable } from "@/hooks/useDiagramModifiable"
@@ -13,7 +13,7 @@ export function PetriNetTransition({
   height,
   data,
 }: NodeProps<Node<DefaultNodeProps>>) {
-  const svgWrapperRef = useRef<HTMLDivElement | null>(null)
+  const [svgWrapperEl, svgWrapperRef] = usePopoverAnchor<HTMLDivElement>()
 
   const isDiagramModifiable = useDiagramModifiable()
 
@@ -41,7 +41,7 @@ export function PetriNetTransition({
       </div>
 
       <PopoverManager
-        anchorEl={svgWrapperRef.current}
+        anchorEl={svgWrapperEl}
         elementId={id}
         type="default"
       />

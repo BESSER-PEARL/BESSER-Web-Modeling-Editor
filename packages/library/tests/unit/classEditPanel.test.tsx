@@ -356,10 +356,10 @@ describe("ClassEditPanel — flag locks (optional ↔ id)", () => {
         ],
       }),
     ])
-    expect(screen.getByRole("checkbox", { name: "optional" })).toBeDisabled()
-    expect(screen.getByRole("checkbox", { name: "id" })).toBeEnabled()
+    expect(screen.getByRole("checkbox", { name: "Optional" })).toBeDisabled()
+    expect(screen.getByRole("checkbox", { name: "ID" })).toBeEnabled()
     expect(
-      screen.getByRole("checkbox", { name: "external id" })
+      screen.getByRole("checkbox", { name: "External ID" })
     ).toBeEnabled()
   })
 
@@ -377,11 +377,11 @@ describe("ClassEditPanel — flag locks (optional ↔ id)", () => {
         ],
       }),
     ])
-    expect(screen.getByRole("checkbox", { name: "id" })).toBeDisabled()
+    expect(screen.getByRole("checkbox", { name: "ID" })).toBeDisabled()
     expect(
-      screen.getByRole("checkbox", { name: "external id" })
+      screen.getByRole("checkbox", { name: "External ID" })
     ).toBeDisabled()
-    expect(screen.getByRole("checkbox", { name: "optional" })).toBeEnabled()
+    expect(screen.getByRole("checkbox", { name: "Optional" })).toBeEnabled()
   })
 
   it("locks nothing when no conflicting flag is set", () => {
@@ -398,11 +398,11 @@ describe("ClassEditPanel — flag locks (optional ↔ id)", () => {
         ],
       }),
     ])
-    expect(screen.getByRole("checkbox", { name: "id" })).toBeEnabled()
+    expect(screen.getByRole("checkbox", { name: "ID" })).toBeEnabled()
     expect(
-      screen.getByRole("checkbox", { name: "external id" })
+      screen.getByRole("checkbox", { name: "External ID" })
     ).toBeEnabled()
-    expect(screen.getByRole("checkbox", { name: "optional" })).toBeEnabled()
+    expect(screen.getByRole("checkbox", { name: "Optional" })).toBeEnabled()
   })
 })
 
@@ -662,5 +662,46 @@ describe("ClassEditPanel — type-aware default-value widgets", () => {
     const attr = getAttr(store)
     expect(attr.attributeType).toBe("str")
     expect(attr.defaultValue).toBeUndefined()
+  })
+})
+
+describe("ClassEditPanel — method implemented by a neural network", () => {
+  const nnMethod = (neuralNetworkId = "") =>
+    classNode({
+      methods: [
+        {
+          id: "m1",
+          name: "predict",
+          visibility: "public",
+          attributeType: "any",
+          returnType: "any",
+          parameters: [],
+          implementationType: "neural_network" as const,
+          neuralNetworkId,
+        },
+      ],
+    })
+
+  it("lists the project's NN diagrams and stores the pick on neuralNetworkId", async () => {
+    const { diagramBridge } = await import("@/services/diagramBridge")
+    diagramBridge.setNeuralNetworkDiagrams([
+      { id: "nn-1", name: "Classifier" },
+      { id: "nn-2", name: "Regressor" },
+    ])
+    try {
+      const { store } = renderPanel([nnMethod()])
+      const select = screen.getByTestId("method-neural-network-select")
+      fireEvent.mouseDown(select.querySelector("[role=combobox]")!)
+      fireEvent.click(screen.getByRole("option", { name: "Regressor" }))
+      expect(getMethod(store).neuralNetworkId).toBe("nn-2")
+      expect(getMethod(store).implementationType).toBe("neural_network")
+    } finally {
+      diagramBridge.setNeuralNetworkDiagrams([])
+    }
+  })
+
+  it("says so when the project has no NN diagram", () => {
+    renderPanel([nnMethod()])
+    expect(screen.getByText("No neural networks available")).toBeInTheDocument()
   })
 })

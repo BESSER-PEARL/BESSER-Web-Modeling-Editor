@@ -6,8 +6,7 @@
  * Bug: `handleMessage` cleared typing on EVERY incoming frame. The agent
  * sends `progress` keep-alives (~2s, ~10s, ~30s into a ~45s class-diagram
  * generation), so the first one hid the loading indicator for the rest of
- * the run — the user reported "I didn't get a loading message" and a
- * seemingly idle socket. A `progress` frame must NOT clear typing; only a
+ * the run and the socket looked idle. A `progress` frame must NOT clear typing; only a
  * terminal reply (injection / message / error) does.
  */
 import { describe, expect, it } from 'vitest';

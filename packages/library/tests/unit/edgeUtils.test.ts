@@ -265,21 +265,21 @@ describe("getEdgeMarkerStyles", () => {
     expect(result.markerEnd).toBe("url(#black-arrow)")
   })
 
-  // Rhombus marker group — PC-3 fix (SA-FIX-Class): diamond marker is on
-  // the SOURCE end (whole side), not the target end. Tests updated to
-  // assert `markerStart` per v3 parity.
-  it("returns white-rhombus markerStart for ClassAggregation", () => {
+  // Rhombus marker group: the diamond sits on the TARGET end (the whole),
+  // as v3 drew it (`getMarkersForUMLAssociation`) and as the backend reads
+  // it (target end `is_composite`).
+  it("returns white-rhombus markerEnd for ClassAggregation", () => {
     const result = getEdgeMarkerStyles("ClassAggregation")
-    expect(result.markerStart).toBe("url(#white-rhombus)")
-    expect(result.markerEnd).toBeUndefined()
+    expect(result.markerEnd).toBe("url(#white-rhombus)")
+    expect(result.markerStart).toBeUndefined()
     expect(result.markerPadding).toBe(EDGES.MARKER_PADDING)
     expect(result.offset).toBe(0)
   })
 
-  it("returns black-rhombus markerStart for ClassComposition", () => {
+  it("returns black-rhombus markerEnd for ClassComposition", () => {
     const result = getEdgeMarkerStyles("ClassComposition")
-    expect(result.markerStart).toBe("url(#black-rhombus)")
-    expect(result.markerEnd).toBeUndefined()
+    expect(result.markerEnd).toBe("url(#black-rhombus)")
+    expect(result.markerStart).toBeUndefined()
     expect(result.markerPadding).toBe(EDGES.MARKER_PADDING)
     expect(result.offset).toBe(0)
   })
@@ -1190,12 +1190,12 @@ describe("resolveCommentEdgeType", () => {
 // getInitialEdgeData — default data scaffold for hand-drawn edges
 // ---------------------------------------------------------------------------
 describe("getInitialEdgeData", () => {
-  it("scaffolds a predefined when_intent_matched transition for AgentStateTransition", () => {
-    // v3 `agent-state-transition.ts` defaults: transitionType
-    // 'predefined', predefinedType 'when_intent_matched', empty intent.
+  it("scaffolds a predefined auto transition for AgentStateTransition", () => {
+    // smart-gen `agent-state-transition.ts` NEW_TRANSITION_PREDEFINED_TYPE:
+    // a freshly drawn transition starts as 'auto'.
     expect(getInitialEdgeData("AgentStateTransition")).toEqual({
       transitionType: "predefined",
-      predefined: { predefinedType: "when_intent_matched", intentName: "" },
+      predefined: { predefinedType: "auto" },
       custom: { condition: [] },
       params: {},
     })
@@ -1218,7 +1218,7 @@ describe("getInitialEdgeData", () => {
   it("returns undefined for edge types without a scaffold", () => {
     expect(getInitialEdgeData("StateTransition")).toBeUndefined()
     expect(getInitialEdgeData("UserModelLink")).toBeUndefined()
-    expect(getInitialEdgeData("ClassBidirectional")).toBeUndefined()
+    expect(getInitialEdgeData("ClassInheritance")).toBeUndefined()
     // CommentLink carries no roles / multiplicities / labels — the wire
     // shape is plain `{id, source, target, handles?, data:{points?}}`.
     expect(getInitialEdgeData("CommentLink")).toBeUndefined()
@@ -1515,5 +1515,14 @@ describe("getConnectionLineType", () => {
 
   it.each(stepDiagrams)("returns Step for %s", (diagramType) => {
     expect(getConnectionLineType(diagramType)).toBe(ConnectionLineType.Step)
+  })
+
+  it("seeds explicit per-end navigability for new associations", () => {
+    for (const type of ["ClassBidirectional", "ClassComposition", "ClassAggregation"]) {
+      expect(getInitialEdgeData(type)).toEqual({
+        sourceNavigable: true,
+        targetNavigable: true,
+      })
+    }
   })
 })

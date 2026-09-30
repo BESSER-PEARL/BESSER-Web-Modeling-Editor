@@ -4,13 +4,15 @@
  *
  * Asserts (develop parity, `agent-state-diagram` package):
  *
- *  1. v3 → v4 migration maps `AgentLLM` elements to v4 nodes with the
- *     develop deserialize defaults applied (`agent-llm.ts`).
+ *  1. v3 → v4 migration moves `AgentLLM` / `AgentRagElement` elements into
+ *     the off-canvas v4 `components` map verbatim (smart-gen Components
+ *     page; bounds stripped, no canvas node).
  *  2. `llm_name` passes through on `AgentStateBody` rows (folded onto
  *     the parent's `bodies` / `fallbackBodies`) and on
  *     `AgentRagElement`.
- *  3. v4 → v3 inverse emits the develop serialize() wire form for
- *     `AgentLLM` and re-emits `llm_name` on body rows / RAG elements.
+ *  3. v4 → v3 inverse re-emits `components` verbatim, emits the develop
+ *     serialize() wire form for legacy `AgentLLM` nodes and re-emits
+ *     `llm_name` on body rows.
  *  4. v3 → v4 → v3 keeps every multi-LLM field intact.
  *  5. `normalizeV4Model` seeds AgentLLM deserialize defaults on partial
  *     v4 nodes — with a fresh `parameters` object per node.
@@ -23,7 +25,6 @@ import {
 } from "@/utils/versionConverter"
 import type {
   AgentLLMNodeProps,
-  AgentRagElementNodeProps,
   AgentStateNodeProps,
   UMLModel,
 } from "@/types"
@@ -116,45 +117,44 @@ const multiLlmV3 = {
 describe("AgentDiagram multi-LLM v3 → v4", () => {
   const v4 = migrateAgentDiagramV3ToV4(multiLlmV3)
 
-  it("migrates AgentLLM elements with every develop field", () => {
-    const llm = v4.nodes.find((n) => n.id === "llm-1")!
+  it("moves AgentLLM elements into components with every develop field", () => {
+    expect(v4.nodes.find((n) => n.id === "llm-1")).toBeUndefined()
+    const llm = v4.components?.["llm-1"]
     expect(llm).toBeDefined()
-    expect(llm.type).toBe("AgentLLM")
-    const data = llm.data as AgentLLMNodeProps
-    expect(data.name).toBe("fast")
-    expect(data.provider).toBe("openai")
-    expect(data.parameters).toEqual({ model: "gpt-4o-mini", temperature: 0.2 })
-    expect(data.num_previous_messages).toBe(3)
-    expect(data.global_context).toBe("Be terse.")
+    expect(llm!.type).toBe("AgentLLM")
+    expect(llm!.name).toBe("fast")
+    expect(llm!.provider).toBe("openai")
+    expect(llm!.parameters).toEqual({ model: "gpt-4o-mini", temperature: 0.2 })
+    expect(llm!.num_previous_messages).toBe(3)
+    expect(llm!.global_context).toBe("Be terse.")
+    expect(llm!.bounds).toBeUndefined()
   })
 
-  it("applies develop deserialize defaults when v3 fields are absent", () => {
-    const partial = {
+  it("keeps a new-provider LLM component verbatim (no provider coercion)", () => {
+    const withNewProvider = {
       version: "3.0.0",
       type: "AgentDiagram",
       size: { width: 100, height: 100 },
       interactive: { elements: {}, relationships: {} },
-      elements: {
+      elements: {},
+      components: {
         "llm-x": {
           id: "llm-x",
-          name: "bare",
+          name: "local",
           type: "AgentLLM",
           owner: null,
-          bounds: bounds(0, 0, 0, 0),
+          provider: "ollama",
+          parameters: { model: "llama3" },
         },
       },
       relationships: {},
       assessments: {},
     } as never
-    const out = migrateAgentDiagramV3ToV4(partial)
-    const data = out.nodes.find((n) => n.id === "llm-x")!
-      .data as AgentLLMNodeProps
-    expect(data.provider).toBe("openai")
-    expect(data.parameters).toEqual({})
-    expect(data.num_previous_messages).toBe(1)
-    expect(data.global_context).toBe("")
+    const out = migrateAgentDiagramV3ToV4(withNewProvider)
+    expect(out.nodes).toHaveLength(0)
+    expect(out.components?.["llm-x"]?.provider).toBe("ollama")
+    expect(out.components?.["llm-x"]?.parameters).toEqual({ model: "llama3" })
   })
-
   it("folds llm_name onto the AgentState body / fallback rows", () => {
     const state = v4.nodes.find((n) => n.id === "state-1")!
     const data = state.data as AgentStateNodeProps
@@ -162,10 +162,8 @@ describe("AgentDiagram multi-LLM v3 → v4", () => {
     expect(data.fallbackBodies?.[0]?.llm_name).toBe("big")
   })
 
-  it("passes llm_name through on AgentRagElement", () => {
-    const rag = v4.nodes.find((n) => n.id === "rag-1")!
-    const data = rag.data as AgentRagElementNodeProps
-    expect(data.llm_name).toBe("big")
+  it("passes llm_name through on the AgentRagElement component", () => {
+    expect(v4.components?.["rag-1"]?.llm_name).toBe("big")
   })
 })
 
@@ -175,15 +173,18 @@ describe("AgentDiagram multi-LLM v4 → v3 inverse", () => {
   const v4 = migrateAgentDiagramV3ToV4(multiLlmV3)
   const v3 = convertV4ToV3Agent(v4)
 
-  it("re-emits AgentLLM elements on the v3 wire form", () => {
-    const llm = v3.elements["llm-1"] as Record<string, unknown>
+  it("re-emits the components map on the v3 wire form", () => {
+    const components = (v3 as { components?: Record<string, Record<string, unknown>> })
+      .components
+    const llm = components?.["llm-1"]
     expect(llm).toBeDefined()
-    expect(llm.type).toBe("AgentLLM")
-    expect(llm.name).toBe("fast")
-    expect(llm.provider).toBe("openai")
-    expect(llm.parameters).toEqual({ model: "gpt-4o-mini", temperature: 0.2 })
-    expect(llm.num_previous_messages).toBe(3)
-    expect(llm.global_context).toBe("Be terse.")
+    expect(llm!.type).toBe("AgentLLM")
+    expect(llm!.name).toBe("fast")
+    expect(llm!.provider).toBe("openai")
+    expect(llm!.parameters).toEqual({ model: "gpt-4o-mini", temperature: 0.2 })
+    expect(llm!.num_previous_messages).toBe(3)
+    expect(llm!.global_context).toBe("Be terse.")
+    expect(v3.elements["llm-1"]).toBeUndefined()
   })
 
   it("applies serialize defaults for partial AgentLLM v4 nodes", () => {
@@ -219,12 +220,14 @@ describe("AgentDiagram multi-LLM v4 → v3 inverse", () => {
     expect(body.llm_name).toBe("fast")
     const fb = v3.elements["fb-1"] as Record<string, unknown>
     expect(fb.llm_name).toBe("big")
-    const rag = v3.elements["rag-1"] as Record<string, unknown>
-    expect(rag.llm_name).toBe("big")
+    const rag = (v3 as { components?: Record<string, Record<string, unknown>> })
+      .components?.["rag-1"]
+    expect(rag?.llm_name).toBe("big")
   })
 
   it("v3 → v4 → v3 keeps the multi-LLM fields intact", () => {
-    const llm2 = v3.elements["llm-2"] as Record<string, unknown>
+    const llm2 = (v3 as { components?: Record<string, Record<string, unknown>> })
+      .components?.["llm-2"] as Record<string, unknown>
     expect(llm2.provider).toBe("replicate")
     expect(llm2.parameters).toEqual({})
     expect(llm2.num_previous_messages).toBe(1)

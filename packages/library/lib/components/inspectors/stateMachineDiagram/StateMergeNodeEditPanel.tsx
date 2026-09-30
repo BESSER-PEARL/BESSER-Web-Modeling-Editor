@@ -13,7 +13,8 @@ import { StateMarkerNodeProps } from "@/types"
 import { DividerLine, NodeStyleEditor, Typography } from "@/components/ui"
 import { DeleteIcon } from "@/components/Icon"
 import { PopoverProps } from "@/components/popovers/types"
-import { InspectorSectionHeader } from "../_shared"
+import { useTranslation } from "@/i18n"
+import { InspectorSectionHeader, NodeSizeFields } from "../_shared"
 
 /**
  * Inline decisions editor for `StateMergeNode`.
@@ -48,6 +49,7 @@ export const StateMergeNodeEditPanel: React.FC<PopoverProps> = ({
       setEdges: state.setEdges,
     }))
   )
+  const { t } = useTranslation()
   const node = nodes.find((n) => n.id === elementId)
   if (!node) return null
 
@@ -108,16 +110,21 @@ export const StateMergeNodeEditPanel: React.FC<PopoverProps> = ({
         size="small"
         variant="outlined"
         fullWidth
-        label="label"
+        label={t("common.label", "Label")}
         value={data.name ?? ""}
         onChange={(e) => update({ name: e.target.value })}
       />
 
+      {/* v3 parity: width / height inputs (uml-state-merge-node-update). */}
+      <NodeSizeFields elementId={elementId} />
+
       <DividerLine width="100%" />
-      <InspectorSectionHeader>decisions</InspectorSectionHeader>
+      <InspectorSectionHeader>
+        {t("popup.condition", "Conditions")}
+      </InspectorSectionHeader>
       {outgoingEdges.length === 0 && (
         <Typography variant="caption" sx={{ color: "var(--besser-gray, #888)" }}>
-          No outgoing transitions yet.
+          {t("popup.state.noOutgoingTransitions", "No outgoing transitions yet.")}
         </Typography>
       )}
       {outgoingEdges.map((edge) => {
@@ -135,7 +142,7 @@ export const StateMergeNodeEditPanel: React.FC<PopoverProps> = ({
               size="small"
               variant="outlined"
               fullWidth
-              placeholder="name"
+              placeholder={t("popup.name", "Name")}
               value={edgeName}
               onChange={(e) => updateEdge(edge.id, { name: e.target.value })}
             />
@@ -164,7 +171,11 @@ export const StateMergeNodeEditPanel: React.FC<PopoverProps> = ({
                 )
               })}
             </Select>
-            <IconButton size="small" onClick={() => removeEdge(edge.id)}>
+            <IconButton
+              size="small"
+              aria-label={t("common.delete", "Delete")}
+              onClick={() => removeEdge(edge.id)}
+            >
               <DeleteIcon width={14} height={14} />
             </IconButton>
           </Stack>

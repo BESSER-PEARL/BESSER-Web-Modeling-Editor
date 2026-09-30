@@ -1,6 +1,6 @@
 import { NodeProps, type Node } from "@xyflow/react"
+import { usePopoverAnchor } from "@/hooks/usePopoverAnchor"
 import { DefaultNodeWrapper, FOUR_WAY_HANDLES_PRESET } from "../wrappers"
-import { useRef } from "react"
 import { PopoverManager } from "@/components/popovers/PopoverManager"
 import { useDiagramModifiable } from "@/hooks/useDiagramModifiable"
 import { BPMNGatewayProps } from "@/types"
@@ -13,7 +13,7 @@ export function BPMNGateway({
   height = 40,
   data,
 }: NodeProps<Node<BPMNGatewayProps>>) {
-  const svgWrapperRef = useRef<HTMLDivElement | null>(null)
+  const [svgWrapperEl, svgWrapperRef] = usePopoverAnchor<HTMLDivElement>()
   const isDiagramModifiable = useDiagramModifiable()
 
   return (
@@ -35,7 +35,7 @@ export function BPMNGateway({
         />
       </div>
       <PopoverManager
-        anchorEl={svgWrapperRef.current}
+        anchorEl={svgWrapperEl}
         elementId={id}
         type="BPMNGateway"
       />

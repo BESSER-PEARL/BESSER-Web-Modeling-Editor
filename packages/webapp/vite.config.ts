@@ -52,6 +52,9 @@ export default defineConfig(({ mode }) => {
         { find: '@besser/wme', replacement: path.resolve(__dirname, '../library/lib/index.tsx') },
         { find: 'shared', replacement: path.resolve(__dirname, '../shared/src/index.ts') },
         { find: /^webapp\/(.*)/, replacement: path.resolve(__dirname, './$1') },
+        // Exact match required: string alias does prefix matching, which would
+        // also catch 'plotly.js-dist-min/plotly.min.js' inside the shim itself.
+        { find: /^plotly\.js-dist-min$/, replacement: path.resolve(__dirname, './src/plotly-compat.js') },
       ],
     },
     define: {

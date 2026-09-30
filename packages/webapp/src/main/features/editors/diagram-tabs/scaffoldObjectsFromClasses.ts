@@ -12,7 +12,7 @@
  * attribute's `defaultValue` when set, otherwise from {@link sampleByName}
  * based on the attribute's name and type.
  *
- * For every class-level association edge (`ClassBidirectional`,
+ * For every class-level association edge (`ClassBidirectional`, legacy
  * `ClassUnidirectional`, `ClassAggregation`, `ClassComposition`) the
  * helper creates a single `ObjectLink` edge between the generated objects
  * on each side. Inheritance, realization, and dependency edges are
@@ -25,7 +25,7 @@
  * doesn't wipe the user's work. Inheritance is honoured — child classes
  * inherit ancestor `data.attributes` rows (deduplicated by name).
  */
-import { UMLDiagramType, UMLModel } from '@besser/wme';
+import { NAVIGABLE_ASSOCIATION_TYPES, UMLDiagramType, UMLModel } from '@besser/wme';
 
 interface ScaffoldOptions {
   /** Source class-diagram model (v4 UMLModel). */
@@ -219,16 +219,14 @@ const OBJECT_NAME_HEADER_HEIGHT = 40;
 const ATTRIBUTE_HEIGHT = 25;
 const HORIZONTAL_GAP = 50;
 
-/** Class-level relationship types the helper turns into `ObjectLink`s.
- *  Inheritance / realization / dependency are intentionally excluded —
- *  those describe static structure, not object-level relations.
+/**
+ * Class-level relationship types the helper turns into `ObjectLink`s.
+ * Inheritance / realization / dependency are intentionally excluded —
+ * those describe static structure, not object-level relations. Navigability
+ * is irrelevant here: an object link exists regardless of which ends are
+ * navigable.
  */
-const ASSOCIATION_TYPES = new Set([
-  'ClassBidirectional',
-  'ClassUnidirectional',
-  'ClassAggregation',
-  'ClassComposition',
-]);
+const ASSOCIATION_TYPES = new Set<string>(NAVIGABLE_ASSOCIATION_TYPES);
 
 export interface ScaffoldResult {
   model: UMLModel;

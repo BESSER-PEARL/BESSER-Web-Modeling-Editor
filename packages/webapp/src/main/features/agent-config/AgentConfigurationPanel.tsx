@@ -6,6 +6,7 @@ import {
   UMLModel,
   diagramBridge,
   AGENT_LLM_PROVIDERS,
+  AgentComponentType,
   canonicalizeAgentLLMProvider,
 } from '@besser/wme';
 import type { AgentLLMProviderType, BesserNode } from '@besser/wme';
@@ -53,13 +54,16 @@ import {
   upsertVariantForProfile,
 } from '../../shared/services/agent-variants/agent-variants-service';
 import {
-  createAgentLLMNode,
+  applyAgentLLMComponentPatch,
+  createAgentLLMComponent,
   formatAgentLLMParameters,
+  isAgentLLMComponent,
   isAgentLLMNode,
+  remapComponentLlmReferences,
   remapLlmReferences,
   resolveDefaultLlm as resolveDefaultLlmForModel,
 } from './agentLlmUtils';
-import { AgentConfigYamlEditor } from './AgentConfigYamlEditor';
+import { AgentRuntimePanel } from './AgentRuntimePanel';
 
 type AgentTransformationConfig = Partial<AgentConfigurationPayload> & { userProfileModel?: UMLModel };
 
@@ -372,9 +376,10 @@ export type AgentLLMElementProvider = AgentLLMProviderType;
 
 /**
  * Flat UI view of an `AgentLLM` definition — the shape the LLMs card edits.
- * Definitions live as data-only `AgentLLM` nodes in the canonical v4
- * `model.nodes` array (develop stored them in the v3 `model.elements`
- * table; same behavior, new shape).
+ * Definitions live as off-canvas `AgentLLM` components in the v4
+ * `model.components` map (shared with the agent Components page; develop
+ * stored them in the v3 `model.elements` table). Legacy data-only
+ * `AgentLLM` canvas nodes are still listed and edited in place.
  */
 export type AgentLLMElement = {
   id: string;
@@ -450,10 +455,25 @@ export const normalizeAgentLLMElement = (raw: any, fallbackId: string): AgentLLM
   };
 };
 
-/** All registered LLM definitions in the model, in node order. */
-const listAgentLLMElements = (model: Pick<UMLModel, 'nodes'> | null | undefined): AgentLLMElement[] => {
-  if (!model || !Array.isArray(model.nodes)) return [];
-  return model.nodes.filter(isAgentLLMNode).map((node) => normalizeAgentLLMElement(node, node.id));
+/**
+ * All registered LLM definitions of the model: the off-canvas `AgentLLM`
+ * components (v4 `model.components`, edited on the agent Components page),
+ * then any legacy data-only `AgentLLM` canvas nodes not yet migrated.
+ */
+const listAgentLLMElements = (
+  model: Pick<UMLModel, 'nodes' | 'components'> | null | undefined,
+): AgentLLMElement[] => {
+  if (!model) return [];
+  const fromComponents = Object.values(model.components ?? {})
+    .filter((component) => component?.type === AgentComponentType.AgentLLM)
+    .map((component) => normalizeAgentLLMElement(component, component.id));
+  const seen = new Set(fromComponents.map((llm) => llm.id));
+  const fromNodes = Array.isArray(model.nodes)
+    ? model.nodes
+        .filter((node) => isAgentLLMNode(node) && !seen.has(node.id))
+        .map((node) => normalizeAgentLLMElement(node, node.id))
+    : [];
+  return [...fromComponents, ...fromNodes];
 };
 
 /** Merge an LLMs-card patch into the node's `data` (id/type pinned). */
@@ -466,6 +486,103 @@ const applyAgentLLMElementPatch = (node: BesserNode, patch: Partial<AgentLLMElem
     type: 'AgentLLM' as BesserNode['type'],
     data: { ...(node.data ?? {}), ...dataPatch },
   };
+};
+
+/**
+ * Locate an LLM definition by id: an `AgentLLM` component first (the v4
+ * home), then a legacy data-only canvas node.
+ */
+export const findAgentLLMEntry = (
+  model: Pick<UMLModel, 'nodes' | 'components'> | null | undefined,
+  id: string,
+): { where: 'component' | 'node'; element: AgentLLMElement } | null => {
+  if (!model) return null;
+  const component = model.components?.[id];
+  if (isAgentLLMComponent(component)) {
+    return { where: 'component', element: normalizeAgentLLMElement(component, id) };
+  }
+  const node = (model.nodes ?? []).find((n) => n.id === id);
+  if (node && isAgentLLMNode(node)) {
+    return { where: 'node', element: normalizeAgentLLMElement(node, id) };
+  }
+  return null;
+};
+
+/** Rewrite `llm_name` references on canvas nodes and off-canvas components. */
+const remapAllLlmReferences = (model: UMLModel, fromName: string, toName: string): void => {
+  remapLlmReferences(model.nodes, fromName, toName);
+  remapComponentLlmReferences(model.components, fromName, toName);
+};
+
+/**
+ * LLMs-card "Add": a new off-canvas `AgentLLM` component in
+ * `model.components` — exactly what the agent Components page writes, never
+ * a canvas node. Pure: returns a new model.
+ */
+export const addAgentLLMToModel = (model: UMLModel): { nextModel: UMLModel; id: string } => {
+  const nextModel = cloneModel(model);
+  const component = createAgentLLMComponent();
+  nextModel.components = { ...(nextModel.components ?? {}), [component.id]: component };
+  return { nextModel, id: component.id };
+};
+
+/**
+ * LLMs-card edit: patch the LLM wherever it lives (component, else legacy
+ * canvas node) and, on a rename, rewrite every `llm_name` reference.
+ * Returns null when `id` is not a registered LLM. Pure.
+ */
+export const updateAgentLLMInModel = (
+  model: UMLModel,
+  id: string,
+  patch: Partial<AgentLLMElement>,
+): { nextModel: UMLModel; previousName: string; newName: string; isRename: boolean } | null => {
+  const entry = findAgentLLMEntry(model, id);
+  if (!entry) return null;
+  const previousName = entry.element.name;
+  const nextModel = cloneModel(model);
+  if (entry.where === 'component' && nextModel.components?.[id]) {
+    nextModel.components = {
+      ...nextModel.components,
+      [id]: applyAgentLLMComponentPatch(nextModel.components[id], patch),
+    };
+  } else {
+    nextModel.nodes = (nextModel.nodes ?? []).map((n) =>
+      n.id === id ? applyAgentLLMElementPatch(n, patch) : n,
+    );
+  }
+  const isRename = typeof patch.name === 'string' && patch.name !== previousName;
+  const newName = isRename ? (patch.name as string) : previousName;
+  if (isRename && previousName) {
+    remapAllLlmReferences(nextModel, previousName, newName);
+  }
+  return { nextModel, previousName, newName, isRename };
+};
+
+/**
+ * LLMs-card remove: drop the LLM (component, else legacy canvas node) and
+ * reset references to it to "(use default)". Returns null when `id` is not
+ * a registered LLM. Pure.
+ */
+export const removeAgentLLMFromModel = (
+  model: UMLModel,
+  id: string,
+): { nextModel: UMLModel; removedName: string } | null => {
+  const entry = findAgentLLMEntry(model, id);
+  if (!entry) return null;
+  const removedName = entry.element.name;
+  const nextModel = cloneModel(model);
+  if (entry.where === 'component') {
+    const nextComponents = { ...(nextModel.components ?? {}) };
+    delete nextComponents[id];
+    nextModel.components = nextComponents;
+  } else {
+    nextModel.nodes = (nextModel.nodes ?? []).filter((n) => n.id !== id);
+  }
+  if (removedName) {
+    // Empty llm_name means "use default".
+    remapAllLlmReferences(nextModel, removedName, '');
+  }
+  return { nextModel, removedName };
 };
 
 const toMappingMatchedRules = (raw: unknown): MappingMatchedRule[] => {
@@ -1070,8 +1187,8 @@ export const AgentConfigurationPanel: React.FC = () => {
     return null;
   }, [currentUserDiagram?.model]);
 
-  // Registered AgentLLM definitions — data-only `AgentLLM` nodes in the
-  // canonical v4 `model.nodes` array.
+  // Registered AgentLLM definitions — `AgentLLM` components (v4
+  // `model.components`), plus legacy canvas nodes.
   const agentLLMElements = useMemo<AgentLLMElement[]>(
     () => listAgentLLMElements(currentAgentModel),
     [currentAgentModel],
@@ -1095,11 +1212,8 @@ export const AgentConfigurationPanel: React.FC = () => {
       toast.error(t('agentConfig.toasts.noActiveDiagram'));
       return;
     }
-    const nextModel = cloneModel(currentAgentModel);
-    const existingCount = (nextModel.nodes ?? []).filter(isAgentLLMNode).length;
-    const newNode = createAgentLLMNode(existingCount);
-    nextModel.nodes = [...(nextModel.nodes ?? []), newNode];
-    setExpandedLlmId(newNode.id);
+    const { nextModel, id: newId } = addAgentLLMToModel(currentAgentModel);
+    setExpandedLlmId(newId);
     // Write `default_llm_name` to the diagram config BEFORE persisting the
     // model. updateDiagramModelThunk's body snapshots state.project at call
     // time and its fulfilled action replaces the diagram with that snapshot,
@@ -1115,18 +1229,9 @@ export const AgentConfigurationPanel: React.FC = () => {
   const handleUpdateAgentLLM = useCallback(
     (id: string, patch: Partial<AgentLLMElement>) => {
       if (!currentAgentModel) return;
-      const existing = (currentAgentModel.nodes ?? []).find((n) => n.id === id);
-      if (!existing || !isAgentLLMNode(existing)) return;
-      const previousName = normalizeAgentLLMElement(existing, id).name;
-      const nextModel = cloneModel(currentAgentModel);
-      nextModel.nodes = (nextModel.nodes ?? []).map((n) =>
-        n.id === id ? applyAgentLLMElementPatch(n, patch) : n,
-      );
-      const isRename = typeof patch.name === 'string' && patch.name !== previousName;
-      const newName = isRename ? (patch.name as string) : previousName;
-      if (isRename && previousName) {
-        remapLlmReferences(nextModel.nodes, previousName, newName);
-      }
+      const result = updateAgentLLMInModel(currentAgentModel, id, patch);
+      if (!result) return;
+      const { nextModel, previousName, newName, isRename } = result;
       const renamedDefault =
         isRename && defaultLlmName === previousName ? newName || undefined : defaultLlmName;
       const resolved = resolveDefaultLlm(nextModel, renamedDefault);
@@ -1152,15 +1257,9 @@ export const AgentConfigurationPanel: React.FC = () => {
   const handleRemoveAgentLLM = useCallback(
     (id: string) => {
       if (!currentAgentModel) return;
-      const removedEntry = (currentAgentModel.nodes ?? []).find((n) => n.id === id);
-      const removedName =
-        removedEntry && isAgentLLMNode(removedEntry) ? normalizeAgentLLMElement(removedEntry, id).name : '';
-      const nextModel = cloneModel(currentAgentModel);
-      nextModel.nodes = (nextModel.nodes ?? []).filter((n) => n.id !== id);
-      if (removedName) {
-        // Empty llm_name means "use default".
-        remapLlmReferences(nextModel.nodes, removedName, '');
-      }
+      const result = removeAgentLLMFromModel(currentAgentModel, id);
+      if (!result) return;
+      const { nextModel, removedName } = result;
       setExpandedLlmId((prev) => (prev === id ? null : prev));
       const resolved = resolveDefaultLlm(nextModel, defaultLlmName);
       if (resolved !== defaultLlmName) {
@@ -1185,9 +1284,9 @@ export const AgentConfigurationPanel: React.FC = () => {
   const handleSetDefaultLlm = useCallback(
     (id: string) => {
       if (!currentAgentModel) return;
-      const target = (currentAgentModel.nodes ?? []).find((n) => n.id === id);
-      if (!target || !isAgentLLMNode(target)) return;
-      const name = normalizeAgentLLMElement(target, id).name;
+      const entry = findAgentLLMEntry(currentAgentModel, id);
+      if (!entry) return;
+      const name = entry.element.name;
       if (!name) {
         toast.error(t('agentConfig.toasts.nameBeforeDefault'));
         return;
@@ -2059,7 +2158,7 @@ export const AgentConfigurationPanel: React.FC = () => {
   const showVoiceControls = outputModalities.includes('speech');
 
   return (
-    <div className="relative h-full overflow-auto px-4 py-6 sm:px-8">
+    <div className="relative flex h-full flex-col overflow-hidden">
       {isLoading && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 px-4">
           <div className="w-full max-w-xl rounded-2xl border border-border bg-card p-6 text-center shadow-2xl">
@@ -2070,7 +2169,8 @@ export const AgentConfigurationPanel: React.FC = () => {
         </div>
       )}
 
-      <div className="mx-auto flex max-w-6xl flex-col gap-6">
+      <div className="shrink-0 border-b border-border/50 px-4 pt-6 pb-4 sm:px-8">
+      <div className="mx-auto max-w-6xl space-y-4">
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-foreground">{t('agentConfig.title')}</h1>
           <p className="mt-1 text-sm text-muted-foreground">
@@ -2150,7 +2250,24 @@ export const AgentConfigurationPanel: React.FC = () => {
             </Button>
           </div>
         )}
+      </div>
+      </div>
 
+      {activeTab === 'runtime' && !currentAgentModel && (
+        <div className="flex flex-1 items-center justify-center text-sm text-muted-foreground">
+          {t('agentConfig.noActiveDiagram')}
+        </div>
+      )}
+      {activeTab === 'runtime' && currentAgentModel && (
+        <AgentRuntimePanel
+          currentProject={currentProject}
+          agentRuntimeConfig={agentRuntimeConfig}
+          updateAgentRuntimeConfig={updateAgentRuntimeConfig}
+          agentLLMElements={agentLLMElements}
+        />
+      )}
+      <div className={activeTab === 'personalization' ? 'flex-1 overflow-auto px-4 pb-6 pt-6 sm:px-8' : 'hidden'}>
+      <div className="mx-auto max-w-6xl">
         <form
           onSubmit={(event) => event.preventDefault()}
           className="flex flex-col gap-6"
@@ -2245,148 +2362,6 @@ export const AgentConfigurationPanel: React.FC = () => {
             </CardContent>
           </Card>
 
-          )}
-
-          {activeTab === 'runtime' && currentAgentModel && (
-          <>
-          <Card>
-            <CardHeader>
-              <CardTitle>{t('agentConfig.runtime.title')}</CardTitle>
-              <CardDescription>
-                {t('agentConfig.runtime.description')}
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid gap-4 md:grid-cols-2">
-                <div className="space-y-1.5">
-                  <Label htmlFor="agent-runtime-platform">{t('agentConfig.runtime.platform')}</Label>
-                  <select
-                    id="agent-runtime-platform"
-                    className="h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm transition-colors hover:border-brand/30 focus:border-brand/40 focus:outline-none focus:ring-2 focus:ring-brand/20"
-                    value={agentRuntimeConfig.agentPlatform}
-                    onChange={(event) => updateAgentRuntimeConfig({
-                      agentPlatform: event.target.value,
-                      agentPlatformUseStreamlit: event.target.value !== 'websocket' ? false : agentRuntimeConfig.agentPlatformUseStreamlit,
-                    })}
-                  >
-                    <option value="websocket">{t('agentConfig.runtime.platformWebSocket')}</option>
-                    <option value="telegram">{t('agentConfig.runtime.platformTelegram')}</option>
-                  </select>
-                  {agentRuntimeConfig.agentPlatform === 'websocket' && (
-                    <label className="flex items-center gap-2 text-sm cursor-pointer pt-1">
-                      <input
-                        type="checkbox"
-                        checked={agentRuntimeConfig.agentPlatformUseStreamlit ?? false}
-                        onChange={(e) => updateAgentRuntimeConfig({ agentPlatformUseStreamlit: e.target.checked })}
-                      />
-                      {t('agentConfig.runtime.useStreamlitUi')}
-                    </label>
-                  )}
-                </div>
-
-                <div className="space-y-1.5">
-                  <Label htmlFor="agent-runtime-intent">{t('agentConfig.runtime.intent')}</Label>
-                  <select
-                    id="agent-runtime-intent"
-                    className="h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm transition-colors hover:border-brand/30 focus:border-brand/40 focus:outline-none focus:ring-2 focus:ring-brand/20"
-                    value={agentRuntimeConfig.intentRecognitionTechnology}
-                    onChange={(event) =>
-                      updateAgentRuntimeConfig({
-                        intentRecognitionTechnology: event.target.value as IntentRecognitionTechnology,
-                      })
-                    }
-                  >
-                    <option value="classical">{t('agentConfig.runtime.intentClassical')}</option>
-                    <option value="llm-based">{t('agentConfig.runtime.intentLlmBased')}</option>
-                  </select>
-                </div>
-
-                {agentRuntimeConfig.intentRecognitionTechnology === 'llm-based' && (
-                  <div className="space-y-1.5">
-                    <Label htmlFor="agent-runtime-llm-name">{t('agentConfig.runtime.llm')}</Label>
-                    <select
-                      id="agent-runtime-llm-name"
-                      className="h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm transition-colors hover:border-brand/30 focus:border-brand/40 focus:outline-none focus:ring-2 focus:ring-brand/20"
-                      value={agentRuntimeConfig.agentLlmName}
-                      onChange={(event) =>
-                        updateAgentRuntimeConfig({ agentLlmName: event.target.value })
-                      }
-                    >
-                      <option value="">{t('agentConfig.runtime.useDefault')}</option>
-                      {agentLLMElements.map((entry) => (
-                        <option key={entry.id} value={entry.name}>
-                          {entry.name || t('agentConfig.row.unnamedLlm')}
-                        </option>
-                      ))}
-                    </select>
-                    {agentLLMElements.length === 0 && (
-                      <p className="text-xs text-muted-foreground">
-                        {t('agentConfig.runtime.defineLlmHint')}
-                      </p>
-                    )}
-                  </div>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>{t('agentConfig.llms.title')}</CardTitle>
-              <CardDescription>
-                {t('agentConfig.llms.description')}
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              {agentLLMElements.length === 0 ? (
-                <p className="text-sm text-muted-foreground">
-                  {t('agentConfig.llms.empty')}
-                </p>
-              ) : (
-                <div className="space-y-2">
-                  {agentLLMElements.map((llm) => (
-                    <AgentLLMRow
-                      key={llm.id}
-                      element={llm}
-                      expanded={expandedLlmId === llm.id}
-                      isDefault={Boolean(defaultLlmName) && llm.name === defaultLlmName}
-                      onToggleExpanded={handleToggleExpandedLlm}
-                      onChange={handleUpdateAgentLLM}
-                      onRemove={handleRemoveAgentLLM}
-                      onSetDefault={handleSetDefaultLlm}
-                    />
-                  ))}
-                </div>
-              )}
-              <div>
-                <Button type="button" onClick={handleAddAgentLLM}>
-                  {t('agentConfig.llms.add')}
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>{t('agentConfig.yaml.title')}</CardTitle>
-              <CardDescription>
-                {t('agentConfig.yaml.description')}
-                {' '}
-                <a
-                  href="https://besser-agentic-framework.readthedocs.io/latest/wiki/configuration_properties.html"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-brand underline underline-offset-2 hover:text-brand/80"
-                >
-                  {t('agentConfig.yaml.linkText')}
-                </a>
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <AgentConfigYamlEditor currentProject={currentProject} />
-            </CardContent>
-          </Card>
-          </>
           )}
 
           {activeTab === 'personalization' && (
@@ -2935,6 +2910,7 @@ export const AgentConfigurationPanel: React.FC = () => {
           </>
           )}
         </form>
+      </div>
       </div>
     </div>
   );

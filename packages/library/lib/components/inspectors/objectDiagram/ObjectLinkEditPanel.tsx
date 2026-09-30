@@ -19,6 +19,7 @@ import {
   IAssociationInfo,
 } from "@/services/diagramBridge"
 import { ObjectNodeProps } from "@/types"
+import { useTranslation } from "@/i18n"
 
 /**
  * ObjectLinkEditPanel — single inspector body for the v4
@@ -38,6 +39,7 @@ import { ObjectNodeProps } from "@/types"
  *   - color editor (`strokeColor`, `textColor`).
  */
 export const ObjectLinkEditPanel: React.FC<PopoverProps> = ({ elementId }) => {
+  const { t } = useTranslation()
   const { edges, nodes, setEdges } = useDiagramStore(
     useShallow((state) => ({
       edges: state.edges,
@@ -147,9 +149,12 @@ export const ObjectLinkEditPanel: React.FC<PopoverProps> = ({ elementId }) => {
       <EdgeStyleEditor
         edgeData={data}
         handleDataFieldUpdate={handleStyleFieldUpdate}
-        label="Link"
+        label={t("popup.objectLink", "Object Link")}
         sideElements={[
-          <Tooltip key="flip" title="Flip source / target">
+          <Tooltip
+            key="flip"
+            title={t("common.flipSourceTarget", "Flip source / target")}
+          >
             <IconButton size="small" onClick={handleSwap}>
               <SwapHorizIcon />
             </IconButton>
@@ -163,7 +168,7 @@ export const ObjectLinkEditPanel: React.FC<PopoverProps> = ({ elementId }) => {
         size="small"
         variant="outlined"
         fullWidth
-        label="name"
+        label={t("popup.name", "Name")}
         value={data.name ?? ""}
         onChange={(e) => updateData({ name: e.target.value })}
       />
@@ -171,7 +176,7 @@ export const ObjectLinkEditPanel: React.FC<PopoverProps> = ({ elementId }) => {
       <Stack direction="row" alignItems="center" spacing={0.5}>
         {/* Caption col 80 → 70 for sibling consistency. */}
         <Typography variant="caption" sx={{ minWidth: 70 }}>
-          association
+          {t("popup.association", "Association")}
         </Typography>
         <Select
           size="small"
@@ -180,7 +185,9 @@ export const ObjectLinkEditPanel: React.FC<PopoverProps> = ({ elementId }) => {
           onChange={(e) => handleAssociationChange(String(e.target.value))}
           sx={{ flex: 1 }}
         >
-          <MenuItem value="">— Unlinked —</MenuItem>
+          <MenuItem value="">
+            {t("popup.noAssociation", "No Association")}
+          </MenuItem>
           {associations.map((a) => (
             <MenuItem key={a.id} value={a.id}>
               {displayNameFor(a)}
@@ -190,8 +197,10 @@ export const ObjectLinkEditPanel: React.FC<PopoverProps> = ({ elementId }) => {
       </Stack>
       {associations.length === 0 && (
         <Typography variant="caption" sx={{ color: "var(--besser-gray-700)" }}>
-          No associations available — link source / target objects to
-          classes first.
+          {t(
+            "popup.object.noAssociationsHint",
+            "No associations available — link source / target objects to classes first."
+          )}
         </Typography>
       )}
     </Box>

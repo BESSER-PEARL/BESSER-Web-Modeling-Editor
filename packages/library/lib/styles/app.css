@@ -191,7 +191,10 @@ html.dark,
   background-color: var(--besser-primary, #3e8acc);
   opacity: 0.4;
   box-sizing: border-box;
-  pointer-events: all;
+
+  /* Off by default; only grabbable while the node is hovered -- see the
+     hit-area note near the hover rules below. */
+  pointer-events: none;
   cursor: crosshair;
 }
 
@@ -245,24 +248,64 @@ html.dark,
   transition: opacity 120ms ease;
 }
 
+/* Hit-area fix (upstream Apollon #801, same idea as the #791 node-toolbar
+   fix). A node's resize controls and connection arcs PROTRUDE past its box,
+   and a selected node is lifted above its neighbours, so arming these
+   affordances just because the node is selected -- or, for the arcs, always,
+   even while invisible -- makes them swallow clicks meant for an overlapping
+   node beneath them. On a fine pointer they are armed on :hover instead --
+   every gesture that uses them starts by hovering -- so a selected-not-hovered
+   node lets clicks fall through. Touch has no :hover; see the coarse-pointer
+   fallback below. */
+.react-flow__node:hover .react-flow__resize-control {
+  pointer-events: all;
+}
+
 .react-flow__node:hover .react-flow__resize-control,
 .react-flow__node.selected .react-flow__resize-control {
   opacity: 1;
+}
+
+/* React Flow marks every connectable handle `.connectionindicator` and gives
+   it `pointer-events: all` unconditionally; override that so handles follow
+   the hover-gated model above. (Dropping a connection onto a target handle
+   still works: React Flow resolves the closest handle geometrically.) */
+.react-flow__handle.connectionindicator {
+  pointer-events: none;
+}
+
+.react-flow__node:hover .react-flow__handle,
+.react-flow__node:hover .react-flow__handle.connectionindicator,
+.react-flow__node:hover .react-flow__handle.besser-arc-handle::before {
   pointer-events: all;
 }
 
 .react-flow__node:hover .react-flow__handle {
   opacity: 1;
   background-color: transparent;
-  pointer-events: all;
   cursor: crosshair;
 }
 
 .react-flow__node.selected .react-flow__handle {
   opacity: 1;
   background-color: transparent;
-  pointer-events: all;
-  cursor: crosshair;
+}
+
+/* Coarse-pointer fallback for the hit-area fix above. Touch devices never
+   fire :hover, so the hover-gated rules would leave a selected node's
+   affordances ungrabbable -- you could not start a connection or resize with
+   a finger. Arm them on selection instead, matching the pre-fix behaviour. */
+@media (hover: none), (pointer: coarse) {
+  .react-flow__node.selected .react-flow__handle,
+  .react-flow__node.selected .react-flow__handle.connectionindicator,
+  .react-flow__node.selected .react-flow__resize-control,
+  .react-flow__node.selected .react-flow__handle.besser-arc-handle::before {
+    pointer-events: all;
+  }
+
+  .react-flow__node.selected .react-flow__handle {
+    cursor: crosshair;
+  }
 }
 
 .edge-circle {

@@ -37,8 +37,10 @@ import {
   writeLlmKey,
   type LlmProvider,
 } from '../../services/llmKeyStorage';
+import { isPilotSession } from '@/main/shared/services/telemetry/pilotTelemetry';
 import {
   defaultFreeModelId,
+  preferredFreeModelId,
   FALLBACK_SMART_GEN_CONFIG,
   freeModelLabel,
   getSpecDrivenConfig,
@@ -48,13 +50,15 @@ import { PIA_GATEWAY_BASE_URL } from '../../constants/constant';
 
 const DEFAULT_LOCAL_BASE_URL = 'http://localhost:11434/v1';
 
-// Static caps for the Spec-Driven run budget. The server ALSO enforces these
-// (LLM_MAX_COST_USD_HARD_CAP=$5 / runtime hard cap 900s), so this is UX only.
-const RUN_BUDGET = {
-  defaultCostUsd: 1,
+// Last-resort bounds for the Spec-Driven run budget, used ONLY until the
+// server's real caps arrive from GET /spec-driven/config (and if that call
+// fails). Not the source of truth: a stale hardcoded mirror silently becomes
+// the binding limit and kills runs the backend would allow.
+const RUN_BUDGET_FALLBACK = {
+  defaultCostUsd: 5,
   maxCostUsd: 5,
-  defaultRuntimeMin: 10,
-  maxRuntimeMin: 15,
+  defaultRuntimeMin: 20,
+  maxRuntimeMin: 40,
 } as const;
 
 /** Minimal shape of an agent client we can arm — avoids importing a feature. */
@@ -133,6 +137,15 @@ export const PROVIDER_OPTIONS: readonly ProviderOption[] = [
     expectedPrefix: '',
   },
   {
+    value: 'nebius',
+    label: 'Nebius Token Factory',
+    placeholder: 'Your Nebius Token Factory API key',
+    hint:
+      'Open-weight models on Nebius. Powers the Spec-Driven generator; the ' +
+      'modeling assistant keeps using its default model. No fixed key prefix.',
+    expectedPrefix: '',
+  },
+  {
     value: 'pia',
     label: 'PIA (LIST)',
     placeholder: 'sk-...',
@@ -181,9 +194,26 @@ function _needsBaseUrl(provider: LlmProvider): boolean {
 }
 
 /**
+ * Whether the modeling assistant can actually use a key for this provider.
+ * Mirrors the agent's own allowlist (modeling-agent `src/byok.py`
+ * SUPPORTED_PROVIDERS) plus the two gateway labels it accepts as 'openai'.
+ * A provider outside it is Spec-Driven-only.
+ */
+function _assistantSupportsProvider(provider: LlmProvider): boolean {
+  return (
+    provider === 'anthropic' ||
+    provider === 'openai' ||
+    provider === 'mistral' ||
+    provider === 'nebius' ||
+    provider === 'pia' ||
+    provider === 'local'
+  );
+}
+
+/**
  * pia/local only work when the WME BACKEND runs locally (it opens the URL, not
- * the browser), so they're offered only on a localhost deployment. On the
- * shared hosted editor (experimental / editor.besser-pearl.org) they're hidden.
+ * the browser), so they're offered only on a localhost deployment and hidden
+ * on a hosted deployment.
  */
 function _isLocalDeployment(): boolean {
   try {
@@ -207,9 +237,13 @@ export const DEFAULT_MODEL_VALUE = '';
 
 export const MODEL_PRESETS: Record<LlmProvider, readonly ModelPreset[]> = {
   anthropic: [
-    { value: 'claude-sonnet-4-6', label: 'Claude Sonnet 4.6 — balanced' },
-    { value: 'claude-opus-4-6', label: 'Claude Opus 4.6 — most capable' },
-    { value: 'claude-haiku-4-5-20251001', label: 'Claude Haiku 4.5 — fast & cheap' },
+    { value: 'claude-fable-5-1', label: 'Claude Fable 5.1 — most capable' },
+    { value: 'claude-opus-5-5', label: 'Claude Opus 5.5 — top tier, lower cost than Opus 5' },
+    { value: 'claude-opus-5', label: 'Claude Opus 5 — top tier' },
+    { value: 'claude-sonnet-5', label: 'Claude Sonnet 5 — balanced' },
+    { value: 'claude-sonnet-4-6', label: 'Claude Sonnet 4.6 — previous generation' },
+    { value: 'claude-opus-4-6', label: 'Claude Opus 4.6 — previous generation' },
+    { value: 'claude-haiku-4-5', label: 'Claude Haiku 4.5 — fast & cheap' },
     { value: CUSTOM_MODEL_VALUE, label: 'Custom model ID…' },
   ],
   // All of these work with the Spec-Driven Agent's tool-driven loop. The
@@ -219,7 +253,13 @@ export const MODEL_PRESETS: Record<LlmProvider, readonly ModelPreset[]> = {
   // with reasoning OFF here, the only way to use tools. Verified empirically
   // (probe_tools): gpt-5.5/5.4-mini/4o support tools natively; gpt-5.6-* need
   // the flag. gpt-5/gpt-4o REJECT the param, so it's applied ONLY to gpt-5.6-*.
+  // GPT-6 (astra/sol/luna) is newer; whether it needs the same flag is decided
+  // backend-side.
   openai: [
+    // gpt-6-astra is left out: it rejects function tools with reasoning off,
+    // which the Spec-Driven Agent needs.
+    { value: 'gpt-6-sol', label: 'GPT-6 Sol — balanced' },
+    { value: 'gpt-6-luna', label: 'GPT-6 Luna — fast & cheap' },
     { value: 'gpt-5.6-terra', label: 'GPT-5.6 Terra — balanced (recommended)' },
     { value: 'gpt-5.6-sol', label: 'GPT-5.6 Sol — most capable' },
     { value: 'gpt-5.6-luna', label: 'GPT-5.6 Luna — fast & cheap' },
@@ -231,6 +271,18 @@ export const MODEL_PRESETS: Record<LlmProvider, readonly ModelPreset[]> = {
   mistral: [
     { value: 'mistral-large-latest', label: 'Mistral Large — most capable' },
     { value: 'mistral-small-latest', label: 'Mistral Small — fast & cheap' },
+    { value: CUSTOM_MODEL_VALUE, label: 'Custom model ID…' },
+  ],
+  // Nebius Token Factory serves open-weight models under vendor-namespaced
+  // ids. Qwen3-30B-A3B-Instruct-2507 is a small-activation MoE with native
+  // OpenAI-style function calling, which the tool-driven customization loop
+  // requires. A Custom id is billed at the protective fallback rate unless it
+  // has its own row in llm_client._MODEL_PRICING.
+  nebius: [
+    {
+      value: 'Qwen/Qwen3-30B-A3B-Instruct-2507',
+      label: 'Qwen3 30B A3B Instruct — fast MoE (default)',
+    },
     { value: CUSTOM_MODEL_VALUE, label: 'Custom model ID…' },
   ],
   // PIA gateway serves both GPT and Claude model names.
@@ -258,18 +310,26 @@ export const MODEL_PRESETS: Record<LlmProvider, readonly ModelPreset[]> = {
 } as const;
 
 const CUSTOM_MODEL_PLACEHOLDER: Record<LlmProvider, string> = {
-  anthropic: 'e.g. claude-opus-4-6',
+  anthropic: 'e.g. claude-opus-4-8',
   openai: 'e.g. gpt-4.1',
   mistral: 'e.g. mistral-medium-latest',
+  nebius: 'e.g. Qwen/Qwen3-235B-A22B-Instruct-2507',
   pia: 'e.g. claude-opus-4-8',
   local: 'e.g. qwen2.5-coder:14b',
   free: '',
 } as const;
 
+// Stored ids that were presets before and now have a preset under another
+// name. The dated Haiku snapshot still works, but the alias is the preset.
+const LEGACY_MODEL_ALIASES: Partial<Record<LlmProvider, Record<string, string>>> = {
+  anthropic: { 'claude-haiku-4-5-20251001': 'claude-haiku-4-5' },
+};
+
 function _classifyStoredModel(
   provider: LlmProvider,
-  stored: string | undefined,
+  storedRaw: string | undefined,
 ): { choice: string; custom: string } {
+  const stored = (storedRaw && LEGACY_MODEL_ALIASES[provider]?.[storedRaw]) || storedRaw;
   if (!stored) {
     // pia/local have no server-side "default" that maps to a real model, so
     // pre-select their first preset. anthropic/openai/mistral use the "…"
@@ -328,8 +388,24 @@ export const LlmKeyDialog: React.FC<LlmKeyDialogProps> = ({
   const [customModel, setCustomModel] = useState<string>('');
   const [baseUrl, setBaseUrl] = useState<string>('');
   const [budgetOpen, setBudgetOpen] = useState<boolean>(false);
-  const [maxCostInput, setMaxCostInput] = useState<string>(String(RUN_BUDGET.defaultCostUsd));
-  const [maxRuntimeMinInput, setMaxRuntimeMinInput] = useState<string>(String(RUN_BUDGET.defaultRuntimeMin));
+  const [maxCostInput, setMaxCostInput] = useState<string>(
+    String(RUN_BUDGET_FALLBACK.defaultCostUsd),
+  );
+  const [maxRuntimeMinInput, setMaxRuntimeMinInput] = useState<string>(
+    String(RUN_BUDGET_FALLBACK.defaultRuntimeMin),
+  );
+  // Server-published run-budget caps. The config service already validates
+  // that all four values are finite numbers, so they are safe to use directly.
+  const [caps, setCaps] = useState(FALLBACK_SMART_GEN_CONFIG.caps);
+  const budgetBounds = useMemo(
+    () => ({
+      defaultCostUsd: caps.default_max_cost_usd,
+      maxCostUsd: caps.max_cost_usd_hard_cap,
+      defaultRuntimeMin: Math.max(1, Math.round(caps.default_max_runtime_seconds / 60)),
+      maxRuntimeMin: Math.max(1, Math.round(caps.max_runtime_seconds_hard_cap / 60)),
+    }),
+    [caps],
+  );
   // Free-tier advertisement from GET /spec-driven/config (cached module-level).
   // Starts at the fallback (unavailable) so an old backend never shows a Free
   // option that cannot run.
@@ -362,12 +438,15 @@ export const LlmKeyDialog: React.FC<LlmKeyDialogProps> = ({
     void getSpecDrivenConfig().then((cfg) => {
       if (cancelled) return;
       setFreeTier(cfg.free_tier);
+      setCaps(cfg.caps);
       const storedFreeModel = readFreeTierModel();
       const freeModels = cfg.free_tier.models;
+      // An explicit stored choice always wins. Otherwise a telemetry session
+      // gets the server's pilot_model and everyone else the ordinary default.
       setFreeModelChoice(
         storedFreeModel && freeModels.some((m) => m.id === storedFreeModel)
           ? storedFreeModel
-          : defaultFreeModelId(freeModels),
+          : preferredFreeModelId(cfg.free_tier, isPilotSession()),
       );
       // Preselect Free only when it is unambiguously the user's current
       // setup: opted in AND no BYOK key stored. A user who has a stored key
@@ -414,9 +493,11 @@ export const LlmKeyDialog: React.FC<LlmKeyDialogProps> = ({
       stored?.baseUrl && stored.baseUrl !== PIA_GATEWAY_BASE_URL ? stored.baseUrl : '';
     setBaseUrl(nextProvider === 'local' ? storedBase || DEFAULT_LOCAL_BASE_URL : storedBase);
     const budget = readLlmBudget();
-    setMaxCostInput(String(budget?.maxCostUsd ?? RUN_BUDGET.defaultCostUsd));
+    setMaxCostInput(String(budget?.maxCostUsd ?? budgetBounds.defaultCostUsd));
     setMaxRuntimeMinInput(
-      String(Math.round((budget?.maxRuntimeSeconds ?? RUN_BUDGET.defaultRuntimeMin * 60) / 60)),
+      String(
+        Math.round((budget?.maxRuntimeSeconds ?? budgetBounds.defaultRuntimeMin * 60) / 60),
+      ),
     );
     setBudgetOpen(false);
   }, [open]);
@@ -502,9 +583,13 @@ export const LlmKeyDialog: React.FC<LlmKeyDialogProps> = ({
       return Math.min(n, max);
     };
     writeLlmBudget({
-      maxCostUsd: clampNum(maxCostInput, RUN_BUDGET.defaultCostUsd, RUN_BUDGET.maxCostUsd),
+      maxCostUsd: clampNum(
+        maxCostInput, budgetBounds.defaultCostUsd, budgetBounds.maxCostUsd,
+      ),
       maxRuntimeSeconds:
-        clampNum(maxRuntimeMinInput, RUN_BUDGET.defaultRuntimeMin, RUN_BUDGET.maxRuntimeMin) * 60,
+        clampNum(
+          maxRuntimeMinInput, budgetBounds.defaultRuntimeMin, budgetBounds.maxRuntimeMin,
+        ) * 60,
     });
   };
 
@@ -518,10 +603,13 @@ export const LlmKeyDialog: React.FC<LlmKeyDialogProps> = ({
     // writeLlmKey).
     if (isFreeProvider) {
       writeFreeTierSelected(true);
+      // null means "use the server default", which for a telemetry session is
+      // the server's pilot_model — so there the pick is always stored
+      // explicitly, or choosing it would collapse to the public default.
+      const collapsible =
+        !isPilotSession() && freeModelChoice === defaultFreeModelId(freeModels);
       writeFreeTierModel(
-        freeModels.length > 1 && freeModelChoice !== defaultFreeModelId(freeModels)
-          ? freeModelChoice
-          : null,
+        freeModels.length > 1 && !collapsible ? freeModelChoice : null,
       );
       persistRunBudget();
       setSaveError(null);
@@ -578,7 +666,14 @@ export const LlmKeyDialog: React.FC<LlmKeyDialogProps> = ({
     // Arm the live agent socket immediately when a client is provided. If the
     // socket is momentarily down this is a no-op — the key is in sessionStorage
     // so the next (re)connect re-arms it automatically.
-    if (client) {
+    //
+    // Skipped for providers the modeling agent's own BYOK layer does not
+    // support (it allowlists anthropic/openai/mistral/nebius and discards the rest).
+    // Sending the key anyway would hand a secret to a service that will only
+    // log "unsupported provider" and drop it. The assistant then runs on the
+    // server's default model — which is exactly what its own re-arm path does,
+    // since readAssistantApiKey() rejects the stored provider too.
+    if (client && _assistantSupportsProvider(provider)) {
       client.setUserApiKey({
         apiKey: trimmedKey,
         provider,
@@ -617,7 +712,7 @@ export const LlmKeyDialog: React.FC<LlmKeyDialogProps> = ({
           <DialogDescription>
             {description ?? (
               <>
-                Bring your own Anthropic, OpenAI, or Mistral key to power the
+                Bring your own Anthropic, OpenAI, Mistral, or Nebius key to power the
                 modeling assistant and the Spec-Driven generator with your own
                 model and avoid shared rate limits. <strong>{DEFAULT_PRIVACY_COPY}</strong>
               </>
@@ -660,8 +755,11 @@ export const LlmKeyDialog: React.FC<LlmKeyDialogProps> = ({
           </div>
 
           {/* Free-tier model choice — shown only when the server advertises
-              more than one free model (primary + configured fallback). Reads
-              and writes the same stored choice as the Spec-Driven run dialog. */}
+              more than one free model. The list is rendered verbatim from the
+              config endpoint (any number of entries: the default, any extra
+              models on the same endpoint, a self-hosted fallback), so the
+              server can add a free model without a frontend change. Reads and
+              writes the same stored choice as the Spec-Driven run dialog. */}
           {isFreeProvider && freeModels.length > 1 && (
             <fieldset className="space-y-1.5">
               <legend className="text-sm font-medium leading-none">Model</legend>
@@ -684,7 +782,7 @@ export const LlmKeyDialog: React.FC<LlmKeyDialogProps> = ({
                 ))}
               </div>
               <p className="text-xs text-muted-foreground">
-                Both options are free. The self-hosted model runs on BESSER
+                Every option is free. The self-hosted model runs on BESSER
                 infrastructure; if it is unavailable your run reports an error
                 instead of switching models.
               </p>
@@ -818,7 +916,7 @@ export const LlmKeyDialog: React.FC<LlmKeyDialogProps> = ({
                         type="number"
                         min={0.1}
                         step={0.1}
-                        max={RUN_BUDGET.maxCostUsd}
+                        max={budgetBounds.maxCostUsd}
                         value={maxCostInput}
                         onChange={(e) => setMaxCostInput(e.target.value)}
                       />
@@ -830,14 +928,14 @@ export const LlmKeyDialog: React.FC<LlmKeyDialogProps> = ({
                         type="number"
                         min={1}
                         step={1}
-                        max={RUN_BUDGET.maxRuntimeMin}
+                        max={budgetBounds.maxRuntimeMin}
                         value={maxRuntimeMinInput}
                         onChange={(e) => setMaxRuntimeMinInput(e.target.value)}
                       />
                     </div>
                   </div>
                   <p className="text-xs text-muted-foreground">
-                    Up to ${RUN_BUDGET.maxCostUsd} and {RUN_BUDGET.maxRuntimeMin} min per run.
+                    Up to ${budgetBounds.maxCostUsd} and {budgetBounds.maxRuntimeMin} min per run.
                   </p>
                 </div>
               )}

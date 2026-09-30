@@ -7,6 +7,7 @@ import { useDiagramStore } from "@/store/context"
 import { StateCodeBlockProps } from "@/types"
 import { DividerLine, NodeStyleEditor, Typography } from "@/components/ui"
 import { PopoverProps } from "@/components/popovers/types"
+import { useTranslation } from "@/i18n"
 import { InspectorSectionHeader } from "../_shared"
 
 /**
@@ -31,6 +32,7 @@ export const StateCodeBlockEditPanel: React.FC<PopoverProps> = ({
       setNodes: state.setNodes,
     }))
   )
+  const { t } = useTranslation()
   const node = nodes.find((n) => n.id === elementId)
   if (!node) return null
 
@@ -58,7 +60,7 @@ export const StateCodeBlockEditPanel: React.FC<PopoverProps> = ({
 
       <Stack direction="row" alignItems="center" spacing={0.5}>
         <Typography variant="caption" sx={{ minWidth: 70 }}>
-          language
+          {t("popup.state.language", "language")}
         </Typography>
         <Select
           size="small"
@@ -75,7 +77,9 @@ export const StateCodeBlockEditPanel: React.FC<PopoverProps> = ({
       </Stack>
 
       <Stack spacing={0.5}>
-        <InspectorSectionHeader>code</InspectorSectionHeader>
+        <InspectorSectionHeader>
+          {t("popup.state.code", "code")}
+        </InspectorSectionHeader>
         <Box
           sx={{
             border: "1px solid var(--besser-gray, #ccc)",

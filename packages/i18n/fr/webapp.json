@@ -56,7 +56,8 @@
       "settings": "Paramètres",
       "agentCustomization": "Personnalisation de l'agent",
       "agentPersonalization": "Personnalisation avancée de l'agent",
-      "agentMappings": "Correspondances d'agent"
+      "agentMappings": "Correspondances d'agent",
+      "agentComponents": "Composants"
     }
   },
   "menu": {
@@ -69,7 +70,14 @@
       "importClassDiagramFrom": "Importer un diagramme de classes depuis",
       "imageToProject": "Image vers projet",
       "kgToProject": "KG vers projet",
-      "previewProject": "Aperçu du projet"
+      "previewProject": "Aperçu du projet",
+      "newProject": "Nouveau projet",
+      "openProject": "Ouvrir un projet",
+      "importProject": "Importer un projet",
+      "import": "Importer",
+      "importProjectFile": "Fichier de projet (.json / .py)",
+      "fromSpreadsheet": "Depuis un tableur",
+      "fromGithub": "Depuis GitHub"
     },
     "generate": {
       "title": "Générer",
@@ -85,6 +93,7 @@
       },
       "actions": {
         "djangoProject": "Projet Django",
+        "springProject": "Projet Spring",
         "fullBackend": "Backend complet",
         "webApplication": "Application web",
         "pythonClasses": "Classes Python",
@@ -187,7 +196,114 @@
       "intentLlmBased": "Basée sur LLM",
       "llm": "LLM",
       "useDefault": "(utiliser la valeur par défaut)",
-      "defineLlmHint": "Définissez un LLM dans la section LLMs ci-dessous pour l'utiliser ici."
+      "defineLlmHint": "Définissez un LLM dans la section LLMs ci-dessous pour l'utiliser ici.",
+      "defineLlmsHint": "Définissez les LLM sur la page <strong>Composants de l’agent</strong>.",
+      "enabled": "Activé",
+      "boolTrue": "Vrai",
+      "boolFalse": "Faux",
+      "sidebarSettings": "Paramètres",
+      "sidebarConfigFile": "Fichier de configuration",
+      "sidebarPlatforms": "Plateformes",
+      "apiKeys": "Clés API",
+      "subsectionStreamlit": "Streamlit",
+      "subsectionChat": "Chat",
+      "subsectionMonitoring": "Surveillance",
+      "field": {
+        "agent": {
+          "checkTransitionsDelayDesc": "Délai en secondes entre chaque cycle d’évaluation des transitions."
+        },
+        "nlp": {
+          "languageDesc": "Langue attendue de l’utilisateur (ISO 639-1).",
+          "regionDesc": "Région linguistique (ISO 3166-1 alpha-2).",
+          "timezoneDesc": "Fuseau horaire pour les opérations de date et heure.",
+          "intentThresholdDesc": "Seuil de confiance pour les prédictions d’intention.",
+          "preProcessingDesc": "Active la racinisation pour réduire les mots à leur forme de base.",
+          "huggingfaceTokenDesc": "Clé API pour l’API d’inférence de HuggingFace.",
+          "openaiApiKeyDesc": "Clé API OpenAI pour l’accès au LLM.",
+          "replicateApiKeyDesc": "Clé API Replicate pour l’inférence de modèles.",
+          "huggingfaceToken": "Jeton HuggingFace",
+          "openaiApiKey": "api_key OpenAI",
+          "replicateApiKey": "api_key Replicate"
+        },
+        "websocket": {
+          "hostDesc": "Adresse du serveur pour les connexions WebSocket.",
+          "portDesc": "Numéro de port du serveur WebSocket.",
+          "streamlitHostDesc": "Adresse de l’hôte pour l’interface Streamlit.",
+          "streamlitPortDesc": "Port de l’interface Streamlit.",
+          "chatSizeDesc": "Taille de police par défaut pour le chat.",
+          "chatFontDesc": "Famille de police du texte du chat.",
+          "chatLineSpacingDesc": "Multiplicateur de hauteur de ligne.",
+          "chatAlignmentDesc": "Alignement horizontal du texte.",
+          "chatColorDesc": "Réglage de la couleur du texte.",
+          "chatContrastDesc": "Niveau de contraste pour la lisibilité."
+        },
+        "telegram": {
+          "tokenDesc": "Jeton d’authentification du bot pour l’API Telegram."
+        },
+        "github": {
+          "personalTokenDesc": "Jeton d’accès personnel pour l’API GitHub.",
+          "webhookTokenDesc": "Jeton secret pour la vérification du webhook.",
+          "webhookPortDesc": "Port du serveur local exposé à GitHub."
+        },
+        "gitlab": {
+          "personalTokenDesc": "Jeton d’accès personnel pour l’API GitLab.",
+          "webhookTokenDesc": "Jeton secret pour la vérification du webhook.",
+          "webhookPortDesc": "Port du serveur local exposé à GitLab."
+        },
+        "a2a": {
+          "portDesc": "Port local pour la communication entre agents."
+        },
+        "db": {
+          "dialectDesc": "Identifiant du système de base de données (p. ex. postgresql)",
+          "hostDesc": "Adresse du serveur de base de données",
+          "portDesc": "Port de connexion à la base de données",
+          "databaseDesc": "Nom de la base de données",
+          "usernameDesc": "Identifiants de l’utilisateur de la base de données",
+          "passwordDesc": "Mot de passe d’authentification de la base de données"
+        }
+      },
+      "section": {
+        "runtime": {
+          "desc": "Paramètres d’exécution du diagramme d’agent actif. Enregistrés dans le diagramme lui-même, pas dans le stockage global."
+        },
+        "agent": {
+          "desc": "Paramètres principaux d’exécution de l’agent."
+        },
+        "nlp": {
+          "desc": "Paramètres de traitement du langage naturel pour la reconnaissance des intentions."
+        },
+        "websocket": {
+          "title": "WebSocket",
+          "desc": "Configuration du serveur WebSocket et de l’interface Streamlit."
+        },
+        "telegram": {
+          "title": "Telegram",
+          "desc": "Paramètres d’intégration du bot Telegram."
+        },
+        "github": {
+          "title": "GitHub",
+          "desc": "Paramètres d’intégration du webhook GitHub."
+        },
+        "gitlab": {
+          "title": "GitLab",
+          "desc": "Paramètres d’intégration du webhook GitLab."
+        },
+        "a2a": {
+          "title": "A2A",
+          "desc": "Paramètres de communication entre agents."
+        },
+        "database": {
+          "title": "Base de données",
+          "desc": "Connexions de base de données pour la surveillance et Streamlit."
+        },
+        "custom": {
+          "title": "YAML personnalisé",
+          "desc": "Propriétés YAML supplémentaires ajoutées à la fin du config.yaml généré."
+        },
+        "raw": {
+          "desc": "Vue en lecture seule du config.yaml généré complet. Modifiez des sections individuelles ou ajoutez du YAML personnalisé."
+        }
+      }
     },
     "llms": {
       "title": "LLMs",
@@ -442,6 +558,31 @@
         "dbDatabase": "Nom de la base de données",
         "dbUsername": "Identifiants utilisateur de la base de données",
         "dbPassword": "Mot de passe d'authentification à la base de données"
+      },
+      "provider": {
+        "openai": "OpenAI",
+        "mistral": "Mistral AI",
+        "deepseek": "DeepSeek",
+        "google": "Google (Gemini)",
+        "meta": "Meta (Llama)",
+        "anthropic": "Anthropic (Claude)",
+        "qwen": "Alibaba Qwen",
+        "xai": "xAI (Grok)",
+        "groq": "Groq",
+        "together": "Together AI",
+        "openrouter": "OpenRouter",
+        "huggingface": "HuggingFace",
+        "replicate": "Replicate"
+      },
+      "subsection": {
+        "websocket": "websocket",
+        "streamlit": "streamlit",
+        "chat": "chat",
+        "telegram": "telegram",
+        "github": "github",
+        "gitlab": "gitlab",
+        "a2a": "a2a",
+        "monitoring": "monitoring"
       }
     },
     "importExport": {
@@ -463,6 +604,7 @@
         "description": "Le profil utilisateur \"{{profile}}\" est déjà associé à la configuration \"{{existing}}\". L'enregistrement remplacera cette association par \"{{next}}\"."
       }
     },
+    "noActiveDiagram": "Aucun diagramme d'agent actif. Ouvrez d'abord un diagramme d'agent.",
     "toasts": {
       "persistFailed": "Échec de la mise à jour du diagramme d'agent.",
       "noActiveDiagram": "Aucun diagramme d'agent actif.",
@@ -509,6 +651,20 @@
       "projectName": "Nom du projet",
       "appName": "Nom de l'application",
       "includeDocker": "Inclure la conteneurisation Docker"
+    },
+    "spring": {
+      "title": "Configuration du projet Spring Boot",
+      "description": "Configurez les noms et les versions pour la génération du backend Spring Boot.",
+      "projectName": "Nom du projet",
+      "appName": "Nom de l'application",
+      "appNameHint": "Devient la classe Java de l'application générée, par ex. MyApplication.java.",
+      "packageName": "Nom du paquet",
+      "packageNameHint": "Paquet Java de base, par ex. com.example. Il devient aussi le chemin du répertoire source.",
+      "bootVersion": "Version de Spring Boot",
+      "selectBootVersion": "Sélectionnez une version de Spring Boot",
+      "javaVersion": "Version de Java",
+      "selectJavaVersion": "Sélectionnez une version de Java",
+      "javaVersionOption": "Java {{version}}"
     },
     "sql": {
       "title": "Sélection du dialecte SQL",
@@ -655,12 +811,19 @@
       "namesRequired": "Les noms du projet et de l'application sont requis.",
       "namesMustDiffer": "Les noms du projet et de l'application doivent être différents.",
       "namesInvalid": "Les noms doivent commencer par une lettre/un trait de soulignement et ne contenir que des lettres, des chiffres et des traits de soulignement.",
+      "springFieldsRequired": "Les noms du projet, de l'application et du paquet sont obligatoires.",
+      "springAppNameInvalid": "Le nom de l'application doit être un nom de classe Java valide.",
+      "springPackageNameInvalid": "Le nom du paquet doit être un paquet Java valide, par ex. com.example.",
       "openUmlBeforeDeploy": "Ouvrez un diagramme UML avant de déployer.",
-      "noValidPersonalizationMappings": "Aucune correspondance de personnalisation valide trouvée. Créez des correspondances et enregistrez d'abord des variantes personnalisées."
+      "noValidPersonalizationMappings": "Aucune correspondance de personnalisation valide trouvée. Créez des correspondances et enregistrez d'abord des variantes personnalisées.",
+      "openBpmnEditor": "Ouvrez un diagramme BPMN avant d'exporter en BPMN 2.0 XML.",
+      "bpmnNoModel": "Le diagramme BPMN actif n'a aucun modèle à exporter.",
+      "bpmnExportFailed": "Échec de l'export BPMN : {{error}}"
     },
     "context": {
       "djangoGeneration": "Génération Django",
       "djangoDeployment": "Déploiement Django",
+      "springGeneration": "Génération Spring",
       "sqlGeneration": "Génération SQL",
       "supabaseGeneration": "Génération Supabase",
       "sqlAlchemyGeneration": "Génération SQLAlchemy",
@@ -801,7 +964,9 @@
         "propertiesPanel": "Panneau des propriétés",
         "propertiesPanelDesc": "Utiliser le panneau latéral droit au lieu de la fenêtre contextuelle flottante",
         "classNotation": "Notation du diagramme de classes",
-        "classNotationDesc": "UML (par défaut) affiche les classes UML standard ; ER affiche un rendu entité/relation de style Chen"
+        "classNotationDesc": "UML (par défaut) affiche les classes UML standard ; ER affiche un rendu entité/relation de style Chen",
+        "iconView": "Vue icône",
+        "iconViewDesc": "Afficher les objets avec l'icône de leur classe au lieu du tableau d'attributs"
       },
       "diagrams": {
         "title": "Diagrammes",
@@ -872,7 +1037,8 @@
         "State Machine Diagram": "Diagramme de machine à états",
         "Quantum Circuit": "Circuit quantique",
         "Neural Network": "Réseau de neurones",
-        "Full Project": "Projet complet"
+        "Full Project": "Projet complet",
+        "BPMN Diagram": "Diagramme BPMN"
       },
       "confirm": {
         "title": "Diagramme existant détecté",
@@ -1124,7 +1290,9 @@
       "headlinePost": "aujourd'hui ?",
       "subtitle": "Décrivez votre système en langage naturel. Obtenez des modèles, des interfaces et du code.",
       "pressEscPre": "Appuyez sur",
-      "pressEscPost": "pour fermer"
+      "pressEscPost": "pour fermer",
+      "freeTier": "Gratuit avec notre modèle Qwen hébergé.",
+      "changeModel": "Changer de modèle"
     },
     "composer": {
       "placeholder": "Décrivez ce que vous voulez créer ou modifier..."
@@ -1151,6 +1319,7 @@
       "privacyBody": "Évitez de partager des informations sensibles ou confidentielles dans les messages de l'assistant.",
       "understand": "J'ai compris"
     },
+    "pilotNotice": "Le mode étude de recherche est activé. Cet onglet enregistre, pour une étude de recherche, vos requêtes, ce que l'assistant en a fait, les résultats des générations ainsi que les téléchargements et actions GitHub. Il n'est actif que parce que vous avez ouvert un lien d'étude. Fermez cet onglet pour l'arrêter.",
     "poweredWithBaf": "Propulsé par BAF",
     "capabilities": {
       "systemDesign": {
@@ -1182,13 +1351,19 @@
     },
     "chat": {
       "newChat": "Nouvelle conversation",
-      "newConversationTitle": "Démarrer une nouvelle conversation"
+      "newConversationTitle": "Démarrer une nouvelle conversation",
+      "newChatConfirm": "Démarrer une nouvelle discussion ? Votre conversation actuelle sera effacée.",
+      "newChatConfirmWithRun": "Démarrer une nouvelle discussion ? Votre conversation actuelle sera effacée et la génération en cours sera arrêtée.",
+      "explainModel": "Expliquer ce modèle",
+      "explainModelTitle": "Obtenez un aperçu en langage simple de votre modèle — les éléments principaux qu'il décrit et leurs relations"
     },
     "drawer": {
       "pushToClose": "Poussez vers le haut pour fermer l'assistant",
       "pullToOpen": "Tirez vers le bas pour ouvrir l'assistant",
       "pushUp": "Pousser vers le haut",
-      "pullDown": "Tirer l'assistant vers le bas"
+      "pullDown": "Tirer l'assistant vers le bas",
+      "labelClosed": "Décrivez votre application",
+      "labelOpen": "Voir les spécifications"
     },
     "generationCompleted": "Génération terminée avec succès.",
     "exportingProject": "Exportation du projet au format {{format}}…",
@@ -1260,6 +1435,31 @@
       "transcribingAudio": "Transcription de l'audio...",
       "recordingPrompt": "Enregistrement... cliquez ici ou appuyez de nouveau sur le micro pour arrêter et envoyer ({{time}})",
       "stopSendVoiceTimer": "Arrêter et envoyer le message vocal ({{time}})"
+    },
+    "modelOverview": {
+      "title": "Votre modèle",
+      "close": "Fermer l’aperçu du modèle",
+      "empty": "Rien n’est encore modélisé — demandez à l’assistant de créer un système et le plan apparaîtra ici.",
+      "dataModel": "Modèle de données",
+      "relationships": "Relations",
+      "screens": "Écrans",
+      "constraints": "Contraintes",
+      "unnamed": "Sans nom",
+      "page": "Page",
+      "kinds": {
+        "class": "classe",
+        "enum": "énumération",
+        "interface": "interface",
+        "abstract": "abstraite"
+      },
+      "relationKinds": {
+        "association": "association",
+        "inheritance": "héritage",
+        "composition": "composition",
+        "aggregation": "agrégation",
+        "realization": "réalisation",
+        "dependency": "dépendance"
+      }
     }
   },
   "deploy": {
@@ -1800,7 +2000,11 @@
       "referenceEmpty": "Le diagramme de classes référencé est vide (aucune classe ni relation).",
       "generateObjectsTooltip": "Crée une instance d'objet par classe dans le diagramme référencé, avec des valeurs par défaut pour chaque attribut.",
       "generate": "Générer",
-      "noClassDiagramsAvailable": "Aucun diagramme de classes disponible"
+      "noClassDiagramsAvailable": "Aucun diagramme de classes disponible",
+      "profileFormOpen": "Modifier sous forme de formulaire",
+      "profileFormClose": "Fermer le formulaire",
+      "profileFormOpenTitle": "Modifier ce profil à l'aide d'un formulaire guidé",
+      "profileFormCloseTitle": "Fermer le formulaire du profil utilisateur"
     },
     "charts": {
       "loadingChart": "Chargement du graphique...",
@@ -2427,18 +2631,31 @@
       "noProjectData": "Aucune donnée de projet disponible à exporter",
       "projectExportedAs": "Projet exporté sous {{filename}}",
       "projectExportFailed": "Échec de l'export du projet : {{error}}"
+    },
+    "diagramLabels": {
+      "ClassDiagram": "Diagramme de classes",
+      "ObjectDiagram": "Diagramme d'objets",
+      "StateMachineDiagram": "Diagramme d'états",
+      "AgentDiagram": "Diagramme d'agent",
+      "UserDiagram": "Diagramme utilisateur",
+      "GUINoCodeDiagram": "Écrans (GUI)",
+      "QuantumCircuitDiagram": "Circuit quantique",
+      "NNDiagram": "Diagramme de réseau de neurones",
+      "BPMN": "Processus BPMN"
     }
   },
   "import": {
     "success": {
       "diagram": "Diagramme {{diagramType}} importé avec succès et ajouté au projet « {{projectName}} ». Ce diagramme a été converti du format {{fileType}} vers le nouveau format de projet.",
       "kg": "Diagramme {{diagramType}} importé avec succès depuis Knowledge Graph et ajouté au projet « {{projectName}} ».",
-      "image": "Diagramme {{diagramType}} importé avec succès depuis une image et ajouté au projet « {{projectName}} »."
+      "image": "Diagramme {{diagramType}} importé avec succès depuis une image et ajouté au projet « {{projectName}} ».",
+      "diagramImported": "Diagramme {{diagramType}} importé dans le projet « {{projectName}} »."
     },
     "descriptions": {
       "imported": "Diagramme {{diagramType}} importé",
       "importedFromKg": "Diagramme {{diagramType}} importé depuis Knowledge Graph",
-      "importedFromImage": "Diagramme {{diagramType}} importé depuis une image"
+      "importedFromImage": "Diagramme {{diagramType}} importé depuis une image",
+      "importedFromBpmnXml": "Importé depuis BPMN 2.0 XML"
     },
     "errors": {
       "title": "Échec de l'import",
@@ -2455,7 +2672,16 @@
       "couldNotImportFromImage": "Impossible d'importer le diagramme depuis une image : {{message}}",
       "readFileFailed": "Échec de la lecture du fichier",
       "invalidFromBackend": "Diagramme non valide renvoyé par le backend",
-      "couldNotParseError": "Impossible d'analyser la réponse d'erreur"
+      "couldNotParseError": "Impossible d'analyser la réponse d'erreur",
+      "unsupportedFileTypeBpmn": "Type de fichier non pris en charge. Veuillez sélectionner un fichier .json, .py ou .bpmn."
+    },
+    "toasts": {
+      "migratedFromV3": "Diagramme migré du schéma v3 vers v4 lors de l'import."
+    },
+    "bpmn": {
+      "defaultTitle": "BPMN importé",
+      "warningsSummary": "BPMN importé avec {{count}} avertissement(s) de validation :",
+      "moreWarnings": "…et {{count}} de plus"
     }
   },
   "validation": {
@@ -2482,6 +2708,277 @@
       "measurementOutput": "Sortie de mesure — générée automatiquement à partir des portes de mesure",
       "dropHere": "Déposer ici",
       "invalid": "Non valide"
+    }
+  },
+  "agentComponents": {
+    "noActiveDiagram": "Aucun diagramme d'agent actif.",
+    "sidebarTitle": "Composants",
+    "unnamed": "Sans nom",
+    "nav": {
+      "llms": "LLMs",
+      "intents": "Intentions",
+      "tools": "Outils",
+      "skills": "Compétences",
+      "workspaces": "Espaces de travail",
+      "ragDatabases": "Bases RAG",
+      "sqlDatabases": "Bases SQL",
+      "guis": "GUIs"
+    },
+    "llms": {
+      "title": "LLMs",
+      "description": "Modèles de langage disponibles pour l'agent. Les LLMs sont référencés par nom depuis les états et les bases RAG.",
+      "addLabel": "Ajouter un LLM",
+      "empty": "Aucun LLM défini pour l'instant.",
+      "modelName": "Nom du modèle",
+      "modelNamePlaceholder": "e.g. main_llm",
+      "modelNameDescription": "Identifiant utilisé pour référencer ce LLM.",
+      "provider": "Fournisseur",
+      "setDefault": "Définir comme LLM par défaut",
+      "setDefaultDescription": "Utiliser ce LLM quand aucun LLM spécifique n'est sélectionné dans une action d'état.",
+      "numPrevMessages": "Nb messages précédents",
+      "parameters": "Paramètres",
+      "parametersDescription": "Paramètres spécifiques au fournisseur sous forme d'objet JSON.",
+      "globalContext": "Contexte global",
+      "globalContextPlaceholder": "Instructions système optionnelles pour ce LLM"
+    },
+    "intents": {
+      "title": "Intentions",
+      "description": "Intentions utilisateur reconnues par l'agent. Chaque intention peut avoir des phrases d'entraînement pour améliorer la reconnaissance.",
+      "addLabel": "Ajouter une intention",
+      "empty": "Aucune intention définie pour l'instant.",
+      "sentenceCount_one": "{{count}} phrase",
+      "sentenceCount_other": "{{count}} phrases",
+      "name": "Nom de l'intention",
+      "namePlaceholder": "e.g. greet_user",
+      "intentDescription": "Description (facultatif)",
+      "intentDescriptionPlaceholder": "Brève description de ce que capture cette intention",
+      "trainingSentences": "Phrases d'entraînement",
+      "addSentence": "Ajouter une phrase",
+      "noSentences": "Aucune phrase d'entraînement pour l'instant. Ajoutez-en pour améliorer la reconnaissance des intentions.",
+      "sentencePlaceholder": "p. ex. Bonjour"
+    },
+    "tools": {
+      "title": "Outils",
+      "description": "Fonctions Python appelables par les états de raisonnement lors de l'exécution de l'agent.",
+      "addLabel": "Ajouter un outil",
+      "empty": "Aucun outil défini pour l'instant.",
+      "warning": "Les outils ne peuvent être utilisés que par un état de raisonnement. Ajoutez un état de raisonnement au diagramme d'agent pour utiliser des outils.",
+      "name": "Nom de l'outil",
+      "namePlaceholder": "e.g. search_web",
+      "toolDescription": "Description",
+      "toolDescriptionPlaceholder": "Description courte présentée au LLM",
+      "code": "Code Python",
+      "codeDescription": "Utilisez le paramètre `session` pour accéder à la session de l'agent."
+    },
+    "skills": {
+      "title": "Compétences",
+      "description": "Documents de connaissances en Markdown fournis aux états de raisonnement.",
+      "addLabel": "Ajouter une compétence",
+      "empty": "Aucune compétence définie pour l'instant.",
+      "warning": "Les compétences ne peuvent être utilisées que par un état de raisonnement. Ajoutez un état de raisonnement au diagramme d'agent pour utiliser des compétences.",
+      "name": "Nom de la compétence",
+      "namePlaceholder": "e.g. product_knowledge",
+      "skillDescription": "Description",
+      "skillDescriptionPlaceholder": "Description courte facultative",
+      "content": "Contenu Markdown",
+      "contentPlaceholder": "# Skill\n\nInstructions en markdown..."
+    },
+    "workspaces": {
+      "title": "Espaces de travail",
+      "description": "Répertoires du système de fichiers que l'agent peut lire ou écrire lors du raisonnement.",
+      "addLabel": "Ajouter un espace de travail",
+      "empty": "Aucun espace de travail défini pour l'instant.",
+      "warning": "Les espaces de travail ne peuvent être utilisés que par un état de raisonnement. Ajoutez un état de raisonnement au diagramme d'agent pour utiliser des espaces de travail.",
+      "badgeWritable": "modifiable",
+      "badgeReadOnly": "lecture seule",
+      "name": "Nom de l'espace de travail",
+      "namePlaceholder": "e.g. project_files",
+      "path": "Chemin du système de fichiers",
+      "pathPlaceholder": "/path/to/workspace",
+      "pathDescription": "Chemin absolu vers le répertoire sur le système hôte.",
+      "wsDescription": "Description",
+      "wsDescriptionPlaceholder": "Description facultative",
+      "writable": "Modifiable",
+      "writableDescription": "Autoriser l'agent à créer ou modifier des fichiers.",
+      "maxReadBytes": "Octets de lecture max"
+    },
+    "rags": {
+      "title": "Bases RAG",
+      "description": "Bases de données vectorielles pour la génération augmentée par récupération.",
+      "addLabel": "Ajouter une base RAG",
+      "empty": "Aucune base RAG définie pour l'instant.",
+      "name": "Nom",
+      "namePlaceholder": "e.g. faq_db",
+      "llm": "LLM",
+      "llmUseDefault": "(utiliser par défaut)",
+      "llmDescription": "LLM utilisé pour répondre au contenu récupéré.",
+      "promptPrefix": "Préfixe d'invite LLM",
+      "promptPrefixPlaceholder": "Préfixe d'invite optionnel pour le LLM",
+      "kChunks": "K (chunks récupérés)",
+      "kChunksDescription": "Fragments de documents récupérés par requête.",
+      "numPrevMessages": "Nb messages précédents",
+      "embeddingProvider": "Fournisseur d'intégration",
+      "embeddingOpenai": "OpenAI",
+      "embeddingOllama": "Ollama (local)",
+      "embeddingBaseUrl": "URL de base d'intégration",
+      "embeddingBaseUrlPlaceholder": "http://localhost:11434",
+      "embeddingModel": "Modèle d'intégration",
+      "embeddingModelPlaceholder": "e.g. nomic-embed-text",
+      "hybridRag": "RAG hybride (BM25)",
+      "bm25Weight": "Poids BM25",
+      "bm25WeightDescription": "Part du score par mots-clés (BM25) dans le classement hybride, entre 0 et 1."
+    },
+    "guis": {
+      "title": "GUIs",
+      "description": "Composants d'interface graphique que l'agent peut envoyer comme réponses de chat ou réagir via des événements GUI.",
+      "addLabel": "Créer un GUI",
+      "empty": "Aucun GUI défini pour l'instant.",
+      "badgeForm": "formulaire",
+      "guiId": "ID GUI (message_id)",
+      "guiIdPlaceholder": "UUID généré automatiquement",
+      "guiIdDescription": "Utilisé comme message_id dans GUIEvent et form_id dans when_form_submitted.",
+      "persist": "Persister",
+      "persistDescription": "Garder le GUI visible après l'interaction de l'utilisateur.",
+      "isForm": "Est un formulaire",
+      "isFormDescription": "Active les transitions when_form_submitted pour ce GUI.",
+      "width": "Largeur (facultatif)",
+      "widthPlaceholder": "e.g. 600px",
+      "widthDescription": "Largeur CSS du panneau GUI.",
+      "editDesign": "Modifier le design du GUI",
+      "openEditor": "Ouvrir l'éditeur GUI",
+      "editorTitle": "Éditeur d'interface",
+      "editorSaveAndExit": "Enregistrer et quitter"
+    },
+    "sql": {
+      "title": "Bases SQL",
+      "description": "Connexions aux bases de données SQL écrites dans db.sql dans config.yaml.",
+      "addLabel": "Ajouter une base SQL",
+      "empty": "Aucune base SQL définie pour l'instant.",
+      "name": "Nom",
+      "namePlaceholder": "e.g. my_database",
+      "nameDescription": "Utilisé comme clé dans config.yaml.",
+      "dialect": "Dialecte",
+      "dialectPostgresql": "PostgreSQL",
+      "dialectSqlite": "SQLite",
+      "dialectMysql": "MySQL",
+      "dialectMariadb": "MariaDB",
+      "dialectMssql": "Microsoft SQL Server",
+      "dialectOracle": "Oracle",
+      "databaseFilePath": "Chemin du fichier de base de données",
+      "databaseName": "Nom de la base de données",
+      "databaseFilePathPlaceholder": "/path/to/local.db",
+      "databaseNamePlaceholder": "YOUR-DB-NAME",
+      "host": "Hôte",
+      "hostPlaceholder": "localhost",
+      "port": "Port",
+      "portPlaceholder": "5432",
+      "username": "Nom d'utilisateur",
+      "usernamePlaceholder": "YOUR-DB-USERNAME",
+      "password": "Mot de passe",
+      "passwordPlaceholder": "YOUR-DB-PASSWORD"
+    },
+    "remove": "Supprimer",
+    "json": {
+      "mustBeObject": "Doit être un objet JSON",
+      "invalid": "JSON non valide"
+    }
+  },
+  "agentSimulation": {
+    "defaultDiagramTitle": "Agent",
+    "sidebar": {
+      "simulateAgent": "Simuler l’agent"
+    },
+    "panel": {
+      "header": "Simulateur : {{title}}",
+      "stop": "Arrêter la simulation",
+      "errorTitle": "Erreur de simulation",
+      "tabDiagram": "Diagramme",
+      "tabSource": "Source",
+      "lastTransition": "Dernière transition :",
+      "starting": "Démarrage de la simulation…",
+      "restart": "Redémarrer la simulation",
+      "reset": "Redémarrer",
+      "dragToResize": "Faites glisser pour redimensionner",
+      "loading": "L’agent est en cours de chargement, veuillez patienter."
+    },
+    "codeViewer": {
+      "copyTitle": "Copier le code",
+      "copyLabel": "Copier le code de l’agent généré",
+      "emptyTitle": "Le code généré apparaîtra ici",
+      "emptyDescription": "Exécutez l’étape de validation pour prévisualiser le code de l’agent.",
+      "header": "Code de l’agent généré"
+    },
+    "diagram": {
+      "currentState": "État actuel :",
+      "hide": "Masquer",
+      "view": "Afficher",
+      "transitions_one": "{{count}} transition",
+      "transitions_other": "{{count}} transitions",
+      "empty": "Aucun diagramme d’agent disponible"
+    },
+    "fileExplorer": {
+      "copy": "Copier le contenu du fichier",
+      "noSessionTitle": "Aucune session de test active",
+      "noSessionDescription": "Démarrez une session de test pour explorer les fichiers générés.",
+      "loading": "Chargement des fichiers de la session…",
+      "filesTitle": "Fichiers",
+      "refresh": "Actualiser les fichiers",
+      "noFiles": "Aucun fichier ni dossier trouvé",
+      "selectFile": "Sélectionnez un fichier pour afficher son contenu",
+      "fetchFailed": "Impossible de charger les fichiers de la session : {{message}}"
+    },
+    "chat": {
+      "websocketError": "Erreur de connexion WebSocket.",
+      "sensitivityWarning": "Ne partagez pas d’informations personnelles sensibles dans le chat de test. Les sessions peuvent être enregistrées.",
+      "authRequired": "Une authentification GitHub est requise pour simuler l'agent. Veuillez d'abord vous connecter.",
+      "agentError": "Erreur de l'agent : {{message}}",
+      "unknownError": "Erreur inconnue de l'agent",
+      "backendUnavailable": "L'URL du service de simulation n'est pas configurée.",
+      "connectionRejected": "Le service de simulation a refusé la connexion."
+    },
+    "terminal": {
+      "expand": "Développer le terminal",
+      "collapse": "Réduire le terminal",
+      "header": "Sortie de l’agent",
+      "empty": "Aucune sortie pour l’instant…"
+    },
+    "credentials": {
+      "sensitivityWarning": "Ne partagez pas d’informations personnelles sensibles (mots de passe, données personnelles, documents confidentiels) dans le chat de simulation. Les sessions de simulation sont enregistrées et peuvent être visibles par les opérateurs de cet éditeur.",
+      "title": "Simuler l’agent : {{name}}",
+      "apiKeysTitle": "Clés API",
+      "ownKeys": "Utiliser mes propres clés API",
+      "editorQuota": "Utiliser le quota de l’éditeur",
+      "openAiLabel": "Clé API OpenAI",
+      "optional": "(facultatif)",
+      "openAiPlaceholder": "sk-...",
+      "huggingFaceLabel": "Jeton API HuggingFace",
+      "huggingFacePlaceholder": "hf_...",
+      "replicateLabel": "Clé API Replicate",
+      "replicatePlaceholder": "r8_...",
+      "limitsTitle": "Limites de ressources",
+      "memory": "Mémoire",
+      "unitMb": " MB",
+      "cpu": "CPU",
+      "unitCores": " cœur(s)",
+      "disk": "Disque",
+      "lifetime": "Durée de la session",
+      "unitMin": " min",
+      "start": "Démarrer la simulation"
+    },
+    "errors": {
+      "startFailed": "Impossible de démarrer la simulation de l'agent.",
+      "validateFailed": "Impossible de valider l'agent.",
+      "stopFailed": "Impossible d'arrêter la simulation de l'agent.",
+      "restartFailed": "Impossible de redémarrer la simulation de l'agent.",
+      "restartUnavailable": "Rien à redémarrer : démarrez d'abord la simulation.",
+      "limitsFailed": "Impossible de charger les limites de la simulation.",
+      "timeout": "Le service de simulation n'a pas répondu à temps.",
+      "networkError": "Erreur réseau"
+    },
+    "launch": {
+      "emptyDiagram": "Le diagramme de l'agent est vide. Ajoutez des états, des transitions et des intentions avant de simuler.",
+      "validationFailed": "La validation de l'agent a échoué : {{message}}",
+      "validationFailedGeneric": "La validation a échoué"
     }
   }
 }

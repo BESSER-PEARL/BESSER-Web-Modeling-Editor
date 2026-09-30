@@ -8,8 +8,8 @@
       "id": "249e283c-9b00-49a3-a332-7d809cd0bc23",
       "type": "class",
       "position": {
-        "x": 1340,
-        "y": 60
+        "x": -400,
+        "y": -510
       },
       "width": 160,
       "height": 40,
@@ -28,8 +28,8 @@
       "id": "d6a622b9-2432-4411-a3f2-5815dff2085e",
       "type": "class",
       "position": {
-        "x": 1270,
-        "y": 280
+        "x": -470,
+        "y": -290
       },
       "width": 270,
       "height": 40,
@@ -48,8 +48,8 @@
       "id": "d4ce3767-e639-4fbb-8db1-7dbfa291d31d",
       "type": "class",
       "position": {
-        "x": 990,
-        "y": 40
+        "x": -750,
+        "y": -530
       },
       "width": 240,
       "height": 110,
@@ -93,8 +93,8 @@
       "id": "aa6d1e4d-02bd-4b15-82b7-5f48964c5001",
       "type": "class",
       "position": {
-        "x": 890,
-        "y": 700
+        "x": -850,
+        "y": 130
       },
       "width": 360,
       "height": 40,
@@ -113,8 +113,8 @@
       "id": "a2546a91-1913-4cac-86ac-283c39218a3a",
       "type": "class",
       "position": {
-        "x": 910,
-        "y": 200
+        "x": -830,
+        "y": -370
       },
       "width": 160,
       "height": 160,
@@ -182,8 +182,8 @@
       "id": "e17fa351-a73e-4ca5-ab53-0385b5d0c54e",
       "type": "class",
       "position": {
-        "x": 870,
-        "y": 450
+        "x": -870,
+        "y": -120
       },
       "width": 220,
       "height": 100,
@@ -227,8 +227,8 @@
       "id": "8efefcb2-fee3-4dfe-9209-5b717238c726",
       "type": "class",
       "position": {
-        "x": 1210,
-        "y": 550
+        "x": -530,
+        "y": -20
       },
       "width": 210,
       "height": 70,
@@ -260,8 +260,8 @@
       "id": "5803298a-e208-4aae-88a1-8c340e8d058e",
       "type": "class",
       "position": {
-        "x": 1570,
-        "y": 110
+        "x": -170,
+        "y": -460
       },
       "width": 160,
       "height": 40,
@@ -280,8 +280,8 @@
       "id": "c573dd39-569b-4257-af67-e10f88ebdb47",
       "type": "class",
       "position": {
-        "x": 1570,
-        "y": 170
+        "x": -170,
+        "y": -400
       },
       "width": 160,
       "height": 70,
@@ -313,8 +313,8 @@
       "id": "16a4766d-cdc1-4e69-b582-014ad2bada56",
       "type": "class",
       "position": {
-        "x": 840,
-        "y": 820
+        "x": -900,
+        "y": 250
       },
       "width": 210,
       "height": 190,
@@ -394,8 +394,8 @@
       "id": "16cd6fb2-d87e-4405-94da-d9a3d811d870",
       "type": "class",
       "position": {
-        "x": 2180,
-        "y": 720
+        "x": 440,
+        "y": 150
       },
       "width": 160,
       "height": 200,
@@ -476,8 +476,8 @@
       "id": "a7736e21-9ef2-4315-9048-68fc0471f98b",
       "type": "class",
       "position": {
-        "x": 1480,
-        "y": 410
+        "x": -260,
+        "y": -160
       },
       "width": 190,
       "height": 100,
@@ -521,8 +521,8 @@
       "id": "25ef979c-0fe0-40f5-ac88-1a6866cd24f4",
       "type": "class",
       "position": {
-        "x": 1940,
-        "y": 720
+        "x": 200,
+        "y": 150
       },
       "width": 160,
       "height": 200,
@@ -603,8 +603,8 @@
       "id": "b910ce24-f2bd-40de-b141-ce2956087223",
       "type": "class",
       "position": {
-        "x": 1180,
-        "y": 810
+        "x": -560,
+        "y": 240
       },
       "width": 230,
       "height": 160,
@@ -672,8 +672,8 @@
       "id": "125ca586-c0a9-4b29-83f5-630fc998f763",
       "type": "class",
       "position": {
-        "x": 1040,
-        "y": 1050
+        "x": -700,
+        "y": 480
       },
       "width": 240,
       "height": 70,
@@ -705,8 +705,8 @@
       "id": "2a69bf8c-9f74-4e89-9801-c21f8aa9daf1",
       "type": "class",
       "position": {
-        "x": 1420,
-        "y": 980
+        "x": -320,
+        "y": 410
       },
       "width": 220,
       "height": 130,
@@ -762,8 +762,8 @@
       "id": "4f3975e3-27d7-425e-b426-73488df10408",
       "type": "class",
       "position": {
-        "x": 1680,
-        "y": 580
+        "x": -60,
+        "y": 10
       },
       "width": 160,
       "height": 40,
@@ -782,8 +782,8 @@
       "id": "961abf95-bd2c-41e1-8d3d-67339d6ca49d",
       "type": "class",
       "position": {
-        "x": 1800,
-        "y": 350
+        "x": 60,
+        "y": -220
       },
       "width": 160,
       "height": 100,
@@ -827,8 +827,8 @@
       "id": "e4422346-28c3-44e5-b12b-b0eafe8f9796",
       "type": "class",
       "position": {
-        "x": 410,
-        "y": 550
+        "x": -1330,
+        "y": -20
       },
       "width": 340,
       "height": 400,
@@ -992,8 +992,8 @@
       "id": "ffbb5e9a-1914-46a7-8d16-63524f336ff3",
       "type": "class",
       "position": {
-        "x": 1940,
-        "y": 970
+        "x": 200,
+        "y": 400
       },
       "width": 160,
       "height": 140,
@@ -1050,8 +1050,8 @@
       "id": "c459c5d9-7d7d-496c-8ff9-e35507c0c9f6",
       "type": "class",
       "position": {
-        "x": 2180,
-        "y": 970
+        "x": 440,
+        "y": 400
       },
       "width": 160,
       "height": 110,
@@ -1096,8 +1096,8 @@
       "id": "f49d964c-1a1c-4702-b121-44abd8b251cd",
       "type": "class",
       "position": {
-        "x": 2080,
-        "y": 450
+        "x": 340,
+        "y": -120
       },
       "width": 170,
       "height": 130,
@@ -1153,8 +1153,8 @@
       "id": "7b3d6553-621c-4f0b-8c4f-e8c77b455b77",
       "type": "class",
       "position": {
-        "x": 2390,
-        "y": 970
+        "x": 650,
+        "y": 400
       },
       "width": 160,
       "height": 140,
@@ -1211,8 +1211,8 @@
       "id": "8b0e4b30-13a7-40cb-be66-d0ea61afcae6",
       "type": "class",
       "position": {
-        "x": 40,
-        "y": 1210
+        "x": -1700,
+        "y": 640
       },
       "width": 320,
       "height": 290,
@@ -1329,8 +1329,8 @@
       "id": "56e58236-1309-4e53-9423-b21329f98672",
       "type": "class",
       "position": {
-        "x": 450,
-        "y": 1210
+        "x": -1290,
+        "y": 640
       },
       "width": 190,
       "height": 380,
@@ -1483,8 +1483,8 @@
       "id": "c9fd1c7b-1ad0-4d1d-8003-12fb5b86bba8",
       "type": "class",
       "position": {
-        "x": 710,
-        "y": 1210
+        "x": -1030,
+        "y": 640
       },
       "width": 300,
       "height": 440,
@@ -1672,9 +1672,20 @@
         "targetMultiplicity": "*",
         "sourceRole": "category",
         "targetRole": "metrics",
+        "sourceNavigable": true,
+        "targetNavigable": true,
         "isManuallyLayouted": false,
         "messages": [],
-        "points": []
+        "points": [
+          {
+            "x": -320,
+            "y": -470
+          },
+          {
+            "x": -320,
+            "y": -290
+          }
+        ]
       }
     },
     {
@@ -1692,7 +1703,16 @@
         "targetRole": "",
         "isManuallyLayouted": false,
         "messages": [],
-        "points": []
+        "points": [
+          {
+            "x": -400,
+            "y": -490
+          },
+          {
+            "x": -510,
+            "y": -490
+          }
+        ]
       }
     },
     {
@@ -1710,7 +1730,24 @@
         "targetRole": "",
         "isManuallyLayouted": false,
         "messages": [],
-        "points": []
+        "points": [
+          {
+            "x": -402.5,
+            "y": -290
+          },
+          {
+            "x": -402.5,
+            "y": -355
+          },
+          {
+            "x": -570,
+            "y": -355
+          },
+          {
+            "x": -570,
+            "y": -420
+          }
+        ]
       }
     },
     {
@@ -1726,9 +1763,24 @@
         "targetMultiplicity": "1",
         "sourceRole": "",
         "targetRole": "measurand",
+        "sourceNavigable": true,
+        "targetNavigable": true,
         "isManuallyLayouted": false,
         "messages": [],
-        "points": []
+        "points": [
+          {
+            "x": -670,
+            "y": -250
+          },
+          {
+            "x": -580,
+            "y": -250
+          },
+          {
+            "x": -580,
+            "y": 130
+          }
+        ]
       }
     },
     {
@@ -1744,9 +1796,20 @@
         "targetMultiplicity": "1",
         "sourceRole": "measures",
         "targetRole": "metric",
+        "sourceNavigable": true,
+        "targetNavigable": true,
         "isManuallyLayouted": false,
         "messages": [],
-        "points": []
+        "points": [
+          {
+            "x": -670,
+            "y": -270
+          },
+          {
+            "x": -470,
+            "y": -270
+          }
+        ]
       }
     },
     {
@@ -1764,7 +1827,24 @@
         "targetRole": "",
         "isManuallyLayouted": false,
         "messages": [],
-        "points": []
+        "points": [
+          {
+            "x": -870,
+            "y": -95
+          },
+          {
+            "x": -910,
+            "y": -95
+          },
+          {
+            "x": -910,
+            "y": -475
+          },
+          {
+            "x": -750,
+            "y": -475
+          }
+        ]
       }
     },
     {
@@ -1780,9 +1860,20 @@
         "targetMultiplicity": "1",
         "sourceRole": "measures",
         "targetRole": "observation",
+        "sourceNavigable": true,
+        "targetNavigable": true,
         "isManuallyLayouted": false,
         "messages": [],
-        "points": []
+        "points": [
+          {
+            "x": -750,
+            "y": -210
+          },
+          {
+            "x": -750,
+            "y": -120
+          }
+        ]
       }
     },
     {
@@ -1800,7 +1891,20 @@
         "targetRole": "",
         "isManuallyLayouted": false,
         "messages": [],
-        "points": []
+        "points": [
+          {
+            "x": -170,
+            "y": -440
+          },
+          {
+            "x": -267.5,
+            "y": -440
+          },
+          {
+            "x": -267.5,
+            "y": -290
+          }
+        ]
       }
     },
     {
@@ -1818,7 +1922,20 @@
         "targetRole": "",
         "isManuallyLayouted": false,
         "messages": [],
-        "points": []
+        "points": [
+          {
+            "x": -170,
+            "y": -365
+          },
+          {
+            "x": -267.5,
+            "y": -365
+          },
+          {
+            "x": -267.5,
+            "y": -290
+          }
+        ]
       }
     },
     {
@@ -1834,9 +1951,20 @@
         "targetMultiplicity": "*",
         "sourceRole": "date",
         "targetRole": "f_date",
+        "sourceNavigable": true,
+        "targetNavigable": true,
         "isManuallyLayouted": false,
         "messages": [],
-        "points": []
+        "points": [
+          {
+            "x": -460,
+            "y": 510
+          },
+          {
+            "x": -320,
+            "y": 510
+          }
+        ]
       }
     },
     {
@@ -1854,7 +1982,16 @@
         "targetRole": "",
         "isManuallyLayouted": false,
         "messages": [],
-        "points": []
+        "points": [
+          {
+            "x": -770,
+            "y": 250
+          },
+          {
+            "x": -770,
+            "y": 170
+          }
+        ]
       }
     },
     {
@@ -1870,9 +2007,28 @@
         "targetMultiplicity": "*",
         "sourceRole": "features",
         "targetRole": "f_features",
+        "sourceNavigable": true,
+        "targetNavigable": true,
         "isManuallyLayouted": false,
         "messages": [],
-        "points": []
+        "points": [
+          {
+            "x": -640,
+            "y": 550
+          },
+          {
+            "x": -640,
+            "y": 590
+          },
+          {
+            "x": -155,
+            "y": 590
+          },
+          {
+            "x": -155,
+            "y": 540
+          }
+        ]
       }
     },
     {
@@ -1888,9 +2044,24 @@
         "targetMultiplicity": "1..*",
         "sourceRole": "derivedBy",
         "targetRole": "baseMetric",
+        "sourceNavigable": true,
+        "targetNavigable": true,
         "isManuallyLayouted": false,
         "messages": [],
-        "points": []
+        "points": [
+          {
+            "x": -50,
+            "y": -330
+          },
+          {
+            "x": -50,
+            "y": -260
+          },
+          {
+            "x": -200,
+            "y": -260
+          }
+        ]
       }
     },
     {
@@ -1906,9 +2077,24 @@
         "targetMultiplicity": "*",
         "sourceRole": "project",
         "targetRole": "eval",
+        "sourceNavigable": true,
+        "targetNavigable": true,
         "isManuallyLayouted": false,
         "messages": [],
-        "points": []
+        "points": [
+          {
+            "x": -212.5,
+            "y": -60
+          },
+          {
+            "x": -212.5,
+            "y": -2.5
+          },
+          {
+            "x": -320,
+            "y": -2.5
+          }
+        ]
       }
     },
     {
@@ -1924,9 +2110,24 @@
         "targetMultiplicity": "*",
         "sourceRole": "project",
         "targetRole": "involves",
+        "sourceNavigable": true,
+        "targetNavigable": true,
         "isManuallyLayouted": false,
         "messages": [],
-        "points": []
+        "points": [
+          {
+            "x": -117.5,
+            "y": -60
+          },
+          {
+            "x": -117.5,
+            "y": 150
+          },
+          {
+            "x": -490,
+            "y": 150
+          }
+        ]
       }
     },
     {
@@ -1943,9 +2144,24 @@
         "targetMultiplicity": "1",
         "sourceRole": "evalu",
         "targetRole": "evaluates",
+        "sourceNavigable": true,
+        "targetNavigable": true,
         "isManuallyLayouted": false,
         "messages": [],
-        "points": []
+        "points": [
+          {
+            "x": -530,
+            "y": 32.5
+          },
+          {
+            "x": -760,
+            "y": 32.5
+          },
+          {
+            "x": -760,
+            "y": 130
+          }
+        ]
       }
     },
     {
@@ -1961,9 +2177,20 @@
         "targetMultiplicity": "1..*",
         "sourceRole": "models",
         "targetRole": "dataset",
+        "sourceNavigable": true,
+        "targetNavigable": true,
         "isManuallyLayouted": false,
         "messages": [],
-        "points": []
+        "points": [
+          {
+            "x": -690,
+            "y": 325
+          },
+          {
+            "x": -560,
+            "y": 325
+          }
+        ]
       }
     },
     {
@@ -1981,7 +2208,16 @@
         "targetRole": "",
         "isManuallyLayouted": false,
         "messages": [],
-        "points": []
+        "points": [
+          {
+            "x": -525,
+            "y": 240
+          },
+          {
+            "x": -525,
+            "y": 170
+          }
+        ]
       }
     },
     {
@@ -1997,9 +2233,20 @@
         "targetMultiplicity": "*",
         "sourceRole": "datashape",
         "targetRole": "",
+        "sourceNavigable": true,
+        "targetNavigable": true,
         "isManuallyLayouted": false,
         "messages": [],
-        "points": []
+        "points": [
+          {
+            "x": -510,
+            "y": 480
+          },
+          {
+            "x": -510,
+            "y": 400
+          }
+        ]
       }
     },
     {
@@ -2017,7 +2264,24 @@
         "targetRole": "",
         "isManuallyLayouted": true,
         "messages": [],
-        "points": []
+        "points": [
+          {
+            "x": -210,
+            "y": 410
+          },
+          {
+            "x": -210,
+            "y": 222.2314453125
+          },
+          {
+            "x": -580,
+            "y": 222.2314453125
+          },
+          {
+            "x": -580,
+            "y": 170
+          }
+        ]
       }
     },
     {
@@ -2033,9 +2297,24 @@
         "targetMultiplicity": "1",
         "sourceRole": "params",
         "targetRole": "conf",
+        "sourceNavigable": true,
+        "targetNavigable": true,
         "isManuallyLayouted": false,
         "messages": [],
-        "points": []
+        "points": [
+          {
+            "x": 140,
+            "y": -120
+          },
+          {
+            "x": 140,
+            "y": 40
+          },
+          {
+            "x": 100,
+            "y": 40
+          }
+        ]
       }
     },
     {
@@ -2051,9 +2330,24 @@
         "targetMultiplicity": "*",
         "sourceRole": "eval",
         "targetRole": "observations",
+        "sourceNavigable": true,
+        "targetNavigable": true,
         "isManuallyLayouted": false,
         "messages": [],
-        "points": []
+        "points": [
+          {
+            "x": -477.5,
+            "y": -20
+          },
+          {
+            "x": -477.5,
+            "y": -95
+          },
+          {
+            "x": -650,
+            "y": -95
+          }
+        ]
       }
     },
     {
@@ -2069,9 +2363,20 @@
         "targetMultiplicity": "*",
         "sourceRole": "config",
         "targetRole": "eval",
+        "sourceNavigable": true,
+        "targetNavigable": true,
         "isManuallyLayouted": false,
         "messages": [],
-        "points": []
+        "points": [
+          {
+            "x": -60,
+            "y": 30
+          },
+          {
+            "x": -320,
+            "y": 30
+          }
+        ]
       }
     },
     {
@@ -2089,7 +2394,24 @@
         "targetRole": "",
         "isManuallyLayouted": false,
         "messages": [],
-        "points": []
+        "points": [
+          {
+            "x": -850,
+            "y": 160
+          },
+          {
+            "x": -890,
+            "y": 160
+          },
+          {
+            "x": -890,
+            "y": -475
+          },
+          {
+            "x": -750,
+            "y": -475
+          }
+        ]
       }
     },
     {
@@ -2107,7 +2429,24 @@
         "targetRole": "",
         "isManuallyLayouted": false,
         "messages": [],
-        "points": []
+        "points": [
+          {
+            "x": 20,
+            "y": 10
+          },
+          {
+            "x": 20,
+            "y": -570
+          },
+          {
+            "x": -570,
+            "y": -570
+          },
+          {
+            "x": -570,
+            "y": -530
+          }
+        ]
       }
     },
     {
@@ -2125,7 +2464,24 @@
         "targetRole": "",
         "isManuallyLayouted": true,
         "messages": [],
-        "points": []
+        "points": [
+          {
+            "x": 140,
+            "y": -220
+          },
+          {
+            "x": 140,
+            "y": -598.8000106811523
+          },
+          {
+            "x": -630,
+            "y": -598.8000106811523
+          },
+          {
+            "x": -630,
+            "y": -530
+          }
+        ]
       }
     },
     {
@@ -2141,9 +2497,20 @@
         "targetMultiplicity": "*",
         "sourceRole": "eval",
         "targetRole": "ref",
+        "sourceNavigable": true,
+        "targetNavigable": true,
         "isManuallyLayouted": false,
         "messages": [],
-        "points": []
+        "points": [
+          {
+            "x": -510,
+            "y": 50
+          },
+          {
+            "x": -510,
+            "y": 130
+          }
+        ]
       }
     },
     {
@@ -2159,9 +2526,24 @@
         "targetMultiplicity": "*",
         "sourceRole": "tool",
         "targetRole": "",
+        "sourceNavigable": true,
+        "targetNavigable": true,
         "isManuallyLayouted": false,
         "messages": [],
-        "points": []
+        "points": [
+          {
+            "x": -1160,
+            "y": -20
+          },
+          {
+            "x": -1160,
+            "y": -70
+          },
+          {
+            "x": -870,
+            "y": -70
+          }
+        ]
       }
     },
     {
@@ -2177,9 +2559,32 @@
         "targetMultiplicity": "*",
         "sourceRole": "dataset",
         "targetRole": "",
+        "sourceNavigable": true,
+        "targetNavigable": true,
         "isManuallyLayouted": false,
         "messages": [],
-        "points": []
+        "points": [
+          {
+            "x": -387.5,
+            "y": 400
+          },
+          {
+            "x": -387.5,
+            "y": 440
+          },
+          {
+            "x": -910,
+            "y": 440
+          },
+          {
+            "x": -910,
+            "y": -45
+          },
+          {
+            "x": -870,
+            "y": -45
+          }
+        ]
       }
     },
     {
@@ -2195,9 +2600,20 @@
         "targetMultiplicity": "1",
         "sourceRole": "legal_requirements",
         "targetRole": "",
+        "sourceNavigable": true,
+        "targetNavigable": true,
         "isManuallyLayouted": false,
         "messages": [],
-        "points": []
+        "points": [
+          {
+            "x": 340,
+            "y": -90
+          },
+          {
+            "x": -70,
+            "y": -90
+          }
+        ]
       }
     },
     {
@@ -2215,7 +2631,20 @@
         "targetRole": "",
         "isManuallyLayouted": false,
         "messages": [],
-        "points": []
+        "points": [
+          {
+            "x": -1245,
+            "y": -20
+          },
+          {
+            "x": -1245,
+            "y": -502.5
+          },
+          {
+            "x": -750,
+            "y": -502.5
+          }
+        ]
       }
     }
   ],

@@ -5,6 +5,7 @@ import { useDiagramModifiable } from "@/hooks/useDiagramModifiable"
 import { useIsOnlyThisElementSelected } from "@/hooks/useIsOnlyThisElementSelected"
 import { Box } from "@mui/material"
 import { useMemo } from "react"
+import { useTranslation } from "@/i18n"
 
 /**
  * Tiny class-rect glyph for the "Attach association class" toolbar
@@ -31,7 +32,7 @@ interface CustomEdgeToolbarProps {
   position: IPoint
   onEditClick: (event: React.MouseEvent<HTMLElement>) => void
   onDeleteClick: (event: React.MouseEvent<HTMLElement>) => void
-  anchorRef: React.RefObject<SVGForeignObjectElement>
+  anchorRef: React.Ref<SVGForeignObjectElement>
   /**
    * When the right-side properties panel is the
    * active inspector surface, callers pass `showEdit={false}` to hide
@@ -57,6 +58,7 @@ export const CustomEdgeToolbar: React.FC<CustomEdgeToolbarProps> = ({
   showEdit = true,
   onAttachAssociationClass,
 }) => {
+  const { t } = useTranslation()
   const isDiagramModifiable = useDiagramModifiable()
   const selected = useIsOnlyThisElementSelected(edgeId)
 
@@ -84,10 +86,21 @@ export const CustomEdgeToolbar: React.FC<CustomEdgeToolbarProps> = ({
       height={toolbarHeight}
       x={toolbarPosition.x + 20}
       y={toolbarPosition.y + 20}
+      // The foreignObject is ALWAYS present (it anchors the popover) and sits
+      // offset from the edge line, so if it captured the pointer it would
+      // select the edge -- or swallow a click meant for a node -- from an
+      // empty region well away from the visible line (upstream Apollon
+      // #801). Keep the box transparent to the pointer; the toolbar buttons
+      // re-enable themselves below. Anchoring is geometric, so unaffected.
+      style={{ pointerEvents: "none" }}
     >
       {showToolbar && (
         <Box
+          className="besser-edge-toolbar"
           sx={{
+            // Only the buttons capture, not the box body.
+            pointerEvents: "none",
+            "& > *": { pointerEvents: "auto" },
             backgroundColor: "var(--besser-background, white)",
             boxShadow: "0 0 4px 0 var(--besser-background-variant, #f8f9fa)",
             borderRadius: "8px",
@@ -144,8 +157,8 @@ export const CustomEdgeToolbar: React.FC<CustomEdgeToolbarProps> = ({
           )}
           {onAttachAssociationClass && (
             <Box
-              title="Attach association class"
-              aria-label="Attach association class"
+              title={t("toolbar.attachAssociationClass", "Attach association class")}
+              aria-label={t("toolbar.attachAssociationClass", "Attach association class")}
               sx={{
                 width: "16px",
                 height: "16px",

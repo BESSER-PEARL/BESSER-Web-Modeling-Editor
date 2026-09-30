@@ -1,21 +1,16 @@
 # WME test catalogue
 
 A single place to read **what is tested** for the Web Modeling Editor UI and the
-natural-language generation flows — the "where can I read the description of
-these tests?" index.
+natural-language generation flows.
 
-> For the **Spec-Driven Agent / keyless free tier** specifically — the full
-> cross-repo test suite and **how to run each layer (bash + PowerShell)** — see
-> **`BESSER/tests/SMART_GEN_TESTING.md`**.
-
-There are four test surfaces:
+The test surfaces:
 
 | Surface | Tech | Location | What it proves |
 |---|---|---|---|
 | **UI end-to-end** | Playwright (Chromium) | `packages/webapp/tests/e2e/*.spec.ts` | Real browser drives the app shell, navigation, project lifecycle, settings, theme, deploy contract. |
-| **Component / logic** | Vitest (jsdom) | `packages/webapp/src/**/__tests__/` | Assistant routing, smart-gen SSE/Redux/dialogs, BYOK dialog — in isolation (mocked). |
+| **Component / logic** | Vitest (jsdom) | `packages/webapp/src/**/__tests__/` | Assistant routing, Spec-Driven Agent SSE/Redux/dialogs, BYOK dialog — in isolation (mocked). |
 | **NL-generation matrix** | Python WS probe | `modeling-agent/tests/live/test_nl_generation_scenarios.py` | Live agent routes real NL phrasings ("generate a database", …) to the right generator. |
-| **Free-tier generation E2E** | Python (live SSE) | `BESSER/tests/live/test_vibe_free_e2e.py` | Real keyless free-tier vibe generation against the deployed stack produces the expected artifact (a backend app; Rust classes). Asserts output is produced — **not** that it boots. |
+| **Free-tier generation E2E** | Python (live SSE) | `BESSER/tests/live/test_vibe_free_e2e.py` | Real keyless free-tier Spec-Driven generation against a running backend produces the expected artifact (a backend app; Rust classes). Asserts output is produced — **not** that it boots. |
 | **Agentic interface BDD** | Behave + Playwright (Python) | `packages/webapp/tests/e2e/features/` | Full browser E2E via Gherkin scenarios: walks the agentic interface to generate databases, JSON schemas, web apps, and 9 further artifact types against the **local** app. |
 
 ---
@@ -43,20 +38,15 @@ description; summarised here:
 | `er-notation.spec.ts` | Class-diagram notation UML↔ER toggle, persistence to `besser-standalone-settings`, survives reload, ER rendering (#508). |
 | `theme.spec.ts` | Dark/light toggle: `dark` class + `data-theme` on `<html>`, persistence, aria-label. |
 | `github-deploy.spec.ts` | Deploy contract: mocks GitHub auth + `deploy-webapp`, asserts the POST body carries the V2 `projectExport` envelope (v `2.0.0`, ISO `exportedAt`, non-empty `diagrams`). |
-| `smart-gen-free-tier.spec.ts` | **Assistant → generate, end to end (mocked).** Mocks the assistant WebSocket (injects `trigger_smart_generator`), `/smart-gen/config` (advertise free tier), and the `/smart-generate` SSE (canned start/phase/done). Opens a project, sends a prompt, clicks **"Use the free model"**, and asserts the run POSTs `provider:'free'` with **no** `api_key`/`base_url`, reaches completion, and never shows the "no API key — did not run" message. Deterministic; safe for CI. |
-| `smart-gen-vibe-live.spec.ts` | **FULL vibe pipeline, no mocks (gated live smoke).** Fresh browser → create a project → describe an app in plain words so the agent **models** a class diagram → **spec-driven generate** a full app on the **keyless free tier** → asserts it finishes. Real agent + backend + free GPU, so SLOW (~5 min) and non-deterministic; gated behind `RUN_LIVE_E2E=1`, points at the deployed stack. `RUN_LIVE_E2E=1 npx playwright test smart-gen-vibe-live`. |
+| `smart-gen-free-tier.spec.ts` | **Assistant → generate, end to end (mocked).** Mocks the assistant WebSocket (injects `trigger_smart_generator`), the config endpoint (advertises the free tier), and the generation SSE (canned start/phase/done). Opens a project, sends a prompt, and asserts the run POSTs `provider:'free'` with **no** `api_key`/`base_url`, reaches completion, and never shows the "no API key — did not run" message. Deterministic; safe for CI. |
+| `smart-gen-full-flow.spec.ts` | **Scripted conversation (mocked).** Request → class model on the canvas → GUI choice → the app pauses to ask before generating → the user asks → free-tier generation completes. |
+| `smart-gen-vibe-live.spec.ts` | **Full pipeline, no mocks (gated live smoke).** Create a project → describe an app so the agent **models** a class diagram → the Spec-Driven Agent generates it on the **keyless free tier** → asserts it finishes. Slow and non-deterministic; gated behind `RUN_LIVE_E2E=1`. Targets `http://localhost:8080` unless `LIVE_E2E_BASE_URL` is set. |
 
-**What `smart-gen-free-tier.spec.ts` does and does NOT catch:** it guards the
-happy-path free run and the wire contract (free UI appears, keyless payload,
-run starts, download offered). It does **not** reproduce the production-only
-timing race that once made "Use the free model" close the dialog and do nothing
-(Radix `onOpenChange` → cancel handler clearing the approved trigger before the
-resume effect ran). That race does not manifest in Vite dev (the effect wins) or
-jsdom (Radix doesn't fire `onOpenChange` on a controlled close) — only a
-production build reproduces it, so it was caught by a live-browser click and is
-now held by the `startingRunRef` guard (do not remove it). To auto-guard the race
-itself, a future job would run Playwright against a **production build** (`vite
-build` + preview) rather than the dev server.
+**Limits of `smart-gen-free-tier.spec.ts`:** it guards the happy-path free run
+and the wire contract, but runs against the Vite dev server, so it cannot catch
+dialog timing races that only show up in a production build (the
+`completedRef` guard in `SpecDrivenKeyDialogHost.tsx` covers one such race —
+keep it). Running Playwright against `vite build` + preview would close that gap.
 
 ## 2. Vitest logic tests (`src/**/__tests__/`)
 
@@ -65,21 +55,21 @@ npm run test --workspace=webapp
 ```
 
 Assistant routing (`features/assistant/.../suggestedActionRouting.test.ts`,
-`AssistantClient.*.test.ts`), smart-generation (`features/smart-generation/**`:
-trigger, SSE client, Redux slice, run-mode, BYOK dialog), and chatbot-kit UI.
+`AssistantClient.*.test.ts`), the Spec-Driven Agent (`features/spec-driven/**`:
+trigger, SSE client, Redux slice, run-mode, key dialog host), the shared BYOK dialog,
+and chatbot-kit UI.
 These mock React/Redux/SSE — they don't drive a real browser or backend.
 
 ## 3. NL-generation scenario matrix (agent-side)
 
 Drives the **live** agent WebSocket with the exact phrasings users type and
 asserts each routes to an acceptable generator (and never a forbidden one — e.g.
-"generate a database" must never hit `django`). This is the regression net for
-the class of bug where a database request was answered with Django questions.
+"generate a database" must never hit `django`).
 
 ```bash
 # standalone (prints a table, exits non-zero on failure — deploy-gate friendly)
 cd modeling-agent
-AGENT_WS_URL=wss://experimental.besser-pearl.org/agent REPEATS=3 \
+AGENT_WS_URL=ws://localhost:8765 REPEATS=3 \
   python tests/live/test_nl_generation_scenarios.py
 
 # or via pytest (skipped unless explicitly enabled)
@@ -94,32 +84,28 @@ fails it outright. Add new rows to `SCENARIOS`.
 
 Deterministic companion (no live agent, runs in normal CI):
 `modeling-agent/tests/test_generation_handler.py` pins the handler/dispatch logic
-— e.g. the "pivot out of a stuck Django config flow when the user asks for a
-database instead" regression.
+— e.g. switching from a pending Django configuration to a database request.
 
 ## 4. Free-tier generation E2E (backend live)
 
-Drives the **whole vibe pipeline** over the deployed backend SSE endpoint
-(`POST /besser_api/smart-generate`, `provider="free"`) with a golden class model,
-and asserts the real keyless free tier (Cloudflare-tunnelled qwen3-coder)
+Drives the whole Spec-Driven generation pipeline over the backend SSE endpoint
+(`provider="free"`) with a golden class model, and asserts the keyless free tier
 completes and produces the expected artifact:
 
 - **full app** — model → a FastAPI backend (`main_api.py`, `pydantic_classes.py`, …);
 - **rust** — model → a `.rs` file with structs.
 
 ```bash
-# pytest (skipped unless enabled) — SLOW (~1-3 min each, shared GPU)
+# pytest (skipped unless enabled) — slow, a few minutes per case
 RUN_LIVE_FREE_E2E=1 python -m pytest BESSER/tests/live/test_vibe_free_e2e.py -s
 
 # standalone demo runner (prints PASS/FAIL summary, non-zero exit on failure)
 python BESSER/tests/live/test_vibe_free_e2e.py
 ```
 
-**Scope on purpose:** asserts *generation produced the right kind of output*, NOT
-that the produced app *runs*. The boot/run fidelity check (does the generated
-backend actually start?) is the deferred Phase-3 boot-check work — tracked
-separately because free-model output often doesn't boot yet, and we don't want a
-known-flaky fidelity gate blocking these plumbing checks.
+**Scope on purpose:** asserts *generation produced the right kind of output*, not
+that the produced app *runs*, so a flaky fidelity gate does not block these
+plumbing checks.
 
 ## 5. Behave BDD E2E tests (`features/`)
 
@@ -151,8 +137,8 @@ behave -D headless=False features/agentic_interface.feature
 # Run a specific tag
 behave --tags @database features/agentic_interface.feature
 
-# Override the target URL (e.g. deployed stack)
-behave -D base_url=https://experimental.besser-pearl.org/ features/agentic_interface.feature
+# Override the target URL (e.g. a deployed stack)
+behave -D base_url=https://<your-deployment>/ features/agentic_interface.feature
 
 # Increase timeout for slow backends (seconds, default 420)
 behave -D agent_timeout=600 features/agentic_interface.feature
@@ -174,8 +160,9 @@ Downloads land in `downloads/`.
 
 ## What runs automatically today
 
-- **CI** (`.github/workflows/ci.yml`): backend `pytest` + `ruff` only.
-- **Deploy** (`deploy-wme.yml`): builds/pushes Docker images + SSH `docker compose`.
-- **Neither runs Playwright or the NL-generation matrix.** They are manual/local
-  today. To gate a deploy on the NL matrix, run §3 as a step after deploy and
-  fail the pipeline on a non-zero exit.
+- **This repo's CI** (`.github/workflows/`) runs only the i18n checks.
+- **The parent BESSER repo's CI** runs the backend `pytest` + `ruff` and the
+  frontend lint + build.
+- **Nothing runs Playwright or the NL-generation matrix automatically.** They are
+  manual/local today. To gate a deploy on the NL matrix, run §3 as a step after
+  deploy and fail the pipeline on a non-zero exit.

@@ -1,5 +1,6 @@
 import type { BesserEdge, UMLModel } from "@/typings"
 import type { V3UMLRelationship } from "./v3Typings"
+import { withActionType } from "./agentActions"
 import {
   importDiagram,
   isV3Format,
@@ -29,18 +30,22 @@ const LEGACY_TRANSITION_KEYS: readonly string[] = [
   "customEvent",
   "customConditions",
   "customCondition",
+  // smart-gen GUI transition fields, lifted into `predefined` / `custom`.
+  "formGuiId",
+  "guiEventGuiId",
 ]
 
 type PredefinedBlock = {
   predefinedType: string
   intentName?: string
   fileType?: string
+  formGuiId?: string
   conditionValue?:
     | string
     | { variable: string; operator: string; targetValue: string }
 }
 
-type CustomBlock = { event: string; condition: string[] }
+type CustomBlock = { event: string; condition: string[]; guiEventGuiId?: string }
 
 type TransitionData = Record<string, unknown> & {
   transitionType?: unknown
@@ -73,7 +78,10 @@ const normalizeParams = (params: unknown): Record<string, string> | undefined =>
 }
 
 /** Fill the defaults the v3 serializer always wrote for a predefined block. */
-const canonicalPredefined = (block: Record<string, unknown>): PredefinedBlock => {
+const canonicalPredefined = (
+  block: Record<string, unknown>,
+  flatFormGuiId?: unknown
+): PredefinedBlock => {
   const predefinedType =
     typeof block.predefinedType === "string" && block.predefinedType.length > 0
       ? block.predefinedType
@@ -83,6 +91,11 @@ const canonicalPredefined = (block: Record<string, unknown>): PredefinedBlock =>
     out.intentName = typeof block.intentName === "string" ? block.intentName : ""
   } else if (predefinedType === "when_file_received") {
     out.fileType = typeof block.fileType === "string" ? block.fileType : ""
+  } else if (predefinedType === "when_form_submitted") {
+    // Optional target form (AgentGUI gui_id); empty = any form.
+    const formGuiId =
+      typeof block.formGuiId === "string" ? block.formGuiId : flatFormGuiId
+    if (typeof formGuiId === "string" && formGuiId) out.formGuiId = formGuiId
   } else if (predefinedType === "when_variable_operation_matched") {
     const cv = isRecord(block.conditionValue) ? block.conditionValue : {}
     out.conditionValue = {
@@ -97,15 +110,27 @@ const canonicalPredefined = (block: Record<string, unknown>): PredefinedBlock =>
   return out
 }
 
-const canonicalCustom = (block: Record<string, unknown>): CustomBlock => ({
-  event:
+const canonicalCustom = (
+  block: Record<string, unknown>,
+  flatGuiEventGuiId?: unknown
+): CustomBlock => {
+  const event =
     typeof block.event === "string" && block.event.length > 0
       ? block.event
-      : "WildcardEvent",
-  condition: Array.isArray(block.condition)
-    ? block.condition.filter((c): c is string => typeof c === "string")
-    : [],
-})
+      : "WildcardEvent"
+  const guiEventGuiId =
+    typeof block.guiEventGuiId === "string" ? block.guiEventGuiId : flatGuiEventGuiId
+  return {
+    event,
+    condition: Array.isArray(block.condition)
+      ? block.condition.filter((c): c is string => typeof c === "string")
+      : [],
+    // GUIEvent: optional GUI (gui_id); empty = any GUI interaction.
+    ...(event === "GUIEvent" &&
+      typeof guiEventGuiId === "string" &&
+      guiEventGuiId && { guiEventGuiId }),
+  }
+}
 
 /**
  * Normalise one `AgentStateTransition` edge's `data` to the canonical
@@ -140,16 +165,19 @@ export function normalizeAgentTransitionData(
   if (hasCanonicalPredefined) {
     lifted = {
       transitionType: "predefined",
-      predefined: canonicalPredefined(d.predefined as Record<string, unknown>),
-      ...(isRecord(d.custom) && { custom: canonicalCustom(d.custom) }),
+      predefined: canonicalPredefined(
+        d.predefined as Record<string, unknown>,
+        d.formGuiId
+      ),
+      ...(isRecord(d.custom) && { custom: canonicalCustom(d.custom, d.guiEventGuiId) }),
     }
   } else if (hasCanonicalCustom) {
     lifted = {
       transitionType: "custom",
-      custom: canonicalCustom(d.custom as Record<string, unknown>),
+      custom: canonicalCustom(d.custom as Record<string, unknown>, d.guiEventGuiId),
       ...(isRecord(d.predefined) &&
         typeof d.predefined.predefinedType === "string" && {
-          predefined: canonicalPredefined(d.predefined),
+          predefined: canonicalPredefined(d.predefined, d.formGuiId),
         }),
     }
   } else {
@@ -210,6 +238,37 @@ export function normalizeAgentTransitionData(
  * function is pure (returns a clone) and idempotent on already-nested
  * input. Non-model input is returned untouched.
  */
+/**
+ * Canonicalise one AgentState body row (v4 `data.bodies[]` entry):
+ *  - `replyType` and `actionType` are both set (reader prefers
+ *    `actionType`, like the backend processor);
+ *  - a legacy LLM row without `system_message` takes its system prompt
+ *    from `name` (pre-sync React Flow rows kept it there), unless `name` is
+ *    the "AI response 🪄" placeholder the old converter wrote.
+ * Pure; returns a new object.
+ */
+export function normalizeAgentBodyRow(
+  row: Record<string, unknown>
+): Record<string, unknown> {
+  const next = withActionType(row as { replyType?: string; actionType?: string })
+  const rt = next.replyType
+  if (
+    (rt === "llm" || rt === "llm_chat") &&
+    typeof (next as Record<string, unknown>).system_message !== "string"
+  ) {
+    const name = (next as Record<string, unknown>).name
+    return {
+      ...next,
+      system_message:
+        typeof name === "string" && name !== LLM_PLACEHOLDER_NAME ? name : "",
+    }
+  }
+  return next
+}
+
+/** Placeholder the pre-sync backend converter wrote on an LLM row's `name`. */
+export const LLM_PLACEHOLDER_NAME = "AI response 🪄"
+
 export function normalizeAgentModel(model: UMLModel | unknown): UMLModel {
   if (!model || typeof model !== "object") return model as UMLModel
 
@@ -220,6 +279,32 @@ export function normalizeAgentModel(model: UMLModel | unknown): UMLModel {
     v4 = importDiagram(model)
   } else {
     return model as UMLModel
+  }
+
+  if (Array.isArray(v4.nodes)) {
+    v4 = {
+      ...v4,
+      nodes: v4.nodes.map((node) => {
+        if (node?.type !== "AgentState" || !isRecord(node.data)) return node
+        const data = node.data as Record<string, unknown>
+        const fix = (rows: unknown) =>
+          Array.isArray(rows)
+            ? rows.map((row) =>
+                isRecord(row) ? normalizeAgentBodyRow(row) : row
+              )
+            : rows
+        return {
+          ...node,
+          data: {
+            ...data,
+            ...(data.bodies !== undefined && { bodies: fix(data.bodies) }),
+            ...(data.fallbackBodies !== undefined && {
+              fallbackBodies: fix(data.fallbackBodies),
+            }),
+          },
+        }
+      }),
+    }
   }
 
   if (!Array.isArray(v4.edges)) return v4

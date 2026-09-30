@@ -73,6 +73,30 @@ export interface IDiagramReference {
   name: string
 }
 
+/** A GUI defined in the agent Components page (`AgentGUI` component). */
+export interface AgentGUIInfo {
+  name: string
+  gui_id: string
+  is_form: boolean
+}
+
+/** An intent defined in the agent Components page (`AgentIntent` component). */
+export interface AgentIntentInfo {
+  name: string
+  id: string
+}
+
+/** An LLM defined in the agent Components page (`AgentLLM` component). */
+export interface AgentLLMInfo {
+  name: string
+  provider: string
+}
+
+/** A RAG database defined in the agent Components page (`AgentRagElement` component). */
+export interface AgentRAGInfo {
+  name: string
+}
+
 /**
  * Service interface for bridging diagram data between different diagram types
  */
@@ -88,8 +112,19 @@ export interface IDiagramBridgeService {
   setStateMachineDiagrams(diagrams: IDiagramReference[]): void
   getQuantumCircuitDiagrams(): IDiagramReference[]
   setQuantumCircuitDiagrams(diagrams: IDiagramReference[]): void
+  getNeuralNetworkDiagrams(): IDiagramReference[]
+  setNeuralNetworkDiagrams(diagrams: IDiagramReference[]): void
   getAgentPlatform(): string
   setAgentPlatform(platform: string): void
+  // Agent components (populated by the webapp from the agent Components page)
+  getAgentGUIs(): AgentGUIInfo[]
+  setAgentGUIs(guis: AgentGUIInfo[]): void
+  getAgentIntents(): AgentIntentInfo[]
+  setAgentIntents(intents: AgentIntentInfo[]): void
+  getAgentLLMs(): AgentLLMInfo[]
+  setAgentLLMs(llms: AgentLLMInfo[]): void
+  getAgentRAGs(): AgentRAGInfo[]
+  setAgentRAGs(rags: AgentRAGInfo[]): void
 }
 
 const STEREOTYPE_INHERITANCE = "ClassInheritance"
@@ -117,6 +152,7 @@ export class DiagramBridgeService implements IDiagramBridgeService {
   private readonly STORAGE_KEY = "besser-class-diagram-bridge-data"
   private stateMachineDiagrams: IDiagramReference[] = []
   private quantumCircuitDiagrams: IDiagramReference[] = []
+  private neuralNetworkDiagrams: IDiagramReference[] = []
   private agentPlatform: string = "websocket"
 
   /**
@@ -565,6 +601,21 @@ export class DiagramBridgeService implements IDiagramBridgeService {
   }
 
   /**
+   * Get available neural network (NNDiagram) references — the targets a
+   * method with `implementationType: 'neural_network'` can point at.
+   */
+  getNeuralNetworkDiagrams(): IDiagramReference[] {
+    return this.neuralNetworkDiagrams
+  }
+
+  /**
+   * Set available neural network (NNDiagram) references
+   */
+  setNeuralNetworkDiagrams(diagrams: IDiagramReference[]): void {
+    this.neuralNetworkDiagrams = diagrams
+  }
+
+  /**
    * Get the currently configured agent platform (e.g. 'websocket',
    * 'telegram'). Set by the webapp whenever the active diagram's platform
    * config changes; the AgentState inspector reads it to gate the
@@ -580,6 +631,49 @@ export class DiagramBridgeService implements IDiagramBridgeService {
    */
   setAgentPlatform(platform: string): void {
     this.agentPlatform = platform || "websocket"
+  }
+
+  // ── Agent components ─────────────────────────────────────────────────
+  // Intents, LLMs, RAG databases and GUIs live off-canvas in the agent
+  // diagram's `model.components` (agent Components page). The webapp is
+  // the single writer of these lists; agent inspectors read them to offer
+  // intent / LLM / RAG / GUI dropdowns.
+
+  private agentGUIs: AgentGUIInfo[] = []
+  private agentIntents: AgentIntentInfo[] = []
+  private agentLLMs: AgentLLMInfo[] = []
+  private agentRAGs: AgentRAGInfo[] = []
+
+  getAgentGUIs(): AgentGUIInfo[] {
+    return this.agentGUIs
+  }
+
+  setAgentGUIs(guis: AgentGUIInfo[]): void {
+    this.agentGUIs = guis || []
+  }
+
+  getAgentIntents(): AgentIntentInfo[] {
+    return this.agentIntents
+  }
+
+  setAgentIntents(intents: AgentIntentInfo[]): void {
+    this.agentIntents = intents || []
+  }
+
+  getAgentLLMs(): AgentLLMInfo[] {
+    return this.agentLLMs
+  }
+
+  setAgentLLMs(llms: AgentLLMInfo[]): void {
+    this.agentLLMs = llms || []
+  }
+
+  getAgentRAGs(): AgentRAGInfo[] {
+    return this.agentRAGs
+  }
+
+  setAgentRAGs(rags: AgentRAGInfo[]): void {
+    this.agentRAGs = rags || []
   }
 }
 

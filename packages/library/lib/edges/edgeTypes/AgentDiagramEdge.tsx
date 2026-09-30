@@ -1,5 +1,5 @@
 import { BaseEdge, getBezierPath } from "@xyflow/react"
-import { useRef } from "react"
+import { usePopoverAnchor } from "@/hooks/usePopoverAnchor"
 import {
   BaseEdgeProps,
   EdgeEndpointMarkers,
@@ -18,6 +18,7 @@ import { AssessmentSelectableWrapper } from "@/components/wrapper/AssessmentSele
 import { getCustomColorsFromDataForEdge } from "@/utils/layoutUtils"
 import { EdgeInlineMarkers } from "@/components/svgs/edges/InlineMarker"
 import { registerEdgeTypes } from "../types"
+import { useTranslation } from "@/i18n"
 
 /**
  * `AgentStateTransition` edge — most complex edge in the migration.
@@ -82,7 +83,8 @@ export const AgentDiagramEdge = ({
   data,
   selected,
 }: BaseEdgeProps) => {
-  const anchorRef = useRef<SVGSVGElement | null>(null)
+  const [anchorEl, anchorRef] =
+    usePopoverAnchor<SVGForeignObjectElement>()
   const { handleDelete } = useToolbar({ id })
 
   const config = useEdgeConfig(type as DiagramEdgeType)
@@ -130,6 +132,7 @@ export const AgentDiagramEdge = ({
     enableStraightPath: false,
   })
 
+  const { t } = useTranslation()
   const { strokeColor, textColor } = getCustomColorsFromDataForEdge(data)
   // Classic React Flow bézier stroke (the native "flow" edge) instead of the
   // shared UML step routing, so an agent flow reads as smooth connections.
@@ -144,7 +147,8 @@ export const AgentDiagramEdge = ({
   })
   const markerKey = `${id}-${markerStart ?? "none"}-${markerEnd ?? "none"}`
 
-  // Compose the label per the v4 canonical shape.
+  // Canvas label + invalid highlight (smart-gen
+  // `agent-state-transition-component.tsx` getLabel / isInvalid).
   const d = (data ?? {}) as {
     name?: string
     label?: string
@@ -153,28 +157,71 @@ export const AgentDiagramEdge = ({
       predefinedType?: string
       intentName?: string
       fileType?: string
+      formGuiId?: string
       conditionValue?:
         | string
         | { variable?: string; operator?: string; targetValue?: string }
     }
     custom?: { event?: string; condition?: string[] }
   }
-
-  let composedLabel = d.name ?? ""
-  if (d.transitionType === "custom" && d.custom) {
-    const ev = d.custom.event && d.custom.event !== "None" ? d.custom.event : ""
-    const cond = (d.custom.condition ?? []).filter(Boolean).join(" && ")
-    const tail = [ev ? `[${ev}]` : "", cond ? `/ ${cond}` : ""]
-      .filter(Boolean)
-      .join(" ")
-    composedLabel = [composedLabel, tail].filter(Boolean).join(" ")
-  } else if (d.transitionType === "predefined" && d.predefined) {
-    const pt = d.predefined.predefinedType
-    const v = d.predefined.intentName ?? d.predefined.fileType ?? ""
-    const tail = pt ? `[${pt}${v ? `: ${v}` : ""}]` : ""
-    composedLabel = [composedLabel, tail].filter(Boolean).join(" ")
+  const cv =
+    typeof d.predefined?.conditionValue === "object" &&
+    d.predefined?.conditionValue !== null
+      ? (d.predefined?.conditionValue as {
+          variable?: string
+          operator?: string
+          targetValue?: string
+        })
+      : {}
+  const getTriggerLabel = (): string => {
+    if (d.transitionType === "custom") {
+      const ev = d.custom?.event || "WildcardEvent"
+      const n = d.custom?.condition?.length || 0
+      const conditions = `${n} ${t("packages.AgentDiagram.transitionCanvasLabel.conditionsShort", "cond.")}`
+      return ev === "None"
+        ? `${t("packages.AgentDiagram.transitionCanvasLabel.noEvent", "No event")} + ${conditions}`
+        : `${ev} + ${conditions}`
+    }
+    const pt = d.predefined?.predefinedType
+    if (!pt) return ""
+    if (pt === "when_intent_matched") {
+      return (
+        d.predefined?.intentName ||
+        t("packages.AgentDiagram.transitionCanvasLabel.intent", "Intent")
+      )
+    }
+    if (pt === "when_no_intent_matched") {
+      return t("packages.AgentDiagram.transitionCanvasLabel.noIntent", "No intent")
+    }
+    if (pt === "when_variable_operation_matched") {
+      return `${cv.variable || "?"} ${cv.operator || "?"} ${cv.targetValue || "?"}`
+    }
+    if (pt === "when_file_received") {
+      return t("packages.AgentDiagram.transitionCanvasLabel.file", "File")
+    }
+    if (pt === "when_form_submitted") {
+      return d.predefined?.formGuiId
+        ? `${d.predefined.formGuiId} ${t("packages.AgentDiagram.transitionCanvasLabel.submitted", "Submitted")}`
+        : t("packages.AgentDiagram.transitionLabel.formSubmitted", "Form Submitted")
+    }
+    if (pt === "auto") return t("packages.AgentDiagram.transitionLabel.auto", "Auto")
+    return pt
   }
+  const isInvalid = (): boolean => {
+    if (d.transitionType === "custom") return false
+    const pt = d.predefined?.predefinedType
+    if (pt === "when_intent_matched") return !d.predefined?.intentName
+    if (pt === "when_variable_operation_matched") {
+      return !(cv.variable && cv.operator && cv.targetValue)
+    }
+    return false
+  }
+  const invalid = isInvalid()
+  const trigger = getTriggerLabel()
+  const composedLabel = [d.name ?? "", trigger].filter(Boolean).join(" · ")
   const label = composedLabel || (d.label as string) || ""
+  const edgeStroke = invalid ? "#ef4444" : strokeColor
+  const labelColor = invalid ? "#ef4444" : textColor
 
   return (
     <AssessmentSelectableWrapper elementId={id} asElement="g">
@@ -186,7 +233,7 @@ export const AgentDiagramEdge = ({
             path={smoothPath}
             pointerEvents="none"
             style={{
-              stroke: strokeColor,
+              stroke: edgeStroke,
               strokeDasharray: isReconnectingRef.current
                 ? "none"
                 : strokeDashArray,
@@ -202,7 +249,7 @@ export const AgentDiagramEdge = ({
               pathD={smoothPath}
               markerEnd={markerEnd}
               markerStart={markerStart}
-              strokeColor={strokeColor}
+              strokeColor={edgeStroke}
             />
           )}
 
@@ -236,7 +283,7 @@ export const AgentDiagramEdge = ({
           pathMiddlePosition={edgeData.pathMiddlePosition}
           isMiddlePathHorizontal={edgeData.isMiddlePathHorizontal}
           showRelationshipLabels={true}
-          textColor={textColor}
+          textColor={labelColor}
         />
 
         <CommonEdgeElements
@@ -245,6 +292,7 @@ export const AgentDiagramEdge = ({
           isDiagramModifiable={isDiagramModifiable}
           assessments={assessments}
           anchorRef={anchorRef}
+          anchorEl={anchorEl}
           handleDelete={handleDelete}
           setPopOverElementId={setPopOverElementId}
           type={type}

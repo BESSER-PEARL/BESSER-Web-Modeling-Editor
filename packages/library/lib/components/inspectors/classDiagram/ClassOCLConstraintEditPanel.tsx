@@ -5,6 +5,7 @@ import { useDiagramStore } from "@/store/context"
 import { ClassOCLConstraintNodeProps } from "@/types"
 import { DividerLine, NodeStyleEditor } from "@/components/ui"
 import { PopoverProps } from "@/components/popovers/types"
+import { useTranslation } from "@/i18n"
 
 /**
  * Inspector body for the free-standing OCL constraint node. Per user
@@ -26,6 +27,7 @@ export const ClassOCLConstraintEditPanel: React.FC<PopoverProps> = ({
       setNodes: state.setNodes,
     }))
   )
+  const { t } = useTranslation()
 
   const node = nodes.find((n) => n.id === elementId)
   if (!node) return null
@@ -56,7 +58,10 @@ export const ClassOCLConstraintEditPanel: React.FC<PopoverProps> = ({
         multiline
         minRows={3}
         maxRows={12}
-        placeholder="OCL expression…"
+        placeholder={t(
+          "packages.OCLConstraint.expressionPlaceholder",
+          "OCL expression…"
+        )}
         value={data.expression ?? ""}
         onChange={(e) => updateData({ expression: e.target.value })}
       />
@@ -66,7 +71,10 @@ export const ClassOCLConstraintEditPanel: React.FC<PopoverProps> = ({
         multiline
         minRows={2}
         maxRows={6}
-        placeholder="Description (optional)"
+        placeholder={t(
+          "packages.OCLConstraint.descriptionOptionalPlaceholder",
+          "Description (optional)"
+        )}
         value={data.description ?? ""}
         onChange={(e) =>
           updateData({ description: e.target.value || undefined })

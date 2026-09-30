@@ -31,6 +31,7 @@ export interface ModificationTarget {
   targetStateName?: string;
   intentId?: string;
   intentName?: string;
+  // AgentDiagram remove_transition by id
   transitionId?: string;
   objectId?: string;
   objectName?: string;
@@ -310,4 +311,79 @@ export class ModifierHelpers {
   static findNodesByType(model: BESSERModel, type: string): BesserNode[] {
     return ModifierHelpers.nodes(model).filter((n) => n.type === type);
   }
+}
+
+/** What a batch of modifications actually did to the model. */
+export interface ModelDiff {
+  removedClasses: string[];
+  addedClasses: string[];
+  removedRelationships: number;
+  addedRelationships: number;
+}
+
+const CLASS_LIKE = ['Class', 'AbstractClass', 'Interface', 'Enumeration'];
+
+/**
+ * Compare two models structurally.
+ *
+ * The change summary the user sees is written by the agent from what it
+ * INTENDED, so a modification that does something else entirely is still
+ * reported as a success: "remove book copy" deleted three classes and nine
+ * relationships and announced "Applied 4 changes". Diffing the
+ * real before/after is the only description that cannot lie.
+ */
+export function summarizeModelDiff(before: any, after: any): ModelDiff {
+  // v4 models: every classifier is a `class` node, relationships are edges.
+  // v3 models (legacy snapshots): `elements` / `relationships` records.
+  const classNames = (model: any): Map<string, string> => {
+    const out = new Map<string, string>();
+    if (Array.isArray(model?.nodes)) {
+      for (const node of model.nodes) {
+        if (node?.type === 'class') out.set(node.id, node.data?.name ?? node.id);
+      }
+      return out;
+    }
+    for (const [id, el] of Object.entries((model?.elements ?? {}) as Record<string, any>)) {
+      if (el && CLASS_LIKE.includes(el.type)) out.set(id, el.name ?? id);
+    }
+    return out;
+  };
+  const relationshipIds = (model: any): Set<string> =>
+    Array.isArray(model?.edges)
+      ? new Set(model.edges.map((e: any) => e?.id).filter(Boolean))
+      : new Set(Object.keys(model?.relationships ?? {}));
+
+  const b = classNames(before);
+  const a = classNames(after);
+  const br = relationshipIds(before);
+  const ar = relationshipIds(after);
+
+  return {
+    removedClasses: [...b.entries()].filter(([id]) => !a.has(id)).map(([, name]) => name),
+    addedClasses: [...a.entries()].filter(([id]) => !b.has(id)).map(([, name]) => name),
+    removedRelationships: [...br].filter((id) => !ar.has(id)).length,
+    addedRelationships: [...ar].filter((id) => !br.has(id)).length,
+  };
+}
+
+/**
+ * Class names a batch of modifications explicitly asked to remove.
+ *
+ * Anything deleted beyond this set is collateral, and the caller should say so
+ * rather than let it pass as an intended change.
+ */
+export function classesNamedForRemoval(modifications: any[]): Set<string> {
+  const named = new Set<string>();
+  for (const mod of modifications ?? []) {
+    if (mod?.action !== 'remove_element') continue;
+    const target = mod.target ?? {};
+    // A relationship removal names endpoints, never a class to delete.
+    if (target.sourceClass || target.targetClass) continue;
+    if (target.attributeName || target.attributeId) continue;
+    if (target.methodName || target.methodId) continue;
+    if (typeof target.className === 'string' && target.className.trim()) {
+      named.add(target.className.trim());
+    }
+  }
+  return named;
 }

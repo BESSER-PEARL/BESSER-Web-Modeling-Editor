@@ -1,4 +1,4 @@
-import type { BesserNode, UMLModel } from '@besser/wme';
+import type { BesserNode, UMLModel, UMLModelComponent } from '@besser/wme';
 
 /**
  * Multi-LLM helpers for the Agent Customization panel (LLMs card).
@@ -6,10 +6,9 @@ import type { BesserNode, UMLModel } from '@besser/wme';
  * Develop source: the inline helpers in
  * `features/agent-config/AgentConfigurationPanel.tsx` (AgentLLMElement,
  * remapLlmReferences, resolveDefaultLlm, …). Ported behavior, v4 shape:
- * AgentLLM definitions live as **data-only nodes** (`type: 'AgentLLM'`)
- * in the canonical v4 `model.nodes` array — never rendered on the
- * canvas (the library registers a null-rendering component), managed
- * exclusively from the Customization panel.
+ * AgentLLM definitions live in the off-canvas v4 `model.components` map
+ * (shared with the agent Components page; spec: AgentDiagram → Components).
+ * Legacy data-only `AgentLLM` canvas nodes are still read and edited.
  */
 
 export type AgentLLMElementProvider = 'openai' | 'huggingface' | 'huggingface_api' | 'replicate';
@@ -77,10 +76,59 @@ export const toAgentLLMElement = (node: BesserNode, fallbackId = ''): AgentLLMEl
   };
 };
 
-/** All registered LLM definitions in the model, in node order. */
-export const listAgentLLMElements = (model: Pick<UMLModel, 'nodes'> | null | undefined): AgentLLMElement[] => {
-  if (!model || !Array.isArray(model.nodes)) return [];
-  return model.nodes.filter(isAgentLLMNode).map((node) => toAgentLLMElement(node, node.id));
+/** True for an `AgentLLM` entry of the v4 `model.components` map. */
+export const isAgentLLMComponent = (value: unknown): value is UMLModelComponent =>
+  Boolean(value) && typeof value === 'object' && (value as { type?: unknown }).type === 'AgentLLM';
+
+/**
+ * All registered LLM definitions: the off-canvas `AgentLLM` components (v4
+ * `model.components` — where the agent Components page and the
+ * Customization panel keep them), then any legacy data-only `AgentLLM`
+ * canvas node not also present as a component.
+ */
+export const listAgentLLMElements = (
+  model: Pick<UMLModel, 'nodes'> & Partial<Pick<UMLModel, 'components'>> | null | undefined,
+): AgentLLMElement[] => {
+  if (!model) return [];
+  const fromComponents = Object.values(model.components ?? {})
+    .filter(isAgentLLMComponent)
+    .map((component) => toAgentLLMElement({ id: component.id, data: component } as unknown as BesserNode, component.id));
+  const seen = new Set(fromComponents.map((llm) => llm.id));
+  const fromNodes = Array.isArray(model.nodes)
+    ? model.nodes
+        .filter((node) => isAgentLLMNode(node) && !seen.has(node.id))
+        .map((node) => toAgentLLMElement(node, node.id))
+    : [];
+  return [...fromComponents, ...fromNodes];
+};
+
+/**
+ * Build a fresh `AgentLLM` component (v4 `model.components` entry — flat
+ * fields, no geometry). Same defaults as the develop/smart-generator add
+ * handler: name 'gpt-4o-mini', provider 'openai'.
+ */
+export const createAgentLLMComponent = (): UMLModelComponent => ({
+  id: generateAgentLLMId(),
+  type: 'AgentLLM',
+  name: 'gpt-4o-mini',
+  owner: null,
+  provider: 'openai',
+  parameters: {},
+  num_previous_messages: 1,
+  global_context: '',
+});
+
+/** Merge an LLMs-card patch into an `AgentLLM` component (id/type pinned). */
+export const applyAgentLLMComponentPatch = (
+  component: UMLModelComponent,
+  // Any LLMs-card view patch (the panel's `AgentLLMElement` carries the full
+  // provider union, this module's the legacy subset).
+  patch: { [K in keyof AgentLLMElement]?: unknown },
+): UMLModelComponent => {
+  const fieldPatch: Record<string, unknown> = { ...patch };
+  delete fieldPatch.id;
+  delete fieldPatch.type;
+  return { ...component, ...fieldPatch, id: component.id, type: 'AgentLLM' };
 };
 
 /** Build a fresh v4 `AgentLLM` node. Mirrors develop's add handler:
@@ -130,7 +178,9 @@ export const formatAgentLLMParameters = (parameters: Record<string, unknown>): s
 // AgentReasoningState, AgentStateBody, AgentStateFallbackBody); in v4
 // the body rows live inline on the parent AgentState's `bodies` /
 // `fallbackBodies` arrays, handled separately below.
-const LLM_REFERENCING_NODE_TYPES = new Set<string>(['AgentRagElement', 'AgentReasoningState']);
+// `AgentState` covers v4 reasoning states (`data.stateType: 'reasoning'`,
+// `data.llm_name`); `AgentReasoningState` is the legacy node type.
+const LLM_REFERENCING_NODE_TYPES = new Set<string>(['AgentRagElement', 'AgentReasoningState', 'AgentState']);
 
 type LlmBodyRow = { llm_name?: string } & Record<string, unknown>;
 
@@ -169,13 +219,32 @@ export const remapLlmReferences = (
 };
 
 /**
+ * Component-side counterpart of {@link remapLlmReferences}: rewrite
+ * `llm_name === fromName` on every `model.components` entry (e.g. an
+ * off-canvas `AgentRagElement`). Mutates the map in place (callers operate
+ * on a deep clone of the model).
+ */
+export const remapComponentLlmReferences = (
+  components: Record<string, UMLModelComponent> | undefined,
+  fromName: string,
+  toName: string,
+): void => {
+  if (!components) return;
+  for (const component of Object.values(components)) {
+    if (component && typeof component === 'object' && component.llm_name === fromName) {
+      component.llm_name = toName;
+    }
+  }
+};
+
+/**
  * Resolve the default LLM that satisfies the invariant
  * "if the list has any LLMs, the default points to one of them; if
  * there is exactly one LLM it must be that one." Pass the model that
  * already reflects the latest CRUD operation.
  */
 export const resolveDefaultLlm = (
-  model: Pick<UMLModel, 'nodes'> | null | undefined,
+  model: Pick<UMLModel, 'nodes'> & Partial<Pick<UMLModel, 'components'>> | null | undefined,
   currentDefault: string | undefined,
 ): string | undefined => {
   const llms = listAgentLLMElements(model);

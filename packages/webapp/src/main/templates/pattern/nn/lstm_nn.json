@@ -8,8 +8,8 @@
       "id": "90295e37-f91c-4880-8924-d4d78c99d4b7",
       "type": "NNContainer",
       "position": {
-        "x": 195,
-        "y": 170
+        "x": -490,
+        "y": -370
       },
       "width": 890,
       "height": 190,
@@ -26,20 +26,20 @@
       "type": "EmbeddingLayer",
       "position": {
         "x": 30,
-        "y": 50
+        "y": 60
       },
-      "width": 90,
-      "height": 100,
+      "width": 110,
+      "height": 110,
       "measured": {
-        "width": 90,
-        "height": 100
+        "width": 110,
+        "height": 110
       },
       "data": {
-        "name": "EmbeddingLayer",
+        "name": "l1",
         "attributes": {
+          "name": "l1",
           "num_embeddings": "10000",
-          "embedding_dim": "326",
-          "name": "EmbeddingLayer"
+          "embedding_dim": "326"
         }
       },
       "parentId": "90295e37-f91c-4880-8924-d4d78c99d4b7"
@@ -49,24 +49,24 @@
       "type": "LSTMLayer",
       "position": {
         "x": 170,
-        "y": 50
+        "y": 60
       },
-      "width": 90,
-      "height": 100,
+      "width": 110,
+      "height": 110,
       "measured": {
-        "width": 90,
-        "height": 100
+        "width": 110,
+        "height": 110
       },
       "data": {
-        "name": "LSTMLayer2",
+        "name": "l2",
         "attributes": {
+          "name": "l2",
           "hidden_size": "40",
           "return_type": "full",
           "input_size": "326",
           "dropout": "0.5",
           "bidirectional": true,
-          "batch_first": true,
-          "name": "LSTMLayer2"
+          "batch_first": true
         }
       },
       "parentId": "90295e37-f91c-4880-8924-d4d78c99d4b7"
@@ -75,20 +75,20 @@
       "id": "29f79d1a-bb72-4e16-b43c-74141ee4085d",
       "type": "DropoutLayer",
       "position": {
-        "x": 320,
-        "y": 50
+        "x": 300,
+        "y": 60
       },
-      "width": 90,
-      "height": 100,
+      "width": 110,
+      "height": 110,
       "measured": {
-        "width": 90,
-        "height": 100
+        "width": 110,
+        "height": 110
       },
       "data": {
-        "name": "DropoutLayer",
+        "name": "l3",
         "attributes": {
-          "rate": "0.2",
-          "name": "DropoutLayer"
+          "name": "l3",
+          "rate": "0.2"
         }
       },
       "parentId": "90295e37-f91c-4880-8924-d4d78c99d4b7"
@@ -97,24 +97,24 @@
       "id": "99723b0a-7145-4193-a316-624e28dfc76d",
       "type": "LSTMLayer",
       "position": {
-        "x": 480,
-        "y": 50
+        "x": 440,
+        "y": 60
       },
-      "width": 90,
-      "height": 100,
+      "width": 110,
+      "height": 110,
       "measured": {
-        "width": 90,
-        "height": 100
+        "width": 110,
+        "height": 110
       },
       "data": {
-        "name": "LSTMLayer",
+        "name": "l4",
         "attributes": {
+          "name": "l4",
           "hidden_size": "40",
           "return_type": "last",
           "input_size": "80",
           "dropout": "0.2",
-          "batch_first": true,
-          "name": "LSTMLayer"
+          "batch_first": true
         }
       },
       "parentId": "90295e37-f91c-4880-8924-d4d78c99d4b7"
@@ -123,22 +123,22 @@
       "id": "bc8fa1c6-205d-41a5-bdd3-77ce5b45f4aa",
       "type": "LinearLayer",
       "position": {
-        "x": 625,
-        "y": 50
+        "x": 580,
+        "y": 60
       },
-      "width": 90,
-      "height": 100,
+      "width": 110,
+      "height": 110,
       "measured": {
-        "width": 90,
-        "height": 100
+        "width": 110,
+        "height": 110
       },
       "data": {
-        "name": "LinearLayer2",
+        "name": "l5",
         "attributes": {
+          "name": "l5",
           "out_features": "40",
           "in_features": "40",
-          "actv_func": "relu",
-          "name": "LinearLayer2"
+          "actv_func": "relu"
         }
       },
       "parentId": "90295e37-f91c-4880-8924-d4d78c99d4b7"
@@ -147,22 +147,22 @@
       "id": "4582f578-1508-4643-a942-86bec6e891e6",
       "type": "LinearLayer",
       "position": {
-        "x": 785,
-        "y": 50
+        "x": 720,
+        "y": 60
       },
-      "width": 90,
-      "height": 100,
+      "width": 110,
+      "height": 110,
       "measured": {
-        "width": 90,
-        "height": 100
+        "width": 110,
+        "height": 110
       },
       "data": {
-        "name": "LinearLayer",
+        "name": "l6",
         "attributes": {
+          "name": "l6",
           "out_features": "2",
           "in_features": "40",
-          "actv_func": "softmax",
-          "name": "LinearLayer"
+          "actv_func": "softmax"
         }
       },
       "parentId": "90295e37-f91c-4880-8924-d4d78c99d4b7"
@@ -179,7 +179,22 @@
       "data": {
         "label": "next",
         "name": "next",
-        "points": []
+        "sourceMultiplicity": "",
+        "targetMultiplicity": "",
+        "sourceRole": "",
+        "targetRole": "",
+        "isManuallyLayouted": false,
+        "messages": [],
+        "points": [
+          {
+            "x": -350,
+            "y": -255
+          },
+          {
+            "x": -320,
+            "y": -255
+          }
+        ]
       }
     },
     {
@@ -192,7 +207,22 @@
       "data": {
         "label": "next",
         "name": "next",
-        "points": []
+        "sourceMultiplicity": "",
+        "targetMultiplicity": "",
+        "sourceRole": "",
+        "targetRole": "",
+        "isManuallyLayouted": false,
+        "messages": [],
+        "points": [
+          {
+            "x": -210,
+            "y": -255
+          },
+          {
+            "x": -190,
+            "y": -255
+          }
+        ]
       }
     },
     {
@@ -205,7 +235,22 @@
       "data": {
         "label": "next",
         "name": "next",
-        "points": []
+        "sourceMultiplicity": "",
+        "targetMultiplicity": "",
+        "sourceRole": "",
+        "targetRole": "",
+        "isManuallyLayouted": false,
+        "messages": [],
+        "points": [
+          {
+            "x": -80,
+            "y": -255
+          },
+          {
+            "x": -50,
+            "y": -255
+          }
+        ]
       }
     },
     {
@@ -218,7 +263,22 @@
       "data": {
         "label": "next",
         "name": "next",
-        "points": []
+        "sourceMultiplicity": "",
+        "targetMultiplicity": "",
+        "sourceRole": "",
+        "targetRole": "",
+        "isManuallyLayouted": false,
+        "messages": [],
+        "points": [
+          {
+            "x": 60,
+            "y": -255
+          },
+          {
+            "x": 90,
+            "y": -255
+          }
+        ]
       }
     },
     {
@@ -231,7 +291,22 @@
       "data": {
         "label": "next",
         "name": "next",
-        "points": []
+        "sourceMultiplicity": "",
+        "targetMultiplicity": "",
+        "sourceRole": "",
+        "targetRole": "",
+        "isManuallyLayouted": false,
+        "messages": [],
+        "points": [
+          {
+            "x": 200,
+            "y": -255
+          },
+          {
+            "x": 230,
+            "y": -255
+          }
+        ]
       }
     }
   ],

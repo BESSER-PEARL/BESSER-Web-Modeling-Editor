@@ -18,6 +18,7 @@ import { useShallow } from "zustand/shallow"
 import CodeMirror from "@uiw/react-codemirror"
 import { python } from "@codemirror/lang-python"
 import { useDiagramStore } from "@/store/context"
+import { useTranslation } from "@/i18n"
 import {
   ClassNodeElement,
   ClassNodeProps,
@@ -93,7 +94,9 @@ interface ReorderGutterProps {
 const ReorderGutter: React.FC<ReorderGutterProps> = ({
   onMoveUp,
   onMoveDown,
-}) => (
+}) => {
+  const { t } = useTranslation()
+  return (
   <Stack
     direction="column"
     spacing={0}
@@ -105,12 +108,12 @@ const ReorderGutter: React.FC<ReorderGutterProps> = ({
     }}
   >
     {onMoveUp ? (
-      <Tooltip title="Move row up">
+      <Tooltip title={t("popup.classifier.moveUp", "Move up")}>
         <IconButton
           size="small"
           onClick={onMoveUp}
           sx={{ padding: "1px" }}
-          aria-label="Move row up"
+          aria-label={t("popup.classifier.moveUp", "Move up")}
         >
           <ArrowUpSvg />
         </IconButton>
@@ -119,12 +122,12 @@ const ReorderGutter: React.FC<ReorderGutterProps> = ({
       <Box sx={{ height: 18 }} />
     )}
     {onMoveDown ? (
-      <Tooltip title="Move row down">
+      <Tooltip title={t("popup.classifier.moveDown", "Move down")}>
         <IconButton
           size="small"
           onClick={onMoveDown}
           sx={{ padding: "1px" }}
-          aria-label="Move row down"
+          aria-label={t("popup.classifier.moveDown", "Move down")}
         >
           <ArrowDownSvg />
         </IconButton>
@@ -133,7 +136,8 @@ const ReorderGutter: React.FC<ReorderGutterProps> = ({
       <Box sx={{ height: 18 }} />
     )}
   </Stack>
-)
+  )
+}
 
 /**
  * Helper: collect sibling Enumerations from the bridge data so the
@@ -195,12 +199,27 @@ const VISIBILITIES: { value: ClassifierVisibility; label: string }[] = [
 const IMPLEMENTATION_TYPES: {
   value: ClassifierMethodImplementationType
   label: string
+  /** i18n key; `undefined` for product names that stay untranslated. */
+  labelKey?: string
 }[] = [
-  { value: "none", label: "None (UML)" },
-  { value: "code", label: "Python Code" },
+  { value: "none", label: "None (UML)", labelKey: "popup.method.implNone" },
+  { value: "code", label: "Python Code", labelKey: "popup.method.implCode" },
   { value: "bal", label: "BESSER Action Language" },
-  { value: "state_machine", label: "State Machine" },
-  { value: "quantum_circuit", label: "Quantum Circuit" },
+  {
+    value: "state_machine",
+    label: "State Machine",
+    labelKey: "popup.method.implStateMachine",
+  },
+  {
+    value: "quantum_circuit",
+    label: "Quantum Circuit",
+    labelKey: "popup.method.implQuantumCircuit",
+  },
+  {
+    value: "neural_network",
+    label: "Neural Network",
+    labelKey: "popup.method.implNeuralNetwork",
+  },
 ]
 
 const CUSTOM_TYPE_SENTINEL = "__custom__"
@@ -282,6 +301,7 @@ const AttributeRow: React.FC<AttributeRowProps> = ({
   onMoveDown,
   isEnumerationParent = false,
 }) => {
+  const { t } = useTranslation()
   const visibility = row.visibility ?? "public"
   const attributeType = row.attributeType ?? "str"
   const isCustom = !isPrimitiveType(attributeType)
@@ -389,7 +409,9 @@ const AttributeRow: React.FC<AttributeRowProps> = ({
           variant="outlined"
           fullWidth
           placeholder={
-            isEnumerationParent ? "literal name" : "+ attribute: type"
+            isEnumerationParent
+              ? t("popup.attribute.literalNamePlaceholder", "literal name")
+              : t("popup.attribute.shorthandPlaceholder", "+ attribute: type")
           }
           value={nameDraft ?? row.name}
           onChange={(e) => {
@@ -430,7 +452,7 @@ const AttributeRow: React.FC<AttributeRowProps> = ({
             ))}
             {classNames.length > 0 && [
               <MenuItem key="__divider__" disabled>
-                ── classes ──
+                {t("popup.class.classesDivider", "── classes ──")}
               </MenuItem>,
               ...classNames.map((cn) => (
                 <MenuItem key={`class-${cn}`} value={cn}>
@@ -440,7 +462,7 @@ const AttributeRow: React.FC<AttributeRowProps> = ({
             ]}
             {enumerationNames.length > 0 && [
               <MenuItem key="__edivider__" disabled>
-                ── enumerations ──
+                {t("popup.class.enumerationsDivider", "── enumerations ──")}
               </MenuItem>,
               ...enumerationNames.map((en) => (
                 <MenuItem key={`enum-${en}`} value={en}>
@@ -448,7 +470,9 @@ const AttributeRow: React.FC<AttributeRowProps> = ({
                 </MenuItem>
               )),
             ]}
-            <MenuItem value={CUSTOM_TYPE_SENTINEL}>custom…</MenuItem>
+            <MenuItem value={CUSTOM_TYPE_SENTINEL}>
+            {t("popup.class.customType", "custom…")}
+          </MenuItem>
           </Select>
         )}
         {/* Per-row options (flags + default + colors) collapse behind
@@ -458,15 +482,15 @@ const AttributeRow: React.FC<AttributeRowProps> = ({
         <Tooltip
           title={
             showSettings
-              ? "Hide options"
+              ? t("popup.attribute.hideOptions", "Hide options")
               : isEnumerationParent
-                ? "Show colors"
-                : "Show flags, default & colors"
+                ? t("popup.attribute.showColors", "Show colors")
+                : t("popup.attribute.showOptions", "Show flags, default & colors")
           }
         >
           <IconButton
             size="small"
-            aria-label="Attribute row options"
+            aria-label={t("popup.attribute.rowOptions", "Attribute row options")}
             onClick={() => setShowSettings((s) => !s)}
             sx={{
               color: showSettings ? "var(--besser-primary, #3e8acc)" : undefined,
@@ -475,7 +499,13 @@ const AttributeRow: React.FC<AttributeRowProps> = ({
             <EditIcon width={14} height={14} />
           </IconButton>
         </Tooltip>
-        <Tooltip title={isEnumerationParent ? "Delete literal" : "Delete attribute"}>
+        <Tooltip
+          title={
+            isEnumerationParent
+              ? t("popup.attribute.deleteLiteral", "Delete literal")
+              : t("popup.attribute.deleteAttribute", "Delete attribute")
+          }
+        >
           <IconButton size="small" onClick={onDelete}>
             <DeleteIcon width={14} height={14} />
           </IconButton>
@@ -487,7 +517,10 @@ const AttributeRow: React.FC<AttributeRowProps> = ({
           size="small"
           variant="outlined"
           fullWidth
-          placeholder="custom type (free-text)"
+          placeholder={t(
+            "popup.attribute.customTypePlaceholder",
+            "custom type (free-text)"
+          )}
           value={customTypeDraft || attributeType}
           onChange={(e) => setCustomTypeDraft(e.target.value)}
           onBlur={handleCustomTypeBlur}
@@ -513,7 +546,10 @@ const AttributeRow: React.FC<AttributeRowProps> = ({
             <FormControlLabel
               title={
                 idLockedByOptional
-                  ? "Optional attributes cannot be the identifier."
+                  ? t(
+                      "stylePane.idLockedByOptional",
+                      "Optional attributes cannot be the identifier."
+                    )
                   : undefined
               }
               control={
@@ -524,12 +560,17 @@ const AttributeRow: React.FC<AttributeRowProps> = ({
                   onChange={(e) => onPatch({ isId: e.target.checked })}
                 />
               }
-              label={<Typography variant="caption">id</Typography>}
+              label={<Typography variant="caption">
+                  {t("stylePane.id", "ID")}
+                </Typography>}
             />
             <FormControlLabel
               title={
                 idLockedByOptional
-                  ? "Optional attributes cannot be the external identifier."
+                  ? t(
+                      "stylePane.externalIdLockedByOptional",
+                      "Optional attributes cannot be the external identifier."
+                    )
                   : undefined
               }
               control={
@@ -540,12 +581,17 @@ const AttributeRow: React.FC<AttributeRowProps> = ({
                   onChange={(e) => onPatch({ isExternalId: e.target.checked })}
                 />
               }
-              label={<Typography variant="caption">external id</Typography>}
+              label={<Typography variant="caption">
+                  {t("stylePane.externalId", "External ID")}
+                </Typography>}
             />
             <FormControlLabel
               title={
                 optionalLockedByIdFlag
-                  ? "Identifier attributes cannot be optional."
+                  ? t(
+                      "stylePane.optionalLockedById",
+                      "Identifier attributes cannot be optional."
+                    )
                   : undefined
               }
               control={
@@ -556,7 +602,9 @@ const AttributeRow: React.FC<AttributeRowProps> = ({
                   onChange={(e) => onPatch({ isOptional: e.target.checked })}
                 />
               }
-              label={<Typography variant="caption">optional</Typography>}
+              label={<Typography variant="caption">
+                  {t("stylePane.optional", "Optional")}
+                </Typography>}
             />
             <FormControlLabel
               control={
@@ -566,7 +614,9 @@ const AttributeRow: React.FC<AttributeRowProps> = ({
                   onChange={(e) => onPatch({ isDerived: e.target.checked })}
                 />
               }
-              label={<Typography variant="caption">derived</Typography>}
+              label={<Typography variant="caption">
+                  {t("stylePane.derived", "Derived")}
+                </Typography>}
             />
           </Stack>
 
@@ -581,9 +631,11 @@ const AttributeRow: React.FC<AttributeRowProps> = ({
               value={defaultValueAsString}
               displayEmpty
               onChange={(e) => commitDefaultValue(String(e.target.value))}
-              inputProps={{ "aria-label": "default value" }}
+              inputProps={{
+                "aria-label": t("popup.attribute.defaultValue", "Default value"),
+              }}
             >
-              <MenuItem value="">(none)</MenuItem>
+              <MenuItem value="">{t("stylePane.none", "(none)")}</MenuItem>
               {enumerationLiterals.map((literal) => (
                 <MenuItem key={literal} value={literal}>
                   {literal}
@@ -596,9 +648,11 @@ const AttributeRow: React.FC<AttributeRowProps> = ({
               value={defaultValueAsString}
               displayEmpty
               onChange={(e) => commitDefaultValue(String(e.target.value))}
-              inputProps={{ "aria-label": "default value" }}
+              inputProps={{
+                "aria-label": t("popup.attribute.defaultValue", "Default value"),
+              }}
             >
-              <MenuItem value="">(none)</MenuItem>
+              <MenuItem value="">{t("stylePane.none", "(none)")}</MenuItem>
               <MenuItem value="true">true</MenuItem>
               <MenuItem value="false">false</MenuItem>
             </Select>
@@ -615,15 +669,18 @@ const AttributeRow: React.FC<AttributeRowProps> = ({
               placeholder={
                 defaultWidget === "numeric"
                   ? attributeType === "int"
-                    ? "Enter integer..."
-                    : "Enter number..."
+                    ? t("stylePane.enterInteger", "Enter integer...")
+                    : t("stylePane.enterNumber", "Enter number...")
                   : defaultWidget === "date"
                     ? "YYYY-MM-DD"
                     : defaultWidget === "datetime-local"
                       ? "YYYY-MM-DD HH:MM:SS"
                       : defaultWidget === "time"
                         ? "HH:MM:SS"
-                        : "default value (optional)"
+                        : t(
+                            "popup.attribute.defaultValueOptionalPlaceholder",
+                            "default value (optional)"
+                          )
               }
               value={defaultValueAsString}
               onChange={(e) =>
@@ -633,7 +690,9 @@ const AttributeRow: React.FC<AttributeRowProps> = ({
                     : e.target.value
                 )
               }
-              inputProps={{ "aria-label": "default value" }}
+              inputProps={{
+                "aria-label": t("popup.attribute.defaultValue", "Default value"),
+              }}
             />
           )}
           </>
@@ -644,16 +703,16 @@ const AttributeRow: React.FC<AttributeRowProps> = ({
               intentionally not exposed per-row. */}
           <Stack direction="row" spacing={1} alignItems="center">
             <Typography variant="caption" sx={{ minWidth: 44 }}>
-              Colors
+              {t("popup.class.colors", "Colors")}
             </Typography>
             <RowColorSwatch
-              label="Row fill color"
+              label={t("stylePane.rowFillColor", "Row fill color")}
               value={row.fillColor}
               fallbackCss="var(--besser-background, #fff)"
               onChange={(color) => onPatch({ fillColor: color })}
             />
             <RowColorSwatch
-              label="Row text color"
+              label={t("stylePane.rowTextColor", "Row text color")}
               value={row.textColor}
               fallbackCss="var(--besser-primary-contrast, #000)"
               onChange={(color) => onPatch({ textColor: color })}
@@ -676,6 +735,8 @@ interface MethodRowProps {
   enumerationNames: string[]
   stateMachines: { id: string; name: string }[]
   quantumCircuits: { id: string; name: string }[]
+  /** NNDiagram references for `implementationType: 'neural_network'`. */
+  neuralNetworks: { id: string; name: string }[]
   onPatch: (patch: Partial<ClassNodeElement>) => void
   onDelete: () => void
   /** Reorder gutter callbacks; undefined hides the button. */
@@ -689,11 +750,13 @@ const MethodRow: React.FC<MethodRowProps> = ({
   enumerationNames,
   stateMachines,
   quantumCircuits,
+  neuralNetworks,
   onPatch,
   onDelete,
   onMoveUp,
   onMoveDown,
 }) => {
+  const { t } = useTranslation()
   const visibility = row.visibility ?? "public"
   const implementationType: ClassifierMethodImplementationType =
     row.implementationType ?? "none"
@@ -718,6 +781,7 @@ const MethodRow: React.FC<MethodRowProps> = ({
       !!row.code ||
       !!row.stateMachineId ||
       !!row.quantumCircuitId ||
+      !!row.neuralNetworkId ||
       !!row.fillColor ||
       !!row.textColor
   )
@@ -729,8 +793,11 @@ const MethodRow: React.FC<MethodRowProps> = ({
     implementationType === "code" || implementationType === "bal"
   const signatureLockTitle =
     implementationType === "bal"
-      ? "Method defined in BESSER Action Language code"
-      : "Method defined in Python code"
+      ? t(
+          "popup.method.definedInBal",
+          "Method defined in BESSER Action Language code"
+        )
+      : t("popup.method.definedInPython", "Method defined in Python code")
 
   const patchParameters = (next: ClassifierMethodParameter[]) => {
     onPatch({ parameters: next })
@@ -771,7 +838,10 @@ const MethodRow: React.FC<MethodRowProps> = ({
           size="small"
           variant="outlined"
           fullWidth
-          placeholder="method(param: type): returnType"
+          placeholder={t(
+            "popup.method.signaturePlaceholder",
+            "method(param: type): returnType"
+          )}
           value={nameDraft ?? row.name}
           // When the method is implemented in code/BAL the signature is
           // extracted from the `def` line and the field is read-only
@@ -818,7 +888,9 @@ const MethodRow: React.FC<MethodRowProps> = ({
             commitReturnType(normalizeType(value))
           }}
           sx={{ minWidth: 80 }}
-          inputProps={{ "aria-label": "return type" }}
+          inputProps={{
+            "aria-label": t("popup.method.returnType", "Return type"),
+          }}
         >
           {PRIMITIVE_TYPES.map((p) => (
             <MenuItem key={p.value} value={p.value}>
@@ -827,7 +899,7 @@ const MethodRow: React.FC<MethodRowProps> = ({
           ))}
           {classNames.length > 0 && [
             <MenuItem key="__divider__" disabled>
-              ── classes ──
+              {t("popup.class.classesDivider", "── classes ──")}
             </MenuItem>,
             ...classNames.map((cn) => (
               <MenuItem key={`class-${cn}`} value={cn}>
@@ -837,7 +909,7 @@ const MethodRow: React.FC<MethodRowProps> = ({
           ]}
           {enumerationNames.length > 0 && [
             <MenuItem key="__edivider__" disabled>
-              ── enumerations ──
+              {t("popup.class.enumerationsDivider", "── enumerations ──")}
             </MenuItem>,
             ...enumerationNames.map((en) => (
               <MenuItem key={`enum-${en}`} value={en}>
@@ -845,14 +917,20 @@ const MethodRow: React.FC<MethodRowProps> = ({
               </MenuItem>
             )),
           ]}
-          <MenuItem value={CUSTOM_TYPE_SENTINEL}>custom…</MenuItem>
+          <MenuItem value={CUSTOM_TYPE_SENTINEL}>
+            {t("popup.class.customType", "custom…")}
+          </MenuItem>
         </Select>
         <Tooltip
-          title={showSettings ? "Hide parameters, code & colors" : "Parameters, code & colors"}
+          title={
+            showSettings
+              ? t("popup.method.hideOptions", "Hide parameters, code & colors")
+              : t("popup.method.showOptions", "Parameters, code & colors")
+          }
         >
           <IconButton
             size="small"
-            aria-label="Method row options"
+            aria-label={t("popup.method.rowOptions", "Method row options")}
             onClick={() => setShowSettings((s) => !s)}
             sx={{
               color: showSettings ? "var(--besser-primary, #3e8acc)" : undefined,
@@ -861,7 +939,7 @@ const MethodRow: React.FC<MethodRowProps> = ({
             <EditIcon width={14} height={14} />
           </IconButton>
         </Tooltip>
-        <Tooltip title="Delete method">
+        <Tooltip title={t("popup.method.deleteMethod", "Delete method")}>
           <IconButton size="small" onClick={onDelete}>
             <DeleteIcon width={14} height={14} />
           </IconButton>
@@ -873,7 +951,10 @@ const MethodRow: React.FC<MethodRowProps> = ({
           size="small"
           variant="outlined"
           fullWidth
-          placeholder="custom return type (free-text)"
+          placeholder={t(
+            "popup.method.customReturnTypePlaceholder",
+            "custom return type (free-text)"
+          )}
           value={customReturnDraft || returnType}
           onChange={(e) => setCustomReturnDraft(e.target.value)}
           onBlur={() => {
@@ -892,7 +973,7 @@ const MethodRow: React.FC<MethodRowProps> = ({
       {/* Parameter rows */}
       <Box>
         <Typography variant="caption" sx={{ fontWeight: 600 }}>
-          Parameters
+          {t("popup.parameters", "Parameters")}
         </Typography>
         {parameters.map((p, idx) => (
           <Stack
@@ -905,7 +986,7 @@ const MethodRow: React.FC<MethodRowProps> = ({
             <MuiTextField
               size="small"
               variant="outlined"
-              placeholder="name"
+              placeholder={t("popup.method.paramNamePlaceholder", "name")}
               value={p.name}
               InputProps={{ readOnly: signatureLocked }}
               title={signatureLocked ? signatureLockTitle : undefined}
@@ -919,7 +1000,7 @@ const MethodRow: React.FC<MethodRowProps> = ({
             <MuiTextField
               size="small"
               variant="outlined"
-              placeholder="type"
+              placeholder={t("popup.method.paramTypePlaceholder", "type")}
               value={p.parameterType ?? ""}
               InputProps={{ readOnly: signatureLocked }}
               title={signatureLocked ? signatureLockTitle : undefined}
@@ -953,7 +1034,10 @@ const MethodRow: React.FC<MethodRowProps> = ({
           <MuiTextField
             size="small"
             variant="outlined"
-            placeholder="+ add parameter (name: type, Enter)"
+            placeholder={t(
+              "popup.method.addParameterPlaceholder",
+              "+ add parameter (name: type, Enter)"
+            )}
             fullWidth
             sx={{ marginTop: 0.5 }}
             onKeyDown={(e: KeyboardEvent<HTMLInputElement>) => {
@@ -986,7 +1070,7 @@ const MethodRow: React.FC<MethodRowProps> = ({
       {/* Implementation type and cross-diagram dropdowns */}
       <Stack direction="row" spacing={0.5} alignItems="center" flexWrap="wrap">
         <Typography variant="caption" sx={{ minWidth: 70 }}>
-          impl
+          {t("popup.method.typeLabel", "Type:")}
         </Typography>
         <Select
           size="small"
@@ -994,19 +1078,29 @@ const MethodRow: React.FC<MethodRowProps> = ({
           onChange={(e) => {
             const next = e.target.value as ClassifierMethodImplementationType
             const patch: Partial<ClassNodeElement> = { implementationType: next }
+            // Only the reference field of the chosen implementation
+            // survives (v3 `handleImplementationTypeChange`).
             if (next === "state_machine") {
               patch.code = ""
               patch.quantumCircuitId = ""
+              patch.neuralNetworkId = ""
             } else if (next === "quantum_circuit") {
               patch.code = ""
               patch.stateMachineId = ""
+              patch.neuralNetworkId = ""
+            } else if (next === "neural_network") {
+              patch.code = ""
+              patch.stateMachineId = ""
+              patch.quantumCircuitId = ""
             } else if (next === "none") {
               patch.code = ""
               patch.stateMachineId = ""
               patch.quantumCircuitId = ""
+              patch.neuralNetworkId = ""
             } else {
               patch.stateMachineId = ""
               patch.quantumCircuitId = ""
+              patch.neuralNetworkId = ""
               // v3 seeded a def-line template when switching to a
               // code-based implementation with no body yet
               // (`getCodeTemplate`) — without it the locked signature
@@ -1021,7 +1115,7 @@ const MethodRow: React.FC<MethodRowProps> = ({
         >
           {IMPLEMENTATION_TYPES.map((it) => (
             <MenuItem key={it.value} value={it.value}>
-              {it.label}
+              {it.labelKey ? t(it.labelKey, it.label) : it.label}
             </MenuItem>
           ))}
         </Select>
@@ -1035,7 +1129,12 @@ const MethodRow: React.FC<MethodRowProps> = ({
             }
             sx={{ minWidth: 160 }}
           >
-            <MenuItem value="">— Select State Machine —</MenuItem>
+            <MenuItem value="">
+              {t(
+                "popup.method.selectStateMachine",
+                "-- Select State Machine --"
+              )}
+            </MenuItem>
             {stateMachines.map((sm) => (
               <MenuItem key={sm.id} value={sm.id}>
                 {sm.name}
@@ -1053,7 +1152,12 @@ const MethodRow: React.FC<MethodRowProps> = ({
             }
             sx={{ minWidth: 160 }}
           >
-            <MenuItem value="">— Select Quantum Circuit —</MenuItem>
+            <MenuItem value="">
+              {t(
+                "popup.method.selectQuantumCircuit",
+                "-- Select Quantum Circuit --"
+              )}
+            </MenuItem>
             {quantumCircuits.map((qc) => (
               <MenuItem key={qc.id} value={qc.id}>
                 {qc.name}
@@ -1061,6 +1165,44 @@ const MethodRow: React.FC<MethodRowProps> = ({
             ))}
           </Select>
         )}
+        {implementationType === "neural_network" &&
+          (neuralNetworks.length > 0 ? (
+            <Select
+              size="small"
+              value={row.neuralNetworkId ?? ""}
+              displayEmpty
+              onChange={(e) =>
+                onPatch({ neuralNetworkId: String(e.target.value) })
+              }
+              sx={{ minWidth: 160 }}
+              data-testid="method-neural-network-select"
+            >
+              <MenuItem value="">
+                {t(
+                  "popup.method.selectNeuralNetwork",
+                  "-- Select Neural Network --"
+                )}
+              </MenuItem>
+              {neuralNetworks.map((nn) => (
+                <MenuItem key={nn.id} value={nn.id}>
+                  {nn.name}
+                </MenuItem>
+              ))}
+            </Select>
+          ) : (
+            <Typography
+              variant="caption"
+              title={t(
+                "popup.method.createNeuralNetworkFirst",
+                "Create a Neural Network diagram in your project first"
+              )}
+            >
+              {t(
+                "popup.method.noNeuralNetworks",
+                "No neural networks available"
+              )}
+            </Typography>
+          ))}
       </Stack>
 
       {(implementationType === "code" || implementationType === "bal") && (
@@ -1096,7 +1238,7 @@ const MethodRow: React.FC<MethodRowProps> = ({
               {implementationType === "bal"
                 ? "BESSER Action Language"
                 : "Python"}{" "}
-              Implementation
+              {t("popup.method.implementation", "Implementation")}
             </Typography>
             {(row.code ?? "").trim().length > 0 && (
               <Button
@@ -1109,7 +1251,7 @@ const MethodRow: React.FC<MethodRowProps> = ({
                   textTransform: "none",
                 }}
               >
-                Clear Code
+                {t("popup.method.clearCode", "Clear Code")}
               </Button>
             )}
           </Stack>
@@ -1170,8 +1312,8 @@ const MethodRow: React.FC<MethodRowProps> = ({
             }}
             placeholder={
               implementationType === "bal"
-                ? "BAL method body…"
-                : "Python method body…"
+                ? t("popup.method.balBodyPlaceholder", "BAL method body…")
+                : t("popup.method.pythonBodyPlaceholder", "Python method body…")
             }
           />
           </div>
@@ -1181,16 +1323,16 @@ const MethodRow: React.FC<MethodRowProps> = ({
           the always-visible row compact (mirrors the AttributeRow pair). */}
       <Stack direction="row" spacing={1} alignItems="center">
         <Typography variant="caption" sx={{ minWidth: 44 }}>
-          Colors
+          {t("popup.class.colors", "Colors")}
         </Typography>
         <RowColorSwatch
-          label="Row fill color"
+          label={t("stylePane.rowFillColor", "Row fill color")}
           value={row.fillColor}
           fallbackCss="var(--besser-background, #fff)"
           onChange={(color) => onPatch({ fillColor: color })}
         />
         <RowColorSwatch
-          label="Row text color"
+          label={t("stylePane.rowTextColor", "Row text color")}
           value={row.textColor}
           fallbackCss="var(--besser-primary-contrast, #000)"
           onChange={(color) => onPatch({ textColor: color })}
@@ -1225,6 +1367,7 @@ export const ClassEditPanel: React.FC<PopoverProps> = ({ elementId }) => {
   )
   const node = nodes.find((n) => n.id === elementId)
   const updateNode = useUpdateNode(elementId)
+  const { t } = useTranslation()
 
   // Cross-diagram pickers. The bridge service is populated by the embedding
   // webapp via `setStateMachineDiagrams` / `setQuantumCircuitDiagrams`
@@ -1270,6 +1413,7 @@ export const ClassEditPanel: React.FC<PopoverProps> = ({ elementId }) => {
 
   const stateMachineDiagrams = diagramBridge.getStateMachineDiagrams()
   const quantumCircuitDiagrams = diagramBridge.getQuantumCircuitDiagrams()
+  const neuralNetworkDiagrams = diagramBridge.getNeuralNetworkDiagrams()
 
   if (!node) return null
   const nodeData = node.data as ClassNodeProps
@@ -1434,7 +1578,10 @@ export const ClassEditPanel: React.FC<PopoverProps> = ({ elementId }) => {
     })
   }
 
-  const addMethod = (rawName: string) => {
+  const addMethod = (
+    rawName: string,
+    overrides?: (methodName: string) => Partial<ClassNodeElement>
+  ) => {
     // Apollon shorthand: "+ name(p: type): ret" parses into structured
     // name / visibility / parameters[] / returnType (persisted
     // structurally on node data — never string-fused into the name).
@@ -1459,6 +1606,7 @@ export const ClassEditPanel: React.FC<PopoverProps> = ({ elementId }) => {
         }),
       })),
       implementationType: "none",
+      ...overrides?.(methodName),
     }
     setNodes((nodes) =>
       nodes.map((n) => {
@@ -1497,6 +1645,16 @@ export const ClassEditPanel: React.FC<PopoverProps> = ({ elementId }) => {
   }
   const onMethodChange = (e: ChangeEvent<HTMLInputElement>) =>
     setNewMethodName(e.target.value)
+  // v3 parity (`uml-classifier-update.tsx` createMethodWithCode): the
+  // "📝 Code" quick-create button adds a method (named from the pending
+  // input, else `new_method`) that already carries a Python code body.
+  const addMethodWithCode = () => {
+    addMethod(newMethodName.trim() || "new_method", (methodName) => ({
+      implementationType: "code",
+      code: `def ${methodName || "new_method"}(self):\n    """Add your docstring here."""\n    # Add your implementation here\n    pass\n`,
+    }))
+    setNewMethodName("")
+  }
 
   /* ----- Render --------------------------------------------------------- */
 
@@ -1546,7 +1704,9 @@ export const ClassEditPanel: React.FC<PopoverProps> = ({ elementId }) => {
             "& .MuiAccordionSummary-content": { margin: "4px 0" },
           }}
         >
-          <InspectorSectionHeader>Metadata</InspectorSectionHeader>
+          <InspectorSectionHeader>
+            {t("popup.class.metadata", "Metadata")}
+          </InspectorSectionHeader>
         </AccordionSummary>
         <AccordionDetails
           sx={{ display: "flex", flexDirection: "column", gap: 1, pt: 0 }}
@@ -1557,7 +1717,7 @@ export const ClassEditPanel: React.FC<PopoverProps> = ({ elementId }) => {
             fullWidth
             multiline
             minRows={2}
-            placeholder="description"
+            placeholder={t("stylePane.description", "Description")}
             value={nodeData.description ?? ""}
             onChange={(e) =>
               updateNode((d) => ({ ...d, description: e.target.value }))
@@ -1567,7 +1727,10 @@ export const ClassEditPanel: React.FC<PopoverProps> = ({ elementId }) => {
             size="small"
             variant="outlined"
             fullWidth
-            placeholder="uri (e.g. https://example.com/MyClass)"
+            placeholder={t(
+              "popup.class.uriPlaceholder",
+              "uri (e.g. https://example.com/MyClass)"
+            )}
             value={nodeData.uri ?? ""}
             onChange={(e) => updateNode((d) => ({ ...d, uri: e.target.value }))}
           />
@@ -1575,7 +1738,10 @@ export const ClassEditPanel: React.FC<PopoverProps> = ({ elementId }) => {
             size="small"
             variant="outlined"
             fullWidth
-            placeholder="icon (svg body or url)"
+            placeholder={t(
+              "popup.class.iconPlaceholder",
+              "icon (svg body or url)"
+            )}
             value={nodeData.icon ?? ""}
             onChange={(e) =>
               updateNode((d) => ({ ...d, icon: e.target.value }))
@@ -1586,13 +1752,21 @@ export const ClassEditPanel: React.FC<PopoverProps> = ({ elementId }) => {
       <DividerLine width="100%" />
 
       <Stack direction="row" alignItems="center" justifyContent="space-between">
-        <InspectorSectionHeader>Attributes</InspectorSectionHeader>
+        <InspectorSectionHeader>
+          {nodeData.stereotype === "Enumeration"
+            ? t("popup.literals", "Literals")
+            : t("popup.attributes", "Attributes")}
+        </InspectorSectionHeader>
         {/* Single `+ add attribute` text-link
             replaces the previous IconButton-with-glyph + duplicate
             inline `+ Add attribute (Enter)` textfield combo. The
             inline textfield is kept below for keyboard add. */}
         <AddRowButton
-          label="add attribute"
+          label={
+            nodeData.stereotype === "Enumeration"
+              ? t("popup.class.addLiteral", "add literal")
+              : t("popup.class.addAttribute", "add attribute")
+          }
           onClick={() => addAttribute("")}
         />
       </Stack>
@@ -1624,7 +1798,17 @@ export const ClassEditPanel: React.FC<PopoverProps> = ({ elementId }) => {
         size="small"
         variant="outlined"
         fullWidth
-        placeholder="+ Add attribute (Enter for auto-name)"
+        placeholder={
+          nodeData.stereotype === "Enumeration"
+            ? t(
+                "popup.class.addLiteralInputPlaceholder",
+                "+ Add literal (Enter for auto-name)"
+              )
+            : t(
+                "popup.class.addAttributeInputPlaceholder",
+                "+ Add attribute (Enter for auto-name)"
+              )
+        }
         value={newAttrName}
         onChange={onAttrChange}
         onKeyDown={onAttrKey}
@@ -1647,10 +1831,12 @@ export const ClassEditPanel: React.FC<PopoverProps> = ({ elementId }) => {
             alignItems="center"
             justifyContent="space-between"
           >
-            <InspectorSectionHeader>Methods</InspectorSectionHeader>
+            <InspectorSectionHeader>
+              {t("popup.methods", "Methods")}
+            </InspectorSectionHeader>
             {/* Unified `+ add method` text-link. */}
             <AddRowButton
-              label="add method"
+              label={t("popup.class.addMethod", "add method")}
               onClick={() => addMethod("")}
             />
           </Stack>
@@ -1662,6 +1848,7 @@ export const ClassEditPanel: React.FC<PopoverProps> = ({ elementId }) => {
               enumerationNames={enumerationNames}
               stateMachines={stateMachineDiagrams}
               quantumCircuits={quantumCircuitDiagrams}
+              neuralNetworks={neuralNetworkDiagrams}
               onPatch={(patch) => patchMethod(row.id, patch)}
               onDelete={() => deleteMethod(row.id)}
               onMoveUp={
@@ -1674,21 +1861,54 @@ export const ClassEditPanel: React.FC<PopoverProps> = ({ elementId }) => {
               }
             />
           ))}
-          <MuiTextField
-            size="small"
-            variant="outlined"
-            fullWidth
-            placeholder="+ Add method (Enter)"
-            value={newMethodName}
-            onChange={onMethodChange}
-            onKeyDown={onMethodKey}
-            onBlur={() => {
-              if (newMethodName.trim()) {
-                addMethod(newMethodName)
-                setNewMethodName("")
-              }
-            }}
-          />
+          <Stack direction="row" alignItems="center" spacing={0.5}>
+            <MuiTextField
+              size="small"
+              variant="outlined"
+              fullWidth
+              placeholder={t(
+                "popup.class.addMethodInputPlaceholder",
+                "+ Add method (Enter)"
+              )}
+              value={newMethodName}
+              onChange={onMethodChange}
+              onKeyDown={onMethodKey}
+              onBlur={() => {
+                if (newMethodName.trim()) {
+                  addMethod(newMethodName)
+                  setNewMethodName("")
+                }
+              }}
+            />
+            <Tooltip
+              title={t(
+                "popup.classifier.createMethodWithCode",
+                "Create method with code behaviour"
+              )}
+            >
+              <Button
+                size="small"
+                variant="outlined"
+                aria-label={t(
+                  "popup.classifier.createMethodWithCode",
+                  "Create method with code behaviour"
+                )}
+                // Keep focus in the name input so its onBlur doesn't
+                // first create a plain (code-less) method.
+                onMouseDown={(e) => e.preventDefault()}
+                onClick={addMethodWithCode}
+                sx={{
+                  whiteSpace: "nowrap",
+                  minWidth: "auto",
+                  padding: "4px 10px",
+                  fontSize: "12px",
+                  textTransform: "none",
+                }}
+              >
+                {`📝 ${t("popup.classifier.codeButton", "Code")}`}
+              </Button>
+            </Tooltip>
+          </Stack>
 
           <DividerLine width="100%" />
         </>

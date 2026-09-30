@@ -1,5 +1,5 @@
 import { NodeProps, NodeResizer, type Node } from "@xyflow/react"
-import { useRef } from "react"
+import { usePopoverAnchor } from "@/hooks/usePopoverAnchor"
 import { DefaultNodeWrapper } from "@/nodes/wrappers"
 import { CommentNodeProps } from "@/types"
 import { useDiagramModifiable } from "@/hooks/useDiagramModifiable"
@@ -81,7 +81,7 @@ export function Comment({
   data,
 }: NodeProps<Node<CommentNodeProps>>) {
   const isDiagramModifiable = useDiagramModifiable()
-  const wrapperRef = useRef<HTMLDivElement | null>(null)
+  const [wrapperEl, wrapperRef] = usePopoverAnchor<HTMLDivElement>()
 
   const w = Math.max(width ?? 0, MIN_WIDTH)
   const h = Math.max(height ?? 0, MIN_HEIGHT)
@@ -157,7 +157,7 @@ export function Comment({
       </div>
 
       <PopoverManager
-        anchorEl={wrapperRef.current}
+        anchorEl={wrapperEl}
         elementId={id}
         type={"comment" as const}
       />

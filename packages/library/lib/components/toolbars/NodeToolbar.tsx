@@ -4,9 +4,30 @@ import { useIsOnlyThisElementSelected } from "@/hooks/useIsOnlyThisElementSelect
 import { usePopoverStore } from "@/store"
 import { Box } from "@mui/material"
 import { Position, NodeToolbar as ReactFlowNodeToolbar } from "@xyflow/react"
-import { FC } from "react"
+import { FC, type SyntheticEvent } from "react"
 import { useShallow } from "zustand/shallow"
 import { DeleteIcon, EditIcon } from "../Icon"
+import { AddAssociatedObjectButton } from "./AddAssociatedObjectButton"
+
+// Keep a press on a toolbar icon away from React Flow (upstream Apollon
+// #708): without this, pressing a button starts a pane pan / selection box
+// or a node drag, so the canvas jumps. Only events that originate inside
+// the toolbar's own DOM are stopped -- the (+) button's MUI Popover is
+// portaled to <body> but still bubbles through this React subtree, and its
+// buttons must keep receiving their pointer events.
+const stopToolbarPointer = (event: SyntheticEvent<HTMLElement>) => {
+  if (event.currentTarget.contains(event.target as Node)) {
+    event.stopPropagation()
+  }
+}
+
+const iconStyle = {
+  cursor: "pointer",
+  // The toolbar box itself is pointer-transparent; only the icons capture.
+  pointerEvents: "auto",
+  width: 16,
+  height: 16,
+} as const
 
 interface Props {
   elementId: string
@@ -34,21 +55,34 @@ export const NodeToolbar: FC<Props> = ({ elementId, showEdit = true }) => {
       position={Position.Top}
       align="end"
       offset={10}
+      // The toolbar wrapper is larger than its icons; left opaque to the
+      // pointer, its empty margins and the gaps between the icons swallow
+      // clicks meant for whatever node sits beneath (the toolbar floats at
+      // the node's top-right). Make the box transparent and re-enable only
+      // the icons (upstream Apollon #791) -- matching the edge toolbar.
+      style={{ pointerEvents: "none" }}
     >
-      <Box sx={{ display: "flex", gap: 1, flexDirection: "column" }}>
-        <DeleteIcon
-          onClick={handleDelete}
-          style={{ cursor: "pointer", width: 16, height: 16 }}
-        />
+      <Box
+        className="nodrag nopan"
+        onPointerDownCapture={stopToolbarPointer}
+        onMouseDownCapture={stopToolbarPointer}
+        onTouchStartCapture={stopToolbarPointer}
+        sx={{ display: "flex", gap: 1, flexDirection: "column" }}
+      >
+        <DeleteIcon onClick={handleDelete} style={iconStyle} />
 
         {showEditButton && (
           <EditIcon
             onClick={() => {
               setPopOverElementId(elementId)
             }}
-            style={{ cursor: "pointer", width: 16, height: 16 }}
+            style={iconStyle}
           />
         )}
+
+        {/* ObjectDiagram / UserDiagram only: (+) "Add and connect to new
+            Object" (v3 updatable.tsx onAdd). Self-gating. */}
+        <AddAssociatedObjectButton elementId={elementId} />
       </Box>
     </ReactFlowNodeToolbar>
   )

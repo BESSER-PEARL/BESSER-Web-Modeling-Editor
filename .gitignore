@@ -115,3 +115,7 @@ packages/library/dist/
 /packages/webapp/playwright-report/
 /packages/webapp/blob-report/
 /packages/webapp/test-results/
+
+# Behave agentic E2E outputs
+/packages/webapp/tests/e2e/downloads/
+/packages/webapp/tests/e2e/artifacts/

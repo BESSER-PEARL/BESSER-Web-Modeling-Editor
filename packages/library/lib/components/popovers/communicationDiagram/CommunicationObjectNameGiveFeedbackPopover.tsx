@@ -5,6 +5,7 @@ import { PopoverProps } from "../types"
 import { GiveFeedbackAssessmentBox } from "../GiveFeedbackAssessmentBox"
 import Button from "@mui/material/Button"
 import { useGoToNextAssessment } from "@/hooks"
+import { useTranslation } from "@/i18n"
 import { DiagramNodeTypeRecord } from "@/nodes"
 
 export const CommunicationObjectNameGiveFeedbackPopover = ({
@@ -12,6 +13,7 @@ export const CommunicationObjectNameGiveFeedbackPopover = ({
 }: PopoverProps) => {
   const nodes = useDiagramStore(useShallow((state) => state.nodes))
   const handleGoToNextAssessment = useGoToNextAssessment(elementId)
+  const { t } = useTranslation()
 
   const node = nodes.find((node) => node.id === elementId)
   if (!node) return null
@@ -46,7 +48,7 @@ export const CommunicationObjectNameGiveFeedbackPopover = ({
         onClick={handleGoToNextAssessment}
         sx={{ mt: 1 }}
       >
-        Next
+        {t("assessment.nextAssessment", "Next Assessment")}
       </Button>
     </>
   )

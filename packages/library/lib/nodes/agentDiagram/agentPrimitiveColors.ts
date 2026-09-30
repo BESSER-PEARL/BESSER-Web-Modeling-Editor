@@ -71,6 +71,8 @@ export const replyTypeIcon = (replyType?: string): LucideIcon => {
       return ImageIcon
     case "json":
       return Braces
+    case "gui_reply":
+      return Monitor
     default:
       if (replyType && replyType.startsWith("ws_")) return Monitor
       return MessageSquare

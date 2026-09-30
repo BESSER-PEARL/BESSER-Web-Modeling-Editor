@@ -1,5 +1,6 @@
 import {
   Box,
+  Checkbox,
   IconButton,
   MenuItem,
   Select,
@@ -17,6 +18,16 @@ import { PopoverProps } from "@/components/popovers/types"
 import { SwapHorizIcon } from "@/components/Icon"
 import { erCardinalityToUML } from "@/utils/multiplicity"
 import { InspectorSectionHeader } from "../_shared"
+import { useTranslation } from "@/i18n"
+import {
+  AssociationEnd,
+  applyAssociationTypeChange,
+  applyNavigabilityToggle,
+  canToggleNavigability,
+  normalizeAssociationType,
+  resolveAssociationNavigability,
+  supportsNavigability,
+} from "@/utils/uml-association-navigability"
 
 /**
  * ClassEdgeEditPanel — single inspector body bound to all nine
@@ -37,6 +48,12 @@ import { InspectorSectionHeader } from "../_shared"
  *   - per-end multiplicity textfield with v3 placeholder `'1..1'`,
  *     swapping to `'(1,1) or 1..1'` when `classNotation === 'ER'`.
  *   - per-end role textfield.
+ *   - per-end "navigable" checkbox for Association / Composition /
+ *     Aggregation (v3 smart-generator parity). A type change or a toggle
+ *     writes the type and both `sourceNavigable` / `targetNavigable`
+ *     flags in ONE store update, so it is a single undo step and the
+ *     rules (at least one navigable end; a composition's part end is
+ *     always navigable) are never broken in between.
  *   - color editor (`strokeColor`, `textColor`) via `EdgeStyleEditor`,
  *     mirroring the v3 `<StylePane lineColor textColor>`.
  *
@@ -57,11 +74,25 @@ import { InspectorSectionHeader } from "../_shared"
 // and inheritance. Aggregation, Realization, and Dependency are masked
 // from the picker (legacy fixtures still render correctly via
 // ``edgeUtils.ts``; users just can't author new ones).
+// A plain association is always `ClassBidirectional`; one-way navigation
+// is expressed with the per-end "navigable" checkboxes, so the legacy
+// `ClassUnidirectional` is no longer offered (it is shown as Association).
 const EDGE_TYPE_OPTIONS = [
-  { value: "ClassBidirectional", label: "Association (Bidirectional)" },
-  { value: "ClassUnidirectional", label: "Association (Unidirectional)" },
-  { value: "ClassComposition", label: "Composition" },
-  { value: "ClassInheritance", label: "Inheritance" },
+  {
+    value: "ClassBidirectional",
+    key: "packages.ClassDiagram.ClassBidirectional",
+    label: "Association",
+  },
+  {
+    value: "ClassComposition",
+    key: "packages.ClassDiagram.ClassComposition",
+    label: "Composition",
+  },
+  {
+    value: "ClassInheritance",
+    key: "packages.ClassDiagram.ClassInheritance",
+    label: "Generalization",
+  },
 ] as const
 
 const NON_DIRECTIONAL_TYPES = new Set([
@@ -78,6 +109,7 @@ export const ClassEdgeEditPanel: React.FC<PopoverProps> = ({ elementId }) => {
     }))
   )
   const classNotation = useSettingsStore((s) => s.classNotation)
+  const { t } = useTranslation()
 
   const edge = edges.find((e) => e.id === elementId)
   if (!edge) return null
@@ -97,14 +129,18 @@ export const ClassEdgeEditPanel: React.FC<PopoverProps> = ({ elementId }) => {
   const sourceNode = nodes.find((n) => n.id === edge.source)
   const targetNode = nodes.find((n) => n.id === edge.target)
   const sourceName =
-    (sourceNode?.data as { name?: string } | undefined)?.name || "Source"
+    (sourceNode?.data as { name?: string } | undefined)?.name ||
+    t("common.source", "Source")
   const targetName =
-    (targetNode?.data as { name?: string } | undefined)?.name || "Target"
+    (targetNode?.data as { name?: string } | undefined)?.name ||
+    t("common.target", "Target")
 
   // Mirror the v3 ER hint: storage is always UML, but ER users get a
   // hint that `(1,N)` syntax is also accepted on input.
   const multiplicityPlaceholder =
-    classNotation === "ER" ? "(1,1) or 1..1" : "1..1"
+    classNotation === "ER"
+      ? t("popup.class.erMultiplicityPlaceholder", "(1,1) or 1..1")
+      : "1..1"
 
   const updateData = (patch: Partial<CustomEdgeProps & { name?: string }>) => {
     setEdges((all) =>
@@ -117,10 +153,63 @@ export const ClassEdgeEditPanel: React.FC<PopoverProps> = ({ elementId }) => {
   const handleEdgeTypeChange = (newType: string) => {
     setEdges((all) =>
       all.map((e) =>
-        e.id === elementId ? { ...e, type: newType } : e
+        e.id === elementId ? applyAssociationTypeChange(e, newType) : e
       )
     )
   }
+
+  const showsNavigability = supportsNavigability(edge.type)
+  const navigability = resolveAssociationNavigability(edge)
+
+  // Disabled checkboxes don't show their tooltip in most browsers, so the
+  // explanation lives on the always-hoverable label as well.
+  const navigableInfoText = (end: AssociationEnd): string => {
+    if (edge.type === "ClassComposition" && end === "source") {
+      return t(
+        "popup.navigableCompositionHint",
+        "The composite can always navigate to its parts"
+      )
+    }
+    if (!canToggleNavigability(edge, end)) {
+      return t(
+        "popup.navigableDisabledHint",
+        "At least one end of an association must be navigable"
+      )
+    }
+    return t("popup.navigableInfo", "At least one end must be navigable")
+  }
+
+  const handleToggleNavigable = (end: AssociationEnd, checked: boolean) => {
+    setEdges((all) =>
+      all.map((e) =>
+        e.id === elementId ? applyNavigabilityToggle(e, end, checked) : e
+      )
+    )
+  }
+
+  const renderNavigableRow = (end: AssociationEnd) => (
+    <Stack direction="row" spacing={0.5} alignItems="center">
+      <Tooltip title={navigableInfoText(end)}>
+        <Typography variant="caption" sx={{ minWidth: 70, cursor: "help" }}>
+          {t("popup.navigable", "Navigable")}
+        </Typography>
+      </Tooltip>
+      <Checkbox
+        size="small"
+        checked={navigability[end]}
+        disabled={!canToggleNavigability(edge, end)}
+        onChange={(e) => handleToggleNavigable(end, e.target.checked)}
+        inputProps={{
+          "aria-label": `${
+            end === "source"
+              ? t("common.source", "Source")
+              : t("common.target", "Target")
+          } ${t("popup.navigable", "Navigable")}`,
+        }}
+        data-testid={`${end}-navigable`}
+      />
+    </Stack>
+  )
 
   const handleSwap = () => {
     setEdges((all) =>
@@ -150,9 +239,12 @@ export const ClassEdgeEditPanel: React.FC<PopoverProps> = ({ elementId }) => {
       <EdgeStyleEditor
         edgeData={data}
         handleDataFieldUpdate={handleStyleFieldUpdate}
-        label="Association"
+        label={t("popup.association", "Association")}
         sideElements={[
-          <Tooltip key="flip" title="Flip source / target">
+          <Tooltip
+            key="flip"
+            title={t("common.flipSourceTarget", "Flip source / target")}
+          >
             <IconButton size="small" onClick={handleSwap}>
               <SwapHorizIcon />
             </IconButton>
@@ -168,7 +260,7 @@ export const ClassEdgeEditPanel: React.FC<PopoverProps> = ({ elementId }) => {
           size="small"
           variant="outlined"
           fullWidth
-          label="Association name"
+          label={t("popup.associationNamePlaceholder", "Association name")}
           value={data.name ?? ""}
           onChange={(e) => updateData({ name: e.target.value })}
         />
@@ -180,14 +272,25 @@ export const ClassEdgeEditPanel: React.FC<PopoverProps> = ({ elementId }) => {
       {edge.type !== "ClassOCLLink" && edge.type !== "ClassLinkRel" && (
         <Select
           size="small"
-          value={edge.type ?? "ClassBidirectional"}
+          value={normalizeAssociationType(edge.type) ?? "ClassBidirectional"}
           onChange={(e) => handleEdgeTypeChange(String(e.target.value))}
         >
           {EDGE_TYPE_OPTIONS.map((option) => (
             <MenuItem key={option.value} value={option.value}>
-              {option.label}
+              {t(option.key, option.label)}
             </MenuItem>
           ))}
+          {/* Legacy kinds (aggregation, realization, dependency) are not
+              authorable any more but must still show in the picker when
+              an edge already carries one. */}
+          {!EDGE_TYPE_OPTIONS.some(
+            (o) => o.value === normalizeAssociationType(edge.type)
+          ) &&
+            edge.type && (
+              <MenuItem value={edge.type}>
+                {t(`packages.ClassDiagram.${edge.type}`, edge.type)}
+              </MenuItem>
+            )}
         </Select>
       )}
 
@@ -195,10 +298,14 @@ export const ClassEdgeEditPanel: React.FC<PopoverProps> = ({ elementId }) => {
         <>
           <DividerLine width="100%" />
           {/* Shared section header; #6: caption col 80 → 70. */}
-          <InspectorSectionHeader>Source — {sourceName}</InspectorSectionHeader>
+          <InspectorSectionHeader>
+            {t("popup.class.sourceEnd", "Source — {{name}}", {
+              name: sourceName,
+            })}
+          </InspectorSectionHeader>
           <Stack direction="row" spacing={0.5} alignItems="center">
             <Typography variant="caption" sx={{ minWidth: 70 }}>
-              multiplicity
+              {t("popup.multiplicity", "Multiplicity")}
             </Typography>
             <MuiTextField
               size="small"
@@ -219,7 +326,7 @@ export const ClassEdgeEditPanel: React.FC<PopoverProps> = ({ elementId }) => {
           </Stack>
           <Stack direction="row" spacing={0.5} alignItems="center">
             <Typography variant="caption" sx={{ minWidth: 70 }}>
-              role
+              {t("popup.role", "Role")}
             </Typography>
             <MuiTextField
               size="small"
@@ -229,12 +336,17 @@ export const ClassEdgeEditPanel: React.FC<PopoverProps> = ({ elementId }) => {
               onChange={(e) => updateData({ sourceRole: e.target.value })}
             />
           </Stack>
+          {showsNavigability && renderNavigableRow("source")}
 
           <DividerLine width="100%" />
-          <InspectorSectionHeader>Target — {targetName}</InspectorSectionHeader>
+          <InspectorSectionHeader>
+            {t("popup.class.targetEnd", "Target — {{name}}", {
+              name: targetName,
+            })}
+          </InspectorSectionHeader>
           <Stack direction="row" spacing={0.5} alignItems="center">
             <Typography variant="caption" sx={{ minWidth: 70 }}>
-              multiplicity
+              {t("popup.multiplicity", "Multiplicity")}
             </Typography>
             <MuiTextField
               size="small"
@@ -254,7 +366,7 @@ export const ClassEdgeEditPanel: React.FC<PopoverProps> = ({ elementId }) => {
           </Stack>
           <Stack direction="row" spacing={0.5} alignItems="center">
             <Typography variant="caption" sx={{ minWidth: 70 }}>
-              role
+              {t("popup.role", "Role")}
             </Typography>
             <MuiTextField
               size="small"
@@ -264,6 +376,7 @@ export const ClassEdgeEditPanel: React.FC<PopoverProps> = ({ elementId }) => {
               onChange={(e) => updateData({ targetRole: e.target.value })}
             />
           </Stack>
+          {showsNavigability && renderNavigableRow("target")}
         </>
       )}
     </Box>

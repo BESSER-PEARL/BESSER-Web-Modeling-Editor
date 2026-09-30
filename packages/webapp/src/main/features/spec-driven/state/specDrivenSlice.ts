@@ -1,5 +1,5 @@
 /**
- * Redux slice for the Smart Generator feature.
+ * Redux slice for the Spec-Driven Agent feature.
  *
  * Owns the UI-facing state: whether the BYOK dialog is open, which
  * provider the user picked, whether the key is currently in
@@ -33,6 +33,7 @@ import type {
   SpecDrivenEvent,
   SpecDrivenPhase,
   SpecDrivenProvider,
+  SpecDrivenVerificationItem,
   TriggerSpecDrivenPayload,
 } from '../types';
 
@@ -94,12 +95,10 @@ export const extractSpecDrivenRunId = (downloadUrl: string): string | null => {
  *    warning banner. Every other code is terminal: status → 'error'.
  */
 /**
- * Pull the honest token breakdown out of the done event's recipe. The backend
- * writes `usage` (from UsageTracker.summary()) into `.besser_recipe.json`, which
- * rides on the done event as `recipe`. `input_tokens` is fresh input NET of
- * cache; `cache_read_tokens` is context served from cache (cheap throughput);
- * `output_tokens` is the real produced work. Returns undefined when the recipe
- * carries no usable usage (older runs / providers that report only a total).
+ * Pull the honest token breakdown out of the done event's recipe (the backend's
+ * `usage`, from UsageTracker.summary()). `input_tokens` is fresh input NET of
+ * cache, `cache_read_tokens` is context served from cache, `output_tokens` is
+ * the real produced work. Undefined when the recipe carries no usable usage.
  */
 export function extractTokenUsage(
   recipe: unknown,
@@ -119,6 +118,83 @@ export function extractTokenUsage(
     return undefined;
   }
   return { input, output, cacheRead, total };
+}
+
+const VERIFICATION_KINDS: ReadonlySet<string> = new Set([
+  'requirement',
+  'ocl_constraint',
+  'api_workflow',
+  'check',
+]);
+
+const readVerificationItems = (raw: unknown): SpecDrivenVerificationItem[] => {
+  if (!Array.isArray(raw)) return [];
+  const items: SpecDrivenVerificationItem[] = [];
+  for (const entry of raw) {
+    if (!entry || typeof entry !== 'object') continue;
+    const e = entry as Record<string, unknown>;
+    const what = typeof e.what === 'string' ? e.what.trim() : '';
+    // An item with nothing to say is worse than no row: it reads as a
+    // finding the user cannot act on. Drop it.
+    if (!what) continue;
+    const kind =
+      typeof e.kind === 'string' && VERIFICATION_KINDS.has(e.kind)
+        ? (e.kind as SpecDrivenVerificationItem['kind'])
+        : 'check';
+    items.push({
+      kind,
+      id: typeof e.id === 'string' ? e.id : '',
+      what,
+      how: typeof e.how === 'string' && e.how.trim() ? e.how.trim() : undefined,
+      why: typeof e.why === 'string' && e.why.trim() ? e.why.trim() : undefined,
+    });
+  }
+  return items;
+};
+
+/**
+ * Normalise the done event's `verification` report into what the card
+ * renders. The three lists are CAPPED by the backend while `counts` carries
+ * the true totals, so a count below its own list length is a backend bug —
+ * clamp up rather than render "showing 12 of 3".
+ *
+ * Returns `undefined` when the report is absent or says nothing (older
+ * backends, interrupted runs): the card then falls back to its existing
+ * blocker-count summary instead of rendering an empty shell.
+ */
+export function extractVerification(
+  raw: unknown,
+): SpecDrivenMessageState['verification'] {
+  if (!raw || typeof raw !== 'object') return undefined;
+  const r = raw as Record<string, unknown>;
+  const verified = readVerificationItems(r.verified);
+  const notVerified = readVerificationItems(r.notVerified);
+  const shippedUnenforced = readVerificationItems(r.shippedUnenforced);
+  const rawCounts =
+    r.counts && typeof r.counts === 'object'
+      ? (r.counts as Record<string, unknown>)
+      : {};
+  const count = (key: string, listed: number): number => {
+    const value = rawCounts[key];
+    const n =
+      typeof value === 'number' && Number.isFinite(value) && value >= 0
+        ? Math.round(value)
+        : 0;
+    return Math.max(n, listed);
+  };
+  const counts = {
+    verified: count('verified', verified.length),
+    notVerified: count('notVerified', notVerified.length),
+    shippedUnenforced: count('shippedUnenforced', shippedUnenforced.length),
+  };
+  if (
+    counts.verified === 0 &&
+    counts.notVerified === 0 &&
+    counts.shippedUnenforced === 0
+  ) {
+    return undefined;
+  }
+  return { verified, notVerified, shippedUnenforced, counts };
 }
 
 export function applySpecDrivenEvent(
@@ -203,8 +279,9 @@ export function applySpecDrivenEvent(
       return { ...card, text: card.text + event.delta };
     }
     case 'model_update': {
-      const note =
-        event.reason === 'primary_unavailable'
+      const note = event.reason === 'quota_exhausted'
+        ? 'The free daily quota was exhausted, so the run continued on the fallback model.'
+        : event.reason === 'primary_unavailable'
           ? 'The primary model was unavailable.'
           : 'The serving model changed mid-run.';
       return {
@@ -226,6 +303,11 @@ export function applySpecDrivenEvent(
         downloadUrl: event.downloadUrl,
         fileName: event.fileName,
         isZip: event.isZip,
+        incomplete: (event.blockerCount ?? 0) > 0 || (event.incomplete ?? card.warnings.some(
+          (warning) => warning.code === 'INCOMPLETE' && warning.severity !== 'info',
+        )),
+        incompleteReason: event.incompleteReason ?? undefined,
+        blockerCount: event.blockerCount,
         generatorUsed:
           typeof event.recipe?.generator_used === 'string'
             ? event.recipe.generator_used
@@ -238,10 +320,8 @@ export function applySpecDrivenEvent(
           typeof event.tokensUsed === 'number' && event.tokensUsed > 0
             ? event.tokensUsed
             : undefined,
-        // Honest efficiency headline for the card: the share of files BESSER's
-        // deterministic generator produced for free (0 LLM tokens). Shown as a
-        // "N% deterministic" badge instead of the misleading cumulative token
-        // count. Only trust the split when the backend reported a non-empty
+        // File provenance, not requirements coverage or token savings.
+        // Only trust the split when the backend reported a non-empty
         // total (older backends omit fileSplit entirely).
         detPct:
           typeof event.fileSplit?.total === 'number' &&
@@ -267,6 +347,9 @@ export function applySpecDrivenEvent(
         // context as a secondary throughput number — instead of the
         // misleading cumulative total that re-counts re-sent context.
         tokenUsage: extractTokenUsage(event.recipe),
+        // The three states the blocker count collapses. Undefined for older
+        // backends — the card keeps its blocker-count summary then.
+        verification: extractVerification(event.verification),
         status: 'done',
         // The run never auto-saves the artifact (consent fix) — the card
         // surfaces an explicit Download button instead.
@@ -339,7 +422,7 @@ export interface SpecDrivenState {
   runStatus: SpecDrivenRunStatus;
   /**
    * Per-project record of the most recent SUCCESSFUL run, keyed by
-   * project id. Drives incremental vibe-modify: a follow-up run reuses
+   * project id. Drives incremental modify: a follow-up run reuses
    * the recorded `runId` as `base_run_id` while it's still fresh. Mirrored
    * to localStorage (see `localStorageSpecDrivenLastRunPrefix`) so it also
    * survives a reload; this in-memory copy is the same-session fast path.
@@ -494,7 +577,7 @@ const specDrivenSlice = createSlice({
     },
     /**
      * Record the most recent successful run for a project (incremental
-     * vibe-modify). Dispatched from `useSpecDrivenTrigger`'s `done` handler
+     * modify). Dispatched from `useSpecDrivenTrigger`'s `done` handler
      * alongside the localStorage mirror. Ignores empty ids defensively.
      */
     setLastRunForProject(
@@ -616,7 +699,7 @@ export const selectLiveSpecDrivenRun = (
 /**
  * Whether ANY spec-driven run is currently live. The assistant surfaces
  * use this to suppress the chat's "Typing" indicator while a run card is
- * showing its own progress (the chip used to stick for the whole run).
+ * showing its own progress.
  */
 export const selectHasLiveSpecDrivenRun = (state: SpecDrivenSliceState): boolean => {
   for (const _key in state.specDriven.runs) return true;

@@ -4,6 +4,9 @@ import { Assessment } from "@/typings"
 import { useShallow } from "zustand/shallow"
 import { DeleteIcon } from "../Icon"
 import { Typography } from "../ui"
+import { useTranslation } from "@/i18n"
+import { useMetadataStore } from "@/store/context"
+import { getAssessmentTypeLabel } from "@/components/propertiesPanel/typeLabel"
 
 interface Props {
   elementId: string
@@ -12,6 +15,8 @@ interface Props {
 }
 
 export const GiveFeedbackAssessmentBox = ({ elementId, name, type }: Props) => {
+  const { t, locale } = useTranslation()
+  const diagramType = useMetadataStore((state) => state.diagramType)
   const { assessments, setAssessments } = useDiagramStore(
     useShallow((state) => ({
       assessments: state.assessments,
@@ -53,7 +58,7 @@ export const GiveFeedbackAssessmentBox = ({ elementId, name, type }: Props) => {
 
   return (
     <>
-      <Typography>{`Assessment for ${type} "${name}"`}</Typography>
+      <Typography>{`${t("assessment.assessment", "Assessment for")} ${getAssessmentTypeLabel(type, diagramType, locale)} "${name}"`}</Typography>
       <div
         style={{
           display: "flex",
@@ -66,7 +71,7 @@ export const GiveFeedbackAssessmentBox = ({ elementId, name, type }: Props) => {
         <div
           style={{ display: "flex", gap: "4px", alignItems: "center", flex: 1 }}
         >
-          <Typography>Points:</Typography>
+          <Typography>{t("assessment.score", "Points")}:</Typography>
           <input
             style={{
               border: "1px solid black",
@@ -90,7 +95,7 @@ export const GiveFeedbackAssessmentBox = ({ elementId, name, type }: Props) => {
         <DeleteIcon onClick={handleDelete} />
       </div>
       <div style={{ marginTop: "8px" }}>
-        <Typography>Feedback:</Typography>
+        <Typography>{t("assessment.feedback", "Feedback")}:</Typography>
         <div style={{ display: "flex" }}>
           <textarea
             style={{
@@ -102,7 +107,10 @@ export const GiveFeedbackAssessmentBox = ({ elementId, name, type }: Props) => {
               backgroundColor: "var(--besser-background, white)",
               color: "var(--besser-primary-contrast, #000000)",
             }}
-            placeholder="You can enter feedback here..."
+            placeholder={t(
+              "assessment.feedbackPlaceholder",
+              "You can enter feedback here..."
+            )}
             maxLength={500}
             rows={3}
             value={feedback}

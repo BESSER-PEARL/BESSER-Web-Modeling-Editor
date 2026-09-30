@@ -38,8 +38,10 @@ type ClassifierMember = {
   defaultValue?: unknown;
   code?: string;
   implementationType?: string;
+  isExternalId?: boolean;
   [k: string]: unknown;
 };
+import { applyAssistantRelationshipType } from '../shared/relationshipMapping';
 
 export class ClassDiagramModifier implements DiagramModifier {
   getDiagramType() {
@@ -244,6 +246,9 @@ export class ClassDiagramModifier implements DiagramModifier {
         row.defaultValue = (attrSpec as any).defaultValue;
       }
       if ((attrSpec as any).isOptional) row.isOptional = true;
+      // A natural identifier ("identified by its room number"): the agent
+      // marks it and the SQLAlchemy generator emits unique=True for it.
+      if ((attrSpec as any).isExternalId) row.isExternalId = true;
       attrRows.push(row);
     }
     (node.data as any).attributes = attrRows;
@@ -549,7 +554,6 @@ export class ClassDiagramModifier implements DiagramModifier {
 
     const relationshipId = ModifierHelpers.generateUniqueId('rel');
     const relType = changes.relationshipType || (changes as any).type || 'Association';
-    const relationshipType = this.mapRelationshipType(relType);
     const sourceMultiplicity = changes.sourceMultiplicity || '1';
     const targetMultiplicity = changes.targetMultiplicity || '*';
     const relationshipName = changes.name || changes.roleName || target.relationshipName || '';
@@ -558,7 +562,7 @@ export class ClassDiagramModifier implements DiagramModifier {
       id: relationshipId,
       source: sourceNode!.id,
       target: targetNode!.id,
-      type: relationshipType as any,
+      type: 'ClassBidirectional' as any,
       sourceHandle: 'left',
       targetHandle: 'right',
       data: {
@@ -574,6 +578,9 @@ export class ClassDiagramModifier implements DiagramModifier {
         ],
       },
     };
+    // Type + explicit per-end navigability; ClassUnidirectional is never
+    // produced (a "unidirectional" spec is a one-way ClassBidirectional).
+    applyAssistantRelationshipType(edge, relType);
 
     m.edges.push(edge);
     return model;
@@ -621,7 +628,9 @@ export class ClassDiagramModifier implements DiagramModifier {
     }
 
     if (changes.relationshipType || (changes as any).type) {
-      matchedEdge.type = this.mapRelationshipType(changes.relationshipType || (changes as any).type) as any;
+      // Type + explicit per-end navigability (data.sourceNavigable /
+      // data.targetNavigable); stale flags are dropped for inheritance etc.
+      applyAssistantRelationshipType(matchedEdge, changes.relationshipType || (changes as any).type);
     }
     const data = matchedEdge.data as any;
     if (changes.sourceMultiplicity !== undefined) data.sourceMultiplicity = changes.sourceMultiplicity;
@@ -637,7 +646,53 @@ export class ClassDiagramModifier implements DiagramModifier {
     let { classId, className, attributeId, attributeName, methodId, methodName, relationshipId, relationshipName } =
       modification.target;
 
-    // Defensive fallback like in v3
+    // ---- Relationship removal, handled FIRST and always terminal ----------
+    // The agent names a relationship with target.sourceClass / target.targetClass,
+    // and none of the fields destructured above are set for it — so the guards
+    // below fell through to "Remove entire class", whose fallback matched the
+    // SOURCE class by name (e.g. "remove book copy" deleted BookCopy, Book
+    // AND Loan while reporting "Applied 4 changes").
+    //
+    // A relationship removal must never degrade into deleting a class: if the
+    // relationship cannot be resolved, do nothing.
+    const endpoints = this.relationshipEndpoints(modification.target || {});
+    if (endpoints && !attributeId && !attributeName && !methodId && !methodName) {
+      const edgeList: BesserEdge[] = Array.isArray(m.edges) ? m.edges : [];
+      const resolvedRelId =
+        relationshipId && edgeList.some((e) => e.id === relationshipId)
+          ? relationshipId
+          : this.findRelationshipIdByEndpoints(model, endpoints.source, endpoints.target);
+      if (resolvedRelId) {
+        m.edges = edgeList.filter((e) => e.id !== resolvedRelId);
+      } else {
+        console.warn(
+          `[ClassDiagramModifier] removeElement: no relationship '${endpoints.source} → ` +
+          `${endpoints.target}' found — leaving the model unchanged. A relationship ` +
+          `removal never deletes a class as a fallback.`,
+        );
+      }
+      return model;
+    }
+
+    // Defensive fallback: some LLMs misplace the class name into other fields
+    // (e.g. target.name, target.element) or leave className undefined even
+    // when the action is clearly removing a class. Scan the target object for
+    // any string value and try to match it as a class name if we have nothing.
+    //
+    // Never runs when the target carries ANY relationship hint — a lone
+    // sourceClass/targetClass is an unresolvable relationship, not a licence
+    // to delete the class that happens to share its name.
+    const hasRelationshipHint = Boolean(
+      (modification.target as Record<string, unknown> | undefined)?.sourceClass ||
+      (modification.target as Record<string, unknown> | undefined)?.targetClass,
+    );
+    if (hasRelationshipHint && !className && !classId) {
+      console.warn(
+        '[ClassDiagramModifier] removeElement: target names relationship endpoints but no ' +
+        'relationship matched — leaving the model unchanged.',
+      );
+      return model;
+    }
     if (!className && !classId && !relationshipId && !relationshipName && !attributeId && !attributeName && !methodId && !methodName) {
       const candidates = Object.values(modification.target || {}).filter(
         (v): v is string => typeof v === 'string' && v.trim().length > 0,
@@ -1083,8 +1138,61 @@ export class ClassDiagramModifier implements DiagramModifier {
         ],
       },
     };
+    applyAssistantRelationshipType(edge, relationshipType);
     ModifierHelpers.addEdge(model, edge);
     return edgeId;
+  }
+
+  /**
+   * The endpoint pair naming a relationship, or null if the target names none.
+   *
+   * Two shapes are accepted, because the agent produces the first and LLMs
+   * sometimes collapse it into the second:
+   *   - `{ sourceClass: 'Book', targetClass: 'BookCopy' }`  (what the agent sends)
+   *   - `{ relationshipName: 'Book → BookCopy' }`           (the rendered label)
+   */
+  private relationshipEndpoints(
+    target: Record<string, any>,
+  ): { source: string; target: string } | null {
+    const src = target.sourceClass;
+    const dst = target.targetClass;
+    if (typeof src === 'string' && typeof dst === 'string' && src.trim() && dst.trim()) {
+      return { source: src.trim(), target: dst.trim() };
+    }
+
+    const label = target.relationshipName;
+    if (typeof label === 'string') {
+      const arrow = label.match(/^\s*(.+?)\s*(?:→|-+>|—>)\s*(.+?)\s*$/);
+      if (arrow) {
+        return { source: arrow[1].trim(), target: arrow[2].trim() };
+      }
+    }
+    return null;
+  }
+
+  /**
+   * Resolve a relationship edge from the names of the classes it connects.
+   *
+   * Matching by `data.name` alone is not enough: the agent's label is the arrow
+   * form ("Book → BookCopy") while the stored name is the role ("copies"), so
+   * a name comparison never matches and the caller is left with nothing to do.
+   */
+  private findRelationshipIdByEndpoints(
+    model: BESSERModel,
+    sourceName: string,
+    targetName: string,
+  ): string | null {
+    const sourceId = this.findClassNode(model, sourceName)?.id;
+    const targetId = this.findClassNode(model, targetName)?.id;
+    if (!sourceId || !targetId) return null;
+
+    const edges = ModifierHelpers.edges(model);
+    const direct = edges.find((e) => e.source === sourceId && e.target === targetId);
+    if (direct) return direct.id;
+    // An association is drawn one way but reads either way, and the LLM names
+    // the endpoints in whichever order it described them.
+    const reverse = edges.find((e) => e.source === targetId && e.target === sourceId);
+    return reverse ? reverse.id : null;
   }
 
   private normalizeAttributeName(label: string): string {
@@ -1131,18 +1239,6 @@ export class ClassDiagramModifier implements DiagramModifier {
       case 'private': return '-';
       case 'protected': return '#';
       default: return '';
-    }
-  }
-
-  private mapRelationshipType(type: string): string {
-    switch ((type || '').toLowerCase()) {
-      case 'inheritance':
-      case 'generalization': return 'ClassInheritance';
-      case 'composition': return 'ClassComposition';
-      case 'aggregation': return 'ClassAggregation';
-      case 'dependency': return 'ClassDependency';
-      case 'unidirectional': return 'ClassUnidirectional';
-      default: return 'ClassBidirectional';
     }
   }
 }

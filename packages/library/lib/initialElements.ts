@@ -119,7 +119,7 @@ export const initialNodes: Node[] = [
 ]
 
 // v3 BESSER parity: demo uses only the four edge kinds the editor
-// exposes — bi / uni association, composition, and inheritance. The
+// exposes — association (one-way here), composition, and inheritance. The
 // previously-shown Aggregation / Realization / Dependency demos were
 // dropped now that those types are masked from the picker.
 export const initialEdges: Edge[] = [
@@ -129,7 +129,9 @@ export const initialEdges: Edge[] = [
     target: "2",
     sourceHandle: "top-left",
     targetHandle: "top-left",
-    type: "ClassUnidirectional",
+    // One-way association (was the legacy ClassUnidirectional type).
+    type: "ClassBidirectional",
+    data: { sourceNavigable: false, targetNavigable: true },
   },
   {
     id: "2->3",

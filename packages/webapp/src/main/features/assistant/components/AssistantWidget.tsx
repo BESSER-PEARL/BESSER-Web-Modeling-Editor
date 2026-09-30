@@ -347,12 +347,12 @@ export const AssistantWidget: React.FC<AssistantWidgetProps> = ({ onAssistantGen
                     {t('assistant.welcome.changeModel')}
                   </button>
                 </p>
-                {/* Pilot-experiment transparency line (regular sessions render nothing) */}
+                {/* Study-mode notice (regular sessions render nothing) */}
                 <PilotSessionNotice />
               </div>
             ) : (
             <>
-            {/* Pilot-experiment transparency line (regular sessions render nothing) */}
+            {/* Study-mode notice (regular sessions render nothing) */}
             <PilotSessionNotice className="mb-3" />
             <MessageList
               messages={messages}

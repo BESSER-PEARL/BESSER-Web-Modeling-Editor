@@ -8,8 +8,8 @@
       "id": "6feb868b-45bf-4c44-88ab-6af624191fa9",
       "type": "NNContainer",
       "position": {
-        "x": 40,
-        "y": 40
+        "x": -710,
+        "y": -420
       },
       "width": 1150,
       "height": 250,
@@ -26,17 +26,18 @@
       "type": "Conv2DLayer",
       "position": {
         "x": 30,
-        "y": 50
+        "y": 100
       },
-      "width": 90,
-      "height": 100,
+      "width": 110,
+      "height": 110,
       "measured": {
-        "width": 90,
-        "height": 100
+        "width": 110,
+        "height": 110
       },
       "data": {
-        "name": "Conv2DLayer",
+        "name": "l1",
         "attributes": {
+          "name": "l1",
           "kernel_dim": "[3, 3]",
           "out_channels": "32",
           "actv_func": "relu",
@@ -49,18 +50,19 @@
       "id": "a0594c44-830e-4693-a34a-fd97f81f6b85",
       "type": "PoolingLayer",
       "position": {
-        "x": 140,
-        "y": 50
+        "x": 170,
+        "y": 100
       },
-      "width": 90,
-      "height": 100,
+      "width": 110,
+      "height": 110,
       "measured": {
-        "width": 90,
-        "height": 100
+        "width": 110,
+        "height": 110
       },
       "data": {
-        "name": "PoolingLayer",
+        "name": "l2",
         "attributes": {
+          "name": "l2",
           "pooling_type": "max",
           "pooling.dimension": "2D",
           "kernel_dim": "[2, 2]"
@@ -72,18 +74,19 @@
       "id": "28142ef8-9d9a-4b5b-b0bb-bf8338f7da39",
       "type": "Conv2DLayer",
       "position": {
-        "x": 250,
-        "y": 50
+        "x": 310,
+        "y": 100
       },
-      "width": 90,
-      "height": 100,
+      "width": 110,
+      "height": 110,
       "measured": {
-        "width": 90,
-        "height": 100
+        "width": 110,
+        "height": 110
       },
       "data": {
-        "name": "Conv2DLayer",
+        "name": "l3",
         "attributes": {
+          "name": "l3",
           "kernel_dim": "[3, 3]",
           "out_channels": "64",
           "actv_func": "relu",
@@ -96,18 +99,19 @@
       "id": "b2215ce8-2b0c-4cc4-97ba-0957480c2ce5",
       "type": "PoolingLayer",
       "position": {
-        "x": 360,
-        "y": 50
+        "x": 450,
+        "y": 100
       },
-      "width": 90,
-      "height": 100,
+      "width": 110,
+      "height": 110,
       "measured": {
-        "width": 90,
-        "height": 100
+        "width": 110,
+        "height": 110
       },
       "data": {
-        "name": "PoolingLayer",
+        "name": "l4",
         "attributes": {
+          "name": "l4",
           "pooling_type": "max",
           "pooling.dimension": "2D",
           "kernel_dim": "[2, 2]"
@@ -119,18 +123,19 @@
       "id": "b4f15221-2f2b-4876-8b79-ab7655ea7fa3",
       "type": "Conv2DLayer",
       "position": {
-        "x": 470,
-        "y": 50
+        "x": 590,
+        "y": 100
       },
-      "width": 90,
-      "height": 100,
+      "width": 110,
+      "height": 110,
       "measured": {
-        "width": 90,
-        "height": 100
+        "width": 110,
+        "height": 110
       },
       "data": {
-        "name": "Conv2DLayer",
+        "name": "l5",
         "attributes": {
+          "name": "l5",
           "kernel_dim": "[3, 3]",
           "out_channels": "64",
           "actv_func": "relu",
@@ -143,18 +148,20 @@
       "id": "c97bc5bd-dfff-4d74-8d6d-b9bee945913c",
       "type": "FlattenLayer",
       "position": {
-        "x": 580,
-        "y": 50
+        "x": 730,
+        "y": 100
       },
-      "width": 90,
-      "height": 100,
+      "width": 110,
+      "height": 110,
       "measured": {
-        "width": 90,
-        "height": 100
+        "width": 110,
+        "height": 110
       },
       "data": {
-        "name": "FlattenLayer",
-        "attributes": {}
+        "name": "l6",
+        "attributes": {
+          "name": "l6"
+        }
       },
       "parentId": "6feb868b-45bf-4c44-88ab-6af624191fa9"
     },
@@ -162,18 +169,19 @@
       "id": "726c2fc0-6ca9-49e5-8a83-2bd6c818ddf4",
       "type": "LinearLayer",
       "position": {
-        "x": 690,
-        "y": 50
+        "x": 870,
+        "y": 90
       },
-      "width": 90,
-      "height": 100,
+      "width": 110,
+      "height": 110,
       "measured": {
-        "width": 90,
-        "height": 100
+        "width": 110,
+        "height": 110
       },
       "data": {
-        "name": "LinearLayer",
+        "name": "l7",
         "attributes": {
+          "name": "l7",
           "out_features": "64",
           "actv_func": "relu",
           "in_features": "1024"
@@ -185,18 +193,19 @@
       "id": "448f4122-75ed-4acb-b54a-c00a052a04b5",
       "type": "LinearLayer",
       "position": {
-        "x": 800,
-        "y": 50
+        "x": 1010,
+        "y": 90
       },
-      "width": 90,
-      "height": 100,
+      "width": 110,
+      "height": 110,
       "measured": {
-        "width": 90,
-        "height": 100
+        "width": 110,
+        "height": 110
       },
       "data": {
-        "name": "LinearLayer",
+        "name": "l8",
         "attributes": {
+          "name": "l8",
           "out_features": "10",
           "in_features": "64"
         }
@@ -207,8 +216,8 @@
       "id": "399f908e-b3ec-4c17-ad60-f5327f1b6aa0",
       "type": "Configuration",
       "position": {
-        "x": 100,
-        "y": 390
+        "x": -650,
+        "y": -70
       },
       "width": 110,
       "height": 110,
@@ -224,7 +233,8 @@
           "learning_rate": "0.001",
           "optimizer": "adam",
           "loss_function": "crossentropy",
-          "metrics": "[f1-score]"
+          "metrics": "[f1-score]",
+          "name": "Configuration"
         }
       }
     },
@@ -232,8 +242,8 @@
       "id": "19601d31-0821-4dde-a24b-c9059321657f",
       "type": "TrainingDataset",
       "position": {
-        "x": 410,
-        "y": 410
+        "x": -340,
+        "y": -50
       },
       "width": 110,
       "height": 110,
@@ -242,8 +252,9 @@
         "height": 110
       },
       "data": {
-        "name": "TrainingDataset",
+        "name": "train_data",
         "attributes": {
+          "name": "train_data",
           "path_data": "dataset/cifar10/train",
           "task_type": "multi_class",
           "input_format": "images",
@@ -256,8 +267,8 @@
       "id": "ae8a9f8f-5ab5-4193-b12c-e74dd1b23302",
       "type": "TestDataset",
       "position": {
-        "x": 670,
-        "y": 400
+        "x": -80,
+        "y": -60
       },
       "width": 110,
       "height": 110,
@@ -266,8 +277,9 @@
         "height": 110
       },
       "data": {
-        "name": "TestDataset",
+        "name": "test_data",
         "attributes": {
+          "name": "test_data",
           "path_data": "dataset/cifar10/test"
         }
       }
@@ -290,7 +302,16 @@
         "targetRole": "",
         "isManuallyLayouted": false,
         "messages": [],
-        "points": []
+        "points": [
+          {
+            "x": -570,
+            "y": -265
+          },
+          {
+            "x": -540,
+            "y": -265
+          }
+        ]
       }
     },
     {
@@ -309,7 +330,16 @@
         "targetRole": "",
         "isManuallyLayouted": false,
         "messages": [],
-        "points": []
+        "points": [
+          {
+            "x": -430,
+            "y": -265
+          },
+          {
+            "x": -400,
+            "y": -265
+          }
+        ]
       }
     },
     {
@@ -328,7 +358,16 @@
         "targetRole": "",
         "isManuallyLayouted": false,
         "messages": [],
-        "points": []
+        "points": [
+          {
+            "x": -290,
+            "y": -265
+          },
+          {
+            "x": -260,
+            "y": -265
+          }
+        ]
       }
     },
     {
@@ -347,7 +386,16 @@
         "targetRole": "",
         "isManuallyLayouted": false,
         "messages": [],
-        "points": []
+        "points": [
+          {
+            "x": -150,
+            "y": -265
+          },
+          {
+            "x": -120,
+            "y": -265
+          }
+        ]
       }
     },
     {
@@ -366,7 +414,16 @@
         "targetRole": "",
         "isManuallyLayouted": false,
         "messages": [],
-        "points": []
+        "points": [
+          {
+            "x": -10,
+            "y": -265
+          },
+          {
+            "x": 20,
+            "y": -265
+          }
+        ]
       }
     },
     {
@@ -385,7 +442,16 @@
         "targetRole": "",
         "isManuallyLayouted": false,
         "messages": [],
-        "points": []
+        "points": [
+          {
+            "x": 130,
+            "y": -270
+          },
+          {
+            "x": 160,
+            "y": -270
+          }
+        ]
       }
     },
     {
@@ -404,7 +470,16 @@
         "targetRole": "",
         "isManuallyLayouted": false,
         "messages": [],
-        "points": []
+        "points": [
+          {
+            "x": 270,
+            "y": -275
+          },
+          {
+            "x": 300,
+            "y": -275
+          }
+        ]
       }
     },
     {
@@ -422,7 +497,16 @@
         "targetRole": "",
         "isManuallyLayouted": false,
         "messages": [],
-        "points": []
+        "points": [
+          {
+            "x": -595,
+            "y": -70
+          },
+          {
+            "x": -595,
+            "y": -170
+          }
+        ]
       }
     },
     {
@@ -440,7 +524,16 @@
         "targetRole": "",
         "isManuallyLayouted": false,
         "messages": [],
-        "points": []
+        "points": [
+          {
+            "x": -285,
+            "y": -50
+          },
+          {
+            "x": -285,
+            "y": -170
+          }
+        ]
       }
     },
     {
@@ -458,7 +551,16 @@
         "targetRole": "",
         "isManuallyLayouted": false,
         "messages": [],
-        "points": []
+        "points": [
+          {
+            "x": -25,
+            "y": -60
+          },
+          {
+            "x": -25,
+            "y": -170
+          }
+        ]
       }
     }
   ],

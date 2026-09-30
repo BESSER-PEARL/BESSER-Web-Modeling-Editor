@@ -1,5 +1,6 @@
 import React from "react"
 import { Box, Tooltip } from "@mui/material"
+import { useTranslation } from "@/i18n"
 
 export interface RowColorSwatchProps {
   /** Tooltip label, e.g. `Row fill color`. */
@@ -29,8 +30,14 @@ export const RowColorSwatch: React.FC<RowColorSwatchProps> = ({
   value,
   fallbackCss,
   onChange,
-}) => (
-  <Tooltip title={`${label} (right-click to reset)`}>
+}) => {
+  const { t } = useTranslation()
+  return (
+  <Tooltip
+    title={t("stylePane.rightClickToReset", "{{label}} (right-click to reset)", {
+      label,
+    })}
+  >
     <Box
       component="label"
       sx={{
@@ -65,4 +72,5 @@ export const RowColorSwatch: React.FC<RowColorSwatchProps> = ({
       />
     </Box>
   </Tooltip>
-)
+  )
+}

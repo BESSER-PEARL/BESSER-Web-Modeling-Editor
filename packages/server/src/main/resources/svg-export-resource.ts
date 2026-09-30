@@ -1,3 +1,19 @@
+// MUST stay the first import: `@besser/wme` touches `document` / `window`
+// while its modules evaluate (MUI styles, text measurement), and this is the
+// first module in the server's import graph that loads it. Registering the
+// jsdom globals only in ConversionService (imported below) is too late — the
+// bundled server crashed on start with "ReferenceError: document is not
+// defined".
+import 'global-jsdom/register';
+// Evaluate the library's palette constants before its public entry. The
+// library has an import cycle `constants` → `@/components` barrel →
+// `Sidebar` → `constants`; entered through the barrel first (which is what
+// `@besser/wme` does in this bundle), `constants` evaluated before the SVG
+// components and every palette `svg` was undefined, so rendering crashed
+// ("Element type is invalid … check the render method of `Sidebar`").
+// Entering through `constants` gives the order the editor and the library
+// tests use. `@/` is the webpack alias for `packages/library/lib`.
+import '@/constants';
 import { Request, Response } from 'express';
 import { importDiagram, isV3Format, isV4Format } from '@besser/wme';
 import { ConversionService } from '../services/conversion-service/conversion-service';

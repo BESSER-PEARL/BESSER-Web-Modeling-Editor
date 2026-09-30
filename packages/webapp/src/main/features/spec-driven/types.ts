@@ -1,6 +1,6 @@
 /**
- * Smart Generator SSE event types — mirror the backend schema at
- * `besser/utilities/web_modeling_editor/backend/services/smart_generation/sse_events.py`.
+ * Spec-Driven Agent SSE event types — mirror the backend schema at
+ * `besser/utilities/web_modeling_editor/backend/services/spec_driven/sse_events.py`.
  *
  * The frontend receives these as a stream from `POST /besser_api/spec-driven/generate`
  * and renders them into the existing assistant chat message list.
@@ -12,7 +12,18 @@
 // 'free' is the keyless server-hosted open-weight tier: sent to the backend as
 // provider='free' with NO api_key and NO base_url — the server injects the
 // hosted endpoint + token. Offered only when /spec-driven/config advertises it.
-export type SpecDrivenProvider = 'anthropic' | 'openai' | 'mistral' | 'pia' | 'local' | 'free';
+export type SpecDrivenProvider =
+  | 'anthropic'
+  | 'openai'
+  | 'mistral'
+  // Nebius Token Factory: a real backend provider, sent on the wire as-is
+  // with NO base_url (the endpoint is pinned server-side).
+  | 'nebius'
+  | 'pia'
+  | 'local'
+  | 'free'
+  // Server-paid demo tier: endpoint, token and model all live in server env.
+  | 'sponsored';
 
 export type SpecDrivenPrimaryKind =
   | 'class'
@@ -28,7 +39,7 @@ export type SpecDrivenPrimaryKind =
  * Run mode sent to `POST /besser_api/spec-driven/generate`.
  *   - `generate` (default): build the app from scratch.
  *   - `modify`: edit an existing run's output in place (incremental
- *     vibe-modify), identified by a companion `base_run_id`.
+ *     modify), identified by a companion `base_run_id`.
  */
 export type SpecDrivenMode = 'generate' | 'modify';
 
@@ -78,7 +89,7 @@ export interface PhaseEvent {
  * Adds details to an existing phase row (e.g. the gap analyser surfaces
  * its task list this way after the planning LLM call returns). The
  * frontend looks up the matching phase entry by name and merges the
- * details into it so the chevron-expand in the smart-gen card has
+ * details into it so the chevron-expand in the run card has
  * something to show.
  */
 export interface PhaseUpdateEvent {
@@ -97,14 +108,14 @@ export interface TextDeltaEvent {
  * The LLM serving the run changed mid-run — the provider's outage
  * fallback switched to a different model (sticky for the rest of the
  * run). The run card updates its header model and shows a note in the
- * run steps. `reason` is a short machine-readable cause; today the only
- * producer is the outage fallback (`primary_unavailable`).
+ * run steps. `reason` distinguishes free-tier quota exhaustion from a
+ * generic primary outage.
  */
 export interface ModelUpdateEvent {
   event: 'model_update';
   model: string;
   previousModel?: string | null;
-  reason?: string;
+  reason?: 'quota_exhausted' | 'primary_unavailable' | string;
 }
 
 export interface ToolCallEvent {
@@ -120,6 +131,49 @@ export interface CostEvent {
   usd: number;
   turns: number;
   elapsedSeconds: number;
+}
+
+/**
+ * What the run checked, could not check, and shipped unenforced.
+ *
+ * A blocker count is one number over three different results. An app scored
+ * 11/11 with a passing booking workflow still double-sold rooms because two
+ * OCL constraints failed conversion and never reached the generated code —
+ * the run knew, and the number hid it. Mirrors ``VerificationReport`` /
+ * ``VerificationItem`` in the backend's ``sse_events.py``.
+ */
+export type SpecDrivenVerificationKind =
+  | 'requirement'
+  | 'ocl_constraint'
+  | 'api_workflow'
+  | 'check';
+
+export interface SpecDrivenVerificationItem {
+  kind: SpecDrivenVerificationKind;
+  /** Stable label (`R7`, an OCL constraint name, a scenario id). May be ''. */
+  id: string;
+  /** What the thing is, in the user's terms. */
+  what: string;
+  /** Set on a VERIFIED item: what was actually run or re-checked. */
+  how?: string;
+  /** Set on the other two: why nothing reached it, or what is missing. */
+  why?: string;
+}
+
+export interface SpecDrivenVerificationReport {
+  /** We checked and it works. */
+  verified: SpecDrivenVerificationItem[];
+  /** We could not check — unknown, not absent. */
+  notVerified: SpecDrivenVerificationItem[];
+  /** We checked and it is MISSING from the delivered code. */
+  shippedUnenforced: SpecDrivenVerificationItem[];
+  /** TRUE totals. The three lists above are capped by the backend, so a
+   * count may exceed its list length — the UI says "showing N of M". */
+  counts: {
+    verified: number;
+    notVerified: number;
+    shippedUnenforced: number;
+  };
 }
 
 export interface DoneEvent {
@@ -141,12 +195,11 @@ export interface DoneEvent {
    * each turn, so it is NOT a clean measure of effort — prefer `fileSplit`
    * (below) as the honest headline. */
   tokensUsed?: number;
-  /** Deterministic-vs-LLM file breakdown from the backend — the honest "how
-   * much did the generator produce for free" signal. `generator_untouched` =
-   * files the deterministic generator wrote and the LLM never touched (0 LLM
-   * tokens); `generator_llm_modified` = generator-written then LLM-edited;
-   * `llm_authored` = written from scratch by the LLM. `*_pct` are the same as
-   * percentages of `total`. */
+  /** File provenance in this run, not correctness, coverage, or token savings.
+   * `generator_untouched` = generator-tagged files not edited this run;
+   * `generator_llm_modified` = generator-tagged files edited this run;
+   * `llm_authored` = all other files, including harness-created files.
+   * `*_pct` are percentages of the total file count. */
   fileSplit?: {
     generator_untouched?: number;
     generator_llm_modified?: number;
@@ -156,8 +209,7 @@ export interface DoneEvent {
     generator_llm_modified_pct?: number;
     llm_authored_pct?: number;
   };
-  /** True when output was produced but the customization loop did not
-   * finish cleanly — the download may be missing requested changes. */
+  /** Output exists, but the run stopped early or left unresolved blockers. */
   incomplete?: boolean;
   incompleteReason?: string;
   /** Number of unresolved blocker-severity issues left by a run whose
@@ -165,15 +217,24 @@ export interface DoneEvent {
    * "finished with N unresolved issues" framing instead of the
    * misleading "stopped early" copy. */
   blockerCount?: number;
+  /** The three states `blockerCount` collapses into one number: what the run
+   * verified, what it could not check, and what it delivered UNENFORCED.
+   * Additive — absent on older/interrupted runs, in which case the card
+   * falls back to the blocker-count summary. */
+  verification?: SpecDrivenVerificationReport;
 }
 
 export interface SpecDrivenErrorEvent {
   event: 'error';
   code: SpecDrivenErrorCode;
   message: string;
+  /** Distinguishes an explicit stop from the disconnected grace policy. */
+  reason?: 'user' | 'abandoned';
+  /** True only when the backend verified a checkpoint exists on disk. */
+  resumeAvailable?: boolean;
 }
 
-export type SpecDrivenEvent =
+export type SpecDrivenEvent = (
   | StartEvent
   | PhaseEvent
   | PhaseUpdateEvent
@@ -182,7 +243,11 @@ export type SpecDrivenEvent =
   | ToolCallEvent
   | CostEvent
   | DoneEvent
-  | SpecDrivenErrorEvent;
+  | SpecDrivenErrorEvent
+) & {
+  /** Monotonic durable-log position added by replay-capable backends. */
+  sequence?: number;
+};
 
 /**
  * The `trigger_smart_generator` action emitted by the modeling agent.
@@ -204,7 +269,7 @@ export interface TriggerSpecDrivenPayload {
   llmModel?: string;
   message?: string;
   /**
-   * Incremental vibe-modify overrides. Normally the frontend decides
+   * Incremental modify overrides. Normally the frontend decides
    * automatically (see ``useSpecDrivenTrigger`` / ``decideRunMode``): a
    * follow-up run reuses the previous successful run's output while it's
    * still fresh. The agent MAY force the decision by setting these — e.g.

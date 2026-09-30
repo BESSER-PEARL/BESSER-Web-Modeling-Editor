@@ -150,6 +150,67 @@ describe('LlmKeyDialog — unified BYOK key', () => {
     expect(window.sessionStorage.getItem('besser_llm_api_key')).toBeNull();
   });
 
+  it('offers Nebius Token Factory with the Qwen3-30B-A3B endpoint preselectable', () => {
+    render(<LlmKeyDialog open onOpenChange={() => {}} />);
+
+    const select = document.getElementById('llm-key-provider') as HTMLSelectElement;
+    expect(Array.from(select.options).map((o) => o.value)).toContain('nebius');
+
+    fireEvent.change(select, { target: { value: 'nebius' } });
+    const models = document.getElementById('llm-key-model') as HTMLSelectElement;
+    expect(Array.from(models.options).map((o) => o.value)).toContain(
+      'Qwen/Qwen3-30B-A3B-Instruct-2507',
+    );
+  });
+
+  it('saves a Nebius key with NO base URL (the backend pins the endpoint)', () => {
+    const onSaved = vi.fn();
+    render(<LlmKeyDialog open onOpenChange={() => {}} onSaved={onSaved} />);
+
+    fireEvent.change(document.getElementById('llm-key-provider') as HTMLSelectElement, {
+      target: { value: 'nebius' },
+    });
+    fireEvent.change(document.getElementById('llm-key-api-key') as HTMLInputElement, {
+      target: { value: 'nebius-secret-key' },
+    });
+    fireEvent.change(document.getElementById('llm-key-model') as HTMLSelectElement, {
+      target: { value: 'Qwen/Qwen3-30B-A3B-Instruct-2507' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: /^save$/i }));
+
+    expect(window.sessionStorage.getItem('besser_llm_provider')).toBe('nebius');
+    expect(window.sessionStorage.getItem('besser_llm_model')).toBe(
+      'Qwen/Qwen3-30B-A3B-Instruct-2507',
+    );
+    // No base_url: a request carrying one would hit the backend's SSRF gate
+    // (BESSER_LLM_ALLOW_CUSTOM_BASE_URL, off by default) and be rejected.
+    expect(window.sessionStorage.getItem('besser_llm_base_url')).toBeNull();
+    expect(onSaved).toHaveBeenCalledWith(
+      expect.objectContaining({ provider: 'nebius', baseUrl: undefined }),
+    );
+  });
+
+  it('ships a Nebius key to the modeling agent, which now routes it to Nebius', () => {
+    // modeling-agent's byok.py accepts nebius (OpenAI-compatible Token Factory
+    // endpoint), so the assistant runs on the user's key like other providers.
+    const setUserApiKey = vi.fn();
+    render(<LlmKeyDialog open onOpenChange={() => {}} client={{ setUserApiKey }} />);
+
+    fireEvent.change(document.getElementById('llm-key-provider') as HTMLSelectElement, {
+      target: { value: 'nebius' },
+    });
+    fireEvent.change(document.getElementById('llm-key-api-key') as HTMLInputElement, {
+      target: { value: 'nebius-secret-key' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: /^save$/i }));
+
+    expect(setUserApiKey).toHaveBeenCalledWith(
+      expect.objectContaining({ provider: 'nebius', apiKey: 'nebius-secret-key' }),
+    );
+    // The key is also stored — the Spec-Driven Agent reads it from here.
+    expect(window.sessionStorage.getItem('besser_llm_api_key')).toBe('nebius-secret-key');
+  });
+
   it('does NOT offer the Free provider when the server does not advertise it', async () => {
     render(<LlmKeyDialog open onOpenChange={() => {}} />);
     await waitFor(() => {
@@ -158,6 +219,110 @@ describe('LlmKeyDialog — unified BYOK key', () => {
     const select = document.getElementById('llm-key-provider') as HTMLSelectElement;
     const values = Array.from(select.options).map((o) => o.value);
     expect(values).not.toContain('free');
+  });
+});
+
+describe('LlmKeyDialog — model pickers', () => {
+  function modelOptions(provider: string): string[] {
+    render(<LlmKeyDialog open onOpenChange={() => {}} />);
+    fireEvent.change(document.getElementById('llm-key-provider') as HTMLSelectElement, {
+      target: { value: provider },
+    });
+    const select = document.getElementById('llm-key-model') as HTMLSelectElement;
+    return Array.from(select.options).map((o) => o.value);
+  }
+
+  it('offers the current Claude models and no dated or retired ids', () => {
+    expect(modelOptions('anthropic')).toEqual([
+      '',
+      'claude-fable-5-1',
+      'claude-opus-5-5',
+      'claude-opus-5',
+      'claude-sonnet-5',
+      'claude-sonnet-4-6',
+      'claude-opus-4-6',
+      'claude-haiku-4-5',
+      '__custom__',
+    ]);
+  });
+
+  it('offers GPT-6 alongside the GPT-5.6 family', () => {
+    expect(modelOptions('openai')).toEqual([
+      '',
+      'gpt-6-sol',
+      'gpt-6-luna',
+      'gpt-5.6-terra',
+      'gpt-5.6-sol',
+      'gpt-5.6-luna',
+      'gpt-5.5',
+      'gpt-5.4-mini',
+      'gpt-4o',
+      '__custom__',
+    ]);
+  });
+
+  it('labels the new models clearly', () => {
+    render(<LlmKeyDialog open onOpenChange={() => {}} />);
+    const select = document.getElementById('llm-key-model') as HTMLSelectElement;
+    expect(select.textContent).toMatch(/Claude Fable 5\.1/);
+    expect(select.textContent).toMatch(/Claude Opus 5\.5/);
+    fireEvent.change(document.getElementById('llm-key-provider') as HTMLSelectElement, {
+      target: { value: 'openai' },
+    });
+    expect(select.textContent).toMatch(/GPT-6 Sol/);
+  });
+
+  it('maps a stored dated Haiku id onto the claude-haiku-4-5 preset', () => {
+    window.sessionStorage.setItem('besser_llm_api_key', 'sk-ant-stored');
+    window.sessionStorage.setItem('besser_llm_provider', 'anthropic');
+    window.sessionStorage.setItem('besser_llm_model', 'claude-haiku-4-5-20251001');
+    const onSaved = vi.fn();
+    render(<LlmKeyDialog open onOpenChange={() => {}} onSaved={onSaved} />);
+
+    const select = document.getElementById('llm-key-model') as HTMLSelectElement;
+    expect(select.value).toBe('claude-haiku-4-5');
+    expect(document.getElementById('llm-key-model-custom')).toBeNull();
+
+    fireEvent.change(document.getElementById('llm-key-api-key') as HTMLInputElement, {
+      target: { value: 'sk-ant-stored' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: /^save$/i }));
+    expect(window.sessionStorage.getItem('besser_llm_model')).toBe('claude-haiku-4-5');
+  });
+
+  it('keeps a stored id that is no longer a preset as a working custom model', () => {
+    window.sessionStorage.setItem('besser_llm_api_key', 'sk-ant-stored');
+    window.sessionStorage.setItem('besser_llm_provider', 'anthropic');
+    window.sessionStorage.setItem('besser_llm_model', 'claude-opus-4-1');
+    const onSaved = vi.fn();
+    render(<LlmKeyDialog open onOpenChange={() => {}} onSaved={onSaved} />);
+
+    expect((document.getElementById('llm-key-model') as HTMLSelectElement).value).toBe(
+      '__custom__',
+    );
+    expect(
+      (document.getElementById('llm-key-model-custom') as HTMLInputElement).value,
+    ).toBe('claude-opus-4-1');
+
+    fireEvent.change(document.getElementById('llm-key-api-key') as HTMLInputElement, {
+      target: { value: 'sk-ant-stored' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: /^save$/i }));
+    expect(onSaved).toHaveBeenCalledWith(
+      expect.objectContaining({ provider: 'anthropic', model: 'claude-opus-4-1' }),
+    );
+  });
+
+  it('keeps the dated Haiku id on PIA, whose preset list is unchanged', () => {
+    // jsdom runs on localhost, so the local-only PIA provider is offered.
+    window.sessionStorage.setItem('besser_llm_api_key', 'sk-pia');
+    window.sessionStorage.setItem('besser_llm_provider', 'pia');
+    window.sessionStorage.setItem('besser_llm_model', 'claude-haiku-4-5-20251001');
+    render(<LlmKeyDialog open onOpenChange={() => {}} />);
+
+    expect((document.getElementById('llm-key-model') as HTMLSelectElement).value).toBe(
+      'claude-haiku-4-5-20251001',
+    );
   });
 });
 
@@ -270,6 +435,41 @@ describe('LlmKeyDialog — keyless free tier', () => {
     await waitFor(() => {
       expect(select.value).toBe('free');
     });
+  });
+
+  it('renders every advertised free model, including a third cloud option', async () => {
+    // The server can add a free model on its own endpoint (e.g. one with no
+    // daily request quota) purely by extending the config payload — the picker
+    // renders the list verbatim and the default stays the default.
+    mockFreeConfig({
+      available: true,
+      model: 'meituan/LongCat-2.0:free',
+      models: [
+        { id: 'meituan/LongCat-2.0:free', default: true },
+        { id: 'poolside/laguna-s-2.1-free', default: false },
+        { id: 'qwen3.8:27b', default: false },
+      ],
+    });
+    await renderAndSelectFree();
+
+    const group = screen.getByRole('radiogroup', { name: /free model/i });
+    const radios = within(group).getAllByRole('radio') as HTMLInputElement[];
+    expect(radios.map((r) => r.value)).toEqual([
+      'meituan/LongCat-2.0:free',
+      'poolside/laguna-s-2.1-free',
+      'qwen3.8:27b',
+    ]);
+    // A vendor-prefixed alt is not mislabelled as self-hosted.
+    expect(within(group).getByText('poolside/laguna-s-2.1-free')).toBeTruthy();
+    expect(radios[0].checked).toBe(true);
+
+    // Picking it stores that exact id (the backend honors it and pins
+    // anything else to the default).
+    fireEvent.click(radios[1]);
+    fireEvent.click(screen.getByRole('button', { name: /^save$/i }));
+    expect(window.sessionStorage.getItem('besser_smart_gen_free_model')).toBe(
+      'poolside/laguna-s-2.1-free',
+    );
   });
 
   it('offers no model choice when the server advertises a single free model', async () => {

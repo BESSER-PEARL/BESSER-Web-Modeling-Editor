@@ -73,9 +73,28 @@ NNContainer and pick a ``tns_type``:
 *   ``permute``
 *   ``multiply``
 *   ``matmultiply``
+*   ``mean``
+*   ``max``
+*   ``squeeze``
+*   ``unsqueeze``
+*   ``binop_add``
+*   ``binop_subtract``
+*   ``binop_multiply``
+*   ``binop_divide``
+*   ``binop_floor_divide``
+*   ``subscript``
+*   ``shape_dim``
+*   ``normalize``
+*   ``repeat``
+*   ``interpolate``
+*   ``pad``
+*   ``dropout``
+*   ``zeros_like``
+*   ``split``
+*   ``identity``
 
 The selected ``tns_type`` controls which dimension attribute is shown on the popup
-(``reshape_dim``, ``concatenate_dim``, ``transpose_dim``, ``permute_dim``). Layers and
+(``reshape_dim``, ``concatenate_dim``, ``transpose_dim``, ``permute_dim``, etc.). Layers and
 tensor operations are interchangeable building blocks and can be interleaved freely.
 
 NNNext Relationships

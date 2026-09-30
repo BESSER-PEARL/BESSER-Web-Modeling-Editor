@@ -228,27 +228,31 @@ export const useStepPathEdge = ({
     target: { x: number; y: number; parentId?: string }
   }>({
     source: {
-      x: sourceNode.position.x,
-      y: sourceNode.position.y,
+      x: sourceAbsolutePosition.x,
+      y: sourceAbsolutePosition.y,
       parentId: sourceNode.parentId,
     },
     target: {
-      x: targetNode.position.x,
-      y: targetNode.position.y,
+      x: targetAbsolutePosition.x,
+      y: targetAbsolutePosition.y,
       parentId: targetNode.parentId,
     },
   })
 
-  // Reset custom points when nodes move
+  const lastSeenPointsRef = useRef<IPoint[] | undefined>(data?.points)
+
+  // Reset custom points when nodes move. Compares ABSOLUTE (canvas)
+  // positions: a node inside a container that moves (BPMN pool / lane,
+  // package, …) keeps its relative `position`, but its route must follow.
   useEffect(() => {
     const currentSourcePos = {
-      x: sourceNode.position.x,
-      y: sourceNode.position.y,
+      x: sourceAbsolutePosition.x,
+      y: sourceAbsolutePosition.y,
       parentId: sourceNode.parentId,
     }
     const currentTargetPos = {
-      x: targetNode.position.x,
-      y: targetNode.position.y,
+      x: targetAbsolutePosition.x,
+      y: targetAbsolutePosition.y,
       parentId: targetNode.parentId,
     }
     const prevSourcePos = prevNodePositionsRef.current.source
@@ -270,16 +274,26 @@ export const useStepPathEdge = ({
         target: currentTargetPos,
       }
 
+      // The stored route was replaced in the same update as the node move
+      // (auto-layout, undo/redo, remote sync): it already matches the new
+      // geometry, so adopt it instead of shifting/clearing the old one.
+      if (data?.points !== lastSeenPointsRef.current) {
+        lastSeenPointsRef.current = data?.points
+        setCustomPoints(data?.points ?? [])
+        return
+      }
+
       if (customPoints.length > 0) {
         if (sourceChanged && targetChanged) {
           const deltaX = currentSourcePos.x - prevSourcePos.x
           const deltaY = currentSourcePos.y - prevSourcePos.y
-          const newPoints = customPoints.map((point) =>
-            screenToFlowPosition({
-              x: point.x + deltaX,
-              y: point.y + deltaY,
-            })
-          )
+          // Route points are flow coordinates: translate them directly
+          // (running them through screenToFlowPosition skewed the route by
+          // the viewport pan/zoom).
+          const newPoints = customPoints.map((point) => ({
+            x: point.x + deltaX,
+            y: point.y + deltaY,
+          }))
 
           setCustomPoints(newPoints)
           setEdges((edges) =>
@@ -308,17 +322,24 @@ export const useStepPathEdge = ({
       }
     }
   }, [
-    sourceNode.position.x,
-    sourceNode.position.y,
+    sourceAbsolutePosition.x,
+    sourceAbsolutePosition.y,
     sourceNode.parentId,
-    targetNode.position.x,
-    targetNode.position.y,
+    targetAbsolutePosition.x,
+    targetAbsolutePosition.y,
     targetNode.parentId,
     customPoints,
     id,
     setEdges,
     setCustomPoints,
+    data?.points,
   ])
+
+  // Declared after the move effect on purpose: that effect compares against
+  // the previous value to detect a route replaced together with a move.
+  useEffect(() => {
+    lastSeenPointsRef.current = data?.points
+  }, [data?.points])
 
   const activePoints = useMemo(() => {
     let points: IPoint[]

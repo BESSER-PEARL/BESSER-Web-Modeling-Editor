@@ -13,6 +13,7 @@ import { DeleteIcon, SwapHorizIcon } from "@/components/Icon"
 import { CustomEdgeProps } from "@/edges/EdgeProps"
 import { PopoverProps } from "@/components/popovers/types"
 import { InspectorSectionHeader, AddRowButton } from "../_shared"
+import { useTranslation } from "@/i18n"
 
 /**
  * Inspector body for `StateTransition` edges. v3 parity
@@ -69,6 +70,7 @@ export const StateMachineDiagramEdgeEditPanel: React.FC<PopoverProps> = ({
       setEdges: state.setEdges,
     }))
   )
+  const { t } = useTranslation()
   const edge = edges.find((e) => e.id === elementId)
   if (!edge) return null
 
@@ -146,9 +148,12 @@ export const StateMachineDiagramEdgeEditPanel: React.FC<PopoverProps> = ({
       <EdgeStyleEditor
         edgeData={data}
         handleDataFieldUpdate={handleStyleFieldUpdate}
-        label="Transition"
+        label={t("packages.StateDiagram.StateTransition", "Transition")}
         sideElements={[
-          <Tooltip key="flip" title="Flip source / target">
+          <Tooltip
+            key="flip"
+            title={t("common.flipSourceTarget", "Flip source / target")}
+          >
             <IconButton size="small" onClick={handleSwap}>
               <SwapHorizIcon />
             </IconButton>
@@ -161,27 +166,32 @@ export const StateMachineDiagramEdgeEditPanel: React.FC<PopoverProps> = ({
         size="small"
         variant="outlined"
         fullWidth
-        label="name"
+        label={t("popup.name", "Name")}
         value={data.name ?? ""}
         onChange={(e) => update({ name: e.target.value })}
-        placeholder="event handler function name"
+        placeholder={t(
+          "popup.state.eventHandlerPlaceholder",
+          "event handler function name"
+        )}
       />
       <MuiTextField
         size="small"
         variant="outlined"
         fullWidth
-        label="guard"
+        label={t("popup.guard", "Guard")}
         value={data.guard ?? ""}
         onChange={(e) => update({ guard: e.target.value })}
-        placeholder="Guard expression"
+        placeholder={t("popup.guardPlaceholder", "Guard expression")}
       />
 
       <Stack
         direction="row"
         sx={{ alignItems: "center", justifyContent: "space-between" }}
       >
-        <InspectorSectionHeader>Parameters</InspectorSectionHeader>
-        <AddRowButton label="add" onClick={addParam} />
+        <InspectorSectionHeader>
+          {t("popup.parameters", "Parameters")}
+        </InspectorSectionHeader>
+        <AddRowButton onClick={addParam} />
       </Stack>
       {paramRows.map((value, index) => (
         <Stack
@@ -196,14 +206,16 @@ export const StateMachineDiagramEdgeEditPanel: React.FC<PopoverProps> = ({
             fullWidth
             value={value}
             onChange={(e) => handleParamChange(index, e.target.value)}
-            placeholder={`Parameter ${index + 1}`}
+            placeholder={`${t("popup.parameterPlaceholder", "Parameter")} ${index + 1}`}
           />
           {/* Develop hid the trash button when only one row remains. */}
           {paramRows.length > 1 && (
             <IconButton
               size="small"
               onClick={() => removeParam(index)}
-              aria-label={`Remove parameter ${index + 1}`}
+              aria-label={t("popup.state.removeParameter", "Remove parameter {{index}}", {
+                index: index + 1,
+              })}
             >
               <DeleteIcon width={14} height={14} />
             </IconButton>

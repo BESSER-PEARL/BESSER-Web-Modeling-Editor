@@ -8,3 +8,4 @@
 export { InspectorSectionHeader } from "./InspectorSectionHeader"
 export { AddRowButton } from "./AddRowButton"
 export { RowColorSwatch } from "./RowColorSwatch"
+export { NodeSizeFields } from "./NodeSizeFields"

@@ -41,6 +41,8 @@ export interface SystemSpec {
     sourceMultiplicity?: string;
     targetMultiplicity?: string;
     name?: string;
+    sourceRole?: string;
+    associationClass?: string | null;
   }>;
 }
 
@@ -639,7 +641,15 @@ export class UMLModelingService {
       }
     }
 
-    if (newNodes.length === 0 && newEdges.length === 0) {
+    // AgentDiagram fragments may carry off-canvas components (e.g. an intent)
+    // instead of nodes; they merge into `model.components`.
+    const newComponents =
+      elementData && typeof elementData === 'object' && elementData.components && typeof elementData.components === 'object'
+        ? elementData.components
+        : undefined;
+    const hasComponents = !!newComponents && Object.keys(newComponents).length > 0;
+
+    if (newNodes.length === 0 && newEdges.length === 0 && !hasComponents) {
       throw new Error('No main element found in elementData');
     }
 
@@ -647,6 +657,7 @@ export class UMLModelingService {
       ...cur,
       nodes: [...baseNodes, ...newNodes],
       edges: [...baseEdges, ...newEdges],
+      ...(hasComponents && { components: { ...(cur.components ?? {}), ...newComponents } }),
     } as BESSERModel;
   }
 
@@ -659,6 +670,8 @@ export class UMLModelingService {
       ...cur,
       nodes: [...(cur.nodes ?? []), ...((systemData?.nodes as BesserNode[]) ?? [])],
       edges: [...(cur.edges ?? []), ...((systemData?.edges as BesserEdge[]) ?? [])],
+      // AgentDiagram: off-canvas components (intents, LLMs, …) merge by id.
+      ...(systemData?.components && { components: { ...(cur.components ?? {}), ...systemData.components } }),
     } as BESSERModel;
   }
 }

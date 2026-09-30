@@ -1,3 +1,7 @@
+// Must stay first: it repairs globalThis.localStorage before any import that
+// reads storage while loading (see storage-shim.ts).
+import './storage-shim';
+
 import '@testing-library/jest-dom';
 
 // jsdom has no canvas backend, but @besser/wme's SVG text-measurement helpers

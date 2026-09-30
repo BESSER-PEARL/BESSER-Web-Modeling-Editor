@@ -64,7 +64,16 @@ export const resizeAllParents = (node: Node, allNodes: Node[]) => {
     // resize cascade still walks UP through grandparents, but NNContainer
     // itself is left alone — its NodeResizer handles is the only way to
     // change its dimensions.
-    if (parent.type === "NNContainer") {
+    // BPMN pools and lanes are sized by the user / the lane stack
+    // (`useSwimlaneLayout`), never fitted to their content: the old editor's
+    // `BPMNPool.render` / `BPMNSwimlane.render` did not grow or shrink to the
+    // children. Fitting here shrank a lane to its tasks (and slid it off the
+    // pool's lane stack) whenever a task was dropped or moved inside it.
+    if (
+      parent.type === "NNContainer" ||
+      parent.type === "bpmnPool" ||
+      parent.type === "bpmnSwimlane"
+    ) {
       currentNode = parent
       continue
     }

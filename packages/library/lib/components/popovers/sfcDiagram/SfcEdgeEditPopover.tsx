@@ -1,9 +1,11 @@
 import { Box, FormControlLabel, Checkbox } from "@mui/material"
+import { useReactiveEdge } from "@/hooks/useReactiveElement"
 import { EdgeStyleEditor, TextField } from "@/components/ui"
 import { PopoverProps } from "../types"
 import { useReactFlow } from "@xyflow/react"
 import { useState, useCallback, useEffect } from "react"
 import { CustomEdgeProps } from "@/edges"
+import { useTranslation } from "@/i18n"
 
 interface SfcEdgeData {
   isNegated: boolean
@@ -33,8 +35,9 @@ function serializeSfcEdgeLabel(data: SfcEdgeData): string {
 }
 
 export const SfcEdgeEditPopover: React.FC<PopoverProps> = ({ elementId }) => {
-  const { getEdge, updateEdgeData } = useReactFlow()
-  const edge = getEdge(elementId)
+  const { t } = useTranslation()
+  const { updateEdgeData } = useReactFlow()
+  const edge = useReactiveEdge(elementId)
 
   const [edgeData, setEdgeData] = useState<SfcEdgeData>(() =>
     parseSfcEdgeLabel(edge?.data?.label as string | undefined)
@@ -90,7 +93,7 @@ export const SfcEdgeEditPopover: React.FC<PopoverProps> = ({ elementId }) => {
   return (
     <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
       <EdgeStyleEditor
-        label="Edit Transition"
+        label={t("popup.sfc.editTransition", "Edit Transition")}
         edgeData={edgeDataCustom}
         handleDataFieldUpdate={(key, value) =>
           updateEdgeData(elementId, { [key]: value })
@@ -98,10 +101,13 @@ export const SfcEdgeEditPopover: React.FC<PopoverProps> = ({ elementId }) => {
       />
 
       <TextField
-        label="Condition"
+        label={t("popup.sfc.condition", "Condition")}
         value={edgeData.displayName}
         onChange={(e) => handleDisplayNameChange(e.target.value)}
-        placeholder="Enter transition condition"
+        placeholder={t(
+          "popup.sfc.conditionPlaceholder",
+          "Enter transition condition"
+        )}
         size="small"
         fullWidth
       />
@@ -116,7 +122,7 @@ export const SfcEdgeEditPopover: React.FC<PopoverProps> = ({ elementId }) => {
                 size="small"
               />
             }
-            label="Show crossbar"
+            label={t("popup.sfc.showCrossbar", "Show crossbar")}
           />
 
           <FormControlLabel
@@ -127,7 +133,10 @@ export const SfcEdgeEditPopover: React.FC<PopoverProps> = ({ elementId }) => {
                 size="small"
               />
             }
-            label="Negated condition (overline)"
+            label={t(
+              "popup.sfc.negatedCondition",
+              "Negated condition (overline)"
+            )}
           />
         </Box>
       )}

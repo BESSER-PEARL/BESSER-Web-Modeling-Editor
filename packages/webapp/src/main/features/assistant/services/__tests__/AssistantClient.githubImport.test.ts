@@ -1,7 +1,7 @@
 /**
  * Whitelist + extraction regression tests for `trigger_github_import`.
  *
- * Live bug (2026-09-03): the modeling agent emitted a well-formed
+ * Regression: the modeling agent emitted a well-formed
  * `trigger_github_import` action for "continue from this please
  * https://github.com/owner/repo", but the action name was missing from
  * AssistantClient's KNOWN_ACTIONS whitelist — `isActionPayload()` rejected the
@@ -27,16 +27,16 @@ describe('AssistantClient — trigger_github_import action recognition', () => {
     // double-encoded into the agent_reply_str envelope by the wire protocol.
     const wireMessage = JSON.stringify({
       action: 'trigger_github_import',
-      owner: 'ArmenSl',
-      repo: 'new_project-opemco',
+      owner: 'octocat',
+      repo: 'library-app',
       branch: null,
-      message: "Importing **ArmenSl/new_project-opemco** from GitHub — I'll load the project.",
+      message: "Importing **octocat/library-app** from GitHub — I'll load the project.",
     });
     const result = extract(wireMessage);
     expect(result).not.toBeNull();
     expect(result.action).toBe('trigger_github_import');
-    expect(result.owner).toBe('ArmenSl');
-    expect(result.repo).toBe('new_project-opemco');
+    expect(result.owner).toBe('octocat');
+    expect(result.repo).toBe('library-app');
     expect(result.branch).toBeNull();
   });
 

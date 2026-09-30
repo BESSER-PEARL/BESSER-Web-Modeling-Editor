@@ -1,5 +1,5 @@
 import { BaseEdge } from "@xyflow/react"
-import { useRef } from "react"
+import { usePopoverAnchor } from "@/hooks/usePopoverAnchor"
 import {
   BaseEdgeProps,
   EdgeEndpointMarkers,
@@ -48,7 +48,8 @@ export const NNNext = ({
   data,
   selected,
 }: BaseEdgeProps) => {
-  const anchorRef = useRef<SVGSVGElement | null>(null)
+  const [anchorEl, anchorRef] =
+    usePopoverAnchor<SVGForeignObjectElement>()
   const { handleDelete } = useToolbar({ id })
 
   const config = useEdgeConfig(type as DiagramEdgeType)
@@ -192,6 +193,7 @@ export const NNNext = ({
           isDiagramModifiable={isDiagramModifiable}
           assessments={assessments}
           anchorRef={anchorRef}
+          anchorEl={anchorEl}
           handleDelete={handleDelete}
           setPopOverElementId={setPopOverElementId}
           type={type}

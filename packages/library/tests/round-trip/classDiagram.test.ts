@@ -416,14 +416,14 @@ describe("ClassDiagram v3 → v4 round-trip", () => {
     expect(zRound.icon).toBe("<svg/>")
   })
 
-  it("SA-FIX-Class PC-3: ClassAggregation/Composition diamond on source end", async () => {
+  it("ClassAggregation/Composition diamond on the target (whole) end", async () => {
     const { getEdgeMarkerStyles } = await import("@/utils/edgeUtils")
     const agg = getEdgeMarkerStyles("ClassAggregation")
-    expect(agg.markerStart).toBe("url(#white-rhombus)")
-    expect(agg.markerEnd).toBeUndefined()
+    expect(agg.markerEnd).toBe("url(#white-rhombus)")
+    expect(agg.markerStart).toBeUndefined()
     const comp = getEdgeMarkerStyles("ClassComposition")
-    expect(comp.markerStart).toBe("url(#black-rhombus)")
-    expect(comp.markerEnd).toBeUndefined()
+    expect(comp.markerEnd).toBe("url(#black-rhombus)")
+    expect(comp.markerStart).toBeUndefined()
   })
 
   it("SA-FIX-Class PC-3: ClassOCLLink renders dotted with open-arrow marker", async () => {
@@ -1148,7 +1148,13 @@ describe("edge-anchored ClassLinkRel wire-shape preservation", () => {
         target: "class-b",
         targetHandle: "left",
         type: "ClassBidirectional",
-        data: { name: "enrols", points: [] },
+        // Canonical v4 carries explicit per-end navigability.
+        data: {
+          name: "enrols",
+          sourceNavigable: true,
+          targetNavigable: true,
+          points: [],
+        },
       },
       {
         // Backend emission shape (`class_diagram_converter.py`).

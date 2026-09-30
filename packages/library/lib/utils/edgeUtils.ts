@@ -207,18 +207,21 @@ export function getEdgeMarkerStyles(edgeType: string): EdgeMarkerStyles {
         offset: 0,
       }
     case "ClassAggregation":
-      // Diamond on the source (whole) end.
+      // Diamond on the target (whole) end: the backend reads the target end
+      // of an aggregation / composition as the composite, and v3 drew the
+      // diamond there. ClassDiagramEdge adds the navigability arrows on top
+      // (see `getAssociationMarkers`).
       return {
         markerPadding: EDGES.MARKER_PADDING,
-        markerStart: "url(#white-rhombus)",
+        markerEnd: "url(#white-rhombus)",
         strokeDashArray: "0",
         offset: 0,
       }
     case "ClassComposition":
-      // Diamond on the source (whole) end.
+      // Diamond on the target (whole) end, see ClassAggregation.
       return {
         markerPadding: EDGES.MARKER_PADDING,
-        markerStart: "url(#black-rhombus)",
+        markerEnd: "url(#black-rhombus)",
         strokeDashArray: "0",
         offset: 0,
       }
@@ -1132,9 +1135,12 @@ export const getInitialEdgeData = (
 ): Record<string, unknown> | undefined => {
   switch (edgeType) {
     case "AgentStateTransition":
+      // smart-gen 3d720bdd: a hand-drawn transition starts as 'auto'
+      // (stored transitions without a condition still load as
+      // 'when_intent_matched' via the normalizer).
       return {
         transitionType: "predefined",
-        predefined: { predefinedType: "when_intent_matched", intentName: "" },
+        predefined: { predefinedType: "auto" },
         custom: { condition: [] },
         params: {},
       }
@@ -1142,6 +1148,13 @@ export const getInitialEdgeData = (
       return { params: {} }
     case "NNNext":
       return { name: "next" }
+    // Class associations: the editor always writes explicit per-end
+    // navigability (smart-gen bb8624cc / 7d75c20c); a new association is
+    // navigable both ways.
+    case "ClassBidirectional":
+    case "ClassComposition":
+    case "ClassAggregation":
+      return { sourceNavigable: true, targetNavigable: true }
     default:
       return undefined
   }

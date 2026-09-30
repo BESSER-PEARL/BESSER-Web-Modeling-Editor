@@ -9,10 +9,18 @@ import {
   isParentNodeType,
   resizeAllParents,
 } from "@/utils"
-import { canDropIntoParent } from "@/utils/bpmnConstraints"
+import {
+  canDropIntoParent,
+  clampIntoLaneBody,
+  requiresParent,
+} from "@/utils/bpmnConstraints"
+import { POOL_HEADER_WIDTH, stackPoolLanes } from "@/hooks/useSwimlaneLayout"
 import { useDiagramStore } from "@/store/context"
 import { useShallow } from "zustand/shallow"
 import { log } from "../logger"
+import { translate, useTranslation } from "@/i18n"
+import { Locale } from "@/typings"
+import { createNewNodeDataWithNewIds } from "@/utils/copyPasteUtils"
 
 /* ========================================================================
    Utility functions to manage page scrolling during dragging
@@ -31,11 +39,14 @@ const enableScroll = () => {
    Palette template row re-iding
    ======================================================================== */
 /**
- * Clone a palette entry's `defaultData` and assign fresh ids to any
- * template row arrays (`methods` / `attributes` / `bodies` /
- * `fallbackBodies`). Row ids become top-level v3 element ids on export
- * (e.g. `convertV4ToV3Agent` emits `elements[row.id]`), so two drops of
- * the same pre-populated palette card would collide without this.
+ * Clone a palette entry's `defaultData` and assign fresh ids to every
+ * template row in every id-bearing list -- `methods` (and their
+ * `parameters`) / `attributes` / `bodies` / `fallbackBodies` /
+ * `training_phrases` / `entity_slots` / `oclConstraints` / ... (upstream
+ * Apollon `instantiatePaletteData`, shared with paste via
+ * `remintNestedChildIds`). Row ids become top-level v3 element ids on
+ * export (e.g. `convertV4ToV3Agent` emits `elements[row.id]`), so two
+ * drops of the same pre-populated palette card would collide without this.
  *
  * NN-layer palette entries store `attributes` as a slug→value dict
  * (e.g. `{"pooling.dimension": "2D"}`) — non-array shapes are left
@@ -45,18 +56,30 @@ const enableScroll = () => {
  */
 export const cloneDefaultDataWithFreshRowIds = (
   configDefaultData: Record<string, unknown> | undefined
-): Record<string, unknown> => {
-  const defaultData = structuredClone(configDefaultData ?? {})
-  for (const key of ["methods", "attributes", "bodies", "fallbackBodies"]) {
-    const rows = defaultData[key]
-    if (Array.isArray(rows)) {
-      defaultData[key] = (rows as Array<object>).map((row) => ({
-        ...row,
-        id: generateUUID(),
-      }))
-    }
+): Record<string, unknown> =>
+  createNewNodeDataWithNewIds(structuredClone(configDefaultData ?? {}))
+
+/**
+ * Resolve a palette entry's `defaultData` for the given locale: when the
+ * entry declares a `nameKey`, the default `name` is translated (the English
+ * `defaultData.name` is the fallback). v3 parity — only the BPMN palette
+ * translated default names (`bpmn-diagram-preview.ts`); the result is
+ * model content, frozen at creation like in v3. Used for both the sidebar
+ * preview and the dropped node. Returns the input unchanged without a key.
+ */
+export const resolvePaletteDefaultData = (
+  config: Pick<DropElementConfig, "defaultData" | "nameKey">,
+  locale: Locale
+): Record<string, unknown> | undefined => {
+  if (!config.nameKey || !config.defaultData) return config.defaultData
+  const fallback =
+    typeof config.defaultData.name === "string"
+      ? config.defaultData.name
+      : undefined
+  return {
+    ...config.defaultData,
+    name: translate(config.nameKey, fallback, locale),
   }
-  return defaultData
 }
 
 /* ========================================================================
@@ -73,6 +96,7 @@ export const DraggableGhost: React.FC<DraggableGhostProps> = ({
   dropElementConfig,
 }) => {
   const diagramId = useDiagramStore(useShallow((state) => state.diagramId))
+  const { locale } = useTranslation()
   // Hooks from react-flow and zustand store for node management
   const { screenToFlowPosition, getIntersectingNodes } = useReactFlow()
   const { nodes, setNodes } = useDiagramStore(
@@ -123,7 +147,7 @@ export const DraggableGhost: React.FC<DraggableGhostProps> = ({
       // assign fresh ids to template rows — see
       // `cloneDefaultDataWithFreshRowIds` for the why.
       const defaultData = cloneDefaultDataWithFreshRowIds(
-        dropElementConfig.defaultData as Record<string, unknown> | undefined
+        resolvePaletteDefaultData(dropElementConfig, locale)
       )
 
       // Prepare the drop data including offset adjustments
@@ -151,6 +175,13 @@ export const DraggableGhost: React.FC<DraggableGhostProps> = ({
       const parentNode = intersectingNodes[intersectingNodes.length - 1]
       const parentId = parentNode ? parentNode.id : undefined
 
+      // Some elements only exist inside a container (a BPMN lane only
+      // inside a pool): a drop on the bare canvas is ignored.
+      if (!parentId && requiresParent(dropElementConfig.type)) {
+        log.debug(`Drop of ${dropElementConfig.type} ignored: it needs a parent`)
+        return
+      }
+
       // Adjust node position based on pointer offset
       const position = screenToFlowPosition({
         x: event.clientX,
@@ -173,13 +204,17 @@ export const DraggableGhost: React.FC<DraggableGhostProps> = ({
         position.y -= parentPositionOnCanvas.y
       }
 
+      const isLaneIntoPool =
+        dropData.type === "bpmnSwimlane" && parentNode?.type === "bpmnPool"
+
       // Create the new node with a unique ID and calculated position
       const newNode: Node = {
         id: generateUUID(),
         width: dropElementConfig.dropWidth ?? dropElementConfig.width,
         height: dropElementConfig.dropHeight ?? dropElementConfig.height,
         type: dropData.type,
-        position: { ...position },
+        // Children of a BPMN lane stay out of its header strip.
+        position: clampIntoLaneBody({ ...position }, parentNode?.type),
         data: { ...defaultData, ...dropData.data },
         parentId: parentId,
         measured: {
@@ -187,11 +222,34 @@ export const DraggableGhost: React.FC<DraggableGhostProps> = ({
           height: dropElementConfig.dropHeight ?? dropElementConfig.height,
         },
         selected: false,
+        // Lanes are pool-driven, not free-dragging (as BPMNPoolEditPopover).
+        ...(isLaneIntoPool ? { draggable: false } : {}),
       }
 
       // Update nodes and resize parent nodes if necessary
-      const updatedNodes = structuredClone([...nodes, newNode])
-      if (parentId) {
+      let updatedNodes = structuredClone([...nodes, newNode])
+      if (isLaneIntoPool && parentId) {
+        // First lane of a pool: the pool's direct children move into it
+        // (as BPMNPoolEditPopover's "add lane"). Then re-stack the lanes.
+        const hadLanes = nodes.some(
+          (n) => n.parentId === parentId && n.type === "bpmnSwimlane"
+        )
+        if (!hadLanes) {
+          updatedNodes = updatedNodes.map((n) =>
+            n.parentId === parentId && n.id !== newNode.id
+              ? {
+                  ...n,
+                  parentId: newNode.id,
+                  position: clampIntoLaneBody(
+                    { x: n.position.x - POOL_HEADER_WIDTH, y: n.position.y },
+                    "bpmnSwimlane"
+                  ),
+                }
+              : n
+          )
+        }
+        updatedNodes = stackPoolLanes(updatedNodes, parentId)
+      } else if (parentId) {
         resizeAllParents(newNode, updatedNodes)
       }
 
@@ -205,6 +263,7 @@ export const DraggableGhost: React.FC<DraggableGhostProps> = ({
       clickOffset.x,
       clickOffset.y,
       dropElementConfig,
+      locale,
     ]
   )
 
@@ -265,7 +324,10 @@ export const DraggableGhost: React.FC<DraggableGhostProps> = ({
   const ghostElement = (
     <div
       style={{
-        position: "absolute",
+        // The ghost follows client (viewport) coordinates and is portaled to
+        // <body>; `fixed` keeps it under the pointer when the host page is
+        // scrolled (upstream Apollon #841).
+        position: "fixed",
         left: `${ghostPosition.x}px`,
         top: `${ghostPosition.y}px`,
         pointerEvents: "none",

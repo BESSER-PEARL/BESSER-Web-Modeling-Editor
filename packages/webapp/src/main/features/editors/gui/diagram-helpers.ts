@@ -2,6 +2,7 @@ import { ProjectStorageRepository } from '../../../shared/services/storage/Proje
 import { isUMLModel, getActiveDiagram, getReferencedDiagram } from '../../../shared/types/project';
 import { ClassMetadata, AttributeMetadata, isNumericType, isStringType } from './utils/classBindingHelpers';
 import i18n from '@/main/shared/i18n';
+import { resolveAssociationNavigability, supportsNavigability } from '@besser/wme';
 
 /**
  * Remove UML visibility characters (+, -, #, ~) from the beginning of a string
@@ -213,9 +214,12 @@ export function getClassMetadata(classId: string, includeInherited: boolean = tr
 
 /**
  * Map a v4 edge to the association end navigable from any of the given classes.
- * Only real association types (bidirectional, unidirectional, composition,
- * aggregation) produce ends — inheritance, OCL links and any other edge kinds
- * never do, and an end pointing at an OCL constraint node is never navigable.
+ * Only real association types (bidirectional, legacy unidirectional, composition,
+ * aggregation) produce ends, and only towards an end that is navigable
+ * (`edge.data.sourceNavigable` / `targetNavigable`; legacy data without the
+ * flags falls back to the old ClassUnidirectional/ClassBidirectional rule) —
+ * inheritance, OCL links and any other edge kinds never do, and an end
+ * pointing at an OCL constraint node is never navigable.
  *
  * v4 edge mapping (per migrations/uml-v4-shape.md ClassDiagram §):
  *   - source/target are node ids on the edge itself.
@@ -235,18 +239,13 @@ function getNavigableEndForClassIds(
     return { value: otherId, label };
   };
 
-  // For bidirectional and composition/aggregation, both ends are navigable
-  if (
-    edge?.type === 'ClassBidirectional' ||
-    edge?.type === 'ClassComposition' ||
-    edge?.type === 'ClassAggregation'
-  ) {
-    if (classIds.includes(edge.source)) return endFor(edge.target, edge?.data?.targetRole);
-    if (classIds.includes(edge.target)) return endFor(edge.source, edge?.data?.sourceRole);
+  if (!edge || !supportsNavigability(edge.type)) return null;
+  const navigable = resolveAssociationNavigability(edge);
+  if (navigable.target && classIds.includes(edge.source)) {
+    return endFor(edge.target, edge?.data?.targetRole);
   }
-  // For unidirectional, only source can navigate to target
-  if (edge?.type === 'ClassUnidirectional') {
-    if (classIds.includes(edge.source)) return endFor(edge.target, edge?.data?.targetRole);
+  if (navigable.source && classIds.includes(edge.target)) {
+    return endFor(edge.source, edge?.data?.sourceRole);
   }
   return null;
 }

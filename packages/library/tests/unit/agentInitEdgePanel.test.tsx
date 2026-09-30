@@ -140,55 +140,40 @@ describe("AgentDiagramInitEdgeEditPanel", () => {
 
 /* ──────────────────── palette — body+fallback preview ──────────────── */
 
-describe("AgentDiagram palette — AgentState previews (develop parity)", () => {
+describe("AgentDiagram palette — AgentState preview (smart-gen parity)", () => {
   const entries = dropElementConfigs[UMLDiagramType.AgentDiagram]
-  // Standard AgentState body previews. The reasoning drag source is also
-  // `AgentState`-typed (develop folded AgentReasoningState into
-  // `stateType: "reasoning"`), so exclude it here to count only the
-  // standard body-preview variants.
-  const states = entries.filter(
-    (e) =>
-      (e.type as string) === "AgentState" &&
-      (e.defaultData as { stateType?: string })?.stateType !== "reasoning"
-  )
 
-  it("offers three AgentState previews (empty / body / body+fallback)", () => {
-    // Develop `agent-state-preview.ts` composes emptyAgentState,
-    // agentState-with-body and stateWithBothBodies.
-    expect(states).toHaveLength(3)
-  })
-
-  it("ships a preview carrying one body and one fallback template row", () => {
-    const withFallback = states.find((s) =>
-      Array.isArray(
-        (s.defaultData as { fallbackBodies?: unknown[] })?.fallbackBodies
-      )
-    )
-    expect(withFallback).toBeDefined()
-    const dd = withFallback!.defaultData as {
-      bodies: AgentStateBodyRow[]
-      fallbackBodies: AgentStateBodyRow[]
-    }
-    expect(dd.bodies).toHaveLength(1)
-    expect(dd.bodies[0]).toMatchObject({ name: "Body", replyType: "text" })
-    expect(dd.fallbackBodies).toHaveLength(1)
-    expect(dd.fallbackBodies[0]).toMatchObject({
-      name: "Fallback Body",
-      replyType: "text",
-    })
+  it("offers one AgentState preview (smart-gen composeBotPreview)", () => {
+    const states = entries.filter((e) => (e.type as string) === "AgentState")
+    expect(states).toHaveLength(1)
+    expect(states[0].defaultData).toMatchObject({ name: "AgentState" })
   })
 })
 
 /* ─────────────────── DraggableGhost — body row re-id ────────────────── */
 
 describe("DraggableGhost — AgentState template body re-id on drop", () => {
-  const withFallbackConfig = (
+  // A templated AgentState drop source carrying one body + one fallback
+  // row (the palette itself now ships a bare AgentState).
+  const agentStateConfig = (
     dropElementConfigs[UMLDiagramType.AgentDiagram] as ReadonlyArray<DropElementConfig>
-  ).find((e) =>
-    Array.isArray(
-      (e.defaultData as { fallbackBodies?: unknown[] })?.fallbackBodies
-    )
-  )!
+  ).find((e) => (e.type as string) === "AgentState")!
+  const withFallbackConfig: DropElementConfig = {
+    ...agentStateConfig,
+    defaultData: {
+      name: "AgentState",
+      bodies: [
+        { id: "agent-state-template-body", name: "Body", replyType: "text" },
+      ],
+      fallbackBodies: [
+        {
+          id: "agent-state-template-fallback-body",
+          name: "Fallback Body",
+          replyType: "text",
+        },
+      ],
+    },
+  }
 
   const renderGhost = () => {
     const store = createDiagramStore(new Y.Doc())
@@ -233,8 +218,8 @@ describe("DraggableGhost — AgentState template body re-id on drop", () => {
       expect(rows).toHaveLength(4)
       // Template placeholder ids must never reach the canvas …
       for (const row of rows) {
-        expect(row.id).not.toBe("agentstate-template-body")
-        expect(row.id).not.toBe("agentstate-template-fallback-body")
+        expect(row.id).not.toBe("agent-state-template-body")
+        expect(row.id).not.toBe("agent-state-template-fallback-body")
       }
       // … and every dropped row id must be unique (v3 export keys
       // `elements[row.id]`, so collisions silently drop bodies).

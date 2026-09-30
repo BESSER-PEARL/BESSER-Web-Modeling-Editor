@@ -83,30 +83,28 @@ export const localStorageLatestProject = localStoragePrefix + 'latest_project';
 export const localStorageProjectsList = localStoragePrefix + 'projects';
 
 // Unified LLM BYOK session-storage keys — ONE key for the whole app.
-// The user's Anthropic / OpenAI / Mistral key is stored ONLY in sessionStorage
+// The user's Anthropic / OpenAI / Mistral / Nebius key is stored ONLY in sessionStorage
 // (tab-lifetime, cleared on tab close), never in localStorage or Redux. A
 // single shared key means the user enters it in ONE place (the shared BYOK
 // dialog, reachable from the assistant drawer, the assistant popup, and the
 // Settings page) and it applies to BOTH the assistant/modeling-agent AND the
-// Spec-Driven (smart) generator. The old per-feature keys used to be kept
-// separate for isolation; they were unified so the key is entered once.
+// Spec-Driven Agent.
 export const sessionStorageLlmApiKey = localStoragePrefix + 'llm_api_key';
 export const sessionStorageLlmProvider = localStoragePrefix + 'llm_provider';
 export const sessionStorageLlmModel = localStoragePrefix + 'llm_model';
 // OpenAI-compatible base URL for the 'local' provider (user-supplied, e.g.
-// http://localhost:11434/v1 for Ollama) and the 'pia' provider (the fixed LIST
+// http://localhost:11434/v1 for Ollama) and the 'pia' provider (the fixed PIA
 // gateway, see PIA_GATEWAY_BASE_URL). Empty/missing = use the backend's own
 // default (its OPENAI_BASE_URL env, or the SDK default).
 export const sessionStorageLlmBaseUrl = localStoragePrefix + 'llm_base_url';
 
-// The LIST PIA gateway (OpenAI-compatible). The frontend sends this as the base
-// URL for the 'pia' provider so a PIA run reaches the gateway regardless of the
-// backend's OPENAI_BASE_URL env. Only reachable from the LIST VPN — i.e. when
-// the WME backend runs locally on-VPN. Not a secret (public gateway host).
+// PIA is LIST's OpenAI-compatible gateway, sent as the base URL for the 'pia'
+// provider regardless of the backend's OPENAI_BASE_URL env. Reachable only from
+// the LIST VPN, so it works when the WME backend runs locally on the VPN.
 export const PIA_GATEWAY_BASE_URL = 'https://gateway.pia.private.list.lu/v1';
 
-// Smart Generator — BYOK keys now alias the unified keys above (kept as named
-// exports so existing imports keep working with no consumer changes).
+// Spec-Driven Agent — BYOK keys alias the unified keys above (kept as named
+// exports so existing imports keep working).
 export const sessionStorageSpecDrivenApiKey = sessionStorageLlmApiKey;
 export const sessionStorageSpecDrivenProvider = sessionStorageLlmProvider;
 export const sessionStorageSpecDrivenLlmModel = sessionStorageLlmModel;
@@ -116,7 +114,7 @@ export const sessionStorageSpecDrivenLlmModel = sessionStorageLlmModel;
 export const sessionStorageSpecDrivenMaxCostUsd = localStoragePrefix + 'smart_gen_max_cost_usd';
 export const sessionStorageSpecDrivenMaxRuntimeSeconds =
   localStoragePrefix + 'smart_gen_max_runtime_seconds';
-// Keyless "Free" tier opt-in for smart-gen. The free tier uses a server-hosted
+// Keyless "Free" tier opt-in for the Spec-Driven Agent. The free tier uses a server-hosted
 // open-weight model and needs NO API key, so it must NOT be represented by
 // writing a placeholder into the unified LLM key above — that store is SHARED
 // with the assistant, and a fake key would break the assistant's own calls.
@@ -129,20 +127,18 @@ export const sessionStorageSpecDrivenFreeTier = localStoragePrefix + 'smart_gen_
 export const sessionStorageSpecDrivenFreeModel = localStoragePrefix + 'smart_gen_free_model';
 
 // AI Assistant — BYOK keys also alias the unified keys above, so entering the
-// key via the assistant fills the same store the smart generator reads.
+// key via the assistant fills the same store the Spec-Driven Agent reads.
 export const sessionStorageAssistantApiKey = sessionStorageLlmApiKey;
 export const sessionStorageAssistantProvider = sessionStorageLlmProvider;
 export const sessionStorageAssistantModel = sessionStorageLlmModel;
 
-// Pilot-experiment participant label (research telemetry).
-// Set on app load from the facilitator's `?pilot=P3` link and scoped to the
-// tab (sessionStorage): every telemetry event this tab produces carries the
-// label so the pilot report can group by participant. Regular sessions never
-// have this key and produce no telemetry. Value: `P1`…`Pn` style labels
-// matching ^[A-Za-z0-9_-]{1,16}$ — never a name or email.
+// Opt-in research telemetry label, set on app load from a `?pilot=<label>`
+// URL and scoped to the tab. Every telemetry event this tab produces carries
+// it; sessions without it produce no telemetry. Value matches
+// ^[A-Za-z0-9_-]{1,16}$ — never a name or email.
 export const sessionStoragePilotParticipant = localStoragePrefix + 'pilot_participant';
 
-// "Describe your app" (vibe) hand-off key.
+// "Describe your app" hand-off key.
 // The Project Hub's Describe flow stashes the user's plain-language prompt here,
 // then closes and hands off to the assistant. The assistant consumes-and-clears
 // it exactly once — after it has mounted AND its WebSocket is connected — and
@@ -168,16 +164,24 @@ export const sessionStorageAssistantDrawerOpen = localStoragePrefix + 'assistant
 // never replays on a re-render or navigation. Value: '1' when already hinted.
 export const sessionStorageAssistantHandleHinted = localStoragePrefix + 'assistant_handle_hinted';
 
-// Smart Generator — per-project last successful run id (incremental vibe-modify).
-// When a vibe-generation run finishes, its run_id is stashed here keyed by
+// Spec-Driven Agent — per-project last successful run id (incremental modify).
+// When a spec-driven run finishes, its run_id is stashed here keyed by
 // project so a follow-up "add feature X" can send `mode:'modify'` +
 // `base_run_id` and edit the existing app in place instead of rebuilding —
 // as long as the run is still within the backend's download TTL. Stored in
 // localStorage (not sessionStorage) so it survives a reload. Suffix: `<projectId>`.
 export const localStorageSpecDrivenLastRunPrefix = localStoragePrefix + 'smartgen_lastrun_';
+// Minimal pointer to a currently-running durable generation. Versioned so a
+// future schema change never misreads old recovery data. Contains no API key,
+// prompt, model payload, or generated content.
+export const localStorageSpecDrivenActiveRunV1 = localStoragePrefix + 'smartgen_active:v1';
+// V2 stores one pointer per run (`...:v2:<runId>`), preventing concurrent
+// runs in different tabs/projects from overwriting a single global record.
+export const localStorageSpecDrivenActiveRunV2Prefix =
+  localStoragePrefix + 'smartgen_active:v2:';
 
-// Smart-generation "Push to GitHub" connect-first intent.
-// When the user clicks "Push to GitHub" on a finished vibe-generation card but
+// Spec-Driven Agent "Push to GitHub" connect-first intent.
+// When the user clicks "Push to GitHub" on a finished spec-driven run card but
 // isn't signed in yet, we stash ``{ runId, projectId }`` here and kick off the
 // GitHub OAuth redirect. After the redirect back, the push hook consumes this
 // (once, for the matching project) and reopens the push dialog for that run.
@@ -190,7 +194,7 @@ export const sessionStorageSpecDrivenPushIntent = localStoragePrefix + 'smart_ge
 // straight to the GitHub repo picker (consuming-and-clearing this flag once).
 export const sessionStorageContinueFromGithubIntent = localStoragePrefix + 'continue_from_github_intent';
 
-// Smart Generator backend endpoints (derived from BACKEND_URL).
+// Spec-Driven Agent backend endpoints (derived from BACKEND_URL).
 export const SMART_GEN_ENDPOINT = `${BACKEND_URL}/spec-driven/generate`;
 export const SMART_GEN_PREVIEW_ENDPOINT = `${BACKEND_URL}/spec-driven/preview`;
 export const SMART_GEN_CONFIG_ENDPOINT = `${BACKEND_URL}/spec-driven/config`;
@@ -198,6 +202,25 @@ export const specDrivenDownloadUrl = (runId: string): string =>
   `${BACKEND_URL}/spec-driven/download/${runId}`;
 export const cancelSpecDrivenUrl = (runId: string): string =>
   `${BACKEND_URL}/spec-driven/cancel/${runId}`;
+export const specDrivenRunStatusUrl = (runId: string): string =>
+  `${BACKEND_URL}/spec-driven/runs/${encodeURIComponent(runId)}`;
+export const specDrivenRunEventsUrl = (runId: string, afterSequence = 0): string =>
+  `${specDrivenRunStatusUrl(runId)}/events?after=${Math.max(0, Math.trunc(afterSequence))}`;
+
+/**
+ * Polling counterpart of `specDrivenRunEventsUrl`: the same durable event log
+ * read as a short, terminating JSON response instead of a stream, sharing one
+ * sequence cursor. A TLS-inspecting corporate proxy buffers a response body
+ * before releasing it and an SSE body never ends, so the stream is the one thing
+ * in the app such a proxy breaks; short JSON requests traverse it normally.
+ */
+export const specDrivenRunEventsJsonUrl = (
+  runId: string,
+  afterSequence = 0,
+  limit = 250,
+): string =>
+  `${specDrivenRunStatusUrl(runId)}/events.json` +
+  `?after=${Math.max(0, Math.trunc(afterSequence))}&limit=${Math.trunc(limit)}`;
 
 // date formats
 export const longDate = 'MMMM Do YYYY, h:mm:ss a';

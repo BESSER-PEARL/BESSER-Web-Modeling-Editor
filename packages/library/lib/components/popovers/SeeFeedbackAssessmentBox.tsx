@@ -1,6 +1,9 @@
 import { useDiagramStore } from "@/store"
 import { useShallow } from "zustand/shallow"
 import { Typography } from "@/components/ui"
+import { useTranslation } from "@/i18n"
+import { useMetadataStore } from "@/store/context"
+import { getAssessmentTypeLabel } from "@/components/propertiesPanel/typeLabel"
 
 export const SeeFeedbackAssessmentBox = ({
   type,
@@ -11,6 +14,8 @@ export const SeeFeedbackAssessmentBox = ({
   name: string
   elementId: string
 }) => {
+  const { t, locale } = useTranslation()
+  const diagramType = useMetadataStore((state) => state.diagramType)
   const getAssessment = useDiagramStore(
     useShallow((state) => state.getAssessment)
   )
@@ -18,7 +23,7 @@ export const SeeFeedbackAssessmentBox = ({
 
   return (
     <>
-      <Typography variant="subtitle1">{`Assessment for ${type} "${name}"`}</Typography>
+      <Typography variant="subtitle1">{`${t("assessment.assessment", "Assessment for")} ${getAssessmentTypeLabel(type, diagramType, locale)} "${name}"`}</Typography>
       <div
         style={{
           display: "flex",
@@ -29,11 +34,11 @@ export const SeeFeedbackAssessmentBox = ({
           alignItems: "center",
         }}
       >
-        <Typography>Score:</Typography>
+        <Typography>{t("assessment.score", "Points")}:</Typography>
         <Typography>{assessment?.score ?? "-"}</Typography>
       </div>
 
-      <Typography>Feedback:</Typography>
+      <Typography>{t("assessment.feedback", "Feedback")}:</Typography>
       <Typography>{assessment?.feedback}</Typography>
       <div
         style={{

@@ -116,42 +116,19 @@ describe("metrics / layers_of_tensors (de)serialization", () => {
 /* ─────────────────────── discriminator pruning ─────────────────────── */
 
 describe("discriminator pruning (develop monitor parity)", () => {
-  it("tns_type reshape→permute deletes reshape_dim, keeps layers_of_tensors", () => {
+  it("a tns_type change keeps only name + tns_type (smart-gen parity)", () => {
     const next = pruneTensorOpAttributes(
       {
+        name: "op",
         tns_type: "permute",
         reshape_dim: "[-1]",
         permute_dim: "[0, 1, 2]",
         layers_of_tensors: "['a', 'b']",
+        input_var: "x",
       },
       "permute"
     )
-    expect("reshape_dim" in next).toBe(false)
-    expect(next["permute_dim"]).toBe("[0, 1, 2]")
-    expect(next["layers_of_tensors"]).toBe("['a', 'b']")
-  })
-
-  it("tns_type concatenate keeps concatenate_dim + layers_of_tensors only", () => {
-    const next = pruneTensorOpAttributes(
-      {
-        concatenate_dim: "0",
-        layers_of_tensors: "['a', 'b']",
-        transpose_dim: "[0, 1]",
-      },
-      "concatenate"
-    )
-    expect(next["concatenate_dim"]).toBe("0")
-    expect(next["layers_of_tensors"]).toBe("['a', 'b']")
-    expect("transpose_dim" in next).toBe(false)
-  })
-
-  it("tns_type multiply keeps no *_dim attrs", () => {
-    const next = pruneTensorOpAttributes(
-      { reshape_dim: "[-1]", permute_dim: "[0, 1, 2]" },
-      "multiply"
-    )
-    expect("reshape_dim" in next).toBe(false)
-    expect("permute_dim" in next).toBe(false)
+    expect(next).toEqual({ name: "op", tns_type: "permute" })
   })
 
   it("pooling max→global_max deletes the 5 hidden keys", () => {
@@ -366,14 +343,21 @@ describe("predecessor dropdowns (NN-2)", () => {
     const options = screen
       .getAllByRole("option")
       .map((o) => o.textContent?.trim())
-    // Empty item + nearest-first upstream walk; downstream excluded.
-    expect(options).toEqual(["— none —", "Reshape1", "Conv1"])
+    // Empty item + INPUT + nearest-first upstream walk; downstream excluded.
+    expect(options).toEqual([
+      "(select predecessor)",
+      "INPUT",
+      "Reshape1",
+      "Conv1",
+    ])
   })
 
   it("selecting the empty item removes the attribute (develop parity)", () => {
     const { store } = renderPanel(chain(), chainEdges())
     openSelect("name_module_input")
-    fireEvent.click(screen.getByRole("option", { name: "— none —" }))
+    fireEvent.click(
+      screen.getByRole("option", { name: "(select predecessor)" })
+    )
     expect("name_module_input" in getAttrs(store)).toBe(false)
   })
 
@@ -432,7 +416,7 @@ describe("TensorOp layers_of_tensors dual dropdowns (NN-3)", () => {
     expect(getAttrs(store)["layers_of_tensors"]).toBe("['ConvA', 'ConvB']")
   })
 
-  it("clearing either dropdown deletes the attribute", () => {
+  it("keeps the stored value until every operand is cleared (smart-gen parity)", () => {
     const { store } = renderPanel(
       [
         ...tensorGraph().slice(0, 2),
@@ -454,8 +438,66 @@ describe("TensorOp layers_of_tensors dual dropdowns (NN-3)", () => {
     expect(combos[1].textContent).toContain("ConvB")
 
     fireEvent.mouseDown(combos[1])
-    fireEvent.click(screen.getByRole("option", { name: "— none —" }))
+    fireEvent.click(screen.getByRole("option", { name: "(select)" }))
+    expect(getAttrs(store)["layers_of_tensors"]).toBe("['ConvA', 'ConvB']")
+
+    fireEvent.mouseDown(combos[0])
+    fireEvent.click(screen.getByRole("option", { name: "(select)" }))
     expect("layers_of_tensors" in getAttrs(store)).toBe(false)
+  })
+
+  it("concatenate accepts more than two operands (n-ary)", () => {
+    const { store } = renderPanel(
+      [
+        nnNode("a", "Conv2DLayer", { name: "ConvA", attributes: {} }),
+        nnNode("b", "Conv2DLayer", { name: "ConvB", attributes: {} }),
+        nnNode("c", "Conv2DLayer", { name: "ConvC", attributes: {} }),
+        nnNode("node-1", "TensorOp", {
+          name: "Concat1",
+          attributes: {
+            tns_type: "concatenate",
+            layers_of_tensors: "['ConvA', 'ConvB']",
+          },
+        }),
+      ],
+      [...tensorEdges(), nextEdge("e3", "c", "node-1")]
+    )
+    fireEvent.click(screen.getByRole("button", { name: "+ Add Element" }))
+    const row = screen.getByText("layers_of_tensors")
+      .parentElement as HTMLElement
+    const combos = within(row).getAllByRole("combobox")
+    expect(combos).toHaveLength(3)
+    fireEvent.mouseDown(combos[2])
+    fireEvent.click(screen.getByRole("option", { name: "ConvC" }))
+    expect(getAttrs(store)["layers_of_tensors"]).toBe(
+      "['ConvA', 'ConvB', 'ConvC']"
+    )
+  })
+
+  it("binary ops take a numeric literal operand and offer INPUT", () => {
+    const { store } = renderPanel(
+      [
+        nnNode("a", "Conv2DLayer", { name: "ConvA", attributes: {} }),
+        nnNode("node-1", "TensorOp", {
+          name: "Add1",
+          attributes: { tns_type: "binop_add" },
+        }),
+      ],
+      [nextEdge("e1", "a", "node-1")]
+    )
+    enableRow()
+    const row = screen.getByText("layers_of_tensors")
+      .parentElement as HTMLElement
+    const combos = within(row).getAllByRole("combobox")
+    fireEvent.mouseDown(combos[0])
+    const options = screen
+      .getAllByRole("option")
+      .map((o) => o.textContent?.trim())
+    expect(options).toContain("INPUT")
+    fireEvent.click(screen.getByRole("option", { name: "ConvA" }))
+    const numeric = within(row).getAllByPlaceholderText("numeric")
+    fireEvent.change(numeric[1], { target: { value: "1.5" } })
+    expect(getAttrs(store)["layers_of_tensors"]).toBe("['ConvA', 1.5]")
   })
 
   it("switching tns_type prunes the now-invalid *_dim attribute", () => {
@@ -531,5 +573,90 @@ describe("mandatory list-shaped autofill on mount (#30)", () => {
       nnNode("node-1", "Conv1DLayer", { name: "Conv1", attributes: {} }),
     ])
     expect("stride_dim" in getAttrs(store)).toBe(false)
+  })
+})
+
+/* ─────────────── tns_type-driven rows + validation (smart-gen) ─────── */
+
+describe("TensorOp rows follow TNS_TYPE_ATTRIBUTES", () => {
+  it("split offers split_dim / split_sizes / output_vars, not output_var", () => {
+    renderPanel([
+      nnNode("node-1", "TensorOp", {
+        name: "Split1",
+        attributes: { name: "Split1", tns_type: "split" },
+      }),
+    ])
+    expect(screen.getByText("split_dim")).toBeTruthy()
+    expect(screen.getByText("split_sizes")).toBeTruthy()
+    expect(screen.getByText("output_vars")).toBeTruthy()
+    expect(screen.queryByText("output_var")).toBeNull()
+    expect(screen.queryByText("reshape_dim")).toBeNull()
+  })
+
+  it("shows actual_vars only once a recurrent layer feeds the op", () => {
+    const graph = (layers: string) => [
+      nnNode("r", "LSTMLayer", { name: "rnn1", attributes: { name: "rnn1" } }),
+      nnNode("node-1", "TensorOp", {
+        name: "Cat",
+        attributes: { tns_type: "concatenate", layers_of_tensors: layers },
+      }),
+    ]
+    const { unmount } = renderPanel(graph("['other', 'x']"), [
+      nextEdge("e", "r", "node-1"),
+    ])
+    expect(screen.queryByText("actual_vars")).toBeNull()
+    unmount()
+    renderPanel(graph("['rnn1', 'x']"), [nextEdge("e", "r", "node-1")])
+    expect(screen.getByText("actual_vars")).toBeTruthy()
+  })
+
+  it("pad_value is offered only for pad_mode = constant", () => {
+    const { unmount } = renderPanel([
+      nnNode("node-1", "TensorOp", {
+        name: "Pad",
+        attributes: { tns_type: "pad", pad_mode: "reflect" },
+      }),
+    ])
+    expect(screen.queryByText("pad_value")).toBeNull()
+    unmount()
+    renderPanel([
+      nnNode("node-1", "TensorOp", {
+        name: "Pad",
+        attributes: { tns_type: "pad", pad_mode: "constant" },
+      }),
+    ])
+    expect(screen.getByText("pad_value")).toBeTruthy()
+  })
+})
+
+describe("config-driven text validation (b8272e99)", () => {
+  it("shows the translated message and does not store an invalid value", () => {
+    const { store } = renderPanel([
+      nnNode("node-1", "LinearLayer", {
+        name: "fc",
+        attributes: { name: "fc", out_features: "128" },
+      }),
+    ])
+    const row = screen.getByText("out_features").parentElement as HTMLElement
+    const input = within(row).getByRole("textbox")
+    fireEvent.change(input, { target: { value: "0" } })
+    expect(
+      screen.getByText("Must be an integer greater than 0. Example: 128")
+    ).toBeTruthy()
+    expect(getAttrs(store)["out_features"]).toBe("128")
+    fireEvent.change(input, { target: { value: "64" } })
+    expect(getAttrs(store)["out_features"]).toBe("64")
+  })
+
+  it("renaming the layer keeps attributes.name in sync", () => {
+    const { store } = renderPanel([
+      nnNode("node-1", "LinearLayer", {
+        name: "fc",
+        attributes: { name: "fc", out_features: "128" },
+      }),
+    ])
+    const nameField = screen.getAllByRole("textbox")[0]
+    fireEvent.change(nameField, { target: { value: "head" } })
+    expect(getAttrs(store)["name"]).toBe("head")
   })
 })

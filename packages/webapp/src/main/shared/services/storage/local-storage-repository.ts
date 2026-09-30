@@ -112,6 +112,30 @@ const safeSetItem = (key: string, value: string): void => {
   }
 };
 
+/**
+ * Read-side tolerance for personalization snapshots. Stores written by an
+ * older build (or never visited by the one-shot storage migration) can still
+ * hold develop-era v3 models; every reader gets the canonical v4 shape so a
+ * stale snapshot is never shown or posted to the backend as-is. A snapshot
+ * that fails to lift is returned unchanged (never throws on read).
+ */
+const liftSnapshotOnRead = <T>(model: T): T => {
+  if (!model || typeof model !== 'object') return model;
+  try {
+    return normalizeUmlModelSnapshot(model);
+  } catch (error) {
+    console.warn('[LocalStorageRepository] Failed to lift a stored model snapshot to v4:', error);
+    return model;
+  }
+};
+
+const liftConfigurationSnapshots = (config: StoredAgentConfiguration): StoredAgentConfiguration => ({
+  ...config,
+  baseAgentModel: liftSnapshotOnRead(config.baseAgentModel),
+  originalAgentModel: liftSnapshotOnRead(config.originalAgentModel),
+  personalizedAgentModel: liftSnapshotOnRead(config.personalizedAgentModel),
+});
+
 const getStoredUserProfiles = (): StoredUserProfile[] => {
   const json = localStorage.getItem(localStorageUserProfiles);
   if (!json) {
@@ -119,7 +143,9 @@ const getStoredUserProfiles = (): StoredUserProfile[] => {
   }
 
   try {
-    const parsed: StoredUserProfile[] = JSON.parse(json);
+    const parsed: StoredUserProfile[] = (JSON.parse(json) as StoredUserProfile[]).map((profile) =>
+      profile && typeof profile === 'object' ? { ...profile, model: liftSnapshotOnRead(profile.model) } : profile,
+    );
     return parsed.sort((a, b) => new Date(b.savedAt).getTime() - new Date(a.savedAt).getTime());
   } catch (error) {
     console.warn('Failed to parse stored user profiles:', error);
@@ -138,7 +164,9 @@ const getStoredAgentConfigurations = (): StoredAgentConfiguration[] => {
   }
 
   try {
-    const parsed: StoredAgentConfiguration[] = JSON.parse(json);
+    const parsed: StoredAgentConfiguration[] = (JSON.parse(json) as StoredAgentConfiguration[]).map((config) =>
+      config && typeof config === 'object' ? liftConfigurationSnapshots(config) : config,
+    );
     return parsed.sort((a, b) => new Date(b.savedAt).getTime() - new Date(a.savedAt).getTime());
   } catch (error) {
     console.warn('Failed to parse stored agent configurations:', error);
@@ -176,7 +204,12 @@ const getStoredAgentBaseModels = (): AgentBaseModelMap => {
   }
 
   try {
-    return JSON.parse(json) as AgentBaseModelMap;
+    const parsed = JSON.parse(json) as AgentBaseModelMap;
+    const lifted: AgentBaseModelMap = {};
+    for (const [diagramId, model] of Object.entries(parsed ?? {})) {
+      lifted[diagramId] = liftSnapshotOnRead(model);
+    }
+    return lifted;
   } catch (error) {
     console.warn('Failed to parse stored agent base models:', error);
     return {};
@@ -206,7 +239,7 @@ export interface DeployLinkedRepo {
   /**
    * Target branch for the linked repo. Optional so older links (written
    * before this field existed) round-trip; ``parseDeployLinkedRepo`` backfills
-   * ``'main'`` when it is missing. Used by the smart-gen ``'github'`` push
+   * ``'main'`` when it is missing. Used by the Spec-Driven Agent ``'github'`` push
    * target so re-pushes go to the same branch.
    */
   branch?: string;
@@ -220,7 +253,7 @@ const DEFAULT_LINKED_BRANCH = 'main';
  *   ``besser_deploy_linked_<projectId>_<target>`` -> ``{ owner, repo, branch? }`` JSON.
  *
  * Targets in use: ``'webapp'`` / ``'agent'`` (Render deploys) and ``'github'``
- * (the Vibe/Smart-generation "Push to GitHub" flow — a distinct token so push
+ * (the Spec-Driven Agent "Push to GitHub" flow — a distinct token so push
  * links never collide with Render deploy links).
  *
  * The two legacy fallback keys (``..._chatbot`` and the bare
@@ -273,8 +306,9 @@ const migrateToV3 = (): void => {
 };
 
 /**
- * v3 -> v4: lift every persisted personalization snapshot to the canonical
- * v4 model shape.
+ * Lift every persisted personalization snapshot to the canonical v4 model
+ * shape (run by the global storage migration as step 5; see
+ * ``shared/utils/storage-migration.ts`` for why it is not step 4).
  *
  * Migration-branch users may carry develop-era v3 snapshots in three keys:
  *  - ``besser_agentBaseModels`` — re-persisted through the normalizing
@@ -642,10 +676,13 @@ export const LocalStorageRepository = {
   migrateToV3,
 
   /**
-   * v3 -> v4 migration: lift stored personalization snapshots (agent base
-   * models, user profiles, configuration snapshots) to the canonical v4
-   * shape. Invoked by the storage-migration runner after V3. Idempotent —
-   * safe to invoke on every boot.
+   * Lift stored personalization snapshots (agent base models, user
+   * profiles, configuration snapshots) to the canonical v4 shape. Invoked by
+   * the storage-migration runner (step 4 and, for installs that already
+   * recorded a production step 4, step 5). Idempotent — safe to invoke on
+   * every boot.
    */
   migrateToV4,
+  /** Alias of ``migrateToV4`` under the name of the storage step that runs it. */
+  migrateSnapshotsToV4Shape: migrateToV4,
 };

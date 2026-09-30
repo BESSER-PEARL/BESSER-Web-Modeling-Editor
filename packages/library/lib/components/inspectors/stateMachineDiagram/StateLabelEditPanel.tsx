@@ -5,6 +5,7 @@ import { useDiagramStore } from "@/store/context"
 import { StateMarkerNodeProps } from "@/types"
 import { DividerLine, NodeStyleEditor } from "@/components/ui"
 import { PopoverProps } from "@/components/popovers/types"
+import { useTranslation } from "@/i18n"
 
 /**
  * Shared inspector body for the marker-style state nodes:
@@ -34,6 +35,7 @@ export const StateLabelEditPanel: React.FC<PopoverProps> = ({ elementId }) => {
       setNodes: state.setNodes,
     }))
   )
+  const { t } = useTranslation()
   const node = nodes.find((n) => n.id === elementId)
   if (!node) return null
 
@@ -65,7 +67,7 @@ export const StateLabelEditPanel: React.FC<PopoverProps> = ({ elementId }) => {
         size="small"
         variant="outlined"
         fullWidth
-        label="label"
+        label={t("common.label", "Label")}
         value={data.name ?? ""}
         onChange={(e) => update({ name: e.target.value })}
       />

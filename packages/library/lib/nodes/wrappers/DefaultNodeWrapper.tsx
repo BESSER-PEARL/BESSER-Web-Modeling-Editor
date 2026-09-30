@@ -1,5 +1,6 @@
 import { AssessmentSelectableWrapper } from "@/components/wrapper/AssessmentSelectableWrapper"
 import { FeedbackDropzone } from "@/components/wrapper/FeedbackDropzone"
+import { NodeAssessmentBadge } from "@/components/wrapper/NodeAssessmentBadge"
 import { useDiagramModifiable } from "@/hooks/useDiagramModifiable"
 import { Handle, Position, useReactFlow } from "@xyflow/react"
 
@@ -252,6 +253,8 @@ export function DefaultNodeWrapper({
         )}
 
         {children}
+        {/* Generic score icon for node types whose SVG draws none. */}
+        <NodeAssessmentBadge elementId={elementId} nodeType={nodeType} />
       </FeedbackDropzone>
     </AssessmentSelectableWrapper>
   )

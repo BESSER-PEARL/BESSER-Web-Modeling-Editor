@@ -1,5 +1,5 @@
 import { NodeProps, type Node } from "@xyflow/react"
-import { useRef } from "react"
+import { usePopoverAnchor } from "@/hooks/usePopoverAnchor"
 import { DefaultNodeWrapper } from "../wrappers"
 import { PopoverManager } from "@/components/popovers/PopoverManager"
 import { StateBodyNodeProps } from "@/types"
@@ -18,7 +18,7 @@ export function StateBody({
   height,
   data,
 }: NodeProps<Node<StateBodyNodeProps>>) {
-  const wrapperRef = useRef<HTMLDivElement | null>(null)
+  const [wrapperEl, wrapperRef] = usePopoverAnchor<HTMLDivElement>()
 
   if (!width || !height) return null
 
@@ -59,7 +59,7 @@ export function StateBody({
         </svg>
       </div>
       <PopoverManager
-        anchorEl={wrapperRef.current}
+        anchorEl={wrapperEl}
         elementId={id}
         type={"StateBody" as const}
       />

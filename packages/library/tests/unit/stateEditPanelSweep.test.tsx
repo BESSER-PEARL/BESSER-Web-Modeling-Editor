@@ -140,9 +140,12 @@ describe("AgentStateEditPanel — multi-action ActionCard flow", () => {
   it("adds a text action to the body section via the Add button", () => {
     const { store } = renderWith([agentStateNode()], AgentStateEditPanel)
 
-    // Two "Add" buttons render (Body + Fallback Body); the first belongs
-    // to the main body section.
-    const addButtons = screen.getAllByRole("button", { name: "Add" })
+    // smart-gen picker: the button reads "Add <selected type>" (Simple
+    // tab defaults to Text). Two render (Body + Fallback Body); the first
+    // belongs to the main body section.
+    // (`getAllByText` instead of a role query: the role query walks the
+    // whole MUI tree and times out under a full-suite run.)
+    const addButtons = screen.getAllByText("Add Text")
     expect(addButtons.length).toBeGreaterThan(0)
 
     fireEvent.click(addButtons[0])
@@ -152,10 +155,12 @@ describe("AgentStateEditPanel — multi-action ActionCard flow", () => {
       .nodes.find((n) => n.id === "state-1")!.data as AgentStateNodeProps
     expect(data.bodies).toHaveLength(1)
     expect(data.bodies![0].replyType).toBe("text")
+    // The writer stamps the metamodel action class next to replyType.
+    expect(data.bodies![0].actionType).toBe("TextReplyAction")
     // Seeded default name (develop `addPredefinedAction`).
     expect(data.bodies![0].name).toBe("Enter reply message")
     expect(data.bodies![0].id).toBeTruthy()
-  })
+  }, 15000)
 
   it("switching State Type to Reasoning surfaces the reasoning fields and preserves bodies", () => {
     const { store } = renderWith(

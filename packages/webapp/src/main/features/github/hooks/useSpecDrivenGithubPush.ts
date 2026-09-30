@@ -1,7 +1,7 @@
 /**
  * useSpecDrivenGithubPush
  *
- * Drives the "Push to GitHub" action on a finished Vibe/Smart-generation run
+ * Drives the "Push to GitHub" action on a finished Spec-Driven Agent run
  * card. Owns:
  *   - the connect-first flow (sign in to GitHub before the dialog opens),
  *   - the per-project ``'github'`` linked-repo (load / set / clear) so a
@@ -10,10 +10,9 @@
  *
  * The dialog is APP-LEVEL and Redux-driven (mirroring ``SpecDrivenKeyDialogHost``):
  * whether it's open comes from ``specDriven.pushDialogRunId`` in the store,
- * NOT from local state inside the assistant drawer/widget. This is the whole
- * point — the push dialog used to be mounted inside the drawer, so dismissing
- * it (Escape / backdrop) tore the drawer down and lost the chat. Now the card's
- * button just dispatches ``openPushDialog(runId)``; this hook (mounted once, at
+ * NOT from local state inside the assistant drawer/widget, so dismissing it
+ * (Escape / backdrop) never tears the drawer down. The card's button
+ * dispatches ``openPushDialog(runId)``; this hook (mounted once, at
  * app level via ``SpecDrivenPushDialogHost``) reacts to that:
  *   - not signed in → stash the intent and start GitHub OAuth,
  *   - signed in     → load the linked repo and let the dialog render.
@@ -23,7 +22,7 @@
  *
  * Reuses ``useGitHubAuth`` for the OAuth session (same instance pattern as
  * ``useDeployment``) and the shared ``buildProjectExportEnvelope`` /
- * ``LocalStorageRepository`` deploy-link helpers so the smart-gen push stays in
+ * ``LocalStorageRepository`` deploy-link helpers so the spec-driven push stays in
  * sync with the Render deploy flow.
  */
 
@@ -46,7 +45,7 @@ import {
 } from '../../spec-driven/state/specDrivenSlice';
 import { useGitHubAuth } from './useGitHubAuth';
 
-/** Deploy-link target token for the smart-gen push (never collides with Render). */
+/** Deploy-link target token for the spec-driven push (never collides with Render). */
 const GITHUB_TARGET = 'github';
 const DEFAULT_BRANCH = 'main';
 
@@ -279,8 +278,8 @@ export function useSpecDrivenGithubPush(
         });
         setLinkedRepo({ owner: res.owner, repo: res.repo_name, branch });
         setResult(res);
-        // Pilot telemetry: a completed push is a delivery action.
-        // Fire-and-forget, no-op outside pilot sessions.
+        // Opt-in research telemetry: a completed push is a delivery action.
+        // Fire-and-forget; no-op unless the tab was opened with `?pilot=<label>`.
         emitDeliveryEvent('push_github', id);
         toast.success(
           res.is_first_push

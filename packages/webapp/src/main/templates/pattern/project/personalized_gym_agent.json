@@ -30,23 +30,6 @@
             "type": "AgentDiagram",
             "nodes": [
               {
-                "id": "699853eb-918b-4674-b08c-cf0af3cc61d7",
-                "type": "StateInitialNode",
-                "position": {
-                  "x": -230,
-                  "y": -370
-                },
-                "width": 45,
-                "height": 45,
-                "measured": {
-                  "width": 45,
-                  "height": 45
-                },
-                "data": {
-                  "name": ""
-                }
-              },
-              {
                 "id": "0cba5357-2c30-414b-8d74-ac74ac4ab158",
                 "type": "AgentState",
                 "position": {
@@ -76,30 +59,6 @@
                       "name": "I focus on gym and fitness topics only dude.",
                       "replyType": "text",
                       "ragDatabaseName": ""
-                    }
-                  ]
-                }
-              },
-              {
-                "id": "8dba49ff-2fc1-4066-b124-19e2df7981e2",
-                "type": "AgentIntent",
-                "position": {
-                  "x": -900,
-                  "y": -400
-                },
-                "width": 630,
-                "height": 100,
-                "measured": {
-                  "width": 630,
-                  "height": 100
-                },
-                "data": {
-                  "name": "Muscles_intent",
-                  "intent_description": "Question about how to become muscular and which exercises to perform.",
-                  "training_phrases": [
-                    {
-                      "id": "a0a69f3a-bb64-42ee-b9e6-a8bacdf2818b",
-                      "name": "I want muscles"
                     }
                   ]
                 }
@@ -165,7 +124,8 @@
                       "replyType": "text",
                       "ragDatabaseName": ""
                     }
-                  ]
+                  ],
+                  "initial": true
                 }
               },
               {
@@ -243,78 +203,9 @@
                     }
                   ]
                 }
-              },
-              {
-                "id": "659e810a-f686-47fb-aea8-d23ad06e482c",
-                "type": "AgentIntent",
-                "position": {
-                  "x": -900,
-                  "y": -290
-                },
-                "width": 630,
-                "height": 100,
-                "measured": {
-                  "width": 630,
-                  "height": 100
-                },
-                "data": {
-                  "name": "Nutrition_intent",
-                  "intent_description": "Question about nutrition in gym.",
-                  "training_phrases": [
-                    {
-                      "id": "f1fc7bc1-016d-404f-90a8-c2c8f4a8dad0",
-                      "name": "Which food to eat?"
-                    }
-                  ]
-                }
-              },
-              {
-                "id": "37dff3e2-013c-42f0-ad6e-bbc197247d14",
-                "type": "AgentIntent",
-                "position": {
-                  "x": -860,
-                  "y": 150
-                },
-                "width": 630,
-                "height": 70,
-                "measured": {
-                  "width": 630,
-                  "height": 70
-                },
-                "data": {
-                  "name": "Other",
-                  "intent_description": "Any question that does not fit in \"Muscles\" or \"Nutrition\""
-                }
               }
             ],
             "edges": [
-              {
-                "id": "bbd03bdd-b76e-47df-9e13-5a305885f94c",
-                "source": "699853eb-918b-4674-b08c-cf0af3cc61d7",
-                "target": "77976ef7-599d-4c49-9f4d-1ecb23239fe3",
-                "type": "AgentStateTransitionInit",
-                "sourceHandle": "right",
-                "targetHandle": "left",
-                "data": {
-                  "label": "",
-                  "sourceMultiplicity": "",
-                  "targetMultiplicity": "",
-                  "sourceRole": "",
-                  "targetRole": "",
-                  "isManuallyLayouted": false,
-                  "messages": [],
-                  "points": [
-                    {
-                      "x": -185,
-                      "y": -347.5
-                    },
-                    {
-                      "x": -100,
-                      "y": -347.5
-                    }
-                  ]
-                }
-              },
               {
                 "id": "0d7d8895-3eb0-44b0-bb41-e902684d0d2c",
                 "source": "0cba5357-2c30-414b-8d74-ac74ac4ab158",
@@ -665,7 +556,49 @@
                 }
               }
             ],
-            "assessments": {}
+            "assessments": {},
+            "components": {
+              "8dba49ff-2fc1-4066-b124-19e2df7981e2": {
+                "id": "8dba49ff-2fc1-4066-b124-19e2df7981e2",
+                "name": "Muscles_intent",
+                "type": "AgentIntent",
+                "owner": null,
+                "bodies": [
+                  "a0a69f3a-bb64-42ee-b9e6-a8bacdf2818b"
+                ],
+                "intent_description": "Question about how to become muscular and which exercises to perform."
+              },
+              "a0a69f3a-bb64-42ee-b9e6-a8bacdf2818b": {
+                "id": "a0a69f3a-bb64-42ee-b9e6-a8bacdf2818b",
+                "name": "I want muscles",
+                "type": "AgentIntentBody",
+                "owner": "8dba49ff-2fc1-4066-b124-19e2df7981e2"
+              },
+              "659e810a-f686-47fb-aea8-d23ad06e482c": {
+                "id": "659e810a-f686-47fb-aea8-d23ad06e482c",
+                "name": "Nutrition_intent",
+                "type": "AgentIntent",
+                "owner": null,
+                "bodies": [
+                  "f1fc7bc1-016d-404f-90a8-c2c8f4a8dad0"
+                ],
+                "intent_description": "Question about nutrition in gym."
+              },
+              "f1fc7bc1-016d-404f-90a8-c2c8f4a8dad0": {
+                "id": "f1fc7bc1-016d-404f-90a8-c2c8f4a8dad0",
+                "name": "Which food to eat?",
+                "type": "AgentIntentBody",
+                "owner": "659e810a-f686-47fb-aea8-d23ad06e482c"
+              },
+              "37dff3e2-013c-42f0-ad6e-bbc197247d14": {
+                "id": "37dff3e2-013c-42f0-ad6e-bbc197247d14",
+                "name": "Other",
+                "type": "AgentIntent",
+                "owner": null,
+                "bodies": [],
+                "intent_description": "Any question that does not fit in \"Muscles\" or \"Nutrition\""
+              }
+            }
           },
           "lastUpdate": "2026-05-06T13:49:26.796Z",
           "config": {
@@ -717,89 +650,6 @@
                   "type": "AgentDiagram",
                   "nodes": [
                     {
-                      "id": "566a781d-eb9d-4f80-bd98-8882ed800717",
-                      "type": "AgentIntent",
-                      "position": {
-                        "x": -550,
-                        "y": -300
-                      },
-                      "width": 160,
-                      "height": 100,
-                      "measured": {
-                        "width": 160,
-                        "height": 100
-                      },
-                      "data": {
-                        "name": "Muscles_intent",
-                        "intent_description": "Question about how to become muscular and which exercises to perform.",
-                        "training_phrases": [
-                          {
-                            "id": "ccd1dced-243c-49c4-9a00-80e7f772327a",
-                            "name": "I want muscles"
-                          }
-                        ]
-                      }
-                    },
-                    {
-                      "id": "1766afa2-4953-4cc8-9bb0-af48953503f3",
-                      "type": "AgentIntent",
-                      "position": {
-                        "x": -250,
-                        "y": -300
-                      },
-                      "width": 160,
-                      "height": 100,
-                      "measured": {
-                        "width": 160,
-                        "height": 100
-                      },
-                      "data": {
-                        "name": "Nutrition_intent",
-                        "intent_description": "Question about nutrition in gym.",
-                        "training_phrases": [
-                          {
-                            "id": "651f4205-d406-482c-8bb4-975fdf9e456f",
-                            "name": "Which food to eat?"
-                          }
-                        ]
-                      }
-                    },
-                    {
-                      "id": "4037bf46-f138-4c9c-a891-c8f5639a19a0",
-                      "type": "AgentIntent",
-                      "position": {
-                        "x": 50,
-                        "y": -300
-                      },
-                      "width": 160,
-                      "height": 100,
-                      "measured": {
-                        "width": 160,
-                        "height": 100
-                      },
-                      "data": {
-                        "name": "Other",
-                        "intent_description": "Any question that does not fit in \"Muscles\" or \"Nutrition\""
-                      }
-                    },
-                    {
-                      "id": "730ca64d-597c-4fd8-a756-5d98d475edb8",
-                      "type": "StateInitialNode",
-                      "position": {
-                        "x": -580,
-                        "y": -60
-                      },
-                      "width": 45,
-                      "height": 45,
-                      "measured": {
-                        "width": 45,
-                        "height": 45
-                      },
-                      "data": {
-                        "name": ""
-                      }
-                    },
-                    {
                       "id": "3effee26-ddc1-4180-8dfc-4f54d929c334",
                       "type": "AgentState",
                       "position": {
@@ -821,7 +671,8 @@
                             "name": "Hi! I’m your fitness helper and guide.",
                             "replyType": "text"
                           }
-                        ]
+                        ],
+                        "initial": true
                       }
                     },
                     {
@@ -963,33 +814,6 @@
                     }
                   ],
                   "edges": [
-                    {
-                      "id": "4b6aa5dd-81c4-4ae8-a6bf-d6aa587831d1",
-                      "source": "730ca64d-597c-4fd8-a756-5d98d475edb8",
-                      "target": "3effee26-ddc1-4180-8dfc-4f54d929c334",
-                      "type": "AgentStateTransitionInit",
-                      "sourceHandle": "right",
-                      "targetHandle": "left",
-                      "data": {
-                        "label": "",
-                        "sourceMultiplicity": "",
-                        "targetMultiplicity": "",
-                        "sourceRole": "",
-                        "targetRole": "",
-                        "isManuallyLayouted": false,
-                        "messages": [],
-                        "points": [
-                          {
-                            "x": -1070,
-                            "y": -75
-                          },
-                          {
-                            "x": -815,
-                            "y": -75
-                          }
-                        ]
-                      }
-                    },
                     {
                       "id": "5f4c44a4-fdd5-4039-8896-30544b0780ba",
                       "source": "3effee26-ddc1-4180-8dfc-4f54d929c334",
@@ -1346,36 +1170,51 @@
                           }
                         ]
                       }
-                    },
-                    {
-                      "id": "d1414fb9-bcf4-4e45-a74c-b7bb93d87d78",
-                      "source": "730ca64d-597c-4fd8-a756-5d98d475edb8",
-                      "target": "3effee26-ddc1-4180-8dfc-4f54d929c334",
-                      "type": "AgentStateTransitionInit",
-                      "sourceHandle": "right",
-                      "targetHandle": "left",
-                      "data": {
-                        "label": "",
-                        "sourceMultiplicity": "",
-                        "targetMultiplicity": "",
-                        "sourceRole": "",
-                        "targetRole": "",
-                        "isManuallyLayouted": false,
-                        "messages": [],
-                        "points": [
-                          {
-                            "x": -1070,
-                            "y": -75
-                          },
-                          {
-                            "x": -815,
-                            "y": -75
-                          }
-                        ]
-                      }
                     }
                   ],
-                  "assessments": {}
+                  "assessments": {},
+                  "components": {
+                    "ccd1dced-243c-49c4-9a00-80e7f772327a": {
+                      "id": "ccd1dced-243c-49c4-9a00-80e7f772327a",
+                      "name": "I want muscles",
+                      "type": "AgentIntentBody",
+                      "owner": "566a781d-eb9d-4f80-bd98-8882ed800717"
+                    },
+                    "566a781d-eb9d-4f80-bd98-8882ed800717": {
+                      "id": "566a781d-eb9d-4f80-bd98-8882ed800717",
+                      "name": "Muscles_intent",
+                      "type": "AgentIntent",
+                      "owner": null,
+                      "bodies": [
+                        "ccd1dced-243c-49c4-9a00-80e7f772327a"
+                      ],
+                      "intent_description": "Question about how to become muscular and which exercises to perform."
+                    },
+                    "651f4205-d406-482c-8bb4-975fdf9e456f": {
+                      "id": "651f4205-d406-482c-8bb4-975fdf9e456f",
+                      "name": "Which food to eat?",
+                      "type": "AgentIntentBody",
+                      "owner": "1766afa2-4953-4cc8-9bb0-af48953503f3"
+                    },
+                    "1766afa2-4953-4cc8-9bb0-af48953503f3": {
+                      "id": "1766afa2-4953-4cc8-9bb0-af48953503f3",
+                      "name": "Nutrition_intent",
+                      "type": "AgentIntent",
+                      "owner": null,
+                      "bodies": [
+                        "651f4205-d406-482c-8bb4-975fdf9e456f"
+                      ],
+                      "intent_description": "Question about nutrition in gym."
+                    },
+                    "4037bf46-f138-4c9c-a891-c8f5639a19a0": {
+                      "id": "4037bf46-f138-4c9c-a891-c8f5639a19a0",
+                      "name": "Other",
+                      "type": "AgentIntent",
+                      "owner": null,
+                      "bodies": [],
+                      "intent_description": "Any question that does not fit in \"Muscles\" or \"Nutrition\""
+                    }
+                  }
                 }
               },
               {
@@ -1391,89 +1230,6 @@
                   "title": "",
                   "type": "AgentDiagram",
                   "nodes": [
-                    {
-                      "id": "c383f8b0-d915-439b-8bde-18a30da80fa3",
-                      "type": "AgentIntent",
-                      "position": {
-                        "x": -550,
-                        "y": -300
-                      },
-                      "width": 160,
-                      "height": 100,
-                      "measured": {
-                        "width": 160,
-                        "height": 100
-                      },
-                      "data": {
-                        "name": "Muscles_intent",
-                        "intent_description": "Question about how to become muscular and which exercises to perform.",
-                        "training_phrases": [
-                          {
-                            "id": "6b718df7-70ef-4e1c-8c6b-c82133964f86",
-                            "name": "I want muscles"
-                          }
-                        ]
-                      }
-                    },
-                    {
-                      "id": "a009a9ba-7a03-4f79-9122-416d8b74a0bb",
-                      "type": "AgentIntent",
-                      "position": {
-                        "x": -250,
-                        "y": -300
-                      },
-                      "width": 160,
-                      "height": 100,
-                      "measured": {
-                        "width": 160,
-                        "height": 100
-                      },
-                      "data": {
-                        "name": "Nutrition_intent",
-                        "intent_description": "Question about nutrition in gym.",
-                        "training_phrases": [
-                          {
-                            "id": "192db72d-4d0e-49b0-b49c-5050fb0dbb68",
-                            "name": "Which food to eat?"
-                          }
-                        ]
-                      }
-                    },
-                    {
-                      "id": "90d28305-378e-4bad-b3ea-61c3ddaa5921",
-                      "type": "AgentIntent",
-                      "position": {
-                        "x": 50,
-                        "y": -300
-                      },
-                      "width": 160,
-                      "height": 100,
-                      "measured": {
-                        "width": 160,
-                        "height": 100
-                      },
-                      "data": {
-                        "name": "Other",
-                        "intent_description": "Any question that does not fit in \"Muscles\" or \"Nutrition\""
-                      }
-                    },
-                    {
-                      "id": "731e886c-9cef-4fa7-ba6d-72aa25c32d4f",
-                      "type": "StateInitialNode",
-                      "position": {
-                        "x": -580,
-                        "y": -60
-                      },
-                      "width": 45,
-                      "height": 45,
-                      "measured": {
-                        "width": 45,
-                        "height": 45
-                      },
-                      "data": {
-                        "name": ""
-                      }
-                    },
                     {
                       "id": "c10f03ca-2073-4002-8d1b-e42536008f4c",
                       "type": "AgentState",
@@ -1496,7 +1252,8 @@
                             "name": "Hi, I am your buddy, the fitness agent.",
                             "replyType": "text"
                           }
-                        ]
+                        ],
+                        "initial": true
                       }
                     },
                     {
@@ -1638,33 +1395,6 @@
                     }
                   ],
                   "edges": [
-                    {
-                      "id": "7ac61ff1-1e47-4e69-8d38-8fd9be6ab17d",
-                      "source": "731e886c-9cef-4fa7-ba6d-72aa25c32d4f",
-                      "target": "c10f03ca-2073-4002-8d1b-e42536008f4c",
-                      "type": "AgentStateTransitionInit",
-                      "sourceHandle": "right",
-                      "targetHandle": "left",
-                      "data": {
-                        "label": "",
-                        "sourceMultiplicity": "",
-                        "targetMultiplicity": "",
-                        "sourceRole": "",
-                        "targetRole": "",
-                        "isManuallyLayouted": false,
-                        "messages": [],
-                        "points": [
-                          {
-                            "x": -1070,
-                            "y": -75
-                          },
-                          {
-                            "x": -815,
-                            "y": -75
-                          }
-                        ]
-                      }
-                    },
                     {
                       "id": "b3c5c9c2-81fc-4a12-985e-9e885ef6e9d0",
                       "source": "c10f03ca-2073-4002-8d1b-e42536008f4c",
@@ -2021,36 +1751,51 @@
                           }
                         ]
                       }
-                    },
-                    {
-                      "id": "0b385217-ea53-481d-8222-52dda332e351",
-                      "source": "731e886c-9cef-4fa7-ba6d-72aa25c32d4f",
-                      "target": "c10f03ca-2073-4002-8d1b-e42536008f4c",
-                      "type": "AgentStateTransitionInit",
-                      "sourceHandle": "right",
-                      "targetHandle": "left",
-                      "data": {
-                        "label": "",
-                        "sourceMultiplicity": "",
-                        "targetMultiplicity": "",
-                        "sourceRole": "",
-                        "targetRole": "",
-                        "isManuallyLayouted": false,
-                        "messages": [],
-                        "points": [
-                          {
-                            "x": -1070,
-                            "y": -75
-                          },
-                          {
-                            "x": -815,
-                            "y": -75
-                          }
-                        ]
-                      }
                     }
                   ],
-                  "assessments": {}
+                  "assessments": {},
+                  "components": {
+                    "6b718df7-70ef-4e1c-8c6b-c82133964f86": {
+                      "id": "6b718df7-70ef-4e1c-8c6b-c82133964f86",
+                      "name": "I want muscles",
+                      "type": "AgentIntentBody",
+                      "owner": "c383f8b0-d915-439b-8bde-18a30da80fa3"
+                    },
+                    "c383f8b0-d915-439b-8bde-18a30da80fa3": {
+                      "id": "c383f8b0-d915-439b-8bde-18a30da80fa3",
+                      "name": "Muscles_intent",
+                      "type": "AgentIntent",
+                      "owner": null,
+                      "bodies": [
+                        "6b718df7-70ef-4e1c-8c6b-c82133964f86"
+                      ],
+                      "intent_description": "Question about how to become muscular and which exercises to perform."
+                    },
+                    "192db72d-4d0e-49b0-b49c-5050fb0dbb68": {
+                      "id": "192db72d-4d0e-49b0-b49c-5050fb0dbb68",
+                      "name": "Which food to eat?",
+                      "type": "AgentIntentBody",
+                      "owner": "a009a9ba-7a03-4f79-9122-416d8b74a0bb"
+                    },
+                    "a009a9ba-7a03-4f79-9122-416d8b74a0bb": {
+                      "id": "a009a9ba-7a03-4f79-9122-416d8b74a0bb",
+                      "name": "Nutrition_intent",
+                      "type": "AgentIntent",
+                      "owner": null,
+                      "bodies": [
+                        "192db72d-4d0e-49b0-b49c-5050fb0dbb68"
+                      ],
+                      "intent_description": "Question about nutrition in gym."
+                    },
+                    "90d28305-378e-4bad-b3ea-61c3ddaa5921": {
+                      "id": "90d28305-378e-4bad-b3ea-61c3ddaa5921",
+                      "name": "Other",
+                      "type": "AgentIntent",
+                      "owner": null,
+                      "bodies": [],
+                      "intent_description": "Any question that does not fit in \"Muscles\" or \"Nutrition\""
+                    }
+                  }
                 }
               }
             ],
@@ -2458,23 +2203,6 @@
         "type": "AgentDiagram",
         "nodes": [
           {
-            "id": "699853eb-918b-4674-b08c-cf0af3cc61d7",
-            "type": "StateInitialNode",
-            "position": {
-              "x": -230,
-              "y": -370
-            },
-            "width": 45,
-            "height": 45,
-            "measured": {
-              "width": 45,
-              "height": 45
-            },
-            "data": {
-              "name": ""
-            }
-          },
-          {
             "id": "0cba5357-2c30-414b-8d74-ac74ac4ab158",
             "type": "AgentState",
             "position": {
@@ -2504,30 +2232,6 @@
                   "name": "I focus on gym and fitness topics only dude.",
                   "replyType": "text",
                   "ragDatabaseName": ""
-                }
-              ]
-            }
-          },
-          {
-            "id": "8dba49ff-2fc1-4066-b124-19e2df7981e2",
-            "type": "AgentIntent",
-            "position": {
-              "x": -900,
-              "y": -400
-            },
-            "width": 630,
-            "height": 100,
-            "measured": {
-              "width": 630,
-              "height": 100
-            },
-            "data": {
-              "name": "Muscles_intent",
-              "intent_description": "Question about how to become muscular and which exercises to perform.",
-              "training_phrases": [
-                {
-                  "id": "a0a69f3a-bb64-42ee-b9e6-a8bacdf2818b",
-                  "name": "I want muscles"
                 }
               ]
             }
@@ -2593,7 +2297,8 @@
                   "replyType": "text",
                   "ragDatabaseName": ""
                 }
-              ]
+              ],
+              "initial": true
             }
           },
           {
@@ -2671,78 +2376,9 @@
                 }
               ]
             }
-          },
-          {
-            "id": "659e810a-f686-47fb-aea8-d23ad06e482c",
-            "type": "AgentIntent",
-            "position": {
-              "x": -900,
-              "y": -290
-            },
-            "width": 630,
-            "height": 100,
-            "measured": {
-              "width": 630,
-              "height": 100
-            },
-            "data": {
-              "name": "Nutrition_intent",
-              "intent_description": "Question about nutrition in gym.",
-              "training_phrases": [
-                {
-                  "id": "f1fc7bc1-016d-404f-90a8-c2c8f4a8dad0",
-                  "name": "Which food to eat?"
-                }
-              ]
-            }
-          },
-          {
-            "id": "37dff3e2-013c-42f0-ad6e-bbc197247d14",
-            "type": "AgentIntent",
-            "position": {
-              "x": -860,
-              "y": 150
-            },
-            "width": 630,
-            "height": 70,
-            "measured": {
-              "width": 630,
-              "height": 70
-            },
-            "data": {
-              "name": "Other",
-              "intent_description": "Any question that does not fit in \"Muscles\" or \"Nutrition\""
-            }
           }
         ],
         "edges": [
-          {
-            "id": "bbd03bdd-b76e-47df-9e13-5a305885f94c",
-            "source": "699853eb-918b-4674-b08c-cf0af3cc61d7",
-            "target": "77976ef7-599d-4c49-9f4d-1ecb23239fe3",
-            "type": "AgentStateTransitionInit",
-            "sourceHandle": "right",
-            "targetHandle": "left",
-            "data": {
-              "label": "",
-              "sourceMultiplicity": "",
-              "targetMultiplicity": "",
-              "sourceRole": "",
-              "targetRole": "",
-              "isManuallyLayouted": false,
-              "messages": [],
-              "points": [
-                {
-                  "x": -185,
-                  "y": -347.5
-                },
-                {
-                  "x": -100,
-                  "y": -347.5
-                }
-              ]
-            }
-          },
           {
             "id": "0d7d8895-3eb0-44b0-bb41-e902684d0d2c",
             "source": "0cba5357-2c30-414b-8d74-ac74ac4ab158",
@@ -3093,7 +2729,49 @@
             }
           }
         ],
-        "assessments": {}
+        "assessments": {},
+        "components": {
+          "8dba49ff-2fc1-4066-b124-19e2df7981e2": {
+            "id": "8dba49ff-2fc1-4066-b124-19e2df7981e2",
+            "name": "Muscles_intent",
+            "type": "AgentIntent",
+            "owner": null,
+            "bodies": [
+              "a0a69f3a-bb64-42ee-b9e6-a8bacdf2818b"
+            ],
+            "intent_description": "Question about how to become muscular and which exercises to perform."
+          },
+          "a0a69f3a-bb64-42ee-b9e6-a8bacdf2818b": {
+            "id": "a0a69f3a-bb64-42ee-b9e6-a8bacdf2818b",
+            "name": "I want muscles",
+            "type": "AgentIntentBody",
+            "owner": "8dba49ff-2fc1-4066-b124-19e2df7981e2"
+          },
+          "659e810a-f686-47fb-aea8-d23ad06e482c": {
+            "id": "659e810a-f686-47fb-aea8-d23ad06e482c",
+            "name": "Nutrition_intent",
+            "type": "AgentIntent",
+            "owner": null,
+            "bodies": [
+              "f1fc7bc1-016d-404f-90a8-c2c8f4a8dad0"
+            ],
+            "intent_description": "Question about nutrition in gym."
+          },
+          "f1fc7bc1-016d-404f-90a8-c2c8f4a8dad0": {
+            "id": "f1fc7bc1-016d-404f-90a8-c2c8f4a8dad0",
+            "name": "Which food to eat?",
+            "type": "AgentIntentBody",
+            "owner": "659e810a-f686-47fb-aea8-d23ad06e482c"
+          },
+          "37dff3e2-013c-42f0-ad6e-bbc197247d14": {
+            "id": "37dff3e2-013c-42f0-ad6e-bbc197247d14",
+            "name": "Other",
+            "type": "AgentIntent",
+            "owner": null,
+            "bodies": [],
+            "intent_description": "Any question that does not fit in \"Muscles\" or \"Nutrition\""
+          }
+        }
       },
       "originalAgentModel": {
         "version": "4.0.0",
@@ -3102,23 +2780,6 @@
         "type": "AgentDiagram",
         "nodes": [
           {
-            "id": "699853eb-918b-4674-b08c-cf0af3cc61d7",
-            "type": "StateInitialNode",
-            "position": {
-              "x": -230,
-              "y": -370
-            },
-            "width": 45,
-            "height": 45,
-            "measured": {
-              "width": 45,
-              "height": 45
-            },
-            "data": {
-              "name": ""
-            }
-          },
-          {
             "id": "0cba5357-2c30-414b-8d74-ac74ac4ab158",
             "type": "AgentState",
             "position": {
@@ -3148,30 +2809,6 @@
                   "name": "I focus on gym and fitness topics only dude.",
                   "replyType": "text",
                   "ragDatabaseName": ""
-                }
-              ]
-            }
-          },
-          {
-            "id": "8dba49ff-2fc1-4066-b124-19e2df7981e2",
-            "type": "AgentIntent",
-            "position": {
-              "x": -900,
-              "y": -400
-            },
-            "width": 630,
-            "height": 100,
-            "measured": {
-              "width": 630,
-              "height": 100
-            },
-            "data": {
-              "name": "Muscles_intent",
-              "intent_description": "Question about how to become muscular and which exercises to perform.",
-              "training_phrases": [
-                {
-                  "id": "a0a69f3a-bb64-42ee-b9e6-a8bacdf2818b",
-                  "name": "I want muscles"
                 }
               ]
             }
@@ -3237,7 +2874,8 @@
                   "replyType": "text",
                   "ragDatabaseName": ""
                 }
-              ]
+              ],
+              "initial": true
             }
           },
           {
@@ -3315,78 +2953,9 @@
                 }
               ]
             }
-          },
-          {
-            "id": "659e810a-f686-47fb-aea8-d23ad06e482c",
-            "type": "AgentIntent",
-            "position": {
-              "x": -900,
-              "y": -290
-            },
-            "width": 630,
-            "height": 100,
-            "measured": {
-              "width": 630,
-              "height": 100
-            },
-            "data": {
-              "name": "Nutrition_intent",
-              "intent_description": "Question about nutrition in gym.",
-              "training_phrases": [
-                {
-                  "id": "f1fc7bc1-016d-404f-90a8-c2c8f4a8dad0",
-                  "name": "Which food to eat?"
-                }
-              ]
-            }
-          },
-          {
-            "id": "37dff3e2-013c-42f0-ad6e-bbc197247d14",
-            "type": "AgentIntent",
-            "position": {
-              "x": -860,
-              "y": 150
-            },
-            "width": 630,
-            "height": 70,
-            "measured": {
-              "width": 630,
-              "height": 70
-            },
-            "data": {
-              "name": "Other",
-              "intent_description": "Any question that does not fit in \"Muscles\" or \"Nutrition\""
-            }
           }
         ],
         "edges": [
-          {
-            "id": "bbd03bdd-b76e-47df-9e13-5a305885f94c",
-            "source": "699853eb-918b-4674-b08c-cf0af3cc61d7",
-            "target": "77976ef7-599d-4c49-9f4d-1ecb23239fe3",
-            "type": "AgentStateTransitionInit",
-            "sourceHandle": "right",
-            "targetHandle": "left",
-            "data": {
-              "label": "",
-              "sourceMultiplicity": "",
-              "targetMultiplicity": "",
-              "sourceRole": "",
-              "targetRole": "",
-              "isManuallyLayouted": false,
-              "messages": [],
-              "points": [
-                {
-                  "x": -185,
-                  "y": -347.5
-                },
-                {
-                  "x": -100,
-                  "y": -347.5
-                }
-              ]
-            }
-          },
           {
             "id": "0d7d8895-3eb0-44b0-bb41-e902684d0d2c",
             "source": "0cba5357-2c30-414b-8d74-ac74ac4ab158",
@@ -3737,7 +3306,49 @@
             }
           }
         ],
-        "assessments": {}
+        "assessments": {},
+        "components": {
+          "8dba49ff-2fc1-4066-b124-19e2df7981e2": {
+            "id": "8dba49ff-2fc1-4066-b124-19e2df7981e2",
+            "name": "Muscles_intent",
+            "type": "AgentIntent",
+            "owner": null,
+            "bodies": [
+              "a0a69f3a-bb64-42ee-b9e6-a8bacdf2818b"
+            ],
+            "intent_description": "Question about how to become muscular and which exercises to perform."
+          },
+          "a0a69f3a-bb64-42ee-b9e6-a8bacdf2818b": {
+            "id": "a0a69f3a-bb64-42ee-b9e6-a8bacdf2818b",
+            "name": "I want muscles",
+            "type": "AgentIntentBody",
+            "owner": "8dba49ff-2fc1-4066-b124-19e2df7981e2"
+          },
+          "659e810a-f686-47fb-aea8-d23ad06e482c": {
+            "id": "659e810a-f686-47fb-aea8-d23ad06e482c",
+            "name": "Nutrition_intent",
+            "type": "AgentIntent",
+            "owner": null,
+            "bodies": [
+              "f1fc7bc1-016d-404f-90a8-c2c8f4a8dad0"
+            ],
+            "intent_description": "Question about nutrition in gym."
+          },
+          "f1fc7bc1-016d-404f-90a8-c2c8f4a8dad0": {
+            "id": "f1fc7bc1-016d-404f-90a8-c2c8f4a8dad0",
+            "name": "Which food to eat?",
+            "type": "AgentIntentBody",
+            "owner": "659e810a-f686-47fb-aea8-d23ad06e482c"
+          },
+          "37dff3e2-013c-42f0-ad6e-bbc197247d14": {
+            "id": "37dff3e2-013c-42f0-ad6e-bbc197247d14",
+            "name": "Other",
+            "type": "AgentIntent",
+            "owner": null,
+            "bodies": [],
+            "intent_description": "Any question that does not fit in \"Muscles\" or \"Nutrition\""
+          }
+        }
       },
       "personalizedAgentModel": {
         "version": "4.0.0",
@@ -3745,89 +3356,6 @@
         "title": "",
         "type": "AgentDiagram",
         "nodes": [
-          {
-            "id": "566a781d-eb9d-4f80-bd98-8882ed800717",
-            "type": "AgentIntent",
-            "position": {
-              "x": -550,
-              "y": -300
-            },
-            "width": 160,
-            "height": 100,
-            "measured": {
-              "width": 160,
-              "height": 100
-            },
-            "data": {
-              "name": "Muscles_intent",
-              "intent_description": "Question about how to become muscular and which exercises to perform.",
-              "training_phrases": [
-                {
-                  "id": "ccd1dced-243c-49c4-9a00-80e7f772327a",
-                  "name": "I want muscles"
-                }
-              ]
-            }
-          },
-          {
-            "id": "1766afa2-4953-4cc8-9bb0-af48953503f3",
-            "type": "AgentIntent",
-            "position": {
-              "x": -250,
-              "y": -300
-            },
-            "width": 160,
-            "height": 100,
-            "measured": {
-              "width": 160,
-              "height": 100
-            },
-            "data": {
-              "name": "Nutrition_intent",
-              "intent_description": "Question about nutrition in gym.",
-              "training_phrases": [
-                {
-                  "id": "651f4205-d406-482c-8bb4-975fdf9e456f",
-                  "name": "Which food to eat?"
-                }
-              ]
-            }
-          },
-          {
-            "id": "4037bf46-f138-4c9c-a891-c8f5639a19a0",
-            "type": "AgentIntent",
-            "position": {
-              "x": 50,
-              "y": -300
-            },
-            "width": 160,
-            "height": 100,
-            "measured": {
-              "width": 160,
-              "height": 100
-            },
-            "data": {
-              "name": "Other",
-              "intent_description": "Any question that does not fit in \"Muscles\" or \"Nutrition\""
-            }
-          },
-          {
-            "id": "730ca64d-597c-4fd8-a756-5d98d475edb8",
-            "type": "StateInitialNode",
-            "position": {
-              "x": -580,
-              "y": -60
-            },
-            "width": 45,
-            "height": 45,
-            "measured": {
-              "width": 45,
-              "height": 45
-            },
-            "data": {
-              "name": ""
-            }
-          },
           {
             "id": "3effee26-ddc1-4180-8dfc-4f54d929c334",
             "type": "AgentState",
@@ -3850,7 +3378,8 @@
                   "name": "Hi! I’m your fitness helper and guide.",
                   "replyType": "text"
                 }
-              ]
+              ],
+              "initial": true
             }
           },
           {
@@ -3992,33 +3521,6 @@
           }
         ],
         "edges": [
-          {
-            "id": "4b6aa5dd-81c4-4ae8-a6bf-d6aa587831d1",
-            "source": "730ca64d-597c-4fd8-a756-5d98d475edb8",
-            "target": "3effee26-ddc1-4180-8dfc-4f54d929c334",
-            "type": "AgentStateTransitionInit",
-            "sourceHandle": "right",
-            "targetHandle": "left",
-            "data": {
-              "label": "",
-              "sourceMultiplicity": "",
-              "targetMultiplicity": "",
-              "sourceRole": "",
-              "targetRole": "",
-              "isManuallyLayouted": false,
-              "messages": [],
-              "points": [
-                {
-                  "x": -1070,
-                  "y": -75
-                },
-                {
-                  "x": -815,
-                  "y": -75
-                }
-              ]
-            }
-          },
           {
             "id": "5f4c44a4-fdd5-4039-8896-30544b0780ba",
             "source": "3effee26-ddc1-4180-8dfc-4f54d929c334",
@@ -4375,36 +3877,51 @@
                 }
               ]
             }
-          },
-          {
-            "id": "d1414fb9-bcf4-4e45-a74c-b7bb93d87d78",
-            "source": "730ca64d-597c-4fd8-a756-5d98d475edb8",
-            "target": "3effee26-ddc1-4180-8dfc-4f54d929c334",
-            "type": "AgentStateTransitionInit",
-            "sourceHandle": "right",
-            "targetHandle": "left",
-            "data": {
-              "label": "",
-              "sourceMultiplicity": "",
-              "targetMultiplicity": "",
-              "sourceRole": "",
-              "targetRole": "",
-              "isManuallyLayouted": false,
-              "messages": [],
-              "points": [
-                {
-                  "x": -1070,
-                  "y": -75
-                },
-                {
-                  "x": -815,
-                  "y": -75
-                }
-              ]
-            }
           }
         ],
-        "assessments": {}
+        "assessments": {},
+        "components": {
+          "ccd1dced-243c-49c4-9a00-80e7f772327a": {
+            "id": "ccd1dced-243c-49c4-9a00-80e7f772327a",
+            "name": "I want muscles",
+            "type": "AgentIntentBody",
+            "owner": "566a781d-eb9d-4f80-bd98-8882ed800717"
+          },
+          "566a781d-eb9d-4f80-bd98-8882ed800717": {
+            "id": "566a781d-eb9d-4f80-bd98-8882ed800717",
+            "name": "Muscles_intent",
+            "type": "AgentIntent",
+            "owner": null,
+            "bodies": [
+              "ccd1dced-243c-49c4-9a00-80e7f772327a"
+            ],
+            "intent_description": "Question about how to become muscular and which exercises to perform."
+          },
+          "651f4205-d406-482c-8bb4-975fdf9e456f": {
+            "id": "651f4205-d406-482c-8bb4-975fdf9e456f",
+            "name": "Which food to eat?",
+            "type": "AgentIntentBody",
+            "owner": "1766afa2-4953-4cc8-9bb0-af48953503f3"
+          },
+          "1766afa2-4953-4cc8-9bb0-af48953503f3": {
+            "id": "1766afa2-4953-4cc8-9bb0-af48953503f3",
+            "name": "Nutrition_intent",
+            "type": "AgentIntent",
+            "owner": null,
+            "bodies": [
+              "651f4205-d406-482c-8bb4-975fdf9e456f"
+            ],
+            "intent_description": "Question about nutrition in gym."
+          },
+          "4037bf46-f138-4c9c-a891-c8f5639a19a0": {
+            "id": "4037bf46-f138-4c9c-a891-c8f5639a19a0",
+            "name": "Other",
+            "type": "AgentIntent",
+            "owner": null,
+            "bodies": [],
+            "intent_description": "Any question that does not fit in \"Muscles\" or \"Nutrition\""
+          }
+        }
       }
     },
     {
@@ -4453,23 +3970,6 @@
         "type": "AgentDiagram",
         "nodes": [
           {
-            "id": "699853eb-918b-4674-b08c-cf0af3cc61d7",
-            "type": "StateInitialNode",
-            "position": {
-              "x": -230,
-              "y": -370
-            },
-            "width": 45,
-            "height": 45,
-            "measured": {
-              "width": 45,
-              "height": 45
-            },
-            "data": {
-              "name": ""
-            }
-          },
-          {
             "id": "0cba5357-2c30-414b-8d74-ac74ac4ab158",
             "type": "AgentState",
             "position": {
@@ -4499,30 +3999,6 @@
                   "name": "I focus on gym and fitness topics only dude.",
                   "replyType": "text",
                   "ragDatabaseName": ""
-                }
-              ]
-            }
-          },
-          {
-            "id": "8dba49ff-2fc1-4066-b124-19e2df7981e2",
-            "type": "AgentIntent",
-            "position": {
-              "x": -900,
-              "y": -400
-            },
-            "width": 630,
-            "height": 100,
-            "measured": {
-              "width": 630,
-              "height": 100
-            },
-            "data": {
-              "name": "Muscles_intent",
-              "intent_description": "Question about how to become muscular and which exercises to perform.",
-              "training_phrases": [
-                {
-                  "id": "a0a69f3a-bb64-42ee-b9e6-a8bacdf2818b",
-                  "name": "I want muscles"
                 }
               ]
             }
@@ -4588,7 +4064,8 @@
                   "replyType": "text",
                   "ragDatabaseName": ""
                 }
-              ]
+              ],
+              "initial": true
             }
           },
           {
@@ -4666,78 +4143,9 @@
                 }
               ]
             }
-          },
-          {
-            "id": "659e810a-f686-47fb-aea8-d23ad06e482c",
-            "type": "AgentIntent",
-            "position": {
-              "x": -900,
-              "y": -290
-            },
-            "width": 630,
-            "height": 100,
-            "measured": {
-              "width": 630,
-              "height": 100
-            },
-            "data": {
-              "name": "Nutrition_intent",
-              "intent_description": "Question about nutrition in gym.",
-              "training_phrases": [
-                {
-                  "id": "f1fc7bc1-016d-404f-90a8-c2c8f4a8dad0",
-                  "name": "Which food to eat?"
-                }
-              ]
-            }
-          },
-          {
-            "id": "37dff3e2-013c-42f0-ad6e-bbc197247d14",
-            "type": "AgentIntent",
-            "position": {
-              "x": -860,
-              "y": 150
-            },
-            "width": 630,
-            "height": 70,
-            "measured": {
-              "width": 630,
-              "height": 70
-            },
-            "data": {
-              "name": "Other",
-              "intent_description": "Any question that does not fit in \"Muscles\" or \"Nutrition\""
-            }
           }
         ],
         "edges": [
-          {
-            "id": "bbd03bdd-b76e-47df-9e13-5a305885f94c",
-            "source": "699853eb-918b-4674-b08c-cf0af3cc61d7",
-            "target": "77976ef7-599d-4c49-9f4d-1ecb23239fe3",
-            "type": "AgentStateTransitionInit",
-            "sourceHandle": "right",
-            "targetHandle": "left",
-            "data": {
-              "label": "",
-              "sourceMultiplicity": "",
-              "targetMultiplicity": "",
-              "sourceRole": "",
-              "targetRole": "",
-              "isManuallyLayouted": false,
-              "messages": [],
-              "points": [
-                {
-                  "x": -185,
-                  "y": -347.5
-                },
-                {
-                  "x": -100,
-                  "y": -347.5
-                }
-              ]
-            }
-          },
           {
             "id": "0d7d8895-3eb0-44b0-bb41-e902684d0d2c",
             "source": "0cba5357-2c30-414b-8d74-ac74ac4ab158",
@@ -5088,7 +4496,49 @@
             }
           }
         ],
-        "assessments": {}
+        "assessments": {},
+        "components": {
+          "8dba49ff-2fc1-4066-b124-19e2df7981e2": {
+            "id": "8dba49ff-2fc1-4066-b124-19e2df7981e2",
+            "name": "Muscles_intent",
+            "type": "AgentIntent",
+            "owner": null,
+            "bodies": [
+              "a0a69f3a-bb64-42ee-b9e6-a8bacdf2818b"
+            ],
+            "intent_description": "Question about how to become muscular and which exercises to perform."
+          },
+          "a0a69f3a-bb64-42ee-b9e6-a8bacdf2818b": {
+            "id": "a0a69f3a-bb64-42ee-b9e6-a8bacdf2818b",
+            "name": "I want muscles",
+            "type": "AgentIntentBody",
+            "owner": "8dba49ff-2fc1-4066-b124-19e2df7981e2"
+          },
+          "659e810a-f686-47fb-aea8-d23ad06e482c": {
+            "id": "659e810a-f686-47fb-aea8-d23ad06e482c",
+            "name": "Nutrition_intent",
+            "type": "AgentIntent",
+            "owner": null,
+            "bodies": [
+              "f1fc7bc1-016d-404f-90a8-c2c8f4a8dad0"
+            ],
+            "intent_description": "Question about nutrition in gym."
+          },
+          "f1fc7bc1-016d-404f-90a8-c2c8f4a8dad0": {
+            "id": "f1fc7bc1-016d-404f-90a8-c2c8f4a8dad0",
+            "name": "Which food to eat?",
+            "type": "AgentIntentBody",
+            "owner": "659e810a-f686-47fb-aea8-d23ad06e482c"
+          },
+          "37dff3e2-013c-42f0-ad6e-bbc197247d14": {
+            "id": "37dff3e2-013c-42f0-ad6e-bbc197247d14",
+            "name": "Other",
+            "type": "AgentIntent",
+            "owner": null,
+            "bodies": [],
+            "intent_description": "Any question that does not fit in \"Muscles\" or \"Nutrition\""
+          }
+        }
       },
       "originalAgentModel": {
         "version": "4.0.0",
@@ -5097,23 +4547,6 @@
         "type": "AgentDiagram",
         "nodes": [
           {
-            "id": "699853eb-918b-4674-b08c-cf0af3cc61d7",
-            "type": "StateInitialNode",
-            "position": {
-              "x": -230,
-              "y": -370
-            },
-            "width": 45,
-            "height": 45,
-            "measured": {
-              "width": 45,
-              "height": 45
-            },
-            "data": {
-              "name": ""
-            }
-          },
-          {
             "id": "0cba5357-2c30-414b-8d74-ac74ac4ab158",
             "type": "AgentState",
             "position": {
@@ -5143,30 +4576,6 @@
                   "name": "I focus on gym and fitness topics only dude.",
                   "replyType": "text",
                   "ragDatabaseName": ""
-                }
-              ]
-            }
-          },
-          {
-            "id": "8dba49ff-2fc1-4066-b124-19e2df7981e2",
-            "type": "AgentIntent",
-            "position": {
-              "x": -900,
-              "y": -400
-            },
-            "width": 630,
-            "height": 100,
-            "measured": {
-              "width": 630,
-              "height": 100
-            },
-            "data": {
-              "name": "Muscles_intent",
-              "intent_description": "Question about how to become muscular and which exercises to perform.",
-              "training_phrases": [
-                {
-                  "id": "a0a69f3a-bb64-42ee-b9e6-a8bacdf2818b",
-                  "name": "I want muscles"
                 }
               ]
             }
@@ -5232,7 +4641,8 @@
                   "replyType": "text",
                   "ragDatabaseName": ""
                 }
-              ]
+              ],
+              "initial": true
             }
           },
           {
@@ -5310,78 +4720,9 @@
                 }
               ]
             }
-          },
-          {
-            "id": "659e810a-f686-47fb-aea8-d23ad06e482c",
-            "type": "AgentIntent",
-            "position": {
-              "x": -900,
-              "y": -290
-            },
-            "width": 630,
-            "height": 100,
-            "measured": {
-              "width": 630,
-              "height": 100
-            },
-            "data": {
-              "name": "Nutrition_intent",
-              "intent_description": "Question about nutrition in gym.",
-              "training_phrases": [
-                {
-                  "id": "f1fc7bc1-016d-404f-90a8-c2c8f4a8dad0",
-                  "name": "Which food to eat?"
-                }
-              ]
-            }
-          },
-          {
-            "id": "37dff3e2-013c-42f0-ad6e-bbc197247d14",
-            "type": "AgentIntent",
-            "position": {
-              "x": -860,
-              "y": 150
-            },
-            "width": 630,
-            "height": 70,
-            "measured": {
-              "width": 630,
-              "height": 70
-            },
-            "data": {
-              "name": "Other",
-              "intent_description": "Any question that does not fit in \"Muscles\" or \"Nutrition\""
-            }
           }
         ],
         "edges": [
-          {
-            "id": "bbd03bdd-b76e-47df-9e13-5a305885f94c",
-            "source": "699853eb-918b-4674-b08c-cf0af3cc61d7",
-            "target": "77976ef7-599d-4c49-9f4d-1ecb23239fe3",
-            "type": "AgentStateTransitionInit",
-            "sourceHandle": "right",
-            "targetHandle": "left",
-            "data": {
-              "label": "",
-              "sourceMultiplicity": "",
-              "targetMultiplicity": "",
-              "sourceRole": "",
-              "targetRole": "",
-              "isManuallyLayouted": false,
-              "messages": [],
-              "points": [
-                {
-                  "x": -185,
-                  "y": -347.5
-                },
-                {
-                  "x": -100,
-                  "y": -347.5
-                }
-              ]
-            }
-          },
           {
             "id": "0d7d8895-3eb0-44b0-bb41-e902684d0d2c",
             "source": "0cba5357-2c30-414b-8d74-ac74ac4ab158",
@@ -5732,7 +5073,49 @@
             }
           }
         ],
-        "assessments": {}
+        "assessments": {},
+        "components": {
+          "8dba49ff-2fc1-4066-b124-19e2df7981e2": {
+            "id": "8dba49ff-2fc1-4066-b124-19e2df7981e2",
+            "name": "Muscles_intent",
+            "type": "AgentIntent",
+            "owner": null,
+            "bodies": [
+              "a0a69f3a-bb64-42ee-b9e6-a8bacdf2818b"
+            ],
+            "intent_description": "Question about how to become muscular and which exercises to perform."
+          },
+          "a0a69f3a-bb64-42ee-b9e6-a8bacdf2818b": {
+            "id": "a0a69f3a-bb64-42ee-b9e6-a8bacdf2818b",
+            "name": "I want muscles",
+            "type": "AgentIntentBody",
+            "owner": "8dba49ff-2fc1-4066-b124-19e2df7981e2"
+          },
+          "659e810a-f686-47fb-aea8-d23ad06e482c": {
+            "id": "659e810a-f686-47fb-aea8-d23ad06e482c",
+            "name": "Nutrition_intent",
+            "type": "AgentIntent",
+            "owner": null,
+            "bodies": [
+              "f1fc7bc1-016d-404f-90a8-c2c8f4a8dad0"
+            ],
+            "intent_description": "Question about nutrition in gym."
+          },
+          "f1fc7bc1-016d-404f-90a8-c2c8f4a8dad0": {
+            "id": "f1fc7bc1-016d-404f-90a8-c2c8f4a8dad0",
+            "name": "Which food to eat?",
+            "type": "AgentIntentBody",
+            "owner": "659e810a-f686-47fb-aea8-d23ad06e482c"
+          },
+          "37dff3e2-013c-42f0-ad6e-bbc197247d14": {
+            "id": "37dff3e2-013c-42f0-ad6e-bbc197247d14",
+            "name": "Other",
+            "type": "AgentIntent",
+            "owner": null,
+            "bodies": [],
+            "intent_description": "Any question that does not fit in \"Muscles\" or \"Nutrition\""
+          }
+        }
       },
       "personalizedAgentModel": {
         "version": "4.0.0",
@@ -5740,89 +5123,6 @@
         "title": "",
         "type": "AgentDiagram",
         "nodes": [
-          {
-            "id": "c383f8b0-d915-439b-8bde-18a30da80fa3",
-            "type": "AgentIntent",
-            "position": {
-              "x": -550,
-              "y": -300
-            },
-            "width": 160,
-            "height": 100,
-            "measured": {
-              "width": 160,
-              "height": 100
-            },
-            "data": {
-              "name": "Muscles_intent",
-              "intent_description": "Question about how to become muscular and which exercises to perform.",
-              "training_phrases": [
-                {
-                  "id": "6b718df7-70ef-4e1c-8c6b-c82133964f86",
-                  "name": "I want muscles"
-                }
-              ]
-            }
-          },
-          {
-            "id": "a009a9ba-7a03-4f79-9122-416d8b74a0bb",
-            "type": "AgentIntent",
-            "position": {
-              "x": -250,
-              "y": -300
-            },
-            "width": 160,
-            "height": 100,
-            "measured": {
-              "width": 160,
-              "height": 100
-            },
-            "data": {
-              "name": "Nutrition_intent",
-              "intent_description": "Question about nutrition in gym.",
-              "training_phrases": [
-                {
-                  "id": "192db72d-4d0e-49b0-b49c-5050fb0dbb68",
-                  "name": "Which food to eat?"
-                }
-              ]
-            }
-          },
-          {
-            "id": "90d28305-378e-4bad-b3ea-61c3ddaa5921",
-            "type": "AgentIntent",
-            "position": {
-              "x": 50,
-              "y": -300
-            },
-            "width": 160,
-            "height": 100,
-            "measured": {
-              "width": 160,
-              "height": 100
-            },
-            "data": {
-              "name": "Other",
-              "intent_description": "Any question that does not fit in \"Muscles\" or \"Nutrition\""
-            }
-          },
-          {
-            "id": "731e886c-9cef-4fa7-ba6d-72aa25c32d4f",
-            "type": "StateInitialNode",
-            "position": {
-              "x": -580,
-              "y": -60
-            },
-            "width": 45,
-            "height": 45,
-            "measured": {
-              "width": 45,
-              "height": 45
-            },
-            "data": {
-              "name": ""
-            }
-          },
           {
             "id": "c10f03ca-2073-4002-8d1b-e42536008f4c",
             "type": "AgentState",
@@ -5845,7 +5145,8 @@
                   "name": "Hi, I am your buddy, the fitness agent.",
                   "replyType": "text"
                 }
-              ]
+              ],
+              "initial": true
             }
           },
           {
@@ -5987,33 +5288,6 @@
           }
         ],
         "edges": [
-          {
-            "id": "7ac61ff1-1e47-4e69-8d38-8fd9be6ab17d",
-            "source": "731e886c-9cef-4fa7-ba6d-72aa25c32d4f",
-            "target": "c10f03ca-2073-4002-8d1b-e42536008f4c",
-            "type": "AgentStateTransitionInit",
-            "sourceHandle": "right",
-            "targetHandle": "left",
-            "data": {
-              "label": "",
-              "sourceMultiplicity": "",
-              "targetMultiplicity": "",
-              "sourceRole": "",
-              "targetRole": "",
-              "isManuallyLayouted": false,
-              "messages": [],
-              "points": [
-                {
-                  "x": -1070,
-                  "y": -75
-                },
-                {
-                  "x": -815,
-                  "y": -75
-                }
-              ]
-            }
-          },
           {
             "id": "b3c5c9c2-81fc-4a12-985e-9e885ef6e9d0",
             "source": "c10f03ca-2073-4002-8d1b-e42536008f4c",
@@ -6370,36 +5644,51 @@
                 }
               ]
             }
-          },
-          {
-            "id": "0b385217-ea53-481d-8222-52dda332e351",
-            "source": "731e886c-9cef-4fa7-ba6d-72aa25c32d4f",
-            "target": "c10f03ca-2073-4002-8d1b-e42536008f4c",
-            "type": "AgentStateTransitionInit",
-            "sourceHandle": "right",
-            "targetHandle": "left",
-            "data": {
-              "label": "",
-              "sourceMultiplicity": "",
-              "targetMultiplicity": "",
-              "sourceRole": "",
-              "targetRole": "",
-              "isManuallyLayouted": false,
-              "messages": [],
-              "points": [
-                {
-                  "x": -1070,
-                  "y": -75
-                },
-                {
-                  "x": -815,
-                  "y": -75
-                }
-              ]
-            }
           }
         ],
-        "assessments": {}
+        "assessments": {},
+        "components": {
+          "6b718df7-70ef-4e1c-8c6b-c82133964f86": {
+            "id": "6b718df7-70ef-4e1c-8c6b-c82133964f86",
+            "name": "I want muscles",
+            "type": "AgentIntentBody",
+            "owner": "c383f8b0-d915-439b-8bde-18a30da80fa3"
+          },
+          "c383f8b0-d915-439b-8bde-18a30da80fa3": {
+            "id": "c383f8b0-d915-439b-8bde-18a30da80fa3",
+            "name": "Muscles_intent",
+            "type": "AgentIntent",
+            "owner": null,
+            "bodies": [
+              "6b718df7-70ef-4e1c-8c6b-c82133964f86"
+            ],
+            "intent_description": "Question about how to become muscular and which exercises to perform."
+          },
+          "192db72d-4d0e-49b0-b49c-5050fb0dbb68": {
+            "id": "192db72d-4d0e-49b0-b49c-5050fb0dbb68",
+            "name": "Which food to eat?",
+            "type": "AgentIntentBody",
+            "owner": "a009a9ba-7a03-4f79-9122-416d8b74a0bb"
+          },
+          "a009a9ba-7a03-4f79-9122-416d8b74a0bb": {
+            "id": "a009a9ba-7a03-4f79-9122-416d8b74a0bb",
+            "name": "Nutrition_intent",
+            "type": "AgentIntent",
+            "owner": null,
+            "bodies": [
+              "192db72d-4d0e-49b0-b49c-5050fb0dbb68"
+            ],
+            "intent_description": "Question about nutrition in gym."
+          },
+          "90d28305-378e-4bad-b3ea-61c3ddaa5921": {
+            "id": "90d28305-378e-4bad-b3ea-61c3ddaa5921",
+            "name": "Other",
+            "type": "AgentIntent",
+            "owner": null,
+            "bodies": [],
+            "intent_description": "Any question that does not fit in \"Muscles\" or \"Nutrition\""
+          }
+        }
       }
     }
   ],
@@ -6764,23 +6053,6 @@
       "type": "AgentDiagram",
       "nodes": [
         {
-          "id": "699853eb-918b-4674-b08c-cf0af3cc61d7",
-          "type": "StateInitialNode",
-          "position": {
-            "x": -230,
-            "y": -370
-          },
-          "width": 45,
-          "height": 45,
-          "measured": {
-            "width": 45,
-            "height": 45
-          },
-          "data": {
-            "name": ""
-          }
-        },
-        {
           "id": "0cba5357-2c30-414b-8d74-ac74ac4ab158",
           "type": "AgentState",
           "position": {
@@ -6810,30 +6082,6 @@
                 "name": "I focus on gym and fitness topics only dude.",
                 "replyType": "text",
                 "ragDatabaseName": ""
-              }
-            ]
-          }
-        },
-        {
-          "id": "8dba49ff-2fc1-4066-b124-19e2df7981e2",
-          "type": "AgentIntent",
-          "position": {
-            "x": -900,
-            "y": -400
-          },
-          "width": 630,
-          "height": 100,
-          "measured": {
-            "width": 630,
-            "height": 100
-          },
-          "data": {
-            "name": "Muscles_intent",
-            "intent_description": "Question about how to become muscular and which exercises to perform.",
-            "training_phrases": [
-              {
-                "id": "a0a69f3a-bb64-42ee-b9e6-a8bacdf2818b",
-                "name": "I want muscles"
               }
             ]
           }
@@ -6899,7 +6147,8 @@
                 "replyType": "text",
                 "ragDatabaseName": ""
               }
-            ]
+            ],
+            "initial": true
           }
         },
         {
@@ -6977,78 +6226,9 @@
               }
             ]
           }
-        },
-        {
-          "id": "659e810a-f686-47fb-aea8-d23ad06e482c",
-          "type": "AgentIntent",
-          "position": {
-            "x": -900,
-            "y": -290
-          },
-          "width": 630,
-          "height": 100,
-          "measured": {
-            "width": 630,
-            "height": 100
-          },
-          "data": {
-            "name": "Nutrition_intent",
-            "intent_description": "Question about nutrition in gym.",
-            "training_phrases": [
-              {
-                "id": "f1fc7bc1-016d-404f-90a8-c2c8f4a8dad0",
-                "name": "Which food to eat?"
-              }
-            ]
-          }
-        },
-        {
-          "id": "37dff3e2-013c-42f0-ad6e-bbc197247d14",
-          "type": "AgentIntent",
-          "position": {
-            "x": -860,
-            "y": 150
-          },
-          "width": 630,
-          "height": 70,
-          "measured": {
-            "width": 630,
-            "height": 70
-          },
-          "data": {
-            "name": "Other",
-            "intent_description": "Any question that does not fit in \"Muscles\" or \"Nutrition\""
-          }
         }
       ],
       "edges": [
-        {
-          "id": "bbd03bdd-b76e-47df-9e13-5a305885f94c",
-          "source": "699853eb-918b-4674-b08c-cf0af3cc61d7",
-          "target": "77976ef7-599d-4c49-9f4d-1ecb23239fe3",
-          "type": "AgentStateTransitionInit",
-          "sourceHandle": "right",
-          "targetHandle": "left",
-          "data": {
-            "label": "",
-            "sourceMultiplicity": "",
-            "targetMultiplicity": "",
-            "sourceRole": "",
-            "targetRole": "",
-            "isManuallyLayouted": false,
-            "messages": [],
-            "points": [
-              {
-                "x": -185,
-                "y": -347.5
-              },
-              {
-                "x": -100,
-                "y": -347.5
-              }
-            ]
-          }
-        },
         {
           "id": "0d7d8895-3eb0-44b0-bb41-e902684d0d2c",
           "source": "0cba5357-2c30-414b-8d74-ac74ac4ab158",
@@ -7399,7 +6579,49 @@
           }
         }
       ],
-      "assessments": {}
+      "assessments": {},
+      "components": {
+        "8dba49ff-2fc1-4066-b124-19e2df7981e2": {
+          "id": "8dba49ff-2fc1-4066-b124-19e2df7981e2",
+          "name": "Muscles_intent",
+          "type": "AgentIntent",
+          "owner": null,
+          "bodies": [
+            "a0a69f3a-bb64-42ee-b9e6-a8bacdf2818b"
+          ],
+          "intent_description": "Question about how to become muscular and which exercises to perform."
+        },
+        "a0a69f3a-bb64-42ee-b9e6-a8bacdf2818b": {
+          "id": "a0a69f3a-bb64-42ee-b9e6-a8bacdf2818b",
+          "name": "I want muscles",
+          "type": "AgentIntentBody",
+          "owner": "8dba49ff-2fc1-4066-b124-19e2df7981e2"
+        },
+        "659e810a-f686-47fb-aea8-d23ad06e482c": {
+          "id": "659e810a-f686-47fb-aea8-d23ad06e482c",
+          "name": "Nutrition_intent",
+          "type": "AgentIntent",
+          "owner": null,
+          "bodies": [
+            "f1fc7bc1-016d-404f-90a8-c2c8f4a8dad0"
+          ],
+          "intent_description": "Question about nutrition in gym."
+        },
+        "f1fc7bc1-016d-404f-90a8-c2c8f4a8dad0": {
+          "id": "f1fc7bc1-016d-404f-90a8-c2c8f4a8dad0",
+          "name": "Which food to eat?",
+          "type": "AgentIntentBody",
+          "owner": "659e810a-f686-47fb-aea8-d23ad06e482c"
+        },
+        "37dff3e2-013c-42f0-ad6e-bbc197247d14": {
+          "id": "37dff3e2-013c-42f0-ad6e-bbc197247d14",
+          "name": "Other",
+          "type": "AgentIntent",
+          "owner": null,
+          "bodies": [],
+          "intent_description": "Any question that does not fit in \"Muscles\" or \"Nutrition\""
+        }
+      }
     }
   }
 }

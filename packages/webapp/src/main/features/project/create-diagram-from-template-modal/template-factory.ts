@@ -4,7 +4,9 @@ import {
   SoftwarePatternTemplate,
   SoftwarePatternType,
 } from './software-pattern/software-pattern-types';
-import { UMLDiagramType } from '@besser/wme';
+import { UMLDiagramType, isV4Format, normalizeV4Model } from '@besser/wme';
+import { migrateUMLModelV3ToV4 } from '../../../shared/services/storage/migrate-uml-v3-to-v4';
+import { isV3UMLModel } from '../../../shared/types/project';
 import libraryCompleteModel from '../../../templates/pattern/structural/Library_Complete.json';
 import libraryOclModel from '../../../templates/pattern/structural/Library_OCL.json';
 import teamOclModel from '../../../templates/pattern/structural/team_player_ocl.json';
@@ -39,10 +41,39 @@ const getQuantumCircuitData = (circuitName: string) => {
   const serialized = serializeCircuit(example.circuit);
   return { ...serialized, version: '1.0.0' };
 };
+/**
+ * Safety net applied to every UML template on instantiation: the bundled JSON
+ * is lifted to canonical v4 exactly as the editor would on load (v3 → v4
+ * migration, then `normalizeV4Model`), so a template that is instantiated but
+ * never opened (e.g. generated or deployed straight away) reaches the backend
+ * in its final shape. Works on a deep copy — the imported JSON module is
+ * shared and must never be mutated. A template that cannot be lifted is
+ * returned as a copy, unchanged.
+ */
+export const canonicalizeTemplateModel = <T>(model: T): T => {
+  if (!model || typeof model !== 'object') return model;
+  const copy = structuredClone(model) as unknown;
+  try {
+    if (isV4Format(copy)) return normalizeV4Model(copy) as T;
+    if (isV3UMLModel(copy)) return migrateUMLModelV3ToV4(copy) as T;
+  } catch (error) {
+    console.warn('[TemplateFactory] Could not canonicalize template model; using it as-is.', error);
+  }
+  return copy as T;
+};
+
 // Could also be a static method on Template, which would be nicer.
 // However, because of circular dependency we decided to create a separate factory instead
 export class TemplateFactory {
   static createSoftwarePattern(softwarePatternType: SoftwarePatternType): SoftwarePatternTemplate {
+    const template = TemplateFactory.buildSoftwarePattern(softwarePatternType);
+    if (template.isUMLDiagram) {
+      template.diagram = canonicalizeTemplateModel(template.diagram);
+    }
+    return template;
+  }
+
+  private static buildSoftwarePattern(softwarePatternType: SoftwarePatternType): SoftwarePatternTemplate {
     switch (softwarePatternType) {
       case SoftwarePatternType.LIBRARY:
         return new SoftwarePatternTemplate(

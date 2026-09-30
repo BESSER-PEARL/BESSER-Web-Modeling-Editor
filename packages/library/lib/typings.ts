@@ -3,9 +3,11 @@ import { DiagramNodeType } from "./nodes/types"
 import { UMLDiagramType } from "./types/DiagramType"
 import { Styles } from "./styles/theme"
 import { DeepPartial } from "./utils"
+import type { UMLModelComponent } from "./utils/agentComponents"
 
 export { UMLDiagramType, type DiagramNodeType, type DiagramEdgeType }
 export { type Styles }
+export type { UMLModelComponent }
 
 export type Unsubscriber = () => void
 
@@ -79,6 +81,18 @@ export type UMLModel = {
   edges: BesserEdge[]
   assessments: { [id: string]: Assessment }
   interactive?: InteractiveElements
+  /**
+   * AgentDiagram only: off-canvas agent components (LLMs, intents + intent
+   * bodies, RAG databases, tools, skills, workspaces, GUIs), keyed by id.
+   * Edited in the webapp's agent Components page; never rendered as nodes.
+   * See `utils/agentComponents.ts` and the v4 spec (AgentDiagram → Components).
+   */
+  components?: { [id: string]: UMLModelComponent }
+  /**
+   * @deprecated Legacy location of the agent components. Folded into
+   * `components` by `normalizeAgentComponents`; never written.
+   */
+  agentComponents?: { [id: string]: UMLModelComponent }
 }
 
 export enum BesserView {

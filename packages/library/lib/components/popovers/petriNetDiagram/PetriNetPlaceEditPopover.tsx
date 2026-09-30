@@ -6,10 +6,12 @@ import { PopoverProps } from "../types"
 import { DefaultNodeEditPopover } from "../DefaultNodeEditPopover"
 import { DividerLine } from "@/components"
 import { InfiniteIcon } from "@/components/Icon"
+import { useTranslation } from "@/i18n"
 
 export const PetriNetPlaceEditPopover: React.FC<PopoverProps> = ({
   elementId,
 }) => {
+  const { t } = useTranslation()
   const { nodes, setNodes } = useDiagramStore(
     useShallow((state) => ({
       nodes: state.nodes,
@@ -78,7 +80,7 @@ export const PetriNetPlaceEditPopover: React.FC<PopoverProps> = ({
             alignItems: "center",
           }}
         >
-          <Typography>Tokens</Typography>
+          <Typography>{t("popup.tokens", "Tokens")}</Typography>
 
           <TextField
             variant="outlined"
@@ -114,7 +116,7 @@ export const PetriNetPlaceEditPopover: React.FC<PopoverProps> = ({
             alignItems: "center",
           }}
         >
-          <Typography>Capacity</Typography>
+          <Typography>{t("popup.capacity", "Capacity")}</Typography>
 
           <div style={{ position: "relative" }}>
             <TextField

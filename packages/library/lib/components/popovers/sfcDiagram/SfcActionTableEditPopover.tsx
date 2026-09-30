@@ -9,10 +9,12 @@ import { PopoverProps } from "../types"
 import { LAYOUT } from "@/constants"
 import { DeleteIcon } from "@/components/Icon"
 import { useReactFlow } from "@xyflow/react"
+import { useTranslation } from "@/i18n"
 
 export const SfcActionTableEditPopover: React.FC<PopoverProps> = ({
   elementId,
 }) => {
+  const { t } = useTranslation()
   const { updateNodeData } = useReactFlow()
   const { nodes, setNodes } = useDiagramStore(
     useShallow((state) => ({ setNodes: state.setNodes, nodes: state.nodes }))
@@ -131,7 +133,7 @@ export const SfcActionTableEditPopover: React.FC<PopoverProps> = ({
   return (
     <Box sx={{ display: "flex", flexDirection: "column", gap: 0.5 }}>
       <NodeStyleEditor
-        title="Actions"
+        title={t("popup.sfc.actions", "Actions")}
         nodeData={nodeData}
         handleDataFieldUpdate={handleDataFieldUpdate}
         showNameInputChange={false}
@@ -164,7 +166,7 @@ export const SfcActionTableEditPopover: React.FC<PopoverProps> = ({
                 key={`${row.id}-identifier`}
                 size="small"
                 value={row.identifier}
-                placeholder="ID"
+                placeholder={t("popup.sfc.idPlaceholder", "ID")}
                 onChange={(e: ChangeEvent<HTMLInputElement>) =>
                   handleRowChange(row.id, "identifier", e.target.value)
                 }
@@ -173,7 +175,7 @@ export const SfcActionTableEditPopover: React.FC<PopoverProps> = ({
                 }}
               />,
             ]}
-            inputPlaceholder="Description"
+            inputPlaceholder={t("stylePane.description", "Description")}
           />
         </Box>
       ))}
@@ -187,7 +189,7 @@ export const SfcActionTableEditPopover: React.FC<PopoverProps> = ({
       >
         <TextField
           size="small"
-          placeholder="ID"
+          placeholder={t("popup.sfc.idPlaceholder", "ID")}
           value={newIdentifier}
           onChange={(e: ChangeEvent<HTMLInputElement>) =>
             setNewIdentifier(e.target.value)
@@ -210,7 +212,7 @@ export const SfcActionTableEditPopover: React.FC<PopoverProps> = ({
         <TextField
           size="small"
           fullWidth
-          placeholder="+ Add action name"
+          placeholder={t("popup.sfc.addActionName", "+ Add action name")}
           value={newName}
           onChange={(e: ChangeEvent<HTMLInputElement>) =>
             setNewName(e.target.value)

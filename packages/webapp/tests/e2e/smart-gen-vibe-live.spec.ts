@@ -1,23 +1,22 @@
 import { test, expect } from '@playwright/test';
 
 /**
- * FULL vibe E2E, no mocks: describe an app in plain words so the agent MODELS a
- * class diagram, then SPEC-DRIVEN GENERATE an app from it on the keyless FREE
- * tier — every step driven through the real UI + real backend + real agent.
+ * Full E2E, no mocks: describe an app in plain words so the agent models a
+ * class diagram, then the Spec-Driven Agent generates an app from it on the
+ * keyless free tier — real UI, real backend, real agent.
  *
- * This is the "describe an app -> get an app, with no API key" demo path, end to
- * end. It is SLOW and non-deterministic (two real agent round-trips plus a
- * ~2-5 min free generation on a shared GPU) and depends on the deployed stack,
- * so it is a GATED live smoke — never part of normal CI. Run it explicitly:
+ * Slow and non-deterministic (two agent round-trips plus a multi-minute free
+ * generation), so it is a gated live smoke, never part of normal CI:
  *
  *   RUN_LIVE_E2E=1 npx playwright test smart-gen-vibe-live --project=chromium
  *
- * Targets the deployed stack by default; override with LIVE_E2E_BASE_URL.
+ * Targets the local dev server by default; set LIVE_E2E_BASE_URL to run it
+ * against a deployment.
  */
 
-const BASE = process.env.LIVE_E2E_BASE_URL || 'https://experimental.besser-pearl.org';
+const BASE = process.env.LIVE_E2E_BASE_URL || 'http://localhost:8080';
 
-test.describe('live: vibe-model then spec-driven free generation', () => {
+test.describe('live: model from a description, then spec-driven free generation', () => {
   test.skip(!process.env.RUN_LIVE_E2E, 'live e2e — set RUN_LIVE_E2E=1 to run');
   test.use({ baseURL: BASE });
 
@@ -45,12 +44,12 @@ test.describe('live: vibe-model then spec-driven free generation', () => {
     await page.waitForTimeout(1500);
     const nameField = page.getByLabel(/name/i);
     if (await nameField.isVisible().catch(() => false)) {
-      await nameField.fill('E2E_Vibe').catch(() => {});
+      await nameField.fill('E2E_Live').catch(() => {});
       await page.getByRole('button', { name: /^create|next|continue/i }).first().click().catch(() => {});
       await page.waitForTimeout(2000);
     }
 
-    // ---- 1) VIBE MODEL — dual path -----------------------------------
+    // ---- 1) model from a description — dual path ---------------------
     // The fresh-context entry is inconsistent: sometimes a "Describe Your App"
     // wizard, sometimes straight to an empty editor. Model the app via whichever
     // is present — both hand the description to the agent, which draws the
@@ -71,12 +70,12 @@ test.describe('live: vibe-model then spec-driven free generation', () => {
     }
 
     // The agent draws the class diagram on the canvas; a class renders as SVG
-    // text (verified). Wait for it to appear.
+    // text. Wait for it to appear.
     await expect(page.locator('svg text').getByText('Book', { exact: false }).first()).toBeVisible({
       timeout: 180_000,
     });
 
-    // ---- 2) VIBE GENERATE: spec-driven, keyless free tier -----------
+    // ---- 2) generate: spec-driven, keyless free tier ----------------
     const composer = page.locator('textarea[aria-label="Write your prompt here"]:visible').first();
     await expect(composer).toBeVisible({ timeout: 15_000 });
     const send = async (text: string) => {
@@ -95,8 +94,8 @@ test.describe('live: vibe-model then spec-driven free generation', () => {
       await expect(runBtn).toBeVisible({ timeout: 60_000 });
     }
 
-    // Free-tier default: clicking Run starts the generation DIRECTLY on qwen —
-    // there is no BYOK popup / "use the free model" button anymore.
+    // Free-tier default: clicking Run starts the generation directly, with no
+    // BYOK popup.
     await runBtn.click().catch(() => {});
 
     // ---- 3) the free run starts on qwen and FINISHES ---------------

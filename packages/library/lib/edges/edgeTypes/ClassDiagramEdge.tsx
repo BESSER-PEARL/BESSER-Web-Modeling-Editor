@@ -1,4 +1,5 @@
 import { BaseEdge } from "@xyflow/react"
+import { usePopoverAnchor } from "@/hooks/usePopoverAnchor"
 import {
   BaseEdgeProps,
   EdgeEndpointMarkers,
@@ -10,12 +11,17 @@ import { useStepPathEdge } from "@/hooks/useStepPathEdge"
 import { useDiagramStore, usePopoverStore } from "@/store/context"
 import { useShallow } from "zustand/shallow"
 import { useToolbar } from "@/hooks"
-import { useMemo, useRef } from "react"
-import { EDGES } from "@/constants"
+import { useMemo } from "react"
+import { EDGES, MARKER_CONFIGS } from "@/constants"
 import { FeedbackDropzone } from "@/components/wrapper/FeedbackDropzone"
 import { AssessmentSelectableWrapper } from "@/components"
 import { getCustomColorsFromDataForEdge } from "@/utils"
-import { EdgeInlineMarkers } from "@/components/svgs/edges/InlineMarker"
+import {
+  EdgeInlineMarkers,
+  InlineMarker,
+  getPathEndInfo,
+} from "@/components/svgs/edges/InlineMarker"
+import { getAssociationMarkers } from "@/utils/uml-association-navigability"
 import { useSettingsStore } from "@/store/settingsStore"
 import { useEdgeLinkingStore } from "@/store/edgeLinkingStore"
 import {
@@ -68,7 +74,8 @@ export const ClassDiagramEdge = ({
   data,
   selected,
 }: BaseEdgeProps) => {
-  const anchorRef = useRef<SVGSVGElement | null>(null)
+  const [anchorEl, anchorRef] =
+    usePopoverAnchor<SVGForeignObjectElement>()
   const { handleDelete } = useToolbar({ id })
 
   const config = useEdgeConfig(
@@ -196,7 +203,8 @@ export const ClassDiagramEdge = ({
 
   // ----- Association-class link overlay (edge-anchored ClassLinkRel) -----
 
-  const linkAnchorRef = useRef<SVGSVGElement | null>(null)
+  const [linkAnchorEl, linkAnchorRef] =
+    usePopoverAnchor<SVGForeignObjectElement>()
 
   const linkRender = useMemo(() => {
     if (!linkInfo.linkId) return null
@@ -276,11 +284,41 @@ export const ClassDiagramEdge = ({
   ]
   const showsERDiamond =
     classNotation === "ER" && ER_DIAMOND_TYPES.includes(type as string)
-  const effectiveMarkerStart = showsERDiamond ? undefined : markerStart
-  const effectiveMarkerEnd = showsERDiamond ? undefined : markerEnd
+  // Plain associations, aggregations and compositions draw their arrows
+  // from each end's navigability (an open arrowhead at the only navigable
+  // end; none when both are navigable); the aggregation / composition
+  // diamond stays on the target (whole) end. Other types keep their
+  // type-based marker. Mirrors v3 `getMarkersForUMLAssociation`.
+  const associationMarkers = getAssociationMarkers({ type, data })
+  const effectiveMarkerStart = showsERDiamond
+    ? undefined
+    : associationMarkers
+      ? associationMarkers.markerStart
+      : markerStart
+  const effectiveMarkerEnd = showsERDiamond
+    ? undefined
+    : associationMarkers
+      ? associationMarkers.markerEnd
+      : markerEnd
+  const showArrowBeforeEndDiamond =
+    !showsERDiamond && !!associationMarkers?.arrowBeforeEndMarker
+  const arrowBeforeEndDiamond = useMemo(() => {
+    if (!showArrowBeforeEndDiamond) return null
+    const endInfo = getPathEndInfo(currentPath)
+    if (!endInfo) return null
+    const rhombus = MARKER_CONFIGS["white-rhombus"]
+    const offset = rhombus.size * rhombus.widthFactor
+    return {
+      endPoint: {
+        x: endInfo.endPoint.x - offset * Math.cos(endInfo.direction),
+        y: endInfo.endPoint.y - offset * Math.sin(endInfo.direction),
+      },
+      direction: endInfo.direction,
+    }
+  }, [showArrowBeforeEndDiamond, currentPath])
   const markerKey = `${id}-${effectiveMarkerStart ?? "none"}-${
     effectiveMarkerEnd ?? "none"
-  }-${showsERDiamond ? "er" : "uml"}`
+  }-${showArrowBeforeEndDiamond ? "arrow" : ""}-${showsERDiamond ? "er" : "uml"}`
   const erDiamondFill =
     (data as { strokeColor?: string } | undefined)?.strokeColor &&
     typeof (data as { fillColor?: string } | undefined)?.fillColor === "string"
@@ -319,6 +357,16 @@ export const ClassDiagramEdge = ({
               markerStart={effectiveMarkerStart}
               strokeColor={strokeColor}
             />
+          )}
+          {!isReconnectingRef.current && arrowBeforeEndDiamond && (
+            <g pointerEvents="none" data-testid="navigability-arrow-before-diamond">
+              <InlineMarker
+                endPoint={arrowBeforeEndDiamond.endPoint}
+                direction={arrowBeforeEndDiamond.direction}
+                markerId="black-arrow"
+                strokeColor={strokeColor}
+              />
+            </g>
           )}
 
           <path
@@ -442,6 +490,7 @@ export const ClassDiagramEdge = ({
           isDiagramModifiable={isDiagramModifiable}
           assessments={assessments}
           anchorRef={anchorRef}
+          anchorEl={anchorEl}
           handleDelete={handleDelete}
           setPopOverElementId={setPopOverElementId}
           type={type}
@@ -485,6 +534,7 @@ export const ClassDiagramEdge = ({
               isDiagramModifiable={isDiagramModifiable}
               assessments={assessments}
               anchorRef={linkAnchorRef}
+              anchorEl={linkAnchorEl}
               handleDelete={handleLinkDelete}
               setPopOverElementId={setPopOverElementId}
               type="ClassLinkRel"

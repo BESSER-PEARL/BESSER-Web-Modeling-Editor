@@ -37,7 +37,8 @@
       "data": {
         "name": "Hungry for pizza",
         "eventType": "default"
-      }
+      },
+      "parentId": "c-pool"
     },
     {
       "id": "c-select",
@@ -56,7 +57,8 @@
         "name": "Select a pizza",
         "taskType": "user",
         "marker": "none"
-      }
+      },
+      "parentId": "c-pool"
     },
     {
       "id": "c-order",
@@ -75,7 +77,8 @@
         "name": "Order a pizza",
         "taskType": "send",
         "marker": "none"
-      }
+      },
+      "parentId": "c-pool"
     },
     {
       "id": "c-gw",
@@ -93,7 +96,8 @@
       "data": {
         "name": "",
         "gatewayType": "event-based"
-      }
+      },
+      "parentId": "c-pool"
     },
     {
       "id": "c-timer",
@@ -111,7 +115,8 @@
       "data": {
         "name": "60 min",
         "eventType": "timer-catch"
-      }
+      },
+      "parentId": "c-pool"
     },
     {
       "id": "c-ask",
@@ -130,7 +135,8 @@
         "name": "Ask for pizza",
         "taskType": "user",
         "marker": "none"
-      }
+      },
+      "parentId": "c-pool"
     },
     {
       "id": "c-msg",
@@ -148,7 +154,8 @@
       "data": {
         "name": "Pizza received",
         "eventType": "message-catch"
-      }
+      },
+      "parentId": "c-pool"
     },
     {
       "id": "c-pay",
@@ -167,7 +174,8 @@
         "name": "Pay for pizza",
         "taskType": "user",
         "marker": "none"
-      }
+      },
+      "parentId": "c-pool"
     },
     {
       "id": "c-eat",
@@ -186,7 +194,8 @@
         "name": "Eat the pizza",
         "taskType": "user",
         "marker": "none"
-      }
+      },
+      "parentId": "c-pool"
     },
     {
       "id": "c-end",
@@ -204,7 +213,8 @@
       "data": {
         "name": "Hunger satisfied",
         "eventType": "default"
-      }
+      },
+      "parentId": "c-pool"
     },
     {
       "id": "v-pool",
@@ -281,8 +291,8 @@
       "id": "v-start",
       "type": "bpmnStartEvent",
       "position": {
-        "x": 355,
-        "y": 350
+        "x": 315,
+        "y": 50
       },
       "width": 40,
       "height": 40,
@@ -293,14 +303,15 @@
       "data": {
         "name": "Order received",
         "eventType": "message"
-      }
+      },
+      "parentId": "v-lane-clerk"
     },
     {
       "id": "v-pgw",
       "type": "bpmnGateway",
       "position": {
-        "x": 450,
-        "y": 350
+        "x": 410,
+        "y": 50
       },
       "width": 40,
       "height": 40,
@@ -311,14 +322,15 @@
       "data": {
         "name": "",
         "gatewayType": "parallel"
-      }
+      },
+      "parentId": "v-lane-clerk"
     },
     {
       "id": "v-askmsg",
       "type": "bpmnIntermediateEvent",
       "position": {
-        "x": 560,
-        "y": 350
+        "x": 520,
+        "y": 50
       },
       "width": 40,
       "height": 40,
@@ -329,14 +341,15 @@
       "data": {
         "name": "Where is my pizza?",
         "eventType": "message-catch"
-      }
+      },
+      "parentId": "v-lane-clerk"
     },
     {
       "id": "v-calm",
       "type": "bpmnTask",
       "position": {
-        "x": 650,
-        "y": 340
+        "x": 610,
+        "y": 40
       },
       "width": 110,
       "height": 60,
@@ -348,14 +361,15 @@
         "name": "Calm customer",
         "taskType": "user",
         "marker": "none"
-      }
+      },
+      "parentId": "v-lane-clerk"
     },
     {
       "id": "v-bake",
       "type": "bpmnTask",
       "position": {
-        "x": 520,
-        "y": 465
+        "x": 480,
+        "y": 35
       },
       "width": 110,
       "height": 60,
@@ -367,14 +381,15 @@
         "name": "Bake the pizza",
         "taskType": "user",
         "marker": "none"
-      }
+      },
+      "parentId": "v-lane-chef"
     },
     {
       "id": "v-deliver",
       "type": "bpmnTask",
       "position": {
-        "x": 760,
-        "y": 595
+        "x": 720,
+        "y": 35
       },
       "width": 110,
       "height": 60,
@@ -386,14 +401,15 @@
         "name": "Deliver the pizza",
         "taskType": "user",
         "marker": "none"
-      }
+      },
+      "parentId": "v-lane-delivery"
     },
     {
       "id": "v-receive",
       "type": "bpmnTask",
       "position": {
-        "x": 900,
-        "y": 595
+        "x": 860,
+        "y": 35
       },
       "width": 110,
       "height": 60,
@@ -405,14 +421,15 @@
         "name": "Receive payment",
         "taskType": "user",
         "marker": "none"
-      }
+      },
+      "parentId": "v-lane-delivery"
     },
     {
       "id": "v-end",
       "type": "bpmnEndEvent",
       "position": {
-        "x": 1060,
-        "y": 605
+        "x": 1020,
+        "y": 45
       },
       "width": 40,
       "height": 40,
@@ -423,7 +440,8 @@
       "data": {
         "name": "Order complete",
         "eventType": "default"
-      }
+      },
+      "parentId": "v-lane-delivery"
     }
   ],
   "edges": [

@@ -10,8 +10,10 @@ import { DividerLine } from "./ui/DividerLine"
 import { useMetadataStore } from "@/store/context"
 import { useSettingsStore } from "@/store/settingsStore"
 import { useShallow } from "zustand/shallow"
-import { DraggableGhost } from "./DraggableGhost"
+import { DraggableGhost, resolvePaletteDefaultData } from "./DraggableGhost"
+import { useTranslation } from "@/i18n"
 import { BesserView } from "@/typings"
+import { UMLDiagramType } from "@/types"
 import { useResizableWidth } from "@/hooks/useResizableWidth"
 
 /* ========================================================================
@@ -31,6 +33,7 @@ export const SIDEBAR_MAX_WIDTH = 1000
 export const SIDEBAR_DEFAULT_WIDTH = 180
 
 export const Sidebar = () => {
+  const { t, locale } = useTranslation()
   const { diagramType, view, setView, availableViews } = useMetadataStore(
     useShallow((state) => ({
       diagramType: state.diagramType,
@@ -44,12 +47,18 @@ export const Sidebar = () => {
   // `registerDynamicPaletteProvider` in `constants.ts`) recompose live
   // when "Show Instanced Objects" / icon view are toggled. The values
   // are not read here; the subscription exists purely to re-render.
-  useSettingsStore(
+  const { showIconView, updateSetting } = useSettingsStore(
     useShallow((state) => ({
       showInstancedObjects: state.showInstancedObjects,
       showIconView: state.showIconView,
+      updateSetting: state.updateSetting,
     }))
   )
+  // v3 parity (`sidebar-component.tsx`): the ObjectDiagram palette shows a
+  // "Display Object Diagram in Icon Mode" checkbox (not for UserDiagram,
+  // which is always icon view). It writes through `settingsService`, so
+  // the webapp's Project Settings toggle and this one stay in sync.
+  const showIconModeToggle = diagramType === UMLDiagramType.ObjectDiagram
   const showInteractiveSelectionView =
     availableViews.includes(BesserView.Highlight) ||
     view === BesserView.Highlight
@@ -150,7 +159,7 @@ export const Sidebar = () => {
                 fontWeight: 600,
               }}
             >
-              Model
+              {t("views.model", "Model")}
             </button>
             <button
               type="button"
@@ -171,7 +180,7 @@ export const Sidebar = () => {
                 fontWeight: 600,
               }}
             >
-              Select Elements
+              {t("views.selectElements", "Select Elements")}
             </button>
           </div>
         )}
@@ -185,8 +194,37 @@ export const Sidebar = () => {
               color: "var(--besser-primary-contrast, #000000)",
             }}
           >
-            Click nodes or relationships to toggle whether they are interactive.
+            {t(
+              "views.highlightHint",
+              "Click nodes or relationships to toggle whether they are interactive."
+            )}
           </div>
+        )}
+
+        {view === BesserView.Modelling && showIconModeToggle && (
+          <label
+            htmlFor="besser-toggle-icon-mode"
+            style={{
+              width: "100%",
+              display: "flex",
+              alignItems: "flex-start",
+              gap: "6px",
+              fontSize: "12px",
+              lineHeight: 1.3,
+              cursor: "pointer",
+              color: "var(--besser-primary-contrast, #000000)",
+            }}
+          >
+            <input
+              id="besser-toggle-icon-mode"
+              type="checkbox"
+              checked={showIconView}
+              onChange={(event) =>
+                updateSetting("showIconView", event.target.checked)
+              }
+            />
+            {t("views.iconMode", "Display Object Diagram in Icon Mode")}
+          </label>
         )}
 
         {view === BesserView.Modelling &&
@@ -198,6 +236,7 @@ export const Sidebar = () => {
             const previewWidth = config.width * previewScale
             const previewHeight =
               (config.height + extraPreviewHeight) * previewScale
+            const previewData = resolvePaletteDefaultData(config, locale)
 
             return (
               <React.Fragment key={`${config.type}_${config.defaultData?.name}_${index}`}>
@@ -229,7 +268,9 @@ export const Sidebar = () => {
                         width: "100%",
                       }}
                     >
-                      {config.sectionLabel}
+                      {config.sectionLabelKey
+                        ? t(config.sectionLabelKey, config.sectionLabel)
+                        : config.sectionLabel}
                     </div>
                   </div>
                 )}
@@ -246,8 +287,8 @@ export const Sidebar = () => {
                     {React.createElement(config.svg, {
                       width: config.width,
                       height: config.height,
-                      ...config.defaultData,
-                      data: config.defaultData,
+                      ...previewData,
+                      data: previewData,
                       SIDEBAR_PREVIEW_SCALE: previewScale,
                       id: `sidebarElement_${index}`,
                     })}

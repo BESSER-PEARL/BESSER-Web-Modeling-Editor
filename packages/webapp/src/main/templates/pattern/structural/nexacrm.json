@@ -8,8 +8,8 @@
       "id": "ff2a298c-cd09-447f-b868-72d4aa1d34dc",
       "type": "class",
       "position": {
-        "x": 50,
-        "y": 690
+        "x": -780,
+        "y": -180
       },
       "width": 180,
       "height": 130,
@@ -56,8 +56,8 @@
       "id": "53490d70-1ecb-4595-89f0-a2309285454e",
       "type": "class",
       "position": {
-        "x": 940,
-        "y": 280
+        "x": 110,
+        "y": -590
       },
       "width": 250,
       "height": 250,
@@ -139,8 +139,8 @@
       "id": "e1022906-3e3c-448b-a5bf-c30f39a981ad",
       "type": "class",
       "position": {
-        "x": 200,
-        "y": 40
+        "x": -630,
+        "y": -830
       },
       "width": 160,
       "height": 260,
@@ -223,8 +223,8 @@
       "id": "226f6331-6731-4369-acf3-3d600da14d97",
       "type": "class",
       "position": {
-        "x": 380,
-        "y": 50
+        "x": -450,
+        "y": -820
       },
       "width": 160,
       "height": 170,
@@ -280,8 +280,8 @@
       "id": "00c036a4-454e-4449-9a9b-6b3f03969d49",
       "type": "class",
       "position": {
-        "x": 440,
-        "y": 1300
+        "x": -390,
+        "y": 430
       },
       "width": 340,
       "height": 340,
@@ -391,8 +391,8 @@
       "id": "aaddf56f-d3cb-4eab-8223-f08b85c10f1f",
       "type": "class",
       "position": {
-        "x": 560,
-        "y": 540
+        "x": -270,
+        "y": -330
       },
       "width": 340,
       "height": 460,
@@ -540,8 +540,8 @@
       "id": "ec988dfa-a549-477d-b8ef-66282b08817f",
       "type": "class",
       "position": {
-        "x": 570,
-        "y": 40
+        "x": -260,
+        "y": -830
       },
       "width": 160,
       "height": 140,
@@ -588,8 +588,8 @@
       "id": "9b3c4c9c-64b0-4937-98e5-bdddb729b882",
       "type": "class",
       "position": {
-        "x": 60,
-        "y": 950
+        "x": -770,
+        "y": 80
       },
       "width": 180,
       "height": 430,
@@ -725,8 +725,8 @@
       "id": "278327b9-3f33-4fcc-aa98-c144c0933a65",
       "type": "class",
       "position": {
-        "x": 1230,
-        "y": 1060
+        "x": 400,
+        "y": 190
       },
       "width": 180,
       "height": 310,
@@ -827,8 +827,8 @@
       "id": "e2ffed0e-86e2-4ef9-bb83-c7d2f87175a9",
       "type": "class",
       "position": {
-        "x": 40,
-        "y": 440
+        "x": -790,
+        "y": -430
       },
       "width": 200,
       "height": 190,
@@ -892,8 +892,8 @@
       "id": "5c23416e-3e81-4e62-a9f8-9702566b5f49",
       "type": "class",
       "position": {
-        "x": 1180,
-        "y": 60
+        "x": 350,
+        "y": -810
       },
       "width": 160,
       "height": 200,
@@ -958,8 +958,8 @@
       "id": "ef128c67-c532-4b67-b248-732b587445a7",
       "type": "class",
       "position": {
-        "x": 1100,
-        "y": 590
+        "x": 270,
+        "y": -280
       },
       "width": 190,
       "height": 190,
@@ -1023,8 +1023,8 @@
       "id": "9b5bec19-9213-42b3-8fc1-780a02dc0912",
       "type": "class",
       "position": {
-        "x": 770,
-        "y": 50
+        "x": -60,
+        "y": -820
       },
       "width": 160,
       "height": 230,
@@ -1098,8 +1098,8 @@
       "id": "393555d5-0f26-4dd8-a594-617199518fd0",
       "type": "class",
       "position": {
-        "x": 570,
-        "y": 200
+        "x": -260,
+        "y": -670
       },
       "width": 160,
       "height": 140,
@@ -1146,8 +1146,8 @@
       "id": "72d64804-891c-438b-bfed-6ecee0bfd085",
       "type": "class",
       "position": {
-        "x": 1470,
-        "y": 720
+        "x": 640,
+        "y": -150
       },
       "width": 180,
       "height": 220,
@@ -1221,8 +1221,8 @@
       "id": "2d584aa6-7ca2-4d21-8510-57f70750bfb4",
       "type": "class",
       "position": {
-        "x": 1640,
-        "y": 1160
+        "x": 810,
+        "y": 290
       },
       "width": 180,
       "height": 220,
@@ -1295,8 +1295,8 @@
       "id": "c24f8043-a8d8-4caa-b6ff-c4df741bc4fc",
       "type": "class",
       "position": {
-        "x": 970,
-        "y": 60
+        "x": 140,
+        "y": -810
       },
       "width": 170,
       "height": 110,
@@ -1334,8 +1334,8 @@
       "id": "fb02ddde-ec4d-4181-bc34-7cabad68eca1",
       "type": "class",
       "position": {
-        "x": 920,
-        "y": 1410
+        "x": 90,
+        "y": 540
       },
       "width": 220,
       "height": 250,
@@ -1430,9 +1430,20 @@
         "targetMultiplicity": "1..1",
         "sourceRole": "email_templates",
         "targetRole": "created_by",
+        "sourceNavigable": true,
+        "targetNavigable": true,
         "isManuallyLayouted": false,
         "messages": [],
-        "points": []
+        "points": [
+          {
+            "x": 810,
+            "y": 395
+          },
+          {
+            "x": 580,
+            "y": 395
+          }
+        ]
       }
     },
     {
@@ -1449,9 +1460,20 @@
         "targetMultiplicity": "0..1",
         "sourceRole": "contacts",
         "targetRole": "company",
+        "sourceNavigable": true,
+        "targetNavigable": true,
         "isManuallyLayouted": false,
         "messages": [],
-        "points": []
+        "points": [
+          {
+            "x": -270,
+            "y": 105
+          },
+          {
+            "x": -590,
+            "y": 105
+          }
+        ]
       }
     },
     {
@@ -1468,9 +1490,20 @@
         "targetMultiplicity": "0..1",
         "sourceRole": "tasks",
         "targetRole": "opportunity",
+        "sourceNavigable": true,
+        "targetNavigable": true,
         "isManuallyLayouted": false,
         "messages": [],
-        "points": []
+        "points": [
+          {
+            "x": 90,
+            "y": 655
+          },
+          {
+            "x": -50,
+            "y": 655
+          }
+        ]
       }
     },
     {
@@ -1487,9 +1520,24 @@
         "targetMultiplicity": "0..*",
         "sourceRole": "created_by",
         "targetRole": "created_contacts",
+        "sourceNavigable": true,
+        "targetNavigable": true,
         "isManuallyLayouted": false,
         "messages": [],
-        "points": []
+        "points": [
+          {
+            "x": 445,
+            "y": 190
+          },
+          {
+            "x": 445,
+            "y": 15
+          },
+          {
+            "x": 70,
+            "y": 15
+          }
+        ]
       }
     },
     {
@@ -1506,9 +1554,20 @@
         "targetMultiplicity": "1..1",
         "sourceRole": "owned_opportunities",
         "targetRole": "owner",
+        "sourceNavigable": true,
+        "targetNavigable": true,
         "isManuallyLayouted": false,
         "messages": [],
-        "points": []
+        "points": [
+          {
+            "x": -50,
+            "y": 465
+          },
+          {
+            "x": 400,
+            "y": 465
+          }
+        ]
       }
     },
     {
@@ -1525,9 +1584,20 @@
         "targetMultiplicity": "0..*",
         "sourceRole": "tagged_contacts",
         "targetRole": "tags",
+        "sourceNavigable": true,
+        "targetNavigable": true,
         "isManuallyLayouted": false,
         "messages": [],
-        "points": []
+        "points": [
+          {
+            "x": -270,
+            "y": -115
+          },
+          {
+            "x": -600,
+            "y": -115
+          }
+        ]
       }
     },
     {
@@ -1544,9 +1614,24 @@
         "targetMultiplicity": "0..*",
         "sourceRole": "template",
         "targetRole": "generated_emails",
+        "sourceNavigable": true,
+        "targetNavigable": true,
         "isManuallyLayouted": false,
         "messages": [],
-        "points": []
+        "points": [
+          {
+            "x": 945,
+            "y": 290
+          },
+          {
+            "x": 945,
+            "y": 15
+          },
+          {
+            "x": 820,
+            "y": 15
+          }
+        ]
       }
     },
     {
@@ -1563,9 +1648,28 @@
         "targetMultiplicity": "0..*",
         "sourceRole": "contact",
         "targetRole": "tasks",
+        "sourceNavigable": true,
+        "targetNavigable": true,
         "isManuallyLayouted": false,
         "messages": [],
-        "points": []
+        "points": [
+          {
+            "x": -15,
+            "y": 130
+          },
+          {
+            "x": -15,
+            "y": 335
+          },
+          {
+            "x": 200,
+            "y": 335
+          },
+          {
+            "x": 200,
+            "y": 540
+          }
+        ]
       }
     },
     {
@@ -1582,9 +1686,20 @@
         "targetMultiplicity": "1..1",
         "sourceRole": "score_history",
         "targetRole": "contact",
+        "sourceNavigable": true,
+        "targetNavigable": true,
         "isManuallyLayouted": false,
         "messages": [],
-        "points": []
+        "points": [
+          {
+            "x": -590,
+            "y": -285
+          },
+          {
+            "x": -270,
+            "y": -285
+          }
+        ]
       }
     },
     {
@@ -1601,9 +1716,24 @@
         "targetMultiplicity": "0..*",
         "sourceRole": "company",
         "targetRole": "opportunities",
+        "sourceNavigable": true,
+        "targetNavigable": true,
         "isManuallyLayouted": false,
         "messages": [],
-        "points": []
+        "points": [
+          {
+            "x": -680,
+            "y": 510
+          },
+          {
+            "x": -680,
+            "y": 685
+          },
+          {
+            "x": -390,
+            "y": 685
+          }
+        ]
       }
     },
     {
@@ -1620,9 +1750,24 @@
         "targetMultiplicity": "1..1",
         "sourceRole": "generated_emails",
         "targetRole": "created_by",
+        "sourceNavigable": true,
+        "targetNavigable": true,
         "isManuallyLayouted": false,
         "messages": [],
-        "points": []
+        "points": [
+          {
+            "x": 685,
+            "y": 70
+          },
+          {
+            "x": 685,
+            "y": 267.5
+          },
+          {
+            "x": 580,
+            "y": 267.5
+          }
+        ]
       }
     },
     {
@@ -1639,9 +1784,24 @@
         "targetMultiplicity": "1..1",
         "sourceRole": "interactions",
         "targetRole": "performed_by",
+        "sourceNavigable": true,
+        "targetNavigable": true,
         "isManuallyLayouted": false,
         "messages": [],
-        "points": []
+        "points": [
+          {
+            "x": 360,
+            "y": -465
+          },
+          {
+            "x": 535,
+            "y": -465
+          },
+          {
+            "x": 535,
+            "y": 190
+          }
+        ]
       }
     },
     {
@@ -1658,9 +1818,24 @@
         "targetMultiplicity": "1..1",
         "sourceRole": "tasks",
         "targetRole": "assigned_to",
+        "sourceNavigable": true,
+        "targetNavigable": true,
         "isManuallyLayouted": false,
         "messages": [],
-        "points": []
+        "points": [
+          {
+            "x": 310,
+            "y": 665
+          },
+          {
+            "x": 490,
+            "y": 665
+          },
+          {
+            "x": 490,
+            "y": 500
+          }
+        ]
       }
     },
     {
@@ -1677,9 +1852,20 @@
         "targetMultiplicity": "0..*",
         "sourceRole": "contact",
         "targetRole": "enrichment_logs",
+        "sourceNavigable": true,
+        "targetNavigable": true,
         "isManuallyLayouted": false,
         "messages": [],
-        "points": []
+        "points": [
+          {
+            "x": 70,
+            "y": -185
+          },
+          {
+            "x": 270,
+            "y": -185
+          }
+        ]
       }
     },
     {
@@ -1696,9 +1882,20 @@
         "targetMultiplicity": "0..*",
         "sourceRole": "contacts",
         "targetRole": "opportunities",
+        "sourceNavigable": true,
+        "targetNavigable": true,
         "isManuallyLayouted": false,
         "messages": [],
-        "points": []
+        "points": [
+          {
+            "x": -160,
+            "y": 130
+          },
+          {
+            "x": -160,
+            "y": 430
+          }
+        ]
       }
     },
     {
@@ -1715,9 +1912,20 @@
         "targetMultiplicity": "0..*",
         "sourceRole": "contact",
         "targetRole": "generated_emails",
+        "sourceNavigable": true,
+        "targetNavigable": true,
         "isManuallyLayouted": false,
         "messages": [],
-        "points": []
+        "points": [
+          {
+            "x": 70,
+            "y": -40
+          },
+          {
+            "x": 640,
+            "y": -40
+          }
+        ]
       }
     },
     {
@@ -1734,9 +1942,20 @@
         "targetMultiplicity": "1..1",
         "sourceRole": "created_companies",
         "targetRole": "created_by",
+        "sourceNavigable": true,
+        "targetNavigable": true,
         "isManuallyLayouted": false,
         "messages": [],
-        "points": []
+        "points": [
+          {
+            "x": -590,
+            "y": 345
+          },
+          {
+            "x": 400,
+            "y": 345
+          }
+        ]
       }
     },
     {
@@ -1753,9 +1972,24 @@
         "targetMultiplicity": "1..1",
         "sourceRole": "interactions",
         "targetRole": "contact",
+        "sourceNavigable": true,
+        "targetNavigable": true,
         "isManuallyLayouted": false,
         "messages": [],
-        "points": []
+        "points": [
+          {
+            "x": 110,
+            "y": -465
+          },
+          {
+            "x": -100,
+            "y": -465
+          },
+          {
+            "x": -100,
+            "y": -330
+          }
+        ]
       }
     },
     {
@@ -1772,9 +2006,20 @@
         "targetMultiplicity": "0..*",
         "sourceRole": "tagged_companies",
         "targetRole": "tags",
+        "sourceNavigable": true,
+        "targetNavigable": true,
         "isManuallyLayouted": false,
         "messages": [],
-        "points": []
+        "points": [
+          {
+            "x": -685,
+            "y": 80
+          },
+          {
+            "x": -685,
+            "y": -50
+          }
+        ]
       }
     }
   ],

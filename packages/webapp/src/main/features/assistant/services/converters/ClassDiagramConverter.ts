@@ -26,7 +26,9 @@ type ClassifierMemberRow = {
   isOptional?: boolean;
   code?: string;
   implementationType?: string;
+  isExternalId?: boolean;
 };
+import { applyAssistantRelationshipType } from '../shared/relationshipMapping';
 
 export class ClassDiagramConverter implements DiagramConverter {
   private positionGenerator = new PositionGenerator();
@@ -76,6 +78,13 @@ export class ClassDiagramConverter implements DiagramConverter {
     const nodes: BesserNode[] = model.nodes;
     const edges: BesserEdge[] = model.edges;
     const classIdMap: Record<string, string> = {};
+    const attachedClasses = new Set<string>();
+    // null = plain class; 'abstract' / 'enumeration' / 'interface' otherwise.
+    const stereotypeOf = (nodeId: string): string | null => {
+      const node = nodes.find((n) => n.id === nodeId);
+      const stereotype = (node?.data as { stereotype?: string } | undefined)?.stereotype;
+      return stereotype ? stereotype.toLowerCase() : null;
+    };
 
     // Collect all class/enum names so attribute types can reference them
     const allClassNames = new Set<string>();
@@ -92,17 +101,31 @@ export class ClassDiagramConverter implements DiagramConverter {
     systemSpec.relationships?.forEach((rel: any) => {
       const sourceId = classIdMap[rel.sourceClass || rel.source];
       const targetId = classIdMap[rel.targetClass || rel.target];
+      const associationClassId = classIdMap[rel.associationClass];
+      if (rel.associationClass != null) {
+        // Do not silently downgrade an invalid attributed link to a plain
+        // association: that would discard per-link fields in generated apps.
+        if ((rel.type || 'Association').toLowerCase() !== 'association'
+            || !sourceId || !targetId || !associationClassId
+            || stereotypeOf(sourceId) === 'enumeration'
+            || stereotypeOf(targetId) === 'enumeration'
+            || stereotypeOf(associationClassId) !== null
+            || associationClassId === sourceId || associationClassId === targetId
+            || attachedClasses.has(associationClassId)) {
+          throw new Error(`Invalid association-class attachment: ${rel.associationClass}`);
+        }
+        attachedClasses.add(associationClassId);
+      }
 
       if (sourceId && targetId) {
         const relId = generateUniqueId('rel');
-        const relationshipType = this.getRelationshipType(rel.type);
         const relationshipName = rel.name || '';
 
-        edges.push({
+        const edge: BesserEdge = {
           id: relId,
           source: sourceId,
           target: targetId,
-          type: relationshipType as any,
+          type: 'ClassBidirectional' as any,
           sourceHandle: directionToHandle(rel.sourceDirection, 'Left'),
           targetHandle: directionToHandle(rel.targetDirection, 'Right'),
           data: {
@@ -110,19 +133,99 @@ export class ClassDiagramConverter implements DiagramConverter {
             ...(relationshipName && { name: relationshipName }),
             sourceMultiplicity: rel.sourceMultiplicity || '1',
             targetMultiplicity: rel.targetMultiplicity || '1',
-            sourceRole: '',
+            sourceRole: rel.sourceRole || '',
             targetRole: relationshipName,
             isManuallyLayouted: false,
             points: [
               { x: 100, y: 10 },
               { x: 0, y: 10 },
             ],
-          },
-        });
+          } as any,
+        };
+        // Type + explicit per-end navigability (data.sourceNavigable /
+        // data.targetNavigable); ClassUnidirectional is never produced.
+        applyAssistantRelationshipType(edge, rel.type);
+        edges.push(edge);
+
+        if (associationClassId) {
+          // Association class: the canonical v4 ClassLinkRel anchors its
+          // source on the association EDGE id (see the library's
+          // `utils/associationClassLink.ts`), its target on the class node.
+          edges.push({
+            id: generateUniqueId('classlink'),
+            source: relId,
+            sourceHandle: 'Center',
+            target: associationClassId,
+            targetHandle: 'Up',
+            type: 'ClassLinkRel' as any,
+            data: { points: [] } as any,
+          });
+        }
       }
     });
 
+    this.createConstraints(systemSpec, classIdMap, nodes, edges);
+
     return model;
+  }
+
+  /**
+   * Persist the agent's OCL invariants as `ClassOCLConstraint` nodes linked to
+   * their context class by a `ClassOCLLink` edge. Without this the agent's
+   * `constraints` reach the browser and are dropped, so business rules the
+   * user stated in prose ("guests must not exceed room capacity") never reach
+   * the generator.
+   *
+   * Invariants sharing a context are merged into one box (`data.expression`
+   * carries every `context ... inv ...` block), matching how the backend
+   * parses them and how the editor's own OCL boxes are authored.
+   */
+  private createConstraints(
+    systemSpec: any,
+    classIdMap: Record<string, string>,
+    nodes: BesserNode[],
+    edges: BesserEdge[],
+  ) {
+    const constraints = systemSpec?.constraints;
+    if (!Array.isArray(constraints) || constraints.length === 0) return;
+
+    const byContext = new Map<string, string[]>();
+    for (const c of constraints) {
+      const context = c?.context;
+      const expression = typeof c?.expression === 'string' ? c.expression.trim() : '';
+      if (!expression || !classIdMap[context]) continue;
+      if (!byContext.has(context)) byContext.set(context, []);
+      byContext.get(context)!.push(expression);
+    }
+
+    let index = 0;
+    for (const [context, expressions] of byContext) {
+      const nodeId = generateUniqueId('ocl');
+      nodes.push({
+        id: nodeId,
+        type: 'ClassOCLConstraint' as any,
+        position: { x: -700, y: index * 170 },
+        width: 640,
+        height: 130,
+        measured: { width: 640, height: 130 },
+        data: {
+          name: '',
+          expression: expressions.join('\n\n'),
+          description: '',
+        },
+      });
+
+      edges.push({
+        id: generateUniqueId('ocllink'),
+        source: nodeId,
+        target: classIdMap[context],
+        type: 'ClassOCLLink' as any,
+        sourceHandle: 'right',
+        targetHandle: 'left',
+        data: { points: [] } as any,
+      });
+      index++;
+    }
   }
 
   private createAttributeRows(spec: any, classNames?: Set<string>): ClassifierMemberRow[] {
@@ -141,6 +244,9 @@ export class ClassDiagramConverter implements DiagramConverter {
         row.defaultValue = attr.defaultValue;
       }
       if (attr.isOptional) row.isOptional = true;
+      // A natural identifier ("identified by its room number"): the agent
+      // marks it and the SQLAlchemy generator emits unique=True for it.
+      if (attr.isExternalId) row.isExternalId = true;
 
       rows.push(row);
     });
@@ -180,19 +286,5 @@ export class ClassDiagramConverter implements DiagramConverter {
     });
 
     return rows;
-  }
-
-  private getRelationshipType(type: string): string {
-    switch (type?.toLowerCase()) {
-      case 'inheritance':
-      case 'generalization':
-        return 'ClassInheritance';
-      case 'composition':
-        return 'ClassComposition';
-      case 'aggregation':
-        return 'ClassAggregation';
-      default:
-        return 'ClassBidirectional';
-    }
   }
 }

@@ -72,10 +72,16 @@ import { ReachabilityGraphEdgeEditPopover } from "./edgePopovers/ReachabilityGra
 import { BPMNDiagramEdgeEditPopover } from "./edgePopovers/BPMNDiagramEdgeEditPopover"
 import { PetriNetEdgeEditPopover } from "./edgePopovers/PetriNetEdgeEditPopover"
 import {
-  getInspector,
   registerInspector,
+  registerInspectorFallback,
   registerInspectors,
+  resolveElementInspector,
 } from "../inspectors/registry"
+import "../inspectors/nodeTypeInspectorAliases"
+import {
+  ElementGiveFeedbackPopover,
+  ElementSeeFeedbackPopover,
+} from "./ElementFeedbackPopovers"
 
 type NodePopoverType =
   | "class"
@@ -648,59 +654,54 @@ registerInspectors("edit", editPopovers)
 registerInspectors("feedbackGive", giveFeedbackPopovers)
 registerInspectors("feedbackSee", seeFeedbackPopovers)
 
-// BPMN camelCase node-type aliases.
-//
-// The floating `PopoverManager` resolves inspectors from the PascalCase
-// popover `type` prop each BPMN node passes (e.g. "BPMNTask"), so the
-// registrations above are enough for popover mode. The right-side
-// `PropertiesPanel` — the DEFAULT editing surface (`usePropertiesPanel`
-// defaults to `true`) — instead derives the lookup key from the React-Flow
-// node `type`, which for BPMN is camelCase ("bpmnTask", "bpmnPool", …).
-// Those keys are absent from the maps above, so `getInspector("bpmnTask",
-// "edit")` returned `null` and the BPMN properties panel never opened
-// (unlike `class`/`objectName`, whose node type equals their registry key).
-// Register the camelCase node types as aliases so BPMN nodes resolve their
-// inspector in BOTH surfaces.
-const bpmnNodeTypeToPopoverType: Record<string, keyof typeof editPopovers> = {
-  bpmnTask: "BPMNTask",
-  bpmnStartEvent: "BPMNStartEvent",
-  bpmnIntermediateEvent: "BPMNIntermediateEvent",
-  bpmnEndEvent: "BPMNEndEvent",
-  bpmnGateway: "BPMNGateway",
-  bpmnSubprocess: "BPMNSubprocess",
-  bpmnTransaction: "BPMNTransaction",
-  bpmnCallActivity: "BPMNCallActivity",
-  bpmnAnnotation: "BPMNAnnotation",
-  bpmnDataObject: "BPMNDataObject",
-  bpmnDataStore: "BPMNDataStore",
-  bpmnPool: "BPMNPool",
-  bpmnSwimlane: "BPMNSwimlane",
-  bpmnGroup: "BPMNGroup",
-}
+// camelCase node-type aliases (package, activity*, useCase*, component*,
+// deployment*, flowchart*, syntaxTree*, petriNet*, sfc*, bpmn*, …) live in
+// `inspectors/nodeTypeInspectorAliases.ts` (side-effect import above) so
+// the right-side `PropertiesPanel`, which looks up the React-Flow
+// `node.type`, resolves the same body as this popover.
 
-for (const [nodeType, popoverType] of Object.entries(
-  bpmnNodeTypeToPopoverType
-)) {
-  registerInspector(nodeType, "edit", editPopovers[popoverType])
-  registerInspector(nodeType, "feedbackGive", DefaultNodeGiveFeedbackPopover)
-  registerInspector(nodeType, "feedbackSee", DefaultNodeSeeFeedbackPopover)
-}
+// Assessment: every node and edge is assessable (v3 `assessable.tsx`
+// wrapped every element). Types without a dedicated feedback body —
+// State*, Agent*, NN*, UserModel*, ClassOCLConstraint, comment and their
+// edges — fall back to the generic node / edge feedback body.
+registerInspectorFallback("feedbackGive", ElementGiveFeedbackPopover)
+registerInspectorFallback("feedbackSee", ElementSeeFeedbackPopover)
+// UserModelName carries an attribute table like ObjectName (v3 reused
+// `UMLObjectName` for user nodes), so per-attribute scoring applies too.
+registerInspector("UserModelName", "feedbackGive", ObjectGiveFeedbackPopover)
+registerInspector("UserModelName", "feedbackSee", ObjectSeeFeedbackPopover)
 
 interface PopoverManagerProps {
   elementId: string
-  anchorEl: HTMLElement | SVGSVGElement | null
+  anchorEl: Element | null
   type: PopoverType
 }
 
-export const PopoverManager = ({
+/**
+ * Every node and edge mounts a PopoverManager. The gate subscribes only to
+ * "is THIS element's popover open", so a closed manager does not re-render
+ * on every diagram-store update (each drag frame) or viewport change (each
+ * pan / zoom frame) -- with N elements on the canvas that was N wasted
+ * renders per frame. The full manager mounts only while open.
+ */
+export const PopoverManager = (props: PopoverManagerProps) => {
+  const isOpen = usePopoverStore(
+    (state) => state.popoverElementId === props.elementId
+  )
+  if (!isOpen || !props.anchorEl) return null
+  return <OpenPopoverManager {...props} />
+}
+
+const OpenPopoverManager = ({
   elementId,
   anchorEl,
   type,
 }: PopoverManagerProps) => {
   const viewportCenter = useViewportCenter()
-  const { nodes } = useDiagramStore(
+  const { nodes, edges } = useDiagramStore(
     useShallow((state) => ({
       nodes: state.nodes,
+      edges: state.edges,
     }))
   )
 
@@ -757,12 +758,17 @@ export const PopoverManager = ({
 
   // Read from the shared inspector registry (seeded above with upstream
   // defaults; BESSER and other consumers extend it via `registerInspector`).
+  // The element's own React-Flow type wins (same key `PropertiesPanel`
+  // uses, so both surfaces open the same body); the `type` prop the node
+  // passed is the fallback.
+  const elementType =
+    node?.type ?? edges.find((edge) => edge.id === elementId)?.type
   if (isEditing) {
-    Component = getInspector(type, "edit")
+    Component = resolveElementInspector(elementType, "edit", type)
   } else if (isGivingFeedback) {
-    Component = getInspector(type, "feedbackGive")
+    Component = resolveElementInspector(elementType, "feedbackGive", type)
   } else if (isSeeingFeedback) {
-    Component = getInspector(type, "feedbackSee")
+    Component = resolveElementInspector(elementType, "feedbackSee", type)
   }
 
   return Component ? (

@@ -18,6 +18,8 @@
 
 import { useCallback, useContext, useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import { useTranslation } from 'react-i18next';
+
+import { settleProgressMessage } from './settleProgressMessage';
 import { toast } from 'react-toastify';
 import type { Message as ChatKitMessage } from '@/components/chatbot-kit/ui/chat-message';
 import { getPostHog } from '../../../shared/services/analytics/lazy-analytics';
@@ -319,7 +321,34 @@ export function useAssistantLogic({
   // Validate-and-repair loop state: one automatic repair attempt per user
   // message ('attempted'), and whether the modify currently being applied
   // IS that repair ('fixInFlight' — gates the success/failure follow-up).
-  const autoFixRef = useRef({ attempted: false, fixInFlight: false });
+  // `progressMessageId` is the id of the "fixing it now…" status line, so the
+  // outcome REPLACES it instead of being appended below it. Progress messages
+  // render with a live spinner and never get removed, so appending left a row
+  // spinning forever next to a second row saying the work had finished.
+  const autoFixRef = useRef<{
+    attempted: boolean;
+    fixInFlight: boolean;
+    progressMessageId: string | null;
+  }>({ attempted: false, fixInFlight: false, progressMessageId: null });
+
+  /**
+   * Settle the auto-fix status line: swap its text for the outcome and stop
+   * the spinner. Falls back to appending if the row is already gone (the user
+   * cleared the conversation mid-repair).
+   */
+  const settleAutoFixProgress = useCallback((text: string, isError = false) => {
+    const id = autoFixRef.current.progressMessageId;
+    autoFixRef.current.progressMessageId = null;
+    setMessages((prev) =>
+      settleProgressMessage(
+        prev,
+        id,
+        text,
+        (body, err) => toKitMessage('assistant', body, err ? { isError: true } : undefined),
+        isError,
+      ),
+    );
+  }, []);
 
   /* ---- singleton services ---- */
 
@@ -344,7 +373,10 @@ export function useAssistantLogic({
       new RateLimiterService({
         maxRequestsPerMinute: 15,
         maxRequestsPerHour: 250,
-        maxMessageLength: 1000,
+        // See the default in RateLimiterService: 1000 blocked a pasted stack
+        // trace or specification, which is a primary way people use the
+        // assistant.
+        maxMessageLength: 64000,
         cooldownPeriodMs: 1000,
       }),
   );
@@ -495,39 +527,30 @@ export function useAssistantLogic({
         if (errors.length === 0) {
           if (wasRepair) {
             autoFixRef.current.fixInFlight = false;
-            setMessages((prev) => [
-              ...prev,
-              toKitMessage('assistant', 'Validation passed — the reported issues are resolved.', {
-                isProgress: true,
-              }),
-            ]);
+            settleAutoFixProgress('Validation passed — the reported issues are resolved.');
           }
           return;
         }
         if (autoFixRef.current.attempted) {
           // This message's repair attempt is already spent — report and stop.
           autoFixRef.current.fixInFlight = false;
-          setMessages((prev) => [
-            ...prev,
-            toKitMessage(
-              'assistant',
-              `The diagram still has ${errors.length} validation issue(s):\n\n${errors
-                .map((e) => `• ${e}`)
-                .join('\n')}`,
-            ),
-          ]);
+          settleAutoFixProgress(
+            `The diagram still has ${errors.length} validation issue(s):\n\n${errors
+              .map((e) => `• ${e}`)
+              .join('\n')}`,
+            true,
+          );
           return;
         }
         autoFixRef.current.attempted = true;
         autoFixRef.current.fixInFlight = true;
-        setMessages((prev) => [
-          ...prev,
-          toKitMessage(
-            'assistant',
-            `Validation found ${errors.length} issue(s) — fixing ${errors.length === 1 ? 'it' : 'them'} now…`,
-            { isProgress: true },
-          ),
-        ]);
+        const progressMessage = toKitMessage(
+          'assistant',
+          `Validation found ${errors.length} issue(s) — fixing ${errors.length === 1 ? 'it' : 'them'} now…`,
+          { isProgress: true },
+        );
+        autoFixRef.current.progressMessageId = progressMessage.id;
+        setMessages((prev) => [...prev, progressMessage]);
         const context = buildWorkspaceContext();
         const repairRequest =
           '[auto-fix] The last change left the diagram with validation errors. ' +
@@ -546,7 +569,7 @@ export function useAssistantLogic({
     })();
   }
 
-  /* ---- Smart Generator trigger handler ---- */
+  /* ---- Spec-Driven Agent trigger handler ---- */
 
   // Pass stable React state setters directly — wrapping them in an
   // arrow function creates a new identity on every render, thrashing
@@ -558,19 +581,27 @@ export function useAssistantLogic({
     setMessages,
     setIsGenerating: streaming.setIsGenerating,
     onRunFinished: (result) => {
-      // Close the agent loop: report the smart-gen outcome back to the
+      // Close the agent loop: report the spec-driven run outcome back to the
       // modeling agent exactly like the deterministic trigger_generator
       // path does, so the agent can react ("the build failed because…")
       // instead of staying blind to the run's outcome.
       try {
         if (!assistantClient) return;
+        // Rules the run checked and found MISSING from the delivered code.
+        // Reported separately from blockerCount so the agent can never
+        // summarise such a run as an unqualified success.
+        const unenforced = result.verificationCounts?.shippedUnenforced ?? 0;
+        const unenforcedNote =
+          unenforced > 0
+            ? ` ${unenforced} rule${unenforced === 1 ? '' : 's'} the user asked for ${unenforced === 1 ? 'is' : 'are'} NOT enforced in the delivered code; the run card lists ${unenforced === 1 ? 'it' : 'them'} with the reason.`
+            : '';
         const messageText = result.ok
           ? result.incomplete
             ? typeof result.blockerCount === 'number' && result.blockerCount > 0
               ? // The run COMPLETED its loop but left blocker-severity
                 // issues — it did not "stop early", and the copy must
                 // not say it did.
-                `Spec-Driven Agent finished the build, but ${result.blockerCount} unresolved issue${result.blockerCount === 1 ? '' : 's'} may stop the app from running${result.incompleteReason ? ` (${result.incompleteReason})` : ''}. The user can resume the run to fix ${result.blockerCount === 1 ? 'it' : 'them'} or download the output as-is.`
+                `Spec-Driven Agent produced output, but ${result.blockerCount} unresolved implementation or verification issue${result.blockerCount === 1 ? '' : 's'} remain${result.blockerCount === 1 ? 's' : ''}${result.incompleteReason ? ` (${result.incompleteReason})` : ''}. The generated app is not verified complete. The user can resume the run to address ${result.blockerCount === 1 ? 'it' : 'them'} or download the output as-is.`
               : `Spec-Driven Agent produced output, but the run stopped early so it may be incomplete${result.incompleteReason ? `: ${result.incompleteReason}` : ''}.`
             : `Spec-Driven Agent finished successfully${result.fileName ? ` — ${result.fileName} is ready for the user to download` : ''}.`
           : result.errorCode === 'CANCELLED'
@@ -578,7 +609,7 @@ export function useAssistantLogic({
             : `Spec-Driven Agent failed (${result.errorCode ?? 'UNKNOWN'}).`;
         assistantClient.sendFrontendEvent('generator_result', {
           ok: result.ok,
-          message: messageText,
+          message: result.ok ? `${messageText}${unenforcedNote}` : messageText,
           metadata: {
             smart: true,
             runId: result.runId,
@@ -588,10 +619,11 @@ export function useAssistantLogic({
             incomplete: result.incomplete,
             incompleteReason: result.incompleteReason,
             blockerCount: result.blockerCount,
+            verification: result.verificationCounts,
           },
         });
       } catch (error) {
-        console.error('[useAssistantLogic] failed to report smart-gen result', error);
+        console.error('[useAssistantLogic] failed to report spec-driven result', error);
       }
     },
   });
@@ -873,7 +905,7 @@ export function useAssistantLogic({
     if (payload.action === 'trigger_smart_generator') {
       // Emitted by the modeling agent when the user's request is a
       // complex custom build ("full-stack FastAPI + JWT + Postgres").
-      // The smart generator runs server-side with the user's BYOK key
+      // The Spec-Driven Agent runs server-side with the user's BYOK key
       // and streams its progress back into this chat.
       const smartPayload: TriggerSpecDrivenPayload = {
         action: 'trigger_smart_generator',
@@ -920,7 +952,7 @@ export function useAssistantLogic({
         ]);
         return;
       }
-      // Fire-and-forget: a smart-gen run can take 5-15 minutes, and the
+      // Fire-and-forget: a spec-driven run can take 5-15 minutes, and the
       // action queue serialises handleAction calls. Awaiting here would
       // block every other incoming WebSocket action (modeling agent
       // stream chunks, injections, progress markers) for the duration.
@@ -1244,7 +1276,7 @@ export function useAssistantLogic({
       if (normalizedInput) setLastSentMessage(normalizedInput);
 
       // Every real user message grants a fresh automatic repair attempt.
-      autoFixRef.current = { attempted: false, fixInFlight: false };
+      autoFixRef.current = { attempted: false, fixInFlight: false, progressMessageId: null };
 
       // Clear any displayed quick-action buttons
       setMessageMeta((prev) => {
@@ -1380,7 +1412,7 @@ export function useAssistantLogic({
   };
 
   const stopGenerating = () => {
-    // Also abort any in-flight Smart Generator run so the SSE stream
+    // Also abort any in-flight spec-driven run so the SSE stream
     // disconnects and the user stops paying for LLM tokens.
     specDriven.abortActive();
     // Reliably tear down the whole "generating/processing" UI state so a
@@ -1396,7 +1428,7 @@ export function useAssistantLogic({
   };
 
   const clearConversation = () => {
-    // Abort any in-flight Smart Generator run first so the user's BYOK
+    // Abort any in-flight spec-driven run first so the user's BYOK
     // budget stops draining. NOTE: this only aborts a run owned by THIS
     // hook instance — a run owned by the other mounted surface keeps
     // streaming, and its next SSE event deliberately UPSERTS its card
@@ -1488,7 +1520,7 @@ export function useAssistantLogic({
 
       const markdown = buildIssueReportMarkdown(report);
 
-      // Latest Smart Generator run in this conversation, if any — its id,
+      // Latest spec-driven run in this conversation, if any — its id,
       // provider and model are the first things needed to triage a run issue.
       let runInfo: { runId?: string; provider?: string; model?: string } = {};
       for (let i = messages.length - 1; i >= 0; i--) {

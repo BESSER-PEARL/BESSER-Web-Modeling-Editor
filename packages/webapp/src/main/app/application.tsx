@@ -34,8 +34,16 @@ const AgentConfigurationPanel = React.lazy(() =>
   import('../features/agent-config/AgentConfigurationPanel').then((m) => ({ default: m.AgentConfigurationPanel })),
 );
 
+const AgentComponentsPanel = React.lazy(() =>
+  import('../features/agent-components/AgentComponentsPanel').then((m) => ({ default: m.AgentComponentsPanel })),
+);
+
 const ProjectSettingsPanel = React.lazy(() =>
   import('../features/project/ProjectSettingsPanel').then((m) => ({ default: m.ProjectSettingsPanel })),
+);
+
+const AgentSimulationPage = React.lazy(() =>
+  import('../features/agent-simulation/AgentSimulationPage').then((m) => ({ default: m.AgentSimulationPage })),
 );
 
 // Lazy-loaded dialogs (only fetched when opened)
@@ -151,7 +159,9 @@ function AppContentInner() {
           <Routes>
             <Route path="/" element={<EditorView />} />
             <Route path="/agent-config" element={<AgentConfigurationPanel />} />
+            <Route path="/agent-components" element={<AgentComponentsPanel />} />
             <Route path="/project-settings" element={<ProjectSettingsPanel />} />
+            <Route path="/agent-simulation" element={<AgentSimulationPage />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </Suspense>
@@ -173,8 +183,8 @@ function AppContentInner() {
       </Suspense>
 
       {/*
-       * Generator configuration dialogs (Django, SQL, SQLAlchemy, JSON Schema,
-       * Agent, Qiskit). All state lives in the useGeneratorExecution hook;
+       * Generator configuration dialogs (Django, Spring, SQL, SQLAlchemy,
+       * JSON Schema, Agent, Qiskit). All state lives in the useGeneratorExecution hook;
        * configState is the props bag that wires every field, change handler,
        * and execution callback into the presentational dialog component.
        */}
@@ -188,6 +198,12 @@ function AppContentInner() {
         djangoProjectName={configState.djangoProjectName}
         djangoAppName={configState.djangoAppName}
         useDocker={configState.useDocker}
+        // ── Spring config ────────────────────────────────────────────
+        springProjectName={configState.springProjectName}
+        springAppName={configState.springAppName}
+        springPackageName={configState.springPackageName}
+        springBootVersion={configState.springBootVersion}
+        springJavaVersion={configState.springJavaVersion}
         // ── SQL / SQLAlchemy / JSON Schema config ────────────────────
         sqlDialect={configState.sqlDialect}
         sqlAlchemyDbms={configState.sqlAlchemyDbms}
@@ -218,6 +234,11 @@ function AppContentInner() {
         onDjangoProjectNameChange={configState.onDjangoProjectNameChange}
         onDjangoAppNameChange={configState.onDjangoAppNameChange}
         onUseDockerChange={configState.onUseDockerChange}
+        onSpringProjectNameChange={configState.onSpringProjectNameChange}
+        onSpringAppNameChange={configState.onSpringAppNameChange}
+        onSpringPackageNameChange={configState.onSpringPackageNameChange}
+        onSpringBootVersionChange={configState.onSpringBootVersionChange}
+        onSpringJavaVersionChange={configState.onSpringJavaVersionChange}
         onSqlDialectChange={configState.onSqlDialectChange}
         onSqlAlchemyDbmsChange={configState.onSqlAlchemyDbmsChange}
         onJsonSchemaModeChange={configState.onJsonSchemaModeChange}
@@ -234,6 +255,7 @@ function AppContentInner() {
         // ── Execution callbacks (validate → generate → close dialog) ─
         onDjangoGenerate={configState.onDjangoGenerate}
         onDjangoDeploy={configState.onDjangoDeploy}
+        onSpringGenerate={configState.onSpringGenerate}
         onSqlGenerate={configState.onSqlGenerate}
         onSqlAlchemyGenerate={configState.onSqlAlchemyGenerate}
         onJsonSchemaGenerate={configState.onJsonSchemaGenerate}

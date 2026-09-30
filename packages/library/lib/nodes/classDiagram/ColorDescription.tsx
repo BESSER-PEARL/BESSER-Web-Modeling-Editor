@@ -4,7 +4,7 @@ import { ColorDescriptionSVG } from "@/components"
 import { NodeToolbar } from "@/components/toolbars/NodeToolbar"
 import { DefaultNodeProps } from "@/types"
 import { PopoverManager } from "@/components/popovers/PopoverManager"
-import { useRef } from "react"
+import { usePopoverAnchor } from "@/hooks/usePopoverAnchor"
 import { useDiagramModifiable } from "@/hooks/useDiagramModifiable"
 
 export function ColorDescription({
@@ -13,7 +13,7 @@ export function ColorDescription({
   data,
   id,
 }: NodeProps<Node<DefaultNodeProps>>) {
-  const anchorEl = useRef<HTMLDivElement | null>(null)
+  const [anchorEl, anchorRef] = usePopoverAnchor<HTMLDivElement>()
   const isDiagramModifiable = useDiagramModifiable()
   if (!width || !height) {
     return null
@@ -29,13 +29,13 @@ export function ColorDescription({
       <NodeToolbar elementId={id} />
       <NodeResizer minHeight={40} isVisible={isDiagramModifiable} />
 
-      <div ref={anchorEl}>
+      <div ref={anchorRef}>
         <ColorDescriptionSVG data={data} width={width} height={height} />
       </div>
       <PopoverManager
         elementId={id}
         type="default"
-        anchorEl={anchorEl.current}
+        anchorEl={anchorEl}
       />
     </DefaultNodeWrapper>
   )

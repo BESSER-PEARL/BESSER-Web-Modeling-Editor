@@ -176,6 +176,7 @@ export const CommonEdgeElements = ({
   isDiagramModifiable,
   assessments,
   anchorRef,
+  anchorEl,
   handleDelete,
   setPopOverElementId,
   type,
@@ -185,7 +186,10 @@ export const CommonEdgeElements = ({
   pathMiddlePosition: IPoint
   isDiagramModifiable: boolean
   assessments: Record<string, Assessment>
-  anchorRef: React.RefObject<SVGSVGElement>
+  /** Callback ref for the toolbar anchor (see `usePopoverAnchor`). */
+  anchorRef: React.Ref<SVGForeignObjectElement>
+  /** The live anchor element the popover opens against. */
+  anchorEl: Element | null
   handleDelete: () => void
   setPopOverElementId: (id: string) => void
   type: string
@@ -216,7 +220,7 @@ export const CommonEdgeElements = ({
 
       <PopoverManager
         elementId={id}
-        anchorEl={anchorRef.current}
+        anchorEl={anchorEl}
         type={type as DiagramEdgeType}
       />
     </>

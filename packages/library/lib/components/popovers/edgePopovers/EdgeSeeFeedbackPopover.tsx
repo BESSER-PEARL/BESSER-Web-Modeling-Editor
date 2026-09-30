@@ -3,11 +3,13 @@ import { useShallow } from "zustand/shallow"
 import { PopoverProps } from "../types"
 import { SeeFeedbackAssessmentBox } from "../SeeFeedbackAssessmentBox"
 import { useGoToNextAssessment } from "@/hooks"
+import { useTranslation } from "@/i18n"
 import Button from "@mui/material/Button"
 
 export const EdgeSeeFeedbackPopover = ({ elementId }: PopoverProps) => {
   const edges = useDiagramStore(useShallow((state) => state.edges))
   const handleGoToNextAssessment = useGoToNextAssessment(elementId)
+  const { t } = useTranslation()
 
   const edge = edges.find((edge) => edge.id === elementId)
   if (!edge) return null
@@ -20,7 +22,7 @@ export const EdgeSeeFeedbackPopover = ({ elementId }: PopoverProps) => {
         type={edge.type ?? ""}
       />
       <Button variant="outlined" onClick={handleGoToNextAssessment}>
-        Next Assessment
+        {t("assessment.nextAssessment", "Next Assessment")}
       </Button>
     </>
   )

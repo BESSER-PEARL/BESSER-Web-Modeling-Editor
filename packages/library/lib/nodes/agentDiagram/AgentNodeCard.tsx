@@ -1,4 +1,5 @@
 import React from "react"
+import { useTranslation } from "@/i18n"
 
 /**
  * `AgentNodeCard` — the shared HTML card shell for AgentDiagram nodes AND
@@ -64,6 +65,7 @@ export function AgentNodeCard({
   initial,
   children,
 }: AgentNodeCardProps) {
+  const { t } = useTranslation()
   const surfaceColor = surface || "var(--besser-background, #ffffff)"
   const title = textColor || "var(--besser-primary-contrast, #0f172a)"
   const hasBody = children != null
@@ -171,7 +173,7 @@ export function AgentNodeCard({
                   whiteSpace: "nowrap",
                 }}
               >
-                initial
+                {t("packages.AgentDiagram.card.initial", "initial")}
               </span>
             ) : null}
             {headerRight}

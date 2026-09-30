@@ -4,6 +4,7 @@ import { BACKEND_URL } from '../../constants/constant';
 import { BesserEditor } from '@besser/wme';
 import { ProjectStorageRepository } from '../storage/ProjectStorageRepository';
 import { withReferenceDiagramData } from './validationPayload';
+import { prepareAgentModelForBackend } from '../../utils/projectExportUtils';
 import i18n from '../../i18n';
 
 /**
@@ -81,6 +82,9 @@ export async function validateDiagram(editor: BesserEditor | null | undefined, d
       });
     }
 
+    // Agent models leave the editor through the single shared helper (components + transitions).
+    const modelToSend = model?.type === 'AgentDiagram' ? prepareAgentModelForBackend(model) : model;
+
     // Call unified validation endpoint with timeout
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 120000);
@@ -93,7 +97,7 @@ export async function validateDiagram(editor: BesserEditor | null | undefined, d
         },
         body: JSON.stringify({
           title: diagramTitle,
-          model: model
+          model: modelToSend
         }),
         signal: controller.signal,
       });

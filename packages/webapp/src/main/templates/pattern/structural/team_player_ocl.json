@@ -8,8 +8,8 @@
       "id": "3838ec45-6993-4a30-b40b-b4f10400b68b",
       "type": "ClassOCLConstraint",
       "position": {
-        "x": 30,
-        "y": 70
+        "x": -600,
+        "y": -220
       },
       "width": 170,
       "height": 100,
@@ -26,8 +26,8 @@
       "id": "1f0a08bb-5f31-43b4-8a30-13a8249500d9",
       "type": "class",
       "position": {
-        "x": 290,
-        "y": 55
+        "x": -350,
+        "y": -230
       },
       "width": 160,
       "height": 130,
@@ -64,13 +64,13 @@
       "id": "9924cf6a-1efb-4ef8-93c7-8bc28e1153ee",
       "type": "class",
       "position": {
-        "x": 670,
-        "y": 40
+        "x": 30,
+        "y": -240
       },
-      "width": 170,
+      "width": 160,
       "height": 160,
       "measured": {
-        "width": 170,
+        "width": 160,
         "height": 160
       },
       "data": {
@@ -108,8 +108,8 @@
       "id": "c5dd70c4-8a90-4358-8e2d-7b688b5d056a",
       "type": "ClassOCLConstraint",
       "position": {
-        "x": 950,
-        "y": 70
+        "x": 310,
+        "y": -220
       },
       "width": 160,
       "height": 100,
@@ -138,9 +138,20 @@
         "targetMultiplicity": "0..*",
         "sourceRole": "team",
         "targetRole": "players",
+        "sourceNavigable": true,
+        "targetNavigable": true,
         "isManuallyLayouted": false,
         "messages": [],
-        "points": []
+        "points": [
+          {
+            "x": -190,
+            "y": -165
+          },
+          {
+            "x": 30,
+            "y": -165
+          }
+        ]
       }
     },
     {
@@ -158,7 +169,16 @@
         "targetRole": "",
         "isManuallyLayouted": false,
         "messages": [],
-        "points": []
+        "points": [
+          {
+            "x": 310,
+            "y": -170
+          },
+          {
+            "x": 190,
+            "y": -170
+          }
+        ]
       }
     },
     {
@@ -176,7 +196,16 @@
         "targetRole": "",
         "isManuallyLayouted": false,
         "messages": [],
-        "points": []
+        "points": [
+          {
+            "x": -430,
+            "y": -170
+          },
+          {
+            "x": -350,
+            "y": -170
+          }
+        ]
       }
     }
   ],

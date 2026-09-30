@@ -14,6 +14,7 @@ import { DividerLine, NodeStyleEditor, Typography } from "@/components/ui"
 import { PopoverProps } from "@/components/popovers/types"
 import { DeleteIcon } from "@/components/Icon"
 import { generateUUID } from "@/utils"
+import { useTranslation } from "@/i18n"
 import {
   InspectorSectionHeader,
   AddRowButton,
@@ -51,6 +52,7 @@ export const StateEditPanel: React.FC<PopoverProps> = ({ elementId }) => {
   const addFallbackRef = useRef<HTMLInputElement | null>(null)
   const [newBodyName, setNewBodyName] = useState("")
   const [newFallbackName, setNewFallbackName] = useState("")
+  const { t } = useTranslation()
 
   const node = nodes.find((n) => n.id === elementId)
   if (!node) return null
@@ -142,7 +144,7 @@ export const StateEditPanel: React.FC<PopoverProps> = ({ elementId }) => {
               onChange={(e) => update({ italic: e.target.checked })}
             />
           }
-          label="italic"
+          label={t("popup.state.italic", "italic")}
         />
         <FormControlLabel
           control={
@@ -152,7 +154,7 @@ export const StateEditPanel: React.FC<PopoverProps> = ({ elementId }) => {
               onChange={(e) => update({ underline: e.target.checked })}
             />
           }
-          label="underline"
+          label={t("popup.state.underline", "underline")}
         />
       </Stack>
 
@@ -160,19 +162,21 @@ export const StateEditPanel: React.FC<PopoverProps> = ({ elementId }) => {
         size="small"
         variant="outlined"
         fullWidth
-        label="name"
+        label={t("popup.name", "Name")}
         value={data.name}
         onChange={(e) => update({ name: e.target.value })}
       />
 
       <DividerLine width="100%" />
       <Stack direction="row" alignItems="center" justifyContent="space-between">
-        <InspectorSectionHeader>body</InspectorSectionHeader>
+        <InspectorSectionHeader>
+          {t("packages.StateDiagram.StateBody", "Body")}
+        </InspectorSectionHeader>
         <AddRowButton onClick={() => addRow("main")} />
       </Stack>
       {bodies.length === 0 ? (
         <Typography variant="caption" sx={{ opacity: 0.6 }}>
-          no body rows yet
+          {t("popup.state.noBodyRows", "no body rows yet")}
         </Typography>
       ) : (
         sectionRows("main").map((r, idx) => (
@@ -195,20 +199,20 @@ export const StateEditPanel: React.FC<PopoverProps> = ({ elementId }) => {
               }}
             />
             <RowColorSwatch
-              label="Row fill color"
+              label={t("stylePane.rowFillColor", "Row fill color")}
               value={r.fillColor}
               fallbackCss="var(--besser-background, #ffffff)"
               onChange={(color) => patchRowColor(r.id, "fillColor", color)}
             />
             <RowColorSwatch
-              label="Row text color"
+              label={t("stylePane.rowTextColor", "Row text color")}
               value={r.textColor}
               fallbackCss="var(--besser-primary-contrast, #000000)"
               onChange={(color) => patchRowColor(r.id, "textColor", color)}
             />
             <IconButton
               size="small"
-              aria-label="delete body"
+              aria-label={t("popup.state.deleteBody", "delete body")}
               onClick={() => removeRow(r.id)}
             >
               <DeleteIcon />
@@ -220,7 +224,7 @@ export const StateEditPanel: React.FC<PopoverProps> = ({ elementId }) => {
         size="small"
         variant="outlined"
         fullWidth
-        placeholder="+ add body (Enter)"
+        placeholder={t("popup.state.addBodyPlaceholder", "+ add body (Enter)")}
         value={newBodyName}
         inputRef={addBodyRef}
         onChange={(e) => setNewBodyName(e.target.value)}
@@ -235,12 +239,14 @@ export const StateEditPanel: React.FC<PopoverProps> = ({ elementId }) => {
 
       <DividerLine width="100%" />
       <Stack direction="row" alignItems="center" justifyContent="space-between">
-        <InspectorSectionHeader>fallback body</InspectorSectionHeader>
+        <InspectorSectionHeader>
+          {t("packages.StateDiagram.StateFallbackBody", "Fallback Body")}
+        </InspectorSectionHeader>
         <AddRowButton onClick={() => addRow("fallback")} />
       </Stack>
       {fallbackBodies.length === 0 ? (
         <Typography variant="caption" sx={{ opacity: 0.6 }}>
-          no fallback body rows yet
+          {t("popup.state.noFallbackBodyRows", "no fallback body rows yet")}
         </Typography>
       ) : (
         sectionRows("fallback").map((r, idx) => (
@@ -251,7 +257,7 @@ export const StateEditPanel: React.FC<PopoverProps> = ({ elementId }) => {
               fullWidth
               value={r.name ?? ""}
               onChange={(e) => setRowName(r.id, e.target.value)}
-              placeholder="fallback action"
+              placeholder={t("popup.state.fallbackActionPlaceholder", "fallback action")}
               inputRef={(el: HTMLInputElement | null) => {
                 fallbackRefs.current[idx] = el
               }}
@@ -263,20 +269,23 @@ export const StateEditPanel: React.FC<PopoverProps> = ({ elementId }) => {
               }}
             />
             <RowColorSwatch
-              label="Row fill color"
+              label={t("stylePane.rowFillColor", "Row fill color")}
               value={r.fillColor}
               fallbackCss="var(--besser-background, #ffffff)"
               onChange={(color) => patchRowColor(r.id, "fillColor", color)}
             />
             <RowColorSwatch
-              label="Row text color"
+              label={t("stylePane.rowTextColor", "Row text color")}
               value={r.textColor}
               fallbackCss="var(--besser-primary-contrast, #000000)"
               onChange={(color) => patchRowColor(r.id, "textColor", color)}
             />
             <IconButton
               size="small"
-              aria-label="delete fallback body"
+              aria-label={t(
+                "popup.state.deleteFallbackBody",
+                "delete fallback body"
+              )}
               onClick={() => removeRow(r.id)}
             >
               <DeleteIcon />
@@ -288,7 +297,10 @@ export const StateEditPanel: React.FC<PopoverProps> = ({ elementId }) => {
         size="small"
         variant="outlined"
         fullWidth
-        placeholder="+ add fallback body (Enter)"
+        placeholder={t(
+          "popup.state.addFallbackBodyPlaceholder",
+          "+ add fallback body (Enter)"
+        )}
         value={newFallbackName}
         inputRef={addFallbackRef}
         onChange={(e) => setNewFallbackName(e.target.value)}

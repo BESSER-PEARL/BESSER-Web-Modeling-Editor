@@ -1,6 +1,7 @@
-import { UMLModel } from '@besser/wme';
-import { BesserProject, ProjectDiagram, SupportedDiagramType, getActiveDiagram, diagramHasContent } from '../types/project';
+import { UMLModel, UMLModelComponent, normalizeAgentComponents, normalizeAgentModel } from '@besser/wme';
+import { BesserProject, ProjectDiagram, SupportedDiagramType, getActiveDiagram, diagramHasContent, isUMLModel } from '../types/project';
 import { LocalStorageRepository } from '../services/storage/local-storage-repository';
+import { ProjectStorageRepository } from '../services/storage/ProjectStorageRepository';
 import {
   StoredAgentConfiguration,
   StoredAgentProfileConfigurationMapping,
@@ -13,6 +14,103 @@ export const PROJECT_EXPORT_VERSION = '2.0.0';
 export type ExportableProjectPayload = Omit<BesserProject, 'diagrams'> & {
   diagrams: Record<string, ProjectDiagram[]>;
 };
+
+/** Filter a cloned payload without changing active or legacy referenced models. */
+const filterProjectDiagrams = (
+  payload: ExportableProjectPayload,
+  selectedDiagramTypes?: SupportedDiagramType[],
+): ExportableProjectPayload => {
+  const originalDiagrams = payload.diagrams;
+  const filtered: Record<string, ProjectDiagram[]> = {};
+  const indices = { ...payload.currentDiagramIndices };
+
+  for (const [type, diagrams] of Object.entries(originalDiagrams)) {
+    const diagramType = type as SupportedDiagramType;
+    const arr = Array.isArray(diagrams) ? diagrams : [];
+    const active = arr[indices[diagramType] ?? 0] ?? arr[0];
+    indices[diagramType] = 0;
+    if (selectedDiagramTypes?.length && !selectedDiagramTypes.includes(diagramType)) continue;
+    const withContent = arr.filter(diagramHasContent);
+    if (!withContent.length) continue;
+    filtered[type] = withContent;
+    // Filtering [empty, A, B] must not turn active index 1 (A) into B.
+    // If the active diagram itself was empty, select the first retained one.
+    indices[diagramType] = Math.max(0, withContent.indexOf(active));
+  }
+
+  for (const diagrams of Object.values(filtered)) {
+    for (const diagram of diagrams) {
+      if (!diagram.references) continue;
+      // Older imported projects can still contain numeric references despite
+      // the current string-ID type. Resolve them against the ORIGINAL arrays.
+      for (const [type, reference] of Object.entries(diagram.references)) {
+        if (typeof reference !== 'number' || !Number.isInteger(reference) || reference < 0) continue;
+        const referenced = originalDiagrams[type]?.[reference];
+        if (referenced?.id) diagram.references[type as SupportedDiagramType] = referenced.id;
+      }
+    }
+  }
+
+  payload.diagrams = filtered;
+  payload.currentDiagramIndices = indices;
+  return payload;
+};
+
+/**
+ * A ProjectDiagram saved by an early build of the agent components panel, which kept the
+ * components on the diagram itself instead of in `model.components`.
+ */
+type LegacyAgentProjectDiagram = ProjectDiagram & { agentComponents?: { [id: string]: UMLModelComponent } };
+
+/**
+ * The single place where an AgentDiagram model is prepared to leave the editor — code
+ * generation, local deploy, validation, project export and simulation all go through it.
+ *
+ * - When the outgoing model carries no `components` (e.g. a canvas snapshot), the stored
+ *   diagram's `model.components` are attached, or its legacy diagram-level `agentComponents`.
+ * - {@link normalizeAgentComponents} then folds every legacy location into `model.components`.
+ * - {@link normalizeAgentModel} upgrades transitions to the canonical nested shape.
+ *
+ * @param diagram The stored diagram the model belongs to. Defaults to the active AgentDiagram
+ *   of the current project in storage.
+ */
+export function prepareAgentModelForBackend(model: UMLModel, diagram?: ProjectDiagram | null): UMLModel {
+  if (!model || model.type !== 'AgentDiagram') return model;
+  return normalizeAgentModel(normalizeAgentComponents(withStoredAgentComponents(model, diagram)));
+}
+
+/**
+ * Read the agent components of a stored AgentDiagram (normalized, keyed by id). Used by the
+ * agent components panel and the diagram bridge so both see exactly what the backend receives.
+ */
+export function getAgentComponents(diagram: ProjectDiagram | null | undefined): { [id: string]: UMLModelComponent } {
+  return normalizeStoredAgentModel(diagram)?.components ?? {};
+}
+
+/**
+ * The stored model of an AgentDiagram with every legacy component location (canvas elements,
+ * `model.agentComponents`, diagram-level `agentComponents`) folded into `model.components`.
+ */
+export function normalizeStoredAgentModel(diagram: ProjectDiagram | null | undefined): UMLModel | undefined {
+  if (!diagram || !isUMLModel(diagram.model)) return undefined;
+  return normalizeAgentComponents(withStoredAgentComponents(diagram.model, diagram));
+}
+
+function withStoredAgentComponents(model: UMLModel, diagram?: ProjectDiagram | null): UMLModel {
+  if (model.components || model.agentComponents) return model;
+  const source = diagram === undefined ? getCurrentAgentDiagram() : diagram;
+  if (!source) return model;
+  if (isUMLModel(source.model) && source.model.components) {
+    return { ...model, components: source.model.components };
+  }
+  const legacy = (source as LegacyAgentProjectDiagram).agentComponents;
+  return legacy ? { ...model, agentComponents: legacy } : model;
+}
+
+function getCurrentAgentDiagram(): ProjectDiagram | null {
+  const project = ProjectStorageRepository.getCurrentProject();
+  return project ? getActiveDiagram(project, 'AgentDiagram') ?? null : null;
+}
 
 /**
  * @internal
@@ -27,22 +125,7 @@ export const buildExportableProjectPayload = (
   const projectClone = structuredClone(project) as ExportableProjectPayload;
   projectClone.name = normalizeProjectName(projectClone.name || 'project');
 
-  // Filter out empty diagrams from each type, then remove types with no content
-  const filtered: Record<string, ProjectDiagram[]> = {};
-  for (const [type, diagrams] of Object.entries(projectClone.diagrams)) {
-    if (selectedDiagramTypes && selectedDiagramTypes.length > 0 && !selectedDiagramTypes.includes(type as SupportedDiagramType)) {
-      continue;
-    }
-    const arr = Array.isArray(diagrams) ? diagrams : [];
-    const withContent = (arr as ProjectDiagram[]).filter(diagramHasContent);
-    if (withContent.length > 0) {
-      filtered[type] = withContent;
-    }
-  }
-
-  projectClone.diagrams = filtered;
-
-  return projectClone;
+  return filterProjectDiagrams(projectClone, selectedDiagramTypes);
 };
 
 /**
@@ -56,31 +139,13 @@ export const buildProjectPayloadForBackend = (
   project: BesserProject,
   selectedDiagramTypes?: SupportedDiagramType[],
 ): Record<string, unknown> => {
-  const payload = structuredClone(project) as ExportableProjectPayload;
-  payload.name = normalizeProjectName(payload.name || 'project');
+  const payload = buildExportableProjectPayload(project, selectedDiagramTypes);
 
-  // Filter out empty diagrams, then remove types with no content
-  const diagrams: Record<string, ProjectDiagram[]> = {};
-  for (const [type, arr] of Object.entries(payload.diagrams)) {
-    if (Array.isArray(arr)) {
-      const withContent = arr.filter(diagramHasContent);
-      if (withContent.length > 0) {
-        diagrams[type] = withContent;
-      }
-    }
-  }
-
-  // Optionally filter to only the requested diagram types
-  if (selectedDiagramTypes && selectedDiagramTypes.length > 0) {
-    const filtered: Record<string, ProjectDiagram[]> = {};
-    for (const type of selectedDiagramTypes) {
-      if (diagrams[type]) {
-        filtered[type] = diagrams[type];
-      }
-    }
-    payload.diagrams = filtered;
-  } else {
-    payload.diagrams = diagrams;
+  const agentDiagrams = payload.diagrams.AgentDiagram;
+  if (Array.isArray(agentDiagrams)) {
+    payload.diagrams.AgentDiagram = agentDiagrams.map((diagram) =>
+      isUMLModel(diagram.model) ? { ...diagram, model: prepareAgentModelForBackend(diagram.model, diagram) } : diagram,
+    );
   }
 
   return payload;

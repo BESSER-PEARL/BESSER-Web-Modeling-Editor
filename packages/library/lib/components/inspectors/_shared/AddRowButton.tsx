@@ -1,5 +1,6 @@
 import React from "react"
 import { Button, ButtonProps } from "@mui/material"
+import { useTranslation } from "@/i18n"
 
 interface AddRowButtonProps extends Omit<ButtonProps, "onClick" | "children"> {
   onClick: () => void
@@ -20,10 +21,11 @@ interface AddRowButtonProps extends Omit<ButtonProps, "onClick" | "children"> {
  */
 export const AddRowButton: React.FC<AddRowButtonProps> = ({
   onClick,
-  label = "add",
+  label,
   sx,
   ...rest
 }) => {
+  const { t } = useTranslation()
   return (
     <Button
       size="small"
@@ -38,7 +40,7 @@ export const AddRowButton: React.FC<AddRowButtonProps> = ({
         ...sx,
       }}
     >
-      + {label}
+      + {label ?? t("common.addLowercase", "add")}
     </Button>
   )
 }

@@ -3,10 +3,12 @@ import { useDiagramStore } from "@/store/context"
 import { useShallow } from "zustand/shallow"
 import { PopoverProps } from "../types"
 import { DefaultNodeEditPopover } from "../DefaultNodeEditPopover"
+import { useTranslation } from "@/i18n"
 
 export const ReachabilityGraphMarkingEditPopover: React.FC<PopoverProps> = ({
   elementId,
 }) => {
+  const { t } = useTranslation()
   const { nodes, setNodes } = useDiagramStore(
     useShallow((state) => ({
       nodes: state.nodes,
@@ -51,7 +53,12 @@ export const ReachabilityGraphMarkingEditPopover: React.FC<PopoverProps> = ({
         }}
       >
         <input type="checkbox" checked={nodeData.isInitialMarking} readOnly />
-        <div>Is Initial Marking</div>
+        <div>
+          {t(
+            "packages.ReachabilityGraph.ReachabilityGraphIsInitialMarking",
+            "Is Initial Marking"
+          )}
+        </div>
       </div>
     </DefaultNodeEditPopover>
   )

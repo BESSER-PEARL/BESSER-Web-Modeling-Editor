@@ -36,6 +36,11 @@ import "./nnDiagram"
 // sticky-note `comment` node (ported from v3 `common/comments`) and its
 // dashed `CommentLink` tether edge.
 import "./common"
+// ActivityDiagram decision / merge node panel (per-outgoing-flow
+// conditions) + the camelCase `node.type` → inspector-key aliases that let
+// `PropertiesPanel` open for every stock node type.
+import "./activityDiagram"
+import "./nodeTypeInspectorAliases"
 
 registerInspector("class", "edit", ClassEditPanel)
 registerInspector("objectName", "edit", ObjectEditPanel)
@@ -48,3 +53,5 @@ export * from "./agentDiagram"
 export * from "./userDiagram"
 export * from "./nnDiagram"
 export * from "./common"
+export * from "./activityDiagram"
+export { NODE_TYPE_INSPECTOR_ALIASES } from "./nodeTypeInspectorAliases"

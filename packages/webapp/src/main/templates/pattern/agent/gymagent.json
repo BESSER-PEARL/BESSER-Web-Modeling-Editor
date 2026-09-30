@@ -5,28 +5,11 @@
   "type": "AgentDiagram",
   "nodes": [
     {
-      "id": "699853eb-918b-4674-b08c-cf0af3cc61d7",
-      "type": "StateInitialNode",
-      "position": {
-        "x": 710,
-        "y": 70
-      },
-      "width": 45,
-      "height": 45,
-      "measured": {
-        "width": 45,
-        "height": 45
-      },
-      "data": {
-        "name": ""
-      }
-    },
-    {
       "id": "0cba5357-2c30-414b-8d74-ac74ac4ab158",
       "type": "AgentState",
       "position": {
-        "x": 760,
-        "y": 240
+        "x": 5,
+        "y": -160
       },
       "width": 420,
       "height": 100,
@@ -36,91 +19,37 @@
       },
       "data": {
         "name": "Idle",
-        "replyType": "text"
-      }
-    },
-    {
-      "id": "63a2c160-ebbb-457b-953a-93fd2e643224",
-      "type": "AgentStateBody",
-      "position": {
-        "x": 940.5,
-        "y": 480.5
-      },
-      "width": 419,
-      "height": 30,
-      "measured": {
-        "width": 419,
-        "height": 30
-      },
-      "data": {
-        "name": "I am here to answer any questions regarding exercises, nutrition and recovery.",
         "replyType": "text",
-        "ragDatabaseName": ""
-      },
-      "parentId": "0cba5357-2c30-414b-8d74-ac74ac4ab158"
-    },
-    {
-      "id": "1f369122-06c2-4050-ba54-4ea160f95a8c",
-      "type": "AgentStateFallbackBody",
-      "position": {
-        "x": 940.5,
-        "y": 510.5
-      },
-      "width": 419,
-      "height": 30,
-      "measured": {
-        "width": 419,
-        "height": 30
-      },
-      "data": {
-        "name": "I focus on gym and fitness topics only dude.",
-        "replyType": "text",
-        "ragDatabaseName": ""
-      },
-      "parentId": "0cba5357-2c30-414b-8d74-ac74ac4ab158"
-    },
-    {
-      "id": "8dba49ff-2fc1-4066-b124-19e2df7981e2",
-      "type": "AgentIntent",
-      "position": {
-        "x": 40,
-        "y": 40
-      },
-      "width": 630,
-      "height": 100,
-      "measured": {
-        "width": 630,
-        "height": 100
-      },
-      "data": {
-        "name": "Muscles_intent",
-        "intent_description": "Question about how to become muscular and which exercises to perform."
+        "stateType": "standard",
+        "fallbackBodyEnabled": true,
+        "bodies": [
+          {
+            "id": "63a2c160-ebbb-457b-953a-93fd2e643224",
+            "name": "I am here to answer any questions regarding exercises, nutrition and recovery.",
+            "replyType": "text",
+            "actionType": "TextReplyAction",
+            "useSessionVars": false,
+            "llm_name": ""
+          }
+        ],
+        "fallbackBodies": [
+          {
+            "id": "1f369122-06c2-4050-ba54-4ea160f95a8c",
+            "name": "I focus on gym and fitness topics only dude.",
+            "replyType": "text",
+            "actionType": "TextReplyAction",
+            "useSessionVars": false,
+            "llm_name": ""
+          }
+        ]
       }
-    },
-    {
-      "id": "a0a69f3a-bb64-42ee-b9e6-a8bacdf2818b",
-      "type": "AgentIntentBody",
-      "position": {
-        "x": 940.5,
-        "y": 510.5
-      },
-      "width": 629,
-      "height": 30,
-      "measured": {
-        "width": 629,
-        "height": 30
-      },
-      "data": {
-        "name": "I want muscles"
-      },
-      "parentId": "8dba49ff-2fc1-4066-b124-19e2df7981e2"
     },
     {
       "id": "68ccb630-b264-41a0-b70e-1e369bd5706c",
       "type": "AgentState",
       "position": {
-        "x": 140,
-        "y": 410
+        "x": -615,
+        "y": 10
       },
       "width": 420,
       "height": 130,
@@ -130,75 +59,43 @@
       },
       "data": {
         "name": "TrainingPlan",
-        "replyType": "text"
+        "replyType": "text",
+        "stateType": "standard",
+        "fallbackBodyEnabled": true,
+        "bodies": [
+          {
+            "id": "aa261be5-9c53-4df1-a72f-5a107ce8f1b7",
+            "name": "Focus on heavy compound lifts like squats, deadlifts, bench press, overhead press, and rows to build overall muscle mass. ",
+            "replyType": "text",
+            "actionType": "TextReplyAction",
+            "useSessionVars": false,
+            "llm_name": ""
+          },
+          {
+            "id": "747b8558-325d-4a15-baba-0d18a6602a8d",
+            "name": "Train 3–5 times per week, progressively increasing the weight while eating enough protein and calories to support growth. ",
+            "replyType": "text",
+            "actionType": "TextReplyAction",
+            "useSessionVars": false,
+            "llm_name": ""
+          },
+          {
+            "id": "900f7fd9-738a-4981-a7d9-6c7334621981",
+            "name": "Get good sleep and stay consistent—muscle comes from steady effort over time.",
+            "replyType": "text",
+            "actionType": "TextReplyAction",
+            "useSessionVars": false,
+            "llm_name": ""
+          }
+        ]
       }
-    },
-    {
-      "id": "aa261be5-9c53-4df1-a72f-5a107ce8f1b7",
-      "type": "AgentStateBody",
-      "position": {
-        "x": 940.5,
-        "y": 480.5
-      },
-      "width": 419,
-      "height": 30,
-      "measured": {
-        "width": 419,
-        "height": 30
-      },
-      "data": {
-        "name": "Focus on heavy compound lifts like squats, deadlifts, bench press, overhead press, and rows to build overall muscle mass. ",
-        "replyType": "text",
-        "ragDatabaseName": ""
-      },
-      "parentId": "68ccb630-b264-41a0-b70e-1e369bd5706c"
-    },
-    {
-      "id": "747b8558-325d-4a15-baba-0d18a6602a8d",
-      "type": "AgentStateBody",
-      "position": {
-        "x": 940.5,
-        "y": 510.5
-      },
-      "width": 419,
-      "height": 30,
-      "measured": {
-        "width": 419,
-        "height": 30
-      },
-      "data": {
-        "name": "Train 3\u20135 times per week, progressively increasing the weight while eating enough protein and calories to support growth. ",
-        "replyType": "text",
-        "ragDatabaseName": ""
-      },
-      "parentId": "68ccb630-b264-41a0-b70e-1e369bd5706c"
-    },
-    {
-      "id": "900f7fd9-738a-4981-a7d9-6c7334621981",
-      "type": "AgentStateBody",
-      "position": {
-        "x": 940.5,
-        "y": 540.5
-      },
-      "width": 419,
-      "height": 30,
-      "measured": {
-        "width": 419,
-        "height": 30
-      },
-      "data": {
-        "name": "Get good sleep and stay consistent\u2014muscle comes from steady effort over time.",
-        "replyType": "text",
-        "ragDatabaseName": ""
-      },
-      "parentId": "68ccb630-b264-41a0-b70e-1e369bd5706c"
     },
     {
       "id": "77976ef7-599d-4c49-9f4d-1ecb23239fe3",
       "type": "AgentState",
       "position": {
-        "x": 840,
-        "y": 70
+        "x": 85,
+        "y": -330
       },
       "width": 420,
       "height": 70,
@@ -208,35 +105,28 @@
       },
       "data": {
         "name": "Initial",
-        "replyType": "text"
-      }
-    },
-    {
-      "id": "ad226172-93d8-4644-80c5-62825565dd24",
-      "type": "AgentStateBody",
-      "position": {
-        "x": 940.5,
-        "y": 480.5
-      },
-      "width": 419,
-      "height": 30,
-      "measured": {
-        "width": 419,
-        "height": 30
-      },
-      "data": {
-        "name": "Hi, I am your buddy, the fitness agent.",
         "replyType": "text",
-        "ragDatabaseName": ""
-      },
-      "parentId": "77976ef7-599d-4c49-9f4d-1ecb23239fe3"
+        "stateType": "standard",
+        "fallbackBodyEnabled": true,
+        "bodies": [
+          {
+            "id": "ad226172-93d8-4644-80c5-62825565dd24",
+            "name": "Hi, I am your buddy, the fitness agent.",
+            "replyType": "text",
+            "actionType": "TextReplyAction",
+            "useSessionVars": false,
+            "llm_name": ""
+          }
+        ],
+        "initial": true
+      }
     },
     {
       "id": "7610bbda-21ef-4637-a188-1da1352bea17",
       "type": "AgentState",
       "position": {
-        "x": 790,
-        "y": 570
+        "x": 35,
+        "y": 170
       },
       "width": 420,
       "height": 190,
@@ -246,115 +136,59 @@
       },
       "data": {
         "name": "Nutrition",
-        "replyType": "text"
+        "replyType": "text",
+        "stateType": "standard",
+        "fallbackBodyEnabled": true,
+        "bodies": [
+          {
+            "id": "bb7e67bd-ead9-4f14-93db-c18af0d806af",
+            "name": "Nutrition basics: Eat mostly whole foods (lean protein, vegetables, fruits, whole grains, healthy fats). Protein: ~1.6–2.2 g per kg of body weight daily..",
+            "replyType": "text",
+            "actionType": "TextReplyAction",
+            "useSessionVars": false,
+            "llm_name": ""
+          },
+          {
+            "id": "13072ea8-9b51-45fe-927e-a9323627701b",
+            "name": "Match calories to your goal: slight surplus to gain muscle, deficit to lose fat, maintenance to stay the same. ",
+            "replyType": "text",
+            "actionType": "TextReplyAction",
+            "useSessionVars": false,
+            "llm_name": ""
+          },
+          {
+            "id": "95241c3a-f8a2-4bf0-b169-5dcff5a926fb",
+            "name": " Carbs fuel training; fats support hormones.",
+            "replyType": "text",
+            "actionType": "TextReplyAction",
+            "useSessionVars": false,
+            "llm_name": ""
+          },
+          {
+            "id": "44904a03-ac46-4f9f-983a-f6a740b81c0e",
+            "name": " Drink plenty of water and limit ultra-processed foods and alcohol. ",
+            "replyType": "text",
+            "actionType": "TextReplyAction",
+            "useSessionVars": false,
+            "llm_name": ""
+          },
+          {
+            "id": "90dfba4f-6dec-4ca8-8c15-786ed36587a1",
+            "name": "Be consistent — results come from habits, not perfection",
+            "replyType": "text",
+            "actionType": "TextReplyAction",
+            "useSessionVars": false,
+            "llm_name": ""
+          }
+        ]
       }
-    },
-    {
-      "id": "bb7e67bd-ead9-4f14-93db-c18af0d806af",
-      "type": "AgentStateBody",
-      "position": {
-        "x": 940.5,
-        "y": 480.5
-      },
-      "width": 419,
-      "height": 30,
-      "measured": {
-        "width": 419,
-        "height": 30
-      },
-      "data": {
-        "name": "Nutrition basics: Eat mostly whole foods (lean protein, vegetables, fruits, whole grains, healthy fats). Protein: ~1.6\u20132.2 g per kg of body weight daily..",
-        "replyType": "text",
-        "ragDatabaseName": ""
-      },
-      "parentId": "7610bbda-21ef-4637-a188-1da1352bea17"
-    },
-    {
-      "id": "13072ea8-9b51-45fe-927e-a9323627701b",
-      "type": "AgentStateBody",
-      "position": {
-        "x": 940.5,
-        "y": 510.5
-      },
-      "width": 419,
-      "height": 30,
-      "measured": {
-        "width": 419,
-        "height": 30
-      },
-      "data": {
-        "name": "Match calories to your goal: slight surplus to gain muscle, deficit to lose fat, maintenance to stay the same. ",
-        "replyType": "text",
-        "ragDatabaseName": ""
-      },
-      "parentId": "7610bbda-21ef-4637-a188-1da1352bea17"
-    },
-    {
-      "id": "95241c3a-f8a2-4bf0-b169-5dcff5a926fb",
-      "type": "AgentStateBody",
-      "position": {
-        "x": 940.5,
-        "y": 540.5
-      },
-      "width": 419,
-      "height": 30,
-      "measured": {
-        "width": 419,
-        "height": 30
-      },
-      "data": {
-        "name": " Carbs fuel training; fats support hormones.",
-        "replyType": "text",
-        "ragDatabaseName": ""
-      },
-      "parentId": "7610bbda-21ef-4637-a188-1da1352bea17"
-    },
-    {
-      "id": "44904a03-ac46-4f9f-983a-f6a740b81c0e",
-      "type": "AgentStateBody",
-      "position": {
-        "x": 940.5,
-        "y": 570.5
-      },
-      "width": 419,
-      "height": 30,
-      "measured": {
-        "width": 419,
-        "height": 30
-      },
-      "data": {
-        "name": " Drink plenty of water and limit ultra-processed foods and alcohol. ",
-        "replyType": "text",
-        "ragDatabaseName": ""
-      },
-      "parentId": "7610bbda-21ef-4637-a188-1da1352bea17"
-    },
-    {
-      "id": "90dfba4f-6dec-4ca8-8c15-786ed36587a1",
-      "type": "AgentStateBody",
-      "position": {
-        "x": 940.5,
-        "y": 600.5
-      },
-      "width": 419,
-      "height": 30,
-      "measured": {
-        "width": 419,
-        "height": 30
-      },
-      "data": {
-        "name": "Be consistent \u2014 results come from habits, not perfection",
-        "replyType": "text",
-        "ragDatabaseName": ""
-      },
-      "parentId": "7610bbda-21ef-4637-a188-1da1352bea17"
     },
     {
       "id": "8c760b7d-7e72-4cd7-a92a-d5491c021a5b",
       "type": "AgentState",
       "position": {
-        "x": 1290,
-        "y": 350
+        "x": 535,
+        "y": -50
       },
       "width": 180,
       "height": 70,
@@ -364,103 +198,29 @@
       },
       "data": {
         "name": "OtherQuestions",
-        "replyType": "text"
-      }
-    },
-    {
-      "id": "6a3aeb02-bb44-4472-8489-595e8dc8ceb1",
-      "type": "AgentStateBody",
-      "position": {
-        "x": 940.5,
-        "y": 480.5
-      },
-      "width": 179,
-      "height": 30,
-      "measured": {
-        "width": 179,
-        "height": 30
-      },
-      "data": {
-        "name": "AI response \ud83e\ude84",
-        "replyType": "llm",
-        "ragDatabaseName": ""
-      },
-      "parentId": "8c760b7d-7e72-4cd7-a92a-d5491c021a5b"
-    },
-    {
-      "id": "659e810a-f686-47fb-aea8-d23ad06e482c",
-      "type": "AgentIntent",
-      "position": {
-        "x": 40,
-        "y": 150
-      },
-      "width": 630,
-      "height": 100,
-      "measured": {
-        "width": 630,
-        "height": 100
-      },
-      "data": {
-        "name": "Nutrition_intent",
-        "intent_description": "Question about nutrition in gym."
-      }
-    },
-    {
-      "id": "f1fc7bc1-016d-404f-90a8-c2c8f4a8dad0",
-      "type": "AgentIntentBody",
-      "position": {
-        "x": 940.5,
-        "y": 510.5
-      },
-      "width": 629,
-      "height": 30,
-      "measured": {
-        "width": 629,
-        "height": 30
-      },
-      "data": {
-        "name": "Which food to eat?"
-      },
-      "parentId": "659e810a-f686-47fb-aea8-d23ad06e482c"
-    },
-    {
-      "id": "37dff3e2-013c-42f0-ad6e-bbc197247d14",
-      "type": "AgentIntent",
-      "position": {
-        "x": 80,
-        "y": 590
-      },
-      "width": 630,
-      "height": 70,
-      "measured": {
-        "width": 630,
-        "height": 70
-      },
-      "data": {
-        "name": "Other",
-        "intent_description": "Any question that does not fit in \"Muscles\" or \"Nutrition\""
+        "replyType": "text",
+        "stateType": "standard",
+        "fallbackBodyEnabled": true,
+        "bodies": [
+          {
+            "id": "6a3aeb02-bb44-4472-8489-595e8dc8ceb1",
+            "name": "AI response 🪄",
+            "replyType": "llm",
+            "actionType": "LLMReplyAction",
+            "inputPromptMode": "last_user_message",
+            "customInputPrompt": "",
+            "customInputPromptUseSessionVars": false,
+            "systemPromptUseSessionVars": false,
+            "storeInSession": "",
+            "sendReply": true,
+            "llm_name": "",
+            "system_message": ""
+          }
+        ]
       }
     }
   ],
   "edges": [
-    {
-      "id": "bbd03bdd-b76e-47df-9e13-5a305885f94c",
-      "source": "699853eb-918b-4674-b08c-cf0af3cc61d7",
-      "target": "77976ef7-599d-4c49-9f4d-1ecb23239fe3",
-      "type": "AgentStateTransitionInit",
-      "sourceHandle": "right",
-      "targetHandle": "left",
-      "data": {
-        "label": "",
-        "sourceMultiplicity": "",
-        "targetMultiplicity": "",
-        "sourceRole": "",
-        "targetRole": "",
-        "isManuallyLayouted": false,
-        "messages": [],
-        "points": []
-      }
-    },
     {
       "id": "0d7d8895-3eb0-44b0-bb41-e902684d0d2c",
       "source": "0cba5357-2c30-414b-8d74-ac74ac4ab158",
@@ -481,11 +241,31 @@
           "predefinedType": "when_intent_matched",
           "intentName": "Muscles_intent"
         },
+        "legacyShape": 1,
         "legacy": {
-          "condition": "when_intent_matched",
-          "conditionValue": "Muscles_intent"
+          "transitionType": "predefined",
+          "predefined": {
+            "predefinedType": "when_intent_matched",
+            "intentName": "Muscles_intent"
+          },
+          "custom": {
+            "condition": []
+          }
         },
-        "points": []
+        "points": [
+          {
+            "x": 5,
+            "y": -110
+          },
+          {
+            "x": -405,
+            "y": -110
+          },
+          {
+            "x": -405,
+            "y": 10
+          }
+        ]
       }
     },
     {
@@ -508,11 +288,27 @@
           "predefinedType": "auto",
           "conditionValue": ""
         },
+        "legacyShape": 1,
         "legacy": {
-          "condition": "auto",
-          "conditionValue": ""
+          "transitionType": "predefined",
+          "predefined": {
+            "predefinedType": "auto",
+            "conditionValue": ""
+          },
+          "custom": {
+            "condition": []
+          }
         },
-        "points": []
+        "points": [
+          {
+            "x": 255,
+            "y": -260
+          },
+          {
+            "x": 255,
+            "y": -160
+          }
+        ]
       }
     },
     {
@@ -535,11 +331,39 @@
           "predefinedType": "when_intent_matched",
           "intentName": "Other"
         },
+        "legacyShape": 1,
         "legacy": {
-          "condition": "when_intent_matched",
-          "conditionValue": "Other"
+          "transitionType": "predefined",
+          "predefined": {
+            "predefinedType": "when_intent_matched",
+            "intentName": "Other"
+          },
+          "custom": {
+            "condition": []
+          }
         },
-        "points": []
+        "points": [
+          {
+            "x": 425,
+            "y": -85
+          },
+          {
+            "x": 465,
+            "y": -85
+          },
+          {
+            "x": 465,
+            "y": -90
+          },
+          {
+            "x": 625,
+            "y": -90
+          },
+          {
+            "x": 625,
+            "y": -50
+          }
+        ]
       }
     },
     {
@@ -562,11 +386,35 @@
           "predefinedType": "auto",
           "conditionValue": ""
         },
+        "legacyShape": 1,
         "legacy": {
-          "condition": "auto",
-          "conditionValue": ""
+          "transitionType": "predefined",
+          "predefined": {
+            "predefinedType": "auto",
+            "conditionValue": ""
+          },
+          "custom": {
+            "condition": []
+          }
         },
-        "points": []
+        "points": [
+          {
+            "x": -195,
+            "y": 42.5
+          },
+          {
+            "x": -95,
+            "y": 42.5
+          },
+          {
+            "x": -95,
+            "y": -85
+          },
+          {
+            "x": 5,
+            "y": -85
+          }
+        ]
       }
     },
     {
@@ -589,11 +437,39 @@
           "predefinedType": "auto",
           "conditionValue": ""
         },
+        "legacyShape": 1,
         "legacy": {
-          "condition": "auto",
-          "conditionValue": ""
+          "transitionType": "predefined",
+          "predefined": {
+            "predefinedType": "auto",
+            "conditionValue": ""
+          },
+          "custom": {
+            "condition": []
+          }
         },
-        "points": []
+        "points": [
+          {
+            "x": 535,
+            "y": -32.5
+          },
+          {
+            "x": 495,
+            "y": -32.5
+          },
+          {
+            "x": 495,
+            "y": -20
+          },
+          {
+            "x": 320,
+            "y": -20
+          },
+          {
+            "x": 320,
+            "y": -60
+          }
+        ]
       }
     },
     {
@@ -616,11 +492,39 @@
           "predefinedType": "auto",
           "conditionValue": ""
         },
+        "legacyShape": 1,
         "legacy": {
-          "condition": "auto",
-          "conditionValue": ""
+          "transitionType": "predefined",
+          "predefined": {
+            "predefinedType": "auto",
+            "conditionValue": ""
+          },
+          "custom": {
+            "condition": []
+          }
         },
-        "points": []
+        "points": [
+          {
+            "x": 35,
+            "y": 217.5
+          },
+          {
+            "x": -5,
+            "y": 217.5
+          },
+          {
+            "x": -5,
+            "y": 55
+          },
+          {
+            "x": 110,
+            "y": 55
+          },
+          {
+            "x": 110,
+            "y": -60
+          }
+        ]
       }
     },
     {
@@ -643,13 +547,71 @@
           "predefinedType": "when_intent_matched",
           "intentName": "Nutrition_intent"
         },
+        "legacyShape": 1,
         "legacy": {
-          "condition": "when_intent_matched",
-          "conditionValue": "Nutrition_intent"
+          "transitionType": "predefined",
+          "predefined": {
+            "predefinedType": "when_intent_matched",
+            "intentName": "Nutrition_intent"
+          },
+          "custom": {
+            "condition": []
+          }
         },
-        "points": []
+        "points": [
+          {
+            "x": 230,
+            "y": -60
+          },
+          {
+            "x": 230,
+            "y": 170
+          }
+        ]
       }
     }
   ],
-  "assessments": {}
+  "assessments": {},
+  "components": {
+    "d38d6ec1-aeab-40cd-8ca4-6c496e425ccf": {
+      "id": "d38d6ec1-aeab-40cd-8ca4-6c496e425ccf",
+      "type": "AgentIntent",
+      "name": "Muscles_intent",
+      "owner": null,
+      "intent_description": "Question about how to become muscular and which exercises to perform.",
+      "bodies": [
+        "4909d274-5b28-43da-9892-d825605ba87f"
+      ]
+    },
+    "74307a3d-cfe5-444e-9116-5eb520ffa503": {
+      "id": "74307a3d-cfe5-444e-9116-5eb520ffa503",
+      "type": "AgentIntent",
+      "name": "Nutrition_intent",
+      "owner": null,
+      "intent_description": "Question about nutrition in gym.",
+      "bodies": [
+        "f7dad919-77f2-480b-bc4b-30389b8a63a3"
+      ]
+    },
+    "c59db431-0ebb-4f5a-b4ae-dc046d1bbb99": {
+      "id": "c59db431-0ebb-4f5a-b4ae-dc046d1bbb99",
+      "type": "AgentIntent",
+      "name": "Other",
+      "owner": null,
+      "intent_description": "Any question that does not fit in \"Muscles\" or \"Nutrition\"",
+      "bodies": []
+    },
+    "4909d274-5b28-43da-9892-d825605ba87f": {
+      "id": "4909d274-5b28-43da-9892-d825605ba87f",
+      "type": "AgentIntentBody",
+      "name": "I want muscles",
+      "owner": "d38d6ec1-aeab-40cd-8ca4-6c496e425ccf"
+    },
+    "f7dad919-77f2-480b-bc4b-30389b8a63a3": {
+      "id": "f7dad919-77f2-480b-bc4b-30389b8a63a3",
+      "type": "AgentIntentBody",
+      "name": "Which food to eat?",
+      "owner": "74307a3d-cfe5-444e-9116-5eb520ffa503"
+    }
+  }
 }

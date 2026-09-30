@@ -1,10 +1,11 @@
 /**
- * Pilot-experiment telemetry (research data collection).
+ * Opt-in research study mode (telemetry).
  *
- * A pilot session starts by opening the editor with `?pilot=P3` (the
- * facilitator's link). The participant label is stored for the tab and
- * attached to every telemetry event; without it NOTHING is collected —
- * regular users never produce telemetry. The backend applies its own
+ * Active only when the editor is opened with a study link, `?study=<label>`
+ * (`?pilot=<label>` is the older form, still accepted so links already handed
+ * out keep working). The label is stored for the tab and attached to every
+ * telemetry event; without it NOTHING is collected — regular users never
+ * produce telemetry. The backend applies its own
  * master switch on top (`BESSER_TELEMETRY_ENABLED`), so posting here is
  * always safe: the collector answers 204 whether or not it records.
  *
@@ -21,12 +22,12 @@
 import { BACKEND_URL, sessionStoragePilotParticipant } from '../../constants/constant';
 
 /**
- * Per-tab assistant session id key. Predates the pilot experiment (hence
- * the non-`besser_` spelling) — kept stable so existing tabs keep their id.
+ * Per-tab assistant session id key. Predates telemetry (hence the
+ * non-`besser_` spelling) — kept stable so existing tabs keep their id.
  */
 export const assistantSessionStorageKey = 'besser-assistant-session-id';
 
-/** Participant labels are P1…Pn style tokens — never names or emails. */
+/** Labels are short opaque tokens (e.g. `P1`) — never names or emails. */
 const PILOT_PARTICIPANT_PATTERN = /^[A-Za-z0-9_-]{1,16}$/;
 
 export type TelemetryEventKind = 'prompt' | 'agent_action' | 'delivery' | 'friction';
@@ -34,24 +35,25 @@ export type TelemetryEventKind = 'prompt' | 'agent_action' | 'delivery' | 'frict
 export type DeliveryAction = 'download' | 'push_github' | 'continue_from_repo';
 
 /**
- * Read the `pilot` URL query parameter on app load and, when it carries a
- * valid participant label, store it for the tab. Idempotent and safe to
- * call in any environment (SSR, sandboxed iframe, tests).
+ * Read the `study` (or legacy `pilot`) URL query parameter on app load and,
+ * when it carries a valid participant label, store it for the tab.
+ * Idempotent and safe to call in any environment (SSR, sandboxed iframe, tests).
  */
 export const initPilotModeFromUrl = (): void => {
   try {
     if (typeof window === 'undefined') return;
-    const label = new URLSearchParams(window.location.search).get('pilot');
+    const params = new URLSearchParams(window.location.search);
+    const label = params.get('study') ?? params.get('pilot');
     if (label && PILOT_PARTICIPANT_PATTERN.test(label)) {
       window.sessionStorage.setItem(sessionStoragePilotParticipant, label);
     }
   } catch {
-    // Storage or URL unavailable — pilot mode simply stays off.
+    // Storage or URL unavailable — study mode simply stays off.
   }
 };
 
 /**
- * The participant label for this tab, or null when pilot mode is off
+ * The participant label for this tab, or null when study mode is off
  * (the overwhelmingly common case). Validated on read so a corrupted
  * stored value can never leak into a request.
  */
@@ -65,7 +67,7 @@ export const getPilotParticipant = (): string | null => {
   }
 };
 
-/** True when this tab was opened through a facilitator's pilot link. */
+/** True when this tab was opened with a valid study link. */
 export const isPilotSession = (): boolean => getPilotParticipant() !== null;
 
 /**
@@ -95,7 +97,7 @@ export const getOrCreateAssistantSessionId = (): string => {
 };
 
 /**
- * Fire-and-forget POST of one telemetry event. No-op unless pilot mode is
+ * Fire-and-forget POST of one telemetry event. No-op unless study mode is
  * active. Never throws, never retries, never blocks the caller —
  * `keepalive` lets the request outlive a page unload (e.g. a download
  * click right before closing the tab).

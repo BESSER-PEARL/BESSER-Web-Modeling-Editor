@@ -4,6 +4,7 @@ import { PaintRollerIcon } from "@/components/Icon/PaintRollerIcon"
 import { CrossIcon } from "@/components/Icon"
 import { ColorButton, ColorButtons } from "./ColorButtons"
 import { CustomEdgeProps } from "@/edges"
+import { useTranslation } from "@/i18n"
 
 type updateEdgeDataColorsKeys = "strokeColor" | "textColor"
 
@@ -69,9 +70,13 @@ const ColorOption: React.FC<{
   </div>
 )
 
-const colorFields: { key: updateEdgeDataColorsKeys; label: string }[] = [
-  { key: "strokeColor", label: "Line Color" },
-  { key: "textColor", label: "Text Color" },
+const colorFields: {
+  key: updateEdgeDataColorsKeys
+  labelKey: string
+  label: string
+}[] = [
+  { key: "strokeColor", labelKey: "stylePane.lineColor", label: "Line Color" },
+  { key: "textColor", labelKey: "stylePane.textColor", label: "Text Color" },
 ]
 
 export const EdgeStyleEditor: React.FC<EdgeStyleEditorProps> = ({
@@ -80,6 +85,7 @@ export const EdgeStyleEditor: React.FC<EdgeStyleEditorProps> = ({
   sideElements = [],
   label,
 }) => {
+  const { t } = useTranslation()
   const [paintOpen, setPaintOpen] = useState(false)
   const [activeColorField, setActiveColorField] =
     useState<updateEdgeDataColorsKeys | null>(null)
@@ -105,7 +111,7 @@ export const EdgeStyleEditor: React.FC<EdgeStyleEditorProps> = ({
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
           <PaintRollerIcon
             onClick={() => setPaintOpen(!paintOpen)}
-            aria-label="Toggle color settings"
+            aria-label={t("stylePane.toggleColorSettings", "Toggle color settings")}
           />
           {sideElements}
         </div>
@@ -114,11 +120,11 @@ export const EdgeStyleEditor: React.FC<EdgeStyleEditorProps> = ({
       {paintOpen && (
         <div style={styles.colorPanel}>
           {!activeColorField ? (
-            colorFields.map(({ key, label }) => (
+            colorFields.map(({ key, labelKey, label }) => (
               <>
                 <ColorOption
                   key={`${edgeData?.label}-${key}-option`}
-                  label={label}
+                  label={t(labelKey, label)}
                   color={edgeData ? edgeData[key] : undefined}
                   onSelect={() => toggleColorField(key)}
                 />
@@ -137,7 +143,12 @@ export const EdgeStyleEditor: React.FC<EdgeStyleEditorProps> = ({
             >
               <div style={styles.colorPickerHeader}>
                 <Typography>
-                  {colorFields.find((f) => f.key === activeColorField)?.label}
+                  {(() => {
+                    const field = colorFields.find(
+                      (f) => f.key === activeColorField
+                    )
+                    return field ? t(field.labelKey, field.label) : null
+                  })()}
                 </Typography>
                 <CrossIcon
                   fill="var(--besser-primary-contrast, #000000)"
@@ -153,7 +164,7 @@ export const EdgeStyleEditor: React.FC<EdgeStyleEditorProps> = ({
                 style={styles.resetButton}
                 onClick={() => handleDataFieldUpdate(activeColorField, "")}
               >
-                Reset
+                {t("stylePane.reset", "Reset")}
               </button>
             </div>
           )}

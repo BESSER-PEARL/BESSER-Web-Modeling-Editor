@@ -1,13 +1,16 @@
 import { useReactFlow } from "@xyflow/react"
+import { useReactiveEdge } from "@/hooks/useReactiveElement"
 import { PopoverProps } from "../types"
 import { EdgeStyleEditor } from "@/components/ui"
 import { CustomEdgeProps } from "@/edges"
+import { useTranslation } from "@/i18n"
 
 export const SyntaxTreeEdgeEditPopover: React.FC<PopoverProps> = ({
   elementId,
 }) => {
-  const { getEdge, updateEdgeData } = useReactFlow()
-  const edge = getEdge(elementId)
+  const { t } = useTranslation()
+  const { updateEdgeData } = useReactFlow()
+  const edge = useReactiveEdge(elementId)
 
   if (!edge) {
     return null
@@ -20,7 +23,7 @@ export const SyntaxTreeEdgeEditPopover: React.FC<PopoverProps> = ({
       handleDataFieldUpdate={(key, value) =>
         updateEdgeData(elementId, { ...edge.data, [key]: value })
       }
-      label="Relations"
+      label={t("popup.syntaxTree.relations", "Relations")}
     />
   )
 }

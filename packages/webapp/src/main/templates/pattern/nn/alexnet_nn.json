@@ -6,459 +6,459 @@
   "nodes": [
     {
       "id": "82874e6b-8bec-4e85-9e37-0c0c44910f7f",
-      "width": 1370,
-      "height": 230,
       "type": "NNContainer",
       "position": {
-        "x": 85,
-        "y": 40
+        "x": -740,
+        "y": -380
       },
-      "data": {
-        "name": "features"
-      },
+      "width": 1370,
+      "height": 230,
       "measured": {
         "width": 1370,
         "height": 230
+      },
+      "data": {
+        "name": "features"
       }
     },
     {
       "id": "b5dc30d6-d933-4f16-b079-b8486e224360",
-      "width": 90,
-      "height": 100,
       "type": "Conv2DLayer",
       "position": {
-        "x": 95,
-        "y": 75
+        "x": 20,
+        "y": 70
       },
-      "parentId": "82874e6b-8bec-4e85-9e37-0c0c44910f7f",
+      "width": 110,
+      "height": 110,
+      "measured": {
+        "width": 110,
+        "height": 110
+      },
       "data": {
-        "name": "Conv2DLayer2",
+        "name": "f1",
         "attributes": {
+          "name": "f1",
           "kernel_dim": "[11, 11]",
           "out_channels": "64",
           "actv_func": "relu",
           "in_channels": "3",
           "stride_dim": "[4, 4]",
-          "padding_amount": "2",
-          "name": "Conv2DLayer2"
+          "padding_amount": "2"
         }
       },
-      "measured": {
-        "width": 90,
-        "height": 100
-      }
+      "parentId": "82874e6b-8bec-4e85-9e37-0c0c44910f7f"
     },
     {
       "id": "fe4ffcd2-cdfa-4f76-aef2-2150fe47f87c",
-      "width": 90,
-      "height": 100,
       "type": "PoolingLayer",
       "position": {
-        "x": 245,
-        "y": 75
+        "x": 160,
+        "y": 70
       },
-      "parentId": "82874e6b-8bec-4e85-9e37-0c0c44910f7f",
+      "width": 110,
+      "height": 110,
+      "measured": {
+        "width": 110,
+        "height": 110
+      },
       "data": {
-        "name": "PoolingLayer2",
+        "name": "f2",
         "attributes": {
+          "name": "f2",
           "pooling_type": "max",
           "pooling.dimension": "2D",
           "kernel_dim": "[3, 3]",
-          "stride_dim": "[2, 2]",
-          "name": "PoolingLayer2"
+          "stride_dim": "[2, 2]"
         }
       },
-      "measured": {
-        "width": 90,
-        "height": 100
-      }
+      "parentId": "82874e6b-8bec-4e85-9e37-0c0c44910f7f"
     },
     {
       "id": "68872556-8ebc-45fa-9974-6b1d9fa5fa7b",
-      "width": 90,
-      "height": 100,
       "type": "Conv2DLayer",
       "position": {
-        "x": 370,
-        "y": 75
+        "x": 310,
+        "y": 70
       },
-      "parentId": "82874e6b-8bec-4e85-9e37-0c0c44910f7f",
+      "width": 110,
+      "height": 110,
+      "measured": {
+        "width": 110,
+        "height": 110
+      },
       "data": {
-        "name": "Conv2DLayer3",
+        "name": "f3",
         "attributes": {
+          "name": "f3",
           "kernel_dim": "[5, 5]",
           "out_channels": "192",
           "actv_func": "relu",
           "in_channels": "64",
-          "padding_amount": "2",
-          "name": "Conv2DLayer3"
+          "padding_amount": "2"
         }
       },
-      "measured": {
-        "width": 90,
-        "height": 100
-      }
+      "parentId": "82874e6b-8bec-4e85-9e37-0c0c44910f7f"
     },
     {
       "id": "aba29a03-7ea5-4657-bb55-c707885f1d0d",
-      "width": 90,
-      "height": 100,
       "type": "PoolingLayer",
       "position": {
-        "x": 520,
-        "y": 75
+        "x": 450,
+        "y": 70
       },
-      "parentId": "82874e6b-8bec-4e85-9e37-0c0c44910f7f",
+      "width": 110,
+      "height": 110,
+      "measured": {
+        "width": 110,
+        "height": 110
+      },
       "data": {
-        "name": "PoolingLayer3",
+        "name": "f4",
         "attributes": {
+          "name": "f4",
           "pooling_type": "max",
           "pooling.dimension": "2D",
           "kernel_dim": "[3, 3]",
-          "stride_dim": "[2, 2]",
-          "name": "PoolingLayer3"
+          "stride_dim": "[2, 2]"
         }
       },
-      "measured": {
-        "width": 90,
-        "height": 100
-      }
+      "parentId": "82874e6b-8bec-4e85-9e37-0c0c44910f7f"
     },
     {
       "id": "429c3da2-212e-48da-9eb3-6c824f9b5362",
-      "width": 90,
-      "height": 100,
       "type": "Conv2DLayer",
       "position": {
-        "x": 660,
-        "y": 75
+        "x": 590,
+        "y": 70
       },
-      "parentId": "82874e6b-8bec-4e85-9e37-0c0c44910f7f",
+      "width": 110,
+      "height": 110,
+      "measured": {
+        "width": 110,
+        "height": 110
+      },
       "data": {
-        "name": "Conv2DLayer4",
+        "name": "f5",
         "attributes": {
+          "name": "f5",
           "kernel_dim": "[3, 3]",
           "out_channels": "384",
           "actv_func": "relu",
           "in_channels": "192",
-          "padding_amount": "1",
-          "name": "Conv2DLayer4"
+          "padding_amount": "1"
         }
       },
-      "measured": {
-        "width": 90,
-        "height": 100
-      }
+      "parentId": "82874e6b-8bec-4e85-9e37-0c0c44910f7f"
     },
     {
       "id": "9912f3eb-90ad-45f7-a3ed-30f6a4e0ea96",
-      "width": 90,
-      "height": 100,
       "type": "Conv2DLayer",
       "position": {
-        "x": 825,
-        "y": 75
+        "x": 740,
+        "y": 70
       },
-      "parentId": "82874e6b-8bec-4e85-9e37-0c0c44910f7f",
+      "width": 110,
+      "height": 110,
+      "measured": {
+        "width": 110,
+        "height": 110
+      },
       "data": {
-        "name": "Conv2DLayer5",
+        "name": "f6",
         "attributes": {
+          "name": "f6",
           "kernel_dim": "[3, 3]",
           "out_channels": "256",
           "actv_func": "relu",
           "in_channels": "384",
-          "padding_amount": "1",
-          "name": "Conv2DLayer5"
+          "padding_amount": "1"
         }
       },
-      "measured": {
-        "width": 90,
-        "height": 100
-      }
+      "parentId": "82874e6b-8bec-4e85-9e37-0c0c44910f7f"
     },
     {
       "id": "f6b3b33b-4cb0-423b-8e12-a17f92cb008b",
-      "width": 90,
-      "height": 100,
       "type": "Conv2DLayer",
       "position": {
-        "x": 1000,
-        "y": 75
+        "x": 910,
+        "y": 70
       },
-      "parentId": "82874e6b-8bec-4e85-9e37-0c0c44910f7f",
+      "width": 110,
+      "height": 110,
+      "measured": {
+        "width": 110,
+        "height": 110
+      },
       "data": {
-        "name": "Conv2DLayer",
+        "name": "f7",
         "attributes": {
+          "name": "f7",
           "kernel_dim": "[3, 3]",
           "out_channels": "256",
           "actv_func": "relu",
           "in_channels": "256",
-          "padding_amount": "1",
-          "name": "Conv2DLayer"
+          "padding_amount": "1"
         }
       },
-      "measured": {
-        "width": 90,
-        "height": 100
-      }
+      "parentId": "82874e6b-8bec-4e85-9e37-0c0c44910f7f"
     },
     {
       "id": "3903acba-4f59-4f5e-b39e-cb6fd8133d01",
-      "width": 90,
-      "height": 100,
       "type": "PoolingLayer",
       "position": {
-        "x": 1175,
-        "y": 75
+        "x": 1060,
+        "y": 70
       },
-      "parentId": "82874e6b-8bec-4e85-9e37-0c0c44910f7f",
+      "width": 110,
+      "height": 110,
+      "measured": {
+        "width": 110,
+        "height": 110
+      },
       "data": {
-        "name": "PoolingLayer4",
+        "name": "f8",
         "attributes": {
+          "name": "f8",
           "pooling_type": "max",
           "pooling.dimension": "2D",
           "kernel_dim": "[3, 3]",
-          "stride_dim": "[2, 2]",
-          "name": "PoolingLayer4"
+          "stride_dim": "[2, 2]"
         }
       },
-      "measured": {
-        "width": 90,
-        "height": 100
-      }
+      "parentId": "82874e6b-8bec-4e85-9e37-0c0c44910f7f"
     },
     {
       "id": "3c885977-837c-4469-8112-4e26f02e7937",
-      "width": 840,
-      "height": 190,
       "type": "NNContainer",
       "position": {
-        "x": 170,
-        "y": 315
+        "x": -590,
+        "y": -120
       },
-      "data": {
-        "name": "classifier"
-      },
+      "width": 840,
+      "height": 190,
       "measured": {
         "width": 840,
         "height": 190
+      },
+      "data": {
+        "name": "classifier"
       }
     },
     {
       "id": "24e6c691-b91a-400d-8cb9-b1105ff3d4c4",
-      "width": 90,
-      "height": 100,
       "type": "DropoutLayer",
       "position": {
-        "x": 20,
+        "x": 30,
         "y": 60
       },
-      "parentId": "3c885977-837c-4469-8112-4e26f02e7937",
+      "width": 110,
+      "height": 110,
+      "measured": {
+        "width": 110,
+        "height": 110
+      },
       "data": {
-        "name": "DropoutLayer2",
+        "name": "c1",
         "attributes": {
-          "rate": "0.5",
-          "name": "DropoutLayer2"
+          "name": "c1",
+          "rate": "0.5"
         }
       },
-      "measured": {
-        "width": 90,
-        "height": 100
-      }
+      "parentId": "3c885977-837c-4469-8112-4e26f02e7937"
     },
     {
       "id": "8f9da758-b58b-4fff-84ef-9a0d63234de6",
-      "width": 90,
-      "height": 100,
       "type": "LinearLayer",
       "position": {
-        "x": 170,
+        "x": 200,
         "y": 60
       },
-      "parentId": "3c885977-837c-4469-8112-4e26f02e7937",
+      "width": 110,
+      "height": 110,
+      "measured": {
+        "width": 110,
+        "height": 110
+      },
       "data": {
-        "name": "LinearLayer2",
+        "name": "c2",
         "attributes": {
+          "name": "c2",
           "out_features": "4096",
           "in_features": "9216",
-          "actv_func": "relu",
-          "name": "LinearLayer2"
+          "actv_func": "relu"
         }
       },
-      "measured": {
-        "width": 90,
-        "height": 100
-      }
+      "parentId": "3c885977-837c-4469-8112-4e26f02e7937"
     },
     {
       "id": "355f6cde-8462-43b6-a5a8-a2367b47a81f",
-      "width": 90,
-      "height": 100,
       "type": "DropoutLayer",
       "position": {
-        "x": 320,
+        "x": 380,
         "y": 60
       },
-      "parentId": "3c885977-837c-4469-8112-4e26f02e7937",
+      "width": 110,
+      "height": 110,
+      "measured": {
+        "width": 110,
+        "height": 110
+      },
       "data": {
-        "name": "DropoutLayer",
+        "name": "c3",
         "attributes": {
-          "rate": "0.5",
-          "name": "DropoutLayer"
+          "name": "c3",
+          "rate": "0.5"
         }
       },
-      "measured": {
-        "width": 90,
-        "height": 100
-      }
+      "parentId": "3c885977-837c-4469-8112-4e26f02e7937"
     },
     {
       "id": "b26b456a-dd21-46d8-ae5e-953c4c980a85",
-      "width": 90,
-      "height": 100,
       "type": "LinearLayer",
       "position": {
-        "x": 510,
+        "x": 550,
         "y": 60
       },
-      "parentId": "3c885977-837c-4469-8112-4e26f02e7937",
+      "width": 110,
+      "height": 110,
+      "measured": {
+        "width": 110,
+        "height": 110
+      },
       "data": {
-        "name": "LinearLayer3",
+        "name": "c4",
         "attributes": {
+          "name": "c4",
           "out_features": "4096",
           "in_features": "4096",
-          "actv_func": "relu",
-          "name": "LinearLayer3"
+          "actv_func": "relu"
         }
       },
-      "measured": {
-        "width": 90,
-        "height": 100
-      }
+      "parentId": "3c885977-837c-4469-8112-4e26f02e7937"
     },
     {
       "id": "d84e4a67-bf8a-4843-af31-783a08e96f49",
-      "width": 90,
-      "height": 100,
       "type": "LinearLayer",
       "position": {
-        "x": 700,
+        "x": 710,
         "y": 60
       },
-      "parentId": "3c885977-837c-4469-8112-4e26f02e7937",
+      "width": 110,
+      "height": 110,
+      "measured": {
+        "width": 110,
+        "height": 110
+      },
       "data": {
-        "name": "LinearLayer",
+        "name": "c5",
         "attributes": {
+          "name": "c5",
           "out_features": "1000",
-          "in_features": "4096",
-          "name": "LinearLayer"
+          "in_features": "4096"
         }
       },
-      "measured": {
-        "width": 90,
-        "height": 100
-      }
+      "parentId": "3c885977-837c-4469-8112-4e26f02e7937"
     },
     {
       "id": "f27bd4bd-6984-4826-aa9a-00993403695f",
-      "width": 810,
-      "height": 180,
       "type": "NNContainer",
       "position": {
-        "x": 180,
-        "y": 560
+        "x": -600,
+        "y": 140
       },
-      "data": {
-        "name": "alexnet"
-      },
+      "width": 810,
+      "height": 180,
       "measured": {
         "width": 810,
         "height": 180
+      },
+      "data": {
+        "name": "alexnet"
       }
     },
     {
       "id": "a015eb20-e375-4c95-a6e2-6cf2d5cf109c",
-      "width": 90,
-      "height": 100,
       "type": "NNReference",
       "position": {
-        "x": 55,
-        "y": 50
+        "x": 20,
+        "y": 90
       },
-      "parentId": "f27bd4bd-6984-4826-aa9a-00993403695f",
+      "width": 140,
+      "height": 40,
+      "measured": {
+        "width": 140,
+        "height": 40
+      },
       "data": {
         "name": "features",
         "referenceTarget": "82874e6b-8bec-4e85-9e37-0c0c44910f7f"
       },
-      "measured": {
-        "width": 90,
-        "height": 100
-      }
+      "parentId": "f27bd4bd-6984-4826-aa9a-00993403695f"
     },
     {
       "id": "1174b414-b33b-4f5f-a66e-1fdf674d587f",
-      "width": 90,
-      "height": 100,
       "type": "PoolingLayer",
       "position": {
-        "x": 265,
-        "y": 50
+        "x": 220,
+        "y": 60
       },
-      "parentId": "f27bd4bd-6984-4826-aa9a-00993403695f",
+      "width": 110,
+      "height": 110,
+      "measured": {
+        "width": 110,
+        "height": 110
+      },
       "data": {
-        "name": "PoolingLayer",
+        "name": "p1",
         "attributes": {
+          "name": "p1",
           "pooling_type": "adaptive_average",
           "pooling.dimension": "2D",
-          "output_dim": "[6, 6]",
-          "name": "PoolingLayer"
+          "output_dim": "[6, 6]"
         }
       },
-      "measured": {
-        "width": 90,
-        "height": 100
-      }
+      "parentId": "f27bd4bd-6984-4826-aa9a-00993403695f"
     },
     {
       "id": "e3dbae01-2673-4567-917e-b4b452e76fd9",
-      "width": 90,
-      "height": 100,
       "type": "FlattenLayer",
       "position": {
-        "x": 465,
-        "y": 50
+        "x": 390,
+        "y": 60
       },
-      "parentId": "f27bd4bd-6984-4826-aa9a-00993403695f",
+      "width": 110,
+      "height": 110,
+      "measured": {
+        "width": 110,
+        "height": 110
+      },
       "data": {
-        "name": "FlattenLayer",
+        "name": "f1",
         "attributes": {
-          "start_dim": "1",
-          "name": "FlattenLayer"
+          "name": "f1",
+          "start_dim": "1"
         }
       },
-      "measured": {
-        "width": 90,
-        "height": 100
-      }
+      "parentId": "f27bd4bd-6984-4826-aa9a-00993403695f"
     },
     {
       "id": "e7e7de00-2174-4379-90e1-98036e29ce1f",
-      "width": 90,
-      "height": 100,
       "type": "NNReference",
       "position": {
-        "x": 645,
-        "y": 50
+        "x": 570,
+        "y": 90
       },
-      "parentId": "f27bd4bd-6984-4826-aa9a-00993403695f",
+      "width": 140,
+      "height": 40,
+      "measured": {
+        "width": 140,
+        "height": 40
+      },
       "data": {
         "name": "classifier",
         "referenceTarget": "3c885977-837c-4469-8112-4e26f02e7937"
       },
-      "measured": {
-        "width": 90,
-        "height": 100
-      }
+      "parentId": "f27bd4bd-6984-4826-aa9a-00993403695f"
     }
   ],
   "edges": [
@@ -472,7 +472,22 @@
       "data": {
         "label": "next",
         "name": "next",
-        "points": []
+        "sourceMultiplicity": "",
+        "targetMultiplicity": "",
+        "sourceRole": "",
+        "targetRole": "",
+        "isManuallyLayouted": false,
+        "messages": [],
+        "points": [
+          {
+            "x": -450,
+            "y": -5
+          },
+          {
+            "x": -390,
+            "y": -5
+          }
+        ]
       }
     },
     {
@@ -485,7 +500,22 @@
       "data": {
         "label": "next",
         "name": "next",
-        "points": []
+        "sourceMultiplicity": "",
+        "targetMultiplicity": "",
+        "sourceRole": "",
+        "targetRole": "",
+        "isManuallyLayouted": false,
+        "messages": [],
+        "points": [
+          {
+            "x": -280,
+            "y": -5
+          },
+          {
+            "x": -210,
+            "y": -5
+          }
+        ]
       }
     },
     {
@@ -498,7 +528,22 @@
       "data": {
         "label": "next",
         "name": "next",
-        "points": []
+        "sourceMultiplicity": "",
+        "targetMultiplicity": "",
+        "sourceRole": "",
+        "targetRole": "",
+        "isManuallyLayouted": false,
+        "messages": [],
+        "points": [
+          {
+            "x": -100,
+            "y": -5
+          },
+          {
+            "x": -40,
+            "y": -5
+          }
+        ]
       }
     },
     {
@@ -511,7 +556,22 @@
       "data": {
         "label": "next",
         "name": "next",
-        "points": []
+        "sourceMultiplicity": "",
+        "targetMultiplicity": "",
+        "sourceRole": "",
+        "targetRole": "",
+        "isManuallyLayouted": false,
+        "messages": [],
+        "points": [
+          {
+            "x": 70,
+            "y": -5
+          },
+          {
+            "x": 120,
+            "y": -5
+          }
+        ]
       }
     },
     {
@@ -519,12 +579,27 @@
       "source": "a015eb20-e375-4c95-a6e2-6cf2d5cf109c",
       "target": "1174b414-b33b-4f5f-a66e-1fdf674d587f",
       "type": "NNNext",
-      "sourceHandle": "right",
+      "sourceHandle": "right-bottom",
       "targetHandle": "left",
       "data": {
         "label": "next",
         "name": "next",
-        "points": []
+        "sourceMultiplicity": "",
+        "targetMultiplicity": "",
+        "sourceRole": "",
+        "targetRole": "",
+        "isManuallyLayouted": false,
+        "messages": [],
+        "points": [
+          {
+            "x": -440,
+            "y": 250
+          },
+          {
+            "x": -380,
+            "y": 250
+          }
+        ]
       }
     },
     {
@@ -537,7 +612,22 @@
       "data": {
         "label": "next",
         "name": "next",
-        "points": []
+        "sourceMultiplicity": "",
+        "targetMultiplicity": "",
+        "sourceRole": "",
+        "targetRole": "",
+        "isManuallyLayouted": false,
+        "messages": [],
+        "points": [
+          {
+            "x": -270,
+            "y": 255
+          },
+          {
+            "x": -210,
+            "y": 255
+          }
+        ]
       }
     },
     {
@@ -546,11 +636,26 @@
       "target": "e7e7de00-2174-4379-90e1-98036e29ce1f",
       "type": "NNNext",
       "sourceHandle": "right",
-      "targetHandle": "left",
+      "targetHandle": "left-bottom",
       "data": {
         "label": "next",
         "name": "next",
-        "points": []
+        "sourceMultiplicity": "",
+        "targetMultiplicity": "",
+        "sourceRole": "",
+        "targetRole": "",
+        "isManuallyLayouted": false,
+        "messages": [],
+        "points": [
+          {
+            "x": -100,
+            "y": 250
+          },
+          {
+            "x": -30,
+            "y": 250
+          }
+        ]
       }
     },
     {
@@ -563,7 +668,22 @@
       "data": {
         "label": "next",
         "name": "next",
-        "points": []
+        "sourceMultiplicity": "",
+        "targetMultiplicity": "",
+        "sourceRole": "",
+        "targetRole": "",
+        "isManuallyLayouted": false,
+        "messages": [],
+        "points": [
+          {
+            "x": -610,
+            "y": -255
+          },
+          {
+            "x": -580,
+            "y": -255
+          }
+        ]
       }
     },
     {
@@ -576,7 +696,22 @@
       "data": {
         "label": "next",
         "name": "next",
-        "points": []
+        "sourceMultiplicity": "",
+        "targetMultiplicity": "",
+        "sourceRole": "",
+        "targetRole": "",
+        "isManuallyLayouted": false,
+        "messages": [],
+        "points": [
+          {
+            "x": -470,
+            "y": -255
+          },
+          {
+            "x": -430,
+            "y": -255
+          }
+        ]
       }
     },
     {
@@ -589,7 +724,22 @@
       "data": {
         "label": "next",
         "name": "next",
-        "points": []
+        "sourceMultiplicity": "",
+        "targetMultiplicity": "",
+        "sourceRole": "",
+        "targetRole": "",
+        "isManuallyLayouted": false,
+        "messages": [],
+        "points": [
+          {
+            "x": -320,
+            "y": -255
+          },
+          {
+            "x": -290,
+            "y": -255
+          }
+        ]
       }
     },
     {
@@ -602,7 +752,22 @@
       "data": {
         "label": "next",
         "name": "next",
-        "points": []
+        "sourceMultiplicity": "",
+        "targetMultiplicity": "",
+        "sourceRole": "",
+        "targetRole": "",
+        "isManuallyLayouted": false,
+        "messages": [],
+        "points": [
+          {
+            "x": -180,
+            "y": -255
+          },
+          {
+            "x": -150,
+            "y": -255
+          }
+        ]
       }
     },
     {
@@ -615,7 +780,22 @@
       "data": {
         "label": "next",
         "name": "next",
-        "points": []
+        "sourceMultiplicity": "",
+        "targetMultiplicity": "",
+        "sourceRole": "",
+        "targetRole": "",
+        "isManuallyLayouted": false,
+        "messages": [],
+        "points": [
+          {
+            "x": -40,
+            "y": -255
+          },
+          {
+            "x": 0,
+            "y": -255
+          }
+        ]
       }
     },
     {
@@ -628,7 +808,22 @@
       "data": {
         "label": "next",
         "name": "next",
-        "points": []
+        "sourceMultiplicity": "",
+        "targetMultiplicity": "",
+        "sourceRole": "",
+        "targetRole": "",
+        "isManuallyLayouted": false,
+        "messages": [],
+        "points": [
+          {
+            "x": 110,
+            "y": -255
+          },
+          {
+            "x": 170,
+            "y": -255
+          }
+        ]
       }
     },
     {
@@ -641,7 +836,22 @@
       "data": {
         "label": "next",
         "name": "next",
-        "points": []
+        "sourceMultiplicity": "",
+        "targetMultiplicity": "",
+        "sourceRole": "",
+        "targetRole": "",
+        "isManuallyLayouted": false,
+        "messages": [],
+        "points": [
+          {
+            "x": 280,
+            "y": -255
+          },
+          {
+            "x": 320,
+            "y": -255
+          }
+        ]
       }
     }
   ],

@@ -23,6 +23,7 @@ import {
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable"
 import { CSS } from "@dnd-kit/utilities"
+import { useTranslation } from "@/i18n"
 
 interface Props {
   nodeId: string
@@ -109,6 +110,7 @@ export const EditableAttributeList: React.FC<Props> = ({ nodeId }) => {
   const { nodes, setNodes } = useDiagramStore(
     useShallow((state) => ({ setNodes: state.setNodes, nodes: state.nodes }))
   )
+  const { t } = useTranslation()
   const [newItem, setNewItem] = useState("")
 
   const nodeData = nodes.find((node) => node.id === nodeId)?.data as
@@ -194,7 +196,9 @@ export const EditableAttributeList: React.FC<Props> = ({ nodeId }) => {
 
   return (
     <Box sx={{ display: "flex", flexDirection: "column", gap: 0.5 }}>
-      <Typography variant="h6">Attributes</Typography>
+      <Typography variant="h6">
+        {t("popup.attributes", "Attributes")}
+      </Typography>
 
       <DndContext
         sensors={sensors}
@@ -222,7 +226,10 @@ export const EditableAttributeList: React.FC<Props> = ({ nodeId }) => {
         size="small"
         fullWidth
         variant="outlined"
-        placeholder="+ Add attribute"
+        placeholder={t(
+          "popup.classifier.addAttributePlaceholder",
+          "+ Add attribute"
+        )}
         value={newItem}
         onChange={(e: ChangeEvent<HTMLInputElement>) =>
           setNewItem(e.target.value)

@@ -201,3 +201,93 @@ describe("snapNodeToGuides", () => {
     expect(result.x).toBeDefined()
   })
 })
+
+// ---------------------------------------------------------------------------
+// Nested elements (upstream Apollon #680)
+// ---------------------------------------------------------------------------
+
+const nested = (
+  id: string,
+  x: number,
+  y: number,
+  w: number,
+  h: number,
+  extra: Partial<Node>
+): Node => ({ ...makeNode(id, x, y, w, h), ...extra }) as Node
+
+describe("calculateAlignmentGuides with nested elements (#680)", () => {
+  it("targets siblings but skips its parent when dragging a child", () => {
+    const parent = nested("p", 0, 0, 400, 300, { type: "package" })
+    const dragged = nested("c1", 0, 50, 100, 80, { parentId: "p", type: "class" })
+    const sibling = nested("c2", 200, 50, 100, 80, { parentId: "p", type: "class" })
+
+    const guides = calculateAlignmentGuides(dragged, [parent, dragged, sibling])
+    expect(guides.some((g) => g.type === "vertical" && g.position === 0)).toBe(
+      false
+    )
+    expect(
+      guides.some((g) => g.type === "horizontal" && g.position === 50)
+    ).toBe(true)
+  })
+
+  it("includes contained nodes when dragging a top-level node", () => {
+    const pkg = nested("p", 200, 0, 200, 200, { type: "package" })
+    const contained = nested("c", 220, 30, 80, 60, { type: "class" })
+    const dragged = nested("d", 220, 30, 100, 50, { type: "class" })
+
+    const guides = calculateAlignmentGuides(dragged, [dragged, pkg, contained])
+    expect(
+      guides.some((g) => g.type === "horizontal" && g.position === 30)
+    ).toBe(true)
+    expect(
+      guides.some((g) => g.type === "vertical" && g.position === 220)
+    ).toBe(true)
+  })
+
+  it("compares a nested child in canvas space and returns canvas-space guides", () => {
+    // Child at relative (20, 40) inside a pool at (300, 100) -> canvas (320, 140).
+    const pool = nested("pool", 300, 100, 600, 400, { type: "bpmnPool" })
+    const dragged = nested("t", 20, 40, 100, 60, { parentId: "pool", type: "bpmnTask" })
+    const outside = nested("o", 320, 600, 100, 60, { type: "bpmnTask" })
+
+    const guides = calculateAlignmentGuides(dragged, [pool, dragged, outside])
+    expect(
+      guides.some((g) => g.type === "vertical" && g.position === 320)
+    ).toBe(true)
+    // The relative x (20) must not produce a guide anywhere.
+    expect(guides.some((g) => g.position === 20)).toBe(false)
+  })
+
+  it("ignores nodes nested in an unrelated container when dragging a child", () => {
+    const a = nested("a", 0, 0, 300, 300, { type: "package" })
+    const b = nested("b", 400, 0, 300, 300, { type: "package" })
+    const dragged = nested("x", 10, 50, 100, 60, { parentId: "a", type: "class" })
+    // Same canvas y as the dragged node, but inside the other package.
+    const foreign = nested("y", 10, 50, 100, 60, { parentId: "b", type: "class" })
+
+    const guides = calculateAlignmentGuides(dragged, [a, b, dragged, foreign])
+    expect(guides.some((g) => g.type === "horizontal")).toBe(false)
+  })
+
+  it("never aligns a container against its own (moving) children", () => {
+    const pkg = nested("p", 0, 0, 300, 300, { type: "package" })
+    const child = nested("c", 5, 5, 100, 60, { parentId: "p", type: "class" })
+    const guides = calculateAlignmentGuides(pkg, [pkg, child])
+    expect(guides).toEqual([])
+  })
+})
+
+describe("snapNodeToGuides with nested elements (#680)", () => {
+  it("returns a parent-relative offset for a nested node", () => {
+    const pool = nested("pool", 300, 100, 600, 400, { type: "bpmnPool" })
+    const dragged = nested("t", 22, 40, 100, 60, { parentId: "pool" })
+    const snapped = snapNodeToGuides(
+      dragged,
+      [{ id: "v", type: "vertical", position: 320 }],
+      10,
+      [pool, dragged]
+    )
+    // Left edge at canvas 322 snaps to 320: offset -2 from the canvas position.
+    expect(snapped.x).toBe(-2)
+  })
+})

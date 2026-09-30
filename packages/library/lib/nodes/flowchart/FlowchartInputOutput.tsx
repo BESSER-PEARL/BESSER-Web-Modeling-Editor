@@ -1,3 +1,4 @@
+import { usePopoverAnchor } from "@/hooks/usePopoverAnchor"
 import {
   NodeProps,
   NodeResizer,
@@ -12,7 +13,6 @@ import { FlowchartInputOutputNodeSVG } from "@/components"
 import { NodeToolbar } from "@/components/toolbars/NodeToolbar"
 import { HandleId } from "../wrappers"
 import { useDiagramModifiable } from "@/hooks/useDiagramModifiable"
-import { useRef } from "react"
 import { PopoverManager } from "@/components/popovers/PopoverManager"
 
 export function FlowchartInputOutput({
@@ -22,7 +22,7 @@ export function FlowchartInputOutput({
   data,
   parentId,
 }: NodeProps<Node<DefaultNodeProps>>) {
-  const svgWrapperRef = useRef<HTMLDivElement | null>(null)
+  const [svgWrapperEl, svgWrapperRef] = usePopoverAnchor<HTMLDivElement>()
   const { onResize } = useHandleOnResize(parentId)
   const isDiagramModifiable = useDiagramModifiable()
 
@@ -117,7 +117,7 @@ export function FlowchartInputOutput({
       </div>
 
       <PopoverManager
-        anchorEl={svgWrapperRef.current}
+        anchorEl={svgWrapperEl}
         elementId={id}
         type="FlowchartInputOutput"
       />

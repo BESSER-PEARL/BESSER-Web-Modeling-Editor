@@ -1,17 +1,15 @@
 import { useCallback } from "react"
-import { useDiagramStore } from "@/store/context"
+import { useDiagramStore, useDiagramStoreApi } from "@/store/context"
 import { useShallow } from "zustand/shallow"
-import { generateUUID, sortNodesTopologically } from "@/utils"
-import type { Node } from "@xyflow/react"
+import { sortNodesTopologically } from "@/utils"
 import { log } from "../logger"
 import {
   ClipboardData,
   createClipboardData,
-  createNewNodeDataWithNewIds,
   getAllNodesToInclude,
   getEdgesToRemove,
+  materializeClipboardData,
 } from "@/utils/copyPasteUtils"
-import { CANVAS } from "@/constants"
 
 export const useSelectionForCopyPaste = () => {
   const {
@@ -31,6 +29,7 @@ export const useSelectionForCopyPaste = () => {
       setEdges: state.setEdges,
     }))
   )
+  const storeApi = useDiagramStoreApi()
 
   const hasSelectedElements = useCallback(() => {
     return selectedElementIds.length > 0
@@ -94,101 +93,36 @@ export const useSelectionForCopyPaste = () => {
           return false
         }
 
-        const nodeIdMap = new Map<string, string>()
-        const newElementIds: string[] = []
-        const progressiveOffset = CANVAS.PASTE_OFFSET_PX * pasteCount
+        const materialized = materializeClipboardData(
+          clipboardData,
+          pasteCount
+        )
 
-        clipboardData.nodes.forEach((node) => {
-          const newId = generateUUID()
-          nodeIdMap.set(node.id, newId)
-          newElementIds.push(newId)
-        })
+        // Live state, not the render closure: the clipboard read is async,
+        // so a second paste in quick succession must append to the first
+        // paste's result, not to the pre-paste diagram.
+        const { nodes: currentNodes, edges: currentEdges } =
+          storeApi.getState()
 
-        const sortedNodes = sortNodesTopologically(clipboardData.nodes)
-        const nodePositions = new Map<string, { x: number; y: number }>()
+        // A lone child copied without its parent keeps its parentId; if
+        // that parent is gone by now (cut + paste), drop the dangling
+        // reference instead of handing React Flow a missing parent.
+        const knownIds = new Set([
+          ...currentNodes.map((node) => node.id),
+          ...materialized.nodes.map((node) => node.id),
+        ])
+        const pastedNodes = materialized.nodes.map((node) =>
+          node.parentId && !knownIds.has(node.parentId)
+            ? { ...node, parentId: undefined }
+            : node
+        )
 
-        const pastedNodes = sortedNodes.map((node: Node) => {
-          const newId = nodeIdMap.get(node.id)!
-
-          const newNodeData = createNewNodeDataWithNewIds(node.data)
-
-          if (node.parentId && nodeIdMap.has(node.parentId)) {
-            const newParentId = nodeIdMap.get(node.parentId)!
-            const relation = clipboardData.parentChildRelations?.find(
-              (r) => r.childId === node.id && r.parentId === node.parentId
-            )
-
-            if (relation) {
-              const parentNewPosition = nodePositions.get(node.parentId)
-
-              if (parentNewPosition) {
-                const newPosition = {
-                  x: node.position.x + CANVAS.PASTE_OFFSET_PX,
-                  y: node.position.y + CANVAS.PASTE_OFFSET_PX,
-                }
-
-                nodePositions.set(node.id, newPosition)
-
-                return {
-                  ...node,
-                  id: newId,
-                  parentId: newParentId,
-                  position: newPosition,
-                  selected: true,
-                  data: newNodeData,
-                }
-              }
-            }
-          }
-
-          const newPosition = {
-            x: node.position.x + progressiveOffset,
-            y: node.position.y + progressiveOffset,
-          }
-
-          nodePositions.set(node.id, newPosition)
-
-          return {
-            ...node,
-            id: newId,
-            position: newPosition,
-            selected: true,
-            data: newNodeData,
-          }
-        })
-
-        const pastedEdges = clipboardData.edges
-          .filter((edge) => {
-            return nodeIdMap.has(edge.source) && nodeIdMap.has(edge.target)
-          })
-
-          .map((edge) => {
-            const newId = generateUUID()
-            newElementIds.push(newId)
-            return {
-              ...edge,
-              id: newId,
-              source: nodeIdMap.get(edge.source)!,
-              target: nodeIdMap.get(edge.target)!,
-              selected: true,
-              data: {
-                ...edge.data,
-                points: Array.isArray(edge.data?.points)
-                  ? edge.data.points.map((point) => ({
-                      x: point.x + progressiveOffset,
-                      y: point.y + progressiveOffset,
-                    }))
-                  : undefined,
-              },
-            }
-          })
-
-        const updatedExistingNodes = nodes.map((node) => ({
+        const updatedExistingNodes = currentNodes.map((node) => ({
           ...node,
           selected: false,
         }))
 
-        const updatedExistingEdges = edges.map((edge) => ({
+        const updatedExistingEdges = currentEdges.map((edge) => ({
           ...edge,
           selected: false,
         }))
@@ -197,12 +131,15 @@ export const useSelectionForCopyPaste = () => {
           ...updatedExistingNodes,
           ...pastedNodes,
         ])
-        const allUpdatedEdges = [...updatedExistingEdges, ...pastedEdges]
+        const allUpdatedEdges = [
+          ...updatedExistingEdges,
+          ...materialized.edges,
+        ]
 
         setNodes(allUpdatedNodes)
         setEdges(allUpdatedEdges)
 
-        setSelectedElementsId(newElementIds)
+        setSelectedElementsId(materialized.newElementIds)
 
         return true
       } catch (error) {
@@ -210,7 +147,7 @@ export const useSelectionForCopyPaste = () => {
         return false
       }
     },
-    [nodes, edges, setNodes, setEdges, setSelectedElementsId]
+    [storeApi, setNodes, setEdges, setSelectedElementsId]
   )
 
   const cutSelectedElements = useCallback(async () => {

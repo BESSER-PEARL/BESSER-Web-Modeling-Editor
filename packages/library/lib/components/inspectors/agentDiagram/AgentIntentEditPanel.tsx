@@ -13,6 +13,7 @@ import {
 } from "@/types"
 import { DividerLine, NodeStyleEditor, Typography } from "@/components/ui"
 import { PopoverProps } from "@/components/popovers/types"
+import { useTranslation } from "@/i18n"
 import { DeleteIcon } from "@/components/Icon"
 import { generateUUID } from "@/utils"
 import { InspectorSectionHeader, AddRowButton } from "../_shared"
@@ -32,6 +33,7 @@ import { InspectorSectionHeader, AddRowButton } from "../_shared"
  * traversal, no more `extent`/`draggable` housekeeping.
  */
 export const AgentIntentEditPanel: React.FC<PopoverProps> = ({ elementId }) => {
+  const { t } = useTranslation()
   const { nodes, setNodes } = useDiagramStore(
     useShallow((state) => ({
       nodes: state.nodes,
@@ -102,13 +104,15 @@ export const AgentIntentEditPanel: React.FC<PopoverProps> = ({ elementId }) => {
         size="small"
         variant="outlined"
         fullWidth
-        label="intent name"
+        label={t("popup.agent.intent.name", "Intent Name")}
         value={data.name ?? ""}
         onChange={(e) => updateData({ name: e.target.value })}
       />
 
       <DividerLine width="100%" />
-      <InspectorSectionHeader>description</InspectorSectionHeader>
+      <InspectorSectionHeader>
+        {t("popup.agent.intent.description", "Description (Optional)")}
+      </InspectorSectionHeader>
       <MuiTextField
         size="small"
         variant="outlined"
@@ -117,7 +121,7 @@ export const AgentIntentEditPanel: React.FC<PopoverProps> = ({ elementId }) => {
         minRows={2}
         value={data.intent_description ?? ""}
         onChange={(e) => setDescription(e.target.value)}
-        placeholder="Description of what this intent represents"
+        placeholder={t("packages.AgentDiagram.intentDescriptionPlaceholder", "Description of what this intent represents")}
       />
 
       {/* Strong separator between the description and training phrases
@@ -137,12 +141,14 @@ export const AgentIntentEditPanel: React.FC<PopoverProps> = ({ elementId }) => {
         alignItems="center"
         justifyContent="space-between"
       >
-        <InspectorSectionHeader>training phrases</InspectorSectionHeader>
+        <InspectorSectionHeader>
+          {t("popup.agent.intent.trainingSentences", "Training Sentences")}
+        </InspectorSectionHeader>
         <AddRowButton onClick={addPhrase} />
       </Stack>
       {phrases.length === 0 ? (
         <Typography variant="caption" sx={{ opacity: 0.6 }}>
-          no training phrases yet
+          {t("packages.AgentDiagram.noTrainingPhrases", "no training phrases yet")}
         </Typography>
       ) : (
         phrases.map((p) => (
@@ -153,11 +159,11 @@ export const AgentIntentEditPanel: React.FC<PopoverProps> = ({ elementId }) => {
               fullWidth
               value={p.name ?? ""}
               onChange={(e) => setPhrase(p.id, e.target.value)}
-              placeholder="e.g. hello"
+              placeholder={t("packages.AgentDiagram.trainingPhrasePlaceholder", "e.g. hello")}
             />
             <IconButton
               size="small"
-              aria-label="delete training phrase"
+              aria-label={t("packages.AgentDiagram.deleteTrainingPhrase", "delete training phrase")}
               onClick={() => removePhrase(p.id)}
             >
               <DeleteIcon />

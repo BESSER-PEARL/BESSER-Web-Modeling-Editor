@@ -19,6 +19,7 @@
  *     lookups in `UserModelNameEditPanel` were always empty.
  */
 import userMetaModelJson from "./usermetamodel.json"
+import { liftV3AssociationNavigability } from "@/utils/uml-association-navigability"
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
@@ -39,8 +40,18 @@ interface FlatRelationship {
   id: string
   type?: string
   name?: string
-  source?: { element: string; role?: string; multiplicity?: string }
-  target?: { element: string; role?: string; multiplicity?: string }
+  source?: {
+    element: string
+    role?: string
+    multiplicity?: string
+    navigable?: boolean
+  }
+  target?: {
+    element: string
+    role?: string
+    multiplicity?: string
+    navigable?: boolean
+  }
 }
 
 const json = userMetaModelJson as unknown as {
@@ -147,9 +158,18 @@ export function getUserMetaModelV4(): { nodes: any[]; edges: any[] } {
   const edges: any[] = []
   for (const id of Object.keys(relationships)) {
     const rel = relationships[id]
+    // v3 per-end `navigable` (and legacy ClassUnidirectional) → v4
+    // ClassBidirectional + `data.sourceNavigable` / `data.targetNavigable`.
+    const lifted = rel.type
+      ? liftV3AssociationNavigability({
+          type: rel.type,
+          source: rel.source,
+          target: rel.target,
+        })
+      : undefined
     edges.push({
       id: rel.id ?? id,
-      type: rel.type ?? "association",
+      type: lifted?.type ?? "association",
       source: rel.source?.element ?? "",
       target: rel.target?.element ?? "",
       data: {
@@ -158,6 +178,7 @@ export function getUserMetaModelV4(): { nodes: any[]; edges: any[] } {
         sourceMultiplicity: rel.source?.multiplicity,
         targetRole: rel.target?.role,
         targetMultiplicity: rel.target?.multiplicity,
+        ...(lifted?.data ?? {}),
       },
     })
   }

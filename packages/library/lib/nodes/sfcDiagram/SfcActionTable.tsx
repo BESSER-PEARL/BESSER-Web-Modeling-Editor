@@ -1,6 +1,7 @@
 import { NodeProps, NodeResizer, type Node } from "@xyflow/react"
+import { usePopoverAnchor } from "@/hooks/usePopoverAnchor"
 import { DefaultNodeWrapper } from "../wrappers"
-import { useRef, useMemo, useEffect } from "react"
+import { useMemo, useEffect } from "react"
 import { useDiagramStore } from "@/store/context"
 import { useShallow } from "zustand/shallow"
 import { PopoverManager } from "@/components/popovers/PopoverManager"
@@ -16,7 +17,7 @@ export function SfcActionTable({
   height,
   data,
 }: NodeProps<Node<SfcActionTableProps>>) {
-  const svgWrapperRef = useRef<HTMLDivElement | null>(null)
+  const [svgWrapperEl, svgWrapperRef] = usePopoverAnchor<HTMLDivElement>()
   const isDiagramModifiable = useDiagramModifiable()
 
   const { setNodes } = useDiagramStore(
@@ -82,7 +83,7 @@ export function SfcActionTable({
       </div>
 
       <PopoverManager
-        anchorEl={svgWrapperRef.current}
+        anchorEl={svgWrapperEl}
         elementId={id}
         type="SfcActionTable"
       />

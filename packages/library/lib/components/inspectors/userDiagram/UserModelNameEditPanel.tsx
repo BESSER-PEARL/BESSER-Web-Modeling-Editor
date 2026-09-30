@@ -30,6 +30,7 @@ import {
   type UserMetaModelClass,
 } from "@/services/userMetaModel"
 import { InspectorSectionHeader, AddRowButton } from "../_shared"
+import { useTranslation } from "@/i18n"
 
 /**
  * Inspector body for `UserModelName`. Full v3 port.
@@ -143,6 +144,7 @@ const UserRowStyleControls: React.FC<{
   row: Pick<UserModelAttributeRow, "fillColor" | "textColor" | "icon">
   onPatch: (patch: Partial<UserModelAttributeRow>) => void
 }> = ({ row, onPatch }) => {
+  const { t } = useTranslation()
   const swatch = (
     label: string,
     key: "fillColor" | "textColor",
@@ -153,7 +155,11 @@ const UserRowStyleControls: React.FC<{
       <MuiTypography variant="caption" sx={{ minWidth: 70 }}>
         {label}
       </MuiTypography>
-      <Tooltip title={`${label} (right-click to reset)`}>
+      <Tooltip
+        title={t("popup.object.colorResetHint", "{{label}} (right-click to reset)", {
+          label,
+        })}
+      >
         <Box
           component="label"
           sx={{
@@ -205,13 +211,13 @@ const UserRowStyleControls: React.FC<{
     >
       <Stack direction="row" spacing={2}>
         {swatch(
-          "Fill Color",
+          t("stylePane.fillColor", "Fill Color"),
           "fillColor",
           "var(--besser-background, #fff)",
           "#ffffff"
         )}
         {swatch(
-          "Text Color",
+          t("stylePane.textColor", "Text Color"),
           "textColor",
           "var(--besser-text, #000)",
           "#000000"
@@ -221,8 +227,8 @@ const UserRowStyleControls: React.FC<{
         size="small"
         variant="outlined"
         fullWidth
-        label="Icon"
-        placeholder="Enter icon name..."
+        label={t("stylePane.icon", "Icon")}
+        placeholder={t("stylePane.enterIcon", "Enter icon name...")}
         value={row.icon ?? ""}
         onChange={(e) =>
           onPatch({ icon: e.target.value === "" ? undefined : e.target.value })
@@ -238,6 +244,7 @@ const AttrRow: React.FC<AttrRowProps> = ({
   onPatch,
   onDelete,
 }) => {
+  const { t } = useTranslation()
   const [styleOpen, setStyleOpen] = useState(false)
   // Look up linked meta-class attribute (when this row was seeded from
   // a meta-class). v3's `getAttributeDefinition` walked the bridge; we
@@ -308,7 +315,7 @@ const AttrRow: React.FC<AttrRowProps> = ({
             size="small"
             variant="outlined"
             fullWidth
-            placeholder="attribute name"
+            placeholder={t("popup.attribute.namePlaceholder", "attribute name")}
             value={row.name}
             onChange={(e) =>
               onPatch({ name: e.target.value.replace(/[^a-zA-Z0-9_]/g, "") })
@@ -363,16 +370,20 @@ const AttrRow: React.FC<AttrRowProps> = ({
             StylePane (`showIcon fillColor textColor`) workflow. Opens
             the fill / text swatches plus the per-row Icon field
             below the row. */}
-        <Tooltip title="Row style (colors + icon)">
+        <Tooltip title={t("stylePane.rowStyle", "Row style (colors + icon)")}>
           <IconButton
             size="small"
-            aria-label="Row style"
+            aria-label={t("popup.user.rowStyle", "Row style")}
             onClick={() => setStyleOpen((open) => !open)}
           >
             <PaintRollerIcon width={14} height={14} />
           </IconButton>
         </Tooltip>
-        <IconButton size="small" onClick={onDelete}>
+        <IconButton
+          size="small"
+          onClick={onDelete}
+          title={t("popup.user.deleteAttribute", "Delete attribute")}
+        >
           <DeleteIcon width={14} height={14} />
         </IconButton>
       </Stack>
@@ -387,7 +398,9 @@ const AttrRow: React.FC<AttrRowProps> = ({
           onChange={(e) => onValueChange(String(e.target.value))}
           displayEmpty
         >
-          <MenuItem value="">— select literal —</MenuItem>
+          <MenuItem value="">
+            {t("popup.object.selectLiteral", "— select literal —")}
+          </MenuItem>
           {enumLiterals.map((lit) => (
             <MenuItem key={lit} value={lit}>
               {lit}
@@ -401,7 +414,9 @@ const AttrRow: React.FC<AttrRowProps> = ({
           onChange={(e) => onValueChange(String(e.target.value))}
           displayEmpty
         >
-          <MenuItem value="">— select —</MenuItem>
+          <MenuItem value="">
+            {t("popup.user.selectPlaceholder", "— select —")}
+          </MenuItem>
           <MenuItem value="true">true</MenuItem>
           <MenuItem value="false">false</MenuItem>
         </Select>
@@ -419,7 +434,10 @@ const AttrRow: React.FC<AttrRowProps> = ({
           size="small"
           variant="outlined"
           fullWidth
-          placeholder='value (will be quoted: "…")'
+          placeholder={t(
+            "popup.user.stringValuePlaceholder",
+            'value (will be quoted: "…")'
+          )}
           value={currentValue}
           onChange={(e) => onValueChange(e.target.value)}
         />
@@ -428,7 +446,7 @@ const AttrRow: React.FC<AttrRowProps> = ({
           size="small"
           variant="outlined"
           fullWidth
-          placeholder="value / default"
+          placeholder={t("popup.user.valuePlaceholder", "value / default")}
           value={currentValue}
           onChange={(e) => onValueChange(e.target.value)}
         />
@@ -440,6 +458,7 @@ const AttrRow: React.FC<AttrRowProps> = ({
 export const UserModelNameEditPanel: React.FC<PopoverProps> = ({
   elementId,
 }) => {
+  const { t } = useTranslation()
   const { nodes, setNodes } = useDiagramStore(
     useShallow((state) => ({
       nodes: state.nodes,
@@ -509,7 +528,7 @@ export const UserModelNameEditPanel: React.FC<PopoverProps> = ({
         size="small"
         variant="outlined"
         fullWidth
-        label="name"
+        label={t("popup.name", "Name")}
         value={data.name}
         onChange={(e) => update({ name: e.target.value })}
       />
@@ -544,7 +563,9 @@ export const UserModelNameEditPanel: React.FC<PopoverProps> = ({
             "& .MuiAccordionSummary-content": { margin: "4px 0" },
           }}
         >
-          <InspectorSectionHeader>Metadata</InspectorSectionHeader>
+          <InspectorSectionHeader>
+            {t("popup.user.metadata", "Metadata")}
+          </InspectorSectionHeader>
         </AccordionSummary>
         <AccordionDetails
           sx={{ display: "flex", flexDirection: "column", gap: 1, pt: 0 }}
@@ -555,7 +576,7 @@ export const UserModelNameEditPanel: React.FC<PopoverProps> = ({
             fullWidth
             multiline
             minRows={2}
-            label="description"
+            label={t("stylePane.description", "Description")}
             value={data.description ?? ""}
             onChange={(e) => update({ description: e.target.value })}
           />
@@ -568,7 +589,9 @@ export const UserModelNameEditPanel: React.FC<PopoverProps> = ({
         alignItems="center"
         justifyContent="space-between"
       >
-        <InspectorSectionHeader>attributes</InspectorSectionHeader>
+        <InspectorSectionHeader>
+          {t("popup.attributes", "Attributes")}
+        </InspectorSectionHeader>
         <AddRowButton onClick={addAttribute} />
       </Stack>
       {data.attributes.map((row, idx) => (

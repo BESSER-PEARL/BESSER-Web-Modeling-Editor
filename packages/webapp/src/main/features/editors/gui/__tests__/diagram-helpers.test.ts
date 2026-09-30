@@ -86,14 +86,51 @@ describe('getEndsByClassId / getInheritedEndsByClassId', () => {
     (ProjectStorageRepository as any).suppressDepth = 0;
   });
 
+  /**
+   * Build a v4 ClassDiagram (`{nodes, edges}`) from compact v3-style element /
+   * relationship maps: classes become `class` nodes (name on `data.name`), end
+   * roles / `navigable` flags move to `edge.data.{source,target}{Role,Navigable}`
+   * (docs/source/migrations/uml-v4-shape.md).
+   */
+  function v4ClassModel(elements: Record<string, any>, relationships: Record<string, any>) {
+    return {
+      version: '4.0.0',
+      type: 'ClassDiagram',
+      nodes: Object.values(elements).map((e: any) => ({
+        id: e.id,
+        type: e.type === 'Class' ? 'class' : e.type,
+        position: { x: 0, y: 0 },
+        width: 160,
+        height: 100,
+        data: e.type === 'Class'
+          ? { name: e.name, attributes: [], methods: [] }
+          : { name: e.name, constraint: e.constraint },
+      })),
+      edges: Object.values(relationships).map((r: any) => {
+        const data: Record<string, unknown> = { points: [] };
+        if (r.source?.role !== undefined) data.sourceRole = r.source.role;
+        if (r.target?.role !== undefined) data.targetRole = r.target.role;
+        if (typeof r.source?.navigable === 'boolean') data.sourceNavigable = r.source.navigable;
+        if (typeof r.target?.navigable === 'boolean') data.targetNavigable = r.target.navigable;
+        return {
+          id: r.id,
+          type: r.type,
+          source: r.source.element,
+          target: r.target.element,
+          sourceHandle: 'Right',
+          targetHandle: 'Left',
+          data,
+        };
+      }),
+    };
+  }
+
   // Mirrors the hotel-booking benchmark model: Guest and Employee inherit from
   // Person; Person has a real association to Booking, an OCL constraint attached
   // via ClassOCLLink, and a non-association ClassLinkRel.
   function setHotelLikeProject() {
-    const model = {
-      version: '3.0.0',
-      type: 'ClassDiagram',
-      elements: {
+    const model = v4ClassModel(
+      {
         person: { id: 'person', type: 'Class', name: 'Person' },
         guest: { id: 'guest', type: 'Class', name: 'Guest' },
         employee: { id: 'employee', type: 'Class', name: 'Employee' },
@@ -101,7 +138,7 @@ describe('getEndsByClassId / getInheritedEndsByClassId', () => {
         admin: { id: 'admin', type: 'Class', name: 'Admin' },
         ocl1: { id: 'ocl1', type: 'ClassOCLConstraint', name: '', constraint: 'context Person inv: self.age >= 0' },
       },
-      relationships: {
+      {
         inh1: { id: 'inh1', type: 'ClassInheritance', source: { element: 'guest' }, target: { element: 'person' } },
         inh2: { id: 'inh2', type: 'ClassInheritance', source: { element: 'employee' }, target: { element: 'person' } },
         assoc1: {
@@ -119,7 +156,7 @@ describe('getEndsByClassId / getInheritedEndsByClassId', () => {
           target: { element: 'person', role: 'managedPersons' },
         },
       },
-    };
+    );
     const project = createDefaultProject('Test', '', 'user');
     project.diagrams.ClassDiagram = [
       { id: 'cd1', title: 'Classes', model: model as any, lastUpdate: new Date().toISOString() },
@@ -152,5 +189,63 @@ describe('getEndsByClassId / getInheritedEndsByClassId', () => {
     setHotelLikeProject();
     const ends = getEndsByClassId('admin', false);
     expect(ends).toEqual([{ value: 'person', label: 'managedPersons' }]);
+  });
+
+  // Per-end navigability: the `navigable` flags on each end decide the ends,
+  // not the relationship type.
+  function setNavigabilityProject() {
+    const model = v4ClassModel(
+      {
+        order: { id: 'order', type: 'Class', name: 'Order' },
+        customer: { id: 'customer', type: 'Class', name: 'Customer' },
+        line: { id: 'line', type: 'Class', name: 'OrderLine' },
+        product: { id: 'product', type: 'Class', name: 'Product' },
+      },
+      {
+        // Only the target (Customer) end is navigable: Order -> Customer.
+        oneWay: {
+          id: 'oneWay',
+          type: 'ClassBidirectional',
+          source: { element: 'order', role: 'orders', navigable: false },
+          target: { element: 'customer', role: 'customer', navigable: true },
+        },
+        // Only the source end is navigable: Product -> OrderLine, drawn the other way round.
+        reversed: {
+          id: 'reversed',
+          type: 'ClassBidirectional',
+          source: { element: 'line', role: 'lines', navigable: true },
+          target: { element: 'product', role: 'product', navigable: false },
+        },
+        // Composition whose whole (target, Order) end is not navigable.
+        parts: {
+          id: 'parts',
+          type: 'ClassComposition',
+          source: { element: 'line', role: 'items', navigable: true },
+          target: { element: 'order', role: 'order', navigable: false },
+        },
+      },
+    );
+    const project = createDefaultProject('Test', '', 'user');
+    project.diagrams.ClassDiagram = [
+      { id: 'cd1', title: 'Classes', model: model as any, lastUpdate: new Date().toISOString() },
+    ];
+    setCurrentProject(project);
+  }
+
+  it('follows explicit navigable flags on a ClassBidirectional association', () => {
+    setNavigabilityProject();
+    expect(getEndsByClassId('order', false)).toEqual([
+      { value: 'customer', label: 'customer' },
+      { value: 'line', label: 'items' },
+    ]);
+    // Customer cannot navigate back to Order.
+    expect(getEndsByClassId('customer', false)).toEqual([]);
+  });
+
+  it('navigates from the target class when only the source end is navigable', () => {
+    setNavigabilityProject();
+    expect(getEndsByClassId('product', false)).toEqual([{ value: 'line', label: 'lines' }]);
+    // OrderLine reaches neither Product nor the non-navigable whole end of the composition.
+    expect(getEndsByClassId('line', false)).toEqual([]);
   });
 });

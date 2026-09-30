@@ -1,6 +1,6 @@
 import { NodeProps, type Node } from "@xyflow/react"
+import { usePopoverAnchor } from "@/hooks/usePopoverAnchor"
 import { PetriNetPlaceSVG } from "@/components"
-import { useRef } from "react"
 import { PetriNetPlaceProps } from "@/types"
 import { PopoverManager } from "@/components/popovers/PopoverManager"
 import { useDiagramModifiable } from "@/hooks/useDiagramModifiable"
@@ -13,7 +13,7 @@ export function PetriNetPlace({
   height,
   data,
 }: NodeProps<Node<PetriNetPlaceProps>>) {
-  const svgWrapperRef = useRef<HTMLDivElement | null>(null)
+  const [svgWrapperEl, svgWrapperRef] = usePopoverAnchor<HTMLDivElement>()
   const isDiagramModifiable = useDiagramModifiable()
 
   if (!width || !height) {
@@ -48,7 +48,7 @@ export function PetriNetPlace({
       </div>
 
       <PopoverManager
-        anchorEl={svgWrapperRef.current}
+        anchorEl={svgWrapperEl}
         elementId={id}
         type="PetriNetPlace"
       />

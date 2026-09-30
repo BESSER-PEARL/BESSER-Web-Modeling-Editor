@@ -5,6 +5,7 @@ import { useDiagramStore } from "@/store/context"
 import { StateActionNodeProps } from "@/types"
 import { DividerLine, NodeStyleEditor } from "@/components/ui"
 import { PopoverProps } from "@/components/popovers/types"
+import { useTranslation } from "@/i18n"
 
 /**
  * Inspector body for `StateActionNode`. v3 parity: only `name` is
@@ -20,6 +21,7 @@ export const StateActionNodeEditPanel: React.FC<PopoverProps> = ({
       setNodes: state.setNodes,
     }))
   )
+  const { t } = useTranslation()
   const node = nodes.find((n) => n.id === elementId)
   if (!node) return null
 
@@ -48,7 +50,7 @@ export const StateActionNodeEditPanel: React.FC<PopoverProps> = ({
         size="small"
         variant="outlined"
         fullWidth
-        label="action name"
+        label={t("popup.state.actionName", "action name")}
         value={data.name}
         onChange={(e) => update({ name: e.target.value })}
       />

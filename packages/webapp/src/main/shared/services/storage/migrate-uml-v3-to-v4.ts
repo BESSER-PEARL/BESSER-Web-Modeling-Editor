@@ -39,6 +39,7 @@ type SupportedDiagramType =
   | 'UserDiagram'
   | 'NNDiagram'
   | 'BPMN'
+  | 'BPMNDiagram'
   // Non-UML kinds — skipped at the caller, but listed for the param's union.
   | 'GUINoCodeDiagram'
   | 'QuantumCircuitDiagram';
@@ -86,24 +87,65 @@ export function migrateUMLModelV3ToV4(
   // Fall back to the model's `type` field, which v3 models always carry.
   const type = diagramType ?? (model && typeof model === 'object' ? model.type : undefined);
 
+  // Tolerate hand-edited v3 files that omit an empty table.
+  if (model && typeof model === 'object' && model.elements && !model.relationships) {
+    model = { ...model, relationships: {} };
+  }
+
+  let migrated: UMLModel;
   switch (type) {
     case 'ClassDiagram':
-      return migrateClassDiagramV3ToV4(model);
+      migrated = migrateClassDiagramV3ToV4(model);
+      break;
     case 'ObjectDiagram':
-      return migrateObjectDiagramV3ToV4(model);
+      migrated = migrateObjectDiagramV3ToV4(model);
+      break;
     case 'StateMachineDiagram':
-      return migrateStateMachineDiagramV3ToV4(model);
+      migrated = migrateStateMachineDiagramV3ToV4(model);
+      break;
     case 'AgentDiagram':
-      return migrateAgentDiagramV3ToV4(model);
+      migrated = migrateAgentDiagramV3ToV4(model);
+      break;
     case 'UserDiagram':
-      return migrateUserDiagramV3ToV4(model);
+      migrated = migrateUserDiagramV3ToV4(model);
+      break;
     case 'NNDiagram':
-      return migrateNNDiagramV3ToV4(model);
+      migrated = migrateNNDiagramV3ToV4(model);
+      break;
+    // The project bucket key is `BPMN`; the on-the-wire diagram type the old
+    // editor (smart-generator `UMLDiagramType.BPMN`) stored in `model.type`
+    // is `BPMNDiagram` — a single-diagram import only has the latter.
     case 'BPMN':
-      return migrateBpmnDiagramV3ToV4(model);
+    case 'BPMNDiagram':
+      migrated = migrateBpmnDiagramV3ToV4(model);
+      break;
     default:
+      // The remaining v3 diagram types the old Apollon editor could emit
+      // (ActivityDiagram, UseCaseDiagram, …) have no BESSER-specific
+      // lifting; the generic converter handles them.
+      if (typeof type === 'string' && GENERIC_V3_DIAGRAM_TYPES.has(type)) {
+        migrated = convertV3ToV4(model);
+        break;
+      }
       throw new Error(
         `[migrateUMLModelV3ToV4] Unsupported diagram type: ${String(type)}`,
       );
   }
+  // Canonicalize like the editor does on load (`importDiagram`), so a model
+  // that is migrated but never opened (templates, stored projects posted
+  // straight to the backend) is already in its final v4 shape.
+  return normalizeV4Model(migrated);
 }
+
+/** Generic Apollon v3 diagram types (no BESSER-specific migrator). */
+const GENERIC_V3_DIAGRAM_TYPES: ReadonlySet<string> = new Set([
+  'ActivityDiagram',
+  'UseCaseDiagram',
+  'CommunicationDiagram',
+  'ComponentDiagram',
+  'DeploymentDiagram',
+  'PetriNet',
+  'ReachabilityGraph',
+  'SyntaxTree',
+  'Flowchart',
+]);

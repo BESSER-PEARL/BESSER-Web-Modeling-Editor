@@ -26,6 +26,7 @@ import { PopoverProps } from "@/components/popovers/types"
 import { generateUUID } from "@/utils"
 import { diagramBridge, IClassInfo } from "@/services/diagramBridge"
 import { InspectorSectionHeader } from "../_shared"
+import { useTranslation } from "@/i18n"
 
 interface ObjectAttrRowProps {
   row: ObjectNodeAttribute
@@ -61,6 +62,7 @@ const SlotColorControls: React.FC<{
   row: Pick<ObjectNodeAttribute, "fillColor" | "textColor">
   onPatch: (patch: Partial<ObjectNodeAttribute>) => void
 }> = ({ row, onPatch }) => {
+  const { t } = useTranslation()
   const swatch = (
     label: string,
     key: "fillColor" | "textColor",
@@ -70,7 +72,11 @@ const SlotColorControls: React.FC<{
       <MuiTypography variant="caption" sx={{ minWidth: 70 }}>
         {label}
       </MuiTypography>
-      <Tooltip title={`${label} (right-click to reset)`}>
+      <Tooltip
+        title={t("popup.object.colorResetHint", "{{label}} (right-click to reset)", {
+          label,
+        })}
+      >
         <Box
           component="label"
           sx={{
@@ -122,8 +128,8 @@ const SlotColorControls: React.FC<{
         marginLeft: "4px",
       }}
     >
-      {swatch("Fill Color", "fillColor", "var(--besser-background, #fff)")}
-      {swatch("Text Color", "textColor", "var(--besser-text, #000)")}
+      {swatch(t("stylePane.fillColor", "Fill Color"), "fillColor", "var(--besser-background, #fff)")}
+      {swatch(t("stylePane.textColor", "Text Color"), "textColor", "var(--besser-text, #000)")}
     </Stack>
   )
 }
@@ -165,6 +171,7 @@ const ObjectAttrRow: React.FC<ObjectAttrRowProps> = ({
   valueInputRef,
   onEnter,
 }) => {
+  const { t } = useTranslation()
   const [colorOpen, setColorOpen] = useState(false)
   const valueAsString =
     row.value !== undefined && row.value !== null ? String(row.value) : ""
@@ -257,13 +264,18 @@ const ObjectAttrRow: React.FC<ObjectAttrRowProps> = ({
       <MuiTextField
         size="small"
         variant="outlined"
-        placeholder="e.g., 1d 2h 30m, P1DT2H30M, 1:30:00"
+        placeholder={t(
+          "popup.durationPlaceholder",
+          "e.g., 1d 2h 30m, P1DT2H30M, 1:30:00"
+        )}
         value={valueAsString}
         onChange={(e) => commitValue(e.target.value)}
         sx={{ flex: 1 }}
         inputProps={{
-          title:
-            "Enter duration in formats like: '1d 2h 30m', 'P1DT2H30M' (ISO 8601), or 'HH:mm:ss'",
+          title: t(
+            "popup.durationTooltip",
+            "Enter duration in formats like: '1d 2h 30m', 'P1DT2H30M' (ISO 8601), or 'HH:mm:ss'"
+          ),
         }}
         {...navigationProps}
       />
@@ -277,7 +289,9 @@ const ObjectAttrRow: React.FC<ObjectAttrRowProps> = ({
         onChange={(e) => commitValue(String(e.target.value))}
         sx={{ flex: 1 }}
       >
-        <MenuItem value="">— select literal —</MenuItem>
+        <MenuItem value="">
+          {t("popup.object.selectLiteral", "— select literal —")}
+        </MenuItem>
         {enumValues.map((lit) => (
           <MenuItem key={lit} value={lit}>
             {lit}
@@ -290,7 +304,7 @@ const ObjectAttrRow: React.FC<ObjectAttrRowProps> = ({
       <MuiTextField
         size="small"
         variant="outlined"
-        placeholder="value"
+        placeholder={t("popup.attributeValuePlaceholder", "value")}
         value={valueAsString}
         onChange={(e) => commitValue(e.target.value)}
         sx={{ flex: 1 }}
@@ -332,7 +346,7 @@ const ObjectAttrRow: React.FC<ObjectAttrRowProps> = ({
         <MuiTextField
           size="small"
           variant="outlined"
-          placeholder="name"
+          placeholder={t("popup.object.slotNamePlaceholder", "name")}
           value={row.name}
           onChange={(e) =>
             onPatch({ name: e.target.value.replace(/[^a-zA-Z0-9_]/g, "") })
@@ -347,7 +361,13 @@ const ObjectAttrRow: React.FC<ObjectAttrRowProps> = ({
         </MuiTypography>
         {valueWidget}
         {displayType && (
-          <Tooltip title={`type inherited from class: ${displayType}`}>
+          <Tooltip
+            title={t(
+              "popup.object.typeInherited",
+              "type inherited from class: {{type}}",
+              { type: displayType }
+            )}
+          >
             <MuiTypography
               variant="caption"
               sx={{
@@ -361,16 +381,16 @@ const ObjectAttrRow: React.FC<ObjectAttrRowProps> = ({
             </MuiTypography>
           </Tooltip>
         )}
-        <Tooltip title="Row colors">
+        <Tooltip title={t("stylePane.rowColors", "Row colors")}>
           <IconButton
             size="small"
-            aria-label="Row colors"
+            aria-label={t("stylePane.rowColors", "Row colors")}
             onClick={() => setColorOpen((open) => !open)}
           >
             <PaintRollerIcon width={14} height={14} />
           </IconButton>
         </Tooltip>
-        <Tooltip title="Delete attribute">
+        <Tooltip title={t("popup.object.deleteAttribute", "Delete attribute")}>
           <IconButton size="small" onClick={onDelete}>
             <DeleteIcon width={14} height={14} />
           </IconButton>
@@ -397,6 +417,7 @@ const ObjectAttrRow: React.FC<ObjectAttrRowProps> = ({
  * attribute type is auto-inherited and shown read-only.
  */
 export const ObjectEditPanel: React.FC<PopoverProps> = ({ elementId }) => {
+  const { t } = useTranslation()
   const { nodes, setNodes } = useDiagramStore(
     useShallow((state) => ({
       nodes: state.nodes,
@@ -657,7 +678,7 @@ export const ObjectEditPanel: React.FC<PopoverProps> = ({ elementId }) => {
           subclasses are distinguishable. */}
       <Stack direction="row" alignItems="center" spacing={0.5}>
         <Typography variant="caption" sx={{ minWidth: 70 }}>
-          class
+          {t("popup.object.classLabel", "class")}
         </Typography>
         <Select
           size="small"
@@ -666,7 +687,9 @@ export const ObjectEditPanel: React.FC<PopoverProps> = ({ elementId }) => {
           onChange={(e) => handleClassChange(String(e.target.value))}
           sx={{ flex: 1 }}
         >
-          <MenuItem value="">— Unlinked —</MenuItem>
+          <MenuItem value="">
+            {t("popup.object.unlinked", "— Unlinked —")}
+          </MenuItem>
           {availableClasses.map((c) => {
             // v3 parity (`uml-object-name-update.tsx:63-79`):
             // hierarchy[0] is the class itself; the rest are parents.
@@ -678,9 +701,17 @@ export const ObjectEditPanel: React.FC<PopoverProps> = ({ elementId }) => {
             }
             const parents = hierarchy.length > 1 ? hierarchy.slice(1) : []
             const extendsHint =
-              parents.length > 0 ? ` extends ${parents.join(", ")}` : ""
+              parents.length > 0
+                ? ` ${t("popup.object.extendsHint", "extends {{parents}}", {
+                    parents: parents.join(", "),
+                  })}`
+                : ""
             const attrHint =
-              c.attributes.length > 0 ? ` (${c.attributes.length} attrs)` : ""
+              c.attributes.length > 0
+                ? ` ${t("popup.object.attributeCount", "({{count}} attrs)", {
+                    count: c.attributes.length,
+                  })}`
+                : ""
             return (
               <MenuItem key={c.id} value={c.id}>
                 {`${c.name}${extendsHint}${attrHint}`}
@@ -692,7 +723,9 @@ export const ObjectEditPanel: React.FC<PopoverProps> = ({ elementId }) => {
 
       <DividerLine width="100%" />
 
-      <InspectorSectionHeader>Attributes</InspectorSectionHeader>
+      <InspectorSectionHeader>
+        {t("popup.attributes", "Attributes")}
+      </InspectorSectionHeader>
       {nodeData.attributes.map((row, index) => (
         <ObjectAttrRow
           key={row.id}
@@ -734,7 +767,10 @@ export const ObjectEditPanel: React.FC<PopoverProps> = ({ elementId }) => {
           size="small"
           variant="outlined"
           fullWidth
-          placeholder="+ Add attribute (Enter)"
+          placeholder={t(
+            "popup.object.addAttributePlaceholder",
+            "+ Add attribute (Enter)"
+          )}
           value={newAttrName}
           onChange={onAttrChange}
           onKeyDown={onAttrKey}

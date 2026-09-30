@@ -5,6 +5,7 @@ import { useDiagramStore } from "@/store/context"
 import { StateObjectNodeProps } from "@/types"
 import { DividerLine, NodeStyleEditor, Typography } from "@/components/ui"
 import { PopoverProps } from "@/components/popovers/types"
+import { useTranslation } from "@/i18n"
 import { diagramBridge } from "@/services/diagramBridge"
 
 /**
@@ -28,6 +29,7 @@ export const StateObjectNodeEditPanel: React.FC<PopoverProps> = ({
       setNodes: state.setNodes,
     }))
   )
+  const { t } = useTranslation()
   const node = nodes.find((n) => n.id === elementId)
 
   const availableClasses = useMemo(() => {
@@ -66,14 +68,14 @@ export const StateObjectNodeEditPanel: React.FC<PopoverProps> = ({
         size="small"
         variant="outlined"
         fullWidth
-        label="instance name"
+        label={t("popup.state.instanceName", "instance name")}
         value={data.name}
         onChange={(e) => update({ name: e.target.value })}
       />
 
       <Stack direction="row" alignItems="center" spacing={0.5}>
         <Typography variant="caption" sx={{ minWidth: 70 }}>
-          class
+          {t("popup.state.class", "class")}
         </Typography>
         <Select
           size="small"
@@ -93,7 +95,9 @@ export const StateObjectNodeEditPanel: React.FC<PopoverProps> = ({
           }}
           sx={{ flex: 1 }}
         >
-          <MenuItem value="">— Unlinked —</MenuItem>
+          <MenuItem value="">
+            {t("popup.state.unlinked", "— Unlinked —")}
+          </MenuItem>
           {availableClasses.map((c) => (
             <MenuItem key={c.id} value={c.id}>
               {c.name}

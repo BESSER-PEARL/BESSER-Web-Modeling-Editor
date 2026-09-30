@@ -1,5 +1,5 @@
 import { NodeProps, type Node } from "@xyflow/react"
-import { useRef } from "react"
+import { usePopoverAnchor } from "@/hooks/usePopoverAnchor"
 import { DefaultNodeWrapper } from "../wrappers"
 import { PopoverManager } from "@/components/popovers/PopoverManager"
 import { UserModelIconNodeProps } from "@/types"
@@ -18,7 +18,7 @@ export function UserModelIcon({
   height,
   data,
 }: NodeProps<Node<UserModelIconNodeProps>>) {
-  const wrapperRef = useRef<HTMLDivElement | null>(null)
+  const [wrapperEl, wrapperRef] = usePopoverAnchor<HTMLDivElement>()
 
   if (!width || !height) return null
 
@@ -79,7 +79,7 @@ export function UserModelIcon({
         </svg>
       </div>
       <PopoverManager
-        anchorEl={wrapperRef.current}
+        anchorEl={wrapperEl}
         elementId={id}
         type={"UserModelIcon" as const}
       />

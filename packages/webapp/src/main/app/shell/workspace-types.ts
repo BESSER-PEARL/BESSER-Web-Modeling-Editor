@@ -1,5 +1,6 @@
 export type GeneratorType =
   | 'django'
+  | 'spring'
   | 'backend'
   | 'web_app'
   | 'sql'

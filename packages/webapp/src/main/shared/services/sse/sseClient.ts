@@ -1,5 +1,5 @@
 /**
- * Generic POST-body SSE (Server-Sent Events) reader.
+ * Generic fetch-based SSE (Server-Sent Events) reader.
  *
  * The browser's native `EventSource` only supports GET, but we need to
  * POST a JSON body (project payload + BYOK API key) to start a smart-
@@ -28,8 +28,12 @@
 
 export interface StreamSseOptions {
   signal?: AbortSignal;
-  /** Extra headers to merge into the POST request. */
+  /** HTTP method. POST remains the backward-compatible default. */
+  method?: 'GET' | 'POST';
+  /** Extra headers to merge into the request. */
   headers?: Record<string, string>;
+  /** Observe accepted response metadata before the stream body is read. */
+  onResponse?: (response: Response) => void;
   /**
    * Liveness bound: when set, the stream is declared DEAD after this many
    * milliseconds without a single byte arriving, and the generator throws
@@ -48,6 +52,37 @@ export interface StreamSseOptions {
    * go quiet.
    */
   stallTimeoutMs?: number;
+  /**
+   * Bound on the INITIAL response, i.e. how long `fetch` may take to return
+   * its headers. Distinct from `stallTimeoutMs`, which only starts once the
+   * body is being read.
+   *
+   * `stallTimeoutMs` is armed *after* `await fetch(...)` resolves, so it cannot
+   * protect the handshake. A TLS-inspecting corporate proxy holds a response
+   * it intends to scan, and an SSE body never finishes, so the
+   * promise may never settle — no run id, no watchdog, no reconnect, and the UI
+   * hangs forever on a run that completes happily on the server. Bounding the
+   * handshake turns that silent hang into an error the caller can act on.
+   */
+  responseTimeoutMs?: number;
+}
+
+/**
+ * Thrown when `responseTimeoutMs` elapses before the response headers
+ * arrive. Distinct from `SseStallError`: nothing was ever established, so
+ * there is no run to reconnect to — the caller must retry the request
+ * itself, or switch transport.
+ */
+export class SseResponseTimeoutError extends Error {
+  readonly waitedMs: number;
+  constructor(waitedMs: number) {
+    super(
+      `SSE request timed out after ${Math.round(waitedMs / 1000)}s ` +
+        'waiting for response headers',
+    );
+    this.waitedMs = waitedMs;
+    this.name = 'SseResponseTimeoutError';
+  }
 }
 
 export class SseHttpError extends Error {
@@ -96,25 +131,60 @@ function _findFrameBoundary(buffer: string): { idx: number; len: number } | null
 }
 
 /**
- * POST `body` to `url` with `Accept: text/event-stream` and yield each
- * parsed SSE event. The caller is responsible for validating the
- * generic-typed result against its own schema.
+ * Fetch `url` with `Accept: text/event-stream` and yield parsed events.
+ * POST requests JSON-encode `body`; GET requests intentionally omit it.
  */
 export async function* streamSse<T = unknown>(
   url: string,
   body: unknown,
   options: StreamSseOptions = {},
 ): AsyncGenerator<T, void, void> {
-  const response = await fetch(url, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Accept: 'text/event-stream',
-      ...options.headers,
-    },
-    body: JSON.stringify(body),
-    signal: options.signal,
-  });
+  const method = options.method ?? 'POST';
+  const hasBody = method === 'POST' && body !== undefined;
+
+  // Bound the handshake. The caller's AbortSignal still aborts; this adds a
+  // deadline of our own so a proxy that swallows the response headers cannot
+  // park the request forever (see `responseTimeoutMs`).
+  const responseTimeoutMs = options.responseTimeoutMs;
+  const handshakeController = new AbortController();
+  let handshakeTimer: ReturnType<typeof setTimeout> | null = null;
+  let handshakeTimedOut = false;
+  const abortHandshake = () => handshakeController.abort();
+  if (options.signal) {
+    if (options.signal.aborted) handshakeController.abort();
+    else options.signal.addEventListener('abort', abortHandshake, { once: true });
+  }
+  if (typeof responseTimeoutMs === 'number' && responseTimeoutMs > 0) {
+    handshakeTimer = setTimeout(() => {
+      handshakeTimedOut = true;
+      handshakeController.abort();
+    }, responseTimeoutMs);
+  }
+
+  let response: Response;
+  try {
+    response = await fetch(url, {
+      method,
+      headers: {
+        Accept: 'text/event-stream',
+        ...(hasBody ? { 'Content-Type': 'application/json' } : {}),
+        ...options.headers,
+      },
+      body: hasBody ? JSON.stringify(body) : undefined,
+      signal: handshakeController.signal,
+    });
+  } catch (error) {
+    // Our deadline fired, not the caller's abort — report it as such so the
+    // caller retries instead of treating the run as cancelled.
+    if (handshakeTimedOut && !options.signal?.aborted) {
+      throw new SseResponseTimeoutError(responseTimeoutMs as number);
+    }
+    throw error;
+  } finally {
+    if (handshakeTimer) clearTimeout(handshakeTimer);
+    options.signal?.removeEventListener('abort', abortHandshake);
+  }
+  options.onResponse?.(response);
 
   if (!response.ok) {
     let text = '';
@@ -134,6 +204,16 @@ export async function* streamSse<T = unknown>(
   const decoder = new TextDecoder('utf-8');
   let buffer = '';
 
+  // The handshake listener is gone by now, so wire the caller's abort to the
+  // body as well: cancelling the reader ends a parked `read()` as a clean EOF.
+  const cancelOnAbort = () => {
+    void reader.cancel().catch(() => {
+      /* the read loop's own error handling covers the rest */
+    });
+  };
+  if (options.signal?.aborted) cancelOnAbort();
+  else options.signal?.addEventListener('abort', cancelOnAbort, { once: true });
+
   // ---- Stall watchdog (opt-in) ----
   // `reader.cancel()` resolves a pending `read()` as `{done: true}`, so
   // the loop below exits; `stallDetected` then converts that exit into an
@@ -143,17 +223,46 @@ export async function* streamSse<T = unknown>(
   let lastActivityAt = Date.now();
   let stallDetected = false;
   let stallWatchdog: ReturnType<typeof setInterval> | null = null;
+  let releaseWakeChecks: (() => void) | null = null;
   const stallTimeoutMs = options.stallTimeoutMs;
   if (typeof stallTimeoutMs === 'number' && stallTimeoutMs > 0) {
     const checkEveryMs = Math.max(1000, Math.min(5000, Math.floor(stallTimeoutMs / 4)));
-    stallWatchdog = setInterval(() => {
+
+    const checkForStall = () => {
+      if (stallDetected) return;
       if (Date.now() - lastActivityAt >= stallTimeoutMs) {
         stallDetected = true;
         void reader.cancel().catch(() => {
           /* the read loop's own error handling covers the rest */
         });
       }
-    }, checkEveryMs);
+    };
+
+    stallWatchdog = setInterval(checkForStall, checkEveryMs);
+
+    // The interval alone is not enough: browsers throttle `setInterval` in a
+    // backgrounded tab (Chrome ~once a minute, frozen outright once the tab is
+    // discard-eligible), so the reconnect below could otherwise wait on a timer
+    // the browser has stopped running. Re-check the moment the tab is looked
+    // at again.
+    if (typeof document !== 'undefined' && typeof document.addEventListener === 'function') {
+      const onWake = () => {
+        if (document.visibilityState !== 'hidden') checkForStall();
+      };
+      document.addEventListener('visibilitychange', onWake);
+      // Switching applications can leave `visibilityState` as 'visible' while
+      // the tab is occluded and still throttled, so take the window's focus
+      // as a second wake signal.
+      if (typeof window !== 'undefined' && typeof window.addEventListener === 'function') {
+        window.addEventListener('focus', onWake);
+      }
+      releaseWakeChecks = () => {
+        document.removeEventListener('visibilitychange', onWake);
+        if (typeof window !== 'undefined' && typeof window.removeEventListener === 'function') {
+          window.removeEventListener('focus', onWake);
+        }
+      };
+    }
   }
 
   try {
@@ -197,7 +306,6 @@ export async function* streamSse<T = unknown>(
           // Malformed frame — skip and keep going rather than
           // poisoning the stream. Log for dev visibility.
           if (typeof console !== 'undefined') {
-            // eslint-disable-next-line no-console
             console.warn('[streamSse] skipping malformed frame:', payload.slice(0, 200));
           }
           continue;
@@ -208,8 +316,12 @@ export async function* streamSse<T = unknown>(
       throw new SseStallError(Date.now() - lastActivityAt);
     }
   } finally {
+    options.signal?.removeEventListener('abort', cancelOnAbort);
     if (stallWatchdog !== null) {
       clearInterval(stallWatchdog);
+    }
+    if (releaseWakeChecks !== null) {
+      releaseWakeChecks();
     }
     try {
       await reader.cancel();

@@ -12,11 +12,11 @@ const makeNode = (id: string, name: string): Node => ({
 })
 
 // Count writes (set + delete) against a Y.Map by spying on the live instance.
-function spyMapOps(map: Y.Map<unknown>) {
+function spyMapOps<T>(map: Y.Map<T>) {
   const counts = { set: 0, delete: 0 }
   const origSet = map.set.bind(map)
   const origDelete = map.delete.bind(map)
-  map.set = ((k: string, v: unknown) => {
+  map.set = ((k: string, v: T) => {
     counts.set++
     return origSet(k, v)
   }) as typeof map.set
@@ -112,12 +112,10 @@ describe("diagramStore persistence diffing", () => {
     doc.destroy()
   })
 
-  it("toggling node `selected` writes only the changed node, not the whole map", () => {
-    // NOTE: unlike upstream Apollon's stripSelected refinement (explicitly
-    // out of scope for this port -- see playbook §5 pull 1), this port does
-    // not strip `selected` before persisting, so a selection change is still
-    // a real value change and reconcileYMap correctly diffs it as exactly
-    // one write -- never the ~2N (clear + set-all) the old writer produced.
+  it("toggling node `selected` produces ZERO Yjs node writes", () => {
+    // Upstream Apollon #763 stripSelected: runtime interaction flags are
+    // never persisted (`stripRuntimeNodeFlags`), so a selection change is
+    // not a Yjs write / undo entry / peer broadcast at all.
     const doc = new Y.Doc()
     const store = createDiagramStore(doc)
     const nodes = [makeNode("a", "A"), makeNode("b", "B")]
@@ -132,7 +130,7 @@ describe("diagramStore persistence diffing", () => {
       )
     store.getState().setNodes(selected)
 
-    expect(counts.set).toBe(1)
+    expect(counts.set).toBe(0)
     expect(counts.delete).toBe(0)
     doc.destroy()
   })

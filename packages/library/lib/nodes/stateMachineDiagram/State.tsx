@@ -1,5 +1,6 @@
 import { NodeProps, NodeResizer, type Node } from "@xyflow/react"
-import { useEffect, useRef } from "react"
+import { usePopoverAnchor } from "@/hooks/usePopoverAnchor"
+import { useEffect } from "react"
 import { DefaultNodeWrapper } from "../wrappers"
 import { useHandleOnResize } from "@/hooks"
 import { useDiagramModifiable } from "@/hooks/useDiagramModifiable"
@@ -65,7 +66,7 @@ export function State({
   data,
   parentId,
 }: NodeProps<Node<StateNodeProps>>) {
-  const wrapperRef = useRef<HTMLDivElement | null>(null)
+  const [wrapperEl, wrapperRef] = usePopoverAnchor<HTMLDivElement>()
   const { onResize } = useHandleOnResize(parentId)
   const isDiagramModifiable = useDiagramModifiable()
   const setNodes = useDiagramStore((s) => s.setNodes)
@@ -230,7 +231,7 @@ export function State({
         </svg>
       </div>
       <PopoverManager
-        anchorEl={wrapperRef.current}
+        anchorEl={wrapperEl}
         elementId={id}
         type={"State" as const}
       />

@@ -28,18 +28,11 @@ WORKDIR $build_dir
 COPY . .
 
 # Install dependencies and build the application.
-#
-# `strict-ssl false`: this image is built behind LIST's TLS-inspecting corporate
-# proxy, which presents its own CA. The build host trusts that CA (Windows cert
-# store) but the clean node:alpine container does not, so every registry fetch
-# fails TLS verification ("certificate verify failed" → "Exit handler never
-# called!"). Disabling strict TLS is scoped to the builder stage (discarded in
-# the final image) and does NOT weaken supply-chain integrity: npm still verifies
-# every package's sha512 against package-lock.json.
-#
-# `--no-audit --no-fund` skips npm's post-install registry POSTs; the
-# fetch-retry/timeout flags absorb transient corporate-network flakiness.
-RUN npm config set strict-ssl false \
+# Pass --build-arg NPM_STRICT_SSL=false only when building behind a
+# TLS-inspecting proxy whose CA the container does not trust; npm still
+# verifies every package's integrity hash from package-lock.json.
+ARG NPM_STRICT_SSL=true
+RUN npm config set strict-ssl ${NPM_STRICT_SSL} \
     && npm install --no-audit --no-fund \
        --fetch-retries=5 --fetch-retry-mintimeout=20000 --fetch-timeout=600000
 RUN npm run build

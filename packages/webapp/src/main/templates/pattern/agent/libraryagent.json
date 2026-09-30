@@ -5,262 +5,11 @@
   "type": "AgentDiagram",
   "nodes": [
     {
-      "id": "initial_72th6ksf3_mm9b38u1",
-      "type": "StateInitialNode",
-      "position": {
-        "x": 50,
-        "y": 170
-      },
-      "width": 45,
-      "height": 45,
-      "measured": {
-        "width": 45,
-        "height": 45
-      },
-      "data": {
-        "name": ""
-      }
-    },
-    {
-      "id": "intent_jtmr4apyg_mm9b38u1",
-      "type": "AgentIntent",
-      "position": {
-        "x": 490,
-        "y": 690
-      },
-      "width": 410,
-      "height": 190,
-      "measured": {
-        "width": 410,
-        "height": 190
-      },
-      "data": {
-        "name": "OpeningHours",
-        "intent_description": "Asking for the opening hours of the library."
-      }
-    },
-    {
-      "id": "intentBody_jn9sy9wl2_mm9b38u1",
-      "type": "AgentIntentBody",
-      "position": {
-        "x": 1170.5,
-        "y": 860.5
-      },
-      "width": 409,
-      "height": 30,
-      "measured": {
-        "width": 409,
-        "height": 30
-      },
-      "data": {
-        "name": "what are the opening hours?"
-      },
-      "parentId": "intent_jtmr4apyg_mm9b38u1"
-    },
-    {
-      "id": "intentBody_61dj9fnk0_mm9b38u1",
-      "type": "AgentIntentBody",
-      "position": {
-        "x": 1170.5,
-        "y": 890.5
-      },
-      "width": 409,
-      "height": 30,
-      "measured": {
-        "width": 409,
-        "height": 30
-      },
-      "data": {
-        "name": "library hours"
-      },
-      "parentId": "intent_jtmr4apyg_mm9b38u1"
-    },
-    {
-      "id": "intentBody_b8jkj9t1s_mm9b38u1",
-      "type": "AgentIntentBody",
-      "position": {
-        "x": 1170.5,
-        "y": 920.5
-      },
-      "width": 409,
-      "height": 30,
-      "measured": {
-        "width": 409,
-        "height": 30
-      },
-      "data": {
-        "name": "when do you open?"
-      },
-      "parentId": "intent_jtmr4apyg_mm9b38u1"
-    },
-    {
-      "id": "intentBody_jl9eozt0r_mm9b38u1",
-      "type": "AgentIntentBody",
-      "position": {
-        "x": 1170.5,
-        "y": 950.5
-      },
-      "width": 409,
-      "height": 30,
-      "measured": {
-        "width": 409,
-        "height": 30
-      },
-      "data": {
-        "name": "hours of operation"
-      },
-      "parentId": "intent_jtmr4apyg_mm9b38u1"
-    },
-    {
-      "id": "intent_ggq3p9gv8_mm9b38u1",
-      "type": "AgentIntent",
-      "position": {
-        "x": 920,
-        "y": 690
-      },
-      "width": 490,
-      "height": 130,
-      "measured": {
-        "width": 490,
-        "height": 130
-      },
-      "data": {
-        "name": "CheapestBook",
-        "intent_description": ""
-      }
-    },
-    {
-      "id": "intentBody_06wxt0vga_mm9b38u1",
-      "type": "AgentIntentBody",
-      "position": {
-        "x": 1170.5,
-        "y": 830.5
-      },
-      "width": 489,
-      "height": 30,
-      "measured": {
-        "width": 489,
-        "height": 30
-      },
-      "data": {
-        "name": "how to get the title of the cheapest book of an author?"
-      },
-      "parentId": "intent_ggq3p9gv8_mm9b38u1"
-    },
-    {
-      "id": "intentBody_14tgxxf1f_mm9b38u1",
-      "type": "AgentIntentBody",
-      "position": {
-        "x": 1170.5,
-        "y": 860.5
-      },
-      "width": 489,
-      "height": 30,
-      "measured": {
-        "width": 489,
-        "height": 30
-      },
-      "data": {
-        "name": "I want to know the cheapest book"
-      },
-      "parentId": "intent_ggq3p9gv8_mm9b38u1"
-    },
-    {
-      "id": "intentBody_j2ugmtuh8_mm9b38u1",
-      "type": "AgentIntentBody",
-      "position": {
-        "x": 1170.5,
-        "y": 890.5
-      },
-      "width": 489,
-      "height": 30,
-      "measured": {
-        "width": 489,
-        "height": 30
-      },
-      "data": {
-        "name": "which is the cheapest book?"
-      },
-      "parentId": "intent_ggq3p9gv8_mm9b38u1"
-    },
-    {
-      "id": "intent_zuidaui0x_mm9b38u1",
-      "type": "AgentIntent",
-      "position": {
-        "x": 40,
-        "y": 690
-      },
-      "width": 430,
-      "height": 160,
-      "measured": {
-        "width": 430,
-        "height": 160
-      },
-      "data": {
-        "name": "Contact",
-        "intent_description": "Requesting to speak with a human assistant."
-      }
-    },
-    {
-      "id": "intentBody_9kmxc6vnq_mm9b38u1",
-      "type": "AgentIntentBody",
-      "position": {
-        "x": 1170.5,
-        "y": 860.5
-      },
-      "width": 429,
-      "height": 30,
-      "measured": {
-        "width": 429,
-        "height": 30
-      },
-      "data": {
-        "name": "I need to speak to someone"
-      },
-      "parentId": "intent_zuidaui0x_mm9b38u1"
-    },
-    {
-      "id": "intentBody_mxczpzj8h_mm9b38u1",
-      "type": "AgentIntentBody",
-      "position": {
-        "x": 1170.5,
-        "y": 890.5
-      },
-      "width": 429,
-      "height": 30,
-      "measured": {
-        "width": 429,
-        "height": 30
-      },
-      "data": {
-        "name": "contact support"
-      },
-      "parentId": "intent_zuidaui0x_mm9b38u1"
-    },
-    {
-      "id": "intentBody_8yqem5n2k_mm9b38u1",
-      "type": "AgentIntentBody",
-      "position": {
-        "x": 1170.5,
-        "y": 920.5
-      },
-      "width": 429,
-      "height": 30,
-      "measured": {
-        "width": 429,
-        "height": 30
-      },
-      "data": {
-        "name": "human assistance"
-      },
-      "parentId": "intent_zuidaui0x_mm9b38u1"
-    },
-    {
       "id": "state_zl3bfe65n_mm9b38u1",
       "type": "AgentState",
       "position": {
-        "x": 690,
-        "y": 270
+        "x": -170,
+        "y": -30
       },
       "width": 260,
       "height": 70,
@@ -270,35 +19,27 @@
       },
       "data": {
         "name": "Idle",
-        "replyType": "text"
-      }
-    },
-    {
-      "id": "body_wybm5pc31_mm9b38u1",
-      "type": "AgentStateBody",
-      "position": {
-        "x": 1170.5,
-        "y": 830.5
-      },
-      "width": 259,
-      "height": 30,
-      "measured": {
-        "width": 259,
-        "height": 30
-      },
-      "data": {
-        "name": "How can I assist you today?",
         "replyType": "text",
-        "ragDatabaseName": ""
-      },
-      "parentId": "state_zl3bfe65n_mm9b38u1"
+        "stateType": "standard",
+        "fallbackBodyEnabled": true,
+        "bodies": [
+          {
+            "id": "body_wybm5pc31_mm9b38u1",
+            "name": "How can I assist you today?",
+            "replyType": "text",
+            "actionType": "TextReplyAction",
+            "useSessionVars": false,
+            "llm_name": ""
+          }
+        ]
+      }
     },
     {
       "id": "state_j5tnma02n_mm9b38u1",
       "type": "AgentState",
       "position": {
-        "x": 1250,
-        "y": 260
+        "x": 390,
+        "y": -40
       },
       "width": 420,
       "height": 100,
@@ -308,55 +49,35 @@
       },
       "data": {
         "name": "OpeningHoursState",
-        "replyType": "text"
+        "replyType": "text",
+        "stateType": "standard",
+        "fallbackBodyEnabled": true,
+        "bodies": [
+          {
+            "id": "body_a8ph8sxrt_mm9b38u1",
+            "name": "Our opening hours are Monday–Friday 9 AM–6 PM.",
+            "replyType": "text",
+            "actionType": "TextReplyAction",
+            "useSessionVars": false,
+            "llm_name": ""
+          },
+          {
+            "id": "fb1432f7-1778-4c8b-90f3-e471e86cec31",
+            "name": "Saturday 10 AM–4 PM. Closed Sunday.",
+            "replyType": "text",
+            "actionType": "TextReplyAction",
+            "useSessionVars": false,
+            "llm_name": ""
+          }
+        ]
       }
-    },
-    {
-      "id": "body_a8ph8sxrt_mm9b38u1",
-      "type": "AgentStateBody",
-      "position": {
-        "x": 1170.5,
-        "y": 830.5
-      },
-      "width": 419,
-      "height": 30,
-      "measured": {
-        "width": 419,
-        "height": 30
-      },
-      "data": {
-        "name": "Our opening hours are Monday\u2013Friday 9 AM\u20136 PM.",
-        "replyType": "text",
-        "ragDatabaseName": ""
-      },
-      "parentId": "state_j5tnma02n_mm9b38u1"
-    },
-    {
-      "id": "fb1432f7-1778-4c8b-90f3-e471e86cec31",
-      "type": "AgentStateBody",
-      "position": {
-        "x": 1170.5,
-        "y": 860.5
-      },
-      "width": 419,
-      "height": 30,
-      "measured": {
-        "width": 419,
-        "height": 30
-      },
-      "data": {
-        "name": "Saturday 10 AM\u20134 PM. Closed Sunday.",
-        "replyType": "text",
-        "ragDatabaseName": ""
-      },
-      "parentId": "state_j5tnma02n_mm9b38u1"
     },
     {
       "id": "state_krso67h8q_mm9b38u1",
       "type": "AgentState",
       "position": {
-        "x": 1250,
-        "y": 40
+        "x": 390,
+        "y": -260
       },
       "width": 420,
       "height": 190,
@@ -366,115 +87,59 @@
       },
       "data": {
         "name": "CheapestBookState",
-        "replyType": "text"
+        "replyType": "text",
+        "stateType": "standard",
+        "fallbackBodyEnabled": true,
+        "bodies": [
+          {
+            "id": "body_38x5jthwr_mm9b38u1",
+            "name": "To get the cheapest book of an author, follow these steps:",
+            "replyType": "text",
+            "actionType": "TextReplyAction",
+            "useSessionVars": false,
+            "llm_name": ""
+          },
+          {
+            "id": "body_0yl3shkws_mm9b38u1",
+            "name": "1. Go to the Library tab.",
+            "replyType": "text",
+            "actionType": "TextReplyAction",
+            "useSessionVars": false,
+            "llm_name": ""
+          },
+          {
+            "id": "b533e6a5-cc51-4f0d-a269-98bf81a02c31",
+            "name": "2. In the table, select the library where you want to search.",
+            "replyType": "text",
+            "actionType": "TextReplyAction",
+            "useSessionVars": false,
+            "llm_name": ""
+          },
+          {
+            "id": "7c8e27fb-8cce-4f3d-9cc4-19ef5a963b8a",
+            "name": "3. Click on “Cheapest Book”.",
+            "replyType": "text",
+            "actionType": "TextReplyAction",
+            "useSessionVars": false,
+            "llm_name": ""
+          },
+          {
+            "id": "b779be48-1bc4-4984-9274-00c91203552a",
+            "name": "4. Select an author and click “Execute”.",
+            "replyType": "text",
+            "actionType": "TextReplyAction",
+            "useSessionVars": false,
+            "llm_name": ""
+          }
+        ]
       }
-    },
-    {
-      "id": "body_38x5jthwr_mm9b38u1",
-      "type": "AgentStateBody",
-      "position": {
-        "x": 1170.5,
-        "y": 830.5
-      },
-      "width": 419,
-      "height": 30,
-      "measured": {
-        "width": 419,
-        "height": 30
-      },
-      "data": {
-        "name": "To get the cheapest book of an author, follow these steps:",
-        "replyType": "text",
-        "ragDatabaseName": ""
-      },
-      "parentId": "state_krso67h8q_mm9b38u1"
-    },
-    {
-      "id": "body_0yl3shkws_mm9b38u1",
-      "type": "AgentStateBody",
-      "position": {
-        "x": 1170.5,
-        "y": 860.5
-      },
-      "width": 419,
-      "height": 30,
-      "measured": {
-        "width": 419,
-        "height": 30
-      },
-      "data": {
-        "name": "1. Go to the Library tab.",
-        "replyType": "text",
-        "ragDatabaseName": ""
-      },
-      "parentId": "state_krso67h8q_mm9b38u1"
-    },
-    {
-      "id": "b533e6a5-cc51-4f0d-a269-98bf81a02c31",
-      "type": "AgentStateBody",
-      "position": {
-        "x": 1170.5,
-        "y": 890.5
-      },
-      "width": 419,
-      "height": 30,
-      "measured": {
-        "width": 419,
-        "height": 30
-      },
-      "data": {
-        "name": "2. In the table, select the library where you want to search.",
-        "replyType": "text",
-        "ragDatabaseName": ""
-      },
-      "parentId": "state_krso67h8q_mm9b38u1"
-    },
-    {
-      "id": "7c8e27fb-8cce-4f3d-9cc4-19ef5a963b8a",
-      "type": "AgentStateBody",
-      "position": {
-        "x": 1170.5,
-        "y": 920.5
-      },
-      "width": 419,
-      "height": 30,
-      "measured": {
-        "width": 419,
-        "height": 30
-      },
-      "data": {
-        "name": "3. Click on \u201cCheapest Book\u201d.",
-        "replyType": "text",
-        "ragDatabaseName": ""
-      },
-      "parentId": "state_krso67h8q_mm9b38u1"
-    },
-    {
-      "id": "b779be48-1bc4-4984-9274-00c91203552a",
-      "type": "AgentStateBody",
-      "position": {
-        "x": 1170.5,
-        "y": 950.5
-      },
-      "width": 419,
-      "height": 30,
-      "measured": {
-        "width": 419,
-        "height": 30
-      },
-      "data": {
-        "name": "4. Select an author and click \u201cExecute\u201d.",
-        "replyType": "text",
-        "ragDatabaseName": ""
-      },
-      "parentId": "state_krso67h8q_mm9b38u1"
     },
     {
       "id": "state_5emfhqwzt_mm9b38u1",
       "type": "AgentState",
       "position": {
-        "x": 1250,
-        "y": 460
+        "x": 390,
+        "y": 160
       },
       "width": 420,
       "height": 100,
@@ -484,55 +149,35 @@
       },
       "data": {
         "name": "ContactState",
-        "replyType": "text"
+        "replyType": "text",
+        "stateType": "standard",
+        "fallbackBodyEnabled": true,
+        "bodies": [
+          {
+            "id": "body_b6vkku4r1_mm9b38u1",
+            "name": "You can contact a librarian at library@example.com or call +1 555-123-4567.",
+            "replyType": "text",
+            "actionType": "TextReplyAction",
+            "useSessionVars": false,
+            "llm_name": ""
+          },
+          {
+            "id": "body_8i8n5kbs0_mm9b38u1",
+            "name": "They will get back to you shortly.",
+            "replyType": "text",
+            "actionType": "TextReplyAction",
+            "useSessionVars": false,
+            "llm_name": ""
+          }
+        ]
       }
-    },
-    {
-      "id": "body_b6vkku4r1_mm9b38u1",
-      "type": "AgentStateBody",
-      "position": {
-        "x": 1170.5,
-        "y": 830.5
-      },
-      "width": 419,
-      "height": 30,
-      "measured": {
-        "width": 419,
-        "height": 30
-      },
-      "data": {
-        "name": "You can contact a librarian at library@example.com or call +1 555-123-4567.",
-        "replyType": "text",
-        "ragDatabaseName": ""
-      },
-      "parentId": "state_5emfhqwzt_mm9b38u1"
-    },
-    {
-      "id": "body_8i8n5kbs0_mm9b38u1",
-      "type": "AgentStateBody",
-      "position": {
-        "x": 1170.5,
-        "y": 860.5
-      },
-      "width": 419,
-      "height": 30,
-      "measured": {
-        "width": 419,
-        "height": 30
-      },
-      "data": {
-        "name": "They will get back to you shortly.",
-        "replyType": "text",
-        "ragDatabaseName": ""
-      },
-      "parentId": "state_5emfhqwzt_mm9b38u1"
     },
     {
       "id": "46badadf-e50d-481e-8246-3ba2393fce47",
       "type": "AgentState",
       "position": {
-        "x": 190,
-        "y": 160
+        "x": -670,
+        "y": -140
       },
       "width": 340,
       "height": 70,
@@ -542,67 +187,24 @@
       },
       "data": {
         "name": "Greeting",
-        "replyType": "text"
-      }
-    },
-    {
-      "id": "e3aad61a-89b4-46a6-8c16-6f80b861d717",
-      "type": "AgentStateBody",
-      "position": {
-        "x": 1170.5,
-        "y": 830.5
-      },
-      "width": 339,
-      "height": 30,
-      "measured": {
-        "width": 339,
-        "height": 30
-      },
-      "data": {
-        "name": "Welcome to the library support system!",
         "replyType": "text",
-        "ragDatabaseName": ""
-      },
-      "parentId": "46badadf-e50d-481e-8246-3ba2393fce47"
-    },
-    {
-      "id": "0edea0d9-cfa4-48e4-ae68-dfd226aa9f13",
-      "type": "AgentIntent",
-      "position": {
-        "x": 1430,
-        "y": 690
-      },
-      "width": 250,
-      "height": 70,
-      "measured": {
-        "width": 250,
-        "height": 70
-      },
-      "data": {
-        "name": "Other",
-        "intent_description": "Any other question."
+        "stateType": "standard",
+        "fallbackBodyEnabled": true,
+        "bodies": [
+          {
+            "id": "e3aad61a-89b4-46a6-8c16-6f80b861d717",
+            "name": "Welcome to the library support system!",
+            "replyType": "text",
+            "actionType": "TextReplyAction",
+            "useSessionVars": false,
+            "llm_name": ""
+          }
+        ],
+        "initial": true
       }
     }
   ],
   "edges": [
-    {
-      "id": "transition_ixdyt9fr7_mm9b38u1",
-      "source": "initial_72th6ksf3_mm9b38u1",
-      "target": "46badadf-e50d-481e-8246-3ba2393fce47",
-      "type": "AgentStateTransitionInit",
-      "sourceHandle": "right",
-      "targetHandle": "left",
-      "data": {
-        "label": "",
-        "sourceMultiplicity": "",
-        "targetMultiplicity": "",
-        "sourceRole": "",
-        "targetRole": "",
-        "isManuallyLayouted": false,
-        "messages": [],
-        "points": []
-      }
-    },
     {
       "id": "transition_x8h483xz2_mm9b38u1",
       "source": "state_zl3bfe65n_mm9b38u1",
@@ -623,11 +225,27 @@
           "predefinedType": "when_intent_matched",
           "intentName": "OpeningHours"
         },
+        "legacyShape": 1,
         "legacy": {
-          "condition": "when_intent_matched",
-          "conditionValue": "OpeningHours"
+          "transitionType": "predefined",
+          "predefined": {
+            "predefinedType": "when_intent_matched",
+            "intentName": "OpeningHours"
+          },
+          "custom": {
+            "condition": []
+          }
         },
-        "points": []
+        "points": [
+          {
+            "x": 90,
+            "y": 5
+          },
+          {
+            "x": 390,
+            "y": 5
+          }
+        ]
       }
     },
     {
@@ -650,11 +268,31 @@
           "predefinedType": "when_intent_matched",
           "intentName": "CheapestBook"
         },
+        "legacyShape": 1,
         "legacy": {
-          "condition": "when_intent_matched",
-          "conditionValue": "CheapestBook"
+          "transitionType": "predefined",
+          "predefined": {
+            "predefinedType": "when_intent_matched",
+            "intentName": "CheapestBook"
+          },
+          "custom": {
+            "condition": []
+          }
         },
-        "points": []
+        "points": [
+          {
+            "x": 25,
+            "y": -30
+          },
+          {
+            "x": 25,
+            "y": -165
+          },
+          {
+            "x": 390,
+            "y": -165
+          }
+        ]
       }
     },
     {
@@ -677,11 +315,31 @@
           "predefinedType": "when_intent_matched",
           "intentName": "Contact"
         },
+        "legacyShape": 1,
         "legacy": {
-          "condition": "when_intent_matched",
-          "conditionValue": "Contact"
+          "transitionType": "predefined",
+          "predefined": {
+            "predefinedType": "when_intent_matched",
+            "intentName": "Contact"
+          },
+          "custom": {
+            "condition": []
+          }
         },
-        "points": []
+        "points": [
+          {
+            "x": 25,
+            "y": 40
+          },
+          {
+            "x": 25,
+            "y": 210
+          },
+          {
+            "x": 390,
+            "y": 210
+          }
+        ]
       }
     },
     {
@@ -704,11 +362,31 @@
           "predefinedType": "auto",
           "conditionValue": ""
         },
+        "legacyShape": 1,
         "legacy": {
-          "condition": "auto",
-          "conditionValue": ""
+          "transitionType": "predefined",
+          "predefined": {
+            "predefinedType": "auto",
+            "conditionValue": ""
+          },
+          "custom": {
+            "condition": []
+          }
         },
-        "points": []
+        "points": [
+          {
+            "x": 390,
+            "y": -212.5
+          },
+          {
+            "x": -40,
+            "y": -212.5
+          },
+          {
+            "x": -40,
+            "y": -30
+          }
+        ]
       }
     },
     {
@@ -731,11 +409,35 @@
           "predefinedType": "auto",
           "conditionValue": ""
         },
+        "legacyShape": 1,
         "legacy": {
-          "condition": "auto",
-          "conditionValue": ""
+          "transitionType": "predefined",
+          "predefined": {
+            "predefinedType": "auto",
+            "conditionValue": ""
+          },
+          "custom": {
+            "condition": []
+          }
         },
-        "points": []
+        "points": [
+          {
+            "x": 600,
+            "y": 260
+          },
+          {
+            "x": 600,
+            "y": 300
+          },
+          {
+            "x": -40,
+            "y": 300
+          },
+          {
+            "x": -40,
+            "y": 40
+          }
+        ]
       }
     },
     {
@@ -758,11 +460,39 @@
           "predefinedType": "auto",
           "conditionValue": ""
         },
+        "legacyShape": 1,
         "legacy": {
-          "condition": "auto",
-          "conditionValue": ""
+          "transitionType": "predefined",
+          "predefined": {
+            "predefinedType": "auto",
+            "conditionValue": ""
+          },
+          "custom": {
+            "condition": []
+          }
         },
-        "points": []
+        "points": [
+          {
+            "x": 495,
+            "y": 60
+          },
+          {
+            "x": 495,
+            "y": 100
+          },
+          {
+            "x": 240,
+            "y": 100
+          },
+          {
+            "x": 240,
+            "y": 22.5
+          },
+          {
+            "x": 90,
+            "y": 22.5
+          }
+        ]
       }
     },
     {
@@ -785,13 +515,144 @@
           "predefinedType": "auto",
           "conditionValue": ""
         },
+        "legacyShape": 1,
         "legacy": {
-          "condition": "auto",
-          "conditionValue": ""
+          "transitionType": "predefined",
+          "predefined": {
+            "predefinedType": "auto",
+            "conditionValue": ""
+          },
+          "custom": {
+            "condition": []
+          }
         },
-        "points": []
+        "points": [
+          {
+            "x": -330,
+            "y": -87.5
+          },
+          {
+            "x": -250,
+            "y": -87.5
+          },
+          {
+            "x": -250,
+            "y": 5
+          },
+          {
+            "x": -170,
+            "y": 5
+          }
+        ]
       }
     }
   ],
-  "assessments": {}
+  "assessments": {},
+  "components": {
+    "7018084a-2566-49a9-ac3b-2f8c353c3d63": {
+      "id": "7018084a-2566-49a9-ac3b-2f8c353c3d63",
+      "type": "AgentIntent",
+      "name": "Contact",
+      "owner": null,
+      "intent_description": "Requesting to speak with a human assistant.",
+      "bodies": [
+        "18da4d31-627a-437f-bf42-6db4c93d4907",
+        "e7b6fa1a-0fd9-476f-92e2-ffffd398e405",
+        "8b7d84e6-e4c2-46d6-9407-4c342eef5b9b"
+      ]
+    },
+    "508abfa7-29de-43d3-9f89-90c8702c412d": {
+      "id": "508abfa7-29de-43d3-9f89-90c8702c412d",
+      "type": "AgentIntent",
+      "name": "OpeningHours",
+      "owner": null,
+      "intent_description": "Asking for the opening hours of the library.",
+      "bodies": [
+        "818fee5c-d273-4db2-a38a-f64322e7b234",
+        "2f62b4c5-dfb5-4084-a69d-65324f639928",
+        "543cf7d0-dd0e-44fe-9b57-1e9aa49db8d1",
+        "c645775d-2e07-498a-a8c9-dc3653f76a6f"
+      ]
+    },
+    "477435a4-f763-41d9-9298-1d27f540c620": {
+      "id": "477435a4-f763-41d9-9298-1d27f540c620",
+      "type": "AgentIntent",
+      "name": "CheapestBook",
+      "owner": null,
+      "intent_description": "",
+      "bodies": [
+        "c32afae9-9250-41a3-bcae-bb5f81a707f4",
+        "63b2ca7c-35ed-4b01-a3ca-32b8cf524f20",
+        "79212729-4718-4b7b-a86c-3e28d9109d59"
+      ]
+    },
+    "9649a704-ee9f-4edd-a4ed-db1473f79f4c": {
+      "id": "9649a704-ee9f-4edd-a4ed-db1473f79f4c",
+      "type": "AgentIntent",
+      "name": "Other",
+      "owner": null,
+      "intent_description": "Any other question.",
+      "bodies": []
+    },
+    "818fee5c-d273-4db2-a38a-f64322e7b234": {
+      "id": "818fee5c-d273-4db2-a38a-f64322e7b234",
+      "type": "AgentIntentBody",
+      "name": "what are the opening hours?",
+      "owner": "508abfa7-29de-43d3-9f89-90c8702c412d"
+    },
+    "2f62b4c5-dfb5-4084-a69d-65324f639928": {
+      "id": "2f62b4c5-dfb5-4084-a69d-65324f639928",
+      "type": "AgentIntentBody",
+      "name": "library hours",
+      "owner": "508abfa7-29de-43d3-9f89-90c8702c412d"
+    },
+    "543cf7d0-dd0e-44fe-9b57-1e9aa49db8d1": {
+      "id": "543cf7d0-dd0e-44fe-9b57-1e9aa49db8d1",
+      "type": "AgentIntentBody",
+      "name": "when do you open?",
+      "owner": "508abfa7-29de-43d3-9f89-90c8702c412d"
+    },
+    "c645775d-2e07-498a-a8c9-dc3653f76a6f": {
+      "id": "c645775d-2e07-498a-a8c9-dc3653f76a6f",
+      "type": "AgentIntentBody",
+      "name": "hours of operation",
+      "owner": "508abfa7-29de-43d3-9f89-90c8702c412d"
+    },
+    "18da4d31-627a-437f-bf42-6db4c93d4907": {
+      "id": "18da4d31-627a-437f-bf42-6db4c93d4907",
+      "type": "AgentIntentBody",
+      "name": "I need to speak to someone",
+      "owner": "7018084a-2566-49a9-ac3b-2f8c353c3d63"
+    },
+    "e7b6fa1a-0fd9-476f-92e2-ffffd398e405": {
+      "id": "e7b6fa1a-0fd9-476f-92e2-ffffd398e405",
+      "type": "AgentIntentBody",
+      "name": "contact support",
+      "owner": "7018084a-2566-49a9-ac3b-2f8c353c3d63"
+    },
+    "8b7d84e6-e4c2-46d6-9407-4c342eef5b9b": {
+      "id": "8b7d84e6-e4c2-46d6-9407-4c342eef5b9b",
+      "type": "AgentIntentBody",
+      "name": "human assistance",
+      "owner": "7018084a-2566-49a9-ac3b-2f8c353c3d63"
+    },
+    "c32afae9-9250-41a3-bcae-bb5f81a707f4": {
+      "id": "c32afae9-9250-41a3-bcae-bb5f81a707f4",
+      "type": "AgentIntentBody",
+      "name": "how to get the title of the cheapest book of an author?",
+      "owner": "477435a4-f763-41d9-9298-1d27f540c620"
+    },
+    "63b2ca7c-35ed-4b01-a3ca-32b8cf524f20": {
+      "id": "63b2ca7c-35ed-4b01-a3ca-32b8cf524f20",
+      "type": "AgentIntentBody",
+      "name": "I want to know the cheapest book",
+      "owner": "477435a4-f763-41d9-9298-1d27f540c620"
+    },
+    "79212729-4718-4b7b-a86c-3e28d9109d59": {
+      "id": "79212729-4718-4b7b-a86c-3e28d9109d59",
+      "type": "AgentIntentBody",
+      "name": "which is the cheapest book?",
+      "owner": "477435a4-f763-41d9-9298-1d27f540c620"
+    }
+  }
 }

@@ -1,5 +1,5 @@
 /**
- * Smart Generator backend configuration.
+ * Spec-Driven Agent backend configuration.
  *
  * Fetches `GET /besser_api/spec-driven/config` ONCE per page load (the
  * promise is cached at module level) and falls back to hardcoded
@@ -44,8 +44,17 @@ export interface SpecDrivenFreeTier {
   /** The pinned model name (e.g. `qwen3-coder:30b`), or null when unavailable. */
   model: string | null;
   /**
-   * The choosable free models — exactly the server's allowlist (at most the
-   * primary plus a fallback). A single entry (or an old backend that doesn't
+   * The model a research-telemetry (`?pilot=`) session should pre-select, or
+   * null/absent when the server has none configured; everyone else keeps the
+   * ordinary default. Server-owned so it can be swapped without a release.
+   */
+  pilot_model?: string | null;
+  /**
+   * The choosable free models — exactly the server's allowlist, in the
+   * server's preference order (the primary, then any extra models the server
+   * offers on the same endpoint, then a self-hosted fallback if configured).
+   * Rendered verbatim, so the set of free models is a server-config change
+   * with no frontend deploy. A single entry (or an old backend that doesn't
    * advertise the list) means there is no choice to offer.
    */
   models: SpecDrivenFreeModel[];
@@ -56,7 +65,7 @@ export interface SpecDrivenConfig {
   /**
    * How long (seconds) the backend keeps a finished run's output around
    * for download AND in-place editing. Drives the incremental
-   * vibe-modify window: a follow-up run can `mode:'modify'` the previous
+   * modify window: a follow-up run can `mode:'modify'` the previous
    * run only while it's still within this TTL.
    */
   download_ttl_seconds: number;
@@ -69,15 +78,17 @@ export interface SpecDrivenConfig {
 
 /**
  * Hardcoded fallback used when the config endpoint is unreachable (old
- * backend, network failure). Values mirror the backend literals at the
- * time of writing: hard caps 2.0 USD / 900 s, defaults 1.0 USD / 600 s.
+ * backend, network failure).
  */
 export const FALLBACK_SMART_GEN_CONFIG: SpecDrivenConfig = {
+  // Mirrors the backend constants (constants.py). Must not UNDER-state the
+  // real ceilings: a stale fallback silently becomes the binding limit in the
+  // UI and kills runs the backend would have allowed.
   caps: {
-    max_cost_usd_hard_cap: 2.0,
-    max_runtime_seconds_hard_cap: 900,
-    default_max_cost_usd: 1.0,
-    default_max_runtime_seconds: 600,
+    max_cost_usd_hard_cap: 5.0,
+    max_runtime_seconds_hard_cap: 2400,
+    default_max_cost_usd: 5.0,
+    default_max_runtime_seconds: 2400,
   },
   // Mirrors the backend default (BESSER_LLM_DOWNLOAD_TTL_SECONDS = 1800).
   download_ttl_seconds: 1800,
@@ -86,8 +97,9 @@ export const FALLBACK_SMART_GEN_CONFIG: SpecDrivenConfig = {
     anthropic: 'claude-sonnet-4-6',
     openai: 'gpt-4o',
     mistral: 'mistral-large-latest',
+    nebius: 'Qwen/Qwen3-30B-A3B-Instruct-2507',
   },
-  supported_providers: ['anthropic', 'openai', 'mistral'],
+  supported_providers: ['anthropic', 'openai', 'mistral', 'nebius'],
   // Off by default — an old backend that doesn't advertise it must not
   // surface a free option that would 500.
   free_tier: { available: false, model: null, models: [] },
@@ -175,23 +187,54 @@ function _normalizeFreeModels(raw: unknown): SpecDrivenFreeModel[] {
 export function resolveFreeRunModel(
   freeTier: SpecDrivenFreeTier,
   storedChoice: string | null,
+  isPilot = false,
 ): string | undefined {
   if (!storedChoice) return undefined;
   const match = (freeTier.models ?? []).find((m) => m.id === storedChoice);
-  return match && !match.default ? match.id : undefined;
+  if (!match) return undefined;
+  // In a telemetry session, "no llm_model" means the server applies its
+  // pilot_model, so an explicit pick of the public default must be sent.
+  if (isPilot) return match.id;
+  return match.default ? undefined : match.id;
 }
 
 /**
- * Display label for a free-tier model — server-data-first (the id itself),
- * with a short qualifier derived heuristically: the default entry is marked
- * as such; a non-default entry with a bare (Ollama-style, no "/") id is the
- * self-hosted model. No model names are hardcoded. Shared by both BYOK
- * dialogs so the two surfaces present the same choice identically.
+ * Display label for a free-tier model — the id itself plus a short qualifier.
+ * No model names are hardcoded, so the server can add or swap free models on its
+ * own, and both BYOK dialogs present the same choice identically.
+ *
+ * The self-hosted test is the Ollama `name:tag` shape, NOT "has no vendor
+ * prefix": a cloud model such as `gpt-5.6-luna` is also slashless and would be
+ * labelled "(self-hosted)", misleading about who pays. `:free` is excluded
+ * because that suffix marks a vendor's free tier, not our hardware.
  */
 export function freeModelLabel(model: SpecDrivenFreeModel): string {
   if (model.default) return `${model.id} (default)`;
-  if (!model.id.includes('/')) return `${model.id} (self-hosted)`;
+  const isOllamaTag = model.id.includes(':') && !model.id.endsWith(':free');
+  if (isOllamaTag) return `${model.id} (self-hosted)`;
   return model.id;
+}
+
+/**
+ * The free-model id to pre-select, honouring a telemetry session.
+ *
+ * Returns the server's `pilot_model` when this tab is a telemetry session AND the
+ * server still advertises that id as choosable; otherwise the ordinary default.
+ * The advertised-list check matters because pre-selecting an id the server would
+ * refuse just pins the run back to the default with no explanation.
+ *
+ * `isPilot` is injected rather than read here so this stays a pure function.
+ */
+export function preferredFreeModelId(
+  freeTier: SpecDrivenFreeTier,
+  isPilot: boolean,
+): string {
+  const models = freeTier.models ?? [];
+  if (isPilot && freeTier.pilot_model) {
+    const offered = models.some((m) => m.id === freeTier.pilot_model);
+    if (offered) return freeTier.pilot_model;
+  }
+  return defaultFreeModelId(models);
 }
 
 /** The default free-model id from the server's advertised list, or `''`. */
@@ -202,7 +245,7 @@ export function defaultFreeModelId(models: readonly SpecDrivenFreeModel[]): stri
 let _configPromise: Promise<SpecDrivenConfig> | null = null;
 
 /**
- * Resolve the smart-gen config. Never rejects — failures resolve to
+ * Resolve the Spec-Driven Agent config. Never rejects — failures resolve to
  * `FALLBACK_SMART_GEN_CONFIG` (and clear the cache so a later call can
  * retry against a recovered backend).
  */

@@ -95,8 +95,7 @@ describe("NNDiagram v3 → v4 round-trip", () => {
     const conv2d = v4.nodes.find((n) => n.id === "layer-conv2d")!
     const attrs = (conv2d.data as NNLayerNodeProps).attributes
 
-    // Fixture has 6 attribute child elements — name folds onto the
-    // layer's `name`, leaving 5 keys on `data.attributes`.
+    // Fixture has 6 attribute child elements, name included.
     expect(Object.keys(attrs).length).toBeGreaterThanOrEqual(5)
     expect(attrs["kernel_dim"]).toBe("[3, 3]")
     expect(attrs["out_channels"]).toBe("32")
@@ -105,9 +104,9 @@ describe("NNDiagram v3 → v4 round-trip", () => {
     // Boolean normalisation: v3 stores 'true', v4 emits true.
     expect(attrs["permute_in"]).toBe(true)
 
-    // Name was redundant with the layer's own `name` field — not in
-    // the dict.
-    expect("name" in attrs).toBe(false)
+    // The instance name stays on `attributes.name` (what the backend
+    // reads) and mirrors the layer's own `name`.
+    expect(attrs["name"]).toBe((conv2d.data as NNLayerNodeProps).name)
   })
 
   it("disambiguates the `dimension` slug per the layer-kind suffix (open question #2)", () => {
@@ -130,10 +129,10 @@ describe("NNDiagram v3 → v4 round-trip", () => {
     expect(attrs["epochs"]).toBe("20")
     expect(attrs["learning_rate"]).toBe("0.001")
     expect(attrs["optimizer"]).toBe("adam")
-    // Wave-3 NN-9: the legacy v3 spelling `cross_entropy` normalizes to
-    // the backend whitelist value at migration time (develop persisted
-    // the same rewrite on popup mount).
-    expect(attrs["loss_function"]).toBe("crossentropy")
+    // The legacy v3 spelling `cross_entropy` is preserved verbatim: the
+    // migrator never substitutes a different value (the backend reports
+    // out-of-whitelist values as validation errors, as smart-gen did).
+    expect(attrs["loss_function"]).toBe("cross_entropy")
     // `metrics` is a multiselect — never normalized (develop parity).
     expect(attrs["metrics"]).toBe("accuracy")
   })
@@ -801,11 +800,11 @@ describe("SA-FIX-NN-ATTRS: NNContainer / NNReference / Dataset / Configuration",
 })
 
 /**
- * Wave-3 NN-9 — v3 → v4 legacy value normalization. Develop persisted
- * these rewrites on popup mount (`nn-attribute-update.tsx` 133-162,
- * `optional-attribute-row.tsx` 81-102); the migrator now applies them
- * once at import time so every v4 document stays within the backend
- * whitelists.
+ * v3 → v4 lift of out-of-whitelist NN dropdown values. The old editor only
+ * rewrote them when the user opened the attribute popup; the
+ * smart-generator backend received the raw value and reported it as a
+ * validation error. The migrator must therefore preserve the original
+ * value (no silent coercion to a default) so the user sees the real error.
  */
 
 /** Minimal v3 NN model: one element of `layerType` with the given
@@ -853,53 +852,58 @@ const migratedAttrs = (
     .attributes
 }
 
-describe("Wave-3 NN-9: legacy value normalization on v3 → v4 lift", () => {
-  it("rewrites legacy 'zeros' padding to 'valid'", () => {
+describe("v3 → v4 lift preserves out-of-whitelist NN values (no coercion)", () => {
+  it("keeps legacy / invalid padding values verbatim", () => {
     expect(
       migratedAttrs("Conv2DLayer", [["PaddingTypeAttributeConv2D", "zeros"]])[
         "padding_type"
       ]
-    ).toBe("valid")
+    ).toBe("zeros")
+    expect(
+      migratedAttrs("Conv2DLayer", [["PaddingTypeAttributeConv2D", "Same"]])[
+        "padding_type"
+      ]
+    ).toBe("Same")
     expect(
       migratedAttrs("PoolingLayer", [["PaddingTypeAttributePooling", "zeros"]])[
         "padding_type"
       ]
-    ).toBe("valid")
+    ).toBe("zeros")
   })
 
-  it("rewrites a numeric pooling dimension to '2D' under the qualified key", () => {
+  it("keeps a numeric pooling dimension verbatim under the qualified key", () => {
     const attrs = migratedAttrs("PoolingLayer", [
       ["DimensionAttributePooling", "2"],
     ])
-    expect(attrs["pooling.dimension"]).toBe("2D")
+    expect(attrs["pooling.dimension"]).toBe("2")
     expect("dimension" in attrs).toBe(false)
   })
 
-  it("rewrites an out-of-whitelist BatchNorm dimension to '2D'", () => {
+  it("keeps an out-of-whitelist BatchNorm dimension verbatim", () => {
     expect(
       migratedAttrs("BatchNormalizationLayer", [
         ["DimensionAttributeBatchNormalization", "3"],
       ])["batch_normalization.dimension"]
-    ).toBe("2D")
+    ).toBe("3")
   })
 
-  it("rewrites 'cross_entropy' to 'crossentropy'", () => {
+  it("keeps invalid optimizer / loss / pooling type / return type values", () => {
+    const cfg = migratedAttrs("Configuration", [
+      ["LossFunctionAttributeConfiguration", "cross_entropy"],
+      ["OptimizerAttributeConfiguration", "rmsprop"],
+    ])
+    expect(cfg["loss_function"]).toBe("cross_entropy")
+    expect(cfg["optimizer"]).toBe("rmsprop")
     expect(
-      migratedAttrs("Configuration", [
-        ["LossFunctionAttributeConfiguration", "cross_entropy"],
-      ])["loss_function"]
-    ).toBe("crossentropy")
-  })
-
-  it("rewrites legacy return_type 'output' to the migration default 'full'", () => {
-    // Known deliberate deviation from develop's widget-config default
-    // ('last') — the migration schema default wins (see the Wave-3
-    // brief / `normalizeLegacyNNDropdownValue`).
+      migratedAttrs("PoolingLayer", [["PoolingTypeAttributePooling", "avg"]])[
+        "pooling_type"
+      ]
+    ).toBe("avg")
     expect(
       migratedAttrs("RNNLayer", [["ReturnTypeAttributeRNN", "output"]])[
         "return_type"
       ]
-    ).toBe("full")
+    ).toBe("output")
   })
 
   it("keeps whitelisted values untouched", () => {

@@ -24,6 +24,7 @@
  */
 
 import React from 'react';
+import { toast } from 'react-toastify';
 import { configureStore } from '@reduxjs/toolkit';
 import { Provider } from 'react-redux';
 import { act, render, waitFor } from '@testing-library/react';
@@ -39,9 +40,11 @@ import { workspaceReducer } from '../../../../app/store/workspaceSlice';
 import { errorReducer } from '../../../../app/store/errorManagementSlice';
 import { useSpecDrivenTrigger, type SpecDrivenRunResult } from '../useSpecDrivenTrigger';
 import { sanitizeMessageForPersist } from '../../../assistant/hooks/assistantConversationStore';
+import { SseHttpError } from '../../../../shared/services/sse/sseClient';
 import type { SpecDrivenEvent, TriggerSpecDrivenPayload } from '../../types';
 import {
   cancelSpecDrivenUrl,
+  localStorageSpecDrivenActiveRunV1,
   sessionStorageSpecDrivenApiKey,
   sessionStorageSpecDrivenFreeModel,
   sessionStorageSpecDrivenFreeTier,
@@ -67,15 +70,19 @@ vi.mock('../../../../shared/utils/download', () => ({
 // Mock the SSE client — tests feed scripted events via a shared queue.
 const _mockController: {
   events: SpecDrivenEvent[];
+  followEvents: SpecDrivenEvent[];
+  followError: Error | null;
   abortCalled: boolean;
   throwOnStart: Error | null;
 } = {
   events: [],
+  followEvents: [],
+  followError: null,
   abortCalled: false,
   throwOnStart: null,
 };
 
-// Mock the smart-gen config so the modify-vs-fresh decision in startRun
+// Mock the spec-driven config so the modify-vs-fresh decision in startRun
 // resolves synchronously to the fallback (download_ttl_seconds) WITHOUT
 // hitting `fetch` — the "nothing written to disk" assertions below count
 // every fetch call, and the config lookup is unrelated to the download.
@@ -88,6 +95,17 @@ vi.mock('../../services/specDrivenConfig', async (importOriginal) => {
 });
 
 vi.mock('../../services/specDrivenSseClient', () => ({
+  followSpecDrivenRun: vi.fn(() => {
+    const scripted = [..._mockController.followEvents];
+    return {
+      controller: new AbortController(),
+      abort: vi.fn(),
+      events: (async function* () {
+        for (const event of scripted) yield event;
+        if (_mockController.followError) throw _mockController.followError;
+      })(),
+    };
+  }),
   startSpecDrivenRun: vi.fn((_params) => {
     if (_mockController.throwOnStart) throw _mockController.throwOnStart;
     const scripted = [..._mockController.events];
@@ -233,9 +251,12 @@ function clearSessionKeyManual() {
 
 beforeEach(async () => {
   _mockController.events = [];
+  _mockController.followEvents = [];
+  _mockController.followError = null;
   _mockController.abortCalled = false;
   _mockController.throwOnStart = null;
   clearSessionKeyManual();
+  window.localStorage?.clear();
   vi.clearAllMocks();
   // clearAllMocks wipes call data but NOT implementations, so re-establish
   // the config mock's default (free tier OFF) — a test that overrides it to
@@ -248,6 +269,7 @@ beforeEach(async () => {
 
 afterEach(() => {
   clearSessionKeyManual();
+  window.localStorage?.clear();
 });
 
 // Reusable scripted event sequence representing a successful run.
@@ -267,6 +289,87 @@ const HAPPY_EVENTS: SpecDrivenEvent[] = [
     recipe: { instructions: 'build a thing', generator_used: 'fastapi_backend' },
   },
 ];
+
+
+describe('useSpecDrivenTrigger — durable reload recovery', () => {
+  it('replays a saved active run into a new card and clears the pointer on done', async () => {
+    const values = new Map<string, string>();
+    const fakeLocalStorage: Storage = {
+      get length() { return values.size; },
+      clear: () => values.clear(),
+      getItem: (key) => values.get(key) ?? null,
+      key: (index) => [...values.keys()][index] ?? null,
+      removeItem: (key) => { values.delete(key); },
+      setItem: (key, value) => { values.set(key, String(value)); },
+    };
+    Object.defineProperty(window, 'localStorage', {
+      configurable: true,
+      value: fakeLocalStorage,
+    });
+
+    const runId = 'e'.repeat(32);
+    fakeLocalStorage.setItem(
+      localStorageSpecDrivenActiveRunV1,
+      JSON.stringify({
+        version: 1,
+        runId,
+        projectId: 'test-project',
+        lastSequence: 2,
+        startedAt: Date.now() - 1_000,
+      }),
+    );
+    _mockController.followEvents = [
+      {
+        event: 'start', runId, provider: 'anthropic', llmModel: 'claude-sonnet-4-6',
+        maxCost: 1, maxRuntime: 600, sequence: 1,
+      },
+      { event: 'phase', phase: 'generate', message: 'building', sequence: 2 },
+      {
+        event: 'done', runId, downloadUrl: `/download/${runId}`,
+        fileName: 'recovered.zip', isZip: true, recipe: {}, sequence: 3,
+      },
+    ];
+    const onRunFinished = vi.fn();
+
+    const { apiRef } = renderHarness({ onRunFinished });
+
+    await waitFor(() => expect(onRunFinished).toHaveBeenCalledTimes(1));
+    const client = await import('../../services/specDrivenSseClient');
+    expect(vi.mocked(client.followSpecDrivenRun)).toHaveBeenCalledWith(runId, 0);
+    expect(onRunFinished).toHaveBeenCalledWith(
+      expect.objectContaining({ ok: true, runId, fileName: 'recovered.zip' }),
+    );
+    expect(fakeLocalStorage.getItem(localStorageSpecDrivenActiveRunV1)).toBeNull();
+    const card = (apiRef.current!.getMessages() as any[]).find((message) => message.specDriven);
+    expect(card.specDriven.status).toBe('done');
+  });
+
+  it('clears an active pointer whose backend record has expired', async () => {
+    const runId = 'd'.repeat(32);
+    window.localStorage.setItem(
+      localStorageSpecDrivenActiveRunV1,
+      JSON.stringify({
+        version: 1,
+        runId,
+        projectId: 'test-project',
+        lastSequence: 0,
+        startedAt: Date.now() - 60_000,
+      }),
+    );
+    _mockController.followError = new SseHttpError(404, 'not found');
+    const onRunFinished = vi.fn();
+
+    renderHarness({ onRunFinished });
+
+    await waitFor(() => expect(onRunFinished).toHaveBeenCalledTimes(1));
+    expect(onRunFinished).toHaveBeenCalledWith(
+      expect.objectContaining({ ok: false, runId }),
+    );
+    expect(
+      window.localStorage.getItem(localStorageSpecDrivenActiveRunV1),
+    ).toBeNull();
+  });
+});
 
 
 describe('useSpecDrivenTrigger — happy path', () => {
@@ -940,6 +1043,39 @@ describe('useSpecDrivenTrigger — onRunFinished (agent loop)', () => {
     );
   });
 
+  it('explains an abandoned run as a disconnect stop rather than a provider error', async () => {
+    setSessionKey();
+    _mockController.events = [
+      { event: 'start', runId: '9'.repeat(32), provider: 'anthropic', llmModel: 'claude-sonnet-4-6', maxCost: 1.0, maxRuntime: 600 },
+      {
+        event: 'error',
+        code: 'CANCELLED',
+        reason: 'abandoned',
+        resumeAvailable: false,
+        message: 'No browser reconnected before the grace period ended.',
+      },
+    ];
+    const onRunFinished = vi.fn();
+    const { apiRef } = renderHarness({ onRunFinished });
+
+    await act(async () => {
+      await apiRef.current!.handleTrigger(PAYLOAD);
+    });
+
+    await waitFor(() => expect(onRunFinished).toHaveBeenCalledTimes(1));
+    const messages = apiRef.current!.getMessages() as any[];
+    expect(
+      messages.some((message) =>
+        message.content?.includes('Generation stopped after disconnect'),
+      ),
+    ).toBe(true);
+    expect(
+      messages.some((message) =>
+        message.content?.includes('Spec-Driven Agent error (CANCELLED)'),
+      ),
+    ).toBe(false);
+  });
+
   it('treats a clean SSE EOF without a terminal event as an error', async () => {
     setSessionKey();
     _mockController.events = [];
@@ -1175,7 +1311,7 @@ describe('useSpecDrivenTrigger — run budget from sessionStorage', () => {
 });
 
 describe('useSpecDrivenTrigger — live cost meter state', () => {
-  it('mirrors start budgets and cost events onto the smart-gen card state', async () => {
+  it('mirrors start budgets and cost events onto the spec-driven card state', async () => {
     setSessionKey();
     _mockController.events = HAPPY_EVENTS;
     globalThis.fetch = vi.fn().mockResolvedValue(
@@ -1286,7 +1422,7 @@ describe('useSpecDrivenTrigger — honest completion copy', () => {
         ...(HAPPY_EVENTS[HAPPY_EVENTS.length - 1] as any),
         incomplete: true,
         incompleteReason:
-          'The app was built but 2 blocker-level issue(s) remain that likely stop it from running.',
+          'The app was generated, but 2 unresolved implementation or verification issues remain.',
         blockerCount: 2,
       },
     ];
@@ -1301,15 +1437,23 @@ describe('useSpecDrivenTrigger — honest completion copy', () => {
     });
     const msgs = apiRef.current!.getMessages() as any[];
     const summary = msgs.find(
-      (m) => typeof m.content === 'string' && m.content.includes('unresolved issue'),
+      (m) => typeof m.content === 'string' && m.content.includes('unresolved implementation'),
     );
     expect(summary).toBeTruthy();
-    expect(summary.content).toContain('finished with 2 unresolved issues');
-    expect(summary.content).toContain('resume the run');
+    expect(summary.content).toContain('finished with 2 unresolved implementation or verification issues');
+    expect(summary.content).toContain('not verified complete');
+    expect(summary.content).not.toContain('stop the app from running');
+    expect(summary.content).toContain('Start a follow-up generation');
     // A completed-with-blockers run did NOT stop early — never say it did.
     expect(summary.content).not.toContain('stopped early');
     expect(results[0].blockerCount).toBe(2);
     expect(results[0].incomplete).toBe(true);
+    const card = msgs.find((m) => m.specDriven).specDriven;
+    expect(card.incomplete).toBe(true);
+    expect(card.blockerCount).toBe(2);
+    expect(card.incompleteReason).toContain('2 unresolved implementation');
+    expect(toast.success).not.toHaveBeenCalled();
+    expect(toast.warning).toHaveBeenCalledWith('Generation incomplete — output available to inspect');
   });
 
   it('keeps the cut-short framing for runs that genuinely stopped early', async () => {
@@ -1337,6 +1481,9 @@ describe('useSpecDrivenTrigger — honest completion copy', () => {
         ),
       ).toBe(true);
     });
+    const card = (apiRef.current!.getMessages() as any[]).find((m) => m.specDriven).specDriven;
+    expect(card.incomplete).toBe(true);
+    expect(toast.success).not.toHaveBeenCalled();
   });
 });
 

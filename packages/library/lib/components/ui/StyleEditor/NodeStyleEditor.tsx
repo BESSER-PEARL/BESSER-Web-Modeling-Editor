@@ -4,6 +4,7 @@ import { PaintRollerIcon } from "@/components/Icon/PaintRollerIcon"
 import { CrossIcon } from "@/components/Icon"
 import { ColorButton, ColorButtons } from "./ColorButtons"
 import { DefaultNodeProps } from "@/types"
+import { useTranslation } from "@/i18n"
 
 interface NodeStyleEditorProps {
   nodeData: DefaultNodeProps
@@ -83,24 +84,25 @@ export const NodeStyleEditor: React.FC<NodeStyleEditorProps> = ({
   nodeData,
   handleDataFieldUpdate,
   sideElements = [],
-  inputPlaceholder = "Enter node name",
+  inputPlaceholder,
   noStrokeUpdate = false,
   showNameInputChange = true,
   isMultilineName = false,
   title,
   preElements = [],
 }) => {
+  const { t } = useTranslation()
   // Three small literals; re-computed on every render is cheaper than memoizing.
   const colorFields: { key: keyof DefaultNodeProps; label: string }[] =
     noStrokeUpdate
       ? [
-          { key: "fillColor", label: "Fill Color" },
-          { key: "textColor", label: "Text Color" },
+          { key: "fillColor", label: t("stylePane.fillColor", "Fill Color") },
+          { key: "textColor", label: t("stylePane.textColor", "Text Color") },
         ]
       : [
-          { key: "fillColor", label: "Fill Color" },
-          { key: "strokeColor", label: "Line Color" },
-          { key: "textColor", label: "Text Color" },
+          { key: "fillColor", label: t("stylePane.fillColor", "Fill Color") },
+          { key: "strokeColor", label: t("stylePane.lineColor", "Line Color") },
+          { key: "textColor", label: t("stylePane.textColor", "Text Color") },
         ]
 
   const [paintOpen, setPaintOpen] = useState(false)
@@ -130,7 +132,10 @@ export const NodeStyleEditor: React.FC<NodeStyleEditorProps> = ({
             sx={{ flex: 1 }}
             size="small"
             value={nodeData.name ?? ""}
-            placeholder={inputPlaceholder}
+            placeholder={
+              inputPlaceholder ??
+              t("stylePane.enterNodeName", "Enter node name")
+            }
             // Only enable multiline — which lets Enter insert a hard line
             // break — for node types whose SVG actually wraps the label.
             // Single-line nodes keep their classic single-line <input>.
@@ -141,7 +146,7 @@ export const NodeStyleEditor: React.FC<NodeStyleEditorProps> = ({
         )}
         <PaintRollerIcon
           onClick={() => setPaintOpen(!paintOpen)}
-          aria-label="Toggle color settings"
+          aria-label={t("stylePane.toggleColorSettings", "Toggle color settings")}
         />
 
         {sideElements.map((element, index) => (
@@ -193,7 +198,7 @@ export const NodeStyleEditor: React.FC<NodeStyleEditorProps> = ({
                 style={styles.resetButton}
                 onClick={() => handleDataFieldUpdate(activeColorField, "")}
               >
-                Reset
+                {t("stylePane.reset", "Reset")}
               </button>
             </div>
           )}
