@@ -174,6 +174,8 @@ export const AgentSimulationPanel: React.FC<AgentSimulationPanelProps> = ({ open
                 size="sm"
                 className="h-7 gap-1.5 px-2 text-xs text-muted-foreground hover:text-foreground"
                 onClick={handleReset}
+                // A second restart while one is starting would orphan a session.
+                disabled={status === 'starting'}
                 title={t('agentSimulation.panel.restart')}
               >
                 <RotateCcw className="size-3.5" />

@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { defineConfig, loadEnv } from 'vite';
 import react from '@vitejs/plugin-react';
@@ -5,6 +6,8 @@ import svgr from 'vite-plugin-svgr';
 
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '');
+  // Stamped into JSON exports as `editorVersion`.
+  const editorVersion: string = JSON.parse(readFileSync(path.resolve(__dirname, 'package.json'), 'utf-8')).version;
 
   return {
     plugins: [react(), svgr()],
@@ -28,6 +31,7 @@ export default defineConfig(({ mode }) => {
       'process.env.POSTHOG_HOST': JSON.stringify(env.POSTHOG_HOST ?? ''),
       'process.env.POSTHOG_KEY': JSON.stringify(env.POSTHOG_KEY ?? ''),
       'process.env.UML_BOT_WS_URL': JSON.stringify(env.UML_BOT_WS_URL ?? ''),
+      'process.env.EDITOR_VERSION': JSON.stringify(editorVersion),
     },
     server: {
       host: '0.0.0.0',

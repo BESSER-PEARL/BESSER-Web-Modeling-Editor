@@ -8,6 +8,7 @@ import { TypingIndicator } from "@/components/chatbot-kit/ui/typing-indicator"
 type AdditionalMessageOptions = Omit<ChatMessageProps, keyof Message>
 
 interface MessageListProps {
+  typingLabel?: string
   messages: Message[]
   showTimeStamps?: boolean
   isTyping?: boolean
@@ -20,6 +21,7 @@ export function MessageList({
   messages,
   showTimeStamps = true,
   isTyping = false,
+  typingLabel,
   messageOptions,
 }: MessageListProps) {
   return (
@@ -39,7 +41,7 @@ export function MessageList({
           />
         )
       })}
-      {isTyping && <TypingIndicator />}
+      {isTyping && <TypingIndicator label={typingLabel} />}
     </div>
   )
 }

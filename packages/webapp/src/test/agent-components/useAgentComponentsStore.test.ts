@@ -89,4 +89,21 @@ describe('useAgentComponentsStore', () => {
     expect(components.legacy.bounds).toBeUndefined();
     expect(Object.values(components).map((c) => c.type).sort()).toEqual(['AgentLLM', 'AgentSkill']);
   });
+
+  it('keeps an older project hand-written config YAML when a SQL database is added', () => {
+    const handWritten = 'custom:\n  answer: 42';
+    const project = loadProject() as BesserProject;
+    const agent = { ...project.diagrams.AgentDiagram[0], configYaml: handWritten } as never;
+    delete (agent as { agentConfigForm?: unknown }).agentConfigForm;
+    delete (agent as { agentConfigCustomYaml?: unknown }).agentConfigCustomYaml;
+    project.diagrams.AgentDiagram[0] = agent;
+    ProjectStorageRepository.saveProject(project);
+
+    const { result } = renderHook(() => useAgentComponentsStore());
+    act(() => { result.current.addSqlDatabase(); });
+
+    const stored = storedAgentDiagram();
+    expect(stored.configYaml).toContain('answer: 42');
+    expect(stored.agentConfigCustomYaml).toBe(handWritten);
+  });
 });

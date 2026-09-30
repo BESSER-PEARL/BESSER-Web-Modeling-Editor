@@ -8,11 +8,54 @@ import {
   StoredUserProfile,
 } from '../services/storage/local-storage-types';
 import { normalizeProjectName } from './projectName';
+import { EDITOR_VERSION } from '../constants/constant';
+import { getCachedBesserVersion } from '../services/besserVersion';
 
 export const PROJECT_EXPORT_VERSION = '2.0.0';
 
 export type ExportableProjectPayload = Omit<BesserProject, 'diagrams'> & {
   diagrams: Record<string, ProjectDiagram[]>;
+};
+
+/** Filter a cloned payload without changing active or legacy referenced models. */
+const filterProjectDiagrams = (
+  payload: ExportableProjectPayload,
+  selectedDiagramTypes?: SupportedDiagramType[],
+): ExportableProjectPayload => {
+  const originalDiagrams = payload.diagrams;
+  const filtered: Record<string, ProjectDiagram[]> = {};
+  const indices = { ...payload.currentDiagramIndices };
+
+  for (const [type, diagrams] of Object.entries(originalDiagrams)) {
+    const diagramType = type as SupportedDiagramType;
+    const arr = Array.isArray(diagrams) ? diagrams : [];
+    const active = arr[indices[diagramType] ?? 0] ?? arr[0];
+    indices[diagramType] = 0;
+    if (selectedDiagramTypes?.length && !selectedDiagramTypes.includes(diagramType)) continue;
+    const withContent = arr.filter(diagramHasContent);
+    if (!withContent.length) continue;
+    filtered[type] = withContent;
+    // Filtering [empty, A, B] must not turn active index 1 (A) into B.
+    // If the active diagram itself was empty, select the first retained one.
+    indices[diagramType] = Math.max(0, withContent.indexOf(active));
+  }
+
+  for (const diagrams of Object.values(filtered)) {
+    for (const diagram of diagrams) {
+      if (!diagram.references) continue;
+      // Older imported projects can still contain numeric references despite
+      // the current string-ID type. Resolve them against the ORIGINAL arrays.
+      for (const [type, reference] of Object.entries(diagram.references)) {
+        if (typeof reference !== 'number' || !Number.isInteger(reference) || reference < 0) continue;
+        const referenced = originalDiagrams[type]?.[reference];
+        if (referenced?.id) diagram.references[type as SupportedDiagramType] = referenced.id;
+      }
+    }
+  }
+
+  payload.diagrams = filtered;
+  payload.currentDiagramIndices = indices;
+  return payload;
 };
 
 /**
@@ -84,22 +127,7 @@ export const buildExportableProjectPayload = (
   const projectClone = structuredClone(project) as ExportableProjectPayload;
   projectClone.name = normalizeProjectName(projectClone.name || 'project');
 
-  // Filter out empty diagrams from each type, then remove types with no content
-  const filtered: Record<string, ProjectDiagram[]> = {};
-  for (const [type, diagrams] of Object.entries(projectClone.diagrams)) {
-    if (selectedDiagramTypes && selectedDiagramTypes.length > 0 && !selectedDiagramTypes.includes(type as SupportedDiagramType)) {
-      continue;
-    }
-    const arr = Array.isArray(diagrams) ? diagrams : [];
-    const withContent = (arr as ProjectDiagram[]).filter(diagramHasContent);
-    if (withContent.length > 0) {
-      filtered[type] = withContent;
-    }
-  }
-
-  projectClone.diagrams = filtered;
-
-  return projectClone;
+  return filterProjectDiagrams(projectClone, selectedDiagramTypes);
 };
 
 /**
@@ -113,33 +141,7 @@ export const buildProjectPayloadForBackend = (
   project: BesserProject,
   selectedDiagramTypes?: SupportedDiagramType[],
 ): Record<string, unknown> => {
-  const payload = structuredClone(project);
-  payload.name = normalizeProjectName(payload.name || 'project');
-
-  // Filter out empty diagrams, then remove types with no content
-  const diagrams: Record<string, ProjectDiagram[]> = {};
-  for (const type of Object.keys(payload.diagrams)) {
-    const arr = payload.diagrams[type];
-    if (Array.isArray(arr)) {
-      const withContent = arr.filter(diagramHasContent);
-      if (withContent.length > 0) {
-        diagrams[type] = withContent;
-      }
-    }
-  }
-
-  // Optionally filter to only the requested diagram types
-  if (selectedDiagramTypes && selectedDiagramTypes.length > 0) {
-    const filtered: Record<string, ProjectDiagram[]> = {};
-    for (const type of selectedDiagramTypes) {
-      if (diagrams[type]) {
-        filtered[type] = diagrams[type];
-      }
-    }
-    payload.diagrams = filtered;
-  } else {
-    payload.diagrams = diagrams;
-  }
+  const payload = buildExportableProjectPayload(project, selectedDiagramTypes);
 
   const agentDiagrams = payload.diagrams.AgentDiagram;
   if (Array.isArray(agentDiagrams)) {
@@ -164,7 +166,12 @@ export const buildProjectPayloadForBackend = (
 export interface ProjectExportEnvelope {
   project: ExportableProjectPayload;
   exportedAt: string;
+  /** Envelope format version ({@link PROJECT_EXPORT_VERSION}); not the project's `schemaVersion`. */
   version: string;
+  /** BESSER version the backend reported; absent when it could not be reached. */
+  besserVersion?: string;
+  /** Webapp version that wrote the file. */
+  editorVersion?: string;
   /**
    * Optional bundled personalization state. Lives in localStorage at runtime
    * (besser_agentConfigs, besser_userProfiles, besser_agentProfileMappings,
@@ -189,6 +196,18 @@ export interface BuildProjectExportEnvelopeOptions {
   includePersonalization?: boolean;
 }
 
+/**
+ * `besserVersion` / `editorVersion` for an exported JSON file, each omitted when unknown.
+ * Call `loadBesserVersion()` first where the backend version should be included.
+ */
+export function versionMetadata(): { besserVersion?: string; editorVersion?: string } {
+  const besserVersion = getCachedBesserVersion();
+  return {
+    ...(besserVersion ? { besserVersion } : {}),
+    ...(EDITOR_VERSION ? { editorVersion: EDITOR_VERSION } : {}),
+  };
+}
+
 /** Build a V2 project-export envelope (project + exportedAt + version). */
 export function buildProjectExportEnvelope(
   project: BesserProject,
@@ -201,6 +220,7 @@ export function buildProjectExportEnvelope(
     project: buildExportableProjectPayload(project, diagramTypes),
     exportedAt: new Date().toISOString(),
     version: PROJECT_EXPORT_VERSION,
+    ...versionMetadata(),
   };
 
   if (includePersonalization) {

@@ -9,6 +9,7 @@ import { computeBoundingBoxForElements, IBoundary } from '../../../utils/geometr
 import * as Apollon from '../../../typings';
 import {
   computeTextPositionForUMLAssociation,
+  markerLengthForUMLAssociation,
   getMarkersForUMLAssociation,
   layoutTextForUMLAssociation,
 } from './uml-association-component';
@@ -117,11 +118,19 @@ export abstract class UMLAssociation extends UMLRelationship implements IUMLAsso
     // anchor point = endOfPath + this.position
     const markers = getMarkersForUMLAssociation(this);
     const path = this.path.map((point) => new Point(point.x, point.y));
-    const sourceAnchor: Point = computeTextPositionForUMLAssociation(path, !!markers.source).add(
+    const sourceAnchor: Point = computeTextPositionForUMLAssociation(
+      path,
+      !!markers.source,
+      markerLengthForUMLAssociation(markers.source),
+    ).add(
       this.bounds.x,
       this.bounds.y,
     );
-    const targetAnchor: Point = computeTextPositionForUMLAssociation(path.reverse(), !!markers.target).add(
+    const targetAnchor: Point = computeTextPositionForUMLAssociation(
+      path.reverse(),
+      !!markers.target,
+      markerLengthForUMLAssociation(markers.target),
+    ).add(
       this.bounds.x,
       this.bounds.y,
     );

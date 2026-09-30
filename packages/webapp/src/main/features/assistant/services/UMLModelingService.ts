@@ -40,6 +40,8 @@ export interface SystemSpec {
     sourceMultiplicity?: string;
     targetMultiplicity?: string;
     name?: string;
+    sourceRole?: string;
+    associationClass?: string | null;
   }>;
 }
 
