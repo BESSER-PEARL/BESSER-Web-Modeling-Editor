@@ -133,7 +133,9 @@ export const formatObjectMember = (
 export const formatDisplayName = (
   member: ClassifierMemberLike,
   mode: "UML" | "ER" = "UML",
-  stereotype?: string | null
+  stereotype?: string | null,
+  /** Method rows always render as a signature: `name()` even without parameters. */
+  isMethod = false
 ): string => {
   const visSymbol = VISIBILITY_SYMBOLS[member.visibility ?? "public"] || "+"
   const derivedPrefix = member.isDerived ? "/" : ""
@@ -167,6 +169,12 @@ export const formatDisplayName = (
   ) {
     bareName = bareName.replace(/\s*:\s*[^:]+$/, "")
   }
+  // A legacy fused method signature can also carry its return type
+  // ("notify(sms: str): any"); the structured type is appended below, so
+  // drop the trailing one to avoid "…): any: any".
+  if (member.attributeType && /\)\s*:\s*[^():]+$/.test(bareName)) {
+    bareName = bareName.replace(/\)\s*:\s*[^():]+$/, ")")
+  }
 
   // Method rows authored through the v4 inspector store a bare `name`
   // plus structured `parameters[]` — rebuild the `(p: type, …)` segment
@@ -182,6 +190,10 @@ export const formatDisplayName = (
       .map((p) => (p.parameterType ? `${p.name}: ${p.parameterType}` : p.name))
       .join(", ")
     bareName = `${bareName}(${paramList})`
+  } else if (isMethod && bareName && !bareName.includes("(")) {
+    // A parameterless method still reads as a method ("+ reset(): any"),
+    // not as an attribute ("+ reset: any").
+    bareName = `${bareName}()`
   }
 
   // Enumeration literals are bare names — no
@@ -213,6 +225,10 @@ export const formatDisplayName = (
     ].filter(Boolean)
     const idSuffix = idMarkers.length > 0 ? ` {${idMarkers.join(", ")}}` : ""
     return `${visSymbol} ${derivedPrefix}${bareName}${optionalMarker}: ${member.attributeType}${defaultSuffix}${idSuffix}`
+  }
+  // A method without a return type still shows its visibility ("- reset()").
+  if (isMethod && bareName && member.visibility !== undefined) {
+    return `${visSymbol} ${bareName}`
   }
   // Fallback to name for backward compatibility or simple display
   return bareName

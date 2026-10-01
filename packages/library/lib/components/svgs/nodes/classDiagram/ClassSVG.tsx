@@ -69,7 +69,10 @@ export const ClassSVG = ({
   // rows. Enumeration literals are force-formatted (bare name) regardless
   // of structured fields.
   const isEnumerationStereotype = stereotype === ClassType.Enumeration
-  const formatRowName = (row: ClassNodeElement): ClassNodeElement => {
+  const formatRowName = (
+    row: ClassNodeElement,
+    isMethod = false
+  ): ClassNodeElement => {
     const hasStructuredFields =
       row.attributeType !== undefined ||
       row.visibility !== undefined ||
@@ -100,19 +103,20 @@ export const ClassSVG = ({
         parameters: row.parameters,
       },
       isPalettePreview ? "UML" : classNotation,
-      stereotype ?? undefined
+      stereotype ?? undefined,
+      isMethod
     )
     return { ...row, name: formatted }
   }
 
-  const processElements = (elements: ClassNodeElement[]) =>
+  const processElements = (elements: ClassNodeElement[], isMethod = false) =>
     elements.map((el) => {
       const score = assessments[el.id]?.score
-      return { ...formatRowName(el), score }
+      return { ...formatRowName(el, isMethod), score }
     })
 
   const processedAttributes = processElements(attributes)
-  const processedMethods = processElements(methods)
+  const processedMethods = processElements(methods, true)
   const nodeScore = assessments[id]?.score
 
   const scaledWidth = width * (SIDEBAR_PREVIEW_SCALE ?? 1)

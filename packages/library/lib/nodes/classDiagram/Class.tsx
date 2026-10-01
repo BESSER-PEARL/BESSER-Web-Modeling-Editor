@@ -35,7 +35,8 @@ import { useClassNotation } from "@/store/settingsStore"
 const formatRow = (
   row: ClassNodeElement,
   mode: "UML" | "ER",
-  stereotype?: string | null
+  stereotype?: string | null,
+  isMethod = false
 ): ClassNodeElement => {
   const hasStructuredFields =
     row.attributeType !== undefined ||
@@ -63,7 +64,8 @@ const formatRow = (
       parameters: row.parameters,
     },
     mode,
-    stereotype ?? undefined
+    stereotype ?? undefined,
+    isMethod
   )
   return { ...row, name: formatted }
 }
@@ -89,7 +91,7 @@ export function Class({
     [attributes, classNotation, stereotype]
   )
   const displayMethods = useMemo(
-    () => methods.map((m) => formatRow(m, classNotation, stereotype)),
+    () => methods.map((m) => formatRow(m, classNotation, stereotype, true)),
     [methods, classNotation, stereotype]
   )
 
