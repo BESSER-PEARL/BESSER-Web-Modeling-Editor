@@ -59,8 +59,7 @@ export const getChartConfigs = (): ChartConfig[] => [
       { type: 'select', label: i18n.t('editors.gui.traits.dataSource'), name: 'data-source', value: '', options: getClassOptions(), changeProp: 1 },
       { type: 'select', label: i18n.t('editors.gui.traits.labelField'), name: 'label-field', value: '', options: [], changeProp: 1 },
       { type: 'select', label: i18n.t('editors.gui.traits.dataField'), name: 'data-field', value: '', options: [], changeProp: 1 },
-      // TODO: Uncomment when backend aggregation is ready
-      // { type: 'select', label: i18n.t('editors.gui.traits.aggregation'), name: 'aggregation', value: '', options: getAggregationOptions(), changeProp: 1 },
+      { type: 'select', label: i18n.t('editors.gui.traits.aggregation'), name: 'aggregation', value: '', options: getAggregationOptions(), changeProp: 1 },
       // { type: 'select', label: i18n.t('editors.gui.traits.groupBy'), name: 'group-by', value: '', options: [], changeProp: 1 },
       { type: 'number', label: i18n.t('editors.gui.traits.lineWidth'), name: 'line-width', value: 2, changeProp: 1 },
       { type: 'checkbox', label: i18n.t('editors.gui.traits.showGrid'), name: 'show-grid', value: true, changeProp: 1 },

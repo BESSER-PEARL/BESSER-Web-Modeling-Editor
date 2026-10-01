@@ -1,7 +1,7 @@
 import React, { ComponentClass } from 'react';
 import { connect } from 'react-redux';
 import { compose } from 'redux';
-import styled from 'styled-components';
+import { styled } from '../../../components/theme/styles';
 import { Controlled as CodeMirror } from 'react-codemirror2';
 import 'codemirror/lib/codemirror.css';
 import 'codemirror/theme/material.css';
@@ -23,7 +23,7 @@ const ResizableCodeMirrorWrapper = styled.div`
   resize: both;
   overflow: auto;
   min-height: 150px;
-  border: 1px solid ${(props: any) => props.theme.color.gray};
+  border: 1px solid ${(props) => props.theme.color.gray};
   border-radius: 4px;
   padding: 8px;
   box-sizing: border-box;
@@ -75,7 +75,7 @@ const AgentToolUpdateComponent: React.FC<Props> = ({ element, update, elements, 
           value={element.description}
           multiline
           enterToSubmit={false}
-          placeholder="Short description shown to the LLM"
+          placeholder={translate('packages.AgentDiagram.toolDescriptionPlaceholder')}
           onChange={(description) => update<AgentTool>(element.id, { description })}
         />
       </Section>

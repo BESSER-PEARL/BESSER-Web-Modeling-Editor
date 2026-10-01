@@ -56,7 +56,7 @@ const AgentSkillUpdateComponent: React.FC<Props> = ({ element, update, elements,
           value={element.description}
           multiline
           enterToSubmit={false}
-          placeholder="Optional short description"
+          placeholder={translate('packages.AgentDiagram.skillDescriptionPlaceholder')}
           onChange={(description) => update<AgentSkill>(element.id, { description })}
         />
       </Section>
@@ -66,7 +66,7 @@ const AgentSkillUpdateComponent: React.FC<Props> = ({ element, update, elements,
           value={element.content}
           multiline
           enterToSubmit={false}
-          placeholder={'# Skill\n\nInstructions in markdown...'}
+          placeholder={translate('packages.AgentDiagram.skillContentPlaceholder')}
           onChange={(content) => update<AgentSkill>(element.id, { content })}
         />
       </Section>

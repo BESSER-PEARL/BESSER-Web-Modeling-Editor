@@ -3,6 +3,7 @@ import { ApollonMode, Locale, Styles, UMLDiagramType, UMLModel } from '@besser/w
 import {
   ALL_DIAGRAM_TYPES,
   BesserProject,
+  InterfaceMode,
   MAX_DIAGRAMS_PER_TYPE,
   PerspectiveSettings,
   ProjectDiagram,
@@ -172,15 +173,17 @@ export const createProjectThunk = createAsyncThunk(
     description,
     owner,
     perspectives,
+    preferredInterface,
   }: {
     name: string;
     description: string;
     owner: string;
     perspectives?: PerspectiveSettings;
+    preferredInterface?: InterfaceMode;
   }) => {
     let project!: BesserProject;
     ProjectStorageRepository.withoutNotify(() => {
-      project = ProjectStorageRepository.createNewProject(name, description, owner, perspectives);
+      project = ProjectStorageRepository.createNewProject(name, description, owner, perspectives, preferredInterface);
     });
     return project;
   },
@@ -236,9 +239,19 @@ export const updateDiagramModelThunk = createAsyncThunk(
 
     const current = getActiveDiagram(project, activeDiagramType);
     if (!current) return null;
+    let updatedUpdates = updates;
+    // For AgentDiagram: when Apollon fires a canvas model-change it only carries
+    // canvas elements (no components). Preserve the existing model.components so
+    // off-canvas components (intents, tools, RAGs …) are never wiped.
+    if (activeDiagramType === 'AgentDiagram' && isUMLModel(updates.model) && isUMLModel(current.model)) {
+      const existingComponents = current.model.components;
+      if (existingComponents && !updates.model.components) {
+        updatedUpdates = { ...updates, model: { ...updates.model, components: existingComponents } };
+      }
+    }
     const updated: ProjectDiagram = {
       ...current,
-      ...updates,
+      ...updatedUpdates,
       lastUpdate: new Date().toISOString(),
     };
 
@@ -921,6 +934,11 @@ export const selectGUIDiagrams = createSelector(
 export const selectQuantumCircuitDiagrams = createSelector(
   selectDiagrams,
   (diagrams) => diagrams?.QuantumCircuitDiagram ?? EMPTY_DIAGRAMS,
+);
+
+export const selectNNDiagrams = createSelector(
+  selectDiagrams,
+  (diagrams) => diagrams?.NNDiagram ?? EMPTY_DIAGRAMS,
 );
 
 export const selectUMLDiagramType = createSelector(

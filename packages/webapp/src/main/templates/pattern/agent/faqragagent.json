@@ -2,173 +2,186 @@
   "version": "3.0.0",
   "type": "AgentDiagram",
   "size": {
-    "width": 1080,
-    "height": 400
+    "width": 890,
+    "height": 1482
   },
   "interactive": {
     "elements": {},
     "relationships": {}
   },
   "elements": {
-    "0c1693ac-768b-44b0-83c4-7686fea85ee0": {
-      "id": "0c1693ac-768b-44b0-83c4-7686fea85ee0",
-      "name": "",
-      "type": "StateInitialNode",
-      "owner": null,
-      "bounds": {
-        "x": -640,
-        "y": -120,
-        "width": 45,
-        "height": 45
-      }
-    },
-    "8aa7d581-a5b7-4180-b205-0151cb7451d3": {
-      "id": "8aa7d581-a5b7-4180-b205-0151cb7451d3",
+    "350b1235-0202-44f6-beb4-e403241defde": {
+      "id": "350b1235-0202-44f6-beb4-e403241defde",
       "name": "Greeting",
       "type": "AgentState",
       "owner": null,
       "bounds": {
-        "x": -350,
-        "y": -170,
+        "x": 5,
+        "y": -612,
         "width": 420,
         "height": 70
       },
-      "bodies": ["0914f151-3e00-4fba-ba2d-89efb0e1467e"],
+      "stateType": "standard",
+      "fallbackBodyEnabled": false,
+      "actions": ["01276d66-235c-4ced-84f1-d776e729bfe1"],
+      "fallbackActions": [],
+      "bodies": ["01276d66-235c-4ced-84f1-d776e729bfe1"],
       "fallbackBodies": []
     },
-    "0914f151-3e00-4fba-ba2d-89efb0e1467e": {
-      "id": "0914f151-3e00-4fba-ba2d-89efb0e1467e",
+    "01276d66-235c-4ced-84f1-d776e729bfe1": {
+      "id": "01276d66-235c-4ced-84f1-d776e729bfe1",
       "name": "Hi, I am your friendly assistant, I can answer questions related to BESSER.",
       "type": "AgentStateBody",
-      "owner": "8aa7d581-a5b7-4180-b205-0151cb7451d3",
+      "owner": "350b1235-0202-44f6-beb4-e403241defde",
       "bounds": {
-        "x": -349.5,
-        "y": -129.5,
+        "x": 5.5,
+        "y": -571.5,
         "width": 419,
         "height": 30
       },
+      "actionType": "TextReplyAction",
       "replyType": "text",
-      "ragDatabaseName": ""
+      "useSessionVars": false,
+      "llm_name": ""
     },
-    "073e90b9-9b2a-4a2e-807c-42c8ec90dc1f": {
-      "id": "073e90b9-9b2a-4a2e-807c-42c8ec90dc1f",
+    "0c5b9ee6-952e-42c8-9fcb-8b51c318d592": {
+      "id": "0c5b9ee6-952e-42c8-9fcb-8b51c318d592",
+      "name": "",
+      "type": "StateInitialNode",
+      "owner": null,
+      "bounds": {
+        "x": 193,
+        "y": -721,
+        "width": 30,
+        "height": 30
+      }
+    },
+    "e0239d77-e47a-4d39-bc34-0a9c2676e681": {
+      "id": "e0239d77-e47a-4d39-bc34-0a9c2676e681",
       "name": "Idle",
       "type": "AgentState",
       "owner": null,
       "bounds": {
-        "x": 350,
-        "y": -200,
-        "width": 420,
+        "x": 17.666748046875,
+        "y": -474.33331298828125,
+        "width": 380,
         "height": 70
       },
-      "bodies": ["4ab8c422-2c84-493b-ae49-52bd0817e3d6"],
+      "stateType": "standard",
+      "fallbackBodyEnabled": false,
+      "actions": ["e58f24df-cea4-4eea-bed9-53209b2819a2"],
+      "fallbackActions": [],
+      "bodies": ["e58f24df-cea4-4eea-bed9-53209b2819a2"],
       "fallbackBodies": []
     },
-    "4ab8c422-2c84-493b-ae49-52bd0817e3d6": {
-      "id": "4ab8c422-2c84-493b-ae49-52bd0817e3d6",
+    "e58f24df-cea4-4eea-bed9-53209b2819a2": {
+      "id": "e58f24df-cea4-4eea-bed9-53209b2819a2",
       "name": "What would you like to know about BESSER?",
       "type": "AgentStateBody",
-      "owner": "073e90b9-9b2a-4a2e-807c-42c8ec90dc1f",
+      "owner": "e0239d77-e47a-4d39-bc34-0a9c2676e681",
       "bounds": {
-        "x": 350.5,
-        "y": -159.5,
-        "width": 419,
+        "x": 18.166748046875,
+        "y": -433.83331298828125,
+        "width": 379,
         "height": 30
       },
+      "actionType": "TextReplyAction",
       "replyType": "text",
-      "ragDatabaseName": ""
+      "useSessionVars": false,
+      "llm_name": ""
     },
-    "72a9a181-3dc0-4f95-8adb-bddade2fccf4": {
-      "id": "72a9a181-3dc0-4f95-8adb-bddade2fccf4",
-      "name": "BESSER",
-      "type": "AgentRagElement",
-      "owner": null,
-      "bounds": {
-        "x": -200,
-        "y": 0,
-        "width": 120,
-        "height": 110
-      }
-    },
-    "ceeeda0d-b8f2-4025-ab23-4953ae07c264": {
-      "id": "ceeeda0d-b8f2-4025-ab23-4953ae07c264",
+    "d97b5daa-b93e-4b71-ae25-3749eb3dacbe": {
+      "id": "d97b5daa-b93e-4b71-ae25-3749eb3dacbe",
       "name": "Response",
       "type": "AgentState",
       "owner": null,
       "bounds": {
-        "x": 270,
-        "y": 120,
-        "width": 420,
+        "x": 40,
+        "y": -174,
+        "width": 320,
         "height": 70
       },
-      "bodies": ["10da515c-b8a4-489f-b3d9-fdf698922546"],
+      "stateType": "standard",
+      "fallbackBodyEnabled": false,
+      "actions": ["8d595938-fd40-4f98-a1dc-0a93a0b684e3"],
+      "fallbackActions": [],
+      "bodies": ["8d595938-fd40-4f98-a1dc-0a93a0b684e3"],
       "fallbackBodies": []
     },
-    "10da515c-b8a4-489f-b3d9-fdf698922546": {
-      "id": "10da515c-b8a4-489f-b3d9-fdf698922546",
+    "8d595938-fd40-4f98-a1dc-0a93a0b684e3": {
+      "id": "8d595938-fd40-4f98-a1dc-0a93a0b684e3",
       "name": "RAG reply using BESSER database",
       "type": "AgentStateBody",
-      "owner": "ceeeda0d-b8f2-4025-ab23-4953ae07c264",
+      "owner": "d97b5daa-b93e-4b71-ae25-3749eb3dacbe",
       "bounds": {
-        "x": 270.5,
-        "y": 160.5,
-        "width": 419,
+        "x": 40.5,
+        "y": -133.5,
+        "width": 319,
         "height": 30
       },
+      "actionType": "RAGReplyAction",
       "replyType": "rag",
-      "ragDatabaseName": "BESSER"
+      "ragDatabaseName": "BESSER",
+      "prompt": "",
+      "inputPromptMode": "last_user_message",
+      "customInputPrompt": "",
+      "customInputPromptUseSessionVars": false,
+      "promptUseSessionVars": false,
+      "storeInSession": "",
+      "sendReply": true,
+      "llm_name": ""
     }
   },
   "relationships": {
-    "20b192c6-49fd-4260-b958-5c85fab9cdfa": {
-      "id": "20b192c6-49fd-4260-b958-5c85fab9cdfa",
+    "126fd52f-7388-4d7a-9a2d-1215880703a4": {
+      "id": "126fd52f-7388-4d7a-9a2d-1215880703a4",
       "name": "",
       "type": "AgentStateTransitionInit",
       "owner": null,
       "bounds": {
-        "x": -595,
-        "y": -152.5,
-        "width": 245,
-        "height": 55
+        "x": 215,
+        "y": -691,
+        "width": 1,
+        "height": 79
       },
       "path": [
         {
+          "x": 0.5,
+          "y": 0
+        },
+        {
+          "x": 0.5,
+          "y": 40
+        },
+        {
           "x": 0,
-          "y": 55
+          "y": 39
         },
         {
-          "x": 122.5,
-          "y": 55
-        },
-        {
-          "x": 122.5,
-          "y": 0
-        },
-        {
-          "x": 245,
-          "y": 0
+          "x": 0,
+          "y": 79
         }
       ],
       "source": {
-        "direction": "Right",
-        "element": "0c1693ac-768b-44b0-83c4-7686fea85ee0"
+        "direction": "Bottomright",
+        "element": "0c5b9ee6-952e-42c8-9fcb-8b51c318d592"
       },
       "target": {
-        "direction": "Upleft",
-        "element": "8aa7d581-a5b7-4180-b205-0151cb7451d3"
+        "direction": "Up",
+        "element": "350b1235-0202-44f6-beb4-e403241defde"
       },
       "isManuallyLayouted": false
     },
-    "db270a25-0697-4201-9275-da9c30a07dc2": {
-      "id": "db270a25-0697-4201-9275-da9c30a07dc2",
+    "7932ec1e-de7f-4315-a755-3f9b3f98d088": {
+      "id": "7932ec1e-de7f-4315-a755-3f9b3f98d088",
       "name": "",
       "type": "AgentStateTransition",
       "owner": null,
       "bounds": {
-        "x": 70,
-        "y": -150,
-        "width": 280,
-        "height": 1
+        "x": 207.666748046875,
+        "y": -542,
+        "width": 1,
+        "height": 67.66668701171875
       },
       "path": [
         {
@@ -176,17 +189,17 @@
           "y": 0
         },
         {
-          "x": 280,
-          "y": 0
+          "x": 0,
+          "y": 67.66668701171875
         }
       ],
       "source": {
-        "direction": "Right",
-        "element": "8aa7d581-a5b7-4180-b205-0151cb7451d3"
+        "direction": "Down",
+        "element": "350b1235-0202-44f6-beb4-e403241defde"
       },
       "target": {
-        "direction": "Upleft",
-        "element": "073e90b9-9b2a-4a2e-807c-42c8ec90dc1f"
+        "direction": "Up",
+        "element": "e0239d77-e47a-4d39-bc34-0a9c2676e681"
       },
       "isManuallyLayouted": false,
       "transitionType": "predefined",
@@ -198,85 +211,85 @@
         "condition": []
       }
     },
-    "b8e27aba-df6f-4816-afb5-0bb39ebc1fda": {
-      "id": "b8e27aba-df6f-4816-afb5-0bb39ebc1fda",
+    "2d8d765c-9d27-4aff-a6c5-b51b873596e3": {
+      "id": "2d8d765c-9d27-4aff-a6c5-b51b873596e3",
       "name": "",
       "type": "AgentStateTransition",
       "owner": null,
       "bounds": {
-        "x": 230,
-        "y": -130,
-        "width": 225,
-        "height": 285
+        "x": 200,
+        "y": -404.33331298828125,
+        "width": 1,
+        "height": 230.33331298828125
       },
       "path": [
         {
-          "x": 225,
+          "x": 0,
           "y": 0
         },
         {
-          "x": 225,
-          "y": 40
-        },
-        {
           "x": 0,
-          "y": 40
-        },
-        {
-          "x": 0,
-          "y": 285
-        },
-        {
-          "x": 40,
-          "y": 285
+          "y": 230.33331298828125
         }
       ],
       "source": {
-        "direction": "Bottomleft",
-        "element": "073e90b9-9b2a-4a2e-807c-42c8ec90dc1f"
+        "direction": "Down",
+        "element": "e0239d77-e47a-4d39-bc34-0a9c2676e681"
       },
       "target": {
-        "direction": "Left",
-        "element": "ceeeda0d-b8f2-4025-ab23-4953ae07c264"
+        "direction": "Up",
+        "element": "d97b5daa-b93e-4b71-ae25-3749eb3dacbe"
       },
       "isManuallyLayouted": false,
-      "transitionType": "predefined",
+      "transitionType": "custom",
       "predefined": {
-        "predefinedType": "when_no_intent_matched",
-        "conditionValue": ""
+        "predefinedType": ""
       },
       "custom": {
+        "event": "ReceiveTextEvent",
         "condition": []
       }
     },
-    "ee33f473-5d40-4a58-b5e8-5ad985e15644": {
-      "id": "ee33f473-5d40-4a58-b5e8-5ad985e15644",
+    "4dfbe2a2-6d28-4e19-8523-cdd5bfeb29f2": {
+      "id": "4dfbe2a2-6d28-4e19-8523-cdd5bfeb29f2",
       "name": "",
       "type": "AgentStateTransition",
       "owner": null,
       "bounds": {
-        "x": 520,
-        "y": -130,
-        "width": 1,
-        "height": 250
+        "x": 0,
+        "y": -404.33331298828125,
+        "width": 112.666748046875,
+        "height": 282.83331298828125
       },
       "path": [
         {
-          "x": 0,
-          "y": 250
+          "x": 40,
+          "y": 282.83331298828125
         },
         {
           "x": 0,
+          "y": 282.83331298828125
+        },
+        {
+          "x": 0,
+          "y": 115.16665649414062
+        },
+        {
+          "x": 112.666748046875,
+          "y": 115.16665649414062
+        },
+        {
+          "x": 112.666748046875,
           "y": 0
         }
       ],
       "source": {
-        "direction": "Topleft",
-        "element": "ceeeda0d-b8f2-4025-ab23-4953ae07c264"
+        "direction": "Downleft",
+        "element": "d97b5daa-b93e-4b71-ae25-3749eb3dacbe"
       },
       "target": {
         "direction": "Bottomleft",
-        "element": "073e90b9-9b2a-4a2e-807c-42c8ec90dc1f"
+        "element": "e0239d77-e47a-4d39-bc34-0a9c2676e681"
       },
       "isManuallyLayouted": false,
       "transitionType": "predefined",
@@ -289,5 +302,30 @@
       }
     }
   },
-  "assessments": {}
+  "assessments": {},
+  "components": {
+    "e330d680-dd85-460c-83c6-23f788a74de4": {
+      "id": "e330d680-dd85-460c-83c6-23f788a74de4",
+      "type": "AgentRagElement",
+      "name": "BESSER",
+      "owner": null,
+      "llm_name": "",
+      "llm_prompt": "",
+      "k": 4,
+      "num_previous_messages": 0,
+      "embedding_provider": "openai",
+      "embedding_base_url": "",
+      "embedding_model": ""
+    },
+    "6b434d60-495f-4fb8-8994-1848f5bbeb16": {
+      "id": "6b434d60-495f-4fb8-8994-1848f5bbeb16",
+      "type": "AgentLLM",
+      "name": "gpt-4o-mini",
+      "owner": null,
+      "provider": "openai",
+      "parameters": {},
+      "num_previous_messages": 1,
+      "global_context": ""
+    }
+  }
 }

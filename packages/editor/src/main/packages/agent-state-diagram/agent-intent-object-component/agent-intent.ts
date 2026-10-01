@@ -68,51 +68,7 @@ export class AgentIntent extends UMLContainer implements IUMLState {
       
     }
 
-  render(layer: ILayer, children: ILayoutable[] = []): ILayoutable[] {
-    const bodies = children.filter((x): x is AgentIntentBody => x instanceof AgentIntentBody);
-
-    const hasIntentDescription = this.intent_description.trim().length > 0;
-
-    this.hasBody = bodies.length > 0;
-
-    if (!this.isManuallyLayouted) {
-      const radix = 10;
-      this.bounds.width = [this, ...bodies].reduce(
-        (current, child, index) =>
-          Math.max(
-            current,
-            Math.round(
-              (Text.size(layer, child.name, index === 0 ? { fontWeight: 'bold' } : undefined).width + 110) / radix,
-            ) * radix,
-          ),
-        Math.round(this.bounds.width / radix) * radix,
-      );
-
-      if (hasIntentDescription) {
-        const descriptionWidth = Math.round(
-          (Text.size(layer, this.intent_description, { fontWeight: 'normal' }).width + 110) / radix,
-        ) * radix;
-        this.bounds.width = Math.max(this.bounds.width, descriptionWidth);
-      }
-    }
-
-    this.bounds.width = Math.max(this.bounds.width, 80);
-
-    let y = this.headerHeight;
-    if (hasIntentDescription) {
-      y += AGENT_INTENT_DESCRIPTION_HEIGHT;
-    }
-    for (const body of bodies) {
-      body.bounds.x = 0.5;
-      body.bounds.y = y + 0.5;
-      body.bounds.width = this.bounds.width - 1;
-      y += body.bounds.height;
-    }
-   
-    this.deviderPosition = y;
-
-
-    this.bounds.height = this.isManuallyLayouted ? Math.max(this.bounds.height, this.headerHeight) : y;
-    return [this, ...bodies];
+  render(_layer: ILayer, _children: ILayoutable[] = []): ILayoutable[] {
+    return [];
   }
 }

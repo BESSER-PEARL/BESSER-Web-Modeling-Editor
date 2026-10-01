@@ -153,4 +153,64 @@ describe('getEndsByClassId / getInheritedEndsByClassId', () => {
     const ends = getEndsByClassId('admin', false);
     expect(ends).toEqual([{ value: 'person', label: 'managedPersons' }]);
   });
+
+  // Per-end navigability: the `navigable` flags on each end decide the ends,
+  // not the relationship type.
+  function setNavigabilityProject() {
+    const model = {
+      version: '3.0.0',
+      type: 'ClassDiagram',
+      elements: {
+        order: { id: 'order', type: 'Class', name: 'Order' },
+        customer: { id: 'customer', type: 'Class', name: 'Customer' },
+        line: { id: 'line', type: 'Class', name: 'OrderLine' },
+        product: { id: 'product', type: 'Class', name: 'Product' },
+      },
+      relationships: {
+        // Only the target (Customer) end is navigable: Order -> Customer.
+        oneWay: {
+          id: 'oneWay',
+          type: 'ClassBidirectional',
+          source: { element: 'order', role: 'orders', navigable: false },
+          target: { element: 'customer', role: 'customer', navigable: true },
+        },
+        // Only the source end is navigable: Product -> OrderLine, drawn the other way round.
+        reversed: {
+          id: 'reversed',
+          type: 'ClassBidirectional',
+          source: { element: 'line', role: 'lines', navigable: true },
+          target: { element: 'product', role: 'product', navigable: false },
+        },
+        // Composition whose whole (target, Order) end is not navigable.
+        parts: {
+          id: 'parts',
+          type: 'ClassComposition',
+          source: { element: 'line', role: 'items', navigable: true },
+          target: { element: 'order', role: 'order', navigable: false },
+        },
+      },
+    };
+    const project = createDefaultProject('Test', '', 'user');
+    project.diagrams.ClassDiagram = [
+      { id: 'cd1', title: 'Classes', model: model as any, lastUpdate: new Date().toISOString() },
+    ];
+    setCurrentProject(project);
+  }
+
+  it('follows explicit navigable flags on a ClassBidirectional association', () => {
+    setNavigabilityProject();
+    expect(getEndsByClassId('order', false)).toEqual([
+      { value: 'customer', label: 'customer' },
+      { value: 'line', label: 'items' },
+    ]);
+    // Customer cannot navigate back to Order.
+    expect(getEndsByClassId('customer', false)).toEqual([]);
+  });
+
+  it('navigates from the target class when only the source end is navigable', () => {
+    setNavigabilityProject();
+    expect(getEndsByClassId('product', false)).toEqual([{ value: 'line', label: 'lines' }]);
+    // OrderLine reaches neither Product nor the non-navigable whole end of the composition.
+    expect(getEndsByClassId('line', false)).toEqual([]);
+  });
 });

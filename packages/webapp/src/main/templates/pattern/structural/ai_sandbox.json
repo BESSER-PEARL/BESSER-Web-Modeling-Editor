@@ -2563,13 +2563,15 @@
         "direction": "Down",
         "element": "249e283c-9b00-49a3-a332-7d809cd0bc23",
         "multiplicity": "*",
-        "role": "category"
+        "role": "category",
+        "navigable": true
       },
       "target": {
         "direction": "Up",
         "element": "d6a622b9-2432-4411-a3f2-5815dff2085e",
         "multiplicity": "*",
-        "role": "metrics"
+        "role": "metrics",
+        "navigable": true
       },
       "isManuallyLayouted": false
     },
@@ -2680,13 +2682,15 @@
         "direction": "Downright",
         "element": "a2546a91-1913-4cac-86ac-283c39218a3a",
         "multiplicity": "*",
-        "role": ""
+        "role": "",
+        "navigable": true
       },
       "target": {
         "direction": "Topright",
         "element": "aa6d1e4d-02bd-4b15-82b7-5f48964c5001",
         "multiplicity": "1",
-        "role": "measurand"
+        "role": "measurand",
+        "navigable": true
       },
       "isManuallyLayouted": false
     },
@@ -2715,13 +2719,15 @@
         "direction": "Upright",
         "element": "a2546a91-1913-4cac-86ac-283c39218a3a",
         "multiplicity": "*",
-        "role": "measures"
+        "role": "measures",
+        "navigable": true
       },
       "target": {
         "direction": "Left",
         "element": "d6a622b9-2432-4411-a3f2-5815dff2085e",
         "multiplicity": "1",
-        "role": "metric"
+        "role": "metric",
+        "navigable": true
       },
       "isManuallyLayouted": false
     },
@@ -2793,13 +2799,15 @@
         "direction": "Down",
         "element": "a2546a91-1913-4cac-86ac-283c39218a3a",
         "multiplicity": "*",
-        "role": "measures"
+        "role": "measures",
+        "navigable": true
       },
       "target": {
         "direction": "Up",
         "element": "e17fa351-a73e-4ca5-ab53-0385b5d0c54e",
         "multiplicity": "1",
-        "role": "observation"
+        "role": "observation",
+        "navigable": true
       },
       "isManuallyLayouted": false
     },
@@ -2906,13 +2914,15 @@
         "direction": "Upright",
         "element": "125ca586-c0a9-4b29-83f5-630fc998f763",
         "multiplicity": "*",
-        "role": "date"
+        "role": "date",
+        "navigable": true
       },
       "target": {
         "direction": "Left",
         "element": "2a69bf8c-9f74-4e89-9801-c21f8aa9daf1",
         "multiplicity": "*",
-        "role": "f_date"
+        "role": "f_date",
+        "navigable": true
       },
       "isManuallyLayouted": false
     },
@@ -2984,13 +2994,15 @@
         "direction": "Bottomleft",
         "element": "125ca586-c0a9-4b29-83f5-630fc998f763",
         "multiplicity": "1",
-        "role": "features"
+        "role": "features",
+        "navigable": true
       },
       "target": {
         "direction": "Bottomright",
         "element": "2a69bf8c-9f74-4e89-9801-c21f8aa9daf1",
         "multiplicity": "*",
-        "role": "f_features"
+        "role": "f_features",
+        "navigable": true
       },
       "isManuallyLayouted": false
     },
@@ -3023,13 +3035,15 @@
         "direction": "Bottomright",
         "element": "c573dd39-569b-4257-af67-e10f88ebdb47",
         "multiplicity": "*",
-        "role": "derivedBy"
+        "role": "derivedBy",
+        "navigable": true
       },
       "target": {
         "direction": "Downright",
         "element": "d6a622b9-2432-4411-a3f2-5815dff2085e",
         "multiplicity": "1..*",
-        "role": "baseMetric"
+        "role": "baseMetric",
+        "navigable": true
       },
       "isManuallyLayouted": false
     },
@@ -3062,13 +3076,15 @@
         "direction": "Bottomleft",
         "element": "a7736e21-9ef2-4315-9048-68fc0471f98b",
         "multiplicity": "1",
-        "role": "project"
+        "role": "project",
+        "navigable": true
       },
       "target": {
         "direction": "Upright",
         "element": "8efefcb2-fee3-4dfe-9209-5b717238c726",
         "multiplicity": "*",
-        "role": "eval"
+        "role": "eval",
+        "navigable": true
       },
       "isManuallyLayouted": false
     },
@@ -3101,13 +3117,15 @@
         "direction": "Bottomright",
         "element": "a7736e21-9ef2-4315-9048-68fc0471f98b",
         "multiplicity": "0..1",
-        "role": "project"
+        "role": "project",
+        "navigable": true
       },
       "target": {
         "direction": "Right",
         "element": "aa6d1e4d-02bd-4b15-82b7-5f48964c5001",
         "multiplicity": "*",
-        "role": "involves"
+        "role": "involves",
+        "navigable": true
       },
       "isManuallyLayouted": false
     },
@@ -3140,13 +3158,15 @@
         "direction": "Downleft",
         "element": "8efefcb2-fee3-4dfe-9209-5b717238c726",
         "multiplicity": "*",
-        "role": "evalu"
+        "role": "evalu",
+        "navigable": true
       },
       "target": {
         "direction": "Topleft",
         "element": "aa6d1e4d-02bd-4b15-82b7-5f48964c5001",
         "multiplicity": "1",
-        "role": "evaluates"
+        "role": "evaluates",
+        "navigable": true
       },
       "isManuallyLayouted": false
     },
@@ -3175,13 +3195,15 @@
         "direction": "Right",
         "element": "16a4766d-cdc1-4e69-b582-014ad2bada56",
         "multiplicity": "*",
-        "role": "models"
+        "role": "models",
+        "navigable": true
       },
       "target": {
         "direction": "Left",
         "element": "b910ce24-f2bd-40de-b141-ce2956087223",
         "multiplicity": "1..*",
-        "role": "dataset"
+        "role": "dataset",
+        "navigable": true
       },
       "isManuallyLayouted": false
     },
@@ -3245,13 +3267,15 @@
         "direction": "Up",
         "element": "125ca586-c0a9-4b29-83f5-630fc998f763",
         "multiplicity": "1",
-        "role": "datashape"
+        "role": "datashape",
+        "navigable": true
       },
       "target": {
         "direction": "Down",
         "element": "b910ce24-f2bd-40de-b141-ce2956087223",
         "multiplicity": "*",
-        "role": ""
+        "role": "",
+        "navigable": true
       },
       "isManuallyLayouted": false
     },
@@ -3327,13 +3351,15 @@
         "direction": "Down",
         "element": "961abf95-bd2c-41e1-8d3d-67339d6ca49d",
         "multiplicity": "*",
-        "role": "params"
+        "role": "params",
+        "navigable": true
       },
       "target": {
         "direction": "Downright",
         "element": "4f3975e3-27d7-425e-b426-73488df10408",
         "multiplicity": "1",
-        "role": "conf"
+        "role": "conf",
+        "navigable": true
       },
       "isManuallyLayouted": false
     },
@@ -3366,13 +3392,15 @@
         "direction": "Topleft",
         "element": "8efefcb2-fee3-4dfe-9209-5b717238c726",
         "multiplicity": "1",
-        "role": "eval"
+        "role": "eval",
+        "navigable": true
       },
       "target": {
         "direction": "Upright",
         "element": "e17fa351-a73e-4ca5-ab53-0385b5d0c54e",
         "multiplicity": "*",
-        "role": "observations"
+        "role": "observations",
+        "navigable": true
       },
       "isManuallyLayouted": false
     },
@@ -3401,13 +3429,15 @@
         "direction": "Left",
         "element": "4f3975e3-27d7-425e-b426-73488df10408",
         "multiplicity": "1",
-        "role": "config"
+        "role": "config",
+        "navigable": true
       },
       "target": {
         "direction": "Downright",
         "element": "8efefcb2-fee3-4dfe-9209-5b717238c726",
         "multiplicity": "*",
-        "role": "eval"
+        "role": "eval",
+        "navigable": true
       },
       "isManuallyLayouted": false
     },
@@ -3565,13 +3595,15 @@
         "direction": "Bottomleft",
         "element": "8efefcb2-fee3-4dfe-9209-5b717238c726",
         "multiplicity": "*",
-        "role": "eval"
+        "role": "eval",
+        "navigable": true
       },
       "target": {
         "direction": "Topright",
         "element": "aa6d1e4d-02bd-4b15-82b7-5f48964c5001",
         "multiplicity": "*",
-        "role": "ref"
+        "role": "ref",
+        "navigable": true
       },
       "isManuallyLayouted": false
     },
@@ -3604,13 +3636,15 @@
         "direction": "Up",
         "element": "e4422346-28c3-44e5-b12b-b0eafe8f9796",
         "multiplicity": "1",
-        "role": "tool"
+        "role": "tool",
+        "navigable": true
       },
       "target": {
         "direction": "Left",
         "element": "e17fa351-a73e-4ca5-ab53-0385b5d0c54e",
         "multiplicity": "*",
-        "role": ""
+        "role": "",
+        "navigable": true
       },
       "isManuallyLayouted": false
     },
@@ -3651,13 +3685,15 @@
         "direction": "Bottomright",
         "element": "b910ce24-f2bd-40de-b141-ce2956087223",
         "multiplicity": "1",
-        "role": "dataset"
+        "role": "dataset",
+        "navigable": true
       },
       "target": {
         "direction": "Downleft",
         "element": "e17fa351-a73e-4ca5-ab53-0385b5d0c54e",
         "multiplicity": "*",
-        "role": ""
+        "role": "",
+        "navigable": true
       },
       "isManuallyLayouted": false
     },
@@ -3686,13 +3722,15 @@
         "direction": "Left",
         "element": "f49d964c-1a1c-4702-b121-44abd8b251cd",
         "multiplicity": "*",
-        "role": "legal_requirements"
+        "role": "legal_requirements",
+        "navigable": true
       },
       "target": {
         "direction": "Right",
         "element": "a7736e21-9ef2-4315-9048-68fc0471f98b",
         "multiplicity": "1",
-        "role": ""
+        "role": "",
+        "navigable": true
       },
       "isManuallyLayouted": false
     },

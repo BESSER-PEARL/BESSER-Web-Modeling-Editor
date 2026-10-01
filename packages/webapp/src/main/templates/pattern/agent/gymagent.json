@@ -2,8 +2,8 @@
   "version": "3.0.0",
   "type": "AgentDiagram",
   "size": {
-    "width": 1080,
-    "height": 400
+    "width": 1470,
+    "height": 760
   },
   "interactive": {
     "elements": {},
@@ -16,8 +16,8 @@
       "type": "StateInitialNode",
       "owner": null,
       "bounds": {
-        "x": -230,
-        "y": -370,
+        "x": -45,
+        "y": -330,
         "width": 45,
         "height": 45
       }
@@ -28,11 +28,15 @@
       "type": "AgentState",
       "owner": null,
       "bounds": {
-        "x": -180,
-        "y": -200,
+        "x": 5,
+        "y": -160,
         "width": 420,
         "height": 100
       },
+      "stateType": "standard",
+      "fallbackBodyEnabled": true,
+      "actions": ["63a2c160-ebbb-457b-953a-93fd2e643224"],
+      "fallbackActions": ["1f369122-06c2-4050-ba54-4ea160f95a8c"],
       "bodies": ["63a2c160-ebbb-457b-953a-93fd2e643224"],
       "fallbackBodies": ["1f369122-06c2-4050-ba54-4ea160f95a8c"]
     },
@@ -42,13 +46,15 @@
       "type": "AgentStateBody",
       "owner": "0cba5357-2c30-414b-8d74-ac74ac4ab158",
       "bounds": {
-        "x": -179.5,
-        "y": -159.5,
+        "x": 5.5,
+        "y": -119.5,
         "width": 419,
         "height": 30
       },
+      "actionType": "TextReplyAction",
       "replyType": "text",
-      "ragDatabaseName": ""
+      "useSessionVars": false,
+      "llm_name": ""
     },
     "1f369122-06c2-4050-ba54-4ea160f95a8c": {
       "id": "1f369122-06c2-4050-ba54-4ea160f95a8c",
@@ -56,39 +62,15 @@
       "type": "AgentStateFallbackBody",
       "owner": "0cba5357-2c30-414b-8d74-ac74ac4ab158",
       "bounds": {
-        "x": -179.5,
-        "y": -129.5,
+        "x": 5.5,
+        "y": -89.5,
         "width": 419,
         "height": 30
       },
+      "actionType": "TextReplyAction",
       "replyType": "text",
-      "ragDatabaseName": ""
-    },
-    "8dba49ff-2fc1-4066-b124-19e2df7981e2": {
-      "id": "8dba49ff-2fc1-4066-b124-19e2df7981e2",
-      "name": "Muscles_intent",
-      "type": "AgentIntent",
-      "owner": null,
-      "bounds": {
-        "x": -900,
-        "y": -400,
-        "width": 630,
-        "height": 100
-      },
-      "bodies": ["a0a69f3a-bb64-42ee-b9e6-a8bacdf2818b"],
-      "intent_description": "Question about how to become muscular and which exercises to perform."
-    },
-    "a0a69f3a-bb64-42ee-b9e6-a8bacdf2818b": {
-      "id": "a0a69f3a-bb64-42ee-b9e6-a8bacdf2818b",
-      "name": "I want muscles",
-      "type": "AgentIntentBody",
-      "owner": "8dba49ff-2fc1-4066-b124-19e2df7981e2",
-      "bounds": {
-        "x": -899.5,
-        "y": -329.5,
-        "width": 629,
-        "height": 30
-      }
+      "useSessionVars": false,
+      "llm_name": ""
     },
     "68ccb630-b264-41a0-b70e-1e369bd5706c": {
       "id": "68ccb630-b264-41a0-b70e-1e369bd5706c",
@@ -96,11 +78,19 @@
       "type": "AgentState",
       "owner": null,
       "bounds": {
-        "x": -800,
-        "y": -30,
+        "x": -615,
+        "y": 10,
         "width": 420,
         "height": 130
       },
+      "stateType": "standard",
+      "fallbackBodyEnabled": true,
+      "actions": [
+        "aa261be5-9c53-4df1-a72f-5a107ce8f1b7",
+        "747b8558-325d-4a15-baba-0d18a6602a8d",
+        "900f7fd9-738a-4981-a7d9-6c7334621981"
+      ],
+      "fallbackActions": [],
       "bodies": [
         "aa261be5-9c53-4df1-a72f-5a107ce8f1b7",
         "747b8558-325d-4a15-baba-0d18a6602a8d",
@@ -114,13 +104,15 @@
       "type": "AgentStateBody",
       "owner": "68ccb630-b264-41a0-b70e-1e369bd5706c",
       "bounds": {
-        "x": -799.5,
-        "y": 10.5,
+        "x": -614.5,
+        "y": 50.5,
         "width": 419,
         "height": 30
       },
+      "actionType": "TextReplyAction",
       "replyType": "text",
-      "ragDatabaseName": ""
+      "useSessionVars": false,
+      "llm_name": ""
     },
     "747b8558-325d-4a15-baba-0d18a6602a8d": {
       "id": "747b8558-325d-4a15-baba-0d18a6602a8d",
@@ -128,13 +120,15 @@
       "type": "AgentStateBody",
       "owner": "68ccb630-b264-41a0-b70e-1e369bd5706c",
       "bounds": {
-        "x": -799.5,
-        "y": 40.5,
+        "x": -614.5,
+        "y": 80.5,
         "width": 419,
         "height": 30
       },
+      "actionType": "TextReplyAction",
       "replyType": "text",
-      "ragDatabaseName": ""
+      "useSessionVars": false,
+      "llm_name": ""
     },
     "900f7fd9-738a-4981-a7d9-6c7334621981": {
       "id": "900f7fd9-738a-4981-a7d9-6c7334621981",
@@ -142,13 +136,15 @@
       "type": "AgentStateBody",
       "owner": "68ccb630-b264-41a0-b70e-1e369bd5706c",
       "bounds": {
-        "x": -799.5,
-        "y": 70.5,
+        "x": -614.5,
+        "y": 110.5,
         "width": 419,
         "height": 30
       },
+      "actionType": "TextReplyAction",
       "replyType": "text",
-      "ragDatabaseName": ""
+      "useSessionVars": false,
+      "llm_name": ""
     },
     "77976ef7-599d-4c49-9f4d-1ecb23239fe3": {
       "id": "77976ef7-599d-4c49-9f4d-1ecb23239fe3",
@@ -156,11 +152,15 @@
       "type": "AgentState",
       "owner": null,
       "bounds": {
-        "x": -100,
-        "y": -370,
+        "x": 85,
+        "y": -330,
         "width": 420,
         "height": 70
       },
+      "stateType": "standard",
+      "fallbackBodyEnabled": true,
+      "actions": ["ad226172-93d8-4644-80c5-62825565dd24"],
+      "fallbackActions": [],
       "bodies": ["ad226172-93d8-4644-80c5-62825565dd24"],
       "fallbackBodies": []
     },
@@ -170,13 +170,15 @@
       "type": "AgentStateBody",
       "owner": "77976ef7-599d-4c49-9f4d-1ecb23239fe3",
       "bounds": {
-        "x": -99.5,
-        "y": -329.5,
+        "x": 85.5,
+        "y": -289.5,
         "width": 419,
         "height": 30
       },
+      "actionType": "TextReplyAction",
       "replyType": "text",
-      "ragDatabaseName": ""
+      "useSessionVars": false,
+      "llm_name": ""
     },
     "7610bbda-21ef-4637-a188-1da1352bea17": {
       "id": "7610bbda-21ef-4637-a188-1da1352bea17",
@@ -184,11 +186,21 @@
       "type": "AgentState",
       "owner": null,
       "bounds": {
-        "x": -150,
-        "y": 130,
+        "x": 35,
+        "y": 170,
         "width": 420,
         "height": 190
       },
+      "stateType": "standard",
+      "fallbackBodyEnabled": true,
+      "actions": [
+        "bb7e67bd-ead9-4f14-93db-c18af0d806af",
+        "13072ea8-9b51-45fe-927e-a9323627701b",
+        "95241c3a-f8a2-4bf0-b169-5dcff5a926fb",
+        "44904a03-ac46-4f9f-983a-f6a740b81c0e",
+        "90dfba4f-6dec-4ca8-8c15-786ed36587a1"
+      ],
+      "fallbackActions": [],
       "bodies": [
         "bb7e67bd-ead9-4f14-93db-c18af0d806af",
         "13072ea8-9b51-45fe-927e-a9323627701b",
@@ -204,13 +216,15 @@
       "type": "AgentStateBody",
       "owner": "7610bbda-21ef-4637-a188-1da1352bea17",
       "bounds": {
-        "x": -149.5,
-        "y": 170.5,
+        "x": 35.5,
+        "y": 210.5,
         "width": 419,
         "height": 30
       },
+      "actionType": "TextReplyAction",
       "replyType": "text",
-      "ragDatabaseName": ""
+      "useSessionVars": false,
+      "llm_name": ""
     },
     "13072ea8-9b51-45fe-927e-a9323627701b": {
       "id": "13072ea8-9b51-45fe-927e-a9323627701b",
@@ -218,13 +232,15 @@
       "type": "AgentStateBody",
       "owner": "7610bbda-21ef-4637-a188-1da1352bea17",
       "bounds": {
-        "x": -149.5,
-        "y": 200.5,
+        "x": 35.5,
+        "y": 240.5,
         "width": 419,
         "height": 30
       },
+      "actionType": "TextReplyAction",
       "replyType": "text",
-      "ragDatabaseName": ""
+      "useSessionVars": false,
+      "llm_name": ""
     },
     "95241c3a-f8a2-4bf0-b169-5dcff5a926fb": {
       "id": "95241c3a-f8a2-4bf0-b169-5dcff5a926fb",
@@ -232,13 +248,15 @@
       "type": "AgentStateBody",
       "owner": "7610bbda-21ef-4637-a188-1da1352bea17",
       "bounds": {
-        "x": -149.5,
-        "y": 230.5,
+        "x": 35.5,
+        "y": 270.5,
         "width": 419,
         "height": 30
       },
+      "actionType": "TextReplyAction",
       "replyType": "text",
-      "ragDatabaseName": ""
+      "useSessionVars": false,
+      "llm_name": ""
     },
     "44904a03-ac46-4f9f-983a-f6a740b81c0e": {
       "id": "44904a03-ac46-4f9f-983a-f6a740b81c0e",
@@ -246,13 +264,15 @@
       "type": "AgentStateBody",
       "owner": "7610bbda-21ef-4637-a188-1da1352bea17",
       "bounds": {
-        "x": -149.5,
-        "y": 260.5,
+        "x": 35.5,
+        "y": 300.5,
         "width": 419,
         "height": 30
       },
+      "actionType": "TextReplyAction",
       "replyType": "text",
-      "ragDatabaseName": ""
+      "useSessionVars": false,
+      "llm_name": ""
     },
     "90dfba4f-6dec-4ca8-8c15-786ed36587a1": {
       "id": "90dfba4f-6dec-4ca8-8c15-786ed36587a1",
@@ -260,13 +280,15 @@
       "type": "AgentStateBody",
       "owner": "7610bbda-21ef-4637-a188-1da1352bea17",
       "bounds": {
-        "x": -149.5,
-        "y": 290.5,
+        "x": 35.5,
+        "y": 330.5,
         "width": 419,
         "height": 30
       },
+      "actionType": "TextReplyAction",
       "replyType": "text",
-      "ragDatabaseName": ""
+      "useSessionVars": false,
+      "llm_name": ""
     },
     "8c760b7d-7e72-4cd7-a92a-d5491c021a5b": {
       "id": "8c760b7d-7e72-4cd7-a92a-d5491c021a5b",
@@ -274,11 +296,15 @@
       "type": "AgentState",
       "owner": null,
       "bounds": {
-        "x": 350,
-        "y": -90,
+        "x": 535,
+        "y": -50,
         "width": 180,
         "height": 70
       },
+      "stateType": "standard",
+      "fallbackBodyEnabled": true,
+      "actions": ["6a3aeb02-bb44-4472-8489-595e8dc8ceb1"],
+      "fallbackActions": [],
       "bodies": ["6a3aeb02-bb44-4472-8489-595e8dc8ceb1"],
       "fallbackBodies": []
     },
@@ -288,53 +314,21 @@
       "type": "AgentStateBody",
       "owner": "8c760b7d-7e72-4cd7-a92a-d5491c021a5b",
       "bounds": {
-        "x": 350.5,
-        "y": -49.5,
+        "x": 535.5,
+        "y": -9.5,
         "width": 179,
         "height": 30
       },
+      "actionType": "LLMReplyAction",
       "replyType": "llm",
-      "ragDatabaseName": ""
-    },
-    "659e810a-f686-47fb-aea8-d23ad06e482c": {
-      "id": "659e810a-f686-47fb-aea8-d23ad06e482c",
-      "name": "Nutrition_intent",
-      "type": "AgentIntent",
-      "owner": null,
-      "bounds": {
-        "x": -900,
-        "y": -290,
-        "width": 630,
-        "height": 100
-      },
-      "bodies": ["f1fc7bc1-016d-404f-90a8-c2c8f4a8dad0"],
-      "intent_description": "Question about nutrition in gym."
-    },
-    "f1fc7bc1-016d-404f-90a8-c2c8f4a8dad0": {
-      "id": "f1fc7bc1-016d-404f-90a8-c2c8f4a8dad0",
-      "name": "Which food to eat?",
-      "type": "AgentIntentBody",
-      "owner": "659e810a-f686-47fb-aea8-d23ad06e482c",
-      "bounds": {
-        "x": -899.5,
-        "y": -219.5,
-        "width": 629,
-        "height": 30
-      }
-    },
-    "37dff3e2-013c-42f0-ad6e-bbc197247d14": {
-      "id": "37dff3e2-013c-42f0-ad6e-bbc197247d14",
-      "name": "Other",
-      "type": "AgentIntent",
-      "owner": null,
-      "bounds": {
-        "x": -860,
-        "y": 150,
-        "width": 630,
-        "height": 70
-      },
-      "bodies": [],
-      "intent_description": "Any question that does not fit in \"Muscles\" or \"Nutrition\""
+      "llm_name": "",
+      "system_message": "",
+      "systemPromptUseSessionVars": false,
+      "storeInSession": "",
+      "sendReply": true,
+      "inputPromptMode": "last_user_message",
+      "customInputPrompt": "",
+      "customInputPromptUseSessionVars": false
     }
   },
   "relationships": {
@@ -344,8 +338,8 @@
       "type": "AgentStateTransitionInit",
       "owner": null,
       "bounds": {
-        "x": -185,
-        "y": -347.5,
+        "x": 0,
+        "y": -307.5,
         "width": 85,
         "height": 1
       },
@@ -387,8 +381,8 @@
       "type": "AgentStateTransition",
       "owner": null,
       "bounds": {
-        "x": -590,
-        "y": -150,
+        "x": -405,
+        "y": -110,
         "width": 410,
         "height": 120
       },
@@ -430,8 +424,8 @@
       "type": "AgentStateTransition",
       "owner": null,
       "bounds": {
-        "x": 70,
-        "y": -300,
+        "x": 255,
+        "y": -260,
         "width": 1,
         "height": 100
       },
@@ -469,8 +463,8 @@
       "type": "AgentStateTransition",
       "owner": null,
       "bounds": {
-        "x": 240,
-        "y": -130,
+        "x": 425,
+        "y": -90,
         "width": 200,
         "height": 40
       },
@@ -520,8 +514,8 @@
       "type": "AgentStateTransition",
       "owner": null,
       "bounds": {
-        "x": -380,
-        "y": -125,
+        "x": -195,
+        "y": -85,
         "width": 200,
         "height": 127.5
       },
@@ -567,8 +561,8 @@
       "type": "AgentStateTransition",
       "owner": null,
       "bounds": {
-        "x": 135,
-        "y": -100,
+        "x": 320,
+        "y": -60,
         "width": 215,
         "height": 40
       },
@@ -618,8 +612,8 @@
       "type": "AgentStateTransition",
       "owner": null,
       "bounds": {
-        "x": -190,
-        "y": -100,
+        "x": -5,
+        "y": -60,
         "width": 115,
         "height": 277.5
       },
@@ -669,8 +663,8 @@
       "type": "AgentStateTransition",
       "owner": null,
       "bounds": {
-        "x": 45,
-        "y": -100,
+        "x": 230,
+        "y": -60,
         "width": 1,
         "height": 230
       },
@@ -703,5 +697,43 @@
       }
     }
   },
-  "assessments": {}
+  "assessments": {},
+  "components": {
+    "d38d6ec1-aeab-40cd-8ca4-6c496e425ccf": {
+      "id": "d38d6ec1-aeab-40cd-8ca4-6c496e425ccf",
+      "type": "AgentIntent",
+      "name": "Muscles_intent",
+      "owner": null,
+      "intent_description": "Question about how to become muscular and which exercises to perform.",
+      "bodies": ["4909d274-5b28-43da-9892-d825605ba87f"]
+    },
+    "74307a3d-cfe5-444e-9116-5eb520ffa503": {
+      "id": "74307a3d-cfe5-444e-9116-5eb520ffa503",
+      "type": "AgentIntent",
+      "name": "Nutrition_intent",
+      "owner": null,
+      "intent_description": "Question about nutrition in gym.",
+      "bodies": ["f7dad919-77f2-480b-bc4b-30389b8a63a3"]
+    },
+    "c59db431-0ebb-4f5a-b4ae-dc046d1bbb99": {
+      "id": "c59db431-0ebb-4f5a-b4ae-dc046d1bbb99",
+      "type": "AgentIntent",
+      "name": "Other",
+      "owner": null,
+      "intent_description": "Any question that does not fit in \"Muscles\" or \"Nutrition\"",
+      "bodies": []
+    },
+    "4909d274-5b28-43da-9892-d825605ba87f": {
+      "id": "4909d274-5b28-43da-9892-d825605ba87f",
+      "type": "AgentIntentBody",
+      "name": "I want muscles",
+      "owner": "d38d6ec1-aeab-40cd-8ca4-6c496e425ccf"
+    },
+    "f7dad919-77f2-480b-bc4b-30389b8a63a3": {
+      "id": "f7dad919-77f2-480b-bc4b-30389b8a63a3",
+      "type": "AgentIntentBody",
+      "name": "Which food to eat?",
+      "owner": "74307a3d-cfe5-444e-9116-5eb520ffa503"
+    }
+  }
 }

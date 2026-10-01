@@ -59,7 +59,7 @@ exports[`test class association popup render 1`] = `
             class="sc-eeDRCY sc-koXPp fShmjg jICzlH sc-hCPjZK lhcboe"
             color="primary"
           >
-            Association (bidirectional)
+            Association
           </button>
         </div>
         <hr

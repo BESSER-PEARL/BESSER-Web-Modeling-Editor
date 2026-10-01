@@ -15,7 +15,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { ApollonEditor, UMLDiagramType, UMLModel, normalizeAgentModel } from '@besser/wme';
+import { ApollonEditor, UMLDiagramType, UMLModel } from '@besser/wme';
 import { toast } from 'react-toastify';
 import { useTranslation } from 'react-i18next';
 
@@ -62,6 +62,7 @@ import {
   getConfigDialogForGenerator,
 } from './generator-dialog-config';
 import { getWorkspaceContext } from '../../shared/utils/workspaceContext';
+import { prepareAgentModelForBackend } from '../../shared/utils/projectExportUtils';
 import type { GeneratorType } from '../../app/shell/workspace-types';
 import i18n from '../../shared/i18n';
 import {
@@ -762,8 +763,14 @@ export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGen
     async (
       generatorType: GeneratorType,
       config?: unknown,
-      options?: { autoGenerateGuiIfEmpty?: boolean; agentModelOverride?: UMLModel },
+      options?: { autoGenerateGuiIfEmpty?: boolean; agentModelOverride?: UMLModel; deferDownload?: boolean },
     ): Promise<GenerationResult> => {
+      // The assistant flow defers the browser download so the result renders as
+      // a card with a manual Download button; the menu path auto-downloads.
+      const runGen: typeof generateCode = (editorArg, typeArg, titleArg, cfgArg, refArg, overrideArg) =>
+        generateCode(editorArg, typeArg, titleArg, cfgArg, refArg, overrideArg, {
+          autoDownload: !options?.deferDownload,
+        });
       if (!currentProject) {
         toast.error(t('generation.toasts.createOrLoadProject'));
         return { ok: false, error: 'Create or load a project before generating code.' };
@@ -798,7 +805,7 @@ export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGen
             }
           }
 
-          const webAppResult = await generateCode(null, 'web_app', activeDiagramTitle, config as any);
+          const webAppResult = await runGen(null, 'web_app', activeDiagramTitle, config as any);
           if (!mountedRef.current) return { ok: false, error: 'Component unmounted' };
           if (webAppResult.ok) {
             getPostHog()?.capture('generator_used', {
@@ -816,7 +823,7 @@ export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGen
             return { ok: false, error: 'Open the Quantum editor before generating Qiskit code.' };
           }
 
-          const qiskitResult = await generateCode(
+          const qiskitResult = await runGen(
             null,
             'qiskit',
             activeDiagramTitle,
@@ -838,7 +845,7 @@ export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGen
             toast.error(t('generation.toasts.openNnEditor'));
             return { ok: false, error: 'Open the NN Diagram editor before generating neural network code.' };
           }
-          const nnResult = await generateCode(editor, generatorType, activeDiagramTitle, config as any);
+          const nnResult = await runGen(editor, generatorType, activeDiagramTitle, config as any);
           if (!mountedRef.current) return { ok: false, error: 'Component unmounted' };
           if (nnResult.ok) {
             getPostHog()?.capture('generator_used', {
@@ -848,6 +855,46 @@ export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGen
             });
           }
           return nnResult;
+        }
+
+        // Agentic flow: a class-diagram generator was requested while a
+        // non-UML tab is active (or no UML editor is mounted). The visible tab
+        // is irrelevant to the request — the assistant knows the project has a
+        // class diagram — so generate from the STORED class diagram instead of
+        // bouncing the user with "Switch to a UML diagram".
+        const CLASS_MODEL_GENERATORS = [
+          'django', 'backend', 'sql', 'sqlalchemy', 'python', 'java',
+          'pydantic', 'jsonschema', 'smartdata', 'rest_api', 'rdf', 'supabase',
+        ];
+        if ((isQuantumContext || isGuiContext || !editor)
+            && CLASS_MODEL_GENERATORS.includes(generatorType)) {
+          const storedClassDiagram = getActiveDiagram(currentProject, 'ClassDiagram');
+          const storedModel = storedClassDiagram?.model as UMLModel | undefined;
+          const hasElements =
+            !!storedModel && Object.keys((storedModel as any).elements ?? {}).length > 0;
+          if (hasElements) {
+            // Smart Data Models is the jsonschema generator in smart_data mode
+            // (the backend has no 'smartdata' generator), as in the switch below.
+            const isSmartData = generatorType === 'smartdata';
+            const overrideResult = await runGen(
+              null,
+              isSmartData ? 'jsonschema' : generatorType,
+              storedClassDiagram?.title || activeDiagramTitle,
+              isSmartData ? { mode: 'smart_data' } : (config as any),
+              undefined,
+              storedModel,
+            );
+            if (!mountedRef.current) return { ok: false, error: 'Component unmounted' };
+            if (overrideResult.ok) {
+              getPostHog()?.capture('generator_used', {
+                generator_type: generatorType,
+                diagram_type: 'ClassDiagram',
+                from_stored_model: true,
+                ...getModelMetrics(currentProject),
+              });
+            }
+            return overrideResult;
+          }
         }
 
         if (isQuantumContext || isGuiContext) {
@@ -863,28 +910,28 @@ export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGen
         let result: GenerationResult = { ok: false, error: 'Generation was not executed.' };
         switch (generatorType) {
           case 'smartdata':
-            result = await generateCode(editor, 'jsonschema', activeDiagramTitle, { mode: 'smart_data' });
+            result = await runGen(editor, 'jsonschema', activeDiagramTitle, { mode: 'smart_data' });
             break;
           case 'django':
-            result = await generateCode(editor, 'django', activeDiagramTitle, config as DjangoConfig);
+            result = await runGen(editor, 'django', activeDiagramTitle, config as DjangoConfig);
             break;
           case 'spring':
             result = await generateCode(editor, 'spring', activeDiagramTitle, config as SpringConfig);
             break;
           case 'sql':
-            result = await generateCode(editor, 'sql', activeDiagramTitle, config as SQLConfig);
+            result = await runGen(editor, 'sql', activeDiagramTitle, config as SQLConfig);
             break;
           case 'supabase':
-            result = await generateCode(editor, 'supabase', activeDiagramTitle, config as SupabaseConfig);
+            result = await runGen(editor, 'supabase', activeDiagramTitle, config as SupabaseConfig);
             break;
           case 'sqlalchemy':
-            result = await generateCode(editor, 'sqlalchemy', activeDiagramTitle, config as SQLAlchemyConfig);
+            result = await runGen(editor, 'sqlalchemy', activeDiagramTitle, config as SQLAlchemyConfig);
             break;
           case 'jsonschema':
-            result = await generateCode(editor, 'jsonschema', activeDiagramTitle, config as JSONSchemaConfig);
+            result = await runGen(editor, 'jsonschema', activeDiagramTitle, config as JSONSchemaConfig);
             break;
           case 'agent':
-            result = await generateCode(
+            result = await runGen(
               editor,
               'agent',
               activeDiagramTitle,
@@ -894,7 +941,7 @@ export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGen
             );
             break;
           case 'test_case':
-            result = await generateCode(editor, 'test_case', activeDiagramTitle);
+            result = await runGen(editor, 'test_case', activeDiagramTitle);
             break;
           case 'jsonobject': {
             if (!isObjectContext && !isUserContext) {
@@ -911,11 +958,11 @@ export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGen
                 referenceDiagramData = classDiagram.model;
               }
             }
-            result = await generateCode(editor, 'jsonobject', activeDiagramTitle, undefined, referenceDiagramData);
+            result = await runGen(editor, 'jsonobject', activeDiagramTitle, undefined, referenceDiagramData);
             break;
           }
           default:
-            result = await generateCode(editor, generatorType, activeDiagramTitle, config as any);
+            result = await runGen(editor, generatorType, activeDiagramTitle, config as any);
         }
 
         if (!mountedRef.current) return { ok: false, error: 'Component unmounted' };
@@ -965,7 +1012,12 @@ export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGen
 
   const handleAssistantGenerate = useCallback(
     async (generatorType: GeneratorType, config?: unknown): Promise<GenerationResult> =>
-      executeGenerator(generatorType, config, { autoGenerateGuiIfEmpty: generatorType === 'web_app' }),
+      executeGenerator(generatorType, config, {
+        autoGenerateGuiIfEmpty: generatorType === 'web_app',
+        // Defer the download so the assistant renders a result card with a
+        // manual Download button instead of auto-saving.
+        deferDownload: true,
+      }),
     [executeGenerator],
   );
 
@@ -1111,7 +1163,13 @@ export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGen
     // single source of truth. Falls back to hardcoded defaults when no agent
     // diagram exists in the project (edge case: generator triggered without an
     // agent diagram present).
-    const activeAgentDiagram = currentProject ? getActiveDiagram(currentProject, 'AgentDiagram') : undefined;
+    // Read the diagram config from fresh storage so that fields written directly
+    // to localStorage (e.g. default_llm_name via writeConfig in AgentComponentsPanel)
+    // are not missed by the Redux state which may not yet reflect those writes.
+    const freshProject = currentProject?.id
+      ? (ProjectStorageRepository.loadProject(currentProject.id) ?? currentProject)
+      : currentProject;
+    const activeAgentDiagram = freshProject ? getActiveDiagram(freshProject, 'AgentDiagram') : undefined;
     const diagramConfig = (activeAgentDiagram?.config ?? null) as Record<string, any> | null;
     const llmBlock = diagramConfig && typeof diagramConfig.llm === 'object' && diagramConfig.llm !== null
       ? (diagramConfig.llm as Record<string, any>)
@@ -1210,9 +1268,9 @@ export function useGeneratorExecution(editor: ApollonEditor | undefined): UseGen
             // Normalize to the canonical nested transition shape before sending.
             // Variant/config snapshots can bypass the editor (e.g. imported
             // projects) and still carry the legacy flat shape, which the backend
-            // collapses to when_no_intent_matched. normalizeAgentModel is pure
-            // and idempotent and returns a fresh clone.
-            agent_model: normalizeAgentModel(agentModel as UMLModel) as Record<string, any>,
+            // collapses to when_no_intent_matched. The shared helper is pure and
+            // idempotent, and also attaches the diagram's off-canvas components.
+            agent_model: prepareAgentModelForBackend(agentModel as UMLModel, activeAgentDiagram ?? null) as Record<string, any>,
           };
         })
         .filter((entry): entry is {

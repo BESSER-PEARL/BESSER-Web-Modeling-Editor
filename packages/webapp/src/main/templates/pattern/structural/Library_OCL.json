@@ -811,7 +811,8 @@
           "y": 0,
           "width": 0,
           "height": 0
-        }
+        },
+        "navigable": true
       },
       "target": {
         "direction": "Down",
@@ -823,7 +824,8 @@
           "y": 0,
           "width": 0,
           "height": 0
-        }
+        },
+        "navigable": true
       },
       "isManuallyLayouted": false
     },
@@ -858,7 +860,8 @@
           "y": 0,
           "width": 0,
           "height": 0
-        }
+        },
+        "navigable": true
       },
       "target": {
         "direction": "Right",
@@ -870,7 +873,8 @@
           "y": 0,
           "width": 0,
           "height": 0
-        }
+        },
+        "navigable": true
       },
       "isManuallyLayouted": false
     },

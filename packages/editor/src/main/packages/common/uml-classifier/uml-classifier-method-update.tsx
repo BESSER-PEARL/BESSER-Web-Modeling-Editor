@@ -132,6 +132,7 @@ const IMPLEMENTATION_TYPE_OPTIONS: { value: MethodImplementationType; label: str
   { value: 'bal', label: 'BESSER Action Language', icon: '' },
   { value: 'state_machine', label: 'State Machine', icon: '' },
   { value: 'quantum_circuit', label: 'Quantum Circuit', icon: '' },
+  { value: 'neural_network', label: 'Neural Network', icon: '' },
 ];
 
 const CODE_BASED_IMPLEMENTATION_TYPES: MethodImplementationType[] = ['code', 'bal'];
@@ -157,14 +158,17 @@ type Props = {
   implementationType?: MethodImplementationType;
   stateMachineId?: string;
   quantumCircuitId?: string;
+  neuralNetworkId?: string;
   availableStateMachines?: DiagramReference[];
   availableQuantumCircuits?: DiagramReference[];
+  availableNeuralNetworks?: DiagramReference[];
   onChange: (id: string, values: { 
     name?: string; 
     code?: string; 
     implementationType?: MethodImplementationType;
     stateMachineId?: string;
     quantumCircuitId?: string;
+    neuralNetworkId?: string;
     fillColor?: string; 
     textColor?: string; 
     lineColor?: string 
@@ -182,8 +186,10 @@ const UmlMethodUpdate = ({
   implementationType = 'none',
   stateMachineId = '',
   quantumCircuitId = '',
+  neuralNetworkId = '',
   availableStateMachines = [],
   availableQuantumCircuits = [],
+  availableNeuralNetworks = [],
   onChange,
   onSubmitKeyUp,
   onDelete,
@@ -310,9 +316,9 @@ const UmlMethodUpdate = ({
     if (implType === 'none') {
       setLocalCode('');
       setCodeEditorOpen(false);
-      onChange(id, { implementationType: implType, code: '', stateMachineId: '', quantumCircuitId: '' });
+      onChange(id, { implementationType: implType, code: '', stateMachineId: '', quantumCircuitId: '', neuralNetworkId: '' });
     } else if (CODE_BASED_IMPLEMENTATION_TYPES.includes(implType)) {
-      onChange(id, { implementationType: implType, stateMachineId: '', quantumCircuitId: '' });
+      onChange(id, { implementationType: implType, stateMachineId: '', quantumCircuitId: '', neuralNetworkId: '' });
       if (!localCode) {
         const methodName = parseMethod(value).name || 'method_name';
         const cleanMethodName = methodName.split('(')[0].trim() || 'new_method';
@@ -324,11 +330,15 @@ const UmlMethodUpdate = ({
     } else if (implType === 'state_machine') {
       setLocalCode('');
       setCodeEditorOpen(false);
-      onChange(id, { implementationType: implType, code: '', quantumCircuitId: '' });
+      onChange(id, { implementationType: implType, code: '', quantumCircuitId: '', neuralNetworkId: '' });
     } else if (implType === 'quantum_circuit') {
       setLocalCode('');
       setCodeEditorOpen(false);
-      onChange(id, { implementationType: implType, code: '', stateMachineId: '' });
+      onChange(id, { implementationType: implType, code: '', stateMachineId: '', neuralNetworkId: '' });
+    } else if (implType === 'neural_network') {
+      setLocalCode('');
+      setCodeEditorOpen(false);
+      onChange(id, { implementationType: implType, code: '', stateMachineId: '', quantumCircuitId: '' });
     }
   };
 
@@ -338,6 +348,10 @@ const UmlMethodUpdate = ({
 
   const handleQuantumCircuitChange = (qcId: unknown) => {
     onChange(id, { quantumCircuitId: qcId as string });
+  };
+
+  const handleNeuralNetworkChange = (nnId: unknown) => {
+    onChange(id, { neuralNetworkId: nnId as string });
   };
 
   const visibilityValue = VISIBILITY_OPTIONS.find(v => v.symbol === visibility)?.value || 'public';
@@ -352,6 +366,7 @@ const UmlMethodUpdate = ({
   const isSignatureLocked = showCodeEditor;
   const showStateMachineSelector = localImplType === 'state_machine';
   const showQuantumCircuitSelector = localImplType === 'quantum_circuit';
+  const showNeuralNetworkSelector = localImplType === 'neural_network';
 
   return (
     <MethodRow>
@@ -439,6 +454,31 @@ const UmlMethodUpdate = ({
             ) : (
               <DiagramRefLabel title={translate('popup.method.createQuantumCircuitFirst')}>
                 {translate('popup.method.noQuantumCircuits')}
+              </DiagramRefLabel>
+            )}
+          </>
+        )}
+
+        {/* Neural Network Selector */}
+        {showNeuralNetworkSelector && (
+          <>
+            {availableNeuralNetworks.length > 0 ? (
+              <DiagramDropdown 
+                value={neuralNetworkId} 
+                onChange={handleNeuralNetworkChange}
+              >
+                {[
+                  <Dropdown.Item key="__placeholder__" value="">{translate('popup.method.selectNeuralNetwork')}</Dropdown.Item>,
+                  ...availableNeuralNetworks.map(nn => (
+                    <Dropdown.Item key={nn.id} value={nn.id}>
+                      {nn.name}
+                    </Dropdown.Item>
+                  ))
+                ]}
+              </DiagramDropdown>
+            ) : (
+              <DiagramRefLabel title={translate('popup.method.createNeuralNetworkFirst')}>
+                {translate('popup.method.noNeuralNetworks')}
               </DiagramRefLabel>
             )}
           </>

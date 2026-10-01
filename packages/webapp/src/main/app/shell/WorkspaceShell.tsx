@@ -13,27 +13,32 @@ import { useGitHubAuth } from '../../features/github/hooks/useGitHubAuth';
 import { isDarkThemeEnabled, toggleTheme } from '../../shared/utils/theme-switcher';
 import { ProjectStorageRepository } from '../../shared/services/storage/ProjectStorageRepository';
 import {
-  useImportDiagramToProjectWorkflow,
-  useImportBpmnDiagramToProjectWorkflow,
-} from '../../features/import/useImportDiagram';
+  LocalStorageRepository,
+  DEFAULT_AGENT_RUNTIME_CONFIG,
+  normalizeAgentRuntimeConfig,
+  type AgentRuntimeConfig,
+} from '../../shared/services/storage/local-storage-repository';
 import {
   useGenerateComponentDiagram,
   useGenerateDeploymentDiagram,
   useGenerateDockerCompose,
 } from '../../features/inter-diagram';
-import { LocalStorageRepository } from '../../shared/services/storage/local-storage-repository';
 import { readAgentVariants, getActiveAgentVariantId } from '../../shared/services/agent-variants/agent-variants-service';
-import { buildProjectExportEnvelope, PROJECT_EXPORT_VERSION } from '../../shared/utils/projectExportUtils';
+import { useImportDiagramToProjectWorkflow, useImportBpmnDiagramToProjectWorkflow } from '../../features/import/useImportDiagram';
+import { buildProjectExportEnvelope, PROJECT_EXPORT_VERSION, prepareAgentModelForBackend } from '../../shared/utils/projectExportUtils';
 import {
   besserLibraryRepositoryLink,
   besserMainRepositoryLink,
   besserWMERepositoryLink,
 } from '../../shared/constants/application-constants';
+import { sessionStorageOpenAssistantOnLoad, sessionStorageAssistantDrawerOpen } from '../../shared/constants/constant';
 import { normalizeProjectName } from '../../shared/utils/projectName';
 import { getWorkspaceContext } from '../../shared/utils/workspaceContext';
 import { downloadFile, downloadJson } from '../../shared/utils/download';
 import type { GenerationResult } from '../../features/generation/types';
 import { JsonViewerModal } from '../../shared/components/json-viewer-modal/json-viewer-modal';
+import { CredentialsDialog, selectIsSimulationRunning, selectSessionId, stopAgentSimulationThunk, validateAgentThunk } from '../../features/agent-simulation';
+import { agentSimulationApi } from '../../shared/api/agentSimulation';
 import { WorkspaceTopBar } from './WorkspaceTopBar';
 import { DiagramTabs } from '../../features/editors/diagram-tabs/DiagramTabs';
 import { WorkspaceSidebar } from './WorkspaceSidebar';
@@ -72,8 +77,6 @@ const HelpGuideDialog = React.lazy(() =>
 import { KeyboardShortcutsDialog, useKeyboardShortcutsToggle } from '../../shared/dialogs/KeyboardShortcutsDialog';
 import { CommandPalette, useCommandPaletteShortcut, buildDefaultActions } from '../../shared/components/command-palette/CommandPalette';
 import { HiddenPerspectivesBanner } from '../../features/editors/HiddenPerspectivesBanner';
-import { GeneratingOverlay } from '../../shared/components/loading/GeneratingOverlay';
-
 export type { GeneratorType, GeneratorMenuMode } from './workspace-types';
 
 const sanitizeRepoName = (name: string): string => {
@@ -106,7 +109,8 @@ interface OnboardingHook {
 
 interface WorkspaceShellProps {
   children: React.ReactNode;
-  onOpenProjectHub: () => void;
+  /** Opens the Project Hub; an optional step targets New / Open / Import directly. */
+  onOpenProjectHub: (step?: 'create' | 'open' | 'import' | 'spreadsheet' | 'github') => void;
   onOpenTemplateDialog: () => void;
   onExportProject: () => void;
   onGenerate: (type: GeneratorType, config?: Record<string, any>) => void;
@@ -179,6 +183,13 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
   const importDiagramToProject = useImportDiagramToProjectWorkflow();
   const importBpmnDiagramToProject = useImportBpmnDiagramToProjectWorkflow();
 
+  const isSimulationActive = useAppSelector(selectIsSimulationRunning);
+  const simulationSessionId = useAppSelector(selectSessionId);
+  const showSimulateAgent = currentProject?.currentDiagramType === UMLDiagramType.AgentDiagram;
+  const [isCredentialsDialogOpen, setIsCredentialsDialogOpen] = useState(false);
+  const [isValidatingBeforeTest, setIsValidatingBeforeTest] = useState(false);
+  const [simulationConfig, setSimulationConfig] = useState<Record<string, unknown>>({});
+
   // Local UI state
   // Sidebar starts expanded so diagram-type labels are visible; users can
   // collapse it with the bottom toggle to reclaim canvas space.
@@ -188,7 +199,15 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
   const [diagramTitleDraft, setDiagramTitleDraft] = useState(diagram?.title ?? '');
   const [isDarkTheme, setIsDarkTheme] = useState<boolean>(() => isDarkThemeEnabled());
   const [isGitHubSidebarOpen, setIsGitHubSidebarOpen] = useState(false);
-  const [isAssistantWorkspaceOpen, setIsAssistantWorkspaceOpen] = useState(false);
+  // Restore the drawer to wherever the user left it this tab (sessionStorage).
+  // Defaults to closed when nothing is stored or storage is unavailable.
+  const [isAssistantWorkspaceOpen, setIsAssistantWorkspaceOpen] = useState<boolean>(() => {
+    try {
+      return sessionStorage.getItem(sessionStorageAssistantDrawerOpen) === '1';
+    } catch {
+      return false;
+    }
+  });
   const [userModelValidationByDiagramId, setUserModelValidationByDiagramId] = useState<Record<string, UserModelValidationRecord>>({});
 
   // Derived values
@@ -197,6 +216,83 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
     [currentDiagramType],
   );
   const { isDeploymentAvailable } = getWorkspaceContext(location.pathname, currentProject?.currentDiagramType);
+
+  // Build a normalized system config for the agent simulation — mirrors the same
+  // normalization that handleAgentGenerate applies before code generation, so
+  // the backend receives the same intentRecognitionTechnology / llm / platform
+  // values in both flows. Without this, a raw diagram.config that is undefined,
+  // uses the legacy 'streamlit' platform, or has a structured shape (with
+  // intentRecognitionTechnology nested under a 'system' key) would be forwarded
+  // verbatim, causing the backend to fall back to LLMIntentClassifier.
+  const normalizedAgentSystemConfig = useMemo((): Record<string, any> => {
+    const activeAgentDiagram = currentProject
+      ? getActiveDiagram(currentProject, 'AgentDiagram')
+      : undefined;
+    const diagramConfig = (activeAgentDiagram?.config ?? null) as Record<string, any> | null;
+    const llmBlock =
+      diagramConfig && typeof diagramConfig.llm === 'object' && diagramConfig.llm !== null
+        ? (diagramConfig.llm as Record<string, any>)
+        : null;
+    const agentConfig = diagramConfig
+      ? normalizeAgentRuntimeConfig({
+          agentPlatform:
+            typeof diagramConfig.agentPlatform === 'string' ? diagramConfig.agentPlatform : undefined,
+          agentPlatformUseStreamlit:
+            typeof diagramConfig.agentPlatformUseStreamlit === 'boolean'
+              ? diagramConfig.agentPlatformUseStreamlit
+              : undefined,
+          intentRecognitionTechnology: diagramConfig.intentRecognitionTechnology,
+          agentLlmProvider: llmBlock?.provider,
+          agentLlmModel: typeof llmBlock?.model === 'string' ? llmBlock.model : undefined,
+          agentCustomLlmModel: undefined,
+          agentLlmName:
+            typeof diagramConfig.agentLlmName === 'string'
+              ? diagramConfig.agentLlmName
+              : typeof llmBlock?.name === 'string'
+              ? llmBlock.name
+              : undefined,
+        })
+      : { ...DEFAULT_AGENT_RUNTIME_CONFIG };
+
+    const resolvedOpenAiModel =
+      agentConfig.agentLlmModel === 'other'
+        ? agentConfig.agentCustomLlmModel.trim()
+        : agentConfig.agentLlmModel;
+
+    const resolvedAgentPlatform =
+      agentConfig.agentPlatform === 'websocket' && agentConfig.agentPlatformUseStreamlit
+        ? 'streamlit'
+        : agentConfig.agentPlatform;
+
+    const defaultLlmNameFromDiagram =
+      diagramConfig &&
+      typeof diagramConfig.default_llm_name === 'string' &&
+      diagramConfig.default_llm_name
+        ? diagramConfig.default_llm_name
+        : undefined;
+
+    return {
+      agentPlatform: resolvedAgentPlatform,
+      intentRecognitionTechnology: agentConfig.intentRecognitionTechnology,
+      ...(defaultLlmNameFromDiagram ? { default_llm_name: defaultLlmNameFromDiagram } : {}),
+      ...(agentConfig.agentLlmName
+        ? { llm: { name: agentConfig.agentLlmName } }
+        : agentConfig.agentLlmProvider
+        ? {
+            llm: {
+              provider: agentConfig.agentLlmProvider,
+              ...(resolvedOpenAiModel ? { model: resolvedOpenAiModel } : {}),
+            },
+          }
+        : {}),
+    };
+  }, [currentProject]);
+
+  const simulationDiagramModel = useMemo(
+    (): object =>
+      diagram && isUMLModel(diagram.model) ? prepareAgentModelForBackend(diagram.model, diagram) : (diagram?.model ?? {}),
+    [diagram],
+  );
 
   // Extracted hooks
   const { hasStarred, starLoading, handleToggleStar } = useGitHubStar({ isAuthenticated, githubSession });
@@ -291,6 +387,41 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
     setDiagramTitleDraft(diagram?.title ?? '');
   }, [diagram?.id, diagram?.title]);
 
+  // Navigate to /agent-simulation only when the simulation transitions from idle to active.
+  // Using a ref avoids re-redirecting the user if they manually navigate away while
+  // the simulation is still running.
+  const prevIsSimulationActiveRef = useRef(isSimulationActive);
+  useEffect(() => {
+    const wasActive = prevIsSimulationActiveRef.current;
+    prevIsSimulationActiveRef.current = isSimulationActive;
+    if (!wasActive && isSimulationActive) {
+      navigate('/agent-simulation');
+    }
+  }, [isSimulationActive, navigate]);
+
+  // Stop any running simulation session when the user switches to a different project
+  const prevProjectIdRef = useRef<string | undefined>(currentProject?.id);
+  useEffect(() => {
+    const currentId = currentProject?.id;
+    const prevId = prevProjectIdRef.current;
+    prevProjectIdRef.current = currentId;
+    if (prevId !== undefined && prevId !== currentId) {
+      void dispatch(stopAgentSimulationThunk());
+    }
+  }, [currentProject?.id, dispatch]);
+
+  // Best-effort session cleanup when the browser tab is closed or reloaded.
+  // Uses keepalive so the request can outlive the page.
+  useEffect(() => {
+    const sessionId = simulationSessionId;
+    if (!sessionId) return;
+    const handleBeforeUnload = () => {
+      agentSimulationApi.stopSession(sessionId, { keepalive: true }).catch(() => {});
+    };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [simulationSessionId]);
+
   /* ---- Assistant-driven export (JSON / BUML) ---- */
   useEffect(() => {
     const handleAssistantExport = async (e: Event) => {
@@ -327,6 +458,45 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
     window.addEventListener('wme:assistant-export-project', handleAssistantExport);
     return () => window.removeEventListener('wme:assistant-export-project', handleAssistantExport);
   }, [generateProjectBumlPreview, t]);
+
+  // Agentic entry: when a project was created with the "agent" interface (or the
+  // app was opened with ?agentic), open the assistant drawer once the project is
+  // loaded so the user lands on the agentic welcome. The flag is set by
+  // ProjectHubDialog / useProjectBootstrap; consume-and-clear it here so the
+  // drawer opens exactly once and no prompt is auto-sent.
+  useEffect(() => {
+    if (!currentProject) {
+      return;
+    }
+    let shouldOpen = false;
+    try {
+      shouldOpen = sessionStorage.getItem(sessionStorageOpenAssistantOnLoad) === '1';
+      if (shouldOpen) {
+        sessionStorage.removeItem(sessionStorageOpenAssistantOnLoad);
+      }
+    } catch {
+      shouldOpen = false;
+    }
+    if (shouldOpen) {
+      setIsAssistantWorkspaceOpen(true);
+    }
+  }, [currentProject?.id]);
+
+  // Persist the drawer's open/closed state for the tab so it stays where the
+  // user left it across in-tab reloads (session-scoped, mirrors the read above),
+  // and keep the floating FAB (AssistantWidget) in sync via the shared event so
+  // only one assistant surface shows — this also covers a restore-open on mount,
+  // when no user toggle fired the event.
+  useEffect(() => {
+    try {
+      sessionStorage.setItem(sessionStorageAssistantDrawerOpen, isAssistantWorkspaceOpen ? '1' : '0');
+    } catch {
+      // Ignore storage failures — persistence is a convenience, not a requirement.
+    }
+    window.dispatchEvent(
+      new CustomEvent('besser:assistant-drawer', { detail: { open: isAssistantWorkspaceOpen } }),
+    );
+  }, [isAssistantWorkspaceOpen]);
 
   // Theme classes
   const shellBackgroundClass = isDarkTheme
@@ -792,6 +962,97 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
     dispatch(updateDiagramModelThunk({ title: normalized }));
   }, [diagramTitleDraft, diagram?.title, dispatch]);
 
+  const handleSimulateAgent = async () => {
+    if (isModelEmpty(diagram?.model)) {
+      toast.info(t('agentSimulation.launch.emptyDiagram'));
+      return;
+    }
+
+    setIsValidatingBeforeTest(true);
+
+    // Read diagram config from fresh storage so that fields written directly to
+    // localStorage (e.g. default_llm_name via writeConfig) are not missed by the
+    // Redux state, which may not yet reflect those writes.
+    const freshProject = currentProject?.id
+      ? (ProjectStorageRepository.loadProject(currentProject.id) ?? currentProject)
+      : currentProject;
+    const freshAgentDiagram = freshProject ? getActiveDiagram(freshProject, UMLDiagramType.AgentDiagram) : undefined;
+    const freshDiagramConfig = freshAgentDiagram?.config ?? null;
+    const asString = (value: unknown): string | undefined => (typeof value === 'string' ? value : undefined);
+    const freshLlmBlock =
+      freshDiagramConfig && typeof freshDiagramConfig.llm === 'object' && freshDiagramConfig.llm !== null
+        ? (freshDiagramConfig.llm as Record<string, unknown>)
+        : null;
+    const freshAgentConfig = freshDiagramConfig
+      ? normalizeAgentRuntimeConfig({
+          agentPlatform: asString(freshDiagramConfig.agentPlatform),
+          agentPlatformUseStreamlit:
+            typeof freshDiagramConfig.agentPlatformUseStreamlit === 'boolean'
+              ? freshDiagramConfig.agentPlatformUseStreamlit
+              : undefined,
+          intentRecognitionTechnology: asString(freshDiagramConfig.intentRecognitionTechnology) as
+            | AgentRuntimeConfig['intentRecognitionTechnology']
+            | undefined,
+          agentLlmProvider: asString(freshLlmBlock?.provider) as AgentRuntimeConfig['agentLlmProvider'] | undefined,
+          agentLlmModel: asString(freshLlmBlock?.model),
+          agentCustomLlmModel: undefined,
+          agentLlmName: asString(freshDiagramConfig.agentLlmName) ?? asString(freshLlmBlock?.name),
+        })
+      : { ...DEFAULT_AGENT_RUNTIME_CONFIG };
+    const freshResolvedOpenAiModel =
+      freshAgentConfig.agentLlmModel === 'other'
+        ? freshAgentConfig.agentCustomLlmModel.trim()
+        : freshAgentConfig.agentLlmModel;
+    const freshResolvedAgentPlatform =
+      freshAgentConfig.agentPlatform === 'websocket' && freshAgentConfig.agentPlatformUseStreamlit
+        ? 'streamlit'
+        : freshAgentConfig.agentPlatform;
+    const freshDefaultLlmName = asString(freshDiagramConfig?.default_llm_name) || undefined;
+    const freshConfig: Record<string, unknown> = {
+      agentPlatform: freshResolvedAgentPlatform,
+      intentRecognitionTechnology: freshAgentConfig.intentRecognitionTechnology,
+      ...(freshDefaultLlmName ? { default_llm_name: freshDefaultLlmName } : {}),
+      ...(freshAgentConfig.agentLlmName
+        ? { llm: { name: freshAgentConfig.agentLlmName } }
+        : freshAgentConfig.agentLlmProvider
+        ? {
+            llm: {
+              provider: freshAgentConfig.agentLlmProvider,
+              ...(freshResolvedOpenAiModel ? { model: freshResolvedOpenAiModel } : {}),
+            },
+          }
+        : {}),
+    };
+    setSimulationConfig(freshConfig);
+
+    const result = await dispatch(
+      validateAgentThunk({
+        title: diagram?.title ?? t('agentSimulation.defaultDiagramTitle'),
+        // The same prepared model CredentialsDialog starts the session with.
+        model: simulationDiagramModel,
+        config: freshConfig,
+        configYaml: diagram?.configYaml,
+      }),
+    );
+
+    setIsValidatingBeforeTest(false);
+
+    if (validateAgentThunk.rejected.match(result)) {
+      const msg = result.payload ?? t('agentSimulation.launch.validationFailedGeneric');
+      toast.error(t('agentSimulation.launch.validationFailed', { message: msg }));
+      return;
+    }
+
+    if (validateAgentThunk.fulfilled.match(result) && !result.payload.valid) {
+      const errors = result.payload.errors;
+      const msg = errors.length > 0 ? `\n${errors.join('\n')}` : t('agentSimulation.launch.validationFailedGeneric');
+      toast.error(t('agentSimulation.launch.validationFailed', { message: msg }));
+      return;
+    }
+
+    setIsCredentialsDialogOpen(true);
+  };
+
   const handleToggleTheme = () => {
     toggleTheme();
     setIsDarkTheme(isDarkThemeEnabled());
@@ -982,6 +1243,7 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
             onSwitchDiagramType={handleMobileSwitchDiagramType}
             onNavigate={handleMobileNavigate}
             onToggleExpanded={closeMobileDrawer}
+            onTestAgent={showSimulateAgent ? handleSimulateAgent : undefined}
           />
         </div>
       </div>
@@ -1009,6 +1271,7 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
             void handleSafeNavigate(path);
           }}
           onToggleExpanded={() => setIsSidebarExpanded((previous) => !previous)}
+          onTestAgent={showSimulateAgent ? handleSimulateAgent : undefined}
         />
 
         <main className="relative flex min-h-0 flex-1 flex-col overflow-hidden">
@@ -1040,19 +1303,29 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
           <GitHubSidebar isOpen={isGitHubSidebarOpen} onClose={() => setIsGitHubSidebarOpen(false)} />
         </Suspense>
 
-        {/* TODO: re-enable assistant drawer after release
+        {/*
+          Bottom-sheet assistant drawer. Renders a 28-px drag handle at
+          the bottom of the viewport in its closed state; the user drags
+          up to expand into the full-page assistant surface. When the
+          drawer is open, ``AssistantWidget`` (the floating FAB) hides
+          itself automatically via the ``besser:assistant-drawer``
+          custom event so only one assistant surface is visible at a
+          time.
+
+          The drawer internally calls ``useAssistantLogic`` (the same
+          hook the FAB uses), so the ``trigger_smart_generator`` action
+          from the modeling agent is handled there too — a spec-driven
+          run started from the drawer streams its events into the same
+          chat as the modeling-agent conversation.
+        */}
         <Suspense fallback={null}>
           <AssistantWorkspaceDrawer
             open={isAssistantWorkspaceOpen}
-            onOpenChange={(open) => {
-              setIsAssistantWorkspaceOpen(open);
-              window.dispatchEvent(new CustomEvent('besser:assistant-drawer', { detail: { open } }));
-            }}
+            onOpenChange={setIsAssistantWorkspaceOpen}
             onTriggerGenerator={onAssistantGenerate}
             onSwitchDiagram={handleAssistantSwitchDiagram}
           />
         </Suspense>
-        */}
       </div>
 
       <AssistantImportDialog
@@ -1149,7 +1422,16 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
         onOpenChange={setIsCommandPaletteOpen}
         actions={commandPaletteActions}
       />
-      <GeneratingOverlay visible={isDockerComposing} />
+
+      <CredentialsDialog
+        open={isCredentialsDialogOpen}
+        onOpenChange={setIsCredentialsDialogOpen}
+        diagramTitle={diagram?.title ?? t('agentSimulation.defaultDiagramTitle')}
+        diagramModel={simulationDiagramModel}
+        diagramConfig={simulationConfig}
+        diagramConfigYaml={diagram?.configYaml}
+      />
+
     </div>
   );
 };

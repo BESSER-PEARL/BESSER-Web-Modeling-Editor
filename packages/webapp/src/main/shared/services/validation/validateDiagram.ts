@@ -2,6 +2,7 @@ import { toast } from 'react-toastify';
 import type { CSSProperties } from 'react';
 import { BACKEND_URL } from '../../constants/constant';
 import { ApollonEditor } from '@besser/wme';
+import { prepareAgentModelForBackend } from '../../utils/projectExportUtils';
 import i18n from '../../i18n';
 
 /**
@@ -74,6 +75,9 @@ export async function validateDiagram(editor: ApollonEditor | null | undefined, 
       });
     }
 
+    // Agent models leave the editor through the single shared helper (components + transitions).
+    const modelToSend = model?.type === 'AgentDiagram' ? prepareAgentModelForBackend(model) : model;
+
     // Call unified validation endpoint with timeout
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 120000);
@@ -86,7 +90,7 @@ export async function validateDiagram(editor: ApollonEditor | null | undefined, 
         },
         body: JSON.stringify({
           title: diagramTitle,
-          model: model
+          model: modelToSend
         }),
         signal: controller.signal,
       });

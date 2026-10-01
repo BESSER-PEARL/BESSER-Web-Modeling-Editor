@@ -14,7 +14,8 @@ export type CustomTransitionEvent =
   | 'ReceiveMessageEvent'
   | 'ReceiveTextEvent'
   | 'ReceiveJSONEvent'
-  | 'ReceiveFileEvent';
+  | 'ReceiveFileEvent'
+  | 'GUIEvent';
 
 const CUSTOM_TRANSITION_EVENTS: CustomTransitionEvent[] = [
   'None',
@@ -24,13 +25,28 @@ const CUSTOM_TRANSITION_EVENTS: CustomTransitionEvent[] = [
   'ReceiveTextEvent',
   'ReceiveJSONEvent',
   'ReceiveFileEvent',
+  'GUIEvent',
 ];
+
+/**
+ * Condition of a transition the user draws now. Intents live off-canvas in the components panel,
+ * so a fresh arrow starts as an unconditional ("auto") transition instead of an intent match
+ * that would point at no intent.
+ */
+export const NEW_TRANSITION_PREDEFINED_TYPE = 'auto';
+
+/**
+ * Condition assumed for *stored* transitions that carry no condition at all. Before the "auto"
+ * default existed every transition was an intent match, so legacy data keeps loading (and
+ * serializing) as ``when_intent_matched``.
+ */
+export const LEGACY_TRANSITION_PREDEFINED_TYPE = 'when_intent_matched';
 
 export class AgentStateTransition extends UMLRelationshipCenteredDescription implements IUMLStateTransition {
   type = AgentRelationshipType.AgentStateTransition;
   params: { [id: string]: string } = {};
   transitionType: 'predefined' | 'custom' = 'predefined';
-  predefinedType: string | undefined = 'when_intent_matched';
+  predefinedType: string | undefined = NEW_TRANSITION_PREDEFINED_TYPE;
   intentName: string | undefined = undefined;
   variable: string | undefined = undefined;
   operator: string | undefined = undefined;
@@ -38,6 +54,8 @@ export class AgentStateTransition extends UMLRelationshipCenteredDescription imp
   fileType: string | undefined = undefined;
   event: CustomTransitionEvent = 'WildcardEvent';
   conditions: string[] = [];
+  guiEventGuiId: string | undefined = undefined;
+  formGuiId: string | undefined = undefined;
   constructor(values?: DeepPartial<Apollon.AgentStateTransition>) {
     super(values);
     this.params = {};
@@ -78,6 +96,16 @@ export class AgentStateTransition extends UMLRelationshipCenteredDescription imp
     if (values?.fileType) {
       this.fileType = values.fileType;
     }
+    if (values?.custom?.guiEventGuiId) {
+      this.guiEventGuiId = values.custom.guiEventGuiId;
+    } else if (values?.guiEventGuiId) {
+      this.guiEventGuiId = values.guiEventGuiId;
+    }
+    if (values?.predefined?.formGuiId) {
+      this.formGuiId = values.predefined.formGuiId;
+    } else if (values?.formGuiId) {
+      this.formGuiId = values.formGuiId;
+    }
     if (values?.custom?.event) {
       this.event = values.custom.event;
     } else if (values?.event) {
@@ -113,7 +141,7 @@ export class AgentStateTransition extends UMLRelationshipCenteredDescription imp
       | string
       | { variable: string; operator: string; targetValue: string } = '';
 
-    let predefinedType = this.predefinedType || 'when_intent_matched';
+    let predefinedType = this.predefinedType || LEGACY_TRANSITION_PREDEFINED_TYPE;
     if (this.transitionType === 'custom') {
       predefinedType = 'custom_transition';
     } else if (predefinedType === 'when_intent_matched') {
@@ -134,6 +162,7 @@ export class AgentStateTransition extends UMLRelationshipCenteredDescription imp
       predefinedType: string;
       intentName?: string;
       fileType?: string;
+      formGuiId?: string;
       conditionValue?: string | { variable: string; operator: string; targetValue: string };
     } = {
       predefinedType,
@@ -143,6 +172,8 @@ export class AgentStateTransition extends UMLRelationshipCenteredDescription imp
       predefined.intentName = this.intentName || '';
     } else if (predefinedType === 'when_file_received') {
       predefined.fileType = this.fileType || '';
+    } else if (predefinedType === 'when_form_submitted') {
+      predefined.formGuiId = this.formGuiId || '';
     } else {
       predefined.conditionValue = conditionValue;
     }
@@ -157,6 +188,7 @@ export class AgentStateTransition extends UMLRelationshipCenteredDescription imp
           ? {
               event: this.event,
               condition: this.conditions,
+              ...(this.event === 'GUIEvent' ? { guiEventGuiId: this.guiEventGuiId || '' } : {}),
             }
           : {
               condition: [],
@@ -174,11 +206,13 @@ export class AgentStateTransition extends UMLRelationshipCenteredDescription imp
         predefinedType?: string;
         intentName?: string;
         fileType?: string;
+        formGuiId?: string;
         conditionValue?: string | { variable: string; operator: string; targetValue: string };
       };
       custom?: {
         event?: CustomTransitionEvent;
         condition?: string[];
+        guiEventGuiId?: string;
       };
       predefinedType?: string;
       event?: CustomTransitionEvent;
@@ -188,6 +222,8 @@ export class AgentStateTransition extends UMLRelationshipCenteredDescription imp
       fileType?: string;
       customEvent?: CustomTransitionEvent;
       customConditions?: string[];
+      guiEventGuiId?: string;
+      formGuiId?: string;
     },
     children?: Apollon.UMLModelElement[],
   ): void {
@@ -207,10 +243,11 @@ export class AgentStateTransition extends UMLRelationshipCenteredDescription imp
     this.transitionType = values.transitionType || 'predefined';
 
     const legacyCondition = typeof values.condition === 'string' ? values.condition : undefined;
-    const nextPredefinedType = values.predefined?.predefinedType || values.predefinedType || legacyCondition || 'when_intent_matched';
+    const nextPredefinedType = values.predefined?.predefinedType || values.predefinedType || legacyCondition || LEGACY_TRANSITION_PREDEFINED_TYPE;
     const nextConditionValue = values.predefined?.conditionValue ?? values.conditionValue;
     const nextIntentName = values.predefined?.intentName;
     const nextFileType = values.predefined?.fileType;
+    const nextFormGuiName = values.predefined?.formGuiId ?? values.formGuiId;
 
     const hasExplicitCustomData =
       !!values.custom &&
@@ -236,6 +273,11 @@ export class AgentStateTransition extends UMLRelationshipCenteredDescription imp
         this.conditions = values.condition;
       } else if (values.customConditions) {
         this.conditions = values.customConditions;
+      }
+      if (values.custom?.guiEventGuiId !== undefined) {
+        this.guiEventGuiId = values.custom.guiEventGuiId;
+      } else if (values.guiEventGuiId !== undefined) {
+        this.guiEventGuiId = values.guiEventGuiId;
       }
 
       if (typeof nextConditionValue === 'object' && nextConditionValue && 'events' in nextConditionValue) {
@@ -272,6 +314,8 @@ export class AgentStateTransition extends UMLRelationshipCenteredDescription imp
       }
     } else if (this.predefinedType === 'when_file_received') {
       this.fileType = nextFileType ?? (nextConditionValue as string);
+    } else if (this.predefinedType === 'when_form_submitted') {
+      this.formGuiId = nextFormGuiName ?? '';
     }
   }
-} 
+}

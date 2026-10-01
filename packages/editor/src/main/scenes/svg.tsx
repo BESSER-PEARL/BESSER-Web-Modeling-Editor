@@ -17,6 +17,8 @@ import { update } from '../utils/update';
 import { Style } from './svg-styles';
 import { StoreProvider } from '../components/store/model-store';
 import { ModelState } from '../components/store/model-state';
+import { I18nProvider } from '../components/i18n/i18n-provider';
+import { Locale } from '../services/editor/editor-types';
 import { ThemeProvider } from 'styled-components';
 import { UMLClassifierComponent } from '../packages/common/uml-classifier/uml-classifier-component';
 import { UMLClassifierMemberComponent } from '../packages/common/uml-classifier/uml-classifier-member-component';
@@ -26,6 +28,8 @@ type Props = {
   model: Apollon.UMLModel;
   options?: Apollon.ExportOptions;
   styles?: DeepPartial<Styles>;
+  /** Language of the labels that element components translate (defaults to English). */
+  locale?: Locale;
 };
 
 type State = {
@@ -94,7 +98,13 @@ const getInitialState = ({ model, options }: Props): State => {
       [],
     );
 
-    const [root, ...updates] = element.render(layer, children, true) as UMLElement[];
+    const rendered = element.render(layer, children, true) as UMLElement[];
+    // Data-only elements (e.g. agent components) render to nothing: they have no SVG
+    // presence, so they (and their children) are left out of the export.
+    if (rendered.length === 0) {
+      return [];
+    }
+    const [root, ...updates] = rendered;
     updates.map((x) => {
       const original = apollonChildren.find((y) => y.id === x.id);
       if (!original) {
@@ -216,65 +226,67 @@ export class Svg extends Component<Props, State> {
 
     return (
       <StoreProvider initialState={state}>
-        <ThemeProvider theme={theme}>
-          <svg
-            width={bounds.width - tfact.minX + 1}
-            height={bounds.height - tfact.minY + 1}
-            xmlns="http://www.w3.org/2000/svg"
-            xmlnsXlink="http://www.w3.org/1999/xlink"
-            fill={theme.color.background}
-          >
-            <defs>
-              <style>{(Style[0] as any)({ theme })}</style>
-            </defs>
-            {elements.map((element, index) => {
-              const ElementComponent = Components[element.type as UMLElementType | UMLRelationshipType];
-              switch (ElementComponent) {
-                case UMLClassifierComponent:
-                case UMLObjectNameComponent:
-                  // UMLClassifierComponent (classes/enumerations) and UMLObjectNameComponent (object diagrams)
-                  // both need their members (attributes/methods) nested as children within the component, so the
-                  // border rectangle and dividers render after them. Without this, an object box exports as an
-                  // empty header with its attributes dropped entirely (they fall into the skipped member case below).
-                  const members = elements.filter((member) => member.owner === element.id);
-                  return (
-                    <svg
-                      key={element.id}
-                      {...svgElementDetails(element, element.bounds.x - tfact.minX, element.bounds.y - tfact.minY)}
-                    >
-                      <ElementComponent key={index} element={element}>
-                        {members.map((memberElement, memberIndex) => {
-                          // Nest the members within the UMLClassifierComponent so the border rectangle and path get rendered afterward.
-                          const MemberElementComponent = Components[memberElement.type as UMLElementType];
-                          return (
-                            <svg
-                              key={memberElement.id}
-                              {...svgElementDetails(memberElement, 0, memberElement.bounds.y - element.bounds.y)}
-                            >
-                              <MemberElementComponent key={memberIndex} element={memberElement} />
-                            </svg>
-                          );
-                        })}
-                      </ElementComponent>
-                    </svg>
-                  );
-                case UMLClassifierMemberComponent:
-                  // If the ElementComponent is of type UMLClassifierMemberComponent, we break out of the switch, as they have been rendered within the UMLClassifierComponent.
-                  break;
-                default:
-                  // Render all other UMLElements and UMLRelationships normally, as they don't have issues when rendering to SVG.
-                  return (
-                    <svg
-                      key={element.id}
-                      {...svgElementDetails(element, element.bounds.x - tfact.minX, element.bounds.y - tfact.minY)}
-                    >
-                      <ElementComponent key={index} element={element} />
-                    </svg>
-                  );
-              }
-            })}
-          </svg>
-        </ThemeProvider>
+        <I18nProvider locale={this.props.locale}>
+          <ThemeProvider theme={theme}>
+            <svg
+              width={bounds.width - tfact.minX + 1}
+              height={bounds.height - tfact.minY + 1}
+              xmlns="http://www.w3.org/2000/svg"
+              xmlnsXlink="http://www.w3.org/1999/xlink"
+              fill={theme.color.background}
+            >
+              <defs>
+                <style>{(Style[0] as any)({ theme })}</style>
+              </defs>
+              {elements.map((element, index) => {
+                const ElementComponent = Components[element.type as UMLElementType | UMLRelationshipType];
+                switch (ElementComponent) {
+                  case UMLClassifierComponent:
+                  case UMLObjectNameComponent:
+                    // UMLClassifierComponent (classes/enumerations) and UMLObjectNameComponent (object diagrams)
+                    // both need their members (attributes/methods) nested as children within the component, so the
+                    // border rectangle and dividers render after them. Without this, an object box exports as an
+                    // empty header with its attributes dropped entirely (they fall into the skipped member case below).
+                    const members = elements.filter((member) => member.owner === element.id);
+                    return (
+                      <svg
+                        key={element.id}
+                        {...svgElementDetails(element, element.bounds.x - tfact.minX, element.bounds.y - tfact.minY)}
+                      >
+                        <ElementComponent key={index} element={element}>
+                          {members.map((memberElement, memberIndex) => {
+                            // Nest the members within the UMLClassifierComponent so the border rectangle and path get rendered afterward.
+                            const MemberElementComponent = Components[memberElement.type as UMLElementType];
+                            return (
+                              <svg
+                                key={memberElement.id}
+                                {...svgElementDetails(memberElement, 0, memberElement.bounds.y - element.bounds.y)}
+                              >
+                                <MemberElementComponent key={memberIndex} element={memberElement} />
+                              </svg>
+                            );
+                          })}
+                        </ElementComponent>
+                      </svg>
+                    );
+                  case UMLClassifierMemberComponent:
+                    // If the ElementComponent is of type UMLClassifierMemberComponent, we break out of the switch, as they have been rendered within the UMLClassifierComponent.
+                    break;
+                  default:
+                    // Render all other UMLElements and UMLRelationships normally, as they don't have issues when rendering to SVG.
+                    return (
+                      <svg
+                        key={element.id}
+                        {...svgElementDetails(element, element.bounds.x - tfact.minX, element.bounds.y - tfact.minY)}
+                      >
+                        <ElementComponent key={index} element={element} />
+                      </svg>
+                    );
+                }
+              })}
+            </svg>
+          </ThemeProvider>
+        </I18nProvider>
       </StoreProvider>
     );
   }
