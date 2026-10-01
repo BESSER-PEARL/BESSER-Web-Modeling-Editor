@@ -40,7 +40,7 @@ const normalizeType = (type: string): string => {
 export type Visibility = 'public' | 'private' | 'protected' | 'package';
 
 // Visibility symbol mapping
-const VISIBILITY_SYMBOLS: Record<Visibility, string> = {
+export const VISIBILITY_SYMBOLS: Record<Visibility, string> = {
   'public': '+',
   'private': '-',
   'protected': '#',
