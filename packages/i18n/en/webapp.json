@@ -2613,7 +2613,9 @@
       "GUINoCodeDiagram": "Screens (GUI)",
       "QuantumCircuitDiagram": "Quantum Circuit",
       "NNDiagram": "Neural Network Diagram",
-      "BPMN": "BPMN Process"
+      "BPMN": "BPMN Process",
+      "ComponentDiagram": "Component Diagram",
+      "DeploymentDiagram": "Deployment Diagram"
     }
   },
   "import": {

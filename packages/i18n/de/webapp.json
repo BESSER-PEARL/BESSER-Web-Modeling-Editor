@@ -2601,7 +2601,10 @@
       "GUINoCodeDiagram": "Bildschirme (GUI)",
       "QuantumCircuitDiagram": "Quantenschaltkreis",
       "NNDiagram": "Neuronales-Netz-Diagramm",
-      "BPMN": "BPMN-Prozess"
+      "BPMN": "BPMN-Prozess",
+      "__comment__":"TODO: THE FOLLOWING TWO FIELDS NEED REVISION (THEY REFER TO UML COMPONENT AND DEPLOYMENT DIAGRAMS)!!!!!!!",
+      "ComponentDiagram": "Komponentendiagramm",
+      "DeploymentDiagram": "Bereitstellungsdiagramm"
     }
   },
   "import": {

@@ -70,6 +70,7 @@ export interface ModificationChanges {
   taskType?: string;
   gatewayType?: string;
   eventKind?: string;
+  eventType?: string;
   // Component / Deployment / Agentic BPMN
   dependencyStereotype?: string;
   role?: string;
