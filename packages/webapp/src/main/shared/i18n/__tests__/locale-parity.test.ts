@@ -12,6 +12,7 @@ import { SUPPORTED_LANGUAGE_CODES } from '../languages';
 /** Collect dotted key paths of every leaf string in a translation tree. */
 function flatten(obj: Record<string, unknown>, prefix = '', out: string[] = []): string[] {
   for (const [key, value] of Object.entries(obj)) {
+    if (key === '__comment__') continue; // translator notes are metadata, not translation keys
     const path = prefix ? `${prefix}.${key}` : key;
     if (value && typeof value === 'object' && !Array.isArray(value)) {
       flatten(value as Record<string, unknown>, path, out);

@@ -19,11 +19,11 @@ export type DerivationOpts = {
   /** id → model for every AgentDiagram in the project. Omitted →
    *  capability traversal is skipped entirely (back-compatible). */
   agentDiagramsById?: Map<string, UMLModel>;
-  /** Opt-in. When false/undefined, no tool/skill Components are emitted and
-   *  the output is byte-for-byte the no-capability derivation. When true,
-   *  each agent's tools/skills are pooled into shared "Skills"/"Tools"
-   *  Subsystems, deduped globally by name, with one has/uses edge per
-   *  (agent, capability). */
+  /** SQL databases are stored on the Agent diagram's config form, outside its model. */
+  sqlDatabasesByAgentId?: Map<string, Array<{ name?: string }>>;
+  /** Opt-in. When false/undefined, no resource Components are emitted.
+   *  When true, linked Agent resources are grouped by kind and deduped
+   *  globally by name, with one has/uses edge per (agent, resource). */
   includeCapabilities?: boolean;
   /** The source BPMN diagram's ProjectDiagram id. When set, each agentic
    *  lane-Component is stamped with `processModelRefs = [id]` (BESSER
@@ -102,17 +102,18 @@ export function bpmnModelToComponentModel(bpmn: UMLModel, opts?: DerivationOpts)
       elementMapping[laneCompId] = lane.id; // Component ← source Lane
 
       if (opts?.includeCapabilities && opts.agentDiagramsById) {
-        // An agentic lane = one agent. Collect its tasks' linked
-        // Agent-diagram tools/skills (pooled in the grouping pass below).
-        collectLaneCapabilities(bpmn, lane, laneCompId, opts.agentDiagramsById, collectedCaps, warnings);
+        // An agentic lane = one agent. Collect its linked Agent resources;
+        // the grouping pass below places them in shared zones.
+        collectLaneCapabilities(
+          bpmn, lane, laneCompId, opts.agentDiagramsById, collectedCaps, warnings, opts.sqlDatabasesByAgentId,
+        );
       }
     }
     layout.endSubsystem();
   }
 
-  // Grouped-capability layout — pool every agent's collected tools/skills
-  // into shared "Skills"/"Tools" Subsystems (global dedup by name), placed
-  // to the right of the swarm.
+  // Grouped-capability layout pools every agent's resources into shared
+  // Subsystems, deduped globally by name.
   if (opts?.includeCapabilities) {
     emitGroupedCapabilities(out, collectedCaps, layout, elementMapping, capabilitiesTopY, warnings);
   }
@@ -350,6 +351,9 @@ export function resolveEdgeKind(
 const CAP_W = 140; // capability Component width
 const CAP_H = 70; // capability Component height
 const CAP_GAP = 16; // vertical gap between stacked capabilities
+// Subsystem titles use two lines (stereotype and name); leave both visible
+// before placing a child Component.
+const SUBSYSTEM_CONTENT_TOP = 50;
 
 // An agentic lane wired to MORE than this many distinct capabilities (tools +
 // skills, deduped) trips a `capability-heavy-agent` advisory: its has/uses
@@ -363,15 +367,22 @@ const CAPABILITY_WARN_THRESHOLD = 10;
 // Warn-only.
 const CAPABILITY_ZONE_WARN_THRESHOLD = 12;
 
-// The full capability stereotype set. `tool`/`skill` come from agent-diagram
-// element TYPES (AgentTool/AgentSkill); `llm`/`db`/`rag` come from body REPLY-TYPES.
+// The full capability stereotype set. Off-canvas Agent components provide
+// tools, skills, LLMs and RAGs; SQL databases live in the Agent config form.
+// Legacy Agent models can also provide tools/skills and reply-body resources.
 type CapStereo = 'tool' | 'skill' | 'llm' | 'db' | 'rag';
 
-// Agent-diagram element type → Component stereotype (BESSER `agentic.py` Skill /
-// Tool capability tokens).
+// Legacy canvas element type → Component stereotype.
 const CAPABILITY_STEREOTYPE: Record<string, 'tool' | 'skill'> = {
   AgentTool: 'tool',
   AgentSkill: 'skill',
+};
+
+const COMPONENT_STEREOTYPE: Record<string, 'tool' | 'skill' | 'llm' | 'rag'> = {
+  AgentTool: 'tool',
+  AgentSkill: 'skill',
+  AgentLLM: 'llm',
+  AgentRagElement: 'rag',
 };
 
 // agent → capability edge kind. tool→uses / skill→has locked by BESSER
@@ -389,10 +400,16 @@ function capabilityElements(agentModel: UMLModel): UMLElement[] {
   return Object.values(agentModel.elements).filter((e) => CAPABILITY_STEREOTYPE[e.type] !== undefined);
 }
 
-// LLM/DB/RAG are not element types — they are the `replyType`
-// of an AgentStateBody / AgentStateFallbackBody (agent-state-member.ts). Map
-// the three resource reply-types to a stereotype; `text` (plain reply) and
-// `code` (Python — deferred) are intentionally absent.
+function configuredComponents(agentModel: UMLModel): Array<{ stereo: CapStereo; name: string }> {
+  return Object.values(agentModel.components ?? {}).flatMap((component) => {
+    const stereo = COMPONENT_STEREOTYPE[component.type];
+    const name = (component.name ?? '').trim();
+    return stereo && name ? [{ stereo, name }] : [];
+  });
+}
+
+// Legacy AgentStateBody / AgentStateFallbackBody reply types also describe
+// resources. `text` and `code` do not map to Component resources.
 const REPLY_TYPE_STEREOTYPE: Record<string, 'llm' | 'db' | 'rag'> = {
   llm: 'llm',
   db_reply: 'db',
@@ -457,6 +474,7 @@ function collectLaneCapabilities(
   agentDiagramsById: Map<string, UMLModel>,
   out: CollectedCapability[],
   warnings: DerivationWarning[],
+  sqlDatabasesByAgentId?: Map<string, Array<{ name?: string }>>,
 ): void {
   const seen = new Set<string>();
 
@@ -491,6 +509,20 @@ function collectLaneCapabilities(
       if (seen.has(key)) continue; // per-agent dedup
       seen.add(key);
       out.push({ agentCompId, stereo, name, taskId: sourceId });
+    }
+    for (const configured of configuredComponents(agentModel)) {
+      const key = `${configured.stereo}::${configured.name.toLowerCase()}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      out.push({ agentCompId, ...configured, taskId: sourceId });
+    }
+    for (const db of sqlDatabasesByAgentId?.get(ref) ?? []) {
+      const name = (db.name ?? '').trim();
+      if (!name) continue;
+      const key = `db::${name.toLowerCase()}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      out.push({ agentCompId, stereo: 'db', name, taskId: sourceId });
     }
     // LLM/DB/RAG resources from the linked Agent diagram's body reply-types —
     // same per-agent dedup (`seen`) and pipeline as tools/skills. A duplicate
@@ -539,7 +571,7 @@ function emitGroupedCapabilities(
   // Geometry: zones to the RIGHT of the fixed-width pool column,
   // top-aligned with the first Subsystem.
   const PAD = 20;
-  const HEADER = 40;
+  const HEADER = SUBSYSTEM_CONTENT_TOP;
   const boxW = CAP_W + 2 * PAD;
   // Skills/Tools to the RIGHT of the pool column; the LLM/DB/RAG
   // resource zones to the LEFT so agent→resource `uses` edges fan left
@@ -665,7 +697,7 @@ function emitSubsystem(out: UMLModel, pool: UMLElement, layout: LayoutCursor): s
   const bounds = { x: layout.subsystemX, y: layout.subsystemY, width: 640, height: 400 };
   layout.currentSubsystemBounds = bounds;
   layout.laneInSubsystemX = bounds.x + 24;
-  layout.skillRightOfLaneY = bounds.y + 40;
+  layout.skillRightOfLaneY = bounds.y + SUBSYSTEM_CONTENT_TOP;
   out.elements[id] = {
     id,
     name: pool.name || 'Swarm',
@@ -692,7 +724,7 @@ function emitLaneComponent(
   const id = newId();
   const bounds = {
     x: layout.laneInSubsystemX,
-    y: (layout.currentSubsystemBounds?.y ?? 0) + 40,
+    y: (layout.currentSubsystemBounds?.y ?? 0) + SUBSYSTEM_CONTENT_TOP,
     width: 160,
     height: 80,
   };

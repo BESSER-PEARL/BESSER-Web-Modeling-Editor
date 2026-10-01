@@ -991,6 +991,10 @@
             "label": "Agent Developer",
             "description": "Agent and user diagrams for conversational agents."
           },
+          "agenticSwarm": {
+            "label": "Multi-Agent",
+            "description": "Agentic BPMN, agent, component, and deployment diagrams."
+          },
           "fullApp": {
             "label": "Full Web Application",
             "description": "Class, agent, and no-code GUI diagrams."

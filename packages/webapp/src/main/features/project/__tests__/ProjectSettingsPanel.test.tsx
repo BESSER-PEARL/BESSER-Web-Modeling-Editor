@@ -159,6 +159,10 @@ describe('ProjectSettingsPanel', () => {
     expect(screen.getByText('Quick presets')).toBeInTheDocument();
     expect(screen.getByTestId('perspective-preset-data')).toBeInTheDocument();
     expect(screen.getByTestId('perspective-preset-agent')).toBeInTheDocument();
+    expect(screen.getByTestId('perspective-preset-agenticSwarm')).toHaveTextContent('Multi-Agent');
+    expect(screen.getByTestId('perspective-preset-agenticSwarm')).toHaveAttribute(
+      'title', 'Agentic BPMN, agent, component, and deployment diagrams.',
+    );
     expect(screen.getByTestId('perspective-preset-fullApp')).toBeInTheDocument();
     expect(screen.getByTestId('perspective-preset-quantum')).toBeInTheDocument();
     expect(screen.getByTestId('perspective-preset-all')).toBeInTheDocument();

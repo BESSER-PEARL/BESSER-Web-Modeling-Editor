@@ -9,6 +9,7 @@ import {
   updateDiagramModelThunk,
 } from '../../app/store/workspaceSlice';
 import type { DiagramLineage } from '../../shared/types/project';
+import { normalizeStoredAgentModel } from '../../shared/utils/projectExportUtils';
 import { bpmnModelToComponentModel } from './bpmn-to-component';
 import { hashUmlModel } from './lineage-hash';
 import type { DerivationResult } from './types';
@@ -34,20 +35,22 @@ export function useGenerateComponentDiagram(): () => Promise<DerivationResult> {
       return { ok: false, reason: 'not-a-bpmn-diagram', warnings: [] };
     }
 
-    // id → model for every Agent diagram in the project, so the
-    // derivation can resolve task.agentDiagramRef → its tools/skills.
+    // The lane's agentDiagramRef points to a stored Agent diagram. Normalize
+    // legacy components before deriving, just as the Components page does.
     const agentDiagramsById = new Map<string, UMLModel>();
+    const sqlDatabasesByAgentId = new Map<string, Array<{ name?: string }>>();
     for (const d of project?.diagrams.AgentDiagram ?? []) {
-      if (d.model) agentDiagramsById.set(d.id, d.model as UMLModel);
+      const model = normalizeStoredAgentModel(d);
+      if (model) agentDiagramsById.set(d.id, model);
+      const databases = (d.agentConfigForm as { db?: { sqlDatabases?: unknown } } | undefined)?.db?.sqlDatabases;
+      if (Array.isArray(databases)) sqlDatabasesByAgentId.set(d.id, databases);
     }
 
     const result = bpmnModelToComponentModel(activeDiagram.model as UMLModel, {
       agentDiagramsById,
+      sqlDatabasesByAgentId,
       // always derive capabilities
-      // (tools + skills today; point 5 adds LLM/DB/RAG). The opt-in
-      // `includeTools` toggle is retired — the derivation function keeps
-      // its `includeCapabilities` param for tests/back-compat, but the
-      // UI always sets it on.
+      // The UI always includes configured capabilities and resources.
       includeCapabilities: true,
       sourceDiagramId: activeDiagram.id,
     });

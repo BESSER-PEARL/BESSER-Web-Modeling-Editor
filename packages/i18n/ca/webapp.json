@@ -984,6 +984,10 @@
             "label": "Desenvolupador d'agents",
             "description": "Diagrames d'agents i usuaris per a agents conversacionals."
           },
+          "agenticSwarm": {
+            "label": "Multiagent",
+            "description": "Diagrames BPMN agèntics, d'agents, de components i de desplegament."
+          },
           "fullApp": {
             "label": "Aplicació web completa",
             "description": "Diagrames de classes, agents i interfície sense codi (no-code)."

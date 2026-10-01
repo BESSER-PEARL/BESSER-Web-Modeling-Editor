@@ -1129,6 +1129,109 @@ describe('Inter-diagram — bpmnModelToComponentModel', () => {
     });
   });
 
+  describe('configured Agent resources after the Components page move', () => {
+    const linkedBpmn = () => {
+      const model = structuredClone(minimalAgentic) as unknown as UMLModel;
+      (model.elements['lane-worker'] as UMLElement & { agentDiagramRef?: string }).agentDiagramRef = 'agent-1';
+      return model;
+    };
+
+    const component = (id: string, type: string, name: string) => ({ id, type, name, owner: null });
+    const agentModel = {
+      version: '3.0.0',
+      type: 'AgentDiagram',
+      size: { width: 800, height: 600 },
+      elements: {},
+      components: {
+        tool: component('tool', 'AgentTool', 'Web search'),
+        skill: component('skill', 'AgentSkill', 'Summarise'),
+        llm: component('llm', 'AgentLLM', 'GPT model'),
+        rag: component('rag', 'AgentRagElement', 'Knowledge base'),
+        gui: component('gui', 'AgentGUI', 'Dashboard'),
+        workspace: component('workspace', 'AgentWorkspace', 'Files'),
+        unnamed: component('unnamed', 'AgentSkill', '  '),
+      },
+      relationships: {},
+      interactive: { elements: {}, relationships: {} },
+      assessments: {},
+    } as unknown as UMLModel;
+
+    it('derives named tools, skills, LLMs, RAGs and SQL databases with the existing edges and lane lineage', () => {
+      const result = bpmnModelToComponentModel(linkedBpmn(), {
+        agentDiagramsById: new Map([['agent-1', agentModel]]),
+        sqlDatabasesByAgentId: new Map([['agent-1', [{ name: 'Orders' }, { name: '  ' }]]]),
+        includeCapabilities: true,
+      });
+      if (!result.ok) throw new Error('expected ok');
+
+      const resources = Object.values(result.model.elements).filter((e) =>
+        ['tool', 'skill', 'llm', 'rag', 'db'].includes((e as UMLElement & { stereotype?: string }).stereotype ?? ''),
+      );
+      expect(resources.map((e) => [e.name, (e as UMLElement & { stereotype?: string }).stereotype]).sort()).toEqual([
+        ['GPT model', 'llm'],
+        ['Knowledge base', 'rag'],
+        ['Orders', 'db'],
+        ['Summarise', 'skill'],
+        ['Web search', 'tool'],
+      ]);
+      for (const resource of resources) expect(result.elementMapping[resource.id]).toBe('lane-worker');
+      expect(Object.values(result.model.relationships).map((r) => (r as { stereotype?: string }).stereotype).sort())
+        .toEqual(['has', 'supervises', 'uses', 'uses', 'uses', 'uses']);
+      expect(Object.values(result.model.elements).some((e) => e.name === 'Dashboard' || e.name === 'Files')).toBe(false);
+    });
+
+    it('keeps legacy reply-body resources and deduplicates them against configured resources', () => {
+      const model = structuredClone(agentModel);
+      model.elements = {
+        legacy: { id: 'legacy', type: 'AgentStateBody', name: '', owner: null, replyType: 'llm', bounds: { x: 0, y: 0, width: 1, height: 1 } },
+      } as unknown as UMLModel['elements'];
+      model.components = { ...model.components, llm: component('llm', 'AgentLLM', 'LLM') } as UMLModel['components'];
+      const result = bpmnModelToComponentModel(linkedBpmn(), {
+        agentDiagramsById: new Map([['agent-1', model]]),
+        includeCapabilities: true,
+      });
+      if (!result.ok) throw new Error('expected ok');
+      expect(Object.values(result.model.elements).filter((e) =>
+        (e as UMLElement & { stereotype?: string }).stereotype === 'llm',
+      )).toHaveLength(1);
+    });
+
+    it('leaves room below two-line Subsystem titles', () => {
+      const result = bpmnModelToComponentModel(linkedBpmn(), {
+        agentDiagramsById: new Map([['agent-1', agentModel]]),
+        includeCapabilities: true,
+      });
+      if (!result.ok) throw new Error('expected ok');
+      const elements = Object.values(result.model.elements);
+      const children = elements.filter((e) => e.type === 'Component');
+      for (const child of children) {
+        const owner = result.model.elements[child.owner!];
+        expect(owner?.type).toBe('Subsystem');
+        expect(child.bounds.y - owner.bounds.y).toBeGreaterThanOrEqual(70);
+      }
+    });
+
+    it('uses HAS for skills and USES for tools, LLMs, RAGs, and databases', () => {
+      const result = bpmnModelToComponentModel(linkedBpmn(), {
+        agentDiagramsById: new Map([['agent-1', agentModel]]),
+        sqlDatabasesByAgentId: new Map([['agent-1', [{ name: 'Orders' }]]]),
+        includeCapabilities: true,
+      });
+      if (!result.ok) throw new Error('expected ok');
+      const agent = Object.values(result.model.elements).find((e) => e.name === 'Worker')!;
+      const expected: Record<string, string> = { skill: 'has', tool: 'uses', llm: 'uses', rag: 'uses', db: 'uses' };
+      for (const [stereo, edgeStereo] of Object.entries(expected)) {
+        const resource = Object.values(result.model.elements).find(
+          (e) => (e as UMLElement & { stereotype?: string }).stereotype === stereo,
+        )!;
+        const edge = Object.values(result.model.relationships).find(
+          (r) => r.source.element === agent.id && r.target.element === resource.id,
+        );
+        expect((edge as { stereotype?: string } | undefined)?.stereotype).toBe(edgeStereo);
+      }
+    });
+  });
+
   describe('resolveEdgeKind — profile vocabulary and compatibility', () => {
     const lane = (role: string): UMLElement =>
       ({ id: role, type: 'BPMNSwimlane', isAgentic: true, role }) as unknown as UMLElement;

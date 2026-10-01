@@ -986,6 +986,11 @@
             "label": "Agent-Entwickler",
             "description": "Agenten- und Benutzerdiagramme für Konversationsagenten."
           },
+          "agenticSwarm": {
+            "__comment__": "TODO: THE FOLLOWING TWO FIELDS NEED REVISION!!!!!!!",
+            "label": "Multi-Agenten",
+            "description": "Agentisches BPMN sowie Agenten-, Komponenten- und Bereitstellungsdiagramme."
+          },
           "fullApp": {
             "label": "Vollständige Webanwendung",
             "description": "Klassen-, Agenten- und No-Code-GUI-Diagramme."

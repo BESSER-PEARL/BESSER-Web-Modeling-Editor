@@ -728,7 +728,12 @@ export function diagramHasContent(diagram: ProjectDiagram): boolean {
   if (isUMLModel(model)) {
     const hasElements = model.elements && Object.keys(model.elements).length > 0;
     const hasRelationships = model.relationships && Object.keys(model.relationships).length > 0;
-    return !!(hasElements || hasRelationships);
+    const hasAgentComponents = model.type === UMLDiagramType.AgentDiagram &&
+      model.components && Object.keys(model.components).length > 0;
+    const sqlDatabases = (diagram.agentConfigForm as { db?: { sqlDatabases?: unknown } } | undefined)?.db?.sqlDatabases;
+    const hasSqlDatabases = model.type === UMLDiagramType.AgentDiagram &&
+      Array.isArray(sqlDatabases) && sqlDatabases.length > 0;
+    return !!(hasElements || hasRelationships || hasAgentComponents || hasSqlDatabases);
   }
 
   if (isGrapesJSProjectData(model)) {

@@ -986,6 +986,11 @@
             "label": "Agent-Entwéckler",
             "description": "Agent- a Benotzerdiagrammer fir Konversatiounsagenten."
           },
+          "agenticSwarm": {
+            "__comment__": "TODO: THE FOLLOWING TWO FIELDS NEED REVISION!!!!!!!",
+            "label": "Multi-Agenten",
+            "description": "Agentesch BPMN-, Agent-, Komponenten- an Deploymentdiagrammer."
+          },
           "fullApp": {
             "label": "Komplett Webapplikatioun",
             "description": "Klassen-, Agent- an No-Code-GUI-Diagrammer."
