@@ -321,7 +321,7 @@
       },
       "actionType": "LLMReplyAction",
       "replyType": "llm",
-      "llm_name": "",
+      "llm_name": "gpt-4o-mini",
       "system_message": "",
       "systemPromptUseSessionVars": false,
       "storeInSession": "",
@@ -734,6 +734,16 @@
       "type": "AgentIntentBody",
       "name": "Which food to eat?",
       "owner": "74307a3d-cfe5-444e-9116-5eb520ffa503"
+    },
+    "68141d82-3144-4254-a78f-e1f5a4ad0813": {
+      "id": "68141d82-3144-4254-a78f-e1f5a4ad0813",
+      "type": "AgentLLM",
+      "name": "gpt-4o-mini",
+      "owner": null,
+      "provider": "openai",
+      "parameters": {},
+      "num_previous_messages": 1,
+      "global_context": ""
     }
   }
 }
