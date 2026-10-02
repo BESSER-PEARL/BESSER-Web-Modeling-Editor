@@ -158,8 +158,11 @@ honoured **only** when they arrive as the whole structured reply, never when
 found inside ordinary prose. A JSON blob smuggled into a message (for example
 through an uploaded file) therefore cannot mutate your project or start a run.
 
-**Undo.** Changes the assistant makes go through the editor's normal undo
-stack, so :kbd:`Ctrl+Z` works as usual.
+**Undo.** :kbd:`Ctrl+Z` does not undo a change the assistant makes. Applying
+it reloads the diagram as a fresh starting point, which also clears the
+editor's undo history, so edits made before it can no longer be undone either.
+Edits you make afterwards undo as usual. To revert an assistant change, ask the
+assistant to reverse it.
 
 **Report an issue.** The chat header has a *Report an issue* button that opens a
 pre-filled GitHub issue containing the recent conversation context.
