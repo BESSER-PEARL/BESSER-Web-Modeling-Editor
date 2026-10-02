@@ -52,6 +52,17 @@ Need something else?
 * :doc:`reference/index`: interface, configuration, and integration details.
 * :doc:`contributing/index`: run the source and extend the editor.
 
+Related documentation
+---------------------
+
+This site is one of three BESSER documentation sites. The other two are:
+
+* `BESSER docs <https://besser.readthedocs.io/en/latest/>`__: the B-UML modeling
+  language, the Python library, and the code generators.
+* `Modeling Agent docs <https://modeling-agent.readthedocs.io/en/latest/>`__:
+  running, configuring, and extending the service behind the editor's AI
+  assistant.
+
 .. toctree::
    :hidden:
    :maxdepth: 2
@@ -70,5 +81,9 @@ Need something else?
    contributing/index
    releases/index
 
-`BESSER platform documentation <https://besser.readthedocs.io/en/latest/>`_
-covers the Python library, model language, and code generators.
+.. toctree::
+   :hidden:
+   :caption: Related documentation
+
+   BESSER docs <https://besser.readthedocs.io/en/latest/>
+   Modeling Agent docs <https://modeling-agent.readthedocs.io/en/latest/>

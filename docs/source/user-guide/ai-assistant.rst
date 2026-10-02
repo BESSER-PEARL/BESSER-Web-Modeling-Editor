@@ -8,7 +8,7 @@ edits the diagrams for you. You stay in control — the assistant applies change
 to the live canvas, and you keep refining by chatting.
 
 The assistant is powered by the
-`modeling agent <https://github.com/BESSER-PEARL/modeling-agent>`_, a separate
+`modeling agent <https://modeling-agent.readthedocs.io/en/latest/>`_, a separate
 BESSER service the editor connects to over a WebSocket. On the public editor at
 `editor.besser-pearl.org <https://editor.besser-pearl.org>`_ the agent is hosted
 for you; for a local deployment you point the editor at your own instance (see
@@ -209,7 +209,7 @@ connects when a modeling-agent service is reachable. When running the editor
 from source, point it at your agent instance with the ``UML_BOT_WS_URL``
 environment variable (default ``ws://localhost:8765``). See
 :doc:`../reference/environment` for the full variable list and the
-`modeling agent repository <https://github.com/BESSER-PEARL/modeling-agent>`_
+`Modeling Agent setup guide <https://modeling-agent.readthedocs.io/en/latest/getting_started.html>`_
 for how to run the service.
 
 .. note::
