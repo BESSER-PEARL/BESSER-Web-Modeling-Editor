@@ -248,7 +248,9 @@ export function agentConfigFormToYaml(form: AgentConfigFormData): string {
         const safeName = (db.name || 'db').replace(/[^A-Za-z0-9_]/g, '_') || 'db';
         lines.push(`    - ${safeName}:`);
         if (db.dialect) lines.push(`        dialect: ${yamlValue(db.dialect)}`);
-        if (db.database) lines.push(`        database: ${yamlValue(db.database)}`);
+        // BAF reads a sqlite path from `file`, every other dialect from `database`.
+        const dbKey = /^\s*sqlite/i.test(db.dialect || '') ? 'file' : 'database';
+        if (db.database) lines.push(`        ${dbKey}: ${yamlValue(db.database)}`);
         if (db.host) lines.push(`        host: ${yamlValue(db.host)}`);
         if (db.port && db.port.trim()) lines.push(`        port: ${yamlValue(db.port)}`);
         if (db.username) lines.push(`        username: ${yamlValue(db.username)}`);
