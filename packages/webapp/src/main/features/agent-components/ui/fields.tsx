@@ -20,8 +20,9 @@ export function Field({ id, label, description, children }: FieldBaseProps & { c
   );
 }
 
-export function TextField({ id, label, description, value, onChange, placeholder, multiline }: FieldBaseProps & {
+export function TextField({ id, label, description, value, onChange, placeholder, multiline, inputMode }: FieldBaseProps & {
   value: string; onChange: (v: string) => void; placeholder?: string; multiline?: boolean;
+  inputMode?: React.HTMLAttributes<HTMLInputElement>['inputMode'];
 }) {
   return (
     <Field id={id} label={label} description={description}>
@@ -37,6 +38,10 @@ export function TextField({ id, label, description, value, onChange, placeholder
       ) : (
         <Input
           id={id}
+          name={id}
+          autoComplete="off"
+          spellCheck={false}
+          inputMode={inputMode}
           value={value}
           onChange={e => onChange(e.target.value)}
           placeholder={placeholder}

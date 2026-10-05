@@ -21,6 +21,8 @@ type LeftTab = 'diagram' | 'code';
 
 const MIN_RIGHT_WIDTH = 300;
 const MAX_RIGHT_WIDTH = 1400;
+const RESIZE_STEP = 40;
+const LEFT_TABS: LeftTab[] = ['diagram', 'code'];
 
 interface AgentSimulationPanelProps {
   open: boolean;
@@ -68,6 +70,22 @@ export const AgentSimulationPanel: React.FC<AgentSimulationPanelProps> = ({ open
 
   const handleStop = () => dispatch(stopAgentSimulationThunk());
   const handleReset = () => dispatch(restartAgentSimulationThunk());
+
+  const handleTabKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
+    e.preventDefault();
+    const next = LEFT_TABS[(LEFT_TABS.indexOf(leftTab) + 1) % LEFT_TABS.length];
+    setLeftTab(next);
+    document.getElementById(`agent-sim-tab-${next}`)?.focus();
+  };
+
+  // The handle sits left of the chat panel, so ArrowLeft widens it.
+  const handleResizeKeyDown = (e: React.KeyboardEvent) => {
+    const delta = e.key === 'ArrowLeft' ? RESIZE_STEP : e.key === 'ArrowRight' ? -RESIZE_STEP : 0;
+    if (!delta) return;
+    e.preventDefault();
+    setRightWidth((w) => Math.max(MIN_RIGHT_WIDTH, Math.min(MAX_RIGHT_WIDTH, w + delta)));
+  };
 
   const handleDragStart = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -130,7 +148,14 @@ export const AgentSimulationPanel: React.FC<AgentSimulationPanelProps> = ({ open
         <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
           {/* Tab bar */}
           <div className="flex shrink-0 items-center gap-1 border-b border-border/40 px-3">
+            <div role="tablist" className="flex items-center gap-1" onKeyDown={handleTabKeyDown}>
             <button
+              type="button"
+              role="tab"
+              id="agent-sim-tab-diagram"
+              aria-selected={leftTab === 'diagram'}
+              aria-controls="agent-sim-tabpanel"
+              tabIndex={leftTab === 'diagram' ? 0 : -1}
               className={[
                 'flex items-center gap-1.5 border-b-2 px-3 py-2 text-xs font-medium transition-colors',
                 leftTab === 'diagram'
@@ -143,6 +168,12 @@ export const AgentSimulationPanel: React.FC<AgentSimulationPanelProps> = ({ open
               {t('agentSimulation.panel.tabDiagram')}
             </button>
             <button
+              type="button"
+              role="tab"
+              id="agent-sim-tab-code"
+              aria-selected={leftTab === 'code'}
+              aria-controls="agent-sim-tabpanel"
+              tabIndex={leftTab === 'code' ? 0 : -1}
               className={[
                 'flex items-center gap-1.5 border-b-2 px-3 py-2 text-xs font-medium transition-colors',
                 leftTab === 'code'
@@ -154,6 +185,7 @@ export const AgentSimulationPanel: React.FC<AgentSimulationPanelProps> = ({ open
               <Folder className="size-3.5" />
               {t('agentSimulation.panel.tabSource')}
             </button>
+            </div>
 
             {/* Right side: Reset button + status badges */}
             <div className="ml-auto flex items-center gap-2 py-1">
@@ -185,7 +217,12 @@ export const AgentSimulationPanel: React.FC<AgentSimulationPanelProps> = ({ open
           </div>
 
           {/* Tab content */}
-          <div className="flex min-h-0 flex-1 overflow-hidden p-4">
+          <div
+            id="agent-sim-tabpanel"
+            role="tabpanel"
+            aria-labelledby={`agent-sim-tab-${leftTab}`}
+            className="flex min-h-0 flex-1 overflow-hidden p-4"
+          >
             {leftTab === 'diagram' ? (
               <AgentDiagramReadOnly currentState={currentState} />
             ) : (
@@ -196,12 +233,20 @@ export const AgentSimulationPanel: React.FC<AgentSimulationPanelProps> = ({ open
 
         {/* Drag handle */}
         <div
-          className="group relative flex w-1.5 shrink-0 cursor-col-resize items-center justify-center bg-border/30 transition-colors hover:bg-primary/40 active:bg-primary/60"
+          role="separator"
+          aria-orientation="vertical"
+          aria-label={t('agentSimulation.panel.resizeChat')}
+          aria-valuenow={rightWidth}
+          aria-valuemin={MIN_RIGHT_WIDTH}
+          aria-valuemax={MAX_RIGHT_WIDTH}
+          tabIndex={0}
+          className="group relative flex w-1.5 shrink-0 cursor-col-resize items-center justify-center bg-border/30 transition-colors hover:bg-primary/40 focus-visible:bg-primary/40 focus-visible:outline-none active:bg-primary/60"
           onMouseDown={handleDragStart}
+          onKeyDown={handleResizeKeyDown}
           title={t('agentSimulation.panel.dragToResize')}
         >
           {/* Visual grip dots */}
-          <div className="flex flex-col gap-1 opacity-0 transition-opacity group-hover:opacity-60">
+          <div className="flex flex-col gap-1 opacity-0 transition-opacity group-hover:opacity-60 group-focus-visible:opacity-60">
             {[0, 1, 2].map((i) => (
               <div key={i} className="size-1 rounded-full bg-foreground" />
             ))}

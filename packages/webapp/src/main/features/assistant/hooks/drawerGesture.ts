@@ -15,12 +15,12 @@ export const DRAG_DIRECTION_THRESHOLD = 8;
 
 /**
  * Lock the snap direction from the running drag distance, taken from the start
- * of the gesture. Returns the committed direction (+1 = dragged down → open,
- * -1 = dragged up → close) once |distance| first crosses the threshold. Once a
+ * of the gesture. Returns the committed direction (+1 = toward open,
+ * -1 = toward closed) once |distance| first crosses the threshold. Once a
  * non-zero direction is locked it sticks (so a flick that settles back still
  * snaps by its initial intent); 0 means "still a click".
  *
- * @param dragDistance signed px from the gesture's start (positive = downward)
+ * @param dragDistance signed px from the gesture's start (positive = toward open)
  * @param current      the direction locked so far (0 until the threshold hits)
  * @param threshold    px that must be crossed to count as a directional drag
  */
@@ -37,7 +37,7 @@ export function lockDragDirection(
 /**
  * Resolve whether the drawer should end up open when a gesture finishes.
  * A locked direction of 0 means the gesture was a click, so it toggles the
- * current state; otherwise downward (+1) opens and upward (-1) closes,
+ * current state; otherwise +1 opens and -1 closes,
  * regardless of how far the user actually dragged.
  */
 export function resolveDrawerSnap(direction: number, currentlyOpen: boolean): boolean {

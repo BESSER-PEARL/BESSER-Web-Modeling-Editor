@@ -1094,42 +1094,42 @@ function addAutoGenerateGUIButton(editor: Editor) {
 
       const modalContent = `
         <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;">
-          <p style="margin: 0 0 1rem 0; color: #212529; font-size: 1rem; line-height: 1.5;">
+          <p style="margin: 0 0 1rem 0; color: inherit; font-size: 1rem; line-height: 1.5;">
             ${i18n.t('editors.gui.autoGenerateIntro')}
           </p>
 
-          <div style="background-color: #f8f9fa; border: 1px solid #dee2e6; border-radius: 0.375rem; padding: 1rem; margin-bottom: 1rem;">
-            <div style="display: flex; align-items-center; margin-bottom: 0.5rem;">
+          <div style="background-color: rgba(127, 127, 127, 0.08); border: 1px solid rgba(127, 127, 127, 0.25); border-radius: 0.375rem; padding: 1rem; margin-bottom: 1rem;">
+            <div style="display: flex; align-items: center; margin-bottom: 0.5rem;">
               <svg width="20" height="20" viewBox="0 0 16 16" fill="currentColor" style="color: #198754; margin-right: 0.5rem;">
                 <path d="M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0zm-3.97-3.03a.75.75 0 0 0-1.08.022L7.477 9.417 5.384 7.323a.75.75 0 0 0-1.06 1.06L6.97 11.03a.75.75 0 0 0 1.079-.02l3.992-4.99a.75.75 0 0 0-.01-1.05z"/>
               </svg>
               <strong style="font-size: 0.875rem;">${i18n.t('editors.gui.autoGenerateCreatedTitle')}</strong>
             </div>
-            <ul style="margin: 0; padding-left: 1.5rem; color: #212529; font-size: 0.875rem; line-height: 1.8;">
+            <ul style="margin: 0; padding-left: 1.5rem; color: inherit; font-size: 0.875rem; line-height: 1.8;">
               <li>${i18n.t('editors.gui.autoGenerateItemNav')}</li>
               <li>${i18n.t('editors.gui.autoGenerateItemPage')}</li>
               <li>${i18n.t('editors.gui.autoGenerateItemMethods')}</li>
             </ul>
           </div>
 
-          <div style="background-color: #fff3cd; border: 1px solid #ffc107; border-radius: 0.375rem; padding: 0.75rem; margin-bottom: 1rem;">
-            <div style="display: flex; align-items-center; color: #664d03;">
-              <svg width="18" height="18" viewBox="0 0 16 16" fill="currentColor" style="margin-right: 0.5rem;">
+          <div style="background-color: rgba(255, 193, 7, 0.14); border: 1px solid rgba(255, 193, 7, 0.55); border-radius: 0.375rem; padding: 0.75rem; margin-bottom: 1rem;">
+            <div style="display: flex; align-items: center; color: inherit;">
+              <svg width="18" height="18" viewBox="0 0 16 16" fill="currentColor" style="color: #d39e00; margin-right: 0.5rem;">
                 <path d="M8.982 1.566a1.13 1.13 0 0 0-1.96 0L.165 13.233c-.457.778.091 1.767.98 1.767h13.713c.889 0 1.438-.99.98-1.767L8.982 1.566zM8 5c.535 0 .954.462.9.995l-.35 3.507a.552.552 0 0 1-1.1 0L7.1 5.995A.905.905 0 0 1 8 5zm.002 6a1 1 0 1 1 0 2 1 1 0 0 1 0-2z"/>
               </svg>
               <strong style="font-size: 0.875rem;">${i18n.t('editors.gui.autoGenerateCannotUndo')}</strong>
             </div>
           </div>
 
-          <p style="margin: 0 0 1rem 0; color: #212529; font-size: 1rem; font-weight: 500;">
+          <p style="margin: 0 0 1rem 0; color: inherit; font-size: 1rem; font-weight: 500;">
             ${i18n.t('editors.gui.autoGenerateConfirmQuestion')}
           </p>
 
-          <div style="display: flex; gap: 0.5rem; justify-content: flex-end; padding-top: 1rem; border-top: 1px solid #dee2e6;">
-            <button id="modal-cancel-btn" style="padding: 0.375rem 0.75rem; background-color: #6c757d; color: white; border: 1px solid #6c757d; border-radius: 0.375rem; font-size: 1rem; cursor: pointer; transition: all 0.15s ease-in-out;">
+          <div style="display: flex; gap: 0.5rem; justify-content: flex-end; padding-top: 1rem; border-top: 1px solid rgba(127, 127, 127, 0.25);">
+            <button id="modal-cancel-btn" style="padding: 0.375rem 0.75rem; background-color: #6c757d; color: white; border: 1px solid #6c757d; border-radius: 0.375rem; font-size: 1rem; cursor: pointer; transition: background-color 0.15s ease-out, border-color 0.15s ease-out;">
               ${i18n.t('common.cancel')}
             </button>
-            <button id="modal-confirm-btn" style="padding: 0.375rem 0.75rem; background-color: #0d6efd; color: white; border: 1px solid #0d6efd; border-radius: 0.375rem; font-size: 1rem; cursor: pointer; transition: all 0.15s ease-in-out;">
+            <button id="modal-confirm-btn" style="padding: 0.375rem 0.75rem; background-color: #0d6efd; color: white; border: 1px solid #0d6efd; border-radius: 0.375rem; font-size: 1rem; cursor: pointer; transition: background-color 0.15s ease-out, border-color 0.15s ease-out;">
               ${i18n.t('editors.gui.generateGui')}
             </button>
           </div>

@@ -82,7 +82,7 @@ export const FileMenu: React.FC<FileMenuProps> = ({
         </DropdownMenuSub>
         {activeDiagramType === 'BPMN' && (
           <DropdownMenuItem onClick={onImportBpmnDiagram} disabled={!hasProject}>
-            Import BPMN Diagram (.bpmn / .xml)
+            {t('menu.file.importBpmnDiagram')}
           </DropdownMenuItem>
         )}
         <DropdownMenuItem onClick={onOpenProjectPreview} disabled={!hasProject}>

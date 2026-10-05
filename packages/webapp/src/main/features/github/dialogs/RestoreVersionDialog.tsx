@@ -1,6 +1,6 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
-import { AlertTriangle } from 'lucide-react';
+import { AlertTriangle, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import type { GitHubCommit } from '../hooks/useGitHubStorage';
@@ -52,8 +52,14 @@ export const RestoreVersionDialog: React.FC<RestoreVersionDialogProps> = ({
             {t('common.cancel')}
           </Button>
           <Button onClick={onRestore} disabled={isSaving} className="gap-2">
-            {isSaving ? t('github.restore.restoring') : null}
-            {t('github.restore.restoreButton')}
+            {isSaving ? (
+              <>
+                <Loader2 className="size-4 animate-spin" />
+                {t('github.restore.restoring')}
+              </>
+            ) : (
+              t('github.restore.restoreButton')
+            )}
           </Button>
         </DialogFooter>
       </DialogContent>

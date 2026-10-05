@@ -216,7 +216,10 @@ export function Gate({ gate, onMouseDown, onResize, onDoubleClick, isDragging = 
     );
   }
 
-  // Default gate rendering with symbol
+  // Default gate rendering with symbol. Long symbols (e.g. "e^-iXt") shrink to stay inside the box.
+  const symbolText = isFunctionGate ? gate.label : (gate.symbol || gate.label);
+  const symbolLength = typeof symbolText === 'string' ? symbolText.length : 1;
+  const symbolScale = symbolLength <= 2 ? 1 : symbolLength === 3 ? 0.85 : symbolLength === 4 ? 0.72 : symbolLength === 5 ? 0.6 : 0.5;
   return (
     <GateContainer
       width={width}
@@ -229,7 +232,7 @@ export function Gate({ gate, onMouseDown, onResize, onDoubleClick, isDragging = 
       onMouseLeave={handleMouseLeave}
       style={{ opacity: isDragging ? 0.5 : 1, cursor: isFunctionGate ? 'pointer' : 'grab' }}
     >
-      {isFunctionGate ? gate.label : (gate.symbol || gate.label)}
+      <span style={{ fontSize: `${symbolScale}em`, whiteSpace: 'nowrap', lineHeight: 1 }}>{symbolText}</span>
       {hasNestedCircuit && <NestedIndicator />}
       {canResize && (
         <ResizeTab

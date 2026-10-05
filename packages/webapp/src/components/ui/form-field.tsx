@@ -39,7 +39,7 @@ const FormField = React.forwardRef<HTMLDivElement, FormFieldProps>(
       >
         <Label
           htmlFor={htmlFor}
-          className="text-xs font-semibold uppercase tracking-wider text-muted-foreground"
+          className="text-xs font-medium text-muted-foreground"
         >
           {label}
           {required && <span className="ml-0.5 text-destructive">*</span>}
@@ -49,10 +49,9 @@ const FormField = React.forwardRef<HTMLDivElement, FormFieldProps>(
 
         <div
           className={cn(
-            'grid transition-all duration-200 ease-in-out',
+            'grid transition-[grid-template-rows,opacity] duration-200 ease-out',
             hasError || helperText ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0',
           )}
-          aria-live="polite"
         >
           <div className="overflow-hidden">
             {hasError ? (

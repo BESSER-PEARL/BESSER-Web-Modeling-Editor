@@ -124,7 +124,7 @@
         "useDefault": "(use default)"
       },
       "db": {
-        "configuring": "Configuring database action...",
+        "configuring": "Configuring database action…",
         "initialize": "Initialize database action",
         "select": "Select a Database",
         "default": "Default (using the app DB)",
@@ -237,8 +237,8 @@
     "assessment": "Assessment for",
     "score": "Points",
     "feedback": "Feedback",
-    "feedbackPlaceholder": "You can enter feedback here...",
-    "additionalFeedbackPlaceholder": "You can enter additional feedback here...",
+    "feedbackPlaceholder": "You can enter feedback here…",
+    "additionalFeedbackPlaceholder": "You can enter additional feedback here…",
     "nextAssessment": "Next Assessment"
   },
   "packages": {
@@ -503,7 +503,7 @@
       "selectPlaceholder": "(use default)",
       "customDatabaseName": "Custom database name",
       "selectPlaceholderRag": "Select RAG database",
-      "configuringDatabaseAction": "Configuring database action...",
+      "configuringDatabaseAction": "Configuring database action…",
       "initializeDatabaseAction": "Initialize database action",
       "llm": "LLM",
       "systemMessage": "System message",
@@ -581,7 +581,7 @@
       "skillReasoningStateWarning": "Skills can only be used by a reasoning state. Add a reasoning state to use this skill",
       "skillName": "Skill name",
       "skillDescriptionPlaceholder": "Optional short description",
-      "skillContentPlaceholder": "# Skill\n\nInstructions in markdown...",
+      "skillContentPlaceholder": "# Skill\n\nInstructions in markdown…",
       "markdownContent": "Markdown content",
       "workspaceReasoningStateWarning": "Workspaces can only be used by a reasoning state. Add a reasoning state to use this workspace",
       "workspaceName": "Workspace name",
@@ -745,17 +745,17 @@
     "height": "Height"
   },
   "stylePane": {
-    "enterUri": "Enter URI...",
-    "enterIcon": "Enter icon name...",
-    "enterDescription": "Enter description...",
+    "enterUri": "Enter URI…",
+    "enterIcon": "Enter icon name…",
+    "enterDescription": "Enter description…",
     "idLockedByOptional": "Optional attributes cannot be the identifier.",
-    "enterDefaultValue": "Enter default value...",
+    "enterDefaultValue": "Enter default value…",
     "reset": "Reset",
     "fillColor": "Fill Color",
     "icon": "Icon",
     "externalIdLockedByOptional": "Optional attributes cannot be the external identifier.",
     "optional": "Optional",
-    "enterInteger": "Enter integer...",
+    "enterInteger": "Enter integer…",
     "id": "ID",
     "textColor": "Text Color",
     "externalId": "External ID",
@@ -764,7 +764,7 @@
     "none": "(none)",
     "lineColor": "Line Color",
     "default": "Default",
-    "enterNumber": "Enter number...",
+    "enterNumber": "Enter number…",
     "derived": "Derived"
   },
   "associationPopup": {
@@ -773,6 +773,22 @@
     "noTargets": "No other objects available to connect to"
   },
   "propertiesPanel": {
-    "close": "Close"
+    "close": "Close",
+    "resize": "Resize properties panel"
+  },
+  "actions": {
+    "edit": "Edit",
+    "delete": "Delete",
+    "addConnectedObject": "Add connected object",
+    "swapEnds": "Swap ends",
+    "style": "Style"
+  },
+  "zoomPane": {
+    "zoomIn": "Zoom in",
+    "zoomOut": "Zoom out",
+    "autoLayout": "Auto-layout"
+  },
+  "sidebar": {
+    "resize": "Resize palette"
   }
 }

@@ -47,7 +47,7 @@ const getConnectionDotClass = (status: ConnectionStatus): string => {
       return 'bg-emerald-500';
     case 'connecting':
     case 'closing':
-      return 'bg-amber-500 animate-pulse';
+      return 'bg-amber-500 animate-pulse motion-reduce:animate-none';
     default:
       return 'bg-red-500';
   }
@@ -239,16 +239,19 @@ export const AssistantWidget: React.FC<AssistantWidgetProps> = ({ onAssistantGen
   return (
     <>
       {/* ── Floating widget container ── */}
-      <div className="fixed bottom-5 right-4 md:right-16" style={{ zIndex: Z_INDEX.NOTIFICATION, marginRight: 'var(--properties-panel-width, 0px)', transition: 'margin-right 0.2s ease' }}>
+      {/* Clear of the canvas zoom controls (right edge) and, in the GUI editor, its save-status badge. */}
+      <div className={cn('fixed right-16', activeDiagramType === 'GUINoCodeDiagram' ? 'bottom-12' : 'bottom-5')} style={{ zIndex: Z_INDEX.NOTIFICATION, marginRight: 'var(--properties-panel-width, 0px)', transition: 'margin-right 0.2s ease' }}>
         {/* ── Chat card ── */}
         <Card
           className={cn(
-            'absolute bottom-[74px] right-0 flex h-[min(78vh,700px)] w-[min(96vw,520px)] flex-col overflow-hidden rounded-2xl border border-border/40 bg-background shadow-elevation-3 transition-all duration-300 ease-out sm:w-[480px] lg:w-[520px]',
+            'absolute bottom-[74px] right-0 flex h-[min(78vh,700px)] w-[min(96vw,520px)] origin-bottom-right flex-col overflow-hidden rounded-2xl border border-border/40 bg-background shadow-elevation-3 transition-[transform,opacity] duration-200 ease-out sm:w-[480px] lg:w-[520px]',
             isVisible ? 'translate-y-0 scale-100 opacity-100' : 'pointer-events-none translate-y-4 scale-95 opacity-0',
           )}
+          aria-hidden={!isVisible}
+          {...((!isVisible ? { inert: '' } : {}) as React.HTMLAttributes<HTMLElement>)}
         >
           {/* Header */}
-          <div className="relative flex items-center justify-between overflow-hidden border-b border-border/40 px-4 py-3.5" style={{ background: 'linear-gradient(135deg, hsl(var(--brand) / 0.06) 0%, transparent 100%)' }}>
+          <div className="relative flex items-center justify-between overflow-hidden border-b border-border/40 px-4 py-3.5">
             <div className="flex items-center gap-3">
               <div className="flex size-9 items-center justify-center overflow-hidden rounded-xl bg-brand/10 ring-1 ring-brand/15">
                 <img src={AGENT_AVATAR_SRC} alt={t('assistant.agentAvatarAlt')} className="size-6 object-contain" />
@@ -308,7 +311,7 @@ export const AssistantWidget: React.FC<AssistantWidgetProps> = ({ onAssistantGen
 
           {/* Message list */}
           <div className="relative min-h-0 flex-1">
-          <div ref={messageListContainerRef} className="h-full overflow-y-auto bg-gradient-to-b from-muted/10 via-background to-muted/5 p-4">
+          <div ref={messageListContainerRef} className="h-full overflow-y-auto overscroll-contain bg-gradient-to-b from-muted/10 via-background to-muted/5 p-4">
             {messages.length === 0 && !isGenerating ? (
               <div className="flex h-full flex-col items-center justify-center gap-4 px-4 text-center">
                 <div className="flex size-14 items-center justify-center rounded-2xl bg-brand/8 ring-1 ring-brand/10">
@@ -362,14 +365,14 @@ export const AssistantWidget: React.FC<AssistantWidgetProps> = ({ onAssistantGen
               messageOptions={(message: ChatKitMessage) => {
                 const meta = messageMeta[message.id];
                 // onPushToGithub is always threaded so SpecDrivenCards can push;
-                // the badge action is added only when the message has one.
+                // the status badge is added only when the message has one.
                 // Opening the push dialog is a pure dispatch — it's mounted
                 // app-level (SpecDrivenPushDialogHost) and Redux-driven.
                 const base = { onPushToGithub: (runId: string) => dispatch(openPushDialog(runId)) };
                 if (!meta?.badge) return base;
                 return {
                   ...base,
-                  actions: (
+                  status: (
                     <MessageBadge badge={meta.badge} label={meta.badgeLabel} />
                   ),
                 };
@@ -452,7 +455,7 @@ export const AssistantWidget: React.FC<AssistantWidgetProps> = ({ onAssistantGen
           type="button"
           size="icon"
           className={cn(
-            'group relative size-14 rounded-2xl border bg-white/60 text-foreground shadow-elevation-2 backdrop-blur-sm transition-all duration-200 hover:shadow-elevation-3 active:scale-95 dark:bg-slate-800/40',
+            'group relative size-14 rounded-2xl border bg-white/60 text-foreground shadow-elevation-2 backdrop-blur-sm transition-[color,background-color,border-color,box-shadow,transform] duration-200 hover:shadow-elevation-3 active:scale-95 dark:bg-slate-800/40',
             isVisible
               ? 'border-brand/20 ring-1 ring-brand/15'
               : 'border-border/40 hover:border-brand/25 hover:bg-brand/5',

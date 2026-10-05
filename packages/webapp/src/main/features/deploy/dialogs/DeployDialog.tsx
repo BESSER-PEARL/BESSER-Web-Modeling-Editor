@@ -119,9 +119,9 @@ export const DeployDialog: React.FC<DeployDialogProps> = ({
 
           {useExistingRepo && linkedRepo ? (
             <>
-              <div className="flex items-center justify-between rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-800 dark:border-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300">
-                <div>
-                  <p className="font-medium">
+              <div className="flex items-center justify-between gap-3 rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-800 dark:border-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300">
+                <div className="min-w-0 flex-1">
+                  <p className="truncate font-medium" title={`${linkedRepo.owner}/${linkedRepo.repo}`}>
                     {t('deploy.existing.previouslyDeployed')}{' '}
                     <a
                       href={`https://github.com/${linkedRepo.owner}/${linkedRepo.repo}`}
@@ -134,7 +134,7 @@ export const DeployDialog: React.FC<DeployDialogProps> = ({
                   </p>
                   <p className="text-xs">{t('deploy.existing.filesPreserved')}</p>
                 </div>
-                <Button variant="outline" size="sm" onClick={onCreateNewInstead}>
+                <Button variant="outline" size="sm" className="shrink-0" onClick={onCreateNewInstead}>
                   {t('deploy.existing.createNewInstead')}
                 </Button>
               </div>
@@ -152,6 +152,9 @@ export const DeployDialog: React.FC<DeployDialogProps> = ({
               <FormField label={t('deploy.fields.repoName')} htmlFor="deploy-repo-name" required error={validation.getError('repoName')}>
                 <Input
                   id="deploy-repo-name"
+                  name="repo-name"
+                  autoComplete="off"
+                  spellCheck={false}
                   value={repoName}
                   onChange={(event) => onRepoNameChange(event.target.value)}
                   onBlur={() => validation.markTouched('repoName')}

@@ -124,7 +124,7 @@
         "useDefault": "(utiliser par défaut)"
       },
       "db": {
-        "configuring": "Configuration de l'action base de données...",
+        "configuring": "Configuration de l'action base de données…",
         "initialize": "Initialiser l'action base de données",
         "select": "Sélectionner une base de données",
         "default": "Par défaut (BD de l'application)",
@@ -237,8 +237,8 @@
     "assessment": "Évaluation pour",
     "score": "Points",
     "feedback": "Retour",
-    "feedbackPlaceholder": "Vous pouvez saisir un retour ici...",
-    "additionalFeedbackPlaceholder": "Vous pouvez saisir un retour supplémentaire ici...",
+    "feedbackPlaceholder": "Vous pouvez saisir un retour ici…",
+    "additionalFeedbackPlaceholder": "Vous pouvez saisir un retour supplémentaire ici…",
     "nextAssessment": "Évaluation suivante"
   },
   "packages": {
@@ -503,7 +503,7 @@
       "selectPlaceholder": "(utiliser par défaut)",
       "customDatabaseName": "Nom de base de données personnalisé",
       "selectPlaceholderRag": "Sélectionner la base de données RAG",
-      "configuringDatabaseAction": "Configuration de l'action de base de données...",
+      "configuringDatabaseAction": "Configuration de l'action de base de données…",
       "initializeDatabaseAction": "Initialiser l'action de base de données",
       "llm": "LLM",
       "systemMessage": "Message système",
@@ -581,7 +581,7 @@
       "skillReasoningStateWarning": "Les compétences ne peuvent être utilisées que par un état de raisonnement. Ajoutez un état de raisonnement pour utiliser cette compétence",
       "skillName": "Nom de la compétence",
       "skillDescriptionPlaceholder": "Description courte facultative",
-      "skillContentPlaceholder": "# Skill\n\nInstructions en markdown...",
+      "skillContentPlaceholder": "# Skill\n\nInstructions en markdown…",
       "markdownContent": "Contenu Markdown",
       "workspaceReasoningStateWarning": "Les espaces de travail ne peuvent être utilisés que par un état de raisonnement. Ajoutez un état de raisonnement pour utiliser cet espace de travail",
       "workspaceName": "Nom de l'espace de travail",
@@ -745,17 +745,17 @@
     "height": "Hauteur"
   },
   "stylePane": {
-    "enterUri": "Saisir l'URI...",
-    "enterIcon": "Saisir le nom de l'icône...",
-    "enterDescription": "Saisir une description...",
+    "enterUri": "Saisir l'URI…",
+    "enterIcon": "Saisir le nom de l'icône…",
+    "enterDescription": "Saisir une description…",
     "idLockedByOptional": "Les attributs optionnels ne peuvent pas être l'identifiant.",
-    "enterDefaultValue": "Saisir une valeur par défaut...",
+    "enterDefaultValue": "Saisir une valeur par défaut…",
     "reset": "Réinitialiser",
     "fillColor": "Couleur de remplissage",
     "icon": "Icône",
     "externalIdLockedByOptional": "Les attributs optionnels ne peuvent pas être l'identifiant externe.",
     "optional": "Optionnel",
-    "enterInteger": "Saisir un entier...",
+    "enterInteger": "Saisir un entier…",
     "id": "ID",
     "textColor": "Couleur du texte",
     "externalId": "ID externe",
@@ -764,7 +764,7 @@
     "none": "(aucun)",
     "lineColor": "Couleur de ligne",
     "default": "Par défaut",
-    "enterNumber": "Saisir un nombre...",
+    "enterNumber": "Saisir un nombre…",
     "derived": "Dérivé"
   },
   "associationPopup": {
@@ -773,6 +773,22 @@
     "noTargets": "Aucun autre objet disponible pour la connexion"
   },
   "propertiesPanel": {
-    "close": "Fermer"
+    "close": "Fermer",
+    "resize": "Redimensionner le panneau des propriétés"
+  },
+  "actions": {
+    "edit": "Modifier",
+    "delete": "Supprimer",
+    "addConnectedObject": "Ajouter un objet connecté",
+    "swapEnds": "Inverser les extrémités",
+    "style": "Style"
+  },
+  "zoomPane": {
+    "zoomIn": "Zoom avant",
+    "zoomOut": "Zoom arrière",
+    "autoLayout": "Disposition automatique"
+  },
+  "sidebar": {
+    "resize": "Redimensionner la palette"
   }
 }

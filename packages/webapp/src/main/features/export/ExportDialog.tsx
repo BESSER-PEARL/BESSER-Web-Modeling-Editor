@@ -1,7 +1,7 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ApollonEditor } from '@besser/wme';
-import { Download, FileCode2, FileImage, FileJson2 } from 'lucide-react';
+import { Download, FileCode2, FileImage, FileJson2, Loader2 } from 'lucide-react';
 import { toast } from 'react-toastify';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -56,6 +56,9 @@ export const ExportDialog: React.FC<ExportDialogProps> = ({ open, onOpenChange, 
   const exportAsJSON = useExportJSON();
   const [selectedDiagrams, setSelectedDiagrams] = useState<SupportedDiagramType[]>([]);
   const [hasInitializedSelection, setHasInitializedSelection] = useState(false);
+  // The ref blocks a second click in the same tick; the state drives the UI.
+  const pendingRef = useRef<ExportFormat | null>(null);
+  const [pendingFormat, setPendingFormat] = useState<ExportFormat | null>(null);
 
   /** All diagrams with content, grouped by type. */
   const diagramEntries = useMemo<[SupportedDiagramType, ProjectDiagram[]][]>(
@@ -112,6 +115,10 @@ export const ExportDialog: React.FC<ExportDialogProps> = ({ open, onOpenChange, 
       return;
     }
 
+    if (pendingRef.current) return;
+    pendingRef.current = format;
+    setPendingFormat(format);
+
     try {
       if (format === 'SVG') {
         await exportAsSVG(editor!, normalizedTitle);
@@ -141,12 +148,18 @@ export const ExportDialog: React.FC<ExportDialogProps> = ({ open, onOpenChange, 
       onOpenChange(false);
     } catch (error) {
       toast.error(t('export.toasts.failed', { error: error instanceof Error ? error.message : t('export.toasts.unknownError') }));
+    } finally {
+      pendingRef.current = null;
+      setPendingFormat(null);
     }
   };
 
+  const exportIcon = (format: ExportFormat, Icon: typeof FileJson2) =>
+    pendingFormat === format ? <Loader2 className="size-4 animate-spin" /> : <Icon className="size-4" />;
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[86vh] overflow-y-auto sm:max-w-4xl">
+      <DialogContent className="max-h-[86vh] overflow-y-auto overscroll-contain sm:max-w-4xl">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2.5 font-display text-2xl tracking-tight">
             <div className="flex size-8 items-center justify-center rounded-xl bg-primary/8 text-primary ring-1 ring-primary/10">
@@ -167,7 +180,7 @@ export const ExportDialog: React.FC<ExportDialogProps> = ({ open, onOpenChange, 
 
             {diagramEntries.length > 0 ? (
               <>
-                <div className="max-h-44 flex flex-col gap-1.5 overflow-y-auto rounded-lg border border-border/40 bg-background/80 p-3">
+                <div className="max-h-44 flex flex-col gap-1.5 overflow-y-auto overscroll-contain rounded-lg border border-border/40 bg-background/80 p-3">
                   {diagramEntries.map(([type, diagrams]) => (
                     <label
                       key={type}
@@ -197,13 +210,21 @@ export const ExportDialog: React.FC<ExportDialogProps> = ({ open, onOpenChange, 
                 <div className="mt-4 grid gap-2">
                   <Button
                     onClick={() => handleExport('JSON')}
+                    disabled={pendingFormat !== null}
+                    aria-busy={pendingFormat === 'JSON'}
                     className="justify-start gap-2 shadow-elevation-1 transition-shadow hover:shadow-elevation-2"
                   >
-                    <FileJson2 className="size-4" />
+                    {exportIcon('JSON', FileJson2)}
                     {t('export.dialog.exportJson')}
                   </Button>
-                  <Button variant="secondary" onClick={() => handleExport('BUML')} className="justify-start gap-2">
-                    <FileCode2 className="size-4" />
+                  <Button
+                    variant="secondary"
+                    onClick={() => handleExport('BUML')}
+                    disabled={pendingFormat !== null}
+                    aria-busy={pendingFormat === 'BUML'}
+                    className="justify-start gap-2"
+                  >
+                    {exportIcon('BUML', FileCode2)}
                     {t('export.dialog.exportBuml')}
                   </Button>
                 </div>
@@ -230,41 +251,51 @@ export const ExportDialog: React.FC<ExportDialogProps> = ({ open, onOpenChange, 
               <Button
                 variant="outline"
                 onClick={() => handleExport('SVG')}
-                className="justify-start gap-2 border-border/50 shadow-elevation-1 transition-all hover:shadow-elevation-2"
+                disabled={pendingFormat !== null}
+                aria-busy={pendingFormat === 'SVG'}
+                className="justify-start gap-2 border-border/50 shadow-elevation-1 transition-shadow hover:shadow-elevation-2"
               >
-                <FileCode2 className="size-4" />
+                {exportIcon('SVG', FileCode2)}
                 {t('export.dialog.exportSvg')}
               </Button>
               <Button
                 variant="outline"
                 onClick={() => handleExport('PNG_WHITE')}
+                disabled={pendingFormat !== null}
+                aria-busy={pendingFormat === 'PNG_WHITE'}
                 className="justify-start gap-2 border-border/50"
               >
-                <FileImage className="size-4" />
+                {exportIcon('PNG_WHITE', FileImage)}
                 {t('export.dialog.exportPngWhite')}
               </Button>
               <Button
                 variant="outline"
                 onClick={() => handleExport('PNG')}
+                disabled={pendingFormat !== null}
+                aria-busy={pendingFormat === 'PNG'}
                 className="justify-start gap-2 border-border/50"
               >
-                <FileImage className="size-4" />
+                {exportIcon('PNG', FileImage)}
                 {t('export.dialog.exportPngTransparent')}
               </Button>
               <Button
                 variant="outline"
                 onClick={() => handleExport('SINGLE_JSON')}
+                disabled={pendingFormat !== null}
+                aria-busy={pendingFormat === 'SINGLE_JSON'}
                 className="justify-start gap-2 border-border/50"
               >
-                <FileJson2 className="size-4" />
+                {exportIcon('SINGLE_JSON', FileJson2)}
                 {t('export.dialog.exportDiagramJson')}
               </Button>
               <Button
                 variant="outline"
                 onClick={() => handleExport('SINGLE_BUML')}
+                disabled={pendingFormat !== null}
+                aria-busy={pendingFormat === 'SINGLE_BUML'}
                 className="justify-start gap-2 border-border/50"
               >
-                <FileCode2 className="size-4" />
+                {exportIcon('SINGLE_BUML', FileCode2)}
                 {t('export.dialog.exportDiagramBuml')}
               </Button>
             </div>

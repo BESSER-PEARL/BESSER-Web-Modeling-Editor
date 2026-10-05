@@ -501,24 +501,25 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
   const headerBackgroundClass = isDarkTheme
     ? 'border-b border-border/70 bg-[linear-gradient(105deg,hsl(var(--background))_0%,hsl(222_30%_9%)_45%,hsl(222_25%_14%)_100%)]'
     : 'border-b border-brand/10 bg-[linear-gradient(105deg,#f0f9ff_0%,#fcfff5_45%,#edf6ff_100%)]';
+  // Header menus are quiet ghost buttons.
   const outlineButtonClass = isDarkTheme
-    ? 'border-border bg-card text-foreground hover:bg-accent hover:border-border'
-    : 'border-border/60 bg-card hover:border-brand/25 hover:bg-brand/[0.03]';
+    ? 'border-transparent bg-transparent text-foreground/80 shadow-none hover:bg-white/[0.06] hover:text-foreground transition-[background-color,border-color,color,transform] duration-150 ease-out active:scale-[0.97]'
+    : 'border-transparent bg-transparent text-foreground/80 shadow-none hover:bg-foreground/[0.05] hover:text-foreground transition-[background-color,border-color,color,transform] duration-150 ease-out active:scale-[0.97]';
   const primaryGenerateClass = `gap-2 ${outlineButtonClass}`;
   const sidebarBaseClass = isDarkTheme
-    ? 'hidden shrink-0 border-r border-border/70 bg-card p-2.5 transition-all duration-200 md:flex md:flex-col md:gap-1.5'
-    : 'hidden shrink-0 border-r border-border/50 bg-card p-2.5 transition-all duration-200 md:flex md:flex-col md:gap-1.5';
-  const sidebarTitleClass = 'px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground';
+    ? 'hidden shrink-0 border-r border-border/70 bg-card p-2.5 md:flex md:flex-col md:gap-0.5'
+    : 'hidden shrink-0 border-r border-border/50 bg-card p-2.5 md:flex md:flex-col md:gap-0.5';
+  const sidebarTitleClass = 'px-2.5 pb-1.5 pt-1 text-xs font-medium text-muted-foreground';
   const sidebarDividerClass = 'my-2 border-t border-border/60';
   const sidebarToggleClass = isDarkTheme
-    ? 'mt-auto flex items-center rounded-lg border border-border/60 bg-card p-2 transition-all duration-150 hover:border-border hover:bg-accent'
-    : 'mt-auto flex items-center rounded-lg border border-border/60 bg-card p-2 transition-all duration-150 hover:border-brand/20 hover:bg-brand/[0.03]';
-  const sidebarToggleTextClass = 'text-xs font-semibold text-foreground';
+    ? 'mt-auto flex items-center rounded-lg px-2.5 py-2 text-sm text-muted-foreground transition-[background-color,color] duration-150 ease-out hover:bg-white/[0.06] hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/50'
+    : 'mt-auto flex items-center rounded-lg px-2.5 py-2 text-sm text-muted-foreground transition-[background-color,color] duration-150 ease-out hover:bg-foreground/[0.05] hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/50';
+  const sidebarToggleTextClass = 'truncate';
 
   // Mobile drawer sidebar uses the same styles but is always flex (never hidden)
   const mobileSidebarBaseClass = isDarkTheme
-    ? 'flex shrink-0 flex-col gap-1.5 border-r border-border/70 bg-card p-2.5'
-    : 'flex shrink-0 flex-col gap-1.5 border-r border-border/50 bg-card/90 p-2.5 backdrop-blur-sm';
+    ? 'flex shrink-0 flex-col gap-0.5 border-r border-border/70 bg-card p-2.5'
+    : 'flex shrink-0 flex-col gap-0.5 border-r border-border/50 bg-card/90 p-2.5 backdrop-blur-sm';
 
   const closeMobileDrawer = useCallback(() => setIsMobileDrawerOpen(false), []);
 
@@ -1218,6 +1219,7 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
             onOpenChange={setIsAssistantWorkspaceOpen}
             onTriggerGenerator={onAssistantGenerate}
             onSwitchDiagram={handleAssistantSwitchDiagram}
+            showTrigger={location.pathname === '/'}
           />
         </Suspense>
       </div>

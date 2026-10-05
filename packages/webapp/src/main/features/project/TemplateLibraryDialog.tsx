@@ -350,7 +350,7 @@ export const TemplateLibraryDialog: React.FC<TemplateLibraryDialogProps> = ({ op
                   type="button"
                   onClick={() => setSelectedCategory(category)}
                   className={[
-                    'flex w-full items-center justify-between rounded-lg border px-3 py-2 text-sm transition-all',
+                    'flex w-full items-center justify-between rounded-lg border px-3 py-2 text-sm transition-[transform,border-color,background-color,color] duration-200 ease-out active:scale-[0.98]',
                     isActive
                       ? 'border-brand/30 bg-brand/10 text-foreground'
                       : 'border-transparent text-muted-foreground hover:border-border hover:bg-brand/[0.04] hover:text-foreground',
@@ -367,19 +367,40 @@ export const TemplateLibraryDialog: React.FC<TemplateLibraryDialogProps> = ({ op
 
           <div className="min-h-0 p-4">
             <div className="h-[56vh] overflow-y-auto pr-2">
-              <div className="grid gap-3 md:grid-cols-2">
-                {templatesInCategory.map((template) => {
+              <div
+                role="radiogroup"
+                aria-label={t(`project.templates.categories.${selectedCategory}`, { defaultValue: selectedCategory })}
+                className="grid gap-3 md:grid-cols-2"
+              >
+                {templatesInCategory.map((template, index) => {
                   const selected = selectedTemplate?.type === template.type;
                   return (
                     <Card
                       key={template.type}
+                      role="radio"
+                      aria-checked={selected}
+                      tabIndex={selected ? 0 : -1}
                       className={[
-                        'cursor-pointer border transition-all',
+                        'cursor-pointer border transition-[transform,border-color,background-color,box-shadow] duration-200 ease-out active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/40',
                         selected
                           ? 'border-brand/30 bg-brand/[0.05] shadow-sm'
                           : 'hover:border-border/90 hover:bg-brand/[0.04]',
                       ].join(' ')}
                       onClick={() => setSelectedTemplateType(template.type)}
+                      onKeyDown={(e) => {
+                        // Radiogroup keyboard pattern: Space/Enter select, arrows move + select.
+                        if (e.key === ' ' || e.key === 'Enter') {
+                          e.preventDefault();
+                          setSelectedTemplateType(template.type);
+                          return;
+                        }
+                        const step = ({ ArrowRight: 1, ArrowDown: 1, ArrowLeft: -1, ArrowUp: -1 } as Record<string, number>)[e.key];
+                        if (!step) return;
+                        e.preventDefault();
+                        const next = (index + step + templatesInCategory.length) % templatesInCategory.length;
+                        setSelectedTemplateType(templatesInCategory[next].type);
+                        (e.currentTarget.parentElement?.children[next] as HTMLElement | undefined)?.focus();
+                      }}
                     >
                       <CardHeader className="pb-2">
                         <CardTitle className="flex items-center justify-between text-base">

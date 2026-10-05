@@ -1,8 +1,5 @@
-import { lighten } from '../../../utils/color';
 import { css, styled, Styles } from '../../theme/styles';
 import { defaultProps } from './textfield';
-
-const FOCUS_BORDER_LIGHTEN = 25;
 
 const Input = styled.textarea`
   background-clip: padding-box;
@@ -22,9 +19,9 @@ const Input = styled.textarea`
     box-shadow 0.15s ease-in-out;
 
   :focus {
-    border-color: ${(props) => lighten(props.theme.color.primary, FOCUS_BORDER_LIGHTEN)};
+    border-color: ${(props) => props.theme.color.primary};
     outline: 0;
-    box-shadow: 0 0 0 0.2em ${(props) => props.theme.color.primary}40;
+    box-shadow: 0 0 0 0.2em color-mix(in srgb, ${(props) => props.theme.color.primary} 25%, transparent);
   }
 
   ::placeholder {

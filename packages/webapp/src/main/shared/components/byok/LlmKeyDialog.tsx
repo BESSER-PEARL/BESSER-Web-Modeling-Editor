@@ -332,12 +332,12 @@ function _classifyStoredModel(
   const stored = (storedRaw && LEGACY_MODEL_ALIASES[provider]?.[storedRaw]) || storedRaw;
   if (!stored) {
     // pia/local have no server-side "default" that maps to a real model, so
-    // pre-select their first preset. anthropic/openai/mistral use the "…"
+    // pre-select their first preset. anthropic/openai/mistral use the "Recommended default"
     // sentinel (the backend picks a sensible default for those).
     if (_needsBaseUrl(provider)) {
       return { choice: MODEL_PRESETS[provider][0].value, custom: '' };
     }
-    // No stored model → the "…" default option (backend picks the default).
+    // No stored model → the "Recommended default" option (backend picks the default).
     return { choice: DEFAULT_MODEL_VALUE, custom: '' };
   }
   const matchesPreset = MODEL_PRESETS[provider].some(
@@ -383,6 +383,8 @@ export const LlmKeyDialog: React.FC<LlmKeyDialogProps> = ({
   const [apiKey, setApiKey] = useState<string>('');
   const [saveError, setSaveError] = useState<string | null>(null);
   const [keyPresent, setKeyPresent] = useState<boolean>(false);
+  // "Remove key" is staged and only committed on Save, so Cancel keeps the key.
+  const [removePending, setRemovePending] = useState<boolean>(false);
   const [providerLockedByUser, setProviderLockedByUser] = useState<boolean>(false);
   const [modelChoice, setModelChoice] = useState<string>(DEFAULT_MODEL_VALUE);
   const [customModel, setCustomModel] = useState<string>('');
@@ -473,6 +475,7 @@ export const LlmKeyDialog: React.FC<LlmKeyDialogProps> = ({
     if (!open) return;
     setApiKey('');
     setSaveError(null);
+    setRemovePending(false);
     setProviderLockedByUser(false);
     providerLockedRef.current = false;
     const stored = readLlmKey();
@@ -509,7 +512,7 @@ export const LlmKeyDialog: React.FC<LlmKeyDialogProps> = ({
       modelChoice !== CUSTOM_MODEL_VALUE &&
       !presetValues.has(modelChoice)
     ) {
-      setModelChoice(DEFAULT_MODEL_VALUE); // fall back to "…" when switching providers
+      setModelChoice(DEFAULT_MODEL_VALUE); // fall back to the default when switching providers
       setCustomModel('');
     }
   }, [provider, modelChoice]);
@@ -521,7 +524,7 @@ export const LlmKeyDialog: React.FC<LlmKeyDialogProps> = ({
 
   const trimmedKey = apiKey.trim();
   // The free tier needs no key, so it is always saveable when selected.
-  const canSave = isFreeProvider || trimmedKey.length > 0;
+  const canSave = isFreeProvider || trimmedKey.length > 0 || removePending;
 
   const selectedProvider = useMemo(
     () => PROVIDER_OPTIONS.find((p) => p.value === provider) ?? PROVIDER_OPTIONS[0],
@@ -593,8 +596,24 @@ export const LlmKeyDialog: React.FC<LlmKeyDialogProps> = ({
     });
   };
 
+  const commitRemoval = () => {
+    clearLlmKey();
+    if (client) {
+      client.setUserApiKey({ apiKey: '' });
+    }
+    setKeyPresent(false);
+    setRemovePending(false);
+    onRemoved?.();
+  };
+
   const handleSave = () => {
     if (!canSave) return;
+    if (removePending && !isFreeProvider && trimmedKey.length === 0) {
+      commitRemoval();
+      setSaveError(null);
+      onOpenChange(false);
+      return;
+    }
     // Free tier: no key to store and no agent socket to arm — record the
     // opt-in on its dedicated flag plus the (non-default) model choice. The
     // stored BYOK key, if any, is left untouched so the assistant keeps
@@ -602,6 +621,7 @@ export const LlmKeyDialog: React.FC<LlmKeyDialogProps> = ({
     // ("last action wins" — saving a key later clears the flag again in
     // writeLlmKey).
     if (isFreeProvider) {
+      if (removePending) commitRemoval();
       writeFreeTierSelected(true);
       // null means "use the server default", which for a telemetry session is
       // the server's pilot_model — so there the pick is always stored
@@ -691,14 +711,9 @@ export const LlmKeyDialog: React.FC<LlmKeyDialogProps> = ({
   };
 
   const handleRemove = () => {
-    clearLlmKey();
-    if (client) {
-      client.setUserApiKey({ apiKey: '' });
-    }
-    setKeyPresent(false);
+    setRemovePending(true);
     setApiKey('');
     setSaveError(null);
-    onRemoved?.();
   };
 
   return (
@@ -825,10 +840,17 @@ export const LlmKeyDialog: React.FC<LlmKeyDialogProps> = ({
               placeholder={selectedProvider.placeholder}
               autoComplete="off"
               spellCheck={false}
+              aria-invalid={saveError || providerMismatch ? true : undefined}
+              aria-describedby={
+                [
+                  providerMismatch && 'llm-key-mismatch',
+                  saveError && 'llm-key-error',
+                ].filter(Boolean).join(' ') || undefined
+              }
             />
             <p className="text-xs text-muted-foreground">{selectedProvider.hint}</p>
             {providerMismatch && (
-              <p className="text-xs font-medium text-destructive">
+              <p id="llm-key-mismatch" role="alert" className="text-xs font-medium text-destructive">
                 This key looks like a {_providerLabel(inferredProvider)} key, but Provider is set to{' '}
                 {selectedProvider.label}. Change one so they match — otherwise the API will reject the key.
               </p>
@@ -839,7 +861,11 @@ export const LlmKeyDialog: React.FC<LlmKeyDialogProps> = ({
                 that we can&rsquo;t tell for sure. Save will still proceed.
               </p>
             )}
-            {saveError && <p className="text-xs text-destructive">{saveError}</p>}
+            {saveError && (
+              <p id="llm-key-error" role="alert" className="text-xs text-destructive">
+                {saveError}
+              </p>
+            )}
           </div>
           )}
 
@@ -859,7 +885,7 @@ export const LlmKeyDialog: React.FC<LlmKeyDialogProps> = ({
               }}
               className="block w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground"
             >
-              <option value={DEFAULT_MODEL_VALUE}>… — use the recommended default</option>
+              <option value={DEFAULT_MODEL_VALUE}>Recommended default</option>
               {MODEL_PRESETS[provider].map((p) => (
                 <option key={p.value} value={p.value}>
                   {p.label}
@@ -883,8 +909,8 @@ export const LlmKeyDialog: React.FC<LlmKeyDialogProps> = ({
             <p className="text-xs text-muted-foreground">
               Each option is labelled with its trade-off: “most capable” models give the
               best results but cost more and run slower, while “fast &amp; cheap” models are
-              quicker and lower-cost. Leave on “…” to let the backend pick a sensible default
-              for your provider, or choose Custom for any model ID your account can access.
+              quicker and lower-cost. Leave on “Recommended default” to let the backend pick a
+              sensible default for your provider, or choose Custom for any model ID your account can access.
             </p>
           </div>
           )}
@@ -942,7 +968,7 @@ export const LlmKeyDialog: React.FC<LlmKeyDialogProps> = ({
             </div>
           )}
 
-          {keyPresent && (
+          {keyPresent && !removePending && (
             <button
               type="button"
               onClick={handleRemove}
@@ -950,6 +976,18 @@ export const LlmKeyDialog: React.FC<LlmKeyDialogProps> = ({
             >
               Remove key
             </button>
+          )}
+          {removePending && (
+            <p role="status" className="text-xs text-muted-foreground">
+              Your key will be removed when you save.{' '}
+              <button
+                type="button"
+                onClick={() => setRemovePending(false)}
+                className="font-medium text-foreground underline"
+              >
+                Undo
+              </button>
+            </p>
           )}
         </div>
 

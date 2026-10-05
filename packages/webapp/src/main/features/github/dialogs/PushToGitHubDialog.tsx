@@ -94,6 +94,8 @@ export const PushToGitHubDialog: React.FC<PushToGitHubDialogProps> = ({
   const [loadingBranches, setLoadingBranches] = useState(false);
 
   const [inlineError, setInlineError] = useState<string | null>(null);
+  // Auto-load once per open; an empty or failed list is retried explicitly.
+  const [reposRequested, setReposRequested] = useState(false);
 
   // ── Inline validation (create-new mode only) ───────────────────────────
   const validators = useMemo(
@@ -119,6 +121,7 @@ export const PushToGitHubDialog: React.FC<PushToGitHubDialogProps> = ({
       setBranches([]);
       setSelectedBranch('');
       setInlineError(null);
+      setReposRequested(false);
       validation.resetTouched();
     }
     wasOpenRef.current = open;
@@ -127,9 +130,10 @@ export const PushToGitHubDialog: React.FC<PushToGitHubDialogProps> = ({
   // Lazy-load repositories when the user first switches to "Use existing".
   useEffect(() => {
     if (!open || mode !== 'existing' || !githubSession) return;
-    if (repositories.length > 0 || reposLoading) return;
+    if (repositories.length > 0 || reposLoading || reposRequested) return;
+    setReposRequested(true);
     void fetchRepositories(githubSession);
-  }, [open, mode, githubSession, repositories.length, reposLoading, fetchRepositories]);
+  }, [open, mode, githubSession, repositories.length, reposLoading, reposRequested, fetchRepositories]);
 
   // Only the latest repo selection may apply its branch list; an earlier,
   // slower response would otherwise overwrite the current repo's branches.
@@ -270,9 +274,9 @@ export const PushToGitHubDialog: React.FC<PushToGitHubDialogProps> = ({
         <div className="flex flex-col gap-4">
           {isUpdateMode && linkedRepo ? (
             <>
-              <div className="flex items-center justify-between rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-800 dark:border-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300">
-                <div>
-                  <p className="font-medium">
+              <div className="flex items-center justify-between gap-3 rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-800 dark:border-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300">
+                <div className="min-w-0 flex-1">
+                  <p className="truncate font-medium" title={`${linkedRepo.owner}/${linkedRepo.repo}@${linkedRepo.branch || DEFAULT_BRANCH}`}>
                     Linked to{' '}
                     <a
                       href={`https://github.com/${linkedRepo.owner}/${linkedRepo.repo}`}
@@ -286,12 +290,13 @@ export const PushToGitHubDialog: React.FC<PushToGitHubDialogProps> = ({
                   </p>
                   <p className="text-xs">Re-pushing updates this repository.</p>
                 </div>
-                <Button variant="outline" size="sm" onClick={onChangeRepo} disabled={isPushing}>
+                <Button variant="outline" size="sm" className="shrink-0" onClick={onChangeRepo} disabled={isPushing}>
                   Change repo
                 </Button>
               </div>
-              <FormField label="Commit Message" helperText="Describe what changed (optional).">
+              <FormField label="Commit Message" htmlFor="push-update-commit-message" helperText="Describe what changed (optional).">
                 <Input
+                  id="push-update-commit-message"
                   value={commitMessage}
                   onChange={(event) => setCommitMessage(event.target.value)}
                   placeholder="Update generated app"
@@ -304,6 +309,7 @@ export const PushToGitHubDialog: React.FC<PushToGitHubDialogProps> = ({
               <div className="inline-flex w-full rounded-md border border-border/70 p-0.5 text-sm">
                 <button
                   type="button"
+                  aria-pressed={mode === 'create'}
                   onClick={() => setMode('create')}
                   className={`flex-1 rounded px-3 py-1.5 font-medium transition-colors ${
                     mode === 'create' ? 'bg-brand text-brand-foreground' : 'text-muted-foreground hover:text-foreground'
@@ -313,6 +319,7 @@ export const PushToGitHubDialog: React.FC<PushToGitHubDialogProps> = ({
                 </button>
                 <button
                   type="button"
+                  aria-pressed={mode === 'existing'}
                   onClick={() => setMode('existing')}
                   className={`flex-1 rounded px-3 py-1.5 font-medium transition-colors ${
                     mode === 'existing' ? 'bg-brand text-brand-foreground' : 'text-muted-foreground hover:text-foreground'
@@ -324,8 +331,12 @@ export const PushToGitHubDialog: React.FC<PushToGitHubDialogProps> = ({
 
               {mode === 'create' ? (
                 <>
-                  <FormField label="Repository Name" required error={validation.getError('repoName')}>
+                  <FormField label="Repository Name" htmlFor="push-create-repo-name" required error={validation.getError('repoName')}>
                     <Input
+                      id="push-create-repo-name"
+                      name="repo-name"
+                      autoComplete="off"
+                      spellCheck={false}
                       value={repoName}
                       onChange={(event) => setRepoName(event.target.value)}
                       onBlur={() => validation.markTouched('repoName')}
@@ -333,12 +344,13 @@ export const PushToGitHubDialog: React.FC<PushToGitHubDialogProps> = ({
                       className={validation.getError('repoName') ? 'border-destructive focus-visible:border-destructive focus-visible:ring-destructive/20' : ''}
                     />
                   </FormField>
-                  <FormField label="Description">
+                  <FormField label="Description" htmlFor="push-create-description">
                     <Textarea
+                      id="push-create-description"
                       rows={2}
                       value={description}
                       onChange={(event) => setDescription(event.target.value)}
-                      placeholder="Optional description..."
+                      placeholder="Optional description…"
                     />
                   </FormField>
                   <label className="flex items-center justify-between gap-3 rounded-md border border-border/70 px-3 py-2 text-sm">
@@ -367,7 +379,7 @@ export const PushToGitHubDialog: React.FC<PushToGitHubDialogProps> = ({
                       className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
                     >
                       <option value="" disabled>
-                        {reposLoading ? 'Loading repositories…' : 'Select a repository'}
+                        {reposLoading ? 'Loading repositories…' : 'Select a repository…'}
                       </option>
                       {repositories.map((repo) => (
                         <option key={repo.id} value={repo.full_name}>
@@ -377,6 +389,21 @@ export const PushToGitHubDialog: React.FC<PushToGitHubDialogProps> = ({
                       ))}
                     </select>
                   </FormField>
+                  {!reposLoading && reposRequested && repositories.length === 0 && (
+                    <div className="flex items-center justify-between gap-3 rounded-md border border-border/70 bg-muted/30 px-3 py-2 text-xs text-muted-foreground">
+                      <span>No repositories loaded. The request may have failed.</span>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="shrink-0"
+                        onClick={() => {
+                          if (githubSession) void fetchRepositories(githubSession);
+                        }}
+                      >
+                        Retry
+                      </Button>
+                    </div>
+                  )}
                   {selectedRepoFullName && (
                     <FormField label="Branch" htmlFor="push-existing-branch">
                       <select
@@ -398,8 +425,9 @@ export const PushToGitHubDialog: React.FC<PushToGitHubDialogProps> = ({
                       </select>
                     </FormField>
                   )}
-                  <FormField label="Commit Message" helperText="Describe what changed (optional).">
+                  <FormField label="Commit Message" htmlFor="push-existing-commit-message" helperText="Describe what changed (optional).">
                     <Input
+                      id="push-existing-commit-message"
                       value={commitMessage}
                       onChange={(event) => setCommitMessage(event.target.value)}
                       placeholder="Update generated app"
@@ -411,7 +439,7 @@ export const PushToGitHubDialog: React.FC<PushToGitHubDialogProps> = ({
           )}
 
           {inlineError && (
-            <p className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700 dark:border-red-800 dark:bg-red-950/30 dark:text-red-300">
+            <p role="alert" className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700 dark:border-red-800 dark:bg-red-950/30 dark:text-red-300">
               {inlineError}
             </p>
           )}

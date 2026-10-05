@@ -1,14 +1,15 @@
 {
   "common": {
-    "connecting": "Verbinden...",
+    "connecting": "Verbinden…",
     "cancel": "Abbrechen",
     "save": "Speichern",
     "close": "Schließen",
     "delete": "Löschen",
     "confirm": "Bestätigen",
-    "loading": "Wird geladen...",
+    "loading": "Wird geladen…",
     "yes": "Ja",
-    "no": "Nein"
+    "no": "Nein",
+    "retry": "Erneut versuchen"
   },
   "topbar": {
     "language": "Sprache",
@@ -65,16 +66,17 @@
       "title": "Datei",
       "projectActions": "Projektaktionen",
       "newOpenImport": "Neu / Öffnen / Projekt importieren",
-      "loadTemplate": "Vorlage laden",
-      "exportProject": "Projekt exportieren",
+      "loadTemplate": "Vorlage laden…",
+      "exportProject": "Projekt exportieren…",
       "importClassDiagramFrom": "Klassendiagramm importieren aus",
-      "imageToProject": "Bild in Projekt umwandeln",
-      "kgToProject": "Knowledge Graph in Projekt umwandeln",
-      "previewProject": "Projektvorschau"
+      "imageToProject": "Bild in Projekt umwandeln…",
+      "kgToProject": "Knowledge Graph in Projekt umwandeln…",
+      "previewProject": "Projektvorschau…",
+      "importBpmnDiagram": "BPMN-Diagramm importieren (.bpmn / .xml)…"
     },
     "generate": {
       "title": "Generieren",
-      "generating": "Wird generiert...",
+      "generating": "Wird generiert…",
       "codeGeneration": "Codegenerierung",
       "goToClassDiagram": "Zum Klassendiagramm",
       "groups": {
@@ -106,13 +108,13 @@
       "title": "Bereitstellen",
       "deployment": "Bereitstellung",
       "connectGitHub": "GitHub zum Bereitstellen verbinden",
-      "publishToRender": "Auf Render veröffentlichen"
+      "publishToRender": "Auf Render veröffentlichen…"
     },
     "community": {
       "title": "Community",
       "contribute": "Mitwirken",
       "githubRepository": "GitHub-Repository",
-      "sendFeedback": "Feedback senden",
+      "sendFeedback": "Feedback senden…",
       "userSurvey": "Nutzerumfrage",
       "reportProblem": "Problem melden"
     },
@@ -125,10 +127,10 @@
     }
   },
   "agentConfig": {
-    "loadingTitle": "Wird bearbeitet...",
+    "loadingTitle": "Wird bearbeitet…",
     "loadingTitle_comment": "",
     "loading": {
-      "preparing": "Ihre Konfiguration wird vorbereitet...",
+      "preparing": "Ihre Konfiguration wird vorbereitet…",
       "rules": "Eine vordefinierte, literaturbasierte Zuordnung wird angewendet, um eine passende Konfiguration zu empfehlen.",
       "llm": "Es kann einen Moment dauern, bis die beste LLM-basierte Konfiguration für Ihr ausgewähltes Benutzerprofil erstellt ist.",
       "transform": "Es kann einen Moment dauern, bis das transformierte Agenten-Setup erstellt und auf Ihr Diagramm angewendet ist."
@@ -296,7 +298,8 @@
         "raw": {
           "desc": "Schreibgeschützte Ansicht der vollständigen generierten config.yaml. Bearbeite einzelne Abschnitte oder füge benutzerdefiniertes YAML hinzu."
         }
-      }
+      },
+      "enablePlatform": "{{platform}} aktivieren"
     },
     "llms": {
       "title": "LLMs",
@@ -480,7 +483,7 @@
       "selectCustomization": "Eine Anpassung auswählen",
       "lastUpdated": "Zuletzt aktualisiert {{date}}",
       "loadSelected": "Ausgewählte laden",
-      "applying": "Wird angewendet...",
+      "applying": "Wird angewendet…",
       "saveAndApply": "Konfiguration speichern & anwenden",
       "resetDefaults": "Auf Standard zurücksetzen",
       "errors": {
@@ -595,6 +598,18 @@
       "profile": {
         "title": "Bestehende Benutzerprofil-Zuordnung ersetzen?",
         "description": "Das Benutzerprofil \"{{profile}}\" ist bereits der Konfiguration \"{{existing}}\" zugeordnet. Beim Speichern wird diese Zuordnung durch \"{{next}}\" ersetzt."
+      },
+      "removeLlm": {
+        "title": "Dieses LLM entfernen?",
+        "description": "„{{name}}“ wird entfernt. Alles, was es nutzt, verwendet dann das Standard-LLM."
+      },
+      "reset": {
+        "title": "Auf Standardwerte zurücksetzen?",
+        "description": "Alle ungespeicherten Änderungen in diesem Formular werden durch die Standardwerte ersetzt."
+      },
+      "upload": {
+        "title": "Aktuelle Konfiguration ersetzen?",
+        "description": "Das Laden von „{{name}}“ überschreibt die aktuellen Werte im Formular."
       }
     },
     "noActiveDiagram": "Kein aktives Agentendiagramm. Öffnen Sie zuerst ein Agentendiagramm.",
@@ -693,7 +708,7 @@
       "configureTechnologies": "Agent-Technologien konfigurieren",
       "sourceLanguage": "Quellsprache (optional)",
       "addSpokenLanguage": "Gesprochene Sprache für die Agent-Übersetzung hinzufügen",
-      "selectLanguage": "Sprache auswählen...",
+      "selectLanguage": "Sprache auswählen…",
       "addLanguage": "Sprache hinzufügen",
       "translatedToAll": "Der Agent wird in alle ausgewählten gesprochenen Sprachen übersetzt.",
       "warningAriaLabel": "Warnung",
@@ -772,12 +787,18 @@
       "versionProfile": "Einzelnes Profil",
       "versionAll": "Alle Versionen",
       "selectProfile": "Profil auswählen",
-      "versionAllHint": "Der Download enthält einen Unterordner pro Version (Basis + jedes Profil)."
+      "versionAllHint": "Der Download enthält einen Unterordner pro Version (Basis + jedes Profil).",
+      "status": {
+        "ready": "Bereit",
+        "missing": "Fehlt",
+        "empty": "Leer",
+        "skipped": "Wird übersprungen"
+      }
     },
     "toasts": {
       "validationFailed": "Validierung fehlgeschlagen",
       "noDiagram": "Kein Diagramm, aus dem Code generiert werden kann",
-      "localDeploymentInProgress": "Lokale Bereitstellung läuft... Dies kann einige Minuten dauern.",
+      "localDeploymentInProgress": "Lokale Bereitstellung läuft… Dies kann einige Minuten dauern.",
       "httpError": "HTTP-Fehler! Status: {{status}}",
       "localDeploymentCompleted": "Lokale Bereitstellung abgeschlossen!",
       "accessApplicationAt": "Sie können jetzt auf Ihre Anwendung zugreifen unter: ",
@@ -825,9 +846,9 @@
     "overlay": {
       "subtitle": "Bitte warten Sie, während Ihr Code generiert wird",
       "title": "Code wird generiert",
-      "stepPackaging": "Ausgabe wird verpackt...",
-      "stepGenerating": "Code wird generiert...",
-      "stepParsing": "Diagramm wird analysiert..."
+      "stepPackaging": "Ausgabe wird verpackt…",
+      "stepGenerating": "Code wird generiert…",
+      "stepParsing": "Diagramm wird analysiert…"
     }
   },
   "project": {
@@ -933,8 +954,8 @@
       "title": "Projekteinstellungen",
       "subtitle": "Metadaten, Diagramme und Anzeigeeinstellungen verwalten",
       "exportProject": "Projekt exportieren",
-      "exporting": "Wird exportiert...",
-      "loadingProject": "Projekt wird geladen...",
+      "exporting": "Wird exportiert…",
+      "loadingProject": "Projekt wird geladen…",
       "noProject": "Öffnen oder erstellen Sie ein Projekt, um die Einstellungen zu bearbeiten.",
       "unknownError": "Unbekannter Fehler",
       "general": {
@@ -1080,18 +1101,26 @@
     },
     "linked": {
       "repository": "Repository",
-      "checking": "Wird geprüft...",
+      "checking": "Wird geprüft…",
       "unsavedChanges": "Sie haben nicht gespeicherte Änderungen",
       "upToDate": "Aktuell",
       "push": "Push",
       "pull": "Pull",
+      "pullConfirmTitle": "Lokale Änderungen ersetzen?",
+      "pullConfirmDescription": "Pull lädt die Version von GitHub und verwirft Änderungen, die du noch nicht gepusht hast.",
+      "pullConfirmAction": "Pullen und Änderungen verwerfen",
       "history": "Verlauf",
       "refreshHistory": "Commit-Verlauf aktualisieren",
       "latest": "Neuester Commit",
       "clickToRestore": "Zum Wiederherstellen klicken",
       "noCommits": "Noch keine Commits",
       "share": "Teilen",
-      "createSecretGist": "Geheimen Gist erstellen"
+      "createSecretGist": "Geheimen Gist erstellen",
+      "openOnGitHub": "Auf GitHub öffnen",
+      "unlink": "Repository trennen",
+      "unlinkConfirmTitle": "Dieses Repository trennen?",
+      "unlinkConfirmDescription": "Das Projekt bleibt in deinem Browser und auf GitHub. Push, Pull und Auto-Commit stoppen, bis du wieder ein Repository verknüpfst.",
+      "unlinkConfirmAction": "Trennen"
     },
     "settings": {
       "title": "Einstellungen",
@@ -1104,7 +1133,7 @@
       "interval15": "15 Minuten",
       "interval30": "30 Minuten",
       "interval60": "1 Stunde",
-      "autoSaving": "Automatisches Speichern..."
+      "autoSaving": "Automatisches Speichern…"
     },
     "linkModal": {
       "goBack": "Zurück zur Repository-Auswahl",
@@ -1140,18 +1169,18 @@
       "title": "Auf GitHub pushen",
       "description": "Geben Sie eine Commit-Nachricht für Ihre Änderungen ein.",
       "messageLabel": "Commit-Nachricht",
-      "messagePlaceholder": "Beschreiben Sie Ihre Änderungen...",
-      "pushing": "Wird gepusht...",
+      "messagePlaceholder": "Beschreiben Sie Ihre Änderungen…",
+      "pushing": "Wird gepusht…",
       "push": "Push"
     },
     "gist": {
       "title": "Gist erstellen",
       "description": "Erstellen Sie einen GitHub-Gist, um Ihr Projekt schnell zu teilen.",
       "descriptionLabel": "Beschreibung",
-      "descriptionPlaceholder": "Gist-Beschreibung...",
+      "descriptionPlaceholder": "Gist-Beschreibung…",
       "publicGist": "Öffentlicher Gist",
       "secretHint": "Geheime Gists sind für Suchmaschinen verborgen, aber für jeden mit dem Link sichtbar.",
-      "creating": "Wird erstellt...",
+      "creating": "Wird erstellt…",
       "createGist": "Gist erstellen"
     },
     "createRepo": {
@@ -1160,16 +1189,16 @@
       "repoNameLabel": "Repository-Name",
       "repoNameHelper": "Nur Kleinbuchstaben, Zahlen, Bindestriche und Unterstriche sind erlaubt.",
       "descriptionLabel": "Beschreibung",
-      "descriptionPlaceholder": "Optionale Beschreibung...",
+      "descriptionPlaceholder": "Optionale Beschreibung…",
       "privateRepository": "Privates Repository",
-      "creating": "Wird erstellt...",
+      "creating": "Wird erstellt…",
       "create": "Erstellen"
     },
     "restore": {
       "title": "Version wiederherstellen",
       "description": "Ihre aktuellen nicht gespeicherten Änderungen gehen verloren. Erwägen Sie, Ihre aktuelle Arbeit zuerst zu pushen.",
       "confirmQuestion": "Diesen Commit wiederherstellen?",
-      "restoring": "Wird wiederhergestellt...",
+      "restoring": "Wird wiederhergestellt…",
       "restoreButton": "Diese Version wiederherstellen"
     },
     "context": {
@@ -1185,7 +1214,8 @@
       "creatingRepository": "Repository wird erstellt",
       "committing": "Commit wird auf GitHub erstellt",
       "restoringCommit": "Commit wird wiederhergestellt",
-      "creatingGist": "Gist wird erstellt"
+      "creatingGist": "Gist wird erstellt",
+      "unlinkingRepository": "Repository wird getrennt"
     },
     "toasts": {
       "loadProjectFailed": "Projekt konnte nicht geladen werden",
@@ -1227,7 +1257,7 @@
       "createGistFailed": "Erstellen des Gists fehlgeschlagen",
       "gistCreated": "Gist erfolgreich erstellt!",
       "invalidGitHubUrl": "Ungültige GitHub-URL. Bitte geben Sie eine gültige GitHub-Repository-URL an.",
-      "fetchingFromGitHub": "{{filename}} wird von GitHub abgerufen...",
+      "fetchingFromGitHub": "{{filename}} wird von GitHub abgerufen…",
       "fileNotFound": "Datei auf GitHub nicht gefunden. Bitte überprüfen Sie die URL und versuchen Sie es erneut.",
       "fetchFileFailed": "Datei konnte nicht von GitHub abgerufen werden: {{status}}",
       "importProjectSuccess": "Projekt erfolgreich importiert: {{name}}",
@@ -1245,7 +1275,7 @@
       "uploadImageLabel": "Diagrammbild hochladen (PNG/JPEG)",
       "uploadKgLabel": "Knowledge Graph hochladen (TTL/RDF/JSON)",
       "selected": "Ausgewählt: {{name}}",
-      "importing": "Wird importiert...",
+      "importing": "Wird importiert…",
       "import": "Importieren",
       "errors": {
         "noProject": "Erstellen oder laden Sie zuerst ein Projekt.",
@@ -1280,7 +1310,7 @@
       "pressEscPost": "zum Schließen"
     },
     "composer": {
-      "placeholder": "Beschreiben Sie, was Sie erstellen oder ändern möchten..."
+      "placeholder": "Beschreiben Sie, was Sie erstellen oder ändern möchten…"
     },
     "messageCount_one": "{{count}} Nachricht",
     "messageCount_other": "{{count}} Nachrichten",
@@ -1339,8 +1369,8 @@
       "newConversationTitle": "Ein neues Gespräch beginnen"
     },
     "drawer": {
-      "pushToClose": "Nach oben schieben, um den Assistenten zu schließen",
-      "pullToOpen": "Nach unten ziehen, um den Assistenten zu öffnen",
+      "pushToClose": "Nach unten schieben, um den Assistenten zu schließen",
+      "pullToOpen": "Nach oben ziehen, um den Assistenten zu öffnen",
       "pushUp": "Nach oben schieben",
       "pullDown": "Assistent nach unten ziehen"
     },
@@ -1398,7 +1428,7 @@
       "toolCancelled": "Abgebrochen",
       "toolCalling": "Aufruf",
       "toolResultFrom": "Ergebnis von",
-      "loading": "Wird geladen...",
+      "loading": "Wird geladen…",
       "removeAttachment": "Anhang entfernen",
       "interruptPrompt": "Drücken Sie zum Unterbrechen erneut die Eingabetaste",
       "close": "Schließen",
@@ -1411,8 +1441,8 @@
       "stopGenerating": "Generierung stoppen",
       "sendMessage": "Nachricht senden",
       "dropFiles": "Dateien hier ablegen, um sie anzuhängen.",
-      "transcribingAudio": "Audio wird transkribiert...",
-      "recordingPrompt": "Aufnahme läuft... Klicken Sie hier oder drücken Sie erneut auf das Mikrofon, um die Aufnahme zu stoppen und zu senden ({{time}})",
+      "transcribingAudio": "Audio wird transkribiert…",
+      "recordingPrompt": "Aufnahme läuft… Klicken Sie hier oder drücken Sie erneut auf das Mikrofon, um die Aufnahme zu stoppen und zu senden ({{time}})",
       "stopSendVoiceTimer": "Sprachnachricht stoppen und senden ({{time}})"
     }
   },
@@ -1452,7 +1482,7 @@
       "publishAgent": "Agent auf Render veröffentlichen",
       "updatePublish": "Aktualisieren und veröffentlichen",
       "updatePublishAgent": "Agent aktualisieren und veröffentlichen",
-      "publishing": "Wird veröffentlicht..."
+      "publishing": "Wird veröffentlicht…"
     },
     "result": {
       "titleUpdated": "Repository erfolgreich aktualisiert",
@@ -1749,7 +1779,7 @@
   "shared": {
     "commandPalette": {
       "dialogLabel": "Befehlspalette",
-      "placeholder": "Befehl eingeben...",
+      "placeholder": "Befehl eingeben…",
       "searchLabel": "Befehle suchen",
       "noResults": "Keine passenden Befehle",
       "navigate": "Navigieren",
@@ -1850,9 +1880,9 @@
       "expand": "{{name}} aufklappen",
       "collapse": "{{name}} zuklappen",
       "root": "Stammelement",
-      "generatingBuml": "B-UML-Vorschau wird generiert...",
+      "generatingBuml": "B-UML-Vorschau wird generiert…",
       "noBumlPreview": "Es ist noch keine B-UML-Vorschau verfügbar.",
-      "generating": "Wird generiert...",
+      "generating": "Wird generiert…",
       "regenerate": "Neu generieren",
       "downloadBuml": "B-UML herunterladen",
       "copyBuml": "B-UML kopieren",
@@ -1939,8 +1969,11 @@
       "diagramTabLabel": "Diagramm-Tab: {{title}}",
       "validationStatusLabel": "Validierungsstatus: {{status}}",
       "renameDiagram": "Diagramm umbenennen",
-      "closeTabLabel": "Tab {{title}} schließen",
-      "closeTab": "Tab schließen",
+      "closeTabLabel": "Diagramm {{title}} löschen",
+      "closeTab": "Diagramm löschen",
+      "deleteConfirmTitle": "Dieses Diagramm löschen?",
+      "deleteConfirmDescription": "„{{title}}“ und sein gesamter Inhalt werden aus dem Projekt entfernt. Das kann nicht rückgängig gemacht werden.",
+      "deleteConfirmAction": "Diagramm löschen",
       "addNewDiagram": "Neues Diagramm hinzufügen",
       "expandLinkedDiagrams": "Verknüpfte Diagramme einblenden",
       "collapseLinkedDiagrams": "Verknüpfte Diagramme ausblenden",
@@ -1954,10 +1987,15 @@
       "referenceEmpty": "Das referenzierte Klassendiagramm ist leer (keine Klassen oder Beziehungen).",
       "generateObjectsTooltip": "Erstellt eine Objektinstanz pro Klasse im referenzierten Diagramm, mit Standardwerten für jedes Attribut.",
       "generate": "Generieren",
-      "noClassDiagramsAvailable": "Keine Klassendiagramme verfügbar"
+      "noClassDiagramsAvailable": "Keine Klassendiagramme verfügbar",
+      "tablistLabel": "Diagramme",
+      "editAsForm": "Als Formular bearbeiten",
+      "closeForm": "Formular schließen",
+      "editAsFormTitle": "Dieses Profil mit einem geführten Formular bearbeiten",
+      "closeFormTitle": "Benutzerprofil-Formular schließen"
     },
     "charts": {
-      "loadingChart": "Diagramm wird geladen...",
+      "loadingChart": "Diagramm wird geladen…",
       "noDataAvailable": "Keine Daten verfügbar"
     },
     "table": {
@@ -1976,7 +2014,7 @@
     "quantum": {
       "editorTitle": "Quanteneditor",
       "saved": "Gespeichert",
-      "saving": "Wird gespeichert...",
+      "saving": "Wird gespeichert…",
       "error": "Fehler",
       "undo": "Rückgängig",
       "redo": "Wiederholen",
@@ -2114,7 +2152,11 @@
         "AXIS_SAMPLE": "3-Achsen-Stichprobe: Tastet das Qubit gleichzeitig in den X-, Y- und Z-Basen ab. Für die tomographische Rekonstruktion.",
         "SPACER": "Abstandshalter"
       },
-      "nestedCircuitConfigured": "Verschachtelter Schaltkreis konfiguriert"
+      "nestedCircuitConfigured": "Verschachtelter Schaltkreis konfiguriert",
+      "toolboxLabel": "Gatter-Werkzeugkasten",
+      "gateName": "Gattername",
+      "placeGateLabel": "{{gate}}-Gatter platzieren",
+      "armedHint": "Klicke auf eine Schaltkreiszelle, um {{gate}} zu platzieren. Esc bricht ab."
     },
     "gui": {
       "traits": {
@@ -2288,7 +2330,7 @@
       },
       "pages": {
         "title": "Seiten",
-        "searchPlaceholder": "Seiten suchen...",
+        "searchPlaceholder": "Seiten suchen…",
         "addNewPage": "Neue Seite hinzufügen",
         "addPage": "Seite hinzufügen",
         "editRoute": "URL-Route bearbeiten",
@@ -2380,8 +2422,8 @@
         "previewMode": "Vorschaumodus",
         "greeting": "Hallo! Ich bin {{agentName}}. Wie kann ich Ihnen helfen?",
         "previewMessage": "Dies ist eine Vorschau der Chat-Oberfläche",
-        "selectAgent": "Wählen Sie einen Agenten aus, um zu chatten...",
-        "typeMessage": "Nachricht eingeben...",
+        "selectAgent": "Wählen Sie einen Agenten aus, um zu chatten…",
+        "typeMessage": "Nachricht eingeben…",
         "selectAgentFirst": "Wählen Sie zuerst einen Agenten aus.",
         "send": "Senden"
       },
@@ -2401,7 +2443,7 @@
       "errorGeneratingGui": "Fehler beim Generieren der GUI: {{message}}",
       "guiModelLoaded": "GUI-Modell vom Assistenten geladen.",
       "statusSaved": "Gespeichert",
-      "statusSaving": "Wird gespeichert...",
+      "statusSaving": "Wird gespeichert…",
       "statusErrorSaving": "Fehler beim Speichern",
       "editorStillLoading": "Der Editor wird noch geladen. Bitte warten Sie einen Moment und versuchen Sie es erneut.",
       "errorSavingProject": "Fehler beim Speichern des Projekts. Weitere Details finden Sie in der Konsole.",
@@ -2494,10 +2536,12 @@
         "weightField": "Gewichtungsfeld",
         "geometryField": "Geometriefeld (GeoJSON)",
         "valueField": "Wertfeld"
-      }
+      },
+      "colorPalette": "Farbpalette",
+      "colorPaletteOption": "Palette {{index}}"
     },
-    "loadingGuiEditor": "GUI-Editor wird geladen...",
-    "loadingQuantumEditor": "Quanteneditor wird geladen...",
+    "loadingGuiEditor": "GUI-Editor wird geladen…",
+    "loadingQuantumEditor": "Quanteneditor wird geladen…",
     "hiddenPerspectives": {
       "messagePlural": "Dieses Projekt verwendet {{labels}}, aber diese Perspektiven sind ausgeblendet.",
       "messageSingular": "Dieses Projekt verwendet {{labels}}, aber diese Perspektive ist ausgeblendet.",
@@ -2514,7 +2558,7 @@
       "unknownError": "Unbekannter Fehler",
       "submitFailed": "Senden des Feedbacks fehlgeschlagen: {{error}}"
     },
-    "submitting": "Wird gesendet...",
+    "submitting": "Wird gesendet…",
     "title": "Helfen Sie uns, BESSER zu verbessern",
     "description": "Teilen Sie uns Ihr Feedback zum Editor und zum Generierungsworkflow mit.",
     "satisfactionQuestion": "Wie zufrieden sind Sie mit Ihrer Erfahrung?",
@@ -2627,7 +2671,7 @@
     "toasts": {
       "noDiagramToValidate": "Kein Diagramm zum Validieren",
       "diagramEmpty": "Das Diagramm ist leer. Fügen Sie Elemente hinzu, bevor Sie die Qualitätsprüfung ausführen.",
-      "validating": "Diagramm wird validiert...",
+      "validating": "Diagramm wird validiert…",
       "timedOut": "Zeitüberschreitung bei der Validierung. Das Backend ist möglicherweise überlastet.",
       "validationFailed": "Validierung fehlgeschlagen",
       "errorsLabel": "Validierungsfehler:",
@@ -2646,7 +2690,8 @@
       "addQubitButton": "+ Qubit",
       "measurementOutput": "Messausgabe – automatisch aus den Messgattern generiert",
       "dropHere": "Hier ablegen",
-      "invalid": "Ungültig"
+      "invalid": "Ungültig",
+      "initialStateLabel": "Anfangszustand von {{qubit}}: {{state}}. Klicken zum Ändern."
     }
   },
   "agentComponents": {
@@ -2720,7 +2765,7 @@
       "skillDescription": "Beschreibung",
       "skillDescriptionPlaceholder": "Optionale Kurzbeschreibung",
       "content": "Markdown-Inhalt",
-      "contentPlaceholder": "# Skill\n\nAnweisungen in markdown..."
+      "contentPlaceholder": "# Skill\n\nAnweisungen in markdown…"
     },
     "workspaces": {
       "title": "Workspaces",
@@ -2835,7 +2880,8 @@
       "restart": "Simulation neu starten",
       "reset": "Neu starten",
       "dragToResize": "Zum Ändern der Größe ziehen",
-      "loading": "Der Agent wird geladen, bitte warten."
+      "loading": "Der Agent wird geladen, bitte warten.",
+      "resizeChat": "Chatbereich anpassen"
     },
     "codeViewer": {
       "copyTitle": "Code kopieren",

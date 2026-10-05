@@ -49,6 +49,7 @@ type StateProps = {
   colorEnabled: boolean;
   previewScaleFactor?: number;
   elements: UMLElementState;
+  zoomFactor: number;
 };
 
 type DispatchProps = {
@@ -61,7 +62,7 @@ type DispatchProps = {
 
 type Props = OwnProps & StateProps & DispatchProps & I18nContext & CanvasContext;
 
-const getInitialState = ({ type, canvas, colorEnabled }: Props) => {
+const getInitialState = ({ type, canvas, colorEnabled, translate }: Props) => {
   const previews: PreviewElement[] = [];
   const utils: PreviewElement[] = [];
 
@@ -105,7 +106,7 @@ const getInitialState = ({ type, canvas, colorEnabled }: Props) => {
       previews.push(...composeFlowchartPreview(canvas));
       break;
     case UMLDiagramType.BPMN:
-      previews.push(...composeBPMNPreview(canvas));
+      previews.push(...composeBPMNPreview(canvas, translate));
       break;
     case UMLDiagramType.StateMachineDiagram:
       previews.push(...composeStatePreview(canvas));
@@ -144,6 +145,7 @@ const enhance = compose<ComponentClass<OwnProps>>(
       type: state.diagram.type,
       colorEnabled: state.editor.colorEnabled,
       elements: state.elements,
+      zoomFactor: state.editor.zoomFactor,
     }),
     {
       create: UMLElementRepository.create,
@@ -199,7 +201,11 @@ class CreatePaneComponent extends Component<Props, State> {
             }}
             key={preview.id ?? index}
           >
-            <PreviewElementComponent element={preview} create={this.create} />
+            <PreviewElementComponent
+              element={preview}
+              create={this.create}
+              getInsertCenter={this.getVisibleCanvasCenter}
+            />
           </div>
         );
       });
@@ -242,6 +248,29 @@ class CreatePaneComponent extends Component<Props, State> {
       </StoreProvider>
     );
   }
+
+  /**
+   * Model coordinates of the centre of the canvas area currently on screen, in the same
+   * space a drop uses: (client point - canvas origin) / zoom.
+   */
+  getVisibleCanvasCenter = (): { x: number; y: number } | undefined => {
+    const { canvas, zoomFactor = 1 } = this.props;
+    const editor = canvas.layer?.closest('[data-editor-scroll]');
+    const viewport = editor?.parentElement;
+    if (!editor || !viewport) return undefined;
+    const a = editor.getBoundingClientRect();
+    const b = viewport.getBoundingClientRect();
+    const left = Math.max(a.left, b.left, 0);
+    const top = Math.max(a.top, b.top, 0);
+    const right = Math.min(a.right, b.right, window.innerWidth);
+    const bottom = Math.min(a.bottom, b.bottom, window.innerHeight);
+    if (right <= left || bottom <= top) return undefined;
+    const origin = canvas.origin();
+    return {
+      x: ((left + right) / 2 - origin.x) / zoomFactor,
+      y: ((top + bottom) / 2 - origin.y) / zoomFactor,
+    };
+  };
 
   create = (preview: UMLElement, owner?: string) => {
     if (preview.type === BPMNElementType.BPMNSwimlane) {

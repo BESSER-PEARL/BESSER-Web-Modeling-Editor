@@ -1,15 +1,22 @@
-import React from 'react';
+import React, { useId } from 'react';
 import { useTranslation } from 'react-i18next';
 import { cn } from '@/lib/utils';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import type { AgentConfigFormData } from '../AgentConfigYamlEditor';
 
-export function Toggle({ value, onChange }: { value: boolean; onChange: (v: boolean) => void }) {
+export function Toggle({ value, onChange, id, 'aria-label': ariaLabel, 'aria-labelledby': ariaLabelledby }: {
+  value: boolean; onChange: (v: boolean) => void;
+  id?: string; 'aria-label'?: string; 'aria-labelledby'?: string;
+}) {
   return (
     <button
       type="button"
       role="switch"
+      id={id}
+      name={id}
+      aria-label={ariaLabel}
+      aria-labelledby={ariaLabelledby}
       aria-checked={value}
       onClick={() => onChange(!value)}
       className={cn(
@@ -39,14 +46,22 @@ export function Field({ id, label, description, children }: {
   );
 }
 
-export function TextField({ id, label, description, value, onChange, placeholder }: {
+export function TextField({ id, label, description, value, onChange, placeholder, secret = false, inputMode }: {
   id: string; label: string; description?: string; value: string;
   onChange: (v: string) => void; placeholder?: string;
+  inputMode?: React.HTMLAttributes<HTMLInputElement>['inputMode'];
+  /** Mask the value (passwords, API keys, tokens). */
+  secret?: boolean;
 }) {
   return (
     <Field id={id} label={label} description={description}>
       <Input
         id={id}
+        name={id}
+        type={secret ? 'password' : 'text'}
+        autoComplete={secret ? 'new-password' : 'off'}
+        spellCheck={false}
+        inputMode={inputMode}
         value={value}
         onChange={e => onChange(e.target.value)}
         placeholder={placeholder}
@@ -63,7 +78,7 @@ export function BoolField({ id, label, description, value, onChange }: {
   return (
     <Field id={id} label={label} description={description}>
       <div className="flex items-center gap-2">
-        <Toggle value={value} onChange={onChange} />
+        <Toggle id={id} value={value} onChange={onChange} />
         <span className="text-xs text-muted-foreground">{value ? t('agentConfig.runtime.boolTrue') : t('agentConfig.runtime.boolFalse')}</span>
       </div>
     </Field>
@@ -82,10 +97,10 @@ export function DbFields({
     <div className="grid grid-cols-2 gap-3">
       <TextField id={`${prefix}-dialect`} label="dialect" value={value.dialect} onChange={v => onChange({ dialect: v })} description={t('agentConfig.runtime.field.db.dialectDesc')} />
       <TextField id={`${prefix}-host`} label="host" value={value.host} onChange={v => onChange({ host: v })} description={t('agentConfig.runtime.field.db.hostDesc')} />
-      <TextField id={`${prefix}-port`} label="port" value={value.port} onChange={v => onChange({ port: v })} description={t('agentConfig.runtime.field.db.portDesc')} />
+      <TextField id={`${prefix}-port`} label="port" inputMode="numeric" value={value.port} onChange={v => onChange({ port: v })} description={t('agentConfig.runtime.field.db.portDesc')} />
       <TextField id={`${prefix}-database`} label="database" value={value.database} onChange={v => onChange({ database: v })} description={t('agentConfig.runtime.field.db.databaseDesc')} />
       <TextField id={`${prefix}-username`} label="username" value={value.username} onChange={v => onChange({ username: v })} description={t('agentConfig.runtime.field.db.usernameDesc')} />
-      <TextField id={`${prefix}-password`} label="password" value={value.password} onChange={v => onChange({ password: v })} description={t('agentConfig.runtime.field.db.passwordDesc')} />
+      <TextField id={`${prefix}-password`} label="password" secret value={value.password} onChange={v => onChange({ password: v })} description={t('agentConfig.runtime.field.db.passwordDesc')} />
     </div>
   );
 }
@@ -102,10 +117,11 @@ export function SectionHeader({ title, description }: { title: string; descripti
 /** "Enabled" label + toggle row at the top of each platform section. */
 export function EnabledToggle({ value, onChange }: { value: boolean; onChange: (v: boolean) => void }) {
   const { t } = useTranslation();
+  const id = useId();
   return (
     <div className="flex items-center gap-3">
-      <Label className="text-xs font-medium">{t('agentConfig.runtime.enabled')}</Label>
-      <Toggle value={value} onChange={onChange} />
+      <Label htmlFor={id} className="text-xs font-medium">{t('agentConfig.runtime.enabled')}</Label>
+      <Toggle id={id} value={value} onChange={onChange} />
     </div>
   );
 }

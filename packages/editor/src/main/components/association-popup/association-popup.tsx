@@ -43,18 +43,29 @@ const AssociationList = styled.div`
   margin-top: 12px;
 `;
 
-const AssociationItem = styled.div`
+const AssociationItem = styled.button`
   display: flex;
   justify-content: space-between;
   align-items: center;
+  width: 100%;
+  margin: 0;
   padding: 8px 12px;
-  border: 1px solid #e0e0e0;
+  border: 1px solid ${(props) => props.theme.color.gray};
   border-radius: 4px;
-  background: #f9f9f9;
+  background: ${(props) => props.theme.color.backgroundVariant};
+  color: inherit;
+  font: inherit;
+  text-align: left;
   cursor: pointer;
   transition: background-color 0.2s;
-  &:hover {
-    background: #f0f0f0;
+  @media (hover: hover) {
+    &:hover {
+      background: ${(props) => props.theme.color.gray};
+    }
+  }
+  &:focus-visible {
+    outline: 2px solid ${(props) => props.theme.color.primary};
+    outline-offset: 2px;
   }
 `;
 
@@ -66,18 +77,18 @@ const AssociationInfo = styled.div`
 
 const AssociationName = styled.span`
   font-weight: 500;
-  color: #333;
+  color: ${(props) => props.theme.font.color};
 `;
 
 const AssociationDetails = styled.span`
   font-size: 12px;
-  color: #666;
+  color: ${(props) => props.theme.color.secondary};
 `;
 
 const NoAssociationsMessage = styled.div`
   text-align: center;
   padding: 20px;
-  color: #666;
+  color: ${(props) => props.theme.color.secondary};
   font-style: italic;
 `;
 
@@ -177,6 +188,7 @@ class UnwrappedAssociationPopup extends Component<Props, State> {
       <AssociationList>
         {targets.map((target) => (
           <AssociationItem
+            type="button"
             key={target.id}
             onClick={() => this.handleTargetSelect(target)}
           >

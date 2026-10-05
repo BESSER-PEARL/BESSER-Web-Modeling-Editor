@@ -191,6 +191,9 @@ export const ProjectSettingsPanel: React.FC = () => {
                 <FormField label={t('project.settings.general.projectName')} htmlFor="settings-name" required error={settingsValidation.getError('name')}>
                   <Input
                     id="settings-name"
+                    name="settings-name"
+                    autoComplete="off"
+                    spellCheck={false}
                     value={currentProject.name}
                     onChange={(event) => handleProjectField('name', event.target.value)}
                     onBlur={() => settingsValidation.markTouched('name')}
@@ -198,7 +201,7 @@ export const ProjectSettingsPanel: React.FC = () => {
                   />
                 </FormField>
                 <FormField label={t('project.field.owner')} htmlFor="settings-owner">
-                  <Input id="settings-owner" value={currentProject.owner} onChange={(event) => handleProjectField('owner', event.target.value)} />
+                  <Input id="settings-owner" name="settings-owner" autoComplete="name" value={currentProject.owner} onChange={(event) => handleProjectField('owner', event.target.value)} />
                 </FormField>
                 <FormField label={t('project.field.description')} htmlFor="settings-description">
                   <Textarea
@@ -210,11 +213,11 @@ export const ProjectSettingsPanel: React.FC = () => {
                 </FormField>
                 <div className="grid gap-4 sm:grid-cols-2">
                   <div className="rounded-lg border border-border/60 bg-muted/30 p-3">
-                    <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">{t('project.settings.general.created')}</p>
+                    <p className="text-xs font-medium text-muted-foreground">{t('project.settings.general.created')}</p>
                     <p className="mt-1 text-sm">{new Date(currentProject.createdAt).toLocaleString()}</p>
                   </div>
                   <div className="rounded-lg border border-border/60 bg-muted/30 p-3">
-                    <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">{t('project.settings.general.activeEditor')}</p>
+                    <p className="text-xs font-medium text-muted-foreground">{t('project.settings.general.activeEditor')}</p>
                     <p className="mt-1 text-sm">{currentProject.currentDiagramType.replace('Diagram', '')}</p>
                   </div>
                 </div>
@@ -398,7 +401,7 @@ export const ProjectSettingsPanel: React.FC = () => {
               <CardContent className="flex flex-col gap-4">
                 {/* Preset row */}
                 <div className="flex flex-col gap-2">
-                  <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                  <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground">
                     <Sparkles className="size-3.5" />
                     <span>{t('project.settings.perspectives.quickPresets')}</span>
                   </div>

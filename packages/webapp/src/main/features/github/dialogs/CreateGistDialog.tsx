@@ -37,8 +37,9 @@ export const CreateGistDialog: React.FC<CreateGistDialogProps> = ({
 
         <div className="flex flex-col gap-4">
           <div className="flex flex-col gap-1.5">
-            <Label>{t('github.gist.descriptionLabel')}</Label>
+            <Label htmlFor="github-gist-description">{t('github.gist.descriptionLabel')}</Label>
             <Textarea
+              id="github-gist-description"
               rows={2}
               placeholder={t('github.gist.descriptionPlaceholder')}
               value={description}

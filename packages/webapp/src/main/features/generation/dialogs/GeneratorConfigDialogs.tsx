@@ -1,6 +1,7 @@
 import React, { useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
+import { AlertTriangle, CheckCircle2, Circle, Info, XCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -241,8 +242,9 @@ export const GeneratorConfigDialogs: React.FC<GeneratorConfigDialogsProps> = ({
   // ── Django inline validation ──────────────────────────────────────────
   const djangoValidators = useMemo(() => ({
     projectName: () => validateProjectName(djangoProjectName),
-    appName: () => validateProjectName(djangoAppName),
-  }), [djangoProjectName, djangoAppName]);
+    appName: () => validateProjectName(djangoAppName)
+      ?? (djangoAppName.trim() === djangoProjectName.trim() ? t('generation.toasts.namesMustDiffer') : undefined),
+  }), [djangoProjectName, djangoAppName, t]);
   const djangoValidation = useFieldValidation(djangoValidators);
 
   // ── Spring inline validation ──────────────────────────────────────────
@@ -324,6 +326,8 @@ export const GeneratorConfigDialogs: React.FC<GeneratorConfigDialogsProps> = ({
             <FormField label={t('generation.django.projectName')} htmlFor="django-project-name" required error={djangoValidation.getError('projectName')}>
               <Input
                 id="django-project-name"
+                autoComplete="off"
+                spellCheck={false}
                 value={djangoProjectName}
                 onChange={(event) => onDjangoProjectNameChange(event.target.value.replace(/\s/g, '_'))}
                 onBlur={() => djangoValidation.markTouched('projectName')}
@@ -334,6 +338,8 @@ export const GeneratorConfigDialogs: React.FC<GeneratorConfigDialogsProps> = ({
             <FormField label={t('generation.django.appName')} htmlFor="django-app-name" required error={djangoValidation.getError('appName')}>
               <Input
                 id="django-app-name"
+                autoComplete="off"
+                spellCheck={false}
                 value={djangoAppName}
                 onChange={(event) => onDjangoAppNameChange(event.target.value.replace(/\s/g, '_'))}
                 onBlur={() => djangoValidation.markTouched('appName')}
@@ -383,6 +389,8 @@ export const GeneratorConfigDialogs: React.FC<GeneratorConfigDialogsProps> = ({
             >
               <Input
                 id="spring-project-name"
+                autoComplete="off"
+                spellCheck={false}
                 value={springProjectName}
                 onChange={(event) => onSpringProjectNameChange(event.target.value.replace(/\s/g, '_'))}
                 onBlur={() => springValidation.markTouched('projectName')}
@@ -399,6 +407,8 @@ export const GeneratorConfigDialogs: React.FC<GeneratorConfigDialogsProps> = ({
             >
               <Input
                 id="spring-app-name"
+                autoComplete="off"
+                spellCheck={false}
                 value={springAppName}
                 onChange={(event) => onSpringAppNameChange(event.target.value.replace(/\s/g, ''))}
                 onBlur={() => springValidation.markTouched('appName')}
@@ -415,6 +425,8 @@ export const GeneratorConfigDialogs: React.FC<GeneratorConfigDialogsProps> = ({
             >
               <Input
                 id="spring-package-name"
+                autoComplete="off"
+                spellCheck={false}
                 value={springPackageName}
                 onChange={(event) => onSpringPackageNameChange(event.target.value.replace(/\s/g, ''))}
                 onBlur={() => springValidation.markTouched('packageName')}
@@ -423,12 +435,12 @@ export const GeneratorConfigDialogs: React.FC<GeneratorConfigDialogsProps> = ({
               />
             </FormField>
             <div className="flex flex-col gap-1.5">
-              <Label>{t('generation.spring.bootVersion')}</Label>
+              <Label htmlFor="spring-boot-version">{t('generation.spring.bootVersion')}</Label>
               <Select
                 value={springBootVersion}
                 onValueChange={(value) => onSpringBootVersionChange(value as SpringBootVersion)}
               >
-                <SelectTrigger>
+                <SelectTrigger id="spring-boot-version">
                   <SelectValue placeholder={t('generation.spring.selectBootVersion')} />
                 </SelectTrigger>
                 <SelectContent>
@@ -441,12 +453,12 @@ export const GeneratorConfigDialogs: React.FC<GeneratorConfigDialogsProps> = ({
               </Select>
             </div>
             <div className="flex flex-col gap-1.5">
-              <Label>{t('generation.spring.javaVersion')}</Label>
+              <Label htmlFor="spring-java-version">{t('generation.spring.javaVersion')}</Label>
               <Select
                 value={springJavaVersion}
                 onValueChange={(value) => onSpringJavaVersionChange(value as SpringJavaVersion)}
               >
-                <SelectTrigger>
+                <SelectTrigger id="spring-java-version">
                   <SelectValue placeholder={t('generation.spring.selectJavaVersion')} />
                 </SelectTrigger>
                 <SelectContent>
@@ -477,9 +489,9 @@ export const GeneratorConfigDialogs: React.FC<GeneratorConfigDialogsProps> = ({
             <DialogDescription>{t('generation.sql.description')}</DialogDescription>
           </DialogHeader>
           <div className="flex flex-col gap-1.5">
-            <Label>{t('generation.sql.dialect')}</Label>
+            <Label htmlFor="sql-dialect">{t('generation.sql.dialect')}</Label>
             <Select value={sqlDialect} onValueChange={(value) => onSqlDialectChange(value as SQLConfig['dialect'])}>
-              <SelectTrigger>
+              <SelectTrigger id="sql-dialect">
                 <SelectValue placeholder={t('generation.sql.selectDialect')} />
               </SelectTrigger>
               <SelectContent>
@@ -513,6 +525,8 @@ export const GeneratorConfigDialogs: React.FC<GeneratorConfigDialogsProps> = ({
             <Label htmlFor="supabase-user-root">{t('generation.supabase.userRootLabel')}</Label>
             <Input
               id="supabase-user-root"
+              autoComplete="off"
+              spellCheck={false}
               value={supabaseUserRoot}
               onChange={(event) => onSupabaseUserRootChange(event.target.value)}
               placeholder="User"
@@ -537,12 +551,12 @@ export const GeneratorConfigDialogs: React.FC<GeneratorConfigDialogsProps> = ({
             <DialogDescription>{t('generation.sqlAlchemy.description')}</DialogDescription>
           </DialogHeader>
           <div className="flex flex-col gap-1.5">
-            <Label>{t('generation.sqlAlchemy.dbms')}</Label>
+            <Label htmlFor="sqlalchemy-dbms">{t('generation.sqlAlchemy.dbms')}</Label>
             <Select
               value={sqlAlchemyDbms}
               onValueChange={(value) => onSqlAlchemyDbmsChange(value as SQLAlchemyConfig['dbms'])}
             >
-              <SelectTrigger>
+              <SelectTrigger id="sqlalchemy-dbms">
                 <SelectValue placeholder={t('generation.sqlAlchemy.selectDbms')} />
               </SelectTrigger>
               <SelectContent>
@@ -571,9 +585,9 @@ export const GeneratorConfigDialogs: React.FC<GeneratorConfigDialogsProps> = ({
             <DialogDescription>{t('generation.jsonSchema.description')}</DialogDescription>
           </DialogHeader>
           <div className="flex flex-col gap-1.5">
-            <Label>{t('generation.jsonSchema.mode')}</Label>
+            <Label htmlFor="jsonschema-mode">{t('generation.jsonSchema.mode')}</Label>
             <Select value={jsonSchemaMode} onValueChange={(value) => onJsonSchemaModeChange(value as JSONSchemaConfig['mode'])}>
-              <SelectTrigger>
+              <SelectTrigger id="jsonschema-mode">
                 <SelectValue placeholder={t('generation.jsonSchema.selectMode')} />
               </SelectTrigger>
               <SelectContent>
@@ -617,9 +631,9 @@ export const GeneratorConfigDialogs: React.FC<GeneratorConfigDialogsProps> = ({
             )}
 
             <div className="flex flex-col gap-1.5">
-              <Label>{t('generation.agent.sourceLanguage')}</Label>
+              <Label htmlFor="agent-source-language">{t('generation.agent.sourceLanguage')}</Label>
               <Select value={sourceLanguage} onValueChange={onSourceLanguageChange}>
-                <SelectTrigger>
+                <SelectTrigger id="agent-source-language">
                   <SelectValue placeholder={t('generation.agent.selectLanguage')} />
                 </SelectTrigger>
                 <SelectContent>
@@ -635,10 +649,10 @@ export const GeneratorConfigDialogs: React.FC<GeneratorConfigDialogsProps> = ({
             </div>
 
             <div className="flex flex-col gap-1.5">
-              <Label>{t('generation.agent.addSpokenLanguage')}</Label>
+              <Label htmlFor="agent-add-language">{t('generation.agent.addSpokenLanguage')}</Label>
               <div className="flex gap-2">
                 <Select value={pendingAgentLanguage} onValueChange={onPendingAgentLanguageChange}>
-                  <SelectTrigger className="flex-1">
+                  <SelectTrigger id="agent-add-language" className="flex-1">
                     <SelectValue placeholder={t('generation.agent.selectLanguage')} />
                   </SelectTrigger>
                   <SelectContent>
@@ -692,11 +706,11 @@ export const GeneratorConfigDialogs: React.FC<GeneratorConfigDialogsProps> = ({
               </div>
               <dl className="grid gap-2 text-sm md:grid-cols-2">
                 <div className="flex justify-between gap-2 md:block">
-                  <dt className="text-xs uppercase tracking-wide text-muted-foreground">{t('generation.agent.platform')}</dt>
+                  <dt className="text-xs font-medium text-muted-foreground">{t('generation.agent.platform')}</dt>
                   <dd>{agentPlatformLabel}</dd>
                 </div>
                 <div className="flex justify-between gap-2 md:block">
-                  <dt className="text-xs uppercase tracking-wide text-muted-foreground">{t('generation.agent.intentRecognition')}</dt>
+                  <dt className="text-xs font-medium text-muted-foreground">{t('generation.agent.intentRecognition')}</dt>
                   <dd>{agentSystemConfig?.intentRecognitionTechnology === 'classical' ? t('generation.agent.classical') : t('generation.agent.llmBased')}</dd>
                 </div>
               </dl>
@@ -900,9 +914,9 @@ export const GeneratorConfigDialogs: React.FC<GeneratorConfigDialogsProps> = ({
           </DialogHeader>
           <div className="flex flex-col gap-4">
             <div className="flex flex-col gap-1.5">
-              <Label>{t('generation.qiskit.executionBackend')}</Label>
+              <Label htmlFor="qiskit-backend">{t('generation.qiskit.executionBackend')}</Label>
               <Select value={qiskitBackend} onValueChange={(value) => onQiskitBackendChange(value as QiskitConfig['backend'])}>
-                <SelectTrigger>
+                <SelectTrigger id="qiskit-backend">
                   <SelectValue placeholder={t('generation.qiskit.selectBackend')} />
                 </SelectTrigger>
                 <SelectContent>
@@ -916,6 +930,7 @@ export const GeneratorConfigDialogs: React.FC<GeneratorConfigDialogsProps> = ({
               <Input
                 id="qiskit-shots"
                 type="number"
+                inputMode="numeric"
                 min={1}
                 max={100000}
                 value={qiskitShots}
@@ -980,7 +995,7 @@ export const GeneratorConfigDialogs: React.FC<GeneratorConfigDialogsProps> = ({
                       value={webAppSelectedProfileId}
                       onValueChange={onWebAppSelectedProfileIdChange}
                     >
-                      <SelectTrigger className="w-full">
+                      <SelectTrigger className="w-full" aria-label={t('generation.webApp.selectProfile')}>
                         <SelectValue placeholder={t('generation.webApp.selectProfile')} />
                       </SelectTrigger>
                       <SelectContent>
@@ -1002,7 +1017,7 @@ export const GeneratorConfigDialogs: React.FC<GeneratorConfigDialogsProps> = ({
 
               {/* Hint */}
               <div className="flex items-start gap-2 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800 dark:border-amber-800 dark:bg-amber-950/30 dark:text-amber-200">
-                <span className="mt-0.5 shrink-0" aria-hidden="true">&#x26A0;&#xFE0F;</span>
+                <AlertTriangle className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
                 <span>
                   {t('generation.webApp.referencesHint')}
                 </span>
@@ -1036,28 +1051,31 @@ const ChecklistRow: React.FC<{ diagram: WebAppChecklistDiagramInfo }> = ({ diagr
   const { t } = useTranslation();
   const { label, title, exists, hasContent, required, referencedFrom } = diagram;
 
-  let icon: string;
+  let Icon: typeof CheckCircle2;
+  let iconClass: string;
+  let status: string;
   let textClass: string;
 
   if (!exists && required) {
-    // Required but missing entirely
-    icon = '\u274C'; // red X
+    Icon = XCircle;
+    iconClass = 'text-destructive';
+    status = t('generation.webApp.status.missing');
     textClass = 'text-destructive';
   } else if (exists && hasContent) {
-    // Present with content
-    icon = '\u2705'; // green check
+    Icon = CheckCircle2;
+    iconClass = 'text-emerald-600 dark:text-emerald-400';
+    status = t('generation.webApp.status.ready');
     textClass = 'text-foreground';
   } else if (exists && !hasContent && required) {
-    // Present but empty (required) -- warning
-    icon = '\u26A0\uFE0F'; // warning
+    Icon = AlertTriangle;
+    iconClass = 'text-amber-600 dark:text-amber-400';
+    status = t('generation.webApp.status.empty');
     textClass = 'text-amber-600 dark:text-amber-400';
-  } else if (exists && !hasContent && !required) {
-    // Optional and empty -- will be skipped
-    icon = '\u2B1C'; // white square
-    textClass = 'text-muted-foreground';
   } else {
-    // Optional and missing -- will be skipped
-    icon = '\u2B1C'; // white square
+    // Optional and empty or missing -- will be skipped
+    Icon = Circle;
+    iconClass = 'text-muted-foreground';
+    status = t('generation.webApp.status.skipped');
     textClass = 'text-muted-foreground';
   }
 
@@ -1067,22 +1085,23 @@ const ChecklistRow: React.FC<{ diagram: WebAppChecklistDiagramInfo }> = ({ diagr
   return (
     <div className={`flex flex-col gap-0.5 rounded-md border border-border/60 px-3 py-2 text-sm ${textClass}`}>
       <div className="flex items-center gap-2">
-        <span aria-hidden="true">{icon}</span>
+        <Icon className={`size-4 shrink-0 ${iconClass}`} aria-hidden="true" />
+        <span className="sr-only">{status}:</span>
         <span className="font-medium">{label}:</span>
         <span className="truncate">{`"${displayTitle}"${emptyNote}`}</span>
       </div>
       {referencedFrom && hasContent && (
-        <div className="ml-7 text-xs text-muted-foreground">
+        <div className="ml-6 text-xs text-muted-foreground">
           {t('generation.webApp.referencesClassDiagram', { title: referencedFrom })}
         </div>
       )}
       {!exists && required && (
-        <div className="ml-7 text-xs text-destructive">
+        <div className="ml-6 text-xs text-destructive">
           {t('generation.webApp.diagramRequired')}
         </div>
       )}
       {exists && !hasContent && required && (
-        <div className="ml-7 text-xs text-amber-600 dark:text-amber-400">
+        <div className="ml-6 text-xs text-amber-600 dark:text-amber-400">
           {t('generation.webApp.diagramEmpty')}
         </div>
       )}
@@ -1097,13 +1116,13 @@ const AgentChecklistRow: React.FC<{ diagram: WebAppChecklistDiagramInfo }> = ({ 
   const { label, exists } = diagram;
 
   // Agent diagrams are per-component in the GUI, so this is purely informational
-  const icon = exists ? '\u2139\uFE0F' : '\u2B1C'; // info icon or white square
+  const Icon = exists ? Info : Circle;
   const textClass = 'text-muted-foreground';
 
   return (
     <div className={`flex flex-col gap-0.5 rounded-md border border-border/60 px-3 py-2 text-sm ${textClass}`}>
       <div className="flex items-center gap-2">
-        <span aria-hidden="true">{icon}</span>
+        <Icon className="size-4 shrink-0" aria-hidden="true" />
         <span className="font-medium">{label}:</span>
         <span className="truncate">
           {exists
@@ -1111,7 +1130,7 @@ const AgentChecklistRow: React.FC<{ diagram: WebAppChecklistDiagramInfo }> = ({ 
             : t('generation.webApp.noAgentDiagrams')}
         </span>
       </div>
-      <div className="ml-7 text-xs text-muted-foreground">
+      <div className="ml-6 text-xs text-muted-foreground">
         {t('generation.webApp.agentDiagramsHint')}
       </div>
     </div>

@@ -1,10 +1,10 @@
-@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Instrument+Serif:ital@0;1&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Sora:wght@400;500;600;700;800&display=swap');
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 :root {
+  /* Native controls (selects, scrollbars, date pickers) follow the theme. */
+  color-scheme: light;
   --font-geist-sans: 'Sora';
   --font-display: 'Instrument Serif', 'Georgia', serif;
   --radius: 0.85rem;
@@ -46,7 +46,14 @@
   --quantum-editor-tooltip-shadow: 0 12px 28px rgba(2, 6, 23, 0.18);
 }
 
+/* react-toastify's default (light) toasts follow the dark palette; html[] outranks its :root defaults. */
+html[data-theme='dark'] {
+  --toastify-color-light: hsl(222 26% 11%);
+  --toastify-text-color-light: hsl(210 20% 92%);
+}
+
 [data-theme='dark'] {
+  color-scheme: dark;
   --background: 222 30% 7%;
   --foreground: 210 20% 92%;
   --card: 222 28% 10%;
@@ -165,59 +172,7 @@ select {
   border-color: rgba(148, 163, 184, 0.1);
 }
 
-/* ---- Animated gradient orbs for drawer welcome ---- */
-@keyframes orb-drift-1 {
-  0%, 100% { transform: translate(0, 0) scale(1); }
-  33% { transform: translate(30px, -20px) scale(1.05); }
-  66% { transform: translate(-20px, 15px) scale(0.95); }
-}
-@keyframes orb-drift-2 {
-  0%, 100% { transform: translate(0, 0) scale(1); }
-  33% { transform: translate(-25px, 25px) scale(1.08); }
-  66% { transform: translate(15px, -30px) scale(0.92); }
-}
-@keyframes orb-drift-3 {
-  0%, 100% { transform: translate(0, 0) scale(1); }
-  50% { transform: translate(20px, 20px) scale(1.1); }
-}
-
-.drawer-orb-1 {
-  animation: orb-drift-1 12s ease-in-out infinite;
-}
-.drawer-orb-2 {
-  animation: orb-drift-2 15s ease-in-out infinite;
-}
-.drawer-orb-3 {
-  animation: orb-drift-3 18s ease-in-out infinite;
-}
-
-/* ---- Gradient text for "model" keyword ---- */
-.gradient-text-model {
-  background: linear-gradient(135deg, hsl(var(--brand)) 0%, hsl(var(--brand-dark)) 30%, hsl(var(--brand-light)) 60%, hsl(var(--brand)) 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-}
-
-[data-theme='dark'] .gradient-text-model {
-  background: linear-gradient(135deg, hsl(var(--brand)) 0%, hsl(var(--brand-light)) 30%, hsl(195 70% 80%) 60%, hsl(var(--brand)) 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-}
-
-/* ---- Animated gradient border for input card ---- */
-@keyframes gradient-rotate {
-  0% { --gradient-angle: 0deg; }
-  100% { --gradient-angle: 360deg; }
-}
-
-@property --gradient-angle {
-  syntax: '<angle>';
-  initial-value: 0deg;
-  inherits: false;
-}
-
+/* ---- Static gradient border for the assistant input card ---- */
 .input-card-glow {
   position: relative;
   background: rgba(255, 255, 255, 0.8);
@@ -232,7 +187,7 @@ select {
   border-radius: inherit;
   padding: 1.5px;
   background: conic-gradient(
-    from var(--gradient-angle, 0deg),
+    from 0deg,
     hsl(var(--brand)) 0%,
     hsl(var(--brand-light)) 25%,
     hsl(var(--brand-dark)) 50%,
@@ -242,7 +197,6 @@ select {
   -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
   -webkit-mask-composite: xor;
   mask-composite: exclude;
-  animation: gradient-rotate 6s linear infinite;
   opacity: 0.5;
   z-index: -1;
 }
@@ -253,7 +207,7 @@ select {
 
 [data-theme='dark'] .input-card-glow::before {
   background: conic-gradient(
-    from var(--gradient-angle, 0deg),
+    from 0deg,
     hsl(var(--brand)) 0%,
     hsl(var(--brand-light)) 25%,
     hsl(var(--brand-dark)) 50%,
@@ -279,20 +233,21 @@ select {
   transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
-.capability-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 24px -8px rgba(0, 0, 0, 0.08);
-}
+@media (hover: hover) {
+  .capability-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px -8px rgba(0, 0, 0, 0.08);
+  }
 
-[data-theme='dark'] .capability-card:hover {
-  box-shadow: 0 8px 24px -8px rgba(0, 0, 0, 0.3);
+  [data-theme='dark'] .capability-card:hover {
+    box-shadow: 0 8px 24px -8px rgba(0, 0, 0, 0.3);
+  }
 }
 
 /* ---- Quantum circuit grid utilities ---- */
 @keyframes quantum-drop-pulse {
-  0% { opacity: 0.4; transform: scale(0.95); }
-  50% { opacity: 0.7; transform: scale(1.0); }
-  100% { opacity: 0.4; transform: scale(0.95); }
+  0%, 100% { opacity: 0.4; }
+  50% { opacity: 0.7; }
 }
 
 .quantum-drop-pulse {
@@ -414,9 +369,9 @@ select {
    disabled entirely under reduced-motion below. */
 @keyframes drawer-handle-bob {
   0%, 100% { transform: translateY(0); }
-  25% { transform: translateY(3px); }
+  25% { transform: translateY(-3px); }
   50% { transform: translateY(0); }
-  75% { transform: translateY(3px); }
+  75% { transform: translateY(-3px); }
 }
 .drawer-handle-bob {
   animation: drawer-handle-bob 1.6s ease-in-out 0.7s 1 both;
@@ -430,14 +385,20 @@ select {
    drop the animation entirely rather than freeze it — otherwise the
    content would be stuck invisible. */
 @media (prefers-reduced-motion: reduce) {
-  .drawer-orb-1,
-  .drawer-orb-2,
-  .drawer-orb-3,
-  .input-card-glow::before,
   .floating-card,
   .animate-fade-up,
   .drawer-handle-bob {
     animation: none !important;
+  }
+
+  /* Everything else (loops, Radix enter/exit, transitions) settles instantly at its end state. */
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
   }
 }
 

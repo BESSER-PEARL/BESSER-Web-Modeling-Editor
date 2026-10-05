@@ -134,6 +134,16 @@ export class CanvasRelationshipComponent extends Component<Props, State> {
         pointerEvents={disabled ? 'none' : 'stroke'}
       >
         <polyline points={points} stroke={highlight} fill="none" strokeWidth={STROKE} />
+        {selected && !interactable && (
+          <polyline
+            points={points}
+            fill="none"
+            style={{ stroke: theme.color.primary }}
+            strokeWidth={3}
+            strokeLinejoin="round"
+            pointerEvents="none"
+          />
+        )}
         {remoteSelectors.length > 0 &&
           remoteSelectors.map((selector) => (
             <polyline

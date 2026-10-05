@@ -44,7 +44,8 @@ export const MobileNavigation: React.FC<MobileNavigationProps> = ({
           <button
             key={item.type}
             type="button"
-            className={navButtonClass(active, true, isDarkTheme)}
+            aria-current={active ? 'page' : undefined}
+            className={`shrink-0 whitespace-nowrap ${navButtonClass(active, true, isDarkTheme)}`}
             onClick={() => onSwitchUml(item.type)}
           >
             {item.icon}
@@ -58,7 +59,8 @@ export const MobileNavigation: React.FC<MobileNavigationProps> = ({
           <button
             key={item.type}
             type="button"
-            className={navButtonClass(active, true, isDarkTheme)}
+            aria-current={active ? 'page' : undefined}
+            className={`shrink-0 whitespace-nowrap ${navButtonClass(active, true, isDarkTheme)}`}
             onClick={() => onSwitchDiagramType(item.type)}
           >
             {item.icon}
@@ -72,7 +74,8 @@ export const MobileNavigation: React.FC<MobileNavigationProps> = ({
           <button
             key={item.path}
             type="button"
-            className={navButtonClass(active, true, isDarkTheme)}
+            aria-current={active ? 'page' : undefined}
+            className={`shrink-0 whitespace-nowrap ${navButtonClass(active, true, isDarkTheme)}`}
             onClick={() => onNavigate(item.path)}
           >
             {item.icon}

@@ -330,7 +330,7 @@ export function MessageInput({
             aria-label={t("assistant.chatKit.stopGenerating")}
             onClick={stop}
           >
-            <Square className="h-3 w-3 animate-pulse" fill="currentColor" />
+            <Square className="h-3 w-3 animate-pulse motion-reduce:animate-none" fill="currentColor" />
           </Button>
         ) : (
           <Button
@@ -420,7 +420,7 @@ function TranscribingOverlay() {
       <div className="relative">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
         <motion.div
-          className="absolute inset-0 h-8 w-8 animate-pulse rounded-full bg-primary/20"
+          className="absolute inset-0 h-8 w-8 animate-pulse rounded-full bg-primary/20 motion-reduce:animate-none"
           initial={{ scale: 0.8, opacity: 0 }}
           animate={{ scale: 1.2, opacity: 1 }}
           transition={{
@@ -456,17 +456,10 @@ function RecordingPrompt({ isVisible, onStopRecording, secondsLeft }: RecordingP
     <AnimatePresence>
       {isVisible && (
         <motion.div
-          initial={{ top: 0, filter: "blur(5px)" }}
-          animate={{
-            top: -40,
-            filter: "blur(0px)",
-            transition: {
-              type: "spring",
-              filter: { type: "tween" },
-            },
-          }}
-          exit={{ top: 0, filter: "blur(5px)" }}
-          className="absolute left-1/2 flex -translate-x-1/2 cursor-pointer overflow-hidden whitespace-nowrap rounded-full border bg-background py-1 text-center text-sm text-muted-foreground"
+          initial={{ x: "-50%", y: 0, opacity: 0 }}
+          animate={{ x: "-50%", y: -40, opacity: 1, transition: { type: "spring" } }}
+          exit={{ x: "-50%", y: 0, opacity: 0 }}
+          className="absolute left-1/2 top-0 flex cursor-pointer overflow-hidden whitespace-nowrap rounded-full border bg-background py-1 text-center text-sm text-muted-foreground"
           onClick={onStopRecording}
         >
           <span className="mx-2.5 flex items-center">

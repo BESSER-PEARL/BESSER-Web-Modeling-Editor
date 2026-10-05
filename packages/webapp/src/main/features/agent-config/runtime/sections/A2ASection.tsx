@@ -12,7 +12,7 @@ export function A2ASection({ runtime: { form, setA2a } }: ConfigSectionProps) {
       <div className="space-y-3">
         <EnabledToggle value={a2a.enabled} onChange={v => setA2a({ enabled: v })} />
         {a2a.enabled && (
-          <TextField id="cfg-a2a-port" label="port" value={a2a.port} onChange={v => setA2a({ port: v })} description={t('agentConfig.runtime.field.a2a.portDesc')} />
+          <TextField id="cfg-a2a-port" label="port" inputMode="numeric" value={a2a.port} onChange={v => setA2a({ port: v })} description={t('agentConfig.runtime.field.a2a.portDesc')} />
         )}
       </div>
     </>

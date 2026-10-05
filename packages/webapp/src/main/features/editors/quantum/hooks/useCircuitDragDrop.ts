@@ -35,6 +35,8 @@ interface UseCircuitDragDropReturn {
     handleDragStart: (gate: GateType, e: React.MouseEvent, originalPos?: { col: number; row: number }, originalGate?: Gate) => void;
     handleMouseMove: (e: React.MouseEvent) => void;
     handleMouseUp: (e: React.MouseEvent) => void;
+    /** Places a gate centred on a viewport point (click-to-place); returns whether it landed. */
+    placeGateAt: (gate: GateType, clientX: number, clientY: number) => boolean;
 }
 
 /**
@@ -359,46 +361,56 @@ export function useCircuitDragDrop({
         [setCircuit]
     );
 
+    // Drops a gate whose centre is at the given viewport point; returns whether it landed.
+    const dropAtPoint = useCallback(
+        (gateType: GateType, gateCenterX: number, gateCenterY: number, originalPos?: { col: number; row: number }, originalGate?: Gate): boolean => {
+            if (!circuitGridRef.current) return false;
+            const rect = circuitGridRef.current.getBoundingClientRect();
+
+            const x = gateCenterX - rect.left - LEFT_MARGIN;
+            const y = gateCenterY - rect.top - TOP_MARGIN;
+
+            if (!(x >= -GATE_SIZE && y >= -GATE_SIZE && x <= rect.width && y <= rect.height)) return false;
+
+            const col = Math.floor(x / WIRE_SPACING);
+            const row = Math.floor(y / WIRE_SPACING);
+
+            const gateDefinition = GATES.find((g) => g.type === gateType);
+            const gateHeight = gateDefinition?.height || 1;
+
+            // Check if any qubit in the gate's range has been measured before this column
+            // But allow gates that are specifically permitted after measurement
+            let isBlockedByMeasurement = false;
+            if (!isGateAllowedAfterMeasurement(gateType)) {
+                for (let i = 0; i < gateHeight; i++) {
+                    if (isQubitMeasuredBefore(row + i, col)) {
+                        isBlockedByMeasurement = true;
+                        break;
+                    }
+                }
+            }
+
+            // Only drop if position is valid and not blocked by measurement
+            if (col >= 0 && row >= 0 && row < 16 && row + gateHeight <= 16 && !isBlockedByMeasurement) {
+                handleGateDrop(gateType, col, row, originalPos, originalGate);
+                return true;
+            }
+            return false;
+        },
+        [circuitGridRef, handleGateDrop, isQubitMeasuredBefore, isGateAllowedAfterMeasurement]
+    );
+
     const handleMouseUp = useCallback(
         (e: React.MouseEvent) => {
             if (draggedGate) {
-                let droppedOnGrid = false;
-                if (circuitGridRef.current) {
-                    const rect = circuitGridRef.current.getBoundingClientRect();
-                    
-                    // Use gate center for drop calculation (same as preview)
-                    const gateCenterX = e.clientX - draggedGate.offset.x + GATE_SIZE / 2;
-                    const gateCenterY = e.clientY - draggedGate.offset.y + GATE_SIZE / 2;
-                    
-                    const x = gateCenterX - rect.left - LEFT_MARGIN;
-                    const y = gateCenterY - rect.top - TOP_MARGIN;
-
-                    if (x >= -GATE_SIZE && y >= -GATE_SIZE && x <= rect.width && y <= rect.height) {
-                        const col = Math.floor(x / WIRE_SPACING);
-                        const row = Math.floor(y / WIRE_SPACING);
-
-                        const gateDefinition = GATES.find((g) => g.type === draggedGate.gate);
-                        const gateHeight = gateDefinition?.height || 1;
-
-                        // Check if any qubit in the gate's range has been measured before this column
-                        // But allow gates that are specifically permitted after measurement
-                        let isBlockedByMeasurement = false;
-                        if (!isGateAllowedAfterMeasurement(draggedGate.gate)) {
-                            for (let i = 0; i < gateHeight; i++) {
-                                if (isQubitMeasuredBefore(row + i, col)) {
-                                    isBlockedByMeasurement = true;
-                                    break;
-                                }
-                            }
-                        }
-
-                        // Only drop if position is valid and not blocked by measurement
-                        if (col >= 0 && row >= 0 && row < 16 && row + gateHeight <= 16 && !isBlockedByMeasurement) {
-                            handleGateDrop(draggedGate.gate, col, row, draggedGate.originalPos, draggedGate.originalGate);
-                            droppedOnGrid = true;
-                        }
-                    }
-                }
+                // Use gate center for drop calculation (same as preview)
+                const droppedOnGrid = dropAtPoint(
+                    draggedGate.gate,
+                    e.clientX - draggedGate.offset.x + GATE_SIZE / 2,
+                    e.clientY - draggedGate.offset.y + GATE_SIZE / 2,
+                    draggedGate.originalPos,
+                    draggedGate.originalGate,
+                );
 
                 if (!droppedOnGrid && draggedGate.originalPos) {
                     handleGateDelete(draggedGate.originalPos);
@@ -408,7 +420,12 @@ export function useCircuitDragDrop({
                 setPreviewPosition(null);
             }
         },
-        [draggedGate, circuitGridRef, handleGateDrop, handleGateDelete, isQubitMeasuredBefore, isGateAllowedAfterMeasurement]
+        [draggedGate, dropAtPoint, handleGateDelete]
+    );
+
+    const placeGateAt = useCallback(
+        (gate: GateType, clientX: number, clientY: number) => dropAtPoint(gate, clientX, clientY),
+        [dropAtPoint]
     );
 
     return {
@@ -418,5 +435,6 @@ export function useCircuitDragDrop({
         handleDragStart,
         handleMouseMove,
         handleMouseUp,
+        placeGateAt,
     };
 }

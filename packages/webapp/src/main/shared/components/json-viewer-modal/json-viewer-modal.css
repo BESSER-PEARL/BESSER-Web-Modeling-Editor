@@ -132,8 +132,15 @@
 
 /* ---- Copy-node button (per row) ---- */
 
-.jvm-tree-row:hover > .jvm-copy-node-btn {
+.jvm-tree-row:hover > .jvm-copy-node-btn,
+.jvm-copy-node-btn:focus-visible {
   opacity: 1;
+}
+
+@media (hover: none) {
+  .jvm-copy-node-btn {
+    opacity: 1;
+  }
 }
 
 .jvm-copy-node-btn:hover {

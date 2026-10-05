@@ -71,6 +71,7 @@ interface PropertiesPanelState {
 const MIN_WIDTH = 250;
 const MAX_WIDTH = 600;
 const DEFAULT_WIDTH = 320;
+const RESIZE_STEP = 16;
 
 class PropertiesPanelComponent extends Component<Props, PropertiesPanelState> {
   state: PropertiesPanelState = {
@@ -138,7 +139,17 @@ class PropertiesPanelComponent extends Component<Props, PropertiesPanelState> {
 
     return (
       <PanelWrapper ref={this.wrapperRef}>
-        <ResizeHandle onMouseDown={this.handleResizeMouseDown} />
+        <ResizeHandle
+          onMouseDown={this.handleResizeMouseDown}
+          onKeyDown={this.handleResizeKeyDown}
+          role="separator"
+          aria-orientation="vertical"
+          aria-label={translate('propertiesPanel.resize') || 'Resize properties panel'}
+          aria-valuenow={panelWidth}
+          aria-valuemin={MIN_WIDTH}
+          aria-valuemax={MAX_WIDTH}
+          tabIndex={0}
+        />
         <PanelContainer style={{ width: panelWidth }}>
           <PanelHeader>
             <PanelHeaderTitle title={typeLabel}>{typeLabel}</PanelHeaderTitle>
@@ -211,6 +222,18 @@ class PropertiesPanelComponent extends Component<Props, PropertiesPanelState> {
     if (this.props.element) {
       this.props.updateEnd(this.props.element.id);
     }
+  };
+
+  /** The panel sits on the right, so ArrowLeft widens it, as dragging left does. */
+  private handleResizeKeyDown = (e: React.KeyboardEvent<HTMLDivElement>): void => {
+    if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
+    e.preventDefault();
+    // Arrow keys would otherwise also move the selected canvas elements.
+    e.stopPropagation();
+    const delta = e.key === 'ArrowLeft' ? RESIZE_STEP : -RESIZE_STEP;
+    this.setState(({ panelWidth }) => ({
+      panelWidth: Math.min(Math.max(panelWidth + delta, MIN_WIDTH), MAX_WIDTH),
+    }));
   };
 
   private handleResizeMouseDown = (e: React.MouseEvent<HTMLDivElement>): void => {

@@ -21,6 +21,22 @@ const colors = [
   'black',
 ];
 
+// Accessible names for the swatches, in the same order as `colors`.
+const colorNames = [
+  'Red',
+  'Orange',
+  'Yellow',
+  'Green',
+  'Teal',
+  'Sky blue',
+  'Blue',
+  'Slate blue',
+  'Purple',
+  'Light gray',
+  'Gray',
+  'Black',
+];
+
 const ColorContainer = styled.div`
   display: flex;
   flex-direction: column;
@@ -70,12 +86,14 @@ function ColorSelectorComponent({ onColorChange, color, open, translate }: Props
       {open ? (
         <ColorContainer>
           <Flex>
-            {colors.map((colorOption) => (
+            {colors.map((colorOption, index) => (
               <Color
                 key={colorOption}
                 color={colorOption}
                 onClick={() => handleColorChange(colorOption)}
                 selected={colorOption === color}
+                aria-label={colorNames[index]}
+                aria-pressed={colorOption === color}
               />
             ))}
           </Flex>
