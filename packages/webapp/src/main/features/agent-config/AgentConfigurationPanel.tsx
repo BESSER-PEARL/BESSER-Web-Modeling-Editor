@@ -16,6 +16,7 @@ import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
+import { Checkbox } from '@/components/ui/checkbox';
 import { apiClient, ApiError } from '../../shared/api/api-client';
 import { useAppDispatch } from '../../app/store/hooks';
 import { bumpEditorRevision, refreshProjectStateThunk, updateDiagramModelThunk } from '../../app/store/workspaceSlice';
@@ -53,6 +54,7 @@ import {
   upsertVariantForProfile,
 } from '../../shared/services/agent-variants/agent-variants-service';
 import { AgentRuntimePanel } from './AgentRuntimePanel';
+import { OptionSelect } from './runtime/runtimeFields';
 
 type AgentTransformationConfig = Partial<AgentConfigurationPayload> & { userProfileModel?: UMLModel };
 
@@ -738,12 +740,13 @@ const AgentLLMRow: React.FC<AgentLLMRowProps> = ({
             </div>
             <div className="space-y-1.5">
               <Label htmlFor={`agent-llm-provider-${element.id}`}>{t('agentConfig.row.provider')}</Label>
-              <select
+              <OptionSelect
                 id={`agent-llm-provider-${element.id}`}
-                className="h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm transition-colors hover:border-brand/30 focus:border-brand/40 focus:outline-none focus:ring-2 focus:ring-brand/20"
+                className="transition-colors hover:border-brand/30"
                 value={element.provider}
-                onChange={(event) => {
-                  const newProvider = event.target.value as AgentLLMElementProvider;
+                options={AGENT_LLM_PROVIDER_OPTIONS}
+                onValueChange={(value) => {
+                  const newProvider = value as AgentLLMElementProvider;
                   const updates: Partial<AgentLLMElement> = { provider: newProvider };
                   if (newProvider === 'ollama') {
                     const seeded = {
@@ -757,13 +760,7 @@ const AgentLLMRow: React.FC<AgentLLMRowProps> = ({
                   }
                   onChange(element.id, updates);
                 }}
-              >
-                {AGENT_LLM_PROVIDER_OPTIONS.map((opt) => (
-                  <option key={opt.value} value={opt.value}>
-                    {opt.label}
-                  </option>
-                ))}
-              </select>
+              />
             </div>
             <div className="space-y-1.5">
               <Label htmlFor={`agent-llm-num-prev-${element.id}`}>{t('agentConfig.row.numPrevMessages')}</Label>
@@ -1679,12 +1676,12 @@ export const AgentConfigurationPanel: React.FC = () => {
     toast.success(t('agentConfig.toasts.deleted'));
   }, [activeConfigId, currentProject, dispatch, refreshSavedConfigurations, selectedConfigId, t]);
 
-  const handleInputSpeechToggle = (event: React.ChangeEvent<HTMLInputElement>) => {
-    setInputModalities(event.target.checked ? [...speechEnabledModality] : [...baseTextModality]);
+  const handleInputSpeechToggle = (checked: boolean) => {
+    setInputModalities(checked ? [...speechEnabledModality] : [...baseTextModality]);
   };
 
-  const handleOutputSpeechToggle = (event: React.ChangeEvent<HTMLInputElement>) => {
-    setOutputModalities(event.target.checked ? [...speechEnabledModality] : [...baseTextModality]);
+  const handleOutputSpeechToggle = (checked: boolean) => {
+    setOutputModalities(checked ? [...speechEnabledModality] : [...baseTextModality]);
   };
 
   const handleAvatarUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -2195,22 +2192,17 @@ export const AgentConfigurationPanel: React.FC = () => {
                 </span>
               </Badge>
             )}
-            <select
+            <OptionSelect
               aria-label={t('agentConfig.selectAriaLabel')}
-              className="h-9 rounded-md border border-input bg-background px-2 py-1 text-sm transition-colors hover:border-brand/30 focus:border-brand/40 focus:outline-none focus:ring-2 focus:ring-brand/20"
+              className="h-9 w-auto min-w-[12rem] gap-2 px-2 py-1 transition-colors hover:border-brand/30"
               value={selectedConfigId}
-              onChange={(event) => setSelectedConfigId(event.target.value)}
+              onValueChange={setSelectedConfigId}
               disabled={savedConfigs.length === 0}
-            >
-              <option value="">
-                {savedConfigs.length === 0 ? t('agentConfig.noSavedYet') : t('agentConfig.selectSaved')}
-              </option>
-              {savedConfigs.map((entry) => (
-                <option key={entry.id} value={entry.id}>
-                  {entry.name}
-                </option>
-              ))}
-            </select>
+              options={[
+                { value: '', label: savedConfigs.length === 0 ? t('agentConfig.noSavedYet') : t('agentConfig.selectSaved') },
+                ...savedConfigs.map((entry) => ({ value: entry.id, label: entry.name })),
+              ]}
+            />
             <Button
               type="button"
               size="sm"
@@ -2255,22 +2247,17 @@ export const AgentConfigurationPanel: React.FC = () => {
             <CardContent className="space-y-4">
               <div className="space-y-1.5">
                 <Label htmlFor="user-profile-mapping">{t('agentConfig.profileMapping.label')}</Label>
-                <select
+                <OptionSelect
                   id="user-profile-mapping"
-                  className="h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm transition-colors hover:border-brand/30 focus:border-brand/40 focus:outline-none focus:ring-2 focus:ring-brand/20"
+                  className="transition-colors hover:border-brand/30"
                   value={selectedUserProfileName}
-                  onChange={(event) => setSelectedUserProfileName(event.target.value)}
+                  onValueChange={setSelectedUserProfileName}
                   disabled={userProfiles.length === 0}
-                >
-                  <option value="">
-                    {userProfiles.length === 0 ? t('agentConfig.profileMapping.noTabs') : t('agentConfig.profileMapping.selectProfile')}
-                  </option>
-                  {userProfiles.map((profile) => (
-                    <option key={profile.id} value={profile.name}>
-                      {profile.name}
-                    </option>
-                  ))}
-                </select>
+                  options={[
+                    { value: '', label: userProfiles.length === 0 ? t('agentConfig.profileMapping.noTabs') : t('agentConfig.profileMapping.selectProfile') },
+                    ...userProfiles.map((profile) => ({ value: profile.name, label: profile.name })),
+                  ]}
+                />
                 {userProfiles.length === 0 && (
                   <p className="text-xs text-muted-foreground">{t('agentConfig.profileMapping.createFirst')}</p>
                 )}
@@ -2369,73 +2356,71 @@ export const AgentConfigurationPanel: React.FC = () => {
                     <div className="grid gap-4 md:grid-cols-4">
                       <div className="space-y-1.5">
                         <Label htmlFor="agent-language">{t('agentConfig.field.language')}</Label>
-                        <select
+                        <OptionSelect
                           id="agent-language"
-                          className="h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
                           value={agentLanguage}
-                          onChange={(event) => setAgentLanguage(event.target.value)}
-                        >
-                          <option value="original">{t('agentConfig.language.original')}</option>
-                          <option value="english">{t('agentConfig.language.english')}</option>
-                          <option value="spanish">{t('agentConfig.language.spanish')}</option>
-                          <option value="french">{t('agentConfig.language.french')}</option>
-                          <option value="german">{t('agentConfig.language.german')}</option>
-                          <option value="portuguese">{t('agentConfig.language.portuguese')}</option>
-                          <option value="luxembourgish">{t('agentConfig.language.luxembourgish')}</option>
-                          <option value="italian">{t('agentConfig.language.italian')}</option>
-                        </select>
+                          onValueChange={(value) => setAgentLanguage(value)}
+                          options={[
+                            { value: 'original', label: t('agentConfig.language.original') },
+                            { value: 'english', label: t('agentConfig.language.english') },
+                            { value: 'spanish', label: t('agentConfig.language.spanish') },
+                            { value: 'french', label: t('agentConfig.language.french') },
+                            { value: 'german', label: t('agentConfig.language.german') },
+                            { value: 'portuguese', label: t('agentConfig.language.portuguese') },
+                            { value: 'luxembourgish', label: t('agentConfig.language.luxembourgish') },
+                            { value: 'italian', label: t('agentConfig.language.italian') },
+                          ]}
+                        />
                       </div>
 
                       <div className="space-y-1.5">
                         <Label htmlFor="agent-style">{t('agentConfig.field.style')}</Label>
-                        <select
+                        <OptionSelect
                           id="agent-style"
-                          className="h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
                           value={agentStyle}
-                          onChange={(event) => setAgentStyle(event.target.value)}
-                        >
-                          <option value="original">{t('agentConfig.style.original')}</option>
-                          <option value="formal">{t('agentConfig.style.formal')}</option>
-                          <option value="informal">{t('agentConfig.style.informal')}</option>
-                        </select>
+                          onValueChange={(value) => setAgentStyle(value)}
+                          options={[
+                            { value: 'original', label: t('agentConfig.style.original') },
+                            { value: 'formal', label: t('agentConfig.style.formal') },
+                            { value: 'informal', label: t('agentConfig.style.informal') },
+                          ]}
+                        />
                       </div>
 
                       <div className="space-y-1.5">
                         <Label htmlFor="language-complexity">{t('agentConfig.field.languageComplexity')}</Label>
-                        <select
+                        <OptionSelect
                           id="language-complexity"
-                          className="h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
                           value={languageComplexity}
-                          onChange={(event) => setLanguageComplexity(event.target.value as AgentLanguageComplexity)}
-                        >
-                          <option value="original">{t('agentConfig.complexity.original')}</option>
-                          <option value="simple">{t('agentConfig.complexity.simple')}</option>
-                          <option value="medium">{t('agentConfig.complexity.medium')}</option>
-                          <option value="complex">{t('agentConfig.complexity.complex')}</option>
-                        </select>
+                          onValueChange={(value) => setLanguageComplexity(value as AgentLanguageComplexity)}
+                          options={[
+                            { value: 'original', label: t('agentConfig.complexity.original') },
+                            { value: 'simple', label: t('agentConfig.complexity.simple') },
+                            { value: 'medium', label: t('agentConfig.complexity.medium') },
+                            { value: 'complex', label: t('agentConfig.complexity.complex') },
+                          ]}
+                        />
                       </div>
 
                       <div className="space-y-1.5">
                         <Label htmlFor="sentence-length">{t('agentConfig.field.sentenceLength')}</Label>
-                        <select
+                        <OptionSelect
                           id="sentence-length"
-                          className="h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
                           value={sentenceLength}
-                          onChange={(event) => setSentenceLength(event.target.value as AgentSentenceLength)}
-                        >
-                          <option value="original">{t('agentConfig.sentence.original')}</option>
-                          <option value="concise">{t('agentConfig.sentence.concise')}</option>
-                          <option value="verbose">{t('agentConfig.sentence.verbose')}</option>
-                        </select>
+                          onValueChange={(value) => setSentenceLength(value as AgentSentenceLength)}
+                          options={[
+                            { value: 'original', label: t('agentConfig.sentence.original') },
+                            { value: 'concise', label: t('agentConfig.sentence.concise') },
+                            { value: 'verbose', label: t('agentConfig.sentence.verbose') },
+                          ]}
+                        />
                       </div>
                     </div>
 
                     <label className="inline-flex items-center gap-2 text-sm">
-                      <input
-                        type="checkbox"
-                        className="accent-brand"
+                      <Checkbox
                         checked={useAbbreviations}
-                        onChange={(event) => setUseAbbreviations(event.target.checked)}
+                        onCheckedChange={setUseAbbreviations}
                       />
                       {t('agentConfig.useAbbreviations')}
                     </label>
@@ -2480,19 +2465,19 @@ export const AgentConfigurationPanel: React.FC = () => {
                       </div>
                       <div className="space-y-1.5">
                         <Label htmlFor="interface-font">{t('agentConfig.interface.font')}</Label>
-                        <select
+                        <OptionSelect
                           id="interface-font"
-                          className="h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
                           value={interfaceStyle.font}
-                          onChange={(event) => updateInterfaceStyle('font', event.target.value as InterfaceStyleSetting['font'])}
-                        >
-                          <option value="sans">{t('agentConfig.font.sans')}</option>
-                          <option value="serif">{t('agentConfig.font.serif')}</option>
-                          <option value="monospace">{t('agentConfig.font.monospace')}</option>
-                          <option value="neutral">{t('agentConfig.font.neutral')}</option>
-                          <option value="grotesque">{t('agentConfig.font.grotesque')}</option>
-                          <option value="condensed">{t('agentConfig.font.condensed')}</option>
-                        </select>
+                          onValueChange={(value) => updateInterfaceStyle('font', value as InterfaceStyleSetting['font'])}
+                          options={[
+                            { value: 'sans', label: t('agentConfig.font.sans') },
+                            { value: 'serif', label: t('agentConfig.font.serif') },
+                            { value: 'monospace', label: t('agentConfig.font.monospace') },
+                            { value: 'neutral', label: t('agentConfig.font.neutral') },
+                            { value: 'grotesque', label: t('agentConfig.font.grotesque') },
+                            { value: 'condensed', label: t('agentConfig.font.condensed') },
+                          ]}
+                        />
                       </div>
                       <div className="space-y-1.5">
                         <Label htmlFor="interface-line-spacing">{t('agentConfig.interface.lineSpacing')}</Label>
@@ -2534,30 +2519,30 @@ export const AgentConfigurationPanel: React.FC = () => {
                     <div className="grid gap-4 md:grid-cols-2">
                       <div className="space-y-1.5">
                         <Label htmlFor="interface-alignment">{t('agentConfig.interface.alignment')}</Label>
-                        <select
+                        <OptionSelect
                           id="interface-alignment"
-                          className="h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
                           value={interfaceStyle.alignment}
-                          onChange={(event) => updateInterfaceStyle('alignment', event.target.value as InterfaceStyleSetting['alignment'])}
-                        >
-                          <option value="left">{t('agentConfig.alignment.left')}</option>
-                          <option value="center">{t('agentConfig.alignment.center')}</option>
-                          <option value="justify">{t('agentConfig.alignment.justify')}</option>
-                        </select>
+                          onValueChange={(value) => updateInterfaceStyle('alignment', value as InterfaceStyleSetting['alignment'])}
+                          options={[
+                            { value: 'left', label: t('agentConfig.alignment.left') },
+                            { value: 'center', label: t('agentConfig.alignment.center') },
+                            { value: 'justify', label: t('agentConfig.alignment.justify') },
+                          ]}
+                        />
                       </div>
 
                       <div className="space-y-1.5">
                         <Label htmlFor="interface-contrast">{t('agentConfig.interface.contrast')}</Label>
-                        <select
+                        <OptionSelect
                           id="interface-contrast"
-                          className="h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
                           value={interfaceStyle.contrast}
-                          onChange={(event) => updateInterfaceStyle('contrast', event.target.value as InterfaceStyleSetting['contrast'])}
-                        >
-                          <option value="low">{t('agentConfig.contrast.low')}</option>
-                          <option value="medium">{t('agentConfig.contrast.medium')}</option>
-                          <option value="high">{t('agentConfig.contrast.high')}</option>
-                        </select>
+                          onValueChange={(value) => updateInterfaceStyle('contrast', value as InterfaceStyleSetting['contrast'])}
+                          options={[
+                            { value: 'low', label: t('agentConfig.contrast.low') },
+                            { value: 'medium', label: t('agentConfig.contrast.medium') },
+                            { value: 'high', label: t('agentConfig.contrast.high') },
+                          ]}
+                        />
                       </div>
                     </div>
 
@@ -2683,11 +2668,9 @@ export const AgentConfigurationPanel: React.FC = () => {
                       <p className="text-sm font-medium">{t('agentConfig.modality.input')}</p>
                       <p className="text-xs text-muted-foreground">{t('agentConfig.modality.inputAlways')}</p>
                       <label className="inline-flex items-center gap-2 text-sm text-muted-foreground">
-                        <input
-                          type="checkbox"
-                          className="accent-brand"
+                        <Checkbox
                           checked={inputModalities.includes('speech')}
-                          onChange={handleInputSpeechToggle}
+                          onCheckedChange={handleInputSpeechToggle}
                         />
                         {t('agentConfig.modality.enableSpeechInput')}
                       </label>
@@ -2696,11 +2679,9 @@ export const AgentConfigurationPanel: React.FC = () => {
                       <p className="text-sm font-medium">{t('agentConfig.modality.output')}</p>
                       <p className="text-xs text-muted-foreground">{t('agentConfig.modality.outputAlways')}</p>
                       <label className="inline-flex items-center gap-2 text-sm text-muted-foreground">
-                        <input
-                          type="checkbox"
-                          className="accent-brand"
+                        <Checkbox
                           checked={outputModalities.includes('speech')}
-                          onChange={handleOutputSpeechToggle}
+                          onCheckedChange={handleOutputSpeechToggle}
                         />
                         {t('agentConfig.modality.enableSpeechOutput')}
                       </label>
@@ -2730,11 +2711,9 @@ export const AgentConfigurationPanel: React.FC = () => {
                 {activeCustomizationSection === 'content' && (
                   <div className="space-y-3 border-t border-border px-4 py-4">
                     <label className="inline-flex items-center gap-2 text-sm">
-                      <input
-                        type="checkbox"
-                        className="accent-brand"
+                      <Checkbox
                         checked={adaptContentToUserProfile}
-                        onChange={(event) => setAdaptContentToUserProfile(event.target.checked)}
+                        onCheckedChange={setAdaptContentToUserProfile}
                       />
                       {t('agentConfig.content.adapt')}
                     </label>
@@ -2824,22 +2803,16 @@ export const AgentConfigurationPanel: React.FC = () => {
 
                 <div className="space-y-1.5">
                   <Label htmlFor="saved-configurations">{t('agentConfig.save.savedLabel')}</Label>
-                  <select
+                  <OptionSelect
                     id="saved-configurations"
-                    className="h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
                     value={selectedConfigId}
-                    onChange={(event) => setSelectedConfigId(event.target.value)}
+                    onValueChange={setSelectedConfigId}
                     disabled={savedConfigs.length === 0}
-                  >
-                    <option value="">
-                      {savedConfigs.length === 0 ? t('agentConfig.noSavedYet') : t('agentConfig.save.selectCustomization')}
-                    </option>
-                    {savedConfigs.map((entry) => (
-                      <option key={entry.id} value={entry.id}>
-                        {entry.name}
-                      </option>
-                    ))}
-                  </select>
+                    options={[
+                      { value: '', label: savedConfigs.length === 0 ? t('agentConfig.noSavedYet') : t('agentConfig.save.selectCustomization') },
+                      ...savedConfigs.map((entry) => ({ value: entry.id, label: entry.name })),
+                    ]}
+                  />
                   {selectedConfig && (
                     <p className="text-xs text-muted-foreground">
                       {t('agentConfig.save.lastUpdated', { date: new Date(selectedConfig.savedAt).toLocaleString() })}

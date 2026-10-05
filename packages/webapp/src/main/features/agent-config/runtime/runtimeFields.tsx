@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { cn } from '@/lib/utils';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import type { AgentConfigFormData } from '../AgentConfigYamlEditor';
 
 export function Toggle({ value, onChange, id, 'aria-label': ariaLabel, 'aria-labelledby': ariaLabelledby }: {
@@ -31,6 +32,35 @@ export function Toggle({ value, onChange, id, 'aria-label': ariaLabel, 'aria-lab
         )}
       />
     </button>
+  );
+}
+
+// Radix Select forbids an empty-string item value; map '' to a sentinel so "none" stays selectable.
+const EMPTY_OPTION = '__empty__';
+
+/** Themed replacement for a native <select>; `onValueChange` receives the original option value. */
+export function OptionSelect({ id, value, onValueChange, options, disabled, className, 'aria-label': ariaLabel }: {
+  id?: string; value: string; onValueChange: (v: string) => void;
+  options: Array<{ value: string; label: React.ReactNode }>;
+  disabled?: boolean; className?: string; 'aria-label'?: string;
+}) {
+  return (
+    <Select
+      value={value === '' ? EMPTY_OPTION : value}
+      onValueChange={v => onValueChange(v === EMPTY_OPTION ? '' : v)}
+      disabled={disabled}
+    >
+      <SelectTrigger id={id} aria-label={ariaLabel} className={className}>
+        <SelectValue />
+      </SelectTrigger>
+      <SelectContent>
+        {options.map((opt, i) => (
+          <SelectItem key={`${opt.value}-${i}`} value={opt.value === '' ? EMPTY_OPTION : opt.value}>
+            {opt.label}
+          </SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
   );
 }
 
