@@ -152,8 +152,8 @@ export function CircuitEditor({
                             className="fixed pointer-events-none opacity-80"
                             style={{
                                 zIndex: Z_INDEX.POPOVER,
-                                left: editor.mousePos.x + (circuitGridRef.current?.getBoundingClientRect().left || 0),
-                                top: editor.mousePos.y + (circuitGridRef.current?.getBoundingClientRect().top || 0),
+                                left: editor.mousePos.x - editor.draggedGate.offset.x + (circuitGridRef.current?.getBoundingClientRect().left || 0),
+                                top: editor.mousePos.y - editor.draggedGate.offset.y + (circuitGridRef.current?.getBoundingClientRect().top || 0),
                             }}
                         >
                             <Gate gate={GATES.find((g) => g.type === editor.draggedGate?.gate)!} isDragging />

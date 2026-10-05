@@ -3,7 +3,7 @@ import { Circuit, Gate, CircuitColumn } from '../types';
 import { GATES } from '../constants';
 import { trimCircuit } from '../utils';
 import { useUndoRedo } from './useUndoRedo';
-import { GATE_SIZE, WIRE_SPACING } from '../layout-constants';
+import { GATE_SIZE, cellAt } from '../layout-constants';
 
 interface UseCircuitEditorOptions {
     initialCircuit: Circuit;
@@ -123,10 +123,7 @@ export function useCircuitEditor({
         const relativeX = clientX - rect.left + grid.scrollLeft;
         const relativeY = clientY - rect.top + grid.scrollTop;
 
-        const LEFT_MARGIN = 60;
-        const TOP_MARGIN = 20;
-        const col = Math.floor((relativeX - LEFT_MARGIN) / (GATE_SIZE + 4));
-        const row = Math.floor((relativeY - TOP_MARGIN) / WIRE_SPACING);
+        const { col, row } = cellAt(relativeX, relativeY);
 
         const gateDefinition = GATES.find((g) => g.type === gateType);
         const gateHeight = gateDefinition?.height || 1;
@@ -150,7 +147,13 @@ export function useCircuitEditor({
             y: e.clientY - rect.top,
         });
 
-        setPreviewPosition(positionAt(draggedGate.gate, e.clientX, e.clientY, gridRef.current));
+        // Snap on the dragged gate's centre, as the main editor does.
+        setPreviewPosition(positionAt(
+            draggedGate.gate,
+            e.clientX - draggedGate.offset.x + GATE_SIZE / 2,
+            e.clientY - draggedGate.offset.y + GATE_SIZE / 2,
+            gridRef.current,
+        ));
     }, [draggedGate, positionAt]);
 
     const placeGate = useCallback((gateType: string, position: PreviewPosition): boolean => {

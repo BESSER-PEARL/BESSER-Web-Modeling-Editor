@@ -2,12 +2,7 @@ import { useCallback, useRef, useState } from 'react';
 import { Circuit, Gate, GateType } from '../types';
 import { GATES } from '../constants';
 import { trimCircuit } from '../utils';
-import {
-    GATE_SIZE,
-    WIRE_SPACING,
-    TOP_MARGIN,
-    LEFT_MARGIN,
-} from '../layout-constants';
+import { GATE_SIZE, LEFT_MARGIN, TOP_MARGIN, cellAt } from '../layout-constants';
 
 export interface DragState {
     gate: GateType;
@@ -118,12 +113,8 @@ export function useCircuitDragDrop({
             const gateCenterX = clientX - draggedGate.offset.x + GATE_SIZE / 2;
             const gateCenterY = clientY - draggedGate.offset.y + GATE_SIZE / 2;
             
-            const x = gateCenterX - rect.left - LEFT_MARGIN;
-            const y = gateCenterY - rect.top - TOP_MARGIN;
-
             // Calculate snapped grid position based on gate center
-            const col = Math.floor(x / WIRE_SPACING);
-            const row = Math.floor(y / WIRE_SPACING);
+            const { col, row } = cellAt(gateCenterX - rect.left, gateCenterY - rect.top);
 
             // Get gate height
             const gateDefinition = GATES.find((g) => g.type === gateType);
@@ -367,13 +358,14 @@ export function useCircuitDragDrop({
             if (!circuitGridRef.current) return false;
             const rect = circuitGridRef.current.getBoundingClientRect();
 
-            const x = gateCenterX - rect.left - LEFT_MARGIN;
-            const y = gateCenterY - rect.top - TOP_MARGIN;
+            const relX = gateCenterX - rect.left;
+            const relY = gateCenterY - rect.top;
+            const x = relX - LEFT_MARGIN;
+            const y = relY - TOP_MARGIN;
 
             if (!(x >= -GATE_SIZE && y >= -GATE_SIZE && x <= rect.width && y <= rect.height)) return false;
 
-            const col = Math.floor(x / WIRE_SPACING);
-            const row = Math.floor(y / WIRE_SPACING);
+            const { col, row } = cellAt(relX, relY);
 
             const gateDefinition = GATES.find((g) => g.type === gateType);
             const gateHeight = gateDefinition?.height || 1;

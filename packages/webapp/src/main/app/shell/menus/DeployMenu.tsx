@@ -29,6 +29,13 @@ export const DeployMenu: React.FC<DeployMenuProps> = ({
   onOpenDeployDialog,
 }) => {
   const { t } = useTranslation();
+  // Publishing needs a GitHub session; disable it (with a reason) instead of a click that only toasts.
+  const publishEnabled = isDeploymentAvailable && isAuthenticated;
+  const publishHint = !isAuthenticated
+    ? t('menu.deploy.connectGitHubFirstHint', { defaultValue: 'Connect GitHub first' })
+    : !isDeploymentAvailable
+      ? t('deploy.toasts.availableFor')
+      : null;
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -46,9 +53,18 @@ export const DeployMenu: React.FC<DeployMenuProps> = ({
             {githubLoading ? t('common.connecting') : t('menu.deploy.connectGitHub')}
           </DropdownMenuItem>
         )}
-        <DropdownMenuItem onClick={onOpenDeployDialog} disabled={!isDeploymentAvailable}>
+        <DropdownMenuItem
+          onClick={publishEnabled ? onOpenDeployDialog : undefined}
+          disabled={!publishEnabled}
+          aria-describedby={publishHint ? 'deploy-publish-hint' : undefined}
+        >
           {t('menu.deploy.publishToRender')}
         </DropdownMenuItem>
+        {publishHint && (
+          <p id="deploy-publish-hint" className="-mt-1 px-2 pb-1.5 text-xs text-muted-foreground">
+            {publishHint}
+          </p>
+        )}
       </DropdownMenuContent>
     </DropdownMenu>
   );

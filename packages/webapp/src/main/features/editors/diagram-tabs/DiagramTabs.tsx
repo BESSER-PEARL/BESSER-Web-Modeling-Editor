@@ -5,6 +5,7 @@ import { Plus, X, FileText, Info, Link2, AlertTriangle, ChevronDown, ChevronRigh
 import { toast } from 'react-toastify';
 import { useTranslation } from 'react-i18next';
 import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { getPostHog } from '../../../shared/services/analytics/lazy-analytics';
 import { globalConfirm } from '../../../shared/services/confirm/globalConfirm';
 import { ProjectDiagram, MAX_DIAGRAMS_PER_TYPE, SupportedDiagramType, isUMLModel, isGrapesJSProjectData, isQuantumCircuitData } from '../../../shared/types/project';
@@ -168,8 +169,7 @@ export const DiagramTabs: React.FC<DiagramTabsProps> = ({
     // For GUI: no bridge side-effect needed — diagram-helpers reads per-diagram references
   }, [needsClassRef, currentDiagramType, classRefId, classDiagrams, dispatch]);
 
-  const handleClassRefChange = useCallback((e: React.ChangeEvent<HTMLSelectElement>) => {
-    const newId = e.target.value;
+  const handleClassRefChange = useCallback((newId: string) => {
     setClassRefId(newId);
     dispatch(updateDiagramReferencesThunk({
       diagramType: currentDiagramType,
@@ -371,7 +371,7 @@ export const DiagramTabs: React.FC<DiagramTabsProps> = ({
 
   const hasReferences = needsClassRef;
 
-  const selectClasses = "h-6 min-w-[120px] rounded-md border border-brand/15 bg-card px-2 text-[11px] font-medium text-foreground shadow-sm transition-colors hover:border-brand/30 focus:border-brand/40 focus:outline-none focus:ring-1 focus:ring-brand/20";
+  const selectClasses = "h-7 w-auto min-w-[140px] gap-2 rounded-md border-border bg-card px-2 text-xs font-medium text-foreground shadow-sm transition-colors duration-150 hover:border-foreground/20 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1";
 
   return (
     <div className="relative overflow-visible border-b border-brand/12 bg-card/80 backdrop-blur-sm">
@@ -522,8 +522,8 @@ export const DiagramTabs: React.FC<DiagramTabsProps> = ({
         <div className="overflow-visible border-t border-border/40 bg-muted/30 px-3 py-1.5">
           <div className="flex flex-wrap items-center gap-4">
             {/* Section header */}
-            <span className="flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-              <Link2 className="size-3" />
+            <span className="flex items-center gap-1 text-xs font-medium text-muted-foreground">
+              <Link2 className="size-3" aria-hidden="true" />
               {t('editors.diagramTabs.references')}
             </span>
 
@@ -532,7 +532,7 @@ export const DiagramTabs: React.FC<DiagramTabsProps> = ({
               <div className="flex items-center gap-2">
                 <label
                   htmlFor="ref-class-diagram"
-                  className="whitespace-nowrap text-[11px] font-medium text-muted-foreground"
+                  className="whitespace-nowrap text-xs font-medium text-muted-foreground"
                 >
                   {t('editors.diagramTabs.classDiagram')}
                 </label>
@@ -540,24 +540,18 @@ export const DiagramTabs: React.FC<DiagramTabsProps> = ({
 
                 {classDiagrams.length > 0 ? (
                   <>
-                    <select
-                      id="ref-class-diagram"
-                      className={selectClasses}
-                      value={classRefBroken ? '' : classRefId}
-                      onChange={handleClassRefChange}
-                      aria-label={classRefTooltip}
-                    >
-                      {classRefBroken && (
-                        <option value="" disabled>
-                          {t('editors.diagramTabs.referenceBroken')}
-                        </option>
-                      )}
-                      {classDiagrams.map((cd) => (
-                        <option key={cd.id} value={cd.id}>
-                          {cd.title}
-                        </option>
-                      ))}
-                    </select>
+                    <Select value={classRefBroken ? '' : classRefId} onValueChange={handleClassRefChange}>
+                      <SelectTrigger id="ref-class-diagram" className={selectClasses} aria-label={classRefTooltip}>
+                        <SelectValue placeholder={t('editors.diagramTabs.referenceBroken')} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {classDiagrams.map((cd) => (
+                          <SelectItem key={cd.id} value={cd.id} className="text-xs">
+                            {cd.title}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                     {classRefBroken && (
                       <span
                         role="img"

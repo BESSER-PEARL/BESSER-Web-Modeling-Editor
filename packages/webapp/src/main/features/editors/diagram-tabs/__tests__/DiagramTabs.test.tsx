@@ -365,16 +365,54 @@ describe('DiagramTabs', () => {
       project,
     });
 
-    const { container } = render(<DiagramTabs />);
+    render(<DiagramTabs />);
 
-    // Use the select element id since aria-label is shared with InfoTooltip
-    const select = container.querySelector('#ref-class-diagram') as HTMLSelectElement;
-    expect(select).toBeInTheDocument();
+    const trigger = screen.getByRole('combobox');
+    expect(trigger).toHaveAttribute('id', 'ref-class-diagram');
+    expect(trigger).toHaveTextContent('Class Diagram');
+    fireEvent.keyDown(trigger, { key: 'ArrowDown' });
 
-    const options = select.querySelectorAll('option');
+    const options = screen.getAllByRole('option');
     expect(options).toHaveLength(2);
     expect(options[0].textContent).toBe('Class Diagram');
     expect(options[1].textContent).toBe('Class Diagram 2');
+  });
+
+  it('persists the picked class diagram reference by id', async () => {
+    const { updateDiagramReferencesThunk } = await import('../../../../app/store/workspaceSlice');
+    const project = createDefaultProject('Test', '', 'owner');
+    project.diagrams.ClassDiagram.push({
+      ...project.diagrams.ClassDiagram[0],
+      id: 'cd2',
+      title: 'Class Diagram 2',
+    });
+    setMockState({
+      diagrams: [makeDiagram('od1', 'Object Diagram')],
+      activeDiagramType: 'ObjectDiagram',
+      project,
+    });
+
+    render(<DiagramTabs />);
+
+    const trigger = screen.getByRole('combobox', {
+      name: 'Select which Class Diagram provides the data model for this Object Diagram',
+    });
+    fireEvent.keyDown(trigger, { key: 'ArrowDown' });
+    fireEvent.click(screen.getByRole('option', { name: 'Class Diagram 2' }));
+
+    expect(updateDiagramReferencesThunk).toHaveBeenCalledWith(
+      expect.objectContaining({ diagramType: 'ObjectDiagram', references: { ClassDiagram: 'cd2' } }),
+    );
+  });
+
+  it('shows the broken-reference placeholder when the referenced class diagram is gone', () => {
+    const project = createDefaultProject('Test', '', 'owner');
+    const od = { ...makeDiagram('od1', 'Object Diagram'), references: { ClassDiagram: 'deleted-id' } };
+    setMockState({ diagrams: [od], activeDiagramType: 'ObjectDiagram', project });
+
+    render(<DiagramTabs />);
+
+    expect(screen.getByRole('combobox')).toHaveTextContent('Reference broken - please reselect');
   });
 
   it('shows linked diagrams toggle button for reference types', () => {
