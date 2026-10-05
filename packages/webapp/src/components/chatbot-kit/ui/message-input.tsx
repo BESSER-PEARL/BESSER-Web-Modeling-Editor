@@ -156,17 +156,24 @@ export function MessageInput({
   }
 
   const onKeyDown = (event: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    // Escape to clear the input
+    // An IME is composing (CJK input, dead keys): Enter/Escape belong to it.
+    if (event.nativeEvent.isComposing || event.keyCode === 229) return
+
+    // Escape steps out of the composer without discarding the draft. It is
+    // only consumed (preventDefault) when there was something to step out of,
+    // so on an empty composer it still reaches the surface (closes the sheet).
     if (event.key === "Escape") {
-      event.preventDefault()
-      if (onValueChange) {
-        onValueChange("")
-      } else {
-        // Fallback: synthesise a change event with empty value
-        props.onChange?.({
-          target: { value: "" },
-        } as React.ChangeEvent<HTMLTextAreaElement>)
+      if (showInterruptPrompt) {
+        event.preventDefault()
+        setShowInterruptPrompt(false)
+      } else if (
+        props.value ||
+        (props.allowAttachments && props.files?.length)
+      ) {
+        event.preventDefault()
+        event.currentTarget.blur()
       }
+      onKeyDownProp?.(event)
       return
     }
 
@@ -207,13 +214,6 @@ export function MessageInput({
   }
 
   const textAreaRef = useRef<HTMLTextAreaElement>(null)
-  const [textAreaHeight, setTextAreaHeight] = useState<number>(0)
-
-  useEffect(() => {
-    if (textAreaRef.current) {
-      setTextAreaHeight(textAreaRef.current.offsetHeight)
-    }
-  }, [props.value])
 
   const showFileList =
     props.allowAttachments && props.files && props.files.length > 0
@@ -351,7 +351,7 @@ export function MessageInput({
         isRecording={isRecording}
         isTranscribing={isTranscribing}
         audioStream={audioStream}
-        textAreaHeight={textAreaHeight}
+        textAreaRef={textAreaRef}
         secondsLeft={recordingSecondsLeft}
         onStopRecording={stopRecording}
       />
@@ -476,7 +476,7 @@ interface RecordingControlsProps {
   isRecording: boolean
   isTranscribing: boolean
   audioStream: MediaStream | null
-  textAreaHeight: number
+  textAreaRef: React.RefObject<HTMLTextAreaElement>
   secondsLeft: number
   onStopRecording: () => void
 }
@@ -485,11 +485,13 @@ function RecordingControls({
   isRecording,
   isTranscribing,
   audioStream,
-  textAreaHeight,
+  textAreaRef,
   secondsLeft,
   onStopRecording,
 }: RecordingControlsProps) {
   const { t } = useTranslation()
+  // Measured only while an overlay is shown (recording toggles re-render this).
+  const textAreaHeight = textAreaRef.current?.offsetHeight ?? 0
   if (isRecording) {
     return (
       <div

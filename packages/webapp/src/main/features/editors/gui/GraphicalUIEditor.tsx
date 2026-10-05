@@ -685,7 +685,7 @@ function removeUnwantedBlocks(editor: Editor) {
 /**
  * Setup ProjectStorageRepository integration
  */
-function setupProjectStorageIntegration(
+export function setupProjectStorageIntegration(
   editor: Editor,
   setSaveStatus: (status: 'saved' | 'saving' | 'error') => void,
   saveIntervalRef: React.MutableRefObject<NodeJS.Timeout | null>,
@@ -884,8 +884,11 @@ function setupProjectStorageIntegration(
       editor.on('page:add page:remove page:update', debouncedSave);
       editor.on('style:update', debouncedSave);
       
-      // Periodic backup save every 30 seconds - store in ref so we can clear it
+      // Periodic backup save every 30 seconds - store in ref so we can clear it.
+      // Skipped when nothing changed: each store replaces the whole project
+      // and re-renders the shell.
       saveIntervalRef.current = setInterval(() => {
+        if (editor.getDirtyCount() === 0) return;
         safeSave();
       }, 30000);
       
@@ -1026,7 +1029,7 @@ ${html}
  */
 function createDownloadButton(id: string, label: string): string {
   return `
-    <button id="${id}" style="margin-bottom: 15px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; padding: 12px 24px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 14px;">
+    <button id="${id}" style="margin-bottom: 15px; background: hsl(var(--brand)); color: hsl(var(--brand-foreground)); border: none; padding: 12px 24px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 14px;">
       ${label}
     </button>
   `;
@@ -1039,7 +1042,7 @@ function createModalContent(downloadBtn: string, content: string, textareaId: st
   return `
     <div style="padding: 20px;">
       ${downloadBtn}
-      <textarea id="${textareaId}" style="width:100%; height: 450px; font-family: 'Courier New', monospace; font-size: 12px; padding: 15px; border: 2px solid #ddd; border-radius: 8px; background: #f8f9fa;">${content}</textarea>
+      <textarea id="${textareaId}" style="width:100%; height: 450px; font-family: 'Courier New', monospace; font-size: 12px; padding: 15px; border: 1px solid hsl(var(--border)); border-radius: 8px; background: hsl(var(--muted)); color: hsl(var(--foreground));">${content}</textarea>
     </div>
   `;
 }
@@ -1165,7 +1168,7 @@ function addAutoGenerateGUIButton(editor: Editor) {
 
           <div style="background-color: rgba(127, 127, 127, 0.08); border: 1px solid rgba(127, 127, 127, 0.25); border-radius: 0.375rem; padding: 1rem; margin-bottom: 1rem;">
             <div style="display: flex; align-items: center; margin-bottom: 0.5rem;">
-              <svg width="20" height="20" viewBox="0 0 16 16" fill="currentColor" style="color: #198754; margin-right: 0.5rem;">
+              <svg width="20" height="20" viewBox="0 0 16 16" fill="currentColor" style="color: hsl(var(--brand)); margin-right: 0.5rem;">
                 <path d="M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0zm-3.97-3.03a.75.75 0 0 0-1.08.022L7.477 9.417 5.384 7.323a.75.75 0 0 0-1.06 1.06L6.97 11.03a.75.75 0 0 0 1.079-.02l3.992-4.99a.75.75 0 0 0-.01-1.05z"/>
               </svg>
               <strong style="font-size: 0.875rem;">${i18n.t('editors.gui.autoGenerateCreatedTitle')}</strong>
@@ -1191,10 +1194,10 @@ function addAutoGenerateGUIButton(editor: Editor) {
           </p>
 
           <div style="display: flex; gap: 0.5rem; justify-content: flex-end; padding-top: 1rem; border-top: 1px solid rgba(127, 127, 127, 0.25);">
-            <button id="modal-cancel-btn" style="padding: 0.375rem 0.75rem; background-color: #6c757d; color: white; border: 1px solid #6c757d; border-radius: 0.375rem; font-size: 1rem; cursor: pointer; transition: background-color 0.15s ease-out, border-color 0.15s ease-out;">
+            <button id="modal-cancel-btn" style="padding: 0.375rem 0.75rem; background-color: transparent; color: hsl(var(--foreground)); border: 1px solid hsl(var(--border)); border-radius: 0.375rem; font-size: 1rem; cursor: pointer; transition: background-color 0.15s ease-out, border-color 0.15s ease-out;">
               ${i18n.t('common.cancel')}
             </button>
-            <button id="modal-confirm-btn" style="padding: 0.375rem 0.75rem; background-color: #0d6efd; color: white; border: 1px solid #0d6efd; border-radius: 0.375rem; font-size: 1rem; cursor: pointer; transition: background-color 0.15s ease-out, border-color 0.15s ease-out;">
+            <button id="modal-confirm-btn" style="padding: 0.375rem 0.75rem; background-color: hsl(var(--brand)); color: hsl(var(--brand-foreground)); border: 1px solid hsl(var(--brand)); border-radius: 0.375rem; font-size: 1rem; cursor: pointer; transition: background-color 0.15s ease-out, border-color 0.15s ease-out;">
               ${i18n.t('editors.gui.generateGui')}
             </button>
           </div>
@@ -1210,12 +1213,12 @@ function addAutoGenerateGUIButton(editor: Editor) {
       
       if (confirmBtn) {
         confirmBtn.onmouseover = () => {
-          confirmBtn.style.backgroundColor = '#0b5ed7';
-          confirmBtn.style.borderColor = '#0a58ca';
+          confirmBtn.style.backgroundColor = 'hsl(var(--brand-dark))';
+          confirmBtn.style.borderColor = 'hsl(var(--brand-dark))';
         };
         confirmBtn.onmouseout = () => {
-          confirmBtn.style.backgroundColor = '#0d6efd';
-          confirmBtn.style.borderColor = '#0d6efd';
+          confirmBtn.style.backgroundColor = 'hsl(var(--brand))';
+          confirmBtn.style.borderColor = 'hsl(var(--brand))';
         };
         confirmBtn.onclick = async () => {
           modal.close();
@@ -1240,12 +1243,10 @@ function addAutoGenerateGUIButton(editor: Editor) {
       
       if (cancelBtn) {
         cancelBtn.onmouseover = () => {
-          cancelBtn.style.backgroundColor = '#5c636a';
-          cancelBtn.style.borderColor = '#565e64';
+          cancelBtn.style.backgroundColor = 'hsl(var(--muted))';
         };
         cancelBtn.onmouseout = () => {
-          cancelBtn.style.backgroundColor = '#6c757d';
-          cancelBtn.style.borderColor = '#6c757d';
+          cancelBtn.style.backgroundColor = 'transparent';
         };
         cancelBtn.onclick = () => {
           modal.close();
@@ -1282,15 +1283,15 @@ async function autoGenerateGUIFromClassDiagram(editor: Editor) {
       : `<li>${i18n.t('editors.gui.unknownError')}</li>`;
     const modalContent = `
       <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;">
-        <h2 style="color:#e74c3c; margin-bottom:1rem;">${i18n.t('editors.gui.qualityCheckFailed')}</h2>
-        <p style="font-size:1rem; color:#333; margin-bottom:1rem;">
+        <h2 style="color:hsl(var(--destructive)); margin-bottom:1rem;">${i18n.t('editors.gui.qualityCheckFailed')}</h2>
+        <p style="font-size:1rem; color:inherit; margin-bottom:1rem;">
           ${i18n.t('editors.gui.qualityCheckFailedMessage')}
         </p>
-        <ul style="background:#fff3f3; border:1px solid #e74c3c; border-radius:6px; padding:1rem; color:#b30000; font-size:1rem;">
+        <ul style="background:hsl(var(--destructive) / 0.08); border:1px solid hsl(var(--destructive) / 0.5); border-radius:6px; padding:1rem; color:hsl(var(--destructive)); font-size:1rem;">
           ${errorList}
         </ul>
         <div style="display:flex; justify-content:flex-end; margin-top:1.5rem;">
-          <button id="modal-close-errors-btn" style="padding:0.5rem 1.2rem; background-color:#e74c3c; color:white; border:none; border-radius:4px; font-size:1rem; cursor:pointer;">${i18n.t('common.close')}</button>
+          <button id="modal-close-errors-btn" style="padding:0.5rem 1.2rem; background-color:hsl(var(--destructive)); color:hsl(var(--destructive-foreground)); border:none; border-radius:4px; font-size:1rem; cursor:pointer;">${i18n.t('common.close')}</button>
         </div>
       </div>
     `;

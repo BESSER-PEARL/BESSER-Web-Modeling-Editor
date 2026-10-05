@@ -40,6 +40,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog"
 import { FilePreview } from "@/components/chatbot-kit/ui/file-preview"
+import { useObjectUrl } from "@/components/chatbot-kit/hooks/use-object-url"
 import { MarkdownRenderer } from "@/components/chatbot-kit/ui/markdown-renderer"
 
 const chatBubbleVariants = cva(
@@ -422,7 +423,33 @@ function StreamingCursor() {
   )
 }
 
-export const ChatMessage: React.FC<ChatMessageProps> = (props) => {
+/** Image attachment thumbnail + lightbox; owns (and revokes) its object URL. */
+function ImageAttachment({ file }: { file: File }) {
+  const { t } = useTranslation()
+  const objectUrl = useObjectUrl(file) ?? undefined
+  return (
+    <Dialog>
+      <DialogTrigger asChild>
+        <div className="cursor-pointer overflow-hidden rounded-lg border transition-opacity hover:opacity-80">
+          <img
+            alt={t("assistant.chatKit.attachmentAlt", { name: file.name })}
+            className="max-h-48 max-w-[280px] object-contain"
+            src={objectUrl}
+          />
+        </div>
+      </DialogTrigger>
+      <DialogContent className="flex max-h-[90vh] max-w-[90vw] items-center justify-center border-none bg-transparent p-0 shadow-none">
+        <img
+          alt={t("assistant.chatKit.attachmentAlt", { name: file.name })}
+          className="max-h-[85vh] max-w-[85vw] rounded-lg object-contain"
+          src={objectUrl}
+        />
+      </DialogContent>
+    </Dialog>
+  )
+}
+
+const ChatMessageImpl: React.FC<ChatMessageProps> = (props) => {
   const { t } = useTranslation()
   const {
     role,
@@ -470,27 +497,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = (props) => {
           <div className="mb-1 flex flex-wrap gap-2">
             {files.map((file, index) => {
               if (file.type.startsWith("image/")) {
-                const objectUrl = URL.createObjectURL(file)
-                return (
-                  <Dialog key={index}>
-                    <DialogTrigger asChild>
-                      <div className="cursor-pointer overflow-hidden rounded-lg border transition-opacity hover:opacity-80">
-                        <img
-                          alt={t("assistant.chatKit.attachmentAlt", { name: file.name })}
-                          className="max-h-48 max-w-[280px] object-contain"
-                          src={objectUrl}
-                        />
-                      </div>
-                    </DialogTrigger>
-                    <DialogContent className="flex max-h-[90vh] max-w-[90vw] items-center justify-center border-none bg-transparent p-0 shadow-none">
-                      <img
-                        alt={t("assistant.chatKit.attachmentAlt", { name: file.name })}
-                        className="max-h-[85vh] max-w-[85vw] rounded-lg object-contain"
-                        src={objectUrl}
-                      />
-                    </DialogContent>
-                  </Dialog>
-                )
+                return <ImageAttachment file={file} key={index} />
               }
               return <FilePreview file={file} key={index} />
             })}
@@ -671,6 +678,11 @@ export const ChatMessage: React.FC<ChatMessageProps> = (props) => {
     </div>
   )
 }
+
+// Memoised: typing in the composer or streaming the newest reply must not
+// re-render (and re-parse the markdown of) every older message.
+export const ChatMessage = React.memo(ChatMessageImpl)
+ChatMessage.displayName = "ChatMessage"
 
 function dataUrlToUint8Array(data: string) {
   const base64 = data.split(",")[1] ?? ""

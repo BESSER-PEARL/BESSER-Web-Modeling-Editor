@@ -17,26 +17,32 @@ interface MarkdownRendererProps {
   children: string
 }
 
-export function MarkdownRenderer({ children }: MarkdownRendererProps) {
+const REMARK_PLUGINS = [remarkGfm]
+
+// react-markdown's default URL sanitizer strips unknown schemes, so
+// `wme:add-key` (our in-app action link) was blanked to an empty href —
+// clicking it reloaded the page instead of opening the key dialog. Preserve
+// the wme: scheme; keep the safe default sanitization for every other link.
+const urlTransform = (url: string) =>
+  url.startsWith("wme:") ? url : defaultUrlTransform(url)
+
+// Memoised on the markdown string: parsing is the expensive part of a chat
+// re-render, so unchanged messages skip it entirely.
+export const MarkdownRenderer = React.memo(function MarkdownRenderer({
+  children,
+}: MarkdownRendererProps) {
   return (
     <div className="space-y-3">
       <Markdown
-        remarkPlugins={[remarkGfm]}
+        remarkPlugins={REMARK_PLUGINS}
         components={COMPONENTS}
-        // react-markdown's default URL sanitizer strips unknown schemes,
-        // so `wme:add-key` (our in-app action link) was blanked to an
-        // empty href — clicking it reloaded the page instead of opening
-        // the key dialog. Preserve the wme: scheme; keep the safe default
-        // sanitization for every other link.
-        urlTransform={(url) =>
-          url.startsWith("wme:") ? url : defaultUrlTransform(url)
-        }
+        urlTransform={urlTransform}
       >
         {children}
       </Markdown>
     </div>
   )
-}
+})
 
 interface HighlightedPre extends React.HTMLAttributes<HTMLPreElement> {
   children: string
