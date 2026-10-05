@@ -2538,7 +2538,30 @@
         "valueField": "Wertfeld"
       },
       "colorPalette": "Farbpalette",
-      "colorPaletteOption": "Palette {{index}}"
+      "colorPaletteOption": "Palette {{index}}",
+      "emptyState": {
+        "eyebrow": "Leere Seite",
+        "title": "Mach aus deinem Modell einen Bildschirm",
+        "subtitle": "Erzeuge diese Seite aus deinem Klassendiagramm, baue sie aus Blöcken oder beschreibe sie. Du kannst das danach kombinieren.",
+        "subtitleNoClasses": "Bildschirme werden aus deinem Klassendiagramm erzeugt. Füge zuerst ein paar Klassen hinzu oder starte direkt mit Blöcken.",
+        "generateTitle": "Aus Klassendiagramm erzeugen",
+        "generateDescription": "{{count}} Klassen gefunden: {{names}}.",
+        "addClassesTitle": "Zuerst Klassen hinzufügen",
+        "addClassesDescription": "Öffnet den Klasseneditor. Komm zurück, um Bildschirme zu erzeugen.",
+        "blocksTitle": "Mit einem Block beginnen",
+        "blocksDescription": "Ziehe Spalten, Text, Tabellen und Formulare auf die Seite.",
+        "describeTitle": "Bildschirm beschreiben",
+        "describeDescription": "Sag dem Assistenten, was diese Seite zeigen soll.",
+        "footer": "Das verschwindet, sobald du eine Komponente hinzufügst.",
+        "figureTag": "Seite",
+        "newItem": "Neu: {{name}}",
+        "noClassesTitle": "Noch keine Klassen",
+        "noClassesHint": "Füge sie im Klasseneditor hinzu",
+        "starterPrompt": "Erstelle eine Seite zum Durchsuchen von {{page}}",
+        "starterPromptNoClasses": "Erstelle eine Startseite für meine App",
+        "generateDescription_one": "1 Klasse gefunden: {{names}}.",
+        "generateDescription_other": "{{count}} Klassen gefunden: {{names}}."
+      }
     },
     "loadingGuiEditor": "GUI-Editor wird geladen…",
     "loadingQuantumEditor": "Quanteneditor wird geladen…",

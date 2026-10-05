@@ -2538,7 +2538,30 @@
         "valueField": "Wäertfeld"
       },
       "colorPalette": "Faarfpalette",
-      "colorPaletteOption": "Palette {{index}}"
+      "colorPaletteOption": "Palette {{index}}",
+      "emptyState": {
+        "eyebrow": "Eidel Säit",
+        "title": "Maach aus dengem Modell en Ecran",
+        "subtitle": "Generéier dës Säit aus dengem Klassendiagramm, bau se aus Bléck oder beschreif se. Du kanns dat duerno kombinéieren.",
+        "subtitleNoClasses": "Ecranen ginn aus dengem Klassendiagramm generéiert. Setz fir d’éischt e puer Klassen derbäi oder fänk direkt mat Bléck un.",
+        "generateTitle": "Aus dem Klassendiagramm generéieren",
+        "generateDescription": "{{count}} Klassen fonnt: {{names}}.",
+        "addClassesTitle": "Fir d’éischt Klassen derbäisetzen",
+        "addClassesDescription": "Mécht de Klasseneditor op. Komm zréck fir Ecranen ze generéieren.",
+        "blocksTitle": "Mat engem Block ufänken",
+        "blocksDescription": "Zéi Kolonnen, Text, Tabellen a Formulairen op d’Säit.",
+        "describeTitle": "Den Ecran beschreiwen",
+        "describeDescription": "So dem Assistent, wat dës Säit weise soll.",
+        "footer": "Dat verschwënnt, soubal s du eng Komponent derbäisetz.",
+        "figureTag": "Säit",
+        "newItem": "Nei: {{name}}",
+        "noClassesTitle": "Nach keng Klassen",
+        "noClassesHint": "Setz se am Klasseneditor derbäi",
+        "starterPrompt": "Maach eng Säit fir {{page}} ze duerchsichen",
+        "starterPromptNoClasses": "Maach eng Startsäit fir meng App",
+        "generateDescription_one": "1 Klass fonnt: {{names}}.",
+        "generateDescription_other": "{{count}} Klassen fonnt: {{names}}."
+      }
     },
     "loadingGuiEditor": "GUI-Editor gëtt gelueden…",
     "loadingQuantumEditor": "Quanten-Editor gëtt gelueden…",

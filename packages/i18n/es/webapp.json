@@ -2538,7 +2538,30 @@
         "valueField": "Campo de valor"
       },
       "colorPalette": "Paleta de colores",
-      "colorPaletteOption": "Paleta {{index}}"
+      "colorPaletteOption": "Paleta {{index}}",
+      "emptyState": {
+        "eyebrow": "Página vacía",
+        "title": "Convierte tu modelo en una pantalla",
+        "subtitle": "Genera esta página a partir de tu diagrama de clases, constrúyela con bloques o descríbela. Después puedes combinarlos.",
+        "subtitleNoClasses": "Las pantallas se generan a partir de tu diagrama de clases. Añade primero algunas clases o empieza ya con bloques.",
+        "generateTitle": "Generar desde el diagrama de clases",
+        "generateDescription": "{{count}} clases encontradas: {{names}}.",
+        "addClassesTitle": "Añade clases primero",
+        "addClassesDescription": "Abre el editor de clases. Vuelve después para generar pantallas.",
+        "blocksTitle": "Empezar con un bloque",
+        "blocksDescription": "Arrastra columnas, texto, tablas y formularios a la página.",
+        "describeTitle": "Describir la pantalla",
+        "describeDescription": "Dile al asistente qué debe mostrar esta página.",
+        "footer": "Esto desaparece en cuanto añadas un componente.",
+        "figureTag": "página",
+        "newItem": "Nuevo {{name}}",
+        "noClassesTitle": "Aún no hay clases",
+        "noClassesHint": "Añádelas en el editor de clases",
+        "starterPrompt": "Crea una página para explorar {{page}}",
+        "starterPromptNoClasses": "Crea una página de inicio para mi aplicación",
+        "generateDescription_one": "1 clase encontrada: {{names}}.",
+        "generateDescription_other": "{{count}} clases encontradas: {{names}}."
+      }
     },
     "loadingGuiEditor": "Cargando el editor de GUI…",
     "loadingQuantumEditor": "Cargando el editor cuántico…",

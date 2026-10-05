@@ -271,7 +271,18 @@ export const AssistantWorkspaceDrawer: React.FC<AssistantWorkspaceDrawerProps> =
     };
 
     window.addEventListener('wme:assistant-run-prompt', onRunPrompt);
-    return () => window.removeEventListener('wme:assistant-run-prompt', onRunPrompt);
+    // Prefill: open the drawer with a starter prompt in the composer, without sending it.
+    const onPrefill = (event: Event) => {
+      const prompt = (event as CustomEvent<{ prompt?: string }>).detail?.prompt;
+      if (typeof prompt !== 'string' || !prompt.trim()) return;
+      setInputValue(prompt);
+      onOpenChange(true);
+    };
+    window.addEventListener('wme:assistant-prefill', onPrefill);
+    return () => {
+      window.removeEventListener('wme:assistant-run-prompt', onRunPrompt);
+      window.removeEventListener('wme:assistant-prefill', onPrefill);
+    };
     // Intentionally run once — onOpenChange is only used to open the panel.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);

@@ -1,8 +1,12 @@
-﻿import React, { useEffect, useRef, useState } from 'react';
+﻿import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import type { Editor } from 'grapesjs';
 import { AlertTriangle, Check, Loader2 } from 'lucide-react';
 import './grapesjs-styles.css';
-import { getClassOptions, getDisplayAttribute, getEndsByClassId, getClassMetadata, getMethodsByClassId } from './diagram-helpers';
+import { getClassOptions, getAttributeOptionsByClassId, getDisplayAttribute, getEndsByClassId, getClassMetadata, getMethodsByClassId } from './diagram-helpers';
+import { GuiEmptyState, pluralize } from './GuiEmptyState';
+import { useAppDispatch } from '../../../app/store/hooks';
+import { switchDiagramTypeThunk } from '../../../app/store/workspaceSlice';
 import { setupPageSystem, loadDefaultPages } from './setup/setupPageSystem';
 import { registerAllComponents } from './registerAllComponents';
 import { ensureDesignSystemStyles } from './designSystem';
@@ -55,6 +59,11 @@ export const GraphicalUIEditor: React.FC = () => {
   const containerRef = useRef<HTMLDivElement>(null);
   const [saveStatus, setSaveStatus] = useState<'saved' | 'saving' | 'error'>('saved');
   const [lastSavedAt, setLastSavedAt] = useState<Date | null>(null);
+  // Empty-page guidance: shown over the canvas while the current page has no components.
+  const [isPageEmpty, setIsPageEmpty] = useState(false);
+  const [isDraggingBlock, setIsDraggingBlock] = useState(false);
+  const [canvasEl, setCanvasEl] = useState<HTMLElement | null>(null);
+  const dispatch = useAppDispatch();
   const saveIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   // Track the active language so a switch remounts the editor (see the init
@@ -248,6 +257,23 @@ export const GraphicalUIEditor: React.FC = () => {
       window.addEventListener('wme:assistant-auto-generate-gui', handleAssistantAutoGenerate as EventListener);
       window.addEventListener('wme:assistant-load-gui-model', handleAssistantLoadModel as EventListener);
       window.addEventListener('wme:flush-gui-for-generation', handleFlushForGeneration as EventListener);
+
+      // Empty-page state: re-check after anything that can add/remove components or switch pages.
+      const updateEmptyState = () => {
+        const wrapper = editor.getWrapper();
+        setIsPageEmpty(Boolean(wrapper) && wrapper!.components().length === 0);
+        setCanvasEl(editor.Canvas.getElement() ?? null);
+      };
+      const deferEmptyCheck = () => setTimeout(updateEmptyState, 0);
+      const onBlockDragStart = () => setIsDraggingBlock(true);
+      const onBlockDragStop = () => {
+        setIsDraggingBlock(false);
+        deferEmptyCheck();
+      };
+      editor.on('load page:select component:add component:remove', deferEmptyCheck);
+      editor.on('block:drag:start', onBlockDragStart);
+      editor.on('block:drag:stop', onBlockDragStop);
+      updateEmptyState();
       (window as any).__WME_GUI_EDITOR_READY__ = true;
       window.dispatchEvent(new CustomEvent('wme:gui-editor-ready'));
 
@@ -313,6 +339,9 @@ export const GraphicalUIEditor: React.FC = () => {
         window.removeEventListener('wme:assistant-auto-generate-gui', handleAssistantAutoGenerate as EventListener);
         window.removeEventListener('wme:assistant-load-gui-model', handleAssistantLoadModel as EventListener);
         window.removeEventListener('wme:flush-gui-for-generation', handleFlushForGeneration as EventListener);
+        editor.off('load page:select component:add component:remove', deferEmptyCheck);
+        editor.off('block:drag:start', onBlockDragStart);
+        editor.off('block:drag:stop', onBlockDragStop);
         (window as any).__WME_GUI_EDITOR_READY__ = false;
 
         // Destroy editor and clean up global reference
@@ -347,9 +376,45 @@ export const GraphicalUIEditor: React.FC = () => {
     }
   }, [saveStatus]);
 
+  // Classes of the referenced class diagram, read when the empty state is about to show.
+  const emptyStateClasses = useMemo(
+    () =>
+      isPageEmpty
+        ? getClassOptions().map((c) => ({ name: c.label, attributes: getAttributeOptionsByClassId(c.value).map((a) => a.label) }))
+        : [],
+    [isPageEmpty],
+  );
+
+  const openBlocksPanel = () => {
+    const button = editorRef.current?.Panels?.getButton?.('views', 'open-blocks');
+    if (button && !button.get('active')) button.set('active', true);
+  };
+
+  const describeScreen = () => {
+    const first = emptyStateClasses.find((c) => c.attributes.length > 0) ?? emptyStateClasses[0];
+    const prompt = first
+      ? i18n.t('editors.gui.emptyState.starterPrompt', { page: pluralize(first.name).toLowerCase() })
+      : i18n.t('editors.gui.emptyState.starterPromptNoClasses');
+    // Opens the bottom assistant with the prompt typed in (not sent), so the user can adjust it.
+    window.dispatchEvent(new CustomEvent('wme:assistant-prefill', { detail: { prompt } }));
+  };
+
   return (
     <div className="relative h-full min-h-0">
       <div ref={containerRef} id="gjs"></div>
+      {isPageEmpty &&
+        !isDraggingBlock &&
+        canvasEl &&
+        createPortal(
+          <GuiEmptyState
+            classes={emptyStateClasses}
+            onGenerate={() => editorRef.current?.runCommand('auto-generate-gui')}
+            onOpenBlocks={openBlocksPanel}
+            onDescribe={describeScreen}
+            onAddClasses={() => void dispatch(switchDiagramTypeThunk({ diagramType: 'ClassDiagram' }))}
+          />,
+          canvasEl,
+        )}
       {/* Save-status badge — the only user-visible confirmation that edits
           persist. Driven by the storage listeners above; pointer-events-none
           so it never blocks canvas interaction. */}
