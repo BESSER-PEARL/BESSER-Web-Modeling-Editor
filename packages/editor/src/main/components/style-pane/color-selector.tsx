@@ -21,20 +21,20 @@ const colors = [
   'black',
 ];
 
-// Accessible names for the swatches, in the same order as `colors`.
-const colorNames = [
-  'Red',
-  'Orange',
-  'Yellow',
-  'Green',
-  'Teal',
-  'Sky blue',
-  'Blue',
-  'Slate blue',
-  'Purple',
-  'Light gray',
-  'Gray',
-  'Black',
+// Accessible names for the swatches (`stylePane.colors.<key>`, English fallback), in the same order as `colors`.
+const colorNames: [string, string][] = [
+  ['red', 'Red'],
+  ['orange', 'Orange'],
+  ['yellow', 'Yellow'],
+  ['green', 'Green'],
+  ['teal', 'Teal'],
+  ['skyBlue', 'Sky blue'],
+  ['blue', 'Blue'],
+  ['slateBlue', 'Slate blue'],
+  ['purple', 'Purple'],
+  ['lightGray', 'Light gray'],
+  ['gray', 'Gray'],
+  ['black', 'Black'],
 ];
 
 const ColorContainer = styled.div`
@@ -67,7 +67,9 @@ const Color = styled.button.attrs<ColorProps>({})<ColorProps>`
   border: none;
   position: relative;
   margin: 10px;
-  box-shadow: ${({ color, selected }: ColorProps) => (selected ? `0px 0px 10px ${color}` : 'none')};
+  /* A ring in the theme accent with a background gap, visible for any swatch colour. */
+  box-shadow: ${(props) =>
+    props.selected ? `0 0 0 2px ${props.theme.color.background}, 0 0 0 4px ${props.theme.color.primary}` : 'none'};
 `;
 
 function ColorSelectorComponent({ onColorChange, color, open, translate }: Props) {
@@ -92,7 +94,7 @@ function ColorSelectorComponent({ onColorChange, color, open, translate }: Props
                 color={colorOption}
                 onClick={() => handleColorChange(colorOption)}
                 selected={colorOption === color}
-                aria-label={colorNames[index]}
+                aria-label={translate(`stylePane.colors.${colorNames[index][0]}`) || colorNames[index][1]}
                 aria-pressed={colorOption === color}
               />
             ))}

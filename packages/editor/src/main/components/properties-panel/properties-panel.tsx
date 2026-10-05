@@ -8,6 +8,8 @@ import { ApollonMode } from '../../services/editor/editor-types';
 import { IUMLElement } from '../../services/uml-element/uml-element';
 import { UMLElementRepository } from '../../services/uml-element/uml-element-repository';
 import { Assessment } from '../assessment/assessment';
+import { CanvasContext } from '../canvas/canvas-context';
+import { withCanvas } from '../canvas/with-canvas';
 import { I18nContext } from '../i18n/i18n-context';
 import { localized } from '../i18n/localized';
 import { ModelState } from '../store/model-state';
@@ -46,10 +48,11 @@ type DispatchProps = {
   updateEnd: typeof UMLElementRepository.updateEnd;
 };
 
-type Props = OwnProps & StateProps & DispatchProps & I18nContext;
+type Props = OwnProps & StateProps & DispatchProps & I18nContext & CanvasContext;
 
 const enhance = compose<ComponentClass<OwnProps>>(
   localized,
+  withCanvas,
   connect<StateProps, DispatchProps, OwnProps, ModelState>(
     (state) => ({
       element: state.elements[state.updating[0]] || null,
@@ -81,6 +84,8 @@ class PropertiesPanelComponent extends Component<Props, PropertiesPanelState> {
   private wrapperRef = createRef<HTMLDivElement>();
   private prevIsVisible = false;
   private prevTotalWidth = 0;
+  /** Element focused when the panel opened; focus returns there (or to the canvas) on close. */
+  private opener: HTMLElement | null = null;
 
   componentDidMount() {
     document.addEventListener('keydown', this.handleKeyDown);
@@ -88,8 +93,25 @@ class PropertiesPanelComponent extends Component<Props, PropertiesPanelState> {
     this.syncCssVar();
   }
 
-  componentDidUpdate() {
+  componentDidUpdate(prevProps: Props) {
     this.syncCssVar();
+    if (!prevProps.element && this.props.element) {
+      const active = document.activeElement as HTMLElement | null;
+      const insidePanel = !!active && !!this.wrapperRef.current?.contains(active);
+      this.opener = active && active !== document.body && !insidePanel ? active : null;
+    } else if (prevProps.element && !this.props.element) {
+      this.restoreFocus();
+    }
+  }
+
+  /** The panel's DOM is gone, so focus fell to <body>; hand it back to the opener or the canvas. */
+  private restoreFocus() {
+    const opener = this.opener;
+    this.opener = null;
+    const active = document.activeElement;
+    if (active && active !== document.body) return;
+    const target = opener && opener.isConnected ? opener : this.props.canvas?.layer;
+    target?.focus({ preventScroll: true });
   }
 
   componentWillUnmount() {
@@ -138,7 +160,7 @@ class PropertiesPanelComponent extends Component<Props, PropertiesPanelState> {
     const typeLabel = this.getTypeLabel(element.type);
 
     return (
-      <PanelWrapper ref={this.wrapperRef}>
+      <PanelWrapper ref={this.wrapperRef} data-apollon-popup="">
         <ResizeHandle
           onMouseDown={this.handleResizeMouseDown}
           onKeyDown={this.handleResizeKeyDown}

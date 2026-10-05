@@ -10,6 +10,8 @@ import { hoverable } from '../uml-element/hoverable/hoverable';
 type Props = {
   element: UMLElement;
   create: (element: UMLElement, owner?: string) => void;
+  /** Click/keyboard insert; selects the new element. Falls back to `create`. */
+  insert?: (element: UMLElement) => void;
   /** Model coordinates (top-left) at which to insert an element of this size without dragging. */
   getInsertPosition?: (size: { width: number; height: number }) => Point | undefined;
   scale?: number;
@@ -96,6 +98,10 @@ export class PreviewElementComponent extends Component<Props> {
   private insertAtCenter() {
     const position = this.props.getInsertPosition?.(this.props.element.bounds);
     if (!position) return;
-    this.onDrop({ position });
+    if (!this.props.insert) {
+      this.onDrop({ position });
+      return;
+    }
+    this.props.insert(this.props.element.clone({ bounds: { ...this.props.element.bounds, ...position } }));
   }
 }

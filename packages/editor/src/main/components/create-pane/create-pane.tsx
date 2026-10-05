@@ -58,6 +58,8 @@ type DispatchProps = {
   append: typeof UMLContainerRepository.append;
   remove: typeof UMLContainerRepository.remove;
   update: typeof UMLElementRepository.update;
+  select: typeof UMLElementRepository.select;
+  deselect: typeof UMLElementRepository.deselect;
   setPalette: typeof setPalette;
 };
 
@@ -153,6 +155,8 @@ const enhance = compose<ComponentClass<OwnProps>>(
       append: UMLContainerRepository.append,
       remove: UMLContainerRepository.remove,
       update: UMLElementRepository.update,
+      select: UMLElementRepository.select,
+      deselect: UMLElementRepository.deselect,
       setPalette,
     },
   ),
@@ -205,6 +209,7 @@ class CreatePaneComponent extends Component<Props, State> {
             <PreviewElementComponent
               element={preview}
               create={this.create}
+              insert={this.insert}
               getInsertPosition={this.getInsertPosition}
             />
           </div>
@@ -303,7 +308,16 @@ class CreatePaneComponent extends Component<Props, State> {
     };
   };
 
-  create = (preview: UMLElement, owner?: string) => {
+  /** Palette click/keyboard insert: create like a drop, then make the new element the selection. */
+  insert = (preview: UMLElement) => {
+    const id = this.create(preview);
+    if (!id) return;
+    this.props.deselect();
+    this.props.select(id);
+  };
+
+  /** Creates the element (and its children); returns the new root element's id. */
+  create = (preview: UMLElement, owner?: string): string | undefined => {
     if (preview.type === BPMNElementType.BPMNSwimlane) {
       if (!owner) {
         return;
@@ -392,7 +406,10 @@ class CreatePaneComponent extends Component<Props, State> {
       (el) => (el.owner ?? null) === (effectiveOwner ?? null) && el.bounds.width > 0 && el.bounds.height > 0,
     );
     let iter = 0;
-    while (iter < MAX_ITERS && siblings.some((sib) => boundsOverlap(localBounds, sib.bounds))) {
+    // Only BPMN nudges a dropped element clear of its siblings (keeps pools and lanes tidy);
+    // other diagrams drop exactly where the user releases, overlaps included.
+    const avoidOverlap = this.props.type === UMLDiagramType.BPMN;
+    while (avoidOverlap && iter < MAX_ITERS && siblings.some((sib) => boundsOverlap(localBounds, sib.bounds))) {
       localBounds.x += GAP;
       dropped.bounds.x += GAP;
       iter++;
@@ -437,6 +454,7 @@ class CreatePaneComponent extends Component<Props, State> {
     }
 
     this.props.create(elements, effectiveOwner);
+    return dropped.id;
   };
 }
 

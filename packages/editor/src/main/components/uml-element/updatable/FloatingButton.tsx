@@ -1,21 +1,22 @@
 import React from 'react';
 import { styled } from '../../theme/styles';
 
+// Hidden buttons (opacity 0) must not keep invisible hit targets on the canvas.
 const FloatingButtonContainer = styled.g.attrs((props) => ({
   ...props,
-}))`
-  transition:
-    opacity 150ms ease-out,
-    transform 150ms ease-out;
-  pointer-events: all;
+}))<{ $active: boolean }>`
+  @media (prefers-reduced-motion: no-preference) {
+    transition: opacity 100ms ease-out;
+  }
+  pointer-events: ${(props) => (props.$active ? 'all' : 'none')};
   outline: none;
 
   path {
-    pointer-events: all;
+    pointer-events: ${(props) => (props.$active ? 'all' : 'none')};
     fill: var(--apollon-primary-contrast);
   }
   rect {
-    pointer-events: all;
+    pointer-events: ${(props) => (props.$active ? 'all' : 'none')};
     fill: var(--apollon-background);
     stroke: var(--apollon-gray);
   }
@@ -57,6 +58,7 @@ export const FloatingButton: React.FC<FloatingButtonProps> = ({ children, label,
   return (
     <FloatingButtonContainer
       {...props}
+      $active={active}
       onClick={onClick}
       onKeyDown={onKeyDown}
       role="button"
