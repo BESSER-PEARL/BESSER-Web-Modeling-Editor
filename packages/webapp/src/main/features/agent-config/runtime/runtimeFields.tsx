@@ -39,14 +39,20 @@ export function Field({ id, label, description, children }: {
   );
 }
 
-export function TextField({ id, label, description, value, onChange, placeholder }: {
+export function TextField({ id, label, description, value, onChange, placeholder, secret = false }: {
   id: string; label: string; description?: string; value: string;
   onChange: (v: string) => void; placeholder?: string;
+  /** Mask the value (passwords, API keys, tokens). */
+  secret?: boolean;
 }) {
   return (
     <Field id={id} label={label} description={description}>
       <Input
         id={id}
+        name={id}
+        type={secret ? 'password' : 'text'}
+        autoComplete={secret ? 'new-password' : 'off'}
+        spellCheck={false}
         value={value}
         onChange={e => onChange(e.target.value)}
         placeholder={placeholder}
@@ -85,7 +91,7 @@ export function DbFields({
       <TextField id={`${prefix}-port`} label="port" value={value.port} onChange={v => onChange({ port: v })} description={t('agentConfig.runtime.field.db.portDesc')} />
       <TextField id={`${prefix}-database`} label="database" value={value.database} onChange={v => onChange({ database: v })} description={t('agentConfig.runtime.field.db.databaseDesc')} />
       <TextField id={`${prefix}-username`} label="username" value={value.username} onChange={v => onChange({ username: v })} description={t('agentConfig.runtime.field.db.usernameDesc')} />
-      <TextField id={`${prefix}-password`} label="password" value={value.password} onChange={v => onChange({ password: v })} description={t('agentConfig.runtime.field.db.passwordDesc')} />
+      <TextField id={`${prefix}-password`} label="password" secret value={value.password} onChange={v => onChange({ password: v })} description={t('agentConfig.runtime.field.db.passwordDesc')} />
     </div>
   );
 }

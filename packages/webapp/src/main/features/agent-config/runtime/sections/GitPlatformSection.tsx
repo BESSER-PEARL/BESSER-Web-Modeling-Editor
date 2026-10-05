@@ -16,8 +16,8 @@ export function GitPlatformSection({ runtime, platform }: ConfigSectionProps & {
         <EnabledToggle value={value.enabled} onChange={v => set({ enabled: v })} />
         {value.enabled && (
           <div className="grid grid-cols-2 gap-3">
-            <TextField id={`${idPrefix}-pt`} label="personal_token" value={value.personal_token} onChange={v => set({ personal_token: v })} description={t(`agentConfig.runtime.field.${platform}.personalTokenDesc`)} />
-            <TextField id={`${idPrefix}-wt`} label="webhook_token" value={value.webhook_token} onChange={v => set({ webhook_token: v })} description={t(`agentConfig.runtime.field.${platform}.webhookTokenDesc`)} />
+            <TextField id={`${idPrefix}-pt`} secret label="personal_token" value={value.personal_token} onChange={v => set({ personal_token: v })} description={t(`agentConfig.runtime.field.${platform}.personalTokenDesc`)} />
+            <TextField id={`${idPrefix}-wt`} secret label="webhook_token" value={value.webhook_token} onChange={v => set({ webhook_token: v })} description={t(`agentConfig.runtime.field.${platform}.webhookTokenDesc`)} />
             <TextField id={`${idPrefix}-wp`} label="webhook_port" value={value.webhook_port} onChange={v => set({ webhook_port: v })} description={t(`agentConfig.runtime.field.${platform}.webhookPortDesc`)} />
           </div>
         )}
