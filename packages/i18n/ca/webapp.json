@@ -36,7 +36,8 @@
       "issues": "Problemes",
       "needsRecheck": "Cal revisar-ho",
       "notValidated": "No validat"
-    }
+    },
+    "more": "Més"
   },
   "nav": {
     "editors": "Editors",
@@ -64,20 +65,19 @@
   "menu": {
     "file": {
       "title": "Fitxer",
-      "projectActions": "Accions del projecte",
       "newOpenImport": "Nou / Obre / Importa un projecte",
       "loadTemplate": "Carrega una plantilla…",
       "exportProject": "Exporta el projecte…",
-      "importClassDiagramFrom": "Importa un diagrama de classes des de",
-      "imageToProject": "Imatge a projecte…",
-      "kgToProject": "Graf de coneixement a projecte…",
       "previewProject": "Previsualitza el projecte…",
-      "importBpmnDiagram": "Importa un diagrama BPMN (.bpmn / .xml)…"
+      "importBpmnDiagram": "Importa un diagrama BPMN (.bpmn / .xml)…",
+      "importGroupProject": "Projecte",
+      "importGroupClassDiagram": "Diagrama de classes des de",
+      "importImage": "Imatge…",
+      "importKnowledgeGraph": "Graf de coneixement…"
     },
     "generate": {
       "title": "Genera",
       "generating": "S'està generant…",
-      "codeGeneration": "Generació de codi",
       "goToClassDiagram": "Vés al diagrama de classes",
       "groups": {
         "web": "Web",
@@ -106,7 +106,6 @@
     },
     "deploy": {
       "title": "Desplega",
-      "deployment": "Desplegament",
       "connectGitHub": "Connecta GitHub per desplegar",
       "publishToRender": "Publica a Render…",
       "connectGitHubFirstHint": "Connecta GitHub primer"
@@ -873,8 +872,6 @@
       "import": {
         "title": "Importar un projecte",
         "description": "Carrega un fitxer de projecte exportat i continua on ho vas deixar.",
-        "cardTitle": "Importar fitxer de projecte",
-        "cardDescription": "Formats admesos: .json, .py.",
         "dropAria": "Deixa anar un fitxer o fes clic per explorar",
         "dropPrompt": "Deixa anar un fitxer aquí o fes clic per explorar",
         "dropHint": "Fitxers de projecte JSON o Python"
@@ -903,10 +900,7 @@
         "description": "Tria com vols iniciar la teva sessió de modelatge i obrir el teu espai de treball.",
         "heroTitle": "Inicia el teu espai de modelatge",
         "heroBody": "BESSER (Better Smart Software Faster) és una plataforma de codi obert dirigida per models per al disseny, la generació i el desplegament d'UML. Tria un camí a continuació per iniciar el teu projecte ràpidament.",
-        "cardCreate": {
-          "title": "Crear en blanc",
-          "description": "Comença des de zero amb tots els editors disponibles."
-        },
+        "cardCreate": {},
         "cardSpreadsheet": {
           "title": "Des de full de càlcul",
           "description": "Genera automàticament un diagrama de classes a partir de fitxers CSV/XLSX."
@@ -1371,7 +1365,14 @@
     },
     "chat": {
       "newChat": "Xat nou",
-      "newConversationTitle": "Inicia una conversa nova"
+      "newConversationTitle": "Inicia una conversa nova",
+      "moreActions": "Més accions",
+      "yourModel": "El teu model",
+      "hideYourModel": "Amaga el teu model",
+      "apiKeySet": "Clau API definida",
+      "useOwnApiKey": "Utilitza la teva clau API",
+      "reportIssue": "Informa d’un problema",
+      "addApiKey": "Afegeix la teva clau API"
     },
     "drawer": {
       "pushToClose": "Empeny cap avall per tancar l'assistent",
@@ -1980,7 +1981,8 @@
       "projectLabel": "Projecte (V{{version}})",
       "bumlLabelNamed": "Previsualització B-UML del projecte ({{name}})",
       "bumlLabel": "Previsualització B-UML del projecte"
-    }
+    },
+    "skipToEditor": "Vés a l’editor"
   },
   "editors": {
     "diagramTabs": {

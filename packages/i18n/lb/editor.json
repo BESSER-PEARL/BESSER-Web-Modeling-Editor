@@ -765,7 +765,21 @@
     "lineColor": "Linnefaarf",
     "default": "Standard",
     "enterNumber": "Zuel aginn…",
-    "derived": "Ofgeleet"
+    "derived": "Ofgeleet",
+    "colors": {
+      "red": "Rout",
+      "orange": "Orange",
+      "yellow": "Giel",
+      "green": "Gréng",
+      "teal": "Petrol",
+      "skyBlue": "Himmelblo",
+      "blue": "Blo",
+      "slateBlue": "Schieferblo",
+      "purple": "Mof",
+      "lightGray": "Hellgro",
+      "gray": "Gro",
+      "black": "Schwaarz"
+    }
   },
   "associationPopup": {
     "cancel": "Ofbriechen",

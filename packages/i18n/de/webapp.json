@@ -36,7 +36,8 @@
       "issues": "Probleme",
       "needsRecheck": "Erneut prüfen",
       "notValidated": "Nicht validiert"
-    }
+    },
+    "more": "Mehr"
   },
   "nav": {
     "editors": "Editoren",
@@ -64,20 +65,19 @@
   "menu": {
     "file": {
       "title": "Datei",
-      "projectActions": "Projektaktionen",
       "newOpenImport": "Neu / Öffnen / Projekt importieren",
       "loadTemplate": "Vorlage laden…",
       "exportProject": "Projekt exportieren…",
-      "importClassDiagramFrom": "Klassendiagramm importieren aus",
-      "imageToProject": "Bild in Projekt umwandeln…",
-      "kgToProject": "Knowledge Graph in Projekt umwandeln…",
       "previewProject": "Projektvorschau…",
-      "importBpmnDiagram": "BPMN-Diagramm importieren (.bpmn / .xml)…"
+      "importBpmnDiagram": "BPMN-Diagramm importieren (.bpmn / .xml)…",
+      "importGroupProject": "Projekt",
+      "importGroupClassDiagram": "Klassendiagramm aus",
+      "importImage": "Bild…",
+      "importKnowledgeGraph": "Wissensgraph…"
     },
     "generate": {
       "title": "Generieren",
       "generating": "Wird generiert…",
-      "codeGeneration": "Codegenerierung",
       "goToClassDiagram": "Zum Klassendiagramm",
       "groups": {
         "web": "Web",
@@ -106,7 +106,6 @@
     },
     "deploy": {
       "title": "Bereitstellen",
-      "deployment": "Bereitstellung",
       "connectGitHub": "GitHub zum Bereitstellen verbinden",
       "publishToRender": "Auf Render veröffentlichen…",
       "connectGitHubFirstHint": "Zuerst GitHub verbinden"
@@ -873,8 +872,6 @@
       "import": {
         "title": "Ein Projekt importieren",
         "description": "Laden Sie eine exportierte Projektdatei und machen Sie dort weiter, wo Sie aufgehört haben.",
-        "cardTitle": "Projektdatei importieren",
-        "cardDescription": "Unterstützte Formate: .json, .py.",
         "dropAria": "Datei ablegen oder zum Durchsuchen klicken",
         "dropPrompt": "Datei hier ablegen oder zum Durchsuchen klicken",
         "dropHint": "JSON- oder Python-Projektdateien"
@@ -903,10 +900,7 @@
         "description": "Wählen Sie, wie Sie Ihre Modellierungssitzung beginnen und Ihren Arbeitsbereich öffnen möchten.",
         "heroTitle": "Starten Sie Ihren Modellierungsarbeitsbereich",
         "heroBody": "BESSER (Better Smart Software Faster) ist eine quelloffene, modellgetriebene Plattform für UML-Design, -Generierung und -Bereitstellung. Wählen Sie unten eine Option aus, um Ihr Projekt schnell aufzusetzen.",
-        "cardCreate": {
-          "title": "Leer erstellen",
-          "description": "Von Grund auf mit allen verfügbaren Editoren beginnen."
-        },
+        "cardCreate": {},
         "cardSpreadsheet": {
           "title": "Aus Tabelle",
           "description": "Automatisch ein Klassendiagramm aus CSV/XLSX-Dateien generieren."
@@ -1371,7 +1365,14 @@
     },
     "chat": {
       "newChat": "Neuer Chat",
-      "newConversationTitle": "Ein neues Gespräch beginnen"
+      "newConversationTitle": "Ein neues Gespräch beginnen",
+      "moreActions": "Weitere Aktionen",
+      "yourModel": "Dein Modell",
+      "hideYourModel": "Modell ausblenden",
+      "apiKeySet": "API-Schlüssel gesetzt",
+      "useOwnApiKey": "Eigenen API-Schlüssel verwenden",
+      "reportIssue": "Problem melden",
+      "addApiKey": "API-Schlüssel hinzufügen"
     },
     "drawer": {
       "pushToClose": "Nach unten schieben, um den Assistenten zu schließen",
@@ -1980,7 +1981,8 @@
       "projectLabel": "Projekt (V{{version}})",
       "bumlLabelNamed": "Projekt-B-UML-Vorschau ({{name}})",
       "bumlLabel": "Projekt-B-UML-Vorschau"
-    }
+    },
+    "skipToEditor": "Zum Editor springen"
   },
   "editors": {
     "diagramTabs": {

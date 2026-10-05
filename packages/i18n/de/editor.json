@@ -765,7 +765,21 @@
     "lineColor": "Linienfarbe",
     "default": "Standard",
     "enterNumber": "Zahl eingeben…",
-    "derived": "Abgeleitet"
+    "derived": "Abgeleitet",
+    "colors": {
+      "red": "Rot",
+      "orange": "Orange",
+      "yellow": "Gelb",
+      "green": "Grün",
+      "teal": "Petrol",
+      "skyBlue": "Himmelblau",
+      "blue": "Blau",
+      "slateBlue": "Schieferblau",
+      "purple": "Lila",
+      "lightGray": "Hellgrau",
+      "gray": "Grau",
+      "black": "Schwarz"
+    }
   },
   "associationPopup": {
     "cancel": "Abbrechen",

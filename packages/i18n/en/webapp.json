@@ -36,7 +36,8 @@
       "issues": "Issues",
       "needsRecheck": "Needs recheck",
       "notValidated": "Not validated"
-    }
+    },
+    "more": "More"
   },
   "nav": {
     "editors": "Editors",
@@ -64,7 +65,6 @@
   "menu": {
     "file": {
       "title": "File",
-      "projectActions": "Project Actions",
       "newOpenImport": "New / Open / Import Project",
       "newProject": "New Project…",
       "openProject": "Open Project…",
@@ -75,16 +75,16 @@
       "fromGithub": "From GitHub…",
       "loadTemplate": "Load Template…",
       "exportProject": "Export Project…",
-      "importClassDiagramFrom": "Import Class Diagram from",
-      "imageToProject": "Image to Project…",
-      "kgToProject": "KG to Project…",
       "previewProject": "Preview Project…",
-      "importBpmnDiagram": "Import BPMN diagram (.bpmn / .xml)…"
+      "importBpmnDiagram": "Import BPMN diagram (.bpmn / .xml)…",
+      "importGroupProject": "Project",
+      "importGroupClassDiagram": "Class Diagram from",
+      "importImage": "Image…",
+      "importKnowledgeGraph": "Knowledge Graph…"
     },
     "generate": {
       "title": "Generate",
       "generating": "Generating…",
-      "codeGeneration": "Code Generation",
       "goToClassDiagram": "Go to Class Diagram",
       "groups": {
         "web": "Web",
@@ -113,7 +113,6 @@
     },
     "deploy": {
       "title": "Deploy",
-      "deployment": "Deployment",
       "connectGitHub": "Connect GitHub to Deploy",
       "publishToRender": "Publish to Render…",
       "connectGitHubFirstHint": "Connect GitHub first"
@@ -880,8 +879,6 @@
       "import": {
         "title": "Import a Project",
         "description": "Load an exported project file and continue where you left off.",
-        "cardTitle": "Import Project File",
-        "cardDescription": "Supported formats: .json, .py.",
         "dropAria": "Drop a file or click to browse",
         "dropPrompt": "Drop a file here or click to browse",
         "dropHint": "JSON or Python project files"
@@ -910,10 +907,7 @@
         "description": "Choose how you want to start your modeling session and open your workspace.",
         "heroTitle": "Start Your Modeling Workspace",
         "heroBody": "BESSER (Better Smart Software Faster) is an open-source model-driven platform for UML design, generation, and deployment. Choose a path below to bootstrap your project quickly.",
-        "cardCreate": {
-          "title": "Create Blank",
-          "description": "Start from scratch with all editors available."
-        },
+        "cardCreate": {},
         "cardSpreadsheet": {
           "title": "From Spreadsheet",
           "description": "Auto-generate a class diagram from CSV/XLSX files."
@@ -925,7 +919,15 @@
         "existingProjects": "Existing Projects",
         "viewAll": "View all projects",
         "noProjects": "No projects yet.",
-        "warningBanner": "Create, import, or open a project to enter the workspace."
+        "warningBanner": "Create, import, or open a project to enter the workspace.",
+        "cardGithub": {
+          "description": "Reopen a repo BESSER created and keep building.",
+          "title": "Continue From GitHub"
+        },
+        "cardNew": {
+          "description": "Choose low-code or agentic, then start modelling.",
+          "title": "New Project"
+        }
       },
       "perspective": {
         "label": "Modeling perspective",
@@ -960,6 +962,41 @@
       "returning": {
         "title": "Projects",
         "description": "Open a recent project or start a new one."
+      },
+      "github": {
+        "connectHint": "Connect your GitHub account to pick one of your repositories. You'll come back here once you've signed in.",
+        "continue": "Continue",
+        "description": "Pick a repository BESSER created — its model loads and the next Spec-Driven Agent run edits its code.",
+        "errors": {
+          "generic": "Could not continue from this repository.",
+          "noModel": "This repo has no BESSER model — it wasn't created by BESSER, so there's nothing to continue from yet.",
+          "noSession": "GitHub session not found. Please reconnect.",
+          "selectRepo": "Select a repository to continue from.",
+          "sessionExpired": "Your GitHub session expired. Reconnect and try again."
+        },
+        "loadingBranches": "Loading branches…",
+        "loadingRepos": "Loading repositories…",
+        "privateSuffix": "(private)",
+        "selectRepo": "Select a repository",
+        "title": "Continue From GitHub",
+        "toasts": {
+          "connectToContinue": "Connect GitHub to continue from one of your repositories.",
+          "continuing": "Continuing from {{repo}}.",
+          "failed": "Continue from GitHub failed: {{message}}",
+          "sessionExpired": "GitHub session expired — please reconnect."
+        }
+      },
+      "interface": {
+        "agent": {
+          "description": "Describe your app in natural language; the assistant builds it.",
+          "label": "Agentic"
+        },
+        "helper": "Choose how you'll build. You can switch anytime from the assistant drawer.",
+        "label": "View",
+        "model": {
+          "description": "Build visually with UML diagrams on the modelling canvas.",
+          "label": "Low-code"
+        }
       }
     },
     "settings": {
@@ -1042,6 +1079,16 @@
         "applyPresetFailed": "Failed to apply preset",
         "exported": "Project exported successfully.",
         "exportFailed": "Failed to export project: {{error}}"
+      },
+      "apiKey": {
+        "change": "Change Key",
+        "description": "Use your own Anthropic, OpenAI, Mistral or Nebius key. Entered once here, it powers both the modeling assistant and the Spec-Driven generator (Nebius powers the generator only). Stored only in this browser tab, never on our servers.",
+        "keySet": "Key set · {{provider}}",
+        "keySetHint": "Applies to the assistant and generator",
+        "noKey": "No key set",
+        "noKeyHint": "Using the shared server key + rate limits",
+        "set": "Set API Key",
+        "title": "AI / LLM API Key"
       }
     },
     "templates": {
@@ -1276,6 +1323,32 @@
       "importModelFailed": "Failed to import model from GitHub",
       "starThanks": "Thanks for starring BESSER!",
       "starFailed": "Failed to update star"
+    },
+    "push": {
+      "changeRepo": "Change Repository",
+      "commitMessageHelper": "Describe what changed (optional).",
+      "commitMessagePlaceholder": "Update generated app",
+      "createNew": "Create New Repository",
+      "defaultDescription": "Generated by BESSER — {{name}}",
+      "descriptionCreate": "Push the generated code and project model to a GitHub repository.",
+      "descriptionUpdate": "Update the linked repository with your latest generated code and model.",
+      "done": "Done",
+      "filesUploaded_one": "{{count}} file uploaded.",
+      "filesUploaded_other": "{{count}} files uploaded.",
+      "linkedTo": "Linked to",
+      "loadingBranches": "Loading branches…",
+      "loadingRepositories": "Loading repositories…",
+      "noRepositories": "No repositories loaded. The request may have failed.",
+      "privateRepoOption": "{{name}} (private)",
+      "publicWarning": "This repository will be public. Anyone can see the generated code and model.",
+      "pushUpdate": "Push Update",
+      "repushHint": "Re-pushing updates this repository.",
+      "selectRepository": "Select a repository…",
+      "selectRepositoryError": "Select a repository to push to.",
+      "successCreated": "Repository created and files pushed.",
+      "successTitle": "Pushed to GitHub",
+      "successUpdated": "Repository updated with your latest generation.",
+      "useExisting": "Use Existing Repository"
     }
   },
   "assistant": {
@@ -1384,7 +1457,14 @@
       "newChatConfirm": "Start a new chat? Your current conversation will be cleared.",
       "newChatConfirmWithRun": "Start a new chat? Your current conversation will be cleared and the running generation will be stopped.",
       "explainModel": "Explain this model",
-      "explainModelTitle": "Get a plain-language overview of your model — the main things it tracks and how they relate"
+      "explainModelTitle": "Get a plain-language overview of your model — the main things it tracks and how they relate",
+      "moreActions": "More actions",
+      "yourModel": "Your model",
+      "hideYourModel": "Hide your model",
+      "apiKeySet": "API key set",
+      "useOwnApiKey": "Use your own API key",
+      "reportIssue": "Report issue",
+      "addApiKey": "Add your API key"
     },
     "drawer": {
       "labelClosed": "Describe your app",
@@ -1995,7 +2075,8 @@
       "projectLabel": "Project (V{{version}})",
       "bumlLabelNamed": "Project B-UML Preview ({{name}})",
       "bumlLabel": "Project B-UML Preview"
-    }
+    },
+    "skipToEditor": "Skip to Editor"
   },
   "editors": {
     "diagramTabs": {

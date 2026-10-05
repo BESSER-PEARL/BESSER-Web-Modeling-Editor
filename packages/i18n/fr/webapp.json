@@ -36,7 +36,8 @@
       "issues": "Problèmes",
       "needsRecheck": "À revérifier",
       "notValidated": "Non validé"
-    }
+    },
+    "more": "Plus"
   },
   "nav": {
     "editors": "Éditeurs",
@@ -64,20 +65,19 @@
   "menu": {
     "file": {
       "title": "Fichier",
-      "projectActions": "Actions du projet",
       "newOpenImport": "Nouveau / Ouvrir / Importer un projet",
       "loadTemplate": "Charger un modèle…",
       "exportProject": "Exporter le projet…",
-      "importClassDiagramFrom": "Importer un diagramme de classes depuis",
-      "imageToProject": "Image vers projet…",
-      "kgToProject": "KG vers projet…",
       "previewProject": "Aperçu du projet…",
-      "importBpmnDiagram": "Importer un diagramme BPMN (.bpmn / .xml)…"
+      "importBpmnDiagram": "Importer un diagramme BPMN (.bpmn / .xml)…",
+      "importGroupProject": "Projet",
+      "importGroupClassDiagram": "Diagramme de classes depuis",
+      "importImage": "Image…",
+      "importKnowledgeGraph": "Graphe de connaissances…"
     },
     "generate": {
       "title": "Générer",
       "generating": "Génération…",
-      "codeGeneration": "Génération de code",
       "goToClassDiagram": "Aller au diagramme de classes",
       "groups": {
         "web": "Web",
@@ -106,7 +106,6 @@
     },
     "deploy": {
       "title": "Déployer",
-      "deployment": "Déploiement",
       "connectGitHub": "Connecter GitHub pour déployer",
       "publishToRender": "Publier sur Render…",
       "connectGitHubFirstHint": "Connectez d’abord GitHub"
@@ -873,8 +872,6 @@
       "import": {
         "title": "Importer un projet",
         "description": "Chargez un fichier de projet exporté et reprenez là où vous en étiez.",
-        "cardTitle": "Importer un fichier de projet",
-        "cardDescription": "Formats pris en charge : .json, .py.",
         "dropAria": "Déposez un fichier ou cliquez pour parcourir",
         "dropPrompt": "Déposez un fichier ici ou cliquez pour parcourir",
         "dropHint": "Fichiers de projet JSON ou Python"
@@ -903,10 +900,7 @@
         "description": "Choisissez comment démarrer votre session de modélisation et ouvrir votre espace de travail.",
         "heroTitle": "Démarrez votre espace de modélisation",
         "heroBody": "BESSER (Better Smart Software Faster) est une plateforme open source dirigée par les modèles pour la conception, la génération et le déploiement UML. Choisissez un chemin ci-dessous pour amorcer rapidement votre projet.",
-        "cardCreate": {
-          "title": "Créer vierge",
-          "description": "Partez de zéro avec tous les éditeurs disponibles."
-        },
+        "cardCreate": {},
         "cardSpreadsheet": {
           "title": "À partir d'un tableur",
           "description": "Générez automatiquement un diagramme de classes à partir de fichiers CSV/XLSX."
@@ -1371,7 +1365,14 @@
     },
     "chat": {
       "newChat": "Nouvelle conversation",
-      "newConversationTitle": "Démarrer une nouvelle conversation"
+      "newConversationTitle": "Démarrer une nouvelle conversation",
+      "moreActions": "Plus d’actions",
+      "yourModel": "Votre modèle",
+      "hideYourModel": "Masquer votre modèle",
+      "apiKeySet": "Clé API définie",
+      "useOwnApiKey": "Utiliser votre propre clé API",
+      "reportIssue": "Signaler un problème",
+      "addApiKey": "Ajouter votre clé API"
     },
     "drawer": {
       "pushToClose": "Poussez vers le bas pour fermer l'assistant",
@@ -1980,7 +1981,8 @@
       "projectLabel": "Projet (V{{version}})",
       "bumlLabelNamed": "Aperçu B-UML du projet ({{name}})",
       "bumlLabel": "Aperçu B-UML du projet"
-    }
+    },
+    "skipToEditor": "Aller à l’éditeur"
   },
   "editors": {
     "diagramTabs": {

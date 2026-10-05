@@ -36,7 +36,8 @@
       "issues": "Problemer",
       "needsRecheck": "Muss nei gepréift ginn",
       "notValidated": "Net validéiert"
-    }
+    },
+    "more": "Méi"
   },
   "nav": {
     "editors": "Editoren",
@@ -64,20 +65,19 @@
   "menu": {
     "file": {
       "title": "Datei",
-      "projectActions": "Projetaktiounen",
       "newOpenImport": "Nei / Opmaachen / Projet importéieren",
       "loadTemplate": "Template lueden…",
       "exportProject": "Projet exportéieren…",
-      "importClassDiagramFrom": "Klassendiagramm importéieren vun",
-      "imageToProject": "Bild zu Projet…",
-      "kgToProject": "KG zu Projet…",
       "previewProject": "Projetvirschau…",
-      "importBpmnDiagram": "BPMN-Diagramm importéieren (.bpmn / .xml)…"
+      "importBpmnDiagram": "BPMN-Diagramm importéieren (.bpmn / .xml)…",
+      "importGroupProject": "Projet",
+      "importGroupClassDiagram": "Klassendiagramm aus",
+      "importImage": "Bild…",
+      "importKnowledgeGraph": "Wëssensgraph…"
     },
     "generate": {
       "title": "Generéieren",
       "generating": "Generéiert…",
-      "codeGeneration": "Code-Generéierung",
       "goToClassDiagram": "Bei d'Klassendiagramm goen",
       "groups": {
         "web": "Web",
@@ -106,7 +106,6 @@
     },
     "deploy": {
       "title": "Deployen",
-      "deployment": "Deployment",
       "connectGitHub": "GitHub verbannen fir ze deployen",
       "publishToRender": "Op Render deployen…",
       "connectGitHubFirstHint": "Fir d’éischt GitHub verbannen"
@@ -873,8 +872,6 @@
       "import": {
         "title": "E Projet importéieren",
         "description": "Luet eng exportéiert Projet-Datei a maacht do weider wou Dir opgehalen hutt.",
-        "cardTitle": "Projet-Datei importéieren",
-        "cardDescription": "Ënnerstëtzte Formater: .json, .py.",
         "dropAria": "Eng Datei eroplueden oder klickt fir ze sichen",
         "dropPrompt": "Zitt eng Datei heihinner oder klickt fir ze sichen",
         "dropHint": "JSON- oder Python-Projetdateien"
@@ -903,10 +900,7 @@
         "description": "Wielt, wéi Dir Är Modelléierungssessioun starte wëllt, a maacht Ären Aarbechtsberäich op.",
         "heroTitle": "Start Äre Modelléierungsaarbechtsberäich",
         "heroBody": "BESSER (Better Smart Software Faster) ass eng open-source, modellgedriwwe Plattform fir den UML-Design, d'Generéierung an den Deployment. Wielt hei ënnen eng Optioun aus, fir Äre Projet séier opzestellen.",
-        "cardCreate": {
-          "title": "Eidel Virlag erstellen",
-          "description": "Fänkt vun Null un. All Editore stinn zur Verfügung."
-        },
+        "cardCreate": {},
         "cardSpreadsheet": {
           "title": "Vun engem Spreadsheet",
           "description": "Generéiert automatesch e Klassendiagramm aus CSV/XLSX-Dateien."
@@ -1371,7 +1365,14 @@
     },
     "chat": {
       "newChat": "Neie Chat",
-      "newConversationTitle": "En neit Gespréich ufänken"
+      "newConversationTitle": "En neit Gespréich ufänken",
+      "moreActions": "Méi Aktiounen",
+      "yourModel": "Däi Modell",
+      "hideYourModel": "Däi Modell verstoppen",
+      "apiKeySet": "API-Schlëssel gesat",
+      "useOwnApiKey": "Däin eegene API-Schlëssel benotzen",
+      "reportIssue": "Problem mellen",
+      "addApiKey": "Däin API-Schlëssel derbäisetzen"
     },
     "drawer": {
       "pushToClose": "No ënne drécke fir den Assistent zouzemaachen",
@@ -1980,7 +1981,8 @@
       "projectLabel": "Projet (V{{version}})",
       "bumlLabelNamed": "Projet B-UML Virschau ({{name}})",
       "bumlLabel": "Projet B-UML Virschau"
-    }
+    },
+    "skipToEditor": "Op den Editor sprangen"
   },
   "editors": {
     "diagramTabs": {
