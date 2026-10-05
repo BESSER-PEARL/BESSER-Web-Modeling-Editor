@@ -10,7 +10,7 @@
  *  - The isGenerating timeout safety net
  */
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { Message as ChatKitMessage } from '@/components/chatbot-kit/ui/chat-message';
 import type { AssistantActionPayload } from '../services';
 
@@ -76,6 +76,37 @@ const toKitMessage = (
   createdAt: new Date(),
   ...extras,
 });
+
+type SetMessages = React.Dispatch<React.SetStateAction<ChatKitMessage[]>>;
+
+/** Append buffered chunks to their streaming messages (one state update). */
+export const applyStreamChunks = (
+  prev: ChatKitMessage[],
+  pending: Map<string, string>,
+): ChatKitMessage[] => {
+  let next = prev;
+  pending.forEach((text, streamId) => {
+    const last = next[next.length - 1];
+    if (last && last.id === streamId && last.role === 'assistant') {
+      next = [...next.slice(0, -1), { ...last, content: last.content + text, isStreaming: true }];
+    } else {
+      next = [
+        ...next,
+        { id: streamId, role: 'assistant' as const, content: text, isStreaming: true, createdAt: new Date() },
+      ];
+    }
+  });
+  return next;
+};
+
+const scheduleFrame = (cb: () => void): (() => void) => {
+  if (typeof window !== 'undefined' && typeof window.requestAnimationFrame === 'function') {
+    const id = window.requestAnimationFrame(cb);
+    return () => window.cancelAnimationFrame(id);
+  }
+  const id = setTimeout(cb, 16);
+  return () => clearTimeout(id);
+};
 
 /* ------------------------------------------------------------------ */
 /*  Types                                                              */
@@ -155,6 +186,28 @@ export function useStreamingResponse(): UseStreamingResponseReturn {
     return () => clearTimeout(timeout);
   }, [isGenerating]);
 
+  /* ---- stream_chunk batching ----
+   * Tokens arrive far faster than the screen refreshes. Buffer them and apply
+   * at most one conversation update per animation frame, so a streamed reply
+   * re-renders the chat once per frame instead of once per token. */
+  const pendingChunksRef = useRef(new Map<string, string>());
+  const cancelFlushRef = useRef<(() => void) | null>(null);
+  const flushSetMessagesRef = useRef<SetMessages | null>(null);
+
+  const flushChunks = () => {
+    cancelFlushRef.current?.();
+    cancelFlushRef.current = null;
+    const pending = pendingChunksRef.current;
+    const setMessages = flushSetMessagesRef.current;
+    if (pending.size === 0 || !setMessages) return;
+    pendingChunksRef.current = new Map();
+    setMessages((prev) => applyStreamChunks(prev, pending));
+  };
+
+  // Never drop buffered tokens when the surface unmounts mid-stream.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => () => flushChunks(), []);
+
   /* ---- handler registration ---- */
 
   const registerTypingHandler = (
@@ -184,25 +237,10 @@ export function useStreamingResponse(): UseStreamingResponseReturn {
     if (payload.action === 'stream_chunk') {
       const { streamId, chunk } = payload as Record<string, any>;
       if (typeof streamId !== 'string' || typeof chunk !== 'string') return true;
-      setMessages((prev) => {
-        const last = prev[prev.length - 1];
-        if (last && last.id === streamId && last.role === 'assistant') {
-          return [
-            ...prev.slice(0, -1),
-            { ...last, content: last.content + chunk, isStreaming: true },
-          ];
-        }
-        return [
-          ...prev,
-          {
-            id: streamId,
-            role: 'assistant' as const,
-            content: chunk,
-            isStreaming: true,
-            createdAt: new Date(),
-          },
-        ];
-      });
+      const pending = pendingChunksRef.current;
+      pending.set(streamId, (pending.get(streamId) ?? '') + chunk);
+      flushSetMessagesRef.current = setMessages;
+      if (!cancelFlushRef.current) cancelFlushRef.current = scheduleFrame(flushChunks);
       setStreamingMessageId(streamId);
       return true;
     }
@@ -210,6 +248,8 @@ export function useStreamingResponse(): UseStreamingResponseReturn {
     if (payload.action === 'stream_done') {
       const { streamId, fullText } = payload as Record<string, any>;
       if (typeof streamId !== 'string') return true;
+      // Land any buffered tokens first so the order chunk -> done holds.
+      flushChunks();
       setMessages((prev) => {
         // A stream_done replayed after a reconnect may be all that arrived.
         if (!prev.some((msg) => msg.id === streamId)) {
