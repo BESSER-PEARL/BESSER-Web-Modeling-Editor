@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, within } from '@testing-library/react';
 import { vi, describe, it, expect, beforeEach } from 'vitest';
 import { UMLDiagramType } from '@besser/wme';
 import { WorkspaceSidebar } from '../WorkspaceSidebar';
@@ -193,8 +193,10 @@ describe('WorkspaceSidebar', () => {
 
     render(<WorkspaceSidebar {...defaultProps({ project })} />);
 
-    // Should show "Class (2)" since there are 2 ClassDiagrams
-    expect(screen.getByText('Class (2)')).toBeInTheDocument();
+    // 2 ClassDiagrams: accessible name "Class (2)", count shown as its own number
+    const button = screen.getByRole('button', { name: 'Class (2)' });
+    expect(within(button).getByText('Class')).toBeInTheDocument();
+    expect(within(button).getByText('2')).toBeInTheDocument();
   });
 
   it('renders without project (null)', () => {

@@ -109,14 +109,18 @@ export const ROUTE_ITEMS = [{ path: '/project-settings', label: 'Settings', labe
 
 export function navButtonClass(isActive: boolean, expanded: boolean, isDark: boolean) {
   return [
-    `group flex w-auto items-center rounded-lg border px-2.5 py-2 text-left text-sm transition-all duration-200 md:w-full ${
-      expanded ? 'justify-start gap-2' : 'justify-center'
+    `group flex w-auto items-center rounded-lg px-2.5 py-2 text-left text-sm transition-[background-color,color,transform] duration-150 ease-out md:w-full ${
+      expanded ? 'justify-start gap-2.5' : 'justify-center'
     }`,
+    'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/50 active:scale-[0.98]',
+    // Active = brand tint + weight; hover = neutral tint, so the two never look alike.
     isActive
       ? isDark
-        ? 'border-brand/40 bg-brand/20 text-brand shadow-sm'
-        : 'border-brand/30 bg-brand/10 text-brand-dark shadow-sm'
-      : 'border-transparent text-muted-foreground hover:border-border/50 hover:bg-accent hover:text-foreground hover:shadow-sm active:scale-[0.97]',
+        ? 'bg-brand/15 font-medium text-brand'
+        : 'bg-brand/10 font-medium text-brand-dark'
+      : isDark
+        ? 'text-muted-foreground hover:bg-white/[0.06] hover:text-foreground'
+        : 'text-muted-foreground hover:bg-foreground/[0.05] hover:text-foreground',
   ].join(' ');
 }
 

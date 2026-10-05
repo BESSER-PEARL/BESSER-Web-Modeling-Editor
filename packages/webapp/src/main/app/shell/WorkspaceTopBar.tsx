@@ -66,24 +66,29 @@ const WorkspaceTopBarInner: React.FC<WorkspaceTopBarProps> = ({
 }) => {
   const { t } = useTranslation();
   return (
-    <header className={`relative z-20 animate-slide-in-down px-4 py-2 sm:px-6 ${headerBackgroundClass}`}>
+    <header className={`relative z-20 px-4 py-2 sm:px-6 ${headerBackgroundClass}`}>
       <div className="flex items-center justify-between gap-3">
         <div className="flex min-w-0 items-center gap-2">
           <button
             type="button"
             onClick={() => onOpenProjectHub()}
             aria-label={t('topbar.openProjectHub')}
-            className="group flex shrink-0 items-center p-0 text-left transition-opacity hover:opacity-85"
+            className="group flex shrink-0 items-center rounded-md p-0 text-left transition-opacity duration-150 hover:opacity-85 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/50 focus-visible:ring-offset-2"
           >
             <img
               src="/images/logo.png"
               alt="BESSER"
+              width={151}
+              height={40}
               className={`h-10 w-auto ${isDarkTheme ? 'brightness-0 invert' : 'brightness-0'}`}
             />
           </button>
           <div className="hidden items-center gap-1.5 lg:flex">
-            <FolderKanban className="size-4 shrink-0 text-muted-foreground" />
+            <FolderKanban className="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
             <Input
+              aria-label={t('topbar.projectName')}
+              autoComplete="off"
+              spellCheck={false}
               value={projectNameDraft}
               onChange={(event) => onProjectNameDraftChange(event.target.value)}
               onBlur={onProjectRename}
@@ -92,7 +97,7 @@ const WorkspaceTopBarInner: React.FC<WorkspaceTopBarProps> = ({
                   event.currentTarget.blur();
                 }
               }}
-              className="h-7 w-36 border-none bg-transparent px-1 py-0 text-sm font-medium shadow-none focus-visible:ring-0"
+              className="h-7 w-40 rounded-md border-none bg-transparent px-1.5 py-0 text-sm font-medium shadow-none transition-colors duration-150 hover:bg-foreground/[0.05] focus-visible:bg-background focus-visible:ring-2 focus-visible:ring-brand/40 focus-visible:ring-offset-0"
               placeholder={t('topbar.projectName')}
             />
           </div>

@@ -51,6 +51,18 @@ function labelWithCount(label: string, count: number): string {
   return count > 1 ? `${label} (${count})` : label;
 }
 
+/** Expanded-sidebar label, with the diagram count as a right-aligned number. */
+const NavLabel: React.FC<{ label: string; count?: number }> = ({ label, count = 0 }) => (
+  <>
+    <span className="min-w-0 truncate">{label}</span>
+    {count > 1 && (
+      <span className="ml-auto pl-2 text-[11px] font-normal tabular-nums text-muted-foreground" aria-hidden="true">
+        {count}
+      </span>
+    )}
+  </>
+);
+
 const WorkspaceSidebarInner: React.FC<WorkspaceSidebarProps> = ({
   isDarkTheme,
   isSidebarExpanded,
@@ -77,8 +89,8 @@ const WorkspaceSidebarInner: React.FC<WorkspaceSidebarProps> = ({
   const showAgentSubItems = isAgentEditorActive || isAgentSubRouteActive;
   const agentContainerClass = showAgentSubItems
     ? isDarkTheme
-      ? 'rounded-xl border border-sky-500/30 bg-sky-500/10 p-1'
-      : 'rounded-xl border border-primary/30 bg-primary/10 p-1'
+      ? 'rounded-xl bg-white/[0.03] p-1'
+      : 'rounded-xl bg-foreground/[0.03] p-1'
     : '';
 
   // Pre-compute diagram count info for all diagram types
@@ -110,7 +122,7 @@ const WorkspaceSidebarInner: React.FC<WorkspaceSidebarProps> = ({
 
   return (
     <TooltipProvider delayDuration={300}>
-      <aside className={`${sidebarBaseClass} animate-slide-in-left ${isSidebarExpanded ? 'w-48' : 'w-[72px]'}`}>
+      <aside className={`${sidebarBaseClass} ${isSidebarExpanded ? 'w-48' : 'w-[72px]'}`}>
         {isSidebarExpanded && <p className={sidebarTitleClass}>{t('nav.editors')}</p>}
         {visibleUmlItems.map((item) => {
           const active = locationPath === '/' && !isNonUmlActive && activeUmlType === item.type;
@@ -129,7 +141,7 @@ const WorkspaceSidebarInner: React.FC<WorkspaceSidebarProps> = ({
                   aria-label={displayLabel}
                 >
                   {item.icon}
-                  {isSidebarExpanded && <span>{displayLabel}</span>}
+                  {isSidebarExpanded && <NavLabel label={t(item.labelKey)} count={count} />}
                 </button>
               </SidebarTooltip>
             );
@@ -146,11 +158,11 @@ const WorkspaceSidebarInner: React.FC<WorkspaceSidebarProps> = ({
                   aria-label={displayLabel}
                 >
                   {item.icon}
-                  {isSidebarExpanded && <span>{displayLabel}</span>}
+                  {isSidebarExpanded && <NavLabel label={t(item.labelKey)} count={count} />}
                 </button>
               </SidebarTooltip>
               <div
-                className={`overflow-hidden transition-all duration-200 ${
+                className={`overflow-hidden transition-[max-height,opacity] duration-200 ease-out ${
                   showAgentSubItems ? 'max-h-40 opacity-100' : 'max-h-0 opacity-0'
                 }`}
               >
@@ -210,7 +222,7 @@ const WorkspaceSidebarInner: React.FC<WorkspaceSidebarProps> = ({
                 aria-label={displayLabel}
               >
                 {item.icon}
-                {isSidebarExpanded && <span>{displayLabel}</span>}
+                {isSidebarExpanded && <NavLabel label={t(item.labelKey)} count={count} />}
               </button>
             </SidebarTooltip>
           );
@@ -241,13 +253,13 @@ const WorkspaceSidebarInner: React.FC<WorkspaceSidebarProps> = ({
           <button
             type="button"
             onClick={onToggleExpanded}
-            className={`${sidebarToggleClass} ${isSidebarExpanded ? 'justify-between gap-2' : 'justify-center'}`}
+            className={`${sidebarToggleClass} ${isSidebarExpanded ? 'justify-start gap-2.5' : 'justify-center'}`}
             aria-label={isSidebarExpanded ? t('nav.collapseSidebar') : t('nav.expandSidebar')}
           >
             <span className="inline-flex">
               <SidebarToggleIcon expanded={isSidebarExpanded} size={18} />
             </span>
-            {isSidebarExpanded && <span className={sidebarToggleTextClass}></span>}
+            {isSidebarExpanded && <span className={sidebarToggleTextClass}>{t('nav.collapseSidebar')}</span>}
           </button>
         </SidebarTooltip>
       </aside>
