@@ -29,8 +29,23 @@ import { LlmKeyDialog } from '../../shared/components/byok/LlmKeyDialog';
 import { readLlmKey } from '../../shared/services/llmKeyStorage';
 import { setApiKeyPresent } from '../spec-driven/state/specDrivenSlice';
 
+// Same nav.diagram.* labels the workspace sidebar uses (app/shell/workspace-navigation.tsx).
+const DIAGRAM_NAV_LABEL_KEY: Record<SupportedDiagramType, string> = {
+  ClassDiagram: 'nav.diagram.class',
+  ObjectDiagram: 'nav.diagram.object',
+  StateMachineDiagram: 'nav.diagram.state',
+  AgentDiagram: 'nav.diagram.agent',
+  BPMN: 'nav.diagram.bpmn',
+  UserDiagram: 'nav.diagram.user',
+  NNDiagram: 'nav.diagram.neuralNet',
+  GUINoCodeDiagram: 'nav.diagram.gui',
+  QuantumCircuitDiagram: 'nav.diagram.quantum',
+};
+
 export const ProjectSettingsPanel: React.FC = () => {
   const { t } = useTranslation();
+  const diagramLabel = (type: SupportedDiagramType): string =>
+    DIAGRAM_NAV_LABEL_KEY[type] ? t(DIAGRAM_NAV_LABEL_KEY[type]) : String(type).replace('Diagram', '');
   const [isExporting, setIsExporting] = useState(false);
   const [showInstancedObjects, setShowInstancedObjects] = useState(false);
   const [showAssociationNames, setShowAssociationNames] = useState(false);
@@ -218,7 +233,7 @@ export const ProjectSettingsPanel: React.FC = () => {
                   </div>
                   <div className="rounded-lg border border-border/60 bg-muted/30 p-3">
                     <p className="text-xs font-medium text-muted-foreground">{t('project.settings.general.activeEditor')}</p>
-                    <p className="mt-1 text-sm">{currentProject.currentDiagramType.replace('Diagram', '')}</p>
+                    <p className="mt-1 text-sm">{diagramLabel(currentProject.currentDiagramType)}</p>
                   </div>
                 </div>
               </CardContent>
@@ -377,7 +392,7 @@ export const ProjectSettingsPanel: React.FC = () => {
                         <p className="truncate text-sm font-medium">{diagram.title}</p>
                         <p className="text-xs text-muted-foreground">{t('project.settings.diagrams.updated', { date: new Date(diagram.lastUpdate).toLocaleString() })}</p>
                       </div>
-                      <Badge className={DIAGRAM_TYPE_BADGE[type]}>{type.replace('Diagram', '')}</Badge>
+                      <Badge className={DIAGRAM_TYPE_BADGE[type]}>{diagramLabel(type)}</Badge>
                     </div>
                   ))}
                   {diagrams.length === 0 && (
@@ -448,7 +463,7 @@ export const ProjectSettingsPanel: React.FC = () => {
                             <div className="flex items-center gap-2">
                               <p className="text-sm font-medium">{t(`diagramTypes.${type}`)}</p>
                               <Badge className={DIAGRAM_TYPE_BADGE[type]}>
-                                {type.replace('Diagram', '')}
+                                {diagramLabel(type)}
                               </Badge>
                             </div>
                             <p className="text-xs text-muted-foreground">

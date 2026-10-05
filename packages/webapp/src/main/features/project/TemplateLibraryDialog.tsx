@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useRef, useState } from 'react';
 import { UMLDiagramType } from '@besser/wme';
 import { toast } from 'react-toastify';
 import { useTranslation, Trans } from 'react-i18next';
@@ -7,6 +7,7 @@ import { Check, Layers, Sparkles, AlertTriangle, FolderTree } from 'lucide-react
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { cn } from '@/lib/utils';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useAppDispatch, useAppSelector } from '../../app/store/hooks';
 import {
@@ -102,18 +103,6 @@ const diagramTypeToCategory: Partial<Record<SupportedDiagramType, SoftwarePatter
   NNDiagram: SoftwarePatternCategory.NN,
 };
 
-const categoryColor: Record<SoftwarePatternCategory, string> = {
-  [SoftwarePatternCategory.STRUCTURAL]: 'bg-sky-100 text-sky-900 dark:bg-sky-900/30 dark:text-sky-300',
-  [SoftwarePatternCategory.BEHAVIORAL]: 'bg-emerald-100 text-emerald-900 dark:bg-emerald-900/30 dark:text-emerald-300',
-  [SoftwarePatternCategory.CREATIONAL]: 'bg-amber-100 text-amber-900 dark:bg-amber-900/30 dark:text-amber-300',
-  [SoftwarePatternCategory.STATE_MACHINE]: 'bg-indigo-100 text-indigo-900 dark:bg-indigo-900/30 dark:text-indigo-300',
-  [SoftwarePatternCategory.BPMN]: 'bg-teal-100 text-teal-900 dark:bg-teal-900/30 dark:text-teal-300',
-  [SoftwarePatternCategory.AGENT]: 'bg-fuchsia-100 text-fuchsia-900 dark:bg-fuchsia-900/30 dark:text-fuchsia-300',
-  [SoftwarePatternCategory.QUANTUM_CIRCUIT]: 'bg-violet-100 text-violet-900 dark:bg-violet-900/30 dark:text-violet-300',
-  [SoftwarePatternCategory.NN]: 'bg-orange-100 text-orange-900 dark:bg-orange-900/30 dark:text-orange-300',
-  [SoftwarePatternCategory.FULL_PROJECT]: 'bg-rose-100 text-rose-900 dark:bg-rose-900/30 dark:text-rose-300',
-};
-
 /**
  * For full-project templates, summarize which diagrams are populated so users
  * can tell apart e.g. "class only" from "class + agent + GUI" at a glance.
@@ -162,6 +151,7 @@ export const TemplateLibraryDialog: React.FC<TemplateLibraryDialogProps> = ({ op
   }, [templates]);
 
   const [selectedCategory, setSelectedCategory] = useState<SoftwarePatternCategory>(categories[0]);
+  const categoryListRef = useRef<HTMLDivElement>(null);
 
   // When dialog opens, jump to the category matching the active diagram type
   React.useEffect(() => {
@@ -329,7 +319,20 @@ export const TemplateLibraryDialog: React.FC<TemplateLibraryDialogProps> = ({ op
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[90vh] overflow-hidden p-0 sm:max-w-5xl">
+      <DialogContent
+        className="max-h-[90vh] overflow-hidden p-0 sm:max-w-5xl"
+        onOpenAutoFocus={(event) => {
+          // Land focus on the category that will be selected (the one matching the
+          // active diagram), not the first in the list, so focus and selection agree.
+          const match = diagramTypeToCategory[activeDiagramType];
+          const target = match && categories.includes(match) ? match : selectedCategory;
+          const button = categoryListRef.current?.querySelector<HTMLButtonElement>(`[data-category="${target}"]`);
+          if (button) {
+            event.preventDefault();
+            button.focus();
+          }
+        }}
+      >
         <DialogHeader className="border-b border-border/70 px-6 pt-6">
           <DialogTitle className="flex items-center gap-2 text-xl">
             <Sparkles className="size-5 text-brand" />
@@ -341,23 +344,32 @@ export const TemplateLibraryDialog: React.FC<TemplateLibraryDialogProps> = ({ op
         </DialogHeader>
 
         <div className="grid max-h-[72vh] grid-cols-1 overflow-hidden md:grid-cols-[220px_1fr]">
-          <div className="flex flex-col gap-2 border-b border-border/70 p-4 md:border-b-0 md:border-r">
+          <div ref={categoryListRef} className="flex flex-col gap-1 border-b border-border/70 p-4 md:border-b-0 md:border-r">
             {categories.map((category) => {
               const isActive = selectedCategory === category;
               return (
                 <button
                   key={category}
                   type="button"
+                  data-category={category}
+                  aria-pressed={isActive}
                   onClick={() => setSelectedCategory(category)}
-                  className={[
-                    'flex w-full items-center justify-between rounded-lg border px-3 py-2 text-sm transition-[transform,border-color,background-color,color] duration-200 ease-out active:scale-[0.98]',
+                  className={cn(
+                    'flex w-full items-center justify-between gap-2 rounded-lg border px-3 py-2 text-left text-sm transition-[transform,border-color,background-color,color] duration-200 ease-out active:scale-[0.98] focus:outline-none focus-visible:ring-2 focus-visible:ring-brand/40',
                     isActive
-                      ? 'border-brand/30 bg-brand/10 text-foreground'
-                      : 'border-transparent text-muted-foreground hover:border-border hover:bg-brand/[0.04] hover:text-foreground',
-                  ].join(' ')}
+                      ? 'border-brand/30 bg-brand/10 font-medium text-foreground'
+                      : 'border-transparent text-muted-foreground hover:bg-brand/[0.04] hover:text-foreground',
+                  )}
                 >
-                  <span>{t(`project.templates.categories.${category}`, { defaultValue: category })}</span>
-                  <Badge className={categoryColor[category]}>
+                  <span className="min-w-0 flex-1 text-left leading-snug">
+                    {t(`project.templates.categories.${category}`, { defaultValue: category })}
+                  </span>
+                  <Badge
+                    className={cn(
+                      'shrink-0 border-transparent px-2 font-mono text-[10px] tabular-nums transition-colors',
+                      isActive ? 'bg-brand/15 text-brand' : 'bg-muted text-muted-foreground',
+                    )}
+                  >
                     {templates.filter((template) => template.softwarePatternCategory === category).length}
                   </Badge>
                 </button>
@@ -366,7 +378,7 @@ export const TemplateLibraryDialog: React.FC<TemplateLibraryDialogProps> = ({ op
           </div>
 
           <div className="min-h-0 p-4">
-            <div className="h-[56vh] overflow-y-auto pr-2">
+            <div className="min-h-[16rem] max-h-[56vh] overflow-y-auto pr-2">
               <div
                 role="radiogroup"
                 aria-label={t(`project.templates.categories.${selectedCategory}`, { defaultValue: selectedCategory })}
@@ -380,12 +392,12 @@ export const TemplateLibraryDialog: React.FC<TemplateLibraryDialogProps> = ({ op
                       role="radio"
                       aria-checked={selected}
                       tabIndex={selected ? 0 : -1}
-                      className={[
-                        'cursor-pointer border transition-[transform,border-color,background-color,box-shadow] duration-200 ease-out active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/40',
+                      className={cn(
+                        'cursor-pointer border transition-[transform,border-color,background-color,box-shadow] duration-200 ease-out active:scale-[0.98] focus:outline-none focus-visible:ring-2 focus-visible:ring-brand/40',
                         selected
                           ? 'border-brand/30 bg-brand/[0.05] shadow-sm'
                           : 'hover:border-border/90 hover:bg-brand/[0.04]',
-                      ].join(' ')}
+                      )}
                       onClick={() => setSelectedTemplateType(template.type)}
                       onKeyDown={(e) => {
                         // Radiogroup keyboard pattern: Space/Enter select, arrows move + select.

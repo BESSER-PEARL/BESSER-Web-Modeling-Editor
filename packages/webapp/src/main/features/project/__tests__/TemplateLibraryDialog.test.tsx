@@ -20,6 +20,17 @@ const renderDialog = () =>
   );
 
 describe('TemplateLibraryDialog', () => {
+  it('opens with focus on the selected category, so focus and selection never disagree', () => {
+    renderDialog();
+    const pressed = screen.getAllByRole('button').filter((b) => b.getAttribute('aria-pressed') === 'true');
+    expect(pressed).toHaveLength(1);
+    // Active diagram is ClassDiagram -> the structural category, not the first one (Full Project).
+    expect(pressed[0].getAttribute('data-category')).not.toBe(
+      screen.getAllByRole('button').find((b) => b.hasAttribute('data-category'))?.getAttribute('data-category'),
+    );
+    expect(document.activeElement).toBe(pressed[0]);
+  });
+
   it('exposes template tiles as a keyboard-operable radiogroup', () => {
     renderDialog();
     const group = screen.getByRole('radiogroup');

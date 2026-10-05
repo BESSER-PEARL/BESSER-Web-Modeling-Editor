@@ -314,40 +314,54 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
     void fetchGithubRepositories(githubSession);
   }, [open, step, isGithubAuthenticated, githubSession, githubRepositories.length, githubReposLoading, fetchGithubRepositories]);
 
-  const currentStepInfo = useMemo(() => {
+  // The two-step "Step n of 2" framing belongs to the first-run / new-project
+  // flow (entered through the welcome chooser). A hub opened at the start screen
+  // or straight at a File-menu step is a returning visit: neutral copy, no badge.
+  const isFirstRun = entryStep === 'welcome';
+
+  const currentStepInfo = useMemo((): { title: string; description: string; badge: string | null } => {
     if (step === 'create') {
       return {
         title: t('project.hub.create.title'),
         description: t('project.hub.create.description'),
-        badge: t('project.hub.stepBadge', { current: 2, total: 2 }),
+        badge: isFirstRun ? t('project.hub.stepBadge', { current: 2, total: 2 }) : null,
       };
     }
     if (step === 'import') {
       return {
         title: t('project.hub.import.title'),
         description: t('project.hub.import.description'),
-        badge: t('project.hub.stepBadge', { current: 2, total: 2 }),
+        badge: isFirstRun ? t('project.hub.stepBadge', { current: 2, total: 2 }) : null,
       };
     }
     if (step === 'spreadsheet') {
       return {
         title: t('project.hub.spreadsheet.title'),
         description: t('project.hub.spreadsheet.description'),
-        badge: t('project.hub.stepBadge', { current: 2, total: 2 }),
+        badge: isFirstRun ? t('project.hub.stepBadge', { current: 2, total: 2 }) : null,
       };
     }
     if (step === 'open') {
       return {
         title: t('project.hub.open.title'),
         description: t('project.hub.open.description'),
-        badge: t('project.hub.stepBadge', { current: 2, total: 2 }),
+        badge: isFirstRun ? t('project.hub.stepBadge', { current: 2, total: 2 }) : null,
       };
     }
     if (step === 'github') {
       return {
         title: 'Continue From GitHub',
         description: 'Pick a repository BESSER created — its model loads and the next Spec-Driven Agent run edits its code.',
-        badge: 'Step 2 of 2',
+        badge: isFirstRun ? 'Step 2 of 2' : null,
+      };
+    }
+    if (!isFirstRun) {
+      return {
+        title: t('project.hub.returning.title', { defaultValue: 'Projects' }),
+        description: t('project.hub.returning.description', {
+          defaultValue: 'Open a recent project or start a new one.',
+        }),
+        badge: null,
       };
     }
     return {
@@ -355,7 +369,7 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
       description: t('project.hub.start.description'),
       badge: t('project.hub.stepBadge', { current: 1, total: 2 }),
     };
-  }, [step, t]);
+  }, [step, t, isFirstRun]);
 
   const handleDialogOpenChange = (nextOpen: boolean) => {
     if (!nextOpen && !canClose) {
@@ -891,7 +905,7 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
         )}
         {step !== 'welcome' && (
         <>
-        <DialogHeader className="border-b border-border/60 px-6 pt-5 pb-4">
+        <DialogHeader className={cn('border-b border-border/60 pt-5 pb-4 pl-6', canClose ? 'pr-14' : 'pr-6')}>
           <div className="flex items-start justify-between gap-3">
             <div className="flex min-w-0 items-start gap-3.5">
               {step === 'start' ? (
@@ -915,9 +929,11 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
             </div>
             <div className="flex shrink-0 items-center gap-2">
               {step === 'start' && <LanguageSelector outlineButtonClass="h-9" />}
-              <Badge variant="secondary" className="shrink-0 rounded-full border-brand/15 bg-brand/[0.06] font-mono text-[10px] tracking-wider text-brand">
-                {currentStepInfo.badge}
-              </Badge>
+              {currentStepInfo.badge && (
+                <Badge variant="secondary" className="shrink-0 rounded-full border-brand/15 bg-brand/[0.06] font-mono text-[10px] tracking-wider text-brand">
+                  {currentStepInfo.badge}
+                </Badge>
+              )}
             </div>
           </div>
         </DialogHeader>
