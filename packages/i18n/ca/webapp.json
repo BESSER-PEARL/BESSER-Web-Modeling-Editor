@@ -108,7 +108,8 @@
       "title": "Desplega",
       "deployment": "Desplegament",
       "connectGitHub": "Connecta GitHub per desplegar",
-      "publishToRender": "Publica a Render…"
+      "publishToRender": "Publica a Render…",
+      "connectGitHubFirstHint": "Connecta GitHub primer"
     },
     "community": {
       "title": "Comunitat",
@@ -948,6 +949,10 @@
         "spreadsheetGenerateFailed": "No s'ha pogut generar el diagrama de classes a partir del full de càlcul.",
         "spreadsheetCreated": "Projecte «{{name}}» creat i diagrama de classes importat.",
         "spreadsheetImportFailed": "La importació del full de càlcul ha fallat: {{error}}"
+      },
+      "returning": {
+        "title": "Projectes",
+        "description": "Obre un projecte recent o comença’n un de nou."
       }
     },
     "settings": {
@@ -1570,7 +1575,6 @@
       "title": "Com funciona l'editor",
       "description": "Guia de modelatge completa amb exemples i material visual.",
       "diagramTypesHeading": "Tipus de diagrames",
-      "noImage": "No hi ha cap imatge per a aquest element.",
       "openDocs": "Obrir la documentació de BESSER",
       "openWmeRepo": "Obrir el repositori de WME",
       "class": {
@@ -1772,6 +1776,38 @@
           "title": "Validar i generar",
           "body": "<p>Executa el Quality Check des de la barra superior per detectar problemes estructurals, com ara capes desconnectades o atributs obligatoris que falten, abans de generar codi.</p><p>Obre el menú Generate i tria un framework i un estil:</p><ul><li><strong>PyTorch / Subclassing</strong>: subclasse de <code>torch.nn.Module</code> amb un pas cap endavant explícit.</li><li><strong>PyTorch / Sequential</strong>: composició <code>nn.Sequential</code> per a arquitectures estrictament seqüencials.</li><li><strong>TensorFlow / Subclassing</strong>: subclasse de <code>tf.keras.Model</code> amb un <code>call()</code> personalitzat.</li><li><strong>TensorFlow / Sequential</strong>: composició <code>keras.Sequential</code>.</li></ul><p>La definició de l'arquitectura de la NN es genera en el framework seleccionat, juntament amb el codi d'entrenament i d'avaluació quan es defineixen els conjunts de dades i la Configuration.</p>",
           "alt": "Menú de generació de codi"
+        }
+      },
+      "user": {
+        "label": "Diagrama d’usuari",
+        "summary": "Modela perfils d’usuari que guien agents i interfícies personalitzats.",
+        "about": {
+          "title": "Sobre els diagrames d’usuari",
+          "body": "<p>Un diagrama d’usuari descriu un perfil: una arrel <code>User</code> enllaçada amb parts com informació personal, competència, accessibilitat, cultura, personalitat, preferències i objectius.</p>"
+        },
+        "addParts": {
+          "title": "Afegir i editar parts",
+          "body": "<p>Arrossega elements de perfil des de la paleta, enllaça’ls al <code>User</code> i fes doble clic en un element per definir-ne els valors.</p>"
+        },
+        "editAsForm": {
+          "title": "Edita com a formulari",
+          "body": "<p>Fes clic a <strong>Edita com a formulari</strong> a la barra de pestanyes per editar el perfil en un tauler lateral guiat. Afegeix o treu parts i defineix criteris; els canvis apareixen al llenç a l’instant.</p>"
+        }
+      },
+      "bpmn": {
+        "label": "Diagrama BPMN",
+        "summary": "Modela processos de negoci amb tasques, esdeveniments, passarel·les i fluxos.",
+        "buildProcess": {
+          "title": "Construir un procés",
+          "body": "<p>Arrossega elements des de la paleta: tasques, subprocessos, transaccions i activitats de crida; esdeveniments d’inici, intermedis i de fi; passarel·les; objectes i magatzems de dades; pools i carrils; anotacions i grups.</p>"
+        },
+        "connectFlows": {
+          "title": "Connectar amb fluxos",
+          "body": "<p>Arrossega d’un element a un altre per crear un flux. L’editor tria un tipus vàlid per a la parella (seqüència, missatge, associació o associació de dades); fes doble clic en un flux per canviar-lo.</p>"
+        },
+        "elementTypes": {
+          "title": "Definir tipus d’elements",
+          "body": "<p>Fes doble clic en una tasca, esdeveniment o passarel·la per definir-ne el tipus, per exemple una tasca d’usuari o de servei, un esdeveniment d’inici de temporitzador, o una passarel·la exclusiva o paral·lela.</p>"
         }
       }
     }
@@ -2973,6 +3009,11 @@
       "emptyDiagram": "El diagrama de l'agent és buit. Afegeix estats, transicions i intencions abans de simular.",
       "validationFailed": "La validació de l'agent ha fallat: {{message}}",
       "validationFailedGeneric": "La validació ha fallat"
+    }
+  },
+  "errors": {
+    "network": {
+      "unreachable": "No s’ha pogut connectar amb el servidor. Comprova la connexió i torna-ho a provar."
     }
   }
 }

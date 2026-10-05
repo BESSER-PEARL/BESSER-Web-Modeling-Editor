@@ -115,7 +115,8 @@
       "title": "Deploy",
       "deployment": "Deployment",
       "connectGitHub": "Connect GitHub to Deploy",
-      "publishToRender": "Publish to Render…"
+      "publishToRender": "Publish to Render…",
+      "connectGitHubFirstHint": "Connect GitHub first"
     },
     "community": {
       "title": "Community",
@@ -869,7 +870,7 @@
       "back": "Back",
       "unknownError": "Unknown error",
       "create": {
-        "title": "Create A Project",
+        "title": "Create a Project",
         "description": "Define project metadata and start modeling from scratch.",
         "detailsTitle": "Project Details",
         "detailsDescription": "Give your workspace a name and description.",
@@ -877,7 +878,7 @@
         "tip": "Tip: pick a modeling perspective to focus the workspace on the diagrams you need."
       },
       "import": {
-        "title": "Import A Project",
+        "title": "Import a Project",
         "description": "Load an exported project file and continue where you left off.",
         "cardTitle": "Import Project File",
         "cardDescription": "Supported formats: .json, .py.",
@@ -886,13 +887,13 @@
         "dropHint": "JSON or Python project files"
       },
       "spreadsheet": {
-        "title": "Start From Spreadsheet",
+        "title": "Start from Spreadsheet",
         "description": "Create a project and auto-generate a class diagram from CSV/XLSX files.",
         "cardTitle": "Spreadsheet Input",
         "cardDescription": "Create project metadata and upload source files.",
         "sourceFiles": "Source Files",
         "selectFiles": "Select CSV / XLSX Files",
-        "submit": "Create From Spreadsheet",
+        "submit": "Create from Spreadsheet",
         "howTitle": "How It Works",
         "step1": "Project is created first with your metadata.",
         "step2": "Spreadsheet files are converted to a class diagram.",
@@ -955,6 +956,10 @@
         "spreadsheetGenerateFailed": "Could not generate class diagram from spreadsheet.",
         "spreadsheetCreated": "Project \"{{name}}\" created and class diagram imported.",
         "spreadsheetImportFailed": "Spreadsheet import failed: {{error}}"
+      },
+      "returning": {
+        "title": "Projects",
+        "description": "Open a recent project or start a new one."
       }
     },
     "settings": {
@@ -1582,10 +1587,9 @@
       }
     },
     "guide": {
-      "title": "How The Editor Works",
+      "title": "How the Editor Works",
       "description": "Complete modeling guide with examples and visuals.",
       "diagramTypesHeading": "Diagram Types",
-      "noImage": "No image for this item.",
       "openDocs": "Open BESSER Docs",
       "openWmeRepo": "Open WME Repository",
       "class": {
@@ -1597,7 +1601,7 @@
           "alt": "Create class element"
         },
         "addAssociation": {
-          "title": "Add Association Or Generalization",
+          "title": "Add Association or Generalization",
           "body": "<p>Select a source class, then drag from a blue connection point to another class. For multiplicities, use values like <code>1</code>, <code>0..1</code>, <code>0..*</code>, <code>1..*</code>, or <code>2..4</code>.</p>",
           "alt": "Create class relationship"
         },
@@ -1607,12 +1611,12 @@
           "alt": "Edit class element"
         },
         "editAssociation": {
-          "title": "Edit Association Or Generalization",
+          "title": "Edit Association or Generalization",
           "body": "<p>Double-click a relationship to edit type (unidirectional, bidirectional, composition, generalization), name, source/target role names, and multiplicities.</p>",
           "alt": "Edit class association"
         },
         "deleteMove": {
-          "title": "Delete And Move",
+          "title": "Delete and Move",
           "body": "<p>Select a class and press <code>Delete</code> or <code>Backspace</code> to remove it.</p><p>Move elements by dragging them or using keyboard arrows.</p><p>Use <code>Ctrl+Z</code> and <code>Ctrl+Y</code> for undo/redo.</p>",
           "alt": "Move class element"
         },
@@ -1655,7 +1659,7 @@
           "alt": "Edit object link"
         },
         "deleteMove": {
-          "title": "Delete, Move, And Best Practices",
+          "title": "Delete, Move, and Best Practices",
           "body": "<p>Delete objects/links with <code>Delete</code> or <code>Backspace</code>. Move objects by drag-and-drop or arrows.</p><p>Use object diagrams together with class diagrams to validate real scenarios, names, and value consistency.</p>"
         }
       },
@@ -1667,7 +1671,7 @@
           "body": "<p>State machine diagrams describe behavior changes over time in response to events and conditions.</p>"
         },
         "initialFinal": {
-          "title": "Add Initial And Final Flow",
+          "title": "Add Initial and Final Flow",
           "body": "<p>Start with an initial node and connect it to the first state.</p>",
           "alt": "State machine initial and final states"
         },
@@ -1754,7 +1758,7 @@
           "alt": "NN diagram overview"
         },
         "containerLayers": {
-          "title": "Add NN Container, Layers, And TensorOps",
+          "title": "Add NN Container, Layers, and TensorOps",
           "body": "<p>Start by dragging an NNContainer from the palette onto the canvas; all neural network modules must live inside it.</p><p>Available layers: <code>Conv1D</code>, <code>Conv2D</code>, <code>Conv3D</code>, <code>Pooling</code>, <code>Linear</code>, <code>Flatten</code>, <code>Embedding</code>, <code>Dropout</code>, <code>RNN</code>, <code>LSTM</code>, <code>GRU</code>, <code>LayerNormalization</code>, <code>BatchNormalization</code>. Available TensorOps: <code>reshape</code>, <code>concatenate</code>, <code>transpose</code>, <code>permute</code>, <code>multiply</code>, <code>matmultiply</code>.</p>",
           "alt": "NN palette with a dropped layer"
         },
@@ -1769,7 +1773,7 @@
           "alt": "Edit module attributes"
         },
         "datasets": {
-          "title": "Datasets (Training And Test)",
+          "title": "Datasets (Training and Test)",
           "body": "<p>Datasets are optional. Drop a Training Dataset and a Test Dataset to declare data sources for the network.</p><p>Mandatory attributes are <code>name</code> and <code>path_data</code> (file or folder path to the dataset). Optional attributes are <code>task_type</code> (<code>binary</code>, <code>multi_class</code>, <code>regression</code>) and <code>input_format</code> (<code>csv</code>, <code>images</code>). When <code>input_format = images</code>, two additional attributes appear: <code>shape</code> (for example <code>[32, 32, 3]</code>) and <code>normalize</code> (<code>true</code> or <code>false</code>).</p><p>Connect each dataset to the NNContainer with an association line.</p>",
           "alt": "Training and test datasets"
         },
@@ -1784,9 +1788,41 @@
           "alt": "NNReference with target selection popup"
         },
         "validateGenerate": {
-          "title": "Validate And Generate",
+          "title": "Validate and Generate",
           "body": "<p>Run Quality Check from the top bar to catch structural issues such as disconnected layers or missing mandatory attributes before generating code.</p><p>Open the Generate menu and choose a framework and style:</p><ul><li><strong>PyTorch / Subclassing</strong>: <code>torch.nn.Module</code> subclass with an explicit forward pass.</li><li><strong>PyTorch / Sequential</strong>: <code>nn.Sequential</code> composition for strictly sequential architectures.</li><li><strong>TensorFlow / Subclassing</strong>: <code>tf.keras.Model</code> subclass with a custom <code>call()</code>.</li><li><strong>TensorFlow / Sequential</strong>: <code>keras.Sequential</code> composition.</li></ul><p>NN architecture definition is generated in the selected framework, along with training and evaluation code when datasets and Configuration are defined.</p>",
           "alt": "Generate code menu"
+        }
+      },
+      "user": {
+        "label": "User Diagram",
+        "summary": "Model user profiles that drive personalized agents and GUIs.",
+        "about": {
+          "title": "About User Diagrams",
+          "body": "<p>A user diagram describes one user profile: a <code>User</code> root linked to parts such as personal information, competence, accessibility, culture, personality, preferences and goals.</p>"
+        },
+        "addParts": {
+          "title": "Add and Edit Parts",
+          "body": "<p>Drag profile elements from the palette, link them to the <code>User</code>, and double-click an element to set its attribute values.</p>"
+        },
+        "editAsForm": {
+          "title": "Edit as Form",
+          "body": "<p>Click <strong>Edit as form</strong> in the diagram tab bar to edit the profile in a guided side panel. Add or remove parts and set criteria; changes appear on the canvas live.</p>"
+        }
+      },
+      "bpmn": {
+        "label": "BPMN Diagram",
+        "summary": "Model business processes with tasks, events, gateways and flows.",
+        "buildProcess": {
+          "title": "Build a Process",
+          "body": "<p>Drag elements from the palette: tasks, subprocesses, transactions and call activities; start, intermediate and end events; gateways; data objects and data stores; pools and lanes; annotations and groups.</p>"
+        },
+        "connectFlows": {
+          "title": "Connect with Flows",
+          "body": "<p>Drag from one element to another to create a flow. The editor picks a valid type for the pair (sequence, message, association or data association); double-click a flow to change it.</p>"
+        },
+        "elementTypes": {
+          "title": "Set Element Types",
+          "body": "<p>Double-click a task, event or gateway to set its type, for example a user or service task, a timer start event, or an exclusive or parallel gateway.</p>"
         }
       }
     }
@@ -2999,6 +3035,11 @@
       "emptyDiagram": "The agent diagram is empty. Add states, transitions, and intents before simulating.",
       "validationFailed": "Agent validation failed: {{message}}",
       "validationFailedGeneric": "Validation failed"
+    }
+  },
+  "errors": {
+    "network": {
+      "unreachable": "Couldn’t reach the server. Check your connection and try again."
     }
   }
 }

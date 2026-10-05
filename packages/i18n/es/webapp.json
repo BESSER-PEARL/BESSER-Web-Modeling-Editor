@@ -108,7 +108,8 @@
       "title": "Desplegar",
       "deployment": "Despliegue",
       "connectGitHub": "Conectar GitHub para desplegar",
-      "publishToRender": "Publicar en Render…"
+      "publishToRender": "Publicar en Render…",
+      "connectGitHubFirstHint": "Conecta GitHub primero"
     },
     "community": {
       "title": "Comunidad",
@@ -948,6 +949,10 @@
         "spreadsheetGenerateFailed": "No se pudo generar el diagrama de clases a partir de la hoja de cálculo.",
         "spreadsheetCreated": "Proyecto «{{name}}» creado y diagrama de clases importado.",
         "spreadsheetImportFailed": "Error al importar la hoja de cálculo: {{error}}"
+      },
+      "returning": {
+        "title": "Proyectos",
+        "description": "Abre un proyecto reciente o empieza uno nuevo."
       }
     },
     "settings": {
@@ -1570,7 +1575,6 @@
       "title": "Cómo funciona el editor",
       "description": "Guía completa de modelado con ejemplos y elementos visuales.",
       "diagramTypesHeading": "Tipos de diagrama",
-      "noImage": "No hay imagen para este elemento.",
       "openDocs": "Abrir la documentación de BESSER",
       "openWmeRepo": "Abrir el repositorio de WME",
       "class": {
@@ -1772,6 +1776,38 @@
           "title": "Validar y generar",
           "body": "<p>Ejecuta el Quality Check desde la barra superior para detectar problemas estructurales, como capas desconectadas o atributos obligatorios faltantes, antes de generar el código.</p><p>Abre el menú Generate y elige un framework y un estilo:</p><ul><li><strong>PyTorch / Subclassing</strong>: subclase de <code>torch.nn.Module</code> con una pasada hacia adelante explícita.</li><li><strong>PyTorch / Sequential</strong>: composición <code>nn.Sequential</code> para arquitecturas estrictamente secuenciales.</li><li><strong>TensorFlow / Subclassing</strong>: subclase de <code>tf.keras.Model</code> con un <code>call()</code> personalizado.</li><li><strong>TensorFlow / Sequential</strong>: composición <code>keras.Sequential</code>.</li></ul><p>La definición de la arquitectura de la NN se genera en el framework seleccionado, junto con el código de entrenamiento y evaluación cuando se definen conjuntos de datos y configuración.</p>",
           "alt": "Menú de generación de código"
+        }
+      },
+      "user": {
+        "label": "Diagrama de usuario",
+        "summary": "Modela perfiles de usuario que guían agentes e interfaces personalizados.",
+        "about": {
+          "title": "Acerca de los diagramas de usuario",
+          "body": "<p>Un diagrama de usuario describe un perfil: una raíz <code>User</code> enlazada con partes como información personal, competencia, accesibilidad, cultura, personalidad, preferencias y objetivos.</p>"
+        },
+        "addParts": {
+          "title": "Añadir y editar partes",
+          "body": "<p>Arrastra elementos de perfil desde la paleta, enlázalos al <code>User</code> y haz doble clic en un elemento para definir sus valores.</p>"
+        },
+        "editAsForm": {
+          "title": "Editar como formulario",
+          "body": "<p>Haz clic en <strong>Editar como formulario</strong> en la barra de pestañas para editar el perfil en un panel lateral guiado. Añade o quita partes y define criterios; los cambios aparecen en el lienzo al instante.</p>"
+        }
+      },
+      "bpmn": {
+        "label": "Diagrama BPMN",
+        "summary": "Modela procesos de negocio con tareas, eventos, compuertas y flujos.",
+        "buildProcess": {
+          "title": "Construir un proceso",
+          "body": "<p>Arrastra elementos desde la paleta: tareas, subprocesos, transacciones y actividades de llamada; eventos de inicio, intermedios y de fin; compuertas; objetos y almacenes de datos; pools y carriles; anotaciones y grupos.</p>"
+        },
+        "connectFlows": {
+          "title": "Conectar con flujos",
+          "body": "<p>Arrastra de un elemento a otro para crear un flujo. El editor elige un tipo válido para el par (secuencia, mensaje, asociación o asociación de datos); haz doble clic en un flujo para cambiarlo.</p>"
+        },
+        "elementTypes": {
+          "title": "Definir tipos de elementos",
+          "body": "<p>Haz doble clic en una tarea, evento o compuerta para definir su tipo, por ejemplo una tarea de usuario o de servicio, un evento de inicio de temporizador, o una compuerta exclusiva o paralela.</p>"
         }
       }
     }
@@ -2973,6 +3009,11 @@
       "emptyDiagram": "El diagrama del agente está vacío. Añade estados, transiciones e intenciones antes de simular.",
       "validationFailed": "La validación del agente falló: {{message}}",
       "validationFailedGeneric": "La validación falló"
+    }
+  },
+  "errors": {
+    "network": {
+      "unreachable": "No se pudo conectar con el servidor. Comprueba tu conexión e inténtalo de nuevo."
     }
   }
 }

@@ -108,7 +108,8 @@
       "title": "Déployer",
       "deployment": "Déploiement",
       "connectGitHub": "Connecter GitHub pour déployer",
-      "publishToRender": "Publier sur Render…"
+      "publishToRender": "Publier sur Render…",
+      "connectGitHubFirstHint": "Connectez d’abord GitHub"
     },
     "community": {
       "title": "Communauté",
@@ -948,6 +949,10 @@
         "spreadsheetGenerateFailed": "Impossible de générer le diagramme de classes à partir du tableur.",
         "spreadsheetCreated": "Projet « {{name}} » créé et diagramme de classes importé.",
         "spreadsheetImportFailed": "Échec de l'importation du tableur : {{error}}"
+      },
+      "returning": {
+        "title": "Projets",
+        "description": "Ouvrez un projet récent ou commencez-en un nouveau."
       }
     },
     "settings": {
@@ -1570,7 +1575,6 @@
       "title": "Fonctionnement de l'éditeur",
       "description": "Guide de modélisation complet avec exemples et visuels.",
       "diagramTypesHeading": "Types de diagrammes",
-      "noImage": "Aucune image pour cet élément.",
       "openDocs": "Ouvrir la documentation BESSER",
       "openWmeRepo": "Ouvrir le dépôt WME",
       "class": {
@@ -1772,6 +1776,38 @@
           "title": "Valider et générer",
           "body": "<p>Exécutez le Quality Check depuis la barre supérieure pour détecter les problèmes structurels tels que des couches déconnectées ou des attributs obligatoires manquants avant de générer le code.</p><p>Ouvrez le menu Generate et choisissez un framework et un style :</p><ul><li><strong>PyTorch / Subclassing</strong> : sous-classe <code>torch.nn.Module</code> avec une passe avant explicite.</li><li><strong>PyTorch / Sequential</strong> : composition <code>nn.Sequential</code> pour des architectures strictement séquentielles.</li><li><strong>TensorFlow / Subclassing</strong> : sous-classe <code>tf.keras.Model</code> avec un <code>call()</code> personnalisé.</li><li><strong>TensorFlow / Sequential</strong> : composition <code>keras.Sequential</code>.</li></ul><p>La définition de l'architecture NN est générée dans le framework sélectionné, ainsi que le code d'entraînement et d'évaluation lorsque des jeux de données et une configuration sont définis.</p>",
           "alt": "Menu de génération de code"
+        }
+      },
+      "user": {
+        "label": "Diagramme utilisateur",
+        "summary": "Modélisez des profils utilisateur qui pilotent des agents et des interfaces personnalisés.",
+        "about": {
+          "title": "À propos des diagrammes utilisateur",
+          "body": "<p>Un diagramme utilisateur décrit un profil : une racine <code>User</code> reliée à des parties comme les informations personnelles, les compétences, l’accessibilité, la culture, la personnalité, les préférences et les objectifs.</p>"
+        },
+        "addParts": {
+          "title": "Ajouter et modifier des parties",
+          "body": "<p>Glissez des éléments de profil depuis la palette, reliez-les au <code>User</code> et double-cliquez sur un élément pour définir ses valeurs d’attributs.</p>"
+        },
+        "editAsForm": {
+          "title": "Modifier comme formulaire",
+          "body": "<p>Cliquez sur <strong>Modifier comme formulaire</strong> dans la barre d’onglets pour modifier le profil dans un panneau latéral guidé. Ajoutez ou retirez des parties et définissez des critères ; les changements apparaissent en direct sur le canevas.</p>"
+        }
+      },
+      "bpmn": {
+        "label": "Diagramme BPMN",
+        "summary": "Modélisez des processus métier avec des tâches, des événements, des passerelles et des flux.",
+        "buildProcess": {
+          "title": "Construire un processus",
+          "body": "<p>Glissez des éléments depuis la palette : tâches, sous-processus, transactions et activités d’appel ; événements de début, intermédiaires et de fin ; passerelles ; objets et magasins de données ; pools et couloirs ; annotations et groupes.</p>"
+        },
+        "connectFlows": {
+          "title": "Relier par des flux",
+          "body": "<p>Glissez d’un élément à un autre pour créer un flux. L’éditeur choisit un type valide pour la paire (séquence, message, association ou association de données) ; double-cliquez sur un flux pour le modifier.</p>"
+        },
+        "elementTypes": {
+          "title": "Définir les types d’éléments",
+          "body": "<p>Double-cliquez sur une tâche, un événement ou une passerelle pour définir son type, par exemple une tâche utilisateur ou de service, un événement de début minuté, ou une passerelle exclusive ou parallèle.</p>"
         }
       }
     }
@@ -2973,6 +3009,11 @@
       "emptyDiagram": "Le diagramme de l'agent est vide. Ajoutez des états, des transitions et des intentions avant de simuler.",
       "validationFailed": "La validation de l'agent a échoué : {{message}}",
       "validationFailedGeneric": "La validation a échoué"
+    }
+  },
+  "errors": {
+    "network": {
+      "unreachable": "Impossible de joindre le serveur. Vérifiez votre connexion et réessayez."
     }
   }
 }

@@ -108,7 +108,8 @@
       "title": "Deployen",
       "deployment": "Deployment",
       "connectGitHub": "GitHub verbannen fir ze deployen",
-      "publishToRender": "Op Render deployen…"
+      "publishToRender": "Op Render deployen…",
+      "connectGitHubFirstHint": "Fir d’éischt GitHub verbannen"
     },
     "community": {
       "title": "Communautéit",
@@ -948,6 +949,10 @@
         "spreadsheetGenerateFailed": "Klassendiagramm konnt net aus dem Spreadsheet generéiert ginn.",
         "spreadsheetCreated": "Projet \"{{name}}\" erstallt a Klassendiagramm importéiert.",
         "spreadsheetImportFailed": "Spreadsheet-Import feelgeschloen: {{error}}"
+      },
+      "returning": {
+        "title": "Projeten",
+        "description": "Maach e rezente Projet op oder fänk en neie un."
       }
     },
     "settings": {
@@ -1570,7 +1575,6 @@
       "title": "Wéi den Editor funktionéiert",
       "description": "Komplett Modelléierungsguide mat Beispiller a Biller.",
       "diagramTypesHeading": "Diagrammtypen",
-      "noImage": "Kee Bild fir dëst Element.",
       "openDocs": "BESSER-Dokumentatioun opmaachen",
       "openWmeRepo": "WME-Repository opmaachen",
       "class": {
@@ -1772,6 +1776,38 @@
           "title": "Validéieren a generéieren",
           "body": "<p>Féiert de Qualitéitscheck aus der Uewerläischt aus fir strukturell Problemer wéi net verbonne Schichten oder feelend obligatoresch Attributer ze fänken, ier Dir Code generéiert.</p><p>Maacht de Generate-Menü op a wielt e Framework an e Stil:</p><ul><li><strong>PyTorch / Subclassing</strong>: <code>torch.nn.Module</code>-Ënnerklass mat engem expliziten Forward Pass.</li><li><strong>PyTorch / Sequential</strong>: <code>nn.Sequential</code>-Kompositioun fir strikt sequenziell Architekturen.</li><li><strong>TensorFlow / Subclassing</strong>: <code>tf.keras.Model</code>-Ënnerklass mat engem benotzerdefinéierten <code>call()</code>.</li><li><strong>TensorFlow / Sequential</strong>: <code>keras.Sequential</code>-Kompositioun.</li></ul><p>D'NN-Architekturdefinitioun gëtt am gewielte Framework generéiert, zesumme mat Trainings- an Evaluatiounscode, wann Datesätz an Configuration definéiert sinn.</p>",
           "alt": "Menü fir Code-Generéierung"
+        }
+      },
+      "user": {
+        "label": "Benotzerdiagramm",
+        "summary": "Modelléier Benotzerprofiler, déi personaliséiert Agenten a GUIen steieren.",
+        "about": {
+          "title": "Iwwer Benotzerdiagrammer",
+          "body": "<p>E Benotzerdiagramm beschreift ee Benotzerprofil: eng <code>User</code>-Wuerzel, verbonne mat Deeler wéi perséinlech Informatiounen, Kompetenz, Accessibilitéit, Kultur, Perséinlechkeet, Preferenzen an Ziler.</p>"
+        },
+        "addParts": {
+          "title": "Deeler derbäisetzen a beaarbechten",
+          "body": "<p>Zéi Profilelementer aus der Palette, verbann se mam <code>User</code> a duebelklick op en Element fir seng Attributwäerter ze setzen.</p>"
+        },
+        "editAsForm": {
+          "title": "Als Formulaire beaarbechten",
+          "body": "<p>Klick an der Tab-Läischt op <strong>Als Formulaire beaarbechten</strong> fir de Profil an engem guidéierte Säitepanel ze beaarbechten. Setz Deeler derbäi oder huel se ewech a setz Critèren; d’Ännerunge gesäit een direkt um Canvas.</p>"
+        }
+      },
+      "bpmn": {
+        "label": "BPMN-Diagramm",
+        "summary": "Modelléier Geschäftsprozesser mat Aufgaben, Evenementer, Gateways a Flëss.",
+        "buildProcess": {
+          "title": "E Prozess opbauen",
+          "body": "<p>Zéi Elementer aus der Palette: Aufgaben, Ënnerprozesser, Transaktiounen an Opruffaktivitéiten; Start-, Zwëschen- an Ennevenementer; Gateways; Dateobjeten an Datespäicher; Pools a Lanes; Notizen a Gruppen.</p>"
+        },
+        "connectFlows": {
+          "title": "Mat Flëss verbannen",
+          "body": "<p>Zéi vun engem Element op en anert fir e Floss ze maachen. Den Editor wielt e gültegen Typ fir d’Pair (Sequenz, Message, Associatioun oder Dateassociatioun); duebelklick op e Floss fir en z’änneren.</p>"
+        },
+        "elementTypes": {
+          "title": "Elementtypen setzen",
+          "body": "<p>Duebelklick op eng Aufgab, en Evenement oder e Gateway fir den Typ ze setzen, zum Beispill eng Benotzer- oder Serviceaufgab, en Timer-Startevenement, oder en exklusiven oder parallele Gateway.</p>"
         }
       }
     }
@@ -2973,6 +3009,11 @@
       "emptyDiagram": "D'Agentediagramm ass eidel. Setz Zoustänn, Iwwergäng an Intents derbäi, ier s de simuléiers.",
       "validationFailed": "D'Validatioun vum Agent ass feelgeschloen: {{message}}",
       "validationFailedGeneric": "Validatioun feelgeschloen"
+    }
+  },
+  "errors": {
+    "network": {
+      "unreachable": "De Server ass net erreechbar. Kontrolléier deng Verbindung a probéier nach eng Kéier."
     }
   }
 }
