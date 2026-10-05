@@ -53,21 +53,21 @@ export function RuntimeSidebar({ activeSection, onSelect, runtime }: {
 
   return (
     <nav className="w-56 shrink-0 border-r border-border py-3">
-      <p className="px-4 pb-1.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+      <p className="px-4 pb-1.5 text-xs font-medium text-muted-foreground">
         {t('agentConfig.runtime.sidebarSettings')}
       </p>
 
       {navBtn('runtime', t('agentConfig.runtime.title'))}
 
       <div className="mt-4">
-        <p className="px-4 pb-1.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+        <p className="px-4 pb-1.5 text-xs font-medium text-muted-foreground">
           {t('agentConfig.runtime.sidebarConfigFile')}
         </p>
 
         {navBtn('config-agent', t('agentConfig.yamlEditor.section.agent'))}
         {navBtn('config-nlp', t('agentConfig.yamlEditor.section.nlp'))}
 
-        <p className="px-4 pb-1 pt-2 text-[10px] font-medium uppercase tracking-wide text-muted-foreground/70">
+        <p className="px-4 pb-1 pt-2 text-xs font-medium text-muted-foreground">
           {t('agentConfig.runtime.sidebarPlatforms')}
         </p>
 
@@ -81,7 +81,7 @@ export function RuntimeSidebar({ activeSection, onSelect, runtime }: {
               {p.label}
             </button>
             <div className="pr-3 shrink-0">
-              <Toggle value={p.enabled} onChange={p.onToggle} />
+              <Toggle value={p.enabled} onChange={p.onToggle} aria-label={t('agentConfig.runtime.enablePlatform', { platform: p.label })} />
             </div>
           </div>
         ))}

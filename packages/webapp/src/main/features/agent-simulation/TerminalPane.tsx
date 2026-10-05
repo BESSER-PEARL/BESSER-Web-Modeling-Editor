@@ -14,12 +14,13 @@ interface TerminalPaneProps {
 export const TerminalPane: React.FC<TerminalPaneProps> = ({ isCollapsed, onToggleCollapse }) => {
   const { t } = useTranslation();
   const lines = useAppSelector(selectStdoutLines);
-  const bottomRef = useRef<HTMLDivElement>(null);
+  const bodyRef = useRef<HTMLDivElement>(null);
 
   // Auto-scroll when new lines arrive and pane is expanded
   useEffect(() => {
-    if (!isCollapsed) {
-      bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
+    const body = bodyRef.current;
+    if (!isCollapsed && body) {
+      body.scrollTop = body.scrollHeight;
     }
   }, [lines, isCollapsed]);
 
@@ -53,7 +54,7 @@ export const TerminalPane: React.FC<TerminalPaneProps> = ({ isCollapsed, onToggl
 
       {/* Terminal body */}
       {!isCollapsed && (
-        <div className="h-48 overflow-y-auto bg-gray-50 p-2 font-mono dark:bg-gray-950">
+        <div ref={bodyRef} className="h-48 overflow-y-auto bg-gray-50 p-2 font-mono dark:bg-gray-950">
           {displayedLines.length === 0 ? (
             <p className="text-[11px] italic text-gray-400 dark:text-gray-600">{t('agentSimulation.terminal.empty')}</p>
           ) : (
@@ -74,7 +75,6 @@ export const TerminalPane: React.FC<TerminalPaneProps> = ({ isCollapsed, onToggl
               );
             })
           )}
-          <div ref={bottomRef} />
         </div>
       )}
     </div>

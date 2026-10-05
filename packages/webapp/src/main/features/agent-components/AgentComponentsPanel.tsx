@@ -59,7 +59,7 @@ export function AgentComponentsPanel() {
 
       {/* ── Left sidebar ──────────────────────────────────────── */}
       <nav className="w-52 shrink-0 border-r border-border overflow-y-auto py-3">
-        <p className="px-4 pb-2 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+        <p className="px-4 pb-2 text-xs font-medium text-muted-foreground">
           {t('agentComponents.sidebarTitle')}
         </p>
         {navItems.map(item => (

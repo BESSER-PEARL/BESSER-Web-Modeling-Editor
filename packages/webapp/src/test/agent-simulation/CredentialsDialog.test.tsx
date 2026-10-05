@@ -52,6 +52,15 @@ describe('CredentialsDialog', () => {
     expect(String(fetchMock.mock.calls[0][0])).toMatch(/\/simulation\/limits$/);
   });
 
+  it('links each key label to its input', () => {
+    fetchMock.mockResolvedValue(jsonResponse({}));
+    renderDialog();
+
+    expect(screen.getByLabelText(/OpenAI API Key/)).toHaveAttribute('placeholder', 'sk-...');
+    expect(screen.getByLabelText(/HuggingFace API Token/)).toHaveAttribute('placeholder', 'hf_...');
+    expect(screen.getByLabelText(/Replicate API Key/)).toHaveAttribute('placeholder', 'r8_...');
+  });
+
   it('submits without putting the API keys into Redux', async () => {
     fetchMock.mockImplementation(async (url: string) =>
       String(url).endsWith('/simulation/sessions') ? jsonResponse({ sessionId: 'sess-1' }) : jsonResponse({}),

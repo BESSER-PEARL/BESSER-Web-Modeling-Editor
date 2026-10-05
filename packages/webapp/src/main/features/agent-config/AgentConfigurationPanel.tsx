@@ -717,7 +717,7 @@ const AgentLLMRow: React.FC<AgentLLMRowProps> = ({
         <div className="flex min-w-0 items-center gap-2">
           <span className="truncate text-sm font-medium">{displayName}</span>
           {isDefault && (
-            <Badge variant="secondary" className="text-[10px] uppercase tracking-wide">
+            <Badge variant="secondary" className="text-[10px]">
               {t('agentConfig.row.default')}
             </Badge>
           )}
@@ -842,7 +842,16 @@ const AgentLLMRow: React.FC<AgentLLMRowProps> = ({
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => onRemove(element.id)}
+              onClick={async () => {
+                const confirmed = await globalConfirm({
+                  title: t('agentConfig.confirm.removeLlm.title'),
+                  description: t('agentConfig.confirm.removeLlm.description', { name: displayName }),
+                  confirmLabel: t('agentConfig.row.remove'),
+                  cancelLabel: t('common.cancel'),
+                  variant: 'danger',
+                });
+                if (confirmed) onRemove(element.id);
+              }}
               className="text-destructive hover:text-destructive"
             >
               {t('agentConfig.row.remove')}
@@ -1874,7 +1883,15 @@ export const AgentConfigurationPanel: React.FC = () => {
     LocalStorageRepository.clearActiveAgentConfigurationId();
   }, [applyConfiguration]);
 
-  const handleResetToDefaults = () => {
+  const handleResetToDefaults = async () => {
+    const confirmed = await globalConfirm({
+      title: t('agentConfig.confirm.reset.title'),
+      description: t('agentConfig.confirm.reset.description'),
+      confirmLabel: t('agentConfig.save.resetDefaults'),
+      cancelLabel: t('common.cancel'),
+      variant: 'danger',
+    });
+    if (!confirmed) return;
     resetFormToDefaults();
     toast.info(t('agentConfig.toasts.resetToDefaults'));
   };
@@ -2063,16 +2080,25 @@ export const AgentConfigurationPanel: React.FC = () => {
     }
 
     const reader = new FileReader();
-    reader.onload = (loadEvent) => {
+    reader.onload = async (loadEvent) => {
+      let normalized: ReturnType<typeof normalizeAgentConfiguration>;
       try {
         const parsed = JSON.parse(loadEvent.target?.result as string);
-        const flattened = flattenStructuredConfig(parsed);
-        const normalized = normalizeAgentConfiguration(flattened);
-        applyConfiguration(normalized);
-        toast.success(t('agentConfig.toasts.uploadLoaded'));
+        normalized = normalizeAgentConfiguration(flattenStructuredConfig(parsed));
       } catch {
         toast.error(t('agentConfig.toasts.invalidFile'));
+        return;
       }
+      const confirmed = await globalConfirm({
+        title: t('agentConfig.confirm.upload.title'),
+        description: t('agentConfig.confirm.upload.description', { name: file.name }),
+        confirmLabel: t('agentConfig.confirm.replace'),
+        cancelLabel: t('common.cancel'),
+        variant: 'danger',
+      });
+      if (!confirmed) return;
+      applyConfiguration(normalized);
+      toast.success(t('agentConfig.toasts.uploadLoaded'));
     };
 
     reader.readAsText(file);
@@ -2082,6 +2108,9 @@ export const AgentConfigurationPanel: React.FC = () => {
   const toggleCustomizationSection = (section: string) => {
     setActiveCustomizationSection((previous) => (previous === section ? null : section));
   };
+
+  const uploadInputRef = useRef<HTMLInputElement>(null);
+  const configurationNameMissing = !configurationName.trim();
 
   // When a customization section opens, scroll it into view. Otherwise the
   // previously open (taller) section collapsing above this one can push the
@@ -2156,7 +2185,7 @@ export const AgentConfigurationPanel: React.FC = () => {
 
         {activeTab === 'personalization' && (
           <div className="flex flex-wrap items-center gap-2 rounded-lg border border-border bg-muted/20 p-2">
-            <span className="px-1 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+            <span className="px-1 text-xs font-medium text-muted-foreground">
               {t('agentConfig.loadSavedLabel')}
             </span>
             {activeConfigId && (
@@ -2325,6 +2354,7 @@ export const AgentConfigurationPanel: React.FC = () => {
                   type="button"
                   className="flex w-full items-start justify-between gap-4 px-4 py-3 text-left"
                   onClick={() => toggleCustomizationSection('presentation')}
+                  aria-expanded={activeCustomizationSection === 'presentation'}
                 >
                   <div>
                     <p className="font-medium">{t('agentConfig.presentation.title')}</p>
@@ -2637,6 +2667,7 @@ export const AgentConfigurationPanel: React.FC = () => {
                   type="button"
                   className="flex w-full items-start justify-between gap-4 px-4 py-3 text-left"
                   onClick={() => toggleCustomizationSection('modality')}
+                  aria-expanded={activeCustomizationSection === 'modality'}
                 >
                   <div>
                     <p className="font-medium">{t('agentConfig.modality.title')}</p>
@@ -2686,6 +2717,7 @@ export const AgentConfigurationPanel: React.FC = () => {
                   type="button"
                   className="flex w-full items-start justify-between gap-4 px-4 py-3 text-left"
                   onClick={() => toggleCustomizationSection('content')}
+                  aria-expanded={activeCustomizationSection === 'content'}
                 >
                   <div>
                     <p className="font-medium">{t('agentConfig.content.title')}</p>
@@ -2725,6 +2757,7 @@ export const AgentConfigurationPanel: React.FC = () => {
                     type="button"
                     className="flex w-full items-start justify-between gap-4 px-4 py-3 text-left"
                     onClick={() => toggleCustomizationSection('behavior')}
+                    aria-expanded={activeCustomizationSection === 'behavior'}
                   >
                     <div>
                       <p className="font-medium">{t('agentConfig.behavior.title')}</p>
@@ -2766,10 +2799,19 @@ export const AgentConfigurationPanel: React.FC = () => {
                   <Label htmlFor="configuration-name">{t('agentConfig.save.nameLabel')}</Label>
                   <Input
                     id="configuration-name"
+                    name="configuration-name"
+                    autoComplete="off"
                     value={configurationName}
                     placeholder={t('agentConfig.save.namePlaceholder')}
                     onChange={(event) => setConfigurationName(event.target.value)}
+                    aria-invalid={configurationNameMissing || undefined}
+                    aria-describedby={configurationNameMissing ? 'configuration-name-error' : undefined}
                   />
+                  {configurationNameMissing && (
+                    <p id="configuration-name-error" className="text-xs text-destructive">
+                      {t('agentConfig.toasts.nameBeforeSave')}
+                    </p>
+                  )}
                   {activeConfigId ? (
                     <div className="mt-2 flex items-center gap-2 text-xs text-muted-foreground">
                       <Badge variant="secondary">{t('agentConfig.save.activeBadge')}</Badge>
@@ -2817,7 +2859,7 @@ export const AgentConfigurationPanel: React.FC = () => {
                 <Separator />
 
                 <div className="flex flex-wrap gap-2">
-                  <Button type="button" onClick={handleSaveAndApply} disabled={isLoading}>
+                  <Button type="button" onClick={handleSaveAndApply} disabled={isLoading || configurationNameMissing}>
                     {isLoading ? t('agentConfig.save.applying') : t('agentConfig.save.saveAndApply')}
                   </Button>
                   <Button type="button" variant="outline" onClick={handleResetToDefaults} disabled={isLoading}>
@@ -2839,10 +2881,18 @@ export const AgentConfigurationPanel: React.FC = () => {
                   <Button type="button" variant="outline" onClick={handleDownload}>
                     {t('agentConfig.importExport.downloadJson')}
                   </Button>
-                  <label className="inline-flex cursor-pointer items-center rounded-md border border-input bg-background px-4 py-2 text-sm font-medium hover:border-brand/30">
+                  <Button type="button" variant="outline" onClick={() => uploadInputRef.current?.click()}>
                     {t('agentConfig.importExport.uploadJson')}
-                    <input type="file" accept="application/json" className="hidden" onChange={handleUpload} />
-                  </label>
+                  </Button>
+                  <input
+                    ref={uploadInputRef}
+                    type="file"
+                    accept="application/json"
+                    className="hidden"
+                    tabIndex={-1}
+                    aria-hidden
+                    onChange={handleUpload}
+                  />
                 </div>
                 <p className="text-xs text-muted-foreground">
                   {t('agentConfig.importExport.uploadNote')}

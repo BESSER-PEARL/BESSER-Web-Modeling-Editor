@@ -772,7 +772,7 @@ export function AgentConfigYamlEditor({ currentProject }: AgentConfigYamlEditorP
                 <span className="font-semibold">{t('agentConfig.yamlEditor.syntaxError')}</span> {customYamlError}
               </div>
             )}
-            <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+            <Label className="text-xs font-medium text-muted-foreground">
               {t('agentConfig.yamlEditor.customLabel')}
             </Label>
             <p className="text-[11px] text-muted-foreground/70">
