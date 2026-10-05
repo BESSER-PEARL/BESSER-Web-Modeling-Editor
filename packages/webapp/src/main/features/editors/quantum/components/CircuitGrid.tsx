@@ -24,9 +24,12 @@ interface CircuitGridProps {
     onGateSelect?: (col: number, row: number) => void;
     onInitialStateChange?: (row: number) => void;
     onAddQubit?: () => void;
+    /** When a palette gate is armed, a click on the grid places it at that point. */
+    armedGate?: GateType | null;
+    onPlaceArmedGate?: (clientX: number, clientY: number) => void;
 }
 
-export const CircuitGrid = forwardRef<HTMLDivElement, CircuitGridProps>(({ circuit, onGateDrop: _onGateDrop, draggedGate, onDragStart, onGateResize, onGateDoubleClick, previewPosition, selectedGate, onGateSelect, onInitialStateChange, onAddQubit }, ref) => {
+export const CircuitGrid = forwardRef<HTMLDivElement, CircuitGridProps>(({ circuit, onGateDrop: _onGateDrop, draggedGate, onDragStart, onGateResize, onGateDoubleClick, previewPosition, selectedGate, onGateSelect, onInitialStateChange, onAddQubit, armedGate, onPlaceArmedGate }, ref) => {
     const { t } = useTranslation();
     const qubitWires = Array.from({ length: circuit.qubitCount }, (_, i) => i);
     const classicalBitCount = circuit.classicalBitCount || 0;
@@ -72,7 +75,11 @@ export const CircuitGrid = forwardRef<HTMLDivElement, CircuitGridProps>(({ circu
     };
 
     // Clear selection when clicking on empty grid area
-    const handleGridClick = () => {
+    const handleGridClick = (e: React.MouseEvent) => {
+        if (armedGate && onPlaceArmedGate) {
+            onPlaceArmedGate(e.clientX, e.clientY);
+            return;
+        }
         onGateSelect?.(-1, -1); // -1, -1 means deselect
     };
 
@@ -80,7 +87,10 @@ export const CircuitGrid = forwardRef<HTMLDivElement, CircuitGridProps>(({ circu
         <div
             ref={ref}
             onClick={handleGridClick}
-            className="relative min-w-full min-h-full bg-[var(--quantum-editor-bg,#ffffff)] text-[var(--quantum-editor-text,#0f172a)]"
+            className={cn(
+                'relative min-w-full min-h-full bg-[var(--quantum-editor-bg,#ffffff)] text-[var(--quantum-editor-text,#0f172a)]',
+                armedGate && 'cursor-crosshair',
+            )}
         >
             {/* Qubit name labels (q0, q1, etc.) */}
             {qubitWires.map(row => (
@@ -95,18 +105,20 @@ export const CircuitGrid = forwardRef<HTMLDivElement, CircuitGridProps>(({ circu
 
             {/* Qubit initial state labels (clickable) */}
             {qubitWires.map(row => (
-                <div
+                <button
                     key={`label-${row}`}
-                    className="absolute left-[28px] z-[2] cursor-pointer select-none rounded-[3px] px-1 py-0.5 font-sans text-sm text-[var(--quantum-editor-text,#0f172a)] transition-colors duration-150 ease-linear hover:bg-[var(--quantum-editor-hover,rgba(56,189,248,0.16))] active:bg-[var(--quantum-editor-primary-soft,rgba(2,132,199,0.16))]"
+                    type="button"
+                    className="absolute left-[28px] z-[2] cursor-pointer select-none rounded-[3px] px-1 py-0.5 font-sans text-sm text-[var(--quantum-editor-text,#0f172a)] transition-colors duration-150 ease-linear hover:bg-[var(--quantum-editor-hover,rgba(56,189,248,0.16))] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--quantum-editor-primary,#0284c7)] active:bg-[var(--quantum-editor-primary-soft,rgba(2,132,199,0.16))]"
                     style={{ top: TOP_MARGIN + row * WIRE_SPACING + GATE_SIZE / 2 - 10 }}
                     onClick={(e) => {
                         e.stopPropagation();
                         onInitialStateChange?.(row);
                     }}
+                    aria-label={t('quantum.circuitGrid.initialStateLabel', { qubit: `q${row}`, state: getInitialState(row) })}
                     title={t('quantum.circuitGrid.cycleInitialStates')}
                 >
                     {getInitialState(row)}
-                </div>
+                </button>
             ))}
 
             {/* Qubit wires */}
@@ -124,7 +136,7 @@ export const CircuitGrid = forwardRef<HTMLDivElement, CircuitGridProps>(({ circu
             {/* Add qubit button - positioned at bottom left */}
             {onAddQubit && (
                 <button
-                    className="absolute bottom-2.5 left-[5px] z-[2] flex h-6 w-[60px] cursor-pointer items-center justify-center rounded-[3px] border border-dashed border-[var(--quantum-editor-border,#d5dde8)] bg-[var(--quantum-editor-surface,#f8fafc)] font-sans text-xs text-[var(--quantum-editor-muted-text,#64748b)] transition-all duration-150 ease-linear hover:border-[var(--quantum-editor-primary,#0284c7)] hover:bg-[var(--quantum-editor-hover,rgba(56,189,248,0.16))] hover:text-[var(--quantum-editor-primary,#0284c7)]"
+                    className="absolute bottom-2.5 left-[5px] z-[2] flex h-6 w-[60px] cursor-pointer items-center justify-center rounded-[3px] border border-dashed border-[var(--quantum-editor-border,#d5dde8)] bg-[var(--quantum-editor-surface,#f8fafc)] font-sans text-xs text-[var(--quantum-editor-muted-text,#64748b)] transition-colors duration-150 ease-linear hover:border-[var(--quantum-editor-primary,#0284c7)] hover:bg-[var(--quantum-editor-hover,rgba(56,189,248,0.16))] hover:text-[var(--quantum-editor-primary,#0284c7)]"
                     onClick={(e) => {
                         e.stopPropagation();
                         onAddQubit();

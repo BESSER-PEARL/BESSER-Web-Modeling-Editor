@@ -390,4 +390,77 @@ describe('DiagramTabs', () => {
     // The "Linked Diagrams" toggle should be visible
     expect(screen.getByLabelText('Collapse linked diagrams')).toBeInTheDocument();
   });
+  describe('keyboard navigation', () => {
+    const threeTabs = () =>
+      setMockState({
+        diagrams: [makeDiagram('d1', 'First'), makeDiagram('d2', 'Second'), makeDiagram('d3', 'Third')],
+        activeDiagramIndex: 0,
+      });
+
+    it('renders the tabs inside a tablist with a roving tabIndex', () => {
+      threeTabs();
+      render(<DiagramTabs />);
+
+      const tabs = screen.getAllByRole('tab');
+      expect(screen.getByRole('tablist')).toContainElement(tabs[0]);
+      expect(tabs.map((tab) => tab.getAttribute('tabindex'))).toEqual(['0', '-1', '-1']);
+    });
+
+    it('moves focus and activates with ArrowRight, ArrowLeft (wrapping) and End', async () => {
+      const { switchDiagramIndexThunk } = await import('../../../../app/store/workspaceSlice');
+      threeTabs();
+      render(<DiagramTabs />);
+      const [first, second, third] = screen.getAllByRole('tab');
+
+      fireEvent.keyDown(first, { key: 'ArrowRight' });
+      expect(second).toHaveFocus();
+      await waitFor(() => expect(switchDiagramIndexThunk).toHaveBeenCalledWith({ diagramType: 'ClassDiagram', index: 1 }));
+
+      fireEvent.keyDown(first, { key: 'ArrowLeft' });
+      expect(third).toHaveFocus();
+      await waitFor(() => expect(switchDiagramIndexThunk).toHaveBeenCalledWith({ diagramType: 'ClassDiagram', index: 2 }));
+
+      fireEvent.keyDown(first, { key: 'End' });
+      expect(third).toHaveFocus();
+    });
+
+    it('activates the focused tab with Enter', async () => {
+      const { switchDiagramIndexThunk } = await import('../../../../app/store/workspaceSlice');
+      threeTabs();
+      render(<DiagramTabs />);
+
+      fireEvent.keyDown(screen.getByLabelText('Diagram tab: Third'), { key: 'Enter' });
+      await waitFor(() => expect(switchDiagramIndexThunk).toHaveBeenCalledWith({ diagramType: 'ClassDiagram', index: 2 }));
+    });
+
+    it('starts renaming the focused tab with F2', () => {
+      threeTabs();
+      render(<DiagramTabs />);
+
+      fireEvent.keyDown(screen.getByLabelText('Diagram tab: Second'), { key: 'F2' });
+      expect(screen.getByLabelText('Rename diagram')).toHaveValue('Second');
+    });
+
+    it('ignores navigation keys typed into the rename input', async () => {
+      const { switchDiagramIndexThunk } = await import('../../../../app/store/workspaceSlice');
+      threeTabs();
+      render(<DiagramTabs />);
+
+      fireEvent.keyDown(screen.getByLabelText('Diagram tab: First'), { key: 'F2' });
+      fireEvent.keyDown(screen.getByLabelText('Rename diagram'), { key: 'ArrowRight' });
+      expect(switchDiagramIndexThunk).not.toHaveBeenCalled();
+    });
+  });
+
+  it('announces a broken class-diagram reference to assistive technology', () => {
+    const project = createDefaultProject('Test', '', 'owner');
+    const od = { ...makeDiagram('od1', 'Object Diagram'), references: { ClassDiagram: 'deleted-id' } };
+    setMockState({ diagrams: [od], activeDiagramType: 'ObjectDiagram', project });
+
+    render(<DiagramTabs />);
+
+    expect(
+      screen.getByRole('img', { name: 'The referenced diagram was deleted. Please select a new one.' }),
+    ).toBeInTheDocument();
+  });
 });

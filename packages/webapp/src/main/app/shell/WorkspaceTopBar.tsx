@@ -3,7 +3,6 @@ import { useTranslation } from 'react-i18next';
 import { FolderKanban } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { LanguageSelector } from './LanguageSelector';
-import { CommunityMenu } from './menus/CommunityMenu';
 import { DeployMenu } from './menus/DeployMenu';
 import { FileMenu } from './menus/FileMenu';
 import { GenerateMenu } from './menus/GenerateMenu';
@@ -132,7 +131,6 @@ const WorkspaceTopBarInner: React.FC<WorkspaceTopBarProps> = ({
             onGitHubLogin={onGitHubLogin}
             onOpenDeployDialog={onOpenDeployDialog}
           />
-          <CommunityMenu outlineButtonClass={outlineButtonClass} onOpenFeedback={onOpenFeedback} />
           <HelpMenu
             outlineButtonClass={outlineButtonClass}
             onOpenHelpDialog={onOpenHelpDialog}

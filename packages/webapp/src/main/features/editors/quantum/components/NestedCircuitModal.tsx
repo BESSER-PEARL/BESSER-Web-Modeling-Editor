@@ -1,7 +1,8 @@
 import React, { useState, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
+import * as DialogPrimitive from '@radix-ui/react-dialog';
 import { cn } from '@/lib/utils';
-import { Z_INDEX } from '../../../../shared/constants/z-index';
+import { Dialog, DialogOverlay, DialogPortal, DialogTitle } from '@/components/ui/dialog';
 import { Circuit, Gate, InitialState } from '../types';
 import { CircuitEditor } from './CircuitEditor';
 
@@ -30,12 +31,6 @@ export function NestedCircuitModal({ gate, onClose, onSave }: NestedCircuitModal
   const handleSave = useCallback(() => {
     onSave(circuit, gateName, gateColor);
   }, [circuit, gateName, gateColor, onSave]);
-
-  const handleOverlayClick = useCallback((e: React.MouseEvent) => {
-    if (e.target === e.currentTarget) {
-      onClose();
-    }
-  }, [onClose]);
 
   const handleAddQubit = useCallback(() => {
     setCircuit((prev) => {
@@ -72,114 +67,117 @@ export function NestedCircuitModal({ gate, onClose, onSave }: NestedCircuitModal
   }, [circuit.qubitCount]);
 
   return (
-    <div
-      className="fixed inset-0 bg-black/70 flex items-center justify-center p-5"
-      style={{ zIndex: Z_INDEX.MODAL }}
-      onClick={handleOverlayClick}
-    >
-      <div
-        className="bg-[var(--quantum-editor-bg,#ffffff)] text-[var(--quantum-editor-text,#0f172a)] border border-[var(--quantum-editor-border,#d5dde8)] rounded-lg shadow-[var(--quantum-editor-tooltip-shadow,0_12px_28px_rgba(2,6,23,0.18))] w-[85vw] max-w-[1400px] min-w-[900px] max-h-[85vh] min-h-[600px] flex flex-col overflow-hidden"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="px-5 py-4 border-b border-[var(--quantum-editor-border,#d5dde8)] flex flex-col gap-3 bg-[var(--quantum-editor-surface,#f8fafc)]">
-          <div className="flex justify-between items-center">
-            <h2 className="m-0 text-lg font-semibold text-[var(--quantum-editor-text,#0f172a)]">
-              {t('editors.quantum.editFunctionGate')}
-            </h2>
-            <button
-              className="bg-transparent border border-transparent text-2xl cursor-pointer p-0 size-8 flex items-center justify-center rounded text-[var(--quantum-editor-muted-text,#64748b)] hover:border-[var(--quantum-editor-border,#d5dde8)] hover:bg-[var(--quantum-editor-surface,#f8fafc)] hover:text-[var(--quantum-editor-text,#0f172a)]"
-              onClick={onClose}
-              aria-label={t('editors.quantum.closeModal')}
-              title={t('common.close')}
-            >
-              ×
-            </button>
-          </div>
-          <input
-            type="text"
-            className="w-full px-3 py-2 border border-[var(--quantum-editor-border,#d5dde8)] rounded text-sm font-[inherit] text-[var(--quantum-editor-text,#0f172a)] bg-[var(--quantum-editor-bg,#ffffff)] placeholder:text-[var(--quantum-editor-muted-text,#64748b)] focus:outline-none focus:border-[var(--quantum-editor-primary,#0284c7)] focus:shadow-[0_0_0_3px_var(--quantum-editor-primary-soft,rgba(2,132,199,0.16))]"
-            placeholder={t('editors.quantum.gateNamePlaceholder')}
-            value={gateName}
-            onChange={(e) => setGateName(e.target.value)}
-            autoFocus
-          />
-          <div className="flex items-center gap-3">
-            <span className="text-sm text-[var(--quantum-editor-muted-text,#64748b)]">{t('editors.quantum.gateColor')}</span>
-            <div className="flex gap-1.5">
-              {['#FFE8CC', '#E8F4FF', '#E8FFE8', '#FFE8E8', '#F0E8FF', '#FFF8E8', '#E8FFFF', '#FFE8F4'].map((color) => (
-                <button
-                  key={color}
-                  onClick={() => setGateColor(color)}
-                  className={cn(
-                    'size-6 p-0 rounded cursor-pointer',
-                    gateColor === color
-                      ? 'border-2 border-[var(--quantum-editor-text,#0f172a)]'
-                      : 'border border-[var(--quantum-editor-border,#d5dde8)]'
-                  )}
-                  style={{ backgroundColor: color }}
-                  aria-label={t('editors.quantum.selectGateColor', { color })}
-                  title={color}
+    <Dialog open onOpenChange={(open) => !open && onClose()}>
+      <DialogPortal>
+        <DialogOverlay />
+        {/* Centered with inset-0 + m-auto, not a transform: a transformed ancestor would
+            become the containing block of the fixed-position drag ghost and offset it. */}
+        <DialogPrimitive.Content
+          aria-describedby={undefined}
+          className="fixed inset-0 z-50 m-auto bg-[var(--quantum-editor-bg,#ffffff)] text-[var(--quantum-editor-text,#0f172a)] border border-[var(--quantum-editor-border,#d5dde8)] rounded-lg shadow-[var(--quantum-editor-tooltip-shadow,0_12px_28px_rgba(2,6,23,0.18))] w-[min(95vw,1100px)] h-[min(90vh,800px)] flex flex-col overflow-hidden focus:outline-none data-[state=open]:animate-in data-[state=open]:fade-in-0"
+        >
+          <div className="px-5 py-4 border-b border-[var(--quantum-editor-border,#d5dde8)] flex flex-col gap-3 bg-[var(--quantum-editor-surface,#f8fafc)]">
+            <div className="flex justify-between items-center">
+              <DialogTitle className="m-0 text-lg font-semibold leading-normal text-[var(--quantum-editor-text,#0f172a)]">
+                {t('editors.quantum.editFunctionGate')}
+              </DialogTitle>
+              <button
+                className="bg-transparent border border-transparent text-2xl cursor-pointer p-0 size-8 flex items-center justify-center rounded text-[var(--quantum-editor-muted-text,#64748b)] hover:border-[var(--quantum-editor-border,#d5dde8)] hover:bg-[var(--quantum-editor-surface,#f8fafc)] hover:text-[var(--quantum-editor-text,#0f172a)]"
+                onClick={onClose}
+                aria-label={t('editors.quantum.closeModal')}
+                title={t('common.close')}
+              >
+                ×
+              </button>
+            </div>
+            <input
+              type="text"
+              className="w-full px-3 py-2 border border-[var(--quantum-editor-border,#d5dde8)] rounded text-sm font-[inherit] text-[var(--quantum-editor-text,#0f172a)] bg-[var(--quantum-editor-bg,#ffffff)] placeholder:text-[var(--quantum-editor-muted-text,#64748b)] focus:outline-none focus:border-[var(--quantum-editor-primary,#0284c7)] focus:shadow-[0_0_0_3px_var(--quantum-editor-primary-soft,rgba(2,132,199,0.16))]"
+              placeholder={t('editors.quantum.gateNamePlaceholder')}
+              aria-label={t('editors.quantum.gateName')}
+              value={gateName}
+              onChange={(e) => setGateName(e.target.value)}
+              autoFocus
+            />
+            <div className="flex items-center gap-3">
+              <span className="text-sm text-[var(--quantum-editor-muted-text,#64748b)]">{t('editors.quantum.gateColor')}</span>
+              <div className="flex gap-1.5">
+                {['#FFE8CC', '#E8F4FF', '#E8FFE8', '#FFE8E8', '#F0E8FF', '#FFF8E8', '#E8FFFF', '#FFE8F4'].map((color) => (
+                  <button
+                    key={color}
+                    onClick={() => setGateColor(color)}
+                    className={cn(
+                      'size-6 p-0 rounded cursor-pointer',
+                      gateColor === color
+                        ? 'border-2 border-[var(--quantum-editor-text,#0f172a)]'
+                        : 'border border-[var(--quantum-editor-border,#d5dde8)]'
+                    )}
+                    style={{ backgroundColor: color }}
+                    aria-label={t('editors.quantum.selectGateColor', { color })}
+                    title={color}
+                  />
+                ))}
+                <input
+                  type="color"
+                  className="size-6 p-0 border border-[var(--quantum-editor-border,#d5dde8)] rounded cursor-pointer bg-[var(--quantum-editor-bg,#ffffff)]"
+                  value={gateColor}
+                  onChange={(e) => setGateColor(e.target.value)}
+                  title={t('editors.quantum.customColor')}
+                  aria-label={t('editors.quantum.customColor')}
                 />
-              ))}
-              <input
-                type="color"
-                className="size-6 p-0 border border-[var(--quantum-editor-border,#d5dde8)] rounded cursor-pointer bg-[var(--quantum-editor-bg,#ffffff)]"
-                value={gateColor}
-                onChange={(e) => setGateColor(e.target.value)}
-                title={t('editors.quantum.customColor')}
-              />
+              </div>
             </div>
           </div>
-        </div>
 
-        <div className="p-5 overflow-auto flex-1 flex gap-5 bg-[var(--quantum-editor-bg,#ffffff)]">
-          <CircuitEditor
-            initialCircuit={circuit}
-            onCircuitChange={handleCircuitChange}
-            isActive={true}
-            keyboardCapturePhase={true}
-            compactPalette={true}
-            style={{ flex: 1, minHeight: '400px' }}
-          />
-        </div>
+          <div className="p-5 overflow-auto flex-1 flex gap-5 bg-[var(--quantum-editor-bg,#ffffff)]">
+            <CircuitEditor
+              initialCircuit={circuit}
+              onCircuitChange={handleCircuitChange}
+              isActive={true}
+              keyboardCapturePhase={true}
+              compactPalette={true}
+              style={{ flex: 1, minHeight: '400px' }}
+            />
+          </div>
 
-        <div className="px-5 py-4 border-t border-[var(--quantum-editor-border,#d5dde8)] flex justify-between items-center gap-3 bg-[var(--quantum-editor-surface,#f8fafc)]">
-          <div className="flex items-center gap-2 text-sm text-[var(--quantum-editor-text,#0f172a)]">
-            <span>{t('editors.quantum.qubits', { count: circuit.qubitCount })}</span>
-            <button
-              className="px-3 py-1 border border-[var(--quantum-editor-border,#d5dde8)] rounded text-sm cursor-pointer text-[var(--quantum-editor-text,#0f172a)] bg-[var(--quantum-editor-bg,#ffffff)] transition-all duration-200 hover:enabled:bg-[var(--quantum-editor-surface,#f8fafc)] hover:enabled:border-[var(--quantum-editor-muted-text,#64748b)] disabled:opacity-50 disabled:cursor-not-allowed"
-              onClick={handleRemoveQubit}
-              disabled={circuit.qubitCount <= 1}
-              aria-label={t('editors.quantum.removeQubit')}
-              title={t('editors.quantum.removeQubit')}
-            >
-              −
-            </button>
-            <button
-              className="px-3 py-1 border border-[var(--quantum-editor-border,#d5dde8)] rounded text-sm cursor-pointer text-[var(--quantum-editor-text,#0f172a)] bg-[var(--quantum-editor-bg,#ffffff)] transition-all duration-200 hover:enabled:bg-[var(--quantum-editor-surface,#f8fafc)] hover:enabled:border-[var(--quantum-editor-muted-text,#64748b)] disabled:opacity-50 disabled:cursor-not-allowed"
-              onClick={handleAddQubit}
-              aria-label={t('editors.quantum.addQubit')}
-              title={t('editors.quantum.addQubit')}
-            >
-              +
-            </button>
+          <div className="px-5 py-4 border-t border-[var(--quantum-editor-border,#d5dde8)] flex justify-between items-center gap-3 bg-[var(--quantum-editor-surface,#f8fafc)]">
+            <div className="flex items-center gap-2 text-sm text-[var(--quantum-editor-text,#0f172a)]">
+              <span>{t('editors.quantum.qubits', { count: circuit.qubitCount })}</span>
+              <button
+                className="px-3 py-1 border border-[var(--quantum-editor-border,#d5dde8)] rounded text-sm cursor-pointer text-[var(--quantum-editor-text,#0f172a)] bg-[var(--quantum-editor-bg,#ffffff)] transition-colors duration-200 hover:enabled:bg-[var(--quantum-editor-surface,#f8fafc)] hover:enabled:border-[var(--quantum-editor-muted-text,#64748b)] disabled:opacity-50 disabled:cursor-not-allowed"
+                onClick={handleRemoveQubit}
+                disabled={circuit.qubitCount <= 1}
+                aria-label={t('editors.quantum.removeQubit')}
+                title={t('editors.quantum.removeQubit')}
+              >
+                −
+              </button>
+              <button
+                className="px-3 py-1 border border-[var(--quantum-editor-border,#d5dde8)] rounded text-sm cursor-pointer text-[var(--quantum-editor-text,#0f172a)] bg-[var(--quantum-editor-bg,#ffffff)] transition-colors duration-200 hover:enabled:bg-[var(--quantum-editor-surface,#f8fafc)] hover:enabled:border-[var(--quantum-editor-muted-text,#64748b)] disabled:opacity-50 disabled:cursor-not-allowed"
+                onClick={handleAddQubit}
+                aria-label={t('editors.quantum.addQubit')}
+                title={t('editors.quantum.addQubit')}
+              >
+                +
+              </button>
+            </div>
+            <div className="flex gap-3">
+              <button
+                className="px-4 py-2 border border-[var(--quantum-editor-border,#d5dde8)] rounded text-sm font-medium cursor-pointer transition-colors duration-200 bg-[var(--quantum-editor-muted-surface,#f1f5f9)] text-[var(--quantum-editor-text,#0f172a)] hover:bg-[var(--quantum-editor-surface,#f8fafc)] active:translate-y-px"
+                onClick={onClose}
+              >
+                {t('common.cancel')}
+              </button>
+              <button
+                className="px-4 py-2 border border-transparent rounded text-sm font-medium cursor-pointer transition-colors duration-200 bg-[var(--quantum-editor-primary,#0284c7)] text-white hover:bg-[#0ea5e9] active:translate-y-px"
+                onClick={handleSave}
+              >
+                {t('editors.quantum.saveCircuit')}
+              </button>
+            </div>
           </div>
-          <div className="flex gap-3">
-            <button
-              className="px-4 py-2 border border-[var(--quantum-editor-border,#d5dde8)] rounded text-sm font-medium cursor-pointer transition-colors duration-200 bg-[var(--quantum-editor-muted-surface,#f1f5f9)] text-[var(--quantum-editor-text,#0f172a)] hover:bg-[var(--quantum-editor-surface,#f8fafc)] active:translate-y-px"
-              onClick={onClose}
-            >
-              {t('common.cancel')}
-            </button>
-            <button
-              className="px-4 py-2 border border-transparent rounded text-sm font-medium cursor-pointer transition-colors duration-200 bg-[var(--quantum-editor-primary,#0284c7)] text-white hover:bg-[#0ea5e9] active:translate-y-px"
-              onClick={handleSave}
-            >
-              {t('editors.quantum.saveCircuit')}
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
+        </DialogPrimitive.Content>
+      </DialogPortal>
+    </Dialog>
   );
 }
