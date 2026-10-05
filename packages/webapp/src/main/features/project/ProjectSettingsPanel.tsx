@@ -18,6 +18,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
+import { Checkbox } from '@/components/ui/checkbox';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { FormField } from '@/components/ui/form-field';
 import { validateProjectName } from '../../shared/utils/validation';
@@ -254,14 +255,11 @@ export const ProjectSettingsPanel: React.FC = () => {
                     <p className="text-sm font-medium">{t('project.settings.display.showInstancedObjects')}</p>
                     <p className="text-xs text-muted-foreground">{t('project.settings.display.showInstancedObjectsDesc')}</p>
                   </div>
-                  <input
-                    type="checkbox"
-                    className="size-4 accent-brand"
+                  <Checkbox
                     checked={showInstancedObjects}
-                    onChange={(event) => {
-                      setShowInstancedObjects(event.target.checked);
-                      settingsService.updateSetting('showInstancedObjects', event.target.checked);
-                      // toast.success(`Instanced objects ${event.target.checked ? 'enabled' : 'disabled'}.`);
+                    onCheckedChange={(checked) => {
+                      setShowInstancedObjects(checked);
+                      settingsService.updateSetting('showInstancedObjects', checked);
                     }}
                   />
                 </label>
@@ -271,14 +269,11 @@ export const ProjectSettingsPanel: React.FC = () => {
                     <p className="text-sm font-medium">{t('project.settings.display.showAssociationNames')}</p>
                     <p className="text-xs text-muted-foreground">{t('project.settings.display.showAssociationNamesDesc')}</p>
                   </div>
-                  <input
-                    type="checkbox"
-                    className="size-4 accent-brand"
+                  <Checkbox
                     checked={showAssociationNames}
-                    onChange={(event) => {
-                      setShowAssociationNames(event.target.checked);
-                      settingsService.updateSetting('showAssociationNames', event.target.checked);
-                      // toast.success(`Association names ${event.target.checked ? 'enabled' : 'disabled'}.`);
+                    onCheckedChange={(checked) => {
+                      setShowAssociationNames(checked);
+                      settingsService.updateSetting('showAssociationNames', checked);
                     }}
                   />
                 </label>
@@ -288,13 +283,11 @@ export const ProjectSettingsPanel: React.FC = () => {
                     <p className="text-sm font-medium">{t('project.settings.display.propertiesPanel')}</p>
                     <p className="text-xs text-muted-foreground">{t('project.settings.display.propertiesPanelDesc')}</p>
                   </div>
-                  <input
-                    type="checkbox"
-                    className="size-4 accent-brand"
+                  <Checkbox
                     checked={usePropertiesPanel}
-                    onChange={(event) => {
-                      setUsePropertiesPanel(event.target.checked);
-                      settingsService.updateSetting('usePropertiesPanel', event.target.checked);
+                    onCheckedChange={(checked) => {
+                      setUsePropertiesPanel(checked);
+                      settingsService.updateSetting('usePropertiesPanel', checked);
                     }}
                   />
                 </label>
@@ -335,12 +328,13 @@ export const ProjectSettingsPanel: React.FC = () => {
               <CardHeader className="pb-4">
                 <div className="flex items-center gap-2">
                   <KeyRound className="size-4 text-brand" />
-                  <CardTitle className="text-base">AI / LLM API Key</CardTitle>
+                  <CardTitle className="text-base">{t('project.settings.apiKey.title', { defaultValue: 'AI / LLM API Key' })}</CardTitle>
                 </div>
                 <CardDescription>
-                  Use your own Anthropic, OpenAI, Mistral or Nebius key. Entered once here, it powers
-                  both the modeling assistant and the Spec-Driven generator (Nebius powers the generator
-                  only). Stored only in this browser tab, never on our servers.
+                  {t('project.settings.apiKey.description', {
+                    defaultValue:
+                      'Use your own Anthropic, OpenAI, Mistral or Nebius key. Entered once here, it powers both the modeling assistant and the Spec-Driven generator (Nebius powers the generator only). Stored only in this browser tab, never on our servers.',
+                  })}
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -349,21 +343,29 @@ export const ProjectSettingsPanel: React.FC = () => {
                     {llmKeyInfo ? (
                       <>
                         <p className="truncate text-sm font-medium">
-                          Key set · {llmKeyInfo.provider}
+                          {t('project.settings.apiKey.keySet', { defaultValue: 'Key set · {{provider}}', provider: llmKeyInfo.provider })}
                           {llmKeyInfo.model ? ` · ${llmKeyInfo.model}` : ''}
                         </p>
-                        <p className="text-xs text-muted-foreground">Applies to the assistant and generator</p>
+                        <p className="text-xs text-muted-foreground">
+                          {t('project.settings.apiKey.keySetHint', { defaultValue: 'Applies to the assistant and generator' })}
+                        </p>
                       </>
                     ) : (
                       <>
-                        <p className="truncate text-sm font-medium">No key set</p>
-                        <p className="text-xs text-muted-foreground">Using the shared server key + rate limits</p>
+                        <p className="truncate text-sm font-medium">
+                          {t('project.settings.apiKey.noKey', { defaultValue: 'No key set' })}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          {t('project.settings.apiKey.noKeyHint', { defaultValue: 'Using the shared server key + rate limits' })}
+                        </p>
                       </>
                     )}
                   </div>
                   <Button variant="outline" size="sm" className="gap-1.5" onClick={() => setLlmKeyOpen(true)}>
                     <KeyRound className="size-3.5" />
-                    {llmKeyInfo ? 'Change key' : 'Set API key'}
+                    {llmKeyInfo
+                      ? t('project.settings.apiKey.change', { defaultValue: 'Change Key' })
+                      : t('project.settings.apiKey.set', { defaultValue: 'Set API Key' })}
                   </Button>
                 </div>
               </CardContent>
@@ -470,17 +472,13 @@ export const ProjectSettingsPanel: React.FC = () => {
                               {t(`project.settings.perspectives.diagrams.${type}`)}
                             </p>
                           </div>
-                          <input
+                          <Checkbox
                             id={labelId}
-                            type="checkbox"
-                            className="size-4 accent-brand"
                             checked={checked}
                             disabled={isLastEnabled}
                             aria-label={t('project.settings.perspectives.toggleAria', { label: t(`diagramTypes.${type}`) })}
                             data-testid={`perspective-toggle-${type}`}
-                            onChange={(event) =>
-                              handlePerspectiveToggle(type, event.target.checked)
-                            }
+                            onCheckedChange={(next) => handlePerspectiveToggle(type, next)}
                           />
                         </label>
                       </React.Fragment>

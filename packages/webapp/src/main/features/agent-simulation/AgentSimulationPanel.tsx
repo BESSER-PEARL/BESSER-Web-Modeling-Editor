@@ -125,16 +125,16 @@ export const AgentSimulationPanel: React.FC<AgentSimulationPanelProps> = ({ open
 
       {/* Error banner */}
       {status === 'error' && error && (
-        <div className="flex shrink-0 items-start gap-2.5 border-b border-red-200/60 bg-red-50/80 px-4 py-3 dark:border-red-800/40 dark:bg-red-950/30">
-          <AlertCircle className="mt-0.5 size-4 shrink-0 text-red-600 dark:text-red-400" />
+        <div className="flex shrink-0 items-start gap-2.5 border-b border-destructive/30 bg-destructive/10 px-4 py-3">
+          <AlertCircle className="mt-0.5 size-4 shrink-0 text-destructive" />
           <div className="flex min-w-0 flex-1 flex-col gap-1">
-            <span className="text-sm font-medium text-red-800 dark:text-red-200">{t('agentSimulation.panel.errorTitle')}</span>
-            <span className="text-xs text-red-700 dark:text-red-300">{error}</span>
+            <span className="text-sm font-medium text-destructive">{t('agentSimulation.panel.errorTitle')}</span>
+            <span className="text-xs text-foreground/80">{error}</span>
           </div>
           <Button
             variant="outline"
             size="sm"
-            className="shrink-0 border-red-300 text-red-700 hover:bg-red-100 dark:border-red-700 dark:text-red-400"
+            className="shrink-0 border-destructive/40 text-destructive hover:bg-destructive/10 hover:text-destructive"
             onClick={handleStop}
           >
             {t('common.close')}

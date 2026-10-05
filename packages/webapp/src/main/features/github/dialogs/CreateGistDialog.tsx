@@ -2,6 +2,7 @@ import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 
@@ -35,6 +36,13 @@ export const CreateGistDialog: React.FC<CreateGistDialogProps> = ({
           <DialogDescription>{t('github.gist.description')}</DialogDescription>
         </DialogHeader>
 
+        <form
+          className="grid gap-4"
+          onSubmit={(event) => {
+            event.preventDefault();
+            if (!isLoading) onCreate();
+          }}
+        >
         <div className="flex flex-col gap-4">
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="github-gist-description">{t('github.gist.descriptionLabel')}</Label>
@@ -47,29 +55,28 @@ export const CreateGistDialog: React.FC<CreateGistDialogProps> = ({
             />
           </div>
 
-          <label className="flex items-center gap-2 text-sm">
-            <input
-              type="checkbox"
-              checked={isPublic}
-              onChange={(event) => onPublicChange(event.target.checked)}
-              className="size-4 rounded border-border"
-            />
-            {t('github.gist.publicGist')}
-          </label>
-
-          <p className="text-xs text-muted-foreground">
-            {t('github.gist.secretHint')}
-          </p>
+          <div className="flex flex-col gap-1">
+            <div className="flex items-center gap-2">
+              <Checkbox id="github-gist-public" checked={isPublic} onCheckedChange={onPublicChange} />
+              <Label htmlFor="github-gist-public" className="font-normal">
+                {t('github.gist.publicGist')}
+              </Label>
+            </div>
+            <p className="pl-6 text-xs text-muted-foreground">
+              {t('github.gist.secretHint')}
+            </p>
+          </div>
         </div>
 
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
+          <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
             {t('common.cancel')}
           </Button>
-          <Button onClick={onCreate} disabled={isLoading}>
+          <Button type="submit" disabled={isLoading}>
             {isLoading ? t('github.gist.creating') : t('github.gist.createGist')}
           </Button>
         </DialogFooter>
+        </form>
       </DialogContent>
     </Dialog>
   );

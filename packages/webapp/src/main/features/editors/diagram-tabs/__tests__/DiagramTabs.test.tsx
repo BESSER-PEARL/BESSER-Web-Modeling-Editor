@@ -10,6 +10,8 @@ import { createDefaultProject } from '../../../../shared/types/project';
 
 const mockDispatch = vi.fn(() => Promise.resolve());
 
+const NO_DIAGRAMS: ProjectDiagram[] = [];
+
 vi.mock('../../../../app/store/hooks', () => ({
   useAppDispatch: () => mockDispatch,
   useAppSelector: vi.fn((selector: any) => selector(mockState)),
@@ -26,6 +28,7 @@ vi.mock('../../../../app/store/workspaceSlice', () => ({
   selectDiagramsForActiveType: (state: any) => state.workspace.diagrams,
   selectActiveDiagramType: (state: any) => state.workspace.activeDiagramType,
   selectProject: (state: any) => state.workspace.project,
+  selectClassDiagrams: (state: any) => state.workspace.project?.diagrams?.ClassDiagram ?? NO_DIAGRAMS,
 }));
 
 vi.mock('@besser/wme', async (importOriginal) => {

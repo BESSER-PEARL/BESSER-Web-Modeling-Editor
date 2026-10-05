@@ -32,15 +32,15 @@ export const TerminalPane: React.FC<TerminalPaneProps> = ({ isCollapsed, onToggl
       <button
         type="button"
         onClick={onToggleCollapse}
-        className="flex w-full items-center justify-between bg-gray-100 px-3 py-1.5 text-gray-600 transition-colors hover:bg-gray-200 dark:bg-gray-900 dark:text-gray-300 dark:hover:bg-gray-800"
+        className="flex w-full items-center justify-between bg-muted px-3 py-1.5 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
         aria-expanded={!isCollapsed}
         aria-label={isCollapsed ? t('agentSimulation.terminal.expand') : t('agentSimulation.terminal.collapse')}
       >
         <div className="flex items-center gap-2">
-          <Terminal className="size-3.5 text-teal-600 dark:text-green-400" />
+          <Terminal className="size-3.5 text-brand" />
           <span className="text-xs font-medium">{t('agentSimulation.terminal.header')}</span>
           {isCollapsed && lines.length > 0 && (
-            <span className="rounded-full bg-gray-300 px-1.5 py-0.5 text-[10px] font-medium text-gray-600 dark:bg-gray-700 dark:text-gray-300">
+            <span className="rounded-full bg-border px-1.5 py-0.5 text-[10px] font-medium text-foreground">
               {lines.length}
             </span>
           )}
@@ -54,9 +54,9 @@ export const TerminalPane: React.FC<TerminalPaneProps> = ({ isCollapsed, onToggl
 
       {/* Terminal body */}
       {!isCollapsed && (
-        <div ref={bodyRef} className="h-48 overflow-y-auto bg-gray-50 p-2 font-mono dark:bg-gray-950">
+        <div ref={bodyRef} className="h-48 overflow-y-auto bg-background p-2 font-mono">
           {displayedLines.length === 0 ? (
-            <p className="text-[11px] italic text-gray-400 dark:text-gray-600">{t('agentSimulation.terminal.empty')}</p>
+            <p className="text-[11px] italic text-muted-foreground">{t('agentSimulation.terminal.empty')}</p>
           ) : (
             displayedLines.map((line, index) => {
               const isError =
@@ -66,8 +66,8 @@ export const TerminalPane: React.FC<TerminalPaneProps> = ({ isCollapsed, onToggl
                   key={index}
                   className={`whitespace-pre-wrap break-all text-[11px] leading-snug ${
                     isError
-                      ? 'text-red-600 dark:text-red-400'
-                      : 'text-teal-700 dark:text-green-400'
+                      ? 'text-destructive'
+                      : 'text-brand'
                   }`}
                 >
                   {line}

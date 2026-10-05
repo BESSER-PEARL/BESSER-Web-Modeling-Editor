@@ -22,7 +22,7 @@ import {
   selectActiveDiagramIndex,
   selectDiagramsForActiveType,
   selectActiveDiagramType,
-  selectProject,
+  selectClassDiagrams,
 } from '../../../app/store/workspaceSlice';
 import { ApollonEditorContext } from '../uml/apollon-editor-context';
 import { scaffoldObjectsFromClasses } from './scaffoldObjectsFromClasses';
@@ -119,7 +119,6 @@ export const DiagramTabs: React.FC<DiagramTabsProps> = ({
   const diagrams = useAppSelector(selectDiagramsForActiveType);
   const currentIndex = useAppSelector(selectActiveDiagramIndex);
   const currentDiagramType = useAppSelector(selectActiveDiagramType);
-  const currentProject = useAppSelector(selectProject);
   const [renamingIndex, setRenamingIndex] = useState<number | null>(null);
   const [renameValue, setRenameValue] = useState('');
   const [profileFormOpen, setProfileFormOpen] = useState(false);
@@ -131,10 +130,7 @@ export const DiagramTabs: React.FC<DiagramTabsProps> = ({
   // Agent diagrams are referenced per-component inside the GUI editor (drag & drop),
   // not as a single diagram-level reference, so no dropdown is needed here.
 
-  const classDiagrams = useMemo(
-    () => currentProject?.diagrams?.ClassDiagram ?? [],
-    [currentProject?.diagrams?.ClassDiagram],
-  );
+  const classDiagrams = useAppSelector(selectClassDiagrams);
 
   // Read the active diagram's persisted references (ID-based)
   // Clamp the index to prevent out-of-bounds access when diagrams array

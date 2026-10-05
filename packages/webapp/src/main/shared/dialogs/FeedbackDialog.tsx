@@ -128,6 +128,13 @@ export const FeedbackDialog: React.FC<FeedbackDialogProps> = ({ open, onOpenChan
           <DialogDescription>{t('feedback.description')}</DialogDescription>
         </DialogHeader>
 
+        <form
+          onSubmit={(event) => {
+            event.preventDefault();
+            if (canSubmit) void handleSubmit();
+          }}
+          className="grid gap-4"
+        >
         <div className="flex flex-col gap-5">
           <div className="flex flex-col gap-2">
             <Label id="feedback-satisfaction-label" className={smallLabelClass}>{t('feedback.satisfactionQuestion')}</Label>
@@ -160,7 +167,7 @@ export const FeedbackDialog: React.FC<FeedbackDialogProps> = ({ open, onOpenChan
 
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="feedback-category" className={smallLabelClass}>{t('feedback.category')}</Label>
-            <Select value={category} onValueChange={setCategory}>
+            <Select value={category} onValueChange={(value) => value && setCategory(value)}>
               <SelectTrigger id="feedback-category" className="rounded-lg">
                 <SelectValue placeholder={t('feedback.categoryOptions.none')} />
               </SelectTrigger>
@@ -198,14 +205,15 @@ export const FeedbackDialog: React.FC<FeedbackDialogProps> = ({ open, onOpenChan
           </FormField>
         </div>
 
-        <DialogFooter className="gap-2">
-          <Button variant="outline" onClick={() => handleOpenChange(false)} disabled={isSubmitting} className="rounded-lg">
+        <DialogFooter>
+          <Button type="button" variant="outline" onClick={() => handleOpenChange(false)} disabled={isSubmitting}>
             {t('common.cancel')}
           </Button>
-          <Button onClick={() => void handleSubmit()} disabled={!canSubmit} className="rounded-lg bg-brand text-brand-foreground shadow-elevation-1 transition-shadow hover:bg-brand-dark hover:shadow-elevation-2">
+          <Button type="submit" disabled={!canSubmit}>
             {isSubmitting ? t('feedback.submitting') : t('feedback.submit')}
           </Button>
         </DialogFooter>
+        </form>
       </DialogContent>
     </Dialog>
   );

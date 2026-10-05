@@ -1,10 +1,12 @@
 import React, { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { FormField } from '@/components/ui/form-field';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { validateRepoName } from '../../../shared/utils/validation';
 import { useFieldValidation } from '../../../shared/hooks/useFieldValidation';
 
@@ -98,22 +100,29 @@ export const DeployDialog: React.FC<DeployDialogProps> = ({
               : newRepoText}
           </DialogDescription>
         </DialogHeader>
+        <form
+          className="grid gap-4"
+          onSubmit={(event) => {
+            event.preventDefault();
+            if (!isDeploying && validation.isValid) onPublish();
+          }}
+        >
         <div className="flex flex-col gap-4">
           {availableTargets.length > 1 && (
             <FormField label={t('deploy.fields.deploymentTarget')} htmlFor="deploy-target">
-              <select
-                id="deploy-target"
-                value={deploymentTarget}
-                onChange={(event) => onDeploymentTargetChange(event.target.value as DeploymentTarget)}
-                className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
-              >
-                {availableTargets.includes('webapp') && (
-                  <option value="webapp">{t('deploy.targets.webapp')}</option>
-                )}
-                {availableTargets.includes('agent') && (
-                  <option value="agent">{t('deploy.targets.agent')}</option>
-                )}
-              </select>
+              <Select value={deploymentTarget} onValueChange={(value) => value && onDeploymentTargetChange(value as DeploymentTarget)}>
+                <SelectTrigger id="deploy-target">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {availableTargets.includes('webapp') && (
+                    <SelectItem value="webapp">{t('deploy.targets.webapp')}</SelectItem>
+                  )}
+                  {availableTargets.includes('agent') && (
+                    <SelectItem value="agent">{t('deploy.targets.agent')}</SelectItem>
+                  )}
+                </SelectContent>
+              </Select>
             </FormField>
           )}
 
@@ -134,7 +143,7 @@ export const DeployDialog: React.FC<DeployDialogProps> = ({
                   </p>
                   <p className="text-xs">{t('deploy.existing.filesPreserved')}</p>
                 </div>
-                <Button variant="outline" size="sm" className="shrink-0" onClick={onCreateNewInstead}>
+                <Button type="button" variant="outline" size="sm" className="shrink-0" onClick={onCreateNewInstead}>
                   {t('deploy.existing.createNewInstead')}
                 </Button>
               </div>
@@ -170,14 +179,12 @@ export const DeployDialog: React.FC<DeployDialogProps> = ({
                   placeholder={t('deploy.fields.descriptionPlaceholder')}
                 />
               </FormField>
-              <label className="flex items-center justify-between gap-3 rounded-md border border-border/70 px-3 py-2 text-sm">
-                {t('deploy.fields.makePrivate')}
-                <input
-                  type="checkbox"
-                  checked={repoPrivate}
-                  onChange={(event) => onRepoPrivateChange(event.target.checked)}
-                />
-              </label>
+              <div className="flex items-center gap-2">
+                <Checkbox id="deploy-repo-private" checked={repoPrivate} onCheckedChange={onRepoPrivateChange} />
+                <Label htmlFor="deploy-repo-private" className="font-normal">
+                  {t('deploy.fields.makePrivate')}
+                </Label>
+              </div>
               {repoPrivate && (
                 <p className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800 dark:border-amber-800 dark:bg-amber-900/30 dark:text-amber-300">
                   {t('deploy.privateWarning')}
@@ -188,14 +195,16 @@ export const DeployDialog: React.FC<DeployDialogProps> = ({
 
           {isAgentDeploy && showPersonalizationOption && (
             <>
-              <label className="flex items-center justify-between gap-3 rounded-md border border-border/70 px-3 py-2 text-sm">
-                {t('deploy.fields.personalization')}
-                <input
-                  type="checkbox"
+              <div className="flex items-center gap-2">
+                <Checkbox
+                  id="deploy-include-personalization"
                   checked={includePersonalization}
-                  onChange={(event) => onIncludePersonalizationChange(event.target.checked)}
+                  onCheckedChange={onIncludePersonalizationChange}
                 />
-              </label>
+                <Label htmlFor="deploy-include-personalization" className="font-normal">
+                  {t('deploy.fields.personalization')}
+                </Label>
+              </div>
               {includePersonalization && (
                 <p className="rounded-md border border-sky-200 bg-sky-50 px-3 py-2 text-xs text-sky-800 dark:border-sky-800 dark:bg-sky-900/30 dark:text-sky-300">
                   {t('deploy.personalizationNote')}
@@ -205,13 +214,14 @@ export const DeployDialog: React.FC<DeployDialogProps> = ({
           )}
         </div>
         <DialogFooter>
-          <Button variant="outline" onClick={() => handleOpenChange(false)} disabled={isDeploying}>
+          <Button type="button" variant="outline" onClick={() => handleOpenChange(false)} disabled={isDeploying}>
             {t('common.cancel')}
           </Button>
-          <Button onClick={onPublish} disabled={isDeploying || !validation.isValid} className="bg-brand text-brand-foreground hover:bg-brand-dark">
+          <Button type="submit" disabled={isDeploying || !validation.isValid}>
             {isDeploying ? t('deploy.actions.publishing') : publishLabel}
           </Button>
         </DialogFooter>
+        </form>
       </DialogContent>
     </Dialog>
   );

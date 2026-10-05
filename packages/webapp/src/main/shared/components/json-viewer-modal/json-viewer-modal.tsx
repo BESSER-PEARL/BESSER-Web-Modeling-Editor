@@ -5,7 +5,7 @@ import jsonLang from 'highlight.js/lib/languages/json';
 import pythonLang from 'highlight.js/lib/languages/python';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import './json-viewer-modal.css';
 
 if (!hljs.getLanguage('json')) {
@@ -316,8 +316,6 @@ const tabClass = (isActive: boolean): string =>
       : 'border-border bg-background text-muted-foreground hover:bg-muted hover:text-foreground',
   );
 
-const primaryButtonClass = 'bg-brand text-brand-foreground hover:bg-brand-dark';
-
 export const JsonViewerModal: React.FC<JsonViewerModalProps> = ({
   isVisible,
   jsonData,
@@ -410,7 +408,7 @@ export const JsonViewerModal: React.FC<JsonViewerModalProps> = ({
           )}
         </div>
 
-        <div className="flex flex-wrap justify-end gap-2 border-t border-border/70 px-6 py-4">
+        <DialogFooter className="border-t border-border/70 px-6 py-4">
           {isBumlView ? (
             <>
               {onRequestBuml && (
@@ -424,7 +422,7 @@ export const JsonViewerModal: React.FC<JsonViewerModalProps> = ({
                 </Button>
               )}
               {onCopyBuml && (
-                <Button className={primaryButtonClass} onClick={onCopyBuml} disabled={isBumlLoading || !bumlData}>
+                <Button onClick={onCopyBuml} disabled={isBumlLoading || !bumlData}>
                   {t('shared.jsonViewer.copyBuml')}
                 </Button>
               )}
@@ -434,12 +432,12 @@ export const JsonViewerModal: React.FC<JsonViewerModalProps> = ({
               <Button variant="outline" onClick={onDownload}>
                 {t('shared.jsonViewer.downloadJson')}
               </Button>
-              <Button className={primaryButtonClass} onClick={onCopy}>
+              <Button onClick={onCopy}>
                 {t('shared.jsonViewer.copyJson')}
               </Button>
             </>
           )}
-        </div>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   );

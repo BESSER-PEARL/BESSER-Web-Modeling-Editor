@@ -9,6 +9,13 @@ import { KeyboardShortcutsDialog } from '../KeyboardShortcutsDialog';
 
 afterEach(cleanup);
 
+// Radix renders a hidden bubble input (sized via ResizeObserver) for radio groups inside a <form>.
+globalThis.ResizeObserver ??= class {
+  observe() {}
+  unobserve() {}
+  disconnect() {}
+} as unknown as typeof ResizeObserver;
+
 describe('KeyboardShortcutsDialog', () => {
   it('uses sentence-case section labels and does not focus the close button on open', () => {
     render(<KeyboardShortcutsDialog open onOpenChange={vi.fn()} />);

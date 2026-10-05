@@ -46,6 +46,13 @@ export const CommitDialog: React.FC<CommitDialogProps> = ({
           <DialogDescription>{t('github.commit.description')}</DialogDescription>
         </DialogHeader>
 
+        <form
+          className="grid gap-4"
+          onSubmit={(event) => {
+            event.preventDefault();
+            if (!isSaving && validation.isValid) onCommit();
+          }}
+        >
         <FormField label={t('github.commit.messageLabel')} htmlFor="github-commit-message" required error={validation.getError('message')}>
           <Textarea
             id="github-commit-message"
@@ -54,16 +61,23 @@ export const CommitDialog: React.FC<CommitDialogProps> = ({
             value={message}
             onChange={(event) => onMessageChange(event.target.value)}
             onBlur={() => validation.markTouched('message')}
+            onKeyDown={(event) => {
+              // Enter commits; Shift+Enter adds a line for a longer message.
+              if (event.key === 'Enter' && !event.shiftKey && !event.nativeEvent.isComposing) {
+                event.preventDefault();
+                event.currentTarget.form?.requestSubmit();
+              }
+            }}
             autoFocus
             className={validation.getError('message') ? 'border-destructive focus-visible:border-destructive focus-visible:ring-destructive/20' : ''}
           />
         </FormField>
 
         <DialogFooter>
-          <Button variant="outline" onClick={() => handleOpenChange(false)}>
+          <Button type="button" variant="outline" onClick={() => handleOpenChange(false)}>
             {t('common.cancel')}
           </Button>
-          <Button onClick={onCommit} disabled={isSaving || !validation.isValid} className="gap-2">
+          <Button type="submit" disabled={isSaving || !validation.isValid} className="gap-2">
             {isSaving ? (
               <>
                 <Loader2 className="size-4 animate-spin" />
@@ -77,6 +91,7 @@ export const CommitDialog: React.FC<CommitDialogProps> = ({
             )}
           </Button>
         </DialogFooter>
+        </form>
       </DialogContent>
     </Dialog>
   );

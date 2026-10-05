@@ -167,7 +167,7 @@ function CopyButton({ content }: { content: string }) {
       title={t('agentSimulation.fileExplorer.copy')}
       aria-label={t('agentSimulation.fileExplorer.copy')}
     >
-      {copied ? <Check className="size-3.5 text-green-500" /> : <Copy className="size-3.5" />}
+      {copied ? <Check className="size-3.5 text-brand" /> : <Copy className="size-3.5" />}
     </Button>
   );
 }
@@ -383,7 +383,7 @@ export const AgentFileExplorer: React.FC = () => {
   if (fetchError && files.length === 0 && directories.length === 0) {
     return (
       <div className="flex flex-1 flex-col items-center justify-center gap-3 text-center">
-        <p className="text-sm text-red-500">{fetchError}</p>
+        <p className="text-sm text-destructive">{fetchError}</p>
         <Button variant="outline" size="sm" onClick={() => void fetchFiles(sessionId)}>
           {t('common.retry')}
         </Button>

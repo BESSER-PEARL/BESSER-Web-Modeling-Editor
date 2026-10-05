@@ -90,6 +90,14 @@ describe('ProjectHubDialog', () => {
     expect(screen.getByText('Step 1 of 2')).toBeTruthy();
   });
 
+  it('labels the blank-start card "New Project" since it opens the mode chooser', () => {
+    saveProject('Existing');
+    render(<ProjectHubDialog open onOpenChange={() => {}} />);
+    expect(screen.getByRole('button', { name: /^New Project/ })).toBeTruthy();
+    expect(screen.queryByText('Create Blank')).toBeNull();
+    expect(screen.getByRole('button', { name: /^Continue From GitHub/ })).toBeTruthy();
+  });
+
   it('offers a GitHub sign-in on File > From GitHub when not connected', () => {
     render(<ProjectHubDialog open onOpenChange={() => {}} initialStep="github" />);
 

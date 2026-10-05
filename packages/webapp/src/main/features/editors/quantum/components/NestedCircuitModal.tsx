@@ -169,7 +169,7 @@ export function NestedCircuitModal({ gate, onClose, onSave }: NestedCircuitModal
                 {t('common.cancel')}
               </button>
               <button
-                className="px-4 py-2 border border-transparent rounded text-sm font-medium cursor-pointer transition-colors duration-200 bg-[var(--quantum-editor-primary,#0284c7)] text-white hover:bg-[#0ea5e9] active:translate-y-px"
+                className="px-4 py-2 border border-transparent rounded text-sm font-medium cursor-pointer transition-colors duration-200 bg-brand text-brand-foreground hover:bg-brand-dark active:translate-y-px"
                 onClick={handleSave}
               >
                 {t('editors.quantum.saveCircuit')}

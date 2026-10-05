@@ -830,7 +830,7 @@ const AgentLLMRow: React.FC<AgentLLMRowProps> = ({
                 id={`agent-llm-default-${element.id}`}
                 type="radio"
                 name="agent-llm-default-radio"
-                className="h-4 w-4"
+                className="h-4 w-4 cursor-pointer accent-brand"
                 checked={isDefault}
                 onChange={() => onSetDefault(element.id)}
               />
@@ -1351,7 +1351,18 @@ export const AgentConfigurationPanel: React.FC = () => {
     refreshUserProfiles();
   }, [currentProject, refreshSavedConfigurations, refreshUserProfiles]);
 
+  // The hydration effect below reads these via refs: keying it on the project
+  // object re-applied the stored config on every project write and wiped
+  // unsaved personalization edits.
+  const currentProjectRef = useRef(currentProject);
+  currentProjectRef.current = currentProject;
+  const tabUserProfilesRef = useRef(tabUserProfiles);
+  tabUserProfilesRef.current = tabUserProfiles;
+  const currentAgentDiagramId = currentAgentDiagram?.id;
+
   useEffect(() => {
+    const currentProject = currentProjectRef.current;
+    const tabUserProfiles = tabUserProfilesRef.current;
     if (!currentProject) {
       return;
     }
@@ -1402,7 +1413,7 @@ export const AgentConfigurationPanel: React.FC = () => {
         throw err;
       }
     }
-  }, [currentProject?.id, applyConfiguration, tabUserProfiles]);
+  }, [currentProject?.id, currentAgentDiagramId, applyConfiguration]);
 
   const getConfigObject = useCallback((): AgentConfigurationPayload => {
     // The runtime tab now drives the LLM choice via `agentLlmName` (a
@@ -2597,19 +2608,19 @@ export const AgentConfigurationPanel: React.FC = () => {
                       <div className="grid gap-4 md:grid-cols-2">
                         <div className="space-y-1.5">
                           <Label htmlFor="voice-gender">{t('agentConfig.voice.gender')}</Label>
-                          <select
+                          <OptionSelect
                             id="voice-gender"
-                            className="h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
                             value={voiceStyle.gender}
-                            onChange={(event) => setVoiceStyle((previous) => ({
+                            onValueChange={(value) => setVoiceStyle((previous) => ({
                               ...previous,
-                              gender: event.target.value as VoiceStyleSetting['gender'],
+                              gender: value as VoiceStyleSetting['gender'],
                             }))}
-                          >
-                            <option value="male">{t('agentConfig.voice.male')}</option>
-                            <option value="female">{t('agentConfig.voice.female')}</option>
-                            <option value="ambiguous">{t('agentConfig.voice.ambiguous')}</option>
-                          </select>
+                            options={[
+                              { value: 'male', label: t('agentConfig.voice.male') },
+                              { value: 'female', label: t('agentConfig.voice.female') },
+                              { value: 'ambiguous', label: t('agentConfig.voice.ambiguous') },
+                            ]}
+                          />
                         </div>
 
                         <div className="space-y-1.5">
@@ -2749,15 +2760,15 @@ export const AgentConfigurationPanel: React.FC = () => {
                   {activeCustomizationSection === 'behavior' && (
                     <div className="space-y-1.5 border-t border-border px-4 py-4 md:max-w-sm">
                       <Label htmlFor="response-timing">{t('agentConfig.behavior.responseTiming')}</Label>
-                      <select
+                      <OptionSelect
                         id="response-timing"
-                        className="h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
                         value={responseTiming}
-                        onChange={(event) => setResponseTiming(event.target.value)}
-                      >
-                        <option value="instant">{t('agentConfig.timing.instant')}</option>
-                        <option value="delayed">{t('agentConfig.timing.delayed')}</option>
-                      </select>
+                        onValueChange={setResponseTiming}
+                        options={[
+                          { value: 'instant', label: t('agentConfig.timing.instant') },
+                          { value: 'delayed', label: t('agentConfig.timing.delayed') },
+                        ]}
+                      />
                     </div>
                   )}
                 </div>

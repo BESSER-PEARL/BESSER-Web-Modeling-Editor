@@ -70,4 +70,24 @@ describe('New project flow', () => {
     await waitFor(() => expect(mockCreateProject).toHaveBeenCalled());
     await waitFor(() => expect(mockCapture).toHaveBeenCalledWith('project_created', { interface: 'agent', via: 'form' }));
   });
+
+  it('submits the create form on Enter in the name field', async () => {
+    render(<ProjectHubDialog open onOpenChange={() => {}} initialStep="create" />);
+    fireEvent.click(screen.getByText('Model it'));
+    const name = document.getElementById('project-name') as HTMLInputElement;
+    fireEvent.change(name, { target: { value: 'Shop' } });
+    fireEvent.submit(name.form as HTMLFormElement);
+    await waitFor(() => expect(mockCreateProject).toHaveBeenCalledTimes(1));
+    // Mode/perspective toggles sit inside the form and must not submit it.
+    expect(screen.getByTestId('create-interface-agent').getAttribute('type')).toBe('button');
+  });
+
+  it('does not submit on Enter while the project name is invalid', () => {
+    render(<ProjectHubDialog open onOpenChange={() => {}} initialStep="create" />);
+    fireEvent.click(screen.getByText('Model it'));
+    const name = document.getElementById('project-name') as HTMLInputElement;
+    fireEvent.change(name, { target: { value: '' } });
+    fireEvent.submit(name.form as HTMLFormElement);
+    expect(mockCreateProject).not.toHaveBeenCalled();
+  });
 });

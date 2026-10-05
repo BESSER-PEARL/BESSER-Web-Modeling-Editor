@@ -2,7 +2,9 @@ import React, { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { FormField } from '@/components/ui/form-field';
 import { validateRepoName, validateFileName } from '../../../shared/utils/validation';
@@ -64,6 +66,13 @@ export const CreateRepositoryDialog: React.FC<CreateRepositoryDialogProps> = ({
           <DialogDescription>{t('github.createRepo.description')}</DialogDescription>
         </DialogHeader>
 
+        <form
+          className="grid gap-4"
+          onSubmit={(event) => {
+            event.preventDefault();
+            if (!isLoading && validation.isValid) onCreate();
+          }}
+        >
         <div className="flex flex-col gap-4">
           <FormField
             label={t('github.createRepo.repoNameLabel')}
@@ -126,25 +135,23 @@ export const CreateRepositoryDialog: React.FC<CreateRepositoryDialogProps> = ({
             <code className="break-all">/{folderPath ? `${folderPath.replace(/^\/+|\/+$/g, '')}/${fileName}` : fileName}</code>
           </div>
 
-          <label className="flex items-center gap-2 text-sm">
-            <input
-              type="checkbox"
-              checked={isRepoPrivate}
-              onChange={(event) => onRepoPrivateChange(event.target.checked)}
-              className="size-4 rounded border-border"
-            />
-            {t('github.createRepo.privateRepository')}
-          </label>
+          <div className="flex items-center gap-2">
+            <Checkbox id="github-create-repo-private" checked={isRepoPrivate} onCheckedChange={onRepoPrivateChange} />
+            <Label htmlFor="github-create-repo-private" className="font-normal">
+              {t('github.createRepo.privateRepository')}
+            </Label>
+          </div>
         </div>
 
         <DialogFooter>
-          <Button variant="outline" onClick={() => handleOpenChange(false)}>
+          <Button type="button" variant="outline" onClick={() => handleOpenChange(false)}>
             {t('common.cancel')}
           </Button>
-          <Button onClick={onCreate} disabled={isLoading || !validation.isValid}>
+          <Button type="submit" disabled={isLoading || !validation.isValid}>
             {isLoading ? t('github.createRepo.creating') : t('github.createRepo.create')}
           </Button>
         </DialogFooter>
+        </form>
       </DialogContent>
     </Dialog>
   );

@@ -296,7 +296,7 @@ export const CookieConsentBanner: React.FC = () => {
                   </span>
                   <div className="min-w-0">
                     <p className="text-xs font-semibold text-foreground">{t('shared.cookie.banner.title')}</p>
-                    <p className="mt-0.5 text-[11px] leading-relaxed text-muted-foreground">
+                    <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground">
                       {t('shared.cookie.banner.subtitle')}
                     </p>
                   </div>
@@ -306,25 +306,25 @@ export const CookieConsentBanner: React.FC = () => {
                   <Button
                     variant="ghost"
                     size="sm"
-                    className="h-auto px-0 text-[11px] text-primary hover:bg-transparent hover:text-primary/80"
+                    className="h-auto px-0 text-xs text-primary hover:bg-transparent hover:text-primary/80"
                     onClick={() => setShowDetails((previous) => !previous)}
                   >
                     {showDetails ? (
-                      <ChevronDown className="mr-1 size-3.5" />
+                      <ChevronDown className="size-3.5" />
                     ) : (
-                      <ChevronRight className="mr-1 size-3.5" />
+                      <ChevronRight className="size-3.5" />
                     )}
                     {showDetails ? t('shared.cookie.banner.hideDetails') : t('shared.cookie.banner.details')}
                   </Button>
 
                   <div className="flex items-center gap-1.5">
-                    <Button size="sm" variant="outline" className="h-8 px-2.5 text-xs" onClick={handleDecline}>
+                    <Button size="sm" variant="outline" className="px-3" onClick={handleDecline}>
                       {t('shared.cookie.banner.decline')}
                     </Button>
                     <Button
                       size="sm"
                       variant="outline"
-                      className="h-8 px-2.5 text-xs"
+                      className="px-3"
                       onClick={() => {
                         setIsVisible(false);
                         setShowSettings(true);
@@ -332,14 +332,14 @@ export const CookieConsentBanner: React.FC = () => {
                     >
                       {t('shared.cookie.banner.settings')}
                     </Button>
-                    <Button size="sm" className="h-8 px-3 text-xs" onClick={handleAccept}>
+                    <Button size="sm" className="px-3" onClick={handleAccept}>
                       {t('shared.cookie.banner.accept')}
                     </Button>
                   </div>
                 </div>
 
                 {showDetails && (
-                  <div className="rounded-md border border-border/70 bg-muted/30 p-2.5 text-[11px] text-muted-foreground">
+                  <div className="rounded-md border border-border/70 bg-muted/30 p-2.5 text-xs text-muted-foreground">
                     <ul className="flex flex-col gap-1.5">
                       {detailRows.map((row) => (
                         <li key={row} className="flex items-start gap-1.5">
@@ -351,7 +351,7 @@ export const CookieConsentBanner: React.FC = () => {
                     <Button
                       variant="link"
                       size="sm"
-                      className="mt-1.5 h-auto p-0 text-[11px]"
+                      className="mt-1.5 h-auto p-0 text-xs"
                       onClick={() => setShowPrivacy(true)}
                     >
                       {t('shared.cookie.banner.privacyPolicy')}
@@ -419,7 +419,7 @@ export const PrivacySettingsButton: React.FC = () => {
   return (
     <>
       <Button variant="link" className="h-auto p-0 text-xs" onClick={() => setShowSettings(true)}>
-        <Shield className="mr-1 size-3.5" />
+        <Shield className="size-3.5" />
         {t('shared.cookie.settingsButton')}
       </Button>
 

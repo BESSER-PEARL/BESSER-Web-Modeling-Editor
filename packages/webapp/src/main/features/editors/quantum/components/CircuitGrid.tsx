@@ -254,17 +254,17 @@ export const CircuitGrid = forwardRef<HTMLDivElement, CircuitGridProps>(({ circu
                             top: TOP_MARGIN + previewPosition.row * WIRE_SPACING,
                             width: GATE_SIZE,
                             height: GATE_SIZE + (gateHeight - 1) * WIRE_SPACING,
-                            borderColor: isValid ? '#4CAF50' : '#e74c3c',
-                            backgroundColor: isValid ? 'rgba(76, 175, 80, 0.2)' : 'rgba(231, 76, 60, 0.2)',
+                            borderColor: isValid ? 'hsl(var(--brand))' : 'hsl(var(--destructive))',
+                            backgroundColor: isValid ? 'hsl(var(--brand) / 0.2)' : 'hsl(var(--destructive) / 0.2)',
                             boxShadow: isValid
-                                ? '0 0 10px rgba(76, 175, 80, 0.4)'
-                                : '0 0 10px rgba(231, 76, 60, 0.4)',
+                                ? '0 0 10px hsl(var(--brand) / 0.4)'
+                                : '0 0 10px hsl(var(--destructive) / 0.4)',
                         }}
                     >
                         <div
                             className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 whitespace-nowrap text-[11px] font-bold"
                             style={{
-                                color: isValid ? '#2e7d32' : '#c62828',
+                                color: isValid ? 'hsl(var(--brand))' : 'hsl(var(--destructive))',
                                 textShadow: '0 0 3px var(--quantum-editor-bg, #ffffff)',
                             }}
                         >

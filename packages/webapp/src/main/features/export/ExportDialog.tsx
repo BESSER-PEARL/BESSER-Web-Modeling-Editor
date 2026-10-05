@@ -4,6 +4,7 @@ import { ApollonEditor } from '@besser/wme';
 import { Download, FileCode2, FileImage, FileJson2, Loader2 } from 'lucide-react';
 import { toast } from 'react-toastify';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { UMLModel } from '@besser/wme';
 import { useProject } from '../../app/hooks/useProject';
@@ -186,12 +187,12 @@ export const ExportDialog: React.FC<ExportDialogProps> = ({ open, onOpenChange, 
                       key={type}
                       className="flex cursor-pointer items-start gap-2.5 rounded-md px-1.5 py-1 text-sm transition-colors hover:bg-muted/30"
                     >
-                      <input
-                        type="checkbox"
-                        className="mt-0.5 size-4 rounded border-border accent-primary"
-                        checked={selectedDiagrams.includes(type)}
-                        onChange={() => toggleDiagramSelection(type)}
-                      />
+                      <span className="mt-0.5 inline-flex">
+                        <Checkbox
+                          checked={selectedDiagrams.includes(type)}
+                          onCheckedChange={() => toggleDiagramSelection(type)}
+                        />
+                      </span>
                       <div className="flex flex-col">
                         <span className="font-medium">{t(`export.diagramLabels.${type}`)}</span>
                         {diagrams.length > 1 && (
