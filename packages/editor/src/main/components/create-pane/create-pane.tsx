@@ -16,6 +16,7 @@ import { UMLContainerRepository } from '../../services/uml-container/uml-contain
 import { UMLElementRepository } from '../../services/uml-element/uml-element-repository';
 import { UMLElementState } from '../../services/uml-element/uml-element-types';
 import { clone } from '../../utils/geometry/tree';
+import { Point } from '../../utils/geometry/point';
 import { CanvasContext } from '../canvas/canvas-context';
 import { withCanvas } from '../canvas/with-canvas';
 import { I18nContext } from '../i18n/i18n-context';
@@ -204,7 +205,7 @@ class CreatePaneComponent extends Component<Props, State> {
             <PreviewElementComponent
               element={preview}
               create={this.create}
-              getInsertCenter={this.getVisibleCanvasCenter}
+              getInsertPosition={this.getInsertPosition}
             />
           </div>
         );
@@ -250,10 +251,38 @@ class CreatePaneComponent extends Component<Props, State> {
   }
 
   /**
-   * Model coordinates of the centre of the canvas area currently on screen, in the same
-   * space a drop uses: (client point - canvas origin) / zoom.
+   * Top-left for a click/keyboard insert: the visible canvas centre, cascaded down-right in
+   * grid steps until the spot (plus one step of margin) is clear of root elements, so repeated
+   * inserts don't stack. Never steps past the visible area; falls back to the centre.
    */
-  getVisibleCanvasCenter = (): { x: number; y: number } | undefined => {
+  getInsertPosition = (size: { width: number; height: number }): Point | undefined => {
+    const view = this.getVisibleCanvasRect();
+    if (!view) return undefined;
+    const STEP = 20;
+    const snap = (v: number) => Math.round(v / 10) * 10;
+    const start = new Point(
+      snap(view.x + (view.width - size.width) / 2),
+      snap(view.y + (view.height - size.height) / 2),
+    );
+    const siblings = Object.values(this.props.elements).filter(
+      (el) => !el.owner && el.bounds.width > 0 && el.bounds.height > 0,
+    );
+    for (
+      let x = start.x, y = start.y;
+      x + size.width <= view.x + view.width && y + size.height <= view.y + view.height;
+      x += STEP, y += STEP
+    ) {
+      const spot = { x: x - STEP, y: y - STEP, width: size.width + 2 * STEP, height: size.height + 2 * STEP };
+      if (!siblings.some((sib) => boundsOverlap(spot, sib.bounds))) return new Point(x, y);
+    }
+    return start;
+  };
+
+  /**
+   * Model-space rectangle of the canvas area currently on screen, in the same space a drop
+   * uses: (client point - canvas origin) / zoom.
+   */
+  getVisibleCanvasRect = (): { x: number; y: number; width: number; height: number } | undefined => {
     const { canvas, zoomFactor = 1 } = this.props;
     const editor = canvas.layer?.closest('[data-editor-scroll]');
     const viewport = editor?.parentElement;
@@ -267,8 +296,10 @@ class CreatePaneComponent extends Component<Props, State> {
     if (right <= left || bottom <= top) return undefined;
     const origin = canvas.origin();
     return {
-      x: ((left + right) / 2 - origin.x) / zoomFactor,
-      y: ((top + bottom) / 2 - origin.y) / zoomFactor,
+      x: (left - origin.x) / zoomFactor,
+      y: (top - origin.y) / zoomFactor,
+      width: (right - left) / zoomFactor,
+      height: (bottom - top) / zoomFactor,
     };
   };
 

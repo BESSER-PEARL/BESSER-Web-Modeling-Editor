@@ -10,8 +10,8 @@ import { hoverable } from '../uml-element/hoverable/hoverable';
 type Props = {
   element: UMLElement;
   create: (element: UMLElement, owner?: string) => void;
-  /** Model coordinates of the visible canvas centre, used to insert without dragging. */
-  getInsertCenter?: () => { x: number; y: number } | undefined;
+  /** Model coordinates (top-left) at which to insert an element of this size without dragging. */
+  getInsertPosition?: (size: { width: number; height: number }) => Point | undefined;
   scale?: number;
 };
 
@@ -79,6 +79,9 @@ export class PreviewElementComponent extends Component<Props> {
     if (!start || event.detail === 0) return;
     if (Math.hypot(event.clientX - start.x, event.clientY - start.y) > CLICK_TOLERANCE) return;
     this.insertAtCenter();
+    // Hand focus back to the page: a still-focused item would show its ring on the next
+    // keypress and swallow Enter/Space meant for the canvas.
+    (event.currentTarget as HTMLElement).blur();
   };
 
   private onKeyDown = (event: React.KeyboardEvent) => {
@@ -89,16 +92,10 @@ export class PreviewElementComponent extends Component<Props> {
     this.insertAtCenter();
   };
 
-  /** Insert the element centred on the visible canvas, through the same create path as a drop. */
+  /** Insert the element on the visible canvas, through the same create path as a drop. */
   private insertAtCenter() {
-    const center = this.props.getInsertCenter?.();
-    if (!center) return;
-    const { bounds } = this.props.element;
-    this.onDrop({
-      position: new Point(
-        Math.round((center.x - bounds.width / 2) / 10) * 10,
-        Math.round((center.y - bounds.height / 2) / 10) * 10,
-      ),
-    });
+    const position = this.props.getInsertPosition?.(this.props.element.bounds);
+    if (!position) return;
+    this.onDrop({ position });
   }
 }
