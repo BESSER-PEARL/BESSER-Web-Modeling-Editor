@@ -1219,6 +1219,7 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
             onOpenChange={setIsAssistantWorkspaceOpen}
             onTriggerGenerator={onAssistantGenerate}
             onSwitchDiagram={handleAssistantSwitchDiagram}
+            showTrigger={location.pathname === '/'}
           />
         </Suspense>
       </div>

@@ -62,7 +62,7 @@ type DispatchProps = {
 
 type Props = OwnProps & StateProps & DispatchProps & I18nContext & CanvasContext;
 
-const getInitialState = ({ type, canvas, colorEnabled }: Props) => {
+const getInitialState = ({ type, canvas, colorEnabled, translate }: Props) => {
   const previews: PreviewElement[] = [];
   const utils: PreviewElement[] = [];
 
@@ -106,7 +106,7 @@ const getInitialState = ({ type, canvas, colorEnabled }: Props) => {
       previews.push(...composeFlowchartPreview(canvas));
       break;
     case UMLDiagramType.BPMN:
-      previews.push(...composeBPMNPreview(canvas));
+      previews.push(...composeBPMNPreview(canvas, translate));
       break;
     case UMLDiagramType.StateMachineDiagram:
       previews.push(...composeStatePreview(canvas));

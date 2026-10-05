@@ -37,6 +37,8 @@ interface AssistantWorkspaceDrawerProps {
   onOpenChange: (open: boolean) => void;
   onTriggerGenerator?: (type: GeneratorType, config?: unknown) => Promise<GenerationResult>;
   onSwitchDiagram?: (diagramType: string) => Promise<boolean>;
+  /** Show the floating trigger pill (only on the editor canvas, where it doesn't cover page content). */
+  showTrigger?: boolean;
 }
 
 interface DragState {
@@ -136,6 +138,7 @@ export const AssistantWorkspaceDrawer: React.FC<AssistantWorkspaceDrawerProps> =
   onOpenChange,
   onTriggerGenerator,
   onSwitchDiagram,
+  showTrigger = true,
 }) => {
   /* ---- Redux ---- */
 
@@ -936,7 +939,7 @@ export const AssistantWorkspaceDrawer: React.FC<AssistantWorkspaceDrawerProps> =
 
       {/* Trigger pill — floats at the bottom centre in both states; only the
           sheet behind it moves. Click toggles, drag up opens / down closes. */}
-      <div className="pointer-events-none absolute inset-x-0 bottom-3 z-[45] flex justify-center">
+      <div className={cn('pointer-events-none absolute inset-x-0 bottom-3 z-[45] flex justify-center', !showTrigger && !open && 'hidden')}>
         <div
           className={cn(
             'pointer-events-auto flex h-9 cursor-pointer touch-none select-none items-center gap-2 rounded-full border border-border/70 pl-1.5 pr-4 text-[13px] font-medium',

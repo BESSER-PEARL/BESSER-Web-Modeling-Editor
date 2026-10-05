@@ -239,7 +239,8 @@ export const AssistantWidget: React.FC<AssistantWidgetProps> = ({ onAssistantGen
   return (
     <>
       {/* ── Floating widget container ── */}
-      <div className="fixed bottom-5 right-4 md:right-16" style={{ zIndex: Z_INDEX.NOTIFICATION, marginRight: 'var(--properties-panel-width, 0px)', transition: 'margin-right 0.2s ease' }}>
+      {/* Clear of the canvas zoom controls (right edge) and, in the GUI editor, its save-status badge. */}
+      <div className={cn('fixed right-16', activeDiagramType === 'GUINoCodeDiagram' ? 'bottom-12' : 'bottom-5')} style={{ zIndex: Z_INDEX.NOTIFICATION, marginRight: 'var(--properties-panel-width, 0px)', transition: 'margin-right 0.2s ease' }}>
         {/* ── Chat card ── */}
         <Card
           className={cn(

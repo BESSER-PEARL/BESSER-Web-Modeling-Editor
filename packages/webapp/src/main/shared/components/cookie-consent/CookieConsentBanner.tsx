@@ -202,10 +202,22 @@ export const CookieConsentBanner: React.FC = () => {
   const [showSettings, setShowSettings] = useState(false);
   const [showPrivacy, setShowPrivacy] = useState(false);
   const [analyticsEnabled, setAnalyticsEnabled] = useState(false);
+  // Wait until no dialog is open (e.g. the first-run landing), so the banner never covers it.
+  // Analytics stay declined while consent is pending, so deferring the banner is safe.
+  const [dialogOpen, setDialogOpen] = useState(false);
 
   useEffect(() => {
     setIsMounted(true);
   }, []);
+
+  useEffect(() => {
+    if (!isVisible) return;
+    const check = () => setDialogOpen(Boolean(document.querySelector('[role="dialog"][data-state="open"]')));
+    check();
+    const observer = new MutationObserver(check);
+    observer.observe(document.body, { subtree: true, childList: true, attributes: true, attributeFilter: ['data-state'] });
+    return () => observer.disconnect();
+  }, [isVisible]);
 
   useEffect(() => {
     const forceBanner = new URLSearchParams(window.location.search).get('force_cookies') === '1';
@@ -273,6 +285,7 @@ export const CookieConsentBanner: React.FC = () => {
     <>
       {isMounted &&
         isVisible &&
+        !dialogOpen &&
         createPortal(
           <div className="pointer-events-none fixed inset-x-0 bottom-3 flex justify-center px-3" style={{ zIndex: Z_INDEX.OVERLAY }}>
             <Card className="pointer-events-auto w-full max-w-[470px] border-border/80 bg-background/95 shadow-2xl backdrop-blur">

@@ -140,12 +140,16 @@ class SidebarComponent extends Component<Props, SidebarComponentState> {
           <>
 
             {(isObjectDiagram && !isUserDiagram) && (
-              <label htmlFor="toggleIconMode" style={{ display: 'block', marginTop: 8 }}>
+              <label
+                htmlFor="toggleIconMode"
+                style={{ display: 'flex', alignItems: 'center', gap: 6, margin: '8px 4px 6px', fontSize: 12, lineHeight: 1.3, cursor: 'pointer' }}
+              >
                 <input
                   id="toggleIconMode"
                   type="checkbox"
                   checked={shouldUseIconMode}
                   onChange={this.handleToggleIconMode}
+                  style={{ margin: 0, flexShrink: 0, accentColor: 'var(--apollon-primary, #2a8fbd)' }}
                 />
                 {translate('views.iconMode')}
               </label>

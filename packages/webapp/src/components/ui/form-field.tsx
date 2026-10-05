@@ -39,7 +39,7 @@ const FormField = React.forwardRef<HTMLDivElement, FormFieldProps>(
       >
         <Label
           htmlFor={htmlFor}
-          className="text-xs font-semibold uppercase tracking-wider text-muted-foreground"
+          className="text-xs font-medium text-muted-foreground"
         >
           {label}
           {required && <span className="ml-0.5 text-destructive">*</span>}

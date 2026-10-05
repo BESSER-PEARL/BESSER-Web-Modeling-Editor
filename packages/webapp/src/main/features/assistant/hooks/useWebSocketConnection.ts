@@ -89,7 +89,8 @@ export function useWebSocketConnection({
     // client, this resolves immediately.
     assistantClient.connect().catch(() => {
       setConnectionStatus('disconnected');
-      toast.error(t('assistant.errors.backendUnreachable'));
+      // Both surfaces (widget + drawer) connect; a fixed toastId shows the error once.
+      toast.error(t('assistant.errors.backendUnreachable'), { toastId: 'assistant-backend-unreachable' });
     });
 
     // The client is SHARED between the widget and the drawer, so a single
