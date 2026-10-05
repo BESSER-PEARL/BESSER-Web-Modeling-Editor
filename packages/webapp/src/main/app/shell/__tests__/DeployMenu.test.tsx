@@ -1,20 +1,23 @@
 import React from 'react';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
+import { TooltipProvider } from '@/components/ui/tooltip';
 import { DeployMenu } from '../menus/DeployMenu';
 
 const renderOpen = (props: Partial<React.ComponentProps<typeof DeployMenu>> = {}) => {
   const onOpenDeployDialog = vi.fn();
   render(
-    <DeployMenu
-      outlineButtonClass=""
-      isAuthenticated
-      githubLoading={false}
-      isDeploymentAvailable
-      onGitHubLogin={vi.fn()}
-      onOpenDeployDialog={onOpenDeployDialog}
-      {...props}
-    />,
+    <TooltipProvider>
+      <DeployMenu
+        outlineButtonClass=""
+        isAuthenticated
+        githubLoading={false}
+        isDeploymentAvailable
+        onGitHubLogin={vi.fn()}
+        onOpenDeployDialog={onOpenDeployDialog}
+        {...props}
+      />
+    </TooltipProvider>,
   );
   fireEvent.keyDown(screen.getByRole('button', { name: 'Deploy' }), { key: 'ArrowDown' });
   return { onOpenDeployDialog };

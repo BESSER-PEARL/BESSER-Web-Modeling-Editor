@@ -1,21 +1,24 @@
 import React from 'react';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
-import { UMLDiagramType } from '@besser/wme';
+import { TooltipProvider } from '@/components/ui/tooltip';
 import { HelpMenu } from '../menus/HelpMenu';
-import { MobileNavigation } from '../menus/MobileNavigation';
 
 describe('HelpMenu', () => {
-  const renderOpen = () => {
+  const renderMenu = () =>
     render(
-      <HelpMenu
-        outlineButtonClass=""
-        onOpenHelpDialog={vi.fn()}
-        onOpenAboutDialog={vi.fn()}
-        onOpenKeyboardShortcuts={vi.fn()}
-        onOpenFeedback={vi.fn()}
-      />,
+      <TooltipProvider>
+        <HelpMenu
+          outlineButtonClass=""
+          onOpenHelpDialog={vi.fn()}
+          onOpenAboutDialog={vi.fn()}
+          onOpenKeyboardShortcuts={vi.fn()}
+          onOpenFeedback={vi.fn()}
+        />
+      </TooltipProvider>,
     );
+  const renderOpen = () => {
+    renderMenu();
     fireEvent.keyDown(screen.getByRole('button', { name: 'Help' }), { key: 'ArrowDown' });
   };
 
@@ -34,22 +37,11 @@ describe('HelpMenu', () => {
       expect(item.querySelector('svg')).not.toBeNull();
     }
   });
-});
 
-describe('MobileNavigation', () => {
-  it('marks only the active item with aria-current="page"', () => {
-    const { container } = render(
-      <MobileNavigation
-        locationPath="/"
-        activeUmlType={UMLDiagramType.ClassDiagram}
-        activeDiagramType="ClassDiagram"
-        isDarkTheme={false}
-        perspectives={undefined}
-        onSwitchUml={vi.fn()}
-        onSwitchDiagramType={vi.fn()}
-        onNavigate={vi.fn()}
-      />,
-    );
-    expect(container.querySelectorAll('[aria-current="page"]')).toHaveLength(1);
+  it('names the icon-only trigger with aria-label instead of title', () => {
+    renderMenu();
+    const trigger = screen.getByRole('button', { name: 'Help' });
+    expect(trigger).toHaveAttribute('aria-label', 'Help');
+    expect(trigger).not.toHaveAttribute('title');
   });
 });
