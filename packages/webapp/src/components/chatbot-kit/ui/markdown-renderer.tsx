@@ -146,7 +146,7 @@ const CodeBlock = ({
         {code}
       </HighlightedPre>
 
-      <div className="invisible absolute right-2 top-2 flex space-x-1 rounded-lg border border-border/60 bg-background p-1 shadow-sm opacity-0 transition-all duration-200 group-hover/code:visible group-hover/code:opacity-100">
+      <div className="absolute right-2 top-2 flex space-x-1 rounded-lg border border-border/60 bg-background p-1 shadow-sm opacity-0 transition-opacity duration-200 group-focus-within/code:opacity-100 group-hover/code:opacity-100 [@media(hover:none)]:opacity-100">
         <CopyButton content={code} copyMessage="Copied code to clipboard" />
       </div>
     </div>

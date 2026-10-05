@@ -43,7 +43,7 @@ import { FilePreview } from "@/components/chatbot-kit/ui/file-preview"
 import { MarkdownRenderer } from "@/components/chatbot-kit/ui/markdown-renderer"
 
 const chatBubbleVariants = cva(
-  "group/message relative break-words rounded-lg p-3 text-sm sm:max-w-[70%]",
+  "group/message relative break-words rounded-lg p-3 text-sm motion-reduce:animate-none sm:max-w-[70%]",
   {
     variants: {
       isUser: {
@@ -53,7 +53,7 @@ const chatBubbleVariants = cva(
       animation: {
         none: "",
         slide: "duration-300 animate-in fade-in-0",
-        scale: "duration-300 animate-in fade-in-0 zoom-in-75",
+        scale: "duration-200 animate-in fade-in-0 zoom-in-95",
         fade: "duration-500 animate-in fade-in-0",
       },
     },
@@ -344,6 +344,8 @@ export interface ChatMessageProps extends Message {
   showTimeStamp?: boolean
   animation?: Animation
   actions?: React.ReactNode
+  /** Always-visible status line (e.g. "Applied") rendered under the bubble. */
+  status?: React.ReactNode
   /**
    * Handler for the SpecDrivenCard's "Push to GitHub" button. Supplied by the
    * assistant surface (via MessageList's messageOptions) so the push flow has
@@ -362,7 +364,7 @@ function MessageBadge({ message }: { message: ChatMessageProps }) {
   if (message.isProgress) {
     return (
       <span className="inline-flex items-center gap-1 rounded-full bg-blue-500/10 px-2 py-0.5 text-[10px] font-medium text-blue-600 dark:text-blue-400">
-        <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-blue-500" />
+        <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-blue-500 motion-reduce:animate-none" />
         {t("assistant.chatKit.badge.inProgress")}
       </span>
     )
@@ -402,7 +404,7 @@ function MessageBadge({ message }: { message: ChatMessageProps }) {
   if (message.isStreaming) {
     return (
       <span className="inline-flex items-center gap-1 rounded-full bg-brand/10 px-2 py-0.5 text-[10px] font-medium text-brand">
-        <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-brand" />
+        <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-brand motion-reduce:animate-none" />
         {t("assistant.chatKit.badge.typing")}
       </span>
     )
@@ -416,7 +418,7 @@ function MessageBadge({ message }: { message: ChatMessageProps }) {
 
 function StreamingCursor() {
   return (
-    <span className="ml-0.5 inline-block h-4 w-0.5 animate-pulse bg-foreground/60" />
+    <span className="ml-0.5 inline-block h-4 w-0.5 animate-pulse bg-foreground/60 motion-reduce:animate-none" />
   )
 }
 
@@ -429,6 +431,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = (props) => {
     showTimeStamp = false,
     animation = "scale",
     actions,
+    status,
     experimental_attachments,
     toolInvocations,
     parts,
@@ -534,11 +537,12 @@ export const ChatMessage: React.FC<ChatMessageProps> = (props) => {
               <MarkdownRenderer>{part.text}</MarkdownRenderer>
               {isStreaming && isLastTextPart && <StreamingCursor />}
               {actions ? (
-                <div className="absolute -bottom-4 right-2 flex space-x-1 rounded-lg border border-border/60 bg-background p-1 text-muted-foreground shadow-sm opacity-0 transition-all duration-200 group-hover/message:opacity-100">
+                <div className="absolute -bottom-4 right-2 flex space-x-1 rounded-lg border border-border/60 bg-background p-1 text-muted-foreground shadow-sm opacity-0 transition-opacity duration-200 group-hover/message:opacity-100 group-focus-within/message:opacity-100 [@media(hover:none)]:opacity-100">
                   {actions}
                 </div>
               ) : null}
             </div>
+            {status && isLastTextPart ? <div className="mt-1">{status}</div> : null}
 
             {showTimeStamp && createdAt ? (
               <time
@@ -646,11 +650,12 @@ export const ChatMessage: React.FC<ChatMessageProps> = (props) => {
         <MarkdownRenderer>{content}</MarkdownRenderer>
         {isStreaming && <StreamingCursor />}
         {actions ? (
-          <div className="absolute -bottom-4 right-2 flex space-x-1 rounded-lg border border-border/60 bg-background p-1 text-muted-foreground shadow-sm opacity-0 transition-all duration-200 group-hover/message:opacity-100">
+          <div className="absolute -bottom-4 right-2 flex space-x-1 rounded-lg border border-border/60 bg-background p-1 text-muted-foreground shadow-sm opacity-0 transition-opacity duration-200 group-hover/message:opacity-100 group-focus-within/message:opacity-100 [@media(hover:none)]:opacity-100">
             {actions}
           </div>
         ) : null}
       </div>
+      {status ? <div className="mt-1">{status}</div> : null}
 
       {showTimeStamp && createdAt ? (
         <time

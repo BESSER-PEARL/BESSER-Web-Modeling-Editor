@@ -103,7 +103,7 @@ const getConnectionDotClass = (status: ConnectionStatus): string => {
     case 'connecting':
     case 'reconnecting':
     case 'closing':
-      return 'bg-amber-500 animate-pulse';
+      return 'bg-amber-500 animate-pulse motion-reduce:animate-none';
     default:
       return 'bg-red-500';
   }
@@ -573,21 +573,7 @@ export const AssistantWorkspaceDrawer: React.FC<AssistantWorkspaceDrawerProps> =
             /* ================================================================ */
             /*  Welcome Screen — Main Landing                                    */
             /* ================================================================ */
-            <div className="relative flex min-h-0 flex-1 flex-col items-center overflow-y-auto overflow-x-hidden pb-14">
-              {/* ---- Background: animated gradient orbs using brand palette ---- */}
-              <div className="pointer-events-none absolute inset-0 overflow-hidden">
-                {/* Subtle dot grid */}
-                <div className="absolute inset-0 opacity-[0.03] [background-image:radial-gradient(circle,hsl(var(--brand)/0.5)_0.8px,transparent_0.8px)] [background-size:24px_24px] dark:opacity-[0.05]" />
-                {/* Primary brand orb — top left, large */}
-                <div className="drawer-orb-1 absolute -left-10 -top-10 h-[550px] w-[550px] rounded-full blur-[100px]" style={{ background: 'radial-gradient(circle, hsl(var(--brand) / 0.25) 0%, hsl(var(--brand) / 0.08) 50%, transparent 70%)' }} />
-                {/* Secondary orb — right side */}
-                <div className="drawer-orb-2 absolute right-0 top-[15%] h-[450px] w-[450px] rounded-full blur-[90px]" style={{ background: 'radial-gradient(circle, hsl(var(--brand-light) / 0.2) 0%, hsl(var(--brand-dark) / 0.06) 50%, transparent 70%)' }} />
-                {/* Bottom accent orb */}
-                <div className="drawer-orb-3 absolute -bottom-20 left-[20%] h-[400px] w-[400px] rounded-full blur-[80px]" style={{ background: 'radial-gradient(circle, hsl(var(--brand) / 0.15) 0%, hsl(var(--brand-light) / 0.05) 50%, transparent 70%)' }} />
-                {/* Warm contrast — subtle amber far right */}
-                <div className="drawer-orb-2 absolute -right-20 top-[5%] h-[300px] w-[300px] rounded-full bg-gradient-to-bl from-amber-100/12 to-transparent blur-[70px] dark:from-amber-500/5" />
-              </div>
-
+            <div className="relative flex min-h-0 flex-1 flex-col items-center overflow-y-auto overflow-x-hidden overscroll-contain pb-14">
               {/* ---- Floating side decorations (hidden on small screens) ---- */}
               {SHOW_FLOATING_CARDS && <div className="pointer-events-none absolute inset-0 hidden lg:block">
                 {/* Left floating cards */}
@@ -689,20 +675,19 @@ export const AssistantWorkspaceDrawer: React.FC<AssistantWorkspaceDrawerProps> =
                     href="https://besser-agentic-framework.readthedocs.io/latest/"
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex items-center gap-1 rounded-full bg-brand/[0.08] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider text-brand ring-1 ring-brand/20 transition-colors hover:bg-brand/[0.15] hover:ring-brand/40"
+                    className="flex items-center gap-1 rounded-full bg-brand/[0.08] px-2.5 py-1 text-xs font-medium text-brand ring-1 ring-brand/20 transition-colors hover:bg-brand/[0.15] hover:ring-brand/40"
                   >
                     <Sparkles className="size-3" />
                     {t('assistant.poweredWithBaf')}
                   </a>
                 </div>
 
-                {/* Headline — gradient "build" text */}
+                {/* Headline */}
                 <h1
                   className="animate-fade-up mt-7 text-center font-display text-[2.25rem] leading-[1.12] tracking-tight sm:text-[2.75rem] lg:text-5xl"
                   style={{ animationDelay: '70ms' }}
                 >
-                  {t('assistant.welcome.headlinePre')}{' '}
-                  <em className="gradient-text-model font-display italic not-italic">{t('assistant.welcome.headlineEmphasis')}</em> {t('assistant.welcome.headlinePost')}
+                  {t('assistant.welcome.headlinePre')} {t('assistant.welcome.headlineEmphasis')} {t('assistant.welcome.headlinePost')}
                 </h1>
 
                 {/* Subtitle + connection status */}
@@ -717,7 +702,7 @@ export const AssistantWorkspaceDrawer: React.FC<AssistantWorkspaceDrawerProps> =
                   </span>
                 </p>
 
-                {/* Chat input — animated gradient border, capped at max-w-2xl (was full width of max-w-5xl parent) */}
+                {/* Chat input — static gradient border, capped at max-w-2xl */}
                 <div
                   className="animate-fade-up mx-auto mt-9 max-w-2xl"
                   style={{ animationDelay: '200ms' }}
@@ -748,7 +733,7 @@ export const AssistantWorkspaceDrawer: React.FC<AssistantWorkspaceDrawerProps> =
                       key={prompt}
                       type="button"
                       onClick={() => setInputValue(prompt)}
-                      className="rounded-full border border-brand/15 bg-white/60 px-3.5 py-1.5 text-xs font-medium text-muted-foreground backdrop-blur-sm transition-all duration-200 hover:-translate-y-px hover:border-brand/30 hover:bg-brand/5 hover:text-foreground hover:shadow-sm dark:bg-slate-800/40 dark:hover:border-brand/25 dark:hover:bg-brand/8"
+                      className="rounded-full border border-brand/15 bg-white/60 px-3.5 py-1.5 text-xs font-medium text-muted-foreground backdrop-blur-sm transition-[color,background-color,border-color,box-shadow,transform] duration-200 hover:border-brand/30 hover:bg-brand/5 hover:text-foreground hover:shadow-sm [@media(hover:hover)]:hover:-translate-y-px dark:bg-slate-800/40 dark:hover:border-brand/25 dark:hover:bg-brand/8"
                     >
                       {prompt}
                     </button>
@@ -767,7 +752,7 @@ export const AssistantWorkspaceDrawer: React.FC<AssistantWorkspaceDrawerProps> =
                       <div className="mx-auto flex size-8 items-center justify-center rounded-lg bg-brand/10 text-brand ring-1 ring-brand/15">
                         <Layers className="size-4" />
                       </div>
-                      <p className="mt-2.5 text-[11px] font-semibold uppercase tracking-[0.1em] text-foreground/80">{t('assistant.capabilities.systemDesign.title')}</p>
+                      <p className="mt-2.5 text-xs font-medium text-muted-foreground">{t('assistant.capabilities.systemDesign.title')}</p>
                       <p className="mt-1 text-[10px] leading-relaxed text-muted-foreground/60">
                         {t('assistant.capabilities.systemDesign.body')}
                       </p>
@@ -779,7 +764,7 @@ export const AssistantWorkspaceDrawer: React.FC<AssistantWorkspaceDrawerProps> =
                       <div className="mx-auto flex size-8 items-center justify-center rounded-lg bg-brand/10 text-brand ring-1 ring-brand/15">
                         <Palette className="size-4" />
                       </div>
-                      <p className="mt-2.5 text-[11px] font-semibold uppercase tracking-[0.1em] text-foreground/80">{t('assistant.capabilities.visualInterfaces.title')}</p>
+                      <p className="mt-2.5 text-xs font-medium text-muted-foreground">{t('assistant.capabilities.visualInterfaces.title')}</p>
                       <p className="mt-1 text-[10px] leading-relaxed text-muted-foreground/60">
                         {t('assistant.capabilities.visualInterfaces.body')}
                       </p>
@@ -791,7 +776,7 @@ export const AssistantWorkspaceDrawer: React.FC<AssistantWorkspaceDrawerProps> =
                       <div className="mx-auto flex size-8 items-center justify-center rounded-lg bg-brand/10 text-brand ring-1 ring-brand/15">
                         <Code2 className="size-4" />
                       </div>
-                      <p className="mt-2.5 text-[11px] font-semibold uppercase tracking-[0.1em] text-foreground/80">{t('assistant.capabilities.codeGeneration.title')}</p>
+                      <p className="mt-2.5 text-xs font-medium text-muted-foreground">{t('assistant.capabilities.codeGeneration.title')}</p>
                       <p className="mt-1 text-[10px] leading-relaxed text-muted-foreground/60">
                         {t('assistant.capabilities.codeGeneration.body')}
                       </p>
@@ -816,7 +801,7 @@ export const AssistantWorkspaceDrawer: React.FC<AssistantWorkspaceDrawerProps> =
             <>
               {/* Messages — kept at max-w-4xl (896px) for readability */}
               <div className="relative min-h-0 flex-1">
-                <div ref={messageListContainerRef} className="h-full overflow-y-auto bg-gradient-to-b from-muted/10 via-background to-muted/5 px-4 py-6 sm:px-8">
+                <div ref={messageListContainerRef} className="h-full overflow-y-auto overscroll-contain bg-gradient-to-b from-muted/10 via-background to-muted/5 px-4 py-6 sm:px-8">
                   <div className="mx-auto w-full max-w-4xl">
                     {/* Study-mode notice (regular sessions render nothing) */}
                     <PilotSessionNotice className="mb-4" />
