@@ -67,11 +67,16 @@ export const CreateRepositoryDialog: React.FC<CreateRepositoryDialogProps> = ({
         <div className="flex flex-col gap-4">
           <FormField
             label={t('github.createRepo.repoNameLabel')}
+            htmlFor="github-create-repo-name"
             required
             error={validation.getError('repoName')}
             helperText={t('github.createRepo.repoNameHelper')}
           >
             <Input
+              id="github-create-repo-name"
+              name="repo-name"
+              autoComplete="off"
+              spellCheck={false}
               placeholder="my-project"
               value={repoName}
               onChange={(event) => onRepoNameChange(event.target.value)}
@@ -80,8 +85,9 @@ export const CreateRepositoryDialog: React.FC<CreateRepositoryDialogProps> = ({
             />
           </FormField>
 
-          <FormField label={t('github.createRepo.descriptionLabel')}>
+          <FormField label={t('github.createRepo.descriptionLabel')} htmlFor="github-create-repo-description">
             <Textarea
+              id="github-create-repo-description"
               rows={2}
               placeholder={t('github.createRepo.descriptionPlaceholder')}
               value={repoDescription}
@@ -89,16 +95,24 @@ export const CreateRepositoryDialog: React.FC<CreateRepositoryDialogProps> = ({
             />
           </FormField>
 
-          <FormField label={t('github.folderPathLabel')}>
+          <FormField label={t('github.folderPathLabel')} htmlFor="github-create-repo-folder">
             <Input
+              id="github-create-repo-folder"
+              name="folder-path"
+              autoComplete="off"
+              spellCheck={false}
               placeholder={t('github.folderPathPlaceholder')}
               value={folderPath}
               onChange={(event) => onFolderPathChange(event.target.value)}
             />
           </FormField>
 
-          <FormField label={t('github.fileNameLabel')} required error={validation.getError('fileName')}>
+          <FormField label={t('github.fileNameLabel')} htmlFor="github-create-repo-file" required error={validation.getError('fileName')}>
             <Input
+              id="github-create-repo-file"
+              name="file-name"
+              autoComplete="off"
+              spellCheck={false}
               placeholder="my_project.json"
               value={fileName}
               onChange={(event) => onFileNameChange(event.target.value)}
@@ -109,7 +123,7 @@ export const CreateRepositoryDialog: React.FC<CreateRepositoryDialogProps> = ({
 
           <div className="rounded-md border border-border/70 bg-muted/30 px-3 py-2 text-xs">
             <span className="font-semibold">{t('github.fullPath')}</span>{' '}
-            <code>/{folderPath ? `${folderPath.replace(/^\/+|\/+$/g, '')}/${fileName}` : fileName}</code>
+            <code className="break-all">/{folderPath ? `${folderPath.replace(/^\/+|\/+$/g, '')}/${fileName}` : fileName}</code>
           </div>
 
           <label className="flex items-center gap-2 text-sm">

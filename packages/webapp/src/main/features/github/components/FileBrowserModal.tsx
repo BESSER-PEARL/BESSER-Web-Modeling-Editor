@@ -169,12 +169,13 @@ export const FileBrowserModal: React.FC<FileBrowserModalProps> = ({
           )}
 
           <div
-            className="h-80 overflow-y-scroll rounded-md border border-border/70 bg-background [scrollbar-gutter:stable]"
+            className="h-80 overflow-y-scroll overscroll-contain rounded-md border border-border/70 bg-background [scrollbar-gutter:stable]"
             style={{ scrollbarWidth: 'thin' }}
           >
             {loading ? (
-              <div className="flex h-full items-center justify-center text-muted-foreground">
+              <div role="status" className="flex h-full items-center justify-center text-muted-foreground">
                 <Loader2 className="size-4 animate-spin" />
+                <span className="sr-only">{t('common.loading')}</span>
               </div>
             ) : error ? (
               <div className="p-4 text-center text-sm text-destructive">{error}</div>

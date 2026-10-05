@@ -235,6 +235,13 @@ export const GitHubSidebar: React.FC<GitHubSidebarProps> = ({ isOpen, onClose })
     return `${date.toLocaleDateString()} ${date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
   };
 
+  const loadingStatus = (
+    <div role="status" className="flex items-center justify-center py-8 text-muted-foreground">
+      {spinner}
+      <span className="sr-only">{t('common.loading')}</span>
+    </div>
+  );
+
   useEffect(() => {
     if (currentProject?.id) {
       initLinkedRepo(currentProject.id);
@@ -643,8 +650,18 @@ export const GitHubSidebar: React.FC<GitHubSidebarProps> = ({ isOpen, onClose })
     t,
   ]);
 
-  const handleUnlink = useCallback(() => {
+  const handleUnlink = useCallback(async () => {
     if (!currentProject?.id) {
+      return;
+    }
+
+    const confirmed = await globalConfirm({
+      title: t('github.linked.unlinkConfirmTitle'),
+      description: t('github.linked.unlinkConfirmDescription'),
+      confirmLabel: t('github.linked.unlinkConfirmAction'),
+      variant: 'danger',
+    });
+    if (!confirmed) {
       return;
     }
 
@@ -800,7 +817,7 @@ export const GitHubSidebar: React.FC<GitHubSidebarProps> = ({ isOpen, onClose })
               <Github className="size-4" />
             </div>
             <div className="min-w-0 flex-1">
-              <p className="truncate text-sm font-semibold">
+              <p className="truncate text-sm font-semibold" title={`${linkedRepo?.owner}/${linkedRepo?.repo}`}>
                 {linkedRepo?.owner}/{linkedRepo?.repo}
               </p>
               <Badge variant="secondary" className="mt-1 text-[11px]">
@@ -838,11 +855,24 @@ export const GitHubSidebar: React.FC<GitHubSidebarProps> = ({ isOpen, onClose })
               {t('github.linked.pull')}
             </Button>
             <Button size="sm" variant="outline" asChild>
-              <a href={`https://github.com/${linkedRepo?.owner}/${linkedRepo?.repo}`} target="_blank" rel="noopener noreferrer">
+              <a
+                href={`https://github.com/${linkedRepo?.owner}/${linkedRepo?.repo}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label={t('github.linked.openOnGitHub')}
+                title={t('github.linked.openOnGitHub')}
+              >
                 <ExternalLink className="size-3.5" />
               </a>
             </Button>
-            <Button size="sm" variant="outline" onClick={handleUnlink} className="text-destructive hover:text-destructive">
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => { handleUnlink().catch(notifyError(t('github.context.unlinkingRepository'))); }}
+              aria-label={t('github.linked.unlink')}
+              title={t('github.linked.unlink')}
+              className="text-destructive hover:text-destructive"
+            >
               <Unlink2 className="size-3.5" />
             </Button>
           </div>
@@ -865,9 +895,9 @@ export const GitHubSidebar: React.FC<GitHubSidebarProps> = ({ isOpen, onClose })
           </Button>
         </div>
 
-        <div className="max-h-72 overflow-y-auto rounded-xl border border-border/70 bg-card">
+        <div className="max-h-72 overflow-y-auto overscroll-contain rounded-xl border border-border/70 bg-card">
           {isLoading ? (
-            <div className="flex items-center justify-center py-8 text-muted-foreground">{spinner}</div>
+            loadingStatus
           ) : commits.length > 0 ? (
             <ul className="divide-y divide-border/60">
               {commits.slice(0, 10).map((commit, index) => {
@@ -963,8 +993,9 @@ export const GitHubSidebar: React.FC<GitHubSidebarProps> = ({ isOpen, onClose })
 
           {autoCommitSettings.enabled && (
             <div className="flex flex-col gap-1.5">
-              <Label className="text-xs">{t('github.settings.intervalLabel')}</Label>
+              <Label htmlFor="github-autocommit-interval" className="text-xs">{t('github.settings.intervalLabel')}</Label>
               <select
+                id="github-autocommit-interval"
                 value={autoCommitSettings.intervalMinutes}
                 onChange={(event) => updateAutoCommitSettings({ intervalMinutes: parseInt(event.target.value, 10) })}
                 className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm"
@@ -994,7 +1025,7 @@ export const GitHubSidebar: React.FC<GitHubSidebarProps> = ({ isOpen, onClose })
       <div
         onClick={onClose}
         className={cn(
-          'absolute inset-0 z-40 bg-black/30 transition-all duration-200',
+          'absolute inset-0 z-40 bg-black/30 transition-[opacity,visibility] duration-200 motion-reduce:transition-none',
           isOpen ? 'visible opacity-100 pointer-events-auto' : 'invisible opacity-0 pointer-events-none',
         )}
       />
@@ -1004,7 +1035,7 @@ export const GitHubSidebar: React.FC<GitHubSidebarProps> = ({ isOpen, onClose })
         aria-modal="true"
         aria-label={t('github.sync')}
         className={cn(
-          'absolute bottom-0 right-0 top-0 z-50 w-[380px] max-w-[96vw] border-l border-border/70 bg-background shadow-xl transition-all duration-200',
+          'absolute bottom-0 right-0 top-0 z-50 w-[380px] max-w-[96vw] border-l border-border/70 bg-background shadow-xl transition-[transform,opacity,visibility] duration-200 motion-reduce:transition-none',
           isOpen
             ? 'visible translate-x-0 opacity-100 pointer-events-auto'
             : 'invisible translate-x-full opacity-0 pointer-events-none',
@@ -1020,7 +1051,7 @@ export const GitHubSidebar: React.FC<GitHubSidebarProps> = ({ isOpen, onClose })
           </Button>
         </header>
 
-        <div className="h-[calc(100%-53px)] overflow-y-auto p-4">
+        <div className="h-[calc(100%-53px)] overflow-y-auto overscroll-contain p-4">
           {!isAuthenticated && renderUnauthenticated()}
           {isAuthenticated && !currentProject && renderNoProject()}
           {isAuthenticated && currentProject && !linkedRepo && renderNotLinked()}
@@ -1047,9 +1078,9 @@ export const GitHubSidebar: React.FC<GitHubSidebarProps> = ({ isOpen, onClose })
           </DialogHeader>
 
           {linkStep === 'select' ? (
-            <div className="max-h-[46vh] overflow-y-auto rounded-md border border-border/70">
+            <div className="max-h-[46vh] overflow-y-auto overscroll-contain rounded-md border border-border/70">
               {isLoading ? (
-                <div className="flex items-center justify-center py-8 text-muted-foreground">{spinner}</div>
+                loadingStatus
               ) : sortedRepositories.length > 0 ? (
                 <ul className="divide-y divide-border/60">
                   {sortedRepositories.map((repo) => (
@@ -1076,13 +1107,14 @@ export const GitHubSidebar: React.FC<GitHubSidebarProps> = ({ isOpen, onClose })
             </div>
           ) : (
             <div className="flex flex-col gap-4">
-              <div className="rounded-md border border-border/70 bg-muted/30 px-3 py-2 text-sm font-medium">
+              <div className="break-all rounded-md border border-border/70 bg-muted/30 px-3 py-2 text-sm font-medium">
                 {selectedRepo?.full_name}
               </div>
 
               <div className="flex flex-col gap-1.5">
-                <Label>{t('github.linkModal.branch')}</Label>
+                <Label htmlFor="github-link-branch">{t('github.linkModal.branch')}</Label>
                 <select
+                  id="github-link-branch"
                   value={selectedBranch}
                   onChange={(event) => {
                     setSelectedBranch(event.target.value);
@@ -1099,8 +1131,12 @@ export const GitHubSidebar: React.FC<GitHubSidebarProps> = ({ isOpen, onClose })
               </div>
 
               <div className="flex flex-col gap-1.5">
-                <Label>{t('github.folderPathLabel')}</Label>
+                <Label htmlFor="github-link-folder">{t('github.folderPathLabel')}</Label>
                 <Input
+                  id="github-link-folder"
+                  name="folder-path"
+                  autoComplete="off"
+                  spellCheck={false}
                   placeholder={t('github.folderPathPlaceholder')}
                   value={linkFolderPath}
                   onChange={(event) => {
@@ -1111,8 +1147,12 @@ export const GitHubSidebar: React.FC<GitHubSidebarProps> = ({ isOpen, onClose })
               </div>
 
               <div className="flex flex-col gap-1.5">
-                <Label>{t('github.fileNameLabel')}</Label>
+                <Label htmlFor="github-link-file">{t('github.fileNameLabel')}</Label>
                 <Input
+                  id="github-link-file"
+                  name="file-name"
+                  autoComplete="off"
+                  spellCheck={false}
                   placeholder="my_project.json"
                   value={linkFileName}
                   onChange={(event) => {
@@ -1137,7 +1177,7 @@ export const GitHubSidebar: React.FC<GitHubSidebarProps> = ({ isOpen, onClose })
               </div>
 
               <div className="rounded-md border border-border/70 bg-muted/30 px-3 py-2 text-xs">
-                <span className="font-semibold">{t('github.fullPath')}</span> <code>/{computedFilePath}</code>
+                <span className="font-semibold">{t('github.fullPath')}</span> <code className="break-all">/{computedFilePath}</code>
               </div>
 
               <div className="flex flex-col gap-2">
@@ -1146,8 +1186,10 @@ export const GitHubSidebar: React.FC<GitHubSidebarProps> = ({ isOpen, onClose })
                   size="sm"
                   onClick={() => { handleCheckFileExists().catch(notifyError(t('github.context.checkingFile'))); }}
                   disabled={isCheckingFile || !linkFileName}
+                  className="gap-1"
                 >
-                  {isCheckingFile ? spinner : t('github.linkModal.checkFileExists')}
+                  {isCheckingFile && spinner}
+                  {t('github.linkModal.checkFileExists')}
                 </Button>
 
                 {fileExists === true && (

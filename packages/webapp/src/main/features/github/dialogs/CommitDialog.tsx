@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
-import { CloudUpload } from 'lucide-react';
+import { CloudUpload, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
@@ -46,8 +46,9 @@ export const CommitDialog: React.FC<CommitDialogProps> = ({
           <DialogDescription>{t('github.commit.description')}</DialogDescription>
         </DialogHeader>
 
-        <FormField label={t('github.commit.messageLabel')} required error={validation.getError('message')}>
+        <FormField label={t('github.commit.messageLabel')} htmlFor="github-commit-message" required error={validation.getError('message')}>
           <Textarea
+            id="github-commit-message"
             rows={2}
             placeholder={t('github.commit.messagePlaceholder')}
             value={message}
@@ -63,8 +64,17 @@ export const CommitDialog: React.FC<CommitDialogProps> = ({
             {t('common.cancel')}
           </Button>
           <Button onClick={onCommit} disabled={isSaving || !validation.isValid} className="gap-2">
-            {isSaving ? t('github.commit.pushing') : <CloudUpload className="size-4" />}
-            {t('github.commit.push')}
+            {isSaving ? (
+              <>
+                <Loader2 className="size-4 animate-spin" />
+                {t('github.commit.pushing')}
+              </>
+            ) : (
+              <>
+                <CloudUpload className="size-4" />
+                {t('github.commit.push')}
+              </>
+            )}
           </Button>
         </DialogFooter>
       </DialogContent>
