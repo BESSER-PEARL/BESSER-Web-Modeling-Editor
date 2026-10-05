@@ -124,7 +124,7 @@
         "useDefault": "(Standard benotzen)"
       },
       "db": {
-        "configuring": "Datebank-Aktioun gëtt konfiguréiert...",
+        "configuring": "Datebank-Aktioun gëtt konfiguréiert…",
         "initialize": "Datebank-Aktioun initialiséieren",
         "select": "Eng Datebank auswielen",
         "default": "Standard (App-DB benotzen)",
@@ -237,8 +237,8 @@
     "assessment": "Bewäertung fir",
     "score": "Punkten",
     "feedback": "Feedback",
-    "feedbackPlaceholder": "Dir kënnt hei Feedback aginn...",
-    "additionalFeedbackPlaceholder": "Dir kënnt hei zousätzleche Feedback aginn...",
+    "feedbackPlaceholder": "Dir kënnt hei Feedback aginn…",
+    "additionalFeedbackPlaceholder": "Dir kënnt hei zousätzleche Feedback aginn…",
     "nextAssessment": "Nächst Bewäertung"
   },
   "packages": {
@@ -503,7 +503,7 @@
       "selectPlaceholder": "(Standard benotzen)",
       "customDatabaseName": "Personaliséiert Datebankumm",
       "selectPlaceholderRag": "RAG-Datebank wielen",
-      "configuringDatabaseAction": "Datebankoperatioun gëtt konfigureiert...",
+      "configuringDatabaseAction": "Datebankoperatioun gëtt konfigureiert…",
       "initializeDatabaseAction": "Datebankoperatioun initialiséieren",
       "llm": "LLM",
       "systemMessage": "Systemmessaggi",
@@ -581,7 +581,7 @@
       "skillReasoningStateWarning": "Skills kënne nëmme vun engem Reasoning State benotzt ginn. Fügt e Reasoning State bäi, fir dës Skill ze benotzen",
       "skillName": "Skill-Numm",
       "skillDescriptionPlaceholder": "Optional kuerz Beschreiwung",
-      "skillContentPlaceholder": "# Skill\n\nUweisungen a markdown...",
+      "skillContentPlaceholder": "# Skill\n\nUweisungen a markdown…",
       "markdownContent": "Markdown-Inhalt",
       "workspaceReasoningStateWarning": "Workspaces kënne nëmme vun engem Reasoning State benotzt ginn. Fügt e Reasoning State bäi, fir dësen Workspace ze benotzen",
       "workspaceName": "Workspace-Numm",
@@ -745,17 +745,17 @@
     "height": "Héicht"
   },
   "stylePane": {
-    "enterUri": "URI aginn...",
-    "enterIcon": "Numm vun der Ikon aginn...",
-    "enterDescription": "Beschreiwung aginn...",
+    "enterUri": "URI aginn…",
+    "enterIcon": "Numm vun der Ikon aginn…",
+    "enterDescription": "Beschreiwung aginn…",
     "idLockedByOptional": "Optional Attributer kënnen net den Identifikator sinn.",
-    "enterDefaultValue": "Standardwäert aginn...",
+    "enterDefaultValue": "Standardwäert aginn…",
     "reset": "Zrécksetzen",
     "fillColor": "Fëllfaarf",
     "icon": "Ikon",
     "externalIdLockedByOptional": "Optional Attributer kënnen net den externen Identifikator sinn.",
     "optional": "Optional",
-    "enterInteger": "Ganzzuel aginn...",
+    "enterInteger": "Ganzzuel aginn…",
     "id": "ID",
     "textColor": "Textfaarf",
     "externalId": "Extern ID",
@@ -764,7 +764,7 @@
     "none": "(keen)",
     "lineColor": "Linnefaarf",
     "default": "Standard",
-    "enterNumber": "Zuel aginn...",
+    "enterNumber": "Zuel aginn…",
     "derived": "Ofgeleet"
   },
   "associationPopup": {

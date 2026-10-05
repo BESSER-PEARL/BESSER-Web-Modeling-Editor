@@ -4,6 +4,17 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="icon" type="image/x-icon" href="/images/favicon.ico" />
+    <meta name="theme-color" content="#f9f9f5" />
+    <script>
+      // Apply the saved theme before first paint (index.tsx re-applies it with the full palette).
+      try {
+        var dark = localStorage.getItem('besser_userThemePreference') === 'dark';
+        var root = document.documentElement;
+        root.setAttribute('data-theme', dark ? 'dark' : 'light');
+        root.classList.toggle('dark', dark);
+        if (dark) document.querySelector('meta[name="theme-color"]').setAttribute('content', '#0d1017');
+      } catch (e) {}
+    </script>
     <title>BESSER Web Modeling Editor</title>
         <!-- Google tag (gtag.js) -->
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-WEF3W8Y17C"></script>

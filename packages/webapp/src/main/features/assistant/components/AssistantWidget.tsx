@@ -243,9 +243,11 @@ export const AssistantWidget: React.FC<AssistantWidgetProps> = ({ onAssistantGen
         {/* ── Chat card ── */}
         <Card
           className={cn(
-            'absolute bottom-[74px] right-0 flex h-[min(78vh,700px)] w-[min(96vw,520px)] flex-col overflow-hidden rounded-2xl border border-border/40 bg-background shadow-elevation-3 transition-all duration-300 ease-out sm:w-[480px] lg:w-[520px]',
+            'absolute bottom-[74px] right-0 flex h-[min(78vh,700px)] w-[min(96vw,520px)] origin-bottom-right flex-col overflow-hidden rounded-2xl border border-border/40 bg-background shadow-elevation-3 transition-[transform,opacity] duration-200 ease-out sm:w-[480px] lg:w-[520px]',
             isVisible ? 'translate-y-0 scale-100 opacity-100' : 'pointer-events-none translate-y-4 scale-95 opacity-0',
           )}
+          aria-hidden={!isVisible}
+          {...((!isVisible ? { inert: '' } : {}) as React.HTMLAttributes<HTMLElement>)}
         >
           {/* Header */}
           <div className="relative flex items-center justify-between overflow-hidden border-b border-border/40 px-4 py-3.5" style={{ background: 'linear-gradient(135deg, hsl(var(--brand) / 0.06) 0%, transparent 100%)' }}>

@@ -5,6 +5,8 @@
 @tailwind utilities;
 
 :root {
+  /* Native controls (selects, scrollbars, date pickers) follow the theme. */
+  color-scheme: light;
   --font-geist-sans: 'Sora';
   --font-display: 'Instrument Serif', 'Georgia', serif;
   --radius: 0.85rem;
@@ -46,7 +48,14 @@
   --quantum-editor-tooltip-shadow: 0 12px 28px rgba(2, 6, 23, 0.18);
 }
 
+/* react-toastify's default (light) toasts follow the dark palette; html[] outranks its :root defaults. */
+html[data-theme='dark'] {
+  --toastify-color-light: hsl(222 26% 11%);
+  --toastify-text-color-light: hsl(210 20% 92%);
+}
+
 [data-theme='dark'] {
+  color-scheme: dark;
   --background: 222 30% 7%;
   --foreground: 210 20% 92%;
   --card: 222 28% 10%;
@@ -438,6 +447,16 @@ select {
   .animate-fade-up,
   .drawer-handle-bob {
     animation: none !important;
+  }
+
+  /* Everything else (loops, Radix enter/exit, transitions) settles instantly at its end state. */
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
   }
 }
 

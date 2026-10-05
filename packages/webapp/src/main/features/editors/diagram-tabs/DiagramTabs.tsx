@@ -6,6 +6,7 @@ import { toast } from 'react-toastify';
 import { useTranslation } from 'react-i18next';
 import { Input } from '@/components/ui/input';
 import { getPostHog } from '../../../shared/services/analytics/lazy-analytics';
+import { globalConfirm } from '../../../shared/services/confirm/globalConfirm';
 import { ProjectDiagram, MAX_DIAGRAMS_PER_TYPE, SupportedDiagramType, isUMLModel, isGrapesJSProjectData, isQuantumCircuitData } from '../../../shared/types/project';
 import { useAppDispatch, useAppSelector } from '../../../app/store/hooks';
 import type { QualityCheckState } from '../../generation/types';
@@ -267,15 +268,25 @@ export const DiagramTabs: React.FC<DiagramTabsProps> = ({
     getPostHog()?.capture('diagram_created', { type: currentDiagramType });
   }, [dispatch, currentDiagramType, diagrams.length]);
 
+  // Removing a tab deletes the diagram from the project, so confirm first.
   const handleRemoveDiagram = useCallback(
-    (e: React.MouseEvent, index: number) => {
+    async (e: React.MouseEvent, index: number) => {
       e.stopPropagation();
       if (diagrams.length <= 1) {
         return;
       }
+      const confirmed = await globalConfirm({
+        title: t('editors.diagramTabs.deleteConfirmTitle'),
+        description: t('editors.diagramTabs.deleteConfirmDescription', { title: diagrams[index]?.title ?? '' }),
+        confirmLabel: t('editors.diagramTabs.deleteConfirmAction'),
+        variant: 'danger',
+      });
+      if (!confirmed) {
+        return;
+      }
       dispatch(removeDiagramThunk({ diagramType: currentDiagramType, index }));
     },
-    [dispatch, currentDiagramType, diagrams.length],
+    [dispatch, currentDiagramType, diagrams, t],
   );
 
   const handleStartRename = useCallback(
@@ -377,9 +388,9 @@ export const DiagramTabs: React.FC<DiagramTabsProps> = ({
                       'ml-0.5 rounded-sm p-0.5 transition-colors',
                       isActive
                         ? 'text-muted-foreground hover:bg-muted hover:text-destructive'
-                        : 'invisible text-muted-foreground hover:bg-muted hover:text-destructive group-hover:visible',
+                        : 'invisible text-muted-foreground hover:bg-muted hover:text-destructive focus-visible:visible group-hover:visible group-focus-within:visible',
                     ].join(' ')}
-                    onClick={(e) => handleRemoveDiagram(e, index)}
+                    onClick={(e) => void handleRemoveDiagram(e, index)}
                     aria-label={t('editors.diagramTabs.closeTabLabel', { title: diagram.title })}
                     title={t('editors.diagramTabs.closeTab')}
                   >

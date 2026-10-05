@@ -50,6 +50,11 @@ vi.mock('../../../../shared/services/analytics/lazy-analytics', () => ({
   getPostHog: () => null,
 }));
 
+const mockGlobalConfirm = vi.fn((_options: unknown) => Promise.resolve(true));
+vi.mock('../../../../shared/services/confirm/globalConfirm', () => ({
+  globalConfirm: (options: unknown) => mockGlobalConfirm(options),
+}));
+
 // ── State helpers ────────────────────────────────────────────────────────
 
 const makeDiagram = (id: string, title: string): ProjectDiagram => ({
@@ -218,9 +223,33 @@ describe('DiagramTabs', () => {
 
     render(<DiagramTabs />);
 
-    // Close buttons should exist (one per tab when multiple diagrams)
-    const closeButtons = screen.getAllByTitle('Close tab');
-    expect(closeButtons.length).toBe(2);
+    // Delete buttons should exist (one per tab when multiple diagrams)
+    const deleteButtons = screen.getAllByTitle('Delete diagram');
+    expect(deleteButtons.length).toBe(2);
+  });
+
+  // The tab "x" removes the diagram from the project (ProjectStorageRepository.removeDiagram),
+  // so it must ask first instead of deleting on a single click.
+  it('asks for confirmation before deleting a diagram', async () => {
+    setMockState({ diagrams: [makeDiagram('d1', 'First'), makeDiagram('d2', 'Second')] });
+    mockGlobalConfirm.mockResolvedValueOnce(true);
+
+    render(<DiagramTabs />);
+    fireEvent.click(screen.getAllByTitle('Delete diagram')[1]);
+
+    await waitFor(() => expect(mockDispatch).toHaveBeenCalledWith(expect.objectContaining({ type: 'removeDiagram' })));
+    expect(mockGlobalConfirm).toHaveBeenCalledWith(expect.objectContaining({ variant: 'danger' }));
+  });
+
+  it('keeps the diagram when the deletion is cancelled', async () => {
+    setMockState({ diagrams: [makeDiagram('d1', 'First'), makeDiagram('d2', 'Second')] });
+    mockGlobalConfirm.mockResolvedValueOnce(false);
+
+    render(<DiagramTabs />);
+    fireEvent.click(screen.getAllByTitle('Delete diagram')[1]);
+
+    await waitFor(() => expect(mockGlobalConfirm).toHaveBeenCalled());
+    expect(mockDispatch).not.toHaveBeenCalledWith(expect.objectContaining({ type: 'removeDiagram' }));
   });
 
   it('does not show close button when only one diagram exists', () => {

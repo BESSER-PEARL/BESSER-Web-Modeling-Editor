@@ -48,6 +48,7 @@ import { FileBrowserModal } from './FileBrowserModal';
 import { CommitDialog, CreateGistDialog, CreateRepositoryDialog, RestoreVersionDialog } from '../dialogs';
 import { ApollonEditorContext } from '../../editors/uml/apollon-editor-context';
 import { notifyError } from '../../../shared/utils/notifyError';
+import { globalConfirm } from '../../../shared/services/confirm/globalConfirm';
 import { BesserProject } from '../../../shared/types/project';
 
 interface GitHubSidebarProps {
@@ -348,6 +349,19 @@ export const GitHubSidebar: React.FC<GitHubSidebarProps> = ({ isOpen, onClose })
       return;
     }
 
+    // Pull replaces the local project, so ask before discarding unpushed work.
+    if (hasChanges) {
+      const confirmed = await globalConfirm({
+        title: t('github.linked.pullConfirmTitle'),
+        description: t('github.linked.pullConfirmDescription'),
+        confirmLabel: t('github.linked.pullConfirmAction'),
+        variant: 'danger',
+      });
+      if (!confirmed) {
+        return;
+      }
+    }
+
     const project = await loadProjectFromGitHub(
       githubSession,
       linkedRepo.owner,
@@ -374,7 +388,7 @@ export const GitHubSidebar: React.FC<GitHubSidebarProps> = ({ isOpen, onClose })
     if (activated) {
       onClose();
     }
-  }, [linkedRepo, githubSession, loadProjectFromGitHub, onClose, persistAndActivateProject, t]);
+  }, [linkedRepo, githubSession, hasChanges, loadProjectFromGitHub, onClose, persistAndActivateProject, t]);
 
   const handleSelectRepo = useCallback(
     async (repo: GitHubRepository) => {

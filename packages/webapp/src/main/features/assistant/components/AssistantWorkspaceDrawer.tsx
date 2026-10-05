@@ -512,7 +512,7 @@ export const AssistantWorkspaceDrawer: React.FC<AssistantWorkspaceDrawerProps> =
         <MessageInput
           value={inputValue}
           onChange={(event) => setInputValue(event.target.value)}
-          placeholder="Describe what you want to create or modify..."
+          placeholder={t('assistant.composer.placeholder')}
           onVoiceSend={(blob) => sendVoiceMessage(blob)}
           allowAttachments
           files={files}
@@ -551,6 +551,7 @@ export const AssistantWorkspaceDrawer: React.FC<AssistantWorkspaceDrawerProps> =
           transform: !isMeasured && !open && !isDragging ? 'translateY(100%)' : `translateY(${translateY}px)`,
         }}
         aria-hidden={!open && !isDragging}
+        {...((!open && !isDragging ? { inert: '' } : {}) as React.HTMLAttributes<HTMLElement>)}
       >
         {/* Content area */}
         <div

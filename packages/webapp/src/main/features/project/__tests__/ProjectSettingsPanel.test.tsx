@@ -125,7 +125,7 @@ describe('ProjectSettingsPanel', () => {
   it('renders loading state', () => {
     setupUseProject({ loading: true });
     renderWithStore(null);
-    expect(screen.getByText('Loading project...')).toBeInTheDocument();
+    expect(screen.getByText('Loading project…')).toBeInTheDocument();
   });
 
   it('renders error state', () => {

@@ -1,12 +1,12 @@
 {
   "common": {
-    "connecting": "Connexion...",
+    "connecting": "Connexion…",
     "cancel": "Annuler",
     "save": "Enregistrer",
     "close": "Fermer",
     "delete": "Supprimer",
     "confirm": "Confirmer",
-    "loading": "Chargement...",
+    "loading": "Chargement…",
     "yes": "Oui",
     "no": "Non"
   },
@@ -74,7 +74,7 @@
     },
     "generate": {
       "title": "Générer",
-      "generating": "Génération...",
+      "generating": "Génération…",
       "codeGeneration": "Génération de code",
       "goToClassDiagram": "Aller au diagramme de classes",
       "groups": {
@@ -125,10 +125,10 @@
     }
   },
   "agentConfig": {
-    "loadingTitle": "Traitement en cours...",
+    "loadingTitle": "Traitement en cours…",
     "loadingTitle_comment": "",
     "loading": {
-      "preparing": "Préparation de votre configuration...",
+      "preparing": "Préparation de votre configuration…",
       "rules": "Application de la correspondance prédéfinie basée sur la littérature pour recommander une configuration adaptée.",
       "llm": "Cela peut prendre un moment pour concocter la meilleure configuration basée sur un LLM pour le profil utilisateur sélectionné.",
       "transform": "Cela peut prendre un moment pour concocter la meilleure configuration d'agent transformée et l'appliquer à votre diagramme."
@@ -480,7 +480,7 @@
       "selectCustomization": "Sélectionner une personnalisation",
       "lastUpdated": "Dernière mise à jour {{date}}",
       "loadSelected": "Charger la sélection",
-      "applying": "Application en cours...",
+      "applying": "Application en cours…",
       "saveAndApply": "Enregistrer et appliquer la configuration",
       "resetDefaults": "Réinitialiser aux valeurs par défaut",
       "errors": {
@@ -693,7 +693,7 @@
       "configureTechnologies": "Configurer les technologies de l'agent",
       "sourceLanguage": "Langue source (facultative)",
       "addSpokenLanguage": "Ajouter une langue parlée pour la traduction de l'agent",
-      "selectLanguage": "Sélectionner une langue...",
+      "selectLanguage": "Sélectionner une langue…",
       "addLanguage": "Ajouter une langue",
       "translatedToAll": "L'agent sera traduit dans toutes les langues parlées sélectionnées.",
       "warningAriaLabel": "avertissement",
@@ -777,7 +777,7 @@
     "toasts": {
       "validationFailed": "Échec de la validation",
       "noDiagram": "Aucun diagramme pour générer du code",
-      "localDeploymentInProgress": "Déploiement local en cours... Cela peut prendre quelques minutes.",
+      "localDeploymentInProgress": "Déploiement local en cours… Cela peut prendre quelques minutes.",
       "httpError": "Erreur HTTP ! statut : {{status}}",
       "localDeploymentCompleted": "Déploiement local terminé !",
       "accessApplicationAt": "Vous pouvez maintenant accéder à votre application à : ",
@@ -825,9 +825,9 @@
     "overlay": {
       "subtitle": "Veuillez patienter pendant la génération de votre code",
       "title": "Génération du code",
-      "stepPackaging": "Empaquetage de la sortie...",
-      "stepGenerating": "Génération du code...",
-      "stepParsing": "Analyse du diagramme..."
+      "stepPackaging": "Empaquetage de la sortie…",
+      "stepGenerating": "Génération du code…",
+      "stepParsing": "Analyse du diagramme…"
     }
   },
   "project": {
@@ -933,8 +933,8 @@
       "title": "Paramètres du projet",
       "subtitle": "Gérez les métadonnées, les diagrammes et les préférences d'affichage",
       "exportProject": "Exporter le projet",
-      "exporting": "Exportation...",
-      "loadingProject": "Chargement du projet...",
+      "exporting": "Exportation…",
+      "loadingProject": "Chargement du projet…",
       "noProject": "Ouvrez ou créez un projet pour modifier les paramètres.",
       "unknownError": "Erreur inconnue",
       "general": {
@@ -1080,11 +1080,14 @@
     },
     "linked": {
       "repository": "Dépôt",
-      "checking": "Vérification...",
+      "checking": "Vérification…",
       "unsavedChanges": "Vous avez des modifications non enregistrées",
       "upToDate": "À jour",
       "push": "Push",
       "pull": "Pull",
+      "pullConfirmTitle": "Remplacer vos modifications locales ?",
+      "pullConfirmDescription": "Le pull charge la version sur GitHub et supprime les modifications que vous n’avez pas encore poussées.",
+      "pullConfirmAction": "Puller et supprimer les modifications",
       "history": "Historique",
       "refreshHistory": "Actualiser l'historique des commits",
       "latest": "Dernier",
@@ -1104,7 +1107,7 @@
       "interval15": "15 minutes",
       "interval30": "30 minutes",
       "interval60": "1 heure",
-      "autoSaving": "Enregistrement automatique..."
+      "autoSaving": "Enregistrement automatique…"
     },
     "linkModal": {
       "goBack": "Revenir à la sélection du dépôt",
@@ -1140,18 +1143,18 @@
       "title": "Pousser vers GitHub",
       "description": "Écrivez un message de commit pour vos modifications.",
       "messageLabel": "Message de commit",
-      "messagePlaceholder": "Décrivez vos modifications...",
-      "pushing": "Envoi en cours...",
+      "messagePlaceholder": "Décrivez vos modifications…",
+      "pushing": "Envoi en cours…",
       "push": "Push"
     },
     "gist": {
       "title": "Créer un Gist",
       "description": "Créez un Gist GitHub pour partager rapidement votre projet.",
       "descriptionLabel": "Description",
-      "descriptionPlaceholder": "Description du Gist...",
+      "descriptionPlaceholder": "Description du Gist…",
       "publicGist": "Gist public",
       "secretHint": "Les gists secrets sont masqués des moteurs de recherche mais visibles par quiconque possède le lien.",
-      "creating": "Création...",
+      "creating": "Création…",
       "createGist": "Créer un Gist"
     },
     "createRepo": {
@@ -1160,16 +1163,16 @@
       "repoNameLabel": "Nom du dépôt",
       "repoNameHelper": "Seuls les lettres minuscules, les chiffres, les tirets et les traits de soulignement sont autorisés.",
       "descriptionLabel": "Description",
-      "descriptionPlaceholder": "Description facultative...",
+      "descriptionPlaceholder": "Description facultative…",
       "privateRepository": "Dépôt privé",
-      "creating": "Création...",
+      "creating": "Création…",
       "create": "Créer"
     },
     "restore": {
       "title": "Restaurer la version",
       "description": "Vos modifications actuelles non enregistrées seront perdues. Envisagez de pousser votre travail actuel d'abord.",
       "confirmQuestion": "Restaurer ce commit ?",
-      "restoring": "Restauration...",
+      "restoring": "Restauration…",
       "restoreButton": "Restaurer cette version"
     },
     "context": {
@@ -1227,7 +1230,7 @@
       "createGistFailed": "Échec de la création du Gist",
       "gistCreated": "Gist créé avec succès !",
       "invalidGitHubUrl": "URL GitHub non valide. Veuillez fournir une URL de dépôt GitHub valide.",
-      "fetchingFromGitHub": "Récupération de {{filename}} depuis GitHub...",
+      "fetchingFromGitHub": "Récupération de {{filename}} depuis GitHub…",
       "fileNotFound": "Fichier introuvable sur GitHub. Veuillez vérifier l'URL et réessayer.",
       "fetchFileFailed": "Impossible de récupérer le fichier depuis GitHub : {{status}}",
       "importProjectSuccess": "Projet importé avec succès : {{name}}",
@@ -1245,7 +1248,7 @@
       "uploadImageLabel": "Téléverser une image de diagramme (PNG/JPEG)",
       "uploadKgLabel": "Téléverser un graphe de connaissances (TTL/RDF/JSON)",
       "selected": "Sélectionné : {{name}}",
-      "importing": "Importation...",
+      "importing": "Importation…",
       "import": "Importer",
       "errors": {
         "noProject": "Créez ou chargez d'abord un projet.",
@@ -1280,7 +1283,7 @@
       "pressEscPost": "pour fermer"
     },
     "composer": {
-      "placeholder": "Décrivez ce que vous voulez créer ou modifier..."
+      "placeholder": "Décrivez ce que vous voulez créer ou modifier…"
     },
     "messageCount_one": "{{count}} message",
     "messageCount_other": "{{count}} messages",
@@ -1398,7 +1401,7 @@
       "toolCancelled": "Annulé",
       "toolCalling": "Appel",
       "toolResultFrom": "Résultat de",
-      "loading": "Chargement...",
+      "loading": "Chargement…",
       "removeAttachment": "Supprimer la pièce jointe",
       "interruptPrompt": "Appuyez de nouveau sur Entrée pour interrompre",
       "close": "Fermer",
@@ -1411,8 +1414,8 @@
       "stopGenerating": "Arrêter la génération",
       "sendMessage": "Envoyer le message",
       "dropFiles": "Déposez vos fichiers ici pour les joindre.",
-      "transcribingAudio": "Transcription de l'audio...",
-      "recordingPrompt": "Enregistrement... cliquez ici ou appuyez de nouveau sur le micro pour arrêter et envoyer ({{time}})",
+      "transcribingAudio": "Transcription de l'audio…",
+      "recordingPrompt": "Enregistrement… cliquez ici ou appuyez de nouveau sur le micro pour arrêter et envoyer ({{time}})",
       "stopSendVoiceTimer": "Arrêter et envoyer le message vocal ({{time}})"
     }
   },
@@ -1452,7 +1455,7 @@
       "publishAgent": "Publier l'agent sur Render",
       "updatePublish": "Mettre à jour et publier",
       "updatePublishAgent": "Mettre à jour et publier l'agent",
-      "publishing": "Publication..."
+      "publishing": "Publication…"
     },
     "result": {
       "titleUpdated": "Dépôt mis à jour avec succès",
@@ -1749,7 +1752,7 @@
   "shared": {
     "commandPalette": {
       "dialogLabel": "Palette de commandes",
-      "placeholder": "Saisissez une commande...",
+      "placeholder": "Saisissez une commande…",
       "searchLabel": "Rechercher des commandes",
       "noResults": "Aucune commande correspondante",
       "navigate": "Naviguer",
@@ -1850,9 +1853,9 @@
       "expand": "Développer {{name}}",
       "collapse": "Réduire {{name}}",
       "root": "root",
-      "generatingBuml": "Génération de l'aperçu B-UML...",
+      "generatingBuml": "Génération de l'aperçu B-UML…",
       "noBumlPreview": "Aucun aperçu B-UML n'est encore disponible.",
-      "generating": "Génération...",
+      "generating": "Génération…",
       "regenerate": "Régénérer",
       "downloadBuml": "Télécharger le B-UML",
       "copyBuml": "Copier le B-UML",
@@ -1939,8 +1942,11 @@
       "diagramTabLabel": "Onglet de diagramme : {{title}}",
       "validationStatusLabel": "Statut de validation : {{status}}",
       "renameDiagram": "Renommer le diagramme",
-      "closeTabLabel": "Fermer l'onglet {{title}}",
-      "closeTab": "Fermer l'onglet",
+      "closeTabLabel": "Supprimer le diagramme {{title}}",
+      "closeTab": "Supprimer le diagramme",
+      "deleteConfirmTitle": "Supprimer ce diagramme ?",
+      "deleteConfirmDescription": "« {{title}} » et tout son contenu seront retirés du projet. Cette action est irréversible.",
+      "deleteConfirmAction": "Supprimer le diagramme",
       "addNewDiagram": "Ajouter un nouveau diagramme",
       "expandLinkedDiagrams": "Développer les diagrammes liés",
       "collapseLinkedDiagrams": "Réduire les diagrammes liés",
@@ -1957,7 +1963,7 @@
       "noClassDiagramsAvailable": "Aucun diagramme de classes disponible"
     },
     "charts": {
-      "loadingChart": "Chargement du graphique...",
+      "loadingChart": "Chargement du graphique…",
       "noDataAvailable": "Aucune donnée disponible"
     },
     "table": {
@@ -1976,7 +1982,7 @@
     "quantum": {
       "editorTitle": "Éditeur quantique",
       "saved": "Enregistré",
-      "saving": "Enregistrement...",
+      "saving": "Enregistrement…",
       "error": "Erreur",
       "undo": "Annuler",
       "redo": "Rétablir",
@@ -2288,7 +2294,7 @@
       },
       "pages": {
         "title": "Pages",
-        "searchPlaceholder": "Rechercher des pages...",
+        "searchPlaceholder": "Rechercher des pages…",
         "addNewPage": "Ajouter une nouvelle page",
         "addPage": "Ajouter une page",
         "editRoute": "Modifier la route d'URL",
@@ -2380,8 +2386,8 @@
         "previewMode": "Mode aperçu",
         "greeting": "Bonjour ! Je suis {{agentName}}. Comment puis-je vous aider ?",
         "previewMessage": "Ceci est un aperçu de l'interface de chat",
-        "selectAgent": "Sélectionnez un agent pour commencer à discuter...",
-        "typeMessage": "Saisissez un message...",
+        "selectAgent": "Sélectionnez un agent pour commencer à discuter…",
+        "typeMessage": "Saisissez un message…",
         "selectAgentFirst": "Sélectionnez d'abord un agent",
         "send": "Envoyer"
       },
@@ -2401,7 +2407,7 @@
       "errorGeneratingGui": "Erreur lors de la génération de l'interface : {{message}}",
       "guiModelLoaded": "Modèle d'interface chargé depuis l'assistant.",
       "statusSaved": "Enregistré",
-      "statusSaving": "Enregistrement...",
+      "statusSaving": "Enregistrement…",
       "statusErrorSaving": "Erreur d'enregistrement",
       "editorStillLoading": "L'éditeur est en cours de chargement. Veuillez patienter un instant et réessayer.",
       "errorSavingProject": "Erreur lors de l'enregistrement du projet. Veuillez consulter la console pour plus de détails.",
@@ -2496,8 +2502,8 @@
         "valueField": "Champ de valeur"
       }
     },
-    "loadingGuiEditor": "Chargement de l'éditeur GUI...",
-    "loadingQuantumEditor": "Chargement de l'éditeur quantique...",
+    "loadingGuiEditor": "Chargement de l'éditeur GUI…",
+    "loadingQuantumEditor": "Chargement de l'éditeur quantique…",
     "hiddenPerspectives": {
       "messagePlural": "Ce projet utilise {{labels}}, mais ces perspectives sont masquées.",
       "messageSingular": "Ce projet utilise {{labels}}, mais cette perspective est masquée.",
@@ -2514,7 +2520,7 @@
       "unknownError": "Erreur inconnue",
       "submitFailed": "Échec de l'envoi des commentaires : {{error}}"
     },
-    "submitting": "Envoi en cours...",
+    "submitting": "Envoi en cours…",
     "title": "Aidez-nous à améliorer BESSER",
     "description": "Partagez votre avis sur l'éditeur et le flux de génération.",
     "satisfactionQuestion": "Dans quelle mesure êtes-vous satisfait de votre expérience ?",
@@ -2616,7 +2622,7 @@
     "toasts": {
       "noDiagramToValidate": "Aucun diagramme à valider",
       "diagramEmpty": "Le diagramme est vide. Ajoutez des éléments avant de lancer le contrôle qualité.",
-      "validating": "Validation du diagramme...",
+      "validating": "Validation du diagramme…",
       "timedOut": "La validation a expiré. Le backend est peut-être surchargé.",
       "validationFailed": "Échec de la validation",
       "errorsLabel": "Erreurs de validation :",
@@ -2709,7 +2715,7 @@
       "skillDescription": "Description",
       "skillDescriptionPlaceholder": "Description courte facultative",
       "content": "Contenu Markdown",
-      "contentPlaceholder": "# Skill\n\nInstructions en markdown..."
+      "contentPlaceholder": "# Skill\n\nInstructions en markdown…"
     },
     "workspaces": {
       "title": "Espaces de travail",
