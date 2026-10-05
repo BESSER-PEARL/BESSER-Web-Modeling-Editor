@@ -5,6 +5,8 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { FormField } from '@/components/ui/form-field';
 import { BACKEND_URL } from '../constants/constant';
@@ -18,8 +20,9 @@ interface FeedbackDialogProps {
   onOpenChange: (open: boolean) => void;
 }
 
+// No category is the empty value, shown as the Select placeholder
+// ('feedback.categoryOptions.none'); Radix Select items cannot use ''.
 const categories = [
-  { value: '', labelKey: 'feedback.categoryOptions.none' },
   { value: 'editor', labelKey: 'feedback.categoryOptions.editor' },
   { value: 'generators', labelKey: 'feedback.categoryOptions.generators' },
   { value: 'deployment', labelKey: 'feedback.categoryOptions.deployment' },
@@ -36,10 +39,7 @@ const satisfactionOptions: Array<{ value: Satisfaction; labelKey: string; helper
   { value: 'happy', labelKey: 'feedback.satisfaction.happy.label', helperKey: 'feedback.satisfaction.happy.helper' },
 ];
 
-const buttonClass = (selected: boolean): string =>
-  selected
-    ? 'border-brand/30 bg-brand/10 text-foreground'
-    : 'border-border/70 bg-background text-muted-foreground hover:border-brand/40 hover:text-foreground';
+const smallLabelClass = 'text-xs font-medium text-muted-foreground';
 
 export const FeedbackDialog: React.FC<FeedbackDialogProps> = ({ open, onOpenChange }) => {
   const { t } = useTranslation();
@@ -129,42 +129,49 @@ export const FeedbackDialog: React.FC<FeedbackDialogProps> = ({ open, onOpenChan
         </DialogHeader>
 
         <div className="flex flex-col gap-5">
-          <div className="flex flex-col gap-2.5">
-            <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{t('feedback.satisfactionQuestion')}</Label>
-            <div className="grid gap-2.5 md:grid-cols-3">
+          <div className="flex flex-col gap-2">
+            <Label id="feedback-satisfaction-label" className={smallLabelClass}>{t('feedback.satisfactionQuestion')}</Label>
+            <RadioGroup
+              aria-labelledby="feedback-satisfaction-label"
+              value={satisfaction ?? ''}
+              onValueChange={(value) => setSatisfaction(value as Satisfaction)}
+              className="grid gap-2.5 overflow-visible rounded-none border-0 md:grid-cols-3"
+            >
               {satisfactionOptions.map((option) => (
-                <button
+                <RadioGroupItem
                   key={option.value}
-                  type="button"
-                  onClick={() => setSatisfaction(option.value)}
-                  className={`group relative overflow-hidden rounded-xl border px-4 py-4 text-left transition-all duration-200 ${
-                    satisfaction === option.value
-                      ? 'border-brand/40 bg-brand/[0.06] shadow-elevation-1 ring-1 ring-brand/15'
-                      : 'border-border/50 bg-background text-muted-foreground hover:-translate-y-px hover:border-brand/25 hover:shadow-elevation-1'
-                  }`}
+                  value={option.value}
+                  className="group flex items-start gap-2.5 rounded-xl border border-border/60 bg-background px-4 py-3.5 text-left text-sm text-muted-foreground transition-[background-color,border-color,box-shadow] duration-150 hover:border-brand/30 hover:bg-background focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ring-offset-background data-[state=checked]:border-brand/50 data-[state=checked]:bg-brand/[0.06] data-[state=checked]:text-muted-foreground data-[state=checked]:hover:bg-brand/[0.06]"
                 >
-                  <div className="pointer-events-none absolute -right-3 -top-3 size-10 rounded-full bg-brand/[0.04] transition-transform duration-300 group-hover:scale-[2]" />
-                  <p className="relative text-sm font-semibold tracking-tight text-foreground">{t(option.labelKey)}</p>
-                  <p className="relative mt-1 text-xs opacity-70">{t(option.helperKey)}</p>
-                </button>
+                  <span
+                    aria-hidden="true"
+                    className="mt-0.5 flex size-4 shrink-0 items-center justify-center rounded-full border border-muted-foreground/40 transition-[border-color] duration-150 group-data-[state=checked]:border-brand"
+                  >
+                    <span className="size-2 rounded-full bg-brand opacity-0 transition-opacity duration-150 group-data-[state=checked]:opacity-100" />
+                  </span>
+                  <span className="flex flex-col">
+                    <span className="font-medium text-foreground">{t(option.labelKey)}</span>
+                    <span className="mt-0.5 text-xs">{t(option.helperKey)}</span>
+                  </span>
+                </RadioGroupItem>
               ))}
-            </div>
+            </RadioGroup>
           </div>
 
           <div className="flex flex-col gap-1.5">
-            <Label htmlFor="feedback-category" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{t('feedback.category')}</Label>
-            <select
-              id="feedback-category"
-              value={category}
-              onChange={(event) => setCategory(event.target.value)}
-              className="h-10 w-full rounded-lg border border-input bg-background px-3 text-sm transition-colors focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/20"
-            >
-              {categories.map((option) => (
-                <option key={option.value || 'none'} value={option.value}>
-                  {t(option.labelKey)}
-                </option>
-              ))}
-            </select>
+            <Label htmlFor="feedback-category" className={smallLabelClass}>{t('feedback.category')}</Label>
+            <Select value={category} onValueChange={setCategory}>
+              <SelectTrigger id="feedback-category" className="rounded-lg">
+                <SelectValue placeholder={t('feedback.categoryOptions.none')} />
+              </SelectTrigger>
+              <SelectContent>
+                {categories.map((option) => (
+                  <SelectItem key={option.value} value={option.value}>
+                    {t(option.labelKey)}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
           <FormField label={t('feedback.feedbackLabel')} htmlFor="feedback-message" required error={validation.getError('feedback')}>

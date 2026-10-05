@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { besserWMERepositoryLink } from '../constants/application-constants';
 
-type GuideSectionId = 'class' | 'object' | 'state' | 'agent' | 'gui' | 'quantum' | 'nn';
+type GuideSectionId = 'class' | 'object' | 'state' | 'agent' | 'user' | 'gui' | 'quantum' | 'nn' | 'bpmn';
 
 interface GuideDetail {
   /** i18n key resolved with t() at render time (also used as a stable React key). */
@@ -225,6 +225,25 @@ const sections: GuideSection[] = [
     ],
   },
   {
+    id: 'user',
+    labelKey: 'dialogs.guide.user.label',
+    summaryKey: 'dialogs.guide.user.summary',
+    details: [
+      {
+        titleKey: 'dialogs.guide.user.about.title',
+        body: <Body i18nKey="dialogs.guide.user.about.body" />,
+      },
+      {
+        titleKey: 'dialogs.guide.user.addParts.title',
+        body: <Body i18nKey="dialogs.guide.user.addParts.body" />,
+      },
+      {
+        titleKey: 'dialogs.guide.user.editAsForm.title',
+        body: <Body i18nKey="dialogs.guide.user.editAsForm.body" />,
+      },
+    ],
+  },
+  {
     id: 'gui',
     labelKey: 'dialogs.guide.gui.label',
     summaryKey: 'dialogs.guide.gui.summary',
@@ -293,6 +312,25 @@ const sections: GuideSection[] = [
       },
     ],
   },
+  {
+    id: 'bpmn',
+    labelKey: 'dialogs.guide.bpmn.label',
+    summaryKey: 'dialogs.guide.bpmn.summary',
+    details: [
+      {
+        titleKey: 'dialogs.guide.bpmn.buildProcess.title',
+        body: <Body i18nKey="dialogs.guide.bpmn.buildProcess.body" />,
+      },
+      {
+        titleKey: 'dialogs.guide.bpmn.connectFlows.title',
+        body: <Body i18nKey="dialogs.guide.bpmn.connectFlows.body" />,
+      },
+      {
+        titleKey: 'dialogs.guide.bpmn.elementTypes.title',
+        body: <Body i18nKey="dialogs.guide.bpmn.elementTypes.body" />,
+      },
+    ],
+  },
 ];
 
 export const HelpGuideDialog: React.FC<HelpGuideDialogProps> = ({ open, onOpenChange }) => {
@@ -327,7 +365,7 @@ export const HelpGuideDialog: React.FC<HelpGuideDialogProps> = ({ open, onOpenCh
 
         <div className="grid min-h-0 flex-1 grid-cols-[240px_minmax(0,1fr)] overflow-hidden">
           <aside className="min-h-0 space-y-2 overflow-y-auto border-r border-border/70 p-4">
-            <p className="mb-2 px-1 text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground">
+            <p className="mb-2 px-1 text-xs font-medium text-muted-foreground">
               {t('dialogs.guide.diagramTypesHeading')}
             </p>
             {sections.map((section) => (
@@ -336,7 +374,7 @@ export const HelpGuideDialog: React.FC<HelpGuideDialogProps> = ({ open, onOpenCh
                 type="button"
                 onClick={() => setActiveSection(section.id)}
                 className={cn(
-                  'flex w-full items-center rounded-md border px-3 py-2 text-left text-sm transition',
+                  'flex w-full items-center rounded-md border px-3 py-2 text-left text-sm transition-[background-color,border-color,color] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
                   section.id === activeSection
                     ? 'border-brand/30 bg-brand/10 font-semibold text-foreground'
                     : 'border-border/70 bg-background text-muted-foreground hover:border-brand/30 hover:text-foreground',
@@ -362,12 +400,13 @@ export const HelpGuideDialog: React.FC<HelpGuideDialogProps> = ({ open, onOpenCh
                       <th className="w-44 bg-muted/20 px-3 py-3 text-left text-sm font-semibold text-foreground">
                         {t(detail.titleKey)}
                       </th>
-                      <td className="px-3 py-3 text-sm leading-relaxed text-muted-foreground">
+                      {/* Rows without a screenshot let the text use the image column too. */}
+                      <td colSpan={detail.image ? 1 : 2} className="px-3 py-3 text-sm leading-relaxed text-muted-foreground">
                         <div className="space-y-2">{detail.body}</div>
                       </td>
-                      <td className="w-72 px-3 py-3">
-                        {detail.image ? (
-                          // TODO: Convert help images to WebP format for smaller file sizes (#31)
+                      {detail.image && (
+                        <td className="w-72 px-3 py-3">
+                          {/* TODO: Convert help images to WebP format for smaller file sizes (#31) */}
                           <img
                             src={detail.image.src}
                             alt={t(detail.image.altKey)}
@@ -377,12 +416,8 @@ export const HelpGuideDialog: React.FC<HelpGuideDialogProps> = ({ open, onOpenCh
                               detail.image.heightClass,
                             )}
                           />
-                        ) : (
-                          <div className="rounded-md border border-dashed border-border/60 px-3 py-2 text-xs text-muted-foreground">
-                            {t('dialogs.guide.noImage')}
-                          </div>
-                        )}
-                      </td>
+                        </td>
+                      )}
                     </tr>
                   ))}
                 </tbody>
