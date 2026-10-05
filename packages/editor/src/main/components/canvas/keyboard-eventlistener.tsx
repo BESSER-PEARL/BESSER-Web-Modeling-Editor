@@ -15,6 +15,7 @@ type OwnProps = {};
 type StateProps = {
   readonly: boolean;
   mode: ApollonMode;
+  selected: string[];
 };
 
 type DispatchProps = {
@@ -28,6 +29,7 @@ type DispatchProps = {
   move: AsyncDispatch<typeof UMLElementRepository.move>;
   endMoving: AsyncDispatch<typeof UMLElementRepository.endMoving>;
   delete: AsyncDispatch<typeof UMLElementRepository.delete>;
+  updateStart: AsyncDispatch<typeof UMLElementRepository.updateStart>;
 };
 
 type Props = OwnProps & StateProps & DispatchProps & CanvasContext;
@@ -38,6 +40,7 @@ const enhance = compose<ComponentType<OwnProps>>(
     (state) => ({
       readonly: state.editor.readonly,
       mode: state.editor.mode,
+      selected: state.selected,
     }),
     {
       undo: UndoRepository.undo,
@@ -50,6 +53,7 @@ const enhance = compose<ComponentType<OwnProps>>(
       move: UMLElementRepository.move,
       endMoving: UMLElementRepository.endMoving,
       delete: UMLElementRepository.delete,
+      updateStart: UMLElementRepository.updateStart,
     },
   ),
 );
@@ -139,6 +143,16 @@ class KeyboardEventListenerComponent extends Component<Props> {
         event.preventDefault();
         this.props.deselect();
         break;
+      case 'Enter': {
+        // Same as double-click: open the properties of the single selected element.
+        // Only from the page body or the canvas, so Enter on other controls keeps its meaning.
+        const fromCanvas = target === document.body || this.props.canvas.layer.contains(target);
+        if (fromCanvas && !target.closest('[role="button"]') && this.props.selected.length === 1) {
+          event.preventDefault();
+          this.props.updateStart(this.props.selected[0]);
+        }
+        break;
+      }
     }
     if (event.metaKey || event.ctrlKey) {
       switch (event.key) {

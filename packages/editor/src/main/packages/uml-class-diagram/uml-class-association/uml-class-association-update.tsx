@@ -121,10 +121,18 @@ class ClassAssociationComponent extends Component<Props, State> {
               {this.props.translate('popup.association')}
             </Header>
             <ColorButton onClick={this.toggleColor} />
-            <Button color="link" onClick={() => this.props.flip(element.id)}>
+            <Button
+              color="link"
+              onClick={() => this.props.flip(element.id)}
+              aria-label={this.props.translate('actions.swapEnds') || 'Swap ends'}
+            >
               <ExchangeIcon />
             </Button>
-            <Button color="link" onClick={() => this.props.delete(element.id)}>
+            <Button
+              color="link"
+              onClick={() => this.props.delete(element.id)}
+              aria-label={this.props.translate('actions.delete') || 'Delete'}
+            >
               <TrashIcon />
             </Button>
           </Flex>
@@ -145,6 +153,7 @@ class ClassAssociationComponent extends Component<Props, State> {
                 value={element.name}
                 onChange={(value) => this.props.update(element.id, { name: value })}
                 placeholder={this.props.translate('popup.associationNamePlaceholder')}
+                aria-label={this.props.translate('popup.name')}
               />
             </Flex>
             <Divider />
@@ -187,13 +196,18 @@ class ClassAssociationComponent extends Component<Props, State> {
                   gutter
                   value={element.source.multiplicity}
                   onChange={this.onUpdate('multiplicity', 'source')}
+                  aria-label={`${this.props.translate('popup.multiplicity')} (${source.name})`}
                   autoFocus
                   placeholder={multiplicityPlaceholder}
                 />
               </Flex>
               <Flex>
                 <Body style={{ marginRight: '0.5em' }}>{this.props.translate('popup.role')}</Body>
-                <Textfield value={element.source.role} onChange={this.onUpdate('role', 'source')} />
+                <Textfield
+                  value={element.source.role}
+                  onChange={this.onUpdate('role', 'source')}
+                  aria-label={`${this.props.translate('popup.role')} (${source.name})`}
+                />
               </Flex>
               {showsNavigability && (
                 <Flex>
@@ -222,12 +236,17 @@ class ClassAssociationComponent extends Component<Props, State> {
                   gutter
                   value={element.target.multiplicity}
                   onChange={this.onUpdate('multiplicity', 'target')}
+                  aria-label={`${this.props.translate('popup.multiplicity')} (${target.name})`}
                   placeholder={multiplicityPlaceholder}
                 />
               </Flex>
               <Flex>
                 <Body style={{ marginRight: '0.5em' }}>{this.props.translate('popup.role')}</Body>
-                <Textfield value={element.target.role} onChange={this.onUpdate('role', 'target')} />
+                <Textfield
+                  value={element.target.role}
+                  onChange={this.onUpdate('role', 'target')}
+                  aria-label={`${this.props.translate('popup.role')} (${target.name})`}
+                />
               </Flex>
               {showsNavigability && (
                 <Flex>

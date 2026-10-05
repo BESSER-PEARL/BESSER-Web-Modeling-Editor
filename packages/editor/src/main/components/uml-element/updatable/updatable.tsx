@@ -15,6 +15,7 @@ import { UMLRelationshipRepository } from '../../../services/uml-relationship/um
 import { IPoint } from '../../../utils/geometry/point';
 import { IPath } from '../../../utils/geometry/path';
 import { AssociationPopup } from '../../../services/uml-element/connectable/association-popup-repository';
+import { I18nConsumer } from '../../i18n/i18n-context';
 
 
 const initialState = {};
@@ -123,41 +124,53 @@ export const updatable = (
       const baseCoordinates = this.getContextActionBaseCoordinates((element || relationship)!);
 
       return (
-        <WrappedComponent {...props}>
-          <FloatingButton
-            style={{
-              opacity: selected ? 1 : 0,
-              transform: `translate(${baseCoordinates.x}px, ${selected ? baseCoordinates.y - 10 : baseCoordinates.y
-                }px)`,
-            }}
-            onClick={this.onStartUpdate}
-          >
-            <EditIcon x={7} y={7} />
-          </FloatingButton>
-          <FloatingButton
-            style={{
-              opacity: selected ? 1 : 0,
-              transform: `translate(${baseCoordinates.x}px, ${selected ? baseCoordinates.y - 50 : baseCoordinates.y
-                }px)`,
-            }}
-            onClick={this.onDelete}
-          >
-            <DeleteIcon x={7} y={7} />
-          </FloatingButton>
-          {isObjectDiagram && (
-            <FloatingButton
-              style={{
-                opacity: selected ? 1 : 0,
-                transform: `translate(${baseCoordinates.x}px, ${selected ? baseCoordinates.y - 90 : baseCoordinates.y
-                  }px)`,
-              }}
-              onClick={this.onAdd}
-            >
-              <AddIcon x={7} y={7} />
-            </FloatingButton>
-          )}
-
-        </WrappedComponent>
+        <I18nConsumer>
+          {(i18n) => {
+            const label = (key: string, fallback: string) => i18n?.translate(key) || fallback;
+            return (
+              <WrappedComponent {...props}>
+                <FloatingButton
+                  style={{
+                    opacity: selected ? 1 : 0,
+                    transform: `translate(${baseCoordinates.x}px, ${selected ? baseCoordinates.y - 10 : baseCoordinates.y
+                      }px)`,
+                  }}
+                  onClick={this.onStartUpdate}
+                  label={label('actions.edit', 'Edit')}
+                  active={selected}
+                >
+                  <EditIcon x={7} y={7} />
+                </FloatingButton>
+                <FloatingButton
+                  style={{
+                    opacity: selected ? 1 : 0,
+                    transform: `translate(${baseCoordinates.x}px, ${selected ? baseCoordinates.y - 50 : baseCoordinates.y
+                      }px)`,
+                  }}
+                  onClick={this.onDelete}
+                  label={label('actions.delete', 'Delete')}
+                  active={selected}
+                >
+                  <DeleteIcon x={7} y={7} />
+                </FloatingButton>
+                {isObjectDiagram && (
+                  <FloatingButton
+                    style={{
+                      opacity: selected ? 1 : 0,
+                      transform: `translate(${baseCoordinates.x}px, ${selected ? baseCoordinates.y - 90 : baseCoordinates.y
+                        }px)`,
+                    }}
+                    onClick={this.onAdd}
+                    label={label('actions.addConnectedObject', 'Add connected object')}
+                    active={selected}
+                  >
+                    <AddIcon x={7} y={7} />
+                  </FloatingButton>
+                )}
+              </WrappedComponent>
+            );
+          }}
+        </I18nConsumer>
       );
     }
 

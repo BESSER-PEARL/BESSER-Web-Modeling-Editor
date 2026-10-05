@@ -14,6 +14,7 @@ import { UMLElementComponentProps } from './uml-element-component-props';
 import { UMLElementSelectorType } from '../../packages/uml-element-selector-type';
 
 const STROKE = 5;
+const SELECTED_STROKE = 2;
 
 type OwnProps = { child?: ComponentClass<UMLElementComponentProps> } & UMLElementComponentProps &
   SVGProps<SVGSVGElement>;
@@ -123,7 +124,19 @@ class CanvasElementComponent extends Component<Props> {
           {elements}
         </ElementComponent>
         {children}
-        {!interactable && (hovered || selected) && (
+        {!interactable && selected && (
+          <rect
+            x={-SELECTED_STROKE / 2}
+            y={-SELECTED_STROKE / 2}
+            width={element.bounds.width + SELECTED_STROKE}
+            height={element.bounds.height + SELECTED_STROKE}
+            fill="none"
+            style={{ stroke: theme.color.primary }}
+            strokeWidth={SELECTED_STROKE}
+            pointerEvents="none"
+          />
+        )}
+        {!interactable && hovered && !selected && (
           <rect
             x={-STROKE / 2}
             y={-STROKE / 2}

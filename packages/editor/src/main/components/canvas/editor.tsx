@@ -42,10 +42,9 @@ const StyledEditor = styled.div<{ $scale: number }>`
     radial-gradient(circle, ${(props) => props.theme.color.gridMinor} 0.55px, transparent 0.75px);
   background-repeat: repeat;
   background-attachment: local;
-  transition:
-    transform 500ms,
-    width 500ms,
-    height 500ms;
+  @media (prefers-reduced-motion: no-preference) {
+    transition: transform 150ms ease-out;
+  }
   transform-origin: top left;
   transform: scale(${(props) => props.$scale ?? 1});
 `;

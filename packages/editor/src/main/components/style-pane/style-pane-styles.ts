@@ -61,9 +61,9 @@ export const Divider = styled.div`
 `;
 
 export const Button = styled.button`
-  background: white;
-  color: #212529;
-  border: 1px solid rgba(0, 0, 0, 0.15);
+  background: ${(props) => props.theme.color.background};
+  color: ${(props) => props.theme.font.color};
+  border: 1px solid ${(props) => props.theme.color.gray};
   padding: 0.375rem 0.75rem;
   margin: 0;
   margin-top: 0.75rem;
@@ -71,6 +71,11 @@ export const Button = styled.button`
   outline: none;
   align-self: center;
   cursor: pointer;
+
+  &:focus-visible {
+    outline: 2px solid ${(props) => props.theme.color.primary};
+    outline-offset: 2px;
+  }
 `;
 
 export const FieldRow = styled.div`
