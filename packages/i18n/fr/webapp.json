@@ -2538,7 +2538,30 @@
         "valueField": "Champ de valeur"
       },
       "colorPalette": "Palette de couleurs",
-      "colorPaletteOption": "Palette {{index}}"
+      "colorPaletteOption": "Palette {{index}}",
+      "emptyState": {
+        "eyebrow": "Page vide",
+        "title": "Transformez votre modèle en écran",
+        "subtitle": "Générez cette page depuis votre diagramme de classes, construisez-la avec des blocs ou décrivez-la. Vous pourrez combiner ensuite.",
+        "subtitleNoClasses": "Les écrans sont générés depuis votre diagramme de classes. Ajoutez d’abord quelques classes, ou commencez tout de suite avec des blocs.",
+        "generateTitle": "Générer depuis le diagramme de classes",
+        "generateDescription": "{{count}} classes trouvées : {{names}}.",
+        "addClassesTitle": "Ajouter d’abord des classes",
+        "addClassesDescription": "Ouvre l’éditeur de classes. Revenez ensuite pour générer les écrans.",
+        "blocksTitle": "Commencer par un bloc",
+        "blocksDescription": "Glissez des colonnes, du texte, des tableaux et des formulaires sur la page.",
+        "describeTitle": "Décrire l’écran",
+        "describeDescription": "Dites à l’assistant ce que cette page doit afficher.",
+        "footer": "Ce message disparaît dès que vous ajoutez un composant.",
+        "figureTag": "page",
+        "newItem": "Nouveau {{name}}",
+        "noClassesTitle": "Pas encore de classes",
+        "noClassesHint": "Ajoutez-les dans l’éditeur de classes",
+        "starterPrompt": "Crée une page pour parcourir les {{page}}",
+        "starterPromptNoClasses": "Crée une page d’accueil pour mon application",
+        "generateDescription_one": "1 classe trouvée : {{names}}.",
+        "generateDescription_other": "{{count}} classes trouvées : {{names}}."
+      }
     },
     "loadingGuiEditor": "Chargement de l'éditeur GUI…",
     "loadingQuantumEditor": "Chargement de l'éditeur quantique…",

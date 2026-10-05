@@ -2553,7 +2553,30 @@
         "valueField": "Value Field"
       },
       "colorPalette": "Color palette",
-      "colorPaletteOption": "Palette {{index}}"
+      "colorPaletteOption": "Palette {{index}}",
+      "emptyState": {
+        "eyebrow": "Empty page",
+        "title": "Turn your model into a screen",
+        "subtitle": "Generate this page from your class diagram, build it from blocks, or describe it. You can combine them afterwards.",
+        "subtitleNoClasses": "Screens are generated from your class diagram. Add a few classes first, or start from blocks right away.",
+        "generateTitle": "Generate from class diagram",
+        "generateDescription": "{{count}} classes found: {{names}}.",
+        "addClassesTitle": "Add classes first",
+        "addClassesDescription": "Opens the Class editor. Come back to generate screens.",
+        "blocksTitle": "Start from a block",
+        "blocksDescription": "Drag columns, text, tables and forms onto the page.",
+        "describeTitle": "Describe the screen",
+        "describeDescription": "Tell the assistant what this page should show.",
+        "footer": "This goes away as soon as you add a component.",
+        "figureTag": "page",
+        "newItem": "New {{name}}",
+        "noClassesTitle": "No classes yet",
+        "noClassesHint": "Add them in the Class editor",
+        "starterPrompt": "Create a page to browse {{page}}",
+        "starterPromptNoClasses": "Create a home page for my app",
+        "generateDescription_one": "1 class found: {{names}}.",
+        "generateDescription_other": "{{count}} classes found: {{names}}."
+      }
     },
     "loadingGuiEditor": "Loading GUI editor…",
     "loadingQuantumEditor": "Loading quantum editor…",

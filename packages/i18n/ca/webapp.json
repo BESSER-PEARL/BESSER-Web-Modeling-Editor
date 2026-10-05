@@ -2538,7 +2538,30 @@
         "valueField": "Camp de valor"
       },
       "colorPalette": "Paleta de colors",
-      "colorPaletteOption": "Paleta {{index}}"
+      "colorPaletteOption": "Paleta {{index}}",
+      "emptyState": {
+        "eyebrow": "Pàgina buida",
+        "title": "Converteix el teu model en una pantalla",
+        "subtitle": "Genera aquesta pàgina a partir del diagrama de classes, construeix-la amb blocs o descriu-la. Després pots combinar-ho.",
+        "subtitleNoClasses": "Les pantalles es generen a partir del diagrama de classes. Afegeix primer algunes classes o comença ara amb blocs.",
+        "generateTitle": "Genera des del diagrama de classes",
+        "generateDescription": "{{count}} classes trobades: {{names}}.",
+        "addClassesTitle": "Afegeix classes primer",
+        "addClassesDescription": "Obre l’editor de classes. Torna després per generar pantalles.",
+        "blocksTitle": "Comença amb un bloc",
+        "blocksDescription": "Arrossega columnes, text, taules i formularis a la pàgina.",
+        "describeTitle": "Descriu la pantalla",
+        "describeDescription": "Digues a l’assistent què ha de mostrar aquesta pàgina.",
+        "footer": "Això desapareix tan bon punt afegeixis un component.",
+        "figureTag": "pàgina",
+        "newItem": "Nou {{name}}",
+        "noClassesTitle": "Encara no hi ha classes",
+        "noClassesHint": "Afegeix-les a l’editor de classes",
+        "starterPrompt": "Crea una pàgina per explorar {{page}}",
+        "starterPromptNoClasses": "Crea una pàgina d’inici per a la meva aplicació",
+        "generateDescription_one": "1 classe trobada: {{names}}.",
+        "generateDescription_other": "{{count}} classes trobades: {{names}}."
+      }
     },
     "loadingGuiEditor": "S'està carregant l'editor de GUI…",
     "loadingQuantumEditor": "S'està carregant l'editor quàntic…",

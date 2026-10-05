@@ -239,8 +239,9 @@ export const AssistantWidget: React.FC<AssistantWidgetProps> = ({ onAssistantGen
   return (
     <>
       {/* ── Floating widget container ── */}
-      {/* Clear of the canvas zoom controls (right edge) and, in the GUI editor, its save-status badge. */}
-      <div className={cn('fixed right-16', activeDiagramType === 'GUINoCodeDiagram' ? 'bottom-12' : 'bottom-5')} style={{ zIndex: Z_INDEX.NOTIFICATION, marginRight: 'var(--properties-panel-width, 0px)', transition: 'margin-right 0.2s ease' }}>
+      {/* Clear of the canvas zoom controls (right edge); in the GUI editor, left of the
+          GrapesJS side panel (15% of the editor width) and its save-status badge. */}
+      <div className={cn('fixed bottom-5', activeDiagramType === 'GUINoCodeDiagram' ? 'right-[calc(15vw+1rem)]' : 'right-16')} style={{ zIndex: Z_INDEX.NOTIFICATION, marginRight: 'var(--properties-panel-width, 0px)', transition: 'margin-right 0.2s ease' }}>
         {/* ── Chat card ── */}
         <Card
           className={cn(
