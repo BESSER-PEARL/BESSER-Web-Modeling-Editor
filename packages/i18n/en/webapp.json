@@ -8,7 +8,8 @@
     "confirm": "Confirm",
     "loading": "Loading…",
     "yes": "Yes",
-    "no": "No"
+    "no": "No",
+    "retry": "Retry"
   },
   "topbar": {
     "language": "Language",
@@ -65,19 +66,20 @@
       "title": "File",
       "projectActions": "Project Actions",
       "newOpenImport": "New / Open / Import Project",
-      "newProject": "New Project",
-      "openProject": "Open Project",
+      "newProject": "New Project…",
+      "openProject": "Open Project…",
       "importProject": "Import Project",
       "import": "Import",
-      "importProjectFile": "Project file (.json / .py)",
-      "fromSpreadsheet": "From Spreadsheet",
-      "fromGithub": "From GitHub",
-      "loadTemplate": "Load Template",
-      "exportProject": "Export Project",
+      "importProjectFile": "Project file (.json / .py)…",
+      "fromSpreadsheet": "From Spreadsheet…",
+      "fromGithub": "From GitHub…",
+      "loadTemplate": "Load Template…",
+      "exportProject": "Export Project…",
       "importClassDiagramFrom": "Import Class Diagram from",
-      "imageToProject": "Image to Project",
-      "kgToProject": "KG to Project",
-      "previewProject": "Preview Project"
+      "imageToProject": "Image to Project…",
+      "kgToProject": "KG to Project…",
+      "previewProject": "Preview Project…",
+      "importBpmnDiagram": "Import BPMN diagram (.bpmn / .xml)…"
     },
     "generate": {
       "title": "Generate",
@@ -113,13 +115,13 @@
       "title": "Deploy",
       "deployment": "Deployment",
       "connectGitHub": "Connect GitHub to Deploy",
-      "publishToRender": "Publish to Render"
+      "publishToRender": "Publish to Render…"
     },
     "community": {
       "title": "Community",
       "contribute": "Contribute",
       "githubRepository": "GitHub Repository",
-      "sendFeedback": "Send Feedback",
+      "sendFeedback": "Send Feedback…",
       "userSurvey": "User Evaluation Survey",
       "reportProblem": "Report a Problem"
     },
@@ -202,7 +204,7 @@
       "boolTrue": "True",
       "boolFalse": "False",
       "sidebarSettings": "Settings",
-      "sidebarConfigFile": "Config File",
+      "sidebarConfigFile": "Config file",
       "sidebarPlatforms": "Platforms",
       "apiKeys": "API Keys",
       "subsectionStreamlit": "Streamlit",
@@ -303,7 +305,8 @@
         "raw": {
           "desc": "Read-only view of the full generated config.yaml. Edit individual sections or add custom YAML."
         }
-      }
+      },
+      "enablePlatform": "Enable {{platform}}"
     },
     "llms": {
       "title": "LLMs",
@@ -602,6 +605,18 @@
       "profile": {
         "title": "Replace existing user profile mapping?",
         "description": "User profile \"{{profile}}\" is already mapped to configuration \"{{existing}}\". Saving will replace that mapping with \"{{next}}\"."
+      },
+      "removeLlm": {
+        "title": "Remove this LLM?",
+        "description": "“{{name}}” will be removed. Anything that uses it will fall back to the default LLM."
+      },
+      "reset": {
+        "title": "Reset to defaults?",
+        "description": "All unsaved changes in this form will be replaced with the default values."
+      },
+      "upload": {
+        "title": "Replace the current configuration?",
+        "description": "Loading “{{name}}” will overwrite the values currently in the form."
       }
     },
     "noActiveDiagram": "No active agent diagram. Open an agent diagram first.",
@@ -779,7 +794,13 @@
       "versionProfile": "Single profile",
       "versionAll": "All versions",
       "selectProfile": "Select a profile",
-      "versionAllHint": "The download will contain one subfolder per version (base + each profile)."
+      "versionAllHint": "The download will contain one subfolder per version (base + each profile).",
+      "status": {
+        "ready": "Ready",
+        "missing": "Missing",
+        "empty": "Empty",
+        "skipped": "Will be skipped"
+      }
     },
     "toasts": {
       "validationFailed": "Validation failed",
@@ -1101,7 +1122,12 @@
       "clickToRestore": "Click to restore",
       "noCommits": "No commits yet",
       "share": "Share",
-      "createSecretGist": "Create Secret Gist"
+      "createSecretGist": "Create Secret Gist",
+      "openOnGitHub": "Open on GitHub",
+      "unlink": "Unlink repository",
+      "unlinkConfirmTitle": "Unlink this repository?",
+      "unlinkConfirmDescription": "The project stays in your browser and on GitHub. Push, Pull and auto-commit stop until you link a repository again.",
+      "unlinkConfirmAction": "Unlink"
     },
     "settings": {
       "title": "Settings",
@@ -1195,7 +1221,8 @@
       "creatingRepository": "Creating repository",
       "committing": "Committing to GitHub",
       "restoringCommit": "Restoring commit",
-      "creatingGist": "Creating gist"
+      "creatingGist": "Creating gist",
+      "unlinkingRepository": "Unlinking repository"
     },
     "toasts": {
       "loadProjectFailed": "Failed to load project",
@@ -1975,7 +2002,12 @@
       "referenceEmpty": "The referenced Class Diagram is empty (no classes or relationships).",
       "generateObjectsTooltip": "Create one Object instance per Class in the referenced diagram, with default values for each attribute.",
       "generate": "Generate",
-      "noClassDiagramsAvailable": "No Class Diagrams available"
+      "noClassDiagramsAvailable": "No Class Diagrams available",
+      "tablistLabel": "Diagrams",
+      "editAsForm": "Edit as form",
+      "closeForm": "Close form",
+      "editAsFormTitle": "Edit this profile with a guided form",
+      "closeFormTitle": "Close the user profile form"
     },
     "charts": {
       "loadingChart": "Loading chart…",
@@ -2135,7 +2167,11 @@
         "AXIS_SAMPLE": "3-Axis Sample: Samples qubit in X, Y, and Z bases simultaneously. For tomographic reconstruction.",
         "SPACER": "Spacer"
       },
-      "nestedCircuitConfigured": "Nested circuit configured"
+      "nestedCircuitConfigured": "Nested circuit configured",
+      "toolboxLabel": "Gate toolbox",
+      "gateName": "Gate name",
+      "placeGateLabel": "Place {{gate}} gate",
+      "armedHint": "Click a circuit cell to place {{gate}}. Press Esc to cancel."
     },
     "gui": {
       "traits": {
@@ -2515,7 +2551,9 @@
         "weightField": "Weight Field",
         "geometryField": "Geometry Field (GeoJSON)",
         "valueField": "Value Field"
-      }
+      },
+      "colorPalette": "Color palette",
+      "colorPaletteOption": "Palette {{index}}"
     },
     "loadingGuiEditor": "Loading GUI editor…",
     "loadingQuantumEditor": "Loading quantum editor…",
@@ -2667,7 +2705,8 @@
       "addQubitButton": "+ Qubit",
       "measurementOutput": "Measurement output - auto-generated from measurement gates",
       "dropHere": "Drop here",
-      "invalid": "Invalid"
+      "invalid": "Invalid",
+      "initialStateLabel": "Initial state of {{qubit}}: {{state}}. Click to change."
     }
   },
   "agentComponents": {
@@ -2856,7 +2895,8 @@
       "restart": "Restart simulation",
       "reset": "Restart",
       "dragToResize": "Drag to resize",
-      "loading": "The agent is loading, please wait."
+      "loading": "The agent is loading, please wait.",
+      "resizeChat": "Resize chat panel"
     },
     "codeViewer": {
       "copyTitle": "Copy code",

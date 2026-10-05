@@ -8,7 +8,8 @@
     "confirm": "Bestätigen",
     "loading": "Wird geladen…",
     "yes": "Ja",
-    "no": "Nein"
+    "no": "Nein",
+    "retry": "Erneut versuchen"
   },
   "topbar": {
     "language": "Sprache",
@@ -65,12 +66,13 @@
       "title": "Datei",
       "projectActions": "Projektaktionen",
       "newOpenImport": "Neu / Öffnen / Projekt importieren",
-      "loadTemplate": "Vorlage laden",
-      "exportProject": "Projekt exportieren",
+      "loadTemplate": "Vorlage laden…",
+      "exportProject": "Projekt exportieren…",
       "importClassDiagramFrom": "Klassendiagramm importieren aus",
-      "imageToProject": "Bild in Projekt umwandeln",
-      "kgToProject": "Knowledge Graph in Projekt umwandeln",
-      "previewProject": "Projektvorschau"
+      "imageToProject": "Bild in Projekt umwandeln…",
+      "kgToProject": "Knowledge Graph in Projekt umwandeln…",
+      "previewProject": "Projektvorschau…",
+      "importBpmnDiagram": "BPMN-Diagramm importieren (.bpmn / .xml)…"
     },
     "generate": {
       "title": "Generieren",
@@ -106,13 +108,13 @@
       "title": "Bereitstellen",
       "deployment": "Bereitstellung",
       "connectGitHub": "GitHub zum Bereitstellen verbinden",
-      "publishToRender": "Auf Render veröffentlichen"
+      "publishToRender": "Auf Render veröffentlichen…"
     },
     "community": {
       "title": "Community",
       "contribute": "Mitwirken",
       "githubRepository": "GitHub-Repository",
-      "sendFeedback": "Feedback senden",
+      "sendFeedback": "Feedback senden…",
       "userSurvey": "Nutzerumfrage",
       "reportProblem": "Problem melden"
     },
@@ -296,7 +298,8 @@
         "raw": {
           "desc": "Schreibgeschützte Ansicht der vollständigen generierten config.yaml. Bearbeite einzelne Abschnitte oder füge benutzerdefiniertes YAML hinzu."
         }
-      }
+      },
+      "enablePlatform": "{{platform}} aktivieren"
     },
     "llms": {
       "title": "LLMs",
@@ -595,6 +598,18 @@
       "profile": {
         "title": "Bestehende Benutzerprofil-Zuordnung ersetzen?",
         "description": "Das Benutzerprofil \"{{profile}}\" ist bereits der Konfiguration \"{{existing}}\" zugeordnet. Beim Speichern wird diese Zuordnung durch \"{{next}}\" ersetzt."
+      },
+      "removeLlm": {
+        "title": "Dieses LLM entfernen?",
+        "description": "„{{name}}“ wird entfernt. Alles, was es nutzt, verwendet dann das Standard-LLM."
+      },
+      "reset": {
+        "title": "Auf Standardwerte zurücksetzen?",
+        "description": "Alle ungespeicherten Änderungen in diesem Formular werden durch die Standardwerte ersetzt."
+      },
+      "upload": {
+        "title": "Aktuelle Konfiguration ersetzen?",
+        "description": "Das Laden von „{{name}}“ überschreibt die aktuellen Werte im Formular."
       }
     },
     "noActiveDiagram": "Kein aktives Agentendiagramm. Öffnen Sie zuerst ein Agentendiagramm.",
@@ -772,7 +787,13 @@
       "versionProfile": "Einzelnes Profil",
       "versionAll": "Alle Versionen",
       "selectProfile": "Profil auswählen",
-      "versionAllHint": "Der Download enthält einen Unterordner pro Version (Basis + jedes Profil)."
+      "versionAllHint": "Der Download enthält einen Unterordner pro Version (Basis + jedes Profil).",
+      "status": {
+        "ready": "Bereit",
+        "missing": "Fehlt",
+        "empty": "Leer",
+        "skipped": "Wird übersprungen"
+      }
     },
     "toasts": {
       "validationFailed": "Validierung fehlgeschlagen",
@@ -1094,7 +1115,12 @@
       "clickToRestore": "Zum Wiederherstellen klicken",
       "noCommits": "Noch keine Commits",
       "share": "Teilen",
-      "createSecretGist": "Geheimen Gist erstellen"
+      "createSecretGist": "Geheimen Gist erstellen",
+      "openOnGitHub": "Auf GitHub öffnen",
+      "unlink": "Repository trennen",
+      "unlinkConfirmTitle": "Dieses Repository trennen?",
+      "unlinkConfirmDescription": "Das Projekt bleibt in deinem Browser und auf GitHub. Push, Pull und Auto-Commit stoppen, bis du wieder ein Repository verknüpfst.",
+      "unlinkConfirmAction": "Trennen"
     },
     "settings": {
       "title": "Einstellungen",
@@ -1188,7 +1214,8 @@
       "creatingRepository": "Repository wird erstellt",
       "committing": "Commit wird auf GitHub erstellt",
       "restoringCommit": "Commit wird wiederhergestellt",
-      "creatingGist": "Gist wird erstellt"
+      "creatingGist": "Gist wird erstellt",
+      "unlinkingRepository": "Repository wird getrennt"
     },
     "toasts": {
       "loadProjectFailed": "Projekt konnte nicht geladen werden",
@@ -1960,7 +1987,12 @@
       "referenceEmpty": "Das referenzierte Klassendiagramm ist leer (keine Klassen oder Beziehungen).",
       "generateObjectsTooltip": "Erstellt eine Objektinstanz pro Klasse im referenzierten Diagramm, mit Standardwerten für jedes Attribut.",
       "generate": "Generieren",
-      "noClassDiagramsAvailable": "Keine Klassendiagramme verfügbar"
+      "noClassDiagramsAvailable": "Keine Klassendiagramme verfügbar",
+      "tablistLabel": "Diagramme",
+      "editAsForm": "Als Formular bearbeiten",
+      "closeForm": "Formular schließen",
+      "editAsFormTitle": "Dieses Profil mit einem geführten Formular bearbeiten",
+      "closeFormTitle": "Benutzerprofil-Formular schließen"
     },
     "charts": {
       "loadingChart": "Diagramm wird geladen…",
@@ -2120,7 +2152,11 @@
         "AXIS_SAMPLE": "3-Achsen-Stichprobe: Tastet das Qubit gleichzeitig in den X-, Y- und Z-Basen ab. Für die tomographische Rekonstruktion.",
         "SPACER": "Abstandshalter"
       },
-      "nestedCircuitConfigured": "Verschachtelter Schaltkreis konfiguriert"
+      "nestedCircuitConfigured": "Verschachtelter Schaltkreis konfiguriert",
+      "toolboxLabel": "Gatter-Werkzeugkasten",
+      "gateName": "Gattername",
+      "placeGateLabel": "{{gate}}-Gatter platzieren",
+      "armedHint": "Klicke auf eine Schaltkreiszelle, um {{gate}} zu platzieren. Esc bricht ab."
     },
     "gui": {
       "traits": {
@@ -2500,7 +2536,9 @@
         "weightField": "Gewichtungsfeld",
         "geometryField": "Geometriefeld (GeoJSON)",
         "valueField": "Wertfeld"
-      }
+      },
+      "colorPalette": "Farbpalette",
+      "colorPaletteOption": "Palette {{index}}"
     },
     "loadingGuiEditor": "GUI-Editor wird geladen…",
     "loadingQuantumEditor": "Quanteneditor wird geladen…",
@@ -2652,7 +2690,8 @@
       "addQubitButton": "+ Qubit",
       "measurementOutput": "Messausgabe – automatisch aus den Messgattern generiert",
       "dropHere": "Hier ablegen",
-      "invalid": "Ungültig"
+      "invalid": "Ungültig",
+      "initialStateLabel": "Anfangszustand von {{qubit}}: {{state}}. Klicken zum Ändern."
     }
   },
   "agentComponents": {
@@ -2841,7 +2880,8 @@
       "restart": "Simulation neu starten",
       "reset": "Neu starten",
       "dragToResize": "Zum Ändern der Größe ziehen",
-      "loading": "Der Agent wird geladen, bitte warten."
+      "loading": "Der Agent wird geladen, bitte warten.",
+      "resizeChat": "Chatbereich anpassen"
     },
     "codeViewer": {
       "copyTitle": "Code kopieren",

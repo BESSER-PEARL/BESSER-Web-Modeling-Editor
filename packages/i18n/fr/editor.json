@@ -773,6 +773,22 @@
     "noTargets": "Aucun autre objet disponible pour la connexion"
   },
   "propertiesPanel": {
-    "close": "Fermer"
+    "close": "Fermer",
+    "resize": "Redimensionner le panneau des propriétés"
+  },
+  "actions": {
+    "edit": "Modifier",
+    "delete": "Supprimer",
+    "addConnectedObject": "Ajouter un objet connecté",
+    "swapEnds": "Inverser les extrémités",
+    "style": "Style"
+  },
+  "zoomPane": {
+    "zoomIn": "Zoom avant",
+    "zoomOut": "Zoom arrière",
+    "autoLayout": "Disposition automatique"
+  },
+  "sidebar": {
+    "resize": "Redimensionner la palette"
   }
 }

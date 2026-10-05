@@ -8,7 +8,8 @@
     "confirm": "Confirmar",
     "loading": "Cargando…",
     "yes": "Sí",
-    "no": "No"
+    "no": "No",
+    "retry": "Reintentar"
   },
   "topbar": {
     "language": "Idioma",
@@ -65,12 +66,13 @@
       "title": "Archivo",
       "projectActions": "Acciones del proyecto",
       "newOpenImport": "Nuevo / Abrir / Importar proyecto",
-      "loadTemplate": "Cargar plantilla",
-      "exportProject": "Exportar proyecto",
+      "loadTemplate": "Cargar plantilla…",
+      "exportProject": "Exportar proyecto…",
       "importClassDiagramFrom": "Importar diagrama de clases desde",
-      "imageToProject": "Imagen a proyecto",
-      "kgToProject": "KG a proyecto",
-      "previewProject": "Vista previa del proyecto"
+      "imageToProject": "Imagen a proyecto…",
+      "kgToProject": "KG a proyecto…",
+      "previewProject": "Vista previa del proyecto…",
+      "importBpmnDiagram": "Importar diagrama BPMN (.bpmn / .xml)…"
     },
     "generate": {
       "title": "Generar",
@@ -106,13 +108,13 @@
       "title": "Desplegar",
       "deployment": "Despliegue",
       "connectGitHub": "Conectar GitHub para desplegar",
-      "publishToRender": "Publicar en Render"
+      "publishToRender": "Publicar en Render…"
     },
     "community": {
       "title": "Comunidad",
       "contribute": "Contribuir",
       "githubRepository": "Repositorio de GitHub",
-      "sendFeedback": "Enviar comentarios",
+      "sendFeedback": "Enviar comentarios…",
       "userSurvey": "Encuesta de evaluación usuarios",
       "reportProblem": "Informar de un problema"
     },
@@ -296,7 +298,8 @@
         "raw": {
           "desc": "Vista de solo lectura del config.yaml generado completo. Edita secciones individuales o añade YAML personalizado."
         }
-      }
+      },
+      "enablePlatform": "Activar {{platform}}"
     },
     "llms": {
       "title": "LLMs",
@@ -595,6 +598,18 @@
       "profile": {
         "title": "¿Reemplazar la asignación de perfil de usuario existente?",
         "description": "El perfil de usuario \"{{profile}}\" ya está asignado a la configuración \"{{existing}}\". Al guardar se reemplazará esa asignación por \"{{next}}\"."
+      },
+      "removeLlm": {
+        "title": "¿Eliminar este LLM?",
+        "description": "«{{name}}» se eliminará. Todo lo que lo use pasará al LLM predeterminado."
+      },
+      "reset": {
+        "title": "¿Restablecer los valores predeterminados?",
+        "description": "Todos los cambios sin guardar de este formulario se sustituirán por los valores predeterminados."
+      },
+      "upload": {
+        "title": "¿Reemplazar la configuración actual?",
+        "description": "Cargar «{{name}}» sobrescribirá los valores actuales del formulario."
       }
     },
     "noActiveDiagram": "No hay un diagrama de agente activo. Abre primero un diagrama de agente.",
@@ -772,7 +787,13 @@
       "versionProfile": "Perfil único",
       "versionAll": "Todas las versiones",
       "selectProfile": "Seleccionar un perfil",
-      "versionAllHint": "La descarga contendrá una subcarpeta por versión (base + cada perfil)."
+      "versionAllHint": "La descarga contendrá una subcarpeta por versión (base + cada perfil).",
+      "status": {
+        "ready": "Listo",
+        "missing": "Falta",
+        "empty": "Vacío",
+        "skipped": "Se omitirá"
+      }
     },
     "toasts": {
       "validationFailed": "La validación falló",
@@ -1094,7 +1115,12 @@
       "clickToRestore": "Haz clic para restaurar",
       "noCommits": "Aún no hay commits",
       "share": "Compartir",
-      "createSecretGist": "Crear Gist secreto"
+      "createSecretGist": "Crear Gist secreto",
+      "openOnGitHub": "Abrir en GitHub",
+      "unlink": "Desvincular repositorio",
+      "unlinkConfirmTitle": "¿Desvincular este repositorio?",
+      "unlinkConfirmDescription": "El proyecto se queda en tu navegador y en GitHub. Push, Pull y el commit automático se detienen hasta que vuelvas a vincular un repositorio.",
+      "unlinkConfirmAction": "Desvincular"
     },
     "settings": {
       "title": "Ajustes",
@@ -1188,7 +1214,8 @@
       "creatingRepository": "Creando repositorio",
       "committing": "Haciendo commit a GitHub",
       "restoringCommit": "Restaurando commit",
-      "creatingGist": "Creando Gist"
+      "creatingGist": "Creando Gist",
+      "unlinkingRepository": "Desvinculando el repositorio"
     },
     "toasts": {
       "loadProjectFailed": "No se pudo cargar el proyecto",
@@ -1960,7 +1987,12 @@
       "referenceEmpty": "El diagrama de clases referenciado está vacío (sin clases ni relaciones).",
       "generateObjectsTooltip": "Crea una instancia de objeto por cada clase del diagrama referenciado, con valores predeterminados para cada atributo.",
       "generate": "Generar",
-      "noClassDiagramsAvailable": "No hay diagramas de clases disponibles"
+      "noClassDiagramsAvailable": "No hay diagramas de clases disponibles",
+      "tablistLabel": "Diagramas",
+      "editAsForm": "Editar como formulario",
+      "closeForm": "Cerrar formulario",
+      "editAsFormTitle": "Editar este perfil con un formulario guiado",
+      "closeFormTitle": "Cerrar el formulario de perfil de usuario"
     },
     "charts": {
       "loadingChart": "Cargando gráfico…",
@@ -2120,7 +2152,11 @@
         "AXIS_SAMPLE": "Muestra de 3 ejes: muestrea el qubit en las bases X, Y y Z simultáneamente. Para la reconstrucción tomográfica.",
         "SPACER": "Espaciador"
       },
-      "nestedCircuitConfigured": "Circuito anidado configurado"
+      "nestedCircuitConfigured": "Circuito anidado configurado",
+      "toolboxLabel": "Caja de herramientas de puertas",
+      "gateName": "Nombre de la puerta",
+      "placeGateLabel": "Colocar la puerta {{gate}}",
+      "armedHint": "Haz clic en una celda del circuito para colocar {{gate}}. Pulsa Esc para cancelar."
     },
     "gui": {
       "traits": {
@@ -2500,7 +2536,9 @@
         "weightField": "Campo de peso",
         "geometryField": "Campo de geometría (GeoJSON)",
         "valueField": "Campo de valor"
-      }
+      },
+      "colorPalette": "Paleta de colores",
+      "colorPaletteOption": "Paleta {{index}}"
     },
     "loadingGuiEditor": "Cargando el editor de GUI…",
     "loadingQuantumEditor": "Cargando el editor cuántico…",
@@ -2641,7 +2679,8 @@
       "addQubitButton": "+ Cúbit",
       "measurementOutput": "Salida de medición: generada automáticamente a partir de las puertas de medición",
       "dropHere": "Soltar aquí",
-      "invalid": "No válido"
+      "invalid": "No válido",
+      "initialStateLabel": "Estado inicial de {{qubit}}: {{state}}. Haz clic para cambiarlo."
     }
   },
   "agentComponents": {
@@ -2830,7 +2869,8 @@
       "restart": "Reiniciar simulación",
       "reset": "Reiniciar",
       "dragToResize": "Arrastra para redimensionar",
-      "loading": "El agente se está cargando, espera un momento."
+      "loading": "El agente se está cargando, espera un momento.",
+      "resizeChat": "Cambiar el tamaño del panel de chat"
     },
     "codeViewer": {
       "copyTitle": "Copiar código",

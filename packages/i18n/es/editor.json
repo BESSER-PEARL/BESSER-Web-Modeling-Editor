@@ -773,6 +773,22 @@
     "noTargets": "No hay otros objetos disponibles para conectar"
   },
   "propertiesPanel": {
-    "close": "Cerrar"
+    "close": "Cerrar",
+    "resize": "Cambiar el tamaño del panel de propiedades"
+  },
+  "actions": {
+    "edit": "Editar",
+    "delete": "Eliminar",
+    "addConnectedObject": "Añadir objeto conectado",
+    "swapEnds": "Intercambiar extremos",
+    "style": "Estilo"
+  },
+  "zoomPane": {
+    "zoomIn": "Acercar",
+    "zoomOut": "Alejar",
+    "autoLayout": "Diseño automático"
+  },
+  "sidebar": {
+    "resize": "Cambiar el tamaño de la paleta"
   }
 }

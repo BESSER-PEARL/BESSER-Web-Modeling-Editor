@@ -8,7 +8,8 @@
     "confirm": "Confirma",
     "loading": "S'està carregant…",
     "yes": "Sí",
-    "no": "No"
+    "no": "No",
+    "retry": "Torna-ho a provar"
   },
   "topbar": {
     "language": "Idioma",
@@ -65,12 +66,13 @@
       "title": "Fitxer",
       "projectActions": "Accions del projecte",
       "newOpenImport": "Nou / Obre / Importa un projecte",
-      "loadTemplate": "Carrega una plantilla",
-      "exportProject": "Exporta el projecte",
+      "loadTemplate": "Carrega una plantilla…",
+      "exportProject": "Exporta el projecte…",
       "importClassDiagramFrom": "Importa un diagrama de classes des de",
-      "imageToProject": "Imatge a projecte",
-      "kgToProject": "Graf de coneixement a projecte",
-      "previewProject": "Previsualitza el projecte"
+      "imageToProject": "Imatge a projecte…",
+      "kgToProject": "Graf de coneixement a projecte…",
+      "previewProject": "Previsualitza el projecte…",
+      "importBpmnDiagram": "Importa un diagrama BPMN (.bpmn / .xml)…"
     },
     "generate": {
       "title": "Genera",
@@ -106,13 +108,13 @@
       "title": "Desplega",
       "deployment": "Desplegament",
       "connectGitHub": "Connecta GitHub per desplegar",
-      "publishToRender": "Publica a Render"
+      "publishToRender": "Publica a Render…"
     },
     "community": {
       "title": "Comunitat",
       "contribute": "Contribueix",
       "githubRepository": "Repositori de GitHub",
-      "sendFeedback": "Envia comentaris",
+      "sendFeedback": "Envia comentaris…",
       "userSurvey": "Enquesta d'usuaris",
       "reportProblem": "Informa d'un problema"
     },
@@ -296,7 +298,8 @@
         "raw": {
           "desc": "Vista de només lectura del config.yaml generat complet. Edita seccions individuals o afegeix YAML personalitzat."
         }
-      }
+      },
+      "enablePlatform": "Activa {{platform}}"
     },
     "llms": {
       "title": "LLMs",
@@ -595,6 +598,18 @@
       "profile": {
         "title": "Vols substituir l'assignació de perfil d'usuari existent?",
         "description": "El perfil d'usuari \"{{profile}}\" ja està assignat a la configuració \"{{existing}}\". En desar-la se substituirà aquesta assignació per \"{{next}}\"."
+      },
+      "removeLlm": {
+        "title": "Vols eliminar aquest LLM?",
+        "description": "«{{name}}» s’eliminarà. Tot el que l’utilitzi passarà al LLM per defecte."
+      },
+      "reset": {
+        "title": "Vols restablir els valors per defecte?",
+        "description": "Tots els canvis sense desar d’aquest formulari se substituiran pels valors per defecte."
+      },
+      "upload": {
+        "title": "Vols substituir la configuració actual?",
+        "description": "Carregar «{{name}}» sobreescriurà els valors actuals del formulari."
       }
     },
     "noActiveDiagram": "No hi ha cap diagrama d'agent actiu. Obre primer un diagrama d'agent.",
@@ -772,7 +787,13 @@
       "versionProfile": "Perfil únic",
       "versionAll": "Totes les versions",
       "selectProfile": "Seleccionar un perfil",
-      "versionAllHint": "La descàrrega contindrà una subcarpeta per versió (base + cada perfil)."
+      "versionAllHint": "La descàrrega contindrà una subcarpeta per versió (base + cada perfil).",
+      "status": {
+        "ready": "A punt",
+        "missing": "Falta",
+        "empty": "Buit",
+        "skipped": "S’ometrà"
+      }
     },
     "toasts": {
       "validationFailed": "La validació ha fallat",
@@ -1094,7 +1115,12 @@
       "clickToRestore": "Fes clic per restaurar",
       "noCommits": "Encara no hi ha commits",
       "share": "Comparteix",
-      "createSecretGist": "Crea un Gist secret"
+      "createSecretGist": "Crea un Gist secret",
+      "openOnGitHub": "Obre a GitHub",
+      "unlink": "Desvincula el repositori",
+      "unlinkConfirmTitle": "Vols desvincular aquest repositori?",
+      "unlinkConfirmDescription": "El projecte es queda al navegador i a GitHub. Push, Pull i el commit automàtic s’aturen fins que tornis a vincular un repositori.",
+      "unlinkConfirmAction": "Desvincula"
     },
     "settings": {
       "title": "Configuració",
@@ -1188,7 +1214,8 @@
       "creatingRepository": "S'està creant el repositori",
       "committing": "S'està fent commit a GitHub",
       "restoringCommit": "S'està restaurant el commit",
-      "creatingGist": "S'està creant el Gist"
+      "creatingGist": "S'està creant el Gist",
+      "unlinkingRepository": "Desvinculant el repositori"
     },
     "toasts": {
       "loadProjectFailed": "No s'ha pogut carregar el projecte",
@@ -1960,7 +1987,12 @@
       "referenceEmpty": "El diagrama de classes referenciat és buit (sense classes ni relacions).",
       "generateObjectsTooltip": "Crea una instància d'objecte per cada classe del diagrama referenciat, amb valors predeterminats per a cada atribut.",
       "generate": "Genera",
-      "noClassDiagramsAvailable": "No hi ha diagrames de classes disponibles"
+      "noClassDiagramsAvailable": "No hi ha diagrames de classes disponibles",
+      "tablistLabel": "Diagrames",
+      "editAsForm": "Edita com a formulari",
+      "closeForm": "Tanca el formulari",
+      "editAsFormTitle": "Edita aquest perfil amb un formulari guiat",
+      "closeFormTitle": "Tanca el formulari del perfil d’usuari"
     },
     "charts": {
       "loadingChart": "S'està carregant el gràfic…",
@@ -2120,7 +2152,11 @@
         "AXIS_SAMPLE": "Mostra de 3 eixos: mostreja el qubit en les bases X, Y i Z simultàniament. Per a la reconstrucció tomogràfica.",
         "SPACER": "Espaiador"
       },
-      "nestedCircuitConfigured": "Circuit imbricat configurat"
+      "nestedCircuitConfigured": "Circuit imbricat configurat",
+      "toolboxLabel": "Caixa d’eines de portes",
+      "gateName": "Nom de la porta",
+      "placeGateLabel": "Col·loca la porta {{gate}}",
+      "armedHint": "Fes clic en una cel·la del circuit per col·locar {{gate}}. Prem Esc per cancel·lar."
     },
     "gui": {
       "traits": {
@@ -2500,7 +2536,9 @@
         "weightField": "Camp de pes",
         "geometryField": "Camp de geometria (GeoJSON)",
         "valueField": "Camp de valor"
-      }
+      },
+      "colorPalette": "Paleta de colors",
+      "colorPaletteOption": "Paleta {{index}}"
     },
     "loadingGuiEditor": "S'està carregant l'editor de GUI…",
     "loadingQuantumEditor": "S'està carregant l'editor quàntic…",
@@ -2641,7 +2679,8 @@
       "addQubitButton": "+ Qubit",
       "measurementOutput": "Sortida de mesura: generada automàticament a partir de les portes de mesura",
       "dropHere": "Deixa-ho anar aquí",
-      "invalid": "No vàlid"
+      "invalid": "No vàlid",
+      "initialStateLabel": "Estat inicial de {{qubit}}: {{state}}. Fes clic per canviar-lo."
     }
   },
   "agentComponents": {
@@ -2830,7 +2869,8 @@
       "restart": "Reinicia la simulació",
       "reset": "Reinicia",
       "dragToResize": "Arrossega per redimensionar",
-      "loading": "L’agent s’està carregant, espera un moment."
+      "loading": "L’agent s’està carregant, espera un moment.",
+      "resizeChat": "Canvia la mida del tauler de xat"
     },
     "codeViewer": {
       "copyTitle": "Copia el codi",

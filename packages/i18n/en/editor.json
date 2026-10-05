@@ -773,6 +773,22 @@
     "noTargets": "No other objects available to connect to"
   },
   "propertiesPanel": {
-    "close": "Close"
+    "close": "Close",
+    "resize": "Resize properties panel"
+  },
+  "actions": {
+    "edit": "Edit",
+    "delete": "Delete",
+    "addConnectedObject": "Add connected object",
+    "swapEnds": "Swap ends",
+    "style": "Style"
+  },
+  "zoomPane": {
+    "zoomIn": "Zoom in",
+    "zoomOut": "Zoom out",
+    "autoLayout": "Auto-layout"
+  },
+  "sidebar": {
+    "resize": "Resize palette"
   }
 }

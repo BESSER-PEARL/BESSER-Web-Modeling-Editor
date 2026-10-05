@@ -773,6 +773,22 @@
     "noTargets": "Keine anderen Objekte zum Verbinden verfügbar"
   },
   "propertiesPanel": {
-    "close": "Schließen"
+    "close": "Schließen",
+    "resize": "Eigenschaftenbereich anpassen"
+  },
+  "actions": {
+    "edit": "Bearbeiten",
+    "delete": "Löschen",
+    "addConnectedObject": "Verbundenes Objekt hinzufügen",
+    "swapEnds": "Enden tauschen",
+    "style": "Stil"
+  },
+  "zoomPane": {
+    "zoomIn": "Vergrößern",
+    "zoomOut": "Verkleinern",
+    "autoLayout": "Automatisches Layout"
+  },
+  "sidebar": {
+    "resize": "Palette anpassen"
   }
 }

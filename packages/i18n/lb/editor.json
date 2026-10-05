@@ -773,6 +773,22 @@
     "noTargets": "Keng aner Objeten disponibel fir ze verbannen"
   },
   "propertiesPanel": {
-    "close": "Zoumaachen"
+    "close": "Zoumaachen",
+    "resize": "Eegeschaftsberäich upassen"
+  },
+  "actions": {
+    "edit": "Beaarbechten",
+    "delete": "Läschen",
+    "addConnectedObject": "Verbonnent Objet derbäisetzen",
+    "swapEnds": "Enner tauschen",
+    "style": "Stil"
+  },
+  "zoomPane": {
+    "zoomIn": "Vergréisseren",
+    "zoomOut": "Verklengeren",
+    "autoLayout": "Automatesche Layout"
+  },
+  "sidebar": {
+    "resize": "Palette upassen"
   }
 }

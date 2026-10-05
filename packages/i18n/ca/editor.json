@@ -773,6 +773,22 @@
     "noTargets": "No hi ha altres objectes disponibles per connectar"
   },
   "propertiesPanel": {
-    "close": "Tanca"
+    "close": "Tanca",
+    "resize": "Canvia la mida del tauler de propietats"
+  },
+  "actions": {
+    "edit": "Edita",
+    "delete": "Elimina",
+    "addConnectedObject": "Afegeix un objecte connectat",
+    "swapEnds": "Intercanvia els extrems",
+    "style": "Estil"
+  },
+  "zoomPane": {
+    "zoomIn": "Apropa",
+    "zoomOut": "Allunya",
+    "autoLayout": "Disposició automàtica"
+  },
+  "sidebar": {
+    "resize": "Canvia la mida de la paleta"
   }
 }

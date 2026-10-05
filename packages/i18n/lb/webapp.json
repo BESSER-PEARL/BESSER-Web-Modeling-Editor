@@ -8,7 +8,8 @@
     "confirm": "Bestätegen",
     "loading": "Lueden…",
     "yes": "Jo",
-    "no": "Nee"
+    "no": "Nee",
+    "retry": "Nach eng Kéier probéieren"
   },
   "topbar": {
     "language": "Sprooch",
@@ -65,12 +66,13 @@
       "title": "Datei",
       "projectActions": "Projetaktiounen",
       "newOpenImport": "Nei / Opmaachen / Projet importéieren",
-      "loadTemplate": "Template lueden",
-      "exportProject": "Projet exportéieren",
+      "loadTemplate": "Template lueden…",
+      "exportProject": "Projet exportéieren…",
       "importClassDiagramFrom": "Klassendiagramm importéieren vun",
-      "imageToProject": "Bild zu Projet",
-      "kgToProject": "KG zu Projet",
-      "previewProject": "Projetvirschau"
+      "imageToProject": "Bild zu Projet…",
+      "kgToProject": "KG zu Projet…",
+      "previewProject": "Projetvirschau…",
+      "importBpmnDiagram": "BPMN-Diagramm importéieren (.bpmn / .xml)…"
     },
     "generate": {
       "title": "Generéieren",
@@ -106,13 +108,13 @@
       "title": "Deployen",
       "deployment": "Deployment",
       "connectGitHub": "GitHub verbannen fir ze deployen",
-      "publishToRender": "Op Render deployen"
+      "publishToRender": "Op Render deployen…"
     },
     "community": {
       "title": "Communautéit",
       "contribute": "Bäidroen",
       "githubRepository": "GitHub-Repository",
-      "sendFeedback": "Feedback schécken",
+      "sendFeedback": "Feedback schécken…",
       "userSurvey": "Benotzerëmfro",
       "reportProblem": "E Problem mellen"
     },
@@ -296,7 +298,8 @@
         "raw": {
           "desc": "Nëmme-liesen-Usiicht vun der komplett generéierter config.yaml. Änner eenzel Sektiounen oder füüg personaliséiert YAML derbäi."
         }
-      }
+      },
+      "enablePlatform": "{{platform}} aktivéieren"
     },
     "llms": {
       "title": "LLMs",
@@ -595,6 +598,18 @@
       "profile": {
         "title": "Bestoend Benotzerprofil-Zouuerdnung ersetzen?",
         "description": "De Benotzerprofil \"{{profile}}\" ass scho mat der Konfiguratioun \"{{existing}}\" zougeuerdent. D'Späichere wäert déi Zouuerdnung mat \"{{next}}\" ersetzen."
+      },
+      "removeLlm": {
+        "title": "Dësen LLM ewechhuelen?",
+        "description": "„{{name}}“ gëtt ewechgeholl. Alles, wat en notzt, benotzt dann de Standard-LLM."
+      },
+      "reset": {
+        "title": "Op Standardwäerter zrécksetzen?",
+        "description": "All net gespäichert Ännerungen an dësem Formulaire ginn duerch d’Standardwäerter ersat."
+      },
+      "upload": {
+        "title": "Aktuell Konfiguratioun ersetzen?",
+        "description": "Wann „{{name}}“ gelueden gëtt, ginn déi aktuell Wäerter am Formulaire iwwerschriwwen."
       }
     },
     "noActiveDiagram": "Et ass keen Agent-Diagramm aktiv. Öffne fir d'éischt en Agent-Diagramm.",
@@ -772,7 +787,13 @@
       "versionProfile": "Eenzel Profil",
       "versionAll": "All Versiounen",
       "selectProfile": "Profil auswielen",
-      "versionAllHint": "Den Download enthält fir all Versioun en eegene Ënnerdossier (Basisversioun + all Profil)."
+      "versionAllHint": "Den Download enthält fir all Versioun en eegene Ënnerdossier (Basisversioun + all Profil).",
+      "status": {
+        "ready": "Prett",
+        "missing": "Feelt",
+        "empty": "Eidel",
+        "skipped": "Gëtt iwwersprongen"
+      }
     },
     "toasts": {
       "validationFailed": "Validatioun feelgeschloen",
@@ -1094,7 +1115,12 @@
       "clickToRestore": "Klick fir nei opzespillen",
       "noCommits": "Nach keng Commits",
       "share": "Deelen",
-      "createSecretGist": "Geheime Gist erstellen"
+      "createSecretGist": "Geheime Gist erstellen",
+      "openOnGitHub": "Op GitHub opmaachen",
+      "unlink": "Repository trennen",
+      "unlinkConfirmTitle": "Dëse Repository trennen?",
+      "unlinkConfirmDescription": "De Projet bleift an dengem Browser an op GitHub. Push, Pull an Auto-Commit stoppen, bis du erëm e Repository verbënns.",
+      "unlinkConfirmAction": "Trennen"
     },
     "settings": {
       "title": "Astellungen",
@@ -1188,7 +1214,8 @@
       "creatingRepository": "Repository gëtt erstallt",
       "committing": "Op GitHub gëtt committ",
       "restoringCommit": "Commit gëtt nei opgespillt",
-      "creatingGist": "Gist gëtt erstallt"
+      "creatingGist": "Gist gëtt erstallt",
+      "unlinkingRepository": "Repository gëtt getrennt"
     },
     "toasts": {
       "loadProjectFailed": "De Projet konnt net geluede ginn",
@@ -1960,7 +1987,12 @@
       "referenceEmpty": "De referenzéierten Klassendiagramm ass eidel (keng Klassen oder Bezéiungen).",
       "generateObjectsTooltip": "Erstellt eng Objet-Instanz pro Klass am referenzéierten Diagramm, mat Standardwäerter fir all Attribut.",
       "generate": "Generéieren",
-      "noClassDiagramsAvailable": "Keng Klassendiagrammer verfügbar"
+      "noClassDiagramsAvailable": "Keng Klassendiagrammer verfügbar",
+      "tablistLabel": "Diagrammer",
+      "editAsForm": "Als Formulaire beaarbechten",
+      "closeForm": "Formulaire zoumaachen",
+      "editAsFormTitle": "Dëse Profil mat engem guidéierte Formulaire beaarbechten",
+      "closeFormTitle": "Benotzerprofil-Formulaire zoumaachen"
     },
     "charts": {
       "loadingChart": "Diagramm gëtt gelueden…",
@@ -2120,7 +2152,11 @@
         "AXIS_SAMPLE": "3-Achsen-Stéchprouf: Tast de Qubit gläichzäiteg an den X-, Y- an Z-Basen of. Fir d'tomographesch Rekonstruktioun.",
         "SPACER": "Ofstandshalter"
       },
-      "nestedCircuitConfigured": "Verschachtelte Circuit konfiguréiert"
+      "nestedCircuitConfigured": "Verschachtelte Circuit konfiguréiert",
+      "toolboxLabel": "Gatter-Toolbox",
+      "gateName": "Gatternumm",
+      "placeGateLabel": "{{gate}}-Gatter placéieren",
+      "armedHint": "Klick op eng Zell vum Circuit fir {{gate}} ze placéieren. Esc fir ofzebriechen."
     },
     "gui": {
       "traits": {
@@ -2500,7 +2536,9 @@
         "weightField": "Gewiichtsfeld",
         "geometryField": "Geometrifeld (GeoJSON)",
         "valueField": "Wäertfeld"
-      }
+      },
+      "colorPalette": "Faarfpalette",
+      "colorPaletteOption": "Palette {{index}}"
     },
     "loadingGuiEditor": "GUI-Editor gëtt gelueden…",
     "loadingQuantumEditor": "Quanten-Editor gëtt gelueden…",
@@ -2641,7 +2679,8 @@
       "addQubitButton": "+ Qubit",
       "measurementOutput": "Mooss-Ausgab – automatesch aus de Moossgatter generéiert",
       "dropHere": "Hei fale loossen",
-      "invalid": "Ongülteg"
+      "invalid": "Ongülteg",
+      "initialStateLabel": "Ufankszoustand vun {{qubit}}: {{state}}. Klick fir z’änneren."
     }
   },
   "agentComponents": {
@@ -2830,7 +2869,8 @@
       "restart": "Simulatioun nei starten",
       "reset": "Nei starten",
       "dragToResize": "Zéien fir d’Gréisst z’änneren",
-      "loading": "Den Agent gëtt gelueden, wann ech gelift waart."
+      "loading": "Den Agent gëtt gelueden, wann ech gelift waart.",
+      "resizeChat": "Chatberäich upassen"
     },
     "codeViewer": {
       "copyTitle": "Code kopéieren",
