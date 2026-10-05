@@ -84,4 +84,29 @@ describe('ProjectHubDialog', () => {
 
     expect(mockLoadProject).not.toHaveBeenCalled();
   });
+
+  it('project card body is a real button that opens the project, with delete as a sibling', () => {
+    const project = saveProject('Shop');
+    render(<ProjectHubDialog open onOpenChange={() => {}} initialStep="open" />);
+
+    const openButton = screen.getByRole('button', { name: project.name });
+    const deleteButton = screen.getByRole('button', { name: `Delete project ${project.name}` });
+    expect(openButton.tagName).toBe('BUTTON');
+    expect(openButton.contains(deleteButton)).toBe(false);
+    expect(deleteButton.closest('[role="button"]')).toBeNull();
+
+    fireEvent.click(openButton);
+    expect(mockLoadProject).toHaveBeenCalledWith(project.id);
+  });
+
+  it('disables "create from spreadsheet" until a file is selected', () => {
+    render(<ProjectHubDialog open onOpenChange={() => {}} initialStep="spreadsheet" />);
+    const submit = screen.getByRole('button', { name: /create from spreadsheet/i }) as HTMLButtonElement;
+    expect(submit.disabled).toBe(true);
+
+    const fileInput = document.querySelector('input[type="file"][multiple]') as HTMLInputElement;
+    const file = new File(['name,age'], 'people.csv', { type: 'text/csv' });
+    fireEvent.change(fileInput, { target: { files: [file] } });
+    expect(submit.disabled).toBe(false);
+  });
 });

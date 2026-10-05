@@ -41,7 +41,6 @@ import {
   localStoragePreferredInterface,
   sessionStorageContinueFromGithubIntent,
   sessionStorageOpenAssistantOnLoad,
-  sessionStoragePendingAssistantPrompt,
 } from '../../shared/constants/constant';
 import { useImportDiagramToProject } from '../import/useImportDiagram';
 import { apiClient, ApiError } from '../../shared/api/api-client';
@@ -67,7 +66,7 @@ interface ProjectHubDialogProps {
   initialStep?: ProjectHubOpenStep;
 }
 
-type ProjectHubStep = 'welcome' | 'start' | 'describe' | 'create' | 'import' | 'spreadsheet' | 'open' | 'github';
+type ProjectHubStep = 'welcome' | 'start' | 'create' | 'import' | 'spreadsheet' | 'open' | 'github';
 
 /** Read the per-user default interface saved via "Remember my choice". */
 const readPreferredInterface = (): InterfaceMode | null => {
@@ -121,21 +120,6 @@ interface ImportGitHubRunResponse {
   branch: string;
 }
 
-// Plain, non-technical example prompts for the "Describe your app" hero flow.
-// Kept LOCAL to this file on purpose: feature isolation forbids importing the
-// assistant feature's own starter-prompt list, and these are deliberately
-// simpler/friendlier than the in-assistant examples.
-const DESCRIBE_EXAMPLES = [
-  'Build a library app to track books and loans',
-  'Make a restaurant ordering app with menus and tables',
-  'Create a bike-route app for Luxembourg with a map and reviews',
-  'Build an online shop for products, customers, and orders',
-];
-
-// Default name for a project bootstrapped from the "Describe your app" flow —
-// the user shouldn't be forced through the naming form for this path.
-const DESCRIBE_DEFAULT_PROJECT_NAME = 'My App';
-
 const defaultForm = {
   name: 'New_Project',
   description: 'Modern workspace project for UML, GUI and quantum modeling.',
@@ -181,7 +165,6 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
   // hub). Drives where "Back" goes: a directly-opened step closes on Back; a
   // step navigated into from a hub returns to that hub. See handleBack.
   const [entryStep, setEntryStep] = useState<ProjectHubStep>('start');
-  const [describePrompt, setDescribePrompt] = useState('');
   const [form, setForm] = useState(defaultForm);
   const [createPerspectiveKey, setCreatePerspectiveKey] = useState<string>(DEFAULT_PERSPECTIVE_KEY);
   const [spreadsheetForm, setSpreadsheetForm] = useState(defaultForm);
@@ -272,7 +255,6 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
       setStep('start');
       setEntryStep('start');
     }
-    setDescribePrompt('');
     setForm(defaultForm);
     setCreatePerspectiveKey(DEFAULT_PERSPECTIVE_KEY);
     setSpreadsheetForm(defaultForm);
@@ -333,13 +315,6 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
   }, [open, step, isGithubAuthenticated, githubSession, githubRepositories.length, githubReposLoading, fetchGithubRepositories]);
 
   const currentStepInfo = useMemo(() => {
-    if (step === 'describe') {
-      return {
-        title: 'Describe Your App',
-        description: "Tell me your idea in plain words — I'll build the data, the screens, and the code.",
-        badge: 'Step 2 of 2',
-      };
-    }
     if (step === 'create') {
       return {
         title: t('project.hub.create.title'),
@@ -465,49 +440,6 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
         /* non-fatal */
       }
       toast.error(t('project.hub.toasts.createFailed', { error: error instanceof Error ? error.message : t('project.hub.unknownError') }));
-    } finally {
-      setIsBusy(false);
-    }
-  };
-
-  const handleStartBuilding = async () => {
-    const prompt = describePrompt.trim();
-    if (!prompt) {
-      return;
-    }
-
-    try {
-      setIsBusy(true);
-      // (a) Bootstrap a blank project via the SAME path handleCreateProject
-      // uses — createProject() with the default perspective. We don't force the
-      // user through the naming form; a sensible default name is applied.
-      await createProject(
-        normalizeProjectName(DESCRIBE_DEFAULT_PROJECT_NAME),
-        defaultForm.description,
-        defaultForm.owner,
-        resolvePerspectives(DEFAULT_PERSPECTIVE_KEY),
-        pendingPreferredInterface ?? 'agent',
-      );
-      trackProjectCreated(pendingPreferredInterface ?? 'agent', 'describe_it');
-      refreshProjects();
-
-      // (c) Hand the typed prompt to the AI assistant. Stash it FIRST so the
-      // assistant can consume-and-clear it once it has mounted and its
-      // WebSocket is connected; the CustomEvent then nudges an already-mounted
-      // assistant to react immediately. The stash is the fallback path for the
-      // (rare) case where the event fires before the listener is registered.
-      try {
-        sessionStorage.setItem(sessionStoragePendingAssistantPrompt, prompt);
-      } catch {
-        // sessionStorage can throw (private mode / quota). The CustomEvent path
-        // still delivers the prompt to an already-mounted assistant.
-      }
-
-      // (b) Close the dialog, then (c cont.) fire the hand-off event.
-      handleDialogOpenChange(false);
-      window.dispatchEvent(new CustomEvent('wme:assistant-run-prompt', { detail: { prompt } }));
-    } catch (error) {
-      toast.error(`Could not start building: ${error instanceof Error ? error.message : 'Unknown error'}`);
     } finally {
       setIsBusy(false);
     }
@@ -864,7 +796,7 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
 
   // Project cards: the whole card opens the project (the primary action);
   // delete is a hover/focus-revealed corner control so it can't be hit by
-  // accident but is always one hover away.
+  // accident but is always one hover away (dimmed but visible on touch).
   const renderProjectList = () => (
     <div className="grid gap-2.5 md:grid-cols-2">
       {sortedProjects.length === 0 && (
@@ -878,20 +810,8 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
         return (
           <div
             key={project.id}
-            role="button"
-            tabIndex={isBusy ? -1 : 0}
-            aria-disabled={isBusy}
-            onClick={() => { if (!isBusy) void handleOpenProject(project.id); }}
-            onKeyDown={(e) => {
-              // Keys on the nested delete button are that button's own.
-              if (isBusy || e.target !== e.currentTarget) return;
-              if (e.key === 'Enter' || e.key === ' ') {
-                e.preventDefault();
-                void handleOpenProject(project.id);
-              }
-            }}
             className={cn(
-              'group relative flex cursor-pointer flex-col gap-3 overflow-hidden rounded-xl border bg-card p-4 text-left transition-all duration-300 hover:-translate-y-0.5 hover:shadow-elevation-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/40',
+              'group relative flex cursor-pointer flex-col gap-3 overflow-hidden rounded-xl border bg-card p-4 text-left transition-[transform,border-color,box-shadow,background-color] duration-200 ease-out hover:shadow-elevation-1 has-[.project-card-open:active]:scale-[0.98] has-[.project-card-open:focus-visible]:ring-2 has-[.project-card-open:focus-visible]:ring-brand/40 [@media(hover:hover)]:hover:-translate-y-0.5',
               isCurrent
                 ? 'border-brand/40 bg-brand/[0.04] hover:border-brand/50'
                 : 'border-border/60 hover:border-brand/30',
@@ -911,7 +831,15 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
               </div>
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2">
-                  <p className="truncate text-sm font-semibold tracking-tight">{project.name}</p>
+                  {/* Stretched over the whole card via ::after; delete stays a sibling. */}
+                  <button
+                    type="button"
+                    className="project-card-open truncate text-left text-sm font-semibold tracking-tight after:absolute after:inset-0 after:rounded-xl focus-visible:outline-none"
+                    onClick={() => void handleOpenProject(project.id)}
+                    disabled={isBusy}
+                  >
+                    {project.name}
+                  </button>
                   {isCurrent && (
                     <Badge className="shrink-0 rounded-full border-brand/20 bg-brand/10 px-2 py-0 text-[10px] font-medium text-brand">
                       {t('project.hub.list.active')}
@@ -929,7 +857,7 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
                 <CalendarDays className="size-3" />
                 {new Date(project.createdAt).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' })}
               </span>
-              <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-brand opacity-0 transition-opacity duration-200 group-hover:opacity-100 group-focus-visible:opacity-100">
+              <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-brand opacity-0 transition-opacity duration-200 group-hover:opacity-100 group-has-[.project-card-open:focus-visible]:opacity-100">
                 {t('project.hub.list.open')}
                 <ArrowRight className="size-3.5 transition-transform duration-300 group-hover:translate-x-0.5" />
               </span>
@@ -938,11 +866,8 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
             <Button
               size="icon"
               variant="ghost"
-              className="absolute right-2 top-2 size-7 text-muted-foreground opacity-0 transition-opacity hover:bg-destructive/10 hover:text-destructive focus-visible:opacity-100 group-hover:opacity-100"
-              onClick={(e) => {
-                e.stopPropagation();
-                void handleDeleteProject(project.id, project.name);
-              }}
+              className="absolute right-2 top-2 size-7 text-muted-foreground opacity-0 transition-opacity hover:bg-destructive/10 hover:text-destructive focus-visible:opacity-100 group-hover:opacity-100 [@media(hover:none)]:opacity-60"
+              onClick={() => void handleDeleteProject(project.id, project.name)}
               disabled={isBusy}
               aria-label={t('project.hub.list.deleteAria', { name: project.name })}
             >
@@ -966,17 +891,11 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
         )}
         {step !== 'welcome' && (
         <>
-        {/* Ambient brand glow, echoing the first-run landing's surface. */}
-        <div
-          aria-hidden
-          className="pointer-events-none absolute -right-16 -top-24 size-72 rounded-full opacity-40 blur-2xl"
-          style={{ background: 'radial-gradient(circle at center, hsl(var(--brand)/0.18), transparent 62%)' }}
-        />
         <DialogHeader className="border-b border-border/60 px-6 pt-5 pb-4">
           <div className="flex items-start justify-between gap-3">
             <div className="flex min-w-0 items-start gap-3.5">
               {step === 'start' ? (
-                <img src="/images/logo.png" alt="BESSER" className="mt-1 h-7 w-auto shrink-0 brightness-0 opacity-80 dark:invert" />
+                <img src="/images/logo.png" alt="BESSER" width={105} height={28} className="mt-1 h-7 w-auto shrink-0 brightness-0 opacity-80 dark:invert" />
               ) : (
                 <button
                   type="button"
@@ -1031,7 +950,7 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
                   <button
                     type="button"
                     onClick={() => setStep('welcome')}
-                    className="group relative overflow-hidden rounded-xl border border-border/60 bg-card p-3.5 text-left shadow-none transition-all duration-300 hover:-translate-y-0.5 hover:border-brand/30 hover:shadow-elevation-1"
+                    className="group relative overflow-hidden rounded-xl border border-border/60 bg-card p-3.5 text-left shadow-none transition-[transform,border-color,box-shadow,background-color] duration-200 ease-out hover:border-brand/30 hover:shadow-elevation-1 active:scale-[0.98] [@media(hover:hover)]:hover:-translate-y-0.5"
                   >
                     <div className="mb-2 inline-flex rounded-lg bg-brand/[0.08] p-2 text-brand ring-1 ring-brand/10">
                       <Plus className="size-3.5" />
@@ -1043,7 +962,7 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
                   <button
                     type="button"
                     onClick={() => setStep('spreadsheet')}
-                    className="group relative overflow-hidden rounded-xl border border-border/60 bg-card p-3.5 text-left shadow-none transition-all duration-300 hover:-translate-y-0.5 hover:border-brand/20 hover:shadow-elevation-1"
+                    className="group relative overflow-hidden rounded-xl border border-border/60 bg-card p-3.5 text-left shadow-none transition-[transform,border-color,box-shadow,background-color] duration-200 ease-out hover:border-brand/20 hover:shadow-elevation-1 active:scale-[0.98] [@media(hover:hover)]:hover:-translate-y-0.5"
                   >
                     <div className="mb-2 inline-flex rounded-lg bg-emerald-500/[0.08] p-2 text-emerald-700 ring-1 ring-emerald-500/10 dark:text-emerald-400">
                       <FileSpreadsheet className="size-3.5" />
@@ -1055,7 +974,7 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
                   <button
                     type="button"
                     onClick={() => setStep('import')}
-                    className="group relative overflow-hidden rounded-xl border border-border/60 bg-card p-3.5 text-left shadow-none transition-all duration-300 hover:-translate-y-0.5 hover:border-brand/20 hover:shadow-elevation-1"
+                    className="group relative overflow-hidden rounded-xl border border-border/60 bg-card p-3.5 text-left shadow-none transition-[transform,border-color,box-shadow,background-color] duration-200 ease-out hover:border-brand/20 hover:shadow-elevation-1 active:scale-[0.98] [@media(hover:hover)]:hover:-translate-y-0.5"
                   >
                     <div className="mb-2 inline-flex rounded-lg bg-violet-500/[0.08] p-2 text-violet-700 ring-1 ring-violet-500/10 dark:text-violet-400">
                       <Upload className="size-3.5" />
@@ -1067,7 +986,7 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
                   <button
                     type="button"
                     onClick={handleOpenGithubStep}
-                    className="group relative overflow-hidden rounded-xl border border-border/60 bg-card p-3.5 text-left shadow-none transition-all duration-300 hover:-translate-y-0.5 hover:border-brand/20 hover:shadow-elevation-1"
+                    className="group relative overflow-hidden rounded-xl border border-border/60 bg-card p-3.5 text-left shadow-none transition-[transform,border-color,box-shadow,background-color] duration-200 ease-out hover:border-brand/20 hover:shadow-elevation-1 active:scale-[0.98] [@media(hover:hover)]:hover:-translate-y-0.5"
                   >
                     <div className="mb-2 inline-flex rounded-lg bg-foreground/[0.06] p-2 text-foreground/80 ring-1 ring-foreground/10">
                       <Github className="size-3.5" />
@@ -1089,7 +1008,7 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
                     {sortedProjects.slice(0, 3).map((project) => (
                       <div
                         key={project.id}
-                        className="group flex items-center gap-2 rounded-lg border border-border/50 bg-background/80 px-3 py-2 transition-all duration-200 hover:border-brand/20 hover:bg-brand/[0.04] hover:shadow-elevation-1"
+                        className="group flex items-center gap-2 rounded-lg border border-border/50 bg-background/80 px-3 py-2 transition-[border-color,box-shadow,background-color] duration-200 ease-out hover:border-brand/20 hover:bg-brand/[0.04] hover:shadow-elevation-1"
                       >
                         <button
                           type="button"
@@ -1103,7 +1022,7 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
                         <Button
                           size="icon"
                           variant="ghost"
-                          className="size-7 shrink-0 text-muted-foreground opacity-0 transition-opacity hover:bg-destructive/10 hover:text-destructive group-hover:opacity-100"
+                          className="size-7 shrink-0 text-muted-foreground opacity-0 transition-opacity hover:bg-destructive/10 hover:text-destructive focus-visible:opacity-100 group-hover:opacity-100 [@media(hover:none)]:opacity-60"
                           onClick={() => void handleDeleteProject(project.id, project.name)}
                           disabled={isBusy}
                           aria-label={t('project.hub.list.deleteAria', { name: project.name })}
@@ -1134,57 +1053,6 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
             </div>
           )}
 
-          {step === 'describe' && (
-            <div className="flex flex-col gap-5">
-              <Card className="border-brand/30 bg-gradient-to-br from-brand/[0.05] via-background to-background shadow-elevation-1">
-                <CardHeader className="pb-2">
-                  <CardTitle className="flex items-center gap-2 text-base tracking-tight">
-                    <Sparkles className="size-4 text-brand" />
-                    What do you want to build?
-                  </CardTitle>
-                  <CardDescription className="text-xs">
-                    Describe your app in plain words. The AI assistant will create the data model, screens, and code for you.
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="flex flex-col gap-4">
-                  <Textarea
-                    id="describe-prompt"
-                    value={describePrompt}
-                    onChange={(event) => setDescribePrompt(event.target.value)}
-                    placeholder="e.g. Build a library app to track books and loans, with a page to browse the catalogue and see who borrowed what."
-                    className="min-h-36 resize-none text-sm leading-relaxed"
-                    autoFocus
-                  />
-
-                  <div className="flex flex-col gap-2">
-                    <p className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground/60">Need inspiration? Try one</p>
-                    <div className="flex flex-wrap gap-2">
-                      {DESCRIBE_EXAMPLES.map((example) => (
-                        <button
-                          key={example}
-                          type="button"
-                          onClick={() => setDescribePrompt(example)}
-                          className="rounded-full border border-brand/15 bg-brand/[0.04] px-3 py-1.5 text-xs font-medium text-muted-foreground transition-all duration-200 hover:-translate-y-px hover:border-brand/30 hover:bg-brand/[0.08] hover:text-foreground"
-                        >
-                          {example}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
-                  <Button
-                    onClick={() => void handleStartBuilding()}
-                    disabled={isBusy || !describePrompt.trim()}
-                    className="w-full gap-2 bg-brand text-brand-foreground shadow-elevation-1 transition-all hover:bg-brand-dark hover:shadow-elevation-2"
-                  >
-                    <Sparkles className="size-4" />
-                    Start building
-                  </Button>
-                </CardContent>
-              </Card>
-            </div>
-          )}
-
           {step === 'create' && (
             <div className="flex flex-col gap-2.5">
               <Card className="border-border/50 shadow-elevation-1">
@@ -1196,19 +1064,24 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
                   <FormField label={t('project.field.name')} htmlFor="project-name" required error={createValidation.getError('name')}>
                     <Input
                       id="project-name"
+                      name="project-name"
+                      autoComplete="off"
+                      spellCheck={false}
                       value={form.name}
                       onChange={(event) => setForm((previous) => ({ ...previous, name: event.target.value }))}
                       onBlur={() => createValidation.markTouched('name')}
-                      placeholder="My_Modeling_Project"
+                      placeholder="My_Modeling_Project…"
                       className={createValidation.getError('name') ? 'border-destructive focus-visible:border-destructive focus-visible:ring-destructive/20' : ''}
                     />
                   </FormField>
                   <FormField label={t('project.field.owner')} htmlFor="project-owner">
                     <Input
                       id="project-owner"
+                      name="project-owner"
+                      autoComplete="name"
                       value={form.owner}
                       onChange={(event) => setForm((previous) => ({ ...previous, owner: event.target.value }))}
-                      placeholder="BESSER User"
+                      placeholder="BESSER User…"
                     />
                   </FormField>
                   <FormField label={t('project.field.description')} htmlFor="project-description">
@@ -1222,7 +1095,7 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
                   {renderInterfaceModePicker()}
                   {(pendingPreferredInterface ?? 'model') === 'model' &&
                     renderPerspectivePicker(createPerspectiveKey, setCreatePerspectiveKey, 'create')}
-                  <Button onClick={() => void handleCreateProject()} disabled={isBusy || !createValidation.isValid} className="w-full gap-2 bg-brand text-brand-foreground shadow-elevation-1 transition-all hover:bg-brand-dark hover:shadow-elevation-2">
+                  <Button onClick={() => void handleCreateProject()} disabled={isBusy || !createValidation.isValid} className="w-full gap-2 bg-brand text-brand-foreground shadow-elevation-1 hover:bg-brand-dark hover:shadow-elevation-2">
                     <Sparkles className="size-4" />
                     {t('project.hub.create.submit')}
                   </Button>
@@ -1250,7 +1123,7 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
                     aria-disabled={isBusy}
                     aria-label={t('project.hub.import.dropAria')}
                     className={cn(
-                      'grain-overlay relative overflow-hidden rounded-xl border-2 border-dashed bg-gradient-to-b from-brand/[0.03] to-muted/8 p-8 text-center transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-brand/40',
+                      'relative overflow-hidden rounded-xl border-2 border-dashed bg-brand/[0.03] p-8 text-center transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-brand/40',
                       isBusy ? 'cursor-not-allowed opacity-60' : 'cursor-pointer hover:border-brand/40 hover:bg-brand/[0.04]',
                       isDragging ? 'border-brand/50 bg-brand/[0.06]' : 'border-brand/20',
                     )}
@@ -1267,10 +1140,9 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
                     onDragLeave={(e) => { e.preventDefault(); e.stopPropagation(); setIsDragging(false); }}
                     onDrop={(e) => void handleImportDrop(e)}
                   >
-                    <div className="pointer-events-none absolute left-1/2 top-1/2 size-24 -translate-x-1/2 -translate-y-1/2 rounded-full bg-brand/5 blur-2xl" />
-                    <Upload className={cn('relative z-[2] mx-auto mb-3 size-8', isDragging ? 'text-brand/60' : 'text-brand/30')} />
-                    <p className="relative z-[2] text-sm font-medium text-muted-foreground">{t('project.hub.import.dropPrompt')}</p>
-                    <p className="relative z-[2] mt-1 text-xs text-muted-foreground/60">{t('project.hub.import.dropHint')}</p>
+                    <Upload className={cn('mx-auto mb-3 size-8', isDragging ? 'text-brand/60' : 'text-brand/30')} />
+                    <p className="text-sm font-medium text-muted-foreground">{t('project.hub.import.dropPrompt')}</p>
+                    <p className="mt-1 text-xs text-muted-foreground/60">{t('project.hub.import.dropHint')}</p>
                   </div>
                 </CardContent>
               </Card>
@@ -1289,23 +1161,28 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
                     <FormField label={t('project.field.name')} htmlFor="spreadsheet-project-name" required error={spreadsheetValidation.getError('name')}>
                       <Input
                         id="spreadsheet-project-name"
+                        name="spreadsheet-project-name"
+                        autoComplete="off"
+                        spellCheck={false}
                         value={spreadsheetForm.name}
                         onChange={(event) =>
                           setSpreadsheetForm((previous) => ({ ...previous, name: event.target.value }))
                         }
                         onBlur={() => spreadsheetValidation.markTouched('name')}
-                        placeholder="My_Spreadsheet_Project"
+                        placeholder="My_Spreadsheet_Project…"
                         className={spreadsheetValidation.getError('name') ? 'border-destructive focus-visible:border-destructive focus-visible:ring-destructive/20' : ''}
                       />
                     </FormField>
                     <FormField label={t('project.field.owner')} htmlFor="spreadsheet-project-owner">
                       <Input
                         id="spreadsheet-project-owner"
+                        name="spreadsheet-project-owner"
+                        autoComplete="name"
                         value={spreadsheetForm.owner}
                         onChange={(event) =>
                           setSpreadsheetForm((previous) => ({ ...previous, owner: event.target.value }))
                         }
-                        placeholder="BESSER User"
+                        placeholder="BESSER User…"
                       />
                     </FormField>
                     <FormField label={t('project.field.description')} htmlFor="spreadsheet-project-description">
@@ -1327,7 +1204,7 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
                       </div>
                       <Button
                         variant="outline"
-                        className="w-full gap-2 border-brand/20 text-brand shadow-elevation-1 transition-all hover:border-brand/30 hover:bg-brand/[0.04]"
+                        className="w-full gap-2 border-brand/20 text-brand shadow-elevation-1 hover:border-brand/30 hover:bg-brand/[0.04]"
                         onClick={() => spreadsheetFileInputRef.current?.click()}
                         disabled={isBusy}
                       >
@@ -1349,7 +1226,7 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
                       )}
                     </div>
 
-                    <Button onClick={() => void handleStartFromSpreadsheet()} disabled={isBusy || !spreadsheetValidation.isValid} className="w-full gap-2 bg-brand text-brand-foreground shadow-elevation-1 transition-all hover:bg-brand-dark hover:shadow-elevation-2">
+                    <Button onClick={() => void handleStartFromSpreadsheet()} disabled={isBusy || !spreadsheetValidation.isValid || spreadsheetFiles.length === 0} className="w-full gap-2 bg-brand text-brand-foreground shadow-elevation-1 hover:bg-brand-dark hover:shadow-elevation-2">
                       <Sparkles className="size-4" />
                       {t('project.hub.spreadsheet.submit')}
                     </Button>
@@ -1409,7 +1286,7 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
               <CardContent>
                 <Button
                   onClick={handleOpenGithubStep}
-                  className="w-full gap-2 bg-brand text-brand-foreground shadow-elevation-1 transition-all hover:bg-brand-dark hover:shadow-elevation-2"
+                  className="w-full gap-2 bg-brand text-brand-foreground shadow-elevation-1 hover:bg-brand-dark hover:shadow-elevation-2"
                 >
                   <Github className="size-4" />
                   Connect GitHub
@@ -1483,7 +1360,7 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
                   <Button
                     onClick={() => void handleContinueGithubRepo()}
                     disabled={isBusy || !githubRepoFullName}
-                    className="w-full gap-2 bg-brand text-brand-foreground shadow-elevation-1 transition-all hover:bg-brand-dark hover:shadow-elevation-2"
+                    className="w-full gap-2 bg-brand text-brand-foreground shadow-elevation-1 hover:bg-brand-dark hover:shadow-elevation-2"
                   >
                     {isBusy ? <Loader2 className="size-4 animate-spin" /> : <Github className="size-4" />}
                     {isBusy ? 'Loading…' : 'Continue'}
