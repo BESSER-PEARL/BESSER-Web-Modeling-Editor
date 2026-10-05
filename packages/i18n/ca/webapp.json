@@ -1339,8 +1339,8 @@
       "newConversationTitle": "Inicia una conversa nova"
     },
     "drawer": {
-      "pushToClose": "Empeny cap amunt per tancar l'assistent",
-      "pullToOpen": "Estira cap avall per obrir l'assistent",
+      "pushToClose": "Empeny cap avall per tancar l'assistent",
+      "pullToOpen": "Estira cap amunt per obrir l'assistent",
       "pushUp": "Empeny cap amunt",
       "pullDown": "Estira l'assistent cap avall"
     },

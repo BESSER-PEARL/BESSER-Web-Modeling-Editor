@@ -1339,8 +1339,8 @@
       "newConversationTitle": "Iniciar una nueva conversación"
     },
     "drawer": {
-      "pushToClose": "Empuja hacia arriba para cerrar el asistente",
-      "pullToOpen": "Tira hacia abajo para abrir el asistente",
+      "pushToClose": "Empuja hacia abajo para cerrar el asistente",
+      "pullToOpen": "Tira hacia arriba para abrir el asistente",
       "pushUp": "Empujar hacia arriba",
       "pullDown": "Tirar del asistente hacia abajo"
     },

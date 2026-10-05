@@ -1339,8 +1339,8 @@
       "newConversationTitle": "Démarrer une nouvelle conversation"
     },
     "drawer": {
-      "pushToClose": "Poussez vers le haut pour fermer l'assistant",
-      "pullToOpen": "Tirez vers le bas pour ouvrir l'assistant",
+      "pushToClose": "Poussez vers le bas pour fermer l'assistant",
+      "pullToOpen": "Tirez vers le haut pour ouvrir l'assistant",
       "pushUp": "Pousser vers le haut",
       "pullDown": "Tirer l'assistant vers le bas"
     },

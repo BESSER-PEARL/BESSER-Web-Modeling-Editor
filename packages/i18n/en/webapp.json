@@ -1354,8 +1354,8 @@
     "drawer": {
       "labelClosed": "Describe your app",
       "labelOpen": "See the Specs",
-      "pushToClose": "Push up to close assistant",
-      "pullToOpen": "Pull down to open assistant",
+      "pushToClose": "Push down to close assistant",
+      "pullToOpen": "Pull up to open assistant",
       "pushUp": "Push up",
       "pullDown": "Pull down assistant"
     },

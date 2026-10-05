@@ -1339,8 +1339,8 @@
       "newConversationTitle": "Ein neues Gespräch beginnen"
     },
     "drawer": {
-      "pushToClose": "Nach oben schieben, um den Assistenten zu schließen",
-      "pullToOpen": "Nach unten ziehen, um den Assistenten zu öffnen",
+      "pushToClose": "Nach unten schieben, um den Assistenten zu schließen",
+      "pullToOpen": "Nach oben ziehen, um den Assistenten zu öffnen",
       "pushUp": "Nach oben schieben",
       "pullDown": "Assistent nach unten ziehen"
     },

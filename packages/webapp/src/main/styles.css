@@ -414,9 +414,9 @@ select {
    disabled entirely under reduced-motion below. */
 @keyframes drawer-handle-bob {
   0%, 100% { transform: translateY(0); }
-  25% { transform: translateY(3px); }
+  25% { transform: translateY(-3px); }
   50% { transform: translateY(0); }
-  75% { transform: translateY(3px); }
+  75% { transform: translateY(-3px); }
 }
 .drawer-handle-bob {
   animation: drawer-handle-bob 1.6s ease-in-out 0.7s 1 both;

@@ -1,5 +1,5 @@
 /**
- * AssistantWorkspaceDrawer — bottom-sheet style drawer that delegates all
+ * AssistantWorkspaceDrawer — bottom-sheet drawer (rises from the bottom edge) that delegates all
  * assistant business logic to the shared useAssistantLogic hook.
  *
  * Owns only the drag-to-open/close gesture, layout animation, and rendering.
@@ -7,7 +7,7 @@
 
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ArrowDown, Boxes, Bot, ChevronDown, ChevronUp, MessageSquarePlus, Layers, Palette, Code2, Sparkles, Flag, KeyRound, Check } from 'lucide-react';
+import { ArrowDown, Boxes, Bot, ChevronDown, MessageSquarePlus, Layers, Palette, Code2, Sparkles, Flag, KeyRound, Check } from 'lucide-react';
 import { ChatForm } from '@/components/chatbot-kit/ui/chat';
 import { MessageInput } from '@/components/chatbot-kit/ui/message-input';
 import { MessageList } from '@/components/chatbot-kit/ui/message-list';
@@ -48,12 +48,11 @@ interface DragState {
   velocity: number;
   moved: number;
   /** Direction committed once the gesture passes the drag threshold:
-   *  +1 = dragged down (→ open), -1 = dragged up (→ close), 0 = still a click. */
+   *  +1 = dragged up (→ open), -1 = dragged down (→ close), 0 = still a click. */
   direction: number;
 }
 
-const HANDLE_HEIGHT = 28;
-const FALLBACK_CLOSED_OFFSET = -640;
+const FALLBACK_CLOSED_OFFSET = 640;
 
 /** Toggle floating decoration cards on the sides of the welcome screen. */
 const SHOW_FLOATING_CARDS = false;
@@ -321,7 +320,8 @@ export const AssistantWorkspaceDrawer: React.FC<AssistantWorkspaceDrawerProps> =
 
   /* ---- Drawer measurement & animation ---- */
 
-  const closedOffset = isMeasured && drawerHeight > 0 ? -(drawerHeight - HANDLE_HEIGHT) : FALLBACK_CLOSED_OFFSET;
+  // Closed = pushed fully below the container; the trigger pill floats separately.
+  const closedOffset = isMeasured && drawerHeight > 0 ? drawerHeight : FALLBACK_CLOSED_OFFSET;
   const hasConversation = messages.length > 0;
 
   const updateTranslateY = (nextOffset: number) => {
@@ -380,8 +380,8 @@ export const AssistantWorkspaceDrawer: React.FC<AssistantWorkspaceDrawerProps> =
 
   /* ---- Drag gesture handlers ---- */
 
-  const totalTravel = Math.max(1, 0 - closedOffset);
-  const openProgress = isMeasured ? clamp((translateY - closedOffset) / totalTravel, 0, 1) : open ? 1 : 0;
+  const totalTravel = Math.max(1, closedOffset);
+  const openProgress = isMeasured ? clamp((closedOffset - translateY) / totalTravel, 0, 1) : open ? 1 : 0;
 
   const updateDragPosition = (clientY: number) => {
     const dragState = dragStateRef.current;
@@ -389,16 +389,19 @@ export const AssistantWorkspaceDrawer: React.FC<AssistantWorkspaceDrawerProps> =
     const deps = dragDepsRef.current;
     const now = performance.now();
     const dragDistance = clientY - dragState.startY;
-    const currentClosedOffset = deps.isMeasured ? deps.closedOffset : -Math.max(deps.drawerHeight, 1);
-    const nextOffset = clamp(dragState.startOffset + dragDistance, currentClosedOffset, 0);
+    const currentClosedOffset = deps.isMeasured ? deps.closedOffset : Math.max(deps.drawerHeight, 1);
+    const rawOffset = dragState.startOffset + dragDistance;
+    // Past the fully-open position, add friction instead of a hard stop.
+    const nextOffset = rawOffset < 0 ? -Math.sqrt(-rawOffset) * 2 : Math.min(rawOffset, currentClosedOffset);
     const deltaTime = Math.max(1, now - dragState.lastTime);
     dragState.velocity = (clientY - dragState.lastY) / deltaTime;
     dragState.moved = Math.max(dragState.moved, Math.abs(dragDistance));
     // Lock the snap direction the first time the gesture crosses the threshold,
-    // taken from the START of the drag: dragging down opens, dragging up closes.
+    // taken from the START of the drag: dragging up opens, dragging down closes.
     // Once set it sticks, so a quick flick that settles back still snaps by its
-    // initial intent rather than the exact release position.
-    dragState.direction = lockDragDirection(dragDistance, dragState.direction, DRAG_DIRECTION_THRESHOLD);
+    // initial intent rather than the exact release position. Negated because
+    // the helper treats a positive distance as "toward open".
+    dragState.direction = lockDragDirection(-dragDistance, dragState.direction, DRAG_DIRECTION_THRESHOLD);
     dragState.lastY = clientY;
     dragState.lastTime = now;
     updateTranslateY(nextOffset);
@@ -420,7 +423,7 @@ export const AssistantWorkspaceDrawer: React.FC<AssistantWorkspaceDrawerProps> =
     // Two outcomes only:
     //  - Barely moved (below threshold, no locked direction) → treat as a click
     //    and toggle open/closed.
-    //  - Otherwise → snap by the locked drag direction (down opens, up closes),
+    //  - Otherwise → snap by the locked drag direction (up opens, down closes),
     //    regardless of how far the user actually dragged. The section's
     //    transition-transform animates the snap smoothly (reduced-motion aside).
     deps.onOpenChange(resolveDrawerSnap(dragState.direction, deps.open));
@@ -430,7 +433,7 @@ export const AssistantWorkspaceDrawer: React.FC<AssistantWorkspaceDrawerProps> =
     event.preventDefault();
     const measuredHeight = isMeasured ? drawerHeight : ensureMeasuredDrawerHeight();
     if (measuredHeight <= 0) return;
-    const startOffset = open ? translateYRef.current : -(measuredHeight - HANDLE_HEIGHT);
+    const startOffset = open ? translateYRef.current : measuredHeight;
     if (!open) updateTranslateY(startOffset);
     dragHandleRef.current = event.currentTarget;
     try {
@@ -530,7 +533,7 @@ export const AssistantWorkspaceDrawer: React.FC<AssistantWorkspaceDrawerProps> =
       {/* Backdrop overlay */}
       <div
         className={cn(
-          'pointer-events-none absolute inset-0 z-30 bg-slate-950/50 backdrop-blur-[3px] transition-opacity duration-300 motion-reduce:transition-none',
+          'pointer-events-none absolute inset-0 z-30 bg-slate-950/50 backdrop-blur-[3px] transition-opacity duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] motion-reduce:transition-none',
           (open || isDragging) && openProgress > 0.02 && 'pointer-events-auto',
         )}
         style={{ opacity: openProgress * 0.75 }}
@@ -541,29 +544,35 @@ export const AssistantWorkspaceDrawer: React.FC<AssistantWorkspaceDrawerProps> =
         ref={drawerRef}
         className={cn(
           'pointer-events-none absolute inset-0 z-40 flex flex-col overflow-visible bg-transparent',
-          !isDragging && 'transition-transform duration-300 ease-out motion-reduce:transition-none',
+          // iOS-style drawer curve (as in Vaul).
+          !isDragging && 'transition-transform duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] motion-reduce:transition-none',
         )}
         style={{
-          transform:
-            !isMeasured && !open && !isDragging
-              ? `translateY(calc(-100% + ${HANDLE_HEIGHT}px))`
-              : `translateY(${translateY}px)`,
+          transform: !isMeasured && !open && !isDragging ? 'translateY(100%)' : `translateY(${translateY}px)`,
         }}
         aria-hidden={!open && !isDragging}
       >
         {/* Content area */}
         <div
           className={cn(
-            'relative flex min-h-0 flex-1 flex-col overflow-hidden bg-background shadow-[0_8px_40px_-12px_rgba(0,0,0,0.1)] transition-opacity duration-300',
+            'relative flex min-h-0 flex-1 flex-col overflow-hidden bg-background shadow-[0_-12px_40px_-16px_rgba(0,0,0,0.25)] transition-opacity duration-300',
             (open || isDragging) ? 'pointer-events-auto' : 'pointer-events-none',
             openProgress < 0.02 && !open && !isDragging && 'opacity-0',
           )}
         >
+          {/* Grab bar: drag down (or click) to return to the model. */}
+          <div
+            aria-hidden="true"
+            onPointerDown={handlePointerDown}
+            className="absolute inset-x-0 top-0 z-20 flex h-5 cursor-grab touch-none items-center justify-center active:cursor-grabbing"
+          >
+            <span className="h-1 w-10 rounded-full bg-muted-foreground/25" />
+          </div>
           {!hasConversation ? (
             /* ================================================================ */
             /*  Welcome Screen — Main Landing                                    */
             /* ================================================================ */
-            <div className="relative flex min-h-0 flex-1 flex-col items-center overflow-y-auto overflow-x-hidden">
+            <div className="relative flex min-h-0 flex-1 flex-col items-center overflow-y-auto overflow-x-hidden pb-14">
               {/* ---- Background: animated gradient orbs using brand palette ---- */}
               <div className="pointer-events-none absolute inset-0 overflow-hidden">
                 {/* Subtle dot grid */}
@@ -863,7 +872,7 @@ export const AssistantWorkspaceDrawer: React.FC<AssistantWorkspaceDrawerProps> =
               </div>
 
               {/* Bottom bar — kept at max-w-4xl (896px) to match messages */}
-              <div className="shrink-0 border-t border-border/40 bg-background/85 px-4 py-3 backdrop-blur-md sm:px-8">
+              <div className="shrink-0 border-t border-border/40 bg-background/85 px-4 pb-14 pt-3 backdrop-blur-md sm:px-8">
                 <div className="mx-auto w-full max-w-4xl">
                   <div className="mb-2 flex items-center justify-between">
                     <div className="flex items-center gap-2 text-[10px] text-muted-foreground/50">
@@ -937,49 +946,44 @@ export const AssistantWorkspaceDrawer: React.FC<AssistantWorkspaceDrawerProps> =
 
         </div>
 
-        {/* Handle tab — hangs below the content. A single accent pill that
-            reads as both a button (click to toggle) and a drag handle (pull
-            down to open / up to close). When the drawer is open it softens so
-            it doesn't dominate the panel. */}
-        <div className="pointer-events-none relative flex shrink-0 justify-center">
-          <div
-            className="absolute inset-0 z-0 bg-background transition-opacity duration-300 motion-reduce:transition-none"
-            style={{ opacity: Math.min(openProgress * 1.5, 1) }}
-          />
-          <div
-            className={cn(
-              'pointer-events-auto relative z-10 flex cursor-grab touch-none select-none items-center gap-1.5 rounded-b-xl border border-t-0 px-4 py-1.5 text-xs font-semibold transition-all duration-200 motion-reduce:transition-none active:cursor-grabbing',
-              'outline-none focus-visible:ring-2 focus-visible:ring-brand/70 focus-visible:ring-offset-1 focus-visible:ring-offset-background',
-              openProgress > 0.5
-                ? 'border-border/40 bg-background/90 text-muted-foreground shadow-sm backdrop-blur hover:text-foreground'
-                : 'border-brand-dark/20 bg-brand text-brand-foreground shadow-lg hover:bg-brand-dark',
-              showHandleHint && openProgress < 0.5 && 'drawer-handle-bob',
-            )}
-            onPointerDown={handlePointerDown}
-            onKeyDown={handleHandleKeyDown}
-            role="button"
-            aria-label={open ? t('assistant.drawer.pushToClose') : t('assistant.drawer.pullToOpen')}
-            aria-expanded={open}
-            tabIndex={0}
-          >
-            <Bot className="size-3.5 shrink-0" aria-hidden="true" />
-            {/* The handle is the only affordance people see when the drawer is
-                shut, so it says what opening it gives you rather than naming the
-                panel. Same threshold the chevron below uses, so the word and the
-                arrow always agree. */}
-            <span className="tracking-wide">
-              {openProgress > 0.5
-                ? t('assistant.drawer.labelOpen')
-                : t('assistant.drawer.labelClosed')}
-            </span>
-            {openProgress > 0.5 ? (
-              <ChevronUp className="size-3.5 shrink-0" aria-hidden="true" />
-            ) : (
-              <ChevronDown className="size-3.5 shrink-0" aria-hidden="true" />
-            )}
-          </div>
-        </div>
       </section>
+
+      {/* Trigger pill — floats at the bottom centre in both states; only the
+          sheet behind it moves. Click toggles, drag up opens / down closes. */}
+      <div className="pointer-events-none absolute inset-x-0 bottom-3 z-[45] flex justify-center">
+        <div
+          className={cn(
+            'pointer-events-auto flex h-9 cursor-pointer touch-none select-none items-center gap-2 rounded-full border border-border/70 pl-1.5 pr-4 text-[13px] font-medium',
+            'shadow-[0_1px_2px_rgba(0,0,0,0.06),0_8px_24px_-10px_rgba(0,0,0,0.25)] backdrop-blur-md',
+            'transition-[transform,background-color,border-color,color] duration-150 ease-out active:scale-[0.97] motion-reduce:transition-none',
+            'outline-none focus-visible:ring-2 focus-visible:ring-brand/60 focus-visible:ring-offset-2 focus-visible:ring-offset-background',
+            openProgress > 0.5
+              ? 'bg-background text-muted-foreground hover:text-foreground'
+              : 'bg-background/85 text-foreground hover:border-brand/40',
+            showHandleHint && openProgress < 0.5 && 'drawer-handle-bob',
+          )}
+          onPointerDown={handlePointerDown}
+          onKeyDown={handleHandleKeyDown}
+          role="button"
+          aria-label={open ? t('assistant.drawer.pushToClose') : t('assistant.drawer.pullToOpen')}
+          aria-expanded={open}
+          tabIndex={0}
+        >
+          {/* The icon names where a click takes you: the assistant, or back to the model. */}
+          <span
+            className={cn(
+              'flex size-6 shrink-0 items-center justify-center rounded-full transition-colors duration-150',
+              openProgress > 0.5 ? 'bg-muted text-muted-foreground' : 'bg-brand/10 text-brand',
+            )}
+            aria-hidden="true"
+          >
+            {openProgress > 0.5 ? <ChevronDown className="size-3.5" /> : <Bot className="size-3.5" />}
+          </span>
+          <span>
+            {openProgress > 0.5 ? t('assistant.drawer.labelOpen') : t('assistant.drawer.labelClosed')}
+          </span>
+        </div>
+      </div>
 
       {/* ── Bring-your-own-key dialog ── */}
       <AssistantByokDialog open={byokOpen} onOpenChange={setByokOpen} client={assistantClient} />
