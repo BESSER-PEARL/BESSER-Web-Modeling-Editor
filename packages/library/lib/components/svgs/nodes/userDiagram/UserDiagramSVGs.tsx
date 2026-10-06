@@ -11,6 +11,7 @@ import { CustomText } from "@/components/svgs/nodes/CustomText"
 import { RowBlockSection } from "@/components/svgs/nodes/RowBlockSection"
 import { useDiagramStore } from "@/store"
 import { useShallow } from "zustand/shallow"
+import { useSettingsStore } from "@/store/settingsStore"
 import AssessmentIcon from "@/components/svgs/AssessmentIcon"
 import { getCustomColorsFromData } from "@/utils"
 import {
@@ -28,14 +29,10 @@ import { diagramBridge } from "@/services/diagramBridge"
  *     Renders a v3-`UMLUserModelName`-shaped node: underlined header
  *     showing the resolved linked-class name (see
  *     `resolveUserModelHeaderLabel`), then the attribute rows below.
- *     Visibility symbols are NOT rendered (unlike Class rows). The
- *     icon/table split is derived from the per-node `data.view`
- *     (`"icon"` when unset — v3's preferred UserDiagram preview; opt into
- *     the attribute table with an explicit `view: "attributes"`). This is
- *     intentionally NOT tied to the shared `showIconView` setting exposed
- *     in the Display settings panel — that toggle is scoped to
- *     ObjectDiagram ("Render objects with their class icon instead of the
- *     attribute table"), not UserDiagram.
+ *     Visibility symbols are NOT rendered (unlike Class rows). Like v3
+ *     `UMLUserModelName.render`, the icon view is used only when the
+ *     global `showIconView` setting is on AND an icon body is available;
+ *     otherwise the attribute table is shown.
  *
  *  2. `UserModelIconSVG` — small icon preview (legacy palette entry).
  *
@@ -60,14 +57,7 @@ interface UserModelNameSVGData {
   strokeColor?: string
   textColor?: string
   attributes: ClassNodeElement[]
-  /**
-   * Per-node render mode. `"icon"` (default, applied when unset) renders
-   * the person/class glyph — matches the v3 fork's preferred UserDiagram
-   * preview. `"attributes"` shows the underlined header + attribute
-   * table. `versionConverter.ts` normalises absent `view` to `"icon"` on
-   * v3->v4 migration and round-trips an explicit `"attributes"` value
-   * untouched.
-   */
+  /** Legacy per-node mode; ignored — the global `showIconView` decides. */
   view?: "icon" | "attributes"
 }
 
@@ -76,36 +66,22 @@ interface UserModelNameSVGProps extends SVGComponentProps {
 }
 
 /**
- * Hardcoded fallback person SVG used when the linked
- * class has no `icon` and the node hasn't been seeded with one (e.g. an
- * `Alice : User` node where the `User` meta-class supplies its own icon
- * is preferred — this fallback fires only when nothing is available).
- *
- * Ported verbatim from the v3 user-metamodel `User` class entry at
- * `v3 source: user-modeling/usermetamodel_buml_short.json`
- * (the `fluent` person glyph).
+ * Resolve the SVG body for icon view: the node's own `data.icon`, else the
+ * linked meta-class's icon (palette previews). `undefined` when neither
+ * exists — v3 then fell back to the attribute table.
  */
-const FALLBACK_PERSON_ICON_SVG = `<svg xmlns="http://www.w3.org/2000/svg" width="96" height="96" viewBox="0 0 20 20"><g fill="none"><path fill="url(#fluentColorPerson200)" d="M5.009 11A2 2 0 0 0 3 13c0 1.691.833 2.966 2.135 3.797C6.417 17.614 8.145 18 10 18s3.583-.386 4.865-1.203C16.167 15.967 17 14.69 17 13a2 2 0 0 0-2-2z" /><path fill="url(#fluentColorPerson201)" d="M5.009 11A2 2 0 0 0 3 13c0 1.691.833 2.966 2.135 3.797C6.417 17.614 8.145 18 10 18s3.583-.386 4.865-1.203C16.167 15.967 17 14.69 17 13a2 2 0 0 0-2-2z" /><path fill="url(#fluentColorPerson202)" d="M10 2a4 4 0 1 0 0 8a4 4 0 0 0 0-8" /><defs><linearGradient id="fluentColorPerson200" x1="6.329" x2="8.591" y1="11.931" y2="19.153" gradientUnits="userSpaceOnUse"><stop offset=".125" stop-color="#5baad0" /><stop offset="1" stop-color="#282233" /></linearGradient><linearGradient id="fluentColorPerson201" x1="10" x2="13.167" y1="10.167" y2="22" gradientUnits="userSpaceOnUse"><stop stop-color="#537fff" stop-opacity="0" /><stop offset="1" stop-color="#e362f8" /></linearGradient><linearGradient id="fluentColorPerson202" x1="7.902" x2="11.979" y1="3.063" y2="9.574" gradientUnits="userSpaceOnUse"><stop offset=".125" stop-color="#5baad0" /><stop offset="1" stop-color="#282233" /></linearGradient></defs></g></svg>`
-
-/**
- * Resolve the SVG body to render in icon view. Preference order:
- *   1. The node's own `data.icon` (set by the inspector, migrator, or
- *      seeded by a palette drop).
- *   2. The linked meta-class's icon, looked up by `className` from the
- *      user-meta-model JSON — keeps icon parity when the user picks a
- *      class but no icon body has been frozen onto the node yet.
- *   3. The hardcoded fallback person glyph.
- */
-function resolveIconBody(data: UserModelNameSVGData): string {
-  const direct = typeof data.icon === "string" ? data.icon.trim() : ""
-  if (direct) return data.icon as string
+export function resolveUserModelIconBody(data: {
+  icon?: string
+  className?: string
+}): string | undefined {
+  if (typeof data.icon === "string" && data.icon.trim() !== "") return data.icon
   if (data.className) {
     const match = getUserMetaModelClasses().find(
       (c) => c.name === data.className
     )
-    if (match?.icon) return match.icon
+    if (match?.icon && match.icon.trim() !== "") return match.icon
   }
-  return FALLBACK_PERSON_ICON_SVG
+  return undefined
 }
 
 /**
@@ -168,19 +144,14 @@ export const UserModelNameSVG: FC<UserModelNameSVGProps> = ({
   const scaledHeight = height * (SIDEBAR_PREVIEW_SCALE ?? 1)
   const { fillColor, strokeColor, textColor } = getCustomColorsFromData(data)
 
-  // Icon/table split comes from the per-node `data.view`,
-  // defaulting to `"icon"` when unset (v3's preferred UserDiagram
-  // preview — see the `view` doc comment above). Unlike ObjectName, no
-  // `hasIcon` gate is needed here: `resolveIconBody` below always
-  // resolves to a renderable body (direct icon -> linked meta-class icon
-  // -> hardcoded person-glyph fallback), so there is no blank-icon-box
-  // case to guard against.
-  const view = data.view ?? "icon"
-  const iconViewActive = view === "icon"
+  // v3 parity (`UMLUserModelName.render`): icon view only when the global
+  // setting is on and an icon body exists; otherwise the attribute table.
+  const showIconView = useSettingsStore((s) => s.showIconView)
+  const iconBody = resolveUserModelIconBody(data)
+  const iconViewActive = showIconView && iconBody !== undefined
   // v3 parity: header shows the resolved class name, not the instance
   // name — see `resolveUserModelHeaderLabel`.
   const headerLabel = resolveUserModelHeaderLabel(data)
-  const iconBody = resolveIconBody(data)
 
   return (
     <svg
@@ -229,8 +200,8 @@ export const UserModelNameSVG: FC<UserModelNameSVGProps> = ({
 
         {/* When icon view is active, drop a person /
             class glyph into the body of the node. The icon body is
-            resolved from `data.icon` → linked meta-class icon →
-            hardcoded fallback (see `resolveIconBody`). The v3 fork
+            resolved from `data.icon` → linked meta-class icon (see
+            `resolveUserModelIconBody`). The v3 fork
             stored inline SVG markup, so `dangerouslySetInnerHTML` is
             still the right path. */}
         {iconViewActive && (
@@ -299,9 +270,6 @@ export const UserModelNameSVG: FC<UserModelNameSVGProps> = ({
  * Static palette preview (kept for backward compat with code paths that
  * import `UserModelNameSVG` directly). The dynamic palette entries below
  * are the primary path; this is the fallback "Alice : User" card.
- *
- * Defaults to `view: "icon"` so the palette ghost
- * shows the person glyph (matches the v3 fork's preferred preview).
  */
 export const UserModelStaticPreviewSVG: FC<SVGComponentProps> = ({
   width,
@@ -319,7 +287,6 @@ export const UserModelStaticPreviewSVG: FC<SVGComponentProps> = ({
       name: "Alice",
       className: "User",
       attributes: [],
-      view: "icon",
     }}
   />
 )
@@ -390,10 +357,6 @@ function makeUserModelPaletteSVG(
           id: `__preview_${className}_${i}__`,
           name: `${n} =`,
         })),
-        // Palette ghosts render the icon view so the
-        // user sees the person/class glyph at drag time, matching the
-        // v3 preferred preview.
-        view: "icon",
       }}
     />
   )

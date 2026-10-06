@@ -3,6 +3,7 @@ import { ClassType } from "@/types"
 import { useShallow } from "zustand/shallow"
 import { useDiagramStore } from "@/store"
 import { PrimaryButton } from "./PrimaryButton"
+import { useTranslation } from "@/i18n"
 
 interface StereotypeButtonGroupProps {
   nodeId: string
@@ -17,6 +18,13 @@ const stereotypes: ClassType[] = [
   ClassType.Enumeration,
 ]
 
+// develop `uml-classifier-update.tsx` labels.
+const STEREOTYPE_LABEL_KEYS: Record<ClassType, string> = {
+  [ClassType.Abstract]: "packages.ClassDiagram.AbstractClass",
+  [ClassType.Interface]: "packages.ClassDiagram.Interface",
+  [ClassType.Enumeration]: "packages.ClassDiagram.Enumeration",
+}
+
 const buttonGroupStyle: React.CSSProperties = {
   display: "flex",
 }
@@ -25,6 +33,7 @@ export const StereotypeButtonGroup: React.FC<StereotypeButtonGroupProps> = ({
   nodeId,
   selectedStereotype,
 }) => {
+  const { t } = useTranslation()
   const { setNodes } = useDiagramStore(
     useShallow((state) => ({ setNodes: state.setNodes }))
   )
@@ -71,7 +80,7 @@ export const StereotypeButtonGroup: React.FC<StereotypeButtonGroupProps> = ({
           isSelected={selectedStereotype === stereotype}
           onClick={() => handleStereotypeChange(stereotype)}
         >
-          {stereotype}
+          {t(STEREOTYPE_LABEL_KEYS[stereotype], stereotype)}
         </PrimaryButton>
       ))}
     </div>

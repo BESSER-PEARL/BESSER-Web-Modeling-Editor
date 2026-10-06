@@ -105,13 +105,30 @@ export const parseLegacyNameFormat = (
  * render `name = value` (or just `name` when no value is present) with no
  * `+/-/#/~` symbol and no `{id}` markers. Mirrors v3
  * `UMLObjectAttribute.displayName` (`uml-object-attribute.ts:23-25`).
+ *
+ * String attributes (`str` / `string`, or no type — v3's
+ * `UMLObjectAttribute.attributeType` defaulted to `'str'`) quote the value,
+ * `name = "value"` (`name = ""` when empty), like develop's
+ * `uml-classifier-member-component.tsx` `isStringAttribute` branch.
  */
 export const formatObjectMember = (
   member: ClassifierMemberLike & { value?: unknown }
 ): string => {
-  const hasValue =
-    member.value !== undefined && member.value !== null && member.value !== ""
-  return hasValue ? `${member.name} = ${member.value}` : member.name
+  const type = member.attributeType
+  const isString = !type || type === "str" || type === "string"
+  let name = member.name ?? ""
+  let value = member.value
+  // A legacy fused `name = value` row carries the value in the name.
+  const eqIndex = name.indexOf(" = ")
+  if (eqIndex !== -1 && (value === undefined || value === null)) {
+    value = name.substring(eqIndex + 3)
+    name = name.substring(0, eqIndex)
+  }
+  if (isString) {
+    return `${name} = "${value === undefined || value === null ? "" : String(value)}"`
+  }
+  const hasValue = value !== undefined && value !== null && value !== ""
+  return hasValue ? `${name} = ${value}` : name
 }
 
 /**
@@ -145,6 +162,12 @@ export const formatDisplayName = (
       ? ` = ${member.defaultValue}`
       : ""
 
+  // Structured parameters also mark a method row.
+  const hasParameters = (member.parameters?.length ?? 0) > 0
+  if ((isMethod || hasParameters) && stereotype !== "Enumeration") {
+    return formatMethodDisplayName(member, mode, visSymbol)
+  }
+
   // Defensively strip a leading visibility symbol
   // and a trailing `: <type>` from the *raw* name when the structured
   // `attributeType` is also present. Legacy palette defaults shipped a
@@ -168,32 +191,6 @@ export const formatDisplayName = (
     /:\s*[^:]+$/.test(bareName)
   ) {
     bareName = bareName.replace(/\s*:\s*[^:]+$/, "")
-  }
-  // A legacy fused method signature can also carry its return type
-  // ("notify(sms: str): any"); the structured type is appended below, so
-  // drop the trailing one to avoid "…): any: any".
-  if (member.attributeType && /\)\s*:\s*[^():]+$/.test(bareName)) {
-    bareName = bareName.replace(/\)\s*:\s*[^():]+$/, ")")
-  }
-
-  // Method rows authored through the v4 inspector store a bare `name`
-  // plus structured `parameters[]` — rebuild the `(p: type, …)` segment
-  // so the canvas renders the full signature, matching develop where the
-  // fused name string ("notify(channel: str)") carried it implicitly.
-  // Legacy fused names (already containing `(`) are left untouched.
-  if (
-    member.parameters &&
-    member.parameters.length > 0 &&
-    !bareName.includes("(")
-  ) {
-    const paramList = member.parameters
-      .map((p) => (p.parameterType ? `${p.name}: ${p.parameterType}` : p.name))
-      .join(", ")
-    bareName = `${bareName}(${paramList})`
-  } else if (isMethod && bareName && !bareName.includes("(")) {
-    // A parameterless method still reads as a method ("+ reset(): any"),
-    // not as an attribute ("+ reset: any").
-    bareName = `${bareName}()`
   }
 
   // Enumeration literals are bare names — no
@@ -226,12 +223,50 @@ export const formatDisplayName = (
     const idSuffix = idMarkers.length > 0 ? ` {${idMarkers.join(", ")}}` : ""
     return `${visSymbol} ${derivedPrefix}${bareName}${optionalMarker}: ${member.attributeType}${defaultSuffix}${idSuffix}`
   }
-  // A method without a return type still shows its visibility ("- reset()").
-  if (isMethod && bareName && member.visibility !== undefined) {
-    return `${visSymbol} ${bareName}`
-  }
   // Fallback to name for backward compatibility or simple display
   return bareName
+}
+
+/**
+ * Method rows, mirroring develop's `UMLClassifierMethod.displayName`:
+ *  - a legacy fused name that starts with a visibility symbol
+ *    ("+ decrease_stock(qty: int)") renders verbatim — its stored
+ *    `attributeType` is not appended (templates carry junk such as
+ *    `"int): any"` there);
+ *  - otherwise the signature always gets `()` (or the structured
+ *    `parameters[]`), and the return type is appended only when the name
+ *    does not already declare one after its `)`.
+ */
+const formatMethodDisplayName = (
+  member: ClassifierMemberLike,
+  mode: "UML" | "ER",
+  visSymbol: string
+): string => {
+  const raw = member.name ?? ""
+  if (/^[+\-#~]\s/.test(raw)) {
+    return mode === "ER" ? raw.replace(/^[+\-#~]\s+/, "") : raw
+  }
+  let signature = raw
+  // Legacy "name: type" method row without parentheses.
+  if (member.attributeType && !signature.includes("(") && /:\s*[^:]+$/.test(signature)) {
+    signature = signature.replace(/\s*:\s*[^:]+$/, "")
+  }
+  if (!signature) return signature
+  // Inspector-authored rows store a bare name + structured parameters.
+  if (!signature.includes("(")) {
+    const paramList = (member.parameters ?? [])
+      .map((p) => (p.parameterType ? `${p.name}: ${p.parameterType}` : p.name))
+      .join(", ")
+    signature = `${signature}(${paramList})`
+  }
+  const declaresType = signature
+    .substring(signature.lastIndexOf(")") + 1)
+    .trim()
+    .startsWith(":")
+  const returnType =
+    !declaresType && member.attributeType ? `: ${member.attributeType}` : ""
+  if (mode === "ER") return `${signature}${returnType}`
+  return `${visSymbol} ${signature}${returnType}`
 }
 
 /* -------------------------------------------------------------------------- */

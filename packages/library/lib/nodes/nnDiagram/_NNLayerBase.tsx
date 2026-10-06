@@ -176,8 +176,12 @@ export function NNLayerBase({
 
   if (!width || !height) return null
 
-  const { fillColor, strokeColor, textColor } = getCustomColorsFromData(data)
-  const fill = !data.fillColor && defaultFill ? defaultFill : fillColor
+  const { fillColor, strokeColor, textColor: themeTextColor } =
+    getCustomColorsFromData(data)
+  const usesKindFill = !data.fillColor && !!defaultFill
+  const fill = usesKindFill ? defaultFill : fillColor
+  // Kind fills are light pastels, so their text stays dark in dark mode too.
+  const textColor = usesKindFill && !data.textColor ? "#1f2937" : themeTextColor
   const cornerRadius = 6
   const iconFile = NN_LAYER_ICON_FILES[nodeType]
   const hasIcon = !!iconFile

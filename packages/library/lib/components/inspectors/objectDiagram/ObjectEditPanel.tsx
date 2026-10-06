@@ -479,6 +479,9 @@ export const ObjectEditPanel: React.FC<PopoverProps> = ({ elementId }) => {
     return m
   }, [nodes])
 
+  // Declared before the early return (Rules of Hooks).
+  const [newAttrName, setNewAttrName] = useState("")
+
   if (!node) return null
   const nodeData = node.data as ObjectNodeProps
 
@@ -648,7 +651,6 @@ export const ObjectEditPanel: React.FC<PopoverProps> = ({ elementId }) => {
     )
   }
 
-  const [newAttrName, setNewAttrName] = useState("")
   const onAttrKey = (e: KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter") {
       addAttribute(newAttrName)

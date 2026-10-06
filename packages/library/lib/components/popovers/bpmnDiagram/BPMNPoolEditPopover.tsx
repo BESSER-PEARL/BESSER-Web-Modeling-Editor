@@ -73,13 +73,30 @@ export const BPMNPoolEditPopover = ({ elementId }: PopoverProps) => {
     )
   }
 
+  // Positions are parent-relative, so every reparent below shifts the child
+  // by the lane's offset inside the pool to keep it where it was on screen.
   const deleteLane = (laneId: string) =>
-    setNodes((ns) =>
-      ns
-        // Reparent the lane's children back onto the pool before removing it.
-        .map((n) => (n.parentId === laneId ? { ...n, parentId: elementId } : n))
-        .filter((n) => n.id !== laneId)
-    )
+    setNodes((ns) => {
+      const lane = ns.find((n) => n.id === laneId)
+      const offset = lane?.position ?? { x: 0, y: 0 }
+      return (
+        ns
+          // Reparent the lane's children back onto the pool before removing it.
+          .map((n) =>
+            n.parentId === laneId
+              ? {
+                  ...n,
+                  parentId: elementId,
+                  position: {
+                    x: n.position.x + offset.x,
+                    y: n.position.y + offset.y,
+                  },
+                }
+              : n
+          )
+          .filter((n) => n.id !== laneId)
+      )
+    })
 
   const addLane = () => {
     const name =
@@ -111,7 +128,14 @@ export const BPMNPoolEditPopover = ({ elementId }: PopoverProps) => {
         // Reparent all existing direct pool children onto the new first lane.
         next = next.map((n) =>
           n.parentId === elementId && n.id !== newLaneId
-            ? { ...n, parentId: newLaneId }
+            ? {
+                ...n,
+                parentId: newLaneId,
+                position: {
+                  x: n.position.x - newLane.position.x,
+                  y: n.position.y - newLane.position.y,
+                },
+              }
             : n
         )
       }

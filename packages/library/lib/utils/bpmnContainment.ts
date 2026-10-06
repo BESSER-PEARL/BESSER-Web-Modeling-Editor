@@ -20,7 +20,8 @@
  *  - Only top-level nodes (no `parentId`) are considered; already-parented
  *    nodes are never touched. Hence the pass is idempotent.
  *  - Containers: `bpmnPool`, `bpmnSwimlane`, and expanded `bpmnSubprocess` /
- *    `bpmnTransaction` (`data.isExpanded !== false`). Call activities and
+ *    `bpmnTransaction` (`data.isExpanded === true`; unset means collapsed,
+ *    develop's default). Call activities and
  *    groups are not containers (old editor: CallActivity `droppable: false`;
  *    a group is a cross-cutting artifact).
  *  - A node is adopted by the smallest container whose bounds fully contain
@@ -67,7 +68,7 @@ const isContainer = (n: BesserNode): boolean => {
   const type = n.type as string
   if (type === "bpmnPool" || type === "bpmnSwimlane") return true
   if (EXPANDABLE_CONTAINER_TYPES.has(type)) {
-    return (n.data as { isExpanded?: unknown } | undefined)?.isExpanded !== false
+    return (n.data as { isExpanded?: unknown } | undefined)?.isExpanded === true
   }
   return false
 }

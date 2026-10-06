@@ -1766,16 +1766,16 @@ function convertV3NodeDataToV4(
             (c) =>
               c.owner === element.id && c.type === "UserModelIcon"
           ) as { icon?: string } | undefined
-          if (e.icon) return { icon: e.icon }
+          // v3 `UMLUserModelName.serialize` stores the icon CHILD's id in
+          // `icon`; the SVG body lives on the UserModelIcon child (same as
+          // ObjectName). Only accept an inline `icon` that is SVG markup.
           if (iconChild?.icon) return { icon: iconChild.icon }
+          if (e.icon && e.icon.trim().startsWith("<")) return { icon: e.icon }
           return {}
         })(),
-        // Per-node render mode. v3 fixtures never
-        // carry an explicit `view`, so default migrated UserModelName
-        // nodes to `"icon"` to match the v3 fork's preferred preview.
-        // A v4 fixture that already stamps `view: "attributes"` is
-        // preserved verbatim.
-        view: e.view ?? "icon",
+        // Icon vs table follows the global `showIconView` setting (v3
+        // parity); an explicit stored `view` is preserved for round-trips.
+        ...(e.view && { view: e.view }),
       }
     }
 

@@ -35,12 +35,17 @@ export function NNContainer({
   // containers by name, so two 'Neural_Network' containers silently
   // drop a whole NN. Same dedupe as layer cards.
   useUniqueNNName(id, "NNContainer")
+  const hasChildren = useDiagramStore((s) =>
+    s.nodes.some((n) => n.parentId === id)
+  )
 
   if (!width || !height) return null
 
-  const { fillColor, strokeColor, textColor } = getCustomColorsFromData(data)
+  // Theme-aware default fill (develop's ThemedRect), so the theme-coloured
+  // text stays readable in dark mode.
+  const { fillColor: containerFill, strokeColor, textColor } =
+    getCustomColorsFromData(data)
   const { name } = data
-  const containerFill = !data.fillColor ? "#FFFFFF" : fillColor
   const borderWidth = LAYOUT.LINE_WIDTH
 
   // Tab metrics — fits the name plus a little side padding. The body
@@ -56,9 +61,6 @@ export function NNContainer({
   const tabWidth = Math.min(width - 8, namePadding + approxNameWidth)
   const bodyTop = tabHeight
 
-  const hasChildren = useDiagramStore((s) =>
-    s.nodes.some((n) => n.parentId === id)
-  )
   const hintLines = [
     "Drag Layers and TensorOps here",
     "Connect layers and tensorOps",

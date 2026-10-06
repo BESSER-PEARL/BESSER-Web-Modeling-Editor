@@ -233,6 +233,20 @@ export const ClassEdgeEditPanel: React.FC<PopoverProps> = ({ elementId }) => {
     updateData({ [key]: value })
   }
 
+  // develop opened its plain `DefaultRelationshipPopup` (colours only) for
+  // OCL links and association-class links — no name, type, ends or flip.
+  if (edge.type === "ClassOCLLink" || edge.type === "ClassLinkRel") {
+    return (
+      <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
+        <EdgeStyleEditor
+          edgeData={data}
+          handleDataFieldUpdate={handleStyleFieldUpdate}
+          label={t("popup.relationship", "Relationship")}
+        />
+      </Box>
+    )
+  }
+
   return (
     <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
       {/* Color editor + flip action — matches v3 layout */}
@@ -266,33 +280,28 @@ export const ClassEdgeEditPanel: React.FC<PopoverProps> = ({ elementId }) => {
         />
       )}
 
-      {/* Hide the type-picker for auto-detected types
-          (ClassOCLLink, ClassLinkRel). For regular associations the
-          user can still choose between the seven canonical kinds. */}
-      {edge.type !== "ClassOCLLink" && edge.type !== "ClassLinkRel" && (
-        <Select
-          size="small"
-          value={normalizeAssociationType(edge.type) ?? "ClassBidirectional"}
-          onChange={(e) => handleEdgeTypeChange(String(e.target.value))}
-        >
-          {EDGE_TYPE_OPTIONS.map((option) => (
-            <MenuItem key={option.value} value={option.value}>
-              {t(option.key, option.label)}
+      <Select
+        size="small"
+        value={normalizeAssociationType(edge.type) ?? "ClassBidirectional"}
+        onChange={(e) => handleEdgeTypeChange(String(e.target.value))}
+      >
+        {EDGE_TYPE_OPTIONS.map((option) => (
+          <MenuItem key={option.value} value={option.value}>
+            {t(option.key, option.label)}
+          </MenuItem>
+        ))}
+        {/* Legacy kinds (aggregation, realization, dependency) are not
+            authorable any more but must still show in the picker when
+            an edge already carries one. */}
+        {!EDGE_TYPE_OPTIONS.some(
+          (o) => o.value === normalizeAssociationType(edge.type)
+        ) &&
+          edge.type && (
+            <MenuItem value={edge.type}>
+              {t(`packages.ClassDiagram.${edge.type}`, edge.type)}
             </MenuItem>
-          ))}
-          {/* Legacy kinds (aggregation, realization, dependency) are not
-              authorable any more but must still show in the picker when
-              an edge already carries one. */}
-          {!EDGE_TYPE_OPTIONS.some(
-            (o) => o.value === normalizeAssociationType(edge.type)
-          ) &&
-            edge.type && (
-              <MenuItem value={edge.type}>
-                {t(`packages.ClassDiagram.${edge.type}`, edge.type)}
-              </MenuItem>
-            )}
-        </Select>
-      )}
+          )}
+      </Select>
 
       {!isInheritance && (
         <>

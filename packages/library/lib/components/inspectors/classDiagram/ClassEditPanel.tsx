@@ -13,7 +13,13 @@ import {
   TextField as MuiTextField,
   Tooltip,
 } from "@mui/material"
-import React, { useMemo, useState, ChangeEvent, KeyboardEvent } from "react"
+import React, {
+  useMemo,
+  useRef,
+  useState,
+  ChangeEvent,
+  KeyboardEvent,
+} from "react"
 import { useShallow } from "zustand/shallow"
 import CodeMirror from "@uiw/react-codemirror"
 import { python } from "@codemirror/lang-python"
@@ -262,6 +268,15 @@ const useUpdateNode = (elementId: string) => {
 const isPrimitiveType = (t: string | undefined): boolean =>
   !!t && PRIMITIVE_TYPES.some((p) => p.value === t)
 
+/** develop `onSubmitKeyUp`: Enter in a row's name field moves to the next row. */
+const submitOnEnter =
+  (onSubmit?: () => void) => (e: KeyboardEvent<HTMLDivElement>) => {
+    if (e.key === "Enter" && onSubmit) {
+      e.preventDefault()
+      onSubmit()
+    }
+  }
+
 /* -------------------------------------------------------------------------- */
 /* Attribute row                                                               */
 /* -------------------------------------------------------------------------- */
@@ -288,6 +303,10 @@ interface AttributeRowProps {
    * dropdown columns. Just the name + delete remain.
    */
   isEnumerationParent?: boolean
+  /** Ref to the name input (keyboard row navigation). */
+  nameInputRef?: React.Ref<HTMLInputElement>
+  /** Enter in the name field — focus the next row (develop `onSubmitKeyUp`). */
+  onSubmitKeyUp?: () => void
 }
 
 const AttributeRow: React.FC<AttributeRowProps> = ({
@@ -300,6 +319,8 @@ const AttributeRow: React.FC<AttributeRowProps> = ({
   onMoveUp,
   onMoveDown,
   isEnumerationParent = false,
+  nameInputRef,
+  onSubmitKeyUp,
 }) => {
   const { t } = useTranslation()
   const visibility = row.visibility ?? "public"
@@ -414,6 +435,8 @@ const AttributeRow: React.FC<AttributeRowProps> = ({
               : t("popup.attribute.shorthandPlaceholder", "+ attribute: type")
           }
           value={nameDraft ?? row.name}
+          inputRef={nameInputRef}
+          onKeyDown={submitOnEnter(onSubmitKeyUp)}
           onChange={(e) => {
             const raw = e.target.value
             setNameDraft(raw)
@@ -742,6 +765,10 @@ interface MethodRowProps {
   /** Reorder gutter callbacks; undefined hides the button. */
   onMoveUp?: () => void
   onMoveDown?: () => void
+  /** Ref to the name input (keyboard row navigation). */
+  nameInputRef?: React.Ref<HTMLInputElement>
+  /** Enter in the name field — focus the next row (develop `onSubmitKeyUp`). */
+  onSubmitKeyUp?: () => void
 }
 
 const MethodRow: React.FC<MethodRowProps> = ({
@@ -755,6 +782,8 @@ const MethodRow: React.FC<MethodRowProps> = ({
   onDelete,
   onMoveUp,
   onMoveDown,
+  nameInputRef,
+  onSubmitKeyUp,
 }) => {
   const { t } = useTranslation()
   const visibility = row.visibility ?? "public"
@@ -843,6 +872,8 @@ const MethodRow: React.FC<MethodRowProps> = ({
             "method(param: type): returnType"
           )}
           value={nameDraft ?? row.name}
+          inputRef={nameInputRef}
+          onKeyDown={submitOnEnter(onSubmitKeyUp)}
           // When the method is implemented in code/BAL the signature is
           // extracted from the `def` line and the field is read-only
           // (v3 `isSignatureLocked`).
@@ -1119,52 +1150,77 @@ const MethodRow: React.FC<MethodRowProps> = ({
             </MenuItem>
           ))}
         </Select>
-        {implementationType === "state_machine" && (
-          <Select
-            size="small"
-            value={row.stateMachineId ?? ""}
-            displayEmpty
-            onChange={(e) =>
-              onPatch({ stateMachineId: String(e.target.value) })
-            }
-            sx={{ minWidth: 160 }}
-          >
-            <MenuItem value="">
-              {t(
-                "popup.method.selectStateMachine",
-                "-- Select State Machine --"
-              )}
-            </MenuItem>
-            {stateMachines.map((sm) => (
-              <MenuItem key={sm.id} value={sm.id}>
-                {sm.name}
+        {implementationType === "state_machine" &&
+          (stateMachines.length > 0 ? (
+            <Select
+              size="small"
+              value={row.stateMachineId ?? ""}
+              displayEmpty
+              onChange={(e) =>
+                onPatch({ stateMachineId: String(e.target.value) })
+              }
+              sx={{ minWidth: 160 }}
+            >
+              <MenuItem value="">
+                {t(
+                  "popup.method.selectStateMachine",
+                  "-- Select State Machine --"
+                )}
               </MenuItem>
-            ))}
-          </Select>
-        )}
-        {implementationType === "quantum_circuit" && (
-          <Select
-            size="small"
-            value={row.quantumCircuitId ?? ""}
-            displayEmpty
-            onChange={(e) =>
-              onPatch({ quantumCircuitId: String(e.target.value) })
-            }
-            sx={{ minWidth: 160 }}
-          >
-            <MenuItem value="">
-              {t(
-                "popup.method.selectQuantumCircuit",
-                "-- Select Quantum Circuit --"
+              {stateMachines.map((sm) => (
+                <MenuItem key={sm.id} value={sm.id}>
+                  {sm.name}
+                </MenuItem>
+              ))}
+            </Select>
+          ) : (
+            <Typography
+              variant="caption"
+              title={t(
+                "popup.method.createStateMachineFirst",
+                "Create a State Machine diagram in your project first"
               )}
-            </MenuItem>
-            {quantumCircuits.map((qc) => (
-              <MenuItem key={qc.id} value={qc.id}>
-                {qc.name}
+            >
+              {t("popup.method.noStateMachines", "No state machines available")}
+            </Typography>
+          ))}
+        {implementationType === "quantum_circuit" &&
+          (quantumCircuits.length > 0 ? (
+            <Select
+              size="small"
+              value={row.quantumCircuitId ?? ""}
+              displayEmpty
+              onChange={(e) =>
+                onPatch({ quantumCircuitId: String(e.target.value) })
+              }
+              sx={{ minWidth: 160 }}
+            >
+              <MenuItem value="">
+                {t(
+                  "popup.method.selectQuantumCircuit",
+                  "-- Select Quantum Circuit --"
+                )}
               </MenuItem>
-            ))}
-          </Select>
-        )}
+              {quantumCircuits.map((qc) => (
+                <MenuItem key={qc.id} value={qc.id}>
+                  {qc.name}
+                </MenuItem>
+              ))}
+            </Select>
+          ) : (
+            <Typography
+              variant="caption"
+              title={t(
+                "popup.method.createQuantumCircuitFirst",
+                "Create a Quantum Circuit diagram in your project first"
+              )}
+            >
+              {t(
+                "popup.method.noQuantumCircuits",
+                "No quantum circuits available"
+              )}
+            </Typography>
+          ))}
         {implementationType === "neural_network" &&
           (neuralNetworks.length > 0 ? (
             <Select
@@ -1415,6 +1471,16 @@ export const ClassEditPanel: React.FC<PopoverProps> = ({ elementId }) => {
   const quantumCircuitDiagrams = diagramBridge.getQuantumCircuitDiagrams()
   const neuralNetworkDiagrams = diagramBridge.getNeuralNetworkDiagrams()
 
+  // Local "add new row" inputs — declared before the early return (Rules
+  // of Hooks: a node deleted while the panel is open changed hook order).
+  const [newAttrName, setNewAttrName] = useState("")
+  const [newMethodName, setNewMethodName] = useState("")
+  // Keyboard row navigation targets (develop `attributeRefs` / `methodRefs`).
+  const attributeInputRefs = useRef<(HTMLInputElement | null)[]>([])
+  const methodInputRefs = useRef<(HTMLInputElement | null)[]>([])
+  const newAttributeInputRef = useRef<HTMLInputElement | null>(null)
+  const newMethodInputRef = useRef<HTMLInputElement | null>(null)
+
   if (!node) return null
   const nodeData = node.data as ClassNodeProps
 
@@ -1626,9 +1692,6 @@ export const ClassEditPanel: React.FC<PopoverProps> = ({ elementId }) => {
 
   /* ----- Local "add new row" inputs ------------------------------------- */
 
-  const [newAttrName, setNewAttrName] = useState("")
-  const [newMethodName, setNewMethodName] = useState("")
-
   const onAttrKey = (e: KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter") {
       addAttribute(newAttrName)
@@ -1792,6 +1855,15 @@ export const ClassEditPanel: React.FC<PopoverProps> = ({ elementId }) => {
           /* Hide visibility + type columns for
              Enumeration literals. */
           isEnumerationParent={nodeData.stereotype === "Enumeration"}
+          nameInputRef={(el) => {
+            attributeInputRefs.current[idx] = el
+          }}
+          onSubmitKeyUp={() =>
+            (idx === nodeData.attributes.length - 1
+              ? newAttributeInputRef.current
+              : attributeInputRefs.current[idx + 1]
+            )?.focus()
+          }
         />
       ))}
       <MuiTextField
@@ -1810,6 +1882,7 @@ export const ClassEditPanel: React.FC<PopoverProps> = ({ elementId }) => {
               )
         }
         value={newAttrName}
+        inputRef={newAttributeInputRef}
         onChange={onAttrChange}
         onKeyDown={onAttrKey}
         onBlur={() => {
@@ -1859,6 +1932,15 @@ export const ClassEditPanel: React.FC<PopoverProps> = ({ elementId }) => {
                   ? () => moveMethod(row.id, "down")
                   : undefined
               }
+              nameInputRef={(el) => {
+                methodInputRefs.current[idx] = el
+              }}
+              onSubmitKeyUp={() =>
+                (idx === nodeData.methods.length - 1
+                  ? newMethodInputRef.current
+                  : methodInputRefs.current[idx + 1]
+                )?.focus()
+              }
             />
           ))}
           <Stack direction="row" alignItems="center" spacing={0.5}>
@@ -1871,6 +1953,7 @@ export const ClassEditPanel: React.FC<PopoverProps> = ({ elementId }) => {
                 "+ Add method (Enter)"
               )}
               value={newMethodName}
+              inputRef={newMethodInputRef}
               onChange={onMethodChange}
               onKeyDown={onMethodKey}
               onBlur={() => {

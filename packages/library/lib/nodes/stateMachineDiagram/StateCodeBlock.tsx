@@ -86,7 +86,8 @@ export function StateCodeBlock({
             fontWeight="bold"
             fill="var(--besser-background, #ffffff)"
           >
-            {language}
+            {/* develop's header label read "Python". */}
+            {language === "python" ? "Python" : language}
           </text>
           <foreignObject
             x={0}

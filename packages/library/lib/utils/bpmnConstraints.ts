@@ -303,7 +303,8 @@ export interface MinimalNodeForCollapse {
 
 /**
  * Mirrors the old editor's `bpmn-subprocess.ts` / `bpmn-transaction.ts`
- * `render()`: when `data.isExpanded` is `false`, a Subprocess/Transaction
+ * `render()`: unless `data.isExpanded` is `true` (unset = collapsed, the
+ * old editor's default), a Subprocess/Transaction
  * renders only itself — none of its descendants. React Flow has no
  * container-collapse primitive of its own, so this derives each node's
  * `hidden` flag from whether ANY ancestor (walking the `parentId` chain) is
@@ -340,7 +341,7 @@ export const applyBpmnCollapseVisibility = <T extends MinimalNodeForCollapse>(
         const parentCollapsed =
           !!parent.type &&
           COLLAPSIBLE_BPMN_TYPES.has(parent.type) &&
-          parent.data?.isExpanded === false
+          parent.data?.isExpanded !== true
         result = parentCollapsed || isHidden(parent)
       }
     }

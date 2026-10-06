@@ -371,7 +371,7 @@ export const StateCodeBlockSVG: React.FC<SVGComponentProps> = ({
         fill="var(--besser-primary-contrast, #000)"
       />
       <text x={10} y={14} fontSize={10} fill="var(--besser-background, #ffffff)">
-        python
+        Python
       </text>
       {/*
         Palette preview shows a multi-line code snippet

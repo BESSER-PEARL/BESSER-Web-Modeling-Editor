@@ -46,8 +46,8 @@ describe("PC-4 Gap 3: formatObjectMember strips visibility / type", () => {
     expect(out).not.toContain(":")
   })
 
-  it("treats empty string value as 'no value'", () => {
-    const out = formatObjectMember({ name: "x", value: "" })
+  it("treats empty string value as 'no value' for non-string types", () => {
+    const out = formatObjectMember({ name: "x", attributeType: "int", value: "" })
     expect(out).toBe("x")
   })
 })

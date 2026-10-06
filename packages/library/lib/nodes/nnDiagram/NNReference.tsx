@@ -25,11 +25,6 @@ export function NNReference({
 }: NodeProps<Node<NNReferenceNodeProps>>) {
   const [wrapperEl, wrapperRef] = usePopoverAnchor<HTMLDivElement>()
   const isDiagramModifiable = useDiagramModifiable()
-
-  if (!width || !height) return null
-
-  const { fillColor, strokeColor, textColor } = getCustomColorsFromData(data)
-  const refFill = !data.fillColor ? "#FFFDE7" : fillColor
   // Render the REFERENCED container's name (look it up live). v3 parity:
   // the NNReference card displays "→ <container name>", not its own
   // internal label. Falls back to `data.name` only when the reference is
@@ -40,6 +35,13 @@ export function NNReference({
     if (!target) return null
     return ((target.data as { name?: string }) ?? {}).name ?? null
   })
+
+  if (!width || !height) return null
+
+  // Theme-aware default fill (develop's ThemedRect) — a hard-coded light
+  // fill made the theme-coloured text unreadable in dark mode.
+  const { fillColor: refFill, strokeColor, textColor } =
+    getCustomColorsFromData(data)
   const labelText = referencedName || data.name || "reference"
 
   return (

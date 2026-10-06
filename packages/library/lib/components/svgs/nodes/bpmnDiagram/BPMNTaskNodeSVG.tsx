@@ -20,6 +20,8 @@ export type BPMNTaskNodeSVGProps = SVGComponentProps & {
  * clear of it while staying visually centred.
  */
 const TASK_ICON_SIDE_INSET = 26 // px, per side, matches develop
+/** develop `Multiline lineHeight={16}` for task names. */
+const TASK_NAME_LINE_HEIGHT = 16
 
 export const BPMNTaskNodeSVG: React.FC<BPMNTaskNodeSVGProps> = ({
   id,
@@ -318,13 +320,11 @@ export const BPMNTaskNodeSVG: React.FC<BPMNTaskNodeSVGProps> = ({
         />
 
         {icon}
-        {/* Cap the wrapped block so it can't collide with the top-left
-            task-type icon or the bottom-center marker. Reserves are only
-            charged when the corresponding decoration is actually drawn,
-            so a plain task keeps its full vertical budget. When a type icon
-            is present, inset the name's wrap width by TASK_ICON_SIDE_INSET on
-            each side (keeps it centred but clear of the corner icon); plain
-            tasks keep the default 8px side padding. */}
+        {/* develop wraps every task name the same way (16px lines,
+            `bpmn-task-component.tsx`). The type icon is cleared by the side
+            inset (TASK_ICON_SIDE_INSET per side), not by a vertical reserve
+            — a vertical reserve left a 60px task one line. Only the
+            bottom-centre marker reserves height. */}
         <MultilineText
           text={name}
           x={width / 2}
@@ -333,11 +333,12 @@ export const BPMNTaskNodeSVG: React.FC<BPMNTaskNodeSVGProps> = ({
             icon ? Math.max(1, width - 2 * TASK_ICON_SIDE_INSET) : width - 16
           }
           fontSize={LAYOUT.NAME_FONT_SIZE}
+          lineHeight={TASK_NAME_LINE_HEIGHT}
           fontWeight="bold"
           fill={textColor}
           maxLines={maxLinesForHeight(
-            height - (taskType ? 30 : 8) - (marker ? 20 : 8),
-            19
+            height - (markerEl ? 24 : 8),
+            TASK_NAME_LINE_HEIGHT
           )}
         />
         {markerEl}

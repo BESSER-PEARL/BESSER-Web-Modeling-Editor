@@ -32,6 +32,18 @@ interface HeaderSectionProps {
   align?: "start" | "middle"
 }
 
+const CLASS_TYPE_VALUES = new Set<string>(Object.values(ClassType))
+
+/**
+ * develop stored class stereotypes lowercase (`'abstract'`, `'interface'`,
+ * `'enumeration'`) and printed them verbatim; v4 stores the `ClassType`
+ * enum value, so lowercase those. Free-form stereotypes stay as typed.
+ */
+export const formatStereotypeLabel = (stereotype?: string): string =>
+  stereotype && CLASS_TYPE_VALUES.has(stereotype)
+    ? stereotype.toLowerCase()
+    : (stereotype ?? "")
+
 export const HeaderSection: FC<HeaderSectionProps> = ({
   showStereotype,
   stereotype,
@@ -81,7 +93,7 @@ export const HeaderSection: FC<HeaderSectionProps> = ({
       >
         {showStereotype && (
           <tspan x={textX} dy="-8" fontSize="85%">
-            {`«${stereotype}»`}
+            {`«${formatStereotypeLabel(stereotype)}»`}
           </tspan>
         )}
         {/*

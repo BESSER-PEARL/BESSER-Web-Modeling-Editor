@@ -521,6 +521,7 @@ export const UserModelNameEditPanel: React.FC<PopoverProps> = ({
       <NodeStyleEditor
         nodeData={data}
         handleDataFieldUpdate={handleDataFieldUpdate}
+        showNameInputChange={false}
       />
       <DividerLine width="100%" />
 
@@ -534,10 +535,8 @@ export const UserModelNameEditPanel: React.FC<PopoverProps> = ({
       />
 
       {/* v3 parity: no class selector and no inspector-exposed
-          Icon/Attributes toggle. UserDiagram nodes default to the icon
-          glyph (`data.view` unset -> `"icon"`, see `UserDiagramSVGs.tsx`)
-          — this is intentionally independent of the shared "Show Icon
-          View" Display setting, which is scoped to ObjectDiagram. The
+          Icon/Attributes toggle — the global "Show Icon View" setting
+          decides (see `UserDiagramSVGs.tsx`). The
           class link is bound to the meta-model entry that produced the
           palette card (set at drop time). `data.classId` /
           `data.className` / `data.view` are preserved in the type for

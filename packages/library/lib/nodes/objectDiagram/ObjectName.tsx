@@ -26,10 +26,9 @@ import { formatObjectMember } from "@/utils/classifierMemberDisplay"
  * row.
  */
 const formatObjectAttribute = (row: ObjectNodeAttribute): ClassNodeElement => {
-  // Preserve any explicit "name = value" the popup writer already shaped.
-  if (row.name && row.name.includes(" = ")) return row
   const displayName = formatObjectMember({
     name: row.name,
+    attributeType: row.attributeType,
     value: row.value,
   })
   return { ...row, name: displayName }

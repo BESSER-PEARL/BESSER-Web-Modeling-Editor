@@ -45,6 +45,7 @@ export const CommentEditPanel: React.FC<PopoverProps> = ({ elementId }) => {
       <NodeStyleEditor
         nodeData={data}
         handleDataFieldUpdate={handleStyleFieldUpdate}
+        showNameInputChange={false}
       />
       <DividerLine width="100%" />
       <MuiTextField
