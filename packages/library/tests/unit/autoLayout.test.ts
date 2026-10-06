@@ -141,6 +141,7 @@ describe("computeAutoLayout", () => {
       nodes,
       edges,
       UMLDiagramType.ClassDiagram,
+      { strategy: "hierarchical" },
     )
     const child = layouted.find((n) => n.id === "child")!
     const parent = layouted.find((n) => n.id === "parent")!

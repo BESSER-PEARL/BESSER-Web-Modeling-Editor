@@ -27,6 +27,9 @@ import { DiagramEdgeType } from "@/typings"
 import { DiagramNodeTypeRecord } from "@/nodes"
 import { useDiagramStore, useMetadataStore } from "@/store/context"
 import { useShallow } from "zustand/shallow"
+import { FLOATING_PORT_DIAGRAMS } from "@/utils/floatingEdges"
+import { facingHandleIds } from "@/utils/edgePorts"
+import { setConnectStart } from "@/edges/FloatingConnectionLine"
 
 /**
  * Edge-type predicate. When the user drops a connection
@@ -72,8 +75,10 @@ const isConnectionAllowed = (
 ): boolean => canConnectEndpoints(nodes, source, target, (n) => n.id, edges)
 
 export const useConnect = () => {
-  const startEdge = useRef<Edge | null>(null)
   const connectionStartParams = useRef<OnConnectStartParams | null>(null)
+  /** Whether the pointer left the source node during the current drag. */
+  const leftSourceRef = useRef(false)
+  const stopTrackingRef = useRef<(() => void) | null>(null)
   const { screenToFlowPosition, getIntersectingNodes, getInternalNode } =
     useReactFlow()
   const { setEdges, addEdge, edges, nodes, setNodes } = useDiagramStore(
@@ -89,6 +94,38 @@ export const useConnect = () => {
   const diagramType = useMetadataStore(useShallow((state) => state.diagramType))
 
   const defaultEdgeType = getDefaultEdgeType(diagramType)
+  const floatingPorts = FLOATING_PORT_DIAGRAMS.has(diagramType)
+
+  /** Absolute rect of a rendered node. */
+  const rectOf = useCallback(
+    (id: string) => {
+      const n = getInternalNode(id)
+      if (!n) return undefined
+      return {
+        x: n.internals.positionAbsolute.x,
+        y: n.internals.positionAbsolute.y,
+        width: n.measured.width ?? n.width ?? 0,
+        height: n.measured.height ?? n.height ?? 0,
+      }
+    },
+    [getInternalNode]
+  )
+
+  /**
+   * Continuous ports: the stored handle ids are the facing sides (valid ids
+   * every node renders); where the ends attach is computed at render time.
+   */
+  const facingHandles = useCallback(
+    (sourceId: string, targetId: string) => {
+      const s = rectOf(sourceId)
+      const t = rectOf(targetId)
+      if (!s || !t) return { sourceHandle: "right", targetHandle: "left" }
+      return sourceId === targetId
+        ? facingHandleIds(s, s)
+        : facingHandleIds(s, t)
+    },
+    [rectOf]
+  )
 
   const isFourHandleNode = useCallback(
     (nodeType?: string) =>
@@ -110,37 +147,32 @@ export const useConnect = () => {
     [screenToFlowPosition]
   )
 
-  const onConnectStart: OnConnectStart = (event, params) => {
+  // Dragging from a handle always creates a NEW edge. (It used to grab an
+  // existing edge on that handle and move it — reconnecting is done from a
+  // selected edge's endpoint instead.)
+  const onConnectStart: OnConnectStart = (_event, params) => {
     connectionStartParams.current = params
-    startEdge.current = null
-    const dropPosition = getDropPosition(event)
-
-    const intersectingNodes = getIntersectingNodes({
-      x: dropPosition.x - 60,
-      y: dropPosition.y - 60,
-      width: 120,
-      height: 120,
-    })
-    const intersectingNodesIds = intersectingNodes.map((node) => node.id)
-
-    const existingEdges = [
-      ...edges.filter(
-        (edge) =>
-          edge.source === params.nodeId &&
-          edge.sourceHandle === params.handleId &&
-          intersectingNodesIds.includes(edge.target)
-      ),
-      ...edges.filter(
-        (edge) =>
-          edge.target === params.nodeId &&
-          edge.targetHandle === params.handleId &&
-          intersectingNodesIds.includes(edge.source)
-      ),
-    ]
-
-    if (existingEdges.length > 0) {
-      startEdge.current = existingEdges[existingEdges.length - 1]
+    leftSourceRef.current = false
+    stopTrackingRef.current?.()
+    const sourceRect = params.nodeId ? rectOf(params.nodeId) : undefined
+    if (!sourceRect) return
+    // A self-loop needs the pointer to leave the node and come back, so a
+    // click or tiny drag on a port never creates one by accident.
+    const onMove = (e: PointerEvent) => {
+      const p = screenToFlowPosition({ x: e.clientX, y: e.clientY })
+      const pad = 12
+      if (
+        p.x < sourceRect.x - pad ||
+        p.y < sourceRect.y - pad ||
+        p.x > sourceRect.x + sourceRect.width + pad ||
+        p.y > sourceRect.y + sourceRect.height + pad
+      ) {
+        leftSourceRef.current = true
+      }
     }
+    document.addEventListener("pointermove", onMove, true)
+    stopTrackingRef.current = () =>
+      document.removeEventListener("pointermove", onMove, true)
   }
 
   const onConnect = useCallback(
@@ -171,6 +203,19 @@ export const useConnect = () => {
       // NNContainer is an association; everything else uses NNNext.
       // AgentDiagram auto-detect: initial node ↔ AgentState is the
       // `AgentStateTransitionInit` marker edge.
+      if (
+        floatingPorts &&
+        connection.source === connection.target &&
+        !leftSourceRef.current
+      ) {
+        return
+      }
+      if (floatingPorts) {
+        connection = {
+          ...connection,
+          ...facingHandles(connection.source, connection.target),
+        }
+      }
       const sourceType = nodes.find((n) => n.id === connection.source)?.type
       const targetType = nodes.find((n) => n.id === connection.target)?.type
       const commentEdgeType = resolveCommentEdgeType(sourceType, targetType)
@@ -236,11 +281,23 @@ export const useConnect = () => {
         )
       }
     },
-    [addEdge, defaultEdgeType, diagramType, nodes, setNodes]
+    [
+      addEdge,
+      defaultEdgeType,
+      diagramType,
+      nodes,
+      setNodes,
+      edges,
+      floatingPorts,
+      facingHandles,
+    ]
   )
 
   const onConnectEnd: OnConnectEnd = useCallback(
     (event, connectionState) => {
+      stopTrackingRef.current?.()
+      stopTrackingRef.current = null
+      setConnectStart(null)
       if (!connectionState.isValid) {
         const dropPosition = getDropPosition(event)
         const intersectingNodes = getIntersectingNodes({
@@ -266,67 +323,41 @@ export const useConnect = () => {
         )
           return
 
-        const targetHandle = findClosestHandle({
-          point: dropPosition,
-          rect: {
-            x: internalNodeData.internals.positionAbsolute.x,
-            y: internalNodeData.internals.positionAbsolute.y,
-            width: nodeOnTop.width,
-            height: nodeOnTop.height,
-          },
-          useFourHandles: isFourHandleNode(nodeOnTop.type),
-        })
+        const sourceNodeId = connectionState.fromNode!.id
+        // Continuous ports: the end goes on the side facing the source, no
+        // matter where on the target it was dropped.
+        const floatingHandles = floatingPorts
+          ? facingHandles(sourceNodeId, nodeOnTop.id)
+          : null
+        const targetHandle =
+          floatingHandles?.targetHandle ??
+          findClosestHandle({
+            point: dropPosition,
+            rect: {
+              x: internalNodeData.internals.positionAbsolute.x,
+              y: internalNodeData.internals.positionAbsolute.y,
+              width: nodeOnTop.width,
+              height: nodeOnTop.height,
+            },
+            useFourHandles: isFourHandleNode(nodeOnTop.type),
+          })
 
         if (!targetHandle) return
 
-        if (startEdge.current) {
-          const updatedEdge = edges.find(
-            (edge) => edge.id === startEdge.current?.id
-          )
+        if (floatingPorts && sourceNodeId === nodeOnTop.id && !leftSourceRef.current) {
+          connectionStartParams.current = null
+          return
+        }
 
-          if (!updatedEdge) return
-          const newEdge =
-            connectionStartParams.current?.handleType === "source"
-              ? { ...updatedEdge, target: nodeOnTop.id, targetHandle }
-              : {
-                  ...updatedEdge,
-                  source: nodeOnTop.id,
-                  sourceHandle: targetHandle,
-                }
-
-          // Disallow loop from a handle to the same handle on the same node.
-          if (
-            newEdge.source === newEdge.target &&
-            newEdge.sourceHandle === newEdge.targetHandle
-          ) {
-            startEdge.current = null
-            connectionStartParams.current = null
-            return
-          }
-
-          // Refuse to reroute an existing edge
-          // onto / off of an Enumeration class node.
-          if (
-            !isConnectionAllowed(nodes, edges, newEdge.source, newEdge.target)
-          ) {
-            startEdge.current = null
-            connectionStartParams.current = null
-            return
-          }
-
-          setEdges((eds) =>
-            eds.map((edge) => (edge.id === newEdge.id ? newEdge : edge))
-          )
-        } else {
-          const sourceNodeId = connectionState.fromNode!.id
-          const sourceHandleId = connectionState.fromHandle?.id
+        {
+          const sourceHandleId =
+            floatingHandles?.sourceHandle ?? connectionState.fromHandle?.id
 
           // Disallow loop from a handle to itself, but allow loops to other handles.
           if (
             sourceNodeId === nodeOnTop.id &&
             sourceHandleId === targetHandle
           ) {
-            startEdge.current = null
             connectionStartParams.current = null
             return
           }
@@ -334,7 +365,6 @@ export const useConnect = () => {
           // Refuse to create a new edge whose
           // source or target is an Enumeration class node.
           if (!isConnectionAllowed(nodes, edges, sourceNodeId, nodeOnTop.id)) {
-            startEdge.current = null
             connectionStartParams.current = null
             return
           }
@@ -416,13 +446,14 @@ export const useConnect = () => {
           }
         }
       }
-      startEdge.current = null
       connectionStartParams.current = null
     },
     [
       defaultEdgeType,
       diagramType,
       edges,
+      floatingPorts,
+      facingHandles,
       getDropPosition,
       getInternalNode,
       getIntersectingNodes,
@@ -434,9 +465,8 @@ export const useConnect = () => {
   )
 
   const onEdgesDelete: OnEdgesDelete = useCallback(() => {
-    startEdge.current = null
     connectionStartParams.current = null
-  }, [setEdges])
+  }, [])
 
   /**
    * React Flow consults this *before* firing

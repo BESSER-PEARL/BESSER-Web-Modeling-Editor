@@ -122,6 +122,7 @@ export const EdgeEndpointMarkers = ({
   pathType,
   onSourcePointerDown,
   onTargetPointerDown,
+  showDots = false,
 }: {
   sourcePoint: IPoint
   targetPoint: IPoint
@@ -131,6 +132,8 @@ export const EdgeEndpointMarkers = ({
   pathType: string
   onSourcePointerDown: (e: React.PointerEvent) => void
   onTargetPointerDown: (e: React.PointerEvent) => void
+  /** Draw visible endpoint grips (floating edges). */
+  showDots?: boolean
 }) => {
   if (!isDiagramModifiable || diagramType === "usecase") return null
 
@@ -141,12 +144,25 @@ export const EdgeEndpointMarkers = ({
   // that already have an edge connected.
   if (!selected) return null
 
+  const hitRadius = showDots ? 7 : pathType === "straight" ? 8 : 10
   return (
     <>
+      {showDots &&
+        [sourcePoint, targetPoint].map((p, i) => (
+          <circle
+            key={i}
+            className="besser-edge-endpoint-dot"
+            cx={p.x}
+            cy={p.y}
+            r={4}
+            pointerEvents="none"
+          />
+        ))}
       <circle
+        className="besser-edge-endpoint-grab"
         cx={sourcePoint.x}
         cy={sourcePoint.y}
-        r={pathType === "straight" ? 8 : 10}
+        r={hitRadius}
         fill="transparent"
         stroke="transparent"
         strokeWidth={0}
@@ -155,10 +171,10 @@ export const EdgeEndpointMarkers = ({
         style={{ cursor: "crosshair" }}
       />
       <circle
-        className="target-edge-marker-grab"
+        className="target-edge-marker-grab besser-edge-endpoint-grab"
         cx={targetPoint.x}
         cy={targetPoint.y}
-        r={pathType === "straight" ? 8 : 10}
+        r={hitRadius}
         fill="transparent"
         stroke="transparent"
         strokeWidth={0}

@@ -146,7 +146,13 @@ const VERTICAL_FLOW_DIAGRAMS: ReadonlySet<string> = new Set([
 export const getAutoLayoutStrategies = (diagramType: string): AutoLayoutStrategy[] => {
   switch (familyOf(diagramType)) {
     case "structural":
-      return ["hierarchical", "compact"]
+      // Class diagrams are association-heavy: the layered layout stacks
+      // their ports and labels on hub classes and grows too tall to read
+      // (NexaCRM: 11 vs 1 label overlaps, fits at 24% vs 43% zoom), so
+      // Compact is their default; Hierarchical stays one click away.
+      return diagramType === UMLDiagramType.ClassDiagram
+        ? ["compact", "hierarchical"]
+        : ["hierarchical", "compact"]
     case "flow":
       return VERTICAL_FLOW_DIAGRAMS.has(diagramType)
         ? ["vertical", "horizontal"]
@@ -154,6 +160,23 @@ export const getAutoLayoutStrategies = (diagramType: string): AutoLayoutStrategy
     default:
       return [getLayoutDirection(diagramType) === "RIGHT" ? "horizontal" : "vertical"]
   }
+}
+
+/**
+ * Strategy used when none is asked for (headless `layoutModel`, assistant
+ * injection, server export): the type's default, except that a class
+ * diagram dominated by generalizations keeps the top-down hierarchy.
+ */
+const defaultStrategyFor = (
+  diagramType: string,
+  edges: Edge[],
+  strategies: AutoLayoutStrategy[]
+): AutoLayoutStrategy => {
+  if (diagramType === UMLDiagramType.ClassDiagram && edges.length > 0) {
+    const inheritance = edges.filter((e) => INHERITANCE_EDGE_TYPES.has(e.type ?? "")).length
+    if (inheritance > 0 && inheritance * 3 >= edges.length) return "hierarchical"
+  }
+  return strategies[0]
 }
 
 /** Default layout direction of a diagram type (layered strategies). */
@@ -2048,7 +2071,9 @@ export const computeAutoLayout = async (
   const family = familyOf(diagramType)
   const strategies = getAutoLayoutStrategies(diagramType)
   const strategy =
-    options.strategy && strategies.includes(options.strategy) ? options.strategy : strategies[0]
+    options.strategy && strategies.includes(options.strategy)
+      ? options.strategy
+      : defaultStrategyFor(diagramType, edges, strategies)
   const hasContainers = nodes.some((n) => n.parentId && nodes.some((p) => p.id === n.parentId))
 
   let result: { nodes: Node[]; edges: Edge[] }

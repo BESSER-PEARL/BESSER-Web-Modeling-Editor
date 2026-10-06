@@ -1,0 +1,228 @@
+/* Connections: continuous ports, edge hover / selection, resize priority.
+   Loaded after app.css (App.tsx) and overrides it where both apply. */
+
+/* ---- Continuous port band (class diagrams) ---------------------------- */
+
+/* The band handle itself never takes the pointer (it covers the node body);
+   only its four outline strips do — also while the node is not hovered, so
+   it can be grabbed when approaching from outside. */
+.react-flow__node .react-flow__handle.besser-port-band,
+.react-flow__node:hover .react-flow__handle.besser-port-band,
+.react-flow__node.selected .react-flow__handle.besser-port-band {
+  position: absolute;
+  width: auto;
+  height: auto;
+  min-width: 0;
+  min-height: 0;
+  transform: none;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  opacity: 1;
+  pointer-events: none;
+  z-index: 5;
+}
+
+.besser-port-band__strip {
+  position: absolute;
+  pointer-events: auto;
+  cursor: crosshair;
+}
+.besser-port-band__strip--top {
+  top: 0;
+  left: 0;
+  right: 0;
+  height: var(--besser-port-band, 16px);
+}
+.besser-port-band__strip--bottom {
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: var(--besser-port-band, 16px);
+}
+.besser-port-band__strip--left {
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: var(--besser-port-band, 16px);
+}
+.besser-port-band__strip--right {
+  top: 0;
+  bottom: 0;
+  right: 0;
+  width: var(--besser-port-band, 16px);
+}
+
+.besser-port-anchor {
+  position: absolute;
+  width: 0;
+  height: 0;
+  pointer-events: none;
+}
+
+/* Legacy fixed handles stay as invisible anchors only. */
+.react-flow__node .react-flow__handle.besser-anchor-handle {
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
+
+/* One connector dot following the pointer along the nearest outline point. */
+.besser-port-dot {
+  position: absolute;
+  left: -4.5px;
+  top: -4.5px;
+  width: 9px;
+  height: 9px;
+  box-sizing: border-box;
+  border-radius: 50%;
+  background: var(--besser-background, #ffffff);
+  border: 1.5px solid var(--besser-primary, #3e8acc);
+  opacity: 0;
+  pointer-events: none;
+  z-index: 6;
+  transition:
+    opacity 120ms ease,
+    background-color 120ms ease,
+    box-shadow 120ms ease;
+}
+.besser-port-dot.besser-port-dot--hot {
+  background: var(--besser-primary, #3e8acc);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--besser-primary, #3e8acc) 22%, transparent);
+}
+
+/* Subtle outline on hover instead of the heavy 2px ring. */
+.react-flow__node:has(.besser-port-band):hover:not(.selected) {
+  opacity: 1;
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--besser-primary, #3e8acc) 60%, transparent);
+}
+
+/* While connecting: the node under the pointer highlights as the target. */
+.besser-container--connecting .besser-port-dot {
+  opacity: 0 !important;
+}
+.besser-container--connecting .react-flow__node:hover {
+  opacity: 1;
+  box-shadow:
+    0 0 0 2px var(--besser-primary, #3e8acc),
+    0 0 0 6px color-mix(in srgb, var(--besser-primary, #3e8acc) 18%, transparent);
+}
+
+.besser-connection-preview .react-flow__connection-path {
+  stroke: var(--besser-primary, #3e8acc);
+  stroke-width: 1.5px;
+  stroke-dasharray: 5 4;
+  opacity: 1;
+}
+.besser-connection-preview circle {
+  fill: var(--besser-background, #ffffff);
+  stroke: var(--besser-primary, #3e8acc);
+  stroke-width: 1.5px;
+}
+
+/* Diagrams still on fixed handles: a selected node no longer shows its
+   twelve arcs at rest (they covered labels); they appear on hover. Touch
+   keeps them on selection (no hover there). */
+@media (hover: hover) and (pointer: fine) {
+  .react-flow__node.selected:not(:hover) .react-flow__handle.besser-arc-handle {
+    opacity: 0;
+  }
+}
+
+/* ---- Resize priority on a selected node ------------------------------- */
+
+/* React Flow's resize lines are 1px; give them (and the corners) a real hit
+   area that sits above the port band, so a selected node resizes from its
+   border and corners. */
+.react-flow__node.selected .react-flow__resize-control.line {
+  z-index: 7;
+}
+.react-flow__node.selected .react-flow__resize-control.line::after,
+.react-flow__node.selected .react-flow__resize-control.handle::after {
+  content: "";
+  position: absolute;
+}
+.react-flow__node.selected .react-flow__resize-control.line.left::after,
+.react-flow__node.selected .react-flow__resize-control.line.right::after {
+  top: 0;
+  bottom: 0;
+  left: -4px;
+  right: -4px;
+}
+.react-flow__node.selected .react-flow__resize-control.line.top::after,
+.react-flow__node.selected .react-flow__resize-control.line.bottom::after {
+  left: 0;
+  right: 0;
+  top: -4px;
+  bottom: -4px;
+}
+.react-flow__node.selected .react-flow__resize-control.handle::after {
+  inset: -5px;
+}
+/* Classes are not resizable vertically: keep top / bottom free to connect. */
+.react-flow__node.selected .horizontally-not-resizable .react-flow__resize-control.line.top::after,
+.react-flow__node.selected .horizontally-not-resizable .react-flow__resize-control.line.bottom::after,
+.react-flow__node.selected.horizontally-not-resizable .react-flow__resize-control.line.top::after,
+.react-flow__node.selected.horizontally-not-resizable .react-flow__resize-control.line.bottom::after {
+  display: none;
+}
+
+/* ---- Edge hover vs selection ------------------------------------------ */
+
+/* Hover: a faint halo. Selected: the line itself takes the accent colour
+   with a light band, endpoint grips and segment grips. */
+.besser-editor .react-flow__edge:hover .edge-overlay,
+.besser-editor .react-flow__edge:hover .edge-marker-highlight {
+  opacity: 0.14;
+  stroke: var(--besser-primary, #3e8acc);
+  stroke-width: 10px;
+}
+.besser-editor .react-flow__edge.selected .edge-overlay,
+.besser-editor .react-flow__edge.selected .edge-marker-highlight {
+  opacity: 0.2;
+  stroke: var(--besser-primary, #3e8acc);
+  stroke-width: 8px;
+}
+.besser-editor .react-flow__edge.selected .react-flow__edge-path {
+  stroke: var(--besser-primary, #3e8acc) !important;
+  stroke-width: 1.75px;
+}
+.besser-editor .edge-container--dragging .edge-overlay {
+  opacity: 0 !important;
+}
+
+.besser-edge-endpoint-dot {
+  fill: var(--besser-background, #ffffff);
+  stroke: var(--besser-primary, #3e8acc);
+  stroke-width: 1.5px;
+}
+.besser-edge-endpoint-grab {
+  cursor: move !important;
+}
+
+.edge-segment-handle__dot {
+  fill: var(--besser-background, #ffffff);
+  stroke: var(--besser-primary, #3e8acc);
+  stroke-width: 1.5px;
+  opacity: 0;
+  transition: opacity 120ms ease;
+}
+.react-flow__edge:hover .edge-segment-handle__dot {
+  opacity: 0.55;
+}
+.react-flow__edge.selected .edge-segment-handle__dot,
+.edge-segment-handle:hover .edge-segment-handle__dot {
+  opacity: 1;
+}
+/* Segments are dragged once the edge is selected; before that a press on
+   the line selects it. */
+.react-flow__edge:not(.selected) .edge-segment-handle__hit {
+  pointer-events: none;
+}
+
+/* End labels keep a readable halo over lines and the grid. */
+.besser-edge-label {
+  paint-order: stroke;
+  stroke: var(--besser-background, #ffffff);
+  stroke-width: 4px;
+  stroke-linejoin: round;
+}

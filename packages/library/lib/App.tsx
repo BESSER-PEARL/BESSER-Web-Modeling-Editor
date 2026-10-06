@@ -4,6 +4,8 @@ import {
   ConnectionMode,
   ReactFlow,
   SelectionMode,
+  useStore,
+  type Edge,
   type Node,
 } from "@xyflow/react"
 import {
@@ -24,6 +26,7 @@ import {
 } from "@/components"
 import "@xyflow/react/dist/style.css"
 import "@/styles/app.css"
+import "@/styles/connections.css"
 import { useDiagramStore, useMetadataStore } from "./store/context"
 import { useShallow } from "zustand/shallow"
 import { CANVAS } from "./constants"
@@ -49,6 +52,8 @@ import {
 } from "./utils/bpmnConstraints"
 import { useEdgeLinkingStore } from "./store/edgeLinkingStore"
 import { generateUUID } from "./utils"
+import { FLOATING_PORT_DIAGRAMS } from "./utils/floatingEdges"
+import { FloatingConnectionLine } from "./edges/FloatingConnectionLine"
 import { PropertiesPanel } from "./components/propertiesPanel/PropertiesPanel"
 import { useUsePropertiesPanel } from "./store/settingsStore"
 // Side-effect import: seed BESSER inspector overrides into the shared
@@ -80,8 +85,13 @@ function useStableHandler<T extends (...args: any[]) => any>(fn: T): T {
   )
 }
 
-/** Gap kept to the canvas edge when a loaded diagram is larger than the view. */
-const LOADED_MODEL_MARGIN = 40
+/**
+ * Space kept free around a loaded diagram; the bottom one clears the canvas
+ * toolbar and the host's prompt pill that float over the canvas.
+ */
+const LOADED_MODEL_PADDING = { top: 40, right: 40, bottom: 96, left: 40 }
+/** Lowest zoom a loaded diagram is shrunk to so that it fits. */
+export const LOADED_MODEL_MIN_ZOOM = 0.3
 /** Upper bound (~2 s) on waiting for React Flow to render a loaded model. */
 const MAX_RENDER_WAIT_FRAMES = 120
 
@@ -123,10 +133,11 @@ export function whenModelRendered(
 }
 
 /**
- * Develop's viewport for a freshly loaded diagram: 100% zoom, diagram
- * centred, but one larger than the canvas is pinned to its top-left corner
- * instead of being cut off on every side. An empty diagram resets to the
- * origin.
+ * Viewport for a freshly loaded diagram: the whole diagram fits inside the
+ * padded canvas (clear of the bottom toolbar), never zoomed in past 100%
+ * and never below `LOADED_MODEL_MIN_ZOOM`; one still too large at that zoom
+ * is pinned to its top-left corner instead of being cut off on every side.
+ * An empty diagram resets to the origin.
  */
 export async function fitViewToModel(instance: ReactFlowInstance) {
   const nodes = instance.getNodes().filter((node) => !node.hidden)
@@ -134,14 +145,67 @@ export async function fitViewToModel(instance: ReactFlowInstance) {
     await instance.setViewport({ x: 0, y: 0, zoom: 1 })
     return
   }
+  // A 100% fit centres the bounds; the canvas size follows from that.
   await instance.fitView({ nodes, minZoom: 1, maxZoom: 1 })
   const bounds = instance.getNodesBounds(nodes)
-  const { x, y } = instance.getViewport()
+  const centred = instance.getViewport()
+  const width = 2 * (centred.x + bounds.x) + bounds.width
+  const height = 2 * (centred.y + bounds.y) + bounds.height
+  const pad = LOADED_MODEL_PADDING
+  const availW = Math.max(1, width - pad.left - pad.right)
+  const availH = Math.max(1, height - pad.top - pad.bottom)
+  const zoom = Math.min(
+    1,
+    Math.max(
+      LOADED_MODEL_MIN_ZOOM,
+      Math.min(availW / bounds.width, availH / bounds.height)
+    )
+  )
+  const fitsX = bounds.width * zoom <= availW
+  const fitsY = bounds.height * zoom <= availH
   await instance.setViewport({
-    x: Math.max(x, LOADED_MODEL_MARGIN - bounds.x),
-    y: Math.max(y, LOADED_MODEL_MARGIN - bounds.y),
-    zoom: 1,
+    x: fitsX
+      ? pad.left + (availW - bounds.width * zoom) / 2 - bounds.x * zoom
+      : pad.left - bounds.x * zoom,
+    y: fitsY
+      ? pad.top + (availH - bounds.height * zoom) / 2 - bounds.y * zoom
+      : pad.top - bounds.y * zoom,
+    zoom,
   })
+}
+
+/**
+ * Edge types without their own endpoint grips: React Flow's reconnect
+ * anchors are their only way to reconnect, so those stay on (selected only).
+ */
+const RF_RECONNECT_EDGE_TYPES: ReadonlySet<string> = new Set([
+  "NNAssociation",
+  "NNComposition",
+  "SfcDiagramEdge",
+  "SyntaxTreeLink",
+  "UseCaseAssociation",
+  "UseCaseInclude",
+  "UseCaseExtend",
+  "UseCaseGeneralization",
+  "UserModelLink",
+])
+
+/**
+ * React Flow draws reconnect anchors over BOTH ends of every edge, on top of
+ * the node handles: pressing a handle that already had an edge grabbed that
+ * edge and moved it instead of starting a new one. Only a selected edge's
+ * ends are reconnectable now (and only for types without their own grips).
+ */
+export const withReconnectableFlags = (edges: Edge[]): Edge[] => {
+  let changed = false
+  const out = edges.map((edge) => {
+    const reconnectable =
+      !!edge.selected && RF_RECONNECT_EDGE_TYPES.has(edge.type ?? "")
+    if (edge.reconnectable === reconnectable) return edge
+    changed = true
+    return { ...edge, reconnectable }
+  })
+  return changed ? out : edges
 }
 
 function App({ onReactFlowInit }: AppProps) {
@@ -209,8 +273,13 @@ function App({ onReactFlowInit }: AppProps) {
   const nodeIdSet = useMemo(() => new Set(nodes.map((n) => n.id)), [nodes])
   const renderableEdges = useMemo(() => {
     const filtered = edges.filter((e) => !isEdgeAnchoredLinkRel(e, nodeIdSet))
-    return filtered.length === edges.length ? edges : filtered
+    return withReconnectableFlags(
+      filtered.length === edges.length ? edges : filtered
+    )
   }, [edges, nodeIdSet])
+
+  const floatingPorts = FLOATING_PORT_DIAGRAMS.has(diagramType)
+  const isConnecting = useStore((s) => s.connection.inProgress)
 
   // A collapsed BPMN Subprocess/Transaction renders only itself — none of
   // its descendants (mirrors the old editor's render()). React Flow has no
@@ -292,7 +361,7 @@ function App({ onReactFlowInit }: AppProps) {
         id={`react-flow-library-${diagramId}`}
         className={`besser-container${
           pendingAssociationEdgeId ? " besser-container--linking" : ""
-        }`}
+        }${isConnecting ? " besser-container--connecting" : ""}`}
         nodeTypes={diagramNodeTypes}
         edgeTypes={diagramEdgeTypes}
         nodes={visibleNodes}
@@ -310,6 +379,10 @@ function App({ onReactFlowInit }: AppProps) {
         onNodeDragStop={onNodeDragStop}
         onReconnect={onReconnect}
         connectionLineType={connectionLineType}
+        connectionLineComponent={
+          floatingPorts ? FloatingConnectionLine : undefined
+        }
+        reconnectRadius={8}
         connectionMode={ConnectionMode.Loose}
         // Lift the selected edge (and its bend/endpoint handles) above other
         // edges so an overlapping edge's interaction ribbon can't steal the
@@ -326,7 +399,7 @@ function App({ onReactFlowInit }: AppProps) {
           }
           handleReactFlowInit(instance)
         }}
-        minZoom={CANVAS.MIN_SCALE_TO_ZOOM_OUT}
+        minZoom={Math.min(CANVAS.MIN_SCALE_TO_ZOOM_OUT, LOADED_MODEL_MIN_ZOOM)}
         maxZoom={CANVAS.MAX_SCALE_TO_ZOOM_IN}
         snapToGrid
         snapGrid={[CANVAS.SNAP_TO_GRID_PX, CANVAS.SNAP_TO_GRID_PX]}

@@ -150,6 +150,17 @@ export const handleSide = (handleId: string | null | undefined): HandleSide | un
   handleId ? HANDLE_GEOMETRY[handleId]?.side : undefined
 
 /**
+ * Side + position along the side (0..1) of a stored handle id. Case-insensitive,
+ * so converter spellings ("Right", "Top") resolve too; unknown ids → undefined.
+ */
+export const handleGeometry = (
+  handleId: string | null | undefined
+): { side: HandleSide; fraction: number } | undefined => {
+  if (!handleId) return undefined
+  return HANDLE_GEOMETRY[handleId] ?? HANDLE_GEOMETRY[handleId.toLowerCase()]
+}
+
+/**
  * Picks the facing side pair for an edge from the relative position of its two
  * endpoints, so a vertically stacked pair connects bottom→top (and a
  * side-by-side pair right→left) instead of wrapping around the boxes.

@@ -3,6 +3,9 @@ import { FeedbackDropzone } from "@/components/wrapper/FeedbackDropzone"
 import { NodeAssessmentBadge } from "@/components/wrapper/NodeAssessmentBadge"
 import { useDiagramModifiable } from "@/hooks/useDiagramModifiable"
 import { Handle, Position, useReactFlow } from "@xyflow/react"
+import { useMetadataStore } from "@/store/context"
+import { FLOATING_PORT_DIAGRAMS } from "@/utils/floatingEdges"
+import { PortBand } from "./PortBand"
 
 // Define enum for handle IDs
 export enum HandleId {
@@ -66,6 +69,12 @@ export function DefaultNodeWrapper({
   const { getNode } = useReactFlow()
   const nodeType = getNode(elementId)?.type
   const isDiagramModifiable = useDiagramModifiable()
+  // Class diagrams use continuous ports: one border band to connect from,
+  // the legacy handles stay only as (invisible) anchors React Flow resolves
+  // stored `sourceHandle` / `targetHandle` ids against.
+  const floatingPorts = useMetadataStore((s) =>
+    FLOATING_PORT_DIAGRAMS.has(s.diagramType)
+  )
 
   const baseHandleStyle = {
     width: 8,
@@ -228,6 +237,20 @@ export function DefaultNodeWrapper({
 
               const isPrimaryHandle = visibleHandleIds.has(handle.id)
 
+              if (floatingPorts) {
+                return (
+                  <Handle
+                    key={handle.id}
+                    id={handle.id}
+                    className="besser-anchor-handle"
+                    type="source"
+                    position={handle.position}
+                    style={{ ...handle.style, opacity: 0, pointerEvents: "none" }}
+                    isConnectable={false}
+                  />
+                )
+              }
+
               return (
                 <Handle
                   key={handle.id}
@@ -249,6 +272,9 @@ export function DefaultNodeWrapper({
                 />
               )
             })}
+            {floatingPorts && isDiagramModifiable && (
+              <PortBand elementId={elementId} />
+            )}
           </>
         )}
 

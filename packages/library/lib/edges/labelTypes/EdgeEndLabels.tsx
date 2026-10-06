@@ -3,6 +3,7 @@ import { calculateDynamicEdgeLabels } from "@/utils/edgeUtils"
 import { IPoint } from "../Connection"
 import { useClassNotation } from "@/store/settingsStore"
 import { toERCardinality } from "@/utils/multiplicity"
+import type { EdgeLabelLayout, LabelPos } from "@/utils/edgeLabelPlacement"
 
 interface EdgeEndLabelsProps {
   data?: {
@@ -23,6 +24,8 @@ interface EdgeEndLabelsProps {
   /** How far the end marker reaches back along the line; the end's labels start just past it. */
   sourceMarkerLength?: number
   targetMarkerLength?: number
+  /** Collision-aware placement from the diagram-level pass (floating edges). */
+  layout?: EdgeLabelLayout
 }
 
 const HANDLE_DIRECTION: Record<string, IPoint> = {
@@ -61,6 +64,7 @@ export const EdgeEndLabels = ({
   textColor = "var(--besser-primary-contrast, #000000)",
   sourceMarkerLength = 0,
   targetMarkerLength = 0,
+  layout,
 }: EdgeEndLabelsProps) => {
   const sourceLabels = useMemo(() => {
     if (activePoints.length < 2) {
@@ -116,6 +120,30 @@ export const EdgeEndLabels = ({
     classNotation === "ER"
       ? toERCardinality(data?.targetMultiplicity ?? undefined)
       : data?.targetMultiplicity
+
+  if (layout) {
+    const label = (pos: LabelPos | undefined, text: string | null | undefined, key: string) =>
+      pos && text ? (
+        <text
+          key={key}
+          className="besser-edge-label"
+          x={pos.x}
+          y={pos.y}
+          textAnchor={pos.anchor}
+          style={{ fontSize: "16px", fill: textColor, userSelect: "none" }}
+        >
+          {text}
+        </text>
+      ) : null
+    return (
+      <>
+        {label(layout.source.role, data?.sourceRole, "source-role")}
+        {label(layout.source.multiplicity, sourceMultiplicityDisplay, "source-multiplicity")}
+        {label(layout.target.role, data?.targetRole, "target-role")}
+        {label(layout.target.multiplicity, targetMultiplicityDisplay, "target-multiplicity")}
+      </>
+    )
+  }
 
   return (
     <>

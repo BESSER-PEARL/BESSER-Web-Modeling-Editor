@@ -26,6 +26,14 @@ import {
 import { useEdgeState, useEdgeReconnection } from "../edges/GenericEdge"
 import { useDiagramModifiable } from "./useDiagramModifiable"
 import { useHandleFinder } from "./useHandleFinder"
+import type { FloatingEdgeLayout } from "@/utils/floatingEdges"
+import {
+  dragSegment,
+  segmentHandles,
+  trimRouteEnds,
+  PORT_CLEARANCE,
+} from "@/utils/edgeDragging"
+import { useFloatingEndpointDrag } from "./useFloatingEndpointDrag"
 
 interface UseStepPathEdgeProps {
   id: string
@@ -44,6 +52,11 @@ interface UseStepPathEdgeProps {
   allowMidpointDragging?: boolean
   enableReconnection?: boolean
   enableStraightPath?: boolean
+  /**
+   * Continuous-port geometry (class diagrams): the route, ports and sides
+   * come from here instead of React Flow's handle positions.
+   */
+  floating?: FloatingEdgeLayout
 }
 
 export interface StepPathEdgeData {
@@ -71,7 +84,13 @@ export const useStepPathEdge = ({
   allowMidpointDragging = true,
   enableReconnection = true,
   enableStraightPath = false,
+  floating,
 }: UseStepPathEdgeProps) => {
+  // Floating edges attach where their geometry says, not at the RF handle.
+  if (floating) {
+    sourcePosition = floating.source.side as Position
+    targetPosition = floating.target.side as Position
+  }
   const draggingIndexRef = useRef<number | null>(null)
   const dragOffsetRef = useRef<IPoint>({ x: 0, y: 0 })
   const pathRef = useRef<SVGPathElement | null>(null)
@@ -79,7 +98,8 @@ export const useStepPathEdge = ({
   const dragPointsRef = useRef<IPoint[]>([])
 
   const isDiagramModifiable = useDiagramModifiable()
-  const { getNode, getNodes, screenToFlowPosition } = useReactFlow()
+  const { getNode, getNodes, screenToFlowPosition, getInternalNode } =
+    useReactFlow()
 
   const [pathMiddlePosition, setPathMiddlePosition] = useState<IPoint>({
     x: (sourceX + targetX) / 2,
@@ -342,6 +362,7 @@ export const useStepPathEdge = ({
   }, [data?.points])
 
   const activePoints = useMemo(() => {
+    if (floating) return tempReconnectPoints ?? floating.points
     let points: IPoint[]
     if (tempReconnectPoints) {
       points = tempReconnectPoints
@@ -383,6 +404,7 @@ export const useStepPathEdge = ({
 
     return points
   }, [
+    floating,
     customPoints,
     computedPoints,
     tempReconnectPoints,
@@ -403,13 +425,19 @@ export const useStepPathEdge = ({
   )
 
   const overlayPath = useMemo(() => {
+    // Floating: keep the interaction stroke off the last px at each end so
+    // the node's port band under an attached edge can still start a new one.
+    if (floating) return pointsToSvgPath(trimRouteEnds(activePoints, PORT_CLEARANCE))
     return `${currentPath} ${markerSegmentPath}`
-  }, [currentPath, markerSegmentPath])
+  }, [currentPath, markerSegmentPath, floating, activePoints])
 
   const midpoints = useMemo(() => {
-    if (!allowMidpointDragging || activePoints.length < 3) return []
+    if (!allowMidpointDragging) return []
+    // Floating: every segment can be dragged (first / last slide the port).
+    if (floating) return segmentHandles(activePoints)
+    if (activePoints.length < 3) return []
     return calculateInnerMidpoints(activePoints)
-  }, [activePoints, allowMidpointDragging])
+  }, [activePoints, allowMidpointDragging, floating])
 
   useEffect(() => {
     if (pathRef.current && currentPath) {
@@ -451,9 +479,115 @@ export const useStepPathEdge = ({
     }
   }, [currentPath, sourceX, sourceY, targetX, targetY, hasInitialCalculation])
 
+  /**
+   * Floating segment drag: the route stays orthogonal, first / last segments
+   * slide (and pin) their port, snapping onto a neighbour removes bends.
+   * Previewed on the DOM, written to the store once on release.
+   */
+  const handleFloatingSegmentDown = useCallback(
+    (event: React.PointerEvent, index: number) => {
+      if (!floating || !isDiagramModifiable) return
+      event.stopPropagation()
+      const start = [...activePoints]
+      const handle = segmentHandles(start).find((h) => h.index === index)
+      if (!handle) return
+      const sourceInternal = getInternalNode(source)
+      const targetInternal = getInternalNode(target)
+      if (!sourceInternal || !targetInternal) return
+      const rectOf = (n: typeof sourceInternal) => ({
+        x: n.internals.positionAbsolute.x,
+        y: n.internals.positionAbsolute.y,
+        width: n.measured.width ?? n.width ?? 0,
+        height: n.measured.height ?? n.height ?? 0,
+      })
+      const ctx = {
+        sourceRect: rectOf(sourceInternal),
+        targetRect: rectOf(targetInternal),
+        sourceSide: floating.source.side,
+        targetSide: floating.target.side,
+      }
+      const circleEl = event.target as SVGCircleElement
+      const container = circleEl.closest(".edge-container")
+      const mainPath = container?.querySelector(
+        ".react-flow__edge-path"
+      ) as SVGPathElement | null
+      const overlay = container?.querySelector(
+        ".edge-overlay"
+      ) as SVGPathElement | null
+      container?.classList.add("edge-container--dragging")
+      let result: ReturnType<typeof dragSegment> | null = null
+
+      const onMove = (e: PointerEvent) => {
+        const p = screenToFlowPosition({ x: e.clientX, y: e.clientY })
+        result = dragSegment(start, index, handle.horizontal ? p.y : p.x, ctx)
+        const d = pointsToSvgPath(result.preview)
+        mainPath?.setAttribute("d", d)
+        overlay?.setAttribute("d", d)
+        const movedIndex = result.movedIndex
+        const mid = segmentHandles(result.preview).find(
+          (h) => h.index === movedIndex
+        )
+        if (mid) {
+          const group = circleEl.closest(".edge-segment-handle")
+          const circles = group ? group.querySelectorAll("circle") : [circleEl]
+          circles.forEach((c) => {
+            c.setAttribute("cx", String(mid.x))
+            c.setAttribute("cy", String(mid.y))
+          })
+        }
+      }
+      const onUp = () => {
+        document.removeEventListener("pointermove", onMove)
+        container?.classList.remove("edge-container--dragging")
+        const r = result as ReturnType<typeof dragSegment> | null
+        if (!r) return
+        setCustomPoints(r.storedPoints)
+        setEdges((eds) =>
+          eds.map((edge) => {
+            if (edge.id !== id) return edge
+            const nextData: Record<string, unknown> = {
+              ...edge.data,
+              points: r.storedPoints,
+            }
+            if (r.sourcePort) nextData.sourcePort = r.sourcePort
+            if (r.targetPort) nextData.targetPort = r.targetPort
+            return { ...edge, data: nextData }
+          })
+        )
+      }
+      document.addEventListener("pointermove", onMove)
+      document.addEventListener("pointerup", onUp, { once: true })
+    },
+    [
+      floating,
+      isDiagramModifiable,
+      activePoints,
+      getInternalNode,
+      source,
+      target,
+      screenToFlowPosition,
+      setCustomPoints,
+      setEdges,
+      id,
+    ]
+  )
+
+  const handleFloatingEndpointDown = useFloatingEndpointDrag({
+    id,
+    source,
+    target,
+    floating,
+    isReconnectingRef,
+    setTempReconnectPoints,
+  })
+
   const handlePointerDown = useCallback(
     (event: React.PointerEvent, index: number) => {
       if (!allowMidpointDragging) return
+      if (floating) {
+        handleFloatingSegmentDown(event, index)
+        return
+      }
 
       // Store initial state
       const currentMidpoint = midpoints[index]
@@ -540,12 +674,18 @@ export const useStepPathEdge = ({
       setCustomPoints,
       offset,
       targetPosition,
+      floating,
+      handleFloatingSegmentDown,
     ]
   )
 
   const handleEndpointPointerDown = useCallback(
     (e: React.PointerEvent, endType: "source" | "target") => {
       if (!isDiagramModifiable || !enableReconnection) return
+      if (floating) {
+        handleFloatingEndpointDown(e, endType)
+        return
+      }
 
       const endpoint =
         endType === "source"
@@ -717,6 +857,8 @@ export const useStepPathEdge = ({
       sourceNode,
       targetNode,
       findBestHandle,
+      floating,
+      handleFloatingEndpointDown,
     ]
   )
 

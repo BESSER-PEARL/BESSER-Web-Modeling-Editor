@@ -3,7 +3,7 @@ import { act } from "@testing-library/react"
 import type { Edge, Node, ReactFlowInstance } from "@xyflow/react"
 import * as Y from "yjs"
 import { BesserEditor } from "@/besser-editor"
-import { fitViewToModel } from "@/App"
+import { fitViewToModel, LOADED_MODEL_MIN_ZOOM } from "@/App"
 import { UMLDiagramType } from "@/types"
 import type { UMLModel } from "@/typings"
 
@@ -241,31 +241,50 @@ describe("BesserEditor viewport during a model load", () => {
 })
 
 describe("fitViewToModel", () => {
-  it("keeps the centred 100% viewport when the diagram fits", async () => {
+  /** A canvas of `w` x `h`: the 100% centred viewport for `bounds`. */
+  const onCanvas = (
+    bounds: { width: number; height: number },
+    w = 1200,
+    h = 800
+  ) => {
+    const instance = fakeInstance(() => [classNode("A", 0, 0)] as Node[], {
+      x: (w - bounds.width) / 2,
+      y: (h - bounds.height) / 2,
+      zoom: 1,
+    })
+    return Object.assign(instance, {
+      getNodesBounds: () => ({ x: 0, y: 0, ...bounds }),
+    })
+  }
+
+  it("keeps 100% (never zooms in) and centres a diagram that fits, clear of the bottom toolbar", async () => {
     const instance = fakeInstance(() => [classNode("A", 0, 0)] as Node[])
     await fitViewToModel(instance)
-    expect(instance.fitView).toHaveBeenCalledWith(
-      expect.objectContaining({ minZoom: 1, maxZoom: 1 })
-    )
+    // Canvas 800 x 500; padded area 720 x 364 starting at (40, 40).
     expect(instance.setViewport).toHaveBeenLastCalledWith({
       x: 100,
-      y: 200,
+      y: 172,
       zoom: 1,
     })
   })
 
-  it("pins a diagram larger than the view to its top-left corner", async () => {
-    // Centring put the bounds' top-left (0, 0) at (-200, -300): off-screen.
-    const instance = fakeInstance(() => [classNode("A", 0, 0)] as Node[], {
-      x: -200,
-      y: -300,
-      zoom: 1,
-    })
+  it("zooms a larger diagram out so all of it is visible", async () => {
+    const instance = onCanvas({ width: 2000, height: 1000 })
+    await fitViewToModel(instance)
+    const [{ x, y, zoom }] = instance.setViewport.mock.calls.at(-1)!
+    expect(zoom).toBeCloseTo(0.56)
+    expect(x).toBeCloseTo(40)
+    // Bottom edge stays above the toolbar band (96px).
+    expect(y + 1000 * zoom).toBeLessThanOrEqual(800 - 96 + 0.01)
+  })
+
+  it("stops at the minimum zoom and pins a huge diagram to its top-left corner", async () => {
+    const instance = onCanvas({ width: 10000, height: 5000 })
     await fitViewToModel(instance)
     expect(instance.setViewport).toHaveBeenLastCalledWith({
       x: 40,
       y: 40,
-      zoom: 1,
+      zoom: LOADED_MODEL_MIN_ZOOM,
     })
   })
 

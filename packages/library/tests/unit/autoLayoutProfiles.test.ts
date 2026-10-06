@@ -92,7 +92,8 @@ const routeHits = (pts: P[], r: R) =>
 
 describe("auto-layout profiles", () => {
   it("offers per-family strategies with the default first", () => {
-    expect(getAutoLayoutStrategies(UMLDiagramType.ClassDiagram)).toEqual(["hierarchical", "compact"])
+    expect(getAutoLayoutStrategies(UMLDiagramType.ClassDiagram)).toEqual(["compact", "hierarchical"])
+    expect(getAutoLayoutStrategies(UMLDiagramType.ObjectDiagram)).toEqual(["hierarchical", "compact"])
     expect(getAutoLayoutStrategies(UMLDiagramType.StateMachineDiagram)).toEqual(["horizontal", "vertical"])
     expect(getAutoLayoutStrategies(UMLDiagramType.Sfc)[0]).toBe("vertical")
     expect(getAutoLayoutStrategies(UMLDiagramType.BPMN)).toEqual(["horizontal"])
@@ -105,6 +106,34 @@ describe("auto-layout profiles", () => {
     expect(BPMN_POOL_HEADER_WIDTH).toBe(POOL_HEADER_WIDTH)
     expect(BPMN_LANE_HEADER_WIDTH).toBe(LANE_HEADER_WIDTH)
     expect(BPMN_LANE_MIN_HEIGHT).toBe(SWIMLANE_MIN_HEIGHT)
+  })
+})
+
+describe("class diagram default strategy", () => {
+  const classes = ["A", "B", "C", "D"].map((id) => node(id, "class"))
+  const positions = (out: { nodes: Node[] }) => out.nodes.map((n) => [n.id, n.position.x, n.position.y])
+
+  it("lays out an association-heavy class diagram with Compact when no strategy is given", async () => {
+    const assoc = [
+      edge("1", "A", "B", "ClassBidirectional"),
+      edge("2", "A", "C", "ClassBidirectional"),
+      edge("3", "B", "D", "ClassComposition"),
+      edge("4", "C", "D", "ClassBidirectional"),
+    ]
+    const auto = await computeAutoLayout(classes, assoc, UMLDiagramType.ClassDiagram)
+    const compact = await computeAutoLayout(classes, assoc, UMLDiagramType.ClassDiagram, { strategy: "compact" })
+    expect(positions(auto)).toEqual(positions(compact))
+  })
+
+  it("keeps the top-down hierarchy when generalizations dominate", async () => {
+    const tree = [
+      edge("1", "B", "A", "ClassInheritance"),
+      edge("2", "C", "A", "ClassInheritance"),
+      edge("3", "D", "B", "ClassBidirectional"),
+    ]
+    const auto = await computeAutoLayout(classes, tree, UMLDiagramType.ClassDiagram)
+    const hier = await computeAutoLayout(classes, tree, UMLDiagramType.ClassDiagram, { strategy: "hierarchical" })
+    expect(positions(auto)).toEqual(positions(hier))
   })
 })
 
@@ -129,7 +158,7 @@ describe("class diagrams (hierarchical)", () => {
   ]
 
   it("places every generalization parent above its child", async () => {
-    const out = await computeAutoLayout(nodes, edges, UMLDiagramType.ClassDiagram)
+    const out = await computeAutoLayout(nodes, edges, UMLDiagramType.ClassDiagram, { strategy: "hierarchical" })
     const r = rects(out.nodes)
     for (const e of edges.filter((x) => x.type !== "ClassBidirectional")) {
       const child = r.get(e.source)!
@@ -139,7 +168,7 @@ describe("class diagrams (hierarchical)", () => {
   })
 
   it("stores ELK's orthogonal route as absolute waypoints ending on the chosen handles", async () => {
-    const out = await computeAutoLayout(nodes, edges, UMLDiagramType.ClassDiagram)
+    const out = await computeAutoLayout(nodes, edges, UMLDiagramType.ClassDiagram, { strategy: "hierarchical" })
     const r = rects(out.nodes)
     for (const e of out.edges) {
       const pts = (e.data as { points: P[] }).points

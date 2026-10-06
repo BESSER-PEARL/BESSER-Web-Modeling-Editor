@@ -56,7 +56,7 @@ describe("layoutModel (headless)", () => {
       [node("a"), node("b"), node("c")],
       [edge("e1", "a", "b"), edge("e2", "a", "c")]
     )
-    const out = await layoutModel(m)
+    const out = await layoutModel(m, { strategy: "hierarchical" })
     expect(out).not.toBe(m)
     expect(out.nodes).toHaveLength(3)
     const [a, b, c] = out.nodes
@@ -104,7 +104,7 @@ describe("layoutModel (headless)", () => {
       [node("a"), node("b")],
       [edge("e1", "a", "b", { points: stale, label: "keep" })]
     )
-    const out = await layoutModel(m)
+    const out = await layoutModel(m, { strategy: "hierarchical" })
     const e = out.edges[0]
     expect(e.sourceHandle).toMatch(/^bottom/)
     expect(e.targetHandle).toMatch(/^top/)

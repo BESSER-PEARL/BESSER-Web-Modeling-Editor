@@ -8,6 +8,8 @@ import {
 import { EdgeEndLabels } from "../labelTypes/EdgeEndLabels"
 import { useEdgeConfig } from "@/hooks/useEdgeConfig"
 import { useStepPathEdge } from "@/hooks/useStepPathEdge"
+import { useFloatingEdgeLayout } from "@/hooks/useFloatingEdges"
+import type { SegmentHandle } from "@/utils/edgeDragging"
 import { useDiagramStore, usePopoverStore } from "@/store/context"
 import type { DiagramStore } from "@/store/diagramStore"
 import { useShallow } from "zustand/shallow"
@@ -198,6 +200,9 @@ export const ClassDiagramEdge = ({
 
   const startLinking = useEdgeLinkingStore((state) => state.startLinking)
 
+  // Continuous ports: anchors, route and label placement for this edge.
+  const floating = useFloatingEdgeLayout(id)
+
   const {
     pathRef,
     edgeData,
@@ -231,6 +236,7 @@ export const ClassDiagramEdge = ({
     allowMidpointDragging,
     enableReconnection: true,
     enableStraightPath,
+    floating,
   })
 
   const { strokeColor, textColor } = getCustomColorsFromDataForEdge(data)
@@ -375,6 +381,9 @@ export const ClassDiagramEdge = ({
             id={id}
             path={currentPath}
             pointerEvents="none"
+            // `.edge-overlay` is the interaction stroke (trimmed at the ends
+            // for floating edges); React Flow's own would cover the ports.
+            interactionWidth={floating ? 0 : undefined}
             style={{
               stroke: strokeColor,
               strokeDasharray: isReconnectingRef.current
@@ -429,6 +438,7 @@ export const ClassDiagramEdge = ({
             selected={selected}
             diagramType="step"
             pathType="step"
+            showDots={!!floating}
             onSourcePointerDown={(e) => handleEndpointPointerDown(e, "source")}
             onTargetPointerDown={(e) => handleEndpointPointerDown(e, "target")}
           />
@@ -436,20 +446,52 @@ export const ClassDiagramEdge = ({
           {isDiagramModifiable &&
             !isReconnectingRef.current &&
             allowMidpointDragging &&
-            midpoints.map((point, midPointIndex) => (
-              <circle
-                className="edge-circle"
-                pointerEvents="all"
-                key={`${id}-midpoint-${midPointIndex}`}
-                cx={point.x}
-                cy={point.y}
-                r={10}
-                fill="var(--besser-gray-variant, #adb5bd)"
-                stroke="none"
-                style={{ cursor: "grab", zIndex: 9999 }}
-                onPointerDown={(e) => handlePointerDown(e, midPointIndex)}
-              />
-            ))}
+            midpoints.map((point, midPointIndex) =>
+              floating && "index" in point ? (
+                // Segment handle: small visible grip + generous hit area.
+                <g
+                  className="edge-segment-handle"
+                  key={`${id}-segment-${(point as SegmentHandle).index}`}
+                  style={{
+                    cursor: (point as SegmentHandle).horizontal
+                      ? "ns-resize"
+                      : "ew-resize",
+                  }}
+                  onPointerDown={(e) =>
+                    handlePointerDown(e, (point as SegmentHandle).index)
+                  }
+                >
+                  <circle
+                    className="edge-segment-handle__hit"
+                    cx={point.x}
+                    cy={point.y}
+                    r={9}
+                    fill="transparent"
+                    pointerEvents="all"
+                  />
+                  <circle
+                    className="edge-segment-handle__dot"
+                    cx={point.x}
+                    cy={point.y}
+                    r={3.5}
+                    pointerEvents="none"
+                  />
+                </g>
+              ) : (
+                <circle
+                  className="edge-circle"
+                  pointerEvents="all"
+                  key={`${id}-midpoint-${midPointIndex}`}
+                  cx={point.x}
+                  cy={point.y}
+                  r={10}
+                  fill="var(--besser-gray-variant, #adb5bd)"
+                  stroke="none"
+                  style={{ cursor: "grab", zIndex: 9999 }}
+                  onPointerDown={(e) => handlePointerDown(e, midPointIndex)}
+                />
+              )
+            )}
         </g>
 
         <EdgeEndLabels
@@ -464,6 +506,7 @@ export const ClassDiagramEdge = ({
           textColor={textColor}
           sourceMarkerLength={sourceMarkerLength}
           targetMarkerLength={targetMarkerLength}
+          layout={isReconnectingRef.current ? undefined : floating?.labels}
         />
 
         {/* ER (Chen) diamond at the path midpoint, replacing the UML
