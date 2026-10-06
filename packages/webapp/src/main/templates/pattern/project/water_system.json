@@ -1,0 +1,487 @@
+{
+  "project": {
+    "id": "project_1788903396740_aja9w6ucg",
+    "type": "Project",
+    "schemaVersion": 4,
+    "name": "Water System",
+    "description": "Class diagram of a residential water distribution system (source, tank, house) with platform customization for Run-mode simulation.",
+    "owner": "BESSER User",
+    "createdAt": "2026-09-08T21:36:36.740Z",
+    "currentDiagramType": "ClassDiagram",
+    "currentDiagramIndices": {
+      "ClassDiagram": 0,
+      "ObjectDiagram": 0,
+      "StateMachineDiagram": 0,
+      "AgentDiagram": 0,
+      "NNDiagram": 0,
+      "UserDiagram": 0,
+      "GUINoCodeDiagram": 0,
+      "QuantumCircuitDiagram": 0,
+      "PlatformCustomizationDiagram": 0,
+      "BPMN": 0
+    },
+    "diagrams": {
+      "ClassDiagram": [
+        {
+          "id": "9d99eeff-7089-483a-9ab0-1fb505df2b99",
+          "title": "Class Diagram",
+          "model": {
+            "version": "3.0.0",
+            "type": "ClassDiagram",
+            "size": {
+              "width": 946.7999420166016,
+              "height": 555.9999847412109
+            },
+            "interactive": {
+              "elements": {},
+              "relationships": {}
+            },
+            "elements": {
+              "class_m6h92qlvq_mtt55qr5_7zn": {
+                "id": "class_m6h92qlvq_mtt55qr5_7zn",
+                "name": "Tank",
+                "type": "Class",
+                "owner": null,
+                "bounds": {
+                  "x": -453.3999710083008,
+                  "y": -22.999980926513672,
+                  "width": 220,
+                  "height": 115
+                },
+                "icon": "<svg width=\"128\" height=\"128\" viewBox=\"0 0 128 128\" xmlns=\"http://www.w3.org/2000/svg\">    <!-- Tank body -->   <rect x=\"34\" y=\"18\" width=\"60\" height=\"92\"         rx=\"10\"         fill=\"#D7DBDD\"         stroke=\"#424949\"         stroke-width=\"4\"/>    <!-- Top ellipse -->   <ellipse cx=\"64\" cy=\"18\" rx=\"30\" ry=\"10\"            fill=\"#BDC3C7\"            stroke=\"#424949\"            stroke-width=\"4\"/>    <!-- Bottom ellipse -->   <ellipse cx=\"64\" cy=\"110\" rx=\"30\" ry=\"10\"            fill=\"#A6ACAF\"            stroke=\"#424949\"            stroke-width=\"4\"/>    <!-- Water level -->   <path d=\"     M38 70     Q46 64 54 70     T70 70     T86 70     L90 70     L90 104     L38 104 Z\"     fill=\"#4FC3F7\"/>    <!-- Water highlight -->   <path d=\"     M40 78     Q48 72 56 78     T72 78     T88 78\"     fill=\"none\"     stroke=\"#B3E5FC\"     stroke-width=\"3\"     opacity=\"0.8\"/>    <!-- Left pipe -->   <rect x=\"12\" y=\"52\" width=\"22\" height=\"12\"         fill=\"#7F8C8D\"         stroke=\"#424949\"         stroke-width=\"2\"/>    <!-- Right pipe -->   <rect x=\"94\" y=\"76\" width=\"22\" height=\"12\"         fill=\"#7F8C8D\"         stroke=\"#424949\"         stroke-width=\"2\"/>    <!-- Top hatch -->   <circle cx=\"64\" cy=\"18\" r=\"6\"           fill=\"#5D6D7E\"           stroke=\"#2C3E50\"           stroke-width=\"2\"/>    <!-- Level indicator -->   <rect x=\"100\" y=\"34\" width=\"8\" height=\"54\"         rx=\"2\"         fill=\"#ECF0F1\"         stroke=\"#566573\"         stroke-width=\"2\"/>    <rect x=\"100\" y=\"64\" width=\"8\" height=\"24\"         rx=\"2\"         fill=\"#3498DB\"/>  </svg>",
+                "attributes": [
+                  "attr_4hk6rauk5_mtt55qr5_elu",
+                  "attr_a0y7gcpkz_mtt55qr5_ytq"
+                ],
+                "methods": [
+                  "method_5x8gr4jxi_mtt55qr5_ybs"
+                ]
+              },
+              "attr_4hk6rauk5_mtt55qr5_elu": {
+                "id": "attr_4hk6rauk5_mtt55qr5_elu",
+                "name": "capacityLiters",
+                "type": "ClassAttribute",
+                "owner": "class_m6h92qlvq_mtt55qr5_7zn",
+                "bounds": {
+                  "x": -452.8999710083008,
+                  "y": 17.500019073486328,
+                  "width": 219,
+                  "height": 25
+                },
+                "code": "",
+                "visibility": "public",
+                "attributeType": "float",
+                "implementationType": "none",
+                "stateMachineId": "",
+                "quantumCircuitId": "",
+                "isOptional": false,
+                "isDerived": false,
+                "isId": false,
+                "isExternalId": false,
+                "isInput": false,
+                "isStep": false
+              },
+              "attr_a0y7gcpkz_mtt55qr5_ytq": {
+                "id": "attr_a0y7gcpkz_mtt55qr5_ytq",
+                "name": "levelLiters",
+                "type": "ClassAttribute",
+                "owner": "class_m6h92qlvq_mtt55qr5_7zn",
+                "bounds": {
+                  "x": -452.8999710083008,
+                  "y": 42.50001907348633,
+                  "width": 219,
+                  "height": 25
+                },
+                "code": "",
+                "visibility": "public",
+                "attributeType": "float",
+                "implementationType": "none",
+                "stateMachineId": "",
+                "quantumCircuitId": "",
+                "isOptional": false,
+                "isDerived": false,
+                "isId": false,
+                "isExternalId": false,
+                "isInput": false,
+                "isStep": false
+              },
+              "method_5x8gr4jxi_mtt55qr5_ybs": {
+                "id": "method_5x8gr4jxi_mtt55qr5_ybs",
+                "name": "+ updateLevel()",
+                "type": "ClassMethod",
+                "owner": "class_m6h92qlvq_mtt55qr5_7zn",
+                "bounds": {
+                  "x": -452.8999710083008,
+                  "y": 67.50001907348633,
+                  "width": 219,
+                  "height": 25
+                },
+                "code": "def updateLevel(self):\n    \"\"\"\n    Update tank water level based on connected incoming\n    and outgoing water flows.\n    \"\"\"\n\n    inflow = 0.0\n    outflow = 0.0\n\n    # Sum incoming flows\n    for flow in (self.inFlows or []):\n        inflow += float(flow.flowRateLiters or 0.0)\n\n    # Sum outgoing flows\n    for flow in (self.outFlows or []):\n        outflow += float(flow.flowRateLiters or 0.0)\n\n    # Update tank level\n    self.levelLiters = (\n        (self.levelLiters or 0.0)\n        + inflow\n        - outflow\n    )\n\n    # Clamp between 0 and capacity\n    self.levelLiters = max(\n        0.0,\n        min(self.capacityLiters or 0.0, self.levelLiters)\n    )",
+                "visibility": "public",
+                "attributeType": "float",
+                "implementationType": "code",
+                "stateMachineId": "",
+                "quantumCircuitId": "",
+                "isOptional": false,
+                "isDerived": false,
+                "isId": false,
+                "isExternalId": false,
+                "isInput": false,
+                "isStep": true
+              },
+              "class_o32lrrtes_mtt55qr6_6hl": {
+                "id": "class_o32lrrtes_mtt55qr6_6hl",
+                "name": "House",
+                "type": "Class",
+                "owner": null,
+                "bounds": {
+                  "x": 107.59996795654297,
+                  "y": -39.00010299682617,
+                  "width": 220,
+                  "height": 90
+                },
+                "icon": "<svg width=\"128\" height=\"128\" viewBox=\"0 0 128 128\" xmlns=\"http://www.w3.org/2000/svg\">    <!-- Roof -->   <polygon points=\"20,54 64,20 108,54\"            fill=\"#C0392B\"            stroke=\"#7B241C\"            stroke-width=\"4\"/>    <!-- House body -->   <rect x=\"28\" y=\"54\" width=\"72\" height=\"54\"         fill=\"#F4F6F7\"         stroke=\"#566573\"         stroke-width=\"4\"/>    <!-- Door -->   <rect x=\"56\" y=\"76\" width=\"16\" height=\"32\"         fill=\"#8E6E53\"         stroke=\"#5D4037\"         stroke-width=\"3\"/>    <!-- Door knob -->   <circle cx=\"68\" cy=\"92\" r=\"2.5\"           fill=\"#F1C40F\"/>    <!-- Left window -->   <rect x=\"38\" y=\"66\" width=\"16\" height=\"16\"         fill=\"#AED6F1\"         stroke=\"#5D6D7E\"         stroke-width=\"2\"/>    <!-- Window cross -->   <line x1=\"46\" y1=\"66\" x2=\"46\" y2=\"82\"         stroke=\"#5D6D7E\"         stroke-width=\"2\"/>    <line x1=\"38\" y1=\"74\" x2=\"54\" y2=\"74\"         stroke=\"#5D6D7E\"         stroke-width=\"2\"/>    <!-- Right window -->   <rect x=\"74\" y=\"66\" width=\"16\" height=\"16\"         fill=\"#AED6F1\"         stroke=\"#5D6D7E\"         stroke-width=\"2\"/>    <!-- Window cross -->   <line x1=\"82\" y1=\"66\" x2=\"82\" y2=\"82\"         stroke=\"#5D6D7E\"         stroke-width=\"2\"/>    <line x1=\"74\" y1=\"74\" x2=\"90\" y2=\"74\"         stroke=\"#5D6D7E\"         stroke-width=\"2\"/>    <!-- Chimney -->   <rect x=\"82\" y=\"28\" width=\"10\" height=\"20\"         fill=\"#922B21\"         stroke=\"#641E16\"         stroke-width=\"2\"/>  </svg>",
+                "attributes": [
+                  "attr_syolxe4jb_mtt55qr7_bid",
+                  "attr_hprppihc8_mtt55qr7_ppy"
+                ],
+                "methods": []
+              },
+              "attr_syolxe4jb_mtt55qr7_bid": {
+                "id": "attr_syolxe4jb_mtt55qr7_bid",
+                "name": "address",
+                "type": "ClassAttribute",
+                "owner": "class_o32lrrtes_mtt55qr6_6hl",
+                "bounds": {
+                  "x": 108.09996795654297,
+                  "y": 1.4998970031738281,
+                  "width": 219,
+                  "height": 25
+                },
+                "code": "",
+                "visibility": "public",
+                "attributeType": "str",
+                "implementationType": "none",
+                "stateMachineId": "",
+                "quantumCircuitId": "",
+                "isOptional": false,
+                "isDerived": false,
+                "isId": false,
+                "isExternalId": false,
+                "isInput": false,
+                "isStep": false
+              },
+              "attr_hprppihc8_mtt55qr7_ppy": {
+                "id": "attr_hprppihc8_mtt55qr7_ppy",
+                "name": "numberOfResidents",
+                "type": "ClassAttribute",
+                "owner": "class_o32lrrtes_mtt55qr6_6hl",
+                "bounds": {
+                  "x": 108.09996795654297,
+                  "y": 26.499897003173828,
+                  "width": 219,
+                  "height": 25
+                },
+                "code": "",
+                "visibility": "public",
+                "attributeType": "int",
+                "implementationType": "none",
+                "stateMachineId": "",
+                "quantumCircuitId": "",
+                "isOptional": false,
+                "isDerived": false,
+                "isId": false,
+                "isExternalId": false,
+                "isInput": false,
+                "isStep": false
+              },
+              "class_ro4czo4gr_mtt55qr7_hw3": {
+                "id": "class_ro4czo4gr_mtt55qr7_hw3",
+                "name": "WaterFlow",
+                "type": "Class",
+                "owner": null,
+                "bounds": {
+                  "x": -149.39997100830078,
+                  "y": -147.79999923706055,
+                  "width": 220,
+                  "height": 65
+                },
+                "attributes": [
+                  "attr_ecynji8vp_mtt55qr7_t2q"
+                ],
+                "methods": []
+              },
+              "attr_ecynji8vp_mtt55qr7_t2q": {
+                "id": "attr_ecynji8vp_mtt55qr7_t2q",
+                "name": "flowRateLiters",
+                "type": "ClassAttribute",
+                "owner": "class_ro4czo4gr_mtt55qr7_hw3",
+                "bounds": {
+                  "x": -148.89997100830078,
+                  "y": -107.29999923706055,
+                  "width": 219,
+                  "height": 25
+                },
+                "code": "",
+                "visibility": "public",
+                "attributeType": "float",
+                "implementationType": "none",
+                "stateMachineId": "",
+                "quantumCircuitId": "",
+                "isOptional": false,
+                "isDerived": false,
+                "isId": false,
+                "isExternalId": false,
+                "isInput": true,
+                "isStep": false
+              },
+              "64938b81-97ac-4c8b-b6c0-16fcfb7ed808": {
+                "id": "64938b81-97ac-4c8b-b6c0-16fcfb7ed808",
+                "name": "WaterSource",
+                "type": "Class",
+                "owner": null,
+                "bounds": {
+                  "x": 145.99998474121094,
+                  "y": -257.99999237060547,
+                  "width": 160,
+                  "height": 70
+                },
+                "icon": "<svg width=\"128\" height=\"128\" viewBox=\"0 0 128 128\" xmlns=\"http://www.w3.org/2000/svg\">   <defs>     <linearGradient id=\"waterGradient\" x1=\"0%\" y1=\"0%\" x2=\"0%\" y2=\"100%\">       <stop offset=\"0%\" stop-color=\"#6EC6FF\"/>       <stop offset=\"100%\" stop-color=\"#1E88E5\"/>     </linearGradient>   </defs>    <!-- Outer circle -->   <circle cx=\"64\" cy=\"64\" r=\"56\" fill=\"#E3F2FD\" stroke=\"#1565C0\" stroke-width=\"4\"/>    <!-- Water droplet -->   <path d=\"     M64 28     C64 28, 38 58, 38 76     A26 26 0 0 0 90 76     C90 58, 64 28, 64 28     Z\"     fill=\"url(#waterGradient)\"     stroke=\"#1565C0\"     stroke-width=\"3\"/>    <!-- Small ripple -->   <path d=\"M42 96 Q64 108 86 96\"         fill=\"none\"         stroke=\"#42A5F5\"         stroke-width=\"4\"         stroke-linecap=\"round\"/>    <path d=\"M50 104 Q64 112 78 104\"         fill=\"none\"         stroke=\"#90CAF9\"         stroke-width=\"3\"         stroke-linecap=\"round\"/> </svg>",
+                "attributes": [
+                  "58ab2c72-8da1-4a2e-880e-f1f30ed5c3ea"
+                ],
+                "methods": []
+              },
+              "58ab2c72-8da1-4a2e-880e-f1f30ed5c3ea": {
+                "id": "58ab2c72-8da1-4a2e-880e-f1f30ed5c3ea",
+                "name": "source",
+                "type": "ClassAttribute",
+                "owner": "64938b81-97ac-4c8b-b6c0-16fcfb7ed808",
+                "bounds": {
+                  "x": 146.49998474121094,
+                  "y": -217.49999237060547,
+                  "width": 159,
+                  "height": 30
+                },
+                "code": "",
+                "visibility": "public",
+                "attributeType": "str",
+                "implementationType": "none",
+                "stateMachineId": "",
+                "quantumCircuitId": "",
+                "isOptional": false,
+                "isDerived": false,
+                "isId": false,
+                "isExternalId": false,
+                "isInput": false,
+                "isStep": false
+              }
+            },
+            "relationships": {
+              "613c22ba-5a6b-4c95-baf2-bafa0aebe1a2": {
+                "id": "613c22ba-5a6b-4c95-baf2-bafa0aebe1a2",
+                "name": "water_to_tank",
+                "type": "ClassBidirectional",
+                "owner": null,
+                "bounds": {
+                  "x": -395.5499725341797,
+                  "y": -125.29999923706055,
+                  "width": 246.1500015258789,
+                  "height": 111.30001831054688
+                },
+                "path": [
+                  {
+                    "x": 52.150001525878906,
+                    "y": 102.30001831054688
+                  },
+                  {
+                    "x": 52.150001525878906,
+                    "y": 10
+                  },
+                  {
+                    "x": 246.1500015258789,
+                    "y": 10
+                  }
+                ],
+                "source": {
+                  "direction": "Up",
+                  "element": "class_m6h92qlvq_mtt55qr5_7zn",
+                  "multiplicity": "0..1",
+                  "role": "toTank"
+                },
+                "target": {
+                  "direction": "Left",
+                  "element": "class_ro4czo4gr_mtt55qr7_hw3",
+                  "multiplicity": "*",
+                  "role": "inFlows"
+                },
+                "isManuallyLayouted": false
+              },
+              "b90fab05-177f-44af-9d30-ba2861e20612": {
+                "id": "b90fab05-177f-44af-9d30-ba2861e20612",
+                "name": "water_from_tank",
+                "type": "ClassBidirectional",
+                "owner": null,
+                "bounds": {
+                  "x": -233.39997100830078,
+                  "y": -82.79999923706055,
+                  "width": 150.23333311080933,
+                  "height": 126.55001831054688
+                },
+                "path": [
+                  {
+                    "x": 0,
+                    "y": 88.55001831054688
+                  },
+                  {
+                    "x": 139,
+                    "y": 88.55001831054688
+                  },
+                  {
+                    "x": 139,
+                    "y": 0
+                  }
+                ],
+                "source": {
+                  "direction": "Upright",
+                  "element": "class_m6h92qlvq_mtt55qr5_7zn",
+                  "multiplicity": "0..1",
+                  "role": "fromTank"
+                },
+                "target": {
+                  "direction": "Bottomleft",
+                  "element": "class_ro4czo4gr_mtt55qr7_hw3",
+                  "multiplicity": "*",
+                  "role": "outFlows"
+                },
+                "isManuallyLayouted": false
+              },
+              "ef251e69-4b7a-4891-b77a-de0b49a39292": {
+                "id": "ef251e69-4b7a-4891-b77a-de0b49a39292",
+                "name": "water_to_house",
+                "type": "ClassBidirectional",
+                "owner": null,
+                "bounds": {
+                  "x": -35.61663818359375,
+                  "y": -82.79999923706055,
+                  "width": 143.21660614013672,
+                  "height": 126.79989624023438
+                },
+                "path": [
+                  {
+                    "x": 51.21666717529297,
+                    "y": 0
+                  },
+                  {
+                    "x": 51.21666717529297,
+                    "y": 88.79989624023438
+                  },
+                  {
+                    "x": 143.21660614013672,
+                    "y": 88.79989624023438
+                  }
+                ],
+                "source": {
+                  "direction": "Bottomright",
+                  "element": "class_ro4czo4gr_mtt55qr7_hw3",
+                  "multiplicity": "0..1",
+                  "role": "inFlow"
+                },
+                "target": {
+                  "direction": "Left",
+                  "element": "class_o32lrrtes_mtt55qr6_6hl",
+                  "multiplicity": "0..1",
+                  "role": "toHouse"
+                },
+                "isManuallyLayouted": false
+              },
+              "19251529-bc4f-4cdd-af62-06e8d6460dd5": {
+                "id": "19251529-bc4f-4cdd-af62-06e8d6460dd5",
+                "name": "water_from_source",
+                "type": "ClassBidirectional",
+                "owner": null,
+                "bounds": {
+                  "x": -53.41664123535156,
+                  "y": -232.99999237060547,
+                  "width": 199.4166259765625,
+                  "height": 94.19999313354492
+                },
+                "path": [
+                  {
+                    "x": 199.4166259765625,
+                    "y": 10
+                  },
+                  {
+                    "x": 69.01667022705078,
+                    "y": 10
+                  },
+                  {
+                    "x": 69.01667022705078,
+                    "y": 85.19999313354492
+                  }
+                ],
+                "source": {
+                  "direction": "Left",
+                  "element": "64938b81-97ac-4c8b-b6c0-16fcfb7ed808",
+                  "multiplicity": "0..1",
+                  "role": "fromSource"
+                },
+                "target": {
+                  "direction": "Topright",
+                  "element": "class_ro4czo4gr_mtt55qr7_hw3",
+                  "multiplicity": "0..*",
+                  "role": "outFlows"
+                },
+                "isManuallyLayouted": false
+              }
+            },
+            "assessments": {}
+          },
+          "lastUpdate": "2026-09-09T17:31:12.908Z"
+        }
+      ],
+      "PlatformCustomizationDiagram": [
+        {
+          "id": "8c0a005d-3814-409a-9091-a5f087c326ee",
+          "title": "Platform Customization",
+          "model": {
+            "classOverrides": {
+              "House": {
+                "fontSize": 15,
+                "fontColor": "#000000"
+              },
+              "WaterFlow": {
+                "lineRouting": "smoothstep",
+                "targetArrowStyle": "filled_triangle",
+                "labelFontColor": "#000000",
+                "edgeColor": "#178fdf",
+                "isConnectionClass": true
+              }
+            },
+            "associationOverrides": {},
+            "version": "2.0.0"
+          },
+          "lastUpdate": "2026-09-08T22:31:29.090Z"
+        }
+      ]
+    },
+    "settings": {
+      "defaultDiagramType": "ClassDiagram",
+      "autoSave": true,
+      "collaborationEnabled": false,
+      "perspectives": {
+        "ClassDiagram": true,
+        "ObjectDiagram": true,
+        "StateMachineDiagram": true,
+        "AgentDiagram": true,
+        "UserDiagram": true,
+        "GUINoCodeDiagram": true,
+        "QuantumCircuitDiagram": true,
+        "NNDiagram": true,
+        "BPMN": true
+      }
+    }
+  },
+  "exportedAt": "2026-09-09T20:52:35.557Z",
+  "version": "2.0.0"
+}

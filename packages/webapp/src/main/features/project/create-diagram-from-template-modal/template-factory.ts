@@ -25,6 +25,8 @@ import nnAlexnet from '../../../templates/pattern/nn/alexnet_nn.json';
 import nnLstm from '../../../templates/pattern/nn/lstm_nn.json';
 import libraryFullStackProject from '../../../templates/pattern/project/library_full_stack.json';
 import personalizedGymAgentProject from '../../../templates/pattern/project/personalized_gym_agent.json';
+import h2PlantDslProject from '../../../templates/pattern/project/h2_plant_dsl.json';
+import waterSystemProject from '../../../templates/pattern/project/water_system.json';
 import { EXAMPLE_CIRCUITS } from '../../editors/quantum/exampleCircuits';
 import { serializeCircuit } from '../../editors/quantum/utils';
 
@@ -250,6 +252,22 @@ export class TemplateFactory {
           softwarePatternType,
           FULL_PROJECT_DIAGRAM_TYPE,
           personalizedGymAgentProject as object,
+          SoftwarePatternCategory.FULL_PROJECT,
+          false,
+        );
+      case SoftwarePatternType.H2_PLANT_DSL:
+        return new SoftwarePatternTemplate(
+          softwarePatternType,
+          FULL_PROJECT_DIAGRAM_TYPE,
+          h2PlantDslProject as object,
+          SoftwarePatternCategory.FULL_PROJECT,
+          false,
+        );
+      case SoftwarePatternType.WATER_SYSTEM:
+        return new SoftwarePatternTemplate(
+          softwarePatternType,
+          FULL_PROJECT_DIAGRAM_TYPE,
+          waterSystemProject as object,
           SoftwarePatternCategory.FULL_PROJECT,
           false,
         );
