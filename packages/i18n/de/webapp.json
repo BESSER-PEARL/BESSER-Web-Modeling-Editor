@@ -73,7 +73,14 @@
       "importGroupProject": "Projekt",
       "importGroupClassDiagram": "Klassendiagramm aus",
       "importImage": "Bild…",
-      "importKnowledgeGraph": "Wissensgraph…"
+      "importKnowledgeGraph": "Wissensgraph…",
+      "newProject": "Neues Projekt…",
+      "openProject": "Projekt öffnen…",
+      "importProject": "Projekt importieren",
+      "import": "Importieren",
+      "importProjectFile": "Projektdatei (.json / .py)…",
+      "fromSpreadsheet": "Aus Tabelle…",
+      "fromGithub": "Aus GitHub…"
     },
     "generate": {
       "title": "Generieren",
@@ -912,7 +919,15 @@
         "existingProjects": "Vorhandene Projekte",
         "viewAll": "Alle Projekte anzeigen",
         "noProjects": "Noch keine Projekte.",
-        "warningBanner": "Erstellen, importieren oder öffnen Sie ein Projekt, um den Arbeitsbereich zu betreten."
+        "warningBanner": "Erstellen, importieren oder öffnen Sie ein Projekt, um den Arbeitsbereich zu betreten.",
+        "cardGithub": {
+          "description": "Ein von BESSER erstelltes Repository wieder öffnen und weiterbauen.",
+          "title": "Aus GitHub fortsetzen"
+        },
+        "cardNew": {
+          "description": "Low-Code oder agentisch wählen, dann mit dem Modellieren beginnen.",
+          "title": "Neues Projekt"
+        }
       },
       "perspective": {
         "label": "Modellierungsperspektive",
@@ -947,6 +962,41 @@
       "returning": {
         "title": "Projekte",
         "description": "Öffne ein aktuelles Projekt oder starte ein neues."
+      },
+      "github": {
+        "connectHint": "Verbinde dein GitHub-Konto, um eines deiner Repositories auszuwählen. Nach der Anmeldung kehrst du hierher zurück.",
+        "continue": "Fortsetzen",
+        "description": "Wähle ein von BESSER erstelltes Repository – sein Modell wird geladen, und der nächste Lauf des Spec-Driven Agent bearbeitet seinen Code.",
+        "errors": {
+          "generic": "Fortsetzen aus diesem Repository nicht möglich.",
+          "noModel": "Dieses Repository enthält kein BESSER-Modell – es wurde nicht von BESSER erstellt, daher gibt es noch nichts fortzusetzen.",
+          "noSession": "GitHub-Sitzung nicht gefunden. Bitte erneut verbinden.",
+          "selectRepo": "Wähle ein Repository zum Fortsetzen.",
+          "sessionExpired": "Deine GitHub-Sitzung ist abgelaufen. Verbinde dich erneut und versuche es noch einmal."
+        },
+        "loadingBranches": "Branches werden geladen…",
+        "loadingRepos": "Repositories werden geladen…",
+        "privateSuffix": "(privat)",
+        "selectRepo": "Repository auswählen",
+        "title": "Aus GitHub fortsetzen",
+        "toasts": {
+          "connectToContinue": "Verbinde GitHub, um aus einem deiner Repositories fortzusetzen.",
+          "continuing": "Fortsetzung aus {{repo}}.",
+          "failed": "Fortsetzen aus GitHub fehlgeschlagen: {{message}}",
+          "sessionExpired": "GitHub-Sitzung abgelaufen – bitte erneut verbinden."
+        }
+      },
+      "interface": {
+        "agent": {
+          "description": "Beschreibe deine App in natürlicher Sprache; der Assistent baut sie.",
+          "label": "Agentisch"
+        },
+        "helper": "Wähle, wie du bauen möchtest. Du kannst jederzeit über die Assistentenleiste wechseln.",
+        "label": "Ansicht",
+        "model": {
+          "description": "Visuell mit UML-Diagrammen auf der Modellierungsfläche bauen.",
+          "label": "Low-Code"
+        }
       }
     },
     "settings": {
@@ -1029,6 +1079,16 @@
         "applyPresetFailed": "Voreinstellung konnte nicht angewendet werden",
         "exported": "Projekt erfolgreich exportiert.",
         "exportFailed": "Projekt konnte nicht exportiert werden: {{error}}"
+      },
+      "apiKey": {
+        "change": "Schlüssel ändern",
+        "description": "Verwende deinen eigenen Anthropic-, OpenAI-, Mistral- oder Nebius-Schlüssel. Hier einmal eingegeben, nutzen ihn der Modellierungsassistent und der Spec-Driven-Generator (Nebius nur den Generator). Er wird nur in diesem Browser-Tab gespeichert, nie auf unseren Servern.",
+        "keySet": "Schlüssel gesetzt · {{provider}}",
+        "keySetHint": "Gilt für Assistent und Generator",
+        "noKey": "Kein Schlüssel gesetzt",
+        "noKeyHint": "Gemeinsamer Server-Schlüssel mit Ratenbegrenzung",
+        "set": "API-Schlüssel festlegen",
+        "title": "KI-/LLM-API-Schlüssel"
       }
     },
     "templates": {
@@ -1263,6 +1323,32 @@
       "importModelFailed": "Modell konnte nicht von GitHub importiert werden",
       "starThanks": "Vielen Dank, dass Sie BESSER mit einem Stern markiert haben!",
       "starFailed": "Stern konnte nicht aktualisiert werden"
+    },
+    "push": {
+      "changeRepo": "Repository ändern",
+      "commitMessageHelper": "Beschreibe, was sich geändert hat (optional).",
+      "commitMessagePlaceholder": "Generierte App aktualisieren",
+      "createNew": "Neues Repository erstellen",
+      "defaultDescription": "Generiert mit BESSER – {{name}}",
+      "descriptionCreate": "Den generierten Code und das Projektmodell in ein GitHub-Repository pushen.",
+      "descriptionUpdate": "Das verknüpfte Repository mit deinem neuesten generierten Code und Modell aktualisieren.",
+      "done": "Fertig",
+      "filesUploaded_one": "{{count}} Datei hochgeladen.",
+      "filesUploaded_other": "{{count}} Dateien hochgeladen.",
+      "linkedTo": "Verknüpft mit",
+      "loadingBranches": "Branches werden geladen…",
+      "loadingRepositories": "Repositories werden geladen…",
+      "noRepositories": "Keine Repositories geladen. Die Anfrage ist möglicherweise fehlgeschlagen.",
+      "privateRepoOption": "{{name}} (privat)",
+      "publicWarning": "Dieses Repository wird öffentlich sein. Jeder kann den generierten Code und das Modell sehen.",
+      "pushUpdate": "Update pushen",
+      "repushHint": "Erneutes Pushen aktualisiert dieses Repository.",
+      "selectRepository": "Repository auswählen…",
+      "selectRepositoryError": "Wähle ein Repository als Ziel.",
+      "successCreated": "Repository erstellt und Dateien gepusht.",
+      "successTitle": "Zu GitHub gepusht",
+      "successUpdated": "Repository mit deiner neuesten Generierung aktualisiert.",
+      "useExisting": "Vorhandenes Repository verwenden"
     }
   },
   "assistant": {
@@ -1306,7 +1392,9 @@
       "headlinePost": "?",
       "subtitle": "Beschreiben Sie Ihr System in natürlicher Sprache. Erhalten Sie Modelle, Oberflächen und Code.",
       "pressEscPre": "Drücken Sie",
-      "pressEscPost": "zum Schließen"
+      "pressEscPost": "zum Schließen",
+      "freeTier": "Kostenlos mit unserem gehosteten Qwen-Modell.",
+      "changeModel": "Modell wechseln"
     },
     "composer": {
       "placeholder": "Beschreiben Sie, was Sie erstellen oder ändern möchten…"
@@ -1372,13 +1460,19 @@
       "apiKeySet": "API-Schlüssel gesetzt",
       "useOwnApiKey": "Eigenen API-Schlüssel verwenden",
       "reportIssue": "Problem melden",
-      "addApiKey": "API-Schlüssel hinzufügen"
+      "addApiKey": "API-Schlüssel hinzufügen",
+      "newChatConfirm": "Neuen Chat starten? Deine aktuelle Unterhaltung wird gelöscht.",
+      "newChatConfirmWithRun": "Neuen Chat starten? Deine aktuelle Unterhaltung wird gelöscht und die laufende Generierung gestoppt.",
+      "explainModel": "Dieses Modell erklären",
+      "explainModelTitle": "Erhalte eine verständliche Übersicht über dein Modell – was es hauptsächlich abbildet und wie es zusammenhängt"
     },
     "drawer": {
       "pushToClose": "Nach unten schieben, um den Assistenten zu schließen",
       "pullToOpen": "Nach oben ziehen, um den Assistenten zu öffnen",
       "pushUp": "Nach oben schieben",
-      "pullDown": "Assistent nach unten ziehen"
+      "pullDown": "Assistent nach unten ziehen",
+      "labelClosed": "Beschreibe deine App",
+      "labelOpen": "Spezifikationen ansehen"
     },
     "generationCompleted": "Generierung erfolgreich abgeschlossen.",
     "exportingProject": "Projekt wird als {{format}} exportiert…",

@@ -73,7 +73,14 @@
       "importGroupProject": "Projecte",
       "importGroupClassDiagram": "Diagrama de classes des de",
       "importImage": "Imatge…",
-      "importKnowledgeGraph": "Graf de coneixement…"
+      "importKnowledgeGraph": "Graf de coneixement…",
+      "newProject": "Projecte nou…",
+      "openProject": "Obre un projecte…",
+      "importProject": "Importa un projecte",
+      "import": "Importa",
+      "importProjectFile": "Fitxer de projecte (.json / .py)…",
+      "fromSpreadsheet": "Des d’un full de càlcul…",
+      "fromGithub": "Des de GitHub…"
     },
     "generate": {
       "title": "Genera",
@@ -912,7 +919,15 @@
         "existingProjects": "Projectes existents",
         "viewAll": "Veure tots els projectes",
         "noProjects": "Encara no hi ha projectes.",
-        "warningBanner": "Crea, importa o obre un projecte per entrar a l'espai de treball."
+        "warningBanner": "Crea, importa o obre un projecte per entrar a l'espai de treball.",
+        "cardGithub": {
+          "description": "Torna a obrir un repositori creat per BESSER i continua construint.",
+          "title": "Continua des de GitHub"
+        },
+        "cardNew": {
+          "description": "Tria low-code o agèntic i comença a modelar.",
+          "title": "Projecte nou"
+        }
       },
       "perspective": {
         "label": "Perspectiva de modelatge",
@@ -947,6 +962,41 @@
       "returning": {
         "title": "Projectes",
         "description": "Obre un projecte recent o comença’n un de nou."
+      },
+      "github": {
+        "connectHint": "Connecta el teu compte de GitHub per triar un dels teus repositoris. Tornaràs aquí un cop hagis iniciat la sessió.",
+        "continue": "Continua",
+        "description": "Tria un repositori creat per BESSER: se’n carrega el model i la propera execució del Spec-Driven Agent n’edita el codi.",
+        "errors": {
+          "generic": "No s’ha pogut continuar des d’aquest repositori.",
+          "noModel": "Aquest repositori no té cap model de BESSER: no el va crear BESSER, així que encara no hi ha res per continuar.",
+          "noSession": "No s’ha trobat la sessió de GitHub. Torna’t a connectar.",
+          "selectRepo": "Selecciona un repositori des d’on continuar.",
+          "sessionExpired": "La teva sessió de GitHub ha caducat. Torna’t a connectar i torna-ho a provar."
+        },
+        "loadingBranches": "S’estan carregant les branques…",
+        "loadingRepos": "S’estan carregant els repositoris…",
+        "privateSuffix": "(privat)",
+        "selectRepo": "Selecciona un repositori",
+        "title": "Continua des de GitHub",
+        "toasts": {
+          "connectToContinue": "Connecta GitHub per continuar des d’un dels teus repositoris.",
+          "continuing": "Continuant des de {{repo}}.",
+          "failed": "No s’ha pogut continuar des de GitHub: {{message}}",
+          "sessionExpired": "La sessió de GitHub ha caducat: torna’t a connectar."
+        }
+      },
+      "interface": {
+        "agent": {
+          "description": "Descriu la teva aplicació en llenguatge natural; l’assistent la construeix.",
+          "label": "Agèntic"
+        },
+        "helper": "Tria com construiràs. Pots canviar en qualsevol moment des del panell de l’assistent.",
+        "label": "Vista",
+        "model": {
+          "description": "Construeix visualment amb diagrames UML al llenç de modelatge.",
+          "label": "Low-code"
+        }
       }
     },
     "settings": {
@@ -1029,6 +1079,16 @@
         "applyPresetFailed": "No s'ha pogut aplicar el predefinit",
         "exported": "Projecte exportat correctament.",
         "exportFailed": "No s'ha pogut exportar el projecte: {{error}}"
+      },
+      "apiKey": {
+        "change": "Canvia la clau",
+        "description": "Utilitza la teva clau d’Anthropic, OpenAI, Mistral o Nebius. Introduïda un cop aquí, la fan servir l’assistent de modelatge i el generador Spec-Driven (Nebius només el generador). Només es desa en aquesta pestanya del navegador, mai als nostres servidors.",
+        "keySet": "Clau definida · {{provider}}",
+        "keySetHint": "S’aplica a l’assistent i al generador",
+        "noKey": "Cap clau definida",
+        "noKeyHint": "S’utilitza la clau compartida del servidor amb límits d’ús",
+        "set": "Defineix la clau API",
+        "title": "Clau API d’IA / LLM"
       }
     },
     "templates": {
@@ -1263,6 +1323,32 @@
       "importModelFailed": "No s'ha pogut importar el model de GitHub",
       "starThanks": "Gràcies per marcar BESSER amb una estrella!",
       "starFailed": "No s'ha pogut actualitzar l'estrella"
+    },
+    "push": {
+      "changeRepo": "Canvia el repositori",
+      "commitMessageHelper": "Descriu què ha canviat (opcional).",
+      "commitMessagePlaceholder": "Actualitza l’aplicació generada",
+      "createNew": "Crea un repositori nou",
+      "defaultDescription": "Generat amb BESSER — {{name}}",
+      "descriptionCreate": "Puja el codi generat i el model del projecte a un repositori de GitHub.",
+      "descriptionUpdate": "Actualitza el repositori enllaçat amb el teu darrer codi generat i el model.",
+      "done": "Fet",
+      "filesUploaded_one": "{{count}} fitxer pujat.",
+      "filesUploaded_other": "{{count}} fitxers pujats.",
+      "linkedTo": "Enllaçat amb",
+      "loadingBranches": "S’estan carregant les branques…",
+      "loadingRepositories": "S’estan carregant els repositoris…",
+      "noRepositories": "No s’ha carregat cap repositori. És possible que la sol·licitud hagi fallat.",
+      "privateRepoOption": "{{name}} (privat)",
+      "publicWarning": "Aquest repositori serà públic. Tothom podrà veure el codi generat i el model.",
+      "pushUpdate": "Puja l’actualització",
+      "repushHint": "Tornar a pujar actualitza aquest repositori.",
+      "selectRepository": "Selecciona un repositori…",
+      "selectRepositoryError": "Selecciona un repositori de destinació.",
+      "successCreated": "Repositori creat i fitxers pujats.",
+      "successTitle": "Pujat a GitHub",
+      "successUpdated": "Repositori actualitzat amb la teva darrera generació.",
+      "useExisting": "Utilitza un repositori existent"
     }
   },
   "assistant": {
@@ -1306,7 +1392,9 @@
       "headlinePost": "avui?",
       "subtitle": "Descriu el teu sistema en llenguatge natural. Obtén models, interfícies i codi.",
       "pressEscPre": "Prem",
-      "pressEscPost": "per tancar"
+      "pressEscPost": "per tancar",
+      "freeTier": "Gratuït amb el nostre model Qwen allotjat.",
+      "changeModel": "Canvia el model"
     },
     "composer": {
       "placeholder": "Descriu què vols crear o modificar…"
@@ -1372,13 +1460,19 @@
       "apiKeySet": "Clau API definida",
       "useOwnApiKey": "Utilitza la teva clau API",
       "reportIssue": "Informa d’un problema",
-      "addApiKey": "Afegeix la teva clau API"
+      "addApiKey": "Afegeix la teva clau API",
+      "newChatConfirm": "Vols iniciar un xat nou? S’esborrarà la conversa actual.",
+      "newChatConfirmWithRun": "Vols iniciar un xat nou? S’esborrarà la conversa actual i s’aturarà la generació en curs.",
+      "explainModel": "Explica aquest model",
+      "explainModelTitle": "Obtén un resum clar del teu model: què representa i com s’hi relacionen els elements"
     },
     "drawer": {
       "pushToClose": "Empeny cap avall per tancar l'assistent",
       "pullToOpen": "Estira cap amunt per obrir l'assistent",
       "pushUp": "Empeny cap amunt",
-      "pullDown": "Estira l'assistent cap avall"
+      "pullDown": "Estira l'assistent cap avall",
+      "labelClosed": "Descriu la teva aplicació",
+      "labelOpen": "Mostra les especificacions"
     },
     "generationCompleted": "Generació completada correctament.",
     "exportingProject": "S'està exportant el projecte com a {{format}}…",
@@ -2686,6 +2780,17 @@
       "noProjectData": "No hi ha dades de projecte disponibles per exportar",
       "projectExportedAs": "Projecte exportat com a {{filename}}",
       "projectExportFailed": "No s'ha pogut exportar el projecte: {{error}}"
+    },
+    "diagramLabels": {
+      "ClassDiagram": "Diagrama de classes",
+      "ObjectDiagram": "Diagrama d’objectes",
+      "StateMachineDiagram": "Diagrama de màquina d’estats",
+      "AgentDiagram": "Diagrama d’agent",
+      "UserDiagram": "Diagrama d’usuari",
+      "GUINoCodeDiagram": "Pantalles (GUI)",
+      "QuantumCircuitDiagram": "Circuit quàntic",
+      "NNDiagram": "Diagrama de xarxa neuronal",
+      "BPMN": "Procés BPMN"
     }
   },
   "import": {
