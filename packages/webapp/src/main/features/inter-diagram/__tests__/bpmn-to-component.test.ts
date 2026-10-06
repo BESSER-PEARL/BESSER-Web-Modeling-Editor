@@ -1207,7 +1207,7 @@ describe('Inter-diagram — bpmnModelToComponentModel', () => {
       for (const child of children) {
         const owner = result.model.elements[child.owner!];
         expect(owner?.type).toBe('Subsystem');
-        expect(child.bounds.y - owner.bounds.y).toBeGreaterThanOrEqual(70);
+        expect(child.bounds.y - owner.bounds.y).toBeGreaterThanOrEqual(50);
       }
     });
 

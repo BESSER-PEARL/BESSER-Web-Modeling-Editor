@@ -15,7 +15,7 @@ const defaultProps = Object.freeze({
 const initialState = Object.freeze({
   show: false as boolean,
   top: 0 as number,
-  left: 0 as number,
+  right: 0 as number,
   width: 0 as number,
 });
 
@@ -43,7 +43,7 @@ export class Dropdown<T> extends Component<Props<T>, State> {
 
   render() {
     const { color, outline, size } = this.props;
-    const { show, top, left, width } = this.state;
+    const { show, top, right, width } = this.state;
     const selected: ReactElement<ItemProps<T>> | undefined = (
       Children.toArray(this.props.children) as ReactElement<ItemProps<T>>[]
     ).find((item: ReactElement<ItemProps<T>>) => item.props.value === this.props.value);
@@ -60,7 +60,7 @@ export class Dropdown<T> extends Component<Props<T>, State> {
           {selected ? selected.props.children : this.props.placeholder}
         </DropdownButton>
         {show && (
-          <DropdownMenu style={{ top, left, minWidth: width }}>
+          <DropdownMenu style={{ top, right, minWidth: width }}>
             {Children.map<ReactElement<DropdownItemProps>, ReactElement<ItemProps<T>>>(
               this.props.children,
               ({ props }) => this.renderItem(props),
@@ -115,7 +115,7 @@ export class Dropdown<T> extends Component<Props<T>, State> {
     this.setState({
       show: true,
       top: activatorBounds.bottom,
-      left: activatorBounds.left,
+      right: Math.max(8, document.documentElement.clientWidth - activatorBounds.right),
       width: activatorBounds.width,
     });
 
