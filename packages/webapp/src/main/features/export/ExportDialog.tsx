@@ -41,8 +41,8 @@ const diagramLabels: Record<SupportedDiagramType, string> = {
   UserDiagram: 'User Diagram',
   GUINoCodeDiagram: 'GUI No-Code Diagram',
   QuantumCircuitDiagram: 'Quantum Circuit Diagram',
-  NNDiagram: 'Neural Network Diagram',
   BPMN: 'BPMN Diagram',
+  NNDiagram: 'Neural Network Diagram',
 };
 
 const formatsRequiringSelection = new Set<ExportFormat>(['JSON', 'BUML']);
@@ -194,7 +194,7 @@ export const ExportDialog: React.FC<ExportDialogProps> = ({ open, onOpenChange, 
                         />
                       </span>
                       <div className="flex flex-col">
-                        <span className="font-medium">{t(`diagramTypes.${type}`, { defaultValue: diagramLabels[type] })}</span>
+                        <span className="font-medium">{t(`export.diagramLabels.${type}`)}</span>
                         {diagrams.length > 1 && (
                           <span className="text-xs text-muted-foreground">
                             {t('export.dialog.diagramCount', {

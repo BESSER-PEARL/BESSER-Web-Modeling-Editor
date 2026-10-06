@@ -65,5 +65,6 @@ describe('AgentConfigurationPanel hydration', () => {
     rerender(<AgentConfigurationPanel />);
 
     expect(style()).toHaveTextContent('Informal');
-  });
+    // Renders the whole panel through Radix selects: slower than 5 s when the full suite runs in parallel.
+  }, 20_000);
 });

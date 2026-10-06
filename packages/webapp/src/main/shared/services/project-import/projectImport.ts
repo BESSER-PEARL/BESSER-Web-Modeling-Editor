@@ -1,4 +1,5 @@
 import { toast } from 'react-toastify';
+import i18n from '../../i18n';
 import {
   ALL_DIAGRAM_TYPES,
   BesserProject,
@@ -71,13 +72,11 @@ function migrateOldWebappProject(data: any): BesserProject {
   const newProjectId = `project_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
   // Lift legacy v3 UML models ({elements, relationships}) to v4 at import
-  // time: the project built below is stamped with the current
-  // PROJECT_SCHEMA_VERSION, so the load-time migrator (`migrateProjectToV5`)
-  // early-returns and would never repair them — the editor would refuse to
-  // render and the diagrams would stay permanently blank. GUI ({pages}) and
-  // quantum ({cols}) models fail isV3UMLModel and pass through untouched.
-  // A migrator throw deliberately propagates so the import is rejected
-  // loudly instead of storing a project that lies about its schema.
+  // time so the project is stored in its final shape (the load-time
+  // `migrateProjectToV5` would also lift them, but only after storing). GUI
+  // ({pages}) and quantum ({cols}) models fail isV3UMLModel and pass through
+  // untouched. A migrator throw deliberately propagates so the import is
+  // rejected loudly instead of storing a project that lies about its schema.
   let liftedV3Count = 0;
   const liftV3Model = (diagram: any, diagramType: SupportedDiagramType): void => {
     if (diagram && isV3UMLModel(diagram.model)) {
@@ -129,7 +128,7 @@ function migrateOldWebappProject(data: any): BesserProject {
   }
 
   if (liftedV3Count > 0) {
-    toast.info('Diagram(s) migrated from v3 schema to v4 on import.', { autoClose: 4000 });
+    toast.info(i18n.t('import.toasts.migratedFromV3Many'), { autoClose: 4000 });
   }
 
   const currentDiagramIndices: Record<SupportedDiagramType, number> = {
@@ -385,7 +384,6 @@ export async function importProjectFromBUML(file: File): Promise<BesserProject> 
     const project = migrateOldWebappProject(jsonData);
     storeImportedProject(project);
     return project;
-
   } else if (validateV2ExportData(jsonData)) {
     const project = fillMissingDiagrams({
       ...jsonData.project,
@@ -458,16 +456,14 @@ export async function importProjectFromJson(file: File): Promise<BesserProject> 
             : 'ClassDiagram';
           const newProjectId = `project_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
-          // Bare v3 exports must be lifted to v4 before being stored under
-          // the current PROJECT_SCHEMA_VERSION (the load-time migrator
-          // early-returns on schemaVersion >= 5 and would never repair
-          // them). v4 bare diagrams pass through untouched. A migrator
-          // throw propagates to the catch below so the import is rejected
-          // instead of stored broken.
+          // Bare v3 exports are lifted to v4 before being stored, like
+          // `migrateOldWebappProject` does. v4 bare diagrams pass through
+          // untouched. A migrator throw propagates to the catch below so the
+          // import is rejected instead of stored broken.
           let bareModel = jsonData.model;
           if (isV3UMLModel(bareModel)) {
             bareModel = migrateUMLModelV3ToV4(bareModel, supportedType);
-            toast.info('Diagram migrated from v3 schema to v4 on import.', { autoClose: 4000 });
+            toast.info(i18n.t('import.toasts.migratedFromV3'), { autoClose: 4000 });
           }
           if (knownWireType && bareModel && typeof bareModel === 'object' && bareModel.type !== wireType) {
             // Stamp the canonical wire value (only differs for legacy 'BPMN').
@@ -557,7 +553,7 @@ export async function importProjectFromJson(file: File): Promise<BesserProject> 
         // Surface the underlying error (e.g. a v3 → v4 migration failure)
         // instead of blaming the JSON syntax for every rejection.
         const detail = error instanceof Error && error.message ? error.message : 'Invalid JSON format';
-        reject(new Error(`Failed to import project: ${detail}`));
+        reject(new Error(i18n.t('import.errors.projectFailed', { detail })));
       }
     };
 

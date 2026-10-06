@@ -2857,10 +2857,12 @@
       "readFileFailed": "No s'ha pogut llegir el fitxer",
       "invalidFromBackend": "El servidor ha retornat un diagrama no vàlid",
       "couldNotParseError": "No s'ha pogut interpretar la resposta d'error",
-      "unsupportedFileTypeBpmn": "Tipus de fitxer no compatible. Selecciona un fitxer .json, .py o .bpmn."
+      "unsupportedFileTypeBpmn": "Tipus de fitxer no compatible. Selecciona un fitxer .json, .py o .bpmn.",
+      "projectFailed": "No s’ha pogut importar el projecte: {{detail}}"
     },
     "toasts": {
-      "migratedFromV3": "Diagrama migrat de l'esquema v3 al v4 durant la importació."
+      "migratedFromV3": "Diagrama migrat de l'esquema v3 al v4 durant la importació.",
+      "migratedFromV3Many": "Diagrames migrats de l’esquema v3 a v4 en importar."
     },
     "bpmn": {
       "defaultTitle": "BPMN importat",

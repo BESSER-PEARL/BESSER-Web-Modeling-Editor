@@ -641,19 +641,6 @@ export const ensureProjectMigrated = (obj: BesserProject): BesserProject => {
   // migration). Cheap and idempotent on canonical v4 data.
   obj = migrateProjectToV5(obj);
 
-  // Fix #3: retrofit existing-but-empty UserDiagrams. v3
-  // showed a 4-class meta-model template via `composeUserModelPreview`,
-  // but found that v4 only seeds via `createEmptyDiagram` (i.e.
-  // only on fresh project creation). Projects loaded from storage that
-  // were created — or had their UserDiagram emptied
-  // by the user without re-seeding — would stay blank forever. Walk
-  // every UserDiagram entry and re-seed any whose `model.nodes` array
-  // is empty. Idempotent: never touches a UserDiagram that already has
-  // user content. Retrofit runs on every load (not gated behind a
-  // schemaVersion bump) because the symptom is "blank canvas", not
-  // "wrong schema".
-  retrofitEmptyUserDiagrams(obj);
-
   // Retrofit v3 personalized-variant snapshots. `migrateProjectToV5` walks
   // only each diagram's `model`, never `config.personalizedVariants[].model`
   // — and the shipped gym-agent template stamps `schemaVersion: 5` while
@@ -664,34 +651,6 @@ export const ensureProjectMigrated = (obj: BesserProject): BesserProject => {
   retrofitAgentVariantSnapshots(obj);
 
   return obj;
-};
-
-/**
- * Fix #3: walk a project's UserDiagram entries and seed
- * any whose nodes array is empty. Mutates in place; returns nothing.
- */
-const retrofitEmptyUserDiagrams = (project: BesserProject): void => {
-  const userDiagrams = project.diagrams?.UserDiagram ?? [];
-  for (const d of userDiagrams) {
-    const model = d?.model as UMLModel | undefined;
-    // Only retrofit when the model is a proper v4 UML shape with an
-    // empty nodes array. Skip GUI / quantum models (not UMLModels) and
-    // skip diagrams that already have user content.
-    if (
-      model &&
-      Array.isArray((model as any).nodes) &&
-      (model as any).nodes.length === 0 &&
-      Array.isArray((model as any).edges) // sanity: real v4 UMLModel
-    ) {
-      try {
-        (model as any).nodes = buildUserDiagramSeedNodes();
-      } catch (err) {
-        // Best-effort: a failed retrofit must not block the load.
-        // eslint-disable-next-line no-console
-        console.error('[retrofitEmptyUserDiagrams] seeding failed', d.id, err);
-      }
-    }
-  }
 };
 
 /**
@@ -987,8 +946,7 @@ export function diagramHasContent(diagram: ProjectDiagram): boolean {
     const hasEdges = Array.isArray(model.edges) && model.edges.length > 0;
     if (!hasNodes && !hasEdges) return false;
     // A UserDiagram still carrying nothing but the untouched meta-model seed
-    // template has no user content: it is re-seeded on import / load anyway
-    // (`createEmptyDiagram` + `retrofitEmptyUserDiagrams`), so treating it as
+    // template (`createEmptyDiagram`) has no user content, so treating it as
     // empty keeps exports and backend payloads free of template noise.
     if (model.type === UMLDiagramType.UserDiagram && isUserDiagramSeedOnly(model)) return false;
     return true;

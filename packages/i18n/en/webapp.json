@@ -2842,7 +2842,8 @@
       "importedFromBpmnXml": "Imported from BPMN 2.0 XML"
     },
     "toasts": {
-      "migratedFromV3": "Diagram migrated from v3 schema to v4 on import."
+      "migratedFromV3": "Diagram migrated from v3 schema to v4 on import.",
+      "migratedFromV3Many": "Diagrams migrated from v3 schema to v4 on import."
     },
     "bpmn": {
       "defaultTitle": "Imported BPMN",
@@ -2865,7 +2866,8 @@
       "couldNotImportFromImage": "Could not import diagram from image: {{message}}",
       "readFileFailed": "Failed to read file",
       "invalidFromBackend": "Invalid diagram returned from backend",
-      "couldNotParseError": "Could not parse error response"
+      "couldNotParseError": "Could not parse error response",
+      "projectFailed": "Failed to import project: {{detail}}"
     }
   },
   "validation": {

@@ -334,20 +334,16 @@ describe('SA-FIX-User UserDiagram seed', () => {
   });
 });
 
-describe('SA-FIX-User retrofitEmptyUserDiagrams', () => {
-  it('seeds an empty UserDiagram on load', () => {
+describe('UserDiagram on load', () => {
+  it('keeps an emptied UserDiagram empty on load (develop parity: never re-seeded)', () => {
     const project = createDefaultProject('Empty', '', 'me');
-    // Force the UserDiagram model to empty (simulating a project saved
-    // before SA-UX-FIX-2 or one whose user emptied it manually).
+    // The user cleared the seeded template; loading must not refill it.
     const userDiagram = project.diagrams.UserDiagram[0];
     (userDiagram.model as UMLModel).nodes = [] as any;
 
     const migrated = ensureProjectMigrated(project);
     const nodes = (migrated.diagrams.UserDiagram[0].model as UMLModel).nodes as any[];
-    expect(nodes.length).toBeGreaterThan(0);
-    const names = nodes.map((n) => n.data?.name);
-    expect(names).toContain('Personal_Information');
-    expect(names).toContain('Disability');
+    expect(nodes).toHaveLength(0);
   });
 
   it('leaves a populated UserDiagram untouched', () => {

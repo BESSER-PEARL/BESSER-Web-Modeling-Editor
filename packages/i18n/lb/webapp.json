@@ -2857,10 +2857,12 @@
       "readFileFailed": "Datei konnt net gelies ginn",
       "invalidFromBackend": "Ongëltege Diagramm vum Backend zréckginn",
       "couldNotParseError": "D'Feeleräntwert konnt net analyséiert ginn",
-      "unsupportedFileTypeBpmn": "Net ënnerstëtzten Dateityp. Wielt w.e.g. eng .json-, .py- oder .bpmn-Datei."
+      "unsupportedFileTypeBpmn": "Net ënnerstëtzten Dateityp. Wielt w.e.g. eng .json-, .py- oder .bpmn-Datei.",
+      "projectFailed": "De Projet konnt net importéiert ginn: {{detail}}"
     },
     "toasts": {
-      "migratedFromV3": "Diagramm beim Import vum v3-Schema op v4 migréiert."
+      "migratedFromV3": "Diagramm beim Import vum v3-Schema op v4 migréiert.",
+      "migratedFromV3Many": "Diagrammer beim Import vum v3-Schema op v4 migréiert."
     },
     "bpmn": {
       "defaultTitle": "Importéiert BPMN",

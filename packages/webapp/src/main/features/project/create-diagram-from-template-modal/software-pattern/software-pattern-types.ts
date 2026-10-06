@@ -31,9 +31,9 @@ export enum SoftwarePatternType {
   // State Machine patterns
   TRAFIC_LIGHT = 'Traffic Light',
   // BPMN patterns
-  BPMN_PARALLEL_REVIEW = 'Parallel Review',
-  BPMN_CAR_WASH = 'Car Wash',
-  BPMN_PIZZA_STORE = 'Pizza Store',
+  BPMN_PARALLEL_REVIEW = 'Parallel Document Review',
+  BPMN_CAR_WASH = 'Car Wash Collaboration',
+  BPMN_ORDER_FULFILLMENT = 'Pizza Store Collaboration',
   // Neural Network patterns
   NN_TUTORIAL_EXAMPLE = 'CIFAR-10 CNN (with Training + Test)',
   NN_ALEXNET = 'AlexNet',

@@ -2857,10 +2857,12 @@
       "readFileFailed": "No se pudo leer el archivo",
       "invalidFromBackend": "El backend devolvió un diagrama no válido",
       "couldNotParseError": "No se pudo analizar la respuesta de error",
-      "unsupportedFileTypeBpmn": "Tipo de archivo no compatible. Selecciona un archivo .json, .py o .bpmn."
+      "unsupportedFileTypeBpmn": "Tipo de archivo no compatible. Selecciona un archivo .json, .py o .bpmn.",
+      "projectFailed": "No se pudo importar el proyecto: {{detail}}"
     },
     "toasts": {
-      "migratedFromV3": "Diagrama migrado del esquema v3 al v4 durante la importación."
+      "migratedFromV3": "Diagrama migrado del esquema v3 al v4 durante la importación.",
+      "migratedFromV3Many": "Diagramas migrados del esquema v3 a v4 al importar."
     },
     "bpmn": {
       "defaultTitle": "BPMN importado",

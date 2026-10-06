@@ -142,6 +142,9 @@ export const AgentDiagramReadOnly: React.FC<AgentDiagramReadOnlyProps> = ({ curr
     void editor.ready.then(() => {
       if (editorRef.current !== editor) return;
       isReadyRef.current = true;
+      // Bring the initial state into view, as develop's scrollToState did.
+      const stateId = umlModel && initState ? findStateNodeId(umlModel, initState) : null;
+      if (stateId) editor.fitToElements([stateId]);
     });
 
     // Injected <style> element: glow on the active transition (doesn't scale the arrowhead)
@@ -181,6 +184,8 @@ export const AgentDiagramReadOnly: React.FC<AgentDiagramReadOnlyProps> = ({ curr
     }
     const activeTransitionId = activeTransitionIdRef.current;
     editorRef.current.model = buildHighlightedModel(model, currentState, activeTransitionId);
+    const stateId = findStateNodeId(model, currentState);
+    if (stateId) editorRef.current.fitToElements([stateId]);
 
     if (styleElRef.current) {
       styleElRef.current.textContent = activeTransitionId

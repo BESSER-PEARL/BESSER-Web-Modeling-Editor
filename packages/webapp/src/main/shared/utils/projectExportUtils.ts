@@ -175,9 +175,9 @@ export interface ProjectExportEnvelope {
   /**
    * Optional bundled personalization state. Lives in localStorage at runtime
    * (besser_agentConfigs, besser_userProfiles, besser_agentProfileMappings,
-   * besser_agentBaseModels, besser_activeAgentConfiguration) — bundled here
-   * so an imported project can restore the user's saved configurations and
-   * profile mappings rather than landing with an empty Personalization tab.
+   * besser_agentBaseModels, besser_agentActiveConfig) — bundled here so an
+   * imported project can restore the user's saved configurations and profile
+   * mappings rather than landing with an empty Personalization tab.
    */
   agentConfigurations?: StoredAgentConfiguration[];
   userProfiles?: StoredUserProfile[];

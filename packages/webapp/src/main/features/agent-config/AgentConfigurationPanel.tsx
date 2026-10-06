@@ -99,7 +99,7 @@ const defaultInterfaceStyle: InterfaceStyleSetting = {
   font: 'sans',
   lineSpacing: 1.5,
   alignment: 'left',
-  color: 'var(--besser-primary-contrast)',
+  color: 'var(--apollon-primary-contrast)',
   contrast: 'medium',
 };
 
@@ -123,7 +123,7 @@ type InterfaceColorOption = {
 
 const interfaceColorOptions: InterfaceColorOption[] = [
   {
-    value: 'var(--besser-primary-contrast)',
+    value: 'var(--apollon-primary-contrast)',
     key: 'default',
     swatch: 'var(--besser-primary-contrast)',
   },
@@ -1065,10 +1065,7 @@ export const AgentConfigurationPanel: React.FC = () => {
 
   // Keep the diagramBridge in sync so the editor popups can read the current platform.
   useEffect(() => {
-    const bridge = diagramBridge as { setAgentPlatform?: (platform: string) => void };
-    if (typeof bridge.setAgentPlatform === 'function') {
-      bridge.setAgentPlatform(agentRuntimeConfig.agentPlatform);
-    }
+    diagramBridge.setAgentPlatform(agentRuntimeConfig.agentPlatform);
   }, [agentRuntimeConfig.agentPlatform]);
 
   // Default LLM name — persisted on the active agent diagram's `config` block

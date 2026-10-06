@@ -20,12 +20,12 @@ import faqRagAgent from '../../../templates/pattern/agent/faqragagent.json';
 import chatbotAgent from '../../../templates/pattern/agent/chatbotagent.json';
 import libraryAgent from '../../../templates/pattern/agent/libraryagent.json';
 import traficlightModel from '../../../templates/pattern/statemachine/traficlight.json';
+import bpmnParallelReview from '../../../templates/pattern/bpmn/parallel_review.json';
+import bpmnCarWash from '../../../templates/pattern/bpmn/car_wash.json';
+import bpmnOrderFulfillment from '../../../templates/pattern/bpmn/pizza_store.json';
 import nnTutorialExample from '../../../templates/pattern/nn/tutorial_example.json';
 import nnAlexnet from '../../../templates/pattern/nn/alexnet_nn.json';
 import nnLstm from '../../../templates/pattern/nn/lstm_nn.json';
-import bpmnCarWash from '../../../templates/pattern/bpmn/car_wash.json';
-import bpmnParallelReview from '../../../templates/pattern/bpmn/parallel_review.json';
-import bpmnPizzaStore from '../../../templates/pattern/bpmn/pizza_store.json';
 import libraryFullStackProject from '../../../templates/pattern/project/library_full_stack.json';
 import personalizedGymAgentProject from '../../../templates/pattern/project/personalized_gym_agent.json';
 import { EXAMPLE_CIRCUITS } from '../../editors/quantum/exampleCircuits';
@@ -166,6 +166,27 @@ export class TemplateFactory {
           traficlightModel as any,
           SoftwarePatternCategory.STATE_MACHINE,
         );
+      case SoftwarePatternType.BPMN_PARALLEL_REVIEW:
+        return new SoftwarePatternTemplate(
+          softwarePatternType,
+          UMLDiagramType.BPMN,
+          bpmnParallelReview as any,
+          SoftwarePatternCategory.BPMN,
+        );
+      case SoftwarePatternType.BPMN_CAR_WASH:
+        return new SoftwarePatternTemplate(
+          softwarePatternType,
+          UMLDiagramType.BPMN,
+          bpmnCarWash as any,
+          SoftwarePatternCategory.BPMN,
+        );
+      case SoftwarePatternType.BPMN_ORDER_FULFILLMENT:
+        return new SoftwarePatternTemplate(
+          softwarePatternType,
+          UMLDiagramType.BPMN,
+          bpmnOrderFulfillment as any,
+          SoftwarePatternCategory.BPMN,
+        );
       case SoftwarePatternType.NN_TUTORIAL_EXAMPLE:
         return new SoftwarePatternTemplate(
           softwarePatternType,
@@ -186,28 +207,6 @@ export class TemplateFactory {
           UMLDiagramType.NNDiagram,
           nnLstm as any,
           SoftwarePatternCategory.NN,
-        );
-      // BPMN templates
-      case SoftwarePatternType.BPMN_CAR_WASH:
-        return new SoftwarePatternTemplate(
-          softwarePatternType,
-          UMLDiagramType.BPMN,
-          bpmnCarWash as any,
-          SoftwarePatternCategory.BPMN,
-        );
-      case SoftwarePatternType.BPMN_PARALLEL_REVIEW:
-        return new SoftwarePatternTemplate(
-          softwarePatternType,
-          UMLDiagramType.BPMN,
-          bpmnParallelReview as any,
-          SoftwarePatternCategory.BPMN,
-        );
-      case SoftwarePatternType.BPMN_PIZZA_STORE:
-        return new SoftwarePatternTemplate(
-          softwarePatternType,
-          UMLDiagramType.BPMN,
-          bpmnPizzaStore as any,
-          SoftwarePatternCategory.BPMN,
         );
       // Quantum Circuit templates
       case SoftwarePatternType.QUANTUM_EMPTY:

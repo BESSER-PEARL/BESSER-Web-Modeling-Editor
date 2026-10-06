@@ -158,10 +158,7 @@ export const BesserEditorComponent: React.FC = () => {
   // visited the agent config panel in this session.
   useEffect(() => {
     const platform = (reduxDiagram?.config?.agentPlatform as string | undefined) ?? 'websocket';
-    const bridge = diagramBridge as { setAgentPlatform?: (platform: string) => void };
-    if (typeof bridge.setAgentPlatform === 'function') {
-      bridge.setAgentPlatform(platform);
-    }
+    diagramBridge.setAgentPlatform(platform);
   }, [reduxDiagram]);
 
   // Single writer of the agent component lists in diagramBridge: the AgentState /

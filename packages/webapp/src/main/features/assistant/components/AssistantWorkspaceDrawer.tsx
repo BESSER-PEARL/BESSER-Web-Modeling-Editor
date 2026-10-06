@@ -654,7 +654,11 @@ export const AssistantWorkspaceDrawer: React.FC<AssistantWorkspaceDrawerProps> =
       {/* Trigger pill — floats at the bottom centre in both states; only the
           sheet behind it moves. Click toggles, drag up opens / down closes.
           First in DOM order so Tab goes pill → sheet; z-index keeps it on top. */}
-      <div className={cn('pointer-events-none absolute inset-x-0 bottom-3 z-[45] flex justify-center', !showTrigger && !open && 'hidden')}>
+      {/* Centered, but shifted right just enough to clear the canvas controls bar (published by the engine). */}
+      <div
+        className={cn('pointer-events-none absolute inset-x-0 bottom-3 z-[45] flex justify-center', !showTrigger && !open && 'hidden')}
+        style={{ paddingLeft: 'max(0px, calc(2 * (var(--besser-canvas-controls-right, 0px) + 100px) - 100%))' }}
+      >
         <div
           ref={pillRef}
           className={cn(
