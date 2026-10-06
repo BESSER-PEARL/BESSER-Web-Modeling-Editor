@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useRef, useState } from "react"
 import { CANVAS, DROPS, DropElementConfig, ZINDEX } from "@/constants"
 import { DropNodeData } from "@/types"
 import { createPortal } from "react-dom"
-import { useReactFlow, type Node } from "@xyflow/react"
+import { useReactFlow, useStoreApi, type Node } from "@xyflow/react"
 import {
   generateUUID,
   getPositionOnCanvas,
@@ -16,6 +16,7 @@ import {
 } from "@/utils/bpmnConstraints"
 import { POOL_HEADER_WIDTH, stackPoolLanes } from "@/hooks/useSwimlaneLayout"
 import { useDiagramStore, useDiagramStoreApi } from "@/store/context"
+import type { DiagramStore } from "@/store/diagramStore"
 import { useShallow } from "zustand/shallow"
 import { log } from "../logger"
 import { translate, useTranslation } from "@/i18n"
@@ -101,7 +102,8 @@ const rectsOverlap = (a: InsertRect, b: InsertRect) =>
  * `create-pane.tsx` getInsertPosition): the centre of the visible canvas,
  * cascaded down-right in 20 px steps until the spot (plus one step of
  * margin) is clear of root elements, so repeated inserts don't stack.
- * Never steps past the visible area; falls back to the centre.
+ * When the cascade leaves the view, the free grid spot nearest the centre
+ * is used; only a view with no free spot falls back to the centre.
  * `view` and the result are flow coordinates. Exported for tests.
  */
 export const getClickInsertPosition = (
@@ -121,21 +123,65 @@ export const getClickInsertPosition = (
       ? [{ x: n.position.x, y: n.position.y, width, height }]
       : []
   })
-  for (
-    let x = start.x, y = start.y;
-    x + size.width <= view.x + view.width &&
-    y + size.height <= view.y + view.height;
-    x += INSERT_STEP_PX, y += INSERT_STEP_PX
-  ) {
+  const isFree = (x: number, y: number) => {
     const spot = {
       x: x - INSERT_STEP_PX,
       y: y - INSERT_STEP_PX,
       width: size.width + 2 * INSERT_STEP_PX,
       height: size.height + 2 * INSERT_STEP_PX,
     }
-    if (!siblings.some((sib) => rectsOverlap(spot, sib))) return { x, y }
+    return !siblings.some((sib) => rectsOverlap(spot, sib))
   }
-  return start
+  const right = view.x + view.width - size.width
+  const bottom = view.y + view.height - size.height
+  for (
+    let x = start.x, y = start.y;
+    x <= right && y <= bottom;
+    x += INSERT_STEP_PX, y += INSERT_STEP_PX
+  ) {
+    if (isFree(x, y)) return { x, y }
+  }
+  // Coarser grid when zoomed far out, to bound the search (~60 x 60 spots).
+  const step =
+    Math.max(
+      INSERT_STEP_PX / INSERT_GRID_PX,
+      Math.ceil(Math.max(view.width, view.height) / 60 / INSERT_GRID_PX)
+    ) * INSERT_GRID_PX
+  let best = start
+  let bestDistance = Infinity
+  for (let x = start.x - Math.floor((start.x - view.x) / step) * step; x <= right; x += step) {
+    for (let y = start.y - Math.floor((start.y - view.y) / step) * step; y <= bottom; y += step) {
+      const distance = (x - start.x) ** 2 + (y - start.y) ** 2
+      if (distance < bestDistance && isFree(x, y)) {
+        best = { x, y }
+        bestDistance = distance
+      }
+    }
+  }
+  return best
+}
+
+/** Make `newNodeId` the only selected element (palette click-insert and drop). */
+const selectOnly = (
+  state: DiagramStore,
+  nodes: Node[],
+  newNodeId: string
+) => {
+  state.setNodes(
+    nodes.map((n) =>
+      n.id === newNodeId
+        ? { ...n, selected: true }
+        : n.selected
+          ? { ...n, selected: false }
+          : n
+    )
+  )
+  if (state.edges.some((e) => e.selected)) {
+    state.setEdges(
+      state.edges.map((e) => (e.selected ? { ...e, selected: false } : e))
+    )
+  }
+  state.setSelectedElementsId([newNodeId])
 }
 
 // A pointer that travels further than this between press and release was a drag, not a click.
@@ -158,7 +204,7 @@ export const DraggableGhost: React.FC<DraggableGhostProps> = ({
   const { locale } = useTranslation()
   // Hooks from react-flow and zustand store for node management
   const { screenToFlowPosition, getIntersectingNodes } = useReactFlow()
-  const setNodes = useDiagramStore((state) => state.setNodes)
+  const flowStoreApi = useStoreApi()
   // Live nodes are read on drop: subscribing to them would re-render every
   // palette item on every drag step.
   const diagramStoreApi = useDiagramStoreApi()
@@ -168,6 +214,9 @@ export const DraggableGhost: React.FC<DraggableGhostProps> = ({
   const [isDragging, setIsDragging] = useState(false)
   const [ghostPosition, setGhostPosition] = useState({ x: 0, y: 0 })
   const [clickOffset, setClickOffset] = useState({ x: 0, y: 0 })
+  // The palette preview is drawn at SIDEBAR_PREVIEW_SCALE; the ghost is
+  // scaled to the canvas zoom so it previews the dropped size.
+  const [ghostScale, setGhostScale] = useState(1)
 
   /* ----------------------------------------------------------------------
      onDrop: Handles the pointer up event by calculating the drop position,
@@ -281,7 +330,6 @@ export const DraggableGhost: React.FC<DraggableGhostProps> = ({
           width: dropElementConfig.dropWidth ?? dropElementConfig.width,
           height: dropElementConfig.dropHeight ?? dropElementConfig.height,
         },
-        selected: false,
         // Lanes are pool-driven, not free-dragging (as BPMNPoolEditPopover).
         ...(isLaneIntoPool ? { draggable: false } : {}),
       }
@@ -313,11 +361,10 @@ export const DraggableGhost: React.FC<DraggableGhostProps> = ({
         resizeAllParents(newNode, updatedNodes)
       }
 
-      setNodes(updatedNodes)
+      selectOnly(diagramStoreApi.getState(), updatedNodes, newNode.id)
     },
     [
       screenToFlowPosition,
-      setNodes,
       getIntersectingNodes,
       diagramStoreApi,
       clickOffset.x,
@@ -370,19 +417,9 @@ export const DraggableGhost: React.FC<DraggableGhostProps> = ({
         resolvePaletteDefaultData(dropElementConfig, locale)
       ),
       measured: { width, height },
-      selected: true,
     }
 
-    state.setNodes([
-      ...state.nodes.map((n) => (n.selected ? { ...n, selected: false } : n)),
-      newNode,
-    ])
-    if (state.edges.some((e) => e.selected)) {
-      state.setEdges(
-        state.edges.map((e) => (e.selected ? { ...e, selected: false } : e))
-      )
-    }
-    state.setSelectedElementsId([newNode.id])
+    selectOnly(state, [...state.nodes, newNode], newNode.id)
   }, [
     diagramId,
     diagramStoreApi,
@@ -428,8 +465,14 @@ export const DraggableGhost: React.FC<DraggableGhostProps> = ({
     const offsetX = event.clientX - elementRect.left
     const offsetY = event.clientY - elementRect.top
 
+    const scale =
+      flowStoreApi.getState().transform[2] / DROPS.SIDEBAR_PREVIEW_SCALE
     setClickOffset({ x: offsetX, y: offsetY })
-    setGhostPosition({ x: event.clientX - offsetX, y: event.clientY - offsetY })
+    setGhostScale(scale)
+    setGhostPosition({
+      x: event.clientX - offsetX * scale,
+      y: event.clientY - offsetY * scale,
+    })
     setIsDragging(true)
   }
 
@@ -437,8 +480,8 @@ export const DraggableGhost: React.FC<DraggableGhostProps> = ({
   const handlePointerMove = (event: PointerEvent) => {
     if (!isDragging) return
     setGhostPosition({
-      x: event.clientX - clickOffset.x,
-      y: event.clientY - clickOffset.y,
+      x: event.clientX - clickOffset.x * ghostScale,
+      y: event.clientY - clickOffset.y * ghostScale,
     })
   }
 
@@ -465,7 +508,7 @@ export const DraggableGhost: React.FC<DraggableGhostProps> = ({
       document.removeEventListener("pointermove", handlePointerMove)
       document.removeEventListener("pointerup", handlePointerUp)
     }
-  }, [isDragging, clickOffset, onDrop])
+  }, [isDragging, clickOffset, ghostScale, onDrop])
 
   const paletteName = resolvePaletteDefaultData(dropElementConfig, locale)?.name
   const paletteLabel =
@@ -488,6 +531,8 @@ export const DraggableGhost: React.FC<DraggableGhostProps> = ({
         pointerEvents: "none",
         zIndex: ZINDEX.DRAGGABLE_ELEMENT,
         opacity: 0.8,
+        transform: `scale(${ghostScale})`,
+        transformOrigin: "0 0",
       }}
     >
       {children}

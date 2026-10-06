@@ -1460,8 +1460,9 @@ const CommentPaletteSVG: React.FC<{
         L 0 ${cornerRadius}
         Q 0 0 ${cornerRadius} 0 Z
       `,
-      fill: "#fff8c4",
-      stroke: "#bda21f",
+      // Theme-aware, as the canvas Comment node.
+      fill: "var(--besser-sticky-fill, #fff8c4)",
+      stroke: "var(--besser-sticky-stroke, #bda21f)",
       strokeWidth: 1.2,
       strokeMiterlimit: "10",
     }),
@@ -1472,7 +1473,7 @@ const CommentPaletteSVG: React.FC<{
         y: bodyHeight / 2,
         textAnchor: "middle",
         dominantBaseline: "middle",
-        fill: "#3a2e00",
+        fill: "var(--besser-sticky-text, #3a2e00)",
         style: { fontSize: "12px" },
       },
       data?.name ?? "Comment"

@@ -1,5 +1,10 @@
 import { useEffect, useRef } from "react"
-import { useDiagramStore, usePopoverStore } from "@/store/context"
+import { useReactFlow, useStoreApi } from "@xyflow/react"
+import {
+  useDiagramStore,
+  useDiagramStoreApi,
+  usePopoverStore,
+} from "@/store/context"
 import { useMetadataStore } from "@/store"
 import { BesserMode } from "@/typings"
 import { useShallow } from "zustand/shallow"
@@ -8,6 +13,9 @@ import { useDiagramModifiable } from "./useDiagramModifiable"
 
 const ARROW_NUDGE_PX = 10
 const ARROW_NUDGE_SHIFT_PX = 50
+const ZOOM_DURATION_MS = 200
+// Zoom to selection stops here so a single small element is not blown up to 500 %.
+const ZOOM_TO_SELECTION_MAX = 2
 
 // Focused controls keep their own keys: Backspace on a colour swatch must not
 // delete the element, arrows in a listbox must not move it.
@@ -64,6 +72,9 @@ export const useKeyboardShortcuts = () => {
   const { mode, readonly } = useMetadataStore(
     useShallow((state) => ({ mode: state.mode, readonly: state.readonly }))
   )
+  const diagramStoreApi = useDiagramStoreApi()
+  const { zoomIn, zoomOut, zoomTo, fitView } = useReactFlow()
+  const flowStoreApi = useStoreApi()
   const isDiagramModifiable = useDiagramModifiable()
   // Same gate as double-click (`useElementInteractions`).
   const canOpenPopover =
@@ -80,15 +91,57 @@ export const useKeyboardShortcuts = () => {
   } = useSelectionForCopyPaste()
 
   useEffect(() => {
+    // One undo step per user gesture: every press / key starts a new step.
+    // Typing in a field keeps merging (captureTimeout), and so do the
+    // auto-repeats of a held arrow key (one nudge burst).
+    const handlePointerDown = () => undoManager?.stopCapturing()
+
     const handleKeyDown = async (event: KeyboardEvent) => {
       const target = event.target as HTMLElement
       if (isTextEntryTarget(target)) {
         return
       }
+      if (!event.repeat) undoManager?.stopCapturing()
       const inControl = isControlTarget(target)
       const modifier = event.ctrlKey || event.metaKey
       // Normalize letters so Shift / Caps Lock don't change the shortcut.
       const key = event.key.length === 1 ? event.key.toLowerCase() : event.key
+
+      // Viewport zoom, only from this canvas or a container around it (the
+      // page body, a focusable host <main>): elsewhere Ctrl/Cmd +/-/0 stays
+      // the browser's page zoom.
+      const flowDom = flowStoreApi.getState().domNode
+      const zoomFromCanvas =
+        target === document.body ||
+        (!!flowDom && (flowDom.contains(target) || target.contains?.(flowDom)))
+      if (zoomFromCanvas && !inControl && !event.altKey) {
+        const zoom = getZoomShortcut(event, modifier)
+        if (zoom) {
+          event.preventDefault()
+          // Steps are instant so quick repeated presses compound.
+          if (zoom === "in") void zoomIn()
+          else if (zoom === "out") void zoomOut()
+          else if (zoom === "reset") void zoomTo(1)
+          else if (zoom === "fit")
+            void fitView({ padding: 0.1, duration: ZOOM_DURATION_MS })
+          else {
+            const { nodes: allNodes, edges } = diagramStoreApi.getState()
+            const ids = new Set(allNodes.filter((n) => n.selected).map((n) => n.id))
+            edges.forEach((e) => {
+              if (e.selected) ids.add(e.source).add(e.target)
+            })
+            if (ids.size > 0) {
+              void fitView({
+                nodes: [...ids].map((id) => ({ id })),
+                padding: 0.2,
+                maxZoom: ZOOM_TO_SELECTION_MAX,
+                duration: ZOOM_DURATION_MS,
+              })
+            }
+          }
+          return
+        }
+      }
 
       // Let the browser handle Ctrl/Cmd+C when the user has a real text
       // selection (e.g. chat messages, tooltips, SVG labels that aren't
@@ -237,8 +290,10 @@ export const useKeyboardShortcuts = () => {
 
     // Capture phase, so an arrow nudge runs before React Flow's node handler.
     document.addEventListener("keydown", handleKeyDown, true)
+    document.addEventListener("pointerdown", handlePointerDown, true)
     return () => {
       document.removeEventListener("keydown", handleKeyDown, true)
+      document.removeEventListener("pointerdown", handlePointerDown, true)
     }
   }, [
     undo,
@@ -259,5 +314,31 @@ export const useKeyboardShortcuts = () => {
     setPopOverElementId,
     nodes,
     setNodes,
+    diagramStoreApi,
+    flowStoreApi,
+    zoomIn,
+    zoomOut,
+    zoomTo,
+    fitView,
   ])
+}
+
+type ZoomShortcut = "in" | "out" | "reset" | "fit" | "selection"
+
+// `code` covers the numpad and layouts where Shift changes the produced key.
+const getZoomShortcut = (
+  event: KeyboardEvent,
+  modifier: boolean
+): ZoomShortcut | null => {
+  if (modifier) {
+    if (event.key === "=" || event.key === "+" || event.code === "NumpadAdd")
+      return "in"
+    if (event.key === "-" || event.key === "_" || event.code === "NumpadSubtract")
+      return "out"
+    if (event.key === "0" || event.code === "Numpad0") return "reset"
+    return null
+  }
+  if (event.shiftKey && event.code === "Digit1") return "fit"
+  if (event.shiftKey && event.code === "Digit2") return "selection"
+  return null
 }

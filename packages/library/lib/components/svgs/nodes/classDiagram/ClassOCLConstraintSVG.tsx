@@ -30,9 +30,10 @@ export function ClassOCLConstraintSVG({
   const scaledHeight = height * (SIDEBAR_PREVIEW_SCALE ?? 1)
   const fold = 12
   const padding = 10
-  const fillColor = data?.fillColor || "#fff8c4"
-  const strokeColor = data?.strokeColor || "#bda21f"
-  const textColor = data?.textColor || "#3a2e00"
+  // Same theme-aware defaults as the canvas node (ClassOCLConstraint.tsx).
+  const fillColor = data?.fillColor || "var(--besser-sticky-fill, #fff8c4)"
+  const strokeColor = data?.strokeColor || "var(--besser-sticky-stroke, #bda21f)"
+  const textColor = data?.textColor || "var(--besser-sticky-text, #3a2e00)"
   const name = data?.name || "constraint"
 
   return (

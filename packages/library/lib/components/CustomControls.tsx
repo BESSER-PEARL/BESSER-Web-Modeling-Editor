@@ -28,6 +28,9 @@ const STRATEGY_LABELS: Record<AutoLayoutStrategy, { key: string; fallback: strin
 }
 
 const CONTROLS_RIGHT_VAR = "--besser-canvas-controls-right"
+// The instance that last published the variable. On an editor swap the old
+// instance's cleanup runs after the new one published; it must not remove it.
+let controlsRightOwner: symbol | null = null
 
 export const CustomControls = () => {
   const { t } = useTranslation()
@@ -42,8 +45,11 @@ export const CustomControls = () => {
     const bar = domNode?.querySelector<HTMLElement>(".react-flow__controls")
     if (!bar) return
     const root = document.documentElement
-    const publish = () =>
+    const owner = Symbol(CONTROLS_RIGHT_VAR)
+    const publish = () => {
+      controlsRightOwner = owner
       root.style.setProperty(CONTROLS_RIGHT_VAR, `${Math.round(bar.getBoundingClientRect().right)}px`)
+    }
     publish()
     const observer = typeof ResizeObserver !== "undefined" ? new ResizeObserver(publish) : null
     observer?.observe(bar)
@@ -52,7 +58,10 @@ export const CustomControls = () => {
     return () => {
       observer?.disconnect()
       window.removeEventListener("resize", publish)
-      root.style.removeProperty(CONTROLS_RIGHT_VAR)
+      if (controlsRightOwner === owner) {
+        controlsRightOwner = null
+        root.style.removeProperty(CONTROLS_RIGHT_VAR)
+      }
     }
   }, [domNode])
   const zoomLevelPercent = Math.round(zoomLevel * 100)
