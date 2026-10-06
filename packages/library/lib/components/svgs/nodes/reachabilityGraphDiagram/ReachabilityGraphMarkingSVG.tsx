@@ -1,4 +1,5 @@
-import { MultilineText, StyledRect } from "@/components"
+import { MultilineText } from "../MultilineText"
+import { StyledRect } from "../../StyledElements"
 import { maxLinesForHeight } from "@/utils/svgTextLayout"
 import { useDiagramStore } from "@/store"
 import { useShallow } from "zustand/shallow"

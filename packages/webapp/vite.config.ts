@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import fs from 'node:fs';
-import { defineConfig, loadEnv, type Plugin } from 'vite';
+import { defineConfig, loadEnv, normalizePath, type Plugin } from 'vite';
 import react from '@vitejs/plugin-react';
 import svgr from 'vite-plugin-svgr';
 
@@ -37,7 +37,9 @@ const conditionalAtAlias = {
   find: /^@\/(.*)/,
   replacement: '$1',
   customResolver(source: string, importer?: string) {
-    return resolveAtPath(source, importer);
+    // Forward slashes on Windows too: a backslash id makes Rollup bundle the same file twice
+    // (two zustand stores / React contexts, TDZ errors at load).
+    return normalizePath(resolveAtPath(source, importer));
   },
 };
 

@@ -421,8 +421,12 @@ export type DropElementConfig = {
  * Default palette entries shipped with BESSER WME. The mutable
  * registry below seeds from this map; consumers add BESSER-specific
  * diagram types via `registerPaletteEntry`.
+ *
+ * Built on first palette access, not at module evaluation: the entries
+ * reference SVG components that import this file back, so reading them
+ * while the import cycle is still initialising throws a TDZ error.
  */
-const defaultDropElementConfigs: Record<string, ReadonlyArray<DropElementConfig>> = ({
+const buildDefaultDropElementConfigs = (): Record<string, ReadonlyArray<DropElementConfig>> => ({
   [UMLDiagramType.ClassDiagram]: [
     // Interface and Package are temporarily hidden from
     // the palette — the round-trip / generator surface for them is not
@@ -1252,15 +1256,25 @@ const defaultDropElementConfigs: Record<string, ReadonlyArray<DropElementConfig>
 })
 
 /**
- * Mutable palette registry. Seeded from `defaultDropElementConfigs`;
+ * Mutable palette registry. Seeded from `buildDefaultDropElementConfigs`;
  * consumers register BESSER-specific palette entries (e.g. for
  * StateMachineDiagram, AgentDiagram, NNDiagram, UserDiagram) via
  * `registerPaletteEntry(diagramType, entries)`. The same object
  * reference is preserved across mutations so existing reads
  * (`Sidebar.tsx`) keep observing updates.
  */
-const _paletteRegistry: Record<string, ReadonlyArray<DropElementConfig>> = {
-  ...defaultDropElementConfigs,
+let _paletteRegistry: Record<string, ReadonlyArray<DropElementConfig>> | null =
+  null
+const paletteRegistry = (): Record<string, ReadonlyArray<DropElementConfig>> => {
+  if (_paletteRegistry) return _paletteRegistry
+  _paletteRegistry = buildDefaultDropElementConfigs()
+  // Built-in dynamic providers; a consumer registration made earlier wins,
+  // as it did when these ran at module evaluation.
+  _dynamicPaletteProviders[UMLDiagramType.ObjectDiagram] ??= () =>
+    getObjectDiagramPaletteEntries()
+  _dynamicPaletteProviders[UMLDiagramType.UserDiagram] ??= () =>
+    getUserDiagramPaletteEntries()
+  return _paletteRegistry
 }
 
 /**
@@ -1273,12 +1287,13 @@ export const registerPaletteEntry = (
   entries: ReadonlyArray<DropElementConfig>,
   options: { replace?: boolean } = {}
 ): void => {
+  const registry = paletteRegistry()
   if (options.replace) {
-    _paletteRegistry[diagramType] = [...entries]
+    registry[diagramType] = [...entries]
     return
   }
-  const existing = _paletteRegistry[diagramType] ?? []
-  _paletteRegistry[diagramType] = [...existing, ...entries]
+  const existing = registry[diagramType] ?? []
+  registry[diagramType] = [...existing, ...entries]
 }
 
 /**
@@ -1316,26 +1331,16 @@ export const registerDynamicPaletteProvider = (
  */
 export const dropElementConfigs: Readonly<
   Record<UMLDiagramType, ReadonlyArray<DropElementConfig>>
-> = new Proxy(_paletteRegistry, {
-  get(target, prop: string) {
+> = new Proxy({} as Record<string, ReadonlyArray<DropElementConfig>>, {
+  get(_target, prop: string) {
+    const registry = paletteRegistry()
     const staticEntries =
-      prop in target ? target[prop] : ([] as ReadonlyArray<DropElementConfig>)
+      prop in registry ? registry[prop] : ([] as ReadonlyArray<DropElementConfig>)
     const provider = _dynamicPaletteProviders[prop]
     if (!provider) return staticEntries
     return [...staticEntries, ...provider()]
   },
 }) as Readonly<Record<UMLDiagramType, ReadonlyArray<DropElementConfig>>>
-
-// ObjectDiagram palette is fully dynamic (see provider docs above).
-// Registered as a thunk — NOT the bare imported binding — so the
-// function reference resolves at *call* time. When module init enters
-// through `components/svgs/nodes/objectDiagram` the import cycle hands
-// this file a partial namespace whose `getObjectDiagramPaletteEntries`
-// getter is still undefined at registration time; deferring the read
-// to invocation (sidebar render) sidesteps the cycle entirely.
-registerDynamicPaletteProvider(UMLDiagramType.ObjectDiagram, () =>
-  getObjectDiagramPaletteEntries()
-)
 
 /**
  * BESSER UserDiagram per-metaclass palette cards. v3 generated one
@@ -1384,19 +1389,21 @@ const getUserDiagramMetaClassEntries = (): ReadonlyArray<DropElementConfig> =>
   ))
 
 /** Static "Alice" fallback drag-source (not class-bound). */
-const USER_DIAGRAM_STATIC_ENTRY: DropElementConfig = {
-  type: "UserModelName" as never,
-  width: DROPS.DEFAULT_ELEMENT_WIDTH,
-  height: 100,
-  defaultData: {
-    name: "Alice",
-    className: "User",
-    attributes: [],
-    // Static fallback drag-source also defaults to icon view.
-    view: "icon" as const,
-  },
-  svg: UserModelStaticPreviewSVG,
-}
+let _userDiagramStaticEntry: DropElementConfig | null = null
+const userDiagramStaticEntry = (): DropElementConfig =>
+  (_userDiagramStaticEntry ??= {
+    type: "UserModelName" as never,
+    width: DROPS.DEFAULT_ELEMENT_WIDTH,
+    height: 100,
+    defaultData: {
+      name: "Alice",
+      className: "User",
+      attributes: [],
+      // Static fallback drag-source also defaults to icon view.
+      view: "icon" as const,
+    },
+    svg: UserModelStaticPreviewSVG,
+  })
 
 /**
  * UserDiagram palette, recomposed per sidebar render. v3 parity
@@ -1409,12 +1416,8 @@ export const getUserDiagramPaletteEntries =
     ...(settingsService.shouldShowInstancedObjects()
       ? getUserDiagramMetaClassEntries()
       : []),
-    USER_DIAGRAM_STATIC_ENTRY,
+    userDiagramStaticEntry(),
   ]
-
-registerDynamicPaletteProvider(UMLDiagramType.UserDiagram, () =>
-  getUserDiagramPaletteEntries()
-)
 
 /**
  * Lightweight palette preview for the free-form Comment
