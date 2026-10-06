@@ -128,7 +128,7 @@
         "useDefault": "(usar predeterminado)"
       },
       "db": {
-        "configuring": "Configurando acción de base de datos...",
+        "configuring": "Configurando acción de base de datos…",
         "initialize": "Inicializar acción de base de datos",
         "select": "Seleccionar una base de datos",
         "default": "Predeterminada (usar la BD de la app)",
@@ -388,8 +388,8 @@
     "assessment": "Evaluación de",
     "score": "Puntos",
     "feedback": "Comentarios",
-    "feedbackPlaceholder": "Puede introducir comentarios aquí...",
-    "additionalFeedbackPlaceholder": "Puede introducir comentarios adicionales aquí...",
+    "feedbackPlaceholder": "Puede introducir comentarios aquí…",
+    "additionalFeedbackPlaceholder": "Puede introducir comentarios adicionales aquí…",
     "nextAssessment": "Siguiente evaluación"
   },
   "packages": {
@@ -660,7 +660,7 @@
       "selectPlaceholder": "(usar predeterminado)",
       "customDatabaseName": "Nombre de base de datos personalizada",
       "selectPlaceholderRag": "Seleccionar base de datos RAG",
-      "configuringDatabaseAction": "Configurando acción de base de datos...",
+      "configuringDatabaseAction": "Configurando acción de base de datos…",
       "initializeDatabaseAction": "Inicializar acción de base de datos",
       "llm": "LLM",
       "systemMessage": "Mensaje del sistema",
@@ -738,7 +738,7 @@
       "skillReasoningStateWarning": "Las habilidades solo pueden ser utilizadas por un estado de razonamiento. Añade un estado de razonamiento para usar esta habilidad",
       "skillName": "Nombre de la habilidad",
       "skillDescriptionPlaceholder": "Descripción breve opcional",
-      "skillContentPlaceholder": "# Skill\n\nInstrucciones en markdown...",
+      "skillContentPlaceholder": "# Skill\n\nInstrucciones en markdown…",
       "markdownContent": "Contenido Markdown",
       "workspaceReasoningStateWarning": "Los espacios de trabajo solo pueden ser utilizados por un estado de razonamiento. Añade un estado de razonamiento para usar este espacio de trabajo",
       "workspaceName": "Nombre del espacio de trabajo",
@@ -937,17 +937,17 @@
     "addLowercase": "añadir"
   },
   "stylePane": {
-    "enterUri": "Introduce el URI...",
-    "enterIcon": "Introduce el nombre del icono...",
-    "enterDescription": "Introduce una descripción...",
+    "enterUri": "Introduce el URI…",
+    "enterIcon": "Introduce el nombre del icono…",
+    "enterDescription": "Introduce una descripción…",
     "idLockedByOptional": "Los atributos opcionales no pueden ser el identificador.",
-    "enterDefaultValue": "Introduce un valor predeterminado...",
+    "enterDefaultValue": "Introduce un valor predeterminado…",
     "reset": "Restablecer",
     "fillColor": "Color de relleno",
     "icon": "Icono",
     "externalIdLockedByOptional": "Los atributos opcionales no pueden ser el identificador externo.",
     "optional": "Opcional",
-    "enterInteger": "Introduce un entero...",
+    "enterInteger": "Introduce un entero…",
     "id": "ID",
     "textColor": "Color de texto",
     "externalId": "ID externo",
@@ -956,7 +956,7 @@
     "none": "(ninguno)",
     "lineColor": "Color de línea",
     "default": "Predeterminado",
-    "enterNumber": "Introduce un número...",
+    "enterNumber": "Introduce un número…",
     "derived": "Derivado",
     "rowTextColor": "Color de texto de la fila",
     "rowFillColor": "Color de relleno de la fila",
@@ -964,7 +964,21 @@
     "rowColors": "Colores de la fila",
     "toggleColorSettings": "Mostrar/ocultar ajustes de color",
     "enterNodeName": "Introduce el nombre del elemento",
-    "rightClickToReset": "{{label}} (clic derecho para restablecer)"
+    "rightClickToReset": "{{label}} (clic derecho para restablecer)",
+    "colors": {
+      "red": "Rojo",
+      "orange": "Naranja",
+      "yellow": "Amarillo",
+      "green": "Verde",
+      "teal": "Verde azulado",
+      "skyBlue": "Azul cielo",
+      "blue": "Azul",
+      "slateBlue": "Azul pizarra",
+      "purple": "Morado",
+      "lightGray": "Gris claro",
+      "gray": "Gris",
+      "black": "Negro"
+    }
   },
   "associationPopup": {
     "cancel": "Cancelar",
@@ -973,7 +987,8 @@
   },
   "propertiesPanel": {
     "close": "Cerrar",
-    "closeEditor": "Cerrar el editor"
+    "closeEditor": "Cerrar el editor",
+    "resize": "Cambiar el tamaño del panel de propiedades"
   },
   "toolbar": {
     "undo": "Deshacer (Ctrl+Z)",
@@ -991,5 +1006,20 @@
   },
   "comment": {
     "link": "Enlace de comentario"
+  },
+  "actions": {
+    "edit": "Editar",
+    "delete": "Eliminar",
+    "addConnectedObject": "Añadir objeto conectado",
+    "swapEnds": "Intercambiar extremos",
+    "style": "Estilo"
+  },
+  "zoomPane": {
+    "zoomIn": "Acercar",
+    "zoomOut": "Alejar",
+    "autoLayout": "Diseño automático"
+  },
+  "sidebar": {
+    "resize": "Cambiar el tamaño de la paleta"
   }
 }

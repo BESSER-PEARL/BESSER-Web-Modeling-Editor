@@ -18,9 +18,9 @@ export function NlpSection({ runtime: { form, setNlp } }: ConfigSectionProps) {
         <BoolField id="cfg-nlp-prep" label="pre_processing" value={form.nlp.pre_processing} onChange={v => setNlp({ pre_processing: v })} description={t('agentConfig.runtime.field.nlp.preProcessingDesc')} />
         <div className="rounded-md border border-border p-3 space-y-3">
           <p className="text-xs font-medium text-muted-foreground">{t('agentConfig.runtime.apiKeys')}</p>
-          <TextField id="cfg-nlp-hf-token" label={t('agentConfig.runtime.field.nlp.huggingfaceToken')} value={form.nlp.huggingface_token} onChange={v => setNlp({ huggingface_token: v })} description={t('agentConfig.runtime.field.nlp.huggingfaceTokenDesc')} />
-          <TextField id="cfg-nlp-oai-key" label={t('agentConfig.runtime.field.nlp.openaiApiKey')} value={form.nlp.openai_api_key} onChange={v => setNlp({ openai_api_key: v })} description={t('agentConfig.runtime.field.nlp.openaiApiKeyDesc')} />
-          <TextField id="cfg-nlp-rep-key" label={t('agentConfig.runtime.field.nlp.replicateApiKey')} value={form.nlp.replicate_api_key} onChange={v => setNlp({ replicate_api_key: v })} description={t('agentConfig.runtime.field.nlp.replicateApiKeyDesc')} />
+          <TextField id="cfg-nlp-hf-token" secret label={t('agentConfig.runtime.field.nlp.huggingfaceToken')} value={form.nlp.huggingface_token} onChange={v => setNlp({ huggingface_token: v })} description={t('agentConfig.runtime.field.nlp.huggingfaceTokenDesc')} />
+          <TextField id="cfg-nlp-oai-key" secret label={t('agentConfig.runtime.field.nlp.openaiApiKey')} value={form.nlp.openai_api_key} onChange={v => setNlp({ openai_api_key: v })} description={t('agentConfig.runtime.field.nlp.openaiApiKeyDesc')} />
+          <TextField id="cfg-nlp-rep-key" secret label={t('agentConfig.runtime.field.nlp.replicateApiKey')} value={form.nlp.replicate_api_key} onChange={v => setNlp({ replicate_api_key: v })} description={t('agentConfig.runtime.field.nlp.replicateApiKeyDesc')} />
         </div>
       </div>
     </>

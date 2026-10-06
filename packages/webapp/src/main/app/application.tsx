@@ -9,13 +9,12 @@ import {
   POSTHOG_HOST,
   POSTHOG_KEY,
 } from '../shared/constants/constant';
-import { getActiveDiagram, isUMLModel } from '../shared/types/project';
+import { getActiveDiagram } from '../shared/types/project';
 import { BesserEditorProvider } from '../features/editors/uml/besser-editor-context';
 import { EditorView } from '../features/editors/EditorView';
 import { ErrorPanel } from '../shared/components/error-handling/error-panel';
 import { CookieConsentBanner, hasUserConsented } from '../shared/components/cookie-consent/CookieConsentBanner';
 import { ApplicationStore } from './store/application-store';
-import { useProject } from './hooks/useProject';
 import type { ProjectHubOpenStep } from '../features/project/ProjectHubDialog';
 import { WorkspaceShell } from './shell/WorkspaceShell';
 import { useProjectBootstrap } from './hooks/useProjectBootstrap';
@@ -26,8 +25,10 @@ import { SuspenseFallback } from '../shared/components/loading/SuspenseFallback'
 import { GlobalConfirmProvider } from '../shared/services/confirm/GlobalConfirmProvider';
 import { ErrorBoundary } from '../shared/components/error-handling/AppErrorBoundary';
 import { NotFound } from '../shared/components/NotFound';
-import { useAppSelector } from './store/hooks';
-import { selectActiveDiagram } from './store/workspaceSlice';
+import { useAppDispatch, useAppSelector } from './store/hooks';
+import { loadProjectThunk, selectProject } from './store/workspaceSlice';
+import type { RootState } from './store/store';
+import { useHasOpened } from './hooks/useHasOpened';
 
 // Lazy-loaded route-level components (only fetched when their route is visited)
 const AgentConfigurationPanel = React.lazy(() =>
@@ -69,6 +70,15 @@ const SpecDrivenPushDialogHost = React.lazy(() =>
   import('../features/github/dialogs/SpecDrivenPushDialogHost').then((m) => ({ default: m.SpecDrivenPushDialogHost })),
 );
 
+// Primitive selectors: the root must not re-render on every model save.
+const selectHasProject = (state: RootState) => Boolean(selectProject(state));
+const selectCurrentDiagramType = (state: RootState) => selectProject(state)?.currentDiagramType;
+const selectActiveDiagramTitle = (state: RootState) => {
+  const project = selectProject(state);
+  if (!project) return 'Diagram';
+  return getActiveDiagram(project, project.currentDiagramType)?.title || project.name || 'Diagram';
+};
+
 const postHogOptions = {
   api_host: POSTHOG_HOST,
   autocapture: false,
@@ -89,15 +99,21 @@ function AppContentInner() {
   // Keep Redux in sync with direct localStorage writes from editors
   useStorageSync();
 
-  const { currentProject, loadProject } = useProject();
+  const dispatch = useAppDispatch();
+  const hasProject = useAppSelector(selectHasProject);
+  const currentDiagramType = useAppSelector(selectCurrentDiagramType);
+  const activeDiagramTitle = useAppSelector(selectActiveDiagramTitle);
   const loadProjectForBootstrap = useCallback(
     async (projectId: string): Promise<void> => {
-      await loadProject(projectId);
+      const result = await dispatch(loadProjectThunk(projectId));
+      if (!loadProjectThunk.fulfilled.match(result)) {
+        throw new Error(result.error?.message || 'Failed to load project');
+      }
     },
-    [loadProject],
+    [dispatch],
   );
   const { showProjectHub, setShowProjectHub } = useProjectBootstrap({
-    currentProject,
+    hasProject,
     loadProject: loadProjectForBootstrap,
     pathname: location.pathname,
   });
@@ -115,13 +131,7 @@ function AppContentInner() {
       setHubInitialStep(undefined);
     }
   }, [setShowProjectHub]);
-  const { generatorMenuMode } = getWorkspaceContext(
-    location.pathname,
-    currentProject?.currentDiagramType,
-  );
-
-  const activeDiagram = currentProject ? getActiveDiagram(currentProject, currentProject.currentDiagramType) : undefined;
-  const activeDiagramTitle = activeDiagram?.title || currentProject?.name || 'Diagram';
+  const { generatorMenuMode } = getWorkspaceContext(location.pathname, currentDiagramType);
 
   // All generator config state, execution handlers, and quality-check logic
   const {
@@ -136,6 +146,12 @@ function AppContentInner() {
   const handleExport = () => {
     setShowExportDialog(true);
   };
+
+  // Lazy dialogs mount on first open so their chunks are not fetched at startup.
+  const projectHubMounted = useHasOpened(showProjectHub);
+  const templateDialogMounted = useHasOpened(showTemplateDialog);
+  const exportDialogMounted = useHasOpened(showExportDialog);
+  const generatorDialogsMounted = useHasOpened(configState.configDialog !== 'none');
 
   // Onboarding system — disabled for now
   // const onboarding = useOnboarding();
@@ -167,20 +183,26 @@ function AppContentInner() {
         </Suspense>
       </WorkspaceShell>
 
-      <Suspense fallback={null}>
-        <ProjectHubDialog open={showProjectHub} onOpenChange={handleProjectHubOpenChange} initialStep={hubInitialStep} />
-      </Suspense>
-      <Suspense fallback={null}>
-        <TemplateLibraryDialog open={showTemplateDialog} onOpenChange={setShowTemplateDialog} />
-      </Suspense>
-      <Suspense fallback={null}>
-        <ExportDialog
-          open={showExportDialog}
-          onOpenChange={setShowExportDialog}
-          editor={editor}
-          currentDiagramTitle={activeDiagramTitle}
-        />
-      </Suspense>
+      {projectHubMounted && (
+        <Suspense fallback={null}>
+          <ProjectHubDialog open={showProjectHub} onOpenChange={handleProjectHubOpenChange} initialStep={hubInitialStep} />
+        </Suspense>
+      )}
+      {templateDialogMounted && (
+        <Suspense fallback={null}>
+          <TemplateLibraryDialog open={showTemplateDialog} onOpenChange={setShowTemplateDialog} />
+        </Suspense>
+      )}
+      {exportDialogMounted && (
+        <Suspense fallback={null}>
+          <ExportDialog
+            open={showExportDialog}
+            onOpenChange={setShowExportDialog}
+            editor={editor}
+            currentDiagramTitle={activeDiagramTitle}
+          />
+        </Suspense>
+      )}
 
       {/*
        * Generator configuration dialogs (Django, Spring, SQL, SQLAlchemy,
@@ -188,6 +210,7 @@ function AppContentInner() {
        * configState is the props bag that wires every field, change handler,
        * and execution callback into the presentational dialog component.
        */}
+      {generatorDialogsMounted && (
       <Suspense fallback={null}>
       <GeneratorConfigDialogs
         // ── Dialog control ───────────────────────────────────────────
@@ -265,6 +288,7 @@ function AppContentInner() {
         onWebAppGenerate={configState.onWebAppGenerate}
       />
       </Suspense>
+      )}
 
       {/* Onboarding tutorial — disabled for now
       <Suspense fallback={null}>

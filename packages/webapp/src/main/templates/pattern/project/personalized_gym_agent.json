@@ -597,6 +597,16 @@
                 "owner": null,
                 "bodies": [],
                 "intent_description": "Any question that does not fit in \"Muscles\" or \"Nutrition\""
+              },
+              "68141d82-3144-4254-a78f-e1f5a4ad0813": {
+                "id": "68141d82-3144-4254-a78f-e1f5a4ad0813",
+                "type": "AgentLLM",
+                "name": "gpt-4o-mini",
+                "owner": null,
+                "provider": "openai",
+                "parameters": {},
+                "num_previous_messages": 1,
+                "global_context": ""
               }
             }
           },
@@ -1213,6 +1223,16 @@
                       "owner": null,
                       "bodies": [],
                       "intent_description": "Any question that does not fit in \"Muscles\" or \"Nutrition\""
+                    },
+                    "68141d82-3144-4254-a78f-e1f5a4ad0813": {
+                      "id": "68141d82-3144-4254-a78f-e1f5a4ad0813",
+                      "type": "AgentLLM",
+                      "name": "gpt-4o-mini",
+                      "owner": null,
+                      "provider": "openai",
+                      "parameters": {},
+                      "num_previous_messages": 1,
+                      "global_context": ""
                     }
                   }
                 }
@@ -1794,6 +1814,16 @@
                       "owner": null,
                       "bodies": [],
                       "intent_description": "Any question that does not fit in \"Muscles\" or \"Nutrition\""
+                    },
+                    "68141d82-3144-4254-a78f-e1f5a4ad0813": {
+                      "id": "68141d82-3144-4254-a78f-e1f5a4ad0813",
+                      "type": "AgentLLM",
+                      "name": "gpt-4o-mini",
+                      "owner": null,
+                      "provider": "openai",
+                      "parameters": {},
+                      "num_previous_messages": 1,
+                      "global_context": ""
                     }
                   }
                 }
@@ -2770,6 +2800,16 @@
             "owner": null,
             "bodies": [],
             "intent_description": "Any question that does not fit in \"Muscles\" or \"Nutrition\""
+          },
+          "68141d82-3144-4254-a78f-e1f5a4ad0813": {
+            "id": "68141d82-3144-4254-a78f-e1f5a4ad0813",
+            "type": "AgentLLM",
+            "name": "gpt-4o-mini",
+            "owner": null,
+            "provider": "openai",
+            "parameters": {},
+            "num_previous_messages": 1,
+            "global_context": ""
           }
         }
       },
@@ -3347,6 +3387,16 @@
             "owner": null,
             "bodies": [],
             "intent_description": "Any question that does not fit in \"Muscles\" or \"Nutrition\""
+          },
+          "68141d82-3144-4254-a78f-e1f5a4ad0813": {
+            "id": "68141d82-3144-4254-a78f-e1f5a4ad0813",
+            "type": "AgentLLM",
+            "name": "gpt-4o-mini",
+            "owner": null,
+            "provider": "openai",
+            "parameters": {},
+            "num_previous_messages": 1,
+            "global_context": ""
           }
         }
       },
@@ -3920,6 +3970,16 @@
             "owner": null,
             "bodies": [],
             "intent_description": "Any question that does not fit in \"Muscles\" or \"Nutrition\""
+          },
+          "68141d82-3144-4254-a78f-e1f5a4ad0813": {
+            "id": "68141d82-3144-4254-a78f-e1f5a4ad0813",
+            "type": "AgentLLM",
+            "name": "gpt-4o-mini",
+            "owner": null,
+            "provider": "openai",
+            "parameters": {},
+            "num_previous_messages": 1,
+            "global_context": ""
           }
         }
       }
@@ -4537,6 +4597,16 @@
             "owner": null,
             "bodies": [],
             "intent_description": "Any question that does not fit in \"Muscles\" or \"Nutrition\""
+          },
+          "68141d82-3144-4254-a78f-e1f5a4ad0813": {
+            "id": "68141d82-3144-4254-a78f-e1f5a4ad0813",
+            "type": "AgentLLM",
+            "name": "gpt-4o-mini",
+            "owner": null,
+            "provider": "openai",
+            "parameters": {},
+            "num_previous_messages": 1,
+            "global_context": ""
           }
         }
       },
@@ -5114,6 +5184,16 @@
             "owner": null,
             "bodies": [],
             "intent_description": "Any question that does not fit in \"Muscles\" or \"Nutrition\""
+          },
+          "68141d82-3144-4254-a78f-e1f5a4ad0813": {
+            "id": "68141d82-3144-4254-a78f-e1f5a4ad0813",
+            "type": "AgentLLM",
+            "name": "gpt-4o-mini",
+            "owner": null,
+            "provider": "openai",
+            "parameters": {},
+            "num_previous_messages": 1,
+            "global_context": ""
           }
         }
       },
@@ -5687,6 +5767,16 @@
             "owner": null,
             "bodies": [],
             "intent_description": "Any question that does not fit in \"Muscles\" or \"Nutrition\""
+          },
+          "68141d82-3144-4254-a78f-e1f5a4ad0813": {
+            "id": "68141d82-3144-4254-a78f-e1f5a4ad0813",
+            "type": "AgentLLM",
+            "name": "gpt-4o-mini",
+            "owner": null,
+            "provider": "openai",
+            "parameters": {},
+            "num_previous_messages": 1,
+            "global_context": ""
           }
         }
       }
@@ -6620,6 +6710,16 @@
           "owner": null,
           "bodies": [],
           "intent_description": "Any question that does not fit in \"Muscles\" or \"Nutrition\""
+        },
+        "68141d82-3144-4254-a78f-e1f5a4ad0813": {
+          "id": "68141d82-3144-4254-a78f-e1f5a4ad0813",
+          "type": "AgentLLM",
+          "name": "gpt-4o-mini",
+          "owner": null,
+          "provider": "openai",
+          "parameters": {},
+          "num_previous_messages": 1,
+          "global_context": ""
         }
       }
     }

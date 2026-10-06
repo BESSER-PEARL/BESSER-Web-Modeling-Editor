@@ -40,7 +40,11 @@ vi.mock('../../../app/store/hooks', () => ({
   useAppDispatch: () => vi.fn(),
 }));
 vi.mock('../FirstRunLanding', () => ({
-  FirstRunLanding: () => <div data-testid="first-run-landing" />,
+  FirstRunLanding: ({ onMoreOptions }: { onMoreOptions: () => void }) => (
+    <div data-testid="first-run-landing">
+      <button type="button" onClick={onMoreOptions}>More options</button>
+    </div>
+  ),
 }));
 
 function saveProject(name: string) {
@@ -68,6 +72,32 @@ describe('ProjectHubDialog', () => {
     expect(screen.queryByTestId('first-run-landing')).toBeNull();
   });
 
+  it('shows neutral copy and no step badge to a returning user on the start screen', () => {
+    saveProject('Existing');
+    render(<ProjectHubDialog open onOpenChange={() => {}} />);
+
+    expect(screen.getByRole('heading', { name: 'Projects' })).toBeTruthy();
+    expect(screen.getByText('Open a recent project or start a new one.')).toBeTruthy();
+    expect(screen.queryByText(/Welcome to the BESSER/)).toBeNull();
+    expect(screen.queryByText(/Step \d of 2/)).toBeNull();
+  });
+
+  it('keeps the first-run title and step badge when reached from the welcome chooser', () => {
+    render(<ProjectHubDialog open onOpenChange={() => {}} />);
+    fireEvent.click(screen.getByRole('button', { name: 'More options' }));
+
+    expect(screen.getByRole('heading', { name: 'Welcome to the BESSER Web Modeling Editor' })).toBeTruthy();
+    expect(screen.getByText('Step 1 of 2')).toBeTruthy();
+  });
+
+  it('labels the blank-start card "New Project" since it opens the mode chooser', () => {
+    saveProject('Existing');
+    render(<ProjectHubDialog open onOpenChange={() => {}} />);
+    expect(screen.getByRole('button', { name: /^New Project/ })).toBeTruthy();
+    expect(screen.queryByText('Create Blank')).toBeNull();
+    expect(screen.getByRole('button', { name: /^Continue From GitHub/ })).toBeTruthy();
+  });
+
   it('offers a GitHub sign-in on File > From GitHub when not connected', () => {
     render(<ProjectHubDialog open onOpenChange={() => {}} initialStep="github" />);
 
@@ -83,5 +113,30 @@ describe('ProjectHubDialog', () => {
     fireEvent.keyDown(deleteButton, { key: 'Enter' });
 
     expect(mockLoadProject).not.toHaveBeenCalled();
+  });
+
+  it('project card body is a real button that opens the project, with delete as a sibling', () => {
+    const project = saveProject('Shop');
+    render(<ProjectHubDialog open onOpenChange={() => {}} initialStep="open" />);
+
+    const openButton = screen.getByRole('button', { name: project.name });
+    const deleteButton = screen.getByRole('button', { name: `Delete project ${project.name}` });
+    expect(openButton.tagName).toBe('BUTTON');
+    expect(openButton.contains(deleteButton)).toBe(false);
+    expect(deleteButton.closest('[role="button"]')).toBeNull();
+
+    fireEvent.click(openButton);
+    expect(mockLoadProject).toHaveBeenCalledWith(project.id);
+  });
+
+  it('disables "create from spreadsheet" until a file is selected', () => {
+    render(<ProjectHubDialog open onOpenChange={() => {}} initialStep="spreadsheet" />);
+    const submit = screen.getByRole('button', { name: /create from spreadsheet/i }) as HTMLButtonElement;
+    expect(submit.disabled).toBe(true);
+
+    const fileInput = document.querySelector('input[type="file"][multiple]') as HTMLInputElement;
+    const file = new File(['name,age'], 'people.csv', { type: 'text/csv' });
+    fireEvent.change(fileInput, { target: { files: [file] } });
+    expect(submit.disabled).toBe(false);
   });
 });

@@ -3,9 +3,12 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { UMLDiagramType } from '@besser/wme';
 import { toast } from 'react-toastify';
-import { Menu, X } from 'lucide-react';
+import * as DialogPrimitive from '@radix-ui/react-dialog';
+import { X } from 'lucide-react';
+import { Dialog, DialogOverlay, DialogPortal, DialogTitle } from '@/components/ui/dialog';
+import { TooltipProvider } from '@/components/ui/tooltip';
 import { useProject } from '../hooks/useProject';
-import { getActiveDiagram, isUMLModel, toUMLDiagramType, type SupportedDiagramType, type ProjectDiagram } from '../../shared/types/project';
+import { ALL_DIAGRAM_TYPES, getActiveDiagram, isUMLModel, toUMLDiagramType, type SupportedDiagramType, type ProjectDiagram } from '../../shared/types/project';
 import { useAppDispatch, useAppSelector } from '../store/hooks';
 import { bumpEditorRevision, refreshProjectStateThunk, updateDiagramModelThunk, switchDiagramTypeThunk, selectActiveDiagram, selectPerspectives } from '../store/workspaceSlice';
 import { isPerspectiveVisible } from '../../shared/types/project';
@@ -32,7 +35,14 @@ import { getWorkspaceContext } from '../../shared/utils/workspaceContext';
 import { downloadFile, downloadJson } from '../../shared/utils/download';
 import type { GenerationResult } from '../../features/generation/types';
 import { JsonViewerModal } from '../../shared/components/json-viewer-modal/json-viewer-modal';
-import { CredentialsDialog, selectIsSimulationRunning, selectSessionId, stopAgentSimulationThunk, validateAgentThunk } from '../../features/agent-simulation';
+// Direct imports: the feature barrel re-exports BafChatWrapper and its heavy deps.
+import { CredentialsDialog } from '../../features/agent-simulation/CredentialsDialog';
+import {
+  selectIsSimulationRunning,
+  selectSessionId,
+  stopAgentSimulationThunk,
+  validateAgentThunk,
+} from '../../features/agent-simulation/agentSimulationSlice';
 import { agentSimulationApi } from '../../shared/api/agentSimulation';
 import { WorkspaceTopBar } from './WorkspaceTopBar';
 import { DiagramTabs } from '../../features/editors/diagram-tabs/DiagramTabs';
@@ -51,6 +61,8 @@ import { useDialogStates } from './hooks/useDialogStates';
 import { globalConfirm } from '../../shared/services/confirm/globalConfirm';
 import type { QualityCheckResult, QualityCheckState } from '../../features/generation/types';
 import type { AgentVariantOption } from './topbar-types';
+import { useHasOpened } from '../hooks/useHasOpened';
+import { useStableCallback } from '../hooks/useStableCallback';
 
 // Lazy-loaded heavy panels and dialogs (only fetched when opened)
 const GitHubSidebar = React.lazy(() =>
@@ -218,77 +230,6 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
     [currentDiagramType],
   );
   const { isDeploymentAvailable } = getWorkspaceContext(location.pathname, currentProject?.currentDiagramType);
-
-  // Build a normalized system config for the agent simulation — mirrors the same
-  // normalization that handleAgentGenerate applies before code generation, so
-  // the backend receives the same intentRecognitionTechnology / llm / platform
-  // values in both flows. Without this, a raw diagram.config that is undefined,
-  // uses the legacy 'streamlit' platform, or has a structured shape (with
-  // intentRecognitionTechnology nested under a 'system' key) would be forwarded
-  // verbatim, causing the backend to fall back to LLMIntentClassifier.
-  const normalizedAgentSystemConfig = useMemo((): Record<string, any> => {
-    const activeAgentDiagram = currentProject
-      ? getActiveDiagram(currentProject, 'AgentDiagram')
-      : undefined;
-    const diagramConfig = (activeAgentDiagram?.config ?? null) as Record<string, any> | null;
-    const llmBlock =
-      diagramConfig && typeof diagramConfig.llm === 'object' && diagramConfig.llm !== null
-        ? (diagramConfig.llm as Record<string, any>)
-        : null;
-    const agentConfig = diagramConfig
-      ? normalizeAgentRuntimeConfig({
-          agentPlatform:
-            typeof diagramConfig.agentPlatform === 'string' ? diagramConfig.agentPlatform : undefined,
-          agentPlatformUseStreamlit:
-            typeof diagramConfig.agentPlatformUseStreamlit === 'boolean'
-              ? diagramConfig.agentPlatformUseStreamlit
-              : undefined,
-          intentRecognitionTechnology: diagramConfig.intentRecognitionTechnology,
-          agentLlmProvider: llmBlock?.provider,
-          agentLlmModel: typeof llmBlock?.model === 'string' ? llmBlock.model : undefined,
-          agentCustomLlmModel: undefined,
-          agentLlmName:
-            typeof diagramConfig.agentLlmName === 'string'
-              ? diagramConfig.agentLlmName
-              : typeof llmBlock?.name === 'string'
-              ? llmBlock.name
-              : undefined,
-        })
-      : { ...DEFAULT_AGENT_RUNTIME_CONFIG };
-
-    const resolvedOpenAiModel =
-      agentConfig.agentLlmModel === 'other'
-        ? agentConfig.agentCustomLlmModel.trim()
-        : agentConfig.agentLlmModel;
-
-    const resolvedAgentPlatform =
-      agentConfig.agentPlatform === 'websocket' && agentConfig.agentPlatformUseStreamlit
-        ? 'streamlit'
-        : agentConfig.agentPlatform;
-
-    const defaultLlmNameFromDiagram =
-      diagramConfig &&
-      typeof diagramConfig.default_llm_name === 'string' &&
-      diagramConfig.default_llm_name
-        ? diagramConfig.default_llm_name
-        : undefined;
-
-    return {
-      agentPlatform: resolvedAgentPlatform,
-      intentRecognitionTechnology: agentConfig.intentRecognitionTechnology,
-      ...(defaultLlmNameFromDiagram ? { default_llm_name: defaultLlmNameFromDiagram } : {}),
-      ...(agentConfig.agentLlmName
-        ? { llm: { name: agentConfig.agentLlmName } }
-        : agentConfig.agentLlmProvider
-        ? {
-            llm: {
-              provider: agentConfig.agentLlmProvider,
-              ...(resolvedOpenAiModel ? { model: resolvedOpenAiModel } : {}),
-            },
-          }
-        : {}),
-    };
-  }, [currentProject]);
 
   const simulationDiagramModel = useMemo(
     (): object =>
@@ -507,37 +448,37 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
   const headerBackgroundClass = isDarkTheme
     ? 'border-b border-border/70 bg-[linear-gradient(105deg,hsl(var(--background))_0%,hsl(222_30%_9%)_45%,hsl(222_25%_14%)_100%)]'
     : 'border-b border-brand/10 bg-[linear-gradient(105deg,#f0f9ff_0%,#fcfff5_45%,#edf6ff_100%)]';
+  // Header triggers use variant="ghost"; this keeps their quiet tint and shows the open state.
   const outlineButtonClass = isDarkTheme
-    ? 'border-border bg-card text-foreground hover:bg-accent hover:border-border'
-    : 'border-border/60 bg-card hover:border-brand/25 hover:bg-brand/[0.03]';
+    ? 'text-foreground/80 hover:bg-white/[0.06] hover:text-foreground data-[state=open]:bg-white/[0.08] data-[state=open]:text-foreground max-md:h-8 max-md:px-2'
+    : 'text-foreground/80 hover:bg-foreground/[0.05] hover:text-foreground data-[state=open]:bg-foreground/[0.06] data-[state=open]:text-foreground max-md:h-8 max-md:px-2';
   const primaryGenerateClass = `gap-2 ${outlineButtonClass}`;
   const sidebarBaseClass = isDarkTheme
-    ? 'hidden shrink-0 border-r border-border/70 bg-card p-2.5 transition-all duration-200 md:flex md:flex-col md:gap-1.5'
-    : 'hidden shrink-0 border-r border-border/50 bg-card p-2.5 transition-all duration-200 md:flex md:flex-col md:gap-1.5';
-  const sidebarTitleClass = 'px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground';
+    ? 'hidden shrink-0 border-r border-border/70 bg-card p-2.5 md:flex md:flex-col md:gap-0.5'
+    : 'hidden shrink-0 border-r border-border/50 bg-card p-2.5 md:flex md:flex-col md:gap-0.5';
+  const sidebarTitleClass = 'px-2.5 pb-1.5 pt-1 text-xs font-medium text-muted-foreground';
   const sidebarDividerClass = 'my-2 border-t border-border/60';
   const sidebarToggleClass = isDarkTheme
-    ? 'mt-auto flex items-center rounded-lg border border-border/60 bg-card p-2 transition-all duration-150 hover:border-border hover:bg-accent'
-    : 'mt-auto flex items-center rounded-lg border border-border/60 bg-card p-2 transition-all duration-150 hover:border-brand/20 hover:bg-brand/[0.03]';
-  const sidebarToggleTextClass = 'text-xs font-semibold text-foreground';
+    ? 'mt-auto flex items-center rounded-lg px-2.5 py-2 text-sm text-muted-foreground transition-[background-color,color] duration-150 ease-out hover:bg-white/[0.06] hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/50'
+    : 'mt-auto flex items-center rounded-lg px-2.5 py-2 text-sm text-muted-foreground transition-[background-color,color] duration-150 ease-out hover:bg-foreground/[0.05] hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/50';
+  const sidebarToggleTextClass = 'truncate';
 
-  // Mobile drawer sidebar uses the same styles but is always flex (never hidden)
-  const mobileSidebarBaseClass = isDarkTheme
-    ? 'flex shrink-0 flex-col gap-1.5 border-r border-border/70 bg-card p-2.5'
-    : 'flex shrink-0 flex-col gap-1.5 border-r border-border/50 bg-card/90 p-2.5 backdrop-blur-sm';
+  // Mobile drawer sidebar: same item styles, always visible, fills the drawer panel.
+  const mobileSidebarBaseClass = 'flex min-h-0 flex-1 flex-col gap-0.5 overflow-y-auto p-2.5 !w-full';
 
-  const closeMobileDrawer = useCallback(() => setIsMobileDrawerOpen(false), []);
+  const mobileNavTriggerRef = useRef<HTMLButtonElement>(null);
+  const openMobileDrawer = useCallback(() => setIsMobileDrawerOpen(true), []);
 
-  // Close mobile drawer on Escape key
+  // The drawer only exists below md; close it if the viewport grows past that.
   useEffect(() => {
-    if (!isMobileDrawerOpen) return;
-    const handleEscape = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        setIsMobileDrawerOpen(false);
-      }
+    if (!isMobileDrawerOpen || typeof window.matchMedia !== 'function') return;
+    const query = window.matchMedia('(min-width: 768px)');
+    const handleChange = () => {
+      if (query.matches) setIsMobileDrawerOpen(false);
     };
-    window.addEventListener('keydown', handleEscape);
-    return () => window.removeEventListener('keydown', handleEscape);
+    handleChange();
+    query.addEventListener('change', handleChange);
+    return () => query.removeEventListener('change', handleChange);
   }, [isMobileDrawerOpen]);
 
   const handleNavigate = useCallback(
@@ -576,7 +517,9 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
     return record.outcome;
   }, [userModelValidationByDiagramId]);
 
-  const handleTrackedQualityCheck = useCallback(async (): Promise<QualityCheckResult> => {
+  // Handlers below that the memoized top bar / sidebar receive read the active diagram,
+  // which changes on every autosave, so they use stable identities (useStableCallback).
+  const handleTrackedQualityCheck = useStableCallback(async (): Promise<QualityCheckResult> => {
     const result = await onQualityCheck();
     if (result.executed && currentProject?.currentDiagramType === 'UserDiagram' && diagram?.id) {
       const modelFingerprint = createModelFingerprint(diagram.model);
@@ -590,7 +533,7 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
       }));
     }
     return result;
-  }, [onQualityCheck, currentProject?.currentDiagramType, diagram?.id, diagram?.model]);
+  });
 
   const ensureUserModelValidationBeforeNavigation = useCallback(async (): Promise<boolean> => {
     if (currentProject?.currentDiagramType !== 'UserDiagram' || !diagram) {
@@ -637,7 +580,7 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
     return confirmLeaveWithIssues;
   }, [currentProject?.currentDiagramType, diagram, getUserModelValidationStatus, handleTrackedQualityCheck, t]);
 
-  const handleSwitchDiagramType = useCallback(async (type: SupportedDiagramType) => {
+  const handleSwitchDiagramType = useStableCallback(async (type: SupportedDiagramType) => {
     const canProceed = await ensureUserModelValidationBeforeNavigation();
     if (!canProceed) {
       return;
@@ -647,9 +590,9 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
       navigate('/');
     }
     dispatch(switchDiagramTypeThunk({ diagramType: type }));
-  }, [location.pathname, navigate, dispatch, ensureUserModelValidationBeforeNavigation]);
+  });
 
-  const handleSwitchUml = useCallback(async (type: UMLDiagramType) => {
+  const handleSwitchUml = useStableCallback(async (type: UMLDiagramType) => {
     const canProceed = await ensureUserModelValidationBeforeNavigation();
     if (!canProceed) {
       return;
@@ -663,7 +606,7 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
       return;
     }
     switchDiagramType(type);
-  }, [location.pathname, navigate, activeUmlType, currentDiagramType, switchDiagramType, ensureUserModelValidationBeforeNavigation]);
+  });
 
   // Wrappers that close mobile drawer after navigating
   const handleMobileSwitchUml = useCallback((type: UMLDiagramType) => {
@@ -676,13 +619,13 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
     setIsMobileDrawerOpen(false);
   }, [handleSwitchDiagramType]);
 
-  const handleSafeNavigate = useCallback(async (path: string) => {
+  const handleSafeNavigate = useStableCallback(async (path: string) => {
     const canProceed = await ensureUserModelValidationBeforeNavigation();
     if (!canProceed) {
       return;
     }
     handleNavigate(path);
-  }, [ensureUserModelValidationBeforeNavigation, handleNavigate]);
+  });
 
   const handleMobileNavigate = useCallback((path: string) => {
     void handleSafeNavigate(path);
@@ -723,7 +666,7 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
     }));
   }, [currentProject?.currentDiagramType, diagram, t]);
 
-  const handleAgentVariantChange = useCallback(async (variantId: string) => {
+  const handleAgentVariantChange = useStableCallback(async (variantId: string) => {
     if (currentProject?.currentDiagramType !== 'AgentDiagram' || !currentProject || !diagram?.id) {
       return;
     }
@@ -813,7 +756,7 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
       const message = error instanceof Error ? error.message : t('shell.agentVariant.switchFailed');
       toast.error(message);
     }
-  }, [currentProject, diagram, dispatch, t]);
+  });
 
   const handleRequestTabSwitch = useCallback(async (): Promise<boolean> => {
     return ensureUserModelValidationBeforeNavigation();
@@ -865,7 +808,7 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
     dispatch(updateDiagramModelThunk({ title: normalized }));
   }, [diagramTitleDraft, diagram?.title, dispatch]);
 
-  const handleSimulateAgent = async () => {
+  const handleSimulateAgent = useStableCallback(async () => {
     if (isModelEmpty(diagram?.model)) {
       toast.info(t('agentSimulation.launch.emptyDiagram'));
       return;
@@ -954,18 +897,18 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
     }
 
     setIsCredentialsDialogOpen(true);
-  };
+  });
 
-  const handleToggleTheme = () => {
+  const handleToggleTheme = useCallback(() => {
     toggleTheme();
     setIsDarkTheme(isDarkThemeEnabled());
-  };
+  }, []);
 
   const openExternalUrl = (url: string) => {
     window.open(url, '_blank', 'noopener,noreferrer');
   };
 
-  const handleImportSingleDiagram = async () => {
+  const handleImportSingleDiagram = useStableCallback(async () => {
     if (!currentProject) {
       toast.error(t('shell.errors.noProject'));
       return;
@@ -981,9 +924,9 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
       }
       toast.error(t('shell.import.failed', { message }));
     }
-  };
+  });
 
-  const handleImportBpmnDiagram = async () => {
+  const handleImportBpmnDiagram = useStableCallback(async () => {
     if (!currentProject) {
       toast.error(t('shell.errors.noProject'));
       return;
@@ -999,7 +942,7 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
       }
       toast.error(t('shell.import.failed', { message }));
     }
-  };
+  });
 
   // Command palette actions (filter by enabled per-project perspectives)
   const perspectives = useAppSelector(selectPerspectives);
@@ -1025,8 +968,40 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
     [handleSwitchUml, handleSwitchDiagramType, handleSafeNavigate, onExportProject, handleTrackedQualityCheck, perspectives],
   );
 
+  // Primitive key so the memoized sidebar only re-renders when a count changes.
+  const diagramCountsKey = ALL_DIAGRAM_TYPES.map((type) => currentProject?.diagrams?.[type]?.length ?? 0).join(',');
+  const diagramCounts = useMemo(() => {
+    const counts = diagramCountsKey.split(',').map(Number);
+    return Object.fromEntries(ALL_DIAGRAM_TYPES.map((type, index) => [type, counts[index]])) as Record<SupportedDiagramType, number>;
+  }, [diagramCountsKey]);
+  const activeDiagramType = currentProject?.currentDiagramType ?? 'ClassDiagram';
+
+  const openAssistantImportImage = useCallback(() => openAssistantImportDialog('image'), [openAssistantImportDialog]);
+  const openAssistantImportKg = useCallback(() => openAssistantImportDialog('kg'), [openAssistantImportDialog]);
+  const openDeployDialog = useStableCallback(handleOpenDeployDialog);
+  const openProjectPreview = useStableCallback(handleOpenProjectPreview);
+  const toggleGitHubSidebar = useCallback(() => setIsGitHubSidebarOpen((previous) => !previous), []);
+  const closeGitHubSidebar = useCallback(() => setIsGitHubSidebarOpen(false), []);
+  const openHelpDialog = useCallback(() => setIsHelpDialogOpen(true), [setIsHelpDialogOpen]);
+  const openAboutDialog = useCallback(() => setIsAboutDialogOpen(true), [setIsAboutDialogOpen]);
+  const openFeedback = useCallback(() => setIsFeedbackDialogOpen(true), [setIsFeedbackDialogOpen]);
+  const toggleSidebarExpanded = useCallback(() => setIsSidebarExpanded((previous) => !previous), []);
+  const testAgent = showSimulateAgent ? handleSimulateAgent : undefined;
+
+  // Lazy panels mount on first open so their chunks are not fetched at startup.
+  const gitHubSidebarMounted = useHasOpened(isGitHubSidebarOpen);
+  const feedbackDialogMounted = useHasOpened(isFeedbackDialogOpen);
+  const helpDialogMounted = useHasOpened(isHelpDialogOpen);
+
   return (
+    <TooltipProvider delayDuration={400}>
     <div className={`flex h-screen flex-col overflow-hidden ${shellBackgroundClass}`}>
+      <a
+        href="#main"
+        className="sr-only focus:not-sr-only focus:fixed focus:left-3 focus:top-3 focus:z-[60] focus:rounded-lg focus:bg-background focus:px-3 focus:py-2 focus:text-sm focus:font-medium focus:text-foreground focus:shadow-lg focus:outline-none focus:ring-2 focus:ring-ring"
+      >
+        {t('shell.skipToEditor', { defaultValue: 'Skip to Editor' })}
+      </a>
       <WorkspaceTopBar
         isDarkTheme={isDarkTheme}
         headerBackgroundClass={headerBackgroundClass}
@@ -1035,8 +1010,6 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
         showQualityCheck={showQualityCheck}
         generatorMode={generatorMode}
         isGenerating={isGenerating}
-        locationPath={location.pathname}
-        activeUmlType={activeUmlType}
         isAuthenticated={isAuthenticated}
         username={username || undefined}
         githubLoading={githubLoading}
@@ -1047,9 +1020,9 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
         onExportProject={onExportProject}
         onImportSingleDiagram={handleImportSingleDiagram}
         onImportBpmnDiagram={handleImportBpmnDiagram}
-        onOpenAssistantImportImage={() => openAssistantImportDialog('image')}
-        onOpenAssistantImportKg={() => openAssistantImportDialog('kg')}
-        onOpenProjectPreview={handleOpenProjectPreview}
+        onOpenAssistantImportImage={openAssistantImportImage}
+        onOpenAssistantImportKg={openAssistantImportKg}
+        onOpenProjectPreview={openProjectPreview}
         onGenerate={onGenerate}
         onQualityCheck={handleTrackedQualityCheck}
         qualityCheckState={activeQualityCheckState}
@@ -1060,93 +1033,66 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
         onToggleTheme={handleToggleTheme}
         onGitHubLogin={githubLogin}
         onGitHubLogout={githubLogout}
-        onOpenGitHubSidebar={() => setIsGitHubSidebarOpen((previous) => !previous)}
+        onOpenGitHubSidebar={toggleGitHubSidebar}
         hasStarred={hasStarred}
         starLoading={starLoading}
         onToggleStar={handleToggleStar}
-        onOpenDeployDialog={handleOpenDeployDialog}
-        onOpenHelpDialog={() => setIsHelpDialogOpen(true)}
-        onOpenAboutDialog={() => setIsAboutDialogOpen(true)}
-        onOpenFeedback={() => setIsFeedbackDialogOpen(true)}
+        onOpenDeployDialog={openDeployDialog}
+        onOpenHelpDialog={openHelpDialog}
+        onOpenAboutDialog={openAboutDialog}
+        onOpenFeedback={openFeedback}
         onOpenKeyboardShortcuts={openKeyboardShortcuts}
         onShowWelcomeGuide={onboarding?.startTutorial}
-        activeDiagramType={currentProject?.currentDiagramType ?? 'ClassDiagram'}
-        perspectives={perspectives}
-        onSwitchUml={(type) => {
-          void handleSwitchUml(type);
-        }}
-        onSwitchDiagramType={(type) => {
-          void handleSwitchDiagramType(type);
-        }}
-        onNavigate={(path) => {
-          void handleSafeNavigate(path);
-        }}
+        activeDiagramType={activeDiagramType}
+        onSwitchDiagramType={handleSwitchDiagramType}
         projectNameDraft={projectNameDraft}
         onProjectNameDraftChange={setProjectNameDraft}
         onProjectRename={handleProjectRename}
+        isMobileNavOpen={isMobileDrawerOpen}
+        onOpenMobileNav={openMobileDrawer}
+        mobileNavTriggerRef={mobileNavTriggerRef}
       />
 
-      {/* Mobile hamburger button - visible only below md breakpoint */}
-      <button
-        type="button"
-        className="md:hidden fixed top-2 left-2 z-50 p-2 rounded-lg bg-card shadow-lg border border-border"
-        onClick={() => setIsMobileDrawerOpen((prev) => !prev)}
-        aria-label={isMobileDrawerOpen ? t('shell.nav.close') : t('shell.nav.open')}
-      >
-        {isMobileDrawerOpen ? <X size={24} /> : <Menu size={24} />}
-      </button>
-
-      {/* Mobile slide-in drawer overlay */}
-      <div
-        className={`fixed inset-0 z-40 md:hidden transition-opacity duration-300 ${
-          isMobileDrawerOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
-        }`}
-      >
-        {/* Backdrop */}
-        <div className="absolute inset-0 bg-black/50" onClick={closeMobileDrawer} aria-hidden="true" />
-        {/* Drawer panel */}
-        <div
-          className={`relative h-full w-64 shadow-xl overflow-y-auto transition-transform duration-300 ${
-            isMobileDrawerOpen ? 'translate-x-0' : '-translate-x-full'
-          } bg-background`}
-        >
-          {/* Close button inside drawer */}
-          <div
-            className={`flex items-center justify-between p-3 border-b ${isDarkTheme ? 'border-slate-700' : 'border-slate-200'}`}
+      {/* Mobile navigation drawer (below md): a left-side Radix dialog */}
+      <Dialog open={isMobileDrawerOpen} onOpenChange={setIsMobileDrawerOpen}>
+        <DialogPortal>
+          <DialogOverlay className="duration-[240ms] ease-[cubic-bezier(0.32,0.72,0,1)] data-[state=closed]:duration-[180ms] md:hidden" />
+          <DialogPrimitive.Content
+            aria-describedby={undefined}
+            onCloseAutoFocus={(event) => {
+              event.preventDefault();
+              mobileNavTriggerRef.current?.focus();
+            }}
+            className="fixed inset-y-0 left-0 z-50 flex w-72 max-w-[85vw] flex-col border-r border-border/60 bg-card shadow-xl duration-[240ms] ease-[cubic-bezier(0.32,0.72,0,1)] data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=open]:slide-in-from-left data-[state=closed]:slide-out-to-left data-[state=closed]:duration-[180ms] focus:outline-none md:hidden"
           >
-            <span className={`text-sm font-semibold ${isDarkTheme ? 'text-slate-200' : 'text-slate-700'}`}>
-              {t('shell.nav.title')}
-            </span>
-            <button
-              type="button"
-              className="p-1 rounded text-muted-foreground hover:bg-muted"
-              onClick={closeMobileDrawer}
+            <DialogTitle className="sr-only">{t('shell.nav.title')}</DialogTitle>
+            <DialogPrimitive.Close
+              className="absolute right-2.5 top-2.5 z-10 inline-flex size-8 items-center justify-center rounded-lg text-muted-foreground transition-[background-color,color] duration-150 ease-out hover:bg-foreground/[0.05] hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               aria-label={t('shell.nav.close')}
             >
-              <X size={18} />
-            </button>
-          </div>
-          {/* Sidebar content rendered expanded for mobile */}
-          <WorkspaceSidebar
-            isDarkTheme={isDarkTheme}
-            isSidebarExpanded={true}
-            sidebarBaseClass={mobileSidebarBaseClass}
-            sidebarTitleClass={sidebarTitleClass}
-            sidebarDividerClass={sidebarDividerClass}
-            sidebarToggleClass={sidebarToggleClass}
-            sidebarToggleTextClass={sidebarToggleTextClass}
-            locationPath={location.pathname}
-            activeUmlType={activeUmlType}
-            activeDiagramType={currentProject?.currentDiagramType ?? 'ClassDiagram'}
-            project={currentProject}
-            onSwitchUml={handleMobileSwitchUml}
-            onSwitchDiagramType={handleMobileSwitchDiagramType}
-            onNavigate={handleMobileNavigate}
-            onToggleExpanded={closeMobileDrawer}
-            onTestAgent={showSimulateAgent ? handleSimulateAgent : undefined}
-          />
-        </div>
-      </div>
+              <X className="size-4" aria-hidden="true" />
+            </DialogPrimitive.Close>
+            <WorkspaceSidebar
+              isDarkTheme={isDarkTheme}
+              isSidebarExpanded={true}
+              sidebarBaseClass={mobileSidebarBaseClass}
+              sidebarTitleClass={sidebarTitleClass}
+              sidebarDividerClass={sidebarDividerClass}
+              sidebarToggleClass={sidebarToggleClass}
+              sidebarToggleTextClass={sidebarToggleTextClass}
+              locationPath={location.pathname}
+              activeUmlType={activeUmlType}
+              activeDiagramType={activeDiagramType}
+              diagramCounts={diagramCounts}
+              perspectives={perspectives}
+              onSwitchUml={handleMobileSwitchUml}
+              onSwitchDiagramType={handleMobileSwitchDiagramType}
+              onNavigate={handleMobileNavigate}
+              onTestAgent={testAgent}
+            />
+          </DialogPrimitive.Content>
+        </DialogPortal>
+      </Dialog>
 
       <div className="relative flex min-h-0 flex-1 overflow-hidden">
         <WorkspaceSidebar
@@ -1159,22 +1105,17 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
           sidebarToggleTextClass={sidebarToggleTextClass}
           locationPath={location.pathname}
           activeUmlType={activeUmlType}
-          activeDiagramType={currentProject?.currentDiagramType ?? 'ClassDiagram'}
-          project={currentProject}
-          onSwitchUml={(type) => {
-            void handleSwitchUml(type);
-          }}
-          onSwitchDiagramType={(type) => {
-            void handleSwitchDiagramType(type);
-          }}
-          onNavigate={(path) => {
-            void handleSafeNavigate(path);
-          }}
-          onToggleExpanded={() => setIsSidebarExpanded((previous) => !previous)}
-          onTestAgent={showSimulateAgent ? handleSimulateAgent : undefined}
+          activeDiagramType={activeDiagramType}
+          diagramCounts={diagramCounts}
+          perspectives={perspectives}
+          onSwitchUml={handleSwitchUml}
+          onSwitchDiagramType={handleSwitchDiagramType}
+          onNavigate={handleSafeNavigate}
+          onToggleExpanded={toggleSidebarExpanded}
+          onTestAgent={testAgent}
         />
 
-        <main className="relative flex min-h-0 flex-1 flex-col overflow-hidden">
+        <main id="main" tabIndex={-1} className="relative flex min-h-0 flex-1 flex-col overflow-hidden focus:outline-none">
           <HiddenPerspectivesBanner />
           {location.pathname === '/' && (
             <DiagramTabs
@@ -1199,9 +1140,11 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
           )}
         </main>
 
-        <Suspense fallback={null}>
-          <GitHubSidebar isOpen={isGitHubSidebarOpen} onClose={() => setIsGitHubSidebarOpen(false)} />
-        </Suspense>
+        {gitHubSidebarMounted && (
+          <Suspense fallback={null}>
+            <GitHubSidebar isOpen={isGitHubSidebarOpen} onClose={closeGitHubSidebar} />
+          </Suspense>
+        )}
 
         {/*
           Bottom-sheet assistant drawer. Renders a 28-px drag handle at
@@ -1224,6 +1167,7 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
             onOpenChange={setIsAssistantWorkspaceOpen}
             onTriggerGenerator={onAssistantGenerate}
             onSwitchDiagram={handleAssistantSwitchDiagram}
+            showTrigger={location.pathname === '/'}
           />
         </Suspense>
       </div>
@@ -1266,13 +1210,17 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
         onDownloadBuml={handleDownloadProjectBumlPreview}
       />
 
-      <Suspense fallback={null}>
-        <FeedbackDialog open={isFeedbackDialogOpen} onOpenChange={setIsFeedbackDialogOpen} />
-      </Suspense>
+      {feedbackDialogMounted && (
+        <Suspense fallback={null}>
+          <FeedbackDialog open={isFeedbackDialogOpen} onOpenChange={setIsFeedbackDialogOpen} />
+        </Suspense>
+      )}
 
-      <Suspense fallback={null}>
-        <HelpGuideDialog open={isHelpDialogOpen} onOpenChange={setIsHelpDialogOpen} />
-      </Suspense>
+      {helpDialogMounted && (
+        <Suspense fallback={null}>
+          <HelpGuideDialog open={isHelpDialogOpen} onOpenChange={setIsHelpDialogOpen} />
+        </Suspense>
+      )}
 
       <KeyboardShortcutsDialog open={isKeyboardShortcutsOpen} onOpenChange={setIsKeyboardShortcutsOpen} />
 
@@ -1333,5 +1281,6 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
       />
 
     </div>
+    </TooltipProvider>
   );
 };

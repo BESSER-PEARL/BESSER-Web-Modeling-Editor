@@ -75,7 +75,7 @@ function CopyCodeButton({ code }: { code: string }) {
       title={t('agentSimulation.codeViewer.copyTitle')}
       aria-label={t('agentSimulation.codeViewer.copyLabel')}
     >
-      {copied ? <Check className="size-3.5 text-green-500" /> : <Copy className="size-3.5" />}
+      {copied ? <Check className="size-3.5 text-brand" /> : <Copy className="size-3.5" />}
     </Button>
   );
 }

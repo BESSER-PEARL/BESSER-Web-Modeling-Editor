@@ -10,6 +10,8 @@ import { createDefaultProject } from '../../../../shared/types/project';
 
 const mockDispatch = vi.fn(() => Promise.resolve());
 
+const NO_DIAGRAMS: ProjectDiagram[] = [];
+
 vi.mock('../../../../app/store/hooks', () => ({
   useAppDispatch: () => mockDispatch,
   useAppSelector: vi.fn((selector: any) => selector(mockState)),
@@ -26,6 +28,7 @@ vi.mock('../../../../app/store/workspaceSlice', () => ({
   selectDiagramsForActiveType: (state: any) => state.workspace.diagrams,
   selectActiveDiagramType: (state: any) => state.workspace.activeDiagramType,
   selectProject: (state: any) => state.workspace.project,
+  selectClassDiagrams: (state: any) => state.workspace.project?.diagrams?.ClassDiagram ?? NO_DIAGRAMS,
 }));
 
 vi.mock('@besser/wme', async (importOriginal) => {
@@ -48,6 +51,11 @@ vi.mock('react-toastify', () => ({
 
 vi.mock('../../../../shared/services/analytics/lazy-analytics', () => ({
   getPostHog: () => null,
+}));
+
+const mockGlobalConfirm = vi.fn((_options: unknown) => Promise.resolve(true));
+vi.mock('../../../../shared/services/confirm/globalConfirm', () => ({
+  globalConfirm: (options: unknown) => mockGlobalConfirm(options),
 }));
 
 // ── State helpers ────────────────────────────────────────────────────────
@@ -219,9 +227,33 @@ describe('DiagramTabs', () => {
 
     render(<DiagramTabs />);
 
-    // Close buttons should exist (one per tab when multiple diagrams)
-    const closeButtons = screen.getAllByTitle('Close tab');
-    expect(closeButtons.length).toBe(2);
+    // Delete buttons should exist (one per tab when multiple diagrams)
+    const deleteButtons = screen.getAllByTitle('Delete diagram');
+    expect(deleteButtons.length).toBe(2);
+  });
+
+  // The tab "x" removes the diagram from the project (ProjectStorageRepository.removeDiagram),
+  // so it must ask first instead of deleting on a single click.
+  it('asks for confirmation before deleting a diagram', async () => {
+    setMockState({ diagrams: [makeDiagram('d1', 'First'), makeDiagram('d2', 'Second')] });
+    mockGlobalConfirm.mockResolvedValueOnce(true);
+
+    render(<DiagramTabs />);
+    fireEvent.click(screen.getAllByTitle('Delete diagram')[1]);
+
+    await waitFor(() => expect(mockDispatch).toHaveBeenCalledWith(expect.objectContaining({ type: 'removeDiagram' })));
+    expect(mockGlobalConfirm).toHaveBeenCalledWith(expect.objectContaining({ variant: 'danger' }));
+  });
+
+  it('keeps the diagram when the deletion is cancelled', async () => {
+    setMockState({ diagrams: [makeDiagram('d1', 'First'), makeDiagram('d2', 'Second')] });
+    mockGlobalConfirm.mockResolvedValueOnce(false);
+
+    render(<DiagramTabs />);
+    fireEvent.click(screen.getAllByTitle('Delete diagram')[1]);
+
+    await waitFor(() => expect(mockGlobalConfirm).toHaveBeenCalled());
+    expect(mockDispatch).not.toHaveBeenCalledWith(expect.objectContaining({ type: 'removeDiagram' }));
   });
 
   it('does not show close button when only one diagram exists', () => {
@@ -338,16 +370,54 @@ describe('DiagramTabs', () => {
       project,
     });
 
-    const { container } = render(<DiagramTabs />);
+    render(<DiagramTabs />);
 
-    // Use the select element id since aria-label is shared with InfoTooltip
-    const select = container.querySelector('#ref-class-diagram') as HTMLSelectElement;
-    expect(select).toBeInTheDocument();
+    const trigger = screen.getByRole('combobox');
+    expect(trigger).toHaveAttribute('id', 'ref-class-diagram');
+    expect(trigger).toHaveTextContent('Class Diagram');
+    fireEvent.keyDown(trigger, { key: 'ArrowDown' });
 
-    const options = select.querySelectorAll('option');
+    const options = screen.getAllByRole('option');
     expect(options).toHaveLength(2);
     expect(options[0].textContent).toBe('Class Diagram');
     expect(options[1].textContent).toBe('Class Diagram 2');
+  });
+
+  it('persists the picked class diagram reference by id', async () => {
+    const { updateDiagramReferencesThunk } = await import('../../../../app/store/workspaceSlice');
+    const project = createDefaultProject('Test', '', 'owner');
+    project.diagrams.ClassDiagram.push({
+      ...project.diagrams.ClassDiagram[0],
+      id: 'cd2',
+      title: 'Class Diagram 2',
+    });
+    setMockState({
+      diagrams: [makeDiagram('od1', 'Object Diagram')],
+      activeDiagramType: 'ObjectDiagram',
+      project,
+    });
+
+    render(<DiagramTabs />);
+
+    const trigger = screen.getByRole('combobox', {
+      name: 'Select which Class Diagram provides the data model for this Object Diagram',
+    });
+    fireEvent.keyDown(trigger, { key: 'ArrowDown' });
+    fireEvent.click(screen.getByRole('option', { name: 'Class Diagram 2' }));
+
+    expect(updateDiagramReferencesThunk).toHaveBeenCalledWith(
+      expect.objectContaining({ diagramType: 'ObjectDiagram', references: { ClassDiagram: 'cd2' } }),
+    );
+  });
+
+  it('shows the broken-reference placeholder when the referenced class diagram is gone', () => {
+    const project = createDefaultProject('Test', '', 'owner');
+    const od = { ...makeDiagram('od1', 'Object Diagram'), references: { ClassDiagram: 'deleted-id' } };
+    setMockState({ diagrams: [od], activeDiagramType: 'ObjectDiagram', project });
+
+    render(<DiagramTabs />);
+
+    expect(screen.getByRole('combobox')).toHaveTextContent('Reference broken - please reselect');
   });
 
   it('shows linked diagrams toggle button for reference types', () => {
@@ -362,5 +432,78 @@ describe('DiagramTabs', () => {
 
     // The "Linked Diagrams" toggle should be visible
     expect(screen.getByLabelText('Collapse linked diagrams')).toBeInTheDocument();
+  });
+  describe('keyboard navigation', () => {
+    const threeTabs = () =>
+      setMockState({
+        diagrams: [makeDiagram('d1', 'First'), makeDiagram('d2', 'Second'), makeDiagram('d3', 'Third')],
+        activeDiagramIndex: 0,
+      });
+
+    it('renders the tabs inside a tablist with a roving tabIndex', () => {
+      threeTabs();
+      render(<DiagramTabs />);
+
+      const tabs = screen.getAllByRole('tab');
+      expect(screen.getByRole('tablist')).toContainElement(tabs[0]);
+      expect(tabs.map((tab) => tab.getAttribute('tabindex'))).toEqual(['0', '-1', '-1']);
+    });
+
+    it('moves focus and activates with ArrowRight, ArrowLeft (wrapping) and End', async () => {
+      const { switchDiagramIndexThunk } = await import('../../../../app/store/workspaceSlice');
+      threeTabs();
+      render(<DiagramTabs />);
+      const [first, second, third] = screen.getAllByRole('tab');
+
+      fireEvent.keyDown(first, { key: 'ArrowRight' });
+      expect(second).toHaveFocus();
+      await waitFor(() => expect(switchDiagramIndexThunk).toHaveBeenCalledWith({ diagramType: 'ClassDiagram', index: 1 }));
+
+      fireEvent.keyDown(first, { key: 'ArrowLeft' });
+      expect(third).toHaveFocus();
+      await waitFor(() => expect(switchDiagramIndexThunk).toHaveBeenCalledWith({ diagramType: 'ClassDiagram', index: 2 }));
+
+      fireEvent.keyDown(first, { key: 'End' });
+      expect(third).toHaveFocus();
+    });
+
+    it('activates the focused tab with Enter', async () => {
+      const { switchDiagramIndexThunk } = await import('../../../../app/store/workspaceSlice');
+      threeTabs();
+      render(<DiagramTabs />);
+
+      fireEvent.keyDown(screen.getByLabelText('Diagram tab: Third'), { key: 'Enter' });
+      await waitFor(() => expect(switchDiagramIndexThunk).toHaveBeenCalledWith({ diagramType: 'ClassDiagram', index: 2 }));
+    });
+
+    it('starts renaming the focused tab with F2', () => {
+      threeTabs();
+      render(<DiagramTabs />);
+
+      fireEvent.keyDown(screen.getByLabelText('Diagram tab: Second'), { key: 'F2' });
+      expect(screen.getByLabelText('Rename diagram')).toHaveValue('Second');
+    });
+
+    it('ignores navigation keys typed into the rename input', async () => {
+      const { switchDiagramIndexThunk } = await import('../../../../app/store/workspaceSlice');
+      threeTabs();
+      render(<DiagramTabs />);
+
+      fireEvent.keyDown(screen.getByLabelText('Diagram tab: First'), { key: 'F2' });
+      fireEvent.keyDown(screen.getByLabelText('Rename diagram'), { key: 'ArrowRight' });
+      expect(switchDiagramIndexThunk).not.toHaveBeenCalled();
+    });
+  });
+
+  it('announces a broken class-diagram reference to assistive technology', () => {
+    const project = createDefaultProject('Test', '', 'owner');
+    const od = { ...makeDiagram('od1', 'Object Diagram'), references: { ClassDiagram: 'deleted-id' } };
+    setMockState({ diagrams: [od], activeDiagramType: 'ObjectDiagram', project });
+
+    render(<DiagramTabs />);
+
+    expect(
+      screen.getByRole('img', { name: 'The referenced diagram was deleted. Please select a new one.' }),
+    ).toBeInTheDocument();
   });
 });

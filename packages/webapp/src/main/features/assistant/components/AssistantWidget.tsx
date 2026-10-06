@@ -7,7 +7,7 @@
  * diagram switching via route navigation.
  */
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { AlertTriangle, ArrowDown, Check, CircleHelp, Code, Flag, KeyRound, X } from 'lucide-react';
@@ -47,7 +47,7 @@ const getConnectionDotClass = (status: ConnectionStatus): string => {
       return 'bg-emerald-500';
     case 'connecting':
     case 'closing':
-      return 'bg-amber-500 animate-pulse';
+      return 'bg-amber-500 animate-pulse motion-reduce:animate-none';
     default:
       return 'bg-red-500';
   }
@@ -86,6 +86,8 @@ export const AssistantWidget: React.FC<AssistantWidgetProps> = ({ onAssistantGen
   const [isVisible, setIsVisible] = useState(false);
   const [showDisclaimer, setShowDisclaimer] = useState(false);
   const [byokOpen, setByokOpen] = useState(false);
+  const containerRef = useRef<HTMLDivElement | null>(null);
+  const toggleRef = useRef<HTMLButtonElement | null>(null);
   // Reflect whether a BYOK key is saved (re-reads when the dialog closes).
   const savedApiKey = readLlmKey();
 
@@ -166,17 +168,54 @@ export const AssistantWidget: React.FC<AssistantWidgetProps> = ({ onAssistantGen
   }, [handleSubmit]);
 
   /* ---- Keyboard shortcuts on input ---- */
+  // Escape is handled by the composer (blur, keeping the draft) and the
+  // popup-level listener below (close), not here.
   const handleInputKeyDown = useCallback((e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    if (e.key === 'Escape') {
-      e.preventDefault();
-      setInputValue('');
-      return;
-    }
     if (e.key === 'ArrowUp' && !inputValue && lastSentMessage) {
       e.preventDefault();
       setInputValue(lastSentMessage);
     }
   }, [inputValue, lastSentMessage, setInputValue]);
+
+  /* ---- Escape closes the popup and returns focus to the toggle ---- */
+  useEffect(() => {
+    if (!isVisible) return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== 'Escape' || event.defaultPrevented || event.isComposing) return;
+      // A dialog above the popup (privacy, API key) owns Escape.
+      if (document.querySelector('[role="dialog"][data-state="open"]')) return;
+      setIsVisible(false);
+      toggleRef.current?.focus();
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [isVisible]);
+
+  /* ---- Opening moves focus into the composer ---- */
+  useEffect(() => {
+    if (!isVisible) return;
+    // Phones would pop the keyboard over the popup; leave focus alone there.
+    if (window.matchMedia?.('(pointer: coarse)')?.matches) return;
+    const frame = requestAnimationFrame(() => {
+      containerRef.current?.querySelector<HTMLTextAreaElement>('textarea')?.focus({ preventScroll: true });
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [isVisible]);
+
+  /* ---- Per-message options (stable so memoised messages skip re-render) ---- */
+  const handlePushToGithub = useCallback((runId: string) => dispatch(openPushDialog(runId)), [dispatch]);
+  const messageOptions = useCallback((message: ChatKitMessage) => {
+    const meta = messageMeta[message.id];
+    // onPushToGithub is always threaded so SpecDrivenCards can push;
+    // the status badge is added only when the message has one.
+    // Opening the push dialog is a pure dispatch — it's mounted
+    // app-level (SpecDrivenPushDialogHost) and Redux-driven.
+    if (!meta?.badge) return { onPushToGithub: handlePushToGithub };
+    return {
+      onPushToGithub: handlePushToGithub,
+      status: <MessageBadge badge={meta.badge} label={meta.badgeLabel} />,
+    };
+  }, [messageMeta, handlePushToGithub]);
 
   /* ---- Compute last assistant message for QuickActions ---- */
   const lastAssistantMsg = messages.length > 0
@@ -239,16 +278,21 @@ export const AssistantWidget: React.FC<AssistantWidgetProps> = ({ onAssistantGen
   return (
     <>
       {/* ── Floating widget container ── */}
-      <div className="fixed bottom-5 right-4 md:right-16" style={{ zIndex: Z_INDEX.NOTIFICATION, marginRight: 'var(--besser-properties-panel-width, 0px)', transition: 'margin-right 0.2s ease' }}>
+      {/* Clear of the canvas zoom controls (right edge); in the GUI editor, left of the
+          GrapesJS side panel (15% of the editor width) and its save-status badge. */}
+      <div ref={containerRef} className={cn('fixed bottom-5', activeDiagramType === 'GUINoCodeDiagram' ? 'right-[calc(15vw+1rem)]' : 'right-16')} style={{ zIndex: Z_INDEX.NOTIFICATION, marginRight: 'var(--besser-properties-panel-width, 0px)', transition: 'margin-right 0.2s ease' }}>
         {/* ── Chat card ── */}
         <Card
+          id="assistant-widget-panel"
           className={cn(
-            'absolute bottom-[74px] right-0 flex h-[min(78vh,700px)] w-[min(96vw,520px)] flex-col overflow-hidden rounded-2xl border border-border/40 bg-background shadow-elevation-3 transition-all duration-300 ease-out sm:w-[480px] lg:w-[520px]',
+            'absolute bottom-[74px] right-0 flex h-[min(78vh,700px)] w-[min(96vw,520px)] origin-bottom-right flex-col overflow-hidden rounded-2xl border border-border/40 bg-background shadow-elevation-3 transition-[transform,opacity] duration-200 ease-out sm:w-[480px] lg:w-[520px]',
             isVisible ? 'translate-y-0 scale-100 opacity-100' : 'pointer-events-none translate-y-4 scale-95 opacity-0',
           )}
+          aria-hidden={!isVisible}
+          {...((!isVisible ? { inert: '' } : {}) as React.HTMLAttributes<HTMLElement>)}
         >
           {/* Header */}
-          <div className="relative flex items-center justify-between overflow-hidden border-b border-border/40 px-4 py-3.5" style={{ background: 'linear-gradient(135deg, hsl(var(--brand) / 0.06) 0%, transparent 100%)' }}>
+          <div className="relative flex items-center justify-between overflow-hidden border-b border-border/40 px-4 py-3.5">
             <div className="flex items-center gap-3">
               <div className="flex size-9 items-center justify-center overflow-hidden rounded-xl bg-brand/10 ring-1 ring-brand/15">
                 <img src={AGENT_AVATAR_SRC} alt={t('assistant.agentAvatarAlt')} className="size-6 object-contain" />
@@ -308,7 +352,7 @@ export const AssistantWidget: React.FC<AssistantWidgetProps> = ({ onAssistantGen
 
           {/* Message list */}
           <div className="relative min-h-0 flex-1">
-          <div ref={messageListContainerRef} className="h-full overflow-y-auto bg-gradient-to-b from-muted/10 via-background to-muted/5 p-4">
+          <div ref={messageListContainerRef} className="h-full overflow-y-auto overscroll-contain bg-gradient-to-b from-muted/10 via-background to-muted/5 p-4">
             {messages.length === 0 && !isGenerating ? (
               <div className="flex h-full flex-col items-center justify-center gap-4 px-4 text-center">
                 <div className="flex size-14 items-center justify-center rounded-2xl bg-brand/8 ring-1 ring-brand/10">
@@ -359,21 +403,7 @@ export const AssistantWidget: React.FC<AssistantWidgetProps> = ({ onAssistantGen
               isTyping={isGenerating && !hasLiveSpecDrivenRun}
               typingLabel={progressSteps.length > 0 ? progressSteps[progressSteps.length - 1] : undefined}
               showTimeStamps={false}
-              messageOptions={(message: ChatKitMessage) => {
-                const meta = messageMeta[message.id];
-                // onPushToGithub is always threaded so SpecDrivenCards can push;
-                // the badge action is added only when the message has one.
-                // Opening the push dialog is a pure dispatch — it's mounted
-                // app-level (SpecDrivenPushDialogHost) and Redux-driven.
-                const base = { onPushToGithub: (runId: string) => dispatch(openPushDialog(runId)) };
-                if (!meta?.badge) return base;
-                return {
-                  ...base,
-                  actions: (
-                    <MessageBadge badge={meta.badge} label={meta.badgeLabel} />
-                  ),
-                };
-              }}
+              messageOptions={messageOptions}
             />
             </>
             )}
@@ -449,10 +479,13 @@ export const AssistantWidget: React.FC<AssistantWidgetProps> = ({ onAssistantGen
 
         {/* ── FAB toggle button ── */}
         <Button
+          ref={toggleRef}
           type="button"
           size="icon"
+          aria-expanded={isVisible}
+          aria-controls="assistant-widget-panel"
           className={cn(
-            'group relative size-14 rounded-2xl border bg-white/60 text-foreground shadow-elevation-2 backdrop-blur-sm transition-all duration-200 hover:shadow-elevation-3 active:scale-95 dark:bg-slate-800/40',
+            'group relative size-14 rounded-2xl border bg-white/60 text-foreground shadow-elevation-2 backdrop-blur-sm transition-[color,background-color,border-color,box-shadow,transform] duration-200 hover:shadow-elevation-3 active:scale-95 dark:bg-slate-800/40',
             isVisible
               ? 'border-brand/20 ring-1 ring-brand/15'
               : 'border-border/40 hover:border-brand/25 hover:bg-brand/5',
@@ -462,10 +495,10 @@ export const AssistantWidget: React.FC<AssistantWidgetProps> = ({ onAssistantGen
           aria-label={isVisible ? t('assistant.fab.close') : t('assistant.fab.open')}
         >
           {isVisible ? (
-            <X className="size-5 transition-transform duration-200 group-hover:rotate-90" />
+            <X className="size-5 transition-transform duration-200 [@media(hover:hover)]:group-hover:rotate-90" />
           ) : (
             <>
-              <img src={AGENT_AVATAR_SRC} alt={t('assistant.agentAvatarAlt')} className="size-10 rounded-xl transition-transform duration-200 group-hover:scale-110" />
+              <img src={AGENT_AVATAR_SRC} alt={t('assistant.agentAvatarAlt')} className="size-10 rounded-xl transition-transform duration-200 [@media(hover:hover)]:group-hover:scale-110" />
               {connectionStatus === 'connected' && (
                 <span className="absolute -right-0.5 -top-0.5 size-3 rounded-full border-2 border-white bg-emerald-500 dark:border-slate-900" />
               )}

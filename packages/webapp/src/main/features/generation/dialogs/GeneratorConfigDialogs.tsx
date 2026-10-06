@@ -1,6 +1,7 @@
 import React, { useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
+import { AlertTriangle, CheckCircle2, Circle, Info, XCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -12,6 +13,7 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { FormField } from '@/components/ui/form-field';
@@ -169,6 +171,15 @@ const closeDialog = (setConfigDialog: (dialog: ConfigDialog) => void): void => {
   setConfigDialog('none');
 };
 
+/**
+ * Enter in any field submits the dialog's primary action (when it is enabled).
+ * Inside a form, Radix Select adds a hidden native select that can emit '' — Select handlers ignore empty values.
+ */
+const submitWith = (action: () => void, enabled = true) => (event: React.FormEvent<HTMLFormElement>): void => {
+  event.preventDefault();
+  if (enabled) action();
+};
+
 export const GeneratorConfigDialogs: React.FC<GeneratorConfigDialogsProps> = ({
   configDialog,
   setConfigDialog,
@@ -241,8 +252,9 @@ export const GeneratorConfigDialogs: React.FC<GeneratorConfigDialogsProps> = ({
   // ── Django inline validation ──────────────────────────────────────────
   const djangoValidators = useMemo(() => ({
     projectName: () => validateProjectName(djangoProjectName),
-    appName: () => validateProjectName(djangoAppName),
-  }), [djangoProjectName, djangoAppName]);
+    appName: () => validateProjectName(djangoAppName)
+      ?? (djangoAppName.trim() === djangoProjectName.trim() ? t('generation.toasts.namesMustDiffer') : undefined),
+  }), [djangoProjectName, djangoAppName, t]);
   const djangoValidation = useFieldValidation(djangoValidators);
 
   // ── Spring inline validation ──────────────────────────────────────────
@@ -315,15 +327,18 @@ export const GeneratorConfigDialogs: React.FC<GeneratorConfigDialogsProps> = ({
           }
         }}
       >
-        <DialogContent>
+        <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>{t('generation.django.title')}</DialogTitle>
             <DialogDescription>{t('generation.django.description')}</DialogDescription>
           </DialogHeader>
+          <form onSubmit={submitWith(onDjangoGenerate, djangoValidation.isValid)} className="grid gap-4">
           <div className="flex flex-col gap-4">
             <FormField label={t('generation.django.projectName')} htmlFor="django-project-name" required error={djangoValidation.getError('projectName')}>
               <Input
                 id="django-project-name"
+                autoComplete="off"
+                spellCheck={false}
                 value={djangoProjectName}
                 onChange={(event) => onDjangoProjectNameChange(event.target.value.replace(/\s/g, '_'))}
                 onBlur={() => djangoValidation.markTouched('projectName')}
@@ -334,6 +349,8 @@ export const GeneratorConfigDialogs: React.FC<GeneratorConfigDialogsProps> = ({
             <FormField label={t('generation.django.appName')} htmlFor="django-app-name" required error={djangoValidation.getError('appName')}>
               <Input
                 id="django-app-name"
+                autoComplete="off"
+                spellCheck={false}
                 value={djangoAppName}
                 onChange={(event) => onDjangoAppNameChange(event.target.value.replace(/\s/g, '_'))}
                 onBlur={() => djangoValidation.markTouched('appName')}
@@ -341,22 +358,25 @@ export const GeneratorConfigDialogs: React.FC<GeneratorConfigDialogsProps> = ({
                 className={djangoValidation.getError('appName') ? 'border-destructive focus-visible:border-destructive focus-visible:ring-destructive/20' : ''}
               />
             </FormField>
-            <label className="flex items-center justify-between gap-3 rounded-md border border-border/70 px-3 py-2 text-sm">
-              {t('generation.django.includeDocker')}
-              <input type="checkbox" checked={useDocker} onChange={(event) => onUseDockerChange(event.target.checked)} />
-            </label>
+            <div className="flex items-center gap-2">
+              <Checkbox id="django-use-docker" checked={useDocker} onCheckedChange={onUseDockerChange} />
+              <Label htmlFor="django-use-docker" className="font-normal">
+                {t('generation.django.includeDocker')}
+              </Label>
+            </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => closeDialog(setConfigDialog)}>
+            <Button type="button" variant="outline" onClick={() => closeDialog(setConfigDialog)}>
               {t('common.cancel')}
             </Button>
-            <Button onClick={onDjangoGenerate} disabled={!djangoValidation.isValid}>{t('generation.generate')}</Button>
             {isLocalEnvironment && (
-              <Button variant="secondary" onClick={onDjangoDeploy} disabled={!djangoValidation.isValid}>
+              <Button type="button" variant="outline" onClick={onDjangoDeploy} disabled={!djangoValidation.isValid}>
                 {t('generation.deploy')}
               </Button>
             )}
+            <Button type="submit" disabled={!djangoValidation.isValid}>{t('generation.generate')}</Button>
           </DialogFooter>
+          </form>
         </DialogContent>
       </Dialog>
 
@@ -369,11 +389,12 @@ export const GeneratorConfigDialogs: React.FC<GeneratorConfigDialogsProps> = ({
           }
         }}
       >
-        <DialogContent>
+        <DialogContent className="sm:max-w-lg">
           <DialogHeader>
             <DialogTitle>{t('generation.spring.title')}</DialogTitle>
             <DialogDescription>{t('generation.spring.description')}</DialogDescription>
           </DialogHeader>
+          <form onSubmit={submitWith(onSpringGenerate, springValidation.isValid)} className="grid gap-4">
           <div className="flex flex-col gap-4">
             <FormField
               label={t('generation.spring.projectName')}
@@ -383,6 +404,8 @@ export const GeneratorConfigDialogs: React.FC<GeneratorConfigDialogsProps> = ({
             >
               <Input
                 id="spring-project-name"
+                autoComplete="off"
+                spellCheck={false}
                 value={springProjectName}
                 onChange={(event) => onSpringProjectNameChange(event.target.value.replace(/\s/g, '_'))}
                 onBlur={() => springValidation.markTouched('projectName')}
@@ -399,6 +422,8 @@ export const GeneratorConfigDialogs: React.FC<GeneratorConfigDialogsProps> = ({
             >
               <Input
                 id="spring-app-name"
+                autoComplete="off"
+                spellCheck={false}
                 value={springAppName}
                 onChange={(event) => onSpringAppNameChange(event.target.value.replace(/\s/g, ''))}
                 onBlur={() => springValidation.markTouched('appName')}
@@ -415,6 +440,8 @@ export const GeneratorConfigDialogs: React.FC<GeneratorConfigDialogsProps> = ({
             >
               <Input
                 id="spring-package-name"
+                autoComplete="off"
+                spellCheck={false}
                 value={springPackageName}
                 onChange={(event) => onSpringPackageNameChange(event.target.value.replace(/\s/g, ''))}
                 onBlur={() => springValidation.markTouched('packageName')}
@@ -423,12 +450,12 @@ export const GeneratorConfigDialogs: React.FC<GeneratorConfigDialogsProps> = ({
               />
             </FormField>
             <div className="flex flex-col gap-1.5">
-              <Label>{t('generation.spring.bootVersion')}</Label>
+              <Label htmlFor="spring-boot-version">{t('generation.spring.bootVersion')}</Label>
               <Select
                 value={springBootVersion}
-                onValueChange={(value) => onSpringBootVersionChange(value as SpringBootVersion)}
+                onValueChange={(value) => value && onSpringBootVersionChange(value as SpringBootVersion)}
               >
-                <SelectTrigger>
+                <SelectTrigger id="spring-boot-version">
                   <SelectValue placeholder={t('generation.spring.selectBootVersion')} />
                 </SelectTrigger>
                 <SelectContent>
@@ -441,12 +468,12 @@ export const GeneratorConfigDialogs: React.FC<GeneratorConfigDialogsProps> = ({
               </Select>
             </div>
             <div className="flex flex-col gap-1.5">
-              <Label>{t('generation.spring.javaVersion')}</Label>
+              <Label htmlFor="spring-java-version">{t('generation.spring.javaVersion')}</Label>
               <Select
                 value={springJavaVersion}
-                onValueChange={(value) => onSpringJavaVersionChange(value as SpringJavaVersion)}
+                onValueChange={(value) => value && onSpringJavaVersionChange(value as SpringJavaVersion)}
               >
-                <SelectTrigger>
+                <SelectTrigger id="spring-java-version">
                   <SelectValue placeholder={t('generation.spring.selectJavaVersion')} />
                 </SelectTrigger>
                 <SelectContent>
@@ -460,26 +487,28 @@ export const GeneratorConfigDialogs: React.FC<GeneratorConfigDialogsProps> = ({
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => closeDialog(setConfigDialog)}>
+            <Button type="button" variant="outline" onClick={() => closeDialog(setConfigDialog)}>
               {t('common.cancel')}
             </Button>
-            <Button onClick={onSpringGenerate} disabled={!springValidation.isValid}>
+            <Button type="submit" disabled={!springValidation.isValid}>
               {t('generation.generate')}
             </Button>
           </DialogFooter>
+          </form>
         </DialogContent>
       </Dialog>
 
       <Dialog open={configDialog === 'sql'} onOpenChange={(open) => !open && closeDialog(setConfigDialog)}>
-        <DialogContent>
+        <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>{t('generation.sql.title')}</DialogTitle>
             <DialogDescription>{t('generation.sql.description')}</DialogDescription>
           </DialogHeader>
+          <form onSubmit={submitWith(onSqlGenerate)} className="grid gap-4">
           <div className="flex flex-col gap-1.5">
-            <Label>{t('generation.sql.dialect')}</Label>
-            <Select value={sqlDialect} onValueChange={(value) => onSqlDialectChange(value as SQLConfig['dialect'])}>
-              <SelectTrigger>
+            <Label htmlFor="sql-dialect">{t('generation.sql.dialect')}</Label>
+            <Select value={sqlDialect} onValueChange={(value) => value && onSqlDialectChange(value as SQLConfig['dialect'])}>
+              <SelectTrigger id="sql-dialect">
                 <SelectValue placeholder={t('generation.sql.selectDialect')} />
               </SelectTrigger>
               <SelectContent>
@@ -493,26 +522,30 @@ export const GeneratorConfigDialogs: React.FC<GeneratorConfigDialogsProps> = ({
             </Select>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => closeDialog(setConfigDialog)}>
+            <Button type="button" variant="outline" onClick={() => closeDialog(setConfigDialog)}>
               {t('common.cancel')}
             </Button>
-            <Button onClick={onSqlGenerate}>{t('generation.generate')}</Button>
+            <Button type="submit">{t('generation.generate')}</Button>
           </DialogFooter>
+          </form>
         </DialogContent>
       </Dialog>
 
       <Dialog open={configDialog === 'supabase'} onOpenChange={(open) => !open && closeDialog(setConfigDialog)}>
-        <DialogContent>
+        <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>{t('generation.supabase.title')}</DialogTitle>
             <DialogDescription>
               {t('generation.supabase.descriptionBefore')} <code>auth.users</code> {t('generation.supabase.descriptionAfter')}
             </DialogDescription>
           </DialogHeader>
+          <form onSubmit={submitWith(onSupabaseGenerate)} className="grid gap-4">
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="supabase-user-root">{t('generation.supabase.userRootLabel')}</Label>
             <Input
               id="supabase-user-root"
+              autoComplete="off"
+              spellCheck={false}
               value={supabaseUserRoot}
               onChange={(event) => onSupabaseUserRootChange(event.target.value)}
               placeholder="User"
@@ -522,27 +555,29 @@ export const GeneratorConfigDialogs: React.FC<GeneratorConfigDialogsProps> = ({
             </p>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => closeDialog(setConfigDialog)}>
+            <Button type="button" variant="outline" onClick={() => closeDialog(setConfigDialog)}>
               {t('common.cancel')}
             </Button>
-            <Button onClick={onSupabaseGenerate}>{t('generation.generate')}</Button>
+            <Button type="submit">{t('generation.generate')}</Button>
           </DialogFooter>
+          </form>
         </DialogContent>
       </Dialog>
 
       <Dialog open={configDialog === 'sqlalchemy'} onOpenChange={(open) => !open && closeDialog(setConfigDialog)}>
-        <DialogContent>
+        <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>{t('generation.sqlAlchemy.title')}</DialogTitle>
             <DialogDescription>{t('generation.sqlAlchemy.description')}</DialogDescription>
           </DialogHeader>
+          <form onSubmit={submitWith(onSqlAlchemyGenerate)} className="grid gap-4">
           <div className="flex flex-col gap-1.5">
-            <Label>{t('generation.sqlAlchemy.dbms')}</Label>
+            <Label htmlFor="sqlalchemy-dbms">{t('generation.sqlAlchemy.dbms')}</Label>
             <Select
               value={sqlAlchemyDbms}
-              onValueChange={(value) => onSqlAlchemyDbmsChange(value as SQLAlchemyConfig['dbms'])}
+              onValueChange={(value) => value && onSqlAlchemyDbmsChange(value as SQLAlchemyConfig['dbms'])}
             >
-              <SelectTrigger>
+              <SelectTrigger id="sqlalchemy-dbms">
                 <SelectValue placeholder={t('generation.sqlAlchemy.selectDbms')} />
               </SelectTrigger>
               <SelectContent>
@@ -556,24 +591,26 @@ export const GeneratorConfigDialogs: React.FC<GeneratorConfigDialogsProps> = ({
             </Select>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => closeDialog(setConfigDialog)}>
+            <Button type="button" variant="outline" onClick={() => closeDialog(setConfigDialog)}>
               {t('common.cancel')}
             </Button>
-            <Button onClick={onSqlAlchemyGenerate}>{t('generation.generate')}</Button>
+            <Button type="submit">{t('generation.generate')}</Button>
           </DialogFooter>
+          </form>
         </DialogContent>
       </Dialog>
 
       <Dialog open={configDialog === 'jsonschema'} onOpenChange={(open) => !open && closeDialog(setConfigDialog)}>
-        <DialogContent>
+        <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>{t('generation.jsonSchema.title')}</DialogTitle>
             <DialogDescription>{t('generation.jsonSchema.description')}</DialogDescription>
           </DialogHeader>
+          <form onSubmit={submitWith(onJsonSchemaGenerate)} className="grid gap-4">
           <div className="flex flex-col gap-1.5">
-            <Label>{t('generation.jsonSchema.mode')}</Label>
-            <Select value={jsonSchemaMode} onValueChange={(value) => onJsonSchemaModeChange(value as JSONSchemaConfig['mode'])}>
-              <SelectTrigger>
+            <Label htmlFor="jsonschema-mode">{t('generation.jsonSchema.mode')}</Label>
+            <Select value={jsonSchemaMode} onValueChange={(value) => value && onJsonSchemaModeChange(value as JSONSchemaConfig['mode'])}>
+              <SelectTrigger id="jsonschema-mode">
                 <SelectValue placeholder={t('generation.jsonSchema.selectMode')} />
               </SelectTrigger>
               <SelectContent>
@@ -583,11 +620,12 @@ export const GeneratorConfigDialogs: React.FC<GeneratorConfigDialogsProps> = ({
             </Select>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => closeDialog(setConfigDialog)}>
+            <Button type="button" variant="outline" onClick={() => closeDialog(setConfigDialog)}>
               {t('common.cancel')}
             </Button>
-            <Button onClick={onJsonSchemaGenerate}>{t('generation.generate')}</Button>
+            <Button type="submit">{t('generation.generate')}</Button>
           </DialogFooter>
+          </form>
         </DialogContent>
       </Dialog>
 
@@ -597,6 +635,7 @@ export const GeneratorConfigDialogs: React.FC<GeneratorConfigDialogsProps> = ({
             <DialogTitle>{t('generation.agent.title')}</DialogTitle>
             <DialogDescription>{t('generation.agent.description')}</DialogDescription>
           </DialogHeader>
+          <form onSubmit={submitWith(onAgentGenerate)} className="grid gap-4">
           <div className="flex flex-col gap-4">
             {!hasSavedAgentConfiguration && (
               <div className="p-3 border rounded bg-muted/30">
@@ -604,6 +643,7 @@ export const GeneratorConfigDialogs: React.FC<GeneratorConfigDialogsProps> = ({
                   {t('generation.agent.noSavedConfig')}
                 </div>
                 <Button
+                  type="button"
                   variant="outline"
                   size="sm"
                   onClick={() => {
@@ -617,9 +657,9 @@ export const GeneratorConfigDialogs: React.FC<GeneratorConfigDialogsProps> = ({
             )}
 
             <div className="flex flex-col gap-1.5">
-              <Label>{t('generation.agent.sourceLanguage')}</Label>
-              <Select value={sourceLanguage} onValueChange={onSourceLanguageChange}>
-                <SelectTrigger>
+              <Label htmlFor="agent-source-language">{t('generation.agent.sourceLanguage')}</Label>
+              <Select value={sourceLanguage} onValueChange={(value) => value && onSourceLanguageChange(value)}>
+                <SelectTrigger id="agent-source-language">
                   <SelectValue placeholder={t('generation.agent.selectLanguage')} />
                 </SelectTrigger>
                 <SelectContent>
@@ -635,10 +675,10 @@ export const GeneratorConfigDialogs: React.FC<GeneratorConfigDialogsProps> = ({
             </div>
 
             <div className="flex flex-col gap-1.5">
-              <Label>{t('generation.agent.addSpokenLanguage')}</Label>
+              <Label htmlFor="agent-add-language">{t('generation.agent.addSpokenLanguage')}</Label>
               <div className="flex gap-2">
-                <Select value={pendingAgentLanguage} onValueChange={onPendingAgentLanguageChange}>
-                  <SelectTrigger className="flex-1">
+                <Select value={pendingAgentLanguage} onValueChange={(value) => value && onPendingAgentLanguageChange(value)}>
+                  <SelectTrigger id="agent-add-language" className="flex-1">
                     <SelectValue placeholder={t('generation.agent.selectLanguage')} />
                   </SelectTrigger>
                   <SelectContent>
@@ -692,11 +732,11 @@ export const GeneratorConfigDialogs: React.FC<GeneratorConfigDialogsProps> = ({
               </div>
               <dl className="grid gap-2 text-sm md:grid-cols-2">
                 <div className="flex justify-between gap-2 md:block">
-                  <dt className="text-xs uppercase tracking-wide text-muted-foreground">{t('generation.agent.platform')}</dt>
+                  <dt className="text-xs font-medium text-muted-foreground">{t('generation.agent.platform')}</dt>
                   <dd>{agentPlatformLabel}</dd>
                 </div>
                 <div className="flex justify-between gap-2 md:block">
-                  <dt className="text-xs uppercase tracking-wide text-muted-foreground">{t('generation.agent.intentRecognition')}</dt>
+                  <dt className="text-xs font-medium text-muted-foreground">{t('generation.agent.intentRecognition')}</dt>
                   <dd>{agentSystemConfig?.intentRecognitionTechnology === 'classical' ? t('generation.agent.classical') : t('generation.agent.llmBased')}</dd>
                 </div>
               </dl>
@@ -707,31 +747,16 @@ export const GeneratorConfigDialogs: React.FC<GeneratorConfigDialogsProps> = ({
 
             {agentVariantOptions.length > 0 && (
               <div className="flex flex-col gap-1.5">
-                <Label>{t('generation.agent.personalizationStrategy')}</Label>
-                <div className="flex gap-4">
-                  <div className="flex items-center gap-2">
-                    <input
-                      type="radio"
-                      id="variant-mode-none"
-                      name="agentVariantMode"
-                      checked={agentGenerationMode === 'none'}
-                      onChange={() => onAgentGenerationModeChange('none')}
-                      className="size-4"
-                    />
-                    <Label htmlFor="variant-mode-none" className="text-sm font-normal">{t('generation.agent.none')}</Label>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <input
-                      type="radio"
-                      id="variant-mode-personalization"
-                      name="agentVariantMode"
-                      checked={agentGenerationMode === 'personalization'}
-                      onChange={() => onAgentGenerationModeChange('personalization')}
-                      className="size-4"
-                    />
-                    <Label htmlFor="variant-mode-personalization" className="text-sm font-normal">{t('generation.agent.personalizationAll')}</Label>
-                  </div>
-                </div>
+                <Label id="agent-variant-mode-label">{t('generation.agent.personalizationStrategy')}</Label>
+                <RadioGroup
+                  aria-labelledby="agent-variant-mode-label"
+                  value={agentGenerationMode}
+                  onValueChange={(value) => onAgentGenerationModeChange(value as AgentGenerationMode)}
+                  className="self-start"
+                >
+                  <RadioGroupItem value="none">{t('generation.agent.none')}</RadioGroupItem>
+                  <RadioGroupItem value="personalization">{t('generation.agent.personalizationAll')}</RadioGroupItem>
+                </RadioGroup>
 
                 {agentGenerationMode === 'personalization' ? (
                   <p className="text-xs text-muted-foreground">
@@ -747,42 +772,17 @@ export const GeneratorConfigDialogs: React.FC<GeneratorConfigDialogsProps> = ({
 
             {SHOW_FULL_AGENT_CONFIGURATION && (
               <div className="flex flex-col gap-1.5">
-                <Label>{t('generation.agent.mode')}</Label>
-                <div className="flex gap-4">
-                  <div className="flex items-center gap-2">
-                    <input
-                      type="radio"
-                      id="mode-original"
-                      name="agentMode"
-                      checked={agentMode === 'original'}
-                      onChange={() => onAgentModeChange('original')}
-                      className="size-4"
-                    />
-                    <Label htmlFor="mode-original" className="text-sm font-normal">{t('generation.agent.modeOriginal')}</Label>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <input
-                      type="radio"
-                      id="mode-config"
-                      name="agentMode"
-                      checked={agentMode === 'configuration'}
-                      onChange={() => onAgentModeChange('configuration')}
-                      className="size-4"
-                    />
-                    <Label htmlFor="mode-config" className="text-sm font-normal">{t('generation.agent.modeConfiguration')}</Label>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <input
-                      type="radio"
-                      id="mode-personalization"
-                      name="agentMode"
-                      checked={agentMode === 'personalization'}
-                      onChange={() => onAgentModeChange('personalization')}
-                      className="size-4"
-                    />
-                    <Label htmlFor="mode-personalization" className="text-sm font-normal">{t('generation.agent.modePersonalization')}</Label>
-                  </div>
-                </div>
+                <Label id="agent-mode-label">{t('generation.agent.mode')}</Label>
+                <RadioGroup
+                  aria-labelledby="agent-mode-label"
+                  value={agentMode}
+                  onValueChange={(value) => onAgentModeChange(value as 'original' | 'configuration' | 'personalization')}
+                  className="self-start"
+                >
+                  <RadioGroupItem value="original">{t('generation.agent.modeOriginal')}</RadioGroupItem>
+                  <RadioGroupItem value="configuration">{t('generation.agent.modeConfiguration')}</RadioGroupItem>
+                  <RadioGroupItem value="personalization">{t('generation.agent.modePersonalization')}</RadioGroupItem>
+                </RadioGroup>
               </div>
             )}
 
@@ -802,12 +802,10 @@ export const GeneratorConfigDialogs: React.FC<GeneratorConfigDialogsProps> = ({
                     <div className="flex flex-col gap-2">
                       {storedAgentMappings.map((mapping) => (
                         <div key={mapping.id} className="flex items-center gap-2">
-                          <input
-                            type="checkbox"
+                          <Checkbox
                             id={`storedAgentMapping-${mapping.id}`}
                             checked={selectedStoredAgentConfigIds.includes(mapping.agentConfigurationId)}
-                            onChange={() => onStoredAgentConfigToggle(mapping.agentConfigurationId)}
-                            className="size-4"
+                            onCheckedChange={() => onStoredAgentConfigToggle(mapping.agentConfigurationId)}
                           />
                           <Label htmlFor={`storedAgentMapping-${mapping.id}`} className="text-sm font-normal">
                             {mapping.userProfileLabel} → {mapping.agentConfigurationLabel} ({new Date(mapping.savedAt).toLocaleString()})
@@ -828,12 +826,10 @@ export const GeneratorConfigDialogs: React.FC<GeneratorConfigDialogsProps> = ({
                     <div className="flex flex-col gap-2">
                       {storedAgentConfigurations.map((entry) => (
                         <div key={entry.id} className="flex items-center gap-2">
-                          <input
-                            type="checkbox"
+                          <Checkbox
                             id={`storedAgentConfig-${entry.id}`}
                             checked={selectedStoredAgentConfigIds.includes(entry.id)}
-                            onChange={() => onStoredAgentConfigToggle(entry.id)}
-                            className="size-4"
+                            onCheckedChange={() => onStoredAgentConfigToggle(entry.id)}
                           />
                           <Label htmlFor={`storedAgentConfig-${entry.id}`} className="text-sm font-normal">
                             {entry.name} ({new Date(entry.savedAt).toLocaleString()})
@@ -876,11 +872,12 @@ export const GeneratorConfigDialogs: React.FC<GeneratorConfigDialogsProps> = ({
             )}
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => closeDialog(setConfigDialog)}>
+            <Button type="button" variant="outline" onClick={() => closeDialog(setConfigDialog)}>
               {t('common.cancel')}
             </Button>
-            <Button onClick={onAgentGenerate}>{t('generation.generate')}</Button>
+            <Button type="submit">{t('generation.generate')}</Button>
           </DialogFooter>
+          </form>
         </DialogContent>
       </Dialog>
 
@@ -893,16 +890,17 @@ export const GeneratorConfigDialogs: React.FC<GeneratorConfigDialogsProps> = ({
           }
         }}
       >
-        <DialogContent>
+        <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>{t('generation.qiskit.title')}</DialogTitle>
             <DialogDescription>{t('generation.qiskit.description')}</DialogDescription>
           </DialogHeader>
+          <form onSubmit={submitWith(onQiskitGenerate, qiskitValidation.isValid)} className="grid gap-4">
           <div className="flex flex-col gap-4">
             <div className="flex flex-col gap-1.5">
-              <Label>{t('generation.qiskit.executionBackend')}</Label>
-              <Select value={qiskitBackend} onValueChange={(value) => onQiskitBackendChange(value as QiskitConfig['backend'])}>
-                <SelectTrigger>
+              <Label htmlFor="qiskit-backend">{t('generation.qiskit.executionBackend')}</Label>
+              <Select value={qiskitBackend} onValueChange={(value) => value && onQiskitBackendChange(value as QiskitConfig['backend'])}>
+                <SelectTrigger id="qiskit-backend">
                   <SelectValue placeholder={t('generation.qiskit.selectBackend')} />
                 </SelectTrigger>
                 <SelectContent>
@@ -916,6 +914,7 @@ export const GeneratorConfigDialogs: React.FC<GeneratorConfigDialogsProps> = ({
               <Input
                 id="qiskit-shots"
                 type="number"
+                inputMode="numeric"
                 min={1}
                 max={100000}
                 value={qiskitShots}
@@ -926,11 +925,12 @@ export const GeneratorConfigDialogs: React.FC<GeneratorConfigDialogsProps> = ({
             </FormField>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => closeDialog(setConfigDialog)}>
+            <Button type="button" variant="outline" onClick={() => closeDialog(setConfigDialog)}>
               {t('common.cancel')}
             </Button>
-            <Button onClick={onQiskitGenerate} disabled={!qiskitValidation.isValid}>{t('generation.generate')}</Button>
+            <Button type="submit" disabled={!qiskitValidation.isValid}>{t('generation.generate')}</Button>
           </DialogFooter>
+          </form>
         </DialogContent>
       </Dialog>
 
@@ -940,6 +940,7 @@ export const GeneratorConfigDialogs: React.FC<GeneratorConfigDialogsProps> = ({
             <DialogTitle>{t('generation.webApp.title')}</DialogTitle>
             <DialogDescription>{t('generation.webApp.description')}</DialogDescription>
           </DialogHeader>
+          <form onSubmit={submitWith(onWebAppGenerate, !!webAppChecklist?.canGenerate)} className="grid gap-4">
           {webAppChecklist ? (
             <div className="flex flex-col gap-4">
               {/* Required diagrams */}
@@ -978,9 +979,9 @@ export const GeneratorConfigDialogs: React.FC<GeneratorConfigDialogsProps> = ({
                   {webAppVersionMode === 'profile' && (
                     <Select
                       value={webAppSelectedProfileId}
-                      onValueChange={onWebAppSelectedProfileIdChange}
+                      onValueChange={(value) => value && onWebAppSelectedProfileIdChange(value)}
                     >
-                      <SelectTrigger className="w-full">
+                      <SelectTrigger className="w-full" aria-label={t('generation.webApp.selectProfile')}>
                         <SelectValue placeholder={t('generation.webApp.selectProfile')} />
                       </SelectTrigger>
                       <SelectContent>
@@ -1002,7 +1003,7 @@ export const GeneratorConfigDialogs: React.FC<GeneratorConfigDialogsProps> = ({
 
               {/* Hint */}
               <div className="flex items-start gap-2 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800 dark:border-amber-800 dark:bg-amber-950/30 dark:text-amber-200">
-                <span className="mt-0.5 shrink-0" aria-hidden="true">&#x26A0;&#xFE0F;</span>
+                <AlertTriangle className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
                 <span>
                   {t('generation.webApp.referencesHint')}
                 </span>
@@ -1014,16 +1015,14 @@ export const GeneratorConfigDialogs: React.FC<GeneratorConfigDialogsProps> = ({
             </div>
           )}
           <DialogFooter>
-            <Button variant="outline" onClick={() => closeDialog(setConfigDialog)}>
+            <Button type="button" variant="outline" onClick={() => closeDialog(setConfigDialog)}>
               {t('common.cancel')}
             </Button>
-            <Button
-              onClick={onWebAppGenerate}
-              disabled={!webAppChecklist?.canGenerate}
-            >
+            <Button type="submit" disabled={!webAppChecklist?.canGenerate}>
               {t('generation.generate')}
             </Button>
           </DialogFooter>
+          </form>
         </DialogContent>
       </Dialog>
     </>
@@ -1036,28 +1035,31 @@ const ChecklistRow: React.FC<{ diagram: WebAppChecklistDiagramInfo }> = ({ diagr
   const { t } = useTranslation();
   const { label, title, exists, hasContent, required, referencedFrom } = diagram;
 
-  let icon: string;
+  let Icon: typeof CheckCircle2;
+  let iconClass: string;
+  let status: string;
   let textClass: string;
 
   if (!exists && required) {
-    // Required but missing entirely
-    icon = '\u274C'; // red X
+    Icon = XCircle;
+    iconClass = 'text-destructive';
+    status = t('generation.webApp.status.missing');
     textClass = 'text-destructive';
   } else if (exists && hasContent) {
-    // Present with content
-    icon = '\u2705'; // green check
+    Icon = CheckCircle2;
+    iconClass = 'text-emerald-600 dark:text-emerald-400';
+    status = t('generation.webApp.status.ready');
     textClass = 'text-foreground';
   } else if (exists && !hasContent && required) {
-    // Present but empty (required) -- warning
-    icon = '\u26A0\uFE0F'; // warning
+    Icon = AlertTriangle;
+    iconClass = 'text-amber-600 dark:text-amber-400';
+    status = t('generation.webApp.status.empty');
     textClass = 'text-amber-600 dark:text-amber-400';
-  } else if (exists && !hasContent && !required) {
-    // Optional and empty -- will be skipped
-    icon = '\u2B1C'; // white square
-    textClass = 'text-muted-foreground';
   } else {
-    // Optional and missing -- will be skipped
-    icon = '\u2B1C'; // white square
+    // Optional and empty or missing -- will be skipped
+    Icon = Circle;
+    iconClass = 'text-muted-foreground';
+    status = t('generation.webApp.status.skipped');
     textClass = 'text-muted-foreground';
   }
 
@@ -1067,22 +1069,23 @@ const ChecklistRow: React.FC<{ diagram: WebAppChecklistDiagramInfo }> = ({ diagr
   return (
     <div className={`flex flex-col gap-0.5 rounded-md border border-border/60 px-3 py-2 text-sm ${textClass}`}>
       <div className="flex items-center gap-2">
-        <span aria-hidden="true">{icon}</span>
+        <Icon className={`size-4 shrink-0 ${iconClass}`} aria-hidden="true" />
+        <span className="sr-only">{status}:</span>
         <span className="font-medium">{label}:</span>
         <span className="truncate">{`"${displayTitle}"${emptyNote}`}</span>
       </div>
       {referencedFrom && hasContent && (
-        <div className="ml-7 text-xs text-muted-foreground">
+        <div className="ml-6 text-xs text-muted-foreground">
           {t('generation.webApp.referencesClassDiagram', { title: referencedFrom })}
         </div>
       )}
       {!exists && required && (
-        <div className="ml-7 text-xs text-destructive">
+        <div className="ml-6 text-xs text-destructive">
           {t('generation.webApp.diagramRequired')}
         </div>
       )}
       {exists && !hasContent && required && (
-        <div className="ml-7 text-xs text-amber-600 dark:text-amber-400">
+        <div className="ml-6 text-xs text-amber-600 dark:text-amber-400">
           {t('generation.webApp.diagramEmpty')}
         </div>
       )}
@@ -1097,13 +1100,13 @@ const AgentChecklistRow: React.FC<{ diagram: WebAppChecklistDiagramInfo }> = ({ 
   const { label, exists } = diagram;
 
   // Agent diagrams are per-component in the GUI, so this is purely informational
-  const icon = exists ? '\u2139\uFE0F' : '\u2B1C'; // info icon or white square
+  const Icon = exists ? Info : Circle;
   const textClass = 'text-muted-foreground';
 
   return (
     <div className={`flex flex-col gap-0.5 rounded-md border border-border/60 px-3 py-2 text-sm ${textClass}`}>
       <div className="flex items-center gap-2">
-        <span aria-hidden="true">{icon}</span>
+        <Icon className="size-4 shrink-0" aria-hidden="true" />
         <span className="font-medium">{label}:</span>
         <span className="truncate">
           {exists
@@ -1111,7 +1114,7 @@ const AgentChecklistRow: React.FC<{ diagram: WebAppChecklistDiagramInfo }> = ({ 
             : t('generation.webApp.noAgentDiagrams')}
         </span>
       </div>
-      <div className="ml-7 text-xs text-muted-foreground">
+      <div className="ml-6 text-xs text-muted-foreground">
         {t('generation.webApp.agentDiagramsHint')}
       </div>
     </div>

@@ -17,6 +17,7 @@
  */
 
 import { useCallback, useContext, useEffect, useRef, useState, useSyncExternalStore } from 'react';
+import { useStore } from 'react-redux';
 import { useTranslation } from 'react-i18next';
 
 import { settleProgressMessage } from './settleProgressMessage';
@@ -34,7 +35,19 @@ import {
 import { UML_BOT_WS_URL, bugReportRepo } from '../../../shared/constants/constant';
 import { useAppDispatch, useAppSelector } from '../../../app/store/hooks';
 import { useProject } from '../../../app/hooks/useProject';
-import { updateDiagramModelThunk, selectActiveDiagram, addAndSwitchDiagramThunk, bumpEditorRevision } from '../../../app/store/workspaceSlice';
+import type { RootState } from '../../../app/store/store';
+import {
+  updateDiagramModelThunk,
+  selectActiveDiagram,
+  selectActiveDiagramType,
+  selectProject,
+  selectProjectId,
+  loadProjectThunk,
+  addDiagramThunk,
+  switchDiagramIndexThunk,
+  addAndSwitchDiagramThunk,
+  bumpEditorRevision,
+} from '../../../app/store/workspaceSlice';
 import { BesserEditorContext } from '../../editors/uml/besser-editor-context';
 import {
   UMLModelingService,
@@ -242,6 +255,32 @@ const readBlobAsBase64 = (blob: Blob): Promise<string> =>
     reader.readAsDataURL(blob);
   });
 
+/** A ref-shaped, read-only live view: `.current` reads the value on access. */
+const liveRef = <T,>(read: () => T): React.MutableRefObject<T> => ({
+  get current() {
+    return read();
+  },
+  set current(_value: T) {
+    // Read-only: the store is the source of truth.
+  },
+});
+
+const SPEC_DRIVEN_KEY_CANCELLED_TEXT =
+  'No API key set, so the Spec-Driven Agent did not run. Add a key ' +
+  '(OpenAI, Anthropic, or Mistral — or a Local / PIA model) in the ' +
+  'key box, then say "generate" again. Your key stays in your browser.';
+
+// Both surfaces (widget + drawer) mount this hook, but the conversation is
+// shared, so the explanation must be appended once per event: one module-level
+// listener, ref-counted so it lives exactly as long as some surface does.
+const onSpecDrivenKeyCancelled = () => {
+  conversationStore.setMessages((prev) => [
+    ...prev,
+    toKitMessage('assistant', SPEC_DRIVEN_KEY_CANCELLED_TEXT),
+  ]);
+};
+let keyCancelledSubscribers = 0;
+
 const waitForSwitchRender = (): Promise<void> =>
   new Promise((resolve) => {
     if (typeof window === 'undefined' || typeof window.requestAnimationFrame !== 'function') {
@@ -297,28 +336,30 @@ export function useAssistantLogic({
   /* ---- external deps ---- */
   const dispatch = useAppDispatch();
   const { editor } = useContext(BesserEditorContext);
-  const activeDiagram = useAppSelector(selectActiveDiagram);
+  // Project/diagram state is only read inside callbacks, so read it from the
+  // store on demand instead of subscribing: every model edit would otherwise
+  // re-render both assistant surfaces. Only the project id drives rendering.
+  const store = useStore<RootState>();
+  const currentProjectId = useAppSelector(selectProjectId);
   // True while a Spec-Driven generation run is in flight (global run slot or a
   // live run card). Drives the "…the running generation will be stopped" half
   // of the New Chat confirmation copy.
   const hasActiveSpecRun = useAppSelector(
     (s) => s.specDriven.runStatus === 'running' || selectHasLiveSpecDrivenRun(s),
   );
-  const { currentProject, currentDiagramType, loadProject } = useProject();
 
   /* ---- stable refs for callbacks ---- */
   const modelingServiceRef = useRef<UMLModelingService | null>(null);
   const onGenerateRef = useRef(onGenerate);
   const switchDiagramRef = useRef(switchDiagram);
-  const currentProjectRef = useRef(currentProject);
-  const currentDiagramTypeRef = useRef(currentDiagramType);
-  const currentModelRef = useRef<any>(null);
+  const [{ currentProjectRef, currentDiagramTypeRef, currentModelRef }] = useState(() => ({
+    currentProjectRef: liveRef(() => selectProject(store.getState())),
+    currentDiagramTypeRef: liveRef(() => selectActiveDiagramType(store.getState())),
+    currentModelRef: liveRef<any>(() => selectActiveDiagram(store.getState())?.model),
+  }));
 
   onGenerateRef.current = onGenerate;
   switchDiagramRef.current = switchDiagram;
-  currentProjectRef.current = currentProject;
-  currentDiagramTypeRef.current = currentDiagramType;
-  currentModelRef.current = activeDiagram?.model;
 
   // Validate-and-repair loop state: one automatic repair attempt per user
   // message ('attempted'), and whether the modify currently being applied
@@ -396,15 +437,18 @@ export function useAssistantLogic({
   }, [dispatch, editor, modelingService]);
 
   useEffect(() => {
-    if (modelingService && activeDiagram?.model && isUMLModel(activeDiagram.model)) {
-      // Assistant operates on v3 BESSERModel internally; activeDiagram.model
-      // is v4. The service's updateCurrentModel expects v3, but we cast through
-      // any here — getCurrentModel() handles the v4→v3 conversion when reading
-      // back via editor.model. The local cache may be a v4 snapshot but is
-      // overwritten on next read.
-      modelingService.updateCurrentModel(activeDiagram.model as any);
-    }
-  }, [activeDiagram, modelingService]);
+    if (!modelingService) return;
+    let lastModel: unknown;
+    const syncModel = () => {
+      const model = selectActiveDiagram(store.getState())?.model;
+      if (model === lastModel) return;
+      lastModel = model;
+      // The stored model is v4; getCurrentModel() converts back to v3 when it reads via editor.model.
+      if (model && isUMLModel(model)) modelingService.updateCurrentModel(model as any);
+    };
+    syncModel();
+    return store.subscribe(syncModel);
+  }, [store, modelingService]);
 
   /* ---- auto-scroll on new messages (only while following the bottom) ---- */
 
@@ -452,20 +496,14 @@ export function useAssistantLogic({
   // a key while a Spec-Driven run was pending, the run cannot start — the
   // dialog fires this event so we explain why instead of leaving an empty chat.
   useEffect(() => {
-    const onKeyCancelled = () => {
-      setMessages((prev) => [
-        ...prev,
-        toKitMessage(
-          'assistant',
-          'No API key set, so the Spec-Driven Agent did not run. Add a key ' +
-            '(OpenAI, Anthropic, or Mistral — or a Local / PIA model) in the ' +
-            'key box, then say "generate" again. Your key stays in your browser.',
-        ),
-      ]);
+    if (keyCancelledSubscribers++ === 0) {
+      window.addEventListener('wme:specdriven-key-cancelled', onSpecDrivenKeyCancelled);
+    }
+    return () => {
+      if (--keyCancelledSubscribers === 0) {
+        window.removeEventListener('wme:specdriven-key-cancelled', onSpecDrivenKeyCancelled);
+      }
     };
-    window.addEventListener('wme:specdriven-key-cancelled', onKeyCancelled);
-    return () =>
-      window.removeEventListener('wme:specdriven-key-cancelled', onKeyCancelled);
   }, []);
 
   // The free-tier run note ("use your own API key") fires this event via the
@@ -873,7 +911,7 @@ export function useAssistantLogic({
           githubSession: ghSession,
         });
         if (result.ok && result.projectId && result.runId) {
-          await loadProject(result.projectId);
+          await dispatch(loadProjectThunk(result.projectId)).unwrap();
           dispatch(
             setLastRunForProject({
               projectId: result.projectId,
@@ -1586,9 +1624,9 @@ export function useAssistantLogic({
   // a ref so this never fires on unrelated re-renders. We seed the ref on
   // first run (prevId === undefined) so the very first project does NOT
   // clear an already-empty conversation.
-  const prevProjectIdRef = useRef<string | undefined>(currentProject?.id);
+  const prevProjectIdRef = useRef<string | undefined>(currentProjectId);
   useEffect(() => {
-    const projectId = currentProject?.id;
+    const projectId = currentProjectId;
     if (prevProjectIdRef.current === undefined) {
       prevProjectIdRef.current = projectId;
       return;
@@ -1598,7 +1636,7 @@ export function useAssistantLogic({
       clearConversation();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentProject?.id]);
+  }, [currentProjectId]);
 
   /* ================================================================ */
   /*  Public API (unchanged)                                           */

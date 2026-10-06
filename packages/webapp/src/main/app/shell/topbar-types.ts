@@ -1,5 +1,5 @@
-import { UMLDiagramType } from '@besser/wme';
-import type { PerspectiveSettings, SupportedDiagramType } from '../../shared/types/project';
+import type React from 'react';
+import type { SupportedDiagramType } from '../../shared/types/project';
 import type { GeneratorMenuMode, GeneratorType } from './workspace-types';
 import type { QualityCheckResult, QualityCheckState } from '../../features/generation/types';
 
@@ -17,8 +17,6 @@ export interface WorkspaceTopBarProps {
   showQualityCheck: boolean;
   generatorMode: GeneratorMenuMode;
   isGenerating: boolean;
-  locationPath: string;
-  activeUmlType: UMLDiagramType;
   isAuthenticated: boolean;
   username?: string;
   githubLoading: boolean;
@@ -54,11 +52,12 @@ export interface WorkspaceTopBarProps {
   onOpenKeyboardShortcuts: () => void;
   onShowWelcomeGuide?: () => void;
   activeDiagramType: SupportedDiagramType;
-  perspectives: PerspectiveSettings | undefined;
-  onSwitchUml: (type: UMLDiagramType) => void;
   onSwitchDiagramType: (type: SupportedDiagramType) => void;
-  onNavigate: (path: string) => void;
   projectNameDraft: string;
   onProjectNameDraftChange: (value: string) => void;
   onProjectRename: () => void;
+  /** Mobile navigation drawer (below md). */
+  isMobileNavOpen: boolean;
+  onOpenMobileNav: () => void;
+  mobileNavTriggerRef: React.RefObject<HTMLButtonElement>;
 }

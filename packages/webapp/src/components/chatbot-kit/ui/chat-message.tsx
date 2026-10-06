@@ -40,10 +40,11 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog"
 import { FilePreview } from "@/components/chatbot-kit/ui/file-preview"
+import { useObjectUrl } from "@/components/chatbot-kit/hooks/use-object-url"
 import { MarkdownRenderer } from "@/components/chatbot-kit/ui/markdown-renderer"
 
 const chatBubbleVariants = cva(
-  "group/message relative break-words rounded-lg p-3 text-sm sm:max-w-[70%]",
+  "group/message relative break-words rounded-lg p-3 text-sm motion-reduce:animate-none sm:max-w-[70%]",
   {
     variants: {
       isUser: {
@@ -53,7 +54,7 @@ const chatBubbleVariants = cva(
       animation: {
         none: "",
         slide: "duration-300 animate-in fade-in-0",
-        scale: "duration-300 animate-in fade-in-0 zoom-in-75",
+        scale: "duration-200 animate-in fade-in-0 zoom-in-95",
         fade: "duration-500 animate-in fade-in-0",
       },
     },
@@ -344,6 +345,8 @@ export interface ChatMessageProps extends Message {
   showTimeStamp?: boolean
   animation?: Animation
   actions?: React.ReactNode
+  /** Always-visible status line (e.g. "Applied") rendered under the bubble. */
+  status?: React.ReactNode
   /**
    * Handler for the SpecDrivenCard's "Push to GitHub" button. Supplied by the
    * assistant surface (via MessageList's messageOptions) so the push flow has
@@ -362,7 +365,7 @@ function MessageBadge({ message }: { message: ChatMessageProps }) {
   if (message.isProgress) {
     return (
       <span className="inline-flex items-center gap-1 rounded-full bg-blue-500/10 px-2 py-0.5 text-[10px] font-medium text-blue-600 dark:text-blue-400">
-        <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-blue-500" />
+        <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-blue-500 motion-reduce:animate-none" />
         {t("assistant.chatKit.badge.inProgress")}
       </span>
     )
@@ -402,7 +405,7 @@ function MessageBadge({ message }: { message: ChatMessageProps }) {
   if (message.isStreaming) {
     return (
       <span className="inline-flex items-center gap-1 rounded-full bg-brand/10 px-2 py-0.5 text-[10px] font-medium text-brand">
-        <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-brand" />
+        <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-brand motion-reduce:animate-none" />
         {t("assistant.chatKit.badge.typing")}
       </span>
     )
@@ -416,11 +419,37 @@ function MessageBadge({ message }: { message: ChatMessageProps }) {
 
 function StreamingCursor() {
   return (
-    <span className="ml-0.5 inline-block h-4 w-0.5 animate-pulse bg-foreground/60" />
+    <span className="ml-0.5 inline-block h-4 w-0.5 animate-pulse bg-foreground/60 motion-reduce:animate-none" />
   )
 }
 
-export const ChatMessage: React.FC<ChatMessageProps> = (props) => {
+/** Image attachment thumbnail + lightbox; owns (and revokes) its object URL. */
+function ImageAttachment({ file }: { file: File }) {
+  const { t } = useTranslation()
+  const objectUrl = useObjectUrl(file) ?? undefined
+  return (
+    <Dialog>
+      <DialogTrigger asChild>
+        <div className="cursor-pointer overflow-hidden rounded-lg border transition-opacity hover:opacity-80">
+          <img
+            alt={t("assistant.chatKit.attachmentAlt", { name: file.name })}
+            className="max-h-48 max-w-[280px] object-contain"
+            src={objectUrl}
+          />
+        </div>
+      </DialogTrigger>
+      <DialogContent className="flex max-h-[90vh] max-w-[90vw] items-center justify-center border-none bg-transparent p-0 shadow-none">
+        <img
+          alt={t("assistant.chatKit.attachmentAlt", { name: file.name })}
+          className="max-h-[85vh] max-w-[85vw] rounded-lg object-contain"
+          src={objectUrl}
+        />
+      </DialogContent>
+    </Dialog>
+  )
+}
+
+const ChatMessageImpl: React.FC<ChatMessageProps> = (props) => {
   const { t } = useTranslation()
   const {
     role,
@@ -429,6 +458,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = (props) => {
     showTimeStamp = false,
     animation = "scale",
     actions,
+    status,
     experimental_attachments,
     toolInvocations,
     parts,
@@ -467,27 +497,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = (props) => {
           <div className="mb-1 flex flex-wrap gap-2">
             {files.map((file, index) => {
               if (file.type.startsWith("image/")) {
-                const objectUrl = URL.createObjectURL(file)
-                return (
-                  <Dialog key={index}>
-                    <DialogTrigger asChild>
-                      <div className="cursor-pointer overflow-hidden rounded-lg border transition-opacity hover:opacity-80">
-                        <img
-                          alt={t("assistant.chatKit.attachmentAlt", { name: file.name })}
-                          className="max-h-48 max-w-[280px] object-contain"
-                          src={objectUrl}
-                        />
-                      </div>
-                    </DialogTrigger>
-                    <DialogContent className="flex max-h-[90vh] max-w-[90vw] items-center justify-center border-none bg-transparent p-0 shadow-none">
-                      <img
-                        alt={t("assistant.chatKit.attachmentAlt", { name: file.name })}
-                        className="max-h-[85vh] max-w-[85vw] rounded-lg object-contain"
-                        src={objectUrl}
-                      />
-                    </DialogContent>
-                  </Dialog>
-                )
+                return <ImageAttachment file={file} key={index} />
               }
               return <FilePreview file={file} key={index} />
             })}
@@ -534,11 +544,12 @@ export const ChatMessage: React.FC<ChatMessageProps> = (props) => {
               <MarkdownRenderer>{part.text}</MarkdownRenderer>
               {isStreaming && isLastTextPart && <StreamingCursor />}
               {actions ? (
-                <div className="absolute -bottom-4 right-2 flex space-x-1 rounded-lg border border-border/60 bg-background p-1 text-muted-foreground shadow-sm opacity-0 transition-all duration-200 group-hover/message:opacity-100">
+                <div className="absolute -bottom-4 right-2 flex space-x-1 rounded-lg border border-border/60 bg-background p-1 text-muted-foreground shadow-sm opacity-0 transition-opacity duration-200 group-hover/message:opacity-100 group-focus-within/message:opacity-100 [@media(hover:none)]:opacity-100">
                   {actions}
                 </div>
               ) : null}
             </div>
+            {status && isLastTextPart ? <div className="mt-1">{status}</div> : null}
 
             {showTimeStamp && createdAt ? (
               <time
@@ -646,11 +657,12 @@ export const ChatMessage: React.FC<ChatMessageProps> = (props) => {
         <MarkdownRenderer>{content}</MarkdownRenderer>
         {isStreaming && <StreamingCursor />}
         {actions ? (
-          <div className="absolute -bottom-4 right-2 flex space-x-1 rounded-lg border border-border/60 bg-background p-1 text-muted-foreground shadow-sm opacity-0 transition-all duration-200 group-hover/message:opacity-100">
+          <div className="absolute -bottom-4 right-2 flex space-x-1 rounded-lg border border-border/60 bg-background p-1 text-muted-foreground shadow-sm opacity-0 transition-opacity duration-200 group-hover/message:opacity-100 group-focus-within/message:opacity-100 [@media(hover:none)]:opacity-100">
             {actions}
           </div>
         ) : null}
       </div>
+      {status ? <div className="mt-1">{status}</div> : null}
 
       {showTimeStamp && createdAt ? (
         <time
@@ -666,6 +678,11 @@ export const ChatMessage: React.FC<ChatMessageProps> = (props) => {
     </div>
   )
 }
+
+// Memoised: typing in the composer or streaming the newest reply must not
+// re-render (and re-parse the markdown of) every older message.
+export const ChatMessage = React.memo(ChatMessageImpl)
+ChatMessage.displayName = "ChatMessage"
 
 function dataUrlToUint8Array(data: string) {
   const base64 = data.split(",")[1] ?? ""
