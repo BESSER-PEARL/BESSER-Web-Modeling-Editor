@@ -6,7 +6,13 @@ import {
   SelectionMode,
   type Node,
 } from "@xyflow/react"
-import { useCallback, useEffect, useMemo } from "react"
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+} from "react"
 import {
   CustomBackground,
   CustomControls,
@@ -56,6 +62,88 @@ interface AppProps {
 }
 const proOptions = { hideAttribution: true }
 
+/**
+ * Identity-stable wrapper that always calls the latest `fn`. React Flow
+ * hands its element handlers to every NodeWrapper / EdgeWrapper (memo), so
+ * a handler re-created per drag frame (it closes over `nodes` / `edges`)
+ * re-rendered every node and edge on every frame.
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function useStableHandler<T extends (...args: any[]) => any>(fn: T): T {
+  const latest = useRef(fn)
+  useLayoutEffect(() => {
+    latest.current = fn
+  })
+  return useCallback(
+    ((...args: Parameters<T>) => latest.current(...args)) as T,
+    []
+  )
+}
+
+/** Gap kept to the canvas edge when a loaded diagram is larger than the view. */
+const LOADED_MODEL_MARGIN = 40
+/** Upper bound (~2 s) on waiting for React Flow to render a loaded model. */
+const MAX_RENDER_WAIT_FRAMES = 120
+
+/**
+ * Calls `done` once React Flow has rendered and measured every node of
+ * `expected` (the model just written to the store); a model swap is only on
+ * screen after React re-renders and the ResizeObserver reports sizes. Gives
+ * up waiting after `MAX_RENDER_WAIT_FRAMES`. Returns a cancel function.
+ */
+export function whenModelRendered(
+  instance: ReactFlowInstance,
+  expected: () => Node[],
+  done: () => void
+): () => void {
+  let frames = 0
+  let rafId = 0
+  const isRendered = () =>
+    expected().every((node) => {
+      const internal = instance.getInternalNode(node.id)
+      if (!internal) return false
+      if (internal.hidden) return true
+      return (
+        !!internal.measured.width &&
+        !!internal.measured.height &&
+        internal.position.x === node.position.x &&
+        internal.position.y === node.position.y
+      )
+    })
+  const tick = () => {
+    frames += 1
+    if (frames > 1 && (isRendered() || frames > MAX_RENDER_WAIT_FRAMES)) {
+      done()
+      return
+    }
+    rafId = requestAnimationFrame(tick)
+  }
+  rafId = requestAnimationFrame(tick)
+  return () => cancelAnimationFrame(rafId)
+}
+
+/**
+ * Develop's viewport for a freshly loaded diagram: 100% zoom, diagram
+ * centred, but one larger than the canvas is pinned to its top-left corner
+ * instead of being cut off on every side. An empty diagram resets to the
+ * origin.
+ */
+export async function fitViewToModel(instance: ReactFlowInstance) {
+  const nodes = instance.getNodes().filter((node) => !node.hidden)
+  if (nodes.length === 0) {
+    await instance.setViewport({ x: 0, y: 0, zoom: 1 })
+    return
+  }
+  await instance.fitView({ nodes, minZoom: 1, maxZoom: 1 })
+  const bounds = instance.getNodesBounds(nodes)
+  const { x, y } = instance.getViewport()
+  await instance.setViewport({
+    x: Math.max(x, LOADED_MODEL_MARGIN - bounds.x),
+    y: Math.max(y, LOADED_MODEL_MARGIN - bounds.y),
+    zoom: 1,
+  })
+}
+
 function App({ onReactFlowInit }: AppProps) {
   useKeyboardShortcuts()
 
@@ -99,9 +187,11 @@ function App({ onReactFlowInit }: AppProps) {
     onEdgesDelete,
     isValidConnection,
   } = useConnect()
-  const onReconnect = useReconnect()
-  const { onBeforeDelete, onNodeDoubleClick, onEdgeDoubleClick } =
-    useElementInteractions()
+  const onReconnect = useStableHandler(useReconnect())
+  const interactions = useElementInteractions()
+  const onBeforeDelete = useStableHandler(interactions.onBeforeDelete)
+  const onNodeDoubleClick = useStableHandler(interactions.onNodeDoubleClick)
+  const onEdgeDoubleClick = useStableHandler(interactions.onEdgeDoubleClick)
   const { onPaneClicked } = usePaneClicked()
 
   const handleReactFlowInit = useCallback(
@@ -144,7 +234,7 @@ function App({ onReactFlowInit }: AppProps) {
     }))
   )
 
-  const onNodeClick = useCallback(
+  const onNodeClick = useStableHandler(
     (_event: React.MouseEvent, node: Node) => {
       if (!pendingAssociationEdgeId) return
       // Stale-id guard: the pending association must still exist in
@@ -167,8 +257,7 @@ function App({ onReactFlowInit }: AppProps) {
         })
       }
       cancelLinking()
-    },
-    [pendingAssociationEdgeId, edges, addEdge, cancelLinking]
+    }
   )
 
   // Escape cancels a pending association-class link pick.
@@ -227,11 +316,13 @@ function App({ onReactFlowInit }: AppProps) {
         // pointer from a visible handle.
         elevateEdgesOnSelect
         onInit={(instance) => {
-          // fitView on an empty canvas stays queued until nodes exist, then
-          // fires on the first one and jerks the viewport. Only fit with
-          // content; empty keeps the default (0,0)/zoom-1.
+          // Only fit with content; empty keeps the default (0,0)/zoom-1.
           if (instance.getNodes().length > 0) {
-            instance.fitView({ maxZoom: 1.0, minZoom: 1.0 })
+            whenModelRendered(
+              instance,
+              () => instance.getNodes(),
+              () => void fitViewToModel(instance)
+            )
           }
           handleReactFlowInit(instance)
         }}

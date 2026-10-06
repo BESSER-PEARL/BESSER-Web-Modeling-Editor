@@ -9,6 +9,7 @@ import { EdgeEndLabels } from "../labelTypes/EdgeEndLabels"
 import { useEdgeConfig } from "@/hooks/useEdgeConfig"
 import { useStepPathEdge } from "@/hooks/useStepPathEdge"
 import { useDiagramStore, usePopoverStore } from "@/store/context"
+import type { DiagramStore } from "@/store/diagramStore"
 import { useShallow } from "zustand/shallow"
 import { useToolbar } from "@/hooks"
 import { useMemo } from "react"
@@ -29,7 +30,6 @@ import {
   ASSOCIATION_CLASS_CAPABLE_TYPES,
   computeAnchorOnNodeBoundary,
   getAbsoluteNodePosition,
-  getLinkRelForAssociation,
   isEdgeAnchoredLinkRel,
   resolveLinkRelClassNodeId,
 } from "@/utils/associationClassLink"
@@ -57,6 +57,44 @@ const NO_LINK_INFO = {
   nodeY: 0,
   nodeW: 0,
   nodeH: 0,
+}
+
+type StoreNode = DiagramStore["nodes"][number]
+type StoreEdge = DiagramStore["edges"][number]
+
+// Every association edge runs the link selector on every store update (each
+// drag frame), so the scans it needs are built once per `nodes` / `edges`
+// snapshot and shared, instead of O(edges) work per edge per frame.
+const linkRelIndexCache = new WeakMap<
+  readonly StoreEdge[],
+  Map<string, StoreEdge>
+>()
+/** First `ClassLinkRel` per endpoint id (`getLinkRelForAssociation`). */
+const getLinkRelIndex = (edges: readonly StoreEdge[]) => {
+  let index = linkRelIndexCache.get(edges)
+  if (!index) {
+    index = new Map()
+    for (const edge of edges) {
+      if (edge.type !== "ClassLinkRel") continue
+      if (!index.has(edge.source)) index.set(edge.source, edge)
+      if (!index.has(edge.target)) index.set(edge.target, edge)
+    }
+    linkRelIndexCache.set(edges, index)
+  }
+  return index
+}
+const nodeIndexCache = new WeakMap<
+  readonly StoreNode[],
+  { ids: Set<string>; byId: Map<string, StoreNode> }
+>()
+const getNodeIndex = (nodes: readonly StoreNode[]) => {
+  let index = nodeIndexCache.get(nodes)
+  if (!index) {
+    const byId = new Map(nodes.map((n) => [n.id, n]))
+    index = { ids: new Set(byId.keys()), byId }
+    nodeIndexCache.set(nodes, index)
+  }
+  return index
 }
 
 export const ClassDiagramEdge = ({
@@ -124,9 +162,9 @@ export const ClassDiagramEdge = ({
       if (!ASSOCIATION_CLASS_RENDER_TYPES.has(type as string)) {
         return NO_LINK_INFO
       }
-      const link = getLinkRelForAssociation(state.edges, id)
+      const link = getLinkRelIndex(state.edges).get(id)
       if (!link) return NO_LINK_INFO
-      const nodeIds = new Set(state.nodes.map((n) => n.id))
+      const { ids: nodeIds, byId } = getNodeIndex(state.nodes)
       if (!isEdgeAnchoredLinkRel(link, nodeIds)) {
         // Node-to-node link that happens to reference this edge id is
         // impossible; an already-rendered RF link still blocks a second
@@ -134,14 +172,9 @@ export const ClassDiagramEdge = ({
         return { ...NO_LINK_INFO, hasLink: true }
       }
       const classNodeId = resolveLinkRelClassNodeId(link, nodeIds)
-      const classNode = classNodeId
-        ? state.nodes.find((n) => n.id === classNodeId)
-        : undefined
+      const classNode = classNodeId ? byId.get(classNodeId) : undefined
       if (!classNode) return { ...NO_LINK_INFO, hasLink: true }
-      const abs = getAbsoluteNodePosition(
-        classNode,
-        new Map(state.nodes.map((n) => [n.id, n]))
-      )
+      const abs = getAbsoluteNodePosition(classNode, byId)
       return {
         hasLink: true,
         linkId: link.id,

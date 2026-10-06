@@ -1,6 +1,11 @@
 import ReactDOM from "react-dom/client"
-import { AppWithProvider } from "./App"
-import { ReactFlowInstance, type Node, type Edge } from "@xyflow/react"
+import { AppWithProvider, fitViewToModel, whenModelRendered } from "./App"
+import {
+  ReactFlowInstance,
+  type FitViewOptions,
+  type Node,
+  type Edge,
+} from "@xyflow/react"
 import {
   parseDiagramType,
   mapFromReactFlowNodeToBesserNode,
@@ -83,6 +88,9 @@ export class BesserEditor {
   // before reading `editor.model` or interacting with the canvas.
   private readyPromise!: Promise<void>
   private resolveReady!: () => void
+  private cancelModelSettle?: () => void
+  /** Viewport move to run once the model being loaded has rendered. */
+  private pendingViewportAction?: () => void
   constructor(element: HTMLElement, options?: Besser.BesserOptions) {
     if (!(element instanceof HTMLElement)) {
       throw new Error("Element is required to initialize BesserEditor")
@@ -206,6 +214,9 @@ export class BesserEditor {
 
   private setReactFlowInstance(instance: ReactFlowInstance) {
     this.reactFlowInstance = instance
+    // App fits the initial model itself; only its first measurement pass
+    // (written to the Yjs doc) must not become an undo step.
+    this.settleLoadedModel(false)
     // Resolve the `ready` promise so v2 webapp call sites awaiting
     // `editor.ready` (or its `nextRender` alias) unblock the moment
     // React Flow has produced its instance.
@@ -261,6 +272,8 @@ export class BesserEditor {
       })
       this.subscribers = {}
 
+      this.cancelModelSettle?.()
+      this.pendingViewportAction = undefined
       this.syncManager.stopSync()
       this.root.unmount()
       this.ydoc.destroy()
@@ -624,21 +637,78 @@ export class BesserEditor {
     )
     const { nodes, edges, assessments, interactive } = normalized
 
-    // Replacing the model wholesale should also
-    // discard accumulated undo history — a user shouldn't be able to
-    // "undo" past a programmatic model swap into the previous diagram's
-    // state. v3 webapp call sites achieved this via the
-    // destroy+recreate (`editorRevision++`) hack; clearing the existing
-    // `UndoManager` here lets consumers keep the same editor instance.
-    const { undoManager } = this.diagramStore.getState()
-    undoManager?.clear()
-
     this.diagramStore.getState().setNodesAndEdges(nodes, edges)
     this.diagramStore.getState().setAssessments(assessments)
     this.diagramStore.getState().setInteractive(interactive)
     this.metadataStore
       .getState()
       .updateMetaData(normalized.title, parseDiagramType(normalized.type))
+
+    // A model swap starts a fresh history (v3 recreated the editor): clear
+    // AFTER the write, or the write itself becomes an undo step that empties
+    // the canvas.
+    this.diagramStore.getState().undoManager?.clear()
+    this.settleLoadedModel(true)
+  }
+
+  /**
+   * Once React Flow has rendered the model now in the store: drop the undo
+   * steps recorded by React Flow's first measurement of the new nodes, then
+   * move the viewport -- by default (`fit`) as develop did on every model
+   * set; a `fitView` / `fitToElements` call made meanwhile replaces that.
+   */
+  private settleLoadedModel(fit: boolean) {
+    this.cancelModelSettle?.()
+    const instance = this.reactFlowInstance
+    if (!instance || typeof window === "undefined") return
+    this.pendingViewportAction = fit
+      ? () => void fitViewToModel(instance)
+      : undefined
+    this.cancelModelSettle = whenModelRendered(
+      instance,
+      () => this.diagramStore.getState().nodes,
+      () => {
+        this.cancelModelSettle = undefined
+        this.diagramStore.getState().undoManager?.clear()
+        const action = this.pendingViewportAction
+        this.pendingViewportAction = undefined
+        action?.()
+      }
+    )
+  }
+
+  /** Runs `move` now, or after the model being loaded has rendered. */
+  private moveViewport(move: () => void) {
+    if (this.cancelModelSettle) this.pendingViewportAction = move
+    else move()
+  }
+
+  /**
+   * Fit the viewport to the diagram (React Flow `fitView`). Resolves to
+   * `false` before the canvas has mounted or when there is nothing to fit.
+   */
+  public fitView(options?: FitViewOptions): Promise<boolean> {
+    const instance = this.reactFlowInstance
+    if (!instance) return Promise.resolve(false)
+    return new Promise((resolve) =>
+      this.moveViewport(() => void instance.fitView(options).then(resolve))
+    )
+  }
+
+  /**
+   * Bring the given nodes into view (e.g. the active state during an agent
+   * simulation). Unknown ids are ignored; a no-op when none exist.
+   */
+  public fitToElements(ids: string[]): void {
+    const instance = this.reactFlowInstance
+    if (!instance) return
+    this.moveViewport(() => {
+      const nodes = ids
+        .filter((id) => instance.getNode(id))
+        .map((id) => ({ id }))
+      if (nodes.length === 0) return
+      void instance.fitView({ nodes, duration: 300, padding: 0.4, maxZoom: 1 })
+    })
   }
 
   /**

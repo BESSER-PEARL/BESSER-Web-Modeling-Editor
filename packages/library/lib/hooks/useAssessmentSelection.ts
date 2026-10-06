@@ -1,43 +1,37 @@
-import {
-  useAssessmentSelectionStore,
-  useDiagramStore,
-  useMetadataStore,
-} from "@/store"
+import { useAssessmentSelectionStore, useMetadataStore } from "@/store"
+import { useDiagramStoreApi } from "@/store/context"
 import { useShallow } from "zustand/shallow"
 import { BesserMode } from "@/typings"
 import { Node } from "@xyflow/react"
 import { useMemo } from "react"
 
 /**
- * Hook to handle assessment selection for nodes and their nested elements
+ * Hook to handle assessment selection for nodes and their nested elements.
+ * Mounted once per class row, so it subscribes only to values derived for
+ * THIS element: a subscription to `nodes` re-rendered every row of every
+ * node on each drag frame.
  */
 export const useAssessmentSelection = (elementId: string) => {
-  const {
-    isAssessmentSelectionMode,
-    highlightedElementId,
-    selectedElementIds,
-  } = useAssessmentSelectionStore(
-    useShallow((state) => ({
-      isAssessmentSelectionMode: state.isAssessmentSelectionMode,
-      highlightedElementId: state.highlightedElementId,
-      selectedElementIds: state.selectedElementIds,
-    }))
+  const isAssessmentSelectionMode = useAssessmentSelectionStore(
+    (state) => state.isAssessmentSelectionMode
+  )
+  const isSelected = useAssessmentSelectionStore((state) =>
+    state.selectedElementIds.includes(elementId)
+  )
+  const isHighlighted = useAssessmentSelectionStore(
+    (state) => state.highlightedElementId === elementId
+  )
+  const selectElement = useAssessmentSelectionStore(
+    (state) => state.selectElement
+  )
+  const setHighlightedElement = useAssessmentSelectionStore(
+    (state) => state.setHighlightedElement
+  )
+  const selectMultipleElements = useAssessmentSelectionStore(
+    (state) => state.selectMultipleElements
   )
 
-  const { selectElement, setHighlightedElement, selectMultipleElements } =
-    useAssessmentSelectionStore(
-      useShallow((state) => ({
-        selectElement: state.selectElement,
-        setHighlightedElement: state.setHighlightedElement,
-        selectMultipleElements: state.selectMultipleElements,
-      }))
-    )
-
-  const { nodes } = useDiagramStore(
-    useShallow((state) => ({
-      nodes: state.nodes,
-    }))
-  )
+  const diagramStore = useDiagramStoreApi()
 
   const { mode, readonly } = useMetadataStore(
     useShallow((state) => ({
@@ -53,20 +47,20 @@ export const useAssessmentSelection = (elementId: string) => {
   )
 
   // Get all child nodes recursively
-  const getAllChildNodes = (parentId: string): Node[] => {
+  const getAllChildNodes = (nodes: Node[], parentId: string): Node[] => {
     const children: Node[] = []
     const directChildren = nodes.filter((node) => node.parentId === parentId)
 
     for (const child of directChildren) {
       children.push(child)
-      children.push(...getAllChildNodes(child.id))
+      children.push(...getAllChildNodes(nodes, child.id))
     }
 
     return children
   }
 
   // Get all nested element IDs for a given node (attributes, methods, child nodes)
-  const getNestedElementIds = (nodeId: string): string[] => {
+  const getNestedElementIds = (nodes: Node[], nodeId: string): string[] => {
     const node = nodes.find((n) => n.id === nodeId)
     if (!node) return []
 
@@ -93,10 +87,10 @@ export const useAssessmentSelection = (elementId: string) => {
     }
 
     // Add child nodes recursively
-    const childNodes = getAllChildNodes(nodeId)
+    const childNodes = getAllChildNodes(nodes, nodeId)
     for (const childNode of childNodes) {
       nestedIds.push(childNode.id)
-      nestedIds.push(...getNestedElementIds(childNode.id))
+      nestedIds.push(...getNestedElementIds(nodes, childNode.id))
     }
 
     return nestedIds
@@ -111,9 +105,10 @@ export const useAssessmentSelection = (elementId: string) => {
     selectElement(elementId)
 
     // If this is a node (not a nested element), also select all nested elements
+    const { nodes } = diagramStore.getState()
     const node = nodes.find((n) => n.id === elementId)
     if (node) {
-      const nestedIds = getNestedElementIds(elementId)
+      const nestedIds = getNestedElementIds(nodes, elementId)
       if (nestedIds.length > 0) {
         selectMultipleElements([elementId, ...nestedIds])
       }
@@ -130,8 +125,6 @@ export const useAssessmentSelection = (elementId: string) => {
     setHighlightedElement(null)
   }
 
-  const isSelected = selectedElementIds.includes(elementId)
-  const isHighlighted = highlightedElementId === elementId
   const showAssessmentInteraction =
     isReadonlyAssessmentMode && isAssessmentSelectionMode
 

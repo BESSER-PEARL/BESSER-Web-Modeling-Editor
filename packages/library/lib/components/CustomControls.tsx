@@ -1,4 +1,4 @@
-import { useState, type MouseEvent } from "react"
+import { useEffect, useState, type MouseEvent } from "react"
 import { Controls, useReactFlow, useStore } from "@xyflow/react"
 import {
   useDiagramStore,
@@ -27,11 +27,34 @@ const STRATEGY_LABELS: Record<AutoLayoutStrategy, { key: string; fallback: strin
   vertical: { key: "toolbar.autoLayoutStrategy.vertical", fallback: "Top to bottom" },
 }
 
+const CONTROLS_RIGHT_VAR = "--besser-canvas-controls-right"
+
 export const CustomControls = () => {
   const { t } = useTranslation()
   const [menuAnchor, setMenuAnchor] = useState<HTMLElement | null>(null)
   const { zoomTo, fitView } = useReactFlow()
   const zoomLevel = useStore((state) => state.transform[2])
+  const domNode = useStore((state) => state.domNode)
+
+  // Publish where the bar ends so host overlays at the bottom (the webapp's
+  // "Describe your app" pill) can stay clear of it.
+  useEffect(() => {
+    const bar = domNode?.querySelector<HTMLElement>(".react-flow__controls")
+    if (!bar) return
+    const root = document.documentElement
+    const publish = () =>
+      root.style.setProperty(CONTROLS_RIGHT_VAR, `${Math.round(bar.getBoundingClientRect().right)}px`)
+    publish()
+    const observer = typeof ResizeObserver !== "undefined" ? new ResizeObserver(publish) : null
+    observer?.observe(bar)
+    if (domNode) observer?.observe(domNode)
+    window.addEventListener("resize", publish)
+    return () => {
+      observer?.disconnect()
+      window.removeEventListener("resize", publish)
+      root.style.removeProperty(CONTROLS_RIGHT_VAR)
+    }
+  }, [domNode])
   const zoomLevelPercent = Math.round(zoomLevel * 100)
   const [isLayouting, setIsLayouting] = useState(false)
 

@@ -87,10 +87,14 @@ export function stripRuntimeNodeFlags(node: Node): Node {
   return persisted
 }
 
+// Edges carry no `dragging` in React Flow's type, but the pane-click
+// deselect stamps `dragging: false` on them too.
 export function stripRuntimeEdgeFlags(edge: Edge): Edge {
-  if (edge.selected === undefined) return edge
-  const persisted = { ...edge }
+  const flagged = edge as Edge & { dragging?: boolean }
+  if (edge.selected === undefined && flagged.dragging === undefined) return edge
+  const persisted = { ...flagged }
   delete persisted.selected
+  delete persisted.dragging
   return persisted
 }
 
@@ -807,11 +811,17 @@ export const createDiagramStore = (
         },
 
         updateNodesFromYjs: () => {
+          const currentById = new Map(get().nodes.map((n) => [n.id, n]))
           const preserveSelectedNodesAfterYdoc = sortNodesTopologically(
             Array.from(getNodesMap(ydoc).values())
           ).map((node) => {
-            const currentNode = get().nodes.find((n) => n.id === node.id)
+            const currentNode = currentById.get(node.id)
             if (currentNode) {
+              // Unchanged by this update (an undo usually touches a few
+              // nodes): keep the object so React Flow skips re-rendering it.
+              if (deepEqual(stripRuntimeNodeFlags(currentNode), node)) {
+                return currentNode
+              }
               // Runtime flags are never persisted (see
               // `stripRuntimeNodeFlags`): re-overlay the local ones so a
               // remote update landing mid-gesture does not drop this
@@ -867,11 +877,15 @@ export const createDiagramStore = (
         },
 
         updateEdgesFromYjs: () => {
+          const currentById = new Map(get().edges.map((e) => [e.id, e]))
           const preserveSelectedEdgesAfterYdoc = Array.from(
             getEdgesMap(ydoc).values()
           ).map((edge) => {
-            const currentEdge = get().edges.find((e) => e.id === edge.id)
+            const currentEdge = currentById.get(edge.id)
             if (currentEdge) {
+              if (deepEqual(stripRuntimeEdgeFlags(currentEdge), edge)) {
+                return currentEdge
+              }
               return { ...edge, selected: currentEdge.selected }
             } else {
               return edge

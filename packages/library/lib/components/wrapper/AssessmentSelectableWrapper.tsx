@@ -27,14 +27,16 @@ export const AssessmentSelectableWrapper: React.FC<
       view: state.view,
     }))
   )
-  const { isInteractiveSelected, toggleInteractiveElement } = useDiagramStore(
-    useShallow((state) => ({
-      isInteractiveSelected:
+  // Primitive selectors: these run for every row on every store update.
+  const isInteractiveSelected = useDiagramStore(
+    (state) =>
+      !!(
         state.interactiveElements[elementId] ||
-        state.interactiveRelationships[elementId] ||
-        false,
-      toggleInteractiveElement: state.toggleInteractiveElement,
-    }))
+        state.interactiveRelationships[elementId]
+      )
+  )
+  const toggleInteractiveElement = useDiagramStore(
+    (state) => state.toggleInteractiveElement
   )
   const {
     isSelected,
