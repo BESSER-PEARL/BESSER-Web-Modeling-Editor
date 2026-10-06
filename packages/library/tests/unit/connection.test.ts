@@ -160,7 +160,7 @@ describe("tryFindStraightPath", () => {
   // -------------------------------------------------------------------------
   describe("handleCoords alignment rejection", () => {
     describe("Right → Left with misaligned Y handles", () => {
-      it("returns null when handle Y-coords differ by more than 1px", () => {
+      it("returns null when handle Y-coords differ by more than the tolerance", () => {
         // Nodes overlap vertically, so without handleCoords this would succeed
         const source = makeNode(0, 0, 100, 100, Position.Right)
         const target = makeNode(200, 0, 100, 100, Position.Left)
@@ -186,7 +186,7 @@ describe("tryFindStraightPath", () => {
           sourceX: 100,
           sourceY: 50,
           targetX: 200,
-          targetY: 50.5, // within 1px tolerance
+          targetY: 50.5, // within tolerance
         })
         expect(result).not.toBeNull()
         expect(result![0].y).toBe(result![1].y)
@@ -273,21 +273,40 @@ describe("tryFindStraightPath", () => {
       })
     })
 
-    describe("Observer diagram scenario (right-top → left-top)", () => {
-      // Real-world scenario: Publisher (160x90) at (0, 0), Subscriber (160x50) at (270, 0)
-      // Source handle: right-top (x=160, y≈23), Target handle: left-top (x=270, y≈13)
-      it("rejects straight path for Publisher→Subscriber with misaligned sub-handles", () => {
-        const source = makeNode(0, 0, 160, 90, Position.Right)
-        const target = makeNode(270, 0, 160, 50, Position.Left)
+    describe("Observer diagram scenario", () => {
+      // Publisher (160x90) at (0, 0), Subscriber (160x50) at (270, 0).
+      // HANDLE_ALIGNMENT_TOLERANCE is 10px (6ba1f57c), so near-aligned handles
+      // stay straight and only clearly offset ones fall back to a step path.
+      const source = makeNode(0, 0, 160, 90, Position.Right)
+      const target = makeNode(270, 0, 160, 50, Position.Left)
 
-        // Without handleCoords, nodes overlap vertically => straight path found
-        const baseline = tryFindStraightPath(source, target, padding)
-        expect(baseline).not.toBeNull()
+      it("keeps the straight path when handle Y-coords differ by exactly the tolerance", () => {
+        expect(tryFindStraightPath(source, target, padding)).not.toBeNull()
 
-        // With actual handle positions (right-top vs left-top, different Y)
         const result = tryFindStraightPath(source, target, padding, {
           sourceX: 160,
           sourceY: 23,
+          targetX: 270,
+          targetY: 13,
+        })
+        expect(result).not.toBeNull()
+      })
+
+      it("rejects straight path for right-top → left-bottom sub-handles", () => {
+        // right-top sits at 20% of 90px, left-bottom at 80% of 50px
+        const result = tryFindStraightPath(source, target, padding, {
+          sourceX: 160,
+          sourceY: 18,
+          targetX: 270,
+          targetY: 40,
+        })
+        expect(result).toBeNull()
+      })
+
+      it("rejects straight path just past the tolerance", () => {
+        const result = tryFindStraightPath(source, target, padding, {
+          sourceX: 160,
+          sourceY: 24,
           targetX: 270,
           targetY: 13,
         })

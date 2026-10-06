@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import fs from 'node:fs';
-import { defineConfig, loadEnv } from 'vite';
+import { defineConfig, loadEnv, type Plugin } from 'vite';
 import react from '@vitejs/plugin-react';
 import svgr from 'vite-plugin-svgr';
 
@@ -47,7 +47,9 @@ export default defineConfig(({ mode }) => {
   const editorVersion: string = JSON.parse(readFileSync(path.resolve(__dirname, 'package.json'), 'utf-8')).version;
 
   return {
-    plugins: [react(), svgr()],
+    // vite-plugin-svgr is hoisted to the root node_modules, where it resolves
+    // vite 8's Plugin type; this package builds with its own vite 7.
+    plugins: [react(), svgr() as Plugin],
     publicDir: 'assets',
     resolve: {
       alias: [

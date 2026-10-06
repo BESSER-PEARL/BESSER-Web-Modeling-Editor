@@ -741,7 +741,7 @@ export function useGeneratorExecution(editor: BesserEditor | undefined): UseGene
   // ── Core execution ─────────────────────────────────────────────────────────
 
   const ensureGuiForAssistantWebAppGeneration = useCallback(
-    async (): Promise<GenerationResult | null> => {
+    async (): Promise<Extract<GenerationResult, { ok: false }> | null> => {
       if (!currentProject) {
         return { ok: false, error: t('generation.toasts.createOrLoadProject') };
       }
@@ -858,7 +858,7 @@ export function useGeneratorExecution(editor: BesserEditor | undefined): UseGene
             toast.error(t('generation.toasts.openNnEditor'));
             return { ok: false, error: 'Open the NN Diagram editor before generating neural network code.' };
           }
-          const nnResult = await runGen(editor, generatorType, activeDiagramTitle, config as any);
+          const nnResult = await runGen(editor ?? null, generatorType, activeDiagramTitle, config as any);
           if (!mountedRef.current) return { ok: false, error: 'Component unmounted' };
           if (nnResult.ok) {
             getPostHog()?.capture('generator_used', {
@@ -1332,12 +1332,7 @@ export function useGeneratorExecution(editor: BesserEditor | undefined): UseGene
             agent_model: prepareAgentModelForBackend(agentModel as UMLModel, activeAgentDiagram ?? null) as Record<string, any>,
           };
         })
-        .filter((entry): entry is {
-          name: string;
-          configuration: Record<string, any>;
-          user_profile: Record<string, any>;
-          agent_model: Record<string, any>;
-        } => Boolean(entry));
+        .filter((entry): entry is NonNullable<typeof entry> => Boolean(entry));
 
       if (personalizationMapping.length === 0) {
         toast.error(t('generation.toasts.noValidPersonalizationMappings'));
