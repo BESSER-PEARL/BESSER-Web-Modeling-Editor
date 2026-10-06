@@ -23,7 +23,7 @@ function collectAgentModels(node: unknown, where: string, config: any, out: Agen
   } else if (node && typeof node === 'object') {
     const obj = node as any;
     const scopeConfig = obj.config && typeof obj.config === 'object' ? obj.config : config;
-    if (obj.type === 'AgentDiagram' && obj.elements && typeof obj.elements === 'object') {
+    if (obj.type === 'AgentDiagram' && Array.isArray(obj.nodes)) {
       out.push({ where, model: obj, config: scopeConfig });
     }
     for (const [key, child] of Object.entries(obj)) collectAgentModels(child, `${where}/${key}`, scopeConfig, out);
@@ -31,9 +31,21 @@ function collectAgentModels(node: unknown, where: string, config: any, out: Agen
   return out;
 }
 
+// v4 shape: LLM and RAG definitions live in the off-canvas `model.components` map; states are
+// canvas nodes whose action rows sit inline in `data.bodies` / `data.fallbackBodies`.
+function agentEntries(model: any): any[] {
+  const entries: any[] = Object.values(model.components ?? {});
+  for (const node of model.nodes) {
+    const data = node.data ?? {};
+    entries.push({ ...data, type: node.type });
+    for (const body of data.bodies ?? []) entries.push({ ...body, type: 'AgentStateBody' });
+    for (const body of data.fallbackBodies ?? []) entries.push({ ...body, type: 'AgentStateFallbackBody' });
+  }
+  return entries;
+}
+
 function llmUsers(model: any): { label: string; llmName: string }[] {
-  const entries = Object.values({ ...model.agentComponents, ...model.elements, ...model.components }) as any[];
-  return entries
+  return agentEntries(model)
     .filter(
       (e) =>
         LLM_ACTION_TYPES.has(e.actionType) ||
@@ -45,8 +57,9 @@ function llmUsers(model: any): { label: string; llmName: string }[] {
 }
 
 function definedLlms(model: any): string[] {
-  const entries = Object.values({ ...model.agentComponents, ...model.elements, ...model.components }) as any[];
-  return entries.filter((e) => e.type === 'AgentLLM' && e.name).map((e) => e.name);
+  return agentEntries(model)
+    .filter((e) => e.type === 'AgentLLM' && e.name)
+    .map((e) => e.name);
 }
 
 describe('agent template LLMs', () => {

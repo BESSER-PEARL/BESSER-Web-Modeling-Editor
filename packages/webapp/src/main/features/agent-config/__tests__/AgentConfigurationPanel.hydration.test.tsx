@@ -18,9 +18,11 @@ vi.mock('../../github/hooks/useGitHubAuth', () => ({
 vi.mock('react-router-dom', () => ({ useNavigate: () => vi.fn() }));
 
 import { AgentConfigurationPanel } from '../AgentConfigurationPanel';
+import { installPointerEventPolyfill } from './pointerEventPolyfill';
 
 beforeAll(() => {
   if (!Element.prototype.scrollIntoView) Element.prototype.scrollIntoView = () => {};
+  installPointerEventPolyfill();
 });
 
 const withAgentConfig = (project: BesserProject, config: Record<string, unknown>): BesserProject => ({
