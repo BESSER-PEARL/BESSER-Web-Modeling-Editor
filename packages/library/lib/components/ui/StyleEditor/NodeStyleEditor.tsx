@@ -76,7 +76,7 @@ const ColorOption: React.FC<{
 }> = ({ label, color, onSelect }) => (
   <div style={styles.colorOption}>
     <Typography>{label}</Typography>
-    <ColorButton onSelect={onSelect} color={color || "#000000"} />
+    <ColorButton onSelect={onSelect} color={color || "#000000"} label={label} />
   </div>
 )
 
@@ -193,6 +193,7 @@ export const NodeStyleEditor: React.FC<NodeStyleEditorProps> = ({
                 onSelect={(color) =>
                   handleDataFieldUpdate(activeColorField, color)
                 }
+                selectedColor={nodeData[activeColorField]}
               />
               <button
                 style={styles.resetButton}

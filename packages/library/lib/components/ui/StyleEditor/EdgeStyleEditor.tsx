@@ -66,7 +66,7 @@ const ColorOption: React.FC<{
 }> = ({ label, color, onSelect }) => (
   <div style={styles.colorOption}>
     <Typography>{label}</Typography>
-    <ColorButton onSelect={onSelect} color={color || "#000000"} />
+    <ColorButton onSelect={onSelect} color={color || "#000000"} label={label} />
   </div>
 )
 
@@ -159,6 +159,7 @@ export const EdgeStyleEditor: React.FC<EdgeStyleEditorProps> = ({
                 onSelect={(color) =>
                   handleDataFieldUpdate(activeColorField, color)
                 }
+                selectedColor={edgeData?.[activeColorField]}
               />
               <button
                 style={styles.resetButton}

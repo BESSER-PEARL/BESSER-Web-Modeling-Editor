@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from "react"
+import React, { useCallback, useEffect, useRef, useState } from "react"
 import { CANVAS, DROPS, DropElementConfig, ZINDEX } from "@/constants"
 import { DropNodeData } from "@/types"
 import { createPortal } from "react-dom"
@@ -15,7 +15,7 @@ import {
   requiresParent,
 } from "@/utils/bpmnConstraints"
 import { POOL_HEADER_WIDTH, stackPoolLanes } from "@/hooks/useSwimlaneLayout"
-import { useDiagramStore } from "@/store/context"
+import { useDiagramStore, useDiagramStoreApi } from "@/store/context"
 import { useShallow } from "zustand/shallow"
 import { log } from "../logger"
 import { translate, useTranslation } from "@/i18n"
@@ -83,6 +83,65 @@ export const resolvePaletteDefaultData = (
 }
 
 /* ========================================================================
+   Click / keyboard insert
+   ======================================================================== */
+type InsertRect = { x: number; y: number; width: number; height: number }
+
+const INSERT_GRID_PX = 10
+const INSERT_STEP_PX = 20
+
+const rectsOverlap = (a: InsertRect, b: InsertRect) =>
+  a.x < b.x + b.width &&
+  b.x < a.x + a.width &&
+  a.y < b.y + b.height &&
+  b.y < a.y + a.height
+
+/**
+ * Top-left for a palette click/keyboard insert (develop parity,
+ * `create-pane.tsx` getInsertPosition): the centre of the visible canvas,
+ * cascaded down-right in 20 px steps until the spot (plus one step of
+ * margin) is clear of root elements, so repeated inserts don't stack.
+ * Never steps past the visible area; falls back to the centre.
+ * `view` and the result are flow coordinates. Exported for tests.
+ */
+export const getClickInsertPosition = (
+  view: InsertRect,
+  size: { width: number; height: number },
+  nodes: readonly Node[]
+): { x: number; y: number } => {
+  const snap = (v: number) => Math.round(v / INSERT_GRID_PX) * INSERT_GRID_PX
+  const start = {
+    x: snap(view.x + (view.width - size.width) / 2),
+    y: snap(view.y + (view.height - size.height) / 2),
+  }
+  const siblings = nodes.flatMap((n) => {
+    const width = n.width ?? n.measured?.width ?? 0
+    const height = n.height ?? n.measured?.height ?? 0
+    return !n.parentId && !n.hidden && width > 0 && height > 0
+      ? [{ x: n.position.x, y: n.position.y, width, height }]
+      : []
+  })
+  for (
+    let x = start.x, y = start.y;
+    x + size.width <= view.x + view.width &&
+    y + size.height <= view.y + view.height;
+    x += INSERT_STEP_PX, y += INSERT_STEP_PX
+  ) {
+    const spot = {
+      x: x - INSERT_STEP_PX,
+      y: y - INSERT_STEP_PX,
+      width: size.width + 2 * INSERT_STEP_PX,
+      height: size.height + 2 * INSERT_STEP_PX,
+    }
+    if (!siblings.some((sib) => rectsOverlap(spot, sib))) return { x, y }
+  }
+  return start
+}
+
+// A pointer that travels further than this between press and release was a drag, not a click.
+const CLICK_TOLERANCE_PX = 4
+
+/* ========================================================================
    DraggableGhost Component
    Wraps a child element with drag & drop behavior and drop logic.
    ======================================================================== */
@@ -99,12 +158,11 @@ export const DraggableGhost: React.FC<DraggableGhostProps> = ({
   const { locale } = useTranslation()
   // Hooks from react-flow and zustand store for node management
   const { screenToFlowPosition, getIntersectingNodes } = useReactFlow()
-  const { nodes, setNodes } = useDiagramStore(
-    useShallow((state) => ({
-      nodes: state.nodes,
-      setNodes: state.setNodes,
-    }))
-  )
+  const setNodes = useDiagramStore((state) => state.setNodes)
+  // Live nodes are read on drop: subscribing to them would re-render every
+  // palette item on every drag step.
+  const diagramStoreApi = useDiagramStoreApi()
+  const pointerStartRef = useRef<{ x: number; y: number } | null>(null)
 
   // Local state to track drag status, ghost position, and pointer offset
   const [isDragging, setIsDragging] = useState(false)
@@ -142,6 +200,8 @@ export const DraggableGhost: React.FC<DraggableGhostProps> = ({
       if (isOutsideCanvas) {
         return
       }
+
+      const { nodes } = diagramStoreApi.getState()
 
       // Deep clone defaultData (avoids mutating the original config) and
       // assign fresh ids to template rows — see
@@ -259,7 +319,7 @@ export const DraggableGhost: React.FC<DraggableGhostProps> = ({
       screenToFlowPosition,
       setNodes,
       getIntersectingNodes,
-      nodes,
+      diagramStoreApi,
       clickOffset.x,
       clickOffset.y,
       dropElementConfig,
@@ -268,12 +328,101 @@ export const DraggableGhost: React.FC<DraggableGhostProps> = ({
   )
 
   /* ----------------------------------------------------------------------
+     insertOnCanvas: palette click / Enter / Space. Creates the element on
+     the visible canvas (cascaded, see `getClickInsertPosition`) at the
+     canvas root and makes it the only selection (develop parity).
+     ---------------------------------------------------------------------- */
+  const insertOnCanvas = useCallback(() => {
+    // Lanes only exist inside a pool; a bare-canvas insert is a no-op, as a drop.
+    if (requiresParent(dropElementConfig.type)) return
+    const canvas = document.getElementById(`react-flow-library-${diagramId}`)
+    if (!canvas) return
+    const rect = canvas.getBoundingClientRect()
+    const left = Math.max(rect.left, 0)
+    const top = Math.max(rect.top, 0)
+    const right = Math.min(rect.right, window.innerWidth)
+    const bottom = Math.min(rect.bottom, window.innerHeight)
+    if (right <= left || bottom <= top) return
+    const topLeft = screenToFlowPosition({ x: left, y: top })
+    const bottomRight = screenToFlowPosition({ x: right, y: bottom })
+
+    const width = dropElementConfig.dropWidth ?? dropElementConfig.width
+    const height = dropElementConfig.dropHeight ?? dropElementConfig.height
+    const state = diagramStoreApi.getState()
+    const position = getClickInsertPosition(
+      {
+        x: topLeft.x,
+        y: topLeft.y,
+        width: bottomRight.x - topLeft.x,
+        height: bottomRight.y - topLeft.y,
+      },
+      { width, height },
+      state.nodes
+    )
+
+    const newNode: Node = {
+      id: generateUUID(),
+      width,
+      height,
+      type: dropElementConfig.type,
+      position,
+      data: cloneDefaultDataWithFreshRowIds(
+        resolvePaletteDefaultData(dropElementConfig, locale)
+      ),
+      measured: { width, height },
+      selected: true,
+    }
+
+    state.setNodes([
+      ...state.nodes.map((n) => (n.selected ? { ...n, selected: false } : n)),
+      newNode,
+    ])
+    if (state.edges.some((e) => e.selected)) {
+      state.setEdges(
+        state.edges.map((e) => (e.selected ? { ...e, selected: false } : e))
+      )
+    }
+    state.setSelectedElementsId([newNode.id])
+  }, [
+    diagramId,
+    diagramStoreApi,
+    dropElementConfig,
+    locale,
+    screenToFlowPosition,
+  ])
+
+  const handleClick = (event: React.MouseEvent<HTMLDivElement>) => {
+    const start = pointerStartRef.current
+    pointerStartRef.current = null
+    // detail === 0 is a keyboard-generated click; handleKeyDown already handled it.
+    if (!start || event.detail === 0) return
+    if (
+      Math.hypot(event.clientX - start.x, event.clientY - start.y) >
+      CLICK_TOLERANCE_PX
+    ) {
+      return
+    }
+    insertOnCanvas()
+    // Hand focus back to the page: a still-focused item would show its ring
+    // on the next keypress and swallow keys meant for the canvas.
+    event.currentTarget.blur()
+  }
+
+  const handleKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
+    if (event.key !== "Enter" && event.key !== " ") return
+    event.preventDefault()
+    event.stopPropagation()
+    insertOnCanvas()
+  }
+
+  /* ----------------------------------------------------------------------
      Pointer Event Handlers
      ---------------------------------------------------------------------- */
   // Initiate drag: disable scrolling and record click offset
   const handlePointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
     event.preventDefault()
     disableScroll()
+    pointerStartRef.current = { x: event.clientX, y: event.clientY }
 
     const elementRect = (event.target as HTMLElement).getBoundingClientRect()
     const offsetX = event.clientX - elementRect.left
@@ -318,6 +467,12 @@ export const DraggableGhost: React.FC<DraggableGhostProps> = ({
     }
   }, [isDragging, clickOffset, onDrop])
 
+  const paletteName = resolvePaletteDefaultData(dropElementConfig, locale)?.name
+  const paletteLabel =
+    typeof paletteName === "string" && paletteName
+      ? paletteName
+      : dropElementConfig.type
+
   /* ----------------------------------------------------------------------
      Render the ghost element via a portal when dragging
      ---------------------------------------------------------------------- */
@@ -342,7 +497,13 @@ export const DraggableGhost: React.FC<DraggableGhostProps> = ({
   return (
     <>
       <div
+        role="button"
+        tabIndex={0}
+        aria-label={paletteLabel}
+        className="besser-palette-item"
         onPointerDown={handlePointerDown}
+        onClick={handleClick}
+        onKeyDown={handleKeyDown}
         style={{
           touchAction: "none",
         }}

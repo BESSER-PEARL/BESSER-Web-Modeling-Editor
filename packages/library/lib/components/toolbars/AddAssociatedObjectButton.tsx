@@ -1,7 +1,10 @@
 import { FC, useState } from "react"
 import { Box, Button, Divider, Popover, Typography } from "@mui/material"
-import { useShallow } from "zustand/shallow"
-import { useDiagramStore, useMetadataStore } from "@/store/context"
+import {
+  useDiagramStore,
+  useDiagramStoreApi,
+  useMetadataStore,
+} from "@/store/context"
 import { dropElementConfigs } from "@/constants"
 import { useTranslation } from "@/i18n"
 import {
@@ -11,6 +14,7 @@ import {
   getAssociatedObjectTargets,
 } from "@/utils/associatedObject"
 import { AddIcon } from "../Icon"
+import { keyboardButtonProps } from "./keyboardActivation"
 
 /**
  * (+) node-toolbar action + "Add and connect to new Object" popup for
@@ -24,14 +28,12 @@ export const AddAssociatedObjectButton: FC<{ elementId: string }> = ({
   const { t } = useTranslation()
   const [anchorEl, setAnchorEl] = useState<Element | null>(null)
   const diagramType = useMetadataStore((state) => state.diagramType)
-  const { nodes, edges, setNodesAndEdges } = useDiagramStore(
-    useShallow((state) => ({
-      nodes: state.nodes,
-      edges: state.edges,
-      setNodesAndEdges: state.setNodesAndEdges,
-    }))
+  // Only this node: the toolbar is in every node, so subscribing to the whole
+  // list re-rendered all of them per drag step. The lists are read on select.
+  const sourceNode = useDiagramStore((state) =>
+    state.nodes.find((n) => n.id === elementId)
   )
-  const sourceNode = nodes.find((n) => n.id === elementId)
+  const diagramStoreApi = useDiagramStoreApi()
 
   if (
     !sourceNode ||
@@ -55,6 +57,7 @@ export const AddAssociatedObjectButton: FC<{ elementId: string }> = ({
       paletteEntries: dropElementConfigs[diagramType] ?? [],
     })
     if (created) {
+      const { nodes, edges, setNodesAndEdges } = diagramStoreApi.getState()
       setNodesAndEdges([...nodes, created.node], [...edges, created.edge])
     }
     close()
@@ -63,8 +66,7 @@ export const AddAssociatedObjectButton: FC<{ elementId: string }> = ({
   return (
     <>
       <AddIcon
-        role="button"
-        aria-label={title}
+        {...keyboardButtonProps(title)}
         data-testid={`add-associated-object-${elementId}`}
         onClick={(event) => setAnchorEl(event.currentTarget)}
         // The node toolbar is pointer-transparent (see NodeToolbar);

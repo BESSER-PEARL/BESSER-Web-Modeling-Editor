@@ -420,7 +420,10 @@ export class BesserEditor {
     callback: (state: Besser.UMLModel) => void
   ): number {
     const subscriberId = this.getNewSubscriptionId()
-    const unsubscribeCallback = this.diagramStore.subscribe(() => {
+    const unsubscribeCallback = this.diagramStore.subscribe((state) => {
+      // Mid-drag/resize every pointer move lands here; emit once the
+      // gesture ends instead of serializing the whole model per frame.
+      if (state.nodes.some((node) => node.dragging || node.resizing)) return
       callback(this.model)
       this.scheduleClearMigratedAgentComponents()
     })

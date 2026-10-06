@@ -142,6 +142,29 @@ html.dark,
   background-color: transparent;
 }
 
+/* Keyboard focus on canvas/toolbar buttons, palette items and colour swatches. */
+.react-flow__controls-button:focus-visible,
+.control-button:focus-visible,
+.control-zoom-readout:focus-visible,
+.besser-palette-item:focus-visible,
+.besser-color-swatch:focus-visible,
+.besser-canvas-button:focus-visible {
+  outline: 2px solid var(--besser-primary, #3e8acc);
+  outline-offset: 2px;
+}
+
+.besser-palette-item {
+  border-radius: 4px;
+  outline: none;
+}
+
+/* Selected swatch: an accent ring with a background gap, visible on any colour. */
+.besser-color-swatch[aria-pressed="true"] {
+  box-shadow:
+    0 0 0 2px var(--besser-background, #ffffff),
+    0 0 0 4px var(--besser-primary, #3e8acc);
+}
+
 /* Thin divider between logical control groups (zoom | history | layout | %). */
 .control-divider {
   flex: 0 0 auto;
@@ -153,6 +176,9 @@ html.dark,
 
 /* Integrated, muted zoom-percentage readout — click resets to 100%. */
 .control-zoom-readout {
+  border: none;
+  background-color: transparent;
+  font-family: inherit;
   user-select: none;
   cursor: pointer;
   display: flex;

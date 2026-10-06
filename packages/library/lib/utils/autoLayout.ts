@@ -37,8 +37,8 @@
  * Everything here is pure (no DOM, no React Flow instance) so it runs in the
  * browser and headless (`layoutModel`).
  */
-import ELK from "elkjs/lib/elk.bundled.js"
 import type {
+  ELK as ElkInstance,
   ElkExtendedEdge,
   ElkLabel,
   ElkNode,
@@ -69,6 +69,14 @@ import {
 
 export { SIDE_HANDLES, chooseFacingSides } from "./autoLayoutHandles"
 export type { HandleSide } from "./autoLayoutHandles"
+
+// ELK is ~1.3 MB, so it is loaded on first layout instead of shipping in the entry chunk.
+let elkModule: Promise<typeof import("elkjs/lib/elk.bundled.js")> | null = null
+const createElk = async (): Promise<ElkInstance> => {
+  elkModule ??= import("elkjs/lib/elk.bundled.js")
+  const { default: ELK } = await elkModule
+  return new ELK()
+}
 
 const DEFAULT_NODE_WIDTH = 160
 const DEFAULT_NODE_HEIGHT = 100
@@ -809,7 +817,7 @@ const runElk = async (input: LayoutInput): Promise<ElkResult> => {
     reversedById.set(edge.id, role.reverse)
   }
 
-  const elk = new ELK()
+  const elk = await createElk()
   const laid = await elk.layout(root)
 
   const rects = new Map<string, LayoutRect>()
@@ -1488,7 +1496,7 @@ const compactPipeline = async (
   edges: Edge[]
 ): Promise<{ nodes: Node[]; edges: Edge[] }> => {
   const prep = prepare(nodes, edges)
-  const elk = new ELK()
+  const elk = await createElk()
   const connected = new Set(prep.nodeEdges.flatMap((e) => (e.source === e.target ? [] : [e.source, e.target])))
   const ordered = modelOrder(prep.visible, "DOWN")
   const children = ordered.filter((n) => connected.has(n.id)).map((n) => ({ id: n.id, ...nodeSize(n) }))
@@ -1605,7 +1613,7 @@ const treePipeline = async (
   const reverseOk = indegOk(true)
   if (!forwardOk && !reverseOk) return layeredPipeline(nodes, edges, diagramType, "flow", "DOWN")
   const reverse = !forwardOk || (reverseOk && roots(true) < roots(false))
-  const elk = new ELK()
+  const elk = await createElk()
   const laid = await elk.layout({
     id: "__besser_tree_root__",
     layoutOptions: {

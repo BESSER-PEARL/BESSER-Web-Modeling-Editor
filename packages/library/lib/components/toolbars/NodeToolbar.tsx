@@ -8,6 +8,8 @@ import { FC, type SyntheticEvent } from "react"
 import { useShallow } from "zustand/shallow"
 import { DeleteIcon, EditIcon } from "../Icon"
 import { AddAssociatedObjectButton } from "./AddAssociatedObjectButton"
+import { keyboardButtonProps } from "./keyboardActivation"
+import { useTranslation } from "@/i18n"
 
 // Keep a press on a toolbar icon away from React Flow (upstream Apollon
 // #708): without this, pressing a button starts a pane pan / selection box
@@ -34,6 +36,7 @@ interface Props {
   showEdit?: boolean
 }
 export const NodeToolbar: FC<Props> = ({ elementId, showEdit = true }) => {
+  const { t } = useTranslation()
   const setPopOverElementId = usePopoverStore(
     useShallow((state) => state.setPopOverElementId)
   )
@@ -69,10 +72,15 @@ export const NodeToolbar: FC<Props> = ({ elementId, showEdit = true }) => {
         onTouchStartCapture={stopToolbarPointer}
         sx={{ display: "flex", gap: 1, flexDirection: "column" }}
       >
-        <DeleteIcon onClick={handleDelete} style={iconStyle} />
+        <DeleteIcon
+          {...keyboardButtonProps(t("actions.delete", "Delete"))}
+          onClick={handleDelete}
+          style={iconStyle}
+        />
 
         {showEditButton && (
           <EditIcon
+            {...keyboardButtonProps(t("actions.edit", "Edit"))}
             onClick={() => {
               setPopOverElementId(elementId)
             }}

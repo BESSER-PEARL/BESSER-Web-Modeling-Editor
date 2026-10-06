@@ -243,6 +243,9 @@ function App({ onReactFlowInit }: AppProps) {
         onNodeDoubleClick={onNodeDoubleClick}
         onEdgeDoubleClick={onEdgeDoubleClick}
         onBeforeDelete={onBeforeDelete}
+        // Keyboard deletion is owned by `useKeyboardShortcuts`, which skips
+        // focused controls (React Flow's own Backspace handler does not).
+        deleteKeyCode={null}
         onPaneClick={handlePaneClicked}
         proOptions={proOptions}
         edgesReconnectable={isDiagramModifiable}

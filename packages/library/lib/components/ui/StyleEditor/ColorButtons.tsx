@@ -1,25 +1,33 @@
 import React from "react"
+import { useTranslation } from "@/i18n"
 
 interface ColorButtonsProps {
   onSelect: (color: string) => void
+  /** Current colour; its swatch is marked pressed. */
+  selectedColor?: string
 }
 
-const COLOR_PALETTE = [
-  "#fc5c65",
-  "#fd9644",
-  "#fed330",
-  "#26de81",
-  "#2bcbba",
-  "#45aaf2",
-  "#4b7bec",
-  "#6a89cc",
-  "#a55eea",
-  "#d1d8e0",
-  "#778ca3",
-  "#000000",
+// [hex, `stylePane.colors.<key>`, English fallback] — accessible swatch names.
+const COLOR_PALETTE: [string, string, string][] = [
+  ["#fc5c65", "red", "Red"],
+  ["#fd9644", "orange", "Orange"],
+  ["#fed330", "yellow", "Yellow"],
+  ["#26de81", "green", "Green"],
+  ["#2bcbba", "teal", "Teal"],
+  ["#45aaf2", "skyBlue", "Sky blue"],
+  ["#4b7bec", "blue", "Blue"],
+  ["#6a89cc", "slateBlue", "Slate blue"],
+  ["#a55eea", "purple", "Purple"],
+  ["#d1d8e0", "lightGray", "Light gray"],
+  ["#778ca3", "gray", "Gray"],
+  ["#000000", "black", "Black"],
 ]
 
-export const ColorButtons: React.FC<ColorButtonsProps> = ({ onSelect }) => {
+export const ColorButtons: React.FC<ColorButtonsProps> = ({
+  onSelect,
+  selectedColor,
+}) => {
+  const { t } = useTranslation()
   return (
     <div
       style={{
@@ -30,8 +38,14 @@ export const ColorButtons: React.FC<ColorButtonsProps> = ({ onSelect }) => {
         justifyContent: "center",
       }}
     >
-      {COLOR_PALETTE.map((color) => (
-        <ColorButton key={color} color={color} onSelect={onSelect} />
+      {COLOR_PALETTE.map(([color, key, fallback]) => (
+        <ColorButton
+          key={color}
+          color={color}
+          onSelect={onSelect}
+          label={t(`stylePane.colors.${key}`, fallback)}
+          pressed={selectedColor?.toLowerCase() === color}
+        />
       ))}
     </div>
   )
@@ -40,11 +54,22 @@ export const ColorButtons: React.FC<ColorButtonsProps> = ({ onSelect }) => {
 interface ColorButtonProps {
   color: string
   onSelect: (color: string) => void
+  label?: string
+  pressed?: boolean
 }
 
-export const ColorButton = ({ color, onSelect }: ColorButtonProps) => (
+export const ColorButton = ({
+  color,
+  onSelect,
+  label,
+  pressed,
+}: ColorButtonProps) => (
   <button
+    type="button"
+    className="besser-color-swatch"
     onClick={() => onSelect(color)}
+    aria-label={label}
+    aria-pressed={pressed}
     style={{
       width: 28,
       height: 28,

@@ -6,6 +6,7 @@ import { useIsOnlyThisElementSelected } from "@/hooks/useIsOnlyThisElementSelect
 import { Box } from "@mui/material"
 import { useMemo } from "react"
 import { useTranslation } from "@/i18n"
+import { keyboardButtonProps } from "../keyboardActivation"
 
 /**
  * Tiny class-rect glyph for the "Attach association class" toolbar
@@ -120,6 +121,7 @@ export const CustomEdgeToolbar: React.FC<CustomEdgeToolbarProps> = ({
           }}
         >
           <Box
+            {...keyboardButtonProps(t("actions.delete", "Delete"))}
             sx={{
               width: "16px",
               height: "16px",
@@ -138,6 +140,7 @@ export const CustomEdgeToolbar: React.FC<CustomEdgeToolbarProps> = ({
           </Box>
           {showEdit && (
             <Box
+              {...keyboardButtonProps(t("actions.edit", "Edit"))}
               sx={{
                 width: "16px",
                 height: "16px",
@@ -158,7 +161,9 @@ export const CustomEdgeToolbar: React.FC<CustomEdgeToolbarProps> = ({
           {onAttachAssociationClass && (
             <Box
               title={t("toolbar.attachAssociationClass", "Attach association class")}
-              aria-label={t("toolbar.attachAssociationClass", "Attach association class")}
+              {...keyboardButtonProps(
+                t("toolbar.attachAssociationClass", "Attach association class")
+              )}
               sx={{
                 width: "16px",
                 height: "16px",

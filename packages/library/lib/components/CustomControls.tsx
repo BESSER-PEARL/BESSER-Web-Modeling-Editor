@@ -1,6 +1,10 @@
 import { useState, type MouseEvent } from "react"
 import { Controls, useReactFlow, useStore } from "@xyflow/react"
-import { useDiagramStore, useMetadataStore } from "@/store/context"
+import {
+  useDiagramStore,
+  useDiagramStoreApi,
+  useMetadataStore,
+} from "@/store/context"
 import { useShallow } from "zustand/shallow"
 import { UndoIcon } from "./Icon/UndoIcon"
 import { RedoIcon } from "./Icon/RedoIcon"
@@ -31,18 +35,20 @@ export const CustomControls = () => {
   const zoomLevelPercent = Math.round(zoomLevel * 100)
   const [isLayouting, setIsLayouting] = useState(false)
 
-  const { canUndo, canRedo, undo, redo, undoManagerExist, nodes, edges, setNodesAndEdges } = useDiagramStore(
+  // `hasNodes`, not the node list: the controls must not re-render on every
+  // drag step. Auto-layout reads the live nodes/edges when it runs.
+  const { canUndo, canRedo, undo, redo, undoManagerExist, hasNodes, setNodesAndEdges } = useDiagramStore(
     useShallow((state) => ({
       canUndo: state.canUndo,
       canRedo: state.canRedo,
       undo: state.undo,
       redo: state.redo,
       undoManagerExist: state.undoManager !== null,
-      nodes: state.nodes,
-      edges: state.edges,
+      hasNodes: state.nodes.length > 0,
       setNodesAndEdges: state.setNodesAndEdges,
     }))
   )
+  const diagramStoreApi = useDiagramStoreApi()
   const diagramType = useMetadataStore(useShallow((state) => state.diagramType))
 
   const handleUndo = () => {
@@ -57,7 +63,8 @@ export const CustomControls = () => {
   const currentStrategy = lastStrategy.get(diagramType) ?? strategies[0]
 
   const handleAutoLayout = async (strategy: AutoLayoutStrategy = currentStrategy) => {
-    if (isLayouting || nodes.length === 0) return
+    const { nodes, edges } = diagramStoreApi.getState()
+    if (isLayouting || !hasNodes) return
     setIsLayouting(true)
     try {
       lastStrategy.set(diagramType, strategy)
@@ -80,6 +87,7 @@ export const CustomControls = () => {
             <span>
               <button
                 className={`control-button ${!canUndo ? "disabled" : ""}`}
+                aria-label={t("toolbar.undo", "Undo (Ctrl+Z)")}
                 onClick={handleUndo}
                 disabled={!canUndo}
               >
@@ -99,6 +107,7 @@ export const CustomControls = () => {
             <span>
               <button
                 className={`control-button ${!canRedo ? "disabled" : ""}`}
+                aria-label={t("toolbar.redo", "Redo (Ctrl+Y or Ctrl+Shift+Z)")}
                 onClick={handleRedo}
                 disabled={!canRedo}
               >
@@ -130,15 +139,16 @@ export const CustomControls = () => {
       >
         <span>
           <button
-            className={`control-button ${isLayouting || nodes.length === 0 ? "disabled" : ""}`}
+            className={`control-button ${isLayouting || !hasNodes ? "disabled" : ""}`}
+            aria-label={t("toolbar.autoLayout", "Auto-layout diagram")}
             onClick={() => void handleAutoLayout()}
-            disabled={isLayouting || nodes.length === 0}
+            disabled={isLayouting || !hasNodes}
           >
             <AutoLayoutIcon
               width={16}
               height={16}
               fill={
-                !isLayouting && nodes.length > 0
+                !isLayouting && hasNodes
                   ? "var(--besser-primary-contrast, #000000)"
                   : "var(--besser-secondary, #6c757d)"
               }
@@ -151,11 +161,11 @@ export const CustomControls = () => {
           <Tooltip title={t("toolbar.autoLayoutOptions", "Auto-layout options")}>
             <span>
               <button
-                className={`control-button control-button--caret ${isLayouting || nodes.length === 0 ? "disabled" : ""}`}
+                className={`control-button control-button--caret ${isLayouting || !hasNodes ? "disabled" : ""}`}
                 aria-haspopup="menu"
                 aria-label={t("toolbar.autoLayoutOptions", "Auto-layout options")}
                 onClick={(e: MouseEvent<HTMLButtonElement>) => setMenuAnchor(e.currentTarget)}
-                disabled={isLayouting || nodes.length === 0}
+                disabled={isLayouting || !hasNodes}
                 style={{ width: 16, minWidth: 16 }}
               >
                 <svg width={10} height={10} viewBox="0 0 10 10" aria-hidden="true">
@@ -199,9 +209,14 @@ export const CustomControls = () => {
       {/* Zoom-percentage readout — click to reset to 100% */}
       <span className="control-divider" aria-hidden="true" />
       <Tooltip title={t("toolbar.resetZoom", "Reset zoom to 100%")}>
-        <div className="control-zoom-readout" onClick={() => zoomTo(1)}>
+        <button
+          type="button"
+          className="control-zoom-readout"
+          aria-label={t("toolbar.resetZoom", "Reset zoom to 100%")}
+          onClick={() => zoomTo(1)}
+        >
           {zoomLevelPercent}%
-        </div>
+        </button>
       </Tooltip>
     </Controls>
   )

@@ -87,7 +87,7 @@ describe("UserModelNameEditPanel — per-row style controls", () => {
     const { store } = renderPanel([nodeWithRow()])
     fireEvent.click(screen.getByLabelText("Row style"))
 
-    const iconField = screen.getByPlaceholderText("Enter icon name...")
+    const iconField = screen.getByPlaceholderText("Enter icon name…")
     fireEvent.change(iconField, { target: { value: "fluent-person" } })
     expect(getData(store).attributes[0].icon).toBe("fluent-person")
 

@@ -1,10 +1,47 @@
 import { useEffect, useRef } from "react"
-import { useDiagramStore } from "@/store/context"
+import { useDiagramStore, usePopoverStore } from "@/store/context"
+import { useMetadataStore } from "@/store"
+import { BesserMode } from "@/typings"
 import { useShallow } from "zustand/shallow"
 import { useSelectionForCopyPaste } from "./useSelectionForCopyPaste"
 import { useDiagramModifiable } from "./useDiagramModifiable"
 
 const ARROW_NUDGE_PX = 10
+const ARROW_NUDGE_SHIFT_PX = 50
+
+// Focused controls keep their own keys: Backspace on a colour swatch must not
+// delete the element, arrows in a listbox must not move it.
+const CONTROL_SELECTOR = [
+  "button",
+  '[role="button"]',
+  '[role="option"]',
+  '[role="listbox"]',
+  '[role="menuitem"]',
+  '[role="slider"]',
+  '[contenteditable]:not([contenteditable="false"])',
+].join(",")
+
+// React Flow gives focusable nodes/edges role="button"; they are the canvas, not a control.
+const CANVAS_ELEMENT_SELECTOR =
+  ".react-flow__node, .react-flow__edge, .react-flow__nodesselection-rect"
+
+// The properties panel and popovers own every key pressed inside them.
+const POPUP_SELECTOR = '.besser-properties-panel, .MuiPopover-root, [role="dialog"]'
+
+export const isTextEntryTarget = (target: HTMLElement): boolean =>
+  target.tagName === "INPUT" ||
+  target.tagName === "TEXTAREA" ||
+  target.tagName === "SELECT" ||
+  target.isContentEditable
+
+export const isInPopup = (target: HTMLElement): boolean =>
+  !!target.closest?.(POPUP_SELECTOR)
+
+export const isControlTarget = (target: HTMLElement): boolean => {
+  if (isInPopup(target)) return true
+  const control = target.closest?.(CONTROL_SELECTOR)
+  return !!control && !control.matches(CANVAS_ELEMENT_SELECTOR)
+}
 
 export const useKeyboardShortcuts = () => {
   const pasteCountRef = useRef(0)
@@ -21,7 +58,16 @@ export const useKeyboardShortcuts = () => {
         setNodes: state.setNodes,
       }))
     )
+  const setPopOverElementId = usePopoverStore(
+    (state) => state.setPopOverElementId
+  )
+  const { mode, readonly } = useMetadataStore(
+    useShallow((state) => ({ mode: state.mode, readonly: state.readonly }))
+  )
   const isDiagramModifiable = useDiagramModifiable()
+  // Same gate as double-click (`useElementInteractions`).
+  const canOpenPopover =
+    isDiagramModifiable || (mode === BesserMode.Assessment && !readonly)
   const {
     selectedElementIds,
     hasSelectedElements,
@@ -35,87 +81,92 @@ export const useKeyboardShortcuts = () => {
 
   useEffect(() => {
     const handleKeyDown = async (event: KeyboardEvent) => {
-      // Check if we're in an input field or textarea
       const target = event.target as HTMLElement
-      if (
-        target.tagName === "INPUT" ||
-        target.tagName === "TEXTAREA" ||
-        target.isContentEditable
-      ) {
+      if (isTextEntryTarget(target)) {
         return
       }
+      const inControl = isControlTarget(target)
+      const modifier = event.ctrlKey || event.metaKey
+      // Normalize letters so Shift / Caps Lock don't change the shortcut.
+      const key = event.key.length === 1 ? event.key.toLowerCase() : event.key
 
       // Let the browser handle Ctrl/Cmd+C when the user has a real text
       // selection (e.g. chat messages, tooltips, SVG labels that aren't
       // editable inputs) instead of intercepting it for diagram-element copy.
-      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "c") {
+      if (modifier && key === "c") {
         const selection = window.getSelection()
         if (selection && selection.toString().length > 0) {
           return
         }
       }
 
-      if (event.key === "Escape") {
-        event.preventDefault()
-        clearSelection()
-        return
-      }
-
-      if (event.key === "Delete" || event.key === "Backspace") {
-        if (!isDiagramModifiable) return
-        event.preventDefault()
-        if (hasSelectedElements()) {
-          deleteSelectedElements()
+      if (key === "Escape") {
+        if (!modifier && !isInPopup(target)) {
+          event.preventDefault()
+          clearSelection()
         }
         return
       }
 
-      if (
-        !event.ctrlKey &&
-        !event.metaKey &&
-        !event.altKey &&
-        !event.shiftKey &&
-        (event.key === "ArrowUp" ||
-          event.key === "ArrowDown" ||
-          event.key === "ArrowLeft" ||
-          event.key === "ArrowRight")
-      ) {
-        if (!isDiagramModifiable) return
-        if (!hasSelectedElements()) return
-        event.preventDefault()
-        const dx =
-          event.key === "ArrowLeft"
-            ? -ARROW_NUDGE_PX
-            : event.key === "ArrowRight"
-              ? ARROW_NUDGE_PX
-              : 0
-        const dy =
-          event.key === "ArrowUp"
-            ? -ARROW_NUDGE_PX
-            : event.key === "ArrowDown"
-              ? ARROW_NUDGE_PX
-              : 0
-        const selected = new Set(selectedElementIds)
-        setNodes(
-          nodes.map((n) =>
-            selected.has(n.id)
-              ? {
-                  ...n,
-                  position: { x: n.position.x + dx, y: n.position.y + dy },
-                }
-              : n
+      if (!modifier && !event.altKey && !inControl) {
+        if (key === "Delete" || key === "Backspace") {
+          if (!isDiagramModifiable) return
+          event.preventDefault()
+          if (hasSelectedElements()) {
+            deleteSelectedElements()
+          }
+          return
+        }
+
+        if (
+          key === "ArrowUp" ||
+          key === "ArrowDown" ||
+          key === "ArrowLeft" ||
+          key === "ArrowRight"
+        ) {
+          if (!isDiagramModifiable) return
+          if (!hasSelectedElements()) return
+          event.preventDefault()
+          // This listener runs in the capture phase; stop React Flow's own
+          // focused-node arrow handler from moving the selection a second time.
+          event.stopPropagation()
+          const step = event.shiftKey ? ARROW_NUDGE_SHIFT_PX : ARROW_NUDGE_PX
+          const dx =
+            key === "ArrowLeft" ? -step : key === "ArrowRight" ? step : 0
+          const dy = key === "ArrowUp" ? -step : key === "ArrowDown" ? step : 0
+          const selected = new Set(selectedElementIds)
+          setNodes(
+            nodes.map((n) =>
+              selected.has(n.id)
+                ? {
+                    ...n,
+                    position: { x: n.position.x + dx, y: n.position.y + dy },
+                  }
+                : n
+            )
           )
-        )
-        return
+          return
+        }
+
+        // Same as double-click: open the single selected element's
+        // properties. Only from the page body or the canvas, so Enter on
+        // other controls keeps its meaning.
+        if (key === "Enter" && !event.shiftKey) {
+          const fromCanvas =
+            target === document.body || !!target.closest?.(".react-flow")
+          if (fromCanvas && canOpenPopover && selectedElementIds.length === 1) {
+            event.preventDefault()
+            setPopOverElementId(selectedElementIds[0])
+          }
+          return
+        }
       }
 
-      const isModifierPressed = event.ctrlKey || event.metaKey
-
-      if (!isModifierPressed) return
+      if (!modifier) return
 
       if (!isDiagramModifiable) return
 
-      switch (event.key.toLowerCase()) {
+      switch (key) {
         case "z":
           event.preventDefault()
           if (event.shiftKey) {
@@ -126,10 +177,8 @@ export const useKeyboardShortcuts = () => {
           break
 
         case "y":
-          if (!event.shiftKey) {
-            event.preventDefault()
-            redo()
-          }
+          event.preventDefault()
+          redo()
           break
 
         case "a":
@@ -186,9 +235,10 @@ export const useKeyboardShortcuts = () => {
       }
     }
 
-    document.addEventListener("keydown", handleKeyDown)
+    // Capture phase, so an arrow nudge runs before React Flow's node handler.
+    document.addEventListener("keydown", handleKeyDown, true)
     return () => {
-      document.removeEventListener("keydown", handleKeyDown)
+      document.removeEventListener("keydown", handleKeyDown, true)
     }
   }, [
     undo,
@@ -205,6 +255,8 @@ export const useKeyboardShortcuts = () => {
     pasteElements,
     deleteSelectedElements,
     isDiagramModifiable,
+    canOpenPopover,
+    setPopOverElementId,
     nodes,
     setNodes,
   ])

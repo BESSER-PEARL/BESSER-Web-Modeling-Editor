@@ -603,7 +603,7 @@ describe("ClassEditPanel — type-aware default-value widgets", () => {
         ],
       }),
     ])
-    const input = screen.getByPlaceholderText("Enter integer...")
+    const input = screen.getByPlaceholderText("Enter integer…")
     fireEvent.change(input, { target: { value: "12a-" } })
 
     expect(getAttr(store).defaultValue).toBe("12-")
