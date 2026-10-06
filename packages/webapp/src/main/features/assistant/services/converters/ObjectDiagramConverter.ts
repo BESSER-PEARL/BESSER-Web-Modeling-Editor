@@ -10,10 +10,9 @@
  *   - links are `ObjectLink` edges.
  *
  * Display name format: `data.name` is just the instance name (no
- * "instanceName: ClassName" suffix) when `classId` links the object to a
- * class — the inspector resolves the className via the bridge. Without a
- * classId we embed "instance: Class" in `data.name` so the canvas still
- * shows something useful (same convention as ObjectDiagramModifier).
+ * "instanceName: ClassName" suffix); the header appends ` : ClassName`
+ * from `classId` (bridge) or the cached `data.className` (same convention
+ * as ObjectDiagramModifier).
  */
 
 import type { BesserEdge, BesserNode } from '@besser/wme';
@@ -57,9 +56,9 @@ export class ObjectDiagramConverter implements DiagramConverter {
     const totalHeight = baseHeight + attributes.length * 30;
 
     const data: Record<string, unknown> = {
-      // When classId is set the inspector resolves " : ClassName" from the
-      // class-diagram bridge, so `.name` must hold ONLY the instance name.
-      name: spec.classId ? objectName : (spec.className ? `${objectName}: ${spec.className}` : objectName),
+      // The header appends " : ClassName" (bridge or `className`), so
+      // `.name` must hold ONLY the instance name.
+      name: objectName,
       attributes,
     };
     if (spec.classId) data.classId = spec.classId;

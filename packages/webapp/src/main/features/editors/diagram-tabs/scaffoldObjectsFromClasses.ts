@@ -103,12 +103,10 @@ const firstEnumLiteral = (
   const enumNode = (classModel.nodes ?? []).find((n: any) => {
     const data = (n.data as any) || {};
     // Stereotype is PascalCase per the canonical enum
-    // (`ClassType.Enumeration === 'Enumeration'`). The previous
-    // lowercase compare never matched, so enum-typed attributes silently
-    // fell back to `fallbackForType` instead of resolving the first
-    // literal.
+    // (`ClassType.Enumeration === 'Enumeration'`); older data may be
+    // lowercase, so compare case-insensitively.
     const isEnumNode =
-      n.type === 'class' && data.stereotype === 'Enumeration';
+      n.type === 'class' && String(data.stereotype ?? '').toLowerCase() === 'enumeration';
     // Tolerate v3-shaped leaks where `n.type === 'Enumeration'`.
     const isLegacyEnum = n.type === 'Enumeration';
     return (isEnumNode || isLegacyEnum) && data.name === enumName;
@@ -377,9 +375,8 @@ export const scaffoldObjectsFromClasses = ({
       const value = seedValue(attr, classModel);
       return {
         id: newId('attr'),
-        name: value !== undefined && value !== null && String(value).length > 0
-          ? `${attr.name} = ${value}`
-          : attr.name,
+        // Bare name: the object row renders "name = value" from `value` itself.
+        name: attr.name,
         attributeType: attr.attributeType ?? 'str',
         // Back-pointer to the source class attribute so future edits in
         // the class diagram can be reconciled if we ever add a sync

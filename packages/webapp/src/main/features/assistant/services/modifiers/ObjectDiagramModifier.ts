@@ -14,9 +14,8 @@
  *
  * Display name format: `data.name` is just the instance name (no
  * "instanceName: ClassName" suffix); the render layer appends the
- * className via the bridge using `data.classId`. If no `classId` is
- * supplied we fall back to embedding "instance: Class" in `data.name`
- * since the render layer has nothing to look up.
+ * className via the bridge using `data.classId`, falling back to the
+ * cached `data.className`. Attribute rows keep `name` and `value` apart.
  */
 import type { BesserEdge, BesserNode } from '@besser/wme';
 import { DiagramModifier, ModelModification, ModifierHelpers } from './base';
@@ -130,6 +129,7 @@ export class ObjectDiagramModifier implements DiagramModifier {
         const data = (n.data as any) || {};
         if (
           (requestedClassId && data.classId === requestedClassId) ||
+          (className && data.className === className) ||
           (typeof data.name === 'string' && data.name.includes(`: ${className}`))
         ) {
           count++;
@@ -148,12 +148,11 @@ export class ObjectDiagramModifier implements DiagramModifier {
       value?: string;
       attributeId?: string;
     }>;
+    // The library renders `name = value` from the two fields.
     const attributeRows: ObjectAttributeRow[] = attrSpecs.map((attr) => {
       const row: ObjectAttributeRow = {
         id: ModifierHelpers.generateUniqueId('attr'),
-        name: attr.value !== undefined && attr.value !== null && String(attr.value).length > 0
-          ? `${attr.name} = ${attr.value}`
-          : attr.name,
+        name: attr.name,
         attributeType: attr.type || 'str',
       };
       if (attr.attributeId) row.attributeId = attr.attributeId;
@@ -161,18 +160,13 @@ export class ObjectDiagramModifier implements DiagramModifier {
       return row;
     });
 
-    // Display name: when classId is set, `data.name` holds just the
-    // instance name (the render layer appends `: ClassName` via the
-    // bridge). Without classId, embed "instance: Class" so the canvas
-    // still shows something useful.
-    const displayName = requestedClassId ? objectName : (className ? `${objectName}: ${className}` : objectName);
-
     const baseHeight = 80;
     const totalHeight = baseHeight + attributeRows.length * 30;
     const width = 240;
 
     const nodeData: Record<string, unknown> = {
-      name: displayName,
+      // Instance name only: the header appends ` : ClassName` itself.
+      name: objectName,
       attributes: attributeRows,
       methods: [],
     };
@@ -228,7 +222,7 @@ export class ObjectDiagramModifier implements DiagramModifier {
     for (const row of rows) {
       const rowName = (row.name || '').split('=')[0].trim();
       if (rowName === attributeName || rowName.toLowerCase() === targetLower) {
-        row.name = `${attributeName} = ${newValue}`;
+        row.name = rowName;
         row.value = newValue as any;
         found = true;
         break;

@@ -17,6 +17,25 @@ import type { BesserNode } from '@besser/wme';
 /** All v4 class-like node types live under `node.type === 'class'`. */
 export const CLASS_NODE_TYPE = 'class';
 
+/** Canonical `data.stereotype` values (the library's `ClassType` casing). */
+export const CLASS_STEREOTYPE = {
+  Abstract: 'Abstract',
+  Interface: 'Interface',
+  Enumeration: 'Enumeration',
+} as const;
+
+/** Case-insensitive stereotype test; older data may carry lowercase values. */
+export function isStereotype(value: unknown, stereotype: string): boolean {
+  return typeof value === 'string' && value.toLowerCase() === stereotype.toLowerCase();
+}
+
+/** Map a known stereotype to `ClassType` casing; freeform values pass through. */
+export function canonicalStereotype(value: unknown): unknown {
+  if (typeof value !== 'string') return value;
+  const known = Object.values(CLASS_STEREOTYPE).find((s) => isStereotype(value, s));
+  return known ?? value;
+}
+
 /** Empty canonical v4 model envelope for a given diagram type. */
 export function createEmptyV4Model(type: string, title: string = ''): Record<string, any> {
   return {

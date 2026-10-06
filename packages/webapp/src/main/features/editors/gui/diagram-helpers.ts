@@ -51,8 +51,9 @@ function getAgentDiagramModel() {
 function isPlainOrAbstractClassNode(node: any): boolean {
   if (!node) return false;
   if (node.type === 'class') {
+    // ClassType casing ('Abstract'); older data may be lowercase.
     const stereo = node?.data?.stereotype;
-    return !stereo || stereo === 'abstract';
+    return !stereo || String(stereo).toLowerCase() === 'abstract';
   }
   return node.type === 'Class' || node.type === 'AbstractClass';
 }

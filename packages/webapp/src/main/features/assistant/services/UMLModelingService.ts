@@ -655,8 +655,8 @@ export class UMLModelingService {
 
     return {
       ...cur,
-      nodes: [...baseNodes, ...newNodes],
-      edges: [...baseEdges, ...newEdges],
+      nodes: mergeById(baseNodes, newNodes),
+      edges: mergeById(baseEdges, newEdges),
       ...(hasComponents && { components: { ...(cur.components ?? {}), ...newComponents } }),
     } as BESSERModel;
   }
@@ -668,10 +668,18 @@ export class UMLModelingService {
     const cur = currentModel as any;
     return {
       ...cur,
-      nodes: [...(cur.nodes ?? []), ...((systemData?.nodes as BesserNode[]) ?? [])],
-      edges: [...(cur.edges ?? []), ...((systemData?.edges as BesserEdge[]) ?? [])],
+      nodes: mergeById(cur.nodes ?? [], (systemData?.nodes as BesserNode[]) ?? []),
+      edges: mergeById(cur.edges ?? [], (systemData?.edges as BesserEdge[]) ?? []),
       // AgentDiagram: off-canvas components (intents, LLMs, …) merge by id.
       ...(systemData?.components && { components: { ...(cur.components ?? {}), ...systemData.components } }),
     } as BESSERModel;
   }
+}
+
+/** Merge by id like develop's v3 element maps: a reused id replaces in place. */
+function mergeById<T extends { id: string }>(base: T[], incoming: T[]): T[] {
+  const incomingById = new Map(incoming.map((item) => [item.id, item]));
+  const merged = base.map((item) => incomingById.get(item.id) ?? item);
+  const baseIds = new Set(base.map((item) => item.id));
+  return [...merged, ...incoming.filter((item) => !baseIds.has(item.id))];
 }

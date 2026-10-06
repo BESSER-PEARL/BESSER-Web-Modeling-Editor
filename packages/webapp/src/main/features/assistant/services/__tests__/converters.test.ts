@@ -123,7 +123,7 @@ describe('ClassDiagramConverter (v4)', () => {
     const model = converter.convertCompleteSystem(systemSpec);
     const shape = nodeByName(model, 'Shape');
     expect(shape.type).toBe('class');
-    expect(shape.data.stereotype).toBe('abstract');
+    expect(shape.data.stereotype).toBe('Abstract');
     expect(shape.data.italic).toBe(true);
   });
 
@@ -418,8 +418,9 @@ describe('ObjectDiagramConverter (v4)', () => {
     // Attribute rows are NOT separate nodes in v4.
     expect(nodesByType(model, 'objectAttribute')).toHaveLength(0);
 
-    const book = nodeByName(model, 'book1: Book');
+    const book = nodeByName(model, 'book1');
     expect(book).toBeDefined();
+    expect(book.data.className).toBe('Book');
     expect(book.data.attributes).toHaveLength(1);
     expect(book.data.attributes[0]).toMatchObject({
       name: 'title',
@@ -441,7 +442,7 @@ describe('ObjectDiagramConverter (v4)', () => {
     expect(model.edges).toHaveLength(1);
     const link = model.edges[0];
     expect(link.type).toBe('ObjectLink');
-    expect(link.source).toBe(nodeByName(model, 'book1: Book').id);
+    expect(link.source).toBe(nodeByName(model, 'book1').id);
     expect(link.target).toBe(nodeByName(model, 'author1').id);
     expect(link.data).toMatchObject({ name: 'writtenBy', label: 'writtenBy' });
   });

@@ -262,9 +262,16 @@ export class AgentDiagramConverter implements DiagramConverter {
     if (spec.type === 'intent' || spec.intentBodies) {
       return { nodes: [], edges: [], components: buildIntentComponents(spec).components };
     }
+    if (spec.type === 'initial') {
+      // v4 marks the entry state with `data.initial`; a bare StateInitialNode
+      // (no init edge) is dropped by the library on load, so say so instead.
+      throw new Error(
+        'The initial state of an agent is a property of a state. Ask to connect "initial" to a state, ' +
+          'or tick "Initial state" on the state.',
+      );
+    }
     const pos = position || this.positionGenerator.getNextPosition();
-    const node = spec.type === 'initial' ? this.createInitialNode(pos) : this.createStateNode(spec, pos);
-    return { nodes: [node], edges: [], components: {} };
+    return { nodes: [this.createStateNode(spec, pos)], edges: [], components: {} };
   }
 
   private createInitialNode(pos: { x: number; y: number }): BesserNode {
@@ -433,5 +440,6 @@ export function buildTransitionConditionData(transition: any): Record<string, un
       predefined: { predefinedType: 'when_intent_matched', intentName: transition.intentName },
     };
   }
-  return { transitionType: 'predefined', predefined: { predefinedType: 'auto' } };
+  // No condition: develop left the type unset, which reads as when_intent_matched.
+  return { transitionType: 'predefined', predefined: { predefinedType: 'when_intent_matched', intentName: '' } };
 }

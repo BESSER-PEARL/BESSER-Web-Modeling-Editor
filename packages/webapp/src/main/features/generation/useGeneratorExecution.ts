@@ -151,7 +151,7 @@ function didValidationPass(result: any): boolean {
 
 // ─── Model metrics for analytics ────────────────────────────────────────────
 
-function getModelMetrics(project: BesserProject | undefined): Record<string, number> {
+export function getModelMetrics(project: BesserProject | undefined): Record<string, number> {
   const empty = { elements_count: 0, classes_count: 0, abstract_classes_count: 0, attributes_count: 0, methods_count: 0, enumerations_count: 0, relationships_count: 0, total_size: 0 };
   if (!project) return empty;
   const diagram = getActiveDiagram(project, project.currentDiagramType);
@@ -164,12 +164,14 @@ function getModelMetrics(project: BesserProject | undefined): Record<string, num
   const nodes: any[] = Array.isArray(model.nodes) ? model.nodes : [];
   const countByType = (types: string[]) => nodes.filter((n) => types.includes(n.type)).length;
 
-  // v4 'class' nodes carry a `data.stereotype` discriminator: 'abstract',
-  // 'interface', 'enumeration', or null/undefined for a plain Class.
+  // v4 'class' nodes carry a `data.stereotype` discriminator: 'Abstract',
+  // 'Interface', 'Enumeration' (ClassType casing; older data may be
+  // lowercase), or null/undefined for a plain Class.
   const classNodes = nodes.filter((n) => n.type === 'class');
+  const stereotypeOf = (n: any): string => String(n?.data?.stereotype ?? '').toLowerCase();
   const classesCount = classNodes.filter((n) => !n?.data?.stereotype).length;
-  const abstractClassesCount = classNodes.filter((n) => n?.data?.stereotype === 'abstract').length;
-  const enumerationsCount = classNodes.filter((n) => n?.data?.stereotype === 'enumeration').length;
+  const abstractClassesCount = classNodes.filter((n) => stereotypeOf(n) === 'abstract').length;
+  const enumerationsCount = classNodes.filter((n) => stereotypeOf(n) === 'enumeration').length;
   // Fall back to counting v3-style standalone attribute/method nodes if the migrator
   // ever leaves them around (it shouldn't) — defensive against partial models.
   const attributesCount =

@@ -7,9 +7,11 @@
  *   - All classifiers (Class, AbstractClass, Interface, Enumeration) collapse
  *     into a single `node.type === 'class'` discriminated by `data.stereotype`:
  *       null/undefined → plain Class
- *       'abstract'     → AbstractClass
- *       'interface'    → Interface
- *       'enumeration'  → Enumeration
+ *       'Abstract'     → AbstractClass
+ *       'Interface'    → Interface
+ *       'Enumeration'  → Enumeration
+ *     (the library's `ClassType` casing; compare case-insensitively, older
+ *     data may carry lowercase values)
  *   - Attributes / methods are NOT separate nodes — they are inline rows on
  *     `node.data.attributes` / `node.data.methods` (ClassifierMember[]).
  *   - Edges follow `edge.source` / `edge.target` (node ids), with role &
@@ -23,7 +25,10 @@ import { BESSERModel } from '../UMLModelingService';
 import { normalizeType } from '../shared/typeNormalization';
 import {
   CLASS_NODE_TYPE,
+  CLASS_STEREOTYPE,
   buildClassNode as buildSharedClassNode,
+  canonicalStereotype,
+  isStereotype,
   recalculateClassNodeHeight,
 } from '../shared/v4Builders';
 
@@ -211,14 +216,14 @@ export class ClassDiagramModifier implements DiagramModifier {
     const classId = ModifierHelpers.generateUniqueId('class');
 
     let stereotype: string | null = null;
-    if ((modification.changes as any)?.isAbstract ?? (modification as any).isAbstract) stereotype = 'abstract';
-    else if ((modification.changes as any)?.isInterface ?? (modification as any).isInterface) stereotype = 'interface';
-    else if ((modification.changes as any)?.isEnumeration ?? (modification as any).isEnumeration) stereotype = 'enumeration';
+    if ((modification.changes as any)?.isAbstract ?? (modification as any).isAbstract) stereotype = CLASS_STEREOTYPE.Abstract;
+    else if ((modification.changes as any)?.isInterface ?? (modification as any).isInterface) stereotype = CLASS_STEREOTYPE.Interface;
+    else if ((modification.changes as any)?.isEnumeration ?? (modification as any).isEnumeration) stereotype = CLASS_STEREOTYPE.Enumeration;
 
     const node = this.buildClassNode({ id: classId, name: className, stereotype, x: posX, y: posY });
 
     // Italic flag is a render-time hint; preserve for backward compat with tests that read it.
-    if (stereotype === 'abstract' || stereotype === 'interface') {
+    if (stereotype === CLASS_STEREOTYPE.Abstract || stereotype === CLASS_STEREOTYPE.Interface) {
       (node.data as any).italic = true;
     }
 
@@ -297,33 +302,34 @@ export class ClassDiagramModifier implements DiagramModifier {
 
     // v4 keeps `node.type === 'class'` for every classifier; only the
     // `data.stereotype` discriminator (and italic render hint) changes.
+    // `isAbstract: false` resets to a plain class whatever the stereotype (develop).
     if (typeof changes.isAbstract === 'boolean') {
       data.italic = changes.isAbstract;
       if (changes.isAbstract) {
-        data.stereotype = 'abstract';
-      } else if (data.stereotype === 'abstract') {
+        data.stereotype = CLASS_STEREOTYPE.Abstract;
+      } else {
         delete data.stereotype;
       }
     }
     if (typeof changes.isEnumeration === 'boolean') {
       if (changes.isEnumeration) {
-        data.stereotype = 'enumeration';
+        data.stereotype = CLASS_STEREOTYPE.Enumeration;
         delete data.italic;
-      } else if (data.stereotype === 'enumeration') {
+      } else if (isStereotype(data.stereotype, CLASS_STEREOTYPE.Enumeration)) {
         delete data.stereotype;
       }
     }
     if (typeof changes.isInterface === 'boolean') {
       if (changes.isInterface) {
-        data.stereotype = 'interface';
+        data.stereotype = CLASS_STEREOTYPE.Interface;
         data.italic = true;
-      } else if (data.stereotype === 'interface') {
+      } else if (isStereotype(data.stereotype, CLASS_STEREOTYPE.Interface)) {
         delete data.stereotype;
         delete data.italic;
       }
     }
     if (changes.stereotype !== undefined) {
-      data.stereotype = changes.stereotype;
+      data.stereotype = canonicalStereotype(changes.stereotype);
     }
 
     return model;
@@ -780,16 +786,35 @@ export class ClassDiagramModifier implements DiagramModifier {
       throw new Error(`add_ocl_constraint: class '${className}' not found in the model.`);
     }
 
-    // Per the v4 spec, OCL constraints collapse into the parent class as
-    // `data.oclConstraints` rows. This is the canonical form.
-    const data = classNode.data as any;
-    if (!Array.isArray(data.oclConstraints)) data.oclConstraints = [];
+    // A visible ClassOCLConstraint box linked to its class, as the converter
+    // emits (rows on `data.oclConstraints` are not rendered or editable).
     const constraintId = ModifierHelpers.generateUniqueId('ocl');
-    data.oclConstraints.push({
+    const width = 240;
+    const height = 80;
+    ModifierHelpers.addNode(model, {
       id: constraintId,
-      name: 'OCL',
-      expression: constraintText,
-      description: (modification.changes?.text || '').trim() || '',
+      type: 'ClassOCLConstraint' as any,
+      position: {
+        x: (classNode.position?.x ?? 0) + (classNode.width ?? 220) + 80,
+        y: classNode.position?.y ?? 0,
+      },
+      width,
+      height,
+      measured: { width, height },
+      data: {
+        name: 'OCL',
+        expression: constraintText,
+        description: (modification.changes?.text || '').trim() || '',
+      },
+    });
+    ModifierHelpers.addEdge(model, {
+      id: ModifierHelpers.generateUniqueId('ocllink'),
+      source: constraintId,
+      target: classNode.id,
+      type: 'ClassOCLLink' as any,
+      sourceHandle: 'left',
+      targetHandle: 'right',
+      data: { points: [] } as any,
     });
     return model;
   }
@@ -1065,7 +1090,7 @@ export class ClassDiagramModifier implements DiagramModifier {
     }
 
     const enumId = ModifierHelpers.generateUniqueId('enum');
-    const node = this.buildClassNode({ id: enumId, name: enumName, stereotype: 'enumeration', x: posX, y: posY });
+    const node = this.buildClassNode({ id: enumId, name: enumName, stereotype: CLASS_STEREOTYPE.Enumeration, x: posX, y: posY });
     (node.data as any).attributes = values.map((v) => ({
       id: ModifierHelpers.generateUniqueId('literal'),
       name: v,

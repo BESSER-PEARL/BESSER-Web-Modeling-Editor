@@ -73,7 +73,7 @@ describe('ClassDiagramModifier', () => {
       expect(classes[0].data.stereotype).toBeUndefined();
     });
 
-    it('stamps stereotype "abstract" when isAbstract is true', () => {
+    it('stamps stereotype "Abstract" when isAbstract is true', () => {
       const model = makeEmptyModel();
       const mod: ModelModification = {
         action: 'add_class',
@@ -87,10 +87,10 @@ describe('ClassDiagramModifier', () => {
       expect(classes).toHaveLength(1);
       expect(classes[0].data.name).toBe('Shape');
       expect(classes[0].data.italic).toBe(true);
-      expect(classes[0].data.stereotype).toBe('abstract');
+      expect(classes[0].data.stereotype).toBe('Abstract');
     });
 
-    it('stamps stereotype "enumeration" when isEnumeration is true', () => {
+    it('stamps stereotype "Enumeration" when isEnumeration is true', () => {
       const model = makeEmptyModel();
       const mod: ModelModification = {
         action: 'add_class',
@@ -103,7 +103,7 @@ describe('ClassDiagramModifier', () => {
       const classes = nodesByType(result, 'class');
       expect(classes).toHaveLength(1);
       expect(classes[0].data.name).toBe('Color');
-      expect(classes[0].data.stereotype).toBe('enumeration');
+      expect(classes[0].data.stereotype).toBe('Enumeration');
     });
   });
 
@@ -426,13 +426,14 @@ describe('ObjectDiagramModifier', () => {
 
       const objects = nodesByType(result, 'objectName');
       expect(objects).toHaveLength(1);
-      expect(objects[0].data.name).toBe('order1: Order');
+      expect(objects[0].data.name).toBe('order1');
+      expect(objects[0].data.className).toBe('Order');
 
       const attrs = objects[0].data.attributes;
       expect(attrs).toHaveLength(2);
-      expect(attrs[0].name).toBe('id = 42');
+      expect(attrs[0].name).toBe('id');
       expect(attrs[0].value).toBe('42');
-      expect(attrs[1].name).toBe('total = 99.9');
+      expect(attrs[1].name).toBe('total');
       expect(attrs[1].value).toBe('99.9');
     });
 
@@ -448,7 +449,7 @@ describe('ObjectDiagramModifier', () => {
 
       const objects = nodesByType(result, 'objectName');
       expect(objects).toHaveLength(1);
-      expect(objects[0].data.name).toBe('empty1: Foo');
+      expect(objects[0].data.name).toBe('empty1');
       expect(objects[0].data.attributes).toEqual([]);
     });
   });

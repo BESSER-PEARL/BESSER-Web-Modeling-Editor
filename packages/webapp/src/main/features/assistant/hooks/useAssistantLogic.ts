@@ -34,7 +34,6 @@ import {
 } from './assistantConversationStore';
 import { UML_BOT_WS_URL, bugReportRepo } from '../../../shared/constants/constant';
 import { useAppDispatch, useAppSelector } from '../../../app/store/hooks';
-import { useProject } from '../../../app/hooks/useProject';
 import type { RootState } from '../../../app/store/store';
 import {
   updateDiagramModelThunk,
@@ -43,8 +42,6 @@ import {
   selectProject,
   selectProjectId,
   loadProjectThunk,
-  addDiagramThunk,
-  switchDiagramIndexThunk,
   addAndSwitchDiagramThunk,
   bumpEditorRevision,
 } from '../../../app/store/workspaceSlice';
@@ -443,7 +440,7 @@ export function useAssistantLogic({
       const model = selectActiveDiagram(store.getState())?.model;
       if (model === lastModel) return;
       lastModel = model;
-      // The stored model is v4; getCurrentModel() converts back to v3 when it reads via editor.model.
+      // The stored model is v4, the same format the modeling service works on.
       if (model && isUMLModel(model)) modelingService.updateCurrentModel(model as any);
     };
     syncModel();

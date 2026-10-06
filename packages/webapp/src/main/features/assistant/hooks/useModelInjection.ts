@@ -9,7 +9,7 @@
  *  - `undoAvailable` state
  */
 
-import { useCallback, useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import { toast } from 'react-toastify';
 import type { Message as ChatKitMessage } from '@/components/chatbot-kit/ui/chat-message';
 import type { AppDispatch } from '../../../app/store/store';
@@ -126,10 +126,14 @@ function getModelBounds(model: any): ModelBounds | null {
  * init, so an editor build without the method or a not-yet-ready instance
  * is a silent no-op — only in-place `modify_model` updates lose the
  * re-centre until the library exposes it.
+ *
+ * The editor is resolved when the timer fires: the assistant handlers keep
+ * the first render's `handleInjection`, whose captured editor is stale.
  */
-function centerEditorViewport(editor: any, delayMs = 200): void {
+function centerEditorViewport(getEditor: () => any, delayMs = 200): void {
   setTimeout(() => {
     try {
+      const editor = getEditor();
       if (editor && typeof editor.fitView === 'function') {
         editor.fitView({ padding: 0.1, duration: 300, maxZoom: 1.0 });
       }
@@ -254,6 +258,8 @@ export function useModelInjection({
   onModelApplied,
 }: UseModelInjectionOptions): UseModelInjectionReturn {
   const [undoAvailable, setUndoAvailable] = useState(false);
+  const editorRef = useRef(editor);
+  editorRef.current = editor;
 
   /* ---- undo state sync ---- */
 
@@ -620,7 +626,7 @@ export function useModelInjection({
           applied = true;
           appliedModel = newModel;
           if (shouldCenterViewportAfterInjection(command, currentModel, newModel)) {
-            centerEditorViewport(editor);
+            centerEditorViewport(() => editorRef.current);
           }
         }
       }

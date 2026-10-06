@@ -14,7 +14,7 @@
 import type { BesserEdge, BesserNode } from '@besser/wme';
 import { DiagramConverter, PositionGenerator, generateUniqueId } from './base';
 import { normalizeType } from '../shared/typeNormalization';
-import { buildClassNode, classNodeHeight, createEmptyV4Model, directionToHandle } from '../shared/v4Builders';
+import { CLASS_STEREOTYPE, buildClassNode, classNodeHeight, createEmptyV4Model, directionToHandle } from '../shared/v4Builders';
 
 type ClassifierMemberRow = {
   id: string;
@@ -46,9 +46,9 @@ export class ClassDiagramConverter implements DiagramConverter {
     const classId = generateUniqueId('class');
 
     let stereotype: string | null = null;
-    if (spec.isAbstract) stereotype = 'abstract';
-    else if (spec.isEnumeration) stereotype = 'enumeration';
-    else if (spec.isInterface) stereotype = 'interface';
+    if (spec.isAbstract) stereotype = CLASS_STEREOTYPE.Abstract;
+    else if (spec.isEnumeration) stereotype = CLASS_STEREOTYPE.Enumeration;
+    else if (spec.isInterface) stereotype = CLASS_STEREOTYPE.Interface;
 
     const attributes = this.createAttributeRows(spec, classNames);
     const methods = this.createMethodRows(spec);
@@ -65,7 +65,7 @@ export class ClassDiagramConverter implements DiagramConverter {
         attributes,
         methods,
         // Italic is a render-time hint for abstract classes / interfaces.
-        ...(stereotype === 'abstract' || stereotype === 'interface' ? { italic: true } : {}),
+        ...(stereotype === CLASS_STEREOTYPE.Abstract || stereotype === CLASS_STEREOTYPE.Interface ? { italic: true } : {}),
       },
     });
 

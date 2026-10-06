@@ -105,18 +105,35 @@ export class BPMNDiagramModifier implements DiagramModifier {
   // Helpers
   // ------------------------------------------------------------------
 
-  /** Place new nodes to the right of existing BPMN content, near the vertical mean. */
+  /**
+   * Place new nodes to the right of existing BPMN content, near the vertical
+   * mean. Children of pools / lanes store positions relative to their parent,
+   * so measure in canvas coordinates; the new node is top-level (absolute).
+   */
   private nextPosition(model: BESSERModel): { x: number; y: number } {
     let maxRight = 0;
     let sumY = 0;
     let count = 0;
     for (const node of ModifierHelpers.nodes(model)) {
       if (!BPMN_NODE_TYPES.includes(node.type)) continue;
-      maxRight = Math.max(maxRight, (node.position?.x || 0) + (node.width || 0));
-      sumY += node.position?.y || 0;
+      const { x, y } = this.absolutePosition(model, node);
+      maxRight = Math.max(maxRight, x + (node.width || 0));
+      sumY += y;
       count += 1;
     }
     return { x: count ? maxRight + 60 : 0, y: count ? Math.round(sumY / count) : 0 };
+  }
+
+  private absolutePosition(model: BESSERModel, node: BesserNode): { x: number; y: number } {
+    let x = node.position?.x || 0;
+    let y = node.position?.y || 0;
+    let parent = node.parentId ? ModifierHelpers.findNodeById(model, node.parentId) : undefined;
+    for (let depth = 0; parent && depth < 64; depth++) {
+      x += parent.position?.x || 0;
+      y += parent.position?.y || 0;
+      parent = parent.parentId ? ModifierHelpers.findNodeById(model, parent.parentId) : undefined;
+    }
+    return { x, y };
   }
 
   private normalizeType(rawType?: string): string {

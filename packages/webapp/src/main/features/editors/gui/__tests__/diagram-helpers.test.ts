@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { getAgentOptions, getEndsByClassId, getInheritedEndsByClassId } from '../diagram-helpers';
+import { getAgentOptions, getClassOptions, getEndsByClassId, getInheritedEndsByClassId } from '../diagram-helpers';
 import { ProjectStorageRepository } from '../../../../shared/services/storage/ProjectStorageRepository';
 import { BesserProject, createDefaultProject, ProjectDiagram } from '../../../../shared/types/project';
 
@@ -247,5 +247,43 @@ describe('getEndsByClassId / getInheritedEndsByClassId', () => {
     expect(getEndsByClassId('product', false)).toEqual([{ value: 'line', label: 'lines' }]);
     // OrderLine reaches neither Product nor the non-navigable whole end of the composition.
     expect(getEndsByClassId('line', false)).toEqual([]);
+  });
+});
+
+// The library writes ClassType casing ('Abstract'); an exact lowercase compare
+// dropped every editor-authored abstract class from the GUI binding pickers.
+describe('getClassOptions', () => {
+  beforeEach(() => {
+    localStorage.clear();
+    ProjectStorageRepository.revision = 0;
+    (ProjectStorageRepository as any).changeListeners = [];
+    (ProjectStorageRepository as any).suppressDepth = 0;
+  });
+
+  it('lists plain and abstract classes (any casing) but not interfaces or enumerations', () => {
+    const project = createDefaultProject('Test', '', 'user');
+    const node = (id: string, stereotype?: string) => ({
+      id,
+      type: 'class',
+      position: { x: 0, y: 0 },
+      data: { name: id, attributes: [], methods: [], ...(stereotype && { stereotype }) },
+    });
+    project.diagrams.ClassDiagram[0].model = {
+      version: '4.0.0',
+      id: 'cd',
+      title: 'cd',
+      type: 'ClassDiagram',
+      nodes: [
+        node('Plain'),
+        node('Shape', 'Abstract'),
+        node('Legacy', 'abstract'),
+        node('Named', 'Interface'),
+        node('Color', 'Enumeration'),
+      ],
+      edges: [],
+    } as any;
+    setCurrentProject(project);
+
+    expect(getClassOptions().map((o) => o.label)).toEqual(['Plain', 'Shape', 'Legacy']);
   });
 });
