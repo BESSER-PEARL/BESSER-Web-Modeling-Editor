@@ -1,5 +1,6 @@
 import 'global-jsdom/register';
 import { BesserEditor, layoutModel, SVG, UMLModel } from '@besser/wme';
+import { CSS_VARIABLE_FALLBACKS } from '@/constants';
 
 /**
  * jsdom lacks the layout APIs React Flow relies on. Without these shims the
@@ -77,6 +78,13 @@ const installHeadlessDomShims = (): void => {
       },
     });
     w.__besserHeadlessOffsetShim = true;
+  }
+
+  // The webapp theme defines the `--besser-*` palette; headless nothing does, so
+  // the standalone export snapshotted no colors and every fill/stroke rendered
+  // black. Seed the library's light-theme defaults on :root.
+  for (const [name, value] of Object.entries(CSS_VARIABLE_FALLBACKS)) {
+    document.documentElement.style.setProperty(name, value);
   }
 };
 
