@@ -2,6 +2,7 @@ import { Box, Button, Stack } from "@mui/material"
 import React from "react"
 import { Typography } from "@/components/ui"
 import { useTranslation } from "@/i18n"
+import { InspectorSectionHeader } from "../_shared"
 import {
   ACTION_DESCRIPTION_KEYS,
   ActionSection,
@@ -99,25 +100,26 @@ export const AgentNewActionPicker: React.FC<AgentNewActionPickerProps> = ({
 
   return (
     <Box sx={{ display: "flex", flexDirection: "column", gap: 0.5, mt: 1 }}>
-      <Typography
-        variant="caption"
-        sx={{ opacity: 0.55, textTransform: "uppercase" }}
-      >
+      <InspectorSectionHeader>
         {t("packages.AgentDiagram.newActionLabel", "New action")}
-      </Typography>
-      <Stack direction="row" spacing={0.5}>
+      </InspectorSectionHeader>
+      <div
+        className="bp-segmented"
+        role="group"
+        aria-label={t("packages.AgentDiagram.newActionLabel", "New action")}
+      >
         {tabs.map((tab) => (
-          <Button
+          <button
             key={tab.value}
-            size="small"
-            variant={section === tab.value ? "contained" : "outlined"}
+            type="button"
+            className="bp-toggle"
+            aria-pressed={section === tab.value}
             onClick={() => setSection(tab.value)}
-            sx={{ flex: 1, minWidth: 0, fontSize: 11, px: 0.5, textTransform: "none" }}
           >
             {t(tab.key, tab.fallback)}
-          </Button>
+          </button>
         ))}
-      </Stack>
+      </div>
       {section === "simple" ? (
         <Box sx={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "3px" }}>
           {renderColumn(SIMPLE_LEFT_COLUMN)}

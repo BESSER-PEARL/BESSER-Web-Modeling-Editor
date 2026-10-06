@@ -2,21 +2,13 @@ import React from "react"
 import { Typography as MUITypography, TypographyProps } from "@mui/material"
 
 /**
- * Uniform section header used by every inspector body.
- *
- * Mirrors the v3 `SectionHeader` styled-component at
- * `v3 source: common/uml-classifier/uml-classifier-update.tsx:56-62`:
- *
- *   - 11px font size
- *   - uppercase
- *   - opacity 0.6
- *   - letter-spacing 0.5px
- *
- * Replaces the inconsistent drift of `Typography variant="h6"`,
- * `subtitle2`, and `caption` previously used across inspector panels.
+ * Uniform section header used by every inspector body: 12px, semibold,
+ * muted, sentence case — the same voice as the webapp sidebar's group
+ * titles. Styling lives in `.bp-section-title` (app.css) so the header
+ * follows the panel tokens in light and dark mode.
  */
 export const InspectorSectionHeader: React.FC<TypographyProps> = ({
-  sx,
+  className,
   children,
   ...rest
 }) => {
@@ -24,14 +16,7 @@ export const InspectorSectionHeader: React.FC<TypographyProps> = ({
     <MUITypography
       component="div"
       {...rest}
-      sx={{
-        fontSize: "11px",
-        textTransform: "uppercase",
-        opacity: 0.6,
-        letterSpacing: "0.5px",
-        color: "var(--besser-primary-contrast, #000000)",
-        ...sx,
-      }}
+      className={["bp-section-title", className].filter(Boolean).join(" ")}
     >
       {children}
     </MUITypography>

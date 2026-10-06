@@ -3,7 +3,6 @@ import {
   AccordionDetails,
   AccordionSummary,
   Box,
-  IconButton,
   MenuItem,
   Select,
   Stack,
@@ -19,8 +18,6 @@ import {
   UserModelNameNodeProps,
 } from "@/types"
 import { DividerLine, NodeStyleEditor } from "@/components/ui"
-import { DeleteIcon } from "@/components/Icon"
-import { PaintRollerIcon } from "@/components/Icon/PaintRollerIcon"
 import { PopoverProps } from "@/components/popovers/types"
 import { normalizeType } from "@/utils/typeNormalization"
 import { generateUUID } from "@/utils"
@@ -29,7 +26,14 @@ import {
   getUserMetaModelV4,
   type UserMetaModelClass,
 } from "@/services/userMetaModel"
-import { InspectorSectionHeader, AddRowButton } from "../_shared"
+import {
+  InspectorSectionHeader,
+  AddRowButton,
+  ChevronDownIcon,
+  PaletteIcon,
+  RowActionButton,
+  TrashIcon,
+} from "../_shared"
 import { useTranslation } from "@/i18n"
 
 /**
@@ -293,16 +297,8 @@ const AttrRow: React.FC<AttrRowProps> = ({
   const displayName = linked?.name ?? row.name
 
   return (
-    <Box
-      sx={{
-        display: "flex",
-        flexDirection: "column",
-        gap: 0.5,
-        padding: "6px 0",
-        borderBottom: "1px solid var(--besser-gray, #e9ecef)",
-      }}
-    >
-      <Stack direction="row" spacing={0.5} alignItems="center">
+    <div className={`bp-member bp-card${styleOpen ? " is-open" : ""}`}>
+      <div className="bp-member__row" style={{ gap: 4 }}>
         {linked ? (
           <MuiTypography
             variant="body2"
@@ -370,23 +366,24 @@ const AttrRow: React.FC<AttrRowProps> = ({
             StylePane (`showIcon fillColor textColor`) workflow. Opens
             the fill / text swatches plus the per-row Icon field
             below the row. */}
-        <Tooltip title={t("stylePane.rowStyle", "Row style (colors + icon)")}>
-          <IconButton
-            size="small"
-            aria-label={t("popup.user.rowStyle", "Row style")}
+        <div className="bp-member__actions">
+          <RowActionButton
+            label={t("stylePane.rowStyle", "Row style (colors + icon)")}
+            ariaLabel={t("popup.user.rowStyle", "Row style")}
+            expanded={styleOpen}
             onClick={() => setStyleOpen((open) => !open)}
           >
-            <PaintRollerIcon width={14} height={14} />
-          </IconButton>
-        </Tooltip>
-        <IconButton
-          size="small"
-          onClick={onDelete}
-          title={t("popup.user.deleteAttribute", "Delete attribute")}
-        >
-          <DeleteIcon width={14} height={14} />
-        </IconButton>
-      </Stack>
+            <PaletteIcon size={14} />
+          </RowActionButton>
+          <RowActionButton
+            danger
+            label={t("popup.user.deleteAttribute", "Delete attribute")}
+            onClick={onDelete}
+          >
+            <TrashIcon size={14} />
+          </RowActionButton>
+        </div>
+      </div>
 
       {styleOpen && <UserRowStyleControls row={row} onPatch={onPatch} />}
 
@@ -451,7 +448,7 @@ const AttrRow: React.FC<AttrRowProps> = ({
           onChange={(e) => onValueChange(e.target.value)}
         />
       )}
-    </Box>
+    </div>
   )
 }
 
@@ -522,16 +519,17 @@ export const UserModelNameEditPanel: React.FC<PopoverProps> = ({
         nodeData={data}
         handleDataFieldUpdate={handleDataFieldUpdate}
         showNameInputChange={false}
-      />
-      <DividerLine width="100%" />
-
-      <MuiTextField
-        size="small"
-        variant="outlined"
-        fullWidth
-        label={t("popup.name", "Name")}
-        value={data.name}
-        onChange={(e) => update({ name: e.target.value })}
+        preElements={[
+          <MuiTextField
+            key="name"
+            size="small"
+            variant="outlined"
+            label={t("popup.name", "Name")}
+            value={data.name}
+            onChange={(e) => update({ name: e.target.value })}
+            sx={{ flex: 1 }}
+          />,
+        ]}
       />
 
       {/* v3 parity: no class selector and no inspector-exposed
@@ -546,29 +544,17 @@ export const UserModelNameEditPanel: React.FC<PopoverProps> = ({
           Accordion so the panel doesn't burn vertical real estate when
           the field is empty (matches v3 `StylePane` placement). */}
       <Accordion
+        className="bp-disclosure"
         defaultExpanded={!!data.description}
         disableGutters
         elevation={0}
-        sx={{
-          background: "transparent",
-          "&:before": { display: "none" },
-          border: "1px solid var(--besser-gray, #e9ecef)",
-          borderRadius: 1,
-        }}
       >
-        <AccordionSummary
-          sx={{
-            minHeight: 32,
-            "& .MuiAccordionSummary-content": { margin: "4px 0" },
-          }}
-        >
+        <AccordionSummary expandIcon={<ChevronDownIcon size={14} />}>
           <InspectorSectionHeader>
             {t("popup.user.metadata", "Metadata")}
           </InspectorSectionHeader>
         </AccordionSummary>
-        <AccordionDetails
-          sx={{ display: "flex", flexDirection: "column", gap: 1, pt: 0 }}
-        >
+        <AccordionDetails>
           <MuiTextField
             size="small"
             variant="outlined"
@@ -583,25 +569,24 @@ export const UserModelNameEditPanel: React.FC<PopoverProps> = ({
       </Accordion>
 
       <DividerLine width="100%" />
-      <Stack
-        direction="row"
-        alignItems="center"
-        justifyContent="space-between"
-      >
+      <div className="bp-section-head">
         <InspectorSectionHeader>
           {t("popup.attributes", "Attributes")}
+          <span className="bp-section-count">{data.attributes.length}</span>
         </InspectorSectionHeader>
         <AddRowButton onClick={addAttribute} />
-      </Stack>
-      {data.attributes.map((row, idx) => (
-        <AttrRow
-          key={row.id}
-          row={row}
-          metaCtx={metaCtx}
-          onPatch={(patch) => setAttribute(idx, patch)}
-          onDelete={() => removeAttribute(idx)}
-        />
-      ))}
+      </div>
+      <div className="bp-members" style={{ gap: 6 }}>
+        {data.attributes.map((row, idx) => (
+          <AttrRow
+            key={row.id}
+            row={row}
+            metaCtx={metaCtx}
+            onPatch={(patch) => setAttribute(idx, patch)}
+            onDelete={() => removeAttribute(idx)}
+          />
+        ))}
+      </div>
     </Box>
   )
 }

@@ -326,24 +326,28 @@ export const AgentDiagramEdgeEditPanel: React.FC<PopoverProps> = ({
       <InspectorSectionHeader>
         {t("popup.agent.transition.type", "Transition Type")}
       </InspectorSectionHeader>
-      <Stack direction="row" spacing={0.5}>
-        <Button
-          size="small"
-          variant={mode !== "custom" ? "contained" : "outlined"}
+      <div
+        className="bp-segmented"
+        role="group"
+        aria-label={t("popup.agent.transition.type", "Transition Type")}
+      >
+        <button
+          type="button"
+          className="bp-toggle"
+          aria-pressed={mode !== "custom"}
           onClick={() => setMode("predefined")}
-          sx={{ flex: 1, fontSize: 11, textTransform: "none" }}
         >
           {t("popup.agent.transition.predefined", "Predefined transition")}
-        </Button>
-        <Button
-          size="small"
-          variant={mode === "custom" ? "contained" : "outlined"}
+        </button>
+        <button
+          type="button"
+          className="bp-toggle"
+          aria-pressed={mode === "custom"}
           onClick={() => setMode("custom")}
-          sx={{ flex: 1, fontSize: 11, textTransform: "none" }}
         >
           {t("popup.agent.transition.custom", "Custom transition")}
-        </Button>
-      </Stack>
+        </button>
+      </div>
 
       {mode !== "custom" ? (
         <>

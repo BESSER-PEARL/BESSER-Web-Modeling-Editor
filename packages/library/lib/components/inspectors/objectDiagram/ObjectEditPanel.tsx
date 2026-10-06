@@ -1,6 +1,6 @@
 import {
   Box,
-  IconButton,
+  InputBase,
   MenuItem,
   Select,
   Stack,
@@ -19,13 +19,16 @@ import React, {
 import { useShallow } from "zustand/shallow"
 import { useDiagramStore } from "@/store/context"
 import { ObjectNodeAttribute, ObjectNodeProps } from "@/types"
-import { DividerLine, NodeStyleEditor, Typography } from "@/components/ui"
-import { DeleteIcon } from "@/components/Icon"
-import { PaintRollerIcon } from "@/components/Icon/PaintRollerIcon"
+import { DividerLine, NodeStyleEditor } from "@/components/ui"
 import { PopoverProps } from "@/components/popovers/types"
 import { generateUUID } from "@/utils"
 import { diagramBridge, IClassInfo } from "@/services/diagramBridge"
-import { InspectorSectionHeader } from "../_shared"
+import {
+  InspectorSectionHeader,
+  PaletteIcon,
+  RowActionButton,
+  TrashIcon,
+} from "../_shared"
 import { useTranslation } from "@/i18n"
 
 interface ObjectAttrRowProps {
@@ -69,9 +72,7 @@ const SlotColorControls: React.FC<{
     fallback: string
   ) => (
     <Stack direction="row" alignItems="center" spacing={1}>
-      <MuiTypography variant="caption" sx={{ minWidth: 70 }}>
-        {label}
-      </MuiTypography>
+      <span className="bp-detail-label">{label}</span>
       <Tooltip
         title={t("popup.object.colorResetHint", "{{label}} (right-click to reset)", {
           label,
@@ -120,14 +121,7 @@ const SlotColorControls: React.FC<{
   )
 
   return (
-    <Stack
-      direction="row"
-      spacing={2}
-      sx={{
-        padding: "2px 0 4px 0",
-        marginLeft: "4px",
-      }}
-    >
+    <Stack direction="row" spacing={2} className="bp-member__details" sx={{ ml: 0 }}>
       {swatch(t("stylePane.fillColor", "Fill Color"), "fillColor", "var(--besser-background, #fff)")}
       {swatch(t("stylePane.textColor", "Text Color"), "textColor", "var(--besser-text, #000)")}
     </Stack>
@@ -334,70 +328,59 @@ const ObjectAttrRow: React.FC<ObjectAttrRowProps> = ({
   }
 
   return (
-    <Box
-      sx={{
-        display: "flex",
-        flexDirection: "column",
-        padding: "4px 0",
-        borderBottom: "1px solid var(--besser-gray, #e9ecef)",
-      }}
-    >
-      <Stack direction="row" spacing={0.5} alignItems="center">
-        <MuiTextField
-          size="small"
-          variant="outlined"
-          placeholder={t("popup.object.slotNamePlaceholder", "name")}
-          value={row.name}
-          onChange={(e) =>
-            onPatch({ name: e.target.value.replace(/[^a-zA-Z0-9_]/g, "") })
-          }
-          sx={{ flex: 1 }}
-        />
-        <MuiTypography
-          component="span"
-          sx={{ px: 0.5, fontWeight: 500, userSelect: "none" }}
-        >
-          =
-        </MuiTypography>
-        {valueWidget}
-        {displayType && (
-          <Tooltip
-            title={t(
-              "popup.object.typeInherited",
-              "type inherited from class: {{type}}",
-              { type: displayType }
-            )}
-          >
-            <MuiTypography
-              variant="caption"
-              sx={{
-                minWidth: 40,
-                color: "var(--besser-text-muted, #6c757d)",
-                fontStyle: "italic",
-                userSelect: "none",
-              }}
+    <div className={`bp-member${colorOpen ? " is-open" : ""}`}>
+      <div className="bp-member__row" style={{ gap: 4 }}>
+        {/* One compound field: `name = value : type`. The MUI widgets
+            inside render borderless (see `.bp-field--compound`). */}
+        <div className="bp-field bp-field--compound">
+          <InputBase
+            className="bp-field__name"
+            placeholder={t("popup.object.slotNamePlaceholder", "name")}
+            value={row.name}
+            onChange={(e) =>
+              onPatch({ name: e.target.value.replace(/[^a-zA-Z0-9_]/g, "") })
+            }
+            inputProps={{
+              "aria-label": t("popup.object.slotName", "Attribute name"),
+              autoComplete: "off",
+              spellCheck: false,
+            }}
+          />
+          <span className="bp-field__sep" aria-hidden="true">
+            =
+          </span>
+          <div className="bp-field__value">{valueWidget}</div>
+          {displayType && (
+            <Tooltip
+              title={t(
+                "popup.object.typeInherited",
+                "type inherited from class: {{type}}",
+                { type: displayType }
+              )}
             >
-              : {displayType}
-            </MuiTypography>
-          </Tooltip>
-        )}
-        <Tooltip title={t("stylePane.rowColors", "Row colors")}>
-          <IconButton
-            size="small"
-            aria-label={t("stylePane.rowColors", "Row colors")}
+              <span className="bp-field__hint">: {displayType}</span>
+            </Tooltip>
+          )}
+        </div>
+        <div className="bp-member__actions">
+          <RowActionButton
+            label={t("stylePane.rowColors", "Row colors")}
+            expanded={colorOpen}
             onClick={() => setColorOpen((open) => !open)}
           >
-            <PaintRollerIcon width={14} height={14} />
-          </IconButton>
-        </Tooltip>
-        <Tooltip title={t("popup.object.deleteAttribute", "Delete attribute")}>
-          <IconButton size="small" onClick={onDelete}>
-            <DeleteIcon width={14} height={14} />
-          </IconButton>
-        </Tooltip>
-      </Stack>
+            <PaletteIcon size={14} />
+          </RowActionButton>
+          <RowActionButton
+            danger
+            label={t("popup.object.deleteAttribute", "Delete attribute")}
+            onClick={onDelete}
+          >
+            <TrashIcon size={14} />
+          </RowActionButton>
+        </div>
+      </div>
       {colorOpen && <SlotColorControls row={row} onPatch={onPatch} />}
-    </Box>
+    </div>
   )
 }
 
@@ -678,16 +661,17 @@ export const ObjectEditPanel: React.FC<PopoverProps> = ({ elementId }) => {
           Mirror v3 `getClassDisplayName` and append the
           inheritance chain (`extends Parent, Other`) so similarly-named
           subclasses are distinguishable. */}
-      <Stack direction="row" alignItems="center" spacing={0.5}>
-        <Typography variant="caption" sx={{ minWidth: 70 }}>
+      <Box sx={{ display: "flex", flexDirection: "column", gap: 0.5 }}>
+        <span id={`object-class-${elementId}`} className="bp-section-title">
           {t("popup.object.classLabel", "class")}
-        </Typography>
+        </span>
         <Select
           size="small"
           value={nodeData.classId ?? ""}
           displayEmpty
           onChange={(e) => handleClassChange(String(e.target.value))}
-          sx={{ flex: 1 }}
+          labelId={`object-class-${elementId}`}
+          fullWidth
         >
           <MenuItem value="">
             {t("popup.object.unlinked", "— Unlinked —")}
@@ -721,13 +705,18 @@ export const ObjectEditPanel: React.FC<PopoverProps> = ({ elementId }) => {
             )
           })}
         </Select>
-      </Stack>
+      </Box>
 
       <DividerLine width="100%" />
 
-      <InspectorSectionHeader>
-        {t("popup.attributes", "Attributes")}
-      </InspectorSectionHeader>
+      <Box sx={{ display: "flex", flexDirection: "column", gap: 0.75 }}>
+      <div className="bp-section-head">
+        <InspectorSectionHeader>
+          {t("popup.attributes", "Attributes")}
+          <span className="bp-section-count">{nodeData.attributes.length}</span>
+        </InspectorSectionHeader>
+      </div>
+      <div className="bp-members">
       {nodeData.attributes.map((row, index) => (
         <ObjectAttrRow
           key={row.id}
@@ -765,26 +754,33 @@ export const ObjectEditPanel: React.FC<PopoverProps> = ({ elementId }) => {
           would diverge from the class definition. The picker is only
           relevant for unlinked / ad-hoc instances. */}
       {!nodeData.classId && (
-        <MuiTextField
-          size="small"
-          variant="outlined"
-          fullWidth
-          placeholder={t(
-            "popup.object.addAttributePlaceholder",
-            "+ Add attribute (Enter)"
-          )}
-          value={newAttrName}
-          onChange={onAttrChange}
-          onKeyDown={onAttrKey}
-          inputRef={addFieldRef}
-          onBlur={() => {
-            if (newAttrName.trim()) {
-              addAttribute(newAttrName)
-              setNewAttrName("")
-            }
-          }}
-        />
+        <div className="bp-field bp-field--add">
+          <InputBase
+            className="bp-field__name"
+            placeholder={t(
+              "popup.object.addAttributePlaceholder",
+              "+ Add attribute (Enter)"
+            )}
+            value={newAttrName}
+            onChange={onAttrChange}
+            onKeyDown={onAttrKey}
+            inputRef={addFieldRef}
+            inputProps={{
+              "aria-label": t("popup.object.addAttribute", "Add attribute"),
+              autoComplete: "off",
+              spellCheck: false,
+            }}
+            onBlur={() => {
+              if (newAttrName.trim()) {
+                addAttribute(newAttrName)
+                setNewAttrName("")
+              }
+            }}
+          />
+        </div>
       )}
+      </div>
+      </Box>
       {/* No Methods section — objects are
           instances, not types, so UML object diagrams don't show
           methods. */}

@@ -528,24 +528,24 @@ export const AgentStateEditPanel: React.FC<PopoverProps> = ({ elementId }) => {
     const isCustom = sectionRows(section).some((r) => resolveReplyType(r) === "code")
     return (
       <Box sx={{ display: "flex", flexDirection: "column", gap: 0.75 }}>
-        <Stack direction="row" spacing={0.5}>
-          <Button
-            size="small"
-            variant={!isCustom ? "contained" : "outlined"}
+        <div className="bp-segmented" role="group">
+          <button
+            type="button"
+            className="bp-toggle"
+            aria-pressed={!isCustom}
             onClick={() => isCustom && switchBodyType(section, "predefined")}
-            sx={{ flex: 1, fontSize: 11, textTransform: "none" }}
           >
             {t("packages.AgentDiagram.predefined", "Predefined")}
-          </Button>
-          <Button
-            size="small"
-            variant={isCustom ? "contained" : "outlined"}
+          </button>
+          <button
+            type="button"
+            className="bp-toggle"
+            aria-pressed={isCustom}
             onClick={() => !isCustom && switchBodyType(section, "custom")}
-            sx={{ flex: 1, fontSize: 11, textTransform: "none" }}
           >
             {t("packages.AgentDiagram.customPython", "Custom (Python)")}
-          </Button>
-        </Stack>
+          </button>
+        </div>
         {isCustom ? renderCustomBody(section) : renderPredefinedBody(section)}
       </Box>
     )
@@ -559,16 +559,17 @@ export const AgentStateEditPanel: React.FC<PopoverProps> = ({ elementId }) => {
         nodeData={data}
         handleDataFieldUpdate={handleDataFieldUpdate}
         showNameInputChange={false}
-      />
-      <DividerLine width="100%" />
-
-      <MuiTextField
-        size="small"
-        variant="outlined"
-        fullWidth
-        label={t("packages.AgentDiagram.stateName", "name")}
-        value={data.name}
-        onChange={(e) => updateNode({ name: e.target.value })}
+        preElements={[
+          <MuiTextField
+            key="name"
+            size="small"
+            variant="outlined"
+            label={t("packages.AgentDiagram.stateName", "name")}
+            value={data.name}
+            onChange={(e) => updateNode({ name: e.target.value })}
+            sx={{ flex: 1 }}
+          />,
+        ]}
       />
 
       <Stack direction="row" spacing={1}>

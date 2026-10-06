@@ -1,7 +1,8 @@
 import React, { useState } from "react"
-import { DividerLine, Typography } from "@/components/ui"
-import { PaintRollerIcon } from "@/components/Icon/PaintRollerIcon"
-import { CrossIcon } from "@/components/Icon"
+import {
+  ChevronRightIcon,
+  PaletteIcon,
+} from "@/components/inspectors/_shared/icons"
 import { ColorButton, ColorButtons } from "./ColorButtons"
 import { CustomEdgeProps } from "@/edges"
 import { useTranslation } from "@/i18n"
@@ -21,51 +22,28 @@ const styles = {
     flexDirection: "row" as const,
     alignItems: "center",
     justifyContent: "space-between",
-    gap: "5px",
+    gap: 6,
     flex: 1,
   },
-  colorPanel: {
-    display: "flex",
-    flexDirection: "column" as const,
-    marginTop: 10,
-    marginBottom: 10,
-    backgroundColor: "var(--besser-background, white)",
-    border: "1px solid var(--besser-gray, #e9ecef)",
-    paddingBottom: 10,
-  },
-  colorOption: {
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "space-between",
-    padding: 16,
-  },
-  colorPickerHeader: {
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "center",
-    width: "100%",
-    padding: 16,
-  },
-  resetButton: {
-    marginTop: 12,
-    padding: "6px 12px",
-    backgroundColor: "var(--besser-background, white)",
-    color: "var(--besser-primary-contrast, #000000)",
-    border: "1px solid var(--besser-gray, #e9ecef)",
-    cursor: "pointer",
-    borderRadius: 4,
-    width: "fit-content",
+  label: {
+    minWidth: 0,
+    fontSize: 13,
+    fontWeight: 600,
+    color: "var(--bp-fg, inherit)",
+    whiteSpace: "nowrap" as const,
+    overflow: "hidden",
+    textOverflow: "ellipsis",
   },
 }
 
-// Subcomponent for rendering a single color option
+// One row per colour slot: label + current-colour swatch (opens the palette).
 const ColorOption: React.FC<{
   label: string
   color: string | undefined
   onSelect: () => void
 }> = ({ label, color, onSelect }) => (
-  <div style={styles.colorOption}>
-    <Typography>{label}</Typography>
+  <div className="bp-style-option">
+    <span>{label}</span>
     <ColorButton onSelect={onSelect} color={color || "#000000"} label={label} />
   </div>
 )
@@ -94,66 +72,55 @@ export const EdgeStyleEditor: React.FC<EdgeStyleEditorProps> = ({
     setActiveColorField((prev) => (prev === key ? null : key))
   }
 
+  const activeField = colorFields.find((f) => f.key === activeColorField)
+
   return (
-    <div
-      style={{
-        display: "flex",
-        flexDirection: "column",
-        width: "100%",
-        marginTop: 10,
-        marginBottom: 10,
-      }}
-    >
+    <div style={{ display: "flex", flexDirection: "column", width: "100%" }}>
       <div style={styles.container}>
-        <Typography variant="subtitle1" fontWeight="bold">
-          {label}
-        </Typography>
-        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <PaintRollerIcon
+        <span style={styles.label}>{label}</span>
+        <div style={{ display: "flex", alignItems: "center", gap: 2 }}>
+          <button
+            type="button"
+            className="bp-icon-btn"
             onClick={() => setPaintOpen(!paintOpen)}
             aria-label={t("stylePane.toggleColorSettings", "Toggle color settings")}
-          />
+            aria-expanded={paintOpen}
+            title={t("stylePane.toggleColorSettings", "Toggle color settings")}
+          >
+            <PaletteIcon size={16} />
+          </button>
           {sideElements}
         </div>
       </div>
 
       {paintOpen && (
-        <div style={styles.colorPanel}>
+        <div className="bp-style-panel">
           {!activeColorField ? (
             colorFields.map(({ key, labelKey, label }) => (
-              <>
-                <ColorOption
-                  key={`${edgeData?.label}-${key}-option`}
-                  label={t(labelKey, label)}
-                  color={edgeData ? edgeData[key] : undefined}
-                  onSelect={() => toggleColorField(key)}
-                />
-                {key !== colorFields[colorFields.length - 1].key && (
-                  <DividerLine backgroundColor="var(--besser-gray, #e9ecef)" />
-                )}
-              </>
+              <ColorOption
+                key={`${edgeData?.label}-${key}-option`}
+                label={t(labelKey, label)}
+                color={edgeData ? edgeData[key] : undefined}
+                onSelect={() => toggleColorField(key)}
+              />
             ))
           ) : (
-            <div
-              style={{
-                display: "flex",
-                flexDirection: "column",
-                alignItems: "center",
-              }}
-            >
-              <div style={styles.colorPickerHeader}>
-                <Typography>
-                  {(() => {
-                    const field = colorFields.find(
-                      (f) => f.key === activeColorField
-                    )
-                    return field ? t(field.labelKey, field.label) : null
-                  })()}
-                </Typography>
-                <CrossIcon
-                  fill="var(--besser-primary-contrast, #000000)"
+            <div className="bp-style-picker">
+              <div className="bp-style-picker__head">
+                <span>
+                  {activeField ? t(activeField.labelKey, activeField.label) : null}
+                </span>
+                <button
+                  type="button"
+                  className="bp-icon-btn bp-icon-btn--sm"
+                  aria-label={t("common.back", "Back")}
+                  title={t("common.back", "Back")}
                   onClick={() => setActiveColorField(null)}
-                />
+                >
+                  <span className="bp-back-glyph">
+                    <ChevronRightIcon size={14} />
+                  </span>
+                </button>
               </div>
               <ColorButtons
                 onSelect={(color) =>
@@ -162,7 +129,8 @@ export const EdgeStyleEditor: React.FC<EdgeStyleEditorProps> = ({
                 selectedColor={edgeData?.[activeColorField]}
               />
               <button
-                style={styles.resetButton}
+                type="button"
+                className="bp-text-btn"
                 onClick={() => handleDataFieldUpdate(activeColorField, "")}
               >
                 {t("stylePane.reset", "Reset")}

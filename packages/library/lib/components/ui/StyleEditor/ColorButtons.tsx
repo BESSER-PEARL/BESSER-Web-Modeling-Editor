@@ -31,11 +31,10 @@ export const ColorButtons: React.FC<ColorButtonsProps> = ({
   return (
     <div
       style={{
-        display: "flex",
-        flex: 1,
-        flexWrap: "wrap",
-        gap: 20,
-        justifyContent: "center",
+        display: "grid",
+        gridTemplateColumns: "repeat(6, 28px)",
+        gap: 12,
+        justifyContent: "space-between",
       }}
     >
       {COLOR_PALETTE.map(([color, key, fallback]) => (

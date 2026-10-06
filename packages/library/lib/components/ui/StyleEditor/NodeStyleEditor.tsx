@@ -1,7 +1,9 @@
 import React, { useState } from "react"
-import { DividerLine, TextField, Typography } from "@/components/ui"
-import { PaintRollerIcon } from "@/components/Icon/PaintRollerIcon"
-import { CrossIcon } from "@/components/Icon"
+import { TextField, Typography } from "@/components/ui"
+import {
+  ChevronRightIcon,
+  PaletteIcon,
+} from "@/components/inspectors/_shared/icons"
 import { ColorButton, ColorButtons } from "./ColorButtons"
 import { DefaultNodeProps } from "@/types"
 import { useTranslation } from "@/i18n"
@@ -31,51 +33,19 @@ const styles = {
     flexDirection: "row" as const,
     alignItems: "center",
     justifyContent: "space-between",
-    gap: "5px",
+    gap: 6,
     flex: 1,
-  },
-  colorPanel: {
-    display: "flex",
-    flexDirection: "column" as const,
-    marginTop: 10,
-    marginBottom: 10,
-    backgroundColor: "var(--besser-background, white)",
-    border: "1px solid var(--besser-gray, #e9ecef)",
-    paddingBottom: 10,
-  },
-  colorOption: {
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "space-between",
-    padding: 16,
-  },
-  colorPickerHeader: {
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "center",
-    width: "100%",
-    padding: 16,
-  },
-  resetButton: {
-    marginTop: 12,
-    padding: "6px 12px",
-    backgroundColor: "var(--besser-background, white)",
-    color: "var(--besser-primary-contrast, #000000)",
-    border: "1px solid var(--besser-gray, #e9ecef)",
-    cursor: "pointer",
-    borderRadius: 4,
-    width: "fit-content",
   },
 }
 
-// Subcomponent for rendering a single color option
+// One row per colour slot: label + current-colour swatch (opens the palette).
 const ColorOption: React.FC<{
   label: string
   color: string | undefined
   onSelect: () => void
 }> = ({ label, color, onSelect }) => (
-  <div style={styles.colorOption}>
-    <Typography>{label}</Typography>
+  <div className="bp-style-option">
+    <span>{label}</span>
     <ColorButton onSelect={onSelect} color={color || "#000000"} label={label} />
   </div>
 )
@@ -119,7 +89,7 @@ export const NodeStyleEditor: React.FC<NodeStyleEditorProps> = ({
       <div style={styles.container}>
         {preElements}
         {title && (
-          <Typography style={{ fontWeight: "bold", marginRight: 8 }}>
+          <Typography style={{ fontWeight: 600, marginRight: 8 }}>
             {title}
           </Typography>
         )}
@@ -136,6 +106,12 @@ export const NodeStyleEditor: React.FC<NodeStyleEditorProps> = ({
               inputPlaceholder ??
               t("stylePane.enterNodeName", "Enter node name")
             }
+            inputProps={{
+              "aria-label":
+                inputPlaceholder ?? t("stylePane.enterNodeName", "Enter node name"),
+              autoComplete: "off",
+              spellCheck: false,
+            }}
             // Only enable multiline — which lets Enter insert a hard line
             // break — for node types whose SVG actually wraps the label.
             // Single-line nodes keep their classic single-line <input>.
@@ -144,10 +120,19 @@ export const NodeStyleEditor: React.FC<NodeStyleEditorProps> = ({
             maxRows={isMultilineName ? 6 : undefined}
           />
         )}
-        <PaintRollerIcon
+        {!showNameInputChange && !title && preElements.length === 0 && (
+          <span style={{ flex: 1 }} />
+        )}
+        <button
+          type="button"
+          className="bp-icon-btn"
           onClick={() => setPaintOpen(!paintOpen)}
           aria-label={t("stylePane.toggleColorSettings", "Toggle color settings")}
-        />
+          aria-expanded={paintOpen}
+          title={t("stylePane.toggleColorSettings", "Toggle color settings")}
+        >
+          <PaletteIcon size={16} />
+        </button>
 
         {sideElements.map((element, index) => (
           <React.Fragment key={`side-element-${index}`}>
@@ -157,37 +142,33 @@ export const NodeStyleEditor: React.FC<NodeStyleEditorProps> = ({
       </div>
 
       {paintOpen && (
-        <div style={styles.colorPanel}>
+        <div className="bp-style-panel">
           {!activeColorField ? (
             colorFields.map(({ key, label }) => (
-              <React.Fragment key={`${nodeData.name}-${key}-option`}>
-                <ColorOption
-                  key={`${nodeData.name}-${key}-option`}
-                  label={label}
-                  color={nodeData[key]}
-                  onSelect={() => toggleColorField(key)}
-                />
-                {key !== colorFields[colorFields.length - 1].key && (
-                  <DividerLine backgroundColor="var(--besser-gray, #e9ecef)" />
-                )}
-              </React.Fragment>
+              <ColorOption
+                key={`${nodeData.name}-${key}-option`}
+                label={label}
+                color={nodeData[key]}
+                onSelect={() => toggleColorField(key)}
+              />
             ))
           ) : (
-            <div
-              style={{
-                display: "flex",
-                flexDirection: "column",
-                alignItems: "center",
-              }}
-            >
-              <div style={styles.colorPickerHeader}>
-                <Typography>
+            <div className="bp-style-picker">
+              <div className="bp-style-picker__head">
+                <span>
                   {colorFields.find((f) => f.key === activeColorField)?.label}
-                </Typography>
-                <CrossIcon
-                  fill="var(--besser-primary-contrast, #000000)"
+                </span>
+                <button
+                  type="button"
+                  className="bp-icon-btn bp-icon-btn--sm"
+                  aria-label={t("common.back", "Back")}
+                  title={t("common.back", "Back")}
                   onClick={() => setActiveColorField(null)}
-                />
+                >
+                  <span className="bp-back-glyph">
+                    <ChevronRightIcon size={14} />
+                  </span>
+                </button>
               </div>
               <ColorButtons
                 onSelect={(color) =>
@@ -196,7 +177,8 @@ export const NodeStyleEditor: React.FC<NodeStyleEditorProps> = ({
                 selectedColor={nodeData[activeColorField]}
               />
               <button
-                style={styles.resetButton}
+                type="button"
+                className="bp-text-btn"
                 onClick={() => handleDataFieldUpdate(activeColorField, "")}
               >
                 {t("stylePane.reset", "Reset")}

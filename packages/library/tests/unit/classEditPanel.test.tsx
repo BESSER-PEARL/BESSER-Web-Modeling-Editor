@@ -655,8 +655,8 @@ describe("ClassEditPanel — type-aware default-value widgets", () => {
         ],
       }),
     ])
-    // Type Select displays the primitive label for the current value.
-    fireEvent.mouseDown(screen.getByText("int (integer)"))
+    // Type Select shows the bare type; the menu keeps the long labels.
+    fireEvent.mouseDown(screen.getByText("int"))
     fireEvent.click(screen.getByRole("option", { name: "str (string)" }))
 
     const attr = getAttr(store)

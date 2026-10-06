@@ -108,6 +108,20 @@ html[data-theme='dark'] {
   --quantum-editor-tooltip-shadow: 0 14px 30px rgba(2, 6, 23, 0.45);
 }
 
+/* Editor properties panel: re-point the library's --besser-* tokens at the
+   app palette so the panel (and its menus) use the brand teal, the app
+   surfaces and borders in both themes. Scoped to the panel subtree — the
+   canvas keeps its own theming from themings.json. */
+.besser-properties-panel,
+.besser-inspector-portal {
+  --besser-primary: hsl(var(--brand));
+  --besser-primary-contrast: hsl(var(--foreground));
+  --besser-background: hsl(var(--card));
+  --besser-background-variant: hsl(var(--muted));
+  --besser-gray: hsl(var(--border));
+  --besser-gray-variant: hsl(var(--muted-foreground));
+}
+
 * {
   box-sizing: border-box;
 }

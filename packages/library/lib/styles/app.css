@@ -472,45 +472,793 @@ svg.react-flow__connectionline {
   color: var(--besser-primary-contrast, #000000) !important;
 }
 
-/* SA-PANEL-STYLE: scope-down the global `!important` overrides above for
-   the inspector panel so MUI's theme-driven colors (defined in
-   `inspector-theme.ts`) actually take effect inside it. Without these
-   resets the global rules above force every input border/label color to
-   `--besser-primary-contrast` and the harmonized hover/focus states are
-   silently dropped. */
+/* ── Properties panel ──────────────────────────────────────────────────
+   Local tokens derive from the --besser-* theme variables, so the panel
+   follows whatever palette the host bridges in (the webapp maps them to
+   its brand tokens) and still looks right standalone. Menus and tooltips
+   portal to <body>, so they carry `.besser-inspector-portal` to share
+   the tokens. `:root` gives floating popovers the same tokens; the panel
+   re-declares them so a host can re-theme just the panel subtree. */
+:root,
+.besser-properties-panel,
+.besser-inspector-portal {
+  --bp-fg: var(--besser-primary-contrast, #0f172a);
+  --bp-muted: color-mix(in srgb, var(--bp-fg) 58%, transparent);
+  --bp-surface: var(--besser-background, #ffffff);
+  --bp-border: var(--besser-gray, #e2e8f0);
+  --bp-border-strong: color-mix(in srgb, var(--bp-fg) 22%, transparent);
+  --bp-hover: color-mix(in srgb, var(--bp-fg) 6%, transparent);
+  --bp-subtle: color-mix(in srgb, var(--bp-fg) 3%, var(--bp-surface));
+  --bp-accent: var(--besser-primary, #3e8acc);
+  --bp-accent-fg: var(--besser-background, #ffffff);
+  --bp-accent-soft: color-mix(in srgb, var(--bp-accent) 12%, transparent);
+  --bp-ring: color-mix(in srgb, var(--bp-accent) 55%, transparent);
+  --bp-danger: #dc2626;
+  --bp-danger-soft: color-mix(in srgb, #dc2626 10%, transparent);
+  --bp-mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  --bp-ease: cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+/* Scope-down the global `!important` overrides above for the inspector
+   so the theme-driven colors in `inspector-theme.ts` take effect. */
 .besser-properties-panel .MuiOutlinedInput-notchedOutline {
-  border-color: var(--besser-gray, #e9ecef) !important;
+  border-color: var(--bp-border) !important;
+  transition:
+    border-color 150ms ease-out,
+    box-shadow 150ms ease-out;
 }
 .besser-properties-panel
   .MuiOutlinedInput-root:hover
   .MuiOutlinedInput-notchedOutline {
-  border-color: var(--besser-gray-variant, #adb5bd) !important;
+  border-color: var(--bp-border-strong) !important;
 }
 .besser-properties-panel
   .MuiOutlinedInput-root.Mui-focused
   .MuiOutlinedInput-notchedOutline {
-  border-color: var(--besser-primary, #2a8fbd) !important;
-  box-shadow: 0 0 0 2px rgba(42, 143, 189, 0.2);
+  border-color: var(--bp-accent) !important;
+  box-shadow: 0 0 0 3px var(--bp-accent-soft);
 }
 .besser-properties-panel .MuiFormLabel-root {
-  color: var(--besser-gray-variant, #495057) !important;
+  color: var(--bp-muted) !important;
 }
 .besser-properties-panel .MuiFormLabel-root.Mui-focused {
-  color: var(--besser-primary, #2a8fbd) !important;
+  color: var(--bp-accent) !important;
+}
+.besser-properties-panel .MuiSvgIcon-root {
+  color: var(--bp-muted) !important;
+}
+.besser-properties-panel .Mui-checked .MuiSvgIcon-root,
+.besser-properties-panel .MuiButton-containedPrimary .MuiSvgIcon-root {
+  color: inherit !important;
+}
+.besser-properties-panel .MuiSelect-select {
+  color: var(--bp-fg) !important;
+}
+.besser-properties-panel .MuiInputBase-input::placeholder {
+  color: var(--bp-muted);
+  opacity: 1;
 }
 
-/* SA-PANEL-STYLE: section spacing for inspector subsections. Most edit
-   panels stack <DividerLine> + <Stack> blocks directly inside the body;
-   give them a consistent gap so the panel doesn't feel cramped. */
+/* Legacy 24px glyphs inside icon buttons: size and tint like the rest. */
+.besser-properties-panel .MuiIconButton-root > svg:not(.MuiSvgIcon-root) {
+  width: 18px;
+  height: 18px;
+  fill: currentColor;
+}
+
+/* One focus ring for every MUI pressable (ripples are disabled). */
+.besser-properties-panel .MuiButtonBase-root.Mui-focusVisible,
+.besser-properties-panel .MuiCheckbox-root:has(input:focus-visible),
+.besser-properties-panel .MuiRadio-root:has(input:focus-visible) {
+  outline: 2px solid var(--bp-ring);
+  outline-offset: 1px;
+}
+
+/* Section rhythm. Inspector bodies stack dividers + stacks directly. */
 .besser-properties-panel__body > * + * {
-  margin-top: 10px;
+  margin-top: 12px;
 }
 .besser-properties-panel__body hr,
 .besser-properties-panel__body .MuiDivider-root {
   margin-top: 12px;
   margin-bottom: 12px;
-  border-color: var(--besser-gray, #e9ecef);
+  border-color: var(--bp-border);
 }
+.besser-properties-panel .besser-divider {
+  background-color: var(--bp-border) !important;
+  height: 1px !important;
+  margin: 4px 0 !important;
+}
+
+/* ── Header ── */
+.bp-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 12px 10px 12px 16px;
+  border-bottom: 1px solid var(--bp-border);
+  flex-shrink: 0;
+  user-select: none;
+}
+.bp-header__text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  gap: 1px;
+}
+.bp-header__kind {
+  font-size: 12px;
+  line-height: 16px;
+  font-weight: 500;
+  color: var(--bp-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.bp-header__title {
+  font-size: 15px;
+  line-height: 20px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--bp-fg);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ── Icon button ── */
+.bp-icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--bp-muted);
+  cursor: pointer;
+  transition:
+    background-color 150ms ease-out,
+    color 150ms ease-out,
+    transform 120ms var(--bp-ease);
+  touch-action: manipulation;
+}
+.bp-icon-btn svg {
+  fill: currentColor;
+}
+.bp-icon-btn:hover {
+  background: var(--bp-hover);
+  color: var(--bp-fg);
+}
+.bp-icon-btn:active {
+  transform: scale(0.97);
+}
+.bp-icon-btn:focus-visible {
+  outline: 2px solid var(--bp-ring);
+  outline-offset: 1px;
+}
+.bp-icon-btn[aria-pressed="true"],
+.bp-icon-btn[aria-expanded="true"] {
+  background: var(--bp-accent-soft);
+  color: var(--bp-accent);
+}
+.bp-icon-btn--sm {
+  width: 24px;
+  height: 24px;
+}
+.bp-icon-btn--danger:hover {
+  background: var(--bp-danger-soft);
+  color: var(--bp-danger);
+}
+.bp-icon-btn:disabled {
+  opacity: 0.4;
+  cursor: default;
+  background: transparent;
+}
+
+/* ── Section header ── */
+.bp-section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-height: 28px;
+}
+.bp-section-title {
+  display: block;
+  font-size: 12px;
+  line-height: 16px;
+  font-weight: 600;
+  color: var(--bp-muted);
+}
+/* Some labels arrive lowercase from the bundles ("optional attributes"). */
+.bp-section-title::first-letter {
+  text-transform: uppercase;
+}
+.bp-section-count {
+  margin-left: 6px;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  color: color-mix(in srgb, var(--bp-fg) 40%, transparent);
+}
+.bp-add-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 26px;
+  padding: 0 8px 0 6px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--bp-muted);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition:
+    background-color 150ms ease-out,
+    color 150ms ease-out,
+    transform 120ms var(--bp-ease);
+}
+.bp-add-btn:hover {
+  background: var(--bp-hover);
+  color: var(--bp-fg);
+}
+.bp-add-btn:active {
+  transform: scale(0.97);
+}
+.bp-add-btn:focus-visible {
+  outline: 2px solid var(--bp-ring);
+  outline-offset: 1px;
+}
+.bp-add-btn svg {
+  fill: currentColor;
+}
+
+/* ── Segmented toggle (stereotypes, two-way switches) ── */
+.bp-segmented {
+  display: flex;
+  gap: 2px;
+  padding: 2px;
+  border: 1px solid var(--bp-border);
+  border-radius: 8px;
+  background: var(--bp-subtle);
+}
+.bp-toggle {
+  flex: 1 1 0;
+  min-width: 0;
+  height: 28px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--bp-muted);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  cursor: pointer;
+  transition:
+    background-color 150ms ease-out,
+    color 150ms ease-out,
+    box-shadow 150ms ease-out,
+    transform 120ms var(--bp-ease);
+}
+.bp-toggle:hover {
+  color: var(--bp-fg);
+}
+.bp-toggle:active {
+  transform: scale(0.97);
+}
+.bp-toggle:focus-visible {
+  outline: 2px solid var(--bp-ring);
+  outline-offset: 1px;
+}
+/* Three-way segments get a notch tighter so labels fit at 320px. */
+.bp-segmented:has(> :nth-child(3)) .bp-toggle {
+  flex: 1 1 auto;
+  padding: 0 6px;
+  font-size: 12px;
+}
+.bp-toggle[aria-pressed="true"] {
+  background: var(--bp-surface);
+  color: var(--bp-accent);
+  box-shadow:
+    0 0 0 1px var(--bp-accent-soft),
+    0 1px 2px rgba(15, 23, 42, 0.08);
+}
+
+/* ── Member rows (attributes, methods, literals) ──
+   One bordered field reads like the UML line itself:  + name : type  */
+.bp-members {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.bp-member {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.bp-member__row {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+.bp-reorder {
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  width: 16px;
+  opacity: 0;
+  transition: opacity 150ms ease-out;
+}
+.bp-reorder button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 14px;
+  padding: 0;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--bp-muted);
+  cursor: pointer;
+  transition:
+    background-color 150ms ease-out,
+    color 150ms ease-out;
+}
+.bp-reorder button:hover {
+  background: var(--bp-hover);
+  color: var(--bp-fg);
+}
+.bp-reorder button:focus-visible {
+  outline: 2px solid var(--bp-ring);
+  outline-offset: 0;
+}
+.bp-reorder button:disabled {
+  visibility: hidden;
+}
+.bp-reorder svg {
+  fill: currentColor;
+}
+.bp-member__actions {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  min-width: 48px;
+  opacity: 0;
+  transition: opacity 150ms ease-out;
+}
+.bp-member:hover .bp-reorder,
+.bp-member:focus-within .bp-reorder,
+.bp-member:hover .bp-member__actions,
+.bp-member:focus-within .bp-member__actions,
+.bp-member.is-open .bp-member__actions {
+  opacity: 1;
+}
+@media (hover: none) {
+  .bp-reorder,
+  .bp-member__actions {
+    opacity: 1;
+  }
+}
+/* Bigger hit areas for touch. */
+@media (pointer: coarse) {
+  .bp-icon-btn--sm {
+    width: 32px;
+    height: 32px;
+  }
+  .bp-reorder,
+  .bp-reorder button {
+    width: 24px;
+  }
+  .bp-reorder button {
+    height: 18px;
+  }
+}
+
+.bp-field {
+  display: flex;
+  align-items: center;
+  flex: 1 1 auto;
+  min-width: 0;
+  height: 30px;
+  border: 1px solid var(--bp-border);
+  border-radius: 6px;
+  background: var(--bp-surface);
+  transition:
+    border-color 150ms ease-out,
+    box-shadow 150ms ease-out;
+}
+.bp-field:hover {
+  border-color: var(--bp-border-strong);
+}
+.bp-field:focus-within {
+  border-color: var(--bp-accent);
+  box-shadow: 0 0 0 3px var(--bp-accent-soft);
+}
+.bp-field--add {
+  border-style: dashed;
+  background: transparent;
+}
+.bp-field--add:focus-within {
+  border-style: solid;
+  background: var(--bp-surface);
+}
+.bp-field .MuiInputBase-root {
+  font-size: 13px;
+  color: var(--bp-fg);
+}
+.bp-field .MuiInputBase-input {
+  height: 28px;
+  padding: 0 8px;
+  box-sizing: border-box;
+}
+.bp-field__name {
+  flex: 1 1 0;
+  min-width: 0;
+}
+.bp-field__name.MuiInputBase-readOnly .MuiInputBase-input {
+  color: var(--bp-muted);
+}
+.bp-field__vis {
+  flex-shrink: 0;
+  align-self: stretch;
+  border-right: 1px solid var(--bp-border);
+}
+.bp-field__vis .MuiSelect-select.MuiInputBase-input {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  min-width: 0;
+  height: 28px;
+  min-height: 0;
+  padding: 0 !important;
+  border-radius: 5px 0 0 5px;
+  font-family: var(--bp-mono);
+  font-size: 13px;
+  color: var(--bp-muted) !important;
+  transition:
+    background-color 150ms ease-out,
+    color 150ms ease-out;
+}
+.bp-field__vis:hover .MuiSelect-select {
+  background: var(--bp-hover);
+  color: var(--bp-fg) !important;
+}
+.bp-field__sep {
+  flex-shrink: 0;
+  font-family: var(--bp-mono);
+  font-size: 12px;
+  color: var(--bp-muted);
+  user-select: none;
+}
+/* Fixed-width type column so the colons line up row to row. */
+.bp-field__typebox {
+  display: flex;
+  align-items: center;
+  flex: 0 0 auto;
+  width: clamp(76px, 34%, 128px);
+  min-width: 0;
+  padding-left: 4px;
+}
+.bp-field__type {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.bp-field__type--chevron {
+  flex: 0 0 auto;
+}
+.bp-field__type .MuiSelect-select.MuiInputBase-input,
+.bp-field__type-input .MuiInputBase-input {
+  height: 28px;
+  min-height: 0;
+  font-family: var(--bp-mono);
+  font-size: 12px;
+  color: color-mix(in srgb, var(--bp-fg) 75%, transparent) !important;
+}
+.bp-field__type .MuiSelect-select.MuiInputBase-input {
+  display: block;
+  padding: 0 22px 0 4px !important;
+  line-height: 28px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.bp-field__type--chevron .MuiSelect-select.MuiInputBase-input {
+  width: 0;
+  padding: 0 18px 0 0 !important;
+}
+.bp-field__type .MuiSelect-icon {
+  right: 2px;
+  font-size: 18px;
+}
+.bp-field__type-input {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.bp-field__type-input .MuiInputBase-input {
+  padding: 0 4px;
+  text-overflow: ellipsis;
+}
+/* Compound field (object slots): MUI widgets render as borderless
+   segments of the surrounding .bp-field. */
+.bp-field--compound .MuiOutlinedInput-notchedOutline {
+  border: 0 !important;
+  box-shadow: none !important;
+}
+.bp-field--compound .MuiOutlinedInput-root {
+  height: 28px;
+  background: transparent;
+}
+.bp-field--compound .MuiOutlinedInput-input,
+.bp-field--compound .MuiSelect-select.MuiOutlinedInput-input {
+  padding: 0 6px !important;
+  height: 28px;
+  min-height: 0;
+  line-height: 28px;
+  box-sizing: border-box;
+}
+.bp-field__value {
+  display: flex;
+  align-items: center;
+  flex: 1.3 1 0;
+  min-width: 0;
+  color: var(--bp-muted);
+}
+.bp-field__value > .MuiFormControl-root,
+.bp-field__value > .MuiInputBase-root,
+.bp-field__value > .MuiStack-root {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.bp-field__hint {
+  flex-shrink: 1;
+  min-width: 0;
+  max-width: 35%;
+  padding: 0 8px 0 2px;
+  font-family: var(--bp-mono);
+  font-size: 12px;
+  color: var(--bp-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  user-select: none;
+}
+.bp-field.is-disabled,
+.bp-field__type.Mui-disabled,
+.bp-field__vis.Mui-disabled {
+  opacity: 0.6;
+}
+
+/* Card member (row + value widget stacked, e.g. user-model attributes). */
+.bp-card {
+  padding: 8px;
+  border: 1px solid var(--bp-border);
+  border-radius: 8px;
+  background: var(--bp-surface);
+}
+.bp-card .bp-member__details {
+  margin-left: 0;
+}
+
+/* Expanded member details (flags, default, colors, parameters, code). */
+.bp-member__details {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 0 0 6px 18px;
+  padding: 10px;
+  border: 1px solid var(--bp-border);
+  border-radius: 8px;
+  background: var(--bp-subtle);
+}
+.bp-flags {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0 8px;
+}
+.bp-flags .MuiFormControlLabel-root {
+  margin: 0;
+  gap: 2px;
+}
+.bp-detail-label {
+  font-size: 12px;
+  line-height: 16px;
+  font-weight: 500;
+  color: var(--bp-muted);
+}
+.bp-detail-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Disclosure (metadata). */
+.bp-disclosure.MuiAccordion-root {
+  background: transparent;
+  box-shadow: none;
+}
+.bp-disclosure.MuiAccordion-root::before {
+  display: none;
+}
+.bp-disclosure .MuiAccordionSummary-root {
+  min-height: 28px;
+  padding: 0 4px 0 0;
+  border-radius: 6px;
+  flex-direction: row-reverse;
+  justify-content: flex-end;
+  gap: 2px;
+}
+.bp-disclosure .MuiAccordionSummary-root:hover .bp-section-title {
+  color: var(--bp-fg);
+}
+.bp-disclosure .MuiAccordionSummary-content {
+  margin: 0;
+  flex-grow: 0;
+}
+.bp-disclosure .MuiAccordionSummary-expandIconWrapper {
+  color: var(--bp-muted);
+  transform: rotate(-90deg);
+  transition: transform 180ms var(--bp-ease);
+}
+.bp-disclosure .MuiAccordionSummary-expandIconWrapper.Mui-expanded {
+  transform: rotate(0deg);
+}
+.bp-disclosure .MuiAccordionDetails-root {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 6px 0 0;
+}
+
+/* Style (paint) panel under the name field. */
+.bp-style-panel {
+  margin-top: 8px;
+  border: 1px solid var(--bp-border);
+  border-radius: 8px;
+  background: var(--bp-subtle);
+  overflow: hidden;
+}
+.bp-style-option {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 36px;
+  padding: 4px 10px;
+  color: var(--bp-fg);
+  font-size: 13px;
+}
+.bp-style-option + .bp-style-option {
+  border-top: 1px solid var(--bp-border);
+}
+.bp-style-option .besser-color-swatch {
+  width: 22px !important;
+  height: 22px !important;
+  box-shadow:
+    inset 0 0 0 1px rgba(15, 23, 42, 0.14),
+    0 0 0 0 transparent;
+  transition:
+    transform 120ms var(--bp-ease),
+    box-shadow 150ms ease-out;
+}
+.bp-style-option .besser-color-swatch:hover {
+  box-shadow:
+    inset 0 0 0 1px rgba(15, 23, 42, 0.14),
+    0 0 0 3px var(--bp-hover);
+}
+.bp-style-option .besser-color-swatch:active {
+  transform: scale(0.94);
+}
+.bp-style-option .besser-color-swatch:focus-visible {
+  outline: 2px solid var(--bp-ring);
+  outline-offset: 2px;
+}
+.bp-back-glyph {
+  display: inline-flex;
+  transform: rotate(180deg);
+}
+.bp-style-picker {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 10px;
+}
+.bp-style-picker__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--bp-fg);
+}
+.bp-style-picker .besser-color-swatch {
+  box-shadow: inset 0 0 0 1px rgba(15, 23, 42, 0.12);
+  transition:
+    transform 120ms var(--bp-ease),
+    box-shadow 150ms ease-out;
+}
+.bp-style-picker .besser-color-swatch:active {
+  transform: scale(0.94);
+}
+.bp-style-picker .besser-color-swatch:focus-visible {
+  outline: 2px solid var(--bp-ring);
+  outline-offset: 2px;
+}
+.bp-style-picker .besser-color-swatch[aria-pressed="true"] {
+  box-shadow:
+    0 0 0 2px var(--bp-surface),
+    0 0 0 4px var(--bp-accent);
+}
+.bp-text-btn {
+  align-self: flex-start;
+  height: 28px;
+  padding: 0 10px;
+  border: 1px solid var(--bp-border);
+  border-radius: 6px;
+  background: var(--bp-surface);
+  color: var(--bp-fg);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition:
+    background-color 150ms ease-out,
+    border-color 150ms ease-out,
+    transform 120ms var(--bp-ease);
+}
+.bp-text-btn:hover {
+  background: var(--bp-hover);
+  border-color: var(--bp-border-strong);
+}
+.bp-text-btn:active {
+  transform: scale(0.97);
+}
+.bp-text-btn:focus-visible {
+  outline: 2px solid var(--bp-ring);
+  outline-offset: 1px;
+}
+
+/* Resize handle: a hairline that lights up on hover. */
+.besser-properties-panel__resize-handle {
+  position: relative;
+}
+.besser-properties-panel__resize-handle::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  right: 0;
+  width: 2px;
+  background: transparent;
+  transition: background-color 150ms ease-out;
+}
+.besser-properties-panel__resize-handle:hover::after {
+  background: var(--bp-ring);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .besser-properties-panel *,
+  .besser-inspector-portal * {
+    transition-property: color, background-color, border-color, opacity !important;
+  }
+  .bp-icon-btn:active,
+  .bp-add-btn:active,
+  .bp-toggle:active,
+  .bp-text-btn:active {
+    transform: none;
+  }
+}
+
 .scroll-overlay {
   position: absolute;
   top: 0;

@@ -1,6 +1,5 @@
 import {
   Box,
-  Button,
   Checkbox,
   FormControlLabel,
   MenuItem,
@@ -255,26 +254,26 @@ const InputPromptField: React.FC<{
   return (
     <Box sx={{ display: "flex", flexDirection: "column", gap: 0.5, mt: 0.75 }}>
       <FieldLabel>{t(headerKey, headerFallback)}</FieldLabel>
-      <Stack direction="row" spacing={0.5}>
-        <Button
-          size="small"
-          variant={mode === "last_user_message" ? "contained" : "outlined"}
+      <div className="bp-segmented" role="group" aria-label={t(headerKey, headerFallback)}>
+        <button
+          type="button"
+          className="bp-toggle"
+          aria-pressed={mode === "last_user_message"}
           onClick={() =>
             onChange({ inputPromptMode: "last_user_message", customInputPrompt: "" })
           }
-          sx={{ flex: 1, fontSize: 11, textTransform: "none" }}
         >
           {t("packages.AgentDiagram.lastUserMessage", "Last user message")}
-        </Button>
-        <Button
-          size="small"
-          variant={mode === "custom" ? "contained" : "outlined"}
+        </button>
+        <button
+          type="button"
+          className="bp-toggle"
+          aria-pressed={mode === "custom"}
           onClick={() => onChange({ inputPromptMode: "custom" })}
-          sx={{ flex: 1, fontSize: 11, textTransform: "none" }}
         >
           {t("packages.AgentDiagram.customPrompt", "Custom prompt")}
-        </Button>
-      </Stack>
+        </button>
+      </div>
       {mode === "custom" && (
         <>
           <MuiTextField

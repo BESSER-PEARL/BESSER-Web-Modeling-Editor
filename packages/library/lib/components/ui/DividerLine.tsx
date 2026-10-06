@@ -14,6 +14,8 @@ export const DividerLine: React.FC<DividerLineProps> = ({
   backgroundColor = "var(--besser-primary-contrast, #000000)",
 }) => (
   <div
+    className="besser-divider"
+    role="separator"
     style={{
       width: width,
       height: height,

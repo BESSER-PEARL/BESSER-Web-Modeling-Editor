@@ -83,7 +83,8 @@ describe("StateMachineDiagramEdgeEditPanel — parameters", () => {
     const { store } = renderPanel([
       transitionEdge({ data: { params: ["a"] } }),
     ])
-    fireEvent.click(screen.getByRole("button", { name: "+ add" }))
+    // The plus glyph is decorative (aria-hidden); the button reads "Add".
+    fireEvent.click(screen.getByRole("button", { name: "Add" }))
     expect(getData(store).params).toEqual(["a", ""])
     expect(screen.getByPlaceholderText("Parameter 2")).toBeDefined()
   })

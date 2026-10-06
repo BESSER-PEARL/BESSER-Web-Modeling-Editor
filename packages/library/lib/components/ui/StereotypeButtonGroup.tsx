@@ -25,10 +25,6 @@ const STEREOTYPE_LABEL_KEYS: Record<ClassType, string> = {
   [ClassType.Enumeration]: "packages.ClassDiagram.Enumeration",
 }
 
-const buttonGroupStyle: React.CSSProperties = {
-  display: "flex",
-}
-
 export const StereotypeButtonGroup: React.FC<StereotypeButtonGroupProps> = ({
   nodeId,
   selectedStereotype,
@@ -68,14 +64,13 @@ export const StereotypeButtonGroup: React.FC<StereotypeButtonGroupProps> = ({
   }
 
   return (
-    <div style={buttonGroupStyle}>
-      {stereotypes.map((stereotype, index) => (
+    <div
+      className="bp-segmented"
+      role="group"
+      aria-label={t("popup.class.stereotype", "Stereotype")}
+    >
+      {stereotypes.map((stereotype) => (
         <PrimaryButton
-          style={
-            index === 0
-              ? { borderLeft: "1px solid var(--besser-primary, #3e8acc)" }
-              : {}
-          }
           key={stereotype}
           isSelected={selectedStereotype === stereotype}
           onClick={() => handleStereotypeChange(stereotype)}

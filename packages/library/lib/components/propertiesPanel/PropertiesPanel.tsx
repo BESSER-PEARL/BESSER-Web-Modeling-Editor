@@ -7,7 +7,7 @@ import { useResizable } from "./useResizable"
 import { getInspector, InspectorKind } from "../inspectors/registry"
 // camelCase `node.type` → inspector key aliases (package, activity*, …).
 import "../inspectors/nodeTypeInspectorAliases"
-import { CrossIcon } from "../Icon/CrossIcon"
+import { XIcon } from "../inspectors/_shared/icons"
 // Approach B — keep MUI primitives but theme them to
 // match the webapp's Tailwind/Radix design tokens. The override file
 // maps borderRadius, font, padding, and focus rings to the same look as
@@ -78,14 +78,22 @@ export const PropertiesPanel: React.FC = () => {
 
   const selectedId = popoverElementId ?? null
 
-  // Resolve the type of the selected element by walking nodes then edges.
-  const selectedType = useMemo<string | null>(() => {
-    if (!selectedId) return null
-    const node = nodes.find((n) => n.id === selectedId)
-    if (node) return (node.type as string | undefined) ?? null
-    const edge = edges.find((e) => e.id === selectedId)
-    if (edge) return (edge.type as string | undefined) ?? null
-    return null
+  // Resolve the type (and display name, for the header) of the selected
+  // element by walking nodes then edges.
+  const { selectedType, selectedName } = useMemo<{
+    selectedType: string | null
+    selectedName: string
+  }>(() => {
+    if (!selectedId) return { selectedType: null, selectedName: "" }
+    const element =
+      nodes.find((n) => n.id === selectedId) ??
+      edges.find((e) => e.id === selectedId)
+    if (!element) return { selectedType: null, selectedName: "" }
+    const name = (element.data as { name?: unknown } | undefined)?.name
+    return {
+      selectedType: (element.type as string | undefined) ?? null,
+      selectedName: typeof name === "string" ? name.trim() : "",
+    }
   }, [selectedId, nodes, edges])
 
   // Determine inspector kind from mode + readonly.
@@ -152,61 +160,37 @@ export const PropertiesPanel: React.FC = () => {
             flexDirection: "column",
             height: "100%",
             overflow: "hidden",
-            // Align border + shadow with the webapp's
-            // `border-input` (1px) + subtle elevation-2 shadow.
-            borderLeft: "1px solid var(--besser-gray, #e9ecef)",
-            background: "var(--besser-background, #ffffff)",
-            boxShadow:
-              "-4px 0 12px -2px rgba(0, 0, 0, 0.06), -2px 0 6px -2px rgba(0, 0, 0, 0.04)",
+            // Hairline + soft elevation, like the webapp sidebar.
+            borderLeft: "1px solid var(--bp-border)",
+            background: "var(--bp-surface)",
+            boxShadow: "-8px 0 24px -12px rgba(15, 23, 42, 0.12)",
           }}
         >
-          <div
-            className="besser-properties-panel__header"
-            style={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-              padding: "10px 14px",
-              borderBottom: "1px solid var(--besser-gray, #e9ecef)",
-              flexShrink: 0,
-              userSelect: "none",
-            }}
-          >
-            <span
-              title={typeLabel}
-              style={{
-                // Tailwind `text-sm font-semibold` analogue (~13px / 600).
-                fontSize: "0.8125rem",
-                fontWeight: 600,
-                color: "var(--besser-primary-contrast, #0f172a)",
-                whiteSpace: "nowrap",
-                overflow: "hidden",
-                textOverflow: "ellipsis",
-                fontFamily:
-                  'var(--font-geist-sans, "Sora"), ui-sans-serif, system-ui, sans-serif',
-              }}
-            >
-              {typeLabel}
-            </span>
+          <div className="besser-properties-panel__header bp-header">
+            <div className="bp-header__text">
+              {selectedName ? (
+                <>
+                  <span className="bp-header__kind" title={typeLabel}>
+                    {typeLabel}
+                  </span>
+                  <span className="bp-header__title" title={selectedName}>
+                    {selectedName}
+                  </span>
+                </>
+              ) : (
+                <span className="bp-header__title" title={typeLabel}>
+                  {typeLabel}
+                </span>
+              )}
+            </div>
             <button
               type="button"
+              className="bp-icon-btn"
               aria-label={t("propertiesPanel.closeEditor", "Close editor")}
               title={t("propertiesPanel.closeEditor", "Close editor")}
               onClick={() => setPopOverElementId(null)}
-              style={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                border: "none",
-                background: "transparent",
-                cursor: "pointer",
-                padding: 4,
-                borderRadius: 4,
-                color: "var(--besser-primary-contrast, #0f172a)",
-                flexShrink: 0,
-              }}
             >
-              <CrossIcon width={14} height={14} />
+              <XIcon size={16} />
             </button>
           </div>
           <div
@@ -218,12 +202,13 @@ export const PropertiesPanel: React.FC = () => {
               // Tighter horizontal gutter; vertical breathing room between
               // sections is supplied by `.besser-properties-panel__body`
               // CSS rules in `app.css`.
-              padding: "10px 12px",
+              padding: "12px 12px 24px",
               position: "relative",
               fontSize: "0.8125rem",
               fontFamily:
                 'var(--font-geist-sans, "Sora"), ui-sans-serif, system-ui, sans-serif',
-              color: "var(--besser-primary-contrast, #0f172a)",
+              color: "var(--bp-fg)",
+              overscrollBehavior: "contain",
             }}
           >
             <InspectorComponent elementId={selectedId} />

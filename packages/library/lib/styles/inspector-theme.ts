@@ -86,7 +86,8 @@ export const inspectorTheme: Theme = createTheme({
           "&.Mui-focused .MuiOutlinedInput-notchedOutline": {
             borderColor: "var(--besser-primary, #2a8fbd)",
             borderWidth: "1px",
-            boxShadow: "0 0 0 2px rgba(42, 143, 189, 0.2)",
+            boxShadow:
+              "0 0 0 3px color-mix(in srgb, var(--besser-primary, #2a8fbd) 12%, transparent)",
           },
         },
         input: {
@@ -159,17 +160,24 @@ export const inspectorTheme: Theme = createTheme({
       },
     },
     MuiMenu: {
+      // Menus portal to <body>; the class lets hosts scope tokens to them.
+      defaultProps: { className: "besser-inspector-portal" },
       styleOverrides: {
         paper: {
-          borderRadius: 6,
+          borderRadius: 8,
           border: "1px solid var(--besser-gray, #e9ecef)",
           boxShadow:
-            "0 4px 12px -2px rgba(0, 0, 0, 0.06), 0 2px 6px -2px rgba(0, 0, 0, 0.04)",
+            "0 8px 24px -6px rgba(15, 23, 42, 0.16), 0 2px 6px -2px rgba(15, 23, 42, 0.08)",
         },
       },
     },
 
     // ---- Buttons -------------------------------------------------------
+    // Ripples read as Material, not as the host app; focus rings come from
+    // `.Mui-focusVisible` in app.css instead.
+    MuiButtonBase: {
+      defaultProps: { disableRipple: true },
+    },
     MuiButton: {
       defaultProps: { disableElevation: true, size: "small" },
       styleOverrides: {
@@ -178,15 +186,37 @@ export const inspectorTheme: Theme = createTheme({
           textTransform: "none",
           fontSize: "0.8125rem",
           fontWeight: 500,
-          padding: "6px 12px",
+          padding: "5px 12px",
+          transition:
+            "background-color 150ms ease-out, border-color 150ms ease-out, color 150ms ease-out, transform 120ms cubic-bezier(0.23, 1, 0.32, 1)",
+          "&:active": { transform: "scale(0.97)" },
+          "@media (prefers-reduced-motion: reduce)": {
+            "&:active": { transform: "none" },
+          },
+        },
+        containedPrimary: {
+          backgroundColor: "var(--besser-primary, #2a8fbd)",
+          color: "var(--besser-background, #ffffff)",
+          "&:hover": {
+            backgroundColor:
+              "color-mix(in srgb, var(--besser-primary, #2a8fbd) 88%, var(--besser-primary-contrast, #0f172a))",
+          },
+        },
+        textPrimary: {
+          color: "var(--besser-primary, #2a8fbd)",
+          "&:hover": {
+            backgroundColor:
+              "color-mix(in srgb, var(--besser-primary, #2a8fbd) 8%, transparent)",
+          },
         },
         outlined: {
           borderColor: "var(--besser-gray, #e9ecef)",
           color: "var(--besser-primary-contrast, #0f172a)",
           "&:hover": {
-            borderColor: "var(--besser-gray-variant, #adb5bd)",
+            borderColor:
+              "color-mix(in srgb, var(--besser-primary-contrast, #0f172a) 22%, transparent)",
             backgroundColor:
-              "color-mix(in srgb, var(--besser-primary, #2a8fbd) 6%, transparent)",
+              "color-mix(in srgb, var(--besser-primary-contrast, #0f172a) 5%, transparent)",
           },
         },
       },
@@ -197,10 +227,16 @@ export const inspectorTheme: Theme = createTheme({
         root: {
           borderRadius: 6,
           padding: 4,
+          color: "color-mix(in srgb, var(--besser-primary-contrast, #0f172a) 58%, transparent)",
+          transition:
+            "background-color 150ms ease-out, color 150ms ease-out, transform 120ms cubic-bezier(0.23, 1, 0.32, 1)",
           "&:hover": {
+            color: "var(--besser-primary-contrast, #0f172a)",
             backgroundColor:
-              "color-mix(in srgb, var(--besser-primary, #2a8fbd) 8%, transparent)",
+              "color-mix(in srgb, var(--besser-primary-contrast, #0f172a) 6%, transparent)",
           },
+          "&:active": { transform: "scale(0.97)" },
+          "& svg": { fill: "currentColor" },
         },
       },
     },
@@ -248,10 +284,13 @@ export const inspectorTheme: Theme = createTheme({
     MuiTooltip: {
       styleOverrides: {
         tooltip: {
-          fontSize: "0.7rem",
-          backgroundColor:
-            "var(--besser-primary-contrast, #0f172a)",
-          borderRadius: 4,
+          fontSize: "0.75rem",
+          fontWeight: 500,
+          // Inverse surface: foreground as background, background as text,
+          // so the tooltip reads in both light and dark themes.
+          backgroundColor: "var(--besser-primary-contrast, #0f172a)",
+          color: "var(--besser-background, #ffffff)",
+          borderRadius: 6,
           padding: "4px 8px",
         },
         arrow: {

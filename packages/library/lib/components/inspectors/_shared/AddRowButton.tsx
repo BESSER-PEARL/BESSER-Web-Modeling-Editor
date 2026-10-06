@@ -1,46 +1,38 @@
 import React from "react"
-import { Button, ButtonProps } from "@mui/material"
 import { useTranslation } from "@/i18n"
+import { PlusIcon } from "./icons"
 
-interface AddRowButtonProps extends Omit<ButtonProps, "onClick" | "children"> {
+interface AddRowButtonProps
+  extends Omit<React.ButtonHTMLAttributes<HTMLButtonElement>, "onClick" | "children"> {
   onClick: () => void
-  /** Short verb / target. Rendered as `+ {label}`. Defaults to `add`. */
+  /** Short verb / target, e.g. `add attribute`. Defaults to `add`. */
   label?: string
 }
 
 /**
- * Uniform `+ add` affordance used by every inspector
- * panel that needs to grow a list.
- *
- * Replaces the inconsistent mix of `IconButton`, free-form text link,
- * and `<Button variant="text">+ add</Button>` previously coexisting
- * across inspector bodies.
- *
- * Visual: thin MUI text-link button (`size="small"`, `variant="text"`),
- * primary-themed via the BESSER CSS variable.
+ * Uniform "add row" affordance for inspector lists: a quiet ghost button
+ * with a plus glyph that sits on the right of a section header. Neutral at
+ * rest (the brand colour is kept for primary actions and selection).
  */
 export const AddRowButton: React.FC<AddRowButtonProps> = ({
   onClick,
   label,
-  sx,
+  className,
   ...rest
 }) => {
   const { t } = useTranslation()
+  const text = label ?? t("common.addLowercase", "add")
   return (
-    <Button
-      size="small"
-      variant="text"
+    <button
+      type="button"
       onClick={onClick}
       {...rest}
-      sx={{
-        minWidth: 0,
-        padding: "0 6px",
-        textTransform: "none",
-        color: "var(--besser-primary, #3e8acc)",
-        ...sx,
-      }}
+      className={["bp-add-btn", className].filter(Boolean).join(" ")}
     >
-      + {label ?? t("common.addLowercase", "add")}
-    </Button>
+      <PlusIcon size={14} />
+      {/* Labels arrive lowercase ("add attribute"); capitalise the first
+          letter for display only. */}
+      <span>{text.charAt(0).toUpperCase() + text.slice(1)}</span>
+    </button>
   )
 }

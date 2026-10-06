@@ -4,7 +4,7 @@
 import "@/index"
 import { describe, expect, it } from "vitest"
 import { ReactFlowProvider } from "@xyflow/react"
-import { act, render, screen } from "@testing-library/react"
+import { act, render, screen, within } from "@testing-library/react"
 import * as Y from "yjs"
 import type { Edge, Node } from "@xyflow/react"
 import {
@@ -230,7 +230,11 @@ describe("PropertiesPanel — camelCase node types + generic assessment", () => 
       popover.getState().setPopOverElementId("st-1")
     })
     expect(screen.getByLabelText("Close editor")).toBeInTheDocument()
-    expect(screen.getByText(/Idle/)).toBeInTheDocument()
+    // The header also shows the element name; assert on the feedback body.
+    const body = document.querySelector(
+      ".besser-properties-panel__body"
+    ) as HTMLElement
+    expect(within(body).getByText(/Idle/)).toBeInTheDocument()
   })
 
   it("opens the feedback body for a StateTransition edge in assessment mode", () => {
