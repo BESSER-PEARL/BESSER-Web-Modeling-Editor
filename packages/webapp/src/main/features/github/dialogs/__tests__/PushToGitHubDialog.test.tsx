@@ -62,18 +62,22 @@ describe('PushToGitHubDialog — existing-repo branch picker', () => {
     );
 
     fireEvent.click(screen.getByRole('button', { name: /existing/i }));
-    const repoSelect = screen.getByLabelText('Repository');
-    fireEvent.change(repoSelect, { target: { value: 'me/slow' } });
-    fireEvent.change(repoSelect, { target: { value: 'me/fast' } });
+    const pickRepo = (name: string) => {
+      fireEvent.keyDown(screen.getByLabelText('Repository'), { key: 'ArrowDown' });
+      fireEvent.click(screen.getByRole('option', { name }));
+    };
+    pickRepo('me/slow');
+    pickRepo('me/fast');
 
     // The fast repo answers first, then the slow repo's stale answer lands.
     await act(async () => pendingBranches.get('fast')!(['trunk', 'dev']));
     await act(async () => pendingBranches.get('slow')!(['main', 'feature-x']));
 
-    const branchSelect = screen.getByLabelText('Branch') as HTMLSelectElement;
-    const options = Array.from(branchSelect.options).map((option) => option.value);
+    const branchTrigger = screen.getByLabelText('Branch');
+    expect(branchTrigger).toHaveTextContent('trunk');
+    fireEvent.keyDown(branchTrigger, { key: 'ArrowDown' });
+    const options = screen.getAllByRole('option').map((option) => option.textContent);
     expect(options).toEqual(['trunk', 'dev']);
-    expect(branchSelect.value).toBe('trunk');
   });
 });
 
@@ -106,7 +110,7 @@ describe('PushToGitHubDialog — empty repository list', () => {
     });
 
     expect(fetchRepositories).toHaveBeenCalledTimes(1);
-    expect(screen.getByText(/No repositories loaded/)).toBeInTheDocument();
+    expect(screen.getByText(/No repositories loaded|github\.push\.noRepositories/)).toBeInTheDocument();
 
     await act(async () => {
       fireEvent.click(screen.getByRole('button', { name: 'Retry' }));
@@ -116,9 +120,35 @@ describe('PushToGitHubDialog — empty repository list', () => {
 
   it('marks the active Create/Existing toggle with aria-pressed', () => {
     renderDialog();
-    const create = screen.getByRole('button', { name: /create new repo/i });
+    const create = screen.getByRole('button', { name: /create new|github\.push\.createNew/i });
     const existing = screen.getByRole('button', { name: /existing/i });
     expect(create).toHaveAttribute('aria-pressed', 'true');
     expect(existing).toHaveAttribute('aria-pressed', 'false');
+  });
+});
+
+describe('PushToGitHubDialog — keyboard submit', () => {
+  it('submits the form on Enter in the repository name field', async () => {
+    const push = vi.fn().mockResolvedValue({ ok: true });
+    render(
+      <PushToGitHubDialog
+        open
+        runId="r1"
+        projectName="Demo"
+        linkedRepo={null}
+        githubSession="session"
+        isPushing={false}
+        result={null}
+        onOpenChange={() => {}}
+        onChangeRepo={() => {}}
+        push={push}
+      />,
+    );
+
+    const nameInput = screen.getByLabelText(/Repository Name/);
+    await act(async () => {
+      fireEvent.submit(nameInput.closest('form')!);
+    });
+    expect(push).toHaveBeenCalledWith(expect.objectContaining({ useExisting: false, repoName: 'demo' }));
   });
 });

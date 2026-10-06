@@ -132,8 +132,7 @@ export const updatable = (
                 <FloatingButton
                   style={{
                     opacity: selected ? 1 : 0,
-                    transform: `translate(${baseCoordinates.x}px, ${selected ? baseCoordinates.y - 10 : baseCoordinates.y
-                      }px)`,
+                    transform: `translate(${baseCoordinates.x}px, ${baseCoordinates.y - 10}px)`,
                   }}
                   onClick={this.onStartUpdate}
                   label={label('actions.edit', 'Edit')}
@@ -144,8 +143,7 @@ export const updatable = (
                 <FloatingButton
                   style={{
                     opacity: selected ? 1 : 0,
-                    transform: `translate(${baseCoordinates.x}px, ${selected ? baseCoordinates.y - 50 : baseCoordinates.y
-                      }px)`,
+                    transform: `translate(${baseCoordinates.x}px, ${baseCoordinates.y - 50}px)`,
                   }}
                   onClick={this.onDelete}
                   label={label('actions.delete', 'Delete')}
@@ -157,8 +155,7 @@ export const updatable = (
                   <FloatingButton
                     style={{
                       opacity: selected ? 1 : 0,
-                      transform: `translate(${baseCoordinates.x}px, ${selected ? baseCoordinates.y - 90 : baseCoordinates.y
-                        }px)`,
+                      transform: `translate(${baseCoordinates.x}px, ${baseCoordinates.y - 90}px)`,
                     }}
                     onClick={this.onAdd}
                     label={label('actions.addConnectedObject', 'Add connected object')}

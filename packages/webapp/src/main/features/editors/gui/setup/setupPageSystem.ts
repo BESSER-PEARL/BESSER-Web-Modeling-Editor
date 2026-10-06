@@ -264,11 +264,11 @@ const openLoadingModal = (editor: Editor, title: string, message: string): (() =
   modal.setTitle(title);
   modal.setContent(`
     <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; min-width: 340px; padding: 4px 0 8px;">
-      <p style="margin: 0 0 14px; color: #444; line-height: 1.5;">${message}</p>
-      <div style="position: relative; height: 8px; border-radius: 999px; background: #e8e8e8; overflow: hidden;">
-        <div style="position: absolute; top: 0; bottom: 0; left: -40%; width: 40%; border-radius: 999px; background: #2563eb; animation: gjsPersonalizeIndet 1.2s ease-in-out infinite;"></div>
+      <p style="margin: 0 0 14px; color: hsl(var(--foreground)); line-height: 1.5;">${message}</p>
+      <div style="position: relative; height: 8px; border-radius: 999px; background: hsl(var(--muted)); overflow: hidden;">
+        <div style="position: absolute; top: 0; bottom: 0; left: -40%; width: 40%; border-radius: 999px; background: hsl(var(--brand)); animation: gjsPersonalizeIndet 1.2s ease-in-out infinite;"></div>
       </div>
-      <p style="margin: 12px 0 0; color: #888; font-size: 12px;">${i18n.t('editors.gui.pages.loadingNotice')}</p>
+      <p style="margin: 12px 0 0; color: hsl(var(--muted-foreground)); font-size: 12px;">${i18n.t('editors.gui.pages.loadingNotice')}</p>
       <style>
         @keyframes gjsPersonalizeIndet {
           0% { left: -40%; }
@@ -353,23 +353,23 @@ const openProfilePickerModal = async (
     ? `
       <label style="display:flex; align-items:flex-start; gap:8px; margin-top:14px; cursor:pointer;">
         <input type="checkbox" id="${toggleId}" style="margin-top:3px;" />
-        <span style="font-size:13px; color:#444; line-height:1.4;">
+        <span style="font-size:13px; color:hsl(var(--foreground)); line-height:1.4;">
           <strong>✨ ${i18n.t('editors.gui.pages.autoPersonalize')}</strong><br/>
-          <span style="color:#777;">${i18n.t('editors.gui.pages.autoPersonalizeDescription')}</span>
+          <span style="color:hsl(var(--muted-foreground));">${i18n.t('editors.gui.pages.autoPersonalizeDescription')}</span>
         </span>
       </label>`
     : '';
   const content = `
     <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; min-width: 320px;">
-      <p style="margin: 0 0 12px; color: #444; line-height: 1.5;">${options.description}</p>
-      <label for="${selectId}" style="display:block; margin-bottom:8px; font-size:12px; font-weight:600; color:#333; text-transform:uppercase; letter-spacing:0.04em;">${i18n.t('editors.gui.pages.userProfile')}</label>
-      <select id="${selectId}" style="width:100%; padding:8px 10px; border:1px solid #ccc; border-radius:6px; font-size:14px; background:white;">
+      <p style="margin: 0 0 12px; color: hsl(var(--foreground)); line-height: 1.5;">${options.description}</p>
+      <label for="${selectId}" style="display:block; margin-bottom:8px; font-size:12px; font-weight:600; color:hsl(var(--foreground)); text-transform:uppercase; letter-spacing:0.04em;">${i18n.t('editors.gui.pages.userProfile')}</label>
+      <select id="${selectId}" style="width:100%; padding:8px 10px; border:1px solid hsl(var(--input)); border-radius:6px; font-size:14px; background:hsl(var(--background)); color:hsl(var(--foreground));">
         ${profiles.map((profile) => `<option value="${profile.id}">${escapeHtml(profile.name)}</option>`).join('')}
       </select>
       ${toggleHtml}
       <div style="display:flex; justify-content:flex-end; gap:8px; margin-top:16px;">
-        <button type="button" id="gjs-personalization-cancel-btn" style="padding:8px 12px; border:1px solid #ccc; border-radius:6px; background:#fff; cursor:pointer;">${i18n.t('common.cancel')}</button>
-        <button type="button" id="gjs-personalization-confirm-btn" style="padding:8px 12px; border:none; border-radius:6px; background:#2563eb; color:#fff; cursor:pointer;">${options.confirmLabel}</button>
+        <button type="button" id="gjs-personalization-cancel-btn" style="padding:8px 12px; border:1px solid hsl(var(--input)); border-radius:6px; background:hsl(var(--background)); color:hsl(var(--foreground)); cursor:pointer;">${i18n.t('common.cancel')}</button>
+        <button type="button" id="gjs-personalization-confirm-btn" style="padding:8px 12px; border:none; border-radius:6px; background:hsl(var(--brand)); color:hsl(var(--brand-foreground)); cursor:pointer;">${options.confirmLabel}</button>
       </div>
     </div>
   `;
@@ -412,23 +412,23 @@ const openPageDeleteModal = (
   const variantRows = variants
     .map(
       (v) => `
-      <div style="display:flex; align-items:center; justify-content:space-between; gap:12px; padding:8px 10px; border:1px solid #eee; border-radius:6px; margin-bottom:6px;">
-        <span style="font-size:14px; color:#333;">${escapeHtml(v.profileName)}${activeId === v.id ? ` <span style="color:#1d4ed8; font-size:11px; font-weight:600;">(${i18n.t('editors.gui.pages.active')})</span>` : ''}</span>
-        <button type="button" class="gjs-del-variant-btn" data-variant-id="${v.id}" style="padding:6px 10px; border:1px solid #e74c3c; color:#e74c3c; background:#fff; border-radius:6px; cursor:pointer; font-size:12px;">${i18n.t('editors.gui.pages.delete')}</button>
+      <div style="display:flex; align-items:center; justify-content:space-between; gap:12px; padding:8px 10px; border:1px solid hsl(var(--border)); border-radius:6px; margin-bottom:6px;">
+        <span style="font-size:14px; color:hsl(var(--foreground));">${escapeHtml(v.profileName)}${activeId === v.id ? ` <span style="color:hsl(var(--brand)); font-size:11px; font-weight:600;">(${i18n.t('editors.gui.pages.active')})</span>` : ''}</span>
+        <button type="button" class="gjs-del-variant-btn" data-variant-id="${v.id}" style="padding:6px 10px; border:1px solid hsl(var(--destructive)); color:hsl(var(--destructive)); background:transparent; border-radius:6px; cursor:pointer; font-size:12px;">${i18n.t('editors.gui.pages.delete')}</button>
       </div>`,
     )
     .join('');
 
   const content = `
     <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; min-width: 360px;">
-      <p style="margin:0 0 12px; color:#444; line-height:1.5;">${i18n.t('editors.gui.pages.deleteVariantDescription', { name: page.getName() })}</p>
-      <div style="display:flex; align-items:center; justify-content:space-between; gap:12px; padding:8px 10px; border:1px solid #eee; border-radius:6px; margin-bottom:6px; background:#fafafa;">
-        <span style="font-size:14px; color:#333;">${i18n.t('editors.gui.pages.basePage')} <span style="color:#888; font-size:11px;">— ${i18n.t('editors.gui.pages.basePageDescription')}</span></span>
-        <button type="button" id="gjs-del-base-btn" style="padding:6px 10px; border:none; color:#fff; background:#c0392b; border-radius:6px; cursor:pointer; font-size:12px;">${i18n.t('editors.gui.pages.deleteAll')}</button>
+      <p style="margin:0 0 12px; color:hsl(var(--foreground)); line-height:1.5;">${i18n.t('editors.gui.pages.deleteVariantDescription', { name: page.getName() })}</p>
+      <div style="display:flex; align-items:center; justify-content:space-between; gap:12px; padding:8px 10px; border:1px solid hsl(var(--border)); border-radius:6px; margin-bottom:6px; background:hsl(var(--muted));">
+        <span style="font-size:14px; color:hsl(var(--foreground));">${i18n.t('editors.gui.pages.basePage')} <span style="color:hsl(var(--muted-foreground)); font-size:11px;">— ${i18n.t('editors.gui.pages.basePageDescription')}</span></span>
+        <button type="button" id="gjs-del-base-btn" style="padding:6px 10px; border:none; color:hsl(var(--destructive-foreground)); background:hsl(var(--destructive)); border-radius:6px; cursor:pointer; font-size:12px;">${i18n.t('editors.gui.pages.deleteAll')}</button>
       </div>
       ${variantRows}
       <div style="display:flex; justify-content:flex-end; gap:8px; margin-top:16px;">
-        <button type="button" id="gjs-del-cancel-btn" style="padding:8px 12px; border:1px solid #ccc; border-radius:6px; background:#fff; cursor:pointer;">${i18n.t('common.cancel')}</button>
+        <button type="button" id="gjs-del-cancel-btn" style="padding:8px 12px; border:1px solid hsl(var(--input)); border-radius:6px; background:hsl(var(--background)); color:hsl(var(--foreground)); cursor:pointer;">${i18n.t('common.cancel')}</button>
       </div>
     </div>
   `;
@@ -736,7 +736,7 @@ function updatePagesList(editor: Editor) {
             </svg>
           </button>
           ${variants.length > 0 ? `
-          <select class="gjs-page-variants-select" title="${i18n.t('editors.gui.pages.switchVariant')}" aria-label="${i18n.t('editors.gui.pages.switchVariant')}" style="padding: 4px; border-radius: 4px; border: 1px solid #ccc; font-size: 12px;">
+          <select class="gjs-page-variants-select" title="${i18n.t('editors.gui.pages.switchVariant')}" aria-label="${i18n.t('editors.gui.pages.switchVariant')}" style="padding: 4px; border-radius: 4px; border: 1px solid hsl(var(--input)); background: hsl(var(--background)); color: hsl(var(--foreground)); font-size: 12px;">
             <option value="">${i18n.t('editors.gui.pages.base')}</option>
             ${variants.map(v => `<option value="${v.id}" ${activeVariantId === v.id ? 'selected' : ''}>${escapeHtml(v.profileName)}</option>`).join('')}
           </select>
@@ -1137,7 +1137,7 @@ function addPagesPanelCSS() {
       left: 0;
       right: 0;
       bottom: 0;
-      background: #ffffff;
+      background: hsl(var(--card));
       display: flex;
       flex-direction: column;
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
@@ -1148,21 +1148,21 @@ function addPagesPanelCSS() {
       justify-content: flex-start;
       align-items: center;
       padding: 10px 12px;
-      background: #f5f5f5;
-      border-bottom: 1px solid #ddd;
+      background: hsl(var(--muted));
+      border-bottom: 1px solid hsl(var(--border));
     }
     
     .gjs-pages-title {
       font-size: 12px;
       font-weight: 600;
-      color: #333;
+      color: hsl(var(--foreground));
       text-transform: uppercase;
       letter-spacing: 0.5px;
     }
     
     .gjs-pages-actions {
       padding: 8px 12px;
-      border-bottom: 1px solid #eee;
+      border-bottom: 1px solid hsl(var(--border));
     }
     
     .gjs-pages-add-btn {
@@ -1172,18 +1172,18 @@ function addPagesPanelCSS() {
       gap: 6px;
       width: 100%;
       height: 34px;
-      background: #0066cc;
+      background: hsl(var(--brand));
       border: none;
       border-radius: 4px;
-      color: white;
+      color: hsl(var(--brand-foreground));
       font-size: 13px;
       font-weight: 600;
       cursor: pointer;
-      transition: all 0.2s;
+      transition: background-color 150ms ease-out;
     }
     
     .gjs-pages-add-btn:hover {
-      background: #0052a3;
+      background: hsl(var(--brand-dark));
     }
     
     .gjs-pages-add-btn svg {
@@ -1197,22 +1197,22 @@ function addPagesPanelCSS() {
     .gjs-pages-search {
       width: 100%;
       padding: 8px 12px;
-      border: 1px solid #ddd;
+      border: 1px solid hsl(var(--input));
       border-radius: 4px;
       font-size: 13px;
-      background: #fff;
-      color: #333;
+      background: hsl(var(--background));
+      color: hsl(var(--foreground));
       box-sizing: border-box;
     }
     
     .gjs-pages-search:focus {
       outline: none;
-      border-color: #0066cc;
-      box-shadow: 0 0 0 2px rgba(0, 102, 204, 0.1);
+      border-color: hsl(var(--ring));
+      box-shadow: 0 0 0 2px hsl(var(--ring) / 0.15);
     }
     
     .gjs-pages-search::placeholder {
-      color: #999;
+      color: hsl(var(--muted-foreground));
     }
     
     .gjs-pages-list {
@@ -1228,21 +1228,21 @@ function addPagesPanelCSS() {
       gap: 8px;
       padding: 10px 12px;
       margin-bottom: 4px;
-      background: #f9f9f9;
-      border: 1px solid #eee;
+      background: hsl(var(--background));
+      border: 1px solid hsl(var(--border));
       border-radius: 6px;
       cursor: pointer;
-      transition: all 0.2s;
+      transition: background-color 150ms ease-out, border-color 150ms ease-out;
     }
     
     .gjs-page-item:hover {
-      background: #f0f0f0;
-      border-color: #0066cc;
+      background: hsl(var(--muted));
+      border-color: hsl(var(--brand));
     }
     
     .gjs-page-item.selected {
-      background: #0066cc;
-      border-color: #0066cc;
+      background: hsl(var(--brand));
+      border-color: hsl(var(--brand));
     }
     
     .gjs-page-info {
@@ -1258,8 +1258,8 @@ function addPagesPanelCSS() {
       align-self: flex-start;
       padding: 1px 6px;
       border-radius: 999px;
-      background: rgba(37, 99, 235, 0.12);
-      color: #1d4ed8;
+      background: hsl(var(--brand) / 0.12);
+      color: hsl(var(--brand));
       font-size: 10px;
       font-weight: 600;
       letter-spacing: 0.02em;
@@ -1269,7 +1269,7 @@ function addPagesPanelCSS() {
     .gjs-page-name {
       font-size: 13px;
       font-weight: 500;
-      color: #333;
+      color: hsl(var(--foreground));
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
@@ -1277,7 +1277,7 @@ function addPagesPanelCSS() {
     
     .gjs-page-route {
       font-size: 11px;
-      color: #888;
+      color: hsl(var(--muted-foreground));
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
@@ -1285,11 +1285,11 @@ function addPagesPanelCSS() {
     }
     
     .gjs-page-item.selected .gjs-page-name {
-      color: #fff;
+      color: hsl(var(--brand-foreground));
     }
     
     .gjs-page-item.selected .gjs-page-route {
-      color: rgba(255, 255, 255, 0.7);
+      color: hsl(var(--brand-foreground) / 0.75);
     }
     
     .gjs-page-actions {
@@ -1315,31 +1315,31 @@ function addPagesPanelCSS() {
       border: none;
       border-radius: 4px;
       cursor: pointer;
-      color: #666;
-      transition: all 0.2s;
+      color: hsl(var(--muted-foreground));
+      transition: background-color 150ms ease-out, color 150ms ease-out;
     }
     
     .gjs-page-btn:hover {
-      background: rgba(0, 0, 0, 0.1);
-      color: #333;
+      background: hsl(var(--foreground) / 0.08);
+      color: hsl(var(--foreground));
     }
     
     .gjs-page-item.selected .gjs-page-btn {
-      color: rgba(255, 255, 255, 0.8);
+      color: hsl(var(--brand-foreground) / 0.8);
     }
     
     .gjs-page-item.selected .gjs-page-btn:hover {
-      background: rgba(255, 255, 255, 0.2);
-      color: #fff;
+      background: hsl(var(--brand-foreground) / 0.2);
+      color: hsl(var(--brand-foreground));
     }
     
     .gjs-page-btn.delete-page-btn:hover {
-      background: #e74c3c;
-      color: white;
+      background: hsl(var(--destructive));
+      color: hsl(var(--destructive-foreground));
     }
     
     .gjs-page-item.selected .gjs-page-btn.delete-page-btn:hover {
-      background: #c0392b;
+      background: hsl(var(--destructive));
     }
     
     /* Scrollbar styling */
@@ -1348,16 +1348,16 @@ function addPagesPanelCSS() {
     }
     
     .gjs-pages-list::-webkit-scrollbar-track {
-      background: #f5f5f5;
+      background: transparent;
     }
     
     .gjs-pages-list::-webkit-scrollbar-thumb {
-      background: #ccc;
+      background: hsl(var(--muted-foreground) / 0.25);
       border-radius: 3px;
     }
     
     .gjs-pages-list::-webkit-scrollbar-thumb:hover {
-      background: #999;
+      background: hsl(var(--muted-foreground) / 0.4);
     }
     
     /* Hide the old floating panel if it exists */

@@ -1,12 +1,12 @@
 import React from 'react';
 import { useTranslation, Trans } from 'react-i18next';
 import { Label } from '@/components/ui/label';
+import { Checkbox } from '@/components/ui/checkbox';
 import type { AgentRuntimeConfig } from '../../../../shared/services/storage/local-storage-repository';
 import type { IntentRecognitionTechnology } from '../../../../shared/types/agent-config';
-import { SectionHeader } from '../runtimeFields';
+import { OptionSelect, SectionHeader } from '../runtimeFields';
 
-const SELECT_CLASS =
-  'h-9 w-full rounded-md border border-input bg-background px-3 py-2 text-sm transition-colors hover:border-brand/30 focus:border-brand/40 focus:outline-none focus:ring-2 focus:ring-brand/20';
+const SELECT_CLASS = 'h-9 transition-colors hover:border-brand/30';
 
 export interface RuntimeSettingsSectionProps {
   agentRuntimeConfig: AgentRuntimeConfig;
@@ -27,24 +27,24 @@ export function RuntimeSettingsSection({ agentRuntimeConfig, updateAgentRuntimeC
         <div className="grid gap-4 md:grid-cols-2">
           <div className="space-y-1.5">
             <Label htmlFor="arp-platform">{t('agentConfig.runtime.platform')}</Label>
-            <select
+            <OptionSelect
               id="arp-platform"
               className={SELECT_CLASS}
               value={agentRuntimeConfig.agentPlatform}
-              onChange={e => updateAgentRuntimeConfig({
-                agentPlatform: e.target.value,
-                agentPlatformUseStreamlit: e.target.value !== 'websocket' ? false : agentRuntimeConfig.agentPlatformUseStreamlit,
+              onValueChange={v => updateAgentRuntimeConfig({
+                agentPlatform: v,
+                agentPlatformUseStreamlit: v !== 'websocket' ? false : agentRuntimeConfig.agentPlatformUseStreamlit,
               })}
-            >
-              <option value="websocket">{t('agentConfig.runtime.platformWebSocket')}</option>
-              <option value="telegram">{t('agentConfig.runtime.platformTelegram')}</option>
-            </select>
+              options={[
+                { value: 'websocket', label: t('agentConfig.runtime.platformWebSocket') },
+                { value: 'telegram', label: t('agentConfig.runtime.platformTelegram') },
+              ]}
+            />
             {agentRuntimeConfig.agentPlatform === 'websocket' && (
               <label className="flex items-center gap-2 text-sm cursor-pointer pt-1">
-                <input
-                  type="checkbox"
+                <Checkbox
                   checked={agentRuntimeConfig.agentPlatformUseStreamlit ?? false}
-                  onChange={e => updateAgentRuntimeConfig({ agentPlatformUseStreamlit: e.target.checked })}
+                  onCheckedChange={checked => updateAgentRuntimeConfig({ agentPlatformUseStreamlit: checked })}
                 />
                 {t('agentConfig.runtime.useStreamlitUi')}
               </label>
@@ -53,35 +53,36 @@ export function RuntimeSettingsSection({ agentRuntimeConfig, updateAgentRuntimeC
 
           <div className="space-y-1.5">
             <Label htmlFor="arp-intent">{t('agentConfig.runtime.intent')}</Label>
-            <select
+            <OptionSelect
               id="arp-intent"
               className={SELECT_CLASS}
               value={agentRuntimeConfig.intentRecognitionTechnology}
-              onChange={e => updateAgentRuntimeConfig({
-                intentRecognitionTechnology: e.target.value as IntentRecognitionTechnology,
+              onValueChange={v => updateAgentRuntimeConfig({
+                intentRecognitionTechnology: v as IntentRecognitionTechnology,
               })}
-            >
-              <option value="classical">{t('agentConfig.runtime.intentClassical')}</option>
-              <option value="llm-based">{t('agentConfig.runtime.intentLlmBased')}</option>
-            </select>
+              options={[
+                { value: 'classical', label: t('agentConfig.runtime.intentClassical') },
+                { value: 'llm-based', label: t('agentConfig.runtime.intentLlmBased') },
+              ]}
+            />
           </div>
 
           {agentRuntimeConfig.intentRecognitionTechnology === 'llm-based' && (
             <div className="space-y-1.5">
               <Label htmlFor="arp-llm">{t('agentConfig.runtime.llm')}</Label>
-              <select
+              <OptionSelect
                 id="arp-llm"
                 className={SELECT_CLASS}
                 value={agentRuntimeConfig.agentLlmName}
-                onChange={e => updateAgentRuntimeConfig({ agentLlmName: e.target.value })}
-              >
-                <option value="">{t('agentConfig.runtime.useDefault')}</option>
-                {agentLLMElements.map(entry => (
-                  <option key={entry.id} value={entry.name}>
-                    {entry.name || t('agentConfig.row.unnamedLlm')}
-                  </option>
-                ))}
-              </select>
+                onValueChange={v => updateAgentRuntimeConfig({ agentLlmName: v })}
+                options={[
+                  { value: '', label: t('agentConfig.runtime.useDefault') },
+                  ...agentLLMElements.map(entry => ({
+                    value: entry.name,
+                    label: entry.name || t('agentConfig.row.unnamedLlm'),
+                  })),
+                ]}
+              />
               {agentLLMElements.length === 0 && (
                 <p className="text-xs text-muted-foreground">
                   <Trans i18nKey="agentConfig.runtime.defineLlmsHint" components={{ strong: <strong /> }} />

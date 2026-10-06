@@ -181,7 +181,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({ open, onOpenChan
 
         {/* Palette card */}
         <DialogPrimitive.Content
-          className="fixed left-1/2 top-[15vh] flex w-full max-w-[540px] -translate-x-1/2 flex-col overflow-hidden rounded-2xl border border-slate-200/70 bg-white shadow-[0_24px_64px_-16px_rgba(0,0,0,0.25)] focus:outline-none dark:border-slate-700/70 dark:bg-slate-900 dark:shadow-[0_24px_64px_-16px_rgba(0,0,0,0.6)]"
+          className="fixed left-1/2 top-[15vh] flex w-full max-w-[540px] -translate-x-1/2 flex-col overflow-hidden rounded-2xl border border-border bg-popover text-popover-foreground shadow-[0_24px_64px_-16px_rgba(0,0,0,0.25)] focus:outline-none dark:shadow-[0_24px_64px_-16px_rgba(0,0,0,0.6)]"
           style={{ zIndex: Z_INDEX.MODAL }}
           aria-modal="true"
           aria-describedby={undefined}
@@ -193,8 +193,8 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({ open, onOpenChan
         >
           <DialogTitle className="sr-only">{t('shared.commandPalette.dialogLabel')}</DialogTitle>
           {/* Search input */}
-          <div className="flex items-center gap-3 border-b border-slate-200/80 px-4 py-3 dark:border-slate-700/60">
-            <Search className="size-5 shrink-0 text-slate-400 dark:text-slate-500" />
+          <div className="flex items-center gap-3 border-b border-border px-4 py-3">
+            <Search className="size-5 shrink-0 text-muted-foreground" />
             <input
               ref={inputRef}
               type="text"
@@ -204,7 +204,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({ open, onOpenChan
                 setSelectedIndex(0);
               }}
               placeholder={t('shared.commandPalette.placeholder')}
-              className="flex-1 bg-transparent text-sm text-slate-900 outline-none placeholder:text-slate-400 dark:text-slate-100 dark:placeholder:text-slate-500"
+              className="flex-1 bg-transparent text-sm text-popover-foreground outline-none placeholder:text-muted-foreground"
               role="combobox"
               aria-label={t('shared.commandPalette.searchLabel')}
               aria-autocomplete="list"
@@ -214,7 +214,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({ open, onOpenChan
               autoComplete="off"
               spellCheck={false}
             />
-            <kbd className="hidden rounded-md border border-slate-200/80 bg-slate-100/80 px-1.5 py-0.5 font-mono text-[10px] font-medium text-slate-500 sm:inline-flex dark:border-slate-700 dark:bg-slate-800 dark:text-slate-400">
+            <kbd className="hidden rounded-md border border-border bg-muted px-1.5 py-0.5 font-mono text-[10px] font-medium text-muted-foreground sm:inline-flex">
               ESC
             </kbd>
           </div>
@@ -222,7 +222,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({ open, onOpenChan
           {/* Results list */}
           <div ref={listRef} className="max-h-[360px] overflow-y-auto overscroll-contain p-2">
             {flatItems.length === 0 && (
-              <div className="px-3 py-8 text-center text-sm text-slate-400 dark:text-slate-500">
+              <div className="px-3 py-8 text-center text-sm text-muted-foreground">
                 {t('shared.commandPalette.noResults')}
               </div>
             )}
@@ -234,7 +234,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({ open, onOpenChan
                     <div
                       id={headingId}
                       role="presentation"
-                      className="mb-1 mt-2 px-2 text-[10px] font-semibold uppercase tracking-[0.12em] text-slate-400 first:mt-0 dark:text-slate-500"
+                      className="mb-1 mt-2 px-2 text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground first:mt-0"
                     >
                       {t(`shared.commandPalette.categories.${category.toLowerCase()}`)}
                     </div>
@@ -250,8 +250,8 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({ open, onOpenChan
                           data-active={isActive}
                           className={`flex w-full cursor-pointer items-center gap-3 rounded-lg px-3 py-2 text-left text-sm transition-colors ${
                             isActive
-                              ? 'bg-brand/10 text-brand-dark dark:bg-brand/20 dark:text-brand'
-                              : 'text-slate-700 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800/70'
+                              ? 'bg-accent text-accent-foreground'
+                              : 'text-popover-foreground hover:bg-accent/60'
                           }`}
                           onClick={() => handleSelect(action)}
                           onMouseEnter={() => setSelectedIndex(itemIndex)}
@@ -259,15 +259,15 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({ open, onOpenChan
                           <span
                             className={`flex size-7 shrink-0 items-center justify-center rounded-lg ${
                               isActive
-                                ? 'bg-brand/15 text-brand dark:bg-brand/25'
-                                : 'bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400'
+                                ? 'bg-brand/15 text-brand'
+                                : 'bg-muted text-muted-foreground'
                             }`}
                           >
                             {action.icon}
                           </span>
                           <span className="flex-1 truncate">{action.label}</span>
                           {action.shortcut && (
-                            <kbd className="ml-auto shrink-0 rounded-md border border-slate-200/80 bg-slate-50 px-1.5 py-0.5 font-mono text-[10px] text-slate-400 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-500">
+                            <kbd className="ml-auto shrink-0 rounded-md border border-border bg-muted px-1.5 py-0.5 font-mono text-[10px] text-muted-foreground">
                               {action.shortcut}
                             </kbd>
                           )}
@@ -282,23 +282,23 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({ open, onOpenChan
           </div>
 
           {/* Footer hint */}
-          <div className="flex items-center gap-4 border-t border-slate-200/80 px-4 py-2 dark:border-slate-700/60">
-            <span className="flex items-center gap-1.5 text-[11px] text-slate-400 dark:text-slate-500">
-              <kbd className="inline-flex h-4 items-center rounded border border-slate-200/80 bg-slate-100/80 px-1 font-mono text-[9px] dark:border-slate-700 dark:bg-slate-800">
+          <div className="flex items-center gap-4 border-t border-border px-4 py-2">
+            <span className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+              <kbd className="inline-flex h-4 items-center rounded border border-border bg-muted px-1 font-mono text-[9px]">
                 &uarr;
               </kbd>
-              <kbd className="inline-flex h-4 items-center rounded border border-slate-200/80 bg-slate-100/80 px-1 font-mono text-[9px] dark:border-slate-700 dark:bg-slate-800">
+              <kbd className="inline-flex h-4 items-center rounded border border-border bg-muted px-1 font-mono text-[9px]">
                 &darr;
               </kbd>
               {t('shared.commandPalette.navigate')}
             </span>
-            <span className="flex items-center gap-1.5 text-[11px] text-slate-400 dark:text-slate-500">
-              <kbd className="inline-flex h-4 items-center rounded border border-slate-200/80 bg-slate-100/80 px-1 font-mono text-[9px] dark:border-slate-700 dark:bg-slate-800">
+            <span className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+              <kbd className="inline-flex h-4 items-center rounded border border-border bg-muted px-1 font-mono text-[9px]">
                 &crarr;
               </kbd>
               {t('shared.commandPalette.select')}
             </span>
-            <span className="ml-auto flex items-center gap-1.5 text-[11px] text-slate-400 dark:text-slate-500">
+            <span className="ml-auto flex items-center gap-1.5 text-[11px] text-muted-foreground">
               <Command className="size-3" />
               {modKey}+K
             </span>

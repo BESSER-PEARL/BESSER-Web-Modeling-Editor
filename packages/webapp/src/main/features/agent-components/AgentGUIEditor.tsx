@@ -1,5 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
+import { Button } from '@/components/ui/button';
 import type { Editor } from 'grapesjs';
 import '../editors/gui/grapesjs-styles.css';
 import { registerAllComponents } from '../editors/gui/registerAllComponents';
@@ -93,63 +94,19 @@ export function AgentGUIEditor({ initialData, onSave, onCancel }: AgentGUIEditor
   };
 
   return (
-    <div
-      style={{
-        display: 'flex',
-        flexDirection: 'column',
-        height: '620px',
-        border: '1px solid var(--border)',
-        borderRadius: '6px',
-        overflow: 'hidden',
-        marginTop: '8px',
-      }}
-    >
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          padding: '6px 12px',
-          background: 'var(--muted)',
-          borderBottom: '1px solid var(--border)',
-          flexShrink: 0,
-        }}
-      >
-        <span style={{ fontSize: '13px', fontWeight: 600 }}>{t('agentComponents.guis.editorTitle')}</span>
-        <div style={{ display: 'flex', gap: '8px' }}>
-          <button
-            type="button"
-            onClick={onCancel}
-            style={{
-              padding: '4px 12px',
-              fontSize: '12px',
-              borderRadius: '4px',
-              border: '1px solid var(--border)',
-              background: 'transparent',
-              cursor: 'pointer',
-            }}
-          >
+    <div className="mt-2 flex h-[620px] flex-col overflow-hidden rounded-md border border-border">
+      <div className="flex shrink-0 items-center justify-between border-b border-border bg-muted px-3 py-1.5">
+        <span className="text-[13px] font-semibold">{t('agentComponents.guis.editorTitle')}</span>
+        <div className="flex gap-2">
+          <Button type="button" variant="outline" size="sm" className="h-7 px-3 text-xs" onClick={onCancel}>
             {t('common.cancel')}
-          </button>
-          <button
-            type="button"
-            onClick={handleSave}
-            style={{
-              padding: '4px 12px',
-              fontSize: '12px',
-              borderRadius: '4px',
-              border: 'none',
-              background: '#4f46e5',
-              color: '#fff',
-              cursor: 'pointer',
-              fontWeight: 600,
-            }}
-          >
+          </Button>
+          <Button type="button" size="sm" className="h-7 px-3 text-xs font-semibold" onClick={handleSave}>
             {t('agentComponents.guis.editorSaveAndExit')}
-          </button>
+          </Button>
         </div>
       </div>
-      <div ref={containerRef} style={{ flex: 1, minHeight: 0 }} />
+      <div ref={containerRef} className="min-h-0 flex-1" />
     </div>
   );
 }

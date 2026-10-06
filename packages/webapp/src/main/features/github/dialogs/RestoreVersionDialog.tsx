@@ -51,7 +51,7 @@ export const RestoreVersionDialog: React.FC<RestoreVersionDialogProps> = ({
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             {t('common.cancel')}
           </Button>
-          <Button onClick={onRestore} disabled={isSaving} className="gap-2">
+          <Button variant="destructive" onClick={onRestore} disabled={isSaving} className="gap-2">
             {isSaving ? (
               <>
                 <Loader2 className="size-4 animate-spin" />

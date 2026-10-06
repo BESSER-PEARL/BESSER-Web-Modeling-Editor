@@ -2,7 +2,7 @@ import * as React from 'react';
 import * as DialogPrimitive from '@radix-ui/react-dialog';
 import { cn } from '@/lib/utils';
 import { Button } from './button';
-import { DialogOverlay, dialogContentBaseClass } from './dialog';
+import { DialogFooter, DialogOverlay, dialogContentBaseClass } from './dialog';
 
 export interface ConfirmDialogProps {
   open: boolean;
@@ -42,7 +42,7 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
             </DialogPrimitive.Description>
           </div>
 
-          <div className="mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+          <DialogFooter className="mt-6">
             <Button variant="outline" onClick={onCancel}>
               {cancelLabel}
             </Button>
@@ -52,7 +52,7 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
             >
               {confirmLabel}
             </Button>
-          </div>
+          </DialogFooter>
         </DialogPrimitive.Content>
       </DialogPrimitive.Portal>
     </DialogPrimitive.Root>

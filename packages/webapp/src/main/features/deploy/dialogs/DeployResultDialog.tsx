@@ -71,7 +71,7 @@ export const DeployResultDialog: React.FC<DeployResultDialogProps> = ({
               </div>
             )}
             {primaryUrl && (
-              <Button asChild className="w-full bg-brand text-brand-foreground hover:bg-brand-dark">
+              <Button asChild className="w-full">
                 <a href={primaryUrl} target="_blank" rel="noopener noreferrer">
                   {primaryLabel}
                 </a>

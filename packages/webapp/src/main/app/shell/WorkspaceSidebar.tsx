@@ -4,7 +4,7 @@ import { UMLDiagramType } from '@besser/wme';
 import { FlaskConical } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import type { BesserProject, SupportedDiagramType } from '../../shared/types/project';
+import type { PerspectiveSettings, SupportedDiagramType } from '../../shared/types/project';
 import { isPerspectiveVisible, toSupportedDiagramType } from '../../shared/types/project';
 import {
   AGENT_ROUTE_ITEMS,
@@ -13,7 +13,6 @@ import {
   UML_ITEMS,
   SidebarToggleIcon,
   navButtonClass,
-  diagramCount,
 } from './workspace-navigation';
 
 interface WorkspaceSidebarProps {
@@ -27,11 +26,14 @@ interface WorkspaceSidebarProps {
   locationPath: string;
   activeUmlType: UMLDiagramType;
   activeDiagramType: SupportedDiagramType;
-  project: BesserProject | null;
+  /** Number of diagrams per type (only counts above 1 are shown). */
+  diagramCounts: Partial<Record<SupportedDiagramType, number>>;
+  perspectives: PerspectiveSettings | undefined;
   onSwitchUml: (type: UMLDiagramType) => void;
   onSwitchDiagramType: (type: SupportedDiagramType) => void;
   onNavigate: (path: string) => void;
-  onToggleExpanded: () => void;
+  /** Omit to hide the collapse toggle (e.g. inside the mobile drawer). */
+  onToggleExpanded?: () => void;
   onTestAgent?: () => void;
 }
 
@@ -74,7 +76,8 @@ const WorkspaceSidebarInner: React.FC<WorkspaceSidebarProps> = ({
   locationPath,
   activeUmlType,
   activeDiagramType,
-  project,
+  diagramCounts,
+  perspectives,
   onSwitchUml,
   onSwitchDiagramType,
   onNavigate,
@@ -97,18 +100,16 @@ const WorkspaceSidebarInner: React.FC<WorkspaceSidebarProps> = ({
   const countMap = useMemo(() => {
     const map: Record<string, number> = {};
     for (const item of UML_ITEMS) {
-      const supported = toSupportedDiagramType(item.type);
-      map[item.type] = diagramCount(project, supported);
+      map[item.type] = diagramCounts[toSupportedDiagramType(item.type)] ?? 0;
     }
     for (const item of NON_UML_EDITOR_ITEMS) {
-      map[item.type] = diagramCount(project, item.type);
+      map[item.type] = diagramCounts[item.type] ?? 0;
     }
     return map;
-  }, [project]);
+  }, [diagramCounts]);
 
   // Filter the static perspective lists by the per-project `perspectives` setting.
   // Hidden perspectives are removed from the sidebar entirely; their data is preserved.
-  const perspectives = project?.settings?.perspectives;
   const visibleUmlItems = useMemo(
     () => UML_ITEMS.filter((it) => isPerspectiveVisible(perspectives, toSupportedDiagramType(it.type))),
     [perspectives],
@@ -124,6 +125,7 @@ const WorkspaceSidebarInner: React.FC<WorkspaceSidebarProps> = ({
     <TooltipProvider delayDuration={300}>
       <aside className={`${sidebarBaseClass} ${isSidebarExpanded ? 'w-48' : 'w-[72px]'}`}>
         {isSidebarExpanded && <p className={sidebarTitleClass}>{t('nav.editors')}</p>}
+        <nav aria-label={t('nav.editors')} className="flex flex-col gap-0.5">
         {visibleUmlItems.map((item) => {
           const active = locationPath === '/' && !isNonUmlActive && activeUmlType === item.type;
           const isAgentItem = item.type === UMLDiagramType.AgentDiagram;
@@ -139,6 +141,7 @@ const WorkspaceSidebarInner: React.FC<WorkspaceSidebarProps> = ({
                   onClick={() => onSwitchUml(item.type)}
                   title={isSidebarExpanded ? displayLabel : undefined}
                   aria-label={displayLabel}
+                  aria-current={active ? 'page' : undefined}
                 >
                   {item.icon}
                   {isSidebarExpanded && <NavLabel label={t(item.labelKey)} count={count} />}
@@ -156,16 +159,14 @@ const WorkspaceSidebarInner: React.FC<WorkspaceSidebarProps> = ({
                   onClick={() => onSwitchUml(item.type)}
                   title={isSidebarExpanded ? displayLabel : undefined}
                   aria-label={displayLabel}
+                  aria-current={active ? 'page' : undefined}
                 >
                   {item.icon}
                   {isSidebarExpanded && <NavLabel label={t(item.labelKey)} count={count} />}
                 </button>
               </SidebarTooltip>
-              <div
-                className={`overflow-hidden transition-[max-height,opacity] duration-200 ease-out ${
-                  showAgentSubItems ? 'max-h-40 opacity-100' : 'max-h-0 opacity-0'
-                }`}
-              >
+              {showAgentSubItems && (
+              <div className="duration-200 ease-[cubic-bezier(0.23,1,0.32,1)] animate-in fade-in-0 slide-in-from-top-1">
                 {onTestAgent && (
                   <SidebarTooltip label={t('agentSimulation.sidebar.simulateAgent')} collapsed={isCollapsed}>
                     <button
@@ -176,6 +177,7 @@ const WorkspaceSidebarInner: React.FC<WorkspaceSidebarProps> = ({
                       onClick={onTestAgent}
                       title={isSidebarExpanded ? t('agentSimulation.sidebar.simulateAgent') : undefined}
                       aria-label={t('agentSimulation.sidebar.simulateAgent')}
+                      aria-current={locationPath === '/agent-simulation' ? 'page' : undefined}
                     >
                       <FlaskConical className="size-4" />
                       {isSidebarExpanded && <span>{t('agentSimulation.sidebar.simulateAgent')}</span>}
@@ -195,6 +197,7 @@ const WorkspaceSidebarInner: React.FC<WorkspaceSidebarProps> = ({
                         onClick={() => onNavigate(routeItem.path)}
                         title={isSidebarExpanded ? routeLabel : undefined}
                         aria-label={routeLabel}
+                        aria-current={isActiveSubItem ? 'page' : undefined}
                       >
                         {routeItem.icon}
                         {isSidebarExpanded && <span>{routeLabel}</span>}
@@ -203,6 +206,7 @@ const WorkspaceSidebarInner: React.FC<WorkspaceSidebarProps> = ({
                   );
                 })}
               </div>
+              )}
             </div>
           );
         })}
@@ -220,6 +224,7 @@ const WorkspaceSidebarInner: React.FC<WorkspaceSidebarProps> = ({
                 onClick={() => onSwitchDiagramType(item.type)}
                 title={isSidebarExpanded ? displayLabel : undefined}
                 aria-label={displayLabel}
+                aria-current={active ? 'page' : undefined}
               >
                 {item.icon}
                 {isSidebarExpanded && <NavLabel label={t(item.labelKey)} count={count} />}
@@ -241,6 +246,7 @@ const WorkspaceSidebarInner: React.FC<WorkspaceSidebarProps> = ({
                 onClick={() => onNavigate(item.path)}
                 title={isSidebarExpanded ? routeLabel : undefined}
                 aria-label={routeLabel}
+                aria-current={active ? 'page' : undefined}
               >
                 {item.icon}
                 {isSidebarExpanded && <span>{routeLabel}</span>}
@@ -248,7 +254,9 @@ const WorkspaceSidebarInner: React.FC<WorkspaceSidebarProps> = ({
             </SidebarTooltip>
           );
         })}
+        </nav>
 
+        {onToggleExpanded && (
         <SidebarTooltip label={isSidebarExpanded ? t('nav.collapseSidebar') : t('nav.expandSidebar')} collapsed={isCollapsed}>
           <button
             type="button"
@@ -262,6 +270,7 @@ const WorkspaceSidebarInner: React.FC<WorkspaceSidebarProps> = ({
             {isSidebarExpanded && <span className={sidebarToggleTextClass}>{t('nav.collapseSidebar')}</span>}
           </button>
         </SidebarTooltip>
+        )}
       </aside>
     </TooltipProvider>
   );

@@ -36,7 +36,8 @@
       "issues": "Probleme",
       "needsRecheck": "Erneut prüfen",
       "notValidated": "Nicht validiert"
-    }
+    },
+    "more": "Mehr"
   },
   "nav": {
     "editors": "Editoren",
@@ -64,20 +65,26 @@
   "menu": {
     "file": {
       "title": "Datei",
-      "projectActions": "Projektaktionen",
       "newOpenImport": "Neu / Öffnen / Projekt importieren",
       "loadTemplate": "Vorlage laden…",
       "exportProject": "Projekt exportieren…",
-      "importClassDiagramFrom": "Klassendiagramm importieren aus",
-      "imageToProject": "Bild in Projekt umwandeln…",
-      "kgToProject": "Knowledge Graph in Projekt umwandeln…",
       "previewProject": "Projektvorschau…",
-      "importBpmnDiagram": "BPMN-Diagramm importieren (.bpmn / .xml)…"
+      "importBpmnDiagram": "BPMN-Diagramm importieren (.bpmn / .xml)…",
+      "importGroupProject": "Projekt",
+      "importGroupClassDiagram": "Klassendiagramm aus",
+      "importImage": "Bild…",
+      "importKnowledgeGraph": "Wissensgraph…",
+      "newProject": "Neues Projekt…",
+      "openProject": "Projekt öffnen…",
+      "importProject": "Projekt importieren",
+      "import": "Importieren",
+      "importProjectFile": "Projektdatei (.json / .py)…",
+      "fromSpreadsheet": "Aus Tabelle…",
+      "fromGithub": "Aus GitHub…"
     },
     "generate": {
       "title": "Generieren",
       "generating": "Wird generiert…",
-      "codeGeneration": "Codegenerierung",
       "goToClassDiagram": "Zum Klassendiagramm",
       "groups": {
         "web": "Web",
@@ -106,9 +113,9 @@
     },
     "deploy": {
       "title": "Bereitstellen",
-      "deployment": "Bereitstellung",
       "connectGitHub": "GitHub zum Bereitstellen verbinden",
-      "publishToRender": "Auf Render veröffentlichen…"
+      "publishToRender": "Auf Render veröffentlichen…",
+      "connectGitHubFirstHint": "Zuerst GitHub verbinden"
     },
     "community": {
       "title": "Community",
@@ -872,8 +879,6 @@
       "import": {
         "title": "Ein Projekt importieren",
         "description": "Laden Sie eine exportierte Projektdatei und machen Sie dort weiter, wo Sie aufgehört haben.",
-        "cardTitle": "Projektdatei importieren",
-        "cardDescription": "Unterstützte Formate: .json, .py.",
         "dropAria": "Datei ablegen oder zum Durchsuchen klicken",
         "dropPrompt": "Datei hier ablegen oder zum Durchsuchen klicken",
         "dropHint": "JSON- oder Python-Projektdateien"
@@ -902,10 +907,7 @@
         "description": "Wählen Sie, wie Sie Ihre Modellierungssitzung beginnen und Ihren Arbeitsbereich öffnen möchten.",
         "heroTitle": "Starten Sie Ihren Modellierungsarbeitsbereich",
         "heroBody": "BESSER (Better Smart Software Faster) ist eine quelloffene, modellgetriebene Plattform für UML-Design, -Generierung und -Bereitstellung. Wählen Sie unten eine Option aus, um Ihr Projekt schnell aufzusetzen.",
-        "cardCreate": {
-          "title": "Leer erstellen",
-          "description": "Von Grund auf mit allen verfügbaren Editoren beginnen."
-        },
+        "cardCreate": {},
         "cardSpreadsheet": {
           "title": "Aus Tabelle",
           "description": "Automatisch ein Klassendiagramm aus CSV/XLSX-Dateien generieren."
@@ -917,7 +919,15 @@
         "existingProjects": "Vorhandene Projekte",
         "viewAll": "Alle Projekte anzeigen",
         "noProjects": "Noch keine Projekte.",
-        "warningBanner": "Erstellen, importieren oder öffnen Sie ein Projekt, um den Arbeitsbereich zu betreten."
+        "warningBanner": "Erstellen, importieren oder öffnen Sie ein Projekt, um den Arbeitsbereich zu betreten.",
+        "cardGithub": {
+          "description": "Ein von BESSER erstelltes Repository wieder öffnen und weiterbauen.",
+          "title": "Aus GitHub fortsetzen"
+        },
+        "cardNew": {
+          "description": "Low-Code oder agentisch wählen, dann mit dem Modellieren beginnen.",
+          "title": "Neues Projekt"
+        }
       },
       "perspective": {
         "label": "Modellierungsperspektive",
@@ -948,6 +958,45 @@
         "spreadsheetGenerateFailed": "Klassendiagramm konnte nicht aus der Tabelle generiert werden.",
         "spreadsheetCreated": "Projekt \"{{name}}\" erstellt und Klassendiagramm importiert.",
         "spreadsheetImportFailed": "Tabellenimport fehlgeschlagen: {{error}}"
+      },
+      "returning": {
+        "title": "Projekte",
+        "description": "Öffne ein aktuelles Projekt oder starte ein neues."
+      },
+      "github": {
+        "connectHint": "Verbinde dein GitHub-Konto, um eines deiner Repositories auszuwählen. Nach der Anmeldung kehrst du hierher zurück.",
+        "continue": "Fortsetzen",
+        "description": "Wähle ein von BESSER erstelltes Repository – sein Modell wird geladen, und der nächste Lauf des Spec-Driven Agent bearbeitet seinen Code.",
+        "errors": {
+          "generic": "Fortsetzen aus diesem Repository nicht möglich.",
+          "noModel": "Dieses Repository enthält kein BESSER-Modell – es wurde nicht von BESSER erstellt, daher gibt es noch nichts fortzusetzen.",
+          "noSession": "GitHub-Sitzung nicht gefunden. Bitte erneut verbinden.",
+          "selectRepo": "Wähle ein Repository zum Fortsetzen.",
+          "sessionExpired": "Deine GitHub-Sitzung ist abgelaufen. Verbinde dich erneut und versuche es noch einmal."
+        },
+        "loadingBranches": "Branches werden geladen…",
+        "loadingRepos": "Repositories werden geladen…",
+        "privateSuffix": "(privat)",
+        "selectRepo": "Repository auswählen",
+        "title": "Aus GitHub fortsetzen",
+        "toasts": {
+          "connectToContinue": "Verbinde GitHub, um aus einem deiner Repositories fortzusetzen.",
+          "continuing": "Fortsetzung aus {{repo}}.",
+          "failed": "Fortsetzen aus GitHub fehlgeschlagen: {{message}}",
+          "sessionExpired": "GitHub-Sitzung abgelaufen – bitte erneut verbinden."
+        }
+      },
+      "interface": {
+        "agent": {
+          "description": "Beschreibe deine App in natürlicher Sprache; der Assistent baut sie.",
+          "label": "Agentisch"
+        },
+        "helper": "Wähle, wie du bauen möchtest. Du kannst jederzeit über die Assistentenleiste wechseln.",
+        "label": "Ansicht",
+        "model": {
+          "description": "Visuell mit UML-Diagrammen auf der Modellierungsfläche bauen.",
+          "label": "Low-Code"
+        }
       }
     },
     "settings": {
@@ -1030,6 +1079,16 @@
         "applyPresetFailed": "Voreinstellung konnte nicht angewendet werden",
         "exported": "Projekt erfolgreich exportiert.",
         "exportFailed": "Projekt konnte nicht exportiert werden: {{error}}"
+      },
+      "apiKey": {
+        "change": "Schlüssel ändern",
+        "description": "Verwende deinen eigenen Anthropic-, OpenAI-, Mistral- oder Nebius-Schlüssel. Hier einmal eingegeben, nutzen ihn der Modellierungsassistent und der Spec-Driven-Generator (Nebius nur den Generator). Er wird nur in diesem Browser-Tab gespeichert, nie auf unseren Servern.",
+        "keySet": "Schlüssel gesetzt · {{provider}}",
+        "keySetHint": "Gilt für Assistent und Generator",
+        "noKey": "Kein Schlüssel gesetzt",
+        "noKeyHint": "Gemeinsamer Server-Schlüssel mit Ratenbegrenzung",
+        "set": "API-Schlüssel festlegen",
+        "title": "KI-/LLM-API-Schlüssel"
       }
     },
     "templates": {
@@ -1264,6 +1323,32 @@
       "importModelFailed": "Modell konnte nicht von GitHub importiert werden",
       "starThanks": "Vielen Dank, dass Sie BESSER mit einem Stern markiert haben!",
       "starFailed": "Stern konnte nicht aktualisiert werden"
+    },
+    "push": {
+      "changeRepo": "Repository ändern",
+      "commitMessageHelper": "Beschreibe, was sich geändert hat (optional).",
+      "commitMessagePlaceholder": "Generierte App aktualisieren",
+      "createNew": "Neues Repository erstellen",
+      "defaultDescription": "Generiert mit BESSER – {{name}}",
+      "descriptionCreate": "Den generierten Code und das Projektmodell in ein GitHub-Repository pushen.",
+      "descriptionUpdate": "Das verknüpfte Repository mit deinem neuesten generierten Code und Modell aktualisieren.",
+      "done": "Fertig",
+      "filesUploaded_one": "{{count}} Datei hochgeladen.",
+      "filesUploaded_other": "{{count}} Dateien hochgeladen.",
+      "linkedTo": "Verknüpft mit",
+      "loadingBranches": "Branches werden geladen…",
+      "loadingRepositories": "Repositories werden geladen…",
+      "noRepositories": "Keine Repositories geladen. Die Anfrage ist möglicherweise fehlgeschlagen.",
+      "privateRepoOption": "{{name}} (privat)",
+      "publicWarning": "Dieses Repository wird öffentlich sein. Jeder kann den generierten Code und das Modell sehen.",
+      "pushUpdate": "Update pushen",
+      "repushHint": "Erneutes Pushen aktualisiert dieses Repository.",
+      "selectRepository": "Repository auswählen…",
+      "selectRepositoryError": "Wähle ein Repository als Ziel.",
+      "successCreated": "Repository erstellt und Dateien gepusht.",
+      "successTitle": "Zu GitHub gepusht",
+      "successUpdated": "Repository mit deiner neuesten Generierung aktualisiert.",
+      "useExisting": "Vorhandenes Repository verwenden"
     }
   },
   "assistant": {
@@ -1307,7 +1392,9 @@
       "headlinePost": "?",
       "subtitle": "Beschreiben Sie Ihr System in natürlicher Sprache. Erhalten Sie Modelle, Oberflächen und Code.",
       "pressEscPre": "Drücken Sie",
-      "pressEscPost": "zum Schließen"
+      "pressEscPost": "zum Schließen",
+      "freeTier": "Kostenlos mit unserem gehosteten Qwen-Modell.",
+      "changeModel": "Modell wechseln"
     },
     "composer": {
       "placeholder": "Beschreiben Sie, was Sie erstellen oder ändern möchten…"
@@ -1366,13 +1453,26 @@
     },
     "chat": {
       "newChat": "Neuer Chat",
-      "newConversationTitle": "Ein neues Gespräch beginnen"
+      "newConversationTitle": "Ein neues Gespräch beginnen",
+      "moreActions": "Weitere Aktionen",
+      "yourModel": "Dein Modell",
+      "hideYourModel": "Modell ausblenden",
+      "apiKeySet": "API-Schlüssel gesetzt",
+      "useOwnApiKey": "Eigenen API-Schlüssel verwenden",
+      "reportIssue": "Problem melden",
+      "addApiKey": "API-Schlüssel hinzufügen",
+      "newChatConfirm": "Neuen Chat starten? Deine aktuelle Unterhaltung wird gelöscht.",
+      "newChatConfirmWithRun": "Neuen Chat starten? Deine aktuelle Unterhaltung wird gelöscht und die laufende Generierung gestoppt.",
+      "explainModel": "Dieses Modell erklären",
+      "explainModelTitle": "Erhalte eine verständliche Übersicht über dein Modell – was es hauptsächlich abbildet und wie es zusammenhängt"
     },
     "drawer": {
       "pushToClose": "Nach unten schieben, um den Assistenten zu schließen",
       "pullToOpen": "Nach oben ziehen, um den Assistenten zu öffnen",
       "pushUp": "Nach oben schieben",
-      "pullDown": "Assistent nach unten ziehen"
+      "pullDown": "Assistent nach unten ziehen",
+      "labelClosed": "Beschreibe deine App",
+      "labelOpen": "Spezifikationen ansehen"
     },
     "generationCompleted": "Generierung erfolgreich abgeschlossen.",
     "exportingProject": "Projekt wird als {{format}} exportiert…",
@@ -1570,7 +1670,6 @@
       "title": "So funktioniert der Editor",
       "description": "Vollständiger Modellierungsleitfaden mit Beispielen und Abbildungen.",
       "diagramTypesHeading": "Diagrammtypen",
-      "noImage": "Kein Bild für dieses Element.",
       "openDocs": "BESSER-Dokumentation öffnen",
       "openWmeRepo": "WME-Repository öffnen",
       "class": {
@@ -1773,6 +1872,38 @@
           "body": "<p>Führen Sie die Qualitätsprüfung in der oberen Leiste aus, um strukturelle Probleme wie nicht verbundene Schichten oder fehlende obligatorische Attribute zu erkennen, bevor Sie Code generieren.</p><p>Öffnen Sie das Menü „Generieren“ und wählen Sie ein Framework und einen Stil:</p><ul><li><strong>PyTorch / Subclassing</strong>: <code>torch.nn.Module</code>-Unterklasse mit einem expliziten Forward-Pass.</li><li><strong>PyTorch / Sequential</strong>: <code>nn.Sequential</code>-Komposition für streng sequenzielle Architekturen.</li><li><strong>TensorFlow / Subclassing</strong>: <code>tf.keras.Model</code>-Unterklasse mit einem benutzerdefinierten <code>call()</code>.</li><li><strong>TensorFlow / Sequential</strong>: <code>keras.Sequential</code>-Komposition.</li></ul><p>Die NN-Architekturdefinition wird im ausgewählten Framework zusammen mit Trainings- und Evaluierungscode generiert, sofern Datensätze und eine Konfiguration definiert sind.</p>",
           "alt": "Menü zum Generieren von Code"
         }
+      },
+      "user": {
+        "label": "Benutzerdiagramm",
+        "summary": "Modelliere Benutzerprofile, die personalisierte Agenten und GUIs steuern.",
+        "about": {
+          "title": "Über Benutzerdiagramme",
+          "body": "<p>Ein Benutzerdiagramm beschreibt ein Benutzerprofil: eine <code>User</code>-Wurzel, verbunden mit Teilen wie persönlichen Informationen, Kompetenz, Barrierefreiheit, Kultur, Persönlichkeit, Vorlieben und Zielen.</p>"
+        },
+        "addParts": {
+          "title": "Teile hinzufügen und bearbeiten",
+          "body": "<p>Ziehe Profilelemente aus der Palette, verbinde sie mit dem <code>User</code> und doppelklicke ein Element, um seine Attributwerte festzulegen.</p>"
+        },
+        "editAsForm": {
+          "title": "Als Formular bearbeiten",
+          "body": "<p>Klicke in der Tab-Leiste auf <strong>Als Formular bearbeiten</strong>, um das Profil in einem geführten Seitenbereich zu bearbeiten. Füge Teile hinzu oder entferne sie und setze Kriterien; Änderungen erscheinen sofort auf der Arbeitsfläche.</p>"
+        }
+      },
+      "bpmn": {
+        "label": "BPMN-Diagramm",
+        "summary": "Modelliere Geschäftsprozesse mit Aufgaben, Ereignissen, Gateways und Flüssen.",
+        "buildProcess": {
+          "title": "Einen Prozess aufbauen",
+          "body": "<p>Ziehe Elemente aus der Palette: Aufgaben, Teilprozesse, Transaktionen und Aufrufaktivitäten; Start-, Zwischen- und Endereignisse; Gateways; Datenobjekte und Datenspeicher; Pools und Lanes; Anmerkungen und Gruppen.</p>"
+        },
+        "connectFlows": {
+          "title": "Mit Flüssen verbinden",
+          "body": "<p>Ziehe von einem Element zu einem anderen, um einen Fluss zu erstellen. Der Editor wählt einen gültigen Typ für das Paar (Sequenz, Nachricht, Assoziation oder Datenassoziation); doppelklicke einen Fluss, um ihn zu ändern.</p>"
+        },
+        "elementTypes": {
+          "title": "Elementtypen festlegen",
+          "body": "<p>Doppelklicke eine Aufgabe, ein Ereignis oder ein Gateway, um den Typ festzulegen, zum Beispiel eine Benutzer- oder Serviceaufgabe, ein Timer-Startereignis oder ein exklusives oder paralleles Gateway.</p>"
+        }
       }
     }
   },
@@ -1944,7 +2075,8 @@
       "projectLabel": "Projekt (V{{version}})",
       "bumlLabelNamed": "Projekt-B-UML-Vorschau ({{name}})",
       "bumlLabel": "Projekt-B-UML-Vorschau"
-    }
+    },
+    "skipToEditor": "Zum Editor springen"
   },
   "editors": {
     "diagramTabs": {
@@ -2984,6 +3116,11 @@
       "emptyDiagram": "Das Agentendiagramm ist leer. Fügen Sie vor der Simulation Zustände, Übergänge und Intents hinzu.",
       "validationFailed": "Die Validierung des Agenten ist fehlgeschlagen: {{message}}",
       "validationFailedGeneric": "Validierung fehlgeschlagen"
+    }
+  },
+  "errors": {
+    "network": {
+      "unreachable": "Server nicht erreichbar. Prüfe deine Verbindung und versuche es erneut."
     }
   }
 }

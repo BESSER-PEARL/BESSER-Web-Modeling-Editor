@@ -36,7 +36,8 @@
       "issues": "Problèmes",
       "needsRecheck": "À revérifier",
       "notValidated": "Non validé"
-    }
+    },
+    "more": "Plus"
   },
   "nav": {
     "editors": "Éditeurs",
@@ -64,20 +65,26 @@
   "menu": {
     "file": {
       "title": "Fichier",
-      "projectActions": "Actions du projet",
       "newOpenImport": "Nouveau / Ouvrir / Importer un projet",
       "loadTemplate": "Charger un modèle…",
       "exportProject": "Exporter le projet…",
-      "importClassDiagramFrom": "Importer un diagramme de classes depuis",
-      "imageToProject": "Image vers projet…",
-      "kgToProject": "KG vers projet…",
       "previewProject": "Aperçu du projet…",
-      "importBpmnDiagram": "Importer un diagramme BPMN (.bpmn / .xml)…"
+      "importBpmnDiagram": "Importer un diagramme BPMN (.bpmn / .xml)…",
+      "importGroupProject": "Projet",
+      "importGroupClassDiagram": "Diagramme de classes depuis",
+      "importImage": "Image…",
+      "importKnowledgeGraph": "Graphe de connaissances…",
+      "newProject": "Nouveau projet…",
+      "openProject": "Ouvrir un projet…",
+      "importProject": "Importer un projet",
+      "import": "Importer",
+      "importProjectFile": "Fichier de projet (.json / .py)…",
+      "fromSpreadsheet": "Depuis un tableur…",
+      "fromGithub": "Depuis GitHub…"
     },
     "generate": {
       "title": "Générer",
       "generating": "Génération…",
-      "codeGeneration": "Génération de code",
       "goToClassDiagram": "Aller au diagramme de classes",
       "groups": {
         "web": "Web",
@@ -106,9 +113,9 @@
     },
     "deploy": {
       "title": "Déployer",
-      "deployment": "Déploiement",
       "connectGitHub": "Connecter GitHub pour déployer",
-      "publishToRender": "Publier sur Render…"
+      "publishToRender": "Publier sur Render…",
+      "connectGitHubFirstHint": "Connectez d’abord GitHub"
     },
     "community": {
       "title": "Communauté",
@@ -872,8 +879,6 @@
       "import": {
         "title": "Importer un projet",
         "description": "Chargez un fichier de projet exporté et reprenez là où vous en étiez.",
-        "cardTitle": "Importer un fichier de projet",
-        "cardDescription": "Formats pris en charge : .json, .py.",
         "dropAria": "Déposez un fichier ou cliquez pour parcourir",
         "dropPrompt": "Déposez un fichier ici ou cliquez pour parcourir",
         "dropHint": "Fichiers de projet JSON ou Python"
@@ -902,10 +907,7 @@
         "description": "Choisissez comment démarrer votre session de modélisation et ouvrir votre espace de travail.",
         "heroTitle": "Démarrez votre espace de modélisation",
         "heroBody": "BESSER (Better Smart Software Faster) est une plateforme open source dirigée par les modèles pour la conception, la génération et le déploiement UML. Choisissez un chemin ci-dessous pour amorcer rapidement votre projet.",
-        "cardCreate": {
-          "title": "Créer vierge",
-          "description": "Partez de zéro avec tous les éditeurs disponibles."
-        },
+        "cardCreate": {},
         "cardSpreadsheet": {
           "title": "À partir d'un tableur",
           "description": "Générez automatiquement un diagramme de classes à partir de fichiers CSV/XLSX."
@@ -917,7 +919,15 @@
         "existingProjects": "Projets existants",
         "viewAll": "Voir tous les projets",
         "noProjects": "Aucun projet pour l'instant.",
-        "warningBanner": "Créez, importez ou ouvrez un projet pour accéder à l'espace de travail."
+        "warningBanner": "Créez, importez ou ouvrez un projet pour accéder à l'espace de travail.",
+        "cardGithub": {
+          "description": "Rouvrez un dépôt créé par BESSER et continuez à construire.",
+          "title": "Continuer depuis GitHub"
+        },
+        "cardNew": {
+          "description": "Choisissez low-code ou agentique, puis commencez à modéliser.",
+          "title": "Nouveau projet"
+        }
       },
       "perspective": {
         "label": "Perspective de modélisation",
@@ -948,6 +958,45 @@
         "spreadsheetGenerateFailed": "Impossible de générer le diagramme de classes à partir du tableur.",
         "spreadsheetCreated": "Projet « {{name}} » créé et diagramme de classes importé.",
         "spreadsheetImportFailed": "Échec de l'importation du tableur : {{error}}"
+      },
+      "returning": {
+        "title": "Projets",
+        "description": "Ouvrez un projet récent ou commencez-en un nouveau."
+      },
+      "github": {
+        "connectHint": "Connectez votre compte GitHub pour choisir l’un de vos dépôts. Vous reviendrez ici une fois connecté.",
+        "continue": "Continuer",
+        "description": "Choisissez un dépôt créé par BESSER : son modèle est chargé et la prochaine exécution du Spec-Driven Agent modifie son code.",
+        "errors": {
+          "generic": "Impossible de continuer depuis ce dépôt.",
+          "noModel": "Ce dépôt ne contient pas de modèle BESSER : il n’a pas été créé par BESSER, il n’y a donc rien à reprendre pour l’instant.",
+          "noSession": "Session GitHub introuvable. Veuillez vous reconnecter.",
+          "selectRepo": "Sélectionnez un dépôt à partir duquel continuer.",
+          "sessionExpired": "Votre session GitHub a expiré. Reconnectez-vous et réessayez."
+        },
+        "loadingBranches": "Chargement des branches…",
+        "loadingRepos": "Chargement des dépôts…",
+        "privateSuffix": "(privé)",
+        "selectRepo": "Sélectionner un dépôt",
+        "title": "Continuer depuis GitHub",
+        "toasts": {
+          "connectToContinue": "Connectez GitHub pour continuer depuis l’un de vos dépôts.",
+          "continuing": "Reprise depuis {{repo}}.",
+          "failed": "Échec de la reprise depuis GitHub : {{message}}",
+          "sessionExpired": "Session GitHub expirée : veuillez vous reconnecter."
+        }
+      },
+      "interface": {
+        "agent": {
+          "description": "Décrivez votre application en langage naturel ; l’assistant la construit.",
+          "label": "Agentique"
+        },
+        "helper": "Choisissez votre façon de construire. Vous pouvez changer à tout moment depuis le panneau de l’assistant.",
+        "label": "Vue",
+        "model": {
+          "description": "Construisez visuellement avec des diagrammes UML sur le canevas de modélisation.",
+          "label": "Low-code"
+        }
       }
     },
     "settings": {
@@ -1030,6 +1079,16 @@
         "applyPresetFailed": "Échec de l'application du préréglage",
         "exported": "Projet exporté avec succès.",
         "exportFailed": "Échec de l'exportation du projet : {{error}}"
+      },
+      "apiKey": {
+        "change": "Changer la clé",
+        "description": "Utilisez votre propre clé Anthropic, OpenAI, Mistral ou Nebius. Saisie une fois ici, elle alimente l’assistant de modélisation et le générateur Spec-Driven (Nebius uniquement le générateur). Conservée seulement dans cet onglet du navigateur, jamais sur nos serveurs.",
+        "keySet": "Clé définie · {{provider}}",
+        "keySetHint": "S’applique à l’assistant et au générateur",
+        "noKey": "Aucune clé définie",
+        "noKeyHint": "Clé partagée du serveur avec limites de débit",
+        "set": "Définir la clé API",
+        "title": "Clé API IA / LLM"
       }
     },
     "templates": {
@@ -1264,6 +1323,32 @@
       "importModelFailed": "Échec de l'import du modèle depuis GitHub",
       "starThanks": "Merci d'avoir mis une étoile à BESSER !",
       "starFailed": "Échec de la mise à jour de l'étoile"
+    },
+    "push": {
+      "changeRepo": "Changer de dépôt",
+      "commitMessageHelper": "Décrivez ce qui a changé (facultatif).",
+      "commitMessagePlaceholder": "Mettre à jour l’application générée",
+      "createNew": "Créer un nouveau dépôt",
+      "defaultDescription": "Généré par BESSER — {{name}}",
+      "descriptionCreate": "Envoyez le code généré et le modèle du projet vers un dépôt GitHub.",
+      "descriptionUpdate": "Mettez à jour le dépôt lié avec votre dernier code généré et votre modèle.",
+      "done": "Terminé",
+      "filesUploaded_one": "{{count}} fichier envoyé.",
+      "filesUploaded_other": "{{count}} fichiers envoyés.",
+      "linkedTo": "Lié à",
+      "loadingBranches": "Chargement des branches…",
+      "loadingRepositories": "Chargement des dépôts…",
+      "noRepositories": "Aucun dépôt chargé. La requête a peut-être échoué.",
+      "privateRepoOption": "{{name}} (privé)",
+      "publicWarning": "Ce dépôt sera public. Tout le monde pourra voir le code généré et le modèle.",
+      "pushUpdate": "Envoyer la mise à jour",
+      "repushHint": "Un nouvel envoi met à jour ce dépôt.",
+      "selectRepository": "Sélectionner un dépôt…",
+      "selectRepositoryError": "Sélectionnez un dépôt de destination.",
+      "successCreated": "Dépôt créé et fichiers envoyés.",
+      "successTitle": "Envoyé sur GitHub",
+      "successUpdated": "Dépôt mis à jour avec votre dernière génération.",
+      "useExisting": "Utiliser un dépôt existant"
     }
   },
   "assistant": {
@@ -1307,7 +1392,9 @@
       "headlinePost": "aujourd'hui ?",
       "subtitle": "Décrivez votre système en langage naturel. Obtenez des modèles, des interfaces et du code.",
       "pressEscPre": "Appuyez sur",
-      "pressEscPost": "pour fermer"
+      "pressEscPost": "pour fermer",
+      "freeTier": "Gratuit avec notre modèle Qwen hébergé.",
+      "changeModel": "Changer de modèle"
     },
     "composer": {
       "placeholder": "Décrivez ce que vous voulez créer ou modifier…"
@@ -1366,13 +1453,26 @@
     },
     "chat": {
       "newChat": "Nouvelle conversation",
-      "newConversationTitle": "Démarrer une nouvelle conversation"
+      "newConversationTitle": "Démarrer une nouvelle conversation",
+      "moreActions": "Plus d’actions",
+      "yourModel": "Votre modèle",
+      "hideYourModel": "Masquer votre modèle",
+      "apiKeySet": "Clé API définie",
+      "useOwnApiKey": "Utiliser votre propre clé API",
+      "reportIssue": "Signaler un problème",
+      "addApiKey": "Ajouter votre clé API",
+      "newChatConfirm": "Démarrer une nouvelle conversation ? La conversation actuelle sera effacée.",
+      "newChatConfirmWithRun": "Démarrer une nouvelle conversation ? La conversation actuelle sera effacée et la génération en cours arrêtée.",
+      "explainModel": "Expliquer ce modèle",
+      "explainModelTitle": "Obtenez un aperçu clair de votre modèle : ce qu’il représente et comment les éléments sont liés"
     },
     "drawer": {
       "pushToClose": "Poussez vers le bas pour fermer l'assistant",
       "pullToOpen": "Tirez vers le haut pour ouvrir l'assistant",
       "pushUp": "Pousser vers le haut",
-      "pullDown": "Tirer l'assistant vers le bas"
+      "pullDown": "Tirer l'assistant vers le bas",
+      "labelClosed": "Décrivez votre application",
+      "labelOpen": "Voir les spécifications"
     },
     "generationCompleted": "Génération terminée avec succès.",
     "exportingProject": "Exportation du projet au format {{format}}…",
@@ -1570,7 +1670,6 @@
       "title": "Fonctionnement de l'éditeur",
       "description": "Guide de modélisation complet avec exemples et visuels.",
       "diagramTypesHeading": "Types de diagrammes",
-      "noImage": "Aucune image pour cet élément.",
       "openDocs": "Ouvrir la documentation BESSER",
       "openWmeRepo": "Ouvrir le dépôt WME",
       "class": {
@@ -1773,6 +1872,38 @@
           "body": "<p>Exécutez le Quality Check depuis la barre supérieure pour détecter les problèmes structurels tels que des couches déconnectées ou des attributs obligatoires manquants avant de générer le code.</p><p>Ouvrez le menu Generate et choisissez un framework et un style :</p><ul><li><strong>PyTorch / Subclassing</strong> : sous-classe <code>torch.nn.Module</code> avec une passe avant explicite.</li><li><strong>PyTorch / Sequential</strong> : composition <code>nn.Sequential</code> pour des architectures strictement séquentielles.</li><li><strong>TensorFlow / Subclassing</strong> : sous-classe <code>tf.keras.Model</code> avec un <code>call()</code> personnalisé.</li><li><strong>TensorFlow / Sequential</strong> : composition <code>keras.Sequential</code>.</li></ul><p>La définition de l'architecture NN est générée dans le framework sélectionné, ainsi que le code d'entraînement et d'évaluation lorsque des jeux de données et une configuration sont définis.</p>",
           "alt": "Menu de génération de code"
         }
+      },
+      "user": {
+        "label": "Diagramme utilisateur",
+        "summary": "Modélisez des profils utilisateur qui pilotent des agents et des interfaces personnalisés.",
+        "about": {
+          "title": "À propos des diagrammes utilisateur",
+          "body": "<p>Un diagramme utilisateur décrit un profil : une racine <code>User</code> reliée à des parties comme les informations personnelles, les compétences, l’accessibilité, la culture, la personnalité, les préférences et les objectifs.</p>"
+        },
+        "addParts": {
+          "title": "Ajouter et modifier des parties",
+          "body": "<p>Glissez des éléments de profil depuis la palette, reliez-les au <code>User</code> et double-cliquez sur un élément pour définir ses valeurs d’attributs.</p>"
+        },
+        "editAsForm": {
+          "title": "Modifier comme formulaire",
+          "body": "<p>Cliquez sur <strong>Modifier comme formulaire</strong> dans la barre d’onglets pour modifier le profil dans un panneau latéral guidé. Ajoutez ou retirez des parties et définissez des critères ; les changements apparaissent en direct sur le canevas.</p>"
+        }
+      },
+      "bpmn": {
+        "label": "Diagramme BPMN",
+        "summary": "Modélisez des processus métier avec des tâches, des événements, des passerelles et des flux.",
+        "buildProcess": {
+          "title": "Construire un processus",
+          "body": "<p>Glissez des éléments depuis la palette : tâches, sous-processus, transactions et activités d’appel ; événements de début, intermédiaires et de fin ; passerelles ; objets et magasins de données ; pools et couloirs ; annotations et groupes.</p>"
+        },
+        "connectFlows": {
+          "title": "Relier par des flux",
+          "body": "<p>Glissez d’un élément à un autre pour créer un flux. L’éditeur choisit un type valide pour la paire (séquence, message, association ou association de données) ; double-cliquez sur un flux pour le modifier.</p>"
+        },
+        "elementTypes": {
+          "title": "Définir les types d’éléments",
+          "body": "<p>Double-cliquez sur une tâche, un événement ou une passerelle pour définir son type, par exemple une tâche utilisateur ou de service, un événement de début minuté, ou une passerelle exclusive ou parallèle.</p>"
+        }
       }
     }
   },
@@ -1944,7 +2075,8 @@
       "projectLabel": "Projet (V{{version}})",
       "bumlLabelNamed": "Aperçu B-UML du projet ({{name}})",
       "bumlLabel": "Aperçu B-UML du projet"
-    }
+    },
+    "skipToEditor": "Aller à l’éditeur"
   },
   "editors": {
     "diagramTabs": {
@@ -2648,6 +2780,17 @@
       "noProjectData": "Aucune donnée de projet disponible à exporter",
       "projectExportedAs": "Projet exporté sous {{filename}}",
       "projectExportFailed": "Échec de l'export du projet : {{error}}"
+    },
+    "diagramLabels": {
+      "ClassDiagram": "Diagramme de classes",
+      "ObjectDiagram": "Diagramme d’objets",
+      "StateMachineDiagram": "Diagramme d’états",
+      "AgentDiagram": "Diagramme d’agent",
+      "UserDiagram": "Diagramme utilisateur",
+      "GUINoCodeDiagram": "Écrans (GUI)",
+      "QuantumCircuitDiagram": "Circuit quantique",
+      "NNDiagram": "Diagramme de réseau de neurones",
+      "BPMN": "Processus BPMN"
     }
   },
   "import": {
@@ -2973,6 +3116,11 @@
       "emptyDiagram": "Le diagramme de l'agent est vide. Ajoutez des états, des transitions et des intentions avant de simuler.",
       "validationFailed": "La validation de l'agent a échoué : {{message}}",
       "validationFailedGeneric": "La validation a échoué"
+    }
+  },
+  "errors": {
+    "network": {
+      "unreachable": "Impossible de joindre le serveur. Vérifiez votre connexion et réessayez."
     }
   }
 }

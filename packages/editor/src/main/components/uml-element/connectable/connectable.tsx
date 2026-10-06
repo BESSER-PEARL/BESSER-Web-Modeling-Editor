@@ -66,6 +66,9 @@ const enhance = connect<StateProps, DispatchProps, UMLElementComponentProps, Mod
   },
 );
 
+/** Ports share the selection accent; the hovered port gets a stronger tint. */
+const portFill = (primary: string, percent: number) => `color-mix(in srgb, ${primary} ${percent}%, transparent)`;
+
 const Handle = styled((props) => {
   const { alternativePortVisualization, ...otherProps } = props;
   // alternative port visualization size
@@ -114,8 +117,6 @@ const Handle = styled((props) => {
     );
   }
 }).attrs<{ direction: Direction; ports: { [key in Direction]: Point } }>(({ direction, ports }) => ({
-  fill: '#0064ff',
-  fillOpacity: 0.2,
   x: `${ports[direction].x - DEFAULT_PORT_SIZE}px`,
   y: `${ports[direction].y - DEFAULT_PORT_SIZE}px`,
   rotate:
@@ -131,6 +132,11 @@ const Handle = styled((props) => {
 })) <{ rotate: number }>`
   cursor: crosshair;
   pointer-events: all;
+  fill: ${(props) => portFill(props.theme.color.primary, 25)};
+
+  &:hover {
+    fill: ${(props) => portFill(props.theme.color.primary, 60)};
+  }
 
   path {
     transform: rotate(${(props) => props.rotate}deg);
@@ -151,13 +157,16 @@ const CenterHandle = styled((props) => {
     </svg>
   );
 }).attrs<{ ports: { [key in Direction]: Point } }>(({ ports }) => ({
-  fill: '#0064ff',
-  fillOpacity: 0.3,
   x: `${ports[Direction.Center].x - CENTER_PORT_RADIUS}px`,
   y: `${ports[Direction.Center].y - CENTER_PORT_RADIUS}px`,
 }))`
   cursor: crosshair;
   pointer-events: all;
+  fill: ${(props) => portFill(props.theme.color.primary, 30)};
+
+  &:hover {
+    fill: ${(props) => portFill(props.theme.color.primary, 60)};
+  }
 `;
 
 export const connectable = (

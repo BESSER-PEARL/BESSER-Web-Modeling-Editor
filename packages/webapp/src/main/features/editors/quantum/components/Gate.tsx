@@ -98,7 +98,7 @@ function NestedIndicator() {
   const { t } = useTranslation();
   return (
     <div
-      className="absolute top-0.5 right-0.5 size-2 rounded-full bg-[#4CAF50] border border-[var(--quantum-editor-bg,#ffffff)] z-10"
+      className="absolute top-0.5 right-0.5 size-2 rounded-full bg-brand border border-[var(--quantum-editor-bg,#ffffff)] z-10"
       title={t('editors.quantum.nestedCircuitConfigured', { defaultValue: 'Nested circuit configured' })}
     />
   );

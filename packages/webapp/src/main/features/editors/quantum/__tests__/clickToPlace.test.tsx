@@ -16,9 +16,9 @@ describe('click-to-place gates', () => {
     fireEvent.click(firstGate);
     expect(firstGate).toHaveAttribute('aria-pressed', 'true');
 
-    // jsdom rects are all zero, so (70, 30) is column 0 / row 0 of the nested grid.
+    // jsdom rects are all zero, so (70, 70) is the centre of column 0 / row 0 (margins 50, cell 40).
     const grid = container.querySelector('.cursor-crosshair') as HTMLElement;
-    fireEvent.click(grid, { clientX: 70, clientY: 30 });
+    fireEvent.click(grid, { clientX: 70, clientY: 70 });
 
     const calls = onCircuitChange.mock.calls;
     const latest: Circuit = calls[calls.length - 1][0];

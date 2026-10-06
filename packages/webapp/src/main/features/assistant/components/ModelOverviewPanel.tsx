@@ -8,7 +8,7 @@
  * render — no extra state, always in sync with the canvas.
  */
 
-import React, { useMemo } from 'react';
+import React, { useEffect, useMemo, useRef } from 'react';
 import { Boxes, Database, GitBranch, MonitorSmartphone, ShieldCheck, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -141,6 +141,21 @@ const SectionHeader: React.FC<{ icon: React.ReactNode; title: string; count: num
 
 export const ModelOverviewPanel: React.FC<{ onClose: () => void }> = ({ onClose }) => {
   const { currentProject } = useProject();
+
+  // Escape closes this panel first; the drawer's own Escape listener (on
+  // window, so after this document listener) skips handled events.
+  const onCloseRef = useRef(onClose);
+  onCloseRef.current = onClose;
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== 'Escape' || event.defaultPrevented || event.isComposing) return;
+      if (document.querySelector('[role="dialog"][data-state="open"]')) return;
+      event.preventDefault();
+      onCloseRef.current();
+    };
+    document.addEventListener('keydown', onKeyDown);
+    return () => document.removeEventListener('keydown', onKeyDown);
+  }, []);
 
   const { classes, relations, constraints, screens } = useMemo(() => {
     const classModel = activeDiagramModel(currentProject, 'ClassDiagram');

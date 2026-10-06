@@ -36,7 +36,8 @@
       "issues": "Problemer",
       "needsRecheck": "Muss nei gepréift ginn",
       "notValidated": "Net validéiert"
-    }
+    },
+    "more": "Méi"
   },
   "nav": {
     "editors": "Editoren",
@@ -64,20 +65,26 @@
   "menu": {
     "file": {
       "title": "Datei",
-      "projectActions": "Projetaktiounen",
       "newOpenImport": "Nei / Opmaachen / Projet importéieren",
       "loadTemplate": "Template lueden…",
       "exportProject": "Projet exportéieren…",
-      "importClassDiagramFrom": "Klassendiagramm importéieren vun",
-      "imageToProject": "Bild zu Projet…",
-      "kgToProject": "KG zu Projet…",
       "previewProject": "Projetvirschau…",
-      "importBpmnDiagram": "BPMN-Diagramm importéieren (.bpmn / .xml)…"
+      "importBpmnDiagram": "BPMN-Diagramm importéieren (.bpmn / .xml)…",
+      "importGroupProject": "Projet",
+      "importGroupClassDiagram": "Klassendiagramm aus",
+      "importImage": "Bild…",
+      "importKnowledgeGraph": "Wëssensgraph…",
+      "newProject": "Neie Projet…",
+      "openProject": "Projet opmaachen…",
+      "importProject": "Projet importéieren",
+      "import": "Importéieren",
+      "importProjectFile": "Projetdatei (.json / .py)…",
+      "fromSpreadsheet": "Aus enger Tabell…",
+      "fromGithub": "Aus GitHub…"
     },
     "generate": {
       "title": "Generéieren",
       "generating": "Generéiert…",
-      "codeGeneration": "Code-Generéierung",
       "goToClassDiagram": "Bei d'Klassendiagramm goen",
       "groups": {
         "web": "Web",
@@ -106,9 +113,9 @@
     },
     "deploy": {
       "title": "Deployen",
-      "deployment": "Deployment",
       "connectGitHub": "GitHub verbannen fir ze deployen",
-      "publishToRender": "Op Render deployen…"
+      "publishToRender": "Op Render deployen…",
+      "connectGitHubFirstHint": "Fir d’éischt GitHub verbannen"
     },
     "community": {
       "title": "Communautéit",
@@ -872,8 +879,6 @@
       "import": {
         "title": "E Projet importéieren",
         "description": "Luet eng exportéiert Projet-Datei a maacht do weider wou Dir opgehalen hutt.",
-        "cardTitle": "Projet-Datei importéieren",
-        "cardDescription": "Ënnerstëtzte Formater: .json, .py.",
         "dropAria": "Eng Datei eroplueden oder klickt fir ze sichen",
         "dropPrompt": "Zitt eng Datei heihinner oder klickt fir ze sichen",
         "dropHint": "JSON- oder Python-Projetdateien"
@@ -902,10 +907,7 @@
         "description": "Wielt, wéi Dir Är Modelléierungssessioun starte wëllt, a maacht Ären Aarbechtsberäich op.",
         "heroTitle": "Start Äre Modelléierungsaarbechtsberäich",
         "heroBody": "BESSER (Better Smart Software Faster) ass eng open-source, modellgedriwwe Plattform fir den UML-Design, d'Generéierung an den Deployment. Wielt hei ënnen eng Optioun aus, fir Äre Projet séier opzestellen.",
-        "cardCreate": {
-          "title": "Eidel Virlag erstellen",
-          "description": "Fänkt vun Null un. All Editore stinn zur Verfügung."
-        },
+        "cardCreate": {},
         "cardSpreadsheet": {
           "title": "Vun engem Spreadsheet",
           "description": "Generéiert automatesch e Klassendiagramm aus CSV/XLSX-Dateien."
@@ -917,7 +919,15 @@
         "existingProjects": "Bestoend Projeten",
         "viewAll": "All Projeten weisen",
         "noProjects": "Nach keng Projeten.",
-        "warningBanner": "Erstellt, importéiert oder maacht e Projet op fir an den Aarbechtsraum ze kommen."
+        "warningBanner": "Erstellt, importéiert oder maacht e Projet op fir an den Aarbechtsraum ze kommen.",
+        "cardGithub": {
+          "description": "E Repository, dat BESSER erstallt huet, nees opmaachen a weiderbauen.",
+          "title": "Vu GitHub weidermaachen"
+        },
+        "cardNew": {
+          "description": "Low-Code oder agentesch wielen, dann mam Modelléieren ufänken.",
+          "title": "Neie Projet"
+        }
       },
       "perspective": {
         "label": "Modelléierungsperspektiv",
@@ -948,6 +958,45 @@
         "spreadsheetGenerateFailed": "Klassendiagramm konnt net aus dem Spreadsheet generéiert ginn.",
         "spreadsheetCreated": "Projet \"{{name}}\" erstallt a Klassendiagramm importéiert.",
         "spreadsheetImportFailed": "Spreadsheet-Import feelgeschloen: {{error}}"
+      },
+      "returning": {
+        "title": "Projeten",
+        "description": "Maach e rezente Projet op oder fänk en neie un."
+      },
+      "github": {
+        "connectHint": "Verbann däi GitHub-Kont, fir ee vun denge Repositoryen ze wielen. No der Umeldung kënns du hei zréck.",
+        "continue": "Weider",
+        "description": "Wiel e Repository, dat BESSER erstallt huet – säi Modell gëtt gelueden, an den nächste Laf vum Spec-Driven Agent ännert säi Code.",
+        "errors": {
+          "generic": "Vun dësem Repository konnt net weidergemaach ginn.",
+          "noModel": "Dëse Repository huet kee BESSER-Modell – en ass net vu BESSER erstallt ginn, dofir gëtt et nach näischt fir weiderzemaachen.",
+          "noSession": "GitHub-Sessioun net fonnt. Verbann dech w.e.g. nees.",
+          "selectRepo": "Wiel e Repository, fir weiderzemaachen.",
+          "sessionExpired": "Deng GitHub-Sessioun ass ofgelaf. Verbann dech nees a probéier et nach eng Kéier."
+        },
+        "loadingBranches": "Branche gi gelueden…",
+        "loadingRepos": "Repositorye gi gelueden…",
+        "privateSuffix": "(privat)",
+        "selectRepo": "Repository wielen",
+        "title": "Vu GitHub weidermaachen",
+        "toasts": {
+          "connectToContinue": "Verbann GitHub, fir vun engem vun denge Repositoryen weiderzemaachen.",
+          "continuing": "Et gëtt vu {{repo}} weidergemaach.",
+          "failed": "Weidermaache vu GitHub ass feelgeschloen: {{message}}",
+          "sessionExpired": "GitHub-Sessioun ofgelaf – verbann dech w.e.g. nees."
+        }
+      },
+      "interface": {
+        "agent": {
+          "description": "Beschreif deng App an natierlecher Sprooch; den Assistent baut se.",
+          "label": "Agentesch"
+        },
+        "helper": "Wiel, wéi s du baue wëlls. Du kanns all Moment iwwer de Panneau vum Assistent wiesselen.",
+        "label": "Usiicht",
+        "model": {
+          "description": "Visuell mat UML-Diagrammer op der Modelléierungsfläch bauen.",
+          "label": "Low-Code"
+        }
       }
     },
     "settings": {
@@ -1030,6 +1079,16 @@
         "applyPresetFailed": "Virastellung konnt net ugewannt ginn",
         "exported": "Projet erfollegräich exportéiert.",
         "exportFailed": "Projet konnt net exportéiert ginn: {{error}}"
+      },
+      "apiKey": {
+        "change": "Schlëssel änneren",
+        "description": "Benotz däin eegene Schlëssel vun Anthropic, OpenAI, Mistral oder Nebius. Eemol hei aginn, benotzen en de Modelléierungsassistent an de Spec-Driven-Generator (Nebius nëmmen de Generator). E gëtt nëmmen an dësem Browser-Tab gespäichert, ni op eise Serveren.",
+        "keySet": "Schlëssel gesat · {{provider}}",
+        "keySetHint": "Gëlt fir den Assistent an de Generator",
+        "noKey": "Kee Schlëssel gesat",
+        "noKeyHint": "Gedeelte Server-Schlëssel mat Limitten",
+        "set": "API-Schlëssel setzen",
+        "title": "KI-/LLM-API-Schlëssel"
       }
     },
     "templates": {
@@ -1264,6 +1323,32 @@
       "importModelFailed": "D'Modell konnt net vu GitHub importéiert ginn",
       "starThanks": "Merci datt Dir BESSER e Stär ginn hutt!",
       "starFailed": "De Stär konnt net aktualiséiert ginn"
+    },
+    "push": {
+      "changeRepo": "Repository änneren",
+      "commitMessageHelper": "Beschreif, wat geännert huet (optional).",
+      "commitMessagePlaceholder": "Generéiert App aktualiséieren",
+      "createNew": "Neie Repository erstellen",
+      "defaultDescription": "Mat BESSER generéiert – {{name}}",
+      "descriptionCreate": "De generéierte Code an de Projetmodell an e GitHub-Repository pushen.",
+      "descriptionUpdate": "De verlinkte Repository mat dengem neiste generéierte Code a Modell aktualiséieren.",
+      "done": "Fäerdeg",
+      "filesUploaded_one": "{{count}} Datei eropgelueden.",
+      "filesUploaded_other": "{{count}} Dateien eropgelueden.",
+      "linkedTo": "Verlinkt mat",
+      "loadingBranches": "Branche gi gelueden…",
+      "loadingRepositories": "Repositorye gi gelueden…",
+      "noRepositories": "Keng Repositorye gelueden. D’Ufro ass méiglecherweis feelgeschloen.",
+      "privateRepoOption": "{{name}} (privat)",
+      "publicWarning": "Dëse Repository gëtt ëffentlech. Jiddereen kann de generéierte Code an de Modell gesinn.",
+      "pushUpdate": "Update pushen",
+      "repushHint": "Nees pushen aktualiséiert dëse Repository.",
+      "selectRepository": "Repository wielen…",
+      "selectRepositoryError": "Wiel e Repository als Zil.",
+      "successCreated": "Repository erstallt an Dateie gepusht.",
+      "successTitle": "Op GitHub gepusht",
+      "successUpdated": "Repository mat denger neister Generatioun aktualiséiert.",
+      "useExisting": "Bestoende Repository benotzen"
     }
   },
   "assistant": {
@@ -1307,7 +1392,9 @@
       "headlinePost": "?",
       "subtitle": "Beschreift Äre System a natierlecher Sprooch. Kritt Modeller, Interfaces a Code.",
       "pressEscPre": "Dréckt",
-      "pressEscPost": "fir zouzemaachen"
+      "pressEscPost": "fir zouzemaachen",
+      "freeTier": "Gratis mat eisem gehoste Qwen-Modell.",
+      "changeModel": "Modell wiesselen"
     },
     "composer": {
       "placeholder": "Beschreift wat Dir erstellen oder ännere wëllt…"
@@ -1366,13 +1453,26 @@
     },
     "chat": {
       "newChat": "Neie Chat",
-      "newConversationTitle": "En neit Gespréich ufänken"
+      "newConversationTitle": "En neit Gespréich ufänken",
+      "moreActions": "Méi Aktiounen",
+      "yourModel": "Däi Modell",
+      "hideYourModel": "Däi Modell verstoppen",
+      "apiKeySet": "API-Schlëssel gesat",
+      "useOwnApiKey": "Däin eegene API-Schlëssel benotzen",
+      "reportIssue": "Problem mellen",
+      "addApiKey": "Däin API-Schlëssel derbäisetzen",
+      "newChatConfirm": "Neie Chat ufänken? Deng aktuell Konversatioun gëtt geläscht.",
+      "newChatConfirmWithRun": "Neie Chat ufänken? Deng aktuell Konversatioun gëtt geläscht an déi lafend Generatioun gestoppt.",
+      "explainModel": "Dëse Modell erklären",
+      "explainModelTitle": "Kréi en einfachen Iwwerbléck iwwer däi Modell – wat en haaptsächlech duerstellt a wéi et zesummenhänkt"
     },
     "drawer": {
       "pushToClose": "No ënne drécke fir den Assistent zouzemaachen",
       "pullToOpen": "No uewen zéie fir den Assistent opzemaachen",
       "pushUp": "No uewen drécken",
-      "pullDown": "Assistent no ënnen zéien"
+      "pullDown": "Assistent no ënnen zéien",
+      "labelClosed": "Beschreif deng App",
+      "labelOpen": "Spezifikatioune kucken"
     },
     "generationCompleted": "Generéierung erfollegräich ofgeschloss.",
     "exportingProject": "Projet gëtt als {{format}} exportéiert…",
@@ -1570,7 +1670,6 @@
       "title": "Wéi den Editor funktionéiert",
       "description": "Komplett Modelléierungsguide mat Beispiller a Biller.",
       "diagramTypesHeading": "Diagrammtypen",
-      "noImage": "Kee Bild fir dëst Element.",
       "openDocs": "BESSER-Dokumentatioun opmaachen",
       "openWmeRepo": "WME-Repository opmaachen",
       "class": {
@@ -1773,6 +1872,38 @@
           "body": "<p>Féiert de Qualitéitscheck aus der Uewerläischt aus fir strukturell Problemer wéi net verbonne Schichten oder feelend obligatoresch Attributer ze fänken, ier Dir Code generéiert.</p><p>Maacht de Generate-Menü op a wielt e Framework an e Stil:</p><ul><li><strong>PyTorch / Subclassing</strong>: <code>torch.nn.Module</code>-Ënnerklass mat engem expliziten Forward Pass.</li><li><strong>PyTorch / Sequential</strong>: <code>nn.Sequential</code>-Kompositioun fir strikt sequenziell Architekturen.</li><li><strong>TensorFlow / Subclassing</strong>: <code>tf.keras.Model</code>-Ënnerklass mat engem benotzerdefinéierten <code>call()</code>.</li><li><strong>TensorFlow / Sequential</strong>: <code>keras.Sequential</code>-Kompositioun.</li></ul><p>D'NN-Architekturdefinitioun gëtt am gewielte Framework generéiert, zesumme mat Trainings- an Evaluatiounscode, wann Datesätz an Configuration definéiert sinn.</p>",
           "alt": "Menü fir Code-Generéierung"
         }
+      },
+      "user": {
+        "label": "Benotzerdiagramm",
+        "summary": "Modelléier Benotzerprofiler, déi personaliséiert Agenten a GUIen steieren.",
+        "about": {
+          "title": "Iwwer Benotzerdiagrammer",
+          "body": "<p>E Benotzerdiagramm beschreift ee Benotzerprofil: eng <code>User</code>-Wuerzel, verbonne mat Deeler wéi perséinlech Informatiounen, Kompetenz, Accessibilitéit, Kultur, Perséinlechkeet, Preferenzen an Ziler.</p>"
+        },
+        "addParts": {
+          "title": "Deeler derbäisetzen a beaarbechten",
+          "body": "<p>Zéi Profilelementer aus der Palette, verbann se mam <code>User</code> a duebelklick op en Element fir seng Attributwäerter ze setzen.</p>"
+        },
+        "editAsForm": {
+          "title": "Als Formulaire beaarbechten",
+          "body": "<p>Klick an der Tab-Läischt op <strong>Als Formulaire beaarbechten</strong> fir de Profil an engem guidéierte Säitepanel ze beaarbechten. Setz Deeler derbäi oder huel se ewech a setz Critèren; d’Ännerunge gesäit een direkt um Canvas.</p>"
+        }
+      },
+      "bpmn": {
+        "label": "BPMN-Diagramm",
+        "summary": "Modelléier Geschäftsprozesser mat Aufgaben, Evenementer, Gateways a Flëss.",
+        "buildProcess": {
+          "title": "E Prozess opbauen",
+          "body": "<p>Zéi Elementer aus der Palette: Aufgaben, Ënnerprozesser, Transaktiounen an Opruffaktivitéiten; Start-, Zwëschen- an Ennevenementer; Gateways; Dateobjeten an Datespäicher; Pools a Lanes; Notizen a Gruppen.</p>"
+        },
+        "connectFlows": {
+          "title": "Mat Flëss verbannen",
+          "body": "<p>Zéi vun engem Element op en anert fir e Floss ze maachen. Den Editor wielt e gültegen Typ fir d’Pair (Sequenz, Message, Associatioun oder Dateassociatioun); duebelklick op e Floss fir en z’änneren.</p>"
+        },
+        "elementTypes": {
+          "title": "Elementtypen setzen",
+          "body": "<p>Duebelklick op eng Aufgab, en Evenement oder e Gateway fir den Typ ze setzen, zum Beispill eng Benotzer- oder Serviceaufgab, en Timer-Startevenement, oder en exklusiven oder parallele Gateway.</p>"
+        }
       }
     }
   },
@@ -1944,7 +2075,8 @@
       "projectLabel": "Projet (V{{version}})",
       "bumlLabelNamed": "Projet B-UML Virschau ({{name}})",
       "bumlLabel": "Projet B-UML Virschau"
-    }
+    },
+    "skipToEditor": "Op den Editor sprangen"
   },
   "editors": {
     "diagramTabs": {
@@ -2648,6 +2780,17 @@
       "noProjectData": "Keng Projetsdate fir z'exportéiere verfügbar",
       "projectExportedAs": "Projet als {{filename}} exportéiert",
       "projectExportFailed": "De Projet konnt net exportéiert ginn: {{error}}"
+    },
+    "diagramLabels": {
+      "ClassDiagram": "Klassendiagramm",
+      "ObjectDiagram": "Objetdiagramm",
+      "StateMachineDiagram": "Zoustandsdiagramm",
+      "AgentDiagram": "Agentendiagramm",
+      "UserDiagram": "Benotzerdiagramm",
+      "GUINoCodeDiagram": "Ecranen (GUI)",
+      "QuantumCircuitDiagram": "Quanteschaltung",
+      "NNDiagram": "Diagramm vun engem neuronalen Netz",
+      "BPMN": "BPMN-Prozess"
     }
   },
   "import": {
@@ -2973,6 +3116,11 @@
       "emptyDiagram": "D'Agentediagramm ass eidel. Setz Zoustänn, Iwwergäng an Intents derbäi, ier s de simuléiers.",
       "validationFailed": "D'Validatioun vum Agent ass feelgeschloen: {{message}}",
       "validationFailedGeneric": "Validatioun feelgeschloen"
+    }
+  },
+  "errors": {
+    "network": {
+      "unreachable": "De Server ass net erreechbar. Kontrolléier deng Verbindung a probéier nach eng Kéier."
     }
   }
 }

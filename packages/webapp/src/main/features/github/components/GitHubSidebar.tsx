@@ -30,8 +30,10 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
 import { useGitHubAuth } from '../hooks/useGitHubAuth';
 import {
@@ -973,39 +975,42 @@ export const GitHubSidebar: React.FC<GitHubSidebarProps> = ({ isOpen, onClose })
         </div>
 
         <div className="flex flex-col gap-3 rounded-xl border border-border/70 bg-card p-3">
-          <label className="flex items-center justify-between gap-2 text-sm">
-            <div>
-              <p className="font-medium">{t('github.settings.autoCommit')}</p>
+          <div className="flex items-start gap-2">
+            <Checkbox
+              id="github-autocommit-enabled"
+              className="mt-0.5"
+              checked={autoCommitSettings.enabled}
+              onCheckedChange={(checked) => updateAutoCommitSettings({ enabled: checked })}
+              disabled={!linkedRepo}
+            />
+            <div className="flex flex-col gap-1">
+              <Label htmlFor="github-autocommit-enabled">{t('github.settings.autoCommit')}</Label>
               <p className="text-xs text-muted-foreground">
                 {autoCommitSettings.enabled
                   ? t('github.settings.enabledWithInterval', { minutes: autoCommitSettings.intervalMinutes })
                   : t('github.settings.disabled')}
               </p>
             </div>
-            <input
-              type="checkbox"
-              checked={autoCommitSettings.enabled}
-              onChange={(event) => updateAutoCommitSettings({ enabled: event.target.checked })}
-              disabled={!linkedRepo}
-              className="size-4 rounded border-border"
-            />
-          </label>
+          </div>
 
           {autoCommitSettings.enabled && (
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="github-autocommit-interval" className="text-xs">{t('github.settings.intervalLabel')}</Label>
-              <select
-                id="github-autocommit-interval"
-                value={autoCommitSettings.intervalMinutes}
-                onChange={(event) => updateAutoCommitSettings({ intervalMinutes: parseInt(event.target.value, 10) })}
-                className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm"
+              <Select
+                value={String(autoCommitSettings.intervalMinutes)}
+                onValueChange={(value) => updateAutoCommitSettings({ intervalMinutes: parseInt(value, 10) })}
               >
-                <option value="5">{t('github.settings.interval5')}</option>
-                <option value="10">{t('github.settings.interval10')}</option>
-                <option value="15">{t('github.settings.interval15')}</option>
-                <option value="30">{t('github.settings.interval30')}</option>
-                <option value="60">{t('github.settings.interval60')}</option>
-              </select>
+                <SelectTrigger id="github-autocommit-interval" className="h-9">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="5">{t('github.settings.interval5')}</SelectItem>
+                  <SelectItem value="10">{t('github.settings.interval10')}</SelectItem>
+                  <SelectItem value="15">{t('github.settings.interval15')}</SelectItem>
+                  <SelectItem value="30">{t('github.settings.interval30')}</SelectItem>
+                  <SelectItem value="60">{t('github.settings.interval60')}</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
           )}
 
@@ -1113,21 +1118,24 @@ export const GitHubSidebar: React.FC<GitHubSidebarProps> = ({ isOpen, onClose })
 
               <div className="flex flex-col gap-1.5">
                 <Label htmlFor="github-link-branch">{t('github.linkModal.branch')}</Label>
-                <select
-                  id="github-link-branch"
+                <Select
                   value={selectedBranch}
-                  onChange={(event) => {
-                    setSelectedBranch(event.target.value);
+                  onValueChange={(value) => {
+                    setSelectedBranch(value);
                     setFileExists(null);
                   }}
-                  className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm"
                 >
-                  {availableBranches.map((branch) => (
-                    <option key={branch} value={branch}>
-                      {branch}
-                    </option>
-                  ))}
-                </select>
+                  <SelectTrigger id="github-link-branch" className="h-9">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {availableBranches.map((branch) => (
+                      <SelectItem key={branch} value={branch}>
+                        {branch}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
 
               <div className="flex flex-col gap-1.5">
@@ -1200,7 +1208,7 @@ export const GitHubSidebar: React.FC<GitHubSidebarProps> = ({ isOpen, onClose })
                         <CloudDownload className="size-4" />
                         {t('github.linkModal.loadAndLinkRecommended')}
                       </Button>
-                      <Button size="sm" variant="outline" onClick={() => { handleConfirmLink(true).catch(notifyError(t('github.context.linkingRepository'))); }}>
+                      <Button size="sm" variant="destructive" onClick={() => { handleConfirmLink(true).catch(notifyError(t('github.context.linkingRepository'))); }}>
                         {t('github.linkModal.linkWithoutLoading')}
                       </Button>
                     </div>

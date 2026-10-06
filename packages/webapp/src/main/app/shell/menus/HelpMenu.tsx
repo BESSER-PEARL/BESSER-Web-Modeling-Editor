@@ -24,6 +24,7 @@ import {
   DropdownMenuShortcut,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { HeaderTooltip } from './HeaderTooltip';
 
 const COMMUNITY_URLS = {
   contribute: 'https://github.com/BESSER-PEARL/BESSER/blob/master/CONTRIBUTING.md',
@@ -66,16 +67,19 @@ export const HelpMenu: React.FC<HelpMenuProps> = ({
   onOpenFeedback,
 }) => {
   const { t } = useTranslation();
+  const title = t('menu.help.title');
 
   return (
     <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button variant="outline" className={`gap-2 ${outlineButtonClass}`} title={t('menu.help.title')}>
-          <HelpCircle className="size-4" />
-          <span className="hidden xl:inline">{t('menu.help.title')}</span>
-          <ChevronDown className="size-3 opacity-50" />
-        </Button>
-      </DropdownMenuTrigger>
+      <HeaderTooltip label={title} hideFrom="xl">
+        <DropdownMenuTrigger asChild>
+          <Button variant="ghost" size="sm" className={`gap-2 ${outlineButtonClass}`} aria-label={title}>
+            <HelpCircle className="size-4" aria-hidden="true" />
+            <span className="hidden xl:inline">{title}</span>
+            <ChevronDown className="hidden size-3 opacity-50 md:block" aria-hidden="true" />
+          </Button>
+        </DropdownMenuTrigger>
+      </HeaderTooltip>
       <DropdownMenuContent className="w-64" align="end">
         <DropdownMenuItem onClick={onOpenHelpDialog}>
           <BookOpen className="mr-2 size-4" />

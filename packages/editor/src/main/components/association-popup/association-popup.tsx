@@ -100,6 +100,7 @@ type StateProps = {
   isIconObjectDiagram: boolean | null;
   elements: { [id: string]: any };
   palette: PreviewElement[];
+  zoomFactor: number;
 };
 
 type DispatchProps = {
@@ -137,10 +138,12 @@ class UnwrappedAssociationPopup extends Component<Props, State> {
 
   componentDidMount(): void {
     document.addEventListener('click', this.handleOutsideClick);
+    document.addEventListener('keydown', this.handleKeyDown);
   }
 
   componentWillUnmount(): void {
     document.removeEventListener('click', this.handleOutsideClick);
+    document.removeEventListener('keydown', this.handleKeyDown);
   }
 
   render() {
@@ -281,6 +284,12 @@ class UnwrappedAssociationPopup extends Component<Props, State> {
     this.props.closePopup();
   };
 
+  private handleKeyDown = (event: KeyboardEvent) => {
+    if (event.key === 'Escape' && this.props.isOpen) {
+      this.handleClose();
+    }
+  };
+
   private handleOutsideClick = (event: MouseEvent) => {
     if (this.ignoreNextDocumentClick) {
       this.ignoreNextDocumentClick = false;
@@ -292,13 +301,14 @@ class UnwrappedAssociationPopup extends Component<Props, State> {
   };
 
   private position = () => {
-    const { sourceObjectId, canvas, root, elements } = this.props;
+    const { sourceObjectId, canvas, root, elements, zoomFactor = 1 } = this.props;
     if (!sourceObjectId || !canvas || !root) return;
 
     const sourceElement = elements[sourceObjectId];
     if (!sourceElement) return;
 
-    let absolute: Point = new Point(sourceElement.bounds.x, sourceElement.bounds.y);
+    // Model coordinates -> screen pixels: the canvas is CSS-scaled by the zoom factor.
+    let absolute: Point = new Point(sourceElement.bounds.x, sourceElement.bounds.y).scale(zoomFactor);
 
     if (canvas.origin && typeof canvas.origin === 'function') {
       const origin = canvas.origin();
@@ -306,10 +316,9 @@ class UnwrappedAssociationPopup extends Component<Props, State> {
       absolute = absolute.add(origin.x, origin.y).subtract(rootRect.x, rootRect.y);
     }
 
-    const elementCenter: Point = absolute.add(
-      sourceElement.bounds.width / 2,
-      sourceElement.bounds.height / 2,
-    );
+    const width = sourceElement.bounds.width * zoomFactor;
+    const height = sourceElement.bounds.height * zoomFactor;
+    const elementCenter: Point = absolute.add(width / 2, height / 2);
     const position = absolute;
 
     const container: HTMLElement | null = canvas.layer && canvas.layer.parentElement;
@@ -322,10 +331,10 @@ class UnwrappedAssociationPopup extends Component<Props, State> {
     }
 
     if (placement === 'right') {
-      position.x += sourceElement.bounds.width;
+      position.x += width;
     }
     if (alignment === 'end') {
-      position.y += sourceElement.bounds.height;
+      position.y += height;
     }
 
     this.setState({ position, alignment, placement });
@@ -343,6 +352,7 @@ const enhance = compose<ComponentClass<OwnProps>>(
       isIconObjectDiagram: state.associationPopup.isIconObjectDiagram,
       elements: state.elements,
       palette: state.palette,
+      zoomFactor: state.editor.zoomFactor,
     }),
     {
       closePopup: AssociationPopup.close,

@@ -765,7 +765,21 @@
     "lineColor": "Line Color",
     "default": "Default",
     "enterNumber": "Enter number…",
-    "derived": "Derived"
+    "derived": "Derived",
+    "colors": {
+      "red": "Red",
+      "orange": "Orange",
+      "yellow": "Yellow",
+      "green": "Green",
+      "teal": "Teal",
+      "skyBlue": "Sky blue",
+      "blue": "Blue",
+      "slateBlue": "Slate blue",
+      "purple": "Purple",
+      "lightGray": "Light gray",
+      "gray": "Gray",
+      "black": "Black"
+    }
   },
   "associationPopup": {
     "cancel": "Cancel",

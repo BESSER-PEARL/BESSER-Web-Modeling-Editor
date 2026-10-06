@@ -1,4 +1,5 @@
 import { toast } from 'react-toastify';
+import { describeNetworkError } from './describeNetworkError';
 
 /**
  * Handles an unhandled promise rejection by logging the error and
@@ -15,7 +16,7 @@ import { toast } from 'react-toastify';
 export function notifyError(context: string) {
   return (error: unknown): void => {
     console.error(`[${context}]`, error);
-    const detail = error instanceof Error ? error.message : String(error);
+    const detail = describeNetworkError(error);
     toast.error(`${context} failed: ${detail}`);
   };
 }

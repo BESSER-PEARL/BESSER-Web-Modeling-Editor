@@ -19,7 +19,7 @@ DialogOverlay.displayName = DialogPrimitive.Overlay.displayName;
 
 /** Shared surface + enter/exit motion for dialog content (also used by ConfirmDialog). */
 const dialogContentBaseClass =
-  'fixed left-[50%] top-[50%] z-50 w-full translate-x-[-50%] translate-y-[-50%] border border-border/50 bg-background p-6 shadow-[0_24px_64px_-16px_rgba(0,0,0,0.15)] duration-200 ease-[cubic-bezier(0.23,1,0.32,1)] data-[state=closed]:duration-150 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=open]:fade-in-0 data-[state=open]:zoom-in-[0.97] data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-[0.97] sm:rounded-2xl';
+  'fixed left-[50%] top-[50%] z-50 w-full translate-x-[-50%] translate-y-[-50%] max-h-[calc(100dvh-2rem)] overflow-y-auto overscroll-contain border border-border/50 bg-background p-6 shadow-[0_24px_64px_-16px_hsl(var(--shadow-color)/calc(var(--shadow-strength)*0.15))] duration-200 ease-[cubic-bezier(0.23,1,0.32,1)] data-[state=closed]:duration-150 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=open]:fade-in-0 data-[state=open]:zoom-in-[0.97] data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-[0.97] sm:rounded-2xl';
 
 const DialogContent = React.forwardRef<React.ElementRef<typeof DialogPrimitive.Content>, React.ComponentPropsWithoutRef<typeof DialogPrimitive.Content>>(({ className, children, ...props }, ref) => (
   <DialogPortal>
@@ -49,7 +49,7 @@ const DialogHeader = ({ className, ...props }: React.HTMLAttributes<HTMLDivEleme
 DialogHeader.displayName = 'DialogHeader';
 
 const DialogFooter = ({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) => (
-  <div className={cn('flex flex-col-reverse sm:flex-row sm:justify-end sm:space-x-2', className)} {...props} />
+  <div className={cn('flex flex-col-reverse gap-2 sm:flex-row sm:justify-end', className)} {...props} />
 );
 DialogFooter.displayName = 'DialogFooter';
 

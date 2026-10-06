@@ -765,7 +765,21 @@
     "lineColor": "Color de línia",
     "default": "Per defecte",
     "enterNumber": "Introdueix un número…",
-    "derived": "Derivat"
+    "derived": "Derivat",
+    "colors": {
+      "red": "Vermell",
+      "orange": "Taronja",
+      "yellow": "Groc",
+      "green": "Verd",
+      "teal": "Blau verdós",
+      "skyBlue": "Blau cel",
+      "blue": "Blau",
+      "slateBlue": "Blau pissarra",
+      "purple": "Porpra",
+      "lightGray": "Gris clar",
+      "gray": "Gris",
+      "black": "Negre"
+    }
   },
   "associationPopup": {
     "cancel": "Cancel·la",

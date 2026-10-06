@@ -1,46 +1,58 @@
 /**
- * Pure decision helpers for the assistant drawer's handle gesture.
+ * Pure decision helpers for the assistant drawer's drag gesture.
  *
- * Extracted from AssistantWorkspaceDrawer so the click-vs-drag and
- * direction-snap logic can be unit-tested without a DOM or pointer events.
+ * Extracted from AssistantWorkspaceDrawer so the click / flick / position
+ * snap logic can be unit-tested without a DOM or pointer events.
  */
 
 /**
- * Movement (px) below which a handle press-release counts as a click (which
- * toggles the drawer) rather than a drag. Past it the gesture locks a direction
- * and snaps that way, so the user never has to drag the full distance. It also
- * guards an accidental scroll/jitter on the handle from reading as a drag.
+ * Movement (px) below which a press-release counts as a click (which toggles
+ * the drawer) rather than a drag. Also absorbs jitter on the handle.
  */
-export const DRAG_DIRECTION_THRESHOLD = 8;
+export const DRAG_CLICK_THRESHOLD = 8;
 
 /**
- * Lock the snap direction from the running drag distance, taken from the start
- * of the gesture. Returns the committed direction (+1 = toward open,
- * -1 = toward closed) once |distance| first crosses the threshold. Once a
- * non-zero direction is locked it sticks (so a flick that settles back still
- * snaps by its initial intent); 0 means "still a click".
- *
- * @param dragDistance signed px from the gesture's start (positive = toward open)
- * @param current      the direction locked so far (0 until the threshold hits)
- * @param threshold    px that must be crossed to count as a directional drag
+ * Release speed (px/ms) above which the drawer snaps in the direction of the
+ * flick regardless of how far it travelled (Sonner/Vaul use ~0.11).
  */
-export function lockDragDirection(
-  dragDistance: number,
-  current: number,
-  threshold: number = DRAG_DIRECTION_THRESHOLD,
-): number {
-  if (current !== 0) return current;
-  if (Math.abs(dragDistance) < threshold) return 0;
-  return dragDistance > 0 ? 1 : -1;
+export const FLICK_VELOCITY_THRESHOLD = 0.11;
+
+/**
+ * A finger that stopped before lifting carries no momentum: velocity measured
+ * on the last move older than this (ms) is ignored at release.
+ */
+export const VELOCITY_STALE_MS = 100;
+
+export interface DrawerReleaseInput {
+  /** Largest |distance| (px) travelled from the press point. */
+  moved: number;
+  /** Velocity of the last move, px/ms, positive = toward open. */
+  velocity: number;
+  /** ms between the last pointermove and the release. */
+  msSinceLastMove: number;
+  /** Sheet offset at release (0 = fully open, closedOffset = fully closed). */
+  offset: number;
+  /** Offset of the fully-closed position (the full travel). */
+  closedOffset: number;
+  currentlyOpen: boolean;
 }
 
 /**
- * Resolve whether the drawer should end up open when a gesture finishes.
- * A locked direction of 0 means the gesture was a click, so it toggles the
- * current state; otherwise +1 opens and -1 closes,
- * regardless of how far the user actually dragged.
+ * Resolve whether the drawer should end up open when a gesture finishes:
+ *  - barely moved → a click, toggle;
+ *  - a fast flick → follow the flick direction, however short;
+ *  - otherwise → snap by position (open when past half the travel).
  */
-export function resolveDrawerSnap(direction: number, currentlyOpen: boolean): boolean {
-  if (direction === 0) return !currentlyOpen;
-  return direction > 0;
+export function resolveDrawerSnap({
+  moved,
+  velocity,
+  msSinceLastMove,
+  offset,
+  closedOffset,
+  currentlyOpen,
+}: DrawerReleaseInput): boolean {
+  if (moved < DRAG_CLICK_THRESHOLD) return !currentlyOpen;
+  const releaseVelocity = msSinceLastMove > VELOCITY_STALE_MS ? 0 : velocity;
+  if (Math.abs(releaseVelocity) > FLICK_VELOCITY_THRESHOLD) return releaseVelocity > 0;
+  return offset < closedOffset / 2;
 }

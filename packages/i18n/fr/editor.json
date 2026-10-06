@@ -765,7 +765,21 @@
     "lineColor": "Couleur de ligne",
     "default": "Par défaut",
     "enterNumber": "Saisir un nombre…",
-    "derived": "Dérivé"
+    "derived": "Dérivé",
+    "colors": {
+      "red": "Rouge",
+      "orange": "Orange",
+      "yellow": "Jaune",
+      "green": "Vert",
+      "teal": "Bleu sarcelle",
+      "skyBlue": "Bleu ciel",
+      "blue": "Bleu",
+      "slateBlue": "Bleu ardoise",
+      "purple": "Violet",
+      "lightGray": "Gris clair",
+      "gray": "Gris",
+      "black": "Noir"
+    }
   },
   "associationPopup": {
     "cancel": "Annuler",

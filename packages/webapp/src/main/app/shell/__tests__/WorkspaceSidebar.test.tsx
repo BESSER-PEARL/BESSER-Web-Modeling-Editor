@@ -3,10 +3,18 @@ import { render, screen, fireEvent, within } from '@testing-library/react';
 import { vi, describe, it, expect, beforeEach } from 'vitest';
 import { UMLDiagramType } from '@besser/wme';
 import { WorkspaceSidebar } from '../WorkspaceSidebar';
-import { createDefaultProject } from '../../../shared/types/project';
+import { ALL_DIAGRAM_TYPES, createDefaultProject } from '../../../shared/types/project';
 import type { BesserProject, SupportedDiagramType } from '../../../shared/types/project';
 
 // ── Helpers ──────────────────────────────────────────────────────────────
+
+/** The sidebar receives counts and perspectives, not the whole project. */
+const fromProject = (project: BesserProject | null) => ({
+  diagramCounts: Object.fromEntries(
+    ALL_DIAGRAM_TYPES.map((type) => [type, project?.diagrams[type]?.length ?? 0]),
+  ) as Record<SupportedDiagramType, number>,
+  perspectives: project?.settings?.perspectives,
+});
 
 /** Build a minimal set of WorkspaceSidebar props with sensible defaults. */
 const defaultProps = (overrides: Partial<React.ComponentProps<typeof WorkspaceSidebar>> = {}) => ({
@@ -20,7 +28,7 @@ const defaultProps = (overrides: Partial<React.ComponentProps<typeof WorkspaceSi
   locationPath: '/',
   activeUmlType: UMLDiagramType.ClassDiagram,
   activeDiagramType: 'ClassDiagram' as SupportedDiagramType,
-  project: createDefaultProject('Test', '', 'owner'),
+  ...fromProject(createDefaultProject('Test', '', 'owner')),
   onSwitchUml: vi.fn(),
   onSwitchDiagramType: vi.fn(),
   onNavigate: vi.fn(),
@@ -191,7 +199,7 @@ describe('WorkspaceSidebar', () => {
       },
     });
 
-    render(<WorkspaceSidebar {...defaultProps({ project })} />);
+    render(<WorkspaceSidebar {...defaultProps(fromProject(project))} />);
 
     // 2 ClassDiagrams: accessible name "Class (2)", count shown as its own number
     const button = screen.getByRole('button', { name: 'Class (2)' });
@@ -200,7 +208,7 @@ describe('WorkspaceSidebar', () => {
   });
 
   it('renders without project (null)', () => {
-    render(<WorkspaceSidebar {...defaultProps({ project: null })} />);
+    render(<WorkspaceSidebar {...defaultProps(fromProject(null))} />);
 
     // Should still render all the navigation items
     expect(screen.getByText('Class')).toBeInTheDocument();
@@ -212,10 +220,43 @@ describe('WorkspaceSidebar', () => {
     project.settings.perspectives.AgentDiagram = false;
     project.settings.perspectives.QuantumCircuitDiagram = false;
 
-    render(<WorkspaceSidebar {...defaultProps({ project })} />);
+    render(<WorkspaceSidebar {...defaultProps(fromProject(project))} />);
 
     expect(screen.queryByText('Agent')).not.toBeInTheDocument();
     expect(screen.queryByText('Quantum')).not.toBeInTheDocument();
     expect(screen.getByText('Class')).toBeInTheDocument();
+  });
+
+  it('wraps the items in a labelled nav and marks only the active item as the current page', () => {
+    const { container } = render(<WorkspaceSidebar {...defaultProps()} />);
+
+    expect(screen.getByRole('navigation', { name: 'Editors' })).toBeInTheDocument();
+    const current = container.querySelectorAll('[aria-current="page"]');
+    expect(current).toHaveLength(1);
+    expect(current[0]).toHaveAccessibleName('Class');
+  });
+
+  it('keeps collapsed Agent sub-items out of the DOM and the tab order', () => {
+    render(<WorkspaceSidebar {...defaultProps({ onTestAgent: vi.fn() })} />);
+
+    // Previously they stayed rendered (max-h-0 opacity-0) and focusable.
+    expect(screen.queryByRole('button', { name: 'Components' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Agent Customization' })).toBeNull();
+  });
+
+  it('shows the Agent sub-items while the Agent editor is active', () => {
+    render(
+      <WorkspaceSidebar
+        {...defaultProps({ activeUmlType: UMLDiagramType.AgentDiagram, activeDiagramType: 'AgentDiagram' })}
+      />,
+    );
+
+    expect(screen.getByRole('button', { name: 'Components' })).toBeInTheDocument();
+  });
+
+  it('omits the collapse toggle when no toggle handler is given (mobile drawer)', () => {
+    render(<WorkspaceSidebar {...defaultProps({ onToggleExpanded: undefined })} />);
+
+    expect(screen.queryByLabelText('Collapse sidebar')).toBeNull();
   });
 });
