@@ -491,7 +491,7 @@ describe('29 — laneToAgentModel', () => {
       expect(names).toEqual(['Code', 'Coder_greet', 'Plan']); // no *_reflect / review_ / feedback_
     });
 
-    it("'self' inserts a <task>_reflect state with a self-loop and re-routes the forward edge", () => {
+    it("'self' inserts one reflection pass with Auto transitions and re-routes the forward edge", () => {
       const m = bpmn();
       Object.assign(m.elements, { L: lane('L'), t1: rtask('t1', 'Plan', 10, 'self'), t2: task('t2', 'Code', 200) });
       Object.assign(m.relationships, { f1: seq('f1', 't1', 't2') });
@@ -504,16 +504,16 @@ describe('29 — laneToAgentModel', () => {
       const ts = transitions(r.model);
       // original Plan → Code is re-routed (gone)
       expect(ts.some((e) => e.source.element === plan.id && e.target.element === code.id)).toBe(false);
-      // Plan → reflect via when_no_intent_matched
+      // Plan → reflect runs without another message.
       const entry = ts.find((e) => e.source.element === plan.id && e.target.element === reflect!.id)!;
       expect(entry).toBeDefined();
       expect((entry as unknown as { predefined?: { predefinedType?: string } }).predefined?.predefinedType).toBe(
-        'when_no_intent_matched',
+        'auto',
       );
-      // self-loop on reflect
-      expect(ts.some((e) => e.source.element === reflect!.id && e.target.element === reflect!.id)).toBe(true);
-      // reflect → Code (forward / "approve")
-      expect(ts.some((e) => e.source.element === reflect!.id && e.target.element === code.id)).toBe(true);
+      expect(ts.some((e) => e.source.element === reflect!.id && e.target.element === reflect!.id)).toBe(false);
+      const forward = ts.find((e) => e.source.element === reflect!.id && e.target.element === code.id)!;
+      expect(forward).toBeDefined();
+      expect((forward as unknown as { predefined?: { predefinedType?: string } }).predefined?.predefinedType).toBe('auto');
     });
 
     it("'self' re-homes downstream outbound A2A onto <task>_reflect (runtime carrier, not just icon position)", () => {
@@ -566,9 +566,9 @@ describe('29 — laneToAgentModel', () => {
       expect(planDesc).not.toContain('a2a:out;');
       expect(reflectDesc).toMatch(/a2a:out;peer=Reviewer;ref=agent-reviewer;flow=f2;order=1;kind=revises/);
 
-      // Existing self-reflection topology is preserved in this pass.
+      // Reflection remains a single pass while carrying the outbound binding.
       expect(ts.some((e) => e.source.element === plan.id && e.target.element === reflect.id)).toBe(true);
-      expect(ts.some((e) => e.source.element === reflect.id && e.target.element === reflect.id)).toBe(true);
+      expect(ts.some((e) => e.source.element === reflect.id && e.target.element === reflect.id)).toBe(false);
     });
     it("'cross' emits A2A (no wait state): a2a:out tag + greeting→next intent edge + AgentIntent", () => {
       // cross-reflection is inter-agent, so it is modelled as A2A metadata,

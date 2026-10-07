@@ -39,16 +39,26 @@ export function useGenerateComponentDiagram(): () => Promise<DerivationResult> {
     // legacy components before deriving, just as the Components page does.
     const agentDiagramsById = new Map<string, UMLModel>();
     const sqlDatabasesByAgentId = new Map<string, Array<{ name?: string }>>();
+    const defaultLlmNamesByAgentId = new Map<string, string>();
     for (const d of project?.diagrams.AgentDiagram ?? []) {
       const model = normalizeStoredAgentModel(d);
       if (model) agentDiagramsById.set(d.id, model);
-      const databases = (d.agentConfigForm as { db?: { sqlDatabases?: unknown } } | undefined)?.db?.sqlDatabases;
+      const config = d.agentConfigForm as {
+        db?: { sqlDatabases?: unknown };
+        default_llm_name?: unknown;
+      } | undefined;
+      const databases = config?.db?.sqlDatabases;
       if (Array.isArray(databases)) sqlDatabasesByAgentId.set(d.id, databases);
+      const defaultName = config?.default_llm_name;
+      if (typeof defaultName === 'string' && defaultName.trim()) {
+        defaultLlmNamesByAgentId.set(d.id, defaultName.trim());
+      }
     }
 
     const result = bpmnModelToComponentModel(activeDiagram.model as UMLModel, {
       agentDiagramsById,
       sqlDatabasesByAgentId,
+      defaultLlmNamesByAgentId,
       // always derive capabilities
       // The UI always includes configured capabilities and resources.
       includeCapabilities: true,

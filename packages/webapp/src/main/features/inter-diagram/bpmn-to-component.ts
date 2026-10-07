@@ -21,6 +21,8 @@ export type DerivationOpts = {
   agentDiagramsById?: Map<string, UMLModel>;
   /** SQL databases are stored on the Agent diagram's config form, outside its model. */
   sqlDatabasesByAgentId?: Map<string, Array<{ name?: string }>>;
+  /** Default LLM names are stored outside the Agent model. */
+  defaultLlmNamesByAgentId?: Map<string, string>;
   /** Opt-in. When false/undefined, no resource Components are emitted.
    *  When true, linked Agent resources are grouped by kind and deduped
    *  globally by name, with one has/uses edge per (agent, resource). */
@@ -105,7 +107,14 @@ export function bpmnModelToComponentModel(bpmn: UMLModel, opts?: DerivationOpts)
         // An agentic lane = one agent. Collect its linked Agent resources;
         // the grouping pass below places them in shared zones.
         collectLaneCapabilities(
-          bpmn, lane, laneCompId, opts.agentDiagramsById, collectedCaps, warnings, opts.sqlDatabasesByAgentId,
+          bpmn,
+          lane,
+          laneCompId,
+          opts.agentDiagramsById,
+          collectedCaps,
+          warnings,
+          opts.sqlDatabasesByAgentId,
+          opts.defaultLlmNamesByAgentId,
         );
       }
     }
@@ -417,28 +426,45 @@ const REPLY_TYPE_STEREOTYPE: Record<string, 'llm' | 'db' | 'rag'> = {
 };
 const BODY_TYPES = new Set(['AgentStateBody', 'AgentStateFallbackBody']);
 
-// A body has no meaningful element name (its `name` is reply content), so
-// name the Component per kind — a single shared "LLM" node (no model id in
-// WME), the RAG database name, or the custom DB name, each with a generic
-// fallback.
-function resourceName(stereo: 'llm' | 'db' | 'rag', body: UMLElement): string {
+// Resolve blank action references the same way as the runtime's default LLM.
+export function resolveBodyLlmName(agentModel: UMLModel, body: UMLElement, defaultLlmName?: string): string {
+  const explicit = (body as unknown as { llm_name?: string }).llm_name?.trim();
+  if (explicit) return explicit;
+
+  const registered = configuredComponents(agentModel)
+    .filter((resource) => resource.stereo === 'llm')
+    .map((resource) => resource.name);
+  const configuredDefault = defaultLlmName?.trim();
+  if (configuredDefault && registered.includes(configuredDefault)) return configuredDefault;
+  return registered[0] ?? 'LLM';
+}
+
+function resourceName(
+  stereo: 'llm' | 'db' | 'rag',
+  body: UMLElement,
+  agentModel: UMLModel,
+  defaultLlmName?: string,
+): string {
   const b = body as unknown as { ragDatabaseName?: string; dbCustomName?: string };
   if (stereo === 'rag') return (b.ragDatabaseName ?? '').trim() || 'RAG';
   if (stereo === 'db') return (b.dbCustomName ?? '').trim() || 'Database';
-  return 'LLM';
+  return resolveBodyLlmName(agentModel, body, defaultLlmName);
 }
 
 // Every resource body (main OR fallback) in the agent diagram,
 // as {stereo, name}. Always-named (resourceName never returns empty), so the
 // caller needs no empty-name guard.
-function resourceBodies(agentModel: UMLModel): Array<{ stereo: 'llm' | 'db' | 'rag'; name: string }> {
+function resourceBodies(
+  agentModel: UMLModel,
+  defaultLlmName?: string,
+): Array<{ stereo: 'llm' | 'db' | 'rag'; name: string }> {
   const out: Array<{ stereo: 'llm' | 'db' | 'rag'; name: string }> = [];
   for (const e of Object.values(agentModel.elements)) {
     if (!BODY_TYPES.has(e.type)) continue;
     const replyType = (e as unknown as { replyType?: string }).replyType;
     const stereo = replyType ? REPLY_TYPE_STEREOTYPE[replyType] : undefined;
     if (!stereo) continue;
-    out.push({ stereo, name: resourceName(stereo, e) });
+    out.push({ stereo, name: resourceName(stereo, e, agentModel, defaultLlmName) });
   }
   return out;
 }
@@ -475,6 +501,7 @@ function collectLaneCapabilities(
   out: CollectedCapability[],
   warnings: DerivationWarning[],
   sqlDatabasesByAgentId?: Map<string, Array<{ name?: string }>>,
+  defaultLlmNamesByAgentId?: Map<string, string>,
 ): void {
   const seen = new Set<string>();
 
@@ -527,7 +554,7 @@ function collectLaneCapabilities(
     // LLM/DB/RAG resources from the linked Agent diagram's body reply-types —
     // same per-agent dedup (`seen`) and pipeline as tools/skills. A duplicate
     // LLM/db-name/rag-name collapses to one node.
-    for (const res of resourceBodies(agentModel)) {
+    for (const res of resourceBodies(agentModel, defaultLlmNamesByAgentId?.get(ref))) {
       const key = `${res.stereo}::${res.name.toLowerCase()}`;
       if (seen.has(key)) continue;
       seen.add(key);

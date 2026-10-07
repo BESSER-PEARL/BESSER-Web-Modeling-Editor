@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import type { UMLModel, UMLElement } from '@besser/wme';
-import { bpmnModelToComponentModel, resolveEdgeKind } from '../bpmn-to-component';
+import { bpmnModelToComponentModel, resolveBodyLlmName, resolveEdgeKind } from '../bpmn-to-component';
 import flatNoPools from './fixtures/flat-no-pools.json';
 import singlePoolNoLanes from './fixtures/single-pool-no-lanes.json';
 import minimalAgentic from './fixtures/minimal-agentic.json';
@@ -1185,7 +1185,7 @@ describe('Inter-diagram — bpmnModelToComponentModel', () => {
       model.elements = {
         legacy: { id: 'legacy', type: 'AgentStateBody', name: '', owner: null, replyType: 'llm', bounds: { x: 0, y: 0, width: 1, height: 1 } },
       } as unknown as UMLModel['elements'];
-      model.components = { ...model.components, llm: component('llm', 'AgentLLM', 'LLM') } as UMLModel['components'];
+      model.components = { ...model.components, llm: component('llm', 'AgentLLM', 'gpt-6-luna') } as UMLModel['components'];
       const result = bpmnModelToComponentModel(linkedBpmn(), {
         agentDiagramsById: new Map([['agent-1', model]]),
         includeCapabilities: true,
@@ -1194,6 +1194,61 @@ describe('Inter-diagram — bpmnModelToComponentModel', () => {
       expect(Object.values(result.model.elements).filter((e) =>
         (e as UMLElement & { stereotype?: string }).stereotype === 'llm',
       )).toHaveLength(1);
+    });
+
+    it('resolves explicit, valid-default, first-registered and unconfigured LLM names', () => {
+      const model = structuredClone(agentModel);
+      model.components = {
+        ...model.components,
+        other: component('other', 'AgentLLM', 'other-model'),
+      } as UMLModel['components'];
+      const body = {
+        id: 'body',
+        type: 'AgentStateFallbackBody',
+        name: 'Prompt content is not a model name',
+        llm_name: '',
+      } as unknown as UMLElement;
+
+      expect(resolveBodyLlmName(model, body, 'other-model')).toBe('other-model');
+      expect(resolveBodyLlmName(model, body, 'missing-model')).toBe('GPT model');
+      expect(resolveBodyLlmName(model, body)).toBe('GPT model');
+      expect(resolveBodyLlmName(
+        model,
+        { ...body, llm_name: 'explicit-model' } as unknown as UMLElement,
+        'other-model',
+      )).toBe('explicit-model');
+      expect(resolveBodyLlmName({ ...model, components: {} } as UMLModel, body)).toBe('LLM');
+    });
+
+    it('shares one named LLM between two agents without adding generic LLM', () => {
+      const bpmn = linkedBpmn();
+      (bpmn.elements['lane-manager'] as UMLElement & { agentDiagramRef?: string }).agentDiagramRef = 'agent-2';
+      const model = structuredClone(agentModel);
+      model.components = {
+        ...model.components,
+        llm: component('llm', 'AgentLLM', 'gpt-6-luna'),
+      } as UMLModel['components'];
+      model.elements = {
+        body: {
+          id: 'body', type: 'AgentStateBody', name: '', owner: null,
+          replyType: 'llm', llm_name: '', bounds: { x: 0, y: 0, width: 1, height: 1 },
+        },
+      } as unknown as UMLModel['elements'];
+      const result = bpmnModelToComponentModel(bpmn, {
+        agentDiagramsById: new Map([['agent-1', model], ['agent-2', structuredClone(model)]]),
+        defaultLlmNamesByAgentId: new Map([['agent-1', 'gpt-6-luna'], ['agent-2', 'gpt-6-luna']]),
+        includeCapabilities: true,
+      });
+      if (!result.ok) throw new Error('expected ok');
+
+      const llms = Object.values(result.model.elements).filter(
+        (e) => (e as UMLElement & { stereotype?: string }).stereotype === 'llm',
+      );
+      expect(llms.map((e) => e.name)).toEqual(['gpt-6-luna']);
+      const uses = Object.values(result.model.relationships).filter(
+        (r) => r.target.element === llms[0].id && (r as { stereotype?: string }).stereotype === 'uses',
+      );
+      expect(uses).toHaveLength(2);
     });
 
     it('leaves room below two-line Subsystem titles', () => {

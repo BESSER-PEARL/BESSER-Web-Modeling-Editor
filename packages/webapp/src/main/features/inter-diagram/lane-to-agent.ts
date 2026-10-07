@@ -925,57 +925,17 @@ function recenterAgentModel(out: UMLModel): void {
   }
 }
 
-// ── 39 (4c): reflection scaffolds ───────────────────────────────────
+// ── reflection scaffolds ───────────────────────────────────
 
 /**
- * a self-loop transition on `stateId` (source === target). `emitTransition`
- * can't draw a loop — its two-point path would collapse to a line over the
- * element — so this routes a small loop out the right edge and back. Generic
- * `when_intent_matched` (no `predefinedType`) → the user names the intent (e.g.
- * "revise"). `isManuallyLayouted: true` so the loop path is preserved on first
- * open.
- */
-function emitSelfLoop(out: UMLModel, stateId: string): void {
-  const id = newId();
-  const b = (out.elements[stateId] as unknown as { bounds: Bounds }).bounds;
-  // Exit from the BOTTOM center and re-enter at the RIGHT center, tracing an
-  // L-shape below-then-right of the state. Using asymmetric source/target
-  // directions means the path clears the agent-robot icon at the top-right
-  // corner and is immediately draggable.
-  const bottom = b.y + b.height;
-  const right = b.x + b.width;
-  const midX = b.x + b.width / 2;
-  const midY = b.y + b.height / 2;
-  const loop = 30;
-  const path = [
-    { x: midX, y: bottom }, // exit bottom-center
-    { x: midX, y: bottom + loop }, // go down
-    { x: right + loop, y: bottom + loop }, // go right past the edge
-    { x: right + loop, y: midY }, // go up to mid-height
-    { x: right, y: midY }, // arrive at right-center
-  ];
-  out.relationships[id] = {
-    id,
-    name: '',
-    type: 'AgentStateTransition',
-    owner: null,
-    bounds: { x: midX, y: midY, width: b.width / 2 + loop, height: b.height / 2 + loop },
-    path,
-    source: { element: stateId, direction: 'Down' },
-    target: { element: stateId, direction: 'Right' },
-    isManuallyLayouted: true,
-  } as unknown as UMLRelationship;
-}
-
-/**
- * Activate the SEAA'25 `reflectionMode` field as a live consumer of the
+ * Activate the `reflectionMode` field as a live consumer of the
  * lane→Agent derivation. For each
  * task with `reflectionMode !== 'none'`, splice reflection states AFTER the task's
  * state, re-routing the task's forward transition(s) through them:
  *
- *  - 'self'  → a `<task>_reflect` self-evaluation state. task → reflect
- *             (when_no_intent_matched), a self-loop on reflect ("revise"), and
- *             reflect → next ("approve"). User adds the LLM body + intent names.
+ *  - 'self'  → a `<task>_reflect` self-evaluation state.
+ *             task → reflect → next uses Auto transitions, without a self-loop.
+ *             The user supplies the reflection body.
  *  - 'cross' → inter-agent A2A (no new state). The producing state's
  *             `description` gets an a2a:out;peer=reviewer;…;kind=revises tag, and
  *             each forward `next` gets a greeting→next when_intent_matched edge
@@ -1040,13 +1000,10 @@ function appendReflectionScaffolds(
         bodies: [],
         fallbackBodies: [],
       } as unknown as UMLElement;
-      // self-reflection is the post-task approval/revision gate. Downstream
-      // outbound A2A must execute from <task>_reflect, not from the base
-      // task-state, so hand off the outbound carrier here.
+      // Run one reflection pass before continuing or sending outbound A2A.
       outboundCarrierStateIdByTask.set(t.id, reflectId);
-      emitTransition(out, sT, reflectId, 'AgentStateTransition', 'horizontal', 'when_no_intent_matched');
-      emitSelfLoop(out, reflectId); // generic intent — user names it "revise"
-      for (const n of nexts) emitTransition(out, reflectId, n, 'AgentStateTransition', 'vertical'); // generic — "approve"
+      emitTransition(out, sT, reflectId, 'AgentStateTransition', 'horizontal', 'auto');
+      for (const n of nexts) emitTransition(out, reflectId, n, 'AgentStateTransition', 'vertical', 'auto');
     } else if (mode === 'human') {
       const humanId = newId();
       out.elements[humanId] = {
