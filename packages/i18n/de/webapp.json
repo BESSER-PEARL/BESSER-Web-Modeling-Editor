@@ -2848,6 +2848,10 @@
       "readFileFailed": "Datei konnte nicht gelesen werden",
       "invalidFromBackend": "Ungültiges Diagramm vom Backend zurückgegeben",
       "couldNotParseError": "Fehlerantwort konnte nicht verarbeitet werden"
+    },
+    "warnings": {
+      "danglingAgentRef": "Element „{{name}}“ verweist auf ein Agentenverhalten, das in diesem Projekt nicht existiert. Verwenden Sie daran „Agentenverhalten definieren“, um ein neues zu erstellen.",
+      "unnamedElement": "(unbenannt)"
     }
   },
   "validation": {
@@ -3168,6 +3172,26 @@
         "noTasksInLane": "Die Bahn hat noch keine Aufgaben, daher beginnt das Agent-Diagramm leer.",
         "laneNotAgentic": "Die Bahn ist nicht agentisch, daher beginnt das Agent-Diagramm leer.",
         "laneNotFound": "Die Bahn konnte nicht gelesen werden, daher beginnt das Agent-Diagramm leer."
+      }
+    },
+    "derive": {
+      "component": {
+        "failed": "Das Komponentendiagramm kann nicht abgeleitet werden: {{reason}}",
+        "noPools": "Fügen Sie diesem BPMN-Diagramm zuerst mindestens einen Pool mit Bahnen hinzu.",
+        "noLanes": "Fügen Sie zuerst mindestens eine Bahn in einen Pool ein.",
+        "notBpmn": "Diese Aktion funktioniert nur in einem BPMN-Diagramm.",
+        "limitReached": "Das Projekt hat bereits die maximale Anzahl an Komponentendiagrammen. Löschen Sie eines, bevor Sie ein neues generieren.",
+        "done": "Komponentendiagramm generiert.",
+        "doneWithWarnings_one": "Komponentendiagramm mit {{count}} Warnung generiert – siehe Browser-Konsole.",
+        "doneWithWarnings_other": "Komponentendiagramm mit {{count}} Warnungen generiert – siehe Browser-Konsole."
+      },
+      "deployment": {
+        "failed": "Das Bereitstellungsdiagramm kann nicht abgeleitet werden: {{reason}}",
+        "noComponents": "Fügen Sie diesem Komponentendiagramm zuerst mindestens eine Komponente hinzu.",
+        "notComponentDiagram": "Diese Aktion funktioniert nur in einem Komponentendiagramm.",
+        "limitReached": "Das Projekt hat bereits die maximale Anzahl an Bereitstellungsdiagrammen. Löschen Sie eines, bevor Sie ein neues generieren.",
+        "flatScaffold": "Ein Knoten „Default Host“ wurde als Platzhalter erstellt – fügen Sie dem Komponentendiagramm Subsysteme für ein detaillierteres Layout hinzu.",
+        "done": "Bereitstellungsdiagramm generiert."
       }
     }
   }

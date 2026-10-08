@@ -89,6 +89,19 @@ import { HiddenPerspectivesBanner } from '../../features/editors/HiddenPerspecti
 
 export type { GeneratorType, GeneratorMenuMode } from './workspace-types';
 
+// addDiagramThunk's message when a project already holds the maximum number
+// of diagrams of a type.
+const DIAGRAM_LIMIT_REACHED = /limit of \d+ reached/i;
+
+/** Message of a rejected thunk: `.unwrap()` rethrows a SerializedError (a plain object), not an Error. */
+const thunkErrorMessage = (err: unknown): string => {
+  if (err instanceof Error) return err.message;
+  if (typeof err === 'object' && err !== null && 'message' in err && typeof err.message === 'string') {
+    return err.message;
+  }
+  return String(err);
+};
+
 const sanitizeRepoName = (name: string): string => {
   return name
     .trim()
@@ -609,94 +622,58 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
     try {
       const r = await deriveComponentDiagram();
       if (!r.ok) {
-        const msg =
+        const reasonKey =
           r.reason === 'no-pools'
-            ? 'Add at least one pool with lanes to this BPMN diagram first.'
+            ? 'interDiagram.derive.component.noPools'
             : r.reason === 'no-lanes-in-any-pool'
-              ? 'Add at least one lane inside a pool first.'
-              : 'This action only works on a BPMN diagram.';
-        toast.error(`Cannot derive Component diagram: ${msg}`);
+              ? 'interDiagram.derive.component.noLanes'
+              : 'interDiagram.derive.component.notBpmn';
+        toast.error(t('interDiagram.derive.component.failed', { reason: t(reasonKey) }));
         return;
       }
       if (r.warnings.length > 0) {
-        toast.warning(
-          `Generated Component diagram with ${r.warnings.length} warning${r.warnings.length === 1 ? '' : 's'} — see console.`,
-        );
         console.info('[inter-diagram] derivation warnings:', r.warnings);
+        toast.warning(t('interDiagram.derive.component.doneWithWarnings', { count: r.warnings.length }));
       } else {
-        toast.success('Component diagram generated — switched to the new diagram.');
+        toast.success(t('interDiagram.derive.component.done'));
       }
     } catch (err) {
-      // The addDiagramThunk inside useGenerateComponentDiagram throws
-      // "Cannot add more diagrams (limit reached)" when the project hits
-      // its per-type diagram cap. Surface that (and any other thunk
-      // rejection) as a toast instead of letting React swallow the
-      // unhandled rejection. Surface both the raw error message and the
-      // actionable hint, so the user knows what happened AND what to do
-      // next.
-      // `.unwrap()` on a rejected createAsyncThunk re-throws a
-      // SerializedError (plain object with `.message`), not the original
-      // Error. `instanceof Error` is false, so reading `.message` off the
-      // object directly is required when present.
-      const message =
-        err instanceof Error
-          ? err.message
-          : typeof err === 'object' &&
-              err !== null &&
-              'message' in err &&
-              typeof (err as { message?: unknown }).message === 'string'
-            ? (err as { message: string }).message
-            : String(err);
-      const body = /limit reached/i.test(message)
-        ? `${message}. Close an existing Component diagram before generating a new one.`
-        : message;
-      toast.error(`Cannot derive Component diagram: ${body}`);
+      // addDiagramThunk rejects at the per-type diagram limit; any other
+      // rejection is reported with its own message.
       console.error('[inter-diagram] derivation failed:', err);
+      const message = thunkErrorMessage(err);
+      const reason = DIAGRAM_LIMIT_REACHED.test(message) ? t('interDiagram.derive.component.limitReached') : message;
+      toast.error(t('interDiagram.derive.component.failed', { reason }));
     }
-  }, [deriveComponentDiagram]);
+  }, [deriveComponentDiagram, t]);
 
   const deriveDeploymentDiagram = useGenerateDeploymentDiagram();
   const handleDeriveDeploymentDiagram = useCallback(async () => {
     try {
       const r = await deriveDeploymentDiagram();
       if (!r.ok) {
-        const msg =
+        const reasonKey =
           r.reason === 'no-components'
-            ? 'Add at least one Component to this Component diagram first.'
-            : 'This action only works on a Component diagram.';
-        toast.error(`Cannot derive Deployment diagram: ${msg}`);
+            ? 'interDiagram.derive.deployment.noComponents'
+            : 'interDiagram.derive.deployment.notComponentDiagram';
+        toast.error(t('interDiagram.derive.deployment.failed', { reason: t(reasonKey) }));
         return;
       }
       if (r.warnings.length > 0) {
-        // The only warning kind is `flat-scaffold`. The wording leads with
-        // what was emitted (the synthetic Default Host) rather than the
-        // abstract "flat scaffold" framing.
-        toast.warning(
-          'Default Host node created as a placeholder — add Subsystems to your Component diagram for a richer layout.',
-        );
+        // The only warning kind is `flat-scaffold`: no Subsystems, so one
+        // placeholder host was created.
         console.info('[inter-diagram] deployment derivation warnings:', r.warnings);
+        toast.warning(t('interDiagram.derive.deployment.flatScaffold'));
       } else {
-        toast.success('Deployment diagram generated — switched to the new diagram.');
+        toast.success(t('interDiagram.derive.deployment.done'));
       }
     } catch (err) {
-      // Read `.message` off the rejected thunk's SerializedError
-      // regardless of `instanceof Error`.
-      const message =
-        err instanceof Error
-          ? err.message
-          : typeof err === 'object' &&
-              err !== null &&
-              'message' in err &&
-              typeof (err as { message?: unknown }).message === 'string'
-            ? (err as { message: string }).message
-            : String(err);
-      const body = /limit reached/i.test(message)
-        ? `${message}. Close an existing Deployment diagram before generating a new one.`
-        : message;
-      toast.error(`Cannot derive Deployment diagram: ${body}`);
       console.error('[inter-diagram] deployment derivation failed:', err);
+      const message = thunkErrorMessage(err);
+      const reason = DIAGRAM_LIMIT_REACHED.test(message) ? t('interDiagram.derive.deployment.limitReached') : message;
+      toast.error(t('interDiagram.derive.deployment.failed', { reason }));
     }
-  }, [deriveDeploymentDiagram]);
+  }, [deriveDeploymentDiagram, t]);
 
   const { generate: generateDockerCompose, isLoading: isDockerComposing } = useGenerateDockerCompose();
   const handleGenerateDockerCompose = useCallback(async () => {

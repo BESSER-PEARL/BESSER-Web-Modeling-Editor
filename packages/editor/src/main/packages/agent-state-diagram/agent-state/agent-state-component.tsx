@@ -2,7 +2,7 @@ import React, { FunctionComponent } from 'react';
 import { Text } from '../../../components/controls/text/text';
 import { AgentState } from './agent-state';
 import { ThemedRect, ThemedPath } from '../../../components/theme/themedComponents';
-import { A2ABadge, a2aTitle, parseA2AOutTags } from '../a2a-notation/a2a-notation';
+import { A2ABadge, parseA2AOutTags } from '../a2a-notation/a2a-notation';
 import { truncateTextToWidth } from '../text-truncation';
 
 interface Props {
@@ -149,8 +149,7 @@ export const AgentStateComponent: FunctionComponent<Props> = ({ element, childre
           dir="out"
           x={element.bounds.width - (a2aOutTags.length > 1 ? 26 : 21)}
           y={element.bounds.height - 15}
-          count={a2aOutTags.length}
-          title={a2aTitle(a2aOutTags, 'BPMN-derived A2A send')}
+          tags={a2aOutTags}
         />
       )}
       {element.hasFallbackBody && (

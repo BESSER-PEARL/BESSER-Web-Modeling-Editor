@@ -3,6 +3,8 @@ import { styled } from '../theme/styles';
 import { Divider } from '../controls/divider/divider';
 import { Body } from '../controls/typography/typography';
 import { useLineage } from './LineageContext';
+import { I18nContext } from '../i18n/i18n-context';
+import { localized } from '../i18n/localized';
 
 /**
  * Drop-in popup footer rendered conditionally when the host's
@@ -29,7 +31,7 @@ const Wrapper = styled.div`
   margin-top: 0.5em;
 `;
 
-export const LineageSourceLink: React.FC<{ elementId: string }> = ({ elementId }) => {
+const LineageSourceLinkComponent: React.FC<{ elementId: string } & I18nContext> = ({ elementId, translate }) => {
   const lineage = useLineage();
   if (!lineage) return null;
   const resolved = lineage.resolveSource(elementId);
@@ -40,16 +42,18 @@ export const LineageSourceLink: React.FC<{ elementId: string }> = ({ elementId }
   // bar. Falls back to diagram-level wording if the host could not look
   // up the source element (e.g. provider populated only the diagram).
   const label = resolved.sourceElementType
-    ? `← Source: ${resolved.sourceElementName?.trim() || '(unnamed)'} (${resolved.sourceElementType})`
-    : `← Derived from ${resolved.sourceDiagramTitle} (${resolved.sourceDiagramType})`;
+    ? `← ${translate('popup.lineageSource')} ${resolved.sourceElementName?.trim() || translate('popup.unnamed')} (${resolved.sourceElementType})`
+    : `← ${translate('popup.lineageDerivedFrom')} ${resolved.sourceDiagramTitle} (${resolved.sourceDiagramType})`;
 
   return (
     <Wrapper>
       <Divider />
-      <Body style={{ marginBottom: '0.25em' }}>Lineage</Body>
+      <Body style={{ marginBottom: '0.25em' }}>{translate('popup.lineage')}</Body>
       <SourceButton type="button" onClick={() => lineage.onShowSource(resolved)}>
         {label}
       </SourceButton>
     </Wrapper>
   );
 };
+
+export const LineageSourceLink = localized(LineageSourceLinkComponent);

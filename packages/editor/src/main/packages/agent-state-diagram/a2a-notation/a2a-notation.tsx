@@ -1,4 +1,6 @@
 import React, { useMemo, useState } from 'react';
+import { I18nContext } from '../../../components/i18n/i18n-context';
+import { localized } from '../../../components/i18n/localized';
 
 export interface A2ATag {
   dir: 'in' | 'out';
@@ -43,12 +45,12 @@ export function parseA2AOutTags(description?: string): A2ATag[] {
     .filter((tag): tag is A2ATag => tag?.dir === 'out');
 }
 
-export function a2aTitle(tags: A2ATag[], fallback: string): string {
-  if (tags.length === 0) return fallback;
+/** One "Send to <peer>" / "Receive from <peer>" line per tag. */
+export function a2aTitle(tags: A2ATag[], translate: I18nContext['translate']): string {
   return tags
     .map((tag) => {
-      const peer = tag.peer || 'peer';
-      return `${tag.dir === 'in' ? 'Receive from' : 'Send to'} ${peer}`;
+      const action = translate(tag.dir === 'in' ? 'packages.AgentDiagram.A2AReceiveFrom' : 'packages.AgentDiagram.A2ASendTo');
+      return `${action} ${tag.peer || translate('packages.AgentDiagram.A2APeer')}`;
     })
     .join('\n');
 }
@@ -57,12 +59,14 @@ interface A2ABadgeProps {
   dir: 'in' | 'out';
   x: number;
   y: number;
-  count?: number;
-  title?: string;
+  /** The A2A tags this badge stands for; the title lists them. */
+  tags: A2ATag[];
 }
 
-export const A2ABadge = ({ dir, x, y, count, title }: A2ABadgeProps) => {
+const A2ABadgeComponent = ({ dir, x, y, tags, translate }: A2ABadgeProps & I18nContext) => {
   const [open, setOpen] = useState(false);
+  const count = tags.length;
+  const title = a2aTitle(tags, translate);
   const width = count && count > 1 ? 58 : 46;
   const height = 34;
   const palette =
@@ -135,3 +139,5 @@ export const A2ABadge = ({ dir, x, y, count, title }: A2ABadgeProps) => {
     </g>
   );
 };
+
+export const A2ABadge = localized(A2ABadgeComponent);

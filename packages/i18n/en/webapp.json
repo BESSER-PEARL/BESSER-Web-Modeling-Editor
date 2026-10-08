@@ -2848,6 +2848,10 @@
       "readFileFailed": "Failed to read file",
       "invalidFromBackend": "Invalid diagram returned from backend",
       "couldNotParseError": "Could not parse error response"
+    },
+    "warnings": {
+      "danglingAgentRef": "Element '{{name}}' links an agent behavior that is not in this project. Use 'Define agent behavior' on it to create a new one.",
+      "unnamedElement": "(unnamed)"
     }
   },
   "validation": {
@@ -3168,6 +3172,26 @@
         "noTasksInLane": "The lane has no tasks yet, so the Agent diagram starts empty.",
         "laneNotAgentic": "The lane is not agentic, so the Agent diagram starts empty.",
         "laneNotFound": "The lane could not be read, so the Agent diagram starts empty."
+      }
+    },
+    "derive": {
+      "component": {
+        "failed": "Cannot derive the Component diagram: {{reason}}",
+        "noPools": "Add at least one pool with lanes to this BPMN diagram first.",
+        "noLanes": "Add at least one lane inside a pool first.",
+        "notBpmn": "This action only works on a BPMN diagram.",
+        "limitReached": "the project already has the maximum number of Component diagrams. Delete one before generating a new one.",
+        "done": "Component diagram generated.",
+        "doneWithWarnings_one": "Component diagram generated with {{count}} warning — see the browser console.",
+        "doneWithWarnings_other": "Component diagram generated with {{count}} warnings — see the browser console."
+      },
+      "deployment": {
+        "failed": "Cannot derive the Deployment diagram: {{reason}}",
+        "noComponents": "Add at least one Component to this Component diagram first.",
+        "notComponentDiagram": "This action only works on a Component diagram.",
+        "limitReached": "the project already has the maximum number of Deployment diagrams. Delete one before generating a new one.",
+        "flatScaffold": "A Default Host node was created as a placeholder — add Subsystems to the Component diagram for a richer layout.",
+        "done": "Deployment diagram generated."
       }
     }
   }

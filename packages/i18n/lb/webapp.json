@@ -2816,7 +2816,9 @@
       "GUINoCodeDiagram": "Ecranen (GUI)",
       "QuantumCircuitDiagram": "Quanteschaltung",
       "NNDiagram": "Diagramm vun engem neuronalen Netz",
-      "BPMN": "BPMN-Prozess"
+      "BPMN": "BPMN-Prozess",
+      "ComponentDiagram": "Komponentendiagramm",
+      "DeploymentDiagram": "Deploymentdiagramm"
     }
   },
   "import": {
@@ -2846,6 +2848,10 @@
       "readFileFailed": "Datei konnt net gelies ginn",
       "invalidFromBackend": "Ongëltege Diagramm vum Backend zréckginn",
       "couldNotParseError": "D'Feeleräntwert konnt net analyséiert ginn"
+    },
+    "warnings": {
+      "danglingAgentRef": "D'Element „{{name}}“ verweist op en Agentverhalen, dat net an dësem Projet ass. Benotzt „Agentverhalen definéieren“ drop, fir en neit ze erstellen.",
+      "unnamedElement": "(ouni Numm)"
     }
   },
   "validation": {
@@ -3166,6 +3172,26 @@
         "noTasksInLane": "D'Bunn huet nach keng Aufgaben, dofir fänkt d'Agent-Diagramm eidel un.",
         "laneNotAgentic": "D'Bunn ass net agentesch, dofir fänkt d'Agent-Diagramm eidel un.",
         "laneNotFound": "D'Bunn konnt net gelies ginn, dofir fänkt d'Agent-Diagramm eidel un."
+      }
+    },
+    "derive": {
+      "component": {
+        "failed": "D'Komponentendiagramm kann net ofgeleet ginn: {{reason}}",
+        "noPools": "Setzt als éischt op d'mannst ee Pool mat Bunnen an dëst BPMN-Diagramm.",
+        "noLanes": "Setzt als éischt op d'mannst eng Bunn an e Pool.",
+        "notBpmn": "Dës Aktioun funktionéiert nëmmen an engem BPMN-Diagramm.",
+        "limitReached": "de Projet huet schonn déi maximal Zuel u Komponentendiagrammer. Läscht eent, ier Dir en neit generéiert.",
+        "done": "Komponentendiagramm generéiert.",
+        "doneWithWarnings_one": "Komponentendiagramm mat {{count}} Warnung generéiert – kuckt d'Browser-Konsol.",
+        "doneWithWarnings_other": "Komponentendiagramm mat {{count}} Warnungen generéiert – kuckt d'Browser-Konsol."
+      },
+      "deployment": {
+        "failed": "D'Deploymentdiagramm kann net ofgeleet ginn: {{reason}}",
+        "noComponents": "Setzt als éischt op d'mannst ee Komponent an dëst Komponentendiagramm.",
+        "notComponentDiagram": "Dës Aktioun funktionéiert nëmmen an engem Komponentendiagramm.",
+        "limitReached": "de Projet huet schonn déi maximal Zuel un Deploymentdiagrammer. Läscht eent, ier Dir en neit generéiert.",
+        "flatScaffold": "E Knued „Default Host“ gouf als Plazhalter erstallt – setzt Subsystemer an d'Komponentendiagramm fir e méi räicht Layout.",
+        "done": "Deploymentdiagramm generéiert."
       }
     }
   }

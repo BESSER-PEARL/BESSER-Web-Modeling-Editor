@@ -2816,7 +2816,9 @@
       "GUINoCodeDiagram": "Écrans (GUI)",
       "QuantumCircuitDiagram": "Circuit quantique",
       "NNDiagram": "Diagramme de réseau de neurones",
-      "BPMN": "Processus BPMN"
+      "BPMN": "Processus BPMN",
+      "ComponentDiagram": "Diagramme de composants",
+      "DeploymentDiagram": "Diagramme de déploiement"
     }
   },
   "import": {
@@ -2846,6 +2848,10 @@
       "readFileFailed": "Échec de la lecture du fichier",
       "invalidFromBackend": "Diagramme non valide renvoyé par le backend",
       "couldNotParseError": "Impossible d'analyser la réponse d'erreur"
+    },
+    "warnings": {
+      "danglingAgentRef": "L'élément « {{name}} » référence un comportement d'agent absent de ce projet. Utilisez « Définir le comportement de l'agent » sur cet élément pour en créer un nouveau.",
+      "unnamedElement": "(sans nom)"
     }
   },
   "validation": {
@@ -3166,6 +3172,26 @@
         "noTasksInLane": "Le couloir n'a pas encore de tâches ; le diagramme d'agent commence donc vide.",
         "laneNotAgentic": "Le couloir n'est pas agentique ; le diagramme d'agent commence donc vide.",
         "laneNotFound": "Le couloir n'a pas pu être lu ; le diagramme d'agent commence donc vide."
+      }
+    },
+    "derive": {
+      "component": {
+        "failed": "Impossible de dériver le diagramme de composants : {{reason}}",
+        "noPools": "Ajoutez d'abord au moins un pool avec des couloirs à ce diagramme BPMN.",
+        "noLanes": "Ajoutez d'abord au moins un couloir dans un pool.",
+        "notBpmn": "Cette action ne fonctionne que sur un diagramme BPMN.",
+        "limitReached": "le projet contient déjà le nombre maximal de diagrammes de composants. Supprimez-en un avant d'en générer un nouveau.",
+        "done": "Diagramme de composants généré.",
+        "doneWithWarnings_one": "Diagramme de composants généré avec {{count}} avertissement — voir la console du navigateur.",
+        "doneWithWarnings_other": "Diagramme de composants généré avec {{count}} avertissements — voir la console du navigateur."
+      },
+      "deployment": {
+        "failed": "Impossible de dériver le diagramme de déploiement : {{reason}}",
+        "noComponents": "Ajoutez d'abord au moins un composant à ce diagramme de composants.",
+        "notComponentDiagram": "Cette action ne fonctionne que sur un diagramme de composants.",
+        "limitReached": "le projet contient déjà le nombre maximal de diagrammes de déploiement. Supprimez-en un avant d'en générer un nouveau.",
+        "flatScaffold": "Un nœud « Default Host » a été créé comme espace réservé — ajoutez des sous-systèmes au diagramme de composants pour une disposition plus riche.",
+        "done": "Diagramme de déploiement généré."
       }
     }
   }

@@ -233,7 +233,15 @@
     "associationNamePlaceholder": "Numm vun der Associatioun",
     "literals": "Literaler",
     "preset": "Virgab",
-    "presetPlaceholder": "Virgab wielen…"
+    "presetPlaceholder": "Virgab wielen…",
+    "stereotype": "Stereotyp",
+    "label": "Beschrëftung",
+    "unnamed": "(ouni Numm)",
+    "missingElement": "(feelt)",
+    "addTarget": "Zil derbäisetzen…",
+    "lineage": "Hierkonft",
+    "lineageSource": "Quell:",
+    "lineageDerivedFrom": "Ofgeleet vun"
   },
   "assessment": {
     "assessment": "Bewäertung fir",
@@ -303,7 +311,11 @@
       "ComponentInterface": "Interface",
       "ComponentInterfaceProvided": "Bereetgestallt Interface",
       "ComponentInterfaceRequired": "Erfuerderlech Interface",
-      "Comments": "Kommentaren"
+      "Comments": "Kommentaren",
+      "ComponentStereotypePlaceholder": "z. B. solution, skill, external",
+      "ComponentDependencyStereotypePlaceholder": "z. B. delegates, has, uses",
+      "SubsystemStereotypePlaceholder": "z. B. subsystem, solution",
+      "Realizes": "Realiséiert"
     },
     "DeploymentDiagram": {
       "DeploymentNode": "Knued",
@@ -314,7 +326,10 @@
       "DeploymentInterfaceRequired": "Erfuerderlech Interface",
       "DeploymentAssociation": "Deployment-Associatioun",
       "DeploymentDependency": "Deployment-Ofhängegkeet",
-      "Comments": "Kommentaren"
+      "Comments": "Kommentaren",
+      "DeploymentNodeStereotypePlaceholder": "z. B. node, device, executionEnvironment",
+      "DeploymentAssociationLabelPlaceholder": "z. B. kv-store-conn",
+      "DeploymentAssociationStereotypePlaceholder": "z. B. HTTPS, gRPC, device"
     },
     "PetriNet": {
       "PetriNetPlace": "Plaz",
@@ -415,7 +430,6 @@
       "BPMNAgentRoleSupervision": "Iwwerwaachung",
       "BPMNDefineAgentDiagram": "Agentverhalen definéieren",
       "BPMNOpenAgentDiagram": "Agentverhalen opmaachen",
-      "BPMNAgentDiagramRefBroken": "D'Aufgab '{laneName}' verweist op en Agentverhalen, dat an dësem Projet net existéiert. Klickt bei der Aufgab op „Agentverhalen definéieren“, fir en neit unzeleeën.",
       "BPMNReflectionNone": "Keng Reflexioun",
       "BPMNReflectionSelf": "Selbstreflexioun",
       "BPMNReflectionCross": "Kräizreflexioun",
@@ -429,7 +443,6 @@
       "BPMNGovernanceReplace": "Ersetzen",
       "BPMNGovernanceCancel": "Ofbriechen",
       "BPMNGovernancePolicyTypeLabel": "Decisiounspolitik",
-      "BPMNGovPolicyVoting": "Ofstëmmung",
       "BPMNGovPolicyMajority": "Majoritéit",
       "BPMNGovPolicyAbsoluteMajority": "Absolut Majoritéit",
       "BPMNGovPolicyLeaderDriven": "Vun engem Leader geleet",
@@ -759,7 +772,10 @@
         "file": "Fichier",
         "submitted": "Geschéckt"
       },
-      "webCrawlNamePrefix": "Crawl:"
+      "webCrawlNamePrefix": "Crawl:",
+      "A2ASendTo": "Schécken un",
+      "A2AReceiveFrom": "Empfänke vun",
+      "A2APeer": "Géigestell"
     },
     "UserDiagram": {
       "UserModelName": "Benotzer",

@@ -233,7 +233,15 @@
     "associationNamePlaceholder": "Nom de l'associació",
     "literals": "Literals",
     "preset": "Predefinit",
-    "presetPlaceholder": "Trieu un predefinit…"
+    "presetPlaceholder": "Trieu un predefinit…",
+    "stereotype": "Estereotip",
+    "label": "Etiqueta",
+    "unnamed": "(sense nom)",
+    "missingElement": "(no trobat)",
+    "addTarget": "Afegeix una destinació…",
+    "lineage": "Procedència",
+    "lineageSource": "Origen:",
+    "lineageDerivedFrom": "Derivat de"
   },
   "assessment": {
     "assessment": "Avaluació de",
@@ -303,7 +311,11 @@
       "ComponentInterface": "Interfície",
       "ComponentInterfaceProvided": "Interfície proporcionada",
       "ComponentInterfaceRequired": "Interfície requerida",
-      "Comments": "Comentaris"
+      "Comments": "Comentaris",
+      "ComponentStereotypePlaceholder": "p. ex. solution, skill, external",
+      "ComponentDependencyStereotypePlaceholder": "p. ex. delegates, has, uses",
+      "SubsystemStereotypePlaceholder": "p. ex. subsystem, solution",
+      "Realizes": "Realitza"
     },
     "DeploymentDiagram": {
       "DeploymentNode": "Node",
@@ -314,7 +326,10 @@
       "DeploymentInterfaceRequired": "Interfície requerida",
       "DeploymentAssociation": "Associació de desplegament",
       "DeploymentDependency": "Dependència de desplegament",
-      "Comments": "Comentaris"
+      "Comments": "Comentaris",
+      "DeploymentNodeStereotypePlaceholder": "p. ex. node, device, executionEnvironment",
+      "DeploymentAssociationLabelPlaceholder": "p. ex. kv-store-conn",
+      "DeploymentAssociationStereotypePlaceholder": "p. ex. HTTPS, gRPC, device"
     },
     "PetriNet": {
       "PetriNetPlace": "Lloc",
@@ -408,14 +423,13 @@
       "BPMNGroup": "Grup",
       "BPMNExpand": "Expandir",
       "BPMNCollapse": "Contraure",
-      "BPMNAgentic": "Agentic",
+      "BPMNAgentic": "Agèntic",
       "BPMNTrustScore": "Nivell de confiança (0-100)",
       "BPMNMultiplicity": "Còpies (≥1)",
       "BPMNAgentRoleSolution": "Solució",
       "BPMNAgentRoleSupervision": "Supervisor",
       "BPMNDefineAgentDiagram": "Defineix el comportament de l'agent",
       "BPMNOpenAgentDiagram": "Obre el comportament de l'agent",
-      "BPMNAgentDiagramRefBroken": "La tasca '{laneName}' fa referència a un comportament d'agent que no existeix en aquest projecte. Feu clic a «Defineix el comportament de l'agent» a la tasca per crear-ne un de nou.",
       "BPMNReflectionNone": "Sense reflexió",
       "BPMNReflectionSelf": "Autoreflexió",
       "BPMNReflectionCross": "Reflexió creuada",
@@ -429,7 +443,6 @@
       "BPMNGovernanceReplace": "Substitueix",
       "BPMNGovernanceCancel": "Cancel·la",
       "BPMNGovernancePolicyTypeLabel": "Política de decisió",
-      "BPMNGovPolicyVoting": "Votació",
       "BPMNGovPolicyMajority": "Majoria",
       "BPMNGovPolicyAbsoluteMajority": "Majoria absoluta",
       "BPMNGovPolicyLeaderDriven": "Dirigida per un líder",
@@ -759,7 +772,10 @@
         "file": "Fitxer",
         "submitted": "Enviat"
       },
-      "webCrawlNamePrefix": "Rastreig:"
+      "webCrawlNamePrefix": "Rastreig:",
+      "A2ASendTo": "Envia a",
+      "A2AReceiveFrom": "Rep de",
+      "A2APeer": "parell"
     },
     "UserDiagram": {
       "UserModelName": "Usuari",

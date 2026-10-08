@@ -2816,7 +2816,9 @@
       "GUINoCodeDiagram": "Pantallas (GUI)",
       "QuantumCircuitDiagram": "Circuito cuántico",
       "NNDiagram": "Diagrama de red neuronal",
-      "BPMN": "Proceso BPMN"
+      "BPMN": "Proceso BPMN",
+      "ComponentDiagram": "Diagrama de componentes",
+      "DeploymentDiagram": "Diagrama de despliegue"
     }
   },
   "import": {
@@ -2846,6 +2848,10 @@
       "readFileFailed": "No se pudo leer el archivo",
       "invalidFromBackend": "El backend devolvió un diagrama no válido",
       "couldNotParseError": "No se pudo analizar la respuesta de error"
+    },
+    "warnings": {
+      "danglingAgentRef": "El elemento «{{name}}» enlaza un comportamiento de agente que no está en este proyecto. Use «Definir comportamiento del agente» en él para crear uno nuevo.",
+      "unnamedElement": "(sin nombre)"
     }
   },
   "validation": {
@@ -3166,6 +3172,26 @@
         "noTasksInLane": "El carril aún no tiene tareas, así que el diagrama de agente empieza vacío.",
         "laneNotAgentic": "El carril no es agéntico, así que el diagrama de agente empieza vacío.",
         "laneNotFound": "No se pudo leer el carril, así que el diagrama de agente empieza vacío."
+      }
+    },
+    "derive": {
+      "component": {
+        "failed": "No se puede derivar el diagrama de componentes: {{reason}}",
+        "noPools": "Añada primero al menos un pool con carriles a este diagrama BPMN.",
+        "noLanes": "Añada primero al menos un carril dentro de un pool.",
+        "notBpmn": "Esta acción solo funciona en un diagrama BPMN.",
+        "limitReached": "el proyecto ya tiene el número máximo de diagramas de componentes. Elimine uno antes de generar otro.",
+        "done": "Diagrama de componentes generado.",
+        "doneWithWarnings_one": "Diagrama de componentes generado con {{count}} advertencia: consulte la consola del navegador.",
+        "doneWithWarnings_other": "Diagrama de componentes generado con {{count}} advertencias: consulte la consola del navegador."
+      },
+      "deployment": {
+        "failed": "No se puede derivar el diagrama de despliegue: {{reason}}",
+        "noComponents": "Añada primero al menos un componente a este diagrama de componentes.",
+        "notComponentDiagram": "Esta acción solo funciona en un diagrama de componentes.",
+        "limitReached": "el proyecto ya tiene el número máximo de diagramas de despliegue. Elimine uno antes de generar otro.",
+        "flatScaffold": "Se creó un nodo «Default Host» como marcador de posición: añada subsistemas al diagrama de componentes para un diseño más completo.",
+        "done": "Diagrama de despliegue generado."
       }
     }
   }

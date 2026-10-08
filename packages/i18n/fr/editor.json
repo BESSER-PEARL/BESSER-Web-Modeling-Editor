@@ -233,7 +233,15 @@
     "associationNamePlaceholder": "Nom de l'association",
     "literals": "Littéraux",
     "preset": "Préréglage",
-    "presetPlaceholder": "Choisir un préréglage…"
+    "presetPlaceholder": "Choisir un préréglage…",
+    "stereotype": "Stéréotype",
+    "label": "Libellé",
+    "unnamed": "(sans nom)",
+    "missingElement": "(introuvable)",
+    "addTarget": "Ajouter une cible…",
+    "lineage": "Provenance",
+    "lineageSource": "Source :",
+    "lineageDerivedFrom": "Dérivé de"
   },
   "assessment": {
     "assessment": "Évaluation pour",
@@ -303,7 +311,11 @@
       "ComponentInterface": "Interface",
       "ComponentInterfaceProvided": "Interface fournie",
       "ComponentInterfaceRequired": "Interface requise",
-      "Comments": "Commentaires"
+      "Comments": "Commentaires",
+      "ComponentStereotypePlaceholder": "p. ex. solution, skill, external",
+      "ComponentDependencyStereotypePlaceholder": "p. ex. delegates, has, uses",
+      "SubsystemStereotypePlaceholder": "p. ex. subsystem, solution",
+      "Realizes": "Réalise"
     },
     "DeploymentDiagram": {
       "DeploymentNode": "Nœud",
@@ -314,7 +326,10 @@
       "DeploymentInterfaceRequired": "Interface requise",
       "DeploymentAssociation": "Association de déploiement",
       "DeploymentDependency": "Dépendance de déploiement",
-      "Comments": "Commentaires"
+      "Comments": "Commentaires",
+      "DeploymentNodeStereotypePlaceholder": "p. ex. node, device, executionEnvironment",
+      "DeploymentAssociationLabelPlaceholder": "p. ex. kv-store-conn",
+      "DeploymentAssociationStereotypePlaceholder": "p. ex. HTTPS, gRPC, device"
     },
     "PetriNet": {
       "PetriNetPlace": "Place",
@@ -415,7 +430,6 @@
       "BPMNAgentRoleSupervision": "Supervision",
       "BPMNDefineAgentDiagram": "Définir le comportement de l'agent",
       "BPMNOpenAgentDiagram": "Ouvrir le comportement de l'agent",
-      "BPMNAgentDiagramRefBroken": "La tâche '{laneName}' fait référence à un comportement d'agent qui n'existe pas dans ce projet. Cliquez sur « Définir le comportement de l'agent » dans la tâche pour en créer un nouveau.",
       "BPMNReflectionNone": "Aucune réflexion",
       "BPMNReflectionSelf": "Autoréflexion",
       "BPMNReflectionCross": "Réflexion croisée",
@@ -429,7 +443,6 @@
       "BPMNGovernanceReplace": "Remplacer",
       "BPMNGovernanceCancel": "Annuler",
       "BPMNGovernancePolicyTypeLabel": "Politique de décision",
-      "BPMNGovPolicyVoting": "Vote",
       "BPMNGovPolicyMajority": "Majorité",
       "BPMNGovPolicyAbsoluteMajority": "Majorité absolue",
       "BPMNGovPolicyLeaderDriven": "Dirigée par un responsable",
@@ -759,7 +772,10 @@
         "file": "Fichier",
         "submitted": "Envoyé"
       },
-      "webCrawlNamePrefix": "Exploration :"
+      "webCrawlNamePrefix": "Exploration :",
+      "A2ASendTo": "Envoyer à",
+      "A2AReceiveFrom": "Recevoir de",
+      "A2APeer": "pair"
     },
     "UserDiagram": {
       "UserModelName": "Utilisateur",

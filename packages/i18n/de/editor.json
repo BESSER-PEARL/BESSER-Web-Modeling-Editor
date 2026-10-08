@@ -233,7 +233,15 @@
     "associationNamePlaceholder": "Assoziationsname",
     "literals": "Literale",
     "preset": "Vorgabe",
-    "presetPlaceholder": "Vorgabe wählen…"
+    "presetPlaceholder": "Vorgabe wählen…",
+    "stereotype": "Stereotyp",
+    "label": "Beschriftung",
+    "unnamed": "(unbenannt)",
+    "missingElement": "(fehlt)",
+    "addTarget": "Ziel hinzufügen…",
+    "lineage": "Herkunft",
+    "lineageSource": "Quelle:",
+    "lineageDerivedFrom": "Abgeleitet von"
   },
   "assessment": {
     "assessment": "Bewertung für",
@@ -303,7 +311,11 @@
       "ComponentInterface": "Schnittstelle",
       "ComponentInterfaceProvided": "Bereitgestellte Schnittstelle",
       "ComponentInterfaceRequired": "Benötigte Schnittstelle",
-      "Comments": "Kommentare"
+      "Comments": "Kommentare",
+      "ComponentStereotypePlaceholder": "z. B. solution, skill, external",
+      "ComponentDependencyStereotypePlaceholder": "z. B. delegates, has, uses",
+      "SubsystemStereotypePlaceholder": "z. B. subsystem, solution",
+      "Realizes": "Realisiert"
     },
     "DeploymentDiagram": {
       "DeploymentNode": "Knoten",
@@ -314,7 +326,10 @@
       "DeploymentInterfaceRequired": "Benötigte Schnittstelle",
       "DeploymentAssociation": "Deployment-Assoziation",
       "DeploymentDependency": "Deployment-Abhängigkeit",
-      "Comments": "Kommentare"
+      "Comments": "Kommentare",
+      "DeploymentNodeStereotypePlaceholder": "z. B. node, device, executionEnvironment",
+      "DeploymentAssociationLabelPlaceholder": "z. B. kv-store-conn",
+      "DeploymentAssociationStereotypePlaceholder": "z. B. HTTPS, gRPC, device"
     },
     "PetriNet": {
       "PetriNetPlace": "Stelle",
@@ -415,7 +430,6 @@
       "BPMNAgentRoleSupervision": "Überwachung",
       "BPMNDefineAgentDiagram": "Agentenverhalten definieren",
       "BPMNOpenAgentDiagram": "Agentenverhalten öffnen",
-      "BPMNAgentDiagramRefBroken": "Die Aufgabe '{laneName}' verweist auf ein Agentenverhalten, das in diesem Projekt nicht existiert. Klicken Sie bei der Aufgabe auf „Agentenverhalten definieren“, um ein neues zu erstellen.",
       "BPMNReflectionNone": "Keine Reflexion",
       "BPMNReflectionSelf": "Selbstreflexion",
       "BPMNReflectionCross": "Kreuzreflexion",
@@ -429,7 +443,6 @@
       "BPMNGovernanceReplace": "Ersetzen",
       "BPMNGovernanceCancel": "Abbrechen",
       "BPMNGovernancePolicyTypeLabel": "Entscheidungsrichtlinie",
-      "BPMNGovPolicyVoting": "Abstimmung",
       "BPMNGovPolicyMajority": "Mehrheit",
       "BPMNGovPolicyAbsoluteMajority": "Absolute Mehrheit",
       "BPMNGovPolicyLeaderDriven": "Von einer Führungskraft geleitet",
@@ -759,7 +772,10 @@
         "file": "Datei",
         "submitted": "Gesendet"
       },
-      "webCrawlNamePrefix": "Crawl:"
+      "webCrawlNamePrefix": "Crawl:",
+      "A2ASendTo": "Senden an",
+      "A2AReceiveFrom": "Empfangen von",
+      "A2APeer": "Gegenstelle"
     },
     "UserDiagram": {
       "UserModelName": "Benutzer",

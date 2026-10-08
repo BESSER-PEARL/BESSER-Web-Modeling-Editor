@@ -1,5 +1,6 @@
 import { useCallback } from 'react';
 import { toast } from 'react-toastify';
+import { useTranslation } from 'react-i18next';
 import { validateAllBpmnFlows } from '@besser/wme';
 import { uuid } from '../../shared/utils/uuid';
 import { ProjectDiagram } from '../../shared/types/project';
@@ -7,6 +8,7 @@ import { ProjectStorageRepository } from '../../shared/services/storage/ProjectS
 import { bpmnXmlToApollon, ImportResult } from './bpmn-xml-importer';
 
 export const useImportBpmnXml = () => {
+  const { t } = useTranslation();
   return useCallback(async (file: File): Promise<ProjectDiagram> => {
     const text = await file.text();
     const result: ImportResult = bpmnXmlToApollon(text);
@@ -40,27 +42,22 @@ export const useImportBpmnXml = () => {
       );
     }
 
-    // Dead-ref scan for agentDiagramRef. Walks
-    // imported lanes; for each ref that doesn't resolve to a current
-    // Agent diagram in the active project, push a warning into the
-    // existing toast. The lane keeps the dead ref; the lane popup will
-    // render the Define-fallback (plan § 4.3 render rule).
+    // A task or lane may link an Agent diagram that is not in this project
+    // (deleted, or a file from another project). Keep the ref (the popup then
+    // offers "Define" again) but warn about it.
     const refWarnings: string[] = [];
     const currentProject = ProjectStorageRepository.getCurrentProject();
     if (currentProject) {
       const liveAgentIds = new Set(currentProject.diagrams.AgentDiagram.map((d) => d.id));
-      for (const el of Object.values(result.model.elements ?? {})) {
-        const node = el as { type?: string; name?: string; agentDiagramRef?: string };
-        // Scan agentic TASKS (primary) + lanes (tolerant of legacy
-        // files; the lane UI is gone but old refs may still be present).
+      for (const el of Object.values(result.model.elements)) {
         if (
-          (node.type === 'BPMNTask' || node.type === 'BPMNSwimlane') &&
-          typeof node.agentDiagramRef === 'string' &&
-          !liveAgentIds.has(node.agentDiagramRef)
+          (el.type === 'BPMNTask' || el.type === 'BPMNSwimlane') &&
+          'agentDiagramRef' in el &&
+          typeof el.agentDiagramRef === 'string' &&
+          !liveAgentIds.has(el.agentDiagramRef)
         ) {
           refWarnings.push(
-            `Element '${node.name || '(unnamed)'}' references an agent behavior that doesn't exist in this project. ` +
-              `Click 'Define agent behavior' on the task to create a fresh one.`,
+            t('import.warnings.danglingAgentRef', { name: el.name || t('import.warnings.unnamedElement') }),
           );
         }
       }
@@ -91,5 +88,5 @@ export const useImportBpmnXml = () => {
       lastUpdate: new Date().toISOString(),
       description: 'Imported from BPMN 2.0 XML',
     };
-  }, []);
+  }, [t]);
 };
