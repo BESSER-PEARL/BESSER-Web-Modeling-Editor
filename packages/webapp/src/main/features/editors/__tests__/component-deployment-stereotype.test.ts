@@ -75,6 +75,33 @@ describe('Component/Deployment stereotype survives serialize round-trip', () => 
   });
 });
 
+describe('models saved before the stereotype was serialized', () => {
+  const bounds = { x: 0, y: 0, width: 200, height: 100 };
+
+  it('UMLComponentComponent keeps the default stereotype when the key is absent', () => {
+    const component = new UMLComponentComponent();
+    component.deserialize({ id: 'c1', name: 'Legacy', type: 'Component', owner: null, bounds, displayStereotype: true });
+
+    expect(component.stereotype).toBe('component');
+    expect(component.serialize().stereotype).toBe('component');
+  });
+
+  it('UMLDeploymentComponent keeps the default stereotype when the key is absent', () => {
+    const component = new UMLDeploymentComponent();
+    component.deserialize({
+      id: 'd1',
+      name: 'Legacy',
+      type: 'DeploymentComponent',
+      owner: null,
+      bounds,
+      displayStereotype: true,
+    });
+
+    expect(component.stereotype).toBe('component');
+    expect(component.serialize().stereotype).toBe('component');
+  });
+});
+
 describe('Deployment Artifact manifests survives serialize round-trip', () => {
   it('UMLDeploymentArtifact.serialize() emits manifests', () => {
     const artifact = new UMLDeploymentArtifact({ name: 'OrderAgent' });

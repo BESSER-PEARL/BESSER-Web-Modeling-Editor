@@ -15,7 +15,9 @@ export interface IUMLComponent extends IUMLContainer {
 }
 
 export abstract class UMLComponent extends UMLPackage implements IUMLComponent {
-  stereotype = 'component';
+  static DEFAULT_STEREOTYPE = 'component';
+
+  stereotype = UMLComponent.DEFAULT_STEREOTYPE;
   displayStereotype = true;
   realizes: string[] = [];
   processModelRefs: string[] = [];

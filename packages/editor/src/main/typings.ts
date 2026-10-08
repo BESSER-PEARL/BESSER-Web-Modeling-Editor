@@ -313,7 +313,8 @@ export type UMLDeploymentArtifact = UMLElement & {
 };
 
 export type UMLDeploymentComponent = UMLElement & {
-  stereotype: string;
+  // Absent on models saved before the stereotype was serialized.
+  stereotype?: string;
   displayStereotype: boolean;
 };
 
@@ -323,7 +324,8 @@ export type UMLComponentSubsystem = UMLElement & {
 };
 
 export type UMLComponentComponent = UMLElement & {
-  stereotype: string;
+  // Absent on models saved before the stereotype was serialized.
+  stereotype?: string;
   displayStereotype: boolean;
   realizes?: string[];
   processModelRefs?: string[];
