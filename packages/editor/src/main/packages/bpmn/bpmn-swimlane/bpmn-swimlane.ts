@@ -67,10 +67,10 @@ export class BPMNSwimlane extends UMLContainer {
     return {
       ...super.serialize(children),
       type: this.type as keyof typeof BPMNElementType,
-      isAgentic: this.isAgentic,
-      role: this.role,
-      trustScore: this.trustScore,
-      multiplicity: this.multiplicity,
+      // Plain BPMN lanes carry no agentic fields; the defaults return on load.
+      ...(this.isAgentic
+        ? { isAgentic: true, role: this.role, trustScore: this.trustScore, multiplicity: this.multiplicity }
+        : {}),
       agentDiagramRef: this.agentDiagramRef,
     };
   }

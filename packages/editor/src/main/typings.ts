@@ -343,14 +343,15 @@ export type UMLPetriNetPlace = UMLElement & {
   capacity: number | string;
 };
 
-// Agentic BPMN: `isAgentic` / `role` / `reflectionMode` / `trustScore`
-// live on the base swimlane and task — there are no separate agentic types.
-// `agentDiagramRef` is an optional cross-diagram link
-// from an agentic lane to the BESSER Agent diagram that defines its agent.
+// Agentic BPMN: `isAgentic` / `role` / `reflectionMode` / `trustScore` live on
+// the base swimlane, task and gateway — there are no separate agentic types.
+// The agentic fields are only serialized for agentic elements.
+// `agentDiagramRef` is an optional cross-diagram link to the BESSER Agent
+// diagram that defines the element's agent.
 export type BPMNSwimlane = UMLElement & {
-  isAgentic: boolean;
-  role: BPMNAgentRole;
-  trustScore: number;
+  isAgentic?: boolean;
+  role?: BPMNAgentRole;
+  trustScore?: number;
   multiplicity?: number;
   agentDiagramRef?: string;
 };
@@ -358,9 +359,9 @@ export type BPMNSwimlane = UMLElement & {
 export type BPMNTask = UMLElement & {
   taskType: BPMNTaskType;
   marker: BPMNMarkerType;
-  isAgentic: boolean;
-  reflectionMode: BPMNReflectionMode;
-  trustScore: number;
+  isAgentic?: boolean;
+  reflectionMode?: BPMNReflectionMode;
+  trustScore?: number;
   // Cross-diagram link from an agentic task to the BESSER Agent
   // diagram that defines its internal behavior.
   agentDiagramRef?: string;
@@ -383,9 +384,9 @@ export type BPMNCallActivity = UMLElement & {
 
 export type BPMNGateway = UMLElement & {
   gatewayType: BPMNGatewayType;
-  isAgentic: boolean;
-  gatewayRole: BPMNGatewayRole;
-  trustScore: number;
+  isAgentic?: boolean;
+  gatewayRole?: BPMNGatewayRole;
+  trustScore?: number;
   governanceDsl?: string;
 };
 
