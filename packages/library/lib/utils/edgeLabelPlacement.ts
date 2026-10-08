@@ -7,6 +7,7 @@
  * so far and edge lines; the cheapest one wins (greedy, deterministic).
  */
 import type { LayoutPoint, LayoutRect } from "./autoLayoutHandles"
+import { GridIndex } from "./orthogonalRouter"
 
 export type LabelAnchor = "start" | "middle" | "end"
 
@@ -99,6 +100,41 @@ const endInput = (
   return { port, dir, segLength: len, markerLength, role, multiplicity }
 }
 
+/**
+ * Extra cost of flipping an end's labels to the other side of the line, or of
+ * moving them along it, relative to the previous placement (hysteresis).
+ */
+const KEEP_SIDE = 40
+const KEEP_STEP = 10
+const STEPS = [0, 14, 30, 48]
+
+/**
+ * Side (`swap`) and step an end's labels had in a previous placement, if the
+ * end still leaves its node the same way.
+ */
+const previousChoice = (
+  prev: { points: LayoutPoint[]; labels: EdgeLabelLayout } | undefined,
+  atSource: boolean,
+  end: EndInput
+): { swap: boolean; step: number } | undefined => {
+  if (!prev) return undefined
+  const was = endInput(prev.points, atSource, end.markerLength, end.role, end.multiplicity)
+  if (!was || was.dir.x !== end.dir.x || was.dir.y !== end.dir.y) return undefined
+  const labels = atSource ? prev.labels.source : prev.labels.target
+  const label = labels.role ?? labels.multiplicity
+  if (!label) return undefined
+  const horizontal = end.dir.y === 0
+  // Side A is above (horizontal line) / left (vertical line); the role takes A unless swapped.
+  const onA = horizontal ? label.y < was.port.y : label.x < was.port.x
+  const swap = labels.role ? !onA : onA
+  const along = horizontal ? (label.x - was.port.x) * end.dir.x : (label.y - was.port.y) * end.dir.y
+  const offset = horizontal ? along : along - (end.dir.y > 0 ? ASCENT : DESCENT)
+  const stepGuess = offset - (end.markerLength + 6)
+  let step = STEPS[0]
+  for (const s of STEPS) if (Math.abs(s - stepGuess) < Math.abs(step - stepGuess)) step = s
+  return { swap, step }
+}
+
 /** The two label positions of one candidate (side A / side B of the line). */
 const candidatePositions = (end: EndInput, offset: number): [LabelPos, LabelPos] => {
   const { port, dir } = end
@@ -119,18 +155,30 @@ const candidatePositions = (end: EndInput, offset: number): [LabelPos, LabelPos]
 
 /**
  * Places the end labels of every edge. `nodes` are all node rects; `measure`
- * returns a label's rendered width.
+ * returns a label's rendered width. With `previous` (the last placement, e.g.
+ * the frame before during a drag) an end keeps its labels' side and offset
+ * unless the other choice is clearly better, so labels do not flicker.
  */
 export const placeEdgeLabels = (
   edges: EdgeLabelInput[],
   nodes: LayoutRect[],
-  measure: (text: string) => number = estimateLabelWidth
+  measure: (text: string) => number = estimateLabelWidth,
+  previous?: ReadonlyMap<string, { points: LayoutPoint[]; labels: EdgeLabelLayout }>
 ): Map<string, EdgeLabelLayout> => {
+  // Spatial indexes: a candidate box is scored against what is near it only.
   const placed: Box[] = []
+  const placedIndex = new GridIndex(64)
   const nodeBoxes: Box[] = nodes.map((r) => ({ x0: r.x, y0: r.y, x1: r.x + r.width, y1: r.y + r.height }))
+  const nodeIndex = new GridIndex(128)
+  nodeBoxes.forEach((b, i) => nodeIndex.insert(i, b.x0, b.y0, b.x1, b.y1))
   const segments: [LayoutPoint, LayoutPoint, string][] = []
+  const segmentIndex = new GridIndex(64)
   for (const e of edges) {
-    for (let i = 0; i + 1 < e.points.length; i++) segments.push([e.points[i], e.points[i + 1], e.id])
+    for (let i = 0; i + 1 < e.points.length; i++) {
+      const [p, q] = [e.points[i], e.points[i + 1]]
+      segmentIndex.insert(segments.length, p.x, p.y, q.x, q.y)
+      segments.push([p, q, e.id])
+    }
   }
   const out = new Map<string, EdgeLabelLayout>()
   const ordered = [...edges].sort((a, b) => a.id.localeCompare(b.id))
@@ -149,7 +197,8 @@ export const placeEdgeLabels = (
       const multW = end.multiplicity ? measure(end.multiplicity) : 0
       const base = end.markerLength + 6
       let best: { cost: number; role?: LabelPos; mult?: LabelPos; boxes: Box[] } | undefined
-      for (const step of [0, 14, 30, 48]) {
+      const prev = previousChoice(previous?.get(e.id), atSource, end)
+      for (const step of STEPS) {
         const offset = base + step
         const [a, b] = candidatePositions(end, offset)
         for (const swap of [false, true]) {
@@ -159,21 +208,29 @@ export const placeEdgeLabels = (
           if (rolePos) boxes.push(boxOf(rolePos, roleW))
           if (multPos) boxes.push(boxOf(multPos, multW))
           let cost = step * 0.6 + (swap ? 3 : 0)
+          if (prev) cost += (swap !== prev.swap ? KEEP_SIDE : 0) + (step !== prev.step ? KEEP_STEP : 0)
           // Labels should sit beside their own end segment, not past its corner.
           if (offset + (end.dir.y === 0 ? Math.max(roleW, multW) * 0.5 : ASCENT) > end.segLength) cost += 25
           for (const box of boxes) {
-            for (const nb of nodeBoxes) cost += overlapArea(box, nb) * 4
-            for (const pb of placed) cost += overlapArea(box, pb) * 8 + (overlapArea(box, pb) > 0 ? 200 : 0)
-            for (const [p, q, id] of segments) {
+            for (const i of nodeIndex.query(box.x0, box.y0, box.x1, box.y1)) cost += overlapArea(box, nodeBoxes[i]) * 4
+            for (const i of placedIndex.query(box.x0, box.y0, box.x1, box.y1)) {
+              const pb = placed[i]
+              cost += overlapArea(box, pb) * 8 + (overlapArea(box, pb) > 0 ? 200 : 0)
+            }
+            for (const i of segmentIndex.query(box.x0, box.y0, box.x1, box.y1)) {
+              const [p, q, id] = segments[i]
               if (segmentHitsBox(p, q, box)) cost += id === e.id ? 60 : 90
             }
           }
           if (!best || cost < best.cost) best = { cost, role: rolePos, mult: multPos, boxes }
         }
-        if (best && best.cost < 1 + step * 0.6) break
+        if (!prev && best && best.cost < 1 + step * 0.6) break
       }
       if (best) {
-        placed.push(...best.boxes)
+        for (const b of best.boxes) {
+          placedIndex.insert(placed.length, b.x0, b.y0, b.x1, b.y1)
+          placed.push(b)
+        }
         const target = atSource ? layout.source : layout.target
         if (best.role) target.role = best.role
         if (best.mult) target.multiplicity = best.mult

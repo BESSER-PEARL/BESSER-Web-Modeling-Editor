@@ -96,6 +96,9 @@ class MinHeap {
   get size() {
     return this.keys.length
   }
+  get topKey() {
+    return this.keys[0]
+  }
   push(key: number, val: number) {
     const k = this.keys
     const v = this.vals
@@ -133,6 +136,79 @@ class MinHeap {
       }
     }
     return top
+  }
+}
+
+/**
+ * Uniform-grid spatial index of boxes, so "what is near this box" costs the
+ * few cells it covers instead of a scan of every box. Ids are small integers;
+ * a query visits each id once, in ascending order.
+ */
+export class GridIndex {
+  private cells = new Map<number, number[]>()
+  /** Boxes too large to bucket: returned by every query. */
+  private big: number[] = []
+  private seen: Uint32Array = new Uint32Array(64)
+  private stampValue = 0
+  constructor(private readonly cell = 128) {}
+
+  private key(cx: number, cy: number) {
+    return (cx + 32768) * 65536 + (cy + 32768)
+  }
+
+  private range(v0: number, v1: number): [number, number] {
+    return [Math.floor(v0 / this.cell), Math.floor(v1 / this.cell)]
+  }
+
+  insert(id: number, x0: number, y0: number, x1: number, y1: number) {
+    if (![x0, y0, x1, y1].every(Number.isFinite)) return
+    if (id >= this.seen.length) {
+      const grown = new Uint32Array(Math.max(id + 1, this.seen.length * 2))
+      grown.set(this.seen)
+      this.seen = grown
+    }
+    const [cx0, cx1] = this.range(Math.min(x0, x1), Math.max(x0, x1))
+    const [cy0, cy1] = this.range(Math.min(y0, y1), Math.max(y0, y1))
+    if ((cx1 - cx0 + 1) * (cy1 - cy0 + 1) > 4096) {
+      this.big.push(id)
+      return
+    }
+    for (let cx = cx0; cx <= cx1; cx++) {
+      for (let cy = cy0; cy <= cy1; cy++) {
+        const k = this.key(cx, cy)
+        const list = this.cells.get(k)
+        if (list) list.push(id)
+        else this.cells.set(k, [id])
+      }
+    }
+  }
+
+  /** Ids of the boxes whose cells overlap the query box (a superset of the hits). */
+  query(x0: number, y0: number, x1: number, y1: number): number[] {
+    const out: number[] = []
+    if (![x0, y0, x1, y1].every(Number.isFinite)) return out
+    this.stampValue++
+    const [cx0, cx1] = this.range(Math.min(x0, x1), Math.max(x0, x1))
+    const [cy0, cy1] = this.range(Math.min(y0, y1), Math.max(y0, y1))
+    const visit = (list: number[]) => {
+      for (const id of list) {
+        if (this.seen[id] === this.stampValue) continue
+        this.seen[id] = this.stampValue
+        out.push(id)
+      }
+    }
+    visit(this.big)
+    if ((cx1 - cx0 + 1) * (cy1 - cy0 + 1) > this.cells.size) {
+      for (const list of this.cells.values()) visit(list)
+    } else {
+      for (let cx = cx0; cx <= cx1; cx++) {
+        for (let cy = cy0; cy <= cy1; cy++) {
+          const list = this.cells.get(this.key(cx, cy))
+          if (list) visit(list)
+        }
+      }
+    }
+    return out.sort((a, b) => a - b)
   }
 }
 
@@ -175,6 +251,21 @@ const fallbackRoute = (req: RouteRequest, stub: number): RouterPoint[] => {
   return simplifyOrthogonal([s, s1, ...mid, t1, t])
 }
 
+/** Moves the run of grid points leading out of a port onto the port's axis line. */
+const snapRun = (path: RouterPoint[], side: RouterSide, port: RouterPoint, fromEnd: boolean) => {
+  if (path.length === 0) return
+  const key: "x" | "y" = side === "left" || side === "right" ? "y" : "x"
+  const first = fromEnd ? path.length - 1 : 0
+  const v = path[first][key]
+  if (v === port[key] || Math.abs(v - port[key]) > 0.5) return
+  const step = fromEnd ? -1 : 1
+  let k = first
+  while (k >= 0 && k < path.length && path[k][key] === v) k += step
+  // One straight run between both ports: nothing to snap against.
+  if (k < 0 || k >= path.length) return
+  for (let m = first; m !== k; m += step) path[m] = { ...path[m], [key]: port[key] }
+}
+
 /**
  * Routes every request orthogonally around the obstacles. Returns, per
  * request id, the full polyline from the source point to the target point
@@ -184,6 +275,20 @@ export const routeOrthogonalEdges = (
   obstacles: RouterRect[],
   requests: RouteRequest[],
   options: RouterOptions = {}
+): Map<string, RouterPoint[]> => routeAll(obstacles, requests, options, true)
+
+/** How far (px) around the two port stubs a route is first searched for. */
+const SEARCH_PAD = 200
+
+/** Clearance below which a failed search is not retried with less clearance. */
+const MIN_RETRY_MARGIN = 3
+
+/** Without `fallback`, requests the grid search cannot route are left out. */
+const routeAll = (
+  obstacles: RouterRect[],
+  requests: RouteRequest[],
+  options: RouterOptions,
+  fallback: boolean
 ): Map<string, RouterPoint[]> => {
   const margin = options.margin ?? 14
   const bendPenalty = options.bendPenalty ?? 40
@@ -294,9 +399,13 @@ export const routeOrthogonalEdges = (
     }))
     .sort((a, b) => a.d - b.d || a.k - b.k)
 
+  // Search state per (grid point, arrival direction). `stamp` marks the
+  // entries the current request wrote, so nothing is re-filled per request.
   const STATES = W * H * 4
   const gScore = new Float64Array(STATES)
   const cameFrom = new Int32Array(STATES)
+  const stamp = new Uint32Array(STATES)
+  let gen = 0
 
   for (const { r: req } of order) {
     const s = req.source.point
@@ -317,60 +426,96 @@ export const routeOrthogonalEdges = (
     const startNode = nodeIndex(si, sj)
     const goalNode = nodeIndex(ti, tj)
 
-    gScore.fill(Infinity)
-    cameFrom.fill(-1)
-    const heap = new MinHeap()
-    const h = (i: number, j: number) => Math.abs(xs[i] - xs[ti]) + Math.abs(ys[j] - ys[tj])
+    // Remaining length + the bends any path from (i, j) heading `d` still
+    // needs (admissible and consistent, so the search stays exact).
+    const h = (i: number, j: number, d: number) => {
+      const di = ti - i
+      const dj = tj - j
+      const along = d < 2 ? di : dj
+      const across = d < 2 ? dj : di
+      const ahead = along === 0 ? 0 : Math.sign(along) === (d === 0 || d === 2 ? 1 : -1) ? 1 : -1
+      const turns = across === 0 ? (ahead >= 0 ? 0 : 2) : ahead >= 0 ? 1 : 2
+      return Math.abs(xs[i] - xs[ti]) + Math.abs(ys[j] - ys[tj]) + turns * bendPenalty
+    }
     const startState = startNode * 4 + startDir
-    gScore[startState] = 0
-    heap.push(h(si, sj), startState)
-    let bestGoal = -1
-    let bestGoalCost = Infinity
+    /** A* within grid columns i0..i1 and rows j0..j1; the best goal state or -1. */
+    const search = (i0: number, i1: number, j0: number, j1: number): number => {
+      gen++
+      const heap = new MinHeap()
+      gScore[startState] = 0
+      cameFrom[startState] = -1
+      stamp[startState] = gen
+      heap.push(h(si, sj, startDir), startState)
+      let bestGoal = -1
+      let bestGoalCost = Infinity
 
-    while (heap.size > 0) {
-      const state = heap.pop()
-      const node = state >> 2
-      const dir = state & 3
-      const g = gScore[state]
-      if (g >= bestGoalCost) break
-      const i = node % W
-      const j = (node - i) / W
-      if (node === goalNode) {
-        const finalCost = g + (dir === entryDir ? 0 : dir === OPPOSITE[entryDir] ? Infinity : bendPenalty)
-        if (finalCost < bestGoalCost) {
-          bestGoalCost = finalCost
-          bestGoal = state
+      while (heap.size > 0) {
+        const key = heap.topKey
+        const state = heap.pop()
+        const node = state >> 2
+        const dir = state & 3
+        const g = gScore[state]
+        const i = node % W
+        const j = (node - i) / W
+        // Stale entry: the state was reached more cheaply after this push.
+        if (key > g + h(i, j, dir) + 1e-6) continue
+        // Keys are lower bounds of the full cost: nothing left can beat the best.
+        if (key >= bestGoalCost) break
+        if (node === goalNode) {
+          const finalCost = g + (dir === entryDir ? 0 : dir === OPPOSITE[entryDir] ? Infinity : bendPenalty)
+          if (finalCost < bestGoalCost) {
+            bestGoalCost = finalCost
+            bestGoal = state
+          }
+          continue
         }
-        continue
-      }
-      for (let nd = 0; nd < 4; nd++) {
-        if (nd === OPPOSITE[dir]) continue
-        const ni = i + DX[nd]
-        const nj = j + DY[nd]
-        if (ni < 0 || nj < 0 || ni >= W || nj >= H) continue
-        const next = nodeIndex(ni, nj)
-        if (blockedNode[next] && next !== goalNode) continue
-        const segBlocked =
-          nd === 0 ? blockedH[node] : nd === 1 ? blockedH[next] : nd === 2 ? blockedV[node] : blockedV[next]
-        if (segBlocked) continue
-        const len = nd < 2 ? Math.abs(xs[ni] - xs[i]) : Math.abs(ys[nj] - ys[j])
-        const used = nd === 0 ? usedH[node] : nd === 1 ? usedH[next] : nd === 2 ? usedV[node] : usedV[next]
-        let cost = len * (1 + used * overlapPenalty)
-        if (nd !== dir) cost += bendPenalty
-        // crossing an earlier route perpendicular at the next point
-        if (nd < 2 ? passV[next] : passH[next]) cost += crossingPenalty
-        const ns = next * 4 + nd
-        const ng = g + cost
-        if (ng < gScore[ns]) {
-          gScore[ns] = ng
-          cameFrom[ns] = state
-          heap.push(ng + h(ni, nj), ns)
+        for (let nd = 0; nd < 4; nd++) {
+          if (nd === OPPOSITE[dir]) continue
+          const ni = i + DX[nd]
+          const nj = j + DY[nd]
+          if (ni < i0 || nj < j0 || ni > i1 || nj > j1) continue
+          const next = nodeIndex(ni, nj)
+          if (blockedNode[next] && next !== goalNode) continue
+          const segBlocked =
+            nd === 0 ? blockedH[node] : nd === 1 ? blockedH[next] : nd === 2 ? blockedV[node] : blockedV[next]
+          if (segBlocked) continue
+          const len = nd < 2 ? Math.abs(xs[ni] - xs[i]) : Math.abs(ys[nj] - ys[j])
+          const used = nd === 0 ? usedH[node] : nd === 1 ? usedH[next] : nd === 2 ? usedV[node] : usedV[next]
+          let cost = len * (1 + used * overlapPenalty)
+          if (nd !== dir) cost += bendPenalty
+          // crossing an earlier route perpendicular at the next point
+          if (nd < 2 ? passV[next] : passH[next]) cost += crossingPenalty
+          const ns = next * 4 + nd
+          const ng = g + cost
+          if (stamp[ns] !== gen || ng < gScore[ns]) {
+            stamp[ns] = gen
+            gScore[ns] = ng
+            cameFrom[ns] = state
+            heap.push(ng + h(ni, nj, nd), ns)
+          }
         }
       }
+      return bestGoal
     }
 
+    // Search near the two ends first (keeps long batches fast); the whole
+    // grid only when no route exists within that window.
+    const i0 = lowerBound(xs, Math.min(sStub.x, tStub.x) - SEARCH_PAD)
+    const i1 = lowerBound(xs, Math.max(sStub.x, tStub.x) + SEARCH_PAD + 1) - 1
+    const j0 = lowerBound(ys, Math.min(sStub.y, tStub.y) - SEARCH_PAD)
+    const j1 = lowerBound(ys, Math.max(sStub.y, tStub.y) + SEARCH_PAD + 1) - 1
+    let bestGoal = search(i0, i1, j0, j1)
+    if (bestGoal < 0 && (i0 > 0 || j0 > 0 || i1 < W - 1 || j1 < H - 1)) bestGoal = search(0, W - 1, 0, H - 1)
+
     if (bestGoal < 0) {
-      result.set(req.id, fallbackRoute(req, margin))
+      // Usually a port stub inside a close neighbour's clearance (gap < 2 x
+      // margin): retry this route with half the clearance before giving up.
+      const retry =
+        margin / 2 >= MIN_RETRY_MARGIN
+          ? routeAll(obstacles, [req], { ...options, margin: margin / 2 }, false).get(req.id)
+          : undefined
+      if (retry) result.set(req.id, retry)
+      else if (fallback) result.set(req.id, fallbackRoute(req, margin))
       continue
     }
     const gridPath: RouterPoint[] = []
@@ -403,6 +548,10 @@ export const routeOrthogonalEdges = (
         passV[b] = 1
       }
     }
+    // Grid lines closer than 0.5 px are merged: put the stub runs back on the
+    // exact port coordinate so the first / last segment is not slanted.
+    snapRun(gridPath, req.source.side, s, false)
+    snapRun(gridPath, req.target.side, t, true)
     result.set(req.id, simplifyOrthogonal([{ ...s }, ...gridPath, { ...t }]))
   }
   return result

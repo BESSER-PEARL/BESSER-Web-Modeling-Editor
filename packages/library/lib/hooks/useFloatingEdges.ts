@@ -47,7 +47,11 @@ const layoutFor = (
   if (cached && cached.nodes === nodes && cached.edges === edges && cached.er === er) {
     return cached.layout
   }
-  const next = computeFloatingLayout(nodes, edges, { measure: measureLabel, erNotation: er })
+  const next = computeFloatingLayout(nodes, edges, {
+    measure: measureLabel,
+    erNotation: er,
+    previous: cached?.er === er ? cached.layout : undefined,
+  })
   if (cached) {
     // Keep identities of unchanged edges so their components skip re-rendering.
     for (const [id, layout] of next) {

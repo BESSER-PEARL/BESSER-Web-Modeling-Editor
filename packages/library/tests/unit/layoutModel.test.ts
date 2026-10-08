@@ -98,7 +98,7 @@ describe("layoutModel (headless)", () => {
     expect(centre(out.nodes).y).toBeCloseTo(centre(m.nodes).y, 5)
   })
 
-  it("reassigns handles to facing sides and replaces stale waypoints with the ELK route", async () => {
+  it("reassigns handles to facing sides and drops stale waypoints of floating-port edges", async () => {
     const stale = [{ x: 10, y: 10 }, { x: 20, y: 20 }]
     const m = model(
       [node("a"), node("b")],
@@ -108,19 +108,8 @@ describe("layoutModel (headless)", () => {
     const e = out.edges[0]
     expect(e.sourceHandle).toMatch(/^bottom/)
     expect(e.targetHandle).toMatch(/^top/)
-    const points = e.data.points as { x: number; y: number }[]
-    expect(points).not.toEqual(stale)
-    expect(points.length).toBeGreaterThanOrEqual(2)
-    // Absolute route from a's bottom border to b's top border, orthogonal.
-    const a = out.nodes.find((n) => n.id === "a")!
-    const b = out.nodes.find((n) => n.id === "b")!
-    expect(points[0].y).toBe(a.position.y + a.height)
-    expect(points[points.length - 1].y).toBe(b.position.y)
-    for (let i = 0; i + 1 < points.length; i++) {
-      const horizontal = points[i].y === points[i + 1].y
-      const vertical = points[i].x === points[i + 1].x
-      expect(horizontal || vertical).toBe(true)
-    }
+    // Class edges route live from the node geometry: nothing stored.
+    expect(e.data.points).toEqual([])
     expect(e.data.label).toBe("keep")
   })
 

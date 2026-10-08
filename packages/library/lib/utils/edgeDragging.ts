@@ -61,6 +61,20 @@ const sideSpan = (rect: LayoutRect, side: PortSide): [number, number] =>
 /** Stub a detour keeps straight out of a port before turning. */
 const DETOUR_STUB = 20
 
+/** `v` (a coordinate across `side`) kept at least a stub outside the node. */
+const outsideOf = (rect: LayoutRect, side: PortSide, v: number) => {
+  switch (side) {
+    case "top":
+      return Math.min(v, rect.y - DETOUR_STUB)
+    case "bottom":
+      return Math.max(v, rect.y + rect.height + DETOUR_STUB)
+    case "left":
+      return Math.min(v, rect.x - DETOUR_STUB)
+    default:
+      return Math.max(v, rect.x + rect.width + DETOUR_STUB)
+  }
+}
+
 /**
  * Moves segment `index` of `points` so that it runs along `coord` (y for a
  * horizontal segment, x for a vertical one). A segment that carries a port
@@ -94,6 +108,15 @@ export const dragSegment = (
     }
   }
 
+  // A first / last segment that runs along its node's side (degenerate
+  // route): its port cannot slide off the side line, so the segment moves
+  // outside the node and a perpendicular connector joins the port.
+  const runsAlong = (side: PortSide) => horizontal === (side === "top" || side === "bottom")
+  const parallelSource = touchesSource && runsAlong(ctx.sourceSide)
+  const parallelTarget = touchesTarget && runsAlong(ctx.targetSide)
+  if (parallelSource) c = outsideOf(ctx.sourceRect, ctx.sourceSide, c)
+  if (parallelTarget) c = outsideOf(ctx.targetRect, ctx.targetSide, c)
+
   const margin = 4
   const within = (rect: LayoutRect, side: PortSide) => {
     const [lo, hi] = sideSpan(rect, side)
@@ -101,8 +124,10 @@ export const dragSegment = (
   }
   const len = Math.hypot(b.x - a.x, b.y - a.y)
   const roomForDetour = len > DETOUR_STUB * (touchesSource && touchesTarget ? 3 : 1.5)
-  const slideSource = touchesSource && (within(ctx.sourceRect, ctx.sourceSide) || !roomForDetour)
-  const slideTarget = touchesTarget && (within(ctx.targetRect, ctx.targetSide) || !roomForDetour)
+  const slideSource =
+    touchesSource && !parallelSource && (within(ctx.sourceRect, ctx.sourceSide) || !roomForDetour)
+  const slideTarget =
+    touchesTarget && !parallelTarget && (within(ctx.targetRect, ctx.targetSide) || !roomForDetour)
   const clampTo = (rect: LayoutRect, side: PortSide, v: number) => {
     const [lo, hi] = sideSpan(rect, side)
     return Math.min(hi - margin, Math.max(lo + margin, v))
@@ -115,7 +140,10 @@ export const dragSegment = (
   let aMoved: LayoutPoint
   let bMoved: LayoutPoint
   if (!touchesSource) aMoved = withCoord(a, c)
-  else if (slideSource) aMoved = withCoord(a, clampTo(ctx.sourceRect, ctx.sourceSide, c))
+  else if (parallelSource) {
+    head.push({ ...a })
+    aMoved = withCoord(a, c)
+  } else if (slideSource) aMoved = withCoord(a, clampTo(ctx.sourceRect, ctx.sourceSide, c))
   else {
     // Port stays; leave it straight for a stub, then turn onto the new line.
     const stub = { x: a.x + ux * DETOUR_STUB, y: a.y + uy * DETOUR_STUB }
@@ -123,7 +151,10 @@ export const dragSegment = (
     aMoved = withCoord(stub, c)
   }
   if (!touchesTarget) bMoved = withCoord(b, c)
-  else if (slideTarget) bMoved = withCoord(b, clampTo(ctx.targetRect, ctx.targetSide, c))
+  else if (parallelTarget) {
+    bMoved = withCoord(b, c)
+    tail.push({ ...b })
+  } else if (slideTarget) bMoved = withCoord(b, clampTo(ctx.targetRect, ctx.targetSide, c))
   else {
     const stub = { x: b.x - ux * DETOUR_STUB, y: b.y - uy * DETOUR_STUB }
     bMoved = withCoord(stub, c)

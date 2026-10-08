@@ -9,7 +9,8 @@ import {
   getLayoutDirection,
   packRectangles,
 } from "../../lib/utils/autoLayout"
-import { handlePoint } from "../../lib/utils/autoLayoutHandles"
+
+import { computeFloatingLayout } from "../../lib/utils/floatingEdges"
 import { routeOrthogonalEdges } from "../../lib/utils/orthogonalRouter"
 import { LANE_HEADER_WIDTH } from "../../lib/utils/bpmnConstraints"
 import { POOL_HEADER_WIDTH, SWIMLANE_MIN_HEIGHT } from "../../lib/hooks/useSwimlaneLayout"
@@ -167,21 +168,15 @@ describe("class diagrams (hierarchical)", () => {
     }
   })
 
-  it("stores ELK's orthogonal route as absolute waypoints ending on the chosen handles", async () => {
+  it("stores no route for floating-port class edges; their live route avoids the other nodes", async () => {
     const out = await computeAutoLayout(nodes, edges, UMLDiagramType.ClassDiagram, { strategy: "hierarchical" })
     const r = rects(out.nodes)
+    const live = computeFloatingLayout(out.nodes, out.edges)
     for (const e of out.edges) {
-      const pts = (e.data as { points: P[] }).points
-      expect(pts.length).toBeGreaterThanOrEqual(2)
+      // A stored route would be read as user bends and stop following node moves.
+      expect((e.data as { points: P[] }).points).toEqual([])
+      const pts = live.get(e.id)!.points
       expect(isOrthogonal(pts)).toBe(true)
-      // Ports were mapped back to handles: the route starts/ends exactly there.
-      const s = handlePoint(r.get(e.source)!, e.sourceHandle)
-      const t = handlePoint(r.get(e.target)!, e.targetHandle)
-      expect(Math.abs(pts[0].x - s.x)).toBeLessThanOrEqual(1)
-      expect(Math.abs(pts[0].y - s.y)).toBeLessThanOrEqual(1)
-      expect(Math.abs(pts[pts.length - 1].x - t.x)).toBeLessThanOrEqual(1)
-      expect(Math.abs(pts[pts.length - 1].y - t.y)).toBeLessThanOrEqual(1)
-      // ... and never runs through another node.
       for (const n of out.nodes) {
         if (n.id === e.source || n.id === e.target) continue
         expect(routeHits(pts, r.get(n.id)!)).toBe(false)
@@ -274,8 +269,12 @@ describe("flow diagrams", () => {
     expect(x("init")).toBeLessThan(x("A"))
     expect(x("A")).toBeLessThan(x("B"))
     expect(x("B")).toBeLessThan(x("final"))
+    // Transitions use continuous ports: no stored route, the self-loop is
+    // routed live around the state's corner.
     const self = out.edges.find((e) => e.id === "t3")!
-    expect((self.data as { points: P[] }).points.length).toBeGreaterThanOrEqual(2)
+    expect(((self.data as { points?: P[] }).points ?? []).length).toBe(0)
+    const loop = computeFloatingLayout(out.nodes, out.edges).get("t3")!
+    expect(loop.points.length).toBeGreaterThanOrEqual(4)
   })
 
   it("agent diagram: the initial state starts the flow even inside a cycle", async () => {

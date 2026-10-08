@@ -204,6 +204,18 @@ export const chooseFacingSidesForRects = (
       ? { sourceSide: "right", targetSide: "left" }
       : { sourceSide: "left", targetSide: "right" }
   }
+  // Close boxes separated along one axis only: use that axis (a stack only a
+  // few px apart that overlaps sideways connects bottom → top, not around).
+  if (gapY > 0 && gapX <= 0) {
+    return tc.y >= sc.y
+      ? { sourceSide: "bottom", targetSide: "top" }
+      : { sourceSide: "top", targetSide: "bottom" }
+  }
+  if (gapX > 0 && gapY <= 0) {
+    return tc.x >= sc.x
+      ? { sourceSide: "right", targetSide: "left" }
+      : { sourceSide: "left", targetSide: "right" }
+  }
   return chooseFacingSides(sc, tc)
 }
 

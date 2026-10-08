@@ -66,6 +66,7 @@ import {
   type RouteRequest,
   type RouterRect,
 } from "./orthogonalRouter"
+import { FLOATING_EDGE_TYPES } from "./edgePorts"
 
 export { SIDE_HANDLES, chooseFacingSides } from "./autoLayoutHandles"
 export type { HandleSide } from "./autoLayoutHandles"
@@ -651,6 +652,9 @@ const finaliseEdges = (
   for (const r of routed) {
     const h = handles.get(r.edge.id)
     if (!h || renderKindOf(r.edge.type) !== "step") continue
+    // Floating-port edges route live around the nodes; a stored route would
+    // be read as user bends and freeze the layout's shape.
+    if (FLOATING_EDGE_TYPES.has(r.edge.type ?? "")) continue
     if (r.route && r.route.length >= 2) {
       let route = simplifyOrthogonal(r.route)
       if (route.length < 2) route = r.route
