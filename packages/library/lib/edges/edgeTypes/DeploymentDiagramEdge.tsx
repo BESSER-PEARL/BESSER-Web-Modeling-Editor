@@ -1,4 +1,4 @@
-import { BaseEdge } from "@xyflow/react"
+import { BaseEdge, useStore } from "@xyflow/react"
 import { usePopoverAnchor } from "@/hooks/usePopoverAnchor"
 import {
   BaseEdgeProps,
@@ -7,7 +7,17 @@ import {
 } from "../GenericEdge"
 import { useDiagramStore, usePopoverStore } from "@/store/context"
 import { useShallow } from "zustand/shallow"
-import { EdgeMiddleLabels } from "../labelTypes/EdgeMiddleLabels"
+import { EdgeMiddleLabels, truncateLabel } from "../labelTypes/EdgeMiddleLabels"
+import {
+  estimateMiddleLabelWidth,
+  placeMiddleLabel,
+} from "../labelTypes/middleLabelPlacement"
+import type { IPoint } from "../Connection"
+import { internalNodeRect } from "@/utils/nodeShapes"
+import {
+  relationshipLabelDirection,
+  relationshipLabelLayout,
+} from "@/utils/relationshipMidpoint"
 import { useEdgeConfig } from "@/hooks/useEdgeConfig"
 import { useStepPathEdge } from "@/hooks/useStepPathEdge"
 import { useToolbar } from "@/hooks"
@@ -17,6 +27,68 @@ import { AssessmentSelectableWrapper } from "@/components"
 import { getCustomColorsFromDataForEdge } from "@/utils/layoutUtils"
 import { EdgeInlineMarkers } from "@/components/svgs/edges/InlineMarker"
 import { resolveRequiredInterfaceEdgeType } from "@/utils"
+
+/** Baseline distance from the «stereotype» line to the name below it. */
+const STEREOTYPE_LINE_OFFSET = 14
+
+/**
+ * «stereotype» of a deployment association: one line above its name label
+ * (same placement as `EdgeMiddleLabels`), or at the path midpoint when the
+ * association has no name.
+ */
+const DeploymentStereotypeLabel = ({
+  stereotype,
+  label,
+  points,
+  pathMiddlePosition,
+  isMiddlePathHorizontal,
+  textColor,
+}: {
+  stereotype: string
+  label?: string | null
+  points?: IPoint[]
+  pathMiddlePosition: IPoint
+  isMiddlePathHorizontal: boolean
+  textColor: string
+}) => {
+  const nodeLookup = useStore((state) => state.nodeLookup)
+  const placement =
+    label && points && points.length >= 2
+      ? placeMiddleLabel(
+          points,
+          estimateMiddleLabelWidth(truncateLabel(label)),
+          [...nodeLookup.values()].filter((n) => !n.hidden).map(internalNodeRect)
+        )
+      : null
+  const position = placement
+    ? {
+        x: placement.x,
+        y: placement.y - STEREOTYPE_LINE_OFFSET,
+        textAnchor: placement.textAnchor,
+        dominantBaseline: placement.dominantBaseline,
+      }
+    : {
+        x: pathMiddlePosition.x,
+        y: pathMiddlePosition.y,
+        ...relationshipLabelLayout(
+          relationshipLabelDirection(isMiddlePathHorizontal)
+        ),
+      }
+
+  return (
+    <text
+      {...position}
+      fill={textColor}
+      fontSize={11}
+      fontWeight={600}
+      pointerEvents="none"
+      className="besser-edge-label"
+      data-testid="edge-stereotype-label"
+    >
+      {`«${stereotype}»`}
+    </text>
+  )
+}
 
 const DEPLOYMENT_REQUIRED_INTERFACE_TYPES = [
   "DeploymentRequiredInterface",
@@ -116,6 +188,9 @@ export const DeploymentDiagramEdge = ({
   })
 
   const { strokeColor, textColor } = getCustomColorsFromDataForEdge(data)
+  // Only an association owns a stereotype; one left over after a type switch stays hidden.
+  const stereotype =
+    type === "DeploymentAssociation" ? data?.stereotype : undefined
   const markerKey = `${id}-${markerStart ?? "none"}-${markerEnd ?? "none"}`
 
   return (
@@ -198,6 +273,17 @@ export const DeploymentDiagramEdge = ({
           showRelationshipLabels={showRelationshipLabels}
           textColor={textColor}
         />
+
+        {stereotype && (
+          <DeploymentStereotypeLabel
+            stereotype={stereotype}
+            label={showRelationshipLabels ? data?.label : undefined}
+            points={edgeData.activePoints}
+            pathMiddlePosition={edgeData.pathMiddlePosition}
+            isMiddlePathHorizontal={edgeData.isMiddlePathHorizontal}
+            textColor={textColor}
+          />
+        )}
 
         <CommonEdgeElements
           id={id}

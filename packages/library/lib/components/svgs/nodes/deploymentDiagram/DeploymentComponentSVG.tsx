@@ -6,6 +6,9 @@ import AssessmentIcon from "../../AssessmentIcon"
 import { SVGComponentProps } from "@/types/SVG"
 import { DeploymentComponentProps } from "@/types"
 import { getCustomColorsFromData } from "@/utils/layoutUtils"
+import { isAgentStereotype } from "@/utils/agenticTokens"
+import { AgenticBotIcon } from "@/components/svgs/icons/agentic"
+import { DEFAULT_COMPONENT_STEREOTYPE } from "@/nodes/componentDiagram/stereotypeDefaults"
 
 interface Props extends SVGComponentProps {
   data: DeploymentComponentProps
@@ -21,6 +24,7 @@ export const DeploymentComponentSVG: React.FC<Props> = ({
   data,
 }) => {
   const { name, isComponentHeaderShown } = data
+  const stereotype = data.stereotype ?? DEFAULT_COMPONENT_STEREOTYPE
   const assessments = useDiagramStore(useShallow((state) => state.assessments))
   const nodeScore = assessments[id]?.score
   const scaledWidth = width * (SIDEBAR_PREVIEW_SCALE ?? 1)
@@ -63,10 +67,14 @@ export const DeploymentComponentSVG: React.FC<Props> = ({
           />
         </g>
 
+        {isAgentStereotype(stereotype) && (
+          <AgenticBotIcon x={7} y={7} color={strokeColor} />
+        )}
+
         <StereotypeAndName
           name={name}
-          stereotype="component"
-          showStereotype={!!isComponentHeaderShown}
+          stereotype={stereotype}
+          showStereotype={!!isComponentHeaderShown && !!stereotype}
           width={width}
           height={height}
           fill={textColor}

@@ -16,6 +16,10 @@ import { AssessmentSelectableWrapper } from "@/components"
 import { getCustomColorsFromDataForEdge } from "@/utils/layoutUtils"
 import { EdgeInlineMarkers } from "@/components/svgs/edges/InlineMarker"
 import { resolveRequiredInterfaceEdgeType } from "@/utils"
+import {
+  relationshipLabelDirection,
+  relationshipLabelLayout,
+} from "@/utils/relationshipMidpoint"
 
 const COMPONENT_REQUIRED_INTERFACE_TYPES = [
   "ComponentRequiredInterface",
@@ -113,7 +117,9 @@ export const ComponentDiagramEdge = ({
     enableStraightPath: false,
   })
 
-  const { strokeColor } = getCustomColorsFromDataForEdge(data)
+  const { strokeColor, textColor } = getCustomColorsFromDataForEdge(data)
+  // Only a dependency owns a stereotype; one left over after a type switch stays hidden.
+  const stereotype = type === "ComponentDependency" ? data?.stereotype : undefined
   const markerKey = `${id}-${markerStart ?? "none"}-${markerEnd ?? "none"}`
 
   return (
@@ -187,6 +193,24 @@ export const ComponentDiagramEdge = ({
               />
             ))}
         </g>
+
+        {stereotype && (
+          <text
+            x={edgeData.pathMiddlePosition.x}
+            y={edgeData.pathMiddlePosition.y}
+            {...relationshipLabelLayout(
+              relationshipLabelDirection(edgeData.isMiddlePathHorizontal)
+            )}
+            fill={textColor}
+            fontSize={11}
+            fontWeight={600}
+            pointerEvents="none"
+            className="besser-edge-label"
+            data-testid="edge-stereotype-label"
+          >
+            {`«${stereotype}»`}
+          </text>
+        )}
 
         <CommonEdgeElements
           id={id}

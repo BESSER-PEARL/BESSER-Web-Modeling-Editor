@@ -1,7 +1,7 @@
 import { NodeProps, NodeResizer, type Node } from "@xyflow/react"
 import { usePopoverAnchor } from "@/hooks/usePopoverAnchor"
 import { DefaultNodeWrapper } from "../wrappers"
-import { DefaultNodeProps } from "@/types"
+import { DeploymentArtifactProps } from "@/types"
 import { PopoverManager } from "@/components/popovers/PopoverManager"
 import { DeploymentArtifactSVG } from "@/components"
 import { useHandleOnResize } from "@/hooks"
@@ -14,7 +14,7 @@ export function DeploymentArtifact({
   height,
   data,
   parentId,
-}: NodeProps<Node<DefaultNodeProps>>) {
+}: NodeProps<Node<DeploymentArtifactProps>>) {
   const [svgWrapperEl, svgWrapperRef] = usePopoverAnchor<HTMLDivElement>()
   const { onResize } = useHandleOnResize(parentId)
   const isDiagramModifiable = useDiagramModifiable()

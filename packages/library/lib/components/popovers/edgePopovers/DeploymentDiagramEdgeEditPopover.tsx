@@ -7,6 +7,8 @@ import { CustomEdgeProps } from "@/edges/EdgeProps"
 import { useEdgePopOver } from "@/hooks"
 import { PopoverProps } from "../types"
 import { useTranslation } from "@/i18n"
+import { useDiagramStore } from "@/store/context"
+import { LineageSourceLink } from "@/components/inspectors/shared"
 
 export const DeploymentEdgeEditPopover: React.FC<PopoverProps> = ({
   elementId,
@@ -19,6 +21,7 @@ export const DeploymentEdgeEditPopover: React.FC<PopoverProps> = ({
   const targetNode = useReactiveNode(edge?.target)
   const { handleEdgeTypeChange, handleLabelChange, handleSwap } =
     useEdgePopOver(elementId)
+  const setEdges = useDiagramStore((state) => state.setEdges)
 
   if (!edge) {
     return null
@@ -71,7 +74,7 @@ export const DeploymentEdgeEditPopover: React.FC<PopoverProps> = ({
         label={t("common.edgeType", "Edge Type")}
         sideElements={[
           handleSwap && (
-            <Box sx={{ display: "flex", justifyContent: "flex-end" }}>
+            <Box key="swap" sx={{ display: "flex", justifyContent: "flex-end" }}>
               <SwapHorizIcon
                 style={{ cursor: "pointer" }}
                 onClick={handleSwap}
@@ -105,20 +108,43 @@ export const DeploymentEdgeEditPopover: React.FC<PopoverProps> = ({
         {sourceName} → {targetName}
       </Typography>
 
-      {/* Show label input only for associations */}
+      {/* Label and stereotype belong to associations only */}
       {edge.type === "DeploymentAssociation" && (
-        <TextField
-          label={t("common.edgeLabel", "Edge Label")}
-          value={edgeData?.label ?? ""}
-          onChange={(e) => handleLabelChange(e.target.value)}
-          size="small"
-          fullWidth
-          placeholder={t(
-            "popup.deployment.optionalAssociationLabel",
-            "Optional label for association"
-          )}
-        />
+        <>
+          <TextField
+            label={t("popup.label", "Label")}
+            value={edgeData?.label ?? ""}
+            onChange={(e) => handleLabelChange(e.target.value)}
+            size="small"
+            fullWidth
+            placeholder={t(
+              "packages.DeploymentDiagram.DeploymentAssociationLabelPlaceholder",
+              "e.g. kv-store-conn"
+            )}
+          />
+          <TextField
+            label={t("popup.stereotype", "Stereotype")}
+            value={edgeData?.stereotype ?? ""}
+            onChange={(e) => {
+              const stereotype = e.target.value
+              setEdges((edges) =>
+                edges.map((edge) =>
+                  edge.id === elementId
+                    ? { ...edge, data: { ...edge.data, stereotype } }
+                    : edge
+                )
+              )
+            }}
+            size="small"
+            fullWidth
+            placeholder={t(
+              "packages.DeploymentDiagram.DeploymentAssociationStereotypePlaceholder",
+              "e.g. HTTPS, gRPC, device"
+            )}
+          />
+        </>
       )}
+      <LineageSourceLink elementId={elementId} />
     </Box>
   )
 }

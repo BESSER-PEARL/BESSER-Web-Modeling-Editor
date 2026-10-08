@@ -7,6 +7,9 @@ import { useEdgePopOver } from "@/hooks"
 import { PopoverProps } from "../types"
 import { CustomEdgeProps } from "@/edges"
 import { useTranslation } from "@/i18n"
+import { useDiagramStore } from "@/store/context"
+import { LineageSourceLink, PresetField } from "@/components/inspectors/shared"
+import { COMPONENT_EDGE_STEREOTYPE_PRESETS } from "@/utils/agenticTokens"
 
 export const ComponentEdgeEditPopover: React.FC<PopoverProps> = ({
   elementId,
@@ -18,6 +21,7 @@ export const ComponentEdgeEditPopover: React.FC<PopoverProps> = ({
   const sourceNode = useReactiveNode(edge?.source)
   const targetNode = useReactiveNode(edge?.target)
   const { handleEdgeTypeChange, handleSwap } = useEdgePopOver(elementId)
+  const setEdges = useDiagramStore((state) => state.setEdges)
 
   if (!edge) {
     return null
@@ -60,7 +64,7 @@ export const ComponentEdgeEditPopover: React.FC<PopoverProps> = ({
         label={t("popup.association", "Association")}
         sideElements={[
           handleSwap && (
-            <Box sx={{ display: "flex", justifyContent: "flex-end" }}>
+            <Box key="swap" sx={{ display: "flex", justifyContent: "flex-end" }}>
               <SwapHorizIcon
                 style={{ cursor: "pointer" }}
                 onClick={handleSwap}
@@ -89,9 +93,31 @@ export const ComponentEdgeEditPopover: React.FC<PopoverProps> = ({
         </Select>
       </FormControl>
 
+      {edge.type === "ComponentDependency" && (
+        <PresetField
+          label={t("popup.stereotype", "Stereotype")}
+          value={edgeData?.stereotype}
+          onChange={(stereotype) =>
+            setEdges((edges) =>
+              edges.map((e) =>
+                e.id === elementId
+                  ? { ...e, data: { ...e.data, stereotype } }
+                  : e
+              )
+            )
+          }
+          presets={COMPONENT_EDGE_STEREOTYPE_PRESETS}
+          placeholder={t(
+            "packages.ComponentDiagram.ComponentDependencyStereotypePlaceholder",
+            "e.g. delegates, has, uses"
+          )}
+        />
+      )}
+
       <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
         {sourceName} → {targetName}
       </Typography>
+      <LineageSourceLink elementId={elementId} />
     </Box>
   )
 }

@@ -3,12 +3,14 @@ import { DeploymentNodeProps } from "@/types"
 import { useShallow } from "zustand/shallow"
 import { DefaultNodeEditPopover } from "../DefaultNodeEditPopover"
 import { PopoverProps } from "../types"
-import { Divider } from "@mui/material"
 import { HeaderSwitchElement, TextField } from "@/components/ui"
+import { LineageSourceLink } from "@/components/inspectors/shared"
+import { useTranslation } from "@/i18n"
 
 export const DeploymentNodeEditPopover: React.FC<PopoverProps> = ({
   elementId,
 }) => {
+  const { t } = useTranslation()
   const { nodes, setNodes } = useDiagramStore(
     useShallow((state) => ({ setNodes: state.setNodes, nodes: state.nodes }))
   )
@@ -20,43 +22,20 @@ export const DeploymentNodeEditPopover: React.FC<PopoverProps> = ({
 
   const nodeData = node.data as DeploymentNodeProps
 
-  const handleStereotypeChange = (newStereotype: string) => {
+  const update = (patch: Partial<DeploymentNodeProps>) =>
     setNodes((nodes) =>
-      nodes.map((node) => {
-        if (node.id === elementId) {
-          return {
-            ...node,
-            data: {
-              ...node.data,
-              stereotype: newStereotype,
-            },
-          }
-        }
-        return node
-      })
+      nodes.map((node) =>
+        node.id === elementId
+          ? { ...node, data: { ...node.data, ...patch } }
+          : node
+      )
     )
-  }
-
-  const switchHeaderShown = () => {
-    setNodes((nodes) =>
-      nodes.map((node) => {
-        if (node.id === elementId) {
-          return {
-            ...node,
-            data: {
-              ...node.data,
-              isComponentHeaderShown: !nodeData.isComponentHeaderShown,
-            },
-          }
-        }
-        return node
-      })
-    )
-  }
 
   const HeaderSwitcher = (
     <HeaderSwitchElement
-      onClick={switchHeaderShown}
+      onClick={() =>
+        update({ isComponentHeaderShown: !nodeData.isComponentHeaderShown })
+      }
       isComponentHeaderShown={nodeData.isComponentHeaderShown}
     />
   )
@@ -66,25 +45,19 @@ export const DeploymentNodeEditPopover: React.FC<PopoverProps> = ({
       elementId={elementId}
       sideElements={[HeaderSwitcher]}
     >
-      <div
-        style={{
-          display: "flex",
-          flexDirection: "column",
-          gap: "8px",
-          marginTop: "8px",
-          width: "100%",
-        }}
-      >
-        <Divider />
-        <TextField
-          value={nodeData.stereotype}
-          onChange={(e) => handleStereotypeChange(e.target.value)}
-          onBlur={() => handleStereotypeChange(nodeData.stereotype)}
-          size="small"
-          sx={{ backgroundColor: "#fff" }}
-          fullWidth
-        />
-      </div>
+      <TextField
+        label={t("popup.stereotype", "Stereotype")}
+        value={nodeData.stereotype ?? ""}
+        onChange={(e) => update({ stereotype: e.target.value })}
+        placeholder={t(
+          "packages.DeploymentDiagram.DeploymentNodeStereotypePlaceholder",
+          "e.g. node, device, executionEnvironment"
+        )}
+        size="small"
+        fullWidth
+        sx={{ mt: 1.5 }}
+      />
+      <LineageSourceLink elementId={elementId} />
     </DefaultNodeEditPopover>
   )
 }

@@ -5,11 +5,11 @@ import { useDiagramStore } from "@/store"
 import { useShallow } from "zustand/shallow"
 import AssessmentIcon from "../../AssessmentIcon"
 import { SVGComponentProps } from "@/types/SVG"
-import { DefaultNodeProps } from "@/types"
+import { DeploymentArtifactProps } from "@/types"
 import { getCustomColorsFromData } from "@/utils/layoutUtils"
 
 interface Props extends SVGComponentProps {
-  data: DefaultNodeProps
+  data: DeploymentArtifactProps
 }
 
 export const DeploymentArtifactSVG: React.FC<Props> = ({

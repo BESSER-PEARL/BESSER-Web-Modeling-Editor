@@ -6,6 +6,7 @@ import AssessmentIcon from "../../AssessmentIcon"
 import { SVGComponentProps } from "@/types/SVG"
 import { ComponentSubsystemNodeProps } from "@/types"
 import { getCustomColorsFromData } from "@/utils/layoutUtils"
+import { DEFAULT_SUBSYSTEM_STEREOTYPE } from "@/nodes/componentDiagram/stereotypeDefaults"
 
 interface Props extends SVGComponentProps {
   data: ComponentSubsystemNodeProps
@@ -25,6 +26,7 @@ export const ComponentSubsystemNodeSVG: React.FC<Props> = ({
   data,
 }) => {
   const { name, isComponentSubsystemHeaderShown } = data
+  const stereotype = data.stereotype ?? DEFAULT_SUBSYSTEM_STEREOTYPE
   const assessments = useDiagramStore(useShallow((state) => state.assessments))
   const nodeScore = assessments[id]?.score
   const scaledWidth = width * (SIDEBAR_PREVIEW_SCALE ?? 1)
@@ -69,8 +71,8 @@ export const ComponentSubsystemNodeSVG: React.FC<Props> = ({
 
         <StereotypeAndName
           name={name}
-          stereotype="subsystem"
-          showStereotype={!!isComponentSubsystemHeaderShown}
+          stereotype={stereotype}
+          showStereotype={!!isComponentSubsystemHeaderShown && !!stereotype}
           width={width}
           height={height}
           sideReserve={SUBSYSTEM_SIDE_RESERVE}
