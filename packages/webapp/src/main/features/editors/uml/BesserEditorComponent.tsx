@@ -351,7 +351,13 @@ export const BesserEditorComponent: React.FC = () => {
       editorRef.current = nextEditor;
       await nextEditor.nextRender;
       if (runId !== setupRunRef.current || editorRef.current !== nextEditor) {
-        await destroyEditorDeferred(nextEditor);
+        // A newer setup (two quick revision bumps) or the unmount already took
+        // this editor out of editorRef and destroys it; a second destroy would
+        // unobserve its Yjs maps twice.
+        if (editorRef.current === nextEditor) {
+          editorRef.current = null;
+          await destroyEditorDeferred(nextEditor);
+        }
         return;
       }
 
