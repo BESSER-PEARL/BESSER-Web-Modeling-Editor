@@ -107,6 +107,12 @@ export type {
   AgentDiagramLinker,
 } from "./components/hostProviders/contexts"
 
+// Inspector controls backed by those providers, the preset text field, the
+// agentic canvas glyphs and the edge-midpoint label anchor.
+export * from "./components/inspectors/shared"
+export * from "./components/svgs/icons/agentic"
+export * from "./utils/relationshipMidpoint"
+
 // settingsService + ClassNotation (used by ProjectSettingsPanel.tsx).
 export {
   settingsService,
