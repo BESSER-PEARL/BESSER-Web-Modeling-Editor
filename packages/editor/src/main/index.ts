@@ -67,6 +67,10 @@ export { normalizeAgentModel, normalizeAgentComponents } from './packages/agent-
 // Agent element / component type names, so consumers don't re-declare the string constants.
 export { AgentElementType, AgentRelationshipType, AgentComponentType } from './packages/agent-state-diagram';
 
+// Default predefined type of a new agent transition ('auto'), so model
+// generators emit the same transition the editor creates.
+export { NEW_TRANSITION_PREDEFINED_TYPE } from './packages/agent-state-diagram/agent-state-transition/agent-state-transition';
+
 // Export the canonical LLM provider list so the webapp derives its dropdown,
 // its stored-config union, and its localStorage whitelist from one array
 // instead of re-declaring the key set in every consumer.
@@ -107,3 +111,7 @@ export type { UMLModelCompat } from './compat';
 // Export the supported-locale enum so consumers (the webapp language selector)
 // can drive the editor's UI language via the `locale` setter.
 export { Locale } from './services/editor/editor-types';
+
+// Export the port direction enum used by the public relationship typings, so
+// consumers that build models can type `source.direction` / `target.direction`.
+export { Direction } from './services/uml-element/uml-element-port';

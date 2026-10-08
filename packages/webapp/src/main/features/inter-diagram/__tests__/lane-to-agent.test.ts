@@ -50,6 +50,60 @@ const seq = (id: string, s: string, t: string) => ({
 });
 
 describe('29 — laneToAgentModel', () => {
+  it('emits task→task transitions as Auto so the agent can move on', () => {
+    const m = bpmn();
+    Object.assign(m.elements, { L: lane('L'), t1: task('t1', 'Plan', 10), t2: task('t2', 'Code', 200) });
+    Object.assign(m.relationships, { f1: seq('f1', 't1', 't2') });
+    const r = laneToAgentModel(m, 'L');
+    if (!r.ok) throw new Error('expected ok');
+    const stateId = (name: string) =>
+      Object.values(r.model.elements).find((e) => e.type === 'AgentState' && e.name === name)!.id;
+    const forward = Object.values(r.model.relationships).find(
+      (e) => e.source.element === stateId('Plan') && e.target.element === stateId('Code'),
+    )!;
+    expect(forward).toMatchObject({ transitionType: 'predefined', predefined: { predefinedType: 'auto' } });
+  });
+
+  it('gives tasks whose names sanitize to the same token distinct state names', () => {
+    const m = bpmn();
+    Object.assign(m.elements, {
+      L: lane('L'),
+      t1: task('t1', 'Review draft', 10),
+      t2: task('t2', 'Review-draft', 200),
+    });
+    const r = laneToAgentModel(m, 'L');
+    if (!r.ok) throw new Error('expected ok');
+    const names = Object.values(r.model.elements)
+      .filter((e) => e.type === 'AgentState')
+      .map((e) => e.name);
+    expect(new Set(names).size).toBe(names.length);
+    expect(names).toEqual(expect.arrayContaining(['Review_draft', 'Review_draft_2']));
+  });
+
+  it('keeps separators and line breaks out of A2A tag values', () => {
+    const m = bpmn();
+    Object.assign(m.elements, {
+      L: lane('L'),
+      P: {
+        id: 'P',
+        name: 'Peer;evil\nkind=x',
+        type: 'BPMNSwimlane',
+        owner: null,
+        isAgentic: true,
+        bounds: { x: 0, y: 200, width: 400, height: 80 },
+      },
+      t1: task('t1', 'Plan', 10),
+      p1: { ...task('p1', 'Send', 10), owner: 'P' },
+    });
+    Object.assign(m.relationships, { f1: seq('f1', 't1', 'p1') });
+    const r = laneToAgentModel(m, 'L');
+    if (!r.ok) throw new Error('expected ok');
+    const plan = Object.values(r.model.elements).find((e) => e.type === 'AgentState' && e.name === 'Plan')!;
+    const description = (plan as unknown as { description?: string }).description ?? '';
+    expect(description.split('\n')).toHaveLength(1);
+    expect(description).toMatch(/^a2a:out;peer=Peer evil kind=x;ref=;flow=f1;order=1;kind=delegates$/);
+  });
+
   it('refuses a non-BPMN model', () => {
     const m = bpmn();
     (m as unknown as { type: string }).type = 'ComponentDiagram';
@@ -686,13 +740,27 @@ describe('29 — laneToAgentModel', () => {
       expect((entry as unknown as { predefined?: { predefinedType?: string } }).predefined?.predefinedType).toBe(
         'when_no_intent_matched',
       );
+      const intentOf = (e: (typeof ts)[number]) => e as unknown as { predefined?: { predefinedType?: string; intentName?: string } };
       // approved → Code
-      expect(ts.some((e) => e.source.element === human!.id && e.target.element === code.id)).toBe(true);
+      const approve = ts.find((e) => e.source.element === human!.id && e.target.element === code.id)!;
+      expect(intentOf(approve).predefined).toMatchObject({
+        predefinedType: 'when_intent_matched',
+        intentName: 'Plan_approved',
+      });
       // rejected → back to Plan
-      expect(ts.some((e) => e.source.element === human!.id && e.target.element === plan.id)).toBe(true);
+      const reject = ts.find((e) => e.source.element === human!.id && e.target.element === plan.id)!;
+      expect(intentOf(reject).predefined).toMatchObject({
+        predefinedType: 'when_intent_matched',
+        intentName: 'Plan_rejected',
+      });
+      const intents = Object.values(r.model.elements)
+        .filter((e) => e.type === 'AgentIntent')
+        .map((e) => e.name)
+        .sort();
+      expect(intents).toEqual(['Plan_approved', 'Plan_rejected']);
     });
 
-    it("'cross' with named reviewer lane: peer=<laneName>, ref=<laneId>, intent recv_<laneName>_<task>", () => {
+    it("'cross' with named reviewer lane: peer=<laneName>, ref=<lane's Agent diagram>, intent recv_<laneName>_<task>", () => {
       const m = bpmn();
       Object.assign(m.elements, {
         L: lane('L'),
@@ -702,6 +770,7 @@ describe('29 — laneToAgentModel', () => {
           type: 'BPMNSwimlane',
           owner: null,
           isAgentic: true,
+          agentDiagramRef: 'agent-supervisor',
           bounds: { x: 0, y: 200, width: 400, height: 80 },
         },
         t1: { ...task('t1', 'Plan', 10), reflectionMode: 'cross', reflectionReviewerLaneId: 'L2' },
@@ -717,7 +786,7 @@ describe('29 — laneToAgentModel', () => {
       const ts = transitions(r.model);
 
       expect((plan as unknown as { description?: string }).description).toMatch(
-        /a2a:out;peer=Supervisor;ref=L2;flow=reflect:t1;order=1;kind=revises/,
+        /a2a:out;peer=Supervisor;ref=agent-supervisor;flow=reflect:t1;order=1;kind=revises/,
       );
 
       const inbound = ts.find((e) => e.source.element === greet.id && e.target.element === code.id)!;
@@ -726,7 +795,7 @@ describe('29 — laneToAgentModel', () => {
         'when_intent_matched',
       );
       expect((inbound as unknown as { intentName?: string }).intentName).toBe('recv_Supervisor_Plan');
-      expect(inbound.name).toMatch(/^a2a:in;peer=Supervisor;ref=L2;flow=reflect:t1;kind=revises$/);
+      expect(inbound.name).toMatch(/^a2a:in;peer=Supervisor;ref=agent-supervisor;flow=reflect:t1;kind=revises$/);
 
       const intent = Object.values(r.model.elements).find(
         (e) => e.type === 'AgentIntent' && e.name === 'recv_Supervisor_Plan',
@@ -759,7 +828,7 @@ describe('29 — laneToAgentModel', () => {
       ).toBeDefined();
     });
 
-    it("'cross' with dangling reviewer ID falls back to peer=reviewer but preserves ref=<id>", () => {
+    it("'cross' with dangling reviewer ID falls back to peer=reviewer with an empty ref", () => {
       const m = bpmn();
       Object.assign(m.elements, {
         L: lane('L'),
@@ -771,7 +840,7 @@ describe('29 — laneToAgentModel', () => {
       if (!r.ok) throw new Error('expected ok');
       const plan = findState(r.model, 'Plan')!;
       expect((plan as unknown as { description?: string }).description).toMatch(
-        /a2a:out;peer=reviewer;ref=no-such-lane;flow=reflect:t1;/,
+        /a2a:out;peer=reviewer;ref=;flow=reflect:t1;/,
       );
       expect(
         Object.values(r.model.elements).find((e) => e.type === 'AgentIntent' && e.name === 'recv_reviewer_Plan'),

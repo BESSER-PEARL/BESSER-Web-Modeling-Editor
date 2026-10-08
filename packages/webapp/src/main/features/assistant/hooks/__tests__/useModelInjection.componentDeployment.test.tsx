@@ -63,6 +63,7 @@ describe('useModelInjection for Component and Deployment diagrams', () => {
     await act(async () => {
       await result.current.handleInjection({
         action: 'inject_complete_system',
+        message: 'Done.',
         diagramType: 'ComponentDiagram',
         systemSpec: {
           subsystems: [{ id: 's1', name: 'Core' }],
@@ -91,6 +92,7 @@ describe('useModelInjection for Component and Deployment diagrams', () => {
     await act(async () => {
       await result.current.handleInjection({
         action: 'modify_model',
+        message: 'Done.',
         diagramType: 'ComponentDiagram',
         modifications: [modification],
       });
@@ -104,6 +106,7 @@ describe('useModelInjection for Component and Deployment diagrams', () => {
     await act(async () => {
       await result.current.handleInjection({
         action: 'inject_complete_system',
+        message: 'Done.',
         diagramType: 'DeploymentDiagram',
         systemSpec: {
           nodes: [{ id: 'n1', name: 'Server', stereotype: 'node' }],
@@ -134,6 +137,7 @@ describe('useModelInjection for Component and Deployment diagrams', () => {
     await act(async () => {
       await result.current.handleInjection({
         action: 'modify_model',
+        message: 'Done.',
         diagramType: 'DeploymentDiagram',
         modifications: [modification],
       });

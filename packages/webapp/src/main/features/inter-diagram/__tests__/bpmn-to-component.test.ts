@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import type { UMLModel, UMLElement } from '@besser/wme';
+import type { BPMNSwimlane, UMLElement, UMLModel } from '@besser/wme';
 import { bpmnModelToComponentModel, resolveBodyLlmName, resolveEdgeKind } from '../bpmn-to-component';
 import flatNoPools from './fixtures/flat-no-pools.json';
 import singlePoolNoLanes from './fixtures/single-pool-no-lanes.json';
@@ -100,9 +100,9 @@ describe('Inter-diagram — bpmnModelToComponentModel', () => {
       );
       expect(delegates).toHaveLength(0);
     });
-    it('does NOT surface an `inferred-external-component` warning', () => {
+    it('only warns about the tasks of the dropped non-agentic lane', () => {
       if (!r.ok) throw new Error('expected ok');
-      expect(r.warnings.some((w) => w.kind === 'inferred-external-component')).toBe(false);
+      expect(r.warnings.every((w) => w.kind === 'dropped-task-in-non-agentic-lane')).toBe(true);
     });
 
     it('drops a POOL-targeted message flow too (real-editor case: flow attaches to the pool, not the lane)', () => {
@@ -262,6 +262,39 @@ describe('Inter-diagram — bpmnModelToComponentModel', () => {
       expect(src.type).toBe('Component');
       expect(tgt.type).toBe('Subsystem');
       expect(tgt.name).toBe('LegacySystem');
+    });
+  });
+
+  describe('message-flow de-duplication', () => {
+    it('collapses several message flows between the same endpoints into one dependency', () => {
+      const model = JSON.parse(JSON.stringify(poolMessage)) as UMLModel;
+      const original = model.relationships['mf-1'];
+      model.relationships['mf-1-again'] = { ...original, id: 'mf-1-again' };
+      const r = bpmnModelToComponentModel(model);
+      if (!r.ok) throw new Error('expected ok');
+      const edges = Object.values(r.model.relationships).filter(
+        (rel) => r.elementMapping[rel.id] === 'mf-1' || r.elementMapping[rel.id] === 'mf-1-again',
+      );
+      expect(edges).toHaveLength(1);
+    });
+  });
+
+  describe('Subsystem sizing', () => {
+    it('grows a pool Subsystem so all of its lane Components fit inside', () => {
+      const model = JSON.parse(JSON.stringify(minimalAgentic)) as UMLModel;
+      const firstLane = Object.values(model.elements).find((e) => e.type === 'BPMNSwimlane')!;
+      for (let i = 0; i < 6; i++) {
+        model.elements[`extra-${i}`] = { ...firstLane, id: `extra-${i}`, name: `Agent ${i}` };
+      }
+      const r = bpmnModelToComponentModel(model);
+      if (!r.ok) throw new Error('expected ok');
+      const subsystem = Object.values(r.model.elements).find((e) => e.type === 'Subsystem')!;
+      const components = Object.values(r.model.elements).filter((e) => e.type === 'Component');
+      expect(components.length).toBeGreaterThanOrEqual(7);
+      expect(subsystem.bounds.width).toBeGreaterThan(640);
+      for (const c of components) {
+        expect(c.bounds.x + c.bounds.width).toBeLessThanOrEqual(subsystem.bounds.x + subsystem.bounds.width);
+      }
     });
   });
 
@@ -1207,16 +1240,13 @@ describe('Inter-diagram — bpmnModelToComponentModel', () => {
         type: 'AgentStateFallbackBody',
         name: 'Prompt content is not a model name',
         llm_name: '',
-      } as unknown as UMLElement;
+      };
+      const explicitBody = { ...body, llm_name: 'explicit-model' };
 
       expect(resolveBodyLlmName(model, body, 'other-model')).toBe('other-model');
       expect(resolveBodyLlmName(model, body, 'missing-model')).toBe('GPT model');
       expect(resolveBodyLlmName(model, body)).toBe('GPT model');
-      expect(resolveBodyLlmName(
-        model,
-        { ...body, llm_name: 'explicit-model' } as unknown as UMLElement,
-        'other-model',
-      )).toBe('explicit-model');
+      expect(resolveBodyLlmName(model, explicitBody, 'other-model')).toBe('explicit-model');
       expect(resolveBodyLlmName({ ...model, components: {} } as UMLModel, body)).toBe('LLM');
     });
 
@@ -1288,27 +1318,43 @@ describe('Inter-diagram — bpmnModelToComponentModel', () => {
   });
 
   describe('resolveEdgeKind — profile vocabulary and compatibility', () => {
-    const lane = (role: string): UMLElement =>
-      ({ id: role, type: 'BPMNSwimlane', isAgentic: true, role }) as unknown as UMLElement;
+    const lane = (role: string, isAgentic = true): BPMNSwimlane => ({
+      id: role,
+      name: role,
+      type: 'BPMNSwimlane',
+      owner: null,
+      bounds: { x: 0, y: 0, width: 400, height: 120 },
+      isAgentic,
+      role,
+      trustScore: 0,
+    });
 
     it('supervision → solution ⟹ supervises (old manager → worker)', () => {
-      expect(resolveEdgeKind(lane('supervision'), lane('solution'), undefined)).toBe('supervises');
+      expect(resolveEdgeKind(lane('supervision'), lane('solution'))).toBe('supervises');
     });
     it('solution → supervision ⟹ revises (old worker → manager)', () => {
-      expect(resolveEdgeKind(lane('solution'), lane('supervision'), undefined)).toBe('revises');
+      expect(resolveEdgeKind(lane('solution'), lane('supervision'))).toBe('revises');
     });
     it('non-agentic endpoint ⟹ delegates (fallback)', () => {
-      const plain = { id: 'x', type: 'BPMNSwimlane', isAgentic: false, role: 'solution' } as unknown as UMLElement;
-      expect(resolveEdgeKind(plain, lane('supervision'), undefined)).toBe('delegates');
+      expect(resolveEdgeKind(lane('solution', false), lane('supervision'))).toBe('delegates');
     });
   });
   describe('two-profile lane roles', () => {
-    const lane = (role: string) => ({ id: role, type: 'BPMNSwimlane', isAgentic: true, role }) as unknown as UMLElement;
+    const lane = (role: string, isAgentic = true): BPMNSwimlane => ({
+      id: role,
+      name: role,
+      type: 'BPMNSwimlane',
+      owner: null,
+      bounds: { x: 0, y: 0, width: 400, height: 120 },
+      isAgentic,
+      role,
+      trustScore: 0,
+    });
 
     it('maps supervision and solution pairs to the intended Component relationships', () => {
-      expect(resolveEdgeKind(lane('supervision'), lane('solution'), undefined)).toBe('supervises');
-      expect(resolveEdgeKind(lane('solution'), lane('supervision'), undefined)).toBe('revises');
-      expect(resolveEdgeKind(lane('solution'), lane('solution'), undefined)).toBe('collaborates');
+      expect(resolveEdgeKind(lane('supervision'), lane('solution'))).toBe('supervises');
+      expect(resolveEdgeKind(lane('solution'), lane('supervision'))).toBe('revises');
+      expect(resolveEdgeKind(lane('solution'), lane('solution'))).toBe('collaborates');
     });
 
     it('derives supervision to the Component supervision stereotype', () => {
