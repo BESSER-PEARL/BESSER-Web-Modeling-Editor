@@ -1,4 +1,5 @@
 import { useCallback } from "react"
+import type { XYPosition } from "@xyflow/react"
 import { useDiagramStore, useDiagramStoreApi } from "@/store/context"
 import { useShallow } from "zustand/shallow"
 import { sortNodesTopologically } from "@/utils"
@@ -10,6 +11,8 @@ import {
   getEdgesToRemove,
   materializeClipboardData,
 } from "@/utils/copyPasteUtils"
+import { centerPastedOn, withUniqueCopyNames } from "@/utils/elementNaming"
+import { CANVAS } from "@/constants"
 
 export const useSelectionForCopyPaste = () => {
   const {
@@ -73,8 +76,13 @@ export const useSelectionForCopyPaste = () => {
     return false
   }, [selectedElementIds, nodes, edges])
 
+  /**
+   * Pastes the clipboard. With `anchor` (flow coordinates) the copies are
+   * centred there, cascading 20 px per repeated paste; without it they land
+   * 20 px per paste down-right of the originals (duplicate).
+   */
   const pasteElements = useCallback(
-    async (pasteCount: number = 1) => {
+    async (pasteCount: number = 1, anchor?: XYPosition) => {
       try {
         let text: string
         if (navigator.clipboard && window.isSecureContext) {
@@ -93,10 +101,17 @@ export const useSelectionForCopyPaste = () => {
           return false
         }
 
-        const materialized = materializeClipboardData(
-          clipboardData,
-          pasteCount
-        )
+        let materialized = materializeClipboardData(clipboardData, pasteCount)
+        if (anchor) {
+          const cascade = CANVAS.PASTE_OFFSET_PX * Math.max(0, pasteCount - 1)
+          materialized = {
+            ...materialized,
+            ...centerPastedOn(materialized.nodes, materialized.edges, {
+              x: anchor.x + cascade,
+              y: anchor.y + cascade,
+            }),
+          }
+        }
 
         // Live state, not the render closure: the clipboard read is async,
         // so a second paste in quick succession must append to the first
@@ -111,10 +126,13 @@ export const useSelectionForCopyPaste = () => {
           ...currentNodes.map((node) => node.id),
           ...materialized.nodes.map((node) => node.id),
         ])
-        const pastedNodes = materialized.nodes.map((node) =>
-          node.parentId && !knownIds.has(node.parentId)
-            ? { ...node, parentId: undefined }
-            : node
+        const pastedNodes = withUniqueCopyNames(
+          materialized.nodes.map((node) =>
+            node.parentId && !knownIds.has(node.parentId)
+              ? { ...node, parentId: undefined }
+              : node
+          ),
+          currentNodes
         )
 
         const updatedExistingNodes = currentNodes.map((node) => ({

@@ -1,7 +1,12 @@
 import React, { useEffect, useMemo, useRef } from "react"
 import { useShallow } from "zustand/shallow"
 import { ThemeProvider } from "@mui/material/styles"
-import { useDiagramStore, useMetadataStore, usePopoverStore } from "@/store/context"
+import {
+  useDiagramStore,
+  useDiagramStoreApi,
+  useMetadataStore,
+  usePopoverStore,
+} from "@/store/context"
 import { BesserMode } from "@/typings"
 import { useResizable } from "./useResizable"
 import { getInspector, InspectorKind } from "../inspectors/registry"
@@ -25,6 +30,28 @@ import { getTypeLabel } from "./typeLabel"
  */
 const PANEL_WIDTH_VAR = "--besser-properties-panel-width"
 
+/** Editable text fields of the inspector body, in document order. */
+const FIELD_SELECTOR =
+  'input:not([type="hidden"]):not([type="checkbox"]):not([type="radio"]):not([disabled]):not([readonly]), textarea:not([disabled]):not([readonly])'
+
+/** The element's name field (first field labelled "name"), else the first field. */
+export const findNameField = (
+  root: HTMLElement
+): HTMLInputElement | HTMLTextAreaElement | null => {
+  const fields = [
+    ...root.querySelectorAll<HTMLInputElement | HTMLTextAreaElement>(
+      FIELD_SELECTOR
+    ),
+  ]
+  return (
+    fields.find((f) =>
+      /name/i.test(f.getAttribute("aria-label") || f.placeholder || "")
+    ) ??
+    fields[0] ??
+    null
+  )
+}
+
 /**
  * Right-side inspector for the React-Flow editor. Ports the v3
  * `properties-panel.tsx`:
@@ -46,6 +73,9 @@ const PANEL_WIDTH_VAR = "--besser-properties-panel-width"
  */
 export const PropertiesPanel: React.FC = () => {
   const wrapperRef = useRef<HTMLDivElement>(null)
+  const bodyRef = useRef<HTMLDivElement>(null)
+  const focusedRequestRef = useRef(0)
+  const diagramStoreApi = useDiagramStoreApi()
   const { width, onResizeStart } = useResizable()
   const { t, locale } = useTranslation()
 
@@ -61,10 +91,17 @@ export const PropertiesPanel: React.FC = () => {
   // never by plain selection or a palette drop. This is the same signal the
   // floating popover uses; the two surfaces are mutually exclusive
   // (PopoverManager bails out when the properties panel is the active mode).
-  const { popoverElementId, setPopOverElementId } = usePopoverStore(
+  const {
+    popoverElementId,
+    popoverRequest,
+    setPopOverElementId,
+    retargetPopOverElementId,
+  } = usePopoverStore(
     useShallow((s) => ({
       popoverElementId: s.popoverElementId,
+      popoverRequest: s.popoverRequest,
       setPopOverElementId: s.setPopOverElementId,
+      retargetPopOverElementId: s.retargetPopOverElementId,
     }))
   )
 
@@ -110,6 +147,35 @@ export const PropertiesPanel: React.FC = () => {
   }, [selectedType, inspectorKind])
 
   const isVisible = !!selectedId && !!InspectorComponent && !(mode === BesserMode.Exporting)
+
+  // While open, the panel follows the selection: selecting one other element
+  // (with an inspector) shows that element instead.
+  useEffect(() => {
+    if (!isVisible || !inspectorKind) return
+    return diagramStoreApi.subscribe((state, prev) => {
+      if (state.selectedElementIds === prev.selectedElementIds) return
+      const ids = [...new Set(state.selectedElementIds)]
+      if (ids.length !== 1 || ids[0] === selectedId) return
+      const element =
+        state.nodes.find((n) => n.id === ids[0]) ??
+        state.edges.find((e) => e.id === ids[0])
+      if (!element?.type || !getInspector(element.type, inspectorKind)) return
+      retargetPopOverElementId(ids[0])
+    })
+  }, [isVisible, inspectorKind, selectedId, diagramStoreApi, retargetPopOverElementId])
+
+  // An explicit open (double-click / Enter / edit button) puts the caret in
+  // the name field, as the old editor did. Following the selection does not:
+  // focus stays on the canvas so Delete / arrows keep acting on it.
+  useEffect(() => {
+    if (!isVisible || focusedRequestRef.current === popoverRequest) return
+    focusedRequestRef.current = popoverRequest
+    const body = bodyRef.current
+    const field = body && findNameField(body)
+    if (!field) return
+    field.focus({ preventScroll: true })
+    field.select()
+  }, [isVisible, popoverRequest])
 
   // Sync the CSS variable so external fixed-position siblings can dodge.
   useEffect(() => {
@@ -194,6 +260,7 @@ export const PropertiesPanel: React.FC = () => {
             </button>
           </div>
           <div
+            ref={bodyRef}
             className="besser-properties-panel__body"
             style={{
               flex: "1 1 auto",

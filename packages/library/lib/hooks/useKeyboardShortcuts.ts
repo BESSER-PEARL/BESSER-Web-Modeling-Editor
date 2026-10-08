@@ -1,5 +1,5 @@
 import { useEffect, useRef } from "react"
-import { useReactFlow, useStoreApi } from "@xyflow/react"
+import { useReactFlow, useStoreApi, type XYPosition } from "@xyflow/react"
 import {
   useDiagramStore,
   useDiagramStoreApi,
@@ -35,6 +35,8 @@ const CANVAS_ELEMENT_SELECTOR =
 
 // The properties panel and popovers own every key pressed inside them.
 const POPUP_SELECTOR = '.besser-properties-panel, .MuiPopover-root, [role="dialog"]'
+// Pointer travel (px) after which a repeated paste starts a new cascade.
+const PASTE_POINTER_MOVE_PX = 4
 
 export const isTextEntryTarget = (target: HTMLElement): boolean =>
   target.tagName === "INPUT" ||
@@ -53,6 +55,9 @@ export const isControlTarget = (target: HTMLElement): boolean => {
 
 export const useKeyboardShortcuts = () => {
   const pasteCountRef = useRef(0)
+  // Last pointer position (client px) and where the previous paste happened.
+  const pointerRef = useRef<XYPosition | null>(null)
+  const lastPastePointerRef = useRef<XYPosition | null>(null)
 
   const { undo, redo, canUndo, canRedo, undoManager, nodes, setNodes } =
     useDiagramStore(
@@ -66,14 +71,18 @@ export const useKeyboardShortcuts = () => {
         setNodes: state.setNodes,
       }))
     )
-  const setPopOverElementId = usePopoverStore(
-    (state) => state.setPopOverElementId
+  const { popoverElementId, setPopOverElementId } = usePopoverStore(
+    useShallow((state) => ({
+      popoverElementId: state.popoverElementId,
+      setPopOverElementId: state.setPopOverElementId,
+    }))
   )
   const { mode, readonly } = useMetadataStore(
     useShallow((state) => ({ mode: state.mode, readonly: state.readonly }))
   )
   const diagramStoreApi = useDiagramStoreApi()
-  const { zoomIn, zoomOut, zoomTo, fitView } = useReactFlow()
+  const { zoomIn, zoomOut, zoomTo, fitView, screenToFlowPosition } =
+    useReactFlow()
   const flowStoreApi = useStoreApi()
   const isDiagramModifiable = useDiagramModifiable()
   // Same gate as double-click (`useElementInteractions`).
@@ -95,9 +104,72 @@ export const useKeyboardShortcuts = () => {
     // Typing in a field keeps merging (captureTimeout), and so do the
     // auto-repeats of a held arrow key (one nudge burst).
     const handlePointerDown = () => undoManager?.stopCapturing()
+    const handlePointerMove = (event: PointerEvent) => {
+      pointerRef.current = { x: event.clientX, y: event.clientY }
+    }
+
+    /**
+     * Paste target in flow coordinates: the pointer when it is over the
+     * canvas, else the centre of the visible canvas.
+     */
+    const getPasteAnchor = (): XYPosition | undefined => {
+      const flowDom = flowStoreApi.getState().domNode
+      if (!flowDom) return undefined
+      const rect = flowDom.getBoundingClientRect()
+      const pointer = pointerRef.current
+      const overCanvas =
+        !!pointer &&
+        pointer.x >= rect.left &&
+        pointer.x <= rect.right &&
+        pointer.y >= rect.top &&
+        pointer.y <= rect.bottom
+      return screenToFlowPosition(
+        overCanvas
+          ? pointer
+          : { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 }
+      )
+    }
+
+    // Escape is only the canvas's while focus is on it (or nowhere): menus,
+    // dialogs and drawers of the host close on it themselves. Only closing the
+    // inspector consumes it (preventDefault), so one press closes one layer.
+    const handleEscape = (event: KeyboardEvent, target: HTMLElement) => {
+      if (event.ctrlKey || event.metaKey || event.altKey) return
+      const flowDom = flowStoreApi.getState().domNode
+      if (target.closest?.(".besser-properties-panel")) {
+        // An open select / autocomplete inside the panel closes first.
+        if (target.getAttribute("aria-expanded") === "true") return
+        if (!popoverElementId) return
+        // Blur first so fields that commit on blur keep the typed value.
+        if (isTextEntryTarget(target)) target.blur()
+        const editedId = popoverElementId
+        event.preventDefault()
+        setPopOverElementId(null)
+        flowDom
+          ?.querySelector<HTMLElement>(
+            `.react-flow__node[data-id="${CSS.escape(editedId)}"]`
+          )
+          ?.focus({ preventScroll: true })
+        return
+      }
+      const onCanvas =
+        target === document.body || (!!flowDom && flowDom.contains(target))
+      if (!onCanvas || isTextEntryTarget(target) || isInPopup(target)) return
+      // First Escape closes the open inspector, the next clears the selection.
+      if (popoverElementId) {
+        event.preventDefault()
+        setPopOverElementId(null)
+        return
+      }
+      clearSelection()
+    }
 
     const handleKeyDown = async (event: KeyboardEvent) => {
       const target = event.target as HTMLElement
+      if (event.key === "Escape") {
+        handleEscape(event, target)
+        return
+      }
       if (isTextEntryTarget(target)) {
         return
       }
@@ -151,14 +223,6 @@ export const useKeyboardShortcuts = () => {
         if (selection && selection.toString().length > 0) {
           return
         }
-      }
-
-      if (key === "Escape") {
-        if (!modifier && !isInPopup(target)) {
-          event.preventDefault()
-          clearSelection()
-        }
-        return
       }
 
       if (!modifier && !event.altKey && !inControl) {
@@ -264,8 +328,18 @@ export const useKeyboardShortcuts = () => {
         case "v":
           if (!event.shiftKey && !event.altKey) {
             event.preventDefault()
-            pasteCountRef.current += 1
-            pasteElements(pasteCountRef.current)
+            // Repeated pastes at the same spot cascade; moving the pointer
+            // starts again at the pointer.
+            const pointer = pointerRef.current
+            const last = lastPastePointerRef.current
+            const pointerMoved =
+              !!pointer &&
+              (!last ||
+                Math.hypot(pointer.x - last.x, pointer.y - last.y) >
+                  PASTE_POINTER_MOVE_PX)
+            pasteCountRef.current = pointerMoved ? 1 : pasteCountRef.current + 1
+            lastPastePointerRef.current = pointer
+            pasteElements(pasteCountRef.current, getPasteAnchor())
           }
           break
 
@@ -291,9 +365,11 @@ export const useKeyboardShortcuts = () => {
     // Capture phase, so an arrow nudge runs before React Flow's node handler.
     document.addEventListener("keydown", handleKeyDown, true)
     document.addEventListener("pointerdown", handlePointerDown, true)
+    document.addEventListener("pointermove", handlePointerMove, true)
     return () => {
       document.removeEventListener("keydown", handleKeyDown, true)
       document.removeEventListener("pointerdown", handlePointerDown, true)
+      document.removeEventListener("pointermove", handlePointerMove, true)
     }
   }, [
     undo,
@@ -311,6 +387,7 @@ export const useKeyboardShortcuts = () => {
     deleteSelectedElements,
     isDiagramModifiable,
     canOpenPopover,
+    popoverElementId,
     setPopOverElementId,
     nodes,
     setNodes,
@@ -320,6 +397,7 @@ export const useKeyboardShortcuts = () => {
     zoomOut,
     zoomTo,
     fitView,
+    screenToFlowPosition,
   ])
 }
 

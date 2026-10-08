@@ -62,6 +62,41 @@ const dropFloatingAgentBodies = <T extends { type?: string; parentId?: string }>
   return kept
 }
 
+/**
+ * Undo history depth. Each step pins the content it replaced in the Y.Doc,
+ * so an unbounded stack grows memory with every gesture.
+ */
+export const MAX_UNDO_STEPS = 200
+
+/** Lets Yjs reclaim what the dropped (oldest) undo steps were keeping alive. */
+const releaseUndoStackItems = (
+  ydoc: Y.Doc,
+  undoManager: Y.UndoManager,
+  stackItems: Y.UndoManager["undoStack"]
+) => {
+  ydoc.transact((tr) => {
+    for (const stackItem of stackItems) {
+      Y.iterateDeletedStructs(tr, stackItem.deletions, (struct) => {
+        if (
+          !(struct instanceof Y.Item) ||
+          !undoManager.scope.some((type) => Y.isParentOf(type, struct))
+        ) {
+          return
+        }
+        // Same as Yjs' internal `keepItem(item, false)` used by `clear()`.
+        for (
+          let item: Y.Item | null = struct;
+          item && item.keep;
+          item = (item.parent as Y.AbstractType<unknown>)._item
+        ) {
+          item.keep = false
+        }
+      })
+      Y.tryGc(stackItem.deletions, ydoc.store, ydoc.gcFilter)
+    }
+  })
+}
+
 export type DiagramStoreData = {
   nodes: Node[]
   edges: Edge[]
@@ -238,6 +273,14 @@ export const createDiagramStore = (
 
           // Listen to undo manager state changes
           undoManager.on("stack-item-added", () => {
+            const overflow = undoManager.undoStack.length - MAX_UNDO_STEPS
+            if (overflow > 0) {
+              releaseUndoStackItems(
+                ydoc,
+                undoManager,
+                undoManager.undoStack.splice(0, overflow)
+              )
+            }
             get().updateUndoRedoState()
           })
 

@@ -652,6 +652,54 @@ export class BesserEditor {
   }
 
   /**
+   * Replaces the model as ONE undoable step, keeping the undo history (for
+   * edits applied programmatically, e.g. by the assistant or a form). The
+   * `model` setter is for loads: it starts a fresh history and fits the view.
+   * The viewport is kept unless the canvas was empty before.
+   */
+  public applyModel(model: Besser.UMLModel): void {
+    const normalized = this.prepareAgentModel(
+      normalizeV4Model(hardenImportedModel(model))
+    )
+    const { nodes, edges, assessments, interactive } = normalized
+    const state = this.diagramStore.getState()
+    const wasEmpty = state.nodes.length === 0
+    const undoManager = state.undoManager
+
+    // Separate this step from the edits before and after it; the writes in
+    // between fall within one capture window and merge into a single step.
+    undoManager?.stopCapturing()
+    state.setNodesAndEdges(nodes, edges)
+    state.setAssessments(assessments)
+    state.setInteractive(interactive)
+    this.metadataStore
+      .getState()
+      .updateMetaData(normalized.title, parseDiagramType(normalized.type))
+
+    this.cancelModelSettle?.()
+    const instance = this.reactFlowInstance
+    if (!instance || typeof window === "undefined") {
+      undoManager?.stopCapturing()
+      return
+    }
+    this.pendingViewportAction = wasEmpty
+      ? () => void fitViewToModel(instance)
+      : undefined
+    // React Flow's measurement of new nodes joins the same step.
+    this.cancelModelSettle = whenModelRendered(
+      instance,
+      () => this.diagramStore.getState().nodes,
+      () => {
+        this.cancelModelSettle = undefined
+        this.diagramStore.getState().undoManager?.stopCapturing()
+        const action = this.pendingViewportAction
+        this.pendingViewportAction = undefined
+        action?.()
+      }
+    )
+  }
+
+  /**
    * Once React Flow has rendered the model now in the store: drop the undo
    * steps recorded by React Flow's first measurement of the new nodes, then
    * move the viewport -- by default (`fit`) as develop did on every model

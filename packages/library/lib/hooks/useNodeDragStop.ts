@@ -81,7 +81,7 @@ export const useNodeDragStop = () => {
           !(draggedNode.type === "bpmnPool" && n.type === "bpmnPool") &&
           n.type &&
           draggedNode.type &&
-          canDropIntoParent(draggedNode.type, n.type)
+          canDropIntoParent(draggedNode.type, n.type, n.data)
         )
       })
 

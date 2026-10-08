@@ -5,6 +5,7 @@ import {
   ReactFlow,
   SelectionMode,
   useStore,
+  useReactFlow,
   type Edge,
   type Node,
 } from "@xyflow/react"
@@ -27,7 +28,11 @@ import {
 import "@xyflow/react/dist/style.css"
 import "@/styles/app.css"
 import "@/styles/connections.css"
-import { useDiagramStore, useMetadataStore } from "./store/context"
+import {
+  useDiagramStore,
+  useMetadataStore,
+  usePopoverStore,
+} from "./store/context"
 import { useShallow } from "zustand/shallow"
 import { CANVAS } from "./constants"
 import { diagramEdgeTypes } from "./edges"
@@ -179,15 +184,12 @@ export async function fitViewToModel(instance: ReactFlowInstance) {
  * anchors are their only way to reconnect, so those stay on (selected only).
  */
 const RF_RECONNECT_EDGE_TYPES: ReadonlySet<string> = new Set([
-  "NNAssociation",
-  "NNComposition",
   "SfcDiagramEdge",
   "SyntaxTreeLink",
   "UseCaseAssociation",
   "UseCaseInclude",
   "UseCaseExtend",
   "UseCaseGeneralization",
-  "UserModelLink",
 ])
 
 /**
@@ -206,6 +208,69 @@ export const withReconnectableFlags = (edges: Edge[]): Edge[] => {
     return { ...edge, reconnectable }
   })
   return changed ? out : edges
+}
+
+/** Space kept between an element revealed for editing and the canvas edge. */
+const REVEAL_MARGIN_PX = 24
+
+/**
+ * Viewport shift (screen px) that brings `rect` inside a `width` x `height`
+ * canvas with `margin` around it; an element larger than the canvas is
+ * aligned to its top-left. Zero when already visible. Exported for tests.
+ */
+export const revealShift = (
+  rect: { x: number; y: number; width: number; height: number },
+  width: number,
+  height: number,
+  margin = REVEAL_MARGIN_PX
+): { dx: number; dy: number } => {
+  const axis = (start: number, size: number, extent: number) => {
+    let d = 0
+    if (start + size > extent - margin) d = extent - margin - (start + size)
+    if (start + d < margin) d = margin - start
+    return d
+  }
+  return {
+    dx: axis(rect.x, rect.width, width),
+    dy: axis(rect.y, rect.height, height),
+  }
+}
+
+/**
+ * Opening the properties panel narrows the canvas; pans the edited node back
+ * into view when the panel now covers it.
+ */
+function useRevealEditedNode(enabled: boolean) {
+  const popoverElementId = usePopoverStore((s) => s.popoverElementId)
+  const { getInternalNode, getViewport, setViewport } = useReactFlow()
+  const domNode = useStore((s) => s.domNode)
+  useEffect(() => {
+    if (!enabled || !popoverElementId || !domNode) return
+    // Two frames: the panel has mounted and the canvas has been re-laid out.
+    let raf = requestAnimationFrame(() => {
+      raf = requestAnimationFrame(() => {
+        const node = getInternalNode(popoverElementId)
+        if (!node || node.hidden) return
+        const { x, y, zoom } = getViewport()
+        const pos = node.internals.positionAbsolute
+        const canvas = domNode.getBoundingClientRect()
+        const { dx, dy } = revealShift(
+          {
+            x: pos.x * zoom + x,
+            y: pos.y * zoom + y,
+            width: (node.measured.width ?? node.width ?? 0) * zoom,
+            height: (node.measured.height ?? node.height ?? 0) * zoom,
+          },
+          canvas.width,
+          canvas.height
+        )
+        if (dx || dy) {
+          void setViewport({ x: x + dx, y: y + dy, zoom }, { duration: 200 })
+        }
+      })
+    })
+    return () => cancelAnimationFrame(raf)
+  }, [enabled, popoverElementId, domNode, getInternalNode, getViewport, setViewport])
 }
 
 function App({ onReactFlowInit }: AppProps) {
@@ -239,6 +304,7 @@ function App({ onReactFlowInit }: AppProps) {
   // surface. Toggling `usePropertiesPanel` in `settingsService` flips this
   // reactively without remounting the editor (replaces v3 `editorRevision++`).
   const showPropertiesPanel = useUsePropertiesPanel()
+  useRevealEditedNode(showPropertiesPanel && mode !== BesserMode.Exporting)
 
   const connectionLineType = getConnectionLineType(diagramType)
   const onNodeDragStop = useNodeDragStop()

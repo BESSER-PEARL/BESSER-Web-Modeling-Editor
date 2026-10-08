@@ -22,6 +22,8 @@ import { log } from "../logger"
 import { translate, useTranslation } from "@/i18n"
 import { Locale } from "@/typings"
 import { createNewNodeDataWithNewIds } from "@/utils/copyPasteUtils"
+import { withNumberedPaletteName } from "@/utils/elementNaming"
+import { withMandatoryNNDefaults } from "@/utils/nnMandatoryDefaults"
 
 /* ========================================================================
    Utility functions to manage page scrolling during dragging
@@ -161,6 +163,16 @@ export const getClickInsertPosition = (
   return best
 }
 
+/**
+ * Creation-time data of a palette element: NN layers get their mandatory
+ * attribute defaults, classes / agent states a numbered name (Class1, ...).
+ */
+export const finalizeNewNode = (node: Node, nodes: readonly Node[]): Node =>
+  withNumberedPaletteName(
+    { ...node, data: withMandatoryNNDefaults(node.type ?? "", node.data) },
+    nodes
+  )
+
 /** Make `newNodeId` the only selected element (palette click-insert and drop). */
 const selectOnly = (
   state: DiagramStore,
@@ -277,7 +289,7 @@ export const DraggableGhost: React.FC<DraggableGhostProps> = ({
         return (
           isParentNodeType(node.type) &&
           node.type &&
-          canDropIntoParent(dropElementConfig.type, node.type)
+          canDropIntoParent(dropElementConfig.type, node.type, node.data)
         )
       })
 
@@ -317,7 +329,7 @@ export const DraggableGhost: React.FC<DraggableGhostProps> = ({
         dropData.type === "bpmnSwimlane" && parentNode?.type === "bpmnPool"
 
       // Create the new node with a unique ID and calculated position
-      const newNode: Node = {
+      const newNode: Node = finalizeNewNode({
         id: generateUUID(),
         width: dropElementConfig.dropWidth ?? dropElementConfig.width,
         height: dropElementConfig.dropHeight ?? dropElementConfig.height,
@@ -332,7 +344,7 @@ export const DraggableGhost: React.FC<DraggableGhostProps> = ({
         },
         // Lanes are pool-driven, not free-dragging (as BPMNPoolEditPopover).
         ...(isLaneIntoPool ? { draggable: false } : {}),
-      }
+      }, nodes)
 
       // Update nodes and resize parent nodes if necessary
       let updatedNodes = structuredClone([...nodes, newNode])
@@ -407,17 +419,20 @@ export const DraggableGhost: React.FC<DraggableGhostProps> = ({
       state.nodes
     )
 
-    const newNode: Node = {
-      id: generateUUID(),
-      width,
-      height,
-      type: dropElementConfig.type,
-      position,
-      data: cloneDefaultDataWithFreshRowIds(
-        resolvePaletteDefaultData(dropElementConfig, locale)
-      ),
-      measured: { width, height },
-    }
+    const newNode: Node = finalizeNewNode(
+      {
+        id: generateUUID(),
+        width,
+        height,
+        type: dropElementConfig.type,
+        position,
+        data: cloneDefaultDataWithFreshRowIds(
+          resolvePaletteDefaultData(dropElementConfig, locale)
+        ),
+        measured: { width, height },
+      },
+      state.nodes
+    )
 
     selectOnly(state, [...state.nodes, newNode], newNode.id)
   }, [
