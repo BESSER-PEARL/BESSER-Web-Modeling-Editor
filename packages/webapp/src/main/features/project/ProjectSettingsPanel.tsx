@@ -37,6 +37,8 @@ const DIAGRAM_NAV_LABEL_KEY: Record<SupportedDiagramType, string> = {
   StateMachineDiagram: 'nav.diagram.state',
   AgentDiagram: 'nav.diagram.agent',
   BPMN: 'nav.diagram.bpmn',
+  ComponentDiagram: 'nav.diagram.component',
+  DeploymentDiagram: 'nav.diagram.deployment',
   UserDiagram: 'nav.diagram.user',
   NNDiagram: 'nav.diagram.neuralNet',
   GUINoCodeDiagram: 'nav.diagram.gui',

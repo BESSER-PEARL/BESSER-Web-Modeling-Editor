@@ -26,7 +26,7 @@ import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { FormField } from '@/components/ui/form-field';
 import { TooltipProvider } from '@/components/ui/tooltip';
-import { BesserProject, InterfaceMode, PerspectiveSettings } from '../../shared/types/project';
+import { BesserProject, InterfaceMode, PerspectiveSettings, SupportedDiagramType } from '../../shared/types/project';
 import { trackInterfaceChoice, trackProjectCreated } from '../../shared/services/analytics/interfaceChoice';
 import { FirstRunLanding } from './FirstRunLanding';
 import { PERSPECTIVES, perspectivesFromDiagramList } from '../../shared/perspectives';
@@ -144,6 +144,12 @@ const resolvePerspectives = (key: string): PerspectiveSettings | undefined => {
   const preset = PERSPECTIVES.find((p) => p.key === key);
   return preset ? perspectivesFromDiagramList(preset.diagrams) : undefined;
 };
+
+// The diagram a project created with the preset opens on (Multi-Agent → BPMN).
+// Without one, createDefaultProject picks the first visible type in sidebar
+// order, so the project never opens on a diagram hidden from the sidebar.
+const resolveEntryDiagram = (key: string): SupportedDiagramType | undefined =>
+  PERSPECTIVES.find((p) => p.key === key)?.entryDiagram;
 
 const readableFileSize = (bytes: number): string => {
   if (bytes < 1024) {
@@ -444,6 +450,7 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
         owner || defaultForm.owner,
         resolvePerspectives(createPerspectiveKey),
         pendingPreferredInterface ?? undefined,
+        resolveEntryDiagram(createPerspectiveKey),
       );
       trackProjectCreated(pendingPreferredInterface ?? 'model', 'form');
       refreshProjects();

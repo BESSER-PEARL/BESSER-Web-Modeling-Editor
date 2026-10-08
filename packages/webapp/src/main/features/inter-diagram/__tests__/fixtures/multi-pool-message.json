@@ -1,0 +1,72 @@
+{
+  "version": "3.0.0",
+  "type": "BPMNDiagram",
+  "size": { "width": 1200, "height": 600 },
+  "elements": {
+    "pool-a": {
+      "id": "pool-a",
+      "name": "SwarmA",
+      "type": "BPMNPool",
+      "owner": null,
+      "bounds": { "x": 40, "y": 40, "width": 500, "height": 200 }
+    },
+    "lane-a-mgr": {
+      "id": "lane-a-mgr",
+      "name": "Coordinator",
+      "type": "BPMNSwimlane",
+      "owner": "pool-a",
+      "bounds": { "x": 60, "y": 60, "width": 480, "height": 160 },
+      "isAgentic": true,
+      "role": "supervision",
+      "trustScore": 80
+    },
+    "task-a-mgr": {
+      "id": "task-a-mgr",
+      "name": "Request data",
+      "type": "BPMNTask",
+      "owner": "lane-a-mgr",
+      "bounds": { "x": 120, "y": 100, "width": 160, "height": 60 },
+      "isAgentic": true
+    },
+    "pool-b": {
+      "id": "pool-b",
+      "name": "SwarmB",
+      "type": "BPMNPool",
+      "owner": null,
+      "bounds": { "x": 600, "y": 40, "width": 500, "height": 200 }
+    },
+    "lane-b-ext": {
+      "id": "lane-b-ext",
+      "name": "External API",
+      "type": "BPMNSwimlane",
+      "owner": "pool-b",
+      "bounds": { "x": 620, "y": 60, "width": 480, "height": 160 },
+      "isAgentic": false
+    },
+    "task-b-ext": {
+      "id": "task-b-ext",
+      "name": "Serve",
+      "type": "BPMNTask",
+      "owner": "lane-b-ext",
+      "bounds": { "x": 680, "y": 100, "width": 160, "height": 60 }
+    }
+  },
+  "interactive": { "elements": {}, "relationships": {} },
+  "relationships": {
+    "msg-flow": {
+      "id": "msg-flow",
+      "name": "fetch",
+      "type": "BPMNFlow",
+      "flowType": "message",
+      "owner": null,
+      "bounds": { "x": 280, "y": 130, "width": 400, "height": 1 },
+      "path": [
+        { "x": 280, "y": 130 },
+        { "x": 680, "y": 130 }
+      ],
+      "source": { "element": "task-a-mgr", "direction": "Right" },
+      "target": { "element": "task-b-ext", "direction": "Left" }
+    }
+  },
+  "assessments": {}
+}

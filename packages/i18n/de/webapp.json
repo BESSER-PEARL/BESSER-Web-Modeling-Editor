@@ -49,6 +49,8 @@
       "state": "Zustand",
       "agent": "Agent",
       "bpmn": "BPMN",
+      "component": "Komponente",
+      "deployment": "Bereitstellung",
       "user": "Benutzer",
       "neuralNet": "Neuronales Netz",
       "gui": "GUI",
@@ -86,6 +88,9 @@
       "title": "Generieren",
       "generating": "Wird generiert…",
       "goToClassDiagram": "Zum Klassendiagramm",
+      "deriveComponentDiagram": "Komponentendiagramm generieren",
+      "deriveDeploymentDiagram": "Bereitstellungsdiagramm generieren",
+      "generateDockerCompose": "Docker Compose generieren",
       "groups": {
         "web": "Web",
         "database": "Datenbank",
@@ -856,6 +861,12 @@
       "stepPackaging": "Ausgabe wird verpackt…",
       "stepGenerating": "Code wird generiert…",
       "stepParsing": "Diagramm wird analysiert…"
+    },
+    "dockerCompose": {
+      "invalidGovernanceTitle": "Ungültige Governance-DSL",
+      "invalidGovernance": "Prüfen Sie die Governance-Richtlinie am Gateway „{{gateway}}“. Details finden Sie in der Browser-Konsole.",
+      "deploymentDiagramRequired": "Kein Inhalt im Deployment-Diagramm gefunden – fügen Sie vor dem Generieren mindestens ein Element hinzu.",
+      "noLinkedAgents": "Noch ist kein Agent mit einem Artefakt verknüpft. Leiten Sie das Deployment-Diagramm über BPMN → Komponente ab, um die Agentenkontexte zu verbinden."
     }
   },
   "project": {
@@ -1049,6 +1060,10 @@
             "label": "Agent-Entwickler",
             "description": "Agenten- und Benutzerdiagramme für Konversationsagenten."
           },
+          "agenticSwarm": {
+            "label": "Multi-Agenten",
+            "description": "Agentisches BPMN sowie Agenten-, Komponenten- und Bereitstellungsdiagramme."
+          },
           "fullApp": {
             "label": "Vollständige Webanwendung",
             "description": "Klassen-, Agenten- und No-Code-GUI-Diagramme."
@@ -1105,7 +1120,8 @@
         "State Machine Diagram": "Zustandsautomaten Diagramm",
         "Quantum Circuit": "Quantenschaltkreis",
         "Neural Network": "Neuronales Netz",
-        "Full Project": "Gesamtprojekt"
+        "Full Project": "Gesamtprojekt",
+        "Multi-agent": "Multi-Agenten"
       },
       "confirm": {
         "title": "Vorhandenes Diagramm erkannt",
@@ -1624,6 +1640,8 @@
     "GUINoCodeDiagram": "GUI-Diagramm",
     "QuantumCircuitDiagram": "Quantenschaltkreisdiagramm",
     "BPMN": "BPMN-Diagramm",
+    "ComponentDiagram": "Komponentendiagramm",
+    "DeploymentDiagram": "Bereitstellungsdiagramm",
     "NNDiagram": "Neuronales-Netz-Diagramm"
   },
   "dialogs": {
@@ -2124,7 +2142,16 @@
       "editAsForm": "Als Formular bearbeiten",
       "closeForm": "Formular schließen",
       "editAsFormTitle": "Dieses Profil mit einem geführten Formular bearbeiten",
-      "closeFormTitle": "Benutzerprofil-Formular schließen"
+      "closeFormTitle": "Benutzerprofil-Formular schließen",
+      "lineage": {
+        "sourceDeleted": "← Quelldiagramm gelöscht ({{type}})",
+        "derivedFrom": "← Abgeleitet von <em>{{title}}</em> ({{type}})",
+        "sourceChangedTitle": "Das Quelldiagramm wurde seit der Ableitung dieses Diagramms geändert.",
+        "sourceChanged": "Quelle geändert",
+        "implementationOf": "← Implementierung von <em>{{lane}}</em>",
+        "unnamedLane": "(unbenannte Bahn)",
+        "openFailed": "Das Quelldiagramm konnte nicht geöffnet werden."
+      }
     },
     "charts": {
       "loadingChart": "Diagramm wird geladen…",
@@ -2790,7 +2817,9 @@
       "GUINoCodeDiagram": "Bildschirme (GUI)",
       "QuantumCircuitDiagram": "Quantenschaltkreis",
       "NNDiagram": "Neuronales-Netz-Diagramm",
-      "BPMN": "BPMN-Prozess"
+      "BPMN": "BPMN-Prozess",
+      "ComponentDiagram": "Komponentendiagramm",
+      "DeploymentDiagram": "Bereitstellungsdiagramm"
     }
   },
   "import": {
@@ -2820,6 +2849,10 @@
       "readFileFailed": "Datei konnte nicht gelesen werden",
       "invalidFromBackend": "Ungültiges Diagramm vom Backend zurückgegeben",
       "couldNotParseError": "Fehlerantwort konnte nicht verarbeitet werden"
+    },
+    "warnings": {
+      "danglingAgentRef": "Element „{{name}}“ verweist auf ein Agentenverhalten, das in diesem Projekt nicht existiert. Verwenden Sie daran „Agentenverhalten definieren“, um ein neues zu erstellen.",
+      "unnamedElement": "(unbenannt)"
     }
   },
   "validation": {
@@ -3121,6 +3154,60 @@
   "errors": {
     "network": {
       "unreachable": "Server nicht erreichbar. Prüfe deine Verbindung und versuche es erneut."
+    }
+  },
+  "interDiagram": {
+    "linker": {
+      "bpmnNotActive": "Agent kann nicht definiert werden: Das BPMN-Diagramm ist nicht aktiv.",
+      "noProject": "Es ist kein Projekt geöffnet.",
+      "limitReached": "Es können keine weiteren Agent-Diagramme hinzugefügt werden (max. {{max}} pro Projekt). Löschen Sie zuerst ein vorhandenes Agent-Diagramm.",
+      "flushFailed": "Das BPMN-Diagramm konnte vor dem Definieren des Agenten nicht gespeichert werden. Bitte versuchen Sie es erneut.",
+      "createFailed": "Das Agent-Diagramm konnte nicht erstellt werden. Bitte versuchen Sie es erneut.",
+      "linkNotSaved": "Das Agent-Diagramm wurde erstellt, aber die Verknüpfung konnte nicht am BPMN-Element gespeichert werden.",
+      "openFailed": "Das Agent-Diagramm wurde erstellt, konnte aber nicht geöffnet werden. Öffnen Sie es über die Tabs der Agent-Diagramme.",
+      "openExistingFailed": "Das Agent-Diagramm konnte nicht geöffnet werden.",
+      "populateFailed": "Das Agent-Diagramm wurde erstellt, aber das Befüllen aus der Bahn ist fehlgeschlagen.",
+      "derivedWithWarnings_one": "Agent-Diagramm mit {{count}} Warnung erstellt:",
+      "derivedWithWarnings_other": "Agent-Diagramm mit {{count}} Warnungen erstellt:",
+      "emptyAgent": {
+        "noTasksInLane": "Die Bahn hat noch keine Aufgaben, daher beginnt das Agent-Diagramm leer.",
+        "laneNotAgentic": "Die Bahn ist nicht agentisch, daher beginnt das Agent-Diagramm leer.",
+        "laneNotFound": "Die Bahn konnte nicht gelesen werden, daher beginnt das Agent-Diagramm leer."
+      }
+    },
+    "derive": {
+      "component": {
+        "failed": "Das Komponentendiagramm kann nicht abgeleitet werden: {{reason}}",
+        "noPools": "Fügen Sie diesem BPMN-Diagramm zuerst mindestens einen Pool mit Bahnen hinzu.",
+        "noLanes": "Fügen Sie zuerst mindestens eine Bahn in einen Pool ein.",
+        "notBpmn": "Diese Aktion funktioniert nur in einem BPMN-Diagramm.",
+        "limitReached": "Das Projekt hat bereits die maximale Anzahl an Komponentendiagrammen. Löschen Sie eines, bevor Sie ein neues generieren.",
+        "done": "Komponentendiagramm generiert.",
+        "doneWithWarnings_one": "Komponentendiagramm mit {{count}} Warnung generiert:",
+        "doneWithWarnings_other": "Komponentendiagramm mit {{count}} Warnungen generiert:"
+      },
+      "deployment": {
+        "failed": "Das Bereitstellungsdiagramm kann nicht abgeleitet werden: {{reason}}",
+        "noComponents": "Fügen Sie diesem Komponentendiagramm zuerst mindestens eine Komponente hinzu.",
+        "notComponentDiagram": "Diese Aktion funktioniert nur in einem Komponentendiagramm.",
+        "limitReached": "Das Projekt hat bereits die maximale Anzahl an Bereitstellungsdiagrammen. Löschen Sie eines, bevor Sie ein neues generieren.",
+        "done": "Bereitstellungsdiagramm generiert.",
+        "doneWithWarnings_one": "Bereitstellungsdiagramm mit {{count}} Warnung generiert:",
+        "doneWithWarnings_other": "Bereitstellungsdiagramm mit {{count}} Warnungen generiert:"
+      }
+    },
+    "warnings": {
+      "more": "…und {{count}} weitere",
+      "unnamed": "(unbenannt)",
+      "droppedTask": "Die Aufgabe „{{task}}“ liegt in der nicht agentischen Bahn „{{lane}}“ und erscheint daher nicht im Komponentendiagramm.",
+      "capabilityHeavyAgent": "Der Agent „{{lane}}“ nutzt {{count}} Werkzeuge, Fähigkeiten und Ressourcen; sein Teil des Diagramms kann daher unübersichtlich werden.",
+      "capabilityHeavyZone": "Die Gruppe „{{zone}}“ enthält {{count}} Elemente und kann unübersichtlich werden.",
+      "danglingAgentRef": "„{{name}}“ verweist auf ein Agent-Diagramm, das nicht mehr in diesem Projekt ist; seine Werkzeuge und Fähigkeiten wurden übersprungen.",
+      "flatScaffold": "Das Komponentendiagramm hat keine Subsysteme, daher liegen alle Komponenten auf einem Docker Host. Fügen Sie Subsysteme für ein detaillierteres Layout hinzu.",
+      "ioUnresolvedIn": "Der Fluss von „{{peer}}“ erreicht keine Aufgabe dieser Bahn, daher empfängt ihn kein Zustand.",
+      "ioUnresolvedOut": "Der Fluss zu „{{peer}}“ beginnt bei keiner Aufgabe dieser Bahn, daher sendet ihn kein Zustand.",
+      "mergeNoProducers": "Das gesteuerte Zusammenführungs-Gateway „{{gateway}}“ hat keinen eingehenden Fluss, daher hat sein Entscheidungszustand keinen eingehenden Übergang. Fügen Sie ihn von Hand hinzu.",
+      "mergeNoSuccessors": "Das gesteuerte Zusammenführungs-Gateway „{{gateway}}“ führt zu keiner Aufgabe dieser Bahn, daher hat sein Entscheidungszustand keinen ausgehenden Übergang. Fügen Sie ihn von Hand hinzu."
     }
   }
 }

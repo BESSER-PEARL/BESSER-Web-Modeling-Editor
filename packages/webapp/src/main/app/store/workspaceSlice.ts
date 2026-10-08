@@ -3,6 +3,8 @@ import { ApollonMode, Locale, Styles, UMLDiagramType, UMLModel } from '@besser/w
 import {
   ALL_DIAGRAM_TYPES,
   BesserProject,
+  DiagramLineage,
+  ElementLineageMap,
   InterfaceMode,
   MAX_DIAGRAMS_PER_TYPE,
   PerspectiveSettings,
@@ -177,16 +179,26 @@ export const createProjectThunk = createAsyncThunk(
     owner,
     perspectives,
     preferredInterface,
+    initialDiagramType,
   }: {
     name: string;
     description: string;
     owner: string;
     perspectives?: PerspectiveSettings;
     preferredInterface?: InterfaceMode;
+    /** Diagram to open on (a preset's entry diagram); see `resolveInitialDiagramType`. */
+    initialDiagramType?: SupportedDiagramType;
   }) => {
     let project!: BesserProject;
     ProjectStorageRepository.withoutNotify(() => {
-      project = ProjectStorageRepository.createNewProject(name, description, owner, perspectives, preferredInterface);
+      project = ProjectStorageRepository.createNewProject(
+        name,
+        description,
+        owner,
+        perspectives,
+        preferredInterface,
+        initialDiagramType,
+      );
     });
     return project;
   },
@@ -236,6 +248,20 @@ export const switchDiagramIndexThunk = createAsyncThunk(
     if (!diagram) throw new Error('Failed to switch diagram index');
 
     return { diagram, diagramType, index };
+  },
+);
+
+/**
+ * Open the diagram at `index` of any diagram type, e.g. for the lineage
+ * "jump to source" links. switchDiagramTypeThunk expects the UML wire value
+ * for UML types ('BPMNDiagram', not 'BPMN'), so the conversion lives here
+ * instead of at every call site.
+ */
+export const openDiagramThunk = createAsyncThunk(
+  'workspace/openDiagram',
+  async ({ diagramType, index }: { diagramType: SupportedDiagramType; index: number }, { dispatch }) => {
+    await dispatch(switchDiagramTypeThunk({ diagramType: toUMLDiagramType(diagramType) ?? diagramType })).unwrap();
+    await dispatch(switchDiagramIndexThunk({ diagramType, index })).unwrap();
   },
 );
 
@@ -474,7 +500,16 @@ export const updateDiagramReferencesThunk = createAsyncThunk(
 export const addDiagramThunk = createAsyncThunk(
   'workspace/addDiagram',
   async (
-    { diagramType, title }: { diagramType: SupportedDiagramType; title?: string },
+    {
+      diagramType,
+      title,
+      derivedFrom,
+    }: {
+      diagramType: SupportedDiagramType;
+      title?: string;
+      /** Lineage metadata set by inter-diagram derivation hooks. */
+      derivedFrom?: DiagramLineage;
+    },
     { getState },
   ) => {
     const state = getState() as { workspace: WorkspaceState };
@@ -494,12 +529,38 @@ export const addDiagramThunk = createAsyncThunk(
 
     let result: { index: number; diagram: ProjectDiagram } | null = null;
     ProjectStorageRepository.withoutNotify(() => {
-      result = ProjectStorageRepository.addDiagram(project.id, diagramType, title);
+      result = ProjectStorageRepository.addDiagram(project.id, diagramType, title, derivedFrom);
     });
     if (!result) throw new Error('Failed to add diagram');
 
     const { index: newIndex, diagram } = result as { index: number; diagram: ProjectDiagram };
     return { diagramType, index: newIndex, diagram };
+  },
+);
+
+/**
+ * Write an `ElementLineageMap` sidecar for a derived diagram.
+ * Called by inter-diagram derivation hooks after the derived
+ * diagram is added and its model is stamped.
+ */
+export const setElementLineageThunk = createAsyncThunk(
+  'workspace/setElementLineage',
+  async (
+    { derivedDiagramId, mapping }: { derivedDiagramId: string; mapping: ElementLineageMap },
+    { getState },
+  ) => {
+    const state = getState() as { workspace: WorkspaceState };
+    const { project } = state.workspace;
+    if (!project) throw new Error('No active project');
+
+    ProjectStorageRepository.withoutNotify(() => {
+      const p = ProjectStorageRepository.loadProject(project.id);
+      if (!p) return;
+      p.elementLineage = { ...(p.elementLineage ?? {}), [derivedDiagramId]: mapping };
+      ProjectStorageRepository.saveProject(p);
+    });
+
+    return { derivedDiagramId, mapping };
   },
 );
 
@@ -745,6 +806,18 @@ const workspaceSlice = createSlice({
       .addCase(addDiagramThunk.rejected, (state, action) => {
         console.error('addDiagramThunk failed:', action.error.message);
         state.error = action.error.message || 'Failed to add diagram';
+      })
+
+      // ── Element lineage sidecar ────────────────────────────────
+      .addCase(setElementLineageThunk.fulfilled, (state, action) => {
+        if (!state.project) return;
+        state.project.elementLineage = {
+          ...(state.project.elementLineage ?? {}),
+          [action.payload.derivedDiagramId]: action.payload.mapping,
+        };
+      })
+      .addCase(setElementLineageThunk.rejected, (state, action) => {
+        console.error('setElementLineageThunk failed:', action.error.message);
       })
 
       // ── Remove diagram ────────────────────────────────────────

@@ -14,6 +14,7 @@ import { BPMNIntermediateEventType } from './packages/bpmn/bpmn-intermediate-eve
 import { BPMNTaskType } from './packages/bpmn/bpmn-task/bpmn-task';
 import { BPMNFlowType } from './packages/bpmn/bpmn-flow/bpmn-flow';
 import { BPMNMarkerType } from './packages/bpmn/common/types';
+import { BPMNAgentRole, BPMNGatewayRole, BPMNReflectionMode } from './packages/bpmn/common/types';
 
 export { UMLDiagramType, UMLElementType, UMLRelationshipType, ApollonMode, Locale };
 export type { Styles };
@@ -28,6 +29,8 @@ export type ApollonOptions = {
   locale?: Locale;
   copyPasteToClipboard?: boolean;
   colorEnabled?: boolean;
+  /** Shows the agentic BPMN controls (Agentic switches on lanes, tasks and gateways). */
+  agenticEnabled?: boolean;
   scale?: number;
 };
 
@@ -302,7 +305,18 @@ export type UMLDeploymentNode = UMLElement & {
   displayStereotype: boolean;
 };
 
+export type UMLDeploymentArtifact = UMLElement & {
+  manifests?: string[];
+  // UUID of the Agent diagram this artifact deploys, threaded
+  // from the source agentic lane's `agentDiagramRef` via Component.agentModelRef.
+  // BESSER reads this as `Artifact.agent_model_ref` to resolve
+  // which BAF agent to bake into the artifact's build context.
+  agentModelRef?: string;
+};
+
 export type UMLDeploymentComponent = UMLElement & {
+  // Absent on models saved before the stereotype was serialized.
+  stereotype?: string;
   displayStereotype: boolean;
 };
 
@@ -312,7 +326,16 @@ export type UMLComponentSubsystem = UMLElement & {
 };
 
 export type UMLComponentComponent = UMLElement & {
+  // Absent on models saved before the stereotype was serialized.
+  stereotype?: string;
   displayStereotype: boolean;
+  realizes?: string[];
+  processModelRefs?: string[];
+  // UUID of the Agent diagram this agent-Component is defined by,
+  // copied from the source lane's `agentDiagramRef` during BPMN→Component
+  // derivation. Waypoint on the way to the Deployment Artifact (carried via
+  // the Artifact).
+  agentModelRef?: string;
 };
 
 export type UMLPetriNetPlace = UMLElement & {
@@ -320,9 +343,31 @@ export type UMLPetriNetPlace = UMLElement & {
   capacity: number | string;
 };
 
+// Agentic BPMN: `isAgentic` / `role` / `reflectionMode` / `trustScore` live on
+// the base swimlane, task and gateway — there are no separate agentic types.
+// The agentic fields are only serialized for agentic elements.
+// `agentDiagramRef` is an optional cross-diagram link to the BESSER Agent
+// diagram that defines the element's agent.
+export type BPMNSwimlane = UMLElement & {
+  isAgentic?: boolean;
+  role?: BPMNAgentRole;
+  trustScore?: number;
+  multiplicity?: number;
+  agentDiagramRef?: string;
+};
+
 export type BPMNTask = UMLElement & {
   taskType: BPMNTaskType;
   marker: BPMNMarkerType;
+  isAgentic?: boolean;
+  reflectionMode?: BPMNReflectionMode;
+  trustScore?: number;
+  // Cross-diagram link from an agentic task to the BESSER Agent
+  // diagram that defines its internal behavior.
+  agentDiagramRef?: string;
+  // Cross-reflection reviewer: the ID of the agentic BPMN lane whose
+  // agent reviews this task's output. Absent = placeholder peer="reviewer".
+  reflectionReviewerLaneId?: string;
 };
 
 export type BPMNSubprocess = UMLElement & {
@@ -339,6 +384,10 @@ export type BPMNCallActivity = UMLElement & {
 
 export type BPMNGateway = UMLElement & {
   gatewayType: BPMNGatewayType;
+  isAgentic?: boolean;
+  gatewayRole?: BPMNGatewayRole;
+  trustScore?: number;
+  governanceDsl?: string;
 };
 
 export type BPMNStartEvent = UMLElement & {
@@ -383,6 +432,14 @@ export type UMLAssociation = UMLRelationship & {
      */
     navigable?: boolean;
   };
+};
+
+export type UMLComponentDependency = UMLRelationship & {
+  stereotype?: string;
+};
+
+export type UMLDeploymentAssociation = UMLRelationship & {
+  stereotype?: string;
 };
 
 export type UMLCommunicationLink = UMLRelationship & {

@@ -10,8 +10,6 @@ import { localized } from '../../../components/i18n/localized';
 import { ModelState } from '../../../components/store/model-state';
 import { styled } from '../../../components/theme/styles';
 import { UMLElementRepository } from '../../../services/uml-element/uml-element-repository';
-import { UMLElementActionTypes } from '../../../services/uml-element/uml-element-types';
-import { LayouterRepository } from '../../../services/layouter/layouter-repository';
 import { BPMNSwimlane } from '../bpmn-swimlane/bpmn-swimlane';
 import { BPMNPool } from './bpmn-pool';
 import { uuid } from '../../../utils/uuid';
@@ -21,6 +19,7 @@ import { BPMNElementType } from '../index';
 import { Header } from '../../../components/controls/typography/typography';
 import { ColorButton } from '../../../components/controls/color-button/color-button';
 import { StylePane } from '../../../components/style-pane/style-pane';
+import { swapLanes } from '../common/swap-lanes';
 
 interface OwnProps {
   element: BPMNPool;
@@ -28,13 +27,12 @@ interface OwnProps {
 
 type StateProps = {};
 
-type IBounds = { x: number; y: number; width: number; height: number };
 interface DispatchProps {
   create: typeof UMLElementRepository.create;
   update: typeof UMLElementRepository.update;
   delete: typeof UMLElementRepository.delete;
   getById: (id: string) => UMLElement | null;
-  swapLaneBounds: (idA: string, boundsA: IBounds, idB: string, boundsB: IBounds) => void;
+  swapLanes: (laneA: UMLElement, laneB: UMLElement) => void;
 }
 
 type Props = OwnProps & StateProps & DispatchProps & I18nContext;
@@ -49,14 +47,7 @@ const enhance = compose<ComponentClass<OwnProps>>(
       update: (id: any, values: any) => dispatch(UMLElementRepository.update(id, values)),
       delete: (id?: any) => dispatch(UMLElementRepository.delete(id)),
       getById: (id: string) => dispatch(UMLElementRepository.getById(id)),
-      swapLaneBounds: (idA: string, boundsA: IBounds, idB: string, boundsB: IBounds) => {
-        dispatch({
-          type: UMLElementActionTypes.UPDATE,
-          payload: { values: [{ id: idA, bounds: boundsA }, { id: idB, bounds: boundsB }] },
-          undoable: false,
-        });
-        dispatch(LayouterRepository.layout());
-      },
+      swapLanes: (laneA: UMLElement, laneB: UMLElement) => dispatch(swapLanes(laneA, laneB)),
     }),
   ),
 );
@@ -173,10 +164,7 @@ class BPMNPoolUpdateComponent extends Component<Props, State> {
   }
 
   private swapLanes = (laneA: UMLElement, laneB: UMLElement) => {
-    this.props.swapLaneBounds(
-      laneA.id, { ...laneA.bounds, y: laneB.bounds.y },
-      laneB.id, { ...laneB.bounds, y: laneA.bounds.y },
-    );
+    this.props.swapLanes(laneA, laneB);
   };
 
   /**

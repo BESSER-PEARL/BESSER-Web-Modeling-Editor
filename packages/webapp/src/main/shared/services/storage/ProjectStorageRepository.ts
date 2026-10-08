@@ -1,6 +1,7 @@
 import {
   ALL_DIAGRAM_TYPES,
   BesserProject,
+  DiagramLineage,
   InterfaceMode,
   PerspectiveSettings,
   ProjectDiagram,
@@ -195,8 +196,9 @@ export class ProjectStorageRepository {
     owner: string,
     perspectives?: PerspectiveSettings,
     preferredInterface?: InterfaceMode,
+    initialDiagramType?: SupportedDiagramType,
   ): BesserProject {
-    const project = createDefaultProject(name, description, owner, perspectives, preferredInterface);
+    const project = createDefaultProject(name, description, owner, perspectives, preferredInterface, initialDiagramType);
     this.saveProject(project);
     return project;
   }
@@ -241,7 +243,13 @@ export class ProjectStorageRepository {
   }
   
   // Add a new diagram to a type (returns index, or null if at limit)
-  static addDiagram(projectId: string, diagramType: SupportedDiagramType, title?: string): { index: number; diagram: ProjectDiagram } | null {
+  static addDiagram(
+    projectId: string,
+    diagramType: SupportedDiagramType,
+    title?: string,
+    /** Set on hook-driven derivations; absent on user-created diagrams. */
+    derivedFrom?: DiagramLineage,
+  ): { index: number; diagram: ProjectDiagram } | null {
     const project = this.loadProject(projectId);
     if (!project) {
       return null;
@@ -296,6 +304,10 @@ export class ProjectStorageRepository {
       }
     }
 
+    if (derivedFrom) {
+      diagram.derivedFrom = derivedFrom;
+    }
+
     diagrams.push(diagram);
     const newIndex = diagrams.length - 1;
     project.currentDiagramIndices[diagramType] = newIndex;
@@ -337,6 +349,13 @@ export class ProjectStorageRepository {
           d.references[diagramType] = fallbackId;
         }
       }
+    }
+
+    // `derivedFrom` on other diagrams is deliberately left pointing at the
+    // deleted id: DiagramTabs renders the "source diagram deleted" badge from
+    // it. The deleted diagram's own element-lineage sidecar is garbage now.
+    if (project.elementLineage) {
+      delete project.elementLineage[deletedId];
     }
 
     this.saveProject(project);

@@ -12,7 +12,7 @@ import {
   restoreBaseAgentModels,
   stripAgentConfigToSystem,
 } from '../../deploy/utils/restoreBaseAgentModels';
-import type { GenerationResult } from '../types';
+import type { GenerationOptions, GenerationResult } from '../types';
 import type { AgentConfigurationPayload } from '../../../shared/types/agent-config';
 
 // Add type definitions
@@ -127,7 +127,7 @@ export const useGenerateCode = () => {
     async (
       generatorType: string,
       config?: GeneratorConfig[keyof GeneratorConfig],
-      opts?: { autoDownload?: boolean },
+      opts?: GenerationOptions,
     ): Promise<GenerationResult> => {
       console.log('Starting code generation from project...');
 
@@ -190,14 +190,15 @@ export const useGenerateCode = () => {
           const errorData = await response.json().catch(e => ({ detail: 'Could not parse error response' }));
           console.error('Response not OK:', response.status, errorData);
 
-          if (response.status === 400 && errorData.detail) {
-            toast.error(`${errorData.detail}`);
-            return { ok: false, error: `${errorData.detail}` };
-          }
-
-          if (response.status === 500 && errorData.detail) {
-            toast.error(`${errorData.detail}`);
-            return { ok: false, error: `${errorData.detail}` };
+          // 422 carries a readable detail only when it is a string (FastAPI's
+          // own request validation sends a list).
+          const hasDetail =
+            ((response.status === 400 || response.status === 500) && errorData.detail) ||
+            (response.status === 422 && typeof errorData.detail === 'string');
+          if (hasDetail) {
+            const detail = `${errorData.detail}`;
+            toast.error(opts?.describeError?.(response.status, detail) ?? detail);
+            return { ok: false, error: detail };
           }
 
           throw new Error(`HTTP error! status: ${response.status}`);
@@ -260,7 +261,7 @@ export const useGenerateCode = () => {
       config?: GeneratorConfig[keyof GeneratorConfig],
       referenceDiagramData?: Record<string, any>,
       modelOverride?: UMLModel,
-      opts?: { autoDownload?: boolean },
+      opts?: GenerationOptions,
     ): Promise<GenerationResult> => {
       console.log('Starting code generation...');
 
@@ -276,6 +277,12 @@ export const useGenerateCode = () => {
 
       // For NN generators, use project data (like Qiskit)
       if (generatorType === 'pytorch' || generatorType === 'tensorflow') {
+        return await generateCodeFromProject(generatorType, config, opts);
+      }
+
+      // Docker Compose reads the project's Deployment diagram and the Agent
+      // diagrams its artifacts reference
+      if (generatorType === 'docker_compose') {
         return await generateCodeFromProject(generatorType, config, opts);
       }
 
@@ -345,14 +352,15 @@ export const useGenerateCode = () => {
           const errorData = await response.json().catch(e => ({ detail: 'Could not parse error response' }));
           console.error('Response not OK:', response.status, errorData); // Debug log
 
-          if (response.status === 400 && errorData.detail) {
-            toast.error(`${errorData.detail}`);
-            return { ok: false, error: `${errorData.detail}` };
-          }
-
-          if (response.status === 500 && errorData.detail) {
-            toast.error(`${errorData.detail}`);
-            return { ok: false, error: `${errorData.detail}` };
+          // 422 carries a readable detail only when it is a string (FastAPI's
+          // own request validation sends a list).
+          const hasDetail =
+            ((response.status === 400 || response.status === 500) && errorData.detail) ||
+            (response.status === 422 && typeof errorData.detail === 'string');
+          if (hasDetail) {
+            const detail = `${errorData.detail}`;
+            toast.error(opts?.describeError?.(response.status, detail) ?? detail);
+            return { ok: false, error: detail };
           }
 
           throw new Error(`HTTP error! status: ${response.status}`);

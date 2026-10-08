@@ -49,6 +49,8 @@
       "state": "Estado",
       "agent": "Agente",
       "bpmn": "BPMN",
+      "component": "Componente",
+      "deployment": "Despliegue",
       "user": "Usuario",
       "neuralNet": "Red neuronal",
       "gui": "GUI",
@@ -86,6 +88,9 @@
       "title": "Generar",
       "generating": "Generando…",
       "goToClassDiagram": "Ir al diagrama de clases",
+      "deriveComponentDiagram": "Generar diagrama de componentes",
+      "deriveDeploymentDiagram": "Generar diagrama de despliegue",
+      "generateDockerCompose": "Generar Docker Compose",
       "groups": {
         "web": "Web",
         "database": "Base de datos",
@@ -856,6 +861,12 @@
       "stepPackaging": "Empaquetando la salida…",
       "stepGenerating": "Generando código…",
       "stepParsing": "Analizando el diagrama…"
+    },
+    "dockerCompose": {
+      "invalidGovernanceTitle": "DSL de gobernanza no válido",
+      "invalidGovernance": "Revise la política de gobernanza de la compuerta «{{gateway}}». Consulte la consola del navegador para más detalles.",
+      "deploymentDiagramRequired": "No se encontró contenido en el diagrama de despliegue: añada al menos un elemento antes de generar.",
+      "noLinkedAgents": "Todavía no hay ningún agente vinculado a un artefacto. Derive el diagrama de despliegue mediante BPMN → Componente para conectar los contextos de agente."
     }
   },
   "project": {
@@ -1049,6 +1060,10 @@
             "label": "Desarrollador de agentes",
             "description": "Diagramas de agentes y usuarios para agentes conversacionales."
           },
+          "agenticSwarm": {
+            "label": "Multiagente",
+            "description": "Diagramas BPMN agénticos, de agentes, componentes y despliegue."
+          },
           "fullApp": {
             "label": "Aplicación web completa",
             "description": "Diagramas de clases, agentes e interfaz sin código."
@@ -1105,7 +1120,8 @@
         "State Machine Diagram": "Diagrama de máquina de estados",
         "Quantum Circuit": "Circuito cuántico",
         "Neural Network": "Red neuronal",
-        "Full Project": "Proyecto completo"
+        "Full Project": "Proyecto completo",
+        "Multi-agent": "Multiagente"
       },
       "confirm": {
         "title": "Diagrama existente detectado",
@@ -1624,6 +1640,8 @@
     "GUINoCodeDiagram": "Diagrama de GUI",
     "QuantumCircuitDiagram": "Diagrama de circuito cuántico",
     "BPMN": "Diagrama BPMN",
+    "ComponentDiagram": "Diagrama de componentes",
+    "DeploymentDiagram": "Diagrama de despliegue",
     "NNDiagram": "Diagrama de red neuronal"
   },
   "dialogs": {
@@ -2124,7 +2142,16 @@
       "editAsForm": "Editar como formulario",
       "closeForm": "Cerrar formulario",
       "editAsFormTitle": "Editar este perfil con un formulario guiado",
-      "closeFormTitle": "Cerrar el formulario de perfil de usuario"
+      "closeFormTitle": "Cerrar el formulario de perfil de usuario",
+      "lineage": {
+        "sourceDeleted": "← Diagrama de origen eliminado ({{type}})",
+        "derivedFrom": "← Derivado de <em>{{title}}</em> ({{type}})",
+        "sourceChangedTitle": "El diagrama de origen ha cambiado desde que se derivó este diagrama.",
+        "sourceChanged": "origen modificado",
+        "implementationOf": "← Implementación de <em>{{lane}}</em>",
+        "unnamedLane": "(carril sin nombre)",
+        "openFailed": "No se pudo abrir el diagrama de origen."
+      }
     },
     "charts": {
       "loadingChart": "Cargando gráfico…",
@@ -2790,7 +2817,9 @@
       "GUINoCodeDiagram": "Pantallas (GUI)",
       "QuantumCircuitDiagram": "Circuito cuántico",
       "NNDiagram": "Diagrama de red neuronal",
-      "BPMN": "Proceso BPMN"
+      "BPMN": "Proceso BPMN",
+      "ComponentDiagram": "Diagrama de componentes",
+      "DeploymentDiagram": "Diagrama de despliegue"
     }
   },
   "import": {
@@ -2820,6 +2849,10 @@
       "readFileFailed": "No se pudo leer el archivo",
       "invalidFromBackend": "El backend devolvió un diagrama no válido",
       "couldNotParseError": "No se pudo analizar la respuesta de error"
+    },
+    "warnings": {
+      "danglingAgentRef": "El elemento «{{name}}» enlaza un comportamiento de agente que no está en este proyecto. Use «Definir comportamiento del agente» en él para crear uno nuevo.",
+      "unnamedElement": "(sin nombre)"
     }
   },
   "validation": {
@@ -3121,6 +3154,60 @@
   "errors": {
     "network": {
       "unreachable": "No se pudo conectar con el servidor. Comprueba tu conexión e inténtalo de nuevo."
+    }
+  },
+  "interDiagram": {
+    "linker": {
+      "bpmnNotActive": "No se puede definir un agente: el diagrama BPMN no está activo.",
+      "noProject": "No hay ningún proyecto abierto.",
+      "limitReached": "No se pueden añadir más diagramas de agente (máx. {{max}} por proyecto). Elimine primero un diagrama de agente existente.",
+      "flushFailed": "No se pudo guardar el diagrama BPMN antes de definir el agente. Inténtelo de nuevo.",
+      "createFailed": "No se pudo crear el diagrama de agente. Inténtelo de nuevo.",
+      "linkNotSaved": "Se creó el diagrama de agente, pero no se pudo guardar el vínculo en el elemento BPMN.",
+      "openFailed": "Se creó el diagrama de agente, pero no se pudo abrir. Ábralo desde las pestañas de diagramas de agente.",
+      "openExistingFailed": "No se pudo abrir el diagrama de agente.",
+      "populateFailed": "Se creó el diagrama de agente, pero no se pudo rellenar a partir del carril.",
+      "derivedWithWarnings_one": "Diagrama de agente creado con {{count}} advertencia:",
+      "derivedWithWarnings_other": "Diagrama de agente creado con {{count}} advertencias:",
+      "emptyAgent": {
+        "noTasksInLane": "El carril aún no tiene tareas, así que el diagrama de agente empieza vacío.",
+        "laneNotAgentic": "El carril no es agéntico, así que el diagrama de agente empieza vacío.",
+        "laneNotFound": "No se pudo leer el carril, así que el diagrama de agente empieza vacío."
+      }
+    },
+    "derive": {
+      "component": {
+        "failed": "No se puede derivar el diagrama de componentes: {{reason}}",
+        "noPools": "Añada primero al menos un pool con carriles a este diagrama BPMN.",
+        "noLanes": "Añada primero al menos un carril dentro de un pool.",
+        "notBpmn": "Esta acción solo funciona en un diagrama BPMN.",
+        "limitReached": "el proyecto ya tiene el número máximo de diagramas de componentes. Elimine uno antes de generar otro.",
+        "done": "Diagrama de componentes generado.",
+        "doneWithWarnings_one": "Diagrama de componentes generado con {{count}} advertencia:",
+        "doneWithWarnings_other": "Diagrama de componentes generado con {{count}} advertencias:"
+      },
+      "deployment": {
+        "failed": "No se puede derivar el diagrama de despliegue: {{reason}}",
+        "noComponents": "Añada primero al menos un componente a este diagrama de componentes.",
+        "notComponentDiagram": "Esta acción solo funciona en un diagrama de componentes.",
+        "limitReached": "el proyecto ya tiene el número máximo de diagramas de despliegue. Elimine uno antes de generar otro.",
+        "done": "Diagrama de despliegue generado.",
+        "doneWithWarnings_one": "Diagrama de despliegue generado con {{count}} advertencia:",
+        "doneWithWarnings_other": "Diagrama de despliegue generado con {{count}} advertencias:"
+      }
+    },
+    "warnings": {
+      "more": "…y {{count}} más",
+      "unnamed": "(sin nombre)",
+      "droppedTask": "La tarea «{{task}}» está en el carril no agéntico «{{lane}}», por lo que no aparece en el diagrama de componentes.",
+      "capabilityHeavyAgent": "El agente «{{lane}}» usa {{count}} herramientas, habilidades y recursos, por lo que su parte del diagrama puede quedar recargada.",
+      "capabilityHeavyZone": "El grupo «{{zone}}» contiene {{count}} elementos y puede quedar recargado.",
+      "danglingAgentRef": "«{{name}}» enlaza un diagrama de agente que ya no está en este proyecto, por lo que se omitieron sus herramientas y habilidades.",
+      "flatScaffold": "El diagrama de componentes no tiene subsistemas, por lo que todos los componentes se colocaron en un único Docker Host. Añada subsistemas para un diseño más completo.",
+      "ioUnresolvedIn": "El flujo desde «{{peer}}» no llega a ninguna tarea de este carril, por lo que ningún estado lo recibe.",
+      "ioUnresolvedOut": "El flujo hacia «{{peer}}» no sale de ninguna tarea de este carril, por lo que ningún estado lo envía.",
+      "mergeNoProducers": "La compuerta de unión gobernada «{{gateway}}» no tiene ningún flujo de entrada, por lo que su estado de decisión no tiene transición de entrada. Añádala a mano.",
+      "mergeNoSuccessors": "La compuerta de unión gobernada «{{gateway}}» no lleva a ninguna tarea de este carril, por lo que su estado de decisión no tiene transición de salida. Añádala a mano."
     }
   }
 }

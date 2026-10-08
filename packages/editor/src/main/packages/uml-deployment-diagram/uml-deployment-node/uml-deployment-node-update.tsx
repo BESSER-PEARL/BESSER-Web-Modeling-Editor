@@ -1,10 +1,12 @@
-import React, { Component, ComponentType } from 'react';
-import { connect, ConnectedComponent } from 'react-redux';
+import React, { Component, ComponentClass } from 'react';
+import { connect } from 'react-redux';
+import { compose } from 'redux';
 import { Button } from '../../../components/controls/button/button';
 import { ColorButton } from '../../../components/controls/color-button/color-button';
 import { Divider } from '../../../components/controls/divider/divider';
 import { TrashIcon } from '../../../components/controls/icon/trash';
 import { Textfield } from '../../../components/controls/textfield/textfield';
+import { Body } from '../../../components/controls/typography/typography';
 import { ModelState } from '../../../components/store/model-state';
 import { StylePane } from '../../../components/style-pane/style-pane';
 import { styled } from '../../../components/theme/styles';
@@ -12,6 +14,9 @@ import { UMLElementRepository } from '../../../services/uml-element/uml-element-
 import { AsyncDispatch } from '../../../utils/actions/actions';
 import { IUMLDeploymentNode, UMLDeploymentNode } from './uml-deployment-node';
 import { StereotypeToggle } from '../../../components/controls/stereotype-toggle/stereotype-toggle';
+import { LineageSourceLink } from '../../../components/lineage/LineageSourceLink';
+import { I18nContext } from '../../../components/i18n/i18n-context';
+import { localized } from '../../../components/i18n/localized';
 
 const Flex = styled.div`
   display: flex;
@@ -56,9 +61,16 @@ class DeploymentNodeUpdate extends Component<Props, State> {
         <section>
           <Divider />
           <Flex>
-            <Textfield value={element.stereotype} onChange={this.onStereotypeRename} />
+            <Body style={{ marginRight: '0.5em' }}>{this.props.translate('popup.stereotype')}</Body>
+            <Textfield
+              value={element.stereotype}
+              onChange={this.onStereotypeRename}
+              placeholder={this.props.translate('packages.DeploymentDiagram.DeploymentNodeStereotypePlaceholder')}
+            />
           </Flex>
         </section>
+        {/* Self-gating: only renders for derived DeploymentNodes. */}
+        <LineageSourceLink elementId={element.id} />
       </div>
     );
   }
@@ -91,13 +103,14 @@ type DispatchProps = {
   delete: AsyncDispatch<typeof UMLElementRepository.delete>;
 };
 
-type Props = OwnProps & StateProps & DispatchProps;
+type Props = OwnProps & StateProps & DispatchProps & I18nContext;
 
-const enhance = connect<StateProps, DispatchProps, OwnProps, ModelState>(null, {
-  update: UMLElementRepository.update,
-  delete: UMLElementRepository.delete,
-});
-
-export const UMLDeploymentNodeUpdate: ConnectedComponent<ComponentType<Props>, OwnProps> = enhance(
-  DeploymentNodeUpdate,
+const enhance = compose<ComponentClass<OwnProps>>(
+  localized,
+  connect<StateProps, DispatchProps, OwnProps, ModelState>(null, {
+    update: UMLElementRepository.update,
+    delete: UMLElementRepository.delete,
+  }),
 );
+
+export const UMLDeploymentNodeUpdate = enhance(DeploymentNodeUpdate);

@@ -231,7 +231,17 @@
       "namePlaceholder": "Attributname"
     },
     "associationNamePlaceholder": "Assoziationsname",
-    "literals": "Literale"
+    "literals": "Literale",
+    "preset": "Vorgabe",
+    "presetPlaceholder": "Vorgabe wählen…",
+    "stereotype": "Stereotyp",
+    "label": "Beschriftung",
+    "unnamed": "(unbenannt)",
+    "missingElement": "(fehlt)",
+    "addTarget": "Ziel hinzufügen…",
+    "lineage": "Herkunft",
+    "lineageSource": "Quelle:",
+    "lineageDerivedFrom": "Abgeleitet von"
   },
   "assessment": {
     "assessment": "Bewertung für",
@@ -301,7 +311,11 @@
       "ComponentInterface": "Schnittstelle",
       "ComponentInterfaceProvided": "Bereitgestellte Schnittstelle",
       "ComponentInterfaceRequired": "Benötigte Schnittstelle",
-      "Comments": "Kommentare"
+      "Comments": "Kommentare",
+      "ComponentStereotypePlaceholder": "z. B. solution, skill, external",
+      "ComponentDependencyStereotypePlaceholder": "z. B. delegates, has, uses",
+      "SubsystemStereotypePlaceholder": "z. B. subsystem, solution",
+      "Realizes": "Realisiert"
     },
     "DeploymentDiagram": {
       "DeploymentNode": "Knoten",
@@ -312,7 +326,10 @@
       "DeploymentInterfaceRequired": "Benötigte Schnittstelle",
       "DeploymentAssociation": "Deployment-Assoziation",
       "DeploymentDependency": "Deployment-Abhängigkeit",
-      "Comments": "Kommentare"
+      "Comments": "Kommentare",
+      "DeploymentNodeStereotypePlaceholder": "z. B. node, device, executionEnvironment",
+      "DeploymentAssociationLabelPlaceholder": "z. B. kv-store-conn",
+      "DeploymentAssociationStereotypePlaceholder": "z. B. HTTPS, gRPC, device"
     },
     "PetriNet": {
       "PetriNetPlace": "Stelle",
@@ -405,7 +422,36 @@
       "BPMNSwimlanes": "Bahnen",
       "BPMNGroup": "Gruppe",
       "BPMNExpand": "Erweitern",
-      "BPMNCollapse": "Einklappen"
+      "BPMNCollapse": "Einklappen",
+      "BPMNAgentic": "Agentisch",
+      "BPMNTrustScore": "Vertrauensbewertung (0-100)",
+      "BPMNMultiplicity": "Kopien (≥1)",
+      "BPMNAgentRoleSolution": "Lösung",
+      "BPMNAgentRoleSupervision": "Überwachung",
+      "BPMNDefineAgentDiagram": "Agentenverhalten definieren",
+      "BPMNOpenAgentDiagram": "Agentenverhalten öffnen",
+      "BPMNReflectionNone": "Keine Reflexion",
+      "BPMNReflectionSelf": "Selbstreflexion",
+      "BPMNReflectionCross": "Kreuzreflexion",
+      "BPMNReflectionHuman": "Menschliche Reflexion",
+      "BPMNReflectionReviewerLabel": "Prüfender Agent",
+      "BPMNReflectionReviewerUnspecified": "(Nicht angegeben)",
+      "BPMNGovernanceLabel": "Governance-Richtlinie (DSL)",
+      "BPMNGovernanceGenerate": "Generieren",
+      "BPMNGovernanceRegenerate": "Neu generieren",
+      "BPMNGovernanceOverwriteConfirm": "Die aktuelle Governance-DSL durch eine neu generierte Version ersetzen?",
+      "BPMNGovernanceReplace": "Ersetzen",
+      "BPMNGovernanceCancel": "Abbrechen",
+      "BPMNGovernancePolicyTypeLabel": "Entscheidungsrichtlinie",
+      "BPMNGovPolicyMajority": "Mehrheit",
+      "BPMNGovPolicyAbsoluteMajority": "Absolute Mehrheit",
+      "BPMNGovPolicyLeaderDriven": "Von einer Führungskraft geleitet",
+      "BPMNGovPolicyConsensus": "Konsens",
+      "BPMNGatewayRoleDiverging": "Verzweigend",
+      "BPMNGatewayRoleMerging": "Zusammenführend",
+      "BPMNDefaultAgentTitle": "Agent",
+      "BPMNAgentRole": "Rolle",
+      "BPMNAgentRolePlaceholder": "z. B. solution"
     },
     "NNDiagram": {
       "NNContainer": "Neuronales Netz",
@@ -726,7 +772,10 @@
         "file": "Datei",
         "submitted": "Gesendet"
       },
-      "webCrawlNamePrefix": "Crawl:"
+      "webCrawlNamePrefix": "Crawl:",
+      "A2ASendTo": "Senden an",
+      "A2AReceiveFrom": "Empfangen von",
+      "A2APeer": "Gegenstelle"
     },
     "UserDiagram": {
       "UserModelName": "Benutzer",

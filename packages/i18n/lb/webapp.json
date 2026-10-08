@@ -49,6 +49,8 @@
       "state": "Zoustand",
       "agent": "Agent",
       "bpmn": "BPMN",
+      "component": "Komponent",
+      "deployment": "Deployment",
       "user": "Benotzer",
       "neuralNet": "Neuronaalt Netz",
       "gui": "GUI",
@@ -86,6 +88,9 @@
       "title": "Generéieren",
       "generating": "Generéiert…",
       "goToClassDiagram": "Bei d'Klassendiagramm goen",
+      "deriveComponentDiagram": "Komponentendiagramm generéieren",
+      "deriveDeploymentDiagram": "Deploymentdiagramm generéieren",
+      "generateDockerCompose": "Docker Compose generéieren",
       "groups": {
         "web": "Web",
         "database": "Datebank",
@@ -856,6 +861,12 @@
       "stepPackaging": "Ausgab gëtt verpaakt…",
       "stepGenerating": "Code gëtt generéiert…",
       "stepParsing": "Diagramm gëtt analyséiert…"
+    },
+    "dockerCompose": {
+      "invalidGovernanceTitle": "Ongëlteg Governance-DSL",
+      "invalidGovernance": "Kontrolléiert d'Governance-Politik um Gateway „{{gateway}}“. Detailer an der Browser-Konsol.",
+      "deploymentDiagramRequired": "Keen Inhalt am Deployment-Diagramm fonnt – setzt op d'mannst een Element derbäi, ier Dir generéiert.",
+      "noLinkedAgents": "Nach keen Agent ass mat engem Artefakt verlinkt. Leet d'Deployment-Diagramm iwwer BPMN → Komponent of, fir d'Agent-Kontexter ze verbannen."
     }
   },
   "project": {
@@ -1049,6 +1060,10 @@
             "label": "Agent-Entwéckler",
             "description": "Agent- a Benotzerdiagrammer fir Konversatiounsagenten."
           },
+          "agenticSwarm": {
+            "label": "Multi-Agenten",
+            "description": "Agentesch BPMN-, Agent-, Komponenten- an Deploymentdiagrammer."
+          },
           "fullApp": {
             "label": "Komplett Webapplikatioun",
             "description": "Klassen-, Agent- an No-Code-GUI-Diagrammer."
@@ -1105,7 +1120,8 @@
         "State Machine Diagram": "Zoustandsautomaten Diagramm",
         "Quantum Circuit": "Quantekreeslaf",
         "Neural Network": "Neuronaalt Netzwierk",
-        "Full Project": "Ganze Projet"
+        "Full Project": "Ganze Projet",
+        "Multi-agent": "Multi-Agenten"
       },
       "confirm": {
         "title": "Bestoenden Diagramm festgestallt",
@@ -1624,6 +1640,8 @@
     "GUINoCodeDiagram": "GUI-Diagramm",
     "QuantumCircuitDiagram": "Quantenschaltkreesdiagramm",
     "BPMN": "BPMN-Diagramm",
+    "ComponentDiagram": "Komponentendiagramm",
+    "DeploymentDiagram": "Deploymentdiagramm",
     "NNDiagram": "Neuronaalt-Netz-Diagramm"
   },
   "dialogs": {
@@ -2124,7 +2142,16 @@
       "editAsForm": "Als Formulaire beaarbechten",
       "closeForm": "Formulaire zoumaachen",
       "editAsFormTitle": "Dëse Profil mat engem guidéierte Formulaire beaarbechten",
-      "closeFormTitle": "Benotzerprofil-Formulaire zoumaachen"
+      "closeFormTitle": "Benotzerprofil-Formulaire zoumaachen",
+      "lineage": {
+        "sourceDeleted": "← Quelldiagramm geläscht ({{type}})",
+        "derivedFrom": "← Ofgeleet vun <em>{{title}}</em> ({{type}})",
+        "sourceChangedTitle": "D'Quelldiagramm huet sech geännert, zënter dëst Diagramm ofgeleet gouf.",
+        "sourceChanged": "Quell geännert",
+        "implementationOf": "← Ëmsetzung vun <em>{{lane}}</em>",
+        "unnamedLane": "(Bunn ouni Numm)",
+        "openFailed": "D'Quelldiagramm konnt net opgemaach ginn."
+      }
     },
     "charts": {
       "loadingChart": "Diagramm gëtt gelueden…",
@@ -2790,7 +2817,9 @@
       "GUINoCodeDiagram": "Ecranen (GUI)",
       "QuantumCircuitDiagram": "Quanteschaltung",
       "NNDiagram": "Diagramm vun engem neuronalen Netz",
-      "BPMN": "BPMN-Prozess"
+      "BPMN": "BPMN-Prozess",
+      "ComponentDiagram": "Komponentendiagramm",
+      "DeploymentDiagram": "Deploymentdiagramm"
     }
   },
   "import": {
@@ -2820,6 +2849,10 @@
       "readFileFailed": "Datei konnt net gelies ginn",
       "invalidFromBackend": "Ongëltege Diagramm vum Backend zréckginn",
       "couldNotParseError": "D'Feeleräntwert konnt net analyséiert ginn"
+    },
+    "warnings": {
+      "danglingAgentRef": "D'Element „{{name}}“ verweist op en Agentverhalen, dat net an dësem Projet ass. Benotzt „Agentverhalen definéieren“ drop, fir en neit ze erstellen.",
+      "unnamedElement": "(ouni Numm)"
     }
   },
   "validation": {
@@ -3121,6 +3154,60 @@
   "errors": {
     "network": {
       "unreachable": "De Server ass net erreechbar. Kontrolléier deng Verbindung a probéier nach eng Kéier."
+    }
+  },
+  "interDiagram": {
+    "linker": {
+      "bpmnNotActive": "Agent kann net definéiert ginn: D'BPMN-Diagramm ass net aktiv.",
+      "noProject": "Et ass kee Projet op.",
+      "limitReached": "Et kënne keng weider Agent-Diagrammer derbäigesat ginn (max. {{max}} pro Projet). Läscht als éischt en existent Agent-Diagramm.",
+      "flushFailed": "D'BPMN-Diagramm konnt net gespäichert ginn, ier den Agent definéiert gouf. Probéiert w.e.g. nach eng Kéier.",
+      "createFailed": "D'Agent-Diagramm konnt net erstallt ginn. Probéiert w.e.g. nach eng Kéier.",
+      "linkNotSaved": "D'Agent-Diagramm gouf erstallt, mee de Link konnt net um BPMN-Element gespäichert ginn.",
+      "openFailed": "D'Agent-Diagramm gouf erstallt, mee et konnt net opgemaach ginn. Maacht et iwwer d'Tabs vun den Agent-Diagrammer op.",
+      "openExistingFailed": "D'Agent-Diagramm konnt net opgemaach ginn.",
+      "populateFailed": "D'Agent-Diagramm gouf erstallt, mee et konnt net aus der Bunn gefëllt ginn.",
+      "derivedWithWarnings_one": "Agent-Diagramm mat {{count}} Warnung erstallt:",
+      "derivedWithWarnings_other": "Agent-Diagramm mat {{count}} Warnungen erstallt:",
+      "emptyAgent": {
+        "noTasksInLane": "D'Bunn huet nach keng Aufgaben, dofir fänkt d'Agent-Diagramm eidel un.",
+        "laneNotAgentic": "D'Bunn ass net agentesch, dofir fänkt d'Agent-Diagramm eidel un.",
+        "laneNotFound": "D'Bunn konnt net gelies ginn, dofir fänkt d'Agent-Diagramm eidel un."
+      }
+    },
+    "derive": {
+      "component": {
+        "failed": "D'Komponentendiagramm kann net ofgeleet ginn: {{reason}}",
+        "noPools": "Setzt als éischt op d'mannst ee Pool mat Bunnen an dëst BPMN-Diagramm.",
+        "noLanes": "Setzt als éischt op d'mannst eng Bunn an e Pool.",
+        "notBpmn": "Dës Aktioun funktionéiert nëmmen an engem BPMN-Diagramm.",
+        "limitReached": "de Projet huet schonn déi maximal Zuel u Komponentendiagrammer. Läscht eent, ier Dir en neit generéiert.",
+        "done": "Komponentendiagramm generéiert.",
+        "doneWithWarnings_one": "Komponentendiagramm mat {{count}} Warnung generéiert:",
+        "doneWithWarnings_other": "Komponentendiagramm mat {{count}} Warnungen generéiert:"
+      },
+      "deployment": {
+        "failed": "D'Deploymentdiagramm kann net ofgeleet ginn: {{reason}}",
+        "noComponents": "Setzt als éischt op d'mannst ee Komponent an dëst Komponentendiagramm.",
+        "notComponentDiagram": "Dës Aktioun funktionéiert nëmmen an engem Komponentendiagramm.",
+        "limitReached": "de Projet huet schonn déi maximal Zuel un Deploymentdiagrammer. Läscht eent, ier Dir en neit generéiert.",
+        "done": "Deploymentdiagramm generéiert.",
+        "doneWithWarnings_one": "Deploymentdiagramm mat {{count}} Warnung generéiert:",
+        "doneWithWarnings_other": "Deploymentdiagramm mat {{count}} Warnungen generéiert:"
+      }
+    },
+    "warnings": {
+      "more": "…an nach {{count}}",
+      "unnamed": "(ouni Numm)",
+      "droppedTask": "D'Aufgab „{{task}}“ läit an der net-agentescher Bunn „{{lane}}“ a gëtt dofir net am Komponentendiagramm gewisen.",
+      "capabilityHeavyAgent": "Den Agent „{{lane}}“ benotzt {{count}} Tools, Fäegkeeten a Ressourcen; säin Deel vum Diagramm ka dofir iwwerlueden ausgesinn.",
+      "capabilityHeavyZone": "D'Grupp „{{zone}}“ huet {{count}} Elementer a ka iwwerlueden ausgesinn.",
+      "danglingAgentRef": "„{{name}}“ verweist op en Agent-Diagramm, dat net méi an dësem Projet ass; seng Tools a Fäegkeete goufen iwwersprong.",
+      "flatScaffold": "D'Komponentendiagramm huet keng Subsystemer, dofir goufen all d'Komponenten op een eenzegen Docker Host gesat. Setzt Subsystemer derbäi fir e méi räicht Layout.",
+      "ioUnresolvedIn": "De Floss vu „{{peer}}“ erreecht keng Aufgab vun dëser Bunn, dofir kritt keen Zoustand en.",
+      "ioUnresolvedOut": "De Floss op „{{peer}}“ fänkt bei kenger Aufgab vun dëser Bunn un, dofir schéckt keen Zoustand en.",
+      "mergeNoProducers": "De gesteierte Fusiouns-Gateway „{{gateway}}“ huet keen erakommende Floss, dofir huet säin Decisiounszoustand keen erakommenden Iwwergang. Setzt en mat der Hand derbäi.",
+      "mergeNoSuccessors": "De gesteierte Fusiouns-Gateway „{{gateway}}“ féiert op keng Aufgab vun dëser Bunn, dofir huet säin Decisiounszoustand keen erausgoenden Iwwergang. Setzt en mat der Hand derbäi."
     }
   }
 }

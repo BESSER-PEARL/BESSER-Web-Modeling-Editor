@@ -38,6 +38,7 @@ import { BPMNIntermediateEventUpdate } from './bpmn/bpmn-intermediate-event/bpmn
 import { BPMNStartEventUpdate } from './bpmn/bpmn-start-event/bpmn-start-event-update';
 import { BPMNEndEventUpdate } from './bpmn/bpmn-end-event/bpmn-end-event-update';
 import { BPMNTaskUpdate } from './bpmn/bpmn-task/bpmn-task-update';
+import { BPMNSwimlaneUpdate } from './bpmn/bpmn-swimlane/bpmn-swimlane-update';
 import { BPMNSubprocessUpdate } from './bpmn/bpmn-subprocess/bpmn-subprocess-update';
 import { BPMNTransactionUpdate } from './bpmn/bpmn-transaction/bpmn-transaction-update';
 import { BPMNCallActivityUpdate } from './bpmn/bpmn-call-activity/bpmn-call-activity-update';
@@ -132,7 +133,7 @@ export const Popups: { [key in UMLElementType | UMLRelationshipType]: ComponentT
   [UMLElementType.BPMNDataStore]: DefaultPopup,
   [UMLElementType.BPMNGroup]: DefaultPopup,
   [UMLElementType.BPMNPool]: BPMNPoolUpdate,
-  [UMLElementType.BPMNSwimlane]: DefaultPopup,
+  [UMLElementType.BPMNSwimlane]: BPMNSwimlaneUpdate,
   [UMLElementType.State]: UMLStateUpdate,
   [UMLElementType.StateBody]: null,
   [UMLElementType.StateFallbackBody]: null,

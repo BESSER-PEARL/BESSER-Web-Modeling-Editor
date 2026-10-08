@@ -150,6 +150,16 @@ export const buildProjectPayloadForBackend = (
     );
   }
 
+  // Strip the WME lineage (`derivedFrom` per diagram, `elementLineage` per
+  // project): it has no B-UML counterpart. The project-file export
+  // (buildExportableProjectPayload) keeps it; only the backend request drops it.
+  for (const diagrams of Object.values(payload.diagrams)) {
+    for (const diagram of diagrams) {
+      delete diagram.derivedFrom;
+    }
+  }
+  delete payload.elementLineage;
+
   return payload;
 };
 

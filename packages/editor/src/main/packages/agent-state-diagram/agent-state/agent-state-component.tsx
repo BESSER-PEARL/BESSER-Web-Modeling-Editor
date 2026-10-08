@@ -2,6 +2,7 @@ import React, { FunctionComponent } from 'react';
 import { Text } from '../../../components/controls/text/text';
 import { AgentState } from './agent-state';
 import { ThemedRect, ThemedPath } from '../../../components/theme/themedComponents';
+import { A2ABadge, parseA2AOutTags } from '../a2a-notation/a2a-notation';
 import { truncateTextToWidth } from '../text-truncation';
 
 interface Props {
@@ -14,6 +15,7 @@ const REASONING_ACCENT = '#7C3AED';
 
 export const AgentStateComponent: FunctionComponent<Props> = ({ element, children, fillColor }) => {
   const cornerRadius = 8;
+  const a2aOutTags = parseA2AOutTags(element.description);
 
   if (element.stateType === 'reasoning') {
     const headerHeight = 50;
@@ -141,6 +143,14 @@ export const AgentStateComponent: FunctionComponent<Props> = ({ element, childre
        >
 
        </svg>
+      )}
+      {a2aOutTags.length > 0 && (
+        <A2ABadge
+          dir="out"
+          x={element.bounds.width - (a2aOutTags.length > 1 ? 26 : 21)}
+          y={element.bounds.height - 15}
+          tags={a2aOutTags}
+        />
       )}
       {element.hasFallbackBody && (
         <ThemedPath d={`M 0 ${element.dividerPosition} H ${element.bounds.width}`} strokeColor={element.strokeColor} />

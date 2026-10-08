@@ -4,9 +4,9 @@
  * into pools/lanes) emitted by the modeling agent into the Apollon
  * BPMNDiagram model.
  *
- * No other agentic fields (isAgentic, role, gatewayRole, collaborationMode,
- * mergingStrategy, trustScore, governanceDsl, …). Output shape matches the
- * verified BPMN template shape (see .claude/bpmn/11-bpmn-load-template-examples-guide.md):
+ * Agentic task / gateway / lane fields are kept when the spec supplies them;
+ * the converter never infers agentic semantics on its own. Output shape
+ * matches the verified BPMN template shape:
  * model.type === "BPMNDiagram"; sequence-flow paths are left for the editor's
  * layouter to recompute on load (isManuallyLayouted: false), so only element
  * bounds need to be correct here.
@@ -24,7 +24,7 @@
  * model.type "BPMNDiagram". 
  */
 
-import { DiagramConverter, generateUniqueId } from './base';
+import { DiagramConverter, centerElementsOnOrigin, generateUniqueId } from './base';
 
 interface SpecNode {
   id?: string;
@@ -35,6 +35,14 @@ interface SpecNode {
   eventType?: string;
   poolId?: string; // optional: id of the pool (participant) this node belongs to
   laneId?: string; // optional: id of the lane (role) within poolId
+  isAgentic?: boolean;
+  reflectionMode?: string;
+  // reviewer lane for reflectionMode 'cross', as a spec lane id or lane name
+  reflectionReviewerLaneId?: string;
+  trustScore?: number;
+  agentDiagramRef?: string;
+  gatewayRole?: string;
+  governanceDsl?: string;
 }
 
 interface SpecFlow {
@@ -46,6 +54,11 @@ interface SpecFlow {
 interface SpecLane {
   id?: string;
   name?: string;
+  isAgentic?: boolean;
+  role?: string;
+  trustScore?: number;
+  multiplicity?: number;
+  agentDiagramRef?: string;
 }
 
 interface SpecPool {
@@ -55,8 +68,19 @@ interface SpecPool {
 }
 
 type StableNode = SpecNode & { id: string };
-type Pool = { id: string; name: string; lanes: { id: string; name: string }[] };
-
+type Pool = {
+  id: string;
+  name: string;
+  lanes: Array<{
+    id: string;
+    name: string;
+    isAgentic?: boolean;
+    role?: string;
+    trustScore?: number;
+    multiplicity?: number;
+    agentDiagramRef?: string;
+  }>;
+};
 const COL_GAP = 220; // horizontal distance between layers
 const ROW_GAP = 120; // vertical distance between sibling nodes within a layer/band
 const EVENT_SIZE = 40;
@@ -82,7 +106,7 @@ export class BPMNDiagramConverter implements DiagramConverter {
   convertSingleElement(spec: any) {
     // Single-element generation funnels into a one-node process so the
     // DiagramConverter contract still holds (the agent funnels these the
-    // same way — see the agent guide's generate_single_element).
+    // same way as the single-element generation path).
     return this.convertCompleteSystem({ nodes: [spec], flows: [] });
   }
 
@@ -104,7 +128,15 @@ export class BPMNDiagramConverter implements DiagramConverter {
         name: typeof p.name === 'string' ? p.name : '',
         lanes: (Array.isArray(p.lanes) ? p.lanes : [])
           .filter((l): l is SpecLane & { id: string } => typeof l.id === 'string' && l.id.trim().length > 0)
-          .map((l) => ({ id: l.id.trim(), name: typeof l.name === 'string' ? l.name : '' })),
+          .map((l) => ({
+            id: l.id.trim(),
+            name: typeof l.name === 'string' ? l.name : '',
+            isAgentic: l.isAgentic,
+            role: l.role,
+            trustScore: l.trustScore,
+            multiplicity: l.multiplicity,
+            agentDiagramRef: l.agentDiagramRef,
+          })),
       }));
 
     // --- Layered left-to-right layout (longest-path layering). Computed over
@@ -144,27 +176,7 @@ export class BPMNDiagramConverter implements DiagramConverter {
     flows.forEach((f) => this.emitFlow(f, idMap, layerOf, byLayer, relationships));
 
     // --- Center the content on the origin (0,0) ---
-    // The canvas draws elements inside <svg x="50%" y="50%">, so model
-    // coordinate (0,0) is the VISUAL CENTER of the canvas, not the top-left.
-    // Content pinned to x>=0 / y>=0 lands entirely in the bottom-right quadrant
-    // (the "shifted to the right" symptom).  Every built-in converter avoids
-    // this by starting at negative coordinates (LAYOUT_START_X/Y); here we
-    // instead measure the content bounding box and shift it so its center sits
-    // on the origin.  Flow geometry is placeholder (the layouter recomputes it
-    // on load), so only element bounds need shifting.
-    const placed = Object.values(elements);
-    if (placed.length) {
-      const minX = Math.min(...placed.map((e) => e.bounds.x));
-      const minY = Math.min(...placed.map((e) => e.bounds.y));
-      const maxX = Math.max(...placed.map((e) => e.bounds.x + e.bounds.width));
-      const maxY = Math.max(...placed.map((e) => e.bounds.y + e.bounds.height));
-      const offsetX = -(minX + maxX) / 2;
-      const offsetY = -(minY + maxY) / 2;
-      placed.forEach((e) => {
-        e.bounds.x += offsetX;
-        e.bounds.y += offsetY;
-      });
-    }
+    centerElementsOnOrigin(elements);
 
     // --- Diagram-size envelope ---
     const layerKeys = Object.keys(byLayer).map(Number);
@@ -296,6 +308,13 @@ export class BPMNDiagramConverter implements DiagramConverter {
             width: poolWidth - POOL_HEADER_WIDTH,
             height: Math.max(BAND_MIN_HEIGHT, (maxRowsOf[band.key] || 1) * ROW_GAP + BAND_V_PADDING * 2),
           },
+          isAgentic: lane.isAgentic === true,
+          role: lane.role,
+          trustScore: typeof lane.trustScore === 'number' ? lane.trustScore : 0,
+          multiplicity: typeof lane.multiplicity === 'number' ? lane.multiplicity : 1,
+          ...(typeof lane.agentDiagramRef === 'string' && lane.agentDiagramRef
+            ? { agentDiagramRef: lane.agentDiagramRef }
+            : {}),
         };
       });
 
@@ -307,6 +326,23 @@ export class BPMNDiagramConverter implements DiagramConverter {
       bandOriginY[orphanBand.key] = cursorY;
     }
 
+    // A spec lane reference (lane id, preferring the node's own pool, else a
+    // lane name) → the emitted swimlane id; undefined when nothing matches.
+    const resolveLaneRef = (ref: string | undefined, poolId?: string): string | undefined => {
+      const key = ref?.trim();
+      if (!key) return undefined;
+      if (poolId && laneIdMap[`${poolId}::${key}`]) return laneIdMap[`${poolId}::${key}`];
+      for (const pool of pools) {
+        if (laneIdMap[`${pool.id}::${key}`]) return laneIdMap[`${pool.id}::${key}`];
+      }
+      const lower = key.toLowerCase();
+      for (const pool of pools) {
+        const lane = pool.lanes.find((l) => l.name.trim().toLowerCase() === lower);
+        if (lane) return laneIdMap[`${pool.id}::${lane.id}`];
+      }
+      return undefined;
+    };
+
     // --- Emit node elements ---
     nodes.forEach((n) => {
       const layer = layerOf[n.id] ?? 0;
@@ -315,7 +351,8 @@ export class BPMNDiagramConverter implements DiagramConverter {
       const x = POOL_HEADER_WIDTH + layer * COL_GAP;
       const y = bandY + BAND_V_PADDING + row * ROW_GAP;
       const owner = n.poolId && n.laneId ? laneIdMap[`${n.poolId}::${n.laneId}`] ?? null : null;
-      this.emitNodeElement(n, x, y, elements, idMap, owner);
+      const reviewerLaneId = resolveLaneRef(n.reflectionReviewerLaneId, n.poolId);
+      this.emitNodeElement(n, x, y, elements, idMap, owner, reviewerLaneId);
     });
 
     // --- Emit flows: cross-pool flows become message flows with a vertical
@@ -342,6 +379,8 @@ export class BPMNDiagramConverter implements DiagramConverter {
     elements: Record<string, any>,
     idMap: Record<string, string>,
     owner: string | null = null,
+    /** Resolved editor id of the cross-reflection reviewer lane, if any. */
+    reflectionReviewerLaneId?: string,
   ): void {
     const apollonType = this.normalizeType(n.type);
     const isTask = apollonType === 'BPMNTask';
@@ -360,10 +399,30 @@ export class BPMNDiagramConverter implements DiagramConverter {
 
     if (apollonType === 'BPMNTask') {
       const taskType = TASK_TYPES.has(String(n.taskType)) ? n.taskType : 'default';
-      elements[apollonId] = { ...base, taskType, marker: 'none' };
+      elements[apollonId] = {
+        ...base,
+        taskType,
+        marker: 'none',
+        isAgentic: n.isAgentic === true,
+        reflectionMode: typeof n.reflectionMode === 'string' ? n.reflectionMode : 'none',
+        trustScore: typeof n.trustScore === 'number' ? n.trustScore : 0,
+        ...(typeof n.agentDiagramRef === 'string' && n.agentDiagramRef
+          ? { agentDiagramRef: n.agentDiagramRef }
+          : {}),
+        ...(reflectionReviewerLaneId ? { reflectionReviewerLaneId } : {}),
+      };
     } else if (apollonType === 'BPMNGateway') {
       const gatewayType = GATEWAY_TYPES.has(String(n.gatewayType)) ? n.gatewayType : 'exclusive';
-      elements[apollonId] = { ...base, gatewayType };
+      elements[apollonId] = {
+        ...base,
+        gatewayType,
+        isAgentic: n.isAgentic === true,
+        gatewayRole: typeof n.gatewayRole === 'string' ? n.gatewayRole : 'diverging',
+        trustScore: typeof n.trustScore === 'number' ? n.trustScore : 0,
+        ...(typeof n.governanceDsl === 'string' && n.governanceDsl.trim()
+          ? { governanceDsl: n.governanceDsl }
+          : {}),
+      };
     } else {
       // BPMNStartEvent / BPMNEndEvent / BPMNIntermediateEvent
       const eventType = typeof n.eventType === 'string' && n.eventType ? n.eventType : 'default';
@@ -425,23 +484,9 @@ export class BPMNDiagramConverter implements DiagramConverter {
 
   /** Centers content on the origin and wraps it into a full BPMNDiagram model. */
   private finalizeModel(elements: Record<string, any>, relationships: Record<string, any>) {
-    const placed = Object.values(elements);
-    let width = 600;
-    let height = 320;
-    if (placed.length) {
-      const minX = Math.min(...placed.map((e) => e.bounds.x));
-      const minY = Math.min(...placed.map((e) => e.bounds.y));
-      const maxX = Math.max(...placed.map((e) => e.bounds.x + e.bounds.width));
-      const maxY = Math.max(...placed.map((e) => e.bounds.y + e.bounds.height));
-      const offsetX = -(minX + maxX) / 2;
-      const offsetY = -(minY + maxY) / 2;
-      placed.forEach((e) => {
-        e.bounds.x += offsetX;
-        e.bounds.y += offsetY;
-      });
-      width = Math.max(600, maxX - minX);
-      height = Math.max(320, maxY - minY);
-    }
+    const size = centerElementsOnOrigin(elements);
+    const width = Math.max(600, size?.width ?? 0);
+    const height = Math.max(320, size?.height ?? 0);
 
     return {
       version: '3.0.0',

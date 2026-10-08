@@ -1,6 +1,6 @@
 import { BPMNFlow } from '../../../../../main/packages/bpmn/bpmn-flow/bpmn-flow';
 
-describe('BPMNFlow - isDefault (Phase A construct gaps)', () => {
+describe('BPMNFlow - isDefault (construct gaps)', () => {
   it('should default isDefault to false when not provided', () => {
     const flow = new BPMNFlow();
     expect(flow.isDefault).toBe(false);

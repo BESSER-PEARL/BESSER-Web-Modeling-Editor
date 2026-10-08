@@ -49,6 +49,8 @@
       "state": "Estat",
       "agent": "Agent",
       "bpmn": "BPMN",
+      "component": "Component",
+      "deployment": "Desplegament",
       "user": "Usuari",
       "neuralNet": "Xarxa neuronal",
       "gui": "GUI",
@@ -86,6 +88,9 @@
       "title": "Genera",
       "generating": "S'està generant…",
       "goToClassDiagram": "Vés al diagrama de classes",
+      "deriveComponentDiagram": "Genera el diagrama de components",
+      "deriveDeploymentDiagram": "Genera el diagrama de desplegament",
+      "generateDockerCompose": "Genera el Docker Compose",
       "groups": {
         "web": "Web",
         "database": "Base de dades",
@@ -856,6 +861,12 @@
       "stepPackaging": "S'està empaquetant la sortida…",
       "stepGenerating": "S'està generant el codi…",
       "stepParsing": "S'està analitzant el diagrama…"
+    },
+    "dockerCompose": {
+      "invalidGovernanceTitle": "DSL de governança no vàlid",
+      "invalidGovernance": "Reviseu la política de governança de la comporta «{{gateway}}». Vegeu la consola del navegador per als detalls.",
+      "deploymentDiagramRequired": "No s'ha trobat contingut al diagrama de desplegament: afegiu almenys un element abans de generar.",
+      "noLinkedAgents": "Encara no hi ha cap agent enllaçat a un artefacte. Deriveu el diagrama de desplegament mitjançant BPMN → Component per connectar els contextos d'agent."
     }
   },
   "project": {
@@ -1049,6 +1060,10 @@
             "label": "Desenvolupador d'agents",
             "description": "Diagrames d'agents i usuaris per a agents conversacionals."
           },
+          "agenticSwarm": {
+            "label": "Multiagent",
+            "description": "Diagrames BPMN agèntics, d'agents, de components i de desplegament."
+          },
           "fullApp": {
             "label": "Aplicació web completa",
             "description": "Diagrames de classes, agents i interfície sense codi (no-code)."
@@ -1105,7 +1120,8 @@
         "State Machine Diagram": "Diagrama de màquina d'estats",
         "Quantum Circuit": "Circuit quàntic",
         "Neural Network": "Xarxa neuronal",
-        "Full Project": "Projecte complet"
+        "Full Project": "Projecte complet",
+        "Multi-agent": "Multiagent"
       },
       "confirm": {
         "title": "S'ha detectat un diagrama existent",
@@ -1624,6 +1640,8 @@
     "GUINoCodeDiagram": "Diagrama de GUI",
     "QuantumCircuitDiagram": "Diagrama de circuit quàntic",
     "BPMN": "Diagrama BPMN",
+    "ComponentDiagram": "Diagrama de components",
+    "DeploymentDiagram": "Diagrama de desplegament",
     "NNDiagram": "Diagrama de xarxa neuronal"
   },
   "dialogs": {
@@ -2124,7 +2142,16 @@
       "editAsForm": "Edita com a formulari",
       "closeForm": "Tanca el formulari",
       "editAsFormTitle": "Edita aquest perfil amb un formulari guiat",
-      "closeFormTitle": "Tanca el formulari del perfil d’usuari"
+      "closeFormTitle": "Tanca el formulari del perfil d’usuari",
+      "lineage": {
+        "sourceDeleted": "← Diagrama d'origen eliminat ({{type}})",
+        "derivedFrom": "← Derivat de <em>{{title}}</em> ({{type}})",
+        "sourceChangedTitle": "El diagrama d'origen ha canviat des que es va derivar aquest diagrama.",
+        "sourceChanged": "origen modificat",
+        "implementationOf": "← Implementació de <em>{{lane}}</em>",
+        "unnamedLane": "(carril sense nom)",
+        "openFailed": "No s'ha pogut obrir el diagrama d'origen."
+      }
     },
     "charts": {
       "loadingChart": "S'està carregant el gràfic…",
@@ -2790,7 +2817,9 @@
       "GUINoCodeDiagram": "Pantalles (GUI)",
       "QuantumCircuitDiagram": "Circuit quàntic",
       "NNDiagram": "Diagrama de xarxa neuronal",
-      "BPMN": "Procés BPMN"
+      "BPMN": "Procés BPMN",
+      "ComponentDiagram": "Diagrama de components",
+      "DeploymentDiagram": "Diagrama de desplegament"
     }
   },
   "import": {
@@ -2820,6 +2849,10 @@
       "readFileFailed": "No s'ha pogut llegir el fitxer",
       "invalidFromBackend": "El servidor ha retornat un diagrama no vàlid",
       "couldNotParseError": "No s'ha pogut interpretar la resposta d'error"
+    },
+    "warnings": {
+      "danglingAgentRef": "L'element «{{name}}» enllaça un comportament d'agent que no és en aquest projecte. Feu servir «Defineix el comportament de l'agent» per crear-ne un de nou.",
+      "unnamedElement": "(sense nom)"
     }
   },
   "validation": {
@@ -3121,6 +3154,60 @@
   "errors": {
     "network": {
       "unreachable": "No s’ha pogut connectar amb el servidor. Comprova la connexió i torna-ho a provar."
+    }
+  },
+  "interDiagram": {
+    "linker": {
+      "bpmnNotActive": "No es pot definir un agent: el diagrama BPMN no està actiu.",
+      "noProject": "No hi ha cap projecte obert.",
+      "limitReached": "No es poden afegir més diagrames d'agent (màx. {{max}} per projecte). Suprimiu primer un diagrama d'agent existent.",
+      "flushFailed": "No s'ha pogut desar el diagrama BPMN abans de definir l'agent. Torneu-ho a provar.",
+      "createFailed": "No s'ha pogut crear el diagrama d'agent. Torneu-ho a provar.",
+      "linkNotSaved": "S'ha creat el diagrama d'agent, però no s'ha pogut desar l'enllaç a l'element BPMN.",
+      "openFailed": "S'ha creat el diagrama d'agent, però no s'ha pogut obrir. Obriu-lo des de les pestanyes dels diagrames d'agent.",
+      "openExistingFailed": "No s'ha pogut obrir el diagrama d'agent.",
+      "populateFailed": "S'ha creat el diagrama d'agent, però no s'ha pogut omplir a partir del carril.",
+      "derivedWithWarnings_one": "Diagrama d'agent creat amb {{count}} avís:",
+      "derivedWithWarnings_other": "Diagrama d'agent creat amb {{count}} avisos:",
+      "emptyAgent": {
+        "noTasksInLane": "El carril encara no té tasques, de manera que el diagrama d'agent comença buit.",
+        "laneNotAgentic": "El carril no és agèntic, de manera que el diagrama d'agent comença buit.",
+        "laneNotFound": "No s'ha pogut llegir el carril, de manera que el diagrama d'agent comença buit."
+      }
+    },
+    "derive": {
+      "component": {
+        "failed": "No es pot derivar el diagrama de components: {{reason}}",
+        "noPools": "Afegiu primer almenys un pool amb carrils a aquest diagrama BPMN.",
+        "noLanes": "Afegiu primer almenys un carril dins d'un pool.",
+        "notBpmn": "Aquesta acció només funciona en un diagrama BPMN.",
+        "limitReached": "el projecte ja té el nombre màxim de diagrames de components. Suprimiu-ne un abans de generar-ne un de nou.",
+        "done": "S'ha generat el diagrama de components.",
+        "doneWithWarnings_one": "S'ha generat el diagrama de components amb {{count}} avís:",
+        "doneWithWarnings_other": "S'ha generat el diagrama de components amb {{count}} avisos:"
+      },
+      "deployment": {
+        "failed": "No es pot derivar el diagrama de desplegament: {{reason}}",
+        "noComponents": "Afegiu primer almenys un component a aquest diagrama de components.",
+        "notComponentDiagram": "Aquesta acció només funciona en un diagrama de components.",
+        "limitReached": "el projecte ja té el nombre màxim de diagrames de desplegament. Suprimiu-ne un abans de generar-ne un de nou.",
+        "done": "S'ha generat el diagrama de desplegament.",
+        "doneWithWarnings_one": "S'ha generat el diagrama de desplegament amb {{count}} avís:",
+        "doneWithWarnings_other": "S'ha generat el diagrama de desplegament amb {{count}} avisos:"
+      }
+    },
+    "warnings": {
+      "more": "…i {{count}} més",
+      "unnamed": "(sense nom)",
+      "droppedTask": "La tasca «{{task}}» és al carril no agèntic «{{lane}}», per això no es mostra al diagrama de components.",
+      "capabilityHeavyAgent": "L'agent «{{lane}}» utilitza {{count}} eines, habilitats i recursos, per això la seva part del diagrama pot quedar atapeïda.",
+      "capabilityHeavyZone": "El grup «{{zone}}» conté {{count}} elements i pot quedar atapeït.",
+      "danglingAgentRef": "«{{name}}» enllaça un diagrama d'agent que ja no és en aquest projecte, per això s'han omès les seves eines i habilitats.",
+      "flatScaffold": "El diagrama de components no té subsistemes, per això tots els components s'han col·locat en un sol Docker Host. Afegiu subsistemes per a una disposició més completa.",
+      "ioUnresolvedIn": "El flux des de «{{peer}}» no arriba a cap tasca d'aquest carril, per això cap estat el rep.",
+      "ioUnresolvedOut": "El flux cap a «{{peer}}» no surt de cap tasca d'aquest carril, per això cap estat l'envia.",
+      "mergeNoProducers": "La porta d'unió governada «{{gateway}}» no té cap flux d'entrada, per això el seu estat de decisió no té cap transició d'entrada. Afegiu-ne una manualment.",
+      "mergeNoSuccessors": "La porta d'unió governada «{{gateway}}» no porta a cap tasca d'aquest carril, per això el seu estat de decisió no té cap transició de sortida. Afegiu-ne una manualment."
     }
   }
 }

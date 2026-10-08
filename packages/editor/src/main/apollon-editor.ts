@@ -1,5 +1,5 @@
 import 'pepjs';
-import { createElement } from 'react';
+import { createElement, ReactElement } from 'react';
 import { createRoot, Root } from 'react-dom/client';
 import { DeepPartial, Store } from 'redux';
 import { ModelState, PartialModelState } from './components/store/model-state';
@@ -23,6 +23,10 @@ import { ErrorBoundary } from './components/controls/error-boundary/ErrorBoundar
 import { replaceColorVariables } from './utils/replace-color-variables';
 import { backwardsCompatibleModel, UMLModelCompat } from './compat';
 import { normalizeAgentComponents } from './packages/agent-state-diagram/normalize-agent-model';
+import { LineageProvider, lineageContext } from './components/lineage/LineageContext';
+import { ElementPickerProvider, elementPickerContext } from './components/element-picker/ElementPickerContext';
+import { AgentDiagramLinker, agentDiagramLinkerContext } from './components/agent-diagram-linker/AgentDiagramLinkerContext';
+import { HostProviderSlot } from './components/host-provider/host-provider';
 
 export class ApollonEditor {
   private ensureInitialized() {
@@ -72,6 +76,19 @@ export class ApollonEditor {
       elements: undefined,
     };
     this.recreateEditor(state);
+  }
+
+  /**
+   * Shows or hides the agentic BPMN controls (the Agentic switches on lanes,
+   * tasks and gateways). Rebuilds the editor like the locale setter.
+   * @param enabled whether the agentic controls are shown
+   */
+  set agenticEnabled(enabled: boolean) {
+    this.ensureInitialized();
+    const state = this.store!.getState();
+    if (state.editor.agenticEnabled === enabled) return;
+    this.options.agenticEnabled = enabled;
+    this.recreateEditor({ ...state, editor: { ...state.editor, agenticEnabled: enabled } });
   }
 
   /**
@@ -132,6 +149,12 @@ export class ApollonEditor {
    */
   private migratedAgentComponents?: { [id: string]: Apollon.UMLModelComponent };
 
+  // Host-supplied providers read by the popups. Each slot survives editor
+  // rebuilds and forwards setter calls to the mounted React provider root.
+  private readonly lineageSlot = new HostProviderSlot<LineageProvider>(lineageContext);
+  private readonly elementPickerSlot = new HostProviderSlot<ElementPickerProvider>(elementPickerContext);
+  private readonly agentDiagramLinkerSlot = new HostProviderSlot<AgentDiagramLinker>(agentDiagramLinkerContext);
+
   constructor(
     private container: HTMLElement,
     private options: Apollon.ApollonOptions,
@@ -151,6 +174,7 @@ export class ApollonEditor {
         view: ApollonView.Modelling,
         mode: options.mode || ApollonMode.Exporting,
         colorEnabled: options.colorEnabled || false,
+        agenticEnabled: options.agenticEnabled || false,
         zoomFactor: options.scale || 1.0,
         readonly: options.readonly || false,
         enablePopups: options.enablePopups === true || options.enablePopups === undefined,
@@ -186,7 +210,11 @@ export class ApollonEditor {
       styles: options.theme,
       locale: options.locale,
     });
-    const errorBoundary = createElement(ErrorBoundary, { onError: this.onErrorOccurred.bind(this) }, element);
+    const errorBoundary = createElement(
+      ErrorBoundary,
+      { onError: this.onErrorOccurred.bind(this) },
+      this.wrapWithHostProviders(element),
+    );
     this.root = createRoot(container);
     this.root.render(errorBoundary);
     try {
@@ -247,6 +275,40 @@ export class ApollonEditor {
    */
   unsubscribeFromSelectionChange(subscriptionId: number) {
     delete this.selectionSubscribers[subscriptionId];
+  }
+
+  /**
+   * Register a lineage provider so derived-element popups can
+   * render a "← Derived from X" link and dispatch click-through.
+   * Pass `null` to clear. Safe to call before or after mount; the
+   * editor captures the latest value on its next render.
+   */
+  setLineageProvider(provider: LineageProvider | null): void {
+    this.lineageSlot.set(provider);
+  }
+
+  /**
+   * Register an element-picker provider so cross-diagram pickers
+   * (`realizes`, `manifests`) can list elements from other diagrams.
+   * Pass `null` to clear. Safe before or after mount.
+   */
+  setElementPickerProvider(provider: ElementPickerProvider | null): void {
+    this.elementPickerSlot.set(provider);
+  }
+
+  /**
+   * Register an agent-diagram linker so the agentic-lane popup can
+   * render the Define / Open affordance and dispatch the project-mutating
+   * callbacks. Pass `null` to clear. Safe to call before or after mount;
+   * the editor captures the latest value on its next render.
+   */
+  setAgentDiagramLinker(linker: AgentDiagramLinker | null): void {
+    this.agentDiagramLinkerSlot.set(linker);
+  }
+
+  /** Wraps the application element in the host-provider roots read by the popups. */
+  private wrapWithHostProviders(app: ReactElement): ReactElement {
+    return this.elementPickerSlot.wrap(this.lineageSlot.wrap(this.agentDiagramLinkerSlot.wrap(app)));
   }
 
   /**
@@ -567,7 +629,11 @@ export class ApollonEditor {
       styles: this.options.theme,
       locale: this.options.locale,
     } as any);
-    const errorBoundary = createElement(ErrorBoundary, { onError: this.onErrorOccurred.bind(this) }, element);
+    const errorBoundary = createElement(
+      ErrorBoundary,
+      { onError: this.onErrorOccurred.bind(this) },
+      this.wrapWithHostProviders(element),
+    );
     this.root = createRoot(this.container);
     this.root.render(errorBoundary);
     this.componentDidMount();
