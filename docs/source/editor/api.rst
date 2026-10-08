@@ -83,11 +83,25 @@ Model management
 ``editor.select(selection)`` (method)
    Programmatically select/deselect elements by ID using the ``Selection`` type.
 
-``editor.setLineageProvider(provider?)``
-   Registers an optional provider used by element popups to show **Derived
-   from** source links. The host application owns lineage storage and navigation;
-   the editor only asks the provider to resolve an element ID and to handle the
-   source-navigation request. Pass ``undefined`` to clear the provider.
+``editor.setLineageProvider(provider)`` (method)
+   Registers a lineage provider used by element popups to show **Derived
+   from** source links. The host application owns lineage storage and
+   navigation; the editor only calls ``resolveSource(elementId)`` to resolve a
+   derived element and ``onShowSource(resolved)`` when the link is clicked.
+   Pass ``null`` to clear the provider. Safe to call before or after mount.
+
+``editor.setElementPickerProvider(provider)`` (method)
+   Registers an ``ElementPickerProvider`` whose ``listElements(typeTokens)``
+   returns elements from other diagrams of the project. The Component popup's
+   **Realizes** field uses it. Pass ``null`` to clear; without a provider the
+   field is not shown.
+
+``editor.setAgentDiagramLinker(linker)`` (method)
+   Registers an ``AgentDiagramLinker`` that backs the **Define agent behavior**
+   / **Open agent behavior** buttons on agentic BPMN lanes and tasks. The host
+   implements ``isRefAlive(ref)``, ``createForLane(title, elementId)`` and
+   ``openByRef(ref)``. Pass ``null`` to clear; without a linker the buttons are
+   not shown.
 
 Subscriptions
 -------------
