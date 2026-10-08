@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import CodeMirror from '@uiw/react-codemirror';
+import CodeMirror, { EditorView } from '@uiw/react-codemirror';
 import { yaml } from '@codemirror/lang-yaml';
 
 /**
@@ -17,7 +17,7 @@ export function YamlCodeEditor({
   minHeightClass?: string;
   className?: string;
 }) {
-  const extensions = useMemo(() => [yaml()], []);
+  const extensions = useMemo(() => [yaml(), EditorView.lineWrapping], []);
   const readOnly = !onChange;
   return (
     <div className={`overflow-hidden rounded-md border border-input font-mono text-sm ${minHeightClass} ${className}`}>

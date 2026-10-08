@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ChevronDown } from 'lucide-react';
-import CodeMirror from '@uiw/react-codemirror';
+import CodeMirror, { EditorView } from '@uiw/react-codemirror';
 import { yaml } from '@codemirror/lang-yaml';
 import { cn } from '@/lib/utils';
 import { Input } from '@/components/ui/input';
@@ -470,7 +470,7 @@ export function AgentConfigYamlEditor({ currentProject }: AgentConfigYamlEditorP
     }
   }, [form, persist]);
 
-  const yamlExtensions = useMemo(() => [yaml()], []);
+  const yamlExtensions = useMemo(() => [yaml(), EditorView.lineWrapping], []);
 
   // ── Section updaters ─────────────────────────────────────
   const setAgent = (v: Partial<AgentConfigFormData['agent']>) =>

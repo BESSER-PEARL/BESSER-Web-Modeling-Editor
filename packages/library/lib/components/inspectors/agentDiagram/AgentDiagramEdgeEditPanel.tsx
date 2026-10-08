@@ -176,7 +176,7 @@ export const AgentDiagramEdgeEditPanel: React.FC<PopoverProps> = ({
   const data: EdgeData = (edge.data ?? {}) as EdgeData
   const mode = data.transitionType ?? "predefined"
   const predefined = data.predefined ?? {}
-  const custom = data.custom ?? { event: "None", condition: [] }
+  const custom = data.custom ?? { event: "WildcardEvent", condition: [] }
   const params = data.params ?? {}
 
   const lists = getAgentComponentLists(nodes)

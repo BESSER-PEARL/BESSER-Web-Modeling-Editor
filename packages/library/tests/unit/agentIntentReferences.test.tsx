@@ -96,6 +96,19 @@ describe("transition inspector: missing intent", () => {
   })
 })
 
+describe("transition inspector: switching to custom", () => {
+  it("a predefined transition becomes a WildcardEvent custom one (develop parity)", () => {
+    const store = renderWith(<AgentDiagramEdgeEditPanel elementId="t1" />, [], [
+      transition("greet"),
+    ])
+    fireEvent.click(screen.getByRole("button", { name: "Custom transition" }))
+    const edge = store.getState().edges.find((e) => e.id === "t1")!
+    expect((edge.data as { custom: { event: string } }).custom.event).toBe(
+      "WildcardEvent"
+    )
+  })
+})
+
 describe("intent inspector", () => {
   const intent = (phrases: { id: string; name: string }[] = []): Node => ({
     id: "i1",
