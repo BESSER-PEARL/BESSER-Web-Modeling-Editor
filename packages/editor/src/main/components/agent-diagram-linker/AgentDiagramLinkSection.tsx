@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Button } from '../controls/button/button';
 import { Divider } from '../controls/divider/divider';
 import { I18nContext } from '../i18n/i18n-context';
@@ -27,16 +27,26 @@ type Props = OwnProps & I18nContext;
  */
 const AgentDiagramLinkSectionComponent: React.FC<Props> = ({ laneId, laneName, agentDiagramRef, translate }) => {
   const linker = useAgentDiagramLinker();
+  const [pending, setPending] = useState(false);
   if (!linker) return null;
 
   const alive = agentDiagramRef !== undefined && linker.isRefAlive(agentDiagramRef);
 
   const onDefine = async () => {
-    // Atomic: host flushes the editor model, adds the Agent diagram,
-    // writes the ref to the source lane in storage, switches active
-    // type. No popup-side model write — the editor is being torn down
-    // anyway, and storage is the source of truth on the next reload.
-    await linker.createForLane(laneName || 'Agent', laneId);
+    // A second click while the host is still creating the diagram would
+    // create a second Agent diagram for the same element.
+    if (pending) return;
+    setPending(true);
+    // The host flushes the editor model, adds the Agent diagram, writes the
+    // ref to the source element in storage and switches the active type; it
+    // reports failures to the user itself.
+    try {
+      await linker.createForLane(laneName || translate('packages.BPMNDiagram.BPMNDefaultAgentTitle'), laneId);
+    } catch (error) {
+      console.error('[agent-diagram-linker] defining the agent diagram failed:', error);
+    } finally {
+      setPending(false);
+    }
   };
 
   const onOpen = () => {
@@ -51,7 +61,7 @@ const AgentDiagramLinkSectionComponent: React.FC<Props> = ({ laneId, laneName, a
           {translate('packages.BPMNDiagram.BPMNOpenAgentDiagram')}
         </Button>
       ) : (
-        <Button color="primary" onClick={onDefine}>
+        <Button color="primary" onClick={onDefine} disabled={pending}>
           {translate('packages.BPMNDiagram.BPMNDefineAgentDiagram')}
         </Button>
       )}

@@ -79,11 +79,16 @@ export class BPMNTask extends UMLContainer {
       type: this.type as keyof typeof BPMNElementType,
       taskType: this.taskType,
       marker: this.marker,
-      isAgentic: this.isAgentic,
-      reflectionMode: this.reflectionMode,
-      trustScore: this.trustScore,
+      // Plain BPMN tasks carry no agentic fields; the defaults return on load.
+      ...(this.isAgentic
+        ? {
+            isAgentic: true,
+            reflectionMode: this.reflectionMode,
+            trustScore: this.trustScore,
+            reflectionReviewerLaneId: this.reflectionReviewerLaneId,
+          }
+        : {}),
       agentDiagramRef: this.agentDiagramRef,
-      reflectionReviewerLaneId: this.reflectionReviewerLaneId,
     };
   }
 

@@ -222,6 +222,73 @@ describe('LlmKeyDialog — unified BYOK key', () => {
   });
 });
 
+describe('LlmKeyDialog — remove key and error announcement', () => {
+  const seedKey = () => {
+    window.sessionStorage.setItem('besser_llm_api_key', 'sk-ant-stored');
+    window.sessionStorage.setItem('besser_llm_provider', 'anthropic');
+  };
+
+  it('stages "Remove key" so Cancel keeps the stored key', () => {
+    seedKey();
+    const onRemoved = vi.fn();
+    const onOpenChange = vi.fn();
+    render(<LlmKeyDialog open onOpenChange={onOpenChange} onRemoved={onRemoved} />);
+
+    fireEvent.click(screen.getByRole('button', { name: /remove key/i }));
+    expect(window.sessionStorage.getItem('besser_llm_api_key')).toBe('sk-ant-stored');
+    expect(onRemoved).not.toHaveBeenCalled();
+
+    fireEvent.click(screen.getByRole('button', { name: /^cancel$/i }));
+    expect(onOpenChange).toHaveBeenCalledWith(false);
+    expect(window.sessionStorage.getItem('besser_llm_api_key')).toBe('sk-ant-stored');
+    expect(onRemoved).not.toHaveBeenCalled();
+  });
+
+  it('Undo restores the Remove key button without touching storage', () => {
+    seedKey();
+    render(<LlmKeyDialog open onOpenChange={() => {}} />);
+    fireEvent.click(screen.getByRole('button', { name: /remove key/i }));
+    fireEvent.click(screen.getByRole('button', { name: /^undo$/i }));
+    expect(screen.getByRole('button', { name: /remove key/i })).toBeTruthy();
+    expect(window.sessionStorage.getItem('besser_llm_api_key')).toBe('sk-ant-stored');
+  });
+
+  it('commits the staged removal on Save and disarms the client', () => {
+    seedKey();
+    const onRemoved = vi.fn();
+    const setUserApiKey = vi.fn();
+    render(
+      <LlmKeyDialog open onOpenChange={() => {}} onRemoved={onRemoved} client={{ setUserApiKey }} />,
+    );
+    fireEvent.click(screen.getByRole('button', { name: /remove key/i }));
+    fireEvent.click(screen.getByRole('button', { name: /^save$/i }));
+
+    expect(window.sessionStorage.getItem('besser_llm_api_key')).toBeNull();
+    expect(onRemoved).toHaveBeenCalledTimes(1);
+    expect(setUserApiKey).toHaveBeenCalledWith({ apiKey: '' });
+  });
+
+  it('announces a provider mismatch and links it to the key field', () => {
+    render(<LlmKeyDialog open onOpenChange={() => {}} />);
+    fireEvent.change(document.getElementById('llm-key-provider') as HTMLSelectElement, {
+      target: { value: 'mistral' },
+    });
+    const input = document.getElementById('llm-key-api-key') as HTMLInputElement;
+    fireEvent.change(input, { target: { value: 'sk-ant-mismatch' } });
+
+    const alert = screen.getByRole('alert');
+    expect(alert.id).toBe('llm-key-mismatch');
+    expect(input.getAttribute('aria-invalid')).toBe('true');
+    expect(input.getAttribute('aria-describedby')).toContain('llm-key-mismatch');
+  });
+
+  it('labels the default model option "Recommended default"', () => {
+    render(<LlmKeyDialog open onOpenChange={() => {}} />);
+    const select = document.getElementById('llm-key-model') as HTMLSelectElement;
+    expect(select.options[0].textContent).toBe('Recommended default');
+  });
+});
+
 describe('LlmKeyDialog — model pickers', () => {
   function modelOptions(provider: string): string[] {
     render(<LlmKeyDialog open onOpenChange={() => {}} />);

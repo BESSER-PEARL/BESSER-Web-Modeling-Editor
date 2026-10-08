@@ -34,23 +34,25 @@ export const FirstRunLanding: React.FC<FirstRunLandingProps> = ({
   return (
     <div className="frl relative flex max-h-[92vh] flex-col overflow-y-auto bg-background">
       <style>{`
-        .frl-rise{opacity:0;transform:translateY(12px);animation:frlRise .7s cubic-bezier(.2,.7,.2,1) forwards}
+        .frl-rise{opacity:0;translate:0 12px;animation:frlRise .7s cubic-bezier(.2,.7,.2,1) forwards}
         .frl-d1{animation-delay:.04s}.frl-d2{animation-delay:.12s}.frl-d3{animation-delay:.22s}
         .frl-d4{animation-delay:.32s}.frl-d5{animation-delay:.42s}.frl-d6{animation-delay:.54s}
-        @keyframes frlRise{to{opacity:1;transform:none}}
+        @keyframes frlRise{to{opacity:1;translate:none}}
         .frl-edge{stroke-dasharray:150;stroke-dashoffset:150;animation:frlDraw 1.1s .5s cubic-bezier(.6,0,.2,1) forwards}
-        .frl-card-model:hover .frl-edge,.frl-card-model:focus-visible .frl-edge{animation:frlDraw .9s cubic-bezier(.6,0,.2,1) forwards}
         @keyframes frlDraw{to{stroke-dashoffset:0}}
         .frl-typed{white-space:nowrap;overflow:hidden;border-right:2px solid hsl(var(--brand));width:19ch;max-width:100%;
           animation:frlType 1.9s .5s steps(19) both, frlCaret .8s steps(1) 5 .5s}
-        .frl-card-agent:hover .frl-typed,.frl-card-agent:focus-visible .frl-typed{animation:frlType 1.3s steps(19) both, frlCaret .8s steps(1) 3}
         @keyframes frlType{from{width:0}to{width:19ch}}
         @keyframes frlCaret{50%{border-color:transparent}}
         .frl-built{opacity:0;animation:frlPop .5s 2.3s forwards}
-        .frl-card-agent:hover .frl-built,.frl-card-agent:focus-visible .frl-built{animation:frlPop .4s 1.3s forwards}
         @keyframes frlPop{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+        @media (prefers-reduced-motion:no-preference){
+          .frl-card-model:hover .frl-edge,.frl-card-model:focus-visible .frl-edge{animation:frlDraw .9s cubic-bezier(.6,0,.2,1) forwards}
+          .frl-card-agent:hover .frl-typed,.frl-card-agent:focus-visible .frl-typed{animation:frlType 1.3s steps(19) both, frlCaret .8s steps(1) 3}
+          .frl-card-agent:hover .frl-built,.frl-card-agent:focus-visible .frl-built{animation:frlPop .4s 1.3s forwards}
+        }
         @media (prefers-reduced-motion:reduce){
-          .frl-rise{opacity:1;transform:none;animation:none}
+          .frl-rise{opacity:1;translate:none;animation:none}
           .frl-edge{stroke-dashoffset:0;animation:none}
           .frl-typed{width:19ch;border-right-color:transparent;animation:none}
           .frl-built{opacity:1;animation:none}
@@ -88,7 +90,7 @@ export const FirstRunLanding: React.FC<FirstRunLandingProps> = ({
           <button
             type="button"
             onClick={() => onChoose('model', remember)}
-            className="frl-card-model frl-rise frl-d4 group relative flex min-h-[300px] flex-col overflow-hidden rounded-2xl border border-border bg-card p-6 text-left transition-all duration-500 hover:-translate-y-1.5 hover:border-brand/50 hover:shadow-elevation-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+            className="frl-card-model frl-rise frl-d4 group relative flex min-h-[300px] flex-col overflow-hidden rounded-2xl border border-border bg-card p-6 text-left transition-[transform,border-color,box-shadow,background-color] duration-500 ease-out hover:border-brand/50 hover:shadow-elevation-3 active:scale-[0.98] [@media(hover:hover)]:hover:-translate-y-1.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background"
           >
             <div
               aria-hidden
@@ -147,7 +149,7 @@ export const FirstRunLanding: React.FC<FirstRunLandingProps> = ({
           <button
             type="button"
             onClick={() => onChoose('agent', remember)}
-            className="frl-card-agent frl-rise frl-d5 group relative flex min-h-[300px] flex-col overflow-hidden rounded-2xl border border-border bg-card p-6 text-left transition-all duration-500 hover:-translate-y-1.5 hover:border-brand/50 hover:shadow-elevation-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+            className="frl-card-agent frl-rise frl-d5 group relative flex min-h-[300px] flex-col overflow-hidden rounded-2xl border border-border bg-card p-6 text-left transition-[transform,border-color,box-shadow,background-color] duration-500 ease-out hover:border-brand/50 hover:shadow-elevation-3 active:scale-[0.98] [@media(hover:hover)]:hover:-translate-y-1.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background"
           >
             <div
               aria-hidden

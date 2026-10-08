@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import { createHostProviderContext } from '../host-provider/host-provider';
 
 /**
  * Supplied by the host at editor-init time.
@@ -9,54 +9,19 @@ import React, { createContext, useContext, useEffect, useState } from 'react';
  * host-supplied callbacks.
  */
 export interface AgentDiagramLinker {
-  /** True iff `ref` resolves to an Agent diagram that currently exists
-   *  in the project. Used by the popup to decide whether to render
-   *  "Open Agent diagram" (alive) or "Define BESSER agent" (dead /
-   *  absent). */
+  /** True iff `ref` resolves to an Agent diagram that currently exists in
+   *  the project; the popup then offers "Open" instead of "Define". */
   isRefAlive: (ref: string) => boolean;
-  /** Atomic for the Define click. The host:
-   *   1. Flushes the editor's in-memory BPMN model to storage
-   *      (captures any pending isAgentic/role/trust edits within the
-   *      300ms debounce window).
-   *   2. Creates a fresh empty Agent diagram, returns its UUID.
-   *   3. Mutates the source BPMN lane in storage to add
-   *      `agentDiagramRef = newUuid` (bypasses the editor model
-   *      write entirely — the editor is being torn down by the
-   *      switch anyway).
-   *   4. Switches active diagram type to AgentDiagram.
-   *  Returns the new UUID, or null on failure (toast already shown). */
+  /** Define click: the host creates an Agent diagram for the BPMN lane or
+   *  task `laneId` (derived from the lane's tasks where possible), stores
+   *  `agentDiagramRef` on that element and switches to the new diagram.
+   *  Resolves to the new diagram id, or null on failure (the host has
+   *  already told the user why). */
   createForLane: (suggestedTitle: string, laneId: string) => Promise<string | null>;
-  /** Switch the editor to the Agent diagram identified by `ref`.
-   *  Fire-and-forget; the host dispatches the thunks and bumps
-   *  `editorRevision`. */
+  /** Switch to the Agent diagram identified by `ref` (fire-and-forget). */
   openByRef: (ref: string) => void;
 }
 
-const AgentDiagramLinkerContext = createContext<AgentDiagramLinker | null>(null);
+export const agentDiagramLinkerContext = createHostProviderContext<AgentDiagramLinker>();
 
-export const AgentDiagramLinkerContextProvider: React.FC<{
-  value: AgentDiagramLinker | null;
-  children: React.ReactNode;
-}> = ({ value, children }) => (
-  <AgentDiagramLinkerContext.Provider value={value}>{children}</AgentDiagramLinkerContext.Provider>
-);
-
-export const useAgentDiagramLinker = (): AgentDiagramLinker | null => useContext(AgentDiagramLinkerContext);
-
-/**
- * Wraps `AgentDiagramLinkerContextProvider` so the editor can swap the
- * provider value imperatively (via `setAgentDiagramLinker(...)`)
- * without tearing down its React tree. Same pattern as 06's
- * `LineageProviderRoot`.
- */
-export const AgentDiagramLinkerProviderRoot: React.FC<{
-  initialValue: AgentDiagramLinker | null;
-  register: (listener: (v: AgentDiagramLinker | null) => void) => void;
-  children: React.ReactNode;
-}> = ({ initialValue, register, children }) => {
-  const [value, setValue] = useState<AgentDiagramLinker | null>(initialValue);
-  useEffect(() => {
-    register(setValue);
-  }, [register]);
-  return <AgentDiagramLinkerContextProvider value={value}>{children}</AgentDiagramLinkerContextProvider>;
-};
+export const useAgentDiagramLinker = agentDiagramLinkerContext.useValue;

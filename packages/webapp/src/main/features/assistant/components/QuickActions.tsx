@@ -50,7 +50,7 @@ export const QuickActions: React.FC<QuickActionsProps> = ({ actions, onAction })
           key={i}
           type="button"
           onClick={() => onAction(action)}
-          className="inline-flex items-center gap-1.5 rounded-full border border-border/60 bg-background px-3 py-1.5 text-xs font-medium text-foreground/80 transition-all hover:border-brand/40 hover:bg-brand/5 hover:text-foreground active:scale-[0.97]"
+          className="inline-flex items-center gap-1.5 rounded-full border border-border/60 bg-background px-3 py-1.5 text-xs font-medium text-foreground/80 transition-[color,background-color,border-color,transform] hover:border-brand/40 hover:bg-brand/5 hover:text-foreground active:scale-[0.97]"
         >
           {getIcon(action.label)}
           {action.label}

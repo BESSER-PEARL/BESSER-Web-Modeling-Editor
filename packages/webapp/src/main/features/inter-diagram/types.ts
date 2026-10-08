@@ -21,10 +21,7 @@ export type DerivationResult =
 export type DerivationRefusalReason = 'no-pools' | 'no-lanes-in-any-pool' | 'not-a-bpmn-diagram';
 
 export type DerivationWarning =
-  | { kind: 'multi-hop-gateway'; sourceTaskId: string; targetGatewayId: string }
-  | { kind: 'flow-skipped-non-agentic-source'; flowId: string }
   | { kind: 'dropped-task-in-non-agentic-lane'; taskId: string }
-  | { kind: 'inferred-external-component'; messageFlowId: string }
   // An agentic lane resolves to more than CAPABILITY_WARN_THRESHOLD distinct
   // capabilities; its has/uses edges fan out and the grouped diagram gets
   // busy. Advisory only — every capability is still emitted. `count` is the

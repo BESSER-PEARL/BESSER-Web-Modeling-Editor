@@ -17,13 +17,12 @@ export class BPMNSwimlane extends UMLContainer {
 
   // Header strip widths (canvas coordinates within the lane). Children must
   // have bounds.x >= lane.bounds.x + LANE_HEADER_WIDTH so the rotated lane
-  // name + (when agentic) bot icon / role letter / trust score stay readable.
-  // Right-edge anchors live in bpmn-swimlane-component.tsx — update both
-  // together if the marker layout changes.
+  // name and, for an agentic lane, its marker column stay readable. The
+  // markers are centred between the two widths (bpmn-swimlane-component.tsx).
   static LANE_HEADER_WIDTH = 30;
   static AGENTIC_LANE_HEADER_WIDTH = 60;
 
-  // Agentic BPMN (04D): a lane is marked agentic via `isAgentic` rather than a
+  // Agentic BPMN: a lane is marked agentic via `isAgentic` rather than a
   // separate element type. `role` / `trustScore` are only meaningful when set.
   static defaultRole: BPMNAgentRole = 'solution';
   static defaultTrustScore = 0;
@@ -44,7 +43,7 @@ export class BPMNSwimlane extends UMLContainer {
   role: BPMNAgentRole;
   trustScore: number;
   // Swarm size: N identical copies of this agent.
-  // Only meaningful when isAgentic; default 1. [[swarm-multiplicity-semantics]]
+  // Only meaningful when isAgentic; default 1.
   multiplicity: number;
   // Forward link to the BESSER Agent diagram that defines this lane's
   // agent. Set only when isAgentic === true and the user has clicked
@@ -67,10 +66,10 @@ export class BPMNSwimlane extends UMLContainer {
     return {
       ...super.serialize(children),
       type: this.type as keyof typeof BPMNElementType,
-      isAgentic: this.isAgentic,
-      role: this.role,
-      trustScore: this.trustScore,
-      multiplicity: this.multiplicity,
+      // Plain BPMN lanes carry no agentic fields; the defaults return on load.
+      ...(this.isAgentic
+        ? { isAgentic: true, role: this.role, trustScore: this.trustScore, multiplicity: this.multiplicity }
+        : {}),
       agentDiagramRef: this.agentDiagramRef,
     };
   }
@@ -104,10 +103,12 @@ export class BPMNSwimlane extends UMLContainer {
     if (this.bounds.height < BPMNSwimlane.MIN_HEIGHT) {
       this.bounds.height = BPMNSwimlane.MIN_HEIGHT;
     }
-    // Keep child elements out of the header strip so the lane name stays
-    // readable. Children whose left edge would land inside the header are
-    // snapped to the body's left edge on the next layout pass.
-    const minChildX = this.bounds.x + BPMNSwimlane.LANE_HEADER_WIDTH;
+    // Keep child elements out of the header strip so the lane name (and, for
+    // an agentic lane, its marker column) stays readable. Children whose left
+    // edge would land inside the header are snapped to the body's left edge on
+    // the next layout pass.
+    const headerWidth = this.isAgentic ? BPMNSwimlane.AGENTIC_LANE_HEADER_WIDTH : BPMNSwimlane.LANE_HEADER_WIDTH;
+    const minChildX = this.bounds.x + headerWidth;
     for (const child of children) {
       if (child === this) continue;
       if (child.bounds.x < minChildX) {

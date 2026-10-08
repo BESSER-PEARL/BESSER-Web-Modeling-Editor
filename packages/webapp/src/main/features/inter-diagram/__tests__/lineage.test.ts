@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import type { UMLModel } from '@besser/wme';
-import { hashUmlModel } from '../lineage-hash';
+import { hashUmlModel } from '../../../shared/utils/lineageHash';
 
 function emptyModel(type: string): UMLModel {
   return {

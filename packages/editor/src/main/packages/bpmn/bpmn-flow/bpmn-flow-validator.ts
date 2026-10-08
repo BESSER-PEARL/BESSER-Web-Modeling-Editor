@@ -108,13 +108,12 @@ export function validateAllBpmnFlows(elementsById: Record<string, AnyElement>): 
   return out;
 }
 
-// ─── Agentic collaboration-mode resolution (04D2-followup F1) ───────────────
+// ─── Agentic collaboration blocks ────────────────────────────────────────────
 //
-// SEAA'25 § 4.3: a collaboration block is enclosed between a diverging and a
-// merging gateway. The diverging gateway carries the `CollaborationMode`;
-// the merging gateway and any agentic task inside the block *inherit* it.
-// These helpers resolve that inheritance from a unified elements+flows map
-// (same shape used by validateAllBpmnFlows).
+// SEAA'25 § 4.3: a collaboration block is enclosed between an agentic
+// diverging and an agentic merging gateway. These helpers find a block's
+// gateways and constructs from a unified elements+flows map (same shape used
+// by validateAllBpmnFlows).
 
 type AnyAgenticGateway = AnyElement & {
   isAgentic?: boolean;
@@ -132,7 +131,7 @@ const MAX_COLLAB_WALK_DEPTH = 50;
  * Internal: backward BFS from `elementId` via incoming sequence flows. Returns
  * the ID of the nearest *enclosing* agentic diverging gateway, or undefined.
  *
- * Nested collaboration handling (04D2-followup post-O3 fix): when the walk
+ * Nested collaboration handling: when the walk
  * encounters an agentic *merging* gateway, it recurses on that merging to
  * find the inner block's paired diverging gateway, then resumes the walk from
  * the predecessors of that inner diverging — effectively jumping past the
@@ -252,9 +251,8 @@ export function resolveUpstreamDivergingGateway(
  * - Records the paired merging gateway and STOPS descending past it (anything
  *   downstream belongs to the next enclosing block, not this one).
  *
- * Used by the diverging-gateway popup to propagate `collaborationMode` and
- * `gatewayType` changes to constructs that genuinely inherit from this
- * gateway.
+ * Used by the diverging-gateway popup to propagate `gatewayType` changes to
+ * the merging gateways that pair with this gateway.
  */
 export function findDownstreamAgenticConstructs(
   divergingGatewayId: string,
@@ -312,7 +310,7 @@ export function findDownstreamAgenticConstructs(
 /**
  * Return the IDs of every agentic merging gateway in the model whose upstream
  * resolution yields no agentic diverging gateway. Used by the importer to
- * surface a validation warning (04D2-followup F3).
+ * surface a validation warning.
  */
 export function findOrphanedMergingGateways(elementsById: Record<string, AnyElement>): string[] {
   const orphans: string[] = [];

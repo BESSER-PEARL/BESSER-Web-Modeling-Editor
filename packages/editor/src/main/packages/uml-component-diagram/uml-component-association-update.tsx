@@ -20,6 +20,8 @@ import { ColorButton } from '../../components/controls/color-button/color-button
 import { StylePane } from '../../components/style-pane/style-pane';
 import { COMPONENT_EDGE_STEREOTYPE_PRESETS } from '../common/agentic/agentic-tokens';
 import { LineageSourceLink } from '../../components/lineage/LineageSourceLink';
+import { PresetField } from '../common/agentic/preset-field';
+import { IUMLComponentDependency } from './uml-component-dependency/uml-component-dependency';
 
 const Flex = styled.div`
   display: flex;
@@ -27,15 +29,10 @@ const Flex = styled.div`
   justify-content: space-between;
 `;
 
-/** Makes the editor's content-sized Dropdown fill the popup row like a
- *  Textfield: the button stretches to 100 % and left-aligns its label. */
-const PresetField = styled.div`
-  width: 100%;
-
-  button {
-    width: 100%;
-    text-align: left;
-  }
+const FieldLabel = styled(Body)`
+  width: 6em;
+  flex-shrink: 0;
+  margin-right: 0.5em;
 `;
 
 type State = { colorOpen: boolean };
@@ -52,7 +49,7 @@ class ComponentAssociationUpdate extends Component<Props, State> {
   render() {
     const { element } = this.props;
     const isDependency = element.type === ComponentRelationshipType.ComponentDependency;
-    const stereotype = (element as unknown as { stereotype?: string }).stereotype ?? '';
+    const stereotype = (element as IUMLComponentDependency).stereotype ?? '';
 
     return (
       <div>
@@ -90,17 +87,21 @@ class ComponentAssociationUpdate extends Component<Props, State> {
             <Divider />
             <section>
               <Flex>
-                <Body style={{ width: '6em', flexShrink: 0, marginRight: '0.5em' }}>Stereotype</Body>
+                <FieldLabel>{this.props.translate('popup.stereotype')}</FieldLabel>
                 <Textfield
                   value={stereotype}
                   onChange={this.onStereotypeChange}
-                  placeholder="e.g. delegates, has, uses"
+                  placeholder={this.props.translate('packages.ComponentDiagram.ComponentDependencyStereotypePlaceholder')}
                 />
               </Flex>
               <Flex>
-                <Body style={{ width: '6em', flexShrink: 0, marginRight: '0.5em' }}>Preset</Body>
+                <FieldLabel>{this.props.translate('popup.preset')}</FieldLabel>
                 <PresetField>
-                  <Dropdown value={stereotype} onChange={this.onStereotypeChange} placeholder="Choose a preset…">
+                  <Dropdown
+                    value={stereotype}
+                    onChange={this.onStereotypeChange}
+                    placeholder={this.props.translate('popup.presetPlaceholder')}
+                  >
                     {COMPONENT_EDGE_STEREOTYPE_PRESETS.map((token) => (
                       <Dropdown.Item key={token} value={token}>
                         {token}
@@ -125,7 +126,7 @@ class ComponentAssociationUpdate extends Component<Props, State> {
 
   private onStereotypeChange = (value: string) => {
     const { element, update } = this.props;
-    update(element.id, { stereotype: value } as any);
+    update<IUMLComponentDependency>(element.id, { stereotype: value });
   };
 }
 

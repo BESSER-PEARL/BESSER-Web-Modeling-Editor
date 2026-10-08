@@ -43,6 +43,14 @@ export interface PerspectiveDefinition {
  *    pair a UI with an assistant.
  *  - "Show All" is the escape hatch back to the unfiltered workspace.
  */
+/** Diagram types of the Multi-Agent (agentic swarm) perspective. */
+export const AGENTIC_SWARM_DIAGRAMS: SupportedDiagramType[] = [
+  'BPMN',
+  'AgentDiagram',
+  'ComponentDiagram',
+  'DeploymentDiagram',
+];
+
 export const PERSPECTIVES: PerspectiveDefinition[] = [
   {
     key: 'data',
@@ -60,7 +68,7 @@ export const PERSPECTIVES: PerspectiveDefinition[] = [
     key: 'agenticSwarm',
     label: 'Multi-Agent',
     description: 'Agentic BPMN, agent, component, and deployment diagrams.',
-    diagrams: ['BPMN', 'AgentDiagram', 'ComponentDiagram', 'DeploymentDiagram'],
+    diagrams: AGENTIC_SWARM_DIAGRAMS,
   },
   {
     key: 'fullApp',
@@ -95,6 +103,15 @@ export function isPresetActive(
   );
   if (enabled.size !== preset.diagrams.length) return false;
   return preset.diagrams.every((t) => enabled.has(t));
+}
+
+/**
+ * True when every diagram type of the Multi-Agent perspective is shown (the
+ * Multi-Agent or Show All preset, or the same per-type switches). Turns on the
+ * agentic BPMN controls in the editor.
+ */
+export function isAgenticModeEnabled(perspectives: PerspectiveSettings | undefined): boolean {
+  return AGENTIC_SWARM_DIAGRAMS.every((type) => isPerspectiveVisible(perspectives, type));
 }
 
 /** Build a `PerspectiveSettings` map enabling exactly the diagrams in `types`. */

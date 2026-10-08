@@ -45,7 +45,7 @@ class diagram and try **Quality Check**.
 The root compose file starts the frontend, backend, and agent simulator.
 Its modeling-agent service is commented out: the conversational assistant
 needs that service started separately. Follow the
-`modeling-agent setup guide <https://github.com/BESSER-PEARL/modeling-agent/blob/develop/docs/source/getting_started.rst>`_
+`Modeling Agent setup guide <https://modeling-agent.readthedocs.io/en/latest/getting_started.html>`_
 to configure it before using AI modeling.
 
 Check logs and stop

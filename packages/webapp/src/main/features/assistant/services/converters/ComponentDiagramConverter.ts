@@ -9,7 +9,7 @@
  *         components inside subsystems are placed below their subsystem label.
  */
 
-import { DiagramConverter, generateUniqueId } from './base';
+import { DiagramConverter, centerElementsOnOrigin, generateUniqueId } from './base';
 
 const SUBSYSTEM_W = 300;
 const SUBSYSTEM_H_MIN = 160;
@@ -137,28 +137,10 @@ export class ComponentDiagramConverter implements DiagramConverter {
       };
     });
 
-    // ── 4. Centre on origin ────────────────────────────────────────────
-    const placed = Object.values(elements);
-    if (placed.length) {
-      const minX = Math.min(...placed.map((e) => e.bounds.x));
-      const minY = Math.min(...placed.map((e) => e.bounds.y));
-      const maxX = Math.max(...placed.map((e) => e.bounds.x + e.bounds.width));
-      const maxY = Math.max(...placed.map((e) => e.bounds.y + e.bounds.height));
-      const offsetX = -(minX + maxX) / 2;
-      const offsetY = -(minY + maxY) / 2;
-      placed.forEach((e) => {
-        e.bounds.x += offsetX;
-        e.bounds.y += offsetY;
-      });
-    }
-
-    const allBounds = Object.values(elements).map((e) => e.bounds);
-    const totalW = allBounds.length
-      ? Math.max(...allBounds.map((b) => b.x + b.width)) - Math.min(...allBounds.map((b) => b.x))
-      : 800;
-    const totalH = allBounds.length
-      ? Math.max(...allBounds.map((b) => b.y + b.height)) - Math.min(...allBounds.map((b) => b.y))
-      : 400;
+    // ── Centre on origin ───────────────────────────────────────────────
+    const size = centerElementsOnOrigin(elements);
+    const totalW = size?.width ?? 800;
+    const totalH = size?.height ?? 400;
 
     return {
       version: '3.0.0',

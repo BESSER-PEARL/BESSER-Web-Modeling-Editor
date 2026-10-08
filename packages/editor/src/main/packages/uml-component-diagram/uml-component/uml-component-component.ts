@@ -40,7 +40,9 @@ export class UMLComponentComponent extends UMLComponent {
     }
 
     super.deserialize(values, children);
-    this.stereotype = values.stereotype;
+    // Models saved before the stereotype was serialized carry no value; keep
+    // the class default instead of wiping it.
+    this.stereotype = values.stereotype ?? UMLComponent.DEFAULT_STEREOTYPE;
     this.displayStereotype = values.displayStereotype;
     this.realizes = values.realizes ?? [];
     this.processModelRefs = values.processModelRefs ?? [];

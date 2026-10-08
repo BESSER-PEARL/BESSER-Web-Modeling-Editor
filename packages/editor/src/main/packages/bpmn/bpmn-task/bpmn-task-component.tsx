@@ -17,14 +17,14 @@ import { BPMNBusinessRuleIcon } from '../common/icons/bpmn-business-rule-icon';
 import { BPMNManualIcon } from '../common/icons/bpmn-manual-icon';
 import { BPMNUserIcon } from '../common/icons/bpmn-user-icon';
 import { BPMNServiceIcon } from '../common/icons/bpmn-service-icon';
-import { BPMNBotIcon } from '../common/icons/bpmn-bot-icon';
+import { AgenticBotIcon } from '../../common/agentic/agentic-bot-icon';
 import { BPMNReflectionMarkerIcon } from '../common/icons/bpmn-reflection-marker-icon';
 import { BPMNSequentialMarkerIcon } from '../common/markers/bpmn-sequential-marker-icon';
 import { BPMNMarkerType, BPMNReflectionMode } from '../common/types';
 import { BpmnLoopMarkerIcon } from '../common/markers/bpmn-loop-marker-icon';
 import { BPMNParallelMarkerIcon } from '../common/markers/bpmn-parallel-marker-icon';
 
-// Agentic BPMN (04D): the reflection mode shows as a marker letter at the
+// Agentic BPMN: the reflection mode shows as a marker letter at the
 // bottom of the task; 'none' renders nothing.
 const REFLECTION_LETTER: Record<BPMNReflectionMode, string | null> = {
   none: null,
@@ -117,11 +117,11 @@ export const BPMNTaskComponent: FunctionComponent<Props> = ({ element, fillColor
       >
         {element.name}
       </Multiline>
-      {/* Agentic BPMN (04D): the agent marker replaces the task-type icon and
+      {/* Agentic BPMN: the agent marker replaces the task-type icon and
           the reflection marker replaces the multi-instance marker. The trust
           score is edited in the popup only — not drawn on the canvas. */}
       {element.isAgentic ? (
-        <BPMNBotIcon x={8} y={8} color={fg} />
+        <AgenticBotIcon x={8} y={8} strokeColor={fg} />
       ) : (
         renderIconForType(element.taskType, { x: 10, y: 10 })
       )}

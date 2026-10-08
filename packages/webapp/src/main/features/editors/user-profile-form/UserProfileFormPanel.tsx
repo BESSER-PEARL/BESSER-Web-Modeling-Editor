@@ -14,6 +14,8 @@ import ReactDOM from 'react-dom';
 import type { ApollonEditor } from '@besser/wme';
 import { X, Plus, Trash2, ChevronDown, ChevronRight, UserCircle2, Info } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { cn } from '@/lib/utils';
 import { useUserProfileForm } from './useUserProfileForm';
@@ -28,7 +30,13 @@ interface UserProfileFormPanelProps {
 }
 
 const fieldSelectClass =
-  'h-8 rounded-md border border-brand/15 bg-card px-1.5 text-[13px] font-medium text-foreground shadow-sm transition-colors hover:border-brand/30 focus:border-brand/40 focus:outline-none focus:ring-1 focus:ring-brand/20';
+  'h-8 w-auto gap-1 border-brand/15 bg-card px-1.5 py-0 text-[13px] font-medium text-foreground shadow-sm transition-colors hover:border-brand/30 focus-visible:ring-1 focus-visible:ring-brand/20 focus-visible:ring-offset-0';
+
+// The drawer sits at z-[1000]; the portalled dropdown must render above it.
+const selectContentClass = 'z-[1010]';
+
+// Radix Select forbids an empty-string item value; the "—" (no value) option uses this instead.
+const EMPTY_VALUE = '__empty__';
 
 const valueInputClass =
   'h-8 w-full flex-1 rounded-md border border-input bg-background px-2 text-[13px] ring-offset-background transition-colors placeholder:text-muted-foreground/50 focus-visible:border-primary focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring/20';
@@ -78,18 +86,18 @@ const AttributeRow: React.FC<{
 
       {/* Comparison operator only for numeric fields; everything else is an equality value. */}
       {isNumeric ? (
-        <select
-          className={fieldSelectClass}
-          value={attr.operator}
-          onChange={(e) => onChange({ operator: e.target.value as Operator })}
-          aria-label={`${attr.name} comparison operator`}
-        >
-          {OPERATORS.map((op) => (
-            <option key={op} value={op}>
-              {op === '==' ? '=' : op}
-            </option>
-          ))}
-        </select>
+        <Select value={attr.operator} onValueChange={(v) => onChange({ operator: v as Operator })}>
+          <SelectTrigger className={fieldSelectClass} aria-label={`${attr.name} comparison operator`}>
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent className={selectContentClass}>
+            {OPERATORS.map((op) => (
+              <SelectItem key={op} value={op}>
+                {op === '==' ? '=' : op}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       ) : (
         <span className="text-[13px] font-medium text-muted-foreground/70" aria-hidden>
           =
@@ -97,19 +105,22 @@ const AttributeRow: React.FC<{
       )}
 
       {isEnum ? (
-        <select
-          className={cn(fieldSelectClass, 'w-full flex-1')}
-          value={attr.value}
-          onChange={(e) => onChange({ value: e.target.value })}
-          aria-label={`${attr.name} value`}
+        <Select
+          value={attr.value === '' ? EMPTY_VALUE : attr.value}
+          onValueChange={(v) => onChange({ value: v === EMPTY_VALUE ? '' : v })}
         >
-          <option value="">—</option>
-          {attr.enumValues!.map((v) => (
-            <option key={v} value={v}>
-              {v}
-            </option>
-          ))}
-        </select>
+          <SelectTrigger className={cn(fieldSelectClass, 'w-full flex-1')} aria-label={`${attr.name} value`}>
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent className={selectContentClass}>
+            <SelectItem value={EMPTY_VALUE}>—</SelectItem>
+            {attr.enumValues!.map((v) => (
+              <SelectItem key={v} value={v}>
+                {v}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       ) : (
         <input
           type={isNumeric ? 'number' : 'text'}
@@ -215,12 +226,10 @@ const PartSection: React.FC<{
 
         {isSingle ? (
           <label className="ml-auto flex cursor-pointer items-center gap-1 text-[12px] font-medium text-muted-foreground">
-            <input
-              type="checkbox"
-              className="size-3 accent-[hsl(var(--brand))]"
+            <Checkbox
               checked={enabled}
-              onChange={(e) => {
-                if (e.target.checked) cb.addChild(parent.key, childRef.className);
+              onCheckedChange={(checked) => {
+                if (checked) cb.addChild(parent.key, childRef.className);
                 else if (instances[0]) cb.removeChild(parent.key, childRef.className, instances[0].key);
               }}
             />

@@ -124,7 +124,7 @@
         "useDefault": "(Standard benotzen)"
       },
       "db": {
-        "configuring": "Datebank-Aktioun gëtt konfiguréiert...",
+        "configuring": "Datebank-Aktioun gëtt konfiguréiert…",
         "initialize": "Datebank-Aktioun initialiséieren",
         "select": "Eng Datebank auswielen",
         "default": "Standard (App-DB benotzen)",
@@ -231,14 +231,24 @@
       "namePlaceholder": "Attributnumm"
     },
     "associationNamePlaceholder": "Numm vun der Associatioun",
-    "literals": "Literaler"
+    "literals": "Literaler",
+    "preset": "Virgab",
+    "presetPlaceholder": "Virgab wielen…",
+    "stereotype": "Stereotyp",
+    "label": "Beschrëftung",
+    "unnamed": "(ouni Numm)",
+    "missingElement": "(feelt)",
+    "addTarget": "Zil derbäisetzen…",
+    "lineage": "Hierkonft",
+    "lineageSource": "Quell:",
+    "lineageDerivedFrom": "Ofgeleet vun"
   },
   "assessment": {
     "assessment": "Bewäertung fir",
     "score": "Punkten",
     "feedback": "Feedback",
-    "feedbackPlaceholder": "Dir kënnt hei Feedback aginn...",
-    "additionalFeedbackPlaceholder": "Dir kënnt hei zousätzleche Feedback aginn...",
+    "feedbackPlaceholder": "Dir kënnt hei Feedback aginn…",
+    "additionalFeedbackPlaceholder": "Dir kënnt hei zousätzleche Feedback aginn…",
     "nextAssessment": "Nächst Bewäertung"
   },
   "packages": {
@@ -301,7 +311,11 @@
       "ComponentInterface": "Interface",
       "ComponentInterfaceProvided": "Bereetgestallt Interface",
       "ComponentInterfaceRequired": "Erfuerderlech Interface",
-      "Comments": "Kommentaren"
+      "Comments": "Kommentaren",
+      "ComponentStereotypePlaceholder": "z. B. solution, skill, external",
+      "ComponentDependencyStereotypePlaceholder": "z. B. delegates, has, uses",
+      "SubsystemStereotypePlaceholder": "z. B. subsystem, solution",
+      "Realizes": "Realiséiert"
     },
     "DeploymentDiagram": {
       "DeploymentNode": "Knued",
@@ -312,7 +326,10 @@
       "DeploymentInterfaceRequired": "Erfuerderlech Interface",
       "DeploymentAssociation": "Deployment-Associatioun",
       "DeploymentDependency": "Deployment-Ofhängegkeet",
-      "Comments": "Kommentaren"
+      "Comments": "Kommentaren",
+      "DeploymentNodeStereotypePlaceholder": "z. B. node, device, executionEnvironment",
+      "DeploymentAssociationLabelPlaceholder": "z. B. kv-store-conn",
+      "DeploymentAssociationStereotypePlaceholder": "z. B. HTTPS, gRPC, device"
     },
     "PetriNet": {
       "PetriNetPlace": "Plaz",
@@ -406,7 +423,6 @@
       "BPMNGroup": "Grupp",
       "BPMNExpand": "Erweiteren",
       "BPMNCollapse": "Zesummen",
-      "__comment__": "TODO: FROM AGENTIC TO GATEWAYROLEMERGING NEEDS REVISION!!!!!!!",
       "BPMNAgentic": "Agentesch",
       "BPMNTrustScore": "Vertrauensscore (0-100)",
       "BPMNMultiplicity": "Kopien (≥1)",
@@ -414,7 +430,6 @@
       "BPMNAgentRoleSupervision": "Iwwerwaachung",
       "BPMNDefineAgentDiagram": "Agentverhalen definéieren",
       "BPMNOpenAgentDiagram": "Agentverhalen opmaachen",
-      "BPMNAgentDiagramRefBroken": "D'Aufgab '{laneName}' verweist op en Agentverhalen, dat an dësem Projet net existéiert. Klickt bei der Aufgab op „Agentverhalen definéieren“, fir en neit unzeleeën.",
       "BPMNReflectionNone": "Keng Reflexioun",
       "BPMNReflectionSelf": "Selbstreflexioun",
       "BPMNReflectionCross": "Kräizreflexioun",
@@ -428,13 +443,15 @@
       "BPMNGovernanceReplace": "Ersetzen",
       "BPMNGovernanceCancel": "Ofbriechen",
       "BPMNGovernancePolicyTypeLabel": "Decisiounspolitik",
-      "BPMNGovPolicyVoting": "Ofstëmmung",
       "BPMNGovPolicyMajority": "Majoritéit",
       "BPMNGovPolicyAbsoluteMajority": "Absolut Majoritéit",
       "BPMNGovPolicyLeaderDriven": "Vun engem Leader geleet",
       "BPMNGovPolicyConsensus": "Konsens",
       "BPMNGatewayRoleDiverging": "Divergéierend",
-      "BPMNGatewayRoleMerging": "Zesummeféierend"
+      "BPMNGatewayRoleMerging": "Zesummeféierend",
+      "BPMNDefaultAgentTitle": "Agent",
+      "BPMNAgentRole": "Roll",
+      "BPMNAgentRolePlaceholder": "z. B. solution"
     },
     "NNDiagram": {
       "NNContainer": "Neuronaalt Netz",
@@ -532,7 +549,7 @@
       "selectPlaceholder": "(Standard benotzen)",
       "customDatabaseName": "Personaliséiert Datebankumm",
       "selectPlaceholderRag": "RAG-Datebank wielen",
-      "configuringDatabaseAction": "Datebankoperatioun gëtt konfigureiert...",
+      "configuringDatabaseAction": "Datebankoperatioun gëtt konfigureiert…",
       "initializeDatabaseAction": "Datebankoperatioun initialiséieren",
       "llm": "LLM",
       "systemMessage": "Systemmessaggi",
@@ -610,7 +627,7 @@
       "skillReasoningStateWarning": "Skills kënne nëmme vun engem Reasoning State benotzt ginn. Fügt e Reasoning State bäi, fir dës Skill ze benotzen",
       "skillName": "Skill-Numm",
       "skillDescriptionPlaceholder": "Optional kuerz Beschreiwung",
-      "skillContentPlaceholder": "# Skill\n\nUweisungen a markdown...",
+      "skillContentPlaceholder": "# Skill\n\nUweisungen a markdown…",
       "markdownContent": "Markdown-Inhalt",
       "workspaceReasoningStateWarning": "Workspaces kënne nëmme vun engem Reasoning State benotzt ginn. Fügt e Reasoning State bäi, fir dësen Workspace ze benotzen",
       "workspaceName": "Workspace-Numm",
@@ -755,7 +772,10 @@
         "file": "Fichier",
         "submitted": "Geschéckt"
       },
-      "webCrawlNamePrefix": "Crawl:"
+      "webCrawlNamePrefix": "Crawl:",
+      "A2ASendTo": "Schécken un",
+      "A2AReceiveFrom": "Empfänke vun",
+      "A2APeer": "Géigestell"
     },
     "UserDiagram": {
       "UserModelName": "Benotzer",
@@ -774,17 +794,17 @@
     "height": "Héicht"
   },
   "stylePane": {
-    "enterUri": "URI aginn...",
-    "enterIcon": "Numm vun der Ikon aginn...",
-    "enterDescription": "Beschreiwung aginn...",
+    "enterUri": "URI aginn…",
+    "enterIcon": "Numm vun der Ikon aginn…",
+    "enterDescription": "Beschreiwung aginn…",
     "idLockedByOptional": "Optional Attributer kënnen net den Identifikator sinn.",
-    "enterDefaultValue": "Standardwäert aginn...",
+    "enterDefaultValue": "Standardwäert aginn…",
     "reset": "Zrécksetzen",
     "fillColor": "Fëllfaarf",
     "icon": "Ikon",
     "externalIdLockedByOptional": "Optional Attributer kënnen net den externen Identifikator sinn.",
     "optional": "Optional",
-    "enterInteger": "Ganzzuel aginn...",
+    "enterInteger": "Ganzzuel aginn…",
     "id": "ID",
     "textColor": "Textfaarf",
     "externalId": "Extern ID",
@@ -793,8 +813,22 @@
     "none": "(keen)",
     "lineColor": "Linnefaarf",
     "default": "Standard",
-    "enterNumber": "Zuel aginn...",
-    "derived": "Ofgeleet"
+    "enterNumber": "Zuel aginn…",
+    "derived": "Ofgeleet",
+    "colors": {
+      "red": "Rout",
+      "orange": "Orange",
+      "yellow": "Giel",
+      "green": "Gréng",
+      "teal": "Petrol",
+      "skyBlue": "Himmelblo",
+      "blue": "Blo",
+      "slateBlue": "Schieferblo",
+      "purple": "Mof",
+      "lightGray": "Hellgro",
+      "gray": "Gro",
+      "black": "Schwaarz"
+    }
   },
   "associationPopup": {
     "cancel": "Ofbriechen",
@@ -802,6 +836,22 @@
     "noTargets": "Keng aner Objeten disponibel fir ze verbannen"
   },
   "propertiesPanel": {
-    "close": "Zoumaachen"
+    "close": "Zoumaachen",
+    "resize": "Eegeschaftsberäich upassen"
+  },
+  "actions": {
+    "edit": "Beaarbechten",
+    "delete": "Läschen",
+    "addConnectedObject": "Verbonnent Objet derbäisetzen",
+    "swapEnds": "Enner tauschen",
+    "style": "Stil"
+  },
+  "zoomPane": {
+    "zoomIn": "Vergréisseren",
+    "zoomOut": "Verklengeren",
+    "autoLayout": "Automatesche Layout"
+  },
+  "sidebar": {
+    "resize": "Palette upassen"
   }
 }

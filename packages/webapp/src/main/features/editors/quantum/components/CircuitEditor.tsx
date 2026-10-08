@@ -5,6 +5,7 @@ import { Z_INDEX } from '../../../../shared/constants/z-index';
 import { Circuit, InitialState } from '../types';
 import { useCircuitEditor, CircuitEditorState } from '../hooks/useCircuitEditor';
 import { useCircuitKeyboard } from '../hooks/useCircuitKeyboard';
+import { useArmedGate } from '../hooks/useArmedGate';
 import { CircuitGrid } from './CircuitGrid';
 import { GatePalette } from './GatePalette';
 import { Gate } from './Gate';
@@ -65,6 +66,14 @@ export function CircuitEditor({
         capturePhase: keyboardCapturePhase,
     });
 
+    // Click-to-place: arm a palette gate, then click a cell
+    const { armedGate, setArmedGate } = useArmedGate();
+    const handlePlaceArmedGate = useCallback((clientX: number, clientY: number) => {
+        if (armedGate && editor.placeGateAt(armedGate, clientX, clientY, circuitGridRef)) {
+            setArmedGate(null);
+        }
+    }, [armedGate, editor, setArmedGate]);
+
     // Handle mouse move for drag preview
     const handleMouseMove = useCallback((e: React.MouseEvent) => {
         editor.handleMouseMove(e, circuitGridRef);
@@ -112,7 +121,7 @@ export function CircuitEditor({
                         <div
                             className={`${compactPalette ? 'w-[220px] min-w-[200px]' : 'w-[280px] min-w-[250px]'} border-r border-[var(--quantum-editor-border,#d5dde8)] overflow-y-auto p-4 bg-[var(--quantum-editor-surface,#f8fafc)]`}
                         >
-                            <GatePalette onDragStart={editor.handleDragStart} />
+                            <GatePalette onDragStart={editor.handleDragStart} armedGate={armedGate} onArmGate={setArmedGate} />
                         </div>
                         <div className="flex-1 overflow-auto p-5 relative bg-[var(--quantum-editor-bg,#ffffff)]">
                             <CircuitGrid
@@ -131,6 +140,8 @@ export function CircuitEditor({
                                 onInitialStateChange={handleInitialStateChangeInternal}
                                 selectedGate={editor.selectedGate}
                                 previewPosition={editor.previewPosition}
+                                armedGate={armedGate}
+                                onPlaceArmedGate={handlePlaceArmedGate}
                             />
                         </div>
                     </div>
@@ -141,8 +152,8 @@ export function CircuitEditor({
                             className="fixed pointer-events-none opacity-80"
                             style={{
                                 zIndex: Z_INDEX.POPOVER,
-                                left: editor.mousePos.x + (circuitGridRef.current?.getBoundingClientRect().left || 0),
-                                top: editor.mousePos.y + (circuitGridRef.current?.getBoundingClientRect().top || 0),
+                                left: editor.mousePos.x - editor.draggedGate.offset.x + (circuitGridRef.current?.getBoundingClientRect().left || 0),
+                                top: editor.mousePos.y - editor.draggedGate.offset.y + (circuitGridRef.current?.getBoundingClientRect().top || 0),
                             }}
                         >
                             <Gate gate={GATES.find((g) => g.type === editor.draggedGate?.gate)!} isDragging />

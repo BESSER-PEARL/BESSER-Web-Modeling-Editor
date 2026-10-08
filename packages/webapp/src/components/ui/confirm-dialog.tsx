@@ -2,6 +2,7 @@ import * as React from 'react';
 import * as DialogPrimitive from '@radix-ui/react-dialog';
 import { cn } from '@/lib/utils';
 import { Button } from './button';
+import { DialogFooter, DialogOverlay, dialogContentBaseClass } from './dialog';
 
 export interface ConfirmDialogProps {
   open: boolean;
@@ -27,11 +28,9 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
   return (
     <DialogPrimitive.Root open={open} onOpenChange={(nextOpen) => { if (!nextOpen) onCancel(); }}>
       <DialogPrimitive.Portal>
-        <DialogPrimitive.Overlay
-          className="fixed inset-0 z-50 bg-black/40 backdrop-blur-[6px] data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=open]:fade-in-0 data-[state=closed]:fade-out-0"
-        />
+        <DialogOverlay />
         <DialogPrimitive.Content
-          className="fixed left-[50%] top-[50%] z-50 w-full max-w-md translate-x-[-50%] translate-y-[-50%] border border-border/50 bg-background p-6 shadow-[0_24px_64px_-16px_rgba(0,0,0,0.15)] duration-200 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=open]:fade-in-0 data-[state=open]:zoom-in-[0.97] data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-[0.97] sm:rounded-2xl"
+          className={cn(dialogContentBaseClass, 'max-w-md')}
           onEscapeKeyDown={onCancel}
         >
           <div className="flex flex-col gap-2">
@@ -43,7 +42,7 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
             </DialogPrimitive.Description>
           </div>
 
-          <div className="mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+          <DialogFooter className="mt-6">
             <Button variant="outline" onClick={onCancel}>
               {cancelLabel}
             </Button>
@@ -53,7 +52,7 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
             >
               {confirmLabel}
             </Button>
-          </div>
+          </DialogFooter>
         </DialogPrimitive.Content>
       </DialogPrimitive.Portal>
     </DialogPrimitive.Root>

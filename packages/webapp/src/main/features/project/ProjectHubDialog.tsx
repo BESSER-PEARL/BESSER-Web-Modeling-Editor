@@ -23,7 +23,9 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { FormField } from '@/components/ui/form-field';
+import { TooltipProvider } from '@/components/ui/tooltip';
 import { BesserProject, InterfaceMode, PerspectiveSettings } from '../../shared/types/project';
 import { trackInterfaceChoice, trackProjectCreated } from '../../shared/services/analytics/interfaceChoice';
 import { FirstRunLanding } from './FirstRunLanding';
@@ -41,7 +43,6 @@ import {
   localStoragePreferredInterface,
   sessionStorageContinueFromGithubIntent,
   sessionStorageOpenAssistantOnLoad,
-  sessionStoragePendingAssistantPrompt,
 } from '../../shared/constants/constant';
 import { useImportDiagramToProject } from '../import/useImportDiagram';
 import { apiClient, ApiError } from '../../shared/api/api-client';
@@ -67,7 +68,7 @@ interface ProjectHubDialogProps {
   initialStep?: ProjectHubOpenStep;
 }
 
-type ProjectHubStep = 'welcome' | 'start' | 'describe' | 'create' | 'import' | 'spreadsheet' | 'open' | 'github';
+type ProjectHubStep = 'welcome' | 'start' | 'create' | 'import' | 'spreadsheet' | 'open' | 'github';
 
 /** Read the per-user default interface saved via "Remember my choice". */
 const readPreferredInterface = (): InterfaceMode | null => {
@@ -121,21 +122,6 @@ interface ImportGitHubRunResponse {
   branch: string;
 }
 
-// Plain, non-technical example prompts for the "Describe your app" hero flow.
-// Kept LOCAL to this file on purpose: feature isolation forbids importing the
-// assistant feature's own starter-prompt list, and these are deliberately
-// simpler/friendlier than the in-assistant examples.
-const DESCRIBE_EXAMPLES = [
-  'Build a library app to track books and loans',
-  'Make a restaurant ordering app with menus and tables',
-  'Create a bike-route app for Luxembourg with a map and reviews',
-  'Build an online shop for products, customers, and orders',
-];
-
-// Default name for a project bootstrapped from the "Describe your app" flow —
-// the user shouldn't be forced through the naming form for this path.
-const DESCRIBE_DEFAULT_PROJECT_NAME = 'My App';
-
 const defaultForm = {
   name: 'New_Project',
   description: 'Modern workspace project for UML, GUI and quantum modeling.',
@@ -181,7 +167,6 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
   // hub). Drives where "Back" goes: a directly-opened step closes on Back; a
   // step navigated into from a hub returns to that hub. See handleBack.
   const [entryStep, setEntryStep] = useState<ProjectHubStep>('start');
-  const [describePrompt, setDescribePrompt] = useState('');
   const [form, setForm] = useState(defaultForm);
   const [createPerspectiveKey, setCreatePerspectiveKey] = useState<string>(DEFAULT_PERSPECTIVE_KEY);
   const [spreadsheetForm, setSpreadsheetForm] = useState(defaultForm);
@@ -272,7 +257,6 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
       setStep('start');
       setEntryStep('start');
     }
-    setDescribePrompt('');
     setForm(defaultForm);
     setCreatePerspectiveKey(DEFAULT_PERSPECTIVE_KEY);
     setSpreadsheetForm(defaultForm);
@@ -332,47 +316,56 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
     void fetchGithubRepositories(githubSession);
   }, [open, step, isGithubAuthenticated, githubSession, githubRepositories.length, githubReposLoading, fetchGithubRepositories]);
 
-  const currentStepInfo = useMemo(() => {
-    if (step === 'describe') {
-      return {
-        title: 'Describe Your App',
-        description: "Tell me your idea in plain words — I'll build the data, the screens, and the code.",
-        badge: 'Step 2 of 2',
-      };
-    }
+  // The two-step "Step n of 2" framing belongs to the first-run / new-project
+  // flow (entered through the welcome chooser). A hub opened at the start screen
+  // or straight at a File-menu step is a returning visit: neutral copy, no badge.
+  const isFirstRun = entryStep === 'welcome';
+
+  const currentStepInfo = useMemo((): { title: string; description: string; badge: string | null } => {
     if (step === 'create') {
       return {
         title: t('project.hub.create.title'),
         description: t('project.hub.create.description'),
-        badge: t('project.hub.stepBadge', { current: 2, total: 2 }),
+        badge: isFirstRun ? t('project.hub.stepBadge', { current: 2, total: 2 }) : null,
       };
     }
     if (step === 'import') {
       return {
         title: t('project.hub.import.title'),
         description: t('project.hub.import.description'),
-        badge: t('project.hub.stepBadge', { current: 2, total: 2 }),
+        badge: isFirstRun ? t('project.hub.stepBadge', { current: 2, total: 2 }) : null,
       };
     }
     if (step === 'spreadsheet') {
       return {
         title: t('project.hub.spreadsheet.title'),
         description: t('project.hub.spreadsheet.description'),
-        badge: t('project.hub.stepBadge', { current: 2, total: 2 }),
+        badge: isFirstRun ? t('project.hub.stepBadge', { current: 2, total: 2 }) : null,
       };
     }
     if (step === 'open') {
       return {
         title: t('project.hub.open.title'),
         description: t('project.hub.open.description'),
-        badge: t('project.hub.stepBadge', { current: 2, total: 2 }),
+        badge: isFirstRun ? t('project.hub.stepBadge', { current: 2, total: 2 }) : null,
       };
     }
     if (step === 'github') {
       return {
-        title: 'Continue From GitHub',
-        description: 'Pick a repository BESSER created — its model loads and the next Spec-Driven Agent run edits its code.',
-        badge: 'Step 2 of 2',
+        title: t('project.hub.github.title', { defaultValue: 'Continue From GitHub' }),
+        description: t('project.hub.github.description', {
+          defaultValue: 'Pick a repository BESSER created — its model loads and the next Spec-Driven Agent run edits its code.',
+        }),
+        badge: isFirstRun ? t('project.hub.stepBadge', { current: 2, total: 2 }) : null,
+      };
+    }
+    if (!isFirstRun) {
+      return {
+        title: t('project.hub.returning.title', { defaultValue: 'Projects' }),
+        description: t('project.hub.returning.description', {
+          defaultValue: 'Open a recent project or start a new one.',
+        }),
+        badge: null,
       };
     }
     return {
@@ -380,7 +373,7 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
       description: t('project.hub.start.description'),
       badge: t('project.hub.stepBadge', { current: 1, total: 2 }),
     };
-  }, [step, t]);
+  }, [step, t, isFirstRun]);
 
   const handleDialogOpenChange = (nextOpen: boolean) => {
     if (!nextOpen && !canClose) {
@@ -465,49 +458,6 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
         /* non-fatal */
       }
       toast.error(t('project.hub.toasts.createFailed', { error: error instanceof Error ? error.message : t('project.hub.unknownError') }));
-    } finally {
-      setIsBusy(false);
-    }
-  };
-
-  const handleStartBuilding = async () => {
-    const prompt = describePrompt.trim();
-    if (!prompt) {
-      return;
-    }
-
-    try {
-      setIsBusy(true);
-      // (a) Bootstrap a blank project via the SAME path handleCreateProject
-      // uses — createProject() with the default perspective. We don't force the
-      // user through the naming form; a sensible default name is applied.
-      await createProject(
-        normalizeProjectName(DESCRIBE_DEFAULT_PROJECT_NAME),
-        defaultForm.description,
-        defaultForm.owner,
-        resolvePerspectives(DEFAULT_PERSPECTIVE_KEY),
-        pendingPreferredInterface ?? 'agent',
-      );
-      trackProjectCreated(pendingPreferredInterface ?? 'agent', 'describe_it');
-      refreshProjects();
-
-      // (c) Hand the typed prompt to the AI assistant. Stash it FIRST so the
-      // assistant can consume-and-clear it once it has mounted and its
-      // WebSocket is connected; the CustomEvent then nudges an already-mounted
-      // assistant to react immediately. The stash is the fallback path for the
-      // (rare) case where the event fires before the listener is registered.
-      try {
-        sessionStorage.setItem(sessionStoragePendingAssistantPrompt, prompt);
-      } catch {
-        // sessionStorage can throw (private mode / quota). The CustomEvent path
-        // still delivers the prompt to an already-mounted assistant.
-      }
-
-      // (b) Close the dialog, then (c cont.) fire the hand-off event.
-      handleDialogOpenChange(false);
-      window.dispatchEvent(new CustomEvent('wme:assistant-run-prompt', { detail: { prompt } }));
-    } catch (error) {
-      toast.error(`Could not start building: ${error instanceof Error ? error.message : 'Unknown error'}`);
     } finally {
       setIsBusy(false);
     }
@@ -676,7 +626,9 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
       } catch {
         /* sessionStorage may be unavailable — login still proceeds. */
       }
-      toast.info('Connect GitHub to continue from one of your repositories.');
+      toast.info(t('project.hub.github.toasts.connectToContinue', {
+        defaultValue: 'Connect GitHub to continue from one of your repositories.',
+      }));
       githubLogin();
       return;
     }
@@ -709,11 +661,11 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
       (r) => r.full_name === githubRepoFullName,
     );
     if (!repo) {
-      setGithubError('Select a repository to continue from.');
+      setGithubError(t('project.hub.github.errors.selectRepo', { defaultValue: 'Select a repository to continue from.' }));
       return;
     }
     if (!githubSession) {
-      setGithubError('GitHub session not found. Please reconnect.');
+      setGithubError(t('project.hub.github.errors.noSession', { defaultValue: 'GitHub session not found. Please reconnect.' }));
       return;
     }
 
@@ -730,7 +682,9 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
 
       if (!response.has_model) {
         setGithubError(
-          "This repo has no BESSER model — it wasn't created by BESSER, so there's nothing to continue from yet.",
+          t('project.hub.github.errors.noModel', {
+            defaultValue: "This repo has no BESSER model — it wasn't created by BESSER, so there's nothing to continue from yet.",
+          }),
         );
         return;
       }
@@ -763,20 +717,23 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
       // Opt-in research telemetry: a completed continue-from-repo import is a
       // delivery action. Fire-and-forget; no-op unless opened with `?pilot=<label>`.
       emitDeliveryEvent('continue_from_repo', response.run_id);
-      toast.success(`Continuing from ${response.owner}/${response.repo}.`);
+      toast.success(t('project.hub.github.toasts.continuing', {
+        defaultValue: 'Continuing from {{repo}}.',
+        repo: `${response.owner}/${response.repo}`,
+      }));
     } catch (error) {
       if (error instanceof ApiError && error.status === 401) {
-        setGithubError('Your GitHub session expired. Reconnect and try again.');
-        toast.error('GitHub session expired — please reconnect.');
+        setGithubError(t('project.hub.github.errors.sessionExpired', { defaultValue: 'Your GitHub session expired. Reconnect and try again.' }));
+        toast.error(t('project.hub.github.toasts.sessionExpired', { defaultValue: 'GitHub session expired — please reconnect.' }));
       } else {
         const message =
           error instanceof ApiError
             ? error.message
             : error instanceof Error
               ? error.message
-              : 'Could not continue from this repository.';
+              : t('project.hub.github.errors.generic', { defaultValue: 'Could not continue from this repository.' });
         setGithubError(message);
-        toast.error(`Continue from GitHub failed: ${message}`);
+        toast.error(t('project.hub.github.toasts.failed', { defaultValue: 'Continue from GitHub failed: {{message}}', message }));
       }
     } finally {
       setIsBusy(false);
@@ -791,16 +748,31 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
   const renderInterfaceModePicker = () => {
     const mode: InterfaceMode = pendingPreferredInterface ?? 'model';
     const options: { key: InterfaceMode; label: string; description: string }[] = [
-      { key: 'model', label: 'Low-code', description: 'Build visually with UML diagrams on the modelling canvas.' },
-      { key: 'agent', label: 'Agentic', description: 'Describe your app in natural language; the assistant builds it.' },
+      {
+        key: 'model',
+        label: t('project.hub.interface.model.label', { defaultValue: 'Low-code' }),
+        description: t('project.hub.interface.model.description', {
+          defaultValue: 'Build visually with UML diagrams on the modelling canvas.',
+        }),
+      },
+      {
+        key: 'agent',
+        label: t('project.hub.interface.agent.label', { defaultValue: 'Agentic' }),
+        description: t('project.hub.interface.agent.description', {
+          defaultValue: 'Describe your app in natural language; the assistant builds it.',
+        }),
+      },
     ];
+    const label = t('project.hub.interface.label', { defaultValue: 'View' });
     return (
       <FormField
-        label="View"
+        label={label}
         htmlFor="create-interface-mode"
-        helperText="Choose how you'll build. You can switch anytime from the assistant drawer."
+        helperText={t('project.hub.interface.helper', {
+          defaultValue: "Choose how you'll build. You can switch anytime from the assistant drawer.",
+        })}
       >
-        <div id="create-interface-mode" role="radiogroup" aria-label="View" className="flex flex-wrap gap-2">
+        <div id="create-interface-mode" role="radiogroup" aria-label={label} className="flex flex-wrap gap-2">
           {options.map((opt) => {
             const active = opt.key === mode;
             return (
@@ -864,7 +836,7 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
 
   // Project cards: the whole card opens the project (the primary action);
   // delete is a hover/focus-revealed corner control so it can't be hit by
-  // accident but is always one hover away.
+  // accident but is always one hover away (dimmed but visible on touch).
   const renderProjectList = () => (
     <div className="grid gap-2.5 md:grid-cols-2">
       {sortedProjects.length === 0 && (
@@ -878,20 +850,8 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
         return (
           <div
             key={project.id}
-            role="button"
-            tabIndex={isBusy ? -1 : 0}
-            aria-disabled={isBusy}
-            onClick={() => { if (!isBusy) void handleOpenProject(project.id); }}
-            onKeyDown={(e) => {
-              // Keys on the nested delete button are that button's own.
-              if (isBusy || e.target !== e.currentTarget) return;
-              if (e.key === 'Enter' || e.key === ' ') {
-                e.preventDefault();
-                void handleOpenProject(project.id);
-              }
-            }}
             className={cn(
-              'group relative flex cursor-pointer flex-col gap-3 overflow-hidden rounded-xl border bg-card p-4 text-left transition-all duration-300 hover:-translate-y-0.5 hover:shadow-elevation-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/40',
+              'group relative flex cursor-pointer flex-col gap-3 overflow-hidden rounded-xl border bg-card p-4 text-left transition-[transform,border-color,box-shadow,background-color] duration-200 ease-out hover:shadow-elevation-1 has-[.project-card-open:active]:scale-[0.98] has-[.project-card-open:focus-visible]:ring-2 has-[.project-card-open:focus-visible]:ring-brand/40 [@media(hover:hover)]:hover:-translate-y-0.5',
               isCurrent
                 ? 'border-brand/40 bg-brand/[0.04] hover:border-brand/50'
                 : 'border-border/60 hover:border-brand/30',
@@ -911,7 +871,15 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
               </div>
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2">
-                  <p className="truncate text-sm font-semibold tracking-tight">{project.name}</p>
+                  {/* Stretched over the whole card via ::after; delete stays a sibling. */}
+                  <button
+                    type="button"
+                    className="project-card-open truncate text-left text-sm font-semibold tracking-tight after:absolute after:inset-0 after:rounded-xl focus-visible:outline-none"
+                    onClick={() => void handleOpenProject(project.id)}
+                    disabled={isBusy}
+                  >
+                    {project.name}
+                  </button>
                   {isCurrent && (
                     <Badge className="shrink-0 rounded-full border-brand/20 bg-brand/10 px-2 py-0 text-[10px] font-medium text-brand">
                       {t('project.hub.list.active')}
@@ -929,7 +897,7 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
                 <CalendarDays className="size-3" />
                 {new Date(project.createdAt).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' })}
               </span>
-              <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-brand opacity-0 transition-opacity duration-200 group-hover:opacity-100 group-focus-visible:opacity-100">
+              <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-brand opacity-0 transition-opacity duration-200 group-hover:opacity-100 group-has-[.project-card-open:focus-visible]:opacity-100">
                 {t('project.hub.list.open')}
                 <ArrowRight className="size-3.5 transition-transform duration-300 group-hover:translate-x-0.5" />
               </span>
@@ -938,11 +906,8 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
             <Button
               size="icon"
               variant="ghost"
-              className="absolute right-2 top-2 size-7 text-muted-foreground opacity-0 transition-opacity hover:bg-destructive/10 hover:text-destructive focus-visible:opacity-100 group-hover:opacity-100"
-              onClick={(e) => {
-                e.stopPropagation();
-                void handleDeleteProject(project.id, project.name);
-              }}
+              className="absolute right-2 top-2 size-7 text-muted-foreground opacity-0 transition-opacity hover:bg-destructive/10 hover:text-destructive focus-visible:opacity-100 group-hover:opacity-100 [@media(hover:none)]:opacity-60"
+              onClick={() => void handleDeleteProject(project.id, project.name)}
               disabled={isBusy}
               aria-label={t('project.hub.list.deleteAria', { name: project.name })}
             >
@@ -953,6 +918,42 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
       })}
     </div>
   );
+
+  // Manual start paths on the hub; "New Project" opens the low-code/agentic chooser.
+  const startCards: { key: string; icon: typeof Plus; title: string; description: string; onClick: () => void }[] = [
+    {
+      key: 'new',
+      icon: Plus,
+      title: t('project.hub.start.cardNew.title', { defaultValue: 'New Project' }),
+      description: t('project.hub.start.cardNew.description', {
+        defaultValue: 'Choose low-code or agentic, then start modelling.',
+      }),
+      onClick: () => setStep('welcome'),
+    },
+    {
+      key: 'spreadsheet',
+      icon: FileSpreadsheet,
+      title: t('project.hub.start.cardSpreadsheet.title'),
+      description: t('project.hub.start.cardSpreadsheet.description'),
+      onClick: () => setStep('spreadsheet'),
+    },
+    {
+      key: 'import',
+      icon: Upload,
+      title: t('project.hub.start.cardImport.title'),
+      description: t('project.hub.start.cardImport.description'),
+      onClick: () => setStep('import'),
+    },
+    {
+      key: 'github',
+      icon: Github,
+      title: t('project.hub.start.cardGithub.title', { defaultValue: 'Continue From GitHub' }),
+      description: t('project.hub.start.cardGithub.description', {
+        defaultValue: 'Reopen a repo BESSER created and keep building.',
+      }),
+      onClick: handleOpenGithubStep,
+    },
+  ];
 
   return (
     <Dialog open={open} onOpenChange={handleDialogOpenChange}>
@@ -966,17 +967,11 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
         )}
         {step !== 'welcome' && (
         <>
-        {/* Ambient brand glow, echoing the first-run landing's surface. */}
-        <div
-          aria-hidden
-          className="pointer-events-none absolute -right-16 -top-24 size-72 rounded-full opacity-40 blur-2xl"
-          style={{ background: 'radial-gradient(circle at center, hsl(var(--brand)/0.18), transparent 62%)' }}
-        />
-        <DialogHeader className="border-b border-border/60 px-6 pt-5 pb-4">
+        <DialogHeader className={cn('border-b border-border/60 pt-5 pb-4 pl-6', canClose ? 'pr-14' : 'pr-6')}>
           <div className="flex items-start justify-between gap-3">
             <div className="flex min-w-0 items-start gap-3.5">
               {step === 'start' ? (
-                <img src="/images/logo.png" alt="BESSER" className="mt-1 h-7 w-auto shrink-0 brightness-0 opacity-80 dark:invert" />
+                <img src="/images/logo.png" alt="BESSER" width={105} height={28} className="mt-1 h-7 w-auto shrink-0 brightness-0 opacity-80 dark:invert" />
               ) : (
                 <button
                   type="button"
@@ -995,10 +990,17 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
               </div>
             </div>
             <div className="flex shrink-0 items-center gap-2">
-              {step === 'start' && <LanguageSelector outlineButtonClass="h-9" />}
-              <Badge variant="secondary" className="shrink-0 rounded-full border-brand/15 bg-brand/[0.06] font-mono text-[10px] tracking-wider text-brand">
-                {currentStepInfo.badge}
-              </Badge>
+              {/* The hub renders outside WorkspaceShell, so it supplies the provider LanguageSelector's tooltip needs. */}
+              {step === 'start' && (
+                <TooltipProvider delayDuration={400}>
+                  <LanguageSelector outlineButtonClass="h-9" />
+                </TooltipProvider>
+              )}
+              {currentStepInfo.badge && (
+                <Badge variant="secondary" className="shrink-0 rounded-full border-brand/15 bg-brand/[0.06] font-mono text-[10px] tracking-wider text-brand">
+                  {currentStepInfo.badge}
+                </Badge>
+              )}
             </div>
           </div>
         </DialogHeader>
@@ -1028,53 +1030,21 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
               {/* Manual start paths; agentic entry is the landing chooser / assistant. */}
               <div className="flex flex-col gap-2.5">
                 <div className="grid gap-2.5 md:grid-cols-2">
-                  <button
-                    type="button"
-                    onClick={() => setStep('welcome')}
-                    className="group relative overflow-hidden rounded-xl border border-border/60 bg-card p-3.5 text-left shadow-none transition-all duration-300 hover:-translate-y-0.5 hover:border-brand/30 hover:shadow-elevation-1"
-                  >
-                    <div className="mb-2 inline-flex rounded-lg bg-brand/[0.08] p-2 text-brand ring-1 ring-brand/10">
-                      <Plus className="size-3.5" />
-                    </div>
-                    <p className="text-xs font-semibold tracking-tight">Create Blank</p>
-                    <p className="mt-0.5 text-[11px] leading-relaxed text-muted-foreground">Start from scratch with all editors.</p>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => setStep('spreadsheet')}
-                    className="group relative overflow-hidden rounded-xl border border-border/60 bg-card p-3.5 text-left shadow-none transition-all duration-300 hover:-translate-y-0.5 hover:border-brand/20 hover:shadow-elevation-1"
-                  >
-                    <div className="mb-2 inline-flex rounded-lg bg-emerald-500/[0.08] p-2 text-emerald-700 ring-1 ring-emerald-500/10 dark:text-emerald-400">
-                      <FileSpreadsheet className="size-3.5" />
-                    </div>
-                    <p className="text-xs font-semibold tracking-tight">From Spreadsheet</p>
-                    <p className="mt-0.5 text-[11px] leading-relaxed text-muted-foreground">Class diagram from CSV/XLSX files.</p>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => setStep('import')}
-                    className="group relative overflow-hidden rounded-xl border border-border/60 bg-card p-3.5 text-left shadow-none transition-all duration-300 hover:-translate-y-0.5 hover:border-brand/20 hover:shadow-elevation-1"
-                  >
-                    <div className="mb-2 inline-flex rounded-lg bg-violet-500/[0.08] p-2 text-violet-700 ring-1 ring-violet-500/10 dark:text-violet-400">
-                      <Upload className="size-3.5" />
-                    </div>
-                    <p className="text-xs font-semibold tracking-tight">Import Project</p>
-                    <p className="mt-0.5 text-[11px] leading-relaxed text-muted-foreground">Load an exported `.json` or `.py`.</p>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={handleOpenGithubStep}
-                    className="group relative overflow-hidden rounded-xl border border-border/60 bg-card p-3.5 text-left shadow-none transition-all duration-300 hover:-translate-y-0.5 hover:border-brand/20 hover:shadow-elevation-1"
-                  >
-                    <div className="mb-2 inline-flex rounded-lg bg-foreground/[0.06] p-2 text-foreground/80 ring-1 ring-foreground/10">
-                      <Github className="size-3.5" />
-                    </div>
-                    <p className="text-xs font-semibold tracking-tight">Continue from GitHub</p>
-                    <p className="mt-0.5 text-[11px] leading-relaxed text-muted-foreground">Reopen a repo BESSER created and keep building.</p>
-                  </button>
+                  {startCards.map(({ key, icon: Icon, title, description, onClick }) => (
+                    <button
+                      key={key}
+                      type="button"
+                      onClick={onClick}
+                      data-testid={`hub-start-${key}`}
+                      className="group relative overflow-hidden rounded-xl border border-border/60 bg-card p-4 text-left shadow-none transition-[transform,border-color,box-shadow,background-color] duration-200 ease-out hover:border-brand/30 hover:shadow-elevation-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/40 active:scale-[0.98] [@media(hover:hover)]:hover:-translate-y-0.5"
+                    >
+                      <div className="mb-2.5 inline-flex rounded-lg bg-brand/[0.08] p-2 text-brand ring-1 ring-brand/10">
+                        <Icon className="size-4" aria-hidden="true" />
+                      </div>
+                      <p className="text-sm font-semibold tracking-tight">{title}</p>
+                      <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground">{description}</p>
+                    </button>
+                  ))}
                 </div>
               </div>
 
@@ -1089,7 +1059,7 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
                     {sortedProjects.slice(0, 3).map((project) => (
                       <div
                         key={project.id}
-                        className="group flex items-center gap-2 rounded-lg border border-border/50 bg-background/80 px-3 py-2 transition-all duration-200 hover:border-brand/20 hover:bg-brand/[0.04] hover:shadow-elevation-1"
+                        className="group flex items-center gap-2 rounded-lg border border-border/50 bg-background/80 px-3 py-2 transition-[border-color,box-shadow,background-color] duration-200 ease-out hover:border-brand/20 hover:bg-brand/[0.04] hover:shadow-elevation-1"
                       >
                         <button
                           type="button"
@@ -1103,7 +1073,7 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
                         <Button
                           size="icon"
                           variant="ghost"
-                          className="size-7 shrink-0 text-muted-foreground opacity-0 transition-opacity hover:bg-destructive/10 hover:text-destructive group-hover:opacity-100"
+                          className="size-7 shrink-0 text-muted-foreground opacity-0 transition-opacity hover:bg-destructive/10 hover:text-destructive focus-visible:opacity-100 group-hover:opacity-100 [@media(hover:none)]:opacity-60"
                           onClick={() => void handleDeleteProject(project.id, project.name)}
                           disabled={isBusy}
                           aria-label={t('project.hub.list.deleteAria', { name: project.name })}
@@ -1134,57 +1104,6 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
             </div>
           )}
 
-          {step === 'describe' && (
-            <div className="flex flex-col gap-5">
-              <Card className="border-brand/30 bg-gradient-to-br from-brand/[0.05] via-background to-background shadow-elevation-1">
-                <CardHeader className="pb-2">
-                  <CardTitle className="flex items-center gap-2 text-base tracking-tight">
-                    <Sparkles className="size-4 text-brand" />
-                    What do you want to build?
-                  </CardTitle>
-                  <CardDescription className="text-xs">
-                    Describe your app in plain words. The AI assistant will create the data model, screens, and code for you.
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="flex flex-col gap-4">
-                  <Textarea
-                    id="describe-prompt"
-                    value={describePrompt}
-                    onChange={(event) => setDescribePrompt(event.target.value)}
-                    placeholder="e.g. Build a library app to track books and loans, with a page to browse the catalogue and see who borrowed what."
-                    className="min-h-36 resize-none text-sm leading-relaxed"
-                    autoFocus
-                  />
-
-                  <div className="flex flex-col gap-2">
-                    <p className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground/60">Need inspiration? Try one</p>
-                    <div className="flex flex-wrap gap-2">
-                      {DESCRIBE_EXAMPLES.map((example) => (
-                        <button
-                          key={example}
-                          type="button"
-                          onClick={() => setDescribePrompt(example)}
-                          className="rounded-full border border-brand/15 bg-brand/[0.04] px-3 py-1.5 text-xs font-medium text-muted-foreground transition-all duration-200 hover:-translate-y-px hover:border-brand/30 hover:bg-brand/[0.08] hover:text-foreground"
-                        >
-                          {example}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
-                  <Button
-                    onClick={() => void handleStartBuilding()}
-                    disabled={isBusy || !describePrompt.trim()}
-                    className="w-full gap-2 bg-brand text-brand-foreground shadow-elevation-1 transition-all hover:bg-brand-dark hover:shadow-elevation-2"
-                  >
-                    <Sparkles className="size-4" />
-                    Start building
-                  </Button>
-                </CardContent>
-              </Card>
-            </div>
-          )}
-
           {step === 'create' && (
             <div className="flex flex-col gap-2.5">
               <Card className="border-border/50 shadow-elevation-1">
@@ -1192,40 +1111,55 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
                   <CardTitle className="text-base tracking-tight">{t('project.hub.create.detailsTitle')}</CardTitle>
                   <CardDescription className="text-xs">{t('project.hub.create.detailsDescription')}</CardDescription>
                 </CardHeader>
-                <CardContent className="flex flex-col gap-2.5">
-                  <FormField label={t('project.field.name')} htmlFor="project-name" required error={createValidation.getError('name')}>
-                    <Input
-                      id="project-name"
-                      value={form.name}
-                      onChange={(event) => setForm((previous) => ({ ...previous, name: event.target.value }))}
-                      onBlur={() => createValidation.markTouched('name')}
-                      placeholder="My_Modeling_Project"
-                      className={createValidation.getError('name') ? 'border-destructive focus-visible:border-destructive focus-visible:ring-destructive/20' : ''}
-                    />
-                  </FormField>
-                  <FormField label={t('project.field.owner')} htmlFor="project-owner">
-                    <Input
-                      id="project-owner"
-                      value={form.owner}
-                      onChange={(event) => setForm((previous) => ({ ...previous, owner: event.target.value }))}
-                      placeholder="BESSER User"
-                    />
-                  </FormField>
-                  <FormField label={t('project.field.description')} htmlFor="project-description">
-                    <Textarea
-                      id="project-description"
-                      value={form.description}
-                      onChange={(event) => setForm((previous) => ({ ...previous, description: event.target.value }))}
-                      className="min-h-16"
-                    />
-                  </FormField>
-                  {renderInterfaceModePicker()}
-                  {(pendingPreferredInterface ?? 'model') === 'model' &&
-                    renderPerspectivePicker(createPerspectiveKey, setCreatePerspectiveKey, 'create')}
-                  <Button onClick={() => void handleCreateProject()} disabled={isBusy || !createValidation.isValid} className="w-full gap-2 bg-brand text-brand-foreground shadow-elevation-1 transition-all hover:bg-brand-dark hover:shadow-elevation-2">
-                    <Sparkles className="size-4" />
-                    {t('project.hub.create.submit')}
-                  </Button>
+                <CardContent>
+                  <form
+                    className="flex flex-col gap-2.5"
+                    onSubmit={(event) => {
+                      event.preventDefault();
+                      if (!isBusy && createValidation.isValid) {
+                        void handleCreateProject();
+                      }
+                    }}
+                  >
+                    <FormField label={t('project.field.name')} htmlFor="project-name" required error={createValidation.getError('name')}>
+                      <Input
+                        id="project-name"
+                        name="project-name"
+                        autoComplete="off"
+                        spellCheck={false}
+                        value={form.name}
+                        onChange={(event) => setForm((previous) => ({ ...previous, name: event.target.value }))}
+                        onBlur={() => createValidation.markTouched('name')}
+                        placeholder="My_Modeling_Project…"
+                        className={createValidation.getError('name') ? 'border-destructive focus-visible:border-destructive focus-visible:ring-destructive/20' : ''}
+                      />
+                    </FormField>
+                    <FormField label={t('project.field.owner')} htmlFor="project-owner">
+                      <Input
+                        id="project-owner"
+                        name="project-owner"
+                        autoComplete="name"
+                        value={form.owner}
+                        onChange={(event) => setForm((previous) => ({ ...previous, owner: event.target.value }))}
+                        placeholder="BESSER User…"
+                      />
+                    </FormField>
+                    <FormField label={t('project.field.description')} htmlFor="project-description">
+                      <Textarea
+                        id="project-description"
+                        value={form.description}
+                        onChange={(event) => setForm((previous) => ({ ...previous, description: event.target.value }))}
+                        className="min-h-16"
+                      />
+                    </FormField>
+                    {renderInterfaceModePicker()}
+                    {(pendingPreferredInterface ?? 'model') === 'model' &&
+                      renderPerspectivePicker(createPerspectiveKey, setCreatePerspectiveKey, 'create')}
+                    <Button type="submit" disabled={isBusy || !createValidation.isValid} className="w-full gap-2">
+                      <Sparkles className="size-4" />
+                      {t('project.hub.create.submit')}
+                    </Button>
+                  </form>
                 </CardContent>
               </Card>
 
@@ -1237,43 +1171,32 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
           )}
 
           {step === 'import' && (
-            <div className="flex flex-col gap-5">
-              <Card className="border-border/50 shadow-elevation-1">
-                <CardHeader>
-                  <CardTitle className="text-lg tracking-tight">{t('project.hub.import.cardTitle')}</CardTitle>
-                  <CardDescription>{t('project.hub.import.cardDescription')}</CardDescription>
-                </CardHeader>
-                <CardContent className="flex flex-col gap-4">
-                  <div
-                    role="button"
-                    tabIndex={isBusy ? -1 : 0}
-                    aria-disabled={isBusy}
-                    aria-label={t('project.hub.import.dropAria')}
-                    className={cn(
-                      'grain-overlay relative overflow-hidden rounded-xl border-2 border-dashed bg-gradient-to-b from-brand/[0.03] to-muted/8 p-8 text-center transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-brand/40',
-                      isBusy ? 'cursor-not-allowed opacity-60' : 'cursor-pointer hover:border-brand/40 hover:bg-brand/[0.04]',
-                      isDragging ? 'border-brand/50 bg-brand/[0.06]' : 'border-brand/20',
-                    )}
-                    onClick={() => { if (!isBusy) importFileInputRef.current?.click(); }}
-                    onKeyDown={(e) => {
-                      if (isBusy) return;
-                      if (e.key === 'Enter' || e.key === ' ') {
-                        e.preventDefault();
-                        importFileInputRef.current?.click();
-                      }
-                    }}
-                    onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); setIsDragging(true); }}
-                    onDragEnter={(e) => { e.preventDefault(); e.stopPropagation(); setIsDragging(true); }}
-                    onDragLeave={(e) => { e.preventDefault(); e.stopPropagation(); setIsDragging(false); }}
-                    onDrop={(e) => void handleImportDrop(e)}
-                  >
-                    <div className="pointer-events-none absolute left-1/2 top-1/2 size-24 -translate-x-1/2 -translate-y-1/2 rounded-full bg-brand/5 blur-2xl" />
-                    <Upload className={cn('relative z-[2] mx-auto mb-3 size-8', isDragging ? 'text-brand/60' : 'text-brand/30')} />
-                    <p className="relative z-[2] text-sm font-medium text-muted-foreground">{t('project.hub.import.dropPrompt')}</p>
-                    <p className="relative z-[2] mt-1 text-xs text-muted-foreground/60">{t('project.hub.import.dropHint')}</p>
-                  </div>
-                </CardContent>
-              </Card>
+            <div
+              role="button"
+              tabIndex={isBusy ? -1 : 0}
+              aria-disabled={isBusy}
+              aria-label={t('project.hub.import.dropAria')}
+              className={cn(
+                'relative overflow-hidden rounded-xl border-2 border-dashed bg-brand/[0.03] p-8 text-center transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-brand/40',
+                isBusy ? 'cursor-not-allowed opacity-60' : 'cursor-pointer hover:border-brand/40 hover:bg-brand/[0.04]',
+                isDragging ? 'border-brand/50 bg-brand/[0.06]' : 'border-brand/20',
+              )}
+              onClick={() => { if (!isBusy) importFileInputRef.current?.click(); }}
+              onKeyDown={(e) => {
+                if (isBusy) return;
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  importFileInputRef.current?.click();
+                }
+              }}
+              onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); setIsDragging(true); }}
+              onDragEnter={(e) => { e.preventDefault(); e.stopPropagation(); setIsDragging(true); }}
+              onDragLeave={(e) => { e.preventDefault(); e.stopPropagation(); setIsDragging(false); }}
+              onDrop={(e) => void handleImportDrop(e)}
+            >
+              <Upload className={cn('mx-auto mb-3 size-8', isDragging ? 'text-brand/60' : 'text-brand/30')} />
+              <p className="text-sm font-medium text-muted-foreground">{t('project.hub.import.dropPrompt')}</p>
+              <p className="mt-1 text-xs text-muted-foreground/60">{t('project.hub.import.dropHint')}</p>
             </div>
           )}
 
@@ -1289,23 +1212,28 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
                     <FormField label={t('project.field.name')} htmlFor="spreadsheet-project-name" required error={spreadsheetValidation.getError('name')}>
                       <Input
                         id="spreadsheet-project-name"
+                        name="spreadsheet-project-name"
+                        autoComplete="off"
+                        spellCheck={false}
                         value={spreadsheetForm.name}
                         onChange={(event) =>
                           setSpreadsheetForm((previous) => ({ ...previous, name: event.target.value }))
                         }
                         onBlur={() => spreadsheetValidation.markTouched('name')}
-                        placeholder="My_Spreadsheet_Project"
+                        placeholder="My_Spreadsheet_Project…"
                         className={spreadsheetValidation.getError('name') ? 'border-destructive focus-visible:border-destructive focus-visible:ring-destructive/20' : ''}
                       />
                     </FormField>
                     <FormField label={t('project.field.owner')} htmlFor="spreadsheet-project-owner">
                       <Input
                         id="spreadsheet-project-owner"
+                        name="spreadsheet-project-owner"
+                        autoComplete="name"
                         value={spreadsheetForm.owner}
                         onChange={(event) =>
                           setSpreadsheetForm((previous) => ({ ...previous, owner: event.target.value }))
                         }
-                        placeholder="BESSER User"
+                        placeholder="BESSER User…"
                       />
                     </FormField>
                     <FormField label={t('project.field.description')} htmlFor="spreadsheet-project-description">
@@ -1327,7 +1255,7 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
                       </div>
                       <Button
                         variant="outline"
-                        className="w-full gap-2 border-brand/20 text-brand shadow-elevation-1 transition-all hover:border-brand/30 hover:bg-brand/[0.04]"
+                        className="w-full gap-2 border-brand/20 text-brand shadow-elevation-1 hover:border-brand/30 hover:bg-brand/[0.04]"
                         onClick={() => spreadsheetFileInputRef.current?.click()}
                         disabled={isBusy}
                       >
@@ -1349,7 +1277,7 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
                       )}
                     </div>
 
-                    <Button onClick={() => void handleStartFromSpreadsheet()} disabled={isBusy || !spreadsheetValidation.isValid} className="w-full gap-2 bg-brand text-brand-foreground shadow-elevation-1 transition-all hover:bg-brand-dark hover:shadow-elevation-2">
+                    <Button onClick={() => void handleStartFromSpreadsheet()} disabled={isBusy || !spreadsheetValidation.isValid || spreadsheetFiles.length === 0} className="w-full gap-2">
                       <Sparkles className="size-4" />
                       {t('project.hub.spreadsheet.submit')}
                     </Button>
@@ -1395,102 +1323,89 @@ export const ProjectHubDialog: React.FC<ProjectHubDialogProps> = ({ open, onOpen
           )}
 
           {step === 'github' && !isGithubAuthenticated && (
-            <Card className="border-border/50 shadow-elevation-1">
-              <CardHeader className="pb-2">
-                <CardTitle className="flex items-center gap-2 text-base tracking-tight">
-                  <Github className="size-4" />
-                  Continue from a GitHub repository
-                </CardTitle>
-                <CardDescription className="text-xs">
-                  Connect your GitHub account to pick one of your repositories. You&apos;ll come back here
-                  once you&apos;ve signed in.
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <Button
-                  onClick={handleOpenGithubStep}
-                  className="w-full gap-2 bg-brand text-brand-foreground shadow-elevation-1 transition-all hover:bg-brand-dark hover:shadow-elevation-2"
-                >
-                  <Github className="size-4" />
-                  Connect GitHub
-                </Button>
-              </CardContent>
-            </Card>
+            <div className="flex flex-col gap-4">
+              <p className="text-sm text-muted-foreground">
+                {t('project.hub.github.connectHint', {
+                  defaultValue: "Connect your GitHub account to pick one of your repositories. You'll come back here once you've signed in.",
+                })}
+              </p>
+              <Button type="button" onClick={handleOpenGithubStep} className="w-full gap-2">
+                <Github className="size-4" />
+                {t('github.connect.button')}
+              </Button>
+            </div>
           )}
 
           {step === 'github' && isGithubAuthenticated && (
-            <div className="flex flex-col gap-5">
-              <Card className="border-border/50 shadow-elevation-1">
-                <CardHeader className="pb-2">
-                  <CardTitle className="flex items-center gap-2 text-base tracking-tight">
-                    <Github className="size-4" />
-                    Continue from a GitHub repository
-                  </CardTitle>
-                  <CardDescription className="text-xs">
-                    Pick a repository BESSER created (one that contains a saved model). Its model loads into
-                    the editor, and the next Spec-Driven Agent run edits that repo&apos;s code and pushes back to it.
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="flex flex-col gap-4">
-                  <FormField label="Repository" htmlFor="github-continue-repo">
-                    <select
-                      id="github-continue-repo"
-                      value={githubRepoFullName}
-                      onChange={(event) => void handleSelectGithubRepo(event.target.value)}
-                      disabled={githubReposLoading || isBusy}
-                      className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
-                    >
-                      <option value="" disabled>
-                        {githubReposLoading ? 'Loading repositories…' : 'Select a repository'}
-                      </option>
-                      {githubRepositories.map((repo) => (
-                        <option key={repo.id} value={repo.full_name}>
-                          {repo.full_name}
-                          {repo.private ? ' (private)' : ''}
-                        </option>
-                      ))}
-                    </select>
-                  </FormField>
+            <form
+              className="flex flex-col gap-4"
+              onSubmit={(event) => {
+                event.preventDefault();
+                if (!isBusy && githubRepoFullName) {
+                  void handleContinueGithubRepo();
+                }
+              }}
+            >
+              <FormField label={t('github.linked.repository')} htmlFor="github-continue-repo">
+                <Select
+                  value={githubRepoFullName}
+                  onValueChange={(value) => value && void handleSelectGithubRepo(value)}
+                  disabled={githubReposLoading || isBusy}
+                >
+                  <SelectTrigger id="github-continue-repo">
+                    <SelectValue
+                      placeholder={githubReposLoading
+                        ? t('project.hub.github.loadingRepos', { defaultValue: 'Loading repositories…' })
+                        : t('project.hub.github.selectRepo', { defaultValue: 'Select a repository' })}
+                    />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {githubRepositories.map((repo) => (
+                      <SelectItem key={repo.id} value={repo.full_name}>
+                        {repo.full_name}
+                        {repo.private ? ` ${t('project.hub.github.privateSuffix', { defaultValue: '(private)' })}` : ''}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </FormField>
 
-                  {githubRepoFullName && (
-                    <FormField label="Branch" htmlFor="github-continue-branch">
-                      <select
-                        id="github-continue-branch"
-                        value={githubBranch}
-                        onChange={(event) => setGithubBranch(event.target.value)}
-                        disabled={githubLoadingBranches || isBusy}
-                        className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
-                      >
-                        {githubLoadingBranches ? (
-                          <option value="">Loading branches…</option>
-                        ) : (
-                          githubBranches.map((branch) => (
-                            <option key={branch} value={branch}>
-                              {branch}
-                            </option>
-                          ))
-                        )}
-                      </select>
-                    </FormField>
-                  )}
-
-                  {githubError && (
-                    <p className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700 dark:border-red-800 dark:bg-red-950/30 dark:text-red-300">
-                      {githubError}
-                    </p>
-                  )}
-
-                  <Button
-                    onClick={() => void handleContinueGithubRepo()}
-                    disabled={isBusy || !githubRepoFullName}
-                    className="w-full gap-2 bg-brand text-brand-foreground shadow-elevation-1 transition-all hover:bg-brand-dark hover:shadow-elevation-2"
+              {githubRepoFullName && (
+                <FormField label={t('github.linkModal.branch')} htmlFor="github-continue-branch">
+                  <Select
+                    value={githubLoadingBranches ? '' : githubBranch}
+                    onValueChange={(value) => value && setGithubBranch(value)}
+                    disabled={githubLoadingBranches || isBusy}
                   >
-                    {isBusy ? <Loader2 className="size-4 animate-spin" /> : <Github className="size-4" />}
-                    {isBusy ? 'Loading…' : 'Continue'}
-                  </Button>
-                </CardContent>
-              </Card>
-            </div>
+                    <SelectTrigger id="github-continue-branch">
+                      <SelectValue
+                        placeholder={githubLoadingBranches
+                          ? t('project.hub.github.loadingBranches', { defaultValue: 'Loading branches…' })
+                          : undefined}
+                      />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {githubBranches.map((branch) => (
+                        <SelectItem key={branch} value={branch}>
+                          {branch}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </FormField>
+              )}
+
+              {githubError && (
+                <p role="alert" className="rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-xs text-destructive">
+                  {githubError}
+                </p>
+              )}
+
+              <Button type="submit" disabled={isBusy || !githubRepoFullName} className="w-full gap-2">
+                {isBusy ? <Loader2 className="size-4 animate-spin" /> : <Github className="size-4" />}
+                {isBusy ? t('common.loading') : t('project.hub.github.continue', { defaultValue: 'Continue' })}
+              </Button>
+            </form>
           )}
         </div>
         )}

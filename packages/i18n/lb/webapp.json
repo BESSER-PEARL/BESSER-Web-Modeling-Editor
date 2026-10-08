@@ -1,14 +1,15 @@
 {
   "common": {
-    "connecting": "Verbannen...",
+    "connecting": "Verbannen…",
     "cancel": "Ofbriechen",
     "save": "Späicheren",
     "close": "Zoumaachen",
     "delete": "Läschen",
     "confirm": "Bestätegen",
-    "loading": "Lueden...",
+    "loading": "Lueden…",
     "yes": "Jo",
-    "no": "Nee"
+    "no": "Nee",
+    "retry": "Nach eng Kéier probéieren"
   },
   "topbar": {
     "language": "Sprooch",
@@ -35,7 +36,8 @@
       "issues": "Problemer",
       "needsRecheck": "Muss nei gepréift ginn",
       "notValidated": "Net validéiert"
-    }
+    },
+    "more": "Méi"
   },
   "nav": {
     "editors": "Editoren",
@@ -47,7 +49,6 @@
       "state": "Zoustand",
       "agent": "Agent",
       "bpmn": "BPMN",
-      "__comment__": "TODO: THE FOLLOWING TWO FIELDS NEED REVISION (THEY REFER TO UML COMPONENT AND DEPLOYMENT DIAGRAMS)!!!!!!!",
       "component": "Komponent",
       "deployment": "Deployment",
       "user": "Benotzer",
@@ -66,21 +67,27 @@
   "menu": {
     "file": {
       "title": "Datei",
-      "projectActions": "Projetaktiounen",
       "newOpenImport": "Nei / Opmaachen / Projet importéieren",
-      "loadTemplate": "Template lueden",
-      "exportProject": "Projet exportéieren",
-      "importClassDiagramFrom": "Klassendiagramm importéieren vun",
-      "imageToProject": "Bild zu Projet",
-      "kgToProject": "KG zu Projet",
-      "previewProject": "Projetvirschau"
+      "loadTemplate": "Template lueden…",
+      "exportProject": "Projet exportéieren…",
+      "previewProject": "Projetvirschau…",
+      "importBpmnDiagram": "BPMN-Diagramm importéieren (.bpmn / .xml)…",
+      "importGroupProject": "Projet",
+      "importGroupClassDiagram": "Klassendiagramm aus",
+      "importImage": "Bild…",
+      "importKnowledgeGraph": "Wëssensgraph…",
+      "newProject": "Neie Projet…",
+      "openProject": "Projet opmaachen…",
+      "importProject": "Projet importéieren",
+      "import": "Importéieren",
+      "importProjectFile": "Projetdatei (.json / .py)…",
+      "fromSpreadsheet": "Aus enger Tabell…",
+      "fromGithub": "Aus GitHub…"
     },
     "generate": {
       "title": "Generéieren",
-      "generating": "Generéiert...",
-      "codeGeneration": "Code-Generéierung",
+      "generating": "Generéiert…",
       "goToClassDiagram": "Bei d'Klassendiagramm goen",
-      "__comment__": "TODO: THE FOLLOWING THREE FIELDS NEED REVISION!!!!!!!",
       "deriveComponentDiagram": "Komponentendiagramm generéieren",
       "deriveDeploymentDiagram": "Deploymentdiagramm generéieren",
       "generateDockerCompose": "Docker Compose generéieren",
@@ -111,15 +118,15 @@
     },
     "deploy": {
       "title": "Deployen",
-      "deployment": "Deployment",
       "connectGitHub": "GitHub verbannen fir ze deployen",
-      "publishToRender": "Op Render deployen"
+      "publishToRender": "Op Render deployen…",
+      "connectGitHubFirstHint": "Fir d’éischt GitHub verbannen"
     },
     "community": {
       "title": "Communautéit",
       "contribute": "Bäidroen",
       "githubRepository": "GitHub-Repository",
-      "sendFeedback": "Feedback schécken",
+      "sendFeedback": "Feedback schécken…",
       "userSurvey": "Benotzerëmfro",
       "reportProblem": "E Problem mellen"
     },
@@ -132,10 +139,10 @@
     }
   },
   "agentConfig": {
-    "loadingTitle": "Mir schaffen drun...",
+    "loadingTitle": "Mir schaffen drun…",
     "loadingTitle_comment": "",
     "loading": {
-      "preparing": "Är Konfiguratioun gëtt virbereet...",
+      "preparing": "Är Konfiguratioun gëtt virbereet…",
       "rules": "Virdefinéiert literaturbaséiert Zouuerdnung gëtt ugewannt fir eng passend Konfiguratioun ze recommandéieren.",
       "llm": "Dat kann e Moment daueren, fir déi bescht LLM-baséiert Konfiguratioun fir Äert ausgewielt Benotzerprofil ze erstellen.",
       "transform": "Dat kann e Moment daueren, fir den transforméierten Agent-Setup ze erstellen an op Ären Diagramm unzewenden."
@@ -303,7 +310,8 @@
         "raw": {
           "desc": "Nëmme-liesen-Usiicht vun der komplett generéierter config.yaml. Änner eenzel Sektiounen oder füüg personaliséiert YAML derbäi."
         }
-      }
+      },
+      "enablePlatform": "{{platform}} aktivéieren"
     },
     "llms": {
       "title": "LLMs",
@@ -487,7 +495,7 @@
       "selectCustomization": "Eng Personaliséierung auswielen",
       "lastUpdated": "Lescht aktualiséiert {{date}}",
       "loadSelected": "Ausgewielt lueden",
-      "applying": "Gëtt ugewannt...",
+      "applying": "Gëtt ugewannt…",
       "saveAndApply": "Konfiguratioun späicheren & uwenden",
       "resetDefaults": "Op Standard zerécksetzen",
       "errors": {
@@ -602,6 +610,18 @@
       "profile": {
         "title": "Bestoend Benotzerprofil-Zouuerdnung ersetzen?",
         "description": "De Benotzerprofil \"{{profile}}\" ass scho mat der Konfiguratioun \"{{existing}}\" zougeuerdent. D'Späichere wäert déi Zouuerdnung mat \"{{next}}\" ersetzen."
+      },
+      "removeLlm": {
+        "title": "Dësen LLM ewechhuelen?",
+        "description": "„{{name}}“ gëtt ewechgeholl. Alles, wat en notzt, benotzt dann de Standard-LLM."
+      },
+      "reset": {
+        "title": "Op Standardwäerter zrécksetzen?",
+        "description": "All net gespäichert Ännerungen an dësem Formulaire ginn duerch d’Standardwäerter ersat."
+      },
+      "upload": {
+        "title": "Aktuell Konfiguratioun ersetzen?",
+        "description": "Wann „{{name}}“ gelueden gëtt, ginn déi aktuell Wäerter am Formulaire iwwerschriwwen."
       }
     },
     "noActiveDiagram": "Et ass keen Agent-Diagramm aktiv. Öffne fir d'éischt en Agent-Diagramm.",
@@ -700,7 +720,7 @@
       "configureTechnologies": "Agent-Technologien konfiguréieren",
       "sourceLanguage": "Quellsprooch (optional)",
       "addSpokenLanguage": "Geschwate Sprooch fir d'Agent-Iwwersetzung dobäisetzen",
-      "selectLanguage": "Sprooch wielen...",
+      "selectLanguage": "Sprooch wielen…",
       "addLanguage": "Sprooch dobäisetzen",
       "translatedToAll": "Den Agent gëtt an all ausgewielte geschwate Sproochen iwwersat.",
       "warningAriaLabel": "Warnung",
@@ -779,12 +799,18 @@
       "versionProfile": "Eenzel Profil",
       "versionAll": "All Versiounen",
       "selectProfile": "Profil auswielen",
-      "versionAllHint": "Den Download enthält fir all Versioun en eegene Ënnerdossier (Basisversioun + all Profil)."
+      "versionAllHint": "Den Download enthält fir all Versioun en eegene Ënnerdossier (Basisversioun + all Profil).",
+      "status": {
+        "ready": "Prett",
+        "missing": "Feelt",
+        "empty": "Eidel",
+        "skipped": "Gëtt iwwersprongen"
+      }
     },
     "toasts": {
       "validationFailed": "Validatioun feelgeschloen",
       "noDiagram": "Et ass keen Diagramm verfügbar, aus deem Code generéiert ka ginn.",
-      "localDeploymentInProgress": "Lokalen Deployment am Gaang... Dat kann e puer Minutten daueren.",
+      "localDeploymentInProgress": "Lokalen Deployment am Gaang… Dat kann e puer Minutten daueren.",
       "httpError": "HTTP-Feeler! Status: {{status}}",
       "localDeploymentCompleted": "Lokalen Deployment ofgeschloss!",
       "accessApplicationAt": "Dir kënnt elo op Är Applikatioun zougräifen op: ",
@@ -832,9 +858,15 @@
     "overlay": {
       "subtitle": "Waart w.e.g., wärend Äre Code generéiert gëtt",
       "title": "Code gëtt generéiert",
-      "stepPackaging": "Ausgab gëtt verpaakt...",
-      "stepGenerating": "Code gëtt generéiert...",
-      "stepParsing": "Diagramm gëtt analyséiert..."
+      "stepPackaging": "Ausgab gëtt verpaakt…",
+      "stepGenerating": "Code gëtt generéiert…",
+      "stepParsing": "Diagramm gëtt analyséiert…"
+    },
+    "dockerCompose": {
+      "invalidGovernanceTitle": "Ongëlteg Governance-DSL",
+      "invalidGovernance": "Kontrolléiert d'Governance-Politik um Gateway „{{gateway}}“. Detailer an der Browser-Konsol.",
+      "deploymentDiagramRequired": "Keen Inhalt am Deployment-Diagramm fonnt – setzt op d'mannst een Element derbäi, ier Dir generéiert.",
+      "noLinkedAgents": "Nach keen Agent ass mat engem Artefakt verlinkt. Leet d'Deployment-Diagramm iwwer BPMN → Komponent of, fir d'Agent-Kontexter ze verbannen."
     }
   },
   "project": {
@@ -858,8 +890,6 @@
       "import": {
         "title": "E Projet importéieren",
         "description": "Luet eng exportéiert Projet-Datei a maacht do weider wou Dir opgehalen hutt.",
-        "cardTitle": "Projet-Datei importéieren",
-        "cardDescription": "Ënnerstëtzte Formater: .json, .py.",
         "dropAria": "Eng Datei eroplueden oder klickt fir ze sichen",
         "dropPrompt": "Zitt eng Datei heihinner oder klickt fir ze sichen",
         "dropHint": "JSON- oder Python-Projetdateien"
@@ -888,10 +918,7 @@
         "description": "Wielt, wéi Dir Är Modelléierungssessioun starte wëllt, a maacht Ären Aarbechtsberäich op.",
         "heroTitle": "Start Äre Modelléierungsaarbechtsberäich",
         "heroBody": "BESSER (Better Smart Software Faster) ass eng open-source, modellgedriwwe Plattform fir den UML-Design, d'Generéierung an den Deployment. Wielt hei ënnen eng Optioun aus, fir Äre Projet séier opzestellen.",
-        "cardCreate": {
-          "title": "Eidel Virlag erstellen",
-          "description": "Fänkt vun Null un. All Editore stinn zur Verfügung."
-        },
+        "cardCreate": {},
         "cardSpreadsheet": {
           "title": "Vun engem Spreadsheet",
           "description": "Generéiert automatesch e Klassendiagramm aus CSV/XLSX-Dateien."
@@ -903,7 +930,15 @@
         "existingProjects": "Bestoend Projeten",
         "viewAll": "All Projeten weisen",
         "noProjects": "Nach keng Projeten.",
-        "warningBanner": "Erstellt, importéiert oder maacht e Projet op fir an den Aarbechtsraum ze kommen."
+        "warningBanner": "Erstellt, importéiert oder maacht e Projet op fir an den Aarbechtsraum ze kommen.",
+        "cardGithub": {
+          "description": "E Repository, dat BESSER erstallt huet, nees opmaachen a weiderbauen.",
+          "title": "Vu GitHub weidermaachen"
+        },
+        "cardNew": {
+          "description": "Low-Code oder agentesch wielen, dann mam Modelléieren ufänken.",
+          "title": "Neie Projet"
+        }
       },
       "perspective": {
         "label": "Modelléierungsperspektiv",
@@ -934,14 +969,53 @@
         "spreadsheetGenerateFailed": "Klassendiagramm konnt net aus dem Spreadsheet generéiert ginn.",
         "spreadsheetCreated": "Projet \"{{name}}\" erstallt a Klassendiagramm importéiert.",
         "spreadsheetImportFailed": "Spreadsheet-Import feelgeschloen: {{error}}"
+      },
+      "returning": {
+        "title": "Projeten",
+        "description": "Maach e rezente Projet op oder fänk en neie un."
+      },
+      "github": {
+        "connectHint": "Verbann däi GitHub-Kont, fir ee vun denge Repositoryen ze wielen. No der Umeldung kënns du hei zréck.",
+        "continue": "Weider",
+        "description": "Wiel e Repository, dat BESSER erstallt huet – säi Modell gëtt gelueden, an den nächste Laf vum Spec-Driven Agent ännert säi Code.",
+        "errors": {
+          "generic": "Vun dësem Repository konnt net weidergemaach ginn.",
+          "noModel": "Dëse Repository huet kee BESSER-Modell – en ass net vu BESSER erstallt ginn, dofir gëtt et nach näischt fir weiderzemaachen.",
+          "noSession": "GitHub-Sessioun net fonnt. Verbann dech w.e.g. nees.",
+          "selectRepo": "Wiel e Repository, fir weiderzemaachen.",
+          "sessionExpired": "Deng GitHub-Sessioun ass ofgelaf. Verbann dech nees a probéier et nach eng Kéier."
+        },
+        "loadingBranches": "Branche gi gelueden…",
+        "loadingRepos": "Repositorye gi gelueden…",
+        "privateSuffix": "(privat)",
+        "selectRepo": "Repository wielen",
+        "title": "Vu GitHub weidermaachen",
+        "toasts": {
+          "connectToContinue": "Verbann GitHub, fir vun engem vun denge Repositoryen weiderzemaachen.",
+          "continuing": "Et gëtt vu {{repo}} weidergemaach.",
+          "failed": "Weidermaache vu GitHub ass feelgeschloen: {{message}}",
+          "sessionExpired": "GitHub-Sessioun ofgelaf – verbann dech w.e.g. nees."
+        }
+      },
+      "interface": {
+        "agent": {
+          "description": "Beschreif deng App an natierlecher Sprooch; den Assistent baut se.",
+          "label": "Agentesch"
+        },
+        "helper": "Wiel, wéi s du baue wëlls. Du kanns all Moment iwwer de Panneau vum Assistent wiesselen.",
+        "label": "Usiicht",
+        "model": {
+          "description": "Visuell mat UML-Diagrammer op der Modelléierungsfläch bauen.",
+          "label": "Low-Code"
+        }
       }
     },
     "settings": {
       "title": "Projet-Astellungen",
       "subtitle": "Metadaten, Diagrammer an Affichage-Preferenze verwalten",
       "exportProject": "Projet exportéieren",
-      "exporting": "Exportéieren...",
-      "loadingProject": "Projet gëtt gelueden...",
+      "exporting": "Exportéieren…",
+      "loadingProject": "Projet gëtt gelueden…",
       "noProject": "Maacht e Projet op oder erstellt een fir d'Astellungen z'änneren.",
       "unknownError": "Onbekannte Feeler",
       "general": {
@@ -987,7 +1061,6 @@
             "description": "Agent- a Benotzerdiagrammer fir Konversatiounsagenten."
           },
           "agenticSwarm": {
-            "__comment__": "TODO: THE FOLLOWING TWO FIELDS NEED REVISION!!!!!!!",
             "label": "Multi-Agenten",
             "description": "Agentesch BPMN-, Agent-, Komponenten- an Deploymentdiagrammer."
           },
@@ -1021,6 +1094,16 @@
         "applyPresetFailed": "Virastellung konnt net ugewannt ginn",
         "exported": "Projet erfollegräich exportéiert.",
         "exportFailed": "Projet konnt net exportéiert ginn: {{error}}"
+      },
+      "apiKey": {
+        "change": "Schlëssel änneren",
+        "description": "Benotz däin eegene Schlëssel vun Anthropic, OpenAI, Mistral oder Nebius. Eemol hei aginn, benotzen en de Modelléierungsassistent an de Spec-Driven-Generator (Nebius nëmmen de Generator). E gëtt nëmmen an dësem Browser-Tab gespäichert, ni op eise Serveren.",
+        "keySet": "Schlëssel gesat · {{provider}}",
+        "keySetHint": "Gëlt fir den Assistent an de Generator",
+        "noKey": "Kee Schlëssel gesat",
+        "noKeyHint": "Gedeelte Server-Schlëssel mat Limitten",
+        "set": "API-Schlëssel setzen",
+        "title": "KI-/LLM-API-Schlëssel"
       }
     },
     "templates": {
@@ -1093,18 +1176,26 @@
     },
     "linked": {
       "repository": "Repository",
-      "checking": "Préift...",
+      "checking": "Préift…",
       "unsavedChanges": "Du hues net gespäichert Ännerungen",
       "upToDate": "Aktuell",
       "push": "Push",
       "pull": "Pull",
+      "pullConfirmTitle": "Lokal Ännerungen ersetzen?",
+      "pullConfirmDescription": "De Pull lued d’Versioun vu GitHub a verwërft d’Ännerungen, déi s du nach net gepusht hues.",
+      "pullConfirmAction": "Pullen an Ännerungen verwerfen",
       "history": "Historik",
       "refreshHistory": "Commit-Historik aktualiséieren",
       "latest": "Aktuellst",
       "clickToRestore": "Klick fir nei opzespillen",
       "noCommits": "Nach keng Commits",
       "share": "Deelen",
-      "createSecretGist": "Geheime Gist erstellen"
+      "createSecretGist": "Geheime Gist erstellen",
+      "openOnGitHub": "Op GitHub opmaachen",
+      "unlink": "Repository trennen",
+      "unlinkConfirmTitle": "Dëse Repository trennen?",
+      "unlinkConfirmDescription": "De Projet bleift an dengem Browser an op GitHub. Push, Pull an Auto-Commit stoppen, bis du erëm e Repository verbënns.",
+      "unlinkConfirmAction": "Trennen"
     },
     "settings": {
       "title": "Astellungen",
@@ -1117,7 +1208,7 @@
       "interval15": "15 Minutten",
       "interval30": "30 Minutten",
       "interval60": "1 Stonn",
-      "autoSaving": "Späichert automatesch..."
+      "autoSaving": "Späichert automatesch…"
     },
     "linkModal": {
       "goBack": "Zréck zur Repository-Auswiel",
@@ -1153,18 +1244,18 @@
       "title": "Op GitHub pushen",
       "description": "Schreif eng Commit-Noriicht fir deng Ännerungen.",
       "messageLabel": "Commit-Noriicht",
-      "messagePlaceholder": "Beschreif deng Ännerungen...",
-      "pushing": "Pusht...",
+      "messagePlaceholder": "Beschreif deng Ännerungen…",
+      "pushing": "Pusht…",
       "push": "Push"
     },
     "gist": {
       "title": "Gist erstellen",
       "description": "Erstell e GitHub-Gist fir däi Projet séier ze deelen.",
       "descriptionLabel": "Beschreiwung",
-      "descriptionPlaceholder": "Gist-Beschreiwung...",
+      "descriptionPlaceholder": "Gist-Beschreiwung…",
       "publicGist": "Ëffentleche Gist",
       "secretHint": "Geheime Gisten si vu Sichmaschinne verstoppt, awer fir jiddereen mam Link sichtbar.",
-      "creating": "Erstellt...",
+      "creating": "Erstellt…",
       "createGist": "Gist erstellen"
     },
     "createRepo": {
@@ -1173,16 +1264,16 @@
       "repoNameLabel": "Repository-Numm",
       "repoNameHelper": "Nëmme kleng Buschtawen, Zuelen, Bindestrécher an Ënnerstrécher sinn erlaabt.",
       "descriptionLabel": "Beschreiwung",
-      "descriptionPlaceholder": "Fakultativ Beschreiwung...",
+      "descriptionPlaceholder": "Fakultativ Beschreiwung…",
       "privateRepository": "Privaten Repository",
-      "creating": "Erstellt...",
+      "creating": "Erstellt…",
       "create": "Erstellen"
     },
     "restore": {
       "title": "Versioun nei opspillen",
       "description": "Deng aktuell net gespäichert Ännerunge gi verluer. Iwwerlee däin aktuellt Wierk fir d'éischt ze pushen.",
       "confirmQuestion": "Dëse Commit nei opspillen?",
-      "restoring": "Spillt nei op...",
+      "restoring": "Spillt nei op…",
       "restoreButton": "Dës Versioun nei opspillen"
     },
     "context": {
@@ -1198,7 +1289,8 @@
       "creatingRepository": "Repository gëtt erstallt",
       "committing": "Op GitHub gëtt committ",
       "restoringCommit": "Commit gëtt nei opgespillt",
-      "creatingGist": "Gist gëtt erstallt"
+      "creatingGist": "Gist gëtt erstallt",
+      "unlinkingRepository": "Repository gëtt getrennt"
     },
     "toasts": {
       "loadProjectFailed": "De Projet konnt net geluede ginn",
@@ -1240,13 +1332,39 @@
       "createGistFailed": "Erstelle vum Gist feelgeschloen",
       "gistCreated": "Gist erfollegräich erstallt!",
       "invalidGitHubUrl": "Ongülteg GitHub-URL. Gitt w.e.g. eng gülteg GitHub-Repository-URL un.",
-      "fetchingFromGitHub": "{{filename}} gëtt vu GitHub gelueden...",
+      "fetchingFromGitHub": "{{filename}} gëtt vu GitHub gelueden…",
       "fileNotFound": "Datei net op GitHub fonnt. Iwwerpréift w.e.g. d'URL a probéiert et nach eng Kéier.",
       "fetchFileFailed": "D'Datei konnt net vu GitHub gelueden ginn: {{status}}",
       "importProjectSuccess": "Projet erfollegräich importéiert: {{name}}",
       "importModelFailed": "D'Modell konnt net vu GitHub importéiert ginn",
       "starThanks": "Merci datt Dir BESSER e Stär ginn hutt!",
       "starFailed": "De Stär konnt net aktualiséiert ginn"
+    },
+    "push": {
+      "changeRepo": "Repository änneren",
+      "commitMessageHelper": "Beschreif, wat geännert huet (optional).",
+      "commitMessagePlaceholder": "Generéiert App aktualiséieren",
+      "createNew": "Neie Repository erstellen",
+      "defaultDescription": "Mat BESSER generéiert – {{name}}",
+      "descriptionCreate": "De generéierte Code an de Projetmodell an e GitHub-Repository pushen.",
+      "descriptionUpdate": "De verlinkte Repository mat dengem neiste generéierte Code a Modell aktualiséieren.",
+      "done": "Fäerdeg",
+      "filesUploaded_one": "{{count}} Datei eropgelueden.",
+      "filesUploaded_other": "{{count}} Dateien eropgelueden.",
+      "linkedTo": "Verlinkt mat",
+      "loadingBranches": "Branche gi gelueden…",
+      "loadingRepositories": "Repositorye gi gelueden…",
+      "noRepositories": "Keng Repositorye gelueden. D’Ufro ass méiglecherweis feelgeschloen.",
+      "privateRepoOption": "{{name}} (privat)",
+      "publicWarning": "Dëse Repository gëtt ëffentlech. Jiddereen kann de generéierte Code an de Modell gesinn.",
+      "pushUpdate": "Update pushen",
+      "repushHint": "Nees pushen aktualiséiert dëse Repository.",
+      "selectRepository": "Repository wielen…",
+      "selectRepositoryError": "Wiel e Repository als Zil.",
+      "successCreated": "Repository erstallt an Dateie gepusht.",
+      "successTitle": "Op GitHub gepusht",
+      "successUpdated": "Repository mat denger neister Generatioun aktualiséiert.",
+      "useExisting": "Bestoende Repository benotzen"
     }
   },
   "assistant": {
@@ -1258,7 +1376,7 @@
       "uploadImageLabel": "Diagramm-Bild eroplueden (PNG/JPEG)",
       "uploadKgLabel": "Knowledge Graph eroplueden (TTL/RDF/JSON)",
       "selected": "Ausgewielt: {{name}}",
-      "importing": "Gëtt importéiert...",
+      "importing": "Gëtt importéiert…",
       "import": "Importéieren",
       "errors": {
         "noProject": "Erstellt oder lued fir d'éischt e Projet.",
@@ -1290,10 +1408,12 @@
       "headlinePost": "?",
       "subtitle": "Beschreift Äre System a natierlecher Sprooch. Kritt Modeller, Interfaces a Code.",
       "pressEscPre": "Dréckt",
-      "pressEscPost": "fir zouzemaachen"
+      "pressEscPost": "fir zouzemaachen",
+      "freeTier": "Gratis mat eisem gehoste Qwen-Modell.",
+      "changeModel": "Modell wiesselen"
     },
     "composer": {
-      "placeholder": "Beschreift wat Dir erstellen oder ännere wëllt..."
+      "placeholder": "Beschreift wat Dir erstellen oder ännere wëllt…"
     },
     "messageCount_one": "{{count}} Message",
     "messageCount_other": "{{count}} Messagen",
@@ -1349,13 +1469,26 @@
     },
     "chat": {
       "newChat": "Neie Chat",
-      "newConversationTitle": "En neit Gespréich ufänken"
+      "newConversationTitle": "En neit Gespréich ufänken",
+      "moreActions": "Méi Aktiounen",
+      "yourModel": "Däi Modell",
+      "hideYourModel": "Däi Modell verstoppen",
+      "apiKeySet": "API-Schlëssel gesat",
+      "useOwnApiKey": "Däin eegene API-Schlëssel benotzen",
+      "reportIssue": "Problem mellen",
+      "addApiKey": "Däin API-Schlëssel derbäisetzen",
+      "newChatConfirm": "Neie Chat ufänken? Deng aktuell Konversatioun gëtt geläscht.",
+      "newChatConfirmWithRun": "Neie Chat ufänken? Deng aktuell Konversatioun gëtt geläscht an déi lafend Generatioun gestoppt.",
+      "explainModel": "Dëse Modell erklären",
+      "explainModelTitle": "Kréi en einfachen Iwwerbléck iwwer däi Modell – wat en haaptsächlech duerstellt a wéi et zesummenhänkt"
     },
     "drawer": {
-      "pushToClose": "No uewen drécke fir den Assistent zouzemaachen",
-      "pullToOpen": "No ënnen zéie fir den Assistent opzemaachen",
+      "pushToClose": "No ënne drécke fir den Assistent zouzemaachen",
+      "pullToOpen": "No uewen zéie fir den Assistent opzemaachen",
       "pushUp": "No uewen drécken",
-      "pullDown": "Assistent no ënnen zéien"
+      "pullDown": "Assistent no ënnen zéien",
+      "labelClosed": "Beschreif deng App",
+      "labelOpen": "Spezifikatioune kucken"
     },
     "generationCompleted": "Generéierung erfollegräich ofgeschloss.",
     "exportingProject": "Projet gëtt als {{format}} exportéiert…",
@@ -1411,7 +1544,7 @@
       "toolCancelled": "Ofgebrach",
       "toolCalling": "Rifft op",
       "toolResultFrom": "Resultat vun",
-      "loading": "Gëtt gelueden...",
+      "loading": "Gëtt gelueden…",
       "removeAttachment": "Unhang ewechhuelen",
       "interruptPrompt": "Nach eemol Enter drécken fir z'ënnerbriechen",
       "close": "Zoumaachen",
@@ -1424,8 +1557,8 @@
       "stopGenerating": "Generéierung stoppen",
       "sendMessage": "Noriicht schécken",
       "dropFiles": "Losst Är Dateien hei falen fir se unzehänken.",
-      "transcribingAudio": "Audio gëtt transkribéiert...",
-      "recordingPrompt": "Opnam leeft... klickt hei oder dréckt de Mikro nach eemol fir ze stoppen an ze schécken ({{time}})",
+      "transcribingAudio": "Audio gëtt transkribéiert…",
+      "recordingPrompt": "Opnam leeft… klickt hei oder dréckt de Mikro nach eemol fir ze stoppen an ze schécken ({{time}})",
       "stopSendVoiceTimer": "Sproochnoriicht stoppen an schécken ({{time}})"
     }
   },
@@ -1465,7 +1598,7 @@
       "publishAgent": "Agent op Render verëffentlechen",
       "updatePublish": "Aktualiséieren & Verëffentlechen",
       "updatePublishAgent": "Agent aktualiséieren & verëffentlechen",
-      "publishing": "Verëffentlechen..."
+      "publishing": "Verëffentlechen…"
     },
     "result": {
       "titleUpdated": "Repository erfollegräich aktualiséiert",
@@ -1507,7 +1640,6 @@
     "GUINoCodeDiagram": "GUI-Diagramm",
     "QuantumCircuitDiagram": "Quantenschaltkreesdiagramm",
     "BPMN": "BPMN-Diagramm",
-    "__comment__":"TODO: THE FOLLOWING TWO FIELDS NEED REVISION (THEY REFER TO UML COMPONENT AND DEPLOYMENT DIAGRAMS)!!!!!!!",
     "ComponentDiagram": "Komponentendiagramm",
     "DeploymentDiagram": "Deploymentdiagramm",
     "NNDiagram": "Neuronaalt-Netz-Diagramm"
@@ -1556,7 +1688,6 @@
       "title": "Wéi den Editor funktionéiert",
       "description": "Komplett Modelléierungsguide mat Beispiller a Biller.",
       "diagramTypesHeading": "Diagrammtypen",
-      "noImage": "Kee Bild fir dëst Element.",
       "openDocs": "BESSER-Dokumentatioun opmaachen",
       "openWmeRepo": "WME-Repository opmaachen",
       "class": {
@@ -1759,13 +1890,45 @@
           "body": "<p>Féiert de Qualitéitscheck aus der Uewerläischt aus fir strukturell Problemer wéi net verbonne Schichten oder feelend obligatoresch Attributer ze fänken, ier Dir Code generéiert.</p><p>Maacht de Generate-Menü op a wielt e Framework an e Stil:</p><ul><li><strong>PyTorch / Subclassing</strong>: <code>torch.nn.Module</code>-Ënnerklass mat engem expliziten Forward Pass.</li><li><strong>PyTorch / Sequential</strong>: <code>nn.Sequential</code>-Kompositioun fir strikt sequenziell Architekturen.</li><li><strong>TensorFlow / Subclassing</strong>: <code>tf.keras.Model</code>-Ënnerklass mat engem benotzerdefinéierten <code>call()</code>.</li><li><strong>TensorFlow / Sequential</strong>: <code>keras.Sequential</code>-Kompositioun.</li></ul><p>D'NN-Architekturdefinitioun gëtt am gewielte Framework generéiert, zesumme mat Trainings- an Evaluatiounscode, wann Datesätz an Configuration definéiert sinn.</p>",
           "alt": "Menü fir Code-Generéierung"
         }
+      },
+      "user": {
+        "label": "Benotzerdiagramm",
+        "summary": "Modelléier Benotzerprofiler, déi personaliséiert Agenten a GUIen steieren.",
+        "about": {
+          "title": "Iwwer Benotzerdiagrammer",
+          "body": "<p>E Benotzerdiagramm beschreift ee Benotzerprofil: eng <code>User</code>-Wuerzel, verbonne mat Deeler wéi perséinlech Informatiounen, Kompetenz, Accessibilitéit, Kultur, Perséinlechkeet, Preferenzen an Ziler.</p>"
+        },
+        "addParts": {
+          "title": "Deeler derbäisetzen a beaarbechten",
+          "body": "<p>Zéi Profilelementer aus der Palette, verbann se mam <code>User</code> a duebelklick op en Element fir seng Attributwäerter ze setzen.</p>"
+        },
+        "editAsForm": {
+          "title": "Als Formulaire beaarbechten",
+          "body": "<p>Klick an der Tab-Läischt op <strong>Als Formulaire beaarbechten</strong> fir de Profil an engem guidéierte Säitepanel ze beaarbechten. Setz Deeler derbäi oder huel se ewech a setz Critèren; d’Ännerunge gesäit een direkt um Canvas.</p>"
+        }
+      },
+      "bpmn": {
+        "label": "BPMN-Diagramm",
+        "summary": "Modelléier Geschäftsprozesser mat Aufgaben, Evenementer, Gateways a Flëss.",
+        "buildProcess": {
+          "title": "E Prozess opbauen",
+          "body": "<p>Zéi Elementer aus der Palette: Aufgaben, Ënnerprozesser, Transaktiounen an Opruffaktivitéiten; Start-, Zwëschen- an Ennevenementer; Gateways; Dateobjeten an Datespäicher; Pools a Lanes; Notizen a Gruppen.</p>"
+        },
+        "connectFlows": {
+          "title": "Mat Flëss verbannen",
+          "body": "<p>Zéi vun engem Element op en anert fir e Floss ze maachen. Den Editor wielt e gültegen Typ fir d’Pair (Sequenz, Message, Associatioun oder Dateassociatioun); duebelklick op e Floss fir en z’änneren.</p>"
+        },
+        "elementTypes": {
+          "title": "Elementtypen setzen",
+          "body": "<p>Duebelklick op eng Aufgab, en Evenement oder e Gateway fir den Typ ze setzen, zum Beispill eng Benotzer- oder Serviceaufgab, en Timer-Startevenement, oder en exklusiven oder parallele Gateway.</p>"
+        }
       }
     }
   },
   "shared": {
     "commandPalette": {
       "dialogLabel": "Kommandopalett",
-      "placeholder": "Gitt e Kommando an...",
+      "placeholder": "Gitt e Kommando an…",
       "searchLabel": "Kommandoen sichen",
       "noResults": "Keng passend Kommandoen",
       "navigate": "Navigéieren",
@@ -1866,9 +2029,9 @@
       "expand": "{{name}} opklappen",
       "collapse": "{{name}} zouklappen",
       "root": "Wuerzel",
-      "generatingBuml": "B-UML-Virschau gëtt generéiert...",
+      "generatingBuml": "B-UML-Virschau gëtt generéiert…",
       "noBumlPreview": "Nach keng B-UML-Virschau verfügbar.",
-      "generating": "Generéiert...",
+      "generating": "Generéiert…",
       "regenerate": "Nei generéieren",
       "downloadBuml": "B-UML eroflueden",
       "copyBuml": "B-UML kopéieren",
@@ -1930,7 +2093,8 @@
       "projectLabel": "Projet (V{{version}})",
       "bumlLabelNamed": "Projet B-UML Virschau ({{name}})",
       "bumlLabel": "Projet B-UML Virschau"
-    }
+    },
+    "skipToEditor": "Op den Editor sprangen"
   },
   "editors": {
     "diagramTabs": {
@@ -1955,8 +2119,11 @@
       "diagramTabLabel": "Diagramm-Tab: {{title}}",
       "validationStatusLabel": "Validatiounsstatus: {{status}}",
       "renameDiagram": "Diagramm ëmbenennen",
-      "closeTabLabel": "Tab {{title}} zoumaachen",
-      "closeTab": "Tab zoumaachen",
+      "closeTabLabel": "Diagramm {{title}} läschen",
+      "closeTab": "Diagramm läschen",
+      "deleteConfirmTitle": "Dëst Diagramm läschen?",
+      "deleteConfirmDescription": "„{{title}}“ an säin ganzen Inhalt ginn aus dem Projet geläscht. Dat kann net réckgängeg gemaach ginn.",
+      "deleteConfirmAction": "Diagramm läschen",
       "addNewDiagram": "Nei Diagramm bäifügen",
       "expandLinkedDiagrams": "Verlinkten Diagrammer opklappen",
       "collapseLinkedDiagrams": "Verlinkten Diagrammer zouklappen",
@@ -1970,10 +2137,24 @@
       "referenceEmpty": "De referenzéierten Klassendiagramm ass eidel (keng Klassen oder Bezéiungen).",
       "generateObjectsTooltip": "Erstellt eng Objet-Instanz pro Klass am referenzéierten Diagramm, mat Standardwäerter fir all Attribut.",
       "generate": "Generéieren",
-      "noClassDiagramsAvailable": "Keng Klassendiagrammer verfügbar"
+      "noClassDiagramsAvailable": "Keng Klassendiagrammer verfügbar",
+      "tablistLabel": "Diagrammer",
+      "editAsForm": "Als Formulaire beaarbechten",
+      "closeForm": "Formulaire zoumaachen",
+      "editAsFormTitle": "Dëse Profil mat engem guidéierte Formulaire beaarbechten",
+      "closeFormTitle": "Benotzerprofil-Formulaire zoumaachen",
+      "lineage": {
+        "sourceDeleted": "← Quelldiagramm geläscht ({{type}})",
+        "derivedFrom": "← Ofgeleet vun <em>{{title}}</em> ({{type}})",
+        "sourceChangedTitle": "D'Quelldiagramm huet sech geännert, zënter dëst Diagramm ofgeleet gouf.",
+        "sourceChanged": "Quell geännert",
+        "implementationOf": "← Ëmsetzung vun <em>{{lane}}</em>",
+        "unnamedLane": "(Bunn ouni Numm)",
+        "openFailed": "D'Quelldiagramm konnt net opgemaach ginn."
+      }
     },
     "charts": {
-      "loadingChart": "Diagramm gëtt gelueden...",
+      "loadingChart": "Diagramm gëtt gelueden…",
       "noDataAvailable": "Keng Daten verfügbar"
     },
     "table": {
@@ -1992,7 +2173,7 @@
     "quantum": {
       "editorTitle": "Quantum Editor",
       "saved": "Gespäichert",
-      "saving": "Späicheren...",
+      "saving": "Späicheren…",
       "error": "Feeler",
       "undo": "Réckgängeg",
       "redo": "Widderhuelen",
@@ -2130,7 +2311,11 @@
         "AXIS_SAMPLE": "3-Achsen-Stéchprouf: Tast de Qubit gläichzäiteg an den X-, Y- an Z-Basen of. Fir d'tomographesch Rekonstruktioun.",
         "SPACER": "Ofstandshalter"
       },
-      "nestedCircuitConfigured": "Verschachtelte Circuit konfiguréiert"
+      "nestedCircuitConfigured": "Verschachtelte Circuit konfiguréiert",
+      "toolboxLabel": "Gatter-Toolbox",
+      "gateName": "Gatternumm",
+      "placeGateLabel": "{{gate}}-Gatter placéieren",
+      "armedHint": "Klick op eng Zell vum Circuit fir {{gate}} ze placéieren. Esc fir ofzebriechen."
     },
     "gui": {
       "traits": {
@@ -2304,7 +2489,7 @@
       },
       "pages": {
         "title": "Säiten",
-        "searchPlaceholder": "Säite sichen...",
+        "searchPlaceholder": "Säite sichen…",
         "addNewPage": "Nei Säit dobäisetzen",
         "addPage": "Säit dobäisetzen",
         "editRoute": "URL-Route änneren",
@@ -2396,8 +2581,8 @@
         "previewMode": "Virschau-Modus",
         "greeting": "Moien! Ech sinn {{agentName}}. Wéi kann ech hëllefen?",
         "previewMessage": "Dëst ass eng Virschau vun der Chat-Uewerfläch",
-        "selectAgent": "Wielt en Agent fir ze chatten...",
-        "typeMessage": "Message aginn...",
+        "selectAgent": "Wielt en Agent fir ze chatten…",
+        "typeMessage": "Message aginn…",
         "selectAgentFirst": "Fir d'éischt en Agent auswielen",
         "send": "Schécken"
       },
@@ -2417,7 +2602,7 @@
       "errorGeneratingGui": "Feeler beim Generéiere vum GUI: {{message}}",
       "guiModelLoaded": "GUI-Modell vum Assistent gelueden.",
       "statusSaved": "Gespäichert",
-      "statusSaving": "Späicheren...",
+      "statusSaving": "Späicheren…",
       "statusErrorSaving": "Feeler beim Späicheren",
       "editorStillLoading": "Den Editor lued nach. Waart wannechgelift e Moment a probéiert nach eng Kéier.",
       "errorSavingProject": "Feeler beim Späichere vum Projet. Kuckt wannechgelift d'Konsol fir Detailer.",
@@ -2510,10 +2695,35 @@
         "weightField": "Gewiichtsfeld",
         "geometryField": "Geometrifeld (GeoJSON)",
         "valueField": "Wäertfeld"
+      },
+      "colorPalette": "Faarfpalette",
+      "colorPaletteOption": "Palette {{index}}",
+      "emptyState": {
+        "eyebrow": "Eidel Säit",
+        "title": "Maach aus dengem Modell en Ecran",
+        "subtitle": "Generéier dës Säit aus dengem Klassendiagramm, bau se aus Bléck oder beschreif se. Du kanns dat duerno kombinéieren.",
+        "subtitleNoClasses": "Ecranen ginn aus dengem Klassendiagramm generéiert. Setz fir d’éischt e puer Klassen derbäi oder fänk direkt mat Bléck un.",
+        "generateTitle": "Aus dem Klassendiagramm generéieren",
+        "generateDescription": "{{count}} Klassen fonnt: {{names}}.",
+        "addClassesTitle": "Fir d’éischt Klassen derbäisetzen",
+        "addClassesDescription": "Mécht de Klasseneditor op. Komm zréck fir Ecranen ze generéieren.",
+        "blocksTitle": "Mat engem Block ufänken",
+        "blocksDescription": "Zéi Kolonnen, Text, Tabellen a Formulairen op d’Säit.",
+        "describeTitle": "Den Ecran beschreiwen",
+        "describeDescription": "So dem Assistent, wat dës Säit weise soll.",
+        "footer": "Dat verschwënnt, soubal s du eng Komponent derbäisetz.",
+        "figureTag": "Säit",
+        "newItem": "Nei: {{name}}",
+        "noClassesTitle": "Nach keng Klassen",
+        "noClassesHint": "Setz se am Klasseneditor derbäi",
+        "starterPrompt": "Maach eng Säit fir {{page}} ze duerchsichen",
+        "starterPromptNoClasses": "Maach eng Startsäit fir meng App",
+        "generateDescription_one": "1 Klass fonnt: {{names}}.",
+        "generateDescription_other": "{{count}} Klassen fonnt: {{names}}."
       }
     },
-    "loadingGuiEditor": "GUI-Editor gëtt gelueden...",
-    "loadingQuantumEditor": "Quanten-Editor gëtt gelueden...",
+    "loadingGuiEditor": "GUI-Editor gëtt gelueden…",
+    "loadingQuantumEditor": "Quanten-Editor gëtt gelueden…",
     "hiddenPerspectives": {
       "messagePlural": "Dëse Projet benotzt {{labels}}, mee dës Perspektiven si verstoppt.",
       "messageSingular": "Dëse Projet benotzt {{labels}}, mee dës Perspektiv ass verstoppt.",
@@ -2530,7 +2740,7 @@
       "unknownError": "Onbekannte Feeler",
       "submitFailed": "Schécke vum Feedback feelgeschloen: {{error}}"
     },
-    "submitting": "Gëtt geschéckt...",
+    "submitting": "Gëtt geschéckt…",
     "title": "Hëlleft eis, BESSER ze verbesseren",
     "description": "Deelt Äert Feedback iwwer den Editor an de Generatiounsworkflow.",
     "satisfactionQuestion": "Wéi zefridde sidd Dir mat Ärer Erfarung?",
@@ -2597,6 +2807,19 @@
       "noProjectData": "Keng Projetsdate fir z'exportéiere verfügbar",
       "projectExportedAs": "Projet als {{filename}} exportéiert",
       "projectExportFailed": "De Projet konnt net exportéiert ginn: {{error}}"
+    },
+    "diagramLabels": {
+      "ClassDiagram": "Klassendiagramm",
+      "ObjectDiagram": "Objetdiagramm",
+      "StateMachineDiagram": "Zoustandsdiagramm",
+      "AgentDiagram": "Agentendiagramm",
+      "UserDiagram": "Benotzerdiagramm",
+      "GUINoCodeDiagram": "Ecranen (GUI)",
+      "QuantumCircuitDiagram": "Quanteschaltung",
+      "NNDiagram": "Diagramm vun engem neuronalen Netz",
+      "BPMN": "BPMN-Prozess",
+      "ComponentDiagram": "Komponentendiagramm",
+      "DeploymentDiagram": "Deploymentdiagramm"
     }
   },
   "import": {
@@ -2626,13 +2849,17 @@
       "readFileFailed": "Datei konnt net gelies ginn",
       "invalidFromBackend": "Ongëltege Diagramm vum Backend zréckginn",
       "couldNotParseError": "D'Feeleräntwert konnt net analyséiert ginn"
+    },
+    "warnings": {
+      "danglingAgentRef": "D'Element „{{name}}“ verweist op en Agentverhalen, dat net an dësem Projet ass. Benotzt „Agentverhalen definéieren“ drop, fir en neit ze erstellen.",
+      "unnamedElement": "(ouni Numm)"
     }
   },
   "validation": {
     "toasts": {
       "noDiagramToValidate": "Keen Diagramm fir ze validéieren",
       "diagramEmpty": "Den Diagramm ass eidel. Füügt Elementer bäi ier Dir d'Qualitéitskontroll ausféiert.",
-      "validating": "Den Diagramm gëtt validéiert...",
+      "validating": "Den Diagramm gëtt validéiert…",
       "timedOut": "D'Validéierung huet d'Zäitlimit iwwerschratt. De Backend ass villäicht iwwerlaascht.",
       "validationFailed": "Validéierung feelgeschloen",
       "errorsLabel": "Validéierungsfeeler:",
@@ -2651,7 +2878,8 @@
       "addQubitButton": "+ Qubit",
       "measurementOutput": "Mooss-Ausgab – automatesch aus de Moossgatter generéiert",
       "dropHere": "Hei fale loossen",
-      "invalid": "Ongülteg"
+      "invalid": "Ongülteg",
+      "initialStateLabel": "Ufankszoustand vun {{qubit}}: {{state}}. Klick fir z’änneren."
     }
   },
   "agentComponents": {
@@ -2725,7 +2953,7 @@
       "skillDescription": "Beschreiwung",
       "skillDescriptionPlaceholder": "Optional kuerz Beschreiwung",
       "content": "Markdown-Inhalt",
-      "contentPlaceholder": "# Skill\n\nUweisungen a markdown..."
+      "contentPlaceholder": "# Skill\n\nUweisungen a markdown…"
     },
     "workspaces": {
       "title": "Workspaces",
@@ -2840,7 +3068,8 @@
       "restart": "Simulatioun nei starten",
       "reset": "Nei starten",
       "dragToResize": "Zéien fir d’Gréisst z’änneren",
-      "loading": "Den Agent gëtt gelueden, wann ech gelift waart."
+      "loading": "Den Agent gëtt gelueden, wann ech gelift waart.",
+      "resizeChat": "Chatberäich upassen"
     },
     "codeViewer": {
       "copyTitle": "Code kopéieren",
@@ -2920,6 +3149,51 @@
       "emptyDiagram": "D'Agentediagramm ass eidel. Setz Zoustänn, Iwwergäng an Intents derbäi, ier s de simuléiers.",
       "validationFailed": "D'Validatioun vum Agent ass feelgeschloen: {{message}}",
       "validationFailedGeneric": "Validatioun feelgeschloen"
+    }
+  },
+  "errors": {
+    "network": {
+      "unreachable": "De Server ass net erreechbar. Kontrolléier deng Verbindung a probéier nach eng Kéier."
+    }
+  },
+  "interDiagram": {
+    "linker": {
+      "bpmnNotActive": "Agent kann net definéiert ginn: D'BPMN-Diagramm ass net aktiv.",
+      "noProject": "Et ass kee Projet op.",
+      "limitReached": "Et kënne keng weider Agent-Diagrammer derbäigesat ginn (max. {{max}} pro Projet). Läscht als éischt en existent Agent-Diagramm.",
+      "flushFailed": "D'BPMN-Diagramm konnt net gespäichert ginn, ier den Agent definéiert gouf. Probéiert w.e.g. nach eng Kéier.",
+      "createFailed": "D'Agent-Diagramm konnt net erstallt ginn. Probéiert w.e.g. nach eng Kéier.",
+      "linkNotSaved": "D'Agent-Diagramm gouf erstallt, mee de Link konnt net um BPMN-Element gespäichert ginn.",
+      "openFailed": "D'Agent-Diagramm gouf erstallt, mee et konnt net opgemaach ginn. Maacht et iwwer d'Tabs vun den Agent-Diagrammer op.",
+      "openExistingFailed": "D'Agent-Diagramm konnt net opgemaach ginn.",
+      "populateFailed": "D'Agent-Diagramm gouf erstallt, mee et konnt net aus der Bunn gefëllt ginn.",
+      "derivedWithWarnings_one": "Agent-Diagramm mat {{count}} Warnung erstallt – kuckt d'Browser-Konsol.",
+      "derivedWithWarnings_other": "Agent-Diagramm mat {{count}} Warnungen erstallt – kuckt d'Browser-Konsol.",
+      "emptyAgent": {
+        "noTasksInLane": "D'Bunn huet nach keng Aufgaben, dofir fänkt d'Agent-Diagramm eidel un.",
+        "laneNotAgentic": "D'Bunn ass net agentesch, dofir fänkt d'Agent-Diagramm eidel un.",
+        "laneNotFound": "D'Bunn konnt net gelies ginn, dofir fänkt d'Agent-Diagramm eidel un."
+      }
+    },
+    "derive": {
+      "component": {
+        "failed": "D'Komponentendiagramm kann net ofgeleet ginn: {{reason}}",
+        "noPools": "Setzt als éischt op d'mannst ee Pool mat Bunnen an dëst BPMN-Diagramm.",
+        "noLanes": "Setzt als éischt op d'mannst eng Bunn an e Pool.",
+        "notBpmn": "Dës Aktioun funktionéiert nëmmen an engem BPMN-Diagramm.",
+        "limitReached": "de Projet huet schonn déi maximal Zuel u Komponentendiagrammer. Läscht eent, ier Dir en neit generéiert.",
+        "done": "Komponentendiagramm generéiert.",
+        "doneWithWarnings_one": "Komponentendiagramm mat {{count}} Warnung generéiert – kuckt d'Browser-Konsol.",
+        "doneWithWarnings_other": "Komponentendiagramm mat {{count}} Warnungen generéiert – kuckt d'Browser-Konsol."
+      },
+      "deployment": {
+        "failed": "D'Deploymentdiagramm kann net ofgeleet ginn: {{reason}}",
+        "noComponents": "Setzt als éischt op d'mannst ee Komponent an dëst Komponentendiagramm.",
+        "notComponentDiagram": "Dës Aktioun funktionéiert nëmmen an engem Komponentendiagramm.",
+        "limitReached": "de Projet huet schonn déi maximal Zuel un Deploymentdiagrammer. Läscht eent, ier Dir en neit generéiert.",
+        "flatScaffold": "E Knued „Default Host“ gouf als Plazhalter erstallt – setzt Subsystemer an d'Komponentendiagramm fir e méi räicht Layout.",
+        "done": "Deploymentdiagramm generéiert."
+      }
     }
   }
 }

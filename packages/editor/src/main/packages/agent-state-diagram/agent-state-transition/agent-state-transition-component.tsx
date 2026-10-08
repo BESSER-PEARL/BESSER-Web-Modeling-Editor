@@ -4,7 +4,7 @@ import { AgentStateTransition } from './agent-state-transition';
 import { ThemedPath, ThemedPolyline } from '../../../components/theme/themedComponents';
 import { I18nContext } from '../../../components/i18n/i18n-context';
 import { localized } from '../../../components/i18n/localized';
-import { A2ABadge, a2aTitle, parseA2ATag } from '../a2a-notation/a2a-notation';
+import { A2ABadge, parseA2ATag } from '../a2a-notation/a2a-notation';
 
 const AgentStateTransitionC: FunctionComponent<Props & I18nContext> = ({ element, translate }) => {
   let position = { x: 0, y: 0 };
@@ -118,7 +118,7 @@ const AgentStateTransitionC: FunctionComponent<Props & I18nContext> = ({ element
           dir="in"
           x={position.x + (direction === 'v' ? -56 : -122)}
           y={position.y + (direction === 'v' ? -8 : -44)}
-          title={a2aTitle([a2aReceiveTag], 'BPMN-derived A2A receive')}
+          tags={[a2aReceiveTag]}
         />
       )}
       <text x={position.x} y={position.y} {...layoutText(direction)} pointerEvents="none" style={{ ...fillStyle }}>

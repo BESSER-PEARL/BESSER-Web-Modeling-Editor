@@ -20,7 +20,7 @@ export const Ghost = styled.div.attrs<GhostProps>(({ position }) => ({
     fill-opacity: 0.7;
   }
   text {
-    fill: black;
+    fill: ${(props) => props.theme.font.color};
     fill-opacity: 0.7;
   }
 `;

@@ -33,7 +33,11 @@ export const SuspenseFallback: React.FC<SuspenseFallbackProps> = ({
   const { t } = useTranslation();
   const resolvedMessage = message ?? t('common.loading');
   return (
-  <div className="flex h-full w-full flex-col items-center justify-center gap-5 px-6 text-slate-500 dark:text-slate-400">
+  <div
+    className="flex h-full w-full flex-col items-center justify-center gap-5 px-6 text-slate-500 dark:text-slate-400"
+    role="status"
+    aria-live="polite"
+  >
     {/* App logo */}
     <img
       src="/images/logo.png"

@@ -9,6 +9,7 @@ import { IUMLRelationship } from '../../services/uml-relationship/uml-relationsh
 import { UMLRelationshipRepository } from '../../services/uml-relationship/uml-relationship-repository';
 import { AsyncDispatch } from '../../utils/actions/actions';
 import { computeBoundingBox } from '../../utils/geometry/boundary';
+import { IPath } from '../../utils/geometry/path';
 import { Point } from '../../utils/geometry/point';
 import { getClientEventCoordinates } from '../../utils/touch-event';
 import { ModelState } from '../store/model-state';
@@ -30,6 +31,7 @@ type StateProps = {
   mode: ApollonMode;
   readonly: boolean;
   selectionBoxActive: boolean;
+  zoomFactor: number;
 };
 
 type DispatchProps = {
@@ -67,6 +69,7 @@ const enhance = compose<ComponentClass<OwnProps>>(
       mode: state.editor.mode as ApollonMode,
       readonly: state.editor.readonly || false,
       selectionBoxActive: state.editor.selectionBoxActive,
+      zoomFactor: state.editor.zoomFactor,
     }),
     {
       startwaypointslayout: UMLRelationshipRepository.startWaypointsLayout,
@@ -95,6 +98,7 @@ export class CanvasRelationshipComponent extends Component<Props, State> {
       startwaypointslayout,
       endwaypointslayout,
       selectionBoxActive,
+      zoomFactor: _zoomFactor,
       ...props
     } = this.props;
 
@@ -121,10 +125,10 @@ export class CanvasRelationshipComponent extends Component<Props, State> {
         : interactable && hovered
           ? theme.interactive.hovered
           : hovered || selected
-            ? 'rgba(0, 100, 255, 0.2)'
+            ? `color-mix(in srgb, ${theme.color.primary} 20%, transparent)`
             : relationship.highlight
               ? relationship.highlight
-              : 'rgba(0, 100, 255, 0)';
+              : 'transparent';
 
     return (
       <svg
@@ -133,7 +137,17 @@ export class CanvasRelationshipComponent extends Component<Props, State> {
         visibility={reconnecting ? 'hidden' : undefined}
         pointerEvents={disabled ? 'none' : 'stroke'}
       >
-        <polyline points={points} stroke={highlight} fill="none" strokeWidth={STROKE} />
+        <polyline points={points} style={{ stroke: highlight }} fill="none" strokeWidth={STROKE} />
+        {selected && !interactable && (
+          <polyline
+            points={points}
+            fill="none"
+            style={{ stroke: theme.color.primary }}
+            strokeWidth={3}
+            strokeLinejoin="round"
+            pointerEvents="none"
+          />
+        )}
         {remoteSelectors.length > 0 &&
           remoteSelectors.map((selector) => (
             <polyline
@@ -152,7 +166,7 @@ export class CanvasRelationshipComponent extends Component<Props, State> {
             <circle
               visibility={selectionBoxActive || interactive || interactable || readonly ? 'hidden' : undefined}
               pointerEvents={selectionBoxActive || interactive || interactable || readonly ? 'none' : 'all'}
-              style={{ cursor: 'grab', pointerEvents: 'stroke' }}
+              style={{ cursor: 'grab', pointerEvents: 'stroke', stroke: highlight }}
               key={props.id + '_' + point.mpX + '_' + point.mpY}
               cx={point.mpX}
               cy={point.mpY}
@@ -161,7 +175,6 @@ export class CanvasRelationshipComponent extends Component<Props, State> {
                 this.onPointerDown(e, index, point);
               }}
               fill="transparent"
-              stroke={highlight}
               strokeWidth="7"
             />
           );
@@ -171,7 +184,9 @@ export class CanvasRelationshipComponent extends Component<Props, State> {
   }
 
   onPointerDown = (event: any, handlerIndex: number, point: { mpX: number; mpY: number }) => {
-    this.setState({ handlerIndex, offset: new Point(event.clientX - point.mpX, event.clientY - point.mpY) });
+    // Screen px at the pointer minus the handle's model position in screen px.
+    const zoom = this.props.zoomFactor || 1;
+    this.setState({ handlerIndex, offset: new Point(event.clientX - point.mpX * zoom, event.clientY - point.mpY * zoom) });
     document.addEventListener('pointermove', this.onPointerMove);
     document.addEventListener('pointerup', this.onPointerUp, { once: true });
   };
@@ -181,8 +196,9 @@ export class CanvasRelationshipComponent extends Component<Props, State> {
     const waypointDirection = handlerIndex % 2 ? 'horizontal' : 'vertical';
 
     const clientEventCoordinates = getClientEventCoordinates(event);
-    const x = clientEventCoordinates.clientX - this.state.offset.x;
-    const y = clientEventCoordinates.clientY - this.state.offset.y;
+    const zoom = this.props.zoomFactor || 1;
+    const x = (clientEventCoordinates.clientX - this.state.offset.x) / zoom;
+    const y = (clientEventCoordinates.clientY - this.state.offset.y) / zoom;
 
     // Update relationship points here
     this.updateRelationshipPoints(waypointDirection, handlerIndex, x, y);
@@ -196,6 +212,8 @@ export class CanvasRelationshipComponent extends Component<Props, State> {
   updateRelationshipPoints = (waypointDirection: string, handlerIndex: number, x: number, y: number) => {
     const startPoint = handlerIndex + 1;
     const endPoint = Number(startPoint) + 1;
+    // Work on a copy: the store's path (and undo snapshots sharing it) must not be mutated.
+    const path = this.props.relationship.path.map((p) => ({ ...p })) as IPath;
     const sourceDirection = this.props.relationship.source.direction;
     const targetDirection = this.props.relationship.target.direction;
 
@@ -222,17 +240,17 @@ export class CanvasRelationshipComponent extends Component<Props, State> {
     switch (waypointDirection) {
       case 'horizontal':
         if (isVerticalDirection(sourceDirection) || isVerticalDirection(targetDirection)) {
-          this.updateXCoordinate(startPoint, endPoint, x, y);
+          this.updateXCoordinate(path, startPoint, endPoint, x, y);
         } else {
-          this.updateYCoordinate(startPoint, endPoint, x, y);
+          this.updateYCoordinate(path, startPoint, endPoint, x, y);
         }
         break;
 
       case 'vertical':
         if (isVerticalDirection(sourceDirection) || isVerticalDirection(targetDirection)) {
-          this.updateYCoordinate(startPoint, endPoint, x, y);
+          this.updateYCoordinate(path, startPoint, endPoint, x, y);
         } else {
-          this.updateXCoordinate(startPoint, endPoint, x, y);
+          this.updateXCoordinate(path, startPoint, endPoint, x, y);
         }
         break;
 
@@ -240,10 +258,7 @@ export class CanvasRelationshipComponent extends Component<Props, State> {
         break;
     }
 
-    const points: Point[] = [];
-    this.props.relationship.path.forEach((path) => {
-      points.push(new Point(path.x, path.y));
-    });
+    const points: Point[] = path.map((p) => new Point(p.x, p.y));
 
     const updatedBounds = computeBoundingBox(points);
     updatedBounds.x = this.props.relationship.bounds.x;
@@ -251,18 +266,18 @@ export class CanvasRelationshipComponent extends Component<Props, State> {
     updatedBounds.width = Math.ceil(updatedBounds.width / 20) * 20;
     updatedBounds.height = Math.ceil(updatedBounds.height / 20) * 20;
 
-    this.setState({ path: this.props.relationship.path });
-    this.props.startwaypointslayout(this.props.id, this.props.relationship.path, updatedBounds);
+    this.setState({ path });
+    this.props.startwaypointslayout(this.props.id, path, updatedBounds);
   };
 
-  updateXCoordinate = (startPoint: number, endPoint: number, x: number, y: number) => {
-    this.props.relationship.path[startPoint].x = x;
-    this.props.relationship.path[endPoint].x = x;
+  updateXCoordinate = (path: IPath, startPoint: number, endPoint: number, x: number, y: number) => {
+    path[startPoint].x = x;
+    path[endPoint].x = x;
   };
 
-  updateYCoordinate = (startPoint: number, endPoint: number, x: number, y: number) => {
-    this.props.relationship.path[startPoint].y = y;
-    this.props.relationship.path[endPoint].y = y;
+  updateYCoordinate = (path: IPath, startPoint: number, endPoint: number, x: number, y: number) => {
+    path[startPoint].y = y;
+    path[endPoint].y = y;
   };
 }
 

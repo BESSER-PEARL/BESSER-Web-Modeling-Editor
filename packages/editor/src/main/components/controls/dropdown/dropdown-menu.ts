@@ -14,6 +14,4 @@ export const DropdownMenu = styled.div`
   z-index: 9999;
   max-height: 240px;
   overflow-y: auto;
-  width: max-content;
-  white-space: nowrap;
 `;

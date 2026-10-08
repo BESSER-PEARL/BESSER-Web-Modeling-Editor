@@ -124,7 +124,7 @@
         "useDefault": "(use default)"
       },
       "db": {
-        "configuring": "Configuring database action...",
+        "configuring": "Configuring database action…",
         "initialize": "Initialize database action",
         "select": "Select a Database",
         "default": "Default (using the app DB)",
@@ -231,14 +231,24 @@
       "namePlaceholder": "attribute name"
     },
     "associationNamePlaceholder": "Association name",
-    "literals": "Literals"
+    "literals": "Literals",
+    "preset": "Preset",
+    "presetPlaceholder": "Choose a preset…",
+    "stereotype": "Stereotype",
+    "label": "Label",
+    "unnamed": "(unnamed)",
+    "missingElement": "(missing)",
+    "addTarget": "Add a target…",
+    "lineage": "Lineage",
+    "lineageSource": "Source:",
+    "lineageDerivedFrom": "Derived from"
   },
   "assessment": {
     "assessment": "Assessment for",
     "score": "Points",
     "feedback": "Feedback",
-    "feedbackPlaceholder": "You can enter feedback here...",
-    "additionalFeedbackPlaceholder": "You can enter additional feedback here...",
+    "feedbackPlaceholder": "You can enter feedback here…",
+    "additionalFeedbackPlaceholder": "You can enter additional feedback here…",
     "nextAssessment": "Next Assessment"
   },
   "packages": {
@@ -301,7 +311,11 @@
       "ComponentInterface": "Interface",
       "ComponentInterfaceProvided": "Provided Interface",
       "ComponentInterfaceRequired": "Required Interface",
-      "Comments": "Comments"
+      "Comments": "Comments",
+      "ComponentStereotypePlaceholder": "e.g. solution, skill, external",
+      "ComponentDependencyStereotypePlaceholder": "e.g. delegates, has, uses",
+      "SubsystemStereotypePlaceholder": "e.g. subsystem, solution",
+      "Realizes": "Realizes"
     },
     "DeploymentDiagram": {
       "DeploymentNode": "Node",
@@ -312,7 +326,10 @@
       "DeploymentInterfaceRequired": "Required Interface",
       "DeploymentAssociation": "Deployment Association",
       "DeploymentDependency": "Deployment Dependency",
-      "Comments": "Comments"
+      "Comments": "Comments",
+      "DeploymentNodeStereotypePlaceholder": "e.g. node, device, executionEnvironment",
+      "DeploymentAssociationLabelPlaceholder": "e.g. kv-store-conn",
+      "DeploymentAssociationStereotypePlaceholder": "e.g. HTTPS, gRPC, device"
     },
     "PetriNet": {
       "PetriNetPlace": "Place",
@@ -413,7 +430,6 @@
       "BPMNAgentRoleSupervision": "Supervision",
       "BPMNDefineAgentDiagram": "Define agent behavior",
       "BPMNOpenAgentDiagram": "Open agent behavior",
-      "BPMNAgentDiagramRefBroken": "Task '{laneName}' references an agent behavior that doesn't exist in this project. Click 'Define agent behavior' on the task to create a fresh one.",
       "BPMNReflectionNone": "No reflection",
       "BPMNReflectionSelf": "Self-reflection",
       "BPMNReflectionCross": "Cross-reflection",
@@ -427,13 +443,15 @@
       "BPMNGovernanceReplace": "Replace",
       "BPMNGovernanceCancel": "Cancel",
       "BPMNGovernancePolicyTypeLabel": "Decision policy",
-      "BPMNGovPolicyVoting": "Voting",
       "BPMNGovPolicyMajority": "Majority",
       "BPMNGovPolicyAbsoluteMajority": "Absolute majority",
       "BPMNGovPolicyLeaderDriven": "Leader-driven",
       "BPMNGovPolicyConsensus": "Consensus",
       "BPMNGatewayRoleDiverging": "Diverging",
-      "BPMNGatewayRoleMerging": "Merging"
+      "BPMNGatewayRoleMerging": "Merging",
+      "BPMNDefaultAgentTitle": "Agent",
+      "BPMNAgentRole": "Role",
+      "BPMNAgentRolePlaceholder": "e.g. solution"
     },
     "NNDiagram": {
       "NNContainer": "Neural_Network",
@@ -531,7 +549,7 @@
       "selectPlaceholder": "(use default)",
       "customDatabaseName": "Custom database name",
       "selectPlaceholderRag": "Select RAG database",
-      "configuringDatabaseAction": "Configuring database action...",
+      "configuringDatabaseAction": "Configuring database action…",
       "initializeDatabaseAction": "Initialize database action",
       "llm": "LLM",
       "systemMessage": "System message",
@@ -609,7 +627,7 @@
       "skillReasoningStateWarning": "Skills can only be used by a reasoning state. Add a reasoning state to use this skill",
       "skillName": "Skill name",
       "skillDescriptionPlaceholder": "Optional short description",
-      "skillContentPlaceholder": "# Skill\n\nInstructions in markdown...",
+      "skillContentPlaceholder": "# Skill\n\nInstructions in markdown…",
       "markdownContent": "Markdown content",
       "workspaceReasoningStateWarning": "Workspaces can only be used by a reasoning state. Add a reasoning state to use this workspace",
       "workspaceName": "Workspace name",
@@ -754,7 +772,10 @@
         "file": "File",
         "submitted": "Submitted"
       },
-      "webCrawlNamePrefix": "Crawl:"
+      "webCrawlNamePrefix": "Crawl:",
+      "A2ASendTo": "Send to",
+      "A2AReceiveFrom": "Receive from",
+      "A2APeer": "peer"
     },
     "UserDiagram": {
       "UserModelName": "User",
@@ -773,17 +794,17 @@
     "height": "Height"
   },
   "stylePane": {
-    "enterUri": "Enter URI...",
-    "enterIcon": "Enter icon name...",
-    "enterDescription": "Enter description...",
+    "enterUri": "Enter URI…",
+    "enterIcon": "Enter icon name…",
+    "enterDescription": "Enter description…",
     "idLockedByOptional": "Optional attributes cannot be the identifier.",
-    "enterDefaultValue": "Enter default value...",
+    "enterDefaultValue": "Enter default value…",
     "reset": "Reset",
     "fillColor": "Fill Color",
     "icon": "Icon",
     "externalIdLockedByOptional": "Optional attributes cannot be the external identifier.",
     "optional": "Optional",
-    "enterInteger": "Enter integer...",
+    "enterInteger": "Enter integer…",
     "id": "ID",
     "textColor": "Text Color",
     "externalId": "External ID",
@@ -792,8 +813,22 @@
     "none": "(none)",
     "lineColor": "Line Color",
     "default": "Default",
-    "enterNumber": "Enter number...",
-    "derived": "Derived"
+    "enterNumber": "Enter number…",
+    "derived": "Derived",
+    "colors": {
+      "red": "Red",
+      "orange": "Orange",
+      "yellow": "Yellow",
+      "green": "Green",
+      "teal": "Teal",
+      "skyBlue": "Sky blue",
+      "blue": "Blue",
+      "slateBlue": "Slate blue",
+      "purple": "Purple",
+      "lightGray": "Light gray",
+      "gray": "Gray",
+      "black": "Black"
+    }
   },
   "associationPopup": {
     "cancel": "Cancel",
@@ -801,6 +836,22 @@
     "noTargets": "No other objects available to connect to"
   },
   "propertiesPanel": {
-    "close": "Close"
+    "close": "Close",
+    "resize": "Resize properties panel"
+  },
+  "actions": {
+    "edit": "Edit",
+    "delete": "Delete",
+    "addConnectedObject": "Add connected object",
+    "swapEnds": "Swap ends",
+    "style": "Style"
+  },
+  "zoomPane": {
+    "zoomIn": "Zoom in",
+    "zoomOut": "Zoom out",
+    "autoLayout": "Auto-layout"
+  },
+  "sidebar": {
+    "resize": "Resize palette"
   }
 }

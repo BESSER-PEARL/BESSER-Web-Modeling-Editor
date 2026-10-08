@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect } from 'react';
+import React, { useCallback, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Keyboard } from 'lucide-react';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -104,9 +104,18 @@ const KeyCombo: React.FC<{ combo: string }> = ({ combo }) => {
 
 export const KeyboardShortcutsDialog: React.FC<KeyboardShortcutsDialogProps> = ({ open, onOpenChange }) => {
   const { t } = useTranslation();
+  const listRef = useRef<HTMLDivElement>(null);
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[85vh] w-[560px] max-w-[92vw] overflow-hidden p-0">
+      <DialogContent
+        className="max-h-[85vh] w-[560px] max-w-[92vw] overflow-hidden p-0"
+        // The close button is the only focusable child; auto-focusing it paints its
+        // focus ring on open. Focus the scrollable list instead (keyboard scrolling).
+        onOpenAutoFocus={(event) => {
+          event.preventDefault();
+          listRef.current?.focus();
+        }}
+      >
         <DialogHeader className="border-b border-border/70 px-6 pt-6 pb-4">
           <DialogTitle className="flex items-center gap-2">
             <Keyboard className="size-5 text-brand" />
@@ -117,11 +126,11 @@ export const KeyboardShortcutsDialog: React.FC<KeyboardShortcutsDialogProps> = (
           </DialogDescription>
         </DialogHeader>
 
-        <div className="overflow-y-auto px-6 pb-6 pt-2">
+        <div ref={listRef} tabIndex={-1} className="overflow-y-auto px-6 pb-6 pt-2 focus:outline-none">
           <div className="flex flex-col gap-5">
             {SHORTCUT_CATEGORIES.map((category) => (
               <div key={category.label}>
-                <h3 className="mb-2 text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground">
+                <h3 className="mb-2 text-xs font-medium text-muted-foreground">
                   {t(category.label)}
                 </h3>
                 <div className="flex flex-col rounded-lg border border-border/70">

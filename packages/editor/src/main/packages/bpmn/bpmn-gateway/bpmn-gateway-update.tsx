@@ -23,6 +23,8 @@ import 'codemirror/lib/codemirror.css';
 import 'codemirror/theme/material.css';
 import { generateGovernanceDsl, GOV_POLICY_TYPES, GovPolicyType } from '../common/governance-dsl';
 import { BPMNGatewayRole, clampTrustScore } from '../common/types';
+import { ResizableCodeMirrorWrapper } from '../../agent-state-diagram/agent-state/agent-state-update-styles';
+import { memoizeOnElements } from '../../../utils/memoize-on-elements';
 
 // BPMN 2.0.2 § 8.3.13 / §§ 10.5.4 / 10.5.6: Parallel and Event-Based gateways
 // cannot carry a default outgoing sequence flow.
@@ -51,12 +53,12 @@ type StateProps = {
   // `changeGatewayType` when the user switches to a type that may not carry
   // a default flow (Parallel / Event-Based per BPMN 2.0.2 § 8.3.13).
   outgoingDefaultFlowIds: string[];
-  // T1/P3′: true when an upstream agentic diverging gateway exists. Gates the
+  // True when an upstream agentic diverging gateway exists. Gates the
   // `merging` role option (a merging gateway is only valid downstream of a
-  // diverging one). Presence-only — the deleted collaborationMode is no longer
-  // read. The unified map is still needed by the governance generator.
+  // diverging one). The element map is also needed by the governance generator.
   hasUpstreamDiverging: boolean;
   elementsById: Record<string, { id: string; type: string }>;
+  agenticEnabled: boolean;
 };
 
 interface DispatchProps {
@@ -69,19 +71,29 @@ type Props = OwnProps & StateProps & DispatchProps & I18nContext;
 const enhance = compose<ComponentClass<OwnProps>>(
   localized,
   connect<StateProps, DispatchProps, OwnProps, ModelState>(
-    (state, ownProps) => {
-      const myId = ownProps.element.id;
-      const outgoingDefaultFlowIds = Object.values(state.elements)
-        .filter((e) => {
-          const f = e as unknown as Partial<BPMNFlow>;
-          if (f.flowType !== 'sequence' || f.isDefault !== true) return false;
-          const r = e as unknown as { source?: { element: string } };
-          return r.source?.element === myId;
-        })
-        .map((e) => e.id);
-      const elementsById = state.elements as unknown as Record<string, { id: string; type: string }>;
-      const hasUpstreamDiverging = resolveUpstreamDivergingGateway(myId, elementsById) !== undefined;
-      return { outgoingDefaultFlowIds, hasUpstreamDiverging, elementsById };
+    () => {
+      // Recomputed only when the element map changes (the upstream walk is
+      // not cheap), so hover/selection updates keep the props stable.
+      const selectGraph = memoizeOnElements(
+        (elements: ModelState['elements'], ownProps: OwnProps) => {
+          const myId = ownProps.element.id;
+          const outgoingDefaultFlowIds = Object.values(elements)
+            .filter((e) => {
+              if (e.type !== 'BPMNFlow') return false;
+              const flow = e as BPMNFlow;
+              return flow.flowType === 'sequence' && flow.isDefault === true && flow.source.element === myId;
+            })
+            .map((e) => e.id);
+          const elementsById: Record<string, { id: string; type: string }> = elements;
+          const hasUpstreamDiverging = resolveUpstreamDivergingGateway(myId, elementsById) !== undefined;
+          return { outgoingDefaultFlowIds, hasUpstreamDiverging, elementsById };
+        },
+        (ownProps) => ownProps.element.id,
+      );
+      return (state: ModelState, ownProps: OwnProps): StateProps => ({
+        ...selectGraph(state.elements, ownProps),
+        agenticEnabled: state.editor.agenticEnabled,
+      });
     },
     {
       update: UMLElementRepository.update,
@@ -96,23 +108,14 @@ const Flex = styled.div`
   justify-content: space-between;
 `;
 
-// Governance DSL editor. Mirrors the agent-diagram code-snippet UX.
-// Applied few changes for better UX: max-width, scroll: 
-const ResizableCodeMirrorWrapper = styled.div`
-  resize: both;
-  overflow: auto;
+// Governance DSL editor: the agent-diagram code editor, kept within the popup width.
+const GovernanceCodeMirrorWrapper = styled(ResizableCodeMirrorWrapper)`
   width: 100%;
   max-width: 100%;
   min-width: 200px;
   min-height: 120px;
-  border: 1px solid ${(props) => props.theme.color.gray};
-  border-radius: 4px;
-  padding: 8px;
-  box-sizing: border-box;
 
   .CodeMirror {
-    height: 100% !important;
-    width: 100%;
     max-width: 100%;
     min-height: 120px;
   }
@@ -184,10 +187,10 @@ class BPMNGatewayUpdateComponent extends Component<Props, State> {
             </Dropdown.Item>
           </Dropdown>
         </section>
-        {/* Agentic BPMN (SEAA'25 § 4.3): only Parallel + Inclusive gateways are
-            eligible (Exclusive excluded; Complex / Event-Based not in the
-            paper). Toggle reveals the role / trust fields. */}
-        {AGENTIC_ELIGIBLE_GATEWAY_TYPES.has(element.gatewayType) && (
+        {/* Agentic BPMN (SEAA'25 § 4.3; only with the agentic perspective
+            enabled): only Parallel + Inclusive gateways are eligible. The
+            toggle reveals the role / trust fields. */}
+        {this.props.agenticEnabled && AGENTIC_ELIGIBLE_GATEWAY_TYPES.has(element.gatewayType) && (
           <>
             <section>
               <Divider />
@@ -269,7 +272,7 @@ class BPMNGatewayUpdateComponent extends Component<Props, State> {
                         </span>
                       </GovHeaderRow>
                     )}
-                    <ResizableCodeMirrorWrapper>
+                    <GovernanceCodeMirrorWrapper>
                       <CodeMirror
                         value={element.governanceDsl ?? ''}
                         options={{
@@ -280,7 +283,7 @@ class BPMNGatewayUpdateComponent extends Component<Props, State> {
                         }}
                         onBeforeChange={this.changeGovernanceDsl(element.id)}
                       />
-                    </ResizableCodeMirrorWrapper>
+                    </GovernanceCodeMirrorWrapper>
                   </section>
                 )}
               </>
@@ -396,11 +399,7 @@ class BPMNGatewayUpdateComponent extends Component<Props, State> {
   };
 
   private writeGeneratedGovernance = (id: string) => {
-    const dsl = generateGovernanceDsl(
-      id,
-      this.props.elementsById as unknown as Record<string, never>,
-      this.state.govPolicyType,
-    );
+    const dsl = generateGovernanceDsl(id, this.props.elementsById, this.state.govPolicyType);
     this.props.update<BPMNGateway>(id, { governanceDsl: dsl });
   };
 

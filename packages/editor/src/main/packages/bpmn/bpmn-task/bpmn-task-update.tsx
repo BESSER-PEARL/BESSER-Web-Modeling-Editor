@@ -20,14 +20,16 @@ import { BpmnLoopMarkerIcon } from '../common/markers/bpmn-loop-marker-icon';
 import { BPMNParallelMarkerIcon } from '../common/markers/bpmn-parallel-marker-icon';
 import { BPMNSequentialMarkerIcon } from '../common/markers/bpmn-sequential-marker-icon';
 import { AgentDiagramLinkSection } from '../../../components/agent-diagram-linker/AgentDiagramLinkSection';
+import { memoizeOnElements } from '../../../utils/memoize-on-elements';
 
 interface OwnProps {
   element: BPMNTask;
 }
 
-// Agentic lanes available as cross-reflection reviewer candidates.
 interface StateProps {
+  // Agentic lanes available as cross-reflection reviewer candidates.
   agenticLanes: Array<{ id: string; name: string }>;
+  agenticEnabled: boolean;
 }
 
 interface DispatchProps {
@@ -37,20 +39,28 @@ interface DispatchProps {
 
 type Props = OwnProps & StateProps & DispatchProps & I18nContext;
 
-const mapStateToProps = (state: ModelState, ownProps: OwnProps): StateProps => ({
-  agenticLanes: Object.values(state.elements)
-    .filter(
-      (el) =>
-        el.type === 'BPMNSwimlane' &&
-        (el as { isAgentic?: boolean }).isAgentic === true &&
-        el.id !== ownProps.element.owner,
-    )
-    .map((el) => ({ id: el.id, name: el.name })),
-});
+const makeMapStateToProps = () => {
+  const selectAgenticLanes = memoizeOnElements(
+    (elements: ModelState['elements'], ownProps: OwnProps) =>
+      Object.values(elements)
+        .filter(
+          (el) =>
+            el.type === 'BPMNSwimlane' &&
+            (el as { isAgentic?: boolean }).isAgentic === true &&
+            el.id !== ownProps.element.owner,
+        )
+        .map((el) => ({ id: el.id, name: el.name })),
+    (ownProps) => ownProps.element.owner ?? '',
+  );
+  return (state: ModelState, ownProps: OwnProps): StateProps => ({
+    agenticLanes: selectAgenticLanes(state.elements, ownProps),
+    agenticEnabled: state.editor.agenticEnabled,
+  });
+};
 
 const enhance = compose<ComponentClass<OwnProps>>(
   localized,
-  connect<StateProps, DispatchProps, OwnProps, ModelState>(mapStateToProps, {
+  connect<StateProps, DispatchProps, OwnProps, ModelState>(makeMapStateToProps, {
     update: UMLElementRepository.update,
     delete: UMLElementRepository.delete,
   }),
@@ -74,7 +84,7 @@ class BPMNTaskUpdateComponent extends Component<Props, State> {
   };
 
   render() {
-    const { element } = this.props;
+    const { element, agenticEnabled } = this.props;
 
     return (
       <div>
@@ -134,15 +144,18 @@ class BPMNTaskUpdateComponent extends Component<Props, State> {
             </Switch.Item>
           </Switch>
         </section>
-        {/* Agentic BPMN (04D): the "Agentic" toggle marks the task as agentic
-            and reveals the reflection-mode / trust-score fields. */}
-        <section>
-          <Divider />
-          <Switch value={element.isAgentic ? 'agentic' : ''} onChange={this.toggleAgentic(element.id)} color="primary">
-            <Switch.Item value={'agentic'}>{this.props.translate('packages.BPMNDiagram.BPMNAgentic')}</Switch.Item>
-          </Switch>
-        </section>
-        {element.isAgentic && (
+        {/* Agentic BPMN (only with the agentic perspective enabled): the
+            "Agentic" toggle marks the task as agentic and reveals the
+            reflection-mode / trust-score fields. */}
+        {agenticEnabled && (
+          <section>
+            <Divider />
+            <Switch value={element.isAgentic ? 'agentic' : ''} onChange={this.toggleAgentic(element.id)} color="primary">
+              <Switch.Item value={'agentic'}>{this.props.translate('packages.BPMNDiagram.BPMNAgentic')}</Switch.Item>
+            </Switch>
+          </section>
+        )}
+        {agenticEnabled && element.isAgentic && (
           <>
             <section>
               <Divider />
@@ -169,14 +182,16 @@ class BPMNTaskUpdateComponent extends Component<Props, State> {
                   value={element.reflectionReviewerLaneId ?? ''}
                   onChange={this.changeReviewerLane(element.id)}
                 >
-                  <Dropdown.Item value={''}>
-                    {this.props.translate('packages.BPMNDiagram.BPMNReflectionReviewerUnspecified')}
-                  </Dropdown.Item>
-                  {this.props.agenticLanes.map((l) => (
-                    <Dropdown.Item key={l.id} value={l.id}>
-                      {l.name || l.id}
-                    </Dropdown.Item>
-                  ))}
+                  {[
+                    <Dropdown.Item key="" value={''}>
+                      {this.props.translate('packages.BPMNDiagram.BPMNReflectionReviewerUnspecified')}
+                    </Dropdown.Item>,
+                    ...this.props.agenticLanes.map((l) => (
+                      <Dropdown.Item key={l.id} value={l.id}>
+                        {l.name || l.id}
+                      </Dropdown.Item>
+                    )),
+                  ]}
                 </Dropdown>
               </section>
             )}
@@ -187,9 +202,8 @@ class BPMNTaskUpdateComponent extends Component<Props, State> {
                 <Textfield value={String(element.trustScore)} onChange={this.changeTrustScore(element.id)} />
               </Flex>
             </section>
-            {/* Agentic-task → Agent-diagram link. Reuses the generic
-                section 08 built for the lane (props named laneId/laneName
-                are carry-over misnomers — they hold the task id/name). */}
+            {/* Agentic task → Agent-diagram link (the section takes any
+                element id/name through its laneId/laneName props). */}
             <AgentDiagramLinkSection
               laneId={element.id}
               laneName={element.name}
@@ -231,7 +245,7 @@ class BPMNTaskUpdateComponent extends Component<Props, State> {
   };
 
   /**
-   * Toggle whether the task is agentic (Agentic BPMN — 04D)
+   * Toggle whether the task is agentic
    * @param id The ID of the task to toggle
    */
   private toggleAgentic = (id: string) => (_value: string) => {

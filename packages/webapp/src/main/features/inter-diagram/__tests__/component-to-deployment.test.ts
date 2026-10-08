@@ -1,6 +1,8 @@
 import { describe, it, expect } from 'vitest';
 import type { UMLModel } from '@besser/wme';
 import { componentModelToDeploymentModel } from '../component-to-deployment';
+import { bpmnModelToComponentModel } from '../bpmn-to-component';
+import poolMessage from './fixtures/pool-message.json';
 
 function makeBaseModel(): UMLModel {
   return {
@@ -469,7 +471,7 @@ describe('Inter-diagram — componentModelToDeploymentModel', () => {
     });
   });
 
-  describe('06-v2 — element-mapping output', () => {
+  describe('element-mapping output', () => {
     it('maps DeploymentNode → source Subsystem, DeploymentComponent → source Component, DeploymentAssociation → source ComponentDependency', () => {
       const m = makeBaseModel();
       Object.assign(m.elements as Record<string, unknown>, {
@@ -549,7 +551,7 @@ describe('Inter-diagram — componentModelToDeploymentModel', () => {
     });
   });
 
-  describe('20 — Artifact.manifests auto-derive', () => {
+  describe('Artifact.manifests auto-derive', () => {
     const m = makeBaseModel();
     Object.assign(m.elements as Record<string, unknown>, {
       s1: el('s1', 'Subsystem', 'Order', null),
@@ -594,7 +596,7 @@ describe('Inter-diagram — componentModelToDeploymentModel', () => {
     });
   });
 
-  describe('33 (6b-1) — agentModelRef threading (Component→Deployment)', () => {
+  describe('agentModelRef threading (Component→Deployment)', () => {
     it('copies agentModelRef from the source Component onto its Artifact', () => {
       const m = makeBaseModel();
       Object.assign(m.elements as Record<string, unknown>, {
@@ -797,6 +799,25 @@ describe('Inter-diagram — componentModelToDeploymentModel', () => {
       expect(arts).toHaveLength(1); // single Artifact named "Coder [2]"
       expect(arts[0].name).toBe('Coder [2]');
       expect((arts[0] as unknown as { agentModelRef?: string }).agentModelRef).toBe('agent-xyz');
+    });
+  });
+
+  describe('Subsystems that are dependency endpoints', () => {
+    it('emits a node and a CommunicationPath for an external black-box Subsystem', () => {
+      const components = bpmnModelToComponentModel(poolMessage as unknown as UMLModel);
+      if (!components.ok) throw new Error('expected component derivation');
+      const r = componentModelToDeploymentModel(components.model);
+      if (!r.ok) throw new Error('expected ok');
+      const legacy = Object.values(r.model.elements).find(
+        (e) => e.type === 'DeploymentNode' && e.name === 'LegacySystem',
+      );
+      expect(legacy).toBeDefined();
+      const paths = Object.values(r.model.relationships).filter(
+        (rel) =>
+          rel.type === 'DeploymentAssociation' &&
+          (rel.source.element === legacy!.id || rel.target.element === legacy!.id),
+      );
+      expect(paths.length).toBeGreaterThan(0);
     });
   });
 });

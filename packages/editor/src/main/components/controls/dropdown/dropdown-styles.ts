@@ -14,6 +14,10 @@ export const StyledDropdownItem = styled(Button).attrs<DropdownItemProps>({
   padding-left: 1.5em;
   text-align: left;
 
+  &[aria-selected='true'] {
+    font-weight: 600;
+  }
+
   :hover {
     text-decoration: none;
     background-color: ${(props) => props.theme.color.gray};

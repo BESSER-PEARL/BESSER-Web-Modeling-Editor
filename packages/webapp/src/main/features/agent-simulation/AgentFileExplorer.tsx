@@ -165,8 +165,9 @@ function CopyButton({ content }: { content: string }) {
       className="size-7 shrink-0 text-muted-foreground hover:text-foreground"
       onClick={handleCopy}
       title={t('agentSimulation.fileExplorer.copy')}
+      aria-label={t('agentSimulation.fileExplorer.copy')}
     >
-      {copied ? <Check className="size-3.5 text-green-500" /> : <Copy className="size-3.5" />}
+      {copied ? <Check className="size-3.5 text-brand" /> : <Copy className="size-3.5" />}
     </Button>
   );
 }
@@ -249,6 +250,7 @@ function TreeItem({
         className="flex w-full items-center gap-1.5 rounded py-1 pr-2 text-left text-xs text-muted-foreground transition-colors hover:bg-muted/50 hover:text-foreground"
         style={{ paddingLeft: indent }}
         onClick={() => setExpanded((v) => !v)}
+        aria-expanded={expanded}
       >
         <ChevronRight
           className={['size-3 shrink-0 transition-transform', expanded ? 'rotate-90' : ''].join(' ')}
@@ -381,9 +383,9 @@ export const AgentFileExplorer: React.FC = () => {
   if (fetchError && files.length === 0 && directories.length === 0) {
     return (
       <div className="flex flex-1 flex-col items-center justify-center gap-3 text-center">
-        <p className="text-sm text-red-500">{fetchError}</p>
+        <p className="text-sm text-destructive">{fetchError}</p>
         <Button variant="outline" size="sm" onClick={() => void fetchFiles(sessionId)}>
-          Retry
+          {t('common.retry')}
         </Button>
       </div>
     );
@@ -398,10 +400,11 @@ export const AgentFileExplorer: React.FC = () => {
           <Button
             variant="ghost"
             size="icon"
-            className="size-5 text-muted-foreground hover:text-foreground"
+            className="size-7 text-muted-foreground hover:text-foreground"
             onClick={() => void fetchFiles(sessionId)}
             disabled={loading}
             title={t('agentSimulation.fileExplorer.refresh')}
+            aria-label={t('agentSimulation.fileExplorer.refresh')}
           >
             <RefreshCw className={['size-3', loading ? 'animate-spin' : ''].join(' ')} />
           </Button>

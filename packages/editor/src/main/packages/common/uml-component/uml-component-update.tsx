@@ -1,5 +1,6 @@
-import React, { Component, ComponentType } from 'react';
-import { connect, ConnectedComponent } from 'react-redux';
+import React, { Component, ComponentClass } from 'react';
+import { connect } from 'react-redux';
+import { compose } from 'redux';
 import { Button } from '../../../components/controls/button/button';
 import { ColorButton } from '../../../components/controls/color-button/color-button';
 import { Divider } from '../../../components/controls/divider/divider';
@@ -17,6 +18,9 @@ import { Dropdown } from '../../../components/controls/dropdown/dropdown';
 import { COMPONENT_STEREOTYPE_PRESETS } from '../agentic/agentic-tokens';
 import { LineageSourceLink } from '../../../components/lineage/LineageSourceLink';
 import { ElementPickerField } from '../../../components/element-picker/ElementPickerField';
+import { I18nContext } from '../../../components/i18n/i18n-context';
+import { localized } from '../../../components/i18n/localized';
+import { PresetField } from '../agentic/preset-field';
 
 const Flex = styled.div`
   display: flex;
@@ -24,15 +28,10 @@ const Flex = styled.div`
   justify-content: space-between;
 `;
 
-/** Makes the editor's content-sized Dropdown fill the popup row like a
- *  Textfield: the button stretches to 100 % and left-aligns its label. */
-const PresetField = styled.div`
-  width: 100%;
-
-  button {
-    width: 100%;
-    text-align: left;
-  }
+const FieldLabel = styled(Body)`
+  width: 6em;
+  flex-shrink: 0;
+  margin-right: 0.5em;
 `;
 
 type State = { colorOpen: boolean };
@@ -68,17 +67,21 @@ class ComponentUpdate extends Component<Props, State> {
         <section>
           <Divider />
           <Flex>
-            <Body style={{ width: '6em', flexShrink: 0, marginRight: '0.5em' }}>Stereotype</Body>
+            <FieldLabel>{this.props.translate('popup.stereotype')}</FieldLabel>
             <Textfield
               value={element.stereotype}
               onChange={this.onStereotypeRename}
-              placeholder="e.g. solution, skill, external"
+              placeholder={this.props.translate('packages.ComponentDiagram.ComponentStereotypePlaceholder')}
             />
           </Flex>
           <Flex>
-            <Body style={{ width: '6em', flexShrink: 0, marginRight: '0.5em' }}>Preset</Body>
+            <FieldLabel>{this.props.translate('popup.preset')}</FieldLabel>
             <PresetField>
-              <Dropdown value={element.stereotype} onChange={this.onStereotypeRename} placeholder="Choose a preset…">
+              <Dropdown
+                value={element.stereotype}
+                onChange={this.onStereotypeRename}
+                placeholder={this.props.translate('popup.presetPlaceholder')}
+              >
                 {COMPONENT_STEREOTYPE_PRESETS.map((token) => (
                   <Dropdown.Item key={token} value={token}>
                     {token}
@@ -95,7 +98,7 @@ class ComponentUpdate extends Component<Props, State> {
           <section>
             <Divider />
             <ElementPickerField
-              label="Realizes"
+              label={this.props.translate('packages.ComponentDiagram.Realizes')}
               selected={(element as IUMLComponent).realizes ?? []}
               typeTokens={['Class', 'AbstractClass', 'Interface', 'Enumeration']}
               onChange={this.onRealizesChange}
@@ -152,11 +155,14 @@ type DispatchProps = {
   delete: AsyncDispatch<typeof UMLElementRepository.delete>;
 };
 
-type Props = OwnProps & StateProps & DispatchProps;
+type Props = OwnProps & StateProps & DispatchProps & I18nContext;
 
-const enhance = connect<StateProps, DispatchProps, OwnProps, ModelState>(null, {
-  update: UMLElementRepository.update,
-  delete: UMLElementRepository.delete,
-});
+const enhance = compose<ComponentClass<OwnProps>>(
+  localized,
+  connect<StateProps, DispatchProps, OwnProps, ModelState>(null, {
+    update: UMLElementRepository.update,
+    delete: UMLElementRepository.delete,
+  }),
+);
 
-export const UMLComponentUpdate: ConnectedComponent<ComponentType<Props>, OwnProps> = enhance(ComponentUpdate);
+export const UMLComponentUpdate = enhance(ComponentUpdate);

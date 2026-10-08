@@ -8,7 +8,7 @@ edits the diagrams for you. You stay in control — the assistant applies change
 to the live canvas, and you keep refining by chatting.
 
 The assistant is powered by the
-`modeling agent <https://github.com/BESSER-PEARL/modeling-agent>`_, a separate
+`modeling agent <https://modeling-agent.readthedocs.io/en/latest/>`_, a separate
 BESSER service the editor connects to over a WebSocket. On the public editor at
 `editor.besser-pearl.org <https://editor.besser-pearl.org>`_ the agent is hosted
 for you; for a local deployment you point the editor at your own instance (see
@@ -158,8 +158,11 @@ honoured **only** when they arrive as the whole structured reply, never when
 found inside ordinary prose. A JSON blob smuggled into a message (for example
 through an uploaded file) therefore cannot mutate your project or start a run.
 
-**Undo.** Changes the assistant makes go through the editor's normal undo
-stack, so :kbd:`Ctrl+Z` works as usual.
+**Undo.** :kbd:`Ctrl+Z` does not undo a change the assistant makes. Applying
+it reloads the diagram as a fresh starting point, which also clears the
+editor's undo history, so edits made before it can no longer be undone either.
+Edits you make afterwards undo as usual. To revert an assistant change, ask the
+assistant to reverse it.
 
 **Report an issue.** The chat header has a *Report an issue* button that opens a
 pre-filled GitHub issue containing the recent conversation context.
@@ -206,7 +209,7 @@ connects when a modeling-agent service is reachable. When running the editor
 from source, point it at your agent instance with the ``UML_BOT_WS_URL``
 environment variable (default ``ws://localhost:8765``). See
 :doc:`../reference/environment` for the full variable list and the
-`modeling agent repository <https://github.com/BESSER-PEARL/modeling-agent>`_
+`Modeling Agent setup guide <https://modeling-agent.readthedocs.io/en/latest/getting_started.html>`_
 for how to run the service.
 
 .. note::

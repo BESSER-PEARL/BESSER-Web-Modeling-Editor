@@ -11,7 +11,7 @@ import {
 } from '../../app/store/workspaceSlice';
 import type { DiagramLineage } from '../../shared/types/project';
 import { componentModelToDeploymentModel } from './component-to-deployment';
-import { hashUmlModel } from './lineage-hash';
+import { hashUmlModel } from '../../shared/utils/lineageHash';
 import type { DeploymentDerivationResult } from './types';
 
 /**

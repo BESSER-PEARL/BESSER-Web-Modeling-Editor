@@ -1,17 +1,30 @@
-import type { UMLModel, UMLElement, UMLRelationship } from '@besser/wme';
-import { UMLDiagramType, componentStereotypeForLaneRole, isSupervisorRole } from '@besser/wme';
+import type {
+  AgentModelElement,
+  BPMNFlow,
+  BPMNSwimlane,
+  BPMNTask,
+  UMLComponentComponent,
+  UMLComponentDependency,
+  UMLComponentSubsystem,
+  UMLElement,
+  UMLModel,
+  UMLRelationship,
+} from '@besser/wme';
+import { Direction, UMLDiagramType, componentStereotypeForLaneRole, isSupervisorRole } from '@besser/wme';
 import type { ElementLineageMap } from '../../shared/types/project';
+import { uuid } from '../../shared/utils/uuid';
+import { recenterModelOnOrigin } from './recenter';
 import type { DerivationResult, DerivationWarning } from './types';
 
 type LaneCrossingFlow = {
   flowId: string;
   srcLaneId: string;
   tgtLaneId: string;
-  // Gateway-as-lane-proxy: the gateway that mediates this edge, if either
-  // endpoint was a gateway. Consumed by resolveEdgeKind to detect a
-  // role-cooperation merge → supervises.
-  gatewayId?: string;
 };
+
+const isLane = (el: UMLElement | undefined): el is BPMNSwimlane => el?.type === 'BPMNSwimlane';
+const isTask = (el: UMLElement | undefined): el is BPMNTask => el?.type === 'BPMNTask';
+const isFlow = (rel: UMLRelationship): rel is BPMNFlow => rel.type === 'BPMNFlow';
 
 export type AgenticEdgeKind = 'delegates' | 'supervises' | 'revises' | 'collaborates';
 
@@ -82,9 +95,9 @@ export function bpmnModelToComponentModel(bpmn: UMLModel, opts?: DerivationOpts)
     // Non-agentic lanes (humans, external actors) are skipped entirely.
     // Their tasks were never represented anyway — keep the advisory so the
     // user sees they were dropped.
-    const agenticLanes = lanes.filter((l) => (l as unknown as { isAgentic?: boolean }).isAgentic === true);
+    const agenticLanes = lanes.filter((l) => l.isAgentic === true);
     for (const lane of lanes) {
-      if ((lane as unknown as { isAgentic?: boolean }).isAgentic === true) continue;
+      if (lane.isAgentic === true) continue;
       for (const t of tasksInLane(bpmn, lane.id)) {
         warnings.push({ kind: 'dropped-task-in-non-agentic-lane', taskId: t.id });
       }
@@ -133,19 +146,13 @@ export function bpmnModelToComponentModel(bpmn: UMLModel, opts?: DerivationOpts)
   for (const crossing of laneCrossings) {
     const srcLane = bpmn.elements[crossing.srcLaneId];
     const tgtLane = bpmn.elements[crossing.tgtLaneId];
-    const gateway = crossing.gatewayId ? bpmn.elements[crossing.gatewayId] : undefined;
-
-    if (!srcLane || !tgtLane) continue;
-    const kind = resolveEdgeKind(srcLane, tgtLane, gateway);
+    if (!isLane(srcLane) || !isLane(tgtLane)) continue;
+    const kind = resolveEdgeKind(srcLane, tgtLane);
 
     const srcComp = componentIdByLaneId.get(crossing.srcLaneId);
     const tgtComp = componentIdByLaneId.get(crossing.tgtLaneId);
     if (!srcComp || !tgtComp) continue;
     dedup.add(srcComp, tgtComp, kind, crossing.flowId);
-  }
-  for (const e of dedup.entries()) {
-    const edgeId = emitComponentDependency(out, e.srcCompId, e.tgtCompId, e.kind);
-    elementMapping[edgeId] = e.sourceFlowId; // ComponentDependency ← source BPMNFlow
   }
 
   // Inter-pool message flows → ComponentDependency.
@@ -179,19 +186,26 @@ export function bpmnModelToComponentModel(bpmn: UMLModel, opts?: DerivationOpts)
     return subId;
   };
 
+  // Several message flows between the same two endpoints (or a message flow
+  // parallel to a lane crossing) collapse into one dependency.
   const messageFlows = collectInterPoolMessageFlows(bpmn);
   for (const mf of messageFlows) {
     const srcTarget = resolveMessageEndpoint(mf.source.element);
     if (!srcTarget) continue;
     const tgtTarget = resolveMessageEndpoint(mf.target.element);
     if (!tgtTarget) continue;
-    const edgeId = emitComponentDependency(out, srcTarget, tgtTarget, 'delegates');
-    elementMapping[edgeId] = mf.id; // ComponentDependency ← source BPMNFlow (message)
+    dedup.add(srcTarget, tgtTarget, 'delegates', mf.id);
   }
 
-  // Grouped zones break the origin-centered layout; re-center so the diagram
-  // opens on-screen. Gated: plain output stays byte-for-byte.
-  if (opts?.includeCapabilities && collectedCaps.length > 0) {
+  for (const e of dedup.entries()) {
+    const edgeId = emitComponentDependency(out, e.srcCompId, e.tgtCompId, e.kind);
+    elementMapping[edgeId] = e.sourceFlowId; // ComponentDependency ← source BPMNFlow
+  }
+
+  // Grouped zones and widened Subsystems break the origin-centered layout;
+  // re-center so the diagram opens on-screen. Otherwise the output is left
+  // exactly as laid out.
+  if ((opts?.includeCapabilities && collectedCaps.length > 0) || layout.columnWidth > SUBSYSTEM_MIN_WIDTH) {
     recenterModelOnOrigin(out);
   }
 
@@ -204,11 +218,11 @@ function collectPools(bpmn: UMLModel): UMLElement[] {
   return Object.values(bpmn.elements).filter((e) => e.type === 'BPMNPool');
 }
 
-function collectLanesByPool(bpmn: UMLModel, pools: UMLElement[]): Map<string, UMLElement[]> {
-  const out = new Map<string, UMLElement[]>();
+function collectLanesByPool(bpmn: UMLModel, pools: UMLElement[]): Map<string, BPMNSwimlane[]> {
+  const out = new Map<string, BPMNSwimlane[]>();
   const poolIds = new Set(pools.map((p) => p.id));
   for (const el of Object.values(bpmn.elements)) {
-    if (el.type !== 'BPMNSwimlane') continue;
+    if (!isLane(el)) continue;
     if (!el.owner || !poolIds.has(el.owner)) continue;
     const arr = out.get(el.owner) ?? [];
     arr.push(el);
@@ -220,8 +234,10 @@ function collectLanesByPool(bpmn: UMLModel, pools: UMLElement[]): Map<string, UM
   return out;
 }
 
-function tasksInLane(bpmn: UMLModel, laneId: string): UMLElement[] {
-  return Object.values(bpmn.elements).filter((e) => e.type === 'BPMNTask' && e.owner === laneId);
+function tasksInLane(bpmn: UMLModel, laneId: string): BPMNTask[] {
+  return Object.values(bpmn.elements)
+    .filter(isTask)
+    .filter((e) => e.owner === laneId);
 }
 
 function laneForElement(bpmn: UMLModel, elementId: string): UMLElement | null {
@@ -235,72 +251,49 @@ function laneForElement(bpmn: UMLModel, elementId: string): UMLElement | null {
   return null;
 }
 
-// Resolve a sequence-flow endpoint to the tracked lane that "owns" it
-// (gateway-as-lane-proxy). A task resolves to its lane; a gateway resolves
-// to the lane that owns it, so a flow into or out of a gateway is
-// attributed to the gateway's OWN lane rather than routed through to a
-// downstream task. Returns null for endpoints that
-// don't resolve to a tracked lane (events, free-floating shapes, or a
-// gateway owned by a pool) — those are not lane bridges in v1, matching
-// the prior scope (events were never traced).
-function laneIdForEndpoint(
-  bpmn: UMLModel,
-  elementId: string,
-  trackedLanes: Set<string>,
-): { laneId: string; gatewayId?: string } | null {
+// Resolve a sequence-flow endpoint to the tracked lane that "owns" it. A
+// task or gateway resolves to its own lane, so a flow into or out of a gateway
+// is attributed to the gateway's lane rather than routed through to a
+// downstream task (a gateway→gateway chain still resolves per hop). Returns
+// null for endpoints that don't resolve to a tracked lane (events,
+// free-floating shapes, a gateway owned by a pool).
+function laneIdForEndpoint(bpmn: UMLModel, elementId: string, trackedLanes: Set<string>): string | null {
   const el = bpmn.elements[elementId];
-  if (!el) return null;
-  if (el.type === 'BPMNTask') {
-    const laneId = el.owner;
-    return laneId && trackedLanes.has(laneId) ? { laneId } : null;
-  }
-  if (el.type === 'BPMNGateway') {
-    const laneId = el.owner;
-    return laneId && trackedLanes.has(laneId) ? { laneId, gatewayId: el.id } : null;
-  }
-  return null;
+  if (!el || (el.type !== 'BPMNTask' && el.type !== 'BPMNGateway')) return null;
+  return el.owner && trackedLanes.has(el.owner) ? el.owner : null;
 }
 
-function collectLaneCrossingFlows(bpmn: UMLModel, lanesByPool: Map<string, UMLElement[]>): LaneCrossingFlow[] {
+function collectLaneCrossingFlows(bpmn: UMLModel, lanesByPool: Map<string, BPMNSwimlane[]>): LaneCrossingFlow[] {
   const trackedLanes = new Set<string>();
   for (const arr of lanesByPool.values()) for (const l of arr) trackedLanes.add(l.id);
 
-  const sequenceFlows = Object.values(bpmn.relationships).filter(
-    (r) => r.type === 'BPMNFlow' && (r as unknown as { flowType?: string }).flowType === 'sequence',
-  );
+  const sequenceFlows = Object.values(bpmn.relationships)
+    .filter(isFlow)
+    .filter((f) => f.flowType === 'sequence');
 
   const out: LaneCrossingFlow[] = [];
   for (const f of sequenceFlows) {
-    const src = laneIdForEndpoint(bpmn, f.source.element, trackedLanes);
-    const tgt = laneIdForEndpoint(bpmn, f.target.element, trackedLanes);
-    if (!src || !tgt) continue; // an endpoint isn't a tracked task/gateway
-    if (src.laneId === tgt.laneId) continue; // intra-lane — process detail
-
-    out.push({
-      flowId: f.id,
-      srcLaneId: src.laneId,
-      tgtLaneId: tgt.laneId,
-      // The gateway endpoint (if any) mediates the edge. When BOTH ends
-      // are gateways (gateway→gateway chain), the source side wins — the
-      // chain still resolves to the correct cross-lane edge per hop, so
-      // the old `multi-hop-gateway` warning is no longer needed.
-      gatewayId: src.gatewayId ?? tgt.gatewayId,
-    });
+    const srcLaneId = laneIdForEndpoint(bpmn, f.source.element, trackedLanes);
+    const tgtLaneId = laneIdForEndpoint(bpmn, f.target.element, trackedLanes);
+    if (!srcLaneId || !tgtLaneId) continue; // an endpoint isn't a tracked task/gateway
+    if (srcLaneId === tgtLaneId) continue; // intra-lane: process detail
+    out.push({ flowId: f.id, srcLaneId, tgtLaneId });
   }
   return out;
 }
 
-function collectInterPoolMessageFlows(bpmn: UMLModel): UMLRelationship[] {
-  return Object.values(bpmn.relationships).filter((r) => {
-    if (r.type !== 'BPMNFlow') return false;
-    if ((r as unknown as { flowType?: string }).flowType !== 'message') return false;
-    const src = bpmn.elements[r.source.element];
-    const tgt = bpmn.elements[r.target.element];
-    if (!src || !tgt) return false;
-    const srcPool = poolFor(bpmn, src);
-    const tgtPool = poolFor(bpmn, tgt);
-    return Boolean(srcPool && tgtPool && srcPool !== tgtPool);
-  });
+function collectInterPoolMessageFlows(bpmn: UMLModel): BPMNFlow[] {
+  return Object.values(bpmn.relationships)
+    .filter(isFlow)
+    .filter((r) => {
+      if (r.flowType !== 'message') return false;
+      const src = bpmn.elements[r.source.element];
+      const tgt = bpmn.elements[r.target.element];
+      if (!src || !tgt) return false;
+      const srcPool = poolFor(bpmn, src);
+      const tgtPool = poolFor(bpmn, tgt);
+      return Boolean(srcPool && tgtPool && srcPool !== tgtPool);
+    });
 }
 
 function poolFor(bpmn: UMLModel, el: UMLElement): string | null {
@@ -329,20 +322,11 @@ const LANE_ROLES: ReadonlySet<string> = new Set<LaneRole>(['solution', 'supervis
 
 const isLaneRole = (r: unknown): r is LaneRole => typeof r === 'string' && LANE_ROLES.has(r);
 
-// `_gateway` is retained in the signature for call-site stability and a possible
-// future gateway-aware heuristic; the profile-keyed rule reads nothing off it.
-export function resolveEdgeKind(
-  srcLane: UMLElement,
-  tgtLane: UMLElement,
-  _gateway: UMLElement | undefined,
-): AgenticEdgeKind {
-  const srcAgentic = (srcLane as unknown as { isAgentic?: boolean }).isAgentic === true;
-  const tgtAgentic = (tgtLane as unknown as { isAgentic?: boolean }).isAgentic === true;
+export function resolveEdgeKind(srcLane: BPMNSwimlane, tgtLane: BPMNSwimlane): AgenticEdgeKind {
+  if (srcLane.isAgentic !== true || tgtLane.isAgentic !== true) return 'delegates';
 
-  if (!srcAgentic || !tgtAgentic) return 'delegates';
-
-  const srcRole = (srcLane as unknown as { role?: unknown }).role;
-  const tgtRole = (tgtLane as unknown as { role?: unknown }).role;
+  const srcRole = srcLane.role;
+  const tgtRole = tgtLane.role;
   if (!isLaneRole(srcRole) || !isLaneRole(tgtRole)) return 'delegates';
 
   const srcSupervises = isSupervisorRole(srcRole);
@@ -425,10 +409,15 @@ const REPLY_TYPE_STEREOTYPE: Record<string, 'llm' | 'db' | 'rag'> = {
   rag: 'rag',
 };
 const BODY_TYPES = new Set(['AgentStateBody', 'AgentStateFallbackBody']);
+const isBody = (e: UMLElement): e is UMLElement & AgentModelElement => BODY_TYPES.has(e.type);
 
 // Resolve blank action references the same way as the runtime's default LLM.
-export function resolveBodyLlmName(agentModel: UMLModel, body: UMLElement, defaultLlmName?: string): string {
-  const explicit = (body as unknown as { llm_name?: string }).llm_name?.trim();
+export function resolveBodyLlmName(
+  agentModel: UMLModel,
+  body: Pick<AgentModelElement, 'llm_name'>,
+  defaultLlmName?: string,
+): string {
+  const explicit = body.llm_name?.trim();
   if (explicit) return explicit;
 
   const registered = configuredComponents(agentModel)
@@ -441,13 +430,12 @@ export function resolveBodyLlmName(agentModel: UMLModel, body: UMLElement, defau
 
 function resourceName(
   stereo: 'llm' | 'db' | 'rag',
-  body: UMLElement,
+  body: AgentModelElement,
   agentModel: UMLModel,
   defaultLlmName?: string,
 ): string {
-  const b = body as unknown as { ragDatabaseName?: string; dbCustomName?: string };
-  if (stereo === 'rag') return (b.ragDatabaseName ?? '').trim() || 'RAG';
-  if (stereo === 'db') return (b.dbCustomName ?? '').trim() || 'Database';
+  if (stereo === 'rag') return (body.ragDatabaseName ?? '').trim() || 'RAG';
+  if (stereo === 'db') return (body.dbCustomName ?? '').trim() || 'Database';
   return resolveBodyLlmName(agentModel, body, defaultLlmName);
 }
 
@@ -460,9 +448,8 @@ function resourceBodies(
 ): Array<{ stereo: 'llm' | 'db' | 'rag'; name: string }> {
   const out: Array<{ stereo: 'llm' | 'db' | 'rag'; name: string }> = [];
   for (const e of Object.values(agentModel.elements)) {
-    if (!BODY_TYPES.has(e.type)) continue;
-    const replyType = (e as unknown as { replyType?: string }).replyType;
-    const stereo = replyType ? REPLY_TYPE_STEREOTYPE[replyType] : undefined;
+    if (!isBody(e)) continue;
+    const stereo = e.replyType ? REPLY_TYPE_STEREOTYPE[e.replyType] : undefined;
     if (!stereo) continue;
     out.push({ stereo, name: resourceName(stereo, e, agentModel, defaultLlmName) });
   }
@@ -495,7 +482,7 @@ type CollectedCapability = {
 // (nothing is dropped).
 function collectLaneCapabilities(
   bpmn: UMLModel,
-  lane: UMLElement,
+  lane: BPMNSwimlane,
   agentCompId: string,
   agentDiagramsById: Map<string, UMLModel>,
   out: CollectedCapability[],
@@ -510,11 +497,9 @@ function collectLaneCapabilities(
   // lane-level agent, the task for a per-task agent); `label` names it in a
   // dangling-ref warning.
   const sources: Array<{ ref: string; sourceId: string; label: string }> = [];
-  const laneRef = (lane as unknown as { agentDiagramRef?: string }).agentDiagramRef;
-  if (laneRef) sources.push({ ref: laneRef, sourceId: lane.id, label: lane.name ?? '' });
+  if (lane.agentDiagramRef) sources.push({ ref: lane.agentDiagramRef, sourceId: lane.id, label: lane.name ?? '' });
   for (const task of tasksInLane(bpmn, lane.id)) {
-    const ref = (task as unknown as { agentDiagramRef?: string }).agentDiagramRef;
-    if (ref) sources.push({ ref, sourceId: task.id, label: task.name ?? '' });
+    if (task.agentDiagramRef) sources.push({ ref: task.agentDiagramRef, sourceId: task.id, label: task.name ?? '' });
   }
 
   for (const { ref, sourceId, label } of sources) {
@@ -603,7 +588,7 @@ function emitGroupedCapabilities(
   // Skills/Tools to the RIGHT of the pool column; the LLM/DB/RAG
   // resource zones to the LEFT so agent→resource `uses` edges fan left
   // rather than crowding every has/uses edge onto the right.
-  let rightX = layout.subsystemX + 640 + 80; // clears the 640-wide pool column
+  let rightX = layout.subsystemX + layout.columnWidth + 80; // clears the pool column
   let leftX = layout.subsystemX - 80 - boxW; // first left zone, just left of the pool column
 
   const capIdByKey = new Map<string, string>();
@@ -615,19 +600,10 @@ function emitGroupedCapabilities(
     }
     const boxH = HEADER + list.length * (CAP_H + CAP_GAP) - CAP_GAP + PAD;
     const zoneX = side === 'right' ? rightX : leftX;
-    const zoneId = newId();
-    out.elements[zoneId] = {
-      id: zoneId,
-      name: title,
-      type: 'Subsystem',
-      owner: null,
-      bounds: { x: zoneX, y: topY, width: boxW, height: boxH },
-      stereotype: 'subsystem',
-      displayStereotype: true,
-    } as unknown as UMLElement;
+    const zoneId = addSubsystem(out, title, { x: zoneX, y: topY, width: boxW, height: boxH });
     list.forEach((entry, i) => {
-      const capId = newId();
-      out.elements[capId] = {
+      const capId = uuid();
+      const capability: UMLComponentComponent = {
         id: capId,
         name: entry.name,
         type: 'Component',
@@ -635,7 +611,8 @@ function emitGroupedCapabilities(
         bounds: { x: zoneX + PAD, y: topY + HEADER + i * (CAP_H + CAP_GAP), width: CAP_W, height: CAP_H },
         stereotype: stereo,
         displayStereotype: true,
-      } as unknown as UMLElement;
+      };
+      out.elements[capId] = capability;
       capIdByKey.set(`${stereo}::${entry.name.toLowerCase()}`, capId);
       elementMapping[capId] = entry.taskId; // first-wins
     });
@@ -663,8 +640,8 @@ function emitGroupedCapabilities(
       c.agentCompId,
       capId,
       CAPABILITY_EDGE[c.stereo],
-      left ? 'Left' : 'Right',
-      left ? 'Right' : 'Left',
+      left ? Direction.Left : Direction.Right,
+      left ? Direction.Right : Direction.Left,
     );
     elementMapping[edgeId] = c.taskId;
   }
@@ -684,13 +661,21 @@ function emptyComponentModel(size: { width: number; height: number }): UMLModel 
   };
 }
 
+// A pool Subsystem is at least this large; it grows wider to fit its lanes.
+const SUBSYSTEM_MIN_WIDTH = 640;
+const SUBSYSTEM_MIN_HEIGHT = 400;
+const LANE_COMPONENT_W = 160;
+const LANE_COMPONENT_H = 80;
+const LANE_COMPONENT_GAP = 24;
+
 interface LayoutCursor {
   subsystemX: number;
   subsystemY: number;
   laneInSubsystemX: number;
-  skillRightOfLaneY: number;
   externalRowY: number;
   externalX: number;
+  /** Width of the widest pool Subsystem; capability zones sit right of it. */
+  columnWidth: number;
   currentSubsystemBounds: { x: number; y: number; width: number; height: number } | null;
   endSubsystem(): void;
 }
@@ -700,16 +685,20 @@ interface LayoutCursor {
 // stack below.
 function makeLayoutCursor(): LayoutCursor {
   return {
-    subsystemX: -320,
-    subsystemY: -200,
+    subsystemX: -SUBSYSTEM_MIN_WIDTH / 2,
+    subsystemY: -SUBSYSTEM_MIN_HEIGHT / 2,
     laneInSubsystemX: 0,
-    skillRightOfLaneY: 0,
     externalRowY: 0,
-    externalX: -320,
+    externalX: -SUBSYSTEM_MIN_WIDTH / 2,
+    columnWidth: SUBSYSTEM_MIN_WIDTH,
     currentSubsystemBounds: null,
     endSubsystem(this: LayoutCursor) {
-      if (this.currentSubsystemBounds) {
-        this.subsystemY = this.currentSubsystemBounds.y + this.currentSubsystemBounds.height + 40;
+      const bounds = this.currentSubsystemBounds;
+      if (bounds) {
+        // Grow the Subsystem so every lane Component fits inside it.
+        bounds.width = Math.max(bounds.width, this.laneInSubsystemX - bounds.x);
+        this.columnWidth = Math.max(this.columnWidth, bounds.width);
+        this.subsystemY = bounds.y + bounds.height + 40;
         this.externalRowY = this.subsystemY;
       }
       this.currentSubsystemBounds = null;
@@ -717,65 +706,65 @@ function makeLayoutCursor(): LayoutCursor {
   };
 }
 
-const newId = (): string => 'gen-' + Math.random().toString(36).slice(2, 11);
-
-function emitSubsystem(out: UMLModel, pool: UMLElement, layout: LayoutCursor): string {
-  const id = newId();
-  const bounds = { x: layout.subsystemX, y: layout.subsystemY, width: 640, height: 400 };
-  layout.currentSubsystemBounds = bounds;
-  layout.laneInSubsystemX = bounds.x + 24;
-  layout.skillRightOfLaneY = bounds.y + SUBSYSTEM_CONTENT_TOP;
-  out.elements[id] = {
+function addSubsystem(
+  out: UMLModel,
+  name: string,
+  bounds: { x: number; y: number; width: number; height: number },
+): string {
+  const id = uuid();
+  const subsystem: UMLComponentSubsystem = {
     id,
-    name: pool.name || 'Swarm',
+    name,
     type: 'Subsystem',
     owner: null,
     bounds,
     stereotype: 'subsystem',
     displayStereotype: true,
-  } as unknown as UMLElement;
+  };
+  out.elements[id] = subsystem;
   return id;
+}
+
+function emitSubsystem(out: UMLModel, pool: UMLElement, layout: LayoutCursor): string {
+  const bounds = { x: layout.subsystemX, y: layout.subsystemY, width: SUBSYSTEM_MIN_WIDTH, height: SUBSYSTEM_MIN_HEIGHT };
+  layout.currentSubsystemBounds = bounds;
+  layout.laneInSubsystemX = bounds.x + LANE_COMPONENT_GAP;
+  return addSubsystem(out, pool.name || 'Swarm', bounds);
 }
 
 function emitLaneComponent(
   out: UMLModel,
-  lane: UMLElement,
+  lane: BPMNSwimlane,
   subsystemId: string,
   layout: LayoutCursor,
   sourceDiagramId?: string,
 ): string {
-  // Only ever called for agentic lanes. The lane's role
-  // (solution/supervision or a custom role) maps directly to the
-  // Component stereotype, aligning the BPMN process view with the Component
-  // vocabulary.
-  const id = newId();
+  // Only ever called for agentic lanes. The lane's role (solution/supervision
+  // or a custom role) maps directly to the Component stereotype.
+  const id = uuid();
   const bounds = {
     x: layout.laneInSubsystemX,
     y: (layout.currentSubsystemBounds?.y ?? 0) + SUBSYSTEM_CONTENT_TOP,
-    width: 160,
-    height: 80,
+    width: LANE_COMPONENT_W,
+    height: LANE_COMPONENT_H,
   };
-  layout.laneInSubsystemX += bounds.width + 24;
-  // The agentic lane's link to its Agent diagram (1:1). Thread the UUID onto
-  // the agent-Component so Component→Deployment can carry it down to the
-  // Artifact. Only the BESSER deployment generator consumes it; absent when the
-  // lane was never linked.
-  const agentDiagramRef = (lane as unknown as { agentDiagramRef?: string }).agentDiagramRef;
-  const laneRole = (lane as unknown as { role?: string }).role;
-  out.elements[id] = {
+  layout.laneInSubsystemX += bounds.width + LANE_COMPONENT_GAP;
+  const component: UMLComponentComponent = {
     id,
     name: lane.name || 'Agent',
     type: 'Component',
     owner: subsystemId,
     bounds,
-    stereotype: componentStereotypeForLaneRole(laneRole),
+    stereotype: componentStereotypeForLaneRole(lane.role),
     displayStereotype: true,
     // BESSER `AgenticComponent.process_model_refs` (diagram-grained):
     // the source BPMN diagram this agent participates in.
     ...(sourceDiagramId ? { processModelRefs: [sourceDiagramId] } : {}),
-    // Agent-diagram UUID this agent is defined by.
-    ...(agentDiagramRef ? { agentModelRef: agentDiagramRef } : {}),
-  } as unknown as UMLElement;
+    // The lane's Agent diagram (1:1), carried down to the Deployment Artifact
+    // by Component→Deployment; absent when the lane was never linked.
+    ...(lane.agentDiagramRef ? { agentModelRef: lane.agentDiagramRef } : {}),
+  };
+  out.elements[id] = component;
   return id;
 }
 
@@ -783,19 +772,9 @@ function emitLaneComponent(
 // → a Subsystem, not a Component. Placed in the external row below the
 // tracked Subsystems. Named after the source pool.
 function emitExternalSubsystem(out: UMLModel, pool: UMLElement, layout: LayoutCursor): string {
-  const id = newId();
   const bounds = { x: layout.externalX, y: layout.externalRowY, width: 320, height: 160 };
   layout.externalX += bounds.width + 24;
-  out.elements[id] = {
-    id,
-    name: pool.name || 'External swarm',
-    type: 'Subsystem',
-    owner: null,
-    bounds,
-    stereotype: 'subsystem',
-    displayStereotype: true,
-  } as unknown as UMLElement;
-  return id;
+  return addSubsystem(out, pool.name || 'External swarm', bounds);
 }
 
 function emitComponentDependency(
@@ -803,15 +782,13 @@ function emitComponentDependency(
   sourceId: string,
   targetId: string,
   stereotype: string,
-  srcDir: 'Left' | 'Right' = 'Right',
-  tgtDir: 'Left' | 'Right' = 'Left',
+  srcDir: Direction = Direction.Right,
+  tgtDir: Direction = Direction.Left,
 ): string {
-  const id = newId();
-  const src = (out.elements[sourceId] as unknown as { bounds: { x: number; y: number; width: number; height: number } })
-    .bounds;
-  const tgt = (out.elements[targetId] as unknown as { bounds: { x: number; y: number; width: number; height: number } })
-    .bounds;
-  out.relationships[id] = {
+  const id = uuid();
+  const src = out.elements[sourceId].bounds;
+  const tgt = out.elements[targetId].bounds;
+  const dependency: UMLComponentDependency = {
     id,
     name: '',
     type: 'ComponentDependency',
@@ -829,50 +806,9 @@ function emitComponentDependency(
     source: { element: sourceId, direction: srcDir },
     target: { element: targetId, direction: tgtDir },
     stereotype,
-  } as unknown as UMLRelationship;
+  };
+  out.relationships[id] = dependency;
   return id;
-}
-
-// Scroll fix: the editor sizes the canvas symmetrically around
-// the origin (uml-diagram.ts) and the scroll container opens at top-left, so
-// emitted content must straddle (0,0) or the diagram opens scrolled into empty
-// space. A tall grouped Skills/Tools zone pushes the content bbox far below
-// origin; translate the whole model so its bbox midpoint is (0,0), restoring
-// the makeLayoutCursor design intent. Idempotent for already-centered content
-// (single-pool swarm → dx=dy=0). Translates relationships (bounds + path) by
-// the same delta so edges stay attached.
-function recenterModelOnOrigin(out: UMLModel): void {
-  const els = Object.values(out.elements);
-  if (els.length === 0) return;
-  let minX = Infinity,
-    minY = Infinity,
-    maxX = -Infinity,
-    maxY = -Infinity;
-  for (const e of els) {
-    const b = (e as unknown as { bounds: { x: number; y: number; width: number; height: number } }).bounds;
-    minX = Math.min(minX, b.x);
-    minY = Math.min(minY, b.y);
-    maxX = Math.max(maxX, b.x + b.width);
-    maxY = Math.max(maxY, b.y + b.height);
-  }
-  const dx = -(minX + maxX) / 2;
-  const dy = -(minY + maxY) / 2;
-  if (dx === 0 && dy === 0) return;
-  for (const e of els) {
-    const b = (e as unknown as { bounds: { x: number; y: number } }).bounds;
-    b.x += dx;
-    b.y += dy;
-  }
-  for (const r of Object.values(out.relationships)) {
-    const rel = r as unknown as { bounds: { x: number; y: number }; path?: Array<{ x: number; y: number }> };
-    rel.bounds.x += dx;
-    rel.bounds.y += dy;
-    if (rel.path)
-      for (const p of rel.path) {
-        p.x += dx;
-        p.y += dy;
-      }
-  }
 }
 
 // ── Edge de-duplication ─────────────────────────────────────────────

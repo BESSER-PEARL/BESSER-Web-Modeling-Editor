@@ -16,6 +16,7 @@ import { UMLContainerRepository } from '../../services/uml-container/uml-contain
 import { UMLElementRepository } from '../../services/uml-element/uml-element-repository';
 import { UMLElementState } from '../../services/uml-element/uml-element-types';
 import { clone } from '../../utils/geometry/tree';
+import { Point } from '../../utils/geometry/point';
 import { CanvasContext } from '../canvas/canvas-context';
 import { withCanvas } from '../canvas/with-canvas';
 import { I18nContext } from '../i18n/i18n-context';
@@ -49,6 +50,7 @@ type StateProps = {
   colorEnabled: boolean;
   previewScaleFactor?: number;
   elements: UMLElementState;
+  zoomFactor: number;
 };
 
 type DispatchProps = {
@@ -56,12 +58,14 @@ type DispatchProps = {
   append: typeof UMLContainerRepository.append;
   remove: typeof UMLContainerRepository.remove;
   update: typeof UMLElementRepository.update;
+  select: typeof UMLElementRepository.select;
+  deselect: typeof UMLElementRepository.deselect;
   setPalette: typeof setPalette;
 };
 
 type Props = OwnProps & StateProps & DispatchProps & I18nContext & CanvasContext;
 
-const getInitialState = ({ type, canvas, colorEnabled }: Props) => {
+const getInitialState = ({ type, canvas, colorEnabled, translate }: Props) => {
   const previews: PreviewElement[] = [];
   const utils: PreviewElement[] = [];
 
@@ -105,7 +109,7 @@ const getInitialState = ({ type, canvas, colorEnabled }: Props) => {
       previews.push(...composeFlowchartPreview(canvas));
       break;
     case UMLDiagramType.BPMN:
-      previews.push(...composeBPMNPreview(canvas));
+      previews.push(...composeBPMNPreview(canvas, translate));
       break;
     case UMLDiagramType.StateMachineDiagram:
       previews.push(...composeStatePreview(canvas));
@@ -144,12 +148,15 @@ const enhance = compose<ComponentClass<OwnProps>>(
       type: state.diagram.type,
       colorEnabled: state.editor.colorEnabled,
       elements: state.elements,
+      zoomFactor: state.editor.zoomFactor,
     }),
     {
       create: UMLElementRepository.create,
       append: UMLContainerRepository.append,
       remove: UMLContainerRepository.remove,
       update: UMLElementRepository.update,
+      select: UMLElementRepository.select,
+      deselect: UMLElementRepository.deselect,
       setPalette,
     },
   ),
@@ -199,7 +206,12 @@ class CreatePaneComponent extends Component<Props, State> {
             }}
             key={preview.id ?? index}
           >
-            <PreviewElementComponent element={preview} create={this.create} />
+            <PreviewElementComponent
+              element={preview}
+              create={this.create}
+              insert={this.insert}
+              getInsertPosition={this.getInsertPosition}
+            />
           </div>
         );
       });
@@ -243,7 +255,69 @@ class CreatePaneComponent extends Component<Props, State> {
     );
   }
 
-  create = (preview: UMLElement, owner?: string) => {
+  /**
+   * Top-left for a click/keyboard insert: the visible canvas centre, cascaded down-right in
+   * grid steps until the spot (plus one step of margin) is clear of root elements, so repeated
+   * inserts don't stack. Never steps past the visible area; falls back to the centre.
+   */
+  getInsertPosition = (size: { width: number; height: number }): Point | undefined => {
+    const view = this.getVisibleCanvasRect();
+    if (!view) return undefined;
+    const STEP = 20;
+    const snap = (v: number) => Math.round(v / 10) * 10;
+    const start = new Point(
+      snap(view.x + (view.width - size.width) / 2),
+      snap(view.y + (view.height - size.height) / 2),
+    );
+    const siblings = Object.values(this.props.elements).filter(
+      (el) => !el.owner && el.bounds.width > 0 && el.bounds.height > 0,
+    );
+    for (
+      let x = start.x, y = start.y;
+      x + size.width <= view.x + view.width && y + size.height <= view.y + view.height;
+      x += STEP, y += STEP
+    ) {
+      const spot = { x: x - STEP, y: y - STEP, width: size.width + 2 * STEP, height: size.height + 2 * STEP };
+      if (!siblings.some((sib) => boundsOverlap(spot, sib.bounds))) return new Point(x, y);
+    }
+    return start;
+  };
+
+  /**
+   * Model-space rectangle of the canvas area currently on screen, in the same space a drop
+   * uses: (client point - canvas origin) / zoom.
+   */
+  getVisibleCanvasRect = (): { x: number; y: number; width: number; height: number } | undefined => {
+    const { canvas, zoomFactor = 1 } = this.props;
+    const editor = canvas.layer?.closest('[data-editor-scroll]');
+    const viewport = editor?.parentElement;
+    if (!editor || !viewport) return undefined;
+    const a = editor.getBoundingClientRect();
+    const b = viewport.getBoundingClientRect();
+    const left = Math.max(a.left, b.left, 0);
+    const top = Math.max(a.top, b.top, 0);
+    const right = Math.min(a.right, b.right, window.innerWidth);
+    const bottom = Math.min(a.bottom, b.bottom, window.innerHeight);
+    if (right <= left || bottom <= top) return undefined;
+    const origin = canvas.origin();
+    return {
+      x: (left - origin.x) / zoomFactor,
+      y: (top - origin.y) / zoomFactor,
+      width: (right - left) / zoomFactor,
+      height: (bottom - top) / zoomFactor,
+    };
+  };
+
+  /** Palette click/keyboard insert: create like a drop, then make the new element the selection. */
+  insert = (preview: UMLElement) => {
+    const id = this.create(preview);
+    if (!id) return;
+    this.props.deselect();
+    this.props.select(id);
+  };
+
+  /** Creates the element (and its children); returns the new root element's id. */
+  create = (preview: UMLElement, owner?: string): string | undefined => {
     if (preview.type === BPMNElementType.BPMNSwimlane) {
       if (!owner) {
         return;
@@ -265,14 +339,14 @@ class CreatePaneComponent extends Component<Props, State> {
       }
 
       // Collect the pool's non-lane children before create() mutates the store,
-      // so they can be re-parented into the new lane.
+      // so they can be re-parented into the new lane. (Guide 16.)
       const poolState = this.props.elements[resolvedOwner];
       const ownedIds =
         poolState && 'ownedElements' in poolState ? (poolState as { ownedElements: string[] }).ownedElements : [];
       const nonLaneChildIds = ownedIds.filter((id) => this.props.elements[id]?.type !== BPMNElementType.BPMNSwimlane);
       // Only re-parent when no lanes existed yet. For multi-lane pools the
       // new lane's y is hard to compute here, but tasks are already in the
-      // existing lanes so nonLaneChildIds would be empty anyway.
+      // existing lanes so nonLaneChildIds would be empty anyway. (Guide 16-FU1.)
       const poolHadNoLanes = ownedIds.every((id) => this.props.elements[id]?.type !== BPMNElementType.BPMNSwimlane);
 
       const elements = clone(preview, this.state.previews);
@@ -282,7 +356,7 @@ class CreatePaneComponent extends Component<Props, State> {
         // origin. Pre-position the lane to its layout-correct values so the
         // append reducer converts task coordinates from the right origin.
         // Pool bounds are unchanged at this point (pool hasn't been re-rendered
-        // yet).
+        // yet). (Guide 16-FU1.)
         const poolBounds = this.props.elements[resolvedOwner].bounds;
         this.props.update(elements[0].id, {
           bounds: {
@@ -295,10 +369,10 @@ class CreatePaneComponent extends Component<Props, State> {
         // Remove tasks from the pool's ownedElements before appending to the
         // lane. APPEND only adds to the new container — it never removes from
         // the old one — so without this step both pool and lane list the same
-        // element IDs and each element is rendered twice. 
+        // element IDs and each element is rendered twice. (Guide 16-FU2.)
         this.props.remove(nonLaneChildIds);
         // Move pool-level tasks/events into the new lane. The append reducer
-        // re-positions them relative to the pre-positioned lane.
+        // re-positions them relative to the pre-positioned lane. (Guide 16.)
         this.props.append(nonLaneChildIds, elements[0].id);
       }
       return;
@@ -332,7 +406,10 @@ class CreatePaneComponent extends Component<Props, State> {
       (el) => (el.owner ?? null) === (effectiveOwner ?? null) && el.bounds.width > 0 && el.bounds.height > 0,
     );
     let iter = 0;
-    while (iter < MAX_ITERS && siblings.some((sib) => boundsOverlap(localBounds, sib.bounds))) {
+    // Only BPMN nudges a dropped element clear of its siblings (keeps pools and lanes tidy);
+    // other diagrams drop exactly where the user releases, overlaps included.
+    const avoidOverlap = this.props.type === UMLDiagramType.BPMN;
+    while (avoidOverlap && iter < MAX_ITERS && siblings.some((sib) => boundsOverlap(localBounds, sib.bounds))) {
       localBounds.x += GAP;
       dropped.bounds.x += GAP;
       iter++;
@@ -377,6 +454,7 @@ class CreatePaneComponent extends Component<Props, State> {
     }
 
     this.props.create(elements, effectiveOwner);
+    return dropped.id;
   };
 }
 

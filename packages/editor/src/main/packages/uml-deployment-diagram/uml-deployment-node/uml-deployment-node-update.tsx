@@ -1,5 +1,6 @@
-import React, { Component, ComponentType } from 'react';
-import { connect, ConnectedComponent } from 'react-redux';
+import React, { Component, ComponentClass } from 'react';
+import { connect } from 'react-redux';
+import { compose } from 'redux';
 import { Button } from '../../../components/controls/button/button';
 import { ColorButton } from '../../../components/controls/color-button/color-button';
 import { Divider } from '../../../components/controls/divider/divider';
@@ -14,6 +15,8 @@ import { AsyncDispatch } from '../../../utils/actions/actions';
 import { IUMLDeploymentNode, UMLDeploymentNode } from './uml-deployment-node';
 import { StereotypeToggle } from '../../../components/controls/stereotype-toggle/stereotype-toggle';
 import { LineageSourceLink } from '../../../components/lineage/LineageSourceLink';
+import { I18nContext } from '../../../components/i18n/i18n-context';
+import { localized } from '../../../components/i18n/localized';
 
 const Flex = styled.div`
   display: flex;
@@ -58,11 +61,11 @@ class DeploymentNodeUpdate extends Component<Props, State> {
         <section>
           <Divider />
           <Flex>
-            <Body style={{ marginRight: '0.5em' }}>Stereotype</Body>
+            <Body style={{ marginRight: '0.5em' }}>{this.props.translate('popup.stereotype')}</Body>
             <Textfield
               value={element.stereotype}
               onChange={this.onStereotypeRename}
-              placeholder="e.g. node, device, executionEnvironment"
+              placeholder={this.props.translate('packages.DeploymentDiagram.DeploymentNodeStereotypePlaceholder')}
             />
           </Flex>
         </section>
@@ -100,13 +103,14 @@ type DispatchProps = {
   delete: AsyncDispatch<typeof UMLElementRepository.delete>;
 };
 
-type Props = OwnProps & StateProps & DispatchProps;
+type Props = OwnProps & StateProps & DispatchProps & I18nContext;
 
-const enhance = connect<StateProps, DispatchProps, OwnProps, ModelState>(null, {
-  update: UMLElementRepository.update,
-  delete: UMLElementRepository.delete,
-});
-
-export const UMLDeploymentNodeUpdate: ConnectedComponent<ComponentType<Props>, OwnProps> = enhance(
-  DeploymentNodeUpdate,
+const enhance = compose<ComponentClass<OwnProps>>(
+  localized,
+  connect<StateProps, DispatchProps, OwnProps, ModelState>(null, {
+    update: UMLElementRepository.update,
+    delete: UMLElementRepository.delete,
+  }),
 );
+
+export const UMLDeploymentNodeUpdate = enhance(DeploymentNodeUpdate);

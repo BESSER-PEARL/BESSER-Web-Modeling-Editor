@@ -55,10 +55,15 @@ export class BPMNGateway extends UMLContainer {
       ...super.serialize(),
       type: this.type as keyof typeof BPMNElementType,
       gatewayType: this.gatewayType,
-      isAgentic: this.isAgentic,
-      gatewayRole: this.gatewayRole,
-      trustScore: this.trustScore,
-      governanceDsl: this.governanceDsl,
+      // Plain BPMN gateways carry no agentic fields; the defaults return on load.
+      ...(this.isAgentic
+        ? {
+            isAgentic: true,
+            gatewayRole: this.gatewayRole,
+            trustScore: this.trustScore,
+            governanceDsl: this.governanceDsl,
+          }
+        : {}),
     };
   }
 

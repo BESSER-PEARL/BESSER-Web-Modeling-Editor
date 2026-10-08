@@ -128,15 +128,17 @@ function renderTwoSurfaces() {
   const store = configureStore({
     reducer: { workspace: workspaceReducer, errors: errorReducer, specDriven: specDrivenReducer },
   });
-  render(
+  const tree = (showWidget: boolean) => (
     <Provider store={store}>
       <ApollonEditorProvider value={{ editor: undefined, setEditor: () => {} }}>
         <Surface apiRef={drawer} />
-        <Surface apiRef={widget} />
+        {showWidget && <Surface apiRef={widget} />}
       </ApollonEditorProvider>
-    </Provider>,
+    </Provider>
   );
-  return { drawer, widget };
+  const { rerender } = render(tree(true));
+  const unmountWidget = () => rerender(tree(false));
+  return { drawer, widget, unmountWidget };
 }
 
 function emit(message: Partial<ChatMessage>) {
@@ -183,6 +185,25 @@ describe('useAssistantLogic with widget and drawer both mounted', () => {
     const userBubbles = messages.filter((m) => m.role === 'user');
     expect(userBubbles).toHaveLength(1);
     expect(userBubbles[0].content).toBe('add a Book class');
+  });
+
+  it('explains a cancelled API-key prompt once, not once per mounted surface', async () => {
+    const { drawer, unmountWidget } = renderTwoSurfaces();
+    await waitFor(() => expect(drawer.current).not.toBeNull());
+    const noKeyMessages = () =>
+      conversationStore.getMessages().filter((m) => m.content.startsWith('No API key set'));
+
+    act(() => {
+      window.dispatchEvent(new Event('wme:specdriven-key-cancelled'));
+    });
+    expect(noKeyMessages()).toHaveLength(1);
+
+    // The listener outlives one surface unmounting (ref-counted, not per surface).
+    unmountWidget();
+    act(() => {
+      window.dispatchEvent(new Event('wme:specdriven-key-cancelled'));
+    });
+    expect(noKeyMessages()).toHaveLength(2);
   });
 
   it('auto-fix triggers again on a failure after a second message in the same page load', async () => {

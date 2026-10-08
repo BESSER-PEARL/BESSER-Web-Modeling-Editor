@@ -3,14 +3,18 @@ Deployment Diagrams
 
 Deployment diagrams describe the runtime topology of a system: execution nodes,
 deployed components, artifacts, interfaces, and communication paths. In the
-agentic workflow, Deployment is the second architectural view of a multi-agent system and can be generated
-from a Component diagram.
+multi-agent workflow, the Deployment diagram is the second architectural view
+and can be generated from a :doc:`Component diagram <component-diagram>`, which
+is itself derived from an :ref:`agentic BPMN process <agentic-bpmn>`.
+
+The Deployment diagram type is part of the **Multi-Agent** modeling perspective
+(see :doc:`index`).
 
 Creating a Deployment Diagram
 -----------------------------
 
 Create a Deployment diagram from the sidebar, or open a Component diagram and
-select **Generate > Generate Deployment diagram**. Generation creates a new
+select **Generate ▸ Generate Deployment diagram**. Generation creates a new
 Deployment diagram each time and does not overwrite existing diagrams.
 
 Palette Elements
@@ -18,45 +22,60 @@ Palette Elements
 
 The Deployment palette provides:
 
-* **Node**: an execution environment, device, server, or runtime host.
-* **Component**: a deployed component inside a node.
-* **Artifact**: a deployable artifact associated with a component. Generated
-  diagrams use artifacts to keep the link to an agent implementation.
-* **Interface**: a provided or required runtime interface.
+*   **Node**: an execution environment, device, server, or runtime host. Nodes
+    can be nested.
+*   **Component**: a deployed component.
+*   **Artifact**: a deployable artifact placed inside a node. Generated
+    diagrams use artifacts to carry the link to an agent's Agent diagram.
+*   **Interface**: a provided or required runtime interface.
 
-Create relationships by connecting elements on the canvas. Deployment
-associations can show stereotype labels on the edge.
+Connect elements on the canvas to create relationships. In the relationship
+popup you can switch between **Deployment Association**, **Deployment
+Dependency**, **Provided Interface**, and **Required Interface**.
 
 Stereotypes
 -----------
 
-Deployment nodes, components, and associations expose a **Stereotype** field.
-Typical node stereotypes include ``node``, ``device``, and
-``executionEnvironment``. Association stereotypes can describe the communication
-or permission style, such as ``HTTPS`` or ``gRPC``.
+Nodes have a free-text **Stereotype** field (``node`` by default); typical
+values are ``node``, ``device``, and ``executionEnvironment``. Deployment
+Components share the Component diagram's stereotype field and presets.
+Deployment Associations have a label and a stereotype that can describe the
+communication style, such as ``HTTPS`` or ``gRPC``.
 
 Derived Deployment Diagrams
 ---------------------------
 
-When generated from a Component diagram, the derivation creates a deployment
-scaffold from the logical Component view:
+When generated from a Component diagram, the derivation builds a deployment
+scaffold from the logical view:
 
-* Component Subsystems become deployment grouping nodes.
-* Component agents and capabilities become deployed components and artifacts.
-* Component dependencies become deployment associations where appropriate.
-* Agent implementation references are copied from source Components to their
-  Deployment artifacts.
-* If the source Component traces back to a BPMN lane with **Copies** greater
-  than one, the generated artifact name includes the copy count.
+*   Each Subsystem becomes a node containing a ``docker host`` node.
+    Components outside any Subsystem are placed in a top-level
+    **Docker Host** node. Nested Subsystems are flattened.
+*   Each Component becomes an ``executionEnvironment`` node inside the host,
+    holding an Artifact, plus a deployed Component linked to that Artifact by
+    a dependency. Capability Components (``skill``, ``tool``, ``llm``, ``db``,
+    ``rag``) are not deployed separately.
+*   Dependencies between Components in different Subsystems become Deployment
+    Associations. Their agentic stereotypes are not carried over.
+*   The link to the agent's Agent diagram is copied from the source Component
+    to its Artifact.
+*   If the source Component traces back to a BPMN lane with **Copies** greater
+    than one, the Artifact name gets the count as a suffix, for example
+    ``Reviewer [3]``.
 
-Generated diagrams can show a **Derived from** banner. Derived elements can
-also show source links in their popups, helping trace a Deployment element back
-to the Component element that produced it.
+Generated diagrams show a **Derived from** banner. Derived elements also show
+a link in their popups back to the Component element that produced them.
 
 Docker Compose Generation
 -------------------------
 
-When a Deployment diagram is active, open **Generate > Generate Docker Compose**
-to request Docker Compose files from the backend. If no artifacts are linked to
-Agent diagrams yet, generation can still produce Compose files, but the editor
-warns that no agent implementation is attached to an artifact.
+When a Deployment diagram is active, choose **Generate ▸ Generate Docker
+Compose**. The backend generates the Docker Compose files for the project and
+the editor downloads them as a ZIP archive. The Deployment diagram must
+contain at least one element.
+
+If no Artifact in the diagram is linked to an Agent diagram, the files are
+still generated, but the editor warns that no agent implementation is attached.
+Run the BPMN to Component to Deployment derivation, after defining the agents
+of the agentic lanes, to set up these links. An invalid governance policy on a
+merging gateway of the BPMN diagram is reported with the name of the gateway.

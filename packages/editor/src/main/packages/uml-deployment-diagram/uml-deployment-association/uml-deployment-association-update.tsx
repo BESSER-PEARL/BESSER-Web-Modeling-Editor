@@ -10,7 +10,7 @@ import { localized } from '../../../components/i18n/localized';
 import { ModelState } from '../../../components/store/model-state';
 import { UMLElementRepository } from '../../../services/uml-element/uml-element-repository';
 import { UMLRelationshipRepository } from '../../../services/uml-relationship/uml-relationship-repository';
-import { UMLDeploymentAssociation } from './uml-deployment-association';
+import { IUMLDeploymentAssociation, UMLDeploymentAssociation } from './uml-deployment-association';
 import { Body, Header } from '../../../components/controls/typography/typography';
 import { ExchangeIcon } from '../../../components/controls/icon/exchange';
 import { Divider } from '../../../components/controls/divider/divider';
@@ -93,8 +93,13 @@ class DeploymentAssociationUpdate extends Component<Props, State> {
             <Divider />
             <section>
               <Flex>
-                <Body style={{ marginRight: '0.5em' }}>Label</Body>
-                <Textfield value={element.name} onChange={this.rename} autoFocus placeholder="e.g. kv-store-conn" />
+                <Body style={{ marginRight: '0.5em' }}>{this.props.translate('popup.label')}</Body>
+                <Textfield
+                  value={element.name}
+                  onChange={this.rename}
+                  autoFocus
+                  placeholder={this.props.translate('packages.DeploymentDiagram.DeploymentAssociationLabelPlaceholder')}
+                />
                 <Button color="link" onClick={() => this.props.delete(element.id)}>
                   <TrashIcon />
                 </Button>
@@ -102,11 +107,11 @@ class DeploymentAssociationUpdate extends Component<Props, State> {
             </section>
             <section>
               <Flex>
-                <Body style={{ marginRight: '0.5em' }}>Stereotype</Body>
+                <Body style={{ marginRight: '0.5em' }}>{this.props.translate('popup.stereotype')}</Body>
                 <Textfield
-                  value={(element as unknown as { stereotype?: string }).stereotype ?? ''}
+                  value={(element as IUMLDeploymentAssociation).stereotype ?? ''}
                   onChange={this.onStereotypeChange}
-                  placeholder="e.g. HTTPS, gRPC, device"
+                  placeholder={this.props.translate('packages.DeploymentDiagram.DeploymentAssociationStereotypePlaceholder')}
                 />
               </Flex>
             </section>
@@ -130,7 +135,7 @@ class DeploymentAssociationUpdate extends Component<Props, State> {
 
   private onStereotypeChange = (value: string) => {
     const { element, update } = this.props;
-    update(element.id, { stereotype: value } as any);
+    update<IUMLDeploymentAssociation>(element.id, { stereotype: value });
   };
 }
 

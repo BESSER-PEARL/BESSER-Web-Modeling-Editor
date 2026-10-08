@@ -1,4 +1,5 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react';
+import * as DialogPrimitive from '@radix-ui/react-dialog';
 import { useTranslation } from 'react-i18next';
 import {
   Atom,
@@ -15,6 +16,7 @@ import {
   ShieldCheck,
 } from 'lucide-react';
 import i18n from '@/main/shared/i18n';
+import { Dialog, DialogOverlay, DialogPortal, DialogTitle } from '@/components/ui/dialog';
 import { Z_INDEX } from '../../constants/z-index';
 
 /* ------------------------------------------------------------------ */
@@ -86,6 +88,9 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({ open, onOpenChan
   const [selectedIndex, setSelectedIndex] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
+  const idPrefix = useId();
+  const listboxId = `${idPrefix}-listbox`;
+  const optionId = (actionId: string) => `${idPrefix}-option-${actionId}`;
 
   // Filter actions by query
   const filtered = useMemo(
@@ -117,8 +122,6 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({ open, onOpenChan
     if (open) {
       setQuery('');
       setSelectedIndex(0);
-      // Small delay so the DOM is painted before focusing
-      requestAnimationFrame(() => inputRef.current?.focus());
     }
   }, [open]);
 
@@ -162,137 +165,147 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({ open, onOpenChan
             handleSelect(flatItems[selectedIndex]);
           }
           break;
-        case 'Escape':
-          e.preventDefault();
-          close();
-          break;
+        // Escape is handled by the Radix dialog (onOpenChange).
       }
     },
-    [flatItems, selectedIndex, handleSelect, close],
+    [flatItems, selectedIndex, handleSelect],
   );
 
-  if (!open) return null;
-
   let runningIndex = 0;
+  const activeAction = flatItems[selectedIndex];
 
   return (
-    /* Backdrop */
-    <div
-      className="fixed inset-0 flex items-start justify-center pt-[15vh]"
-      style={{ zIndex: Z_INDEX.MODAL }}
-      onClick={close}
-      onKeyDown={handleKeyDown}
-    >
-      {/* Blur overlay */}
-      <div className="absolute inset-0 bg-black/40 backdrop-blur-[6px] dark:bg-black/60" />
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogPortal>
+        <DialogOverlay className="dark:bg-black/60" style={{ zIndex: Z_INDEX.MODAL }} />
 
-      {/* Palette card */}
-      <div
-        className="relative z-10 flex w-full max-w-[540px] flex-col overflow-hidden rounded-2xl border border-slate-200/70 bg-white shadow-[0_24px_64px_-16px_rgba(0,0,0,0.25)] dark:border-slate-700/70 dark:bg-slate-900 dark:shadow-[0_24px_64px_-16px_rgba(0,0,0,0.6)]"
-        onClick={(e) => e.stopPropagation()}
-        role="dialog"
-        aria-label={t('shared.commandPalette.dialogLabel')}
-      >
-        {/* Search input */}
-        <div className="flex items-center gap-3 border-b border-slate-200/80 px-4 py-3 dark:border-slate-700/60">
-          <Search className="size-5 shrink-0 text-slate-400 dark:text-slate-500" />
-          <input
-            ref={inputRef}
-            type="text"
-            value={query}
-            onChange={(e) => {
-              setQuery(e.target.value);
-              setSelectedIndex(0);
-            }}
-            placeholder={t('shared.commandPalette.placeholder')}
-            className="flex-1 bg-transparent text-sm text-slate-900 outline-none placeholder:text-slate-400 dark:text-slate-100 dark:placeholder:text-slate-500"
-            aria-label={t('shared.commandPalette.searchLabel')}
-            autoComplete="off"
-            spellCheck={false}
-          />
-          <kbd className="hidden rounded-md border border-slate-200/80 bg-slate-100/80 px-1.5 py-0.5 font-mono text-[10px] font-medium text-slate-500 sm:inline-flex dark:border-slate-700 dark:bg-slate-800 dark:text-slate-400">
-            ESC
-          </kbd>
-        </div>
+        {/* Palette card */}
+        <DialogPrimitive.Content
+          className="fixed left-1/2 top-[15vh] flex w-full max-w-[540px] -translate-x-1/2 flex-col overflow-hidden rounded-2xl border border-border bg-popover text-popover-foreground shadow-[0_24px_64px_-16px_rgba(0,0,0,0.25)] focus:outline-none dark:shadow-[0_24px_64px_-16px_rgba(0,0,0,0.6)]"
+          style={{ zIndex: Z_INDEX.MODAL }}
+          aria-modal="true"
+          aria-describedby={undefined}
+          onKeyDown={handleKeyDown}
+          onOpenAutoFocus={(e) => {
+            e.preventDefault();
+            inputRef.current?.focus();
+          }}
+        >
+          <DialogTitle className="sr-only">{t('shared.commandPalette.dialogLabel')}</DialogTitle>
+          {/* Search input */}
+          <div className="flex items-center gap-3 border-b border-border px-4 py-3">
+            <Search className="size-5 shrink-0 text-muted-foreground" />
+            <input
+              ref={inputRef}
+              type="text"
+              value={query}
+              onChange={(e) => {
+                setQuery(e.target.value);
+                setSelectedIndex(0);
+              }}
+              placeholder={t('shared.commandPalette.placeholder')}
+              className="flex-1 bg-transparent text-sm text-popover-foreground outline-none placeholder:text-muted-foreground"
+              role="combobox"
+              aria-label={t('shared.commandPalette.searchLabel')}
+              aria-autocomplete="list"
+              aria-expanded={flatItems.length > 0}
+              aria-controls={listboxId}
+              aria-activedescendant={activeAction ? optionId(activeAction.id) : undefined}
+              autoComplete="off"
+              spellCheck={false}
+            />
+            <kbd className="hidden rounded-md border border-border bg-muted px-1.5 py-0.5 font-mono text-[10px] font-medium text-muted-foreground sm:inline-flex">
+              ESC
+            </kbd>
+          </div>
 
-        {/* Results list */}
-        <div ref={listRef} className="max-h-[360px] overflow-y-auto overscroll-contain p-2">
-          {flatItems.length === 0 ? (
-            <div className="px-3 py-8 text-center text-sm text-slate-400 dark:text-slate-500">
-              {t('shared.commandPalette.noResults')}
-            </div>
-          ) : (
-            Array.from(grouped.entries()).map(([category, items]) => {
-              const categoryNode = (
-                <div key={category}>
-                  <div className="mb-1 mt-2 px-2 text-[10px] font-semibold uppercase tracking-[0.12em] text-slate-400 first:mt-0 dark:text-slate-500">
-                    {t(`shared.commandPalette.categories.${category.toLowerCase()}`)}
-                  </div>
-                  {items.map((action) => {
-                    const itemIndex = runningIndex++;
-                    const isActive = itemIndex === selectedIndex;
-                    return (
-                      <button
-                        key={action.id}
-                        type="button"
-                        data-active={isActive}
-                        className={`flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left text-sm transition-colors ${
-                          isActive
-                            ? 'bg-brand/10 text-brand-dark dark:bg-brand/20 dark:text-brand'
-                            : 'text-slate-700 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800/70'
-                        }`}
-                        onClick={() => handleSelect(action)}
-                        onMouseEnter={() => setSelectedIndex(itemIndex)}
-                      >
-                        <span
-                          className={`flex size-7 shrink-0 items-center justify-center rounded-lg ${
+          {/* Results list */}
+          <div ref={listRef} className="max-h-[360px] overflow-y-auto overscroll-contain p-2">
+            {flatItems.length === 0 && (
+              <div className="px-3 py-8 text-center text-sm text-muted-foreground">
+                {t('shared.commandPalette.noResults')}
+              </div>
+            )}
+            <div id={listboxId} role="listbox" aria-label={t('shared.commandPalette.dialogLabel')}>
+              {Array.from(grouped.entries()).map(([category, items]) => {
+                const headingId = `${idPrefix}-group-${category}`;
+                const categoryNode = (
+                  <div key={category} role="group" aria-labelledby={headingId}>
+                    <div
+                      id={headingId}
+                      role="presentation"
+                      className="mb-1 mt-2 px-2 text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground first:mt-0"
+                    >
+                      {t(`shared.commandPalette.categories.${category.toLowerCase()}`)}
+                    </div>
+                    {items.map((action) => {
+                      const itemIndex = runningIndex++;
+                      const isActive = itemIndex === selectedIndex;
+                      return (
+                        <div
+                          key={action.id}
+                          id={optionId(action.id)}
+                          role="option"
+                          aria-selected={isActive}
+                          data-active={isActive}
+                          className={`flex w-full cursor-pointer items-center gap-3 rounded-lg px-3 py-2 text-left text-sm transition-colors ${
                             isActive
-                              ? 'bg-brand/15 text-brand dark:bg-brand/25'
-                              : 'bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400'
+                              ? 'bg-accent text-accent-foreground'
+                              : 'text-popover-foreground hover:bg-accent/60'
                           }`}
+                          onClick={() => handleSelect(action)}
+                          onMouseEnter={() => setSelectedIndex(itemIndex)}
                         >
-                          {action.icon}
-                        </span>
-                        <span className="flex-1 truncate">{action.label}</span>
-                        {action.shortcut && (
-                          <kbd className="ml-auto shrink-0 rounded-md border border-slate-200/80 bg-slate-50 px-1.5 py-0.5 font-mono text-[10px] text-slate-400 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-500">
-                            {action.shortcut}
-                          </kbd>
-                        )}
-                      </button>
-                    );
-                  })}
-                </div>
-              );
-              return categoryNode;
-            })
-          )}
-        </div>
+                          <span
+                            className={`flex size-7 shrink-0 items-center justify-center rounded-lg ${
+                              isActive
+                                ? 'bg-brand/15 text-brand'
+                                : 'bg-muted text-muted-foreground'
+                            }`}
+                          >
+                            {action.icon}
+                          </span>
+                          <span className="flex-1 truncate">{action.label}</span>
+                          {action.shortcut && (
+                            <kbd className="ml-auto shrink-0 rounded-md border border-border bg-muted px-1.5 py-0.5 font-mono text-[10px] text-muted-foreground">
+                              {action.shortcut}
+                            </kbd>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                );
+                return categoryNode;
+              })}
+            </div>
+          </div>
 
-        {/* Footer hint */}
-        <div className="flex items-center gap-4 border-t border-slate-200/80 px-4 py-2 dark:border-slate-700/60">
-          <span className="flex items-center gap-1.5 text-[11px] text-slate-400 dark:text-slate-500">
-            <kbd className="inline-flex h-4 items-center rounded border border-slate-200/80 bg-slate-100/80 px-1 font-mono text-[9px] dark:border-slate-700 dark:bg-slate-800">
-              &uarr;
-            </kbd>
-            <kbd className="inline-flex h-4 items-center rounded border border-slate-200/80 bg-slate-100/80 px-1 font-mono text-[9px] dark:border-slate-700 dark:bg-slate-800">
-              &darr;
-            </kbd>
-            {t('shared.commandPalette.navigate')}
-          </span>
-          <span className="flex items-center gap-1.5 text-[11px] text-slate-400 dark:text-slate-500">
-            <kbd className="inline-flex h-4 items-center rounded border border-slate-200/80 bg-slate-100/80 px-1 font-mono text-[9px] dark:border-slate-700 dark:bg-slate-800">
-              &crarr;
-            </kbd>
-            {t('shared.commandPalette.select')}
-          </span>
-          <span className="ml-auto flex items-center gap-1.5 text-[11px] text-slate-400 dark:text-slate-500">
-            <Command className="size-3" />
-            {modKey}+K
-          </span>
-        </div>
-      </div>
-    </div>
+          {/* Footer hint */}
+          <div className="flex items-center gap-4 border-t border-border px-4 py-2">
+            <span className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+              <kbd className="inline-flex h-4 items-center rounded border border-border bg-muted px-1 font-mono text-[9px]">
+                &uarr;
+              </kbd>
+              <kbd className="inline-flex h-4 items-center rounded border border-border bg-muted px-1 font-mono text-[9px]">
+                &darr;
+              </kbd>
+              {t('shared.commandPalette.navigate')}
+            </span>
+            <span className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+              <kbd className="inline-flex h-4 items-center rounded border border-border bg-muted px-1 font-mono text-[9px]">
+                &crarr;
+              </kbd>
+              {t('shared.commandPalette.select')}
+            </span>
+            <span className="ml-auto flex items-center gap-1.5 text-[11px] text-muted-foreground">
+              <Command className="size-3" />
+              {modKey}+K
+            </span>
+          </div>
+          </DialogPrimitive.Content>
+      </DialogPortal>
+    </Dialog>
   );
 };
 

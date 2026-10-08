@@ -22,9 +22,6 @@ it, but external applications can use it directly.
    │   ├── uml-object-diagram/  #   Object instances, links
    │   ├── uml-state-diagram/   #   States, transitions, initial/final nodes
    │   ├── agent-state-diagram/ #   Agent states, intents, transitions
-   │   ├── bpmn/                #   BPMN and agentic BPMN elements
-   │   ├── uml-component-diagram/  # Component diagram elements
-   │   ├── uml-deployment-diagram/ # Deployment diagram elements
    │   ├── common/              #   Shared element logic
    │   ├── diagram-type.ts      #   Registry of all diagram types
    │   ├── uml-element-type.ts  #   Registry of all element types
@@ -96,10 +93,9 @@ deployment.
    │   ├── project/                #   Project hub, settings, templates
    │   ├── generation/             #   Code generation dialogs and logic
    │   ├── deploy/                 #   Render deployment
-   │   ├── github/                 #   GitHub OAuth and deploy-to-repo
-   │   ├── import/                 #   Import dialogs (file, image, KG)
-   │   ├── export/                 #   Export dialogs (BUML, JSON, SVG, PDF)
-   │   ├── inter-diagram/          #   MAS: BPMN -> Component, Component -> Deployment, lineage
+   │   ├── github/                 #   GitHub sign-in, repo storage, push
+   │   ├── import/                 #   Import dialogs (file, image, KG, BPMN XML)
+   │   ├── export/                 #   Export dialogs (BUML, JSON, SVG, PNG, PDF)
    │   ├── agent-config/           #   Agent-specific configuration
    │   ├── assistant/              #   AI assistant (WebSocket client, converters)
    │   └── spec-driven/            #   Spec-Driven Agent runs (HTTP + SSE)

@@ -1,5 +1,4 @@
 import React, { Component, ComponentClass, SVGProps } from 'react';
-import { createPortal } from 'react-dom';
 import { connect } from 'react-redux';
 import { compose } from 'redux';
 import { Components } from '../../packages/components';
@@ -15,6 +14,7 @@ import { UMLElementComponentProps } from './uml-element-component-props';
 import { UMLElementSelectorType } from '../../packages/uml-element-selector-type';
 
 const STROKE = 5;
+const SELECTED_STROKE = 2;
 
 type OwnProps = { child?: ComponentClass<UMLElementComponentProps> } & UMLElementComponentProps &
   SVGProps<SVGSVGElement>;
@@ -29,46 +29,62 @@ type StateProps = {
   element: IUMLElement | undefined;
   zoomFactor: number;
   selectionBoxActive: boolean;
-  allElements: ModelState['elements'];
+  /** Ids of the owned elements to render (existing ones; NN layers only their mandatory attributes). */
+  childIds: string[];
 };
 
 type DispatchProps = {};
 
 type Props = OwnProps & StateProps & DispatchProps & withThemeProps;
 
-const enhance = compose<ComponentClass<OwnProps>>(
-  withTheme,
-  connect<StateProps, DispatchProps, OwnProps, ModelState>(
-    (state, props) => ({
+const NO_IDS: string[] = [];
+const NO_SELECTORS: UMLElementSelectorType[] = [];
+
+const visibleChildIds = (element: IUMLElement | undefined, elements: ModelState['elements']): string[] => {
+  if (!element || !UMLContainer.isUMLContainer(element)) return NO_IDS;
+  // For NN layers only, hide optional attributes from the canvas (they persist in state).
+  const isNNParent = (element.type as string) in NNElementType;
+  return element.ownedElements.filter((id) => {
+    const child = elements[id];
+    if (!child) return false;
+    if (isNNParent && 'isMandatory' in child) {
+      return (child as { isMandatory?: boolean }).isMandatory === true;
+    }
+    return true;
+  });
+};
+
+const sameIds = (a: string[], b: string[]) => a.length === b.length && a.every((id, i) => id === b[i]);
+
+// Per-instance selector: the child-id list keeps its identity while unchanged, so moving
+// one element (a new `state.elements` object) doesn't re-render every other element.
+const makeMapState = () => {
+  let lastChildIds: string[] = NO_IDS;
+  return (state: ModelState, props: OwnProps): StateProps => {
+    const element = state.elements[props.id];
+    const childIds = visibleChildIds(element, state.elements);
+    if (!sameIds(childIds, lastChildIds)) lastChildIds = childIds;
+    return {
       hovered: state.hovered[0] === props.id,
       selected: state.selected.includes(props.id),
-      remoteSelectors: state.remoteSelection[props.id] || [],
+      remoteSelectors: state.remoteSelection[props.id] || NO_SELECTORS,
       moving: state.moving.includes(props.id),
       interactive: state.interactive.includes(props.id),
       interactable: state.editor.view === ApollonView.Exporting || state.editor.view === ApollonView.Highlight,
-      element: state.elements[props.id],
+      element,
       zoomFactor: state.editor.zoomFactor,
       selectionBoxActive: state.editor.selectionBoxActive,
-      allElements: state.elements,
-    }),
-    {},
-  ),
+      childIds: lastChildIds,
+    };
+  };
+};
+
+const enhance = compose<ComponentClass<OwnProps>>(
+  withTheme,
+  connect<StateProps, DispatchProps, OwnProps, ModelState>(makeMapState, {}),
 );
 
 class CanvasElementComponent extends Component<Props> {
-  private computeAbsoluteBounds(): { x: number; y: number; width: number; height: number } {
-    const { element, allElements } = this.props;
-    let absX = element!.bounds.x;
-    let absY = element!.bounds.y;
-    let ownerId = element!.owner;
-    while (ownerId && allElements[ownerId]) {
-      absX += allElements[ownerId].bounds.x;
-      absY += allElements[ownerId].bounds.y;
-      ownerId = allElements[ownerId].owner;
-    }
-    return { x: absX, y: absY, width: element!.bounds.width, height: element!.bounds.height };
-  }
-
   render() {
     const {
       hovered,
@@ -83,7 +99,7 @@ class CanvasElementComponent extends Component<Props> {
       theme,
       zoomFactor: _zoomFactor,
       selectionBoxActive: _selectionBoxActive,
-      allElements,
+      childIds,
       id: _id,
       type: _type,
       name: _name,
@@ -97,19 +113,7 @@ class CanvasElementComponent extends Component<Props> {
 
     let elements = null;
     if (UMLContainer.isUMLContainer(element) && ChildComponent) {
-      // For NN layers only, hide optional attributes from the canvas (they persist in state).
-      const isNNParent = (element.type as string) in NNElementType;
-      elements = element.ownedElements
-        .filter(id => !!allElements[id])
-        .filter(id => {
-          if (!isNNParent) return true;
-          const child = allElements[id];
-          if (child && 'isMandatory' in child) {
-            return (child as { isMandatory?: boolean }).isMandatory === true;
-          }
-          return true;
-        })
-        .map((id) => <ChildComponent key={id} id={id} />);
+      elements = childIds.map((id) => <ChildComponent key={id} id={id} />);
     }
     const ElementComponent = Components[element.type as UMLElementType];
 
@@ -124,10 +128,10 @@ class CanvasElementComponent extends Component<Props> {
               ? element.fillColor
               : theme.color.background;
 
-    const svgContent = (bounds: { x: number; y: number; width: number; height: number }) => (
+    return (
       <svg
         {...props}
-        {...bounds}
+        {...element.bounds}
         overflow="visible"
         pointerEvents={moving ? 'none' : undefined}
         fillOpacity={moving ? 0.7 : undefined}
@@ -137,15 +141,26 @@ class CanvasElementComponent extends Component<Props> {
           {elements}
         </ElementComponent>
         {children}
-        {!interactable && (hovered || selected) && (
+        {!interactable && selected && (
+          <rect
+            x={-SELECTED_STROKE / 2}
+            y={-SELECTED_STROKE / 2}
+            width={element.bounds.width + SELECTED_STROKE}
+            height={element.bounds.height + SELECTED_STROKE}
+            fill="none"
+            style={{ stroke: theme.color.primary }}
+            strokeWidth={SELECTED_STROKE}
+            pointerEvents="none"
+          />
+        )}
+        {!interactable && hovered && !selected && (
           <rect
             x={-STROKE / 2}
             y={-STROKE / 2}
             width={element.bounds.width + STROKE}
             height={element.bounds.height + STROKE}
             fill="none"
-            stroke="#0064ff"
-            strokeOpacity="0.2"
+            style={{ stroke: `color-mix(in srgb, ${theme.color.primary} 25%, transparent)` }}
             strokeWidth={STROKE}
             pointerEvents="none"
           />
@@ -191,18 +206,6 @@ class CanvasElementComponent extends Component<Props> {
         )}
       </svg>
     );
-
-    // Portal path: lift moving non-container elements into the drag overlay so they
-    // paint above all lane backgrounds regardless of SVG document order.
-    if (moving && !UMLContainer.isUMLContainer(element)) {
-      const overlay = document.getElementById('apollon-drag-overlay');
-      if (overlay) {
-        const absBounds = this.computeAbsoluteBounds();
-        return createPortal(svgContent(absBounds), overlay) as unknown as React.ReactElement;
-      }
-    }
-
-    return svgContent(element.bounds);
   }
 }
 

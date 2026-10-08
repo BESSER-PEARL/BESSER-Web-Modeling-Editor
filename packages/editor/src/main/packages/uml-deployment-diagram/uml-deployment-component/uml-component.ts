@@ -7,6 +7,7 @@ import { UMLComponent } from '../../common/uml-component/uml-component';
 
 export class UMLDeploymentComponent extends UMLComponent {
   static supportedRelationships = [
+    DeploymentRelationshipType.DeploymentAssociation,
     DeploymentRelationshipType.DeploymentDependency,
     DeploymentRelationshipType.DeploymentInterfaceProvided,
     DeploymentRelationshipType.DeploymentInterfaceRequired,
@@ -35,7 +36,9 @@ export class UMLDeploymentComponent extends UMLComponent {
     }
 
     super.deserialize(values, children);
-    this.stereotype = values.stereotype;
+    // Models saved before the stereotype was serialized carry no value; keep
+    // the class default instead of wiping it.
+    this.stereotype = values.stereotype ?? UMLComponent.DEFAULT_STEREOTYPE;
     this.displayStereotype = values.displayStereotype;
   }
 }

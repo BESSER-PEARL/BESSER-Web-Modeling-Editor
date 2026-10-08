@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import { createHostProviderContext } from '../host-provider/host-provider';
 
 /**
  * Supplied by the host at editor-init time.
@@ -24,30 +24,6 @@ export interface LineageProvider {
   onShowSource: (resolved: ResolvedSource) => void;
 }
 
-const LineageContext = createContext<LineageProvider | null>(null);
+export const lineageContext = createHostProviderContext<LineageProvider>();
 
-export const LineageContextProvider: React.FC<{
-  value: LineageProvider | null;
-  children: React.ReactNode;
-}> = ({ value, children }) => <LineageContext.Provider value={value}>{children}</LineageContext.Provider>;
-
-export const useLineage = (): LineageProvider | null => useContext(LineageContext);
-
-/**
- * Wraps `LineageContextProvider` so that ApollonEditor can swap the
- * provider value imperatively (via `setLineageProvider(...)`) without
- * tearing down its React tree. The editor calls `register(setValue)`
- * once on mount; subsequent setLineageProvider calls flow through the
- * captured setter.
- */
-export const LineageProviderRoot: React.FC<{
-  initialValue: LineageProvider | null;
-  register: (listener: (v: LineageProvider | null) => void) => void;
-  children: React.ReactNode;
-}> = ({ initialValue, register, children }) => {
-  const [value, setValue] = useState<LineageProvider | null>(initialValue);
-  useEffect(() => {
-    register(setValue);
-  }, [register]);
-  return <LineageContextProvider value={value}>{children}</LineageContextProvider>;
-};
+export const useLineage = lineageContext.useValue;

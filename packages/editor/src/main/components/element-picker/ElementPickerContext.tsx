@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import { createHostProviderContext } from '../host-provider/host-provider';
 
 /**
  * Cross-diagram element picker, supplied by the host at
@@ -28,28 +28,6 @@ export interface ElementPickerProvider {
   listElements: (typeTokens: string[]) => PickableElement[];
 }
 
-const ElementPickerContext = createContext<ElementPickerProvider | null>(null);
+export const elementPickerContext = createHostProviderContext<ElementPickerProvider>();
 
-export const ElementPickerContextProvider: React.FC<{
-  value: ElementPickerProvider | null;
-  children: React.ReactNode;
-}> = ({ value, children }) => <ElementPickerContext.Provider value={value}>{children}</ElementPickerContext.Provider>;
-
-export const useElementPicker = (): ElementPickerProvider | null => useContext(ElementPickerContext);
-
-/**
- * Wraps `ElementPickerContextProvider` so ApollonEditor can swap the
- * provider imperatively (via `setElementPickerProvider`) without tearing
- * down its React tree — identical to `LineageProviderRoot`.
- */
-export const ElementPickerProviderRoot: React.FC<{
-  initialValue: ElementPickerProvider | null;
-  register: (listener: (v: ElementPickerProvider | null) => void) => void;
-  children: React.ReactNode;
-}> = ({ initialValue, register, children }) => {
-  const [value, setValue] = useState<ElementPickerProvider | null>(initialValue);
-  useEffect(() => {
-    register(setValue);
-  }, [register]);
-  return <ElementPickerContextProvider value={value}>{children}</ElementPickerContextProvider>;
-};
+export const useElementPicker = elementPickerContext.useValue;

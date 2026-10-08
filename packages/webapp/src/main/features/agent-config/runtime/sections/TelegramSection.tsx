@@ -12,7 +12,7 @@ export function TelegramSection({ runtime: { form, setTelegram } }: ConfigSectio
       <div className="space-y-3">
         <EnabledToggle value={telegram.enabled} onChange={v => setTelegram({ enabled: v })} />
         {telegram.enabled && (
-          <TextField id="cfg-tg-token" label="token" value={telegram.token} onChange={v => setTelegram({ token: v })} description={t('agentConfig.runtime.field.telegram.tokenDesc')} />
+          <TextField id="cfg-tg-token" secret label="token" value={telegram.token} onChange={v => setTelegram({ token: v })} description={t('agentConfig.runtime.field.telegram.tokenDesc')} />
         )}
       </div>
     </>

@@ -196,6 +196,15 @@ describe('ProjectStorageRepository', () => {
     it('returns null when the project does not exist', () => {
       expect(ProjectStorageRepository.addDiagram('ghost', 'ClassDiagram')).toBeNull();
     });
+
+    it('names an untitled new diagram from the default title, unique among existing ones', () => {
+      const project = createDefaultProject('P', '', '');
+      project.diagrams.ClassDiagram.push({ ...project.diagrams.ClassDiagram[0], id: 'cd2', title: 'Class Diagram 2' });
+      ProjectStorageRepository.saveProject(project);
+
+      expect(ProjectStorageRepository.addDiagram(project.id, 'ClassDiagram')!.diagram.title).toBe('Class Diagram 3');
+      expect(ProjectStorageRepository.addDiagram(project.id, 'QuantumCircuitDiagram')!.diagram.title).toBe('Quantum Circuit 2');
+    });
   });
 
   describe('removeDiagram', () => {

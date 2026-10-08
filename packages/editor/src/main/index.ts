@@ -43,11 +43,15 @@ export * from './services/settings/settings-service';
 export * from './packages/bpmn/bpmn-flow/bpmn-flow-semantics';
 export * from './packages/bpmn/bpmn-flow/bpmn-flow-validator';
 
-// Export BPMN common attribute types — including the Agentic BPMN attributes
-// (BPMNAgentRole / BPMNReflectionMode / clampTrustScore) consumed by the
-// agentic vitest coverage and the extension serializer.
+// Export the BPMN common attribute types and helpers, including the agentic
+// BPMN attributes (BPMNAgentRole / BPMNReflectionMode / clampTrustScore) and the
+// governance DSL generator.
 export * from './packages/bpmn/common/types';
 export * from './packages/bpmn/common/governance-dsl';
+
+// Export the agentic Component-diagram stereotype vocabulary (mirrors the
+// BESSER `uml_component/agentic.py` enums) and its token helpers.
+export * from './packages/common/agentic/agentic-tokens';
 
 // Export the multiplicity helpers used by the ER-notation rendering
 // (parseMultiplicity / toERCardinality). Pure functions, safe to import
@@ -62,6 +66,10 @@ export { normalizeAgentModel, normalizeAgentComponents } from './packages/agent-
 
 // Agent element / component type names, so consumers don't re-declare the string constants.
 export { AgentElementType, AgentRelationshipType, AgentComponentType } from './packages/agent-state-diagram';
+
+// Default predefined type of a new agent transition ('auto'), so model
+// generators emit the same transition the editor creates.
+export { NEW_TRANSITION_PREDEFINED_TYPE } from './packages/agent-state-diagram/agent-state-transition/agent-state-transition';
 
 // Export the canonical LLM provider list so the webapp derives its dropdown,
 // its stored-config union, and its localStorage whitelist from one array
@@ -84,13 +92,17 @@ export type {
 export type { Patch } from './services/patcher';
 
 // Public type for the agent-diagram linker callback object; the host
-// The host implements this and passes it to `editor.setAgentDiagramLinker`.
+// implements this and passes it to `editor.setAgentDiagramLinker`.
 export type { AgentDiagramLinker } from './components/agent-diagram-linker/AgentDiagramLinkerContext';
 
 // Public types for the cross-diagram element-picker provider; the host
-// The host implements `ElementPickerProvider` and passes it to
+// implements `ElementPickerProvider` and passes it to
 // `editor.setElementPickerProvider` (see `useElementPickerProvider`).
 export type { ElementPickerProvider, PickableElement } from './components/element-picker/ElementPickerContext';
+
+// Public types for the derived-element lineage provider; the host implements
+// `LineageProvider` and passes it to `editor.setLineageProvider`.
+export type { LineageProvider, ResolvedSource } from './components/lineage/LineageContext';
 
 // Export only the UMLModelCompat type for compatibility purposes
 // Provides type definitions for compatibility with different UML model versions
@@ -99,3 +111,7 @@ export type { UMLModelCompat } from './compat';
 // Export the supported-locale enum so consumers (the webapp language selector)
 // can drive the editor's UI language via the `locale` setter.
 export { Locale } from './services/editor/editor-types';
+
+// Export the port direction enum used by the public relationship typings, so
+// consumers that build models can type `source.direction` / `target.direction`.
+export { Direction } from './services/uml-element/uml-element-port';

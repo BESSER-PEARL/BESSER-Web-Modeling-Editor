@@ -124,7 +124,7 @@
         "useDefault": "(usa el valor per defecte)"
       },
       "db": {
-        "configuring": "Configurant l'acció de base de dades...",
+        "configuring": "Configurant l'acció de base de dades…",
         "initialize": "Inicialitza l'acció de base de dades",
         "select": "Selecciona una base de dades",
         "default": "Per defecte (usar la BD de l'app)",
@@ -231,14 +231,24 @@
       "namePlaceholder": "nom de l'atribut"
     },
     "associationNamePlaceholder": "Nom de l'associació",
-    "literals": "Literals"
+    "literals": "Literals",
+    "preset": "Predefinit",
+    "presetPlaceholder": "Trieu un predefinit…",
+    "stereotype": "Estereotip",
+    "label": "Etiqueta",
+    "unnamed": "(sense nom)",
+    "missingElement": "(no trobat)",
+    "addTarget": "Afegeix una destinació…",
+    "lineage": "Procedència",
+    "lineageSource": "Origen:",
+    "lineageDerivedFrom": "Derivat de"
   },
   "assessment": {
     "assessment": "Avaluació de",
     "score": "Punts",
     "feedback": "Comentaris",
-    "feedbackPlaceholder": "Pots introduir comentaris aquí...",
-    "additionalFeedbackPlaceholder": "Pots introduir comentaris addicionals aquí...",
+    "feedbackPlaceholder": "Pots introduir comentaris aquí…",
+    "additionalFeedbackPlaceholder": "Pots introduir comentaris addicionals aquí…",
     "nextAssessment": "Següent avaluació"
   },
   "packages": {
@@ -301,7 +311,11 @@
       "ComponentInterface": "Interfície",
       "ComponentInterfaceProvided": "Interfície proporcionada",
       "ComponentInterfaceRequired": "Interfície requerida",
-      "Comments": "Comentaris"
+      "Comments": "Comentaris",
+      "ComponentStereotypePlaceholder": "p. ex. solution, skill, external",
+      "ComponentDependencyStereotypePlaceholder": "p. ex. delegates, has, uses",
+      "SubsystemStereotypePlaceholder": "p. ex. subsystem, solution",
+      "Realizes": "Realitza"
     },
     "DeploymentDiagram": {
       "DeploymentNode": "Node",
@@ -312,7 +326,10 @@
       "DeploymentInterfaceRequired": "Interfície requerida",
       "DeploymentAssociation": "Associació de desplegament",
       "DeploymentDependency": "Dependència de desplegament",
-      "Comments": "Comentaris"
+      "Comments": "Comentaris",
+      "DeploymentNodeStereotypePlaceholder": "p. ex. node, device, executionEnvironment",
+      "DeploymentAssociationLabelPlaceholder": "p. ex. kv-store-conn",
+      "DeploymentAssociationStereotypePlaceholder": "p. ex. HTTPS, gRPC, device"
     },
     "PetriNet": {
       "PetriNetPlace": "Lloc",
@@ -406,14 +423,13 @@
       "BPMNGroup": "Grup",
       "BPMNExpand": "Expandir",
       "BPMNCollapse": "Contraure",
-      "BPMNAgentic": "Agentic",
+      "BPMNAgentic": "Agèntic",
       "BPMNTrustScore": "Nivell de confiança (0-100)",
       "BPMNMultiplicity": "Còpies (≥1)",
       "BPMNAgentRoleSolution": "Solució",
       "BPMNAgentRoleSupervision": "Supervisor",
       "BPMNDefineAgentDiagram": "Defineix el comportament de l'agent",
       "BPMNOpenAgentDiagram": "Obre el comportament de l'agent",
-      "BPMNAgentDiagramRefBroken": "La tasca '{laneName}' fa referència a un comportament d'agent que no existeix en aquest projecte. Feu clic a «Defineix el comportament de l'agent» a la tasca per crear-ne un de nou.",
       "BPMNReflectionNone": "Sense reflexió",
       "BPMNReflectionSelf": "Autoreflexió",
       "BPMNReflectionCross": "Reflexió creuada",
@@ -427,13 +443,15 @@
       "BPMNGovernanceReplace": "Substitueix",
       "BPMNGovernanceCancel": "Cancel·la",
       "BPMNGovernancePolicyTypeLabel": "Política de decisió",
-      "BPMNGovPolicyVoting": "Votació",
       "BPMNGovPolicyMajority": "Majoria",
       "BPMNGovPolicyAbsoluteMajority": "Majoria absoluta",
       "BPMNGovPolicyLeaderDriven": "Dirigida per un líder",
       "BPMNGovPolicyConsensus": "Consens",
       "BPMNGatewayRoleDiverging": "Divergent",
-      "BPMNGatewayRoleMerging": "Convergent"
+      "BPMNGatewayRoleMerging": "Convergent",
+      "BPMNDefaultAgentTitle": "Agent",
+      "BPMNAgentRole": "Rol",
+      "BPMNAgentRolePlaceholder": "p. ex. solution"
     },
     "NNDiagram": {
       "NNContainer": "Neural_Network",
@@ -531,7 +549,7 @@
       "selectPlaceholder": "(usar per defecte)",
       "customDatabaseName": "Nom de base de dades personalitzat",
       "selectPlaceholderRag": "Seleccionar base de dades RAG",
-      "configuringDatabaseAction": "Configurant acció de base de dades...",
+      "configuringDatabaseAction": "Configurant acció de base de dades…",
       "initializeDatabaseAction": "Inicialitzar acció de base de dades",
       "llm": "LLM",
       "systemMessage": "Missatge del sistema",
@@ -609,7 +627,7 @@
       "skillReasoningStateWarning": "Les habilitats només es poden utilitzar per un estat de raonament. Afegeix un estat de raonament per usar aquesta habilitat",
       "skillName": "Nom de l'habilitat",
       "skillDescriptionPlaceholder": "Descripció breu opcional",
-      "skillContentPlaceholder": "# Skill\n\nInstruccions en markdown...",
+      "skillContentPlaceholder": "# Skill\n\nInstruccions en markdown…",
       "markdownContent": "Contingut Markdown",
       "workspaceReasoningStateWarning": "Els espais de treball només es poden utilitzar per un estat de raonament. Afegeix un estat de raonament per usar aquest espai de treball",
       "workspaceName": "Nom de l'espai de treball",
@@ -754,7 +772,10 @@
         "file": "Fitxer",
         "submitted": "Enviat"
       },
-      "webCrawlNamePrefix": "Rastreig:"
+      "webCrawlNamePrefix": "Rastreig:",
+      "A2ASendTo": "Envia a",
+      "A2AReceiveFrom": "Rep de",
+      "A2APeer": "parell"
     },
     "UserDiagram": {
       "UserModelName": "Usuari",
@@ -773,17 +794,17 @@
     "height": "Alçada"
   },
   "stylePane": {
-    "enterUri": "Introduïu l'URI...",
-    "enterIcon": "Introdueix el nom de la icona...",
-    "enterDescription": "Introdueix una descripció...",
+    "enterUri": "Introduïu l'URI…",
+    "enterIcon": "Introdueix el nom de la icona…",
+    "enterDescription": "Introdueix una descripció…",
     "idLockedByOptional": "Els atributs opcionals no poden ser l'identificador.",
-    "enterDefaultValue": "Introdueix un valor per defecte...",
+    "enterDefaultValue": "Introdueix un valor per defecte…",
     "reset": "Restableix",
     "fillColor": "Color d'emplenament",
     "icon": "Icona",
     "externalIdLockedByOptional": "Els atributs opcionals no poden ser l'identificador extern.",
     "optional": "Opcional",
-    "enterInteger": "Introdueix un enter...",
+    "enterInteger": "Introdueix un enter…",
     "id": "ID",
     "textColor": "Color de text",
     "externalId": "ID extern",
@@ -792,8 +813,22 @@
     "none": "(cap)",
     "lineColor": "Color de línia",
     "default": "Per defecte",
-    "enterNumber": "Introdueix un número...",
-    "derived": "Derivat"
+    "enterNumber": "Introdueix un número…",
+    "derived": "Derivat",
+    "colors": {
+      "red": "Vermell",
+      "orange": "Taronja",
+      "yellow": "Groc",
+      "green": "Verd",
+      "teal": "Blau verdós",
+      "skyBlue": "Blau cel",
+      "blue": "Blau",
+      "slateBlue": "Blau pissarra",
+      "purple": "Porpra",
+      "lightGray": "Gris clar",
+      "gray": "Gris",
+      "black": "Negre"
+    }
   },
   "associationPopup": {
     "cancel": "Cancel·la",
@@ -801,6 +836,22 @@
     "noTargets": "No hi ha altres objectes disponibles per connectar"
   },
   "propertiesPanel": {
-    "close": "Tanca"
+    "close": "Tanca",
+    "resize": "Canvia la mida del tauler de propietats"
+  },
+  "actions": {
+    "edit": "Edita",
+    "delete": "Elimina",
+    "addConnectedObject": "Afegeix un objecte connectat",
+    "swapEnds": "Intercanvia els extrems",
+    "style": "Estil"
+  },
+  "zoomPane": {
+    "zoomIn": "Apropa",
+    "zoomOut": "Allunya",
+    "autoLayout": "Disposició automàtica"
+  },
+  "sidebar": {
+    "resize": "Canvia la mida de la paleta"
   }
 }

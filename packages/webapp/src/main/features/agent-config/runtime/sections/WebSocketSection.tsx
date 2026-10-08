@@ -15,13 +15,13 @@ export function WebSocketSection({ runtime: { form, setWs } }: ConfigSectionProp
           <>
             <div className="grid grid-cols-2 gap-3">
               <TextField id="cfg-ws-host" label="host" value={ws.host} onChange={v => setWs({ host: v })} description={t('agentConfig.runtime.field.websocket.hostDesc')} />
-              <TextField id="cfg-ws-port" label="port" value={ws.port} onChange={v => setWs({ port: v })} description={t('agentConfig.runtime.field.websocket.portDesc')} />
+              <TextField id="cfg-ws-port" label="port" inputMode="numeric" value={ws.port} onChange={v => setWs({ port: v })} description={t('agentConfig.runtime.field.websocket.portDesc')} />
             </div>
             <div className="rounded-md border border-border p-3 space-y-3">
               <p className="text-xs font-medium text-muted-foreground">{t('agentConfig.runtime.subsectionStreamlit')}</p>
               <div className="grid grid-cols-2 gap-3">
                 <TextField id="cfg-ws-st-host" label="host" value={ws.streamlit_host} onChange={v => setWs({ streamlit_host: v })} description={t('agentConfig.runtime.field.websocket.streamlitHostDesc')} />
-                <TextField id="cfg-ws-st-port" label="port" value={ws.streamlit_port} onChange={v => setWs({ streamlit_port: v })} description={t('agentConfig.runtime.field.websocket.streamlitPortDesc')} />
+                <TextField id="cfg-ws-st-port" label="port" inputMode="numeric" value={ws.streamlit_port} onChange={v => setWs({ streamlit_port: v })} description={t('agentConfig.runtime.field.websocket.streamlitPortDesc')} />
               </div>
               <div className="rounded-md border border-border/60 p-3 space-y-3">
                 <p className="text-xs font-medium text-muted-foreground">{t('agentConfig.runtime.subsectionChat')}</p>

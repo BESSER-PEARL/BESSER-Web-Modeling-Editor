@@ -1,5 +1,5 @@
 import 'pepjs';
-import { createElement } from 'react';
+import { createElement, ReactElement } from 'react';
 import { createRoot, Root } from 'react-dom/client';
 import { DeepPartial, Store } from 'redux';
 import { ModelState, PartialModelState } from './components/store/model-state';
@@ -23,12 +23,10 @@ import { ErrorBoundary } from './components/controls/error-boundary/ErrorBoundar
 import { replaceColorVariables } from './utils/replace-color-variables';
 import { backwardsCompatibleModel, UMLModelCompat } from './compat';
 import { normalizeAgentComponents } from './packages/agent-state-diagram/normalize-agent-model';
-import { LineageProvider, LineageProviderRoot } from './components/lineage/LineageContext';
-import { ElementPickerProvider, ElementPickerProviderRoot } from './components/element-picker/ElementPickerContext';
-import {
-  AgentDiagramLinker,
-  AgentDiagramLinkerProviderRoot,
-} from './components/agent-diagram-linker/AgentDiagramLinkerContext';
+import { LineageProvider, lineageContext } from './components/lineage/LineageContext';
+import { ElementPickerProvider, elementPickerContext } from './components/element-picker/ElementPickerContext';
+import { AgentDiagramLinker, agentDiagramLinkerContext } from './components/agent-diagram-linker/AgentDiagramLinkerContext';
+import { HostProviderSlot } from './components/host-provider/host-provider';
 
 export class ApollonEditor {
   private ensureInitialized() {
@@ -81,6 +79,19 @@ export class ApollonEditor {
   }
 
   /**
+   * Shows or hides the agentic BPMN controls (the Agentic switches on lanes,
+   * tasks and gateways). Rebuilds the editor like the locale setter.
+   * @param enabled whether the agentic controls are shown
+   */
+  set agenticEnabled(enabled: boolean) {
+    this.ensureInitialized();
+    const state = this.store!.getState();
+    if (state.editor.agenticEnabled === enabled) return;
+    this.options.agenticEnabled = enabled;
+    this.recreateEditor({ ...state, editor: { ...state.editor, agenticEnabled: enabled } });
+  }
+
+  /**
    * Sets the current locale of the Apollon Editor.
    * @param locale supported locale
    */
@@ -120,6 +131,8 @@ export class ApollonEditor {
   selection: Apollon.Selection = { elements: {}, relationships: {} };
   private root?: Root;
   private currentModelState?: ModelState;
+  private lastSelected?: ModelState['selected'];
+  private lastAssessments?: ModelState['assessments'];
   private assessments: Apollon.Assessment[] = [];
   private application: Application | null = null;
   private patcher = new Patcher<UMLModel>();
@@ -136,23 +149,11 @@ export class ApollonEditor {
    */
   private migratedAgentComponents?: { [id: string]: Apollon.UMLModelComponent };
 
-  // Lineage provider supplied by the host. The
-  // `_lineageProviderUpdater` is captured by the `LineageProviderRoot`
-  // component on mount so subsequent setLineageProvider calls update
-  // React state without rebuilding the editor tree.
-  private _lineageProvider: LineageProvider | null = null;
-  private _lineageProviderUpdater: ((v: LineageProvider | null) => void) | null = null;
-
-  // Element-picker provider, same lifecycle as `_lineageProvider`.
-  private _elementPickerProvider: ElementPickerProvider | null = null;
-  private _elementPickerProviderUpdater: ((v: ElementPickerProvider | null) => void) | null = null;
-
-  // Agent-diagram linker provider supplied by the host.
-  // Same pattern as `_lineageProvider`: the React provider root captures
-  // an updater on mount so subsequent setAgentDiagramLinker calls flow
-  // through it without tearing down the editor tree.
-  private _agentDiagramLinker: AgentDiagramLinker | null = null;
-  private _agentDiagramLinkerUpdater: ((v: AgentDiagramLinker | null) => void) | null = null;
+  // Host-supplied providers read by the popups. Each slot survives editor
+  // rebuilds and forwards setter calls to the mounted React provider root.
+  private readonly lineageSlot = new HostProviderSlot<LineageProvider>(lineageContext);
+  private readonly elementPickerSlot = new HostProviderSlot<ElementPickerProvider>(elementPickerContext);
+  private readonly agentDiagramLinkerSlot = new HostProviderSlot<AgentDiagramLinker>(agentDiagramLinkerContext);
 
   constructor(
     private container: HTMLElement,
@@ -173,6 +174,7 @@ export class ApollonEditor {
         view: ApollonView.Modelling,
         mode: options.mode || ApollonMode.Exporting,
         colorEnabled: options.colorEnabled || false,
+        agenticEnabled: options.agenticEnabled || false,
         zoomFactor: options.scale || 1.0,
         readonly: options.readonly || false,
         enablePopups: options.enablePopups === true || options.enablePopups === undefined,
@@ -195,7 +197,7 @@ export class ApollonEditor {
       nextRenderResolve = resolve;
     });
 
-    const appElement = createElement(Application, {
+    const element = createElement(Application, {
       ref: async (app) => {
         if (app == null) return;
         this.application = app;
@@ -208,46 +210,11 @@ export class ApollonEditor {
       styles: options.theme,
       locale: options.locale,
     });
-    // Wrap so the editor's popup tree can read the host-supplied lineage provider.
-    // Also wrap with the agent-diagram linker provider for the BPMN lane popup.
-    const linkedElement = createElement(
-      AgentDiagramLinkerProviderRoot,
-      {
-        initialValue: this._agentDiagramLinker,
-        register: (listener: (v: AgentDiagramLinker | null) => void) => {
-          this._agentDiagramLinkerUpdater = listener;
-          // Flush: if setAgentDiagramLinker was called between
-          // ApollonEditor construction and the provider root's useEffect
-          // firing, the value is stored on the instance but never reached
-          // React state (the updater was null). Apply it now.
-          if (this._agentDiagramLinker !== null) {
-            listener(this._agentDiagramLinker);
-          }
-        },
-      },
-      appElement,
+    const errorBoundary = createElement(
+      ErrorBoundary,
+      { onError: this.onErrorOccurred.bind(this) },
+      this.wrapWithHostProviders(element),
     );
-    const element = createElement(
-      LineageProviderRoot,
-      {
-        initialValue: this._lineageProvider,
-        register: (listener: (v: LineageProvider | null) => void) => {
-          this._lineageProviderUpdater = listener;
-        },
-      },
-      linkedElement,
-    );
-    const pickerElement = createElement(
-      ElementPickerProviderRoot,
-      {
-        initialValue: this._elementPickerProvider,
-        register: (listener: (v: ElementPickerProvider | null) => void) => {
-          this._elementPickerProviderUpdater = listener;
-        },
-      },
-      element,
-    );
-    const errorBoundary = createElement(ErrorBoundary, { onError: this.onErrorOccurred.bind(this) }, pickerElement);
     this.root = createRoot(container);
     this.root.render(errorBoundary);
     try {
@@ -317,8 +284,7 @@ export class ApollonEditor {
    * editor captures the latest value on its next render.
    */
   setLineageProvider(provider: LineageProvider | null): void {
-    this._lineageProvider = provider;
-    this._lineageProviderUpdater?.(provider);
+    this.lineageSlot.set(provider);
   }
 
   /**
@@ -327,8 +293,7 @@ export class ApollonEditor {
    * Pass `null` to clear. Safe before or after mount.
    */
   setElementPickerProvider(provider: ElementPickerProvider | null): void {
-    this._elementPickerProvider = provider;
-    this._elementPickerProviderUpdater?.(provider);
+    this.elementPickerSlot.set(provider);
   }
 
   /**
@@ -338,8 +303,12 @@ export class ApollonEditor {
    * the editor captures the latest value on its next render.
    */
   setAgentDiagramLinker(linker: AgentDiagramLinker | null): void {
-    this._agentDiagramLinker = linker;
-    this._agentDiagramLinkerUpdater?.(linker);
+    this.agentDiagramLinkerSlot.set(linker);
+  }
+
+  /** Wraps the application element in the host-provider roots read by the popups. */
+  private wrapWithHostProviders(app: ReactElement): ReactElement {
+    return this.elementPickerSlot.wrap(this.lineageSlot.wrap(this.agentDiagramLinkerSlot.wrap(app)));
   }
 
   /**
@@ -537,33 +506,37 @@ export class ApollonEditor {
   private onDispatch = () => {
     if (!this.store) return;
     const { elements, selected, assessments } = this.store.getState();
-    const selection: Apollon.Selection = {
-      elements: selected
-        .filter((id) => elements[id].type in UMLElementType)
-        .reduce((acc, id) => ({ ...acc, [id]: true }), {}),
-      relationships: selected
-        .filter((id) => elements[id].type in UMLRelationshipType)
-        .reduce((acc, id) => ({ ...acc, [id]: true }), {}),
-    };
+    // Runs on every dispatch (each drag step); only recompute when the slice itself changed.
+    if (selected !== this.lastSelected) {
+      this.lastSelected = selected;
+      const selection: Apollon.Selection = { elements: {}, relationships: {} };
+      for (const id of selected) {
+        if (elements[id].type in UMLElementType) selection.elements[id] = true;
+        else if (elements[id].type in UMLRelationshipType) selection.relationships[id] = true;
+      }
 
-    // check if previous selection differs from current selection, if yes -> notify subscribers
-    if (JSON.stringify(this.selection) !== JSON.stringify(selection)) {
-      Object.values(this.selectionSubscribers).forEach((subscriber) => subscriber(selection));
-      this.selection = selection;
+      // check if previous selection differs from current selection, if yes -> notify subscribers
+      if (JSON.stringify(this.selection) !== JSON.stringify(selection)) {
+        Object.values(this.selectionSubscribers).forEach((subscriber) => subscriber(selection));
+        this.selection = selection;
+      }
     }
 
-    const umlAssessments = Object.keys(assessments).map<Apollon.Assessment>((id) => ({
-      modelElementId: id,
-      elementType: elements[id].type as Apollon.UMLElementType | Apollon.UMLRelationshipType,
-      score: assessments[id].score,
-      feedback: assessments[id].feedback,
-      dropInfo: assessments[id].dropInfo,
-    }));
+    if (assessments !== this.lastAssessments) {
+      this.lastAssessments = assessments;
+      const umlAssessments = Object.keys(assessments).map<Apollon.Assessment>((id) => ({
+        modelElementId: id,
+        elementType: elements[id].type as Apollon.UMLElementType | Apollon.UMLRelationshipType,
+        score: assessments[id].score,
+        feedback: assessments[id].feedback,
+        dropInfo: assessments[id].dropInfo,
+      }));
 
-    // check if previous assessment differs from current selection, if yes -> notify subscribers
-    if (JSON.stringify(this.assessments) !== JSON.stringify(umlAssessments)) {
-      Object.values(this.assessmentSubscribers).forEach((subscriber) => subscriber(umlAssessments));
-      this.assessments = umlAssessments;
+      // check if previous assessment differs from current selection, if yes -> notify subscribers
+      if (JSON.stringify(this.assessments) !== JSON.stringify(umlAssessments)) {
+        Object.values(this.assessmentSubscribers).forEach((subscriber) => subscriber(umlAssessments));
+        this.assessments = umlAssessments;
+      }
     }
 
     // notfiy that action was done
@@ -579,7 +552,6 @@ export class ApollonEditor {
     try {
       // if state not available -> do not emit changes
       if (!this.store) return;
-      const model = this.model;
       if (
         // At the end of each update operation there is an action that ends with END except DELETE
         // Function is called with every redux action but only notifies subscribers if the action ends with given words
@@ -599,6 +571,9 @@ export class ApollonEditor {
     try {
       // if state not available -> do not emit changes
       if (!this.store) return;
+      // Mid-drag/resize every pointer move lands here; emit once the gesture ends.
+      const { moving, resizing } = this.store.getState();
+      if (moving.length || resizing.length) return;
       const model = this.model;
       const lastModel = this.currentModelState ? ModelState.toModel(this.currentModelState) : null;
       if ((!lastModel && model) || (lastModel && JSON.stringify(model) !== JSON.stringify(lastModel))) {
@@ -641,7 +616,7 @@ export class ApollonEditor {
       nextRenderResolve = resolve;
     });
 
-    const appElement = createElement(Application, {
+    const element = createElement(Application, {
       ref: async (app: Application) => {
         if (app == null) return;
         this.application = app;
@@ -654,43 +629,11 @@ export class ApollonEditor {
       styles: this.options.theme,
       locale: this.options.locale,
     } as any);
-    // Re-wrap on every editor rebuild; the updater is captured fresh.
-    // Same re-wrap for the agent-diagram linker provider, including
-    // the post-mount flush to handle restoreEditor's re-mount timing too.
-    const linkedElement = createElement(
-      AgentDiagramLinkerProviderRoot,
-      {
-        initialValue: this._agentDiagramLinker,
-        register: (listener: (v: AgentDiagramLinker | null) => void) => {
-          this._agentDiagramLinkerUpdater = listener;
-          if (this._agentDiagramLinker !== null) {
-            listener(this._agentDiagramLinker);
-          }
-        },
-      },
-      appElement,
+    const errorBoundary = createElement(
+      ErrorBoundary,
+      { onError: this.onErrorOccurred.bind(this) },
+      this.wrapWithHostProviders(element),
     );
-    const element = createElement(
-      LineageProviderRoot,
-      {
-        initialValue: this._lineageProvider,
-        register: (listener: (v: LineageProvider | null) => void) => {
-          this._lineageProviderUpdater = listener;
-        },
-      },
-      linkedElement,
-    );
-    const pickerElement = createElement(
-      ElementPickerProviderRoot,
-      {
-        initialValue: this._elementPickerProvider,
-        register: (listener: (v: ElementPickerProvider | null) => void) => {
-          this._elementPickerProviderUpdater = listener;
-        },
-      },
-      element,
-    );
-    const errorBoundary = createElement(ErrorBoundary, { onError: this.onErrorOccurred.bind(this) }, pickerElement);
     this.root = createRoot(this.container);
     this.root.render(errorBoundary);
     this.componentDidMount();

@@ -8,14 +8,14 @@ import { DropdownItemProps, StyledDropdown, StyledDropdownItem } from './dropdow
 const defaultProps = Object.freeze({
   color: 'primary' as Color,
   outline: true as boolean,
-  placeholder: '',
+  placeholder: '' as string,
   size: 'sm' as Size,
 });
 
 const initialState = Object.freeze({
   show: false as boolean,
   top: 0 as number,
-  right: 0 as number,
+  left: 0 as number,
   width: 0 as number,
 });
 
@@ -32,6 +32,16 @@ export class Dropdown<T> extends Component<Props<T>, State> {
   static Item = DropdownItem;
   state = initialState;
   activator = createRef<HTMLButtonElement>();
+  menu = createRef<HTMLDivElement>();
+
+  componentDidUpdate(_: Props<T>, prevState: State) {
+    // Move focus into the list when it opens, onto the current value if there is one.
+    if (!prevState.show && this.state.show && this.menu.current) {
+      const options = this.getOptions();
+      const current = options.find((option) => option.getAttribute('aria-selected') === 'true') ?? options[0];
+      if (current) this.focusOption(current);
+    }
+  }
 
   componentWillUnmount() {
     if (this.activator.current) {
@@ -43,7 +53,7 @@ export class Dropdown<T> extends Component<Props<T>, State> {
 
   render() {
     const { color, outline, size } = this.props;
-    const { show, top, right, width } = this.state;
+    const { show, top, left, width } = this.state;
     const selected: ReactElement<ItemProps<T>> | undefined = (
       Children.toArray(this.props.children) as ReactElement<ItemProps<T>>[]
     ).find((item: ReactElement<ItemProps<T>>) => item.props.value === this.props.value);
@@ -54,13 +64,21 @@ export class Dropdown<T> extends Component<Props<T>, State> {
           ref={this.activator}
           color={color}
           onClick={(event) => this.show(event)}
+          onKeyDown={this.onActivatorKeyDown}
           outline={outline}
           size={size}
+          aria-haspopup="listbox"
+          aria-expanded={show}
         >
           {selected ? selected.props.children : this.props.placeholder}
         </DropdownButton>
         {show && (
-          <DropdownMenu style={{ top, right, minWidth: width }}>
+          <DropdownMenu
+            ref={this.menu}
+            role="listbox"
+            style={{ top, left, minWidth: width }}
+            onKeyDown={this.onMenuKeyDown}
+          >
             {Children.map<ReactElement<DropdownItemProps>, ReactElement<ItemProps<T>>>(
               this.props.children,
               ({ props }) => this.renderItem(props),
@@ -75,7 +93,13 @@ export class Dropdown<T> extends Component<Props<T>, State> {
     const { size } = this.props;
 
     return (
-      <StyledDropdownItem size={size} onClick={this.select(item.value)}>
+      <StyledDropdownItem
+        size={size}
+        onClick={this.select(item.value)}
+        role="option"
+        aria-selected={item.value === this.props.value}
+        tabIndex={-1}
+      >
         {item.children}
       </StyledDropdownItem>
     );
@@ -97,6 +121,65 @@ export class Dropdown<T> extends Component<Props<T>, State> {
     }
 
     this.props.onChange(value);
+    this.activator.current?.focus({ preventScroll: true });
+  };
+
+  private getOptions = (): HTMLElement[] =>
+    this.menu.current ? Array.from(this.menu.current.querySelectorAll<HTMLElement>('[role="option"]')) : [];
+
+  /** Focus an option, scrolling only the menu itself: scrolling the page would dismiss it. */
+  private focusOption = (option: HTMLElement | undefined) => {
+    const menu = this.menu.current;
+    if (!option || !menu) return;
+    option.focus({ preventScroll: true });
+    const top = option.offsetTop;
+    const bottom = top + option.offsetHeight;
+    if (top < menu.scrollTop) {
+      menu.scrollTop = top;
+    } else if (bottom > menu.scrollTop + menu.clientHeight) {
+      menu.scrollTop = bottom - menu.clientHeight;
+    }
+  };
+
+  private onActivatorKeyDown = (event: React.KeyboardEvent) => {
+    if ((event.key === 'ArrowDown' || event.key === 'ArrowUp') && !this.state.show) {
+      event.preventDefault();
+      // Arrow keys would otherwise also move the selected canvas elements.
+      event.stopPropagation();
+      this.activator.current?.click();
+    }
+  };
+
+  private onMenuKeyDown = (event: React.KeyboardEvent) => {
+    const options = this.getOptions();
+    const index = options.indexOf(document.activeElement as HTMLElement);
+    switch (event.key) {
+      case 'ArrowDown':
+        this.focusOption(options[Math.min(index + 1, options.length - 1)]);
+        break;
+      case 'ArrowUp':
+        this.focusOption(options[Math.max(index - 1, 0)]);
+        break;
+      case 'Home':
+        this.focusOption(options[0]);
+        break;
+      case 'End':
+        this.focusOption(options[options.length - 1]);
+        break;
+      case 'Escape':
+        this.dismiss();
+        this.activator.current?.focus({ preventScroll: true });
+        break;
+      case 'Tab':
+        this.dismiss();
+        return;
+      default:
+        // Enter and Space activate the focused option natively (it is a button).
+        return;
+    }
+    event.preventDefault();
+    // Escape would otherwise also close the properties panel, arrows would move canvas elements.
+    event.stopPropagation();
   };
 
   private show = (event: React.MouseEvent) => {
@@ -115,7 +198,7 @@ export class Dropdown<T> extends Component<Props<T>, State> {
     this.setState({
       show: true,
       top: activatorBounds.bottom,
-      right: Math.max(8, document.documentElement.clientWidth - activatorBounds.right),
+      left: activatorBounds.left,
       width: activatorBounds.width,
     });
 

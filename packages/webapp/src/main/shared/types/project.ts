@@ -14,7 +14,7 @@ export type SupportedDiagramType =
   | 'BPMN';
 
 export const MAX_DIAGRAMS_PER_TYPE = 5;
-export const PROJECT_SCHEMA_VERSION = 4;
+export const PROJECT_SCHEMA_VERSION = 5;
 
 export const ALL_DIAGRAM_TYPES: SupportedDiagramType[] = [
   'ClassDiagram',
@@ -493,28 +493,17 @@ export const isProject = (obj: any): obj is BesserProject => {
     obj.diagrams.StateMachineDiagram &&
     obj.diagrams.AgentDiagram &&
     obj.diagrams.GUINoCodeDiagram &&
-    obj.diagrams.QuantumCircuitDiagram;
+    obj.diagrams.QuantumCircuitDiagram &&
+    obj.diagrams.BPMN;
 
   return !!hasRequiredDiagrams;
 };
 
 // Migrate/normalize a project object (called after isProject check, mutates in place)
 export const ensureProjectMigrated = (obj: BesserProject): BesserProject => {
-  // Defensive bucket-fill: any diagram type added in `ALL_DIAGRAM_TYPES` after the
-  // project was last saved gets an empty seed diagram. Catches projects from older
-  // commits without forcing a schema-version bump for every new diagram type.
-  for (const type of ALL_DIAGRAM_TYPES) {
-    if (!(obj.diagrams as any)[type]) {
-      const umlType = toUMLDiagramType(type);
-      const kind = type === 'GUINoCodeDiagram' ? 'gui' : type === 'QuantumCircuitDiagram' ? 'quantum' : undefined;
-      const title =
-        type === 'QuantumCircuitDiagram'
-          ? 'Quantum Circuit'
-          : type === 'GUINoCodeDiagram'
-            ? 'GUI Diagram'
-            : type.replace('Diagram', ' Diagram');
-      (obj.diagrams as any)[type] = [createEmptyDiagram(title, umlType, kind)];
-    }
+  // Add QuantumCircuitDiagram if missing
+  if (!obj.diagrams.QuantumCircuitDiagram) {
+    obj.diagrams.QuantumCircuitDiagram = [createEmptyDiagram('Quantum Circuit', null, 'quantum')];
   }
 
   // Add BPMN diagram if missing
@@ -536,6 +525,23 @@ export const ensureProjectMigrated = (obj: BesserProject): BesserProject => {
   if (obj.currentDiagramIndices.UserDiagram === undefined) {
     obj.currentDiagramIndices.UserDiagram = 0;
   }
+
+  // Add ComponentDiagram / DeploymentDiagram if missing
+  if (!obj.diagrams.ComponentDiagram) {
+    obj.diagrams.ComponentDiagram = [createEmptyDiagram('Component Diagram', UMLDiagramType.ComponentDiagram)];
+  }
+  if (!obj.diagrams.DeploymentDiagram) {
+    obj.diagrams.DeploymentDiagram = [createEmptyDiagram('Deployment Diagram', UMLDiagramType.DeploymentDiagram)];
+  }
+  if (obj.currentDiagramIndices.ComponentDiagram === undefined) {
+    obj.currentDiagramIndices.ComponentDiagram = 0;
+  }
+  if (obj.currentDiagramIndices.DeploymentDiagram === undefined) {
+    obj.currentDiagramIndices.DeploymentDiagram = 0;
+  }
+
+  // Read before the v4 migration below creates a perspectives map.
+  const hadPerspectives = !!obj.settings?.perspectives;
 
   // Auto-migrate v1 (single diagram per type) to v2 (array per type)
   if (!obj.schemaVersion || obj.schemaVersion < 2) {
@@ -562,7 +568,30 @@ export const ensureProjectMigrated = (obj: BesserProject): BesserProject => {
     obj = migratePerspectiveSettings(obj);
   }
 
+  // Migrate v4 → v5: Component and Deployment diagrams became project types
+  if (!obj.schemaVersion || obj.schemaVersion < 5) {
+    obj = migrateComponentDeploymentPerspectives(obj, hadPerspectives);
+  }
+
   return obj;
+};
+
+/**
+ * Migrate v4 → v5: ComponentDiagram and DeploymentDiagram became project
+ * diagram types. A project whose user already chose perspectives keeps its
+ * sidebar unchanged, so both new types start hidden there; they can be enabled
+ * in Project Settings (e.g. with the Multi-Agent preset).
+ */
+const migrateComponentDeploymentPerspectives = (project: BesserProject, hadPerspectives: boolean): BesserProject => {
+  if (hadPerspectives && project.settings.perspectives) {
+    project.settings.perspectives = {
+      ...project.settings.perspectives,
+      ComponentDiagram: false,
+      DeploymentDiagram: false,
+    };
+  }
+  project.schemaVersion = 5;
+  return project;
 };
 
 /**

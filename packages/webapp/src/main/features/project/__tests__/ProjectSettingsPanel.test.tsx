@@ -125,7 +125,7 @@ describe('ProjectSettingsPanel', () => {
   it('renders loading state', () => {
     setupUseProject({ loading: true });
     renderWithStore(null);
-    expect(screen.getByText('Loading project...')).toBeInTheDocument();
+    expect(screen.getByText('Loading project…')).toBeInTheDocument();
   });
 
   it('renders error state', () => {
@@ -149,6 +149,27 @@ describe('ProjectSettingsPanel', () => {
     expect(screen.getByText('Diagrams')).toBeInTheDocument();
     expect(screen.getByText('Display')).toBeInTheDocument();
     expect(screen.getByText('Modeling Perspectives')).toBeInTheDocument();
+  });
+
+  it('shows the active editor with the sidebar label, not the raw diagram type', () => {
+    const project = createDefaultProject('Test', '', 'owner');
+    project.currentDiagramType = 'QuantumCircuitDiagram';
+    setupUseProject({ currentProject: project });
+    renderWithStore(project);
+
+    const label = screen.getByText('Active Editor');
+    expect(label.nextElementSibling?.textContent).toBe('Quantum');
+  });
+
+  it('labels diagram badges with sidebar names, never raw identifiers', () => {
+    const project = createDefaultProject('Test', '', 'owner');
+    setupUseProject({ currentProject: project });
+    renderWithStore(project);
+
+    for (const raw of ['QuantumCircuit', 'GUINoCode', 'StateMachine', 'NN']) {
+      expect(screen.queryByText(raw)).toBeNull();
+    }
+    expect(screen.getAllByText('Neural Net').length).toBeGreaterThan(0);
   });
 
   it('renders quick presets row', () => {
