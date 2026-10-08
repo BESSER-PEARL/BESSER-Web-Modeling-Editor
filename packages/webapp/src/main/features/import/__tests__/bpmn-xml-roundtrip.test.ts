@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { UMLDiagramType } from '@besser/wme';
 import type { UMLModel, BesserNode, BesserEdge } from '@besser/wme';
-import { apollonBpmnToXmlDetailed } from '../../export/bpmn-xml-exporter';
+import { bpmnModelToXmlDetailed } from '../../export/bpmn-xml-exporter';
 import { bpmnXmlToModel } from '../bpmn-xml-importer';
 
 // Round-trip test for the v4 .bpmn XML exporter ↔ importer pair.
@@ -136,7 +136,7 @@ function buildModel(): UMLModel {
 
 describe('BPMN v4 XML export ↔ import round-trip', () => {
   const original = buildModel();
-  const { xml, skipped: exportSkipped } = apollonBpmnToXmlDetailed(original);
+  const { xml, skipped: exportSkipped } = bpmnModelToXmlDetailed(original);
   const result = bpmnXmlToModel(xml);
 
   const inNodes = new Map(original.nodes.map((n) => [n.id, n]));

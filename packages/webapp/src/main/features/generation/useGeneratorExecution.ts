@@ -64,7 +64,7 @@ import {
 import { getWorkspaceContext } from '../../shared/utils/workspaceContext';
 import { prepareAgentModelForBackend } from '../../shared/utils/projectExportUtils';
 import type { GeneratorType } from '../../app/shell/workspace-types';
-import { apollonBpmnToXml } from '../export/bpmn-xml-exporter';
+import { bpmnModelToXml } from '../export/bpmn-xml-exporter';
 import i18n from '../../shared/i18n';
 import {
   buildAllWebAppVersions,
@@ -886,7 +886,7 @@ export function useGeneratorExecution(editor: BesserEditor | undefined): UseGene
             return { ok: false, error: 'The active BPMN diagram has no model to export.' };
           }
           try {
-            const xml = apollonBpmnToXml(bpmnModel);
+            const xml = bpmnModelToXml(bpmnModel);
             const filename = `${activeDiagramTitle || 'diagram'}.bpmn`;
             const blob = new Blob([xml], { type: 'application/xml' });
             const url = URL.createObjectURL(blob);

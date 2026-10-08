@@ -101,13 +101,13 @@ function canSourceCarryDefault(node: BesserNode | undefined): boolean {
  * Serialize a v4 BPMN UMLModel to a BPMN 2.0 XML string. This is the signature
  * `useGeneratorExecution.ts`'s `'bpmn'` case and the round-trip test call
  * directly. Elements not mapped to standard BPMN 2.0 are silently dropped; use
- * {@link apollonBpmnToXmlDetailed} if you need the skipped report.
+ * {@link bpmnModelToXmlDetailed} if you need the skipped report.
  */
-export function apollonBpmnToXml(model: UMLModel, opts: ExportOptions = {}): string {
-  return apollonBpmnToXmlDetailed(model, opts).xml;
+export function bpmnModelToXml(model: UMLModel, opts: ExportOptions = {}): string {
+  return bpmnModelToXmlDetailed(model, opts).xml;
 }
 
-export function apollonBpmnToXmlDetailed(model: UMLModel, opts: ExportOptions = {}): ExportResult {
+export function bpmnModelToXmlDetailed(model: UMLModel, opts: ExportOptions = {}): ExportResult {
   const targetNs = opts.targetNamespace ?? 'http://besser-pearl.org/bpmn';
   const skipped: ExportResult['skipped'] = [];
 

@@ -9,7 +9,7 @@ import {
   generateGovernanceDsl,
 } from '@besser/wme';
 import type { UMLModel, BesserNode, BesserEdge } from '@besser/wme';
-import { apollonBpmnToXml } from '../export/bpmn-xml-exporter';
+import { bpmnModelToXml } from '../export/bpmn-xml-exporter';
 import { bpmnXmlToModel } from './bpmn-xml-importer';
 
 // ─── v4 fixture helpers ─────────────────────────────────────────────────────
@@ -103,7 +103,7 @@ describe('clampMultiplicity', () => {
 
 describe('agentic round-trip', () => {
   it('preserves agentic attributes through export → import', () => {
-    const xml = apollonBpmnToXml(buildFixtureAgenticModel());
+    const xml = bpmnModelToXml(buildFixtureAgenticModel());
     const { model: parsed, warnings } = bpmnXmlToModel(xml);
     // The fixture intentionally has a merging gateway with no sequence-flow
     // upstream (a shape collection, not a valid collaboration block). The
@@ -138,7 +138,7 @@ describe('agentic round-trip', () => {
     const mf = model.edges.find((e) => e.id === 'MF_1')!;
     Object.assign(mf.data, { isAgentic: true, trustScore: 55 });
 
-    const xml = apollonBpmnToXml(model);
+    const xml = bpmnModelToXml(model);
     expect(xml).toMatch(/<bpmn:messageFlow [^>]*>\s*<bpmn:extensionElements>\s*<agentic:agentic trustScore="55"/);
 
     const { model: parsed } = bpmnXmlToModel(xml);
@@ -148,7 +148,7 @@ describe('agentic round-trip', () => {
   });
 
   it('warns on a malformed trustScore and still loads the element', () => {
-    const xml = apollonBpmnToXml(buildFixtureAgenticModel());
+    const xml = bpmnModelToXml(buildFixtureAgenticModel());
     // The agentic lane carries trustScore="90"; corrupt it.
     const corrupted = xml.replace('trustScore="90"', 'trustScore="bogus"');
     const { warnings, model } = bpmnXmlToModel(corrupted);
@@ -159,7 +159,7 @@ describe('agentic round-trip', () => {
   it('warns on a malformed multiplicity and still loads the lane', () => {
     const model = buildFixtureAgenticModel();
     nodeData(model, 'Lane_1').multiplicity = 3;
-    const corrupted = apollonBpmnToXml(model).replace('multiplicity="3"', 'multiplicity="lots"');
+    const corrupted = bpmnModelToXml(model).replace('multiplicity="3"', 'multiplicity="lots"');
     const { warnings, model: parsed } = bpmnXmlToModel(corrupted);
     expect(warnings.some((w) => w.code === 'agentic-bad-multiplicity')).toBe(true);
     const lane = dataByName(parsed, 'AgentReviewer');
@@ -170,7 +170,7 @@ describe('agentic round-trip', () => {
   });
 
   it('warns on an unknown enum value', () => {
-    const xml = apollonBpmnToXml(buildFixtureAgenticModel());
+    const xml = bpmnModelToXml(buildFixtureAgenticModel());
     // The agentic task carries reflectionMode="cross"; corrupt to an unknown value.
     const corrupted = xml.replace('reflectionMode="cross"', 'reflectionMode="telepathy"');
     const { warnings } = bpmnXmlToModel(corrupted);
@@ -178,7 +178,7 @@ describe('agentic round-trip', () => {
   });
 
   it('non-agentic export contains no agentic extension blocks', () => {
-    const xml = apollonBpmnToXml(buildFixtureNonAgenticModel());
+    const xml = bpmnModelToXml(buildFixtureNonAgenticModel());
     expect(xml).toContain('xmlns:agentic=');
     expect(xml).not.toContain('<agentic:agentic');
     expect(xml).not.toContain('<bpmn:extensionElements>');
@@ -190,7 +190,7 @@ describe('agentic round-trip', () => {
     const model = buildFixtureAgenticModel();
     nodeData(model, 'Lane_1').agentDiagramRef = REF;
 
-    const xml = apollonBpmnToXml(model);
+    const xml = bpmnModelToXml(model);
     // Sanity: the attribute lands on the lane's agentic block.
     expect(xml).toMatch(/<agentic:agentic[^/]*agentDiagramRef="3f0a1c2d-4e5b-4f6a-9012-3456789abcde"/);
 
@@ -207,7 +207,7 @@ describe('agentic round-trip', () => {
     const lane = model.nodes.find((n) => n.type === 'bpmnSwimlane');
     expect(lane).toBeDefined();
     lane!.data.agentDiagramRef = 'should-not-be-emitted';
-    const xml = apollonBpmnToXml(model);
+    const xml = bpmnModelToXml(model);
     expect(xml).not.toContain('agentDiagramRef=');
     expect(xml).not.toContain('<agentic:agentic');
   });
@@ -215,7 +215,7 @@ describe('agentic round-trip', () => {
   // Extension block present but no agentDiagramRef attribute → field stays
   // undefined; no warning.
   it('leaves agentDiagramRef undefined when the attribute is absent', () => {
-    const xml = apollonBpmnToXml(buildFixtureAgenticModel());
+    const xml = bpmnModelToXml(buildFixtureAgenticModel());
     expect(xml).not.toContain('agentDiagramRef='); // fixture has no ref
     const { model: parsed, warnings } = bpmnXmlToModel(xml);
     expect(dataByName(parsed, 'AgentReviewer')?.agentDiagramRef).toBeUndefined();
@@ -228,7 +228,7 @@ describe('agentic round-trip', () => {
     const model = buildFixtureAgenticModel();
     nodeData(model, 'Task_1').agentDiagramRef = REF;
 
-    const xml = apollonBpmnToXml(model);
+    const xml = bpmnModelToXml(model);
     expect(xml).toMatch(/agentDiagramRef="7c1e9a40-2b3c-4d5e-8f90-1a2b3c4d5e6f"/);
 
     const { model: parsed } = bpmnXmlToModel(xml);
@@ -241,7 +241,7 @@ describe('agentic round-trip', () => {
     const plainTask = model.nodes.find((n) => n.type === 'bpmnTask');
     expect(plainTask).toBeDefined();
     plainTask!.data.agentDiagramRef = 'should-not-be-emitted';
-    const xml = apollonBpmnToXml(model);
+    const xml = bpmnModelToXml(model);
     expect(xml).not.toContain('agentDiagramRef=');
   });
 });
@@ -259,7 +259,7 @@ describe('importer orphaned-merging-gateway warning', () => {
         { x: 80, y: 80, width: 40, height: 40 },
       ),
     ]);
-    const { warnings } = bpmnXmlToModel(apollonBpmnToXml(model));
+    const { warnings } = bpmnXmlToModel(bpmnModelToXml(model));
     const orphan = warnings.find((w) => w.code === 'orphaned-merging-gateway');
     expect(orphan?.message).toContain('"OrphanOR"');
   });
@@ -539,7 +539,7 @@ describe('governance DSL round-trip', () => {
     ].join('\n');
     mergingGatewayData(model)!.governanceDsl = dsl;
 
-    const xml = apollonBpmnToXml(model);
+    const xml = bpmnModelToXml(model);
     expect(xml).toContain('<agentic:governance><![CDATA[');
 
     const { model: parsed } = bpmnXmlToModel(xml);
@@ -550,7 +550,7 @@ describe('governance DSL round-trip', () => {
     const model = buildFixtureAgenticModel();
     const dsl = '// edge ]]> case\nMajorityPolicy P { Scope: S }';
     mergingGatewayData(model)!.governanceDsl = dsl;
-    const { model: parsed } = bpmnXmlToModel(apollonBpmnToXml(model));
+    const { model: parsed } = bpmnXmlToModel(bpmnModelToXml(model));
     expect(mergingGatewayData(parsed)?.governanceDsl).toBe(dsl);
   });
 });

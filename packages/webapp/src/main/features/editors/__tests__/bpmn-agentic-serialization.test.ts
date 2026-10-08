@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { convertV3ToV4 } from '@besser/wme';
 import type { UMLModel } from '@besser/wme';
-import { apollonBpmnToXml } from '../../export/bpmn-xml-exporter';
+import { bpmnModelToXml } from '../../export/bpmn-xml-exporter';
 import { bpmnXmlToModel } from '../../import/bpmn-xml-importer';
 
 // Agentic BPMN fields on the v4 model: a stored v3 diagram converts with them on
@@ -65,7 +65,7 @@ const dataOf = (model: UMLModel, id: string): Record<string, unknown> => {
 };
 
 // Re-import matches by name; the XML ids are the v4 ids.
-const roundTrip = (model: UMLModel): UMLModel => bpmnXmlToModel(apollonBpmnToXml(model)).model;
+const roundTrip = (model: UMLModel): UMLModel => bpmnXmlToModel(bpmnModelToXml(model)).model;
 
 describe('agentic BPMN fields on the v4 model', () => {
   it('writes no agentic fields for plain tasks, gateways and lanes', () => {
