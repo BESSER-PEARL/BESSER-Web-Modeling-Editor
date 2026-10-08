@@ -1,4 +1,9 @@
-import { NodeProps, NodeResizer, type Node } from "@xyflow/react"
+import {
+  NodeProps,
+  NodeResizeControl,
+  type Node,
+  type ResizeControlVariant,
+} from "@xyflow/react"
 import { usePopoverAnchor } from "@/hooks/usePopoverAnchor"
 import { DefaultNodeWrapper } from "../wrappers"
 import { useEffect } from "react"
@@ -8,6 +13,7 @@ import { BPMNSwimlaneProps } from "@/types"
 import { BPMNSwimlaneNodeSVG } from "@/components"
 import { NodeToolbar } from "@/components/toolbars/NodeToolbar"
 import { useSwimlaneLayout, SWIMLANE_MIN_HEIGHT } from "@/hooks/useSwimlaneLayout"
+import { LANE_HEADER_WIDTH } from "@/utils/bpmnConstraints"
 
 /**
  * A pool's swimlanes are React-Flow CHILD nodes of the pool, and React Flow
@@ -45,8 +51,9 @@ function ensureSwimlanePassthroughStyle(): void {
  * A swimlane — a Pool subdivision. Modeled on BPMNPool but:
  *  - not draggable (set at creation time in the drop / lane-insert action,
  *    not here — this component only renders);
- *  - vertically resizable only: `shouldResize` rejects any horizontal
- *    delta, since the lane width is pool-driven (`pool.width - HEADER`);
+ *  - resizable from its bottom edge only, since the lane width and the
+ *    outer edges are pool-driven (`pool.width - HEADER`);
+ *  - selectable through its header strip (the body passes clicks through);
  *  - resizing re-flows the owning pool via `useSwimlaneLayout`.
  *
  * Renaming a lane happens through the Pool's lane-list UI
@@ -85,18 +92,33 @@ export function BPMNSwimlane({
     >
       <NodeToolbar elementId={id} />
 
-      <NodeResizer
-        isVisible={isDiagramModifiable}
-        onResize={parentId ? onLaneResize(parentId, id) : undefined}
-        // Lane width is fully pool-driven — reject any horizontal resize.
-        shouldResize={(_event, params) => params.direction[0] === 0}
-        minHeight={SWIMLANE_MIN_HEIGHT}
-        // Keep the lane's own resize handles clickable even though the lane
-        // body is `pointer-events: none` (the global rule re-enables
-        // `.react-flow__resize-control`); an explicit value here is belt-and-
-        // suspenders so a vertical lane resize keeps working.
-        handleStyle={{ width: 8, height: 8, pointerEvents: "all" }}
-        lineStyle={{ pointerEvents: "all" }}
+      {/* Only the bottom edge resizes a lane: its other edges coincide with
+          the pool's, whose own resize handles must stay reachable (a lane
+          line over the pool's right edge made a laned pool unwidenable). */}
+      {isDiagramModifiable && parentId && (
+        <NodeResizeControl
+          position="bottom"
+          variant={"line" as ResizeControlVariant}
+          onResize={onLaneResize(parentId, id)}
+          shouldResize={(_event, params) => params.direction[0] === 0}
+          minHeight={SWIMLANE_MIN_HEIGHT}
+          style={{ pointerEvents: "all" }}
+        />
+      )}
+      {/* The header strip (lane name) takes the pointer, so a click selects
+          the lane itself rather than falling through to the pool. */}
+      <div
+        className="besser-bpmn-lane-header"
+        style={{
+          position: "absolute",
+          left: 0,
+          top: 0,
+          width: LANE_HEADER_WIDTH,
+          height,
+          pointerEvents: "all",
+          cursor: "pointer",
+          zIndex: 1,
+        }}
       />
       <div ref={svgWrapperRef}>
         <BPMNSwimlaneNodeSVG

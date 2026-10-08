@@ -19,7 +19,7 @@ import { DividerLine, NodeStyleEditor, Typography } from "@/components/ui"
 import { PopoverProps } from "@/components/popovers/types"
 import { useTranslation, type Translate } from "@/i18n"
 import { resolveReplyType, withActionType } from "@/utils/agentActions"
-import { InspectorSectionHeader } from "../_shared"
+import { InspectorSectionHeader, useCodeMirrorTheme } from "../_shared"
 import { AgentActionCard } from "./AgentActionCard"
 import { AgentActionEditor, Warning } from "./AgentActionEditor"
 import { AgentNewActionPicker } from "./AgentNewActionPicker"
@@ -195,6 +195,7 @@ const getActionSummary = (t: Translate, row: AgentStateBodyRow): string => {
 
 export const AgentStateEditPanel: React.FC<PopoverProps> = ({ elementId }) => {
   const { t } = useTranslation()
+  const codeTheme = useCodeMirrorTheme()
   const { nodes, setNodes } = useDiagramStore(
     useShallow((state) => ({
       nodes: state.nodes,
@@ -422,6 +423,7 @@ export const AgentStateEditPanel: React.FC<PopoverProps> = ({ elementId }) => {
         }}
       >
         <CodeMirror
+          theme={codeTheme}
           value={codeValue}
           extensions={[python()]}
           onChange={(v) => updateRow(section, codeRow.id, { code: v, name: v })}

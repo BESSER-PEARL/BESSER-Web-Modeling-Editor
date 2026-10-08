@@ -542,17 +542,6 @@ export const NNComponentEditPanel: React.FC<PopoverProps> = ({
       />
       <DividerLine width="100%" />
 
-      {schema.some((f) => f.slug === "name") && (
-        <MuiTextField
-          size="small"
-          variant="outlined"
-          fullWidth
-          label="name"
-          value={data.name ?? ""}
-          onChange={(e) => updateName(e.target.value)}
-        />
-      )}
-
       {mandatoryFields.map((field) => (
         <NNAttributeRow
           key={`m-${field.slug}`}
@@ -667,11 +656,13 @@ const NNAttributeRow: React.FC<NNAttributeRowProps> = (props) => {
   const [error, setError] = React.useState<string | null>(null)
   const label = field.label ?? field.slug
 
+  const checkboxId = React.useId()
   const checkbox = onEnabledChange ? (
     <Checkbox
       size="small"
       checked={enabled}
       onChange={(e) => onEnabledChange(e.target.checked)}
+      inputProps={{ id: checkboxId }}
     />
   ) : null
 
@@ -690,16 +681,28 @@ const NNAttributeRow: React.FC<NNAttributeRowProps> = (props) => {
         spacing={0.5}
       >
         {checkbox}
-        <Typography variant="caption" sx={{ minWidth: 100, pt: stacked ? 1 : 0 }}>
-          {label}
-        </Typography>
-        {enabled ? (
-          <NNAttributeWidget {...props} onError={setError} />
+        {/* An optional row's name is the checkbox's <label>: clicking it
+            toggles the field. */}
+        {checkbox ? (
+          <Box
+            component="label"
+            htmlFor={checkboxId}
+            sx={{
+              typography: "caption",
+              color: "var(--besser-primary-contrast, #000000)",
+              minWidth: 100,
+              pt: stacked ? 1 : 0,
+              cursor: "pointer",
+            }}
+          >
+            {label}
+          </Box>
         ) : (
-          <Typography variant="caption" sx={{ color: "text.secondary" }}>
-            {t("popup.nn.row.unchecked", "unchecked")}
+          <Typography variant="caption" sx={{ minWidth: 100, pt: stacked ? 1 : 0 }}>
+            {label}
           </Typography>
         )}
+        {enabled && <NNAttributeWidget {...props} onError={setError} />}
       </Stack>
       {below && <NNStructuredEditor {...props} />}
       {enabled && error && (
@@ -919,7 +922,14 @@ const ValidatedTextField: React.FC<{
     const outcome = validateOnSubmit(draft.trim(), ctx())
     setDraft(null)
     if (!outcome) return
-    onError(outcome.error)
+    // An invalid submit reverts the field, so say so next to the error.
+    onError(
+      outcome.error && outcome.reset
+        ? `${outcome.error.replace(/[.\s]+$/, "")}. ${t("popup.nn.row.reverted", "Reverted to {{value}}.", {
+            value: outcome.value === "" ? '""' : outcome.value,
+          })}`
+        : outcome.error
+    )
     if (outcome.value !== value) onCommit(outcome.value)
   }
 

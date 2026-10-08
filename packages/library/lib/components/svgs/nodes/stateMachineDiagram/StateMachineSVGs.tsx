@@ -161,7 +161,7 @@ export const StateFinalNodeSVG: React.FC<SVGComponentProps> = ({
         cx={width / 2}
         cy={height / 2}
         r={(Math.min(width, height) / 2) * 0.9}
-        fill="white"
+        fill="var(--besser-background, #ffffff)"
         stroke="var(--besser-primary-contrast, #000)"
         strokeWidth={2}
       />
@@ -369,8 +369,17 @@ export const StateCodeBlockSVG: React.FC<SVGComponentProps> = ({
         rx={8}
         ry={8}
         fill="var(--besser-primary-contrast, #000)"
+        fillOpacity={0.12}
+        stroke="var(--besser-primary-contrast, #000)"
+        strokeWidth={1}
       />
-      <text x={10} y={14} fontSize={10} fill="var(--besser-background, #ffffff)">
+      <text
+        x={10}
+        y={14}
+        fontSize={10}
+        fontWeight="bold"
+        fill="var(--besser-primary-contrast, #000)"
+      >
         Python
       </text>
       {/*

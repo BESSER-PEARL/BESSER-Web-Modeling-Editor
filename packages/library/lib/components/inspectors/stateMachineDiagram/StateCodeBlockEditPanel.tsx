@@ -8,15 +8,11 @@ import { StateCodeBlockProps } from "@/types"
 import { DividerLine, NodeStyleEditor, Typography } from "@/components/ui"
 import { PopoverProps } from "@/components/popovers/types"
 import { useTranslation } from "@/i18n"
-import { InspectorSectionHeader } from "../_shared"
+import { InspectorSectionHeader, balLanguage, useCodeMirrorTheme } from "../_shared"
 
 /**
- * Inspector body for `StateCodeBlock`. The body is a multi-line
- * code editor; v3 limited the language to Python but the inline
- * `language` field is exposed here for future BAL support.
- *
- * The `code` field uses CodeMirror with Python
- * syntax highlighting instead of plain MUI multiline.
+ * Inspector body for `StateCodeBlock`: a CodeMirror editor highlighting
+ * Python or BAL per the block's `language`.
  */
 const LANGUAGES = [
   { value: "python", label: "Python" },
@@ -33,10 +29,12 @@ export const StateCodeBlockEditPanel: React.FC<PopoverProps> = ({
     }))
   )
   const { t } = useTranslation()
+  const codeTheme = useCodeMirrorTheme()
   const node = nodes.find((n) => n.id === elementId)
   if (!node) return null
 
   const data = node.data as StateCodeBlockProps
+  const isBal = data.language === "bal"
 
   const update = (patch: Partial<StateCodeBlockProps>) => {
     setNodes((all) =>
@@ -89,14 +87,19 @@ export const StateCodeBlockEditPanel: React.FC<PopoverProps> = ({
         >
           <CodeMirror
             value={data.code ?? ""}
-            extensions={[python()]}
+            theme={codeTheme}
+            extensions={[isBal ? balLanguage : python()]}
             onChange={(v) => update({ code: v })}
             basicSetup={{
               lineNumbers: true,
               tabSize: 4,
               indentOnInput: true,
             }}
-            placeholder={"# Sample Python code\nprint('Hello World')"}
+            placeholder={
+              isBal
+                ? "// Sample BAL code\nthis.count = this.count + 1;"
+                : "# Sample Python code\nprint('Hello World')"
+            }
           />
         </Box>
       </Stack>

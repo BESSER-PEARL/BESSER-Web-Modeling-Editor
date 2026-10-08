@@ -230,7 +230,7 @@ export const NNContainerSVG: React.FC<SVGComponentProps> = ({
         y={0}
         width={tabWidth}
         height={tabHeight}
-        fill="white"
+        fill="var(--besser-background, #ffffff)"
         stroke={stroke}
         strokeWidth={1.5}
       />
@@ -250,7 +250,7 @@ export const NNContainerSVG: React.FC<SVGComponentProps> = ({
         y={tabHeight}
         width={width}
         height={height - tabHeight}
-        fill="white"
+        fill="var(--besser-background, #ffffff)"
         stroke={stroke}
         strokeWidth={1.5}
       />

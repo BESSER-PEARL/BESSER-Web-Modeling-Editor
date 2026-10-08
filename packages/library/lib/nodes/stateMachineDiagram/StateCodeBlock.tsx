@@ -10,6 +10,11 @@ import { getCustomColorsFromData } from "@/utils/layoutUtils"
 
 const preserveTabs = (str: string): string => str.replace(/\t/g, "    ")
 
+const CODE_LANGUAGE_LABELS: Record<string, string> = {
+  python: "Python",
+  bal: "BAL",
+}
+
 /**
  * Resizable code panel. v3 source:
  * `v3 source: uml-state-code-block-component.tsx`. Header bar
@@ -75,19 +80,18 @@ export function StateCodeBlock({
             rx={cornerRadius}
             ry={cornerRadius}
             fill={strokeColor}
+            fillOpacity={0.12}
             stroke={strokeColor}
             strokeWidth={1}
           />
           <text
             x={10}
-            y={headerHeight / 2 + 5}
+            y={headerHeight / 2 + 4}
             fontSize="10"
-            fontFamily="sans-serif"
             fontWeight="bold"
-            fill="var(--besser-background, #ffffff)"
+            fill={textColor}
           >
-            {/* develop's header label read "Python". */}
-            {language === "python" ? "Python" : language}
+            {CODE_LANGUAGE_LABELS[language] ?? language}
           </text>
           <foreignObject
             x={0}

@@ -30,6 +30,7 @@ import { useDiagramStore } from "@/store/context"
 import { NNLayerNodeProps } from "@/types"
 import { LAYOUT } from "@/constants"
 import { getCustomColorsFromData } from "@/utils/layoutUtils"
+import { measureTextWidth } from "@/utils/textUtils"
 
 /**
  * Map v4 node-type → PNG file name in `/images/nn-layers/`. Mirrors
@@ -144,6 +145,42 @@ export function useUniqueNNName(id: string, nodeType: string) {
   }, [id])
 }
 
+const NN_LABEL_MIN_FONT_SIZE = 11
+
+// Canvas text inherits the app font (Sora in the webapp); measure with it.
+let labelFontFamily: string | undefined
+const getLabelFontFamily = (): string => {
+  if (!labelFontFamily && typeof document !== "undefined" && document.body) {
+    labelFontFamily = getComputedStyle(document.body).fontFamily || undefined
+  }
+  return labelFontFamily ?? "Inter, system-ui, sans-serif"
+}
+
+/**
+ * Fit a layer name into `maxWidth`: shrink the font down to
+ * `NN_LABEL_MIN_FONT_SIZE`, then truncate with an ellipsis. Default names
+ * such as `layernorm_layer` are wider than the 90 px default card.
+ */
+export function fitNNLayerLabel(
+  name: string,
+  maxWidth: number,
+  maxFontSize: number,
+  measure: (text: string, fontSize: number) => number = (text, fontSize) =>
+    measureTextWidth(text, `600 ${fontSize}px ${getLabelFontFamily()}`)
+): { text: string; fontSize: number; truncated: boolean } {
+  for (let size = maxFontSize; size >= NN_LABEL_MIN_FONT_SIZE; size -= 1) {
+    if (measure(name, size) <= maxWidth) {
+      return { text: name, fontSize: size, truncated: false }
+    }
+  }
+  const size = NN_LABEL_MIN_FONT_SIZE
+  let end = name.length
+  while (end > 1 && measure(`${name.slice(0, end)}…`, size) > maxWidth) {
+    end -= 1
+  }
+  return { text: `${name.slice(0, end)}…`, fontSize: size, truncated: true }
+}
+
 export interface NNLayerBaseProps {
   id: string
   width?: number
@@ -180,8 +217,6 @@ export function NNLayerBase({
     getCustomColorsFromData(data)
   const usesKindFill = !data.fillColor && !!defaultFill
   const fill = usesKindFill ? defaultFill : fillColor
-  // Kind fills are light pastels, so their text stays dark in dark mode too.
-  const textColor = usesKindFill && !data.textColor ? "#1f2937" : themeTextColor
   const cornerRadius = 6
   const iconFile = NN_LAYER_ICON_FILES[nodeType]
   const hasIcon = !!iconFile
@@ -204,6 +239,16 @@ export function NNLayerBase({
   const iconX = (width - iconSize) / 2
   const iconY = iconPad
   const nameY = Math.min(height - 6, iconY + iconSize + 16)
+  // Only the pastel kind card (drawn when no icon shows) needs dark text in
+  // dark mode; an icon card sits on the canvas, so it follows the theme.
+  const textColor =
+    usesKindFill && !showIcon && !data.textColor ? "#1f2937" : themeTextColor
+  // Icon cards caption the icon, so their label stays compact and uniform.
+  const label = fitNNLayerLabel(
+    data.name ?? "",
+    width - 8,
+    showIcon ? 13 : LAYOUT.NAME_FONT_SIZE
+  )
 
   return (
     <DefaultNodeWrapper width={width} height={height} elementId={id}>
@@ -211,7 +256,7 @@ export function NNLayerBase({
       <NodeResizer
         isVisible={isDiagramModifiable}
         onResize={onResize}
-        minWidth={120}
+        minWidth={80}
         minHeight={50}
         handleStyle={{ width: 8, height: 8 }}
       />
@@ -249,11 +294,12 @@ export function NNLayerBase({
                 x={width / 2}
                 y={nameY}
                 textAnchor="middle"
-                fontSize={LAYOUT.NAME_FONT_SIZE}
+                fontSize={label.fontSize}
                 fontWeight="600"
                 fill={textColor}
               >
-                {data.name}
+                {label.truncated && <title>{data.name}</title>}
+                {label.text}
               </text>
             </>
           ) : (
@@ -261,11 +307,12 @@ export function NNLayerBase({
               x={width / 2}
               y={height / 2 + 6}
               textAnchor="middle"
-              fontSize={LAYOUT.NAME_FONT_SIZE}
+              fontSize={label.fontSize}
               fontWeight="600"
               fill={textColor}
             >
-              {data.name}
+              {label.truncated && <title>{data.name}</title>}
+              {label.text}
             </text>
           )}
         </svg>

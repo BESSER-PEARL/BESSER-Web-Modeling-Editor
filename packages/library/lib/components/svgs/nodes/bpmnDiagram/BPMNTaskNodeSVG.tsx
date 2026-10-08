@@ -1,5 +1,6 @@
 import { MultilineText, StyledRect } from "@/components"
-import { maxLinesForHeight } from "@/utils/svgTextLayout"
+import { maxLinesForHeight, toCanvasFont } from "@/utils/svgTextLayout"
+import { measureTextWidth } from "@/utils/textUtils"
 import { LAYOUT } from "@/constants"
 import { useDiagramStore } from "@/store"
 import { useShallow } from "zustand/shallow"
@@ -13,13 +14,34 @@ export type BPMNTaskNodeSVGProps = SVGComponentProps & {
 }
 
 /**
- * Horizontal inset (per side) applied to the centred name's wrap width when a
- * task-type icon is drawn in the top-left corner, so the name can't slide
- * under the icon. Ported from develop's `TASK_ICON_SIDE_INSET`. The icon is a
- * 20×20 glyph at (10, 10) (right edge ~30), so a 26px inset keeps the name
- * clear of it while staying visually centred.
+ * Name box when a task-type icon is drawn: the 20×20 glyph sits at (10, 10),
+ * so the name starts right of it and keeps a small right margin, centred in
+ * what remains. develop's symmetric 26px inset per side left a 160px task
+ * ~108px per line, so ordinary words broke mid-word.
  */
-const TASK_ICON_SIDE_INSET = 26 // px, per side, matches develop
+const TASK_ICON_NAME_LEFT = 32 // px, icon right edge (30) + 2
+const TASK_ICON_NAME_RIGHT = 8 // px
+const TASK_NAME_MIN_FONT_SIZE = 12
+
+/**
+ * Largest font size (down to `minSize`) at which the longest word of `text`
+ * fits `maxWidth`, so names wrap between words instead of inside one.
+ */
+export const fitLongestWordFontSize = (
+  text: string,
+  maxWidth: number,
+  maxSize: number,
+  minSize: number = TASK_NAME_MIN_FONT_SIZE,
+  measure: (word: string, fontSize: number) => number = (word, fontSize) =>
+    measureTextWidth(word, toCanvasFont({ fontSize, fontWeight: "bold" }))
+): number => {
+  const words = (text ?? "").split(/\s+/).filter(Boolean)
+  if (words.length === 0) return maxSize
+  for (let size = maxSize; size > minSize; size -= 1) {
+    if (words.every((w) => measure(w, size) <= maxWidth)) return size
+  }
+  return minSize
+}
 /** develop `Multiline lineHeight={16}` for task names. */
 const TASK_NAME_LINE_HEIGHT = 16
 
@@ -299,6 +321,18 @@ export const BPMNTaskNodeSVG: React.FC<BPMNTaskNodeSVGProps> = ({
     }
   })()
 
+  const nameMaxWidth = icon
+    ? Math.max(1, width - TASK_ICON_NAME_LEFT - TASK_ICON_NAME_RIGHT)
+    : width - 16
+  const nameCenterX = icon
+    ? (TASK_ICON_NAME_LEFT + width - TASK_ICON_NAME_RIGHT) / 2
+    : width / 2
+  const nameFontSize = fitLongestWordFontSize(
+    name ?? "",
+    nameMaxWidth,
+    LAYOUT.NAME_FONT_SIZE
+  )
+
   return (
     <svg
       width={scaledWidth}
@@ -321,18 +355,16 @@ export const BPMNTaskNodeSVG: React.FC<BPMNTaskNodeSVGProps> = ({
 
         {icon}
         {/* develop wraps every task name the same way (16px lines,
-            `bpmn-task-component.tsx`). The type icon is cleared by the side
-            inset (TASK_ICON_SIDE_INSET per side), not by a vertical reserve
+            `bpmn-task-component.tsx`). The type icon is cleared
+            horizontally (TASK_ICON_NAME_LEFT), not by a vertical reserve
             — a vertical reserve left a 60px task one line. Only the
             bottom-centre marker reserves height. */}
         <MultilineText
           text={name}
-          x={width / 2}
+          x={nameCenterX}
           y={height / 2}
-          maxWidth={
-            icon ? Math.max(1, width - 2 * TASK_ICON_SIDE_INSET) : width - 16
-          }
-          fontSize={LAYOUT.NAME_FONT_SIZE}
+          maxWidth={nameMaxWidth}
+          fontSize={nameFontSize}
           lineHeight={TASK_NAME_LINE_HEIGHT}
           fontWeight="bold"
           fill={textColor}

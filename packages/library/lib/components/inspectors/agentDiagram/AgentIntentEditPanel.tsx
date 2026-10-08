@@ -17,6 +17,7 @@ import { useTranslation } from "@/i18n"
 import { DeleteIcon } from "@/components/Icon"
 import { generateUUID } from "@/utils"
 import { InspectorSectionHeader, AddRowButton } from "../_shared"
+import { renameIntentInTransitions } from "./agentComponentLists"
 
 /**
  * Inspector that edits the parent `AgentIntent`'s
@@ -34,12 +35,15 @@ import { InspectorSectionHeader, AddRowButton } from "../_shared"
  */
 export const AgentIntentEditPanel: React.FC<PopoverProps> = ({ elementId }) => {
   const { t } = useTranslation()
-  const { nodes, setNodes } = useDiagramStore(
+  const { nodes, setNodes, setEdges } = useDiagramStore(
     useShallow((state) => ({
       nodes: state.nodes,
       setNodes: state.setNodes,
+      setEdges: state.setEdges,
     }))
   )
+  // Row to focus once a freshly added training phrase has rendered.
+  const [focusPhraseId, setFocusPhraseId] = React.useState<string | null>(null)
   const intent = nodes.find((n) => n.id === elementId)
   if (!intent) return null
 
@@ -82,6 +86,13 @@ export const AgentIntentEditPanel: React.FC<PopoverProps> = ({ elementId }) => {
       name: "",
     }
     updateData({ training_phrases: [...phrases, next] })
+    setFocusPhraseId(next.id)
+  }
+
+  const renameIntent = (name: string) => {
+    const previous = data.name ?? ""
+    updateData({ name })
+    setEdges((all) => renameIntentInTransitions(all, previous, name))
   }
 
   return (
@@ -106,7 +117,7 @@ export const AgentIntentEditPanel: React.FC<PopoverProps> = ({ elementId }) => {
         fullWidth
         label={t("popup.agent.intent.name", "Intent Name")}
         value={data.name ?? ""}
-        onChange={(e) => updateData({ name: e.target.value })}
+        onChange={(e) => renameIntent(e.target.value)}
       />
 
       <DividerLine width="100%" />
@@ -159,6 +170,18 @@ export const AgentIntentEditPanel: React.FC<PopoverProps> = ({ elementId }) => {
               fullWidth
               value={p.name ?? ""}
               onChange={(e) => setPhrase(p.id, e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && !e.nativeEvent.isComposing) {
+                  e.preventDefault()
+                  addPhrase()
+                }
+              }}
+              inputRef={(el: HTMLInputElement | null) => {
+                if (el && p.id === focusPhraseId) {
+                  el.focus()
+                  setFocusPhraseId(null)
+                }
+              }}
               placeholder={t("packages.AgentDiagram.trainingPhrasePlaceholder", "e.g. hello")}
             />
             <IconButton

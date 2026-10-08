@@ -1,6 +1,7 @@
 import { Box, TextField as MuiTextField } from "@mui/material"
 import React from "react"
 import CodeMirror from "@uiw/react-codemirror"
+import { useCodeMirrorTheme } from "../_shared"
 import { python } from "@codemirror/lang-python"
 import { useShallow } from "zustand/shallow"
 import { useDiagramStore } from "@/store/context"
@@ -20,6 +21,7 @@ import { Warning } from "./AgentActionEditor"
  */
 export const AgentToolEditPanel: React.FC<PopoverProps> = ({ elementId }) => {
   const { t } = useTranslation()
+  const codeTheme = useCodeMirrorTheme()
   const { nodes, setNodes } = useDiagramStore(
     useShallow((state) => ({
       nodes: state.nodes,
@@ -93,6 +95,7 @@ export const AgentToolEditPanel: React.FC<PopoverProps> = ({ elementId }) => {
         }}
       >
         <CodeMirror
+          theme={codeTheme}
           value={data.code ?? ""}
           extensions={[python()]}
           onChange={(v) => update({ code: v })}

@@ -67,3 +67,36 @@ export const getAgentComponentLists = (nodes: Node[]): AgentComponentLists => {
     platform: diagramBridge.getAgentPlatform(),
   }
 }
+
+type IntentRefEdge = { data?: Record<string, unknown> }
+
+/**
+ * Point every `when_intent_matched` transition naming `oldName` at
+ * `newName`, so renaming an intent does not orphan its transitions.
+ * Returns the input array when nothing references `oldName`.
+ */
+export const renameIntentInTransitions = <E extends IntentRefEdge>(
+  edges: E[],
+  oldName: string,
+  newName: string
+): E[] => {
+  if (!oldName || oldName === newName) return edges
+  let changed = false
+  const next = edges.map((e) => {
+    const predefined = e.data?.predefined as
+      | { predefinedType?: string; intentName?: string }
+      | undefined
+    if (
+      predefined?.predefinedType !== "when_intent_matched" ||
+      predefined.intentName !== oldName
+    ) {
+      return e
+    }
+    changed = true
+    return {
+      ...e,
+      data: { ...e.data, predefined: { ...predefined, intentName: newName } },
+    }
+  })
+  return changed ? next : edges
+}

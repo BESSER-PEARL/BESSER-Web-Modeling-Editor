@@ -123,12 +123,23 @@ export const requiresParent = (childType: string | undefined): boolean =>
 
 /**
  * Determines if a node type can be dropped into a parent node type
- * based on BPMN rules and constraints
+ * based on BPMN rules and constraints. Pass the parent's `data` to also
+ * refuse a collapsed Subprocess/Transaction, which renders none of its
+ * children (a drop there would make the element vanish).
  */
 export const canDropIntoParent = (
   childType: string,
-  parentType: string
+  parentType: string,
+  parentData?: { isExpanded?: unknown } | null
 ): boolean => {
+  if (
+    parentData &&
+    (parentType === "bpmnSubprocess" || parentType === "bpmnTransaction") &&
+    parentData.isExpanded !== true
+  ) {
+    return false
+  }
+
   // NNContainer accepts the layer kinds (and only
   // those). The drop-handler in `DraggableGhost.tsx` /
   // `useNodeDragStop.ts` consults this to set `parentId` on the new

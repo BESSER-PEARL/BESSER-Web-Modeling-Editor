@@ -18,7 +18,7 @@ import { DeleteIcon, SwapHorizIcon } from "@/components/Icon"
 import { CustomEdgeProps } from "@/edges/EdgeProps"
 import { PopoverProps } from "@/components/popovers/types"
 import { useTranslation } from "@/i18n"
-import { InspectorSectionHeader, AddRowButton } from "../_shared"
+import { InspectorSectionHeader, AddRowButton, useCodeMirrorTheme } from "../_shared"
 import { getAgentComponentLists } from "./agentComponentLists"
 
 /**
@@ -162,6 +162,7 @@ export const AgentDiagramEdgeEditPanel: React.FC<PopoverProps> = ({
   elementId,
 }) => {
   const { t } = useTranslation()
+  const codeTheme = useCodeMirrorTheme()
   const { nodes, edges, setEdges } = useDiagramStore(
     useShallow((state) => ({
       nodes: state.nodes,
@@ -180,6 +181,10 @@ export const AgentDiagramEdgeEditPanel: React.FC<PopoverProps> = ({
 
   const lists = getAgentComponentLists(nodes)
   const intentNames = lists.intents.map((i) => i.name)
+  const selectedIntent = predefined.intentName ?? ""
+  // A renamed/deleted intent leaves the transition pointing at nothing.
+  const intentMissing =
+    selectedIntent !== "" && !intentNames.includes(selectedIntent)
   const allGuis = lists.guis
   const formGuis = allGuis.filter((g) => g.is_form)
 
@@ -374,25 +379,44 @@ export const AgentDiagramEdgeEditPanel: React.FC<PopoverProps> = ({
           {activePredefined === "when_intent_matched" &&
             (intentNames.length > 0 ||
             (predefined.intentName ?? "") !== "" ? (
-              <Select
-                size="small"
-                fullWidth
-                displayEmpty
-                value={predefined.intentName ?? ""}
-                onChange={(e) => setPredefined({ intentName: String(e.target.value) })}
-              >
-                <MenuItem value="">
-                  {t("popup.agent.transition.selectIntent", "Select intent")}
-                </MenuItem>
-                {(predefined.intentName && !intentNames.includes(predefined.intentName)
-                  ? [...intentNames, predefined.intentName]
-                  : intentNames
-                ).map((name) => (
-                  <MenuItem key={name} value={name}>
-                    {name}
+              <>
+                <Select
+                  size="small"
+                  fullWidth
+                  displayEmpty
+                  error={intentMissing}
+                  value={selectedIntent}
+                  onChange={(e) => setPredefined({ intentName: String(e.target.value) })}
+                >
+                  <MenuItem value="">
+                    {t("popup.agent.transition.selectIntent", "Select intent")}
                   </MenuItem>
-                ))}
-              </Select>
+                  {intentNames.map((name) => (
+                    <MenuItem key={name} value={name}>
+                      {name}
+                    </MenuItem>
+                  ))}
+                  {intentMissing && (
+                    <MenuItem value={selectedIntent} sx={{ color: "error.main" }}>
+                      {selectedIntent} (
+                      {t("popup.agent.transition.missingIntentTag", "missing")})
+                    </MenuItem>
+                  )}
+                </Select>
+                {intentMissing && (
+                  <Typography
+                    variant="caption"
+                    role="alert"
+                    sx={{ color: "error.main" }}
+                  >
+                    {t(
+                      "popup.agent.transition.missingIntent",
+                      'Intent "{{name}}" does not exist. Pick an intent or add it on the Components page.',
+                      { name: selectedIntent }
+                    )}
+                  </Typography>
+                )}
+              </>
             ) : (
               <MuiTextField
                 size="small"
@@ -561,6 +585,7 @@ export const AgentDiagramEdgeEditPanel: React.FC<PopoverProps> = ({
                 }}
               >
                 <CodeMirror
+                  theme={codeTheme}
                   value={c}
                   extensions={[python()]}
                   onChange={(v) => setCondition(idx, v)}
