@@ -12,6 +12,7 @@ import type {
 import { Direction, UMLDiagramType } from '@besser/wme';
 import type { ElementLineageMap } from '../../shared/types/project';
 import { uuid } from '../../shared/utils/uuid';
+import { recenterModelOnOrigin } from './recenter';
 import type { DeploymentDerivationResult, DeploymentDerivationWarning } from './types';
 
 /**
@@ -179,37 +180,8 @@ export function componentModelToDeploymentModel(
     elementMapping[edgeId] = rel.id; // DeploymentAssociation ← source ComponentDependency
   }
 
-  // Center the generated diagram in the user's view. Every element +
-  // edge is translated so the content bbox midpoint lands on the origin. All
-  // bounds are absolute at this point (including nested children), so a uniform
-  // shift preserves every parent-relative offset after import. (Unchanged.)
-  const placed = Object.values(out.elements);
-  if (placed.length > 0) {
-    let minX = Infinity,
-      minY = Infinity,
-      maxX = -Infinity,
-      maxY = -Infinity;
-    for (const { bounds: b } of placed) {
-      minX = Math.min(minX, b.x);
-      minY = Math.min(minY, b.y);
-      maxX = Math.max(maxX, b.x + b.width);
-      maxY = Math.max(maxY, b.y + b.height);
-    }
-    const dx = -(minX + maxX) / 2;
-    const dy = -(minY + maxY) / 2;
-    for (const { bounds: b } of placed) {
-      b.x += dx;
-      b.y += dy;
-    }
-    for (const rel of Object.values(out.relationships)) {
-      rel.bounds.x += dx;
-      rel.bounds.y += dy;
-      for (const p of rel.path) {
-        p.x += dx;
-        p.y += dy;
-      }
-    }
-  }
+  // Open the generated diagram centred in the user's view.
+  recenterModelOnOrigin(out);
 
   return { ok: true, model: out, warnings, elementMapping };
 }

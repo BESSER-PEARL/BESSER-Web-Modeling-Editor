@@ -11,6 +11,7 @@ import type {
 import { Direction, NEW_TRANSITION_PREDEFINED_TYPE, UMLDiagramType } from '@besser/wme';
 import type { ElementLineageMap } from '../../shared/types/project';
 import { uuid } from '../../shared/utils/uuid';
+import { recenterModelOnOrigin } from './recenter';
 import type { AgentDerivationResult, AgentDerivationWarning } from './types';
 import { resolveEdgeKind, type AgenticEdgeKind } from './bpmn-to-component';
 
@@ -256,7 +257,7 @@ export function laneToAgentModel(bpmn: UMLModel, laneId: string): AgentDerivatio
   }
 
   // Straddle the origin so the diagram opens centred.
-  recenterAgentModel(out);
+  recenterModelOnOrigin(out);
 
   return { ok: true, model: out, warnings, elementMapping };
 }
@@ -842,42 +843,6 @@ function nextOutOrder(description?: string): number {
   if (!description) return 1;
   const m = description.match(/(^|\n)a2a:out;/g);
   return (m ? m.length : 0) + 1;
-}
-
-/**
- * Translate the whole model so its bounding-box midpoint sits on the origin.
- * The editor sizes the canvas symmetrically around (0,0), so off-origin content
- * opens scrolled into empty space. Translates element bounds and relationship
- * bounds/paths by the same delta so edges stay attached.
- */
-function recenterAgentModel(out: UMLModel): void {
-  const els = Object.values(out.elements);
-  if (els.length === 0) return;
-  let minX = Infinity,
-    minY = Infinity,
-    maxX = -Infinity,
-    maxY = -Infinity;
-  for (const { bounds: b } of els) {
-    minX = Math.min(minX, b.x);
-    minY = Math.min(minY, b.y);
-    maxX = Math.max(maxX, b.x + b.width);
-    maxY = Math.max(maxY, b.y + b.height);
-  }
-  const dx = -(minX + maxX) / 2;
-  const dy = -(minY + maxY) / 2;
-  if (dx === 0 && dy === 0) return;
-  for (const { bounds: b } of els) {
-    b.x += dx;
-    b.y += dy;
-  }
-  for (const rel of Object.values(out.relationships)) {
-    rel.bounds.x += dx;
-    rel.bounds.y += dy;
-    for (const p of rel.path) {
-      p.x += dx;
-      p.y += dy;
-    }
-  }
 }
 
 // ── reflection scaffolds ───────────────────────────────────────────

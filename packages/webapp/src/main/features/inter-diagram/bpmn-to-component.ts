@@ -13,6 +13,7 @@ import type {
 import { Direction, UMLDiagramType, componentStereotypeForLaneRole, isSupervisorRole } from '@besser/wme';
 import type { ElementLineageMap } from '../../shared/types/project';
 import { uuid } from '../../shared/utils/uuid';
+import { recenterModelOnOrigin } from './recenter';
 import type { DerivationResult, DerivationWarning } from './types';
 
 type LaneCrossingFlow = {
@@ -808,44 +809,6 @@ function emitComponentDependency(
   };
   out.relationships[id] = dependency;
   return id;
-}
-
-// Scroll fix: the editor sizes the canvas symmetrically around
-// the origin (uml-diagram.ts) and the scroll container opens at top-left, so
-// emitted content must straddle (0,0) or the diagram opens scrolled into empty
-// space. A tall grouped Skills/Tools zone pushes the content bbox far below
-// origin; translate the whole model so its bbox midpoint is (0,0), restoring
-// the makeLayoutCursor design intent. Idempotent for already-centered content
-// (single-pool swarm → dx=dy=0). Translates relationships (bounds + path) by
-// the same delta so edges stay attached.
-function recenterModelOnOrigin(out: UMLModel): void {
-  const els = Object.values(out.elements);
-  if (els.length === 0) return;
-  let minX = Infinity,
-    minY = Infinity,
-    maxX = -Infinity,
-    maxY = -Infinity;
-  for (const { bounds: b } of els) {
-    minX = Math.min(minX, b.x);
-    minY = Math.min(minY, b.y);
-    maxX = Math.max(maxX, b.x + b.width);
-    maxY = Math.max(maxY, b.y + b.height);
-  }
-  const dx = -(minX + maxX) / 2;
-  const dy = -(minY + maxY) / 2;
-  if (dx === 0 && dy === 0) return;
-  for (const { bounds: b } of els) {
-    b.x += dx;
-    b.y += dy;
-  }
-  for (const rel of Object.values(out.relationships)) {
-    rel.bounds.x += dx;
-    rel.bounds.y += dy;
-    for (const p of rel.path) {
-      p.x += dx;
-      p.y += dy;
-    }
-  }
 }
 
 // ── Edge de-duplication ─────────────────────────────────────────────
