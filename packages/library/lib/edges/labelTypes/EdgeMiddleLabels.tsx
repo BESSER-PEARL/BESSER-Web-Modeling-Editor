@@ -5,6 +5,7 @@ import {
   placeMiddleLabel,
   type LabelRect,
 } from "./middleLabelPlacement"
+import { internalNodeRect } from "@/utils/nodeShapes"
 
 interface EdgeMiddleLabelsProps {
   label?: string | null
@@ -31,14 +32,7 @@ export const truncateLabel = (label: string, max = MAX_MIDDLE_LABEL_CHARS) =>
 const nodeRects = (
   lookup: ReadonlyMap<string, InternalNode>
 ): LabelRect[] =>
-  [...lookup.values()]
-    .filter((n) => !n.hidden)
-    .map((n) => ({
-      x: n.internals.positionAbsolute.x,
-      y: n.internals.positionAbsolute.y,
-      width: n.measured?.width ?? n.width ?? 0,
-      height: n.measured?.height ?? n.height ?? 0,
-    }))
+  [...lookup.values()].filter((n) => !n.hidden).map(internalNodeRect)
 
 export const EdgeMiddleLabels = ({
   label,

@@ -34,7 +34,7 @@ import {
   PORT_CLEARANCE,
 } from "@/utils/edgeDragging"
 import { useFloatingEndpointDrag } from "./useFloatingEndpointDrag"
-import { portFrame } from "@/utils/nodeShapes"
+import { internalNodeRect, portFrame } from "@/utils/nodeShapes"
 
 interface UseStepPathEdgeProps {
   id: string
@@ -92,6 +92,10 @@ export const useStepPathEdge = ({
     sourcePosition = floating.source.side as Position
     targetPosition = floating.target.side as Position
   }
+  const isFloating = !!floating
+  /** Removes the document listeners of the drag in progress (unmount / cancel). */
+  const dragCleanupRef = useRef<(() => void) | null>(null)
+  useEffect(() => () => dragCleanupRef.current?.(), [])
   const draggingIndexRef = useRef<number | null>(null)
   const dragOffsetRef = useRef<IPoint>({ x: 0, y: 0 })
   const pathRef = useRef<SVGPathElement | null>(null)
@@ -328,7 +332,9 @@ export const useStepPathEdge = ({
                 : edge
             )
           )
-        } else {
+        } else if (!isFloating) {
+          // Floating edges keep their bends: the end segments re-attach
+          // to the moved node (`computePortGeometry`).
           setCustomPoints([])
           setEdges((edges) =>
             edges.map((edge) =>
@@ -355,6 +361,7 @@ export const useStepPathEdge = ({
     setEdges,
     setCustomPoints,
     data?.points,
+    isFloating,
   ])
 
   // Declared after the move effect on purpose: that effect compares against
@@ -498,12 +505,7 @@ export const useStepPathEdge = ({
       if (!sourceInternal || !targetInternal) return
       // Ports sit on the attachment box of each node's outline.
       const rectOf = (n: typeof sourceInternal) =>
-        portFrame(n.type, {
-          x: n.internals.positionAbsolute.x,
-          y: n.internals.positionAbsolute.y,
-          width: n.measured.width ?? n.width ?? 0,
-          height: n.measured.height ?? n.height ?? 0,
-        }).box
+        portFrame(n.type, internalNodeRect(n)).box
       const ctx = {
         sourceRect: rectOf(sourceInternal),
         targetRect: rectOf(targetInternal),
@@ -520,6 +522,16 @@ export const useStepPathEdge = ({
       ) as SVGPathElement | null
       container?.classList.add("edge-container--dragging")
       let result: ReturnType<typeof dragSegment> | null = null
+      const handleGroup = circleEl.closest(".edge-segment-handle")
+      const handleCircles = handleGroup
+        ? [...handleGroup.querySelectorAll("circle")]
+        : [circleEl]
+      // Restored on cancel: the preview writes the DOM, not React state.
+      const original = {
+        main: mainPath?.getAttribute("d"),
+        overlay: overlay?.getAttribute("d"),
+        circles: handleCircles.map((c) => [c.getAttribute("cx"), c.getAttribute("cy")]),
+      }
 
       const onMove = (e: PointerEvent) => {
         const p = screenToFlowPosition({ x: e.clientX, y: e.clientY })
@@ -532,17 +544,31 @@ export const useStepPathEdge = ({
           (h) => h.index === movedIndex
         )
         if (mid) {
-          const group = circleEl.closest(".edge-segment-handle")
-          const circles = group ? group.querySelectorAll("circle") : [circleEl]
-          circles.forEach((c) => {
+          handleCircles.forEach((c) => {
             c.setAttribute("cx", String(mid.x))
             c.setAttribute("cy", String(mid.y))
           })
         }
       }
-      const onUp = () => {
+      const cleanup = () => {
         document.removeEventListener("pointermove", onMove)
+        document.removeEventListener("pointerup", onUp)
+        document.removeEventListener("pointercancel", onCancel)
         container?.classList.remove("edge-container--dragging")
+        if (dragCleanupRef.current === cleanup) dragCleanupRef.current = null
+      }
+      const onCancel = () => {
+        cleanup()
+        if (original.main != null) mainPath?.setAttribute("d", original.main)
+        if (original.overlay != null) overlay?.setAttribute("d", original.overlay)
+        handleCircles.forEach((c, i) => {
+          const [cx, cy] = original.circles[i]
+          if (cx != null) c.setAttribute("cx", cx)
+          if (cy != null) c.setAttribute("cy", cy)
+        })
+      }
+      const onUp = () => {
+        cleanup()
         const r = result as ReturnType<typeof dragSegment> | null
         if (!r) return
         setCustomPoints(r.storedPoints)
@@ -552,6 +578,9 @@ export const useStepPathEdge = ({
             const nextData: Record<string, unknown> = {
               ...edge.data,
               points: r.storedPoints,
+              // Marks the points as user bends (a stored route flagged
+              // `false` is an old auto route and is re-routed).
+              isManuallyLayouted: r.storedPoints.length > 0,
             }
             if (r.sourcePort) nextData.sourcePort = r.sourcePort
             if (r.targetPort) nextData.targetPort = r.targetPort
@@ -559,8 +588,11 @@ export const useStepPathEdge = ({
           })
         )
       }
+      dragCleanupRef.current?.()
+      dragCleanupRef.current = cleanup
       document.addEventListener("pointermove", onMove)
-      document.addEventListener("pointerup", onUp, { once: true })
+      document.addEventListener("pointerup", onUp)
+      document.addEventListener("pointercancel", onCancel)
     },
     [
       floating,
@@ -661,6 +693,27 @@ export const useStepPathEdge = ({
         }
       }
 
+      const original = {
+        main: mainPath?.getAttribute("d"),
+        overlay: overlayPath?.getAttribute("d"),
+        cx: circleEl.getAttribute("cx"),
+        cy: circleEl.getAttribute("cy"),
+      }
+      const cleanup = () => {
+        draggingIndexRef.current = null
+        document.removeEventListener("pointermove", handlePointerMove)
+        document.removeEventListener("pointerup", handlePointerUp)
+        document.removeEventListener("pointercancel", handlePointerCancel)
+        if (dragCleanupRef.current === cleanup) dragCleanupRef.current = null
+      }
+      const handlePointerCancel = () => {
+        finalPointsRef.current = null
+        cleanup()
+        if (original.main != null) mainPath?.setAttribute("d", original.main)
+        if (original.overlay != null) overlayPath?.setAttribute("d", original.overlay)
+        if (original.cx != null) circleEl.setAttribute("cx", original.cx)
+        if (original.cy != null) circleEl.setAttribute("cy", original.cy)
+      }
       const handlePointerUp = () => {
         // Sync to React state only on release, and only after a real move:
         // a plain click must not rewrite the route or add an undo step.
@@ -676,13 +729,14 @@ export const useStepPathEdge = ({
             )
           )
         }
-        draggingIndexRef.current = null
-        document.removeEventListener("pointermove", handlePointerMove)
-        document.removeEventListener("pointerup", handlePointerUp)
+        cleanup()
       }
 
+      dragCleanupRef.current?.()
+      dragCleanupRef.current = cleanup
       document.addEventListener("pointermove", handlePointerMove)
-      document.addEventListener("pointerup", handlePointerUp, { once: true })
+      document.addEventListener("pointerup", handlePointerUp)
+      document.addEventListener("pointercancel", handlePointerCancel)
     },
     [
       midpoints,
@@ -830,25 +884,41 @@ export const useStepPathEdge = ({
         setTempReconnectPoints(newPoints)
       }
 
-      const handleEndpointPointerUp = (upEvent: PointerEvent) => {
-        setTempReconnectPoints(null)
+      const cleanup = () => {
         document.removeEventListener("pointermove", handleEndpointPointerMove, {
           capture: true,
         })
         document.removeEventListener("pointerup", handleEndpointPointerUp, {
           capture: true,
         })
+        document.removeEventListener("pointercancel", handleEndpointPointerCancel, {
+          capture: true,
+        })
+        if (dragCleanupRef.current === cleanup) dragCleanupRef.current = null
+      }
+      const handleEndpointPointerCancel = () => {
+        cleanup()
+        isReconnectingRef.current = false
+        setTempReconnectPoints(null)
+      }
+      const handleEndpointPointerUp = (upEvent: PointerEvent) => {
+        setTempReconnectPoints(null)
+        cleanup()
 
         completeReconnection(upEvent, findBestHandle, () => {
           setCustomPoints([])
         })
       }
 
+      dragCleanupRef.current?.()
+      dragCleanupRef.current = cleanup
       document.addEventListener("pointermove", handleEndpointPointerMove, {
         capture: true,
       })
       document.addEventListener("pointerup", handleEndpointPointerUp, {
-        once: true,
+        capture: true,
+      })
+      document.addEventListener("pointercancel", handleEndpointPointerCancel, {
         capture: true,
       })
     },

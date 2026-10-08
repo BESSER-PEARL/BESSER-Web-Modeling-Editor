@@ -196,15 +196,18 @@ describe("pinning", () => {
 })
 
 describe("stored routes (v4 models)", () => {
-  it("keeps the Library template's user bends and draws no diagonal segment", () => {
+  // The template's stored points are the old renderer's auto route
+  // (isManuallyLayouted: false): the edge re-routes live instead of keeping
+  // them as bends (Personalized Gym looped through a node that way).
+  it("re-routes a stored auto route (isManuallyLayouted: false) and draws no diagonal segment", () => {
     const model = loadTemplate("Library_Complete.json")
     const layout = computeFloatingLayout(model.nodes, model.edges)
     expect(layout.size).toBe(2)
     for (const g of layout.values()) expect(diagonalSegments(g.points)).toBe(0)
     const [libToBook] = model.edges
     const g = layout.get(libToBook.id)!
-    // Library→Book keeps its two stored bends at x = -130.
-    expect(g.hasBends).toBe(true)
+    // Library→Book: a live Z between the facing sides (its middle at x = -130).
+    expect(g.hasBends).toBe(false)
     expect(g.points.filter((p) => p.x === -130)).toHaveLength(2)
     // The two edges landing on Book's right side do not share an anchor.
     const ends = [...layout.values()].map((l) => l.target)

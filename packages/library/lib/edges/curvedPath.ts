@@ -1,5 +1,6 @@
-import { getBezierPath, Position } from "@xyflow/react"
+import { Position } from "@xyflow/react"
 import type { IPoint } from "./Connection"
+import { bezierControl, type PortSide } from "@/utils/edgePorts"
 
 const NORMAL: Record<Position, IPoint> = {
   [Position.Top]: { x: 0, y: -1 },
@@ -10,7 +11,7 @@ const NORMAL: Record<Position, IPoint> = {
 
 export interface CurvedPath {
   path: string
-  /** Point on the curve half-way along it (label anchor). */
+  /** Point on the curve at `labelAt` (default half-way): label anchor. */
   label: IPoint
 }
 
@@ -22,12 +23,26 @@ export interface CurvedPathParams {
   targetY: number
   targetPosition: Position
   selfLoop?: boolean
+  /** Offset added to both control points (bows a curve away from its siblings). */
+  bow?: IPoint
+  /** Where the label sits along the curve, 0..1 from the source. */
+  labelAt?: number
+}
+
+/** Point of a cubic bézier at `u`. */
+const cubicAt = (p0: IPoint, p1: IPoint, p2: IPoint, p3: IPoint, u: number): IPoint => {
+  const v = 1 - u
+  return {
+    x: v * v * v * p0.x + 3 * v * v * u * p1.x + 3 * v * u * u * p2.x + u * u * u * p3.x,
+    y: v * v * v * p0.y + 3 * v * v * u * p1.y + 3 * v * u * u * p2.y + u * u * u * p3.y,
+  }
 }
 
 /**
- * Bézier stroke for curved (agent) transitions. A self-loop leaves and
- * re-enters the node outwards from its handles; React Flow's bézier would
- * collapse into a flat line along the border when both handles share a side.
+ * Bézier stroke for curved (agent) transitions: React Flow's bézier (same
+ * control points), optionally bowed. A self-loop leaves and re-enters the
+ * node outwards from its handles; React Flow's bézier would collapse into a
+ * flat line along the border when both handles share a side.
  */
 export const getCurvedPath = ({
   sourceX,
@@ -37,17 +52,22 @@ export const getCurvedPath = ({
   targetY,
   targetPosition,
   selfLoop = false,
+  bow,
+  labelAt = 0.5,
 }: CurvedPathParams): CurvedPath => {
+  const s = { x: sourceX, y: sourceY }
+  const t = { x: targetX, y: targetY }
   if (!selfLoop) {
-    const [path, labelX, labelY] = getBezierPath({
-      sourceX,
-      sourceY,
-      sourcePosition,
-      targetX,
-      targetY,
-      targetPosition,
-    })
-    return { path, label: { x: labelX, y: labelY } }
+    const c1 = bezierControl(s, sourcePosition as PortSide, t)
+    const c2 = bezierControl(t, targetPosition as PortSide, s)
+    if (bow) {
+      c1.x += bow.x
+      c1.y += bow.y
+      c2.x += bow.x
+      c2.y += bow.y
+    }
+    const path = `M${sourceX},${sourceY} C${c1.x},${c1.y} ${c2.x},${c2.y} ${targetX},${targetY}`
+    return { path, label: cubicAt(s, c1, c2, t, labelAt) }
   }
 
   const ns = NORMAL[sourcePosition] ?? NORMAL[Position.Right]
@@ -65,12 +85,46 @@ export const getCurvedPath = ({
     p2.y -= nt.x * spread
   }
   const path = `M ${sourceX},${sourceY} C ${p1.x},${p1.y} ${p2.x},${p2.y} ${targetX},${targetY}`
-  // Cubic bézier at t = 0.5.
-  const label = {
-    x: (sourceX + 3 * p1.x + 3 * p2.x + targetX) / 8,
-    y: (sourceY + 3 * p1.y + 3 * p2.y + targetY) / 8,
+  return { path, label: cubicAt(s, p1, p2, t, 0.5) }
+}
+
+/** Half height of a 12px middle label, and the clearance kept around it. */
+const LABEL_HALF_HEIGHT = 8
+const LABEL_CLEARANCE = 6
+
+/**
+ * Anchor of a centred label at `p` (on a curve from `s` to `t`) moved beside
+ * the line when its box would reach the arrowhead (`markerLength` back from
+ * `t`) or the source port: on a short edge the label sat on the arrow.
+ */
+export const labelClearOfEnds = (
+  p: IPoint,
+  s: IPoint,
+  t: IPoint,
+  labelWidth: number,
+  markerLength: number
+): IPoint => {
+  const dx = t.x - s.x
+  const dy = t.y - s.y
+  const len = Math.hypot(dx, dy)
+  if (len < 1) return p
+  const ux = dx / len
+  const uy = dy / len
+  // Label half extent along / across the chord.
+  const alongHalf = Math.abs(ux) * (labelWidth / 2) + Math.abs(uy) * LABEL_HALF_HEIGHT
+  const toTarget = (t.x - p.x) * ux + (t.y - p.y) * uy
+  const fromSource = (p.x - s.x) * ux + (p.y - s.y) * uy
+  if (toTarget >= alongHalf + markerLength + LABEL_CLEARANCE && fromSource >= alongHalf + LABEL_CLEARANCE) return p
+  // Beside the line: right of a vertical chord, above a horizontal one.
+  let nx = -uy
+  let ny = ux
+  if (nx < -0.01 || (Math.abs(nx) <= 0.01 && ny > 0)) {
+    nx = -nx
+    ny = -ny
   }
-  return { path, label }
+  const acrossHalf = Math.abs(nx) * (labelWidth / 2) + Math.abs(ny) * LABEL_HALF_HEIGHT
+  const d = acrossHalf + LABEL_CLEARANCE
+  return { x: p.x + nx * d, y: p.y + ny * d }
 }
 
 /** Side a polyline leaves `p` through, towards `q` (its first segment). */
@@ -94,7 +148,7 @@ const sideTowards = (p: IPoint, q: IPoint): Position | undefined => {
  */
 export const curveEnds = (
   points: IPoint[],
-  floating: { source: { side: string }; target: { side: string } },
+  floating: { source: { side: string }; target: { side: string }; bow?: IPoint; labelAt?: number },
   selfLoop: boolean
 ): CurvedPathParams => {
   const s = points[0]
@@ -108,5 +162,8 @@ export const curveEnds = (
     targetY: t.y,
     targetPosition: (preview && sideTowards(t, points[points.length - 2])) || (floating.target.side as Position),
     selfLoop,
+    // A dragged end has left its bundle.
+    bow: preview ? undefined : floating.bow,
+    labelAt: preview ? undefined : floating.labelAt,
   }
 }

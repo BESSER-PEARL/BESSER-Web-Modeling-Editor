@@ -68,8 +68,10 @@ const layoutFor = (
  * recomputed for the whole diagram once per store snapshot (live while a
  * class moves). Undefined for an edge that has no node at one end.
  */
-export const useFloatingEdgeLayout = (edgeId: string): FloatingEdgeLayout | undefined => {
+export const useFloatingEdgeLayout = (edgeId: string, enabled = true): FloatingEdgeLayout | undefined => {
   const storeApi = useDiagramStoreApi()
   const er = useClassNotation() === "ER"
-  return useDiagramStore((state) => layoutFor(storeApi, state.nodes, state.edges, er).get(edgeId))
+  return useDiagramStore((state) =>
+    enabled ? layoutFor(storeApi, state.nodes, state.edges, er).get(edgeId) : undefined
+  )
 }

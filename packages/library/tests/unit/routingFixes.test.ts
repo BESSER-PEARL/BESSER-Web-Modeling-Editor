@@ -192,12 +192,15 @@ describe("ports on one side (C4, C5)", () => {
 describe("facing sides of close boxes (C6)", () => {
   // Before: a stack 10 px apart overlapping sideways connected right → left
   // with a detour around both boxes.
-  it("connects a close vertical stack bottom → top with a straight edge", () => {
+  // 2026-10-08: a 10 px straight edge is mostly hidden under its marker; under
+  // 20 px of gap the edge takes a clean L instead (still no detour around both).
+  it("connects a close vertical stack with a visible L, not a detour around both", () => {
     const a = { x: 0, y: 0, width: 300, height: 50 }
     const b = { x: 250, y: 60, width: 300, height: 50 }
     expect(chooseFacingSidesForRects(a, b)).toEqual({ sourceSide: "bottom", targetSide: "top" })
     const g = computePortGeometry(rects({ a, b }), [{ id: "e", source: "a", target: "b" }]).get("e")!
-    expect(g.points).toHaveLength(2)
+    expect(g.points).toHaveLength(3)
+    expect(crosses(g.points, a) || crosses(g.points, b)).toBe(false)
   })
 
   it("keeps the centre rule for diagonal neighbours (no flip while dragging past a corner)", () => {

@@ -1,4 +1,4 @@
-import { useRef, useState, useEffect } from "react"
+import { useRef, useState, useEffect, useMemo } from "react"
 import { useReactFlow, type Node } from "@xyflow/react"
 import { ExtendedEdgeProps } from "./EdgeProps"
 import { CustomEdgeToolbar } from "@/components"
@@ -9,7 +9,12 @@ import AssessmentIcon from "@/components/svgs/AssessmentIcon"
 import { DiagramEdgeType } from "."
 import { Assessment } from "@/typings"
 import type { SegmentHandle } from "@/utils/edgeDragging"
-import { usePopoverStore } from "@/store/context"
+import { useDiagramStore, usePopoverStore } from "@/store/context"
+import { useIsOnlyThisElementSelected } from "@/hooks/useIsOnlyThisElementSelected"
+import { useFloatingEdgeLayout } from "@/hooks/useFloatingEdges"
+import { nodeRects } from "@/utils/floatingEdges"
+
+const NO_NODES: Node[] = []
 
 export interface BaseEdgeProps extends ExtendedEdgeProps {
   diagramType?: "class" | "usecase" | "activity" | "component" | "deployment"
@@ -217,6 +222,15 @@ export const CommonEdgeElements = ({
   const nodeScore = assessments[id]?.score
   // No pencil while the inspector already shows this edge.
   const inspectingThis = usePopoverStore((state) => state.popoverElementId === id)
+  // The toolbar keeps clear of the route and the nodes; only the selected
+  // edge reads them.
+  const selected = useIsOnlyThisElementSelected(id)
+  const layout = useFloatingEdgeLayout(id, selected)
+  const nodes = useDiagramStore((state) => (selected ? state.nodes : NO_NODES))
+  const surroundings = useMemo(
+    () => (selected ? { points: layout?.points ?? [], rects: [...nodeRects(nodes).values()] } : undefined),
+    [selected, layout, nodes]
+  )
 
   return (
     <>
@@ -228,6 +242,7 @@ export const CommonEdgeElements = ({
         onEditClick={() => setPopOverElementId(id)}
         onDeleteClick={handleDelete}
         onAttachAssociationClass={onAttachAssociationClass}
+        surroundings={surroundings}
       />
 
       {!isDiagramModifiable && (

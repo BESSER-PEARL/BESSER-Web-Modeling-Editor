@@ -99,6 +99,19 @@ const SHAPES: Record<string, NodeShape> = {
 
 export const nodeShapeOf = (type: string | undefined): NodeShape => (type && SHAPES[type]) || RECT
 
+/** Absolute bounding box of a React Flow internal node. */
+export const internalNodeRect = (n: {
+  internals: { positionAbsolute: LayoutPoint }
+  measured?: { width?: number; height?: number }
+  width?: number
+  height?: number
+}): LayoutRect => ({
+  x: n.internals.positionAbsolute.x,
+  y: n.internals.positionAbsolute.y,
+  width: n.measured?.width ?? n.width ?? 0,
+  height: n.measured?.height ?? n.height ?? 0,
+})
+
 /** Whether ports of this type use the node's full bounding box as a plain rect. */
 export const isPlainRect = (shape: NodeShape) => shape.kind === "rect" && !shape.box
 

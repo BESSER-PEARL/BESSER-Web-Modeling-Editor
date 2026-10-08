@@ -89,10 +89,14 @@ export interface PortEdgeInput {
   targetHandle?: string | null
   /** Curved edge: ports only, no route and no bends (`points` = both ends). */
   curved?: boolean
+  /** Stacked nodes connect top / bottom even when far apart sideways (BPMN message flows). */
+  preferVertical?: boolean
   data?: {
     points?: LayoutPoint[] | null
     sourcePort?: unknown
     targetPort?: unknown
+    /** `false`: stored points are an old auto route, not user bends. */
+    isManuallyLayouted?: unknown
   } | null
 }
 
@@ -103,6 +107,13 @@ export interface PortGeometry {
   points: LayoutPoint[]
   /** Whether the route keeps stored user bends. */
   hasBends: boolean
+  /**
+   * Curved edges sharing their two nodes: control-point offset that bows this
+   * curve away from its siblings, and where its label sits (0..1 from the
+   * source). Absent for a lone curve.
+   */
+  bow?: LayoutPoint
+  labelAt?: number
 }
 
 const SIDES: readonly PortSide[] = ["top", "right", "bottom", "left"]
@@ -305,7 +316,8 @@ const simpleRoute = (
   s: LayoutPoint,
   ss: PortSide,
   t: LayoutPoint,
-  ts: PortSide
+  ts: PortSide,
+  zShift = 0
 ): LayoutPoint[] | undefined => {
   const ns = NORMAL[ss]
   const nt = NORMAL[ts]
@@ -314,13 +326,23 @@ const simpleRoute = (
     if (isVerticalSide(ss)) {
       if ((t.x - s.x) * ns.x <= 0) return undefined
       if (Math.abs(s.y - t.y) < 0.5) return [s, { x: t.x, y: s.y }]
-      const mx = (s.x + t.x) / 2
+      const mx = (s.x + t.x) / 2 + zShift
       return [s, { x: mx, y: s.y }, { x: mx, y: t.y }, t]
     }
     if ((t.y - s.y) * ns.y <= 0) return undefined
     if (Math.abs(s.x - t.x) < 0.5) return [s, { x: s.x, y: t.y }]
-    const my = (s.y + t.y) / 2
+    const my = (s.y + t.y) / 2 + zShift
     return [s, { x: s.x, y: my }, { x: t.x, y: my }, t]
+  }
+  if (ss === ts) {
+    // U around both ends, `zShift` further out (nested parallel U's).
+    const reach = PORT_STUB + Math.max(0, zShift)
+    if (isVerticalSide(ss)) {
+      const x = ns.x > 0 ? Math.max(s.x, t.x) + reach : Math.min(s.x, t.x) - reach
+      return [s, { x, y: s.y }, { x, y: t.y }, t]
+    }
+    const y = ns.y > 0 ? Math.max(s.y, t.y) + reach : Math.min(s.y, t.y) - reach
+    return [s, { x: s.x, y }, { x: t.x, y }, t]
   }
   if (isVerticalSide(ss) !== isVerticalSide(ts)) {
     const c = isVerticalSide(ss) ? { x: t.x, y: s.y } : { x: s.x, y: t.y }
@@ -396,7 +418,10 @@ const ROUTE_CACHE_LIMIT = 5000
 /** Clearance the router keeps around nodes (its default margin). */
 const ROUTER_MARGIN = 14
 
-/** Auto route between two ports, detouring around other nodes when needed. */
+/**
+ * Auto route between two ports, detouring around other nodes when needed.
+ * `zShift` moves the middle segment of a Z route (lanes of parallel edges).
+ */
 export const routeBetweenPorts = (
   s: LayoutPoint,
   ss: PortSide,
@@ -404,7 +429,8 @@ export const routeBetweenPorts = (
   ts: PortSide,
   sRect: LayoutRect,
   tRect: LayoutRect,
-  obstacles: LayoutRect[] | ObstacleSet
+  obstacles: LayoutRect[] | ObstacleSet,
+  zShift = 0
 ): LayoutPoint[] => {
   const set = Array.isArray(obstacles) ? obstacleSet(obstacles) : obstacles
   // Obstacles near the route only (keeps the router grid tiny).
@@ -415,8 +441,11 @@ export const routeBetweenPorts = (
     Math.max(s.x, t.x) + pad,
     Math.max(s.y, t.y) + pad,
   ])
-  const simple = simpleRoute(s, ss, t, ts)
-  if (simple && !routeCrosses(simple, others)) return simplifyOrthogonal(simple)
+  const simple = simpleRoute(s, ss, t, ts, zShift)
+  // A U can run through an end node; the other shapes leave / enter it outward.
+  if (simple && !routeCrosses(simple, others) && (ss !== ts || !routeCrosses(simple, [sRect, tRect]))) {
+    return simplifyOrthogonal(simple)
+  }
 
   const othersSet = new Set(others)
   const outside = (area: Box) => nearby(set, sRect, tRect, area).filter((r) => !othersSet.has(r))
@@ -457,7 +486,8 @@ export const routeBetweenPorts = (
 /** React Flow's bézier control offset (`getBezierPath`, curvature 0.25). */
 const controlOffset = (d: number) => (d >= 0 ? 0.5 * d : 0.25 * 25 * Math.sqrt(-d))
 
-const bezierControl = (p: LayoutPoint, side: PortSide, q: LayoutPoint): LayoutPoint => {
+/** Control point React Flow's bézier uses for an end at `p` on `side` towards `q`. */
+export const bezierControl = (p: LayoutPoint, side: PortSide, q: LayoutPoint): LayoutPoint => {
   switch (side) {
     case "left":
       return { x: p.x - controlOffset(p.x - q.x), y: p.y }
@@ -565,8 +595,12 @@ interface EndState {
   auto: boolean
   /** Ordering key along the side (where the other end is). */
   key: number
+  /** Order among ends with the same key (edges joining the same two nodes). */
+  tie: number
   /** Axis coordinate that would make the edge straight, when there is one. */
   straight?: number
+  /** Set on straight siblings between two nodes: spaced as assigned, not pushed apart. */
+  bundle?: EdgeState[]
 }
 
 interface EdgeState {
@@ -578,6 +612,9 @@ interface EdgeState {
   target: EndState
   /** Self-loops: index among the loops of the node (nested, not stacked). */
   loop: number
+  /** Edges joining the same two nodes (either direction), by id; `rank` = own index. */
+  pair: EdgeState[]
+  rank: number
 }
 
 /** Corner distance of the innermost self-loop, and the step between loops. */
@@ -590,7 +627,9 @@ const isInside = (r: LayoutRect, p: LayoutPoint) =>
 /** Interior stored points, or [] when there are none or they are invalid. */
 const userBends = (edge: PortEdgeInput, sRect: LayoutRect, tRect: LayoutRect): LayoutPoint[] => {
   const pts = edge.data?.points
-  if (!Array.isArray(pts) || pts.length < 3) return []
+  // Routes saved by the fixed-handle renderer (templates, v3 imports) are
+  // flagged as not manually laid out: the ends re-attach to facing sides.
+  if (!Array.isArray(pts) || pts.length < 3 || edge.data?.isManuallyLayouted === false) return []
   const bends = pts
     .slice(1, -1)
     .filter((p) => p && Number.isFinite(p.x) && Number.isFinite(p.y))
@@ -623,7 +662,9 @@ const spreadSide = (
   const m = cornerMargin(b - a, shape)
   const lo = a + m
   const hi = b - m
-  ends.sort((p, q) => p.key - q.key || (p.edgeId + p.end).localeCompare(q.edgeId + q.end))
+  ends.sort(
+    (p, q) => p.key - q.key || p.tie - q.tie || p.edgeId.localeCompare(q.edgeId) || p.end.localeCompare(q.end)
+  )
   const n = ends.length
   if (n === 0) return
   const desired = ends.map((e, i) =>
@@ -683,11 +724,194 @@ const spreadSide = (
     if (c === 0) continue
     const gap = c > 1 ? Math.min(MIN_PORT_GAP, (h - l) / (c - 1)) : 0
     const pos = idx.map((i) => clamp(desired[i], l, h))
-    for (let i = 1; i < c; i++) pos[i] = Math.max(pos[i], pos[i - 1] + gap)
+    // Gap before end j: straight siblings keep their assigned spacing.
+    const gapBefore = (j: number) => {
+      const [p, q] = [ends[idx[j - 1]], ends[idx[j]]]
+      const d = desired[idx[j]] - desired[idx[j - 1]]
+      return p.bundle && p.bundle === q.bundle && d >= MIN_STRAIGHT_GAP ? Math.min(gap, d) : gap
+    }
+    for (let i = 1; i < c; i++) pos[i] = Math.max(pos[i], pos[i - 1] + gapBefore(i))
     pos[c - 1] = Math.min(pos[c - 1], h)
-    for (let i = c - 2; i >= 0; i--) pos[i] = Math.min(pos[i], pos[i + 1] - gap)
+    for (let i = c - 2; i >= 0; i--) pos[i] = Math.min(pos[i], pos[i + 1] - gapBefore(i + 1))
     idx.forEach((i, j) => (ends[i].pos = Math.max(pos[j], l)))
   }
+}
+
+/** Closest two straight parallel edges get; below it they become Z lanes. */
+const MIN_STRAIGHT_GAP = 8
+/** Facing sides closer than this leave no visible route: try other sides. */
+const MIN_FACING_GAP = PORT_STUB
+/** Spacing of the middle segments of parallel Z routes, and their clearance. */
+const LANE_GAP = 12
+const LANE_MARGIN = 6
+/** Control-point offset between sibling curves, and label stagger along them. */
+const CURVE_BOW = 26
+const LABEL_STAGGER = 0.22
+
+const SIDE_PAIRS: [PortSide, PortSide][] = SIDES.flatMap((a) => SIDES.map((b): [PortSide, PortSide] => [a, b]))
+
+/** Free distance between `side` of `s` and the facing side of `t` (negative: overlap). */
+const sideGap = (s: LayoutRect, side: PortSide, t: LayoutRect): number => {
+  switch (side) {
+    case "right":
+      return t.x - (s.x + s.width)
+    case "left":
+      return s.x - (t.x + t.width)
+    case "bottom":
+      return t.y - (s.y + s.height)
+    default:
+      return s.y - (t.y + t.height)
+  }
+}
+
+/**
+ * Sides for an edge with two free ends: the facing sides, unless they are
+ * too close for a visible route (then an L, failing that a U around both),
+ * or the edge prefers top / bottom between stacked nodes.
+ */
+const roomySides = (
+  s: LayoutRect,
+  t: LayoutRect,
+  preferVertical: boolean,
+  /** Edges joining the two nodes: an L must stay clean for the outermost ports. */
+  siblings = 1
+): { sourceSide: PortSide; targetSide: PortSide } => {
+  let facing = chooseFacingSidesForRects(s, t)
+  if (preferVertical) {
+    if (sideGap(s, "bottom", t) > 0) facing = { sourceSide: "bottom", targetSide: "top" }
+    else if (sideGap(s, "top", t) > 0) facing = { sourceSide: "top", targetSide: "bottom" }
+  }
+  const gap = sideGap(s, facing.sourceSide, t)
+  if (gap < 0 || gap >= MIN_FACING_GAP) return facing
+  let best: { sourceSide: PortSide; targetSide: PortSide } | undefined
+  let bestCost = Infinity
+  const spread = siblings > 1 ? [1 / (siblings + 1), siblings / (siblings + 1)] : [0.5]
+  for (const [ss, ts] of SIDE_PAIRS) {
+    if (OPPOSITE[ss] === ts) continue
+    let cost = 0
+    if (ss === ts) {
+      const sp = portPoint(s, { side: ss, t: 0.5 })
+      const tp = portPoint(t, { side: ts, t: 0.5 })
+      cost = 1e4 + Math.abs(sp.x - tp.x) + Math.abs(sp.y - tp.y)
+    } else {
+      for (const fs of spread) {
+        for (const ft of spread) {
+          const sp = portPoint(s, { side: ss, t: fs })
+          const tp = portPoint(t, { side: ts, t: ft })
+          const c = isVerticalSide(ss) ? { x: tp.x, y: sp.y } : { x: sp.x, y: tp.y }
+          const ahead = isVerticalSide(ss) ? (c.x - sp.x) * NORMAL[ss].x : (c.y - sp.y) * NORMAL[ss].y
+          const outside = isVerticalSide(ts) ? (c.x - tp.x) * NORMAL[ts].x : (c.y - tp.y) * NORMAL[ts].y
+          if (ahead < MIN_FACING_GAP || outside < MIN_FACING_GAP || routeCrosses([sp, c, tp], [s, t])) cost = Infinity
+          else cost = Math.max(cost, ahead + outside)
+        }
+      }
+      if (cost === Infinity) continue
+    }
+    if (cost < bestCost) {
+      best = { sourceSide: ss, targetSide: ts }
+      bestCost = cost
+    }
+  }
+  return best ?? facing
+}
+
+/**
+ * Diamonds (gateways, merge nodes): of several auto ends on one corner, those
+ * whose partner lies beyond the node's extent move to the corner facing it,
+ * so a split leaves from the top / bottom corners instead of one point.
+ */
+const splitDiamondCorners = (states: EdgeState[]) => {
+  const corners = new Map<string, [EndState, EndState][]>()
+  for (const st of states) {
+    if (st.edge.source === st.edge.target || st.edge.curved || st.bends.length > 0) continue
+    for (const [es, other] of [
+      [st.source, st.target],
+      [st.target, st.source],
+    ]) {
+      if (!es.auto || other.pinned || es.shape?.kind !== "diamond") continue
+      const k = `${es.nodeId}|${es.side}`
+      corners.set(k, [...(corners.get(k) ?? []), [es, other]])
+    }
+  }
+  for (const ends of corners.values()) {
+    if (ends.length < 2) continue
+    for (const [es, other] of ends) {
+      const oc = centerOf(other.rect)
+      const [a, b] = sideRange(es.rect, es.side)
+      const c = along(es.side, oc)
+      if (c >= a && c <= b) continue
+      es.side = isVerticalSide(es.side) ? (c < a ? "top" : "bottom") : c < a ? "left" : "right"
+      es.key = along(es.side, oc)
+    }
+  }
+}
+
+/**
+ * Offsets that keep edges between the same two nodes apart: the middle
+ * segments of parallel Z routes on their own lanes (nested, so none
+ * crosses), and sibling curves bowed apart with staggered labels.
+ */
+const bundleOffsets = (pairs: Map<string, EdgeState[]>) => {
+  const zShift = new Map<EdgeState, number>()
+  const curves = new Map<EdgeState, { bow: LayoutPoint; labelAt: number }>()
+  const portOf = (es: EndState) => pointOnSide(es.rect, es.side, es.pos)
+  for (const list of pairs.values()) {
+    if (list.length < 2) continue
+    const aId = list[0].edge.source < list[0].edge.target ? list[0].edge.source : list[0].edge.target
+    const endA = (st: EdgeState) => (st.source.nodeId === aId ? st.source : st.target)
+    const endB = (st: EdgeState) => (st.source.nodeId === aId ? st.target : st.source)
+    const byPos = (p: EdgeState, q: EdgeState) => endA(p).pos - endA(q).pos || p.rank - q.rank
+
+    const lanes = new Map<string, EdgeState[]>()
+    for (const st of list) {
+      if (st.edge.curved || st.bends.length > 0 || OPPOSITE[st.source.side] !== st.target.side) continue
+      const delta = endB(st).pos - endA(st).pos
+      if (Math.abs(delta) <= 0.5) continue
+      const k = `${endA(st).side}|${Math.sign(delta)}`
+      lanes.set(k, [...(lanes.get(k) ?? []), st])
+    }
+    for (const group of lanes.values()) {
+      const n = group.length
+      if (n < 2) continue
+      group.sort(byPos)
+      const a = endA(group[0])
+      const b = endB(group[0])
+      const pa = portOf(a)
+      const pb = portOf(b)
+      const across = isVerticalSide(a.side) ? Math.abs(pb.x - pa.x) : Math.abs(pb.y - pa.y)
+      const lane = Math.min(LANE_GAP, (across - 2 * LANE_MARGIN) / (n - 1))
+      if (lane < 3) continue
+      // Heading towards larger coordinates, the first end turns furthest out.
+      const dir = Math.sign(b.pos - a.pos) * (isVerticalSide(a.side) ? NORMAL[a.side].x : NORMAL[a.side].y)
+      group.forEach((st, i) => zShift.set(st, ((n - 1) / 2 - i) * lane * dir))
+    }
+
+    // U routes on one side: the widest goes outermost.
+    const us = list.filter((st) => !st.edge.curved && st.bends.length === 0 && st.source.side === st.target.side)
+    if (us.length > 1) {
+      us.sort((p, q) => Math.abs(p.source.pos - p.target.pos) - Math.abs(q.source.pos - q.target.pos) || p.rank - q.rank)
+      us.forEach((st, i) => zShift.set(st, i * LANE_GAP))
+    }
+
+    const curved = list.filter((st) => st.edge.curved).sort(byPos)
+    const n = curved.length
+    if (n < 2) continue
+    curved.forEach((st, i) => {
+      const a = portOf(endA(st))
+      const b = portOf(endB(st))
+      const len = Math.hypot(b.x - a.x, b.y - a.y) || 1
+      let perp = { x: -(b.y - a.y) / len, y: (b.x - a.x) / len }
+      // Bow the way the ends are ordered along A's side.
+      if ((isVerticalSide(endA(st).side) ? perp.y : perp.x) < 0) perp = { x: -perp.x, y: -perp.y }
+      const off = i - (n - 1) / 2
+      const uA = clamp(0.5 + off * LABEL_STAGGER, 0.25, 0.75)
+      curves.set(st, {
+        bow: { x: Math.round(perp.x * off * CURVE_BOW * 10) / 10, y: Math.round(perp.y * off * CURVE_BOW * 10) / 10 },
+        labelAt: endA(st) === st.source ? uA : 1 - uA,
+      })
+    })
+  }
+  return { zShift, curves }
 }
 
 /**
@@ -731,6 +955,7 @@ export const computePortGeometry = (
       pinned: false,
       auto: true,
       key: 0,
+      tie: 0,
     })
     const st: EdgeState = {
       edge,
@@ -740,6 +965,8 @@ export const computePortGeometry = (
       source: mk("source", edge.source, sRect),
       target: mk("target", edge.target, tRect),
       loop: selfLoop ? (loopIndex.get(edge.id) ?? 0) : 0,
+      pair: [],
+      rank: 0,
     }
     for (const es of [st.source, st.target]) {
       const port = readPort(es.end === "source" ? edge.data?.sourcePort : edge.data?.targetPort)
@@ -763,10 +990,31 @@ export const computePortGeometry = (
 
   const set = obstacleSet(obstacles)
 
+  // Edges joining the same two nodes (either direction), in a stable order.
+  const pairs = new Map<string, EdgeState[]>()
+  for (const st of states) {
+    const { source: a, target: b } = st.edge
+    if (a === b) continue
+    const k = a < b ? `${a}\n${b}` : `${b}\n${a}`
+    const list = pairs.get(k) ?? []
+    list.push(st)
+    pairs.set(k, list)
+  }
+  for (const list of pairs.values()) {
+    list.sort((p, q) => p.edge.id.localeCompare(q.edge.id))
+    list.forEach((st, r) => {
+      st.pair = list
+      st.rank = r
+    })
+  }
+
   // Sides of ends that follow a bend, or face the other node.
   for (const st of states) {
     if (st.edge.source === st.edge.target) continue
-    const facing = chooseFacingSidesForRects(st.sRect, st.tRect)
+    const free = st.source.auto && st.target.auto && st.bends.length === 0 && !st.edge.curved
+    const facing = free
+      ? roomySides(st.sRect, st.tRect, !!st.edge.preferVertical, st.pair.length)
+      : chooseFacingSidesForRects(st.sRect, st.tRect)
     if (st.edge.curved && st.source.auto && st.target.auto) {
       // A curve cannot detour: take the side pair whose curve stays clear.
       const best = clearCurveSides(st.sRect, st.tRect, facing.sourceSide, facing.targetSide, set)
@@ -803,26 +1051,57 @@ export const computePortGeometry = (
         es.key = along(es.side, centerOf(other.rect))
       }
     }
-    // Straight-line opportunity for facing ends without bends.
-    if (st.bends.length === 0) {
-      const { source: s, target: t } = st
-      if (OPPOSITE[s.side] === t.side && (s.auto || t.auto)) {
-        const [sa, sb] = sideRange(s.rect, s.side)
-        const [ta, tb] = sideRange(t.rect, t.side)
-        const sm = cornerMargin(sb - sa, s.shape)
-        const tm = cornerMargin(tb - ta, t.shape)
-        const lo = Math.max(sa + sm, ta + tm)
-        const hi = Math.min(sb - sm, tb - tm)
-        if (hi >= lo) {
-          if (s.auto && t.auto) {
-            s.straight = t.straight = (lo + hi) / 2
-          } else if (s.auto && t.pos >= lo && t.pos <= hi) {
-            s.straight = t.pos
-          } else if (t.auto && s.pos >= lo && s.pos <= hi) {
-            t.straight = s.pos
-          }
-        }
-      }
+  }
+
+  splitDiamondCorners(states)
+
+  // Same-pair ends share a key: order them so the edges do not cross (same
+  // order on facing sides, outermost with outermost on perpendicular ones).
+  for (const st of states) {
+    if (st.edge.source === st.edge.target) continue
+    const a = st.edge.source < st.edge.target ? st.source : st.target
+    const b = a === st.source ? st.target : st.source
+    a.tie = st.rank
+    if (OPPOSITE[a.side] === b.side) {
+      b.tie = st.rank
+    } else {
+      const dirA = Math.sign(along(a.side, centerOf(b.rect)) - along(a.side, centerOf(a.rect))) || 1
+      const dirB = Math.sign(along(b.side, centerOf(a.rect)) - along(b.side, centerOf(b.rect))) || 1
+      b.tie = st.rank * dirA * dirB
+    }
+  }
+
+  // Straight-line opportunity for facing ends without bends.
+  for (const st of states) {
+    // Curves keep their spread ends (a straight line is not their shape).
+    if (st.edge.source === st.edge.target || st.bends.length > 0 || st.edge.curved) continue
+    const { source: s, target: t } = st
+    if (OPPOSITE[s.side] !== t.side || !(s.auto || t.auto)) continue
+    const [sa, sb] = sideRange(s.rect, s.side)
+    const [ta, tb] = sideRange(t.rect, t.side)
+    const sm = cornerMargin(sb - sa, s.shape)
+    const tm = cornerMargin(tb - ta, t.shape)
+    const lo = Math.max(sa + sm, ta + tm)
+    const hi = Math.min(sb - sm, tb - tm)
+    if (hi < lo) continue
+    if (s.auto && t.auto) {
+      // Straight siblings between the same two nodes spread over the overlap
+      // together (spread per side, they ended a few px apart: stair-steps).
+      const endOn = (o: EdgeState, nodeId: string) => (o.source.nodeId === nodeId ? o.source : o.target)
+      const siblings = st.pair.filter((o) => {
+        const os = endOn(o, s.nodeId)
+        const ot = endOn(o, t.nodeId)
+        return o.bends.length === 0 && os.auto && ot.auto && os.side === s.side && ot.side === t.side
+      })
+      const m = siblings.length
+      const gap = m > 1 ? Math.min(MIN_PORT_GAP, (hi - lo) / (m - 1)) : 0
+      if (m > 1 && gap < MIN_STRAIGHT_GAP) continue
+      s.straight = t.straight = (lo + hi) / 2 + (siblings.indexOf(st) - (m - 1) / 2) * gap
+      if (m > 1) s.bundle = t.bundle = st.pair
+    } else if (s.auto && t.pos >= lo && t.pos <= hi) {
+      s.straight = t.pos
+    } else if (t.auto && s.pos >= lo && s.pos <= hi) {
+      t.straight = s.pos
     }
   }
 
@@ -861,6 +1140,8 @@ export const computePortGeometry = (
   }
   if (changed) for (const g of groups.values()) spreadSide(g.ends, g.fixed, g.rect, g.side, g.shape)
 
+  const { zShift, curves } = bundleOffsets(pairs)
+
   // Routes.
   const out = new Map<string, PortGeometry>()
   for (const st of states) {
@@ -885,7 +1166,7 @@ export const computePortGeometry = (
       const tail = elbowTo(tp, st.target.side, last).reverse()
       points = simplifyOrthogonal(orthogonalize([sp, ...head, ...st.bends, ...tail, tp]))
     } else {
-      points = routeBetweenPorts(sp, st.source.side, tp, st.target.side, st.sRect, st.tRect, set)
+      points = routeBetweenPorts(sp, st.source.side, tp, st.target.side, st.sRect, st.tRect, set, zShift.get(st))
     }
     if (points.length < 2 || !samePoint(points[0], sp)) points = [sp, ...points]
     if (!samePoint(points[points.length - 1], tp)) points = [...points, tp]
@@ -901,6 +1182,7 @@ export const computePortGeometry = (
       target: { x: to.x, y: to.y, side: st.target.side, pinned: st.target.pinned },
       points: points.map((p) => ({ x: Math.round(p.x * 10) / 10, y: Math.round(p.y * 10) / 10 })),
       hasBends: st.bends.length > 0,
+      ...curves.get(st),
     })
   }
   return out

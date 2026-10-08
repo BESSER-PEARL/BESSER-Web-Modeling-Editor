@@ -3,9 +3,20 @@ import { ZINDEX } from "@/constants"
 import { IPoint } from "@/edges"
 import { useDiagramModifiable } from "@/hooks/useDiagramModifiable"
 import { useIsOnlyThisElementSelected } from "@/hooks/useIsOnlyThisElementSelected"
-import { useMemo } from "react"
+import { useMemo, useRef } from "react"
 import { useTranslation } from "@/i18n"
+import { placeEdgeToolbar } from "@/utils/edgeUtils"
+import type { LayoutRect } from "@/utils/autoLayoutHandles"
 import { ToolbarButton } from "../ToolbarButton"
+
+/** Default offset from the midpoint (below-right) before any placement. */
+const TOOLBAR_GAP = 16
+
+/** What the toolbar keeps clear of: the edge's route and the node boxes. */
+export interface EdgeToolbarSurroundings {
+  points: readonly IPoint[]
+  rects: readonly LayoutRect[]
+}
 
 /**
  * Tiny class-rect glyph for the "Attach association class" toolbar
@@ -45,6 +56,8 @@ interface CustomEdgeToolbarProps {
    * click-to-pick `ClassLinkRel` flow.
    */
   onAttachAssociationClass?: () => void
+  /** Route and nodes around the selected edge; without them, below-right. */
+  surroundings?: EdgeToolbarSurroundings
 }
 
 export const CustomEdgeToolbar: React.FC<CustomEdgeToolbarProps> = ({
@@ -55,6 +68,7 @@ export const CustomEdgeToolbar: React.FC<CustomEdgeToolbarProps> = ({
   anchorRef,
   showEdit = true,
   onAttachAssociationClass,
+  surroundings,
 }) => {
   const { t } = useTranslation()
   const isDiagramModifiable = useDiagramModifiable()
@@ -70,13 +84,18 @@ export const CustomEdgeToolbar: React.FC<CustomEdgeToolbarProps> = ({
   const toolbarWidth = 28 * actionCount + 2 * (actionCount - 1) + 8
   const toolbarHeight = 36
 
-  // Below-right of the midpoint: clear of the line whichever way it runs,
-  // of the middle label (above a horizontal line, left of a vertical one)
-  // and of a centred marker such as the association diamond.
-  const toolbarPosition = useMemo(
-    () => ({ x: position.x + 16, y: position.y + 16 }),
-    [position.x, position.y]
-  )
+  // Beside the midpoint, off the route and off node boxes (below-right when
+  // clear).
+  const lastPlacement = useRef<IPoint | null>(null)
+  const toolbarPosition = useMemo(() => {
+    if (!showToolbar || !surroundings) {
+      // Keep the anchor where it was (an open popover stays put).
+      return lastPlacement.current ?? { x: position.x + TOOLBAR_GAP, y: position.y + TOOLBAR_GAP }
+    }
+    const placed = placeEdgeToolbar(position, toolbarWidth, toolbarHeight, surroundings.points, surroundings.rects)
+    lastPlacement.current = placed
+    return placed
+  }, [showToolbar, surroundings, position, toolbarWidth])
 
   return (
     <foreignObject

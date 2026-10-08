@@ -1,4 +1,4 @@
-import { useCallback } from "react"
+import { useCallback, useEffect, useRef } from "react"
 import { useReactFlow, type InternalNode } from "@xyflow/react"
 import { useDiagramStoreApi } from "@/store/context"
 import type { IPoint } from "@/edges/Connection"
@@ -6,6 +6,7 @@ import type { FloatingEdgeLayout } from "@/utils/floatingEdges"
 import type { LayoutRect } from "@/utils/autoLayoutHandles"
 import {
   facingHandleIds,
+  obstacleSet,
   routeBetweenPorts,
   sideHandleId,
   sideTowards,
@@ -14,6 +15,7 @@ import {
 } from "@/utils/edgePorts"
 import {
   distanceToOutline,
+  internalNodeRect,
   NO_PORT_NODE_TYPES,
   nearestOutlinePort,
   portFrame,
@@ -28,12 +30,7 @@ import { defaultFlagAfterSourceChange } from "@/utils/bpmnDefaultFlow"
 /** Distance from a node outline within which a dropped endpoint is pinned. */
 export const PORT_BAND = 12
 
-const rectOf = (n: InternalNode): LayoutRect => ({
-  x: n.internals.positionAbsolute.x,
-  y: n.internals.positionAbsolute.y,
-  width: n.measured.width ?? n.width ?? 0,
-  height: n.measured.height ?? n.height ?? 0,
-})
+const rectOf = (n: InternalNode): LayoutRect => internalNodeRect(n)
 
 /** Point on the attachment box side straight out from an outline point. */
 const onBoxSide = (box: LayoutRect, side: PortSide, p: IPoint): IPoint => {
@@ -81,6 +78,9 @@ export const useFloatingEndpointDrag = ({
 }) => {
   const { screenToFlowPosition, getNodes, getInternalNode } = useReactFlow()
   const storeApi = useDiagramStoreApi()
+  /** Ends the drag in progress without committing it (unmount / cancel). */
+  const abortRef = useRef<(() => void) | null>(null)
+  useEffect(() => () => abortRef.current?.(), [])
 
   /**
    * Node under `p`: the one whose outline is nearest when `p` is on an
@@ -130,15 +130,19 @@ export const useFloatingEndpointDrag = ({
       isReconnectingRef.current = true
       let drop: (Hit & { port?: PortSpec }) | null = null
 
-      const obstacles = () =>
-        getNodes()
-          .filter((n) => !ROUTE_TRANSPARENT_NODE_TYPES.has(n.type ?? ""))
-          .map((n) => getInternalNode(n.id))
-          .filter((n): n is InternalNode => !!n && !n.hidden)
-          .map(rectOf)
+      // Nodes do not move during the drag: one obstacle index for all frames.
+      let obstacles: ReturnType<typeof obstacleSet> | undefined
+      const obstaclesNow = () =>
+        (obstacles ??= obstacleSet(
+          getNodes()
+            .filter((n) => !ROUTE_TRANSPARENT_NODE_TYPES.has(n.type ?? ""))
+            .map((n) => getInternalNode(n.id))
+            .filter((n): n is InternalNode => !!n && !n.hidden)
+            .map(rectOf)
+        ))
 
-      const onMove = (ev: PointerEvent) => {
-        const p = screenToFlowPosition({ x: ev.clientX, y: ev.clientY })
+      const update = (client: { x: number; y: number }) => {
+        const p = screenToFlowPosition(client)
         const hit = nodeAt(p)
         drop = hit ? { ...hit, port: hit.onBorder ? nearestOutlinePort(hit.shape, hit.box, p) : undefined } : null
         let pts: IPoint[]
@@ -149,8 +153,8 @@ export const useFloatingEndpointDrag = ({
           const fixedOnBox = onBoxSide(fixedBox, fixedEnd.side, fixedPoint)
           const route =
             endType === "source"
-              ? routeBetweenPorts(endOnBox, port.side, fixedOnBox, fixedEnd.side, hit.box, fixedBox, obstacles())
-              : routeBetweenPorts(fixedOnBox, fixedEnd.side, endOnBox, port.side, fixedBox, hit.box, obstacles())
+              ? routeBetweenPorts(endOnBox, port.side, fixedOnBox, fixedEnd.side, hit.box, fixedBox, obstaclesNow())
+              : routeBetweenPorts(fixedOnBox, fixedEnd.side, endOnBox, port.side, fixedBox, hit.box, obstaclesNow())
           pts =
             endType === "source"
               ? simplifyOrthogonal([endPoint, ...route, fixedPoint])
@@ -165,10 +169,37 @@ export const useFloatingEndpointDrag = ({
         setTempReconnectPoints(pts)
       }
 
-      const onUp = () => {
+      // One hit test + route per animation frame, on the latest pointer.
+      let pending: { x: number; y: number } | null = null
+      let frame = 0
+      const flush = () => {
+        frame = 0
+        if (pending) update(pending)
+        pending = null
+      }
+      const onMove = (ev: PointerEvent) => {
+        pending = { x: ev.clientX, y: ev.clientY }
+        if (!frame) frame = requestAnimationFrame(flush)
+      }
+      const cleanup = () => {
+        if (frame) cancelAnimationFrame(frame)
+        frame = 0
         document.removeEventListener("pointermove", onMove, { capture: true })
+        document.removeEventListener("pointerup", onUp, { capture: true })
+        document.removeEventListener("pointercancel", abort, { capture: true })
         isReconnectingRef.current = false
         setTempReconnectPoints(null)
+        if (abortRef.current === abort) abortRef.current = null
+      }
+      const abort = () => {
+        drop = null
+        cleanup()
+      }
+
+      const onUp = (ev: PointerEvent) => {
+        // The drop is where the pointer is released, even mid-frame.
+        update({ x: ev.clientX, y: ev.clientY })
+        cleanup()
         const d = drop as (Hit & { port?: PortSpec }) | null
         if (!d) return
         const { nodes, edges, setEdges } = storeApi.getState()
@@ -208,8 +239,11 @@ export const useFloatingEndpointDrag = ({
         )
       }
 
+      abortRef.current?.()
+      abortRef.current = abort
       document.addEventListener("pointermove", onMove, { capture: true })
-      document.addEventListener("pointerup", onUp, { once: true, capture: true })
+      document.addEventListener("pointerup", onUp, { capture: true })
+      document.addEventListener("pointercancel", abort, { capture: true })
     },
     [
       floating,

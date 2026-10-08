@@ -1290,3 +1290,105 @@ export function getConnectionLineType(
       return ConnectionLineType.Step
   }
 }
+
+interface ToolbarRect {
+  x: number
+  y: number
+  width: number
+  height: number
+}
+
+/** Length of segment a→b inside `r` (Liang-Barsky clipping). */
+const segmentLengthInside = (a: IPoint, b: IPoint, r: ToolbarRect): number => {
+  const dx = b.x - a.x
+  const dy = b.y - a.y
+  let t0 = 0
+  let t1 = 1
+  const clip = (p: number, q: number) => {
+    if (p === 0) return q >= 0
+    const t = q / p
+    if (p < 0) {
+      if (t > t1) return false
+      if (t > t0) t0 = t
+    } else {
+      if (t < t0) return false
+      if (t < t1) t1 = t
+    }
+    return true
+  }
+  if (
+    clip(-dx, a.x - r.x) &&
+    clip(dx, r.x + r.width - a.x) &&
+    clip(-dy, a.y - r.y) &&
+    clip(dy, r.y + r.height - a.y)
+  ) {
+    return Math.max(0, t1 - t0) * Math.hypot(dx, dy)
+  }
+  return 0
+}
+
+/** Gap between an edge toolbar and the line / node it must not cover. */
+const TOOLBAR_GAP = 16
+
+/**
+ * Top-left of an edge toolbar (`w` × `h`) beside `mid`: below-right when
+ * that is clear, otherwise the candidate around `mid` that covers the least
+ * of the route (`points`), of node boxes and of where the middle label sits
+ * (above a horizontal line, left of a vertical one).
+ */
+export const placeEdgeToolbar = (
+  mid: IPoint,
+  w: number,
+  h: number,
+  points: readonly IPoint[],
+  rects: readonly ToolbarRect[]
+): IPoint => {
+  const g = TOOLBAR_GAP
+  const candidates: IPoint[] = [
+    { x: mid.x + g, y: mid.y + g },
+    { x: mid.x - w - g, y: mid.y + g },
+    { x: mid.x - w / 2, y: mid.y + g },
+    { x: mid.x + g, y: mid.y - h / 2 },
+    { x: mid.x - w - g, y: mid.y - h / 2 },
+    { x: mid.x + g, y: mid.y - h - g },
+    { x: mid.x - w - g, y: mid.y - h - g },
+    { x: mid.x - w / 2, y: mid.y - h - g },
+  ]
+  // Orientation of the segment closest to the midpoint (label side).
+  let horizontal = true
+  let nearest = Infinity
+  for (let i = 0; i + 1 < points.length; i++) {
+    const a = points[i]
+    const b = points[i + 1]
+    const cx = Math.min(Math.max(mid.x, Math.min(a.x, b.x)), Math.max(a.x, b.x))
+    const cy = Math.min(Math.max(mid.y, Math.min(a.y, b.y)), Math.max(a.y, b.y))
+    const d = Math.hypot(mid.x - cx, mid.y - cy)
+    if (d < nearest) {
+      nearest = d
+      horizontal = Math.abs(b.x - a.x) >= Math.abs(b.y - a.y)
+    }
+  }
+  // Containers around the edge (packages, pools) are not in the way.
+  const blockers = rects.filter(
+    (r) => !(mid.x > r.x && mid.x < r.x + r.width && mid.y > r.y && mid.y < r.y + r.height)
+  )
+  let best = candidates[0]
+  let bestCost = Infinity
+  candidates.forEach((c, i) => {
+    const box = { x: c.x - 4, y: c.y - 4, width: w + 8, height: h + 8 }
+    let cost = i * 0.01
+    for (let k = 0; k + 1 < points.length; k++) cost += 10 * segmentLengthInside(points[k], points[k + 1], box)
+    for (const r of blockers) {
+      const ox = Math.min(box.x + box.width, r.x + r.width) - Math.max(box.x, r.x)
+      const oy = Math.min(box.y + box.height, r.y + r.height) - Math.max(box.y, r.y)
+      if (ox > 0 && oy > 0) cost += ox * oy
+    }
+    const labelSide = horizontal ? c.y + h <= mid.y : c.x + w <= mid.x
+    if (labelSide) cost += 40
+    if (cost < bestCost) {
+      bestCost = cost
+      best = c
+    }
+  })
+  return best
+}

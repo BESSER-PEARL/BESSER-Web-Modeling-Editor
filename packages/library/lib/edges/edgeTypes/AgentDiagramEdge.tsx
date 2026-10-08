@@ -19,7 +19,10 @@ import { AssessmentSelectableWrapper } from "@/components/wrapper/AssessmentSele
 import { getCustomColorsFromDataForEdge } from "@/utils/layoutUtils"
 import { EdgeInlineMarkers } from "@/components/svgs/edges/InlineMarker"
 import { registerEdgeTypes } from "../types"
-import { curveEnds, getCurvedPath } from "../curvedPath"
+import { curveEnds, getCurvedPath, labelClearOfEnds } from "../curvedPath"
+import { estimateMiddleLabelWidth } from "../labelTypes/middleLabelPlacement"
+import { truncateLabel } from "../labelTypes/EdgeMiddleLabels"
+import { endMarkerLength } from "@/utils/edgeUtils"
 import { useTranslation } from "@/i18n"
 import { getAgentComponentLists } from "@/components/inspectors/agentDiagram/agentComponentLists"
 import { isMissingIntent } from "@/utils/agentComponents"
@@ -199,11 +202,13 @@ export const AgentDiagramEdge = ({
   const getTriggerLabel = (): string => {
     if (d.transitionType === "custom") {
       const ev = d.custom?.event || "WildcardEvent"
+      const event =
+        ev === "None" ? t("packages.AgentDiagram.transitionCanvasLabel.noEvent", "No event") : ev
+      // The condition count only when there is one ("+ 0 cond." read as noise).
       const n = d.custom?.condition?.length || 0
-      const conditions = `${n} ${t("packages.AgentDiagram.transitionCanvasLabel.conditionsShort", "cond.")}`
-      return ev === "None"
-        ? `${t("packages.AgentDiagram.transitionCanvasLabel.noEvent", "No event")} + ${conditions}`
-        : `${ev} + ${conditions}`
+      return n > 0
+        ? `${event} + ${n} ${t("packages.AgentDiagram.transitionCanvasLabel.conditionsShort", "cond.")}`
+        : event
     }
     const pt = d.predefined?.predefinedType
     if (!pt) return ""
@@ -243,6 +248,17 @@ export const AgentDiagramEdge = ({
   const trigger = getTriggerLabel()
   const composedLabel = [d.name ?? "", trigger].filter(Boolean).join(" · ")
   const label = composedLabel || (d.label as string) || ""
+  // Short edges: the label goes beside the line, clear of the arrowhead.
+  const labelAnchor =
+    source === target || !label
+      ? curveMiddle
+      : labelClearOfEnds(
+          curveMiddle,
+          sourcePoint,
+          targetPoint,
+          estimateMiddleLabelWidth(truncateLabel(label)),
+          endMarkerLength(markerEnd)
+        )
   const edgeStroke = invalid ? "#ef4444" : strokeColor
   const labelColor = invalid ? "#ef4444" : textColor
 
@@ -307,7 +323,7 @@ export const AgentDiagramEdge = ({
 
         <EdgeMiddleLabels
           label={label}
-          pathMiddlePosition={curveMiddle}
+          pathMiddlePosition={labelAnchor}
           isMiddlePathHorizontal={edgeData.isMiddlePathHorizontal}
           centered
           showRelationshipLabels={true}
@@ -317,7 +333,7 @@ export const AgentDiagramEdge = ({
         <CommonEdgeElements
           id={id}
           // Toolbar just below the on-curve label so it doesn't cover it.
-          pathMiddlePosition={{ x: curveMiddle.x, y: curveMiddle.y + 14 }}
+          pathMiddlePosition={{ x: labelAnchor.x, y: labelAnchor.y + 14 }}
           isDiagramModifiable={isDiagramModifiable}
           assessments={assessments}
           anchorRef={anchorRef}

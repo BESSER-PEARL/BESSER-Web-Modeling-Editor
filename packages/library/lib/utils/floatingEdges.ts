@@ -116,6 +116,8 @@ export const computeFloatingLayout = (
       sourceHandle: e.sourceHandle,
       targetHandle: e.targetHandle,
       curved: CURVED_EDGE_TYPES.has(e.type ?? ""),
+      // Message flows run between stacked pools: top / bottom, not sideways.
+      preferVertical: e.type === "BPMNMessageFlow",
       data: e.data as never,
     })),
     obstacles,
