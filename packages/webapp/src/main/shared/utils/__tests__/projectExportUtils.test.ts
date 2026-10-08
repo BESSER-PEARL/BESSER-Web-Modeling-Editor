@@ -25,7 +25,10 @@ import {
 // ────────────────────────────────────────────────────────────────────────────
 
 /** Create a UML diagram that has at least one element (i.e. non-empty). */
-const createNonEmptyUMLDiagram = (title: string, type: UMLDiagramType): ProjectDiagram => {
+const createNonEmptyUMLDiagram = (
+  title: string,
+  type: UMLDiagramType,
+): ProjectDiagram => {
   const diagram = createEmptyDiagram(title, type);
   const model = diagram.model as any;
   model.elements = {
@@ -44,7 +47,9 @@ const createNonEmptyUMLDiagram = (title: string, type: UMLDiagramType): ProjectD
 const createNonEmptyGUIDiagram = (title: string): ProjectDiagram => {
   const diagram = createEmptyDiagram(title, null, 'gui');
   const model = diagram.model as GrapesJSProjectData;
-  model.pages[0].frames[0].component.components = [{ type: 'text', content: 'Hello' }];
+  model.pages[0].frames[0].component.components = [
+    { type: 'text', content: 'Hello' },
+  ];
   return diagram;
 };
 
@@ -176,7 +181,9 @@ describe('buildExportableProjectPayload', () => {
     const project = createDefaultProject('Test Project', 'desc', 'owner');
 
     // Add a non-empty class diagram
-    project.diagrams.ClassDiagram = [createNonEmptyUMLDiagram('My Class Diagram', UMLDiagramType.ClassDiagram)];
+    project.diagrams.ClassDiagram = [
+      createNonEmptyUMLDiagram('My Class Diagram', UMLDiagramType.ClassDiagram),
+    ];
 
     const payload = buildExportableProjectPayload(project);
 
@@ -211,8 +218,12 @@ describe('buildExportableProjectPayload', () => {
     const project = createDefaultProject('Test Project', 'desc', 'owner');
 
     // Make both ClassDiagram and StateMachineDiagram non-empty
-    project.diagrams.ClassDiagram = [createNonEmptyUMLDiagram('Class', UMLDiagramType.ClassDiagram)];
-    project.diagrams.StateMachineDiagram = [createNonEmptyUMLDiagram('SM', UMLDiagramType.StateMachineDiagram)];
+    project.diagrams.ClassDiagram = [
+      createNonEmptyUMLDiagram('Class', UMLDiagramType.ClassDiagram),
+    ];
+    project.diagrams.StateMachineDiagram = [
+      createNonEmptyUMLDiagram('SM', UMLDiagramType.StateMachineDiagram),
+    ];
 
     // Only select ClassDiagram
     const payload = buildExportableProjectPayload(project, ['ClassDiagram']);
@@ -261,7 +272,9 @@ describe('buildExportableProjectPayload', () => {
 
   it('does not mutate the original project', () => {
     const project = createDefaultProject('Original', 'desc', 'owner');
-    project.diagrams.ClassDiagram = [createNonEmptyUMLDiagram('Class', UMLDiagramType.ClassDiagram)];
+    project.diagrams.ClassDiagram = [
+      createNonEmptyUMLDiagram('Class', UMLDiagramType.ClassDiagram),
+    ];
 
     const originalDiagramCount = Object.keys(project.diagrams).length;
     buildExportableProjectPayload(project);
@@ -274,9 +287,15 @@ describe('buildExportableProjectPayload', () => {
   it('handles multiple non-empty diagram types', () => {
     const project = createDefaultProject('Multi', 'desc', 'owner');
 
-    project.diagrams.ClassDiagram = [createNonEmptyUMLDiagram('Class', UMLDiagramType.ClassDiagram)];
-    project.diagrams.GUINoCodeDiagram = [createNonEmptyGUIDiagram('GUI')];
-    project.diagrams.QuantumCircuitDiagram = [createNonEmptyQuantumDiagram('Quantum')];
+    project.diagrams.ClassDiagram = [
+      createNonEmptyUMLDiagram('Class', UMLDiagramType.ClassDiagram),
+    ];
+    project.diagrams.GUINoCodeDiagram = [
+      createNonEmptyGUIDiagram('GUI'),
+    ];
+    project.diagrams.QuantumCircuitDiagram = [
+      createNonEmptyQuantumDiagram('Quantum'),
+    ];
 
     const payload = buildExportableProjectPayload(project);
 
@@ -304,7 +323,6 @@ describe('round-trip: export filters empty diagrams, import restores them', () =
       AgentDiagram: UMLDiagramType.AgentDiagram,
       ComponentDiagram: UMLDiagramType.ComponentDiagram,
       DeploymentDiagram: UMLDiagramType.DeploymentDiagram,
-      BPMN: UMLDiagramType.BPMN,
       UserDiagram: UMLDiagramType.UserDiagram,
       GUINoCodeDiagram: null,
       QuantumCircuitDiagram: null,
@@ -318,7 +336,6 @@ describe('round-trip: export filters empty diagrams, import restores them', () =
       AgentDiagram: 'Agent Diagram',
       ComponentDiagram: 'Component Diagram',
       DeploymentDiagram: 'Deployment Diagram',
-      BPMN: 'BPMN Diagram',
       UserDiagram: 'User Diagram',
       GUINoCodeDiagram: 'GUI Diagram',
       QuantumCircuitDiagram: 'Quantum Circuit',
@@ -347,7 +364,9 @@ describe('round-trip: export filters empty diagrams, import restores them', () =
   it('export excludes empty diagrams, fillMissingDiagrams restores all types on import', () => {
     // 1. Create a project with only ClassDiagram having content
     const project = createDefaultProject('Round Trip', 'test', 'owner');
-    project.diagrams.ClassDiagram = [createNonEmptyUMLDiagram('My Class', UMLDiagramType.ClassDiagram)];
+    project.diagrams.ClassDiagram = [
+      createNonEmptyUMLDiagram('My Class', UMLDiagramType.ClassDiagram),
+    ];
 
     // 2. Export: empty diagram types should be filtered out
     const exported = buildExportableProjectPayload(project);
@@ -400,7 +419,11 @@ describe('round-trip: export filters empty diagrams, import restores them', () =
 });
 
 // ────────────────────────────────────────────────────────────────────────────
-// buildProjectPayloadForBackend — lineage strip 
+// buildProjectExportEnvelope
+// ────────────────────────────────────────────────────────────────────────────
+
+// ────────────────────────────────────────────────────────────────────────────
+// buildProjectPayloadForBackend — lineage strip
 // ────────────────────────────────────────────────────────────────────────────
 
 describe('buildProjectPayloadForBackend lineage strip', () => {
@@ -421,16 +444,16 @@ describe('buildProjectPayloadForBackend lineage strip', () => {
   };
 
   it('strips derivedFrom from every diagram in the backend payload', () => {
-    const payload = buildProjectPayloadForBackend(projectWithLineage()) as BesserProject;
-    for (const arr of Object.values(payload.diagrams)) {
-      for (const diagram of arr as ProjectDiagram[]) {
+    const payload = buildProjectPayloadForBackend(projectWithLineage());
+    for (const arr of Object.values(payload.diagrams as Record<string, ProjectDiagram[]>)) {
+      for (const diagram of arr) {
         expect(diagram.derivedFrom).toBeUndefined();
       }
     }
   });
 
   it('strips elementLineage from the backend payload', () => {
-    const payload = buildProjectPayloadForBackend(projectWithLineage()) as BesserProject;
+    const payload = buildProjectPayloadForBackend(projectWithLineage());
     expect(payload.elementLineage).toBeUndefined();
   });
 

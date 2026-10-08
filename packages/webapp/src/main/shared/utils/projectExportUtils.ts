@@ -150,20 +150,15 @@ export const buildProjectPayloadForBackend = (
     );
   }
 
-  // Strip WME lineage: `derivedFrom` (per-diagram provenance) and
-  // `elementLineage` (derived-source element map), have no B-UML
-  // referent — BESSER ignores them. They still
-  // round-trip through buildExportableProjectPayload (the WME project-file
-  // export), so the in-editor LineageSourceLink is unaffected; we only
-  // drop them from the backend request body.
-  for (const arr of Object.values(payload.diagrams)) {
-    if (Array.isArray(arr)) {
-      for (const diagram of arr as ProjectDiagram[]) {
-        delete diagram.derivedFrom;
-      }
+  // Strip the WME lineage (`derivedFrom` per diagram, `elementLineage` per
+  // project): it has no B-UML counterpart. The project-file export
+  // (buildExportableProjectPayload) keeps it; only the backend request drops it.
+  for (const diagrams of Object.values(payload.diagrams)) {
+    for (const diagram of diagrams) {
+      delete diagram.derivedFrom;
     }
   }
-  delete (payload as BesserProject).elementLineage;
+  delete payload.elementLineage;
 
   return payload;
 };
