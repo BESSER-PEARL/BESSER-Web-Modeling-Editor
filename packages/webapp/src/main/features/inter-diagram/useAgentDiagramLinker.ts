@@ -18,7 +18,7 @@ import { MAX_DIAGRAMS_PER_TYPE, isUMLModel, type ProjectDiagram } from '../../sh
 import type { DiagramLineage } from '../../shared/types/project';
 import type { AgentDiagramLinker } from '@besser/wme';
 import { laneToAgentModel } from './lane-to-agent';
-import { hashUmlModel } from './lineage-hash';
+import { hashUmlModel } from '../../shared/utils/lineageHash';
 
 /**
  * Host-side linker passed to `editor.setAgentDiagramLinker(...)`.

@@ -28,7 +28,7 @@ import {
 } from '../../../app/store/workspaceSlice';
 import { ApollonEditorContext } from '../uml/apollon-editor-context';
 import { ProjectStorageRepository } from '../../../shared/services/storage/ProjectStorageRepository';
-import { hashUmlModel } from '../../inter-diagram/lineage-hash';
+import { hashUmlModel } from '../../../shared/utils/lineageHash';
 import { scaffoldObjectsFromClasses } from './scaffoldObjectsFromClasses';
 import { UserProfileFormPanel } from '../user-profile-form/UserProfileFormPanel';
 
