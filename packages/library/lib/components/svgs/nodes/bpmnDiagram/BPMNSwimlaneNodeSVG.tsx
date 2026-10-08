@@ -5,6 +5,25 @@ import { useShallow } from "zustand/shallow"
 import AssessmentIcon from "../../AssessmentIcon"
 import { BPMNSwimlaneProps } from "@/types"
 import { getCustomColorsFromData } from "@/utils"
+import { LAYOUT } from "@/constants"
+import { LANE_HEADER_WIDTH } from "@/utils/bpmnConstraints"
+import { AgenticBotIcon } from "@/components/svgs/icons/agentic"
+import { migrateLegacyRole } from "@/types/bpmnAgentic"
+
+/** Header width of an agentic lane: the name strip plus a marker column. */
+export const AGENTIC_LANE_HEADER_WIDTH = 60
+// The agentic markers stack centred in the column between the two widths.
+// Their text uses the name size: develop's 9-11px attributes were overridden
+// to 16px by its canvas stylesheet, which is what users saw.
+const MARKER_X = (LANE_HEADER_WIDTH + AGENTIC_LANE_HEADER_WIDTH) / 2
+const BOT_ICON_HALF_WIDTH = 9
+const ROLE_BADGE: Record<string, string> = { solution: "S", supervision: "Sv" }
+
+/** Badge text for a lane role: the preset abbreviations, else its first two letters. */
+export const laneRoleBadge = (role: unknown): string => {
+  const migrated = migrateLegacyRole(role)
+  return ROLE_BADGE[migrated] ?? migrated.slice(0, 2).toUpperCase()
+}
 
 interface BPMNSwimlaneNodeSVGProps extends SVGComponentProps {
   data: BPMNSwimlaneProps
@@ -26,7 +45,8 @@ export const BPMNSwimlaneNodeSVG: React.FC<BPMNSwimlaneNodeSVGProps> = ({
   id,
   showAssessmentResults = false,
 }) => {
-  const { name } = data
+  const { name, isAgentic } = data
+  const multiplicity = data.multiplicity ?? 1
   const assessments = useDiagramStore(useShallow((state) => state.assessments))
   const nodeScore = assessments[id]?.score
   const scaledWidth = width * (SIDEBAR_PREVIEW_SCALE ?? 1)
@@ -59,6 +79,49 @@ export const BPMNSwimlaneNodeSVG: React.FC<BPMNSwimlaneNodeSVGProps> = ({
       >
         {name}
       </CustomText>
+
+      {/* Agentic: bot, role badge, trust score and (when > 1) copies stack
+          right of the rotated name. */}
+      {isAgentic && (
+        <g data-testid="agentic-lane-markers">
+          <AgenticBotIcon
+            x={MARKER_X - BOT_ICON_HALF_WIDTH}
+            y={height / 2 - 23}
+            color={strokeColor}
+          />
+          <CustomText
+            x={MARKER_X}
+            y={height / 2 + 8}
+            dominantBaseline="auto"
+            fontSize={LAYOUT.NAME_FONT_SIZE}
+            fontWeight="bold"
+            fill={textColor}
+          >
+            {laneRoleBadge(data.role)}
+          </CustomText>
+          <CustomText
+            x={MARKER_X}
+            y={height / 2 + 23}
+            dominantBaseline="auto"
+            fontSize={LAYOUT.NAME_FONT_SIZE}
+            fill={textColor}
+          >
+            {data.trustScore ?? 0}
+          </CustomText>
+          {multiplicity > 1 && (
+            <CustomText
+              x={MARKER_X}
+              y={height / 2 + 38}
+              dominantBaseline="auto"
+              fontSize={LAYOUT.NAME_FONT_SIZE}
+              fontWeight="bold"
+              fill={textColor}
+            >
+              {`×${multiplicity}`}
+            </CustomText>
+          )}
+        </g>
+      )}
 
       {showAssessmentResults && (
         <AssessmentIcon x={width - 15} y={-15} score={nodeScore} />

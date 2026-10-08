@@ -63,6 +63,7 @@ export const BPMNPoolNodeSVG: React.FC<BPMNPoolNodeSVGProps> = ({
         y={height / 2}
         textAnchor="middle"
         transform={`rotate(-90, ${headerWidth / 2}, ${height / 2})`}
+        fontWeight="bold"
         fill={textColor}
       >
         {name}

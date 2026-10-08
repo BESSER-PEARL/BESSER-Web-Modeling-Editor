@@ -1,6 +1,13 @@
 import { useState } from "react"
-import { Box, Button, IconButton, Stack, Typography } from "@mui/material"
-import { TextField } from "@/components/ui"
+import { Box, Button, Stack } from "@mui/material"
+import { DividerLine, NodeStyleEditor, TextField } from "@/components/ui"
+import {
+  ChevronDownIcon,
+  ChevronUpIcon,
+  InspectorSectionHeader,
+  RowActionButton,
+  TrashIcon,
+} from "@/components/inspectors/_shared"
 import { useTranslation } from "@/i18n"
 import { PopoverProps } from "../types"
 import { useDiagramStore } from "@/store/context"
@@ -11,7 +18,7 @@ import { generateUUID } from "@/utils"
 import { addPoolLane, removePoolLane, swapPoolLanes } from "./poolLanes"
 
 /**
- * Pool editor: name field + a Swimlanes section (add / rename / reorder /
+ * Pool editor: name and colours + a Swimlanes section (add / rename / reorder /
  * delete lanes), ported from develop's bpmn-pool-update.tsx.
  *
  * Adding the FIRST lane reparents all of the pool's existing direct
@@ -41,10 +48,10 @@ export const BPMNPoolEditPopover = ({ elementId }: PopoverProps) => {
     .filter((n) => n.parentId === elementId && n.type === "bpmnSwimlane")
     .sort((a, b) => a.position.y - b.position.y)
 
-  const updatePoolName = (value: string) =>
+  const updatePoolField = (key: string, value: string) =>
     setNodes((ns) =>
       ns.map((n) =>
-        n.id === elementId ? { ...n, data: { ...n.data, name: value } } : n
+        n.id === elementId ? { ...n, data: { ...n.data, [key]: value } } : n
       )
     )
 
@@ -74,27 +81,17 @@ export const BPMNPoolEditPopover = ({ elementId }: PopoverProps) => {
   }
 
   return (
-    <Box
-      sx={{
-        width: 280,
-        padding: 2,
-        display: "flex",
-        flexDirection: "column",
-        gap: 1,
-      }}
-    >
-      <TextField
-        fullWidth
-        label={t("popup.bpmn.poolName", "Pool Name")}
-        value={poolNode.data.name ?? ""}
-        onChange={(e) => updatePoolName(e.target.value)}
-        variant="outlined"
-        size="small"
+    <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
+      <NodeStyleEditor
+        nodeData={poolNode.data}
+        handleDataFieldUpdate={updatePoolField}
+        inputPlaceholder={t("popup.bpmn.poolName", "Pool Name")}
       />
+      <DividerLine width="100%" />
 
-      <Typography variant="subtitle2">
+      <InspectorSectionHeader>
         {t("packages.BPMNDiagram.BPMNSwimlanes", "Lanes")}
-      </Typography>
+      </InspectorSectionHeader>
       {lanes.map((lane, i) => (
         <Stack key={lane.id} direction="row" spacing={0.5} alignItems="center">
           <TextField
@@ -103,29 +100,27 @@ export const BPMNPoolEditPopover = ({ elementId }: PopoverProps) => {
             value={(lane.data?.name as string) ?? ""}
             onChange={(e) => updateLaneName(lane.id, e.target.value)}
           />
-          <IconButton
-            size="small"
+          <RowActionButton
+            label={t("popup.bpmn.moveLaneUp", "Move lane up")}
             disabled={i === 0}
             onClick={() => swapLanes(i, i - 1)}
-            aria-label={t("popup.bpmn.moveLaneUp", "Move lane up")}
           >
-            ↑
-          </IconButton>
-          <IconButton
-            size="small"
+            <ChevronUpIcon size={14} />
+          </RowActionButton>
+          <RowActionButton
+            label={t("popup.bpmn.moveLaneDown", "Move lane down")}
             disabled={i === lanes.length - 1}
             onClick={() => swapLanes(i, i + 1)}
-            aria-label={t("popup.bpmn.moveLaneDown", "Move lane down")}
           >
-            ↓
-          </IconButton>
-          <IconButton
-            size="small"
+            <ChevronDownIcon size={14} />
+          </RowActionButton>
+          <RowActionButton
+            danger
+            label={t("popup.bpmn.deleteLane", "Delete lane")}
             onClick={() => deleteLane(lane.id)}
-            aria-label={t("popup.bpmn.deleteLane", "Delete lane")}
           >
-            ✕
-          </IconButton>
+            <TrashIcon size={14} />
+          </RowActionButton>
         </Stack>
       ))}
 
@@ -137,7 +132,12 @@ export const BPMNPoolEditPopover = ({ elementId }: PopoverProps) => {
           value={newLaneName}
           onChange={(e) => setNewLaneName(e.target.value)}
         />
-        <Button size="small" variant="outlined" onClick={addLane}>
+        <Button
+          size="small"
+          variant="outlined"
+          onClick={addLane}
+          sx={{ flexShrink: 0, whiteSpace: "nowrap" }}
+        >
           {t("popup.bpmn.addLane", "Add Lane")}
         </Button>
       </Stack>

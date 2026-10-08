@@ -8,6 +8,11 @@ import AssessmentIcon from "../../AssessmentIcon"
 import { SVGComponentProps } from "@/types/SVG"
 import { BPMNTaskProps } from "@/types"
 import { getCustomColorsFromData } from "@/utils/layoutUtils"
+import { BPMNReflectionMode } from "@/types/bpmnAgentic"
+import {
+  AgenticBotIcon,
+  BPMNReflectionMarkerIcon,
+} from "@/components/svgs/icons/agentic"
 
 export type BPMNTaskNodeSVGProps = SVGComponentProps & {
   data: BPMNTaskProps
@@ -45,6 +50,32 @@ export const fitLongestWordFontSize = (
 /** develop `Multiline lineHeight={16}` for task names. */
 const TASK_NAME_LINE_HEIGHT = 16
 
+// Agentic task layout (develop bpmn-task.ts): the reflection marker reserves
+// a bottom band, and the height never drops below the marker room.
+export const AGENTIC_TASK_CAP_HEIGHT = 11
+export const AGENTIC_TASK_TOP_MARGIN = 28
+export const AGENTIC_TASK_REFLECTION_RESERVE = 28
+
+/** Reflection mode -> marker letter; `none` draws no marker. */
+const REFLECTION_LETTER: Record<BPMNReflectionMode, string | null> = {
+  none: null,
+  self: "s",
+  cross: "c",
+  human: "h",
+}
+
+/** Minimum height of a task: 39 when agentic, 67 with a reflection mode, else 0. */
+export const agenticTaskMinHeight = (
+  data: Pick<BPMNTaskProps, "isAgentic" | "reflectionMode">
+): number => {
+  if (!data.isAgentic) return 0
+  const reflection =
+    data.reflectionMode && data.reflectionMode !== "none"
+      ? AGENTIC_TASK_REFLECTION_RESERVE
+      : 0
+  return AGENTIC_TASK_TOP_MARGIN + AGENTIC_TASK_CAP_HEIGHT + reflection
+}
+
 export const BPMNTaskNodeSVG: React.FC<BPMNTaskNodeSVGProps> = ({
   id,
   width,
@@ -54,7 +85,7 @@ export const BPMNTaskNodeSVG: React.FC<BPMNTaskNodeSVGProps> = ({
   SIDEBAR_PREVIEW_SCALE,
   showAssessmentResults = false,
 }) => {
-  const { name, taskType, marker } = data
+  const { name, taskType, marker, isAgentic } = data
   const assessments = useDiagramStore(useShallow((state) => state.assessments))
   const nodeScore = assessments[id]?.score
   const scaledWidth = width * (SIDEBAR_PREVIEW_SCALE ?? 1)
@@ -62,7 +93,13 @@ export const BPMNTaskNodeSVG: React.FC<BPMNTaskNodeSVGProps> = ({
 
   const { fillColor, strokeColor, textColor } = getCustomColorsFromData(data)
 
+  const reflectionLetter = isAgentic
+    ? REFLECTION_LETTER[data.reflectionMode ?? "none"] ?? null
+    : null
+
+  // Agentic: the bot replaces the task-type icon.
   const icon = (() => {
+    if (isAgentic) return <AgenticBotIcon x={8} y={8} color={strokeColor} />
     switch (taskType) {
       case "user":
         return (
@@ -241,7 +278,18 @@ export const BPMNTaskNodeSVG: React.FC<BPMNTaskNodeSVGProps> = ({
     }
   })()
 
+  // Agentic: the reflection marker replaces the multi-instance / loop marker.
   const markerEl = (() => {
+    if (isAgentic) {
+      return reflectionLetter ? (
+        <BPMNReflectionMarkerIcon
+          letter={reflectionLetter}
+          x={width / 2 - 8}
+          y={height - 25}
+          color={strokeColor}
+        />
+      ) : null
+    }
     switch (marker) {
       case "parallel multi instance":
         return (
@@ -327,6 +375,7 @@ export const BPMNTaskNodeSVG: React.FC<BPMNTaskNodeSVGProps> = ({
   const nameCenterX = icon
     ? (TASK_ICON_NAME_LEFT + width - TASK_ICON_NAME_RIGHT) / 2
     : width / 2
+  const reflectionReserve = reflectionLetter ? AGENTIC_TASK_REFLECTION_RESERVE : 0
   const nameFontSize = fitLongestWordFontSize(
     name ?? "",
     nameMaxWidth,
@@ -362,14 +411,15 @@ export const BPMNTaskNodeSVG: React.FC<BPMNTaskNodeSVGProps> = ({
         <MultilineText
           text={name}
           x={nameCenterX}
-          y={height / 2}
+          y={(height - reflectionReserve) / 2}
           maxWidth={nameMaxWidth}
           fontSize={nameFontSize}
           lineHeight={TASK_NAME_LINE_HEIGHT}
           fontWeight="bold"
           fill={textColor}
           maxLines={maxLinesForHeight(
-            height - (markerEl ? 24 : 8),
+            // The name centres in the band above the reflection marker.
+            reflectionReserve ? height - reflectionReserve : height - (markerEl ? 24 : 8),
             TASK_NAME_LINE_HEIGHT
           )}
         />

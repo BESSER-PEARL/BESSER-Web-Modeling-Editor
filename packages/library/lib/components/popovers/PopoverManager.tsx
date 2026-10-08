@@ -60,6 +60,7 @@ import {
   BPMNSubprocessEditPopover,
   BPMNTransactionEditPopover,
   BPMNCallActivityEditPopover,
+  BPMNSwimlaneEditPopover,
 } from "./bpmnDiagram"
 import { ComponentEdgeEditPopover } from "./edgePopovers/ComponentDiagramEdgeEditPopover"
 import { ReachabilityGraphMarkingEditPopover } from "./reachabilityGraphDiagram"
@@ -353,7 +354,7 @@ const editPopovers: {
   BPMNDataObject: DefaultNodeEditPopover,
   BPMNDataStore: DefaultNodeEditPopover,
   BPMNPool: BPMNPoolEditPopover,
-  BPMNSwimlane: DefaultNodeEditPopover,
+  BPMNSwimlane: BPMNSwimlaneEditPopover,
   BPMNGroup: DefaultNodeEditPopover,
   ReachabilityGraphMarking: ReachabilityGraphMarkingEditPopover,
   Sfc: DefaultNodeEditPopover,

@@ -5,8 +5,9 @@ import { ReactFlowProvider, type Node } from "@xyflow/react"
 import type { StoreApi } from "zustand"
 import { usePopoverAnchor } from "@/hooks/usePopoverAnchor"
 import { useReactiveEdge, useReactiveNode } from "@/hooks/useReactiveElement"
-import { DiagramStoreContext } from "@/store/context"
+import { DiagramStoreContext, MetadataStoreContext } from "@/store/context"
 import { createDiagramStore, DiagramStore } from "@/store/diagramStore"
+import { createMetadataStore } from "@/store/metadataStore"
 import { BPMNTaskEditPopover } from "@/components/popovers/bpmnDiagram/BPMNTaskEditPopover"
 
 /**
@@ -54,7 +55,12 @@ describe("usePopoverAnchor", () => {
 
 const withStore = (store: StoreApi<DiagramStore>, ui: React.ReactNode) => (
   <ReactFlowProvider>
-    <DiagramStoreContext.Provider value={store}>{ui}</DiagramStoreContext.Provider>
+    <DiagramStoreContext.Provider value={store}>
+      {/* The task popover reads the agentic flag from the metadata store. */}
+      <MetadataStoreContext.Provider value={createMetadataStore(new Y.Doc())}>
+        {ui}
+      </MetadataStoreContext.Provider>
+    </DiagramStoreContext.Provider>
   </ReactFlowProvider>
 )
 

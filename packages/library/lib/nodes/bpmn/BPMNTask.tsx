@@ -6,6 +6,7 @@ import { PopoverManager } from "@/components/popovers/PopoverManager"
 import { useDiagramModifiable } from "@/hooks/useDiagramModifiable"
 import { BPMNTaskProps } from "@/types"
 import { BPMNTaskNodeSVG } from "@/components"
+import { agenticTaskMinHeight } from "@/components/svgs/nodes/bpmnDiagram/BPMNTaskNodeSVG"
 import { NodeToolbar } from "@/components/toolbars/NodeToolbar"
 
 export function BPMNTask({
@@ -30,7 +31,8 @@ export function BPMNTask({
       <NodeResizer
         isVisible={isDiagramModifiable}
         onResize={onResize}
-        minHeight={50}
+        // An agentic task keeps room for its bot and reflection markers.
+        minHeight={Math.max(50, agenticTaskMinHeight(data))}
         minWidth={80}
         handleStyle={{ width: 8, height: 8 }}
       />

@@ -23,7 +23,8 @@ type LaneNode = {
   data: Record<string, unknown>
 }
 
-const lanesOf = <N extends LaneNode>(nodes: N[], poolId: string): N[] =>
+/** A pool's lanes, top to bottom. */
+export const lanesOf = <N extends LaneNode>(nodes: N[], poolId: string): N[] =>
   nodes
     .filter((n) => n.parentId === poolId && n.type === "bpmnSwimlane")
     .sort((a, b) => a.position.y - b.position.y)

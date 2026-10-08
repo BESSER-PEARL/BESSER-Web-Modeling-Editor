@@ -11,6 +11,7 @@ import { PopoverManager } from "@/components/popovers/PopoverManager"
 import { useDiagramModifiable } from "@/hooks/useDiagramModifiable"
 import { BPMNSwimlaneProps } from "@/types"
 import { BPMNSwimlaneNodeSVG } from "@/components"
+import { AGENTIC_LANE_HEADER_WIDTH } from "@/components/svgs/nodes/bpmnDiagram/BPMNSwimlaneNodeSVG"
 import { NodeToolbar } from "@/components/toolbars/NodeToolbar"
 import { useSwimlaneLayout, SWIMLANE_MIN_HEIGHT } from "@/hooks/useSwimlaneLayout"
 import { LANE_HEADER_WIDTH } from "@/utils/bpmnConstraints"
@@ -59,9 +60,8 @@ function ensureSwimlanePassthroughStyle(): void {
  *  - selectable through its header strip (the body passes clicks through);
  *  - resizing re-flows the owning pool via `useSwimlaneLayout`.
  *
- * Renaming a lane happens through the Pool's lane-list UI
- * (`BPMNPoolEditPopover`), mirroring develop's bpmn-pool-update.tsx; the
- * per-lane popover maps to `DefaultNodeEditPopover` as a minimal fallback.
+ * A lane is edited in its own popover (`BPMNSwimlaneEditPopover`) or from
+ * the pool's lane list (`BPMNPoolEditPopover`).
  */
 export function BPMNSwimlane({
   id,
@@ -113,15 +113,16 @@ export function BPMNSwimlane({
           }}
         />
       )}
-      {/* The header strip (lane name) takes the pointer, so a click selects
-          the lane itself rather than falling through to the pool. */}
+      {/* The header strip (lane name, plus the marker column of an agentic
+          lane) takes the pointer, so a click selects the lane itself rather
+          than falling through to the pool. */}
       <div
         className="besser-bpmn-lane-header"
         style={{
           position: "absolute",
           left: 0,
           top: 0,
-          width: LANE_HEADER_WIDTH,
+          width: data.isAgentic ? AGENTIC_LANE_HEADER_WIDTH : LANE_HEADER_WIDTH,
           height,
           pointerEvents: "all",
           cursor: "pointer",
