@@ -1,6 +1,6 @@
 import { NodeProps, NodeResizer, type Node } from "@xyflow/react"
 import { usePopoverAnchor } from "@/hooks/usePopoverAnchor"
-import { useEffect } from "react"
+import { useEffect, useState } from "react"
 import { Bot, Map, RotateCw } from "lucide-react"
 import { DefaultNodeWrapper } from "../wrappers"
 import { useHandleOnResize } from "@/hooks"
@@ -11,6 +11,8 @@ import { useDiagramStore } from "@/store/context"
 import { AgentStateNodeProps } from "@/types"
 import { useTranslation } from "@/i18n"
 import { resolveReplyType } from "@/utils/agentActions"
+import { parseA2AOutTags } from "@/utils/a2aNotation"
+import { A2AChip, A2ADetails } from "./A2ABadge"
 import {
   AGENT_PRIMITIVE_COLORS,
   replyTypeIcon,
@@ -30,7 +32,8 @@ import {
  *
  *  - `'standard'`: indigo card, message-icon `«state»` header, and one
  *    **reply pill** per `data.bodies[]` row (icon keyed on `replyType`),
- *    followed by a dashed "fallback" section for `data.fallbackBodies[]`.
+ *    followed by a dashed "fallback" section for `data.fallbackBodies[]`,
+ *    and an outbound A2A chip when `data.description` has `a2a:out` lines.
  *  - `'reasoning'`: purple card, brain-icon `«reasoning»` header with the
  *    resolved LLM as a header badge, and the loop config (step budget,
  *    planning) as body pills. Fixed height (no row-driven auto-grow).
@@ -38,6 +41,7 @@ import {
 const PILL_ROW = 30
 const BODY_PAD = 16
 const FALLBACK_SECTION = 22
+const A2A_ROW = 25
 
 export function AgentState({
   id,
@@ -51,6 +55,7 @@ export function AgentState({
   const isDiagramModifiable = useDiagramModifiable()
   const setNodes = useDiagramStore((state) => state.setNodes)
   const { t } = useTranslation()
+  const [a2aOpen, setA2aOpen] = useState(false)
 
   const { name, italic, underline } = data
   const isReasoning = data.stateType === "reasoning"
@@ -69,13 +74,19 @@ export function AgentState({
   const fallbackBodies = data.fallbackBodies ?? []
   const hasAnyBody = mainBodies.length > 0 || fallbackBodies.length > 0
   const hasFallbackDivider = fallbackBodies.length > 0 && mainBodies.length > 0
+  // Develop draws A2A on standard states only.
+  const a2aOutTags = isReasoning ? [] : parseA2AOutTags(data.description)
+  const hasA2A = a2aOutTags.length > 0
 
   const requiredHeight = hasAnyBody
     ? AGENT_CARD_HEADER_HEIGHT +
       BODY_PAD +
       (mainBodies.length + fallbackBodies.length) * PILL_ROW +
-      (hasFallbackDivider ? FALLBACK_SECTION : 0)
-    : AGENT_CARD_HEADER_HEIGHT + 10
+      (hasFallbackDivider ? FALLBACK_SECTION : 0) +
+      (hasA2A ? A2A_ROW : 0)
+    : hasA2A
+      ? AGENT_CARD_HEADER_HEIGHT + BODY_PAD + A2A_ROW
+      : AGENT_CARD_HEADER_HEIGHT + 10
 
   useEffect(() => {
     if (isReasoning) return
@@ -174,7 +185,7 @@ export function AgentState({
         minHeight={60}
         handleStyle={{ width: 8, height: 8 }}
       />
-      <div ref={wrapperRef}>
+      <div ref={wrapperRef} style={{ position: "relative" }}>
         <AgentNodeCard
           width={width}
           height={height}
@@ -188,7 +199,7 @@ export function AgentState({
           underline={underline}
           initial={data.initial}
         >
-          {hasAnyBody ? (
+          {hasAnyBody || hasA2A ? (
             <>
               {mainBodies.map((b) => {
                 const replyType = resolveReplyType(b)
@@ -224,9 +235,21 @@ export function AgentState({
                   />
                 )
               })}
+              {hasA2A ? (
+                <A2AChip
+                  tags={a2aOutTags}
+                  open={a2aOpen}
+                  onToggle={() => setA2aOpen((v) => !v)}
+                />
+              ) : null}
             </>
           ) : undefined}
         </AgentNodeCard>
+        {hasA2A && a2aOpen ? (
+          <div style={{ position: "absolute", left: width + 8, bottom: 0 }}>
+            <A2ADetails tags={a2aOutTags} />
+          </div>
+        ) : null}
       </div>
       <PopoverManager
         anchorEl={wrapperEl}

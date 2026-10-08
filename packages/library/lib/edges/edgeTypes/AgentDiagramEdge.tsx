@@ -26,6 +26,12 @@ import { endMarkerLength } from "@/utils/edgeUtils"
 import { useTranslation } from "@/i18n"
 import { getAgentComponentLists } from "@/components/inspectors/agentDiagram/agentComponentLists"
 import { isMissingIntent } from "@/utils/agentComponents"
+import { parseA2ATag } from "@/utils/a2aNotation"
+import {
+  A2A_EDGE_BADGE_HEIGHT,
+  A2A_EDGE_BADGE_WIDTH,
+  A2AEdgeBadge,
+} from "@/nodes/agentDiagram/A2ABadge"
 
 /**
  * `AgentStateTransition` edge — most complex edge in the migration.
@@ -72,7 +78,8 @@ import { isMissingIntent } from "@/utils/agentComponents"
  * The label rendered on the canvas is composed from the canonical fields:
  *   - `predefined`: `name [predefinedType: intentName/fileType]`
  *   - `custom`: `name [event] / condition`
- * — falling back to `data.label` when no shape data is present.
+ * — falling back to `data.label` when no shape data is present. An `a2a:in`
+ * tag in `name` is hidden from the label and drawn as an A2A badge instead.
  */
 export const AgentDiagramEdge = ({
   id,
@@ -246,8 +253,12 @@ export const AgentDiagramEdge = ({
   }
   const invalid = isInvalid()
   const trigger = getTriggerLabel()
-  const composedLabel = [d.name ?? "", trigger].filter(Boolean).join(" · ")
-  const label = composedLabel || (d.label as string) || ""
+  const a2aTag = parseA2ATag(d.name)
+  const composedLabel = [a2aTag ? "" : d.name ?? "", trigger]
+    .filter(Boolean)
+    .join(" · ")
+  const label =
+    composedLabel || (parseA2ATag(d.label) ? "" : (d.label as string)) || ""
   // Short edges: the label goes beside the line, clear of the arrowhead.
   const labelAnchor =
     source === target || !label
@@ -259,6 +270,8 @@ export const AgentDiagramEdge = ({
           estimateMiddleLabelWidth(truncateLabel(label)),
           endMarkerLength(markerEnd)
         )
+  const a2aBadge =
+    a2aTag?.dir === "in" ? placeA2ABadge(curveMiddle, labelAnchor, label) : null
   const edgeStroke = invalid ? "#ef4444" : strokeColor
   const labelColor = invalid ? "#ef4444" : textColor
 
@@ -321,6 +334,10 @@ export const AgentDiagramEdge = ({
 
         </g>
 
+        {a2aBadge && a2aTag ? (
+          <A2AEdgeBadge x={a2aBadge.x} y={a2aBadge.y} tag={a2aTag} />
+        ) : null}
+
         <EdgeMiddleLabels
           label={label}
           pathMiddlePosition={labelAnchor}
@@ -345,6 +362,30 @@ export const AgentDiagramEdge = ({
       </FeedbackDropzone>
     </AssessmentSelectableWrapper>
   )
+}
+
+/**
+ * Top-left of the inbound A2A badge: stacked above a label that sits on the
+ * curve (beside it, it would run into the nodes on short edges), else on the
+ * curve, on the side away from a label moved beside it.
+ */
+function placeA2ABadge(
+  curve: { x: number; y: number },
+  labelAt: { x: number; y: number },
+  label: string
+): { x: number; y: number } {
+  const W = A2A_EDGE_BADGE_WIDTH
+  const H = A2A_EDGE_BADGE_HEIGHT
+  const GAP = 6
+  const dx = labelAt.x - curve.x
+  const dy = labelAt.y - curve.y
+  if (!label) return { x: curve.x - W / 2, y: curve.y - H / 2 }
+  // 8: half the 12px label's height.
+  if (dx === 0 && dy === 0) return { x: curve.x - W / 2, y: curve.y - 8 - 3 - H }
+  if (Math.abs(dx) >= Math.abs(dy)) {
+    return { x: dx > 0 ? curve.x - GAP - W : curve.x + GAP, y: curve.y - H / 2 }
+  }
+  return { x: curve.x - W / 2, y: dy < 0 ? curve.y + GAP : curve.y - GAP - H }
 }
 
 // Side-effect registration: extends the central `_edgeTypeRegistry`.
