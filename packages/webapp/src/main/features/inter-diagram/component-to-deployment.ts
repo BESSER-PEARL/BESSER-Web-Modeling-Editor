@@ -13,6 +13,7 @@ import { Direction, UMLDiagramType } from '@besser/wme';
 import type { ElementLineageMap } from '../../shared/types/project';
 import { uuid } from '../../shared/utils/uuid';
 import { recenterModelOnOrigin } from './recenter';
+import { ceilToGrid, estimateTextWidth } from './text-metrics';
 import type { DeploymentDerivationResult, DeploymentDerivationWarning } from './types';
 
 /**
@@ -173,6 +174,10 @@ export function componentModelToDeploymentModel(
       component, rel.target.element, execEnvIdByCompId, nodeIdByCompId, nodeIdBySubsystemId,
     );
     if (!srcId || !tgtId || srcId === tgtId) continue;
+    // A node nested in the other (an agent's ExecEnv inside the Subsystem node
+    // of a Subsystem-level endpoint) is already joined by containment; an
+    // association between them has no geometry of its own.
+    if (isNestedIn(out, srcId, tgtId) || isNestedIn(out, tgtId, srcId)) continue;
     const key = [srcId, tgtId].sort().join('\x00'); // CommunicationPath is undirected — collapse both directions
     if (dedup.has(key)) continue;
     dedup.add(key);
@@ -266,21 +271,53 @@ function resolveToExecEnvOrNodeId(
   return resolveToNodeId(model, elementId, nodeIdByCompId, nodeIdBySubsystemId);
 }
 
+/** True when `nodeId` sits (at any depth) inside `ancestorId`. */
+function isNestedIn(model: UMLModel, nodeId: string, ancestorId: string): boolean {
+  const seen = new Set<string>();
+  let owner = model.elements[nodeId]?.owner;
+  while (owner && !seen.has(owner)) {
+    if (owner === ancestorId) return true;
+    seen.add(owner);
+    owner = model.elements[owner]?.owner;
+  }
+  return false;
+}
+
 // ── Layout constants (per-agent ExecutionEnvironment nesting) ──
 // Bottom-up nesting: Subsystem › Docker Host › ExecutionEnvironment › Artifact,
 // with the logical DeploymentComponent in a row below the Subsystem.
-const COMPONENT_WIDTH = 160;
+const COMPONENT_WIDTH = 160; // minimum; grows to fit the name
 const COMPONENT_HEIGHT = 60;
-const ARTIFACT_WIDTH = 160;
+const ARTIFACT_WIDTH = 160; // minimum; grows to fit the name
 const ARTIFACT_HEIGHT = 60;
+
+// The Artifact and Component boxes centre their name and draw their icon in
+// the top-right corner (Artifact: x = width-26 … width-7; Component: width-31
+// … width-7). A centred name clears the icon when the box is at least the name
+// plus twice the icon band.
+const ICON_BAND = 32;
+// The node's «stereotype» line is drawn at 85 % of the font size; its 3-D
+// side takes 8 px of the box width.
+const NODE_TEXT_PAD = 28;
+const nameBoxWidth = (name: string, min: number): number =>
+  Math.max(min, ceilToGrid(estimateTextWidth(name) + 2 * ICON_BAND));
+const componentBoxWidth = (name: string, stereotype: string): number =>
+  Math.max(
+    nameBoxWidth(name, COMPONENT_WIDTH),
+    ceilToGrid(estimateTextWidth(`«${stereotype}»`, { scale: 0.85 }) + 2 * ICON_BAND),
+  );
+const nodeWidthForText = (name: string, stereotype: string): number =>
+  ceilToGrid(
+    Math.max(estimateTextWidth(name), estimateTextWidth(`«${stereotype}»`, { scale: 0.85 })) + NODE_TEXT_PAD,
+  );
 
 // One ExecutionEnvironment wraps exactly one Artifact.
 // Header = 60 px: WME renders «stereotype» baseline at y=22 and name baseline at y=48
 // inside the node box; name bottom ≈ y=51. 60 px clears that with ~9 px breathing room.
+const EXECENV_STEREOTYPE = 'executionEnvironment';
 const EXECENV_HEADER = 60; // «executionEnvironment» stereotype + name band
 const EXECENV_PAD_X = 20; // L/R padding around the inner Artifact
 const EXECENV_PAD_BOTTOM = 20;
-const EXECENV_WIDTH = ARTIFACT_WIDTH + EXECENV_PAD_X * 2; // 200
 const EXECENV_HEIGHT = EXECENV_HEADER + ARTIFACT_HEIGHT + EXECENV_PAD_BOTTOM; // 140
 const EXECENV_GAP = 32; // horizontal gap between sibling ExecEnvs
 
@@ -376,8 +413,21 @@ function emitGroupSubtree(
     return { outerNodeId: id, bounds, execEnvByCompId: new Map() };
   }
 
+  // Per agent: the Artifact sized to its name (with the `[N]` suffix), the
+  // ExecutionEnvironment sized to the Artifact and its own header text, the
+  // logical Component sized to its name and stereotype.
+  const columns = agents.map((comp) => {
+    const name = comp.name || 'Agent';
+    const multiplicity = Math.max(1, Math.floor(multiplicityByComponentId[comp.id] ?? 1));
+    const artifactName = appendMultiplicity(name, multiplicity);
+    const artifactWidth = nameBoxWidth(artifactName, ARTIFACT_WIDTH);
+    const eeWidth = Math.max(artifactWidth + EXECENV_PAD_X * 2, nodeWidthForText(name, EXECENV_STEREOTYPE));
+    const componentStereotype = comp.stereotype ?? 'component';
+    const componentWidth = componentBoxWidth(name, componentStereotype);
+    return { comp, name, artifactName, artifactWidth, eeWidth, componentStereotype, componentWidth };
+  });
   const count = agents.length;
-  const hostInnerWidth = count * EXECENV_WIDTH + (count - 1) * EXECENV_GAP;
+  const hostInnerWidth = columns.reduce((sum, c) => sum + c.eeWidth, 0) + (count - 1) * EXECENV_GAP;
   const hostWidth = HOST_PAD_X * 2 + hostInnerWidth;
   const hostHeight = HOST_HEADER + EXECENV_HEIGHT + HOST_PAD_BOTTOM;
 
@@ -434,11 +484,8 @@ function emitGroupSubtree(
   // Collect the ExecEnv id per source Component so Phase 3 can
   // connect agent-to-agent pairs via their individual container nodes.
   const execEnvByCompId = new Map<string, string>();
-  for (let i = 0; i < agents.length; i++) {
-    const comp = agents[i];
-    const name = comp.name || 'Agent';
-    const multiplicity = Math.max(1, Math.floor(multiplicityByComponentId[comp.id] ?? 1));
-    const eeX = hostX + HOST_PAD_X + i * (EXECENV_WIDTH + EXECENV_GAP);
+  let eeX = hostX + HOST_PAD_X;
+  for (const { comp, name, artifactName, artifactWidth, eeWidth, componentStereotype, componentWidth } of columns) {
     const eeY = hostY + HOST_HEADER;
 
     const eeId = uuid();
@@ -447,8 +494,8 @@ function emitGroupSubtree(
       name,
       type: 'DeploymentNode',
       owner: hostId,
-      bounds: { x: eeX, y: eeY, width: EXECENV_WIDTH, height: EXECENV_HEIGHT },
-      stereotype: 'executionEnvironment',
+      bounds: { x: eeX, y: eeY, width: eeWidth, height: EXECENV_HEIGHT },
+      stereotype: EXECENV_STEREOTYPE,
       displayStereotype: true,
     };
     out.elements[eeId] = executionEnvironment;
@@ -457,9 +504,9 @@ function emitGroupSubtree(
     // Artifact INSIDE the ExecutionEnvironment (owner = ExecEnv).
     const artifactId = uuid();
     const artifactBounds: Bounds = {
-      x: eeX + EXECENV_PAD_X,
+      x: eeX + (eeWidth - artifactWidth) / 2,
       y: eeY + EXECENV_HEADER,
-      width: ARTIFACT_WIDTH,
+      width: artifactWidth,
       height: ARTIFACT_HEIGHT,
     };
     // Carry the agent-diagram UUID onto the Artifact so BESSER's
@@ -467,7 +514,7 @@ function emitGroupSubtree(
     // Absent when the source Component was never linked.
     const artifact: UMLDeploymentArtifact = {
       id: artifactId,
-      name: appendMultiplicity(name, multiplicity), // Artifact carries [N]; ExecEnv and Component names stay plain.
+      name: artifactName, // Artifact carries [N]; ExecEnv and Component names stay plain.
       type: 'DeploymentArtifact',
       owner: eeId,
       bounds: artifactBounds,
@@ -482,9 +529,9 @@ function emitGroupSubtree(
     // this ExecutionEnvironment's column.
     const componentId = uuid();
     const componentBounds: Bounds = {
-      x: eeX + (EXECENV_WIDTH - COMPONENT_WIDTH) / 2,
+      x: eeX + (eeWidth - componentWidth) / 2,
       y: outerBounds.y + outerBounds.height + COMPONENT_ROW_GAP,
-      width: COMPONENT_WIDTH,
+      width: componentWidth,
       height: COMPONENT_HEIGHT,
     };
     const deploymentComponent: UMLDeploymentComponent = {
@@ -493,7 +540,7 @@ function emitGroupSubtree(
       type: 'DeploymentComponent',
       owner: null,
       bounds: componentBounds,
-      stereotype: comp.stereotype ?? 'component',
+      stereotype: componentStereotype,
       displayStereotype: comp.displayStereotype ?? true,
     };
     out.elements[componentId] = deploymentComponent;
@@ -502,6 +549,7 @@ function emitGroupSubtree(
     // Dashed manifest edge: Artifact (source) → Component (target). (Reuses the
     // existing helper unchanged.)
     emitManifestDependency(out, artifactId, artifactBounds, componentId, componentBounds);
+    eeX += eeWidth + EXECENV_GAP;
   }
 
   return { outerNodeId, bounds: outerBounds, execEnvByCompId };
@@ -555,10 +603,24 @@ function emitManifestDependency(
   out.relationships[id] = manifest;
 }
 
+/**
+ * Ports on the sides of two nodes that face each other. The editor routes the
+ * association from these on load; ports facing away (e.g. right → left when
+ * the source is the right-hand node) send the path around both nodes and out
+ * past their container's border.
+ */
+function facingPorts(src: Bounds, tgt: Bounds): [Direction, Direction] {
+  const dx = tgt.x + tgt.width / 2 - (src.x + src.width / 2);
+  const dy = tgt.y + tgt.height / 2 - (src.y + src.height / 2);
+  if (Math.abs(dx) >= Math.abs(dy)) return dx >= 0 ? [Direction.Right, Direction.Left] : [Direction.Left, Direction.Right];
+  return dy >= 0 ? [Direction.Down, Direction.Up] : [Direction.Up, Direction.Down];
+}
+
 function emitDeploymentAssociation(out: UMLModel, srcNodeId: string, tgtNodeId: string): string {
   const id = uuid();
   const src = out.elements[srcNodeId].bounds;
   const tgt = out.elements[tgtNodeId].bounds;
+  const [srcDir, tgtDir] = facingPorts(src, tgt);
   const association: UMLDeploymentAssociation = {
     id,
     name: '',
@@ -574,8 +636,8 @@ function emitDeploymentAssociation(out: UMLModel, srcNodeId: string, tgtNodeId: 
       { x: src.x + src.width / 2, y: src.y + src.height / 2 },
       { x: tgt.x + tgt.width / 2, y: tgt.y + tgt.height / 2 },
     ],
-    source: { element: srcNodeId, direction: Direction.Right },
-    target: { element: tgtNodeId, direction: Direction.Left },
+    source: { element: srcNodeId, direction: srcDir },
+    target: { element: tgtNodeId, direction: tgtDir },
     // Agentic edge stereotypes are not carried over.
   };
   out.relationships[id] = association;
