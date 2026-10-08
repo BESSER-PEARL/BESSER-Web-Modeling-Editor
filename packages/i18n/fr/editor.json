@@ -231,7 +231,9 @@
       "namePlaceholder": "nom de l'attribut"
     },
     "associationNamePlaceholder": "Nom de l'association",
-    "literals": "Littéraux"
+    "literals": "Littéraux",
+    "preset": "Préréglage",
+    "presetPlaceholder": "Choisir un préréglage…"
   },
   "assessment": {
     "assessment": "Évaluation pour",
@@ -434,7 +436,9 @@
       "BPMNGovPolicyConsensus": "Consensus",
       "BPMNGatewayRoleDiverging": "Divergente",
       "BPMNGatewayRoleMerging": "Convergente",
-      "BPMNDefaultAgentTitle": "Agent"
+      "BPMNDefaultAgentTitle": "Agent",
+      "BPMNAgentRole": "Rôle",
+      "BPMNAgentRolePlaceholder": "p. ex. solution"
     },
     "NNDiagram": {
       "NNContainer": "Neural_Network",

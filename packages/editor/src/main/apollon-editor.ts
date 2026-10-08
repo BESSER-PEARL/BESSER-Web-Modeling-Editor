@@ -79,6 +79,19 @@ export class ApollonEditor {
   }
 
   /**
+   * Shows or hides the agentic BPMN controls (the Agentic switches on lanes,
+   * tasks and gateways). Rebuilds the editor like the locale setter.
+   * @param enabled whether the agentic controls are shown
+   */
+  set agenticEnabled(enabled: boolean) {
+    this.ensureInitialized();
+    const state = this.store!.getState();
+    if (state.editor.agenticEnabled === enabled) return;
+    this.options.agenticEnabled = enabled;
+    this.recreateEditor({ ...state, editor: { ...state.editor, agenticEnabled: enabled } });
+  }
+
+  /**
    * Sets the current locale of the Apollon Editor.
    * @param locale supported locale
    */
@@ -161,6 +174,7 @@ export class ApollonEditor {
         view: ApollonView.Modelling,
         mode: options.mode || ApollonMode.Exporting,
         colorEnabled: options.colorEnabled || false,
+        agenticEnabled: options.agenticEnabled || false,
         zoomFactor: options.scale || 1.0,
         readonly: options.readonly || false,
         enablePopups: options.enablePopups === true || options.enablePopups === undefined,

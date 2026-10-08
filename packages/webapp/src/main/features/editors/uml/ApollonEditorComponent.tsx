@@ -17,10 +17,12 @@ import {
   selectStateMachineDiagrams,
   selectQuantumCircuitDiagrams,
   selectProject,
+  selectPerspectives,
   openDiagramThunk,
   selectNNDiagrams,
 } from '../../../app/store/workspaceSlice';
 import { notifyError } from '../../../shared/utils/notifyError';
+import { isAgenticModeEnabled } from '../../../shared/perspectives';
 import { useAgentDiagramLinker } from '../../inter-diagram/useAgentDiagramLinker';
 import { useElementPickerProvider } from '../../inter-diagram/useElementPickerProvider';
 
@@ -39,6 +41,9 @@ export const ApollonEditorComponent: React.FC = () => {
   const quantumCircuitDiagrams = useAppSelector(selectQuantumCircuitDiagrams);
   const project = useAppSelector(selectProject);
   const nnDiagrams = useAppSelector(selectNNDiagrams);
+  const agenticEnabled = isAgenticModeEnabled(useAppSelector(selectPerspectives));
+  const agenticEnabledRef = useRef(agenticEnabled);
+  agenticEnabledRef.current = agenticEnabled;
   const { setEditor } = useContext(ApollonEditorContext);
   // Element id to select after the next editor rebuild (set by
   // the lineage provider's onShowSource; consumed by the setup effect).
@@ -256,7 +261,11 @@ export const ApollonEditorComponent: React.FC = () => {
       const currentOptions = optionsRef.current;
       const currentDiagram = reduxDiagramRef.current;
 
-      const nextEditor = new ApollonEditor(containerRef.current, { ...currentOptions, locale: localeRef.current });
+      const nextEditor = new ApollonEditor(containerRef.current, {
+        ...currentOptions,
+        locale: localeRef.current,
+        agenticEnabled: agenticEnabledRef.current,
+      });
       editorRef.current = nextEditor;
       await nextEditor.nextRender;
       if (runId !== setupRunRef.current || editorRef.current !== nextEditor) {
@@ -324,6 +333,17 @@ export const ApollonEditorComponent: React.FC = () => {
 
     setupEditor().catch(notifyError('Editor setup'));
   }, [editorRevision, cleanupEditor, destroyEditorDeferred, dispatch, setEditor]);
+
+  // Show or hide the agentic BPMN controls when the perspectives change.
+  useEffect(() => {
+    const editor = editorRef.current;
+    if (!editor) return;
+    try {
+      editor.agenticEnabled = agenticEnabled;
+    } catch (error) {
+      console.warn('Failed to update the agentic controls:', error);
+    }
+  }, [agenticEnabled]);
 
   // Re-register the host providers on the mounted editor when their identity
   // changes (initial registration happens in the setup effect above).

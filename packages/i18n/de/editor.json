@@ -231,7 +231,9 @@
       "namePlaceholder": "Attributname"
     },
     "associationNamePlaceholder": "Assoziationsname",
-    "literals": "Literale"
+    "literals": "Literale",
+    "preset": "Vorgabe",
+    "presetPlaceholder": "Vorgabe wählen…"
   },
   "assessment": {
     "assessment": "Bewertung für",
@@ -434,7 +436,9 @@
       "BPMNGovPolicyConsensus": "Konsens",
       "BPMNGatewayRoleDiverging": "Verzweigend",
       "BPMNGatewayRoleMerging": "Zusammenführend",
-      "BPMNDefaultAgentTitle": "Agent"
+      "BPMNDefaultAgentTitle": "Agent",
+      "BPMNAgentRole": "Rolle",
+      "BPMNAgentRolePlaceholder": "z. B. solution"
     },
     "NNDiagram": {
       "NNContainer": "Neuronales Netz",

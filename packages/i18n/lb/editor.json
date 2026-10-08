@@ -231,7 +231,9 @@
       "namePlaceholder": "Attributnumm"
     },
     "associationNamePlaceholder": "Numm vun der Associatioun",
-    "literals": "Literaler"
+    "literals": "Literaler",
+    "preset": "Virgab",
+    "presetPlaceholder": "Virgab wielen…"
   },
   "assessment": {
     "assessment": "Bewäertung fir",
@@ -434,7 +436,9 @@
       "BPMNGovPolicyConsensus": "Konsens",
       "BPMNGatewayRoleDiverging": "Divergéierend",
       "BPMNGatewayRoleMerging": "Zesummeféierend",
-      "BPMNDefaultAgentTitle": "Agent"
+      "BPMNDefaultAgentTitle": "Agent",
+      "BPMNAgentRole": "Roll",
+      "BPMNAgentRolePlaceholder": "z. B. solution"
     },
     "NNDiagram": {
       "NNContainer": "Neuronaalt Netz",

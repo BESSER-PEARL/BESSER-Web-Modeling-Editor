@@ -87,6 +87,41 @@ describe('createDefaultProject', () => {
   });
 });
 
+describe('ensureProjectMigrated v4 → v5', () => {
+  const v4Project = (perspectives: Partial<BesserProject['settings']['perspectives']>) => {
+    const project = createDefaultProject('Legacy', '', 'me');
+    project.schemaVersion = 4;
+    project.settings.perspectives = { ...project.settings.perspectives, ...perspectives };
+    return project;
+  };
+
+  it('hides the new Component and Deployment types in a project with chosen perspectives', () => {
+    const migrated = ensureProjectMigrated(v4Project({ AgentDiagram: false }));
+    expect(migrated.schemaVersion).toBe(5);
+    expect(migrated.settings.perspectives.ComponentDiagram).toBe(false);
+    expect(migrated.settings.perspectives.DeploymentDiagram).toBe(false);
+    expect(migrated.settings.perspectives.AgentDiagram).toBe(false);
+    expect(migrated.settings.perspectives.ClassDiagram).toBe(true);
+  });
+
+  it('adds Component and Deployment diagrams to a v4 project that has none', () => {
+    const project = v4Project({});
+    const diagrams: Partial<BesserProject['diagrams']> = project.diagrams;
+    delete diagrams.ComponentDiagram;
+    delete diagrams.DeploymentDiagram;
+    const migrated = ensureProjectMigrated(project);
+    expect(migrated.diagrams.ComponentDiagram).toHaveLength(1);
+    expect(migrated.diagrams.DeploymentDiagram).toHaveLength(1);
+  });
+
+  it('leaves a new project untouched', () => {
+    const project = createDefaultProject('Fresh', '', 'me');
+    const migrated = ensureProjectMigrated(project);
+    expect(migrated.settings.perspectives.ComponentDiagram).toBe(true);
+    expect(migrated.settings.perspectives.DeploymentDiagram).toBe(true);
+  });
+});
+
 describe('ensureProjectMigrated v3 → v4', () => {
   it('adds perspectives with all-true defaults to a v3 project that lacks them', () => {
     const v3Project = {
@@ -102,7 +137,7 @@ describe('ensureProjectMigrated v3 → v4', () => {
     expect(isProject(v3Project)).toBe(true);
 
     const migrated = ensureProjectMigrated(v3Project);
-    expect(migrated.schemaVersion).toBe(4);
+    expect(migrated.schemaVersion).toBe(PROJECT_SCHEMA_VERSION);
     for (const type of ALL_DIAGRAM_TYPES) {
       expect(migrated.settings.perspectives[type]).toBe(true);
     }
@@ -121,7 +156,7 @@ describe('ensureProjectMigrated v3 → v4', () => {
     } as BesserProject;
 
     const migrated = ensureProjectMigrated(v3Project);
-    expect(migrated.schemaVersion).toBe(4);
+    expect(migrated.schemaVersion).toBe(PROJECT_SCHEMA_VERSION);
     expect(migrated.settings.perspectives.ClassDiagram).toBe(false);
     expect(migrated.settings.perspectives.ObjectDiagram).toBe(true);
     expect(migrated.settings.perspectives.AgentDiagram).toBe(true);
@@ -132,7 +167,7 @@ describe('ensureProjectMigrated v3 → v4', () => {
     const project = createDefaultProject('Fresh', '', 'me');
     project.settings.perspectives.AgentDiagram = false;
     const migrated = ensureProjectMigrated(project);
-    expect(migrated.schemaVersion).toBe(4);
+    expect(migrated.schemaVersion).toBe(PROJECT_SCHEMA_VERSION);
     expect(migrated.settings.perspectives.AgentDiagram).toBe(false);
     expect(migrated.settings.perspectives.ClassDiagram).toBe(true);
   });

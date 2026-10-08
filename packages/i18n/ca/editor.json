@@ -231,7 +231,9 @@
       "namePlaceholder": "nom de l'atribut"
     },
     "associationNamePlaceholder": "Nom de l'associació",
-    "literals": "Literals"
+    "literals": "Literals",
+    "preset": "Predefinit",
+    "presetPlaceholder": "Trieu un predefinit…"
   },
   "assessment": {
     "assessment": "Avaluació de",
@@ -434,7 +436,9 @@
       "BPMNGovPolicyConsensus": "Consens",
       "BPMNGatewayRoleDiverging": "Divergent",
       "BPMNGatewayRoleMerging": "Convergent",
-      "BPMNDefaultAgentTitle": "Agent"
+      "BPMNDefaultAgentTitle": "Agent",
+      "BPMNAgentRole": "Rol",
+      "BPMNAgentRolePlaceholder": "p. ex. solution"
     },
     "NNDiagram": {
       "NNContainer": "Neural_Network",

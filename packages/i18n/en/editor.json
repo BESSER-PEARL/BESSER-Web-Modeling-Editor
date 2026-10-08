@@ -231,7 +231,9 @@
       "namePlaceholder": "attribute name"
     },
     "associationNamePlaceholder": "Association name",
-    "literals": "Literals"
+    "literals": "Literals",
+    "preset": "Preset",
+    "presetPlaceholder": "Choose a preset…"
   },
   "assessment": {
     "assessment": "Assessment for",
@@ -434,7 +436,9 @@
       "BPMNGovPolicyConsensus": "Consensus",
       "BPMNGatewayRoleDiverging": "Diverging",
       "BPMNGatewayRoleMerging": "Merging",
-      "BPMNDefaultAgentTitle": "Agent"
+      "BPMNDefaultAgentTitle": "Agent",
+      "BPMNAgentRole": "Role",
+      "BPMNAgentRolePlaceholder": "e.g. solution"
     },
     "NNDiagram": {
       "NNContainer": "Neural_Network",

@@ -29,6 +29,8 @@ export type ApollonOptions = {
   locale?: Locale;
   copyPasteToClipboard?: boolean;
   colorEnabled?: boolean;
+  /** Shows the agentic BPMN controls (Agentic switches on lanes, tasks and gateways). */
+  agenticEnabled?: boolean;
   scale?: number;
 };
 

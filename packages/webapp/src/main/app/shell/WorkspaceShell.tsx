@@ -1140,9 +1140,15 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
         onShowWelcomeGuide={onboarding?.startTutorial}
         activeDiagramType={activeDiagramType}
         onSwitchDiagramType={handleSwitchDiagramType}
-        onDeriveComponentDiagram={handleDeriveComponentDiagram}
-        onDeriveDeploymentDiagram={handleDeriveDeploymentDiagram}
-        onGenerateDockerCompose={handleGenerateDockerCompose}
+        onDeriveComponentDiagram={
+          isPerspectiveVisible(perspectives, 'ComponentDiagram') ? handleDeriveComponentDiagram : undefined
+        }
+        onDeriveDeploymentDiagram={
+          isPerspectiveVisible(perspectives, 'DeploymentDiagram') ? handleDeriveDeploymentDiagram : undefined
+        }
+        onGenerateDockerCompose={
+          isPerspectiveVisible(perspectives, 'DeploymentDiagram') ? handleGenerateDockerCompose : undefined
+        }
         projectNameDraft={projectNameDraft}
         onProjectNameDraftChange={setProjectNameDraft}
         onProjectRename={handleProjectRename}

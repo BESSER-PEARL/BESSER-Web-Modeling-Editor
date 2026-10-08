@@ -36,7 +36,7 @@ interface GenerateMenuProps {
   mode: GeneratorMenuMode;
   isGenerating: boolean;
   primaryGenerateClass: string;
-  activeDiagramType: SupportedDiagramType;
+  activeDiagramType?: SupportedDiagramType;
   onGenerate: (type: GeneratorType, config?: Record<string, any>) => void;
   onSwitchDiagramType?: (type: SupportedDiagramType) => void;
   onDeriveComponentDiagram?: () => void;
