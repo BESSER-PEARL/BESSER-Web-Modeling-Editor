@@ -1,11 +1,12 @@
-import { AgentComponentType, ApollonEditor, UMLModel, diagramBridge } from '@besser/wme';
-import React, { useEffect, useRef, useContext, useCallback } from 'react';
+import { AgentComponentType, ApollonEditor, LineageProvider, UMLModel, diagramBridge } from '@besser/wme';
+import React, { useEffect, useRef, useContext, useCallback, useMemo } from 'react';
+import { toast } from 'react-toastify';
 import { useTranslation } from 'react-i18next';
 
 import { toEditorLocale } from '../../../shared/i18n/languages';
 import { ApollonEditorContext } from './apollon-editor-context';
 import { useAppDispatch, useAppSelector } from '../../../app/store/hooks';
-import { isUMLModel, toUMLDiagramType } from '../../../shared/types/project';
+import { isUMLModel } from '../../../shared/types/project';
 import { consumeAutoLayoutRequest } from '../../../shared/utils/autoLayoutSignal';
 import { getAgentComponents } from '../../../shared/utils/projectExportUtils';
 import {
@@ -16,8 +17,7 @@ import {
   selectStateMachineDiagrams,
   selectQuantumCircuitDiagrams,
   selectProject,
-  switchDiagramTypeThunk,
-  switchDiagramIndexThunk,
+  openDiagramThunk,
   selectNNDiagrams,
 } from '../../../app/store/workspaceSlice';
 import { notifyError } from '../../../shared/utils/notifyError';
@@ -43,7 +43,7 @@ export const ApollonEditorComponent: React.FC = () => {
   // Element id to select after the next editor rebuild (set by
   // the lineage provider's onShowSource; consumed by the setup effect).
   const pendingSelectionRef = useRef<string | null>(null);
-  const { i18n } = useTranslation();
+  const { t, i18n } = useTranslation();
   const localeRef = useRef(toEditorLocale(i18n.resolvedLanguage ?? i18n.language));
   localeRef.current = toEditorLocale(i18n.resolvedLanguage ?? i18n.language);
 
@@ -65,6 +65,51 @@ export const ApollonEditorComponent: React.FC = () => {
 
   // Host-side element-picker provider (cross-diagram `realizes`).
   const elementPicker = useElementPickerProvider();
+  const elementPickerRef = useRef(elementPicker);
+  elementPickerRef.current = elementPicker;
+
+  // Lineage provider for derived diagrams: resolves a derived element to its
+  // source element and opens the source diagram with that element selected.
+  const lineageProvider = useMemo<LineageProvider | null>(() => {
+    const lineage = reduxDiagram?.derivedFrom;
+    if (!project || !reduxDiagram || !lineage) return null;
+    const sourceDiagrams = project.diagrams[lineage.sourceDiagramType] ?? [];
+    const sourceIndex = sourceDiagrams.findIndex((d) => d.id === lineage.sourceDiagramId);
+    if (sourceIndex < 0) return null;
+    const sourceDiagram = sourceDiagrams[sourceIndex];
+    const elementMapping = project.elementLineage?.[reduxDiagram.id] ?? {};
+    // Only UML source models can name the source element; for others the
+    // link falls back to diagram-level wording.
+    const sourceModel = isUMLModel(sourceDiagram.model) ? sourceDiagram.model : null;
+
+    return {
+      resolveSource: (derivedId: string) => {
+        const srcElId = elementMapping[derivedId];
+        if (!srcElId) return null;
+        const srcEl = sourceModel?.elements[srcElId] ?? sourceModel?.relationships[srcElId];
+        return {
+          sourceElementId: srcElId,
+          sourceDiagramTitle: sourceDiagram.title,
+          sourceDiagramType: lineage.sourceDiagramType,
+          sourceElementName: srcEl?.name,
+          sourceElementType: srcEl?.type,
+        };
+      },
+      onShowSource: async (resolved) => {
+        // Selected by the setup effect once the source diagram's editor is mounted.
+        pendingSelectionRef.current = resolved.sourceElementId;
+        try {
+          await dispatch(openDiagramThunk({ diagramType: lineage.sourceDiagramType, index: sourceIndex })).unwrap();
+        } catch (err) {
+          console.error('[lineage] opening the source diagram failed:', err);
+          pendingSelectionRef.current = null;
+          toast.error(t('editors.diagramTabs.lineage.openFailed'));
+        }
+      },
+    };
+  }, [dispatch, project, reduxDiagram, t]);
+  const lineageProviderRef = useRef(lineageProvider);
+  lineageProviderRef.current = lineageProvider;
 
   // Destroys run one after another, and a new editor waits for all of them: a late
   // destroy of an old instance otherwise removes DOM the next instance is mounted into
@@ -149,9 +194,13 @@ export const ApollonEditorComponent: React.FC = () => {
     const qcDiagrams = quantumCircuitDiagrams ?? [];
     const neuralNetworkDiagrams = nnDiagrams ?? [];
 
-    const stateMachines = smDiagrams.filter((d) => d.id && d.title).map((d) => ({ id: d.id, name: d.title }));
+    const stateMachines = smDiagrams
+      .filter(d => d.id && d.title)
+      .map(d => ({ id: d.id, name: d.title }));
 
-    const quantumCircuits = qcDiagrams.filter((d) => d.id && d.title).map((d) => ({ id: d.id, name: d.title }));
+    const quantumCircuits = qcDiagrams
+      .filter(d => d.id && d.title)
+      .map(d => ({ id: d.id, name: d.title }));
 
     const neuralNetworks = neuralNetworkDiagrams
       .filter(d => d.id && d.title)
@@ -231,8 +280,8 @@ export const ApollonEditorComponent: React.FC = () => {
         setTimeout(() => {
           try {
             nextEditor.select({ elements: { [elementId]: true }, relationships: { [elementId]: true } });
-          } catch {
-            /* element may not exist in the source — ignore */
+          } catch (error) {
+            console.warn('[lineage] selecting the source element failed:', error);
           }
         }, 50);
       }
@@ -245,15 +294,12 @@ export const ApollonEditorComponent: React.FC = () => {
         }, 300);
       });
 
-      // Register the agent-diagram linker as soon as the editor is
-      // mounted. Imperative call (not a dep-list effect) because
-      // editorRevision-keyed effects all run in the same render before
-      // this async setup completes — by the time setEditor fires,
-      // editorRef.current is fresh but no React dep has changed, so an
-      // effect would never re-fire to register. The standalone effect
-      // below handles *later* linker identity changes (e.g. agentDiagrams
-      // mutates after a new Agent diagram is added).
+      // Register the host providers on the new editor. This has to happen
+      // here: the effects below run before this async setup finishes, so
+      // they only cover later identity changes of an already-mounted editor.
       nextEditor.setAgentDiagramLinker(linkerRef.current);
+      nextEditor.setLineageProvider(lineageProviderRef.current);
+      nextEditor.setElementPickerProvider(elementPickerRef.current);
 
       setEditor!(nextEditor);
 
@@ -279,86 +325,18 @@ export const ApollonEditorComponent: React.FC = () => {
     setupEditor().catch(notifyError('Editor setup'));
   }, [editorRevision, cleanupEditor, destroyEditorDeferred, dispatch, setEditor]);
 
-  // Register the lineage provider on the current editor whenever
-  // the active diagram (or its lineage data) changes. Re-runs on
-  // editorRevision too so each newly-mounted editor gets the provider.
+  // Re-register the host providers on the mounted editor when their identity
+  // changes (initial registration happens in the setup effect above).
   useEffect(() => {
-    const editor = editorRef.current;
-    if (!editor) return;
-    if (!project || !reduxDiagram?.derivedFrom) {
-      editor.setLineageProvider(null);
-      return;
-    }
-    const lineage = reduxDiagram.derivedFrom;
-    const sourceDiagrams = project.diagrams[lineage.sourceDiagramType] ?? [];
-    const sourceIndex = sourceDiagrams.findIndex((d) => d.id === lineage.sourceDiagramId);
-    if (sourceIndex < 0) {
-      editor.setLineageProvider(null);
-      return;
-    }
-    const sourceDiagram = sourceDiagrams[sourceIndex];
-    const elementMapping = project.elementLineage?.[reduxDiagram.id] ?? {};
+    editorRef.current?.setLineageProvider(lineageProvider);
+  }, [lineageProvider]);
 
-    // Look up source element name + type so the
-    // popup link can read "← Source: <name> (<type>)". Only UML diagrams
-    // have an elements/relationships shape; for non-UML source models we
-    // omit the fields and the link falls back to diagram-level wording.
-    const sourceModel = isUMLModel(sourceDiagram.model) ? (sourceDiagram.model as UMLModel) : null;
-
-    editor.setLineageProvider({
-      resolveSource: (derivedId: string) => {
-        const srcElId = elementMapping[derivedId];
-        if (!srcElId) return null;
-        const srcEl = sourceModel?.elements?.[srcElId] ?? sourceModel?.relationships?.[srcElId];
-        return {
-          sourceElementId: srcElId,
-          sourceDiagramTitle: sourceDiagram.title,
-          sourceDiagramType: lineage.sourceDiagramType,
-          sourceElementName: srcEl?.name,
-          sourceElementType: srcEl?.type,
-        };
-      },
-      onShowSource: async (resolved) => {
-        // Stash the element id so the next editor mount selects it.
-        pendingSelectionRef.current = resolved.sourceElementId;
-        // Convert SupportedDiagramType to UMLDiagramType wire value to
-        // avoid the same coercion bug the DiagramTabs badge ran into
-        // for BPMN.
-        const wireType = toUMLDiagramType(lineage.sourceDiagramType);
-        try {
-          await dispatch(switchDiagramTypeThunk({ diagramType: wireType ?? lineage.sourceDiagramType })).unwrap();
-          await dispatch(
-            switchDiagramIndexThunk({ diagramType: lineage.sourceDiagramType, index: sourceIndex }),
-          ).unwrap();
-        } catch (err) {
-          console.error('[lineage] navigation to source failed:', err);
-          pendingSelectionRef.current = null;
-        }
-      },
-    });
-  }, [dispatch, project, reduxDiagram, editorRevision]);
-
-  // Register the element-picker provider on the current editor.
-  // Re-runs on editorRevision so each newly-mounted editor gets it, and on
-  // `elementPicker` identity (which changes when project/active diagram
-  // change). Mirror of the lineage registration effect above.
   useEffect(() => {
-    const editor = editorRef.current;
-    if (!editor) return;
-    editor.setElementPickerProvider(elementPicker);
-  }, [elementPicker, editorRevision]);
+    editorRef.current?.setElementPickerProvider(elementPicker);
+  }, [elementPicker]);
 
-  // Re-register the agent-diagram linker when its identity changes
-  // (e.g. an Agent diagram was added/removed → `isRefAlive` changes →
-  // `linker` identity changes). Initial registration happens inside the
-  // setup effect itself (see above) — relying on this effect alone misses
-  // it because no React dep changes between editor-destroy and editor-
-  // recreate. Cleanup on editor unmount is implicit via setAgentDiagramLinker(null)
-  // at destroy time inside the editor.
   useEffect(() => {
-    const editor = editorRef.current;
-    if (!editor) return;
-    editor.setAgentDiagramLinker(linker);
+    editorRef.current?.setAgentDiagramLinker(linker);
   }, [linker]);
 
   return (

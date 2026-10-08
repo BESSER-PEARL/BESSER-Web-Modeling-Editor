@@ -88,13 +88,17 @@ export type {
 export type { Patch } from './services/patcher';
 
 // Public type for the agent-diagram linker callback object; the host
-// The host implements this and passes it to `editor.setAgentDiagramLinker`.
+// implements this and passes it to `editor.setAgentDiagramLinker`.
 export type { AgentDiagramLinker } from './components/agent-diagram-linker/AgentDiagramLinkerContext';
 
 // Public types for the cross-diagram element-picker provider; the host
-// The host implements `ElementPickerProvider` and passes it to
+// implements `ElementPickerProvider` and passes it to
 // `editor.setElementPickerProvider` (see `useElementPickerProvider`).
 export type { ElementPickerProvider, PickableElement } from './components/element-picker/ElementPickerContext';
+
+// Public types for the derived-element lineage provider; the host implements
+// `LineageProvider` and passes it to `editor.setLineageProvider`.
+export type { LineageProvider, ResolvedSource } from './components/lineage/LineageContext';
 
 // Export only the UMLModelCompat type for compatibility purposes
 // Provides type definitions for compatibility with different UML model versions

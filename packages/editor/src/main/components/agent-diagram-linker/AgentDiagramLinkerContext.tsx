@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import { createHostProviderContext } from '../host-provider/host-provider';
 
 /**
  * Supplied by the host at editor-init time.
@@ -32,31 +32,6 @@ export interface AgentDiagramLinker {
   openByRef: (ref: string) => void;
 }
 
-const AgentDiagramLinkerContext = createContext<AgentDiagramLinker | null>(null);
+export const agentDiagramLinkerContext = createHostProviderContext<AgentDiagramLinker>();
 
-export const AgentDiagramLinkerContextProvider: React.FC<{
-  value: AgentDiagramLinker | null;
-  children: React.ReactNode;
-}> = ({ value, children }) => (
-  <AgentDiagramLinkerContext.Provider value={value}>{children}</AgentDiagramLinkerContext.Provider>
-);
-
-export const useAgentDiagramLinker = (): AgentDiagramLinker | null => useContext(AgentDiagramLinkerContext);
-
-/**
- * Wraps `AgentDiagramLinkerContextProvider` so the editor can swap the
- * provider value imperatively (via `setAgentDiagramLinker(...)`)
- * without tearing down its React tree. Same pattern as 06's
- * `LineageProviderRoot`.
- */
-export const AgentDiagramLinkerProviderRoot: React.FC<{
-  initialValue: AgentDiagramLinker | null;
-  register: (listener: (v: AgentDiagramLinker | null) => void) => void;
-  children: React.ReactNode;
-}> = ({ initialValue, register, children }) => {
-  const [value, setValue] = useState<AgentDiagramLinker | null>(initialValue);
-  useEffect(() => {
-    register(setValue);
-  }, [register]);
-  return <AgentDiagramLinkerContextProvider value={value}>{children}</AgentDiagramLinkerContextProvider>;
-};
+export const useAgentDiagramLinker = agentDiagramLinkerContext.useValue;
