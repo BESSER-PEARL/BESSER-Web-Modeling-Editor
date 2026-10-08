@@ -370,7 +370,9 @@
       "deleteLane": "Suprimeix el carril",
       "newLaneName": "Nom del nou carril",
       "addLane": "Afegeix un carril",
-      "controlFlow": "Flux de control"
+      "controlFlow": "Flux de control",
+      "mergingNeedsDiverging": "Requereix una passarel·la divergent agèntica prèvia",
+      "orphanedMergingGateway": "No hi ha cap passarel·la divergent agèntica prèvia: aquesta passarel·la no tanca cap bloc de col·laboració."
     },
     "state": {
       "italic": "cursiva",
@@ -630,7 +632,8 @@
       "BPMNGatewayRoleMerging": "Convergent",
       "BPMNDefaultAgentTitle": "Agent",
       "BPMNAgentRole": "Rol",
-      "BPMNAgentRolePlaceholder": "p. ex. solution"
+      "BPMNAgentRolePlaceholder": "p. ex. solution",
+      "BPMNReflectionMode": "Reflexió"
     },
     "NNDiagram": {
       "NNContainer": "Neural_Network",

@@ -370,7 +370,9 @@
       "deleteLane": "Delete lane",
       "newLaneName": "New lane name",
       "addLane": "Add Lane",
-      "controlFlow": "Control Flow"
+      "controlFlow": "Control Flow",
+      "mergingNeedsDiverging": "Needs an agentic diverging gateway upstream",
+      "orphanedMergingGateway": "No agentic diverging gateway upstream: this gateway closes no collaboration block."
     },
     "state": {
       "italic": "italic",
@@ -630,7 +632,8 @@
       "BPMNGatewayRoleMerging": "Merging",
       "BPMNDefaultAgentTitle": "Agent",
       "BPMNAgentRole": "Role",
-      "BPMNAgentRolePlaceholder": "e.g. solution"
+      "BPMNAgentRolePlaceholder": "e.g. solution",
+      "BPMNReflectionMode": "Reflection"
     },
     "NNDiagram": {
       "NNContainer": "Neural_Network",

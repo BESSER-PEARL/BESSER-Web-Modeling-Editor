@@ -370,7 +370,9 @@
       "deleteLane": "Supprimer le couloir",
       "newLaneName": "Nom du nouveau couloir",
       "addLane": "Ajouter un couloir",
-      "controlFlow": "Flux de contrôle"
+      "controlFlow": "Flux de contrôle",
+      "mergingNeedsDiverging": "Nécessite une passerelle divergente agentique en amont",
+      "orphanedMergingGateway": "Aucune passerelle divergente agentique en amont : cette passerelle ne ferme aucun bloc de collaboration."
     },
     "state": {
       "italic": "italique",
@@ -630,7 +632,8 @@
       "BPMNGatewayRoleMerging": "Convergente",
       "BPMNDefaultAgentTitle": "Agent",
       "BPMNAgentRole": "Rôle",
-      "BPMNAgentRolePlaceholder": "p. ex. solution"
+      "BPMNAgentRolePlaceholder": "p. ex. solution",
+      "BPMNReflectionMode": "Réflexion"
     },
     "NNDiagram": {
       "NNContainer": "Neural_Network",

@@ -370,7 +370,9 @@
       "deleteLane": "Bunn läschen",
       "newLaneName": "Numm vun der neier Bunn",
       "addLane": "Bunn dobäisetzen",
-      "controlFlow": "Kontrollfloss"
+      "controlFlow": "Kontrollfloss",
+      "mergingNeedsDiverging": "Brauch eng agentesch verzweigend Gateway virdrun",
+      "orphanedMergingGateway": "Keng agentesch verzweigend Gateway virdrun: Dës Gateway schléisst kee Kollaboratiounsblock of."
     },
     "state": {
       "italic": "kursiv",
@@ -630,7 +632,8 @@
       "BPMNGatewayRoleMerging": "Zesummeféierend",
       "BPMNDefaultAgentTitle": "Agent",
       "BPMNAgentRole": "Roll",
-      "BPMNAgentRolePlaceholder": "z. B. solution"
+      "BPMNAgentRolePlaceholder": "z. B. solution",
+      "BPMNReflectionMode": "Reflexioun"
     },
     "NNDiagram": {
       "NNContainer": "Neuronaalt Netz",

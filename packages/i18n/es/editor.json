@@ -370,7 +370,9 @@
       "deleteLane": "Eliminar el carril",
       "newLaneName": "Nombre del nuevo carril",
       "addLane": "Añadir carril",
-      "controlFlow": "Flujo de control"
+      "controlFlow": "Flujo de control",
+      "mergingNeedsDiverging": "Requiere una compuerta divergente agéntica previa",
+      "orphanedMergingGateway": "No hay ninguna compuerta divergente agéntica previa: esta compuerta no cierra ningún bloque de colaboración."
     },
     "state": {
       "italic": "cursiva",
@@ -630,7 +632,8 @@
       "BPMNGatewayRoleMerging": "Convergente",
       "BPMNDefaultAgentTitle": "Agente",
       "BPMNAgentRole": "Rol",
-      "BPMNAgentRolePlaceholder": "p. ej. solution"
+      "BPMNAgentRolePlaceholder": "p. ej. solution",
+      "BPMNReflectionMode": "Reflexión"
     },
     "NNDiagram": {
       "NNContainer": "Neural_Network",

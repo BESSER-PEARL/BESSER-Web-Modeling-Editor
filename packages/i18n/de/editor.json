@@ -370,7 +370,9 @@
       "deleteLane": "Bahn löschen",
       "newLaneName": "Name der neuen Bahn",
       "addLane": "Bahn hinzufügen",
-      "controlFlow": "Kontrollfluss"
+      "controlFlow": "Kontrollfluss",
+      "mergingNeedsDiverging": "Erfordert ein agentisches verzweigendes Gateway davor",
+      "orphanedMergingGateway": "Kein agentisches verzweigendes Gateway davor: Dieses Gateway schließt keinen Kollaborationsblock."
     },
     "state": {
       "italic": "kursiv",
@@ -630,7 +632,8 @@
       "BPMNGatewayRoleMerging": "Zusammenführend",
       "BPMNDefaultAgentTitle": "Agent",
       "BPMNAgentRole": "Rolle",
-      "BPMNAgentRolePlaceholder": "z. B. solution"
+      "BPMNAgentRolePlaceholder": "z. B. solution",
+      "BPMNReflectionMode": "Reflexion"
     },
     "NNDiagram": {
       "NNContainer": "Neuronales Netz",
