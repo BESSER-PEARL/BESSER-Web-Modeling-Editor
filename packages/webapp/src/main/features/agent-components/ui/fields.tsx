@@ -3,6 +3,11 @@ import { useTranslation } from 'react-i18next';
 import { cn } from '@/lib/utils';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+
+// Radix Select forbids an empty-string item value; map '' to a sentinel.
+const EMPTY_OPTION = '__empty__';
 
 interface FieldBaseProps {
   id: string;
@@ -20,8 +25,9 @@ export function Field({ id, label, description, children }: FieldBaseProps & { c
   );
 }
 
-export function TextField({ id, label, description, value, onChange, placeholder, multiline }: FieldBaseProps & {
+export function TextField({ id, label, description, value, onChange, placeholder, multiline, inputMode }: FieldBaseProps & {
   value: string; onChange: (v: string) => void; placeholder?: string; multiline?: boolean;
+  inputMode?: React.HTMLAttributes<HTMLInputElement>['inputMode'];
 }) {
   return (
     <Field id={id} label={label} description={description}>
@@ -37,6 +43,10 @@ export function TextField({ id, label, description, value, onChange, placeholder
       ) : (
         <Input
           id={id}
+          name={id}
+          autoComplete="off"
+          spellCheck={false}
+          inputMode={inputMode}
           value={value}
           onChange={e => onChange(e.target.value)}
           placeholder={placeholder}
@@ -69,16 +79,19 @@ export function SelectField({ id, label, description, value, onChange, options }
 }) {
   return (
     <Field id={id} label={label} description={description}>
-      <select
-        id={id}
-        value={value}
-        onChange={e => onChange(e.target.value)}
-        className="w-full h-8 rounded-md border border-input bg-background px-2 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
+      <Select
+        value={value === '' ? EMPTY_OPTION : value}
+        onValueChange={v => onChange(v === EMPTY_OPTION ? '' : v)}
       >
-        {options.map(opt => (
-          <option key={opt.value} value={opt.value}>{opt.label}</option>
-        ))}
-      </select>
+        <SelectTrigger id={id} className="h-8 text-sm">
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          {options.map(opt => (
+            <SelectItem key={opt.value} value={opt.value === '' ? EMPTY_OPTION : opt.value}>{opt.label}</SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
     </Field>
   );
 }
@@ -88,12 +101,11 @@ export function CheckboxField({ id, label, description, value, onChange }: Field
 }) {
   return (
     <div className="flex items-start gap-2">
-      <input
+      <Checkbox
         id={id}
-        type="checkbox"
         checked={value}
-        onChange={e => onChange(e.target.checked)}
-        className="mt-0.5 h-3.5 w-3.5"
+        onCheckedChange={onChange}
+        className="mt-0.5 size-3.5"
       />
       <div>
         <Label htmlFor={id} className="text-xs font-medium cursor-pointer">{label}</Label>

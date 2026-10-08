@@ -5,17 +5,11 @@ import { Plus, X, FileText, Info, Link2, AlertTriangle, ChevronDown, ChevronRigh
 import { toast } from 'react-toastify';
 import { useTranslation } from 'react-i18next';
 import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { getPostHog } from '../../../shared/services/analytics/lazy-analytics';
 import { useLocation, useNavigate } from 'react-router-dom';
-import {
-  ProjectDiagram,
-  MAX_DIAGRAMS_PER_TYPE,
-  SupportedDiagramType,
-  isUMLModel,
-  isGrapesJSProjectData,
-  isQuantumCircuitData,
-  toUMLDiagramType,
-} from '../../../shared/types/project';
+import { globalConfirm } from '../../../shared/services/confirm/globalConfirm';
+import { ProjectDiagram, MAX_DIAGRAMS_PER_TYPE, SupportedDiagramType, isUMLModel, isGrapesJSProjectData, isQuantumCircuitData, toUMLDiagramType } from '../../../shared/types/project';
 import { useAppDispatch, useAppSelector } from '../../../app/store/hooks';
 import type { QualityCheckState } from '../../generation/types';
 import {
@@ -30,14 +24,13 @@ import {
   selectActiveDiagramIndex,
   selectDiagramsForActiveType,
   selectActiveDiagramType,
-  selectProject,
+  selectClassDiagrams,
 } from '../../../app/store/workspaceSlice';
 import { ApollonEditorContext } from '../uml/apollon-editor-context';
 import { ProjectStorageRepository } from '../../../shared/services/storage/ProjectStorageRepository';
 import { hashUmlModel } from '../../inter-diagram/lineage-hash';
 import { scaffoldObjectsFromClasses } from './scaffoldObjectsFromClasses';
 import { UserProfileFormPanel } from '../user-profile-form/UserProfileFormPanel';
-
 
 interface DiagramTabsProps {
   onRequestTabSwitch?: (index: number) => Promise<boolean> | boolean;
@@ -76,17 +69,16 @@ const InfoTooltip: React.FC<{ text: string }> = ({ text }) => {
       aria-label={text}
     >
       <Info className="size-3 text-muted-foreground" />
-      {visible &&
-        ReactDOM.createPortal(
-          <span
-            role="tooltip"
-            className="pointer-events-none fixed z-[9999] w-56 -translate-x-1/2 rounded-md border border-border bg-popover px-2.5 py-1.5 text-[11px] leading-snug text-popover-foreground shadow-lg"
-            style={{ top: pos.top, left: pos.left }}
-          >
-            {text}
-          </span>,
-          document.body,
-        )}
+      {visible && ReactDOM.createPortal(
+        <span
+          role="tooltip"
+          className="pointer-events-none fixed z-[9999] w-56 -translate-x-1/2 rounded-md border border-border bg-popover px-2.5 py-1.5 text-[11px] leading-snug text-popover-foreground shadow-lg"
+          style={{ top: pos.top, left: pos.left }}
+        >
+          {text}
+        </span>,
+        document.body,
+      )}
     </span>
   );
 };
@@ -133,7 +125,6 @@ export const DiagramTabs: React.FC<DiagramTabsProps> = ({
   const diagrams = useAppSelector(selectDiagramsForActiveType);
   const currentIndex = useAppSelector(selectActiveDiagramIndex);
   const currentDiagramType = useAppSelector(selectActiveDiagramType);
-  const currentProject = useAppSelector(selectProject);
   const [renamingIndex, setRenamingIndex] = useState<number | null>(null);
   const [renameValue, setRenameValue] = useState('');
   const [profileFormOpen, setProfileFormOpen] = useState(false);
@@ -145,10 +136,7 @@ export const DiagramTabs: React.FC<DiagramTabsProps> = ({
   // Agent diagrams are referenced per-component inside the GUI editor (drag & drop),
   // not as a single diagram-level reference, so no dropdown is needed here.
 
-  const classDiagrams = useMemo(
-    () => currentProject?.diagrams?.ClassDiagram ?? [],
-    [currentProject?.diagrams?.ClassDiagram],
-  );
+  const classDiagrams = useAppSelector(selectClassDiagrams);
 
   // Read the active diagram's persisted references (ID-based)
   // Clamp the index to prevent out-of-bounds access when diagrams array
@@ -168,7 +156,7 @@ export const DiagramTabs: React.FC<DiagramTabsProps> = ({
   const prevClassRefIdRef = React.useRef<string | null>(null);
   useEffect(() => {
     if (!needsClassRef || classDiagrams.length === 0 || !classRefId) return;
-    const refDiagram = classDiagrams.find((d) => d.id === classRefId);
+    const refDiagram = classDiagrams.find(d => d.id === classRefId);
     const refModel = refDiagram?.model;
 
     if (currentDiagramType === 'ObjectDiagram') {
@@ -183,20 +171,14 @@ export const DiagramTabs: React.FC<DiagramTabsProps> = ({
     // For GUI: no bridge side-effect needed — diagram-helpers reads per-diagram references
   }, [needsClassRef, currentDiagramType, classRefId, classDiagrams, dispatch]);
 
-  const handleClassRefChange = useCallback(
-    (e: React.ChangeEvent<HTMLSelectElement>) => {
-      const newId = e.target.value;
-      setClassRefId(newId);
-      dispatch(
-        updateDiagramReferencesThunk({
-          diagramType: currentDiagramType,
-          diagramIndex: safeIndex,
-          references: { ClassDiagram: newId },
-        }),
-      );
-    },
-    [dispatch, currentDiagramType, safeIndex],
-  );
+  const handleClassRefChange = useCallback((newId: string) => {
+    setClassRefId(newId);
+    dispatch(updateDiagramReferencesThunk({
+      diagramType: currentDiagramType,
+      diagramIndex: safeIndex,
+      references: { ClassDiagram: newId },
+    }));
+  }, [dispatch, currentDiagramType, safeIndex]);
 
   const { editor: apollonEditor } = useContext(ApollonEditorContext);
 
@@ -206,7 +188,7 @@ export const DiagramTabs: React.FC<DiagramTabsProps> = ({
       toast.error(t('editors.diagramTabs.editorNotReady'));
       return;
     }
-    const refDiagram = classDiagrams.find((d) => d.id === classRefId);
+    const refDiagram = classDiagrams.find(d => d.id === classRefId);
     const refModel = refDiagram?.model;
     if (!isUMLModel(refModel)) {
       toast.error(t('editors.diagramTabs.pickClassRefFirst'));
@@ -247,7 +229,10 @@ export const DiagramTabs: React.FC<DiagramTabsProps> = ({
   const [refsCollapsed, setRefsCollapsed] = useState(false);
 
   // --- Reference status helpers ---
-  const classRefDiagram = useMemo(() => classDiagrams.find((d) => d.id === classRefId), [classDiagrams, classRefId]);
+  const classRefDiagram = useMemo(
+    () => classDiagrams.find((d) => d.id === classRefId),
+    [classDiagrams, classRefId],
+  );
 
   const classRefBroken = needsClassRef && classRefId !== '' && !classRefDiagram;
   const classRefEmpty = needsClassRef && !!classRefDiagram && isDiagramEmpty(classRefDiagram);
@@ -285,15 +270,25 @@ export const DiagramTabs: React.FC<DiagramTabsProps> = ({
     getPostHog()?.capture('diagram_created', { type: currentDiagramType });
   }, [dispatch, currentDiagramType, diagrams.length]);
 
+  // Removing a tab deletes the diagram from the project, so confirm first.
   const handleRemoveDiagram = useCallback(
-    (e: React.MouseEvent, index: number) => {
+    async (e: React.MouseEvent, index: number) => {
       e.stopPropagation();
       if (diagrams.length <= 1) {
         return;
       }
+      const confirmed = await globalConfirm({
+        title: t('editors.diagramTabs.deleteConfirmTitle'),
+        description: t('editors.diagramTabs.deleteConfirmDescription', { title: diagrams[index]?.title ?? '' }),
+        confirmLabel: t('editors.diagramTabs.deleteConfirmAction'),
+        variant: 'danger',
+      });
+      if (!confirmed) {
+        return;
+      }
       dispatch(removeDiagramThunk({ diagramType: currentDiagramType, index }));
     },
-    [dispatch, currentDiagramType, diagrams.length],
+    [dispatch, currentDiagramType, diagrams, t],
   );
 
   const handleStartRename = useCallback(
@@ -313,20 +308,72 @@ export const DiagramTabs: React.FC<DiagramTabsProps> = ({
     setRenamingIndex(null);
   }, [dispatch, currentDiagramType, renamingIndex, renameValue, diagrams]);
 
+  const tabRefs = useRef<Array<HTMLDivElement | null>>([]);
+
+  // Deferred so the rename input has unmounted first; focusing the tab while it is
+  // still mounted would blur it and run handleFinishRename a second time.
+  const focusTabLater = useCallback((index: number) => {
+    requestAnimationFrame(() => tabRefs.current[index]?.focus());
+  }, []);
+
   const handleRenameKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
-      if (e.key === 'Enter') handleFinishRename();
-      if (e.key === 'Escape') setRenamingIndex(null);
+      if (renamingIndex === null) return;
+      if (e.key === 'Enter') {
+        handleFinishRename();
+        focusTabLater(renamingIndex);
+      }
+      if (e.key === 'Escape') {
+        setRenamingIndex(null);
+        focusTabLater(renamingIndex);
+      }
     },
-    [handleFinishRename],
+    [handleFinishRename, focusTabLater, renamingIndex],
+  );
+
+  const handleTabKeyDown = useCallback(
+    (e: React.KeyboardEvent<HTMLDivElement>, index: number) => {
+      // Ignore keys bubbling up from the rename input or the delete button.
+      if (e.target !== e.currentTarget) return;
+      const last = diagrams.length - 1;
+      let target: number | null = null;
+      switch (e.key) {
+        case 'ArrowRight':
+          target = index === last ? 0 : index + 1;
+          break;
+        case 'ArrowLeft':
+          target = index === 0 ? last : index - 1;
+          break;
+        case 'Home':
+          target = 0;
+          break;
+        case 'End':
+          target = last;
+          break;
+        case 'Enter':
+        case ' ':
+          e.preventDefault();
+          void handleSwitchTab(index);
+          return;
+        case 'F2':
+          e.preventDefault();
+          handleStartRename(index);
+          return;
+        default:
+          return;
+      }
+      e.preventDefault();
+      tabRefs.current[target]?.focus();
+      void handleSwitchTab(target);
+    },
+    [diagrams.length, handleSwitchTab, handleStartRename],
   );
 
   if (!showTabs) return null;
 
   const hasReferences = needsClassRef;
 
-  const selectClasses =
-    'h-6 min-w-[120px] rounded-md border border-brand/15 bg-card px-2 text-[11px] font-medium text-foreground shadow-sm transition-colors hover:border-brand/30 focus:border-brand/40 focus:outline-none focus:ring-1 focus:ring-brand/20';
+  const selectClasses = "h-7 w-auto min-w-[140px] gap-2 rounded-md border-border bg-card px-2 text-xs font-medium text-foreground shadow-sm transition-colors duration-150 hover:border-foreground/20 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1";
 
   // Compute the lane back-link once so the "Derived from" badge can be
   // suppressed when "Implementation of" will show (they reference the same source).
@@ -353,87 +400,99 @@ export const DiagramTabs: React.FC<DiagramTabsProps> = ({
     <div className="relative overflow-visible border-b border-brand/12 bg-card/80 backdrop-blur-sm">
       {/* Top row: tabs */}
       <div className="flex items-center gap-0 px-1">
-        <div className="flex items-end gap-px py-1 pl-1">
-          {diagrams.map((diagram: ProjectDiagram, index: number) => {
-            const isActive = index === safeIndex;
-            const isRenaming = renamingIndex === index;
-            const userValidationStatus = currentDiagramType === 'UserDiagram'
-              ? userModelValidationStatusById?.[diagram.id] ?? 'not_validated'
-              : undefined;
+        <div className="flex min-w-0 items-end gap-px pl-1">
+          <div
+            role="tablist"
+            aria-label={t('editors.diagramTabs.tablistLabel')}
+            className="flex min-w-0 items-end gap-px overflow-x-auto py-1"
+          >
+            {diagrams.map((diagram: ProjectDiagram, index: number) => {
+              const isActive = index === safeIndex;
+              const isRenaming = renamingIndex === index;
+              const userValidationStatus = currentDiagramType === 'UserDiagram'
+                ? userModelValidationStatusById?.[diagram.id] ?? 'not_validated'
+                : undefined;
 
-            const validationBadge = userValidationStatus === 'valid'
-              ? { label: t('editors.diagramTabs.validationValidated'), className: 'bg-emerald-500' }
-              : userValidationStatus === 'errors'
-                ? { label: t('editors.diagramTabs.validationIssues'), className: 'bg-red-500' }
-                : userValidationStatus === 'stale'
-                  ? { label: t('editors.diagramTabs.validationNeedsValidation'), className: 'bg-amber-500' }
-                  : { label: t('editors.diagramTabs.validationNotValidated'), className: 'bg-slate-400' };
+              const validationBadge = userValidationStatus === 'valid'
+                ? { label: t('editors.diagramTabs.validationValidated'), className: 'bg-emerald-500' }
+                : userValidationStatus === 'errors'
+                  ? { label: t('editors.diagramTabs.validationIssues'), className: 'bg-red-500' }
+                  : userValidationStatus === 'stale'
+                    ? { label: t('editors.diagramTabs.validationNeedsValidation'), className: 'bg-amber-500' }
+                    : { label: t('editors.diagramTabs.validationNotValidated'), className: 'bg-slate-400' };
 
-            return (
-              <div
-                key={diagram.id}
-                role="tab"
-                aria-selected={isActive}
-                aria-label={t('editors.diagramTabs.diagramTabLabel', { title: diagram.title })}
-                className={[
-                  'group relative flex cursor-pointer select-none items-center gap-1.5 rounded-md px-3 py-1.5 text-[11px] font-medium transition-all duration-150',
-                  isActive
-                    ? 'border-b-2 border-brand bg-card text-brand-dark shadow-[0_1px_3px_rgba(0,0,0,0.08),0_0_0_1px_hsl(var(--brand)/0.1)]'
-                    : 'text-muted-foreground hover:bg-brand/[0.04] hover:text-foreground',
-                ].join(' ')}
-                onClick={() => {
-                  void handleSwitchTab(index);
-                }}
-                onDoubleClick={() => handleStartRename(index)}
-              >
-                {isRenaming ? (
-                  <Input
-                    className="h-5 w-24 rounded-sm border-input bg-card px-1.5 py-0 text-[11px] shadow-inner focus-visible:ring-1 focus-visible:ring-ring"
-                    value={renameValue}
-                    onChange={(e) => setRenameValue(e.target.value)}
-                    onBlur={handleFinishRename}
-                    onKeyDown={handleRenameKeyDown}
-                    autoFocus
-                    aria-label={t('editors.diagramTabs.renameDiagram')}
-                    onClick={(e) => e.stopPropagation()}
-                  />
-                ) : (
-                  <>
-                    <FileText className={`size-3 shrink-0 ${isActive ? 'text-brand' : 'text-muted-foreground'}`} />
-                    <span className="max-w-[140px] truncate">{diagram.title}</span>
-                    {currentDiagramType === 'UserDiagram' && (
-                      <span
-                        className={`size-2 rounded-full ${validationBadge.className}`}
-                        title={validationBadge.label}
-                        aria-label={t('editors.diagramTabs.validationStatusLabel', { status: validationBadge.label })}
-                      />
-                    )}
-                  </>
-                )}
+              return (
+                <div
+                  key={diagram.id}
+                  ref={(el) => {
+                    tabRefs.current[index] = el;
+                  }}
+                  role="tab"
+                  tabIndex={isActive ? 0 : -1}
+                  aria-selected={isActive}
+                  aria-label={t('editors.diagramTabs.diagramTabLabel', { title: diagram.title })}
+                  className={[
+                    'group relative flex shrink-0 cursor-pointer select-none items-center gap-1.5 rounded-md px-3 py-1.5 text-[11px] font-medium transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-brand/40',
+                    isActive
+                      ? 'border-b-2 border-brand bg-card text-brand-dark shadow-[0_1px_3px_rgba(0,0,0,0.08),0_0_0_1px_hsl(var(--brand)/0.1)]'
+                      : 'text-muted-foreground hover:bg-brand/[0.04] hover:text-foreground',
+                  ].join(' ')}
+                  onClick={() => {
+                    void handleSwitchTab(index);
+                  }}
+                  onDoubleClick={() => handleStartRename(index)}
+                  onKeyDown={(e) => handleTabKeyDown(e, index)}
+                >
+                  {isRenaming ? (
+                    <Input
+                      className="h-5 w-auto min-w-24 rounded-sm border-input bg-card px-1.5 py-0 text-[11px] shadow-inner focus-visible:ring-1 focus-visible:ring-ring"
+                      value={renameValue}
+                      size={Math.max(renameValue.length + 1, 12)}
+                      onChange={(e) => setRenameValue(e.target.value)}
+                      onBlur={handleFinishRename}
+                      onKeyDown={handleRenameKeyDown}
+                      autoFocus
+                      aria-label={t('editors.diagramTabs.renameDiagram')}
+                      onClick={(e) => e.stopPropagation()}
+                    />
+                  ) : (
+                    <>
+                      <FileText className={`size-3 shrink-0 ${isActive ? 'text-brand' : 'text-muted-foreground'}`} />
+                      <span className="max-w-[140px] truncate">{diagram.title}</span>
+                      {currentDiagramType === 'UserDiagram' && (
+                        <span
+                          className={`size-2 rounded-full ${validationBadge.className}`}
+                          title={validationBadge.label}
+                          aria-label={t('editors.diagramTabs.validationStatusLabel', { status: validationBadge.label })}
+                        />
+                      )}
+                    </>
+                  )}
 
-                {diagrams.length > 1 && !isRenaming && (
-                  <button
-                    className={[
-                      'ml-0.5 rounded-sm p-0.5 transition-colors',
-                      isActive
-                        ? 'text-muted-foreground hover:bg-muted hover:text-destructive'
-                        : 'invisible text-muted-foreground hover:bg-muted hover:text-destructive group-hover:visible',
-                    ].join(' ')}
-                    onClick={(e) => handleRemoveDiagram(e, index)}
-                    aria-label={t('editors.diagramTabs.closeTabLabel', { title: diagram.title })}
-                    title={t('editors.diagramTabs.closeTab')}
-                  >
-                    <X className="size-3" />
-                  </button>
-                )}
-              </div>
-            );
-          })}
+                  {diagrams.length > 1 && !isRenaming && (
+                    <button
+                      className={[
+                        'ml-0.5 rounded-sm p-0.5 transition-colors',
+                        isActive
+                          ? 'text-muted-foreground hover:bg-muted hover:text-destructive'
+                          : 'invisible text-muted-foreground hover:bg-muted hover:text-destructive focus-visible:visible group-hover:visible group-focus-within:visible',
+                      ].join(' ')}
+                      onClick={(e) => void handleRemoveDiagram(e, index)}
+                      aria-label={t('editors.diagramTabs.closeTabLabel', { title: diagram.title })}
+                      title={t('editors.diagramTabs.closeTab')}
+                    >
+                      <X className="size-3" />
+                    </button>
+                  )}
+                </div>
+              );
+            })}
+          </div>
 
           {/* Add button */}
           {diagrams.length < MAX_DIAGRAMS_PER_TYPE && (
             <button
-              className="ml-0.5 flex size-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-brand/[0.06] hover:text-brand"
+              className="my-1 ml-0.5 flex size-7 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-brand/[0.06] hover:text-brand"
               onClick={handleAddDiagram}
               aria-label={t('editors.diagramTabs.addNewDiagram')}
               title={t('editors.diagramTabs.addNewDiagram')}
@@ -447,24 +506,24 @@ export const DiagramTabs: React.FC<DiagramTabsProps> = ({
         {isUserDiagram && (
           <button
             className={[
-              'ml-auto mr-1.5 flex items-center gap-1.5 rounded-md px-3 py-1.5 text-[12px] font-semibold shadow-sm transition-colors',
+              'ml-auto mr-1.5 flex shrink-0 items-center gap-1.5 rounded-md px-3 py-1.5 text-[12px] font-semibold shadow-sm transition-colors',
               profileFormOpen
                 ? 'bg-brand-dark text-brand-foreground hover:bg-brand-dark/90'
                 : 'bg-brand text-brand-foreground hover:bg-brand-dark',
             ].join(' ')}
             onClick={() => setProfileFormOpen((prev) => !prev)}
             aria-pressed={profileFormOpen}
-            title={profileFormOpen ? 'Close the user profile form' : 'Edit this profile with a guided form'}
+            title={profileFormOpen ? t('editors.diagramTabs.closeFormTitle') : t('editors.diagramTabs.editAsFormTitle')}
           >
             <ClipboardList className="size-3.5" />
-            <span>{profileFormOpen ? 'Close Form' : 'Edit as Form'}</span>
+            <span>{profileFormOpen ? t('editors.diagramTabs.closeForm') : t('editors.diagramTabs.editAsForm')}</span>
           </button>
         )}
 
         {/* Collapse toggle for references (inline in tab bar, right-aligned) */}
         {hasReferences && (
           <button
-            className="ml-auto mr-1 flex items-center gap-1 rounded-md px-2 py-1 text-[10px] font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+            className="ml-auto mr-1 flex shrink-0 items-center gap-1 rounded-md px-2 py-1 text-[10px] font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
             onClick={() => setRefsCollapsed((prev) => !prev)}
             aria-label={refsCollapsed ? t('editors.diagramTabs.expandLinkedDiagrams') : t('editors.diagramTabs.collapseLinkedDiagrams')}
             aria-expanded={!refsCollapsed}
@@ -577,8 +636,8 @@ export const DiagramTabs: React.FC<DiagramTabsProps> = ({
         <div className="overflow-visible border-t border-border/40 bg-muted/30 px-3 py-1.5">
           <div className="flex flex-wrap items-center gap-4">
             {/* Section header */}
-            <span className="flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-              <Link2 className="size-3" />
+            <span className="flex items-center gap-1 text-xs font-medium text-muted-foreground">
+              <Link2 className="size-3" aria-hidden="true" />
               {t('editors.diagramTabs.references')}
             </span>
 
@@ -587,7 +646,7 @@ export const DiagramTabs: React.FC<DiagramTabsProps> = ({
               <div className="flex items-center gap-2">
                 <label
                   htmlFor="ref-class-diagram"
-                  className="whitespace-nowrap text-[11px] font-medium text-muted-foreground"
+                  className="whitespace-nowrap text-xs font-medium text-muted-foreground"
                 >
                   {t('editors.diagramTabs.classDiagram')}
                 </label>
@@ -595,32 +654,34 @@ export const DiagramTabs: React.FC<DiagramTabsProps> = ({
 
                 {classDiagrams.length > 0 ? (
                   <>
-                    <select
-                      id="ref-class-diagram"
-                      className={selectClasses}
-                      value={classRefBroken ? '' : classRefId}
-                      onChange={handleClassRefChange}
-                      aria-label={classRefTooltip}
-                    >
-                      {classRefBroken && (
-                        <option value="" disabled>
-                          {t('editors.diagramTabs.referenceBroken')}
-                        </option>
-                      )}
-                      {classDiagrams.map((cd) => (
-                        <option key={cd.id} value={cd.id}>
-                          {cd.title}
-                        </option>
-                      ))}
-                    </select>
+                    <Select value={classRefBroken ? '' : classRefId} onValueChange={handleClassRefChange}>
+                      <SelectTrigger id="ref-class-diagram" className={selectClasses} aria-label={classRefTooltip}>
+                        <SelectValue placeholder={t('editors.diagramTabs.referenceBroken')} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {classDiagrams.map((cd) => (
+                          <SelectItem key={cd.id} value={cd.id} className="text-xs">
+                            {cd.title}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                     {classRefBroken && (
-                      <span title={t('editors.diagramTabs.referenceDeleted')}>
-                        <AlertTriangle className="size-3.5 text-amber-500 dark:text-amber-400" />
+                      <span
+                        role="img"
+                        aria-label={t('editors.diagramTabs.referenceDeleted')}
+                        title={t('editors.diagramTabs.referenceDeleted')}
+                      >
+                        <AlertTriangle aria-hidden="true" className="size-3.5 text-amber-500 dark:text-amber-400" />
                       </span>
                     )}
                     {!classRefBroken && classRefEmpty && (
-                      <span title={t('editors.diagramTabs.referenceEmpty')}>
-                        <AlertTriangle className="size-3 text-muted-foreground" />
+                      <span
+                        role="img"
+                        aria-label={t('editors.diagramTabs.referenceEmpty')}
+                        title={t('editors.diagramTabs.referenceEmpty')}
+                      >
+                        <AlertTriangle aria-hidden="true" className="size-3 text-muted-foreground" />
                       </span>
                     )}
                     {currentDiagramType === 'ObjectDiagram' && !classRefBroken && !classRefEmpty && (
@@ -642,6 +703,7 @@ export const DiagramTabs: React.FC<DiagramTabsProps> = ({
                 )}
               </div>
             )}
+
           </div>
         </div>
       )}

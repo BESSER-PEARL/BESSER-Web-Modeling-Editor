@@ -15,6 +15,7 @@ type OwnProps = {};
 type StateProps = {
   readonly: boolean;
   mode: ApollonMode;
+  selected: string[];
 };
 
 type DispatchProps = {
@@ -28,9 +29,21 @@ type DispatchProps = {
   move: AsyncDispatch<typeof UMLElementRepository.move>;
   endMoving: AsyncDispatch<typeof UMLElementRepository.endMoving>;
   delete: AsyncDispatch<typeof UMLElementRepository.delete>;
+  updateStart: AsyncDispatch<typeof UMLElementRepository.updateStart>;
 };
 
 type Props = OwnProps & StateProps & DispatchProps & CanvasContext;
+
+const CONTROL_SELECTOR = [
+  'button',
+  '[role="button"]',
+  '[role="option"]',
+  '[role="listbox"]',
+  '[role="menuitem"]',
+  '[role="slider"]',
+  '[contenteditable]:not([contenteditable="false"])',
+  '[data-apollon-popup]',
+].join(',');
 
 const enhance = compose<ComponentType<OwnProps>>(
   withCanvas,
@@ -38,6 +51,7 @@ const enhance = compose<ComponentType<OwnProps>>(
     (state) => ({
       readonly: state.editor.readonly,
       mode: state.editor.mode,
+      selected: state.selected,
     }),
     {
       undo: UndoRepository.undo,
@@ -50,6 +64,7 @@ const enhance = compose<ComponentType<OwnProps>>(
       move: UMLElementRepository.move,
       endMoving: UMLElementRepository.endMoving,
       delete: UMLElementRepository.delete,
+      updateStart: UMLElementRepository.updateStart,
     },
   ),
 );
@@ -91,57 +106,70 @@ class KeyboardEventListenerComponent extends Component<Props> {
     if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || target.isContentEditable) {
       return;
     }
+    // Focused controls and the properties panel / popups keep their own keys
+    // (Backspace on a swatch must not delete the element, arrows must not move it).
+    const inControl = !!target.closest?.(CONTROL_SELECTOR);
+    const modifier = event.metaKey || event.ctrlKey;
+    const key = event.key.length === 1 ? event.key.toLowerCase() : event.key;
 
     // Let the browser handle Ctrl/Cmd+C when the user has a real text selection
     // (e.g. chat messages, tooltips, SVG labels that aren't editable inputs).
-    if ((event.metaKey || event.ctrlKey) && event.key === 'c') {
+    if (modifier && key === 'c') {
       const selection = window.getSelection();
       if (selection && selection.toString().length > 0) {
         return;
       }
     }
 
-    switch (event.key) {
-      case 'ArrowUp':
-        event.preventDefault();
-        if (!event.repeat) {
-          this.props.startMoving();
+    const hasSelection = this.props.selected.length > 0;
+    const step = event.shiftKey ? 50 : 10;
+    const nudge = (x: number, y: number) => {
+      event.preventDefault();
+      if (!event.repeat) {
+        this.props.startMoving();
+      }
+      this.props.move({ x, y });
+    };
+
+    if (!modifier && !inControl) {
+      switch (key) {
+        case 'ArrowUp':
+          if (hasSelection) nudge(0, -step);
+          break;
+        case 'ArrowRight':
+          if (hasSelection) nudge(step, 0);
+          break;
+        case 'ArrowDown':
+          if (hasSelection) nudge(0, step);
+          break;
+        case 'ArrowLeft':
+          if (hasSelection) nudge(-step, 0);
+          break;
+        case 'Backspace':
+        case 'Delete':
+          if (hasSelection) {
+            event.preventDefault();
+            this.props.delete();
+          }
+          break;
+        case 'Enter': {
+          // Same as double-click: open the properties of the single selected element.
+          // Only from the page body or the canvas, so Enter on other controls keeps its meaning.
+          const fromCanvas = target === document.body || this.props.canvas.layer.contains(target);
+          if (fromCanvas && this.props.selected.length === 1) {
+            event.preventDefault();
+            this.props.updateStart(this.props.selected[0]);
+          }
+          break;
         }
-        this.props.move({ x: 0, y: -10 });
-        break;
-      case 'ArrowRight':
-        event.preventDefault();
-        if (!event.repeat) {
-          this.props.startMoving();
-        }
-        this.props.move({ x: 10, y: 0 });
-        break;
-      case 'ArrowDown':
-        event.preventDefault();
-        if (!event.repeat) {
-          this.props.startMoving();
-        }
-        this.props.move({ x: 0, y: 10 });
-        break;
-      case 'ArrowLeft':
-        event.preventDefault();
-        if (!event.repeat) {
-          this.props.startMoving();
-        }
-        this.props.move({ x: -10, y: 0 });
-        break;
-      case 'Backspace':
-      case 'Delete':
-        event.preventDefault();
-        this.props.delete();
-        break;
-      case 'Escape':
-        event.preventDefault();
-        this.props.deselect();
-        break;
+      }
     }
-    if (event.metaKey || event.ctrlKey) {
-      switch (event.key) {
+    if (key === 'Escape' && !modifier && !target.closest?.('[data-apollon-popup]')) {
+      event.preventDefault();
+      this.props.deselect();
+    }
+    if (modifier) {
+      switch (key) {
         case 'a':
           event.preventDefault();
           this.props.select();
@@ -165,6 +193,10 @@ class KeyboardEventListenerComponent extends Component<Props> {
         case 'z':
           event.preventDefault();
           event.shiftKey ? this.props.redo() : this.props.undo();
+          break;
+        case 'y':
+          event.preventDefault();
+          this.props.redo();
           break;
       }
     }

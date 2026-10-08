@@ -458,9 +458,9 @@ class ClassifierUpdate extends Component<Props, State> {
       (member as UMLClassifierMember).visibility = parsed.visibility;
       (member as UMLClassifierMember).attributeType = parsed.attributeType;
     } else {
-      member.name = value;
+      member.name = UMLClassMethod.withParentheses(value);
     }
-    
+
     create(member, element.id);
   };
 

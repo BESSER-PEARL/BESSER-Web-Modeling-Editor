@@ -7,7 +7,6 @@ import {
 } from '../../shared/constants/constant';
 import { useGitHubBumlImport } from '../../features/import/useGitHubBumlImport';
 import { notifyError } from '../../shared/utils/notifyError';
-import type { BesserProject } from '../../shared/types/project';
 import { trackInterfaceChoice } from '../../shared/services/analytics/interfaceChoice';
 
 const KNOWN_ROUTES = [
@@ -19,7 +18,7 @@ const KNOWN_ROUTES = [
 ];
 
 interface UseProjectBootstrapOptions {
-  currentProject: BesserProject | null | undefined;
+  hasProject: boolean;
   loadProject: (projectId: string) => Promise<void>;
   pathname: string;
 }
@@ -30,7 +29,7 @@ interface UseProjectBootstrapResult {
 }
 
 export const useProjectBootstrap = ({
-  currentProject,
+  hasProject,
   loadProject,
   pathname,
 }: UseProjectBootstrapOptions): UseProjectBootstrapResult => {
@@ -153,9 +152,8 @@ export const useProjectBootstrap = ({
   }, []);
 
   // Track whether a project was previously loaded so we only react to the
-  // null ↔ non-null transition. Otherwise every Redux update of currentProject
-  // (e.g. autosave from the quantum editor) would force the hub open/closed.
-  const hadProjectRef = useRef<boolean>(Boolean(currentProject));
+  // null ↔ non-null transition, not to every autosave of the project.
+  const hadProjectRef = useRef<boolean>(hasProject);
 
   useEffect(() => {
     if (!hasCheckedForProject) {
@@ -164,11 +162,10 @@ export const useProjectBootstrap = ({
 
     if (hasTokenInUrl) {
       setShowProjectHub(false);
-      hadProjectRef.current = Boolean(currentProject);
+      hadProjectRef.current = hasProject;
       return;
     }
 
-    const hasProject = Boolean(currentProject);
     if (hasProject !== hadProjectRef.current) {
       // Don't let the latest-project load slam the hub shut when the user is
       // returning to finish a "Continue from GitHub" — the hub owns its own
@@ -178,7 +175,7 @@ export const useProjectBootstrap = ({
       }
       hadProjectRef.current = hasProject;
     }
-  }, [currentProject, hasCheckedForProject, hasTokenInUrl]);
+  }, [hasProject, hasCheckedForProject, hasTokenInUrl]);
 
   return {
     showProjectHub,

@@ -75,6 +75,7 @@ export function SqlDatabasesSection({ store, expandedId, toggle, expand }: Secti
                   />
                   <TextField
                     id={`sql-port-${index}`}
+                    inputMode="numeric"
                     label={t('agentComponents.sql.port')}
                     value={db.port}
                     onChange={v => updateSqlDatabase(index, { port: v })}

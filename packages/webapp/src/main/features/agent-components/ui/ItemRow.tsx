@@ -18,11 +18,13 @@ export function ItemRow({ name, badge, extraBadge, expanded, onToggle, onDelete,
   const { t } = useTranslation();
   return (
     <div className="rounded-md border border-border bg-background">
-      <div
-        className="flex items-center justify-between px-3 py-2.5 cursor-pointer hover:bg-muted/30 transition-colors"
-        onClick={onToggle}
-      >
-        <div className="flex items-center gap-2 min-w-0">
+      <div className="flex items-center justify-between pr-3 hover:bg-muted/30 transition-colors">
+        <button
+          type="button"
+          onClick={onToggle}
+          aria-expanded={expanded}
+          className="flex flex-1 items-center gap-2 min-w-0 rounded-md py-2.5 pl-3 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset"
+        >
           {expanded ? (
             <ChevronDown className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
           ) : (
@@ -41,12 +43,13 @@ export function ItemRow({ name, badge, extraBadge, expanded, onToggle, onDelete,
               {extraBadge}
             </Badge>
           )}
-        </div>
+        </button>
         <button
           type="button"
-          onClick={(e) => { e.stopPropagation(); onDelete(); }}
+          onClick={onDelete}
           className="ml-2 shrink-0 rounded p-1 text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
           title={t('agentComponents.remove')}
+          aria-label={name ? `${t('agentComponents.remove')}: ${name}` : t('agentComponents.remove')}
         >
           <Trash2 className="h-3.5 w-3.5" />
         </button>

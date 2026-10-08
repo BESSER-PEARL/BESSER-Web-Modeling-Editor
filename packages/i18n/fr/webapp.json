@@ -1,14 +1,15 @@
 {
   "common": {
-    "connecting": "Connexion...",
+    "connecting": "Connexion…",
     "cancel": "Annuler",
     "save": "Enregistrer",
     "close": "Fermer",
     "delete": "Supprimer",
     "confirm": "Confirmer",
-    "loading": "Chargement...",
+    "loading": "Chargement…",
     "yes": "Oui",
-    "no": "Non"
+    "no": "Non",
+    "retry": "Réessayer"
   },
   "topbar": {
     "language": "Langue",
@@ -35,7 +36,8 @@
       "issues": "Problèmes",
       "needsRecheck": "À revérifier",
       "notValidated": "Non validé"
-    }
+    },
+    "more": "Plus"
   },
   "nav": {
     "editors": "Éditeurs",
@@ -66,19 +68,26 @@
   "menu": {
     "file": {
       "title": "Fichier",
-      "projectActions": "Actions du projet",
       "newOpenImport": "Nouveau / Ouvrir / Importer un projet",
-      "loadTemplate": "Charger un modèle",
-      "exportProject": "Exporter le projet",
-      "importClassDiagramFrom": "Importer un diagramme de classes depuis",
-      "imageToProject": "Image vers projet",
-      "kgToProject": "KG vers projet",
-      "previewProject": "Aperçu du projet"
+      "loadTemplate": "Charger un modèle…",
+      "exportProject": "Exporter le projet…",
+      "previewProject": "Aperçu du projet…",
+      "importBpmnDiagram": "Importer un diagramme BPMN (.bpmn / .xml)…",
+      "importGroupProject": "Projet",
+      "importGroupClassDiagram": "Diagramme de classes depuis",
+      "importImage": "Image…",
+      "importKnowledgeGraph": "Graphe de connaissances…",
+      "newProject": "Nouveau projet…",
+      "openProject": "Ouvrir un projet…",
+      "importProject": "Importer un projet",
+      "import": "Importer",
+      "importProjectFile": "Fichier de projet (.json / .py)…",
+      "fromSpreadsheet": "Depuis un tableur…",
+      "fromGithub": "Depuis GitHub…"
     },
     "generate": {
       "title": "Générer",
-      "generating": "Génération...",
-      "codeGeneration": "Génération de code",
+      "generating": "Génération…",
       "goToClassDiagram": "Aller au diagramme de classes",
       "__comment__": "TODO: THE FOLLOWING THREE FIELDS NEED REVISION!!!!!!!",
       "deriveComponentDiagram": "Générer le diagramme de composants",
@@ -111,15 +120,15 @@
     },
     "deploy": {
       "title": "Déployer",
-      "deployment": "Déploiement",
       "connectGitHub": "Connecter GitHub pour déployer",
-      "publishToRender": "Publier sur Render"
+      "publishToRender": "Publier sur Render…",
+      "connectGitHubFirstHint": "Connectez d’abord GitHub"
     },
     "community": {
       "title": "Communauté",
       "contribute": "Contribuer",
       "githubRepository": "Dépôt GitHub",
-      "sendFeedback": "Envoyer un retour",
+      "sendFeedback": "Envoyer un retour…",
       "userSurvey": "Enquête utilisateur",
       "reportProblem": "Signaler un problème"
     },
@@ -132,10 +141,10 @@
     }
   },
   "agentConfig": {
-    "loadingTitle": "Traitement en cours...",
+    "loadingTitle": "Traitement en cours…",
     "loadingTitle_comment": "",
     "loading": {
-      "preparing": "Préparation de votre configuration...",
+      "preparing": "Préparation de votre configuration…",
       "rules": "Application de la correspondance prédéfinie basée sur la littérature pour recommander une configuration adaptée.",
       "llm": "Cela peut prendre un moment pour concocter la meilleure configuration basée sur un LLM pour le profil utilisateur sélectionné.",
       "transform": "Cela peut prendre un moment pour concocter la meilleure configuration d'agent transformée et l'appliquer à votre diagramme."
@@ -303,7 +312,8 @@
         "raw": {
           "desc": "Vue en lecture seule du config.yaml généré complet. Modifiez des sections individuelles ou ajoutez du YAML personnalisé."
         }
-      }
+      },
+      "enablePlatform": "Activer {{platform}}"
     },
     "llms": {
       "title": "LLMs",
@@ -487,7 +497,7 @@
       "selectCustomization": "Sélectionner une personnalisation",
       "lastUpdated": "Dernière mise à jour {{date}}",
       "loadSelected": "Charger la sélection",
-      "applying": "Application en cours...",
+      "applying": "Application en cours…",
       "saveAndApply": "Enregistrer et appliquer la configuration",
       "resetDefaults": "Réinitialiser aux valeurs par défaut",
       "errors": {
@@ -602,6 +612,18 @@
       "profile": {
         "title": "Remplacer l'association de profil utilisateur existante ?",
         "description": "Le profil utilisateur \"{{profile}}\" est déjà associé à la configuration \"{{existing}}\". L'enregistrement remplacera cette association par \"{{next}}\"."
+      },
+      "removeLlm": {
+        "title": "Supprimer ce LLM ?",
+        "description": "« {{name}} » sera supprimé. Tout ce qui l’utilise reviendra au LLM par défaut."
+      },
+      "reset": {
+        "title": "Rétablir les valeurs par défaut ?",
+        "description": "Toutes les modifications non enregistrées de ce formulaire seront remplacées par les valeurs par défaut."
+      },
+      "upload": {
+        "title": "Remplacer la configuration actuelle ?",
+        "description": "Charger « {{name}} » remplacera les valeurs actuellement dans le formulaire."
       }
     },
     "noActiveDiagram": "Aucun diagramme d'agent actif. Ouvrez d'abord un diagramme d'agent.",
@@ -700,7 +722,7 @@
       "configureTechnologies": "Configurer les technologies de l'agent",
       "sourceLanguage": "Langue source (facultative)",
       "addSpokenLanguage": "Ajouter une langue parlée pour la traduction de l'agent",
-      "selectLanguage": "Sélectionner une langue...",
+      "selectLanguage": "Sélectionner une langue…",
       "addLanguage": "Ajouter une langue",
       "translatedToAll": "L'agent sera traduit dans toutes les langues parlées sélectionnées.",
       "warningAriaLabel": "avertissement",
@@ -779,12 +801,18 @@
       "versionProfile": "Profil unique",
       "versionAll": "Toutes les versions",
       "selectProfile": "Sélectionner un profil",
-      "versionAllHint": "Le téléchargement contiendra un sous-dossier par version (base + chaque profil)."
+      "versionAllHint": "Le téléchargement contiendra un sous-dossier par version (base + chaque profil).",
+      "status": {
+        "ready": "Prêt",
+        "missing": "Manquant",
+        "empty": "Vide",
+        "skipped": "Sera ignoré"
+      }
     },
     "toasts": {
       "validationFailed": "Échec de la validation",
       "noDiagram": "Aucun diagramme pour générer du code",
-      "localDeploymentInProgress": "Déploiement local en cours... Cela peut prendre quelques minutes.",
+      "localDeploymentInProgress": "Déploiement local en cours… Cela peut prendre quelques minutes.",
       "httpError": "Erreur HTTP ! statut : {{status}}",
       "localDeploymentCompleted": "Déploiement local terminé !",
       "accessApplicationAt": "Vous pouvez maintenant accéder à votre application à : ",
@@ -832,9 +860,9 @@
     "overlay": {
       "subtitle": "Veuillez patienter pendant la génération de votre code",
       "title": "Génération du code",
-      "stepPackaging": "Empaquetage de la sortie...",
-      "stepGenerating": "Génération du code...",
-      "stepParsing": "Analyse du diagramme..."
+      "stepPackaging": "Empaquetage de la sortie…",
+      "stepGenerating": "Génération du code…",
+      "stepParsing": "Analyse du diagramme…"
     }
   },
   "project": {
@@ -858,8 +886,6 @@
       "import": {
         "title": "Importer un projet",
         "description": "Chargez un fichier de projet exporté et reprenez là où vous en étiez.",
-        "cardTitle": "Importer un fichier de projet",
-        "cardDescription": "Formats pris en charge : .json, .py.",
         "dropAria": "Déposez un fichier ou cliquez pour parcourir",
         "dropPrompt": "Déposez un fichier ici ou cliquez pour parcourir",
         "dropHint": "Fichiers de projet JSON ou Python"
@@ -888,10 +914,7 @@
         "description": "Choisissez comment démarrer votre session de modélisation et ouvrir votre espace de travail.",
         "heroTitle": "Démarrez votre espace de modélisation",
         "heroBody": "BESSER (Better Smart Software Faster) est une plateforme open source dirigée par les modèles pour la conception, la génération et le déploiement UML. Choisissez un chemin ci-dessous pour amorcer rapidement votre projet.",
-        "cardCreate": {
-          "title": "Créer vierge",
-          "description": "Partez de zéro avec tous les éditeurs disponibles."
-        },
+        "cardCreate": {},
         "cardSpreadsheet": {
           "title": "À partir d'un tableur",
           "description": "Générez automatiquement un diagramme de classes à partir de fichiers CSV/XLSX."
@@ -903,7 +926,15 @@
         "existingProjects": "Projets existants",
         "viewAll": "Voir tous les projets",
         "noProjects": "Aucun projet pour l'instant.",
-        "warningBanner": "Créez, importez ou ouvrez un projet pour accéder à l'espace de travail."
+        "warningBanner": "Créez, importez ou ouvrez un projet pour accéder à l'espace de travail.",
+        "cardGithub": {
+          "description": "Rouvrez un dépôt créé par BESSER et continuez à construire.",
+          "title": "Continuer depuis GitHub"
+        },
+        "cardNew": {
+          "description": "Choisissez low-code ou agentique, puis commencez à modéliser.",
+          "title": "Nouveau projet"
+        }
       },
       "perspective": {
         "label": "Perspective de modélisation",
@@ -934,14 +965,53 @@
         "spreadsheetGenerateFailed": "Impossible de générer le diagramme de classes à partir du tableur.",
         "spreadsheetCreated": "Projet « {{name}} » créé et diagramme de classes importé.",
         "spreadsheetImportFailed": "Échec de l'importation du tableur : {{error}}"
+      },
+      "returning": {
+        "title": "Projets",
+        "description": "Ouvrez un projet récent ou commencez-en un nouveau."
+      },
+      "github": {
+        "connectHint": "Connectez votre compte GitHub pour choisir l’un de vos dépôts. Vous reviendrez ici une fois connecté.",
+        "continue": "Continuer",
+        "description": "Choisissez un dépôt créé par BESSER : son modèle est chargé et la prochaine exécution du Spec-Driven Agent modifie son code.",
+        "errors": {
+          "generic": "Impossible de continuer depuis ce dépôt.",
+          "noModel": "Ce dépôt ne contient pas de modèle BESSER : il n’a pas été créé par BESSER, il n’y a donc rien à reprendre pour l’instant.",
+          "noSession": "Session GitHub introuvable. Veuillez vous reconnecter.",
+          "selectRepo": "Sélectionnez un dépôt à partir duquel continuer.",
+          "sessionExpired": "Votre session GitHub a expiré. Reconnectez-vous et réessayez."
+        },
+        "loadingBranches": "Chargement des branches…",
+        "loadingRepos": "Chargement des dépôts…",
+        "privateSuffix": "(privé)",
+        "selectRepo": "Sélectionner un dépôt",
+        "title": "Continuer depuis GitHub",
+        "toasts": {
+          "connectToContinue": "Connectez GitHub pour continuer depuis l’un de vos dépôts.",
+          "continuing": "Reprise depuis {{repo}}.",
+          "failed": "Échec de la reprise depuis GitHub : {{message}}",
+          "sessionExpired": "Session GitHub expirée : veuillez vous reconnecter."
+        }
+      },
+      "interface": {
+        "agent": {
+          "description": "Décrivez votre application en langage naturel ; l’assistant la construit.",
+          "label": "Agentique"
+        },
+        "helper": "Choisissez votre façon de construire. Vous pouvez changer à tout moment depuis le panneau de l’assistant.",
+        "label": "Vue",
+        "model": {
+          "description": "Construisez visuellement avec des diagrammes UML sur le canevas de modélisation.",
+          "label": "Low-code"
+        }
       }
     },
     "settings": {
       "title": "Paramètres du projet",
       "subtitle": "Gérez les métadonnées, les diagrammes et les préférences d'affichage",
       "exportProject": "Exporter le projet",
-      "exporting": "Exportation...",
-      "loadingProject": "Chargement du projet...",
+      "exporting": "Exportation…",
+      "loadingProject": "Chargement du projet…",
       "noProject": "Ouvrez ou créez un projet pour modifier les paramètres.",
       "unknownError": "Erreur inconnue",
       "general": {
@@ -1021,6 +1091,16 @@
         "applyPresetFailed": "Échec de l'application du préréglage",
         "exported": "Projet exporté avec succès.",
         "exportFailed": "Échec de l'exportation du projet : {{error}}"
+      },
+      "apiKey": {
+        "change": "Changer la clé",
+        "description": "Utilisez votre propre clé Anthropic, OpenAI, Mistral ou Nebius. Saisie une fois ici, elle alimente l’assistant de modélisation et le générateur Spec-Driven (Nebius uniquement le générateur). Conservée seulement dans cet onglet du navigateur, jamais sur nos serveurs.",
+        "keySet": "Clé définie · {{provider}}",
+        "keySetHint": "S’applique à l’assistant et au générateur",
+        "noKey": "Aucune clé définie",
+        "noKeyHint": "Clé partagée du serveur avec limites de débit",
+        "set": "Définir la clé API",
+        "title": "Clé API IA / LLM"
       }
     },
     "templates": {
@@ -1092,18 +1172,26 @@
     },
     "linked": {
       "repository": "Dépôt",
-      "checking": "Vérification...",
+      "checking": "Vérification…",
       "unsavedChanges": "Vous avez des modifications non enregistrées",
       "upToDate": "À jour",
       "push": "Push",
       "pull": "Pull",
+      "pullConfirmTitle": "Remplacer vos modifications locales ?",
+      "pullConfirmDescription": "Le pull charge la version sur GitHub et supprime les modifications que vous n’avez pas encore poussées.",
+      "pullConfirmAction": "Puller et supprimer les modifications",
       "history": "Historique",
       "refreshHistory": "Actualiser l'historique des commits",
       "latest": "Dernier",
       "clickToRestore": "Cliquez pour restaurer",
       "noCommits": "Aucun commit pour le moment",
       "share": "Partager",
-      "createSecretGist": "Créer un Gist secret"
+      "createSecretGist": "Créer un Gist secret",
+      "openOnGitHub": "Ouvrir sur GitHub",
+      "unlink": "Dissocier le dépôt",
+      "unlinkConfirmTitle": "Dissocier ce dépôt ?",
+      "unlinkConfirmDescription": "Le projet reste dans votre navigateur et sur GitHub. Push, Pull et le commit automatique s’arrêtent jusqu’à ce que vous liiez à nouveau un dépôt.",
+      "unlinkConfirmAction": "Dissocier"
     },
     "settings": {
       "title": "Paramètres",
@@ -1116,7 +1204,7 @@
       "interval15": "15 minutes",
       "interval30": "30 minutes",
       "interval60": "1 heure",
-      "autoSaving": "Enregistrement automatique..."
+      "autoSaving": "Enregistrement automatique…"
     },
     "linkModal": {
       "goBack": "Revenir à la sélection du dépôt",
@@ -1152,18 +1240,18 @@
       "title": "Pousser vers GitHub",
       "description": "Écrivez un message de commit pour vos modifications.",
       "messageLabel": "Message de commit",
-      "messagePlaceholder": "Décrivez vos modifications...",
-      "pushing": "Envoi en cours...",
+      "messagePlaceholder": "Décrivez vos modifications…",
+      "pushing": "Envoi en cours…",
       "push": "Push"
     },
     "gist": {
       "title": "Créer un Gist",
       "description": "Créez un Gist GitHub pour partager rapidement votre projet.",
       "descriptionLabel": "Description",
-      "descriptionPlaceholder": "Description du Gist...",
+      "descriptionPlaceholder": "Description du Gist…",
       "publicGist": "Gist public",
       "secretHint": "Les gists secrets sont masqués des moteurs de recherche mais visibles par quiconque possède le lien.",
-      "creating": "Création...",
+      "creating": "Création…",
       "createGist": "Créer un Gist"
     },
     "createRepo": {
@@ -1172,16 +1260,16 @@
       "repoNameLabel": "Nom du dépôt",
       "repoNameHelper": "Seuls les lettres minuscules, les chiffres, les tirets et les traits de soulignement sont autorisés.",
       "descriptionLabel": "Description",
-      "descriptionPlaceholder": "Description facultative...",
+      "descriptionPlaceholder": "Description facultative…",
       "privateRepository": "Dépôt privé",
-      "creating": "Création...",
+      "creating": "Création…",
       "create": "Créer"
     },
     "restore": {
       "title": "Restaurer la version",
       "description": "Vos modifications actuelles non enregistrées seront perdues. Envisagez de pousser votre travail actuel d'abord.",
       "confirmQuestion": "Restaurer ce commit ?",
-      "restoring": "Restauration...",
+      "restoring": "Restauration…",
       "restoreButton": "Restaurer cette version"
     },
     "context": {
@@ -1197,7 +1285,8 @@
       "creatingRepository": "Création du dépôt",
       "committing": "Commit vers GitHub",
       "restoringCommit": "Restauration du commit",
-      "creatingGist": "Création du Gist"
+      "creatingGist": "Création du Gist",
+      "unlinkingRepository": "Dissociation du dépôt"
     },
     "toasts": {
       "loadProjectFailed": "Échec du chargement du projet",
@@ -1239,13 +1328,39 @@
       "createGistFailed": "Échec de la création du Gist",
       "gistCreated": "Gist créé avec succès !",
       "invalidGitHubUrl": "URL GitHub non valide. Veuillez fournir une URL de dépôt GitHub valide.",
-      "fetchingFromGitHub": "Récupération de {{filename}} depuis GitHub...",
+      "fetchingFromGitHub": "Récupération de {{filename}} depuis GitHub…",
       "fileNotFound": "Fichier introuvable sur GitHub. Veuillez vérifier l'URL et réessayer.",
       "fetchFileFailed": "Impossible de récupérer le fichier depuis GitHub : {{status}}",
       "importProjectSuccess": "Projet importé avec succès : {{name}}",
       "importModelFailed": "Échec de l'import du modèle depuis GitHub",
       "starThanks": "Merci d'avoir mis une étoile à BESSER !",
       "starFailed": "Échec de la mise à jour de l'étoile"
+    },
+    "push": {
+      "changeRepo": "Changer de dépôt",
+      "commitMessageHelper": "Décrivez ce qui a changé (facultatif).",
+      "commitMessagePlaceholder": "Mettre à jour l’application générée",
+      "createNew": "Créer un nouveau dépôt",
+      "defaultDescription": "Généré par BESSER — {{name}}",
+      "descriptionCreate": "Envoyez le code généré et le modèle du projet vers un dépôt GitHub.",
+      "descriptionUpdate": "Mettez à jour le dépôt lié avec votre dernier code généré et votre modèle.",
+      "done": "Terminé",
+      "filesUploaded_one": "{{count}} fichier envoyé.",
+      "filesUploaded_other": "{{count}} fichiers envoyés.",
+      "linkedTo": "Lié à",
+      "loadingBranches": "Chargement des branches…",
+      "loadingRepositories": "Chargement des dépôts…",
+      "noRepositories": "Aucun dépôt chargé. La requête a peut-être échoué.",
+      "privateRepoOption": "{{name}} (privé)",
+      "publicWarning": "Ce dépôt sera public. Tout le monde pourra voir le code généré et le modèle.",
+      "pushUpdate": "Envoyer la mise à jour",
+      "repushHint": "Un nouvel envoi met à jour ce dépôt.",
+      "selectRepository": "Sélectionner un dépôt…",
+      "selectRepositoryError": "Sélectionnez un dépôt de destination.",
+      "successCreated": "Dépôt créé et fichiers envoyés.",
+      "successTitle": "Envoyé sur GitHub",
+      "successUpdated": "Dépôt mis à jour avec votre dernière génération.",
+      "useExisting": "Utiliser un dépôt existant"
     }
   },
   "assistant": {
@@ -1257,7 +1372,7 @@
       "uploadImageLabel": "Téléverser une image de diagramme (PNG/JPEG)",
       "uploadKgLabel": "Téléverser un graphe de connaissances (TTL/RDF/JSON)",
       "selected": "Sélectionné : {{name}}",
-      "importing": "Importation...",
+      "importing": "Importation…",
       "import": "Importer",
       "errors": {
         "noProject": "Créez ou chargez d'abord un projet.",
@@ -1289,10 +1404,12 @@
       "headlinePost": "aujourd'hui ?",
       "subtitle": "Décrivez votre système en langage naturel. Obtenez des modèles, des interfaces et du code.",
       "pressEscPre": "Appuyez sur",
-      "pressEscPost": "pour fermer"
+      "pressEscPost": "pour fermer",
+      "freeTier": "Gratuit avec notre modèle Qwen hébergé.",
+      "changeModel": "Changer de modèle"
     },
     "composer": {
-      "placeholder": "Décrivez ce que vous voulez créer ou modifier..."
+      "placeholder": "Décrivez ce que vous voulez créer ou modifier…"
     },
     "messageCount_one": "{{count}} message",
     "messageCount_other": "{{count}} messages",
@@ -1348,13 +1465,26 @@
     },
     "chat": {
       "newChat": "Nouvelle conversation",
-      "newConversationTitle": "Démarrer une nouvelle conversation"
+      "newConversationTitle": "Démarrer une nouvelle conversation",
+      "moreActions": "Plus d’actions",
+      "yourModel": "Votre modèle",
+      "hideYourModel": "Masquer votre modèle",
+      "apiKeySet": "Clé API définie",
+      "useOwnApiKey": "Utiliser votre propre clé API",
+      "reportIssue": "Signaler un problème",
+      "addApiKey": "Ajouter votre clé API",
+      "newChatConfirm": "Démarrer une nouvelle conversation ? La conversation actuelle sera effacée.",
+      "newChatConfirmWithRun": "Démarrer une nouvelle conversation ? La conversation actuelle sera effacée et la génération en cours arrêtée.",
+      "explainModel": "Expliquer ce modèle",
+      "explainModelTitle": "Obtenez un aperçu clair de votre modèle : ce qu’il représente et comment les éléments sont liés"
     },
     "drawer": {
-      "pushToClose": "Poussez vers le haut pour fermer l'assistant",
-      "pullToOpen": "Tirez vers le bas pour ouvrir l'assistant",
+      "pushToClose": "Poussez vers le bas pour fermer l'assistant",
+      "pullToOpen": "Tirez vers le haut pour ouvrir l'assistant",
       "pushUp": "Pousser vers le haut",
-      "pullDown": "Tirer l'assistant vers le bas"
+      "pullDown": "Tirer l'assistant vers le bas",
+      "labelClosed": "Décrivez votre application",
+      "labelOpen": "Voir les spécifications"
     },
     "generationCompleted": "Génération terminée avec succès.",
     "exportingProject": "Exportation du projet au format {{format}}…",
@@ -1410,7 +1540,7 @@
       "toolCancelled": "Annulé",
       "toolCalling": "Appel",
       "toolResultFrom": "Résultat de",
-      "loading": "Chargement...",
+      "loading": "Chargement…",
       "removeAttachment": "Supprimer la pièce jointe",
       "interruptPrompt": "Appuyez de nouveau sur Entrée pour interrompre",
       "close": "Fermer",
@@ -1423,8 +1553,8 @@
       "stopGenerating": "Arrêter la génération",
       "sendMessage": "Envoyer le message",
       "dropFiles": "Déposez vos fichiers ici pour les joindre.",
-      "transcribingAudio": "Transcription de l'audio...",
-      "recordingPrompt": "Enregistrement... cliquez ici ou appuyez de nouveau sur le micro pour arrêter et envoyer ({{time}})",
+      "transcribingAudio": "Transcription de l'audio…",
+      "recordingPrompt": "Enregistrement… cliquez ici ou appuyez de nouveau sur le micro pour arrêter et envoyer ({{time}})",
       "stopSendVoiceTimer": "Arrêter et envoyer le message vocal ({{time}})"
     }
   },
@@ -1464,7 +1594,7 @@
       "publishAgent": "Publier l'agent sur Render",
       "updatePublish": "Mettre à jour et publier",
       "updatePublishAgent": "Mettre à jour et publier l'agent",
-      "publishing": "Publication..."
+      "publishing": "Publication…"
     },
     "result": {
       "titleUpdated": "Dépôt mis à jour avec succès",
@@ -1555,7 +1685,6 @@
       "title": "Fonctionnement de l'éditeur",
       "description": "Guide de modélisation complet avec exemples et visuels.",
       "diagramTypesHeading": "Types de diagrammes",
-      "noImage": "Aucune image pour cet élément.",
       "openDocs": "Ouvrir la documentation BESSER",
       "openWmeRepo": "Ouvrir le dépôt WME",
       "class": {
@@ -1758,13 +1887,45 @@
           "body": "<p>Exécutez le Quality Check depuis la barre supérieure pour détecter les problèmes structurels tels que des couches déconnectées ou des attributs obligatoires manquants avant de générer le code.</p><p>Ouvrez le menu Generate et choisissez un framework et un style :</p><ul><li><strong>PyTorch / Subclassing</strong> : sous-classe <code>torch.nn.Module</code> avec une passe avant explicite.</li><li><strong>PyTorch / Sequential</strong> : composition <code>nn.Sequential</code> pour des architectures strictement séquentielles.</li><li><strong>TensorFlow / Subclassing</strong> : sous-classe <code>tf.keras.Model</code> avec un <code>call()</code> personnalisé.</li><li><strong>TensorFlow / Sequential</strong> : composition <code>keras.Sequential</code>.</li></ul><p>La définition de l'architecture NN est générée dans le framework sélectionné, ainsi que le code d'entraînement et d'évaluation lorsque des jeux de données et une configuration sont définis.</p>",
           "alt": "Menu de génération de code"
         }
+      },
+      "user": {
+        "label": "Diagramme utilisateur",
+        "summary": "Modélisez des profils utilisateur qui pilotent des agents et des interfaces personnalisés.",
+        "about": {
+          "title": "À propos des diagrammes utilisateur",
+          "body": "<p>Un diagramme utilisateur décrit un profil : une racine <code>User</code> reliée à des parties comme les informations personnelles, les compétences, l’accessibilité, la culture, la personnalité, les préférences et les objectifs.</p>"
+        },
+        "addParts": {
+          "title": "Ajouter et modifier des parties",
+          "body": "<p>Glissez des éléments de profil depuis la palette, reliez-les au <code>User</code> et double-cliquez sur un élément pour définir ses valeurs d’attributs.</p>"
+        },
+        "editAsForm": {
+          "title": "Modifier comme formulaire",
+          "body": "<p>Cliquez sur <strong>Modifier comme formulaire</strong> dans la barre d’onglets pour modifier le profil dans un panneau latéral guidé. Ajoutez ou retirez des parties et définissez des critères ; les changements apparaissent en direct sur le canevas.</p>"
+        }
+      },
+      "bpmn": {
+        "label": "Diagramme BPMN",
+        "summary": "Modélisez des processus métier avec des tâches, des événements, des passerelles et des flux.",
+        "buildProcess": {
+          "title": "Construire un processus",
+          "body": "<p>Glissez des éléments depuis la palette : tâches, sous-processus, transactions et activités d’appel ; événements de début, intermédiaires et de fin ; passerelles ; objets et magasins de données ; pools et couloirs ; annotations et groupes.</p>"
+        },
+        "connectFlows": {
+          "title": "Relier par des flux",
+          "body": "<p>Glissez d’un élément à un autre pour créer un flux. L’éditeur choisit un type valide pour la paire (séquence, message, association ou association de données) ; double-cliquez sur un flux pour le modifier.</p>"
+        },
+        "elementTypes": {
+          "title": "Définir les types d’éléments",
+          "body": "<p>Double-cliquez sur une tâche, un événement ou une passerelle pour définir son type, par exemple une tâche utilisateur ou de service, un événement de début minuté, ou une passerelle exclusive ou parallèle.</p>"
+        }
       }
     }
   },
   "shared": {
     "commandPalette": {
       "dialogLabel": "Palette de commandes",
-      "placeholder": "Saisissez une commande...",
+      "placeholder": "Saisissez une commande…",
       "searchLabel": "Rechercher des commandes",
       "noResults": "Aucune commande correspondante",
       "navigate": "Naviguer",
@@ -1865,9 +2026,9 @@
       "expand": "Développer {{name}}",
       "collapse": "Réduire {{name}}",
       "root": "root",
-      "generatingBuml": "Génération de l'aperçu B-UML...",
+      "generatingBuml": "Génération de l'aperçu B-UML…",
       "noBumlPreview": "Aucun aperçu B-UML n'est encore disponible.",
-      "generating": "Génération...",
+      "generating": "Génération…",
       "regenerate": "Régénérer",
       "downloadBuml": "Télécharger le B-UML",
       "copyBuml": "Copier le B-UML",
@@ -1929,7 +2090,8 @@
       "projectLabel": "Projet (V{{version}})",
       "bumlLabelNamed": "Aperçu B-UML du projet ({{name}})",
       "bumlLabel": "Aperçu B-UML du projet"
-    }
+    },
+    "skipToEditor": "Aller à l’éditeur"
   },
   "editors": {
     "diagramTabs": {
@@ -1954,8 +2116,11 @@
       "diagramTabLabel": "Onglet de diagramme : {{title}}",
       "validationStatusLabel": "Statut de validation : {{status}}",
       "renameDiagram": "Renommer le diagramme",
-      "closeTabLabel": "Fermer l'onglet {{title}}",
-      "closeTab": "Fermer l'onglet",
+      "closeTabLabel": "Supprimer le diagramme {{title}}",
+      "closeTab": "Supprimer le diagramme",
+      "deleteConfirmTitle": "Supprimer ce diagramme ?",
+      "deleteConfirmDescription": "« {{title}} » et tout son contenu seront retirés du projet. Cette action est irréversible.",
+      "deleteConfirmAction": "Supprimer le diagramme",
       "addNewDiagram": "Ajouter un nouveau diagramme",
       "expandLinkedDiagrams": "Développer les diagrammes liés",
       "collapseLinkedDiagrams": "Réduire les diagrammes liés",
@@ -1969,10 +2134,15 @@
       "referenceEmpty": "Le diagramme de classes référencé est vide (aucune classe ni relation).",
       "generateObjectsTooltip": "Crée une instance d'objet par classe dans le diagramme référencé, avec des valeurs par défaut pour chaque attribut.",
       "generate": "Générer",
-      "noClassDiagramsAvailable": "Aucun diagramme de classes disponible"
+      "noClassDiagramsAvailable": "Aucun diagramme de classes disponible",
+      "tablistLabel": "Diagrammes",
+      "editAsForm": "Modifier comme formulaire",
+      "closeForm": "Fermer le formulaire",
+      "editAsFormTitle": "Modifier ce profil avec un formulaire guidé",
+      "closeFormTitle": "Fermer le formulaire de profil utilisateur"
     },
     "charts": {
-      "loadingChart": "Chargement du graphique...",
+      "loadingChart": "Chargement du graphique…",
       "noDataAvailable": "Aucune donnée disponible"
     },
     "table": {
@@ -1991,7 +2161,7 @@
     "quantum": {
       "editorTitle": "Éditeur quantique",
       "saved": "Enregistré",
-      "saving": "Enregistrement...",
+      "saving": "Enregistrement…",
       "error": "Erreur",
       "undo": "Annuler",
       "redo": "Rétablir",
@@ -2129,7 +2299,11 @@
         "AXIS_SAMPLE": "Échantillon 3 axes : échantillonne le qubit dans les bases X, Y et Z simultanément. Pour la reconstruction tomographique.",
         "SPACER": "Espaceur"
       },
-      "nestedCircuitConfigured": "Circuit imbriqué configuré"
+      "nestedCircuitConfigured": "Circuit imbriqué configuré",
+      "toolboxLabel": "Boîte à outils des portes",
+      "gateName": "Nom de la porte",
+      "placeGateLabel": "Placer la porte {{gate}}",
+      "armedHint": "Cliquez sur une cellule du circuit pour placer {{gate}}. Échap pour annuler."
     },
     "gui": {
       "traits": {
@@ -2303,7 +2477,7 @@
       },
       "pages": {
         "title": "Pages",
-        "searchPlaceholder": "Rechercher des pages...",
+        "searchPlaceholder": "Rechercher des pages…",
         "addNewPage": "Ajouter une nouvelle page",
         "addPage": "Ajouter une page",
         "editRoute": "Modifier la route d'URL",
@@ -2395,8 +2569,8 @@
         "previewMode": "Mode aperçu",
         "greeting": "Bonjour ! Je suis {{agentName}}. Comment puis-je vous aider ?",
         "previewMessage": "Ceci est un aperçu de l'interface de chat",
-        "selectAgent": "Sélectionnez un agent pour commencer à discuter...",
-        "typeMessage": "Saisissez un message...",
+        "selectAgent": "Sélectionnez un agent pour commencer à discuter…",
+        "typeMessage": "Saisissez un message…",
         "selectAgentFirst": "Sélectionnez d'abord un agent",
         "send": "Envoyer"
       },
@@ -2416,7 +2590,7 @@
       "errorGeneratingGui": "Erreur lors de la génération de l'interface : {{message}}",
       "guiModelLoaded": "Modèle d'interface chargé depuis l'assistant.",
       "statusSaved": "Enregistré",
-      "statusSaving": "Enregistrement...",
+      "statusSaving": "Enregistrement…",
       "statusErrorSaving": "Erreur d'enregistrement",
       "editorStillLoading": "L'éditeur est en cours de chargement. Veuillez patienter un instant et réessayer.",
       "errorSavingProject": "Erreur lors de l'enregistrement du projet. Veuillez consulter la console pour plus de détails.",
@@ -2509,10 +2683,35 @@
         "weightField": "Champ de pondération",
         "geometryField": "Champ de géométrie (GeoJSON)",
         "valueField": "Champ de valeur"
+      },
+      "colorPalette": "Palette de couleurs",
+      "colorPaletteOption": "Palette {{index}}",
+      "emptyState": {
+        "eyebrow": "Page vide",
+        "title": "Transformez votre modèle en écran",
+        "subtitle": "Générez cette page depuis votre diagramme de classes, construisez-la avec des blocs ou décrivez-la. Vous pourrez combiner ensuite.",
+        "subtitleNoClasses": "Les écrans sont générés depuis votre diagramme de classes. Ajoutez d’abord quelques classes, ou commencez tout de suite avec des blocs.",
+        "generateTitle": "Générer depuis le diagramme de classes",
+        "generateDescription": "{{count}} classes trouvées : {{names}}.",
+        "addClassesTitle": "Ajouter d’abord des classes",
+        "addClassesDescription": "Ouvre l’éditeur de classes. Revenez ensuite pour générer les écrans.",
+        "blocksTitle": "Commencer par un bloc",
+        "blocksDescription": "Glissez des colonnes, du texte, des tableaux et des formulaires sur la page.",
+        "describeTitle": "Décrire l’écran",
+        "describeDescription": "Dites à l’assistant ce que cette page doit afficher.",
+        "footer": "Ce message disparaît dès que vous ajoutez un composant.",
+        "figureTag": "page",
+        "newItem": "Nouveau {{name}}",
+        "noClassesTitle": "Pas encore de classes",
+        "noClassesHint": "Ajoutez-les dans l’éditeur de classes",
+        "starterPrompt": "Crée une page pour parcourir les {{page}}",
+        "starterPromptNoClasses": "Crée une page d’accueil pour mon application",
+        "generateDescription_one": "1 classe trouvée : {{names}}.",
+        "generateDescription_other": "{{count}} classes trouvées : {{names}}."
       }
     },
-    "loadingGuiEditor": "Chargement de l'éditeur GUI...",
-    "loadingQuantumEditor": "Chargement de l'éditeur quantique...",
+    "loadingGuiEditor": "Chargement de l'éditeur GUI…",
+    "loadingQuantumEditor": "Chargement de l'éditeur quantique…",
     "hiddenPerspectives": {
       "messagePlural": "Ce projet utilise {{labels}}, mais ces perspectives sont masquées.",
       "messageSingular": "Ce projet utilise {{labels}}, mais cette perspective est masquée.",
@@ -2529,7 +2728,7 @@
       "unknownError": "Erreur inconnue",
       "submitFailed": "Échec de l'envoi des commentaires : {{error}}"
     },
-    "submitting": "Envoi en cours...",
+    "submitting": "Envoi en cours…",
     "title": "Aidez-nous à améliorer BESSER",
     "description": "Partagez votre avis sur l'éditeur et le flux de génération.",
     "satisfactionQuestion": "Dans quelle mesure êtes-vous satisfait de votre expérience ?",
@@ -2596,6 +2795,17 @@
       "noProjectData": "Aucune donnée de projet disponible à exporter",
       "projectExportedAs": "Projet exporté sous {{filename}}",
       "projectExportFailed": "Échec de l'export du projet : {{error}}"
+    },
+    "diagramLabels": {
+      "ClassDiagram": "Diagramme de classes",
+      "ObjectDiagram": "Diagramme d’objets",
+      "StateMachineDiagram": "Diagramme d’états",
+      "AgentDiagram": "Diagramme d’agent",
+      "UserDiagram": "Diagramme utilisateur",
+      "GUINoCodeDiagram": "Écrans (GUI)",
+      "QuantumCircuitDiagram": "Circuit quantique",
+      "NNDiagram": "Diagramme de réseau de neurones",
+      "BPMN": "Processus BPMN"
     }
   },
   "import": {
@@ -2631,7 +2841,7 @@
     "toasts": {
       "noDiagramToValidate": "Aucun diagramme à valider",
       "diagramEmpty": "Le diagramme est vide. Ajoutez des éléments avant de lancer le contrôle qualité.",
-      "validating": "Validation du diagramme...",
+      "validating": "Validation du diagramme…",
       "timedOut": "La validation a expiré. Le backend est peut-être surchargé.",
       "validationFailed": "Échec de la validation",
       "errorsLabel": "Erreurs de validation :",
@@ -2650,7 +2860,8 @@
       "addQubitButton": "+ Qubit",
       "measurementOutput": "Sortie de mesure — générée automatiquement à partir des portes de mesure",
       "dropHere": "Déposer ici",
-      "invalid": "Non valide"
+      "invalid": "Non valide",
+      "initialStateLabel": "État initial de {{qubit}} : {{state}}. Cliquez pour changer."
     }
   },
   "agentComponents": {
@@ -2724,7 +2935,7 @@
       "skillDescription": "Description",
       "skillDescriptionPlaceholder": "Description courte facultative",
       "content": "Contenu Markdown",
-      "contentPlaceholder": "# Skill\n\nInstructions en markdown..."
+      "contentPlaceholder": "# Skill\n\nInstructions en markdown…"
     },
     "workspaces": {
       "title": "Espaces de travail",
@@ -2839,7 +3050,8 @@
       "restart": "Redémarrer la simulation",
       "reset": "Redémarrer",
       "dragToResize": "Faites glisser pour redimensionner",
-      "loading": "L’agent est en cours de chargement, veuillez patienter."
+      "loading": "L’agent est en cours de chargement, veuillez patienter.",
+      "resizeChat": "Redimensionner le panneau de discussion"
     },
     "codeViewer": {
       "copyTitle": "Copier le code",
@@ -2919,6 +3131,11 @@
       "emptyDiagram": "Le diagramme de l'agent est vide. Ajoutez des états, des transitions et des intentions avant de simuler.",
       "validationFailed": "La validation de l'agent a échoué : {{message}}",
       "validationFailedGeneric": "La validation a échoué"
+    }
+  },
+  "errors": {
+    "network": {
+      "unreachable": "Impossible de joindre le serveur. Vérifiez votre connexion et réessayez."
     }
   }
 }

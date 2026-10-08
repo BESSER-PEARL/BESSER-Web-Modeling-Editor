@@ -19,6 +19,7 @@ import {
   localStorageProjectsList,
 } from '../../constants/constant';
 import { checkLocalStorageQuota } from '../../utils/localStorageQuota';
+import { nextDiagramTitle } from '../../utils/diagramTitles';
 
 export class ProjectStorageRepository {
   // ── Write coalescing ────────────────────────────────────────────────────
@@ -271,10 +272,10 @@ export class ProjectStorageRepository {
     // Pick a title that doesn't collide with an existing one (case-insensitive).
     // If the caller passed a title, start from it and append " 2", " 3", ... on
     // collision so templates / duplicate actions keep working. If no title,
-    // use the default ``<Type> <n>`` scheme. Bounded by MAX_DIAGRAMS_PER_TYPE
+    // use nextDiagramTitle (already unique). Bounded by MAX_DIAGRAMS_PER_TYPE
     // so pathological states can't infinite-loop.
     const existingTitles = new Set(diagrams.map((d) => d.title.trim().toLowerCase()));
-    const baseTitle = title || `${diagramType.replace('Diagram', '')} ${diagrams.length + 1}`;
+    const baseTitle = title || nextDiagramTitle(diagramType, diagrams.map((d) => d.title));
     let uniqueTitle = baseTitle;
     if (existingTitles.has(uniqueTitle.trim().toLowerCase())) {
       const maxAttempts = MAX_DIAGRAMS_PER_TYPE + 1;

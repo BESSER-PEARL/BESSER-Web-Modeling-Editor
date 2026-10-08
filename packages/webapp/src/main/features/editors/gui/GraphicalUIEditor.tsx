@@ -1,8 +1,12 @@
-﻿import React, { useEffect, useRef, useState } from 'react';
+﻿import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import type { Editor } from 'grapesjs';
 import { AlertTriangle, Check, Loader2 } from 'lucide-react';
 import './grapesjs-styles.css';
-import { getClassOptions, getDisplayAttribute, getEndsByClassId, getClassMetadata, getMethodsByClassId } from './diagram-helpers';
+import { getClassOptions, getAttributeOptionsByClassId, getDisplayAttribute, getEndsByClassId, getClassMetadata, getMethodsByClassId } from './diagram-helpers';
+import { GuiEmptyState, pluralize } from './GuiEmptyState';
+import { useAppDispatch } from '../../../app/store/hooks';
+import { switchDiagramTypeThunk } from '../../../app/store/workspaceSlice';
 import { setupPageSystem, loadDefaultPages } from './setup/setupPageSystem';
 import { registerAllComponents } from './registerAllComponents';
 import { ensureDesignSystemStyles } from './designSystem';
@@ -55,6 +59,11 @@ export const GraphicalUIEditor: React.FC = () => {
   const containerRef = useRef<HTMLDivElement>(null);
   const [saveStatus, setSaveStatus] = useState<'saved' | 'saving' | 'error'>('saved');
   const [lastSavedAt, setLastSavedAt] = useState<Date | null>(null);
+  // Empty-page guidance: shown over the canvas while the current page has no components.
+  const [isPageEmpty, setIsPageEmpty] = useState(false);
+  const [isDraggingBlock, setIsDraggingBlock] = useState(false);
+  const [canvasEl, setCanvasEl] = useState<HTMLElement | null>(null);
+  const dispatch = useAppDispatch();
   const saveIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   // Track the active language so a switch remounts the editor (see the init
@@ -248,6 +257,23 @@ export const GraphicalUIEditor: React.FC = () => {
       window.addEventListener('wme:assistant-auto-generate-gui', handleAssistantAutoGenerate as EventListener);
       window.addEventListener('wme:assistant-load-gui-model', handleAssistantLoadModel as EventListener);
       window.addEventListener('wme:flush-gui-for-generation', handleFlushForGeneration as EventListener);
+
+      // Empty-page state: re-check after anything that can add/remove components or switch pages.
+      const updateEmptyState = () => {
+        const wrapper = editor.getWrapper();
+        setIsPageEmpty(Boolean(wrapper) && wrapper!.components().length === 0);
+        setCanvasEl(editor.Canvas.getElement() ?? null);
+      };
+      const deferEmptyCheck = () => setTimeout(updateEmptyState, 0);
+      const onBlockDragStart = () => setIsDraggingBlock(true);
+      const onBlockDragStop = () => {
+        setIsDraggingBlock(false);
+        deferEmptyCheck();
+      };
+      editor.on('load page:select component:add component:remove', deferEmptyCheck);
+      editor.on('block:drag:start', onBlockDragStart);
+      editor.on('block:drag:stop', onBlockDragStop);
+      updateEmptyState();
       (window as any).__WME_GUI_EDITOR_READY__ = true;
       window.dispatchEvent(new CustomEvent('wme:gui-editor-ready'));
 
@@ -313,6 +339,9 @@ export const GraphicalUIEditor: React.FC = () => {
         window.removeEventListener('wme:assistant-auto-generate-gui', handleAssistantAutoGenerate as EventListener);
         window.removeEventListener('wme:assistant-load-gui-model', handleAssistantLoadModel as EventListener);
         window.removeEventListener('wme:flush-gui-for-generation', handleFlushForGeneration as EventListener);
+        editor.off('load page:select component:add component:remove', deferEmptyCheck);
+        editor.off('block:drag:start', onBlockDragStart);
+        editor.off('block:drag:stop', onBlockDragStop);
         (window as any).__WME_GUI_EDITOR_READY__ = false;
 
         // Destroy editor and clean up global reference
@@ -347,9 +376,45 @@ export const GraphicalUIEditor: React.FC = () => {
     }
   }, [saveStatus]);
 
+  // Classes of the referenced class diagram, read when the empty state is about to show.
+  const emptyStateClasses = useMemo(
+    () =>
+      isPageEmpty
+        ? getClassOptions().map((c) => ({ name: c.label, attributes: getAttributeOptionsByClassId(c.value).map((a) => a.label) }))
+        : [],
+    [isPageEmpty],
+  );
+
+  const openBlocksPanel = () => {
+    const button = editorRef.current?.Panels?.getButton?.('views', 'open-blocks');
+    if (button && !button.get('active')) button.set('active', true);
+  };
+
+  const describeScreen = () => {
+    const first = emptyStateClasses.find((c) => c.attributes.length > 0) ?? emptyStateClasses[0];
+    const prompt = first
+      ? i18n.t('editors.gui.emptyState.starterPrompt', { page: pluralize(first.name).toLowerCase() })
+      : i18n.t('editors.gui.emptyState.starterPromptNoClasses');
+    // Opens the bottom assistant with the prompt typed in (not sent), so the user can adjust it.
+    window.dispatchEvent(new CustomEvent('wme:assistant-prefill', { detail: { prompt } }));
+  };
+
   return (
     <div className="relative h-full min-h-0">
       <div ref={containerRef} id="gjs"></div>
+      {isPageEmpty &&
+        !isDraggingBlock &&
+        canvasEl &&
+        createPortal(
+          <GuiEmptyState
+            classes={emptyStateClasses}
+            onGenerate={() => editorRef.current?.runCommand('auto-generate-gui')}
+            onOpenBlocks={openBlocksPanel}
+            onDescribe={describeScreen}
+            onAddClasses={() => void dispatch(switchDiagramTypeThunk({ diagramType: 'ClassDiagram' }))}
+          />,
+          canvasEl,
+        )}
       {/* Save-status badge — the only user-visible confirmation that edits
           persist. Driven by the storage listeners above; pointer-events-none
           so it never blocks canvas interaction. */}
@@ -620,7 +685,7 @@ function removeUnwantedBlocks(editor: Editor) {
 /**
  * Setup ProjectStorageRepository integration
  */
-function setupProjectStorageIntegration(
+export function setupProjectStorageIntegration(
   editor: Editor,
   setSaveStatus: (status: 'saved' | 'saving' | 'error') => void,
   saveIntervalRef: React.MutableRefObject<NodeJS.Timeout | null>,
@@ -819,8 +884,11 @@ function setupProjectStorageIntegration(
       editor.on('page:add page:remove page:update', debouncedSave);
       editor.on('style:update', debouncedSave);
       
-      // Periodic backup save every 30 seconds - store in ref so we can clear it
+      // Periodic backup save every 30 seconds - store in ref so we can clear it.
+      // Skipped when nothing changed: each store replaces the whole project
+      // and re-renders the shell.
       saveIntervalRef.current = setInterval(() => {
+        if (editor.getDirtyCount() === 0) return;
         safeSave();
       }, 30000);
       
@@ -961,7 +1029,7 @@ ${html}
  */
 function createDownloadButton(id: string, label: string): string {
   return `
-    <button id="${id}" style="margin-bottom: 15px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; padding: 12px 24px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 14px;">
+    <button id="${id}" style="margin-bottom: 15px; background: hsl(var(--brand)); color: hsl(var(--brand-foreground)); border: none; padding: 12px 24px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 14px;">
       ${label}
     </button>
   `;
@@ -974,7 +1042,7 @@ function createModalContent(downloadBtn: string, content: string, textareaId: st
   return `
     <div style="padding: 20px;">
       ${downloadBtn}
-      <textarea id="${textareaId}" style="width:100%; height: 450px; font-family: 'Courier New', monospace; font-size: 12px; padding: 15px; border: 2px solid #ddd; border-radius: 8px; background: #f8f9fa;">${content}</textarea>
+      <textarea id="${textareaId}" style="width:100%; height: 450px; font-family: 'Courier New', monospace; font-size: 12px; padding: 15px; border: 1px solid hsl(var(--border)); border-radius: 8px; background: hsl(var(--muted)); color: hsl(var(--foreground));">${content}</textarea>
     </div>
   `;
 }
@@ -1094,42 +1162,42 @@ function addAutoGenerateGUIButton(editor: Editor) {
 
       const modalContent = `
         <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;">
-          <p style="margin: 0 0 1rem 0; color: #212529; font-size: 1rem; line-height: 1.5;">
+          <p style="margin: 0 0 1rem 0; color: inherit; font-size: 1rem; line-height: 1.5;">
             ${i18n.t('editors.gui.autoGenerateIntro')}
           </p>
 
-          <div style="background-color: #f8f9fa; border: 1px solid #dee2e6; border-radius: 0.375rem; padding: 1rem; margin-bottom: 1rem;">
-            <div style="display: flex; align-items-center; margin-bottom: 0.5rem;">
-              <svg width="20" height="20" viewBox="0 0 16 16" fill="currentColor" style="color: #198754; margin-right: 0.5rem;">
+          <div style="background-color: rgba(127, 127, 127, 0.08); border: 1px solid rgba(127, 127, 127, 0.25); border-radius: 0.375rem; padding: 1rem; margin-bottom: 1rem;">
+            <div style="display: flex; align-items: center; margin-bottom: 0.5rem;">
+              <svg width="20" height="20" viewBox="0 0 16 16" fill="currentColor" style="color: hsl(var(--brand)); margin-right: 0.5rem;">
                 <path d="M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0zm-3.97-3.03a.75.75 0 0 0-1.08.022L7.477 9.417 5.384 7.323a.75.75 0 0 0-1.06 1.06L6.97 11.03a.75.75 0 0 0 1.079-.02l3.992-4.99a.75.75 0 0 0-.01-1.05z"/>
               </svg>
               <strong style="font-size: 0.875rem;">${i18n.t('editors.gui.autoGenerateCreatedTitle')}</strong>
             </div>
-            <ul style="margin: 0; padding-left: 1.5rem; color: #212529; font-size: 0.875rem; line-height: 1.8;">
+            <ul style="margin: 0; padding-left: 1.5rem; color: inherit; font-size: 0.875rem; line-height: 1.8;">
               <li>${i18n.t('editors.gui.autoGenerateItemNav')}</li>
               <li>${i18n.t('editors.gui.autoGenerateItemPage')}</li>
               <li>${i18n.t('editors.gui.autoGenerateItemMethods')}</li>
             </ul>
           </div>
 
-          <div style="background-color: #fff3cd; border: 1px solid #ffc107; border-radius: 0.375rem; padding: 0.75rem; margin-bottom: 1rem;">
-            <div style="display: flex; align-items-center; color: #664d03;">
-              <svg width="18" height="18" viewBox="0 0 16 16" fill="currentColor" style="margin-right: 0.5rem;">
+          <div style="background-color: rgba(255, 193, 7, 0.14); border: 1px solid rgba(255, 193, 7, 0.55); border-radius: 0.375rem; padding: 0.75rem; margin-bottom: 1rem;">
+            <div style="display: flex; align-items: center; color: inherit;">
+              <svg width="18" height="18" viewBox="0 0 16 16" fill="currentColor" style="color: #d39e00; margin-right: 0.5rem;">
                 <path d="M8.982 1.566a1.13 1.13 0 0 0-1.96 0L.165 13.233c-.457.778.091 1.767.98 1.767h13.713c.889 0 1.438-.99.98-1.767L8.982 1.566zM8 5c.535 0 .954.462.9.995l-.35 3.507a.552.552 0 0 1-1.1 0L7.1 5.995A.905.905 0 0 1 8 5zm.002 6a1 1 0 1 1 0 2 1 1 0 0 1 0-2z"/>
               </svg>
               <strong style="font-size: 0.875rem;">${i18n.t('editors.gui.autoGenerateCannotUndo')}</strong>
             </div>
           </div>
 
-          <p style="margin: 0 0 1rem 0; color: #212529; font-size: 1rem; font-weight: 500;">
+          <p style="margin: 0 0 1rem 0; color: inherit; font-size: 1rem; font-weight: 500;">
             ${i18n.t('editors.gui.autoGenerateConfirmQuestion')}
           </p>
 
-          <div style="display: flex; gap: 0.5rem; justify-content: flex-end; padding-top: 1rem; border-top: 1px solid #dee2e6;">
-            <button id="modal-cancel-btn" style="padding: 0.375rem 0.75rem; background-color: #6c757d; color: white; border: 1px solid #6c757d; border-radius: 0.375rem; font-size: 1rem; cursor: pointer; transition: all 0.15s ease-in-out;">
+          <div style="display: flex; gap: 0.5rem; justify-content: flex-end; padding-top: 1rem; border-top: 1px solid rgba(127, 127, 127, 0.25);">
+            <button id="modal-cancel-btn" style="padding: 0.375rem 0.75rem; background-color: transparent; color: hsl(var(--foreground)); border: 1px solid hsl(var(--border)); border-radius: 0.375rem; font-size: 1rem; cursor: pointer; transition: background-color 0.15s ease-out, border-color 0.15s ease-out;">
               ${i18n.t('common.cancel')}
             </button>
-            <button id="modal-confirm-btn" style="padding: 0.375rem 0.75rem; background-color: #0d6efd; color: white; border: 1px solid #0d6efd; border-radius: 0.375rem; font-size: 1rem; cursor: pointer; transition: all 0.15s ease-in-out;">
+            <button id="modal-confirm-btn" style="padding: 0.375rem 0.75rem; background-color: hsl(var(--brand)); color: hsl(var(--brand-foreground)); border: 1px solid hsl(var(--brand)); border-radius: 0.375rem; font-size: 1rem; cursor: pointer; transition: background-color 0.15s ease-out, border-color 0.15s ease-out;">
               ${i18n.t('editors.gui.generateGui')}
             </button>
           </div>
@@ -1145,12 +1213,12 @@ function addAutoGenerateGUIButton(editor: Editor) {
       
       if (confirmBtn) {
         confirmBtn.onmouseover = () => {
-          confirmBtn.style.backgroundColor = '#0b5ed7';
-          confirmBtn.style.borderColor = '#0a58ca';
+          confirmBtn.style.backgroundColor = 'hsl(var(--brand-dark))';
+          confirmBtn.style.borderColor = 'hsl(var(--brand-dark))';
         };
         confirmBtn.onmouseout = () => {
-          confirmBtn.style.backgroundColor = '#0d6efd';
-          confirmBtn.style.borderColor = '#0d6efd';
+          confirmBtn.style.backgroundColor = 'hsl(var(--brand))';
+          confirmBtn.style.borderColor = 'hsl(var(--brand))';
         };
         confirmBtn.onclick = async () => {
           modal.close();
@@ -1175,12 +1243,10 @@ function addAutoGenerateGUIButton(editor: Editor) {
       
       if (cancelBtn) {
         cancelBtn.onmouseover = () => {
-          cancelBtn.style.backgroundColor = '#5c636a';
-          cancelBtn.style.borderColor = '#565e64';
+          cancelBtn.style.backgroundColor = 'hsl(var(--muted))';
         };
         cancelBtn.onmouseout = () => {
-          cancelBtn.style.backgroundColor = '#6c757d';
-          cancelBtn.style.borderColor = '#6c757d';
+          cancelBtn.style.backgroundColor = 'transparent';
         };
         cancelBtn.onclick = () => {
           modal.close();
@@ -1217,15 +1283,15 @@ async function autoGenerateGUIFromClassDiagram(editor: Editor) {
       : `<li>${i18n.t('editors.gui.unknownError')}</li>`;
     const modalContent = `
       <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;">
-        <h2 style="color:#e74c3c; margin-bottom:1rem;">${i18n.t('editors.gui.qualityCheckFailed')}</h2>
-        <p style="font-size:1rem; color:#333; margin-bottom:1rem;">
+        <h2 style="color:hsl(var(--destructive)); margin-bottom:1rem;">${i18n.t('editors.gui.qualityCheckFailed')}</h2>
+        <p style="font-size:1rem; color:inherit; margin-bottom:1rem;">
           ${i18n.t('editors.gui.qualityCheckFailedMessage')}
         </p>
-        <ul style="background:#fff3f3; border:1px solid #e74c3c; border-radius:6px; padding:1rem; color:#b30000; font-size:1rem;">
+        <ul style="background:hsl(var(--destructive) / 0.08); border:1px solid hsl(var(--destructive) / 0.5); border-radius:6px; padding:1rem; color:hsl(var(--destructive)); font-size:1rem;">
           ${errorList}
         </ul>
         <div style="display:flex; justify-content:flex-end; margin-top:1.5rem;">
-          <button id="modal-close-errors-btn" style="padding:0.5rem 1.2rem; background-color:#e74c3c; color:white; border:none; border-radius:4px; font-size:1rem; cursor:pointer;">${i18n.t('common.close')}</button>
+          <button id="modal-close-errors-btn" style="padding:0.5rem 1.2rem; background-color:hsl(var(--destructive)); color:hsl(var(--destructive-foreground)); border:none; border-radius:4px; font-size:1rem; cursor:pointer;">${i18n.t('common.close')}</button>
         </div>
       </div>
     `;

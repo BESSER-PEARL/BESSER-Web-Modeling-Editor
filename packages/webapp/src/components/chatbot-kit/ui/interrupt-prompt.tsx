@@ -13,17 +13,10 @@ export function InterruptPrompt({ isOpen, close }: InterruptPromptProps) {
     <AnimatePresence>
       {isOpen && (
         <motion.div
-          initial={{ top: 0, filter: "blur(5px)" }}
-          animate={{
-            top: -40,
-            filter: "blur(0px)",
-            transition: {
-              type: "spring",
-              filter: { type: "tween" },
-            },
-          }}
-          exit={{ top: 0, filter: "blur(5px)" }}
-          className="absolute left-1/2 flex -translate-x-1/2 overflow-hidden whitespace-nowrap rounded-full border bg-background py-1 text-center text-sm text-muted-foreground"
+          initial={{ x: "-50%", y: 0, opacity: 0 }}
+          animate={{ x: "-50%", y: -40, opacity: 1, transition: { type: "spring" } }}
+          exit={{ x: "-50%", y: 0, opacity: 0 }}
+          className="absolute left-1/2 top-0 flex overflow-hidden whitespace-nowrap rounded-full border bg-background py-1 text-center text-sm text-muted-foreground"
         >
           <span className="ml-2.5">{t("assistant.chatKit.interruptPrompt")}</span>
           <button

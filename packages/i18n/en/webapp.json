@@ -1,14 +1,15 @@
 {
   "common": {
-    "connecting": "Connecting...",
+    "connecting": "Connecting…",
     "cancel": "Cancel",
     "save": "Save",
     "close": "Close",
     "delete": "Delete",
     "confirm": "Confirm",
-    "loading": "Loading...",
+    "loading": "Loading…",
     "yes": "Yes",
-    "no": "No"
+    "no": "No",
+    "retry": "Retry"
   },
   "topbar": {
     "language": "Language",
@@ -35,7 +36,8 @@
       "issues": "Issues",
       "needsRecheck": "Needs recheck",
       "notValidated": "Not validated"
-    }
+    },
+    "more": "More"
   },
   "nav": {
     "editors": "Editors",
@@ -65,26 +67,26 @@
   "menu": {
     "file": {
       "title": "File",
-      "projectActions": "Project Actions",
       "newOpenImport": "New / Open / Import Project",
-      "newProject": "New Project",
-      "openProject": "Open Project",
+      "newProject": "New Project…",
+      "openProject": "Open Project…",
       "importProject": "Import Project",
       "import": "Import",
-      "importProjectFile": "Project file (.json / .py)",
-      "fromSpreadsheet": "From Spreadsheet",
-      "fromGithub": "From GitHub",
-      "loadTemplate": "Load Template",
-      "exportProject": "Export Project",
-      "importClassDiagramFrom": "Import Class Diagram from",
-      "imageToProject": "Image to Project",
-      "kgToProject": "KG to Project",
-      "previewProject": "Preview Project"
+      "importProjectFile": "Project file (.json / .py)…",
+      "fromSpreadsheet": "From Spreadsheet…",
+      "fromGithub": "From GitHub…",
+      "loadTemplate": "Load Template…",
+      "exportProject": "Export Project…",
+      "previewProject": "Preview Project…",
+      "importBpmnDiagram": "Import BPMN diagram (.bpmn / .xml)…",
+      "importGroupProject": "Project",
+      "importGroupClassDiagram": "Class Diagram from",
+      "importImage": "Image…",
+      "importKnowledgeGraph": "Knowledge Graph…"
     },
     "generate": {
       "title": "Generate",
-      "generating": "Generating...",
-      "codeGeneration": "Code Generation",
+      "generating": "Generating…",
       "goToClassDiagram": "Go to Class Diagram",
       "deriveComponentDiagram": "Generate Component diagram",
       "deriveDeploymentDiagram": "Generate Deployment diagram",
@@ -116,15 +118,15 @@
     },
     "deploy": {
       "title": "Deploy",
-      "deployment": "Deployment",
       "connectGitHub": "Connect GitHub to Deploy",
-      "publishToRender": "Publish to Render"
+      "publishToRender": "Publish to Render…",
+      "connectGitHubFirstHint": "Connect GitHub first"
     },
     "community": {
       "title": "Community",
       "contribute": "Contribute",
       "githubRepository": "GitHub Repository",
-      "sendFeedback": "Send Feedback",
+      "sendFeedback": "Send Feedback…",
       "userSurvey": "User Evaluation Survey",
       "reportProblem": "Report a Problem"
     },
@@ -137,10 +139,10 @@
     }
   },
   "agentConfig": {
-    "loadingTitle": "Working on it...",
+    "loadingTitle": "Working on it…",
     "loadingTitle_comment": "",
     "loading": {
-      "preparing": "Preparing your configuration...",
+      "preparing": "Preparing your configuration…",
       "rules": "Applying predefined literature-based mapping to recommend a fitting configuration.",
       "llm": "This might take a while to cook up the best LLM-based configuration for your selected user profile.",
       "transform": "This might take a while to cook up the best transformed agent setup and apply it to your diagram."
@@ -207,7 +209,7 @@
       "boolTrue": "True",
       "boolFalse": "False",
       "sidebarSettings": "Settings",
-      "sidebarConfigFile": "Config File",
+      "sidebarConfigFile": "Config file",
       "sidebarPlatforms": "Platforms",
       "apiKeys": "API Keys",
       "subsectionStreamlit": "Streamlit",
@@ -308,7 +310,8 @@
         "raw": {
           "desc": "Read-only view of the full generated config.yaml. Edit individual sections or add custom YAML."
         }
-      }
+      },
+      "enablePlatform": "Enable {{platform}}"
     },
     "llms": {
       "title": "LLMs",
@@ -492,7 +495,7 @@
       "selectCustomization": "Select a customization",
       "lastUpdated": "Last updated {{date}}",
       "loadSelected": "Load Selected",
-      "applying": "Applying...",
+      "applying": "Applying…",
       "saveAndApply": "Save & Apply Configuration",
       "resetDefaults": "Reset to Defaults",
       "errors": {
@@ -607,6 +610,18 @@
       "profile": {
         "title": "Replace existing user profile mapping?",
         "description": "User profile \"{{profile}}\" is already mapped to configuration \"{{existing}}\". Saving will replace that mapping with \"{{next}}\"."
+      },
+      "removeLlm": {
+        "title": "Remove this LLM?",
+        "description": "“{{name}}” will be removed. Anything that uses it will fall back to the default LLM."
+      },
+      "reset": {
+        "title": "Reset to defaults?",
+        "description": "All unsaved changes in this form will be replaced with the default values."
+      },
+      "upload": {
+        "title": "Replace the current configuration?",
+        "description": "Loading “{{name}}” will overwrite the values currently in the form."
       }
     },
     "noActiveDiagram": "No active agent diagram. Open an agent diagram first.",
@@ -705,7 +720,7 @@
       "configureTechnologies": "Configure agent technologies",
       "sourceLanguage": "Source language (optional)",
       "addSpokenLanguage": "Add spoken language for agent translation",
-      "selectLanguage": "Select language...",
+      "selectLanguage": "Select language…",
       "addLanguage": "Add Language",
       "translatedToAll": "The agent will be translated to all selected spoken languages.",
       "warningAriaLabel": "warning",
@@ -784,12 +799,18 @@
       "versionProfile": "Single profile",
       "versionAll": "All versions",
       "selectProfile": "Select a profile",
-      "versionAllHint": "The download will contain one subfolder per version (base + each profile)."
+      "versionAllHint": "The download will contain one subfolder per version (base + each profile).",
+      "status": {
+        "ready": "Ready",
+        "missing": "Missing",
+        "empty": "Empty",
+        "skipped": "Will be skipped"
+      }
     },
     "toasts": {
       "validationFailed": "Validation failed",
       "noDiagram": "No diagram to generate code from",
-      "localDeploymentInProgress": "Local deployment in progress... This may take a few minutes.",
+      "localDeploymentInProgress": "Local deployment in progress… This may take a few minutes.",
       "httpError": "HTTP error! status: {{status}}",
       "localDeploymentCompleted": "Local deployment completed!",
       "accessApplicationAt": "You can now access your application at: ",
@@ -837,9 +858,9 @@
     "overlay": {
       "subtitle": "Please wait while your code is being generated",
       "title": "Generating Code",
-      "stepPackaging": "Packaging output...",
-      "stepGenerating": "Generating code...",
-      "stepParsing": "Parsing diagram..."
+      "stepPackaging": "Packaging output…",
+      "stepGenerating": "Generating code…",
+      "stepParsing": "Parsing diagram…"
     }
   },
   "project": {
@@ -853,7 +874,7 @@
       "back": "Back",
       "unknownError": "Unknown error",
       "create": {
-        "title": "Create A Project",
+        "title": "Create a Project",
         "description": "Define project metadata and start modeling from scratch.",
         "detailsTitle": "Project Details",
         "detailsDescription": "Give your workspace a name and description.",
@@ -861,22 +882,20 @@
         "tip": "Tip: pick a modeling perspective to focus the workspace on the diagrams you need."
       },
       "import": {
-        "title": "Import A Project",
+        "title": "Import a Project",
         "description": "Load an exported project file and continue where you left off.",
-        "cardTitle": "Import Project File",
-        "cardDescription": "Supported formats: .json, .py.",
         "dropAria": "Drop a file or click to browse",
         "dropPrompt": "Drop a file here or click to browse",
         "dropHint": "JSON or Python project files"
       },
       "spreadsheet": {
-        "title": "Start From Spreadsheet",
+        "title": "Start from Spreadsheet",
         "description": "Create a project and auto-generate a class diagram from CSV/XLSX files.",
         "cardTitle": "Spreadsheet Input",
         "cardDescription": "Create project metadata and upload source files.",
         "sourceFiles": "Source Files",
         "selectFiles": "Select CSV / XLSX Files",
-        "submit": "Create From Spreadsheet",
+        "submit": "Create from Spreadsheet",
         "howTitle": "How It Works",
         "step1": "Project is created first with your metadata.",
         "step2": "Spreadsheet files are converted to a class diagram.",
@@ -893,10 +912,7 @@
         "description": "Choose how you want to start your modeling session and open your workspace.",
         "heroTitle": "Start Your Modeling Workspace",
         "heroBody": "BESSER (Better Smart Software Faster) is an open-source model-driven platform for UML design, generation, and deployment. Choose a path below to bootstrap your project quickly.",
-        "cardCreate": {
-          "title": "Create Blank",
-          "description": "Start from scratch with all editors available."
-        },
+        "cardCreate": {},
         "cardSpreadsheet": {
           "title": "From Spreadsheet",
           "description": "Auto-generate a class diagram from CSV/XLSX files."
@@ -908,7 +924,15 @@
         "existingProjects": "Existing Projects",
         "viewAll": "View all projects",
         "noProjects": "No projects yet.",
-        "warningBanner": "Create, import, or open a project to enter the workspace."
+        "warningBanner": "Create, import, or open a project to enter the workspace.",
+        "cardGithub": {
+          "description": "Reopen a repo BESSER created and keep building.",
+          "title": "Continue From GitHub"
+        },
+        "cardNew": {
+          "description": "Choose low-code or agentic, then start modelling.",
+          "title": "New Project"
+        }
       },
       "perspective": {
         "label": "Modeling perspective",
@@ -939,14 +963,53 @@
         "spreadsheetGenerateFailed": "Could not generate class diagram from spreadsheet.",
         "spreadsheetCreated": "Project \"{{name}}\" created and class diagram imported.",
         "spreadsheetImportFailed": "Spreadsheet import failed: {{error}}"
+      },
+      "returning": {
+        "title": "Projects",
+        "description": "Open a recent project or start a new one."
+      },
+      "github": {
+        "connectHint": "Connect your GitHub account to pick one of your repositories. You'll come back here once you've signed in.",
+        "continue": "Continue",
+        "description": "Pick a repository BESSER created — its model loads and the next Spec-Driven Agent run edits its code.",
+        "errors": {
+          "generic": "Could not continue from this repository.",
+          "noModel": "This repo has no BESSER model — it wasn't created by BESSER, so there's nothing to continue from yet.",
+          "noSession": "GitHub session not found. Please reconnect.",
+          "selectRepo": "Select a repository to continue from.",
+          "sessionExpired": "Your GitHub session expired. Reconnect and try again."
+        },
+        "loadingBranches": "Loading branches…",
+        "loadingRepos": "Loading repositories…",
+        "privateSuffix": "(private)",
+        "selectRepo": "Select a repository",
+        "title": "Continue From GitHub",
+        "toasts": {
+          "connectToContinue": "Connect GitHub to continue from one of your repositories.",
+          "continuing": "Continuing from {{repo}}.",
+          "failed": "Continue from GitHub failed: {{message}}",
+          "sessionExpired": "GitHub session expired — please reconnect."
+        }
+      },
+      "interface": {
+        "agent": {
+          "description": "Describe your app in natural language; the assistant builds it.",
+          "label": "Agentic"
+        },
+        "helper": "Choose how you'll build. You can switch anytime from the assistant drawer.",
+        "label": "View",
+        "model": {
+          "description": "Build visually with UML diagrams on the modelling canvas.",
+          "label": "Low-code"
+        }
       }
     },
     "settings": {
       "title": "Project Settings",
       "subtitle": "Manage metadata, diagrams, and display preferences",
       "exportProject": "Export Project",
-      "exporting": "Exporting...",
-      "loadingProject": "Loading project...",
+      "exporting": "Exporting…",
+      "loadingProject": "Loading project…",
       "noProject": "Open or create a project to edit settings.",
       "unknownError": "Unknown error",
       "general": {
@@ -1025,6 +1088,16 @@
         "applyPresetFailed": "Failed to apply preset",
         "exported": "Project exported successfully.",
         "exportFailed": "Failed to export project: {{error}}"
+      },
+      "apiKey": {
+        "change": "Change Key",
+        "description": "Use your own Anthropic, OpenAI, Mistral or Nebius key. Entered once here, it powers both the modeling assistant and the Spec-Driven generator (Nebius powers the generator only). Stored only in this browser tab, never on our servers.",
+        "keySet": "Key set · {{provider}}",
+        "keySetHint": "Applies to the assistant and generator",
+        "noKey": "No key set",
+        "noKeyHint": "Using the shared server key + rate limits",
+        "set": "Set API Key",
+        "title": "AI / LLM API Key"
       }
     },
     "templates": {
@@ -1096,18 +1169,26 @@
     },
     "linked": {
       "repository": "Repository",
-      "checking": "Checking...",
+      "checking": "Checking…",
       "unsavedChanges": "You have unsaved changes",
       "upToDate": "Up to date",
       "push": "Push",
       "pull": "Pull",
+      "pullConfirmTitle": "Replace your local changes?",
+      "pullConfirmDescription": "Pulling loads the version on GitHub and discards the changes you have not pushed yet.",
+      "pullConfirmAction": "Pull and discard changes",
       "history": "History",
       "refreshHistory": "Refresh commit history",
       "latest": "Latest",
       "clickToRestore": "Click to restore",
       "noCommits": "No commits yet",
       "share": "Share",
-      "createSecretGist": "Create Secret Gist"
+      "createSecretGist": "Create Secret Gist",
+      "openOnGitHub": "Open on GitHub",
+      "unlink": "Unlink repository",
+      "unlinkConfirmTitle": "Unlink this repository?",
+      "unlinkConfirmDescription": "The project stays in your browser and on GitHub. Push, Pull and auto-commit stop until you link a repository again.",
+      "unlinkConfirmAction": "Unlink"
     },
     "settings": {
       "title": "Settings",
@@ -1120,7 +1201,7 @@
       "interval15": "15 minutes",
       "interval30": "30 minutes",
       "interval60": "1 hour",
-      "autoSaving": "Auto-saving..."
+      "autoSaving": "Auto-saving…"
     },
     "linkModal": {
       "goBack": "Go back to repository selection",
@@ -1156,18 +1237,18 @@
       "title": "Push to GitHub",
       "description": "Write a commit message for your changes.",
       "messageLabel": "Commit Message",
-      "messagePlaceholder": "Describe your changes...",
-      "pushing": "Pushing...",
+      "messagePlaceholder": "Describe your changes…",
+      "pushing": "Pushing…",
       "push": "Push"
     },
     "gist": {
       "title": "Create Gist",
       "description": "Create a GitHub Gist to quickly share your project.",
       "descriptionLabel": "Description",
-      "descriptionPlaceholder": "Gist description...",
+      "descriptionPlaceholder": "Gist description…",
       "publicGist": "Public Gist",
       "secretHint": "Secret gists are hidden from search engines but visible to anyone with the link.",
-      "creating": "Creating...",
+      "creating": "Creating…",
       "createGist": "Create Gist"
     },
     "createRepo": {
@@ -1176,16 +1257,16 @@
       "repoNameLabel": "Repository Name",
       "repoNameHelper": "Only lowercase letters, numbers, dashes, and underscores are allowed.",
       "descriptionLabel": "Description",
-      "descriptionPlaceholder": "Optional description...",
+      "descriptionPlaceholder": "Optional description…",
       "privateRepository": "Private repository",
-      "creating": "Creating...",
+      "creating": "Creating…",
       "create": "Create"
     },
     "restore": {
       "title": "Restore Version",
       "description": "Your current unsaved changes will be lost. Consider pushing your current work first.",
       "confirmQuestion": "Restore this commit?",
-      "restoring": "Restoring...",
+      "restoring": "Restoring…",
       "restoreButton": "Restore This Version"
     },
     "context": {
@@ -1201,7 +1282,8 @@
       "creatingRepository": "Creating repository",
       "committing": "Committing to GitHub",
       "restoringCommit": "Restoring commit",
-      "creatingGist": "Creating gist"
+      "creatingGist": "Creating gist",
+      "unlinkingRepository": "Unlinking repository"
     },
     "toasts": {
       "loadProjectFailed": "Failed to load project",
@@ -1243,13 +1325,39 @@
       "createGistFailed": "Failed to create Gist",
       "gistCreated": "Gist created successfully!",
       "invalidGitHubUrl": "Invalid GitHub URL. Please provide a valid GitHub repository URL.",
-      "fetchingFromGitHub": "Fetching {{filename}} from GitHub...",
+      "fetchingFromGitHub": "Fetching {{filename}} from GitHub…",
       "fileNotFound": "File not found on GitHub. Please check the URL and try again.",
       "fetchFileFailed": "Failed to fetch file from GitHub: {{status}}",
       "importProjectSuccess": "Successfully imported project: {{name}}",
       "importModelFailed": "Failed to import model from GitHub",
       "starThanks": "Thanks for starring BESSER!",
       "starFailed": "Failed to update star"
+    },
+    "push": {
+      "changeRepo": "Change Repository",
+      "commitMessageHelper": "Describe what changed (optional).",
+      "commitMessagePlaceholder": "Update generated app",
+      "createNew": "Create New Repository",
+      "defaultDescription": "Generated by BESSER — {{name}}",
+      "descriptionCreate": "Push the generated code and project model to a GitHub repository.",
+      "descriptionUpdate": "Update the linked repository with your latest generated code and model.",
+      "done": "Done",
+      "filesUploaded_one": "{{count}} file uploaded.",
+      "filesUploaded_other": "{{count}} files uploaded.",
+      "linkedTo": "Linked to",
+      "loadingBranches": "Loading branches…",
+      "loadingRepositories": "Loading repositories…",
+      "noRepositories": "No repositories loaded. The request may have failed.",
+      "privateRepoOption": "{{name}} (private)",
+      "publicWarning": "This repository will be public. Anyone can see the generated code and model.",
+      "pushUpdate": "Push Update",
+      "repushHint": "Re-pushing updates this repository.",
+      "selectRepository": "Select a repository…",
+      "selectRepositoryError": "Select a repository to push to.",
+      "successCreated": "Repository created and files pushed.",
+      "successTitle": "Pushed to GitHub",
+      "successUpdated": "Repository updated with your latest generation.",
+      "useExisting": "Use Existing Repository"
     }
   },
   "assistant": {
@@ -1261,7 +1369,7 @@
       "uploadImageLabel": "Upload Diagram Image (PNG/JPEG)",
       "uploadKgLabel": "Upload Knowledge Graph (TTL/RDF/JSON)",
       "selected": "Selected: {{name}}",
-      "importing": "Importing...",
+      "importing": "Importing…",
       "import": "Import",
       "errors": {
         "noProject": "Create or load a project first.",
@@ -1298,7 +1406,7 @@
       "pressEscPost": "to close"
     },
     "composer": {
-      "placeholder": "Describe what you want to create or modify..."
+      "placeholder": "Describe what you want to create or modify…"
     },
     "messageCount_one": "{{count}} msg",
     "messageCount_other": "{{count}} msgs",
@@ -1358,13 +1466,20 @@
       "newChatConfirm": "Start a new chat? Your current conversation will be cleared.",
       "newChatConfirmWithRun": "Start a new chat? Your current conversation will be cleared and the running generation will be stopped.",
       "explainModel": "Explain this model",
-      "explainModelTitle": "Get a plain-language overview of your model — the main things it tracks and how they relate"
+      "explainModelTitle": "Get a plain-language overview of your model — the main things it tracks and how they relate",
+      "moreActions": "More actions",
+      "yourModel": "Your model",
+      "hideYourModel": "Hide your model",
+      "apiKeySet": "API key set",
+      "useOwnApiKey": "Use your own API key",
+      "reportIssue": "Report issue",
+      "addApiKey": "Add your API key"
     },
     "drawer": {
       "labelClosed": "Describe your app",
       "labelOpen": "See the Specs",
-      "pushToClose": "Push up to close assistant",
-      "pullToOpen": "Pull down to open assistant",
+      "pushToClose": "Push down to close assistant",
+      "pullToOpen": "Pull up to open assistant",
       "pushUp": "Push up",
       "pullDown": "Pull down assistant"
     },
@@ -1422,7 +1537,7 @@
       "toolCancelled": "Cancelled",
       "toolCalling": "Calling",
       "toolResultFrom": "Result from",
-      "loading": "Loading...",
+      "loading": "Loading…",
       "removeAttachment": "Remove attachment",
       "interruptPrompt": "Press Enter again to interrupt",
       "close": "Close",
@@ -1435,8 +1550,8 @@
       "stopGenerating": "Stop generating",
       "sendMessage": "Send message",
       "dropFiles": "Drop your files here to attach them.",
-      "transcribingAudio": "Transcribing audio...",
-      "recordingPrompt": "Recording... click here or press mic again to stop and send ({{time}})",
+      "transcribingAudio": "Transcribing audio…",
+      "recordingPrompt": "Recording… click here or press mic again to stop and send ({{time}})",
       "stopSendVoiceTimer": "Stop & send voice message ({{time}})"
     }
   },
@@ -1476,7 +1591,7 @@
       "publishAgent": "Publish Agent to Render",
       "updatePublish": "Update & Publish",
       "updatePublishAgent": "Update & Publish Agent",
-      "publishing": "Publishing..."
+      "publishing": "Publishing…"
     },
     "result": {
       "titleUpdated": "Repository Updated Successfully",
@@ -1563,10 +1678,9 @@
       }
     },
     "guide": {
-      "title": "How The Editor Works",
+      "title": "How the Editor Works",
       "description": "Complete modeling guide with examples and visuals.",
       "diagramTypesHeading": "Diagram Types",
-      "noImage": "No image for this item.",
       "openDocs": "Open BESSER Docs",
       "openWmeRepo": "Open WME Repository",
       "class": {
@@ -1578,7 +1692,7 @@
           "alt": "Create class element"
         },
         "addAssociation": {
-          "title": "Add Association Or Generalization",
+          "title": "Add Association or Generalization",
           "body": "<p>Select a source class, then drag from a blue connection point to another class. For multiplicities, use values like <code>1</code>, <code>0..1</code>, <code>0..*</code>, <code>1..*</code>, or <code>2..4</code>.</p>",
           "alt": "Create class relationship"
         },
@@ -1588,12 +1702,12 @@
           "alt": "Edit class element"
         },
         "editAssociation": {
-          "title": "Edit Association Or Generalization",
+          "title": "Edit Association or Generalization",
           "body": "<p>Double-click a relationship to edit type (unidirectional, bidirectional, composition, generalization), name, source/target role names, and multiplicities.</p>",
           "alt": "Edit class association"
         },
         "deleteMove": {
-          "title": "Delete And Move",
+          "title": "Delete and Move",
           "body": "<p>Select a class and press <code>Delete</code> or <code>Backspace</code> to remove it.</p><p>Move elements by dragging them or using keyboard arrows.</p><p>Use <code>Ctrl+Z</code> and <code>Ctrl+Y</code> for undo/redo.</p>",
           "alt": "Move class element"
         },
@@ -1636,7 +1750,7 @@
           "alt": "Edit object link"
         },
         "deleteMove": {
-          "title": "Delete, Move, And Best Practices",
+          "title": "Delete, Move, and Best Practices",
           "body": "<p>Delete objects/links with <code>Delete</code> or <code>Backspace</code>. Move objects by drag-and-drop or arrows.</p><p>Use object diagrams together with class diagrams to validate real scenarios, names, and value consistency.</p>"
         }
       },
@@ -1648,7 +1762,7 @@
           "body": "<p>State machine diagrams describe behavior changes over time in response to events and conditions.</p>"
         },
         "initialFinal": {
-          "title": "Add Initial And Final Flow",
+          "title": "Add Initial and Final Flow",
           "body": "<p>Start with an initial node and connect it to the first state.</p>",
           "alt": "State machine initial and final states"
         },
@@ -1735,7 +1849,7 @@
           "alt": "NN diagram overview"
         },
         "containerLayers": {
-          "title": "Add NN Container, Layers, And TensorOps",
+          "title": "Add NN Container, Layers, and TensorOps",
           "body": "<p>Start by dragging an NNContainer from the palette onto the canvas; all neural network modules must live inside it.</p><p>Available layers: <code>Conv1D</code>, <code>Conv2D</code>, <code>Conv3D</code>, <code>Pooling</code>, <code>Linear</code>, <code>Flatten</code>, <code>Embedding</code>, <code>Dropout</code>, <code>RNN</code>, <code>LSTM</code>, <code>GRU</code>, <code>LayerNormalization</code>, <code>BatchNormalization</code>. Available TensorOps: <code>reshape</code>, <code>concatenate</code>, <code>transpose</code>, <code>permute</code>, <code>multiply</code>, <code>matmultiply</code>.</p>",
           "alt": "NN palette with a dropped layer"
         },
@@ -1750,7 +1864,7 @@
           "alt": "Edit module attributes"
         },
         "datasets": {
-          "title": "Datasets (Training And Test)",
+          "title": "Datasets (Training and Test)",
           "body": "<p>Datasets are optional. Drop a Training Dataset and a Test Dataset to declare data sources for the network.</p><p>Mandatory attributes are <code>name</code> and <code>path_data</code> (file or folder path to the dataset). Optional attributes are <code>task_type</code> (<code>binary</code>, <code>multi_class</code>, <code>regression</code>) and <code>input_format</code> (<code>csv</code>, <code>images</code>). When <code>input_format = images</code>, two additional attributes appear: <code>shape</code> (for example <code>[32, 32, 3]</code>) and <code>normalize</code> (<code>true</code> or <code>false</code>).</p><p>Connect each dataset to the NNContainer with an association line.</p>",
           "alt": "Training and test datasets"
         },
@@ -1765,9 +1879,41 @@
           "alt": "NNReference with target selection popup"
         },
         "validateGenerate": {
-          "title": "Validate And Generate",
+          "title": "Validate and Generate",
           "body": "<p>Run Quality Check from the top bar to catch structural issues such as disconnected layers or missing mandatory attributes before generating code.</p><p>Open the Generate menu and choose a framework and style:</p><ul><li><strong>PyTorch / Subclassing</strong>: <code>torch.nn.Module</code> subclass with an explicit forward pass.</li><li><strong>PyTorch / Sequential</strong>: <code>nn.Sequential</code> composition for strictly sequential architectures.</li><li><strong>TensorFlow / Subclassing</strong>: <code>tf.keras.Model</code> subclass with a custom <code>call()</code>.</li><li><strong>TensorFlow / Sequential</strong>: <code>keras.Sequential</code> composition.</li></ul><p>NN architecture definition is generated in the selected framework, along with training and evaluation code when datasets and Configuration are defined.</p>",
           "alt": "Generate code menu"
+        }
+      },
+      "user": {
+        "label": "User Diagram",
+        "summary": "Model user profiles that drive personalized agents and GUIs.",
+        "about": {
+          "title": "About User Diagrams",
+          "body": "<p>A user diagram describes one user profile: a <code>User</code> root linked to parts such as personal information, competence, accessibility, culture, personality, preferences and goals.</p>"
+        },
+        "addParts": {
+          "title": "Add and Edit Parts",
+          "body": "<p>Drag profile elements from the palette, link them to the <code>User</code>, and double-click an element to set its attribute values.</p>"
+        },
+        "editAsForm": {
+          "title": "Edit as Form",
+          "body": "<p>Click <strong>Edit as form</strong> in the diagram tab bar to edit the profile in a guided side panel. Add or remove parts and set criteria; changes appear on the canvas live.</p>"
+        }
+      },
+      "bpmn": {
+        "label": "BPMN Diagram",
+        "summary": "Model business processes with tasks, events, gateways and flows.",
+        "buildProcess": {
+          "title": "Build a Process",
+          "body": "<p>Drag elements from the palette: tasks, subprocesses, transactions and call activities; start, intermediate and end events; gateways; data objects and data stores; pools and lanes; annotations and groups.</p>"
+        },
+        "connectFlows": {
+          "title": "Connect with Flows",
+          "body": "<p>Drag from one element to another to create a flow. The editor picks a valid type for the pair (sequence, message, association or data association); double-click a flow to change it.</p>"
+        },
+        "elementTypes": {
+          "title": "Set Element Types",
+          "body": "<p>Double-click a task, event or gateway to set its type, for example a user or service task, a timer start event, or an exclusive or parallel gateway.</p>"
         }
       }
     }
@@ -1775,7 +1921,7 @@
   "shared": {
     "commandPalette": {
       "dialogLabel": "Command palette",
-      "placeholder": "Type a command...",
+      "placeholder": "Type a command…",
       "searchLabel": "Search commands",
       "noResults": "No matching commands",
       "navigate": "Navigate",
@@ -1876,9 +2022,9 @@
       "expand": "Expand {{name}}",
       "collapse": "Collapse {{name}}",
       "root": "root",
-      "generatingBuml": "Generating B-UML preview...",
+      "generatingBuml": "Generating B-UML preview…",
       "noBumlPreview": "No B-UML preview is available yet.",
-      "generating": "Generating...",
+      "generating": "Generating…",
       "regenerate": "Regenerate",
       "downloadBuml": "Download B-UML",
       "copyBuml": "Copy B-UML",
@@ -1940,7 +2086,8 @@
       "projectLabel": "Project (V{{version}})",
       "bumlLabelNamed": "Project B-UML Preview ({{name}})",
       "bumlLabel": "Project B-UML Preview"
-    }
+    },
+    "skipToEditor": "Skip to Editor"
   },
   "editors": {
     "diagramTabs": {
@@ -1965,8 +2112,11 @@
       "diagramTabLabel": "Diagram tab: {{title}}",
       "validationStatusLabel": "Validation status: {{status}}",
       "renameDiagram": "Rename diagram",
-      "closeTabLabel": "Close tab {{title}}",
-      "closeTab": "Close tab",
+      "closeTabLabel": "Delete diagram {{title}}",
+      "closeTab": "Delete diagram",
+      "deleteConfirmTitle": "Delete this diagram?",
+      "deleteConfirmDescription": "“{{title}}” and everything in it will be removed from the project. This cannot be undone.",
+      "deleteConfirmAction": "Delete diagram",
       "addNewDiagram": "Add a new diagram tab",
       "expandLinkedDiagrams": "Expand linked diagrams",
       "collapseLinkedDiagrams": "Collapse linked diagrams",
@@ -1980,10 +2130,15 @@
       "referenceEmpty": "The referenced Class Diagram is empty (no classes or relationships).",
       "generateObjectsTooltip": "Create one Object instance per Class in the referenced diagram, with default values for each attribute.",
       "generate": "Generate",
-      "noClassDiagramsAvailable": "No Class Diagrams available"
+      "noClassDiagramsAvailable": "No Class Diagrams available",
+      "tablistLabel": "Diagrams",
+      "editAsForm": "Edit as form",
+      "closeForm": "Close form",
+      "editAsFormTitle": "Edit this profile with a guided form",
+      "closeFormTitle": "Close the user profile form"
     },
     "charts": {
-      "loadingChart": "Loading chart...",
+      "loadingChart": "Loading chart…",
       "noDataAvailable": "No data available"
     },
     "table": {
@@ -2002,7 +2157,7 @@
     "quantum": {
       "editorTitle": "Quantum Editor",
       "saved": "Saved",
-      "saving": "Saving...",
+      "saving": "Saving…",
       "error": "Error",
       "undo": "Undo",
       "redo": "Redo",
@@ -2140,7 +2295,11 @@
         "AXIS_SAMPLE": "3-Axis Sample: Samples qubit in X, Y, and Z bases simultaneously. For tomographic reconstruction.",
         "SPACER": "Spacer"
       },
-      "nestedCircuitConfigured": "Nested circuit configured"
+      "nestedCircuitConfigured": "Nested circuit configured",
+      "toolboxLabel": "Gate toolbox",
+      "gateName": "Gate name",
+      "placeGateLabel": "Place {{gate}} gate",
+      "armedHint": "Click a circuit cell to place {{gate}}. Press Esc to cancel."
     },
     "gui": {
       "traits": {
@@ -2314,7 +2473,7 @@
       },
       "pages": {
         "title": "Pages",
-        "searchPlaceholder": "Search pages...",
+        "searchPlaceholder": "Search pages…",
         "addNewPage": "Add new page",
         "addPage": "Add Page",
         "editRoute": "Edit URL route",
@@ -2406,8 +2565,8 @@
         "previewMode": "Preview Mode",
         "greeting": "Hello! I'm {{agentName}}. How can I help you?",
         "previewMessage": "This is a preview of the chat interface",
-        "selectAgent": "Select an agent to start chatting...",
-        "typeMessage": "Type a message...",
+        "selectAgent": "Select an agent to start chatting…",
+        "typeMessage": "Type a message…",
         "selectAgentFirst": "Select an agent first",
         "send": "Send"
       },
@@ -2427,7 +2586,7 @@
       "errorGeneratingGui": "Error generating GUI: {{message}}",
       "guiModelLoaded": "GUI model loaded from assistant.",
       "statusSaved": "Saved",
-      "statusSaving": "Saving...",
+      "statusSaving": "Saving…",
       "statusErrorSaving": "Error saving",
       "editorStillLoading": "Editor is still loading. Please wait a moment and try again.",
       "errorSavingProject": "Error saving project. Please check the console for details.",
@@ -2520,10 +2679,35 @@
         "weightField": "Weight Field",
         "geometryField": "Geometry Field (GeoJSON)",
         "valueField": "Value Field"
+      },
+      "colorPalette": "Color palette",
+      "colorPaletteOption": "Palette {{index}}",
+      "emptyState": {
+        "eyebrow": "Empty page",
+        "title": "Turn your model into a screen",
+        "subtitle": "Generate this page from your class diagram, build it from blocks, or describe it. You can combine them afterwards.",
+        "subtitleNoClasses": "Screens are generated from your class diagram. Add a few classes first, or start from blocks right away.",
+        "generateTitle": "Generate from class diagram",
+        "generateDescription": "{{count}} classes found: {{names}}.",
+        "addClassesTitle": "Add classes first",
+        "addClassesDescription": "Opens the Class editor. Come back to generate screens.",
+        "blocksTitle": "Start from a block",
+        "blocksDescription": "Drag columns, text, tables and forms onto the page.",
+        "describeTitle": "Describe the screen",
+        "describeDescription": "Tell the assistant what this page should show.",
+        "footer": "This goes away as soon as you add a component.",
+        "figureTag": "page",
+        "newItem": "New {{name}}",
+        "noClassesTitle": "No classes yet",
+        "noClassesHint": "Add them in the Class editor",
+        "starterPrompt": "Create a page to browse {{page}}",
+        "starterPromptNoClasses": "Create a home page for my app",
+        "generateDescription_one": "1 class found: {{names}}.",
+        "generateDescription_other": "{{count}} classes found: {{names}}."
       }
     },
-    "loadingGuiEditor": "Loading GUI editor...",
-    "loadingQuantumEditor": "Loading quantum editor...",
+    "loadingGuiEditor": "Loading GUI editor…",
+    "loadingQuantumEditor": "Loading quantum editor…",
     "hiddenPerspectives": {
       "messagePlural": "This project uses {{labels}} but those perspectives are hidden.",
       "messageSingular": "This project uses {{labels}} but that perspective is hidden.",
@@ -2540,7 +2724,7 @@
       "unknownError": "Unknown error",
       "submitFailed": "Feedback submission failed: {{error}}"
     },
-    "submitting": "Submitting...",
+    "submitting": "Submitting…",
     "title": "Help Us Improve BESSER",
     "description": "Share your feedback about the editor and generation workflow.",
     "satisfactionQuestion": "How satisfied are you with your experience?",
@@ -2655,7 +2839,7 @@
     "toasts": {
       "noDiagramToValidate": "No diagram to validate",
       "diagramEmpty": "The diagram is empty. Add elements before running the quality check.",
-      "validating": "Validating diagram...",
+      "validating": "Validating diagram…",
       "timedOut": "Validation timed out. The backend may be overloaded.",
       "validationFailed": "Validation failed",
       "errorsLabel": "Validation Errors:",
@@ -2674,7 +2858,8 @@
       "addQubitButton": "+ Qubit",
       "measurementOutput": "Measurement output - auto-generated from measurement gates",
       "dropHere": "Drop here",
-      "invalid": "Invalid"
+      "invalid": "Invalid",
+      "initialStateLabel": "Initial state of {{qubit}}: {{state}}. Click to change."
     }
   },
   "agentComponents": {
@@ -2748,7 +2933,7 @@
       "skillDescription": "Description",
       "skillDescriptionPlaceholder": "Optional short description",
       "content": "Markdown content",
-      "contentPlaceholder": "# Skill\n\nInstructions in markdown..."
+      "contentPlaceholder": "# Skill\n\nInstructions in markdown…"
     },
     "workspaces": {
       "title": "Workspaces",
@@ -2863,7 +3048,8 @@
       "restart": "Restart simulation",
       "reset": "Restart",
       "dragToResize": "Drag to resize",
-      "loading": "The agent is loading, please wait."
+      "loading": "The agent is loading, please wait.",
+      "resizeChat": "Resize chat panel"
     },
     "codeViewer": {
       "copyTitle": "Copy code",
@@ -2943,6 +3129,11 @@
       "emptyDiagram": "The agent diagram is empty. Add states, transitions, and intents before simulating.",
       "validationFailed": "Agent validation failed: {{message}}",
       "validationFailedGeneric": "Validation failed"
+    }
+  },
+  "errors": {
+    "network": {
+      "unreachable": "Couldn’t reach the server. Check your connection and try again."
     }
   }
 }

@@ -246,7 +246,6 @@ Documented so they are not rediscovered as bugs:
 - `create_diagram_tab` is in `KNOWN_ACTIONS` but missing from the `AssistantActionName` union in
   `features/assistant/services/assistant-types.ts`.
 - `SMART_GEN_PREVIEW_ENDPOINT` (`/spec-driven/preview`) has no callers — there is no plan-review step.
-- The Project Hub's `'describe'` step is built but unreachable: nothing calls `setStep('describe')`.
 - `selectProjectFile()` advertises `.zip`, but `importProject()` has no zip branch.
 - `DIAGRAM_GENERATOR_MAP` in `workspace-navigation.tsx` is out of sync with `generator-menu-config.ts`, which is
   the source of truth for what users see.

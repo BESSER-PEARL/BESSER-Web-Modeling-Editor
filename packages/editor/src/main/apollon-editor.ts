@@ -120,6 +120,8 @@ export class ApollonEditor {
   selection: Apollon.Selection = { elements: {}, relationships: {} };
   private root?: Root;
   private currentModelState?: ModelState;
+  private lastSelected?: ModelState['selected'];
+  private lastAssessments?: ModelState['assessments'];
   private assessments: Apollon.Assessment[] = [];
   private application: Application | null = null;
   private patcher = new Patcher<UMLModel>();
@@ -537,33 +539,37 @@ export class ApollonEditor {
   private onDispatch = () => {
     if (!this.store) return;
     const { elements, selected, assessments } = this.store.getState();
-    const selection: Apollon.Selection = {
-      elements: selected
-        .filter((id) => elements[id].type in UMLElementType)
-        .reduce((acc, id) => ({ ...acc, [id]: true }), {}),
-      relationships: selected
-        .filter((id) => elements[id].type in UMLRelationshipType)
-        .reduce((acc, id) => ({ ...acc, [id]: true }), {}),
-    };
+    // Runs on every dispatch (each drag step); only recompute when the slice itself changed.
+    if (selected !== this.lastSelected) {
+      this.lastSelected = selected;
+      const selection: Apollon.Selection = { elements: {}, relationships: {} };
+      for (const id of selected) {
+        if (elements[id].type in UMLElementType) selection.elements[id] = true;
+        else if (elements[id].type in UMLRelationshipType) selection.relationships[id] = true;
+      }
 
-    // check if previous selection differs from current selection, if yes -> notify subscribers
-    if (JSON.stringify(this.selection) !== JSON.stringify(selection)) {
-      Object.values(this.selectionSubscribers).forEach((subscriber) => subscriber(selection));
-      this.selection = selection;
+      // check if previous selection differs from current selection, if yes -> notify subscribers
+      if (JSON.stringify(this.selection) !== JSON.stringify(selection)) {
+        Object.values(this.selectionSubscribers).forEach((subscriber) => subscriber(selection));
+        this.selection = selection;
+      }
     }
 
-    const umlAssessments = Object.keys(assessments).map<Apollon.Assessment>((id) => ({
-      modelElementId: id,
-      elementType: elements[id].type as Apollon.UMLElementType | Apollon.UMLRelationshipType,
-      score: assessments[id].score,
-      feedback: assessments[id].feedback,
-      dropInfo: assessments[id].dropInfo,
-    }));
+    if (assessments !== this.lastAssessments) {
+      this.lastAssessments = assessments;
+      const umlAssessments = Object.keys(assessments).map<Apollon.Assessment>((id) => ({
+        modelElementId: id,
+        elementType: elements[id].type as Apollon.UMLElementType | Apollon.UMLRelationshipType,
+        score: assessments[id].score,
+        feedback: assessments[id].feedback,
+        dropInfo: assessments[id].dropInfo,
+      }));
 
-    // check if previous assessment differs from current selection, if yes -> notify subscribers
-    if (JSON.stringify(this.assessments) !== JSON.stringify(umlAssessments)) {
-      Object.values(this.assessmentSubscribers).forEach((subscriber) => subscriber(umlAssessments));
-      this.assessments = umlAssessments;
+      // check if previous assessment differs from current selection, if yes -> notify subscribers
+      if (JSON.stringify(this.assessments) !== JSON.stringify(umlAssessments)) {
+        Object.values(this.assessmentSubscribers).forEach((subscriber) => subscriber(umlAssessments));
+        this.assessments = umlAssessments;
+      }
     }
 
     // notfiy that action was done
@@ -579,7 +585,6 @@ export class ApollonEditor {
     try {
       // if state not available -> do not emit changes
       if (!this.store) return;
-      const model = this.model;
       if (
         // At the end of each update operation there is an action that ends with END except DELETE
         // Function is called with every redux action but only notifies subscribers if the action ends with given words
@@ -599,6 +604,9 @@ export class ApollonEditor {
     try {
       // if state not available -> do not emit changes
       if (!this.store) return;
+      // Mid-drag/resize every pointer move lands here; emit once the gesture ends.
+      const { moving, resizing } = this.store.getState();
+      if (moving.length || resizing.length) return;
       const model = this.model;
       const lastModel = this.currentModelState ? ModelState.toModel(this.currentModelState) : null;
       if ((!lastModel && model) || (lastModel && JSON.stringify(model) !== JSON.stringify(lastModel))) {

@@ -18,6 +18,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
+import { Checkbox } from '@/components/ui/checkbox';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { FormField } from '@/components/ui/form-field';
 import { validateProjectName } from '../../shared/utils/validation';
@@ -29,8 +30,23 @@ import { LlmKeyDialog } from '../../shared/components/byok/LlmKeyDialog';
 import { readLlmKey } from '../../shared/services/llmKeyStorage';
 import { setApiKeyPresent } from '../spec-driven/state/specDrivenSlice';
 
+// Same nav.diagram.* labels the workspace sidebar uses (app/shell/workspace-navigation.tsx).
+const DIAGRAM_NAV_LABEL_KEY: Record<SupportedDiagramType, string> = {
+  ClassDiagram: 'nav.diagram.class',
+  ObjectDiagram: 'nav.diagram.object',
+  StateMachineDiagram: 'nav.diagram.state',
+  AgentDiagram: 'nav.diagram.agent',
+  BPMN: 'nav.diagram.bpmn',
+  UserDiagram: 'nav.diagram.user',
+  NNDiagram: 'nav.diagram.neuralNet',
+  GUINoCodeDiagram: 'nav.diagram.gui',
+  QuantumCircuitDiagram: 'nav.diagram.quantum',
+};
+
 export const ProjectSettingsPanel: React.FC = () => {
   const { t } = useTranslation();
+  const diagramLabel = (type: SupportedDiagramType): string =>
+    DIAGRAM_NAV_LABEL_KEY[type] ? t(DIAGRAM_NAV_LABEL_KEY[type]) : String(type).replace('Diagram', '');
   const [isExporting, setIsExporting] = useState(false);
   const [showInstancedObjects, setShowInstancedObjects] = useState(false);
   const [showAssociationNames, setShowAssociationNames] = useState(false);
@@ -191,6 +207,9 @@ export const ProjectSettingsPanel: React.FC = () => {
                 <FormField label={t('project.settings.general.projectName')} htmlFor="settings-name" required error={settingsValidation.getError('name')}>
                   <Input
                     id="settings-name"
+                    name="settings-name"
+                    autoComplete="off"
+                    spellCheck={false}
                     value={currentProject.name}
                     onChange={(event) => handleProjectField('name', event.target.value)}
                     onBlur={() => settingsValidation.markTouched('name')}
@@ -198,7 +217,7 @@ export const ProjectSettingsPanel: React.FC = () => {
                   />
                 </FormField>
                 <FormField label={t('project.field.owner')} htmlFor="settings-owner">
-                  <Input id="settings-owner" value={currentProject.owner} onChange={(event) => handleProjectField('owner', event.target.value)} />
+                  <Input id="settings-owner" name="settings-owner" autoComplete="name" value={currentProject.owner} onChange={(event) => handleProjectField('owner', event.target.value)} />
                 </FormField>
                 <FormField label={t('project.field.description')} htmlFor="settings-description">
                   <Textarea
@@ -210,12 +229,12 @@ export const ProjectSettingsPanel: React.FC = () => {
                 </FormField>
                 <div className="grid gap-4 sm:grid-cols-2">
                   <div className="rounded-lg border border-border/60 bg-muted/30 p-3">
-                    <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">{t('project.settings.general.created')}</p>
+                    <p className="text-xs font-medium text-muted-foreground">{t('project.settings.general.created')}</p>
                     <p className="mt-1 text-sm">{new Date(currentProject.createdAt).toLocaleString()}</p>
                   </div>
                   <div className="rounded-lg border border-border/60 bg-muted/30 p-3">
-                    <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">{t('project.settings.general.activeEditor')}</p>
-                    <p className="mt-1 text-sm">{currentProject.currentDiagramType.replace('Diagram', '')}</p>
+                    <p className="text-xs font-medium text-muted-foreground">{t('project.settings.general.activeEditor')}</p>
+                    <p className="mt-1 text-sm">{diagramLabel(currentProject.currentDiagramType)}</p>
                   </div>
                 </div>
               </CardContent>
@@ -236,14 +255,11 @@ export const ProjectSettingsPanel: React.FC = () => {
                     <p className="text-sm font-medium">{t('project.settings.display.showInstancedObjects')}</p>
                     <p className="text-xs text-muted-foreground">{t('project.settings.display.showInstancedObjectsDesc')}</p>
                   </div>
-                  <input
-                    type="checkbox"
-                    className="size-4 accent-brand"
+                  <Checkbox
                     checked={showInstancedObjects}
-                    onChange={(event) => {
-                      setShowInstancedObjects(event.target.checked);
-                      settingsService.updateSetting('showInstancedObjects', event.target.checked);
-                      // toast.success(`Instanced objects ${event.target.checked ? 'enabled' : 'disabled'}.`);
+                    onCheckedChange={(checked) => {
+                      setShowInstancedObjects(checked);
+                      settingsService.updateSetting('showInstancedObjects', checked);
                     }}
                   />
                 </label>
@@ -253,14 +269,11 @@ export const ProjectSettingsPanel: React.FC = () => {
                     <p className="text-sm font-medium">{t('project.settings.display.showAssociationNames')}</p>
                     <p className="text-xs text-muted-foreground">{t('project.settings.display.showAssociationNamesDesc')}</p>
                   </div>
-                  <input
-                    type="checkbox"
-                    className="size-4 accent-brand"
+                  <Checkbox
                     checked={showAssociationNames}
-                    onChange={(event) => {
-                      setShowAssociationNames(event.target.checked);
-                      settingsService.updateSetting('showAssociationNames', event.target.checked);
-                      // toast.success(`Association names ${event.target.checked ? 'enabled' : 'disabled'}.`);
+                    onCheckedChange={(checked) => {
+                      setShowAssociationNames(checked);
+                      settingsService.updateSetting('showAssociationNames', checked);
                     }}
                   />
                 </label>
@@ -270,13 +283,11 @@ export const ProjectSettingsPanel: React.FC = () => {
                     <p className="text-sm font-medium">{t('project.settings.display.propertiesPanel')}</p>
                     <p className="text-xs text-muted-foreground">{t('project.settings.display.propertiesPanelDesc')}</p>
                   </div>
-                  <input
-                    type="checkbox"
-                    className="size-4 accent-brand"
+                  <Checkbox
                     checked={usePropertiesPanel}
-                    onChange={(event) => {
-                      setUsePropertiesPanel(event.target.checked);
-                      settingsService.updateSetting('usePropertiesPanel', event.target.checked);
+                    onCheckedChange={(checked) => {
+                      setUsePropertiesPanel(checked);
+                      settingsService.updateSetting('usePropertiesPanel', checked);
                     }}
                   />
                 </label>
@@ -317,12 +328,13 @@ export const ProjectSettingsPanel: React.FC = () => {
               <CardHeader className="pb-4">
                 <div className="flex items-center gap-2">
                   <KeyRound className="size-4 text-brand" />
-                  <CardTitle className="text-base">AI / LLM API Key</CardTitle>
+                  <CardTitle className="text-base">{t('project.settings.apiKey.title', { defaultValue: 'AI / LLM API Key' })}</CardTitle>
                 </div>
                 <CardDescription>
-                  Use your own Anthropic, OpenAI, Mistral or Nebius key. Entered once here, it powers
-                  both the modeling assistant and the Spec-Driven generator (Nebius powers the generator
-                  only). Stored only in this browser tab, never on our servers.
+                  {t('project.settings.apiKey.description', {
+                    defaultValue:
+                      'Use your own Anthropic, OpenAI, Mistral or Nebius key. Entered once here, it powers both the modeling assistant and the Spec-Driven generator (Nebius powers the generator only). Stored only in this browser tab, never on our servers.',
+                  })}
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -331,21 +343,29 @@ export const ProjectSettingsPanel: React.FC = () => {
                     {llmKeyInfo ? (
                       <>
                         <p className="truncate text-sm font-medium">
-                          Key set · {llmKeyInfo.provider}
+                          {t('project.settings.apiKey.keySet', { defaultValue: 'Key set · {{provider}}', provider: llmKeyInfo.provider })}
                           {llmKeyInfo.model ? ` · ${llmKeyInfo.model}` : ''}
                         </p>
-                        <p className="text-xs text-muted-foreground">Applies to the assistant and generator</p>
+                        <p className="text-xs text-muted-foreground">
+                          {t('project.settings.apiKey.keySetHint', { defaultValue: 'Applies to the assistant and generator' })}
+                        </p>
                       </>
                     ) : (
                       <>
-                        <p className="truncate text-sm font-medium">No key set</p>
-                        <p className="text-xs text-muted-foreground">Using the shared server key + rate limits</p>
+                        <p className="truncate text-sm font-medium">
+                          {t('project.settings.apiKey.noKey', { defaultValue: 'No key set' })}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          {t('project.settings.apiKey.noKeyHint', { defaultValue: 'Using the shared server key + rate limits' })}
+                        </p>
                       </>
                     )}
                   </div>
                   <Button variant="outline" size="sm" className="gap-1.5" onClick={() => setLlmKeyOpen(true)}>
                     <KeyRound className="size-3.5" />
-                    {llmKeyInfo ? 'Change key' : 'Set API key'}
+                    {llmKeyInfo
+                      ? t('project.settings.apiKey.change', { defaultValue: 'Change Key' })
+                      : t('project.settings.apiKey.set', { defaultValue: 'Set API Key' })}
                   </Button>
                 </div>
               </CardContent>
@@ -374,7 +394,7 @@ export const ProjectSettingsPanel: React.FC = () => {
                         <p className="truncate text-sm font-medium">{diagram.title}</p>
                         <p className="text-xs text-muted-foreground">{t('project.settings.diagrams.updated', { date: new Date(diagram.lastUpdate).toLocaleString() })}</p>
                       </div>
-                      <Badge className={DIAGRAM_TYPE_BADGE[type]}>{type.replace('Diagram', '')}</Badge>
+                      <Badge className={DIAGRAM_TYPE_BADGE[type]}>{diagramLabel(type)}</Badge>
                     </div>
                   ))}
                   {diagrams.length === 0 && (
@@ -398,7 +418,7 @@ export const ProjectSettingsPanel: React.FC = () => {
               <CardContent className="flex flex-col gap-4">
                 {/* Preset row */}
                 <div className="flex flex-col gap-2">
-                  <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                  <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground">
                     <Sparkles className="size-3.5" />
                     <span>{t('project.settings.perspectives.quickPresets')}</span>
                   </div>
@@ -445,24 +465,20 @@ export const ProjectSettingsPanel: React.FC = () => {
                             <div className="flex items-center gap-2">
                               <p className="text-sm font-medium">{t(`diagramTypes.${type}`)}</p>
                               <Badge className={DIAGRAM_TYPE_BADGE[type]}>
-                                {type.replace('Diagram', '')}
+                                {diagramLabel(type)}
                               </Badge>
                             </div>
                             <p className="text-xs text-muted-foreground">
                               {t(`project.settings.perspectives.diagrams.${type}`)}
                             </p>
                           </div>
-                          <input
+                          <Checkbox
                             id={labelId}
-                            type="checkbox"
-                            className="size-4 accent-brand"
                             checked={checked}
                             disabled={isLastEnabled}
                             aria-label={t('project.settings.perspectives.toggleAria', { label: t(`diagramTypes.${type}`) })}
                             data-testid={`perspective-toggle-${type}`}
-                            onChange={(event) =>
-                              handlePerspectiveToggle(type, event.target.checked)
-                            }
+                            onCheckedChange={(next) => handlePerspectiveToggle(type, next)}
                           />
                         </label>
                       </React.Fragment>

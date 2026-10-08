@@ -134,10 +134,12 @@ export const CredentialsDialog: React.FC<CredentialsDialogProps> = ({
             {apiKeyMode === 'own' && (
               <div className="space-y-2.5 rounded-lg border border-border/50 bg-muted/20 p-3">
                 <div className="space-y-1">
-                  <label className="text-xs font-medium text-muted-foreground">
+                  <label htmlFor="sim-cred-openai" className="text-xs font-medium text-muted-foreground">
                     {t('agentSimulation.credentials.openAiLabel')} <span className="text-muted-foreground/70">{t('agentSimulation.credentials.optional')}</span>
                   </label>
                   <input
+                    id="sim-cred-openai"
+                    name="sim-cred-openai"
                     type="password"
                     value={openAiKey}
                     onChange={(e) => setOpenAiKey(e.target.value)}
@@ -148,11 +150,13 @@ export const CredentialsDialog: React.FC<CredentialsDialogProps> = ({
                 </div>
 
                 <div className="space-y-1">
-                  <label className="text-xs font-medium text-muted-foreground">
+                  <label htmlFor="sim-cred-huggingface" className="text-xs font-medium text-muted-foreground">
                     {t('agentSimulation.credentials.huggingFaceLabel')}{' '}
                     <span className="text-muted-foreground/70">{t('agentSimulation.credentials.optional')}</span>
                   </label>
                   <input
+                    id="sim-cred-huggingface"
+                    name="sim-cred-huggingface"
                     type="password"
                     value={huggingFaceToken}
                     onChange={(e) => setHuggingFaceToken(e.target.value)}
@@ -163,10 +167,12 @@ export const CredentialsDialog: React.FC<CredentialsDialogProps> = ({
                 </div>
 
                 <div className="space-y-1">
-                  <label className="text-xs font-medium text-muted-foreground">
+                  <label htmlFor="sim-cred-replicate" className="text-xs font-medium text-muted-foreground">
                     {t('agentSimulation.credentials.replicateLabel')} <span className="text-muted-foreground/70">{t('agentSimulation.credentials.optional')}</span>
                   </label>
                   <input
+                    id="sim-cred-replicate"
+                    name="sim-cred-replicate"
                     type="password"
                     value={replicateKey}
                     onChange={(e) => setReplicateKey(e.target.value)}
@@ -185,6 +191,7 @@ export const CredentialsDialog: React.FC<CredentialsDialogProps> = ({
               <button
                 type="button"
                 onClick={() => setLimitsExpanded((prev) => !prev)}
+                aria-expanded={limitsExpanded}
                 className="flex w-full items-center justify-between text-sm font-semibold tracking-tight"
               >
                 {t('agentSimulation.credentials.limitsTitle')}

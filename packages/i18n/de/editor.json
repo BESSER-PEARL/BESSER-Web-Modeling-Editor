@@ -124,7 +124,7 @@
         "useDefault": "(Standard verwenden)"
       },
       "db": {
-        "configuring": "Datenbankaktion wird konfiguriert...",
+        "configuring": "Datenbankaktion wird konfiguriert…",
         "initialize": "Datenbankaktion initialisieren",
         "select": "Datenbank auswählen",
         "default": "Standard (App-DB verwenden)",
@@ -237,8 +237,8 @@
     "assessment": "Bewertung für",
     "score": "Punkte",
     "feedback": "Feedback",
-    "feedbackPlaceholder": "Sie können hier Feedback eingeben...",
-    "additionalFeedbackPlaceholder": "Sie können hier zusätzliches Feedback eingeben...",
+    "feedbackPlaceholder": "Sie können hier Feedback eingeben…",
+    "additionalFeedbackPlaceholder": "Sie können hier zusätzliches Feedback eingeben…",
     "nextAssessment": "Nächste Bewertung"
   },
   "packages": {
@@ -532,7 +532,7 @@
       "selectPlaceholder": "(Standard verwenden)",
       "customDatabaseName": "Benutzerdefinierter Datenbankname",
       "selectPlaceholderRag": "RAG-Datenbank auswählen",
-      "configuringDatabaseAction": "Datenbankoperation wird konfiguriert...",
+      "configuringDatabaseAction": "Datenbankoperation wird konfiguriert…",
       "initializeDatabaseAction": "Datenbankoperation initialisieren",
       "llm": "LLM",
       "systemMessage": "Systemnachricht",
@@ -610,7 +610,7 @@
       "skillReasoningStateWarning": "Skills können nur von einem Reasoning State verwendet werden. Fügen Sie einen Reasoning State hinzu, um diese Skill zu verwenden",
       "skillName": "Skill-Name",
       "skillDescriptionPlaceholder": "Optionale Kurzbeschreibung",
-      "skillContentPlaceholder": "# Skill\n\nAnweisungen in markdown...",
+      "skillContentPlaceholder": "# Skill\n\nAnweisungen in markdown…",
       "markdownContent": "Markdown-Inhalt",
       "workspaceReasoningStateWarning": "Workspaces können nur von einem Reasoning State verwendet werden. Fügen Sie einen Reasoning State hinzu, um diesen Workspace zu verwenden",
       "workspaceName": "Workspace-Name",
@@ -774,17 +774,17 @@
     "height": "Höhe"
   },
   "stylePane": {
-    "enterUri": "URI eingeben...",
-    "enterIcon": "Ikonnamen eingeben...",
-    "enterDescription": "Beschreibung eingeben...",
+    "enterUri": "URI eingeben…",
+    "enterIcon": "Ikonnamen eingeben…",
+    "enterDescription": "Beschreibung eingeben…",
     "idLockedByOptional": "Optionale Attribute können nicht der Bezeichner sein.",
-    "enterDefaultValue": "Standardwert eingeben...",
+    "enterDefaultValue": "Standardwert eingeben…",
     "reset": "Zurücksetzen",
     "fillColor": "Füllfarbe",
     "icon": "Symbol",
     "externalIdLockedByOptional": "Optionale Attribute können nicht der externe Bezeichner sein.",
     "optional": "Optional",
-    "enterInteger": "Ganzzahl eingeben...",
+    "enterInteger": "Ganzzahl eingeben…",
     "id": "ID",
     "textColor": "Textfarbe",
     "externalId": "Externe ID",
@@ -793,8 +793,22 @@
     "none": "(keine)",
     "lineColor": "Linienfarbe",
     "default": "Standard",
-    "enterNumber": "Zahl eingeben...",
-    "derived": "Abgeleitet"
+    "enterNumber": "Zahl eingeben…",
+    "derived": "Abgeleitet",
+    "colors": {
+      "red": "Rot",
+      "orange": "Orange",
+      "yellow": "Gelb",
+      "green": "Grün",
+      "teal": "Petrol",
+      "skyBlue": "Himmelblau",
+      "blue": "Blau",
+      "slateBlue": "Schieferblau",
+      "purple": "Lila",
+      "lightGray": "Hellgrau",
+      "gray": "Grau",
+      "black": "Schwarz"
+    }
   },
   "associationPopup": {
     "cancel": "Abbrechen",
@@ -802,6 +816,22 @@
     "noTargets": "Keine anderen Objekte zum Verbinden verfügbar"
   },
   "propertiesPanel": {
-    "close": "Schließen"
+    "close": "Schließen",
+    "resize": "Eigenschaftenbereich anpassen"
+  },
+  "actions": {
+    "edit": "Bearbeiten",
+    "delete": "Löschen",
+    "addConnectedObject": "Verbundenes Objekt hinzufügen",
+    "swapEnds": "Enden tauschen",
+    "style": "Stil"
+  },
+  "zoomPane": {
+    "zoomIn": "Vergrößern",
+    "zoomOut": "Verkleinern",
+    "autoLayout": "Automatisches Layout"
+  },
+  "sidebar": {
+    "resize": "Palette anpassen"
   }
 }

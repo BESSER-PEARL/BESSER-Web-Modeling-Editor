@@ -156,17 +156,24 @@ export function MessageInput({
   }
 
   const onKeyDown = (event: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    // Escape to clear the input
+    // An IME is composing (CJK input, dead keys): Enter/Escape belong to it.
+    if (event.nativeEvent.isComposing || event.keyCode === 229) return
+
+    // Escape steps out of the composer without discarding the draft. It is
+    // only consumed (preventDefault) when there was something to step out of,
+    // so on an empty composer it still reaches the surface (closes the sheet).
     if (event.key === "Escape") {
-      event.preventDefault()
-      if (onValueChange) {
-        onValueChange("")
-      } else {
-        // Fallback: synthesise a change event with empty value
-        props.onChange?.({
-          target: { value: "" },
-        } as React.ChangeEvent<HTMLTextAreaElement>)
+      if (showInterruptPrompt) {
+        event.preventDefault()
+        setShowInterruptPrompt(false)
+      } else if (
+        props.value ||
+        (props.allowAttachments && props.files?.length)
+      ) {
+        event.preventDefault()
+        event.currentTarget.blur()
       }
+      onKeyDownProp?.(event)
       return
     }
 
@@ -207,13 +214,6 @@ export function MessageInput({
   }
 
   const textAreaRef = useRef<HTMLTextAreaElement>(null)
-  const [textAreaHeight, setTextAreaHeight] = useState<number>(0)
-
-  useEffect(() => {
-    if (textAreaRef.current) {
-      setTextAreaHeight(textAreaRef.current.offsetHeight)
-    }
-  }, [props.value])
 
   const showFileList =
     props.allowAttachments && props.files && props.files.length > 0
@@ -330,7 +330,7 @@ export function MessageInput({
             aria-label={t("assistant.chatKit.stopGenerating")}
             onClick={stop}
           >
-            <Square className="h-3 w-3 animate-pulse" fill="currentColor" />
+            <Square className="h-3 w-3 animate-pulse motion-reduce:animate-none" fill="currentColor" />
           </Button>
         ) : (
           <Button
@@ -351,7 +351,7 @@ export function MessageInput({
         isRecording={isRecording}
         isTranscribing={isTranscribing}
         audioStream={audioStream}
-        textAreaHeight={textAreaHeight}
+        textAreaRef={textAreaRef}
         secondsLeft={recordingSecondsLeft}
         onStopRecording={stopRecording}
       />
@@ -420,7 +420,7 @@ function TranscribingOverlay() {
       <div className="relative">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
         <motion.div
-          className="absolute inset-0 h-8 w-8 animate-pulse rounded-full bg-primary/20"
+          className="absolute inset-0 h-8 w-8 animate-pulse rounded-full bg-primary/20 motion-reduce:animate-none"
           initial={{ scale: 0.8, opacity: 0 }}
           animate={{ scale: 1.2, opacity: 1 }}
           transition={{
@@ -456,17 +456,10 @@ function RecordingPrompt({ isVisible, onStopRecording, secondsLeft }: RecordingP
     <AnimatePresence>
       {isVisible && (
         <motion.div
-          initial={{ top: 0, filter: "blur(5px)" }}
-          animate={{
-            top: -40,
-            filter: "blur(0px)",
-            transition: {
-              type: "spring",
-              filter: { type: "tween" },
-            },
-          }}
-          exit={{ top: 0, filter: "blur(5px)" }}
-          className="absolute left-1/2 flex -translate-x-1/2 cursor-pointer overflow-hidden whitespace-nowrap rounded-full border bg-background py-1 text-center text-sm text-muted-foreground"
+          initial={{ x: "-50%", y: 0, opacity: 0 }}
+          animate={{ x: "-50%", y: -40, opacity: 1, transition: { type: "spring" } }}
+          exit={{ x: "-50%", y: 0, opacity: 0 }}
+          className="absolute left-1/2 top-0 flex cursor-pointer overflow-hidden whitespace-nowrap rounded-full border bg-background py-1 text-center text-sm text-muted-foreground"
           onClick={onStopRecording}
         >
           <span className="mx-2.5 flex items-center">
@@ -483,7 +476,7 @@ interface RecordingControlsProps {
   isRecording: boolean
   isTranscribing: boolean
   audioStream: MediaStream | null
-  textAreaHeight: number
+  textAreaRef: React.RefObject<HTMLTextAreaElement>
   secondsLeft: number
   onStopRecording: () => void
 }
@@ -492,11 +485,13 @@ function RecordingControls({
   isRecording,
   isTranscribing,
   audioStream,
-  textAreaHeight,
+  textAreaRef,
   secondsLeft,
   onStopRecording,
 }: RecordingControlsProps) {
   const { t } = useTranslation()
+  // Measured only while an overlay is shown (recording toggles re-render this).
+  const textAreaHeight = textAreaRef.current?.offsetHeight ?? 0
   if (isRecording) {
     return (
       <div

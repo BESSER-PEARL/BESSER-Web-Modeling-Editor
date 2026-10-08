@@ -4,6 +4,7 @@ import { BACKEND_URL } from '../../constants/constant';
 import { ApollonEditor } from '@besser/wme';
 import { prepareAgentModelForBackend } from '../../utils/projectExportUtils';
 import i18n from '../../i18n';
+import { describeNetworkError, isNetworkError } from '../../utils/describeNetworkError';
 
 /**
  * Validate diagram using the unified backend validation endpoint.
@@ -238,7 +239,10 @@ export async function validateDiagram(editor: ApollonEditor | null | undefined, 
     console.error('Error during validation:', error);
     if (!suppressToasts) {
       toast.dismiss(VALIDATION_TOAST_ID);
-      toast.error(i18n.t('validation.toasts.validationErrorGeneric', { error: error instanceof Error ? error.message : i18n.t('validation.toasts.unknownError') }), {
+      const message = isNetworkError(error)
+        ? describeNetworkError(error)
+        : i18n.t('validation.toasts.validationErrorGeneric', { error: error instanceof Error ? error.message : i18n.t('validation.toasts.unknownError') });
+      toast.error(message, {
         position: "top-right",
         autoClose: 5000,
         theme: "dark"

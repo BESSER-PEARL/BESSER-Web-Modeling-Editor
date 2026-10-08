@@ -28,15 +28,15 @@ export function CopyButton({ content, copyMessage }: CopyButtonProps) {
       <div className="absolute inset-0 flex items-center justify-center">
         <Check
           className={cn(
-            "h-4 w-4 text-primary transition-transform ease-in-out",
-            isCopied ? "scale-100" : "scale-0"
+            "h-4 w-4 text-primary transition-[transform,opacity] duration-150 ease-out",
+            isCopied ? "scale-100 opacity-100" : "scale-50 opacity-0"
           )}
         />
       </div>
       <Copy
         className={cn(
-          "h-4 w-4 transition-transform ease-in-out",
-          isCopied ? "scale-0" : "scale-100"
+          "h-4 w-4 transition-[transform,opacity] duration-150 ease-out",
+          isCopied ? "scale-50 opacity-0" : "scale-100 opacity-100"
         )}
       />
     </Button>

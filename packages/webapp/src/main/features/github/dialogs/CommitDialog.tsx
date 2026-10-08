@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
-import { CloudUpload } from 'lucide-react';
+import { CloudUpload, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
@@ -46,27 +46,52 @@ export const CommitDialog: React.FC<CommitDialogProps> = ({
           <DialogDescription>{t('github.commit.description')}</DialogDescription>
         </DialogHeader>
 
-        <FormField label={t('github.commit.messageLabel')} required error={validation.getError('message')}>
+        <form
+          className="grid gap-4"
+          onSubmit={(event) => {
+            event.preventDefault();
+            if (!isSaving && validation.isValid) onCommit();
+          }}
+        >
+        <FormField label={t('github.commit.messageLabel')} htmlFor="github-commit-message" required error={validation.getError('message')}>
           <Textarea
+            id="github-commit-message"
             rows={2}
             placeholder={t('github.commit.messagePlaceholder')}
             value={message}
             onChange={(event) => onMessageChange(event.target.value)}
             onBlur={() => validation.markTouched('message')}
+            onKeyDown={(event) => {
+              // Enter commits; Shift+Enter adds a line for a longer message.
+              if (event.key === 'Enter' && !event.shiftKey && !event.nativeEvent.isComposing) {
+                event.preventDefault();
+                event.currentTarget.form?.requestSubmit();
+              }
+            }}
             autoFocus
             className={validation.getError('message') ? 'border-destructive focus-visible:border-destructive focus-visible:ring-destructive/20' : ''}
           />
         </FormField>
 
         <DialogFooter>
-          <Button variant="outline" onClick={() => handleOpenChange(false)}>
+          <Button type="button" variant="outline" onClick={() => handleOpenChange(false)}>
             {t('common.cancel')}
           </Button>
-          <Button onClick={onCommit} disabled={isSaving || !validation.isValid} className="gap-2">
-            {isSaving ? t('github.commit.pushing') : <CloudUpload className="size-4" />}
-            {t('github.commit.push')}
+          <Button type="submit" disabled={isSaving || !validation.isValid} className="gap-2">
+            {isSaving ? (
+              <>
+                <Loader2 className="size-4 animate-spin" />
+                {t('github.commit.pushing')}
+              </>
+            ) : (
+              <>
+                <CloudUpload className="size-4" />
+                {t('github.commit.push')}
+              </>
+            )}
           </Button>
         </DialogFooter>
+        </form>
       </DialogContent>
     </Dialog>
   );

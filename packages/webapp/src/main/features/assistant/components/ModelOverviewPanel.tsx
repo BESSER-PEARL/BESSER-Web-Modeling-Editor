@@ -8,7 +8,7 @@
  * render — no extra state, always in sync with the canvas.
  */
 
-import React, { useMemo } from 'react';
+import React, { useEffect, useMemo, useRef } from 'react';
 import { Boxes, Database, GitBranch, MonitorSmartphone, ShieldCheck, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -134,13 +134,28 @@ const SectionHeader: React.FC<{ icon: React.ReactNode; title: string; count: num
     <span className="flex size-6 items-center justify-center rounded-md bg-brand/10 text-brand ring-1 ring-brand/15">
       {icon}
     </span>
-    <span className="text-[11px] font-semibold uppercase tracking-[0.1em] text-foreground/80">{title}</span>
+    <span className="text-xs font-medium text-muted-foreground">{title}</span>
     <span className="ml-auto rounded-full bg-muted/60 px-2 py-0.5 font-mono text-[10px] text-muted-foreground">{count}</span>
   </div>
 );
 
 export const ModelOverviewPanel: React.FC<{ onClose: () => void }> = ({ onClose }) => {
   const { currentProject } = useProject();
+
+  // Escape closes this panel first; the drawer's own Escape listener (on
+  // window, so after this document listener) skips handled events.
+  const onCloseRef = useRef(onClose);
+  onCloseRef.current = onClose;
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== 'Escape' || event.defaultPrevented || event.isComposing) return;
+      if (document.querySelector('[role="dialog"][data-state="open"]')) return;
+      event.preventDefault();
+      onCloseRef.current();
+    };
+    document.addEventListener('keydown', onKeyDown);
+    return () => document.removeEventListener('keydown', onKeyDown);
+  }, []);
 
   const { classes, relations, constraints, screens } = useMemo(() => {
     const classModel = activeDiagramModel(currentProject, 'ClassDiagram');
@@ -164,7 +179,7 @@ export const ModelOverviewPanel: React.FC<{ onClose: () => void }> = ({ onClose 
         </Button>
       </div>
 
-      <div className="min-h-0 flex-1 space-y-5 overflow-y-auto px-4 py-4">
+      <div className="min-h-0 flex-1 space-y-5 overflow-y-auto overscroll-contain px-4 py-4">
         {empty && (
           <p className="rounded-lg border border-dashed border-border/60 bg-muted/15 px-3 py-6 text-center text-xs text-muted-foreground">
             Nothing modeled yet — ask the assistant to create a system and the
@@ -179,10 +194,10 @@ export const ModelOverviewPanel: React.FC<{ onClose: () => void }> = ({ onClose 
             <div className="space-y-2">
               {classes.map((cls) => (
                 <div key={cls.name} className="rounded-lg border border-border/50 bg-card/60 px-3 py-2">
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs font-semibold tracking-tight">{cls.name}</span>
+                  <div className="flex min-w-0 items-center gap-2">
+                    <span className="min-w-0 truncate text-xs font-semibold tracking-tight" title={cls.name}>{cls.name}</span>
                     {cls.kind !== 'class' && (
-                      <span className="rounded-full bg-brand/10 px-1.5 py-px font-mono text-[9px] text-brand">
+                      <span className="shrink-0 rounded-full bg-brand/10 px-1.5 py-px font-mono text-[9px] text-brand">
                         {cls.kind}
                       </span>
                     )}
@@ -201,7 +216,7 @@ export const ModelOverviewPanel: React.FC<{ onClose: () => void }> = ({ onClose 
                         <ul className="mt-1.5 space-y-0.5">
                           {cls.attributes.map((a) => (
                             <li key={a.name} className="flex items-baseline justify-between gap-2 text-[11px]">
-                              <span className="truncate text-foreground/85">{a.name}</span>
+                              <span className="min-w-0 truncate text-foreground/85" title={a.name}>{a.name}</span>
                               <span className="shrink-0 font-mono text-[10px] text-muted-foreground/80">{a.type}</span>
                             </li>
                           ))}
@@ -226,7 +241,7 @@ export const ModelOverviewPanel: React.FC<{ onClose: () => void }> = ({ onClose 
             <SectionHeader icon={<GitBranch className="size-3.5" />} title="Relationships" count={relations.length} />
             <ul className="space-y-1">
               {relations.map((rel, i) => (
-                <li key={i} className="flex items-center gap-1.5 rounded-md border border-border/40 bg-card/40 px-2.5 py-1.5 text-[11px]">
+                <li key={i} className="flex min-w-0 flex-wrap items-center gap-1.5 break-all rounded-md border border-border/40 bg-card/40 px-2.5 py-1.5 text-[11px]">
                   <span className="font-medium">{rel.source}</span>
                   {rel.sourceMultiplicity && <span className="font-mono text-[9px] text-muted-foreground">{rel.sourceMultiplicity}</span>}
                   <span className="text-muted-foreground/70">—{rel.label}→</span>
@@ -245,7 +260,7 @@ export const ModelOverviewPanel: React.FC<{ onClose: () => void }> = ({ onClose 
             <div className="space-y-2">
               {screens.map((screen) => (
                 <div key={screen.name} className="rounded-lg border border-border/50 bg-card/60 px-3 py-2">
-                  <span className="text-xs font-semibold tracking-tight">{screen.name}</span>
+                  <span className="block truncate text-xs font-semibold tracking-tight" title={screen.name}>{screen.name}</span>
                   {screen.sections.length > 0 && (
                     <ul className="mt-1 space-y-0.5">
                       {screen.sections.map((s, i) => (

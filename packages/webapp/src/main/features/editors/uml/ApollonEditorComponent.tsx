@@ -66,19 +66,28 @@ export const ApollonEditorComponent: React.FC = () => {
   // Host-side element-picker provider (cross-diagram `realizes`).
   const elementPicker = useElementPickerProvider();
 
+  // Destroys run one after another, and a new editor waits for all of them: a late
+  // destroy of an old instance otherwise removes DOM the next instance is mounted into
+  // (rapid revision bumps, e.g. "New diagram tab", left a blank canvas).
+  const pendingDestroyRef = useRef<Promise<void>>(Promise.resolve());
   const destroyEditorDeferred = useCallback((editor: ApollonEditor) => {
-    return new Promise<void>((resolve) => {
-      // Defer destroy to avoid React unmount race warnings during render transitions.
-      setTimeout(() => {
-        try {
-          editor.destroy();
-        } catch (error) {
-          console.warn('Error destroying editor:', error);
-        } finally {
-          resolve();
-        }
-      }, 0);
-    });
+    const run = pendingDestroyRef.current.then(
+      () =>
+        new Promise<void>((resolve) => {
+          // Defer destroy to avoid React unmount race warnings during render transitions.
+          setTimeout(() => {
+            try {
+              editor.destroy();
+            } catch (error) {
+              console.warn('Error destroying editor:', error);
+            } finally {
+              resolve();
+            }
+          }, 0);
+        }),
+    );
+    pendingDestroyRef.current = run;
+    return run;
   }, []);
 
   // Cleanup function
@@ -90,7 +99,10 @@ export const ApollonEditorComponent: React.FC = () => {
     }
     const editor = editorRef.current;
     editorRef.current = null;
-    if (!editor) return;
+    if (!editor) {
+      await pendingDestroyRef.current;
+      return;
+    }
     // Unsubscribe from model changes before destroying
     if (modelSubscriptionRef.current !== null) {
       editor.unsubscribeFromModelChange(modelSubscriptionRef.current);

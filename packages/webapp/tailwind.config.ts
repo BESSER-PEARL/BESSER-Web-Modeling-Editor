@@ -38,6 +38,18 @@ const config: Config = {
   				DEFAULT: 'hsl(var(--destructive))',
   				foreground: 'hsl(var(--destructive-foreground))'
   			},
+  			warning: {
+  				DEFAULT: 'hsl(var(--warning))',
+  				foreground: 'hsl(var(--warning-foreground))'
+  			},
+  			success: {
+  				DEFAULT: 'hsl(var(--success))',
+  				foreground: 'hsl(var(--success-foreground))'
+  			},
+  			info: {
+  				DEFAULT: 'hsl(var(--info))',
+  				foreground: 'hsl(var(--info-foreground))'
+  			},
   			popover: {
   				DEFAULT: 'hsl(var(--popover))',
   				foreground: 'hsl(var(--popover-foreground))'
@@ -60,9 +72,11 @@ const config: Config = {
   			}
   		},
   		borderRadius: {
-  			lg: 'var(--radius)',
+  			sm: 'calc(var(--radius) - 4px)',
   			md: 'calc(var(--radius) - 2px)',
-  			sm: 'calc(var(--radius) - 4px)'
+  			lg: 'var(--radius)',
+  			xl: 'calc(var(--radius) + 4px)',
+  			'2xl': 'calc(var(--radius) + 8px)'
   		},
   		keyframes: {
   			'accordion-down': {
@@ -160,9 +174,10 @@ const config: Config = {
   		},
   		boxShadow: {
   			glow: '0 20px 60px -25px rgba(15, 23, 42, 0.35)',
-  			'elevation-1': '0 1px 3px 0 rgba(0, 0, 0, 0.04), 0 1px 2px -1px rgba(0, 0, 0, 0.06)',
-  			'elevation-2': '0 4px 12px -2px rgba(0, 0, 0, 0.06), 0 2px 6px -2px rgba(0, 0, 0, 0.04)',
-  			'elevation-3': '0 12px 32px -8px rgba(0, 0, 0, 0.10), 0 4px 12px -4px rgba(0, 0, 0, 0.06)',
+  			// --shadow-color / --shadow-strength are per theme (styles.css) so elevation stays visible in dark mode.
+  			'elevation-1': '0 1px 3px 0 hsl(var(--shadow-color) / calc(var(--shadow-strength) * 0.04)), 0 1px 2px -1px hsl(var(--shadow-color) / calc(var(--shadow-strength) * 0.06))',
+  			'elevation-2': '0 4px 12px -2px hsl(var(--shadow-color) / calc(var(--shadow-strength) * 0.06)), 0 2px 6px -2px hsl(var(--shadow-color) / calc(var(--shadow-strength) * 0.04))',
+  			'elevation-3': '0 12px 32px -8px hsl(var(--shadow-color) / calc(var(--shadow-strength) * 0.10)), 0 4px 12px -4px hsl(var(--shadow-color) / calc(var(--shadow-strength) * 0.06))',
   			'inner-glow': 'inset 0 1px 0 0 rgba(255, 255, 255, 0.06)'
   		}
   	}
