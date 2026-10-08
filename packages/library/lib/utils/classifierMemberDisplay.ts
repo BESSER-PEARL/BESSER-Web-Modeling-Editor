@@ -41,7 +41,7 @@ export interface ClassifierMemberLike {
    * the `(p: type, …)` segment so the canvas renders the full signature
    * exactly like develop's fused-name `displayName` did.
    */
-  parameters?: { name: string; parameterType?: string }[]
+  parameters?: { name: string; parameterType?: string; defaultValue?: unknown }[]
 }
 
 /**
@@ -109,7 +109,8 @@ export const parseLegacyNameFormat = (
  * String attributes (`str` / `string`, or no type — v3's
  * `UMLObjectAttribute.attributeType` defaulted to `'str'`) quote the value,
  * `name = "value"` (`name = ""` when empty), like develop's
- * `uml-classifier-member-component.tsx` `isStringAttribute` branch.
+ * `uml-classifier-member-component.tsx` `isStringAttribute` branch, with
+ * embedded double quotes escaped.
  */
 export const formatObjectMember = (
   member: ClassifierMemberLike & { value?: unknown }
@@ -125,7 +126,9 @@ export const formatObjectMember = (
     name = name.substring(0, eqIndex)
   }
   if (isString) {
-    return `${name} = "${value === undefined || value === null ? "" : String(value)}"`
+    // Escape embedded quotes so `It "works"` renders `"It \"works\""`.
+    const text = value === undefined || value === null ? "" : String(value)
+    return `${name} = "${text.replace(/"/g, '\\"')}"`
   }
   const hasValue = value !== undefined && value !== null && value !== ""
   return hasValue ? `${name} = ${value}` : name
@@ -255,7 +258,12 @@ const formatMethodDisplayName = (
   // Inspector-authored rows store a bare name + structured parameters.
   if (!signature.includes("(")) {
     const paramList = (member.parameters ?? [])
-      .map((p) => (p.parameterType ? `${p.name}: ${p.parameterType}` : p.name))
+      .map((p) => {
+        const typed = p.parameterType ? `${p.name}: ${p.parameterType}` : p.name
+        const hasDefault =
+          p.defaultValue !== undefined && p.defaultValue !== null && p.defaultValue !== ""
+        return hasDefault ? `${typed} = ${p.defaultValue}` : typed
+      })
       .join(", ")
     signature = `${signature}(${paramList})`
   }
@@ -548,3 +556,121 @@ export const selectDefaultValueWidget = (
  */
 export const sanitizeNumericDefault = (value: string): string =>
   value.replace(/[^0-9.-]/g, "")
+
+/* -------------------------------------------------------------------------- */
+/* Legacy fused-name splitting (load-time migration)                           */
+/* -------------------------------------------------------------------------- */
+
+/** Split on top-level occurrences of `sep`, ignoring brackets and quotes. */
+const splitTopLevel = (raw: string, sep: string): string[] => {
+  const parts: string[] = []
+  let depth = 0
+  let quote: string | null = null
+  let current = ""
+  for (const ch of raw) {
+    if (quote) {
+      if (ch === quote) quote = null
+    } else if (ch === "'" || ch === '"') {
+      quote = ch
+    } else if ("([{".includes(ch)) {
+      depth += 1
+    } else if (")]}".includes(ch)) {
+      depth -= 1
+    } else if (ch === sep && depth === 0) {
+      parts.push(current)
+      current = ""
+      continue
+    }
+    current += ch
+  }
+  parts.push(current)
+  return parts
+}
+
+export interface LegacyMethodSignature {
+  /** Set only when the name carried a `+ - # ~` prefix. */
+  visibility?: Visibility
+  name: string
+  /** Set only when the name carried a `(...)` list. */
+  parameters?: { name: string; parameterType?: string; defaultValue?: string }[]
+  /** Set only when the name declared a `: type` return suffix. */
+  returnType?: string
+}
+
+/**
+ * Split a legacy fused method name (`"+ greet(name: str = 'x'): str"`) into
+ * its parts, the way the backend's `parse_method` read it: types verbatim
+ * (so the canvas renders what develop did), `self` kept, quotes around a
+ * default stripped. Returns `undefined` when the name is already a bare
+ * identifier or is malformed (unbalanced parentheses).
+ */
+export const splitLegacyMethodSignature = (
+  raw: string
+): LegacyMethodSignature | undefined => {
+  const trimmed = raw.trim()
+  const visMatch = trimmed.match(/^([+\-#~])\s*/)
+  const visibility = visMatch ? SYMBOL_TO_VISIBILITY[visMatch[1]] : undefined
+  const rest = visMatch ? trimmed.substring(visMatch[0].length) : trimmed
+  const open = rest.indexOf("(")
+
+  if (open >= 0) {
+    const close = rest.lastIndexOf(")")
+    if (close < open) return undefined
+    const after = rest.substring(close + 1).trim()
+    const parameters = splitTopLevel(rest.substring(open + 1, close), ",")
+      .map((p) => p.trim())
+      .filter((p) => p.length > 0)
+      .map((p) => {
+        const [head, ...defaultParts] = splitTopLevel(p, "=")
+        const colon = head.indexOf(":")
+        const name = (colon >= 0 ? head.substring(0, colon) : head).trim()
+        const parameterType = colon >= 0 ? head.substring(colon + 1).trim() : ""
+        // Quotes are stripped like the backend's name parser did.
+        const defaultValue = defaultParts
+          .join("=")
+          .trim()
+          .replace(/^(['"])(.*)\1$/, "$2")
+        return {
+          name,
+          ...(parameterType && { parameterType }),
+          ...(defaultValue && { defaultValue }),
+        }
+      })
+    return {
+      ...(visibility && { visibility }),
+      name: rest.substring(0, open).trim(),
+      parameters,
+      ...(after.startsWith(":") &&
+        after.substring(1).trim() && { returnType: after.substring(1).trim() }),
+    }
+  }
+
+  const colon = rest.indexOf(":")
+  if (colon >= 0) {
+    return {
+      ...(visibility && { visibility }),
+      name: rest.substring(0, colon).trim(),
+      ...(rest.substring(colon + 1).trim() && {
+        returnType: rest.substring(colon + 1).trim(),
+      }),
+    }
+  }
+  if (!visibility) return undefined
+  return { visibility, name: rest }
+}
+
+export type UserCriterionOperator = "<" | "<=" | "==" | ">=" | ">"
+
+/**
+ * Parse a legacy user-model criterion row name (`"age < 18"`,
+ * `"lastName = "`) into name / operator / value. Returns `undefined` when
+ * the name holds no comparator. `=` is read as `==` (develop parity).
+ */
+export const parseUserCriterion = (
+  raw: string
+): { name: string; operator: UserCriterionOperator; value: string } | undefined => {
+  const match = raw.match(/^\s*([^<>=]*?)\s*(<=|>=|==|=|<|>)\s*(.*?)\s*$/)
+  if (!match) return undefined
+  const op = match[2] === "=" ? "==" : (match[2] as UserCriterionOperator)
+  return { name: match[1], operator: op, value: match[3] }
+}

@@ -3,8 +3,8 @@
  *  - v3 `UMLUserModelName.serialize` stores the icon CHILD's id in `icon`;
  *    the migrator must lift the child's SVG body, not the id (the bundled
  *    Personalized Gym Agent template shipped 10 uuid "icons").
- *  - Icon vs attribute table follows the global "Show Icon View" setting
- *    (default off -> table with constraints such as `age >= 65`).
+ *  - Icon vs attribute table follows the per-node `data.view`: icon by
+ *    default, the table (constraints such as `age >= 65`) on request.
  */
 import { describe, it, expect, afterEach } from "vitest"
 import { render } from "@testing-library/react"
@@ -13,7 +13,11 @@ import { resolve } from "path"
 import * as Y from "yjs"
 import type { StoreApi } from "zustand"
 import { convertV3ToV4 } from "@/utils/versionConverter"
-import { UserModelNameSVG } from "@/components/svgs/nodes/userDiagram"
+import {
+  FALLBACK_PERSON_ICON_SVG,
+  UserModelNameSVG,
+  resolveUserModelIconBody,
+} from "@/components/svgs/nodes/userDiagram"
 import {
   AssessmentSelectionStoreContext,
   DiagramStoreContext,
@@ -70,7 +74,7 @@ describe("UserModelName v3 -> v4 icon migration", () => {
     expect((node.data as { icon?: string }).icon).toBe(ICON_SVG)
   })
 
-  it("does not stamp a per-node view (the global setting decides)", () => {
+  it("does not stamp a per-node view (unset renders as icon)", () => {
     const v4 = convertV3ToV4(v3UserModel() as never)
     const node = v4.nodes.find((n) => n.id === "user-1")!
     expect((node.data as { view?: string }).view).toBeUndefined()
@@ -119,7 +123,7 @@ describe("personalized_gym_agent.json template", () => {
   })
 })
 
-describe("UserModelNameSVG follows the global Show Icon View setting", () => {
+describe("UserModelNameSVG view (per-node data.view, icon by default)", () => {
   afterEach(() => settingsService.updateSetting("showIconView", false))
 
   const renderSvg = (data: Record<string, unknown> = {}) => {
@@ -149,30 +153,41 @@ describe("UserModelNameSVG follows the global Show Icon View setting", () => {
       </DiagramStoreContext.Provider>
     )
   }
+  const iconBox = (c: HTMLElement) =>
+    c.getElementsByTagName("foreignObject")[0] ?? null
 
-  it("shows the attribute table by default (develop default: icon view off)", () => {
+  it("shows the icon by default (no view stored), header still named", () => {
     const { container } = renderSvg()
-    expect(container.textContent).toContain("age >= 65")
-    expect(container.getElementsByTagName("foreignObject")[0] ?? null).toBeNull()
-  })
-
-  it("ignores a legacy per-node view: 'icon' when the setting is off", () => {
-    const { container } = renderSvg({ view: "icon" })
-    expect(container.textContent).toContain("age >= 65")
-    expect(container.getElementsByTagName("foreignObject")[0] ?? null).toBeNull()
-  })
-
-  it("shows the icon when the setting is on and an icon exists", () => {
-    settingsService.updateSetting("showIconView", true)
-    const { container } = renderSvg()
-    expect(container.getElementsByTagName("foreignObject")[0] ?? null).not.toBeNull()
+    expect(iconBox(container)).not.toBeNull()
+    expect(iconBox(container)!.innerHTML).toContain("circle")
+    expect(container.textContent).toContain("User")
     expect(container.textContent).not.toContain("age >= 65")
   })
 
-  it("falls back to the table when the setting is on but no icon exists", () => {
-    settingsService.updateSetting("showIconView", true)
-    const { container } = renderSvg({ icon: undefined, className: "NoSuchClass" })
+  it("shows the attribute table when view is 'attributes'", () => {
+    const { container } = renderSvg({ view: "attributes" })
     expect(container.textContent).toContain("age >= 65")
-    expect(container.getElementsByTagName("foreignObject")[0] ?? null).toBeNull()
+    expect(iconBox(container)).toBeNull()
+  })
+
+  it("is not tied to the object-diagram Show Icon View setting", () => {
+    settingsService.updateSetting("showIconView", false)
+    expect(iconBox(renderSvg().container)).not.toBeNull()
+    settingsService.updateSetting("showIconView", true)
+    const { container } = renderSvg({ view: "attributes" })
+    expect(container.textContent).toContain("age >= 65")
+    expect(iconBox(container)).toBeNull()
+  })
+
+  it("falls back to the person glyph when no icon resolves (never the table)", () => {
+    const { container } = renderSvg({ icon: undefined, className: "NoSuchClass" })
+    expect(iconBox(container)!.innerHTML).toContain("fluentColorPerson")
+    expect(container.textContent).not.toContain("age >= 65")
+  })
+
+  it("uses the linked meta-class icon when the node has none", () => {
+    const metaIcon = resolveUserModelIconBody({ className: "Personal_Information" })
+    expect(metaIcon).not.toBe(FALLBACK_PERSON_ICON_SVG)
+    expect(metaIcon.trim().startsWith("<svg")).toBe(true)
   })
 })

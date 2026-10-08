@@ -76,7 +76,11 @@ const pickAgentRowPassthrough = (
   }
   return out
 }
-import { parseLegacyNameFormat } from "./classifierMemberDisplay"
+import {
+  parseLegacyNameFormat,
+  parseUserCriterion,
+  splitLegacyMethodSignature,
+} from "./classifierMemberDisplay"
 import { normalizeNNCompositionEndpoints } from "./edgeUtils"
 import {
   liftV3AssociationNavigability,
@@ -627,6 +631,14 @@ function extractClassifierMember(
     returnType?: string
   }
 ): ClassNodeElement {
+  // develop `UMLClassifierMember.deserialize`: a member that carries code
+  // but no implementation type is implemented in Python code.
+  const implementationType: ClassifierMethodImplementationType | undefined =
+    (!childElement.implementationType ||
+      childElement.implementationType === "none") &&
+    childElement.code
+      ? "code"
+      : childElement.implementationType
   const baseMember: ClassNodeElement = {
     id: childElement.id,
     name: childElement.name,
@@ -644,9 +656,7 @@ function extractClassifierMember(
       visibility: childElement.visibility,
       attributeType: childElement.attributeType,
       ...(childElement.code !== undefined && { code: childElement.code }),
-      ...(childElement.implementationType && {
-        implementationType: childElement.implementationType,
-      }),
+      ...(implementationType && { implementationType }),
       ...(childElement.stateMachineId && {
         stateMachineId: childElement.stateMachineId,
       }),
@@ -700,8 +710,9 @@ function extractClassifierMember(
     visibility: parsed.visibility,
     attributeType: parsed.attributeType,
     ...(childElement.code !== undefined && { code: childElement.code }),
-    ...(childElement.implementationType && {
-      implementationType: childElement.implementationType,
+    ...(implementationType && { implementationType }),
+    ...(childElement.defaultValue !== undefined && {
+      defaultValue: childElement.defaultValue,
     }),
     ...(childElement.stateMachineId && {
       stateMachineId: childElement.stateMachineId,
@@ -973,6 +984,11 @@ function convertV3NodeDataToV4(
           const linkedId = (childElement as { attributeId?: string })
             .attributeId
           if (linkedId) member.attributeId = linkedId
+          // develop `UMLObjectAttribute.deserialize` keeps the stored type
+          // even for legacy rows without `visibility`.
+          const storedType = (childElement as { attributeType?: unknown })
+            .attributeType
+          if (typeof storedType === "string") member.attributeType = storedType
           // Object diagrams stash the runtime value in the row name as
           // `attribute = value`. Lift the value side into a structured
           // `value` field so the inspector can edit it cleanly.
@@ -5011,6 +5027,118 @@ function normalizeClassStereotypeCase(model: UMLModel): UMLModel {
 }
 
 /**
+ * Split legacy fused method names (`"+ run(): any"`) into structured
+ * `visibility` / `name` / `parameters[]` / `returnType`. Imported v3 rows
+ * kept the whole signature in `name`, so the inspector showed the wrong
+ * visibility / return type and editing them changed nothing on the canvas.
+ * The rendered text stays what develop showed: a visibility-prefixed name
+ * without a `: type` suffix declared no return type (develop ignored the
+ * stored `attributeType`, which often holds junk such as `"int): any"`).
+ */
+function normalizeLegacyMethodRow(row: ClassNodeElement): ClassNodeElement {
+  const raw = row.name ?? ""
+  const split = splitLegacyMethodSignature(raw)
+  if (!split) return row
+
+  let returnType: string
+  if (split.returnType !== undefined) {
+    returnType = split.returnType
+  } else if (/^[+\-#~]\s/.test(raw.trim())) {
+    returnType = ""
+  } else {
+    const stored = row.attributeType ?? row.returnType ?? ""
+    returnType = /[()]/.test(stored) ? "" : stored
+  }
+
+  const existing = row.parameters ?? []
+  const parameters = split.parameters
+    ? split.parameters.map((p, index) => {
+        const match = existing.find((e) => e.name === p.name) ?? existing[index]
+        // Derived from the method id so loading the same model twice yields the same ids.
+        return { ...p, id: match?.id ?? `${row.id ?? "method"}-param-${index}` }
+      })
+    : row.parameters
+
+  return {
+    ...row,
+    name: split.name,
+    visibility: split.visibility ?? row.visibility ?? "public",
+    attributeType: returnType,
+    returnType,
+    ...(parameters !== undefined && { parameters }),
+  }
+}
+
+function normalizeLegacyMethodSignatures(model: UMLModel): UMLModel {
+  let touched = 0
+  const nodes = model.nodes.map((n) => {
+    if (n.type !== "class") return n
+    const d = n.data as ClassNodeProps | undefined
+    if (!d || !Array.isArray(d.methods)) return n
+    let changed = false
+    const methods = d.methods.map((row) => {
+      const next = normalizeLegacyMethodRow(row)
+      if (next !== row) changed = true
+      return next
+    })
+    if (!changed) return n
+    touched += 1
+    return { ...n, data: { ...d, methods } } as BesserNode
+  })
+  if (touched === 0) return model
+  return { ...model, nodes }
+}
+
+/**
+ * Split legacy user-model criterion rows (`name: "age < 18"`, no `value`)
+ * into `name` / `attributeOperator` / `value`, so inspector edits reach
+ * the canvas and the inspector shows the stored value. An explicit
+ * `attributeOperator` / `value` wins over what the name embeds.
+ */
+function normalizeUserCriterionRow<
+  T extends { name?: string; attributeOperator?: string; value?: unknown },
+>(row: T): T {
+  if (typeof row.name !== "string") return row
+  const parsed = parseUserCriterion(row.name)
+  if (!parsed || !parsed.name) return row
+  const hasValue =
+    row.value !== undefined && row.value !== null && row.value !== ""
+  return {
+    ...row,
+    name: parsed.name,
+    attributeOperator: row.attributeOperator ?? parsed.operator,
+    ...(!hasValue && parsed.value !== "" && { value: parsed.value }),
+  }
+}
+
+function normalizeUserCriterionRows(model: UMLModel): UMLModel {
+  let touched = 0
+  const nodes = model.nodes.map((n) => {
+    if (n.type === "UserModelAttribute") {
+      const d = n.data as { name?: string; attributeOperator?: string }
+      const next = normalizeUserCriterionRow(d)
+      if (next === d) return n
+      touched += 1
+      return { ...n, data: next } as BesserNode
+    }
+    if (n.type !== "UserModelName") return n
+    const d = n.data as { attributes?: { name?: string }[] } | undefined
+    if (!d || !Array.isArray(d.attributes)) return n
+    let changed = false
+    const attributes = d.attributes.map((row) => {
+      const next = normalizeUserCriterionRow(row)
+      if (next !== row) changed = true
+      return next
+    })
+    if (!changed) return n
+    touched += 1
+    return { ...n, data: { ...d, attributes } } as BesserNode
+  })
+  if (touched === 0) return model
+  return { ...model, nodes }
+}
+
+/**
  * Unconditional v4 normalization pass.
  *
  * Runs on EVERY model load — including `version: "4.0.0"` templates and
@@ -5040,6 +5168,8 @@ export function normalizeV4Model(model: UMLModel): UMLModel {
   m = normalizeAgentInitialState(m)
   m = normalizeOCLConstraintNodes(m)
   m = normalizeClassStereotypeCase(m)
+  m = normalizeLegacyMethodSignatures(m)
+  m = normalizeUserCriterionRows(m)
   m = normalizeStateBodyNodesInline(m)
   // Class associations: legacy ClassUnidirectional → ClassBidirectional and
   // explicit, rule-abiding `sourceNavigable` / `targetNavigable` flags.

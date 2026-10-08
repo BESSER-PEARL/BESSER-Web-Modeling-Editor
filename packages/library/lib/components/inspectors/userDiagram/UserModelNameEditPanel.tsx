@@ -35,6 +35,7 @@ import {
   TrashIcon,
 } from "../_shared"
 import { useTranslation } from "@/i18n"
+import { resolveUserModelView } from "@/components/svgs/nodes/userDiagram"
 
 /**
  * Inspector body for `UserModelName`. Full v3 port.
@@ -64,6 +65,8 @@ import { useTranslation } from "@/i18n"
  *    Enumeration's literals, sourced from the user-meta-model JSON
  *    (matches v3 `getEnumerationValues` — `uml-user-model-attribute-update.tsx:111-134`).
  *  - No methods rendered. The user model is constraint-style data only.
+ *  - "Icon | Attributes" switch writes `data.view` (icon when unset). The
+ *    attribute rows below stay editable in either view.
  */
 const PRIMITIVE_TYPES: { value: string; label: string }[] = [
   { value: "str", label: "str (string)" },
@@ -471,6 +474,7 @@ export const UserModelNameEditPanel: React.FC<PopoverProps> = ({
   if (!node) return null
 
   const data = node.data as UserModelNameNodeProps
+  const view = resolveUserModelView(data)
 
   const update = (patch: Partial<UserModelNameNodeProps>) => {
     setNodes((all) =>
@@ -532,13 +536,30 @@ export const UserModelNameEditPanel: React.FC<PopoverProps> = ({
         ]}
       />
 
-      {/* v3 parity: no class selector and no inspector-exposed
-          Icon/Attributes toggle — the global "Show Icon View" setting
-          decides (see `UserDiagramSVGs.tsx`). The
-          class link is bound to the meta-model entry that produced the
-          palette card (set at drop time). `data.classId` /
-          `data.className` / `data.view` are preserved in the type for
-          round-trip but not editable here. */}
+      {/* No class selector: the class link is bound to the meta-model
+          entry that produced the palette card (set at drop time). */}
+      <InspectorSectionHeader>
+        {t("popup.user.view", "Show on canvas as")}
+      </InspectorSectionHeader>
+      <div
+        className="bp-segmented"
+        role="group"
+        aria-label={t("popup.user.view", "Show on canvas as")}
+      >
+        {(["icon", "attributes"] as const).map((mode) => (
+          <button
+            key={mode}
+            type="button"
+            className="bp-toggle"
+            aria-pressed={view === mode}
+            onClick={() => view !== mode && update({ view: mode })}
+          >
+            {mode === "icon"
+              ? t("stylePane.icon", "Icon")
+              : t("popup.attributes", "Attributes")}
+          </button>
+        ))}
+      </div>
 
       {/* Description collapsed behind a Metadata
           Accordion so the panel doesn't burn vertical real estate when

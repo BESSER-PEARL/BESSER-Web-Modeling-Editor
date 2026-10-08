@@ -5,10 +5,9 @@ import { DefaultNodeWrapper } from "../wrappers"
 import {
   UserModelNameSVG,
   resolveUserModelHeaderLabel,
-  resolveUserModelIconBody,
+  resolveUserModelView,
 } from "@/components/svgs/nodes/userDiagram"
 import { useDiagramStore } from "@/store/context"
-import { useSettingsStore } from "@/store/settingsStore"
 import { useShallow } from "zustand/shallow"
 import {
   measureTextWidth,
@@ -24,6 +23,7 @@ import {
   UserModelAttributeRow,
   UserModelNameNodeProps,
 } from "@/types"
+import { parseUserCriterion } from "@/utils/classifierMemberDisplay"
 
 /**
  * `UserModelName`. Full v3-parity rewrite.
@@ -37,33 +37,38 @@ import {
  *    `className`, then the instance `name` as last resort). This mirrors
  *    `uml-object-name-component.tsx`'s `isUserModelElement` branch, NOT
  *    the `name : className` format used for plain ObjectName instances.
- *  - Icon vs. attribute-table body follows the global `showIconView`
- *    setting (v3 `UMLUserModelName.render`): icon view only when the
- *    setting is on and an icon exists. Icon view reserves
- *    a fixed glyph footprint (`headerHeight + 60`, mirroring v3's 50x50
- *    icon slot below a 40px header); the attribute table falls back to
- *    the attribute-row-count-driven height.
+ *  - Icon vs. attribute-table body follows the per-node `data.view`
+ *    (icon unless `"attributes"`, switched in the inspector), not the
+ *    object-diagram "Show Icon View" setting. Icon view reserves a fixed
+ *    glyph footprint (`headerHeight + 60`, mirroring v3's 50x50 icon slot
+ *    below a 40px header); the attribute table uses the row-count height.
  *  - No methods rendered (user-model is constraint-style data only).
  *  - Each attribute row is rendered in `name = value` format. The
  *    formatter prefers `attributeOperator` when present (so `>=`, `<=`
  *    etc. round-trip from the v3 fixture untouched) and falls back to
  *    `=` otherwise. Visibility symbols are NOT shown (per spec).
+ *  - A legacy row that embeds the criterion in its name (`"age < 18"`)
+ *    is split first, and the structured `attributeOperator` / `value`
+ *    win, so inspector edits always reach the canvas.
  */
 const formatUserModelAttributeForDisplay = (
   row: UserModelAttributeRow
 ): ClassNodeElement => {
-  // Preserve any explicit operator the inspector already shaped.
-  if (row.name && /[<>=]+/.test(row.name)) return row
-  const op = row.attributeOperator ?? "="
-  if (row.value !== undefined && row.value !== null && row.value !== "") {
-    return { ...row, name: `${row.name} ${op} ${row.value}` }
+  const legacy = row.name ? parseUserCriterion(row.name) : undefined
+  const name = legacy?.name || row.name
+  const hasValue =
+    row.value !== undefined && row.value !== null && row.value !== ""
+  const value = hasValue ? String(row.value) : legacy?.value ?? ""
+  const operator = row.attributeOperator ?? legacy?.operator
+  if (value !== "") {
+    return { ...row, name: `${name} ${operator ?? "="} ${value}` }
   }
   // No value yet — still surface the operator so the user can read it
   // off the canvas (`age >=`).
-  if (row.attributeOperator) {
-    return { ...row, name: `${row.name} ${row.attributeOperator}` }
+  if (operator) {
+    return { ...row, name: `${name} ${operator}` }
   }
-  return row
+  return { ...row, name }
 }
 
 export function UserModelName({
@@ -73,10 +78,8 @@ export function UserModelName({
   data,
 }: NodeProps<Node<UserModelNameNodeProps>>) {
   const { attributes, name, className } = data
-  const showIconView = useSettingsStore((s) => s.showIconView)
-  const iconViewActive =
-    showIconView &&
-    resolveUserModelIconBody({ icon: data.icon, className }) !== undefined
+  const view = resolveUserModelView(data)
+  const iconViewActive = view === "icon"
   const displayAttributes = useMemo(
     () => attributes.map(formatUserModelAttributeForDisplay),
     [attributes]
@@ -103,13 +106,16 @@ export function UserModelName({
   // what's actually painted.
   const headerLabel = resolveUserModelHeaderLabel(data)
 
+  // Icon view paints only the header, so attribute rows don't widen it.
   const maxTextWidth = useMemo(() => {
     const headerTextWidth = measureTextWidth(headerLabel, font)
-    const attributesTextWidths = displayAttributes.map(
-      (attr: { name: string }) => measureTextWidth(attr.name, font)
-    )
+    const attributesTextWidths = iconViewActive
+      ? []
+      : displayAttributes.map((attr: { name: string }) =>
+          measureTextWidth(attr.name, font)
+        )
     return Math.max(headerTextWidth, ...attributesTextWidths, 0)
-  }, [headerLabel, displayAttributes, font])
+  }, [headerLabel, displayAttributes, font, iconViewActive])
 
   const minWidth = useMemo(
     () => calculateMinWidth(maxTextWidth, padding),
@@ -203,6 +209,7 @@ export function UserModelName({
             strokeColor: data.strokeColor,
             textColor: data.textColor,
             attributes: displayAttributes,
+            view,
           }}
           id={id}
           showAssessmentResults={!isDiagramModifiable}

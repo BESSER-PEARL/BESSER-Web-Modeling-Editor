@@ -60,6 +60,8 @@ import {
   CodeIcon,
   SlidersIcon,
   TrashIcon,
+  useCodeMirrorTheme,
+  balLanguage,
 } from "../_shared"
 
 /**
@@ -128,7 +130,26 @@ const collectEnumerationNames = (): string[] => {
         n.type === "Enumeration"
     )
     .map((n: { data?: { name?: string } }) => n.data?.name ?? "")
-    .filter((s): s is string => !!s)
+    .filter((s, i, all): s is string => !!s && all.indexOf(s) === i)
+}
+
+/**
+ * Helper: unique names of the non-enumeration classes (abstract classes
+ * and interfaces included) for the attribute / return-type pickers.
+ */
+const collectClassNames = (): string[] => {
+  const data = diagramBridge.getClassDiagramData()
+  if (!data) return []
+  return (data.nodes || [])
+    .filter(
+      (n: { type?: string; data?: { stereotype?: string | null } }) =>
+        (n.type === "class" && n.data?.stereotype !== "Enumeration") ||
+        n.type === "Class" ||
+        n.type === "AbstractClass" ||
+        n.type === "Interface"
+    )
+    .map((n: { data?: { name?: string } }) => n.data?.name ?? "")
+    .filter((s, i, all): s is string => !!s && all.indexOf(s) === i)
 }
 
 /**
@@ -780,6 +801,7 @@ const MethodRow: React.FC<MethodRowProps> = ({
 }) => {
   const { t } = useTranslation()
   const visibility = row.visibility ?? "public"
+  const codeMirrorTheme = useCodeMirrorTheme()
   const implementationType: ClassifierMethodImplementationType =
     row.implementationType ?? "none"
   const parameters = row.parameters ?? []
@@ -787,7 +809,7 @@ const MethodRow: React.FC<MethodRowProps> = ({
   // (legacy display + v3 export both read the latter). v3 exposed it as
   // the `: returnType` suffix of the signature field — restored here as
   // a dedicated dropdown (full method-signature authoring parity).
-  const returnType = row.returnType ?? row.attributeType ?? "any"
+  const returnType = row.returnType || row.attributeType || "any"
   const isCustomReturn = !isPrimitiveType(returnType)
   const [customReturnDraft, setCustomReturnDraft] = useState(
     isCustomReturn ? returnType : ""
@@ -1322,7 +1344,8 @@ const MethodRow: React.FC<MethodRowProps> = ({
           <CodeMirror
             value={row.code ?? ""}
             height="100%"
-            extensions={[python()]}
+            theme={codeMirrorTheme}
+            extensions={[implementationType === "bal" ? balLanguage : python()]}
             onChange={(value) => {
               // v3 kept the (locked) signature in sync with the
               // `def name(params) -> ret:` line — port of
@@ -1415,10 +1438,7 @@ export const ClassEditPanel: React.FC<PopoverProps> = ({ elementId }) => {
   // `BesserEditorComponent.tsx`).
   const availableClassNames = useMemo(() => {
     try {
-      return diagramBridge
-        .getAvailableClasses()
-        .map((c) => c.name)
-        .filter((n) => !!n)
+      return collectClassNames()
     } catch {
       return []
     }
@@ -1677,7 +1697,7 @@ export const ClassEditPanel: React.FC<PopoverProps> = ({ elementId }) => {
   /* ----- Local "add new row" inputs ------------------------------------- */
 
   const onAttrKey = (e: KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === "Enter") {
+    if (e.key === "Enter" && newAttrName.trim()) {
       addAttribute(newAttrName)
       setNewAttrName("")
     }
@@ -1685,7 +1705,7 @@ export const ClassEditPanel: React.FC<PopoverProps> = ({ elementId }) => {
   const onAttrChange = (e: ChangeEvent<HTMLInputElement>) =>
     setNewAttrName(e.target.value)
   const onMethodKey = (e: KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === "Enter") {
+    if (e.key === "Enter" && newMethodName.trim()) {
       addMethod(newMethodName)
       setNewMethodName("")
     }

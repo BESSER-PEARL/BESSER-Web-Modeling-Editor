@@ -130,14 +130,19 @@ export interface IDiagramBridgeService {
 const STEREOTYPE_INHERITANCE = "ClassInheritance"
 const STEREOTYPE_REALIZATION = "ClassRealization"
 
+/**
+ * Instantiable classes only: plain and abstract classes, like develop's
+ * `type === 'Class' || type === 'AbstractClass'` filter. Interfaces and
+ * enumerations cannot be instantiated as objects.
+ */
 const isClassNode = (node: { type?: string; data?: { stereotype?: string | null } }): boolean => {
   if (!node || typeof node !== "object") return false
-  if (node.type === "class") return true
-  // tolerate v3 stereotypes that may have leaked through (Class, AbstractClass, Interface, Enumeration)
-  if (node.type === "Class" || node.type === "AbstractClass" || node.type === "Interface" || node.type === "Enumeration") {
-    return true
+  if (node.type === "class") {
+    const stereotype = node.data?.stereotype
+    return stereotype !== "Interface" && stereotype !== "Enumeration"
   }
-  return false
+  // tolerate v3 element types that may have leaked through
+  return node.type === "Class" || node.type === "AbstractClass"
 }
 
 /**

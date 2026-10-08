@@ -1,4 +1,4 @@
-import React from "react"
+import React, { useState } from "react"
 import { ClassType } from "@/types"
 import { useShallow } from "zustand/shallow"
 import { useDiagramStore } from "@/store"
@@ -30,54 +30,126 @@ export const StereotypeButtonGroup: React.FC<StereotypeButtonGroupProps> = ({
   selectedStereotype,
 }) => {
   const { t } = useTranslation()
-  const { setNodes } = useDiagramStore(
-    useShallow((state) => ({ setNodes: state.setNodes }))
+  const { nodes, edges, setNodesAndEdges } = useDiagramStore(
+    useShallow((state) => ({
+      nodes: state.nodes,
+      edges: state.edges,
+      setNodesAndEdges: state.setNodesAndEdges,
+    }))
   )
+  // Enumerations cannot take part in relationships (new connections to
+  // them are blocked), so turning a connected class into one first asks
+  // to remove its relationships.
+  const [confirmEnumeration, setConfirmEnumeration] = useState(false)
+  const connectedEdgeIds = edges
+    .filter((e) => e.source === nodeId || e.target === nodeId)
+    .map((e) => e.id)
 
-  const handleStereotypeChange = (stereotype: ClassType | undefined) => {
-    const nextStereotype =
-      selectedStereotype === stereotype ? undefined : stereotype
-
+  const applyStereotype = (
+    nextStereotype: ClassType | undefined,
+    removeEdgeIds: string[] = []
+  ) => {
     const needsShrink = !!selectedStereotype && !nextStereotype
     const needExpand = !!nextStereotype && !selectedStereotype
     const nodeHeightDifference = needExpand ? 10 : needsShrink ? -10 : 0
 
-    setNodes((nodes) =>
-      nodes.map((node) => {
-        if (node.id === nodeId) {
-          return {
-            ...node,
-            data: {
-              ...node.data,
-              stereotype: nextStereotype,
-            },
-            height: node.height! + nodeHeightDifference,
-            measured: {
-              ...node.measured,
-              height: node.height! + nodeHeightDifference,
-            },
-          }
-        }
-        return node
-      })
-    )
+    const nextNodes = nodes.map((node) => {
+      if (node.id !== nodeId) return node
+      return {
+        ...node,
+        data: {
+          ...node.data,
+          stereotype: nextStereotype,
+        },
+        height: node.height! + nodeHeightDifference,
+        measured: {
+          ...node.measured,
+          height: node.height! + nodeHeightDifference,
+        },
+      }
+    })
+    const nextEdges = removeEdgeIds.length
+      ? edges.filter((e) => !removeEdgeIds.includes(e.id))
+      : edges
+    // One store update, so the switch (and any removal) is one undo step.
+    setNodesAndEdges(nextNodes, nextEdges)
+    setConfirmEnumeration(false)
+  }
+
+  const handleStereotypeChange = (stereotype: ClassType | undefined) => {
+    const nextStereotype =
+      selectedStereotype === stereotype ? undefined : stereotype
+    if (
+      nextStereotype === ClassType.Enumeration &&
+      connectedEdgeIds.length > 0
+    ) {
+      setConfirmEnumeration(true)
+      return
+    }
+    applyStereotype(nextStereotype)
   }
 
   return (
-    <div
-      className="bp-segmented"
-      role="group"
-      aria-label={t("popup.class.stereotype", "Stereotype")}
-    >
-      {stereotypes.map((stereotype) => (
-        <PrimaryButton
-          key={stereotype}
-          isSelected={selectedStereotype === stereotype}
-          onClick={() => handleStereotypeChange(stereotype)}
+    <>
+      <div
+        className="bp-segmented"
+        role="group"
+        aria-label={t("popup.class.stereotype", "Stereotype")}
+      >
+        {stereotypes.map((stereotype) => (
+          <PrimaryButton
+            key={stereotype}
+            isSelected={selectedStereotype === stereotype}
+            onClick={() => handleStereotypeChange(stereotype)}
+          >
+            {t(STEREOTYPE_LABEL_KEYS[stereotype], stereotype)}
+          </PrimaryButton>
+        ))}
+      </div>
+      {confirmEnumeration && connectedEdgeIds.length > 0 && (
+        <div
+          role="alert"
+          data-testid="enumeration-relationships-warning"
+          style={{
+            marginTop: 6,
+            padding: "8px 10px",
+            borderRadius: 6,
+            border: "1px solid color-mix(in srgb, var(--bp-danger) 35%, transparent)",
+            background: "var(--bp-danger-soft)",
+            color: "var(--bp-fg)",
+            fontSize: 12,
+            lineHeight: 1.45,
+          }}
         >
-          {t(STEREOTYPE_LABEL_KEYS[stereotype], stereotype)}
-        </PrimaryButton>
-      ))}
-    </div>
+          {t(
+            "popup.class.enumerationRelationshipsWarning",
+            "An enumeration cannot have relationships; other classes use it as an attribute type. Converting removes {{count}} relationship(s).",
+            { count: connectedEdgeIds.length }
+          )}
+          <div style={{ display: "flex", gap: 6, marginTop: 8 }}>
+            <button
+              type="button"
+              className="bp-text-btn"
+              style={{ color: "var(--bp-danger)" }}
+              onClick={() =>
+                applyStereotype(ClassType.Enumeration, connectedEdgeIds)
+              }
+            >
+              {t(
+                "popup.class.enumerationConvertConfirm",
+                "Remove and convert"
+              )}
+            </button>
+            <button
+              type="button"
+              className="bp-text-btn"
+              onClick={() => setConfirmEnumeration(false)}
+            >
+              {t("common.cancel", "Cancel")}
+            </button>
+          </div>
+        </div>
+      )}
+    </>
   )
 }

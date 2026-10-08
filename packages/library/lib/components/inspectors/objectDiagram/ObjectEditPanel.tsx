@@ -131,9 +131,38 @@ const SlotColorControls: React.FC<{
 const INT_TYPES = new Set(["int", "integer", "number"])
 const FLOAT_TYPES = new Set(["float", "double", "real"])
 const BOOL_TYPES = new Set(["bool", "boolean"])
-const DATE_TYPES = new Set(["date"])
-const DATETIME_TYPES = new Set(["datetime"])
-const TIME_TYPES = new Set(["time"])
+// develop `isDateTimeAttribute` (uml-object-attribute-update.tsx).
+const DATE_TYPES = new Set(["date", "localdate"])
+const DATETIME_TYPES = new Set([
+  "datetime",
+  "timestamp",
+  "localdatetime",
+  "offsetdatetime",
+  "zoneddatetime",
+  "instant",
+])
+const TIME_TYPES = new Set(["time", "localtime", "offsettime"])
+
+/**
+ * Bring a stored value into the shape a native date / time input accepts
+ * (`2000-01-01 10:30:00` -> `2000-01-01T10:30` for datetime-local,
+ * `9:05:00` -> `09:05` for time); anything else passes through.
+ */
+const toNativeDateTimeValue = (
+  value: string,
+  kind: "date" | "datetime-local" | "time"
+): string => {
+  if (kind === "datetime-local") {
+    const m = value.match(/^(\d{4}-\d{2}-\d{2})[ T](\d{2}:\d{2})/)
+    return m ? `${m[1]}T${m[2]}` : value
+  }
+  if (kind === "time") {
+    const m = value.match(/^(\d{1,2}):(\d{2})/)
+    return m ? `${m[1].padStart(2, "0")}:${m[2]}` : value
+  }
+  const m = value.match(/^(\d{4}-\d{2}-\d{2})/)
+  return m ? m[1] : value
+}
 const DURATION_TYPES = new Set(["timedelta", "duration", "period", "timespan"])
 const STRING_TYPES = new Set(["str", "string"])
 
@@ -223,29 +252,36 @@ const ObjectAttrRow: React.FC<ObjectAttrRowProps> = ({
       </Stack>
     )
   } else if (isInt || isFloat) {
+    // A text input (develop used one): a native number input drops a
+    // comma decimal ("9,99" -> 999). Floats accept a comma as the decimal
+    // separator and store it as a dot.
     valueWidget = (
       <MuiTextField
         size="small"
         variant="outlined"
         placeholder={isInt ? "0" : "0.0"}
-        type="number"
-        inputProps={isInt ? { step: 1 } : { step: "any" }}
+        inputProps={{ inputMode: isInt ? "numeric" : "decimal" }}
         value={valueAsString}
-        onChange={(e) => commitValue(e.target.value)}
+        onChange={(e) =>
+          commitValue(
+            isFloat ? e.target.value.replace(",", ".") : e.target.value
+          )
+        }
         sx={{ flex: 1 }}
         {...navigationProps}
       />
     )
   } else if (isDate || isDatetime || isTime) {
+    const nativeType = isDate ? "date" : isTime ? "time" : "datetime-local"
     valueWidget = (
       <MuiTextField
         size="small"
         variant="outlined"
-        type={isDate ? "date" : isTime ? "time" : "datetime-local"}
+        type={nativeType}
         placeholder={
           isDate ? "YYYY-MM-DD" : isTime ? "HH:MM" : "YYYY-MM-DDTHH:MM"
         }
-        value={valueAsString}
+        value={toNativeDateTimeValue(valueAsString, nativeType)}
         onChange={(e) => commitValue(e.target.value)}
         sx={{ flex: 1 }}
         InputLabelProps={{ shrink: true }}

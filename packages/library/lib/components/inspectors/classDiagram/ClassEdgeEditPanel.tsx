@@ -100,6 +100,21 @@ const NON_DIRECTIONAL_TYPES = new Set([
   "ClassRealization",
 ])
 
+/**
+ * Whether a multiplicity is one the backend accepts: `N`, `*`, `N..M`,
+ * `N..*` (min <= max), or the ER form `(min,max)` with max `N` / `*`.
+ * Empty means "unset" and is valid.
+ */
+const isValidMultiplicity = (raw: string | null | undefined): boolean => {
+  const value = erCardinalityToUML(raw ?? "").trim()
+  if (!value) return true
+  const match = value.match(/^(\d+|\*)(?:\.\.(\d+|\*))?$/)
+  if (!match) return false
+  const [, min, max] = match
+  if (max === undefined || max === "*") return true
+  return min !== "*" && Number(min) <= Number(max)
+}
+
 export const ClassEdgeEditPanel: React.FC<PopoverProps> = ({ elementId }) => {
   const { nodes, edges, setEdges } = useDiagramStore(
     useShallow((state) => ({
@@ -109,6 +124,7 @@ export const ClassEdgeEditPanel: React.FC<PopoverProps> = ({ elementId }) => {
     }))
   )
   const classNotation = useSettingsStore((s) => s.classNotation)
+  const showAssociationNames = useSettingsStore((s) => s.showAssociationNames)
   const { t } = useTranslation()
 
   const edge = edges.find((e) => e.id === elementId)
@@ -141,6 +157,14 @@ export const ClassEdgeEditPanel: React.FC<PopoverProps> = ({ elementId }) => {
     classNotation === "ER"
       ? t("popup.class.erMultiplicityPlaceholder", "(1,1) or 1..1")
       : "1..1"
+
+  const multiplicityError =
+    classNotation === "ER"
+      ? t(
+          "popup.multiplicityInvalidER",
+          "Use (min,max), e.g. (0,1), (1,N) — or 1, 0..1, 1..*"
+        )
+      : t("popup.multiplicityInvalid", "Use e.g. 1, 0..1, *, 1..* or 2..5")
 
   const updateData = (patch: Partial<CustomEdgeProps & { name?: string }>) => {
     setEdges((all) =>
@@ -215,12 +239,29 @@ export const ClassEdgeEditPanel: React.FC<PopoverProps> = ({ elementId }) => {
     setEdges((all) =>
       all.map((e) => {
         if (e.id !== elementId) return e
+        // Each end's multiplicity, role and navigability belong to the
+        // class at that end, so they swap together with the endpoints.
+        const d = (e.data ?? {}) as Partial<CustomEdgeProps>
+        const swapped: Record<string, unknown> = { ...d }
+        const pairs = [
+          ["sourceMultiplicity", "targetMultiplicity"],
+          ["sourceRole", "targetRole"],
+          ["sourceNavigable", "targetNavigable"],
+        ] as const
+        for (const [a, b] of pairs) {
+          if (b in d) swapped[a] = d[b]
+          else delete swapped[a]
+          if (a in d) swapped[b] = d[a]
+          else delete swapped[b]
+        }
+        if (Array.isArray(d.points)) swapped.points = [...d.points].reverse()
         return {
           ...e,
           source: e.target,
           sourceHandle: e.targetHandle,
           target: e.source,
           targetHandle: e.sourceHandle,
+          data: swapped,
         }
       })
     )
@@ -277,6 +318,14 @@ export const ClassEdgeEditPanel: React.FC<PopoverProps> = ({ elementId }) => {
           label={t("popup.associationNamePlaceholder", "Association name")}
           value={data.name ?? ""}
           onChange={(e) => updateData({ name: e.target.value })}
+          helperText={
+            showAssociationNames
+              ? undefined
+              : t(
+                  "popup.associationNameHiddenHint",
+                  "Hidden on the canvas. Turn on “Show Association Names” in Settings."
+                )
+          }
         />
       )}
 
@@ -323,6 +372,13 @@ export const ClassEdgeEditPanel: React.FC<PopoverProps> = ({ elementId }) => {
               autoFocus
               placeholder={multiplicityPlaceholder}
               value={data.sourceMultiplicity ?? ""}
+              error={!isValidMultiplicity(data.sourceMultiplicity)}
+              helperText={
+                isValidMultiplicity(data.sourceMultiplicity)
+                  ? undefined
+                  : multiplicityError
+              }
+              inputProps={{ "data-testid": "source-multiplicity" }}
               onChange={(e) =>
                 updateData({ sourceMultiplicity: e.target.value })
               }
@@ -363,6 +419,13 @@ export const ClassEdgeEditPanel: React.FC<PopoverProps> = ({ elementId }) => {
               fullWidth
               placeholder={multiplicityPlaceholder}
               value={data.targetMultiplicity ?? ""}
+              error={!isValidMultiplicity(data.targetMultiplicity)}
+              helperText={
+                isValidMultiplicity(data.targetMultiplicity)
+                  ? undefined
+                  : multiplicityError
+              }
+              inputProps={{ "data-testid": "target-multiplicity" }}
               onChange={(e) =>
                 updateData({ targetMultiplicity: e.target.value })
               }
