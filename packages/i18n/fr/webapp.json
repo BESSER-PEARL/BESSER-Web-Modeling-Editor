@@ -2135,7 +2135,16 @@
       "editAsForm": "Modifier comme formulaire",
       "closeForm": "Fermer le formulaire",
       "editAsFormTitle": "Modifier ce profil avec un formulaire guidé",
-      "closeFormTitle": "Fermer le formulaire de profil utilisateur"
+      "closeFormTitle": "Fermer le formulaire de profil utilisateur",
+      "lineage": {
+        "sourceDeleted": "← Diagramme source supprimé ({{type}})",
+        "derivedFrom": "← Dérivé de <em>{{title}}</em> ({{type}})",
+        "sourceChangedTitle": "Le diagramme source a changé depuis la dérivation de ce diagramme.",
+        "sourceChanged": "source modifiée",
+        "implementationOf": "← Implémentation de <em>{{lane}}</em>",
+        "unnamedLane": "(couloir sans nom)",
+        "openFailed": "Impossible d'ouvrir le diagramme source."
+      }
     },
     "charts": {
       "loadingChart": "Chargement du graphique…",

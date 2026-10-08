@@ -7,9 +7,8 @@ import { useTranslation } from 'react-i18next';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { getPostHog } from '../../../shared/services/analytics/lazy-analytics';
-import { useLocation, useNavigate } from 'react-router-dom';
 import { globalConfirm } from '../../../shared/services/confirm/globalConfirm';
-import { ProjectDiagram, MAX_DIAGRAMS_PER_TYPE, SupportedDiagramType, isUMLModel, isGrapesJSProjectData, isQuantumCircuitData, toUMLDiagramType } from '../../../shared/types/project';
+import { ProjectDiagram, MAX_DIAGRAMS_PER_TYPE, SupportedDiagramType, isUMLModel, isGrapesJSProjectData, isQuantumCircuitData } from '../../../shared/types/project';
 import { useAppDispatch, useAppSelector } from '../../../app/store/hooks';
 import type { QualityCheckState } from '../../generation/types';
 import {
@@ -17,7 +16,6 @@ import {
   removeDiagramThunk,
   renameDiagramThunk,
   switchDiagramIndexThunk,
-  switchDiagramTypeThunk,
   updateDiagramModelThunk,
   updateDiagramReferencesThunk,
   bumpEditorRevision,
@@ -27,10 +25,9 @@ import {
   selectClassDiagrams,
 } from '../../../app/store/workspaceSlice';
 import { ApollonEditorContext } from '../uml/apollon-editor-context';
-import { ProjectStorageRepository } from '../../../shared/services/storage/ProjectStorageRepository';
-import { hashUmlModel } from '../../../shared/utils/lineageHash';
 import { scaffoldObjectsFromClasses } from './scaffoldObjectsFromClasses';
 import { UserProfileFormPanel } from '../user-profile-form/UserProfileFormPanel';
+import { DiagramLineageBanner } from './DiagramLineageBanner';
 
 interface DiagramTabsProps {
   onRequestTabSwitch?: (index: number) => Promise<boolean> | boolean;
@@ -120,8 +117,6 @@ export const DiagramTabs: React.FC<DiagramTabsProps> = ({
 }) => {
   const { t } = useTranslation();
   const dispatch = useAppDispatch();
-  const navigate = useNavigate();
-  const location = useLocation();
   const diagrams = useAppSelector(selectDiagramsForActiveType);
   const currentIndex = useAppSelector(selectActiveDiagramIndex);
   const currentDiagramType = useAppSelector(selectActiveDiagramType);
@@ -188,7 +183,7 @@ export const DiagramTabs: React.FC<DiagramTabsProps> = ({
       toast.error(t('editors.diagramTabs.editorNotReady'));
       return;
     }
-    const refDiagram = classDiagrams.find(d => d.id === classRefId);
+    const refDiagram = classDiagrams.find((d) => d.id === classRefId);
     const refModel = refDiagram?.model;
     if (!isUMLModel(refModel)) {
       toast.error(t('editors.diagramTabs.pickClassRefFirst'));
@@ -375,27 +370,6 @@ export const DiagramTabs: React.FC<DiagramTabsProps> = ({
 
   const selectClasses = "h-7 w-auto min-w-[140px] gap-2 rounded-md border-border bg-card px-2 text-xs font-medium text-foreground shadow-sm transition-colors duration-150 hover:border-foreground/20 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1";
 
-  // Compute the lane back-link once so the "Derived from" badge can be
-  // suppressed when "Implementation of" will show (they reference the same source).
-  const agentLaneRef = (() => {
-    if (currentDiagramType !== 'AgentDiagram' || !activeDiagram) return null;
-    const freshProject = ProjectStorageRepository.getCurrentProject();
-    const bpmnDiagrams = freshProject?.diagrams.BPMN ?? currentProject?.diagrams.BPMN ?? [];
-    for (let i = 0; i < bpmnDiagrams.length; i++) {
-      const d = bpmnDiagrams[i];
-      if (!isUMLModel(d.model)) continue;
-      const lane = Object.values(d.model.elements ?? {}).find(
-        (el) =>
-          (el as { type?: string }).type === 'BPMNSwimlane' &&
-          (el as { agentDiagramRef?: string }).agentDiagramRef === activeDiagram.id,
-      ) as { name?: string } | undefined;
-      if (lane) {
-        return { diagramIndex: i, laneName: lane.name?.trim() || '(unnamed lane)', diagram: d };
-      }
-    }
-    return null;
-  })();
-
   return (
     <div className="relative overflow-visible border-b border-brand/12 bg-card/80 backdrop-blur-sm">
       {/* Top row: tabs */}
@@ -540,96 +514,7 @@ export const DiagramTabs: React.FC<DiagramTabsProps> = ({
         )}
       </div>
 
-      {/* Lineage badge: where this diagram was derived from.
-          Renders only when the active diagram has `derivedFrom`. Clicking
-          navigates to the source diagram. Amber when source has changed
-          since derivation (hash mismatch). */}
-      {activeDiagram?.derivedFrom && !agentLaneRef &&
-        (() => {
-          const lineage = activeDiagram.derivedFrom!;
-          const sourceDiagrams = currentProject?.diagrams[lineage.sourceDiagramType] ?? [];
-          const sourceIndex = sourceDiagrams.findIndex((d) => d.id === lineage.sourceDiagramId);
-          const sourceDiagram = sourceIndex >= 0 ? sourceDiagrams[sourceIndex] : undefined;
-
-          if (!sourceDiagram) {
-            return (
-              <div className="border-t border-border/40 bg-muted/30 px-3 py-1.5">
-                <span className="text-[11px] text-muted-foreground">
-                  ← Source diagram deleted ({lineage.sourceDiagramType})
-                </span>
-              </div>
-            );
-          }
-
-          const stale = sourceDiagram.model
-            ? hashUmlModel(sourceDiagram.model as UMLModel) !== lineage.sourceModelHash
-            : false;
-
-          const onJumpToSource = () => {
-            // Mirror WorkspaceShell.handleSwitchDiagramType: navigate to '/' so the
-            // editor route is active.
-            if (location.pathname !== '/') {
-              navigate('/');
-            }
-            // switchDiagramTypeThunk's internal conversion
-            // treats non-GUI/Quantum inputs as UMLDiagramType wire values. Since 04E
-            // renamed UMLDiagramType.BPMN to 'BPMNDiagram', passing the
-            // SupportedDiagramType string 'BPMN' falls through to the 'ClassDiagram'
-            // default and corrupts currentDiagramType. Convert to the wire value for
-            // UML types; pass through unchanged for GUI/Quantum (toUMLDiagramType
-            // returns null for those, and the thunk handles them by their
-            // SupportedDiagramType string).
-            const wireType = toUMLDiagramType(lineage.sourceDiagramType);
-            dispatch(
-              switchDiagramTypeThunk({
-                diagramType: wireType ?? lineage.sourceDiagramType,
-              }),
-            );
-            dispatch(switchDiagramIndexThunk({ diagramType: lineage.sourceDiagramType, index: sourceIndex }));
-          };
-
-          return (
-            <div
-              className={`flex items-center gap-2 border-t border-border/40 px-3 py-1.5 ${
-                stale ? 'bg-amber-100/60 dark:bg-amber-900/30' : 'bg-muted/30'
-              }`}
-              title={stale ? 'Source diagram has changed since this derivation.' : undefined}
-            >
-              <button
-                type="button"
-                className="text-[11px] font-medium text-brand hover:underline"
-                onClick={onJumpToSource}
-              >
-                ← Derived from <em>{sourceDiagram.title}</em> ({lineage.sourceDiagramType})
-              </button>
-              {stale && (
-                <span className="rounded bg-amber-500/20 px-1.5 py-0.5 text-[10px] font-semibold text-amber-700 dark:text-amber-300">
-                  source changed
-                </span>
-              )}
-            </div>
-          );
-        })()}
-
-      {/* Back-link from an Agent diagram to the BPMN lane that
-          defines it. `agentLaneRef` is computed pre-return; it also suppresses
-          the "Derived from" badge above so only this banner shows. */}
-      {agentLaneRef && (
-        <div className="flex items-center gap-2 border-t border-border/40 bg-muted/30 px-3 py-1.5">
-          <button
-            type="button"
-            className="text-[11px] font-medium text-brand hover:underline"
-            onClick={() => {
-              if (location.pathname !== '/') navigate('/');
-              const wireType = toUMLDiagramType('BPMN');
-              dispatch(switchDiagramTypeThunk({ diagramType: wireType ?? 'BPMN' }));
-              dispatch(switchDiagramIndexThunk({ diagramType: 'BPMN', index: agentLaneRef.diagramIndex }));
-            }}
-          >
-            ← Implementation of <em>{agentLaneRef.laneName}</em>
-          </button>
-        </div>
-      )}
+      <DiagramLineageBanner activeDiagram={activeDiagram} />
 
       {/* Linked Diagrams reference section (below tabs) */}
       {hasReferences && !refsCollapsed && (

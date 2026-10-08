@@ -241,6 +241,20 @@ export const switchDiagramIndexThunk = createAsyncThunk(
   },
 );
 
+/**
+ * Open the diagram at `index` of any diagram type, e.g. for the lineage
+ * "jump to source" links. switchDiagramTypeThunk expects the UML wire value
+ * for UML types ('BPMNDiagram', not 'BPMN'), so the conversion lives here
+ * instead of at every call site.
+ */
+export const openDiagramThunk = createAsyncThunk(
+  'workspace/openDiagram',
+  async ({ diagramType, index }: { diagramType: SupportedDiagramType; index: number }, { dispatch }) => {
+    await dispatch(switchDiagramTypeThunk({ diagramType: toUMLDiagramType(diagramType) ?? diagramType })).unwrap();
+    await dispatch(switchDiagramIndexThunk({ diagramType, index })).unwrap();
+  },
+);
+
 export const updateDiagramModelThunk = createAsyncThunk(
   'workspace/updateDiagramModel',
   async (

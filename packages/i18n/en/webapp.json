@@ -2135,7 +2135,16 @@
       "editAsForm": "Edit as form",
       "closeForm": "Close form",
       "editAsFormTitle": "Edit this profile with a guided form",
-      "closeFormTitle": "Close the user profile form"
+      "closeFormTitle": "Close the user profile form",
+      "lineage": {
+        "sourceDeleted": "← Source diagram deleted ({{type}})",
+        "derivedFrom": "← Derived from <em>{{title}}</em> ({{type}})",
+        "sourceChangedTitle": "The source diagram has changed since this diagram was derived.",
+        "sourceChanged": "source changed",
+        "implementationOf": "← Implementation of <em>{{lane}}</em>",
+        "unnamedLane": "(unnamed lane)",
+        "openFailed": "Could not open the source diagram."
+      }
     },
     "charts": {
       "loadingChart": "Loading chart…",

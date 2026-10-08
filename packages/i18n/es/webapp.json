@@ -2135,7 +2135,16 @@
       "editAsForm": "Editar como formulario",
       "closeForm": "Cerrar formulario",
       "editAsFormTitle": "Editar este perfil con un formulario guiado",
-      "closeFormTitle": "Cerrar el formulario de perfil de usuario"
+      "closeFormTitle": "Cerrar el formulario de perfil de usuario",
+      "lineage": {
+        "sourceDeleted": "← Diagrama de origen eliminado ({{type}})",
+        "derivedFrom": "← Derivado de <em>{{title}}</em> ({{type}})",
+        "sourceChangedTitle": "El diagrama de origen ha cambiado desde que se derivó este diagrama.",
+        "sourceChanged": "origen modificado",
+        "implementationOf": "← Implementación de <em>{{lane}}</em>",
+        "unnamedLane": "(carril sin nombre)",
+        "openFailed": "No se pudo abrir el diagrama de origen."
+      }
     },
     "charts": {
       "loadingChart": "Cargando gráfico…",

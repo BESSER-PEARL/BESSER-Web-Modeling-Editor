@@ -2135,7 +2135,16 @@
       "editAsForm": "Edita com a formulari",
       "closeForm": "Tanca el formulari",
       "editAsFormTitle": "Edita aquest perfil amb un formulari guiat",
-      "closeFormTitle": "Tanca el formulari del perfil d’usuari"
+      "closeFormTitle": "Tanca el formulari del perfil d’usuari",
+      "lineage": {
+        "sourceDeleted": "← Diagrama d'origen eliminat ({{type}})",
+        "derivedFrom": "← Derivat de <em>{{title}}</em> ({{type}})",
+        "sourceChangedTitle": "El diagrama d'origen ha canviat des que es va derivar aquest diagrama.",
+        "sourceChanged": "origen modificat",
+        "implementationOf": "← Implementació de <em>{{lane}}</em>",
+        "unnamedLane": "(carril sense nom)",
+        "openFailed": "No s'ha pogut obrir el diagrama d'origen."
+      }
     },
     "charts": {
       "loadingChart": "S'està carregant el gràfic…",

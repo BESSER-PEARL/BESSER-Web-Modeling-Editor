@@ -2135,7 +2135,16 @@
       "editAsForm": "Als Formular bearbeiten",
       "closeForm": "Formular schließen",
       "editAsFormTitle": "Dieses Profil mit einem geführten Formular bearbeiten",
-      "closeFormTitle": "Benutzerprofil-Formular schließen"
+      "closeFormTitle": "Benutzerprofil-Formular schließen",
+      "lineage": {
+        "sourceDeleted": "← Quelldiagramm gelöscht ({{type}})",
+        "derivedFrom": "← Abgeleitet von <em>{{title}}</em> ({{type}})",
+        "sourceChangedTitle": "Das Quelldiagramm wurde seit der Ableitung dieses Diagramms geändert.",
+        "sourceChanged": "Quelle geändert",
+        "implementationOf": "← Implementierung von <em>{{lane}}</em>",
+        "unnamedLane": "(unbenannte Bahn)",
+        "openFailed": "Das Quelldiagramm konnte nicht geöffnet werden."
+      }
     },
     "charts": {
       "loadingChart": "Diagramm wird geladen…",

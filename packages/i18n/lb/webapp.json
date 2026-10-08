@@ -2135,7 +2135,16 @@
       "editAsForm": "Als Formulaire beaarbechten",
       "closeForm": "Formulaire zoumaachen",
       "editAsFormTitle": "Dëse Profil mat engem guidéierte Formulaire beaarbechten",
-      "closeFormTitle": "Benotzerprofil-Formulaire zoumaachen"
+      "closeFormTitle": "Benotzerprofil-Formulaire zoumaachen",
+      "lineage": {
+        "sourceDeleted": "← Quelldiagramm geläscht ({{type}})",
+        "derivedFrom": "← Ofgeleet vun <em>{{title}}</em> ({{type}})",
+        "sourceChangedTitle": "D'Quelldiagramm huet sech geännert, zënter dëst Diagramm ofgeleet gouf.",
+        "sourceChanged": "Quell geännert",
+        "implementationOf": "← Ëmsetzung vun <em>{{lane}}</em>",
+        "unnamedLane": "(Bunn ouni Numm)",
+        "openFailed": "D'Quelldiagramm konnt net opgemaach ginn."
+      }
     },
     "charts": {
       "loadingChart": "Diagramm gëtt gelueden…",
