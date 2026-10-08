@@ -1,7 +1,7 @@
 import React, { FunctionComponent } from 'react';
 import { ThemedCircle, ThemedPolyline } from '../../../../components/theme/themedComponents';
 import { Multiline } from '../../../../utils/svg/multiline';
-import { BPMNBotIcon } from '../../common/icons/bpmn-bot-icon';
+import { AgenticBotIcon } from '../../../common/agentic/agentic-bot-icon';
 import { BPMNMergeMarkerIcon } from '../../common/icons/bpmn-merge-marker-icon';
 import { BPMNGovernanceBadgeIcon } from '../../common/icons/bpmn-governance-badge-icon';
 import { Props } from '../bpmn-gateway-component';
@@ -41,7 +41,7 @@ export const BPMNInclusiveGatewayComponent: FunctionComponent<Props> = ({ elemen
         small "governed" badge when a governance policy is attached (O4). */}
     {element.isAgentic && (
       <>
-        <BPMNBotIcon x={-4} y={-4} color={element.strokeColor} />
+        <AgenticBotIcon x={-4} y={-4} strokeColor={element.strokeColor} />
         {element.gatewayRole === 'merging' && (
           <BPMNMergeMarkerIcon
             x={element.bounds.width - 12}

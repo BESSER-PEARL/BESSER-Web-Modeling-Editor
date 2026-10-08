@@ -3,11 +3,7 @@ import React, { FunctionComponent } from 'react';
 // Agentic BPMN reflection marker (SEAA'25 § 4.4): two mirrored brackets
 // either side of a dashed mirror axis, with the reflection-mode letter
 // (s / c / h) below. Clean-vector redraw of the paper's reflection notation.
-//
-// This marks the *reflection mode* and is used on agentic tasks only. The
-// separate BPMNReflectionIcon (refresh-circle + letter) stays the generic
-// collaboration / merging letter badge on flows and gateways — do NOT conflate
-// the two.
+// It marks the *reflection mode* and is used on agentic tasks only.
 export const BPMNReflectionMarkerIcon: FunctionComponent<React.SVGProps<SVGSVGElement> & { letter: string }> = ({
   letter,
   ...props
