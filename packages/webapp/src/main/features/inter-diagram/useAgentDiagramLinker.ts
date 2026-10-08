@@ -19,7 +19,7 @@ import { ProjectStorageRepository } from '../../shared/services/storage/ProjectS
 import { MAX_DIAGRAMS_PER_TYPE, isUMLModel } from '../../shared/types/project';
 import { hashUmlModel } from '../../shared/utils/lineageHash';
 import { reportDerivationWarnings } from './derivation-warnings';
-import { deriveAgentModel } from './legacyV3Bridge';
+import { laneToAgentModel } from './lane-to-agent';
 import type { AgentDerivationRefusalReason } from './types';
 
 /** Why a lane produced an empty Agent diagram instead of a derived one. */
@@ -142,7 +142,7 @@ export function useAgentDiagramLinker(editorRef: MutableRefObject<BesserEditor |
       }
 
       const isLaneSource = sourceModel.nodes.find((n) => n.id === elementId)?.type === 'bpmnSwimlane';
-      const derivation = isLaneSource ? deriveAgentModel(sourceModel, elementId) : null;
+      const derivation = isLaneSource ? laneToAgentModel(sourceModel, elementId) : null;
       if (derivation && !derivation.ok) {
         toast.warning(t(REFUSAL_MESSAGE_KEYS[derivation.reason]));
       }

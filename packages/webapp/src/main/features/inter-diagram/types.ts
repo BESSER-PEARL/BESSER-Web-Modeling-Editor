@@ -1,4 +1,4 @@
-import type { UMLModel } from './legacyV3Bridge';
+import type { UMLModel } from '@besser/wme';
 import type { ElementLineageMap } from '../../shared/types/project';
 
 /**

@@ -3,7 +3,6 @@ import { describe, expect, it, vi } from 'vitest';
 import type { UMLModel } from '@besser/wme';
 import { useAppDispatch, useAppSelector } from '../../../app/store/hooks';
 import { bpmnModelToComponentModel } from '../bpmn-to-component';
-import { fromLegacyV3, type UMLModel as LegacyUMLModel } from '../legacyV3Bridge';
 import { useGenerateComponentDiagram } from '../useGenerateComponentDiagram';
 import minimalAgentic from './fixtures/minimal-agentic.json';
 
@@ -24,7 +23,7 @@ describe('useGenerateComponentDiagram', () => {
     const state = {
       workspace: {
         activeDiagramType: 'BPMN',
-        activeDiagram: { id: 'bpmn', model: fromLegacyV3(minimalAgentic as unknown as LegacyUMLModel) },
+        activeDiagram: { id: 'bpmn', model: minimalAgentic as unknown as UMLModel },
         project: { diagrams: { AgentDiagram: [
           { id: 'agent-1', model, agentConfigForm: { default_llm_name: 'gpt-6-luna' } },
         ] } },

@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
-import type { BPMNSwimlane, UMLElement, UMLModel } from '../legacyV3Bridge';
+import type { BesserEdge, BesserNode, UMLModel } from '@besser/wme';
 import { bpmnModelToComponentModel, resolveBodyLlmName, resolveEdgeKind } from '../bpmn-to-component';
+import { absBox, field, makeModel, makeNode, nameOf, nodeById, nodesOfType } from './v4-helpers';
 import flatNoPools from './fixtures/flat-no-pools.json';
 import singlePoolNoLanes from './fixtures/single-pool-no-lanes.json';
 import minimalAgentic from './fixtures/minimal-agentic.json';
@@ -9,37 +10,49 @@ import multiPoolMessage from './fixtures/multi-pool-message.json';
 import divergeMerge from './fixtures/diverge-merge.json';
 import poolMessage from './fixtures/pool-message.json';
 
+const fixture = (f: unknown): UMLModel => structuredClone(f) as UMLModel;
+
+const stereoOf = (x: BesserNode | BesserEdge | undefined): string | undefined => field<string | undefined>(x, 'stereotype');
+const components = (m: UMLModel): BesserNode[] => nodesOfType(m, 'component');
+const subsystems = (m: UMLModel): BesserNode[] => nodesOfType(m, 'componentSubsystem');
+const byStereo = (m: UMLModel, s: string): BesserNode[] => m.nodes.filter((n) => stereoOf(n) === s);
+const edgesByStereo = (m: UMLModel, s: string): BesserEdge[] => m.edges.filter((e) => stereoOf(e) === s);
+
+// ── v4 BPMN / Agent builders (positions are parent-relative) ──
+const pool = (id: string, name: string, width = 400, height = 200): BesserNode =>
+  makeNode(id, 'bpmnPool', { name }, { x: 0, y: 0, width, height });
+const lane = (id: string, parentId: string, data: Record<string, unknown>, y = 0, width = 380, height = 200): BesserNode =>
+  makeNode(id, 'bpmnSwimlane', data, { x: 20, y, width, height }, parentId);
+const task = (id: string, parentId: string, data: Record<string, unknown>): BesserNode =>
+  makeNode(id, 'bpmnTask', data, { x: 20, y: 20, width: 100, height: 60 }, parentId);
+const bpmnModel = (...nodes: BesserNode[]): UMLModel => makeModel('BPMNDiagram', nodes);
+const agentDiagram = (nodes: BesserNode[], extra: Partial<UMLModel> = {}): UMLModel =>
+  makeModel('AgentDiagram', nodes, [], extra);
+const cap = (type: string, name: string, id: string): BesserNode => makeNode(id, type, { name }, { x: 0, y: 0, width: 1, height: 1 });
+
 describe('Inter-diagram — bpmnModelToComponentModel', () => {
   describe('refusals', () => {
     it('refuses with `no-pools` on a flat BPMN', () => {
-      const r = bpmnModelToComponentModel(flatNoPools as unknown as UMLModel);
+      const r = bpmnModelToComponentModel(fixture(flatNoPools));
       expect(r.ok).toBe(false);
       if (!r.ok) expect(r.reason).toBe('no-pools');
     });
 
     it('refuses with `no-lanes-in-any-pool` when a pool has no lanes', () => {
-      const r = bpmnModelToComponentModel(singlePoolNoLanes as unknown as UMLModel);
+      const r = bpmnModelToComponentModel(fixture(singlePoolNoLanes));
       expect(r.ok).toBe(false);
       if (!r.ok) expect(r.reason).toBe('no-lanes-in-any-pool');
     });
 
     it('refuses on a non-BPMN model', () => {
-      const r = bpmnModelToComponentModel({
-        version: '3.0.0',
-        type: 'ClassDiagram',
-        size: { width: 800, height: 600 },
-        elements: {},
-        interactive: { elements: {}, relationships: {} },
-        relationships: {},
-        assessments: {},
-      } as unknown as UMLModel);
+      const r = bpmnModelToComponentModel(makeModel('ClassDiagram'));
       expect(r.ok).toBe(false);
       if (!r.ok) expect(r.reason).toBe('not-a-bpmn-diagram');
     });
   });
 
   describe('minimal-agentic — manager → worker', () => {
-    const r = bpmnModelToComponentModel(minimalAgentic as unknown as UMLModel);
+    const r = bpmnModelToComponentModel(fixture(minimalAgentic));
     it('produces a ComponentDiagram model', () => {
       expect(r.ok).toBe(true);
       if (r.ok) {
@@ -48,57 +61,44 @@ describe('Inter-diagram — bpmnModelToComponentModel', () => {
     });
     it('emits 1 Subsystem + 2 agent-Components (no skills, no has edges)', () => {
       if (!r.ok) throw new Error('expected ok');
-      const els = Object.values(r.model.elements);
-      expect(els.filter((e) => e.type === 'Subsystem')).toHaveLength(1);
-      const components = els.filter((e) => e.type === 'Component');
-      expect(components).toHaveLength(2);
+      expect(subsystems(r.model)).toHaveLength(1);
+      const comps = components(r.model);
+      expect(comps).toHaveLength(2);
       // the lane-role mapping: lane role flows to Component stereotype
-      const solutions = components.filter((c) => (c as unknown as { stereotype?: string }).stereotype === 'solution');
-      const supervisions = components.filter(
-        (c) => (c as unknown as { stereotype?: string }).stereotype === 'supervision',
-      );
-      expect(solutions).toHaveLength(1);
-      expect(supervisions).toHaveLength(1);
+      expect(comps.filter((c) => stereoOf(c) === 'solution')).toHaveLength(1);
+      expect(comps.filter((c) => stereoOf(c) === 'supervision')).toHaveLength(1);
     });
     it('emits exactly 1 `supervises` edge (manager → worker, T1d; no `has` edges)', () => {
       if (!r.ok) throw new Error('expected ok');
-      const rels = Object.values(r.model.relationships);
-      const stereotypes = rels.map((rel) => (rel as unknown as { stereotype?: string }).stereotype).sort();
+      const stereotypes = r.model.edges.map((e) => stereoOf(e)).sort();
       expect(stereotypes).toEqual(['supervises']);
     });
   });
 
   describe('gateway-routed — manager → leader-driven merging gateway → 2 workers', () => {
-    const r = bpmnModelToComponentModel(gatewayRouted as unknown as UMLModel);
+    const r = bpmnModelToComponentModel(fixture(gatewayRouted));
     it('emits 2 `supervises` edges (one per worker)', () => {
       if (!r.ok) throw new Error('expected ok');
-      const rels = Object.values(r.model.relationships);
-      const supervises = rels.filter((rel) => (rel as unknown as { stereotype?: string }).stereotype === 'supervises');
-      expect(supervises).toHaveLength(2);
+      expect(edgesByStereo(r.model, 'supervises')).toHaveLength(2);
     });
   });
 
   describe('multi-pool-message — message flow to a non-agentic pool is dropped', () => {
-    const r = bpmnModelToComponentModel(multiPoolMessage as unknown as UMLModel);
+    const r = bpmnModelToComponentModel(fixture(multiPoolMessage));
     it('drops the non-agentic Pool B entirely (no Subsystem, no external Component)', () => {
       if (!r.ok) throw new Error('expected ok');
       // A Subsystem is emitted only for a pool
       // with an agentic lane — never via a message flow. Pool B's only lane is
       // non-agentic, so it disappears; only SwarmA + its Coordinator remain.
-      const subsystems = Object.values(r.model.elements).filter((e) => e.type === 'Subsystem');
-      expect(subsystems).toHaveLength(1);
-      expect(subsystems[0].name).toBe('SwarmA');
-      const externalComps = Object.values(r.model.elements).filter(
-        (e) => e.type === 'Component' && (e as unknown as { stereotype?: string }).stereotype === 'external',
-      );
+      const subs = subsystems(r.model);
+      expect(subs).toHaveLength(1);
+      expect(nameOf(subs[0])).toBe('SwarmA');
+      const externalComps = components(r.model).filter((c) => stereoOf(c) === 'external');
       expect(externalComps).toHaveLength(0);
     });
     it('drops the message flow that targeted the non-agentic pool', () => {
       if (!r.ok) throw new Error('expected ok');
-      const delegates = Object.values(r.model.relationships).filter(
-        (rel) => (rel as unknown as { stereotype?: string }).stereotype === 'delegates',
-      );
-      expect(delegates).toHaveLength(0);
+      expect(edgesByStereo(r.model, 'delegates')).toHaveLength(0);
     });
     it('only warns about the tasks of the dropped non-agentic lane', () => {
       if (!r.ok) throw new Error('expected ok');
@@ -109,54 +109,43 @@ describe('Inter-diagram — bpmnModelToComponentModel', () => {
       // BPMN message flows commonly attach pool-to-pool, so the endpoint
       // resolves to the pool (not a lane). A pool with lanes but no agentic
       // lane must still NOT be synthesised as a Subsystem.
-      const model = JSON.parse(JSON.stringify(multiPoolMessage));
-      model.relationships['msg-flow'].target.element = 'pool-b';
-      const r2 = bpmnModelToComponentModel(model as unknown as UMLModel);
+      const model = fixture(multiPoolMessage);
+      model.edges.find((e) => e.id === 'msg-flow')!.target = 'pool-b';
+      const r2 = bpmnModelToComponentModel(model);
       if (!r2.ok) throw new Error('expected ok');
-      const subsystems = Object.values(r2.model.elements).filter((e) => e.type === 'Subsystem');
-      expect(subsystems).toHaveLength(1);
-      expect(subsystems[0].name).toBe('SwarmA');
-      const delegates = Object.values(r2.model.relationships).filter(
-        (rel) => (rel as unknown as { stereotype?: string }).stereotype === 'delegates',
-      );
-      expect(delegates).toHaveLength(0);
+      const subs = subsystems(r2.model);
+      expect(subs).toHaveLength(1);
+      expect(nameOf(subs[0])).toBe('SwarmA');
+      expect(edgesByStereo(r2.model, 'delegates')).toHaveLength(0);
     });
   });
 
   describe('edge de-duplication', () => {
     it('two parallel manager→worker flows collapse to one `supervises` edge', () => {
-      const model = JSON.parse(JSON.stringify(minimalAgentic));
-      const existingFlow = Object.values(model.relationships).find(
-        (rel: unknown) => (rel as { type?: string; flowType?: string }).type === 'BPMNFlow',
-      ) as { id: string };
+      const model = fixture(minimalAgentic);
+      const existingFlow = model.edges.find((e) => e.type === 'BPMNSequenceFlow');
       if (!existingFlow) throw new Error('fixture should contain a sequence flow');
-      const dup = { ...existingFlow, id: `${existingFlow.id}-dup` };
-      model.relationships[dup.id] = dup;
+      model.edges.push({ ...existingFlow, id: `${existingFlow.id}-dup` });
 
-      const r = bpmnModelToComponentModel(model as unknown as UMLModel);
+      const r = bpmnModelToComponentModel(model);
       if (!r.ok) throw new Error('expected ok');
-      const supervises = Object.values(r.model.relationships).filter(
-        (rel) => (rel as unknown as { stereotype?: string }).stereotype === 'supervises',
-      );
-      expect(supervises).toHaveLength(1);
+      expect(edgesByStereo(r.model, 'supervises')).toHaveLength(1);
     });
   });
 
   describe('diverge-then-merge — surfaces supervises + revises + delegates', () => {
-    const r = bpmnModelToComponentModel(divergeMerge as unknown as UMLModel);
+    const r = bpmnModelToComponentModel(fixture(divergeMerge));
 
     it('produces a ComponentDiagram with 1 Subsystem + 2 Components (non-agentic lane skipped)', () => {
       if (!r.ok) throw new Error('expected ok');
-      const els = Object.values(r.model.elements);
-      expect(els.filter((e) => e.type === 'Subsystem')).toHaveLength(1);
-      expect(els.filter((e) => e.type === 'Component')).toHaveLength(2);
+      expect(subsystems(r.model)).toHaveLength(1);
+      expect(components(r.model)).toHaveLength(2);
     });
 
     it('maps lane roles to Component stereotypes and skips the non-agentic lane', () => {
       if (!r.ok) throw new Error('expected ok');
-      const comps = Object.values(r.model.elements)
-        .filter((e) => e.type === 'Component')
-        .map((c) => (c as unknown as { stereotype?: string }).stereotype)
+      const comps = components(r.model)
+        .map((c) => stereoOf(c))
         .sort();
       // lane-mgr → supervision, lane-wkr → solution (the lane-role mapping)
       expect(comps).toEqual(['solution', 'supervision']);
@@ -164,116 +153,105 @@ describe('Inter-diagram — bpmnModelToComponentModel', () => {
 
     it('emits one revises + one supervises edge (the delegate-to-Maintainer is gone)', () => {
       if (!r.ok) throw new Error('expected ok');
-      const stereotypes = Object.values(r.model.relationships)
-        .map((rel) => (rel as unknown as { stereotype?: string }).stereotype)
-        .sort();
+      const stereotypes = r.model.edges.map((e) => stereoOf(e)).sort();
       expect(stereotypes).toEqual(['revises', 'supervises']);
     });
 
     it('derives no Component from the non-agentic Maintainer lane', () => {
       if (!r.ok) throw new Error('expected ok');
-      const comps = Object.values(r.model.elements).filter((e) => e.type === 'Component');
+      const comps = components(r.model);
       const AGENTIC_STEREOS = new Set(['solution', 'supervision']);
-      expect(comps.every((c) => AGENTIC_STEREOS.has((c as unknown as { stereotype?: string }).stereotype ?? ''))).toBe(
-        true,
-      );
-      expect(comps.some((c) => c.name === 'Maintainer')).toBe(false);
+      expect(comps.every((c) => AGENTIC_STEREOS.has(stereoOf(c) ?? ''))).toBe(true);
+      expect(comps.some((c) => nameOf(c) === 'Maintainer')).toBe(false);
     });
   });
 
   describe('processModelRefs auto-derive (agentic Component → BPMN diagram)', () => {
     it('T-P1 stamps processModelRefs on agentic Components when sourceDiagramId is passed', () => {
-      const r = bpmnModelToComponentModel(minimalAgentic as unknown as UMLModel, {
+      const r = bpmnModelToComponentModel(fixture(minimalAgentic), {
         sourceDiagramId: 'bpmn-42',
       });
       if (!r.ok) throw new Error('expected ok');
-      const agents = Object.values(r.model.elements).filter(
-        (e) => e.type === 'Component' && (e as unknown as { stereotype?: string }).stereotype === 'solution',
-      );
+      const agents = components(r.model).filter((c) => stereoOf(c) === 'solution');
       expect(agents.length).toBeGreaterThan(0);
       for (const a of agents) {
-        expect((a as unknown as { processModelRefs?: string[] }).processModelRefs).toEqual(['bpmn-42']);
+        expect(field(a, 'processModelRefs')).toEqual(['bpmn-42']);
       }
     });
 
     it('T-P2 skips non-agentic lanes; every emitted Component is a stamped agent', () => {
-      const r = bpmnModelToComponentModel(divergeMerge as unknown as UMLModel, {
+      const r = bpmnModelToComponentModel(fixture(divergeMerge), {
         sourceDiagramId: 'bpmn-42',
       });
       if (!r.ok) throw new Error('expected ok');
-      const components = Object.values(r.model.elements).filter((e) => e.type === 'Component');
+      const comps = components(r.model);
       // Only agentic lanes become Components.
       // The lane-role mapping uses the two agentic profile stereotypes.
       const AGENTIC_STEREOS = new Set(['solution', 'supervision']);
-      const nonAgentic = components.filter(
-        (e) => !AGENTIC_STEREOS.has((e as unknown as { stereotype?: string }).stereotype ?? ''),
-      );
+      const nonAgentic = comps.filter((c) => !AGENTIC_STEREOS.has(stereoOf(c) ?? ''));
       expect(nonAgentic).toHaveLength(0);
-      expect(components.length).toBeGreaterThan(0);
-      for (const a of components) {
-        expect((a as unknown as { processModelRefs?: string[] }).processModelRefs).toEqual(['bpmn-42']);
+      expect(comps.length).toBeGreaterThan(0);
+      for (const a of comps) {
+        expect(field(a, 'processModelRefs')).toEqual(['bpmn-42']);
       }
     });
 
     it('T-P3 emits no processModelRefs without sourceDiagramId (back-compat)', () => {
-      const r = bpmnModelToComponentModel(minimalAgentic as unknown as UMLModel);
+      const r = bpmnModelToComponentModel(fixture(minimalAgentic));
       if (!r.ok) throw new Error('expected ok');
-      for (const e of Object.values(r.model.elements)) {
-        expect((e as unknown as { processModelRefs?: string[] }).processModelRefs).toBeUndefined();
+      for (const n of r.model.nodes) {
+        expect(field(n, 'processModelRefs')).toBeUndefined();
       }
     });
   });
 
   describe('pool-connected message flows target the Subsystem', () => {
-    const r = bpmnModelToComponentModel(poolMessage as unknown as UMLModel);
+    const r = bpmnModelToComponentModel(fixture(poolMessage));
 
     it('emits 3 Subsystems incl. a synthesised external for the laneless pool', () => {
       if (!r.ok) throw new Error('expected ok');
-      const subs = Object.values(r.model.elements).filter((e) => e.type === 'Subsystem');
+      const subs = subsystems(r.model);
       expect(subs).toHaveLength(3);
-      expect(subs.map((s) => s.name).sort()).toEqual(['LegacySystem', 'SwarmA', 'SwarmB']);
+      expect(subs.map((s) => nameOf(s)).sort()).toEqual(['LegacySystem', 'SwarmA', 'SwarmB']);
     });
 
     it('does NOT emit any external-stereotyped Component (pools are Subsystems)', () => {
       if (!r.ok) throw new Error('expected ok');
-      const externalComps = Object.values(r.model.elements).filter(
-        (e) => e.type === 'Component' && (e as unknown as { stereotype?: string }).stereotype === 'external',
-      );
-      expect(externalComps).toHaveLength(0);
+      expect(components(r.model).filter((c) => stereoOf(c) === 'external')).toHaveLength(0);
     });
 
     it('routes a pool→pool message flow as Subsystem → Subsystem', () => {
       if (!r.ok) throw new Error('expected ok');
-      const edge = Object.values(r.model.relationships).find((rel) => r.elementMapping[rel.id] === 'mf-1');
+      const edge = r.model.edges.find((e) => r.elementMapping[e.id] === 'mf-1');
       expect(edge).toBeDefined();
-      const src = r.model.elements[(edge as unknown as { source: { element: string } }).source.element];
-      const tgt = r.model.elements[(edge as unknown as { target: { element: string } }).target.element];
-      expect(src.type).toBe('Subsystem');
-      expect(tgt.type).toBe('Subsystem');
-      expect((edge as unknown as { stereotype?: string }).stereotype).toBe('delegates');
+      const src = nodeById(r.model, edge!.source)!;
+      const tgt = nodeById(r.model, edge!.target)!;
+      expect(src.type).toBe('componentSubsystem');
+      expect(tgt.type).toBe('componentSubsystem');
+      expect(stereoOf(edge)).toBe('delegates');
     });
 
     it('routes a lane→black-box-pool message flow as Component → Subsystem', () => {
       if (!r.ok) throw new Error('expected ok');
-      const edge = Object.values(r.model.relationships).find((rel) => r.elementMapping[rel.id] === 'mf-2');
+      const edge = r.model.edges.find((e) => r.elementMapping[e.id] === 'mf-2');
       expect(edge).toBeDefined();
-      const src = r.model.elements[(edge as unknown as { source: { element: string } }).source.element];
-      const tgt = r.model.elements[(edge as unknown as { target: { element: string } }).target.element];
-      expect(src.type).toBe('Component');
-      expect(tgt.type).toBe('Subsystem');
-      expect(tgt.name).toBe('LegacySystem');
+      const src = nodeById(r.model, edge!.source)!;
+      const tgt = nodeById(r.model, edge!.target)!;
+      expect(src.type).toBe('component');
+      expect(tgt.type).toBe('componentSubsystem');
+      expect(nameOf(tgt)).toBe('LegacySystem');
     });
   });
 
   describe('message-flow de-duplication', () => {
     it('collapses several message flows between the same endpoints into one dependency', () => {
-      const model = JSON.parse(JSON.stringify(poolMessage)) as UMLModel;
-      const original = model.relationships['mf-1'];
-      model.relationships['mf-1-again'] = { ...original, id: 'mf-1-again' };
+      const model = fixture(poolMessage);
+      const original = model.edges.find((e) => e.id === 'mf-1')!;
+      model.edges.push({ ...original, id: 'mf-1-again' });
       const r = bpmnModelToComponentModel(model);
       if (!r.ok) throw new Error('expected ok');
-      const edges = Object.values(r.model.relationships).filter(
-        (rel) => r.elementMapping[rel.id] === 'mf-1' || r.elementMapping[rel.id] === 'mf-1-again',
+      const edges = r.model.edges.filter(
+        (e) => r.elementMapping[e.id] === 'mf-1' || r.elementMapping[e.id] === 'mf-1-again',
       );
       expect(edges).toHaveLength(1);
     });
@@ -281,19 +259,21 @@ describe('Inter-diagram — bpmnModelToComponentModel', () => {
 
   describe('Subsystem sizing', () => {
     it('grows a pool Subsystem so all of its lane Components fit inside', () => {
-      const model = JSON.parse(JSON.stringify(minimalAgentic)) as UMLModel;
-      const firstLane = Object.values(model.elements).find((e) => e.type === 'BPMNSwimlane')!;
+      const model = fixture(minimalAgentic);
+      const firstLane = model.nodes.find((n) => n.type === 'bpmnSwimlane')!;
       for (let i = 0; i < 6; i++) {
-        model.elements[`extra-${i}`] = { ...firstLane, id: `extra-${i}`, name: `Agent ${i}` };
+        model.nodes.push({ ...firstLane, id: `extra-${i}`, data: { ...firstLane.data, name: `Agent ${i}` } });
       }
       const r = bpmnModelToComponentModel(model);
       if (!r.ok) throw new Error('expected ok');
-      const subsystem = Object.values(r.model.elements).find((e) => e.type === 'Subsystem')!;
-      const components = Object.values(r.model.elements).filter((e) => e.type === 'Component');
-      expect(components.length).toBeGreaterThanOrEqual(7);
-      expect(subsystem.bounds.width).toBeGreaterThan(640);
-      for (const c of components) {
-        expect(c.bounds.x + c.bounds.width).toBeLessThanOrEqual(subsystem.bounds.x + subsystem.bounds.width);
+      const subsystem = subsystems(r.model)[0];
+      const comps = components(r.model);
+      expect(comps.length).toBeGreaterThanOrEqual(7);
+      const sub = absBox(r.model, subsystem);
+      expect(sub.width).toBeGreaterThan(640);
+      for (const c of comps) {
+        const b = absBox(r.model, c);
+        expect(b.x + b.width).toBeLessThanOrEqual(sub.x + sub.width);
       }
     });
   });
@@ -303,79 +283,21 @@ describe('Inter-diagram — bpmnModelToComponentModel', () => {
     // an Agent diagram. The derivation matches `type: 'AgentTool'` by
     // string, so this exercises the full path without the editor element.
     const makeBpmn = (laneOverrides: Record<string, unknown> = {}, taskRef = 'ad1') =>
-      ({
-        version: '3.0.0',
-        type: 'BPMNDiagram',
-        size: { width: 800, height: 600 },
-        elements: {
-          P1: {
-            id: 'P1',
-            type: 'BPMNPool',
-            name: 'Swarm',
-            owner: null,
-            bounds: { x: 0, y: 0, width: 400, height: 200 },
-          },
-          L1: {
-            id: 'L1',
-            type: 'BPMNSwimlane',
-            name: 'Researcher',
-            owner: 'P1',
-            isAgentic: true,
-            role: 'solution',
-            bounds: { x: 20, y: 0, width: 380, height: 200 },
-            ...laneOverrides,
-          },
-          T1: {
-            id: 'T1',
-            type: 'BPMNTask',
-            name: 'Search',
-            owner: 'L1',
-            agentDiagramRef: taskRef,
-            bounds: { x: 40, y: 20, width: 100, height: 60 },
-          },
-        },
-        relationships: {},
-        interactive: { elements: {}, relationships: {} },
-        assessments: {},
-      }) as unknown as UMLModel;
+      bpmnModel(
+        pool('P1', 'Swarm'),
+        lane('L1', 'P1', { name: 'Researcher', isAgentic: true, role: 'solution', ...laneOverrides }),
+        task('T1', 'L1', { name: 'Search', agentDiagramRef: taskRef }),
+      );
 
-    const agentModel = {
-      version: '3.0.0',
-      type: 'AgentDiagram',
-      size: { width: 100, height: 100 },
-      elements: {
-        tlA: {
-          id: 'tlA',
-          type: 'AgentTool',
-          name: 'WebSearch',
-          owner: null,
-          bounds: { x: 0, y: 0, width: 1, height: 1 },
-        },
-        tlB: {
-          id: 'tlB',
-          type: 'AgentTool',
-          name: 'WebSearch',
-          owner: null,
-          bounds: { x: 0, y: 0, width: 1, height: 1 },
-        }, // dup name
-        skA: {
-          id: 'skA',
-          type: 'AgentSkill',
-          name: 'Summarise',
-          owner: null,
-          bounds: { x: 0, y: 0, width: 1, height: 1 },
-        },
-      },
-      relationships: {},
-      interactive: { elements: {}, relationships: {} },
-      assessments: {},
-    } as unknown as UMLModel;
+    const agentModel = agentDiagram([
+      cap('AgentTool', 'WebSearch', 'tlA'),
+      cap('AgentTool', 'WebSearch', 'tlB'), // dup name
+      cap('AgentSkill', 'Summarise', 'skA'),
+    ]);
     const agentDiagramsById = new Map([['ad1', agentModel]]);
 
     const capStereos = (m: UMLModel) =>
-      Object.values(m.elements)
-        .map((e) => (e as unknown as { stereotype?: string }).stereotype)
-        .filter((s) => s === 'tool' || s === 'skill');
+      m.nodes.map((n) => stereoOf(n)).filter((s) => s === 'tool' || s === 'skill');
 
     it('T-U1 — default (no opts): emits no tool/skill Components (clean swarm)', () => {
       const r = bpmnModelToComponentModel(makeBpmn());
@@ -386,18 +308,14 @@ describe('Inter-diagram — bpmnModelToComponentModel', () => {
     it('T-U2 — opt-in: one `tool` (deduped) + one `skill`, with `uses` and `has` edges', () => {
       const r = bpmnModelToComponentModel(makeBpmn(), { agentDiagramsById, includeCapabilities: true });
       if (!r.ok) throw new Error('expected ok');
-      const tools = Object.values(r.model.elements).filter(
-        (e) => (e as unknown as { stereotype?: string }).stereotype === 'tool',
-      );
-      const skills = Object.values(r.model.elements).filter(
-        (e) => (e as unknown as { stereotype?: string }).stereotype === 'skill',
-      );
+      const tools = byStereo(r.model, 'tool');
+      const skills = byStereo(r.model, 'skill');
       expect(tools).toHaveLength(1); // WebSearch deduped (tool deduplication)
-      expect(tools[0].name).toBe('WebSearch');
+      expect(nameOf(tools[0])).toBe('WebSearch');
       expect(skills).toHaveLength(1);
-      expect(skills[0].name).toBe('Summarise');
-      const edgeStereos = Object.values(r.model.relationships)
-        .map((rel) => (rel as unknown as { stereotype?: string }).stereotype)
+      expect(nameOf(skills[0])).toBe('Summarise');
+      const edgeStereos = r.model.edges
+        .map((e) => stereoOf(e))
         .filter((s) => s === 'uses' || s === 'has')
         .sort();
       expect(edgeStereos).toEqual(['has', 'uses']); // relationship direction
@@ -412,9 +330,7 @@ describe('Inter-diagram — bpmnModelToComponentModel', () => {
     it('T-U4 — lineage: a capability Component maps to the linking BPMNTask id', () => {
       const r = bpmnModelToComponentModel(makeBpmn(), { agentDiagramsById, includeCapabilities: true });
       if (!r.ok) throw new Error('expected ok');
-      const tool = Object.values(r.model.elements).find(
-        (e) => (e as unknown as { stereotype?: string }).stereotype === 'tool',
-      );
+      const tool = byStereo(r.model, 'tool')[0];
       expect(tool).toBeDefined();
       expect(r.elementMapping[tool!.id]).toBe('T1');
     });
@@ -432,119 +348,28 @@ describe('Inter-diagram — bpmnModelToComponentModel', () => {
   describe('grouped capability mode (Skills / Tools zones)', () => {
     // Single agentic lane → ad1 (tools WebSearch ×2 dup, skill Summarise).
     const makeBpmn = () =>
-      ({
-        version: '3.0.0',
-        type: 'BPMNDiagram',
-        size: { width: 800, height: 600 },
-        elements: {
-          P1: {
-            id: 'P1',
-            type: 'BPMNPool',
-            name: 'Swarm',
-            owner: null,
-            bounds: { x: 0, y: 0, width: 400, height: 200 },
-          },
-          L1: {
-            id: 'L1',
-            type: 'BPMNSwimlane',
-            name: 'Researcher',
-            owner: 'P1',
-            isAgentic: true,
-            role: 'solution',
-            bounds: { x: 20, y: 0, width: 380, height: 200 },
-          },
-          T1: {
-            id: 'T1',
-            type: 'BPMNTask',
-            name: 'Search',
-            owner: 'L1',
-            agentDiagramRef: 'ad1',
-            bounds: { x: 40, y: 20, width: 100, height: 60 },
-          },
-        },
-        relationships: {},
-        interactive: { elements: {}, relationships: {} },
-        assessments: {},
-      }) as unknown as UMLModel;
+      bpmnModel(
+        pool('P1', 'Swarm'),
+        lane('L1', 'P1', { name: 'Researcher', isAgentic: true, role: 'solution' }),
+        task('T1', 'L1', { name: 'Search', agentDiagramRef: 'ad1' }),
+      );
 
     // Two agentic lanes → ad1 + ad2; both list a tool named "WebSearch".
     const makeTwoAgentBpmn = () =>
-      ({
-        version: '3.0.0',
-        type: 'BPMNDiagram',
-        size: { width: 800, height: 600 },
-        elements: {
-          P1: {
-            id: 'P1',
-            type: 'BPMNPool',
-            name: 'Swarm',
-            owner: null,
-            bounds: { x: 0, y: 0, width: 400, height: 400 },
-          },
-          L1: {
-            id: 'L1',
-            type: 'BPMNSwimlane',
-            name: 'Researcher',
-            owner: 'P1',
-            isAgentic: true,
-            role: 'solution',
-            bounds: { x: 20, y: 0, width: 380, height: 200 },
-          },
-          T1: {
-            id: 'T1',
-            type: 'BPMNTask',
-            name: 'Search',
-            owner: 'L1',
-            agentDiagramRef: 'ad1',
-            bounds: { x: 40, y: 20, width: 100, height: 60 },
-          },
-          L2: {
-            id: 'L2',
-            type: 'BPMNSwimlane',
-            name: 'Analyst',
-            owner: 'P1',
-            isAgentic: true,
-            role: 'solution',
-            bounds: { x: 20, y: 200, width: 380, height: 200 },
-          },
-          T2: {
-            id: 'T2',
-            type: 'BPMNTask',
-            name: 'Analyse',
-            owner: 'L2',
-            agentDiagramRef: 'ad2',
-            bounds: { x: 40, y: 220, width: 100, height: 60 },
-          },
-        },
-        relationships: {},
-        interactive: { elements: {}, relationships: {} },
-        assessments: {},
-      }) as unknown as UMLModel;
+      bpmnModel(
+        pool('P1', 'Swarm', 400, 400),
+        lane('L1', 'P1', { name: 'Researcher', isAgentic: true, role: 'solution' }),
+        task('T1', 'L1', { name: 'Search', agentDiagramRef: 'ad1' }),
+        lane('L2', 'P1', { name: 'Analyst', isAgentic: true, role: 'solution' }, 200),
+        task('T2', 'L2', { name: 'Analyse', agentDiagramRef: 'ad2' }),
+      );
 
-    const cap = (type: string, name: string, id: string) => ({
-      id,
-      type,
-      name,
-      owner: null,
-      bounds: { x: 0, y: 0, width: 1, height: 1 },
-    });
-    const agentModel = (...els: Array<ReturnType<typeof cap>>) =>
-      ({
-        version: '3.0.0',
-        type: 'AgentDiagram',
-        size: { width: 100, height: 100 },
-        elements: Object.fromEntries(els.map((e) => [e.id, e])),
-        relationships: {},
-        interactive: { elements: {}, relationships: {} },
-        assessments: {},
-      }) as unknown as UMLModel;
-
-    const ad1 = agentModel(
+    const ad1 = agentDiagram([
       cap('AgentTool', 'WebSearch', 't1a'),
       cap('AgentTool', 'WebSearch', 't1b'),
       cap('AgentSkill', 'Summarise', 's1'),
-    );
-    const ad2 = agentModel(cap('AgentTool', 'WebSearch', 't2a'), cap('AgentTool', 'Calculator', 't2b'));
+    ]);
+    const ad2 = agentDiagram([cap('AgentTool', 'WebSearch', 't2a'), cap('AgentTool', 'Calculator', 't2b')]);
     const byId1 = new Map([['ad1', ad1]]);
     const byId2 = new Map([
       ['ad1', ad1],
@@ -552,14 +377,7 @@ describe('Inter-diagram — bpmnModelToComponentModel', () => {
     ]);
     const grouped = { includeCapabilities: true } as const;
 
-    const subsystemsNamed = (m: UMLModel) =>
-      Object.values(m.elements)
-        .filter((e) => e.type === 'Subsystem')
-        .map((e) => e.name);
-    const byStereo = (m: UMLModel, s: string) =>
-      Object.values(m.elements).filter((e) => (e as unknown as { stereotype?: string }).stereotype === s);
-    const edgesByStereo = (m: UMLModel, s: string) =>
-      Object.values(m.relationships).filter((r) => (r as unknown as { stereotype?: string }).stereotype === s);
+    const subsystemsNamed = (m: UMLModel) => subsystems(m).map((s) => nameOf(s));
 
     it('T-G1 — emits named Skills + Tools Subsystems holding the capabilities', () => {
       const r = bpmnModelToComponentModel(makeBpmn(), { agentDiagramsById: byId1, ...grouped });
@@ -569,8 +387,8 @@ describe('Inter-diagram — bpmnModelToComponentModel', () => {
       expect(byStereo(r.model, 'skill')).toHaveLength(1); // Summarise
       // capability Components are owned by a zone Subsystem, not the swarm
       const tool = byStereo(r.model, 'tool')[0];
-      const owner = r.model.elements[(tool as unknown as { owner: string }).owner];
-      expect(owner.name).toBe('Tools');
+      const parent = nodeById(r.model, tool.parentId)!;
+      expect(nameOf(parent)).toBe('Tools');
       expect(edgesByStereo(r.model, 'uses')).toHaveLength(1);
       expect(edgesByStereo(r.model, 'has')).toHaveLength(1);
     });
@@ -579,14 +397,12 @@ describe('Inter-diagram — bpmnModelToComponentModel', () => {
       const r = bpmnModelToComponentModel(makeTwoAgentBpmn(), { agentDiagramsById: byId2, ...grouped });
       if (!r.ok) throw new Error('expected ok');
       const tools = byStereo(r.model, 'tool');
-      expect(tools.map((t) => t.name).sort()).toEqual(['Calculator', 'WebSearch']); // 2 unique
-      const webSearch = tools.filter((t) => t.name === 'WebSearch');
+      expect(tools.map((t) => nameOf(t)).sort()).toEqual(['Calculator', 'WebSearch']); // 2 unique
+      const webSearch = tools.filter((t) => nameOf(t) === 'WebSearch');
       expect(webSearch).toHaveLength(1); // shared name → ONE box
       // ad1→WebSearch, ad2→WebSearch, ad2→Calculator = 3 `uses`
       expect(edgesByStereo(r.model, 'uses')).toHaveLength(3);
-      const intoWebSearch = Object.values(r.model.relationships).filter(
-        (rel) => (rel as unknown as { target: { element: string } }).target.element === webSearch[0].id,
-      );
+      const intoWebSearch = r.model.edges.filter((e) => e.target === webSearch[0].id);
       expect(intoWebSearch).toHaveLength(2); // two agents point at the one box
     });
 
@@ -601,63 +417,14 @@ describe('Inter-diagram — bpmnModelToComponentModel', () => {
   describe('capability-heavy-agent warning', () => {
     // One agentic worker lane → one task → an Agent diagram with `n` tools.
     const makeBpmn = () =>
-      ({
-        version: '3.0.0',
-        type: 'BPMNDiagram',
-        size: { width: 800, height: 600 },
-        elements: {
-          P1: {
-            id: 'P1',
-            type: 'BPMNPool',
-            name: 'Swarm',
-            owner: null,
-            bounds: { x: 0, y: 0, width: 400, height: 200 },
-          },
-          L1: {
-            id: 'L1',
-            type: 'BPMNSwimlane',
-            name: 'Researcher',
-            owner: 'P1',
-            isAgentic: true,
-            role: 'solution',
-            bounds: { x: 20, y: 0, width: 380, height: 200 },
-          },
-          T1: {
-            id: 'T1',
-            type: 'BPMNTask',
-            name: 'Search',
-            owner: 'L1',
-            agentDiagramRef: 'ad1',
-            bounds: { x: 40, y: 20, width: 100, height: 60 },
-          },
-        },
-        relationships: {},
-        interactive: { elements: {}, relationships: {} },
-        assessments: {},
-      }) as unknown as UMLModel;
+      bpmnModel(
+        pool('P1', 'Swarm'),
+        lane('L1', 'P1', { name: 'Researcher', isAgentic: true, role: 'solution' }),
+        task('T1', 'L1', { name: 'Search', agentDiagramRef: 'ad1' }),
+      );
 
-    const cap = (type: string, name: string, id: string) => ({
-      id,
-      type,
-      name,
-      owner: null,
-      bounds: { x: 0, y: 0, width: 1, height: 1 },
-    });
     const agentModelWithTools = (n: number) =>
-      ({
-        version: '3.0.0',
-        type: 'AgentDiagram',
-        size: { width: 100, height: 100 },
-        elements: Object.fromEntries(
-          Array.from({ length: n }, (_, i) => {
-            const e = cap('AgentTool', `Tool${i}`, `t${i}`);
-            return [e.id, e];
-          }),
-        ),
-        relationships: {},
-        interactive: { elements: {}, relationships: {} },
-        assessments: {},
-      }) as unknown as UMLModel;
+      agentDiagram(Array.from({ length: n }, (_, i) => cap('AgentTool', `Tool${i}`, `t${i}`)));
 
     const grouped = { includeCapabilities: true } as const;
     const heavyWarnings = (m: { warnings: Array<{ kind: string }> }) =>
@@ -671,9 +438,7 @@ describe('Inter-diagram — bpmnModelToComponentModel', () => {
       expect(heavy).toHaveLength(1);
       expect(heavy[0]).toMatchObject({ kind: 'capability-heavy-agent', laneId: 'L1', count: 11 });
       // D1 — nothing truncated: all 11 tool Components still emitted.
-      expect(
-        Object.values(r.model.elements).filter((e) => (e as { stereotype?: string }).stereotype === 'tool'),
-      ).toHaveLength(11);
+      expect(byStereo(r.model, 'tool')).toHaveLength(11);
     });
 
     it('T-H2 — == threshold (10 tools) does NOT warn (boundary is strict >)', () => {
@@ -697,71 +462,14 @@ describe('Inter-diagram — bpmnModelToComponentModel', () => {
       // 7 + 6 = 13 distinct tool names, split 7/6 across two lanes so NO
       // single agent exceeds the per-agent threshold of 10 (the MH2 case).
       const adA = agentModelWithTools(7); // Tool0..Tool6
-      const adB = {
-        version: '3.0.0',
-        type: 'AgentDiagram',
-        size: { width: 100, height: 100 },
-        elements: Object.fromEntries(
-          Array.from({ length: 6 }, (_, i) => {
-            const e = cap('AgentTool', `Other${i}`, `o${i}`);
-            return [e.id, e];
-          }),
-        ),
-        relationships: {},
-        interactive: { elements: {}, relationships: {} },
-        assessments: {},
-      } as unknown as UMLModel;
-      const bpmn = {
-        version: '3.0.0',
-        type: 'BPMNDiagram',
-        size: { width: 800, height: 600 },
-        elements: {
-          P1: {
-            id: 'P1',
-            type: 'BPMNPool',
-            name: 'Swarm',
-            owner: null,
-            bounds: { x: 0, y: 0, width: 400, height: 400 },
-          },
-          L1: {
-            id: 'L1',
-            type: 'BPMNSwimlane',
-            name: 'A',
-            owner: 'P1',
-            isAgentic: true,
-            role: 'solution',
-            bounds: { x: 20, y: 0, width: 380, height: 200 },
-          },
-          T1: {
-            id: 'T1',
-            type: 'BPMNTask',
-            name: 'a',
-            owner: 'L1',
-            agentDiagramRef: 'adA',
-            bounds: { x: 40, y: 20, width: 100, height: 60 },
-          },
-          L2: {
-            id: 'L2',
-            type: 'BPMNSwimlane',
-            name: 'B',
-            owner: 'P1',
-            isAgentic: true,
-            role: 'solution',
-            bounds: { x: 20, y: 200, width: 380, height: 200 },
-          },
-          T2: {
-            id: 'T2',
-            type: 'BPMNTask',
-            name: 'b',
-            owner: 'L2',
-            agentDiagramRef: 'adB',
-            bounds: { x: 40, y: 220, width: 100, height: 60 },
-          },
-        },
-        relationships: {},
-        interactive: { elements: {}, relationships: {} },
-        assessments: {},
-      } as unknown as UMLModel;
+      const adB = agentDiagram(Array.from({ length: 6 }, (_, i) => cap('AgentTool', `Other${i}`, `o${i}`)));
+      const bpmn = bpmnModel(
+        pool('P1', 'Swarm', 400, 400),
+        lane('L1', 'P1', { name: 'A', isAgentic: true, role: 'solution' }),
+        task('T1', 'L1', { name: 'a', agentDiagramRef: 'adA' }),
+        lane('L2', 'P1', { name: 'B', isAgentic: true, role: 'solution' }, 200),
+        task('T2', 'L2', { name: 'b', agentDiagramRef: 'adB' }),
+      );
       const byId = new Map([
         ['adA', adA],
         ['adB', adB],
@@ -787,9 +495,7 @@ describe('Inter-diagram — bpmnModelToComponentModel', () => {
       const byId = new Map([['ad1', agentModelWithTools(12)]]); // tall Tools zone
       const r = bpmnModelToComponentModel(makeBpmn(), { agentDiagramsById: byId, ...grouped });
       if (!r.ok) throw new Error('expected ok');
-      const bs = Object.values(r.model.elements).map(
-        (e) => (e as unknown as { bounds: { x: number; y: number; width: number; height: number } }).bounds,
-      );
+      const bs = r.model.nodes.map((n) => absBox(r.model, n));
       const minX = Math.min(...bs.map((b) => b.x));
       const maxX = Math.max(...bs.map((b) => b.x + b.width));
       const minY = Math.min(...bs.map((b) => b.y));
@@ -803,73 +509,26 @@ describe('Inter-diagram — bpmnModelToComponentModel', () => {
     // One agentic worker lane → one task. `taskRef` is the ref under test;
     // the agent map below only contains 'ad1', so any other ref dangles.
     const makeBpmn = (taskRef: string) =>
-      ({
-        version: '3.0.0',
-        type: 'BPMNDiagram',
-        size: { width: 800, height: 600 },
-        elements: {
-          P1: {
-            id: 'P1',
-            type: 'BPMNPool',
-            name: 'Swarm',
-            owner: null,
-            bounds: { x: 0, y: 0, width: 400, height: 200 },
-          },
-          L1: {
-            id: 'L1',
-            type: 'BPMNSwimlane',
-            name: 'Researcher',
-            owner: 'P1',
-            isAgentic: true,
-            role: 'solution',
-            bounds: { x: 20, y: 0, width: 380, height: 200 },
-          },
-          T1: {
-            id: 'T1',
-            type: 'BPMNTask',
-            name: 'Search',
-            owner: 'L1',
-            agentDiagramRef: taskRef,
-            bounds: { x: 40, y: 20, width: 100, height: 60 },
-          },
-        },
-        relationships: {},
-        interactive: { elements: {}, relationships: {} },
-        assessments: {},
-      }) as unknown as UMLModel;
+      bpmnModel(
+        pool('P1', 'Swarm'),
+        lane('L1', 'P1', { name: 'Researcher', isAgentic: true, role: 'solution' }),
+        task('T1', 'L1', { name: 'Search', agentDiagramRef: taskRef }),
+      );
 
     // BPMN whose single task carries NO agentDiagramRef at all.
     const makeBpmnNoRef = () => {
-      const m = makeBpmn('x') as unknown as { elements: Record<string, { agentDiagramRef?: string }> };
-      delete m.elements.T1.agentDiagramRef;
-      return m as unknown as UMLModel;
+      const m = makeBpmn('x');
+      delete m.nodes.find((n) => n.id === 'T1')!.data.agentDiagramRef;
+      return m;
     };
 
-    const agentModel = {
-      version: '3.0.0',
-      type: 'AgentDiagram',
-      size: { width: 100, height: 100 },
-      elements: {
-        t1: {
-          id: 't1',
-          type: 'AgentTool',
-          name: 'WebSearch',
-          owner: null,
-          bounds: { x: 0, y: 0, width: 1, height: 1 },
-        },
-      },
-      relationships: {},
-      interactive: { elements: {}, relationships: {} },
-      assessments: {},
-    } as unknown as UMLModel;
+    const agentModel = agentDiagram([cap('AgentTool', 'WebSearch', 't1')]);
     const byId = new Map([['ad1', agentModel]]);
 
     const danglingWarnings = (m: { warnings: Array<{ kind: string }> }) =>
       m.warnings.filter((w) => w.kind === 'dangling-agent-ref');
     const capStereos = (m: UMLModel) =>
-      Object.values(m.elements)
-        .map((e) => (e as unknown as { stereotype?: string }).stereotype)
-        .filter((s) => s === 'tool' || s === 'skill');
+      m.nodes.map((n) => stereoOf(n)).filter((s) => s === 'tool' || s === 'skill');
 
     it('T-D1 — dangling ref in capability mode → one dangling-agent-ref warning, no caps', () => {
       const r = bpmnModelToComponentModel(makeBpmn('gone'), { agentDiagramsById: byId, includeCapabilities: true });
@@ -903,38 +562,34 @@ describe('Inter-diagram — bpmnModelToComponentModel', () => {
   });
 
   describe('element-mapping output', () => {
-    it('maps derived Subsystem → source Pool, Component → source Lane, ComponentDependency → source BPMNFlow', () => {
-      const r = bpmnModelToComponentModel(minimalAgentic as unknown as UMLModel);
+    it('maps derived Subsystem → source Pool, Component → source Lane, ComponentDependency → source BPMN flow', () => {
+      const source = fixture(minimalAgentic);
+      const r = bpmnModelToComponentModel(source);
       if (!r.ok) throw new Error('expected ok');
 
       // Pull source ids from the fixture.
-      const sourcePoolId = Object.values((minimalAgentic as unknown as UMLModel).elements).find(
-        (e) => e.type === 'BPMNPool',
-      )?.id;
-      const sourceLaneIds = Object.values((minimalAgentic as unknown as UMLModel).elements)
-        .filter((e) => e.type === 'BPMNSwimlane')
-        .map((e) => e.id);
-      const sourceFlowId = Object.values((minimalAgentic as unknown as UMLModel).relationships).find(
-        (rel) => rel.type === 'BPMNFlow' && (rel as unknown as { flowType?: string }).flowType === 'sequence',
-      )?.id;
+      const sourcePoolId = source.nodes.find((n) => n.type === 'bpmnPool')?.id;
+      const sourceLaneIds = nodesOfType(source, 'bpmnSwimlane').map((n) => n.id);
+      const sourceFlowId = source.edges.find((e) => e.type === 'BPMNSequenceFlow')?.id;
       expect(sourcePoolId).toBeDefined();
       expect(sourceLaneIds.length).toBeGreaterThan(0);
       expect(sourceFlowId).toBeDefined();
 
       // The Subsystem points at the Pool.
-      const subsystem = Object.values(r.model.elements).find((e) => e.type === 'Subsystem');
+      const subsystem = subsystems(r.model)[0];
       expect(subsystem).toBeDefined();
       expect(r.elementMapping[subsystem!.id]).toBe(sourcePoolId);
 
       // Each lane-derived Component points at its source Lane.
-      const components = Object.values(r.model.elements).filter((e) => e.type === 'Component');
-      const mappedLaneIds = components.map((c) => r.elementMapping[c.id]).filter(Boolean);
+      const mappedLaneIds = components(r.model)
+        .map((c) => r.elementMapping[c.id])
+        .filter(Boolean);
       for (const mid of mappedLaneIds) {
         expect(sourceLaneIds).toContain(mid);
       }
 
-      // The emitted ComponentDependency points at the source BPMNFlow.
-      const dep = Object.values(r.model.relationships).find((rel) => rel.type === 'ComponentDependency');
+      // The emitted ComponentDependency points at the source sequence flow.
+      const dep = r.model.edges.find((e) => e.type === 'ComponentDependency');
       expect(dep).toBeDefined();
       expect(r.elementMapping[dep!.id]).toBe(sourceFlowId);
     });
@@ -942,83 +597,45 @@ describe('Inter-diagram — bpmnModelToComponentModel', () => {
 
   describe('LLM/DB/RAG resources as capability Components', () => {
     const makeBpmn = (taskRef = 'res1') =>
-      ({
-        version: '3.0.0',
-        type: 'BPMNDiagram',
-        size: { width: 800, height: 600 },
-        elements: {
-          P1: {
-            id: 'P1',
-            type: 'BPMNPool',
-            name: 'Swarm',
-            owner: null,
-            bounds: { x: 0, y: 0, width: 400, height: 200 },
-          },
-          L1: {
-            id: 'L1',
-            type: 'BPMNSwimlane',
-            name: 'Researcher',
-            owner: 'P1',
-            isAgentic: true,
-            role: 'solution',
-            bounds: { x: 20, y: 0, width: 380, height: 200 },
-          },
-          T1: {
-            id: 'T1',
-            type: 'BPMNTask',
-            name: 'Answer',
-            owner: 'L1',
-            agentDiagramRef: taskRef,
-            bounds: { x: 40, y: 20, width: 100, height: 60 },
-          },
-        },
-        relationships: {},
-        interactive: { elements: {}, relationships: {} },
-        assessments: {},
-      }) as unknown as UMLModel;
+      bpmnModel(
+        pool('P1', 'Swarm'),
+        lane('L1', 'P1', { name: 'Researcher', isAgentic: true, role: 'solution' }),
+        task('T1', 'L1', { name: 'Answer', agentDiagramRef: taskRef }),
+      );
 
-    const b = (id: string, replyType: string, extra: Record<string, unknown> = {}, type = 'AgentStateBody') => ({
+    const b = (id: string, replyType: string, extra: Record<string, unknown> = {}) => ({
       id,
-      type,
       name: '',
-      owner: 'st',
       replyType,
-      bounds: { x: 0, y: 0, width: 1, height: 1 },
       ...extra,
     });
 
-    const resourceAgent = {
-      version: '3.0.0',
-      type: 'AgentDiagram',
-      size: { width: 100, height: 100 },
-      elements: {
-        st: { id: 'st', type: 'AgentState', name: 'Answer', owner: null, bounds: { x: 0, y: 0, width: 1, height: 1 } },
-        b1: b('b1', 'llm'),
-        b2: b('b2', 'llm'), // dup → one shared LLM (peer-name resolution)
-        b3: b('b3', 'rag', { ragDatabaseName: 'kb' }),
-        b4: b('b4', 'db_reply', { dbCustomName: 'orders' }),
-        b5: b('b5', 'text'), // plain reply → ignored
-        b6: b('b6', 'code'), // Python → ignored (deferred)
-        fb: b('fb', 'rag', { ragDatabaseName: 'kb' }, 'AgentStateFallbackBody'), // fallback body, duplicate kb resource deduped
-      },
-      relationships: {},
-      interactive: { elements: {}, relationships: {} },
-      assessments: {},
-    } as unknown as UMLModel;
+    const resourceAgent = agentDiagram([
+      makeNode('st', 'AgentState', {
+        name: 'Answer',
+        bodies: [
+          b('b1', 'llm'),
+          b('b2', 'llm'), // dup → one shared LLM (peer-name resolution)
+          b('b3', 'rag', { ragDatabaseName: 'kb' }),
+          b('b4', 'db_reply', { dbCustomName: 'orders' }),
+          b('b5', 'text'), // plain reply → ignored
+          b('b6', 'code'), // Python → ignored (deferred)
+        ],
+        // fallback body, duplicate kb resource deduped
+        fallbackBodies: [b('fb', 'rag', { ragDatabaseName: 'kb' })],
+      }),
+    ]);
     const agentDiagramsById = new Map([['res1', resourceAgent]]);
-
-    const byStereo = (m: UMLModel, s: string) =>
-      Object.values(m.elements).filter((e) => (e as unknown as { stereotype?: string }).stereotype === s);
 
     it('T-U6 — derives one llm + one db + one rag Component; text & code ignored', () => {
       const r = bpmnModelToComponentModel(makeBpmn(), { agentDiagramsById, includeCapabilities: true });
       if (!r.ok) throw new Error('expected ok');
       expect(byStereo(r.model, 'llm')).toHaveLength(1);
-      expect(byStereo(r.model, 'llm')[0].name).toBe('LLM');
+      expect(nameOf(byStereo(r.model, 'llm')[0])).toBe('LLM');
       expect(byStereo(r.model, 'rag')).toHaveLength(1);
-      expect(byStereo(r.model, 'rag')[0].name).toBe('kb');
+      expect(nameOf(byStereo(r.model, 'rag')[0])).toBe('kb');
       expect(byStereo(r.model, 'db')).toHaveLength(1);
-      expect(byStereo(r.model, 'db')[0].name).toBe('orders');
+      expect(nameOf(byStereo(r.model, 'db')[0])).toBe('orders');
       // text + code never become Components
       expect(byStereo(r.model, 'text')).toHaveLength(0);
       expect(byStereo(r.model, 'code')).toHaveLength(0);
@@ -1027,26 +644,19 @@ describe('Inter-diagram — bpmnModelToComponentModel', () => {
     it('T-U7 — all resource edges are `uses`', () => {
       const r = bpmnModelToComponentModel(makeBpmn(), { agentDiagramsById, includeCapabilities: true });
       if (!r.ok) throw new Error('expected ok');
-      const uses = Object.values(r.model.relationships).filter(
-        (rel) => (rel as unknown as { stereotype?: string }).stereotype === 'uses',
-      );
-      expect(uses).toHaveLength(3); // llm, rag, db
-      expect(
-        Object.values(r.model.relationships).some(
-          (rel) => (rel as unknown as { stereotype?: string }).stereotype === 'has',
-        ),
-      ).toBe(false);
+      expect(edgesByStereo(r.model, 'uses')).toHaveLength(3); // llm, rag, db
+      expect(r.model.edges.some((e) => stereoOf(e) === 'has')).toBe(false);
     });
 
     it('T-U8 — resource zones sit to the LEFT of the agent Component (DQ-4)', () => {
       const r = bpmnModelToComponentModel(makeBpmn(), { agentDiagramsById, includeCapabilities: true });
       if (!r.ok) throw new Error('expected ok');
-      const agent = byStereo(r.model, 'solution')[0];
-      const xOf = (s: string) => (byStereo(r.model, s)[0].bounds as { x: number }).x;
+      const agentX = absBox(r.model, byStereo(r.model, 'solution')[0]).x;
+      const xOf = (s: string) => absBox(r.model, byStereo(r.model, s)[0]).x;
       // recenter shifts everything by one delta, so relative order is preserved
-      expect(xOf('llm')).toBeLessThan((agent.bounds as { x: number }).x);
-      expect(xOf('rag')).toBeLessThan((agent.bounds as { x: number }).x);
-      expect(xOf('db')).toBeLessThan((agent.bounds as { x: number }).x);
+      expect(xOf('llm')).toBeLessThan(agentX);
+      expect(xOf('rag')).toBeLessThan(agentX);
+      expect(xOf('db')).toBeLessThan(agentX);
     });
 
     it('T-U9 — resource Component lineage maps to the linking BPMNTask', () => {
@@ -1068,10 +678,10 @@ describe('Inter-diagram — bpmnModelToComponentModel', () => {
     // behavior" on the lane), not only per-task. A lane-level link must still
     // surface the agent's resources, with lineage to the LANE.
     const makeLaneLinkedBpmn = () => {
-      const m = makeBpmn() as unknown as { elements: Record<string, Record<string, unknown>> };
-      m.elements.L1.agentDiagramRef = 'res1'; // link at the lane
-      delete m.elements.T1.agentDiagramRef; // … and NOT at the task
-      return m as unknown as UMLModel;
+      const m = makeBpmn();
+      m.nodes.find((n) => n.id === 'L1')!.data.agentDiagramRef = 'res1'; // link at the lane
+      delete m.nodes.find((n) => n.id === 'T1')!.data.agentDiagramRef; // … and NOT at the task
+      return m;
     };
 
     it('T-U11 — a LANE-level agent link surfaces resources, lineage → lane', () => {
@@ -1087,94 +697,43 @@ describe('Inter-diagram — bpmnModelToComponentModel', () => {
 
   describe('agentModelRef threading (BPMN→Component)', () => {
     it('stamps agentModelRef on the lane-Component from lane.agentDiagramRef', () => {
-      const bpmn = {
-        version: '3.0.0',
-        type: 'BPMNDiagram',
-        size: { width: 800, height: 600 },
-        elements: {
-          P1: {
-            id: 'P1',
-            type: 'BPMNPool',
-            name: 'Swarm',
-            owner: null,
-            bounds: { x: 0, y: 0, width: 600, height: 200 },
-          },
-          L1: {
-            id: 'L1',
-            name: 'Researcher',
-            type: 'BPMNSwimlane',
-            owner: 'P1',
-            bounds: { x: 0, y: 0, width: 600, height: 100 },
-            isAgentic: true,
-            agentDiagramRef: 'agent-uuid-123',
-          },
-        },
-        interactive: { elements: {}, relationships: {} },
-        relationships: {},
-        assessments: {},
-      } as unknown as UMLModel;
+      const bpmn = bpmnModel(
+        pool('P1', 'Swarm', 600, 200),
+        lane('L1', 'P1', { name: 'Researcher', isAgentic: true, agentDiagramRef: 'agent-uuid-123' }, 0, 600, 100),
+      );
 
       const r = bpmnModelToComponentModel(bpmn);
       expect(r.ok).toBe(true);
       if (!r.ok) return;
-      const comp = Object.values(r.model.elements).find(
-        (e) => e.type === 'Component' && e.name === 'Researcher',
-      ) as unknown as { agentModelRef?: string };
+      const comp = components(r.model).find((c) => nameOf(c) === 'Researcher');
       expect(comp).toBeDefined();
-      expect(comp.agentModelRef).toBe('agent-uuid-123');
+      expect(field(comp, 'agentModelRef')).toBe('agent-uuid-123');
     });
 
     it('omits agentModelRef when the lane has no agentDiagramRef', () => {
-      const bpmn = {
-        version: '3.0.0',
-        type: 'BPMNDiagram',
-        size: { width: 800, height: 600 },
-        elements: {
-          P1: {
-            id: 'P1',
-            type: 'BPMNPool',
-            name: 'Swarm',
-            owner: null,
-            bounds: { x: 0, y: 0, width: 600, height: 200 },
-          },
-          L1: {
-            id: 'L1',
-            name: 'Researcher',
-            type: 'BPMNSwimlane',
-            owner: 'P1',
-            bounds: { x: 0, y: 0, width: 600, height: 100 },
-            isAgentic: true,
-          },
-        },
-        interactive: { elements: {}, relationships: {} },
-        relationships: {},
-        assessments: {},
-      } as unknown as UMLModel;
+      const bpmn = bpmnModel(
+        pool('P1', 'Swarm', 600, 200),
+        lane('L1', 'P1', { name: 'Researcher', isAgentic: true }, 0, 600, 100),
+      );
 
       const r = bpmnModelToComponentModel(bpmn);
       expect(r.ok).toBe(true);
       if (!r.ok) return;
-      const comp = Object.values(r.model.elements).find(
-        (e) => e.type === 'Component' && e.name === 'Researcher',
-      ) as unknown as { agentModelRef?: string };
+      const comp = components(r.model).find((c) => nameOf(c) === 'Researcher');
       expect(comp).toBeDefined();
-      expect(comp.agentModelRef).toBeUndefined();
+      expect(field(comp, 'agentModelRef')).toBeUndefined();
     });
   });
 
   describe('configured Agent resources after the Components page move', () => {
     const linkedBpmn = () => {
-      const model = structuredClone(minimalAgentic) as unknown as UMLModel;
-      (model.elements['lane-worker'] as UMLElement & { agentDiagramRef?: string }).agentDiagramRef = 'agent-1';
+      const model = fixture(minimalAgentic);
+      model.nodes.find((n) => n.id === 'lane-worker')!.data.agentDiagramRef = 'agent-1';
       return model;
     };
 
     const component = (id: string, type: string, name: string) => ({ id, type, name, owner: null });
-    const agentModel = {
-      version: '3.0.0',
-      type: 'AgentDiagram',
-      size: { width: 800, height: 600 },
-      elements: {},
+    const agentModel = agentDiagram([], {
       components: {
         tool: component('tool', 'AgentTool', 'Web search'),
         skill: component('skill', 'AgentSkill', 'Summarise'),
@@ -1183,11 +742,12 @@ describe('Inter-diagram — bpmnModelToComponentModel', () => {
         gui: component('gui', 'AgentGUI', 'Dashboard'),
         workspace: component('workspace', 'AgentWorkspace', 'Files'),
         unnamed: component('unnamed', 'AgentSkill', '  '),
-      },
-      relationships: {},
-      interactive: { elements: {}, relationships: {} },
-      assessments: {},
-    } as unknown as UMLModel;
+      } as UMLModel['components'],
+    });
+
+    /** One AgentState carrying an LLM reply body with an empty llm_name. */
+    const llmBodyState = () =>
+      makeNode('state', 'AgentState', { name: 'S', bodies: [{ id: 'body', name: '', replyType: 'llm', llm_name: '' }] });
 
     it('derives named tools, skills, LLMs, RAGs and SQL databases with the existing edges and lane lineage', () => {
       const result = bpmnModelToComponentModel(linkedBpmn(), {
@@ -1197,10 +757,8 @@ describe('Inter-diagram — bpmnModelToComponentModel', () => {
       });
       if (!result.ok) throw new Error('expected ok');
 
-      const resources = Object.values(result.model.elements).filter((e) =>
-        ['tool', 'skill', 'llm', 'rag', 'db'].includes((e as UMLElement & { stereotype?: string }).stereotype ?? ''),
-      );
-      expect(resources.map((e) => [e.name, (e as UMLElement & { stereotype?: string }).stereotype]).sort()).toEqual([
+      const resources = result.model.nodes.filter((n) => ['tool', 'skill', 'llm', 'rag', 'db'].includes(stereoOf(n) ?? ''));
+      expect(resources.map((n) => [nameOf(n), stereoOf(n)]).sort()).toEqual([
         ['GPT model', 'llm'],
         ['Knowledge base', 'rag'],
         ['Orders', 'db'],
@@ -1208,25 +766,27 @@ describe('Inter-diagram — bpmnModelToComponentModel', () => {
         ['Web search', 'tool'],
       ]);
       for (const resource of resources) expect(result.elementMapping[resource.id]).toBe('lane-worker');
-      expect(Object.values(result.model.relationships).map((r) => (r as { stereotype?: string }).stereotype).sort())
-        .toEqual(['has', 'supervises', 'uses', 'uses', 'uses', 'uses']);
-      expect(Object.values(result.model.elements).some((e) => e.name === 'Dashboard' || e.name === 'Files')).toBe(false);
+      expect(result.model.edges.map((e) => stereoOf(e)).sort()).toEqual([
+        'has',
+        'supervises',
+        'uses',
+        'uses',
+        'uses',
+        'uses',
+      ]);
+      expect(result.model.nodes.some((n) => nameOf(n) === 'Dashboard' || nameOf(n) === 'Files')).toBe(false);
     });
 
-    it('keeps legacy reply-body resources and deduplicates them against configured resources', () => {
+    it('keeps reply-body resources and deduplicates them against configured resources', () => {
       const model = structuredClone(agentModel);
-      model.elements = {
-        legacy: { id: 'legacy', type: 'AgentStateBody', name: '', owner: null, replyType: 'llm', bounds: { x: 0, y: 0, width: 1, height: 1 } },
-      } as unknown as UMLModel['elements'];
+      model.nodes = [llmBodyState()];
       model.components = { ...model.components, llm: component('llm', 'AgentLLM', 'gpt-6-luna') } as UMLModel['components'];
       const result = bpmnModelToComponentModel(linkedBpmn(), {
         agentDiagramsById: new Map([['agent-1', model]]),
         includeCapabilities: true,
       });
       if (!result.ok) throw new Error('expected ok');
-      expect(Object.values(result.model.elements).filter((e) =>
-        (e as UMLElement & { stereotype?: string }).stereotype === 'llm',
-      )).toHaveLength(1);
+      expect(byStereo(result.model, 'llm')).toHaveLength(1);
     });
 
     it('resolves explicit, valid-default, first-registered and unconfigured LLM names', () => {
@@ -1235,9 +795,9 @@ describe('Inter-diagram — bpmnModelToComponentModel', () => {
         ...model.components,
         other: component('other', 'AgentLLM', 'other-model'),
       } as UMLModel['components'];
+      // A fallback-body row whose prompt text is not a model name.
       const body = {
         id: 'body',
-        type: 'AgentStateFallbackBody',
         name: 'Prompt content is not a model name',
         llm_name: '',
       };
@@ -1252,32 +812,29 @@ describe('Inter-diagram — bpmnModelToComponentModel', () => {
 
     it('shares one named LLM between two agents without adding generic LLM', () => {
       const bpmn = linkedBpmn();
-      (bpmn.elements['lane-manager'] as UMLElement & { agentDiagramRef?: string }).agentDiagramRef = 'agent-2';
+      bpmn.nodes.find((n) => n.id === 'lane-manager')!.data.agentDiagramRef = 'agent-2';
       const model = structuredClone(agentModel);
       model.components = {
         ...model.components,
         llm: component('llm', 'AgentLLM', 'gpt-6-luna'),
       } as UMLModel['components'];
-      model.elements = {
-        body: {
-          id: 'body', type: 'AgentStateBody', name: '', owner: null,
-          replyType: 'llm', llm_name: '', bounds: { x: 0, y: 0, width: 1, height: 1 },
-        },
-      } as unknown as UMLModel['elements'];
+      model.nodes = [llmBodyState()];
       const result = bpmnModelToComponentModel(bpmn, {
-        agentDiagramsById: new Map([['agent-1', model], ['agent-2', structuredClone(model)]]),
-        defaultLlmNamesByAgentId: new Map([['agent-1', 'gpt-6-luna'], ['agent-2', 'gpt-6-luna']]),
+        agentDiagramsById: new Map([
+          ['agent-1', model],
+          ['agent-2', structuredClone(model)],
+        ]),
+        defaultLlmNamesByAgentId: new Map([
+          ['agent-1', 'gpt-6-luna'],
+          ['agent-2', 'gpt-6-luna'],
+        ]),
         includeCapabilities: true,
       });
       if (!result.ok) throw new Error('expected ok');
 
-      const llms = Object.values(result.model.elements).filter(
-        (e) => (e as UMLElement & { stereotype?: string }).stereotype === 'llm',
-      );
-      expect(llms.map((e) => e.name)).toEqual(['gpt-6-luna']);
-      const uses = Object.values(result.model.relationships).filter(
-        (r) => r.target.element === llms[0].id && (r as { stereotype?: string }).stereotype === 'uses',
-      );
+      const llms = byStereo(result.model, 'llm');
+      expect(llms.map((n) => nameOf(n))).toEqual(['gpt-6-luna']);
+      const uses = result.model.edges.filter((e) => e.target === llms[0].id && stereoOf(e) === 'uses');
       expect(uses).toHaveLength(2);
     });
 
@@ -1287,12 +844,10 @@ describe('Inter-diagram — bpmnModelToComponentModel', () => {
         includeCapabilities: true,
       });
       if (!result.ok) throw new Error('expected ok');
-      const elements = Object.values(result.model.elements);
-      const children = elements.filter((e) => e.type === 'Component');
-      for (const child of children) {
-        const owner = result.model.elements[child.owner!];
-        expect(owner?.type).toBe('Subsystem');
-        expect(child.bounds.y - owner.bounds.y).toBeGreaterThanOrEqual(50);
+      for (const child of components(result.model)) {
+        const parent = nodeById(result.model, child.parentId)!;
+        expect(parent?.type).toBe('componentSubsystem');
+        expect(absBox(result.model, child).y - absBox(result.model, parent).y).toBeGreaterThanOrEqual(50);
       }
     });
 
@@ -1303,31 +858,18 @@ describe('Inter-diagram — bpmnModelToComponentModel', () => {
         includeCapabilities: true,
       });
       if (!result.ok) throw new Error('expected ok');
-      const agent = Object.values(result.model.elements).find((e) => e.name === 'Worker')!;
+      const agent = result.model.nodes.find((n) => nameOf(n) === 'Worker')!;
       const expected: Record<string, string> = { skill: 'has', tool: 'uses', llm: 'uses', rag: 'uses', db: 'uses' };
       for (const [stereo, edgeStereo] of Object.entries(expected)) {
-        const resource = Object.values(result.model.elements).find(
-          (e) => (e as UMLElement & { stereotype?: string }).stereotype === stereo,
-        )!;
-        const edge = Object.values(result.model.relationships).find(
-          (r) => r.source.element === agent.id && r.target.element === resource.id,
-        );
-        expect((edge as { stereotype?: string } | undefined)?.stereotype).toBe(edgeStereo);
+        const resource = byStereo(result.model, stereo)[0];
+        const edge = result.model.edges.find((e) => e.source === agent.id && e.target === resource.id);
+        expect(stereoOf(edge)).toBe(edgeStereo);
       }
     });
   });
 
   describe('resolveEdgeKind — profile vocabulary and compatibility', () => {
-    const lane = (role: string, isAgentic = true): BPMNSwimlane => ({
-      id: role,
-      name: role,
-      type: 'BPMNSwimlane',
-      owner: null,
-      bounds: { x: 0, y: 0, width: 400, height: 120 },
-      isAgentic,
-      role,
-      trustScore: 0,
-    });
+    const lane = (role: string, isAgentic = true) => ({ isAgentic, role });
 
     it('supervision → solution ⟹ supervises (old manager → worker)', () => {
       expect(resolveEdgeKind(lane('supervision'), lane('solution'))).toBe('supervises');
@@ -1340,16 +882,7 @@ describe('Inter-diagram — bpmnModelToComponentModel', () => {
     });
   });
   describe('two-profile lane roles', () => {
-    const lane = (role: string, isAgentic = true): BPMNSwimlane => ({
-      id: role,
-      name: role,
-      type: 'BPMNSwimlane',
-      owner: null,
-      bounds: { x: 0, y: 0, width: 400, height: 120 },
-      isAgentic,
-      role,
-      trustScore: 0,
-    });
+    const lane = (role: string, isAgentic = true) => ({ isAgentic, role });
 
     it('maps supervision and solution pairs to the intended Component relationships', () => {
       expect(resolveEdgeKind(lane('supervision'), lane('solution'))).toBe('supervises');
@@ -1358,16 +891,12 @@ describe('Inter-diagram — bpmnModelToComponentModel', () => {
     });
 
     it('derives supervision to the Component supervision stereotype', () => {
-      const model = JSON.parse(JSON.stringify(minimalAgentic));
-      const lane = Object.values(model.elements).find(
-        (element: unknown) => (element as { type?: string }).type === 'BPMNSwimlane',
-      ) as { role?: string };
-      lane.role = 'supervision';
-      const result = bpmnModelToComponentModel(model as UMLModel);
+      const model = fixture(minimalAgentic);
+      const firstLane = model.nodes.find((n) => n.type === 'bpmnSwimlane')!;
+      firstLane.data.role = 'supervision';
+      const result = bpmnModelToComponentModel(model);
       if (!result.ok) throw new Error('expected component derivation');
-      const stereotypes = Object.values(result.model.elements)
-        .filter((element) => element.type === 'Component')
-        .map((element) => (element as unknown as { stereotype?: string }).stereotype);
+      const stereotypes = components(result.model).map((c) => stereoOf(c));
       expect(stereotypes).toContain('supervision');
     });
   });

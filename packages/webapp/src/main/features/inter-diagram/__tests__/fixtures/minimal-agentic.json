@@ -1,68 +1,140 @@
 {
-  "version": "3.0.0",
+  "version": "4.0.0",
+  "id": "minimal-agentic",
+  "title": "minimal-agentic",
   "type": "BPMNDiagram",
-  "size": { "width": 800, "height": 600 },
-  "elements": {
-    "pool-1": {
+  "nodes": [
+    {
       "id": "pool-1",
-      "name": "Swarm",
-      "type": "BPMNPool",
-      "owner": null,
-      "bounds": { "x": 40, "y": 40, "width": 600, "height": 300 }
+      "type": "bpmnPool",
+      "position": {
+        "x": 40,
+        "y": 40
+      },
+      "width": 600,
+      "height": 300,
+      "measured": {
+        "width": 600,
+        "height": 300
+      },
+      "data": {
+        "name": "Swarm"
+      }
     },
-    "lane-manager": {
+    {
       "id": "lane-manager",
-      "name": "Manager",
-      "type": "BPMNSwimlane",
-      "owner": "pool-1",
-      "bounds": { "x": 60, "y": 60, "width": 580, "height": 120 },
-      "isAgentic": true,
-      "role": "supervision",
-      "trustScore": 80
+      "type": "bpmnSwimlane",
+      "position": {
+        "x": 20,
+        "y": 20
+      },
+      "width": 580,
+      "height": 120,
+      "measured": {
+        "width": 580,
+        "height": 120
+      },
+      "data": {
+        "name": "Manager",
+        "isAgentic": true,
+        "role": "supervision",
+        "trustScore": 80
+      },
+      "parentId": "pool-1"
     },
-    "lane-worker": {
+    {
       "id": "lane-worker",
-      "name": "Worker",
-      "type": "BPMNSwimlane",
-      "owner": "pool-1",
-      "bounds": { "x": 60, "y": 200, "width": 580, "height": 120 },
-      "isAgentic": true,
-      "role": "solution",
-      "trustScore": 60
+      "type": "bpmnSwimlane",
+      "position": {
+        "x": 20,
+        "y": 160
+      },
+      "width": 580,
+      "height": 120,
+      "measured": {
+        "width": 580,
+        "height": 120
+      },
+      "data": {
+        "name": "Worker",
+        "isAgentic": true,
+        "role": "solution",
+        "trustScore": 60
+      },
+      "parentId": "pool-1"
     },
-    "task-mgr": {
+    {
       "id": "task-mgr",
-      "name": "Plan",
-      "type": "BPMNTask",
-      "owner": "lane-manager",
-      "bounds": { "x": 120, "y": 100, "width": 160, "height": 60 },
-      "isAgentic": true
+      "type": "bpmnTask",
+      "position": {
+        "x": 60,
+        "y": 40
+      },
+      "width": 160,
+      "height": 60,
+      "measured": {
+        "width": 160,
+        "height": 60
+      },
+      "data": {
+        "name": "Plan",
+        "taskType": "default",
+        "marker": "none",
+        "isAgentic": true
+      },
+      "parentId": "lane-manager"
     },
-    "task-wkr": {
+    {
       "id": "task-wkr",
-      "name": "Execute",
-      "type": "BPMNTask",
-      "owner": "lane-worker",
-      "bounds": { "x": 120, "y": 230, "width": 160, "height": 60 },
-      "isAgentic": true
+      "type": "bpmnTask",
+      "position": {
+        "x": 60,
+        "y": 30
+      },
+      "width": 160,
+      "height": 60,
+      "measured": {
+        "width": 160,
+        "height": 60
+      },
+      "data": {
+        "name": "Execute",
+        "taskType": "default",
+        "marker": "none",
+        "isAgentic": true
+      },
+      "parentId": "lane-worker"
     }
-  },
-  "interactive": { "elements": {}, "relationships": {} },
-  "relationships": {
-    "flow-1": {
+  ],
+  "edges": [
+    {
       "id": "flow-1",
-      "name": "",
-      "type": "BPMNFlow",
-      "flowType": "sequence",
-      "owner": null,
-      "bounds": { "x": 200, "y": 160, "width": 1, "height": 70 },
-      "path": [
-        { "x": 200, "y": 160 },
-        { "x": 200, "y": 230 }
-      ],
-      "source": { "element": "task-mgr", "direction": "Down" },
-      "target": { "element": "task-wkr", "direction": "Up" }
+      "source": "task-mgr",
+      "target": "task-wkr",
+      "type": "BPMNSequenceFlow",
+      "sourceHandle": "bottom",
+      "targetHandle": "top",
+      "data": {
+        "label": "",
+        "sourceMultiplicity": "",
+        "targetMultiplicity": "",
+        "sourceRole": "",
+        "targetRole": "",
+        "isManuallyLayouted": false,
+        "messages": [],
+        "flowType": "sequence",
+        "points": [
+          {
+            "x": 400,
+            "y": 320
+          },
+          {
+            "x": 400,
+            "y": 390
+          }
+        ]
+      }
     }
-  },
+  ],
   "assessments": {}
 }

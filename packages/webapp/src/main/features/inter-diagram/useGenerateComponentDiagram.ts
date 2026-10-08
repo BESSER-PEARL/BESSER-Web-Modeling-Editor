@@ -10,7 +10,8 @@ import {
 } from '../../app/store/workspaceSlice';
 import type { DiagramLineage } from '../../shared/types/project';
 import { normalizeStoredAgentModel } from '../../shared/utils/projectExportUtils';
-import { deriveComponentModel, type ComponentDerivationResult } from './legacyV3Bridge';
+import { bpmnModelToComponentModel } from './bpmn-to-component';
+import type { DerivationResult } from './types';
 import { hashUmlModel } from '../../shared/utils/lineageHash';
 
 /**
@@ -23,7 +24,7 @@ import { hashUmlModel } from '../../shared/utils/lineageHash';
  *
  * Generate-once — each call produces a new diagram; no overwrite.
  */
-export function useGenerateComponentDiagram(): () => Promise<ComponentDerivationResult> {
+export function useGenerateComponentDiagram(): () => Promise<DerivationResult> {
   const dispatch = useAppDispatch();
   const activeDiagram = useAppSelector((s) => s.workspace.activeDiagram);
   const activeDiagramType = useAppSelector((s) => s.workspace.activeDiagramType);
@@ -54,7 +55,7 @@ export function useGenerateComponentDiagram(): () => Promise<ComponentDerivation
       }
     }
 
-    const result = deriveComponentModel(activeDiagram.model as UMLModel, {
+    const result = bpmnModelToComponentModel(activeDiagram.model as UMLModel, {
       agentDiagramsById,
       sqlDatabasesByAgentId,
       defaultLlmNamesByAgentId,

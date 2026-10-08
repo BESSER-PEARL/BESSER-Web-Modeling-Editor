@@ -6,7 +6,6 @@ import { useAppDispatch, useAppSelector } from '../../../app/store/hooks';
 import { ProjectStorageRepository } from '../../../shared/services/storage/ProjectStorageRepository';
 import { BesserProject, createDefaultProject } from '../../../shared/types/project';
 import { hashUmlModel } from '../../../shared/utils/lineageHash';
-import { fromLegacyV3, type UMLModel as LegacyUMLModel } from '../legacyV3Bridge';
 import { useAgentDiagramLinker } from '../useAgentDiagramLinker';
 import minimalAgentic from './fixtures/minimal-agentic.json';
 
@@ -36,7 +35,7 @@ vi.mock('../../../app/store/workspaceSlice', () => ({
   selectActiveDiagramType: (state: { workspace: { activeDiagramType: unknown } }) => state.workspace.activeDiagramType,
 }));
 
-const bpmnModel = fromLegacyV3(minimalAgentic as unknown as LegacyUMLModel);
+const bpmnModel = structuredClone(minimalAgentic) as unknown as UMLModel;
 const laneId = bpmnModel.nodes.find((node) => node.type === 'bpmnSwimlane')!.id;
 
 let project: BesserProject;

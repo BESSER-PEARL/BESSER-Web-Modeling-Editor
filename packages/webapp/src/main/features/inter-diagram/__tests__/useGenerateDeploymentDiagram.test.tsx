@@ -2,7 +2,7 @@ import { act, renderHook } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import type { UMLModel } from '@besser/wme';
 import { useAppDispatch, useAppSelector } from '../../../app/store/hooks';
-import { deriveComponentModel, fromLegacyV3, type UMLModel as LegacyUMLModel } from '../legacyV3Bridge';
+import { bpmnModelToComponentModel } from '../bpmn-to-component';
 import { useGenerateDeploymentDiagram } from '../useGenerateDeploymentDiagram';
 import minimalAgentic from './fixtures/minimal-agentic.json';
 
@@ -21,9 +21,9 @@ vi.mock('../../../app/store/workspaceSlice', () => ({
 
 describe('useGenerateDeploymentDiagram', () => {
   it('stamps the swarm size of the source BPMN lane on the derived Artifact', async () => {
-    const bpmn = fromLegacyV3(minimalAgentic as unknown as LegacyUMLModel);
+    const bpmn = structuredClone(minimalAgentic) as unknown as UMLModel;
     bpmn.nodes = bpmn.nodes.map((n) => (n.id === 'lane-worker' ? { ...n, data: { ...n.data, multiplicity: 3 } } : n));
-    const component = deriveComponentModel(bpmn);
+    const component = bpmnModelToComponentModel(bpmn);
     if (!component.ok) throw new Error('component derivation refused');
 
     const actions: Array<{ type: string; payload?: unknown }> = [];

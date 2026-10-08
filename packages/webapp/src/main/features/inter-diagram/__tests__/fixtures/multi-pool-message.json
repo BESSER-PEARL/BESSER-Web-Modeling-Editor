@@ -1,72 +1,155 @@
 {
-  "version": "3.0.0",
+  "version": "4.0.0",
+  "id": "multi-pool-message",
+  "title": "multi-pool-message",
   "type": "BPMNDiagram",
-  "size": { "width": 1200, "height": 600 },
-  "elements": {
-    "pool-a": {
+  "nodes": [
+    {
       "id": "pool-a",
-      "name": "SwarmA",
-      "type": "BPMNPool",
-      "owner": null,
-      "bounds": { "x": 40, "y": 40, "width": 500, "height": 200 }
+      "type": "bpmnPool",
+      "position": {
+        "x": 40,
+        "y": 40
+      },
+      "width": 500,
+      "height": 200,
+      "measured": {
+        "width": 500,
+        "height": 200
+      },
+      "data": {
+        "name": "SwarmA"
+      }
     },
-    "lane-a-mgr": {
+    {
       "id": "lane-a-mgr",
-      "name": "Coordinator",
-      "type": "BPMNSwimlane",
-      "owner": "pool-a",
-      "bounds": { "x": 60, "y": 60, "width": 480, "height": 160 },
-      "isAgentic": true,
-      "role": "supervision",
-      "trustScore": 80
+      "type": "bpmnSwimlane",
+      "position": {
+        "x": 20,
+        "y": 20
+      },
+      "width": 480,
+      "height": 160,
+      "measured": {
+        "width": 480,
+        "height": 160
+      },
+      "data": {
+        "name": "Coordinator",
+        "isAgentic": true,
+        "role": "supervision",
+        "trustScore": 80
+      },
+      "parentId": "pool-a"
     },
-    "task-a-mgr": {
+    {
       "id": "task-a-mgr",
-      "name": "Request data",
-      "type": "BPMNTask",
-      "owner": "lane-a-mgr",
-      "bounds": { "x": 120, "y": 100, "width": 160, "height": 60 },
-      "isAgentic": true
+      "type": "bpmnTask",
+      "position": {
+        "x": 60,
+        "y": 40
+      },
+      "width": 160,
+      "height": 60,
+      "measured": {
+        "width": 160,
+        "height": 60
+      },
+      "data": {
+        "name": "Request data",
+        "taskType": "default",
+        "marker": "none",
+        "isAgentic": true
+      },
+      "parentId": "lane-a-mgr"
     },
-    "pool-b": {
+    {
       "id": "pool-b",
-      "name": "SwarmB",
-      "type": "BPMNPool",
-      "owner": null,
-      "bounds": { "x": 600, "y": 40, "width": 500, "height": 200 }
+      "type": "bpmnPool",
+      "position": {
+        "x": 600,
+        "y": 40
+      },
+      "width": 500,
+      "height": 200,
+      "measured": {
+        "width": 500,
+        "height": 200
+      },
+      "data": {
+        "name": "SwarmB"
+      }
     },
-    "lane-b-ext": {
+    {
       "id": "lane-b-ext",
-      "name": "External API",
-      "type": "BPMNSwimlane",
-      "owner": "pool-b",
-      "bounds": { "x": 620, "y": 60, "width": 480, "height": 160 },
-      "isAgentic": false
+      "type": "bpmnSwimlane",
+      "position": {
+        "x": 20,
+        "y": 20
+      },
+      "width": 480,
+      "height": 160,
+      "measured": {
+        "width": 480,
+        "height": 160
+      },
+      "data": {
+        "name": "External API",
+        "isAgentic": false
+      },
+      "parentId": "pool-b"
     },
-    "task-b-ext": {
+    {
       "id": "task-b-ext",
-      "name": "Serve",
-      "type": "BPMNTask",
-      "owner": "lane-b-ext",
-      "bounds": { "x": 680, "y": 100, "width": 160, "height": 60 }
+      "type": "bpmnTask",
+      "position": {
+        "x": 60,
+        "y": 40
+      },
+      "width": 160,
+      "height": 60,
+      "measured": {
+        "width": 160,
+        "height": 60
+      },
+      "data": {
+        "name": "Serve",
+        "taskType": "default",
+        "marker": "none"
+      },
+      "parentId": "lane-b-ext"
     }
-  },
-  "interactive": { "elements": {}, "relationships": {} },
-  "relationships": {
-    "msg-flow": {
+  ],
+  "edges": [
+    {
       "id": "msg-flow",
-      "name": "fetch",
-      "type": "BPMNFlow",
-      "flowType": "message",
-      "owner": null,
-      "bounds": { "x": 280, "y": 130, "width": 400, "height": 1 },
-      "path": [
-        { "x": 280, "y": 130 },
-        { "x": 680, "y": 130 }
-      ],
-      "source": { "element": "task-a-mgr", "direction": "Right" },
-      "target": { "element": "task-b-ext", "direction": "Left" }
+      "source": "task-a-mgr",
+      "target": "task-b-ext",
+      "type": "BPMNMessageFlow",
+      "sourceHandle": "right",
+      "targetHandle": "left",
+      "data": {
+        "label": "fetch",
+        "name": "fetch",
+        "sourceMultiplicity": "",
+        "targetMultiplicity": "",
+        "sourceRole": "",
+        "targetRole": "",
+        "isManuallyLayouted": false,
+        "messages": [],
+        "flowType": "message",
+        "points": [
+          {
+            "x": 560,
+            "y": 260
+          },
+          {
+            "x": 960,
+            "y": 260
+          }
+        ]
+      }
     }
-  },
+  ],
   "assessments": {}
 }

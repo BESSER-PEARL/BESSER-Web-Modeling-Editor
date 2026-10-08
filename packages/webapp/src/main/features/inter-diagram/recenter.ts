@@ -1,21 +1,21 @@
-import type { UMLModel } from './legacyV3Bridge';
+import type { Box } from './diagram-builder';
 
 /**
- * Translate a derived model so its bounding-box midpoint sits on the origin.
- * The editor sizes the canvas symmetrically around (0,0) and the scroll
- * container opens at the top left, so off-origin content opens scrolled into
- * empty space. Element bounds are absolute here, so one uniform shift keeps
- * every parent-relative offset; relationships (bounds and path) move by the
- * same delta so edges stay attached. A no-op for centred content.
+ * Translate derived boxes (absolute coordinates) so their bounding-box midpoint
+ * sits on the origin. The editor opens with the origin in view, so off-origin
+ * content would open scrolled into empty space. One uniform shift keeps every
+ * parent-relative offset. `layoutOnly` boxes widen the bounding box without
+ * being moved (layout space of content that is not a canvas node). A no-op for
+ * centred content.
  */
-export function recenterModelOnOrigin(out: UMLModel): void {
-  const els = Object.values(out.elements);
-  if (els.length === 0) return;
+export function recenterOnOrigin(boxes: Box[], layoutOnly: Box[] = []): void {
+  const all = [...boxes, ...layoutOnly];
+  if (all.length === 0) return;
   let minX = Infinity,
     minY = Infinity,
     maxX = -Infinity,
     maxY = -Infinity;
-  for (const { bounds: b } of els) {
+  for (const b of all) {
     minX = Math.min(minX, b.x);
     minY = Math.min(minY, b.y);
     maxX = Math.max(maxX, b.x + b.width);
@@ -24,16 +24,8 @@ export function recenterModelOnOrigin(out: UMLModel): void {
   const dx = -(minX + maxX) / 2;
   const dy = -(minY + maxY) / 2;
   if (dx === 0 && dy === 0) return;
-  for (const { bounds: b } of els) {
+  for (const b of boxes) {
     b.x += dx;
     b.y += dy;
-  }
-  for (const rel of Object.values(out.relationships)) {
-    rel.bounds.x += dx;
-    rel.bounds.y += dy;
-    for (const p of rel.path) {
-      p.x += dx;
-      p.y += dy;
-    }
   }
 }

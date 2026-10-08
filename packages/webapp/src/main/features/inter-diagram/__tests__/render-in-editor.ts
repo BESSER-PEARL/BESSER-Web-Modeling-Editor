@@ -1,20 +1,14 @@
 import { act } from '@testing-library/react';
 import { Position, getSmoothStepPath } from '@xyflow/react';
 import { BesserEditor, parseSvgPath, removeDuplicatePoints, simplifySvgPath } from '@besser/wme';
-import type { UMLDiagramType } from '@besser/wme';
-import {
-  Direction,
-  derivedToV4,
-  toLegacyV3,
-  type IPoint,
-  type UMLModel,
-  type UMLRelationship,
-} from '../legacyV3Bridge';
+import type { BesserEdge, UMLDiagramType, UMLModel } from '@besser/wme';
+import { absBox, nodeById } from './v4-helpers';
+
+type Point = { x: number; y: number };
 
 /**
- * Load the derived (v3) `model` into a real BesserEditor (jsdom), stored the
- * way the derivation hooks store it (v4, edges without points), and return the
- * model the editor holds, back in the v3 shape.
+ * Load a derived `model` into a real BesserEditor (jsdom), as the derivation
+ * hooks store it, and return the model the editor holds.
  *
  * jsdom has no SVG layout: the caller stubs `SVGElement.prototype.getBBox`.
  */
@@ -30,45 +24,45 @@ export async function renderInEditor(type: UMLDiagramType, model: UMLModel): Pro
   let editor: BesserEditor | undefined;
   try {
     act(() => {
-      editor = new BesserEditor(container, { type, model: derivedToV4(model) });
+      editor = new BesserEditor(container, { type, model });
     });
     await editor!.nextRender;
-    return toLegacyV3(editor!.model);
+    return editor!.model;
   } finally {
     act(() => editor?.destroy());
     container.remove();
   }
 }
 
-const POSITION: Partial<Record<Direction, Position>> = {
-  [Direction.Up]: Position.Top,
-  [Direction.Right]: Position.Right,
-  [Direction.Down]: Position.Bottom,
-  [Direction.Left]: Position.Left,
+const POSITION: Record<string, Position> = {
+  top: Position.Top,
+  right: Position.Right,
+  bottom: Position.Bottom,
+  left: Position.Left,
 };
 
-function port(model: UMLModel, end: UMLRelationship['source']): IPoint {
-  const b = model.elements[end.element].bounds;
-  if (end.direction === Direction.Up) return { x: b.x + b.width / 2, y: b.y };
-  if (end.direction === Direction.Down) return { x: b.x + b.width / 2, y: b.y + b.height };
-  if (end.direction === Direction.Left) return { x: b.x, y: b.y + b.height / 2 };
+function port(model: UMLModel, nodeId: string, handle: string): Point {
+  const b = absBox(model, nodeById(model, nodeId)!);
+  if (handle === 'top') return { x: b.x + b.width / 2, y: b.y };
+  if (handle === 'bottom') return { x: b.x + b.width / 2, y: b.y + b.height };
+  if (handle === 'left') return { x: b.x, y: b.y + b.height / 2 };
   return { x: b.x + b.width, y: b.y + b.height / 2 };
 }
 
 /**
  * Absolute route the editor draws for a derived edge (no stored points): the
- * step path between its two ports, as the step-path edges compute it.
+ * step path between its two handles, as the step-path edges compute it.
  */
-export function drawnRoute(model: UMLModel, rel: UMLRelationship): IPoint[] {
-  const source = port(model, rel.source);
-  const target = port(model, rel.target);
+export function drawnRoute(model: UMLModel, edge: BesserEdge): Point[] {
+  const source = port(model, edge.source, edge.sourceHandle);
+  const target = port(model, edge.target, edge.targetHandle);
   const [path] = getSmoothStepPath({
     sourceX: source.x,
     sourceY: source.y,
-    sourcePosition: POSITION[rel.source.direction] ?? Position.Right,
+    sourcePosition: POSITION[edge.sourceHandle] ?? Position.Right,
     targetX: target.x,
     targetY: target.y,
-    targetPosition: POSITION[rel.target.direction] ?? Position.Left,
+    targetPosition: POSITION[edge.targetHandle] ?? Position.Left,
     borderRadius: 0,
     offset: 30,
   });

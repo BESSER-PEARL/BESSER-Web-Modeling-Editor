@@ -1,8 +1,8 @@
 import { beforeAll, describe, expect, it } from 'vitest';
-import { UMLDiagramType, type UMLModel as V4UMLModel } from '@besser/wme';
-import { toLegacyV3, type IPoint, type UMLElement, type UMLModel, type UMLRelationship } from '../legacyV3Bridge';
+import { UMLDiagramType, type BesserEdge, type BesserNode, type UMLModel } from '@besser/wme';
 import { bpmnModelToComponentModel } from '../bpmn-to-component';
 import { drawnRoute, renderInEditor } from './render-in-editor';
+import { absBox, nameOf, nodeById, type Box } from './v4-helpers';
 import agenticStarterTemplate from '../../../templates/pattern/bpmn/agentic_starter.json';
 import divergeMerge from './fixtures/diverge-merge.json';
 import gatewayRouted from './fixtures/gateway-routed.json';
@@ -10,8 +10,7 @@ import minimalAgentic from './fixtures/minimal-agentic.json';
 import multiPoolMessage from './fixtures/multi-pool-message.json';
 import poolMessage from './fixtures/pool-message.json';
 
-// The bundled template is canonical v4; these transforms read v3.
-const agenticStarter = toLegacyV3(agenticStarterTemplate as unknown as V4UMLModel);
+const agenticStarter = agenticStarterTemplate as unknown as UMLModel;
 
 // Layout of the derived Component diagram: lane Components sit apart, inside
 // their Subsystem and below its header, and the «stereotype» labels of the
@@ -30,7 +29,7 @@ const SOURCES: Record<string, unknown> = {
 const HEADER_HEIGHT = 50;
 const MIN_GAP = 120;
 
-type Box = { x: number; y: number; width: number; height: number };
+type Point = { x: number; y: number };
 
 const intersects = (a: Box, b: Box): boolean =>
   a.x < b.x + b.width && b.x < a.x + a.width && a.y < b.y + b.height && b.y < a.y + a.height;
@@ -48,19 +47,19 @@ function derive(source: unknown): UMLModel {
 }
 
 /** Agent Components (the lane Components) grouped by their Subsystem. */
-function laneComponentsBySubsystem(model: UMLModel): Map<UMLElement, UMLElement[]> {
-  const out = new Map<UMLElement, UMLElement[]>();
-  for (const el of Object.values(model.elements)) {
-    if (el.type !== 'Component' || !el.owner) continue;
-    const sub = model.elements[el.owner];
-    if (sub?.type !== 'Subsystem') continue;
-    out.set(sub, [...(out.get(sub) ?? []), el]);
+function laneComponentsBySubsystem(model: UMLModel): Map<BesserNode, BesserNode[]> {
+  const out = new Map<BesserNode, BesserNode[]>();
+  for (const node of model.nodes) {
+    if (node.type !== 'component' || !node.parentId) continue;
+    const sub = nodeById(model, node.parentId);
+    if (sub?.type !== 'componentSubsystem') continue;
+    out.set(sub, [...(out.get(sub) ?? []), node]);
   }
   return out;
 }
 
 /** Point halfway along a polyline, and whether its segment there is horizontal. */
-function polylineMidpoint(path: IPoint[]): { position: IPoint; direction: 'h' | 'v' } {
+function polylineMidpoint(path: Point[]): { position: Point; direction: 'h' | 'v' } {
   const segments = path.slice(1).map((p, i) => ({ from: path[i], dx: p.x - path[i].x, dy: p.y - path[i].y }));
   let remaining = segments.reduce((sum, s) => sum + Math.hypot(s.dx, s.dy), 0) / 2;
   for (const { from, dx, dy } of segments) {
@@ -81,9 +80,9 @@ function polylineMidpoint(path: IPoint[]): { position: IPoint; direction: 'h' | 
  * the midpoint of the drawn route, centred above a horizontal segment or right
  * of a vertical one, at 85 % of the bold 16 px font (~8.5 px per glyph, 12 px tall).
  */
-function labelBox(model: UMLModel, rel: UMLRelationship & { stereotype?: string }): Box {
-  const { position, direction } = polylineMidpoint(drawnRoute(model, rel));
-  const width = `«${rel.stereotype}»`.length * 8.5;
+function labelBox(model: UMLModel, edge: BesserEdge): Box {
+  const { position, direction } = polylineMidpoint(drawnRoute(model, edge));
+  const width = `«${String(edge.data.stereotype)}»`.length * 8.5;
   const height = 12;
   return direction === 'h'
     ? { x: position.x - width / 2, y: position.y - 5 - height, width, height }
@@ -96,22 +95,21 @@ describe('bpmnModelToComponentModel layout', () => {
     const groups = laneComponentsBySubsystem(model);
     expect(groups.size).toBeGreaterThan(0);
     for (const [sub, comps] of groups) {
+      const subBox = absBox(model, sub);
       const content: Box = {
-        x: sub.bounds.x,
-        y: sub.bounds.y + HEADER_HEIGHT,
-        width: sub.bounds.width,
-        height: sub.bounds.height - HEADER_HEIGHT,
+        x: subBox.x,
+        y: subBox.y + HEADER_HEIGHT,
+        width: subBox.width,
+        height: subBox.height - HEADER_HEIGHT,
       };
-      for (const c of comps)
-        expect(contains(content, c.bounds), `${c.name} below the header of ${sub.name}`).toBe(true);
+      const boxes = comps.map((c) => absBox(model, c));
+      comps.forEach((c, i) =>
+        expect(contains(content, boxes[i]), `${nameOf(c)} below the header of ${nameOf(sub)}`).toBe(true),
+      );
       for (let i = 0; i < comps.length; i++) {
         for (let j = i + 1; j < comps.length; j++) {
-          const grown = {
-            ...comps[i].bounds,
-            x: comps[i].bounds.x - MIN_GAP,
-            width: comps[i].bounds.width + 2 * MIN_GAP,
-          };
-          expect(intersects(grown, comps[j].bounds), `${comps[i].name} ↔ ${comps[j].name}`).toBe(false);
+          const grown = { ...boxes[i], x: boxes[i].x - MIN_GAP, width: boxes[i].width + 2 * MIN_GAP };
+          expect(intersects(grown, boxes[j]), `${nameOf(comps[i])} ↔ ${nameOf(comps[j])}`).toBe(false);
         }
       }
     }
@@ -135,22 +133,25 @@ describe('bpmnModelToComponentModel layout, rendered by the Component editor', (
     async (_, source) => {
       const rendered = await renderInEditor(UMLDiagramType.ComponentDiagram, derive(source));
       let checked = 0;
-      for (const rel of Object.values(rendered.relationships)) {
-        if (rel.type !== 'ComponentDependency') continue;
-        const src = rendered.elements[rel.source.element];
-        const tgt = rendered.elements[rel.target.element];
-        if (src?.type !== 'Component' || tgt?.type !== 'Component' || src.owner !== tgt.owner || !src.owner) continue;
-        const sub = rendered.elements[src.owner];
-        const comps = Object.values(rendered.elements).filter((c) => c.type === 'Component' && c.owner === sub.id);
-        const header: Box = { ...sub.bounds, height: HEADER_HEIGHT };
-        const label = labelBox(rendered, rel);
-        const what = `«${(rel as { stereotype?: string }).stereotype}» ${src.name} → ${tgt.name}`;
+      for (const edge of rendered.edges) {
+        if (edge.type !== 'ComponentDependency') continue;
+        const src = nodeById(rendered, edge.source);
+        const tgt = nodeById(rendered, edge.target);
+        if (src?.type !== 'component' || tgt?.type !== 'component' || src.parentId !== tgt.parentId || !src.parentId)
+          continue;
+        const sub = nodeById(rendered, src.parentId)!;
+        const subBox = absBox(rendered, sub);
+        const comps = rendered.nodes.filter((c) => c.type === 'component' && c.parentId === sub.id);
+        const header: Box = { ...subBox, height: HEADER_HEIGHT };
+        const label = labelBox(rendered, edge);
+        const what = `«${String(edge.data.stereotype)}» ${nameOf(src)} → ${nameOf(tgt)}`;
 
         expect(intersects(label, header), `${what}: label on the header`).toBe(false);
-        for (const c of comps) expect(intersects(label, c.bounds), `${what}: label on ${c.name}`).toBe(false);
-        expect(contains(sub.bounds, label), `${what}: label inside ${sub.name}`).toBe(true);
-        for (const p of drawnRoute(rendered, rel)) {
-          expect(p.y, `${what}: path through the header`).toBeGreaterThanOrEqual(sub.bounds.y + HEADER_HEIGHT);
+        for (const c of comps)
+          expect(intersects(label, absBox(rendered, c)), `${what}: label on ${nameOf(c)}`).toBe(false);
+        expect(contains(subBox, label), `${what}: label inside ${nameOf(sub)}`).toBe(true);
+        for (const p of drawnRoute(rendered, edge)) {
+          expect(p.y, `${what}: path through the header`).toBeGreaterThanOrEqual(subBox.y + HEADER_HEIGHT);
         }
         checked++;
       }

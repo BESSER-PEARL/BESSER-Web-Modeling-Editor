@@ -10,7 +10,8 @@ import {
   updateDiagramModelThunk,
 } from '../../app/store/workspaceSlice';
 import type { DiagramLineage } from '../../shared/types/project';
-import { deriveDeploymentModel, type DeploymentDerivationV4Result } from './legacyV3Bridge';
+import { componentModelToDeploymentModel } from './component-to-deployment';
+import type { DeploymentDerivationResult } from './types';
 import { hashUmlModel } from '../../shared/utils/lineageHash';
 
 /**
@@ -20,7 +21,7 @@ import { hashUmlModel } from '../../shared/utils/lineageHash';
  * switchDiagramTypeThunk → updateDiagramModelThunk → bumpEditorRevision.
  * Generate-once: each call produces a new diagram.
  */
-export function useGenerateDeploymentDiagram(): () => Promise<DeploymentDerivationV4Result> {
+export function useGenerateDeploymentDiagram(): () => Promise<DeploymentDerivationResult> {
   const dispatch = useAppDispatch();
   const activeDiagram = useAppSelector((s) => s.workspace.activeDiagram);
   const activeDiagramType = useAppSelector((s) => s.workspace.activeDiagramType);
@@ -38,7 +39,7 @@ export function useGenerateDeploymentDiagram(): () => Promise<DeploymentDerivati
     // can carry `[N]`. Empty when the Component diagram wasn't derived from BPMN.
     const multiplicityByComponentId = resolveLaneMultiplicities(project, activeDiagram);
 
-    const result = deriveDeploymentModel(activeDiagram.model as UMLModel, multiplicityByComponentId);
+    const result = componentModelToDeploymentModel(activeDiagram.model as UMLModel, multiplicityByComponentId);
     if (!result.ok) return result;
 
     const title = `${activeDiagram.title || 'Components'} — Deployment`;
