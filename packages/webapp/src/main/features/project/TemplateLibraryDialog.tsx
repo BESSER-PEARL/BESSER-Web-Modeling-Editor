@@ -37,7 +37,6 @@ import {
   SoftwarePatternTemplate,
   SoftwarePatternType,
 } from './create-diagram-from-template-modal/software-pattern/software-pattern-types';
-import { centerEditorViewport } from '../assistant/hooks/useModelInjection';
 
 /**
  * Shifts all element and relationship bounds so their combined bounding box is
@@ -99,8 +98,8 @@ const categoryOrder: SoftwarePatternCategory[] = [
 const diagramTypeToCategory: Partial<Record<SupportedDiagramType, SoftwarePatternCategory>> = {
   ClassDiagram: SoftwarePatternCategory.STRUCTURAL,
   StateMachineDiagram: SoftwarePatternCategory.STATE_MACHINE,
-  BPMN: SoftwarePatternCategory.BPMN,
   AgentDiagram: SoftwarePatternCategory.AGENT,
+  BPMN: SoftwarePatternCategory.BPMN,
   QuantumCircuitDiagram: SoftwarePatternCategory.QUANTUM_CIRCUIT,
   NNDiagram: SoftwarePatternCategory.NN,
 };
@@ -287,7 +286,7 @@ export const TemplateLibraryDialog: React.FC<TemplateLibraryDialogProps> = ({ op
         dispatch(bumpEditorRevision());
         navigate('/');
       }
-      centerEditorViewport(selectedTemplate.diagram, 300);
+
       // toast.success(`Loaded template: ${selectedTemplate.type}`);
       onOpenChange(false);
     } catch (error) {
