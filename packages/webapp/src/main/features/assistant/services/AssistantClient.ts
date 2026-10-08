@@ -150,6 +150,10 @@ const SIDE_EFFECT_ACTIONS = new Set([
   'trigger_export',
   'trigger_deploy',
   'auto_generate_gui',
+  // Create / switch diagram tabs: they change the workspace, and a scraped
+  // switch could redirect the next structured edit onto another diagram.
+  'create_diagram_tab',
+  'switch_diagram',
 ]);
 
 const isActionPayload = (payload: unknown): payload is AssistantActionPayload => {
@@ -649,12 +653,11 @@ export class AssistantClient {
   private rearmUserApiKey(): void {
     try {
       const stored = readAssistantApiKey();
-      if (!stored) {
-        // The agent session outlives the tab (keyed by the persistent user
-        // id): clear a key the user removed or that died with an old tab.
-        this.setUserApiKey({ apiKey: '' });
-        return;
-      }
+      // No key in THIS tab: send nothing. Every tab of the browser shares one
+      // agent session (keyed by the persistent user id), so a clear here would
+      // wipe the key another open tab is using. Removing a key clears it
+      // explicitly through the BYOK dialog.
+      if (!stored) return;
       this.setUserApiKey({
         apiKey: stored.apiKey,
         provider: stored.provider,

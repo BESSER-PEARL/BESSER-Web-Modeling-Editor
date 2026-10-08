@@ -230,7 +230,7 @@ describe('StateMachineConverter (v4)', () => {
     expect(green.data.bodies.map((b: any) => b.name)).toEqual(['do / go()']);
   });
 
-  it('emits StateTransition edges with the composed trigger/guard/effect label', () => {
+  it('emits StateTransition edges with trigger, guard and effect in their own fields', () => {
     const model = converter.convertCompleteSystem(systemSpec);
     expect(model.edges).toHaveLength(2);
 
@@ -248,7 +248,11 @@ describe('StateMachineConverter (v4)', () => {
       sourceHandle: 'right',
       targetHandle: 'left',
     });
-    expect(labelled.data.name).toBe('timer [safe] / switch()');
+    // Trigger, guard and effect stay in their own fields: the backend builds an
+    // Event from `name` and rejected the folded "timer [safe] / switch()".
+    expect(labelled.data.name).toBe('timer');
+    expect(labelled.data.guard).toBe('safe');
+    expect(labelled.data.code).toBe('switch()');
   });
 
   it('emits StateCodeBlock nodes for code blocks', () => {

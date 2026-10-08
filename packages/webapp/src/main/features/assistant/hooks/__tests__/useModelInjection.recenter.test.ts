@@ -100,6 +100,33 @@ describe('useModelInjection viewport re-centre', () => {
     expect(liveEditor.fitView).not.toHaveBeenCalled();
   });
 
+  it('re-centres even a small modification while the assistant panel is open (it may land behind it)', async () => {
+    vi.useFakeTimers();
+    const panel = document.createElement('div');
+    panel.id = 'assistant-widget-panel';
+    panel.getBoundingClientRect = () => ({ x: 900, y: 100, width: 520, height: 700 }) as DOMRect;
+    document.body.appendChild(panel);
+    try {
+      const liveEditor = { fitView: vi.fn() };
+      const { hook } = setup(liveEditor);
+      await act(async () => {
+        await hook.result.current.handleInjection({
+          action: 'modify_model',
+          diagramType: 'ClassDiagram',
+          modifications: [
+            { action: 'add_attribute', target: { className: 'A' }, changes: { name: 'x', type: 'str' } },
+          ],
+        } as any);
+      });
+      await act(async () => {
+        vi.advanceTimersByTime(250);
+      });
+      expect(liveEditor.fitView).toHaveBeenCalledTimes(1);
+    } finally {
+      panel.remove();
+    }
+  });
+
   it('is a silent no-op on an editor build without fitView', async () => {
     vi.useFakeTimers();
     const { hook } = setup({});

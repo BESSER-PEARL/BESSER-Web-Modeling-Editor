@@ -9,8 +9,9 @@
  *     nodes,
  *   - `StateInitialNode` / `StateFinalNode` / `StateCodeBlock` remain
  *     top-level nodes,
- *   - transitions are `StateTransition` edges; the trigger/guard/effect
- *     label lives on `edge.data.name`.
+ *   - transitions are `StateTransition` edges: trigger on `data.name`,
+ *     guard on `data.guard`, effect on `data.code` (the backend builds an
+ *     Event from `name`, so a folded "trigger [guard] / effect" is rejected).
  */
 
 import type { BesserEdge, BesserNode } from '@besser/wme';
@@ -114,11 +115,7 @@ export class StateMachineConverter implements DiagramConverter {
       if (sourceId && targetId) {
         const transId = generateUniqueId('transition');
 
-        // Build transition label
-        let name = '';
-        if (transition.trigger) name += transition.trigger;
-        if (transition.guard) name += ` [${transition.guard}]`;
-        if (transition.effect) name += ` / ${transition.effect}`;
+        const name = typeof transition.trigger === 'string' ? transition.trigger : '';
 
         edges.push({
           id: transId,
@@ -130,6 +127,8 @@ export class StateMachineConverter implements DiagramConverter {
           data: {
             label: name,
             ...(name && { name }),
+            ...(transition.guard && { guard: transition.guard }),
+            ...(transition.effect && { code: transition.effect }),
             isManuallyLayouted: false,
             points: [
               { x: 0, y: 0 },

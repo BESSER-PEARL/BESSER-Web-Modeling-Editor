@@ -65,6 +65,19 @@ export interface ModelUpdate {
 export type BESSERModel = UMLModel;
 
 /**
+ * Put an assistant edit on the canvas as ONE undoable step. `editor.model =`
+ * is a model swap that clears the user's undo history; `applyModel` (when the
+ * editor build has it) records the change instead.
+ */
+export function applyModelToEditor(editor: any, model: BESSERModel): void {
+  if (typeof editor?.applyModel === 'function') {
+    editor.applyModel(model);
+  } else {
+    editor.model = model;
+  }
+}
+
+/**
  * Service class for handling UML modeling operations
  * Centralizes all model manipulation logic
  * Supports all diagram types: ClassDiagram, ObjectDiagram, StateMachineDiagram,
@@ -360,7 +373,7 @@ export class UMLModelingService {
 
       if (this.editor) {
         await this.editor.ready;
-        this.editor.model = { ...(updatedModel as any) };
+        applyModelToEditor(this.editor, { ...(updatedModel as any) });
         await this.editor.ready;
       } else {
         console.warn('[UMLModelingService] No editor reference — model saved to Redux only');
@@ -425,7 +438,7 @@ export class UMLModelingService {
 
     if (this.editor) {
       await this.editor.ready;
-      this.editor.model = { ...(mergedModel as any) };
+      applyModelToEditor(this.editor, { ...(mergedModel as any) });
       await this.editor.ready;
     } else {
       console.warn('[UMLModelingService] No editor reference — model saved to Redux only');

@@ -29,12 +29,18 @@ export interface ModificationTarget {
   // instead of the generic sourceClass/targetClass/stateName above.
   sourceStateName?: string;
   targetStateName?: string;
+  // StateMachineDiagram add/modify/remove transition endpoints.
+  sourceState?: string;
+  targetState?: string;
   intentId?: string;
   intentName?: string;
   // AgentDiagram remove_transition by id
   transitionId?: string;
   objectId?: string;
   objectName?: string;
+  // ObjectDiagram add_link endpoints.
+  sourceObject?: string;
+  targetObject?: string;
   // User-profile (UserDiagram) targets
   profileName?: string;
   sourceProfile?: string;
@@ -93,6 +99,10 @@ export interface ModificationChanges {
   entryAction?: string;
   exitAction?: string;
   doActivity?: string;
+  // StateMachineDiagram transition fields
+  trigger?: string;
+  guard?: string;
+  effect?: string;
   // BPMN add_task / add_gateway / add_event / modify_node fields
   // (source / target / label / name reused from above for add_flow)
   taskType?: string;
@@ -128,6 +138,7 @@ export interface ModelModification {
     | 'modify_state'
     | 'modify_intent'
     | 'add_transition'
+    | 'modify_transition'
     | 'remove_transition'
     | 'add_state_body'
     | 'modify_object'

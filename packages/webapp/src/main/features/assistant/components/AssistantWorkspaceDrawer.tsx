@@ -28,6 +28,7 @@ import { openPushDialog, selectHasLiveSpecDrivenRun } from '../../spec-driven/st
 import { sessionStoragePendingAssistantPrompt, sessionStorageAssistantHandleHinted } from '../../../shared/constants/constant';
 import { readLlmKey } from '../../../shared/services/llmKeyStorage';
 import { PilotSessionNotice } from '../../../shared/components/pilot/PilotSessionNotice';
+import { rateLimitToneClass } from './rateLimitTone';
 
 /* ------------------------------------------------------------------ */
 /*  Types & constants                                                  */
@@ -615,12 +616,7 @@ export const AssistantWorkspaceDrawer: React.FC<AssistantWorkspaceDrawerProps> =
 
   /* ---- Computed values ---- */
 
-  const rateLimitColor =
-    rateLimitStatus.cooldownRemaining > 0 || rateLimitStatus.requestsLastMinute >= 8
-      ? 'text-red-500'
-      : rateLimitStatus.requestsLastMinute >= 6
-        ? 'text-amber-500'
-        : 'text-muted-foreground';
+  const rateLimitColor = rateLimitToneClass(rateLimitStatus);
 
   /* ---- Render helpers ---- */
 
@@ -708,6 +704,7 @@ export const AssistantWorkspaceDrawer: React.FC<AssistantWorkspaceDrawerProps> =
 
       <section
         ref={drawerRef}
+        id="assistant-drawer-panel"
         className={cn(
           'pointer-events-none absolute inset-0 z-40 flex flex-col overflow-visible bg-transparent',
           // iOS-style drawer curve (as in Vaul).

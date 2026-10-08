@@ -236,20 +236,29 @@ export class ObjectDiagramModifier implements DiagramModifier {
     return model;
   }
 
+  /**
+   * The modeling agent names the endpoints on the target
+   * (`target.sourceObject` / `target.targetObject`) and the link label in
+   * `changes.relationshipType`; `changes.source` / `changes.target` /
+   * `changes.name` are accepted too.
+   */
   private addLink(model: BESSERModel, modification: ModelModification): BESSERModel {
-    const sourceName = (modification.changes as any).source as string | undefined;
-    const targetName = (modification.changes as any).target as string | undefined;
+    const target = modification.target || {};
+    const changes = modification.changes || {};
+    const sourceName = target.sourceObject || changes.source;
+    const targetName = target.targetObject || changes.target;
 
     let sourceNode: BesserNode | undefined;
-    if (modification.target.objectId) {
-      sourceNode = ModifierHelpers.findNodeById(model, modification.target.objectId);
+    if (target.objectId) {
+      sourceNode = ModifierHelpers.findNodeById(model, target.objectId);
     }
     if (!sourceNode && sourceName) sourceNode = this.findObjectNodeByName(model, sourceName);
     const targetNode = targetName ? this.findObjectNodeByName(model, targetName) : undefined;
 
     if (!sourceNode || !targetNode) {
-      throw new Error('Could not locate source or target object for link.');
+      throw new Error(`Could not locate source (${sourceName}) or target (${targetName}) object for link.`);
     }
+    const linkName = changes.name || changes.relationshipType || '';
 
     const linkId = ModifierHelpers.generateUniqueId('link');
     const edge: BesserEdge = {
@@ -260,7 +269,8 @@ export class ObjectDiagramModifier implements DiagramModifier {
       sourceHandle: 'right',
       targetHandle: 'left',
       data: {
-        name: modification.changes.name || '',
+        name: linkName,
+        label: linkName,
         points: [
           { x: 100, y: 10 },
           { x: 0, y: 10 },

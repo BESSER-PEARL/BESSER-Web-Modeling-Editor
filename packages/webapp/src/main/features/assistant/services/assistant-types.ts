@@ -53,6 +53,7 @@ export type AssistantActionName =
   | 'inject_complete_system'
   | 'modify_model'
   | 'switch_diagram'
+  | 'create_diagram_tab'
   | 'trigger_generator'
   | 'trigger_smart_generator'
   | 'trigger_github_import'

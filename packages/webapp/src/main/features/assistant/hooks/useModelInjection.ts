@@ -20,8 +20,11 @@ import {
   addDiagramThunk,
   addAndSwitchDiagramThunk,
   bumpEditorRevision,
+  updateDiagramReferencesThunk,
 } from '../../../app/store/workspaceSlice';
 import { popUndo, canUndo, pushUndoSnapshot } from '../services/undoStack';
+import { applyModelToEditor } from '../services/UMLModelingService';
+import { fitEditorAroundAssistantPanel, isAssistantPanelOpen } from './panelAwareViewport';
 
 /** User-facing notice for a modification batch that only partly applied. */
 export function describeSkippedChanges(appliedCount: number, skipped: string[]): string {
@@ -118,29 +121,32 @@ function getModelBounds(model: any): ModelBounds | null {
 }
 
 /**
- * Bring the injected content into view once the editor has rendered it.
- * The React-Flow canvas is a pan/zoom viewport (not a scroll container), so
- * we ask the editor to fit the current diagram via `BesserEditor.fitView()`
- * (a thin wrapper over React Flow's `fitView` on the editor's instance).
- * A freshly mounted editor (after an `editorRevision` bump) already fits on
- * init, so an editor build without the method or a not-yet-ready instance
- * is a silent no-op — only in-place `modify_model` updates lose the
- * re-centre until the library exposes it.
+ * Bring the injected content into view once the editor has rendered it, in
+ * the part of the canvas the open assistant panel leaves visible (see
+ * `panelAwareViewport`). A freshly mounted editor (after an `editorRevision`
+ * bump) already fits on init, so an editor build without `fitView` or a
+ * not-yet-ready instance is a silent no-op.
  *
  * The editor is resolved when the timer fires: the assistant handlers keep
  * the first render's `handleInjection`, whose captured editor is stale.
  */
 function centerEditorViewport(getEditor: () => any, delayMs = 200): void {
   setTimeout(() => {
-    try {
-      const editor = getEditor();
-      if (editor && typeof editor.fitView === 'function') {
-        editor.fitView({ padding: 0.1, duration: 300, maxZoom: 1.0 });
-      }
-    } catch (error) {
+    fitEditorAroundAssistantPanel(getEditor()).catch((error) => {
       console.warn('[useModelInjection] Could not re-center the editor viewport:', error);
-    }
+    });
   }, delayMs);
+}
+
+/** Diagram types the agent builds from the ACTIVE class tab (and that store a reference to one). */
+const BUILT_FROM_ACTIVE_CLASS_DIAGRAM = new Set(['ObjectDiagram', 'GUINoCodeDiagram']);
+
+/** Id of the class tab the agent read: the active one, as in its project snapshot. */
+function activeClassDiagramId(project: any): string | undefined {
+  const tabs: ProjectDiagram[] | undefined = project?.diagrams?.ClassDiagram;
+  if (!Array.isArray(tabs) || tabs.length === 0) return undefined;
+  const index = project?.currentDiagramIndices?.ClassDiagram ?? 0;
+  return (tabs[index] ?? tabs[0])?.id;
 }
 
 const UML_DIAGRAM_TYPES = new Set([
@@ -332,6 +338,30 @@ export function useModelInjection({
     }
   };
 
+  const linkToClassDiagram = async (
+    diagramType: string,
+    classDiagramId: string | undefined,
+    createdTab: { index: number; diagram: ProjectDiagram } | null,
+  ): Promise<void> => {
+    if (!classDiagramId) return;
+    const project = currentProjectRef.current;
+    const diagramIndex = createdTab?.index ?? project?.currentDiagramIndices?.[diagramType];
+    const diagram: ProjectDiagram | undefined =
+      createdTab?.diagram ?? project?.diagrams?.[diagramType]?.[diagramIndex];
+    if (typeof diagramIndex !== 'number' || diagram?.references?.ClassDiagram === classDiagramId) return;
+    try {
+      await dispatch(
+        updateDiagramReferencesThunk({
+          diagramType: diagramType as SupportedDiagramType,
+          diagramIndex,
+          references: { ClassDiagram: classDiagramId },
+        }),
+      ).unwrap();
+    } catch (error) {
+      console.warn('[useModelInjection] Could not link the diagram to its class diagram:', error);
+    }
+  };
+
   /* ================================================================ */
   /*  handleInjection                                                  */
   /* ================================================================ */
@@ -344,6 +374,9 @@ export function useModelInjection({
       const targetIsUml = isUmlDiagramType(targetDiagramType);
       let applied = false;
       let appliedModel: any = null;
+      let createdTab: { index: number; diagram: ProjectDiagram } | null = null;
+      // Read before any tab switch: the class tab the agent's snapshot had active.
+      const sourceClassDiagramId = activeClassDiagramId(currentProjectRef.current);
 
       // New tab: create it, convert systemSpec -> model, write to Redux directly.
       //
@@ -384,12 +417,13 @@ export function useModelInjection({
             requestAutoLayoutOnNextSetup();
           }
 
-          await dispatch(
+          const created = await dispatch(
             addAndSwitchDiagramThunk({
               diagramType: targetDiagramType as SupportedDiagramType,
               initialModel: newModelForTab ?? undefined,
             }),
           ).unwrap();
+          createdTab = created ? { index: created.index, diagram: created.diagram } : null;
           applied = true;
           if (newModelForTab) appliedModel = newModelForTab;
         } catch (tabError) {
@@ -625,7 +659,8 @@ export function useModelInjection({
           }
           applied = true;
           appliedModel = newModel;
-          if (shouldCenterViewportAfterInjection(command, currentModel, newModel)) {
+          // With the assistant panel open, any change may land behind it.
+          if (shouldCenterViewportAfterInjection(command, currentModel, newModel) || isAssistantPanelOpen()) {
             centerEditorViewport(() => editorRef.current);
           }
         }
@@ -672,6 +707,16 @@ export function useModelInjection({
 
       if (!applied) {
         throw new Error('Assistant did not provide a valid update payload');
+      }
+
+      // An object / GUI diagram built by the assistant came from the active
+      // class tab; record that, or the diagram shows (and generates against)
+      // the default first class tab instead.
+      if (
+        BUILT_FROM_ACTIVE_CLASS_DIAGRAM.has(targetDiagramType) &&
+        (createdTab || command.action === 'inject_complete_system')
+      ) {
+        await linkToClassDiagram(targetDiagramType, sourceClassDiagramId, createdTab);
       }
 
       // Refresh undo state after successful injection
@@ -735,7 +780,7 @@ export function useModelInjection({
 
     try {
       if (editor) {
-        editor.model = snapshot.model;
+        applyModelToEditor(editor, snapshot.model);
       }
       dispatch(updateDiagramModelThunk({ model: snapshot.model }));
 

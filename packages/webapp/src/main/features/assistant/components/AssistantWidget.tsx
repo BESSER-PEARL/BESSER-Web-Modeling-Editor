@@ -31,6 +31,7 @@ import { useAssistantLogic, type ConnectionStatus, type MessageMeta } from '../h
 import { shouldOpenGuiTab, isReviewSpecAction, type GuiActionRouteInput } from '../hooks/suggestedActionRouting';
 import { AssistantByokDialog } from './AssistantByokDialog';
 import { QuickActions } from './QuickActions';
+import { rateLimitToneClass } from './rateLimitTone';
 import { Z_INDEX } from '../../../shared/constants/z-index';
 import { sessionStorageAssistantDrawerOpen } from '../../../shared/constants/constant';
 import { PilotSessionNotice } from '../../../shared/components/pilot/PilotSessionNotice';
@@ -268,12 +269,7 @@ export const AssistantWidget: React.FC<AssistantWidgetProps> = ({ onAssistantGen
 
   if (!isOnEditorPage || !isAssistantApplicable || drawerOpen) return null;
 
-  const rateLimitColor =
-    rateLimitStatus.cooldownRemaining > 0 || rateLimitStatus.requestsLastMinute >= 8
-      ? 'text-red-500'
-      : rateLimitStatus.requestsLastMinute >= 6
-        ? 'text-amber-500'
-        : 'text-muted-foreground';
+  const rateLimitColor = rateLimitToneClass(rateLimitStatus);
 
   return (
     <>
