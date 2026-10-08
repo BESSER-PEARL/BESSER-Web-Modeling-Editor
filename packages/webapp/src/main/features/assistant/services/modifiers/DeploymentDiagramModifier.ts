@@ -17,119 +17,143 @@ export class DeploymentDiagramModifier implements DiagramModifier {
   }
 
   canHandle(action: string): boolean {
-    return ['add_node', 'add_artifact', 'add_component', 'add_dependency', 'modify_element', 'remove_element', 'remove_dependency'].includes(action);
+    return [
+      'add_node',
+      'add_artifact',
+      'add_component',
+      'add_dependency',
+      'modify_element',
+      'remove_element',
+      'remove_dependency',
+    ].includes(action);
   }
 
   applyModification(model: BESSERModel, modification: ModelModification): BESSERModel {
     const updated = ModifierHelpers.cloneModel(model);
     if (!updated.relationships) updated.relationships = {};
     switch (modification.action) {
-      case 'add_node': return this.addNode(updated, modification);
-      case 'add_artifact': return this.addArtifact(updated, modification);
-      case 'add_component': return this.addComponent(updated, modification);
-      case 'add_dependency': return this.addDependency(updated, modification);
-      case 'modify_element': return this.modifyElement(updated, modification);
-      case 'remove_element': return this.removeElement(updated, modification);
-      case 'remove_dependency': return this.removeDependency(updated, modification);
-      default: throw new Error(`Unsupported action for DeploymentDiagram: ${modification.action}`);
+      case 'add_node':
+        return this.addNode(updated, modification);
+      case 'add_artifact':
+        return this.addArtifact(updated, modification);
+      case 'add_component':
+        return this.addComponent(updated, modification);
+      case 'add_dependency':
+        return this.addDependency(updated, modification);
+      case 'modify_element':
+        return this.modifyElement(updated, modification);
+      case 'remove_element':
+        return this.removeElement(updated, modification);
+      case 'remove_dependency':
+        return this.removeDependency(updated, modification);
+      default:
+        throw new Error(`Unsupported action for DeploymentDiagram: ${modification.action}`);
     }
   }
 
-  private nextPosition(model: BESSERModel, type?: string): { x: number; y: number } {
-    let maxRight = 0, sumY = 0, count = 0;
+  /** Place new elements of `types` to the right of the existing ones, near their vertical mean. */
+  private nextPosition(model: BESSERModel, types: string[]): { x: number; y: number } {
+    let maxRight = 0;
+    let sumY = 0;
+    let count = 0;
     for (const el of Object.values(model.elements)) {
-      const elType = (el as any).type;
-      if (type && elType !== type) continue;
-      if (!type && !DEPLOY_TYPES.includes(elType)) continue;
-      const b = (el as any).bounds || {};
-      maxRight = Math.max(maxRight, (b.x || 0) + (b.width || 0));
-      sumY += b.y || 0;
-      count++;
+      if (!types.includes(el.type)) continue;
+      maxRight = Math.max(maxRight, el.bounds.x + el.bounds.width);
+      sumY += el.bounds.y;
+      count += 1;
     }
     return { x: count ? maxRight + 40 : 0, y: count ? Math.round(sumY / count) : 0 };
   }
 
-  private resolveElement(model: BESSERModel, ref?: string): string | null {
-    if (!ref) return null;
-    if (model.elements[ref] && DEPLOY_TYPES.includes((model.elements[ref] as any).type)) return ref;
-    const lower = ref.toLowerCase();
-    for (const [id, el] of Object.entries(model.elements)) {
-      if (DEPLOY_TYPES.includes((el as any).type) && ((el as any).name || '').toLowerCase() === lower) return id;
+  private requireElement(model: BESSERModel, m: ModelModification): string {
+    const id =
+      ModifierHelpers.resolveElementRef(model, m.target.elementId, DEPLOY_TYPES) ??
+      ModifierHelpers.resolveElementRef(model, m.target.elementName, DEPLOY_TYPES);
+    if (!id) {
+      throw new Error(`Element '${m.target.elementName ?? m.target.elementId ?? ''}' not found in the model.`);
     }
-    return null;
+    return id;
   }
 
-  private resolveNode(model: BESSERModel, ref?: string): string | null {
+  /** The Node an artifact goes into; a named Node that does not exist is an error. */
+  private ownerNode(model: BESSERModel, ref?: string): string | null {
     if (!ref) return null;
-    if (model.elements[ref]?.type === 'DeploymentNode') return ref;
-    const lower = ref.toLowerCase();
-    for (const [id, el] of Object.entries(model.elements)) {
-      if ((el as any).type === 'DeploymentNode' && ((el as any).name || '').toLowerCase() === lower) return id;
-    }
-    return null;
+    const id = ModifierHelpers.resolveElementRef(model, ref, ['DeploymentNode']);
+    if (!id) throw new Error(`Node '${ref}' not found in the model.`);
+    return id;
   }
 
   private addNode(model: BESSERModel, m: ModelModification): BESSERModel {
-    const { x, y } = this.nextPosition(model, 'DeploymentNode');
+    const { x, y } = this.nextPosition(model, ['DeploymentNode']);
     const id = ModifierHelpers.generateUniqueId('dnode');
-    const name = (m.target as any).elementName || m.changes?.name || 'Node';
     model.elements[id] = {
-      id, type: 'DeploymentNode', name, owner: null,
+      id,
+      type: 'DeploymentNode',
+      name: m.target.elementName || m.changes.name || 'Node',
+      owner: null,
       bounds: { x, y, width: 280, height: 160 },
-      stereotype: (m.changes as any)?.stereotype || 'node', displayStereotype: true,
+      stereotype: m.changes.stereotype || 'node',
+      displayStereotype: true,
     };
     return model;
   }
 
   private addArtifact(model: BESSERModel, m: ModelModification): BESSERModel {
     const id = ModifierHelpers.generateUniqueId('dart');
-    const name = (m.target as any).elementName || m.changes?.name || 'Artifact';
-    const owner = this.resolveNode(model, (m.changes as any)?.owner);
-    let x = 0, y = 0;
-    if (owner && model.elements[owner]) {
-      const nb = (model.elements[owner] as any).bounds || {};
-      // Stack below existing artifacts inside this node
-      let maxArtY = nb.y + 50;
+    const owner = this.ownerNode(model, m.changes.owner);
+    let { x, y } = this.nextPosition(model, ['DeploymentArtifact']);
+    if (owner) {
+      // Stack below the artifacts already inside this node.
+      const nodeBounds = model.elements[owner].bounds;
+      y = nodeBounds.y + 50;
       for (const el of Object.values(model.elements)) {
-        if ((el as any).owner === owner && (el as any).type === 'DeploymentArtifact') {
-          const b = (el as any).bounds || {};
-          maxArtY = Math.max(maxArtY, b.y + b.height + 15);
+        if (el.owner === owner && el.type === 'DeploymentArtifact') {
+          y = Math.max(y, el.bounds.y + el.bounds.height + 15);
         }
       }
-      x = nb.x + 30;
-      y = maxArtY;
-    } else {
-      const pos = this.nextPosition(model, 'DeploymentArtifact');
-      x = pos.x; y = pos.y;
+      x = nodeBounds.x + 30;
     }
     model.elements[id] = {
-      id, type: 'DeploymentArtifact', name, owner,
-      bounds: { x, y, width: 160, height: 60 }, manifests: [],
+      id,
+      type: 'DeploymentArtifact',
+      name: m.target.elementName || m.changes.name || 'Artifact',
+      owner,
+      bounds: { x, y, width: 160, height: 60 },
+      manifests: [],
     };
     return model;
   }
 
   private addComponent(model: BESSERModel, m: ModelModification): BESSERModel {
-    const { x, y } = this.nextPosition(model, 'DeploymentComponent');
+    const { x, y } = this.nextPosition(model, ['DeploymentComponent']);
     const id = ModifierHelpers.generateUniqueId('dcomp');
-    const name = (m.target as any).elementName || m.changes?.name || 'Component';
     model.elements[id] = {
-      id, type: 'DeploymentComponent', name, owner: null,
+      id,
+      type: 'DeploymentComponent',
+      name: m.target.elementName || m.changes.name || 'Component',
+      owner: null,
       bounds: { x, y: y + 200, width: 160, height: 60 },
-      stereotype: (m.changes as any)?.stereotype || 'solution', displayStereotype: true,
+      stereotype: m.changes.stereotype || 'solution',
+      displayStereotype: true,
     };
     return model;
   }
 
   private addDependency(model: BESSERModel, m: ModelModification): BESSERModel {
-    const srcId = this.resolveElement(model, m.changes?.source);
-    const tgtId = this.resolveElement(model, m.changes?.target);
+    const srcId = ModifierHelpers.resolveElementRef(model, m.changes.source, DEPLOY_TYPES);
+    const tgtId = ModifierHelpers.resolveElementRef(model, m.changes.target, DEPLOY_TYPES);
     if (!srcId || !tgtId) throw new Error('Could not locate source or target for the dependency.');
     const id = ModifierHelpers.generateUniqueId('ddep');
     model.relationships[id] = {
-      id, type: 'DeploymentDependency', name: (m.changes as any)?.label || '', owner: null,
+      id,
+      type: 'DeploymentDependency',
+      name: m.changes.label || '',
+      owner: null,
       bounds: { x: 0, y: 0, width: 100, height: 1 },
-      path: [{ x: 0, y: 0 }, { x: 100, y: 0 }],
+      path: [
+        { x: 0, y: 0 },
+        { x: 100, y: 0 },
+      ],
       source: { element: srcId, direction: 'Right' },
       target: { element: tgtId, direction: 'Left' },
       isManuallyLayouted: false,
@@ -138,34 +162,28 @@ export class DeploymentDiagramModifier implements DiagramModifier {
   }
 
   private modifyElement(model: BESSERModel, m: ModelModification): BESSERModel {
-    const id = this.resolveElement(model, (m.target as any)?.elementId)
-            ?? this.resolveElement(model, (m.target as any)?.elementName);
-    if (id && model.elements[id]) {
-      const el = model.elements[id] as any;
-      if (m.changes?.name) el.name = m.changes.name;
-      if ((m.changes as any)?.stereotype) el.stereotype = (m.changes as any).stereotype;
-    }
+    const el = model.elements[this.requireElement(model, m)];
+    if (m.changes.name) el.name = m.changes.name;
+    if (m.changes.stereotype) el.stereotype = m.changes.stereotype;
     return model;
   }
 
+  /** Removes the element, everything it owns and every relationship touching them. */
   private removeElement(model: BESSERModel, m: ModelModification): BESSERModel {
-    const id = this.resolveElement(model, (m.target as any)?.elementId)
-            ?? this.resolveElement(model, (m.target as any)?.elementName);
-    if (!id) throw new Error(`Could not find element "${(m.target as any)?.elementName ?? (m.target as any)?.elementId}" to remove.`);
-    return ModifierHelpers.removeElementWithChildren(model, id);
+    return ModifierHelpers.removeElementWithChildren(model, this.requireElement(model, m));
   }
 
   private removeDependency(model: BESSERModel, m: ModelModification): BESSERModel {
-    const srcId = this.resolveElement(model, m.changes?.source);
-    const tgtId = this.resolveElement(model, m.changes?.target);
-    if (srcId && tgtId && model.relationships) {
-      for (const [rid, rel] of Object.entries(model.relationships)) {
-        if ((rel as any).source?.element === srcId && (rel as any).target?.element === tgtId) {
-          delete model.relationships[rid];
-          break;
-        }
-      }
+    const srcId = ModifierHelpers.resolveElementRef(model, m.changes.source, DEPLOY_TYPES);
+    const tgtId = ModifierHelpers.resolveElementRef(model, m.changes.target, DEPLOY_TYPES);
+    const relId = Object.keys(model.relationships).find(
+      (rid) =>
+        model.relationships[rid].source?.element === srcId && model.relationships[rid].target?.element === tgtId,
+    );
+    if (!srcId || !tgtId || !relId) {
+      throw new Error(`No dependency from '${m.changes.source ?? ''}' to '${m.changes.target ?? ''}' found.`);
     }
+    delete model.relationships[relId];
     return model;
   }
 }

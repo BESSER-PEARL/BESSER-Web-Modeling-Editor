@@ -3,11 +3,10 @@
  * Converts a simplified BPMN process spec (nodes + flows, optionally grouped
  * into pools/lanes) emitted by the modeling agent into the Apollon
  * BPMNDiagram model.
- * 
- * Agentic lane metadata is preserved when explicitly supplied
- * (`isAgentic`, `role`, `trustScore`, `multiplicity`), but the converter
- * does not infer agentic semantics on its own. Output shape matches the
- * verified BPMN template shape :
+ *
+ * Agentic task / gateway / lane fields are kept when the spec supplies them;
+ * the converter never infers agentic semantics on its own. Output shape
+ * matches the verified BPMN template shape:
  * model.type === "BPMNDiagram"; sequence-flow paths are left for the editor's
  * layouter to recompute on load (isManuallyLayouted: false), so only element
  * bounds need to be correct here.
@@ -25,7 +24,7 @@
  * model.type "BPMNDiagram". 
  */
 
-import { DiagramConverter, generateUniqueId } from './base';
+import { DiagramConverter, centerElementsOnOrigin, generateUniqueId } from './base';
 
 interface SpecNode {
   id?: string;
@@ -77,6 +76,7 @@ type Pool = {
     role?: string;
     trustScore?: number;
     multiplicity?: number;
+    agentDiagramRef?: string;
   }>;
 };
 const COL_GAP = 220; // horizontal distance between layers
@@ -134,9 +134,8 @@ export class BPMNDiagramConverter implements DiagramConverter {
             trustScore: l.trustScore,
             multiplicity: l.multiplicity,
             agentDiagramRef: l.agentDiagramRef,
-        })),
+          })),
       }));
-      
 
     // --- Layered left-to-right layout (longest-path layering). Computed over
     // the FULL flow graph (including cross-pool message flows) so columns
@@ -175,27 +174,7 @@ export class BPMNDiagramConverter implements DiagramConverter {
     flows.forEach((f) => this.emitFlow(f, idMap, layerOf, byLayer, relationships));
 
     // --- Center the content on the origin (0,0) ---
-    // The canvas draws elements inside <svg x="50%" y="50%">, so model
-    // coordinate (0,0) is the VISUAL CENTER of the canvas, not the top-left.
-    // Content pinned to x>=0 / y>=0 lands entirely in the bottom-right quadrant
-    // (the "shifted to the right" symptom).  Every built-in converter avoids
-    // this by starting at negative coordinates (LAYOUT_START_X/Y); here we
-    // instead measure the content bounding box and shift it so its center sits
-    // on the origin.  Flow geometry is placeholder (the layouter recomputes it
-    // on load), so only element bounds need shifting.
-    const placed = Object.values(elements);
-    if (placed.length) {
-      const minX = Math.min(...placed.map((e) => e.bounds.x));
-      const minY = Math.min(...placed.map((e) => e.bounds.y));
-      const maxX = Math.max(...placed.map((e) => e.bounds.x + e.bounds.width));
-      const maxY = Math.max(...placed.map((e) => e.bounds.y + e.bounds.height));
-      const offsetX = -(minX + maxX) / 2;
-      const offsetY = -(minY + maxY) / 2;
-      placed.forEach((e) => {
-        e.bounds.x += offsetX;
-        e.bounds.y += offsetY;
-      });
-    }
+    centerElementsOnOrigin(elements);
 
     // --- Diagram-size envelope ---
     const layerKeys = Object.keys(byLayer).map(Number);
@@ -482,23 +461,9 @@ export class BPMNDiagramConverter implements DiagramConverter {
 
   /** Centers content on the origin and wraps it into a full BPMNDiagram model. */
   private finalizeModel(elements: Record<string, any>, relationships: Record<string, any>) {
-    const placed = Object.values(elements);
-    let width = 600;
-    let height = 320;
-    if (placed.length) {
-      const minX = Math.min(...placed.map((e) => e.bounds.x));
-      const minY = Math.min(...placed.map((e) => e.bounds.y));
-      const maxX = Math.max(...placed.map((e) => e.bounds.x + e.bounds.width));
-      const maxY = Math.max(...placed.map((e) => e.bounds.y + e.bounds.height));
-      const offsetX = -(minX + maxX) / 2;
-      const offsetY = -(minY + maxY) / 2;
-      placed.forEach((e) => {
-        e.bounds.x += offsetX;
-        e.bounds.y += offsetY;
-      });
-      width = Math.max(600, maxX - minX);
-      height = Math.max(320, maxY - minY);
-    }
+    const size = centerElementsOnOrigin(elements);
+    const width = Math.max(600, size?.width ?? 0);
+    const height = Math.max(320, size?.height ?? 0);
 
     return {
       version: '3.0.0',
