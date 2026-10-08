@@ -4,13 +4,13 @@ import { DefaultNodeWrapper } from "../wrappers"
 import { PopoverManager } from "@/components/popovers/PopoverManager"
 import { UserModelIconNodeProps } from "@/types"
 import { getCustomColorsFromData } from "@/utils/layoutUtils"
+import { IconImage } from "@/components/svgs/nodes/IconImage"
 
 /**
  * `UserModelIcon`. Small visual marker attached to a
  * `UserModelName`. v3 source: `user-modeling/uml-user-model-icon/`. The
  * icon itself is stored as inline SVG body (or a data URL) on
- * `data.icon`; this component renders it inside a `foreignObject` so
- * arbitrary SVG content works.
+ * `data.icon`; `IconImage` renders it as an image, never as markup.
  */
 export function UserModelIcon({
   id,
@@ -48,22 +48,14 @@ export function UserModelIcon({
             stroke="none"
           />
           {icon ? (
-            icon.startsWith("data:") || icon.startsWith("http") ? (
-              <image href={icon} x={0} y={0} width={width} height={height} />
-            ) : (
-              <foreignObject x={0} y={0} width={width} height={height}>
-                <div
-                  style={{
-                    width: "100%",
-                    height: "100%",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                  }}
-                  dangerouslySetInnerHTML={{ __html: icon }}
-                />
-              </foreignObject>
-            )
+            <IconImage
+              icon={icon}
+              x={0}
+              y={0}
+              width={width}
+              height={height}
+              color="var(--besser-primary-contrast)"
+            />
           ) : (
             <text
               x={width / 2}

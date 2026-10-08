@@ -153,13 +153,14 @@ describe("UserModelNameSVG view (per-node data.view, icon by default)", () => {
       </DiagramStoreContext.Provider>
     )
   }
-  const iconBox = (c: HTMLElement) =>
-    c.getElementsByTagName("foreignObject")[0] ?? null
+  const iconBox = (c: HTMLElement) => c.getElementsByTagName("image")[0] ?? null
+  const iconMarkup = (c: HTMLElement) =>
+    decodeURIComponent(iconBox(c)!.getAttribute("href")!.split(",")[1])
 
   it("shows the icon by default (no view stored), header still named", () => {
     const { container } = renderSvg()
     expect(iconBox(container)).not.toBeNull()
-    expect(iconBox(container)!.innerHTML).toContain("circle")
+    expect(iconMarkup(container)).toContain("circle")
     expect(container.textContent).toContain("User")
     expect(container.textContent).not.toContain("age >= 65")
   })
@@ -181,8 +182,17 @@ describe("UserModelNameSVG view (per-node data.view, icon by default)", () => {
 
   it("falls back to the person glyph when no icon resolves (never the table)", () => {
     const { container } = renderSvg({ icon: undefined, className: "NoSuchClass" })
-    expect(iconBox(container)!.innerHTML).toContain("fluentColorPerson")
+    expect(iconMarkup(container)).toContain("fluentColorPerson")
     expect(container.textContent).not.toContain("age >= 65")
+  })
+
+  it("never inserts an imported icon as live markup (stored XSS)", () => {
+    const payload =
+      "<svg xmlns='http://www.w3.org/2000/svg'><image href='x' onerror='window.__xss=1'/>" +
+      "<foreignObject><img src='x' onerror='window.__xss=1'></foreignObject></svg>"
+    const { container } = renderSvg({ icon: payload })
+    expect(container.querySelector("img, foreignObject, [onerror]")).toBeNull()
+    expect(iconBox(container)!.getAttribute("href")).toMatch(/^data:image\/svg\+xml/)
   })
 
   it("uses the linked meta-class icon when the node has none", () => {

@@ -11,6 +11,7 @@ import { SVGComponentProps } from "@/types/SVG"
 import { StyledRect } from "@/components"
 import { getCustomColorsFromData } from "@/utils"
 import { diagramBridge } from "@/services/diagramBridge"
+import { IconImage } from "../IconImage"
 
 interface Props extends SVGComponentProps {
   data: ObjectNodeProps
@@ -140,32 +141,16 @@ export const ObjectNameSVG = ({
           align="start"
         />
 
-        {/* Icon view replaces attributes/methods sections. The
-            stored `icon` is an SVG markup string from the v3 fork — we
-            embed it via foreignObject so embedded styles / namespaces
-            survive. */}
+        {/* Icon view replaces attributes/methods sections. */}
         {iconViewActive && (
-          <foreignObject
+          <IconImage
+            icon={icon as string}
             x={0}
             y={headerHeight + 4}
             width={width}
             height={Math.max(40, height - headerHeight - 8)}
-          >
-            <div
-              style={{
-                width: "100%",
-                height: "100%",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                pointerEvents: "none",
-              }}
-              // Icon SVG body from v3 (e.g., `<svg>…</svg>`); rendered
-              // inline. Trusted authoring-time input — same trust model
-              // as v3, which used the string verbatim.
-              dangerouslySetInnerHTML={{ __html: icon as string }}
-            />
-          </foreignObject>
+            color={textColor}
+          />
         )}
 
         {/* Attributes Section. object instances
