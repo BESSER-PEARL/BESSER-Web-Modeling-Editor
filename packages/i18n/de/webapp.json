@@ -49,7 +49,6 @@
       "state": "Zustand",
       "agent": "Agent",
       "bpmn": "BPMN",
-      "__comment__": "TODO: THE FOLLOWING TWO FIELDS NEED REVISION (THEY REFER TO UML COMPONENT AND DEPLOYMENT DIAGRAMS)!!!!!!!",
       "component": "Komponente",
       "deployment": "Bereitstellung",
       "user": "Benutzer",
@@ -89,7 +88,6 @@
       "title": "Generieren",
       "generating": "Wird generiert…",
       "goToClassDiagram": "Zum Klassendiagramm",
-      "__comment__": "TODO: THE FOLLOWING THREE FIELDS NEED REVISION!!!!!!!",
       "deriveComponentDiagram": "Komponentendiagramm generieren",
       "deriveDeploymentDiagram": "Bereitstellungsdiagramm generieren",
       "generateDockerCompose": "Docker Compose generieren",
@@ -1057,7 +1055,6 @@
             "description": "Agenten- und Benutzerdiagramme für Konversationsagenten."
           },
           "agenticSwarm": {
-            "__comment__": "TODO: THE FOLLOWING TWO FIELDS NEED REVISION!!!!!!!",
             "label": "Multi-Agenten",
             "description": "Agentisches BPMN sowie Agenten-, Komponenten- und Bereitstellungsdiagramme."
           },
@@ -1636,7 +1633,6 @@
     "GUINoCodeDiagram": "GUI-Diagramm",
     "QuantumCircuitDiagram": "Quantenschaltkreisdiagramm",
     "BPMN": "BPMN-Diagramm",
-    "__comment__":"TODO: THE FOLLOWING TWO FIELDS NEED REVISION (THEY REFER TO UML COMPONENT AND DEPLOYMENT DIAGRAMS)!!!!!!!",
     "ComponentDiagram": "Komponentendiagramm",
     "DeploymentDiagram": "Bereitstellungsdiagramm",
     "NNDiagram": "Neuronales-Netz-Diagramm"
@@ -2806,7 +2802,6 @@
       "QuantumCircuitDiagram": "Quantenschaltkreis",
       "NNDiagram": "Neuronales-Netz-Diagramm",
       "BPMN": "BPMN-Prozess",
-      "__comment__":"TODO: THE FOLLOWING TWO FIELDS NEED REVISION (THEY REFER TO UML COMPONENT AND DEPLOYMENT DIAGRAMS)!!!!!!!",
       "ComponentDiagram": "Komponentendiagramm",
       "DeploymentDiagram": "Bereitstellungsdiagramm"
     }

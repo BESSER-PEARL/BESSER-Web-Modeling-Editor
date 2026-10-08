@@ -49,7 +49,6 @@
       "state": "État",
       "agent": "Agent",
       "bpmn": "BPMN",
-      "__comment__": "TODO: THE FOLLOWING TWO FIELDS NEED REVISION (THEY REFER TO UML COMPONENT AND DEPLOYMENT DIAGRAMS)!!!!!!!",
       "component": "Composant",
       "deployment": "Déploiement",
       "user": "Utilisateur",
@@ -89,7 +88,6 @@
       "title": "Générer",
       "generating": "Génération…",
       "goToClassDiagram": "Aller au diagramme de classes",
-      "__comment__": "TODO: THE FOLLOWING THREE FIELDS NEED REVISION!!!!!!!",
       "deriveComponentDiagram": "Générer le diagramme de composants",
       "deriveDeploymentDiagram": "Générer le diagramme de déploiement",
       "generateDockerCompose": "Générer Docker Compose",
@@ -1057,7 +1055,6 @@
             "description": "Diagrammes d'agents et d'utilisateurs pour agents conversationnels."
           },
           "agenticSwarm": {
-            "__comment__": "TODO: THE FOLLOWING TWO FIELDS NEED REVISION!!!!!!!",
             "label": "Multi-agents",
             "description": "Diagrammes BPMN agentiques, d'agents, de composants et de déploiement."
           },
@@ -1636,7 +1633,6 @@
     "GUINoCodeDiagram": "Diagramme d'IUG",
     "QuantumCircuitDiagram": "Diagramme de circuit quantique",
     "BPMN": "Diagramme BPMN",
-    "__comment__":"TODO: THE FOLLOWING TWO FIELDS NEED REVISION (THEY REFER TO UML COMPONENT AND DEPLOYMENT DIAGRAMS)!!!!!!!",
     "ComponentDiagram": "Diagramme de composants",
     "DeploymentDiagram": "Diagramme de déploiement",
     "NNDiagram": "Diagramme de réseau de neurones"

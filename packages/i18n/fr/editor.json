@@ -406,7 +406,6 @@
       "BPMNGroup": "Groupe",
       "BPMNExpand": "Développer",
       "BPMNCollapse": "Réduire",
-      "__comment__": "TODO: FROM AGENTIC TO GATEWAYROLEMERGING NEEDS REVISION!!!!!!!",
       "BPMNAgentic": "Agentique",
       "BPMNTrustScore": "Score de confiance (0-100)",
       "BPMNMultiplicity": "Copies (≥1)",
