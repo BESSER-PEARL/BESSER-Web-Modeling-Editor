@@ -104,6 +104,8 @@ const UML_DIAGRAM_TYPES = new Set([
   'AgentDiagram',
   'UserDiagram',
   'BPMN',
+  'ComponentDiagram',
+  'DeploymentDiagram',
 ]);
 const isUmlDiagramType = (t?: string): boolean => (t ? UML_DIAGRAM_TYPES.has(t) : false);
 
