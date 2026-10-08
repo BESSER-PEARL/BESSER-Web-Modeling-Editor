@@ -49,6 +49,10 @@ export * from './packages/bpmn/bpmn-flow/bpmn-flow-validator';
 export * from './packages/bpmn/common/types';
 export * from './packages/bpmn/common/governance-dsl';
 
+// Export the agentic Component-diagram stereotype vocabulary (mirrors the
+// BESSER `uml_component/agentic.py` enums) and its token helpers.
+export * from './packages/common/agentic/agentic-tokens';
+
 // Export the multiplicity helpers used by the ER-notation rendering
 // (parseMultiplicity / toERCardinality). Pure functions, safe to import
 // from tests and from consumer webapps.

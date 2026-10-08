@@ -6,12 +6,10 @@ import { UMLDeploymentArtifact } from '../../../../../../editor/src/main/package
 /**
  * Regression guard for Component and Deployment stereotype serialization.
  *
- * Before Phase A, UMLComponentComponent.serialize() and
- * UMLDeploymentComponent.serialize() emitted only `displayStereotype`
- * and silently dropped `stereotype`. These tests fail if that
- * round-trip ever regresses.
+ * Both serializers must emit `stereotype` next to `displayStereotype`;
+ * these tests fail if that round-trip ever regresses.
  */
-describe('Phase A — Component/Deployment stereotype survives serialize round-trip', () => {
+describe('Component/Deployment stereotype survives serialize round-trip', () => {
   it('UMLComponentComponent.serialize() emits the stereotype', () => {
     const component = new UMLComponentComponent({
       name: 'Planner',
@@ -77,7 +75,7 @@ describe('Phase A — Component/Deployment stereotype survives serialize round-t
   });
 });
 
-describe('20 — Deployment Artifact manifests survives serialize round-trip', () => {
+describe('Deployment Artifact manifests survives serialize round-trip', () => {
   it('UMLDeploymentArtifact.serialize() emits manifests', () => {
     const artifact = new UMLDeploymentArtifact({ name: 'OrderAgent' });
     artifact.manifests = ['cmp-1', 'cmp-2'];
@@ -106,7 +104,7 @@ describe('20 — Deployment Artifact manifests survives serialize round-trip', (
   });
 });
 
-describe('21 — Component processModelRefs survives serialize round-trip', () => {
+describe('Component processModelRefs survives serialize round-trip', () => {
   it('UMLComponentComponent.serialize() emits processModelRefs', () => {
     const component = new UMLComponentComponent({ name: 'Planner', stereotype: 'solution' });
     component.processModelRefs = ['bpmn-1', 'bpmn-2'];

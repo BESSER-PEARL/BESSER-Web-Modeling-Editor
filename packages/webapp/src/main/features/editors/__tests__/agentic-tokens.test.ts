@@ -6,14 +6,14 @@ import {
   isAgentStereotype,
   isAgenticEdgeStereotype,
   stereotypeTokens,
-} from '../../../../../../editor/src/main/packages/common/agentic/agentic-tokens';
+} from '@besser/wme';
 
 /**
- * Guards the Phase C (C-lite) agentic token contract. The token strings
+ * Guards the agentic token contract. The token strings
  * mirror the BESSER metamodel enums in
  * uml_component/agentic.py — these tests fail if the WME side drifts.
  */
-describe('Phase C — agentic token vocabulary', () => {
+describe('agentic token vocabulary', () => {
   it('AgentCategory tokens match the metamodel enum values', () => {
     expect([...AGENT_CATEGORY_TOKENS]).toEqual(['solution', 'supervision']);
   });
@@ -56,7 +56,7 @@ describe('Phase C — agentic token vocabulary', () => {
     expect(isAgenticEdgeStereotype('')).toBe(false);
   });
 
-  it('CAPABILITY_TOKENS includes the LLM/DB/RAG resource tokens (point 5)', () => {
+  it('CAPABILITY_TOKENS includes the LLM/DB/RAG resource tokens', () => {
     expect([...CAPABILITY_TOKENS]).toEqual(['skill', 'tool', 'llm', 'db', 'rag']);
   });
 
