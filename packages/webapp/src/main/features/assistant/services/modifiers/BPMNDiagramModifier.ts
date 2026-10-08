@@ -32,6 +32,7 @@ type BPMNNodeRecord = {
   owner: string | null;
   isAgentic?: boolean;
   reflectionMode?: string;
+  reflectionReviewerLaneId?: string;
   trustScore?: number;
   agentDiagramRef?: string;
   gatewayRole?: string;
@@ -145,6 +146,8 @@ export class BPMNDiagramModifier implements DiagramModifier {
     const id = m.target.nodeId || ModifierHelpers.generateUniqueId('bpmn');
     const taskType = TASK_TYPES.has(String(m.changes.taskType)) ? m.changes.taskType : 'default';
     const owner = this.ownerLane(model, m.changes.owner);
+    // A reviewer lane that does not resolve is dropped, not an error.
+    const reviewerLaneId = this.findLane(model, m.changes.reflectionReviewerLaneId);
     model.elements[id] = {
       id,
       type: 'BPMNTask',
@@ -157,6 +160,7 @@ export class BPMNDiagramModifier implements DiagramModifier {
       reflectionMode: m.changes.reflectionMode || 'none',
       trustScore: typeof m.changes.trustScore === 'number' ? m.changes.trustScore : 0,
       ...(m.changes.agentDiagramRef ? { agentDiagramRef: m.changes.agentDiagramRef } : {}),
+      ...(reviewerLaneId ? { reflectionReviewerLaneId: reviewerLaneId } : {}),
     };
     return model;
   }
@@ -268,6 +272,8 @@ export class BPMNDiagramModifier implements DiagramModifier {
         if (typeof m.changes.reflectionMode === 'string') el.reflectionMode = m.changes.reflectionMode;
         if (typeof m.changes.trustScore === 'number') el.trustScore = m.changes.trustScore;
         if (typeof m.changes.agentDiagramRef === 'string') el.agentDiagramRef = m.changes.agentDiagramRef;
+        const reviewerLaneId = this.findLane(model, m.changes.reflectionReviewerLaneId);
+        if (reviewerLaneId) el.reflectionReviewerLaneId = reviewerLaneId;
       }
 
       if (el.type === 'BPMNGateway') {

@@ -101,6 +101,8 @@ export interface ModificationChanges {
   // Agentic BPMN task / gateway / lane fields
   isAgentic?: boolean;
   reflectionMode?: string;
+  // reviewer lane (id or name) for reflectionMode 'cross'
+  reflectionReviewerLaneId?: string;
   trustScore?: number;
   agentDiagramRef?: string;
   gatewayRole?: string;

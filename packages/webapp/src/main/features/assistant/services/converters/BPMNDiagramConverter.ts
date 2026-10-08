@@ -37,6 +37,8 @@ interface SpecNode {
   laneId?: string; // optional: id of the lane (role) within poolId
   isAgentic?: boolean;
   reflectionMode?: string;
+  // reviewer lane for reflectionMode 'cross', as a spec lane id or lane name
+  reflectionReviewerLaneId?: string;
   trustScore?: number;
   agentDiagramRef?: string;
   gatewayRole?: string;
@@ -324,6 +326,23 @@ export class BPMNDiagramConverter implements DiagramConverter {
       bandOriginY[orphanBand.key] = cursorY;
     }
 
+    // A spec lane reference (lane id, preferring the node's own pool, else a
+    // lane name) → the emitted swimlane id; undefined when nothing matches.
+    const resolveLaneRef = (ref: string | undefined, poolId?: string): string | undefined => {
+      const key = ref?.trim();
+      if (!key) return undefined;
+      if (poolId && laneIdMap[`${poolId}::${key}`]) return laneIdMap[`${poolId}::${key}`];
+      for (const pool of pools) {
+        if (laneIdMap[`${pool.id}::${key}`]) return laneIdMap[`${pool.id}::${key}`];
+      }
+      const lower = key.toLowerCase();
+      for (const pool of pools) {
+        const lane = pool.lanes.find((l) => l.name.trim().toLowerCase() === lower);
+        if (lane) return laneIdMap[`${pool.id}::${lane.id}`];
+      }
+      return undefined;
+    };
+
     // --- Emit node elements ---
     nodes.forEach((n) => {
       const layer = layerOf[n.id] ?? 0;
@@ -332,7 +351,8 @@ export class BPMNDiagramConverter implements DiagramConverter {
       const x = POOL_HEADER_WIDTH + layer * COL_GAP;
       const y = bandY + BAND_V_PADDING + row * ROW_GAP;
       const owner = n.poolId && n.laneId ? laneIdMap[`${n.poolId}::${n.laneId}`] ?? null : null;
-      this.emitNodeElement(n, x, y, elements, idMap, owner);
+      const reviewerLaneId = resolveLaneRef(n.reflectionReviewerLaneId, n.poolId);
+      this.emitNodeElement(n, x, y, elements, idMap, owner, reviewerLaneId);
     });
 
     // --- Emit flows: cross-pool flows become message flows with a vertical
@@ -359,6 +379,8 @@ export class BPMNDiagramConverter implements DiagramConverter {
     elements: Record<string, any>,
     idMap: Record<string, string>,
     owner: string | null = null,
+    /** Resolved editor id of the cross-reflection reviewer lane, if any. */
+    reflectionReviewerLaneId?: string,
   ): void {
     const apollonType = this.normalizeType(n.type);
     const isTask = apollonType === 'BPMNTask';
@@ -387,6 +409,7 @@ export class BPMNDiagramConverter implements DiagramConverter {
         ...(typeof n.agentDiagramRef === 'string' && n.agentDiagramRef
           ? { agentDiagramRef: n.agentDiagramRef }
           : {}),
+        ...(reflectionReviewerLaneId ? { reflectionReviewerLaneId } : {}),
       };
     } else if (apollonType === 'BPMNGateway') {
       const gatewayType = GATEWAY_TYPES.has(String(n.gatewayType)) ? n.gatewayType : 'exclusive';
