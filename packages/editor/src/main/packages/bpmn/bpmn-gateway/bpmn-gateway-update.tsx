@@ -400,11 +400,7 @@ class BPMNGatewayUpdateComponent extends Component<Props, State> {
   };
 
   private writeGeneratedGovernance = (id: string) => {
-    const dsl = generateGovernanceDsl(
-      id,
-      this.props.elementsById as unknown as Record<string, never>,
-      this.state.govPolicyType,
-    );
+    const dsl = generateGovernanceDsl(id, this.props.elementsById, this.state.govPolicyType);
     this.props.update<BPMNGateway>(id, { governanceDsl: dsl });
   };
 

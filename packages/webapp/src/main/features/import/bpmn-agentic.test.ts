@@ -782,7 +782,7 @@ describe('generateGovernanceDsl policyType (T1c)', () => {
     gatewayRole: 'merging',
     trustScore: 70,
   };
-  const elementsById = { M: merging } as Record<string, never>;
+  const elementsById = { M: merging };
 
   it('emits the chosen policy keyword and a ratio for the voting family', () => {
     const dsl = generateGovernanceDsl('M', elementsById, 'MajorityPolicy');
@@ -790,6 +790,19 @@ describe('generateGovernanceDsl policyType (T1c)', () => {
     expect(dsl).toContain('ratio : 0.5');
     expect(dsl).toContain('// policyType=MajorityPolicy, trustScore=70');
     expect(dsl).not.toContain('collaborationMode');
+  });
+
+  it('emits a valid placeholder participant when the block has no agentic lane', () => {
+    const dsl = generateGovernanceDsl('M', elementsById, 'MajorityPolicy');
+    expect(dsl).not.toContain('Roles :');
+    expect(dsl).toContain('(Agent) Participant { confidence : 0.00 }');
+    expect(dsl).toContain('Participant list : Participant');
+  });
+
+  it('keeps a gateway name with line breaks inside its comment line', () => {
+    const named = { M: { ...merging, name: 'Merge\nScopes: injected' } };
+    const dsl = generateGovernanceDsl('M', named, 'MajorityPolicy');
+    expect(dsl.split('\n')[0]).toBe('// Generated from agentic merging gateway "Merge Scopes: injected"');
   });
 
   it('omits Parameters for leader-driven', () => {
@@ -812,7 +825,7 @@ describe('generateGovernanceDsl policyType (T1c)', () => {
       MR: { id: 'MR', type: 'BPMNGateway', name: 'Merge', isAgentic: true, gatewayRole: 'merging', trustScore: 70 },
       F1: { id: 'F1', type: 'BPMNFlow', flowType: 'sequence', source: { element: 'DIV' }, target: { element: 'T1' } },
       F2: { id: 'F2', type: 'BPMNFlow', flowType: 'sequence', source: { element: 'T1' }, target: { element: 'MR' } },
-    } as Record<string, never>;
+    };
     const dsl = generateGovernanceDsl('MR', fixture, 'MajorityPolicy');
     expect(dsl).toContain('WorkerLane');
     expect(dsl).not.toContain('TODO');
@@ -851,7 +864,7 @@ describe('generateGovernanceDsl policyType (T1c)', () => {
       },
       F1: { id: 'F1', type: 'BPMNFlow', flowType: 'sequence', source: { element: 'DIV' }, target: { element: 'T1' } },
       F2: { id: 'F2', type: 'BPMNFlow', flowType: 'sequence', source: { element: 'T1' }, target: { element: 'MR' } },
-    } as Record<string, never>;
+    };
     const dsl = generateGovernanceDsl('MR', fixture, 'MajorityPolicy');
     expect(dsl).toContain('ManagerLane');
     expect(dsl).toContain('WorkerLane');
@@ -891,12 +904,29 @@ describe('generateGovernanceDsl policyType (T1c)', () => {
       },
       F1: { id: 'F1', type: 'BPMNFlow', flowType: 'sequence', source: { element: 'DIV' }, target: { element: 'T1' } },
       F2: { id: 'F2', type: 'BPMNFlow', flowType: 'sequence', source: { element: 'T1' }, target: { element: 'MR' } },
-    } as Record<string, never>;
+    };
     const dsl = generateGovernanceDsl('MR', fixture, 'LeaderDrivenPolicy');
     expect(dsl).toContain('ManagerLane');
     expect(dsl).not.toContain('WorkerLane');
     expect(dsl).not.toContain('role :');
     expect(dsl).not.toContain('Roles :');
     expect(dsl).not.toContain('TODO');
+  });
+});
+
+describe('generateGovernanceDsl participant ids', () => {
+  it('gives same-named lanes distinct participant ids', () => {
+    const lane = (id: string) => ({ id, type: 'BPMNSwimlane', name: 'Reviewer', isAgentic: true, trustScore: 50 });
+    const fixture = {
+      L1: lane('L1'),
+      L2: lane('L2'),
+      DIV: { id: 'DIV', type: 'BPMNGateway', isAgentic: true, gatewayRole: 'diverging', owner: 'L1' },
+      T1: { id: 'T1', type: 'BPMNTask', owner: 'L2' },
+      MR: { id: 'MR', type: 'BPMNGateway', name: 'Merge', isAgentic: true, gatewayRole: 'merging', owner: 'L1' },
+      F1: { id: 'F1', type: 'BPMNFlow', flowType: 'sequence', source: { element: 'DIV' }, target: { element: 'T1' } },
+      F2: { id: 'F2', type: 'BPMNFlow', flowType: 'sequence', source: { element: 'T1' }, target: { element: 'MR' } },
+    };
+    const dsl = generateGovernanceDsl('MR', fixture, 'MajorityPolicy');
+    expect(dsl).toContain('Participant list : Reviewer, Reviewer_2');
   });
 });

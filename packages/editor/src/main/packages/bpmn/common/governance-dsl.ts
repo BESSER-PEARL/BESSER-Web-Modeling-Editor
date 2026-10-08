@@ -12,6 +12,10 @@ type AnyEl = {
   role?: string;
   trustScore?: number;
   gatewayRole?: string;
+  // flows
+  flowType?: string;
+  source?: { element: string };
+  target?: { element: string };
 };
 
 // govdsl FLOAT requires a decimal point ([0-9]+ '.' [0-9]+) — always emit 2 dp.
@@ -22,10 +26,12 @@ const float2 = (n: number): string => n.toFixed(2);
 function sanitizeId(raw: string | undefined, fallback: string): string {
   const base = (raw ?? '').trim();
   if (!base) return fallback;
-  let s = base.replace(/[^a-zA-Z0-9_/-]/g, '_');
-  if (!/^[a-zA-Z_]/.test(s)) s = '_' + s;
-  return s || fallback;
+  const s = base.replace(/[^a-zA-Z0-9_/-]/g, '_');
+  return /^[a-zA-Z_]/.test(s) ? s : '_' + s;
 }
+
+// A name written into a `//` comment must stay on that comment's line.
+const commentText = (raw: string): string => raw.replace(/[\r\n]+/g, ' ');
 
 // The user picks the governance policy directly from the merge-gateway popup
 // dropdown. This is the offered set (LazyConsensus / Composed stay manual-only).
@@ -71,10 +77,7 @@ export function generateGovernanceDsl(
 ): string {
   const gw = elementsById[mergingGatewayId];
   const trust = typeof gw?.trustScore === 'number' ? gw.trustScore : 0;
-  // Back-compat: VotingPolicy is not constructible in govdsl (no case in
-  // PolicyCreationListener). Remap silently so old diagrams still generate valid DSL.
-  const effectivePolicyType: GovPolicyType = (policyType as string) === 'VotingPolicy' ? 'MajorityPolicy' : policyType;
-  const choice = policyFor(effectivePolicyType);
+  const choice = policyFor(policyType);
 
   // Scope = the merging gateway itself (the one-per-block anchor).
   const scopeId = sanitizeId(gw?.name, `MergeDecision_${mergingGatewayId.slice(0, 8)}`);
@@ -93,7 +96,7 @@ export function generateGovernanceDsl(
     // the diverging is never reached as a BFS target (it is the root), and the
     // merging triggers `continue` before collection, so neither would be picked
     // up by the walk below.
-    for (const ownerId of [diverging.owner, elementsById[mergingGatewayId]?.owner]) {
+    for (const ownerId of [elementsById[diverging.id]?.owner, elementsById[mergingGatewayId]?.owner]) {
       if (ownerId) {
         const lane = elementsById[ownerId];
         if (lane?.isAgentic) lanes.set(ownerId, lane);
@@ -104,10 +107,9 @@ export function generateGovernanceDsl(
     const bQueue: string[] = [diverging.id];
     while (bQueue.length > 0) {
       const cur = bQueue.shift()!;
-      for (const el of Object.values(elementsById)) {
-        if (el.type !== 'BPMNFlow') continue;
-        const fl = el as unknown as { flowType?: string; source: { element: string }; target: { element: string } };
-        if (fl.flowType !== 'sequence' || fl.source.element !== cur) continue;
+      for (const fl of Object.values(elementsById)) {
+        if (fl.type !== 'BPMNFlow' || fl.flowType !== 'sequence' || !fl.source || !fl.target) continue;
+        if (fl.source.element !== cur) continue;
         const tgtId = fl.target.element;
         if (bVisited.has(tgtId)) continue;
         bVisited.add(tgtId);
@@ -134,38 +136,44 @@ export function generateGovernanceDsl(
   const participantLanes =
     policyType === 'LeaderDrivenPolicy' && supervisionLanes.length > 0 ? supervisionLanes : allLanes;
 
+  // Participant ids must be unique: lanes with the same name get _2, _3, ...
   const agents: { id: string; confidence: string }[] = [];
+  const usedIds = new Set<string>();
   for (const lane of participantLanes) {
+    const base = sanitizeId(lane.name, `Agent_${lane.id.slice(0, 8)}`);
+    let id = base;
+    for (let i = 2; usedIds.has(id); i++) id = `${base}_${i}`;
+    usedIds.add(id);
     agents.push({
-      id: sanitizeId(lane.name, `Agent_${lane.id.slice(0, 8)}`),
+      id,
       confidence: float2((typeof lane.trustScore === 'number' ? lane.trustScore : 0) / 100),
     });
   }
-  const hasAgents = agents.length > 0;
+  if (agents.length === 0) {
+    // govdsl requires a non-empty participant set (spec §4.2): emit one
+    // placeholder agent for the user to replace.
+    agents.push({ id: 'Participant', confidence: float2(0) });
+  }
 
   // ── assemble ──
   const L: string[] = [];
-  L.push(`// Generated from agentic merging gateway "${gw?.name ?? mergingGatewayId}"`);
-  L.push(`// policyType=${effectivePolicyType}, trustScore=${trust}`);
+  L.push(`// Generated from agentic merging gateway "${commentText(gw?.name ?? mergingGatewayId)}"`);
+  L.push(`// policyType=${policyType}, trustScore=${trust}`);
 
   L.push('Scopes:');
   L.push('    Tasks:');
   L.push(`        ${scopeId}`);
 
   L.push('Participants:');
-  if (hasAgents) {
-    L.push('    Individuals :');
-    agents.forEach((a, i) => {
-      L.push(`        (Agent) ${a.id} { confidence : ${a.confidence} }${i < agents.length - 1 ? ',' : ''}`);
-    });
-  } else {
-    // Validity fallback (spec §4.2): govdsl requires a non-empty participant set.
-    // TODO: Roles : placeholder does not construct in govdsl — replace manually.
-    L.push('    Roles : participant');
-    L.push('    // TODO: no agentic lanes found in the block — replace this placeholder.');
+  if (participantLanes.length === 0) {
+    L.push('    // No agentic lanes were found in the block: replace the placeholder agent.');
   }
+  L.push('    Individuals :');
+  agents.forEach((a, i) => {
+    L.push(`        (Agent) ${a.id} { confidence : ${a.confidence} }${i < agents.length - 1 ? ',' : ''}`);
+  });
 
-  const participantList = hasAgents ? agents.map((a) => a.id).join(', ') : 'participant';
+  const participantList = agents.map((a) => a.id).join(', ');
   L.push(`${choice.policyType} ${policyId} {`);
   L.push(`    Scope: ${scopeId}`);
   L.push('    DecisionType as BooleanDecision');
