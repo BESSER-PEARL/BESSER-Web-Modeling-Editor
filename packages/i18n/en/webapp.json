@@ -1041,7 +1041,8 @@
         "State Machine Diagram": "State Machine Diagram",
         "Quantum Circuit": "Quantum Circuit",
         "Neural Network": "Neural Network",
-        "Full Project": "Full Project"
+        "Full Project": "Full Project",
+        "Multi-agent": "Multi-agent"
       },
       "confirm": {
         "title": "Existing diagram detected",

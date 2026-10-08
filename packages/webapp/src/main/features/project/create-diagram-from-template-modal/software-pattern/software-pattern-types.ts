@@ -6,6 +6,7 @@ export enum SoftwarePatternCategory {
   STRUCTURAL = 'Class Diagram',
   BEHAVIORAL = 'Behavioral',
   AGENT = 'Agent Diagram',
+  MULTI_AGENT = 'Multi-agent',
   STATE_MACHINE = 'State Machine Diagram',
   BPMN = 'BPMN Diagram',
   QUANTUM_CIRCUIT = 'Quantum Circuit',
@@ -51,6 +52,7 @@ export enum SoftwarePatternType {
   // Full Project patterns (multi-diagram bundles imported as new projects)
   LIBRARY_FULL_STACK = 'Library (Full Stack)',
   PERSONALIZED_GYM_AGENT = 'Personalized Gym Agent',
+  MULTI_AGENT_BUG_FIXING = 'Multi-agent Bug Fixing',
 }
 
 /**

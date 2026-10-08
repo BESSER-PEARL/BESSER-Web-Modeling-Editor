@@ -90,6 +90,7 @@ const categoryOrder: SoftwarePatternCategory[] = [
   SoftwarePatternCategory.STATE_MACHINE,
   SoftwarePatternCategory.BPMN,
   SoftwarePatternCategory.AGENT,
+  SoftwarePatternCategory.MULTI_AGENT,
   SoftwarePatternCategory.QUANTUM_CIRCUIT,
   SoftwarePatternCategory.NN,
 ];
@@ -113,6 +114,7 @@ const categoryColor: Record<SoftwarePatternCategory, string> = {
   [SoftwarePatternCategory.QUANTUM_CIRCUIT]: 'bg-violet-100 text-violet-900 dark:bg-violet-900/30 dark:text-violet-300',
   [SoftwarePatternCategory.NN]: 'bg-orange-100 text-orange-900 dark:bg-orange-900/30 dark:text-orange-300',
   [SoftwarePatternCategory.FULL_PROJECT]: 'bg-rose-100 text-rose-900 dark:bg-rose-900/30 dark:text-rose-300',
+  [SoftwarePatternCategory.MULTI_AGENT]: 'bg-cyan-100 text-cyan-900 dark:bg-cyan-900/30 dark:text-cyan-300',
 };
 
 /**
@@ -131,7 +133,10 @@ const summarizeFullProjectDiagrams = (
     ['ClassDiagram', 'Class'],
     ['ObjectDiagram', 'Object'],
     ['StateMachineDiagram', 'State'],
+    ['BPMN', 'BPMN'],
     ['AgentDiagram', 'Agent'],
+    ['ComponentDiagram', 'Component'],
+    ['DeploymentDiagram', 'Deployment'],
     ['UserDiagram', 'User'],
     ['GUINoCodeDiagram', 'GUI'],
     ['QuantumCircuitDiagram', 'Quantum'],

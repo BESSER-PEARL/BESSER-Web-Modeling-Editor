@@ -1034,7 +1034,8 @@
         "State Machine Diagram": "Diagrama de màquina d'estats",
         "Quantum Circuit": "Circuit quàntic",
         "Neural Network": "Xarxa neuronal",
-        "Full Project": "Projecte complet"
+        "Full Project": "Projecte complet",
+        "Multi-agent": "Multiagent"
       },
       "confirm": {
         "title": "S'ha detectat un diagrama existent",

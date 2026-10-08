@@ -1037,7 +1037,8 @@
         "State Machine Diagram": "Zoustandsautomaten Diagramm",
         "Quantum Circuit": "Quantekreeslaf",
         "Neural Network": "Neuronaalt Netzwierk",
-        "Full Project": "Ganze Projet"
+        "Full Project": "Ganze Projet",
+        "Multi-agent": "Multi-Agenten"
       },
       "confirm": {
         "title": "Bestoenden Diagramm festgestallt",

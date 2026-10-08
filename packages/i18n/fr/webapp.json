@@ -1037,7 +1037,8 @@
         "State Machine Diagram": "Diagramme de machine à états",
         "Quantum Circuit": "Circuit quantique",
         "Neural Network": "Réseau de neurones",
-        "Full Project": "Projet complet"
+        "Full Project": "Projet complet",
+        "Multi-agent": "Multi-agents"
       },
       "confirm": {
         "title": "Diagramme existant détecté",
